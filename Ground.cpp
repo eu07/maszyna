@@ -1531,6 +1531,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
   case TP_MEMCELL:
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzglêdnienie rotacji
    tmp->pCenter+=pOrigin;
    tmp->MemCell=new TMemCell(&tmp->pCenter);
    tmp->MemCell->Load(parser);
@@ -1547,6 +1548,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
   case TP_EVLAUNCH:
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzglêdnienie rotacji
    tmp->pCenter+=pOrigin;
    tmp->EvLaunch=new TEventLauncher();
    tmp->EvLaunch->Load(parser);
@@ -1575,6 +1577,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    tmp->tsStaticSound=new TTextSound;
    parser->getTokens(3);
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+   tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzglêdnienie rotacji
    tmp->pCenter+=pOrigin;
    parser->getTokens();
    *parser >> token;
@@ -1713,7 +1716,6 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    if (token.compare("enddynamic")!=0)
     Error("enddynamic statement missing");
    break;
-  //case TP_TERRAIN: //TODO: zrobiæ jak zwyk³y, rozró¿nienie po nazwie albo czymœ innym
   case TP_MODEL:
    if (rmin<0)
    {tmp->iType=TP_TERRAIN;
