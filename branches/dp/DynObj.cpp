@@ -2288,7 +2288,11 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
   TAnimPant *p; //wskaŸnik do obiektu danych pantografu
   double fCurrent=(MoverParameters->DynamicBrakeFlag&&MoverParameters->ResistorsFlag?0:fabs(MoverParameters->Itot))+MoverParameters->TotalCurrent; //pr¹d pobierany przez pojazd - bez sensu z tym (TotalCurrent)
   //fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //pr¹d p³yn¹cy przez woltomierz, roz³adowuje kondensator orgromowy 4µF
-  double fPantCurrent=fCurrent*(pants[0].fParamPants->hvPowerWire&&pants[1].fParamPants->hvPowerWire?0.5:1.0);
+  double fPantCurrent=fCurrent; //normalnie ca³y pr¹d przez jeden pantograf
+  if (pants)
+   if (iAnimType[ANIM_PANTS]>1) //a jeœli s¹ dwa pantografy //Ra 1014-11: proteza, trzeba zrobiæ sensowniej
+    if (pants[0].fParamPants->hvPowerWire&&pants[1].fParamPants->hvPowerWire) //i oba pod³¹czone do drutów
+     fPantCurrent=fCurrent*0.5; //to dzielimy pr¹d równo na oba (trochê bez sensu, ale lepiej tak ni¿ podwoiæ pr¹d)
   for (int i=0;i<iAnimType[ANIM_PANTS];++i)
   {//pêtla po wszystkich pantografach
    p=pants[i].fParamPants;

@@ -294,6 +294,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; //po³o¿enie X,Y,Z
    if (org)
    {//przesuniêcie
+    //tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzglêdnienie rotacji
     Params[3].asdouble+=org->x; //wspó³rzêdne w scenerii
     Params[4].asdouble+=org->y;
     Params[5].asdouble+=org->z;
