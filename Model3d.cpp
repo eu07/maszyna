@@ -450,7 +450,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
       --iNumFaces; //o jeden trójk¹t mniej
       iNumVerts-=3; //czyli o 3 wierzcho³ki
       i-=3; //wczytanie kolejnego w to miejsce
-      WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\"");
+      WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\", verticle "+AnsiString(i));
      }
      if (i>0) //jeœli pierwszy trójk¹t bêdzie zdegenerowany, to zostanie usuniêty i nie ma co sprawdzaæ
       if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
