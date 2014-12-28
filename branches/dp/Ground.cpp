@@ -1246,7 +1246,7 @@ void __fastcall TGround::Free()
 TGroundNode* __fastcall TGround::FindDynamic(AnsiString asNameToFind)
 {//wyszukanie pojazdu o podanej nazwie, na razie tylko pojazdy z obsad¹ s¹ interesuj¹ce
  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
-//  if (Current->DynamicObject->Mechanik) //dostêp do pojazdów bez obsady nie jest na razie potrzebny
+  if (Current->DynamicObject->Mechanik) //dostêp do pojazdów bez obsady nie jest na razie potrzebny
    if ((Current->asName==asNameToFind))
     return Current;
  return NULL;
@@ -3663,6 +3663,7 @@ bool __fastcall TGround::Update(double dt,int iter)
   }
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    Current->DynamicObject->FastUpdate(dt);
+  UpdatePhys(dt,1);
   //pozostale iteracje
   for (int i=1;i<(iter-1);++i) //jeœli iter==5, to wykona siê 3 razy
   {
@@ -3670,6 +3671,7 @@ bool __fastcall TGround::Update(double dt,int iter)
     Current->DynamicObject->UpdateForce(dt,dt,false);
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
     Current->DynamicObject->FastUpdate(dt);
+   UpdatePhys(dt,1);
   }
   //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
   //Winger 180204 - pantografy
@@ -3685,6 +3687,7 @@ bool __fastcall TGround::Update(double dt,int iter)
   }
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    Current->DynamicObject->Update(dt,dt1);
+  TGround::UpdatePhys(dt,1);
  }
  else
  {//jezeli jest tylko jedna iteracja
@@ -3699,6 +3702,7 @@ bool __fastcall TGround::Update(double dt,int iter)
   }
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    Current->DynamicObject->Update(dt,dt);
+  UpdatePhys(dt,1);   
  }
  if (bDynamicRemove)
  {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
