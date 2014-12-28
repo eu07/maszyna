@@ -373,12 +373,12 @@ begin
 
 //luzowanie
   if(BrakeStatus and b_hld)=b_off then
-   dV:=PF(0,BCP,Nozzles[dTO]*nastG+(1-nastG)*Nozzles[dOO])*dt
+   dV:=PF(0,BCP,Nozzles[dTO]*nastG+(1-nastG)*Nozzles[dOO])*dt*(0.1+4.9*Min0R(0.2,BCP-((CVP-0.05-VVP)*BVM+0.1)))
   else dV:=0;
 //  BrakeCyl.Flow(-dV);
   Przekladniki[1].Flow(-dV);
   if((BrakeStatus and b_on)=b_on)and(Przekladniki[1].P*HBG300<MaxBP)then
-   dV:=PF(BVP,BCP,Nozzles[dTN]*(nastG+2*Byte(BCP<Podskok))+Nozzles[dON]*(1-nastG))*dt
+   dV:=PF(BVP,BCP,Nozzles[dTN]*(nastG+2*Byte(BCP<Podskok))+Nozzles[dON]*(1-nastG))*dt*(0.1+4.9*Min0R(0.2,(CVP-0.05-VVP)*BVM-BCP))
   else dV:=0;
 //  BrakeCyl.Flow(-dV);
   Przekladniki[1].Flow(-dV);
@@ -501,9 +501,9 @@ begin
 
 //sprawdzanie stanu
 // if ((BrakeStatus and 1)=1)and(BCP>0.25)then
-   if(VVP+0.002+BCP/BVM<CVP-0.05)and(Przys_blok)then
+   if(VVP+0.01+BCP/BVM<CVP-0.05)and(Przys_blok)then
      BrakeStatus:=(BrakeStatus or 3) //hamowanie stopniowe
-   else if(VVP-0.002+(BCP-0.1)/BVM>CVP-0.05) then
+   else if(VVP-0.01+(BCP-0.1)/BVM>CVP-0.05) then
      BrakeStatus:=(BrakeStatus and 252) //luzowanie
    else if(VVP+BCP/BVM>CVP-0.05) then
      BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
