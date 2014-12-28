@@ -57,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=14
-MinorVer=11
-Release=1127
-Build=458
+MinorVer=12
+Release=1131
+Build=459
 Debug=1
 PreRelease=0
 Special=0
@@ -71,13 +71,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.11.1127.458
+FileVersion=14.12.1131.459
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=14.11
+ProductVersion=14.12
 Comments=
 
 [HistoryLists\hlIncludePath]
@@ -108,10 +108,10 @@ Count=1
 Item0=D:\EU07\
 
 [Debugging]
-DebugSourceDirs=
+DebugSourceDirs=McZapkie\
 
 [Parameters]
-RunParams=
+RunParams=-s tarniowo2.scn
 HostApplication=
 RemoteHost=
 RemotePath=

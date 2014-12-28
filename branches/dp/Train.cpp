@@ -2831,9 +2831,9 @@ bool __fastcall TTrain::Update()
      }
 
     if  (mvControlled->SlippingWheels)
-    {
+    {//Ra 2014-12: lokomotywy 181/182 dostaj¹ SlippingWheels po zahamowaniu powy¿ej 2.85 bara i bucza³y
      double veldiff=(DynamicObject->GetVelocity()-fTachoVelocity)/mvControlled->Vmax;
-     if (veldiff<0)
+     if (veldiff<-0.01) //1% Vmax rezerwy, ¿eby 181/182 nie bucza³y po zahamowaniu, ale to proteza
      {
       if (fabs(mvControlled->Im)>10.0)
        btLampkaPoslizg.TurnOn();
