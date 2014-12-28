@@ -568,7 +568,7 @@ bool __fastcall TWorld::Init(HWND NhWnd,HDC hDC)
     WriteLog(buff);
     TGroundNode *nPlayerTrain=NULL;
     if (Global::asHumanCtrlVehicle!="ghostview")
-     nPlayerTrain=Ground.FindDynamic(Global::asHumanCtrlVehicle);
+     nPlayerTrain=Ground.DynamicFind(Global::asHumanCtrlVehicle); //szukanie w tych z obsadπ
     if (nPlayerTrain)
     {
      Train=new TTrain();
@@ -816,11 +816,11 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   }
   else if (cKey==Global::Keys[k_EndSign])
   {//Ra 2014-07: zabrane z kabiny
-   TDynamicObject *tmp=Global::DynamicNearest(); //domyúlnie wyszukuje do 20m
+   TDynamicObject *tmp=Global::CouplerNearest(); //domyúlnie wyszukuje do 20m
    if (tmp)
    {
-    int CouplNr=(LengthSquared3(tmp->HeadPosition()-Camera.Pos)>LengthSquared3(tmp->RearPosition()-Camera.Pos)?-1:1)*tmp->DirectionGet();
-    if (CouplNr<0) CouplNr=1;
+    int CouplNr=(LengthSquared3(tmp->HeadPosition()-Camera.Pos)>LengthSquared3(tmp->RearPosition()-Camera.Pos)?1:-1)*tmp->DirectionGet();
+    if (CouplNr<0) CouplNr=0; //z [-1,1] zrobiÊ [0,1]
     int mask,set=0; //Ra: [Shift]+[Ctrl]+[T] odpala mi jakπú idiotycznπ zmianÍ tapety pulpitu :/
     if (GetAsyncKeyState(VK_SHIFT)<0) //z [Shift] zapalanie
      set=mask=64; //bez [Ctrl] za≥oøyÊ tabliczki
@@ -1333,8 +1333,9 @@ bool __fastcall TWorld::Update()
  }
  Ground.CheckQuery();
  //przy 0.25 smuga gaúnie o 6:37 w Quarku, a mog≥aby juø 5:40
+ //Ra 2014-12: przy 0.15 siÍ skarøyli, øe nie widaÊ smug => zmieni≥em na 0.25 
  if (Train) //jeúli nie usuniÍty
-  Global::bSmudge=FreeFlyModeFlag?false:((Train->Dynamic()->fShade<=0.0)?(Global::fLuminance<=0.15):(Train->Dynamic()->fShade*Global::fLuminance<=0.15));
+  Global::bSmudge=FreeFlyModeFlag?false:((Train->Dynamic()->fShade<=0.0)?(Global::fLuminance<=0.25):(Train->Dynamic()->fShade*Global::fLuminance<=0.25));
 
  if (!Render()) return false;
 
@@ -2368,12 +2369,13 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
    case 3: //rozkaz dla AI
     if (Global::iMultiplayer)
     {int i=int(pRozkaz->cString[8]); //d≥ugoúÊ pierwszego ≥aÒcucha (z przodu dwa floaty)
-     TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+11+i,(unsigned)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
+     TGroundNode* t=Ground.DynamicFind(AnsiString(pRozkaz->cString+11+i,(unsigned)pRozkaz->cString[10+i])); //nazwa pojazdu jest druga
      if (t)
-     {
-      t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],NULL,stopExt); //floaty sπ z przodu
-      WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
-     }
+      if (t->DynamicObject->Mechanik)
+      {
+       t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString+9,i),pRozkaz->fPar[0],pRozkaz->fPar[1],NULL,stopExt); //floaty sπ z przodu
+       WriteLog("AI command: "+AnsiString(pRozkaz->cString+9,i));
+      }
     }
     break;
    case 4: //badanie zajÍtoúci toru
@@ -2403,7 +2405,8 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     break;
    case 6: //pobranie parametrÛw ruchu pojazdu
     if (Global::iMultiplayer)
-    {TGroundNode* t=Ground.FindDynamic(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
+    {//Ra 2014-12: to ma dzia≥aÊ rÛwnieø dla pojazdÛw bez obsady
+     TGroundNode* t=Ground.DynamicFindAny(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
      if (t)
       Ground.WyslijNamiary(t); //wys≥anie informacji o pojeüdzie
     }

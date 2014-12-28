@@ -326,7 +326,8 @@ public:
          return NULL;
  }
 */
- TGroundNode* __fastcall FindDynamic(AnsiString asNameToFind);
+ TGroundNode* __fastcall DynamicFindAny(AnsiString asNameToFind);
+ TGroundNode* __fastcall DynamicFind(AnsiString asNameToFind);
  TGroundNode* __fastcall FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType);
  TGroundRect* __fastcall GetRect(double x, double z) { return &Rects[GetColFromX(x)/iNumSubRects][GetRowFromZ(z)/iNumSubRects]; };
  TSubRect* __fastcall GetSubRect(double x, double z) { return GetSubRect(GetColFromX(x),GetRowFromZ(z)); };
@@ -352,6 +353,7 @@ public:
  void __fastcall WyslijParam(int nr,int fl);
  void __fastcall RadioStop(vector3 pPosition);
  TDynamicObject* __fastcall DynamicNearest(vector3 pPosition,double distance=20.0,bool mech=false);
+ TDynamicObject* __fastcall CouplerNearest(vector3 pPosition,double distance=20.0,bool mech=false);
  void __fastcall DynamicRemove(TDynamicObject* dyn);
  void __fastcall TerrainRead(const AnsiString &f);
  void __fastcall TerrainWrite();

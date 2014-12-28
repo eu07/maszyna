@@ -1243,10 +1243,18 @@ void __fastcall TGround::Free()
  delete sTracks;
 }
 
-TGroundNode* __fastcall TGround::FindDynamic(AnsiString asNameToFind)
-{//wyszukanie pojazdu o podanej nazwie, na razie tylko pojazdy z obsad¹ s¹ interesuj¹ce
+TGroundNode* __fastcall TGround::DynamicFindAny(AnsiString asNameToFind)
+{//wyszukanie pojazdu o podanej nazwie, szukanie po wszystkich (u¿yæ drzewa!)
  for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
-  if (Current->DynamicObject->Mechanik) //dostêp do pojazdów bez obsady nie jest na razie potrzebny
+  if ((Current->asName==asNameToFind))
+   return Current;
+ return NULL;
+};
+
+TGroundNode* __fastcall TGround::DynamicFind(AnsiString asNameToFind)
+{//wyszukanie pojazdu z obsad¹ o podanej nazwie (u¿yæ drzewa!)
+ for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
+  if (Current->DynamicObject->Mechanik)
    if ((Current->asName==asNameToFind))
     return Current;
  return NULL;
@@ -3410,12 +3418,13 @@ bool __fastcall TGround::CheckQuery()
       tmpEvent->Params[9].asMemCell->Value2(),
       tmpEvent->iFlags //flagi okreœlaj¹, co ma byæ skopiowane
      );
-    break;
+    //break; //¿eby siê wys³a³o do torów i nie by³o potrzeby na AddValues * 0 0
     case tp_AddValues: //ró¿ni siê jedn¹ flag¹ od UpdateValues
     case tp_UpdateValues:
      if (EventConditon(tmpEvent))
      {//teraz mog¹ byæ warunki do tych eventów
-      tmpEvent->Params[5].asMemCell->UpdateValues(tmpEvent->Params[0].asText,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble,tmpEvent->iFlags);
+      if (tmpEvent->Type!=tp_CopyValues) //dla CopyValues zrobi³o siê wczeœniej
+       tmpEvent->Params[5].asMemCell->UpdateValues(tmpEvent->Params[0].asText,tmpEvent->Params[1].asdouble,tmpEvent->Params[2].asdouble,tmpEvent->iFlags);
       if (tmpEvent->Params[6].asTrack)
       {//McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
        for (int i=0;i<tmpEvent->Params[6].asTrack->iNumDynamics;++i)
@@ -4169,12 +4178,41 @@ TDynamicObject* __fastcall TGround::DynamicNearest(vector3 pPosition,double dist
     for (node=tmp->nRootNode;node;node=node->nNext2) //nastêpny z sektora
      if (node->iType==TP_TRACK) //Ra: przebudowaæ na u¿ycie tabeli torów?
       for (k=0;k<node->pTrack->iNumDynamics;k++)
-       if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->GetPosition()-pPosition))<sqm)
-        if (mech?(node->pTrack->Dynamics[k]->Mechanik!=NULL):true) //czy ma mieæ obsadê
+       if (mech?(node->pTrack->Dynamics[k]->Mechanik!=NULL):true) //czy ma mieæ obsadê
+        if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->GetPosition()-pPosition))<sqm)
         {
          sqm=sqd; //nowa odleg³oœæ
          dyn=node->pTrack->Dynamics[k]; //nowy lider
         }
+ return dyn;
+};
+TDynamicObject* __fastcall TGround::CouplerNearest(vector3 pPosition,double distance,bool mech)
+{//wyszukanie pojazdu, którego sprzêg jest najbli¿ej wzglêdem (pPosition)
+ TGroundNode *node;
+ TSubRect *tmp;
+ TDynamicObject *dyn=NULL;
+ int c=GetColFromX(pPosition.x);
+ int r=GetRowFromZ(pPosition.z);
+ int i,j,k;
+ double sqm=distance*distance,sqd; //maksymalny promien poszukiwañ do kwadratu
+ for (j=r-1;j<=r+1;j++) //plus dwa zewnêtrzne sektory, ³¹cznie 9
+  for (i=c-1;i<=c+1;i++)
+   if ((tmp=FastGetSubRect(i,j))!=NULL)
+    for (node=tmp->nRootNode;node;node=node->nNext2) //nastêpny z sektora
+     if (node->iType==TP_TRACK) //Ra: przebudowaæ na u¿ycie tabeli torów?
+      for (k=0;k<node->pTrack->iNumDynamics;k++)
+       if (mech?(node->pTrack->Dynamics[k]->Mechanik!=NULL):true) //czy ma mieæ obsadê
+       {if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->HeadPosition()-pPosition))<sqm)
+        {
+         sqm=sqd; //nowa odleg³oœæ
+         dyn=node->pTrack->Dynamics[k]; //nowy lider
+        }
+        if ((sqd=SquareMagnitude(node->pTrack->Dynamics[k]->RearPosition()-pPosition))<sqm)
+        {
+         sqm=sqd; //nowa odleg³oœæ
+         dyn=node->pTrack->Dynamics[k]; //nowy lider
+        }
+      }
  return dyn;
 };
 //---------------------------------------------------------------------------

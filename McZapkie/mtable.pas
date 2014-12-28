@@ -259,7 +259,11 @@ begin
     begin
      vMax:=s2r(TrainName); //nie ma pliku ale jest liczba
      if (vMax>10)and(vMax<200) then
-      TTVmax:=vMax //Ra 2014-07: zamiast rozk³adu mo¿na podaæ Vmax
+      begin
+       TTVmax:=vMax; //Ra 2014-07: zamiast rozk³adu mo¿na podaæ Vmax
+       UpdateVelocity(StationCount,vMax); //ograniczenie do prêdkoœci startowej
+       ConversionError:=0;
+      end 
      else
       ConversionError:=-8; {Ra: ten b³¹d jest niepotrzebny}
     end

@@ -980,6 +980,8 @@ __fastcall TController::TController
  fLastStopExpDist=-1.0f;
  iRouteWanted=3; //powiedzmy, ¿e ma jechaæ prosto (1=w lewo)
  iCoupler=0; //sprzêg; niezerowy gdy ma byæ pod³¹czanie; samo pod³¹czanie w trybie Connect (wczeœniej mo¿e byæ np. Prepare_engine)
+ fOverhead1=3000.0;  //informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
+ fOverhead2=-1.0;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
 };
 
 void __fastcall TController::CloseLog()
@@ -1517,27 +1519,39 @@ bool __fastcall TController::PrepareEngine()
  {//czêœæ wykonawcza dla sterowania przez komputer
   mvOccupied->BatterySwitch(true);
   if (mvControlling->EnginePowerSource.SourceType==CurrentCollector)
-  {
-   if (mvControlling->PantPress>4.3)
-   {//je¿eli jest wystarczaj¹ce ciœnienie w pantografach
-    if ((!mvControlling->bPantKurek3)||(mvControlling->PantPress<=mvControlling->ScndPipePress)) //kurek prze³¹czony albo g³ówna ju¿ pompuje
-     mvControlling->PantCompFlag=false; //sprê¿arkê pantografów mo¿na ju¿ wy³¹czyæ
-    mvControlling->PantFront(true);
-    mvControlling->PantRear(true);
+  {//jeœli silnikowy jest pantografuj¹cym
+   if (fOverhead2>=0.0)
+   {//jeœli jazda bezpr¹dowa albo z opuszczonym pantografem
+    while (DecSpeed(true)); //zerowanie napêdu
    }
-   else if (mvControlling->PantPress<4.2) //¿eby nie za³¹cza³ zaraz po przekroczeniu 4.0
-   {//za³¹czenie ma³ej sprê¿arki
-    mvControlling->bPantKurek3=false; //od³¹czenie zbiornika g³ównego, bo z nim nie da rady napompowaæ
-    mvControlling->PantCompFlag=true; //za³¹czenie sprê¿arki pantografów
+   if (fOverhead2<=0.0)
+   {//jeœli nie trzeba opuszczaæ pantografów
+    if (mvControlling->PantPress>4.3)
+    {//je¿eli jest wystarczaj¹ce ciœnienie w pantografach
+     if ((!mvControlling->bPantKurek3)||(mvControlling->PantPress<=mvControlling->ScndPipePress)) //kurek prze³¹czony albo g³ówna ju¿ pompuje
+      mvControlling->PantCompFlag=false; //sprê¿arkê pantografów mo¿na ju¿ wy³¹czyæ
+     mvControlling->PantFront(true);
+     mvControlling->PantRear(true);
+    }
+    else if (mvControlling->PantPress<4.2) //¿eby nie za³¹cza³ zaraz po przekroczeniu 4.0
+    {//za³¹czenie ma³ej sprê¿arki
+     mvControlling->bPantKurek3=false; //od³¹czenie zbiornika g³ównego, bo z nim nie da rady napompowaæ
+     mvControlling->PantCompFlag=true; //za³¹czenie sprê¿arki pantografów
+    }
+    //if (mvOccupied->TrainType==dt_EZT)
+    //{//Ra 2014-12: po co to tutaj?
+    // mvControlling->PantFront(true);
+    // mvControlling->PantRear(true);
+    //}
    }
+   else
+   {//jazda z opuszczonymi pantografami
+    mvControlling->PantFront(false);
+    mvControlling->PantRear(false);
+   }
+   //if (mvControlling->EngineType==DieselElectric)
+   // mvControlling->Battery=true; //Ra: to musi byæ tak?
   }
-  if (mvOccupied->TrainType==dt_EZT)
-  {
-   mvControlling->PantFront(true);
-   mvControlling->PantRear(true);
-  }
-  //if (mvControlling->EngineType==DieselElectric)
-  // mvControlling->Battery=true; //Ra: to musi byæ tak?
  }
  if (mvControlling->PantFrontVolt||mvControlling->PantRearVolt||voltfront||voltrear)
  {//najpierw ustalamy kierunek, jeœli nie zosta³ ustalony
@@ -2100,6 +2114,12 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
   mvOccupied->RunInternalCommand(); //rozpoznaj komende bo lokomotywa jej nie rozpoznaje
   return true; //za³atwione
  }
+ if (NewCommand=="Overhead")
+ {//informacja o stanie sieci trakcyjnej
+  fOverhead1=NewValue1;  //informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
+  fOverhead2=NewValue2;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
+  return true; //za³atwione
+ }
  else if (NewCommand=="Emergency_brake") //wymuszenie zatrzymania, niezale¿nie kto prowadzi
  {//Ra: no nadal nie jest zbyt piêknie
   SetVelocity(0,0,reason);
@@ -2507,10 +2527,11 @@ bool __fastcall TController::UpdateSituation(double dt)
       mvOccupied->ChangeOffsetH(0.01*mvOccupied->Vel*dt); //Ra: co to mia³o byæ, to nie wiem
    if (mvControlling->EnginePowerSource.SourceType==CurrentCollector)
    {
-    if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
-     mvControlling->PantRear(true); //jazda na tylnym
-    else
-     mvControlling->PantFront(true);
+    if (fOverhead2<=0.0) //jeœli mo¿e jechaæ z podniesionym
+     if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
+      mvControlling->PantRear(true); //jazda na tylnym
+     else
+      mvControlling->PantFront(true);
     if (mvOccupied->Vel>10) //opuszczenie przedniego po rozpêdzeniu siê
     {
      if (mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo>1) //o ile jest wiêcej ni¿ jeden

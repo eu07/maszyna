@@ -293,6 +293,7 @@ public:
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);
  static AnsiString __fastcall GetNextSymbol();
  static TDynamicObject* __fastcall DynamicNearest();
+ static TDynamicObject* __fastcall CouplerNearest();
  static bool __fastcall AddToQuery(TEvent *event,TDynamicObject *who);
 };
 
