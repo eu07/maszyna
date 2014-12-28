@@ -114,9 +114,10 @@ CONST
                 //i pojemnosci sa podane w litrach (rozsadne wielkosci)
                 //zas dlugosc pojazdow jest podana w metrach
                 //a predkosc przeplywu w m/s                           //3.5
-                                                                       //7
+                                                                       //7//1.5
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
-   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (2.5, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
+//   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (2.0, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
+   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (2.0, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
    BPT_394: array[-1..5] of array [0..1] of real= ((13, 10.0), (5, 5.0), (0, -1), (5, -1), (5, 0.0), (5, 0.0), (18, 0.0));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
@@ -350,7 +351,7 @@ TYPE
         procedure SetRM(RMR: real);   //ustalenie przelozenia rapida
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
-        function GetHPFlow(HP, dt: real): real; override; //przeplyw - 8 bar        
+        function GetHPFlow(HP, dt: real): real; override; //przeplyw - 8 bar
         function GetCRP: real; override;
         procedure CheckState(BCP: real; var dV1: real);
         procedure CheckReleaser(dt: real); //odluzniacz
@@ -512,8 +513,8 @@ TYPE
 function PF(P1,P2,S:real;DP:real = 0.25):real;
 function PF1(P1,P2,S:real):real;
 
-function PFVa(PH,PL,S,LIM:real):real; //zawor napelniajacy z PH do PL, PL do LIM
-function PFVd(PH,PL,S,LIM:real):real; //zawor wypuszczajacy z PH do PL, PH do LIM
+function PFVa(PH,PL,S,LIM:real;DP:real = 0.1):real; //zawor napelniajacy z PH do PL, PL do LIM
+function PFVd(PH,PL,S,LIM:real;DP:real = 0.1):real; //zawor wypuszczajacy z PH do PL, PH do LIM
 
 implementation
 
@@ -576,7 +577,7 @@ begin
     PF1:=fm;
 end;
 
-function PFVa(PH,PL,S,LIM:real):real; //zawor napelniajacy z PH do PL, PL do LIM
+function PFVa(PH,PL,S,LIM:real;DP:real = 0.1):real; //zawor napelniajacy z PH do PL, PL do LIM
 var sg,fm: real;
 begin
   if LIM>PL then
@@ -586,7 +587,7 @@ begin
     PL:=PL+1;  //nizsze cisnienie absolutne
     sg:=PL/PH; //bezwymiarowy stosunek cisnien
     fm:=PH*197*S; //najwyzszy mozliwy przeplyw, wraz z kierunkiem
-    if (LIM-PL)<0.1 then fm:=fm*10*(LIM-PL); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
+    if (LIM-PL)<DP then fm:=fm*(LIM-PL)/DP; //jesli jestesmy przy nastawieniu, to zawor sie przymyka
     if (SG>0.5) then //jesli ponizej stosunku krytycznego
       if (PH-PL)<DPL then //niewielka roznica cisnien
         PFVa:=(PH-PL)/DPL*fm*2*SQRT((sg)*(1-sg))
@@ -599,7 +600,7 @@ begin
     PFVa:=0;
 end;
 
-function PFVd(PH,PL,S,LIM:real):real; //zawor wypuszczajacy z PH do PL, PH do LIM
+function PFVd(PH,PL,S,LIM:real;DP:real = 0.1):real; //zawor wypuszczajacy z PH do PL, PH do LIM
 var sg,fm: real;
 begin
   if LIM<PH then
@@ -609,7 +610,7 @@ begin
     PL:=PL+1;  //nizsze cisnienie absolutne
     sg:=PL/PH; //bezwymiarowy stosunek cisnien
     fm:=PH*197*S; //najwyzszy mozliwy przeplyw, wraz z kierunkiem
-    if (PH-LIM)<0.1 then fm:=fm*10*(PH-LIM); //jesli jestesmy przy nastawieniu, to zawor sie przymyka
+    if (PH-LIM)<0.1 then fm:=fm*(PH-LIM)/DP; //jesli jestesmy przy nastawieniu, to zawor sie przymyka
     if (SG>0.5) then //jesli ponizej stosunku krytycznego
     if (PH-PL)<DPL then //niewielka roznica cisnien
         PFVd:=(PH-PL)/DPL*fm*2*SQRT((sg)*(1-sg))
@@ -2293,7 +2294,7 @@ begin
   else dV:=0;
   BrakeCyl.Flow(-dV);
   if(BCP<IMP-0.005)and(Max0R(ImplsRes.P,8*LBP)>0.3) then
-   dV:=PFVa(BVP,BCP,0.02,IMP)*dt
+   dV:=PFVa(BVP,BCP,0.05,IMP)*dt
   else dV:=0;
   BrakeRes.Flow(-dV);
   BrakeCyl.Flow(+dV);
@@ -2550,7 +2551,7 @@ begin
 
           if(pom>rp+0.25)then Fala:=true;
           if(Fala)then
-            if(pom>rp+0.2)then
+            if(pom>rp+0.3)then
 //              if(ep>rp+0.11)then
                 xp:=xp-20*PR(pom,xp)*dt
 //              else
@@ -2566,9 +2567,9 @@ begin
           dpPipe:=Min0R(HP,Limpp+xp*xpM);
 
           if dpPipe>pp then
-            dpMainValve:=-PFVa(HP,pp,ActFlowSpeed/(LBDelay),dpPipe)
+            dpMainValve:=-PFVa(HP,pp,ActFlowSpeed/(LBDelay),dpPipe,0.4)
           else
-            dpMainValve:=PFVd(pp,0,ActFlowSpeed/(LBDelay),dpPipe);
+            dpMainValve:=PFVd(pp,0,ActFlowSpeed/(LBDelay),dpPipe,0.4);
 
           if EQ(i_bcp,-1) then
            begin

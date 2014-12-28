@@ -160,7 +160,51 @@ CONST
    dt_SN61=$20; //nie u¿ywane w warunkach, ale ustawiane z CHK
    dt_EP05=$40;
    dt_ET40=$80;
-   dt_181=$100; 
+   dt_181=$100;
+
+//sta³e dla asynchronów
+  eimc_s_dfic=0;
+  eimc_s_dfmax=1;
+  eimc_s_p=2;
+  eimc_s_cfu=3;
+  eimc_s_cim=4;
+  eimc_s_icif=5;
+  eimc_f_Uzmax=7;
+  eimc_f_Uzh=8;
+  eimc_f_DU=9;
+  eimc_f_I0=10;
+  eimc_f_cfu=11;
+  eimc_p_F0=13;
+  eimc_p_a1=14;
+  eimc_p_Pmax=15;
+  eimc_p_Fh=16;
+  eimc_p_Ph=17;
+  eimc_p_Vh0=18;
+  eimc_p_Vh1=19;
+  eimc_p_Imax=20;
+
+//zmienne dla asynchronów
+  eimv_FMAXMAX=0;
+  eimv_Fmax=1;
+  eimv_ks=2;
+  eimv_df=3;
+  eimv_fp=4;
+  eimv_U=5;
+  eimv_pole=6;
+  eimv_Ic=7;
+  eimv_If=8;
+  eimv_M=9;
+  eimv_Fr=10;
+  eimv_Ipoj=11;
+  eimv_Pm=12;
+  eimv_Pe=13;
+  eimv_eta=14;
+  eimv_fkr=15;
+  eimv_Uzsmax=16;
+  eimv_Pmax=17;
+  eimv_Fzad=18;
+  eimv_Imax=19;
+
 
 TYPE
     {ogolne}
@@ -505,6 +549,9 @@ TYPE
                 {- dla uproszczonego modelu silnika (dumb) oraz dla drezyny}
                 Ftmax:real;
 
+                {- dla lokomotyw z silnikami indukcyjnymi -}
+                eimc: array [0..20] of real;
+
                 {-dla wagonow}
                 MaxLoad: longint;           {masa w T lub ilosc w sztukach - ladownosc}
                 LoadAccepted, LoadQuantity: string; {co moze byc zaladowane, jednostki miary}
@@ -638,6 +685,9 @@ TYPE
                 dizel_automaticgearstatus: real; {0 - bez zmiany, -1 zmiana na nizszy +1 zmiana na wyzszy}
                 dizel_enginestart: boolean;      {czy trwa rozruch silnika}
                 dizel_engagedeltaomega: real;    {roznica predkosci katowych tarcz sprzegla}
+
+                {- zmienne dla lokomotyw z silnikami indukcyjnymi -}
+                eimv: array [0..20] of real;
 
                 {-zmienne dla drezyny}
                 PulseForce :real;        {przylozona sila}
@@ -2415,6 +2465,13 @@ end;
          if((TrainType and (dt_ET41 or dt_ET42))>0)and(Couplers[b].Connected<>nil)then //nie podoba mi siê to rozwi¹zanie, chyba trzeba dodaæ jakiœ wpis do fizyki na to
           if((Couplers[b].Connected.TrainType and (dt_ET41 or dt_ET42))>0)and((Couplers[b].CouplingFlag and 36) = 36)then
            LocBrakePress:=Max0R(Couplers[b].Connected.LocHandle.GetCP,LocBrakePress);
+
+         if(DynamicBrakeFlag)and(EngineType=ElectricInductionMotor)then
+          begin
+           if(Vel>10)then LocBrakePress:=0 else
+           if(Vel>5)then LocBrakePress:=(10-Vel)/5*LocBrakePress
+          end;           
+
         (Hamulec as TLSt).SetLBP(LocBrakePress);
        end;
       CV1_L_TR:
@@ -4218,83 +4275,98 @@ begin
      end;
    ElectricInductionMotor:
      begin
-       if (Voltage>1) and (MainS) then
+       if (Voltage>1800) and (MainS) then
         begin
 
-         if ((Hamulec as TLSt).GetEDBCP<0.25) then
+         if ((Hamulec as TLSt).GetEDBCP<0.25)and(LocHandle.GetCP<0.25) then
            DynamicBrakeFlag:=false
-         else if (BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25) then
+         else if ((BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25)) or (LocHandle.GetCP>0.25) then
            DynamicBrakeFlag:=true;
 
          if(DynamicBrakeFlag)then
           begin
-           if(Vel<5)then PosRatio:=0 else
-           if(Vel<10)then PosRatio:=(Vel-5)/5 else PosRatio:=1;
+           if eimv[eimv_Fmax]*sign(V)*DirAbsolute<-1 then
+             PosRatio:=sign(V)*DirAbsolute*eimv[eimv_Fr]/(eimc[eimc_p_Fh]*dizel_fill)
+           else
+             PosRatio:=0;
+           PosRatio:=round(20*Posratio)/20;
+           if PosRatio<19.5/20 then PosRatio:=PosRatio*0.9;
            (Hamulec as TLSt).SetED(PosRatio);
-           PosRatio:=sign(V)*(-0.2)*(2+Byte(BrakeDelayFlag and bdelay_R)/bdelay_R)*PosRatio*(Hamulec as TLSt).GetEDBCP/MaxBrakePress[0];
+           PosRatio:=-Max0R((Hamulec as TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0];
            tmp:=5;
           end
          else
           begin
-           PosRatio:=(MainCtrlPos/MainCtrlPosNo)*DirAbsolute;
+           PosRatio:=(MainCtrlPos/MainCtrlPosNo);
+           PosRatio:=1.0*(PosRatio*0+1)*PosRatio;
            (Hamulec as TLSt).SetED(0);
-           if (PosRatio*DirAbsolute>dizel_fill*DirAbsolute) then tmp:=1 else tmp:=4; //szybkie malenie, powolne wzrastanie
+           if (PosRatio>dizel_fill) then tmp:=1 else tmp:=4; //szybkie malenie, powolne wzrastanie
           end;
          if SlippingWheels then begin PosRatio:=0; tmp:=10; SandDoseOn; end;//przeciwposlizg
 
-         dizel_fill:=dizel_fill+Max0R(Min0R(PosRatio-Dizel_fill,0.1),-0.1)*2*(tmp{2{+4*byte(PosRatio<dizel_fill)})*dt;
+         dizel_fill:=dizel_fill+Max0R(Min0R(PosRatio-Dizel_fill,0.1),-0.1)*2*(tmp{2{+4*byte(PosRatio<dizel_fill)})*dt; //wartoœæ zadana/procent czegoœ
 
-         //zmienne: enrot - fs, tmp - df, tmpV - fp, dmoment - pole, dtrans - Us
-         //MPT0:    mfi - Uzmax, misat - DU, mfi0 - I0, fi - fmax, isat - fnomf, fi0 - cfu
-         //         WindingRes - Inom, Vhyp - snom, Vadd - Mnom, nmax - fnom
+         if(DynamicBrakeFlag)then tmp:=eimc[eimc_f_Uzh] else tmp:=eimc[eimc_f_Uzmax];
 
-         MotorParam[0].Isat:=Min0R(MotorParam[0].mfi,Voltage-MotorParam[0].misat)/MotorParam[0].fi0; //fnomf
-         //df:= fnom*snom*dizel_fill
-         tmp:=nmax*Vhyp*dizel_fill;
-         //if fs+df<= fnom   kv=1,
-         //           else   kv=fs/(fnom-df);
-         if (abs(enrot+tmp)<=MotorParam[0].Isat) then PosRatio:=1
-                                                 else PosRatio:=abs(enrot)/(MotorParam[0].Isat-tmp); //wspolczynnik powiekszenie
-         //fp:=Min0R(Max0R(fs+(Min0R(Max0R(kv*df,-fnom*snom),fnom*snom),-fmax),fmax);
-         tmpV:=Min0R(Max0R(enrot+Min0R(Max0R(PosRatio*tmp,-nmax*Vhyp),nmax*Vhyp),-MotorParam[0].fi),MotorParam[0].fi); //predkosc pola
-         //U:=Min0R(fp,fnomf)*cfu;
-         PosRatio:=Min0R(abs(tmpV),MotorParam[0].Isat)*MotorParam[0].fi0; //napiecie
-         if(tmpV*tmpV<1) then
-           dmoment:=1
+         eimv[eimv_Uzsmax]:=Min0R(Voltage-eimc[eimc_f_DU],tmp);
+         eimv[eimv_fkr]:=eimv[eimv_Uzsmax]/eimc[eimc_f_cfu];
+         if(DynamicBrakeFlag)then
+           eimv[eimv_Pmax]:=eimc[eimc_p_Ph]
          else
-           dmoment:=PosRatio/(abs(tmpV)*MotorParam[0].fi0); //pole
-         // I:=Inom*(fp-fs)/(snom*fnom)
-         Im:=WindingRes*(tmpV-enrot)/(nmax*Vhyp);
-         // M:=pole*Mmax*I/Imax
-         Mm:=dmoment*Vadd*Im/WindingRes;
+           eimv[eimv_Pmax]:=Min0R(eimc[eimc_p_Pmax],0.001*Voltage*(eimc[eimc_p_Imax]-eimc[eimc_f_I0])*Pirazy2*eimc[eimc_s_cim]/eimc[eimc_s_p]/eimc[eimc_s_cfu]);
 
-         Itot:=(NPoweredAxles*Im*sign(V)+MotorParam[0].mfi0)*(MotorParam[0].mIsat+PosRatio)/(Voltage);
-         EnginePower:=Abs(Itot*Voltage)/1000;
+         eimv[eimv_FMAXMAX]:=0.001*SQR(Min0R(eimv[eimv_fkr]/Max0R(abs(enrot)*eimc[eimc_s_p]+eimc[eimc_s_dfmax]*eimv[eimv_ks],eimc[eimc_s_dfmax]),1)*eimc[eimc_f_cfu]/eimc[eimc_s_cfu])*(eimc[eimc_s_dfmax]*eimc[eimc_s_dfic]*eimc[eimc_s_cim])*Transmision.Ratio*NPoweredAxles*2/WheelDiameter;
+         if(DynamicBrakeFlag)then
+           if(Vel>eimc[eimc_p_Vh0])then
+            eimv[eimv_Fmax]:=-sign(V)*(DirAbsolute)*Min0R(eimc[eimc_p_Ph]*3.6/Vel,-eimc[eimc_p_Fh]*dizel_fill)*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
+           else
+            eimv[eimv_Fmax]:=0
+         else
+           eimv[eimv_Fmax]:=Min0R(Min0R(3.6*eimv[eimv_Pmax]/Max0R(Vel,1),eimc[eimc_p_F0]-Vel*eimc[eimc_p_a1]),eimv[eimv_FMAXMAX])*dizel_fill;
 
-         if (abs(dizel_fill)>0.01) or (tmpV>0.01) then
+         eimv[eimv_ks]:=eimv[eimv_Fmax]/eimv[eimv_FMAXMAX];
+         eimv[eimv_df]:=eimv[eimv_ks]*eimc[eimc_s_dfmax];
+         eimv[eimv_fp]:=DirAbsolute*enrot*eimc[eimc_s_p]+eimv[eimv_df];
+//         eimv[eimv_U]:=Max0R(eimv[eimv_Uzsmax],Min0R(eimc[eimc_f_cfu]*eimv[eimv_fp],eimv[eimv_Uzsmax]));
+//         eimv[eimv_pole]:=eimv[eimv_U]/(eimv[eimv_fp]*eimc[eimc_s_cfu]);
+         if(abs(eimv[eimv_fp])<=eimv[eimv_fkr])then
+           eimv[eimv_pole]:=eimc[eimc_f_cfu]/eimc[eimc_s_cfu]
+         else
+           eimv[eimv_pole]:=eimv[eimv_Uzsmax]/eimc[eimc_s_cfu]/abs(eimv[eimv_fp]);
+         eimv[eimv_U]:=eimv[eimv_pole]*eimv[eimv_fp]*eimc[eimc_s_cfu];
+         eimv[eimv_Ic]:=(eimv[eimv_fp]-DirAbsolute*enrot*eimc[eimc_s_p])*eimc[eimc_s_dfic]*eimv[eimv_pole];
+         eimv[eimv_If]:=eimv[eimv_Ic]*eimc[eimc_s_icif];
+         eimv[eimv_M]:=eimv[eimv_pole]*eimv[eimv_Ic]*eimc[eimc_s_cim];
+         eimv[eimv_Ipoj]:=(eimv[eimv_Ic]*NPoweredAxles*eimv[eimv_U])/(Voltage-eimc[eimc_f_DU])+eimc[eimc_f_I0];
+         eimv[eimv_Pm]:=ActiveDir*eimv[eimv_M]*NPoweredAxles*enrot*Pirazy2/1000;
+         eimv[eimv_Pe]:=eimv[eimv_Ipoj]*Voltage/1000;
+         eimv[eimv_eta]:=eimv[eimv_Pm]/eimv[eimv_Pe];
+
+         Im:=eimv[eimv_If];
+         Itot:=eimv[eimv_Ipoj];
+
+
+         EnginePower:=Abs(eimv[eimv_Ic]*eimv[eimv_U]*NPoweredAxles)/1000;
+         tmpV:=eimv[eimv_fp];
+         if (abs(eimv[eimv_If])>1) or (abs(tmpV)>0.1) then
           begin
-           if abs(tmpV)<10 then RventRot:=0.3 else
-           if abs(tmpV)<30 then RventRot:=0.6 else
-                           RventRot:=0.6+(abs(tmpV)-30)/120;
+           if abs(tmpV)<32 then RventRot:=1.0 else
+           if abs(tmpV)<39 then RventRot:=0.33*abs(tmpV)/32 else
+             RventRot:=0.25*abs(tmpV)/39;//}
           end
          else              RVentRot:=0;
 
+         Mm:=eimv[eimv_M]*DirAbsolute;
          Mw:=Mm*Transmision.Ratio;
          Fw:=Mw*2.0/WheelDiameter;
          Ft:=Fw*NPoweredAxles;
+         eimv[eimv_Fr]:=DirAbsolute*Ft/1000;
 //       RventRot;
         end
        else
         begin
-         Im:=0;
-         Mm:=0;
-         Mw:=0;
-         Fw:=0;
-         Ft:=0;
-         Itot:=0;
-         dizel_fill:=0;
-         EnginePower:=0;
-         (Hamulec as TLSt).SetED(0);
+         Im:=0;Mm:=0;Mw:=0;Fw:=0;Ft:=0;Itot:=0;dizel_fill:=0;EnginePower:=0;
+         (Hamulec as TLSt).SetED(0);RventRot:=0.0;
         end;
      end;
    None: begin end;
@@ -4330,9 +4402,13 @@ begin
   u:=((BrakePress*P2FTrans)-BrakeCylSpring)*BrakeCylMult[0]-BrakeSlckAdj;
   if (u*BrakeRigEff>Ntotal)then //histereza na nacisku klockow
     Ntotal:=u*BrakeRigEff
-  else if (u*(2-1*BrakeRigEff)<Ntotal)then //histereza na nacisku klockow
-    Ntotal:=u*(2-1*BrakeRigEff);
-
+  else
+   begin
+    u:=(BrakePress*P2FTrans)*BrakeCylMult[0]-BrakeSlckAdj;   
+    if (u*(2-1*BrakeRigEff)<Ntotal)then //histereza na nacisku klockow
+     Ntotal:=u*(2-1*BrakeRigEff);
+   end;
+   
   if (NBrakeAxles*NBpA>0) then
     begin
       if Ntotal>0 then         {nie luz}
@@ -7042,14 +7118,26 @@ begin
                      if NToothM>0 then
                       Ratio:=NToothW/NToothM
                      else Ratio:=1;
-                 s:=ExtractKeyWord(lines,'Inom=');
-                 WindingRes:=s2r(DUE(s));
-                 s:=ExtractKeyWord(lines,'snom=');
-                 Vhyp:=s2rE(DUE(s));
-                 s:=ExtractKeyWord(lines,'Mnom=');
-                 Vadd:=s2rE(DUE(s));
-                 s:=ExtractKeyWord(lines,'fnom=');
-                 nmax:=s2rE(DUE(s));
+                 s:=ExtractKeyWord(lines,'dfic='); eimc[eimc_s_dfic]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'dfmax='); eimc[eimc_s_dfmax]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'p='); eimc[eimc_s_p]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'cfu='); eimc[eimc_s_cfu]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'cim='); eimc[eimc_s_cim]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'icif='); eimc[eimc_s_icif]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Uzmax='); eimc[eimc_f_Uzmax]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Uzh='); eimc[eimc_f_Uzh]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'DU='); eimc[eimc_f_DU]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'I0='); eimc[eimc_f_I0]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'fcfu='); eimc[eimc_f_cfu]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'F0='); eimc[eimc_p_F0]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'a1='); eimc[eimc_p_a1]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Pmax='); eimc[eimc_p_Pmax]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Fh='); eimc[eimc_p_Fh]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Ph='); eimc[eimc_p_Ph]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Vh0='); eimc[eimc_p_Vh0]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Vh1='); eimc[eimc_p_Vh1]:=s2r(DUE(s));
+                 s:=ExtractKeyWord(lines,'Imax='); eimc[eimc_p_Imax]:=s2r(DUE(s));
+
                end;
 
            else ConversionError:=-13; {not implemented yet!}

@@ -826,8 +826,8 @@ extern PACKAGE double BPT_394[7][2];
 static const Shortint i_bcpno = 0x6;
 extern PACKAGE double __fastcall PF(double P1, double P2, double S, double DP);
 extern PACKAGE double __fastcall PF1(double P1, double P2, double S);
-extern PACKAGE double __fastcall PFVa(double PH, double PL, double S, double LIM);
-extern PACKAGE double __fastcall PFVd(double PH, double PL, double S, double LIM);
+extern PACKAGE double __fastcall PFVa(double PH, double PL, double S, double LIM, double DP);
+extern PACKAGE double __fastcall PFVd(double PH, double PL, double S, double LIM, double DP);
 
 }	/* namespace Hamulce */
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
