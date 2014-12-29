@@ -1244,7 +1244,7 @@ bool __fastcall TWorld::Update()
  }
  //else n=1;
  //blablabla
- Ground.UpdatePhys(dt,n); //na razie tu
+ //Ground.UpdatePhys(dt,n); //na razie tu //2014-12: yB przeniós³ do Ground.Update() :(
  Ground.Update(dt,n); //tu zrobiæ tylko coklatkow¹ aktualizacjê przesuniêæ
  if (DebugModeFlag)
   if (Global::bActive) //nie przyspieszaæ, gdy jedzie w tle :)
