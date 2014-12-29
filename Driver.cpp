@@ -1520,38 +1520,26 @@ bool __fastcall TController::PrepareEngine()
   mvOccupied->BatterySwitch(true);
   if (mvControlling->EnginePowerSource.SourceType==CurrentCollector)
   {//jeœli silnikowy jest pantografuj¹cym
-   if (fOverhead2>=0.0)
-   {//jeœli jazda bezpr¹dowa albo z opuszczonym pantografem
-    while (DecSpeed(true)); //zerowanie napêdu
+   if (mvControlling->PantPress>4.3)
+   {//je¿eli jest wystarczaj¹ce ciœnienie w pantografach
+    if ((!mvControlling->bPantKurek3)||(mvControlling->PantPress<=mvControlling->ScndPipePress)) //kurek prze³¹czony albo g³ówna ju¿ pompuje
+     mvControlling->PantCompFlag=false; //sprê¿arkê pantografów mo¿na ju¿ wy³¹czyæ
+    mvControlling->PantFront(true);
+    mvControlling->PantRear(true);
    }
-   if (fOverhead2<=0.0)
-   {//jeœli nie trzeba opuszczaæ pantografów
-    if (mvControlling->PantPress>4.3)
-    {//je¿eli jest wystarczaj¹ce ciœnienie w pantografach
-     if ((!mvControlling->bPantKurek3)||(mvControlling->PantPress<=mvControlling->ScndPipePress)) //kurek prze³¹czony albo g³ówna ju¿ pompuje
-      mvControlling->PantCompFlag=false; //sprê¿arkê pantografów mo¿na ju¿ wy³¹czyæ
-     mvControlling->PantFront(true);
-     mvControlling->PantRear(true);
-    }
-    else if (mvControlling->PantPress<4.2) //¿eby nie za³¹cza³ zaraz po przekroczeniu 4.0
-    {//za³¹czenie ma³ej sprê¿arki
-     mvControlling->bPantKurek3=false; //od³¹czenie zbiornika g³ównego, bo z nim nie da rady napompowaæ
-     mvControlling->PantCompFlag=true; //za³¹czenie sprê¿arki pantografów
-    }
-    //if (mvOccupied->TrainType==dt_EZT)
-    //{//Ra 2014-12: po co to tutaj?
-    // mvControlling->PantFront(true);
-    // mvControlling->PantRear(true);
-    //}
+   else if (mvControlling->PantPress<4.2) //¿eby nie za³¹cza³ zaraz po przekroczeniu 4.0
+   {//za³¹czenie ma³ej sprê¿arki
+    mvControlling->bPantKurek3=false; //od³¹czenie zbiornika g³ównego, bo z nim nie da rady napompowaæ
+    mvControlling->PantCompFlag=true; //za³¹czenie sprê¿arki pantografów
    }
-   else
-   {//jazda z opuszczonymi pantografami
-    mvControlling->PantFront(false);
-    mvControlling->PantRear(false);
-   }
+  }
+   //if (mvOccupied->TrainType==dt_EZT)
+   //{//Ra 2014-12: po co to tutaj?
+   // mvControlling->PantFront(true);
+   // mvControlling->PantRear(true);
+   //}
    //if (mvControlling->EngineType==DieselElectric)
    // mvControlling->Battery=true; //Ra: to musi byæ tak?
-  }
  }
  if (mvControlling->PantFrontVolt||mvControlling->PantRearVolt||voltfront||voltrear)
  {//najpierw ustalamy kierunek, jeœli nie zosta³ ustalony
@@ -1795,6 +1783,9 @@ bool __fastcall TController::IncSpeed()
     iDrivigFlags|=moveIncSpeed; //ustawienie flagi jazdy
    return false;
   case ElectricSeriesMotor:
+   if (mvControlling->EnginePowerSource.SourceType==CurrentCollector) //jeœli pantografuj¹cy
+    if (fOverhead2>=0.0) //a jazda bezpr¹dowa
+     return false; //to nici z ruszania
    if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
     if ((mvControlling->MainCtrlPos==0)||(mvControlling->StLinFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
      //na pozycji 0 przejdzie, a na pozosta³ych bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)
@@ -2527,11 +2518,22 @@ bool __fastcall TController::UpdateSituation(double dt)
       mvOccupied->ChangeOffsetH(0.01*mvOccupied->Vel*dt); //Ra: co to mia³o byæ, to nie wiem
    if (mvControlling->EnginePowerSource.SourceType==CurrentCollector)
    {
-    if (fOverhead2<=0.0) //jeœli mo¿e jechaæ z podniesionym
+    if (fOverhead2>=0.0)
+    {//jeœli jazda bezpr¹dowa albo z opuszczonym pantografem
+     while (DecSpeed(true)); //zerowanie napêdu
+    }
+    if (fOverhead2<=0.0)
+    {//jeœli nie trzeba opuszczaæ pantografów
      if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
       mvControlling->PantRear(true); //jazda na tylnym
      else
       mvControlling->PantFront(true);
+    }
+    else
+    {//jazda z opuszczonymi pantografami
+     mvControlling->PantFront(false);
+     mvControlling->PantRear(false);
+    }
     if (mvOccupied->Vel>10) //opuszczenie przedniego po rozpêdzeniu siê
     {
      if (mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo>1) //o ile jest wiêcej ni¿ jeden
