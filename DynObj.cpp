@@ -3243,6 +3243,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
 {
  double dSDist;
  TFileStream *fs;
+ asDirectory=BaseDir;
  Global::asCurrentDynamicPath=BaseDir;
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
@@ -4142,3 +4143,27 @@ int __fastcall TDynamicObject::RouteWish(TTrack *tr)
  return Mechanik?Mechanik->CrossRoute(tr):0; //wg AI albo prosto
 };
 
+void __fastcall TDynamicObject::DestinationSet(AnsiString &to)
+{//ustawienie stacji docelowej oraz wymiennej tekstury 4, jeœli istnieje plik
+ //w zasadzie, to ka¿dy wagon móg³by mieæ inn¹ stacjê docelow¹
+ //zw³aszcza w towarowych, pod k¹tem zautomatyzowania maewrów albo pracy górki
+ //ale to jeszcze potrwa, zanim bêdzie mo¿liwe, na razie mo¿na wpisaæ stacjê z rozk³adu
+ asDestination=to;
+ AnsiString x;
+ if (to.IsEmpty()) to="nowhere";
+ x=asDirectory+to+".dds"; //na razie prymitywnie
+ if (FileExists(x))
+  ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),Global::iDynamicFiltering);
+ else
+ {x=asDirectory+to+".tga";
+  if (FileExists(x))
+   ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),Global::iDynamicFiltering);
+  else
+  {x=asDirectory+to+".bmp";
+   if (FileExists(x))
+    ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),Global::iDynamicFiltering);
+   else
+    ReplacableSkinID[4]=0; //0 to brak? -1 odpada, bo inaczej siê bêdzie mapowaæ
+  }
+ }
+};

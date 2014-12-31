@@ -183,6 +183,9 @@ GLuint TTexturesManager::GetTextureID(char* dir,char* where,std::string fileName
  size_t pos=fileName.find(':'); //szukamy dwukropka
  if (pos!=std::string::npos) //po dwukropku mog¹ byæ podane dodatkowe informacje
   fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
+ size_t pos=fileName.find('|'); //szukamy separatora tekstur
+ if (pos!=std::string::npos) //po | mo¿e byæ nazwa kolejnej tekstury
+  fileName=fileName.substr(0,pos); //niebêd¹ce nazw¹ tekstury
  std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash());
  //jeœli bie¿aca œcie¿ka do tekstur nie zosta³a dodana to dodajemy domyœln¹
  if (fileName.find('\\')==std::string::npos)

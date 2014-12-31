@@ -5619,7 +5619,7 @@ begin
   for b:=0 to 1 do
    with Couplers[b] do
     begin
-      AllowedFlag:=127; //domyœlnie wszystkie
+      AllowedFlag:=3; //domyœlnie hak i hamulec, inne trzeba w³¹czyæ jawnie w FIZ
       CouplingFlag:=0;
       Connected:=nil;
       ConnectedNr:=0; //Ra: to nie ma znaczenia jak nie pod³¹czony
