@@ -1234,7 +1234,7 @@ bool __fastcall TController::CheckVehicles(TOrders user)
   {
    if (TrainParams)
     if (p->asDestination=="none")
-     p->asDestination=TrainParams->Relation2; //relacja docelowa, jeœli nie by³o
+     p->DestinationSet(TrainParams->Relation2); //relacja docelowa, jeœli nie by³o
    if (AIControllFlag) //jeœli prowadzi komputer
     p->RaLightsSet(0,0); //gasimy œwiat³a
    d=p->DirectionSet(d?1:-1); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony - wzglêdem czo³a sk³adu)
@@ -2134,6 +2134,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
     if (ConversionError==-8)
      ErrorLog("Missed timetable: "+NewCommand);
     WriteLog("Cannot load timetable file "+NewCommand+"\r\nError "+ConversionError+" in position "+TrainParams->StationCount);
+    NewCommand=""; //puste, dla wymiennej tekstury
    }
    else
    {//inicjacja pierwszego przystanku i pobranie jego nazwy
@@ -2159,6 +2160,14 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand,double NewValue1,d
       iGuardRadio=iRadioChannel;
      }
     }
+    NewCommand=TrainParams->Relation2; //relacja docelowa z rozk³adu
+   }
+   //jeszcze poustawiaæ tekstury na wyœwietlaczach
+   TDynamicObject *p=pVehicles[0];
+   while (p)
+   {
+    p->DestinationSet(NewCommand); //relacja docelowa
+    p=p->Next(); //pojazd pod³¹czony od ty³u (licz¹c od czo³a)
    }
   }
   if (NewLocation) //jeœli podane wspó³rzêdne eventu/komórki ustawiaj¹cej rozk³ad (trainset nie podaje)

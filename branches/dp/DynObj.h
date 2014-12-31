@@ -142,6 +142,7 @@ private: //po³o¿enie pojazdu w œwiecie oraz parametry ruchu
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
 public: //parametry po³o¿enia pojazdu dostêpne publicznie
  AnsiString asTrack; //nazwa toru pocz¹tkowego; wywaliæ?
+ AnsiString asDirectory; //katalog z pojazdem
  AnsiString asDestination; //dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
  matrix4x4 mMatrix; //macierz przekszta³cenia do renderowania modeli
  TMoverParameters *MoverParameters; //parametry fizyki ruchu oraz przeliczanie
@@ -416,6 +417,7 @@ public:
  TDynamicObject* __fastcall ControlledFind();
  void __fastcall ParamSet(int what,int into);
  int __fastcall RouteWish(TTrack *tr); //zapytanie do AI, po którym segmencie skrzy¿owania jechaæ
+ void __fastcall DestinationSet(AnsiString &to);
 };
 
 
