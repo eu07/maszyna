@@ -4153,15 +4153,15 @@ void __fastcall TDynamicObject::DestinationSet(AnsiString &to)
  if (to.IsEmpty()) to="nowhere";
  x=asDirectory+to+".dds"; //na razie prymitywnie
  if (FileExists(x))
-  ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),Global::iDynamicFiltering);
+  ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),9);
  else
  {x=asDirectory+to+".tga";
   if (FileExists(x))
-   ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),Global::iDynamicFiltering);
+   ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),9); //rozmywania 0,1,4,5 nie nadaj¹ siê
   else
   {x=asDirectory+to+".bmp";
    if (FileExists(x))
-    ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),Global::iDynamicFiltering);
+    ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),9);
    else
     ReplacableSkinID[4]=0; //0 to brak? -1 odpada, bo inaczej siê bêdzie mapowaæ
   }

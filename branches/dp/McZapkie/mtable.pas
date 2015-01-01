@@ -200,14 +200,14 @@ begin
   TrainName:=NewTrainName;
   StationCount:=0;
   StationIndex:=0;
-  NextStationName:='undefined';
+  NextStationName:='nowhere';
   LastStationLatency:=0;
   Direction:=1;
   Relation1:=''; Relation2:='';
   for i:=0 to MaxTTableSize do
    with timeTable[i] do
     begin
-      km:=0;  vmax:=-1; StationName:='undefined'; StationWare:='';
+      km:=0;  vmax:=-1; StationName:='nowhere'; StationWare:='';
       TrackNo:=1;  Ah:=-1; Am:=-1; Dh:=-1; Dm:=-1; tm:=0; WaitTime:=0;
     end;
   TTVmax:=100; {wykasowac}
