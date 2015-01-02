@@ -104,10 +104,10 @@ public: //reszta mo¿e byæ publiczna
     TGauge ggClockHInd;
     //TGauge ggHVoltage;
     TGauge ggLVoltage;
-    TGauge ggEnrot1m;
-    TGauge ggEnrot2m;
-    TGauge ggEnrot3m;
-    TGauge ggEngageRatio;
+    //TGauge ggEnrot1m;
+    //TGauge ggEnrot2m;
+    //TGauge ggEnrot3m;
+    //TGauge ggEngageRatio;
     TGauge ggMainGearStatus;
 
     TGauge ggEngineVoltage;
@@ -359,6 +359,7 @@ private:
     float fTachoCount;
     float fHVoltage; //napiêcie dla dynamicznych ga³ek
     float fHCurrent[4]; //pr¹dy: suma i amperomierze 1,2,3
+    float fEngine[4]; //obroty te¿ trzeba pobraæ
 //McZapkie: do syczenia
     float fPPress,fNPress;
     float fSPPress,fSNPress;

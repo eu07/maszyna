@@ -56,10 +56,10 @@
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=14
-MinorVer=12
-Release=1131
-Build=459
+MajorVer=15
+MinorVer=1
+Release=1137
+Build=460
 Debug=1
 PreRelease=0
 Special=0
@@ -71,13 +71,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=14.12.1131.459
+FileVersion=15.1.1137.460
 InternalName=9th by Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=14.12
+ProductVersion=15.1
 Comments=
 
 [HistoryLists\hlIncludePath]
@@ -89,8 +89,9 @@ Count=1
 Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
-Count=1
-Item0=$(BCB)\source\vcl
+Count=2
+Item0=McZapkie\
+Item1=$(BCB)\source\vcl
 
 [HistoryLists\hlConditionals]
 Count=8
@@ -111,7 +112,7 @@ Item0=D:\EU07\
 DebugSourceDirs=McZapkie\
 
 [Parameters]
-RunParams=-v EN57-2040ra
+RunParams=
 HostApplication=
 RemoteHost=
 RemotePath=

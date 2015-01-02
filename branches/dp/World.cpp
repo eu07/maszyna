@@ -1402,8 +1402,8 @@ bool __fastcall TWorld::Update()
    else
     glEnable(GL_LIGHTING); //po renderowaniu drutów mo¿e byæ to wy³¹czone
 
-
-   //oswietlenie kabiny
+  if (Train->Dynamic()->mdKabina) //bo mog³a znikn¹æ przy przechodzeniu do innego pojazdu
+  {//oswietlenie kabiny
    GLfloat ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
    GLfloat specularCabLight[4]={ 0.5f,  0.5f, 0.5f, 1.0f };
@@ -1435,7 +1435,7 @@ bool __fastcall TWorld::Update()
     }
     break;
    }
-   switch (Train->iCabLightFlag) //Ra: uzele¿nic od napiêcia w obwodzie sterowania 
+   switch (Train->iCabLightFlag) //Ra: uzele¿nic od napiêcia w obwodzie sterowania
    { //hunter-091012: uzaleznienie jasnosci od przetwornicy
     case 0: //œwiat³o wewnêtrzne zgaszone
      break;
@@ -1502,9 +1502,10 @@ bool __fastcall TWorld::Update()
    glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
    glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
   }
+  } //koniec: if (Train->Dynamic()->mdKabina)
   glPopMatrix();
 //**********************************************************************************************************
- } //koniec if (Train)
+ } //koniec: if (Train)
     if (DebugModeFlag&&!Global::iTextMode)
      {
        OutText1="  FPS: ";

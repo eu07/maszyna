@@ -1357,14 +1357,14 @@ void __fastcall TTrack::Compile(GLuint tex)
      //punkty brzegu nawierzchni uzyskujemy podczas renderowania boków (bez sensu, ale najszybciej by³o zrobiæ)
      int i=0,j; //ile punktów (mo¿e byc ró¿na iloœæ punktów miêdzy drogami)
      if (!SwitchExtension->vPoints)
-     {//jeœli punkty jeszcze nie wyznaczone
-      if (SwitchExtension->iRoads==3) //mog¹ byæ tylko 3 drogi
+     {//jeœli tablica punktów nie jest jeszcze utworzona, zliczamy punkty i tworzymy j¹
+      if (SwitchExtension->iRoads==3) //mog¹ byæ tylko 3 drogi zamiast 4
        SwitchExtension->iPoints=5+SwitchExtension->Segments[0]->RaSegCount()+SwitchExtension->Segments[1]->RaSegCount()+SwitchExtension->Segments[2]->RaSegCount();
       else
        SwitchExtension->iPoints=5+SwitchExtension->Segments[2]->RaSegCount()+SwitchExtension->Segments[3]->RaSegCount()+SwitchExtension->Segments[4]->RaSegCount()+SwitchExtension->Segments[5]->RaSegCount(); //mog¹ byæ tylko 3 drogi
-      SwitchExtension->vPoints=new vector3[SwitchExtension->iPoints];
+      SwitchExtension->vPoints=new vector3[SwitchExtension->iPoints]; //tablica utworzona z zapasem, ale nie wype³niona wspó³rzêdnymi
      }
-     vector3 *b=SwitchExtension->bPoints?NULL:SwitchExtension->vPoints; //zmienna robocza
+     vector3 *b=SwitchExtension->bPoints?NULL:SwitchExtension->vPoints; //zmienna robocza, NULL gdy tablica punktów ju¿ jest wype³niona
      vector6 bpts1[4]; //punkty g³ównej p³aszczyzny przydaj¹ siê do robienia boków
      if (TextureID1||TextureID2) //punkty siê przydadz¹, nawet jeœli nawierzchni nie ma
      {//double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
@@ -1381,10 +1381,13 @@ void __fastcall TTrack::Compile(GLuint tex)
       }
      }
      //najpierw renderowanie poboczy i zapamiêtywanie punktów
-     if (TextureID2)
-      if (tex?TextureID2==tex:true) //jeœli pasuje do grupy (tex)
+     //problem ze skrzy¿owaniami jest taki, ¿e teren chce siê pogrupowaæ wg tekstur, ale zaczyna od nawierzchni
+     //sama nawierzchnia nie wype³ni tablicy punktów, bo potrzebne s¹ pobocza
+     //ale pobocza renderuj¹ siê póŸniej, wiêc nawierzchnia nie za³apuje siê na renderowanie w swoim czasie
+     //if (TextureID2)
+      //if (tex?TextureID2==tex:true) //jeœli pasuje do grupy (tex)
       {//pobocze drogi - poziome przy przechy³ce (a mo¿e krawê¿nik i chodnik zrobiæ jak w Midtown Madness 2?)
-       if (!tex) glBindTexture(GL_TEXTURE_2D,TextureID2);
+       if (TextureID2) if (!tex) glBindTexture(GL_TEXTURE_2D,TextureID2);
        vector6 rpts1[6],rpts2[6]; //wspó³rzêdne przekroju i mapowania dla prawej i lewej strony
        //Ra 2014-07: trzeba to przerobiæ na pêtlê i pobieraæ profile (przynajmniej 2..4) z s¹siednich dróg
        if (fTexHeight1>=0.0)
@@ -1432,26 +1435,27 @@ void __fastcall TTrack::Compile(GLuint tex)
          rpts2[5]=vector6(bpts1[3].x-side2,bpts1[3].y-fTexHeight2,0.484375-map2l ); //lewy brzeg lewego chodnika
         }
        }
+       bool render=TextureID2?(tex?TextureID2==tex:true):false; //renderowaæ nie trzeba, ale trzeba wyznaczyæ punkty brzegowe nawierzchni
        //if (iTrapezoid) //trapez albo przechy³ki
        if (SwitchExtension->iRoads==4)
        {//pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
-         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b,render); //tylko jeœli jest z lewej
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
-         SwitchExtension->Segments[3]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[3]->RenderLoft(rpts2,-3,fTexLength,0,1,&b,render); //tylko jeœli jest z lewej
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
-         SwitchExtension->Segments[4]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[4]->RenderLoft(rpts2,-3,fTexLength,0,1,&b,render); //tylko jeœli jest z lewej
         if ((fTexHeight1>=0.0)?true:(side!=0.0))
-         SwitchExtension->Segments[5]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //tylko jeœli jest z lewej
+         SwitchExtension->Segments[5]->RenderLoft(rpts2,-3,fTexLength,0,1,&b,render); //tylko jeœli jest z lewej
        }
        else //to bêdzie ewentualnie dla prostego na skrzy¿owaniu trzech dróg
        {//punkt 3 pokrywa siê z punktem 1, jak w zwrotnicy; po³¹czenie 1->2 nie musi byæ prostoliniowe
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
-         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //z P2 do P4
+         SwitchExtension->Segments[2]->RenderLoft(rpts2,-3,fTexLength,0,1,&b,render); //z P2 do P4
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
-         SwitchExtension->Segments[1]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //z P4 do P3=P1 (odwrócony)
+         SwitchExtension->Segments[1]->RenderLoft(rpts2,-3,fTexLength,0,1,&b,render); //z P4 do P3=P1 (odwrócony)
         if ((fTexHeight1>=0.0)?true:(side!=0.0)) //OK
-         SwitchExtension->Segments[0]->RenderLoft(rpts2,-3,fTexLength,0,1,&b); //z P1 do P2
+         SwitchExtension->Segments[0]->RenderLoft(rpts2,-3,fTexLength,0,1,&b,render); //z P1 do P2
         /*
         if ((fTexHeight1>=0.0)?true:(slop!=0.0))
          Segment->RenderLoft(rpts1,3,fTexLength);
@@ -1463,18 +1467,18 @@ void __fastcall TTrack::Compile(GLuint tex)
      //renderowanie nawierzchni na koñcu
      double sina0=sin(a[0]),cosa0=cos(a[0]);
      double u,v;
-     if (!SwitchExtension->bPoints)
-      if (b)
+     if (!SwitchExtension->bPoints) //jeœli tablica nie wype³niona
+      if (b) //ale jest wskaŸnik do tablicy - mo¿e nie byæ?
       {//coœ siê gubi w obliczeniach na wskaŸnikach
-       int i=(int((void*)(b))-int((void*)(SwitchExtension->vPoints)))/sizeof(vector3);
+       int i=(int((void*)(b))-int((void*)(SwitchExtension->vPoints)))/sizeof(vector3); //ustalenie liczby punktów, bo mog³o wyjœæ inaczej ni¿ policzone z góry
        if (i>0)
        {//jeœli zosta³o to w³aœnie utworzone
-        if (SwitchExtension->iPoints>i)
+        if (SwitchExtension->iPoints>i) //jeœli wysz³o mniej ni¿ by³o miejsca
          SwitchExtension->iPoints=i; //domkniêcie wachlarza
         else
-         --SwitchExtension->iPoints; //jak tutaj wejdzie, to b³¹d jest
+         --SwitchExtension->iPoints; //jak tutaj wejdzie, to b³¹d jest - zrobiæ miejsce na powtórzenie pierwszego punktu na koñcu
         SwitchExtension->vPoints[SwitchExtension->iPoints++]=SwitchExtension->vPoints[0];
-        SwitchExtension->bPoints=true; //ju¿ zrobione
+        SwitchExtension->bPoints=true; //tablica punktów zosta³a wype³niona
        }
       }
      if (TextureID1) //jeœli podana tekstura nawierzchni
@@ -1519,7 +1523,7 @@ void __fastcall TTrack::Compile(GLuint tex)
                         vector6(fHTW,0.0,1.0) };
      vector6 rpts2[3]={ vector6(-fHTW,0.0,1.0),
                         vector6(-fHTW-side,0.0,0.5),
-                        vector6(-rozp,-fTexHeight1,0.1) }; //Ra: po kiego 0.1?
+                        vector6(-rozp,-fTexHeight1,0.0) }; //Ra: po kiego 0.1?
      if (!tex) glBindTexture(GL_TEXTURE_2D,TextureID2);      //brzeg rzeki
      Segment->RenderLoft(rpts1,3,fTexLength);
      Segment->RenderLoft(rpts2,3,fTexLength);
