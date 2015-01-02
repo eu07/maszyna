@@ -327,7 +327,7 @@ vector3 __fastcall TSegment::FastGetPoint(double t)
 }
 
 void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
-        double fTextureLength, int iSkip, int iQualityFactor,vector3 **p)
+        double fTextureLength, int iSkip, int iQualityFactor,vector3 **p,bool bRender)
 {//generowanie trójk¹tów dla odcinka trajektorii ruchu
  //standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
  //po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -386,9 +386,12 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
      pt=parallel1*(jmm1*ShapePoints[j].x+m1*ShapePoints[j+iNumShapePoints].x)+pos1;
      pt.y+=jmm1*ShapePoints[j].y+m1*ShapePoints[j+iNumShapePoints].y;
-     glNormal3f(norm.x,norm.y,norm.z);
-     glTexCoord2f(jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z,tv1);
-     glVertex3f(pt.x,pt.y,pt.z); //pt nie mamy gdzie zapamiêtaæ?
+     if (bRender)
+     {//skrzy¿owania podczas ³¹czenia siatek mog¹ nie renderowaæ poboczy, ale potrzebowaæ punktów
+      glNormal3f(norm.x,norm.y,norm.z);
+      glTexCoord2f(jmm1*ShapePoints[j].z+m1*ShapePoints[j+iNumShapePoints].z,tv1);
+      glVertex3f(pt.x,pt.y,pt.z); //pt nie mamy gdzie zapamiêtaæ?
+     }
      if (p) //jeœli jest wskaŸnik do tablicy
       if (*p)
        if (!j) //to dla pierwszego punktu
@@ -398,9 +401,12 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
      norm.y+=jmm1*ShapePoints[j].n.y+m1*ShapePoints[j+iNumShapePoints].n.y;
      pt=parallel2*(jmm2*ShapePoints[j].x+m2*ShapePoints[j+iNumShapePoints].x)+pos2;
      pt.y+=jmm2*ShapePoints[j].y+m2*ShapePoints[j+iNumShapePoints].y;
-     glNormal3f(norm.x,norm.y,norm.z);
-     glTexCoord2f(jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z,tv2);
-     glVertex3f(pt.x,pt.y,pt.z);
+     if (bRender)
+     {//skrzy¿owania podczas ³¹czenia siatek mog¹ nie renderowaæ poboczy, ale potrzebowaæ punktów
+      glNormal3f(norm.x,norm.y,norm.z);
+      glTexCoord2f(jmm2*ShapePoints[j].z+m2*ShapePoints[j+iNumShapePoints].z,tv2);
+      glVertex3f(pt.x,pt.y,pt.z);
+     }
      if (p) //jeœli jest wskaŸnik do tablicy
       if (*p)
        if (!j) //to dla pierwszego punktu

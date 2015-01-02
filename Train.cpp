@@ -2777,58 +2777,63 @@ bool __fastcall TTrain::Update()
      }
 
     if (mvControlled->EngineType==DieselElectric)
+    {//ustawienie zmiennych dla silnika spalinowego
+     fEngine[1]=mvControlled->ShowEngineRotation(1);
+     fEngine[2]=mvControlled->ShowEngineRotation(2);
+     //if (ggEnrot1m.SubModel)
+     //{
+     // ggEnrot1m.UpdateValue(mvControlled->ShowEngineRotation(1));
+     // ggEnrot1m.Update();
+     //}
+     //if (ggEnrot2m.SubModel)
+     //{
+     // ggEnrot2m.UpdateValue(mvControlled->ShowEngineRotation(2));
+     // ggEnrot2m.Update();
+     //}
+    }
+
+
+
+    else if (mvControlled->EngineType==DieselEngine)
+    {//albo dla innego spalinowego
+     fEngine[1]=mvControlled->ShowEngineRotation(1);
+     fEngine[2]=mvControlled->ShowEngineRotation(2);
+     fEngine[3]=mvControlled->ShowEngineRotation(3);
+     //if (ggEnrot1m.SubModel)
+     //{
+     // ggEnrot1m.UpdateValue(mvControlled->ShowEngineRotation(1));
+     // ggEnrot1m.Update();
+     //}
+     //if (ggEnrot2m.SubModel)
+     //{
+     // ggEnrot2m.UpdateValue(mvControlled->ShowEngineRotation(2));
+     // ggEnrot2m.Update();
+     //}
+     //if (ggEnrot3m.SubModel)
+     // if (mvControlled->Couplers[1].Connected)
+     // {
+     //  ggEnrot3m.UpdateValue(mvControlled->ShowEngineRotation(3));
+     //  ggEnrot3m.Update();
+     // }
+     //if (ggEngageRatio.SubModel)
+     //{
+     // ggEngageRatio.UpdateValue(mvControlled->dizel_engage);
+     // ggEngageRatio.Update();
+     //}
+     if (ggMainGearStatus.SubModel)
      {
-      if (ggEnrot1m.SubModel)
-       {
-        ggEnrot1m.UpdateValue(mvControlled->ShowEngineRotation(1));
-        ggEnrot1m.Update();
-       }
-      if (ggEnrot2m.SubModel)
-       {
-        ggEnrot2m.UpdateValue(mvControlled->ShowEngineRotation(2));
-        ggEnrot2m.Update();
-       }
+      if (mvControlled->Mains)
+       ggMainGearStatus.UpdateValue(1.1-fabs(mvControlled->dizel_automaticgearstatus));
+      else
+       ggMainGearStatus.UpdateValue(0);
+      ggMainGearStatus.Update();
      }
-
-
-
-    if (mvControlled->EngineType==DieselEngine)
+     if (ggIgnitionKey.SubModel)
      {
-      if (ggEnrot1m.SubModel)
-       {
-        ggEnrot1m.UpdateValue(mvControlled->ShowEngineRotation(1));
-        ggEnrot1m.Update();
-       }
-      if (ggEnrot2m.SubModel)
-         {
-          ggEnrot2m.UpdateValue(mvControlled->ShowEngineRotation(2));
-          ggEnrot2m.Update();
-         }
-      if (ggEnrot3m.SubModel)
-       if (mvControlled->Couplers[1].Connected)
-         {
-          ggEnrot3m.UpdateValue(mvControlled->ShowEngineRotation(3));
-          ggEnrot3m.Update();
-         }
-      if (ggEngageRatio.SubModel)
-       {
-        ggEngageRatio.UpdateValue(mvControlled->dizel_engage);
-        ggEngageRatio.Update();
-       }
-      if (ggMainGearStatus.SubModel)
-       {
-        if (mvControlled->Mains)
-         ggMainGearStatus.UpdateValue(1.1-fabs(mvControlled->dizel_automaticgearstatus));
-        else
-         ggMainGearStatus.UpdateValue(0);
-        ggMainGearStatus.Update();
-       }
-      if (ggIgnitionKey.SubModel)
-       {
-        ggIgnitionKey.UpdateValue(mvControlled->dizel_enginestart);
-        ggIgnitionKey.Update();
-       }
+      ggIgnitionKey.UpdateValue(mvControlled->dizel_enginestart);
+      ggIgnitionKey.Update();
      }
+    }
 
     if  (mvControlled->SlippingWheels)
     {//Ra 2014-12: lokomotywy 181/182 dostaj¹ SlippingWheels po zahamowaniu powy¿ej 2.85 bara i bucza³y
@@ -4591,6 +4596,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
  str="";
  int cabindex=0;
  TGauge *gg; //roboczy wsaŸnik na obiekt animuj¹cy ga³kê
+ DynamicObject->mdKabina=NULL; //likwidacja wskaŸnika na dotychczasow¹ kabinê
  switch (NewCabNo)
  {//ustalenie numeru kabiny do wczytania
   case -1: cabindex=2; break;
@@ -4710,10 +4716,10 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     ggEngineVoltage.Clear();
     ggLVoltage.Clear();
     //ggLVoltage.Output(0); //Ra: sterowanie miernikiem: niskie napiêcie
-    ggEnrot1m.Clear();
-    ggEnrot2m.Clear();
-    ggEnrot3m.Clear();
-    ggEngageRatio.Clear();
+    //ggEnrot1m.Clear();
+    //ggEnrot2m.Clear();
+    //ggEnrot3m.Clear();
+    //ggEngageRatio.Clear();
     ggMainGearStatus.Clear();
     ggIgnitionKey.Clear();
     btLampkaPoslizg.Clear(6);
@@ -5001,14 +5007,30 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    }
    else if (str==AnsiString("lvoltage:"))                    //woltomierz niskiego napiecia
     ggLVoltage.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("enrot1m:"))                    //obrotomierz
-    ggEnrot1m.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("enrot1m:"))
+   {//obrotomierz
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(fEngine+1);
+   } //ggEnrot1m.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("enrot2m:"))
-    ggEnrot2m.Load(Parser,DynamicObject->mdKabina);
+   {//obrotomierz
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(fEngine+2);
+   } //ggEnrot2m.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("enrot3m:"))
-    ggEnrot3m.Load(Parser,DynamicObject->mdKabina);
-   else if (str==AnsiString("engageratio:")) //np. ciœnienie sterownika sprzêg³a
-    ggEngageRatio.Load(Parser,DynamicObject->mdKabina);
+   {//obrotomierz
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignFloat(fEngine+3);
+   } //ggEnrot3m.Load(Parser,DynamicObject->mdKabina);
+   else if (str==AnsiString("engageratio:"))
+   {//np. ciœnienie sterownika sprzêg³a
+    gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
+    gg->Load(Parser,DynamicObject->mdKabina);
+    gg->AssignDouble(&mvControlled->dizel_engage);
+   } //ggEngageRatio.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("maingearstatus:")) //np. ciœnienie sterownika skrzyni biegów
     ggMainGearStatus.Load(Parser,DynamicObject->mdKabina);
    else if (str==AnsiString("ignitionkey:")) //

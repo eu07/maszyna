@@ -3278,7 +3278,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
   {
    iMultiTex=0; //czy jest wiele tekstur wymiennych?
    asModel=Parser->GetNextSymbol().LowerCase();
-   if (asModel.Pos("#")==asModel.Length())
+   if (asModel.Pos("#")==asModel.Length()) //Ra 2015-01: nie podoba mi siê to
    {//model wymaga wielu tekstur wymiennych
     iMultiTex=1;
     asModel=asModel.SubString(1,asModel.Length()-1);
