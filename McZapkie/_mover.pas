@@ -2507,7 +2507,7 @@ end;
         else
           temp:=0;  
         Hamulec.SetEPS(temp);
-        SendCtrlToNext('Brake',temp,CabNo);
+        SendCtrlToNext('Brake',temp,CabNo); //Ra 2014-11: na tym siê wysypuje, ale nie wiem, w jakich warunkach
        end;
 
       Pipe.Act;
