@@ -3243,7 +3243,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
 {
  double dSDist;
  TFileStream *fs;
- asDirectory=BaseDir;
+ //asBaseDir=BaseDir;
  Global::asCurrentDynamicPath=BaseDir;
  AnsiString asFileName=BaseDir+TypeName+".mmd";
  AnsiString asLoadName=BaseDir+MoverParameters->LoadType+".t3d";
@@ -3273,22 +3273,63 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  pants=NULL; //wskaŸnik pierwszego obiektu animuj¹cego dla pantografów
  while (!Parser->EndOfFile && !Stop_InternalData)
  {
-     str=Parser->GetNextSymbol().LowerCase();
-     if (str==AnsiString("models:"))                            //modele i podmodele
-     {
-       asModel=Parser->GetNextSymbol().LowerCase();
-       asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
-       Global::asCurrentTexturePath=BaseDir;                    //biezaca sciezka do tekstur to dynamic/...
-       mdModel=TModelsManager::GetModel(asModel.c_str(),true);
-       if (ReplacableSkin!=AnsiString("none"))
-       {//tekstura wymienna jest raczej jedynie w "dynamic\" 
-        ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
-        ReplacableSkinID[1]=TTexturesManager::GetTextureID(NULL,NULL,ReplacableSkin.c_str(),Global::iDynamicFiltering);
-        if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
-         iAlpha=0x31310031; //tekstura -1 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
-        else
-         iAlpha=0x30300030; //wszystkie tekstury nieprzezroczyste - nie renderowaæ w cyklu przezroczystych
+  str=Parser->GetNextSymbol().LowerCase();
+  if (str==AnsiString("models:"))                            //modele i podmodele
+  {
+   iMultiTex=0; //czy jest wiele tekstur wymiennych?
+   asModel=Parser->GetNextSymbol().LowerCase();
+   if (asModel.Pos("#")==asModel.Length())
+   {//model wymaga wielu tekstur wymiennych
+    iMultiTex=1;
+    asModel=asModel.SubString(1,asModel.Length()-1);
+   }
+   asModel=BaseDir+asModel; //McZapkie-200702 - dynamics maja swoje modele w dynamics/basedir
+   Global::asCurrentTexturePath=BaseDir; //biezaca sciezka do tekstur to dynamic/...
+   mdModel=TModelsManager::GetModel(asModel.c_str(),true);
+   if (ReplacableSkin!=AnsiString("none"))
+   {//tekstura wymienna jest raczej jedynie w "dynamic\"
+    int i;
+    if ((i=ReplacableSkin.Pos("|"))>0) //replacable dzielone
+    {iMultiTex=-1;
+     ReplacableSkinID[1]=TTexturesManager::GetTextureID(NULL,NULL,ReplacableSkin.SubString(1,i-1).c_str(),Global::iDynamicFiltering);
+     //sprawdziæ, ile jest i ustawiæ iMultiTex na liczbê podanych tekstur
+    }
+    ReplacableSkin=Global::asCurrentTexturePath+ReplacableSkin;      //skory tez z dynamic/...
+    if (iMultiTex>0)
+    {//jeœli model ma 4 tekstury
+     ReplacableSkinID[1]=TTexturesManager::GetTextureID(NULL,NULL,(ReplacableSkin+",1").c_str(),Global::iDynamicFiltering);
+     if (ReplacableSkinID[1])
+     {//pierwsza z zestawu znaleziona
+      ReplacableSkinID[2]=TTexturesManager::GetTextureID(NULL,NULL,(ReplacableSkin+",2").c_str(),Global::iDynamicFiltering);
+      if (ReplacableSkinID[2])
+      {iMultiTex=2; //ju¿ s¹ dwie
+       ReplacableSkinID[3]=TTexturesManager::GetTextureID(NULL,NULL,(ReplacableSkin+",3").c_str(),Global::iDynamicFiltering);
+       if (ReplacableSkinID[3])
+       {iMultiTex=3; //a teraz nawet trzy
+        ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,(ReplacableSkin+",4").c_str(),Global::iDynamicFiltering);
+        if (ReplacableSkinID[4]) iMultiTex=4; //jak s¹ cztery, to blokujemy podmianê tekstury rozk³adem  
        }
+      }
+     }
+     else
+     {//zestaw nie zadzia³a³, próbujemy normanie
+      iMultiTex=0;
+      ReplacableSkinID[1]=TTexturesManager::GetTextureID(NULL,NULL,ReplacableSkin.c_str(),Global::iDynamicFiltering);
+     }
+    }
+    else
+     ReplacableSkinID[1]=TTexturesManager::GetTextureID(NULL,NULL,ReplacableSkin.c_str(),Global::iDynamicFiltering);
+    if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
+     iAlpha=0x31310031; //tekstura -1 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+    else
+     iAlpha=0x30300030; //wszystkie tekstury nieprzezroczyste - nie renderowaæ w cyklu przezroczystych
+    if (TTexturesManager::GetAlpha(ReplacableSkinID[2]))
+     iAlpha|=0x32320032; //tekstura -2 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+    if (TTexturesManager::GetAlpha(ReplacableSkinID[3]))
+     iAlpha|=0x34340034; //tekstura -3 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+    if (TTexturesManager::GetAlpha(ReplacableSkinID[4]))
+     iAlpha|=0x38380038; //tekstura -4 z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+   }
   //Winger 040304 - ladowanie przedsionkow dla EZT
        if (MoverParameters->TrainType==dt_EZT)
        {
@@ -4148,18 +4189,19 @@ void __fastcall TDynamicObject::DestinationSet(AnsiString &to)
  //w zasadzie, to ka¿dy wagon móg³by mieæ inn¹ stacjê docelow¹
  //zw³aszcza w towarowych, pod k¹tem zautomatyzowania maewrów albo pracy górki
  //ale to jeszcze potrwa, zanim bêdzie mo¿liwe, na razie mo¿na wpisaæ stacjê z rozk³adu
+ if (abs(iMultiTex)>=4) return; //jak s¹ 4 tekstury wymienne, to nie zmieniaæ rozk³adem
  asDestination=to;
  AnsiString x;
  if (to.IsEmpty()) to="nowhere";
- x=asDirectory+to+".dds"; //na razie prymitywnie
+ x=asBaseDir+to+".dds"; //na razie prymitywnie
  if (FileExists(x))
   ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),9);
  else
- {x=asDirectory+to+".tga";
+ {x=asBaseDir+to+".tga";
   if (FileExists(x))
    ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),9); //rozmywania 0,1,4,5 nie nadaj¹ siê
   else
-  {x=asDirectory+to+".bmp";
+  {x=asBaseDir+to+".bmp";
    if (FileExists(x))
     ReplacableSkinID[4]=TTexturesManager::GetTextureID(NULL,NULL,x.c_str(),9);
    else

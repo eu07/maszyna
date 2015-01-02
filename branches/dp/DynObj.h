@@ -142,7 +142,6 @@ private: //po³o¿enie pojazdu w œwiecie oraz parametry ruchu
  TDynamicObject* __fastcall ABuFindNearestObject(TTrack *Track,TDynamicObject *MyPointer,int &CouplNr);
 public: //parametry po³o¿enia pojazdu dostêpne publicznie
  AnsiString asTrack; //nazwa toru pocz¹tkowego; wywaliæ?
- AnsiString asDirectory; //katalog z pojazdem
  AnsiString asDestination; //dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
  matrix4x4 mMatrix; //macierz przekszta³cenia do renderowania modeli
  TMoverParameters *MoverParameters; //parametry fizyki ruchu oraz przeliczanie
@@ -346,6 +345,7 @@ public:
     AnsiString asBaseDir;
     GLuint ReplacableSkinID[5];  //McZapkie:zmienialne nadwozie
     int iAlpha; //maska przezroczystoœci tekstur
+    int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
     double __fastcall TDynamicObject::Init
