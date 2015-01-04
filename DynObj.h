@@ -418,6 +418,7 @@ public:
  void __fastcall ParamSet(int what,int into);
  int __fastcall RouteWish(TTrack *tr); //zapytanie do AI, po którym segmencie skrzy¿owania jechaæ
  void __fastcall DestinationSet(AnsiString &to);
+ AnsiString __fastcall TextureTest(AnsiString &name);
 };
 
 
