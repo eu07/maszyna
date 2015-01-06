@@ -553,7 +553,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
       if (!eSignNext) eSignNext=sSpeedTable[i].evEvent;
       if (mvOccupied->Vel>0.0) //jeœli jedzie
        sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
-      else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist*(AIControllFlag?1.0:5.0):true)
+      else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist*(AIControllFlag?1.0:10.0):true)
       // sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
       //else //if (pOccupied->Vel==0.0)
       {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
