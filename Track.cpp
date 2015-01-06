@@ -186,6 +186,7 @@ __fastcall TTrack::TTrack(TGroundNode *g)
  pIsolated=NULL;
  pMyNode=g; //Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
  iAction=0; //normalnie mo¿e byæ pomijany podczas skanowania
+ fOverhead=-1.0; //mo¿na normalnie pobieraæ pr¹d (0 dla jazdy bezpr¹dowej po danym odcinku 
 }
 
 __fastcall TTrack::~TTrack()
@@ -734,13 +735,13 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    pIsolated=TIsolated::Find(AnsiString(token.c_str()));
   }
   else if (str=="angle1")
-  {//k¹t œciêcia od strony 1
+  {//k¹t œciêcia koñca od strony 1
    parser->getTokens();
    *parser >> a1;
    Segment->AngleSet(0,a1);
   }
   else if (str=="angle2")
-  {//k¹t œciêcia od strony 2
+  {//k¹t œciêcia koñca od strony 2
    parser->getTokens();
    *parser >> a2;
    Segment->AngleSet(1,a2);
@@ -757,6 +758,11 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
    *parser >> token;
    //Segment->AngleSet(1,a2);
   }
+  else if (str=="overhead")
+  {//informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i ograniczeniem prêdkoœci
+   parser->getTokens();
+   *parser >> fOverhead;
+  }
   else
    ErrorLog("Unknown property: \""+str+"\" in track \""+name+"\"");
   parser->getTokens(); *parser >> token;
@@ -766,7 +772,9 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
  if (!pIsolated)
   if ((i=name.Pos("@"))>0)
    if (i<name.Length()) //nie mo¿e byæ puste
-    pIsolated=TIsolated::Find(name.SubString(i+1,name.Length()));
+   {pIsolated=TIsolated::Find(name.SubString(i+1,name.Length()));
+    name=name.SubString(1,i-1); //usuniêcie z nazwy
+   }
 }
 
 bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0,TEvent *NewEvent1,TEvent *NewEvent2)

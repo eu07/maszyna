@@ -143,6 +143,7 @@ public:
  TEnvironmentType eEnvironment; //dŸwiêk i oœwietlenie
  bool bVisible; //czy rysowany
  int iAction; //czy modyfikowany eventami (specjalna obs³uga przy skanowaniu)
+ float fOverhead; //informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i ograniczeniem prêdkoœci
 private:
  double fVelocity; //prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
 public:
