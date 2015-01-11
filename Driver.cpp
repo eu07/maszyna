@@ -982,6 +982,7 @@ __fastcall TController::TController
  iCoupler=0; //sprzêg; niezerowy gdy ma byæ pod³¹czanie; samo pod³¹czanie w trybie Connect (wczeœniej mo¿e byæ np. Prepare_engine)
  fOverhead1=3000.0;  //informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
  fOverhead2=-1.0;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
+ fOverheadTrack=-1.0;  //jezda bezpr¹dowa (=0) ustawiana z torów
 };
 
 void __fastcall TController::CloseLog()
@@ -1784,8 +1785,11 @@ bool __fastcall TController::IncSpeed()
    return false;
   case ElectricSeriesMotor:
    if (mvControlling->EnginePowerSource.SourceType==CurrentCollector) //jeœli pantografuj¹cy
-    if (fOverhead2>=0.0) //a jazda bezpr¹dowa
+   {if (fOverhead2>=0.0) //a jazda bezpr¹dowa ustawiana eventami (albo opuszczenie)
      return false; //to nici z ruszania
+    if (fOverheadTrack>=0.0) //jazda bezpr¹dowa ustawiana z poziomu toru
+     return false; //to nici z ruszania
+   }
    if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
     if ((mvControlling->MainCtrlPos==0)||(mvControlling->StLinFlag)) //youBy poleci³ dodaæ 2012-09-08 v367
      //na pozycji 0 przejdzie, a na pozosta³ych bêdzie czekaæ, a¿ siê za³¹cz¹ liniowe (zgaœnie DelayCtrlFlag)

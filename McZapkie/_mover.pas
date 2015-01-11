@@ -421,6 +421,7 @@ TYPE
                NominalBatteryVoltage: real;        {Winger - baterie w elektrykach}
                Dim: TDimension;          {wymiary}
                Cx: real;                 {wsp. op. aerodyn.}
+               Floor: real;              //poziom pod³ogi dla ³adunków
                WheelDiameter : real;     {srednica kol napednych}
                WheelDiameterL : real;    //Ra: srednica kol tocznych przednich
                WheelDiameterT : real;    //Ra: srednica kol tocznych tylnych
@@ -6436,6 +6437,16 @@ begin
               s:=ExtractKeyWord(lines,'Cx=');
               Cx:=s2r(DUE(s));
               if Cx=0 then Cx:=0.3;
+              s:=ExtractKeyWord(lines,'Floor=');
+              if s='' then
+               begin
+                if (H<=2.0) then
+                 Floor:=H //gdyby nie by³o parametru, lepsze to ni¿ zero
+                else
+                 Floor:=0.0; //zgodnoœæ wsteczna
+               end
+              else
+               Floor:=s2rE(DUE(s));
              end;
            end
           else if Pos('Wheels:',lines)>0 then      {kola}

@@ -1665,7 +1665,7 @@ double __fastcall TDynamicObject::Init(
    if (Track->Event0) //a jest w tym torze event od stania
     RaAxleEvent(Track->Event0); //dodanie eventu stania do kolejki
  */
- vFloor=vector3(0,0,MoverParameters->Dim.H>2.0?0.0:MoverParameters->Dim.H); //wektor pod³ogi dla niskich wagonów, przesuwa ³adunek
+ vFloor=vector3(0,0,MoverParameters->Floor); //wektor pod³ogi dla wagonów, przesuwa ³adunek
  return MoverParameters->Dim.L; //d³ugoœæ wiêksza od zera oznacza OK; 2mm docisku?
 }
 

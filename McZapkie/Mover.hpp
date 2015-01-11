@@ -363,6 +363,7 @@ public:
 	double NominalBatteryVoltage;
 	TDimension Dim;
 	double Cx;
+	double Floor;
 	double WheelDiameter;
 	double WheelDiameterL;
 	double WheelDiameterT;
