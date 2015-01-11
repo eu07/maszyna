@@ -609,7 +609,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       //-----------
       if (cKey==Global::Keys[k_PantFrontUp])
       {//Winger 160204: podn. przedn. pantografu
-       if ((mvOccupied->ActiveCab==1)||((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT))==0)))
+       if (mvOccupied->ActiveCab==1)//||((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT))==0)))
        {//przedni gdy w kabinie 1 lub (z wyj¹tkiem ET40, ET41, ET42 i EZT) gdy w kabinie -1
         mvControlled->PantFrontSP=false;
         if (mvControlled->PantFront(true))
@@ -619,7 +619,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           dsbSwitch->Play(0,0,0);
          }
        }
-       if ((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT)))
+       else
+       //if ((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT)))
        {//w kabinie -1 dla ET40, ET41, ET42 i EZT
         mvControlled->PantRearSP=false;
         if(mvControlled->PantRear(true))
@@ -632,8 +633,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       }
       else
       if (cKey==Global::Keys[k_PantRearUp])
-      {//Winger 160204: podn. tyln. pantografu
-       if ((mvOccupied->ActiveCab==1)||((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT))==0)))
+      {//Winger 160204: podn. tyln. pantografu wzglêdem kierunku jazdy
+       if (mvOccupied->ActiveCab==1)//||((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT))==0)))
        {//tylny gdy w kabinie 1 lub (z wyj¹tkiem ET40, ET41, ET42 i EZT) gdy w kabinie -1
         mvControlled->PantRearSP=false;
         if (mvControlled->PantRear(true))
@@ -643,7 +644,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
           dsbSwitch->Play(0,0,0);
          }
        }
-       if ((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT)))
+       else
+       //if ((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType&(dt_ET40|dt_ET41|dt_ET42|dt_EZT)))
        {//przedni w kabinie -1 dla ET40, ET41, ET42 i EZT
         mvControlled->PantFrontSP=false;
         if(mvControlled->PantFront(true))

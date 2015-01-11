@@ -982,7 +982,7 @@ __fastcall TController::TController
  iCoupler=0; //sprzêg; niezerowy gdy ma byæ pod³¹czanie; samo pod³¹czanie w trybie Connect (wczeœniej mo¿e byæ np. Prepare_engine)
  fOverhead1=3000.0;  //informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
  fOverhead2=-1.0;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
- fOverheadTrack=-1.0;  //jezda bezpr¹dowa (=0) ustawiana z torów
+ iOverheadZero=0;  //suma bitowa jezdy bezpr¹dowej, bity ustawiane przez pojazdy z podniesionymi pantografami
 };
 
 void __fastcall TController::CloseLog()
@@ -1228,6 +1228,7 @@ bool __fastcall TController::CheckVehicles(TOrders user)
  pVehicles=new TDynamicObject*[iVehicles];
 */
  ControllingSet(); //ustalenie cz³onu do sterowania (mo¿e byæ inny ni¿ zasiedziany)
+ int pantmask=1;
  if (iDrivigFlags&movePrimary)
  {//jeœli jest aktywnie prowadz¹cym pojazd, mo¿e zrobiæ w³asny porz¹dek
   p=pVehicles[0];
@@ -1238,6 +1239,11 @@ bool __fastcall TController::CheckVehicles(TOrders user)
      p->DestinationSet(TrainParams->Relation2); //relacja docelowa, jeœli nie by³o
    if (AIControllFlag) //jeœli prowadzi komputer
     p->RaLightsSet(0,0); //gasimy œwiat³a
+   if (p->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
+   {//jeœli pojazd posiada pantograf, to przydzielamy mu maskê, któr¹ bêdzie informowa³ o jeŸdzie bezpr¹dowej
+    p->iOverheadMask=pantmask;
+    pantmask<<1; //przesuniêcie bitów, max. 32 pojazdy z pantografami w sk³adzie
+   }
    d=p->DirectionSet(d?1:-1); //zwraca po³o¿enie nastêpnego (1=zgodny,0=odwrócony - wzglêdem czo³a sk³adu)
    p->fScanDist=300.0; //odleg³oœæ skanowania w poszukiwaniu innych pojazdów
    p->ctOwner=this; //dominator oznacza swoje terytorium
@@ -1787,7 +1793,7 @@ bool __fastcall TController::IncSpeed()
    if (mvControlling->EnginePowerSource.SourceType==CurrentCollector) //jeœli pantografuj¹cy
    {if (fOverhead2>=0.0) //a jazda bezpr¹dowa ustawiana eventami (albo opuszczenie)
      return false; //to nici z ruszania
-    if (fOverheadTrack>=0.0) //jazda bezpr¹dowa ustawiana z poziomu toru
+    if (iOverheadZero) //jazda bezpr¹dowa z poziomu toru ustawia bity 
      return false; //to nici z ruszania
    }
    if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
@@ -2531,7 +2537,7 @@ bool __fastcall TController::UpdateSituation(double dt)
       mvOccupied->ChangeOffsetH(0.01*mvOccupied->Vel*dt); //Ra: co to mia³o byæ, to nie wiem
    if (mvControlling->EnginePowerSource.SourceType==CurrentCollector)
    {
-    if (fOverhead2>=0.0)
+    if ((fOverhead2>=0.0)||iOverheadZero)
     {//jeœli jazda bezpr¹dowa albo z opuszczonym pantografem
      while (DecSpeed(true)); //zerowanie napêdu
     }

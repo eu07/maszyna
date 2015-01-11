@@ -965,6 +965,8 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
  {//jeúli jest miejsce, dajemy na koniec
   Dynamics[iNumDynamics++]=Dynamic;
   Dynamic->MyTrack=this; //ABu: na ktorym torze jesteúmy
+  if (Dynamic->iOverheadMask) //jeúli ma pantografy
+   Dynamic->OverheadTrack(fOverhead); //przekazanie informacji o jeüdzie bezprπdowej na tym odcinku toru
   return true;
  }
  else

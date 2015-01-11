@@ -1293,6 +1293,7 @@ __fastcall TDynamicObject::TDynamicObject()
  smWiper=NULL; //wycieraczka (poniek¹d te¿ wajcha)
  fScanDist=300.0; //odleg³oœæ skanowania, zwiêkszana w trybie ³¹czenia
  ctOwner=NULL; //na pocz¹tek niczyj
+ iOverheadMask=0; //maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y jazdê bezpr¹dow¹
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -4265,3 +4266,15 @@ void __fastcall TDynamicObject::DestinationSet(AnsiString &to)
   ReplacableSkinID[4]=0; //0 to brak? -1 odpada, bo inaczej siê bêdzie mapowaæ
  //Ra 2015-01: ¿eby zalogowaæ b³¹d, trzeba by mieæ pewnoœæ, ¿e model u¿ywa tekstury nr 4
 };
+
+void __fastcall TDynamicObject::OverheadTrack(float o)
+{//ewentualne wymuszanie jazdy bezpr¹dowej z powodu informacji w torze
+ if (ctOwner) //jeœli ma obiekt nadzoruj¹cy
+ {//trzeba zaktualizowaæ maskê jazdy bezpr¹dowej
+  if (o<0.0)
+   ctOwner->iOverheadZero&=~iOverheadMask; //zerowanie bitu - mo¿e pobieraæ pr¹d
+  else
+   ctOwner->iOverheadZero|=iOverheadMask; //ustawienie bitu - ma jechaæ bez pobierania pr¹du
+ }
+};
+

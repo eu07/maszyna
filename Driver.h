@@ -213,7 +213,7 @@ public:
  double fMinProximityDist; //minimalna oleg³oœæ do przeszkody, jak¹ nale¿y zachowaæ
  double fOverhead1;  //informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
  double fOverhead2;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
- double fOverheadTrack;  //jezda bezpr¹dowa (=0) ustawiana z torów przez pojazdy z podniesionymi pantografami
+ int iOverheadZero;  //suma bitowa jezdy bezpr¹dowej, bity ustawiane przez pojazdy z podniesionymi pantografami
 private:
  double fMaxProximityDist; //akceptowalna odleg³oœæ staniêcia przed przeszkod¹
  TStopReason eStopReason; //powód zatrzymania przy ustawieniu zerowej prêdkoœci
