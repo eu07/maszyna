@@ -346,6 +346,7 @@ public:
     GLuint ReplacableSkinID[5];  //McZapkie:zmienialne nadwozie
     int iAlpha; //maska przezroczystoœci tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+    int iOverheadMask; //maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y jazdê bezpr¹dow¹
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
     double __fastcall TDynamicObject::Init
@@ -419,6 +420,7 @@ public:
  int __fastcall RouteWish(TTrack *tr); //zapytanie do AI, po którym segmencie skrzy¿owania jechaæ
  void __fastcall DestinationSet(AnsiString &to);
  AnsiString __fastcall TextureTest(AnsiString &name);
+ void __fastcall OverheadTrack(float o);
 };
 
 
