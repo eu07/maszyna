@@ -4284,6 +4284,7 @@ void __fastcall TGround::TerrainWrite()
     sk->NameSet(AnsiString(1000*(500+i-iNumRects/2)+(500+j-iNumRects/2)).c_str()); //nazwa=numer kwadratu
     m->AddTo(NULL,sk); //dodanie submodelu dla kwadratu
     for (Current=Rects[i][j].nRootNode;Current;Current=Current->nNext2)
+     if (Current->TextureID)
      switch (Current->iType)
      {//pêtla po trójk¹tach - zliczanie wierzcho³ków, dodaje submodel dla ka¿dej tekstury
       case GL_TRIANGLES:
@@ -4296,11 +4297,13 @@ void __fastcall TGround::TerrainWrite()
        break;
      }
     for (Current=Rects[i][j].nRootNode;Current;Current=Current->nNext2)
+     if (Current->TextureID)
      switch (Current->iType)
      {//pêtla po trójk¹tach - dopisywanie wierzcho³ków
       case GL_TRIANGLES:
        //ver=sk->TrianglePtr(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts); //wskaŸnik na pocz¹tek
        ver=sk->TrianglePtr(Current->TextureID,Current->iVboPtr,Current->Ambient,Current->Diffuse,Current->Specular); //wskaŸnik na pocz¹tek
+       //WriteLog("Zapis "+AnsiString(Current->iNumVerts)+" trójk¹tów w ("+AnsiString(i)+","+AnsiString(j)+") od "+AnsiString(Current->iVboPtr)+" dla "+AnsiString(Current->TextureID));
        Current->iVboPtr=-1; //bo to by³o tymczasowo u¿ywane
        for (k=0;k<Current->iNumVerts;++k)
        {//przepisanie wspó³rzêdnych

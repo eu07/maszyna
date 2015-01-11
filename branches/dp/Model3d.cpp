@@ -568,7 +568,6 @@ float8* __fastcall TSubModel::TrianglePtr(int tex,int pos,int *la,int *ld,int*ls
  }
  if (!s)
   return NULL; //coœ nie tak posz³o
- //WriteLog("Zapis "+t+" od "+pos);
  if (!s->Vertices)
  {//utworznie tabeli trójk¹tów
   s->Vertices=new float8[s->iNumVerts];
