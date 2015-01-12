@@ -2307,6 +2307,10 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      p->fAngleU+=0.5*dt1; //górne siê musi ruszaæ szybciej.
     if (p->fAngleU>M_PI)
      p->fAngleU=M_PI;
+    if (i&1) //zg³oszono, ¿e po po³amaniu potrafi zostaæ zasilanie
+     MoverParameters->PantRearVolt=0.0;
+    else
+     MoverParameters->PantFrontVolt=0.0;
     continue; //reszta wtedy nie jest wykonywana
    }
    PantDiff=p->PantTraction-p->PantWys; //docelowy-aktualny
