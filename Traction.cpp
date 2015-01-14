@@ -287,9 +287,14 @@ void __fastcall TTraction::RenderDL(float mgn)   //McZapkie: mgn to odleglosc od
    case 6: r=0.0; g=1.0; b=0.0; break; //zielone z pod³¹czonym zasilaniem 2
    case 7: r=1.0; g=1.0; b=0.0; break; //¿ó³te z pod³¹czonym zasilaniem z obu stron
   }
-  r=r*Global::ambientDayLight[0];  //w zaleŸnoœci od koloru swiat³a
-  g=g*Global::ambientDayLight[1];
-  b=b*Global::ambientDayLight[2];
+  if (DebugModeFlag)
+   if (hvParallel)
+   {//jeœli z bie¿ni¹ wspóln¹, to dodatkowo przyciemniamy
+    r*=0.6; g*=0.6; b*=0.6;
+   }
+  r*=Global::ambientDayLight[0];  //w zaleŸnoœci od koloru swiat³a
+  g*=Global::ambientDayLight[1];
+  b*=Global::ambientDayLight[2];
   if (linealpha>1.0) linealpha=1.0; //trzeba ograniczyæ do <=1
   glColor4f(r,g,b,linealpha);
   if (!uiDisplayList)
