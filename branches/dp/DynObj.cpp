@@ -1230,11 +1230,6 @@ __fastcall TDynamicObject::TDynamicObject()
  //Winger 160204 - pantografy
  //PantVolume = 3.5;
  NoVoltTime=0;
- //smPatykird1[0]=smPatykird1[1]=NULL;
- //smPatykird2[0]=smPatykird2[1]=NULL;
- //smPatykirg1[0]=smPatykirg1[1]=NULL;
- //smPatykirg2[0]=smPatykirg2[1]=NULL;
- //smPatykisl[0]=smPatykisl[1]=NULL;
  dDoorMoveL=0.0;
  dDoorMoveR=0.0;
  //for (int i=0;i<8;i++)
@@ -1497,6 +1492,9 @@ double __fastcall TDynamicObject::Init(
   else //jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z poboczem, ale nie z chodnikiem
    MoverParameters->OffsetTrackH=-0.5*(Track->WidthTotal()-MoverParameters->Dim.W)+0.05;
   iHornWarning=0; //nie bêdzie tr¹bienia po podaniu zezwolenia na jazdê
+  if (fDist>0.0) //-0.5*MoverParameters->Dim.L) //jeœli jest przesuniêcie do ty³u
+   if (!Track->CurrentPrev()) //a nie ma tam odcinka i trzeba by coœ wygenerowaæ
+    fDist=-fDist; //to traktujemy, jakby przesuniêcie by³o w drug¹ stronê
  }
  //w wagonie tez niech jedzie
  //if (MoverParameters->MainCtrlPosNo>0 &&

@@ -3046,16 +3046,24 @@ void __fastcall TGround::InitTraction()
  TGroundNode **nEnds=new TGroundNode*[iConnection]; //koñców jest ok. 10 razy mniej ni¿ wszystkich przêse³ (Quark: 216)
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {//³¹czenie bie¿ni wspólnych, w tym oznaczanie niepodanych jawnie
+  Traction=nCurrent->hvTraction;
   if (!Traction->asParallel.IsEmpty()) //bêdzie wskaŸnik na inne przês³o
    if ((Traction->asParallel=="none")||(Traction->asParallel=="*")) //jeœli nieokreœlone
     Traction->iLast=2; //jakby przedostatni - niech po prostu szuka (iLast ju¿ przeliczone)
-   else
+   else if (!Traction->hvParallel) //jeœli jeszcze nie zosta³ w³¹czony w kó³ko
    {nTemp=FindGroundNode(Traction->asParallel,TP_TRACTION);
-    if (nTemp) Traction->hvParallel=nTemp->hvTraction; //o ile znalezione
+    if (nTemp)
+    {//o ile zostanie znalezione przês³o o takiej nazwie
+     if (!nTemp->hvTraction->hvParallel) //jeœli tamten jeszcze nie ma wskaŸnika bie¿ni wspólnej
+      Traction->hvParallel=nTemp->hvTraction; //wpisaæ siebie i dalej daæ mu wskaŸnik zwrotny
+     else //a jak ma, to albo do³¹czyæ siê do kó³eczka
+      Traction->hvParallel=nTemp->hvTraction->hvParallel; //przj¹æ dotychczasowy wskaŸnik od niego
+     nTemp->hvTraction->hvParallel=Traction; //i na koniec ustawienie wskaŸnika zwrotnego
+    }
     if (!Traction->hvParallel)
      ErrorLog("Missed overhead: "+Traction->asParallel); //logowanie braku
    }
-  if (nCurrent->hvTraction->iTries>0) //jeœli zaznaczony do pod³¹czenia
+  if (Traction->iTries>0) //jeœli zaznaczony do pod³¹czenia
    //if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1])
     if (zg<iConnection) //zabezpieczenie
      nEnds[zg++]=nCurrent; //wype³nianie tabeli koñców w celu szukania im po³¹czeñ
@@ -3672,7 +3680,6 @@ bool __fastcall TGround::Update(double dt,int iter)
   }
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
    Current->DynamicObject->FastUpdate(dt);
-  UpdatePhys(dt,1);
   //pozostale iteracje
   for (int i=1;i<(iter-1);++i) //jeœli iter==5, to wykona siê 3 razy
   {
@@ -3680,38 +3687,33 @@ bool __fastcall TGround::Update(double dt,int iter)
     Current->DynamicObject->UpdateForce(dt,dt,false);
    for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
     Current->DynamicObject->FastUpdate(dt);
-   UpdatePhys(dt,1);
   }
   //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
+  UpdatePhys(dt,1);
   //Winger 180204 - pantografy
   double dt1=dt*iter; //ca³kowity czas
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
   {//Ra: zmieniæ warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
    if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-   //ABu: usunalem, bo sie krzaczylo: && (Current->DynamicObject->MoverParameters->PantFrontUp || Current->DynamicObject->MoverParameters->PantRearUp))
-   //     a za to dodalem to:
-   //   &&(Current->DynamicObject->MoverParameters->CabNo!=0)) //Ra: ten warunek jest bez sensu odk¹d trzeba pompowaæ z maszynowego
-      GetTraction(Current->DynamicObject);
+    GetTraction(Current->DynamicObject); //poszukiwanie drutu dla pantografów
    Current->DynamicObject->UpdateForce(dt,dt1,true);//,true);
   }
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
-   Current->DynamicObject->Update(dt,dt1);
-  TGround::UpdatePhys(dt,1);
+   Current->DynamicObject->Update(dt,dt1); //Ra 2015-01: tylko tu przelicza sieæ trakcyjn¹
  }
  else
  {//jezeli jest tylko jedna iteracja
+  UpdatePhys(dt,1);
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
   {
    if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
-      //&&(Current->DynamicObject->MoverParameters->CabNo!=0))
-      GetTraction(Current->DynamicObject);
+    GetTraction(Current->DynamicObject);
    Current->DynamicObject->MoverParameters->ComputeConstans();
    Current->DynamicObject->CoupleDist();
    Current->DynamicObject->UpdateForce(dt,dt,true);//,true);
   }
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
-   Current->DynamicObject->Update(dt,dt);
-  UpdatePhys(dt,1);   
+   Current->DynamicObject->Update(dt,dt);//Ra 2015-01: tylko tu przelicza sieæ trakcyjn¹
  }
  if (bDynamicRemove)
  {//jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
@@ -3750,7 +3752,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
   {//jeœli pantograf podniesiony
    pant0=dwys+(vLeft*p->vPos.z)+(vUp*p->vPos.y)+(vFront*p->vPos.x);
    if (p->hvPowerWire)
-   {//mamy drut z poprzedniego przebiegu
+   {//je¿eli znamy drut z poprzedniego przebiegu
     int n=30; //¿eby siê nie zapêtli³
     while (p->hvPowerWire)
     {//powtarzane a¿ do znalezienia odpowiedniego odcinka na liœcie dwukierunkowej
@@ -3769,6 +3771,11 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       p->hvPowerWire=NULL; //nie to, ¿e nie ma, ale trzeba sprawdziæ inne
       break;
      }
+     else if (p->hvPowerWire->hvParallel)
+     {//jeœli przês³o tworzy bie¿niê wspóln¹, to trzeba sprawdziæ pozosta³e
+      p->hvPowerWire=NULL; //nie to, ¿e nie ma, ale trzeba sprawdziæ inne
+      break; //tymczasowo dla bie¿ni wspólnych poszukiwanie po ca³oœci
+     }
      else
      {//jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
       vStyk=p->hvPowerWire->pPoint1+fRaParam*vParam; //punkt styku p³aszczyzny z drutem (dla generatora ³uku el.)
@@ -3776,10 +3783,17 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       //odleg³oœæ w pionie musi byæ w zasiêgu ruchu "pionowego" pantografu
       fVertical=DotProduct(vGdzie,vUp); //musi siê mieœciæ w przedziale ruchu pantografu
       //odleg³oœæ w bok powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
-      fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
+      fHorizontal=fabs(DotProduct(vGdzie,vLeft))-p->fWidth; //to siê musi mieœciæ w przedziale zale¿nym od szerokoœci pantografu
       //jeœli w pionie albo w bok jest za daleko, to dany drut jest nieu¿yteczny
-      if (fabs(fHorizontal)>p->fWidth) //0.635 dla AKP-1 AKP-4E
-       p->hvPowerWire=NULL; //nie liczy siê
+      if (fHorizontal>0) //0.635 dla AKP-1 AKP-4E
+      {//drut wyszed³ poza zakres roboczy, ale jeszcze jest nabie¿nik - pantograf siê unosi bez utraty pr¹du
+       if (fHorizontal>p->fWidthExtra) //czy wyszed³ za nabie¿nik
+        p->hvPowerWire=NULL; //dotychczasowy drut nie liczy siê
+       else
+       {//problem jest, gdy nowy drut jest wy¿ej, wtedy pantograf od³¹cza siê od starego, a na podniesienie do nowego potrzebuje czasu
+        p->PantTraction=fVertical+0.15*fHorizontal/p->fWidthExtra; //na razie liniowo na nabie¿niku, dok³adnoœæ poprawi siê póŸniej
+       }
+      }
       else
       {//po wyselekcjonowaniu drutu, przypisaæ go do toru, ¿eby nie trzeba by³o szukaæ
        //dla 3 koñcowych przêse³ sprawdziæ wszystkie dostêpne przês³a
@@ -3833,10 +3847,20 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
            }
            else if (fVertical<p->PantTraction) //ale ni¿ej, ni¿ poprzednio znaleziony
            {
-            fHorizontal=DotProduct(vGdzie,vLeft); //to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
-            if (fabs(fHorizontal)<=p->fWidth) //0.635 dla AKP-1 AKP-4E
-            {p->hvPowerWire=node->hvTraction; //jakiœ znaleziony
+            fHorizontal=fabs(DotProduct(vGdzie,vLeft))-p->fWidth;
+            if (fHorizontal<=0) //0.635 dla AKP-1 AKP-4E
+            {//to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
+             p->hvPowerWire=node->hvTraction; //jakiœ znaleziony
              p->PantTraction=fVertical; //zapamiêtanie nowej wysokoœci
+            }
+            else if (fHorizontal<p->fWidthExtra) //czy zmieœci³ siê w zakresie nabie¿nika?
+            {//problem jest, gdy nowy drut jest wy¿ej, wtedy pantograf od³¹cza siê od starego, a na podniesienie do nowego potrzebuje czasu
+             fVertical+=0.15*fHorizontal/p->fWidthExtra; //korekta wysokoœci o nabie¿nik - drut nad nabie¿nikiem jest geometrycznie jakby nieco wy¿ej
+             if (fVertical<p->PantTraction) //gdy po korekcie jest ni¿ej, ni¿ poprzednio znaleziony
+             {//gdyby to wystarczy³o, to mo¿emy go uznaæ
+              p->hvPowerWire=node->hvTraction; //mo¿e byæ
+              p->PantTraction=fVertical; //na razie liniowo na nabie¿niku, dok³adnoœæ poprawi siê póŸniej
+             }
             }
            }
          } //warunek na parametr drutu <0;1>

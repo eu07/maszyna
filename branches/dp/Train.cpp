@@ -1704,7 +1704,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_PantFrontDown])   //Winger 160204: opuszczanie prz. patyka
       {
-       if ((mvOccupied->ActiveCab==1)||((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType!=dt_ET40)&&(mvControlled->TrainType!=dt_ET41)&&(mvControlled->TrainType!=dt_ET42)&&(mvControlled->TrainType!=dt_EZT)))
+       if (mvOccupied->ActiveCab==1)//||((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType!=dt_ET40)&&(mvControlled->TrainType!=dt_ET41)&&(mvControlled->TrainType!=dt_ET42)&&(mvControlled->TrainType!=dt_EZT)))
        {
         if (mvControlled->PantFront(false))
         {
@@ -1712,7 +1712,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          dsbSwitch->Play(0,0,0);
         }
        }
-       if ((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType==dt_ET40)||(mvControlled->TrainType==dt_ET41)||(mvControlled->TrainType==dt_ET42)||(mvControlled->TrainType==dt_EZT)))
+       else
+       //if ((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType==dt_ET40)||(mvControlled->TrainType==dt_ET41)||(mvControlled->TrainType==dt_ET42)||(mvControlled->TrainType==dt_EZT)))
        {
         if (mvControlled->PantRear(false))
         {
@@ -1723,7 +1724,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       }
       else if (cKey==Global::Keys[k_PantRearDown])   //Winger 160204: opuszczanie tyl. patyka
       {
-       if ((mvOccupied->ActiveCab==1)||((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType!=dt_ET40)&&(mvControlled->TrainType!=dt_ET41)&&(mvControlled->TrainType!=dt_ET42)&&(mvControlled->TrainType!=dt_EZT)))
+       if (mvOccupied->ActiveCab==1)//||((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType!=dt_ET40)&&(mvControlled->TrainType!=dt_ET41)&&(mvControlled->TrainType!=dt_ET42)&&(mvControlled->TrainType!=dt_EZT)))
        {
         if (mvControlled->PantSwitchType=="impulse")
          ggPantFrontButtonOff.PutValue(1);
@@ -1733,7 +1734,8 @@ void __fastcall TTrain::OnKeyDown(int cKey)
          dsbSwitch->Play(0,0,0);
         }
        }
-       if ((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType==dt_ET40)||(mvControlled->TrainType==dt_ET41)||(mvControlled->TrainType==dt_ET42)||(mvControlled->TrainType==dt_EZT)))
+       else
+       //if ((mvOccupied->ActiveCab<1)&&((mvControlled->TrainType==dt_ET40)||(mvControlled->TrainType==dt_ET41)||(mvControlled->TrainType==dt_ET42)||(mvControlled->TrainType==dt_EZT)))
        {
         /* if (mvControlled->PantSwitchType=="impulse")
         ggPantRearButtonOff.PutValue(1);  */
