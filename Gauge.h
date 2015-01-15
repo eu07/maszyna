@@ -28,7 +28,6 @@ private:
  double fOffset; //wartoœæ pocz¹tkowa ("0")
  double fScale; //wartoœæ koñcowa ("1")
  double fStepSize; //nie u¿ywane
- //int iChannel; //kana³ analogowej komunikacji zwrotnej; Ra 2014-09: nie ma to ju¿ sensu tutaj, lepiej bezpoœrednio z kabiny
  char cDataType; //typ zmiennej parametru: f-float, d-double, i-int
  union
  {//wskaŸnik na parametr pokazywany przez animacjê
@@ -41,7 +40,7 @@ public:
  __fastcall ~TGauge();
  void __fastcall Clear();
  void __fastcall Init(TSubModel *NewSubModel,TGaugeType eNewTyp,double fNewScale=1,double fNewOffset=0,double fNewFriction=0,double fNewValue=0);
- void __fastcall Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2=NULL,double mul=1.0);
+ bool __fastcall Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2=NULL,double mul=1.0);
  void __fastcall PermIncValue(double fNewDesired);
  void __fastcall IncValue(double fNewDesired);
  void __fastcall DecValue(double fNewDesired);
@@ -50,7 +49,6 @@ public:
  float GetValue() {return fValue;};
  void __fastcall Update();
  void __fastcall Render();
- //void __fastcall Output(int i=-1) {iChannel=i;}; //ustawienie kana³u analogowego komunikacji zwrotnej
  void __fastcall AssignFloat(float* fValue);
  void __fastcall AssignDouble(double* dValue);
  void __fastcall AssignInt(int* iValue);

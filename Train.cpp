@@ -2162,7 +2162,7 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  double r1,r2,r3;
  int iVel=DynamicObject->GetVelocity();
  if (iVel>150) iVel=150;
- if (!Global::iSlowMotion) //musi byæ pe³na prêdkoœæ
+ if (!Global::iSlowMotion&&!DebugModeFlag) //musi byæ pe³na prêdkoœæ
  {
    if (!(random((GetFPS()+1)/15)>0))
    {
@@ -2181,16 +2181,23 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
 
    //McZapkie:
    pMechShake+=vMechVelocity*dt;
+  //Ra 2015-01: dotychczasowe rzucanie
+  pMechOffset+=vMechMovement*dt;
+  if ((pMechShake.y>fMechMaxSpring) || (pMechShake.y<-fMechMaxSpring))
+   vMechVelocity.y=-vMechVelocity.y;
+  //ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
+  pNewMechPosition=pMechOffset+vector3(pMechShake.x,5*pMechShake.y,pMechShake.z);
+  vMechMovement=0.5*vMechMovement;
  }
  else
-   pMechShake-=pMechShake*Min0R(dt,1);
-
- pMechOffset+=vMechMovement*dt;
- if ((pMechShake.y>fMechMaxSpring) || (pMechShake.y<-fMechMaxSpring))
-  vMechVelocity.y=-vMechVelocity.y;
- //ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
- pNewMechPosition=pMechOffset+vector3(pMechShake.x,5*pMechShake.y,pMechShake.z);
- vMechMovement=vMechMovement/2;
+ {//hamowanie rzucania przy spadku FPS
+  pMechShake-=pMechShake*Min0R(dt,1); //po tym chyba potrafi¹ zostaæ jakieœ u³amki, które powoduj¹ zjazd
+  pMechOffset+=vMechMovement*dt;
+  vMechVelocity.y=0.5*vMechVelocity.y;
+  //ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
+  pNewMechPosition=pMechOffset+vector3(pMechShake.x,5*pMechShake.y,pMechShake.z);
+  vMechMovement=0.5*vMechMovement;
+ }
  //numer kabiny (-1: kabina B)
  if (DynamicObject->Mechanik) //mo¿e nie byæ?
   if (DynamicObject->Mechanik->AIControllFlag) //jeœli prowadzi AI

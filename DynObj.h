@@ -88,6 +88,7 @@ public:
  TTraction *hvPowerWire; //aktualnie podczepione druty, na razie tu
  float fWidthExtra; //dodatkowy rozmiar poziomy poza czêœæ robocz¹ (fWidth)
  float fHeightExtra[5]; //³amana symuluj¹ca kszta³t nabie¿nika
+ //double fHorizontal; //Ra 2015-01: po³o¿enie drutu wzglêdem osi pantografu 
  void __fastcall AKP_4E();
 };
 
@@ -180,14 +181,12 @@ private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  vector3 bogieRot[2];   //Obroty wozkow w/m korpusu
  TSubModel *smBogie[2]; //Wyszukiwanie max 2 wozkow
  TSubModel *smWahacze[4]; //wahacze (np. nogi, dŸwignia w drezynie)
+ TSubModel *smBrakeMode; //Ra 15-01: nastawa hamulca te¿
+ TSubModel *smLoadMode; //Ra 15-01: nastawa pró¿ny/³adowny
  double fWahaczeAmp;
  //Winger 160204 - pantografy
  double pantspeedfactor;
- //TSubModel *smPatykird1[2];
- //TSubModel *smPatykird2[2];
- //TSubModel *smPatykirg1[2];
- //TSubModel *smPatykirg2[2];
- //TSubModel *smPatykisl[2];
+ //animacje typu przesuw
  TSubModel *smBuforLewy[2];
  TSubModel *smBuforPrawy[2];
  TAnimValveGear *pValveGear;
