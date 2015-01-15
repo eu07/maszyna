@@ -408,6 +408,8 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
  if (eType<TP_ROTATOR)
  {//wczytywanie wierzcho³ków
   parser.ignoreToken();
+  //Ra 15-01: to wczytaæ jako tekst - jeœli pierwszy znak zawiera "*", to dalej bêdzie nazwa wczeœniejszego submodelu, z którego nale¿y wzi¹æ wierzcho³ki
+  //zapewni to jak¹œ zgodnoœæ wstecz, bo zamiast liczby bêdzie ci¹g, którego wartoœæ powinna byæ uznana jako zerowa 
   parser.getToken(iNumVerts);
   if (iNumVerts%3)
   {
@@ -453,10 +455,10 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
       WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\", verticle "+AnsiString(i));
      }
      if (i>0) //jeœli pierwszy trójk¹t bêdzie zdegenerowany, to zostanie usuniêty i nie ma co sprawdzaæ
-      if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>2000.0) ||
-          ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>2000.0) ||
-          ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>2000.0))
-      {//je¿eli s¹ dalej ni¿ 2km od siebie
+      if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>1000.0) ||
+          ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>1000.0) ||
+          ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>1000.0))
+      {//je¿eli s¹ dalej ni¿ 2km od siebie //Ra 15-01: obiekt wstawiany nie powinien byæ wiêkszy ni¿ 300m (trójk¹ty terenu w E3D mog¹ mieæ 1.5km)
        --iNumFaces; //o jeden trójk¹t mniej
        iNumVerts-=3; //czyli o 3 wierzcho³ki
        i-=3; //wczytanie kolejnego w to miejsce
@@ -486,6 +488,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
       norm+=n[f/3];
       f=SeekFaceNormal(sg,f/3+1,sg[i],&Vertices[v].Point,Vertices); //i szukanie od kolejnego trójk¹ta
      }
+     //Ra 15-01: nale¿a³o by jeszcze uwzglêdniæ skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu by³y jednostkowe
      Vertices[v].Normal=SafeNormalize(norm); //przepisanie do wierzcho³ka trójk¹ta
     }
    }

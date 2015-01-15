@@ -122,8 +122,6 @@ public:
  TEvent *evEvent0;  //McZapkie-280503: wyzwalany tylko gdy headdriver
  TEvent *evEvent1;
  TEvent *evEvent2;
- TEvent *evEventBusy; //Ra: wyzwalane, gdy zajmowany; nazwa automatyczna
- TEvent *evEventFree; //Ra: wyzwalane, gdy zwalniany; nazwa automatyczna
  AnsiString asEventall0Name; //nazwy eventów
  AnsiString asEventall1Name;
  AnsiString asEventall2Name;

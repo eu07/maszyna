@@ -70,7 +70,7 @@ void __fastcall TGauge::Init(TSubModel *NewSubModel,TGaugeType eNewType,double f
  }
 };
 
-void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2,double mul)
+bool __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md2,double mul)
 {
  AnsiString str1=Parser->GetNextSymbol();
  AnsiString str2=Parser->GetNextSymbol().LowerCase();
@@ -78,9 +78,11 @@ void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md
  double val4=Parser->GetNextSymbol().ToDouble();
  double val5=Parser->GetNextSymbol().ToDouble();
  TSubModel *sm=md1->GetFromName(str1.c_str());
- if (!sm) //jeœli nie znaleziony
+ if (sm) //jeœli nie znaleziony
+  md2=NULL; //informacja, ¿e znaleziony
+ else
   if (md2) //a jest podany drugi model (np. zewnêtrzny)
-   md2->GetFromName(str1.c_str()); //to mo¿e tam bêdzie, co za ró¿nica gdzie
+   sm=md2->GetFromName(str1.c_str()); //to mo¿e tam bêdzie, co za ró¿nica gdzie
  if (str2=="mov")
   Init(sm,gt_Move,val3,val4,val5);
  else if (str2=="wip")
@@ -89,6 +91,7 @@ void __fastcall TGauge::Load(TQueryParserComp *Parser,TModel3d *md1,TModel3d *md
   Init(sm,gt_Digital,val3,val4,val5);
  else
   Init(sm,gt_Rotate,val3,val4,val5);
+ return (md2); //true, gdy podany model zewnêtrzny, a w kabinie nie by³o
 };
 
 
@@ -118,16 +121,12 @@ void __fastcall TGauge::DecValue(double fNewDesired)
 void __fastcall TGauge::UpdateValue(double fNewDesired)
 {//ustawienie wartoœci docelowej
  fDesiredValue=fNewDesired*fScale+fOffset;
- //if (iChannel>=0)
- // Console::ValueSet(iChannel,fNewDesired);
 };
 
 void __fastcall TGauge::PutValue(double fNewDesired)
 {//McZapkie-281102: natychmiastowe wpisanie wartosci
  fDesiredValue=fNewDesired*fScale+fOffset;
  fValue=fDesiredValue;
- //if (iChannel>=0) //chyba nie u¿ywane dla mierników
- // Console::ValueSet(iChannel,fNewDesired);
 };
 
 void __fastcall TGauge::Update()
@@ -201,18 +200,12 @@ void __fastcall TGauge::UpdateValue()
  {//to nie jest zbyt optymalne, mo¿na by zrobiæ osobne funkcje
   case 'f':
    fDesiredValue=(*fData)*fScale+fOffset;
-   //if (iChannel>=0)
-   // Console::ValueSet(iChannel,(*fData));
   break;
   case 'd':
    fDesiredValue=(*dData)*fScale+fOffset;
-   //if (iChannel>=0)
-   // Console::ValueSet(iChannel,(*dData));
   break;
   case 'i':
    fDesiredValue=(*iData)*fScale+fOffset;
-   //if (iChannel>=0)
-   // Console::ValueSet(iChannel,(*iData));
   break;
  }
 };

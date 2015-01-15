@@ -196,6 +196,12 @@ bool __fastcall TSpeedPos::Update(vector3 *p,vector3 *dir,double &len)
  {
   if (trTrack) //mo¿e byæ NULL, jeœli koniec toru (???)
   {fVelNext=trTrack->VelocityGet(); //aktualizacja prêdkoœci (mo¿e byæ zmieniana eventem)
+   int i;
+   if ((i=iFlags&0xF0000000)!=0)
+   {//jeœli skrzy¿owanie, ograniczyæ prêdkoœæ przy skrêcaniu
+    if (abs(i)>0x20000000) //±1 i ±2 to jazda na wprost
+     fVelNext=20.0; //uzale¿niæ prêdkoœæ od promienia; albo niech bêdzie ograniczona w skrzy¿owaniu (velocity z ujemn¹ wartoœci¹)
+   }
    if (iFlags&8) //jeœli odcinek zmienny
    {if (bool(trTrack->GetSwitchState()&1)!=bool(iFlags&16)) //czy stan siê zmieni³?
     {//Ra: zak³adam, ¿e s¹ tylko 2 mo¿liwe stany
@@ -466,7 +472,7 @@ void __fastcall TController::TableCheck(double fDistance)
      {//degradacja pozycji
       sSpeedTable[i].iFlags&=~1; //nie liczy siê
      }
-     else if ((sSpeedTable[i].iFlags&0x28)==0x20) //jest z ty³u (najechany) i nie jest zwrotnic¹
+     else if ((sSpeedTable[i].iFlags&0xF0000028)==0x20) //jest z ty³u (najechany) i nie jest zwrotnic¹ ani skrzy¿owaniem
       if (sSpeedTable[i].fVelNext<0) //a nie ma ograniczenia prêdkoœci
        sSpeedTable[i].iFlags=0; //to nie ma go po co trzymaæ (odtykacz usunie ze œrodka)
     }
@@ -2613,7 +2619,7 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (fMass>1000000.0) fBrakeDist*=1.5; //korekta dla ciê¿kich, bo prze¿ynaj¹ - da to coœ?
   if (mvOccupied->BrakeDelayFlag==bdelay_G) fBrakeDist=fBrakeDist+2*mvOccupied->Vel; //dla nastawienia G koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
   //double scanmax=(mvOccupied->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
-  double scanmax=(mvOccupied->Vel>5.0)?150+fBrakeDist:20.0*fDriverDist; //1000m dla stoj¹cych poci¹gów
+  double scanmax=(mvOccupied->Vel>5.0)?400+fBrakeDist:50.0*fDriverDist; //1000m dla stoj¹cych poci¹gów; Ra 2015-01: przy d³u¿szej drodze skanowania AI jeŸdzi spokojniej
   // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
   // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ, czy stan siê nie zmieni³.
   // 4. Ewentualnie uzupe³niæ tabelkê informacjami o sygna³ach i ograniczeniach, jeœli siê "zu¿y³a".

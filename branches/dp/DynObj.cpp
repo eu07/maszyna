@@ -675,7 +675,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
   if (Mechanik&&(Controller!=Humandriver))
   {//rysowanie figurki mechanika
    if (smMechanik0) //mechanik od strony sprzêgu 0
-    if (smMechanik1) //jak jest drugi, to tego tylko pokazujemy
+    if (smMechanik1) //jak jest drugi, to pierwszego jedynie pokazujemy
      smMechanik0->iVisible=MoverParameters->ActiveCab>0;
     else
     {//jak jest tylko jeden, to do drugiej kabiny go obracamy
@@ -1248,6 +1248,8 @@ __fastcall TDynamicObject::TDynamicObject()
  //smWiazary[0]=smWiazary[1]=NULL;
  smWahacze[0]=smWahacze[1]=smWahacze[2]=smWahacze[3]=NULL;
  fWahaczeAmp=0;
+ smBrakeMode=NULL;
+ smLoadMode=NULL;
  mdLoad=NULL;
  mdLowPolyInt=NULL;
  mdPrzedsionek=NULL;
@@ -2318,7 +2320,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
       MoverParameters->PantFrontVolt=(p->PantWys>=1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
-      if (MoverParameters->PantFrontUp?(PantDiff<0.01):false)
+      if (MoverParameters->PantFrontUp?(PantDiff<0.03):false) //tolerancja niedolegania
       {
        if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
@@ -2336,7 +2338,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
       MoverParameters->PantRearVolt=(p->PantWys>=1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
-      if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
+      if (MoverParameters->PantRearUp?(PantDiff<0.03):false)
       {
        if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
@@ -2367,7 +2369,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      //jeœli przekroczono k¹t graniczny, zablokowaæ pantograf (wymaga interwencji poci¹gu sieciowego)
     }
     else if (PantDiff<-0.001)
-    {//drut siê obni¿y³ albo zosta³ podniesiony za wysoko
+    {//drut siê obni¿y³ albo pantograf podniesiony za wysoko
      //jeœli wysokoœæ jest zbyt du¿a, wyznaczyæ zmniejszenie k¹ta
      //jeœli zmniejszenie k¹ta jest zbyt du¿e, przejœæ do trybu ³amania pantografu
      //if (PantFrontDiff<-0.05) //skok w dó³ o 5cm daje z³¹manie pantografu
@@ -3259,7 +3261,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
  if (!fs) return;
  int size=fs->Size;
  if (!size) {return delete fs;};
- AnsiString asAnimName="";
+ AnsiString asAnimName;
  bool Stop_InternalData=false;
  char* buf=new char[size+1]; //ci¹g bajtów o d³ugoœci równej rozmiwarowi pliku
  buf[size]='\0'; //zakoñczony zerem na wszelki wypadek
@@ -3480,6 +3482,18 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
          Global::asCurrentTexturePath=BaseDir; //biezaca sciezka do tekstur to dynamic/...
          mdLowPolyInt=TModelsManager::GetModel(asModel.c_str(),true);
          //Global::asCurrentTexturePath=AnsiString(szTexturePath); //kiedyœ uproszczone wnêtrze miesza³o tekstury nieba
+        }
+        if (str==AnsiString("brakemode:"))
+        {//Ra 15-01: ga³ka nastawy hamulca
+         asAnimName=Parser->GetNextSymbol().LowerCase();
+         smBrakeMode=mdModel->GetFromName(asAnimName.c_str());
+         //jeszcze wczytaæ k¹ty obrotu dla poszczególnych ustawieñ
+        }
+        if (str==AnsiString("loadmode:"))
+        {//Ra 15-01: ga³ka nastawy hamulca
+         asAnimName=Parser->GetNextSymbol().LowerCase();
+         smLoadMode=mdModel->GetFromName(asAnimName.c_str());
+         //jeszcze wczytaæ k¹ty obrotu dla poszczególnych ustawieñ
         }
         else if (str==AnsiString("animwheelprefix:"))
         {//prefiks krêc¹cych siê kó³

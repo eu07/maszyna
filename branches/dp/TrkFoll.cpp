@@ -59,18 +59,30 @@ TTrack* __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
    case tt_Cross: //skrzy¿owanie trzeba tymczasowo prze³¹czyæ, aby wjechaæ na w³aœciwy tor
    {iSegment=Owner->RouteWish(pTrack); //nr segmentu zosta³ ustalony podczas skanowania
     //Ra 2014-08: aby ustaliæ dalsz¹ trasê, nale¿y zapytaæ AI - trasa jest ustalana podczas skanowania
+    //Ra 15-01: zapytanie AI nie wybiera segmentu - kolejny skanuj¹cy mo¿e przestawiæ
     //pTrack->CrossSegment(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection,i); //ustawienie w³aœciwego wskaŸnika
     //powinno zwracaæ kierunek do zapamiêtania, bo segmenty mog¹ mieæ ró¿ny kierunek
-    //pTrack->SwitchForced(abs(iSegment)-1,NULL); //wybór wskazanego segmentu
     //if fDirection=(iSegment>0)?1.0:-1.0; //kierunek na tym segmencie jest ustalany bezpoœrednio
+    if (iSegment==0)
+    {//to jest b³êdna sytuacja - generuje pêtle zawracaj¹ce za skrzy¿owaniem - ustaliæ, kiedy powstaje!
+     iSegment=1; //doraŸna poprawka
+    }
     if ((end?iSegment:-iSegment)<0)
      fDirection=-fDirection; //wtórna zmiana
+    pTrack->SwitchForced(abs(iSegment)-1,NULL); //wybór zapamiêtanego segmentu
    }
    break;
   }
  if (!pTrack)
  {//gdy nie ma toru w kierunku jazdy
   pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
+  //if (pTrack->iCategoryFlag&2)
+  //{//jeœli samochód, zepsuæ na miejscu
+  // Owner->MoverParameters->V=0; //zatrzymaæ
+  // Owner->MoverParameters->Power=0; //ukraœæ silnik
+  // Owner->MoverParameters->AccS=0; //wch³on¹æ moc
+  // Global::iPause|=1; //zapauzowanie symulacji
+  //}
  }
  else
  {//najpierw +1, póŸniej -1, aby odcinek izolowany wspólny dla tych torów nie wykry³ zera

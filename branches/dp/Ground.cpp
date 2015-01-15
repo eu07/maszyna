@@ -3666,7 +3666,11 @@ void __fastcall TGround::UpdatePhys(double dt,int iter)
 
 bool __fastcall TGround::Update(double dt,int iter)
 {//aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
- //Ra: w zasadzie to trzeba by utworzyæ oddzieln¹ listê taboru do liczenia fizyki
+ if (dt==0.0)
+ {//jeœli za³¹czona jest pauza, to tylko obs³u¿yæ ruch w kabinie trzeba
+  return true;
+ }
+  //Ra: w zasadzie to trzeba by utworzyæ oddzieln¹ listê taboru do liczenia fizyki
  //    na któr¹ by siê zapisywa³y wszystkie pojazdy bêd¹ce w ruchu
  //    pojazdy stoj¹ce nie potrzebuj¹ aktualizacji, chyba ¿e np. ktoœ im zmieni nastawê hamulca
  //    oddzieln¹ listê mo¿na by zrobiæ na pojazdy z napêdem, najlepiej posortowan¹ wg typu napêdu
@@ -3769,11 +3773,13 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
      else if (p->hvPowerWire->iLast&3)
      {//dla ostatniego i przedostatniego przês³a wymuszamy szukanie innego
       p->hvPowerWire=NULL; //nie to, ¿e nie ma, ale trzeba sprawdziæ inne
+      //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
       break;
      }
      else if (p->hvPowerWire->hvParallel)
      {//jeœli przês³o tworzy bie¿niê wspóln¹, to trzeba sprawdziæ pozosta³e
       p->hvPowerWire=NULL; //nie to, ¿e nie ma, ale trzeba sprawdziæ inne
+      //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
       break; //tymczasowo dla bie¿ni wspólnych poszukiwanie po ca³oœci
      }
      else
@@ -3788,10 +3794,13 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
       if (fHorizontal>0) //0.635 dla AKP-1 AKP-4E
       {//drut wyszed³ poza zakres roboczy, ale jeszcze jest nabie¿nik - pantograf siê unosi bez utraty pr¹du
        if (fHorizontal>p->fWidthExtra) //czy wyszed³ za nabie¿nik
-        p->hvPowerWire=NULL; //dotychczasowy drut nie liczy siê
+       {p->hvPowerWire=NULL; //dotychczasowy drut nie liczy siê
+        //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
+       }
        else
        {//problem jest, gdy nowy drut jest wy¿ej, wtedy pantograf od³¹cza siê od starego, a na podniesienie do nowego potrzebuje czasu
         p->PantTraction=fVertical+0.15*fHorizontal/p->fWidthExtra; //na razie liniowo na nabie¿niku, dok³adnoœæ poprawi siê póŸniej
+        //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
        }
       }
       else
@@ -3801,6 +3810,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
        //najlepiej, jakby odcinki równoleg³e by³y oznaczone we wpisach
        //WriteLog("Drut: "+AnsiString(fHorizontal)+" "+AnsiString(fVertical));
        p->PantTraction=fVertical;
+       //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
        break; //koniec pêtli, aktualny drut pasuje
       }
      }
@@ -3835,10 +3845,11 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
           if (fVertical>=0.0) //jeœli ponad pantografem (bo mo¿e ³apaæ druty spod wiaduktu)
            if (Global::bEnableTraction?fVertical<p->PantWys-0.15:false) //jeœli drut jest ni¿ej ni¿ 15cm pod œlizgiem
            {//prze³¹czamy w tryb po³amania, o ile jedzie; (bEnableTraction) aby da³o siê jeŸdziæ na koœlawych sceneriach
-            fHorizontal=DotProduct(vGdzie,vLeft); //i do tego jeszcze wejdzie pod œlizg
-            if (fabs(fHorizontal)<=p->fWidth) //0.635 dla AKP-1 AKP-4E
+            fHorizontal=fabs(DotProduct(vGdzie,vLeft))-p->fWidth; //i do tego jeszcze wejdzie pod œlizg
+            if (fHorizontal<=0.0) //0.635 dla AKP-1 AKP-4E
             {p->PantWys=-1.0; //ujemna liczba oznacza po³amanie
              p->hvPowerWire=NULL; //bo inaczej siê zasila w nieskoñczonoœæ z po³amanego
+             //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
              if (model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo>0) //liczba pantografów
               --model->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo; //teraz bêdzie mniejsza
              if (DebugModeFlag)
@@ -3848,10 +3859,11 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
            else if (fVertical<p->PantTraction) //ale ni¿ej, ni¿ poprzednio znaleziony
            {
             fHorizontal=fabs(DotProduct(vGdzie,vLeft))-p->fWidth;
-            if (fHorizontal<=0) //0.635 dla AKP-1 AKP-4E
+            if (fHorizontal<=0.0) //0.635 dla AKP-1 AKP-4E
             {//to siê musi mieœciæ w przedziale zaleznym od szerokoœci pantografu
              p->hvPowerWire=node->hvTraction; //jakiœ znaleziony
              p->PantTraction=fVertical; //zapamiêtanie nowej wysokoœci
+             //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
             }
             else if (fHorizontal<p->fWidthExtra) //czy zmieœci³ siê w zakresie nabie¿nika?
             {//problem jest, gdy nowy drut jest wy¿ej, wtedy pantograf od³¹cza siê od starego, a na podniesienie do nowego potrzebuje czasu
@@ -3860,6 +3872,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
              {//gdyby to wystarczy³o, to mo¿emy go uznaæ
               p->hvPowerWire=node->hvTraction; //mo¿e byæ
               p->PantTraction=fVertical; //na razie liniowo na nabie¿niku, dok³adnoœæ poprawi siê póŸniej
+              //p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
              }
             }
            }
@@ -3875,6 +3888,17 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
   else
    p->hvPowerWire=NULL; //pantograf opuszczony
  }
+ //if (model->fWahaczeAmp<model->MoverParameters->DistCounter)
+ //{//nieu¿ywana normalnie zmienna ogranicza powtórzone logowania
+  //model->fWahaczeAmp=model->MoverParameters->DistCounter;
+  //ErrorLog(FloatToStrF(1000.0*model->MoverParameters->DistCounter,ffFixed,7,3)+","+FloatToStrF(p->PantTraction,ffFixed,7,3)+","+FloatToStrF(p->fHorizontal,ffFixed,7,3)+","+FloatToStrF(p->PantWys,ffFixed,7,3)+","+AnsiString(p->hvPowerWire?1:0)); //
+  //if (p->fHorizontal>1.0)
+  //{
+  // //Global::iPause|=1; //zapauzowanie symulacji
+  // Global::fTimeSpeed=1; //spowolnienie czasu do obejrzenia pantografu
+  // return true; //³apacz
+  //}
+ //}
  return true;
 };
 
