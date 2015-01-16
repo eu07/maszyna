@@ -501,6 +501,8 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
      else
       ti=!ti; //zmiana flagi dla s³owa "else"
     }
+    else if (i>=8)
+     ErrorLog("Bad event: \""+str+"\" ignored in multiple \""+asName+"\"!");
     else
      WriteLog("Event \""+str+"\" ignored in multiple \""+asName+"\"!");
     parser->getTokens();
