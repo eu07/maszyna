@@ -1706,6 +1706,9 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       {
        if (mvOccupied->ActiveCab==1)//||((mvOccupied->ActiveCab<1)&&(mvControlled->TrainType!=dt_ET40)&&(mvControlled->TrainType!=dt_ET41)&&(mvControlled->TrainType!=dt_ET42)&&(mvControlled->TrainType!=dt_EZT)))
        {
+        //if (!mvControlled->PantFrontUp) //jeœli by³ opuszczony
+        // if () //jeœli po³amany
+        //  //to powtórzone opuszczanie naprawia
         if (mvControlled->PantFront(false))
         {
          dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -2153,16 +2156,14 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
  vector3 pNewMechPosition;
  //McZapkie: najpierw policzê pozycjê w/m kabiny
 
- //McZapkie: poprawka starego bledu
- //dt=Timer::GetDeltaTime();
-
  //ABu: rzucamy kabina tylko przy duzym FPS!
  //Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
  //Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
  double r1,r2,r3;
  int iVel=DynamicObject->GetVelocity();
  if (iVel>150) iVel=150;
- if (!Global::iSlowMotion&&!DebugModeFlag) //musi byæ pe³na prêdkoœæ
+ if (!Global::iSlowMotion //musi byæ pe³na prêdkoœæ
+  &&(pMechOffset.y<4.0)) //Ra 15-01: przy ogl¹daniu pantografu bujanie przeszkadza
  {
    if (!(random((GetFPS()+1)/15)>0))
    {
@@ -2194,7 +2195,6 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
   pMechShake-=pMechShake*Min0R(dt,1); //po tym chyba potrafi¹ zostaæ jakieœ u³amki, które powoduj¹ zjazd
   pMechOffset+=vMechMovement*dt;
   vMechVelocity.y=0.5*vMechVelocity.y;
-  //ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
   pNewMechPosition=pMechOffset+vector3(pMechShake.x,5*pMechShake.y,pMechShake.z);
   vMechMovement=0.5*vMechMovement;
  }
@@ -2230,8 +2230,6 @@ bool __fastcall TTrain::Update()
 {
  DWORD stat;
  double dt=Timer::GetDeltaTime();
- //mvOccupied->Hamulec->Releaser(0); //odluŸniacz rêczny
- //mvOccupied->BrakeReleaser(0);
  if (DynamicObject->mdKabina)
  {//Ra: TODO: odczyty klawiatury/pulpitu nie powinny byæ uzale¿nione od istnienia modelu kabiny
   tor=DynamicObject->GetTrack(); //McZapkie-180203
@@ -2308,14 +2306,9 @@ bool __fastcall TTrain::Update()
    Console::ValueSet(0,mvOccupied->Compressor); //Ra: sterowanie miernikiem: zbiornik g³ówny
    Console::ValueSet(1,mvOccupied->PipePress); //Ra: sterowanie miernikiem: przewód g³ówny
    Console::ValueSet(2,mvOccupied->BrakePress); //Ra: sterowanie miernikiem: cylinder hamulcowy
-   //ggHVoltage.Output(3); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
    Console::ValueSet(3,fHVoltage); //woltomierz wysokiego napiêcia
-   //ggI2.Output(4);
    Console::ValueSet(4,fHCurrent[2]); //Ra: sterowanie miernikiem: drugi amperomierz
-   //ggI1.Output((mvControlled->TrainType&(dt_EZT))?-1:5); //Ra: ustawienie kana³u analogowego komunikacji zwrotnej
-   //ggItotal.Output((mvControlled->TrainType&(dt_EZT))?5:-1); //Ra: kana³u komunikacji zwrotnej
    Console::ValueSet(5,fHCurrent[(mvControlled->TrainType&dt_EZT)?0:1]); //pierwszy amperomierz; dla EZT pr¹d ca³kowity
-   //ggVelocity.Output(6); //Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM)
    Console::ValueSet(6,fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie analogowe (to nie jest PWM); skakanie zapewnia mechanika napêdu
   }
 
@@ -2337,6 +2330,7 @@ bool __fastcall TTrain::Update()
 
   //------------------
   //hunter-261211: nadmiarowy przetwornicy i ogrzewania
+  //Ra 15-01: to musi st¹d wylecieæ - zale¿noœci nie mog¹ byæ w kabinie 
   if (mvControlled->ConverterFlag==true)
    {
     fConverterTimer+=dt;

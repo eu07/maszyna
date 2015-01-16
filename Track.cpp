@@ -1104,23 +1104,7 @@ void __fastcall TTrack::Compile(GLuint tex)
     }
    switch (eType) //dalej zale¿nie od typu
    {
-    case tt_Table: //obrotnica jak zwyk³y tor, tylko animacja dochodzi
-/* //to jest przeliczane w RaAnimate(), tutaj tylko regeneracja siatek
-     if (InMovement()) //jeœli siê krêci
-     {//wyznaczamy wspó³rzêdne koñców, przy za³o¿eniu sta³ego œródka i d³ugoœci
-      //SwitchExtension->fOffset1=SwitchExtension->pAnim?SwitchExtension->pAnim->AngleGet():0.0; //pobranie k¹ta z modelu
-      TAnimContainer *ac=SwitchExtension->pModel?SwitchExtension->pModel->GetContainer(NULL):NULL;
-      if (ac)
-       if ((ac->AngleGet()!=SwitchExtension->fOffset1)||!(ac->TransGet()==SwitchExtension->vTrans)) //czy przemieœci³o siê od ostatniego sprawdzania
-       {SwitchExtension->fOffset1=ac->AngleGet(); //pobranie k¹ta z modelu
-        double hlen=0.5*SwitchExtension->Segments[0]->GetLength(); //po³owa d³ugoœci
-        double sina=-hlen*sin(DegToRad(SwitchExtension->fOffset1)),cosa=-hlen*cos(DegToRad(SwitchExtension->fOffset1));
-        SwitchExtension->vTrans=ac->TransGet();
-        vector3 middle=SwitchExtension->pMyNode->pCenter+SwitchExtension->vTrans; //SwitchExtension->Segments[0]->FastGetPoint(0.5);
-        Segment->Init(middle+vector3(sina,0.0,cosa),middle-vector3(sina,0.0,cosa),5.0);
-       }
-     }
-*/
+    case tt_Table: //obrotnica jak zwyk³y tor, animacja wykonywana w RaAnimate(), tutaj tylko regeneracja siatek
     case tt_Normal:
      if (TextureID2)
       if (tex?TextureID2==tex:true) //jeœli pasuje do grupy (tex)
@@ -1202,21 +1186,6 @@ void __fastcall TTrack::Compile(GLuint tex)
        {rpts3[12+i]=vector6(( fHTW2+iglica[i].x)*cos2+iglica[i].y*sin2,-( fHTW2+iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z,+iglica[i].n.x*cos2+iglica[i].n.y*sin2,-iglica[i].n.x*sin2+iglica[i].n.y*cos2,0.0);
         rpts4[23-i]=vector6((-fHTW2-iglica[i].x)*cos2+iglica[i].y*sin2,-(-fHTW2-iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z,-iglica[i].n.x*cos2+iglica[i].n.y*sin2,+iglica[i].n.x*sin2+iglica[i].n.y*cos2,0.0);
        }
-      if (InMovement())
-      {//Ra: trochê bez sensu, ¿e tu jest animacja
-      /*
-       double v=SwitchExtension->fDesiredOffset-SwitchExtension->fOffset;
-       SwitchExtension->fOffset+=sign(v)*Timer::GetDeltaTime()*SwitchExtension->fOffsetSpeed;
-       //Ra: trzeba daæ to do klasy...
-       if (SwitchExtension->fOffset<=0.00)
-       {SwitchExtension->fOffset=0.0; //1cm?
-        SwitchExtension->bMovement=false; //koniec animacji
-       }
-       if (SwitchExtension->fOffset>=fMaxOffset)
-       {SwitchExtension->fOffset=fMaxOffset; //maksimum-1cm?
-        SwitchExtension->bMovement=false; //koniec animacji
-       }
-      */
       }
       //McZapkie-130302 - poprawione rysowanie szyn
       if (SwitchExtension->RightSwitch)
@@ -1347,10 +1316,15 @@ void __fastcall TTrack::Compile(GLuint tex)
     }
     case tt_Cross: //skrzy¿owanie dróg rysujemy inaczej
     {//ustalenie wspó³rzêdnych œrodka - przeciêcie Point1-Point2 z CV4-Point4
-     //na razie po³owa odleg³oœci pomiêdzy Point1 i Point2, potem siê dopracuje
-     vector3 oxz=SwitchExtension->Segments[0]->FastGetPoint(0.5); //wspó³rzêdne œrodka pierwszego odcinka
-     vector3 p[4]; //punkty siê przydadz¹ do obliczeñ
      double a[4]; //k¹ty osi ulic wchodz¹cych
+     vector3 p[4]; //punkty siê przydadz¹ do obliczeñ
+     //na razie po³owa odleg³oœci pomiêdzy Point1 i Point2, potem siê dopracuje
+     a[0]=a[1]=0.5; //parametr do poszukiwania przeciêcia ³uków
+     //modyfikowaæ a[0] i a[1] tak, aby trafiæ na przeciêcie odcinka 34
+     p[0]=SwitchExtension->Segments[0]->FastGetPoint(a[0]); //wspó³rzêdne œrodka pierwszego odcinka
+     p[1]=SwitchExtension->Segments[1]->FastGetPoint(a[1]); //-//- drugiego
+     //p[2]=p[1]-p[0]; //jeœli ró¿ne od zera, przeliczyæ a[0] i a[1] i wyznaczyæ nowe punkty
+     vector3 oxz=p[0]; //punkt mapowania œrodka tekstury skrzy¿owania
      p[0]=SwitchExtension->Segments[0]->GetDirection1(); //Point1 - pobranie wektorów kontrolnych
      p[1]=SwitchExtension->Segments[1]->GetDirection2(); //Point3 (bo zamienione)
      p[2]=SwitchExtension->Segments[0]->GetDirection2(); //Point2
@@ -1365,7 +1339,7 @@ void __fastcall TTrack::Compile(GLuint tex)
      p[3]=SwitchExtension->Segments[1]->FastGetPoint_0(); //Point4 - przy trzech drogach pokrywa siê z Point1
      //2014-07: na pocz¹tek rysowaæ brzegi jak dla ³uków
      //punkty brzegu nawierzchni uzyskujemy podczas renderowania boków (bez sensu, ale najszybciej by³o zrobiæ)
-     int i=0,j; //ile punktów (mo¿e byc ró¿na iloœæ punktów miêdzy drogami)
+     int i,j; //ile punktów (mo¿e byc ró¿na iloœæ punktów miêdzy drogami)
      if (!SwitchExtension->vPoints)
      {//jeœli tablica punktów nie jest jeszcze utworzona, zliczamy punkty i tworzymy j¹
       if (SwitchExtension->iRoads==3) //mog¹ byæ tylko 3 drogi zamiast 4
@@ -1480,7 +1454,7 @@ void __fastcall TTrack::Compile(GLuint tex)
      if (!SwitchExtension->bPoints) //jeœli tablica nie wype³niona
       if (b) //ale jest wskaŸnik do tablicy - mo¿e nie byæ?
       {//coœ siê gubi w obliczeniach na wskaŸnikach
-       int i=(int((void*)(b))-int((void*)(SwitchExtension->vPoints)))/sizeof(vector3); //ustalenie liczby punktów, bo mog³o wyjœæ inaczej ni¿ policzone z góry
+       i=(int((void*)(b))-int((void*)(SwitchExtension->vPoints)))/sizeof(vector3); //ustalenie liczby punktów, bo mog³o wyjœæ inaczej ni¿ policzone z góry
        if (i>0)
        {//jeœli zosta³o to w³aœnie utworzone
         if (SwitchExtension->iPoints>i) //jeœli wysz³o mniej ni¿ by³o miejsca
@@ -1670,8 +1644,8 @@ int __fastcall TTrack::RaArrayPrepare()
    case 2: //droga
     if (eType==tt_Cross) //tylko dla skrzy¿owania dróg
     {//specjalny sposób obliczania liczby wierzcho³ków w skrzy¿owaniu
-     int n=0; //wierzcho³ki wewnêtrzne do generowania nawierzchni
-     int b=0; //wierzcho³ki do generowania boków
+     //int n=0; //wierzcho³ki wewnêtrzne do generowania nawierzchni
+     //int b=0; //wierzcho³ki do generowania boków
      if (fTexHeight1>=0) //jeœli fTexHeight1<0, to s¹ chodniki i mo¿e któregoœ nie byæ
      {//normalne pobocze, na razie siê sk³ada z
       return (Segment->RaSegCount())*((TextureID1?4:0)+(TextureID2?12:0));

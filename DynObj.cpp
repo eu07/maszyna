@@ -2024,7 +2024,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
      MoverParameters->InsideConsist=false;
     }
    //napiecie sieci trakcyjnej
-
+   //Ra 15-01: przeliczenie poboru pr¹du powinno byæ robione wczeœniej, ¿eby na tym etapie by³y znane napiêcia
    TTractionParam tmpTraction;
    tmpTraction.TractionVoltage=0;
    if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
@@ -2065,6 +2065,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
        if (MoverParameters->PantFrontUp||MoverParameters->PantRearUp) //Ra 2014-07: doraŸna blokada logowania zimnych lokomotyw - zrobiæ to trzeba inaczej
         //if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
          //if (DebugModeFlag) //logowanie nie zawsze
+         if (MoverParameters->Mains) //Ra 15-01: logowaæ tylko, jeœli WS za³¹czony
           ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
       if (NoVoltTime>0.3) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
        tmpTraction.TractionVoltage=0; //Ra 2013-12: po co tak?
@@ -2080,15 +2081,8 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
    tmpTraction.TractionMaxCurrent=7500; //Ra: chyba za du¿o? powinno wywalaæ przy 1500
    tmpTraction.TractionResistivity=0.3;
 
-
-
-
-     /*if  ((Global::bLiveTraction) && ((MoverParameters->PantFront(true)) || (MoverParameters->PantRear(true))))
-{
-TGround::GetTraction;
-}   */
 //McZapkie: predkosc w torze przekazac do TrackParam
-//McZapkie: Vel ma wymiar km/h (absolutny), V ma wymiar m/s , taka przyjalem notacje
+//McZapkie: Vel ma wymiar [km/h] (absolutny), V ma wymiar [m/s], taka przyjalem notacje
     tp.Velmax=MyTrack->VelocityGet();
 
     if (Mechanik)
@@ -2221,7 +2215,7 @@ TGround::GetTraction;
 
 //yB: przyspieszacz (moze zadziala, ale dzwiek juz jest)
 int flag=MoverParameters->Hamulec->GetSoundFlag();
-if((bBrakeAcc)&&(TestFlag(flag,sf_Acc))&&(ObjectDist<2500))
+if ((bBrakeAcc)&&(TestFlag(flag,sf_Acc))&&(ObjectDist<2500))
   {
    sBrakeAcc->SetVolume(-ObjectDist*3-(FreeFlyModeFlag?0:2000));
    sBrakeAcc->Play(0,0,0);
@@ -2267,7 +2261,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      }
      if (( !Console::Pressed(Global::Keys[k_DecMainCtrl]))&&(MoverParameters->MainCtrlPos<MoverParameters->MainCtrlActualPos))
      {
-      MoverParameters->IncMainCtrl(1);
+      MoverParameters->IncMainCtrl(1); //Ra 15-01: a to nie mia³o byæ tylko cofanie?
      }
     }
 
