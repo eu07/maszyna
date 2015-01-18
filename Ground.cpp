@@ -2786,6 +2786,8 @@ bool __fastcall TGround::InitEvents()
     }
     Current->asNodeName= "";
    break;
+   case tp_Message: //wyœwietlenie komunikatu
+   break;
   }
   if (Current->fDelay<0)
       AddToQuery(Current,NULL);
@@ -2962,7 +2964,17 @@ void __fastcall TGround::InitTraction()
   else
    if (Traction->asPowerSupplyName!="*") //gwiazdka dla przês³a z izolatorem
     if (Traction->asPowerSupplyName!="none") //dopuszczamy na razie brak pod³¹czenia?
+    {//logowanie b³êdu i utworzenie zasilacza o domyœlnej zawartoœci
      ErrorLog("Missed TractionPowerSource: "+Traction->asPowerSupplyName);
+     nTemp=new TGroundNode();
+     nTemp->iType=TP_TRACTIONPOWERSOURCE;
+     nTemp->asName=Traction->asPowerSupplyName;
+     nTemp->psTractionPowerSource=new TTractionPowerSource();
+     nTemp->psTractionPowerSource->Init(Traction->NominalVoltage,Traction->MaxCurrent);
+     nTemp->nNext=nRootOfType[nTemp->iType]; //ostatni dodany do³¹czamy na koñcu nowego
+     nRootOfType[nTemp->iType]=nTemp; //ustawienie nowego na pocz¹tku listy
+     iNumNodes++;
+    }
  }
  for (nCurrent=nRootOfType[TP_TRACTION];nCurrent;nCurrent=nCurrent->nNext)
  {
@@ -3632,6 +3644,8 @@ bool __fastcall TGround::CheckQuery()
       tmpEvent->Params[9].psPower->VoltageSet(tmpEvent->Params[0].asdouble);
      }
     break;
+    case tp_Message: //wyœwietlenie komunikatu
+    break;
    } //switch (tmpEvent->Type)
   } //if (tmpEvent->bEnabled)
   --tmpEvent->iQueued; //teraz moze byæ ponownie dodany do kolejki
@@ -3693,9 +3707,10 @@ bool __fastcall TGround::Update(double dt,int iter)
     Current->DynamicObject->FastUpdate(dt);
   }
   //ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
-  UpdatePhys(dt,1);
   //Winger 180204 - pantografy
   double dt1=dt*iter; //ca³kowity czas
+  UpdatePhys(dt1,1);
+  TAnimModel::AnimUpdate(dt1); //wykonanie zakolejkowanych animacji
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
   {//Ra: zmieniæ warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy podniesione
    if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
@@ -3708,6 +3723,7 @@ bool __fastcall TGround::Update(double dt,int iter)
  else
  {//jezeli jest tylko jedna iteracja
   UpdatePhys(dt,1);
+  TAnimModel::AnimUpdate(dt); //wykonanie zakolejkowanych animacji
   for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
   {
    if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType==CurrentCollector)

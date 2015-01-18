@@ -47,6 +47,7 @@ private:
  //dla kinematyki odwróconej u¿ywane s¹ kwaterniony
  float fLength; //d³ugoœæ koœci dla IK
  int iAnim; //animacja: +1-obrót Eulera, +2-przesuw, +4-obrót kwaternionem, +8-IK
+ //+0x80000000: animacja z eventem, wykonywana poza wyœwietlaniem
  //+0x100: pierwszy stopieñ IK - obróciæ w stronê pierwszego potomnego (dziecka)
  //+0x200: drugi stopieñ IK - dostosowaæ do pozycji potomnego potomnego (wnuka)
  union
@@ -56,6 +57,7 @@ private:
  TEvent *evDone; //ewent wykonywany po zakoñczeniu animacji, np. zapór, obrotnicy
 public:
  TAnimContainer *pNext;
+ TAnimContainer *acAnimNext; //lista animacji z eventem, które musz¹ byæ przeliczane równie¿ bez wyœwietlania
  __fastcall TAnimContainer();
  __fastcall ~TAnimContainer();
  bool __fastcall Init(TSubModel *pNewSubModel);
@@ -113,6 +115,7 @@ private:
  void __fastcall RaPrepare(); //ustawienie animacji egzemplarza na wzorcu
 public:
  GLuint ReplacableSkinId[5]; //McZapkie-020802: zmienialne skory
+ static TAnimContainer *acAnimList; //lista animacji z eventem, które musz¹ byæ przeliczane równie¿ bez wyœwietlania
  __fastcall TAnimModel();
  __fastcall ~TAnimModel();
  bool __fastcall Init(TModel3d *pNewModel);
@@ -137,7 +140,9 @@ public:
  void __fastcall TerrainRenderVBO(int n);
  void __fastcall AnimationVND(void* pData, double a, double b, double c, double d);
  void __fastcall LightSet(int n,float v);
+ static void __fastcall AnimUpdate(double dt);
 };
+TAnimContainer *TAnimModel::acAnimList=NULL;
 
 //---------------------------------------------------------------------------
 #endif
