@@ -193,6 +193,8 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
   Type=tp_LogValues;
  else if (str==AnsiString("voltage"))
   Type=tp_Voltage; //zmiana napiêcia w zasilaczu (TractionPowerSource)
+ else if (str==AnsiString("message"))
+  Type=tp_Message; //wyœwietlenie komunikatu
  else
   Type=tp_Unknown;
 
@@ -516,6 +518,13 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    *parser >> Params[0].asdouble; //Ra 2014-01-27
    parser->getTokens(); *parser >> token;
   break;
+  case tp_Message: //wyœwietlenie komunikatu
+   do
+   {parser->getTokens();
+    *parser >> token;
+    str=AnsiString(token.c_str());
+   } while (str!="endevent");
+  break;
   case tp_Ignored: //ignorowany
   case tp_Unknown: //nieznany
    do
@@ -523,7 +532,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
     *parser >> token;
     str=AnsiString(token.c_str());
    } while (str!="endevent");
-   WriteLog("Event \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
+   WriteLog("Bad event: \""+asName+(Type==tp_Unknown?"\" has unknown type.":"\" is ignored."));
    break;
  }
 };

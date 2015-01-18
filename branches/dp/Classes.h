@@ -47,6 +47,7 @@ typedef enum
  cm_ChangeDirection,
  cm_PassengerStopPoint,
  cm_OutsideStation,
+ cm_Shunt,
  cm_Command //komenda pobierana z komórki
 } TCommandType;
 
