@@ -346,6 +346,7 @@ public:
     int iAlpha; //maska przezroczystoœci tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
     int iOverheadMask; //maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y jazdê bezpr¹dow¹
+    TTractionParam tmpTraction;
     __fastcall TDynamicObject();
     __fastcall ~TDynamicObject();
     double __fastcall TDynamicObject::Init

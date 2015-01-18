@@ -184,6 +184,7 @@ public:
  double AccPreferred; //preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy wykryciu kolizji)
  double AccDesired; //przyspieszenie, jakie ma utrzymywaæ (<0:nie przyspieszaj,<-0.1:hamuj)
  double VelDesired; //predkoœæ, z jak¹ ma jechaæ, wynikaj¹ca z analizy tableki; <=VelSignal
+ double fAccDesiredAv; //uœrednione przyspieszenie z kolejnych przeb³ysków œwiadomoœci, ¿eby ograniczyæ migotanie
 private:
  double VelforDriver; //prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci szlaku?)
  double VelSignal; //predkoœæ zadawana przez semafor (funkcj¹ SetVelocity())

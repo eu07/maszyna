@@ -1291,6 +1291,7 @@ __fastcall TDynamicObject::TDynamicObject()
  fScanDist=300.0; //odleg³oœæ skanowania, zwiêkszana w trybie ³¹czenia
  ctOwner=NULL; //na pocz¹tek niczyj
  iOverheadMask=0; //maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y jazdê bezpr¹dow¹
+ tmpTraction.TractionVoltage=0; //Ra 2F1H: prowizorka, trzeba przechowaæ napiêcie, ¿eby nie wywala³o WS pod izolatorem
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1494,7 +1495,7 @@ double __fastcall TDynamicObject::Init(
   else //jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z poboczem, ale nie z chodnikiem
    MoverParameters->OffsetTrackH=-0.5*(Track->WidthTotal()-MoverParameters->Dim.W)+0.05;
   iHornWarning=0; //nie bêdzie tr¹bienia po podaniu zezwolenia na jazdê
-  if (fDist>0.0) //-0.5*MoverParameters->Dim.L) //jeœli jest przesuniêcie do ty³u
+  if (fDist<0.0) //-0.5*MoverParameters->Dim.L) //jeœli jest przesuniêcie do ty³u
    if (!Track->CurrentPrev()) //a nie ma tam odcinka i trzeba by coœ wygenerowaæ
     fDist=-fDist; //to traktujemy, jakby przesuniêcie by³o w drug¹ stronê
  }
@@ -1598,9 +1599,10 @@ double __fastcall TDynamicObject::Init(
  iNumAxles=2;
  //McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
  fAxleDist=Max0R(MoverParameters->BDist,MoverParameters->ADist);
+ if (fAxleDist<0.2) fAxleDist=0.2; //¿eby siê da³o wektory policzyæ
  if (fAxleDist>MoverParameters->Dim.L-0.2) //nie mog¹ byæ za daleko
   fAxleDist=MoverParameters->Dim.L-0.2; //bo bêdzie "walenie w mur"
- float fAxleDistHalf=fAxleDist*0.5;
+ double fAxleDistHalf=fAxleDist*0.5;
  //WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at "+AnsiString(fDist));
  //if (Cab) //jeœli ma obsadê - zgodnoœæ wstecz, jeœli tor startowy ma Event0
  // if (Track->Event0) //jeœli tor ma Event0
@@ -1613,9 +1615,9 @@ double __fastcall TDynamicObject::Init(
  {//Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
   case 2: //ustawianie osi na torze
    Axle0.Init(Track,this,iDirection?1:-1);
-   Axle0.Move((iDirection?fDist:-fDist)+fAxleDistHalf+0.01,false);
+   Axle0.Move((iDirection?fDist:-fDist)+fAxleDistHalf,false);
    Axle1.Init(Track,this,iDirection?1:-1);
-   Axle1.Move((iDirection?fDist:-fDist)-fAxleDistHalf-0.01,false); //false, ¿eby nie generowaæ eventów
+   Axle1.Move((iDirection?fDist:-fDist)-fAxleDistHalf,false); //false, ¿eby nie generowaæ eventów
    //Axle2.Init(Track,this,iDirection?1:-1);
    //Axle2.Move((iDirection?fDist:-fDist)-fAxleDistHalft+0.01),false);
    //Axle3.Init(Track,this,iDirection?1:-1);
@@ -1691,7 +1693,15 @@ void __fastcall TDynamicObject::Move(double fDistance)
  if (fDistance!=0.0) //nie liczyæ ponownie, jeœli stoi
  {//liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
   vPosition=0.5*(Axle1.pPosition+Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
-  vFront=Normalize(Axle0.pPosition-Axle1.pPosition); //kierunek ustawienia pojazdu (wektor jednostkowy)
+  vFront=Axle0.pPosition-Axle1.pPosition;
+  double korekta=vFront.Length()-fAxleDist; //czy rozstaw osi wymaga korekty
+  if (fabs(korekta)>0.03)
+  {//3cm trzeba by ju¿ skorygowaæ, te b³êdy mog¹ siê te¿ generowaæ na ostrych ³ukach
+   korekta*=0.25; //w jednym kroku korygowane jest 50% b³êdu
+   bEnabled&=Axle0.Move((fDistance>0)?-korekta:korekta,!iAxleFirst); //dodatni¹ korektê w przeciwn¹ stronê, co (fDistance)
+   bEnabled&=Axle1.Move((fDistance>0)?korekta:-korekta,iAxleFirst); //dodatni¹ korektê w tê sam¹ stronê, co (fDistance)
+  }
+  vFront=Normalize(vFront); //kierunek ustawienia pojazdu (wektor jednostkowy)
   vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor poziomy w lewo, normalizacja potrzebna z powodu pochylenia (vFront)
   vUp=CrossProduct(vFront,vLeft); //wektor w górê, bêdzie jednostkowy
   modelRot.z=atan2(-vFront.x,vFront.z); //k¹t obrotu pojazdu [rad]; z ABuBogies()
@@ -2025,8 +2035,8 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     }
    //napiecie sieci trakcyjnej
    //Ra 15-01: przeliczenie poboru pr¹du powinno byæ robione wczeœniej, ¿eby na tym etapie by³y znane napiêcia
-   TTractionParam tmpTraction;
-   tmpTraction.TractionVoltage=0;
+   //TTractionParam tmpTraction;
+   //tmpTraction.TractionVoltage=0;
    if (MoverParameters->EnginePowerSource.SourceType==CurrentCollector)
    {//dla EZT tylko silnikowy
     //if (Global::bLiveTraction)
@@ -2061,15 +2071,26 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
         }
 */
       NoVoltTime=NoVoltTime+dt;
-      if (MoverParameters->Vel>0.5) //jeœli jedzie
-       if (MoverParameters->PantFrontUp||MoverParameters->PantRearUp) //Ra 2014-07: doraŸna blokada logowania zimnych lokomotyw - zrobiæ to trzeba inaczej
-        //if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
+      if (NoVoltTime>0.2) //jeœli brak zasilania d³u¿ej ni¿ 0.2 sekundy (25km/h pod izolatorem daje 0.15s)
+      {//Ra 2F1H: prowizorka, trzeba przechowaæ napiêcie, ¿eby nie wywala³o WS pod izolatorem
+       if (MoverParameters->Vel>0.5) //jeœli jedzie
+        if (MoverParameters->PantFrontUp||MoverParameters->PantRearUp) //Ra 2014-07: doraŸna blokada logowania zimnych lokomotyw - zrobiæ to trzeba inaczej
+         //if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
          //if (DebugModeFlag) //logowanie nie zawsze
-         if (MoverParameters->Mains) //Ra 15-01: logowaæ tylko, jeœli WS za³¹czony
-          ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
-      if (NoVoltTime>0.3) //jeœli brak zasilania d³u¿ej ni¿ przez 1 sekundê
+         if (MoverParameters->Mains)
+         {//Ra 15-01: logowaæ tylko, jeœli WS za³¹czony
+          //if (MoverParameters->PantFrontUp&&pants)
+          //Ra 15-01: bezwzglêdne wspó³rzêdne pantografu nie s¹ dostêpne, wiêc lepiej siê tego nie zaloguje
+           ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
+          //if (MoverParameters->PantRearUp)
+          // if (iAnimType[ANIM_PANTS]>1)
+          //  if (pants[1])
+          //   ErrorLog("Voltage loss: by "+MoverParameters->Name+" at "+FloatToStrF(vPosition.x,ffFixed,7,2)+" "+FloatToStrF(vPosition.y,ffFixed,7,2)+" "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time "+FloatToStrF(NoVoltTime,ffFixed,7,2));
+         }
+       //Ra 2F1H: nie by³o sensu wpisywaæ tu zera po up³ywie czasu, bo zmienna by³a tymczasowa, a napiêcie zerowane od razu
        tmpTraction.TractionVoltage=0; //Ra 2013-12: po co tak?
        //pControlled->MainSwitch(false); //mo¿e tak?
+      }
      }
     }
     //else //Ra: nie no, trzeba podnieœæ pantografy, jak nie bêdzie drutu, to bêd¹ mia³y pr¹d po osi¹gniêciu 1.4m
@@ -2099,17 +2120,6 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
 
       Mechanik->UpdateSituation(dt1); //przeb³yski œwiadomoœci AI
     }
-//    else
-//    { MoverParameters->SecuritySystemReset(); }
-    //if (MoverParameters->ActiveCab==0)
-    //    MoverParameters->SecuritySystemReset(); //Ra: to tu nie powinno byæ, czuwak za³¹czany jest bateri¹, ewentualnie rozrz¹dem
-//    else
-//     if ((Controller!=Humandriver)&&(MoverParameters->BrakeCtrlPos<0)&&(!TestFlag(MoverParameters->BrakeStatus,1))&&((MoverParameters->CntrlPipePress)>0.51))
-//       {//Ra: to jest do poprawienia przy okazji SPKS
-////        MoverParameters->PipePress=0.50;
-//        MoverParameters->BrakeLevelSet(0); //Ra: co to mia³o byæ ???? to nie pozwala wyluzowaæ AI w EN57 !!!!
-
-//       }
 
     //fragment "z EXE Kursa"
     if (MoverParameters->Mains) //nie wchodziæ w funkcjê bez potrzeby
@@ -2314,7 +2324,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
       MoverParameters->PantFrontVolt=(p->PantWys>=1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
-      if (MoverParameters->PantFrontUp?(PantDiff<0.03):false) //tolerancja niedolegania
+      if (MoverParameters->PantFrontUp?(PantDiff<0.01):false) //tolerancja niedolegania
       {
        if ((MoverParameters->PantFrontVolt==0.0)&&(MoverParameters->PantRearVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
@@ -2332,7 +2342,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
      if (Global::bLiveTraction?false:!p->hvPowerWire) //jeœli nie ma drutu, mo¿e pooszukiwaæ
       MoverParameters->PantRearVolt=(p->PantWys>=1.2)?0.95*MoverParameters->EnginePowerSource.MaxVoltage:0.0;
      else
-      if (MoverParameters->PantRearUp?(PantDiff<0.03):false)
+      if (MoverParameters->PantRearUp?(PantDiff<0.01):false)
       {
        if ((MoverParameters->PantRearVolt==0.0)&&(MoverParameters->PantFrontVolt==0.0))
         sPantUp.Play(vol,0,MechInside,vPosition);
@@ -2614,26 +2624,6 @@ void __fastcall TDynamicObject::TurnOff()
  btHeadSignals22.TurnOff();
  btHeadSignals23.TurnOff();
 };
-
-/*
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
-
-void __fastcall Cone(vector3 p,double d,float fNr)
-{//funkcja rysuj¹ca sto¿ek w miejscu osi
- glPushMatrix(); //matryca kamery
-  glTranslatef(p.x,p.y+6,p.z); //6m ponad
-  glRotated(RadToDeg(-d),0,1,0); //obrót wzglêdem osi OY
-  //glRotated(RadToDeg(vAngles.z),0,1,0); //obrót wzglêdem osi OY
-  glDisable(GL_LIGHTING);
-  glColor3f(1.0-fNr,fNr,0); //czerwone dla 0, zielone dla 1
-  //glutWireCone(promieñ podstawy,wysokoœæ,k¹tnoœæ podstawy,iloœæ segmentów na wysokoœæ)
-  glutWireCone(0.5,2,4,1); //rysowanie sto¿ka (ostros³upa o podstawie wieloboka)
-  glEnable(GL_LIGHTING);
- glPopMatrix();
-}
-*/
 
 void __fastcall TDynamicObject::Render()
 {//rysowanie elementów nieprzezroczystych
