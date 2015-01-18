@@ -81,6 +81,7 @@ __fastcall TAnimContainer::TAnimContainer()
  pMovementData=NULL; //nie ma zaawansowanej animacji
  mAnim=NULL; //nie ma macierzy obrotu dla submodelu
  evDone=NULL; //powiadamianie o zakoñczeniu animacji
+ acAnimNext=NULL; //na razie jest poza list¹ 
 }
 
 __fastcall TAnimContainer::~TAnimContainer()
@@ -104,8 +105,16 @@ void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double f
  iAnim|=1;
 /* //Ra 2014-07: jeœli model nie jest renderowany, to obliczyæ czas animacji i dodaæ event wewnêtrzny
  //mo¿na by te¿ ustawiæ czas pocz¹tku animacji zamiast pobieraæ czas ramki i liczyæ ró¿nicê
- if (
 */
+ if (evDone)
+ {//do³¹czyæ model do listy aniomowania, ¿eby animacje by³y przeliczane równie¿ bez wyœwietlania
+  if (iAnim>=0)
+  {//jeœli nie jest jeszcze na liœcie animacyjnej
+   acAnimNext=TAnimModel::acAnimList; //pozosta³e dokliæ sobie jako ogon
+   TAnimModel::acAnimList=this; //a wstawiæ siê na pocz¹tek
+   iAnim|=0x80000000; //dodany do listy
+  }
+ }
 }
 
 void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
@@ -116,8 +125,16 @@ void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double f
  iAnim|=2;
 /* //Ra 2014-07: jeœli model nie jest renderowany, to obliczyæ czas animacji i dodaæ event wewnêtrzny
  //mo¿na by te¿ ustawiæ czas pocz¹tku animacji zamiast pobieraæ czas ramki i liczyæ ró¿nicê
- if (
 */
+ if (evDone)
+ {//do³¹czyæ model do listy aniomowania, ¿eby animacje by³y przeliczane równie¿ bez wyœwietlania
+  if (iAnim>=0)
+  {//jeœli nie jest jeszcze na liœcie animacyjnej
+   acAnimNext=TAnimModel::acAnimList; //pozosta³e dokliæ sobie jako ogon
+   TAnimModel::acAnimList=this; //a wstawiæ siê na pocz¹tek
+   iAnim|=0x80000000; //dodany do listy
+  }
+ }
 }
 
 void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
@@ -480,9 +497,11 @@ TAnimContainer* __fastcall TAnimModel::GetContainer(char *pName)
 
 void __fastcall TAnimModel::RaAnimate()
 {//przeliczenie animacji - jednorazowo na klatkê
+ //Ra 2F1I: to by mo¿na pomijaæ dla modeli bez animacji, których jest wiêkszoœæ
  TAnimContainer *pCurrent;
  for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext)
-  pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
+  if (!pCurrent->evDone) //jeœli jest bez eventu
+   pCurrent->UpdateModel(); //przeliczenie animacji ka¿dego submodelu
  //if () //tylko dla modeli z IK !!!!
   for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny ³añcuch
    pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
@@ -747,6 +766,21 @@ void __fastcall TAnimModel::LightSet(int n,float v)
    else
     fDark=0.25; //standardowy próg zaplania
   break;
+ }
+};
+//---------------------------------------------------------------------------
+void __fastcall TAnimModel::AnimUpdate(double dt)
+{//wykonanie zakolejkowanych animacji, nawet gdy modele nie s¹ aktualnie wyœwietlane
+ TAnimContainer *p=TAnimModel::acAnimList;
+ while (p)
+ {//jeœli w ogóle jest co animowaæ
+  //if ((*p)->fTranslateSpeed==0.0)
+  // if ((*p)->fRotateSpeed==0.0)
+  // {//jak siê naanimowa³, to usun¹æ z listy
+  //  *p=(*p)->ListRemove(); //zwraca wskaŸnik do kolejnego z listy
+  // }
+  p->UpdateModel();
+  p=p->acAnimNext; //na razie bez usuwania z listy, bo g³ównie obrotnica na ni¹ wchodzi
  }
 };
 //---------------------------------------------------------------------------

@@ -76,6 +76,8 @@ TTrack* __fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack,int end)
  if (!pTrack)
  {//gdy nie ma toru w kierunku jazdy
   pTrack=pCurrentTrack->NullCreate(end); //tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
+  if (!end) //jeœli dodana od strony zero, to zmiana kierunku
+   fDirection=-fDirection; //wtórna zmiana
   //if (pTrack->iCategoryFlag&2)
   //{//jeœli samochód, zepsuæ na miejscu
   // Owner->MoverParameters->V=0; //zatrzymaæ
@@ -271,7 +273,9 @@ bool __fastcall TTrackFollower::ComputatePosition()
  }
  return false;
 }
-
+#if RENDER_CONE
+#include "opengl/glew.h"
+#include "opengl/glut.h"
 void __fastcall TTrackFollower::Render(float fNr)
 {//funkcja rysuj¹ca sto¿ek w miejscu osi
  glPushMatrix(); //matryca kamery
@@ -279,13 +283,13 @@ void __fastcall TTrackFollower::Render(float fNr)
   glRotated(RadToDeg(-vAngles.z),0,1,0); //obrót wzglêdem osi OY
   //glRotated(RadToDeg(vAngles.z),0,1,0); //obrót wzglêdem osi OY
   glDisable(GL_LIGHTING);
-  glColor3f(1.0-fNr,fNr,0); //czerwone dla 0, zielone dla 1
+  glColor3f(1.0,1.0-fNr,1.0-fNr); //bia³y dla 0, czerwony dla 1
   //glutWireCone(promieñ podstawy,wysokoœæ,k¹tnoœæ podstawy,iloœæ segmentów na wysokoœæ)
   glutWireCone(0.5,2,4,1); //rysowanie sto¿ka (ostros³upa o podstawie wieloboka)
   glEnable(GL_LIGHTING);
  glPopMatrix();
 }
-
+#endif
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
