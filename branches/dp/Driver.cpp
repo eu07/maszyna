@@ -677,8 +677,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
     }
    } //koniec obs³ugi W4
    v=sSpeedTable[i].fVelNext; //odczyt prêdkoœci do zmiennej pomocniczej
-   if (sSpeedTable[i].iFlags&8)
-    iDrivigFlags|=moveSwitchFound; //rozjazd z przodu ogranicza np. sens skanowania wstecz
+   if (sSpeedTable[i].iFlags&8) //zwrotnice s¹ usuwane z tabelki dopiero po zjechaniu z nich
+    iDrivigFlags|=moveSwitchFound; //rozjazd z przodu/pod ogranicza np. sens skanowania wstecz
    else if (sSpeedTable[i].iFlags&0x100) //W4 mo¿e siê deaktywowaæ
    {//je¿eli event, mo¿e byæ potrzeba wys³ania komendy, aby ruszy³
     if (sSpeedTable[i].iFlags&0x2000)

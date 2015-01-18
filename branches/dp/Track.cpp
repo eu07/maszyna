@@ -1110,7 +1110,7 @@ void __fastcall TTrack::Compile(GLuint tex)
       if (tex?TextureID2==tex:true) //jeœli pasuje do grupy (tex)
       {//podsypka z podk³adami jest tylko dla zwyk³ego toru
        vector6 bpts1[8]; //punkty g³ównej p³aszczyzny nie przydaj¹ siê do robienia boków
-       if ((fTexLength==4.0)&&(fTexSlope==1.1f)) //jeœli stare mapowanie na profil 0.2 0.5 1.1
+       if (fTexLength==4.0) //jeœli stare mapowanie na profil 0.2 0.5 1.1 (równie¿ 6-9-9/noil)
        {//stare mapowanie z ró¿n¹ gêstoœci¹ pikseli i oddzielnymi teksturami na ka¿dy profil
         if (iTrapezoid) //trapez albo przechy³ki
         {//podsypka z podkladami trapezowata
