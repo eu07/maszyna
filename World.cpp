@@ -772,6 +772,21 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   Global::iTextMode=(cKey=='Y')?-1:0; //flaga wyjœcia z programu
   return; //nie przekazujemy do poci¹gu
  }
+ else if (Global::iTextMode==VK_F12)
+ {//tryb konfiguracji debugmode
+  if (cKey=='0') Global::iWriteLogEnabled^=1; //w³¹cz/wy³¹cz logowanie do pliku
+  else if (cKey=='1')
+  {//w³¹cz/wy³¹cz okno konsoli
+   if ((Global::iWriteLogEnabled&2)==0) //nie by³o okienka
+   {//otwarcie okna
+    AllocConsole(); //otwarcie okna
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+    Global::iWriteLogEnabled|=2;
+   }
+  }
+  else if (cKey=='2') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
+  return; //nie przekazujemy do poci¹gu
+ }
  else if (cKey==3) //[Ctrl]+[Break]
  {//hamowanie wszystkich pojazdów w okolicy
   Ground.RadioStop(Camera.Pos);
