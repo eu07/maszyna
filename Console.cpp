@@ -181,16 +181,18 @@ void __fastcall Console::Off()
 void __fastcall Console::BitsSet(int mask,int entry)
 {//ustawienie bitów o podanej masce (mask) na wejœciu (entry)
  if ((iBits&mask)!=mask) //je¿eli zmiana
- {iBits|=mask;
-  BitsUpdate(mask);
+ {int old=iBits; //poprzednie stany
+  iBits|=mask;
+  BitsUpdate(old^iBits); //1 dla bitów zmienionych
  }
 };
 
 void __fastcall Console::BitsClear(int mask,int entry)
 {//zerowanie bitów o podanej masce (mask) na wejœciu (entry)
  if (iBits&mask) //je¿eli zmiana
- {iBits&=~mask;
-  BitsUpdate(mask);
+ {int old=iBits; //poprzednie stany
+  iBits&=~mask;
+  BitsUpdate(old^iBits); //1 dla bitów zmienionych
  }
 };
 

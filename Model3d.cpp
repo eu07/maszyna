@@ -394,7 +394,7 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
  if (fSquareMaxDist>=0.0)
   fSquareMaxDist*=fSquareMaxDist;
  else
-  fSquareMaxDist=10000*10000; //10km
+  fSquareMaxDist=15000*15000; //15km to wiêcej, ni¿ siê obecnie wyœwietla
  parser.ignoreToken();
  parser.getToken(fSquareMinDist);
  fSquareMinDist*=fSquareMinDist;
@@ -409,97 +409,106 @@ int __fastcall TSubModel::Load(cParser& parser,TModel3d *Model,int Pos,bool dyna
  {//wczytywanie wierzcho³ków
   parser.ignoreToken();
   //Ra 15-01: to wczytaæ jako tekst - jeœli pierwszy znak zawiera "*", to dalej bêdzie nazwa wczeœniejszego submodelu, z którego nale¿y wzi¹æ wierzcho³ki
-  //zapewni to jak¹œ zgodnoœæ wstecz, bo zamiast liczby bêdzie ci¹g, którego wartoœæ powinna byæ uznana jako zerowa 
-  parser.getToken(iNumVerts);
-  if (iNumVerts%3)
-  {
-   iNumVerts=0;
-   Error("Mesh error, (iNumVertices="+AnsiString(iNumVerts)+")%3!=0");
-   return 0;
+  //zapewni to jak¹œ zgodnoœæ wstecz, bo zamiast liczby bêdzie ci¹g, którego wartoœæ powinna byæ uznana jako zerowa
+  //parser.getToken(iNumVerts);
+  parser.getToken(token);
+  if (token[0]=='*')
+  {//jeœli pierwszy znak jest gwiazdk¹, poszukaæ submodelu o nazwie bez tej gwiazdki i wzi¹æ z niego wierzcho³ki
+   Error("Verticles reference not yet supported!");
   }
-  //Vertices=new GLVERTEX[iNumVerts];
-  if (iNumVerts)
-  {Vertices=new float8[iNumVerts];
-   iNumFaces=iNumVerts/3;
-   sg=new DWORD[iNumFaces]; //maski powierzchni: 0 oznacza brak u¿redniania wektorów normalnych
-   int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
-   int maska=0;
-   for (int i=0;i<iNumVerts;i++)
-   {//Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze wyœwietlanie
-    wsp[i]=-1; //wektory normalne nie s¹ policzone dla tego wierzcho³ka
-    if ((i%3)==0)
-    {//jeœli bêdzie maska -1, to dalej bêd¹ wierzcho³ki z wektorami normalnymi, podanymi jawnie
-     parser.getToken(maska); //maska powierzchni trójk¹ta
-     sg[i/3]=(maska==-1)?0:maska; //dla maski -1 bêdzie 0, czyli nie ma wspólnych wektorów normalnych
-    }
-    parser.getToken(Vertices[i].Point.x);
-    parser.getToken(Vertices[i].Point.y);
-    parser.getToken(Vertices[i].Point.z);
-    if (maska==-1)
-    {//jeœli wektory normalne podane jawnie
-     parser.getToken(Vertices[i].Normal.x);
-     parser.getToken(Vertices[i].Normal.y);
-     parser.getToken(Vertices[i].Normal.z);
-     wsp[i]=i; //wektory normalne "s¹ ju¿ policzone"
-    }
-    parser.getToken(Vertices[i].tu);
-    parser.getToken(Vertices[i].tv);
-    if (i%3==2) //je¿eli wczytano 3 punkty
-    {if (Vertices[i  ].Point==Vertices[i-1].Point ||
-         Vertices[i-1].Point==Vertices[i-2].Point ||
-         Vertices[i-2].Point==Vertices[i  ].Point)
-     {//je¿eli punkty siê nak³adaj¹ na siebie
-      --iNumFaces; //o jeden trójk¹t mniej
-      iNumVerts-=3; //czyli o 3 wierzcho³ki
-      i-=3; //wczytanie kolejnego w to miejsce
-      WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\", verticle "+AnsiString(i));
+  else
+  {//normalna lista wierzcho³ków
+   iNumVerts=atoi(token.c_str());
+   if (iNumVerts%3)
+   {
+    iNumVerts=0;
+    Error("Mesh error, (iNumVertices="+AnsiString(iNumVerts)+")%3<>0");
+    return 0;
+   }
+   //Vertices=new GLVERTEX[iNumVerts];
+   if (iNumVerts)
+   {Vertices=new float8[iNumVerts];
+    iNumFaces=iNumVerts/3;
+    sg=new DWORD[iNumFaces]; //maski powierzchni: 0 oznacza brak u¿redniania wektorów normalnych
+    int *wsp=new int[iNumVerts]; //z którego wierzcho³ka kopiowaæ wektor normalny
+    int maska=0;
+    for (int i=0;i<iNumVerts;i++)
+    {//Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze wyœwietlanie
+     wsp[i]=-1; //wektory normalne nie s¹ policzone dla tego wierzcho³ka
+     if ((i%3)==0)
+     {//jeœli bêdzie maska -1, to dalej bêd¹ wierzcho³ki z wektorami normalnymi, podanymi jawnie
+      parser.getToken(maska); //maska powierzchni trójk¹ta
+      sg[i/3]=(maska==-1)?0:maska; //dla maski -1 bêdzie 0, czyli nie ma wspólnych wektorów normalnych
      }
-     if (i>0) //jeœli pierwszy trójk¹t bêdzie zdegenerowany, to zostanie usuniêty i nie ma co sprawdzaæ
-      if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>1000.0) ||
-          ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>1000.0) ||
-          ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>1000.0))
-      {//je¿eli s¹ dalej ni¿ 2km od siebie //Ra 15-01: obiekt wstawiany nie powinien byæ wiêkszy ni¿ 300m (trójk¹ty terenu w E3D mog¹ mieæ 1.5km)
+     parser.getToken(Vertices[i].Point.x);
+     parser.getToken(Vertices[i].Point.y);
+     parser.getToken(Vertices[i].Point.z);
+     if (maska==-1)
+     {//jeœli wektory normalne podane jawnie
+      parser.getToken(Vertices[i].Normal.x);
+      parser.getToken(Vertices[i].Normal.y);
+      parser.getToken(Vertices[i].Normal.z);
+      wsp[i]=i; //wektory normalne "s¹ ju¿ policzone"
+     }
+     parser.getToken(Vertices[i].tu);
+     parser.getToken(Vertices[i].tv);
+     if (i%3==2) //je¿eli wczytano 3 punkty
+     {if (Vertices[i  ].Point==Vertices[i-1].Point ||
+          Vertices[i-1].Point==Vertices[i-2].Point ||
+          Vertices[i-2].Point==Vertices[i  ].Point)
+      {//je¿eli punkty siê nak³adaj¹ na siebie
        --iNumFaces; //o jeden trójk¹t mniej
        iNumVerts-=3; //czyli o 3 wierzcho³ki
        i-=3; //wczytanie kolejnego w to miejsce
-       WriteLog(AnsiString("Too large triangle ignored in: \"")+AnsiString(pName)+"\"");
+       WriteLog(AnsiString("Degenerated triangle ignored in: \"")+AnsiString(pName)+"\", verticle "+AnsiString(i));
       }
-    }
-   }
-   int i; //indeks dla trójk¹tów
-   float3 *n=new float3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
-   for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
-    n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
-   int v; //indeks dla wierzcho³ków
-   int f; //numer trójk¹ta stycznego
-   float3 norm; //roboczy wektor normalny
-   for (v=0;v<iNumVerts;v++)
-   {//pêtla po wierzcho³kach trójk¹tów
-    if (wsp[v]>=0) //jeœli ju¿ by³ liczony wektor normalny z u¿yciem tego wierzcho³ka
-     Vertices[v].Normal=Vertices[wsp[v]].Normal; //to wystarczy skopiowaæ policzony wczeœniej
-    else
-    {//inaczej musimy dopiero policzyæ
-     i=v/3; //numer trójk¹ta
-     norm=float3(0,0,0); //liczenie zaczynamy od zera
-     f=v; //zaczynamy dodawanie wektorów normalnych od w³asnego
-     while (f>=0)
-     {//sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
-      wsp[f]=v; //informacja, ¿e w tym wierzcho³ku jest ju¿ policzony wektor normalny
-      norm+=n[f/3];
-      f=SeekFaceNormal(sg,f/3+1,sg[i],&Vertices[v].Point,Vertices); //i szukanie od kolejnego trójk¹ta
+      if (i>0) //jeœli pierwszy trójk¹t bêdzie zdegenerowany, to zostanie usuniêty i nie ma co sprawdzaæ
+       if (((Vertices[i  ].Point-Vertices[i-1].Point).Length()>1000.0) ||
+           ((Vertices[i-1].Point-Vertices[i-2].Point).Length()>1000.0) ||
+           ((Vertices[i-2].Point-Vertices[i  ].Point).Length()>1000.0))
+       {//je¿eli s¹ dalej ni¿ 2km od siebie //Ra 15-01: obiekt wstawiany nie powinien byæ wiêkszy ni¿ 300m (trójk¹ty terenu w E3D mog¹ mieæ 1.5km)
+        --iNumFaces; //o jeden trójk¹t mniej
+        iNumVerts-=3; //czyli o 3 wierzcho³ki
+        i-=3; //wczytanie kolejnego w to miejsce
+        WriteLog(AnsiString("Too large triangle ignored in: \"")+AnsiString(pName)+"\"");
+       }
      }
-     //Ra 15-01: nale¿a³o by jeszcze uwzglêdniæ skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu by³y jednostkowe
-     Vertices[v].Normal=SafeNormalize(norm); //przepisanie do wierzcho³ka trójk¹ta
     }
+    int i; //indeks dla trójk¹tów
+    float3 *n=new float3[iNumFaces]; //tablica wektorów normalnych dla trójk¹tów
+    for (i=0;i<iNumFaces;i++) //pêtla po trójk¹tach - bêdzie szybciej, jak wstêpnie przeliczymy normalne trójk¹tów
+     n[i]=SafeNormalize(CrossProduct(Vertices[i*3].Point-Vertices[i*3+1].Point,Vertices[i*3].Point-Vertices[i*3+2].Point));
+    int v; //indeks dla wierzcho³ków
+    int f; //numer trójk¹ta stycznego
+    float3 norm; //roboczy wektor normalny
+    for (v=0;v<iNumVerts;v++)
+    {//pêtla po wierzcho³kach trójk¹tów
+     if (wsp[v]>=0) //jeœli ju¿ by³ liczony wektor normalny z u¿yciem tego wierzcho³ka
+      Vertices[v].Normal=Vertices[wsp[v]].Normal; //to wystarczy skopiowaæ policzony wczeœniej
+     else
+     {//inaczej musimy dopiero policzyæ
+      i=v/3; //numer trójk¹ta
+      norm=float3(0,0,0); //liczenie zaczynamy od zera
+      f=v; //zaczynamy dodawanie wektorów normalnych od w³asnego
+      while (f>=0)
+      {//sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
+       wsp[f]=v; //informacja, ¿e w tym wierzcho³ku jest ju¿ policzony wektor normalny
+       norm+=n[f/3];
+       f=SeekFaceNormal(sg,f/3+1,sg[i],&Vertices[v].Point,Vertices); //i szukanie od kolejnego trójk¹ta
+      }
+      //Ra 15-01: nale¿a³o by jeszcze uwzglêdniæ skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu by³y jednostkowe
+      Vertices[v].Normal=SafeNormalize(norm); //przepisanie do wierzcho³ka trójk¹ta
+     }
+    }
+    delete[] wsp;
+    delete[] n;
+    delete[] sg;
    }
-   delete[] wsp;
-   delete[] n;
-   delete[] sg;
-  }
-  else //gdy brak wierzcho³ków
-  {eType=TP_ROTATOR; //submodel pomocniczy, ma tylko macierz przekszta³cenia
-   iVboPtr=iNumVerts=0; //dla formalnoœci
-  }
+   else //gdy brak wierzcho³ków
+   {eType=TP_ROTATOR; //submodel pomocniczy, ma tylko macierz przekszta³cenia
+    iVboPtr=iNumVerts=0; //dla formalnoœci
+   }
+  } //obs³uga submodelu z w³asn¹ list¹ wierzcho³ków
  }
  else if (eType==TP_STARS)
  {//punkty œwiec¹ce dookólnie - sk³adnia jak dla smt_Mesh
