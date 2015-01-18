@@ -25,7 +25,7 @@ __fastcall TTractionPowerSource::TTractionPowerSource()
 {
  NominalVoltage=0;
  VoltageFrequency=0;
- InternalRes=1;
+ InternalRes=0.2;
  MaxOutputCurrent=0;
  FastFuseTimeOut=1;
  FastFuseRepetition=3;
@@ -49,8 +49,11 @@ __fastcall TTractionPowerSource::~TTractionPowerSource()
 {
 };
 
-void __fastcall TTractionPowerSource::Init()
-{
+void __fastcall TTractionPowerSource::Init(double u,double i)
+{//ustawianie zasilacza przy braku w scenerii
+ NominalVoltage=u;
+ VoltageFrequency=0;
+ MaxOutputCurrent=i;
 };
 
 bool __fastcall TTractionPowerSource::Load(cParser *parser)
