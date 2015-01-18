@@ -318,7 +318,7 @@ TTrack* __fastcall TTrack::NullCreate(int dir)
    break;
   }
   trk2->trPrev=this;
-  trk->ConnectNextNext(trk2,1); //po³¹czenie dwóch dodatkowych odcinków
+  trk->ConnectNextNext(trk2,1); //po³¹czenie dwóch dodatkowych odcinków punktami 2
   tmp2->pCenter=(0.5*(p1+p2)); //œrodek, aby siê mog³o wyœwietliæ
  }
  //trzeba jeszcze dodaæ do odpowiedniego segmentu, aby siê renderowa³y z niego pojazdy
@@ -1186,7 +1186,6 @@ void __fastcall TTrack::Compile(GLuint tex)
        {rpts3[12+i]=vector6(( fHTW2+iglica[i].x)*cos2+iglica[i].y*sin2,-( fHTW2+iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z,+iglica[i].n.x*cos2+iglica[i].n.y*sin2,-iglica[i].n.x*sin2+iglica[i].n.y*cos2,0.0);
         rpts4[23-i]=vector6((-fHTW2-iglica[i].x)*cos2+iglica[i].y*sin2,-(-fHTW2-iglica[i].x)*sin2+iglica[i].y*cos2,iglica[i].z,-iglica[i].n.x*cos2+iglica[i].n.y*sin2,+iglica[i].n.x*sin2+iglica[i].n.y*cos2,0.0);
        }
-      }
       //McZapkie-130302 - poprawione rysowanie szyn
       if (SwitchExtension->RightSwitch)
       {//zwrotnica prawa

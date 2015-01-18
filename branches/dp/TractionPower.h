@@ -34,7 +34,7 @@ public:
  //AnsiString asName;
  __fastcall TTractionPowerSource();
  __fastcall ~TTractionPowerSource();
- void __fastcall Init();
+ void __fastcall Init(double u,double i);
  bool __fastcall Load(cParser *parser);
  bool __fastcall Render();
  bool __fastcall Update(double dt);
