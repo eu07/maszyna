@@ -27,7 +27,7 @@
 __fastcall TMemCell::TMemCell(vector3 *p)
 {
  fValue1=fValue2=0;
- szText=NULL;
+ szText=new char[256]; //musi byæ dla automatycznie tworzonych komórek dla odcinków izolowanych
  vPosition=p?*p:vector3(0,0,0); //ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
  bCommand=false; //komenda wys³ana
  OnSent=NULL;
@@ -113,7 +113,8 @@ bool __fastcall TMemCell::Load(cParser *parser)
  *parser >> fValue2;
  parser->getTokens();
  *parser >> token;
- asTrackName= AnsiString(token.c_str());
+ if (token.compare("none")!=0) //gdy ró¿ne od "none"
+  asTrackName=AnsiString(token.c_str()); //sprawdzane przez IsEmpty()
  parser->getTokens();
  *parser >> token;
  if (token.compare("endmemcell")!=0)

@@ -2585,7 +2585,7 @@ bool __fastcall TGround::InitEvents()
      Current->Params[5].asMemCell=tmp->MemCell; //komórka do aktualizacji
      if (Current->iFlags&(conditional_memcompare))
       Current->Params[9].asMemCell=tmp->MemCell; //komórka do badania warunku
-     if (tmp->MemCell->asTrackName!="none") //tor powi¹zany z komórk¹ powi¹zan¹ z eventem
+     if (!tmp->MemCell->asTrackName.IsEmpty()) //tor powi¹zany z komórk¹ powi¹zan¹ z eventem
      {//tu potrzebujemy wskaŸnik do komórki w (tmp)
       trk=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
       if (trk)
@@ -2631,6 +2631,16 @@ bool __fastcall TGround::InitEvents()
     {
      Current->Params[4].nGroundNode=tmp;
      Current->Params[5].asMemCell=tmp->MemCell; //komórka docelowa
+     if (!tmp->MemCell->asTrackName.IsEmpty()) //tor powi¹zany z komórk¹ powi¹zan¹ z eventem
+     {//tu potrzebujemy wskaŸnik do komórki w (tmp)
+      trk=FindGroundNode(tmp->MemCell->asTrackName,TP_TRACK);
+      if (trk)
+       Current->Params[6].asTrack=trk->pTrack;
+      else
+       ErrorLog("Bad memcell: track \""+tmp->MemCell->asTrackName+"\" not exists in memcell \""+tmp->asName+"\"");
+     }
+     else
+      Current->Params[6].asTrack=NULL;
     }
     else
      ErrorLog("Bad copyvalues: event \""+Current->asName+"\" cannot find memcell \""+Current->asNodeName+"\"");

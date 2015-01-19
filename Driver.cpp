@@ -234,9 +234,9 @@ AnsiString __fastcall TSpeedPos::TableText()
  if (iFlags&0x1)
  {//o ile pozycja istotna
   if (iFlags&0x2) //jeœli tor
-   return "Flags=#"+IntToHex(iFlags,8)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Track="+trTrack->NameGet();
+   return "Flags=#"+IntToHex(iFlags,8)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Vel="+AnsiString(fVelNext)+", Track="+trTrack->NameGet();
   else if (iFlags&0x100) //jeœli event
-   return "Flags=#"+IntToHex(iFlags,8)+", Vel="+AnsiString(fVelNext)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Event="+evEvent->asName;
+   return "Flags=#"+IntToHex(iFlags,8)+", Dist="+FloatToStrF(fDist,ffFixed,7,1)+", Vel="+AnsiString(fVelNext)+", Event="+evEvent->asName;
  }
  return "Empty";
 }
@@ -552,7 +552,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      else
      {//zatrzymanie na W4
       if (!eSignNext) eSignNext=sSpeedTable[i].evEvent;
-      if (mvOccupied->Vel>0.0) //jeœli jedzie
+      if (mvOccupied->Vel>0.3) //jeœli jedzie (nie trzeba czekaæ, a¿ siê drgania wyt³umi¹)
        sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
       else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist*(AIControllFlag?1.0:10.0):true)
       //Ra 2F1I: odleg³oœæ plus d³ugoœæ poci¹gu musi byæ mniejsza od d³ugoœci peronu, chyba ¿e poci¹g jest d³u¿szy, to wtedy minimalna
@@ -771,7 +771,10 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      if ((mvOccupied->Vel==0.0)?((sSpeedTable[i].iFlags&0x501)==0x501)&&(d>fMaxProximityDist):false)
       a=(iDrivigFlags&moveStopCloser)?fAcc:0.0; //ma podjechaæ bli¿ej - czy na pewno w tym miejscu taki warunek?
      else
-      a=(v*v-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //przyspieszenie: ujemne, gdy trzeba hamowaæ
+     {a=(v*v-mvOccupied->Vel*mvOccupied->Vel)/(25.92*d); //przyspieszenie: ujemne, gdy trzeba hamowaæ
+      if (d<fMinProximityDist) //jak jest ju¿ blisko
+       if (v<fVelDes) fVelDes=v; //ograniczenie aktualnej prêdkoœci
+     }
     }
     else
      if (sSpeedTable[i].iFlags&2) //jeœli tor
@@ -3354,8 +3357,9 @@ bool __fastcall TController::UpdateSituation(double dt)
        if (vel<10.0) //Ra 2F1H: jeœli prêdkoœæ jest ma³a, a mo¿na przyspieszaæ, to nie ograniczaæ przyspieszenia do 0.5m/ss
         AccDesired=0.9; //przy ma³ych prêdkoœciach mo¿e byæ trudno utrzymaæ ma³e przyspieszenie
       //Ra 2F1I: wy³¹czyæ kiedyœ to uœrednianie i przeanalizowaæ skanowanie, czemu migocze
-      if (AccDesired>-0.15) //hamowania lepeiej nie uœredniaæ  
+      if (AccDesired>-0.15) //hamowania lepeiej nie uœredniaæ
        AccDesired=fAccDesiredAv=0.2*AccDesired+0.8*fAccDesiredAv; //uœrednione, ¿eby ograniczyæ migotanie
+      if (VelDesired==0.0) if (AccDesired>=-0.01) AccDesired=-0.01; //Ra 2F1J: jeszcze jedna prowizoryczna ³atka
       if (AccDesired>=0.0)
        if (iDrivigFlags&movePress)
         mvOccupied->BrakeReleaser(1); //wyluzuj lokomotywê - mo¿e byæ wiêcej!
