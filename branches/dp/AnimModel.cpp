@@ -269,7 +269,7 @@ void __fastcall TAnimContainer::UpdateModel()
 };
 
 void __fastcall TAnimContainer::PrepareModel()
-{
+{//tutaj zostawiæ tylko ustawienie submodelu, przeliczanie ma byæ w UpdateModel()
  if (pSubModel) //pozbyæ siê tego - sprawdzaæ wczeœniej
  {
   //nanoszenie animacji na wzorzec
@@ -508,7 +508,7 @@ void __fastcall TAnimModel::RaAnimate()
 };
 
 void __fastcall TAnimModel::RaPrepare()
-{//ustawia œwiat³a i animacje w modelu przed renderowaniem
+{//ustawia œwiat³a i animacje we wzorcu modelu przed renderowaniem egzemplarza
  fBlinkTimer-=Timer::GetDeltaTime();
  if (fBlinkTimer<=0) fBlinkTimer=fOffTime;
  bool state; //stan œwiat³a
