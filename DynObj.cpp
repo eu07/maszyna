@@ -1292,6 +1292,7 @@ __fastcall TDynamicObject::TDynamicObject()
  ctOwner=NULL; //na pocz¹tek niczyj
  iOverheadMask=0; //maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y jazdê bezpr¹dow¹
  tmpTraction.TractionVoltage=0; //Ra 2F1H: prowizorka, trzeba przechowaæ napiêcie, ¿eby nie wywala³o WS pod izolatorem
+ fAdjustment=0.0; //korekcja odleg³oœci pomiêdzy wózkami (np. na ³ukach)
 }
 
 __fastcall TDynamicObject::~TDynamicObject()
@@ -1686,33 +1687,30 @@ void __fastcall TDynamicObject::Move(double fDistance)
    iAxleFirst=(MoverParameters->V>=0.0)?1:0; //[m/s] ?1:0 - aktywna druga oœ w kierunku jazdy
   //aktualnie eventy aktywuje druga oœ, ¿eby AI nie wy³¹cza³o sobie semafora za szybko
  }
- if (fDistance>=0.0)
+ if (fDistance>0.0)
  {//gdy ruch w stronê sprzêgu 0, doliczyæ korektê do osi 1
   bEnabled&=Axle0.Move(fDistance,!iAxleFirst); //oœ z przodu pojazdu
-  bEnabled&=Axle1.Move(fDistance,iAxleFirst); //oœ z ty³u pojazdu
+  bEnabled&=Axle1.Move(fDistance/*-fAdjustment*/,iAxleFirst); //oœ z ty³u pojazdu
  }
- else
+ else if (fDistance<0.0)
  {//gdy ruch w stronê sprzêgu 1, doliczyæ korektê do osi 0
-  bEnabled&=Axle1.Move(fDistance,iAxleFirst); //oœ z ty³u pojazdu
-  bEnabled&=Axle0.Move(fDistance,!iAxleFirst); //oœ z przodu pojazdu
+  bEnabled&=Axle1.Move(fDistance,iAxleFirst); //oœ z ty³u pojazdu prusza siê pierwsza
+  bEnabled&=Axle0.Move(fDistance/*-fAdjustment*/,!iAxleFirst); //oœ z przodu pojazdu
  }
  //Axle2.Move(fDistance,false); //te nigdy pierwsze nie s¹
  //Axle3.Move(fDistance,false);
  if (fDistance!=0.0) //nie liczyæ ponownie, jeœli stoi
  {//liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
   vPosition=0.5*(Axle1.pPosition+Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
-  vFront=Axle0.pPosition-Axle1.pPosition;
+  vFront=Axle0.pPosition-Axle1.pPosition; //wektor pomiêdzy skrajnymi osiami 
   //Ra 2F1J: to nie jest stabilne (powoduje rzucanie taborem) i wymaga dopracowania
-  //double korekta=vFront.Length()-fAxleDist; //czy rozstaw osi wymaga korekty
-  //if (fabs(korekta)>0.02)
+  fAdjustment=vFront.Length()-fAxleDist; //na ³uku bêdzie ujemny
+  //if (fabs(fAdjustment)>0.02) //jeœli jest zbyt du¿o, to roz³o¿yæ na kilka przeliczeñ (wygasza drgania?)
   //{//parê centymetrów trzeba by ju¿ skorygowaæ; te b³êdy mog¹ siê te¿ generowaæ na ostrych ³ukach
-  // korekta*=0.2; //w jednym kroku korygowany jest u³amek b³êdu
-  // if (iAxleFirst) //korygowana druga oœ, ¿eby nie mieszaæ z eventami
-  //  bEnabled&=Axle0.Move((fDistance>0)?-korekta:korekta,!iAxleFirst); //dodatni¹ korektê w przeciwn¹ stronê, co (fDistance)
-  // else
-  //  bEnabled&=Axle1.Move((fDistance>0)?korekta:-korekta,iAxleFirst); //dodatni¹ korektê w tê sam¹ stronê, co (fDistance)
+  // fAdjustment*=0.5; //w jednym kroku korygowany jest u³amek b³êdu
   //}
-  //Ra 2F1J: wyliczaæ korektê do trwa³ej zmiennej i uwzglêdniaæ w kolejnym przesuniêciu drugiej osi w kierunku jazdy (nie przesuwaæ dwa razy)
+  //else
+  // fAdjustment=0.0;
   vFront=Normalize(vFront); //kierunek ustawienia pojazdu (wektor jednostkowy)
   vLeft=Normalize(CrossProduct(vWorldUp,vFront)); //wektor poziomy w lewo, normalizacja potrzebna z powodu pochylenia (vFront)
   vUp=CrossProduct(vFront,vLeft); //wektor w górê, bêdzie jednostkowy
