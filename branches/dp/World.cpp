@@ -655,7 +655,10 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   if (Console::Pressed(VK_SHIFT)) info+="Shift]+[";
   if (Console::Pressed(VK_CONTROL)) info+="Ctrl]+[";
   if (cKey>192) //coœ tam jeszcze ciekawego jest?
-   WriteLog(info+AnsiString(char(cKey-128))+"]");
+  {
+   if (cKey<255) //255 to [Fn] w laptopach
+    WriteLog(info+AnsiString(char(cKey-128))+"]");
+  }
   else if (cKey>=186)
    WriteLog(info+AnsiString(";=,-./~").SubString(cKey-185,1)+"]");
   else if (cKey>123) //coœ tam jeszcze ciekawego jest?
@@ -685,8 +688,9 @@ void __fastcall TWorld::OnKeyDown(int cKey)
     if (KeyEvents[i])
      Ground.AddToQuery(KeyEvents[i],NULL);
   }
-   else //zapamiêtywanie kamery mo¿e dzia³aæ podczas pauzy
-    if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
+  else //zapamiêtywanie kamery mo¿e dzia³aæ podczas pauzy
+   if (FreeFlyModeFlag) //w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
+    if ((Global::iTextMode!=VK_F12)&&(Global::iTextMode!=VK_F3)) //ograniczamy u¿ycie kamer
     {if ((!Global::pFreeCameraInit[i].x&&!Global::pFreeCameraInit[i].y&&!Global::pFreeCameraInit[i].z))
     {//jeœli kamera jest w punkcie zerowym, zapamiêtanie wspó³rzêdnych i k¹tów
      Global::pFreeCameraInit[i]=Camera.Pos;
@@ -738,6 +742,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
    case VK_F12: //coœ tam jeszcze
     if (Console::Pressed(VK_CONTROL)&&Console::Pressed(VK_SHIFT))
      DebugModeFlag=!DebugModeFlag; //taka opcjonalna funkcja, mo¿e siê czasem przydaæ
+/* //Ra 2F1P: teraz w³¹czanie i wy³¹czanie klawiszami cyfrowymi po u¿yciu [F12]
     else if (Console::Pressed(VK_SHIFT))
     {//odpalenie logu w razie "W"
      if ((Global::iWriteLogEnabled&2)==0) //nie by³o okienka
@@ -746,7 +751,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
       SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
      }
      Global::iWriteLogEnabled|=3;
-    }
+    } */
     else
      Global::iTextMode=cKey;
    break;
@@ -772,20 +777,22 @@ void __fastcall TWorld::OnKeyDown(int cKey)
   Global::iTextMode=(cKey=='Y')?-1:0; //flaga wyjœcia z programu
   return; //nie przekazujemy do poci¹gu
  }
- else if (Global::iTextMode==VK_F12)
- {//tryb konfiguracji debugmode
-  if (cKey=='1') Global::iWriteLogEnabled^=1; //w³¹cz/wy³¹cz logowanie do pliku
-  else if (cKey=='2')
-  {//w³¹cz/wy³¹cz okno konsoli
-   if ((Global::iWriteLogEnabled&2)==0) //nie by³o okienka
-   {//otwarcie okna
-    AllocConsole(); //otwarcie okna
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
-    Global::iWriteLogEnabled|=2;
+ else if ((Global::iTextMode==VK_F12)?(cKey>='0')&&(cKey<='9'):false)
+ {//tryb konfiguracji debugmode (przestawianie kamery ju¿ wy³¹czone
+  if (!Console::Pressed(VK_SHIFT)) //bez [Shift]
+  {if (cKey=='1')
+    Global::iWriteLogEnabled^=1; //w³¹cz/wy³¹cz logowanie do pliku
+   else if (cKey=='2')
+   {//w³¹cz/wy³¹cz okno konsoli
+    Global::iWriteLogEnabled^=2;
+    if ((Global::iWriteLogEnabled&2)==0) //nie by³o okienka
+    {//otwarcie okna
+     AllocConsole(); //jeœli konsola ju¿ jest, to zwróci b³¹d; uwalniaæ nie ma po co, bo siê od³¹czy
+     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
+    }
    }
+   //else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
   }
-  //else if (cKey=='2') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
-  return; //nie przekazujemy do poci¹gu
  }
  else if (cKey==3) //[Ctrl]+[Break]
  {//hamowanie wszystkich pojazdów w okolicy
@@ -1698,10 +1705,10 @@ bool __fastcall TWorld::Update()
      //OutText3=AnsiString(Global::pCameraRotationDeg); //k¹t kamery wzglêdem pó³nocy
     }
     else if (Global::iTextMode==VK_F12)
-    {
-     //Global::iViewMode=VK_F12;
-     //Takie male info :)
-     OutText1= AnsiString("Online documentation (PL): http://eu07.pl");
+    {//opcje w³¹czenia i wy³¹czenia logowania
+     OutText1="[0] Debugmode "+AnsiString(DebugModeFlag?"(on)":"(off)");
+     OutText2="[1] log.txt "+AnsiString((Global::iWriteLogEnabled&1)?"(on)":"(off)");
+     OutText3="[2] Console "+AnsiString((Global::iWriteLogEnabled&2)?"(on)":"(off)");
     }
     else if (Global::iTextMode==VK_F2)
     {//ABu: info dla najblizszego pojazdu!

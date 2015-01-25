@@ -178,7 +178,7 @@ __fastcall TTrack::TTrack(TGroundNode *g)
  ScannedFlag=false;
  DisplayListID=0;
  iTrapezoid=0; //parametry kszta³tu: 0-standard, 1-przechy³ka, 2-trapez, 3-oba
- hvTraction=NULL; //drut zasilaj¹cy najbli¿szy Point1 toru
+ hvOverhead=NULL; //drut zasilaj¹cy, najbli¿szy Point1 toru
  fTexRatio1=1.0; //proporcja boków tekstury nawierzchni (¿eby zaoszczêdziæ na rozmiarach tekstur...)
  fTexRatio2=1.0; //proporcja boków tekstury chodnika (¿eby zaoszczêdziæ na rozmiarach tekstur...)
  iPrevDirection=0; //domyœlnie wirtualne odcinki do³¹czamy stron¹ od Point1
@@ -186,7 +186,9 @@ __fastcall TTrack::TTrack(TGroundNode *g)
  pIsolated=NULL;
  pMyNode=g; //Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
  iAction=0; //normalnie mo¿e byæ pomijany podczas skanowania
- fOverhead=-1.0; //mo¿na normalnie pobieraæ pr¹d (0 dla jazdy bezpr¹dowej po danym odcinku 
+ fOverhead=-1.0; //mo¿na normalnie pobieraæ pr¹d (0 dla jazdy bezpr¹dowej po danym odcinku
+ nFouling[0]=NULL; //ukres albo kozio³ od strony Point1
+ nFouling[1]=NULL; //ukres albo kozio³ od strony Point2
 }
 
 __fastcall TTrack::~TTrack()

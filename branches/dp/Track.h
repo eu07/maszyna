@@ -149,7 +149,8 @@ public:
  double fTrackLength; //d³ugoœæ z wpisu, nigdzie nie u¿ywana
  double fRadius; //promieñ, dla zwrotnicy kopiowany z tabeli
  bool ScannedFlag; //McZapkie: do zaznaczania kolorem torów skanowanych przez AI
- TTraction *hvTraction; //drut zasilaj¹cy
+ TTraction *hvOverhead; //drut zasilaj¹cy do szybkiego znalezienia (nie u¿ywany)
+ TGroundNode *nFouling[2]; //wspó³rzêdne ukresu albo oporu koz³a
 
  __fastcall TTrack(TGroundNode *g);
  __fastcall ~TTrack();
