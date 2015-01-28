@@ -3057,7 +3057,7 @@ if ( mvControlled->Signalling==true )
   //NBMX wrzesien 2003 - drzwi oraz sygna³ odjazdu
   btLampkaDoorLeft.Turn(mvOccupied->DoorLeftOpened);
   btLampkaDoorRight.Turn(mvOccupied->DoorRightOpened);
-  btLampkaNapNastHam.Turn((mvControlled->ActiveDir!=0)&&(mvControlled->EpFuse)); //napiecie na nastawniku hamulcowym
+  btLampkaNapNastHam.Turn((mvControlled->ActiveDir!=0)&&(mvOccupied->EpFuse)); //napiecie na nastawniku hamulcowym
   btLampkaForward.Turn(mvControlled->ActiveDir>0); //jazda do przodu
   btLampkaBackward.Turn(mvControlled->ActiveDir<0); //jazda do ty³u
  }
@@ -4081,9 +4081,9 @@ if ( Console::Pressed(Global::Keys[k_CurrentNext]))
    {
     if (Console::Pressed(VK_SHIFT))
     {
-     if (Console::Pressed(k_CurrentNext))
+//     if (Console::Pressed(k_CurrentNext))
      {//Ra: by³o pod VK_F3
-      if ((mvControlled->EpFuseSwitch(true)))
+      if ((mvOccupied->EpFuseSwitch(true)))
       {
        dsbPneumaticSwitch->SetVolume(-10);
        dsbPneumaticSwitch->Play(0,0,0);
@@ -4092,11 +4092,11 @@ if ( Console::Pressed(Global::Keys[k_CurrentNext]))
     }
     else
     {
-     if (Console::Pressed(k_CurrentNext))
+//     if (Console::Pressed(k_CurrentNext))
      {//Ra: by³o pod VK_F3
       if (Console::Pressed(VK_CONTROL))
       {
-       if ((mvControlled->EpFuseSwitch(false)))
+       if ((mvOccupied->EpFuseSwitch(false)))
        {
         dsbPneumaticSwitch->SetVolume(-10);
         dsbPneumaticSwitch->Play(0,0,0);

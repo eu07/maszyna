@@ -305,6 +305,7 @@ public:
  TDynamicObject* __fastcall PrevAny();
  TDynamicObject* __fastcall Prev();
  TDynamicObject* __fastcall Next();
+ TDynamicObject* __fastcall NextC(int C); 
  double __fastcall NextDistance(double d=-1.0);
  void __fastcall SetdMoveLen(double dMoveLen) {MoverParameters->dMoveLen=dMoveLen;}
  void __fastcall ResetdMoveLen() {MoverParameters->dMoveLen=0;}

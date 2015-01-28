@@ -13,7 +13,7 @@ typedef enum { tp_Unknown, tp_Sound, tp_SoundPos, tp_Exit,
                tp_Switch, tp_DynVel, tp_TrackVel, tp_Multiple,
                tp_AddValues, tp_Ignored, tp_CopyValues, tp_WhoIs,
                tp_LogValues, tp_Visible,
-               tp_Voltage, tp_Message
+               tp_Voltage, tp_Message, tp_Friction
              }  TEventType;
 
 const int update_memstring          =0x0000001; //zmodyfikowaæ tekst (UpdateValues)
