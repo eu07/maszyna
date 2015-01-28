@@ -1748,7 +1748,8 @@ bool __fastcall TWorld::Update()
        }
 
 //          OutText2+=AnsiString(", u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
-          OutText2+=AnsiString(", N:")+FloatToStrF(tmp->MoverParameters->Ntotal,ffFixed,4,0);
+//          OutText2+=AnsiString(", N:")+FloatToStrF(tmp->MoverParameters->Ntotal,ffFixed,4,0);
+          OutText2+=AnsiString(", Ft:")+FloatToStrF(tmp->MoverParameters->Ft,ffFixed,4,0);
 //          OutText3= AnsiString("BP: ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(", ");
 //          OutText3+= AnsiString("PP: ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(", ");
 //          OutText3+= AnsiString("BVP: ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(", ");
@@ -1986,6 +1987,34 @@ bool __fastcall TWorld::Update()
       OutText3+=AnsiString("; zb.gl. ")+FloatToStrF(Controlled->MoverParameters->CompressedVolume,ffFixed,6,2);
 //youBy - drugi wezyk
       OutText3+=AnsiString("; p.zas. ")+FloatToStrF(Controlled->MoverParameters->ScndPipePress,ffFixed,6,2);
+
+     if(Controlled->MoverParameters->EngineType==ElectricInductionMotor)
+     {
+     glTranslatef(0.0f,0.0f,-0.50f);
+     glColor3f(1.0f,1.0f,1.0f); //a, damy bia³ym
+      for(int i=0;i<=20;i++)
+       {
+        glRasterPos2f(-0.25f,0.16f-0.01f*i);
+        if(Controlled->MoverParameters->eimc[i]<10)
+         OutText4=FloatToStrF(Controlled->MoverParameters->eimc[i],ffFixed,6,3);
+        else
+         OutText4=FloatToStrF(Controlled->MoverParameters->eimc[i],ffGeneral,5,3);
+        glPrint(OutText4.c_str());
+       }
+      for(int i=0;i<=20;i++)
+       {
+        glRasterPos2f(-0.2f,0.16f-0.01f*i);
+        if(Controlled->MoverParameters->eimv[i]<10)
+         OutText4=FloatToStrF(Controlled->MoverParameters->eimv[i],ffFixed,6,3);
+        else
+         OutText4=FloatToStrF(Controlled->MoverParameters->eimv[i],ffGeneral,5,3);
+        glPrint(OutText4.c_str());
+       }
+     OutText4="";  
+     glTranslatef(0.0f,0.0f,+0.50f);
+     glColor3f(1.0f,0.0f,0.0f); //a, damy czerwonym     
+     }
+
 
       //ABu: testy sprzegow-> (potem przeniesc te zmienne z public do protected!)
       //OutText3+=AnsiString("; EnginePwr=")+FloatToStrF(mvControlled->EnginePower,ffFixed,1,5);

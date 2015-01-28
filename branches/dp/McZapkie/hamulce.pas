@@ -1221,7 +1221,7 @@ begin
   BVP:=BrakeRes.P;
   VVP:=ValveRes.P;
   BCP:=ImplsRes.P;
-  CVP:=CntrlRes.P-0.0;
+  CVP:=CntrlRes.P; //110115 - konsultacje warszawa1
 
   dV:=0; dV1:=0;
 
@@ -1230,25 +1230,25 @@ begin
 
 //sprawdzanie stanu
  if ((BrakeStatus and 1)=1)and(BCP>0.25) then
-   if(VVP+0.003+BCP/BVM<CVP)then
+   if(VVP+0.003+BCP/BVM<CVP-0.12)then
      BrakeStatus:=(BrakeStatus or 2) //hamowanie stopniowe
-   else if(VVP-0.003+BCP/BVM>CVP) then
+   else if(VVP-0.003+BCP/BVM>CVP-0.12) then
      BrakeStatus:=(BrakeStatus and 252) //luzowanie
-   else if(VVP+BCP/BVM>CVP) then
+   else if(VVP+BCP/BVM>CVP-0.12) then
      BrakeStatus:=(BrakeStatus and 253) //zatrzymanie napelaniania
    else
  else
-   if(VVP+0.10<CVP)and(BCP<0.25) then    //poczatek hamowania
+   if(VVP+0.10<CVP-0.12)and(BCP<0.25) then    //poczatek hamowania
     begin
      if (BrakeStatus and 1)=0 then
       begin
-       ValveRes.CreatePress(0.5*VVP);
-       SoundFlag:=SoundFlag or sf_Acc;
-       ValveRes.Act;
+//       ValveRes.CreatePress(0.5*VVP);  //110115 - konsultacje warszawa1
+//       SoundFlag:=SoundFlag or sf_Acc;
+//       ValveRes.Act;
       end;
      BrakeStatus:=(BrakeStatus or 3);
     end
-   else if(VVP+BCP/BVM<CVP)and(BCP>0.25) then //zatrzymanie luzowanie
+   else if(VVP+BCP/BVM<CVP-0.12)and(BCP>0.25) then //zatrzymanie luzowanie
      BrakeStatus:=(BrakeStatus or 1);
 
 //przeplyw ZS <-> PG
@@ -2958,7 +2958,7 @@ begin
   if (i_bcp>=3.5) and ((i_bcp<4.3)or(i_bcp>5.5)) then
     ActFlowSpeed:=0
   else if (i_bcp>4.3) and (i_bcp<4.8) then
-    ActFlowSpeed:=8*(i_bcp-4.3)
+    ActFlowSpeed:=4*(i_bcp-4.3) //konsultacje wawa1 - bylo 8
   else if (i_bcp<4) then
     ActFlowSpeed:=2
   else

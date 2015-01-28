@@ -1674,10 +1674,12 @@ begin
  if (EpFuse<>State) then
   begin
    EpFuse:=State;
-  end;
- if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
-  else SendCtrlToNext('EpFuseSwitch',0,CabNo);
- EpFuseSwitch:=true;
+   EpFuseSwitch:=true;
+  end
+ else
+  EpFuseSwitch:=false;  
+// if (EpFuse=true) then SendCtrlToNext('EpFuseSwitch',1,CabNo)
+//  else SendCtrlToNext('EpFuseSwitch',0,CabNo);
 end;
 
 {wl/wyl przetwornicy}
@@ -2415,7 +2417,7 @@ if (BrakeCtrlPosNo>1) and (ActiveCab<>0)then
 with BrakePressureTable[BrakeCtrlPos] do
    begin
           dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, Hamulec.GetBCP, ScndPipePress, dt, 0);
-          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0))and(BrakeSubsystem=ss_LSt)then
+          if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0))and(BrakeSubsystem=ss_LSt)and(TrainType<>dt_EZT)then
             temp:=PipePress+0.00001
             else
             temp:=ScndPipePress;
@@ -2503,7 +2505,7 @@ end;
 
       if (BrakeHandle = FVel6) and (ActiveCab<>0) then
       begin
-        if (Battery) and (ActiveDir<>0) then //tu powinien byc jeszcze bezpiecznik EP i baterie -
+        if (Battery) and (ActiveDir<>0) and (EpFuse) then //tu powinien byc jeszcze bezpiecznik EP i baterie -
           temp:=(Handle as TFVel6).GetCP
         else
           temp:=0;  
@@ -2826,7 +2828,7 @@ begin
   n:=V/(Pi*WheelDiameter); //predkosc obrotowa wynikajaca z liniowej [obr/s]
   deltan:=n-nrot; //"pochodna" prêdkoœci obrotowej
   if SlippingWheels then
-   if Abs(deltan)<0.1 then
+   if Abs(deltan)<0.01 then
     SlippingWheels:=false; {wygaszenie poslizgu}
   if SlippingWheels then   {nie ma zwiazku z predkoscia liniowa V}
    begin                   {McZapkie-221103: uszkodzenia kol podczas poslizgu}
@@ -3562,7 +3564,8 @@ begin
               begin
                if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
                 begin
-                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
+                 inc(MainCtrlActualPos);
+//                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
                  OK:=true;
                  SetFlag(SoundFlag,sound_manyrelay); SetFlag(SoundFlag,sound_loud);
                 end
@@ -3603,7 +3606,8 @@ begin
               begin
                if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (not (MainCtrlPos=MainCtrlPosNo)) and (FastSerialCircuit=1) then
                 begin
-                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
+                 dec(MainCtrlActualPos);
+//                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012: szybkie wchodzenie na bezoporowa (303E)
                  OK:=true;
                  SetFlag(SoundFlag,sound_manyrelay);
                 end
@@ -4287,13 +4291,13 @@ begin
          if(DynamicBrakeFlag)then
           begin
            if eimv[eimv_Fmax]*sign(V)*DirAbsolute<-1 then
-             PosRatio:=sign(V)*DirAbsolute*eimv[eimv_Fr]/(eimc[eimc_p_Fh]*dizel_fill)
+             PosRatio:=-sign(V)*DirAbsolute*eimv[eimv_Fr]/(eimc[eimc_p_Fh]*Max0R((Hamulec as TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0]{dizel_fill})
            else
              PosRatio:=0;
            PosRatio:=round(20*Posratio)/20;
            if PosRatio<19.5/20 then PosRatio:=PosRatio*0.9;
            (Hamulec as TLSt).SetED(PosRatio);
-           PosRatio:=-Max0R((Hamulec as TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0];
+           PosRatio:=-Max0R((Hamulec as TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0]*Max0R(0,Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0])));
            tmp:=5;
           end
          else
@@ -4305,7 +4309,7 @@ begin
           end;
          if SlippingWheels then begin PosRatio:=0; tmp:=10; SandDoseOn; end;//przeciwposlizg
 
-         dizel_fill:=dizel_fill+Max0R(Min0R(PosRatio-Dizel_fill,0.1),-0.1)*2*(tmp{2{+4*byte(PosRatio<dizel_fill)})*dt; //wartoœæ zadana/procent czegoœ
+         dizel_fill:=dizel_fill+Max0R(Min0R(PosRatio-dizel_fill,0.1),-0.1)*2*(tmp{2{+4*byte(PosRatio<dizel_fill)})*dt; //wartoœæ zadana/procent czegoœ
 
          if(DynamicBrakeFlag)then tmp:=eimc[eimc_f_Uzh] else tmp:=eimc[eimc_f_Uzmax];
 
@@ -4318,10 +4322,10 @@ begin
 
          eimv[eimv_FMAXMAX]:=0.001*SQR(Min0R(eimv[eimv_fkr]/Max0R(abs(enrot)*eimc[eimc_s_p]+eimc[eimc_s_dfmax]*eimv[eimv_ks],eimc[eimc_s_dfmax]),1)*eimc[eimc_f_cfu]/eimc[eimc_s_cfu])*(eimc[eimc_s_dfmax]*eimc[eimc_s_dfic]*eimc[eimc_s_cim])*Transmision.Ratio*NPoweredAxles*2/WheelDiameter;
          if(DynamicBrakeFlag)then
-           if(Vel>eimc[eimc_p_Vh0])then
-            eimv[eimv_Fmax]:=-sign(V)*(DirAbsolute)*Min0R(eimc[eimc_p_Ph]*3.6/Vel,-eimc[eimc_p_Fh]*dizel_fill)*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
-           else
-            eimv[eimv_Fmax]:=0
+//           if(Vel>eimc[eimc_p_Vh0])then
+            eimv[eimv_Fmax]:=-sign(V)*(DirAbsolute)*Min0R(eimc[eimc_p_Ph]*3.6/Vel,-eimc[eimc_p_Fh]*dizel_fill)//*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
+//           else
+//            eimv[eimv_Fmax]:=0
          else
            eimv[eimv_Fmax]:=Min0R(Min0R(3.6*eimv[eimv_Pmax]/Max0R(Vel,1),eimc[eimc_p_F0]-Vel*eimc[eimc_p_a1]),eimv[eimv_FMAXMAX])*dizel_fill;
 
@@ -4608,8 +4612,8 @@ begin
     if (NPoweredAxles>0) then //drobna optymalka
      begin
        RollF:=RollF+0.025;
-       if(Ft*Ft<1)then
-         HideModifier:=HideModifier-3;
+{       if(Ft*Ft<1)then
+         HideModifier:=HideModifier-3; }
      end;
     Ff:=TotalMassxg*(BearingF+RollF*V*V/10.0)/1000.0;
     {dorobic liczenie temperatury lozyska!}
@@ -5243,12 +5247,12 @@ Begin
       SecuritySystem.Status:=0; //wy³¹czenie czuwaka
      OK:=SendCtrlToNext(command,CValue1,CValue2);
    end
-   else if command='EpFuseSwitch' then         {NBMX}
-   begin
-     if (CValue1=1) then EpFuse:=true
-     else if (CValue1=0) then EpFuse:=false;
-     OK:=SendCtrlToNext(command,CValue1,CValue2);
-   end
+//   else if command='EpFuseSwitch' then         {NBMX}
+//   begin
+//     if (CValue1=1) then EpFuse:=true
+//     else if (CValue1=0) then EpFuse:=false;
+//     OK:=SendCtrlToNext(command,CValue1,CValue2);
+//   end
   else if command='CompressorSwitch' then         {NBMX}
    begin
      if (CValue1=1) then CompressorAllow:=true

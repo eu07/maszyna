@@ -3653,6 +3653,11 @@ bool __fastcall TGround::CheckQuery()
       WriteLog("type: Voltage");
       tmpEvent->Params[9].psPower->VoltageSet(tmpEvent->Params[0].asdouble);
      }
+    case tp_Friction: //zmiana tarcia na scenerii
+     {//na razie takie chamskie ustawienie napiêcia zasilania
+      WriteLog("type: Friction");
+      Global::fFriction=(tmpEvent->Params[0].asdouble);
+     }
     break;
     case tp_Message: //wyœwietlenie komunikatu
     break;
@@ -4156,10 +4161,11 @@ void __fastcall TGround::WyslijWolny(const AnsiString &t)
 //--------------------------------
 void __fastcall TGround::WyslijNamiary(TGroundNode* t)
 {//wys³anie informacji o pojeŸdzie - (float), d³ugoœæ ramki bêdzie zwiêkszana w miarê potrzeby
+// WriteLog("Wysylam pojazd");
  DaneRozkaz r;
  r.iSygn='EU07';
  r.iComm=7; //7 - dane pojazdu
- int i=23,j=t->asName.Length();
+ int i=32,j=t->asName.Length();
  r.iPar[ 0]=i; //iloœæ danych liczbowych
  r.fPar[ 1]=Global::fTimeAngleDeg/360.0; //aktualny czas (1.0=doba)
  r.fPar[ 2]=t->DynamicObject->MoverParameters->Loc.X; //pozycja X
@@ -4186,7 +4192,29 @@ void __fastcall TGround::WyslijNamiary(TGroundNode* t)
            +t->DynamicObject->MoverParameters->CompressorFlag*4+t->DynamicObject->MoverParameters->Mains*8+
            +t->DynamicObject->MoverParameters->DoorLeftOpened*16+t->DynamicObject->MoverParameters->DoorRightOpened*32+
            +t->DynamicObject->MoverParameters->FuseFlag*64+t->DynamicObject->MoverParameters->DepartureSignal*128;
-
+// WriteLog("Zapisalem stare");
+// WriteLog("Mam patykow "+IntToStr(t->DynamicObject->iAnimType[ANIM_PANTS]));
+ for(int p=0;p<4;p++)
+  {
+//   WriteLog("Probuje pant "+IntToStr(p));
+   if(p<t->DynamicObject->iAnimType[ANIM_PANTS])
+    {
+     r.fPar[23+p]=t->DynamicObject->pants[p].fParamPants->PantWys; //stan pantografów 4
+//     WriteLog("Zapisalem pant "+IntToStr(p));
+    }
+   else
+    {
+     r.fPar[23+p]=-2;
+//     WriteLog("Nie mam pant "+IntToStr(p));
+    }
+  }
+// WriteLog("Zapisalem pantografy");
+ for(int p=0;p<3;p++)
+   r.fPar[27+p]=t->DynamicObject->MoverParameters->ShowCurrent(p+1); //amperomierze kolejnych grup
+// WriteLog("zapisalem prady");
+ r.iPar[30]=t->DynamicObject->MoverParameters->WarningSignal; //trabienie
+ r.fPar[31]=t->DynamicObject->MoverParameters->RunningTraction.TractionVoltage; //napiecie WN
+// WriteLog("Parametry gotowe");
  i<<=2; //iloœæ bajtów
  r.cString[i]=char(j); //na koñcu nazwa, ¿eby jakoœ zidentyfikowaæ
  strcpy(r.cString+i+1,t->asName.c_str()); //zakoñczony zerem
@@ -4194,7 +4222,9 @@ void __fastcall TGround::WyslijNamiary(TGroundNode* t)
  cData.dwData='EU07'; //sygnatura
  cData.cbData=10+i+j; //8+licznik i zero koñcz¹ce
  cData.lpData=&r;
+// WriteLog("Ramka gotowa");
  Navigate("TEU07SRK",WM_COPYDATA,(WPARAM)Global::hWnd,(LPARAM)&cData);
+// WriteLog("Ramka poszla!");
 };
 //--------------------------------
 void __fastcall TGround::WyslijParam(int nr,int fl)

@@ -195,6 +195,8 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
   Type=tp_Voltage; //zmiana napiêcia w zasilaczu (TractionPowerSource)
  else if (str==AnsiString("message"))
   Type=tp_Message; //wyœwietlenie komunikatu
+ else if (str==AnsiString("friction"))
+  Type=tp_Friction; //zmiana tarcia na scenerii
  else
   Type=tp_Unknown;
 
@@ -514,6 +516,7 @@ void __fastcall TEvent::Load(cParser* parser,vector3 *org)
    Conditions(parser,str); //sprawdzanie warunków
   break;
   case tp_Voltage: //zmiana napiêcia w zasilaczu (TractionPowerSource)
+  case tp_Friction: //zmiana przyczepnosci na scenerii  
    parser->getTokens();
    *parser >> Params[0].asdouble; //Ra 2014-01-27
    parser->getTokens(); *parser >> token;

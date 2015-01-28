@@ -2119,6 +2119,28 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     if (Mechanik)
     {
      MoverParameters->EqvtPipePress=GetEPP(); //srednie cisnienie w PG
+     if ((Mechanik->Primary())&&(MoverParameters->EngineType==ElectricInductionMotor)) //jesli glowny i z asynchronami, to niech steruje
+      {                                                                              //hamulcem lacznie dla calego pociagu/ezt
+       //1. ustal wymagana sile hamowania calego pociagu        
+       //   - opoznienie moze byc ustalane na podstawie charakterystyki
+       //   - opoznienie moze byc ustalane na podstawie mas i cisnien granicznych
+       //
+
+       //2. ustal mozliwa do realizacji sile hamowania ED
+       //   - w szczegolnosci powinien brac pod uwage rozne sily hamowania
+       float FED=0;
+//       for(TDynamicObject *p=GetFirstDynamic(4);p;p->NextC(4))
+//        FED+=p->MoverParameters->eimv[eimv_Fmax];
+       //3. ustaw pojazdom sile hamowania ED
+       //   - proporcjonalnie do mozliwosci
+
+       //4. ustal potrzebne dohamowanie pneumatyczne
+       //   - od sily zadanej trzeba odjac realizowana przez ED
+       //5. w razie potrzeby wlacz hamulec utrzymujacy
+       //   - gdy zahamowany ma ponizej 2 km/h
+       //6. ustaw pojazdom sile hamowania ep
+       //   - proporcjonalnie do masy, do liczby osi, rowne cisnienia - jak bedzie, tak bedzie dobrze
+      }
 
 //yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
 //   if (Controller!=Humandriver)
@@ -2835,6 +2857,8 @@ void __fastcall TDynamicObject::RenderSounds()
              }
             else if (MoverParameters->EngineType==DieselElectric)
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000/MoverParameters->Power)+0.2*(MoverParameters->enrot*60)/(MoverParameters->DElist[MoverParameters->MainCtrlPosNo].RPM)+rsSilnik.AA;
+            else if (MoverParameters->EngineType==ElectricInductionMotor)
+             vol=rsSilnik.AM*(MoverParameters->EnginePower+fabs(MoverParameters->enrot*2))+rsSilnik.AA;
             else
              vol=rsSilnik.AM*(MoverParameters->EnginePower/1000+fabs(MoverParameters->enrot)*60.0)+rsSilnik.AA;
 //            McZapkie-250302 - natezenie zalezne od obrotow i mocy
@@ -2857,7 +2881,7 @@ void __fastcall TDynamicObject::RenderSounds()
                  }
                 break;
             }
-            if ((MoverParameters->DynamicBrakeFlag) && (MoverParameters->EnginePower>0.1)) //Szociu - 29012012 - je¿eli uruchomiony jest  hamulec elektrodynamiczny, odtwarzany jest dŸwiêk silnika
+            if ((MoverParameters->DynamicBrakeFlag) && (MoverParameters->EnginePower>0.1) && (MoverParameters->EngineType==ElectricSeriesMotor)) //Szociu - 29012012 - je¿eli uruchomiony jest  hamulec elektrodynamiczny, odtwarzany jest dŸwiêk silnika
              vol +=0.8;
 
             if (enginevolume>0.0001)
@@ -2893,7 +2917,7 @@ void __fastcall TDynamicObject::RenderSounds()
             freq=rsWentylator.FM*MoverParameters->RventRot+rsWentylator.FA;
             rsWentylator.AdjFreq(freq,dt);
             if (MoverParameters->EngineType==ElectricInductionMotor)
-              vol=rsWentylator.AM*sqrt(MoverParameters->EnginePower/MoverParameters->Power)+rsWentylator.AA;
+              vol=rsWentylator.AM*sqrt(fabs(MoverParameters->dizel_fill))+rsWentylator.AA;
             else
               vol=rsWentylator.AM*MoverParameters->RventRot+rsWentylator.AA;
             rsWentylator.Play(vol,DSBPLAY_LOOPING,MechInside,GetPosition());
@@ -4108,6 +4132,12 @@ TDynamicObject* __fastcall TDynamicObject::Next()
  if (MoverParameters->Couplers[iDirection].CouplingFlag)
   return iDirection?NextConnected:PrevConnected;
  return NULL; //gdy sprzêg wirtualny, to jakby nic nie by³o
+};
+TDynamicObject* __fastcall TDynamicObject::NextC(int C)
+{
+ if (MoverParameters->Couplers[iDirection].CouplingFlag&C)
+  return iDirection?NextConnected:PrevConnected;
+ return NULL; //gdy sprzêg inny, to jakby nic nie by³o
 };
 double __fastcall TDynamicObject::NextDistance(double d)
 {//ustalenie odleg³oœci do nastêpnego pojazdu, potrzebne do wstecznego skanowania
