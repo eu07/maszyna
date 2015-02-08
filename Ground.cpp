@@ -2820,6 +2820,15 @@ void __fastcall TGround::InitTracks()
  for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
  {
   Track=Current->pTrack;
+  if (!Current->asName.IsEmpty())
+  {//jeœli podana jest nazwa torów, mo¿na szukaæ eventów skojarzonych przez nazwê
+   if (Track->asEvent1Name.IsEmpty())
+    if (FindEvent(Current->asName+":event1"))
+     Track->asEvent1Name=Current->asName+":event1";
+   if (Track->asEvent2Name.IsEmpty())
+    if (FindEvent(Current->asName+":event2"))
+     Track->asEvent2Name=Current->asName+":event2";
+  }
   Track->AssignEvents(
    Track->asEvent0Name.IsEmpty()?NULL:FindEvent(Track->asEvent0Name),
    Track->asEvent1Name.IsEmpty()?NULL:FindEventScan(Track->asEvent1Name),
