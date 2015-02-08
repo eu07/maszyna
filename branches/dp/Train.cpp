@@ -5043,7 +5043,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
    else if (str==AnsiString("distcounter:"))
    {//Ra 2014-07: licznik kilometrów
     gg=Cabine[cabindex].Gauge(-1); //pierwsza wolna ga³ka
-    gg->Load(Parser,DynamicObject->mdKabina,NULL,0.1);
+    gg->Load(Parser,DynamicObject->mdKabina);
     gg->AssignDouble(&mvControlled->DistCounter);
    }
    //SEKCJA LAMPEK
