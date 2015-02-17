@@ -2182,7 +2182,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
      if (refresh==50)
      {//SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :( a u niektórych miga
       refresh=0;
-      //Application::DoEvents();
+      Global::DoEvents();
      }
      else ++refresh;
      str=AnsiString(token.c_str());

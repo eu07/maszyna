@@ -622,6 +622,20 @@ bool __fastcall Global::AddToQuery(TEvent *event,TDynamicObject *who)
 };
 //---------------------------------------------------------------------------
 
+bool __fastcall Global::DoEvents()
+{//wywo³ywaæ czasem, ¿eby nie robi³ wra¿enia zawieszonego
+ MSG msg;
+ while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+ {
+  if (msg.message==WM_QUIT)
+          return FALSE;
+  TranslateMessage(&msg);
+  DispatchMessage(&msg);
+ }
+ return TRUE;
+}
+//---------------------------------------------------------------------------
+
 __fastcall TTranscripts::TTranscripts()
 {
  iCount=0; //brak linijek do wyœwietlenia

@@ -295,6 +295,7 @@ public:
  static TDynamicObject* __fastcall DynamicNearest();
  static TDynamicObject* __fastcall CouplerNearest();
  static bool __fastcall AddToQuery(TEvent *event,TDynamicObject *who);
+ static bool __fastcall DoEvents();
 };
 
 //---------------------------------------------------------------------------
