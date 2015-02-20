@@ -254,7 +254,7 @@ public:
  static int iMultisampling; //tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
  static bool bGlutFont; //tekst generowany przez GLUT
  static int iKeyLast; //ostatnio naciœniêty klawisz w celu logowania
- static int iPause; //globalna pauza ruchu: b0=start,b1=klawisz,b2=t³o,b3=lagi
+ static int iPause; //globalna pauza ruchu: b0=start,b1=klawisz,b2=t³o,b3=lagi,b4=wczytywanie
  static bool bActive; //czy jest aktywnym oknem
  static void __fastcall BindTexture(GLuint t);
  static int iConvertModels; //tworzenie plików binarnych
@@ -288,6 +288,7 @@ public:
  static AnsiString asTranscript[5]; //napisy na ekranie (widoczne)
  static TTranscripts tranTexts; //obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
  static AnsiString asLang; //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+ static int iHiddenEvents; //czy ³¹czyæ eventy z torami poprzez nazwê toru
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

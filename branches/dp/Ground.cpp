@@ -2557,6 +2557,7 @@ bool __fastcall TGround::Init(AnsiString asFile,HDC hDC)
  if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
  if (Global::pTerrainCompact)
   TerrainWrite(); //Ra: teraz mo¿na zapisaæ teren w jednym pliku
+ Global::iPause&=~0x10; //koniec pauzy wczytywania 
  return true;
 }
 
@@ -2820,6 +2821,7 @@ void __fastcall TGround::InitTracks()
  for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
  {
   Track=Current->pTrack;
+  if (Global::iHiddenEvents&1)
   if (!Current->asName.IsEmpty())
   {//jeœli podana jest nazwa torów, mo¿na szukaæ eventów skojarzonych przez nazwê
    if (Track->asEvent1Name.IsEmpty())
