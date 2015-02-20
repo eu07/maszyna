@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="15.1.1152.464";
-AnsiString Global::asVersion="Compilation 2015-01-19, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="15.2.1159.465";
+AnsiString Global::asVersion="Compilation 2015-02-20, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -56,7 +56,7 @@ char* Global::szTexturesTGA[4]={"tga","dds","tex","bmp"}; //lista tekstur od TGA
 char* Global::szTexturesDDS[4]={"dds","tga","tex","bmp"}; //lista tekstur od DDS
 int Global::iKeyLast=0; //ostatnio naciœniêty klawisz w celu logowania
 GLuint Global::iTextureId=0; //ostatnio u¿yta tekstura 2D
-int Global::iPause=0; //globalna pauza ruchu
+int Global::iPause=0x10; //globalna pauza ruchu
 bool Global::bActive=true; //czy jest aktywnym oknem
 int Global::iErorrCounter=0; //licznik sprawdzañ do œledzenia b³êdów OpenGL
 int Global::iTextures=0; //licznik u¿ytych tekstur
@@ -92,6 +92,7 @@ GLfloat Global::darkLight[]       ={0.03f,0.03f,0.03f,1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 bool Global::bRollFix=true; //czy wykonaæ przeliczanie przechy³ki
 bool Global::bJoinEvents=false; //czy grupowaæ eventy o tych samych nazwach
+int Global::iHiddenEvents=0; //czy ³¹czyæ eventy z torami poprzez nazwê toru
 
 //parametry u¿ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
@@ -411,11 +412,13 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
    fBrakeStep=GetNextSymbol().ToDouble();
   else if (str==AnsiString("joinduplicatedevents")) //czy grupowaæ eventy o tych samych nazwach
    bJoinEvents=(GetNextSymbol().LowerCase()==AnsiString("yes"));
+  else if (str==AnsiString("hiddenevents")) //czy ³¹czyæ eventy z torami poprzez nazwê toru
+   iHiddenEvents=GetNextSymbol().ToIntDef(0);
   else if (str==AnsiString("pause")) //czy po wczytaniu ma byæ pauza?
    iPause|=(GetNextSymbol().LowerCase()==AnsiString("yes"))?1:0;
   else if (str==AnsiString("lang"))
    asLang=GetNextSymbol(); //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
-  else if (str==AnsiString("opengl")) //krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+  else if (str==AnsiString("opengl")) //deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy 
    fOpenGL=GetNextSymbol().ToDouble(); //wymuszenie wersji OpenGL
  }
  while (str!="endconfig"); //(!Parser->EndOfFile)
