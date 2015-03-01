@@ -2414,7 +2414,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     {//WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
      TEvent *e=Ground.FindEvent(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
      if (e)
-      if ((e->Type==tp_Multiple)||bool(e->evJoined)) //tylko jawne albo niejawne Multiple
+      if ((e->Type==tp_Multiple)||(e->Type==tp_Lights)||bool(e->evJoined)) //tylko jawne albo niejawne Multiple
        Ground.AddToQuery(e,NULL); //drugi parametr to dynamic wywo³uj¹cy - tu brak
     }
     break;
