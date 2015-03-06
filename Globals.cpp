@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="15.2.1159.465";
-AnsiString Global::asVersion="Compilation 2015-02-20, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="15.3.1162.466";
+AnsiString Global::asVersion="Compilation 2015-03-03, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -755,5 +755,24 @@ void __fastcall TTranscripts::Update()
    Global::asTranscript[j]=""; //i czyszczenie nieu¿ywanych linijek
  }
 };
+
+//Ra: tymczasowe rozwi¹zanie kwestii zagranicznych (czeskich) napisów
+char bezogonkowo[128]=
+ "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
+ " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
+ "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
+ "raaaalccceeeeiiddnnoooo-ruuuuyt?";
+
+AnsiString __fastcall Global::Bezogonkow(AnsiString str, bool _)
+{//wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
+ for (int i=1;i<=str.Length();++i)
+  if (str[i]&0x80)
+   str[i]=bezogonkowo[str[i]&0x7F];
+  else if (str[i]<' ') //znaki steruj¹ce nie s¹ obs³ugiwane
+   str[i]=' ';
+  else if (_) if (str[i]=='_') //nazwy stacji nie mog¹ zawieraæ spacji
+   str[i]=' '; //wiêc trzeba wyœwietlaæ inaczej
+ return str;
+}
 
 #pragma package(smart_init)

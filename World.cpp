@@ -921,25 +921,6 @@ void __fastcall TWorld::OnMouseMove(double x, double y)
  Camera.OnCursorMove(x*Global::fMouseXScale,-y*Global::fMouseYScale);
 }
 
-//Ra: tymczasowe rozwi¹zanie kwestii zagranicznych (czeskich) napisów
-char bezogonkowo[128]=
- "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
- " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
- "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
- "raaaalccceeeeiiddnnoooo-ruuuuyt?";
-
-AnsiString __fastcall Bezogonkow(AnsiString str, bool _=false)
-{//wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
- for (int i=1;i<=str.Length();++i)
-  if (str[i]&0x80)
-   str[i]=bezogonkowo[str[i]&0x7F];
-  else if (str[i]<' ') //znaki steruj¹ce nie s¹ obs³ugiwane
-   str[i]=' ';
-  else if (_) if (str[i]=='_') //nazwy stacji nie mog¹ zawieraæ spacji
-   str[i]=' '; //wiêc trzeba wyœwietlaæ inaczej
- return str;
-}
-
 void __fastcall TWorld::InOutKey()
 {//prze³¹czenie widoku z kabiny na zewnêtrzny i odwrotnie
  FreeFlyModeFlag=!FreeFlyModeFlag; //zmiana widoku
@@ -1696,7 +1677,7 @@ bool __fastcall TWorld::Update()
       if (Controlled->Mechanik)
       {OutText2=Controlled->Mechanik->Relation();
        if (!OutText2.IsEmpty()) //jeœli jest podana relacja, to dodajemy punkt nastêpnego zatrzymania
-        OutText2=Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop(),true); //dopisanie punktu zatrzymania
+        OutText2=Global::Bezogonkow(OutText2+": -> "+Controlled->Mechanik->NextStop(),true); //dopisanie punktu zatrzymania
       }
      //double CtrlPos=mvControlled->MainCtrlPos;
      //double CtrlPosNo=mvControlled->MainCtrlPosNo;
@@ -1821,7 +1802,7 @@ bool __fastcall TWorld::Update()
          if (tmp->Mechanik->eSignNext)
          {//jeœli ma zapamiêtany event semafora
           //if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
-          OutText4+=" ("+Bezogonkow(tmp->Mechanik->eSignNext->asName)+")"; //nazwa eventu semafora
+          OutText4+=" ("+Global::Bezogonkow(tmp->Mechanik->eSignNext->asName)+")"; //nazwa eventu semafora
          }
        }
        if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
@@ -1853,12 +1834,12 @@ bool __fastcall TWorld::Update()
      OutText1+=AnsiString(i);
         OutText1+=AnsiString(". Vel: ")+FloatToStrF(tmp->GetVelocity(),ffFixed,6,1);
         OutText1+=". Scan table:";
-        glPrint(Bezogonkow(OutText1).c_str());
+        glPrint(Global::Bezogonkow(OutText1).c_str());
         i=-1;
         while ((OutText1=tmp->Mechanik->TableText(++i))!="")
         {//wyœwietlenie pozycji z tabelki
          glRasterPos2f(-0.25f,0.19f-0.01f*i);
-         glPrint(Bezogonkow(OutText1).c_str());
+         glPrint(Global::Bezogonkow(OutText1).c_str());
         }
         //podsumowanie sensu tabelki
         OutText4=AnsiString("Driver: Vd=")+FloatToStrF(tmp->Mechanik->VelDesired,ffFixed,4,0)
@@ -1869,10 +1850,10 @@ bool __fastcall TWorld::Update()
          if (tmp->Mechanik->eSignNext)
          {//jeœli ma zapamiêtany event semafora
           //if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
-          OutText4+=" ("+Bezogonkow(tmp->Mechanik->eSignNext->asName)+")"; //nazwa eventu semafora
+          OutText4+=" ("+Global::Bezogonkow(tmp->Mechanik->eSignNext->asName)+")"; //nazwa eventu semafora
          }
          glRasterPos2f(-0.25f,0.19f-0.01f*i);
-         glPrint(Bezogonkow(OutText4).c_str());
+         glPrint(Global::Bezogonkow(OutText4).c_str());
        }
       } //koniec ekanu skanowania
      } //koniec obs³ugi, gdy mamy wskaŸnik do pojazdu
@@ -2090,7 +2071,7 @@ bool __fastcall TWorld::Update()
    GLenum err=glGetError();
    if (err!=GL_NO_ERROR)
    {
-    OutText3="OpenGL error "+AnsiString(err)+": "+Bezogonkow(AnsiString((char *)gluErrorString(err)));
+    OutText3="OpenGL error "+AnsiString(err)+": "+Global::Bezogonkow(AnsiString((char *)gluErrorString(err)));
    }
   }
   if (Global::iTextMode==VK_F3)
@@ -2106,7 +2087,7 @@ bool __fastcall TWorld::Update()
       glTranslatef(0.0f,0.0f,-0.50f);
       glRasterPos2f(-0.25f,0.20f);
       OutText1=tmp->Mechanik->Relation()+" ("+tmp->Mechanik->Timetable()->TrainName+")";
-      glPrint(Bezogonkow(OutText1,true).c_str());
+      glPrint(Global::Bezogonkow(OutText1,true).c_str());
       glRasterPos2f(-0.25f,0.19f);
       //glPrint("|============================|=======|=======|=====|");
       //glPrint("| Posterunek                 | Przyj.| Odjazd| Vmax|");
@@ -2128,11 +2109,11 @@ bool __fastcall TWorld::Update()
        {//czas min¹³ i odjazd by³, to nazwa stacji bêdzie na zielono
         glColor3f(0.0f,1.0f,0.0f); //zielone
         glRasterPos2f(-0.25f,0.18f-0.02f*(i-tmp->Mechanik->iStationStart)); //dopiero ustawienie pozycji ustala kolor, dziwne...
-        glPrint(Bezogonkow(OutText1,true).c_str());
+        glPrint(Global::Bezogonkow(OutText1,true).c_str());
         glColor3f(1.0f,1.0f,1.0f); //a reszta bia³ym
        }
        else //normalne wyœwietlanie, bez zmiany kolorów
-        glPrint(Bezogonkow(OutText1,true).c_str());
+        glPrint(Global::Bezogonkow(OutText1,true).c_str());
        glRasterPos2f(-0.25f,0.17f-0.02f*(i-tmp->Mechanik->iStationStart));
        glPrint("|----------------------------|-------|-------|-----|");
       }
@@ -2172,7 +2153,7 @@ bool __fastcall TWorld::Update()
     else
     {
      glRasterPos2f(-0.20f,-0.05f-0.01f*i);
-     glPrint(Bezogonkow(Global::asTranscript[i]).c_str());
+     glPrint(Global::Bezogonkow(Global::asTranscript[i]).c_str());
     }
    }
   }

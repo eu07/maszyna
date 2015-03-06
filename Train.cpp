@@ -659,8 +659,9 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else
       if (cKey==Global::Keys[k_Active])   //yB 300407: przelacznik rozrzadu
       {//Ra 2014-06: uruchomi³em to, aby aktywowaæ czuwak w zajmowanym cz³onie, a wy³¹czyæ w innych
-       if (mvControlled->Battery) //jeœli bateria jest ju¿ za³¹czona
-        mvOccupied->BatterySwitch(true); //to w ten oto durny sposób aktywuje siê CA/SHP
+       //Ra 2014-03: aktywacja czuwaka przepiêta na ustawienie kierunku w mvOccupied
+       //if (mvControlled->Battery) //jeœli bateria jest ju¿ za³¹czona
+       // mvOccupied->BatterySwitch(true); //to w ten oto durny sposób aktywuje siê CA/SHP
 //        if (mvControlled->CabActivisation())
 //           {
 //            dsbSwitch->SetVolume(DSBVOLUME_MAX);
