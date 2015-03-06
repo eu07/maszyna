@@ -137,6 +137,9 @@ bool __fastcall TMoverParameters::DirectionForward()
  {
   ++ActiveDir;
   DirAbsolute=ActiveDir*CabNo;
+  if (DirAbsolute)
+   if (Battery) //jeœli bateria jest ju¿ za³¹czona
+    BatterySwitch(true); //to w ten oto durny sposób aktywuje siê CA/SHP
   SendCtrlToNext("Direction",ActiveDir,CabNo);
   return true;
  }

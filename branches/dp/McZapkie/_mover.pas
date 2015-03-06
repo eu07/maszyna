@@ -1614,6 +1614,9 @@ begin
 {    else}
     dec(ActiveDir);
     DirAbsolute:=ActiveDir*CabNo;
+    if (DirAbsolute<>0) then
+     if (Battery) then //jeœli bateria jest ju¿ za³¹czona
+      BatterySwitch(true); //to w ten oto durny sposób aktywuje siê CA/SHP
     DirectionBackward:=true;
     SendCtrltoNext('Direction',ActiveDir,CabNo);
    end

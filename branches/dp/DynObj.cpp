@@ -4284,13 +4284,14 @@ AnsiString __fastcall TDynamicObject::TextureTest(AnsiString &name)
  return ""; //nie znaleziona
 };
 
-void __fastcall TDynamicObject::DestinationSet(AnsiString &to)
+void __fastcall TDynamicObject::DestinationSet(AnsiString to)
 {//ustawienie stacji docelowej oraz wymiennej tekstury 4, jeœli istnieje plik
  //w zasadzie, to ka¿dy wagon móg³by mieæ inn¹ stacjê docelow¹
  //zw³aszcza w towarowych, pod k¹tem zautomatyzowania maewrów albo pracy górki
  //ale to jeszcze potrwa, zanim bêdzie mo¿liwe, na razie mo¿na wpisaæ stacjê z rozk³adu
  if (abs(iMultiTex)>=4) return; //jak s¹ 4 tekstury wymienne, to nie zmieniaæ rozk³adem
  asDestination=to;
+ to=Bezogonkow(to); //do szukania pliku obcinamy ogonki
  AnsiString x;
  if (to.IsEmpty()) to="nowhere";
  x=TextureTest(asBaseDir+to+"@"+MoverParameters->TypeName); //w pierwszej kolejnoœci z nazw¹ FIZ/MMD
