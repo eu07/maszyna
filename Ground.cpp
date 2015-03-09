@@ -1260,6 +1260,14 @@ TGroundNode* __fastcall TGround::DynamicFind(AnsiString asNameToFind)
  return NULL;
 };
 
+void __fastcall TGround::DynamicList(bool all)
+{//odes³anie nazw pojazdów dostêpnych na scenerii (nazwy, szczególnie wagonów, mog¹ siê powtarzaæ!)
+ for (TGroundNode *Current=nRootDynamic;Current;Current=Current->nNext)
+  if (all||Current->DynamicObject->Mechanik)
+   WyslijString(Current->asName,6); //same nazwy pojazdów
+ WyslijString("none",6); //informacja o koñcu listy  
+};
+
 TGroundNode* __fastcall TGround::FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType)
 {//wyszukiwanie obiektu o podanej nazwie i konkretnym typie
  if ((iNodeType==TP_TRACK)||(iNodeType==TP_MEMCELL)||(iNodeType==TP_MODEL))
@@ -1534,6 +1542,7 @@ TGroundNode* __fastcall TGround::AddGroundNode(cParser* parser)
    *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
    tmp->pCenter+=pOrigin;
    tmp->psTractionPowerSource=new TTractionPowerSource();
+   tmp->psTractionPowerSource->gMyNode=tmp; //Ra 2015-03: znowu prowizorka, aby mieæ nazwê do logowania
    tmp->psTractionPowerSource->Load(parser);
    break;
   case TP_MEMCELL:
@@ -4129,7 +4138,7 @@ bool __fastcall TGround::RenderAlphaVBO(vector3 pPosition)
 void __fastcall TGround::Navigate(String ClassName,UINT Msg,WPARAM wParam,LPARAM lParam)
 {//wys³anie komunikatu do steruj¹cego
  HWND h=FindWindow(ClassName.c_str(),0); //mo¿na by to zapamiêtaæ
- if (h==0) h=FindWindow(0,ClassName.c_str()); //mo¿na by to zapamiêtaæ 
+ if (h==0) h=FindWindow(0,ClassName.c_str()); //mo¿na by to zapamiêtaæ
  SendMessage(h,Msg,wParam,lParam);
 };
 //--------------------------------

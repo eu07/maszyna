@@ -3,7 +3,8 @@
 #ifndef TractionPowerH
 #define TractionPowerH
 #include "parser.h" //Tolaris-010603
-//#include "QueryParserComp.hpp"
+
+class TGroundNode;
 
 class TTractionPowerSource
 {
@@ -30,6 +31,7 @@ protected:
 public: //zmienne publiczne
  TTractionPowerSource *psNode[2]; //zasilanie na koñcach dla sekcji
  bool bSection; //czy jest sekcj¹
+ TGroundNode *gMyNode; //Ra 2015-03: znowu prowizorka, aby mieæ nazwê do logowania
 public:
  //AnsiString asName;
  __fastcall TTractionPowerSource();

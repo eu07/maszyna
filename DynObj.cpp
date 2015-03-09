@@ -4291,7 +4291,7 @@ void __fastcall TDynamicObject::DestinationSet(AnsiString to)
  //ale to jeszcze potrwa, zanim bêdzie mo¿liwe, na razie mo¿na wpisaæ stacjê z rozk³adu
  if (abs(iMultiTex)>=4) return; //jak s¹ 4 tekstury wymienne, to nie zmieniaæ rozk³adem
  asDestination=to;
- to=Bezogonkow(to); //do szukania pliku obcinamy ogonki
+ to=Global::Bezogonkow(to); //do szukania pliku obcinamy ogonki
  AnsiString x;
  if (to.IsEmpty()) to="nowhere";
  x=TextureTest(asBaseDir+to+"@"+MoverParameters->TypeName); //w pierwszej kolejnoœci z nazw¹ FIZ/MMD

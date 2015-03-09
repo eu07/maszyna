@@ -328,6 +328,7 @@ public:
 */
  TGroundNode* __fastcall DynamicFindAny(AnsiString asNameToFind);
  TGroundNode* __fastcall DynamicFind(AnsiString asNameToFind);
+ void __fastcall DynamicList(bool all=false);
  TGroundNode* __fastcall FindGroundNode(AnsiString asNameToFind,TGroundNodeType iNodeType);
  TGroundRect* __fastcall GetRect(double x, double z) { return &Rects[GetColFromX(x)/iNumSubRects][GetRowFromZ(z)/iNumSubRects]; };
  TSubRect* __fastcall GetSubRect(double x, double z) { return GetSubRect(GetColFromX(x),GetRowFromZ(z)); };

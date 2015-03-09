@@ -493,7 +493,12 @@ void __fastcall TTrain::OnKeyDown(int cKey)
       else if (cKey==VkKeyScan('q')) //ze Shiftem - w³¹czenie AI
       {//McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w trybie debugmode)
        if (DynamicObject->Mechanik)
+       {
+        if (DebugModeFlag)
+         if (DynamicObject->Mechanik->AIControllFlag) //¿eby nie trzeba by³o roz³¹czaæ dla zresetowania
+          DynamicObject->Mechanik->TakeControl(false);
         DynamicObject->Mechanik->TakeControl(true);
+       }
       }
       else if (cKey==Global::Keys[k_MaxCurrent])   //McZapkie-160502: F - wysoki rozruch
       {

@@ -986,11 +986,11 @@ __fastcall TController::TController
  fOverhead2=-1.0;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
  iOverheadZero=0;  //suma bitowa jezdy bezpr¹dowej, bity ustawiane przez pojazdy z podniesionymi pantografami
  fAccDesiredAv=0.0; //uœrednione przyspieszenie z kolejnych przeb³ysków œwiadomoœci, ¿eby ograniczyæ migotanie
+ fVoltage=0.0; //uœrednione napiêcie sieci: przy spadku poni¿ej wartoœci minimalnej opóŸniæ rozruch o losowy czas
 };
 
 void __fastcall TController::CloseLog()
 {
-
  if (WriteLogFlag)
  {
   LogFile.close();
@@ -1784,7 +1784,9 @@ bool __fastcall TController::IncSpeed()
    return false;
  bool OK=true;
  if (iDrivigFlags&moveDoorOpened)
-  Doors(false); //zamykanie drzwi - tutaj wykonuje tylko AI
+  Doors(false); //zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
+ if (fActionTime<0.0) //gdy jest nakaz poczekaæ z jazd¹, to nie ruszaæ
+  return false;
  if (mvControlling->SlippingWheels)
   return false; //jak poœlizg, to nie przyspieszamy
  switch (mvOccupied->EngineType)
@@ -1797,7 +1799,7 @@ bool __fastcall TController::IncSpeed()
    if (mvControlling->EnginePowerSource.SourceType==CurrentCollector) //jeœli pantografuj¹cy
    {if (fOverhead2>=0.0) //a jazda bezpr¹dowa ustawiana eventami (albo opuszczenie)
      return false; //to nici z ruszania
-    if (iOverheadZero) //jazda bezpr¹dowa z poziomu toru ustawia bity 
+    if (iOverheadZero) //jazda bezpr¹dowa z poziomu toru ustawia bity
      return false; //to nici z ruszania
    }
    if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
@@ -1806,8 +1808,9 @@ bool __fastcall TController::IncSpeed()
      if (Ready||(iDrivigFlags&movePress))
       if (fabs(mvControlling->Im)<(fReady<0.4?mvControlling->Imin:mvControlling->IminLo))
       {//Ra: wywala³ nadmiarowy, bo Im mo¿e byæ ujemne; jak nie odhamowany, to nie przesadzaæ z pr¹dem
-       if ((mvOccupied->Vel<=30)||(mvControlling->Imax>mvControlling->ImaxLo))
-       {//bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu pod górê
+       if ((mvOccupied->Vel<=30)||(mvControlling->Imax>mvControlling->ImaxLo)
+        || (fVoltage+fVoltage<mvControlling->EnginePowerSource.CollectorParameters.MinV+mvControlling->EnginePowerSource.CollectorParameters.MaxV))
+       {//bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu pod górê albo przy niskim napiêciu
         if (mvControlling->MainCtrlPos?mvControlling->RList[mvControlling->MainCtrlPos].R>0.0:true) //oporowa
         {
          OK=(mvControlling->DelayCtrlFlag?true:mvControlling->IncMainCtrl(1)); //krêcimy nastawnik jazdy
@@ -2532,8 +2535,14 @@ bool __fastcall TController::UpdateSituation(double dt)
  if (AIControllFlag)
  {
   if (mvControlling->EnginePowerSource.SourceType==CurrentCollector)
+  {
    if (mvOccupied->ScndPipePress>4.3) //gdy g³ówna sprê¿arka bezpiecznie nabije ciœnienie
     mvControlling->bPantKurek3=true; //to mo¿na przestawiæ kurek na zasilanie pantografów z g³ównej pneumatyki
+   fVoltage=0.5*(fVoltage+fabs(mvControlling->RunningTraction.TractionVoltage)); //uœrednione napiêcie sieci: przy spadku poni¿ej wartoœci minimalnej opóŸniæ rozruch o losowy czas
+   if (fVoltage<mvControlling->EnginePowerSource.CollectorParameters.MinV) //gdy roz³¹czenie WS z powodu niskiego napiêcia
+    if (fActionTime>=0) //jeœli czas oczekiwania nie zosta³ ustawiony
+     fActionTime=-2-random(10); //losowy czas oczekiwania przed ponownym za³¹czeniem jazdy
+  }
   if (mvOccupied->Vel>0.0)
   {//je¿eli jedzie
    if (iDrivigFlags&moveDoorOpened) //jeœli drzwi otwarte
