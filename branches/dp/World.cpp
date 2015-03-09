@@ -2439,9 +2439,16 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
    case 6: //pobranie parametrów ruchu pojazdu
     if (Global::iMultiplayer)
     {//Ra 2014-12: to ma dzia³aæ równie¿ dla pojazdów bez obsady
-     TGroundNode* t=Ground.DynamicFindAny(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
-     if (t)
-      Ground.WyslijNamiary(t); //wys³anie informacji o pojeŸdzie
+     if (pRozkaz->cString[0]) //jeœli d³ugoœæ nazwy jest niezerowa
+     {//szukamy pierwszego pojazdu o takiej nazwie i odsy³amy parametry ramk¹ 7
+      TGroundNode* t=Ground.DynamicFindAny(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
+      if (t)
+       Ground.WyslijNamiary(t); //wys³anie informacji o pojeŸdzie
+     }
+     else
+     {//dla pustego wysy³amy ramki 6 z nazwami pojazdów AI (jeœli potrzebne wszystkie, to rozpoznaæ np. "*")
+      Ground.DynamicList();
+     }
     }
     break;
    case 8: //ponowne wys³anie informacji o zajêtych odcinkach toru
