@@ -152,6 +152,7 @@ struct TCurrentCollector
 	double CSW;
 	double MinV;
 	double MaxV;
+	double InsetV;
 	double MinPress;
 	double MaxPress;
 } ;

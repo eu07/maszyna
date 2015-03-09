@@ -290,6 +290,7 @@ TYPE
                           MinH,MaxH: real; //zakres ruchu pantografu, nigdzie nie u¿ywany
                           CSW: real;       //szerokoœæ czêœci roboczej (styku) œlizgacza
                           MinV,MaxV: real; //minimalne i maksymalne akceptowane napiêcie
+                          InsetV: real;    //minimalne napiêcie wymagane do za³¹czenia
                           MinPress: real;  //minimalne ciœnienie do za³¹czenia WS
                           MaxPress: real;  //maksymalne ciœnienie za reduktorem
                         end;
@@ -6308,6 +6309,11 @@ function PowerDecode(s:string): TPowerType;
                                 MinV:=0.5*MaxV //gdyby parametr nie podany
                                else
                                 MinV:=s2rE(DUE(s));
+                               s:=ExtractKeyWord(lines,'InsetV='); //napiêcie wymagane do za³¹czenia WS
+                               if s='' then
+                                InsetV:=0.6*MaxV //gdyby parametr nie podany
+                               else
+                                InsetV:=s2rE(DUE(s));
                                s:=ExtractKeyWord(lines,'MinPress='); //ciœnienie roz³¹czaj¹ce WS
                                if s='' then
                                 MinPress:=2.0 //domyœlnie 2 bary do za³¹czenia WS
