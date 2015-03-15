@@ -189,6 +189,7 @@ __fastcall TTrack::TTrack(TGroundNode *g)
  fOverhead=-1.0; //mo¿na normalnie pobieraæ pr¹d (0 dla jazdy bezpr¹dowej po danym odcinku
  nFouling[0]=NULL; //ukres albo kozio³ od strony Point1
  nFouling[1]=NULL; //ukres albo kozio³ od strony Point2
+ trColides=NULL; //tor kolizyjny, na którym trzeba sprawdzaæ pojazdy pod k¹tem zderzenia
 }
 
 __fastcall TTrack::~TTrack()
@@ -752,18 +753,24 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
   {//wskazanie modelu ukresu w kierunku 1
    parser->getTokens();
    *parser >> token;
-   //Segment->AngleSet(1,a2);
+   //nFouling[0]=
   }
   else if (str=="fouling2")
   {//wskazanie modelu ukresu w kierunku 2
    parser->getTokens();
    *parser >> token;
-   //Segment->AngleSet(1,a2);
+   //nFouling[1]=
   }
   else if (str=="overhead")
   {//informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i ograniczeniem prêdkoœci
    parser->getTokens();
    *parser >> fOverhead;
+  }
+  else if (str=="colides")
+  {//informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i ograniczeniem prêdkoœci
+   parser->getTokens();
+   *parser >> fOverhead;
+   //trColides=; //tor kolizyjny, na którym trzeba sprawdzaæ pojazdy pod k¹tem zderzenia
   }
   else
    ErrorLog("Unknown property: \""+str+"\" in track \""+name+"\"");

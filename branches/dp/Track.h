@@ -151,6 +151,7 @@ public:
  bool ScannedFlag; //McZapkie: do zaznaczania kolorem torów skanowanych przez AI
  TTraction *hvOverhead; //drut zasilaj¹cy do szybkiego znalezienia (nie u¿ywany)
  TGroundNode *nFouling[2]; //wspó³rzêdne ukresu albo oporu koz³a
+ TTrack *trColides; //tor kolizyjny, na którym trzeba sprawdzaæ pojazdy pod k¹tem zderzenia
 
  __fastcall TTrack(TGroundNode *g);
  __fastcall ~TTrack();
