@@ -108,6 +108,12 @@ public:
   float *fParam; //ró¿ne parametry dla animacji
   TAnimPant *fParamPants; //ró¿ne parametry dla animacji
  };
+ union
+ {//wskaŸnik na obiekt odniesienia
+  double *fDoubleBase; //jakiœ double w fizyce
+  float *fFloatBase; //jakiœ float w fizyce
+  int *iIntBase; //jakiœ int w fizyce
+ };
  //void _fastcall Update(); //wskaŸnik do funkcji aktualizacji animacji
  int iFlags; //flagi animacji
  float fMaxDist; //do jakiej odleg³oœci wykonywana jest animacja
@@ -117,7 +123,7 @@ public:
  __fastcall TAnim();
  __fastcall ~TAnim();
  TUpdate yUpdate; //metoda TDynamicObject aktualizuj¹ca animacjê
- int __fastcall TypeSet(int i); //ustawienie typu
+ int __fastcall TypeSet(int i,int fl=0); //ustawienie typu
  void __fastcall Parovoz(); //wykonanie obliczeñ animacji
 };
 
@@ -176,6 +182,10 @@ private:
  void UpdateDoorRotate(TAnim *pAnim); //animacja drzwi - obrót
  void UpdateDoorFold(TAnim *pAnim); //animacja drzwi - sk³adanie
  void UpdatePant(TAnim *pAnim); //animacja pantografu
+ void UpdateLeverDouble(TAnim *pAnim); //animacja ga³ki zale¿na od double
+ void UpdateLeverFloat(TAnim *pAnim); //animacja ga³ki zale¿na od float
+ void UpdateLeverInt(TAnim *pAnim); //animacja ga³ki zale¿na od int (wartoœæ)
+ void UpdateLeverEnum(TAnim *pAnim); //animacja ga³ki zale¿na od int (lista k¹tów)
 private: //Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
  //ABuWozki 060504
  vector3 bogieRot[2];   //Obroty wozkow w/m korpusu

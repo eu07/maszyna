@@ -539,7 +539,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
 #if LOGSTOPS
        WriteLog(pVehicle->asName+" as "+TrainParams->TrainName+": at "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" skipped "+asNextStop); //informacja
 #endif
-       fLastStopExpDist=mvOccupied->DistCounter+0.050+0.001*fLength; //przy jakim dystansie (stanie licznika) ma przesun¹æ na nastêpny postój
+       fLastStopExpDist=mvOccupied->DistCounter+0.250+0.001*fLength; //przy jakim dystansie (stanie licznika) ma przesun¹æ na nastêpny postój
        TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length()));
        TrainParams->StationIndexInc(); //przejœcie do nastêpnej
        asNextStop=TrainParams->NextStop(); //pobranie kolejnego miejsca zatrzymania
@@ -552,9 +552,10 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
      else
      {//zatrzymanie na W4
       if (!eSignNext) eSignNext=sSpeedTable[i].evEvent;
-      if (mvOccupied->Vel>0.3) //jeœli jedzie (nie trzeba czekaæ, a¿ siê drgania wyt³umi¹)
+      if (mvOccupied->Vel>0.3) //jeœli jedzie (nie trzeba czekaæ, a¿ siê drgania wyt³umi¹ - drzwi zamykane od 1.0)
        sSpeedTable[i].fVelNext=0; //to bêdzie zatrzymanie
-      else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist*(AIControllFlag?1.0:10.0):true)
+      //else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist<=fMaxProximityDist*(AIControllFlag?1.0:10.0):true)
+      else if ((iDrivigFlags&moveStopCloser)?sSpeedTable[i].fDist+fLength<=Max0R(sSpeedTable[i].evEvent->ValueGet(2),fMaxProximityDist+fLength):true)
       //Ra 2F1I: odleg³oœæ plus d³ugoœæ poci¹gu musi byæ mniejsza od d³ugoœci peronu, chyba ¿e poci¹g jest d³u¿szy, to wtedy minimalna
       //jeœli d³ugoœæ peronu ((sSpeedTable[i].evEvent->ValueGet(2)) nie podana, przyj¹æ odleg³oœæ fMinProximityDist
       {//jeœli siê zatrzyma³ przy W4, albo sta³ w momencie zobaczenia W4
@@ -564,7 +565,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
        {//drzwi otwieraæ jednorazowo
         iDrivigFlags|=moveDoorOpened; //nie wykonywaæ drugi raz
         if (mvOccupied->DoorOpenCtrl==1) //(mvOccupied->TrainType==dt_EZT)
-        {//otwieranie drzwi w EN57
+        {//otwieranie drzwi w EZT
          if (AIControllFlag) //tylko AI otwiera drzwi EZT, u¿ytkownik musi samodzielnie
           if (!mvOccupied->DoorLeftOpened&&!mvOccupied->DoorRightOpened)
           {//otwieranie drzwi
@@ -573,8 +574,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
            int prawe=(iDirection>0)?2:1;
            if (p2&lewe) mvOccupied->DoorLeft(true);
            if (p2&prawe) mvOccupied->DoorRight(true);
-           if (p2&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
-            WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
+           //if (p2&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+           // WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
           }
         }
         else
@@ -591,9 +592,11 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
           if (p7&prawe) p->MoverParameters->DoorRight(true);
           p=p->Next(); //pojazd pod³¹czony z ty³u (patrz¹c od czo³a)
          }
-         if (p7&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
-          WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
+         //if (p7&3) //¿eby jeszcze poczeka³ chwilê, zanim zamknie
+         // WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????)
         }
+        if (fStopTime>-5) //na koñcu rozk³adu siê ustawia 60s i tu by by³o skrócenie
+         WaitingSet(10); //10 sekund (wzi¹æ z rozk³adu????) - czekanie niezale¿ne od sposobu obs³ugi drzwi, bo opóŸnia równie¿ kierownika
        }
        if (TrainParams->UpdateMTable(GlobalTime->hh,GlobalTime->mm,asNextStop.SubString(20,asNextStop.Length())))
        {//to siê wykona tylko raz po zatrzymaniu na W4
@@ -637,7 +640,8 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes,double &fDist,d
 #if LOGSTOPS
          WriteLog(pVehicle->asName+" as "+TrainParams->TrainName+": at "+AnsiString(GlobalTime->hh)+":"+AnsiString(GlobalTime->mm)+" next "+asNextStop); //informacja
 #endif
-         iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
+         if (int(floor(sSpeedTable[i].evEvent->ValueGet(1)))&1)
+          iDrivigFlags|=moveStopHere; //nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
          iDrivigFlags|=moveStopCloser; //do nastêpnego W4 podjechaæ blisko (z doci¹ganiem)
          iDrivigFlags&=~moveStartHorn; //bez tr¹bienia przed odjazdem
          sSpeedTable[i].iFlags=0; //nie liczy siê ju¿ zupe³nie (nie wyœle SetVelocity)
@@ -2546,7 +2550,8 @@ bool __fastcall TController::UpdateSituation(double dt)
   if (mvOccupied->Vel>0.0)
   {//je¿eli jedzie
    if (iDrivigFlags&moveDoorOpened) //jeœli drzwi otwarte
-    Doors(false);
+    if (mvOccupied->Vel>1.0) //nie zamykaæ drzwi przy drganiach, bo zatrzymanie na W4 akceptuje niewielkie prêdkoœci
+     Doors(false);
    //przy prowadzeniu samochodu trzeba ka¿d¹ oœ odsuwaæ oddzielnie, inaczej kicha wychodzi
    if (mvOccupied->CategoryFlag&2) //jeœli samochód
     //if (fabs(mvOccupied->OffsetTrackH)<mvOccupied->Dim.W) //Ra: szerokoœæ drogi tu powinna byæ?
@@ -3081,7 +3086,18 @@ bool __fastcall TController::UpdateSituation(double dt)
      if (VelDesired<0.0) VelDesired=fVelMax; //bo VelDesired<0 oznacza prêdkoœæ maksymaln¹
      //Ra: jazda na widocznoœæ
      if (pVehicles[0]->fTrackBlock<1000.0) //przy 300m sta³ z zapamiêtan¹ kolizj¹
-      pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),300.0); //skanowanie sprawdzaj¹ce
+     {//Ra 2F3F: przy jeŸdzie poci¹gowej nie powinien doje¿d¿aæ do poprzedzaj¹cego sk³adu
+      if ((mvOccupied->CategoryFlag&1)?((OrderCurrentGet()&(Connect|Obey_train))==Obey_train):false) //jeœli jesteœmy poci¹giem a jazda poci¹gowa i nie œci¹ganie ze szlaku
+      {pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),1000.0); //skanowanie sprawdzaj¹ce
+       //Ra 2F3F: i jest problem, jak droga za semaforem kieruje na jakiœ pojazd (np. w Skwarkach na ET22)
+       if (pVehicles[0]->fTrackBlock<1000.0) //i jeœli nadal coœ jest
+        if (VelNext!=0.0) //a nastêpny sygna³ zezwala na jazdê
+         if (pVehicles[0]->fTrackBlock<ActualProximityDist) //i jest bli¿ej (tu by trzeba by³o wstawiæ odleg³oœæ do semafora, z pominiêciem SBL
+          VelDesired=0.0; //to stoimy
+      }
+      else
+       pVehicles[0]->ABuScanObjects(pVehicles[0]->DirectionGet(),300.0); //skanowanie sprawdzaj¹ce
+     }
      //if (mvOccupied->Vel>=0.1) //o ile jedziemy; jak stoimy to te¿ trzeba jakoœ zatrzymywaæ
      if ((iDrivigFlags&moveConnect)==0) //przy koñcówce pod³¹czania nie hamowaæ
      {//sprawdzenie jazdy na widocznoœæ

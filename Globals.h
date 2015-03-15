@@ -119,6 +119,7 @@ class TQueryParserComp; //stary(?) parser
 }
 class cParser; //nowy (powolny!) parser
 class TEvent;
+class TTextSound;
 
 class TTranscript
 {//klasa obs³uguj¹ca linijkê napisu do dŸwiêku
@@ -289,6 +290,7 @@ public:
  static TTranscripts tranTexts; //obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
  static AnsiString asLang; //domyœlny jêzyk - http://tools.ietf.org/html/bcp47
  static int iHiddenEvents; //czy ³¹czyæ eventy z torami poprzez nazwê toru
+ static TTextSound *tsRadioBusy[10]; //zajêtoœæ kana³ów radiowych (wskaŸnik na odgrywany dŸwiêk)
  //metody
  static void __fastcall TrainDelete(TDynamicObject *d);
  static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp,cParser *cp=NULL);

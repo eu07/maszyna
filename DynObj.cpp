@@ -68,7 +68,7 @@ void __fastcall TAnimPant::AKP_4E()
  fHeightExtra[4]=-0.15; //+0.3810
 };
 //---------------------------------------------------------------------------
-int __fastcall TAnim::TypeSet(int i)
+int __fastcall TAnim::TypeSet(int i,int fl)
 {//ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
  fMaxDist=-1.0; //normalnie nie pokazywaæ
  switch (i)
@@ -77,7 +77,10 @@ int __fastcall TAnim::TypeSet(int i)
   //maska 0xFF00: ile u¿ywa liczb float dla wspó³czynników i stanu
   case 0: iFlags=0x000; break; //0-oœ
   case 1: iFlags=0x010; break; //1-drzwi
-  case 2: iFlags=0x020; break; //2-wahacz, dŸwignia itp.
+  case 2: iFlags=0x020;
+   fParam=fl?new float[fl]:NULL;
+   iFlags+=fl<<8;
+   break; //2-wahacz, dŸwignia itp.
   case 3: iFlags=0x030; break; //3-zderzak
   case 4: iFlags=0x040; break; //4-wózek
   case 5: //5-pantograf - 5 submodeli
@@ -93,11 +96,15 @@ int __fastcall TAnim::TypeSet(int i)
 };
 __fastcall TAnim::TAnim()
 {//potrzebne to w ogóle?
+ iFlags=-1; //nieznany typ - destruktor nic nie usuwa
 };
 __fastcall TAnim::~TAnim()
 {//usuwanie animacji
  switch (iFlags&0xF0)
  {//usuwanie struktur, zale¿nie ile zosta³o stworzonych
+  case 0x20: //2-wahacz, dŸwignia itp.
+   delete fParam;
+  break;
   case 0x50: //5-pantograf
    delete fParamPants;
   break;
@@ -409,6 +416,25 @@ void TDynamicObject::UpdatePant(TAnim *pAnim)
  if (pAnim->smElement[3]) pAnim->smElement[3]->SetRotate(float3(-1,0,0),c);
  if (pAnim->smElement[4]) pAnim->smElement[4]->SetRotate(float3(-1,0,0),b); //œlizg
 };
+
+void TDynamicObject::UpdateLeverDouble(TAnim *pAnim)
+{//animacja ga³ki zale¿na od double
+ pAnim->smAnimated->SetRotate(float3(1,0,0),pAnim->fSpeed**pAnim->fDoubleBase);
+};
+void TDynamicObject::UpdateLeverFloat(TAnim *pAnim)
+{//animacja ga³ki zale¿na od float
+ pAnim->smAnimated->SetRotate(float3(1,0,0),pAnim->fSpeed**pAnim->fFloatBase);
+};
+void TDynamicObject::UpdateLeverInt(TAnim *pAnim)
+{//animacja ga³ki zale¿na od int
+ pAnim->smAnimated->SetRotate(float3(1,0,0),pAnim->fSpeed**pAnim->iIntBase);
+};
+void TDynamicObject::UpdateLeverEnum(TAnim *pAnim)
+{//ustawienie k¹ta na wartoœæ wskazan¹ przez int z tablicy fParam
+ //pAnim->fParam[0]; - dodaæ lepkoœæ
+ pAnim->smAnimated->SetRotate(float3(1,0,0),pAnim->fParam[*pAnim->iIntBase]);
+};
+
 
 //ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
@@ -2117,7 +2143,7 @@ bool __fastcall TDynamicObject::Update(double dt, double dt1)
     tp.Velmax=MyTrack->VelocityGet();
 
     if (Mechanik)
-    {
+    {//Ra 2F3F: do Driver.cpp to przenieœæ?
      MoverParameters->EqvtPipePress=GetEPP(); //srednie cisnienie w PG
      if ((Mechanik->Primary())&&(MoverParameters->EngineType==ElectricInductionMotor)) //jesli glowny i z asynchronami, to niech steruje
       {                                                                              //hamulcem lacznie dla calego pociagu/ezt
@@ -2292,7 +2318,7 @@ if ((rsUnbrake.AM!=0)&&(ObjectDist<5000))
                         }
            }   */
     if ((MoverParameters->TrainType==dt_ET40) || (MoverParameters->TrainType==dt_EP05))
-    {//dla ET40 i EU06 automatyczne cofanie nastawnika - i tak nie bêdzie to dzia³aæ dobrze...
+    {//dla ET40 i EU05 automatyczne cofanie nastawnika - i tak nie bêdzie to dzia³aæ dobrze...
      /* if ((MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos)&&(abs(MoverParameters->Im)>MoverParameters->IminHi))
         {
          MoverParameters->DecMainCtrl(1);
@@ -3485,7 +3511,7 @@ void __fastcall TDynamicObject::LoadMMediaFile(AnsiString BaseDir,AnsiString Typ
              if (iAnimType[ANIM_PANTS]) //o ile jakieœ pantografy s¹ (a domyœlnie s¹)
               pants=pAnimations+k; //zapamiêtanie na potrzeby wyszukania submodeli
            pAnimations[k].iShift=sm; //przesuniêcie do przydzielenia wskaŸnika
-           sm+=pAnimations[k++].TypeSet(j); //ustawienie typu animacji i zliczanie submodeli
+           sm+=pAnimations[k++].TypeSet(j); //ustawienie typu animacji i zliczanie tablicowanych submodeli
           }
          if (sm) //o ile s¹ bardziej z³o¿one animacje
          {pAnimated=new TSubModel*[sm]; //tabela na animowane submodele
