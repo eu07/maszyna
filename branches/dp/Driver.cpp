@@ -75,7 +75,7 @@ Tutaj ³¹czymy teoriê z praktyk¹ - tu nic nie dzia³a i nikt nie wie dlaczego…
 //7. samouczacy sie algorytm hamowania
 
 //sta³e
-const double EasyReactionTime=0.3; //[s] przeb³yski œwiadomoœci dla zwyk³ej jazdy
+const double EasyReactionTime=0.5; //[s] przeb³yski œwiadomoœci dla zwyk³ej jazdy
 const double HardReactionTime=0.2;
 const double EasyAcceleration=0.5; //[m/ss]
 const double HardAcceleration=0.9;
