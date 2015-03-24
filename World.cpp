@@ -1266,7 +1266,6 @@ bool __fastcall TWorld::Update()
    vector3 tempangle;
    double modelrotate;
    tempangle=Controlled->VectorFront()*(Controlled->MoverParameters->ActiveCab==-1 ? -1 : 1);
-   //modelrotate=ABuAcos(tempangle);
    modelrotate=atan2(-tempangle.x,tempangle.z);
    if (Console::Pressed(VK_CONTROL)?(Console::Pressed(Global::Keys[k_MechLeft])||Console::Pressed(Global::Keys[k_MechRight])):false)
    {//jeœli lusterko lewe albo prawe (bez rzucania na razie)
@@ -1658,6 +1657,7 @@ bool __fastcall TWorld::Update()
  glBindTexture(GL_TEXTURE_2D, 0);
  glColor4f(1.0f,0.0f,0.0f,1.0f);
  glLoadIdentity();
+ glTranslatef(0.0f,0.0f,-0.50f);
 
 
     if (Global::iTextMode==VK_F1)
@@ -1821,7 +1821,7 @@ bool __fastcall TWorld::Update()
        if (tmp->Mechanik) //¿eby by³a tabelka, musi byæ AI
        {//tabelka jest na u¿ytek testuj¹cych scenerie, wiêc nie musi byæ "³adna"
         glColor3f(0.0f,1.0f,0.0f); //a, damy zielony
-        glTranslatef(0.0f,0.0f,-0.50f);
+        //glTranslatef(0.0f,0.0f,-0.50f);
         glRasterPos2f(-0.25f,0.20f);
         //OutText1="Scan distance: "+AnsiString(tmp->Mechanik->scanmax)+", back: "+AnsiString(tmp->Mechanik->scanback);
      OutText1="Time: "+AnsiString((int)GlobalTime->hh)+":";
@@ -1971,7 +1971,7 @@ bool __fastcall TWorld::Update()
 
      if(Controlled->MoverParameters->EngineType==ElectricInductionMotor)
      {
-     glTranslatef(0.0f,0.0f,-0.50f);
+     //glTranslatef(0.0f,0.0f,-0.50f);
      glColor3f(1.0f,1.0f,1.0f); //a, damy bia³ym
       for(int i=0;i<=20;i++)
        {
@@ -1992,8 +1992,8 @@ bool __fastcall TWorld::Update()
         glPrint(OutText4.c_str());
        }
      OutText4="";  
-     glTranslatef(0.0f,0.0f,+0.50f);
-     glColor3f(1.0f,0.0f,0.0f); //a, damy czerwonym     
+     //glTranslatef(0.0f,0.0f,+0.50f);
+     glColor3f(1.0f,0.0f,0.0f); //a, damy czerwonym
      }
 
 
@@ -2084,7 +2084,7 @@ bool __fastcall TWorld::Update()
      if (tt) //musi byæ rozk³ad
      {//wyœwietlanie rozk³adu
       glColor3f(1.0f,1.0f,1.0f); //a, damy bia³ym
-      glTranslatef(0.0f,0.0f,-0.50f);
+      //glTranslatef(0.0f,0.0f,-0.50f);
       glRasterPos2f(-0.25f,0.20f);
       OutText1=tmp->Mechanik->Relation()+" ("+tmp->Mechanik->Timetable()->TrainName+")";
       glPrint(Global::Bezogonkow(OutText1,true).c_str());
@@ -2123,7 +2123,7 @@ bool __fastcall TWorld::Update()
   }
   else if (OutText1!="")
   {//ABu: i od razu czyszczenie tego, co bylo napisane
-   glTranslatef(0.0f,0.0f,-0.50f);
+   //glTranslatef(0.0f,0.0f,-0.50f);
    glRasterPos2f(-0.25f,0.20f);
    glPrint(OutText1.c_str());
    OutText1="";
@@ -2166,36 +2166,6 @@ bool __fastcall TWorld::Update()
  glEnable(GL_LIGHTING);
  return (true);
 };
-
-
-
-//youBy - skopiowane co nieco
-double __fastcall ABuAcos(vector3 calc_temp)
-{
-   bool calc_sin;
-   double calc_angle;
-   if(fabs(calc_temp.x)>fabs(calc_temp.z)) {calc_sin=false; }
-                                      else {calc_sin=true;  };
-   double calc_dist=hypot(calc_temp.x,calc_temp.z);
-   if (calc_dist!=0)
-   {
-        if(calc_sin)
-        {
-            calc_angle=asin(calc_temp.x/calc_dist);
-            if(calc_temp.z>0) {calc_angle=-calc_angle;    } //ok (1)
-                         else {calc_angle=M_PI+calc_angle;} // (2)
-        }
-        else
-        {
-            calc_angle=acos(calc_temp.z/calc_dist);
-            if(calc_temp.x>0) {calc_angle=M_PI+M_PI-calc_angle;} // (3)
-                         else {calc_angle=calc_angle;          } // (4)
-        }
-        return calc_angle;
-    }
-    return 0;
-}
-
 
 bool __fastcall TWorld::Render()
 {

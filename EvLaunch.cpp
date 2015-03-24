@@ -147,18 +147,21 @@ bool __fastcall TEventLauncher::Render()
   else
    UpdatedTime+=Timer::GetDeltaTime(); //aktualizacja naliczania czasu
  }
- if (GlobalTime->hh==iHour)
- {if (GlobalTime->mm==iMinute)
-  {//zgodnoœæ czasu uruchomienia
-   if (UpdatedTime<10)
-   {
-    UpdatedTime=20; //czas do kolejnego wyzwolenia?
-    bCond=true;
+ else
+ {//jeœli nie cykliczny, to sprawdziæ czas
+  if (GlobalTime->hh==iHour)
+  {if (GlobalTime->mm==iMinute)
+   {//zgodnoœæ czasu uruchomienia
+    if (UpdatedTime<10)
+    {
+     UpdatedTime=20; //czas do kolejnego wyzwolenia?
+     bCond=true;
+    }
    }
   }
+  else
+   UpdatedTime=1;
  }
- else
-  UpdatedTime=1;
  if (bCond) //jeœli spe³niony zosta³ warunek
  {
   if ((iCheckMask!=0)&&MemCell) //sprawdzanie warunku na komórce pamiêci
