@@ -765,11 +765,13 @@ void __fastcall TTrack::Load(cParser *parser,vector3 pOrigin,AnsiString name)
   {//informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i ograniczeniem prêdkoœci
    parser->getTokens();
    *parser >> fOverhead;
+   if (fOverhead>0.0)
+    iAction|=0x40; //flaga opuszczenia pantografu (tor uwzglêdniany w skanowaniu jako ograniczenie dla pantografuj¹cych)
   }
   else if (str=="colides")
   {//informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i ograniczeniem prêdkoœci
    parser->getTokens();
-   *parser >> fOverhead;
+   *parser >> token;
    //trColides=; //tor kolizyjny, na którym trzeba sprawdzaæ pojazdy pod k¹tem zderzenia
   }
   else

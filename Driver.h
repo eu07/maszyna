@@ -215,6 +215,7 @@ public:
  double fOverhead1;  //informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
  double fOverhead2;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
  int iOverheadZero;  //suma bitowa jezdy bezpr¹dowej, bity ustawiane przez pojazdy z podniesionymi pantografami
+ int iOverheadDown;  //suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
  double fVoltage; //uœrednione napiêcie sieci: przy spadku poni¿ej wartoœci minimalnej opóŸniæ rozruch o losowy czas
 private:
  double fMaxProximityDist; //akceptowalna odleg³oœæ staniêcia przed przeszkod¹

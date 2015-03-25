@@ -989,6 +989,7 @@ __fastcall TController::TController
  fOverhead1=3000.0;  //informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
  fOverhead2=-1.0;  //informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i ograniczeniem prêdkoœci)
  iOverheadZero=0;  //suma bitowa jezdy bezpr¹dowej, bity ustawiane przez pojazdy z podniesionymi pantografami
+ iOverheadDown=0;  //suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
  fAccDesiredAv=0.0; //uœrednione przyspieszenie z kolejnych przeb³ysków œwiadomoœci, ¿eby ograniczyæ migotanie
  fVoltage=0.0; //uœrednione napiêcie sieci: przy spadku poni¿ej wartoœci minimalnej opóŸniæ rozruch o losowy czas
 };
@@ -2563,17 +2564,17 @@ bool __fastcall TController::UpdateSituation(double dt)
     {//jeœli jazda bezpr¹dowa albo z opuszczonym pantografem
      while (DecSpeed(true)); //zerowanie napêdu
     }
-    if (fOverhead2<=0.0)
+    if ((fOverhead2>0.0)||iOverheadDown)
+    {//jazda z opuszczonymi pantografami
+     mvControlling->PantFront(false);
+     mvControlling->PantRear(false);
+    }
+    else
     {//jeœli nie trzeba opuszczaæ pantografów
      if (iDirection>=0) //jak jedzie w kierunku sprzêgu 0
       mvControlling->PantRear(true); //jazda na tylnym
      else
       mvControlling->PantFront(true);
-    }
-    else
-    {//jazda z opuszczonymi pantografami
-     mvControlling->PantFront(false);
-     mvControlling->PantRear(false);
     }
     if (mvOccupied->Vel>10) //opuszczenie przedniego po rozpêdzeniu siê
     {

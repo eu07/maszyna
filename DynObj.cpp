@@ -4337,11 +4337,22 @@ void __fastcall TDynamicObject::DestinationSet(AnsiString to)
 void __fastcall TDynamicObject::OverheadTrack(float o)
 {//ewentualne wymuszanie jazdy bezpr¹dowej z powodu informacji w torze
  if (ctOwner) //jeœli ma obiekt nadzoruj¹cy
- {//trzeba zaktualizowaæ maskê jazdy bezpr¹dowej
+ {//trzeba zaktualizowaæ mapê flag bitowych jazdy bezpr¹dowej
   if (o<0.0)
+  {//normalna jazda po tym torze
    ctOwner->iOverheadZero&=~iOverheadMask; //zerowanie bitu - mo¿e pobieraæ pr¹d
-  else
+   ctOwner->iOverheadDown&=~iOverheadMask; //zerowanie bitu - mo¿e podnieœæ pantograf
+  }
+  else if (o>0.0)
+  {//opuszczenie pantografów
    ctOwner->iOverheadZero|=iOverheadMask; //ustawienie bitu - ma jechaæ bez pobierania pr¹du
+   ctOwner->iOverheadDown|=iOverheadMask; //ustawienie bitu - ma opuœciæ pantograf
+  }
+  else
+  {//jazda bezpr¹dowa z podniesionym pantografem
+   ctOwner->iOverheadZero|=iOverheadMask; //ustawienie bitu - ma jechaæ bez pobierania pr¹du
+   ctOwner->iOverheadDown&=~iOverheadMask; //zerowanie bitu - mo¿e podnieœæ pantograf
+  }
  }
 };
 
