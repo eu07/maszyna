@@ -44,8 +44,8 @@ double Global::fLuminance=1.0; //jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile=0; //zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd=NULL; //uchwyt okna
 int Global::iCameraLast=-1;
-AnsiString Global::asRelease="15.3.1165.468";
-AnsiString Global::asVersion="Compilation 2015-03-24, release "+Global::asRelease+"."; //tutaj, bo wysy³any
+AnsiString Global::asRelease="15.3.1166.469";
+AnsiString Global::asVersion="Compilation 2015-03-25, release "+Global::asRelease+"."; //tutaj, bo wysy³any
 int Global::iViewMode=0; //co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode=0; //tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12]={0,0,0,0,0,0,0,0,0,0,0,0}; //numer ekranu wyœwietlacza tekstowego
@@ -436,7 +436,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp,cParser *cp)
  }
  if (iMultiplayer>0)
  {bInactivePause=false; //okno "w tle" nie mo¿e pauzowaæ, jeœli w³¹czona komunikacja
-  //pauzowanie jest zablokowane dla (iMultiplayer&1)>0, wiêc iMultiplayer=2 da siê zapauzowaæ 
+  //pauzowanie jest zablokowane dla (iMultiplayer&2)>0, wiêc iMultiplayer=1 da siê zapauzowaæ (tryb instruktora)
  }
  fFpsMin=fFpsAverage-fFpsDeviation; //dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
  fFpsMax=fFpsAverage+fFpsDeviation; //górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany

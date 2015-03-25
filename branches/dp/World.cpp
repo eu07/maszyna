@@ -2410,8 +2410,12 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     if (Global::iMultiplayer)
     {//Ra 2014-12: to ma dzia≥aÊ rÛwnieø dla pojazdÛw bez obsady
      if (pRozkaz->cString[0]) //jeúli d≥ugoúÊ nazwy jest niezerowa
-     {//szukamy pierwszego pojazdu o takiej nazwie i odsy≥amy parametry ramkπ 7
-      TGroundNode* t=Ground.DynamicFindAny(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
+     {//szukamy pierwszego pojazdu o takiej nazwie i odsy≥amy parametry ramkπ #7
+      TGroundNode *t;
+      if (pRozkaz->cString[1]=='*')
+       t=Ground.DynamicFind(Global::asHumanCtrlVehicle); //nazwa pojazdu uøytkownika
+      else
+       t=Ground.DynamicFindAny(AnsiString(pRozkaz->cString+1,(unsigned)pRozkaz->cString[0])); //nazwa pojazdu
       if (t)
        Ground.WyslijNamiary(t); //wys≥anie informacji o pojeüdzie
      }
