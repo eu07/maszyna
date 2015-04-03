@@ -8,7 +8,7 @@
 
 class TCurve
 {
-public:
+  public:
     __fastcall TCurve();
     __fastcall ~TCurve();
     bool __fastcall Init(int n, int c);
@@ -21,9 +21,8 @@ public:
     int iNumValues;
     int iNumCols;
 
-private:
+  private:
     float **Values;
 };
 //---------------------------------------------------------------------------
 #endif
- 

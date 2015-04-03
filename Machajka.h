@@ -5,17 +5,17 @@
 
 #include "Train.h"
 
-class TMachajka:public TTrain
+class TMachajka : public TTrain
 {
-public:
+  public:
     TSubModel *wajcha;
-//    double v;
-//    double m;
-//    double a;
-//    double f;
-//    bool enter;
-//    bool space;
-//    double wa,wv;
+    //    double v;
+    //    double m;
+    //    double a;
+    //    double f;
+    //    bool enter;
+    //    bool space;
+    //    double wa,wv;
     __fastcall TMachajka();
     virtual __fastcall ~TMachajka();
     virtual bool __fastcall Init(TDynamicObject *NewDynamicObject);
@@ -24,7 +24,6 @@ public:
     virtual bool __fastcall UpdateMechPosition();
     virtual bool __fastcall Render();
 };
-
 
 //---------------------------------------------------------------------------
 #endif

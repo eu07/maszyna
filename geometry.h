@@ -11,7 +11,7 @@ class TPlane;
 
 class TLine
 {
-public:
+  public:
     vector3 Vector, Point;
     __fastcall TLine();
     __fastcall TLine(vector3 NPoint, vector3 NVector);
@@ -24,17 +24,17 @@ public:
 
 class TPlane
 {
-public:
+  public:
     vector3 Vector;
     double d;
     __fastcall TPlane();
     __fastcall TPlane(vector3 NVector, double nd);
     __fastcall TPlane(vector3 NPoint, vector3 NVector);
-    __fastcall TPlane(vector3 Point1, vector3 Vector1,  vector3 Vector2);
+    __fastcall TPlane(vector3 Point1, vector3 Vector1, vector3 Vector2);
     __fastcall ~TPlane();
     void __fastcall Normalize();
     double __fastcall GetSide(vector3 Point);
-//    void __fastcall Transform(D3DMATRIX &Transformations);
+    //    void __fastcall Transform(D3DMATRIX &Transformations);
     bool __fastcall Defined();
 };
 

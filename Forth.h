@@ -5,6 +5,6 @@
 //---------------------------------------------------------------------------
 
 class Forth
-{//klasa obs³ugi jêzyka
+{ // klasa obs³ugi jêzyka
 };
 #endif

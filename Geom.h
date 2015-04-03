@@ -10,12 +10,12 @@ struct TGeomVertex
 {
     vector3 Point;
     vector3 Normal;
-    double tu,tv;
+    double tu, tv;
 };
 
 class TGeometry
 {
-private:
+  private:
     GLuint iType;
     union
     {
@@ -26,7 +26,8 @@ private:
     TMaterialColor Ambient;
     TMaterialColor Diffuse;
     TMaterialColor Specular;
-public:
+
+  public:
     __fastcall TGeometry();
     __fastcall ~TGeometry();
     bool __fastcall Init();

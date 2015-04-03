@@ -3,8 +3,8 @@
 #ifndef TimerH
 #define TimerH
 
-namespace Timer { 
-
+namespace Timer
+{
 
 double __fastcall GetTime();
 
@@ -26,7 +26,6 @@ double __fastcall GetFPS();
 void __fastcall ResetTimers();
 
 void __fastcall UpdateTimers(bool pause);
-
 };
 
 //---------------------------------------------------------------------------

@@ -24,35 +24,35 @@ void __fastcall glDebug()
 
 class TTexturesManager
 {
-public:
+  public:
     static void Init();
     static void Free();
 
-    static GLuint GetTextureID(char* dir,char* where,std::string name,int filter=-1);
-    static bool GetAlpha(GLuint ID); //McZapkie-141203: czy tekstura ma polprzeroczystosc
+    static GLuint GetTextureID(char *dir, char *where, std::string name, int filter = -1);
+    static bool GetAlpha(GLuint ID); // McZapkie-141203: czy tekstura ma polprzeroczystosc
     static std::string GetName(GLuint id);
 
-private:
+  private:
     typedef std::pair<GLuint, bool> AlphaValue;
 
     typedef std::map<std::string, GLuint> Names;
     typedef std::map<GLuint, bool> Alphas;
 
-    static Names::iterator LoadFromFile(std::string name,int filter=-1);
+    static Names::iterator LoadFromFile(std::string name, int filter = -1);
 
     static AlphaValue LoadBMP(std::string fileName);
     static AlphaValue LoadTEX(std::string fileName);
-    static AlphaValue LoadTGA(std::string fileName,int filter=-1);
-    static AlphaValue LoadDDS(std::string fileName,int filter=-1);
+    static AlphaValue LoadTGA(std::string fileName, int filter = -1);
+    static AlphaValue LoadDDS(std::string fileName, int filter = -1);
 
     static void SetFiltering(int filter);
     static void SetFiltering(bool alpha, bool hash);
-    static GLuint CreateTexture(char *buff,GLint bpp,int width,int height,bool bHasAlpha,bool bHash,bool bDollar=true,int filter=-1);
+    static GLuint CreateTexture(char *buff, GLint bpp, int width, int height, bool bHasAlpha,
+                                bool bHash, bool bDollar = true, int filter = -1);
 
     static Names _names;
     static Alphas _alphas;
-//    std::list<TTexture> Textures;
-
+    //    std::list<TTexture> Textures;
 };
 //---------------------------------------------------------------------------
 #endif
