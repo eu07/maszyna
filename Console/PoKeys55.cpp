@@ -33,7 +33,7 @@ __fastcall TPoKeys55::TPoKeys55()
 //---------------------------------------------------------------------------
 __fastcall TPoKeys55::~TPoKeys55() { Close(); };
 //---------------------------------------------------------------------------
-bool __fastcall TPoKeys55::Close()
+bool TPoKeys55::Close()
 { // roz³¹czenie komunikacji
     if (WriteHandle != INVALID_HANDLE_VALUE)
         CloseHandle(WriteHandle);
@@ -43,7 +43,7 @@ bool __fastcall TPoKeys55::Close()
     ReadHandle = INVALID_HANDLE_VALUE;
 };
 //---------------------------------------------------------------------------
-bool __fastcall TPoKeys55::Connect()
+bool TPoKeys55::Connect()
 { // Ra: to jest do wyczyszcznia z niepotrzebnych zmiennych i komunikatów
     Close();
     GUID InterfaceClassGuid = {0x4d1e55b2, 0xf16f, 0x11cf, 0x88, 0xcb, 0x00,
@@ -194,7 +194,7 @@ bool __fastcall TPoKeys55::Connect()
     return false;
 }
 //---------------------------------------------------------------------------
-bool __fastcall TPoKeys55::Write(unsigned char c, unsigned char b3, unsigned char b4,
+bool TPoKeys55::Write(unsigned char c, unsigned char b3, unsigned char b4,
                                  unsigned char b5)
 {
     DWORD BytesWritten = 0;
@@ -221,7 +221,7 @@ bool __fastcall TPoKeys55::Write(unsigned char c, unsigned char b3, unsigned cha
 }
 //---------------------------------------------------------------------------
 
-bool __fastcall TPoKeys55::Read()
+bool TPoKeys55::Read()
 {
     DWORD BytesRead = 0;
     InputBuffer[0] = 0; // The first byte is the "Report ID" and does not get transmitted over the
@@ -236,7 +236,7 @@ bool __fastcall TPoKeys55::Read()
     return (BytesRead == 65) ? InputBuffer[7] == cRequest : false;
 }
 //---------------------------------------------------------------------------
-bool __fastcall TPoKeys55::ReadLoop(int i)
+bool TPoKeys55::ReadLoop(int i)
 { // próbuje odczytaæ (i) razy
     do
     {
@@ -247,7 +247,7 @@ bool __fastcall TPoKeys55::ReadLoop(int i)
     return false;
 }
 //---------------------------------------------------------------------------
-AnsiString __fastcall TPoKeys55::Version()
+AnsiString TPoKeys55::Version()
 { // zwraca numer wersji, funkcja nieoptymalna czasowo (czeka na odpowiedŸ)
     if (!WriteHandle)
         return "";
@@ -280,14 +280,14 @@ AnsiString __fastcall TPoKeys55::Version()
     return "";
 };
 
-bool __fastcall TPoKeys55::PWM(int x, float y)
+bool TPoKeys55::PWM(int x, float y)
 { // ustawienie wskazanego PWM (@12Mhz: 12000=1ms=1000Hz)
     // iPWM[7]=1024; //1024==85333.3333333333ns=11718.75Hz
     iPWM[x] = int(0.5f + 0x0FFF * y) & 0x0FFF; // 0x0FFF=4095
     return true;
 }
 
-bool __fastcall TPoKeys55::Update(bool pause)
+bool TPoKeys55::Update(bool pause)
 { // funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
     if (pause)
     { // specjalna procedura, jeœli utracone po³¹czenie spowodowa³o pauzê

@@ -102,14 +102,14 @@ class TSpeedPos
         TTrack *trTrack; // wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
         TEvent *evEvent; // po³¹czenie z eventem albo komórk¹ pamiêci
     };
-    void __fastcall CommandCheck();
+    void CommandCheck();
 
   public:
-    void __fastcall Clear();
-    bool __fastcall Update(vector3 *p, vector3 *dir, double &len);
-    bool __fastcall Set(TEvent *e, double d);
-    void __fastcall Set(TTrack *t, double d, int f);
-    AnsiString __fastcall TableText();
+    void Clear();
+    bool Update(vector3 *p, vector3 *dir, double &len);
+    bool Set(TEvent *e, double d);
+    void Set(TTrack *t, double d, int f);
+    AnsiString TableText();
 };
 
 //----------------------------------------------------------------------------
@@ -247,102 +247,102 @@ class TController
     double WaitingExpireTime; // maksymlany czas oczekiwania do samoistnego ruszenia
     // TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
   private: //---//---//---//---// koniec zmiennych, poni¿ej metody //---//---//---//---//
-    void __fastcall SetDriverPsyche();
-    bool __fastcall PrepareEngine();
-    bool __fastcall ReleaseEngine();
-    bool __fastcall IncBrake();
-    bool __fastcall DecBrake();
-    bool __fastcall IncSpeed();
-    bool __fastcall DecSpeed(bool force = false);
-    void __fastcall SpeedSet();
-    void __fastcall Doors(bool what);
-    void __fastcall RecognizeCommand(); // odczytuje komende przekazana lokomotywie
-    void __fastcall Activation(); // umieszczenie obsady w odpowiednim cz³onie
-    void __fastcall ControllingSet(); // znajduje cz³on do sterowania
-    void __fastcall AutoRewident(); // ustawia hamulce w sk³adzie
+    void SetDriverPsyche();
+    bool PrepareEngine();
+    bool ReleaseEngine();
+    bool IncBrake();
+    bool DecBrake();
+    bool IncSpeed();
+    bool DecSpeed(bool force = false);
+    void SpeedSet();
+    void Doors(bool what);
+    void RecognizeCommand(); // odczytuje komende przekazana lokomotywie
+    void Activation(); // umieszczenie obsady w odpowiednim cz³onie
+    void ControllingSet(); // znajduje cz³on do sterowania
+    void AutoRewident(); // ustawia hamulce w sk³adzie
   public:
     Mtable::TTrainParameters *__fastcall Timetable() { return TrainParams; };
-    void __fastcall PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
+    void PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
                                const _mover::TLocation &NewLocation, TStopReason reason = stopComm);
-    bool __fastcall PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
+    bool PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
                                const vector3 *NewLocation, TStopReason reason = stopComm);
-    bool __fastcall UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundê
+    bool UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundê
     // procedury dotyczace rozkazow dla maszynisty
-    void __fastcall SetVelocity(double NewVel, double NewVelNext,
+    void SetVelocity(double NewVel, double NewVelNext,
                                 TStopReason r = stopNone); // uaktualnia informacje o prêdkoœci
-    bool __fastcall SetProximityVelocity(
+    bool SetProximityVelocity(
         double NewDist,
         double NewVelNext); // uaktualnia informacje o prêdkoœci przy nastepnym semaforze
   public:
-    void __fastcall JumpToNextOrder();
-    void __fastcall JumpToFirstOrder();
-    void __fastcall OrderPush(TOrders NewOrder);
-    void __fastcall OrderNext(TOrders NewOrder);
-    TOrders __fastcall OrderCurrentGet();
-    TOrders __fastcall OrderNextGet();
-    bool __fastcall CheckVehicles(TOrders user = Wait_for_orders);
+    void JumpToNextOrder();
+    void JumpToFirstOrder();
+    void OrderPush(TOrders NewOrder);
+    void OrderNext(TOrders NewOrder);
+    TOrders OrderCurrentGet();
+    TOrders OrderNextGet();
+    bool CheckVehicles(TOrders user = Wait_for_orders);
 
   private:
-    void __fastcall CloseLog();
-    void __fastcall OrderCheck();
+    void CloseLog();
+    void OrderCheck();
 
   public:
-    void __fastcall OrdersInit(double fVel);
-    void __fastcall OrdersClear();
-    void __fastcall OrdersDump();
-    __fastcall TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
+    void OrdersInit(double fVel);
+    void OrdersClear();
+    void OrdersDump();
+    TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
                            bool primary = true // czy ma aktywnie prowadziæ?
                            );
-    AnsiString __fastcall OrderCurrent();
-    void __fastcall WaitingSet(double Seconds);
+    AnsiString OrderCurrent();
+    void WaitingSet(double Seconds);
 
   private:
-    AnsiString __fastcall Order2Str(TOrders Order);
-    void __fastcall DirectionForward(bool forward);
-    int __fastcall OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
-    void __fastcall Lights(int head, int rear);
-    double __fastcall Distance(vector3 &p1, vector3 &n, vector3 &p2);
+    AnsiString Order2Str(TOrders Order);
+    void DirectionForward(bool forward);
+    int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
+    void Lights(int head, int rear);
+    double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
   private: // Ra: metody obs³uguj¹ce skanowanie toru
     TEvent *__fastcall CheckTrackEvent(double fDirection, TTrack *Track);
-    bool __fastcall TableCheckEvent(TEvent *e);
-    bool __fastcall TableAddNew();
-    bool __fastcall TableNotFound(TEvent *e);
-    void __fastcall TableClear();
+    bool TableCheckEvent(TEvent *e);
+    bool TableAddNew();
+    bool TableNotFound(TEvent *e);
+    void TableClear();
     TEvent *__fastcall TableCheckTrackEvent(double fDirection, TTrack *Track);
-    void __fastcall TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
-    void __fastcall TableCheck(double fDistance);
-    TCommandType __fastcall TableUpdate(double &fVelDes, double &fDist, double &fNext,
+    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
+    void TableCheck(double fDistance);
+    TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext,
                                         double &fAcc);
-    void __fastcall TablePurger();
+    void TablePurger();
 
   private: // Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
-    bool __fastcall BackwardTrackBusy(TTrack *Track);
+    bool BackwardTrackBusy(TTrack *Track);
     TEvent *__fastcall CheckTrackEventBackward(double fDirection, TTrack *Track);
     TTrack *__fastcall BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
                                           TEvent *&Event);
-    void __fastcall SetProximityVelocity(double dist, double vel, const vector3 *pos);
-    TCommandType __fastcall BackwardScan();
+    void SetProximityVelocity(double dist, double vel, const vector3 *pos);
+    TCommandType BackwardScan();
 
   public:
-    void __fastcall PhysicsLog();
-    AnsiString __fastcall StopReasonText();
-    __fastcall ~TController();
-    AnsiString __fastcall NextStop();
-    void __fastcall TakeControl(bool yes);
-    AnsiString __fastcall Relation();
-    AnsiString __fastcall TrainName();
-    int __fastcall StationCount();
-    int __fastcall StationIndex();
-    bool __fastcall IsStop();
-    bool __fastcall Primary() { return this ? bool(iDrivigFlags & movePrimary) : false; };
-    int inline __fastcall DrivigFlags() { return iDrivigFlags; };
-    void __fastcall MoveTo(TDynamicObject *to);
-    void __fastcall DirectionInitial();
-    AnsiString __fastcall TableText(int i);
-    int __fastcall CrossRoute(TTrack *tr);
-    void __fastcall RouteSwitch(int d);
-    AnsiString __fastcall OwnerName();
+    void PhysicsLog();
+    AnsiString StopReasonText();
+    ~TController();
+    AnsiString NextStop();
+    void TakeControl(bool yes);
+    AnsiString Relation();
+    AnsiString TrainName();
+    int StationCount();
+    int StationIndex();
+    bool IsStop();
+    bool Primary() { return this ? bool(iDrivigFlags & movePrimary) : false; };
+    int inline DrivigFlags() { return iDrivigFlags; };
+    void MoveTo(TDynamicObject *to);
+    void DirectionInitial();
+    AnsiString TableText(int i);
+    int CrossRoute(TTrack *tr);
+    void RouteSwitch(int d);
+    AnsiString OwnerName();
 };
 
 #endif

@@ -176,7 +176,7 @@ int Global::iBpp = 32; // chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ pop
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-AnsiString __fastcall Global::GetNextSymbol()
+AnsiString Global::GetNextSymbol()
 { // pobranie tokenu z aktualnego parsera
     if (qParser)
         return qParser->EndOfFile ? AnsiString("endconfig") : qParser->GetNextSymbol();
@@ -190,7 +190,7 @@ AnsiString __fastcall Global::GetNextSymbol()
     return "";
 };
 
-void __fastcall Global::LoadIniFile(AnsiString asFileName)
+void Global::LoadIniFile(AnsiString asFileName)
 {
     int i;
     for (i = 0; i < 10; ++i)
@@ -217,7 +217,7 @@ void __fastcall Global::LoadIniFile(AnsiString asFileName)
     delete Parser; // Ra: tego jak zwykle nie by³o wczeœniej :]
 };
 
-void __fastcall Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
+void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
 { // Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
     pParser = cp;
     qParser = qp;
@@ -502,7 +502,7 @@ void __fastcall Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
     }
 }
 
-void __fastcall Global::InitKeys(AnsiString asFileName)
+void Global::InitKeys(AnsiString asFileName)
 {
     //    if (FileExists(asFileName))
     //    {
@@ -628,17 +628,17 @@ void __fastcall Global::InitKeys(AnsiString asFileName)
     }
 }
 /*
-vector3 __fastcall Global::GetCameraPosition()
+vector3 Global::GetCameraPosition()
 {
     return pCameraPosition;
 }
 */
-void __fastcall Global::SetCameraPosition(vector3 pNewCameraPosition)
+void Global::SetCameraPosition(vector3 pNewCameraPosition)
 {
     pCameraPosition = pNewCameraPosition;
 }
 
-void __fastcall Global::SetCameraRotation(double Yaw)
+void Global::SetCameraRotation(double Yaw)
 { // ustawienie bezwzglêdnego kierunku kamery z korekcj¹ do przedzia³u <-M_PI,M_PI>
     pCameraRotation = Yaw;
     while (pCameraRotation < -M_PI)
@@ -648,7 +648,7 @@ void __fastcall Global::SetCameraRotation(double Yaw)
     pCameraRotationDeg = pCameraRotation * 180.0 / M_PI;
 }
 
-void __fastcall Global::BindTexture(GLuint t)
+void Global::BindTexture(GLuint t)
 { // ustawienie aktualnej tekstury, tylko gdy siê zmienia
     if (t != iTextureId)
     {
@@ -656,7 +656,7 @@ void __fastcall Global::BindTexture(GLuint t)
     }
 };
 
-void __fastcall Global::TrainDelete(TDynamicObject *d)
+void Global::TrainDelete(TDynamicObject *d)
 { // usuniêcie pojazdu prowadzonego przez u¿ytkownika
     if (pWorld)
         pWorld->TrainDelete(d);
@@ -672,13 +672,13 @@ TDynamicObject *__fastcall Global::CouplerNearest()
     return pGround->CouplerNearest(pCamera->Pos);
 };
 
-bool __fastcall Global::AddToQuery(TEvent *event, TDynamicObject *who)
+bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
 {
     return pGround->AddToQuery(event, who);
 };
 //---------------------------------------------------------------------------
 
-bool __fastcall Global::DoEvents()
+bool Global::DoEvents()
 { // wywo³ywaæ czasem, ¿eby nie robi³ wra¿enia zawieszonego
     MSG msg;
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -704,7 +704,7 @@ __fastcall TTranscripts::TTranscripts()
     fRefreshTime = 360.0; // wartoœc zaporowa
 };
 __fastcall TTranscripts::~TTranscripts(){};
-void __fastcall TTranscripts::AddLine(char *txt, float show, float hide, bool it)
+void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
 { // dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
     if (show == hide)
         return; // komentarz jest ignorowany
@@ -741,7 +741,7 @@ void __fastcall TTranscripts::AddLine(char *txt, float show, float hide, bool it
                 break; // wiêcej ju¿ nic
             }
 };
-void __fastcall TTranscripts::Add(char *txt, float len, bool backgorund)
+void TTranscripts::Add(char *txt, float len, bool backgorund)
 { // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
     if (!txt)
         return; // pusty tekst
@@ -763,7 +763,7 @@ void __fastcall TTranscripts::Add(char *txt, float len, bool backgorund)
     }
     AddLine(txt, 0.1 * i, 0.1 * j, false);
 };
-void __fastcall TTranscripts::Update()
+void TTranscripts::Update()
 { // usuwanie niepotrzebnych (nie czêœciej ni¿ 10 razy na sekundê)
     if (fRefreshTime > Global::fTimeAngleDeg)
         return; // nie czas jeszcze na zmiany
@@ -819,7 +819,7 @@ char bezogonkowo[128] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
                         "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
                         "raaaalccceeeeiiddnnoooo-ruuuuyt?";
 
-AnsiString __fastcall Global::Bezogonkow(AnsiString str, bool _)
+AnsiString Global::Bezogonkow(AnsiString str, bool _)
 { // wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
     for (int i = 1; i <= str.Length(); ++i)
         if (str[i] & 0x80)

@@ -18,27 +18,27 @@ double fSimulationTime = 0;
 double fSoundTimer = 0;
 double fSinceStart = 0;
 
-double __fastcall GetTime() { return fSimulationTime; }
+double GetTime() { return fSimulationTime; }
 
-double __fastcall GetDeltaTime() { // czas symulacji (stoi gdy pauza) return DeltaTime; }
+double GetDeltaTime() { // czas symulacji (stoi gdy pauza) return DeltaTime; }
 
-double __fastcall GetDeltaRenderTime() { // czas renderowania (do poruszania siê) return DeltaRenderTime; }
+double GetDeltaRenderTime() { // czas renderowania (do poruszania siê) return DeltaRenderTime; }
 
-double __fastcall GetfSinceStart() { return fSinceStart; }
+double GetfSinceStart() { return fSinceStart; }
 
-void __fastcall SetDeltaTime(double t) { DeltaTime = t; }
+void SetDeltaTime(double t) { DeltaTime = t; }
 
-double __fastcall GetSimulationTime() { return fSimulationTime; }
+double GetSimulationTime() { return fSimulationTime; }
 
-void __fastcall SetSimulationTime(double t) { fSimulationTime = t; }
+void SetSimulationTime(double t) { fSimulationTime = t; }
 
-bool __fastcall GetSoundTimer()
+bool GetSoundTimer()
 { // Ra: byæ mo¿e, by dŸwiêki nie modyfikowa³y siê zbyt czêsto, po 0.1s zeruje siê ten licznik
   return (fSoundTimer == 0.0f); }
 
-double __fastcall GetFPS() { return fFPS; }
+double GetFPS() { return fFPS; }
 
-void __fastcall ResetTimers()
+void ResetTimers()
 {
     // double CurrentTime=
     GetTickCount();
@@ -49,7 +49,7 @@ void __fastcall ResetTimers()
 
 LONGLONG fr, count, oldCount;
 // LARGE_INTEGER fr,count;
-void __fastcall UpdateTimers(bool pause)
+void UpdateTimers(bool pause)
 {
     QueryPerformanceFrequency((LARGE_INTEGER *)&fr);
     QueryPerformanceCounter((LARGE_INTEGER *)&count);

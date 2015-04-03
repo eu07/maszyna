@@ -24,12 +24,12 @@ class TEventLauncher
     TEvent *Event2;
     TMemCell *MemCell;
     int iCheckMask;
-    __fastcall TEventLauncher();
-    __fastcall ~TEventLauncher();
-    void __fastcall Init();
-    bool __fastcall Load(cParser *parser);
-    bool __fastcall Render();
-    bool __fastcall IsGlobal();
+    TEventLauncher();
+    ~TEventLauncher();
+    void Init();
+    bool Load(cParser *parser);
+    bool Render();
+    bool IsGlobal();
 };
 
 //---------------------------------------------------------------------------

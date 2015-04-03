@@ -11,7 +11,7 @@
 
 //#define asSplinesPatch AnsiString("Scenery\\")
 
-bool __fastcall Connect(TKnot *k1, TKnot *k2)
+bool Connect(TKnot *k1, TKnot *k2)
 {
     if (k1 && k2)
     {
@@ -25,7 +25,7 @@ bool __fastcall Connect(TKnot *k1, TKnot *k2)
 }
 
 #define Precision 10000
-float __fastcall CurveLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)
+float CurveLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)
 {
     float t, l = 0;
     vector3 tmp, last = p1;
@@ -68,7 +68,7 @@ __fastcall TKnot::TKnot(int n)
 
 __fastcall TKnot::~TKnot() {}
 
-vector3 __fastcall TKnot::GetDirection(float t)
+vector3 TKnot::GetDirection(float t)
 {
     if (IsCurve)
     {
@@ -81,7 +81,7 @@ vector3 __fastcall TKnot::GetDirection(float t)
                 Point); // Spline->Knots[KnotIndex].Point-Spline->Knots[KnotIndex].Point);
 }
 
-float __fastcall TKnot::GetTFromS(float s)
+float TKnot::GetTFromS(float s)
 {
     // initial guess for Newton's method
     int it = 0;
@@ -109,7 +109,7 @@ float __fastcall TKnot::GetTFromS(float s)
     return -1;
 }
 
-bool __fastcall TKnot::Init(TKnot *NNext, TKnot *NPrev)
+bool TKnot::Init(TKnot *NNext, TKnot *NPrev)
 {
     if (NNext != NULL)
     {
@@ -123,7 +123,7 @@ bool __fastcall TKnot::Init(TKnot *NNext, TKnot *NPrev)
     }
 }
 
-bool __fastcall TKnot::InitCPoints()
+bool TKnot::InitCPoints()
 {
     if (Prev != NULL)
         if (Prev->IsCurve)
@@ -165,7 +165,7 @@ bool __fastcall TKnot::InitCPoints()
         CPointOut = Point - fLengthOut * Normalize(Prev->Point - Point);
 }
 
-bool __fastcall TKnot::InitLength()
+bool TKnot::InitLength()
 {
 
     if (IsCurve)
@@ -272,7 +272,7 @@ __fastcall TSpline::~TSpline()
     }
 }
 
-bool __fastcall TSpline::Create(int n, AnsiString asNName)
+bool TSpline::Create(int n, AnsiString asNName)
 {
     /*
     //    asName= asNName;
@@ -286,14 +286,14 @@ bool __fastcall TSpline::Create(int n, AnsiString asNName)
       */
 }
 
-bool __fastcall TSpline::AssignKnots(TKnot *FirstKnot, int n)
+bool TSpline::AssignKnots(TKnot *FirstKnot, int n)
 {
     //    iNumKnots= n;
     //    Knots= FirstKnot;
     //    KnotsAllocated= false;
 }
 
-int __fastcall TSpline::LoadFromFile(AnsiString FileName, TKnot *FirstKnot)
+int TSpline::LoadFromFile(AnsiString FileName, TKnot *FirstKnot)
 {
     return false;
     /*
@@ -376,7 +376,7 @@ int __fastcall TSpline::LoadFromFile(AnsiString FileName, TKnot *FirstKnot)
       */
 }
 
-int __fastcall TSpline::Load(TQueryParserComp *Parser, AnsiString asEndString)
+int TSpline::Load(TQueryParserComp *Parser, AnsiString asEndString)
 {
     TKnot *LastKnot = NULL;
     ;
@@ -436,7 +436,7 @@ int __fastcall TSpline::Load(TQueryParserComp *Parser, AnsiString asEndString)
             LastKnot->InitLength();
 }
 
-float __fastcall TSpline::GetLength()
+float TSpline::GetLength()
 {
     TKnot *tmp = RootKnot;
     float l = 0;
@@ -449,7 +449,7 @@ float __fastcall TSpline::GetLength()
     return l;
 }
 
-vector3 __fastcall TSpline::GetCenter()
+vector3 TSpline::GetCenter()
 {
     TKnot *ck, *tk;
     ck = RootKnot;
@@ -476,7 +476,7 @@ TKnot *__fastcall TSpline::GetLastKnot()
     return ck;
 }
 
-bool __fastcall TSpline::Render()
+bool TSpline::Render()
 {
     TKnot *LastKnot = NULL;
     ;

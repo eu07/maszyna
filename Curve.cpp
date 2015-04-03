@@ -20,7 +20,7 @@ __fastcall TCurve::~TCurve()
     SafeDelete(Values);
 }
 
-bool __fastcall TCurve::Init(int n, int c)
+bool TCurve::Init(int n, int c)
 {
     for (int i = 0; i < iNumValues; i++)
         SafeDelete(Values[i]);
@@ -37,7 +37,7 @@ bool __fastcall TCurve::Init(int n, int c)
             Values[i][j] = 0;
 }
 
-float __fastcall TCurve::GetValue(int c, float p)
+float TCurve::GetValue(int c, float p)
 {
     int a = floor(p);
     int b = ceil(p);
@@ -49,7 +49,7 @@ float __fastcall TCurve::GetValue(int c, float p)
     return Values[a][c] * (1.0f - p) + Values[b][c] * (p);
 }
 
-bool __fastcall TCurve::SetValue(int c, float p, float v)
+bool TCurve::SetValue(int c, float p, float v)
 {
     int a = floor(p);
     int b = ceil(p);
@@ -65,7 +65,7 @@ bool __fastcall TCurve::SetValue(int c, float p, float v)
     return true;
 }
 
-bool __fastcall TCurve::Load(TQueryParserComp *Parser)
+bool TCurve::Load(TQueryParserComp *Parser)
 {
     DecimalSeparator = '.';
     AnsiString Token;
@@ -85,7 +85,7 @@ bool __fastcall TCurve::Load(TQueryParserComp *Parser)
     DecimalSeparator = ',';
 }
 
-bool __fastcall TCurve::LoadFromFile(AnsiString asName)
+bool TCurve::LoadFromFile(AnsiString asName)
 {
     DecimalSeparator = '.';
     TFileStream *fs;
@@ -108,7 +108,7 @@ bool __fastcall TCurve::LoadFromFile(AnsiString asName)
 
 #include <stdio.h>
 
-bool __fastcall TCurve::SaveToFile(AnsiString asName)
+bool TCurve::SaveToFile(AnsiString asName)
 {
 
     DecimalSeparator = '.';

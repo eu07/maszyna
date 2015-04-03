@@ -15,7 +15,7 @@ typedef void(__stdcall *OutPortType)(USHORT BasePort, USHORT value);
 InPortType InPort;
 OutPortType OutPort;
 
-bool __fastcall TLPT::Connect(int port)
+bool TLPT::Connect(int port)
 {
     // ladowanie dll-ki
     hDLL = LoadLibrary("inpout32.dll");
@@ -41,4 +41,4 @@ bool __fastcall TLPT::Connect(int port)
     return bool(OutPort);
 };
 
-void __fastcall TLPT::Out(int x) { // wys³anie bajtu do portu OutPort(address, x); };
+void TLPT::Out(int x) { // wys³anie bajtu do portu OutPort(address, x); };

@@ -140,12 +140,12 @@ class TTranscripts
     float fRefreshTime;
 
   public:
-    __fastcall TTranscripts();
-    __fastcall ~TTranscripts();
-    void __fastcall AddLine(char *txt, float show, float hide, bool it);
-    void __fastcall Add(char *txt, float len,
+    TTranscripts();
+    ~TTranscripts();
+    void AddLine(char *txt, float show, float hide, bool it);
+    void Add(char *txt, float len,
                         bool backgorund = false); // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
-    void __fastcall Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekundê)
+    void Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekundê)
 };
 
 class Global
@@ -197,11 +197,11 @@ class Global
     static AnsiString asCurrentDynamicPath;
     // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
     static AnsiString asHumanCtrlVehicle;
-    static void __fastcall LoadIniFile(AnsiString asFileName);
-    static void __fastcall InitKeys(AnsiString asFileName);
-    inline static vector3 __fastcall GetCameraPosition() { return pCameraPosition; };
-    static void __fastcall SetCameraPosition(vector3 pNewCameraPosition);
-    static void __fastcall SetCameraRotation(double Yaw);
+    static void LoadIniFile(AnsiString asFileName);
+    static void InitKeys(AnsiString asFileName);
+    inline static vector3 GetCameraPosition() { return pCameraPosition; };
+    static void SetCameraPosition(vector3 pNewCameraPosition);
+    static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     // McZapkie-221002: definicja swiatla dziennego
     static GLfloat AtmoColor[];
@@ -260,7 +260,7 @@ class Global
     static int iKeyLast; // ostatnio naciœniêty klawisz w celu logowania
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=t³o,b3=lagi,b4=wczytywanie
     static bool bActive; // czy jest aktywnym oknem
-    static void __fastcall BindTexture(GLuint t);
+    static void BindTexture(GLuint t);
     static int iConvertModels; // tworzenie plików binarnych
     static int iErorrCounter; // licznik sprawdzañ do œledzenia b³êdów OpenGL
     static bool bInactivePause; // automatyczna pauza, gdy okno nieaktywne
@@ -295,14 +295,14 @@ class Global
     static int iHiddenEvents; // czy ³¹czyæ eventy z torami poprzez nazwê toru
     static TTextSound *tsRadioBusy[10]; // zajêtoœæ kana³ów radiowych (wskaŸnik na odgrywany dŸwiêk)
     // metody
-    static void __fastcall TrainDelete(TDynamicObject *d);
-    static void __fastcall ConfigParse(Queryparsercomp::TQueryParserComp *qp, cParser *cp = NULL);
-    static AnsiString __fastcall GetNextSymbol();
+    static void TrainDelete(TDynamicObject *d);
+    static void ConfigParse(Queryparsercomp::TQueryParserComp *qp, cParser *cp = NULL);
+    static AnsiString GetNextSymbol();
     static TDynamicObject *__fastcall DynamicNearest();
     static TDynamicObject *__fastcall CouplerNearest();
-    static bool __fastcall AddToQuery(TEvent *event, TDynamicObject *who);
-    static bool __fastcall DoEvents();
-    static AnsiString __fastcall Bezogonkow(AnsiString str, bool _ = false);
+    static bool AddToQuery(TEvent *event, TDynamicObject *who);
+    static bool DoEvents();
+    static AnsiString Bezogonkow(AnsiString str, bool _ = false);
 };
 
 //---------------------------------------------------------------------------

@@ -54,27 +54,27 @@ class TTraction
     // bool bVisible;
     // DWORD dwFlags;
 
-    void __fastcall Optimize();
+    void Optimize();
 
     TTraction();
     ~TTraction();
 
-    //    virtual void __fastcall InitCenter(vector3 Angles, vector3 pOrigin);
-    //    virtual bool __fastcall Hit(double x, double z, vector3 &hitPoint, vector3 &hitDirection)
+    //    virtual void InitCenter(vector3 Angles, vector3 pOrigin);
+    //    virtual bool Hit(double x, double z, vector3 &hitPoint, vector3 &hitDirection)
     //    { return TNode::Hit(x,z,hitPoint,hitDirection); };
-    //  virtual bool __fastcall Move(double dx, double dy, double dz) { return false; };
-    //    virtual void __fastcall SelectedRender();
-    void __fastcall RenderDL(float mgn);
-    int __fastcall RaArrayPrepare();
-    void __fastcall RaArrayFill(CVertNormTex *Vert);
-    void __fastcall RenderVBO(float mgn, int iPtr);
-    int __fastcall TestPoint(vector3 *Point);
-    void __fastcall Connect(int my, TTraction *with, int to);
-    void __fastcall Init();
-    bool __fastcall WhereIs();
-    void __fastcall ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = NULL);
-    void __fastcall PowerSet(TTractionPowerSource *ps);
-    double __fastcall VoltageGet(double u, double i);
+    //  virtual bool Move(double dx, double dy, double dz) { return false; };
+    //    virtual void SelectedRender();
+    void RenderDL(float mgn);
+    int RaArrayPrepare();
+    void RaArrayFill(CVertNormTex *Vert);
+    void RenderVBO(float mgn, int iPtr);
+    int TestPoint(vector3 *Point);
+    void Connect(int my, TTraction *with, int to);
+    void Init();
+    bool WhereIs();
+    void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = NULL);
+    void PowerSet(TTractionPowerSource *ps);
+    double VoltageGet(double u, double i);
 };
 //---------------------------------------------------------------------------
 #endif

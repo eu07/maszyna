@@ -19,13 +19,13 @@ using namespace Math3D;
 class TSpring
 {
   public:
-    __fastcall TSpring();
-    __fastcall ~TSpring();
-    //    void __fastcall Init(TParticnp1, TParticle *np2, double nKs= 0.5f, double nKd= 0.002f,
+    TSpring();
+    ~TSpring();
+    //    void Init(TParticnp1, TParticle *np2, double nKs= 0.5f, double nKd= 0.002f,
     //    double nrestLen= -1.0f);
-    void __fastcall Init(double nrestLen, double nKs = 0.5f, double nKd = 0.002f);
-    bool __fastcall ComputateForces(vector3 pPosition1, vector3 pPosition2);
-    void __fastcall Render();
+    void Init(double nrestLen, double nKs = 0.5f, double nKd = 0.002f);
+    bool ComputateForces(vector3 pPosition1, vector3 pPosition2);
+    void Render();
     vector3 vForce1, vForce2;
     double restLen; // LENGTH OF SPRING AT REST
     double Ks;      // SPRING CONSTANT

@@ -74,7 +74,7 @@ union TParam
 class TEvent // zmienne: ev*
 { // zdarzenie
   private:
-    void __fastcall Conditions(cParser *parser, AnsiString s);
+    void Conditions(cParser *parser, AnsiString s);
 
   public:
     AnsiString asName;
@@ -93,18 +93,18 @@ class TEvent // zmienne: ev*
     TEvent *evJoined; // kolejny event z t¹ sam¹ nazw¹ - od wersji 378
     double fRandomDelay; // zakres dodatkowego opóŸnienia
   public: // metody
-    __fastcall TEvent(AnsiString m = "");
-    __fastcall ~TEvent();
-    void __fastcall Init();
-    void __fastcall Load(cParser *parser, vector3 *org);
-    void __fastcall AddToQuery(TEvent *e);
-    AnsiString __fastcall CommandGet();
-    TCommandType __fastcall Command();
-    double __fastcall ValueGet(int n);
-    vector3 __fastcall PositionGet();
-    bool __fastcall StopCommand();
-    void __fastcall StopCommandSent();
-    void __fastcall Append(TEvent *e);
+    TEvent(AnsiString m = "");
+    ~TEvent();
+    void Init();
+    void Load(cParser *parser, vector3 *org);
+    void AddToQuery(TEvent *e);
+    AnsiString CommandGet();
+    TCommandType Command();
+    double ValueGet(int n);
+    vector3 PositionGet();
+    bool StopCommand();
+    void StopCommandSent();
+    void Append(TEvent *e);
 };
 
 //---------------------------------------------------------------------------

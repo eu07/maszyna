@@ -29,18 +29,18 @@ class TCamera
     vector3 OldVelocity; // lepiej usredniac zeby nie bylo rozbiezne przy malym FPS
     vector3 CrossPos;
     double CrossDist;
-    void __fastcall Init(vector3 NPos, vector3 NAngle);
-    void __fastcall Reset() { Pitch = Yaw = Roll = 0; };
-    void __fastcall OnCursorMove(double x, double y);
-    void __fastcall Update();
-    vector3 __fastcall GetDirection();
-    // vector3 inline __fastcall GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
+    void Init(vector3 NPos, vector3 NAngle);
+    void Reset() { Pitch = Yaw = Roll = 0; };
+    void OnCursorMove(double x, double y);
+    void Update();
+    vector3 GetDirection();
+    // vector3 inline GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
 
-    bool __fastcall SetMatrix();
-    void __fastcall SetCabMatrix(vector3 &p);
-    void __fastcall RaLook();
-    void __fastcall Stop();
-    // bool __fastcall GetMatrix(matrix4x4 &Matrix);
+    bool SetMatrix();
+    void SetCabMatrix(vector3 &p);
+    void RaLook();
+    void Stop();
+    // bool GetMatrix(matrix4x4 &Matrix);
     vector3 PtNext, PtPrev;
 };
 #endif

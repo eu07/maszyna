@@ -71,11 +71,11 @@ __fastcall TEvent::~TEvent()
     evJoined = NULL; // nie usuwaæ podczepionych tutaj
 };
 
-void __fastcall TEvent::Init(){
+void TEvent::Init(){
 
 };
 
-void __fastcall TEvent::Conditions(cParser *parser, AnsiString s)
+void TEvent::Conditions(cParser *parser, AnsiString s)
 { // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
     if (s == "condition")
     { // jesli nie "endevent"
@@ -143,7 +143,7 @@ void __fastcall TEvent::Conditions(cParser *parser, AnsiString s)
     }
 };
 
-void __fastcall TEvent::Load(cParser *parser, vector3 *org)
+void TEvent::Load(cParser *parser, vector3 *org)
 {
     int i;
     int ti;
@@ -589,7 +589,7 @@ void __fastcall TEvent::Load(cParser *parser, vector3 *org)
     }
 };
 
-void __fastcall TEvent::AddToQuery(TEvent *e)
+void TEvent::AddToQuery(TEvent *e)
 { // dodanie eventu do kolejki
     if (evNext ? (e->fStartTime >= evNext->fStartTime) : false)
         evNext->AddToQuery(e); // sortowanie wg czasu
@@ -602,7 +602,7 @@ void __fastcall TEvent::AddToQuery(TEvent *e)
 
 //---------------------------------------------------------------------------
 
-AnsiString __fastcall TEvent::CommandGet()
+AnsiString TEvent::CommandGet()
 { // odczytanie komendy z eventu
     switch (Type)
     { // to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi
@@ -614,7 +614,7 @@ AnsiString __fastcall TEvent::CommandGet()
     return ""; // inne eventy siê nie licz¹
 };
 
-TCommandType __fastcall TEvent::Command()
+TCommandType TEvent::Command()
 { // odczytanie komendy z eventu
     switch (Type)
     { // to siê wykonuje równie¿ dla sk³adu jad¹cego bez obs³ugi
@@ -626,7 +626,7 @@ TCommandType __fastcall TEvent::Command()
     return cm_Unknown; // inne eventy siê nie licz¹
 };
 
-double __fastcall TEvent::ValueGet(int n)
+double TEvent::ValueGet(int n)
 { // odczytanie komendy z eventu
     n &= 1; // tylko 1 albo 2 jest prawid³owy
     switch (Type)
@@ -639,7 +639,7 @@ double __fastcall TEvent::ValueGet(int n)
     return 0.0; // inne eventy siê nie licz¹
 };
 
-vector3 __fastcall TEvent::PositionGet()
+vector3 TEvent::PositionGet()
 { // pobranie wspó³rzêdnych eventu
     switch (Type)
     { //
@@ -651,20 +651,20 @@ vector3 __fastcall TEvent::PositionGet()
     return vector3(0, 0, 0); // inne eventy siê nie licz¹
 };
 
-bool __fastcall TEvent::StopCommand()
+bool TEvent::StopCommand()
 { //
     if (Type == tp_GetValues)
         return Params[9].asMemCell->StopCommand(); // info o komendzie z komórki
     return false;
 };
 
-void __fastcall TEvent::StopCommandSent()
+void TEvent::StopCommandSent()
 {
     if (Type == tp_GetValues)
         Params[9].asMemCell->StopCommandSent(); // komenda z komórki zosta³a wys³ana
 };
 
-void __fastcall TEvent::Append(TEvent *e)
+void TEvent::Append(TEvent *e)
 { // doczepienie kolejnych z t¹ sam¹ nazw¹
     if (evJoined)
         evJoined->Append(e); // rekurencja! - góra kilkanaœcie eventów bêdzie potrzebne

@@ -28,11 +28,11 @@ class TGeometry
     TMaterialColor Specular;
 
   public:
-    __fastcall TGeometry();
-    __fastcall ~TGeometry();
-    bool __fastcall Init();
-    vector3 __fastcall Load(TQueryParserComp *Parser);
-    bool __fastcall Render();
+    TGeometry();
+    ~TGeometry();
+    bool Init();
+    vector3 Load(TQueryParserComp *Parser);
+    bool Render();
 };
 
 //---------------------------------------------------------------------------

@@ -32,7 +32,7 @@ __fastcall TTrackFollower::TTrackFollower()
 
 __fastcall TTrackFollower::~TTrackFollower() {}
 
-bool __fastcall TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
+bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
 {
     fDirection = fDir;
     Owner = NewOwner;
@@ -105,7 +105,7 @@ TTrack *__fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
     return pCurrentTrack;
 };
 
-bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
+bool TTrackFollower::Move(double fDistance, bool bPrimary)
 { // przesuwanie wózka po torach o odleg³oœæ (fDistance), z wyzwoleniem eventów
     // bPrimary=true - jest pierwsz¹ osi¹ w pojeŸdzie, czyli generuje eventy i przepisuje pojazd
     // Ra: zwraca false, jeœli pojazd ma byæ usuniêty
@@ -290,7 +290,7 @@ bool __fastcall TTrackFollower::Move(double fDistance, bool bPrimary)
     }
 };
 
-bool __fastcall TTrackFollower::ComputatePosition()
+bool TTrackFollower::ComputatePosition()
 { // ustalenie wspó³rzêdnych XYZ
     if (pCurrentSegment) // o ile jest tor
     {
@@ -312,7 +312,7 @@ bool __fastcall TTrackFollower::ComputatePosition()
 #if RENDER_CONE
 #include "opengl/glew.h"
 #include "opengl/glut.h"
-void __fastcall TTrackFollower::Render(float fNr)
+void TTrackFollower::Render(float fNr)
 { // funkcja rysuj¹ca sto¿ek w miejscu osi
     glPushMatrix(); // matryca kamery
     glTranslatef(pPosition.x, pPosition.y + 6, pPosition.z); // 6m ponad

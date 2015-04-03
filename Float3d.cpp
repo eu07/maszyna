@@ -9,7 +9,7 @@
 
 #pragma package(smart_init)
 
-void __fastcall float4x4::Quaternion(float4 *q)
+void float4x4::Quaternion(float4 *q)
 { // konwersja kwaternionu obrotu na macierz obrotu
     float xx = q->x * q->x, yy = q->y * q->y, zz = q->z * q->z;
     float xy = q->x * q->y, xz = q->x * q->z, yz = q->y * q->z;

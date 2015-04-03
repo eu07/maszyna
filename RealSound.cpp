@@ -38,9 +38,9 @@ __fastcall TRealSound::~TRealSound()
     // if (this) if (pSound) pSound->Stop();
 }
 
-void __fastcall TRealSound::Free() {}
+void TRealSound::Free() {}
 
-void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y,
+void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y,
                                  double Z, bool Dynamic, bool freqmod, double rmin)
 {
     // Nazwa=SoundName; //to tak raczej nie zadzia³a, (SoundName) jest tymczasowe
@@ -76,7 +76,7 @@ void __fastcall TRealSound::Init(char *SoundName, double DistanceAttenuation, do
         dSoundAtt = -1;
 };
 
-double __fastcall TRealSound::ListenerDistance(vector3 ListenerPosition)
+double TRealSound::ListenerDistance(vector3 ListenerPosition)
 {
     if (dSoundAtt == -1)
     {
@@ -88,7 +88,7 @@ double __fastcall TRealSound::ListenerDistance(vector3 ListenerPosition)
     }
 }
 
-void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside,
+void TRealSound::Play(double Volume, int Looping, bool ListenerInside,
                                  vector3 NewPosition)
 {
     if (!pSound)
@@ -161,11 +161,11 @@ void __fastcall TRealSound::Play(double Volume, int Looping, bool ListenerInside
     }
 };
 
-void __fastcall TRealSound::Start(){// w³¹czenie dŸwiêku
+void TRealSound::Start(){// w³¹czenie dŸwiêku
 
 };
 
-void __fastcall TRealSound::Stop()
+void TRealSound::Stop()
 {
     DWORD stat;
     if (pSound)
@@ -178,7 +178,7 @@ void __fastcall TRealSound::Stop()
         }
 };
 
-void __fastcall TRealSound::AdjFreq(double Freq,
+void TRealSound::AdjFreq(double Freq,
                                     double dt) // McZapkie TODO: dorobic tu efekt Dopplera
 // Freq moze byc liczba dodatnia mniejsza od 1 lub wieksza od 1
 {
@@ -216,7 +216,7 @@ double TRealSound::GetWaveTime() // McZapkie: na razie tylko dla 22KHz/8bps
            fFrequency; //(pSound->);  // wielkosc w bajtach przez czestotliwosc probkowania
 }
 
-void __fastcall TRealSound::SetPan(int Pan) { pSound->SetPan(Pan); }
+void TRealSound::SetPan(int Pan) { pSound->SetPan(Pan); }
 
 int TRealSound::GetStatus()
 {
@@ -230,13 +230,13 @@ int TRealSound::GetStatus()
         return 0;
 }
 
-void __fastcall TRealSound::ResetPosition()
+void TRealSound::ResetPosition()
 {
     if (pSound) // Ra: znowu jakiœ badziew!
         pSound->SetCurrentPosition(0);
 }
 
-void __fastcall TTextSound::Init(char *SoundName, double SoundAttenuation, double X, double Y,
+void TTextSound::Init(char *SoundName, double SoundAttenuation, double X, double Y,
                                  double Z, bool Dynamic, bool freqmod, double rmin)
 { // dodatkowo doczytuje plik tekstowy
     TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
@@ -257,7 +257,7 @@ void __fastcall TTextSound::Init(char *SoundName, double SoundAttenuation, doubl
         delete ts;
     }
 };
-void __fastcall TTextSound::Play(double Volume, int Looping, bool ListenerInside,
+void TTextSound::Play(double Volume, int Looping, bool ListenerInside,
                                  vector3 NewPosition)
 {
     if (!asText.IsEmpty())

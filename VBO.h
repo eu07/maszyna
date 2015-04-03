@@ -22,14 +22,14 @@ class CMesh
     int m_nVertexCount; // liczba wierzcho³ków
     CVertNormTex *m_pVNT;
     unsigned int m_nVBOVertices; // numer VBO z wierzcho³kami
-    __fastcall CMesh();
-    __fastcall ~CMesh();
-    void __fastcall MakeArray(int n); // tworzenie tablicy z elementami VNT
-    void __fastcall BuildVBOs(bool del = true); // zamiana tablic na VBO
-    void __fastcall Clear(); // zwolnienie zasobów
-    bool __fastcall StartVBO();
-    void __fastcall EndVBO();
-    bool __fastcall StartColorVBO();
+    CMesh();
+    ~CMesh();
+    void MakeArray(int n); // tworzenie tablicy z elementami VNT
+    void BuildVBOs(bool del = true); // zamiana tablic na VBO
+    void Clear(); // zwolnienie zasobów
+    bool StartVBO();
+    void EndVBO();
+    bool StartColorVBO();
 };
 
 #endif

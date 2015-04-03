@@ -16,13 +16,13 @@ class TMachajka : public TTrain
     //    bool enter;
     //    bool space;
     //    double wa,wv;
-    __fastcall TMachajka();
-    virtual __fastcall ~TMachajka();
-    virtual bool __fastcall Init(TDynamicObject *NewDynamicObject);
-    virtual void __fastcall OnKeyPress(int cKey);
-    virtual bool __fastcall Update(double dt);
-    virtual bool __fastcall UpdateMechPosition();
-    virtual bool __fastcall Render();
+    TMachajka();
+    virtual ~TMachajka();
+    virtual bool Init(TDynamicObject *NewDynamicObject);
+    virtual void OnKeyPress(int cKey);
+    virtual bool Update(double dt);
+    virtual bool UpdateMechPosition();
+    virtual bool Render();
 };
 
 //---------------------------------------------------------------------------

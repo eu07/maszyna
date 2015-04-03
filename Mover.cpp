@@ -24,26 +24,26 @@ __fastcall TMoverParameters::TMoverParameters(double VelInitial, AnsiString Type
     iLights[0] = iLights[1] = 0; //œwiat³a zgaszone
 };
 
-double __fastcall TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,
+double TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,
                                              const TDimension &Dim1, const TDimension &Dim2)
 { // zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci (kule!)
     return hypot(Loc2.X - Loc1.X, Loc1.Y - Loc2.Y) - 0.5 * (Dim2.L + Dim1.L);
 };
 
-double __fastcall TMoverParameters::Distance(const vector3 &s1, const vector3 &s2,
+double TMoverParameters::Distance(const vector3 &s1, const vector3 &s2,
                                              const vector3 &d1, const vector3 &d2){
     // obliczenie odleg³oœci prostopad³oœcianów o œrodkach (s1) i (s2) i wymiarach (d1) i (d2)
     // return 0.0; //bêdzie zg³aszaæ warning - funkcja do usuniêcia, chyba ¿e siê przyda...
 };
 
-double __fastcall TMoverParameters::CouplerDist(Byte Coupler)
+double TMoverParameters::CouplerDist(Byte Coupler)
 { // obliczenie odleg³oœci pomiêdzy sprzêgami (kula!)
     return Couplers[Coupler].CoupleDist =
                Distance(Loc, Couplers[Coupler].Connected->Loc, Dim,
                         Couplers[Coupler].Connected->Dim); // odleg³oœæ pomiêdzy sprzêgami (kula!)
 };
 
-bool __fastcall TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
+bool TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
                                          TMoverParameters *ConnectTo, Byte CouplingType,
                                          bool Forced)
 { //³¹czenie do swojego sprzêgu (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
@@ -87,14 +87,14 @@ bool __fastcall TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
                   // sprzêgu, brak haka
 };
 
-bool __fastcall TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
+bool TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
                                          T_MoverParameters *ConnectTo, Byte CouplingType,
                                          bool Forced)
 { //³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
     return Attach(ConnectNo, ConnectToNr, (TMoverParameters *)ConnectTo, CouplingType, Forced);
 };
 
-int __fastcall TMoverParameters::DettachStatus(Byte ConnectNo)
+int TMoverParameters::DettachStatus(Byte ConnectNo)
 { // Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
     // powinny byæ 3 informacje: =0 sprzêg ju¿ roz³¹czony, <0 da siê roz³¹czyæ. >0 nie da siê
     // roz³¹czyæ
@@ -115,7 +115,7 @@ int __fastcall TMoverParameters::DettachStatus(Byte ConnectNo)
                                                     Couplers[ConnectNo].CouplingFlag;
 };
 
-bool __fastcall TMoverParameters::Dettach(Byte ConnectNo)
+bool TMoverParameters::Dettach(Byte ConnectNo)
 { // rozlaczanie
     if (!Couplers[ConnectNo].Connected)
         return true; // nie ma nic, to odczepiono
@@ -140,7 +140,7 @@ bool __fastcall TMoverParameters::Dettach(Byte ConnectNo)
     return false; // jeszcze nie roz³¹czony
 };
 
-void __fastcall TMoverParameters::SetCoupleDist()
+void TMoverParameters::SetCoupleDist()
 { // przeliczenie odleg³oœci sprzêgów
     if (Couplers[0].Connected)
     {
@@ -158,7 +158,7 @@ void __fastcall TMoverParameters::SetCoupleDist()
     }
 };
 
-bool __fastcall TMoverParameters::DirectionForward()
+bool TMoverParameters::DirectionForward()
 {
     if ((MainCtrlPosNo > 0) && (ActiveDir < 1) && (MainCtrlPos == 0))
     {
@@ -177,7 +177,7 @@ bool __fastcall TMoverParameters::DirectionForward()
 
 // Nastawianie hamulców
 
-void __fastcall TMoverParameters::BrakeLevelSet(double b)
+void TMoverParameters::BrakeLevelSet(double b)
 { // ustawienie pozycji hamulca na wartoœæ (b) w zakresie od -2 do BrakeCtrlPosNo
     // jedyny dopuszczalny sposób przestawienia hamulca zasadniczego
     if (fBrakeCtrlPos == b)
@@ -217,7 +217,7 @@ void __fastcall TMoverParameters::BrakeLevelSet(double b)
     */
 };
 
-bool __fastcall TMoverParameters::BrakeLevelAdd(double b)
+bool TMoverParameters::BrakeLevelAdd(double b)
 { // dodanie wartoœci (b) do pozycji hamulca (w tym ujemnej)
     // zwraca false, gdy po dodaniu by³o by poza zakresem
     BrakeLevelSet(fBrakeCtrlPos + b);
@@ -225,14 +225,14 @@ bool __fastcall TMoverParameters::BrakeLevelAdd(double b)
                      (BrakeCtrlPos > -1.0); // true, jeœli mo¿na kontynuowaæ
 };
 
-bool __fastcall TMoverParameters::IncBrakeLevel()
+bool TMoverParameters::IncBrakeLevel()
 { // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê BrakeCtrlPosNo
   return BrakeLevelAdd(1.0); };
 
-bool __fastcall TMoverParameters::DecBrakeLevel()
+bool TMoverParameters::DecBrakeLevel()
 { // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1 return BrakeLevelAdd(-1.0); };
 
-bool __fastcall TMoverParameters::ChangeCab(int direction)
+bool TMoverParameters::ChangeCab(int direction)
 { // zmiana kabiny i resetowanie ustawien
     if (abs(ActiveCab + direction) < 2)
     {
@@ -274,7 +274,7 @@ bool __fastcall TMoverParameters::ChangeCab(int direction)
     return false;
 };
 
-bool __fastcall TMoverParameters::CurrentSwitch(int direction)
+bool TMoverParameters::CurrentSwitch(int direction)
 { // rozruch wysoki (true) albo niski (false)
     // Ra: przenios³em z Train.cpp, nie wiem czy ma to sens
     if (MaxCurrentSwitch(direction))
@@ -289,7 +289,7 @@ bool __fastcall TMoverParameters::CurrentSwitch(int direction)
     return false;
 };
 
-void __fastcall TMoverParameters::UpdatePantVolume(double dt)
+void TMoverParameters::UpdatePantVolume(double dt)
 { // KURS90 - sprê¿arka pantografów; Ra 2014-07: teraz jest to zbiornik rozrz¹du, chocia¿ to jeszcze
   // nie tak
     if (EnginePowerSource.SourceType == CurrentCollector) // tylko jeœli pantografuj¹cy
@@ -349,7 +349,7 @@ void __fastcall TMoverParameters::UpdatePantVolume(double dt)
     }
 };
 
-void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
+void TMoverParameters::UpdateBatteryVoltage(double dt)
 { // przeliczenie obci¹¿enia baterii
     double sn1, sn2, sn3, sn4, sn5; // Ra: zrobiæ z tego amperomierz NN
     if ((BatteryVoltage > 0) && (EngineType != DieselEngine) && (EngineType != WheelsDriven) &&
@@ -467,7 +467,7 @@ void __fastcall TMoverParameters::UpdateBatteryVoltage(double dt)
 ZN //masa
 */
 
-double __fastcall TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
+double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
                                                     TTrackParam &Track,
                                                     TTractionParam &ElectricTraction,
                                                     const TLocation &NewLoc, TRotation &NewRot)
@@ -546,7 +546,7 @@ double __fastcall TMoverParameters::ComputeMovement(double dt, double dt1, const
     return d;
 };
 
-double __fastcall TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape,
+double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape,
                                                         TTrackParam &Track, const TLocation &NewLoc,
                                                         TRotation &NewRot)
 { // trzeba po ma³u przenosiæ tu tê funkcjê
@@ -592,7 +592,7 @@ double __fastcall TMoverParameters::FastComputeMovement(double dt, const TTrackS
     return d;
 };
 
-double __fastcall TMoverParameters::ShowEngineRotation(int VehN)
+double TMoverParameters::ShowEngineRotation(int VehN)
 { // pokazywanie obrotów silnika, równie¿ dwóch dalszych pojazdów (3×SN61)
     int b;
     switch (VehN)
@@ -617,7 +617,7 @@ double __fastcall TMoverParameters::ShowEngineRotation(int VehN)
     return 0.0;
 };
 
-void __fastcall TMoverParameters::ConverterCheck()
+void TMoverParameters::ConverterCheck()
 { // sprawdzanie przetwornicy
     if (ConverterAllow && Mains)
         ConverterFlag = true;
@@ -625,7 +625,7 @@ void __fastcall TMoverParameters::ConverterCheck()
         ConverterFlag = false;
 };
 
-int __fastcall TMoverParameters::ShowCurrent(Byte AmpN)
+int TMoverParameters::ShowCurrent(Byte AmpN)
 { // odczyt ampera¿u
     switch (EngineType)
     {

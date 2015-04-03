@@ -22,9 +22,9 @@ __fastcall TFadeSound::TFadeSound()
 
 __fastcall TFadeSound::~TFadeSound() { Free(); }
 
-void __fastcall TFadeSound::Free() {}
+void TFadeSound::Free() {}
 
-void __fastcall TFadeSound::Init(char *Name, float fNewFade)
+void TFadeSound::Init(char *Name, float fNewFade)
 {
     Sound = TSoundsManager::GetFromName(Name, false);
     if (Sound)
@@ -33,16 +33,16 @@ void __fastcall TFadeSound::Init(char *Name, float fNewFade)
     fTime = 0;
 }
 
-void __fastcall TFadeSound::TurnOn()
+void TFadeSound::TurnOn()
 {
     State = ss_Starting;
     Sound->Play(0, 0, DSBPLAY_LOOPING);
     fTime = fFade;
 }
 
-void __fastcall TFadeSound::TurnOff() { State = ss_ShuttingDown; }
+void TFadeSound::TurnOff() { State = ss_ShuttingDown; }
 
-void __fastcall TFadeSound::Update()
+void TFadeSound::Update()
 {
 
     if (State == ss_Starting)
@@ -79,7 +79,7 @@ void __fastcall TFadeSound::Update()
         }
     }
 }
-void __fastcall TFadeSound::Volume(long vol)
+void TFadeSound::Volume(long vol)
 {
     float glos = 1;
     Sound->SetVolume(vol * glos);

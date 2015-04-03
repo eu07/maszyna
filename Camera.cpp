@@ -21,7 +21,7 @@
 
 const vector3 OrgCrossPos = vector3(0, -10, 0);
 
-void __fastcall TCamera::Init(vector3 NPos, vector3 NAngle)
+void TCamera::Init(vector3 NPos, vector3 NAngle)
 {
 
     pOffset = vector3(-0.0, 0, 0);
@@ -41,7 +41,7 @@ void __fastcall TCamera::Init(vector3 NPos, vector3 NAngle)
     //    Type= tp_Free;
 };
 
-void __fastcall TCamera::OnCursorMove(double x, double y)
+void TCamera::OnCursorMove(double x, double y)
 {
     // McZapkie-170402: zeby mysz dzialala zawsze    if (Type==tp_Follow)
     Pitch += y;
@@ -57,7 +57,7 @@ void __fastcall TCamera::OnCursorMove(double x, double y)
     }
 }
 
-void __fastcall TCamera::Update()
+void TCamera::Update()
 {
     // ABu: zmiana i uniezaleznienie predkosci od FPS
     double a = (Console::Pressed(VK_SHIFT) ? 5.00 : 1.00);
@@ -135,7 +135,7 @@ void __fastcall TCamera::Update()
     }
 }
 
-vector3 __fastcall TCamera::GetDirection()
+vector3 TCamera::GetDirection()
 {
     matrix4x4 mat;
     vector3 Vec;
@@ -145,8 +145,8 @@ vector3 __fastcall TCamera::GetDirection()
     return (Normalize(Vec));
 }
 
-// bool __fastcall TCamera::GetMatrix(matrix4x4 &Matrix)
-bool __fastcall TCamera::SetMatrix()
+// bool TCamera::GetMatrix(matrix4x4 &Matrix)
+bool TCamera::SetMatrix()
 {
     glRotated(-Roll * 180.0f / M_PI, 0, 0, 1); // po wy³¹czeniu tego krêci siê pojazd, a sceneria
                                                // nie
@@ -177,7 +177,7 @@ bool __fastcall TCamera::SetMatrix()
     return true;
 }
 
-void __fastcall TCamera::SetCabMatrix(vector3 &p)
+void TCamera::SetCabMatrix(vector3 &p)
 { // ustawienie widoku z kamery bez przesuniêcia robionego przez OpenGL - nie powinno tak trz¹œæ
     glRotated(-Roll * 180.0f / M_PI, 0, 0, 1);
     glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
@@ -187,7 +187,7 @@ void __fastcall TCamera::SetCabMatrix(vector3 &p)
                   LookAt.z - p.z, vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero
 }
 
-void __fastcall TCamera::RaLook()
+void TCamera::RaLook()
 { // zmiana kierunku patrzenia - przelicza Yaw
     vector3 where = LookAt - Pos + vector3(0, 3, 0); // trochê w górê od szyn
     if ((where.x != 0.0) || (where.z != 0.0))
@@ -197,7 +197,7 @@ void __fastcall TCamera::RaLook()
         Pitch = asin(where.y / l); // k¹t w pionie
 };
 
-void __fastcall TCamera::Stop()
+void TCamera::Stop()
 { // wy³¹cznie bezw³adnego ruchu po powrocie do kabiny
     Type = tp_Follow;
     Velocity = vector3(0, 0, 0);

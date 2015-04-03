@@ -22,13 +22,13 @@ __fastcall CMesh::~CMesh()
     Clear(); // zwolnienie zasobów
 };
 
-void __fastcall CMesh::MakeArray(int n)
+void CMesh::MakeArray(int n)
 { // tworzenie tablic
     m_nVertexCount = n;
     m_pVNT = new CVertNormTex[m_nVertexCount]; // przydzielenie pamiêci dla tablicy
 };
 
-void __fastcall CMesh::BuildVBOs(bool del)
+void CMesh::BuildVBOs(bool del)
 { // tworzenie VBO i kasowanie ju¿ niepotrzebnych tablic
     // pobierz numer VBO oraz ustaw go jako aktywny
     glGenBuffersARB(1, &m_nVBOVertices); // pobierz numer
@@ -41,7 +41,7 @@ void __fastcall CMesh::BuildVBOs(bool del)
         SafeDeleteArray(m_pVNT); // wierzcho³ki ju¿ siê nie przydadz¹
 };
 
-void __fastcall CMesh::Clear()
+void CMesh::Clear()
 { // niewirtualne zwolnienie zasobów przez sprz¹tacz albo destruktor
     // inna nazwa, ¿eby nie miesza³o siê z funkcj¹ wirtualn¹ sprz¹tacza
     if (m_nVBOVertices) // jeœli by³o coœ rezerwowane
@@ -54,7 +54,7 @@ void __fastcall CMesh::Clear()
     SafeDeleteArray(m_pVNT); // usuwanie tablic, gdy by³y u¿yte do Vertex Array
 };
 
-bool __fastcall CMesh::StartVBO()
+bool CMesh::StartVBO()
 { // pocz¹tek rysowania elementów z VBO
     if (m_nVertexCount <= 0)
         return false; // nie ma nic do rysowania w ten sposób
@@ -71,7 +71,7 @@ bool __fastcall CMesh::StartVBO()
     return true; // mo¿na rysowaæ z VBO
 };
 
-bool __fastcall CMesh::StartColorVBO()
+bool CMesh::StartColorVBO()
 { // pocz¹tek rysowania punktów œwiec¹cych z VBO
     if (m_nVertexCount <= 0)
         return false; // nie ma nic do rysowania w ten sposób
@@ -87,7 +87,7 @@ bool __fastcall CMesh::StartColorVBO()
     return true; // mo¿na rysowaæ z VBO
 };
 
-void __fastcall CMesh::EndVBO()
+void CMesh::EndVBO()
 { // koniec u¿ycia VBO
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);

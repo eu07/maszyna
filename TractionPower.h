@@ -34,15 +34,15 @@ class TTractionPowerSource
     TGroundNode *gMyNode; // Ra 2015-03: znowu prowizorka, aby mieæ nazwê do logowania
   public:
     // AnsiString asName;
-    __fastcall TTractionPowerSource();
-    __fastcall ~TTractionPowerSource();
-    void __fastcall Init(double u, double i);
-    bool __fastcall Load(cParser *parser);
-    bool __fastcall Render();
-    bool __fastcall Update(double dt);
-    double __fastcall CurrentGet(double res);
-    void __fastcall VoltageSet(double v) { NominalVoltage = v; };
-    void __fastcall PowerSet(TTractionPowerSource *ps);
+    TTractionPowerSource();
+    ~TTractionPowerSource();
+    void Init(double u, double i);
+    bool Load(cParser *parser);
+    bool Render();
+    bool Update(double dt);
+    double CurrentGet(double res);
+    void VoltageSet(double v) { NominalVoltage = v; };
+    void PowerSet(TTractionPowerSource *ps);
 };
 
 //---------------------------------------------------------------------------

@@ -38,25 +38,25 @@ class TGauge // zmienne "gg"
     };
 
   public:
-    __fastcall TGauge();
-    __fastcall ~TGauge();
-    void __fastcall Clear();
-    void __fastcall Init(TSubModel *NewSubModel, TGaugeType eNewTyp, double fNewScale = 1,
+    TGauge();
+    ~TGauge();
+    void Clear();
+    void Init(TSubModel *NewSubModel, TGaugeType eNewTyp, double fNewScale = 1,
                          double fNewOffset = 0, double fNewFriction = 0, double fNewValue = 0);
-    bool __fastcall Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2 = NULL,
+    bool Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2 = NULL,
                          double mul = 1.0);
-    void __fastcall PermIncValue(double fNewDesired);
-    void __fastcall IncValue(double fNewDesired);
-    void __fastcall DecValue(double fNewDesired);
-    void __fastcall UpdateValue(double fNewDesired);
-    void __fastcall PutValue(double fNewDesired);
+    void PermIncValue(double fNewDesired);
+    void IncValue(double fNewDesired);
+    void DecValue(double fNewDesired);
+    void UpdateValue(double fNewDesired);
+    void PutValue(double fNewDesired);
     float GetValue() { return fValue; };
-    void __fastcall Update();
-    void __fastcall Render();
-    void __fastcall AssignFloat(float *fValue);
-    void __fastcall AssignDouble(double *dValue);
-    void __fastcall AssignInt(int *iValue);
-    void __fastcall UpdateValue();
+    void Update();
+    void Render();
+    void AssignFloat(float *fValue);
+    void AssignDouble(double *dValue);
+    void AssignInt(int *iValue);
+    void UpdateValue();
     TSubModel *SubModel; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
 };
 

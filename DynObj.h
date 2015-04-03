@@ -90,7 +90,7 @@ class TAnimPant
     float fWidthExtra; // dodatkowy rozmiar poziomy poza czêœæ robocz¹ (fWidth)
     float fHeightExtra[5]; //³amana symuluj¹ca kszta³t nabie¿nika
     // double fHorizontal; //Ra 2015-01: po³o¿enie drutu wzglêdem osi pantografu
-    void __fastcall AKP_4E();
+    void AKP_4E();
 };
 
 class TAnim
@@ -123,11 +123,11 @@ class TAnim
     float fSpeed; // parametr szybkoœci animacji
     int iNumber; // numer kolejny obiektu
   public:
-    __fastcall TAnim();
-    __fastcall ~TAnim();
+    TAnim();
+    ~TAnim();
     TUpdate yUpdate; // metoda TDynamicObject aktualizuj¹ca animacjê
-    int __fastcall TypeSet(int i, int fl = 0); // ustawienie typu
-    void __fastcall Parovoz(); // wykonanie obliczeñ animacji
+    int TypeSet(int i, int fl = 0); // ustawienie typu
+    void Parovoz(); // wykonanie obliczeñ animacji
 };
 
 //---------------------------------------------------------------------------
@@ -224,7 +224,7 @@ class TDynamicObject
     void ABuLittleUpdate(double ObjSqrDist);
     bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
     // bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    double __fastcall ComputeRadius(vector3 p1, vector3 p2, vector3 p3, vector3 p4);
+    double ComputeRadius(vector3 p1, vector3 p2, vector3 p3, vector3 p4);
 
     TButton btCoupler1; // sprzegi
     TButton btCoupler2;
@@ -291,8 +291,8 @@ class TDynamicObject
     double eng_frq_act;
     double eng_dfrq;
     double eng_turbo;
-    void __fastcall ABuBogies();
-    void __fastcall ABuModelRoll();
+    void ABuBogies();
+    void ABuModelRoll();
     vector3 modelShake;
 
     bool renderme; // yB - czy renderowac
@@ -302,7 +302,7 @@ class TDynamicObject
     TRealSound rsUnbrake; // yB - odglos luzowania
     float ModCamRot;
     int iInventory; // flagi bitowe posiadanych submodeli (np. œwiate³)
-    void __fastcall TurnOff();
+    void TurnOff();
 
   public:
     int iHornWarning; // numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
@@ -320,7 +320,7 @@ class TDynamicObject
   protected:
     TDynamicObject *__fastcall ABuFindObject(TTrack *Track, int ScanDir, Byte &CouplFound,
                                              double &dist);
-    void __fastcall ABuCheckMyTrack();
+    void ABuCheckMyTrack();
 
   public:
     int *iLights; // wskaŸnik na bity zapalonych œwiate³ (w³asne albo innego cz³onu)
@@ -330,15 +330,15 @@ class TDynamicObject
     TDynamicObject *__fastcall Prev();
     TDynamicObject *__fastcall Next();
     TDynamicObject *__fastcall NextC(int C);
-    double __fastcall NextDistance(double d = -1.0);
-    void __fastcall SetdMoveLen(double dMoveLen) { MoverParameters->dMoveLen = dMoveLen; }
-    void __fastcall ResetdMoveLen() { MoverParameters->dMoveLen = 0; }
-    double __fastcall GetdMoveLen() { return MoverParameters->dMoveLen; }
+    double NextDistance(double d = -1.0);
+    void SetdMoveLen(double dMoveLen) { MoverParameters->dMoveLen = dMoveLen; }
+    void ResetdMoveLen() { MoverParameters->dMoveLen = 0; }
+    double GetdMoveLen() { return MoverParameters->dMoveLen; }
 
-    int __fastcall GetPneumatic(bool front, bool red);
-    void __fastcall SetPneumatic(bool front, bool red);
+    int GetPneumatic(bool front, bool red);
+    void SetPneumatic(bool front, bool red);
     AnsiString asName;
-    AnsiString __fastcall GetName() { return this ? asName : AnsiString(""); };
+    AnsiString GetName() { return this ? asName : AnsiString(""); };
 
     TRealSound rsDiesielInc; // youBy
     TRealSound rscurve; // youBy
@@ -351,7 +351,7 @@ class TDynamicObject
     TDynamicObject *__fastcall ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist,
                                                     int &CouplNr);
     TDynamicObject *__fastcall GetFirstDynamic(int cpl_type);
-    // TDynamicObject* __fastcall GetFirstCabDynamic(int cpl_type);
+    // TDynamicObject* GetFirstCabDynamic(int cpl_type);
     void ABuSetModelShake(vector3 mShake);
 
     // McZapkie-010302
@@ -372,65 +372,65 @@ class TDynamicObject
     TTractionParam tmpTraction;
     double fAdjustment; // korekcja - docelowo przenieœæ do TrkFoll.cpp wraz z odleg³oœci¹ od
                         // poprzedniego
-    __fastcall TDynamicObject();
-    __fastcall ~TDynamicObject();
-    double __fastcall TDynamicObject::Init( // zwraca d³ugoœæ pojazdu albo 0, jeœli b³¹d
+    TDynamicObject();
+    ~TDynamicObject();
+    double TDynamicObject::Init( // zwraca d³ugoœæ pojazdu albo 0, jeœli b³¹d
         AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
         TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName,
         float Load, AnsiString LoadType, bool Reversed, AnsiString);
-    void __fastcall AttachPrev(TDynamicObject *Object, int iType = 1);
-    bool __fastcall UpdateForce(double dt, double dt1, bool FullVer);
-    void __fastcall LoadUpdate();
-    bool __fastcall Update(double dt, double dt1);
-    bool __fastcall FastUpdate(double dt);
-    void __fastcall Move(double fDistance);
-    void __fastcall FastMove(double fDistance);
-    void __fastcall Render();
-    void __fastcall RenderAlpha();
-    void __fastcall RenderSounds();
-    inline vector3 __fastcall GetPosition() { return vPosition; };
-    inline vector3 __fastcall HeadPosition()
+    void AttachPrev(TDynamicObject *Object, int iType = 1);
+    bool UpdateForce(double dt, double dt1, bool FullVer);
+    void LoadUpdate();
+    bool Update(double dt, double dt1);
+    bool FastUpdate(double dt);
+    void Move(double fDistance);
+    void FastMove(double fDistance);
+    void Render();
+    void RenderAlpha();
+    void RenderSounds();
+    inline vector3 GetPosition() { return vPosition; };
+    inline vector3 HeadPosition()
     {
         return vCoulpler[iDirection ^ 1];
     }; // pobranie wspó³rzêdnych czo³a
-    inline vector3 __fastcall RearPosition()
+    inline vector3 RearPosition()
     {
         return vCoulpler[iDirection];
     }; // pobranie wspó³rzêdnych ty³u
-    inline vector3 __fastcall AxlePositionGet()
+    inline vector3 AxlePositionGet()
     {
         return iAxleFirst ? Axle1.pPosition : Axle0.pPosition;
     };
-    inline vector3 __fastcall VectorFront() { return vFront; };
-    inline vector3 __fastcall VectorUp() { return vUp; };
-    inline vector3 __fastcall VectorLeft() { return vLeft; };
+    inline vector3 VectorFront() { return vFront; };
+    inline vector3 VectorUp() { return vUp; };
+    inline vector3 VectorLeft() { return vLeft; };
     inline double *__fastcall Matrix() { return mMatrix.getArray(); };
-    inline double __fastcall GetVelocity() { return MoverParameters->Vel; };
-    inline double __fastcall GetLength() { return MoverParameters->Dim.L; };
-    inline double __fastcall GetWidth() { return MoverParameters->Dim.W; };
+    inline double GetVelocity() { return MoverParameters->Vel; };
+    inline double GetLength() { return MoverParameters->Dim.L; };
+    inline double GetWidth() { return MoverParameters->Dim.W; };
     inline TTrack *__fastcall GetTrack()
     {
         return (iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack());
     };
-    // void __fastcall UpdatePos();
+    // void UpdatePos();
 
     // McZapkie-260202
-    void __fastcall LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
+    void LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                                    AnsiString ReplacableSkin);
 
-    inline double __fastcall ABuGetDirection() // ABu.
+    inline double ABuGetDirection() // ABu.
     {
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection());
     };
-    // inline double __fastcall ABuGetTranslation() //ABu.
+    // inline double ABuGetTranslation() //ABu.
     // {//zwraca przesuniêcie wózka wzglêdem Point1 toru
     //  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
     // };
-    inline double __fastcall RaDirectionGet()
+    inline double RaDirectionGet()
     { // zwraca kierunek pojazdu na torze z aktywn¹ os¹
         return iAxleFirst ? Axle1.GetDirection() : Axle0.GetDirection();
     };
-    inline double __fastcall RaTranslationGet()
+    inline double RaTranslationGet()
     { // zwraca przesuniêcie wózka wzglêdem Point1 toru z aktywn¹ osi¹
         return iAxleFirst ? Axle1.GetTranslation() : Axle0.GetTranslation();
     };
@@ -439,27 +439,27 @@ class TDynamicObject
         return iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack();
     };
     void CouplersDettach(double MinDist, int MyScanDir);
-    void __fastcall RadioStop();
-    void __fastcall RaLightsSet(int head, int rear);
-    // void __fastcall RaAxleEvent(TEvent *e);
+    void RadioStop();
+    void RaLightsSet(int head, int rear);
+    // void RaAxleEvent(TEvent *e);
     TDynamicObject *__fastcall FirstFind(int &coupler_nr);
-    float __fastcall GetEPP(); // wyliczanie sredniego cisnienia w PG
-    int __fastcall DirectionSet(int d); // ustawienie kierunku w sk³adzie
-    int __fastcall DirectionGet()
+    float GetEPP(); // wyliczanie sredniego cisnienia w PG
+    int DirectionSet(int d); // ustawienie kierunku w sk³adzie
+    int DirectionGet()
     {
         return iDirection + iDirection - 1;
     }; // odczyt kierunku w sk³adzie
     int DettachStatus(int dir);
     int Dettach(int dir);
     TDynamicObject *__fastcall Neightbour(int &dir);
-    void __fastcall CoupleDist();
+    void CoupleDist();
     TDynamicObject *__fastcall ControlledFind();
-    void __fastcall ParamSet(int what, int into);
-    int __fastcall RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
+    void ParamSet(int what, int into);
+    int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
                                           // jechaæ
-    void __fastcall DestinationSet(AnsiString to);
-    AnsiString __fastcall TextureTest(AnsiString &name);
-    void __fastcall OverheadTrack(float o);
+    void DestinationSet(AnsiString to);
+    AnsiString TextureTest(AnsiString &name);
+    void OverheadTrack(float o);
 };
 
 //---------------------------------------------------------------------------

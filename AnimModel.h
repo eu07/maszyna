@@ -61,34 +61,34 @@ class TAnimContainer
     TAnimContainer *pNext;
     TAnimContainer *acAnimNext; // lista animacji z eventem, które musz¹ byæ przeliczane równie¿ bez
                                 // wyœwietlania
-    __fastcall TAnimContainer();
-    __fastcall ~TAnimContainer();
-    bool __fastcall Init(TSubModel *pNewSubModel);
-    // std::string inline __fastcall GetName() { return
+    TAnimContainer();
+    ~TAnimContainer();
+    bool Init(TSubModel *pNewSubModel);
+    // std::string inline GetName() { return
     // std::string(pSubModel?pSubModel->asName.c_str():""); };
-    // std::string inline __fastcall GetName() { return std::string(pSubModel?pSubModel->pName:"");
+    // std::string inline GetName() { return std::string(pSubModel?pSubModel->pName:"");
     // };
     char *__fastcall NameGet() { return (pSubModel ? pSubModel->pName : NULL); };
-    // void __fastcall SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double
+    // void SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double
     // fNewRotateSpeed, bool bResetAngle=false);
-    void __fastcall SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
-    void __fastcall SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
-    void __fastcall AnimSetVMD(double fNewSpeed);
-    void __fastcall PrepareModel();
-    void __fastcall UpdateModel();
-    void __fastcall UpdateModelIK();
-    bool __fastcall InMovement(); // czy w trakcie animacji?
+    void SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
+    void SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed);
+    void AnimSetVMD(double fNewSpeed);
+    void PrepareModel();
+    void UpdateModel();
+    void UpdateModelIK();
+    bool InMovement(); // czy w trakcie animacji?
     double _fastcall AngleGet() { return vRotateAngles.z; }; // jednak ostatnia, T3D ma inny uk³ad
     vector3 _fastcall TransGet()
     {
         return vector3(-vTranslation.x, vTranslation.z, vTranslation.y);
     }; // zmiana, bo T3D ma inny uk³ad
-    void __fastcall WillBeAnimated()
+    void WillBeAnimated()
     {
         if (pSubModel)
             pSubModel->WillBeAnimated();
     };
-    void __fastcall EventAssign(TEvent *ev);
+    void EventAssign(TEvent *ev);
     TEvent *__fastcall Event() { return evDone; };
 };
 
@@ -101,9 +101,9 @@ class TAnimAdvanced
     double fCurrent; // klatka animacji wyœwietlona w poprzedniej klatce renderingu
     double fLast; // klatka koñcz¹ca animacjê
     int iMovements;
-    __fastcall TAnimAdvanced();
-    __fastcall ~TAnimAdvanced();
-    int __fastcall SortByBone();
+    TAnimAdvanced();
+    ~TAnimAdvanced();
+    int SortByBone();
 };
 
 class TAnimModel
@@ -119,46 +119,46 @@ class TAnimModel
     int iTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem, dla 4 wymiennych tekstur
     AnsiString asText; // tekst dla wyœwietlacza znakowego
     TAnimAdvanced *pAdvanced;
-    void __fastcall Advanced();
+    void Advanced();
     TLightState lsLights[iMaxNumLights];
     float fDark; // poziom zapalanie œwiat³a (powinno byæ chyba powi¹zane z danym œwiat³em?)
     float fOnTime, fOffTime; // by³y sta³ymi, teraz mog¹ byæ zmienne dla ka¿dego egzemplarza
   private:
-    void __fastcall RaAnimate(); // przeliczenie animacji egzemplarza
-    void __fastcall RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
+    void RaAnimate(); // przeliczenie animacji egzemplarza
+    void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
   public:
     GLuint ReplacableSkinId[5]; // McZapkie-020802: zmienialne skory
     static TAnimContainer *acAnimList; // lista animacji z eventem, które musz¹ byæ przeliczane
                                        // równie¿ bez wyœwietlania
-    __fastcall TAnimModel();
-    __fastcall ~TAnimModel();
-    bool __fastcall Init(TModel3d *pNewModel);
-    bool __fastcall Init(AnsiString asName, AnsiString asReplacableTexture);
-    bool __fastcall Load(cParser *parser, bool ter = false);
+    TAnimModel();
+    ~TAnimModel();
+    bool Init(TModel3d *pNewModel);
+    bool Init(AnsiString asName, AnsiString asReplacableTexture);
+    bool Load(cParser *parser, bool ter = false);
     TAnimContainer *__fastcall AddContainer(char *pName);
     TAnimContainer *__fastcall GetContainer(char *pName);
-    void __fastcall RenderDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void __fastcall RenderAlphaDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void __fastcall RenderVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void __fastcall RenderAlphaVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void __fastcall RenderDL(vector3 *vPosition);
-    void __fastcall RenderAlphaDL(vector3 *vPosition);
-    void __fastcall RenderVBO(vector3 *vPosition);
-    void __fastcall RenderAlphaVBO(vector3 *vPosition);
-    int __fastcall Flags();
-    void __fastcall RaAnglesSet(double a, double b, double c)
+    void RenderDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
+    void RenderAlphaDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
+    void RenderVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
+    void RenderAlphaVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
+    void RenderDL(vector3 *vPosition);
+    void RenderAlphaDL(vector3 *vPosition);
+    void RenderVBO(vector3 *vPosition);
+    void RenderAlphaVBO(vector3 *vPosition);
+    int Flags();
+    void RaAnglesSet(double a, double b, double c)
     {
         vAngle.x = a;
         vAngle.y = b;
         vAngle.z = c;
     };
-    bool __fastcall TerrainLoaded();
-    int __fastcall TerrainCount();
+    bool TerrainLoaded();
+    int TerrainCount();
     TSubModel *__fastcall TerrainSquare(int n);
-    void __fastcall TerrainRenderVBO(int n);
-    void __fastcall AnimationVND(void *pData, double a, double b, double c, double d);
-    void __fastcall LightSet(int n, float v);
-    static void __fastcall AnimUpdate(double dt);
+    void TerrainRenderVBO(int n);
+    void AnimationVND(void *pData, double a, double b, double c, double d);
+    void LightSet(int n, float v);
+    static void AnimUpdate(double dt);
 };
 TAnimContainer *TAnimModel::acAnimList = NULL;
 

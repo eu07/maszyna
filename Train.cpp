@@ -42,7 +42,7 @@ __fastcall TCab::TCab()
     iButtons = 0;
 }
 
-void __fastcall TCab::Init(double Initx1, double Inity1, double Initz1, double Initx2,
+void TCab::Init(double Initx1, double Inity1, double Initz1, double Initx2,
                            double Inity2, double Initz2, bool InitEnabled, bool InitOccupied)
 {
     CabPos1.x = Initx1;
@@ -55,7 +55,7 @@ void __fastcall TCab::Init(double Initx1, double Inity1, double Initz1, double I
     bOccupied = InitOccupied;
 }
 
-void __fastcall TCab::Load(TQueryParserComp *Parser)
+void TCab::Load(TQueryParserComp *Parser)
 {
     AnsiString str = Parser->GetNextSymbol().LowerCase();
     if (str == AnsiString("cablight"))
@@ -110,7 +110,7 @@ TButton *__fastcall TCab::Button(int n)
     return NULL;
 };
 
-void __fastcall TCab::Update()
+void TCab::Update()
 { // odczyt parametrów i ustawienie animacji submodelom
     int i;
     for (i = 0; i < iGauges; ++i)
@@ -183,7 +183,7 @@ __fastcall TTrain::~TTrain()
                 true); // likwidacja kabiny wymaga przejêcia przez AI
 }
 
-bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
+bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 { // powi¹zanie rêcznego sterowania kabin¹ z pojazdem
     // Global::pUserDynamic=NewDynamicObject; //pojazd renderowany bez trzêsienia
     DynamicSet(NewDynamicObject);
@@ -253,7 +253,7 @@ bool __fastcall TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     return true;
 }
 
-void __fastcall TTrain::OnKeyDown(int cKey)
+void TTrain::OnKeyDown(int cKey)
 { // naciœniêcie klawisza
     bool isEztOer;
     isEztOer = ((mvControlled->TrainType == dt_EZT) && (mvControlled->Battery == true) &&
@@ -2253,7 +2253,7 @@ void __fastcall TTrain::OnKeyDown(int cKey)
     }
 }
 
-void __fastcall TTrain::OnKeyUp(int cKey)
+void TTrain::OnKeyUp(int cKey)
 { // zwolnienie klawisza
     if (GetAsyncKeyState(VK_SHIFT) < 0)
     { // wciœniêty [Shift]
@@ -2269,7 +2269,7 @@ void __fastcall TTrain::OnKeyUp(int cKey)
     }
 };
 
-void __fastcall TTrain::UpdateMechPosition(double dt)
+void TTrain::UpdateMechPosition(double dt)
 { // Ra: mechanik powinien byæ telepany niezale¿nie od pozycji pojazdu
     // Ra: trzeba zrobiæ model bujania g³ow¹ i wczepiæ go do pojazdu
 
@@ -2378,7 +2378,7 @@ void __fastcall TTrain::UpdateMechPosition(double dt)
     pMechPosition += DynamicObject->GetPosition();
 };
 
-bool __fastcall TTrain::Update()
+bool TTrain::Update()
 {
     DWORD stat;
     double dt = Timer::GetDeltaTime();
@@ -4619,7 +4619,7 @@ bool TTrain::CabChange(int iDirection)
 
 // McZapkie-310302
 // wczytywanie pliku z danymi multimedialnymi (dzwieki, kontrolki, kabiny)
-bool __fastcall TTrain::LoadMMediaFile(AnsiString asFileName)
+bool TTrain::LoadMMediaFile(AnsiString asFileName)
 {
     double dSDist;
     TFileStream *fs;
@@ -5520,7 +5520,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     return AnsiCompareStr(str, AnsiString("none"));
 }
 
-void __fastcall TTrain::MechStop()
+void TTrain::MechStop()
 { // likwidacja ruchu kamery w kabinie (po powrocie przez [F4])
     pMechPosition = vector3(0, 0, 0);
     pMechShake = vector3(0, 0, 0);
@@ -5528,7 +5528,7 @@ void __fastcall TTrain::MechStop()
     vMechVelocity = vector3(0, 0, 0); // tu zostawa³y jakieœ u³amki, powoduj¹ce uciekanie kamery
 };
 
-vector3 __fastcall TTrain::MirrorPosition(bool lewe)
+vector3 TTrain::MirrorPosition(bool lewe)
 { // zwraca wspó³rzêdne widoku kamery z lusterka
     switch (iCabn)
     {
@@ -5544,7 +5544,7 @@ vector3 __fastcall TTrain::MirrorPosition(bool lewe)
     return DynamicObject->GetPosition(); // wspó³rzêdne œrodka pojazdu
 };
 
-void __fastcall TTrain::DynamicSet(TDynamicObject *d)
+void TTrain::DynamicSet(TDynamicObject *d)
 { // taka proteza: chcê pod³¹czyæ kabinê EN57 bezpoœrednio z silnikowym, aby nie robiæ tego przez
   // ukrotnienie
     // drugi silnikowy i tak musi byæ ukrotniony, podobnie jak kolejna jednostka
@@ -5597,7 +5597,7 @@ void __fastcall TTrain::DynamicSet(TDynamicObject *d)
         }
 };
 
-void __fastcall TTrain::Silence()
+void TTrain::Silence()
 { // wyciszenie dŸwiêków przy wychodzeniu
     if (dsbNastawnikJazdy)
         dsbNastawnikJazdy->Stop();

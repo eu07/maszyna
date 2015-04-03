@@ -32,7 +32,7 @@ TMdlContainer *TModelsManager::Models;
 int TModelsManager::Count;
 const MAX_MODELS = 1000;
 
-void __fastcall TModelsManager::Init()
+void TModelsManager::Init()
 {
     Models = new TMdlContainer[MAX_MODELS];
     Count = 0;
@@ -50,7 +50,7 @@ __fastcall TModelsManager::~TModelsManager()
     Free();
 };
   */
-void __fastcall TModelsManager::Free() { SafeDeleteArray(Models); }
+void TModelsManager::Free() { SafeDeleteArray(Models); }
 
 TModel3d *__fastcall TModelsManager::LoadModel(char *Name, bool dynamic)
 { // wczytanie modelu do tablicy
@@ -169,7 +169,7 @@ TModel3d *__fastcall TModelsManager::GetModel(const char *Name, bool dynamic)
 };
 
 /*
-TModel3d __fastcall TModelsManager::GetModel(char *Name, AnsiString asReplacableTexture)
+TModel3d TModelsManager::GetModel(char *Name, AnsiString asReplacableTexture)
 {
     GLuint ReplacableTextureID= 0;
     TModel3d NewModel;

@@ -73,7 +73,7 @@ __fastcall TWorld::~TWorld()
         FreeLibrary(hinstGLUT32);
 }
 
-void __fastcall TWorld::TrainDelete(TDynamicObject *d)
+void TWorld::TrainDelete(TDynamicObject *d)
 { // usuniêcie pojazdu prowadzonego przez u¿ytkownika
     if (d)
         if (Train)
@@ -86,7 +86,7 @@ void __fastcall TWorld::TrainDelete(TDynamicObject *d)
     Global::pUserDynamic = NULL; // tego te¿ nie ma
 };
 
-GLvoid __fastcall TWorld::glPrint(const char *txt) // custom GL "Print" routine
+GLvoid TWorld::glPrint(const char *txt) // custom GL "Print" routine
 { // wypisywanie tekstu 2D na ekranie
     if (!txt)
         return;
@@ -160,7 +160,7 @@ BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
 }
 */
 
-bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
+bool TWorld::Init(HWND NhWnd, HDC hDC)
 {
     double time = (double)Now();
     Global::hWnd = NhWnd; // do WM_COPYDATA
@@ -668,7 +668,7 @@ bool __fastcall TWorld::Init(HWND NhWnd, HDC hDC)
     return true;
 };
 
-void __fastcall TWorld::OnKeyDown(int cKey)
+void TWorld::OnKeyDown(int cKey)
 { //(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
     // Ra 2014-09: tu by mo¿na dodaæ tabelê konwersji: 256 wirtualnych kodów w kontekœcie dwóch
     // prze³¹czników [Shift] i [Ctrl]
@@ -957,7 +957,7 @@ void __fastcall TWorld::OnKeyDown(int cKey)
     //}
 }
 
-void __fastcall TWorld::OnKeyUp(int cKey)
+void TWorld::OnKeyUp(int cKey)
 { // zwolnienie klawisza; (cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
     if (!Global::iPause) // podczas pauzy sterownaie nie dzia³a
         if (Train)
@@ -966,12 +966,12 @@ void __fastcall TWorld::OnKeyUp(int cKey)
                     Train->OnKeyUp(cKey); // przekazanie zwolnienia klawisza do kabiny
 };
 
-void __fastcall TWorld::OnMouseMove(double x, double y)
+void TWorld::OnMouseMove(double x, double y)
 { // McZapkie:060503-definicja obracania myszy
     Camera.OnCursorMove(x * Global::fMouseXScale, -y * Global::fMouseYScale);
 }
 
-void __fastcall TWorld::InOutKey()
+void TWorld::InOutKey()
 { // prze³¹czenie widoku z kabiny na zewnêtrzny i odwrotnie
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
     if (FreeFlyModeFlag)
@@ -1001,7 +1001,7 @@ void __fastcall TWorld::InOutKey()
     }
 };
 
-void __fastcall TWorld::DistantView()
+void TWorld::DistantView()
 { // ustawienie widoku pojazdu z zewn¹trz
     if (Controlled) // jest pojazd do prowadzenia?
     { // na prowadzony
@@ -1023,7 +1023,7 @@ void __fastcall TWorld::DistantView()
     }
 };
 
-void __fastcall TWorld::FollowView(bool wycisz)
+void TWorld::FollowView(bool wycisz)
 { // ustawienie œledzenia pojazdu
     // ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
     // if (Console::Pressed(VK_F4)) Global::iViewMode=VK_F4;
@@ -1075,7 +1075,7 @@ void __fastcall TWorld::FollowView(bool wycisz)
         DistantView();
 };
 
-bool __fastcall TWorld::Update()
+bool TWorld::Update()
 {
 #ifdef USE_SCENERY_MOVING
     vector3 tmpvector = Global::GetCameraPosition();
@@ -2492,7 +2492,7 @@ bool __fastcall TWorld::Update()
     return (true);
 };
 
-bool __fastcall TWorld::Render()
+bool TWorld::Render()
 {
     glColor3b(255, 255, 255);
     // glColor3b(255, 0, 255);
@@ -2672,7 +2672,7 @@ void TWorld::ShowHints(void)
 };
 
 //---------------------------------------------------------------------------
-void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
+void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 { // odebranie komunikatu z serwera
     if (pRozkaz->iSygn == 'EU07')
         switch (pRozkaz->iComm)
@@ -2781,7 +2781,7 @@ void __fastcall TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 };
 
 //---------------------------------------------------------------------------
-void __fastcall TWorld::ModifyTGA(const AnsiString &dir)
+void TWorld::ModifyTGA(const AnsiString &dir)
 { // rekurencyjna modyfikacje plików TGA
     TSearchRec sr;
     if (FindFirst(dir + "*.*", faDirectory | faArchive, sr) == 0)
@@ -2800,7 +2800,7 @@ void __fastcall TWorld::ModifyTGA(const AnsiString &dir)
 //---------------------------------------------------------------------------
 AnsiString last; // zmienne u¿ywane w rekurencji
 double shift = 0;
-void __fastcall TWorld::CreateE3D(const AnsiString &dir, bool dyn)
+void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
 { // rekurencyjna generowanie plików E3D
     TTrack *trk;
     double at;
@@ -2892,7 +2892,7 @@ void __fastcall TWorld::CreateE3D(const AnsiString &dir, bool dyn)
     }
 };
 //---------------------------------------------------------------------------
-void __fastcall TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
+void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
 { // ewentualna zmiana kabiny u¿ytkownikowi
     if (Train)
         if (Train->Dynamic() == old)

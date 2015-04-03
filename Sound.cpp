@@ -152,7 +152,7 @@ __fastcall TSoundContainer::~TSoundContainer()
     SafeDelete(Next);
 };
 
-LPDIRECTSOUNDBUFFER __fastcall TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
+LPDIRECTSOUNDBUFFER TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
 {
     if (!DSBuffer)
         return NULL;
@@ -166,7 +166,7 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
 
 __fastcall TSoundsManager::~TSoundsManager() { Free(); };
 
-void __fastcall TSoundsManager::Free()
+void TSoundsManager::Free()
 {
     SafeDelete(First);
     SAFE_RELEASE(pDS);
@@ -181,7 +181,7 @@ TSoundContainer *__fastcall TSoundsManager::LoadFromFile(char *Dir, char *Name, 
     return First; // albo NULL, jak nie wyjdzie (na razie zawsze wychodzi)
 };
 
-void __fastcall TSoundsManager::LoadSounds(char *Directory)
+void TSoundsManager::LoadSounds(char *Directory)
 { // wczytanie wszystkich plików z katalogu - ma³o elastyczne
     WIN32_FIND_DATA FindFileData;
     HANDLE handle = FindFirstFile("sounds\\*.wav", &FindFileData);
@@ -193,7 +193,7 @@ void __fastcall TSoundsManager::LoadSounds(char *Directory)
     FindClose(handle);
 };
 
-LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name, bool Dynamic,
+LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(char *Name, bool Dynamic,
                                                            float *fSamplingRate)
 { // wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
     AnsiString file;
@@ -254,7 +254,7 @@ LPDIRECTSOUNDBUFFER __fastcall TSoundsManager::GetFromName(char *Name, bool Dyna
     return (NULL);
 };
 
-void __fastcall TSoundsManager::RestoreAll()
+void TSoundsManager::RestoreAll()
 {
     TSoundContainer *Next = First;
 
@@ -293,11 +293,11 @@ void __fastcall TSoundsManager::RestoreAll()
     };
 };
 
-// void __fastcall TSoundsManager::Init(char *Name, int Concurrent)
+// void TSoundsManager::Init(char *Name, int Concurrent)
 //__fastcall TSoundsManager::TSoundsManager(HWND hWnd)
-// void __fastcall TSoundsManager::Init(HWND hWnd, char *NDirectory)
+// void TSoundsManager::Init(HWND hWnd, char *NDirectory)
 
-void __fastcall TSoundsManager::Init(HWND hWnd)
+void TSoundsManager::Init(HWND hWnd)
 {
 
     First = NULL;

@@ -18,7 +18,7 @@
 // 101206 Ra: trapezoidalne drogi
 // 110806 Ra: odwrócone mapowanie wzd³u¿ - Point1 == 1.0
 
-AnsiString __fastcall Where(vector3 p)
+AnsiString Where(vector3 p)
 { // zamiana wspó³rzêdnych na tekst, u¿ywana w b³êdach
     return AnsiString(p.x) + " " + AnsiString(p.y) + " " + AnsiString(p.z);
 };
@@ -36,7 +36,7 @@ __fastcall TSegment::TSegment(TTrack *owner)
 
 __fastcall TSegment::~TSegment() { SafeDeleteArray(fTsBuffer); };
 
-bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
+bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
                                double fNewRoll1, double fNewRoll2)
 { // wersja dla prostego - wyliczanie punktów kontrolnych
     vector3 dir;
@@ -54,7 +54,7 @@ bool __fastcall TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNew
     }
 };
 
-bool __fastcall TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointIn,
+bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointIn,
                                vector3 &NewPoint2, double fNewStep, double fNewRoll1,
                                double fNewRoll2, bool bIsCurve)
 { // wersja uniwersalna (dla krzywej i prostego)
@@ -140,7 +140,7 @@ bool __fastcall TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3
     return true;
 }
 
-vector3 __fastcall TSegment::GetFirstDerivative(double fTime)
+vector3 TSegment::GetFirstDerivative(double fTime)
 {
 
     double fOmTime = 1.0 - fTime;
@@ -159,7 +159,7 @@ vector3 __fastcall TSegment::GetFirstDerivative(double fTime)
     return kResult;
 }
 
-double __fastcall TSegment::RombergIntegral(double fA, double fB)
+double TSegment::RombergIntegral(double fA, double fB)
 {
     double fH = fB - fA;
 
@@ -191,7 +191,7 @@ double __fastcall TSegment::RombergIntegral(double fA, double fB)
     return ms_apfRom[0][ms_iOrder - 1];
 }
 
-double __fastcall TSegment::GetTFromS(double s)
+double TSegment::GetTFromS(double s)
 {
     // initial guess for Newton's method
     int it = 0;
@@ -223,17 +223,17 @@ double __fastcall TSegment::GetTFromS(double s)
     // return -1; //Ra: tu nigdy nie dojdzie
 };
 
-vector3 __fastcall TSegment::RaInterpolate(double t)
+vector3 TSegment::RaInterpolate(double t)
 { // wyliczenie XYZ na krzywej Beziera z u¿yciem wspó³czynników
     return t * (t * (t * vA + vB) + vC) + Point1; // 9 mno¿eñ, 9 dodawañ
 };
 
-vector3 __fastcall TSegment::RaInterpolate0(double t)
+vector3 TSegment::RaInterpolate0(double t)
 { // wyliczenie XYZ na krzywej Beziera, na u¿ytek liczenia d³ugoœci nie jest dodawane Point1
     return t * (t * (t * vA + vB) + vC); // 9 mno¿eñ, 6 dodawañ
 };
 
-double __fastcall TSegment::ComputeLength() // McZapkie-150503: dlugosc miedzy punktami krzywej
+double TSegment::ComputeLength() // McZapkie-150503: dlugosc miedzy punktami krzywej
 { // obliczenie d³ugoœci krzywej Beziera za pomoc¹ interpolacji odcinkami
     // Ra: zamieniæ na liczenie rekurencyjne œredniej z ciêciwy i ³amanej po kontrolnych
     // Ra: koniec rekurencji jeœli po podziale suma d³ugoœci nie ró¿ni siê wiêcej ni¿ 0.5mm od
@@ -257,7 +257,7 @@ double __fastcall TSegment::ComputeLength() // McZapkie-150503: dlugosc miedzy p
 
 const double fDirectionOffset = 0.1; // d³ugoœæ wektora do wyliczenia kierunku
 
-vector3 __fastcall TSegment::GetDirection(double fDistance)
+vector3 TSegment::GetDirection(double fDistance)
 { // takie toporne liczenie pochodnej dla podanego dystansu od Point1
     double t1 = GetTFromS(fDistance - fDirectionOffset);
     if (t1 <= 0.0)
@@ -268,7 +268,7 @@ vector3 __fastcall TSegment::GetDirection(double fDistance)
     return (FastGetPoint(t2) - FastGetPoint(t1));
 }
 
-vector3 __fastcall TSegment::FastGetDirection(double fDistance, double fOffset)
+vector3 TSegment::FastGetDirection(double fDistance, double fOffset)
 { // takie toporne liczenie pochodnej dla parametru 0.0÷1.0
     double t1 = fDistance - fOffset;
     if (t1 <= 0.0)
@@ -279,7 +279,7 @@ vector3 __fastcall TSegment::FastGetDirection(double fDistance, double fOffset)
     return (FastGetPoint(t2) - FastGetPoint(t1));
 }
 
-vector3 __fastcall TSegment::GetPoint(double fDistance)
+vector3 TSegment::GetPoint(double fDistance)
 { // wyliczenie wspó³rzêdnych XYZ na torze w odleg³oœci (fDistance) od Point1
     if (bCurve)
     { // mo¿na by wprowadziæ uproszczony wzór dla okrêgów p³askich
@@ -294,7 +294,7 @@ vector3 __fastcall TSegment::GetPoint(double fDistance)
     }
 };
 
-void __fastcall TSegment::RaPositionGet(double fDistance, vector3 &p, vector3 &a)
+void TSegment::RaPositionGet(double fDistance, vector3 &p, vector3 &a)
 { // ustalenie pozycji osi na torze, przechy³ki, pochylenia i kierunku jazdy
     if (bCurve)
     { // mo¿na by wprowadziæ uproszczony wzór dla okrêgów p³askich
@@ -316,13 +316,13 @@ void __fastcall TSegment::RaPositionGet(double fDistance, vector3 &p, vector3 &a
     }
 };
 
-vector3 __fastcall TSegment::FastGetPoint(double t)
+vector3 TSegment::FastGetPoint(double t)
 {
     // return (bCurve?Interpolate(t,Point1,CPointOut,CPointIn,Point2):((1.0-t)*Point1+(t)*Point2));
     return (bCurve ? RaInterpolate(t) : ((1.0 - t) * Point1 + (t)*Point2));
 }
 
-void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
+void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
                                      double fTextureLength, int iSkip, int iQualityFactor,
                                      vector3 **p, bool bRender)
 { // generowanie trójk¹tów dla odcinka trajektorii ruchu
@@ -503,7 +503,7 @@ void __fastcall TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePo
     }
 };
 
-void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
+void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
                                            int iNumShapePoints, double fTextureLength, int iSkip,
                                            double fOffsetX)
 { // tworzenie siatki trójk¹tów dla iglicy
@@ -641,7 +641,7 @@ void __fastcall TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const ve
     }
 };
 
-void __fastcall TSegment::Render()
+void TSegment::Render()
 {
     vector3 pt;
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -689,7 +689,7 @@ void __fastcall TSegment::Render()
     }
 }
 
-void __fastcall TSegment::RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints,
+void TSegment::RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints,
                                        int iNumShapePoints, double fTextureLength, int iSkip,
                                        int iEnd, double fOffsetX)
 { // generowanie trójk¹tów dla odcinka trajektorii ruchu
@@ -889,7 +889,7 @@ void __fastcall TSegment::RaRenderLoft(CVertNormTex *&Vert, const vector6 *Shape
     }
 };
 
-void __fastcall TSegment::RaAnimate(CVertNormTex *&Vert, const vector6 *ShapePoints,
+void TSegment::RaAnimate(CVertNormTex *&Vert, const vector6 *ShapePoints,
                                     int iNumShapePoints, double fTextureLength, int iSkip, int iEnd,
                                     double fOffsetX)
 { // jak wy¿ej, tylko z pominiêciem mapowania i braku trapezowania

@@ -36,9 +36,9 @@ __fastcall TMemCell::TMemCell(vector3 *p)
 
 __fastcall TMemCell::~TMemCell() { SafeDeleteArray(szText); }
 
-void __fastcall TMemCell::Init() {}
+void TMemCell::Init() {}
 
-void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2,
+void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2,
                                        int CheckMask)
 {
     if (CheckMask & update_memadd)
@@ -63,7 +63,7 @@ void __fastcall TMemCell::UpdateValues(char *szNewText, double fNewValue1, doubl
         CommandCheck(); // jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
 }
 
-TCommandType __fastcall TMemCell::CommandCheck()
+TCommandType TMemCell::CommandCheck()
 { // rozpoznanie komendy
     if (strcmp(szText, "SetVelocity") == 0) // najpopularniejsze
     {
@@ -103,7 +103,7 @@ TCommandType __fastcall TMemCell::CommandCheck()
     return eCommand;
 }
 
-bool __fastcall TMemCell::Load(cParser *parser)
+bool TMemCell::Load(cParser *parser)
 {
     std::string token;
     parser->getTokens(1, false); // case sensitive
@@ -127,13 +127,13 @@ bool __fastcall TMemCell::Load(cParser *parser)
     return true;
 }
 
-void __fastcall TMemCell::PutCommand(TController *Mech, vector3 *Loc)
+void TMemCell::PutCommand(TController *Mech, vector3 *Loc)
 { // wys³anie zawartoœci komórki do AI
     if (Mech)
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
 }
 
-bool __fastcall TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2,
+bool TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2,
                                   int CheckMask)
 { // porównanie zawartoœci komórki pamiêci z podanymi wartoœciami
     if (TestFlag(CheckMask, conditional_memstring))
@@ -154,9 +154,9 @@ bool __fastcall TMemCell::Compare(char *szTestText, double fTestValue1, double f
             (!TestFlag(CheckMask, conditional_memval2) || (fValue2 == fTestValue2)));
 };
 
-bool __fastcall TMemCell::Render() { return true; }
+bool TMemCell::Render() { return true; }
 
-bool __fastcall TMemCell::IsVelocity()
+bool TMemCell::IsVelocity()
 { // sprawdzenie, czy event odczytu tej komórki ma byæ do skanowania, czy do kolejkowania
     if (eCommand == cm_SetVelocity)
         return true;
@@ -165,7 +165,7 @@ bool __fastcall TMemCell::IsVelocity()
     return (eCommand == cm_SetProximityVelocity);
 };
 
-void __fastcall TMemCell::StopCommandSent()
+void TMemCell::StopCommandSent()
 { //
     if (!bCommand)
         return;
@@ -174,4 +174,4 @@ void __fastcall TMemCell::StopCommandSent()
         Global::AddToQuery(OnSent, NULL);
 };
 
-void __fastcall TMemCell::AssignEvents(TEvent *e) { // powi¹zanie eventu OnSent = e; };
+void TMemCell::AssignEvents(TEvent *e) { // powi¹zanie eventu OnSent = e; };

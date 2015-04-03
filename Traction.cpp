@@ -119,7 +119,7 @@ TTraction::~TTraction()
         glDeleteLists(uiDisplayList, 1);
 }
 
-void __fastcall TTraction::Optimize()
+void TTraction::Optimize()
 {
     if (Global::bUseVBO)
         return;
@@ -250,13 +250,13 @@ void __fastcall TTraction::Optimize()
     }
 }
 /*
-void __fastcall TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
+void TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
 {
     pPosition= (pPoint2+pPoint1)*0.5f;
     fSquaredRadius= SquareMagnitude((pPoint2-pPoint1)*0.5f);
 } */
 
-void __fastcall TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
+void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
 {
     // McZapkie: ustalanie przezroczystosci i koloru linii:
     if (Wires != 0 && !TestFlag(DamageFlag, 128)) // rysuj jesli sa druty i nie zerwana
@@ -348,7 +348,7 @@ void __fastcall TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od 
     }
 }
 
-int __fastcall TTraction::RaArrayPrepare()
+int TTraction::RaArrayPrepare()
 { // przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho³ków)
     // if (bVisible) //o ile w ogóle widaæ
     switch (Wires)
@@ -372,7 +372,7 @@ int __fastcall TTraction::RaArrayPrepare()
     return iLines;
 };
 
-void __fastcall TTraction::RaArrayFill(CVertNormTex *Vert)
+void TTraction::RaArrayFill(CVertNormTex *Vert)
 { // wype³nianie tablic VBO
     CVertNormTex *old = Vert;
     double ddp = hypot(pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z);
@@ -469,7 +469,7 @@ void __fastcall TTraction::RaArrayFill(CVertNormTex *Vert)
                  AnsiString(iLines));
 };
 
-void __fastcall TTraction::RenderVBO(float mgn, int iPtr)
+void TTraction::RenderVBO(float mgn, int iPtr)
 { // renderowanie z u¿yciem VBO
     if (Wires != 0 && !TestFlag(DamageFlag, 128)) // rysuj jesli sa druty i nie zerwana
     {
@@ -550,7 +550,7 @@ void __fastcall TTraction::RenderVBO(float mgn, int iPtr)
     }
 };
 
-int __fastcall TTraction::TestPoint(vector3 *Point)
+int TTraction::TestPoint(vector3 *Point)
 { // sprawdzanie, czy przês³a mo¿na po³¹czyæ
     if (!hvNext[0])
         if (pPoint1.Equal(Point))
@@ -561,7 +561,7 @@ int __fastcall TTraction::TestPoint(vector3 *Point)
     return -1;
 };
 
-void __fastcall TTraction::Connect(int my, TTraction *with, int to)
+void TTraction::Connect(int my, TTraction *with, int to)
 { //³¹czenie segmentu (with) od strony (my) do jego (to)
     if (my)
     { // do mojego Point2
@@ -591,7 +591,7 @@ void __fastcall TTraction::Connect(int my, TTraction *with, int to)
             with->iLast = 0; // to nie jest ostatnim
 };
 
-bool __fastcall TTraction::WhereIs()
+bool TTraction::WhereIs()
 { // ustalenie przedostatnich przêse³
     if (iLast)
         return (iLast == 1); // ma ju¿ ustalon¹ informacjê o po³o¿eniu
@@ -602,12 +602,12 @@ bool __fastcall TTraction::WhereIs()
     return (iLast == 1); // ostatnie bêd¹ dostawaæ zasilanie
 };
 
-void __fastcall TTraction::Init()
+void TTraction::Init()
 { // przeliczenie parametrów
     vParametric = pPoint2 - pPoint1; // wektor mno¿ników parametru dla równania parametrycznego
 };
 
-void __fastcall TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
+void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
 { //(this) jest przês³em zasilanym, o rezystancji (r), policzyæ rezystancjê zastêpcz¹ s¹siednich
     if (d >= 0)
     { // pod¹¿anie we wskazanym kierunku
@@ -649,7 +649,7 @@ void __fastcall TTraction::ResistanceCalc(int d, double r, TTractionPowerSource 
     }
 };
 
-void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
+void TTraction::PowerSet(TTractionPowerSource *ps)
 { // pod³¹czenie przês³a do zasilacza
     if (ps->bSection)
         psSection = ps; // ustalenie sekcji zasilania
@@ -662,7 +662,7 @@ void __fastcall TTraction::PowerSet(TTractionPowerSource *ps)
     }
 };
 
-double __fastcall TTraction::VoltageGet(double u, double i)
+double TTraction::VoltageGet(double u, double i)
 { // pobranie napiêcia na przêœle po pod³¹czeniu do niego rezystancji (res) - na razie jest to pr¹d
     if (!psSection)
         if (!psPowered)

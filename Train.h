@@ -34,11 +34,11 @@ const float fHaslerTime = 1.2;
 class TCab
 {
   public:
-    __fastcall TCab();
-    __fastcall ~TCab();
-    void __fastcall Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
+    TCab();
+    ~TCab();
+    void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
                          double Initz2, bool InitEnabled, bool InitOccupied);
-    void __fastcall Load(TQueryParserComp *Parser);
+    void Load(TQueryParserComp *Parser);
     vector3 CabPos1;
     vector3 CabPos2;
     bool bEnabled;
@@ -56,7 +56,7 @@ class TCab
   public:
     TGauge *__fastcall Gauge(int n = -1); // pobranie adresu obiektu
     TButton *__fastcall Button(int n = -1); // pobranie adresu obiektu
-    void __fastcall Update();
+    void Update();
 };
 
 class TTrain
@@ -66,24 +66,24 @@ class TTrain
     bool ActiveUniversal4;
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, AnsiString asFileName);
-    __fastcall TTrain();
-    __fastcall ~TTrain();
-    //    bool __fastcall Init(TTrack *Track);
+    TTrain();
+    ~TTrain();
+    //    bool Init(TTrack *Track);
     // McZapkie-010302
-    bool __fastcall Init(TDynamicObject *NewDynamicObject, bool e3d = false);
-    void __fastcall OnKeyDown(int cKey);
-    void __fastcall OnKeyUp(int cKey);
+    bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
+    void OnKeyDown(int cKey);
+    void OnKeyUp(int cKey);
 
-    //    bool __fastcall SHP() { fShpTimer= 0; };
+    //    bool SHP() { fShpTimer= 0; };
 
-    inline vector3 __fastcall GetDirection() { return DynamicObject->VectorFront(); };
-    inline vector3 __fastcall GetUp() { return DynamicObject->VectorUp(); };
-    void __fastcall UpdateMechPosition(double dt);
-    bool __fastcall Update();
-    void __fastcall MechStop();
-    //    virtual bool __fastcall RenderAlpha();
+    inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
+    inline vector3 GetUp() { return DynamicObject->VectorUp(); };
+    void UpdateMechPosition(double dt);
+    bool Update();
+    void MechStop();
+    //    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
-    bool __fastcall LoadMMediaFile(AnsiString asFileName);
+    bool LoadMMediaFile(AnsiString asFileName);
 
   private: //¿eby go nic z zewn¹trz nie przestawia³o
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -324,7 +324,7 @@ class TTrain
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 
     vector3 pMechSittingPosition; // ABu 180404
-    vector3 __fastcall MirrorPosition(bool lewe);
+    vector3 MirrorPosition(bool lewe);
 
   private:
     // PSound dsbBuzzer;
@@ -366,11 +366,11 @@ class TTrain
     int iSekunda; // Ra: sekunda aktualizacji prêdkoœci
     int iRadioChannel; // numer aktualnego kana³u radiowego
   public:
-    int __fastcall RadioChannel() { return iRadioChannel; };
+    int RadioChannel() { return iRadioChannel; };
     inline TDynamicObject *__fastcall Dynamic() { return DynamicObject; };
     inline TMoverParameters *__fastcall Controlled() { return mvControlled; };
-    void __fastcall DynamicSet(TDynamicObject *d);
-    void __fastcall Silence();
+    void DynamicSet(TDynamicObject *d);
+    void Silence();
 };
 //---------------------------------------------------------------------------
 #endif

@@ -12,13 +12,13 @@ __fastcall TMachajka::TMachajka() : TTrain() { TTrain::TTrain(); }
 
 __fastcall TMachajka::~TMachajka() {}
 
-bool __fastcall TMachajka::Init(TDynamicObject *NewDynamicObject)
+bool TMachajka::Init(TDynamicObject *NewDynamicObject)
 {
     TTrain::Init(NewDynamicObject);
     return true;
 }
 
-void __fastcall TMachajka::OnKeyPress(int cKey)
+void TMachajka::OnKeyPress(int cKey)
 {
     if (!GetAsyncKeyState(VK_SHIFT) < 0) // bez shifta
     {
@@ -56,11 +56,11 @@ void __fastcall TMachajka::OnKeyPress(int cKey)
     }
 }
 
-bool __fastcall TMachajka::Update(double dt) { TTrain::Update(dt); }
+bool TMachajka::Update(double dt) { TTrain::Update(dt); }
 
-bool __fastcall TMachajka::UpdateMechPosition() { TTrain::UpdateMechPosition(); }
+bool TMachajka::UpdateMechPosition() { TTrain::UpdateMechPosition(); }
 
-bool __fastcall TMachajka::Render() { TTrain::Render(); }
+bool TMachajka::Render() { TTrain::Render(); }
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

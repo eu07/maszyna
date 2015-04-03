@@ -11,7 +11,7 @@ __fastcall TAirCoupler::TAirCoupler() { Clear(); }
 
 __fastcall TAirCoupler::~TAirCoupler() {}
 
-int __fastcall TAirCoupler::GetStatus()
+int TAirCoupler::GetStatus()
 { // zwraca 1, jeœli istnieje model prosty, 2 gdy skoœny
     int x = 0;
     if (pModelOn)
@@ -21,7 +21,7 @@ int __fastcall TAirCoupler::GetStatus()
     return x;
 }
 
-void __fastcall TAirCoupler::Clear()
+void TAirCoupler::Clear()
 { // zerowanie wskaŸników
     pModelOn = NULL;
     pModelOff = NULL;
@@ -30,7 +30,7 @@ void __fastcall TAirCoupler::Clear()
     bxOn = false;
 }
 
-void __fastcall TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
+void TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
 { // wyszukanie submodeli
     if (!pModel)
         return; // nie ma w czym szukaæ
@@ -39,7 +39,7 @@ void __fastcall TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
     pModelxOn = pModel->GetFromName(AnsiString(asName + "_xon").c_str()); // po³¹czony na skos
 }
 
-void __fastcall TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
+void TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
 {
     AnsiString str = Parser->GetNextSymbol().LowerCase();
     if (pModel)
@@ -52,7 +52,7 @@ void __fastcall TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
     }
 }
 
-void __fastcall TAirCoupler::Update()
+void TAirCoupler::Update()
 {
     //  if ((pModelOn!=NULL) && (pModelOn!=NULL))
     {

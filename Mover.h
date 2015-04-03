@@ -33,146 +33,146 @@ class TMoverParameters : public T_MoverParameters
     int iProblem; // flagi problemów z taborem, aby AI nie musia³o porównywaæ; 0=mo¿e jechaæ
     int iLights[2]; // bity zapalonych œwiate³ tutaj, ¿eby da³o siê liczyæ pobór pr¹du
   private:
-    double __fastcall CouplerDist(Byte Coupler);
+    double CouplerDist(Byte Coupler);
 
   public:
-    __fastcall TMoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
+    TMoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
                                 int LoadInitial, AnsiString LoadTypeInitial, int Cab);
     // obs³uga sprzêgów
-    double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1,
+    double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1,
                                const TDimension &Dim2);
-    double __fastcall Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1,
+    double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1,
                                const vector3 &Dim2);
-    bool __fastcall Attach(Byte ConnectNo, Byte ConnectToNr, TMoverParameters *ConnectTo,
+    bool Attach(Byte ConnectNo, Byte ConnectToNr, TMoverParameters *ConnectTo,
                            Byte CouplingType, bool Forced = false);
-    bool __fastcall Attach(Byte ConnectNo, Byte ConnectToNr, T_MoverParameters *ConnectTo,
+    bool Attach(Byte ConnectNo, Byte ConnectToNr, T_MoverParameters *ConnectTo,
                            Byte CouplingType, bool Forced = false);
-    int __fastcall DettachStatus(Byte ConnectNo);
-    bool __fastcall Dettach(Byte ConnectNo);
-    void __fastcall SetCoupleDist();
-    bool __fastcall DirectionForward();
-    void __fastcall BrakeLevelSet(double b);
-    bool __fastcall BrakeLevelAdd(double b);
-    bool __fastcall IncBrakeLevel(); // wersja na u¿ytek AI
-    bool __fastcall DecBrakeLevel();
-    bool __fastcall ChangeCab(int direction);
-    bool __fastcall CurrentSwitch(int direction);
-    void __fastcall UpdateBatteryVoltage(double dt);
-    double __fastcall ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
+    int DettachStatus(Byte ConnectNo);
+    bool Dettach(Byte ConnectNo);
+    void SetCoupleDist();
+    bool DirectionForward();
+    void BrakeLevelSet(double b);
+    bool BrakeLevelAdd(double b);
+    bool IncBrakeLevel(); // wersja na u¿ytek AI
+    bool DecBrakeLevel();
+    bool ChangeCab(int direction);
+    bool CurrentSwitch(int direction);
+    void UpdateBatteryVoltage(double dt);
+    double ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
                                       TTrackParam &Track, TTractionParam &ElectricTraction,
                                       const TLocation &NewLoc, TRotation &NewRot);
-    double __fastcall FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track,
+    double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track,
                                           const TLocation &NewLoc, TRotation &NewRot);
-    double __fastcall ShowEngineRotation(int VehN);
-    // double __fastcall GetTrainsetVoltage(void);
-    // bool __fastcall Physic_ReActivation(void);
-    // double __fastcall LocalBrakeRatio(void);
-    // double __fastcall ManualBrakeRatio(void);
-    // double __fastcall PipeRatio(void);
-    // double __fastcall RealPipeRatio(void);
-    // double __fastcall BrakeVP(void);
-    // bool __fastcall DynamicBrakeSwitch(bool Switch);
-    // bool __fastcall SendCtrlBroadcast(AnsiString CtrlCommand, double ctrlvalue);
-    // bool __fastcall SendCtrlToNext(AnsiString CtrlCommand, double ctrlvalue, double dir);
-    // bool __fastcall CabActivisation(void);
-    // bool __fastcall CabDeactivisation(void);
-    // bool __fastcall IncMainCtrl(int CtrlSpeed);
-    // bool __fastcall DecMainCtrl(int CtrlSpeed);
-    // bool __fastcall IncScndCtrl(int CtrlSpeed);
-    // bool __fastcall DecScndCtrl(int CtrlSpeed);
-    // bool __fastcall AddPulseForce(int Multipler);
-    // bool __fastcall SandDoseOn(void);
-    // bool __fastcall SecuritySystemReset(void);
-    // void __fastcall SecuritySystemCheck(double dt);
-    // bool __fastcall BatterySwitch(bool State);
-    // bool __fastcall EpFuseSwitch(bool State);
-    // bool __fastcall IncBrakeLevelOld(void);
-    // bool __fastcall DecBrakeLevelOld(void);
-    // bool __fastcall IncLocalBrakeLevel(Byte CtrlSpeed);
-    // bool __fastcall DecLocalBrakeLevel(Byte CtrlSpeed);
-    // bool __fastcall IncLocalBrakeLevelFAST(void);
-    // bool __fastcall DecLocalBrakeLevelFAST(void);
-    // bool __fastcall IncManualBrakeLevel(Byte CtrlSpeed);
-    // bool __fastcall DecManualBrakeLevel(Byte CtrlSpeed);
-    // bool __fastcall EmergencyBrakeSwitch(bool Switch);
-    // bool __fastcall AntiSlippingBrake(void);
-    // bool __fastcall BrakeReleaser(Byte state);
-    // bool __fastcall SwitchEPBrake(Byte state);
-    // bool __fastcall AntiSlippingButton(void);
-    // bool __fastcall IncBrakePress(double &brake, double PressLimit, double dp);
-    // bool __fastcall DecBrakePress(double &brake, double PressLimit, double dp);
-    // bool __fastcall BrakeDelaySwitch(Byte BDS);
-    // bool __fastcall IncBrakeMult(void);
-    // bool __fastcall DecBrakeMult(void);
-    // void __fastcall UpdateBrakePressure(double dt);
-    // void __fastcall UpdatePipePressure(double dt);
-    // void __fastcall CompressorCheck(double dt);
-    void __fastcall UpdatePantVolume(double dt);
-    // void __fastcall UpdateScndPipePressure(double dt);
-    // void __fastcall UpdateBatteryVoltage(double dt);
-    // double __fastcall GetDVc(double dt);
-    // void __fastcall ComputeConstans(void);
-    // double __fastcall ComputeMass(void);
-    // double __fastcall Adhesive(double staticfriction);
-    // double __fastcall TractionForce(double dt);
-    // double __fastcall FrictionForce(double R, Byte TDamage);
-    // double __fastcall BrakeForce(const TTrackParam &Track);
-    // double __fastcall CouplerForce(Byte CouplerN, double dt);
-    // void __fastcall CollisionDetect(Byte CouplerN, double dt);
-    // double __fastcall ComputeRotatingWheel(double WForce, double dt, double n);
-    // bool __fastcall SetInternalCommand(AnsiString NewCommand, double NewValue1, double
+    double ShowEngineRotation(int VehN);
+    // double GetTrainsetVoltage(void);
+    // bool Physic_ReActivation(void);
+    // double LocalBrakeRatio(void);
+    // double ManualBrakeRatio(void);
+    // double PipeRatio(void);
+    // double RealPipeRatio(void);
+    // double BrakeVP(void);
+    // bool DynamicBrakeSwitch(bool Switch);
+    // bool SendCtrlBroadcast(AnsiString CtrlCommand, double ctrlvalue);
+    // bool SendCtrlToNext(AnsiString CtrlCommand, double ctrlvalue, double dir);
+    // bool CabActivisation(void);
+    // bool CabDeactivisation(void);
+    // bool IncMainCtrl(int CtrlSpeed);
+    // bool DecMainCtrl(int CtrlSpeed);
+    // bool IncScndCtrl(int CtrlSpeed);
+    // bool DecScndCtrl(int CtrlSpeed);
+    // bool AddPulseForce(int Multipler);
+    // bool SandDoseOn(void);
+    // bool SecuritySystemReset(void);
+    // void SecuritySystemCheck(double dt);
+    // bool BatterySwitch(bool State);
+    // bool EpFuseSwitch(bool State);
+    // bool IncBrakeLevelOld(void);
+    // bool DecBrakeLevelOld(void);
+    // bool IncLocalBrakeLevel(Byte CtrlSpeed);
+    // bool DecLocalBrakeLevel(Byte CtrlSpeed);
+    // bool IncLocalBrakeLevelFAST(void);
+    // bool DecLocalBrakeLevelFAST(void);
+    // bool IncManualBrakeLevel(Byte CtrlSpeed);
+    // bool DecManualBrakeLevel(Byte CtrlSpeed);
+    // bool EmergencyBrakeSwitch(bool Switch);
+    // bool AntiSlippingBrake(void);
+    // bool BrakeReleaser(Byte state);
+    // bool SwitchEPBrake(Byte state);
+    // bool AntiSlippingButton(void);
+    // bool IncBrakePress(double &brake, double PressLimit, double dp);
+    // bool DecBrakePress(double &brake, double PressLimit, double dp);
+    // bool BrakeDelaySwitch(Byte BDS);
+    // bool IncBrakeMult(void);
+    // bool DecBrakeMult(void);
+    // void UpdateBrakePressure(double dt);
+    // void UpdatePipePressure(double dt);
+    // void CompressorCheck(double dt);
+    void UpdatePantVolume(double dt);
+    // void UpdateScndPipePressure(double dt);
+    // void UpdateBatteryVoltage(double dt);
+    // double GetDVc(double dt);
+    // void ComputeConstans(void);
+    // double ComputeMass(void);
+    // double Adhesive(double staticfriction);
+    // double TractionForce(double dt);
+    // double FrictionForce(double R, Byte TDamage);
+    // double BrakeForce(const TTrackParam &Track);
+    // double CouplerForce(Byte CouplerN, double dt);
+    // void CollisionDetect(Byte CouplerN, double dt);
+    // double ComputeRotatingWheel(double WForce, double dt, double n);
+    // bool SetInternalCommand(AnsiString NewCommand, double NewValue1, double
     // NewValue2);
-    // double __fastcall GetExternalCommand(AnsiString &Command);
-    // bool __fastcall RunCommand(AnsiString command, double CValue1, double CValue2);
-    // bool __fastcall RunInternalCommand(void);
-    // void __fastcall PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2, const
+    // double GetExternalCommand(AnsiString &Command);
+    // bool RunCommand(AnsiString command, double CValue1, double CValue2);
+    // bool RunInternalCommand(void);
+    // void PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2, const
     // TLocation
     //	&NewLocation);
-    // bool __fastcall DirectionBackward(void);
-    // bool __fastcall MainSwitch(bool State);
-    // bool __fastcall ConverterSwitch(bool State);
-    // bool __fastcall CompressorSwitch(bool State);
-    void __fastcall ConverterCheck();
-    // bool __fastcall FuseOn(void);
-    // bool __fastcall FuseFlagCheck(void);
-    // void __fastcall FuseOff(void);
-    int __fastcall ShowCurrent(Byte AmpN);
-    // double __fastcall v2n(void);
-    // double __fastcall current(double n, double U);
-    // double __fastcall Momentum(double I);
-    // double __fastcall MomentumF(double I, double Iw, Byte SCP);
-    // bool __fastcall CutOffEngine(void);
-    // bool __fastcall MaxCurrentSwitch(bool State);
-    // bool __fastcall ResistorsFlagCheck(void);
-    // bool __fastcall MinCurrentSwitch(bool State);
-    // bool __fastcall AutoRelaySwitch(bool State);
-    // bool __fastcall AutoRelayCheck(void);
-    // bool __fastcall dizel_EngageSwitch(double state);
-    // bool __fastcall dizel_EngageChange(double dt);
-    // bool __fastcall dizel_AutoGearCheck(void);
-    // double __fastcall dizel_fillcheck(Byte mcp);
-    // double __fastcall dizel_Momentum(double dizel_fill, double n, double dt);
-    // bool __fastcall dizel_Update(double dt);
-    // bool __fastcall LoadingDone(double LSpeed, AnsiString LoadInit);
-    // void __fastcall ComputeTotalForce(double dt, double dt1, bool FullVer);
-    // double __fastcall ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
+    // bool DirectionBackward(void);
+    // bool MainSwitch(bool State);
+    // bool ConverterSwitch(bool State);
+    // bool CompressorSwitch(bool State);
+    void ConverterCheck();
+    // bool FuseOn(void);
+    // bool FuseFlagCheck(void);
+    // void FuseOff(void);
+    int ShowCurrent(Byte AmpN);
+    // double v2n(void);
+    // double current(double n, double U);
+    // double Momentum(double I);
+    // double MomentumF(double I, double Iw, Byte SCP);
+    // bool CutOffEngine(void);
+    // bool MaxCurrentSwitch(bool State);
+    // bool ResistorsFlagCheck(void);
+    // bool MinCurrentSwitch(bool State);
+    // bool AutoRelaySwitch(bool State);
+    // bool AutoRelayCheck(void);
+    // bool dizel_EngageSwitch(double state);
+    // bool dizel_EngageChange(double dt);
+    // bool dizel_AutoGearCheck(void);
+    // double dizel_fillcheck(Byte mcp);
+    // double dizel_Momentum(double dizel_fill, double n, double dt);
+    // bool dizel_Update(double dt);
+    // bool LoadingDone(double LSpeed, AnsiString LoadInit);
+    // void ComputeTotalForce(double dt, double dt1, bool FullVer);
+    // double ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
     // TTrackParam &Track
     //	, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot);
-    // double __fastcall FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam
+    // double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam
     // &Track, const
     //	TLocation &NewLoc, TRotation &NewRot);
-    // bool __fastcall ChangeOffsetH(double DeltaOffset);
+    // bool ChangeOffsetH(double DeltaOffset);
     //__fastcall T_MoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
     //int LoadInitial
     //	, AnsiString LoadTypeInitial, int Cab);
-    // bool __fastcall LoadChkFile(AnsiString chkpath);
-    // bool __fastcall CheckLocomotiveParameters(bool ReadyFlag, int Dir);
-    // AnsiString __fastcall EngineDescription(int what);
-    // bool __fastcall DoorLeft(bool State);
-    // bool __fastcall DoorRight(bool State);
-    // bool __fastcall DoorBlockedFlag(void);
-    // bool __fastcall PantFront(bool State);
-    // bool __fastcall PantRear(bool State);
+    // bool LoadChkFile(AnsiString chkpath);
+    // bool CheckLocomotiveParameters(bool ReadyFlag, int Dir);
+    // AnsiString EngineDescription(int what);
+    // bool DoorLeft(bool State);
+    // bool DoorRight(bool State);
+    // bool DoorBlockedFlag(void);
+    // bool PantFront(bool State);
+    // bool PantRear(bool State);
     //
 };
 

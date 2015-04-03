@@ -41,8 +41,8 @@ class TTraction;
 class TSwitchExtension
 { // dodatkowe dane do toru, który jest zwrotnic¹
   public:
-    __fastcall TSwitchExtension(TTrack *owner, int what);
-    __fastcall ~TSwitchExtension();
+    TSwitchExtension(TTrack *owner, int what);
+    ~TSwitchExtension();
     TSegment *Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla
                            // skrzy¿owañ
     // TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
@@ -98,13 +98,13 @@ class TIsolated
     TEvent *evBusy; // zdarzenie wyzwalane po zajêciu grupy
     TEvent *evFree; // zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
     TMemCell *pMemCell; // automatyczna komórka pamiêci, która wspó³pracuje z odcinkiem izolowanym
-    __fastcall TIsolated();
-    __fastcall TIsolated(const AnsiString &n, TIsolated *i);
-    __fastcall ~TIsolated();
+    TIsolated();
+    TIsolated(const AnsiString &n, TIsolated *i);
+    ~TIsolated();
     static TIsolated *__fastcall Find(
         const AnsiString &n); // znalezienie obiektu albo utworzenie nowego
-    void __fastcall Modify(int i, TDynamicObject *o); // dodanie lub odjêcie osi
-    bool __fastcall Busy() { return (iAxles > 0); };
+    void Modify(int i, TDynamicObject *o); // dodanie lub odjêcie osi
+    bool Busy() { return (iAxles > 0); };
     static TIsolated *__fastcall Root() { return (pRoot); };
     TIsolated *__fastcall Next() { return (pNext); };
 };
@@ -173,82 +173,82 @@ class TTrack : public Resource
     TGroundNode *nFouling[2]; // wspó³rzêdne ukresu albo oporu koz³a
     TTrack *trColides; // tor kolizyjny, na którym trzeba sprawdzaæ pojazdy pod k¹tem zderzenia
 
-    __fastcall TTrack(TGroundNode *g);
-    __fastcall ~TTrack();
-    void __fastcall Init();
+    TTrack(TGroundNode *g);
+    ~TTrack();
+    void Init();
     static TTrack *__fastcall Create400m(int what, double dx);
     TTrack *__fastcall NullCreate(int dir);
-    inline bool __fastcall IsEmpty() { return (iNumDynamics <= 0); };
-    void __fastcall ConnectPrevPrev(TTrack *pNewPrev, int typ);
-    void __fastcall ConnectPrevNext(TTrack *pNewPrev, int typ);
-    void __fastcall ConnectNextPrev(TTrack *pNewNext, int typ);
-    void __fastcall ConnectNextNext(TTrack *pNewNext, int typ);
-    inline double __fastcall Length() { return Segment->GetLength(); };
+    inline bool IsEmpty() { return (iNumDynamics <= 0); };
+    void ConnectPrevPrev(TTrack *pNewPrev, int typ);
+    void ConnectPrevNext(TTrack *pNewPrev, int typ);
+    void ConnectNextPrev(TTrack *pNewNext, int typ);
+    void ConnectNextNext(TTrack *pNewNext, int typ);
+    inline double Length() { return Segment->GetLength(); };
     inline TSegment *__fastcall CurrentSegment() { return Segment; };
     inline TTrack *__fastcall CurrentNext() { return (trNext); };
     inline TTrack *__fastcall CurrentPrev() { return (trPrev); };
     TTrack *__fastcall Neightbour(int s, double &d);
-    bool __fastcall SetConnections(int i);
-    bool __fastcall Switch(int i, double t = -1.0, double d = -1.0);
-    bool __fastcall SwitchForced(int i, TDynamicObject *o);
-    int __fastcall CrossSegment(int from, int into);
-    inline int __fastcall GetSwitchState()
+    bool SetConnections(int i);
+    bool Switch(int i, double t = -1.0, double d = -1.0);
+    bool SwitchForced(int i, TDynamicObject *o);
+    int CrossSegment(int from, int into);
+    inline int GetSwitchState()
     {
         return (SwitchExtension ? SwitchExtension->CurrentIndex : -1);
     };
-    void __fastcall Load(cParser *parser, vector3 pOrigin, AnsiString name);
-    bool __fastcall AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
-    bool __fastcall AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
-    bool __fastcall AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
-    bool __fastcall CheckDynamicObject(TDynamicObject *Dynamic);
-    bool __fastcall AddDynamicObject(TDynamicObject *Dynamic);
-    bool __fastcall RemoveDynamicObject(TDynamicObject *Dynamic);
-    void __fastcall MoveMe(vector3 pPosition);
+    void Load(cParser *parser, vector3 pOrigin, AnsiString name);
+    bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
+    bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
+    bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
+    bool CheckDynamicObject(TDynamicObject *Dynamic);
+    bool AddDynamicObject(TDynamicObject *Dynamic);
+    bool RemoveDynamicObject(TDynamicObject *Dynamic);
+    void MoveMe(vector3 pPosition);
 
     void Release();
-    void __fastcall Compile(GLuint tex = 0);
+    void Compile(GLuint tex = 0);
 
-    void __fastcall Render(); // renderowanie z Display Lists
-    int __fastcall RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
-    void __fastcall RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start); // wype³nianie VBO
-    void __fastcall RaRenderVBO(int iPtr); // renderowanie z VBO sektora
-    void __fastcall RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
-    void __fastcall RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)
-    void __fastcall RenderDynSounds(); // odtwarzanie dŸwiêków pojazdów jest niezale¿ne od ich
+    void Render(); // renderowanie z Display Lists
+    int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
+    void RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start); // wype³nianie VBO
+    void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
+    void RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
+    void RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)
+    void RenderDynSounds(); // odtwarzanie dŸwiêków pojazdów jest niezale¿ne od ich
                                        // wyœwietlania
 
-    void __fastcall RaOwnerSet(TSubRect *o)
+    void RaOwnerSet(TSubRect *o)
     {
         if (SwitchExtension)
             SwitchExtension->pOwner = o;
     };
-    bool __fastcall InMovement(); // czy w trakcie animacji?
-    void __fastcall RaAssign(TGroundNode *gn, TAnimContainer *ac);
-    void __fastcall RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
-    void __fastcall RaAnimListAdd(TTrack *t);
+    bool InMovement(); // czy w trakcie animacji?
+    void RaAssign(TGroundNode *gn, TAnimContainer *ac);
+    void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
+    void RaAnimListAdd(TTrack *t);
     TTrack *__fastcall RaAnimate();
 
-    void __fastcall RadioStop();
-    void __fastcall AxleCounter(int i, TDynamicObject *o)
+    void RadioStop();
+    void AxleCounter(int i, TDynamicObject *o)
     {
         if (pIsolated)
             pIsolated->Modify(i, o);
     }; // dodanie lub odjêcie osi
-    AnsiString __fastcall IsolatedName();
-    bool __fastcall IsolatedEventsAssign(TEvent *busy, TEvent *free);
-    double __fastcall WidthTotal();
+    AnsiString IsolatedName();
+    bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
+    double WidthTotal();
     GLuint TextureGet(int i) { return i ? TextureID1 : TextureID2; };
-    bool __fastcall IsGroupable();
-    int __fastcall TestPoint(vector3 *Point);
-    void __fastcall MovedUp1(double dh);
-    AnsiString __fastcall NameGet();
-    void __fastcall VelocitySet(float v);
-    float __fastcall VelocityGet();
-    void __fastcall ConnectionsLog();
+    bool IsGroupable();
+    int TestPoint(vector3 *Point);
+    void MovedUp1(double dh);
+    AnsiString NameGet();
+    void VelocitySet(float v);
+    float VelocityGet();
+    void ConnectionsLog();
 
   private:
-    void __fastcall EnvironmentSet();
-    void __fastcall EnvironmentReset();
+    void EnvironmentSet();
+    void EnvironmentReset();
 };
 
 //---------------------------------------------------------------------------

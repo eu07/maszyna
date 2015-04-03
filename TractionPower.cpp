@@ -46,14 +46,14 @@ __fastcall TTractionPowerSource::TTractionPowerSource()
 
 __fastcall TTractionPowerSource::~TTractionPowerSource(){};
 
-void __fastcall TTractionPowerSource::Init(double u, double i)
+void TTractionPowerSource::Init(double u, double i)
 { // ustawianie zasilacza przy braku w scenerii
     NominalVoltage = u;
     VoltageFrequency = 0;
     MaxOutputCurrent = i;
 };
 
-bool __fastcall TTractionPowerSource::Load(cParser *parser)
+bool TTractionPowerSource::Load(cParser *parser)
 {
     std::string token;
     // AnsiString str;
@@ -85,9 +85,9 @@ bool __fastcall TTractionPowerSource::Load(cParser *parser)
     return true;
 };
 
-bool __fastcall TTractionPowerSource::Render() { return true; };
+bool TTractionPowerSource::Render() { return true; };
 
-bool __fastcall TTractionPowerSource::Update(double dt)
+bool TTractionPowerSource::Update(double dt)
 { // powinno byæ wykonane raz na krok fizyki
     if (NominalVoltage * TotalPreviousAdmitance >
         MaxOutputCurrent) // iloczyn napiêcia i admitancji daje pr¹d
@@ -127,7 +127,7 @@ bool __fastcall TTractionPowerSource::Update(double dt)
     return true;
 };
 
-double __fastcall TTractionPowerSource::CurrentGet(double res)
+double TTractionPowerSource::CurrentGet(double res)
 { // pobranie wartoœci pr¹du przypadaj¹cego na rezystancjê (res)
     // niech pamiêta poprzedni¹ admitancjê i wg niej przydziela pr¹d
     if (SlowFuse || FastFuse)
@@ -147,7 +147,7 @@ double __fastcall TTractionPowerSource::CurrentGet(double res)
                                                           // w ca³kowitej admitancji
 };
 
-void __fastcall TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
+void TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
 { // wskazanie zasilacza w obiekcie sekcji
     if (!psNode[0])
         psNode[0] = ps;

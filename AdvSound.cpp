@@ -25,9 +25,9 @@ __fastcall TAdvancedSound::~TAdvancedSound()
     // SoundShut.Stop();
 }
 
-void __fastcall TAdvancedSound::Free() {}
+void TAdvancedSound::Free() {}
 
-void __fastcall TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff,
+void TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff,
                                      double DistanceAttenuation, vector3 pPosition)
 {
     SoundStart.Init(NameOn, DistanceAttenuation, pPosition.x, pPosition.y, pPosition.z, true);
@@ -51,7 +51,7 @@ void __fastcall TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff,
     SoundShut.FA = 0.0;
 }
 
-void __fastcall TAdvancedSound::Load(TQueryParserComp *Parser, vector3 pPosition)
+void TAdvancedSound::Load(TQueryParserComp *Parser, vector3 pPosition)
 {
     AnsiString NameOn = Parser->GetNextSymbol().LowerCase();
     AnsiString Name = Parser->GetNextSymbol().LowerCase();
@@ -60,7 +60,7 @@ void __fastcall TAdvancedSound::Load(TQueryParserComp *Parser, vector3 pPosition
     Init(NameOn.c_str(), Name.c_str(), NameOff.c_str(), DistanceAttenuation, pPosition);
 }
 
-void __fastcall TAdvancedSound::TurnOn(bool ListenerInside, vector3 NewPosition)
+void TAdvancedSound::TurnOn(bool ListenerInside, vector3 NewPosition)
 {
     // hunter-311211: nie trzeba czekac na ponowne odtworzenie dzwieku, az sie wylaczy
     if ((State == ss_Off || State == ss_ShuttingDown) && (SoundStart.AM > 0))
@@ -74,7 +74,7 @@ void __fastcall TAdvancedSound::TurnOn(bool ListenerInside, vector3 NewPosition)
     }
 }
 
-void __fastcall TAdvancedSound::TurnOff(bool ListenerInside, vector3 NewPosition)
+void TAdvancedSound::TurnOff(bool ListenerInside, vector3 NewPosition)
 {
     if ((State == ss_Commencing || State == ss_Starting) && (SoundShut.AM > 0))
     {
@@ -88,7 +88,7 @@ void __fastcall TAdvancedSound::TurnOff(bool ListenerInside, vector3 NewPosition
     }
 }
 
-void __fastcall TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
+void TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
 {
     if ((State == ss_Commencing) && (SoundCommencing.AM > 0))
     {
@@ -124,7 +124,7 @@ void __fastcall TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
     }
 }
 
-void __fastcall TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside,
+void TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside,
                                          vector3 NewPosition)
 { // update, ale z amplituda i czestotliwoscia
     if ((State == ss_Commencing) && (SoundCommencing.AM > 0))
@@ -161,7 +161,7 @@ void __fastcall TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside
     SoundCommencing.AdjFreq(F, Timer::GetDeltaTime());
 }
 
-void __fastcall TAdvancedSound::CopyIfEmpty(TAdvancedSound &s)
+void TAdvancedSound::CopyIfEmpty(TAdvancedSound &s)
 { // skopiowanie, gdyby by³ potrzebny, a nie zosta³ wczytany
     if ((fStartLength > 0.0) || (fShutLength > 0.0))
         return; // coœ jest

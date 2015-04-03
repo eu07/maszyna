@@ -133,7 +133,7 @@ __fastcall TGroundNode::~TGroundNode()
     }
 }
 
-void __fastcall TGroundNode::Init(int n)
+void TGroundNode::Init(int n)
 { // utworzenie tablicy wierzcho³ków
     bVisible = false;
     iNumVerts = n;
@@ -155,14 +155,14 @@ __fastcall TGroundNode::TGroundNode(TGroundNodeType t, int n)
     }
 }
 
-void __fastcall TGroundNode::InitCenter()
+void TGroundNode::InitCenter()
 { // obliczenie œrodka ciê¿koœci obiektu
     for (int i = 0; i < iNumVerts; i++)
         pCenter += Vertices[i].Point;
     pCenter /= iNumVerts;
 }
 
-void __fastcall TGroundNode::InitNormals()
+void TGroundNode::InitNormals()
 { // obliczenie wektorów normalnych
     vector3 v1, v2, v3, v4, v5, n1, n2, n3, n4;
     int i;
@@ -227,7 +227,7 @@ void __fastcall TGroundNode::InitNormals()
     }
 }
 
-void __fastcall TGroundNode::MoveMe(vector3 pPosition)
+void TGroundNode::MoveMe(vector3 pPosition)
 { // przesuwanie obiektów scenerii o wektor w celu redukcji trzêsienia
     pCenter += pPosition;
     switch (iType)
@@ -264,7 +264,7 @@ void __fastcall TGroundNode::MoveMe(vector3 pPosition)
     }
 }
 
-void __fastcall TGroundNode::RaRenderVBO()
+void TGroundNode::RaRenderVBO()
 { // renderowanie z domyslnego bufora VBO
     glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
     if (TextureID)
@@ -272,7 +272,7 @@ void __fastcall TGroundNode::RaRenderVBO()
     glDrawArrays(iType, iVboPtr, iNumVerts);     // Narysuj naraz wszystkie trójk¹ty
 }
 
-void __fastcall TGroundNode::RenderVBO()
+void TGroundNode::RenderVBO()
 { // renderowanie obiektu z VBO - faza nieprzezroczystych
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
     if ((mgn > fSquareRadius || (mgn < fSquareMinRadius)) &&
@@ -335,7 +335,7 @@ void __fastcall TGroundNode::RenderVBO()
     return;
 };
 
-void __fastcall TGroundNode::RenderAlphaVBO()
+void TGroundNode::RenderAlphaVBO()
 { // renderowanie obiektu z VBO - faza przezroczystych
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
     float r, g, b;
@@ -419,7 +419,7 @@ void __fastcall TGroundNode::RenderAlphaVBO()
     return;
 }
 
-void __fastcall TGroundNode::Compile(bool many)
+void TGroundNode::Compile(bool many)
 { // tworzenie skompilowanej listy w wyœwietlaniu DL
     if (!many)
     { // obs³uga pojedynczej listy
@@ -512,7 +512,7 @@ void TGroundNode::Release()
     DisplayListID = 0;
 };
 
-void __fastcall TGroundNode::RenderHidden()
+void TGroundNode::RenderHidden()
 { // renderowanie obiektów niewidocznych
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
     switch (iType)
@@ -538,7 +538,7 @@ void __fastcall TGroundNode::RenderHidden()
     }
 };
 
-void __fastcall TGroundNode::RenderDL()
+void TGroundNode::RenderDL()
 { // wyœwietlanie obiektu przez Display List
     switch (iType)
     { // obiekty renderowane niezale¿nie od odleg³oœci
@@ -590,7 +590,7 @@ void __fastcall TGroundNode::RenderDL()
     };
 };
 
-void __fastcall TGroundNode::RenderAlphaDL()
+void TGroundNode::RenderAlphaDL()
 {
     // SPOSOB NA POZBYCIE SIE RAMKI DOOKOLA TEXTURY ALPHA DLA OBIEKTOW ZAGNIEZDZONYCH W SCN JAKO
     // NODE
@@ -600,7 +600,7 @@ void __fastcall TGroundNode::RenderAlphaDL()
     // sprawdzamy czy w nazwie jest @ i wg tego
     // ustawiamy PROBLEND na true dla wlasnie wczytywanego trojkata (kazdy trojkat jest osobnym
     // nodem)
-    // nastepnie podczas renderowania w bool __fastcall TGroundNode::RenderAlpha()
+    // nastepnie podczas renderowania w bool TGroundNode::RenderAlpha()
     // na poczatku ustawiamy standardowe GL_GREATER = 0.04
     // pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE,
     // wlasciwie dla kazdego node'a
@@ -693,7 +693,7 @@ __fastcall TSubRect::~TSubRect()
     // TODO: usun¹æ obiekty z listy (nRootMesh), bo s¹ one tworzone dla sektora
 }
 
-void __fastcall TSubRect::NodeAdd(TGroundNode *Node)
+void TSubRect::NodeAdd(TGroundNode *Node)
 { // przyczepienie obiektu do sektora, wstêpna kwalifikacja na listy renderowania
     if (!this)
         return; // zabezpiecznie przed obiektami przekraczaj¹cymi obszar roboczy
@@ -828,7 +828,7 @@ void __fastcall TSubRect::NodeAdd(TGroundNode *Node)
     ++iNodeCount; // licznik obiektów
 }
 
-void __fastcall TSubRect::RaNodeAdd(TGroundNode *Node)
+void TSubRect::RaNodeAdd(TGroundNode *Node)
 { // finalna kwalifikacja na listy renderowania, jeœli nie obs³ugiwane grupowo
     switch (Node->iType)
     {
@@ -896,7 +896,7 @@ void __fastcall TSubRect::RaNodeAdd(TGroundNode *Node)
     }
 }
 
-void __fastcall TSubRect::Sort()
+void TSubRect::Sort()
 { // przygotowanie sektora do renderowania
     TGroundNode **n0, *n1, *n2; // wskaŸniki robocze
     delete[] tTracks; // usuniêcie listy
@@ -990,7 +990,7 @@ TTrack *__fastcall TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack 
     return NULL;
 };
 
-bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
+bool TSubRect::RaTrackAnimAdd(TTrack *t)
 { // aktywacja animacji torów w VBO (zwrotnica, obrotnica)
     if (m_nVertexCount < 0)
         return true; // nie ma animacji, gdy nie widaæ
@@ -1001,7 +1001,7 @@ bool __fastcall TSubRect::RaTrackAnimAdd(TTrack *t)
     return false; // bêdzie animowane...
 }
 
-void __fastcall TSubRect::RaAnimate()
+void TSubRect::RaAnimate()
 { // wykonanie animacji
     if (!tTrackAnim)
         return; // nie ma nic do animowania
@@ -1028,7 +1028,7 @@ TTraction *__fastcall TSubRect::FindTraction(vector3 *Point, int &iConnection, T
     return NULL;
 };
 
-void __fastcall TSubRect::LoadNodes()
+void TSubRect::LoadNodes()
 { // utworzenie siatek VBO dla wszystkich node w sektorze
     if (m_nVertexCount >= 0)
         return; // obiekty by³y ju¿ sprawdzone
@@ -1121,7 +1121,7 @@ void __fastcall TSubRect::LoadNodes()
         ResourceManager::Register(this); // dodanie do automatu zwalniaj¹cego pamiêæ
 }
 
-bool __fastcall TSubRect::StartVBO()
+bool TSubRect::StartVBO()
 { // pocz¹tek rysowania elementów z VBO w sektorze
     SetLastUsage(Timer::GetSimulationTime()); // te z ty³u bêd¹ niepotrzebnie zwalniane
     return CMesh::StartVBO();
@@ -1133,7 +1133,7 @@ void TSubRect::Release()
         CMesh::Clear(); // usuwanie buforów
 };
 
-void __fastcall TSubRect::RenderDL()
+void TSubRect::RenderDL()
 { // renderowanie nieprzezroczystych (DL)
     TGroundNode *node;
     RaAnimate(); // przeliczenia animacji torów w sektorze
@@ -1145,7 +1145,7 @@ void __fastcall TSubRect::RenderDL()
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
 };
 
-void __fastcall TSubRect::RenderAlphaDL()
+void TSubRect::RenderAlphaDL()
 { // renderowanie przezroczystych modeli oraz pojazdów (DL)
     TGroundNode *node;
     for (node = nRenderMixed; node; node = node->nNext3)
@@ -1159,7 +1159,7 @@ void __fastcall TSubRect::RenderAlphaDL()
         tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
 };
 
-void __fastcall TSubRect::RenderVBO()
+void TSubRect::RenderVBO()
 { // renderowanie nieprzezroczystych (VBO)
     TGroundNode *node;
     RaAnimate(); // przeliczenia animacji torów w sektorze
@@ -1179,7 +1179,7 @@ void __fastcall TSubRect::RenderVBO()
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
 };
 
-void __fastcall TSubRect::RenderAlphaVBO()
+void TSubRect::RenderAlphaVBO()
 { // renderowanie przezroczystych modeli oraz pojazdów (VBO)
     TGroundNode *node;
     for (node = nRenderMixed; node; node = node->nNext3)
@@ -1193,7 +1193,7 @@ void __fastcall TSubRect::RenderAlphaVBO()
         tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
 };
 
-void __fastcall TSubRect::RenderSounds()
+void TSubRect::RenderSounds()
 { // aktualizacja dŸwiêków w pojazdach sektora (sektor mo¿e nie byæ wyœwietlany)
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDynSounds(); // dŸwiêki pojazdów id¹ niezale¿nie od wyœwietlania
@@ -1211,7 +1211,7 @@ __fastcall TGroundRect::TGroundRect()
 
 __fastcall TGroundRect::~TGroundRect() { SafeDeleteArray(pSubRects); };
 
-void __fastcall TGroundRect::RenderDL()
+void TGroundRect::RenderDL()
 { // renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
     if (iLastDisplay != iFrameNumber)
     { // tylko jezeli dany kwadrat nie by³ jeszcze renderowany
@@ -1237,7 +1237,7 @@ void __fastcall TGroundRect::RenderDL()
     }
 };
 
-void __fastcall TGroundRect::RenderVBO()
+void TGroundRect::RenderVBO()
 { // renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
     if (iLastDisplay != iFrameNumber)
     { // tylko jezeli dany kwadrat nie by³ jeszcze renderowany
@@ -1258,7 +1258,7 @@ void __fastcall TGroundRect::RenderVBO()
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-void __fastcall TGround::MoveGroundNode(vector3 pPosition)
+void TGround::MoveGroundNode(vector3 pPosition)
 { // Ra: to wymaga gruntownej reformy
     /*
      TGroundNode *Current;
@@ -1315,7 +1315,7 @@ __fastcall TGround::TGround()
 
 __fastcall TGround::~TGround() { Free(); }
 
-void __fastcall TGround::Free()
+void TGround::Free()
 {
     TEvent *tmp;
     for (TEvent *Current = RootEvent; Current;)
@@ -1364,7 +1364,7 @@ TGroundNode *__fastcall TGround::DynamicFind(AnsiString asNameToFind)
     return NULL;
 };
 
-void __fastcall TGround::DynamicList(bool all)
+void TGround::DynamicList(bool all)
 { // odes³anie nazw pojazdów dostêpnych na scenerii (nazwy, szczególnie wagonów, mog¹ siê
   // powtarzaæ!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
@@ -1401,7 +1401,7 @@ TGroundNode *nTrainSetDriver = NULL; // pojazd, któremu zostanie wys³any rozk³ad
 TGroundVertex TempVerts[10000]; // tu wczytywane s¹ trójk¹ty
 Byte TempConnectionType[200]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
-void __fastcall TGround::RaTriangleDivider(TGroundNode *node)
+void TGround::RaTriangleDivider(TGroundNode *node)
 { // tworzy dodatkowe trójk¹ty i zmiejsza podany
     // to jest wywo³ywane przy wczytywaniu trójk¹tów
     // dodatkowe trójk¹ty s¹ dodawane do g³ównej listy trójk¹tów
@@ -2241,7 +2241,7 @@ TEvent *__fastcall TGround::FindEventScan(const AnsiString &asEventName)
     return e; // utworzony albo siê nie uda³o
 }
 
-void __fastcall TGround::FirstInit()
+void TGround::FirstInit()
 { // ustalanie zale¿noœci na scenerii przed wczytaniem pojazdów
     if (bInitDone)
         return; // Ra: ¿eby nie robi³o siê dwa razy
@@ -2352,7 +2352,7 @@ void __fastcall TGround::FirstInit()
     WriteLog("FirstInit is done");
 };
 
-bool __fastcall TGround::Init(AnsiString asFile, HDC hDC)
+bool TGround::Init(AnsiString asFile, HDC hDC)
 { // g³ówne wczytywanie scenerii
     if (asFile.LowerCase().SubString(1, 7) == "scenery")
         asFile.Delete(1, 8); // Ra: usuniêcie niepotrzebnych znaków - zgodnoœæ wstecz z 2003
@@ -2865,7 +2865,7 @@ bool __fastcall TGround::Init(AnsiString asFile, HDC hDC)
     return true;
 }
 
-bool __fastcall TGround::InitEvents()
+bool TGround::InitEvents()
 { //³¹czenie eventów z pozosta³ymi obiektami
     TGroundNode *tmp, *trk;
     char buff[255];
@@ -3164,7 +3164,7 @@ bool __fastcall TGround::InitEvents()
     return true;
 }
 
-void __fastcall TGround::InitTracks()
+void TGround::InitTracks()
 { //³¹czenie torów ze sob¹ i z eventami
     TGroundNode *Current, *Model;
     TTrack *tmp; // znaleziony tor
@@ -3325,7 +3325,7 @@ void __fastcall TGround::InitTracks()
     //  Current->pTrack->ConnectionsLog(); //zalogowanie informacji o po³¹czeniach
 }
 
-void __fastcall TGround::InitTraction()
+void TGround::InitTraction()
 { //³¹czenie drutów ze sob¹ oraz z torami i eventami
     TGroundNode *nCurrent, *nTemp;
     TTraction *tmp; // znalezione przês³o
@@ -3532,7 +3532,7 @@ void __fastcall TGround::InitTraction()
     delete[] nEnds; // nie potrzebne ju¿
 };
 
-void __fastcall TGround::TrackJoin(TGroundNode *Current)
+void TGround::TrackJoin(TGroundNode *Current)
 { // wyszukiwanie s¹siednich torów do pod³¹czenia (wydzielone na u¿ytek obrotnicy)
     TTrack *Track = Current->pTrack;
     TTrack *tmp;
@@ -3567,7 +3567,7 @@ void __fastcall TGround::TrackJoin(TGroundNode *Current)
 }
 
 // McZapkie-070602: wyzwalacze zdarzen
-bool __fastcall TGround::InitLaunchers()
+bool TGround::InitLaunchers()
 {
     TGroundNode *Current, *tmp;
     TEventLauncher *EventLauncher;
@@ -3739,7 +3739,7 @@ TTraction *__fastcall TGround::TractionNearestFind(vector3 &p, int dir, TGroundN
     return (nBest ? nBest->hvTraction : NULL);
 };
 
-bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
+bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
     if (Event->bEnabled) // jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
         if (!Event->iQueued) // jeœli nie dodany jeszcze do kolejki
@@ -3800,7 +3800,7 @@ bool __fastcall TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
     return true;
 }
 
-bool __fastcall TGround::EventConditon(TEvent *e)
+bool TGround::EventConditon(TEvent *e)
 { // sprawdzenie spelnienia warunków dla eventu
     if (e->iFlags <= update_only)
         return true; // bezwarunkowo
@@ -3844,7 +3844,7 @@ bool __fastcall TGround::EventConditon(TEvent *e)
     return false;
 };
 
-bool __fastcall TGround::CheckQuery()
+bool TGround::CheckQuery()
 { // sprawdzenie kolejki eventów oraz wykonanie tych, którym czas min¹³
     TLocation loc;
     int i;
@@ -4195,19 +4195,19 @@ bool __fastcall TGround::CheckQuery()
     return true;
 }
 
-void __fastcall TGround::OpenGLUpdate(HDC hDC)
+void TGround::OpenGLUpdate(HDC hDC)
 {
     SwapBuffers(hDC); // swap buffers (double buffering)
 };
 
-void __fastcall TGround::UpdatePhys(double dt, int iter)
+void TGround::UpdatePhys(double dt, int iter)
 { // aktualizacja fizyki sta³ym krokiem: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
     for (TGroundNode *Current = nRootOfType[TP_TRACTIONPOWERSOURCE]; Current;
          Current = Current->nNext)
         Current->psTractionPowerSource->Update(dt * iter); // zerowanie sumy pr¹dów
 };
 
-bool __fastcall TGround::Update(double dt, int iter)
+bool TGround::Update(double dt, int iter)
 { // aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
     if (dt == 0.0)
     { // jeœli za³¹czona jest pauza, to tylko obs³u¿yæ ruch w kabinie trzeba
@@ -4282,7 +4282,7 @@ bool __fastcall TGround::Update(double dt, int iter)
 };
 
 // Winger 170204 - szukanie trakcji nad pantografami
-bool __fastcall TGround::GetTraction(TDynamicObject *model)
+bool TGround::GetTraction(TDynamicObject *model)
 { // aktualizacja drutu zasilaj¹cego dla ka¿dego pantografu, ¿eby odczytaæ napiêcie
     // jeœli pojazd siê nie porusza, to nie ma sensu przeliczaæ tego wiêcej ni¿ raz
     double fRaParam; // parametr równania parametrycznego odcinka drutu
@@ -4530,7 +4530,7 @@ bool __fastcall TGround::GetTraction(TDynamicObject *model)
     return true;
 };
 
-bool __fastcall TGround::RenderDL(vector3 pPosition)
+bool TGround::RenderDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza nieprzezroczystych
     glDisable(GL_BLEND);
     glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
@@ -4591,7 +4591,7 @@ bool __fastcall TGround::RenderDL(vector3 pPosition)
     return true;
 }
 
-bool __fastcall TGround::RenderAlphaDL(vector3 pPosition)
+bool TGround::RenderAlphaDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza przezroczystych
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER, 0.04); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
@@ -4620,7 +4620,7 @@ bool __fastcall TGround::RenderAlphaDL(vector3 pPosition)
     return true;
 }
 
-bool __fastcall TGround::RenderVBO(vector3 pPosition)
+bool TGround::RenderVBO(vector3 pPosition)
 { // renderowanie scenerii z VBO - faza nieprzezroczystych
     glDisable(GL_BLEND);
     glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
@@ -4688,7 +4688,7 @@ bool __fastcall TGround::RenderVBO(vector3 pPosition)
     return true;
 }
 
-bool __fastcall TGround::RenderAlphaVBO(vector3 pPosition)
+bool TGround::RenderAlphaVBO(vector3 pPosition)
 { // renderowanie scenerii z VBO - faza przezroczystych
     glEnable(GL_BLEND);
     glAlphaFunc(GL_GREATER, 0.04); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
@@ -4725,7 +4725,7 @@ bool __fastcall TGround::RenderAlphaVBO(vector3 pPosition)
 };
 
 //---------------------------------------------------------------------------
-void __fastcall TGround::Navigate(String ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
+void TGround::Navigate(String ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
 { // wys³anie komunikatu do steruj¹cego
     HWND h = FindWindow(ClassName.c_str(), 0); // mo¿na by to zapamiêtaæ
     if (h == 0)
@@ -4733,7 +4733,7 @@ void __fastcall TGround::Navigate(String ClassName, UINT Msg, WPARAM wParam, LPA
     SendMessage(h, Msg, wParam, lParam);
 };
 //--------------------------------
-void __fastcall TGround::WyslijEvent(const AnsiString &e, const AnsiString &d)
+void TGround::WyslijEvent(const AnsiString &e, const AnsiString &d)
 { // Ra: jeszcze do wyczyszczenia
     DaneRozkaz r;
     r.iSygn = 'EU07';
@@ -4750,7 +4750,7 @@ void __fastcall TGround::WyslijEvent(const AnsiString &e, const AnsiString &d)
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
-void __fastcall TGround::WyslijString(const AnsiString &t, int n)
+void TGround::WyslijString(const AnsiString &t, int n)
 { // wys³anie informacji w postaci pojedynczego tekstu
     DaneRozkaz r;
     r.iSygn = 'EU07';
@@ -4765,12 +4765,12 @@ void __fastcall TGround::WyslijString(const AnsiString &t, int n)
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
-void __fastcall TGround::WyslijWolny(const AnsiString &t)
+void TGround::WyslijWolny(const AnsiString &t)
 { // Ra: jeszcze do wyczyszczenia
     WyslijString(t, 4); // tor wolny
 };
 //--------------------------------
-void __fastcall TGround::WyslijNamiary(TGroundNode *t)
+void TGround::WyslijNamiary(TGroundNode *t)
 { // wys³anie informacji o pojeŸdzie - (float), d³ugoœæ ramki bêdzie zwiêkszana w miarê potrzeby
     // WriteLog("Wysylam pojazd");
     DaneRozkaz r;
@@ -4844,7 +4844,7 @@ void __fastcall TGround::WyslijNamiary(TGroundNode *t)
     // WriteLog("Ramka poszla!");
 };
 //--------------------------------
-void __fastcall TGround::WyslijParam(int nr, int fl)
+void TGround::WyslijParam(int nr, int fl)
 { // wys³anie parametrów symulacji w ramce (nr) z flagami (fl)
     DaneRozkaz r;
     r.iSygn = 'EU07';
@@ -4868,7 +4868,7 @@ void __fastcall TGround::WyslijParam(int nr, int fl)
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-void __fastcall TGround::RadioStop(vector3 pPosition)
+void TGround::RadioStop(vector3 pPosition)
 { // zatrzymanie poci¹gów w okolicy
     TGroundNode *node;
     TSubRect *tmp;
@@ -4946,7 +4946,7 @@ TDynamicObject *__fastcall TGround::CouplerNearest(vector3 pPosition, double dis
     return dyn;
 };
 //---------------------------------------------------------------------------
-void __fastcall TGround::DynamicRemove(TDynamicObject *dyn)
+void TGround::DynamicRemove(TDynamicObject *dyn)
 { // Ra: usuniêcie pojazdów ze scenerii (gdy dojad¹ na koniec i nie sa potrzebne)
     TDynamicObject *d = dyn->Prev();
     if (d) // jeœli coœ jest z przodu
@@ -4980,12 +4980,12 @@ void __fastcall TGround::DynamicRemove(TDynamicObject *dyn)
 };
 
 //---------------------------------------------------------------------------
-void __fastcall TGround::TerrainRead(const AnsiString &f){
+void TGround::TerrainRead(const AnsiString &f){
     // Ra: wczytanie trójk¹tów terenu z pliku E3D
 };
 
 //---------------------------------------------------------------------------
-void __fastcall TGround::TerrainWrite()
+void TGround::TerrainWrite()
 { // Ra: zapisywanie trójk¹tów terenu do pliku E3D
     if (Global::pTerrainCompact->TerrainLoaded())
         return; // jeœli zosta³o wczytane, to nie ma co dalej robiæ
@@ -5076,7 +5076,7 @@ void __fastcall TGround::TerrainWrite()
 };
 //---------------------------------------------------------------------------
 
-void __fastcall TGround::TrackBusyList()
+void TGround::TrackBusyList()
 { // wys³anie informacji o wszystkich zajêtych odcinkach
     TGroundNode *Current;
     TTrack *Track;
@@ -5088,7 +5088,7 @@ void __fastcall TGround::TrackBusyList()
 };
 //---------------------------------------------------------------------------
 
-void __fastcall TGround::IsolatedBusyList()
+void TGround::IsolatedBusyList()
 { // wys³anie informacji o wszystkich odcinkach izolowanych
     TIsolated *Current;
     for (Current = TIsolated::Root(); Current; Current = Current->Next())
@@ -5100,7 +5100,7 @@ void __fastcall TGround::IsolatedBusyList()
 };
 //---------------------------------------------------------------------------
 
-void __fastcall TGround::IsolatedBusy(const AnsiString t)
+void TGround::IsolatedBusy(const AnsiString t)
 { // wys³anie informacji o odcinku izolowanym (t)
     // Ra 2014-06: do wyszukania u¿yæ drzewka nazw
     TIsolated *Current;
@@ -5115,7 +5115,7 @@ void __fastcall TGround::IsolatedBusy(const AnsiString t)
 };
 //---------------------------------------------------------------------------
 
-void __fastcall TGround::Silence(vector3 gdzie)
+void TGround::Silence(vector3 gdzie)
 { // wyciszenie wszystkiego w sektorach przed przeniesieniem kamery z (gdzie)
     int tr, tc;
     TGroundNode *node;

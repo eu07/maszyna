@@ -10,7 +10,7 @@ class TLPT
     int address;
 
   public:
-    bool __fastcall Connect(int port);
-    void __fastcall Out(int x);
+    bool Connect(int port);
+    void Out(int x);
 };
 #endif

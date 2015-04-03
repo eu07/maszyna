@@ -25,7 +25,7 @@ __fastcall TAnimAdvanced::~TAnimAdvanced(){
     // delete[] pVocaloidMotionData; //plik zosta³ zmodyfikowany
 };
 
-int __fastcall TAnimAdvanced::SortByBone()
+int TAnimAdvanced::SortByBone()
 { // sortowanie pliku animacji w celu optymalniejszego wykonania
     // rekordy zostaj¹ u³o¿one wg kolejnych ramek dla ka¿dej koœci
     // u³o¿enie koœci alfabetycznie nie jest niezbêdne, ale upraszcza sortowanie b¹belkowe
@@ -88,14 +88,14 @@ __fastcall TAnimContainer::~TAnimContainer()
     delete mAnim; // AnimContainer jest w³aœcicielem takich macierzy
 }
 
-bool __fastcall TAnimContainer::Init(TSubModel *pNewSubModel)
+bool TAnimContainer::Init(TSubModel *pNewSubModel)
 {
     fRotateSpeed = 0.0f;
     pSubModel = pNewSubModel;
     return (pSubModel != NULL);
 }
 
-void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed)
+void TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed)
 {
     if (!this)
         return; // wywo³ywane z eventu, gdy brak modelu
@@ -118,7 +118,7 @@ void __fastcall TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double f
     }
 }
 
-void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
+void TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
 {
     if (!this)
         return; // wywo³ywane z eventu, gdy brak modelu
@@ -141,7 +141,7 @@ void __fastcall TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double f
     }
 }
 
-void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
+void TAnimContainer::AnimSetVMD(double fNewSpeed)
 {
     if (!this)
         return; // wywo³ywane z eventu, gdy brak modelu
@@ -198,7 +198,7 @@ void __fastcall TAnimContainer::AnimSetVMD(double fNewSpeed)
     // "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
-void __fastcall TAnimContainer::UpdateModel()
+void TAnimContainer::UpdateModel()
 { // przeliczanie animacji wykonaæ tylko raz na model
     if (pSubModel) // pozbyæ siê tego - sprawdzaæ wczeœniej
     {
@@ -302,7 +302,7 @@ void __fastcall TAnimContainer::UpdateModel()
     }
 };
 
-void __fastcall TAnimContainer::PrepareModel()
+void TAnimContainer::PrepareModel()
 { // tutaj zostawiæ tylko ustawienie submodelu, przeliczanie ma byæ w UpdateModel()
     if (pSubModel) // pozbyæ siê tego - sprawdzaæ wczeœniej
     {
@@ -345,7 +345,7 @@ void __fastcall TAnimContainer::PrepareModel()
     // "+AnsiString(vTranslation.x)+" "+AnsiString(vTranslation.y)+" "+AnsiString(vTranslation.z));
 }
 
-void __fastcall TAnimContainer::UpdateModelIK()
+void TAnimContainer::UpdateModelIK()
 { // odwrotna kinematyka wyliczana dopiero po ustawieniu macierzy w submodelach
     if (pSubModel) // pozbyæ siê tego - sprawdzaæ wczeœniej
     {
@@ -384,12 +384,12 @@ void __fastcall TAnimContainer::UpdateModelIK()
     }
 }
 
-bool __fastcall TAnimContainer::InMovement()
+bool TAnimContainer::InMovement()
 { // czy trwa animacja - informacja dla obrotnicy
     return (fRotateSpeed != 0.0) || (fTranslateSpeed != 0.0);
 }
 
-void __fastcall TAnimContainer::EventAssign(TEvent *ev)
+void TAnimContainer::EventAssign(TEvent *ev)
 { // przypisanie eventu wykonywanego po zakoñczeniu animacji evDone = ev; };
 
 //------------------------------------------------------------------------------
@@ -425,7 +425,7 @@ __fastcall TAnimModel::~TAnimModel()
     SafeDelete(pRoot);
 }
 
-bool __fastcall TAnimModel::Init(TModel3d *pNewModel)
+bool TAnimModel::Init(TModel3d *pNewModel)
 {
     fBlinkTimer = double(random(1000 * fOffTime)) / (1000 * fOffTime);
     ;
@@ -433,7 +433,7 @@ bool __fastcall TAnimModel::Init(TModel3d *pNewModel)
     return (pModel != NULL);
 }
 
-bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
+bool TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
 {
     if (asReplacableTexture.SubString(1, 1) ==
         "*") // od gwiazdki zaczynaj¹ siê teksty na wyœwietlaczach
@@ -451,7 +451,7 @@ bool __fastcall TAnimModel::Init(AnsiString asName, AnsiString asReplacableTextu
     return (Init(TModelsManager::GetModel(asName.c_str())));
 }
 
-bool __fastcall TAnimModel::Load(cParser *parser, bool ter)
+bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie œwiate³
     AnsiString str;
     std::string token;
@@ -549,7 +549,7 @@ TAnimContainer *__fastcall TAnimModel::GetContainer(char *pName)
     return AddContainer(pName);
 }
 
-void __fastcall TAnimModel::RaAnimate()
+void TAnimModel::RaAnimate()
 { // przeliczenie animacji - jednorazowo na klatkê
     // Ra 2F1I: to by mo¿na pomijaæ dla modeli bez animacji, których jest wiêkszoœæ
     TAnimContainer *pCurrent;
@@ -561,7 +561,7 @@ void __fastcall TAnimModel::RaAnimate()
         pCurrent->UpdateModelIK(); // przeliczenie odwrotnej kinematyki
 };
 
-void __fastcall TAnimModel::RaPrepare()
+void TAnimModel::RaPrepare()
 { // ustawia œwiat³a i animacje we wzorcu modelu przed renderowaniem egzemplarza
     fBlinkTimer -= Timer::GetDeltaTime();
     if (fBlinkTimer <= 0)
@@ -597,7 +597,7 @@ void __fastcall TAnimModel::RaPrepare()
     //  pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
 }
 
-void __fastcall TAnimModel::RenderVBO(vector3 pPosition, double fAngle)
+void TAnimModel::RenderVBO(vector3 pPosition, double fAngle)
 { // sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
@@ -605,14 +605,14 @@ void __fastcall TAnimModel::RenderVBO(vector3 pPosition, double fAngle)
         pModel->RaRender(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
 }
 
-void __fastcall TAnimModel::RenderAlphaVBO(vector3 pPosition, double fAngle)
+void TAnimModel::RenderAlphaVBO(vector3 pPosition, double fAngle)
 {
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
         pModel->RaRenderAlpha(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
 };
 
-void __fastcall TAnimModel::RenderDL(vector3 pPosition, double fAngle)
+void TAnimModel::RenderDL(vector3 pPosition, double fAngle)
 {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
@@ -620,14 +620,14 @@ void __fastcall TAnimModel::RenderDL(vector3 pPosition, double fAngle)
         pModel->Render(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
 }
 
-void __fastcall TAnimModel::RenderAlphaDL(vector3 pPosition, double fAngle)
+void TAnimModel::RenderAlphaDL(vector3 pPosition, double fAngle)
 {
     RaPrepare();
     if (pModel)
         pModel->RenderAlpha(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
 };
 
-int __fastcall TAnimModel::Flags()
+int TAnimModel::Flags()
 { // informacja dla TGround, czy ma byæ w Render, RenderAlpha, czy RenderMixed
     int i = pModel ? pModel->Flags() : 0; // pobranie flag ca³ego modelu
     if (ReplacableSkinId[1] > 0) // jeœli ma wymienn¹ teksturê 0
@@ -645,27 +645,27 @@ int __fastcall TAnimModel::Flags()
 // 2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
 //-----------------------------------------------------------------------------
 
-void __fastcall TAnimModel::RenderDL(vector3 *vPosition)
+void TAnimModel::RenderDL(vector3 *vPosition)
 {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
         pModel->Render(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
 };
-void __fastcall TAnimModel::RenderAlphaDL(vector3 *vPosition)
+void TAnimModel::RenderAlphaDL(vector3 *vPosition)
 {
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
         pModel->RenderAlpha(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
 };
-void __fastcall TAnimModel::RenderVBO(vector3 *vPosition)
+void TAnimModel::RenderVBO(vector3 *vPosition)
 {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
         pModel->RaRender(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
 };
-void __fastcall TAnimModel::RenderAlphaVBO(vector3 *vPosition)
+void TAnimModel::RenderAlphaVBO(vector3 *vPosition)
 {
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
@@ -673,24 +673,24 @@ void __fastcall TAnimModel::RenderAlphaVBO(vector3 *vPosition)
 };
 
 //---------------------------------------------------------------------------
-bool __fastcall TAnimModel::TerrainLoaded()
+bool TAnimModel::TerrainLoaded()
 { // zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
   return (this ? pModel != NULL : false); };
-int __fastcall TAnimModel::TerrainCount()
+int TAnimModel::TerrainCount()
 { // zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
   return pModel ? pModel->TerrainCount() : 0; };
 TSubModel *__fastcall TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaŸników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
 };
-void __fastcall TAnimModel::TerrainRenderVBO(int n)
+void TAnimModel::TerrainRenderVBO(int n)
 { // renderowanie terenu z VBO
     if (pModel)
         pModel->TerrainRenderVBO(n);
 };
 //---------------------------------------------------------------------------
 
-void __fastcall TAnimModel::Advanced()
+void TAnimModel::Advanced()
 { // wykonanie zaawansowanych animacji na submodelach
     pAdvanced->fCurrent +=
         pAdvanced->fFrequency * Timer::GetDeltaTime(); // aktualna ramka zmiennoprzecinkowo
@@ -724,7 +724,7 @@ void __fastcall TAnimModel::Advanced()
     }
 };
 
-void __fastcall TAnimModel::AnimationVND(void *pData, double a, double b, double c, double d)
+void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double d)
 { // rozpoczêcie wykonywania animacji z podanego pliku
     // tabela w pliku musi byæ posortowana wg klatek dla kolejnych koœci!
     // skrócone nagranie ma 3:42 = 222 sekundy, animacja koñczy siê na klatce 6518
@@ -818,7 +818,7 @@ void __fastcall TAnimModel::AnimationVND(void *pData, double a, double b, double
 };
 
 //---------------------------------------------------------------------------
-void __fastcall TAnimModel::LightSet(int n, float v)
+void TAnimModel::LightSet(int n, float v)
 { // ustawienie œwiat³a (n) na wartoœæ (v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
@@ -840,7 +840,7 @@ void __fastcall TAnimModel::LightSet(int n, float v)
     }
 };
 //---------------------------------------------------------------------------
-void __fastcall TAnimModel::AnimUpdate(double dt)
+void TAnimModel::AnimUpdate(double dt)
 { // wykonanie zakolejkowanych animacji, nawet gdy modele nie s¹ aktualnie wyœwietlane
     TAnimContainer *p = TAnimModel::acAnimList;
     while (p)

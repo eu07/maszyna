@@ -16,7 +16,7 @@ std::ofstream errors; // lista b³êdów "errors.txt", zawsze dzia³a
 
 char endstring[10] = "\n";
 
-void __fastcall WriteConsoleOnly(const char *str, double value)
+void WriteConsoleOnly(const char *str, double value)
 {
     char buf[255];
     sprintf(buf, "%s %f \n", str, value);
@@ -26,7 +26,7 @@ void __fastcall WriteConsoleOnly(const char *str, double value)
     // WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
 }
 
-void __fastcall WriteConsoleOnly(const char *str)
+void WriteConsoleOnly(const char *str)
 {
     // printf("%n ffafaf /n",str);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
@@ -36,7 +36,7 @@ void __fastcall WriteConsoleOnly(const char *str)
     WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
 }
 
-void __fastcall WriteLog(const char *str, double value)
+void WriteLog(const char *str, double value)
 {
     if (Global::iWriteLogEnabled)
     {
@@ -48,7 +48,7 @@ void __fastcall WriteLog(const char *str, double value)
         }
     }
 };
-void __fastcall WriteLog(const char *str)
+void WriteLog(const char *str)
 {
     if (str)
     {
@@ -64,7 +64,7 @@ void __fastcall WriteLog(const char *str)
             WriteConsoleOnly(str);
     }
 };
-void __fastcall ErrorLog(const char *str)
+void ErrorLog(const char *str)
 { // Ra: bezwarunkowa rejestracja powa¿nych b³êdów
     if (!errors.is_open())
     {
@@ -77,19 +77,19 @@ void __fastcall ErrorLog(const char *str)
     errors.flush();
 };
 
-void __fastcall Error(const AnsiString &asMessage, bool box)
+void Error(const AnsiString &asMessage, bool box)
 {
     if (box)
         MessageBox(NULL, asMessage.c_str(), AnsiString("EU07 " + Global::asRelease).c_str(), MB_OK);
     WriteLog(asMessage.c_str());
 }
-void __fastcall ErrorLog(const AnsiString &asMessage)
+void ErrorLog(const AnsiString &asMessage)
 { // zapisywanie b³êdów "errors.txt"
     ErrorLog(asMessage.c_str());
     WriteLog(asMessage.c_str()); // do "log.txt" ewentualnie te¿
 }
 
-void __fastcall WriteLog(const AnsiString &str) { // Ra: wersja z AnsiString jest zamienna z Error() WriteLog(str.c_str()); };
+void WriteLog(const AnsiString &str) { // Ra: wersja z AnsiString jest zamienna z Error() WriteLog(str.c_str()); };
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

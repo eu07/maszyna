@@ -17,8 +17,8 @@ class ItemRecord
         unsigned int uData;
     };
     // typedef
-    void __fastcall ListGet(ItemRecord *r, int *&n);
-    void __fastcall TreeAdd(ItemRecord *r, int c);
+    void ListGet(ItemRecord *r, int *&n);
+    void TreeAdd(ItemRecord *r, int c);
     template <typename TOut> inline TOut *DataGet() { return (TOut *)pData; };
     template <typename TOut> inline void DataSet(TOut *x) { pData = (void *)x; };
     void *__fastcall TreeFind(const char *n);
@@ -35,15 +35,15 @@ class TNames
     ItemRecord *rTypes[20]; // roøne typy obiektÛw (poczπtek drzewa)
     int iLast; // ostatnio uøyty rekord
   public:
-    __fastcall TNames();
-    int __fastcall Add(int t, const char *n); // dodanie obiektu typu (t)
-    int __fastcall Add(int t, const char *n, void *d); // dodanie obiektu z wskaünikiem
-    int __fastcall Add(int t, const char *n, int d); // dodanie obiektu z numerem
-    bool __fastcall Update(int t, const char *n,
+    TNames();
+    int Add(int t, const char *n); // dodanie obiektu typu (t)
+    int Add(int t, const char *n, void *d); // dodanie obiektu z wskaünikiem
+    int Add(int t, const char *n, int d); // dodanie obiektu z numerem
+    bool Update(int t, const char *n,
                            void *d); // dodanie jeúli nie ma, wymiana (d), gdy jest
-    void __fastcall TreeSet();
+    void TreeSet();
     ItemRecord *__fastcall TreeSet(int *n, int d, int u);
-    void __fastcall Sort(int t); // przebudowa drzewa typu (t)
+    void Sort(int t); // przebudowa drzewa typu (t)
     ItemRecord *__fastcall Item(int n); // rekord o numerze (n)
     inline void *Find(const int t, const char *n)
     {

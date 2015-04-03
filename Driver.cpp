@@ -100,7 +100,7 @@ AnsiString StopReasonTable[] = { // przyczyny zatrzymania ruchu AI
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-void __fastcall TSpeedPos::Clear()
+void TSpeedPos::Clear()
 {
     iFlags = 0; // brak flag to brak reakcji
     fVelNext = -1.0; // prêdkoœæ bez ograniczeñ
@@ -109,7 +109,7 @@ void __fastcall TSpeedPos::Clear()
     trTrack = NULL; // brak wskaŸnika
 };
 
-void __fastcall TSpeedPos::CommandCheck()
+void TSpeedPos::CommandCheck()
 { // sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
     TCommandType command = evEvent->Command();
     double value1 = evEvent->ValueGet(1);
@@ -158,7 +158,7 @@ void __fastcall TSpeedPos::CommandCheck()
     }
 };
 
-bool __fastcall TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
+bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
 { // przeliczenie odleg³oœci od punktu (*p), w kierunku (*dir), zaczynaj¹c od pojazdu
     // dla kolejnych pozycji podawane s¹ wspó³rzêdne poprzedniego obiektu w (*p)
     vector3 v = vPos - *p; // wektor od poprzedniego obiektu (albo pojazdu) do punktu zmiany
@@ -248,7 +248,7 @@ bool __fastcall TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
     return false;
 };
 
-AnsiString __fastcall TSpeedPos::TableText()
+AnsiString TSpeedPos::TableText()
 { // pozycja tabelki prêdkoœci
     if (iFlags & 0x1)
     { // o ile pozycja istotna
@@ -262,7 +262,7 @@ AnsiString __fastcall TSpeedPos::TableText()
     return "Empty";
 }
 
-bool __fastcall TSpeedPos::Set(TEvent *e, double d)
+bool TSpeedPos::Set(TEvent *e, double d)
 { // zapamiêtanie zdarzenia
     fDist = d;
     iFlags = 0x101; // event+istotny
@@ -272,7 +272,7 @@ bool __fastcall TSpeedPos::Set(TEvent *e, double d)
     return fVelNext == 0.0; // true gdy zatrzymanie, wtedy nie ma po co skanowaæ dalej
 };
 
-void __fastcall TSpeedPos::Set(TTrack *t, double d, int f)
+void TSpeedPos::Set(TTrack *t, double d, int f)
 { // zapamiêtanie zmiany prêdkoœci w torze
     fDist = d; // odleg³oœæ do pocz¹tku toru
     trTrack = t; // TODO: (t) mo¿e byæ NULL i nie odczytamy koñca poprzedniego :/
@@ -299,7 +299,7 @@ void __fastcall TSpeedPos::Set(TTrack *t, double d, int f)
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-void __fastcall TController::TableClear()
+void TController::TableClear()
 { // wyczyszczenie tablicy
     iFirst = iLast = 0;
     iTableDirection = 0; // nieznany
@@ -321,7 +321,7 @@ TEvent *__fastcall TController::CheckTrackEvent(double fDirection, TTrack *Track
     return e;
 }
 
-bool __fastcall TController::TableAddNew()
+bool TController::TableAddNew()
 { // zwiêkszenie u¿ytej tabelki o jeden rekord
     iLast = (iLast + 1) % iSpeedTableSize;
     // TODO: jeszcze sprawdziæ, czy siê na iFirst nie na³o¿y
@@ -332,7 +332,7 @@ bool __fastcall TController::TableAddNew()
     return true; // false gdy siê na³o¿y
 };
 
-bool __fastcall TController::TableNotFound(TEvent *e)
+bool TController::TableNotFound(TEvent *e)
 { // sprawdzenie, czy nie zosta³ ju¿ dodany do tabelki (np. podwójne W4 robi problemy)
     int i, j = (iLast + 1) % iSpeedTableSize; // j, aby sprawdziæ te¿ ostatni¹ pozycjê
     for (i = iFirst; i != j; i = (i + 1) % iSpeedTableSize)
@@ -342,7 +342,7 @@ bool __fastcall TController::TableNotFound(TEvent *e)
     return true; // nie ma, czyli mo¿na dodaæ
 };
 
-void __fastcall TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
+void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
 { // skanowanie trajektorii na odleg³oœæ (fDistance) od (pVehicle) w kierunku przodu sk³adu i
   // uzupe³nianie tabelki
     if (!iDirection) // kierunek pojazdu z napêdem
@@ -543,7 +543,7 @@ void __fastcall TController::TableTraceRoute(double fDistance, TDynamicObject *p
     }
 };
 
-void __fastcall TController::TableCheck(double fDistance)
+void TController::TableCheck(double fDistance)
 { // przeliczenie odleg³oœci w tabelce, ewentualnie doskanowanie (bez analizy prêdkoœci itp.)
     if (iTableDirection != iDirection)
         TableTraceRoute(fDistance,
@@ -617,7 +617,7 @@ void __fastcall TController::TableCheck(double fDistance)
     }
 };
 
-TCommandType __fastcall TController::TableUpdate(double &fVelDes, double &fDist, double &fNext,
+TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fNext,
                                                  double &fAcc)
 { // ustalenie parametrów, zwraca typ komendy, jeœli sygna³ podaje prêdkoœæ do jazdy
     // fVelDes - prêdkoœæ zadana
@@ -1087,7 +1087,7 @@ TCommandType __fastcall TController::TableUpdate(double &fVelDes, double &fDist,
     return go;
 };
 
-void __fastcall TController::TablePurger()
+void TController::TablePurger()
 { // odtykacz: usuwa mniej istotne pozycje ze œrodka tabelki, aby unikn¹æ zatkania
     //(np. brak ograniczenia pomiêdzy zwrotnicami, usuniête sygna³y, miniête odcinki ³uku)
     int i, j, k = iLast - iFirst; // mo¿e byæ 15 albo 16 pozycji, ostatniej nie ma co sprawdzaæ
@@ -1277,7 +1277,7 @@ __fastcall TController::TController(bool AI, TDynamicObject *NewControll, bool I
                     // rozruch o losowy czas
 };
 
-void __fastcall TController::CloseLog()
+void TController::CloseLog()
 {
     if (WriteLogFlag)
     {
@@ -1298,7 +1298,7 @@ __fastcall TController::~TController()
     CloseLog();
 };
 
-AnsiString __fastcall TController::Order2Str(TOrders Order)
+AnsiString TController::Order2Str(TOrders Order)
 { // zamiana kodu rozkazu na opis
     if (Order & Change_direction)
         return "Change_direction"; // mo¿e byæ na³o¿ona na inn¹ i wtedy ma priorytet
@@ -1333,12 +1333,12 @@ AnsiString __fastcall TController::Order2Str(TOrders Order)
     return "Undefined!";
 }
 
-AnsiString __fastcall TController::OrderCurrent()
+AnsiString TController::OrderCurrent()
 { // pobranie aktualnego rozkazu celem wyœwietlenia
     return AnsiString(OrderPos) + ". " + Order2Str(OrderList[OrderPos]);
 };
 
-void __fastcall TController::OrdersClear()
+void TController::OrdersClear()
 { // czyszczenie tabeli rozkazów na starcie albo po dojœciu do koñca
     OrderPos = 0;
     OrderTop = 1; // szczyt stosu rozkazów
@@ -1349,7 +1349,7 @@ void __fastcall TController::OrdersClear()
 #endif
 };
 
-void __fastcall TController::Activation()
+void TController::Activation()
 { // umieszczenie obsady w odpowiednim cz³onie, wykonywane wy³¹cznie gdy steruje AI
     iDirection = iDirectionOrder; // kierunek (wzglêdem sprzêgów pojazdu z AI) w³aœnie zosta³
                                   // ustalony (zmieniony)
@@ -1428,7 +1428,7 @@ void __fastcall TController::Activation()
     }
 };
 
-void __fastcall TController::AutoRewident()
+void TController::AutoRewident()
 { // autorewident: nastawianie hamulców w sk³adzie
     int r = 0, g = 0, p = 0; // iloœci wagonów poszczególnych typów
     TDynamicObject *d = pVehicles[0]; // pojazd na czele sk³adu
@@ -1510,7 +1510,7 @@ void __fastcall TController::AutoRewident()
     }
 };
 
-bool __fastcall TController::CheckVehicles(TOrders user)
+bool TController::CheckVehicles(TOrders user)
 { // sprawdzenie stanu posiadanych pojazdów w sk³adzie i zapalenie œwiate³
     TDynamicObject *p; // roboczy wskaŸnik na pojazd
     iVehicles = 0; // iloœæ pojazdów w sk³adzie
@@ -1655,13 +1655,13 @@ bool __fastcall TController::CheckVehicles(TOrders user)
     return true;
 }
 
-void __fastcall TController::Lights(int head, int rear)
+void TController::Lights(int head, int rear)
 { // zapalenie œwiate³ w sk³¹dzie
     pVehicles[0]->RaLightsSet(head, -1); // zapalenie przednich w pierwszym
     pVehicles[1]->RaLightsSet(-1, rear); // zapalenie koñcówek w ostatnim
 }
 
-void __fastcall TController::DirectionInitial()
+void TController::DirectionInitial()
 { // ustawienie kierunku po wczytaniu trainset (mo¿e jechaæ na wstecznym
     mvOccupied->CabActivisation(); // za³¹czenie rozrz¹du (wirtualne kabiny)
     if (mvOccupied->Vel > 0.0)
@@ -1673,7 +1673,7 @@ void __fastcall TController::DirectionInitial()
     CheckVehicles(); // sprawdzenie œwiate³ oraz skrajnych pojazdów do skanowania
 };
 
-int __fastcall TController::OrderDirectionChange(int newdir, TMoverParameters *Vehicle)
+int TController::OrderDirectionChange(int newdir, TMoverParameters *Vehicle)
 { // zmiana kierunku jazdy, niezale¿nie od kabiny
     int testd = newdir;
     if (Vehicle->Vel < 0.5)
@@ -1704,12 +1704,12 @@ int __fastcall TController::OrderDirectionChange(int newdir, TMoverParameters *V
     return (int)VelforDriver; // zwraca prêdkoœæ mechanika
 }
 
-void __fastcall TController::WaitingSet(double Seconds)
+void TController::WaitingSet(double Seconds)
 { // ustawienie odczekania po zatrzymaniu (ustawienie w trakcie jazdy zatrzyma)
     fStopTime = -Seconds; // ujemna wartoœæ oznacza oczekiwanie (potem >=0.0)
 }
 
-void __fastcall TController::SetVelocity(double NewVel, double NewVelNext, TStopReason r)
+void TController::SetVelocity(double NewVel, double NewVelNext, TStopReason r)
 { // ustawienie nowej prêdkoœci
     WaitingTime = -WaitingExpireTime; // przypisujemy -WaitingExpireTime, a potem porównujemy z
                                       // zerem
@@ -1757,7 +1757,7 @@ void __fastcall TController::SetVelocity(double NewVel, double NewVelNext, TStop
 }
 
 /* //funkcja do niczego nie potrzebna (ew. do przesuniêcia pojazdu o odleg³oœæ NewDist)
-bool __fastcall TController::SetProximityVelocity(double NewDist,double NewVelNext)
+bool TController::SetProximityVelocity(double NewDist,double NewVelNext)
 {//informacja o prêdkoœci w pewnej odleg³oœci
 #if 0
  if (NewVelNext==0.0)
@@ -1774,7 +1774,7 @@ bool __fastcall TController::SetProximityVelocity(double NewDist,double NewVelNe
 }
 */
 
-void __fastcall TController::SetDriverPsyche()
+void TController::SetDriverPsyche()
 {
     // double maxdist=0.5; //skalowanie dystansu od innego pojazdu, zmienic to!!!
     if ((Psyche == Aggressive) && (OrderList[OrderPos] == Obey_train))
@@ -1857,7 +1857,7 @@ void __fastcall TController::SetDriverPsyche()
     }
 };
 
-bool __fastcall TController::PrepareEngine()
+bool TController::PrepareEngine()
 { // odpalanie silnika
     bool OK;
     bool voltfront, voltrear;
@@ -2017,7 +2017,7 @@ bool __fastcall TController::PrepareEngine()
     }
 };
 
-bool __fastcall TController::ReleaseEngine()
+bool TController::ReleaseEngine()
 { // wy³¹czanie silnika (test wy³¹czenia, a czêœæ wykonawcza tylko jeœli steruje komputer)
     bool OK = false;
     LastReactionTime = 0.0;
@@ -2077,7 +2077,7 @@ bool __fastcall TController::ReleaseEngine()
     return OK;
 }
 
-bool __fastcall TController::IncBrake()
+bool TController::IncBrake()
 { // zwiêkszenie hamowania
     bool OK = false;
     switch (mvOccupied->BrakeSystem)
@@ -2146,7 +2146,7 @@ bool __fastcall TController::IncBrake()
     return OK;
 }
 
-bool __fastcall TController::DecBrake()
+bool TController::DecBrake()
 { // zmniejszenie si³y hamowania
     bool OK = false;
     switch (mvOccupied->BrakeSystem)
@@ -2179,7 +2179,7 @@ bool __fastcall TController::DecBrake()
     return OK;
 };
 
-bool __fastcall TController::IncSpeed()
+bool TController::IncSpeed()
 { // zwiêkszenie prêdkoœci; zwraca false, jeœli dalej siê nie da zwiêkszaæ
     if (tsGuardSignal) // jeœli jest dŸwiêk kierownika
         if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeœli gada, to nie jedziemy
@@ -2297,7 +2297,7 @@ bool __fastcall TController::IncSpeed()
     return OK;
 }
 
-bool __fastcall TController::DecSpeed(bool force)
+bool TController::DecSpeed(bool force)
 { // zmniejszenie prêdkoœci (ale nie hamowanie)
     bool OK = false; // domyœlnie false, aby wysz³o z pêtli while
     switch (mvOccupied->EngineType)
@@ -2346,7 +2346,7 @@ bool __fastcall TController::DecSpeed(bool force)
     return OK;
 };
 
-void __fastcall TController::SpeedSet()
+void TController::SpeedSet()
 { // Ra: regulacja prêdkoœci, wykonywana w ka¿dym przeb³ysku œwiadomoœci AI
     // ma dokrêcaæ do bezoporowych i zdejmowaæ pozycje w przypadku przekroczenia pr¹du
     switch (mvOccupied->EngineType)
@@ -2515,7 +2515,7 @@ void __fastcall TController::SpeedSet()
     }
 };
 
-void __fastcall TController::Doors(bool what)
+void TController::Doors(bool what)
 { // otwieranie/zamykanie drzwi w sk³adzie albo (tylko AI) EZT
     if (what)
     { // otwarcie
@@ -2552,14 +2552,14 @@ void __fastcall TController::Doors(bool what)
     }
 };
 
-void __fastcall TController::RecognizeCommand()
+void TController::RecognizeCommand()
 { // odczytuje i wykonuje komendê przekazan¹ lokomotywie
     TCommand *c = &mvOccupied->CommandIn;
     PutCommand(c->Command, c->Value1, c->Value2, c->Location, stopComm);
     c->Command = ""; // usuniêcie obs³u¿onej komendy
 }
 
-void __fastcall TController::PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
+void TController::PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
                                         const TLocation &NewLocation, TStopReason reason)
 { // wys³anie komendy przez event PutValues, jak pojazd ma obsadê, to wysy³a tutaj, a nie do pojazdu
   // bezpoœrednio
@@ -2571,7 +2571,7 @@ void __fastcall TController::PutCommand(AnsiString NewCommand, double NewValue1,
         mvOccupied->PutCommand(NewCommand, NewValue1, NewValue2, NewLocation);
 }
 
-bool __fastcall TController::PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
+bool TController::PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
                                         const vector3 *NewLocation, TStopReason reason)
 { // analiza komendy
     if (NewCommand == "CabSignal")
@@ -2955,7 +2955,7 @@ bool __fastcall TController::PutCommand(AnsiString NewCommand, double NewValue1,
     return true; // komenda zosta³a przetworzona
 };
 
-void __fastcall TController::PhysicsLog()
+void TController::PhysicsLog()
 { // zapis logu - na razie tylko wypisanie parametrów
     if (LogFile.is_open())
     {
@@ -2987,7 +2987,7 @@ void __fastcall TController::PhysicsLog()
     }
 };
 
-bool __fastcall TController::UpdateSituation(double dt)
+bool TController::UpdateSituation(double dt)
 { // uruchamiaæ przynajmniej raz na sekundê
     if ((iDrivigFlags & movePrimary) == 0)
         return true; // pasywny nic nie robi
@@ -4450,7 +4450,7 @@ bool __fastcall TController::UpdateSituation(double dt)
         return false; // AI nie obs³uguje
 }
 
-void __fastcall TController::JumpToNextOrder()
+void TController::JumpToNextOrder()
 { // wykonanie kolejnej komendy z tablicy rozkazów
     if (OrderList[OrderPos] != Wait_for_orders)
     {
@@ -4475,7 +4475,7 @@ void __fastcall TController::JumpToNextOrder()
 #endif
 };
 
-void __fastcall TController::JumpToFirstOrder()
+void TController::JumpToFirstOrder()
 { // taki relikt
     OrderPos = 1;
     if (OrderTop == 0)
@@ -4487,7 +4487,7 @@ void __fastcall TController::JumpToFirstOrder()
 #endif
 };
 
-void __fastcall TController::OrderCheck()
+void TController::OrderCheck()
 { // reakcja na zmianê rozkazu
     if (OrderList[OrderPos] & (Shunt | Connect | Obey_train))
         CheckVehicles(); // sprawdziæ œwiat³a
@@ -4503,7 +4503,7 @@ void __fastcall TController::OrderCheck()
         OrdersClear(); // czyszczenie rozkazów i przeskok do zerowej pozycji
 }
 
-void __fastcall TController::OrderNext(TOrders NewOrder)
+void TController::OrderNext(TOrders NewOrder)
 { // ustawienie rozkazu do wykonania jako nastêpny
     if (OrderList[OrderPos] == NewOrder)
         return; // jeœli robi to, co trzeba, to koniec
@@ -4529,7 +4529,7 @@ void __fastcall TController::OrderNext(TOrders NewOrder)
 #endif
 }
 
-void __fastcall TController::OrderPush(TOrders NewOrder)
+void TController::OrderPush(TOrders NewOrder)
 { // zapisanie na stosie kolejnego rozkazu do wykonania
     if (OrderPos == OrderTop) // jeœli mia³by byæ zapis na aktalnej pozycji
         if (OrderList[OrderPos] < Shunt) // ale nie jedzie
@@ -4545,7 +4545,7 @@ void __fastcall TController::OrderPush(TOrders NewOrder)
 #endif
 }
 
-void __fastcall TController::OrdersDump()
+void TController::OrdersDump()
 { // wypisanie kolejnych rozkazów do logu
     WriteLog("Orders for " + pVehicle->asName + ":");
     for (int b = 0; b < maxorders; ++b)
@@ -4557,11 +4557,11 @@ void __fastcall TController::OrdersDump()
     }
 };
 
-TOrders __fastcall TController::OrderCurrentGet() { return OrderList[OrderPos]; }
+TOrders TController::OrderCurrentGet() { return OrderList[OrderPos]; }
 
-TOrders __fastcall TController::OrderNextGet() { return OrderList[OrderPos + 1]; }
+TOrders TController::OrderNextGet() { return OrderList[OrderPos + 1]; }
 
-void __fastcall TController::OrdersInit(double fVel)
+void TController::OrdersInit(double fVel)
 { // wype³nianie tabelki rozkazów na podstawie rozk³adu
     // ustawienie kolejnoœci komend, niezale¿nie kto prowadzi
     // Mechanik->OrderPush(Wait_for_orders); //czekanie na lepsze czasy
@@ -4653,7 +4653,7 @@ void __fastcall TController::OrdersInit(double fVel)
     // Ale mozna by je zapodac ze scenerii
 };
 
-AnsiString __fastcall TController::StopReasonText()
+AnsiString TController::StopReasonText()
 { // informacja tekstowa o przyczynie zatrzymania
     if (eStopReason != 7) // zawalidroga bêdzie inaczej
         return StopReasonTable[eStopReason];
@@ -4669,14 +4669,14 @@ AnsiString __fastcall TController::StopReasonText()
 //----------------------------------------------------------------------------------------------------------------------
 
 /* //nie u¿ywane
-double __fastcall TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
+double TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 {//Ra:obliczenie odleg³oœci punktu (p1) od p³aszczyzny o wektorze normalnym (n) przechodz¹cej przez
 (p2)
  return n.x*(p1.x-p2.x)+n.y*(p1.y-p2.y)+n.z*(p1.z-p2.z); //ax1+by1+cz1+d, gdzie d=-(ax2+by2+cz2)
 };
 */
 
-bool __fastcall TController::BackwardTrackBusy(TTrack *Track)
+bool TController::BackwardTrackBusy(TTrack *Track)
 { // najpierw sprawdzamy, czy na danym torze s¹ pojazdy z innego sk³adu
     if (Track->iNumDynamics)
     { // jeœli tylko z w³asnego sk³adu, to tor jest wolny
@@ -4767,7 +4767,7 @@ TTrack *__fastcall TController::BackwardTraceRoute(double &fDistance, double &fD
 }
 
 // sprawdzanie zdarzeñ semaforów i ograniczeñ szlakowych
-void __fastcall TController::SetProximityVelocity(double dist, double vel, const vector3 *pos)
+void TController::SetProximityVelocity(double dist, double vel, const vector3 *pos)
 { // Ra:przeslanie do AI prêdkoœci
     /*
      //!!!! zast¹piæ prawid³ow¹ reakcj¹ AI na SetProximityVelocity !!!!
@@ -4789,7 +4789,7 @@ void __fastcall TController::SetProximityVelocity(double dist, double vel, const
      */
 }
 
-TCommandType __fastcall TController::BackwardScan()
+TCommandType TController::BackwardScan()
 { // sprawdzanie zdarzeñ semaforów z ty³u pojazdu, zwraca komendê
     // dziêki temu bêdzie mo¿na stawaæ za wskazanym sygnalizatorem, a zw³aszcza jeœli bêdzie jazda
     // na kozio³
@@ -4956,7 +4956,7 @@ TCommandType __fastcall TController::BackwardScan()
     return cm_Unknown; // nic
 };
 
-AnsiString __fastcall TController::NextStop()
+AnsiString TController::NextStop()
 { // informacja o nastêpnym zatrzymaniu, wyœwietlane pod [F1]
     if (asNextStop.Length() < 20)
         return ""; // nie zawiera nazwy stacji, gdy dojecha³ do koñca
@@ -4976,7 +4976,7 @@ AnsiString __fastcall TController::NextStop()
 
 //-----------koniec skanowania semaforow
 
-void __fastcall TController::TakeControl(bool yes)
+void TController::TakeControl(bool yes)
 { // przejêcie kontroli przez AI albo oddanie
     if (AIControllFlag == yes)
         return; // ju¿ jest jak ma byæ
@@ -5031,7 +5031,7 @@ void __fastcall TController::TakeControl(bool yes)
     }
 };
 
-void __fastcall TController::DirectionForward(bool forward)
+void TController::DirectionForward(bool forward)
 { // ustawienie jazdy do przodu dla true i do ty³u dla false (zale¿y od kabiny)
     while (mvControlling->MainCtrlPos) // samo zapêtlenie DecSpeed() nie wystarcza
         DecSpeed(true); // wymuszenie zerowania nastawnika jazdy, inaczej siê mo¿e zawiesiæ
@@ -5047,17 +5047,17 @@ void __fastcall TController::DirectionForward(bool forward)
                 mvControlling->IncMainCtrl(1); //¿eby nie zgas³
 };
 
-AnsiString __fastcall TController::Relation() { // zwraca relacjê poci¹gu return TrainParams->ShowRelation(); };
+AnsiString TController::Relation() { // zwraca relacjê poci¹gu return TrainParams->ShowRelation(); };
 
-AnsiString __fastcall TController::TrainName() { // zwraca relacjê poci¹gu return TrainParams->TrainName; };
+AnsiString TController::TrainName() { // zwraca relacjê poci¹gu return TrainParams->TrainName; };
 
-int __fastcall TController::StationCount() { // zwraca iloœæ stacji (miejsc zatrzymania) return TrainParams->StationCount; };
+int TController::StationCount() { // zwraca iloœæ stacji (miejsc zatrzymania) return TrainParams->StationCount; };
 
-int __fastcall TController::StationIndex() { // zwraca indeks aktualnej stacji (miejsca zatrzymania) return TrainParams->StationIndex; };
+int TController::StationIndex() { // zwraca indeks aktualnej stacji (miejsca zatrzymania) return TrainParams->StationIndex; };
 
-bool __fastcall TController::IsStop() { // informuje, czy jest zatrzymanie na najbli¿szej stacji return TrainParams->IsStop(); };
+bool TController::IsStop() { // informuje, czy jest zatrzymanie na najbli¿szej stacji return TrainParams->IsStop(); };
 
-void __fastcall TController::MoveTo(TDynamicObject *to)
+void TController::MoveTo(TDynamicObject *to)
 { // przesuniêcie AI do innego pojazdu (przy zmianie kabiny)
     // mvOccupied->CabDeactivisation(); //wy³¹czenie kabiny w opuszczanym
     pVehicle->Mechanik = to->Mechanik; //¿eby siê zamieni³y, jak jest jakieœ drugie
@@ -5067,7 +5067,7 @@ void __fastcall TController::MoveTo(TDynamicObject *to)
     // iDirection=0; //kierunek jazdy trzeba dopiero zgadn¹æ
 };
 
-void __fastcall TController::ControllingSet()
+void TController::ControllingSet()
 { // znajduje cz³on do sterowania w EZT bêdzie to silnikowy
     // problematyczne jest sterowanie z cz³onu biernego, dlatego damy AI silnikowy
     // dziêki temu bêdzie wirtualna kabina w silnikowym, dzia³aj¹ca w rozrz¹dczym
@@ -5076,7 +5076,7 @@ void __fastcall TController::ControllingSet()
     mvControlling = pVehicle->ControlledFind()->MoverParameters; // poszukiwanie cz³onu sterowanego
 };
 
-AnsiString __fastcall TController::TableText(int i)
+AnsiString TController::TableText(int i)
 { // pozycja tabelki prêdkoœci
     i = (iFirst + i) % iSpeedTableSize; // numer pozycji
     if (i != iLast) // w (iLast) znajduje siê kolejny tor do przeskanowania, ale nie jest ona
@@ -5085,7 +5085,7 @@ AnsiString __fastcall TController::TableText(int i)
     return ""; // wskaŸnik koñca
 };
 
-int __fastcall TController::CrossRoute(TTrack *tr)
+int TController::CrossRoute(TTrack *tr)
 { // zwraca numer segmentu dla skrzy¿owania (tr)
     // po¿¹dany numer segmentu jest okreœlany podczas skanowania drogi
     // droga powinna byæ okreœlona sposobem przejazdu przez skrzy¿owania albo wspó³rzêdnymi miejsca
@@ -5101,7 +5101,7 @@ int __fastcall TController::CrossRoute(TTrack *tr)
     return 0; // nic nie znaleziono?
 };
 
-void __fastcall TController::RouteSwitch(int d)
+void TController::RouteSwitch(int d)
 { // ustawienie kierunku jazdy z kabiny
     d &= 3;
     if (d)
@@ -5126,7 +5126,7 @@ void __fastcall TController::RouteSwitch(int d)
                 }
         }
 };
-AnsiString __fastcall TController::OwnerName()
+AnsiString TController::OwnerName()
 {
     return pVehicle ? pVehicle->MoverParameters->Name : AnsiString("none");
 };

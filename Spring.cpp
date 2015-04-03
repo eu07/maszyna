@@ -19,14 +19,14 @@ __fastcall TSpring::TSpring()
 
 __fastcall TSpring::~TSpring() {}
 
-void __fastcall TSpring::Init(double nrestLen, double nKs, double nKd)
+void TSpring::Init(double nrestLen, double nKs, double nKd)
 {
     Ks = nKs;
     Kd = nKd;
     restLen = nrestLen;
 }
 
-bool __fastcall TSpring::ComputateForces(vector3 pPosition1, vector3 pPosition2)
+bool TSpring::ComputateForces(vector3 pPosition1, vector3 pPosition2)
 {
 
     double dist, Hterm, Dterm;
@@ -65,7 +65,7 @@ bool __fastcall TSpring::ComputateForces(vector3 pPosition1, vector3 pPosition2)
     return true;
 }
 
-void __fastcall TSpring::Render() {}
+void TSpring::Render() {}
 
 //---------------------------------------------------------------------------
 

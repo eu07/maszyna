@@ -14,7 +14,7 @@ __fastcall TSky::~TSky(){};
 
 __fastcall TSky::TSky(){};
 
-void __fastcall TSky::Init()
+void TSky::Init()
 {
     WriteLog(Global::asSky.c_str());
     WriteLog("init");
@@ -26,7 +26,7 @@ void __fastcall TSky::Init()
     //   }
 };
 
-void __fastcall TSky::Render()
+void TSky::Render()
 {
     if (mdCloud)
     { // jeœli jest model nieba

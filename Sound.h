@@ -14,7 +14,7 @@
 
 typedef LPDIRECTSOUNDBUFFER PSound;
 
-// inline __fastcall Playing(PSound Sound)
+// inline Playing(PSound Sound)
 //{
 
 //}
@@ -30,10 +30,10 @@ class TSoundContainer
     int iBitsPerSample; // ile bitów na próbkê
     TSoundContainer *Next;
     std::stack<LPDIRECTSOUNDBUFFER> DSBuffers;
-    LPDIRECTSOUNDBUFFER __fastcall GetUnique(LPDIRECTSOUND pDS);
-    __fastcall TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName,
+    LPDIRECTSOUNDBUFFER GetUnique(LPDIRECTSOUND pDS);
+    TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName,
                                int NConcurrent);
-    __fastcall ~TSoundContainer();
+    ~TSoundContainer();
 };
 
 class TSoundsManager
@@ -47,16 +47,16 @@ class TSoundsManager
     static TSoundContainer *__fastcall LoadFromFile(char *Dir, char *Name, int Concurrent);
 
   public:
-    // __fastcall TSoundsManager(HWND hWnd);
-    // static void __fastcall Init(HWND hWnd, char *NDirectory);
-    static void __fastcall Init(HWND hWnd);
-    __fastcall ~TSoundsManager();
-    static void __fastcall Free();
-    static void __fastcall Init(char *Name, int Concurrent);
-    static void __fastcall LoadSounds(char *Directory);
-    static LPDIRECTSOUNDBUFFER __fastcall GetFromName(char *Name, bool Dynamic,
+    // TSoundsManager(HWND hWnd);
+    // static void Init(HWND hWnd, char *NDirectory);
+    static void Init(HWND hWnd);
+    ~TSoundsManager();
+    static void Free();
+    static void Init(char *Name, int Concurrent);
+    static void LoadSounds(char *Directory);
+    static LPDIRECTSOUNDBUFFER GetFromName(char *Name, bool Dynamic,
                                                       float *fSamplingRate = NULL);
-    static void __fastcall RestoreAll();
+    static void RestoreAll();
 };
 
 //---------------------------------------------------------------------------

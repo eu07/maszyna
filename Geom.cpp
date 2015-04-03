@@ -16,9 +16,9 @@ __fastcall TGeometry::TGeometry() {}
 
 __fastcall TGeometry::~TGeometry() {}
 
-bool __fastcall TGeometry::Init() {}
+bool TGeometry::Init() {}
 
-vector3 __fastcall TGeometry::Load(TQueryParserComp *Parser)
+vector3 TGeometry::Load(TQueryParserComp *Parser)
 {
     str = Parser->GetNextSymbol().LowerCase();
     tmp->TextureID = TTexturesManager::GetTextureID(str.c_str());
@@ -106,7 +106,7 @@ vector3 __fastcall TGeometry::Load(TQueryParserComp *Parser)
     tmp->fSquareRadius += r;
 }
 
-bool __fastcall TGeometry::Render() {}
+bool TGeometry::Render() {}
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

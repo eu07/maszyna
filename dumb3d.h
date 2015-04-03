@@ -27,7 +27,7 @@ class vector2
 {
   public:
     vector2(void) {}
-    __fastcall vector2(scalar_t a, scalar_t b)
+    vector2(scalar_t a, scalar_t b)
     {
         x = a;
         y = b;
@@ -44,7 +44,7 @@ class vector3
 {
   public:
     vector3(void) {}
-    __fastcall vector3(scalar_t a, scalar_t b, scalar_t c)
+    vector3(scalar_t a, scalar_t b, scalar_t c)
     {
         x = a;
         y = b;
@@ -55,14 +55,14 @@ class vector3
     //	explicit vector3(scalar_t* initArray, int arraySize = 3)
     //	{ for (int i = 0;i<arraySize;++i) e[i] = initArray[i]; }
 
-    void __fastcall RotateX(double angle);
-    void __fastcall RotateY(double angle);
-    void __fastcall RotateZ(double angle);
+    void RotateX(double angle);
+    void RotateY(double angle);
+    void RotateZ(double angle);
 
-    void inline __fastcall Normalize();
-    void inline __fastcall SafeNormalize();
-    double inline __fastcall Length();
-    void inline __fastcall Zero() { x = y = z = 0.0; };
+    void inline Normalize();
+    void inline SafeNormalize();
+    double inline Length();
+    void inline Zero() { x = y = z = 0.0; };
 
     // [] is to read, () is to write (const correctness)
     //	const scalar_t& operator[] (int i) const { return e[i]; }
@@ -80,7 +80,7 @@ class vector3
     //        };
     //    	scalar_t e[3];
     //    };
-    bool inline __fastcall Equal(vector3 *v)
+    bool inline Equal(vector3 *v)
     { // sprawdzenie odleg³oœci punktów
         if (fabs(x - v->x) > 0.02)
             return false; // szeœcian zamiast kuli
@@ -355,7 +355,7 @@ inline vector3 operator*(const matrix4x4 &m, const vector3 &v)
                    v.x * m[0][2] + v.y * m[1][2] + v.z * m[2][2] + m[3][2]);
 }
 
-void inline __fastcall vector3::Normalize()
+void inline vector3::Normalize()
 {
     double il = 1 / Length();
     x *= il;
@@ -363,7 +363,7 @@ void inline __fastcall vector3::Normalize()
     z *= il;
 }
 
-double inline __fastcall vector3::Length() { return SQRT_FUNCTION(x * x + y * y + z * z); }
+double inline vector3::Length() { return SQRT_FUNCTION(x * x + y * y + z * z); }
 
 inline bool operator==(const matrix4x4 &m1, const matrix4x4 &m2)
 {
@@ -531,7 +531,7 @@ inline matrix4x4 &matrix4x4::ProjectionMatrix(bool perspective, scalar_t left_pl
     return *this;
 }
 
-double inline __fastcall SquareMagnitude(const vector3 &v)
+double inline SquareMagnitude(const vector3 &v)
 {
     return v.x * v.x + v.y * v.y + v.z * v.z;
 }

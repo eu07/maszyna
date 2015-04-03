@@ -116,7 +116,7 @@ TIsolated *__fastcall TIsolated::Find(const AnsiString &n)
     return pRoot;
 };
 
-void __fastcall TIsolated::Modify(int i, TDynamicObject *o)
+void TIsolated::Modify(int i, TDynamicObject *o)
 { // dodanie lub odjêcie osi
     if (iAxles)
     { // grupa zajêta
@@ -212,7 +212,7 @@ __fastcall TTrack::~TTrack()
     }
 }
 
-void __fastcall TTrack::Init()
+void TTrack::Init()
 { // tworzenie pomocniczych danych
     switch (eType)
     {
@@ -362,7 +362,7 @@ TTrack *__fastcall TTrack::NullCreate(int dir)
     return trk;
 };
 
-void __fastcall TTrack::ConnectPrevPrev(TTrack *pTrack, int typ)
+void TTrack::ConnectPrevPrev(TTrack *pTrack, int typ)
 { //³¹czenie torów - Point1 w³asny do Point1 cudzego
     if (pTrack)
     { //(pTrack) mo¿e byæ zwrotnic¹, a (this) tylko zwyk³ym odcinkiem
@@ -372,7 +372,7 @@ void __fastcall TTrack::ConnectPrevPrev(TTrack *pTrack, int typ)
         pTrack->iPrevDirection = 0;
     }
 }
-void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack, int typ)
+void TTrack::ConnectPrevNext(TTrack *pTrack, int typ)
 { //³aczenie torów - Point1 w³asny do Point2 cudzego
     if (pTrack)
     {
@@ -392,7 +392,7 @@ void __fastcall TTrack::ConnectPrevNext(TTrack *pTrack, int typ)
                             pTrack->iTrapezoid |= 2; // to rysujemy potworka
     }
 }
-void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack, int typ)
+void TTrack::ConnectNextPrev(TTrack *pTrack, int typ)
 { //³aczenie torów - Point2 w³asny do Point1 cudzego
     if (pTrack)
     {
@@ -412,7 +412,7 @@ void __fastcall TTrack::ConnectNextPrev(TTrack *pTrack, int typ)
                             iTrapezoid |= 2; // to rysujemy potworka
     }
 }
-void __fastcall TTrack::ConnectNextNext(TTrack *pTrack, int typ)
+void TTrack::ConnectNextNext(TTrack *pTrack, int typ)
 { //³aczenie torów - Point2 w³asny do Point2 cudzego
     if (pTrack)
     {
@@ -423,7 +423,7 @@ void __fastcall TTrack::ConnectNextNext(TTrack *pTrack, int typ)
     }
 }
 
-vector3 __fastcall MakeCPoint(vector3 p, double d, double a1, double a2)
+vector3 MakeCPoint(vector3 p, double d, double a1, double a2)
 {
     vector3 cp = vector3(0, 0, 1);
     cp.RotateX(DegToRad(a2));
@@ -432,7 +432,7 @@ vector3 __fastcall MakeCPoint(vector3 p, double d, double a1, double a2)
     return cp;
 }
 
-vector3 __fastcall LoadPoint(cParser *parser)
+vector3 LoadPoint(cParser *parser)
 { // pobranie wspó³rzêdnych punktu
     vector3 p;
     std::string token;
@@ -441,7 +441,7 @@ vector3 __fastcall LoadPoint(cParser *parser)
     return p;
 }
 
-void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
+void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
 { // pobranie obiektu trajektorii ruchu
     vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzy¿owañ
     double a1, a2, r1, r2, r3, r4, d1, d2, a;
@@ -849,7 +849,7 @@ void __fastcall TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
             }
 }
 
-bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
+bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
 {
     bool bError = false;
     if (!evEvent0)
@@ -921,7 +921,7 @@ bool __fastcall TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEven
     return !bError;
 }
 
-bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
+bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
 {
     bool bError = false;
     if (!evEventall0)
@@ -996,7 +996,7 @@ bool __fastcall TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TE
     return !bError;
 }
 
-bool __fastcall TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
+bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
 { // ustawienie eventów sygnalizacji rozprucia
     if (SwitchExtension)
     {
@@ -1009,7 +1009,7 @@ bool __fastcall TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEven
     return false;
 };
 
-AnsiString __fastcall TTrack::IsolatedName()
+AnsiString TTrack::IsolatedName()
 { // podaje nazwê odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeñ
     if (pIsolated)
         if (!pIsolated->evBusy && !pIsolated->evFree)
@@ -1017,7 +1017,7 @@ AnsiString __fastcall TTrack::IsolatedName()
     return "";
 };
 
-bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
+bool TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
 { // ustawia zdarzenia dla odcinka izolowanego
     if (pIsolated)
     {
@@ -1031,7 +1031,7 @@ bool __fastcall TTrack::IsolatedEventsAssign(TEvent *busy, TEvent *free)
 };
 
 // ABu: przeniesione z Track.h i poprawione!!!
-bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
+bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
 { // dodanie pojazdu do trajektorii
     // Ra: tymczasowo wysy³anie informacji o zajêtoœci konkretnego toru
     // Ra: usun¹æ po upowszechnieniu siê odcinków izolowanych
@@ -1061,7 +1061,7 @@ bool __fastcall TTrack::AddDynamicObject(TDynamicObject *Dynamic)
     }
 };
 
-void __fastcall TTrack::MoveMe(vector3 pPosition)
+void TTrack::MoveMe(vector3 pPosition)
 { // to nie jest u¿ywane
     if (SwitchExtension)
     {
@@ -1128,7 +1128,7 @@ const vector6 iglica[nnumPts] = // iglica - vextor3(x,y,mapowanie tekstury)
              0.000) // 1mm wiêcej, ¿eby nie nachodzi³y tekstury?
 };
 
-void __fastcall TTrack::Compile(GLuint tex)
+void TTrack::Compile(GLuint tex)
 { // generowanie treœci dla Display Lists - model proceduralny
     if (!tex)
     { // jeœli nie podana tekstura, to ka¿dy tor ma wlasne DL
@@ -1829,7 +1829,7 @@ void TTrack::Release()
     DisplayListID = 0;
 };
 
-void __fastcall TTrack::Render()
+void TTrack::Render()
 {
     if (bVisible) // Ra: tory s¹ renderowane sektorami i nie ma sensu ka¿dorazowo liczyæ odleg³oœci
     {
@@ -1874,7 +1874,7 @@ void __fastcall TTrack::Render()
     // glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
 };
 
-bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
+bool TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
 { // sprawdzenie, czy pojazd jest przypisany do toru
     for (int i = 0; i < iNumDynamics; i++)
         if (Dynamic == Dynamics[i])
@@ -1882,7 +1882,7 @@ bool __fastcall TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
     return false;
 };
 
-bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
+bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
 { // usuniêcie pojazdu z listy przypisanych do toru
     for (int i = 0; i < iNumDynamics; i++)
     { // sprawdzanie wszystkich po kolei
@@ -1903,7 +1903,7 @@ bool __fastcall TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
     return false;
 }
 
-bool __fastcall TTrack::InMovement()
+bool TTrack::InMovement()
 { // tory animowane (zwrotnica, obrotnica) maj¹ SwitchExtension
     if (SwitchExtension)
     {
@@ -1926,11 +1926,11 @@ bool __fastcall TTrack::InMovement()
     }
     return false;
 };
-void __fastcall TTrack::RaAssign(TGroundNode *gn, TAnimContainer *ac){
+void TTrack::RaAssign(TGroundNode *gn, TAnimContainer *ac){
     // Ra: wi¹zanie toru z modelem obrotnicy
     // if (eType==tt_Table) SwitchExtension->pAnim=p;
 };
-void __fastcall TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined)
+void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined)
 { // Ra: wi¹zanie toru z modelem obrotnicy
     if (eType == tt_Table)
     {
@@ -1945,7 +1945,7 @@ void __fastcall TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, 
     }
 };
 
-int __fastcall TTrack::RaArrayPrepare()
+int TTrack::RaArrayPrepare()
 { // przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho³ków)
     if (bVisible) // o ile w ogóle widaæ
         switch (iCategoryFlag & 15)
@@ -1985,7 +1985,7 @@ int __fastcall TTrack::RaArrayPrepare()
     return 0;
 };
 
-void __fastcall TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start)
+void TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start)
 { // wype³nianie tablic VBO
     // Ra: trzeba rozdzieliæ szyny od podsypki, aby móc grupowaæ wg tekstur
     double fHTW = 0.5 * fabs(fTrackWidth);
@@ -2422,7 +2422,7 @@ void __fastcall TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Star
     }
 };
 
-void __fastcall TTrack::RaRenderVBO(int iPtr)
+void TTrack::RaRenderVBO(int iPtr)
 { // renderowanie z u¿yciem VBO
     // Ra 2014-07: trzeba wymieniæ GL_TRIANGLE_STRIP na GL_TRIANGLES i renderowaæ trójk¹ty sektora
     // dla kolejnych tekstur!
@@ -2544,7 +2544,7 @@ void __fastcall TTrack::RaRenderVBO(int iPtr)
     EnvironmentReset();
 };
 
-void __fastcall TTrack::EnvironmentSet()
+void TTrack::EnvironmentSet()
 { // ustawienie zmienionego œwiat³a
     glColor3f(1.0f, 1.0f, 1.0f); // Ra: potrzebne to?
     if (eEnvironment)
@@ -2580,7 +2580,7 @@ void __fastcall TTrack::EnvironmentSet()
     }
 };
 
-void __fastcall TTrack::EnvironmentReset()
+void TTrack::EnvironmentReset()
 { // przywrócenie domyœlnego œwiat³a
     switch (eEnvironment)
     { // przywrócenie globalnych ustawieñ œwiat³a, o ile by³o zmienione
@@ -2592,7 +2592,7 @@ void __fastcall TTrack::EnvironmentReset()
     }
 };
 
-void __fastcall TTrack::RenderDyn()
+void TTrack::RenderDyn()
 { // renderowanie nieprzezroczystych fragmentów pojazdów
     if (!iNumDynamics)
         return; // po co kombinowaæ, jeœli nie ma pojazdów?
@@ -2602,7 +2602,7 @@ void __fastcall TTrack::RenderDyn()
     // EnvironmentReset();
 };
 
-void __fastcall TTrack::RenderDynAlpha()
+void TTrack::RenderDynAlpha()
 { // renderowanie przezroczystych fragmentów pojazdów
     if (!iNumDynamics)
         return; // po co kombinowaæ, jeœli nie ma pojazdów?
@@ -2612,13 +2612,13 @@ void __fastcall TTrack::RenderDynAlpha()
     // EnvironmentReset();
 };
 
-void __fastcall TTrack::RenderDynSounds()
+void TTrack::RenderDynSounds()
 { // odtwarzanie dŸwiêków pojazdów jest niezale¿ne od ich wyœwietlania
     for (int i = 0; i < iNumDynamics; i++)
         Dynamics[i]->RenderSounds();
 };
 //---------------------------------------------------------------------------
-bool __fastcall TTrack::SetConnections(int i)
+bool TTrack::SetConnections(int i)
 { // przepisanie aktualnych po³¹czeñ toru do odpowiedniego segmentu
     if (SwitchExtension)
     {
@@ -2643,7 +2643,7 @@ bool __fastcall TTrack::SetConnections(int i)
     return false;
 }
 
-bool __fastcall TTrack::Switch(int i, double t, double d)
+bool TTrack::Switch(int i, double t, double d)
 { // prze³¹czenie torów z uruchomieniem animacji
     if (SwitchExtension) // tory prze³¹czalne maj¹ doklejkê
         if (eType == tt_Switch)
@@ -2735,7 +2735,7 @@ bool __fastcall TTrack::Switch(int i, double t, double d)
     return false;
 };
 
-bool __fastcall TTrack::SwitchForced(int i, TDynamicObject *o)
+bool TTrack::SwitchForced(int i, TDynamicObject *o)
 { // rozprucie rozjazdu
     if (SwitchExtension)
         if (eType == tt_Switch)
@@ -2763,7 +2763,7 @@ bool __fastcall TTrack::SwitchForced(int i, TDynamicObject *o)
     return true;
 };
 
-int __fastcall TTrack::CrossSegment(int from, int into)
+int TTrack::CrossSegment(int from, int into)
 { // ustawienie wskaŸnika na segement w po¿¹danym kierunku (into) od strony (from)
     // zwraca kod segmentu, z kierunkiem jazdy jako znakiem ±
     int i = 0;
@@ -2793,7 +2793,7 @@ int __fastcall TTrack::CrossSegment(int from, int into)
     return i;
 };
 
-void __fastcall TTrack::RaAnimListAdd(TTrack *t)
+void TTrack::RaAnimListAdd(TTrack *t)
 { // dodanie toru do listy animacyjnej
     if (SwitchExtension)
     {
@@ -2980,13 +2980,13 @@ TTrack *__fastcall TTrack::RaAnimate()
     return m ? this : SwitchExtension->pNextAnim; // zwraca obiekt do dalszej animacji
 };
 //---------------------------------------------------------------------------
-void __fastcall TTrack::RadioStop()
+void TTrack::RadioStop()
 { // przekazanie pojazdom rozkazu zatrzymania
     for (int i = 0; i < iNumDynamics; i++)
         Dynamics[i]->RadioStop();
 };
 
-double __fastcall TTrack::WidthTotal()
+double TTrack::WidthTotal()
 { // szerokoœæ z poboczem
     if (iCategoryFlag & 2) // jesli droga
         if (fTexHeight1 >= 0.0) // i ma boki zagiête w dó³ (chodnik jest w górê)
@@ -2995,7 +2995,7 @@ double __fastcall TTrack::WidthTotal()
     return 0.5 * fabs(fTrackWidth + fTrackWidth2); // a tak tylko zwyk³a œrednia szerokoœæ
 };
 
-bool __fastcall TTrack::IsGroupable()
+bool TTrack::IsGroupable()
 { // czy wyœwietlanie toru mo¿e byæ zgrupwane z innymi
     if ((eType == tt_Switch) || (eType == tt_Table))
         return false; // tory ruchome nie s¹ grupowane
@@ -3004,7 +3004,7 @@ bool __fastcall TTrack::IsGroupable()
     return true;
 };
 
-bool __fastcall Equal(vector3 v1, vector3 *v2)
+bool Equal(vector3 v1, vector3 *v2)
 { // sprawdzenie odleg³oœci punktów
     // Ra: powinno byæ do 100cm wzd³u¿ toru i ze 2cm w poprzek (na prostej mo¿e nie byæ d³ugiego
     // kawa³ka)
@@ -3019,7 +3019,7 @@ bool __fastcall Equal(vector3 v1, vector3 *v2)
     // return (SquareMagnitude(v1-*v2)<0.00012); //0.011^2=0.00012
 };
 
-int __fastcall TTrack::TestPoint(vector3 *Point)
+int TTrack::TestPoint(vector3 *Point)
 { // sprawdzanie, czy tory mo¿na po³¹czyæ
     switch (eType)
     {
@@ -3087,9 +3087,9 @@ int __fastcall TTrack::TestPoint(vector3 *Point)
     return -1;
 };
 
-void __fastcall TTrack::MovedUp1(double dh) { // poprawienie przechy³ki wymaga wyd³u¿enia podsypki fTexHeight1 += dh; };
+void TTrack::MovedUp1(double dh) { // poprawienie przechy³ki wymaga wyd³u¿enia podsypki fTexHeight1 += dh; };
 
-AnsiString __fastcall TTrack::NameGet()
+AnsiString TTrack::NameGet()
 { // ustalenie nazwy toru
     if (this)
         if (pMyNode)
@@ -3097,7 +3097,7 @@ AnsiString __fastcall TTrack::NameGet()
     return "none";
 };
 
-void __fastcall TTrack::VelocitySet(float v)
+void TTrack::VelocitySet(float v)
 { // ustawienie prêdkoœci z ograniczeniem do pierwotnej wartoœci (zapisanej w scenerii)
     if (SwitchExtension ? SwitchExtension->fVelocity >= 0.0 : false)
     { // zwrotnica mo¿e mieæ odgórne ograniczenie, nieprzeskakiwalne eventem
@@ -3108,12 +3108,12 @@ void __fastcall TTrack::VelocitySet(float v)
     fVelocity = v; // nie ma ograniczenia
 };
 
-float __fastcall TTrack::VelocityGet()
+float TTrack::VelocityGet()
 { // pobranie dozwolonej prêdkoœci podczas skanowania
     return ((iDamageFlag & 128) ? 0.0f : fVelocity); // tor uszkodzony = prêdkoœæ zerowa
 };
 
-void __fastcall TTrack::ConnectionsLog()
+void TTrack::ConnectionsLog()
 { // wypisanie informacji o po³¹czeniach
     int i;
     WriteLog("--> tt_Cross named " + pMyNode->asName);

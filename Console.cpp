@@ -120,13 +120,13 @@ __fastcall Console::~Console()
     delete PoKeys55[1];
 };
 
-void __fastcall Console::ModeSet(int m, int h)
+void Console::ModeSet(int m, int h)
 { // ustawienie trybu pracy
     iMode = m;
     iConfig = h;
 };
 
-int __fastcall Console::On()
+int Console::On()
 { // za³¹czenie konsoli (np. nawi¹zanie komunikacji)
     iSwitch[0] = iSwitch[1] = iSwitch[2] = iSwitch[3] = 0; // bity 0..127 - bez [Ctrl]
     iSwitch[4] = iSwitch[5] = iSwitch[6] = iSwitch[7] = 0; // bity 128..255 - z [Ctrl]
@@ -166,7 +166,7 @@ int __fastcall Console::On()
     return 0;
 };
 
-void __fastcall Console::Off()
+void Console::Off()
 { // wy³¹czenie informacji zwrotnych (reset pulpitu)
     BitsClear(-1);
     if ((iMode == 1) || (iMode == 2))
@@ -183,7 +183,7 @@ void __fastcall Console::Off()
     LPT = NULL;
 };
 
-void __fastcall Console::BitsSet(int mask, int entry)
+void Console::BitsSet(int mask, int entry)
 { // ustawienie bitów o podanej masce (mask) na wejœciu (entry)
     if ((iBits & mask) != mask) // je¿eli zmiana
     {
@@ -193,7 +193,7 @@ void __fastcall Console::BitsSet(int mask, int entry)
     }
 };
 
-void __fastcall Console::BitsClear(int mask, int entry)
+void Console::BitsClear(int mask, int entry)
 { // zerowanie bitów o podanej masce (mask) na wejœciu (entry)
     if (iBits & mask) // je¿eli zmiana
     {
@@ -203,7 +203,7 @@ void __fastcall Console::BitsClear(int mask, int entry)
     }
 };
 
-void __fastcall Console::BitsUpdate(int mask)
+void Console::BitsUpdate(int mask)
 { // aktualizacja stanu interfejsu informacji zwrotnej; (mask) - zakres zmienianych bitów
     switch (iMode)
     {
@@ -267,9 +267,9 @@ void __fastcall Console::BitsUpdate(int mask)
     }
 };
 
-bool __fastcall Console::Pressed(int x) { // na razie tak - czyta siê tylko klawiatura return Global::bActive && (GetKeyState(x) < 0); };
+bool Console::Pressed(int x) { // na razie tak - czyta siê tylko klawiatura return Global::bActive && (GetKeyState(x) < 0); };
 
-void __fastcall Console::ValueSet(int x, double y)
+void Console::ValueSet(int x, double y)
 { // ustawienie wartoœci (y) na kanale analogowym (x)
     if (iMode == 4)
         if (PoKeys55[0])
@@ -282,7 +282,7 @@ void __fastcall Console::ValueSet(int x, double y)
         }
 };
 
-void __fastcall Console::Update()
+void Console::Update()
 { // funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
     if (iMode == 4)
         if (PoKeys55[0])
@@ -299,7 +299,7 @@ void __fastcall Console::Update()
             }
 };
 
-float __fastcall Console::AnalogGet(int x)
+float Console::AnalogGet(int x)
 { // pobranie wartoœci analogowej
     if (iMode == 4)
         if (PoKeys55[0])
@@ -307,7 +307,7 @@ float __fastcall Console::AnalogGet(int x)
     return -1.0;
 };
 
-unsigned char __fastcall Console::DigitalGet(int x)
+unsigned char Console::DigitalGet(int x)
 { // pobranie wartoœci cyfrowej
     if (iMode == 4)
         if (PoKeys55[0])
@@ -315,7 +315,7 @@ unsigned char __fastcall Console::DigitalGet(int x)
     return 0;
 };
 
-void __fastcall Console::OnKeyDown(int k)
+void Console::OnKeyDown(int k)
 { // naciœniêcie klawisza z powoduje wy³¹czenie, a
     if (k & 0x10000) // jeœli [Shift]
     { // ustawienie bitu w tabeli prze³¹czników bistabilnych
@@ -338,7 +338,7 @@ void __fastcall Console::OnKeyDown(int k)
         }
     }
 };
-void __fastcall Console::OnKeyUp(int k)
+void Console::OnKeyUp(int k)
 { // puszczenie klawisza w zasadzie nie ma znaczenia dla iSwitch, ale zeruje iButton
     if ((k & 0x20000) == 0) // monostabilne tylko bez [Ctrl]
         if (k & 0x10000) // jeœli [Shift]
@@ -346,5 +346,5 @@ void __fastcall Console::OnKeyUp(int k)
         else
             iButton[char(k) >> 5] &= ~(1 << (k & 31)); // wy³¹cz monostabilny podstawowy
 };
-int __fastcall Console::KeyDownConvert(int k) { return int(ktTable[k & 0x3FF].iDown); };
-int __fastcall Console::KeyUpConvert(int k) { return int(ktTable[k & 0x3FF].iUp); };
+int Console::KeyDownConvert(int k) { return int(ktTable[k & 0x3FF].iDown); };
+int Console::KeyUpConvert(int k) { return int(ktTable[k & 0x3FF].iUp); };

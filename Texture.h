@@ -11,7 +11,7 @@
 
 /*
 //Ra: miejsce umieszczenia tego jest deczko bezsensowne
-void __fastcall glDebug()
+void glDebug()
 {//logowanie b³êdów OpenGL
  GLenum err;
  if (Global::iErorrCounter==326) //tu wpisz o 1 mniej niz wartoœæ, przy której siê wy³o¿y³o

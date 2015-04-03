@@ -15,12 +15,12 @@ using namespace Math3D;
 class TKnot
 {
   public:
-    //    inline bool __fastcall IsCurve() { return (!(Point==CPointIn)); };
-    //    inline vector3 __fastcall GetDirection() { return (CPointOut-Point); };
-    __fastcall TKnot();
-    __fastcall TKnot(int n);
-    __fastcall ~TKnot();
-    inline float __fastcall GetRoll(float s)
+    //    inline bool IsCurve() { return (!(Point==CPointIn)); };
+    //    inline vector3 GetDirection() { return (CPointOut-Point); };
+    TKnot();
+    TKnot(int n);
+    ~TKnot();
+    inline float GetRoll(float s)
     {
         if (Next)
         {
@@ -31,15 +31,15 @@ class TKnot
             return fRoll;
         //        (Length-s) (s-Length)
     }
-    vector3 __fastcall GetDirection(float t = 0);
-    inline vector3 __fastcall InterpolateSegm(float t)
+    vector3 GetDirection(float t = 0);
+    inline vector3 InterpolateSegm(float t)
     {
         return (Interpolate(t, Point, CPointOut, Next->CPointIn, Next->Point));
     };
-    float __fastcall GetTFromS(float s);
-    bool __fastcall Init(TKnot *NNext, TKnot *NPrev);
-    bool __fastcall InitCPoints();
-    bool __fastcall InitLength();
+    float GetTFromS(float s);
+    bool Init(TKnot *NNext, TKnot *NPrev);
+    bool InitCPoints();
+    bool InitLength();
     vector3 Point, CPointIn, CPointOut;
     float fRoll;
     bool IsCurve;
@@ -57,17 +57,17 @@ class TKnot
 class TSpline
 {
   public:
-    __fastcall TSpline();
-    __fastcall TSpline(AnsiString asNName);
-    __fastcall ~TSpline();
-    bool __fastcall Create(int n, AnsiString asNName = "foo");
-    bool __fastcall AssignKnots(TKnot *FirstKnot, int n);
-    int __fastcall LoadFromFile(AnsiString FileName, TKnot *FirstKnot = NULL);
-    int __fastcall Load(TQueryParserComp *Parser, AnsiString asEndString = "endspline");
-    float __fastcall GetLength();
-    vector3 __fastcall GetCenter();
+    TSpline();
+    TSpline(AnsiString asNName);
+    ~TSpline();
+    bool Create(int n, AnsiString asNName = "foo");
+    bool AssignKnots(TKnot *FirstKnot, int n);
+    int LoadFromFile(AnsiString FileName, TKnot *FirstKnot = NULL);
+    int Load(TQueryParserComp *Parser, AnsiString asEndString = "endspline");
+    float GetLength();
+    vector3 GetCenter();
     TKnot *__fastcall GetLastKnot();
-    bool __fastcall Render();
+    bool Render();
 
     //    inline int NextIndex(int n) { return (n<KnotsCount-1 ? n+1 : 0); };
 
@@ -89,7 +89,7 @@ class TSpline
   private:
 };
 
-bool __fastcall Connect(TKnot *k1, TKnot *k2);
+bool Connect(TKnot *k1, TKnot *k2);
 
 //---------------------------------------------------------------------------
 #endif

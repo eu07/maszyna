@@ -15,23 +15,23 @@
 
 class TWorld
 {
-    void __fastcall InOutKey();
-    void __fastcall FollowView(bool wycisz = true);
-    void __fastcall DistantView();
+    void InOutKey();
+    void FollowView(bool wycisz = true);
+    void DistantView();
 
   public:
-    bool __fastcall Init(HWND NhWnd, HDC hDC);
+    bool Init(HWND NhWnd, HDC hDC);
     HWND hWnd;
-    GLvoid __fastcall glPrint(const char *fmt);
-    void __fastcall OnKeyDown(int cKey);
-    void __fastcall OnKeyUp(int cKey);
-    // void __fastcall UpdateWindow();
-    void __fastcall OnMouseMove(double x, double y);
-    void __fastcall OnCommandGet(DaneRozkaz *pRozkaz);
-    bool __fastcall Update();
-    void __fastcall TrainDelete(TDynamicObject *d = NULL);
-    __fastcall TWorld();
-    __fastcall ~TWorld();
+    GLvoid glPrint(const char *fmt);
+    void OnKeyDown(int cKey);
+    void OnKeyUp(int cKey);
+    // void UpdateWindow();
+    void OnMouseMove(double x, double y);
+    void OnCommandGet(DaneRozkaz *pRozkaz);
+    bool Update();
+    void TrainDelete(TDynamicObject *d = NULL);
+    TWorld();
+    ~TWorld();
     // double Aspect;
   private:
     AnsiString OutText1; // teksty na ekranie
@@ -39,7 +39,7 @@ class TWorld
     AnsiString OutText3;
     AnsiString OutText4;
     void ShowHints();
-    bool __fastcall Render();
+    bool Render();
     TCamera Camera;
     TGround Ground;
     TTrain *Train;
@@ -56,9 +56,9 @@ class TWorld
     double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
     int iPause; // wykrywanie zmian w zapauzowaniu
   public:
-    void __fastcall ModifyTGA(const AnsiString &dir = "");
-    void __fastcall CreateE3D(const AnsiString &dir = "", bool dyn = false);
-    void __fastcall CabChange(TDynamicObject *old, TDynamicObject *now);
+    void ModifyTGA(const AnsiString &dir = "");
+    void CreateE3D(const AnsiString &dir = "", bool dyn = false);
+    void CabChange(TDynamicObject *old, TDynamicObject *now);
 };
 //---------------------------------------------------------------------------
 #endif

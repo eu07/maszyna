@@ -31,7 +31,7 @@ Obiekty sortowane wg nazw, mo¿na dodawaæ i usuwaæ komórki scenerii:
 
 */
 
-void __fastcall ItemRecord::TreeAdd(ItemRecord *r, int c)
+void ItemRecord::TreeAdd(ItemRecord *r, int c)
 { // dodanie rekordu do drzewa - ustalenie w której ga³êzi
     // zapisaæ w (iFlags) ile znaków jest zgodnych z nadrzêdnym, ¿eby nie sprawdzaæ wszystkich od
     // zera
@@ -53,7 +53,7 @@ void __fastcall ItemRecord::TreeAdd(ItemRecord *r, int c)
     }
 };
 
-void __fastcall ItemRecord::ListGet(ItemRecord *r, int *&n)
+void ItemRecord::ListGet(ItemRecord *r, int *&n)
 { // rekurencyjne wype³nianie posortowanej listy na podstawie drzewa
     if (rPrev)
         rPrev->ListGet(r, n); // dodanie wszystkich wczeœniejszych
@@ -104,7 +104,7 @@ __fastcall TNames::TNames()
     ZeroMemory(rTypes, 20 * sizeof(ItemRecord *));
 };
 
-int __fastcall TNames::Add(int t, const char *n)
+int TNames::Add(int t, const char *n)
 { // dodanie obiektu typu (t) o nazwie (n)
     int len = strlen(n) + 1; // ze znacznikiem koñca
     cLast -= len; // rezerwacja miejsca
@@ -121,14 +121,14 @@ int __fastcall TNames::Add(int t, const char *n)
         Sort(t); // optymalizacja drzewa co jakiœ czas
     return iLast;
 }
-int __fastcall TNames::Add(int t, const char *n, void *d)
+int TNames::Add(int t, const char *n, void *d)
 {
     int i = Add(t, n);
     rRecords[iLast].pData = d;
     return i;
 };
 
-bool __fastcall TNames::Update(int t, const char *n, void *d)
+bool TNames::Update(int t, const char *n, void *d)
 { // dodanie jeœli nie ma, wymiana (d), gdy jest
     ItemRecord *r = FindRecord(t, n); // najpierw sprawdziæ, czy ju¿ jest
     if (r)
@@ -155,7 +155,7 @@ ItemRecord *__fastcall TNames::TreeSet(int *n, int d, int u)
     return rRecords + n[p];
 };
 
-void __fastcall TNames::Sort(int t)
+void TNames::Sort(int t)
 { // przebudowa drzewa typu (t), zwraca wierzcho³ek drzewa
     if (iLast < 3)
         return; // jak jest ma³o, to nie ma sensu sortowaæ

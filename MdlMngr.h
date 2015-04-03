@@ -8,12 +8,12 @@
 class TMdlContainer
 {
     friend class TModelsManager;
-    __fastcall TMdlContainer()
+    TMdlContainer()
     {
         Name = NULL;
         Model = NULL;
     };
-    __fastcall ~TMdlContainer()
+    ~TMdlContainer()
     {
         SafeDeleteArray(Name);
         SafeDelete(Model);
@@ -31,10 +31,10 @@ class TModelsManager
     static TModel3d *__fastcall LoadModel(char *Name, bool dynamic);
 
   public:
-    //    __fastcall TModelsManager();
-    //    __fastcall ~TModelsManager();
-    static void __fastcall Init();
-    static void __fastcall Free();
+    //    TModelsManager();
+    //    ~TModelsManager();
+    static void Init();
+    static void Free();
     // McZapkie: dodalem sciezke, notabene Path!=Patch :)
     static TModel3d *__fastcall GetModel(const char *Name, bool dynamic = false);
 };

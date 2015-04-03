@@ -38,9 +38,9 @@ __fastcall TEventLauncher::TEventLauncher()
 
 __fastcall TEventLauncher::~TEventLauncher() { SafeDeleteArray(szText); }
 
-void __fastcall TEventLauncher::Init() {}
+void TEventLauncher::Init() {}
 
-bool __fastcall TEventLauncher::Load(cParser *parser)
+bool TEventLauncher::Load(cParser *parser)
 { // wczytanie wyzwalacza zdarzeñ
     AnsiString str;
     std::string token;
@@ -125,7 +125,7 @@ bool __fastcall TEventLauncher::Load(cParser *parser)
     return true;
 };
 
-bool __fastcall TEventLauncher::Render()
+bool TEventLauncher::Render()
 { //"renderowanie" wyzwalacza
     bool bCond = false;
     if (iKey != 0)
@@ -167,7 +167,7 @@ bool __fastcall TEventLauncher::Render()
     return bCond; // sprawdzanie dRadius w Ground.cpp
 }
 
-bool __fastcall TEventLauncher::IsGlobal()
+bool TEventLauncher::IsGlobal()
 { // sprawdzenie, czy jest globalnym wyzwalaczem czasu
     if (DeltaTime == 0)
         if (iHour >= 0)

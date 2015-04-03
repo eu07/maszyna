@@ -6,26 +6,26 @@
 namespace Timer
 {
 
-double __fastcall GetTime();
+double GetTime();
 
-double __fastcall GetDeltaTime();
-double __fastcall GetDeltaRenderTime();
+double GetDeltaTime();
+double GetDeltaRenderTime();
 
-double __fastcall GetfSinceStart();
+double GetfSinceStart();
 
-void __fastcall SetDeltaTime(double v);
+void SetDeltaTime(double v);
 
-double __fastcall GetSimulationTime();
+double GetSimulationTime();
 
-void __fastcall SetSimulationTime(double v);
+void SetSimulationTime(double v);
 
-bool __fastcall GetSoundTimer();
+bool GetSoundTimer();
 
-double __fastcall GetFPS();
+double GetFPS();
 
-void __fastcall ResetTimers();
+void ResetTimers();
 
-void __fastcall UpdateTimers(bool pause);
+void UpdateTimers(bool pause);
 };
 
 //---------------------------------------------------------------------------

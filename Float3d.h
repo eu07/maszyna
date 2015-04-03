@@ -10,13 +10,13 @@ class float3
   public:
     float x, y, z;
     float3(void){};
-    __fastcall float3(float a, float b, float c)
+    float3(float a, float b, float c)
     {
         x = a;
         y = b;
         z = c;
     };
-    double inline __fastcall Length() const;
+    double inline Length() const;
 };
 
 inline bool operator==(const float3 &v1, const float3 &v2)
@@ -39,7 +39,7 @@ inline float3 operator+(const float3 &v1, const float3 &v2)
 {
     return float3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 };
-double inline __fastcall float3::Length() const { return sqrt(x * x + y * y + z * z); };
+double inline float3::Length() const { return sqrt(x * x + y * y + z * z); };
 inline float3 operator/(const float3 &v, double k) { return float3(v.x / k, v.y / k, v.z / k); };
 inline float3 SafeNormalize(const float3 &v)
 { // bezpieczna normalizacja (wektor d³ugoœci 1.0)
@@ -60,12 +60,12 @@ class float4
 { // kwaternion obrotu
   public:
     float x, y, z, w;
-    __fastcall float4()
+    float4()
     {
         x = y = z = 0.f;
         w = 1.f;
     };
-    __fastcall float4(float a, float b, float c, float d)
+    float4(float a, float b, float c, float d)
     {
         x = a;
         y = b;
@@ -169,14 +169,14 @@ class float4x4
     };
     float *__fastcall operator()(int i) { return &e[i << 2]; }
     const float *__fastcall readArray(void) { return e; }
-    void __fastcall Identity()
+    void Identity()
     {
         for (int i = 0; i < 16; ++i)
             e[i] = 0;
         e[0] = e[5] = e[10] = e[15] = 1.0f;
     }
     const float *operator[](int i) const { return &e[i << 2]; };
-    void __fastcall InitialRotate()
+    void InitialRotate()
     { // taka specjalna rotacja, nie ma co ci¹gaæ trygonometrii
         float f;
         for (int i = 0; i < 16; i += 4)
@@ -195,7 +195,7 @@ class float4x4
                 return false;
         return true;
     }
-    void __fastcall Quaternion(float4 *q);
+    void Quaternion(float4 *q);
     inline float3 *TranslationGet() { return (float3 *)(e + 12); }
 };
 

@@ -19,7 +19,7 @@ __fastcall TButton::TButton()
 
 __fastcall TButton::~TButton(){};
 
-void __fastcall TButton::Clear(int i)
+void TButton::Clear(int i)
 {
     pModelOn = NULL;
     pModelOff = NULL;
@@ -29,7 +29,7 @@ void __fastcall TButton::Clear(int i)
     Update(); // kasowanie bitu Feedback, o ile jakiœ ustawiony
 };
 
-void __fastcall TButton::Init(AnsiString asName, TModel3d *pModel, bool bNewOn)
+void TButton::Init(AnsiString asName, TModel3d *pModel, bool bNewOn)
 {
     if (!pModel)
         return; // nie ma w czym szukaæ
@@ -39,7 +39,7 @@ void __fastcall TButton::Init(AnsiString asName, TModel3d *pModel, bool bNewOn)
     Update();
 };
 
-void __fastcall TButton::Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel2)
+void TButton::Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel2)
 {
     AnsiString str = Parser->GetNextSymbol().LowerCase();
     if (pModel1)
@@ -57,7 +57,7 @@ void __fastcall TButton::Load(TQueryParserComp *Parser, TModel3d *pModel1, TMode
     }
 };
 
-void __fastcall TButton::Update()
+void TButton::Update()
 {
     if (pModelOn)
         pModelOn->iVisible = bOn;

@@ -27,17 +27,17 @@ class TAdvancedSound
     double defFM;
 
   public:
-    __fastcall TAdvancedSound();
-    __fastcall ~TAdvancedSound();
-    void __fastcall Init(char *NameOn, char *Name, char *NameOff, double DistanceAttenuation,
+    TAdvancedSound();
+    ~TAdvancedSound();
+    void Init(char *NameOn, char *Name, char *NameOff, double DistanceAttenuation,
                          vector3 pPosition);
-    void __fastcall Load(TQueryParserComp *Parser, vector3 pPosition);
-    void __fastcall TurnOn(bool ListenerInside, vector3 NewPosition);
-    void __fastcall TurnOff(bool ListenerInside, vector3 NewPosition);
-    void __fastcall Free();
-    void __fastcall Update(bool ListenerInside, vector3 NewPosition);
-    void __fastcall UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition);
-    void __fastcall CopyIfEmpty(TAdvancedSound &s);
+    void Load(TQueryParserComp *Parser, vector3 pPosition);
+    void TurnOn(bool ListenerInside, vector3 NewPosition);
+    void TurnOff(bool ListenerInside, vector3 NewPosition);
+    void Free();
+    void Update(bool ListenerInside, vector3 NewPosition);
+    void UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition);
+    void CopyIfEmpty(TAdvancedSound &s);
 };
 
 //---------------------------------------------------------------------------

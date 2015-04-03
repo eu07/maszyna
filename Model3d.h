@@ -29,22 +29,22 @@ class TStringPack
   public:
     char *String(int n);
     char *StringAt(int n) { return data + 9 + n; };
-    __fastcall TStringPack()
+    TStringPack()
     {
         data = NULL;
         index = NULL;
     };
-    void __fastcall Init(char *d) { data = d; };
-    void __fastcall InitIndex(int *i) { index = i; };
+    void Init(char *d) { data = d; };
+    void InitIndex(int *i) { index = i; };
 };
 
 class TMaterialColor
 {
   public:
-    __fastcall TMaterialColor(){};
-    __fastcall TMaterialColor(char V) { r = g = b = V; };
-    // __fastcall TMaterialColor(double R, double G, double B)
-    __fastcall TMaterialColor(char R, char G, char B)
+    TMaterialColor(){};
+    TMaterialColor(char V) { r = g = b = V; };
+    // TMaterialColor(double R, double G, double B)
+    TMaterialColor(char R, char G, char B)
     {
         r = R;
         g = G;
@@ -73,8 +73,8 @@ struct THitBoxContainer
 {
     TPlane Planes[6];
     int Index;
-    inline void __fastcall Reset() { Planes[0]= TPlane(vector3(0,0,0),0.0f); };
-    inline bool __fastcall Inside(vector3 Point)
+    inline void Reset() { Planes[0]= TPlane(vector3(0,0,0),0.0f); };
+    inline bool Inside(vector3 Point)
     {
         bool Hit= true;
 
@@ -224,10 +224,10 @@ class TSubModel
     char *pTexture; // robocza nazwa tekstury do zapisania w pliku binarnym
     char *pName; // robocza nazwa
   private:
-    // int __fastcall SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX
+    // int SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX
     // *Vertices);
-    int __fastcall SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, float3 *pt, float8 *Vertices);
-    void __fastcall RaAnimation(TAnimType a);
+    int SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, float3 *pt, float8 *Vertices);
+    void RaAnimation(TAnimType a);
 
   public:
     static int iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
@@ -236,59 +236,59 @@ class TSubModel
     static double fSquareDist;
     static TModel3d *pRoot;
     static AnsiString *pasText; // tekst dla wyœwietlacza (!!!! do przemyœlenia)
-    __fastcall TSubModel();
-    __fastcall ~TSubModel();
-    void __fastcall FirstInit();
-    int __fastcall Load(cParser &Parser, TModel3d *Model, int Pos, bool dynamic);
-    void __fastcall ChildAdd(TSubModel *SubModel);
-    void __fastcall NextAdd(TSubModel *SubModel);
+    TSubModel();
+    ~TSubModel();
+    void FirstInit();
+    int Load(cParser &Parser, TModel3d *Model, int Pos, bool dynamic);
+    void ChildAdd(TSubModel *SubModel);
+    void NextAdd(TSubModel *SubModel);
     TSubModel *__fastcall NextGet() { return Next; };
     TSubModel *__fastcall ChildGet() { return Child; };
-    int __fastcall TriangleAdd(TModel3d *m, int tex, int tri);
+    int TriangleAdd(TModel3d *m, int tex, int tri);
     float8 *__fastcall TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
-    // float8* __fastcall TrianglePtr(const char *tex,int tri);
-    // void __fastcall SetRotate(vector3 vNewRotateAxis,float fNewAngle);
-    void __fastcall SetRotate(float3 vNewRotateAxis, float fNewAngle);
-    void __fastcall SetRotateXYZ(vector3 vNewAngles);
-    void __fastcall SetRotateXYZ(float3 vNewAngles);
-    void __fastcall SetTranslate(vector3 vNewTransVector);
-    void __fastcall SetTranslate(float3 vNewTransVector);
-    void __fastcall SetRotateIK1(float3 vNewAngles);
+    // float8* TrianglePtr(const char *tex,int tri);
+    // void SetRotate(vector3 vNewRotateAxis,float fNewAngle);
+    void SetRotate(float3 vNewRotateAxis, float fNewAngle);
+    void SetRotateXYZ(vector3 vNewAngles);
+    void SetRotateXYZ(float3 vNewAngles);
+    void SetTranslate(vector3 vNewTransVector);
+    void SetTranslate(float3 vNewTransVector);
+    void SetRotateIK1(float3 vNewAngles);
     TSubModel *__fastcall GetFromName(AnsiString search, bool i = true);
     TSubModel *__fastcall GetFromName(char *search, bool i = true);
-    void __fastcall RenderDL();
-    void __fastcall RenderAlphaDL();
-    void __fastcall RenderVBO();
-    void __fastcall RenderAlphaVBO();
-    // inline matrix4x4* __fastcall GetMatrix() {return dMatrix;};
+    void RenderDL();
+    void RenderAlphaDL();
+    void RenderVBO();
+    void RenderAlphaVBO();
+    // inline matrix4x4* GetMatrix() {return dMatrix;};
     inline float4x4 *__fastcall GetMatrix() { return fMatrix; };
-    // matrix4x4* __fastcall GetTransform() {return Matrix;};
-    inline void __fastcall Hide() { iVisible = 0; };
-    void __fastcall RaArrayFill(CVertNormTex *Vert);
-    // void __fastcall Render();
-    int __fastcall FlagsCheck();
-    void __fastcall WillBeAnimated()
+    // matrix4x4* GetTransform() {return Matrix;};
+    inline void Hide() { iVisible = 0; };
+    void RaArrayFill(CVertNormTex *Vert);
+    // void Render();
+    int FlagsCheck();
+    void WillBeAnimated()
     {
         if (this)
             iFlags |= 0x4000;
     };
-    void __fastcall InitialRotate(bool doit);
-    void __fastcall DisplayLists();
-    void __fastcall Info();
-    void __fastcall InfoSet(TSubModelInfo *info);
-    void __fastcall BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t,
+    void InitialRotate(bool doit);
+    void DisplayLists();
+    void Info();
+    void InfoSet(TSubModelInfo *info);
+    void BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t,
                             TStringPack *n = NULL, bool dynamic = false);
-    void __fastcall ReplacableSet(GLuint *r, int a)
+    void ReplacableSet(GLuint *r, int a)
     {
         ReplacableSkinId = r;
         iAlpha = a;
     };
-    void __fastcall TextureNameSet(const char *n);
-    void __fastcall NameSet(const char *n);
+    void TextureNameSet(const char *n);
+    void NameSet(const char *n);
     // Ra: funkcje do budowania terenu z E3D
-    int __fastcall Flags() { return iFlags; };
-    void __fastcall UnFlagNext() { iFlags &= 0x00FFFFFF; };
-    void __fastcall ColorsSet(int *a, int *d, int *s);
+    int Flags() { return iFlags; };
+    void UnFlagNext() { iFlags &= 0x00FFFFFF; };
+    void ColorsSet(int *a, int *d, int *s);
     inline float3 Translation1Get()
     {
         return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector;
@@ -297,9 +297,9 @@ class TSubModel
     {
         return *(fMatrix->TranslationGet()) + Child->Translation1Get();
     }
-    void __fastcall ParentMatrix(float4x4 *m);
-    float __fastcall MaxY(const float4x4 &m);
-    void __fastcall AdjustDist();
+    void ParentMatrix(float4x4 *m);
+    float MaxY(const float4x4 &m);
+    void AdjustDist();
 };
 
 class TSubModelInfo
@@ -317,18 +317,18 @@ class TSubModelInfo
     static int iTotalTextures; // iloœæ tekstur
     static int iCurrent; // aktualny obiekt
     static TSubModelInfo *pTable; // tabele obiektów pomocniczych
-    __fastcall TSubModelInfo()
+    TSubModelInfo()
     {
         pSubModel = NULL;
         iTransform = iName = iTexture = iNext = iChild = -1; // nie ma
         iNameLen = iTextureLen = 0;
     }
-    void __fastcall Reset()
+    void Reset()
     {
         pTable = this; // ustawienie wskaŸnika tabeli obiektów
         iTotalTransforms = iTotalNames = iTotalTextures = iCurrent = 0; // zerowanie liczników
     }
-    __fastcall ~TSubModelInfo(){};
+    ~TSubModelInfo(){};
 };
 
 class TModel3d : public CMesh
@@ -350,52 +350,52 @@ class TModel3d : public CMesh
   public:
     inline TSubModel *__fastcall GetSMRoot() { return (Root); };
     // double Radius; //Ra: nie u¿ywane
-    __fastcall TModel3d();
-    __fastcall TModel3d(char *FileName);
-    __fastcall ~TModel3d();
+    TModel3d();
+    TModel3d(char *FileName);
+    ~TModel3d();
     TSubModel *__fastcall GetFromName(const char *sName);
-    // TMaterial* __fastcall GetMaterialFromName(char *sName);
+    // TMaterial* GetMaterialFromName(char *sName);
     TSubModel *__fastcall AddToNamed(const char *Name, TSubModel *SubModel);
-    void __fastcall AddTo(TSubModel *tmp, TSubModel *SubModel);
-    void __fastcall LoadFromTextFile(char *FileName, bool dynamic);
-    void __fastcall LoadFromBinFile(char *FileName, bool dynamic);
-    bool __fastcall LoadFromFile(char *FileName, bool dynamic);
-    void __fastcall SaveToBinFile(char *FileName);
-    void __fastcall BreakHierarhy();
+    void AddTo(TSubModel *tmp, TSubModel *SubModel);
+    void LoadFromTextFile(char *FileName, bool dynamic);
+    void LoadFromBinFile(char *FileName, bool dynamic);
+    bool LoadFromFile(char *FileName, bool dynamic);
+    void SaveToBinFile(char *FileName);
+    void BreakHierarhy();
     // renderowanie specjalne
-    void __fastcall Render(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
+    void Render(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
                            int iAlpha = 0x30300030);
-    void __fastcall RenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
+    void RenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
                                 int iAlpha = 0x30300030);
-    void __fastcall RaRender(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
+    void RaRender(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
                              int iAlpha = 0x30300030);
-    void __fastcall RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
+    void RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
                                   int iAlpha = 0x30300030);
     // jeden k¹t obrotu
-    void __fastcall Render(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+    void Render(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
                            int iAlpha = 0x30300030);
-    void __fastcall RenderAlpha(vector3 pPosition, double fAngle = 0,
+    void RenderAlpha(vector3 pPosition, double fAngle = 0,
                                 GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-    void __fastcall RaRender(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+    void RaRender(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
                              int iAlpha = 0x30300030);
-    void __fastcall RaRenderAlpha(vector3 pPosition, double fAngle = 0,
+    void RaRenderAlpha(vector3 pPosition, double fAngle = 0,
                                   GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
     // trzy k¹ty obrotu
-    void __fastcall Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+    void Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
                            int iAlpha = 0x30300030);
-    void __fastcall RenderAlpha(vector3 *vPosition, vector3 *vAngle,
+    void RenderAlpha(vector3 *vPosition, vector3 *vAngle,
                                 GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-    void __fastcall RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+    void RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
                              int iAlpha = 0x30300030);
-    void __fastcall RaRenderAlpha(vector3 *vPosition, vector3 *vAngle,
+    void RaRenderAlpha(vector3 *vPosition, vector3 *vAngle,
                                   GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-    // inline int __fastcall GetSubModelsCount() { return (SubModelsCount); };
-    int __fastcall Flags() { return iFlags; };
-    void __fastcall Init();
+    // inline int GetSubModelsCount() { return (SubModelsCount); };
+    int Flags() { return iFlags; };
+    void Init();
     char *__fastcall NameGet() { return Root ? Root->pName : NULL; };
-    int __fastcall TerrainCount();
+    int TerrainCount();
     TSubModel *__fastcall TerrainSquare(int n);
-    void __fastcall TerrainRenderVBO(int n);
+    void TerrainRenderVBO(int n);
 };
 
 //---------------------------------------------------------------------------

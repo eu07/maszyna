@@ -4,12 +4,12 @@
 #define LogsH
 #include <system.hpp>
 
-void __fastcall WriteConsoleOnly(const char *str, double value);
-void __fastcall WriteConsoleOnly(const char *str);
-void __fastcall WriteLog(const char *str, double value);
-void __fastcall WriteLog(const char *str);
-void __fastcall Error(const AnsiString &asMessage, bool box = true);
-void __fastcall ErrorLog(const AnsiString &asMessage);
-void __fastcall WriteLog(const AnsiString &str);
+void WriteConsoleOnly(const char *str, double value);
+void WriteConsoleOnly(const char *str);
+void WriteLog(const char *str, double value);
+void WriteLog(const char *str);
+void Error(const AnsiString &asMessage, bool box = true);
+void ErrorLog(const AnsiString &asMessage);
+void WriteLog(const AnsiString &str);
 //---------------------------------------------------------------------------
 #endif

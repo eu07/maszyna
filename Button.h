@@ -12,12 +12,12 @@ class TButton
     TSubModel *pModelOn, *pModelOff; // submodel dla stanu za³¹czonego i wy³¹czonego
     bool bOn;
     int iFeedbackBit; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
-    void __fastcall Update();
+    void Update();
 
   public:
-    __fastcall TButton();
-    __fastcall ~TButton();
-    void __fastcall Clear(int i = -1);
+    TButton();
+    ~TButton();
+    void Clear(int i = -1);
     inline void FeedbackBitSet(int i) { iFeedbackBit = 1 << i; };
     inline void Turn(bool to)
     {
@@ -40,8 +40,8 @@ class TButton
         Update();
     };
     inline bool Active() { return (pModelOn) || (pModelOff); };
-    void __fastcall Init(AnsiString asName, TModel3d *pModel, bool bNewOn = false);
-    void __fastcall Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);
+    void Init(AnsiString asName, TModel3d *pModel, bool bNewOn = false);
+    void Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);
 };
 
 //---------------------------------------------------------------------------

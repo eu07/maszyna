@@ -16,17 +16,17 @@ class TPoKeys55
   public:
     float fAnalog[7]; // wejœcia analogowe, stan <0.0,1.0>
     int iInputs[8];
-    __fastcall TPoKeys55();
-    __fastcall ~TPoKeys55();
-    bool __fastcall Connect();
-    bool __fastcall Close();
-    bool __fastcall Write(unsigned char c, unsigned char b3, unsigned char b4 = 0,
+    TPoKeys55();
+    ~TPoKeys55();
+    bool Connect();
+    bool Close();
+    bool Write(unsigned char c, unsigned char b3, unsigned char b4 = 0,
                           unsigned char b5 = 0);
-    bool __fastcall Read();
-    bool __fastcall ReadLoop(int i);
-    AnsiString __fastcall Version();
-    bool __fastcall PWM(int x, float y);
-    bool __fastcall Update(bool pause);
+    bool Read();
+    bool ReadLoop(int i);
+    AnsiString Version();
+    bool PWM(int x, float y);
+    bool Update(bool pause);
 };
 //---------------------------------------------------------------------------
 #endif

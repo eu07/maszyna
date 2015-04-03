@@ -5,26 +5,26 @@
 namespace Math3D
 {
 
-void __fastcall vector3::RotateX(double angle)
+void vector3::RotateX(double angle)
 {
     double ty = y;
     y = (cos(angle) * y - z * sin(angle));
     z = (z * cos(angle) + sin(angle) * ty);
 };
-void __fastcall vector3::RotateY(double angle)
+void vector3::RotateY(double angle)
 {
     double tx = x;
     x = (cos(angle) * x + z * sin(angle));
     z = (z * cos(angle) - sin(angle) * tx);
 };
-void __fastcall vector3::RotateZ(double angle)
+void vector3::RotateZ(double angle)
 {
     double ty = y;
     y = (cos(angle) * y + x * sin(angle));
     x = (x * cos(angle) - sin(angle) * ty);
 };
 
-void inline __fastcall vector3::SafeNormalize()
+void inline vector3::SafeNormalize()
 {
     double l = Length();
     if (l == 0)

@@ -13,12 +13,12 @@ class TAirCoupler
     TSubModel *pModelOn, *pModelOff, *pModelxOn;
     bool bOn;
     bool bxOn;
-    void __fastcall Update();
+    void Update();
 
   public:
-    __fastcall TAirCoupler();
-    __fastcall ~TAirCoupler();
-    void __fastcall Clear();
+    TAirCoupler();
+    ~TAirCoupler();
+    void Clear();
     inline void TurnOn()
     {
         bOn = true;
@@ -38,10 +38,10 @@ class TAirCoupler
         Update();
     };
     //  inline bool Active() { if ((pModelOn)||(pModelOff)) return true; return false;};
-    int __fastcall GetStatus();
-    void __fastcall Init(AnsiString asName, TModel3d *pModel);
-    void __fastcall Load(TQueryParserComp *Parser, TModel3d *pModel);
-    //  bool __fastcall Render();
+    int GetStatus();
+    void Init(AnsiString asName, TModel3d *pModel);
+    void Load(TQueryParserComp *Parser, TModel3d *pModel);
+    //  bool Render();
 };
 
 //---------------------------------------------------------------------------
