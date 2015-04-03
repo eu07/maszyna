@@ -1,0 +1,12 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+---
+Language: Cpp
+AlignEscapedNewlinesLeft: true
+BreakBeforeBraces: Allman
+BreakBeforeTernaryOperators: false
+AllowShortBlocksOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+ColumnLimit: 100
+---
