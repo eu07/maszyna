@@ -1,0 +1,6 @@
+text=auto
+*.txt text
+*.cpp text
+*.h text
+README text
+LICENSE text
