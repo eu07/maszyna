@@ -59,7 +59,7 @@ AutoIncBuild=0
 MajorVer=15
 MinorVer=3
 Release=1166
-Build=469
+Build=470
 Debug=1
 PreRelease=0
 Special=0
@@ -71,8 +71,8 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=15.3.1166.469
-InternalName=9th by Ra + SPKS + MP
+FileVersion=15.3.1166.470
+InternalName=9th by firleju + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -123,11 +123,6 @@ RemoteDebug=0
 ShowInfoMsgs=0
 LinkDebugVcl=0
 LinkCGLIB=0
-
-[CORBA]
-AddServerUnit=1
-AddClientUnit=1
-PrecompiledHeaders=1
 
 [Language]
 ActiveLang=

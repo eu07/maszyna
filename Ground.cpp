@@ -2833,12 +2833,26 @@ void __fastcall TGround::InitTracks()
   if (Global::iHiddenEvents&1)
   if (!Current->asName.IsEmpty())
   {//jeœli podana jest nazwa torów, mo¿na szukaæ eventów skojarzonych przez nazwê
+   if (Track->asEvent0Name.IsEmpty())
+    if (FindEvent(Current->asName+":event0"))
+     Track->asEvent0Name=Current->asName+":event0";
    if (Track->asEvent1Name.IsEmpty())
     if (FindEvent(Current->asName+":event1"))
      Track->asEvent1Name=Current->asName+":event1";
    if (Track->asEvent2Name.IsEmpty())
     if (FindEvent(Current->asName+":event2"))
      Track->asEvent2Name=Current->asName+":event2";
+
+   if (Track->asEventall0Name.IsEmpty())
+    if (FindEvent(Current->asName+":eventall0"))
+     Track->asEventall0Name=Current->asName+":eventall0";
+   if (Track->asEventall1Name.IsEmpty())
+    if (FindEvent(Current->asName+":eventall1"))
+     Track->asEventall1Name=Current->asName+":eventall1";
+   if (Track->asEventall2Name.IsEmpty())
+    if (FindEvent(Current->asName+":eventall2"))
+     Track->asEventall2Name=Current->asName+":eventall2";
+
   }
   Track->AssignEvents(
    Track->asEvent0Name.IsEmpty()?NULL:FindEvent(Track->asEvent0Name),

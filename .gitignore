@@ -1,0 +1,6 @@
+*.obj
+*.~h
+*.~cpp
+*.~bpr
+*.dcu
+*.~pas
