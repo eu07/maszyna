@@ -89,7 +89,10 @@ void ErrorLog(const AnsiString &asMessage)
     WriteLog(asMessage.c_str()); // do "log.txt" ewentualnie te¿
 }
 
-void WriteLog(const AnsiString &str) { // Ra: wersja z AnsiString jest zamienna z Error() WriteLog(str.c_str()); };
+void WriteLog(const AnsiString &str)
+{ // Ra: wersja z AnsiString jest zamienna z Error()
+    WriteLog(str.c_str());
+};
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

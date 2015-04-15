@@ -20,8 +20,8 @@
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
 
-__fastcall TAnimAdvanced::TAnimAdvanced(){};
-__fastcall TAnimAdvanced::~TAnimAdvanced(){
+TAnimAdvanced::TAnimAdvanced(){};
+TAnimAdvanced::~TAnimAdvanced(){
     // delete[] pVocaloidMotionData; //plik zosta³ zmodyfikowany
 };
 
@@ -64,7 +64,7 @@ int TAnimAdvanced::SortByBone()
     return swaps;
 };
 
-__fastcall TAnimContainer::TAnimContainer()
+TAnimContainer::TAnimContainer()
 {
     pNext = NULL;
     vRotateAngles = vector3(0.0f, 0.0f, 0.0f); // aktualne k¹ty obrotu
@@ -82,7 +82,7 @@ __fastcall TAnimContainer::TAnimContainer()
     acAnimNext = NULL; // na razie jest poza list¹
 }
 
-__fastcall TAnimContainer::~TAnimContainer()
+TAnimContainer::~TAnimContainer()
 {
     SafeDelete(pNext);
     delete mAnim; // AnimContainer jest w³aœcicielem takich macierzy
@@ -390,13 +390,15 @@ bool TAnimContainer::InMovement()
 }
 
 void TAnimContainer::EventAssign(TEvent *ev)
-{ // przypisanie eventu wykonywanego po zakoñczeniu animacji evDone = ev; };
+{ // przypisanie eventu wykonywanego po zakoñczeniu animacji
+    evDone = ev;
+};
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-__fastcall TAnimModel::TAnimModel()
+TAnimModel::TAnimModel()
 {
     pRoot = NULL;
     pModel = NULL;
@@ -419,7 +421,7 @@ __fastcall TAnimModel::TAnimModel()
     fOffTime = fOnTime + 0.66;
 }
 
-__fastcall TAnimModel::~TAnimModel()
+TAnimModel::~TAnimModel()
 {
     delete pAdvanced; // nie ma zaawansowanej animacji
     SafeDelete(pRoot);

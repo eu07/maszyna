@@ -692,7 +692,7 @@ bool Global::DoEvents()
 }
 //---------------------------------------------------------------------------
 
-__fastcall TTranscripts::TTranscripts()
+TTranscripts::TTranscripts()
 {
     iCount = 0; // brak linijek do wyœwietlenia
     iStart = 0; // wype³niaæ od linijki 0
@@ -703,7 +703,7 @@ __fastcall TTranscripts::TTranscripts()
     }
     fRefreshTime = 360.0; // wartoœc zaporowa
 };
-__fastcall TTranscripts::~TTranscripts(){};
+TTranscripts::~TTranscripts(){};
 void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
 { // dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
     if (show == hide)

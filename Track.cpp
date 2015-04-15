@@ -41,7 +41,7 @@ const int iEnds3[13] = {3, 0, 2, 1, 2, 0, -1,
                         1, 0, 2, 0, 3, 1}; // numer s¹siedniego toru na koñcu segmentu "-1"
 TIsolated *TIsolated::pRoot = NULL;
 
-__fastcall TSwitchExtension::TSwitchExtension(TTrack *owner, int what)
+TSwitchExtension::TSwitchExtension(TTrack *owner, int what)
 { // na pocz¹tku wszystko puste
     CurrentIndex = 0;
     pNexts[0] = NULL; // wskaŸniki do kolejnych odcinków ruchu
@@ -71,7 +71,7 @@ __fastcall TSwitchExtension::TSwitchExtension(TTrack *owner, int what)
     fVelocity = -1.0; // maksymalne ograniczenie prêdkoœci (ustawianej eventem)
     vTrans = vector3(0, 0, 0); // docelowa translacja przesuwnicy
 }
-__fastcall TSwitchExtension::~TSwitchExtension()
+TSwitchExtension::~TSwitchExtension()
 { // nie ma nic do usuwania
     // delete Segments[0];
     // delete Segments[1];
@@ -81,8 +81,12 @@ __fastcall TSwitchExtension::~TSwitchExtension()
     delete Segments[5];
 }
 
-__fastcall TIsolated::TIsolated() { // utworznie pustego TIsolated("none", NULL); };
-__fastcall TIsolated::TIsolated(const AnsiString &n, TIsolated *i)
+TIsolated::TIsolated()
+{ // utworznie pustego
+    TIsolated("none", NULL);
+};
+
+TIsolated::TIsolated(const AnsiString &n, TIsolated *i)
 { // utworznie obwodu izolowanego
     asName = n;
     pNext = i;
@@ -91,7 +95,7 @@ __fastcall TIsolated::TIsolated(const AnsiString &n, TIsolated *i)
     pMemCell = NULL; // podpi¹æ istniej¹c¹ albo utworzyæ pust¹
 };
 
-__fastcall TIsolated::~TIsolated(){// usuwanie
+TIsolated::~TIsolated(){// usuwanie
                                    /*
                                     TIsolated *p=pRoot;
                                     while (pRoot)
@@ -148,7 +152,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
     }
 };
 
-__fastcall TTrack::TTrack(TGroundNode *g)
+TTrack::TTrack(TGroundNode *g)
 { // tworzenie nowego odcinka ruchu
     trNext = trPrev = NULL; // s¹siednie
     Segment = NULL; // dane odcinka
@@ -200,7 +204,7 @@ __fastcall TTrack::TTrack(TGroundNode *g)
     trColides = NULL; // tor kolizyjny, na którym trzeba sprawdzaæ pojazdy pod k¹tem zderzenia
 }
 
-__fastcall TTrack::~TTrack()
+TTrack::~TTrack()
 { // likwidacja odcinka
     if (eType == tt_Normal)
         delete Segment; // dla zwrotnic nie usuwaæ tego (kopiowany)
@@ -3087,7 +3091,10 @@ int TTrack::TestPoint(vector3 *Point)
     return -1;
 };
 
-void TTrack::MovedUp1(double dh) { // poprawienie przechy³ki wymaga wyd³u¿enia podsypki fTexHeight1 += dh; };
+void TTrack::MovedUp1(double dh)
+{ // poprawienie przechy³ki wymaga wyd³u¿enia podsypki
+    fTexHeight1 += dh;
+};
 
 AnsiString TTrack::NameGet()
 { // ustalenie nazwy toru

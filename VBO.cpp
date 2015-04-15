@@ -10,14 +10,14 @@
 
 #pragma package(smart_init)
 
-__fastcall CMesh::CMesh()
+CMesh::CMesh()
 { // utworzenie pustego obiektu
     m_pVNT = NULL;
     m_nVertexCount = -1;
     m_nVBOVertices = 0; // nie zarezerwowane
 };
 
-__fastcall CMesh::~CMesh()
+CMesh::~CMesh()
 { // usuwanie obiektu
     Clear(); // zwolnienie zasobów
 };

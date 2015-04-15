@@ -20,7 +20,7 @@
 #include "Ground.h"
 #include "Event.h"
 
-__fastcall TTrackFollower::TTrackFollower()
+TTrackFollower::TTrackFollower()
 {
     pCurrentTrack = NULL;
     pCurrentSegment = NULL;
@@ -30,7 +30,7 @@ __fastcall TTrackFollower::TTrackFollower()
     fOffsetH = 0.0; // na starcie stoi na œrodku
 }
 
-__fastcall TTrackFollower::~TTrackFollower() {}
+TTrackFollower::~TTrackFollower() {}
 
 bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
 {

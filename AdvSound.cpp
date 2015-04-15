@@ -9,7 +9,7 @@
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 
-__fastcall TAdvancedSound::TAdvancedSound()
+TAdvancedSound::TAdvancedSound()
 {
     //    SoundStart=SoundCommencing=SoundShut= NULL;
     State = ss_Off;
@@ -18,7 +18,7 @@ __fastcall TAdvancedSound::TAdvancedSound()
     fShutLength = 0;
 }
 
-__fastcall TAdvancedSound::~TAdvancedSound()
+TAdvancedSound::~TAdvancedSound()
 { // Ra: stopowanie siê sypie
     // SoundStart.Stop();
     // SoundCommencing.Stop();

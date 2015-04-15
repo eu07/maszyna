@@ -19,7 +19,7 @@
 #include "Ground.h"
 #pragma package(smart_init)
 
-__fastcall TEvent::TEvent(AnsiString m)
+TEvent::TEvent(AnsiString m)
 {
     // asName=""; //czy nazwa eventu jest niezbêdna w tym przypadku? chyba nie
     evNext = evNext2 = NULL;
@@ -44,7 +44,7 @@ __fastcall TEvent::TEvent(AnsiString m)
     fRandomDelay = 0.0; // standardowo nie bêdzie dodatkowego losowego opóŸnienia
 };
 
-__fastcall TEvent::~TEvent()
+TEvent::~TEvent()
 {
     switch (Type)
     { // sprz¹tanie

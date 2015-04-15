@@ -58,7 +58,7 @@ char *TStringPack::String(int n)
     return ptr;
 };
 
-__fastcall TSubModel::TSubModel()
+TSubModel::TSubModel()
 {
     ZeroMemory(this, sizeof(TSubModel)); // istotne przy zapisywaniu wersji binarnej
     FirstInit();
@@ -115,7 +115,7 @@ void TSubModel::FirstInit()
     smLetter = NULL; // u¿ywany tylko roboczo dla TP_TEXT, do przyspieszenia wyœwietlania
 };
 
-__fastcall TSubModel::~TSubModel()
+TSubModel::~TSubModel()
 {
     if (uiDisplayList)
         glDeleteLists(uiDisplayList, 1);
@@ -1631,7 +1631,7 @@ float TSubModel::MaxY(const float4x4 &m)
 };
 //---------------------------------------------------------------------------
 
-__fastcall TModel3d::TModel3d()
+TModel3d::TModel3d()
 {
     // Materials=NULL;
     // MaterialsCount=0;
@@ -1653,7 +1653,7 @@ __fastcall TModel3d::TModel3d(char *FileName)
  LoadFromFile(FileName);
 };
 */
-__fastcall TModel3d::~TModel3d()
+TModel3d::~TModel3d()
 {
     // SafeDeleteArray(Materials);
     if (iFlags & 0x0200)

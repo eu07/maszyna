@@ -47,3 +47,8 @@ install_manifest.txt
 *.out
 *.app
 
+*.dcu
+*.~cpp
+*.~h
+*.~bpr
+*.~pas

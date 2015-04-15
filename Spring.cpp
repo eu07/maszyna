@@ -9,7 +9,7 @@
 #include "Spring.h"
 #include "Usefull.h"
 
-__fastcall TSpring::TSpring()
+TSpring::TSpring()
 {
     vForce1 = vForce2 = vector3(0, 0, 0);
     Ks = 0;
@@ -17,7 +17,7 @@ __fastcall TSpring::TSpring()
     restLen = 0;
 }
 
-__fastcall TSpring::~TSpring() {}
+TSpring::~TSpring() {}
 
 void TSpring::Init(double nrestLen, double nKs, double nKd)
 {

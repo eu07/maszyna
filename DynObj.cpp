@@ -106,11 +106,11 @@ int TAnim::TypeSet(int i, int fl)
     yUpdate = NULL;
     return iFlags & 15; // ile wskaŸników rezerwowaæ dla danego typu animacji
 };
-__fastcall TAnim::TAnim()
+TAnim::TAnim()
 { // potrzebne to w ogóle?
     iFlags = -1; // nieznany typ - destruktor nic nie usuwa
 };
-__fastcall TAnim::~TAnim()
+TAnim::~TAnim()
 { // usuwanie animacji
     switch (iFlags & 0xF0)
     { // usuwanie struktur, zale¿nie ile zosta³o stworzonych
@@ -1432,7 +1432,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
 }
 //----------ABu: koniec skanowania pojazdow
 
-__fastcall TDynamicObject::TDynamicObject()
+TDynamicObject::TDynamicObject()
 {
     modelShake = vector3(0, 0, 0);
     fTrackBlock = 10000.0; // brak przeszkody na drodze
@@ -1535,7 +1535,7 @@ __fastcall TDynamicObject::TDynamicObject()
     fAdjustment = 0.0; // korekcja odleg³oœci pomiêdzy wózkami (np. na ³ukach)
 }
 
-__fastcall TDynamicObject::~TDynamicObject()
+TDynamicObject::~TDynamicObject()
 { // McZapkie-250302 - zamykanie logowania parametrow fizycznych
     SafeDelete(Mechanik);
     SafeDelete(MoverParameters);

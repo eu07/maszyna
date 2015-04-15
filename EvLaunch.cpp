@@ -22,7 +22,7 @@
 
 //---------------------------------------------------------------------------
 
-__fastcall TEventLauncher::TEventLauncher()
+TEventLauncher::TEventLauncher()
 { // ustawienie pocz¹tkowych wartoœci dla wszystkich zmiennych
     iKey = 0;
     DeltaTime = -1;
@@ -36,7 +36,7 @@ __fastcall TEventLauncher::TEventLauncher()
     iCheckMask = 0;
 }
 
-__fastcall TEventLauncher::~TEventLauncher() { SafeDeleteArray(szText); }
+TEventLauncher::~TEventLauncher() { SafeDeleteArray(szText); }
 
 void TEventLauncher::Init() {}
 

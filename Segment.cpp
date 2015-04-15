@@ -23,7 +23,7 @@ AnsiString Where(vector3 p)
     return AnsiString(p.x) + " " + AnsiString(p.y) + " " + AnsiString(p.z);
 };
 
-__fastcall TSegment::TSegment(TTrack *owner)
+TSegment::TSegment(TTrack *owner)
 {
     Point1 = CPointOut = CPointIn = Point2 = vector3(0.0f, 0.0f, 0.0f);
     fLength = 0;
@@ -34,7 +34,7 @@ __fastcall TSegment::TSegment(TTrack *owner)
     pOwner = owner;
 };
 
-__fastcall TSegment::~TSegment() { SafeDeleteArray(fTsBuffer); };
+TSegment::~TSegment() { SafeDeleteArray(fTsBuffer); };
 
 bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
                                double fNewRoll1, double fNewRoll2)

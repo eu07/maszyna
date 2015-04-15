@@ -16,7 +16,7 @@
 #include "Logs.h"
 #include "McZapkie\mctools.hpp"
 
-__fastcall TRealSound::TRealSound()
+TRealSound::TRealSound()
 {
     pSound = NULL;
     dSoundAtt = -1;
@@ -33,7 +33,7 @@ __fastcall TRealSound::TRealSound()
     bLoopPlay = false; // dŸwiêk wy³¹czony
 }
 
-__fastcall TRealSound::~TRealSound()
+TRealSound::~TRealSound()
 {
     // if (this) if (pSound) pSound->Stop();
 }

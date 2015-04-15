@@ -21,7 +21,7 @@
 
 using namespace Timer;
 
-__fastcall TCab::TCab()
+TCab::TCab()
 {
     CabPos1.x = -1.0;
     CabPos1.y = 1.0;
@@ -82,7 +82,7 @@ void TCab::Load(TQueryParserComp *Parser)
     bOccupied = True;
 }
 
-__fastcall TCab::~TCab()
+TCab::~TCab()
 {
     delete[] ggList;
     delete[] btList;
@@ -124,7 +124,7 @@ void TCab::Update()
     }
 };
 
-__fastcall TTrain::TTrain()
+TTrain::TTrain()
 {
     ActiveUniversal4 = false;
     ShowNextCurrent = false;
@@ -175,7 +175,7 @@ __fastcall TTrain::TTrain()
     fTachoTimer = 0.0; // w³¹czenie skoków wskazañ prêdkoœciomierza
 }
 
-__fastcall TTrain::~TTrain()
+TTrain::~TTrain()
 {
     if (DynamicObject)
         if (DynamicObject->Mechanik)

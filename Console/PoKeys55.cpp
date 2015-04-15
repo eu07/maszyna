@@ -17,7 +17,7 @@ HANDLE ReadHandle = INVALID_HANDLE_VALUE;
 // GUID InterfaceClassGuid={0x4d1e55b2,0xf16f,0x11cf,0x88,0xcb,0x00,0x11,0x11,0x00,0x00,0x30};
 //{4d1e55b2-f16f-11cf-88cb-001111000030}
 
-__fastcall TPoKeys55::TPoKeys55()
+TPoKeys55::TPoKeys55()
 {
     cRequest = 0;
     iPWMbits = 1;
@@ -31,7 +31,7 @@ __fastcall TPoKeys55::TPoKeys55()
     bNoError = true;
 };
 //---------------------------------------------------------------------------
-__fastcall TPoKeys55::~TPoKeys55() { Close(); };
+TPoKeys55::~TPoKeys55() { Close(); };
 //---------------------------------------------------------------------------
 bool TPoKeys55::Close()
 { // roz³¹czenie komunikacji

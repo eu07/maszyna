@@ -9,7 +9,7 @@
 
 const dEpsilon = 0.01; // 1cm (zale¿y od typu sprzêgu...)
 
-__fastcall TMoverParameters::TMoverParameters(double VelInitial, AnsiString TypeNameInit,
+TMoverParameters::TMoverParameters(double VelInitial, AnsiString TypeNameInit,
                                               AnsiString NameInit, int LoadInitial,
                                               AnsiString LoadTypeInitial, int Cab)
     : T_MoverParameters(VelInitial, TypeNameInit, NameInit, LoadInitial, LoadTypeInitial, Cab)
@@ -229,8 +229,8 @@ bool TMoverParameters::IncBrakeLevel()
 { // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê BrakeCtrlPosNo
   return BrakeLevelAdd(1.0); };
 
-bool TMoverParameters::DecBrakeLevel()
-{ // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1 return BrakeLevelAdd(-1.0); };
+bool TMoverParameters::DecBrakeLevel() 
+{ return BrakeLevelAdd(-1.0); }; // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
 
 bool TMoverParameters::ChangeCab(int direction)
 { // zmiana kabiny i resetowanie ustawien

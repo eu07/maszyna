@@ -21,7 +21,7 @@
 
 //---------------------------------------------------------------------------
 
-__fastcall TTractionPowerSource::TTractionPowerSource()
+TTractionPowerSource::TTractionPowerSource()
 {
     NominalVoltage = 0;
     VoltageFrequency = 0;
@@ -44,7 +44,7 @@ __fastcall TTractionPowerSource::TTractionPowerSource()
     bSection = false; // sekcja nie jest Ÿród³em zasilania, tylko grupuje przês³a
 };
 
-__fastcall TTractionPowerSource::~TTractionPowerSource(){};
+TTractionPowerSource::~TTractionPowerSource(){};
 
 void TTractionPowerSource::Init(double u, double i)
 { // ustawianie zasilacza przy braku w scenerii

@@ -11,13 +11,13 @@
 
 #pragma package(smart_init)
 
-__fastcall TButton::TButton()
+TButton::TButton()
 {
     iFeedbackBit = 0;
     Clear();
 };
 
-__fastcall TButton::~TButton(){};
+TButton::~TButton(){};
 
 void TButton::Clear(int i)
 {

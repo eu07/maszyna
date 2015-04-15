@@ -23,7 +23,7 @@
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
 
-__fastcall TMemCell::TMemCell(vector3 *p)
+TMemCell::TMemCell(vector3 *p)
 {
     fValue1 = fValue2 = 0;
     szText = new char[256]; // musi byæ dla automatycznie tworzonych komórek dla odcinków
@@ -34,7 +34,7 @@ __fastcall TMemCell::TMemCell(vector3 *p)
     OnSent = NULL;
 }
 
-__fastcall TMemCell::~TMemCell() { SafeDeleteArray(szText); }
+TMemCell::~TMemCell() { SafeDeleteArray(szText); }
 
 void TMemCell::Init() {}
 
@@ -174,4 +174,7 @@ void TMemCell::StopCommandSent()
         Global::AddToQuery(OnSent, NULL);
 };
 
-void TMemCell::AssignEvents(TEvent *e) { // powi¹zanie eventu OnSent = e; };
+void TMemCell::AssignEvents(TEvent *e)
+{ // powi¹zanie eventu
+    OnSent = e;
+};

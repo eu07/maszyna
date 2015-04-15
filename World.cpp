@@ -40,7 +40,7 @@ using namespace Timer;
 
 const double fTimeMax = 1.00; //[s] maksymalny czas aktualizacji w jednek klatce
 
-__fastcall TWorld::TWorld()
+TWorld::TWorld()
 {
     // randomize();
     // Randomize();
@@ -60,7 +60,7 @@ __fastcall TWorld::TWorld()
     fTime50Hz = 0.0; // bufor czasu dla komunikacji z PoKeys
 }
 
-__fastcall TWorld::~TWorld()
+TWorld::~TWorld()
 {
     Global::bManageNodes = false; // Ra: wy³¹czenie wyrejestrowania, bo siê sypie
     TrainDelete();

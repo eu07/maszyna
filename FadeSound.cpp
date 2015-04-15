@@ -12,7 +12,7 @@
 #include "Timer.h"
 #include "FadeSound.h"
 
-__fastcall TFadeSound::TFadeSound()
+TFadeSound::TFadeSound()
 {
     Sound = NULL;
     fFade = 0;
@@ -20,7 +20,7 @@ __fastcall TFadeSound::TFadeSound()
     fTime = 0;
 }
 
-__fastcall TFadeSound::~TFadeSound() { Free(); }
+TFadeSound::~TFadeSound() { Free(); }
 
 void TFadeSound::Free() {}
 

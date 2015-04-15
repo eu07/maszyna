@@ -26,7 +26,7 @@ LPDIRECTSOUNDNOTIFY TSoundsManager::pDSNotify;
 int TSoundsManager::Count = 0;
 TSoundContainer *TSoundsManager::First = NULL;
 
-__fastcall TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName,
+TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName,
                                             int NConcurrent)
 { // wczytanie pliku dŸwiêkowego
     int hr = 111;
@@ -139,7 +139,7 @@ __fastcall TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, 
 
         };*/
 };
-__fastcall TSoundContainer::~TSoundContainer()
+TSoundContainer::~TSoundContainer()
 {
     //    for (int i=Concurrent-1; i>=0; i--)
     //        SAFE_RELEASE( pDSBuffer[i] );
@@ -164,7 +164,7 @@ LPDIRECTSOUNDBUFFER TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
     return DSBuffers.top();
 };
 
-__fastcall TSoundsManager::~TSoundsManager() { Free(); };
+TSoundsManager::~TSoundsManager() { Free(); };
 
 void TSoundsManager::Free()
 {

@@ -7,9 +7,9 @@
 #include "AirCoupler.h"
 #include "Timer.h"
 
-__fastcall TAirCoupler::TAirCoupler() { Clear(); }
+TAirCoupler::TAirCoupler() { Clear(); }
 
-__fastcall TAirCoupler::~TAirCoupler() {}
+TAirCoupler::~TAirCoupler() {}
 
 int TAirCoupler::GetStatus()
 { // zwraca 1, jeœli istnieje model prosty, 2 gdy skoœny

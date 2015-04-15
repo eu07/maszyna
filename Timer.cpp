@@ -20,9 +20,15 @@ double fSinceStart = 0;
 
 double GetTime() { return fSimulationTime; }
 
-double GetDeltaTime() { // czas symulacji (stoi gdy pauza) return DeltaTime; }
+double GetDeltaTime()
+{ // czas symulacji (stoi gdy pauza)
+    return DeltaTime;
+}
 
-double GetDeltaRenderTime() { // czas renderowania (do poruszania siê) return DeltaRenderTime; }
+double GetDeltaRenderTime()
+{ // czas renderowania (do poruszania siê)
+    return DeltaRenderTime;
+}
 
 double GetfSinceStart() { return fSinceStart; }
 

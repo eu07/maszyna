@@ -93,7 +93,7 @@ ItemRecord *__fastcall ItemRecord::TreeFindRecord(const char *n)
     return NULL;
 };
 
-__fastcall TNames::TNames()
+TNames::TNames()
 { // tworzenie bufora
     iSize = 16 * 1024 * 1024; // rozmiar bufora w bajtach
     cBuffer = new char[iSize];
