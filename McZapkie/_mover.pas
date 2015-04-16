@@ -4451,7 +4451,7 @@ begin
 //     if (LocalBrake=ManualBrake)or(MBrake=true)) and (BrakePress<0.3) then
 //      Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
 //     else  //yB: to nie do konca ma sens, poniewa¿ rêczny w wagonie dzia³a na jeden cylinder hamulcowy/wózek, dlatego potrzebne s¹ oddzielnie liczone osie
-      Fb:=UnitBrakeForce*NBrakeAxles*NBpA;
+      Fb:=UnitBrakeForce*NBrakeAxles*Max0R(1,NBpA);
 
 //  u:=((BrakePress*P2FTrans)-BrakeCylSpring*BrakeCylMult[BCMFlag]/BrakeCylNo-0.83*BrakeSlckAdj/(BrakeCylNo))*BrakeCylNo;
  {  end; }

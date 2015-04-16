@@ -2009,8 +2009,11 @@ void TDynamicObject::Move(double fDistance)
         bEnabled &= Axle1.Move(fDistance, iAxleFirst); // oœ z ty³u pojazdu prusza siê pierwsza
         bEnabled &= Axle0.Move(fDistance /*-fAdjustment*/, !iAxleFirst); // oœ z przodu pojazdu
     }
-    // Axle2.Move(fDistance,false); //te nigdy pierwsze nie s¹
-    // Axle3.Move(fDistance,false);
+	else //gf: bez wywolania Move na postoju nie ma event0
+	{
+		bEnabled&=Axle1.Move(fDistance,iAxleFirst); //oœ z ty³u pojazdu prusza siê pierwsza
+		bEnabled&=Axle0.Move(fDistance,!iAxleFirst); //oœ z przodu pojazdu
+	}
     if (fDistance != 0.0) // nie liczyæ ponownie, jeœli stoi
     { // liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
         vPosition = 0.5 * (Axle1.pPosition + Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
