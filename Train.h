@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #ifndef TrainH
 #define TrainH
@@ -92,7 +99,7 @@ class TTrain
     TMoverParameters *mvOccupied; // cz³on, w którym sterujemy hamulcem
     TMoverParameters *mvSecond; // drugi cz³on (ET40, ET41, ET42, ukrotnienia)
     TMoverParameters *mvThird; // trzeci cz³on (SN61)
-  public: // reszta mo¿e byæ publiczna
+  public: // reszta mo¿e by?publiczna
     // AnsiString asMessage;
 
     // McZapkie: definicje wskaŸników
@@ -247,7 +254,7 @@ class TTrain
     TButton btLampkaDepartureSignal;
     TButton btLampkaBlokadaDrzwi;
     TButton btLampkaHamulecReczny;
-    TButton btLampkaForward; // Ra: lampki w przód i w ty³ dla komputerowych kabin
+    TButton btLampkaForward; // Ra: lampki w przód i w ty?dla komputerowych kabin
     TButton btLampkaBackward;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
@@ -359,7 +366,7 @@ class TTrain
     float fTachoCount;
     float fHVoltage; // napiêcie dla dynamicznych ga³ek
     float fHCurrent[4]; // pr¹dy: suma i amperomierze 1,2,3
-    float fEngine[4]; // obroty te¿ trzeba pobraæ
+    float fEngine[4]; // obroty te?trzeba pobra?
     // McZapkie: do syczenia
     float fPPress, fNPress;
     float fSPPress, fSNPress;
