@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
@@ -21,7 +28,7 @@
 
 using namespace Timer;
 
-__fastcall TCab::TCab()
+TCab::TCab()
 {
     CabPos1.x = -1.0;
     CabPos1.y = 1.0;
@@ -82,7 +89,7 @@ void TCab::Load(TQueryParserComp *Parser)
     bOccupied = True;
 }
 
-__fastcall TCab::~TCab()
+TCab::~TCab()
 {
     delete[] ggList;
     delete[] btList;
@@ -124,7 +131,7 @@ void TCab::Update()
     }
 };
 
-__fastcall TTrain::TTrain()
+TTrain::TTrain()
 {
     ActiveUniversal4 = false;
     ShowNextCurrent = false;
@@ -175,7 +182,7 @@ __fastcall TTrain::TTrain()
     fTachoTimer = 0.0; // w³¹czenie skoków wskazañ prêdkoœciomierza
 }
 
-__fastcall TTrain::~TTrain()
+TTrain::~TTrain()
 {
     if (DynamicObject)
         if (DynamicObject->Mechanik)

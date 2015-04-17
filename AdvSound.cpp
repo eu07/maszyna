@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "system.hpp"
 #include "classes.hpp"
@@ -9,7 +16,7 @@
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 
-__fastcall TAdvancedSound::TAdvancedSound()
+TAdvancedSound::TAdvancedSound()
 {
     //    SoundStart=SoundCommencing=SoundShut= NULL;
     State = ss_Off;
@@ -18,7 +25,7 @@ __fastcall TAdvancedSound::TAdvancedSound()
     fShutLength = 0;
 }
 
-__fastcall TAdvancedSound::~TAdvancedSound()
+TAdvancedSound::~TAdvancedSound()
 { // Ra: stopowanie siê sypie
     // SoundStart.Stop();
     // SoundCommencing.Stop();

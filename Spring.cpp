@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "system.hpp"
 #include "classes.hpp"
@@ -9,7 +16,7 @@
 #include "Spring.h"
 #include "Usefull.h"
 
-__fastcall TSpring::TSpring()
+TSpring::TSpring()
 {
     vForce1 = vForce2 = vector3(0, 0, 0);
     Ks = 0;
@@ -17,7 +24,7 @@ __fastcall TSpring::TSpring()
     restLen = 0;
 }
 
-__fastcall TSpring::~TSpring() {}
+TSpring::~TSpring() {}
 
 void TSpring::Init(double nrestLen, double nKs, double nKd)
 {

@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include <vcl.h>
 #pragma hdrstop
@@ -10,14 +17,14 @@
 
 #pragma package(smart_init)
 
-__fastcall CMesh::CMesh()
+CMesh::CMesh()
 { // utworzenie pustego obiektu
     m_pVNT = NULL;
     m_nVertexCount = -1;
     m_nVBOVertices = 0; // nie zarezerwowane
 };
 
-__fastcall CMesh::~CMesh()
+CMesh::~CMesh()
 { // usuwanie obiektu
     Clear(); // zwolnienie zasobów
 };

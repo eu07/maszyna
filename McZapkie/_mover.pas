@@ -1,6 +1,14 @@
 unit _mover;          {fizyka ruchu dla symulatora lokomotywy}
 
 (*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*)
+(*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Maciej Czapkiewicz and others
 
@@ -4443,7 +4451,7 @@ begin
 //     if (LocalBrake=ManualBrake)or(MBrake=true)) and (BrakePress<0.3) then
 //      Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
 //     else  //yB: to nie do konca ma sens, poniewa¿ rêczny w wagonie dzia³a na jeden cylinder hamulcowy/wózek, dlatego potrzebne s¹ oddzielnie liczone osie
-      Fb:=UnitBrakeForce*NBrakeAxles*NBpA;
+      Fb:=UnitBrakeForce*NBrakeAxles*Max0R(1,NBpA);
 
 //  u:=((BrakePress*P2FTrans)-BrakeCylSpring*BrakeCylMult[BCMFlag]/BrakeCylNo-0.83*BrakeSlckAdj/(BrakeCylNo))*BrakeCylNo;
  {  end; }

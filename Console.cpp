@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include <vcl.h>
 #pragma hdrstop
@@ -104,7 +111,7 @@ TLPT *Console::LPT = NULL;
 int Console::iSwitch[8]; // bistabilne w kabinie, za³¹czane z [Shift], wy³¹czane bez
 int Console::iButton[8]; // monostabilne w kabinie, za³¹czane podczas trzymania klawisza
 
-__fastcall Console::Console()
+Console::Console()
 {
     PoKeys55[0] = PoKeys55[1] = NULL;
     for (int i = 0; i < 8; ++i)
@@ -114,7 +121,7 @@ __fastcall Console::Console()
     }
 };
 
-__fastcall Console::~Console()
+Console::~Console()
 {
     delete PoKeys55[0];
     delete PoKeys55[1];
@@ -267,7 +274,7 @@ void Console::BitsUpdate(int mask)
     }
 };
 
-bool Console::Pressed(int x) { // na razie tak - czyta siê tylko klawiatura return Global::bActive && (GetKeyState(x) < 0); };
+bool Console::Pressed(int x) { return Global::bActive && (GetKeyState(x) < 0); }; // na razie tak - czyta siê tylko klawiatura 
 
 void Console::ValueSet(int x, double y)
 { // ustawienie wartoœci (y) na kanale analogowym (x)

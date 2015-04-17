@@ -1,4 +1,14 @@
 unit mctools;
+
+(*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*)
+
 {rozne takie duperele do operacji na stringach w paszczalu, pewnie w delfi sa lepsze}
 {konwersja zmiennych na stringi, funkcje matematyczne, logiczne, lancuchowe, I/O etc}
 

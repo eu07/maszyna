@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
@@ -58,7 +65,7 @@ char *TStringPack::String(int n)
     return ptr;
 };
 
-__fastcall TSubModel::TSubModel()
+TSubModel::TSubModel()
 {
     ZeroMemory(this, sizeof(TSubModel)); // istotne przy zapisywaniu wersji binarnej
     FirstInit();
@@ -115,7 +122,7 @@ void TSubModel::FirstInit()
     smLetter = NULL; // u¿ywany tylko roboczo dla TP_TEXT, do przyspieszenia wyœwietlania
 };
 
-__fastcall TSubModel::~TSubModel()
+TSubModel::~TSubModel()
 {
     if (uiDisplayList)
         glDeleteLists(uiDisplayList, 1);
@@ -1631,7 +1638,7 @@ float TSubModel::MaxY(const float4x4 &m)
 };
 //---------------------------------------------------------------------------
 
-__fastcall TModel3d::TModel3d()
+TModel3d::TModel3d()
 {
     // Materials=NULL;
     // MaterialsCount=0;
@@ -1653,7 +1660,7 @@ __fastcall TModel3d::TModel3d(char *FileName)
  LoadFromFile(FileName);
 };
 */
-__fastcall TModel3d::~TModel3d()
+TModel3d::~TModel3d()
 {
     // SafeDeleteArray(Materials);
     if (iFlags & 0x0200)

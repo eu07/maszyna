@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 /*
     MaSzyna EU07 locomotive simulator
@@ -20,7 +27,7 @@
 #include "Ground.h"
 #include "Event.h"
 
-__fastcall TTrackFollower::TTrackFollower()
+TTrackFollower::TTrackFollower()
 {
     pCurrentTrack = NULL;
     pCurrentSegment = NULL;
@@ -30,7 +37,7 @@ __fastcall TTrackFollower::TTrackFollower()
     fOffsetH = 0.0; // na starcie stoi na œrodku
 }
 
-__fastcall TTrackFollower::~TTrackFollower() {}
+TTrackFollower::~TTrackFollower() {}
 
 bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
 {

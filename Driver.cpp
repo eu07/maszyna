@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
@@ -1128,7 +1135,7 @@ void TController::TablePurger()
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-__fastcall TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
+TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
                                     bool primary // czy ma aktywnie prowadziæ?
                                     )
 {
@@ -1290,7 +1297,7 @@ void TController::CloseLog()
     }
 };
 
-__fastcall TController::~TController()
+TController::~TController()
 { // wykopanie mechanika z roboty
     delete tsGuardSignal;
     delete TrainParams;
@@ -5047,15 +5054,15 @@ void TController::DirectionForward(bool forward)
                 mvControlling->IncMainCtrl(1); //¿eby nie zgas³
 };
 
-AnsiString TController::Relation() { // zwraca relacjê poci¹gu return TrainParams->ShowRelation(); };
+AnsiString TController::Relation() { return TrainParams->ShowRelation(); }; // zwraca relacjê poci¹gu
 
-AnsiString TController::TrainName() { // zwraca relacjê poci¹gu return TrainParams->TrainName; };
+AnsiString TController::TrainName() { return TrainParams->TrainName; }; // zwraca relacjê poci¹gu
 
-int TController::StationCount() { // zwraca iloœæ stacji (miejsc zatrzymania) return TrainParams->StationCount; };
+int TController::StationCount() { return TrainParams->StationCount; }; // zwraca iloœæ stacji (miejsc zatrzymania)
 
-int TController::StationIndex() { // zwraca indeks aktualnej stacji (miejsca zatrzymania) return TrainParams->StationIndex; };
+int TController::StationIndex() { return TrainParams->StationIndex; }; // zwraca indeks aktualnej stacji (miejsca zatrzymania)
 
-bool TController::IsStop() { // informuje, czy jest zatrzymanie na najbli¿szej stacji return TrainParams->IsStop(); };
+bool TController::IsStop() { return TrainParams->IsStop(); }; // informuje, czy jest zatrzymanie na najbli¿szej stacji
 
 void TController::MoveTo(TDynamicObject *to)
 { // przesuniêcie AI do innego pojazdu (przy zmianie kabiny)

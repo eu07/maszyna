@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
@@ -40,7 +47,7 @@ using namespace Timer;
 
 const double fTimeMax = 1.00; //[s] maksymalny czas aktualizacji w jednek klatce
 
-__fastcall TWorld::TWorld()
+TWorld::TWorld()
 {
     // randomize();
     // Randomize();
@@ -60,7 +67,7 @@ __fastcall TWorld::TWorld()
     fTime50Hz = 0.0; // bufor czasu dla komunikacji z PoKeys
 }
 
-__fastcall TWorld::~TWorld()
+TWorld::~TWorld()
 {
     Global::bManageNodes = false; // Ra: wy³¹czenie wyrejestrowania, bo siê sypie
     TrainDelete();

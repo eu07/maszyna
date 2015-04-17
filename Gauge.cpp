@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 /*
     MaSzyna EU07 locomotive simulator
@@ -16,7 +23,7 @@
 #include "Gauge.h"
 #include "Console.h"
 
-__fastcall TGauge::TGauge()
+TGauge::TGauge()
 {
     eType = gt_Unknown;
     fFriction = 0.0;
@@ -29,7 +36,7 @@ __fastcall TGauge::TGauge()
     SubModel = NULL;
 };
 
-__fastcall TGauge::~TGauge(){};
+TGauge::~TGauge(){};
 
 void TGauge::Clear()
 {

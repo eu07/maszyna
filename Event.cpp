@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 /*
     MaSzyna EU07 locomotive simulator
@@ -19,7 +26,7 @@
 #include "Ground.h"
 #pragma package(smart_init)
 
-__fastcall TEvent::TEvent(AnsiString m)
+TEvent::TEvent(AnsiString m)
 {
     // asName=""; //czy nazwa eventu jest niezbêdna w tym przypadku? chyba nie
     evNext = evNext2 = NULL;
@@ -44,7 +51,7 @@ __fastcall TEvent::TEvent(AnsiString m)
     fRandomDelay = 0.0; // standardowo nie bêdzie dodatkowego losowego opóŸnienia
 };
 
-__fastcall TEvent::~TEvent()
+TEvent::~TEvent()
 {
     switch (Type)
     { // sprz¹tanie

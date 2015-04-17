@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
@@ -42,9 +49,9 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "15.3.1166.469";
+AnsiString Global::asRelease = "15.3.1167.470";
 AnsiString Global::asVersion =
-    "Compilation 2015-03-25, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2015-04-14, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -692,7 +699,7 @@ bool Global::DoEvents()
 }
 //---------------------------------------------------------------------------
 
-__fastcall TTranscripts::TTranscripts()
+TTranscripts::TTranscripts()
 {
     iCount = 0; // brak linijek do wyœwietlenia
     iStart = 0; // wype³niaæ od linijki 0
@@ -703,7 +710,7 @@ __fastcall TTranscripts::TTranscripts()
     }
     fRefreshTime = 360.0; // wartoœc zaporowa
 };
-__fastcall TTranscripts::~TTranscripts(){};
+TTranscripts::~TTranscripts(){};
 void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
 { // dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
     if (show == hide)

@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "system.hpp"
 #include "classes.hpp"
@@ -89,7 +96,10 @@ void ErrorLog(const AnsiString &asMessage)
     WriteLog(asMessage.c_str()); // do "log.txt" ewentualnie te¿
 }
 
-void WriteLog(const AnsiString &str) { // Ra: wersja z AnsiString jest zamienna z Error() WriteLog(str.c_str()); };
+void WriteLog(const AnsiString &str)
+{ // Ra: wersja z AnsiString jest zamienna z Error()
+    WriteLog(str.c_str());
+};
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

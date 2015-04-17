@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "system.hpp"
 #include "classes.hpp"
@@ -20,9 +27,15 @@ double fSinceStart = 0;
 
 double GetTime() { return fSimulationTime; }
 
-double GetDeltaTime() { // czas symulacji (stoi gdy pauza) return DeltaTime; }
+double GetDeltaTime()
+{ // czas symulacji (stoi gdy pauza)
+    return DeltaTime;
+}
 
-double GetDeltaRenderTime() { // czas renderowania (do poruszania siê) return DeltaRenderTime; }
+double GetDeltaRenderTime()
+{ // czas renderowania (do poruszania siê)
+    return DeltaRenderTime;
+}
 
 double GetfSinceStart() { return fSinceStart; }
 

@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "system.hpp"
 #include "classes.hpp"
@@ -10,9 +17,9 @@
 //---------------------------------------------------------------------------
 GLfloat lightPos[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
-__fastcall TSky::~TSky(){};
+TSky::~TSky(){};
 
-__fastcall TSky::TSky(){};
+TSky::TSky(){};
 
 void TSky::Init()
 {

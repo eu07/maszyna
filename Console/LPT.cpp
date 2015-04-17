@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "LPT.h"
 #include <windows.h>
@@ -41,4 +48,4 @@ bool TLPT::Connect(int port)
     return bool(OutPort);
 };
 
-void TLPT::Out(int x) { // wys³anie bajtu do portu OutPort(address, x); };
+void TLPT::Out(int x) { OutPort(address, x); }; // wys³anie bajtu do portu

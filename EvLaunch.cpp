@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 /*
     MaSzyna EU07 locomotive simulator
@@ -22,7 +29,7 @@
 
 //---------------------------------------------------------------------------
 
-__fastcall TEventLauncher::TEventLauncher()
+TEventLauncher::TEventLauncher()
 { // ustawienie pocz¹tkowych wartoœci dla wszystkich zmiennych
     iKey = 0;
     DeltaTime = -1;
@@ -36,7 +43,7 @@ __fastcall TEventLauncher::TEventLauncher()
     iCheckMask = 0;
 }
 
-__fastcall TEventLauncher::~TEventLauncher() { SafeDeleteArray(szText); }
+TEventLauncher::~TEventLauncher() { SafeDeleteArray(szText); }
 
 void TEventLauncher::Init() {}
 

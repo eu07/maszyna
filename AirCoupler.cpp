@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #include "system.hpp"
 #include "classes.hpp"
@@ -7,9 +14,9 @@
 #include "AirCoupler.h"
 #include "Timer.h"
 
-__fastcall TAirCoupler::TAirCoupler() { Clear(); }
+TAirCoupler::TAirCoupler() { Clear(); }
 
-__fastcall TAirCoupler::~TAirCoupler() {}
+TAirCoupler::~TAirCoupler() {}
 
 int TAirCoupler::GetStatus()
 { // zwraca 1, jeœli istnieje model prosty, 2 gdy skoœny

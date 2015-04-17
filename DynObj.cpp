@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
@@ -106,11 +113,11 @@ int TAnim::TypeSet(int i, int fl)
     yUpdate = NULL;
     return iFlags & 15; // ile wskaŸników rezerwowaæ dla danego typu animacji
 };
-__fastcall TAnim::TAnim()
+TAnim::TAnim()
 { // potrzebne to w ogóle?
     iFlags = -1; // nieznany typ - destruktor nic nie usuwa
 };
-__fastcall TAnim::~TAnim()
+TAnim::~TAnim()
 { // usuwanie animacji
     switch (iFlags & 0xF0)
     { // usuwanie struktur, zale¿nie ile zosta³o stworzonych
@@ -1432,7 +1439,7 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
 }
 //----------ABu: koniec skanowania pojazdow
 
-__fastcall TDynamicObject::TDynamicObject()
+TDynamicObject::TDynamicObject()
 {
     modelShake = vector3(0, 0, 0);
     fTrackBlock = 10000.0; // brak przeszkody na drodze
@@ -1535,7 +1542,7 @@ __fastcall TDynamicObject::TDynamicObject()
     fAdjustment = 0.0; // korekcja odleg³oœci pomiêdzy wózkami (np. na ³ukach)
 }
 
-__fastcall TDynamicObject::~TDynamicObject()
+TDynamicObject::~TDynamicObject()
 { // McZapkie-250302 - zamykanie logowania parametrow fizycznych
     SafeDelete(Mechanik);
     SafeDelete(MoverParameters);
@@ -2002,8 +2009,11 @@ void TDynamicObject::Move(double fDistance)
         bEnabled &= Axle1.Move(fDistance, iAxleFirst); // oœ z ty³u pojazdu prusza siê pierwsza
         bEnabled &= Axle0.Move(fDistance /*-fAdjustment*/, !iAxleFirst); // oœ z przodu pojazdu
     }
-    // Axle2.Move(fDistance,false); //te nigdy pierwsze nie s¹
-    // Axle3.Move(fDistance,false);
+	else //gf: bez wywolania Move na postoju nie ma event0
+	{
+		bEnabled&=Axle1.Move(fDistance,iAxleFirst); //oœ z ty³u pojazdu prusza siê pierwsza
+		bEnabled&=Axle0.Move(fDistance,!iAxleFirst); //oœ z przodu pojazdu
+	}
     if (fDistance != 0.0) // nie liczyæ ponownie, jeœli stoi
     { // liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
         vPosition = 0.5 * (Axle1.pPosition + Axle0.pPosition); //œrodek miêdzy skrajnymi osiami

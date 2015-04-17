@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak and others
@@ -12,7 +19,7 @@
 #include "Timer.h"
 #include "FadeSound.h"
 
-__fastcall TFadeSound::TFadeSound()
+TFadeSound::TFadeSound()
 {
     Sound = NULL;
     fFade = 0;
@@ -20,7 +27,7 @@ __fastcall TFadeSound::TFadeSound()
     fTime = 0;
 }
 
-__fastcall TFadeSound::~TFadeSound() { Free(); }
+TFadeSound::~TFadeSound() { Free(); }
 
 void TFadeSound::Free() {}
 

@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
@@ -16,7 +23,7 @@
 #include "Logs.h"
 #include "McZapkie\mctools.hpp"
 
-__fastcall TRealSound::TRealSound()
+TRealSound::TRealSound()
 {
     pSound = NULL;
     dSoundAtt = -1;
@@ -33,7 +40,7 @@ __fastcall TRealSound::TRealSound()
     bLoopPlay = false; // dŸwiêk wy³¹czony
 }
 
-__fastcall TRealSound::~TRealSound()
+TRealSound::~TRealSound()
 {
     // if (this) if (pSound) pSound->Stop();
 }

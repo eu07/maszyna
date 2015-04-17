@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 /*
     MaSzyna EU07 locomotive simulator
@@ -53,7 +60,7 @@ AnsiString LogComment;
 // tory s¹ zdublowane jako TP_TRACK oraz TP_DUMMYTRACK. Jeœli tekstura jest
 // tylko jedna (np. zwrotnice), nie jest u¿ywany TP_DUMMYTRACK.
 //---------------------------------------------------------------------------
-__fastcall TGroundNode::TGroundNode()
+TGroundNode::TGroundNode()
 { // nowy obiekt terenu - pusty
     iType = GL_POINTS;
     Vertices = NULL;
@@ -83,7 +90,7 @@ __fastcall TGroundNode::TGroundNode()
     iVersion = 0; // wersja siatki
 }
 
-__fastcall TGroundNode::~TGroundNode()
+TGroundNode::~TGroundNode()
 {
     // if (iFlags&0x200) //czy obiekt zosta³ utworzony?
     switch (iType)
@@ -140,7 +147,7 @@ void TGroundNode::Init(int n)
     Vertices = new TGroundVertex[iNumVerts];
 }
 
-__fastcall TGroundNode::TGroundNode(TGroundNodeType t, int n)
+TGroundNode::TGroundNode(TGroundNodeType t, int n)
 { // utworzenie obiektu
     TGroundNode(); // domyœlne ustawienia
     iNumVerts = n;
@@ -675,7 +682,7 @@ void TGroundNode::RenderAlphaDL()
 //------------------------------------------------------------------------------
 //------------------ Podstawowy pojemnik terenu - sektor -----------------------
 //------------------------------------------------------------------------------
-__fastcall TSubRect::TSubRect()
+TSubRect::TSubRect()
 {
     nRootNode = NULL; // lista wszystkich obiektów jest pusta
     nRenderHidden = nRenderRect = nRenderRectAlpha = nRender = nRenderMixed = nRenderAlpha =
@@ -686,7 +693,7 @@ __fastcall TSubRect::TSubRect()
     iNodeCount = 0; // licznik obiektów
     iTracks = 0; // licznik torów
 }
-__fastcall TSubRect::~TSubRect()
+TSubRect::~TSubRect()
 {
     if (Global::bManageNodes) // Ra: tu siê coœ sypie
         ResourceManager::Unregister(this); // wyrejestrowanie ze sprz¹tacza
@@ -1203,13 +1210,16 @@ void TSubRect::RenderSounds()
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber = 0; // licznik wyœwietlanych klatek
 
-__fastcall TGroundRect::TGroundRect()
+TGroundRect::TGroundRect()
 {
     pSubRects = NULL;
     nTerrain = NULL;
 };
 
-__fastcall TGroundRect::~TGroundRect() { SafeDeleteArray(pSubRects); };
+TGroundRect::~TGroundRect()
+{
+    SafeDeleteArray(pSubRects);
+};
 
 void TGroundRect::RenderDL()
 { // renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
@@ -1294,7 +1304,7 @@ void TGround::MoveGroundNode(vector3 pPosition)
     */
 }
 
-__fastcall TGround::TGround()
+TGround::TGround()
 {
     // RootNode=NULL;
     nRootDynamic = NULL;
@@ -1313,7 +1323,10 @@ __fastcall TGround::TGround()
     sTracks = new TNames(); // nazwy torów - na razie tak
 }
 
-__fastcall TGround::~TGround() { Free(); }
+TGround::~TGround()
+{
+    Free();
+}
 
 void TGround::Free()
 {
@@ -3178,13 +3191,27 @@ void TGround::InitTracks()
         if (Global::iHiddenEvents & 1)
             if (!Current->asName.IsEmpty())
             { // jeœli podana jest nazwa torów, mo¿na szukaæ eventów skojarzonych przez nazwê
-                if (Track->asEvent1Name.IsEmpty())
+                if (Track->asEvent0Name.IsEmpty())
+                    if (FindEvent(Current->asName + ":event0"))
+                        Track->asEvent0Name = Current->asName + ":event0";
+				if (Track->asEvent1Name.IsEmpty())
                     if (FindEvent(Current->asName + ":event1"))
                         Track->asEvent1Name = Current->asName + ":event1";
                 if (Track->asEvent2Name.IsEmpty())
                     if (FindEvent(Current->asName + ":event2"))
                         Track->asEvent2Name = Current->asName + ":event2";
-            }
+
+				if (Track->asEventall0Name.IsEmpty())
+					if (FindEvent(Current->asName+":eventall0"))
+						Track->asEventall0Name=Current->asName+":eventall0";
+				if (Track->asEventall1Name.IsEmpty())
+					if (FindEvent(Current->asName+":eventall1"))
+						Track->asEventall1Name=Current->asName+":eventall1";
+				if (Track->asEventall2Name.IsEmpty())
+					if (FindEvent(Current->asName+":eventall2"))
+						Track->asEventall2Name=Current->asName+":eventall2";
+
+			}
         Track->AssignEvents(
             Track->asEvent0Name.IsEmpty() ? NULL : FindEvent(Track->asEvent0Name),
             Track->asEvent1Name.IsEmpty() ? NULL : FindEventScan(Track->asEvent1Name),

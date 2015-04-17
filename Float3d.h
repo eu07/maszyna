@@ -1,4 +1,11 @@
-//---------------------------------------------------------------------------
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
 #ifndef float3dH
 #define float3dH
@@ -82,7 +89,10 @@ inline float4 operator*(const float4 &q1, const float4 &q2)
                   q1.w * q2.z + q1.z * q2.w + q1.x * q2.y - q1.y * q2.x,
                   q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z);
 }
-inline float4 operator-(const float4 &q) { // sprzê¿ony; odwrotny tylko dla znormalizowanych! return float4(-q.x, -q.y, -q.z, q.w); };
+inline float4 operator-(const float4 &q)
+{ // sprzê¿ony; odwrotny tylko dla znormalizowanych!
+    return float4(-q.x, -q.y, -q.z, q.w);
+};
 inline float4 operator-(const float4 &q1, const float4 &q2)
 { // z odejmowaniem nie ma lekko
     return (-q1) * q2; // inwersja tylko dla znormalizowanych!
@@ -256,7 +266,10 @@ inline float4x4 operator*(const float4x4 &m1, const float4x4 &m2)
 };
 
 // From code in Graphics Gems; p. 766
-inline float Det2x2(float a, float b, float c, float d) { // obliczenie wyznacznika macierzy 2×2 return a * d - b * c; };
+inline float Det2x2(float a, float b, float c, float d)
+{ // obliczenie wyznacznika macierzy 2×2
+    return a * d - b * c;
+};
 
 inline float Det3x3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2,
                     float c3)
