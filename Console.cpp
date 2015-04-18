@@ -274,7 +274,10 @@ void Console::BitsUpdate(int mask)
     }
 };
 
-bool Console::Pressed(int x) { return Global::bActive && (GetKeyState(x) < 0); }; // na razie tak - czyta siê tylko klawiatura 
+bool Console::Pressed(int x)
+{ // na razie tak - czyta siê tylko klawiatura
+    return Global::bActive && (GetKeyState(x) < 0);
+};
 
 void Console::ValueSet(int x, double y)
 { // ustawienie wartoœci (y) na kanale analogowym (x)

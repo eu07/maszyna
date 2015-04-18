@@ -37,16 +37,20 @@ TMemCell::TMemCell(vector3 *p)
                             // izolowanych
     vPosition =
         p ? *p : vector3(0, 0, 0); // ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
-    bCommand = false; // komenda wys³ana
+    bCommand = false;              // komenda wys³ana
     OnSent = NULL;
 }
 
-TMemCell::~TMemCell() { SafeDeleteArray(szText); }
+TMemCell::~TMemCell()
+{
+    SafeDeleteArray(szText);
+}
 
-void TMemCell::Init() {}
+void TMemCell::Init()
+{
+}
 
-void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2,
-                                       int CheckMask)
+void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
     if (CheckMask & update_memadd)
     { // dodawanie wartoœci
@@ -71,7 +75,7 @@ void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue
 }
 
 TCommandType TMemCell::CommandCheck()
-{ // rozpoznanie komendy
+{                                           // rozpoznanie komendy
     if (strcmp(szText, "SetVelocity") == 0) // najpopularniejsze
     {
         eCommand = cm_SetVelocity;
@@ -105,7 +109,7 @@ TCommandType TMemCell::CommandCheck()
     else
     {
         eCommand = cm_Unknown; // ci¹g nierozpoznany (nie jest komend¹)
-        bCommand = true; // do wys³ania
+        bCommand = true;       // do wys³ania
     }
     return eCommand;
 }
@@ -124,7 +128,7 @@ bool TMemCell::Load(cParser *parser)
     *parser >> fValue2;
     parser->getTokens();
     *parser >> token;
-    if (token.compare("none") != 0) // gdy ró¿ne od "none"
+    if (token.compare("none") != 0)              // gdy ró¿ne od "none"
         asTrackName = AnsiString(token.c_str()); // sprawdzane przez IsEmpty()
     parser->getTokens();
     *parser >> token;
@@ -140,16 +144,15 @@ void TMemCell::PutCommand(TController *Mech, vector3 *Loc)
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
 }
 
-bool TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2,
-                                  int CheckMask)
+bool TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask)
 { // porównanie zawartoœci komórki pamiêci z podanymi wartoœciami
     if (TestFlag(CheckMask, conditional_memstring))
-    { // porównaæ teksty
+    {                                        // porównaæ teksty
         char *pos = StrPos(szTestText, "*"); // zwraca wskaŸnik na pozycjê albo NULL
         if (pos)
-        { // porównanie fragmentu ³añcucha
+        {                             // porównanie fragmentu ³añcucha
             int i = pos - szTestText; // iloœæ porównywanych znaków
-            if (i) // jeœli nie jest pierwszym znakiem
+            if (i)                    // jeœli nie jest pierwszym znakiem
                 if (AnsiString(szTestText, i) != AnsiString(szText, i))
                     return false; // pocz¹tki o d³ugoœci (i) s¹ ró¿ne
         }
@@ -161,7 +164,10 @@ bool TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2,
             (!TestFlag(CheckMask, conditional_memval2) || (fValue2 == fTestValue2)));
 };
 
-bool TMemCell::Render() { return true; }
+bool TMemCell::Render()
+{
+    return true;
+}
 
 bool TMemCell::IsVelocity()
 { // sprawdzenie, czy event odczytu tej komórki ma byæ do skanowania, czy do kolejkowania

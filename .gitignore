@@ -52,3 +52,9 @@ install_manifest.txt
 *.~h
 *.~bpr
 *.~pas
+*.filters
+MaSzyna.vcxproj
+MaSzyna.v12.suo
+MaSzyna.sln
+MaSzyna.opensdf
+MaSzyna.sdf

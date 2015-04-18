@@ -13,13 +13,13 @@
       TractionPower.obj parser.obj sky.obj AirCoupler.obj opengl\glew.obj 
       ResourceManager.obj VBO.obj TextureDDS.obj opengl\ARB_Multisample.obj 
       Float3d.obj Classes.obj Driver.obj Names.obj Console.obj Mover.obj 
-      Console\PoKeys55.obj Forth.obj Console\LPT.obj"/>
+      Console\PoKeys55.obj Forth.obj Console\LPT.obj PyInt.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
     <RESDEPEN value="$(RESFILES)"/>
-    <LIBFILES value="opengl\glut32.lib DirectX\Dsound.lib"/>
+    <LIBFILES value="opengl\glut32.lib omf_python27.lib DirectX\Dsound.lib"/>
     <LIBRARIES value="dclocx50.bpi bcbsmp50.bpi VCLX50.lib bcbsmp50.lib Vcl50.lib"/>
     <SPARELIBS value="Vcl50.lib bcbsmp50.lib VCLX50.lib bcbsmp50.bpi dclocx50.bpi"/>
     <PACKAGES value="Vcl50.bpi Vclx50.bpi"/>
@@ -33,8 +33,8 @@
     <USERDEFINES value="GLEW_STATIC;_DEBUG"/>
     <SYSDEFINES value="NO_STRICT;_RTLDLL"/>
     <MAINSOURCE value="EU07.cpp"/>
-    <INCLUDEPATH value="Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl"/>
-    <LIBPATH value="Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl;python\include"/>
+    <LIBPATH value="Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib;python\libs"/>
     <WARNINGS value="-w-par"/>
   </MACROS>
   <OPTIONS>
@@ -58,8 +58,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=15
 MinorVer=3
-Release=1167
-Build=470
+Release=1168
+Build=471
 Debug=1
 PreRelease=0
 Special=0
@@ -71,8 +71,8 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=15.3.1167.470
-InternalName=9th by firleju + SPKS + MP
+FileVersion=15.3.1168.471
+InternalName=9th by firleju + SPKS + MP + python
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -81,12 +81,14 @@ ProductVersion=15.3
 Comments=
 
 [HistoryLists\hlIncludePath]
-Count=1
-Item0=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
+Count=2
+Item0=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl;python\include
+Item1=Console;opengl;McZapkie;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=1
-Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
+Count=2
+Item0=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib;python\libs
+Item1=Console;opengl;McZapkie;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=2
