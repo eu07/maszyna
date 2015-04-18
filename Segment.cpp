@@ -41,7 +41,10 @@ TSegment::TSegment(TTrack *owner)
     pOwner = owner;
 };
 
-TSegment::~TSegment() { SafeDeleteArray(fTsBuffer); };
+TSegment::~TSegment()
+{
+    SafeDeleteArray(fTsBuffer);
+};
 
 bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
                                double fNewRoll1, double fNewRoll2)

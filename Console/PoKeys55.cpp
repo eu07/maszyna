@@ -39,7 +39,10 @@ TPoKeys55::TPoKeys55()
     bNoError = true;
 };
 //---------------------------------------------------------------------------
-TPoKeys55::~TPoKeys55() { Close(); };
+TPoKeys55::~TPoKeys55()
+{
+    Close();
+};
 //---------------------------------------------------------------------------
 bool TPoKeys55::Close()
 { // roz³¹czenie komunikacji

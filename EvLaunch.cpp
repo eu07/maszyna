@@ -43,7 +43,10 @@ TEventLauncher::TEventLauncher()
     iCheckMask = 0;
 }
 
-TEventLauncher::~TEventLauncher() { SafeDeleteArray(szText); }
+TEventLauncher::~TEventLauncher()
+{
+    SafeDeleteArray(szText);
+}
 
 void TEventLauncher::Init() {}
 
