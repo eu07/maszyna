@@ -28,7 +28,6 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 
 TAnimAdvanced::TAnimAdvanced(){};
-
 TAnimAdvanced::~TAnimAdvanced(){
     // delete[] pVocaloidMotionData; //plik zosta³ zmodyfikowany
 };

@@ -234,13 +234,10 @@ bool TMoverParameters::BrakeLevelAdd(double b)
 
 bool TMoverParameters::IncBrakeLevel()
 { // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê BrakeCtrlPosNo
-    return BrakeLevelAdd(1.0);
-};
+  return BrakeLevelAdd(1.0); };
 
-bool TMoverParameters::DecBrakeLevel()
-{ // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
-    return BrakeLevelAdd(-1.0);
-};
+bool TMoverParameters::DecBrakeLevel() 
+{ return BrakeLevelAdd(-1.0); }; // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
 
 bool TMoverParameters::ChangeCab(int direction)
 { // zmiana kabiny i resetowanie ustawien

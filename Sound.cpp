@@ -171,10 +171,7 @@ LPDIRECTSOUNDBUFFER TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
     return DSBuffers.top();
 };
 
-TSoundsManager::~TSoundsManager()
-{
-    Free();
-};
+TSoundsManager::~TSoundsManager() { Free(); };
 
 void TSoundsManager::Free()
 {

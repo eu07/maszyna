@@ -5054,30 +5054,15 @@ void TController::DirectionForward(bool forward)
                 mvControlling->IncMainCtrl(1); //¿eby nie zgas³
 };
 
-AnsiString TController::Relation()
-{ // zwraca relacjê poci¹gu
-    return TrainParams->ShowRelation();
-};
+AnsiString TController::Relation() { return TrainParams->ShowRelation(); }; // zwraca relacjê poci¹gu
 
-AnsiString TController::TrainName()
-{ // zwraca relacjê poci¹gu
-    return TrainParams->TrainName;
-};
+AnsiString TController::TrainName() { return TrainParams->TrainName; }; // zwraca relacjê poci¹gu
 
-int TController::StationCount()
-{ // zwraca iloœæ stacji (miejsc zatrzymania)
-    return TrainParams->StationCount;
-};
+int TController::StationCount() { return TrainParams->StationCount; }; // zwraca iloœæ stacji (miejsc zatrzymania)
 
-int TController::StationIndex()
-{ // zwraca indeks aktualnej stacji (miejsca zatrzymania)
-    return TrainParams->StationIndex;
-};
+int TController::StationIndex() { return TrainParams->StationIndex; }; // zwraca indeks aktualnej stacji (miejsca zatrzymania)
 
-bool TController::IsStop()
-{ // informuje, czy jest zatrzymanie na najbli¿szej stacji
-    return TrainParams->IsStop();
-};
+bool TController::IsStop() { return TrainParams->IsStop(); }; // informuje, czy jest zatrzymanie na najbli¿szej stacji
 
 void TController::MoveTo(TDynamicObject *to)
 { // przesuniêcie AI do innego pojazdu (przy zmianie kabiny)

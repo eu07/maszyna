@@ -8,6 +8,5 @@ BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: false
 AllowShortBlocksOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: false
 ColumnLimit: 100
 ---
