@@ -33,7 +33,6 @@ USEUNIT("Camera.cpp");
 USEUNIT("Texture.cpp");
 USEUNIT("World.cpp");
 USELIB("opengl\glut32.lib");
-USELIB("omf_python27.lib");
 USEUNIT("Model3d.cpp");
 USEUNIT("MdlMngr.cpp");
 USEUNIT("Train.cpp");
@@ -81,7 +80,6 @@ USEUNIT("McZapkie\hamulce.pas");
 USEUNIT("Console\PoKeys55.cpp");
 USEUNIT("Forth.cpp");
 USEUNIT("Console\LPT.cpp");
-USEUNIT("PyInt.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
