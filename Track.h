@@ -51,7 +51,7 @@ class TSwitchExtension
     TSwitchExtension(TTrack *owner, int what);
     ~TSwitchExtension();
     TSegment *Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla
-                           // skrzy¿owañ
+    // skrzy¿owañ
     // TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
     // dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
     TTrack *pNexts[2]; // tory do³¹czone do punktów 2 i 4
@@ -111,9 +111,18 @@ class TIsolated
     static TIsolated *__fastcall Find(
         const AnsiString &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjêcie osi
-    bool Busy() { return (iAxles > 0); };
-    static TIsolated *__fastcall Root() { return (pRoot); };
-    TIsolated *__fastcall Next() { return (pNext); };
+    bool Busy()
+    {
+        return (iAxles > 0);
+    };
+    static TIsolated *__fastcall Root()
+    {
+        return (pRoot);
+    };
+    TIsolated *__fastcall Next()
+    {
+        return (pNext);
+    };
 };
 
 class TTrack : public Resource
@@ -168,7 +177,7 @@ class TTrack : public Resource
     bool bVisible; // czy rysowany
     int iAction; // czy modyfikowany eventami (specjalna obs³uga przy skanowaniu)
     float fOverhead; // informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i
-                     // ograniczeniem prêdkoœci
+    // ograniczeniem prêdkoœci
   private:
     double fVelocity; // prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
   public:
@@ -185,15 +194,30 @@ class TTrack : public Resource
     void Init();
     static TTrack *__fastcall Create400m(int what, double dx);
     TTrack *__fastcall NullCreate(int dir);
-    inline bool IsEmpty() { return (iNumDynamics <= 0); };
+    inline bool IsEmpty()
+    {
+        return (iNumDynamics <= 0);
+    };
     void ConnectPrevPrev(TTrack *pNewPrev, int typ);
     void ConnectPrevNext(TTrack *pNewPrev, int typ);
     void ConnectNextPrev(TTrack *pNewNext, int typ);
     void ConnectNextNext(TTrack *pNewNext, int typ);
-    inline double Length() { return Segment->GetLength(); };
-    inline TSegment *__fastcall CurrentSegment() { return Segment; };
-    inline TTrack *__fastcall CurrentNext() { return (trNext); };
-    inline TTrack *__fastcall CurrentPrev() { return (trPrev); };
+    inline double Length()
+    {
+        return Segment->GetLength();
+    };
+    inline TSegment *__fastcall CurrentSegment()
+    {
+        return Segment;
+    };
+    inline TTrack *__fastcall CurrentNext()
+    {
+        return (trNext);
+    };
+    inline TTrack *__fastcall CurrentPrev()
+    {
+        return (trPrev);
+    };
     TTrack *__fastcall Neightbour(int s, double &d);
     bool SetConnections(int i);
     bool Switch(int i, double t = -1.0, double d = -1.0);
@@ -222,7 +246,7 @@ class TTrack : public Resource
     void RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
     void RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)
     void RenderDynSounds(); // odtwarzanie dŸwiêków pojazdów jest niezale¿ne od ich
-                                       // wyœwietlania
+    // wyœwietlania
 
     void RaOwnerSet(TSubRect *o)
     {
@@ -244,7 +268,10 @@ class TTrack : public Resource
     AnsiString IsolatedName();
     bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
-    GLuint TextureGet(int i) { return i ? TextureID1 : TextureID2; };
+    GLuint TextureGet(int i)
+    {
+        return i ? TextureID1 : TextureID2;
+    };
     bool IsGroupable();
     int TestPoint(vector3 *Point);
     void MovedUp1(double dh);

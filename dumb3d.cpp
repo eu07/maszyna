@@ -49,7 +49,10 @@ void inline vector3::SafeNormalize()
 }
 
 // From code in Graphics Gems; p. 766
-inline scalar_t det2x2(scalar_t a, scalar_t b, scalar_t c, scalar_t d) { return a * d - b * c; }
+inline scalar_t det2x2(scalar_t a, scalar_t b, scalar_t c, scalar_t d)
+{
+    return a * d - b * c;
+}
 
 inline scalar_t det3x3(scalar_t a1, scalar_t a2, scalar_t a3, scalar_t b1, scalar_t b2, scalar_t b3,
                        scalar_t c1, scalar_t c2, scalar_t c3)
@@ -390,7 +393,8 @@ int main(int, char *[])
     Testmatrix4x4();
     matrixFailures = failures;
 
-    cout << endl << "****************************************" << endl;
+    cout << endl
+         << "****************************************" << endl;
     cout << "*                                      *" << endl;
     if (vectorFailures + matrixFailures == 0)
         cout << "*    No failures detected in Math3D    *" << endl;

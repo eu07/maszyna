@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #define STATIC_THRESHOLD 0.17f
 // efine STATIC_THRESHOLD	0.03f
 const double m_Kd = 0.02f; // DAMPING FACTOR
-const double m_Kr = 0.8f;  // 1.0 = SUPERBALL BOUNCE 0.0 = DEAD WEIGHT
+const double m_Kr = 0.8f; // 1.0 = SUPERBALL BOUNCE 0.0 = DEAD WEIGHT
 const double m_Ksh = 5.0f; // HOOK'S SPRING CONSTANT
 const double m_Ksd = 0.1f; // SPRING DAMPING CONSTANT
 
@@ -35,8 +35,8 @@ class TSpring
     void Render();
     vector3 vForce1, vForce2;
     double restLen; // LENGTH OF SPRING AT REST
-    double Ks;      // SPRING CONSTANT
-    double Kd;      // SPRING DAMPING
+    double Ks; // SPRING CONSTANT
+    double Kd; // SPRING DAMPING
   private:
 };
 

@@ -25,7 +25,10 @@ double fSimulationTime = 0;
 double fSoundTimer = 0;
 double fSinceStart = 0;
 
-double GetTime() { return fSimulationTime; }
+double GetTime()
+{
+    return fSimulationTime;
+}
 
 double GetDeltaTime()
 { // czas symulacji (stoi gdy pauza)
@@ -37,19 +40,35 @@ double GetDeltaRenderTime()
     return DeltaRenderTime;
 }
 
-double GetfSinceStart() { return fSinceStart; }
+double GetfSinceStart()
+{
+    return fSinceStart;
+}
 
-void SetDeltaTime(double t) { DeltaTime = t; }
+void SetDeltaTime(double t)
+{
+    DeltaTime = t;
+}
 
-double GetSimulationTime() { return fSimulationTime; }
+double GetSimulationTime()
+{
+    return fSimulationTime;
+}
 
-void SetSimulationTime(double t) { fSimulationTime = t; }
+void SetSimulationTime(double t)
+{
+    fSimulationTime = t;
+}
 
 bool GetSoundTimer()
 { // Ra: byæ mo¿e, by dŸwiêki nie modyfikowa³y siê zbyt czêsto, po 0.1s zeruje siê ten licznik
-  return (fSoundTimer == 0.0f); }
+    return (fSoundTimer == 0.0f);
+}
 
-double GetFPS() { return fFPS; }
+double GetFPS()
+{
+    return fFPS;
+}
 
 void ResetTimers()
 {

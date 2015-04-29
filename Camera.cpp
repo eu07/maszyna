@@ -157,7 +157,7 @@ vector3 TCamera::GetDirection()
 bool TCamera::SetMatrix()
 {
     glRotated(-Roll * 180.0f / M_PI, 0, 0, 1); // po wy³¹czeniu tego krêci siê pojazd, a sceneria
-                                               // nie
+    // nie
     glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
     glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnêtrznym widoku: kierunek patrzenia
 

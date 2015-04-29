@@ -274,7 +274,10 @@ void Console::BitsUpdate(int mask)
     }
 };
 
-bool Console::Pressed(int x) { return Global::bActive && (GetKeyState(x) < 0); }; // na razie tak - czyta siê tylko klawiatura 
+bool Console::Pressed(int x)
+{
+    return Global::bActive && (GetKeyState(x) < 0);
+}; // na razie tak - czyta siê tylko klawiatura
 
 void Console::ValueSet(int x, double y)
 { // ustawienie wartoœci (y) na kanale analogowym (x)
@@ -353,5 +356,11 @@ void Console::OnKeyUp(int k)
         else
             iButton[char(k) >> 5] &= ~(1 << (k & 31)); // wy³¹cz monostabilny podstawowy
 };
-int Console::KeyDownConvert(int k) { return int(ktTable[k & 0x3FF].iDown); };
-int Console::KeyUpConvert(int k) { return int(ktTable[k & 0x3FF].iUp); };
+int Console::KeyDownConvert(int k)
+{
+    return int(ktTable[k & 0x3FF].iDown);
+};
+int Console::KeyUpConvert(int k)
+{
+    return int(ktTable[k & 0x3FF].iUp);
+};

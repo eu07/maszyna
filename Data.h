@@ -17,7 +17,8 @@ struct TDist
 {
     int x, y;
 };
-const TDist SectorOrder[] = { // tabela wspó³rzêdnych sektorów, posortowana wg odleg³oœci
+const TDist SectorOrder[] = {
+    // tabela wspó³rzêdnych sektorów, posortowana wg odleg³oœci
     {0, 0}, // 0.00
     {1, 0}, // 1.00
     {0, 1}, // 1.00

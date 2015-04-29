@@ -274,8 +274,8 @@ void DecompressDXT5(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Da
                 alphas[3] = (3 * alphas[0] + 2 * alphas[1] + 2) / 5; // Bit code 011
                 alphas[4] = (2 * alphas[0] + 3 * alphas[1] + 2) / 5; // Bit code 100
                 alphas[5] = (1 * alphas[0] + 4 * alphas[1] + 2) / 5; // Bit code 101
-                alphas[6] = 0x00;                                    // Bit code 110
-                alphas[7] = 0xFF;                                    // Bit code 111
+                alphas[6] = 0x00; // Bit code 110
+                alphas[7] = 0xFF; // Bit code 111
             }
 
             // Note: Have to separate the next two loops,

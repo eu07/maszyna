@@ -37,7 +37,10 @@ inline float3 &operator+=(float3 &v1, const float3 &v2)
     v1.z += v2.z;
     return v1;
 };
-inline float3 operator-(const float3 &v) { return float3(-v.x, -v.y, -v.z); };
+inline float3 operator-(const float3 &v)
+{
+    return float3(-v.x, -v.y, -v.z);
+};
 inline float3 operator-(const float3 &v1, const float3 &v2)
 {
     return float3(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
@@ -46,8 +49,14 @@ inline float3 operator+(const float3 &v1, const float3 &v2)
 {
     return float3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 };
-double inline float3::Length() const { return sqrt(x * x + y * y + z * z); };
-inline float3 operator/(const float3 &v, double k) { return float3(v.x / k, v.y / k, v.z / k); };
+double inline float3::Length() const
+{
+    return sqrt(x * x + y * y + z * z);
+};
+inline float3 operator/(const float3 &v, double k)
+{
+    return float3(v.x / k, v.y / k, v.z / k);
+};
 inline float3 SafeNormalize(const float3 &v)
 { // bezpieczna normalizacja (wektor d³ugoœci 1.0)
     double l = v.Length();
@@ -79,8 +88,14 @@ class float4
         z = c;
         w = d;
     };
-    double inline float4::LengthSquared() const { return x * x + y * y + z * z + w * w; };
-    double inline float4::Length() const { return sqrt(x * x + y * y + z * z + w * w); };
+    double inline float4::LengthSquared() const
+    {
+        return x * x + y * y + z * z + w * w;
+    };
+    double inline float4::Length() const
+    {
+        return sqrt(x * x + y * y + z * z + w * w);
+    };
 };
 inline float4 operator*(const float4 &q1, const float4 &q2)
 { // mno¿enie to prawie jak mno¿enie macierzy
@@ -177,15 +192,24 @@ class float4x4
         for (int i = 0; i < 16; ++i)
             e[i] = f[i];
     };
-    float *__fastcall operator()(int i) { return &e[i << 2]; }
-    const float *__fastcall readArray(void) { return e; }
+    float *__fastcall operator()(int i)
+    {
+        return &e[i << 2];
+    }
+    const float *__fastcall readArray(void)
+    {
+        return e;
+    }
     void Identity()
     {
         for (int i = 0; i < 16; ++i)
             e[i] = 0;
         e[0] = e[5] = e[10] = e[15] = 1.0f;
     }
-    const float *operator[](int i) const { return &e[i << 2]; };
+    const float *operator[](int i) const
+    {
+        return &e[i << 2];
+    };
     void InitialRotate()
     { // taka specjalna rotacja, nie ma co ci¹gaæ trygonometrii
         float f;
@@ -206,7 +230,10 @@ class float4x4
         return true;
     }
     void Quaternion(float4 *q);
-    inline float3 *TranslationGet() { return (float3 *)(e + 12); }
+    inline float3 *TranslationGet()
+    {
+        return (float3 *)(e + 12);
+    }
 };
 
 inline float3 operator*(const float4x4 &m, const float3 &v)

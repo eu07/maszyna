@@ -160,7 +160,7 @@ class TGroundNode : public Resource
     void RenderHidden(); // obs³uga dŸwiêków i wyzwalaczy zdarzeñ
     void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
     void RenderAlphaDL(); // renderowanie przezroczystych w Display Lists
-                                     // (McZapkie-131202)
+    // (McZapkie-131202)
     void RaRenderVBO(); // renderowanie (nieprzezroczystych) ze wspólnego VBO
     void RenderVBO(); // renderowanie nieprzezroczystych z w³asnego VBO
     void RenderAlphaVBO(); // renderowanie przezroczystych z (w³asnego) VBO
@@ -193,19 +193,18 @@ class TSubRect : public Resource, public CMesh
     TSubRect();
     virtual ~TSubRect();
     virtual void Release(); // zwalnianie VBO sektora
-    void NodeAdd(
-        TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
+    void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
     void RaNodeAdd(TGroundNode *Node); // dodanie obiektu do listy renderowania
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack *__fastcall FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
     TTraction *__fastcall FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude);
     bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i
-                                // (nRenderWires)
+    // (nRenderWires)
     bool RaTrackAnimAdd(TTrack *t); // zg³oszenie toru do animacji
     void RaAnimate(); // przeliczenie animacji torów
     void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
     void RenderAlphaDL(); // renderowanie przezroczystych w Display Lists
-                                     // (McZapkie-131202)
+    // (McZapkie-131202)
     void RenderVBO(); // renderowanie nieprzezroczystych z w³asnego VBO
     void RenderAlphaVBO(); // renderowanie przezroczystych z (w³asnego) VBO
     void RenderSounds(); // dŸwiêki pojazdów z niewidocznych sektorów
@@ -227,7 +226,10 @@ class TGroundRect : public TSubRect
   private:
     int iLastDisplay; // numer klatki w której by³ ostatnio wyœwietlany
     TSubRect *pSubRects;
-    void Init() { pSubRects = new TSubRect[iNumSubRects * iNumSubRects]; };
+    void Init()
+    {
+        pSubRects = new TSubRect[iNumSubRects * iNumSubRects];
+    };
 
   public:
     static int iFrameNumber; // numer kolejny wyœwietlanej klatki
@@ -359,8 +361,14 @@ class TGround
     };
     TSubRect *__fastcall GetSubRect(int iCol, int iRow);
     TSubRect *__fastcall FastGetSubRect(int iCol, int iRow);
-    int GetRowFromZ(double z) { return (z / fSubRectSize + fHalfTotalNumSubRects); };
-    int GetColFromX(double x) { return (x / fSubRectSize + fHalfTotalNumSubRects); };
+    int GetRowFromZ(double z)
+    {
+        return (z / fSubRectSize + fHalfTotalNumSubRects);
+    };
+    int GetColFromX(double x)
+    {
+        return (x / fSubRectSize + fHalfTotalNumSubRects);
+    };
     TEvent *__fastcall FindEvent(const AnsiString &asEventName);
     TEvent *__fastcall FindEventScan(const AnsiString &asEventName);
     void TrackJoin(TGroundNode *Current);

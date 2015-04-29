@@ -89,7 +89,10 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
 struct ReplaceSlash
 {
-    const char operator()(const char input) { return input == '/' ? '\\' : input; }
+    const char operator()(const char input)
+    {
+        return input == '/' ? '\\' : input;
+    }
 };
 
 GLuint TTexturesManager::GetTextureID(char *dir, char *where, std::string fileName, int filter)
@@ -397,7 +400,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                 copybytes += (1 + (chunkheader & 127)) * bytesPerPixel; // iloœæ pikseli
                 if (chunkheader < 128) // jeœli kopiowanie, pikseli jest wiêcej
                     copyto += (chunkheader)*bytesPerPixel; // rozmiar kopiowanego obszaru (bez
-                                                           // jednego piksela)
+                // jednego piksela)
             }
             if (copybytes > imageSize)
             { // nie ma prawa byæ wiêksze
@@ -440,7 +443,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                 chunkheader = (unsigned char)*copyfrom; // jeden bajt, pozosta³e zawsze zerowe
                 if (copyto > copyfrom)
                 { // jeœli piksele maj¹ byæ kopiowane, to mo¿liwe jest przesuniêcie ich o 1 bajt, na
-                  // miejsce licznika
+                    // miejsce licznika
                     filesize = (imageData + imageSize - copyto) /
                                bytesPerPixel; // ile pikseli pozosta³o do koñca
                     // WriteLog("Decompression buffer overflow at pixel
@@ -455,7 +458,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                     if ((filesize > 128) ||
                         !(Global::iModifyTGA & 4)) // gdy za du¿o pikseli albo wy³¹czone
                         writeback = -1; // zapis mo¿liwe jeœli iloœæ problematycznych pikseli nie
-                                        // przekaracza 128
+                    // przekaracza 128
                     break; // bufor siê zatka³, dalej w ten sposób siê nie da
                 }
                 if (chunkheader < 128)
@@ -511,7 +514,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
             };
             if (chunkheader < 128)
             { // if the header is < 128, it means the that is the number of RAW color packets minus
-              // 1
+                // 1
                 chunkheader++; // add 1 to get number of following color values
                 file.read(copyto, chunkheader * bytesPerPixel);
                 copyto += chunkheader * bytesPerPixel;

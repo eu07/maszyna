@@ -79,20 +79,22 @@ bool TTractionPowerSource::Load(cParser *parser)
         Recuperation = true;
     else if (token.compare("section") == 0) // od³¹cznik sekcyjny
         bSection = true; // nie jest Ÿród³em zasilania, a jedynie informuje o pr¹dzie od³¹czenia
-                         // sekcji z obwodu
+    // sekcji z obwodu
     parser->getTokens();
     *parser >> token;
     if (token.compare("end") != 0)
         Error("tractionpowersource end statement missing");
     // if (!bSection) //od³¹cznik sekcji zasadniczo nie ma impedancji (0.01 jest OK)
     if (InternalRes < 0.1) // coœ ma³a ta rezystancja by³a...
-        InternalRes =
-            0.2; // tak oko³o 0.2, wg
-                 // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
+        InternalRes = 0.2; // tak oko³o 0.2, wg
+    // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
     return true;
 };
 
-bool TTractionPowerSource::Render() { return true; };
+bool TTractionPowerSource::Render()
+{
+    return true;
+};
 
 bool TTractionPowerSource::Update(double dt)
 { // powinno byæ wykonane raz na krok fizyki
@@ -151,7 +153,7 @@ double TTractionPowerSource::CurrentGet(double res)
                        0.0; // napiêcie dzielone przez sumê rezystancji wewnêtrznej i obci¹¿enia
     OutputVoltage = NominalVoltage - InternalRes * TotalCurrent; // napiêcie na obci¹¿eniu
     return TotalCurrent / (res * TotalPreviousAdmitance); // pr¹d proporcjonalny do udzia³u (1/res)
-                                                          // w ca³kowitej admitancji
+    // w ca³kowitej admitancji
 };
 
 void TTractionPowerSource::PowerSet(TTractionPowerSource *ps)

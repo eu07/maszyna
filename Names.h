@@ -26,8 +26,14 @@ class ItemRecord
     // typedef
     void ListGet(ItemRecord *r, int *&n);
     void TreeAdd(ItemRecord *r, int c);
-    template <typename TOut> inline TOut *DataGet() { return (TOut *)pData; };
-    template <typename TOut> inline void DataSet(TOut *x) { pData = (void *)x; };
+    template <typename TOut> inline TOut *DataGet()
+    {
+        return (TOut *)pData;
+    };
+    template <typename TOut> inline void DataSet(TOut *x)
+    {
+        pData = (void *)x;
+    };
     void *__fastcall TreeFind(const char *n);
     ItemRecord *__fastcall TreeFindRecord(const char *n);
 };
@@ -46,8 +52,7 @@ class TNames
     int Add(int t, const char *n); // dodanie obiektu typu (t)
     int Add(int t, const char *n, void *d); // dodanie obiektu z wskaünikiem
     int Add(int t, const char *n, int d); // dodanie obiektu z numerem
-    bool Update(int t, const char *n,
-                           void *d); // dodanie jeúli nie ma, wymiana (d), gdy jest
+    bool Update(int t, const char *n, void *d); // dodanie jeúli nie ma, wymiana (d), gdy jest
     void TreeSet();
     ItemRecord *__fastcall TreeSet(int *n, int d, int u);
     void Sort(int t); // przebudowa drzewa typu (t)

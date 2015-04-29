@@ -72,7 +72,7 @@ class TAnimContainer
   public:
     TAnimContainer *pNext;
     TAnimContainer *acAnimNext; // lista animacji z eventem, które musz¹ byæ przeliczane równie¿ bez
-                                // wyœwietlania
+    // wyœwietlania
     TAnimContainer();
     ~TAnimContainer();
     bool Init(TSubModel *pNewSubModel);
@@ -80,7 +80,10 @@ class TAnimContainer
     // std::string(pSubModel?pSubModel->asName.c_str():""); };
     // std::string inline GetName() { return std::string(pSubModel?pSubModel->pName:"");
     // };
-    char *__fastcall NameGet() { return (pSubModel ? pSubModel->pName : NULL); };
+    char *__fastcall NameGet()
+    {
+        return (pSubModel ? pSubModel->pName : NULL);
+    };
     // void SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double
     // fNewRotateSpeed, bool bResetAngle=false);
     void SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed);
@@ -90,7 +93,10 @@ class TAnimContainer
     void UpdateModel();
     void UpdateModelIK();
     bool InMovement(); // czy w trakcie animacji?
-    double _fastcall AngleGet() { return vRotateAngles.z; }; // jednak ostatnia, T3D ma inny uk³ad
+    double _fastcall AngleGet()
+    {
+        return vRotateAngles.z;
+    }; // jednak ostatnia, T3D ma inny uk³ad
     vector3 _fastcall TransGet()
     {
         return vector3(-vTranslation.x, vTranslation.z, vTranslation.y);
@@ -101,7 +107,10 @@ class TAnimContainer
             pSubModel->WillBeAnimated();
     };
     void EventAssign(TEvent *ev);
-    TEvent *__fastcall Event() { return evDone; };
+    TEvent *__fastcall Event()
+    {
+        return evDone;
+    };
 };
 
 class TAnimAdvanced
@@ -141,7 +150,7 @@ class TAnimModel
   public:
     GLuint ReplacableSkinId[5]; // McZapkie-020802: zmienialne skory
     static TAnimContainer *acAnimList; // lista animacji z eventem, które musz¹ byæ przeliczane
-                                       // równie¿ bez wyœwietlania
+    // równie¿ bez wyœwietlania
     TAnimModel();
     ~TAnimModel();
     bool Init(TModel3d *pNewModel);

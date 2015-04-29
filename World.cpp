@@ -233,7 +233,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
             if (Global::fOpenGL >=
                 1.4) // 1.4 mia³o obs³ugê VBO, ale bez opcji modyfikacji fragmentu bufora
                 Global::bUseVBO = true; // VBO w³¹czane tylko, jeœli jest obs³uga oraz nie ustawiono
-                                        // ni¿szego numeru
+            // ni¿szego numeru
         }
         if (Global::bUseVBO)
             WriteLog("Ra: The VBO is found and will be used.");
@@ -269,7 +269,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     if (Global::fOpenGL >= 1.2) // poni¿sze nie dzia³a w 1.1
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT, TEXTURE_LOD_BIAS_EXT, -1);
     GLfloat FogColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    glMatrixMode(GL_MODELVIEW);                         // Select The Modelview Matrix
+    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear screen and depth buffer
     glLoadIdentity();
     // WriteLog("glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); ");
@@ -404,8 +404,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glFogi(GL_FOG_MODE, GL_LINEAR); // Fog Mode
     WriteLog("glFogfv(GL_FOG_COLOR, FogColor);");
     glFogfv(GL_FOG_COLOR, FogColor); // Set Fog Color
-    //	glFogf(GL_FOG_DENSITY, 0.594f);						// How Dense Will The Fog
-    //Be
+    //	glFogf(GL_FOG_DENSITY, 0.594f);						// How Dense Will The
+    //Fog
+    // Be
     //	glHint(GL_FOG_HINT, GL_NICEST);					    // Fog Hint Value
     WriteLog("glFogf(GL_FOG_START, 1000.0f);");
     glFogf(GL_FOG_START, 10.0f); // Fog Start Depth
@@ -836,7 +837,7 @@ void TWorld::OnKeyDown(int cKey)
                 if ((Global::iWriteLogEnabled & 2) == 0) // nie by³o okienka
                 { // otwarcie okna
                     AllocConsole(); // jeœli konsola ju¿ jest, to zwróci b³¹d; uwalniaæ nie ma po
-                                    // co, bo siê od³¹czy
+                    // co, bo siê od³¹czy
                     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
                 }
             }
@@ -898,7 +899,7 @@ void TWorld::OnKeyDown(int cKey)
                 if (CouplNr < 0)
                     CouplNr = 0; // z [-1,1] zrobiæ [0,1]
                 int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jak¹œ idiotyczn¹ zmianê
-                                   // tapety pulpitu :/
+                // tapety pulpitu :/
                 if (GetAsyncKeyState(VK_SHIFT) < 0) // z [Shift] zapalanie
                     set = mask = 64; // bez [Ctrl] za³o¿yæ tabliczki
                 else if (GetAsyncKeyState(VK_CONTROL) < 0)
@@ -1166,7 +1167,7 @@ bool TWorld::Update()
             double a = fmod(Global::fTimeAngleDeg, 360.0) / 180.0 * M_PI -
                        M_PI; // k¹t godzinny w radianach
             //(a) jest traktowane jako czas miejscowy, nie uwzglêdniaj¹cy stref czasowych ani czasu
-            //letniego
+            // letniego
             // aby wyznaczyæ strefê czasow¹, trzeba uwzglêdniæ po³udnik miejscowy
             // aby uwzglêdniæ czas letni, trzeba sprawdziæ dzieñ roku
             double L = Global::fLatitudeDeg / 180.0 * M_PI; // szerokoœæ geograficzna
@@ -1281,7 +1282,7 @@ bool TWorld::Update()
                     if (100.0 * LengthSquared3(d->GetPosition() - Camera.Pos) >
                         LengthSquared3(pDynamicNearest->GetPosition() - Camera.Pos))
                         d = pDynamicNearest; // jeœli najbli¿szy nie jest 10 razy bli¿ej ni¿
-                                             // poprzedni najbli¿szy, zostaje poprzedni
+                // poprzedni najbli¿szy, zostaje poprzedni
                 if (d)
                     pDynamicNearest = d; // zmiana na nowy, jeœli coœ znaleziony niepusty
                 if (pDynamicNearest)
@@ -1319,7 +1320,7 @@ bool TWorld::Update()
         fTimeBuffer -= iter * fMaxDt; // reszta czasu na potem (do bufora)
         if (n > 20)
             n = 20; // Ra: je¿eli FPS jest zatrwa¿aj¹co niski, to fizyka nie mo¿e zaj¹æ ca³kowicie
-                    // procesora
+// procesora
 #if 0
   Ground.UpdatePhys(fMaxDt,n); //Ra: teraz czas kroku jest (wzglêdnie) sta³y
   if (DebugModeFlag)
@@ -1404,7 +1405,7 @@ bool TWorld::Update()
                 }
                 else
                 { // patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny - jakby z lusterka,
-                  // ale bez odbicia
+                    // ale bez odbicia
                     Camera.LookAt = Camera.Pos -
                                     Train->GetDirection() *
                                         Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
@@ -1427,7 +1428,7 @@ bool TWorld::Update()
                         atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
                     Camera.Pitch -= atan(Train->vMechVelocity.z *
                                          Train->fMechPitch); // hustanie kamery przod tyl //Ra: tu
-                                                             // jest uciekanie kamery w górê!!!
+                    // jest uciekanie kamery w górê!!!
                 }
                 // ABu011104: rzucanie pudlem
                 vector3 temp;
@@ -1834,7 +1835,7 @@ bool TWorld::Update()
             {
                 OutText2 = Controlled->Mechanik->Relation();
                 if (!OutText2.IsEmpty()) // jeœli jest podana relacja, to dodajemy punkt nastêpnego
-                                         // zatrzymania
+                    // zatrzymania
                     OutText2 =
                         Global::Bezogonkow(OutText2 + ": -> " + Controlled->Mechanik->NextStop(),
                                            true); // dopisanie punktu zatrzymania
@@ -2430,13 +2431,12 @@ bool TWorld::Update()
                                 glColor3f(0.0f, 1.0f, 0.0f); // zielone
                                 glRasterPos2f(
                                     -0.25f,
-                                    0.18f -
-                                        0.02f * (i - tmp->Mechanik->iStationStart)); // dopiero
-                                                                                     // ustawienie
-                                                                                     // pozycji
-                                                                                     // ustala
-                                                                                     // kolor,
-                                                                                     // dziwne...
+                                    0.18f - 0.02f * (i - tmp->Mechanik->iStationStart)); // dopiero
+                                // ustawienie
+                                // pozycji
+                                // ustala
+                                // kolor,
+                                // dziwne...
                                 glPrint(Global::Bezogonkow(OutText1, true).c_str());
                                 glColor3f(1.0f, 1.0f, 1.0f); // a reszta bia³ym
                             }
@@ -2699,7 +2699,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                     if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
                         bool(e->evJoined)) // tylko jawne albo niejawne Multiple
                         Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywo³uj¹cy - tu
-                                                    // brak
+                // brak
             }
             break;
         case 3: // rozkaz dla AI
@@ -2767,7 +2767,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                 }
                 else
                 { // dla pustego wysy³amy ramki 6 z nazwami pojazdów AI (jeœli potrzebne wszystkie,
-                  // to rozpoznaæ np. "*")
+                    // to rozpoznaæ np. "*")
                     Ground.DynamicList();
                 }
             }
@@ -2853,7 +2853,7 @@ void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
                             { // wypada³o by sprawdziæ, czy T3D ³adunku jest
                                 load = loads.SubString(1, i - 1);
                                 if (FileExists(dir + load + ".t3d")) // o ile jest plik ³adunku, bo
-                                                                     // inaczej nie ma to sensu
+                                    // inaczej nie ma to sensu
                                     if (!FileExists(
                                             dir + load +
                                             ".e3d")) // a nie ma jeszcze odpowiednika binarnego

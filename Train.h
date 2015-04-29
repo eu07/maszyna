@@ -44,7 +44,7 @@ class TCab
     TCab();
     ~TCab();
     void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
-                         double Initz2, bool InitEnabled, bool InitOccupied);
+              double Initz2, bool InitEnabled, bool InitOccupied);
     void Load(TQueryParserComp *Parser);
     vector3 CabPos1;
     vector3 CabPos2;
@@ -83,8 +83,14 @@ class TTrain
 
     //    bool SHP() { fShpTimer= 0; };
 
-    inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
-    inline vector3 GetUp() { return DynamicObject->VectorUp(); };
+    inline vector3 GetDirection()
+    {
+        return DynamicObject->VectorFront();
+    };
+    inline vector3 GetUp()
+    {
+        return DynamicObject->VectorUp();
+    };
     void UpdateMechPosition(double dt);
     bool Update();
     void MechStop();
@@ -145,7 +151,7 @@ class TTrain
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i
-                                  // ogrzewania
+    // ogrzewania
     TGauge ggStLinOffButton;
     TGauge ggRadioButton;
     TGauge ggUpperLightButton;
@@ -373,9 +379,18 @@ class TTrain
     int iSekunda; // Ra: sekunda aktualizacji prêdkoœci
     int iRadioChannel; // numer aktualnego kana³u radiowego
   public:
-    int RadioChannel() { return iRadioChannel; };
-    inline TDynamicObject *__fastcall Dynamic() { return DynamicObject; };
-    inline TMoverParameters *__fastcall Controlled() { return mvControlled; };
+    int RadioChannel()
+    {
+        return iRadioChannel;
+    };
+    inline TDynamicObject *__fastcall Dynamic()
+    {
+        return DynamicObject;
+    };
+    inline TMoverParameters *__fastcall Controlled()
+    {
+        return mvControlled;
+    };
     void DynamicSet(TDynamicObject *d);
     void Silence();
 };

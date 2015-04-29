@@ -164,7 +164,7 @@ class TController
     double fLastStopExpDist; // odleg³oœæ wygasania ostateniego przystanku
     double ReactionTime; // czas reakcji Ra: czego i na co? œwiadomoœci AI
     double fBrakeTime; // wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê
-                       // hamulca
+    // hamulca
   private:
     double fReady; // poziom odhamowania wagonów
     bool Ready; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
@@ -178,7 +178,7 @@ class TController
   public:
     bool AIControllFlag; // rzeczywisty/wirtualny maszynista
     int iRouteWanted; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
-                      // migacz lub czeka na stan zwrotnicy
+    // migacz lub czeka na stan zwrotnicy
   private:
     TDynamicObject *pVehicle; // pojazd w którym siedzi steruj¹cy
     TDynamicObject *
@@ -194,17 +194,17 @@ class TController
     int iGuardRadio; // numer kana³u radiowego kierownika (0, gdy nie u¿ywa radia)
   public:
     double AccPreferred; // preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy
-                         // wykryciu kolizji)
+    // wykryciu kolizji)
     double AccDesired; // przyspieszenie, jakie ma utrzymywaæ (<0:nie przyspieszaj,<-0.1:hamuj)
     double VelDesired; // predkoœæ, z jak¹ ma jechaæ, wynikaj¹ca z analizy tableki; <=VelSignal
     double fAccDesiredAv; // uœrednione przyspieszenie z kolejnych przeb³ysków œwiadomoœci, ¿eby
-                          // ograniczyæ migotanie
+    // ograniczyæ migotanie
   private:
     double VelforDriver; // prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci
-                         // szlaku?)
+    // szlaku?)
     double VelSignal; // predkoœæ zadawana przez semafor (funkcj¹ SetVelocity())
     double VelLimit; // predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci
-                     // (PutValues albo komend¹)
+    // (PutValues albo komend¹)
   public:
     double VelNext; // prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
   private:
@@ -215,7 +215,7 @@ class TController
         ActualProximityDist; // odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
   private:
     vector3 vCommandLocation; // polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego
-                              // odnosi sie komenda
+    // odnosi sie komenda
     TOrders OrderList[maxorders]; // lista rozkazów
     int OrderPos, OrderTop; // rozkaz aktualny oraz wolne miejsce do wstawiania nowych
     std::ofstream LogFile; // zapis parametrow fizycznych
@@ -226,7 +226,7 @@ class TController
     int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
     int iVehicleCount; // iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
     int iCoupler; // maska sprzêgu, jak¹ nale¿y u¿yæ przy ³¹czeniu (po osi¹gniêciu trybu Connect), 0
-                  // gdy jazda bez ³¹czenia
+    // gdy jazda bez ³¹czenia
     int iDriverFailCount; // licznik b³êdów AI
     bool Need_TryAgain; // true, jeœli druga pozycja w elektryku nie za³apa³a
     bool Need_BrakeRelease;
@@ -235,13 +235,13 @@ class TController
     double fMinProximityDist; // minimalna oleg³oœæ do przeszkody, jak¹ nale¿y zachowaæ
     double fOverhead1; // informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
     double fOverhead2; // informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i
-                       // ograniczeniem prêdkoœci)
+    // ograniczeniem prêdkoœci)
     int iOverheadZero; // suma bitowa jezdy bezpr¹dowej, bity ustawiane przez pojazdy z
-                       // podniesionymi pantografami
+    // podniesionymi pantografami
     int iOverheadDown; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z
-                       // podniesionymi pantografami
+    // podniesionymi pantografami
     double fVoltage; // uœrednione napiêcie sieci: przy spadku poni¿ej wartoœci minimalnej opóŸniæ
-                     // rozruch o losowy czas
+    // rozruch o losowy czas
   private:
     double fMaxProximityDist; // akceptowalna odleg³oœæ staniêcia przed przeszkod¹
     TStopReason eStopReason; // powód zatrzymania przy ustawieniu zerowej prêdkoœci
@@ -268,15 +268,18 @@ class TController
     void ControllingSet(); // znajduje cz³on do sterowania
     void AutoRewident(); // ustawia hamulce w sk³adzie
   public:
-    Mtable::TTrainParameters *__fastcall Timetable() { return TrainParams; };
+    Mtable::TTrainParameters *__fastcall Timetable()
+    {
+        return TrainParams;
+    };
     void PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
-                               const _mover::TLocation &NewLocation, TStopReason reason = stopComm);
+                    const _mover::TLocation &NewLocation, TStopReason reason = stopComm);
     bool PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
-                               const vector3 *NewLocation, TStopReason reason = stopComm);
+                    const vector3 *NewLocation, TStopReason reason = stopComm);
     bool UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundê
     // procedury dotyczace rozkazow dla maszynisty
     void SetVelocity(double NewVel, double NewVelNext,
-                                TStopReason r = stopNone); // uaktualnia informacje o prêdkoœci
+                     TStopReason r = stopNone); // uaktualnia informacje o prêdkoœci
     bool SetProximityVelocity(
         double NewDist,
         double NewVelNext); // uaktualnia informacje o prêdkoœci przy nastepnym semaforze
@@ -298,8 +301,8 @@ class TController
     void OrdersClear();
     void OrdersDump();
     TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
-                           bool primary = true // czy ma aktywnie prowadziæ?
-                           );
+                bool primary = true // czy ma aktywnie prowadziæ?
+                );
     AnsiString OrderCurrent();
     void WaitingSet(double Seconds);
 
@@ -319,8 +322,7 @@ class TController
     TEvent *__fastcall TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
-    TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext,
-                                        double &fAcc);
+    TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     void TablePurger();
 
   private: // Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
@@ -342,8 +344,14 @@ class TController
     int StationCount();
     int StationIndex();
     bool IsStop();
-    bool Primary() { return this ? bool(iDrivigFlags & movePrimary) : false; };
-    int inline DrivigFlags() { return iDrivigFlags; };
+    bool Primary()
+    {
+        return this ? bool(iDrivigFlags & movePrimary) : false;
+    };
+    int inline DrivigFlags()
+    {
+        return iDrivigFlags;
+    };
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
     AnsiString TableText(int i);

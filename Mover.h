@@ -36,7 +36,7 @@ class TMoverParameters : public T_MoverParameters
     unsigned char WarningSignal; // tymczasowo 8bit, ze wzglêdu na funkcje w MTools
     double fBrakeCtrlPos; // p³ynna nastawa hamulca zespolonego
     bool bPantKurek3; // kurek trójdrogowy (pantografu): true=po³¹czenie z ZG, false=po³¹czenie z
-                      // ma³¹ sprê¿ark¹
+    // ma³¹ sprê¿ark¹
     int iProblem; // flagi problemów z taborem, aby AI nie musia³o porównywaæ; 0=mo¿e jechaæ
     int iLights[2]; // bity zapalonych œwiate³ tutaj, ¿eby da³o siê liczyæ pobór pr¹du
   private:
@@ -44,16 +44,16 @@ class TMoverParameters : public T_MoverParameters
 
   public:
     TMoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
-                                int LoadInitial, AnsiString LoadTypeInitial, int Cab);
+                     int LoadInitial, AnsiString LoadTypeInitial, int Cab);
     // obs³uga sprzêgów
     double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1,
-                               const TDimension &Dim2);
+                    const TDimension &Dim2);
     double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1,
-                               const vector3 &Dim2);
-    bool Attach(Byte ConnectNo, Byte ConnectToNr, TMoverParameters *ConnectTo,
-                           Byte CouplingType, bool Forced = false);
-    bool Attach(Byte ConnectNo, Byte ConnectToNr, T_MoverParameters *ConnectTo,
-                           Byte CouplingType, bool Forced = false);
+                    const vector3 &Dim2);
+    bool Attach(Byte ConnectNo, Byte ConnectToNr, TMoverParameters *ConnectTo, Byte CouplingType,
+                bool Forced = false);
+    bool Attach(Byte ConnectNo, Byte ConnectToNr, T_MoverParameters *ConnectTo, Byte CouplingType,
+                bool Forced = false);
     int DettachStatus(Byte ConnectNo);
     bool Dettach(Byte ConnectNo);
     void SetCoupleDist();
@@ -65,11 +65,11 @@ class TMoverParameters : public T_MoverParameters
     bool ChangeCab(int direction);
     bool CurrentSwitch(int direction);
     void UpdateBatteryVoltage(double dt);
-    double ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
-                                      TTrackParam &Track, TTractionParam &ElectricTraction,
-                                      const TLocation &NewLoc, TRotation &NewRot);
+    double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track,
+                           TTractionParam &ElectricTraction, const TLocation &NewLoc,
+                           TRotation &NewRot);
     double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track,
-                                          const TLocation &NewLoc, TRotation &NewRot);
+                               const TLocation &NewLoc, TRotation &NewRot);
     double ShowEngineRotation(int VehN);
     // double GetTrainsetVoltage(void);
     // bool Physic_ReActivation(void);
@@ -170,7 +170,7 @@ class TMoverParameters : public T_MoverParameters
     //	TLocation &NewLoc, TRotation &NewRot);
     // bool ChangeOffsetH(double DeltaOffset);
     //__fastcall T_MoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
-    //int LoadInitial
+    // int LoadInitial
     //	, AnsiString LoadTypeInitial, int Cab);
     // bool LoadChkFile(AnsiString chkpath);
     // bool CheckLocomotiveParameters(bool ReadyFlag, int Dir);
