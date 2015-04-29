@@ -49,6 +49,6 @@ bool TLPT::Connect(int port)
 };
 
 void TLPT::Out(int x)
-{
+{ // wys³anie bajtu do portu
     OutPort(address, x);
-}; // wys³anie bajtu do portu
+};

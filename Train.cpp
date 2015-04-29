@@ -260,6 +260,38 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     return true;
 }
 
+PyObject *TTrain::GetTrainState()
+{
+    PyObject *dict = PyDict_New();
+    if (dict == NULL)
+    {
+        return NULL;
+    }
+
+    PyDict_SetItemString(dict, "direction", PyGetInt(DynamicObject->MoverParameters->ActiveDir));
+    PyDict_SetItemString(dict, "slipping_wheels",
+                         PyGetBool(DynamicObject->MoverParameters->SlippingWheels));
+    PyDict_SetItemString(dict, "converter",
+                         PyGetBool(DynamicObject->MoverParameters->ConverterFlag));
+    PyDict_SetItemString(dict, "main_ctrl_actual_pos",
+                         PyGetInt(DynamicObject->MoverParameters->MainCtrlActualPos));
+    PyDict_SetItemString(dict, "scnd_ctrl_actual_pos",
+                         PyGetInt(DynamicObject->MoverParameters->ScndCtrlActualPos));
+    PyDict_SetItemString(dict, "fuse", PyGetBool(DynamicObject->MoverParameters->FuseFlag));
+    PyDict_SetItemString(dict, "converter_overload",
+                         PyGetBool(DynamicObject->MoverParameters->ConvOvldFlag));
+    PyDict_SetItemString(dict, "voltage", PyGetFloat(DynamicObject->MoverParameters->Voltage));
+    PyDict_SetItemString(dict, "velocity", PyGetFloat(DynamicObject->MoverParameters->Vel));
+    PyDict_SetItemString(dict, "im", PyGetFloat(DynamicObject->MoverParameters->Im));
+    PyDict_SetItemString(dict, "compress",
+                         PyGetBool(DynamicObject->MoverParameters->CompressorFlag));
+    PyDict_SetItemString(dict, "hours", PyGetInt(GlobalTime->hh));
+    PyDict_SetItemString(dict, "minutes", PyGetInt(GlobalTime->mm));
+    PyDict_SetItemString(dict, "seconds", PyGetInt(GlobalTime->mr));
+    PyDict_SetItemString(dict, "velocity_desired", PyGetFloat(DynamicObject->Mechanik->VelDesired));
+    return dict;
+}
+
 void TTrain::OnKeyDown(int cKey)
 { // naciœniêcie klawisza
     bool isEztOer;
@@ -4589,6 +4621,8 @@ bool TTrain::Update()
         ggDepartureSignalButton.UpdateValue(0);
         ggFuseButton.UpdateValue(0);
         ggConverterFuseButton.UpdateValue(0);
+
+        pyScreens.update();
     }
     // wyprowadzenie sygna³ów dla haslera na PoKeys (zaznaczanie na taœmie)
     btHaslerBrakes.Turn(DynamicObject->MoverParameters->BrakePress > 0.4); // ciœnienie w cylindrach
@@ -4902,6 +4936,8 @@ bool TTrain::LoadMMediaFile(AnsiString asFileName)
 
 bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
 {
+    pyScreens.reset(this);
+    pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
     double dSDist;
     TFileStream *fs;
@@ -5508,6 +5544,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 btLampkaBackward.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("i-cablight:")) // hunter-171012
                 btCabLight.Load(Parser, DynamicObject->mdKabina);
+            else if (str == AnsiString("pyscreen:"))
+                pyScreens.init(Parser, DynamicObject->mdKabina, DynamicObject->GetName(), NewCabNo);
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         }
     }
@@ -5518,6 +5556,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
     }
     // ABu 050205: tego wczesniej nie bylo:
     delete Parser;
+    pyScreens.start();
     if (DynamicObject->mdKabina)
     {
         DynamicObject->mdKabina

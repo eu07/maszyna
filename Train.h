@@ -23,6 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "RealSound.h"
 #include "FadeSound.h"
+#include "PyInt.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -97,6 +98,7 @@ class TTrain
     //    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(AnsiString asFileName);
+    PyObject *GetTrainState();
 
   private: //¿eby go nic z zewn¹trz nie przestawia³o
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -378,6 +380,8 @@ class TTrain
     float fSPPress, fSNPress;
     int iSekunda; // Ra: sekunda aktualizacji prêdkoœci
     int iRadioChannel; // numer aktualnego kana³u radiowego
+    TPythonScreens pyScreens;
+
   public:
     int RadioChannel()
     {

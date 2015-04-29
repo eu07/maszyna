@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "system.hpp"
 #include "opengl/glew.h"
 #include "dumb3d.h"
+#include "PyInt.h"
 //#include "Classes.h"
 
 using namespace Math3D;
