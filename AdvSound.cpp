@@ -32,10 +32,12 @@ TAdvancedSound::~TAdvancedSound()
     // SoundShut.Stop();
 }
 
-void TAdvancedSound::Free() {}
+void TAdvancedSound::Free()
+{
+}
 
-void TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff,
-                                     double DistanceAttenuation, vector3 pPosition)
+void TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff, double DistanceAttenuation,
+                          vector3 pPosition)
 {
     SoundStart.Init(NameOn, DistanceAttenuation, pPosition.x, pPosition.y, pPosition.z, true);
     SoundCommencing.Init(Name, DistanceAttenuation, pPosition.x, pPosition.y, pPosition.z, true);
@@ -131,8 +133,7 @@ void TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
     }
 }
 
-void TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside,
-                                         vector3 NewPosition)
+void TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition)
 { // update, ale z amplituda i czestotliwoscia
     if ((State == ss_Commencing) && (SoundCommencing.AM > 0))
     {

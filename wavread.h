@@ -34,9 +34,9 @@ class CWaveSoundRead
 {
   public:
     WAVEFORMATEX *m_pwfx; // Pointer to WAVEFORMATEX structure
-    HMMIO m_hmmioIn;      // MM I/O handle for the WAVE
-    MMCKINFO m_ckIn;      // Multimedia RIFF chunk
-    MMCKINFO m_ckInRiff;  // Use in opening a WAVE file
+    HMMIO m_hmmioIn; // MM I/O handle for the WAVE
+    MMCKINFO m_ckIn; // Multimedia RIFF chunk
+    MMCKINFO m_ckInRiff; // Use in opening a WAVE file
 
   public:
     CWaveSoundRead();

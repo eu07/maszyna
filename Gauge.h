@@ -22,7 +22,7 @@ typedef enum
     gt_Rotate, // obrót
     gt_Move, // przesuniêcie równoleg³e
     gt_Wiper, // obrót trzech kolejnych submodeli o ten sam k¹t (np. wycieraczka, drzwi
-              // harmonijkowe)
+    // harmonijkowe)
     gt_Digital // licznik cyfrowy, np. kilometrów
 } TGaugeType;
 
@@ -49,15 +49,17 @@ class TGauge // zmienne "gg"
     ~TGauge();
     void Clear();
     void Init(TSubModel *NewSubModel, TGaugeType eNewTyp, double fNewScale = 1,
-                         double fNewOffset = 0, double fNewFriction = 0, double fNewValue = 0);
-    bool Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2 = NULL,
-                         double mul = 1.0);
+              double fNewOffset = 0, double fNewFriction = 0, double fNewValue = 0);
+    bool Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2 = NULL, double mul = 1.0);
     void PermIncValue(double fNewDesired);
     void IncValue(double fNewDesired);
     void DecValue(double fNewDesired);
     void UpdateValue(double fNewDesired);
     void PutValue(double fNewDesired);
-    float GetValue() { return fValue; };
+    float GetValue()
+    {
+        return fValue;
+    };
     void Update();
     void Render();
     void AssignFloat(float *fValue);

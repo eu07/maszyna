@@ -102,13 +102,13 @@ class TAnimPant
 
 class TAnim
 { // klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu, si³owniki
-  // itd.)
+    // itd.)
   public:
     union
     {
         TSubModel *smAnimated; // animowany submodel (jeœli tylko jeden, np. oœ)
         TSubModel **smElement; // jeœli animowanych elementów jest wiêcej (pantograf, napêd
-                               // parowozu)
+        // parowozu)
         int iShift; // przesuniêcie przed przydzieleniem wskaŸnika
     };
     union
@@ -153,7 +153,7 @@ class TDynamicObject
     TTrackFollower Axle0; // oœ z przodu (od sprzêgu 0)
     TTrackFollower Axle1; // oœ z ty³u (od sprzêgu 1)
     int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oœ wi¹¿¹ca pojazd z torem i wyzwalaj¹ca
-                    // eventy)
+    // eventy)
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     vector3 modelRot; // obrot pud³a wzglêdem œwiata - do przeanalizowania, czy potrzebne!!!
     // bool bCameraNear; //blisko kamer s¹ potrzebne dodatkowe obliczenia szczegó³ów
@@ -189,7 +189,7 @@ class TDynamicObject
     TSubModel **
         pAnimated; // lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
     double dWheelAngle[3]; // k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne
-                           // toczne
+    // toczne
     void
     UpdateNone(TAnim *pAnim){}; // animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
     void UpdateAxle(TAnim *pAnim); // animacja osi
@@ -332,20 +332,32 @@ class TDynamicObject
   public:
     int *iLights; // wskaŸnik na bity zapalonych œwiate³ (w³asne albo innego cz³onu)
     double fTrackBlock; // odleg³oœæ do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
-                        // pojazdem)
+    // pojazdem)
     TDynamicObject *__fastcall PrevAny();
     TDynamicObject *__fastcall Prev();
     TDynamicObject *__fastcall Next();
     TDynamicObject *__fastcall NextC(int C);
     double NextDistance(double d = -1.0);
-    void SetdMoveLen(double dMoveLen) { MoverParameters->dMoveLen = dMoveLen; }
-    void ResetdMoveLen() { MoverParameters->dMoveLen = 0; }
-    double GetdMoveLen() { return MoverParameters->dMoveLen; }
+    void SetdMoveLen(double dMoveLen)
+    {
+        MoverParameters->dMoveLen = dMoveLen;
+    }
+    void ResetdMoveLen()
+    {
+        MoverParameters->dMoveLen = 0;
+    }
+    double GetdMoveLen()
+    {
+        return MoverParameters->dMoveLen;
+    }
 
     int GetPneumatic(bool front, bool red);
     void SetPneumatic(bool front, bool red);
     AnsiString asName;
-    AnsiString GetName() { return this ? asName : AnsiString(""); };
+    AnsiString GetName()
+    {
+        return this ? asName : AnsiString("");
+    };
 
     TRealSound rsDiesielInc; // youBy
     TRealSound rscurve; // youBy
@@ -375,10 +387,10 @@ class TDynamicObject
     int iAlpha; // maska przezroczystoœci tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
     int iOverheadMask; // maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y
-                       // jazdê bezpr¹dow¹
+    // jazdê bezpr¹dow¹
     TTractionParam tmpTraction;
     double fAdjustment; // korekcja - docelowo przenieœæ do TrkFoll.cpp wraz z odleg³oœci¹ od
-                        // poprzedniego
+    // poprzedniego
     TDynamicObject();
     ~TDynamicObject();
     double TDynamicObject::Init( // zwraca d³ugoœæ pojazdu albo 0, jeœli b³¹d
@@ -395,7 +407,10 @@ class TDynamicObject
     void Render();
     void RenderAlpha();
     void RenderSounds();
-    inline vector3 GetPosition() { return vPosition; };
+    inline vector3 GetPosition()
+    {
+        return vPosition;
+    };
     inline vector3 HeadPosition()
     {
         return vCoulpler[iDirection ^ 1];
@@ -408,13 +423,34 @@ class TDynamicObject
     {
         return iAxleFirst ? Axle1.pPosition : Axle0.pPosition;
     };
-    inline vector3 VectorFront() { return vFront; };
-    inline vector3 VectorUp() { return vUp; };
-    inline vector3 VectorLeft() { return vLeft; };
-    inline double *__fastcall Matrix() { return mMatrix.getArray(); };
-    inline double GetVelocity() { return MoverParameters->Vel; };
-    inline double GetLength() { return MoverParameters->Dim.L; };
-    inline double GetWidth() { return MoverParameters->Dim.W; };
+    inline vector3 VectorFront()
+    {
+        return vFront;
+    };
+    inline vector3 VectorUp()
+    {
+        return vUp;
+    };
+    inline vector3 VectorLeft()
+    {
+        return vLeft;
+    };
+    inline double *__fastcall Matrix()
+    {
+        return mMatrix.getArray();
+    };
+    inline double GetVelocity()
+    {
+        return MoverParameters->Vel;
+    };
+    inline double GetLength()
+    {
+        return MoverParameters->Dim.L;
+    };
+    inline double GetWidth()
+    {
+        return MoverParameters->Dim.W;
+    };
     inline TTrack *__fastcall GetTrack()
     {
         return (iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack());
@@ -422,8 +458,7 @@ class TDynamicObject
     // void UpdatePos();
 
     // McZapkie-260202
-    void LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
-                                   AnsiString ReplacableSkin);
+    void LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
 
     inline double ABuGetDirection() // ABu.
     {
@@ -463,7 +498,7 @@ class TDynamicObject
     TDynamicObject *__fastcall ControlledFind();
     void ParamSet(int what, int into);
     int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
-                                          // jechaæ
+    // jechaæ
     void DestinationSet(AnsiString to);
     AnsiString TextureTest(AnsiString &name);
     void OverheadTrack(float o);

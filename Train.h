@@ -23,6 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "RealSound.h"
 #include "FadeSound.h"
+#include "PyInt.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -44,7 +45,7 @@ class TCab
     TCab();
     ~TCab();
     void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
-                         double Initz2, bool InitEnabled, bool InitOccupied);
+              double Initz2, bool InitEnabled, bool InitOccupied);
     void Load(TQueryParserComp *Parser);
     vector3 CabPos1;
     vector3 CabPos2;
@@ -83,14 +84,21 @@ class TTrain
 
     //    bool SHP() { fShpTimer= 0; };
 
-    inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
-    inline vector3 GetUp() { return DynamicObject->VectorUp(); };
+    inline vector3 GetDirection()
+    {
+        return DynamicObject->VectorFront();
+    };
+    inline vector3 GetUp()
+    {
+        return DynamicObject->VectorUp();
+    };
     void UpdateMechPosition(double dt);
     bool Update();
     void MechStop();
     //    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(AnsiString asFileName);
+    PyObject *GetTrainState();
 
   private: //¿eby go nic z zewn¹trz nie przestawia³o
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -145,7 +153,7 @@ class TTrain
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i
-                                  // ogrzewania
+    // ogrzewania
     TGauge ggStLinOffButton;
     TGauge ggRadioButton;
     TGauge ggUpperLightButton;
@@ -372,10 +380,21 @@ class TTrain
     float fSPPress, fSNPress;
     int iSekunda; // Ra: sekunda aktualizacji prêdkoœci
     int iRadioChannel; // numer aktualnego kana³u radiowego
+    TPythonScreens pyScreens;
+
   public:
-    int RadioChannel() { return iRadioChannel; };
-    inline TDynamicObject *__fastcall Dynamic() { return DynamicObject; };
-    inline TMoverParameters *__fastcall Controlled() { return mvControlled; };
+    int RadioChannel()
+    {
+        return iRadioChannel;
+    };
+    inline TDynamicObject *__fastcall Dynamic()
+    {
+        return DynamicObject;
+    };
+    inline TMoverParameters *__fastcall Controlled()
+    {
+        return mvControlled;
+    };
     void DynamicSet(TDynamicObject *d);
     void Silence();
 };

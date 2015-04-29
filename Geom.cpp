@@ -19,11 +19,17 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Geom.h"
 
-__fastcall TGeometry::TGeometry() {}
+__fastcall TGeometry::TGeometry()
+{
+}
 
-__fastcall TGeometry::~TGeometry() {}
+__fastcall TGeometry::~TGeometry()
+{
+}
 
-bool TGeometry::Init() {}
+bool TGeometry::Init()
+{
+}
 
 vector3 TGeometry::Load(TQueryParserComp *Parser)
 {
@@ -113,7 +119,9 @@ vector3 TGeometry::Load(TQueryParserComp *Parser)
     tmp->fSquareRadius += r;
 }
 
-bool TGeometry::Render() {}
+bool TGeometry::Render()
+{
+}
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

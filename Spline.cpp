@@ -73,7 +73,9 @@ __fastcall TKnot::TKnot(int n)
     }
 }
 
-__fastcall TKnot::~TKnot() {}
+__fastcall TKnot::~TKnot()
+{
+}
 
 vector3 TKnot::GetDirection(float t)
 {

@@ -44,7 +44,7 @@ http://mozilla.org/MPL/2.0/.
 //-----------------------------------------------------------------------------
 HRESULT ReadMMIO(HMMIO hmmioIn, MMCKINFO *pckInRIFF, WAVEFORMATEX **ppwfxInfo)
 {
-    MMCKINFO ckIn;               // chunk info. for general use.
+    MMCKINFO ckIn; // chunk info. for general use.
     PCMWAVEFORMAT pcmWaveFormat; // Temp PCM structure to load in.
 
     *ppwfxInfo = NULL;
@@ -216,7 +216,10 @@ HRESULT WaveReadFile(HMMIO hmmioIn, UINT cbRead, BYTE *pbDest, MMCKINFO *pckIn, 
 // Name: CWaveSoundRead()
 // Desc: Constructs the class
 //-----------------------------------------------------------------------------
-CWaveSoundRead::CWaveSoundRead() { m_pwfx = NULL; }
+CWaveSoundRead::CWaveSoundRead()
+{
+    m_pwfx = NULL;
+}
 
 //-----------------------------------------------------------------------------
 // Name: ~CWaveSoundRead()
@@ -252,7 +255,10 @@ HRESULT CWaveSoundRead::Open(CHAR *strFilename)
 // Desc: Resets the internal m_ckIn pointer so reading starts from the
 //       beginning of the file again
 //-----------------------------------------------------------------------------
-HRESULT CWaveSoundRead::Reset() { return WaveStartDataRead(&m_hmmioIn, &m_ckIn, &m_ckInRiff); }
+HRESULT CWaveSoundRead::Reset()
+{
+    return WaveStartDataRead(&m_hmmioIn, &m_ckIn, &m_ckInRiff);
+}
 
 //-----------------------------------------------------------------------------
 // Name: Read()

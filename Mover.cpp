@@ -16,9 +16,8 @@ http://mozilla.org/MPL/2.0/.
 
 const dEpsilon = 0.01; // 1cm (zale¿y od typu sprzêgu...)
 
-TMoverParameters::TMoverParameters(double VelInitial, AnsiString TypeNameInit,
-                                              AnsiString NameInit, int LoadInitial,
-                                              AnsiString LoadTypeInitial, int Cab)
+TMoverParameters::TMoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
+                                   int LoadInitial, AnsiString LoadTypeInitial, int Cab)
     : T_MoverParameters(VelInitial, TypeNameInit, NameInit, LoadInitial, LoadTypeInitial, Cab)
 { // g³ówny konstruktor
     DimHalf.x = 0.5 * Dim.W; // po³owa szerokoœci, OX jest w bok?
@@ -32,13 +31,13 @@ TMoverParameters::TMoverParameters(double VelInitial, AnsiString TypeNameInit,
 };
 
 double TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,
-                                             const TDimension &Dim1, const TDimension &Dim2)
+                                  const TDimension &Dim1, const TDimension &Dim2)
 { // zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci (kule!)
     return hypot(Loc2.X - Loc1.X, Loc1.Y - Loc2.Y) - 0.5 * (Dim2.L + Dim1.L);
 };
 
-double TMoverParameters::Distance(const vector3 &s1, const vector3 &s2,
-                                             const vector3 &d1, const vector3 &d2){
+double TMoverParameters::Distance(const vector3 &s1, const vector3 &s2, const vector3 &d1,
+                                  const vector3 &d2){
     // obliczenie odleg³oœci prostopad³oœcianów o œrodkach (s1) i (s2) i wymiarach (d1) i (d2)
     // return 0.0; //bêdzie zg³aszaæ warning - funkcja do usuniêcia, chyba ¿e siê przyda...
 };
@@ -50,9 +49,8 @@ double TMoverParameters::CouplerDist(Byte Coupler)
                         Couplers[Coupler].Connected->Dim); // odleg³oœæ pomiêdzy sprzêgami (kula!)
 };
 
-bool TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
-                                         TMoverParameters *ConnectTo, Byte CouplingType,
-                                         bool Forced)
+bool TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr, TMoverParameters *ConnectTo,
+                              Byte CouplingType, bool Forced)
 { //³¹czenie do swojego sprzêgu (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
     // Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
     // Ra: trzeba by odró¿niæ wymóg dociœniêcia od uszkodzenia sprzêgu przy podczepianiu AI do
@@ -91,12 +89,11 @@ bool TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
         }
     }
     return false; // brak pod³¹czanego pojazdu, zbyt du¿a odleg³oœæ, niezgodny typ sprzêgu, brak
-                  // sprzêgu, brak haka
+    // sprzêgu, brak haka
 };
 
-bool TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr,
-                                         T_MoverParameters *ConnectTo, Byte CouplingType,
-                                         bool Forced)
+bool TMoverParameters::Attach(Byte ConnectNo, Byte ConnectToNr, T_MoverParameters *ConnectTo,
+                              Byte CouplingType, bool Forced)
 { //³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
     return Attach(ConnectNo, ConnectToNr, (TMoverParameters *)ConnectTo, CouplingType, Forced);
 };
@@ -139,7 +136,7 @@ bool TMoverParameters::Dettach(Byte ConnectNo)
     }
     else if (i > 0)
     { // od³¹czamy wê¿e i resztê, pozostaje sprzêg fizyczny, który wymaga dociœniêcia (z wirtualnym
-      // nic)
+        // nic)
         Couplers[ConnectNo].CouplingFlag &= ctrain_coupler;
         Couplers[ConnectNo].Connected->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag =
             Couplers[ConnectNo].CouplingFlag;
@@ -196,7 +193,7 @@ void TMoverParameters::BrakeLevelSet(double b)
     else if (fBrakeCtrlPos > Handle->GetPos(bh_MAX))
         fBrakeCtrlPos = Handle->GetPos(bh_MAX);
     int x = floor(fBrakeCtrlPos); // jeœli odwo³ujemy siê do BrakeCtrlPos w poœrednich, to musi byæ
-                                  // obciête a nie zaokr¹gone
+    // obciête a nie zaokr¹gone
     while ((x > BrakeCtrlPos) && (BrakeCtrlPos < BrakeCtrlPosNo)) // jeœli zwiêkszy³o siê o 1
         if (!T_MoverParameters::IncBrakeLevelOld())
             break; // wyjœcie awaryjne
@@ -234,10 +231,13 @@ bool TMoverParameters::BrakeLevelAdd(double b)
 
 bool TMoverParameters::IncBrakeLevel()
 { // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê BrakeCtrlPosNo
-  return BrakeLevelAdd(1.0); };
+    return BrakeLevelAdd(1.0);
+};
 
-bool TMoverParameters::DecBrakeLevel() 
-{ return BrakeLevelAdd(-1.0); }; // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
+bool TMoverParameters::DecBrakeLevel()
+{ // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
+    return BrakeLevelAdd(-1.0);
+};
 
 bool TMoverParameters::ChangeCab(int direction)
 { // zmiana kabiny i resetowanie ustawien
@@ -298,7 +298,7 @@ bool TMoverParameters::CurrentSwitch(int direction)
 
 void TMoverParameters::UpdatePantVolume(double dt)
 { // KURS90 - sprê¿arka pantografów; Ra 2014-07: teraz jest to zbiornik rozrz¹du, chocia¿ to jeszcze
-  // nie tak
+    // nie tak
     if (EnginePowerSource.SourceType == CurrentCollector) // tylko jeœli pantografuj¹cy
     {
         // Ra 2014-07: zasadniczo, to istnieje zbiornik rozrz¹du i zbiornik pantografów - na razie
@@ -310,7 +310,7 @@ void TMoverParameters::UpdatePantVolume(double dt)
         if ((TrainType == dt_EZT) ? (PantPress < ScndPipePress) :
                                     bPantKurek3) // kurek zamyka po³¹czenie z ZG
         { // zbiornik pantografu po³¹czony ze zbiornikiem g³ównym - ma³¹ sprê¿ark¹ siê tego nie
-          // napompuje
+            // napompuje
             // Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT nie ma potrzeby odcinaæ kurkiem
             PantPress = EnginePowerSource.CollectorParameters
                             .MaxPress; // ograniczenie ciœnienia do MaxPress (tylko w pantografach!)
@@ -335,7 +335,7 @@ void TMoverParameters::UpdatePantVolume(double dt)
                     if ((TrainType & (dt_EZT | dt_ET40 | dt_ET41 | dt_ET42)) ?
                             (GetTrainsetVoltage() < EnginePowerSource.CollectorParameters.MinV) :
                             true) // to jest trochê proteza; zasilanie cz³onu mo¿e byæ przez sprzêg
-                                  // WN
+                        // WN
                         if (MainSwitch(false))
                             EventFlag = true; // wywalenie szybkiego z powodu niskiego ciœnienia
         if (TrainType != dt_EZT) // w EN57 pompuje siê tylko w silnikowym
@@ -377,7 +377,7 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
             else
                 sn3 = 0;
             if (iLights[0] & 63) // 64=blachy, nie ci¹gn¹ pr¹du //rozpisaæ na poszczególne
-                                 // ¿arówki...
+                // ¿arówki...
                 sn4 = dt * 0.003;
             else
                 sn4 = 0;
@@ -475,9 +475,8 @@ ZN //masa
 */
 
 double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
-                                                    TTrackParam &Track,
-                                                    TTractionParam &ElectricTraction,
-                                                    const TLocation &NewLoc, TRotation &NewRot)
+                                         TTrackParam &Track, TTractionParam &ElectricTraction,
+                                         const TLocation &NewLoc, TRotation &NewRot)
 { // trzeba po ma³u przenosiæ tu tê funkcjê
     double d;
     T_MoverParameters::ComputeMovement(dt, dt1, Shape, Track, ElectricTraction, NewLoc, NewRot);
@@ -554,8 +553,8 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 };
 
 double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape,
-                                                        TTrackParam &Track, const TLocation &NewLoc,
-                                                        TRotation &NewRot)
+                                             TTrackParam &Track, const TLocation &NewLoc,
+                                             TRotation &NewRot)
 { // trzeba po ma³u przenosiæ tu tê funkcjê
     double d;
     T_MoverParameters::FastComputeMovement(dt, Shape, Track, NewLoc, NewRot);

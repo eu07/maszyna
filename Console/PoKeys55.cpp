@@ -39,7 +39,10 @@ TPoKeys55::TPoKeys55()
     bNoError = true;
 };
 //---------------------------------------------------------------------------
-TPoKeys55::~TPoKeys55() { Close(); };
+TPoKeys55::~TPoKeys55()
+{
+    Close();
+};
 //---------------------------------------------------------------------------
 bool TPoKeys55::Close()
 { // roz³¹czenie komunikacji
@@ -86,7 +89,7 @@ bool TPoKeys55::Connect()
         {
             ErrorStatus = GetLastError();
             if (ERROR_NO_MORE_ITEMS == ErrorStatus) // Did we reach the end of the list of matching
-                                                    // devices in the DeviceInfoTable?
+            // devices in the DeviceInfoTable?
             { // Cound not find the device. Must not have been attached.
                 SetupDiDestroyDeviceInfoList(
                     DeviceInfoTable); // Clean up the old structure we no longer need.
@@ -138,7 +141,7 @@ bool TPoKeys55::Connect()
         // free(PropertyValueBuffer); //No longer need the PropertyValueBuffer,free the memory to
         // prevent potential memory leaks
         delete PropertyValueBuffer; // No longer need the PropertyValueBuffer,free the memory to
-                                    // prevent potential memory leaks
+        // prevent potential memory leaks
         // Convert both strings to lower case.  This makes the code more robust/portable accross OS
         // Versions
         DeviceIDFromRegistry = DeviceIDFromRegistry.LowerCase();
@@ -202,12 +205,11 @@ bool TPoKeys55::Connect()
     return false;
 }
 //---------------------------------------------------------------------------
-bool TPoKeys55::Write(unsigned char c, unsigned char b3, unsigned char b4,
-                                 unsigned char b5)
+bool TPoKeys55::Write(unsigned char c, unsigned char b3, unsigned char b4, unsigned char b5)
 {
     DWORD BytesWritten = 0;
     OutputBuffer[0] = 0; // The first byte is the "Report ID" and does not get transmitted over the
-                         // USB bus. Always set=0.
+    // USB bus. Always set=0.
     OutputBuffer[1] = 0xBB; // 0xBB - bajt rozpoznawczy dla PoKeys55
     OutputBuffer[2] = iLastCommand = c; // operacja: 0x31: blokowy odczyt wejœæ
     OutputBuffer[3] = b3; // np. numer pinu (o 1 mniej ni¿ numer na p³ytce)
@@ -233,7 +235,7 @@ bool TPoKeys55::Read()
 {
     DWORD BytesRead = 0;
     InputBuffer[0] = 0; // The first byte is the "Report ID" and does not get transmitted over the
-                        // USB bus.  Always set=0.
+    // USB bus.  Always set=0.
     // Now get the response packet from the firmware.
     // The following call to ReadFIle() retrieves 64 bytes of data from the USB device.
     ReadFile(ReadHandle, &InputBuffer, 65, &BytesRead,
@@ -361,7 +363,7 @@ bool TPoKeys55::Update(bool pause)
     if (!iRepeats)
         bNoError = true; // jest OK
     else if (iRepeats >= 10) // youBy 2014-07: przy 5 powtórzeniach sieje mi pauz¹ po 2 razy na
-                             // sekundê, a przy 10 jest ok
+    // sekundê, a przy 10 jest ok
     { // przekroczenie liczby prób wymusza kolejn¹ fazê
         ++iFaza;
         iRepeats = 1; // w nowej fazie nowe szanse, ale nie od 0!

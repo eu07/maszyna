@@ -33,6 +33,7 @@ USEUNIT("Camera.cpp");
 USEUNIT("Texture.cpp");
 USEUNIT("World.cpp");
 USELIB("opengl\glut32.lib");
+USELIB("omf_python27.lib");
 USEUNIT("Model3d.cpp");
 USEUNIT("MdlMngr.cpp");
 USEUNIT("Train.cpp");
@@ -80,10 +81,11 @@ USEUNIT("McZapkie\hamulce.pas");
 USEUNIT("Console\PoKeys55.cpp");
 USEUNIT("Forth.cpp");
 USEUNIT("Console\LPT.cpp");
+USEUNIT("PyInt.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 
-HDC hDC = NULL;   // Private GDI Device Context
+HDC hDC = NULL; // Private GDI Device Context
 HGLRC hRC = NULL; // Permanent Rendering Context
 HWND hWnd = NULL; // Holds Our Window Handle
 
@@ -122,15 +124,15 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height) // resize and initialize the
 {
     WindowWidth = width;
     WindowHeight = height;
-    if (height == 0)                 // prevent a divide by zero by
-        height = 1;                  // making height equal one
+    if (height == 0) // prevent a divide by zero by
+        height = 1; // making height equal one
     glViewport(0, 0, width, height); // Reset The Current Viewport
-    glMatrixMode(GL_PROJECTION);     // select the Projection Matrix
-    glLoadIdentity();                // reset the Projection Matrix
+    glMatrixMode(GL_PROJECTION); // select the Projection Matrix
+    glLoadIdentity(); // reset the Projection Matrix
     // calculate the aspect ratio of the window
     gluPerspective(45.0f, (GLdouble)width / (GLdouble)height, 0.2f, 2500.0f);
     glMatrixMode(GL_MODELVIEW); // select the Modelview Matrix
-    glLoadIdentity();           // reset the Modelview Matrix
+    glLoadIdentity(); // reset the Modelview Matrix
 }
 
 //---------------------------------------------------------------------------
@@ -172,7 +174,7 @@ GLvoid KillGLWindow(GLvoid) // properly kill the window
     if (fullscreen) // Are We In Fullscreen Mode?
     {
         ChangeDisplaySettings(NULL, 0); // if so switch back to the desktop
-        ShowCursor(TRUE);               // show mouse pointer
+        ShowCursor(TRUE); // show mouse pointer
     }
     //    KillFont();
 }
@@ -186,31 +188,31 @@ GLvoid KillGLWindow(GLvoid) // properly kill the window
 
 BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscreenflag)
 {
-    GLuint PixelFormat;               // holds the results after searching for a match
-    HINSTANCE hInstance;              // holds the instance of the application
-    WNDCLASS wc;                      // windows class structure
-    DWORD dwExStyle;                  // window extended style
-    DWORD dwStyle;                    // window style
-    RECT WindowRect;                  // grabs rectangle upper left / lower right values
-    WindowRect.left = (long)0;        // set left value to 0
-    WindowRect.right = (long)width;   // set right value to requested width
-    WindowRect.top = (long)0;         // set top value to 0
+    GLuint PixelFormat; // holds the results after searching for a match
+    HINSTANCE hInstance; // holds the instance of the application
+    WNDCLASS wc; // windows class structure
+    DWORD dwExStyle; // window extended style
+    DWORD dwStyle; // window style
+    RECT WindowRect; // grabs rectangle upper left / lower right values
+    WindowRect.left = (long)0; // set left value to 0
+    WindowRect.right = (long)width; // set right value to requested width
+    WindowRect.top = (long)0; // set top value to 0
     WindowRect.bottom = (long)height; // set bottom value to requested height
 
     fullscreen = fullscreenflag; // set the global fullscreen flag
 
-    hInstance = GetModuleHandle(NULL);             // grab an instance for our window
+    hInstance = GetModuleHandle(NULL); // grab an instance for our window
     wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC; // redraw on size, and own DC for window.
-    wc.lpfnWndProc = (WNDPROC)WndProc;             // wndproc handles messages
-    wc.cbClsExtra = 0;                             // no extra window data
-    wc.cbWndExtra = 0;                             // no extra window data
-    wc.hInstance = hInstance;                      // set the instance
-    wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);        // load the default icon
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);      // load the arrow pointer
-    wc.hbrBackground = NULL;                       // no background required for GL
-    wc.lpszMenuName = NULL;                        // we don't want a menu
+    wc.lpfnWndProc = (WNDPROC)WndProc; // wndproc handles messages
+    wc.cbClsExtra = 0; // no extra window data
+    wc.cbWndExtra = 0; // no extra window data
+    wc.hInstance = hInstance; // set the instance
+    wc.hIcon = LoadIcon(NULL, IDI_WINLOGO); // load the default icon
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW); // load the arrow pointer
+    wc.hbrBackground = NULL; // no background required for GL
+    wc.lpszMenuName = NULL; // we don't want a menu
     wc.lpszClassName = "EU07"; // nazwa okna do komunikacji zdalnej
-                               // // Set The Class Name
+    // // Set The Class Name
 
     if (!arbMultisampleSupported) // tylko dla pierwszego okna
         if (!RegisterClass(&wc)) // Attempt To Register The Window Class
@@ -223,9 +225,9 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
 
     if (fullscreen) // Attempt Fullscreen Mode?
     {
-        DEVMODE dmScreenSettings;                               // device mode
+        DEVMODE dmScreenSettings; // device mode
         memset(&dmScreenSettings, 0, sizeof(dmScreenSettings)); // makes sure memory's cleared
-        dmScreenSettings.dmSize = sizeof(dmScreenSettings);     // size of the devmode structure
+        dmScreenSettings.dmSize = sizeof(dmScreenSettings); // size of the devmode structure
 
         // tolaris-240403: poprawka na odswiezanie monitora
         // locate primary monitor...
@@ -254,9 +256,9 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
             dmScreenSettings.dmDisplayFrequency = refreshrate;
             dmScreenSettings.dmFields = DM_DISPLAYFREQUENCY;
         }
-        dmScreenSettings.dmPelsWidth = width;   // selected screen width
+        dmScreenSettings.dmPelsWidth = width; // selected screen width
         dmScreenSettings.dmPelsHeight = height; // selected screen height
-        dmScreenSettings.dmBitsPerPel = bits;   // selected bits per pixel
+        dmScreenSettings.dmBitsPerPel = bits; // selected bits per pixel
         dmScreenSettings.dmFields =
             dmScreenSettings.dmFields | DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
@@ -282,13 +284,13 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
 
     if (fullscreen) // Are We Still In Fullscreen Mode?
     {
-        dwExStyle = WS_EX_APPWINDOW;                            // Window Extended Style
+        dwExStyle = WS_EX_APPWINDOW; // Window Extended Style
         dwStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN; // Windows Style
-        ShowCursor(FALSE);                                      // Hide Mouse Pointer
+        ShowCursor(FALSE); // Hide Mouse Pointer
     }
     else
     {
-        dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;                    // Window Extended Style
+        dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE; // Window Extended Style
         dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN; // Windows Style
     }
 
@@ -297,19 +299,19 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
 
     // Create The Window
     if (NULL ==
-        (hWnd = CreateWindowEx(dwExStyle,            // Extended Style For The Window
-                               "EU07",               // Class Name
-                               title,                // Window Title
-                               dwStyle |             // Defined Window Style
+        (hWnd = CreateWindowEx(dwExStyle, // Extended Style For The Window
+                               "EU07", // Class Name
+                               title, // Window Title
+                               dwStyle | // Defined Window Style
                                    WS_CLIPSIBLINGS | // Required Window Style
-                                   WS_CLIPCHILDREN,  // Required Window Style
+                                   WS_CLIPCHILDREN, // Required Window Style
                                0,
-                               0,                                  // Window Position
+                               0, // Window Position
                                WindowRect.right - WindowRect.left, // Calculate Window Width
                                WindowRect.bottom - WindowRect.top, // Calculate Window Height
-                               NULL,                               // No Parent Window
-                               NULL,                               // No Menu
-                               hInstance,                          // Instance
+                               NULL, // No Parent Window
+                               NULL, // No Menu
+                               hInstance, // Instance
                                NULL))) // Dont Pass Anything To WM_CREATE
     {
         KillGLWindow(); // Reset The Display
@@ -321,24 +323,24 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
     static PIXELFORMATDESCRIPTOR pfd = // pfd Tells Windows How We Want Things To Be
         {
          sizeof(PIXELFORMATDESCRIPTOR), // Size Of This Pixel Format Descriptor
-         1,                             // Version Number
-         PFD_DRAW_TO_WINDOW |           // Format Must Support Window
-             PFD_SUPPORT_OPENGL |       // Format Must Support OpenGL
-             PFD_DOUBLEBUFFER,          // Must Support Double Buffering
-         PFD_TYPE_RGBA,                 // Request An RGBA Format
-         bits,                          // Select Our Color Depth
+         1, // Version Number
+         PFD_DRAW_TO_WINDOW | // Format Must Support Window
+             PFD_SUPPORT_OPENGL | // Format Must Support OpenGL
+             PFD_DOUBLEBUFFER, // Must Support Double Buffering
+         PFD_TYPE_RGBA, // Request An RGBA Format
+         bits, // Select Our Color Depth
          0,
-         0, 0, 0, 0, 0,  // Color Bits Ignored
-         0,              // No Alpha Buffer
-         0,              // Shift Bit Ignored
-         0,              // No Accumulation Buffer
-         0, 0, 0, 0,     // Accumulation Bits Ignored
-         24,             // 32Bit Z-Buffer (Depth Buffer)
-         0,              // No Stencil Buffer
-         0,              // No Auxiliary Buffer
+         0, 0, 0, 0, 0, // Color Bits Ignored
+         0, // No Alpha Buffer
+         0, // Shift Bit Ignored
+         0, // No Accumulation Buffer
+         0, 0, 0, 0, // Accumulation Bits Ignored
+         24, // 32Bit Z-Buffer (Depth Buffer)
+         0, // No Stencil Buffer
+         0, // No Auxiliary Buffer
          PFD_MAIN_PLANE, // Main Drawing Layer
-         0,              // Reserved
-         0, 0, 0         // Layer Masks Ignored
+         0, // Reserved
+         0, 0, 0 // Layer Masks Ignored
         };
 
     if (NULL == (hDC = GetDC(hWnd))) // Did We Get A Device Context?
@@ -413,9 +415,9 @@ BOOL CreateGLWindow(char *title, int width, int height, int bits, bool fullscree
                 return CreateGLWindow(title, width, height, bits, fullscreenflag); // rekurencja
             }
 
-    ShowWindow(hWnd, SW_SHOW);    // show the window
-    SetForegroundWindow(hWnd);    // slightly higher priority
-    SetFocus(hWnd);               // sets keyboard focus to the window
+    ShowWindow(hWnd, SW_SHOW); // show the window
+    SetForegroundWindow(hWnd); // slightly higher priority
+    SetFocus(hWnd); // sets keyboard focus to the window
     ReSizeGLScene(width, height); // set up our perspective GL screen
 
     if (!InitGL()) // initialize our newly created GL Window
@@ -579,7 +581,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
     }
     case WM_MOVE: // przesuwanie okna?
     {
-        mx = WindowWidth / 2 + LOWORD(lParam);  // horizontal position
+        mx = WindowWidth / 2 + LOWORD(lParam); // horizontal position
         my = WindowHeight / 2 + HIWORD(lParam); // vertical position
         // SetCursorPos(mx,my);
         break;
@@ -739,7 +741,7 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                 // DrawGLScene()
                 // if (!pause)
                 // if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
-                if (World.Update())   // Was There A Quit Received?
+                if (World.Update()) // Was There A Quit Received?
                     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
                 else
                     done = true; //[F10] or DrawGLScene signalled a quit
@@ -754,6 +756,3 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     KillGLWindow(); // kill the window
     return (msg.wParam); // exit the program
 }
-
-
-

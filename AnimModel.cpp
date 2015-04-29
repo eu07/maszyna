@@ -28,6 +28,7 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 
 TAnimAdvanced::TAnimAdvanced(){};
+
 TAnimAdvanced::~TAnimAdvanced(){
     // delete[] pVocaloidMotionData; //plik zosta³ zmodyfikowany
 };
@@ -115,7 +116,7 @@ void TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSp
     */
     if (evDone)
     { // do³¹czyæ model do listy aniomowania, ¿eby animacje by³y przeliczane równie¿ bez
-      // wyœwietlania
+        // wyœwietlania
         if (iAnim >= 0)
         { // jeœli nie jest jeszcze na liœcie animacyjnej
             acAnimNext = TAnimModel::acAnimList; // pozosta³e dokliæ sobie jako ogon
@@ -138,7 +139,7 @@ void TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
     */
     if (evDone)
     { // do³¹czyæ model do listy aniomowania, ¿eby animacje by³y przeliczane równie¿ bez
-      // wyœwietlania
+        // wyœwietlania
         if (iAnim >= 0)
         { // jeœli nie jest jeszcze na liœcie animacyjnej
             acAnimNext = TAnimModel::acAnimList; // pozosta³e dokliæ sobie jako ogon
@@ -179,7 +180,7 @@ void TAnimContainer::AnimSetVMD(double fNewSpeed)
         //-+-+ - d³oñ ma w górze zamiast na pasie w pozycji pocz¹tkowej
         //+--+ - g³owa do ty³u (broda w górê) w pozycji pocz¹tkowej
         //--++ - pozycja pocz¹tkowa dobra, tr¹ca u góry, ale z rêkami jakoœ nie tak, kó³ko w
-        //przeciwn¹ stronê
+        // przeciwn¹ stronê
         //++++ - k³adzie siê brzuchem do góry
         //-+++ - rêce w górze na pocz¹tku, zamiast w dó³, ³okieæ jakby w przeciwn¹ stronê
         //+-++ - nie podnosi rêki do g³owy
@@ -223,7 +224,7 @@ void TAnimContainer::UpdateModel()
                     vTranslation += s;
                 else
                     vTranslation = vTranslateTo; // koniec animacji, "koniec animowania" uruchomi
-                                                 // siê w nastêpnej klatce
+                // siê w nastêpnej klatce
             }
             else
             { // koniec animowania
@@ -233,7 +234,7 @@ void TAnimContainer::UpdateModel()
                     iAnim &= ~2; // wy³¹czyæ zmianê pozycji submodelu
                 if (evDone)
                     Global::AddToQuery(evDone, NULL); // wykonanie eventu informuj¹cego o
-                                                      // zakoñczeniu
+                // zakoñczeniu
             }
         }
         if (fRotateSpeed != 0)
@@ -300,7 +301,7 @@ void TAnimContainer::UpdateModel()
                 fRotateSpeed = 0.0;
                 if (evDone)
                     Global::AddToQuery(evDone, NULL); // wykonanie eventu informuj¹cego o
-                                                      // zakoñczeniu
+                // zakoñczeniu
             }
         }
         if (fAngleSpeed != 0.0)
@@ -364,7 +365,7 @@ void TAnimContainer::UpdateModelIK()
             {
             case at_IK11: // stopa: ustawiæ w kierunku czubka (pierwszy potomny)
                 d = ch->Translation1Get(); // wektor wzglêdem aktualnego uk³adu (nie uwzglêdnia
-                                           // obrotu)
+                // obrotu)
                 k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
                            -RadToDeg(atan2(d.y, d.x))); // proste skierowanie na punkt
                 pSubModel->SetRotateIK1(k);
@@ -378,7 +379,7 @@ void TAnimContainer::UpdateModelIK()
                 // potem wyliczyæ ewentualne odchylenie w tej i nastêpnej
                 // w sumie to proste, jak wyznaczenie k¹tów w trójk¹cie o znanej d³ugoœci boków...
                 d = ch->Translation2Get(); // wektor wzglêdem aktualnego uk³adu (nie uwzglêdnia
-                                           // obrotu)
+                // obrotu)
                 // if ()
                 { // koœæ IK jest dalej ni¿ pozycja spoczynkowa
                     k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
@@ -456,7 +457,7 @@ bool TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
             0x31310031; // tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
     else
         iTexAlpha = 0x30300030; // tekstura nieprzezroczysta - nie renderowaæ w cyklu
-                                // przezroczystych
+    // przezroczystych
     return (Init(TModelsManager::GetModel(asName.c_str())));
 }
 
@@ -684,10 +685,12 @@ void TAnimModel::RenderAlphaVBO(vector3 *vPosition)
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()
 { // zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
-  return (this ? pModel != NULL : false); };
+    return (this ? pModel != NULL : false);
+};
 int TAnimModel::TerrainCount()
 { // zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
-  return pModel ? pModel->TerrainCount() : 0; };
+    return pModel ? pModel->TerrainCount() : 0;
+};
 TSubModel *__fastcall TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaŸników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
@@ -721,7 +724,7 @@ void TAnimModel::Advanced()
                     if (!strcmp(pCurrent->pMovementData->cBone,
                                 (pCurrent->pMovementData + 1)->cBone))
                     { // jak kolejna ramka dotyczy tego samego submodelu, ustawiæ animacjê do
-                      // kolejnej ramki
+                        // kolejnej ramki
                         ++pCurrent->pMovementData; // kolejna klatka
                         pCurrent->AnimSetVMD(
                             pAdvanced->fFrequency /
@@ -773,7 +776,7 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
                 {
                     pSub->pMovementData = pAdvanced->pMovementData + i; // gotów do animowania
                     pSub->AnimSetVMD(0.0); // usuawienie pozycji pocz¹tkowej (powinna byæ zerowa,
-                                           // inaczej bêdzie skok)
+                    // inaczej bêdzie skok)
                 }
                 name = AnsiString(pAdvanced->pMovementData[i].cBone); // nowa nazwa do pomijania
             }

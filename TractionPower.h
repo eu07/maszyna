@@ -48,7 +48,10 @@ class TTractionPowerSource
     bool Render();
     bool Update(double dt);
     double CurrentGet(double res);
-    void VoltageSet(double v) { NominalVoltage = v; };
+    void VoltageSet(double v)
+    {
+        NominalVoltage = v;
+    };
     void PowerSet(TTractionPowerSource *ps);
 };
 

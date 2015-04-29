@@ -49,9 +49,9 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "15.3.1167.470";
+AnsiString Global::asRelease = "15.3.1168.471";
 AnsiString Global::asVersion =
-    "Compilation 2015-04-14, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2015-04-17, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -263,16 +263,16 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
         else if (str == AnsiString("wireframe"))
             bWireFrame = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str == AnsiString("debugmode")) // McZapkie! - DebugModeFlag uzywana w mover.pas,
-                                                 // warto tez blokowac cheaty gdy false
+            // warto tez blokowac cheaty gdy false
             DebugModeFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str == AnsiString("soundenabled")) // McZapkie-040302 - blokada dzwieku - przyda
-                                                    // sie do debugowania oraz na komp. bez karty
-                                                    // dzw.
+            // sie do debugowania oraz na komp. bez karty
+            // dzw.
             bSoundEnabled = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str == AnsiString("physicslog")) // McZapkie-030402 - logowanie parametrow
-                                                  // fizycznych dla kazdego pojazdu z maszynista
+            // fizycznych dla kazdego pojazdu z maszynista
             WriteLogFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str == AnsiString("physicsdeactivation")) // McZapkie-291103 - usypianie fizyki
             PhysicActivationFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
@@ -310,7 +310,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             fFriction = GetNextSymbol().ToDouble();
         else if (str == AnsiString("livetraction"))
         { // Winger 160404 - zaleznosc napiecia loka od trakcji; Ra 2014-03: teraz pr¹d przy braku
-          // sieci
+            // sieci
             bLiveTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         }
         else if (str == AnsiString("skyenabled"))
@@ -418,7 +418,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
         else if (str == AnsiString("slowmotion")) // tworzenie plików binarnych
             iSlowMotionMask = GetNextSymbol().ToIntDef(-1); // domyœlnie -1
         else if (str == AnsiString("modifytga")) // czy korygowaæ pliki TGA dla szybszego
-                                                 // wczytywania
+            // wczytywania
             iModifyTGA = GetNextSymbol().ToIntDef(0); // domyœlnie 0
         else if (str == AnsiString("hideconsole")) // hunter-271211: ukrywanie konsoli
             bHideConsole = (GetNextSymbol().LowerCase() == AnsiString("yes"));
@@ -465,6 +465,10 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             asLang = GetNextSymbol(); // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
         else if (str == AnsiString("opengl")) // deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy
             fOpenGL = GetNextSymbol().ToDouble(); // wymuszenie wersji OpenGL
+        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen
+                                                                // renderer
+            TPythonInterpreter::getInstance()->setScreenRendererPriority(
+                GetNextSymbol().LowerCase().c_str());
     } while (str != "endconfig"); //(!Parser->EndOfFile)
     // na koniec trochê zale¿noœci
     if (!bLoadTraction) // wczytywanie drutów i s³upów

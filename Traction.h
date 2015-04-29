@@ -56,7 +56,7 @@ class TTraction
     AnsiString asParallel; // nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
     TTraction *hvParallel; // jednokierunkowa i zapêtlona lista przêse³ ewentualnej bie¿ni wspólnej
     float fResistance[2]; // rezystancja zastêpcza do punktu zasilania (0: przês³o zasilane, <0: do
-                          // policzenia)
+    // policzenia)
     int iTries;
     // bool bVisible;
     // DWORD dwFlags;

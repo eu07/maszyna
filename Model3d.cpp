@@ -178,8 +178,7 @@ void TSubModel::NameSet(const char *n)
 
 // int TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX
 // *Vertices)
-int TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, float3 *pt,
-                                         float8 *Vertices)
+int TSubModel::SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, float3 *pt, float8 *Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzcho³ka, a nie trójk¹ta
     int iNumFaces = iNumVerts / 3; // bo maska powierzchni jest jedna na trójk¹t
     // GLVERTEX *p; //roboczy wskaŸnik
@@ -458,7 +457,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         parser.getToken(token);
         if (token[0] == '*')
         { // jeœli pierwszy znak jest gwiazdk¹, poszukaæ submodelu o nazwie bez tej gwiazdki i wzi¹æ
-          // z niego wierzcho³ki
+            // z niego wierzcho³ki
             Error("Verticles reference not yet supported!");
         }
         else
@@ -476,7 +475,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                 Vertices = new float8[iNumVerts];
                 iNumFaces = iNumVerts / 3;
                 sg = new DWORD[iNumFaces]; // maski powierzchni: 0 oznacza brak u¿redniania wektorów
-                                           // normalnych
+                // normalnych
                 int *wsp = new int[iNumVerts]; // z którego wierzcho³ka kopiowaæ wektor normalny
                 int maska = 0;
                 for (int i = 0; i < iNumVerts; i++)
@@ -484,10 +483,10 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                     wsp[i] = -1; // wektory normalne nie s¹ policzone dla tego wierzcho³ka
                     if ((i % 3) == 0)
                     { // jeœli bêdzie maska -1, to dalej bêd¹ wierzcho³ki z wektorami normalnymi,
-                      // podanymi jawnie
+                        // podanymi jawnie
                         parser.getToken(maska); // maska powierzchni trójk¹ta
                         sg[i / 3] = (maska == -1) ? 0 : maska; // dla maski -1 bêdzie 0, czyli nie
-                                                               // ma wspólnych wektorów normalnych
+                        // ma wspólnych wektorów normalnych
                     }
                     parser.getToken(Vertices[i].Point.x);
                     parser.getToken(Vertices[i].Point.y);
@@ -514,14 +513,14 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                                      AnsiString(pName) + "\", verticle " + AnsiString(i));
                         }
                         if (i > 0) // jeœli pierwszy trójk¹t bêdzie zdegenerowany, to zostanie
-                                   // usuniêty i nie ma co sprawdzaæ
+                            // usuniêty i nie ma co sprawdzaæ
                             if (((Vertices[i].Point - Vertices[i - 1].Point).Length() > 1000.0) ||
                                 ((Vertices[i - 1].Point - Vertices[i - 2].Point).Length() >
                                  1000.0) ||
                                 ((Vertices[i - 2].Point - Vertices[i].Point).Length() > 1000.0))
                             { // je¿eli s¹ dalej ni¿ 2km od siebie //Ra 15-01: obiekt wstawiany nie
-                              // powinien byæ wiêkszy ni¿ 300m (trójk¹ty terenu w E3D mog¹ mieæ
-                              // 1.5km)
+                                // powinien byæ wiêkszy ni¿ 300m (trójk¹ty terenu w E3D mog¹ mieæ
+                                // 1.5km)
                                 --iNumFaces; // o jeden trójk¹t mniej
                                 iNumVerts -= 3; // czyli o 3 wierzcho³ki
                                 i -= 3; // wczytanie kolejnego w to miejsce
@@ -533,7 +532,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                 int i; // indeks dla trójk¹tów
                 float3 *n = new float3[iNumFaces]; // tablica wektorów normalnych dla trójk¹tów
                 for (i = 0; i < iNumFaces; i++) // pêtla po trójk¹tach - bêdzie szybciej, jak
-                                                // wstêpnie przeliczymy normalne trójk¹tów
+                    // wstêpnie przeliczymy normalne trójk¹tów
                     n[i] = SafeNormalize(
                         CrossProduct(Vertices[i * 3].Point - Vertices[i * 3 + 1].Point,
                                      Vertices[i * 3].Point - Vertices[i * 3 + 2].Point));
@@ -554,7 +553,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                         while (f >= 0)
                         { // sumowanie z wektorem normalnym s¹siada (w³¹cznie ze sob¹)
                             wsp[f] = v; // informacja, ¿e w tym wierzcho³ku jest ju¿ policzony
-                                        // wektor normalny
+                            // wektor normalny
                             norm += n[f / 3];
                             f = SeekFaceNormal(sg, f / 3 + 1, sg[i], &Vertices[v].Point,
                                                Vertices); // i szukanie od kolejnego trójk¹ta
@@ -776,7 +775,7 @@ void TSubModel::InitialRotate(bool doit)
                     (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] =
                         0.0; // zerujemy przesuniêcie przed obracaniem normalnych
                     if (eType != TP_STARS) // gwiazdki maj¹ kolory zamiast normalnych, to ich wtedy
-                                           // nie ruszamy
+                        // nie ruszamy
                         for (int i = 0; i < iNumVerts; ++i)
                             Vertices[i].Normal = SafeNormalize((*mat) * Vertices[i].Normal);
                 }
@@ -916,7 +915,10 @@ void TSubModel::SetRotateIK1(float3 vNewAngles)
 
 struct ToLower
 {
-    char operator()(char input) { return tolower(input); }
+    char operator()(char input)
+    {
+        return tolower(input);
+    }
 };
 
 TSubModel *__fastcall TSubModel::GetFromName(AnsiString search, bool i)
@@ -1003,7 +1005,7 @@ void TSubModel::RaAnimation(TAnimType a)
     case at_Billboard: // obrót w pionie do kamery
     {
         matrix4x4 mat; // potrzebujemy wspó³rzêdne przesuniêcia œrodka uk³adu wspó³rzêdnych
-                       // submodelu
+        // submodelu
         glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray()); // pobranie aktualnej matrycy
         float3 gdzie = float3(mat[3][0], mat[3][1],
                               mat[3][2]); // pocz¹tek uk³adu wspó³rzêdnych submodelu wzglêdem kamery
@@ -1092,7 +1094,7 @@ void TSubModel::RenderDL()
             {
                 double Distdimm = 1.0;
                 if (fCosViewAngle < fCosHotspotAngle) // zmniejszona jasnoœæ miêdzy Hotspot a
-                                                      // Falloff
+                    // Falloff
                     if (fCosFalloffAngle < fCosHotspotAngle)
                         Distdimm = 1.0 -
                                    (fCosHotspotAngle - fCosViewAngle) /
@@ -1188,9 +1190,9 @@ void TSubModel::RenderAlphaDL()
                 char c;
                 if (!smLetter)
                 { // jeœli nie ma tablicy, to j¹ stworzyæ; miejsce nieodpowiednie, ale tymczasowo
-                  // mo¿e byæ
+                    // mo¿e byæ
                     smLetter = new TSubModel *[256]; // tablica wskaŸników submodeli dla
-                                                     // wyœwietlania tekstu
+                    // wyœwietlania tekstu
                     ZeroMemory(smLetter, 256 * sizeof(TSubModel *)); // wype³nianie zerami
                     p = Child;
                     while (p)
@@ -1270,7 +1272,7 @@ void TSubModel::RenderVBO()
             {
                 double Distdimm = 1.0;
                 if (fCosViewAngle < fCosHotspotAngle) // zmniejszona jasnoœæ miêdzy Hotspot a
-                                                      // Falloff
+                    // Falloff
                     if (fCosFalloffAngle < fCosHotspotAngle)
                         Distdimm = 1.0 -
                                    (fCosHotspotAngle - fCosViewAngle) /
@@ -1523,8 +1525,8 @@ void TSubModel::InfoSet(TSubModelInfo *info)
     pTexture = pName = NULL;
 };
 
-void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t,
-                                   TStringPack *n, bool dynamic)
+void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TStringPack *n,
+                        bool dynamic)
 { // ustawienie wskaŸników w submodelu
     iVisible = 1; // tymczasowo u¿ywane
     Child = ((int)Child > 0) ? s + (int)Child : NULL; // zerowy nie mo¿e byæ potomnym
@@ -1539,7 +1541,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t,
         { // jeœli dany submodel jest zgaszonym œwiat³em, to domyœlnie go ukrywamy
             if (s.SubString(1, 8) == "Light_On") // jeœli jest œwiat³em numerowanym
                 iVisible = 0; // to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem
-                              // "Light_Off"
+            // "Light_Off"
             else if (dynamic) // inaczej wy³¹cza³o smugê w latarniach
                 if (s.SubString(s.Length() - 2, 3) ==
                     "_on") // jeœli jest kontrolk¹ w stanie zapalonym
@@ -1783,12 +1785,12 @@ void TModel3d::LoadFromBinFile(char *FileName, bool dynamic)
                 case 'SUB0': // submodele: 'SUB0',len,(256 bajtów na submodel)
                     iSubModelsCount = (k - 2) / 64;
                     Root = (TSubModel *)(iModel + i + 2); // numery na wskaŸniki przetworzymy
-                                                          // póŸniej
+                    // póŸniej
                     break;
                 case 'SUB1': // submodele: 'SUB1',len,(320 bajtów na submodel)
                     iSubModelsCount = (k - 2) / 80;
                     Root = (TSubModel *)(iModel + i + 2); // numery na wskaŸniki przetworzymy
-                                                          // póŸniej
+                    // póŸniej
                     for (ch = 1; ch < iSubModelsCount;
                          ++ch) // trzeba przesun¹æ bli¿ej, bo 256 wystarczy
                         MoveMemory(((char *)Root) + 256 * ch, ((char *)Root) + 320 * ch, 256);
@@ -1909,7 +1911,7 @@ void TModel3d::Init()
             if (Global::fDistanceFactor !=
                 1.0) // trochê zaoszczêdzi czasu na modelach z wieloma submocelami
                 Root->AdjustDist(); // aktualizacja odleg³oœci faz LoD, zale¿nie od rozdzielczoœci
-                                    // pionowej oraz multisamplingu
+            // pionowej oraz multisamplingu
             if (Global::bUseVBO)
             {
                 if (!m_pVNT) // jeœli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
@@ -2019,7 +2021,10 @@ void TModel3d::SaveToBinFile(char *FileName)
     delete[] info;
 };
 
-void TModel3d::BreakHierarhy() { Error("Not implemented yet :("); };
+void TModel3d::BreakHierarhy()
+{
+    Error("Not implemented yet :(");
+};
 
 /*
 void TModel3d::Render(vector3 pPosition,double fAngle,GLuint ReplacableSkinId,int iAlpha)
@@ -2122,8 +2127,7 @@ void TModel3d::RaRender(double fSquareDistance, GLuint *ReplacableSkinId, int iA
     }
 };
 
-void TModel3d::RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId,
-                                        int iAlpha)
+void TModel3d::RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
     if (iAlpha & iFlags & 0x2F2F002F) // czy w ogóle jest co robiæ w tym cyklu?
     {
@@ -2159,8 +2163,7 @@ iAlpha)
 // 2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
 //-----------------------------------------------------------------------------
 
-void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId,
-                                 int iAlpha)
+void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, Display List
     glPushMatrix();
     glTranslated(vPosition->x, vPosition->y, vPosition->z);
@@ -2178,7 +2181,7 @@ void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSki
     glPopMatrix();
 };
 void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId,
-                                      int iAlpha)
+                           int iAlpha)
 { // przezroczyste, Display List
     glPushMatrix();
     glTranslated(vPosition->x, vPosition->y, vPosition->z);
@@ -2194,8 +2197,7 @@ void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *Replacab
     Root->RenderAlphaDL();
     glPopMatrix();
 };
-void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId,
-                                   int iAlpha)
+void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, VBO
     glPushMatrix();
     glTranslated(vPosition->x, vPosition->y, vPosition->z);
@@ -2215,8 +2217,8 @@ void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableS
     }
     glPopMatrix();
 };
-void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle,
-                                        GLuint *ReplacableSkinId, int iAlpha)
+void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId,
+                             int iAlpha)
 { // przezroczyste, VBO
     glPushMatrix();
     glTranslated(vPosition->x, vPosition->y, vPosition->z);
@@ -2280,7 +2282,7 @@ void TModel3d::TerrainRenderVBO(int n)
         while (r)
         {
             if (r->iVisible == n) // tylko jeœli ma byæ widoczny w danej ramce (problem dla
-                                  // 0==false)
+                // 0==false)
                 r->RenderVBO(); // sub kolejne (Next) siê nie wyrenderuj¹
             r = r->NextGet();
         }

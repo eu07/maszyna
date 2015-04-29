@@ -45,10 +45,12 @@ TRealSound::~TRealSound()
     // if (this) if (pSound) pSound->Stop();
 }
 
-void TRealSound::Free() {}
+void TRealSound::Free()
+{
+}
 
-void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y,
-                                 double Z, bool Dynamic, bool freqmod, double rmin)
+void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,
+                      bool Dynamic, bool freqmod, double rmin)
 {
     // Nazwa=SoundName; //to tak raczej nie zadzia³a, (SoundName) jest tymczasowe
     pSound = TSoundsManager::GetFromName(SoundName, Dynamic, &fFrequency);
@@ -57,7 +59,7 @@ void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, dou
         if (freqmod)
             if (fFrequency != 22050.0)
             { // dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹
-              // ignorowana, a mog³a byæ inna ni¿ 22050
+                // ignorowana, a mog³a byæ inna ni¿ 22050
                 fFrequency = 22050.0;
                 ErrorLog("Bad sound: " + AnsiString(SoundName) +
                          ", as modulated, should have 22.05kHz in header");
@@ -95,8 +97,7 @@ double TRealSound::ListenerDistance(vector3 ListenerPosition)
     }
 }
 
-void TRealSound::Play(double Volume, int Looping, bool ListenerInside,
-                                 vector3 NewPosition)
+void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
 {
     if (!pSound)
         return;
@@ -168,7 +169,8 @@ void TRealSound::Play(double Volume, int Looping, bool ListenerInside,
     }
 };
 
-void TRealSound::Start(){// w³¹czenie dŸwiêku
+void TRealSound::Start(){
+    // w³¹czenie dŸwiêku
 
 };
 
@@ -185,8 +187,7 @@ void TRealSound::Stop()
         }
 };
 
-void TRealSound::AdjFreq(double Freq,
-                                    double dt) // McZapkie TODO: dorobic tu efekt Dopplera
+void TRealSound::AdjFreq(double Freq, double dt) // McZapkie TODO: dorobic tu efekt Dopplera
 // Freq moze byc liczba dodatnia mniejsza od 1 lub wieksza od 1
 {
     float df, Vlist, Vsrc;
@@ -223,7 +224,10 @@ double TRealSound::GetWaveTime() // McZapkie: na razie tylko dla 22KHz/8bps
            fFrequency; //(pSound->);  // wielkosc w bajtach przez czestotliwosc probkowania
 }
 
-void TRealSound::SetPan(int Pan) { pSound->SetPan(Pan); }
+void TRealSound::SetPan(int Pan)
+{
+    pSound->SetPan(Pan);
+}
 
 int TRealSound::GetStatus()
 {
@@ -243,8 +247,8 @@ void TRealSound::ResetPosition()
         pSound->SetCurrentPosition(0);
 }
 
-void TTextSound::Init(char *SoundName, double SoundAttenuation, double X, double Y,
-                                 double Z, bool Dynamic, bool freqmod, double rmin)
+void TTextSound::Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+                      bool Dynamic, bool freqmod, double rmin)
 { // dodatkowo doczytuje plik tekstowy
     TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
     fTime = GetWaveTime();
@@ -264,8 +268,7 @@ void TTextSound::Init(char *SoundName, double SoundAttenuation, double X, double
         delete ts;
     }
 };
-void TTextSound::Play(double Volume, int Looping, bool ListenerInside,
-                                 vector3 NewPosition)
+void TTextSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
 {
     if (!asText.IsEmpty())
     { // jeœli ma powi¹zany tekst

@@ -15,9 +15,14 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Globals.h"
 
-__fastcall TMachajka::TMachajka() : TTrain() { TTrain::TTrain(); }
+__fastcall TMachajka::TMachajka() : TTrain()
+{
+    TTrain::TTrain();
+}
 
-__fastcall TMachajka::~TMachajka() {}
+__fastcall TMachajka::~TMachajka()
+{
+}
 
 bool TMachajka::Init(TDynamicObject *NewDynamicObject)
 {
@@ -63,11 +68,20 @@ void TMachajka::OnKeyPress(int cKey)
     }
 }
 
-bool TMachajka::Update(double dt) { TTrain::Update(dt); }
+bool TMachajka::Update(double dt)
+{
+    TTrain::Update(dt);
+}
 
-bool TMachajka::UpdateMechPosition() { TTrain::UpdateMechPosition(); }
+bool TMachajka::UpdateMechPosition()
+{
+    TTrain::UpdateMechPosition();
+}
 
-bool TMachajka::Render() { TTrain::Render(); }
+bool TMachajka::Render()
+{
+    TTrain::Render();
+}
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

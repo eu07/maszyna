@@ -27,15 +27,26 @@ namespace Math3D
 typedef double scalar_t;
 // inline pass-throughs to various basic math functions
 // written in this style to allow for easy substitution with more efficient versions
-inline scalar_t SINE_FUNCTION(scalar_t x) { return sin(x); }
-inline scalar_t COSINE_FUNCTION(scalar_t x) { return cos(x); }
-inline scalar_t SQRT_FUNCTION(scalar_t x) { return sqrt(x); }
+inline scalar_t SINE_FUNCTION(scalar_t x)
+{
+    return sin(x);
+}
+inline scalar_t COSINE_FUNCTION(scalar_t x)
+{
+    return cos(x);
+}
+inline scalar_t SQRT_FUNCTION(scalar_t x)
+{
+    return sqrt(x);
+}
 
 // 2 element vector
 class vector2
 {
   public:
-    vector2(void) {}
+    vector2(void)
+    {
+    }
     vector2(scalar_t a, scalar_t b)
     {
         x = a;
@@ -52,7 +63,9 @@ class vector2
 class vector3
 {
   public:
-    vector3(void) {}
+    vector3(void)
+    {
+    }
     vector3(scalar_t a, scalar_t b, scalar_t c)
     {
         x = a;
@@ -71,15 +84,24 @@ class vector3
     void inline Normalize();
     void inline SafeNormalize();
     double inline Length();
-    void inline Zero() { x = y = z = 0.0; };
+    void inline Zero()
+    {
+        x = y = z = 0.0;
+    };
 
     // [] is to read, () is to write (const correctness)
     //	const scalar_t& operator[] (int i) const { return e[i]; }
     //	scalar_t& operator() (int i) { return e[i]; }
 
     // Provides access to the underlying array; useful for passing this class off to C APIs
-    const scalar_t *readArray(void) { return &x; }
-    scalar_t *getArray(void) { return &x; }
+    const scalar_t *readArray(void)
+    {
+        return &x;
+    }
+    scalar_t *getArray(void)
+    {
+        return &x;
+    }
 
     //    union
     //  {
@@ -107,7 +129,9 @@ class vector3
 class matrix4x4
 {
   public:
-    matrix4x4(void) {}
+    matrix4x4(void)
+    {
+    }
 
     // When defining matrices in C arrays, it is easiest to define them with
     // the column increasing fastest.  However, some APIs (OpenGL in particular) do this
@@ -130,12 +154,24 @@ class matrix4x4
 
     // [] is to read, () is to write (const correctness)
     // m[x][y] or m(x)[y] is the correct form
-    const scalar_t *operator[](int i) const { return &e[i << 2]; }
-    scalar_t *operator()(int i) { return &e[i << 2]; }
+    const scalar_t *operator[](int i) const
+    {
+        return &e[i << 2];
+    }
+    scalar_t *operator()(int i)
+    {
+        return &e[i << 2];
+    }
 
     // Low-level access to the array.
-    const scalar_t *readArray(void) { return e; }
-    scalar_t *getArray(void) { return e; }
+    const scalar_t *readArray(void)
+    {
+        return e;
+    }
+    scalar_t *getArray(void)
+    {
+        return e;
+    }
 
     // Construct various matrices; REPLACES CURRENT CONTENTS OF THE MATRIX!
     // Written this way to work in-place and hence be somewhat more efficient
@@ -263,14 +299,20 @@ inline bool operator<(const vector3 &v1, const vector3 &v2)
     return false;
 }
 
-inline vector3 operator-(const vector3 &v) { return vector3(-v.x, -v.y, -v.z); }
+inline vector3 operator-(const vector3 &v)
+{
+    return vector3(-v.x, -v.y, -v.z);
+}
 
 inline vector3 operator*(const vector3 &v, scalar_t k)
 {
     return vector3(k * v.x, k * v.y, k * v.z);
 }
 
-inline vector3 operator*(scalar_t k, const vector3 &v) { return v * k; }
+inline vector3 operator*(scalar_t k, const vector3 &v)
+{
+    return v * k;
+}
 
 inline vector3 &operator*=(vector3 &v, scalar_t k)
 {
@@ -293,11 +335,23 @@ inline vector3 &operator/=(vector3 &v, scalar_t k)
     return v;
 }
 
-inline scalar_t LengthSquared3(const vector3 &v) { return DotProduct(v, v); }
-inline scalar_t LengthSquared4(const vector3 &v) { return DotProduct4(v, v); }
+inline scalar_t LengthSquared3(const vector3 &v)
+{
+    return DotProduct(v, v);
+}
+inline scalar_t LengthSquared4(const vector3 &v)
+{
+    return DotProduct4(v, v);
+}
 
-inline scalar_t Length3(const vector3 &v) { return SQRT_FUNCTION(LengthSquared3(v)); }
-inline scalar_t Length4(const vector3 &v) { return SQRT_FUNCTION(LengthSquared4(v)); }
+inline scalar_t Length3(const vector3 &v)
+{
+    return SQRT_FUNCTION(LengthSquared3(v));
+}
+inline scalar_t Length4(const vector3 &v)
+{
+    return SQRT_FUNCTION(LengthSquared4(v));
+}
 
 inline vector3 Normalize(const vector3 &v)
 {
@@ -314,7 +368,10 @@ inline vector3 SafeNormalize(const vector3 &v)
         retVal = v / l;
     return retVal;
 }
-inline vector3 Normalize4(const vector3 &v) { return v / Length4(v); }
+inline vector3 Normalize4(const vector3 &v)
+{
+    return v / Length4(v);
+}
 
 inline vector3 operator+(const vector3 &v1, const vector3 &v2)
 {
@@ -372,7 +429,10 @@ void inline vector3::Normalize()
     z *= il;
 }
 
-double inline vector3::Length() { return SQRT_FUNCTION(x * x + y * y + z * z); }
+double inline vector3::Length()
+{
+    return SQRT_FUNCTION(x * x + y * y + z * z);
+}
 
 inline bool operator==(const matrix4x4 &m1, const matrix4x4 &m2)
 {

@@ -77,22 +77,36 @@ class TSegment
     // (0-Bezier,1-prosty,2/3-³uk w lewo/prawo,6/7-przejœciowa w lewo/prawo)
     TSegment(TTrack *owner);
     ~TSegment();
-    bool Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
-                         double fNewRoll1 = 0, double fNewRoll2 = 0);
-    bool Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointIn,
-                         vector3 &NewPoint2, double fNewStep, double fNewRoll1 = 0,
-                         double fNewRoll2 = 0, bool bIsCurve = true);
+    bool Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1 = 0,
+              double fNewRoll2 = 0);
+    bool Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointIn, vector3 &NewPoint2,
+              double fNewStep, double fNewRoll1 = 0, double fNewRoll2 = 0, bool bIsCurve = true);
     inline double ComputeLength(); // McZapkie-150503
-    inline vector3 GetDirection1() { return bCurve ? CPointOut - Point1 : CPointOut; };
-    inline vector3 GetDirection2() { return bCurve ? CPointIn - Point2 : CPointIn; };
+    inline vector3 GetDirection1()
+    {
+        return bCurve ? CPointOut - Point1 : CPointOut;
+    };
+    inline vector3 GetDirection2()
+    {
+        return bCurve ? CPointIn - Point2 : CPointIn;
+    };
     vector3 GetDirection(double fDistance);
-    vector3 GetDirection() { return CPointOut; };
+    vector3 GetDirection()
+    {
+        return CPointOut;
+    };
     vector3 FastGetDirection(double fDistance, double fOffset);
     vector3 GetPoint(double fDistance);
     void RaPositionGet(double fDistance, vector3 &p, vector3 &a);
     vector3 FastGetPoint(double t);
-    inline vector3 FastGetPoint_0() { return Point1; };
-    inline vector3 FastGetPoint_1() { return Point2; };
+    inline vector3 FastGetPoint_0()
+    {
+        return Point1;
+    };
+    inline vector3 FastGetPoint_1()
+    {
+        return Point2;
+    };
     inline double GetRoll(double s)
     {
         s /= fLength;
@@ -103,14 +117,16 @@ class TSegment
         r1 = fRoll1;
         r2 = fRoll2;
     }
-    void RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
-                               double fTextureLength, int iSkip = 0, int iQualityFactor = 1,
-                               vector3 **p = NULL, bool bRender = true);
+    void RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength,
+                    int iSkip = 0, int iQualityFactor = 1, vector3 **p = NULL, bool bRender = true);
     void RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
-                                     int iNumShapePoints, double fTextureLength, int iSkip = 0,
-                                     double fOffsetX = 0.0f);
+                          int iNumShapePoints, double fTextureLength, int iSkip = 0,
+                          double fOffsetX = 0.0f);
     void Render();
-    inline double GetLength() { return fLength; };
+    inline double GetLength()
+    {
+        return fLength;
+    };
     void MoveMe(vector3 pPosition)
     {
         Point1 += pPosition;
@@ -121,14 +137,18 @@ class TSegment
             CPointOut += pPosition;
         }
     }
-    int RaSegCount() { return fTsBuffer ? iSegCount : 1; };
-    void RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints,
-                                 int iNumShapePoints, double fTextureLength, int iSkip = 0,
-                                 int iEnd = 0, double fOffsetX = 0.0);
+    int RaSegCount()
+    {
+        return fTsBuffer ? iSegCount : 1;
+    };
+    void RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints, int iNumShapePoints,
+                      double fTextureLength, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0);
     void RaAnimate(CVertNormTex *&Vert, const vector6 *ShapePoints, int iNumShapePoints,
-                              double fTextureLength, int iSkip = 0, int iEnd = 0,
-                              double fOffsetX = 0.0);
-    void AngleSet(int i, double a) { fAngle[i] = a; };
+                   double fTextureLength, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0);
+    void AngleSet(int i, double a)
+    {
+        fAngle[i] = a;
+    };
     void Rollment(double w1, double w2); // poprawianie przechy³ki
 };
 

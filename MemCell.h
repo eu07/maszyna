@@ -30,19 +30,35 @@ class TMemCell
     TMemCell(vector3 *p);
     ~TMemCell();
     void Init();
-    void UpdateValues(char *szNewText, double fNewValue1, double fNewValue2,
-                                 int CheckMask);
+    void UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask);
     bool Load(cParser *parser);
     void PutCommand(TController *Mech, vector3 *Loc);
-    bool Compare(char *szTestText, double fTestValue1, double fTestValue2,
-                            int CheckMask);
+    bool Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask);
     bool Render();
-    inline char *__fastcall Text() { return szText; };
-    inline double Value1() { return fValue1; };
-    inline double Value2() { return fValue2; };
-    inline vector3 Position() { return vPosition; };
-    inline TCommandType Command() { return eCommand; };
-    inline bool StopCommand() { return bCommand; };
+    inline char *__fastcall Text()
+    {
+        return szText;
+    };
+    inline double Value1()
+    {
+        return fValue1;
+    };
+    inline double Value2()
+    {
+        return fValue2;
+    };
+    inline vector3 Position()
+    {
+        return vPosition;
+    };
+    inline TCommandType Command()
+    {
+        return eCommand;
+    };
+    inline bool StopCommand()
+    {
+        return bCommand;
+    };
     void StopCommandSent();
     TCommandType CommandCheck();
     bool IsVelocity();

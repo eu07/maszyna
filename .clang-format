@@ -4,9 +4,11 @@ IndentWidth: 4
 ---
 Language: Cpp
 AlignEscapedNewlinesLeft: true
+AlignTrailingComments: false
 BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: false
 AllowShortBlocksOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
 ColumnLimit: 100
 ---
