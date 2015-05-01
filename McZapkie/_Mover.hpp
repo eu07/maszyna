@@ -865,6 +865,7 @@ static const Shortint eimv_Uzsmax = 0x10;
 static const Shortint eimv_Pmax = 0x11;
 static const Shortint eimv_Fzad = 0x12;
 static const Shortint eimv_Imax = 0x13;
+static const Shortint eimv_Fful = 0x14;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 TButton::TButton()
 {
     iFeedbackBit = 0;
+    bData = NULL;
     Clear();
 };
 
@@ -54,8 +55,8 @@ void TButton::Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel
         Init(str, pModel1, false);
         if (pModel2)
             if (!pModelOn && !pModelOff)
-                Init(str, pModel2,
-                     false); // mo¿e w drugim bêdzie (jak nie w kabinie, to w zewnêtrznym)
+                Init(str, pModel2, false); // mo¿e w drugim bêdzie (jak nie w kabinie,
+        // to w zewnêtrznym)
     }
     else
     {
@@ -66,6 +67,8 @@ void TButton::Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel
 
 void TButton::Update()
 {
+    if (bData != NULL)
+        bOn = (*bData);
     if (pModelOn)
         pModelOn->iVisible = bOn;
     if (pModelOff)
@@ -78,3 +81,8 @@ void TButton::Update()
             Console::BitsClear(iFeedbackBit);
     }
 };
+
+void TButton::AssignBool(bool *bValue)
+{
+    bData = bValue;
+}

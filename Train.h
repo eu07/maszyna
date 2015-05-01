@@ -152,8 +152,8 @@ class TTrain
     TGauge ggReleaserButton;
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
-    TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i
-    // ogrzewania
+    TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania
+    // nadmiarowego przetwornic i ogrzewania
     TGauge ggStLinOffButton;
     TGauge ggRadioButton;
     TGauge ggUpperLightButton;
@@ -185,7 +185,8 @@ class TTrain
     TGauge ggUniversal4Button;
 
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
-    TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia oswietlenia kabiny
+    TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
+    // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftButton;
@@ -233,7 +234,8 @@ class TTrain
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
     TButton btLampkaUniversal3;
-    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
+    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic,
+    // 1-obw.gl, 2-przetw.
     bool LampkaUniversal3_st;
     TButton btLampkaWentZaluzje; // ET22
     TButton btLampkaOgrzewanieSkladu;
@@ -334,7 +336,8 @@ class TTrain
     // TFadeSound sConverter;  //przetwornica
     // TFadeSound sSmallCompressor;  //przetwornica
 
-    int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
+    int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1:
+    // przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 
@@ -372,17 +375,20 @@ class TTrain
     float fTachoVelocityJump; // ze skakaniem
     float fTachoTimer;
     float fTachoCount;
-    float fHVoltage; // napiêcie dla dynamicznych ga³ek
-    float fHCurrent[4]; // pr¹dy: suma i amperomierze 1,2,3
-    float fEngine[4]; // obroty te?trzeba pobra?
+    float fHVoltage; // napi?cie dla dynamicznych ga?ek
+    float fHCurrent[4]; // pr?dy: suma i amperomierze 1,2,3
+    float fEngine[4]; // obroty te? trzeba pobra?
+    float fPress[20][3]; // cisnienia dla wszystkich czlonow
+    bool bDoors[20]; // drzwi dla wszystkich czlonow
     // McZapkie: do syczenia
     float fPPress, fNPress;
     float fSPPress, fSNPress;
-    int iSekunda; // Ra: sekunda aktualizacji prêdkoœci
-    int iRadioChannel; // numer aktualnego kana³u radiowego
+    int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
+    int iRadioChannel; // numer aktualnego kana?u radiowego
     TPythonScreens pyScreens;
 
   public:
+    float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel()
     {
         return iRadioChannel;

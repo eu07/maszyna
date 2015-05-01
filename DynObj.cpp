@@ -53,7 +53,8 @@ void TAnimPant::AKP_4E()
     vPos = vector3(0, 0, 0); // przypisanie domyœnych wspó³czynników do pantografów
     fLenL1 = 1.22; // 1.176289 w modelach
     fLenU1 = 1.755; // 1.724482197 w modelach
-    fHoriz = 0.535; // 0.54555075 przesuniêcie œlizgu w d³ugoœci pojazdu wzglêdem osi obrotu dolnego
+    fHoriz = 0.535; // 0.54555075 przesuniêcie œlizgu w d³ugoœci pojazdu wzglêdem
+    // osi obrotu dolnego
     // ramienia
     fHeight = 0.07; // wysokoœæ œlizgu ponad oœ obrotu
     fWidth = 0.635; // po³owa szerokoœci œlizgu, 0.635 dla AKP-1 i AKP-4E
@@ -76,11 +77,14 @@ void TAnimPant::AKP_4E()
 };
 //---------------------------------------------------------------------------
 int TAnim::TypeSet(int i, int fl)
-{ // ustawienie typu animacji i zale¿nej od niego iloœci animowanych submodeli
+{ // ustawienie typu animacji i zale¿nej od
+    // niego iloœci animowanych submodeli
     fMaxDist = -1.0; // normalnie nie pokazywaæ
     switch (i)
-    { // maska 0x000F: ile u¿ywa wskaŸników na submodele (0 gdy jeden, wtedy bez tablicy)
-    // maska 0x00F0: 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
+    { // maska 0x000F: ile u¿ywa wskaŸników na submodele (0 gdy jeden,
+    // wtedy bez tablicy)
+    // maska 0x00F0:
+    // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
     // maska 0xFF00: ile u¿ywa liczb float dla wspó³czynników i stanu
     case 0:
         iFlags = 0x000;
@@ -173,7 +177,8 @@ TDynamicObject *__fastcall TDynamicObject::FirstFind(int &coupler_nr)
 
 //---------------------------------------------------------------------------
 float TDynamicObject::GetEPP()
-{ // szukanie skrajnego po³¹czonego pojazdu w pociagu
+{ // szukanie skrajnego po³¹czonego pojazdu w
+    // pociagu
     // od strony sprzegu (coupler_nr) obiektu (start)
     TDynamicObject *temp = this;
     int coupler_nr = 0;
@@ -272,14 +277,16 @@ TDynamicObject* TDynamicObject::GetFirstCabDynamic(int cpl_type)
    return NULL;
   if (coupler_nr==0)
   {//je¿eli szukamy od sprzêgu 0
-   if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest odwrócony
+   if (temp->PrevConnectedNo==0) //jeœli pojazd od strony sprzêgu 0 jest
+odwrócony
     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
    if (temp->PrevConnected)
     temp=temp->PrevConnected; //ten jest od strony 0
   }
   else
   {
-   if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest odwrócony
+   if (temp->NextConnectedNo==1) //jeœli pojazd od strony sprzêgu 1 jest
+odwrócony
     coupler_nr=1-coupler_nr; //to zmieniamy kierunek sprzêgu
    if (temp->NextConnected)
     temp=temp->NextConnected; //ten pojazd jest od strony 1
@@ -416,7 +423,8 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
 void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
 { // animacja drzwi - obrót
     if (pAnim->smAnimated)
-    { // if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwój³omne (trzeba kombinowac
+    { // if (MoverParameters->DoorOpenMethod==2) //obrotowe
+        // albo dwój³omne (trzeba kombinowac
         // submodelami i ShiftL=90,R=180)
         if (pAnim->iNumber & 1)
             pAnim->smAnimated->SetRotate(float3(1, 0, 0), dDoorMoveR);
@@ -428,7 +436,8 @@ void TDynamicObject::UpdateDoorRotate(TAnim *pAnim)
 void TDynamicObject::UpdateDoorFold(TAnim *pAnim)
 { // animacja drzwi - obrót
     if (pAnim->smAnimated)
-    { // if (MoverParameters->DoorOpenMethod==2) //obrotowe albo dwój³omne (trzeba kombinowac
+    { // if (MoverParameters->DoorOpenMethod==2) //obrotowe
+        // albo dwój³omne (trzeba kombinowac
         // submodelami i ShiftL=90,R=180)
         if (pAnim->iNumber & 1)
         {
@@ -489,15 +498,19 @@ void TDynamicObject::UpdateLeverInt(TAnim *pAnim)
     pAnim->smAnimated->SetRotate(float3(1, 0, 0), pAnim->fSpeed * *pAnim->iIntBase);
 };
 void TDynamicObject::UpdateLeverEnum(TAnim *pAnim)
-{ // ustawienie k¹ta na wartoœæ wskazan¹ przez int z tablicy fParam
+{ // ustawienie k¹ta na
+    // wartoœæ wskazan¹ przez
+    // int z tablicy fParam
     // pAnim->fParam[0]; - dodaæ lepkoœæ
     pAnim->smAnimated->SetRotate(float3(1, 0, 0), pAnim->fParam[*pAnim->iIntBase]);
 };
 
 // ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
-{ // ABu290105: pozbierane i uporzadkowane powtarzajace sie rzeczy z Render i RenderAlpha
-    // dodatkowy warunek, if (ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w obiektach,
+{ // ABu290105: pozbierane i uporzadkowane powtarzajace
+    // sie rzeczy z Render i RenderAlpha
+    // dodatkowy warunek, if (ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w
+    // obiektach,
     // ktorych i tak nie widac
     // NBMX wrzesien, MC listopad: zuniwersalnione
     btnOn = false; // czy przywróciæ stan domyœlny po renderowaniu
@@ -530,7 +543,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             // ABu011104: liczenie obrotow wozkow
             ABuBogies();
             // Mczapkie-100402: rysowanie lub nie - sprzegow
-            // ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden
+            // ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko
+            // jeden
             // z polaczonych sprzegow
             if ((TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_coupler)) &&
                 (MoverParameters->Couplers[0].Render))
@@ -547,7 +561,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
             // else btCoupler2.TurnOff();
             //********************************************************************************
-            // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render' - juz
+            // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie
+            // 'render' - juz
             // nie
             // przewody powietrzne, yB: decyzja na podstawie polaczen w t3d
             if (Global::bnewAirCouplers)
@@ -661,7 +676,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             //*********************************************************************************/
             else // po staremu ABu'oewmu
             {
-                // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render'
+                // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie
+                // 'render'
                 if (TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_pneumatic))
                 {
                     if (MoverParameters->Couplers[0].Render)
@@ -690,7 +706,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 // btCPneumatic2r.TurnOff();
                 //}
 
-                // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie 'render'
+                // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie
+                // 'render'
                 // //yB - zasilajace
                 if (TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_scndpneumatic))
                 {
@@ -720,7 +737,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 // btPneumatic2r.TurnOff();
                 //}
             }
-            //*************************************************************/// koniec wezykow
+            //*************************************************************/// koniec
+            // wezykow
             // uginanie zderzakow
             for (int i = 0; i < 2; i++)
             {
@@ -840,9 +858,9 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 else
                 { // jak jest tylko jeden, to do drugiej kabiny go obracamy
                     smMechanik0->iVisible = (MoverParameters->ActiveCab != 0);
-                    smMechanik0->SetRotate(float3(0, 0, 1), MoverParameters->ActiveCab >= 0 ?
-                                                                0 :
-                                                                180); // obrót wzglêdem osi Z
+                    smMechanik0->SetRotate(
+                        float3(0, 0, 1),
+                        MoverParameters->ActiveCab >= 0 ? 0 : 180); // obrót wzglêdem osi Z
                 }
             if (smMechanik1) // mechanik od strony sprzêgu 1
                 smMechanik1->iVisible = MoverParameters->ActiveCab < 0;
@@ -852,7 +870,8 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // if (ObjSqrDist<80000) ABuModelRoll(); //przechy³ki od 400m
     }
     if (MoverParameters->Battery)
-    { // sygna³y czo³a pociagu //Ra: wyœwietlamy bez ograniczeñ odleg³oœci, by by³y widoczne z
+    { // sygna³y czo³a pociagu //Ra: wyœwietlamy bez
+        // ograniczeñ odleg³oœci, by by³y widoczne z
         // daleka
         if (TestFlag(iLights[0], 1))
         {
@@ -895,14 +914,16 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 // ABu 29.01.05 koniec przeklejenia *************************************
 
 double ABuAcos(const vector3 &calc_temp)
-{ // Odpowiednik funkcji Arccos, bo cos mi tam nie dzialalo.
+{ // Odpowiednik funkcji Arccos, bo cos
+    // mi tam nie dzialalo.
     return atan2(-calc_temp.x, calc_temp.z); // Ra: tak proœciej
 }
 
 TDynamicObject *__fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,
                                                                 TDynamicObject *MyPointer,
                                                                 int &CouplNr)
-{ // zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzêg jest najblizszy
+{ // zwraca wskaznik do obiektu znajdujacego sie na torze
+    // (Track), którego sprzêg jest najblizszy
     // kamerze
     // s³u¿y np. do ³¹czenia i rozpinania sprzêgów
     // WE: Track      - tor, na ktorym odbywa sie poszukiwanie
@@ -929,7 +950,8 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,
             else // jeœli (CouplNr) inne niz -2, szukamy sprzêgu
             { // wektor [kamera-sprzeg0], potem [kamera-sprzeg1]
                 // Powinno byc wyliczone, ale nie zaszkodzi drugi raz:
-                //(bo co, jesli nie wykonuje sie obrotow wozkow?) - Ra: ale zawsze s¹ liczone
+                //(bo co, jesli nie wykonuje sie obrotow wozkow?) - Ra: ale zawsze s¹
+                // liczone
                 // wspó³rzêdne sprzêgów
                 // Track->Dynamics[i]->modelRot.z=ABuAcos(Track->Dynamics[i]->Axle0.pPosition-Track->Dynamics[i]->Axle1.pPosition);
                 // poz=Track->Dynamics[i]->vPosition; //pozycja œrodka pojazdu
@@ -963,7 +985,8 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,
 
 TDynamicObject *__fastcall TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir,
                                                                 double ScanDist, int &CouplNr)
-{ // skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
+{ // skanowanie toru w poszukiwaniu obiektu najblizszego
+    // kamerze
     // double MyScanDir=ScanDir;  //Moja orientacja na torze.  //Ra: nie u¿ywane
     if (ABuGetDirection() < 0)
         ScanDir = -ScanDir;
@@ -1018,18 +1041,21 @@ TDynamicObject *__fastcall TDynamicObject::ABuScanNearestObject(TTrack *Track, d
 
 // ABu 01.11.04 poczatek wyliczania przechylow pudla **********************
 void TDynamicObject::ABuModelRoll()
-{ // ustawienie przechy³ki pojazdu i jego zawartoœci
+{ // ustawienie przechy³ki pojazdu i jego
+    // zawartoœci
     // Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
 }
 
 // ABu 06.05.04 poczatek wyliczania obrotow wozkow **********************
 
 void TDynamicObject::ABuBogies()
-{ // Obracanie wozkow na zakretach. Na razie uwzglêdnia tylko zakrêty,
+{ // Obracanie wozkow na zakretach. Na razie
+    // uwzglêdnia tylko zakrêty,
     // bez zadnych gorek i innych przeszkod.
     if ((smBogie[0] != NULL) && (smBogie[1] != NULL))
     {
-        // modelRot.z=ABuAcos(Axle0.pPosition-Axle1.pPosition); //k¹t obrotu pojazdu [rad]
+        // modelRot.z=ABuAcos(Axle0.pPosition-Axle1.pPosition); //k¹t obrotu pojazdu
+        // [rad]
         // bogieRot[0].z=ABuAcos(Axle0.pPosition-Axle3.pPosition);
         bogieRot[0].z = Axle0.vAngles.z;
         bogieRot[0] = RadToDeg(modelRot - bogieRot[0]); // mno¿enie wektora przez sta³¹
@@ -1044,7 +1070,8 @@ void TDynamicObject::ABuBogies()
 
 // ABu 16.03.03 sledzenie toru przed obiektem: **************************
 void TDynamicObject::ABuCheckMyTrack()
-{ // Funkcja przypisujaca obiekt prawidlowej tablicy Dynamics,
+{ // Funkcja przypisujaca obiekt
+    // prawidlowej tablicy Dynamics,
     // bo gdzies jest jakis blad i wszystkie obiekty z danego
     // pociagu na poczatku stawiane sa na jednym torze i wpisywane
     // do jednej tablicy. Wykonuje sie tylko raz - po to 'ABuChecked'
@@ -1067,8 +1094,10 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int Scan
 
     // WE: Track      - tor, na ktorym odbywa sie poszukiwanie,
     //    MyPointer  - wskaznik do obiektu szukajacego. //Ra: zamieni³em na "this"
-    //    ScanDir    - kierunek szukania na torze (+1:w stronê Point2, -1:w stronê Point1)
-    //    MyScanDir  - kierunek szukania obiektu szukajacego (na jego torze); Ra: nie potrzebne
+    //    ScanDir    - kierunek szukania na torze (+1:w stronê Point2, -1:w stronê
+    //    Point1)
+    //    MyScanDir  - kierunek szukania obiektu szukajacego (na jego torze); Ra:
+    //    nie potrzebne
     //    MyCouplFound - nr sprzegu obiektu szukajacego; Ra: nie potrzebne
 
     // WY: wskaznik do znalezionego obiektu.
@@ -1077,8 +1106,8 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int Scan
     { // sens szukania na tym torze jest tylko, gdy s¹ na nim pojazdy
         double ObjTranslation; // pozycja najblizszego obiektu na torze
         double MyTranslation; // pozycja szukaj¹cego na torze
-        double MinDist =
-            Track->Length(); // najmniejsza znaleziona odlegloœæ (zaczynamy od d³ugoœci toru)
+        double MinDist = Track->Length(); // najmniejsza znaleziona odlegloœæ
+        // (zaczynamy od d³ugoœci toru)
         double TestDist; // robocza odleg³oœæ od kolejnych pojazdów na danym odcinku
         int iMinDist = -1; // indeks wykrytego obiektu
         // if (Track->iNumDynamics>1)
@@ -1099,12 +1128,14 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int Scan
                     TestDist = (Track->Dynamics[i]->RaTranslationGet()) -
                                MyTranslation; // odleg³og³oœæ tamtego od szukaj¹cego
                     if ((TestDist > 0) && (TestDist <= MinDist))
-                    { // gdy jest po w³aœciwej stronie i bli¿ej ni¿ jakiœ wczeœniejszy
+                    { // gdy jest po w³aœciwej stronie i bli¿ej
+                        // ni¿ jakiœ wczeœniejszy
                         CouplFound = (Track->Dynamics[i]->RaDirectionGet() > 0) ?
                                          1 :
                                          0; // to, bo (ScanDir>=0)
                         if (Track->iCategoryFlag & 254) // trajektoria innego typu ni¿ tor kolejowy
-                        { // dla torów nie ma sensu tego sprawdzaæ, rzadko co jedzie po jednej
+                        { // dla torów nie ma sensu tego sprawdzaæ, rzadko co jedzie po
+                            // jednej
                             // szynie i siê mija
                             // Ra: mijanie samochodów wcale nie jest proste
                             // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
@@ -1112,18 +1143,21 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int Scan
                             // w/m siebie tak, ze nie zachodza na siebie i wtedy sie mijaja).
                             double RelOffsetH; // wzajemna odleg³oœæ poprzeczna
                             if (CouplFound) // my na tym torze byœmy byli w kierunku Point2
-                                // dla CouplFound=1 s¹ zwroty zgodne - istotna ró¿nica przesuniêæ
+                                // dla CouplFound=1 s¹ zwroty zgodne - istotna ró¿nica
+                                // przesuniêæ
                                 RelOffsetH = (MoverParameters->OffsetTrackH -
                                               Track->Dynamics[i]->MoverParameters->OffsetTrackH);
                             else
-                                // dla CouplFound=0 s¹ zwroty przeciwne - przesuniêcia sumuj¹ siê
+                                // dla CouplFound=0 s¹ zwroty przeciwne - przesuniêcia sumuj¹
+                                // siê
                                 RelOffsetH = (MoverParameters->OffsetTrackH +
                                               Track->Dynamics[i]->MoverParameters->OffsetTrackH);
                             if (RelOffsetH < 0)
                                 RelOffsetH = -RelOffsetH;
                             if (RelOffsetH + RelOffsetH >
                                 MoverParameters->Dim.W + Track->Dynamics[i]->MoverParameters->Dim.W)
-                                continue; // odleg³oœæ wiêksza od po³owy sumy szerokoœci - kolizji
+                                continue; // odleg³oœæ wiêksza od po³owy sumy szerokoœci -
+                            // kolizji
                             // nie bêdzie
                             // jeœli zahaczenie jest niewielkie, a jest miejsce na poboczu, to
                             // zjechaæ na pobocze
@@ -1140,17 +1174,17 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int Scan
             {
                 if (Track->Dynamics[i] != this)
                 {
-                    TestDist =
-                        MyTranslation -
-                        (Track->Dynamics[i]
-                             ->RaTranslationGet()); //???-przesuniêcie wózka wzglêdem Point1 toru
+                    TestDist = MyTranslation -
+                               (Track->Dynamics[i]->RaTranslationGet()); //???-przesuniêcie wózka
+                    // wzglêdem Point1 toru
                     if ((TestDist > 0) && (TestDist < MinDist))
                     {
                         CouplFound = (Track->Dynamics[i]->RaDirectionGet() > 0) ?
                                          0 :
                                          1; // odwrotnie, bo (ScanDir<0)
                         if (Track->iCategoryFlag & 254) // trajektoria innego typu ni¿ tor kolejowy
-                        { // dla torów nie ma sensu tego sprawdzaæ, rzadko co jedzie po jednej
+                        { // dla torów nie ma sensu tego sprawdzaæ, rzadko co jedzie po
+                            // jednej
                             // szynie i siê mija
                             // Ra: mijanie samochodów wcale nie jest proste
                             // Przesuniêcie wzglêdne pojazdów. Wyznaczane, ¿eby sprawdziæ,
@@ -1158,18 +1192,21 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int Scan
                             // w/m siebie tak, ¿e nie zachodz¹ na siebie i wtedy sie mijaj¹).
                             double RelOffsetH; // wzajemna odleg³oœæ poprzeczna
                             if (CouplFound) // my na tym torze byœmy byli w kierunku Point1
-                                // dla CouplFound=1 s¹ zwroty zgodne - istotna ró¿nica przesuniêæ
+                                // dla CouplFound=1 s¹ zwroty zgodne - istotna ró¿nica
+                                // przesuniêæ
                                 RelOffsetH = (MoverParameters->OffsetTrackH -
                                               Track->Dynamics[i]->MoverParameters->OffsetTrackH);
                             else
-                                // dla CouplFound=0 s¹ zwroty przeciwne - przesuniêcia sumuj¹ siê
+                                // dla CouplFound=0 s¹ zwroty przeciwne - przesuniêcia sumuj¹
+                                // siê
                                 RelOffsetH = (MoverParameters->OffsetTrackH +
                                               Track->Dynamics[i]->MoverParameters->OffsetTrackH);
                             if (RelOffsetH < 0)
                                 RelOffsetH = -RelOffsetH;
                             if (RelOffsetH + RelOffsetH >
                                 MoverParameters->Dim.W + Track->Dynamics[i]->MoverParameters->Dim.W)
-                                continue; // odleg³oœæ wiêksza od po³owy sumy szerokoœci - kolizji
+                                continue; // odleg³oœæ wiêksza od po³owy sumy szerokoœci -
+                            // kolizji
                             // nie bêdzie
                         }
                         iMinDist = i; // potencjalna kolizja
@@ -1178,16 +1215,20 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int Scan
                 }
             }
         }
-        dist += MinDist; // doliczenie odleg³oœci przeszkody albo d³ugoœci odcinka do przeskanowanej
+        dist += MinDist; // doliczenie odleg³oœci przeszkody albo d³ugoœci odcinka
+        // do przeskanowanej
         // odleg³oœci
         return (iMinDist >= 0) ? Track->Dynamics[iMinDist] : NULL;
     }
-    dist += Track->Length(); // doliczenie d³ugoœci odcinka do przeskanowanej odleg³oœci
+    dist += Track->Length(); // doliczenie d³ugoœci odcinka do przeskanowanej
+    // odleg³oœci
     return NULL; // nie ma pojazdów na torze, to jest NULL
 }
 
 int TDynamicObject::DettachStatus(int dir)
-{ // sprawdzenie odleg³oœci sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
+{ // sprawdzenie odleg³oœci sprzêgów
+    // rzeczywistych od strony (dir):
+    // 0=przód,1=ty³
     // Ra: dziwne, ¿e ta funkcja nie jest u¿ywana
     if (!MoverParameters->Couplers[dir].CouplingFlag)
         return 0; // jeœli nic nie pod³¹czone, to jest OK
@@ -1195,10 +1236,12 @@ int TDynamicObject::DettachStatus(int dir)
 }
 
 int TDynamicObject::Dettach(int dir)
-{ // roz³¹czenie sprzêgów rzeczywistych od strony (dir): 0=przód,1=ty³
+{ // roz³¹czenie sprzêgów rzeczywistych od
+    // strony (dir): 0=przód,1=ty³
     // zwraca maskê bitow¹ aktualnych sprzegów (0 jeœli roz³¹czony)
     if (ctOwner)
-    { // jeœli pojazd ma przypisany obiekt nadzoruj¹cy sk³ad, to póki s¹ wskaŸniki
+    { // jeœli pojazd ma przypisany obiekt nadzoruj¹cy sk³ad, to póki
+        // s¹ wskaŸniki
         TDynamicObject *d = this;
         while (d)
         {
@@ -1219,7 +1262,8 @@ int TDynamicObject::Dettach(int dir)
 }
 
 void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir)
-{ // funkcja roz³¹czajaca pod³¹czone sprzêgi, jeœli odleg³oœæ przekracza (MinDist)
+{ // funkcja roz³¹czajaca pod³¹czone sprzêgi,
+    // jeœli odleg³oœæ przekracza (MinDist)
     // MinDist - dystans minimalny, dla ktorego mozna roz³¹czaæ
     if (MyScanDir > 0)
     {
@@ -1230,7 +1274,8 @@ void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir)
             {
                 if ((PrevConnectedNo ? PrevConnected->NextConnected :
                                        PrevConnected->PrevConnected) == this)
-                { // Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas pod³¹czony (mo¿e jechaæ w
+                { // Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas
+                    // pod³¹czony (mo¿e jechaæ w
                     // innym kierunku)
                     PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected = NULL;
                     if (PrevConnectedNo == 0)
@@ -1260,7 +1305,8 @@ void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir)
             {
                 if ((NextConnectedNo ? NextConnected->NextConnected :
                                        NextConnected->PrevConnected) == this)
-                { // Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas pod³¹czony (mo¿e jechaæ w
+                { // Ra: nie roz³¹czamy znalezionego, je¿eli nie do nas
+                    // pod³¹czony (mo¿e jechaæ w
                     // innym kierunku)
                     NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected = NULL;
                     if (NextConnectedNo == 0)
@@ -1284,23 +1330,25 @@ void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir)
 
 void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
 { // skanowanie toru w poszukiwaniu koliduj¹cych pojazdów
-    // ScanDir - okreœla kierunek poszukiwania zale¿nie od zwrotu prêdkoœci pojazdu
+    // ScanDir - okreœla kierunek poszukiwania zale¿nie od zwrotu prêdkoœci
+    // pojazdu
     // ScanDir=1 - od strony Coupler0, ScanDir=-1 - od strony Coupler1
-    int MyScanDir =
-        ScanDir; // zapamiêtanie kierunku poszukiwañ na torze pocz¹tkowym, wzglêdem sprzêgów
+    int MyScanDir = ScanDir; // zapamiêtanie kierunku poszukiwañ na torze
+    // pocz¹tkowym, wzglêdem sprzêgów
     TTrackFollower *FirstAxle = (MyScanDir > 0 ? &Axle0 : &Axle1); // mo¿na by to trzymaæ w trainset
-    TTrack *Track =
-        FirstAxle->GetTrack(); // tor na którym "stoi" skrajny wózek (mo¿e byæ inny ni¿ tor pojazdu)
+    TTrack *Track = FirstAxle->GetTrack(); // tor na którym "stoi" skrajny wózek
+    // (mo¿e byæ inny ni¿ tor pojazdu)
     if (FirstAxle->GetDirection() < 0) // czy oœ jest ustawiona w stronê Point1?
-        ScanDir = -ScanDir; // jeœli tak, to kierunek szukania bêdzie przeciwny (teraz wzglêdem
+        ScanDir = -ScanDir; // jeœli tak, to kierunek szukania bêdzie przeciwny
+    // (teraz wzglêdem
     // toru)
     Byte MyCouplFound; // numer sprzêgu do pod³¹czenia w obiekcie szukajacym
     MyCouplFound = (MyScanDir < 0) ? 1 : 0;
     Byte CouplFound; // numer sprzêgu w znalezionym obiekcie (znaleziony wype³ni)
     TDynamicObject *FoundedObj; // znaleziony obiekt
     double ActDist = 0; // przeskanowana odlegloœæ; odleg³oœæ do zawalidrogi
-    FoundedObj =
-        ABuFindObject(Track, ScanDir, CouplFound, ActDist); // zaczynamy szukaæ na tym samym torze
+    FoundedObj = ABuFindObject(Track, ScanDir, CouplFound,
+                               ActDist); // zaczynamy szukaæ na tym samym torze
 
     /*
      if (FoundedObj) //jak coœ znajdzie, to œledzimy
@@ -1358,7 +1406,8 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
             }
             if (Track)
             { // jesli jest kolejny odcinek toru
-                // CurrDist=Track->Length(); //doliczenie tego toru do przejrzanego dystandu
+                // CurrDist=Track->Length(); //doliczenie tego toru do przejrzanego
+                // dystandu
                 FoundedObj = ABuFindObject(Track, ScanDir, CouplFound,
                                            ActDist); // przejrzenie pojazdów tego toru
                 if (FoundedObj)
@@ -1380,10 +1429,12 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
             CouplersDettach(1.0, MyScanDir); // od³¹czamy, jeœli dalej ni¿ metr
     // i ³¹czenie sprzêgiem wirtualnym
     if (FoundedObj)
-    { // siebie mo¿na bezpiecznie pod³¹czyæ jednostronnie do znalezionego
+    { // siebie mo¿na bezpiecznie pod³¹czyæ jednostronnie do
+        // znalezionego
         MoverParameters->Attach(MyCouplFound, CouplFound, FoundedObj->MoverParameters,
                                 ctrain_virtual);
-        // MoverParameters->Couplers[MyCouplFound].Render=false; //wirtualnego nie renderujemy
+        // MoverParameters->Couplers[MyCouplFound].Render=false; //wirtualnego nie
+        // renderujemy
         if (MyCouplFound == 0)
         {
             PrevConnected = FoundedObj; // pojazd od strony sprzêgu 0
@@ -1395,7 +1446,8 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
             NextConnectedNo = CouplFound;
         }
         if (FoundedObj->MoverParameters->Couplers[CouplFound].CouplingFlag == ctrain_virtual)
-        { // Ra: wpinamy siê wirtualnym tylko jeœli znaleziony ma wirtualny sprzêg
+        { // Ra: wpinamy siê wirtualnym tylko jeœli znaleziony
+            // ma wirtualny sprzêg
             FoundedObj->MoverParameters->Attach(CouplFound, MyCouplFound, this->MoverParameters,
                                                 ctrain_virtual);
             if (CouplFound == 0) // jeœli widoczny sprzêg 0 znalezionego
@@ -1423,7 +1475,8 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
                 FoundedObj->NextConnectedNo = MyCouplFound;
             }
         }
-        // Ra: jeœli dwa samochody siê mijaj¹ na odcinku przed zawrotk¹, to odleg³oœæ miêdzy nimi
+        // Ra: jeœli dwa samochody siê mijaj¹ na odcinku przed zawrotk¹, to
+        // odleg³oœæ miêdzy nimi
         // nie mo¿e byæ liczona w linii prostej!
         fTrackBlock = MoverParameters->Couplers[MyCouplFound]
                           .CoupleDist; // odleg³oœæ do najbli¿szego pojazdu w linii prostej
@@ -1431,7 +1484,8 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
             if (ActDist > MoverParameters->Dim.L +
                               FoundedObj->MoverParameters->Dim
                                   .L) // przeskanowana odleg³oœæ wiêksza od d³ugoœci pojazdów
-                // else if (ActDist<ScanDist) //dla samochodów musi byæ uwzglêdniona droga do
+                // else if (ActDist<ScanDist) //dla samochodów musi byæ uwzglêdniona
+                // droga do
                 // zawrócenia
                 fTrackBlock = ActDist; // ta odleg³oœæ jest wiecej warta
         // if (fTrackBlock<500.0)
@@ -1514,11 +1568,14 @@ TDynamicObject::TDynamicObject()
     eng_turbo = 0;
     cp1 = cp2 = sp1 = sp2 = 0;
     iDirection = 1; // stoi w kierunku tradycyjnym (0, gdy jest odwrócony)
-    iAxleFirst = 0; // numer pierwszej osi w kierunku ruchu (prze³¹czenie nastêpuje, gdy osie sa na
+    iAxleFirst = 0; // numer pierwszej osi w kierunku ruchu (prze³¹czenie
+    // nastêpuje, gdy osie sa na
     // tym samym torze)
-    iInventory = 0; // flagi bitowe posiadanych submodeli (zaktualizuje siê po wczytaniu MMD)
+    iInventory = 0; // flagi bitowe posiadanych submodeli (zaktualizuje siê po
+    // wczytaniu MMD)
     RaLightsSet(0, 0); // pocz¹tkowe zerowanie stanu œwiate³
-    // Ra: domyœlne iloœci animacji dla zgodnoœci wstecz (gdy brak iloœci podanych w MMD)
+    // Ra: domyœlne iloœci animacji dla zgodnoœci wstecz (gdy brak iloœci podanych
+    // w MMD)
     iAnimType[ANIM_WHEELS] = 8; // 0-osie (8)
     iAnimType[ANIM_DOORS] = 8; // 1-drzwi (8)
     iAnimType[ANIM_LEVERS] = 4; // 2-wahacze (4) - np. nogi konia
@@ -1539,18 +1596,22 @@ TDynamicObject::TDynamicObject()
     smWiper = NULL; // wycieraczka (poniek¹d te¿ wajcha)
     fScanDist = 300.0; // odleg³oœæ skanowania, zwiêkszana w trybie ³¹czenia
     ctOwner = NULL; // na pocz¹tek niczyj
-    iOverheadMask = 0; // maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y
+    iOverheadMask = 0; // maska przydzielana przez AI pojazdom posiadaj¹cym
+    // pantograf, aby wymusza³y
     // jazdê bezpr¹dow¹
-    tmpTraction.TractionVoltage =
-        0; // Ra 2F1H: prowizorka, trzeba przechowaæ napiêcie, ¿eby nie wywala³o WS pod izolatorem
+    tmpTraction.TractionVoltage = 0; // Ra 2F1H: prowizorka, trzeba przechowaæ
+    // napiêcie, ¿eby nie wywala³o WS pod
+    // izolatorem
     fAdjustment = 0.0; // korekcja odleg³oœci pomiêdzy wózkami (np. na ³ukach)
 }
 
 TDynamicObject::~TDynamicObject()
-{ // McZapkie-250302 - zamykanie logowania parametrow fizycznych
+{ // McZapkie-250302 - zamykanie logowania
+    // parametrow fizycznych
     SafeDelete(Mechanik);
     SafeDelete(MoverParameters);
-    // Ra: wy³¹czanie dŸwiêków powinno byæ dodane w ich destruktorach, ale siê sypie
+    // Ra: wy³¹czanie dŸwiêków powinno byæ dodane w ich destruktorach, ale siê
+    // sypie
     /* to te¿ siê sypie
      for (int i=0;i<MaxAxles;++i)
       rsStukot[i].Stop();   //dzwieki poszczegolnych osi
@@ -1568,21 +1629,22 @@ TDynamicObject::~TDynamicObject()
     delete[] pAnimated; // lista animowanych submodeli
 }
 
-double TDynamicObject::Init(
-    AnsiString Name, // nazwa pojazdu, np. "EU07-424"
-    AnsiString BaseDir, // z którego katalogu wczytany, np. "PKP/EU07"
-    AnsiString asReplacableSkin, // nazwa wymiennej tekstury
-    AnsiString Type_Name, // nazwa CHK/MMD, np. "303E"
-    TTrack *Track, // tor pocz¹tkowy wstwawienia (pocz¹tek sk³adu)
-    double fDist, // dystans wzglêdem punktu 1
-    AnsiString DriverType, // typ obsady
-    double fVel, // prêdkoœæ pocz¹tkowa
-    AnsiString TrainName, // nazwa sk³adu, np. "PE2307" albo Vmax, jeœli pliku nie ma a s¹ cyfry
-    float Load, // iloœæ ³adunku
-    AnsiString LoadType, // nazwa ³adunku
-    bool Reversed, // true, jeœli ma staæ odwrotnie w sk³adzie
-    AnsiString MoreParams // dodatkowe parametry wczytywane w postaci tekstowej
-    )
+double
+TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
+                     AnsiString BaseDir, // z którego katalogu wczytany, np. "PKP/EU07"
+                     AnsiString asReplacableSkin, // nazwa wymiennej tekstury
+                     AnsiString Type_Name, // nazwa CHK/MMD, np. "303E"
+                     TTrack *Track, // tor pocz¹tkowy wstwawienia (pocz¹tek sk³adu)
+                     double fDist, // dystans wzglêdem punktu 1
+                     AnsiString DriverType, // typ obsady
+                     double fVel, // prêdkoœæ pocz¹tkowa
+                     AnsiString TrainName, // nazwa sk³adu, np. "PE2307" albo Vmax, jeœli pliku
+                     // nie ma a s¹ cyfry
+                     float Load, // iloœæ ³adunku
+                     AnsiString LoadType, // nazwa ³adunku
+                     bool Reversed, // true, jeœli ma staæ odwrotnie w sk³adzie
+                     AnsiString MoreParams // dodatkowe parametry wczytywane w postaci tekstowej
+                     )
 { // Ustawienie pocz¹tkowe pojazdu
     iDirection = (Reversed ? 0 : 1); // Ra: 0, jeœli ma byæ wstawiony jako obrócony ty³em
     asBaseDir = "dynamic\\" + BaseDir + "\\"; // McZapkie-310302
@@ -1593,7 +1655,8 @@ double TDynamicObject::Init(
         DriverType = "1"; // steruj¹cy kabin¹ +1
     else if (DriverType == "reardriver")
         DriverType = "2"; // steruj¹cy kabin¹ -1
-    // else if (DriverType=="connected") DriverType="c"; //tego trzeba siê pozbyæ na rzecz
+    // else if (DriverType=="connected") DriverType="c"; //tego trzeba siê pozbyæ
+    // na rzecz
     // ukrotnienia
     else if (DriverType == "passenger")
         DriverType = "p"; // to do przemyœlenia
@@ -1614,7 +1677,8 @@ double TDynamicObject::Init(
     /* to nie ma uzasadnienia
      else
      {//obsada nie rozpoznana
-      Cab=0;  //McZapkie-010303: w przyszlosci dac tez pomocnika, palacza, konduktora itp.
+      Cab=0;  //McZapkie-010303: w przyszlosci dac tez pomocnika, palacza,
+     konduktora itp.
       Error("Unknown DriverType description: "+DriverType);
       DriverType="nobody";
      }
@@ -1622,8 +1686,8 @@ double TDynamicObject::Init(
     // utworzenie parametrów fizyki
     MoverParameters =
         new TMoverParameters(iDirection ? fVel : -fVel, Type_Name, asName, Load, LoadType, Cab);
-    iLights = MoverParameters
-                  ->iLights; // wskaŸnik na stan w³asnych œwiate³ (zmienimy dla rozrz¹dczych EZT)
+    iLights = MoverParameters->iLights; // wskaŸnik na stan w³asnych œwiate³
+    // (zmienimy dla rozrz¹dczych EZT)
     // McZapkie: TypeName musi byc nazw¹ CHK/MMD pojazdu
     if (!MoverParameters->LoadChkFile(asBaseDir))
     { // jak wczytanie CHK siê nie uda, to b³¹d
@@ -1635,19 +1699,21 @@ double TDynamicObject::Init(
     }
     bool driveractive = (fVel != 0.0); // jeœli prêdkoœæ niezerowa, to aktywujemy ruch
     if (!MoverParameters->CheckLocomotiveParameters(
-            driveractive, (fVel > 0 ? 1 : -1) * Cab *
-                              (iDirection ? 1 : -1))) // jak jedzie lub obsadzony to gotowy do drogi
+            driveractive,
+            (fVel > 0 ? 1 : -1) * Cab *
+                (iDirection ? 1 : -1))) // jak jedzie lub obsadzony to gotowy do drogi
     {
         Error("Parameters mismatch: dynamic object " + asName + " from\n" + BaseDir + "\\" +
               Type_Name);
         return 0.0; // zerowa d³ugoœæ to brak pojazdu
     }
     MoverParameters->BrakeLevelSet(
-        MoverParameters
-            ->BrakeCtrlPos); // poprawienie hamulca po ewentualnym przestawieniu przez Pascal
+        MoverParameters->BrakeCtrlPos); // poprawienie hamulca po ewentualnym
+    // przestawieniu przez Pascal
 
     // dodatkowe parametry yB
-    MoreParams += "."; // wykonuje o jedn¹ iteracjê za ma³o, wiêc trzeba mu dodaæ kropkê na koniec
+    MoreParams += "."; // wykonuje o jedn¹ iteracjê za ma³o, wiêc trzeba mu dodaæ
+    // kropkê na koniec
     int kropka = MoreParams.Pos("."); // znajdŸ kropke
     AnsiString ActPar; // na parametry
     while (kropka > 0) // jesli sa kropki jeszcze
@@ -1698,7 +1764,8 @@ double TDynamicObject::Init(
             }
             if (ActPar.Pos("Q") > 0) // oprozniony
             {
-                //    MoverParameters->Hamulec->ForceEmptiness(); //TODO: sprawdzic, dlaczego
+                //    MoverParameters->Hamulec->ForceEmptiness(); //TODO: sprawdzic,
+                //    dlaczego
                 //    pojawia sie blad przy uzyciu tej linijki w lokomotywie
                 MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 MoverParameters->Pipe->CreatePress(0.0);
@@ -1785,17 +1852,20 @@ double TDynamicObject::Init(
         if (Track->fTrackWidth < 3.5) // jeœli droga w¹ska
             MoverParameters->OffsetTrackH = 0.0; // to stawiamy na œrodku, niezale¿nie od stanu
         // ruchu
-        else if (driveractive) // od 3.5m do 8.0m jedzie po œrodku pasa, dla szerszych w odleg³oœci
+        else if (driveractive) // od 3.5m do 8.0m jedzie po œrodku pasa, dla
+            // szerszych w odleg³oœci
             // 1.5m
             MoverParameters->OffsetTrackH =
                 Track->fTrackWidth <= 8.0 ? -Track->fTrackWidth * 0.25 : -1.5;
-        else // jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z poboczem, ale nie z
+        else // jak stoi, to ko³em na poboczu i pobieramy szerokoœæ razem z
+            // poboczem, ale nie z
             // chodnikiem
             MoverParameters->OffsetTrackH =
                 -0.5 * (Track->WidthTotal() - MoverParameters->Dim.W) + 0.05;
         iHornWarning = 0; // nie bêdzie tr¹bienia po podaniu zezwolenia na jazdê
         if (fDist < 0.0) //-0.5*MoverParameters->Dim.L) //jeœli jest przesuniêcie do ty³u
-            if (!Track->CurrentPrev()) // a nie ma tam odcinka i trzeba by coœ wygenerowaæ
+            if (!Track->CurrentPrev()) // a nie ma tam odcinka i trzeba by coœ
+                // wygenerowaæ
                 fDist = -fDist; // to traktujemy, jakby przesuniêcie by³o w drug¹ stronê
     }
     // w wagonie tez niech jedzie
@@ -1811,10 +1881,12 @@ double TDynamicObject::Init(
             else // w przeciwnym razie trzeba w³¹czyæ pokazywanie kabiny
                 bDisplayCab = true;
         }
-        // McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
+        // McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym
+        // jest sceneria
         if (DriverType.Pos("1") || DriverType.Pos("2"))
         { // McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
-            // MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej kabiny
+            // MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej
+            // kabiny
             // (rozrz¹d)
             Mechanik = new TController(Controller, this, Aggressive);
             if (TrainName.IsEmpty()) // jeœli nie w sk³adzie
@@ -1829,7 +1901,8 @@ double TDynamicObject::Init(
         }
         else if (DriverType == "p")
         { // obserwator w charakterze pasa¿era
-            // Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem bezpieczeñstwa
+            // Ra: to jest niebezpieczne, bo w razie co bêdzie pomaga³ hamulcem
+            // bezpieczeñstwa
             Mechanik = new TController(Controller, this, Easyman, false);
         }
     }
@@ -1909,19 +1982,22 @@ double TDynamicObject::Init(
     if (fAxleDist > MoverParameters->Dim.L - 0.2) // nie mog¹ byæ za daleko
         fAxleDist = MoverParameters->Dim.L - 0.2; // bo bêdzie "walenie w mur"
     double fAxleDistHalf = fAxleDist * 0.5;
-    // WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at "+AnsiString(fDist));
+    // WriteLog("Dynamic "+Type_Name+" of length "+MoverParameters->Dim.L+" at
+    // "+AnsiString(fDist));
     // if (Cab) //jeœli ma obsadê - zgodnoœæ wstecz, jeœli tor startowy ma Event0
     // if (Track->Event0) //jeœli tor ma Event0
-    //  if (fDist>=0.0) //jeœli jeœli w starych sceneriach pocz¹tek sk³adu by³by wysuniêty na ten
+    //  if (fDist>=0.0) //jeœli jeœli w starych sceneriach pocz¹tek sk³adu by³by
+    //  wysuniêty na ten
     //  tor
     //   if (fDist<=0.5*MoverParameters->Dim.L+0.2) //ale nie jest wysuniêty
     //    fDist+=0.5*MoverParameters->Dim.L+0.2; //wysun¹æ go na ten tor
     // przesuwanie pojazdu tak, aby jego pocz¹tek by³ we wskazanym miejcu
-    fDist -= 0.5 *
-             MoverParameters->Dim
-                 .L; // dodajemy pó³ d³ugoœci pojazdu, bo ustawiamy jego œrodek (zliczanie na minus)
+    fDist -= 0.5 * MoverParameters->Dim.L; // dodajemy pó³ d³ugoœci pojazdu, bo
+    // ustawiamy jego œrodek (zliczanie na
+    // minus)
     switch (iNumAxles)
-    { // Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem przesuwane
+    { // Ra: pojazdy wstawiane s¹ na tor pocz¹tkowy, a potem
+    // przesuwane
     case 2: // ustawianie osi na torze
         Axle0.Init(Track, this, iDirection ? 1 : -1);
         Axle0.Move((iDirection ? fDist : -fDist) + fAxleDistHalf, false);
@@ -1946,9 +2022,11 @@ double TDynamicObject::Init(
         // Axle3.Move((iDirection?fDist:-fDist)+(fAxleDistHalf-MoverParameters->ADist*0.5),false);
         break;
     }
-    Move(0.0001); // potrzebne do wyliczenia aktualnej pozycji; nie mo¿e byæ zero, bo nie przeliczy
+    Move(0.0001); // potrzebne do wyliczenia aktualnej pozycji; nie mo¿e byæ zero,
+    // bo nie przeliczy
     // pozycji
-    // teraz jeszcze trzeba przypisaæ pojazdy do nowego toru, bo przesuwanie pocz¹tkowe osi nie
+    // teraz jeszcze trzeba przypisaæ pojazdy do nowego toru, bo przesuwanie
+    // pocz¹tkowe osi nie
     // zrobi³o tego
     ABuCheckMyTrack(); // zmiana toru na ten, co oœ Axle0 (oœ z przodu)
     TLocation loc; // Ra: ustawienie pozycji do obliczania sprzêgów
@@ -1992,16 +2070,21 @@ void TDynamicObject::FastMove(double fDistance)
 }
 
 void TDynamicObject::Move(double fDistance)
-{ // przesuwanie pojazdu po trajektorii polega na przesuwaniu poszczególnych osi
-    // Ra: wartoœæ prêdkoœci 2km/h ma ograniczyæ aktywacjê eventów w przypadku drgañ
+{ // przesuwanie pojazdu po
+    // trajektorii polega na
+    // przesuwaniu poszczególnych osi
+    // Ra: wartoœæ prêdkoœci 2km/h ma ograniczyæ aktywacjê eventów w przypadku
+    // drgañ
     if (Axle0.GetTrack() == Axle1.GetTrack()) // przed przesuniêciem
-    { // powi¹zanie pojazdu z osi¹ mo¿na zmieniæ tylko wtedy, gdy skrajne osie s¹ na tym samym torze
+    { // powi¹zanie pojazdu z osi¹ mo¿na zmieniæ tylko wtedy, gdy skrajne osie s¹
+        // na tym samym torze
         if (MoverParameters->Vel >
             2) //|[km/h]| nie ma sensu zmiana osi, jesli pojazd drga na postoju
             iAxleFirst = (MoverParameters->V >= 0.0) ?
                              1 :
                              0; //[m/s] ?1:0 - aktywna druga oœ w kierunku jazdy
-        // aktualnie eventy aktywuje druga oœ, ¿eby AI nie wy³¹cza³o sobie semafora za szybko
+        // aktualnie eventy aktywuje druga oœ, ¿eby AI nie wy³¹cza³o sobie semafora
+        // za szybko
     }
     if (fDistance > 0.0)
     { // gdy ruch w stronê sprzêgu 0, doliczyæ korektê do osi 1
@@ -2022,20 +2105,23 @@ void TDynamicObject::Move(double fDistance)
     { // liczenie pozycji pojazdu tutaj, bo jest u¿ywane w wielu miejscach
         vPosition = 0.5 * (Axle1.pPosition + Axle0.pPosition); //œrodek miêdzy skrajnymi osiami
         vFront = Axle0.pPosition - Axle1.pPosition; // wektor pomiêdzy skrajnymi osiami
-        // Ra 2F1J: to nie jest stabilne (powoduje rzucanie taborem) i wymaga dopracowania
+        // Ra 2F1J: to nie jest stabilne (powoduje rzucanie taborem) i wymaga
+        // dopracowania
         fAdjustment = vFront.Length() - fAxleDist; // na ³uku bêdzie ujemny
-        // if (fabs(fAdjustment)>0.02) //jeœli jest zbyt du¿o, to roz³o¿yæ na kilka przeliczeñ
+        // if (fabs(fAdjustment)>0.02) //jeœli jest zbyt du¿o, to roz³o¿yæ na kilka
+        // przeliczeñ
         // (wygasza drgania?)
-        //{//parê centymetrów trzeba by ju¿ skorygowaæ; te b³êdy mog¹ siê te¿ generowaæ na ostrych
+        //{//parê centymetrów trzeba by ju¿ skorygowaæ; te b³êdy mog¹ siê te¿
+        // generowaæ na ostrych
         //³ukach
         // fAdjustment*=0.5; //w jednym kroku korygowany jest u³amek b³êdu
         //}
         // else
         // fAdjustment=0.0;
         vFront = Normalize(vFront); // kierunek ustawienia pojazdu (wektor jednostkowy)
-        vLeft = Normalize(CrossProduct(
-            vWorldUp,
-            vFront)); // wektor poziomy w lewo, normalizacja potrzebna z powodu pochylenia (vFront)
+        vLeft = Normalize(CrossProduct(vWorldUp, vFront)); // wektor poziomy w lewo,
+        // normalizacja potrzebna z powodu
+        // pochylenia (vFront)
         vUp = CrossProduct(vFront, vLeft); // wektor w górê, bêdzie jednostkowy
         modelRot.z = atan2(-vFront.x, vFront.z); // k¹t obrotu pojazdu [rad]; z ABuBogies()
         double a = ((Axle1.GetRoll() + Axle0.GetRoll())); // suma przechy³ek
@@ -2051,11 +2137,12 @@ void TDynamicObject::Move(double fDistance)
             vLeft = Normalize(CrossProduct(vUp, vFront)); // wektor w lewo
             // vUp=CrossProduct(vFront,vLeft); //wektor w górê
         }
-        mMatrix.Identity(); // to te¿ mo¿na by od razu policzyæ, ale potrzebne jest do wyœwietlania
+        mMatrix.Identity(); // to te¿ mo¿na by od razu policzyæ, ale potrzebne jest
+        // do wyœwietlania
         mMatrix.BasisChange(vLeft, vUp, vFront); // przesuwanie jest jednak rzadziej ni¿
         // renderowanie
-        mMatrix =
-            Inverse(mMatrix); // wyliczenie macierzy dla pojazdu (potrzebna tylko do wyœwietlania?)
+        mMatrix = Inverse(mMatrix); // wyliczenie macierzy dla pojazdu (potrzebna
+        // tylko do wyœwietlania?)
         // if (MoverParameters->CategoryFlag&2)
         { // przesuniêcia s¹ u¿ywane po wyrzuceniu poci¹gu z toru
             vPosition.x += MoverParameters->OffsetTrackH * vLeft.x; // dodanie przesuniêcia w bok
@@ -2083,7 +2170,8 @@ void TDynamicObject::Move(double fDistance)
                 // e_bridge...
                 fShade = 0.0; // standardowe oœwietlenie
             else
-            { // je¿eli te tory maj¹ niestandardowy stopieñ zacienienia (e_canyon, e_tunnel)
+            { // je¿eli te tory maj¹ niestandardowy stopieñ zacienienia
+                // (e_canyon, e_tunnel)
                 if (t0->eEnvironment == t1->eEnvironment)
                 {
                     switch (t0->eEnvironment)
@@ -2103,7 +2191,8 @@ void TDynamicObject::Move(double fDistance)
                         d = t0->fTrackLength - d; // od drugiej strony liczona d³ugoœæ
                     d /= fAxleDist; // rozsataw osi procentowe znajdowanie siê na torze
                     switch (t0->eEnvironment)
-                    { // typ zmiany oœwietlenia - zak³adam, ¿e drugi tor ma e_flat
+                    { // typ zmiany oœwietlenia - zak³adam, ¿e
+                    // drugi tor ma e_flat
                     case e_canyon:
                         fShade = (d * 0.65) + (1.0 - d);
                         break; // zacienienie w kanionie
@@ -2112,7 +2201,8 @@ void TDynamicObject::Move(double fDistance)
                         break; // zacienienie w tunelu
                     }
                     switch (t1->eEnvironment)
-                    { // typ zmiany oœwietlenia - zak³adam, ¿e pierwszy tor ma e_flat
+                    { // typ zmiany oœwietlenia - zak³adam, ¿e
+                    // pierwszy tor ma e_flat
                     case e_canyon:
                         fShade = d + (1.0 - d) * 0.65;
                         break; // zacienienie w kanionie
@@ -2127,15 +2217,19 @@ void TDynamicObject::Move(double fDistance)
 };
 
 void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
-{ // Ra: doczepia Object na koñcu sk³adu (nazwa funkcji mo¿e byæ myl¹ca)
+{ // Ra: doczepia Object na koñcu
+    // sk³adu (nazwa funkcji mo¿e byæ
+    // myl¹ca)
     // Ra: u¿ywane tylko przy wczytywaniu scenerii
     /*
-    //Ra: po wstawieniu pojazdu do scenerii nie mia³ on ustawionej pozycji, teraz ju¿ ma
+    //Ra: po wstawieniu pojazdu do scenerii nie mia³ on ustawionej pozycji, teraz
+    ju¿ ma
     TLocation loc;
     loc.X=-vPosition.x;
     loc.Y=vPosition.z;
     loc.Z=vPosition.y;
-    MoverParameters->Loc=loc; //Ra: do obliczania sprzêgów, na starcie nie s¹ przesuniête
+    MoverParameters->Loc=loc; //Ra: do obliczania sprzêgów, na starcie nie s¹
+    przesuniête
     loc.X=-Object->vPosition.x;
     loc.Y=Object->vPosition.z;
     loc.Z=Object->vPosition.y;
@@ -2168,8 +2262,9 @@ void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
         Object->NextConnected = this; // on ma nas z ty³u
         Object->NextConnectedNo = iDirection;
     }
-    if (MoverParameters->TrainType &
-        dt_EZT) // w przypadku ³¹czenia cz³onów, œwiat³a w rozrz¹dczym zale¿¹ od stanu w silnikowym
+    if (MoverParameters->TrainType & dt_EZT) // w przypadku ³¹czenia cz³onów,
+        // œwiat³a w rozrz¹dczym zale¿¹ od
+        // stanu w silnikowym
         if (MoverParameters->Couplers[iDirection].AllowedFlag &
             ctrain_depot) // gdy sprzêgi ³¹czone warsztatowo (powiedzmy)
             if ((MoverParameters->Power < 1.0) &&
@@ -2210,7 +2305,8 @@ void TDynamicObject::LoadUpdate()
         mdLoad = TModelsManager::GetModel(asLoadName.c_str()); // nowy ³adunek
         Global::asCurrentTexturePath =
             AnsiString(szTexturePath); // z powrotem defaultowa sciezka do tekstur
-        // Ra: w MMD mo¿na by zapisaæ po³o¿enie modelu ³adunku (np. wêgiel) w zale¿noœci od
+        // Ra: w MMD mo¿na by zapisaæ po³o¿enie modelu ³adunku (np. wêgiel) w
+        // zale¿noœci od
         // za³adowania
     }
     else if (MoverParameters->Load == 0)
@@ -2326,9 +2422,11 @@ bool TDynamicObject::Update(double dt, double dt1)
         return false; // a normalnie powinny mieæ bEnabled==false
 
     // Ra: przenios³em - no ju¿ lepiej tu, ni¿ w wyœwietlaniu!
-    // if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
+    // if ((MoverParameters->ConverterFlag==false) &&
+    // (MoverParameters->TrainType!=dt_ET22))
     // Ra: to nie mo¿e tu byæ, bo wy³¹cza sprê¿arkê w rozrz¹dczym EZT!
-    // if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
+    // if
+    // ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
     // MoverParameters->CompressorFlag=false;
     // if (MoverParameters->CompressorPower==2)
     // MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
@@ -2338,12 +2436,16 @@ bool TDynamicObject::Update(double dt, double dt1)
         (MoverParameters->Power > 1.0)) // aby rozrz¹dczy nie opuszcza³ silnikowemu
         if ((MechInside) || (MoverParameters->TrainType == dt_EZT))
         {
-            // if ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
+            // if
+            // ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
             // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
             if (MoverParameters->PantPress < (MoverParameters->TrainType == dt_EZT ? 2.4 : 3.5))
-            { // 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
-                //"Wy³¹czniki ciœnieniowe odbieraków pr¹du wy³¹czaj¹ sterowanie wy³¹cznika szybkiego
-                // oraz uniemo¿liwiaj¹ podniesienie odbieraków pr¹du, gdy w instalacji rozrz¹du
+            { // 3.5 wg
+                // http://www.transportszynowy.pl/eu06-07pneumat.php
+                //"Wy³¹czniki ciœnieniowe odbieraków pr¹du wy³¹czaj¹ sterowanie
+                // wy³¹cznika szybkiego
+                // oraz uniemo¿liwiaj¹ podniesienie odbieraków pr¹du, gdy w instalacji
+                // rozrz¹du
                 // ciœnienie spadnie poni¿ej wartoœci 3,5 bara."
                 // Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT podnosz¹ siê przy 2.5
                 // if (!MoverParameters->PantCompFlag)
@@ -2369,24 +2471,29 @@ bool TDynamicObject::Update(double dt, double dt1)
     // TTrackShape ts;
     // ts.R=MyTrack->fRadius;
     // if (ABuGetDirection()<0) ts.R=-ts.R;
-    //    ts.R=MyTrack->fRadius; //ujemne promienie s¹ ju¿ zamienione przy wczytywaniu
+    //    ts.R=MyTrack->fRadius; //ujemne promienie s¹ ju¿ zamienione przy
+    //    wczytywaniu
     if (Axle0.vAngles.z != Axle1.vAngles.z)
-    { // wyliczenie promienia z obrotów osi - modyfikacjê zg³osi³ youBy
+    { // wyliczenie promienia z obrotów
+        // osi - modyfikacjê zg³osi³ youBy
         ts.R = Axle0.vAngles.z - Axle1.vAngles.z; // ró¿nica mo¿e dawaæ sta³¹ ±M_2PI
         if (ts.R > M_PI)
             ts.R -= M_2PI else if (ts.R < -M_PI) ts.R += M_2PI; // normalizacja
         //     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
         ts.R = -0.5 * MoverParameters->BDist / sin(ts.R * 0.5);
         if ((ts.R > 15000.0) || (ts.R < -15000.0))
-            ts.R = 0.0; // szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy
+            ts.R = 0.0; // szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie
+        // wymagaj¹cy
         // przechy³ki
     }
     else
         ts.R = 0.0;
     // ts.R=ComputeRadius(Axle1.pPosition,Axle2.pPosition,Axle3.pPosition,Axle0.pPosition);
-    // Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze vFront
+    // Ra: sk³adow¹ pochylenia wzd³u¿nego mamy policzon¹ w jednostkowym wektorze
+    // vFront
     ts.Len = 1.0; // Max0R(MoverParameters->BDist,MoverParameters->ADist);
-    ts.dHtrack = -vFront.y; // Axle1.pPosition.y-Axle0.pPosition.y; //wektor miêdzy skrajnymi osiami
+    ts.dHtrack = -vFront.y; // Axle1.pPosition.y-Axle0.pPosition.y; //wektor
+    // miêdzy skrajnymi osiami
     // (!!!odwrotny)
     ts.dHrail = (Axle1.GetRoll() + Axle0.GetRoll()) * 0.5; //œrednia przechy³ka pud³a
     // TTrackParam tp;
@@ -2406,7 +2513,8 @@ bool TDynamicObject::Update(double dt, double dt1)
         MoverParameters->InsideConsist = false;
     }
     // napiecie sieci trakcyjnej
-    // Ra 15-01: przeliczenie poboru pr¹du powinno byæ robione wczeœniej, ¿eby na tym etapie by³y
+    // Ra 15-01: przeliczenie poboru pr¹du powinno byæ robione wczeœniej, ¿eby na
+    // tym etapie by³y
     // znane napiêcia
     // TTractionParam tmpTraction;
     // tmpTraction.TractionVoltage=0;
@@ -2419,8 +2527,9 @@ bool TDynamicObject::Update(double dt, double dt1)
             {
                 v = MoverParameters->PantFrontVolt;
                 if (v == 0.0)
-                    if (MoverParameters->TrainType &
-                        (dt_EZT | dt_ET40 | dt_ET41 | dt_ET42)) // dwucz³ony mog¹ mieæ sprzêg WN
+                    if ((MoverParameters->TrainType & (dt_EZT | dt_ET40 | dt_ET41 | dt_ET42)) &&
+                        MoverParameters->EngineType !=
+                            ElectricInductionMotor) // dwucz³ony mog¹ mieæ sprzêg WN
                         v = MoverParameters->GetTrainsetVoltage(); // ostatnia szansa
             }
             if (v != 0.0)
@@ -2439,20 +2548,24 @@ bool TDynamicObject::Update(double dt, double dt1)
                         {//wspomagacz usuwania problemów z sieci¹
                          if (!Global::iPause)
                          {//Ra: tymczasowa teleportacja do miejsca, gdzie brakuje pr¹du
-                          Global::SetCameraPosition(vPosition+vector3(0,0,5)); //nowa pozycja dla
+                          Global::SetCameraPosition(vPosition+vector3(0,0,5)); //nowa
+                   pozycja dla
                    generowania obiektów
                           Global::pCamera->Init(vPosition+vector3(0,0,5),Global::pFreeCameraInitAngle[0]);
                    //przestawienie
                          }
-                         Global:l::pGround->Silence(Global::pCamera->Pos); //wyciszenie wszystkiego
+                         Global:l::pGround->Silence(Global::pCamera->Pos); //wyciszenie
+                   wszystkiego
                    z poprzedniej pozycji
-                          Globa:iPause|=1; //tymczasowe zapauzowanie, gdy problem z sieci¹
+                          Globa:iPause|=1; //tymczasowe zapauzowanie, gdy problem z
+                   sieci¹
                         }
                 */
                 NoVoltTime = NoVoltTime + dt;
                 if (NoVoltTime > 0.2) // jeœli brak zasilania d³u¿ej ni¿ 0.2 sekundy (25km/h pod
                 // izolatorem daje 0.15s)
-                { // Ra 2F1H: prowizorka, trzeba przechowaæ napiêcie, ¿eby nie wywala³o WS pod
+                { // Ra 2F1H: prowizorka, trzeba przechowaæ napiêcie, ¿eby nie wywala³o
+                    // WS pod
                     // izolatorem
                     if (MoverParameters->Vel > 0.5) // jeœli jedzie
                         if (MoverParameters->PantFrontUp ||
@@ -2480,14 +2593,16 @@ bool TDynamicObject::Update(double dt, double dt1)
                                 //   "+FloatToStrF(vPosition.z,ffFixed,7,2)+", time
                                 //   "+FloatToStrF(NoVoltTime,ffFixed,7,2));
                             }
-                    // Ra 2F1H: nie by³o sensu wpisywaæ tu zera po up³ywie czasu, bo zmienna by³a
+                    // Ra 2F1H: nie by³o sensu wpisywaæ tu zera po up³ywie czasu, bo
+                    // zmienna by³a
                     // tymczasowa, a napiêcie zerowane od razu
                     tmpTraction.TractionVoltage = 0; // Ra 2013-12: po co tak?
                     // pControlled->MainSwitch(false); //mo¿e tak?
                 }
             }
         }
-        // else //Ra: nie no, trzeba podnieœæ pantografy, jak nie bêdzie drutu, to bêd¹ mia³y pr¹d
+        // else //Ra: nie no, trzeba podnieœæ pantografy, jak nie bêdzie drutu, to
+        // bêd¹ mia³y pr¹d
         // po osi¹gniêciu 1.4m
         // tmpTraction.TractionVoltage=0.95*MoverParameters->EnginePowerSource.MaxVoltage;
     }
@@ -2498,16 +2613,29 @@ bool TDynamicObject::Update(double dt, double dt1)
     tmpTraction.TractionResistivity = 0.3;
 
     // McZapkie: predkosc w torze przekazac do TrackParam
-    // McZapkie: Vel ma wymiar [km/h] (absolutny), V ma wymiar [m/s], taka przyjalem notacje
+    // McZapkie: Vel ma wymiar [km/h] (absolutny), V ma wymiar [m/s], taka
+    // przyjalem notacje
     tp.Velmax = MyTrack->VelocityGet();
 
     if (Mechanik)
     { // Ra 2F3F: do Driver.cpp to przenieœæ?
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
         if ((Mechanik->Primary()) &&
-            (MoverParameters->EngineType ==
-             ElectricInductionMotor)) // jesli glowny i z asynchronami, to niech steruje
+            (MoverParameters->EngineType == ElectricInductionMotor)) // jesli glowny i z
+        // asynchronami, to
+        // niech steruje
         { // hamulcem lacznie dla calego pociagu/ezt
+            float FED = 0;
+            float np = 0;
+            float masa = 0;
+            float FrED = 0;
+            float masamax = 0;
+            float FmaxPN = 0;
+            float FmaxED = 0;
+            float Fzad = 0;
+            float FzadED = 0;
+            float FzadPN = 0;
+            float amax = 0;
             // 1. ustal wymagana sile hamowania calego pociagu
             //   - opoznienie moze byc ustalane na podstawie charakterystyki
             //   - opoznienie moze byc ustalane na podstawie mas i cisnien granicznych
@@ -2515,9 +2643,39 @@ bool TDynamicObject::Update(double dt, double dt1)
 
             // 2. ustal mozliwa do realizacji sile hamowania ED
             //   - w szczegolnosci powinien brac pod uwage rozne sily hamowania
-            float FED = 0;
-            //       for(TDynamicObject *p=GetFirstDynamic(4);p;p->NextC(4))
-            //        FED+=p->MoverParameters->eimv[eimv_Fmax];
+            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+                 p = p->NextC(4))
+            {
+                np++;
+                masamax += p->MoverParameters->MBPM +
+                           (p->MoverParameters->MBPM > 1 ? 0 : p->MoverParameters->Mass) +
+                           p->MoverParameters->Mred;
+                float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
+                               p->MoverParameters->BrakeCylSpring) *
+                                  p->MoverParameters->BrakeCylMult[0] -
+                              p->MoverParameters->BrakeSlckAdj) *
+                             p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
+                FmaxPN += Nmax *
+                          p->MoverParameters->Hamulec->GetFC(
+                              Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
+                              p->MoverParameters->Vmax) *
+                          1000; // sila hamowania pn
+                FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->eimc[eimc_p_Fh] *
+                                                               p->MoverParameters->NPoweredAxles >
+                                                           0) ?
+                               p->MoverParameters->eimc[eimc_p_Fh] * 1000 :
+                               0); // chwilowy max ED -> do rozdzialu sil
+                FED -= Min0R(p->MoverParameters->eimv[eimv_Fmax], 0) *
+                       1000; // chwilowy max ED -> do rozdzialu sil
+                FrED -= Min0R(p->MoverParameters->eimv[eimv_Fr], 0) *
+                        1000; // chwilowo realizowane ED -> do pneumatyki
+                masa += p->MoverParameters->TotalMass;
+            }
+            amax = FmaxPN / masamax;
+            Fzad = amax * MoverParameters->LocalBrakeRatio() * masa;
+            FzadED = Min0R(Fzad, FmaxED);
+            FzadPN = Fzad - FrED;
+            np = 0;
             // 3. ustaw pojazdom sile hamowania ED
             //   - proporcjonalnie do mozliwosci
 
@@ -2526,8 +2684,31 @@ bool TDynamicObject::Update(double dt, double dt1)
             // 5. w razie potrzeby wlacz hamulec utrzymujacy
             //   - gdy zahamowany ma ponizej 2 km/h
             // 6. ustaw pojazdom sile hamowania ep
-            //   - proporcjonalnie do masy, do liczby osi, rowne cisnienia - jak bedzie, tak bedzie
+            //   - proporcjonalnie do masy, do liczby osi, rowne cisnienia - jak
+            //   bedzie, tak bedzie
             //   dobrze
+            float Fpoj = 0;
+            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+                 p = p->NextC(4))
+            {
+                np++;
+                float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
+                               p->MoverParameters->BrakeCylSpring) *
+                                  p->MoverParameters->BrakeCylMult[0] -
+                              p->MoverParameters->BrakeSlckAdj) *
+                             p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
+                float FmaxPoj = Nmax *
+                                p->MoverParameters->Hamulec->GetFC(
+                                    Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
+                                    p->MoverParameters->Vel) *
+                                1000; // sila hamowania pn
+                //         Fpoj=(FED>0?-FzadED*p->MoverParameters->eimv[eimv_Fmax]*1000/FED:0);
+                //         p->MoverParameters->AnPos=(p->MoverParameters->eimc[eimc_p_Fh]>1?0.001f*Fpoj/(p->MoverParameters->eimc[eimc_p_Fh]):0);
+                p->MoverParameters->AnPos = (FmaxED > 0 ? FzadED / FmaxED : 0);
+                Fpoj = FzadPN * Min0R(p->MoverParameters->TotalMass / masa, 1);
+                p->MoverParameters->LocalBrakePosA =
+                    (p->MoverParameters->SlippingWheels ? 0 : Min0R(Max0R(Fpoj / FmaxPoj, 0), 1));
+            }
         }
 
         // yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
@@ -2546,14 +2727,16 @@ bool TDynamicObject::Update(double dt, double dt1)
         if ((!MoverParameters->Battery) && (Controller == Humandriver) &&
             (MoverParameters->EngineType != DieselEngine) &&
             (MoverParameters->EngineType != WheelsDriven))
-        { // jeœli bateria wy³¹czona, a nie diesel ani drezyna reczna
+        { // jeœli bateria wy³¹czona, a nie diesel ani drezyna
+            // reczna
             if (MoverParameters->MainSwitch(false)) // wy³¹czyæ zasilanie
                 MoverParameters->EventFlag = true;
         }
     if (MoverParameters->TrainType == dt_ET42)
     { // powinny byæ wszystkie dwucz³ony oraz EZT
         /*
-             //Ra: to jest bez sensu, bo wy³¹cza WS przy przechodzeniu przez "wewnêtrzne" kabiny (z
+             //Ra: to jest bez sensu, bo wy³¹cza WS przy przechodzeniu przez
+           "wewnêtrzne" kabiny (z
            powodu ActiveCab)
              //trzeba to zrobiæ inaczej, np. dla cz³onu A sprawdzaæ, czy jest B
              //albo sprawdzaæ w momencie za³¹czania WS i zmiany w sprzêgach
@@ -2608,7 +2791,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             else if (MyTrack->eEnvironment == e_bridge)
             {
                 vol *= 1.2;
-                // freq=0.99;                             //MC: stukot w zaleznosci od tego gdzie
+                // freq=0.99;                             //MC: stukot w zaleznosci od
+                // tego gdzie
                 // jest tor
             }
             if (MyTrack->fSoundDistance != dRailLength)
@@ -2682,13 +2866,15 @@ bool TDynamicObject::Update(double dt, double dt1)
     // fragment z EXE Kursa
     /* if (MoverParameters->TrainType==dt_ET42)
          {
-         if ((MoverParameters->DynamicBrakeType=dbrake_switch) && ((MoverParameters->BrakePress >
+         if ((MoverParameters->DynamicBrakeType=dbrake_switch) &&
+       ((MoverParameters->BrakePress >
        0.2) || ( MoverParameters->PipePress < 0.36 )))
                       {
                       MoverParameters->StLinFlag=true;
                       }
          else
-         if ((MoverParameters->DynamicBrakeType=dbrake_switch) && (MoverParameters->BrakePress <
+         if ((MoverParameters->DynamicBrakeType=dbrake_switch) &&
+       (MoverParameters->BrakePress <
        0.1))
                       {
                       MoverParameters->StLinFlag=false;
@@ -2696,7 +2882,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                       }
          }   */
     if ((MoverParameters->TrainType == dt_ET40) || (MoverParameters->TrainType == dt_EP05))
-    { // dla ET40 i EU05 automatyczne cofanie nastawnika - i tak nie bêdzie to dzia³aæ dobrze...
+    { // dla ET40 i EU05 automatyczne cofanie nastawnika - i tak
+        // nie bêdzie to dzia³aæ dobrze...
         /* if
            ((MoverParameters->MainCtrlPos>MoverParameters->MainCtrlActualPos)&&(abs(MoverParameters->Im)>MoverParameters->IminHi))
            {
@@ -2728,23 +2915,25 @@ bool TDynamicObject::Update(double dt, double dt1)
         if (dWheelAngle[2] > 360.0)
             dWheelAngle[2] -= 360.0;
     }
-    if (pants) // pantograf mo¿e byæ w wagonie kuchennym albo pojeŸdzie rewizyjnym (np. SR61)
+    if (pants) // pantograf mo¿e byæ w wagonie kuchennym albo pojeŸdzie rewizyjnym
+    // (np. SR61)
     { // przeliczanie k¹tów dla pantografów
         double k; // tymczasowy k¹t
         double PantDiff;
         TAnimPant *p; // wskaŸnik do obiektu danych pantografu
-        double fCurrent =
-            (MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ?
-                 0 :
-                 fabs(MoverParameters->Itot)) +
-            MoverParameters
-                ->TotalCurrent; // pr¹d pobierany przez pojazd - bez sensu z tym (TotalCurrent)
-        // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //pr¹d p³yn¹cy przez woltomierz,
+        double fCurrent = (MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ?
+                               0 :
+                               fabs(MoverParameters->Itot)) +
+                          MoverParameters->TotalCurrent; // pr¹d pobierany przez pojazd - bez
+        // sensu z tym (TotalCurrent)
+        // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
+        // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //pr¹d p³yn¹cy przez
+        // woltomierz,
         // roz³adowuje kondensator orgromowy 4µF
         double fPantCurrent = fCurrent; // normalnie ca³y pr¹d przez jeden pantograf
         if (pants)
-            if (iAnimType[ANIM_PANTS] >
-                1) // a jeœli s¹ dwa pantografy //Ra 1014-11: proteza, trzeba zrobiæ sensowniej
+            if (iAnimType[ANIM_PANTS] > 1) // a jeœli s¹ dwa pantografy //Ra 1014-11:
+                // proteza, trzeba zrobiæ sensowniej
                 if (pants[0].fParamPants->hvPowerWire &&
                     pants[1].fParamPants->hvPowerWire) // i oba pod³¹czone do drutów
                     fPantCurrent = fCurrent * 0.5; // to dzielimy pr¹d równo na oba (trochê bez
@@ -2783,7 +2972,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if ((MoverParameters->PantFrontVolt == 0.0) &&
                         (MoverParameters->PantRearVolt == 0.0))
                         sPantUp.Play(vol, 0, MechInside, vPosition);
-                    if (p->hvPowerWire) // TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i
+                    if (p->hvPowerWire) // TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na
+                    // pantograf i
                     // wstawiæ do GetVoltage()
                     {
                         MoverParameters->PantFrontVolt =
@@ -2807,7 +2997,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if ((MoverParameters->PantRearVolt == 0.0) &&
                         (MoverParameters->PantFrontVolt == 0.0))
                         sPantUp.Play(vol, 0, MechInside, vPosition);
-                    if (p->hvPowerWire) // TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na pantograf i
+                    if (p->hvPowerWire) // TODO: wyliczyæ trzeba pr¹d przypadaj¹cy na
+                    // pantograf i
                     // wstawiæ do GetVoltage()
                     {
                         MoverParameters->PantRearVolt =
@@ -2822,9 +3013,11 @@ bool TDynamicObject::Update(double dt, double dt1)
                 break;
             } // pozosta³e na razie nie obs³ugiwane
             if (MoverParameters->PantPress >
-                (MoverParameters->TrainType == dt_EZT ?
-                     2.5 :
-                     3.3)) // Ra 2013-12: Niebugoc³aw mówi, ¿e w EZT podnosz¹ siê przy 2.5
+                (MoverParameters->TrainType == dt_EZT ? 2.5 : 3.3)) // Ra 2013-12:
+                // Niebugoc³aw
+                // mówi, ¿e w EZT
+                // podnosz¹ siê
+                // przy 2.5
                 pantspeedfactor = 0.015 * (MoverParameters->PantPress) *
                                   dt1; // z EXE Kursa  //Ra: wysokoœæ zale¿y od ciœnienia !!!
             else
@@ -2836,21 +3029,26 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantFrontUp) // jeœli ma byæ podniesiony
             {
                 if (PantDiff > 0.001) // jeœli nie dolega do drutu
-                { // jeœli poprzednia wysokoœæ jest mniejsza ni¿ po¿¹dana, zwiêkszyæ k¹t dolnego
+                { // jeœli poprzednia wysokoœæ jest mniejsza ni¿ po¿¹dana, zwiêkszyæ k¹t
+                    // dolnego
                     // ramienia zgodnie z ciœnieniem
                     if (pantspeedfactor >
                         0.55 * PantDiff) // 0.55 to oko³o pochodna k¹ta po wysokoœci
                         k += 0.55 * PantDiff; // ograniczenie "skoku" w danej klatce
                     else
                         k += pantspeedfactor; // dolne ramiê
-                    // jeœli przekroczono k¹t graniczny, zablokowaæ pantograf (wymaga interwencji
+                    // jeœli przekroczono k¹t graniczny, zablokowaæ pantograf (wymaga
+                    // interwencji
                     // poci¹gu sieciowego)
                 }
                 else if (PantDiff < -0.001)
-                { // drut siê obni¿y³ albo pantograf podniesiony za wysoko
+                { // drut siê obni¿y³ albo pantograf
+                    // podniesiony za wysoko
                     // jeœli wysokoœæ jest zbyt du¿a, wyznaczyæ zmniejszenie k¹ta
-                    // jeœli zmniejszenie k¹ta jest zbyt du¿e, przejœæ do trybu ³amania pantografu
-                    // if (PantFrontDiff<-0.05) //skok w dó³ o 5cm daje z³¹manie pantografu
+                    // jeœli zmniejszenie k¹ta jest zbyt du¿e, przejœæ do trybu ³amania
+                    // pantografu
+                    // if (PantFrontDiff<-0.05) //skok w dó³ o 5cm daje z³¹manie
+                    // pantografu
                     k += 0.4 * PantDiff; // mniej ni¿ pochodna k¹ta po wysokoœci
                 } // jeœli wysokoœæ jest dobra, nic wiêcej nie liczyæ
             }
@@ -2888,7 +3086,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             MoverParameters->PantRearSP = true;
         }
         if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
-        { // Winger 240404 - wylaczanie sprezarki i przetwornicy przy braku napiecia
+        { // Winger 240404 - wylaczanie sprezarki i
+            // przetwornicy przy braku napiecia
             if (tmpTraction.TractionVoltage == 0)
             { // to coœ wy³¹cza³o dŸwiêk silnika w ST43!
                 MoverParameters->ConverterFlag = false;
@@ -2901,7 +3100,8 @@ bool TDynamicObject::Update(double dt, double dt1)
         if (MoverParameters->EnginePowerSource.PowerType == SteamPower)
         // if (smPatykird1[0])
         { // Ra: animacja rozrz¹du parowozu, na razie nieoptymalizowane
-            /* //Ra: tymczasowo wy³¹czone ze wzglêdu na porz¹dkowanie animacji pantografów
+            /* //Ra: tymczasowo wy³¹czone ze wzglêdu na porz¹dkowanie animacji
+               pantografów
                double fi,dx,c2,ka,kc;
                double sin_fi,cos_fi;
                double L1=1.6688888888888889;
@@ -2913,10 +3113,12 @@ bool TDynamicObject::Update(double dt, double dt1)
                //ruch t³oków oraz korbowodów
                for (int i=0;i<=1;++i)
                {//obie strony w ten sam sposób
-                fi=DegToRad(dWheelAngle[1]+(i?pant2x:pant1x)); //k¹t obrotu ko³a dla t³oka 1
+                fi=DegToRad(dWheelAngle[1]+(i?pant2x:pant1x)); //k¹t obrotu ko³a dla
+               t³oka 1
                 sin_fi=sin(fi);
                 cos_fi=cos(fi);
-                dx=panty*cos_fi+sqrt(panth*panth-panty*panty*sin_fi*sin_fi)-panth; //nieoptymalne
+                dx=panty*cos_fi+sqrt(panth*panth-panty*panty*sin_fi*sin_fi)-panth;
+               //nieoptymalne
                 if (smPatykird1[i]) //na razie zabezpieczenie
                  smPatykird1[i]->SetTranslate(float3(dx,0,0));
                 ka=-asin(panty/panth)*sin_fi;
@@ -2924,7 +3126,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                  smPatykirg1[i]->SetRotateXYZ(vector3(RadToDeg(ka),0,0));
                 //smPatykirg1[0]->SetRotate(float3(0,1,0),RadToDeg(fi)); //obracamy
                 //ruch dr¹¿ka mimoœrodkowego oraz jarzma
-                //korzysta³em z pliku PDF "mm.pdf" (opis czworoboku korbowo-wahaczowego):
+                //korzysta³em z pliku PDF "mm.pdf" (opis czworoboku
+               korbowo-wahaczowego):
                 //"MECHANIKA MASZYN. Szkic wyk³adu i laboratorium komputerowego."
                 //Prof. dr hab. in¿. Jerzy Zaj¹czkowski, 2007, Politechnika £ódzka
                 //L1 - wysokoœæ (w pionie) osi jarzma ponad osi¹ ko³a
@@ -2938,11 +3141,14 @@ bool TDynamicObject::Update(double dt, double dt1)
                 //G1=(Lr*Lr+L1*L1+L2*L2+Kc*Lc-L*L-2.0*Lc*L2*cos(fi)+2.0*Lc*L1*sin(fi))/(Lr*Lr);
                 //G2=2.0*(L2-Lc*cos(fi))/Lr;
                 //G3=2.0*(L1-Lc*sin(fi))/Lr;
-                fi=DegToRad(dWheelAngle[1]+(i?pant2x:pant1x)-96.77416667); //k¹t obrotu ko³a dla
+                fi=DegToRad(dWheelAngle[1]+(i?pant2x:pant1x)-96.77416667); //k¹t
+               obrotu ko³a dla
                t³oka 1
-                //1) dla dWheelAngle[1]=0° korba jest w dó³, a mimoœród w stronê jarzma, czyli
+                //1) dla dWheelAngle[1]=0° korba jest w dó³, a mimoœród w stronê
+               jarzma, czyli
                fi=-7°
-                //2) dla dWheelAngle[1]=90° korba jest do ty³u, a mimoœród w dó³, czyli fi=83°
+                //2) dla dWheelAngle[1]=90° korba jest do ty³u, a mimoœród w dó³,
+               czyli fi=83°
                 sin_fi=sin(fi);
                 cos_fi=cos(fi);
                 G1=(1.0+L1*L1+L2*L2+Lc*Lc-L*L-2.0*Lc*L2*cos_fi+2.0*Lc*L1*sin_fi);
@@ -2951,17 +3157,23 @@ bool TDynamicObject::Update(double dt, double dt1)
                 G2_2=G2*G2;
                 G3=2.0*(L1-Lc*sin_fi);
                 G3_2=G3*G3;
-                sin_ksi=(G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2); //x1 (minus delta)
+                sin_ksi=(G1*G2-G3*_fm_sqrt(G2_2+G3_2-G1_2))/(G2_2+G3_2); //x1 (minus
+               delta)
                 ksi=asin(sin_ksi); //k¹t jarzma
                 if (smPatykirg2[i])
-                 smPatykirg2[i]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie jarzma
+                 smPatykirg2[i]->SetRotateXYZ(vector3(RadToDeg(ksi),0,0)); //obrócenie
+               jarzma
                 //1) ksi=-23°, gam=
                 //2) ksi=10°, gam=
-                //gam=acos((L2-sin_ksi-Lc*cos_fi)/L); //k¹t od poziomu, liczony wzglêdem poziomu
-                //gam=asin((L1-cos_ksi-Lc*sin_fi)/L); //k¹t od poziomu, liczony wzglêdem pionu
-                gam=atan2((L1-cos(ksi)+Lc*sin_fi),(L2-sin_ksi+Lc*cos_fi)); //k¹t od poziomu
+                //gam=acos((L2-sin_ksi-Lc*cos_fi)/L); //k¹t od poziomu, liczony
+               wzglêdem poziomu
+                //gam=asin((L1-cos_ksi-Lc*sin_fi)/L); //k¹t od poziomu, liczony
+               wzglêdem pionu
+                gam=atan2((L1-cos(ksi)+Lc*sin_fi),(L2-sin_ksi+Lc*cos_fi)); //k¹t od
+               poziomu
                 if (smPatykird2[i]) //na razie zabezpieczenie
-                 smPatykird2[i]->SetRotateXYZ(vector3(RadToDeg(-gam-ksi),0,0)); //obrócenie dr¹¿ka
+                 smPatykird2[i]->SetRotateXYZ(vector3(RadToDeg(-gam-ksi),0,0));
+               //obrócenie dr¹¿ka
                mimoœrodowego
                }
             */
@@ -2986,13 +3198,17 @@ bool TDynamicObject::Update(double dt, double dt1)
     }
 
     // ABu-160303 sledzenie toru przed obiektem: *******************************
-    // Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1 (Ra: prêdkoœæ jest zwi¹zana z pojazdem)
-    // Rozroznienie jest tutaj, zeby niepotrzebnie nie skakac do funkcji. Nie jest uzaleznione
+    // Z obserwacji: v>0 -> Coupler 0; v<0 ->coupler1 (Ra: prêdkoœæ jest zwi¹zana
+    // z pojazdem)
+    // Rozroznienie jest tutaj, zeby niepotrzebnie nie skakac do funkcji. Nie jest
+    // uzaleznione
     // od obecnosci AI, zeby uwzglednic np. jadace bez lokomotywy wagony.
-    // Ra: mo¿na by przenieœæ na poziom obiektu reprezentuj¹cego sk³ad, aby nie sprawdzaæ œrodkowych
+    // Ra: mo¿na by przenieœæ na poziom obiektu reprezentuj¹cego sk³ad, aby nie
+    // sprawdzaæ œrodkowych
     if (CouplCounter > 25) // licznik, aby nie robiæ za ka¿dym razem
     { // poszukiwanie czegoœ do zderzenia siê
-        fTrackBlock = 10000.0; // na razie nie ma przeszkód (na wypadek nie uruchomienia skanowania)
+        fTrackBlock = 10000.0; // na razie nie ma przeszkód (na wypadek nie
+        // uruchomienia skanowania)
         // jeœli nie ma zwrotnicy po drodze, to tylko przeliczyæ odleg³oœæ?
         if (MoverParameters->V > 0.03) //[m/s] jeœli jedzie do przodu (w kierunku Coupler 0)
         {
@@ -3016,7 +3232,8 @@ bool TDynamicObject::Update(double dt, double dt1)
         ++CouplCounter; // jazda sprzyja poszukiwaniu po³¹czenia
     else
     {
-        CouplCounter = 25; // a bezruch nie, ale trzeba zaktualizowaæ odleg³oœæ, bo zawalidroga mo¿e
+        CouplCounter = 25; // a bezruch nie, ale trzeba zaktualizowaæ odleg³oœæ, bo
+        // zawalidroga mo¿e
         // sobie pojechaæ
     }
     if (MoverParameters->DerailReason > 0)
@@ -3089,7 +3306,8 @@ bool TDynamicObject::FastUpdate(double dt)
 //};
 
 void TDynamicObject::TurnOff()
-{ // wy³¹czenie rysowania submodeli zmiennych dla egemplarza pojazdu
+{ // wy³¹czenie rysowania submodeli zmiennych dla
+    // egemplarza pojazdu
     btnOn = false;
     btCoupler1.TurnOff();
     btCoupler2.TurnOff();
@@ -3134,7 +3352,8 @@ void TDynamicObject::Render()
     if (ObjSqrDist < 500) // jak jest blisko - do 70m
         modelrotate = 0.01; // ma³y k¹t, ¿eby nie znika³o
     else
-    { // Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na pó³noc)
+    { // Global::pCameraRotation to k¹t bewzglêdny w œwiecie (zero - na
+        // pó³noc)
         tempangle = (vPosition - Global::pCameraPosition); // wektor od kamery
         modelrotate = ABuAcos(tempangle); // okreœlenie k¹ta
         // if (modelrotate>M_PI) modelrotate-=(2*M_PI);
@@ -3164,7 +3383,8 @@ void TDynamicObject::Render()
 // ActualTrack= GetTrack(); //McZapkie-240702
 
 #if RENDER_CONE
-        { // Ra: testowe renderowanie pozycji wózków w postaci ostros³upów, wymaga GLUT32.DLL
+        { // Ra: testowe renderowanie pozycji wózków w postaci ostros³upów, wymaga
+            // GLUT32.DLL
             double dir = RadToDeg(atan2(vLeft.z, vLeft.x));
             Axle0.Render(0);
             Axle1.Render(1); // bogieRot[0]
@@ -3178,11 +3398,13 @@ void TDynamicObject::Render()
         if (this == Global::pUserDynamic)
         { // specjalne ustawienie, aby nie trzês³o
             if (Global::bSmudge)
-            { // jak jest widoczna smuga, to pojazd renderowaæ po wyrenderowaniu smugi
+            { // jak jest widoczna smuga, to pojazd renderowaæ po
+                // wyrenderowaniu smugi
                 glPopMatrix(); // a to trzeba zebraæ przed wyjœciem
                 return;
             }
-            // if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu zewnêtrznym
+            // if (Global::pWorld->) //tu trzeba by ustawiæ animacje na modelu
+            // zewnêtrznym
             glLoadIdentity(); // zacz¹æ od macierzy jedynkowej
             Global::pCamera->SetCabMatrix(vPosition); // specjalne ustawienie kamery
         }
@@ -3234,7 +3456,8 @@ void TDynamicObject::Render()
         // Ra: dlaczego jest zablokowana w przezroczystych?
         if (mdKabina) // jeœli ma model kabiny
             if ((mdKabina != mdModel) && bDisplayCab && FreeFlyModeFlag)
-            { // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
+            { // rendering kabiny gdy jest oddzielnym modelem i
+                // ma byc wyswietlana
                 // ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
                 // Ra: œwiet³a s¹ ustawione dla zewnêtrza danego pojazdu
                 // oswietlenie kabiny
@@ -3293,7 +3516,9 @@ void TDynamicObject::Render()
 };
 
 void TDynamicObject::RenderSounds()
-{ // przeliczanie dŸwiêków, bo bêdzie s³ychaæ bez wyœwietlania sektora z pojazdem
+{ // przeliczanie dŸwiêków, bo bêdzie
+    // s³ychaæ bez wyœwietlania sektora z
+    // pojazdem
     // McZapkie-010302: ulepszony dzwiek silnika
     double freq;
     double vol = 0;
@@ -3304,10 +3529,11 @@ void TDynamicObject::RenderSounds()
 
     if (MoverParameters->Power > 0)
     {
-        if ((rsSilnik.AM != 0) &&
-            ((MoverParameters->Mains) ||
-             (MoverParameters->EngineType ==
-              DieselEngine))) // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
+        if ((rsSilnik.AM != 0) && ((MoverParameters->Mains) || (MoverParameters->EngineType ==
+                                                                DieselEngine))) // McZapkie-280503:
+        // zeby dla dumb
+        // dzialal silnik na
+        // jalowych obrotach
         {
             if ((fabs(MoverParameters->enrot) > 0.01) ||
                 (MoverParameters->EngineType == Dumb)) //&& (MoverParameters->EnginePower>0.1))
@@ -3369,7 +3595,8 @@ void TDynamicObject::RenderSounds()
                 }
                 if ((MoverParameters->DynamicBrakeFlag) && (MoverParameters->EnginePower > 0.1) &&
                     (MoverParameters->EngineType ==
-                     ElectricSeriesMotor)) // Szociu - 29012012 - je¿eli uruchomiony jest  hamulec
+                     ElectricSeriesMotor)) // Szociu - 29012012 - je¿eli uruchomiony
+                    // jest  hamulec
                     // elektrodynamiczny, odtwarzany jest dŸwiêk silnika
                     vol += 0.8;
 
@@ -3449,7 +3676,8 @@ void TDynamicObject::RenderSounds()
     else
         rscurve.Stop();
 
-    // McZapkie-280302 - pisk mocno zacisnietych hamulcow - trzeba jeszcze zabezpieczyc przed
+    // McZapkie-280302 - pisk mocno zacisnietych hamulcow - trzeba jeszcze
+    // zabezpieczyc przed
     // brakiem deklaracji w mmedia.dta
     if (rsPisk.AM != 0)
     {
@@ -3463,9 +3691,12 @@ void TDynamicObject::RenderSounds()
             rsPisk.Stop();
     }
 
-    // if ((MoverParameters->ConverterFlag==false) && (MoverParameters->TrainType!=dt_ET22))
-    // if ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
-    // MoverParameters->CompressorFlag=false; //Ra: wywaliæ to st¹d, tu tylko dla wyœwietlanych!
+    // if ((MoverParameters->ConverterFlag==false) &&
+    // (MoverParameters->TrainType!=dt_ET22))
+    // if
+    // ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
+    // MoverParameters->CompressorFlag=false; //Ra: wywaliæ to st¹d, tu tylko dla
+    // wyœwietlanych!
     // Ra: no to ju¿ wiemy, dlaczego poci¹gi je¿d¿¹ lepiej, gdy siê na nie patrzy!
     // if (MoverParameters->CompressorPower==2)
     // MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
@@ -3487,8 +3718,8 @@ void TDynamicObject::RenderSounds()
 
     // youBy - przenioslem, bo diesel tez moze miec turbo
     if ((MoverParameters->MainCtrlPos) >=
-        (MoverParameters
-             ->TurboTest)) // hunter-250312: dlaczego zakomentowane? Ra: bo nie dzia³a³o dobrze
+        (MoverParameters->TurboTest)) // hunter-250312: dlaczego zakomentowane?
+    // Ra: bo nie dzia³a³o dobrze
     {
         // udawanie turbo:  (6.66*(eng_vol-0.85))
         if (eng_turbo > 6.66 * (enginevolume - 0.8) + 0.2 * dt)
@@ -3736,7 +3967,7 @@ void TDynamicObject::RenderAlpha()
 
               mdKabina->RenderAlpha(ObjSqrDist,0);
         //smierdzi
-        //      mdModel->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
+        // mdModel->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
 
               glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
               glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
@@ -3809,7 +4040,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 asModel = asModel.SubString(1, asModel.Length() - 1);
             }
             if ((i = asModel.Pos(",")) > 0)
-            { // Ra 2015-01: mo¿e szukaæ przecinka w nazwie modelu, a po przecinku by³a by liczba
+            { // Ra 2015-01: mo¿e szukaæ przecinka w
+                // nazwie modelu, a po przecinku by³a by
+                // liczba
                 // tekstur?
                 if (i < asModel.Length())
                     iMultiTex = asModel[i + 1] - '0';
@@ -3818,8 +4051,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 else if (iMultiTex > 1)
                     iMultiTex = 1; // na razie ustawiamy na 1
             }
-            asModel = BaseDir +
-                      asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
+            asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje
+            // modele w dynamics/basedir
             Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel.c_str(), true);
             if (ReplacableSkin != AnsiString("none"))
@@ -3924,19 +4157,23 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     iAlpha = 0x31310031; // tekstura -1 z kana³em alfa - nie renderowaæ w cyklu
                 // nieprzezroczystych
                 else
-                    iAlpha = 0x30300030; // wszystkie tekstury nieprzezroczyste - nie renderowaæ w
+                    iAlpha = 0x30300030; // wszystkie tekstury nieprzezroczyste - nie
+                // renderowaæ w
                 // cyklu przezroczystych
                 if (ReplacableSkinID[2])
                     if (TTexturesManager::GetAlpha(ReplacableSkinID[2]))
-                        iAlpha |= 0x02020002; // tekstura -2 z kana³em alfa - nie renderowaæ w cyklu
+                        iAlpha |= 0x02020002; // tekstura -2 z kana³em alfa - nie renderowaæ
+                // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[3])
                     if (TTexturesManager::GetAlpha(ReplacableSkinID[3]))
-                        iAlpha |= 0x04040004; // tekstura -3 z kana³em alfa - nie renderowaæ w cyklu
+                        iAlpha |= 0x04040004; // tekstura -3 z kana³em alfa - nie renderowaæ
+                // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[4])
                     if (TTexturesManager::GetAlpha(ReplacableSkinID[4]))
-                        iAlpha |= 0x08080008; // tekstura -4 z kana³em alfa - nie renderowaæ w cyklu
+                        iAlpha |= 0x08080008; // tekstura -4 z kana³em alfa - nie renderowaæ
+                // w cyklu
                 // nieprzezroczystych
             }
             // Winger 040304 - ladowanie przedsionkow dla EZT
@@ -3950,7 +4187,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
                 // MoverParameters->LoadType!=AnsiString("passengers"))
                 if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
-                { // wartoœæ niby "pantstate" - nazwa dla formalnoœci, wa¿na jest iloœæ
+                { // wartoœæ niby "pantstate" - nazwa dla
+                    // formalnoœci, wa¿na jest iloœæ
                     if (MoverParameters->Load == 1)
                         MoverParameters->PantFront(true);
                     else if (MoverParameters->Load == 2)
@@ -3987,10 +4225,14 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
             {
                 str = Parser->GetNextSymbol().LowerCase();
                 if (str == AnsiString("animations:"))
-                { // Ra: ustawienie iloœci poszczególnych animacji - musi byæ jako pierwsze, inaczej
+                { // Ra: ustawienie iloœci
+                    // poszczególnych animacji -
+                    // musi byæ jako pierwsze,
+                    // inaczej
                     // iloœci bêd¹ domyœlne
                     if (!pAnimations)
-                    { // jeœli nie ma jeszcze tabeli animacji, mo¿na odczytaæ nowe iloœci
+                    { // jeœli nie ma jeszcze tabeli animacji, mo¿na
+                        // odczytaæ nowe iloœci
                         int co = 0, ile;
                         iAnimations = 0;
                         do
@@ -3999,7 +4241,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                             // animacji
                             // if (co==ANIM_PANTS)
                             // if (!Global::bLoadTraction)
-                            //  if (!DebugModeFlag) //w debugmode pantografy maj¹ "niby dzia³aæ"
+                            //  if (!DebugModeFlag) //w debugmode pantografy maj¹ "niby
+                            //  dzia³aæ"
                             //   ile=0; //wy³¹czenie animacji pantografów
                             if (co < ANIM_TYPES)
                                 if (ile >= 0)
@@ -4016,7 +4259,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     // WriteLog("Total animations: "+AnsiString(iAnimations));
                 }
                 if (!pAnimations)
-                { // Ra: tworzenie tabeli animacji, jeœli jeszcze nie by³o
+                { // Ra: tworzenie tabeli animacji, jeœli jeszcze nie
+                    // by³o
                     if (!iAnimations) // jeœli nie podano jawnie, ile ma byæ animacji
                         iAnimations = 28; // tyle by³o kiedyœ w ka¿dym pojeŸdzie (2 wi¹zary wypad³y)
                     /* //pojazd mo¿e mieæ pantograf do innych celów ni¿ napêd
@@ -4038,8 +4282,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                                         pants = pAnimations +
                                                 k; // zapamiêtanie na potrzeby wyszukania submodeli
                             pAnimations[k].iShift = sm; // przesuniêcie do przydzielenia wskaŸnika
-                            sm += pAnimations[k++].TypeSet(
-                                j); // ustawienie typu animacji i zliczanie tablicowanych submodeli
+                            sm += pAnimations[k++].TypeSet(j); // ustawienie typu animacji i
+                            // zliczanie tablicowanych
+                            // submodeli
                         }
                     if (sm) // o ile s¹ bardziej z³o¿one animacje
                     {
@@ -4053,13 +4298,13 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 if (str == AnsiString("lowpolyinterior:")) // ABu: wnetrze lowpoly
                 {
                     asModel = Parser->GetNextSymbol().LowerCase();
-                    asModel =
-                        BaseDir +
-                        asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
+                    asModel = BaseDir + asModel; // McZapkie-200702 - dynamics maja swoje
+                    // modele w dynamic/basedir
                     Global::asCurrentTexturePath =
                         BaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel.c_str(), true);
-                    // Global::asCurrentTexturePath=AnsiString(szTexturePath); //kiedyœ uproszczone
+                    // Global::asCurrentTexturePath=AnsiString(szTexturePath); //kiedyœ
+                    // uproszczone
                     // wnêtrze miesza³o tekstury nieba
                 }
                 if (str == AnsiString("brakemode:"))
@@ -4093,8 +4338,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                                 MoverParameters->WheelDiameter; // nie krêciæ w wiêkszej odleg³oœci
                             pAnimations[i].fMaxDist *=
                                 pAnimations[i].fMaxDist *
-                                MoverParameters
-                                    ->WheelDiameter; // 50m do kwadratu, a œrednica do trzeciej
+                                MoverParameters->WheelDiameter; // 50m do kwadratu, a œrednica
+                            // do trzeciej
                             pAnimations[i].fMaxDist *= Global::fDistanceFactor; // wspó³czynnik
                             // przeliczeniowy
                             // jakoœci ekranu
@@ -4111,22 +4356,27 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     m = 0; // numer osi; kolejny znak; ile osi danego typu; która œrednica
                     if ((MoverParameters->WheelDiameterL != MoverParameters->WheelDiameter) ||
                         (MoverParameters->WheelDiameterT != MoverParameters->WheelDiameter))
-                    { // obs³uga ró¿nych œrednic, o ile wystêpuj¹
+                    { // obs³uga ró¿nych œrednic, o
+                        // ile wystêpuj¹
                         while ((i < iAnimType[ANIM_WHEELS]) &&
                                (j <= MoverParameters->AxleArangement.Length()))
-                        { // wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
+                        { // wersja ze wskaŸnikami jest
+                            // bardziej elastyczna na nietypowe
+                            // uk³ady
                             if ((k >= 'A') && (k <= 'J')) // 10 chyba maksimum?
                             {
                                 pAnimations[i++].dWheelAngle =
                                     dWheelAngle + 1; // obrót osi napêdzaj¹cych
-                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
+                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny
+                                // znak
                                 m = 2; // nastêpuj¹ce toczne bêd¹ mia³y inn¹ œrednicê
                             }
                             else if ((k >= '1') && (k <= '9'))
                             {
                                 pAnimations[i++].dWheelAngle = dWheelAngle + m; // obrót osi
                                 // tocznych
-                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
+                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny
+                                // znak
                             }
                             else
                                 k = MoverParameters->AxleArangement[j++]; // pobranie kolejnego
@@ -4145,7 +4395,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 //  }
                 // }
                 else if (str == AnsiString("animpantprefix:"))
-                { // Ra: pantografy po nowemu maj¹ literki i numerki
+                { // Ra: pantografy po
+                    // nowemu maj¹ literki
+                    // i numerki
                 }
                 // Pantografy - Winger 160204
                 if (str == AnsiString("animpantrd1prefix:"))
@@ -4155,7 +4407,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     TSubModel *sm;
                     if (pants)
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
-                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
+                            // str*
                             asAnimName = str + AnsiString(i + 1);
                             sm = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[0] = sm; // jak NULL, to nie bêdzie animowany
@@ -4163,9 +4416,11 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                             { // w EP09 wywala³o siê tu z powodu NULL
                                 sm->WillBeAnimated();
                                 sm->ParentMatrix(&m); // pobranie macierzy transformacji
-                                // m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
+                                // m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie
+                                // tak)
                                 if ((mdModel->Flags() & 0x8000) == 0) // jeœli wczytano z T3D
-                                    m.InitialRotate(); // mo¿e byæ potrzebny dodatkowy obrót, jeœli
+                                    m.InitialRotate(); // mo¿e byæ potrzebny dodatkowy obrót,
+                                // jeœli
                                 // wczytano z T3D, tzn. przed wykonaniem
                                 // Init()
                                 pants[i].fParamPants->vPos.z =
@@ -4173,7 +4428,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                                 pants[i].fParamPants->vPos.y =
                                     m[3][1]; // przesuniêcie w górê odczytane z modelu
                                 if ((sm = pants[i].smElement[0]->ChildGet()) != NULL)
-                                { // jeœli ma potomny, mo¿na policzyæ d³ugoœæ (odleg³oœæ potomnego
+                                { // jeœli ma potomny, mo¿na policzyæ d³ugoœæ
+                                    // (odleg³oœæ potomnego
                                     // od osi obrotu)
                                     m = float4x4(*sm->GetMatrix()); // wystarczy³by wskaŸnik, nie
                                     // trzeba kopiowaæ
@@ -4195,7 +4451,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                                         pants[i].fParamPants->fAngleL0; // pocz¹tkowy k¹t dolnego
                                     // ramienia
                                     if ((sm = sm->ChildGet()) != NULL)
-                                    { // jeœli dalej jest œlizg, mo¿na policzyæ d³ugoœæ górnego
+                                    { // jeœli dalej jest
+                                        // œlizg, mo¿na policzyæ
+                                        // d³ugoœæ górnego
                                         // ramienia
                                         m = float4x4(*sm->GetMatrix()); // wystarczy³by wskaŸnik,
                                         // nie trzeba kopiowaæ
@@ -4276,7 +4534,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     TSubModel *sm;
                     if (pants)
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
-                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
+                            // str*
                             asAnimName = str + AnsiString(i + 1);
                             sm = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[1] = sm; // jak NULL, to nie bêdzie animowany
@@ -4284,7 +4543,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                             { // w EP09 wywala³o siê tu z powodu NULL
                                 sm->WillBeAnimated();
                                 if (pants[i].fParamPants->vPos.y == 0.0)
-                                { // jeœli pierwsze ramiê nie ustawi³o tej wartoœci, próbowaæ drugim
+                                { // jeœli pierwsze ramiê nie ustawi³o tej wartoœci,
+                                    // próbowaæ drugim
                                     //!!!! docelowo zrobiæ niezale¿n¹ animacjê ramion z ka¿dej
                                     // strony
                                     m = float4x4(
@@ -4313,7 +4573,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     str = Parser->GetNextSymbol();
                     if (pants)
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
-                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
+                            // str*
                             asAnimName = str + AnsiString(i + 1);
                             pants[i].smElement[2] = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[2]->WillBeAnimated();
@@ -4324,7 +4585,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     str = Parser->GetNextSymbol();
                     if (pants)
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
-                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
+                            // str*
                             asAnimName = str + AnsiString(i + 1);
                             pants[i].smElement[3] = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[3]->WillBeAnimated();
@@ -4335,7 +4597,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     str = Parser->GetNextSymbol();
                     if (pants)
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
-                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
+                        { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
+                            // str*
                             asAnimName = str + AnsiString(i + 1);
                             pants[i].smElement[4] = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[4]->WillBeAnimated();
@@ -4345,7 +4608,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         }
                 }
                 else if (str == AnsiString("pantfactors:"))
-                { // Winger 010304: parametry pantografow
+                { // Winger 010304:
+                    // parametry pantografow
                     double pant1x = Parser->GetNextSymbol().ToDouble();
                     double pant2x = Parser->GetNextSymbol().ToDouble();
                     double pant1h = Parser->GetNextSymbol().ToDouble(); // wysokoœæ pierwszego
@@ -4361,7 +4625,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     }
                     if (pants)
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; ++i)
-                        { // przepisanie wspó³czynników do pantografów (na razie nie bêdzie lepiej)
+                        { // przepisanie wspó³czynników do pantografów (na razie
+                            // nie bêdzie lepiej)
                             pants[i].fParamPants->fAngleL =
                                 pants[i].fParamPants->fAngleL0; // pocz¹tkowy k¹t dolnego ramienia
                             pants[i].fParamPants->fAngleU =
@@ -4370,9 +4635,12 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                             // //wysokoœæ pocz¹tkowa
                             // pants[i].fParamPants->PantWys=1.176289*sin(pants[i].fParamPants->fAngleL)+1.724482197*sin(pants[i].fParamPants->fAngleU);
                             // //wysokoœæ pocz¹tkowa
-                            if (pants[i].fParamPants->fHeight ==
-                                0.0) // gdy jest nieprawdopodobna wartoœæ (np. nie znaleziony œlizg)
-                            { // gdy pomiary modelu nie uda³y siê, odczyt podanych parametrów z MMD
+                            if (pants[i].fParamPants->fHeight == 0.0) // gdy jest
+                            // nieprawdopodobna
+                            // wartoœæ (np. nie
+                            // znaleziony œlizg)
+                            { // gdy pomiary modelu nie uda³y siê, odczyt podanych parametrów
+                                // z MMD
                                 pants[i].fParamPants->vPos.x = (i & 1) ? pant2x : pant1x;
                                 pants[i].fParamPants->fHeight =
                                     (i & 1) ? pant2h :
@@ -4394,7 +4662,10 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         }
                 }
                 else if (str == AnsiString("animpistonprefix:"))
-                { // prefiks t³oczysk - na razie u¿ywamy modeli pantografów
+                { // prefiks t³oczysk
+                    // - na razie
+                    // u¿ywamy modeli
+                    // pantografów
                     str = Parser->GetNextSymbol();
                     for (int i = 1; i <= 2; i++)
                     {
@@ -4404,7 +4675,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     }
                 }
                 else if (str == AnsiString("animconrodprefix:"))
-                { // prefiks korbowodów - na razie u¿ywamy modeli pantografów
+                { // prefiks korbowodów - na
+                    // razie u¿ywamy modeli
+                    // pantografów
                     str = Parser->GetNextSymbol();
                     for (int i = 1; i <= 2; i++)
                     {
@@ -4414,20 +4687,30 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     }
                 }
                 else if (str == AnsiString("pistonfactors:"))
-                { // Ra: parametry silnika parowego (t³oka)
-                    /* //Ra: tymczasowo wy³¹czone ze wzglêdu na porz¹dkowanie animacji pantografów
-                             pant1x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla
+                { // Ra: parametry
+                    // silnika parowego
+                    // (t³oka)
+                    /* //Ra: tymczasowo wy³¹czone ze wzglêdu na porz¹dkowanie animacji
+                       pantografów
+                             pant1x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia
+                       dla
                        pierwszego t³oka
-                             pant2x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia dla
+                             pant2x=Parser->GetNextSymbol().ToDouble(); //k¹t przesuniêcia
+                       dla
                        drugiego t³oka
                              panty=Parser->GetNextSymbol().ToDouble(); //d³ugoœæ korby (r)
-                             panth=Parser->GetNextSymbol().ToDouble(); //d³ugoœ korbowodu (k)
+                             panth=Parser->GetNextSymbol().ToDouble(); //d³ugoœ korbowodu
+                       (k)
                     */
                     MoverParameters->EnginePowerSource.PowerType =
                         SteamPower; // Ra: po chamsku, ale z CHK nie dzia³a
                 }
                 else if (str == AnsiString("animreturnprefix:"))
-                { // prefiks dr¹¿ka mimoœrodowego - na razie u¿ywamy modeli pantografów
+                { // prefiks dr¹¿ka
+                    // mimoœrodowego -
+                    // na razie u¿ywamy
+                    // modeli
+                    // pantografów
                     str = Parser->GetNextSymbol();
                     for (int i = 1; i <= 2; i++)
                     {
@@ -4451,7 +4734,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     str = Parser->GetNextSymbol();
                     asAnimName = "";
                     for (int i = 1; i <= 4; i++)
-                    { // McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
+                    { // McZapkie-050402: wyszukiwanie max 4
+                        // wahaczy o nazwie str*
                         asAnimName = str + AnsiString(i);
                         smWahacze[i - 1] = mdModel->GetFromName(asAnimName.c_str());
                         smWahacze[i - 1]->WillBeAnimated();
@@ -4465,7 +4749,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     str = Parser->GetNextSymbol();
                     smMechanik0 = mdModel->GetFromName(str.c_str());
                     if (!smMechanik0)
-                    { // jak nie ma bez numerka, to mo¿e jest z numerkiem?
+                    { // jak nie ma bez numerka, to mo¿e jest z
+                        // numerkiem?
                         smMechanik0 = mdModel->GetFromName(AnsiString(str + "1").c_str());
                         smMechanik1 = mdModel->GetFromName(AnsiString(str + "2").c_str());
                     }
@@ -4491,7 +4776,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                             // optymalizacji
                             // transformu
                             switch (MoverParameters->DoorOpenMethod)
-                            { // od razu zapinamy potrzebny typ animacji
+                            { // od razu zapinamy
+                            // potrzebny typ
+                            // animacji
                             case 1:
                                 pAnimations[i + j].yUpdate = UpdateDoorTranslate;
                                 break;
@@ -4508,7 +4795,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                             pAnimations[i + j].fSpeed =
                                 random(150); // oryginalny koncept z DoorSpeedFactor
                             pAnimations[i + j].fSpeed = (pAnimations[i + j].fSpeed + 100) / 100;
-                            // Ra: te wspó³czynniki s¹ bez sensu, bo modyfikuj¹ wektor przesuniêcia
+                            // Ra: te wspó³czynniki s¹ bez sensu, bo modyfikuj¹ wektor
+                            // przesuniêcia
                         }
                     }
                 }
@@ -4535,8 +4823,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         str = Parser->GetNextSymbol();
                 }
                 else if ((str == AnsiString("engine:")) &&
-                         (MoverParameters->Power >
-                          0)) // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
+                         (MoverParameters->Power > 0)) // plik z dzwiekiem silnika,
+                // mnozniki i ofsety amp. i
+                // czest.
                 {
                     str = Parser->GetNextSymbol();
                     rsSilnik.Init(str.c_str(), Parser->GetNextSymbol().ToDouble(), GetPosition().x,
@@ -4560,7 +4849,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 else if (((str == AnsiString("ventilator:")) &&
                           ((MoverParameters->EngineType == ElectricSeriesMotor) ||
                            (MoverParameters->EngineType ==
-                            ElectricInductionMotor)))) // plik z dzwiekiem wentylatora, mnozniki i
+                            ElectricInductionMotor)))) // plik z dzwiekiem
+                // wentylatora, mnozniki i
                 // ofsety amp. i czest.
                 {
                     str = Parser->GetNextSymbol();
@@ -4576,7 +4866,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 }
                 else if ((str == AnsiString("transmission:")) &&
                          (MoverParameters->EngineType ==
-                          ElectricSeriesMotor)) // plik z dzwiekiem, mnozniki i ofsety amp. i czest.
+                          ElectricSeriesMotor)) // plik z dzwiekiem, mnozniki i ofsety
+                // amp. i czest.
                 {
                     str = Parser->GetNextSymbol();
                     rsPrzekladnia.Init(str.c_str(), Parser->GetNextSymbol().ToDouble(),
@@ -4586,9 +4877,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     rsPrzekladnia.FM = 0.005;
                     rsPrzekladnia.FA = 1.0;
                 }
-                else if (str ==
-                         AnsiString(
-                             "brake:")) // plik z piskiem hamulca, mnozniki i ofsety amplitudy.
+                else if (str == AnsiString("brake:")) // plik z piskiem hamulca,
+                // mnozniki i ofsety amplitudy.
                 {
                     str = Parser->GetNextSymbol();
                     rsPisk.Init(str.c_str(), Parser->GetNextSymbol().ToDouble(), GetPosition().x,
@@ -4598,9 +4888,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     rsPisk.FM = 1.0;
                     rsPisk.FA = 0.0;
                 }
-                else if (str ==
-                         AnsiString(
-                             "brakeacc:")) // plik z przyspieszaczem (upust po zlapaniu hamowania)
+                else if (str == AnsiString("brakeacc:")) // plik z przyspieszaczem
+                // (upust po zlapaniu
+                // hamowania)
                 {
                     str = Parser->GetNextSymbol();
                     //         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
@@ -4611,9 +4901,9 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     //         sBrakeAcc.FM=1.0;
                     //         sBrakeAcc.FA=0.0;
                 }
-                else if (str ==
-                         AnsiString(
-                             "unbrake:")) // plik z piskiem hamulca, mnozniki i ofsety amplitudy.
+                else if (str == AnsiString("unbrake:")) // plik z piskiem hamulca,
+                // mnozniki i ofsety
+                // amplitudy.
                 {
                     str = Parser->GetNextSymbol();
                     rsUnbrake.Init(str.c_str(), Parser->GetNextSymbol().ToDouble(), GetPosition().x,
@@ -4694,7 +4984,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 }
                 else if (str == AnsiString("converter:")) // pliki z przetwornica
                 {
-                    // if (MoverParameters->EngineType==DieselElectric) //bêdzie modulowany?
+                    // if (MoverParameters->EngineType==DieselElectric) //bêdzie
+                    // modulowany?
                     sConverter.Load(Parser, GetPosition());
                 }
                 else if (str == AnsiString("turbo:")) // pliki z turbogeneratorem
@@ -4756,7 +5047,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
     // ABu 050205 - tego wczesniej nie bylo i uciekala pamiec:
     delete Parser;
     if (mdModel)
-        mdModel->Init(); // obrócenie modelu oraz optymalizacja, równie¿ zapisanie binarnego
+        mdModel->Init(); // obrócenie modelu oraz optymalizacja, równie¿ zapisanie
+    // binarnego
     if (mdLoad)
         mdLoad->Init();
     if (mdPrzedsionek)
@@ -4778,15 +5070,19 @@ void TDynamicObject::RadioStop()
 };
 
 void TDynamicObject::RaLightsSet(int head, int rear)
-{ // zapalenie œwiate³ z przodu i z ty³u, zale¿ne od kierunku pojazdu
+{ // zapalenie œwiate³ z przodu i z
+    // ty³u, zale¿ne od kierunku
+    // pojazdu
     if (!MoverParameters)
         return; // mo¿e tego nie byæ na pocz¹tku
     if (rear == 2 + 32 + 64)
-    { // jeœli koniec poci¹gu, to trzeba ustaliæ, czy jest tam czynna lokomotywa
+    { // jeœli koniec poci¹gu, to trzeba ustaliæ, czy
+        // jest tam czynna lokomotywa
         // EN57 mo¿e nie mieæ koñcówek od œrodka cz³onu
         if (MoverParameters->Power > 1.0) // jeœli ma moc napêdow¹
             if (!MoverParameters->ActiveDir) // jeœli nie ma ustawionego kierunku
-            { // jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie aktywnym
+            { // jeœli ma zarówno œwiat³a jak i koñcówki, ustaliæ, czy jest w stanie
+                // aktywnym
                 // np. lokomotywa na zimno bêdzie mieæ koñcówki a nie œwiat³a
                 rear = 64; // tablice blaszane
                 // trzeba to uzale¿niæ od "za³¹czenia baterii" w pojeŸdzie
@@ -4819,7 +5115,8 @@ int TDynamicObject::DirectionSet(int d)
     iDirection = d > 0 ? 1 : 0; // d:1=zgodny,-1=przeciwny; iDirection:1=zgodny,0=przeciwny;
     CouplCounter = 20; //¿eby normalnie skanowaæ kolizje, to musi ruszyæ z miejsca
     if (MyTrack)
-    { // podczas wczytywania wstawiane jest AI, ale mo¿e jeszcze nie byæ toru
+    { // podczas wczytywania wstawiane jest AI, ale mo¿e jeszcze nie
+        // byæ toru
         // AI ustawi kierunek ponownie po uruchomieniu silnika
         if (iDirection) // jeœli w kierunku Coupler 0
         {
@@ -4836,7 +5133,8 @@ int TDynamicObject::DirectionSet(int d)
 };
 
 TDynamicObject *__fastcall TDynamicObject::PrevAny()
-{ // wskaŸnik na poprzedni, nawet wirtualny
+{ // wskaŸnik na poprzedni,
+    // nawet wirtualny
     return iDirection ? PrevConnected : NextConnected;
 };
 TDynamicObject *__fastcall TDynamicObject::Prev()
@@ -4858,7 +5156,9 @@ TDynamicObject *__fastcall TDynamicObject::NextC(int C)
     return NULL; // gdy sprzêg inny, to jakby nic nie by³o
 };
 double TDynamicObject::NextDistance(double d)
-{ // ustalenie odleg³oœci do nastêpnego pojazdu, potrzebne do wstecznego skanowania
+{ // ustalenie odleg³oœci do
+    // nastêpnego pojazdu, potrzebne
+    // do wstecznego skanowania
     if (!MoverParameters->Couplers[iDirection].Connected)
         return d; // jeœli nic nie ma, zwrócenie domyœlnej wartoœci
     if ((d <= 0.0) || (MoverParameters->Couplers[iDirection].CoupleDist < d))
@@ -4868,7 +5168,8 @@ double TDynamicObject::NextDistance(double d)
 };
 
 TDynamicObject *__fastcall TDynamicObject::Neightbour(int &dir)
-{ // ustalenie nastêpnego (1) albo poprzedniego (0) w sk³adzie bez wzglêdu na prawid³owoœæ
+{ // ustalenie nastêpnego (1) albo poprzedniego (0) w sk³adzie bez
+    // wzglêdu na prawid³owoœæ
     // iDirection
     int d = dir; // zapamiêtanie kierunku
     dir = 1 - (dir ? NextConnectedNo : PrevConnectedNo); // nowa wartoœæ
@@ -4886,7 +5187,8 @@ void TDynamicObject::CoupleDist()
     else
     { // na drodze trzeba uwzglêdniæ wektory ruchu
         double d0 = MoverParameters->Couplers[0].CoupleDist;
-        // double d1=MoverParameters->Couplers[1].CoupleDist; //sprzêg z ty³u samochodu mo¿na olaæ,
+        // double d1=MoverParameters->Couplers[1].CoupleDist; //sprzêg z ty³u
+        // samochodu mo¿na olaæ,
         // dopóki nie jeŸdzi na wstecznym
         vector3 p1, p2;
         double d, w; // dopuszczalny dystans w poprzek
@@ -4894,10 +5196,12 @@ void TDynamicObject::CoupleDist()
         if (MoverParameters->Couplers[0].Connected) // jeœli cokolwiek pod³¹czone
             if (MoverParameters->Couplers[0].CouplingFlag == 0) // jeœli wirtualny
                 if (MoverParameters->Couplers[0].CoupleDist < 300.0) // i mniej ni¿ 300m
-                { // przez MoverParameters->Couplers[0].Connected nie da siê dostaæ do DynObj, st¹d
+                { // przez MoverParameters->Couplers[0].Connected nie da siê dostaæ do
+                    // DynObj, st¹d
                     // prowizorka
                     // WriteLog("Collision of
-                    // "+AnsiString(MoverParameters->Couplers[0].CoupleDist)+"m detected by
+                    // "+AnsiString(MoverParameters->Couplers[0].CoupleDist)+"m detected
+                    // by
                     // "+asName+":0.");
                     w = 0.5 * (MoverParameters->Couplers[0].Connected->Dim.W +
                                MoverParameters->Dim.W); // minimalna odleg³oœæ miniêcia
@@ -4918,7 +5222,8 @@ void TDynamicObject::CoupleDist()
                 if (MoverParameters->Couplers[1].CoupleDist < 300.0) // i mniej ni¿ 300m
                 {
                     // WriteLog("Collision of
-                    // "+AnsiString(MoverParameters->Couplers[1].CoupleDist)+"m detected by
+                    // "+AnsiString(MoverParameters->Couplers[1].CoupleDist)+"m detected
+                    // by
                     // "+asName+":1.");
                     w = 0.5 * (MoverParameters->Couplers[1].Connected->Dim.W +
                                MoverParameters->Dim.W); // minimalna odleg³oœæ miniêcia
@@ -4938,29 +5243,41 @@ void TDynamicObject::CoupleDist()
 };
 
 TDynamicObject *__fastcall TDynamicObject::ControlledFind()
-{ // taka proteza: chcê pod³¹czyæ kabinê EN57 bezpoœrednio z silnikowym, aby nie robiæ tego przez
+{ // taka proteza:
+    // chcê pod³¹czyæ
+    // kabinê EN57
+    // bezpoœrednio z
+    // silnikowym, aby
+    // nie robiæ tego
+    // przez
     // ukrotnienie
     // drugi silnikowy i tak musi byæ ukrotniony, podobnie jak kolejna jednostka
-    // lepiej by by³o przesy³aæ komendy sterowania, co jednak wymaga przebudowy transmisji komend
+    // lepiej by by³o przesy³aæ komendy sterowania, co jednak wymaga przebudowy
+    // transmisji komend
     // (LD)
-    // problem siê robi ze œwiat³ami, które bêd¹ zapalane w silnikowym, ale musz¹ œwieciæ siê w
+    // problem siê robi ze œwiat³ami, które bêd¹ zapalane w silnikowym, ale musz¹
+    // œwieciæ siê w
     // rozrz¹dczych
-    // dla EZT œwiat³¹ czo³owe bêd¹ "zapalane w silnikowym", ale widziane z rozrz¹dczych
+    // dla EZT œwiat³¹ czo³owe bêd¹ "zapalane w silnikowym", ale widziane z
+    // rozrz¹dczych
     // równie¿ wczytywanie MMD powinno dotyczyæ aktualnego cz³onu
     // problematyczna mo¿e byæ kwestia wybranej kabiny (w silnikowym...)
-    // jeœli silnikowy bêdzie zapiêty odwrotnie (tzn. -1), to i tak powinno jeŸdziæ dobrze
+    // jeœli silnikowy bêdzie zapiêty odwrotnie (tzn. -1), to i tak powinno
+    // jeŸdziæ dobrze
     // równie¿ hamowanie wykonuje siê zaworem w cz³onie, a nie w silnikowym...
     TDynamicObject *d = this; // zaczynamy od aktualnego
     if (d->MoverParameters->TrainType & dt_EZT) // na razie dotyczy to EZT
         if (d->NextConnected ? d->MoverParameters->Couplers[1].AllowedFlag & ctrain_depot : false)
-        { // gdy jest cz³on od sprzêgu 1, a sprzêg ³¹czony warsztatowo (powiedzmy)
+        { // gdy jest cz³on od sprzêgu 1, a sprzêg ³¹czony
+            // warsztatowo (powiedzmy)
             if ((d->MoverParameters->Power < 1.0) && (d->NextConnected->MoverParameters->Power >
                                                       1.0)) // my nie mamy mocy, ale ten drugi ma
                 d = d->NextConnected; // bêdziemy sterowaæ tym z moc¹
         }
         else if (d->PrevConnected ? d->MoverParameters->Couplers[0].AllowedFlag & ctrain_depot :
                                     false)
-        { // gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony warsztatowo (powiedzmy)
+        { // gdy jest cz³on od sprzêgu 0, a sprzêg ³¹czony
+            // warsztatowo (powiedzmy)
             if ((d->MoverParameters->Power < 1.0) && (d->PrevConnected->MoverParameters->Power >
                                                       1.0)) // my nie mamy mocy, ale ten drugi ma
                 d = d->PrevConnected; // bêdziemy sterowaæ tym z moc¹
@@ -4973,9 +5290,10 @@ void TDynamicObject::ParamSet(int what, int into)
 { // ustawienie lokalnego parametru (what) na stan (into)
     switch (what & 0xFF00)
     {
-    case 0x0100: // to np. s¹ drzwi, bity 0..7 okreœlaj¹ numer 1..254 albo maskê dla 8 ró¿nych
-        if (what &
-            1) // na razie mamy lewe oraz prawe, czyli u¿ywamy maskê 1=lewe, 2=prawe, 3=wszystkie
+    case 0x0100: // to np. s¹ drzwi, bity 0..7 okreœlaj¹ numer 1..254 albo maskê
+        // dla 8 ró¿nych
+        if (what & 1) // na razie mamy lewe oraz prawe, czyli u¿ywamy maskê 1=lewe,
+            // 2=prawe, 3=wszystkie
             if (MoverParameters->DoorLeftOpened)
             { // s¹ otwarte
                 if (!into) // jeœli zamykanie
@@ -5010,7 +5328,9 @@ void TDynamicObject::ParamSet(int what, int into)
 };
 
 int TDynamicObject::RouteWish(TTrack *tr)
-{ // zapytanie do AI, po którym segmencie (-6..6) jechaæ na skrzy¿owaniu (tr)
+{ // zapytanie do AI, po którym
+    // segmencie (-6..6) jechaæ na
+    // skrzy¿owaniu (tr)
     return Mechanik ? Mechanik->CrossRoute(tr) : 0; // wg AI albo prosto
 };
 
@@ -5035,10 +5355,14 @@ AnsiString TDynamicObject::TextureTest(AnsiString &name)
 };
 
 void TDynamicObject::DestinationSet(AnsiString to)
-{ // ustawienie stacji docelowej oraz wymiennej tekstury 4, jeœli istnieje plik
+{ // ustawienie stacji
+    // docelowej oraz wymiennej
+    // tekstury 4, jeœli
+    // istnieje plik
     // w zasadzie, to ka¿dy wagon móg³by mieæ inn¹ stacjê docelow¹
     // zw³aszcza w towarowych, pod k¹tem zautomatyzowania maewrów albo pracy górki
-    // ale to jeszcze potrwa, zanim bêdzie mo¿liwe, na razie mo¿na wpisaæ stacjê z rozk³adu
+    // ale to jeszcze potrwa, zanim bêdzie mo¿liwe, na razie mo¿na wpisaæ stacjê z
+    // rozk³adu
     if (abs(iMultiTex) >= 4)
         return; // jak s¹ 4 tekstury wymienne, to nie zmieniaæ rozk³adem
     asDestination = to;
@@ -5060,11 +5384,14 @@ void TDynamicObject::DestinationSet(AnsiString to)
             NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
     else
         ReplacableSkinID[4] = 0; // 0 to brak? -1 odpada, bo inaczej siê bêdzie mapowaæ
-    // Ra 2015-01: ¿eby zalogowaæ b³¹d, trzeba by mieæ pewnoœæ, ¿e model u¿ywa tekstury nr 4
+    // Ra 2015-01: ¿eby zalogowaæ b³¹d, trzeba by mieæ pewnoœæ, ¿e model u¿ywa
+    // tekstury nr 4
 };
 
 void TDynamicObject::OverheadTrack(float o)
-{ // ewentualne wymuszanie jazdy bezpr¹dowej z powodu informacji w torze
+{ // ewentualne wymuszanie jazdy
+    // bezpr¹dowej z powodu informacji
+    // w torze
     if (ctOwner) // jeœli ma obiekt nadzoruj¹cy
     { // trzeba zaktualizowaæ mapê flag bitowych jazdy bezpr¹dowej
         if (o < 0.0)

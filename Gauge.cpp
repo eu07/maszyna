@@ -50,7 +50,8 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
                   double fNewFriction, double fNewValue)
 { // ustawienie parametrów animacji submodelu
     if (NewSubModel)
-    { // warunek na wszelki wypadek, gdyby siê submodel nie pod³¹czy³
+    { // warunek na wszelki wypadek, gdyby siê submodel nie
+        // pod³¹czy³
         fFriction = fNewFriction;
         fValue = fNewValue;
         fOffset = fNewOffset;
@@ -61,11 +62,12 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
         {
             TSubModel *sm = SubModel->ChildGet();
             do
-            { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od cyfry w (fValue)
+            { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od
+                // cyfry w (fValue)
                 if (sm->pName)
                 { // musi mieæ niepust¹ nazwê
-                    if ((*sm->pName) >= '0')
-                        if ((*sm->pName) <= '9')
+                    if (sm->pName[0] >= '0')
+                        if (sm->pName[0] <= '9')
                             sm->WillBeAnimated(); // wy³¹czenie optymalizacji
                 }
                 sm = sm->NextGet();
@@ -137,14 +139,16 @@ void TGauge::PutValue(double fNewDesired)
 void TGauge::Update()
 {
     float dt = Timer::GetDeltaTime();
-    if ((fFriction > 0) &&
-        (dt <
-         0.5 * fFriction)) // McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
+    if ((fFriction > 0) && (dt < 0.5 * fFriction)) // McZapkie-281102:
+        // zabezpieczenie przed
+        // oscylacjami dla dlugich
+        // czasow
         fValue += dt * (fDesiredValue - fValue) / fFriction;
     else
         fValue = fDesiredValue;
     if (SubModel)
-    { // warunek na wszelki wypadek, gdyby siê submodel nie pod³¹czy³
+    { // warunek na wszelki wypadek, gdyby siê submodel nie
+        // pod³¹czy³
         TSubModel *sm;
         switch (eType)
         {
@@ -167,16 +171,17 @@ void TGauge::Update()
             break;
         case gt_Digital: // Ra 2014-07: licznik cyfrowy
             sm = SubModel->ChildGet();
-            AnsiString n = FormatFloat("0000000000", floor(fValue)); // na razie tak trochê bez
-            // sensu
+            AnsiString n =
+                FormatFloat("0000000000", floor(fValue)); // na razie tak trochê bez sensu
             do
-            { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od cyfry w (fValue)
+            { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od
+                // cyfry w (fValue)
                 if (sm->pName)
                 { // musi mieæ niepust¹ nazwê
-                    if ((*sm->pName) >= '0')
-                        if ((*sm->pName) <= '9')
+                    if (sm->pName[0] >= '0')
+                        if (sm->pName[0] <= '9')
                             sm->SetRotate(float3(0, 1, 0),
-                                          -36.0 * (n['0' + 10 - (*sm->pName)] - '0'));
+                                          -36.0 * (n['0' + 10 - sm->pName[0]] - '0'));
                 }
                 sm = sm->NextGet();
             } while (sm);

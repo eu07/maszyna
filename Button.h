@@ -14,12 +14,13 @@ http://mozilla.org/MPL/2.0/.
 #include "QueryParserComp.hpp"
 
 class TButton
-{ // animacja dwustanowa, w³¹cza jeden z dwóch submodeli (jednego z nich mo¿e nie byæ)
+{ // animacja dwustanowa, w³¹cza jeden z dwóch submodeli (jednego
+    // z nich mo¿e nie byæ)
   private:
     TSubModel *pModelOn, *pModelOff; // submodel dla stanu za³¹czonego i wy³¹czonego
     bool bOn;
+    bool *bData;
     int iFeedbackBit; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
-    void Update();
 
   public:
     TButton();
@@ -53,8 +54,10 @@ class TButton
     {
         return (pModelOn) || (pModelOff);
     };
+    void Update();
     void Init(AnsiString asName, TModel3d *pModel, bool bNewOn = false);
     void Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);
+    void AssignBool(bool *bValue);
 };
 
 //---------------------------------------------------------------------------
