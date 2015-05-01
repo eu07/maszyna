@@ -1,14 +1,6 @@
 unit _mover;          {fizyka ruchu dla symulatora lokomotywy}
 
 (*
-This Source Code Form is subject to the
-terms of the Mozilla Public License, v.
-2.0. If a copy of the MPL was not
-distributed with this file, You can
-obtain one at
-http://mozilla.org/MPL/2.0/.
-*)
-(*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Maciej Czapkiewicz and others
 
@@ -212,6 +204,7 @@ CONST
   eimv_Pmax=17;
   eimv_Fzad=18;
   eimv_Imax=19;
+  eimv_Fful=20;
 
 
 TYPE
@@ -2425,10 +2418,13 @@ begin
 
   dpMainValve:=0;
 
-if (BrakeCtrlPosNo>1) and (ActiveCab<>0)then
+if (BrakeCtrlPosNo>1) {and(ActiveCab<>0)}then
 with BrakePressureTable[BrakeCtrlPos] do
    begin
-          dpLocalValve:=LocHandle.GetPF(LocalBrakePos/LocalBrakePosNo, Hamulec.GetBCP, ScndPipePress, dt, 0);
+          if(EngineType<>ElectricInductionMotor)then
+           dpLocalValve:=LocHandle.GetPF(Max0R(LocalBrakePos/LocalBrakePosNo,LocalBrakePosA), Hamulec.GetBCP, ScndPipePress, dt, 0)
+          else
+           dpLocalValve:=LocHandle.GetPF(LocalBrakePosA, Hamulec.GetBCP, ScndPipePress, dt, 0);
           if(BrakeHandle=FV4a)and((PipePress<2.75)and((Hamulec.GetStatus and b_rls)=0))and(BrakeSubsystem=ss_LSt)and(TrainType<>dt_EZT)then
             temp:=PipePress+0.00001
             else
@@ -2483,11 +2479,12 @@ end;
 
          if(DynamicBrakeFlag)and(EngineType=ElectricInductionMotor)then
           begin
-           if(Vel>10)then LocBrakePress:=0 else
-           if(Vel>5)then LocBrakePress:=(10-Vel)/5*LocBrakePress
-          end;           
-
-        (Hamulec as TLSt).SetLBP(LocBrakePress);
+           (Hamulec as TLSt).SetLBP(LocBrakePress);          
+//           if(Vel>10)then LocBrakePress:=0 else
+//           if(Vel>5)then LocBrakePress:=(10-Vel)/5*LocBrakePress
+          end
+         else
+         (Hamulec as TLSt).SetLBP(LocBrakePress);
        end;
       CV1_L_TR:
       begin
@@ -4095,10 +4092,11 @@ begin
           Mm:=Mm*RList[MainCtrlActualPos].Bn/(RList[MainCtrlActualPos].Bn+1); //zrobione w momencie, ¿eby nie dawac elektryki w przeliczaniu si³
 
         if (Abs(Im)>Imax) then
-         Vhyp:=Vhyp+dt*(Abs(Im)/Imax-0.9)*10 //zwieksz czas oddzialywania na PN
+         Vhyp:=Vhyp+dt//*(Abs(Im)/Imax-0.9)*10 //zwieksz czas oddzialywania na PN
         else
          Vhyp:=0;
         if (Vhyp>CtrlDelay/2) then  //jesli czas oddzialywania przekroczony
+//         dec(MainCtrlActualPos);
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
          if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
@@ -4292,31 +4290,39 @@ begin
      end;
    ElectricInductionMotor:
      begin
-       if (Voltage>1800) and (MainS) then
+      if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
+        if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
+          MainSwitch(false);
+//        tmpV:=V/(Pi*WheelDiameter)*Transmision.Ratio;//*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
+       if (MainS) then
         begin
 
-         if ((Hamulec as TLSt).GetEDBCP<0.25)and(LocHandle.GetCP<0.25) then
+         if ((Hamulec as TLSt).GetEDBCP<0.25) and (LocHandle.GetCP<0.25) and (AnPos<0.01) then
            DynamicBrakeFlag:=false
-         else if ((BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25)) or (LocHandle.GetCP>0.25) then
+         else if (((BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25) or (LocHandle.GetCP>0.25))) or (AnPos>0.02) then
            DynamicBrakeFlag:=true;
 
          if(DynamicBrakeFlag)then
           begin
            if eimv[eimv_Fmax]*sign(V)*DirAbsolute<-1 then
-             PosRatio:=-sign(V)*DirAbsolute*eimv[eimv_Fr]/(eimc[eimc_p_Fh]*Max0R((Hamulec as TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0]{dizel_fill})
+             PosRatio:=-sign(V)*DirAbsolute*eimv[eimv_Fr]/(eimc[eimc_p_Fh]*Max0R((Hamulec as TLSt).GetEDBCP/MaxBrakePress[0],AnPos){dizel_fill})
            else
              PosRatio:=0;
            PosRatio:=round(20*Posratio)/20;
            if PosRatio<19.5/20 then PosRatio:=PosRatio*0.9;
            (Hamulec as TLSt).SetED(PosRatio);
-           PosRatio:=-Max0R((Hamulec as TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0]*Max0R(0,Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0])));
+//           (Hamulec as TLSt).SetLBP(LocBrakePress*(1-PosRatio));
+           PosRatio:=-Max0R(Min0R((Hamulec as TLSt).GetEDBCP/MaxBrakePress[0],1),AnPos)*Max0R(0,Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0])));
+           eimv[eimv_Fzad]:=-Max0R(LocalBrakeRatio,(Hamulec as TLSt).GetEDBCP/MaxBrakePress[0]);
            tmp:=5;
           end
          else
           begin
            PosRatio:=(MainCtrlPos/MainCtrlPosNo);
+           eimv[eimv_Fzad]:=PosRatio;
            PosRatio:=1.0*(PosRatio*0+1)*PosRatio;
            (Hamulec as TLSt).SetED(0);
+//           (Hamulec as TLSt).SetLBP(LocBrakePress);
            if (PosRatio>dizel_fill) then tmp:=1 else tmp:=4; //szybkie malenie, powolne wzrastanie
           end;
          if SlippingWheels then begin PosRatio:=0; tmp:=10; SandDoseOn; end;//przeciwposlizg
@@ -4331,19 +4337,22 @@ begin
            eimv[eimv_Pmax]:=eimc[eimc_p_Ph]
          else
            eimv[eimv_Pmax]:=Min0R(eimc[eimc_p_Pmax],0.001*Voltage*(eimc[eimc_p_Imax]-eimc[eimc_f_I0])*Pirazy2*eimc[eimc_s_cim]/eimc[eimc_s_p]/eimc[eimc_s_cfu]);
-
          eimv[eimv_FMAXMAX]:=0.001*SQR(Min0R(eimv[eimv_fkr]/Max0R(abs(enrot)*eimc[eimc_s_p]+eimc[eimc_s_dfmax]*eimv[eimv_ks],eimc[eimc_s_dfmax]),1)*eimc[eimc_f_cfu]/eimc[eimc_s_cfu])*(eimc[eimc_s_dfmax]*eimc[eimc_s_dfic]*eimc[eimc_s_cim])*Transmision.Ratio*NPoweredAxles*2/WheelDiameter;
          if(DynamicBrakeFlag)then
-//           if(Vel>eimc[eimc_p_Vh0])then
-            eimv[eimv_Fmax]:=-sign(V)*(DirAbsolute)*Min0R(eimc[eimc_p_Ph]*3.6/Vel,-eimc[eimc_p_Fh]*dizel_fill)//*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
-//           else
-//            eimv[eimv_Fmax]:=0
+          begin
+           eimv[eimv_Fful]:=Min0R(eimc[eimc_p_Ph]*3.6/Vel,Min0R(eimc[eimc_p_Fh],eimv[eimv_FMAXMAX]));
+           eimv[eimv_Fmax]:=-sign(V)*(DirAbsolute)*Min0R(eimc[eimc_p_Ph]*3.6/Vel,Min0R(-eimc[eimc_p_Fh]*dizel_fill,eimv[eimv_FMAXMAX]));//*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
+          end
          else
-           eimv[eimv_Fmax]:=Min0R(Min0R(3.6*eimv[eimv_Pmax]/Max0R(Vel,1),eimc[eimc_p_F0]-Vel*eimc[eimc_p_a1]),eimv[eimv_FMAXMAX])*dizel_fill;
+          begin
+           eimv[eimv_Fful]:=Min0R(Min0R(3.6*eimv[eimv_Pmax]/Max0R(Vel,1),eimc[eimc_p_F0]-Vel*eimc[eimc_p_a1]),eimv[eimv_FMAXMAX]);
+           eimv[eimv_Fmax]:=eimv[eimv_Fful]*dizel_fill;
+          end;
+
 
          eimv[eimv_ks]:=eimv[eimv_Fmax]/eimv[eimv_FMAXMAX];
          eimv[eimv_df]:=eimv[eimv_ks]*eimc[eimc_s_dfmax];
-         eimv[eimv_fp]:=DirAbsolute*enrot*eimc[eimc_s_p]+eimv[eimv_df];
+         eimv[eimv_fp]:=DirAbsolute*enrot*eimc[eimc_s_p]+eimv[eimv_df]; //do przemyslenia dzialanie pp z tmpV
 //         eimv[eimv_U]:=Max0R(eimv[eimv_Uzsmax],Min0R(eimc[eimc_f_cfu]*eimv[eimv_fp],eimv[eimv_Uzsmax]));
 //         eimv[eimv_pole]:=eimv[eimv_U]/(eimv[eimv_fp]*eimc[eimc_s_cfu]);
          if(abs(eimv[eimv_fp])<=eimv[eimv_fkr])then
@@ -4365,13 +4374,13 @@ begin
 
          EnginePower:=Abs(eimv[eimv_Ic]*eimv[eimv_U]*NPoweredAxles)/1000;
          tmpV:=eimv[eimv_fp];
-         if (abs(eimv[eimv_If])>1) or (abs(tmpV)>0.1) then
+         if ((abs(eimv[eimv_If])>1) or (abs(tmpV)>0.1))and(RlistSize>0) then
           begin
-           if abs(tmpV)<32 then RventRot:=1.0 else
-           if abs(tmpV)<39 then RventRot:=0.33*abs(tmpV)/32 else
-             RventRot:=0.25*abs(tmpV)/39;//}
+           i:=0;
+           while (i<RlistSize-1)and(DEList[i+1].RPM<abs(tmpV))do inc(i);
+           RventRot:=(abs(tmpV)-DEList[i].RPM)/(DEList[i+1].RPM-DEList[i].RPM)*(DEList[i+1].GenPower-DEList[i].GenPower)+DEList[i].GenPower;
           end
-         else              RVentRot:=0;
+         else RVentRot:=0;
 
          Mm:=eimv[eimv_M]*DirAbsolute;
          Mw:=Mm*Transmision.Ratio;
@@ -4383,7 +4392,7 @@ begin
        else
         begin
          Im:=0;Mm:=0;Mw:=0;Fw:=0;Ft:=0;Itot:=0;dizel_fill:=0;EnginePower:=0;
-         (Hamulec as TLSt).SetED(0);RventRot:=0.0;
+         (Hamulec as TLSt).SetED(0);RventRot:=0.0;//(Hamulec as TLSt).SetLBP(LocBrakePress);
         end;
      end;
    None: begin end;
@@ -4786,7 +4795,7 @@ begin
        else
           Voltage:=0;
        if Mains and {(Abs(CabNo)<2) and} (EngineType=ElectricInductionMotor) then //potem ulepszyc! pantogtrafy!
-          Voltage:=RunningTraction.TractionVoltage;
+          Voltage:=Max0R(Max0R(RunningTraction.TractionVoltage,HVCouplers[0][1]),HVCouplers[1][1]);
     //end;
 
     if Power>0 then
@@ -4851,34 +4860,39 @@ function T_MoverParameters.ComputeMovement(dt:real; dt1:real; Shape:TTrackShape;
 var b:byte;
     Vprev,AccSprev:real;
 //    Iheat:real; prad ogrzewania
+    hvc: real;
 const Vepsilon=1e-5; Aepsilon=1e-3; //ASBSpeed=0.8;
 begin
-{
+    TotalCurrent:=0;
     for b:=0 to 1 do //przekazywanie napiec
      if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then
       begin
-        HVCouplers[1-b][1]:=Max0R(Abs(Voltage),Couplers[b].Connected.HVCouplers[Couplers[b].ConnectedNr][1]);
+        HVCouplers[1-b][1]:=Max0R(Abs(ElectricTraction.TractionVoltage),Couplers[b].Connected.HVCouplers[Couplers[b].ConnectedNr][1]*0.99);
       end
      else
-        HVCouplers[1-b][1]:=Max0R(Abs(Voltage),0);
-      end;
+        HVCouplers[1-b][1]:=Abs(ElectricTraction.TractionVoltage);//Max0R(Abs(Voltage),0);
+//      end;
 
-    for b:=0 to 1 do //przekazywanie pradow
-     if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then //jesli spiety
-      begin
-        if (HVCouplers[b][1]) > 1 then //przewod pod napiecie
-          HVCouplers[b][0]:=Couplers[b].Connected.HVCouplers[1-Couplers[b].ConnectedNr][0]+Iheat//obci¹¿enie
-        else
-          HVCouplers[b][0]:=0;
-      end
-     else //pierwszy pojazd
-      begin
-        if (HVCouplers[b][1]) > 1 then //pod napieciem
-          HVCouplers[b][0]:=0+Iheat//obci¹¿enie
-        else
-          HVCouplers[b][0]:=0;
-      end;
-}
+    hvc:=HVCouplers[0][1]+HVCouplers[1][1];
+    if (Abs(ElectricTraction.TractionVoltage)<1) and (hvc>1)then  //bez napiecia, ale jest cos na sprzegach:
+     begin
+      for b:=0 to 1 do //przekazywanie pradow
+       if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then //jesli spiety
+        begin
+          HVCouplers[b][0]:=Couplers[b].Connected.HVCouplers[1-Couplers[b].ConnectedNr][0]+Itot*HVCouplers[b][1]/hvc; //obci¹¿enie rozkladane stosownie do napiec
+        end
+       else //pierwszy pojazd
+        begin
+          HVCouplers[b][0]:=Itot*HVCouplers[b][1]/hvc;
+        end;
+     end
+    else
+     begin
+      TotalCurrent:=HVCouplers[0][0]+HVCouplers[1][0];
+      HVCouplers[0][0]:=0;
+      HVCouplers[1][0]:=0;
+     end; 
+
 
   ClearPendingExceptions;
   if not TestFlag(DamageFlag,dtrain_out) then
@@ -4888,7 +4902,7 @@ begin
      RunningTraction:=ElectricTraction;
      with ElectricTraction do
       if not DynamicBrakeFlag then
-       RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*(Itot+HVCouplers[0][0]+HVCouplers[1][0]))
+       RunningTraction.TractionVoltage:=TractionVoltage{-Abs(TractionResistivity*(Itot+HVCouplers[0][0]+HVCouplers[1][0]))}
       else
        RunningTraction.TractionVoltage:=TractionVoltage-Abs(TractionResistivity*Itot*0); //zasadniczo ED oporowe nie zmienia napiêcia w sieci
    end;
@@ -7357,7 +7371,14 @@ begin
                 SST[k].Pmax:=Min0R(SST[k].Pmax,sqr(SST[k].Umax)/47.6);
               end;
             end;
+          end
+          else if (Pos('ffList:',lines)>0) then  {dla asynchronow}
+          begin
+            RListSize:=s2b(DUE(ExtractKeyWord(lines,'Size=')));
+            for k:=0 to RListSize do
+                readln(fin, DEList[k].rpm, DEList[k].genpower)
           end;
+
         end;
       end; {koniec filtru importu parametrow}
      if ConversionError=0 then

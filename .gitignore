@@ -52,3 +52,10 @@ install_manifest.txt
 *.~h
 *.~bpr
 *.~pas
+*.opensdf
+*.sdf
+*.sln
+*.vcxproj
+*.filters
+format_all_files.py
+~$kumentacja zmiennych Python.docx
