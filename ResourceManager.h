@@ -20,10 +20,16 @@ class Resource
 
   public:
     virtual void Release() = 0;
-    double GetLastUsage() const { return _lastUsage; }
+    double GetLastUsage() const
+    {
+        return _lastUsage;
+    }
 
   protected:
-    void SetLastUsage(double lastUsage) { _lastUsage = lastUsage; }
+    void SetLastUsage(double lastUsage)
+    {
+        _lastUsage = lastUsage;
+    }
 
   private:
     double _lastUsage;
@@ -37,7 +43,10 @@ class ResourceManager
     static void Unregister(Resource *resource);
 
     static void Sweep(double currentTime);
-    static void SetExpiry(double expiry) { _expiry = expiry; }
+    static void SetExpiry(double expiry)
+    {
+        _expiry = expiry;
+    }
 
   private:
     typedef std::vector<Resource *> Resources;

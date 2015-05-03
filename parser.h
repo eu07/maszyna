@@ -42,15 +42,27 @@ class cParser : public std::stringstream
         getTokens();
         *this >> output;
     };
-    inline void ignoreToken() { readToken(); };
+    inline void ignoreToken()
+    {
+        readToken();
+    };
     inline void ignoreTokens(int count)
     {
         for (int i = 0; i < count; i++)
             readToken();
     };
-    inline bool expectToken(std::string value) { return readToken() == value; };
-    bool eof() { return mStream->eof(); };
-    bool ok() { return !mStream->fail(); };
+    inline bool expectToken(std::string value)
+    {
+        return readToken() == value;
+    };
+    bool eof()
+    {
+        return mStream->eof();
+    };
+    bool ok()
+    {
+        return !mStream->fail();
+    };
     bool getTokens(int Count = 1, bool ToLower = true, const char *Break = "\n\t ;");
     int getProgress() const; // percentage of file processed.
     // load traction?
@@ -64,11 +76,11 @@ class cParser : public std::stringstream
     bool trimComments(std::string &String);
     // members:
     std::istream *mStream; // relevant kind of buffer is attached on creation.
-    std::string mPath;     // path to open stream, for relative path lookups.
-    int mSize;             // size of open stream, for progress report.
+    std::string mPath; // path to open stream, for relative path lookups.
+    int mSize; // size of open stream, for progress report.
     typedef std::map<std::string, std::string> commentmap;
     commentmap mComments;
-    cParser *mIncludeParser;             // child class to handle include directives.
+    cParser *mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
 };
 

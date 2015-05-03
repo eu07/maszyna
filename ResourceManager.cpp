@@ -17,7 +17,10 @@ double ResourceManager::_expiry = 5.0f;
 double ResourceManager::_lastUpdate = 0.0f;
 double ResourceManager::_lastReport = 0.0f;
 
-void ResourceManager::Register(Resource *resource) { _resources.push_back(resource); };
+void ResourceManager::Register(Resource *resource)
+{
+    _resources.push_back(resource);
+};
 
 void ResourceManager::Unregister(Resource *resource)
 {
@@ -33,7 +36,10 @@ class ResourceExpired
 {
   public:
     ResourceExpired(double time) : _time(time){};
-    bool operator()(Resource *resource) { return (resource->GetLastUsage() < _time); }
+    bool operator()(Resource *resource)
+    {
+        return (resource->GetLastUsage() < _time);
+    }
 
   private:
     double _time;

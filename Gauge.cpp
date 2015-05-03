@@ -46,8 +46,8 @@ void TGauge::Clear()
     fDesiredValue = 0;
 };
 
-void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
-                             double fNewOffset, double fNewFriction, double fNewValue)
+void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset,
+                  double fNewFriction, double fNewValue)
 { // ustawienie parametrów animacji submodelu
     if (NewSubModel)
     { // warunek na wszelki wypadek, gdyby siê submodel nie pod³¹czy³
@@ -168,7 +168,7 @@ void TGauge::Update()
         case gt_Digital: // Ra 2014-07: licznik cyfrowy
             sm = SubModel->ChildGet();
             AnsiString n = FormatFloat("0000000000", floor(fValue)); // na razie tak trochê bez
-                                                                     // sensu
+            // sensu
             do
             { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od cyfry w (fValue)
                 if (sm->pName)

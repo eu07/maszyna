@@ -36,21 +36,33 @@ class TStringPack
     //+8 - tabela indeksów
   public:
     char *String(int n);
-    char *StringAt(int n) { return data + 9 + n; };
+    char *StringAt(int n)
+    {
+        return data + 9 + n;
+    };
     TStringPack()
     {
         data = NULL;
         index = NULL;
     };
-    void Init(char *d) { data = d; };
-    void InitIndex(int *i) { index = i; };
+    void Init(char *d)
+    {
+        data = d;
+    };
+    void InitIndex(int *i)
+    {
+        index = i;
+    };
 };
 
 class TMaterialColor
 {
   public:
     TMaterialColor(){};
-    TMaterialColor(char V) { r = g = b = V; };
+    TMaterialColor(char V)
+    {
+        r = g = b = V;
+    };
     // TMaterialColor(double R, double G, double B)
     TMaterialColor(char R, char G, char B)
     {
@@ -199,7 +211,7 @@ class TSubModel
     float fFarDecayRadius; // normalizacja j.w.
     float fCosFalloffAngle; // cosinus k¹ta sto¿ka pod którym widaæ œwiat³o
     float fCosHotspotAngle; // cosinus k¹ta sto¿ka pod którym widaæ aureolê i zwiêkszone natê¿enie
-                            // œwiat³a
+    // œwiat³a
     float fCosViewAngle; // cos kata pod jakim sie teraz patrzy
     // Ra: dalej s¹ zmienne robocze, mo¿na je przestawiaæ z zachowaniem rozmiaru klasy
     int TextureID; // numer tekstury, -1 wymienna, 0 brak
@@ -250,8 +262,14 @@ class TSubModel
     int Load(cParser &Parser, TModel3d *Model, int Pos, bool dynamic);
     void ChildAdd(TSubModel *SubModel);
     void NextAdd(TSubModel *SubModel);
-    TSubModel *__fastcall NextGet() { return Next; };
-    TSubModel *__fastcall ChildGet() { return Child; };
+    TSubModel *__fastcall NextGet()
+    {
+        return Next;
+    };
+    TSubModel *__fastcall ChildGet()
+    {
+        return Child;
+    };
     int TriangleAdd(TModel3d *m, int tex, int tri);
     float8 *__fastcall TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
     // float8* TrianglePtr(const char *tex,int tri);
@@ -269,9 +287,15 @@ class TSubModel
     void RenderVBO();
     void RenderAlphaVBO();
     // inline matrix4x4* GetMatrix() {return dMatrix;};
-    inline float4x4 *__fastcall GetMatrix() { return fMatrix; };
+    inline float4x4 *__fastcall GetMatrix()
+    {
+        return fMatrix;
+    };
     // matrix4x4* GetTransform() {return Matrix;};
-    inline void Hide() { iVisible = 0; };
+    inline void Hide()
+    {
+        iVisible = 0;
+    };
     void RaArrayFill(CVertNormTex *Vert);
     // void Render();
     int FlagsCheck();
@@ -284,8 +308,8 @@ class TSubModel
     void DisplayLists();
     void Info();
     void InfoSet(TSubModelInfo *info);
-    void BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t,
-                            TStringPack *n = NULL, bool dynamic = false);
+    void BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TStringPack *n = NULL,
+                 bool dynamic = false);
     void ReplacableSet(GLuint *r, int a)
     {
         ReplacableSkinId = r;
@@ -294,8 +318,14 @@ class TSubModel
     void TextureNameSet(const char *n);
     void NameSet(const char *n);
     // Ra: funkcje do budowania terenu z E3D
-    int Flags() { return iFlags; };
-    void UnFlagNext() { iFlags &= 0x00FFFFFF; };
+    int Flags()
+    {
+        return iFlags;
+    };
+    void UnFlagNext()
+    {
+        iFlags &= 0x00FFFFFF;
+    };
     void ColorsSet(int *a, int *d, int *s);
     inline float3 Translation1Get()
     {
@@ -356,7 +386,10 @@ class TModel3d : public CMesh
     int iSubModelsCount; // Ra: u¿ywane do tworzenia binarnych
     AnsiString asBinary; // nazwa pod któr¹ zapisaæ model binarny
   public:
-    inline TSubModel *__fastcall GetSMRoot() { return (Root); };
+    inline TSubModel *__fastcall GetSMRoot()
+    {
+        return (Root);
+    };
     // double Radius; //Ra: nie u¿ywane
     TModel3d();
     TModel3d(char *FileName);
@@ -371,36 +404,40 @@ class TModel3d : public CMesh
     void SaveToBinFile(char *FileName);
     void BreakHierarhy();
     // renderowanie specjalne
-    void Render(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
-                           int iAlpha = 0x30300030);
+    void Render(double fSquareDistance, GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
     void RenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
-                                int iAlpha = 0x30300030);
-    void RaRender(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
-                             int iAlpha = 0x30300030);
+                     int iAlpha = 0x30300030);
+    void RaRender(double fSquareDistance, GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
     void RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
-                                  int iAlpha = 0x30300030);
+                       int iAlpha = 0x30300030);
     // jeden k¹t obrotu
     void Render(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
-                           int iAlpha = 0x30300030);
-    void RenderAlpha(vector3 pPosition, double fAngle = 0,
-                                GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+                int iAlpha = 0x30300030);
+    void RenderAlpha(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+                     int iAlpha = 0x30300030);
     void RaRender(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
-                             int iAlpha = 0x30300030);
-    void RaRenderAlpha(vector3 pPosition, double fAngle = 0,
-                                  GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+                  int iAlpha = 0x30300030);
+    void RaRenderAlpha(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+                       int iAlpha = 0x30300030);
     // trzy k¹ty obrotu
     void Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
-                           int iAlpha = 0x30300030);
-    void RenderAlpha(vector3 *vPosition, vector3 *vAngle,
-                                GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+                int iAlpha = 0x30300030);
+    void RenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+                     int iAlpha = 0x30300030);
     void RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
-                             int iAlpha = 0x30300030);
-    void RaRenderAlpha(vector3 *vPosition, vector3 *vAngle,
-                                  GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+                  int iAlpha = 0x30300030);
+    void RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+                       int iAlpha = 0x30300030);
     // inline int GetSubModelsCount() { return (SubModelsCount); };
-    int Flags() { return iFlags; };
+    int Flags()
+    {
+        return iFlags;
+    };
     void Init();
-    char *__fastcall NameGet() { return Root ? Root->pName : NULL; };
+    char *__fastcall NameGet()
+    {
+        return Root ? Root->pName : NULL;
+    };
     int TerrainCount();
     TSubModel *__fastcall TerrainSquare(int n);
     void TerrainRenderVBO(int n);

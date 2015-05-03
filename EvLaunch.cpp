@@ -43,9 +43,14 @@ TEventLauncher::TEventLauncher()
     iCheckMask = 0;
 }
 
-TEventLauncher::~TEventLauncher() { SafeDeleteArray(szText); }
+TEventLauncher::~TEventLauncher()
+{
+    SafeDeleteArray(szText);
+}
 
-void TEventLauncher::Init() {}
+void TEventLauncher::Init()
+{
+}
 
 bool TEventLauncher::Load(cParser *parser)
 { // wczytanie wyzwalacza zdarzeñ

@@ -19,11 +19,11 @@ http://mozilla.org/MPL/2.0/.
 using namespace Math3D;
 
 // definicje klawiszy
-const int k_IncMainCtrl = 0;     //[Num+]
+const int k_IncMainCtrl = 0; //[Num+]
 const int k_IncMainCtrlFAST = 1; //[Num+] [Shift]
-const int k_DecMainCtrl = 2;     //[Num-]
+const int k_DecMainCtrl = 2; //[Num-]
 const int k_DecMainCtrlFAST = 3; //[Num-] [Shift]
-const int k_IncScndCtrl = 4;     //[Num/]
+const int k_IncScndCtrl = 4; //[Num/]
 const int k_IncScndCtrlFAST = 5;
 const int k_DecScndCtrl = 6;
 const int k_DecScndCtrlFAST = 7;
@@ -151,7 +151,7 @@ class TTranscripts
     ~TTranscripts();
     void AddLine(char *txt, float show, float hide, bool it);
     void Add(char *txt, float len,
-                        bool backgorund = false); // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
+             bool backgorund = false); // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
     void Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekundê)
 };
 
@@ -206,7 +206,10 @@ class Global
     static AnsiString asHumanCtrlVehicle;
     static void LoadIniFile(AnsiString asFileName);
     static void InitKeys(AnsiString asFileName);
-    inline static vector3 GetCameraPosition() { return pCameraPosition; };
+    inline static vector3 GetCameraPosition()
+    {
+        return pCameraPosition;
+    };
     static void SetCameraPosition(vector3 pNewCameraPosition);
     static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko

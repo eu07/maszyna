@@ -38,7 +38,7 @@ class TAdvancedSound
     TAdvancedSound();
     ~TAdvancedSound();
     void Init(char *NameOn, char *Name, char *NameOff, double DistanceAttenuation,
-                         vector3 pPosition);
+              vector3 pPosition);
     void Load(TQueryParserComp *Parser, vector3 pPosition);
     void TurnOn(bool ListenerInside, vector3 NewPosition);
     void TurnOff(bool ListenerInside, vector3 NewPosition);

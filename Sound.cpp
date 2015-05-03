@@ -34,7 +34,7 @@ int TSoundsManager::Count = 0;
 TSoundContainer *TSoundsManager::First = NULL;
 
 TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName,
-                                            int NConcurrent)
+                                 int NConcurrent)
 { // wczytanie pliku dŸwiêkowego
     int hr = 111;
     DSBuffer = NULL; // na pocz¹tek, gdyby uruchomiæ dŸwiêków siê nie uda³o
@@ -94,7 +94,7 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFi
     //----------------------------------------------------------
 
     BYTE *pbWavData; // Pointer to actual wav data
-    UINT cbWavSize;  // Size of data
+    UINT cbWavSize; // Size of data
     VOID *pbData = NULL;
     VOID *pbData2 = NULL;
     DWORD dwLength;
@@ -171,7 +171,10 @@ LPDIRECTSOUNDBUFFER TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
     return DSBuffers.top();
 };
 
-TSoundsManager::~TSoundsManager() { Free(); };
+TSoundsManager::~TSoundsManager()
+{
+    Free();
+};
 
 void TSoundsManager::Free()
 {
@@ -200,8 +203,7 @@ void TSoundsManager::LoadSounds(char *Directory)
     FindClose(handle);
 };
 
-LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(char *Name, bool Dynamic,
-                                                           float *fSamplingRate)
+LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(char *Name, bool Dynamic, float *fSamplingRate)
 { // wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
     AnsiString file;
     if (Dynamic)

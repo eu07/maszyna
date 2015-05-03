@@ -38,7 +38,10 @@ class TCamera
     vector3 CrossPos;
     double CrossDist;
     void Init(vector3 NPos, vector3 NAngle);
-    void Reset() { Pitch = Yaw = Roll = 0; };
+    void Reset()
+    {
+        Pitch = Yaw = Roll = 0;
+    };
     void OnCursorMove(double x, double y);
     void Update();
     vector3 GetDirection();

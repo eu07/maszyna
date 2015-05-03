@@ -32,8 +32,8 @@ class TRealSound
     TRealSound();
     ~TRealSound();
     void Free();
-    void Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z,
-                         bool Dynamic, bool freqmod = false, double rmin = 0.0);
+    void Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+              bool freqmod = false, double rmin = 0.0);
     double ListenerDistance(vector3 ListenerPosition);
     void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
     void Start();
@@ -51,8 +51,8 @@ class TTextSound : public TRealSound
     AnsiString asText;
     float fTime; // czas trwania
   public:
-    void Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z,
-                         bool Dynamic, bool freqmod = false, double rmin = 0.0);
+    void Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+              bool freqmod = false, double rmin = 0.0);
     void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
 };
 

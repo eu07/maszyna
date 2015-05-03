@@ -26,7 +26,10 @@ class TFadeSound
     void Init(char *Name, float fNewFade);
     void TurnOn();
     void TurnOff();
-    bool Playing() { return (State == ss_Commencing || State == ss_Starting); };
+    bool Playing()
+    {
+        return (State == ss_Commencing || State == ss_Starting);
+    };
     void Free();
     void Update();
     void Volume(long vol);

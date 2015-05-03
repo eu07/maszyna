@@ -57,7 +57,10 @@ __fastcall TModelsManager::~TModelsManager()
     Free();
 };
   */
-void TModelsManager::Free() { SafeDeleteArray(Models); }
+void TModelsManager::Free()
+{
+    SafeDeleteArray(Models);
+}
 
 TModel3d *__fastcall TModelsManager::LoadModel(char *Name, bool dynamic)
 { // wczytanie modelu do tablicy
@@ -75,7 +78,7 @@ TModel3d *__fastcall TModelsManager::LoadModel(char *Name, bool dynamic)
 
 TModel3d *__fastcall TModelsManager::GetModel(const char *Name, bool dynamic)
 { // model mo¿e byæ we wpisie "node...model" albo "node...dynamic", a tak¿e byæ dodatkowym w dynamic
-  // (kabina, wnêtrze, ³adunek)
+    // (kabina, wnêtrze, ³adunek)
     // dla "node...dynamic" mamy podan¹ œcie¿kê w "\dynamic\" i musi byæ co najmniej 1 poziom, zwkle
     // s¹ 2
     // dla "node...model" mo¿e byæ typowy model statyczny ze œcie¿k¹, domyœlnie w "\scenery\" albo
@@ -97,7 +100,7 @@ TModel3d *__fastcall TModelsManager::GetModel(const char *Name, bool dynamic)
     // - wczytanie modelu animowanego - Init() - sprawdziæ
     char buf[255];
     AnsiString buftp = Global::asCurrentTexturePath; // zapamiêtanie aktualnej œcie¿ki do tekstur,
-                                                     // bo bêdzie tyczmasowo zmieniana
+    // bo bêdzie tyczmasowo zmieniana
     /*
     // Ra: niby tak jest lepiej, ale dzia³a gorzej, wiêc przywrócone jest oryginalne
      //nawet jeœli model bêdzie pobrany z tablicy, to trzeba ustaliæ œcie¿kê dla tekstur

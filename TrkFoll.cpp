@@ -37,7 +37,9 @@ TTrackFollower::TTrackFollower()
     fOffsetH = 0.0; // na starcie stoi na œrodku
 }
 
-TTrackFollower::~TTrackFollower() {}
+TTrackFollower::~TTrackFollower()
+{
+}
 
 bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
 {
@@ -76,7 +78,7 @@ TTrack *__fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
             // bezpoœrednio
             if (iSegment == 0)
             { // to jest b³êdna sytuacja - generuje pêtle zawracaj¹ce za skrzy¿owaniem - ustaliæ,
-              // kiedy powstaje!
+                // kiedy powstaje!
                 iSegment = 1; // doraŸna poprawka
             }
             if ((end ? iSegment : -iSegment) < 0)
@@ -129,14 +131,14 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             if (fDistance < 0)
             {
                 if (iSetFlag(iEventFlag, -1)) // zawsze zeruje flagê sprawdzenia, jak mechanik
-                                              // dosi¹dzie, to siê nie wykona
+                    // dosi¹dzie, to siê nie wykona
                     if (Owner->Mechanik) // tylko dla jednego cz³onu
                         // if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla
                         // pojazdow z obsada
                         if (bPrimary && pCurrentTrack->evEvent1 &&
                             (!pCurrentTrack->evEvent1->iQueued))
                             Global::AddToQuery(pCurrentTrack->evEvent1, Owner); // dodanie do
-                                                                                // kolejki
+                // kolejki
                 // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaæ do
                 // kolejki
                 // if (TestFlag(iEventallFlag,1))
@@ -151,7 +153,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             else if (fDistance > 0)
             {
                 if (iSetFlag(iEventFlag, -2)) // zawsze ustawia flagê sprawdzenia, jak mechanik
-                                              // dosi¹dzie, to siê nie wykona
+                    // dosi¹dzie, to siê nie wykona
                     if (Owner->Mechanik) // tylko dla jednego cz³onu
                         // if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym
                         // warunku

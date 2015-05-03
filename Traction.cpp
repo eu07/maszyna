@@ -664,7 +664,7 @@ void TTraction::PowerSet(TTractionPowerSource *ps)
     { // ustalenie punktu zasilania (nie ma jeszcze po³¹czeñ miêdzy przês³ami)
         psPowered = ps; // ustawienie bezpoœredniego zasilania dla przês³a
         psPower[0] = psPower[1] = ps; // a to chyba nie jest dobry pomys³, bo nawet zasilane przês³o
-                                      // powinno mieæ wskazania na inne
+        // powinno mieæ wskazania na inne
         fResistance[0] = fResistance[1] = 0.0; // a liczy siê tylko rezystancja zasilacza
     }
 };

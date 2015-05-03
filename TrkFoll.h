@@ -26,7 +26,7 @@ class TTrackFollower
     int iEventFlag; // McZapkie-020602: informacja o tym czy wyzwalac zdarzenie: 0,1,2,3
     int iEventallFlag;
     int iSegment; // który segment toru jest u¿ywany (¿eby nie przeskakiwa³o po przestawieniu
-                  // zwrotnicy pod taborem)
+    // zwrotnicy pod taborem)
   public:
     double fOffsetH; // Ra: odleg³oœæ œrodka osi od osi toru (dla samochodów) - u¿yæ do wê¿ykowania
     vector3 pPosition; // wspó³rzêdne XYZ w uk³adzie scenerii
@@ -35,14 +35,23 @@ class TTrackFollower
     ~TTrackFollower();
     TTrack *__fastcall SetCurrentTrack(TTrack *pTrack, int end);
     bool Move(double fDistance, bool bPrimary);
-    inline TTrack *__fastcall GetTrack() { return pCurrentTrack; };
+    inline TTrack *__fastcall GetTrack()
+    {
+        return pCurrentTrack;
+    };
     inline double GetRoll()
     {
         return vAngles.x;
     }; // przechy³ka policzona przy ustalaniu pozycji
     //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyæ mo¿na pobraæ
-    inline double GetDirection() { return fDirection; }; // zwrot na torze
-    inline double GetTranslation() { return fCurrentDistance; }; // ABu-030403
+    inline double GetDirection()
+    {
+        return fDirection;
+    }; // zwrot na torze
+    inline double GetTranslation()
+    {
+        return fCurrentDistance;
+    }; // ABu-030403
     // inline double GetLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)
     //{ return pCurrentSegment->ComputeLength(p1,cp1,cp2,p2); };
     // inline double GetRadius(double L, double d);  //McZapkie-150503

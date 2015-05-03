@@ -39,8 +39,7 @@ class TSoundContainer
     TSoundContainer *Next;
     std::stack<LPDIRECTSOUNDBUFFER> DSBuffers;
     LPDIRECTSOUNDBUFFER GetUnique(LPDIRECTSOUND pDS);
-    TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName,
-                               int NConcurrent);
+    TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName, int NConcurrent);
     ~TSoundContainer();
 };
 
@@ -62,8 +61,7 @@ class TSoundsManager
     static void Free();
     static void Init(char *Name, int Concurrent);
     static void LoadSounds(char *Directory);
-    static LPDIRECTSOUNDBUFFER GetFromName(char *Name, bool Dynamic,
-                                                      float *fSamplingRate = NULL);
+    static LPDIRECTSOUNDBUFFER GetFromName(char *Name, bool Dynamic, float *fSamplingRate = NULL);
     static void RestoreAll();
 };
 

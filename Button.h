@@ -25,7 +25,10 @@ class TButton
     TButton();
     ~TButton();
     void Clear(int i = -1);
-    inline void FeedbackBitSet(int i) { iFeedbackBit = 1 << i; };
+    inline void FeedbackBitSet(int i)
+    {
+        iFeedbackBit = 1 << i;
+    };
     inline void Turn(bool to)
     {
         bOn = to;
@@ -46,7 +49,10 @@ class TButton
         bOn = !bOn;
         Update();
     };
-    inline bool Active() { return (pModelOn) || (pModelOff); };
+    inline bool Active()
+    {
+        return (pModelOn) || (pModelOff);
+    };
     void Init(AnsiString asName, TModel3d *pModel, bool bNewOn = false);
     void Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);
 };

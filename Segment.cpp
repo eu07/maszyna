@@ -41,10 +41,13 @@ TSegment::TSegment(TTrack *owner)
     pOwner = owner;
 };
 
-TSegment::~TSegment() { SafeDeleteArray(fTsBuffer); };
+TSegment::~TSegment()
+{
+    SafeDeleteArray(fTsBuffer);
+};
 
-bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
-                               double fNewRoll1, double fNewRoll2)
+bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1,
+                    double fNewRoll2)
 { // wersja dla prostego - wyliczanie punktów kontrolnych
     vector3 dir;
     if (fNewRoll1 == fNewRoll2)
@@ -62,8 +65,8 @@ bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep,
 };
 
 bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointIn,
-                               vector3 &NewPoint2, double fNewStep, double fNewRoll1,
-                               double fNewRoll2, bool bIsCurve)
+                    vector3 &NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2,
+                    bool bIsCurve)
 { // wersja uniwersalna (dla krzywej i prostego)
     Point1 = NewPoint1;
     CPointOut = NewCPointOut;
@@ -329,9 +332,8 @@ vector3 TSegment::FastGetPoint(double t)
     return (bCurve ? RaInterpolate(t) : ((1.0 - t) * Point1 + (t)*Point2));
 }
 
-void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
-                                     double fTextureLength, int iSkip, int iQualityFactor,
-                                     vector3 **p, bool bRender)
+void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength,
+                          int iSkip, int iQualityFactor, vector3 **p, bool bRender)
 { // generowanie trójk¹tów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -401,7 +403,7 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
                     pt.y += jmm1 * ShapePoints[j].y + m1 * ShapePoints[j + iNumShapePoints].y;
                     if (bRender)
                     { // skrzy¿owania podczas ³¹czenia siatek mog¹ nie renderowaæ poboczy, ale
-                      // potrzebowaæ punktów
+                        // potrzebowaæ punktów
                         glNormal3f(norm.x, norm.y, norm.z);
                         glTexCoord2f(
                             jmm1 * ShapePoints[j].z + m1 * ShapePoints[j + iNumShapePoints].z, tv1);
@@ -424,7 +426,7 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
                     pt.y += jmm2 * ShapePoints[j].y + m2 * ShapePoints[j + iNumShapePoints].y;
                     if (bRender)
                     { // skrzy¿owania podczas ³¹czenia siatek mog¹ nie renderowaæ poboczy, ale
-                      // potrzebowaæ punktów
+                        // potrzebowaæ punktów
                         glNormal3f(norm.x, norm.y, norm.z);
                         glTexCoord2f(
                             jmm2 * ShapePoints[j].z + m2 * ShapePoints[j + iNumShapePoints].z, tv2);
@@ -511,8 +513,8 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints,
 };
 
 void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
-                                           int iNumShapePoints, double fTextureLength, int iSkip,
-                                           double fOffsetX)
+                                int iNumShapePoints, double fTextureLength, int iSkip,
+                                double fOffsetX)
 { // tworzenie siatki trójk¹tów dla iglicy
     vector3 pos1, pos2, dir, parallel1, parallel2, pt;
     double a1, a2, s, step, offset, tv1, tv2, t, t2, t2step, oldt2, sp, oldsp;
@@ -696,9 +698,8 @@ void TSegment::Render()
     }
 }
 
-void TSegment::RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints,
-                                       int iNumShapePoints, double fTextureLength, int iSkip,
-                                       int iEnd, double fOffsetX)
+void TSegment::RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints, int iNumShapePoints,
+                            double fTextureLength, int iSkip, int iEnd, double fOffsetX)
 { // generowanie trójk¹tów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla ³uku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -896,9 +897,8 @@ void TSegment::RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints,
     }
 };
 
-void TSegment::RaAnimate(CVertNormTex *&Vert, const vector6 *ShapePoints,
-                                    int iNumShapePoints, double fTextureLength, int iSkip, int iEnd,
-                                    double fOffsetX)
+void TSegment::RaAnimate(CVertNormTex *&Vert, const vector6 *ShapePoints, int iNumShapePoints,
+                         double fTextureLength, int iSkip, int iEnd, double fOffsetX)
 { // jak wy¿ej, tylko z pominiêciem mapowania i braku trapezowania
     vector3 pos1, pos2, dir, parallel1, parallel2, pt;
     double s, step, fOffset, t, fEnd;

@@ -27,9 +27,14 @@ TFadeSound::TFadeSound()
     fTime = 0;
 }
 
-TFadeSound::~TFadeSound() { Free(); }
+TFadeSound::~TFadeSound()
+{
+    Free();
+}
 
-void TFadeSound::Free() {}
+void TFadeSound::Free()
+{
+}
 
 void TFadeSound::Init(char *Name, float fNewFade)
 {
@@ -47,7 +52,10 @@ void TFadeSound::TurnOn()
     fTime = fFade;
 }
 
-void TFadeSound::TurnOff() { State = ss_ShuttingDown; }
+void TFadeSound::TurnOff()
+{
+    State = ss_ShuttingDown;
+}
 
 void TFadeSound::Update()
 {

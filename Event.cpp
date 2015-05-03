@@ -31,7 +31,7 @@ TEvent::TEvent(AnsiString m)
     // asName=""; //czy nazwa eventu jest niezbêdna w tym przypadku? chyba nie
     evNext = evNext2 = NULL;
     bEnabled = false; // false dla eventów u¿ywanych do skanowania sygna³ów (nie dodawane do
-                      // kolejki)
+    // kolejki)
     asNodeName = m; // nazwa obiektu powi¹zanego
     iQueued = 0; // nie zosta³ dodany do kolejki
     // bIsHistory=false;
@@ -91,7 +91,7 @@ void TEvent::Conditions(cParser *parser, AnsiString s)
         if (!asNodeName.IsEmpty())
         { // podczepienie ³añcucha, jeœli nie jest pusty
             Params[9].asText = new char[asNodeName.Length() + 1]; // usuwane i zamieniane na
-                                                                  // wskaŸnik
+            // wskaŸnik
             strcpy(Params[9].asText, asNodeName.c_str());
         }
         parser->getTokens();
@@ -313,7 +313,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
     case tp_PutValues:
         parser->getTokens(3);
         *parser >> Params[3].asdouble >> Params[4].asdouble >> Params[5].asdouble; // po³o¿enie
-                                                                                   // X,Y,Z
+        // X,Y,Z
         if (org)
         { // przesuniêcie
             // tmp->pCenter.RotateY(aRotate.y/180.0*M_PI); //Ra 2014-11: uwzglêdnienie rotacji
@@ -330,7 +330,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
             if (str.Pos("#"))
                 str = str.SubString(1, str.Pos("#") - 1); // obciêcie unikatowoœci
             bEnabled = false; // nie do kolejki (dla SetVelocity te¿, ale jak jest do toru
-                              // dowi¹zany)
+            // dowi¹zany)
             Params[6].asCommand = cm_PassengerStopPoint;
         }
         else if (str == "SetVelocity")

@@ -24,7 +24,9 @@ TSpring::TSpring()
     restLen = 0;
 }
 
-TSpring::~TSpring() {}
+TSpring::~TSpring()
+{
+}
 
 void TSpring::Init(double nrestLen, double nKs, double nKd)
 {
@@ -43,7 +45,7 @@ bool TSpring::ComputateForces(vector3 pPosition1, vector3 pPosition2)
     //		VectorDifference(&p1->pos,&p2->pos,&deltaP);	// Vector distance
     deltaP = pPosition1 - pPosition2;
     //		dist = VectorLength(&deltaP);					// Magnitude of
-    //deltaP
+    // deltaP
     dist = deltaP.Length();
     if (dist == 0)
     {
@@ -72,7 +74,9 @@ bool TSpring::ComputateForces(vector3 pPosition1, vector3 pPosition2)
     return true;
 }
 
-void TSpring::Render() {}
+void TSpring::Render()
+{
+}
 
 //---------------------------------------------------------------------------
 

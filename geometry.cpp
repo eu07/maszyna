@@ -11,7 +11,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Geometry.h"
 
-inline double sqr(double a) { return (a * a); };
+inline double sqr(double a)
+{
+    return (a * a);
+};
 
 __fastcall TLine::TLine(){};
 
@@ -23,7 +26,10 @@ __fastcall TLine::TLine(vector3 NPoint, vector3 NVector)
 
 __fastcall TLine::~TLine(){};
 
-TPlane TLine::GetPlane() { return (TPlane(Point, Vector)); };
+TPlane TLine::GetPlane()
+{
+    return (TPlane(Point, Vector));
+};
 
 double TLine::GetDistance(vector3 Point1)
 {
@@ -80,11 +86,17 @@ double TPlane::GetSide(vector3 Point)
 //    D3DMath_VectorMatrixMultiply(Vector,src,Transformations);
 //};
 
-bool TPlane::Defined() { return !(Vector == vector3(0, 0, 0)); };
+bool TPlane::Defined()
+{
+    return !(Vector == vector3(0, 0, 0));
+};
 
 //---------------------------------------------------------------------------
 
-inline double Sum(vector3 &Vector) { return (Vector.x + Vector.y + Vector.z); };
+inline double Sum(vector3 &Vector)
+{
+    return (Vector.x + Vector.y + Vector.z);
+};
 
 bool CrossPoint(vector3 &RetPoint, TLine &Line, TPlane &Plane)
 {
@@ -96,7 +108,10 @@ bool CrossPoint(vector3 &RetPoint, TLine &Line, TPlane &Plane)
     return (true);
 };
 
-inline double GetLength(vector3 &Vector) { return (Vector.Length()); };
+inline double GetLength(vector3 &Vector)
+{
+    return (Vector.Length());
+};
 
 inline vector3 SetLength(vector3 &Vector, double Length)
 {

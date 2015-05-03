@@ -263,16 +263,16 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
         else if (str == AnsiString("wireframe"))
             bWireFrame = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str == AnsiString("debugmode")) // McZapkie! - DebugModeFlag uzywana w mover.pas,
-                                                 // warto tez blokowac cheaty gdy false
+            // warto tez blokowac cheaty gdy false
             DebugModeFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str == AnsiString("soundenabled")) // McZapkie-040302 - blokada dzwieku - przyda
-                                                    // sie do debugowania oraz na komp. bez karty
-                                                    // dzw.
+            // sie do debugowania oraz na komp. bez karty
+            // dzw.
             bSoundEnabled = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (str == AnsiString("physicslog")) // McZapkie-030402 - logowanie parametrow
-                                                  // fizycznych dla kazdego pojazdu z maszynista
+            // fizycznych dla kazdego pojazdu z maszynista
             WriteLogFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str == AnsiString("physicsdeactivation")) // McZapkie-291103 - usypianie fizyki
             PhysicActivationFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
@@ -310,7 +310,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             fFriction = GetNextSymbol().ToDouble();
         else if (str == AnsiString("livetraction"))
         { // Winger 160404 - zaleznosc napiecia loka od trakcji; Ra 2014-03: teraz pr¹d przy braku
-          // sieci
+            // sieci
             bLiveTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         }
         else if (str == AnsiString("skyenabled"))
@@ -418,7 +418,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
         else if (str == AnsiString("slowmotion")) // tworzenie plików binarnych
             iSlowMotionMask = GetNextSymbol().ToIntDef(-1); // domyœlnie -1
         else if (str == AnsiString("modifytga")) // czy korygowaæ pliki TGA dla szybszego
-                                                 // wczytywania
+            // wczytywania
             iModifyTGA = GetNextSymbol().ToIntDef(0); // domyœlnie 0
         else if (str == AnsiString("hideconsole")) // hunter-271211: ukrywanie konsoli
             bHideConsole = (GetNextSymbol().LowerCase() == AnsiString("yes"));
