@@ -379,6 +379,7 @@ class TTrain
     float fHCurrent[4]; // pr?dy: suma i amperomierze 1,2,3
     float fEngine[4]; // obroty te? trzeba pobra?
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
+	int iCarNo, iPowerNo; //liczba pojazdow i czlonow napednych
     bool bDoors[20]; // drzwi dla wszystkich czlonow
     // McZapkie: do syczenia
     float fPPress, fNPress;
