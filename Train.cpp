@@ -290,6 +290,15 @@ PyObject *TTrain::GetTrainState()
     PyDict_SetItemString(dict, "minutes", PyGetInt(GlobalTime->mm));
     PyDict_SetItemString(dict, "seconds", PyGetInt(GlobalTime->mr));
     PyDict_SetItemString(dict, "velocity_desired", PyGetFloat(DynamicObject->Mechanik->VelDesired));
+	Char* TXTT[10] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
+	Char* TXTC[10] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
+	for (int j = 0; j<10; j++)
+		PyDict_SetItemString(dict, (AnsiString("eimp_t_") + AnsiString(TXTT[j])).c_str(), PyGetFloatS(fEIMParams[0][j]));
+	for (int i = 0; i<8; i++)
+		for (int j = 0; j<10; j++)
+			PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_") + AnsiString(TXTC[j])).c_str(), PyGetFloatS(fEIMParams[i + 1][j]));
+	PyDict_SetItemString(dict, "car_no", PyGetInt(iCarNo));
+	PyDict_SetItemString(dict, "power_no", PyGetInt(iPowerNo));
     return dict;
 }
 
@@ -2572,6 +2581,8 @@ bool TTrain::Update()
         TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0);
         int in = 0;
         fEIMParams[0][6] = 0;
+		iCarNo = 0;
+		iPowerNo = 0;
         for (int i = 0; i < 20; i++)
         {
             if (p)
@@ -2595,8 +2606,10 @@ bool TTrain::Update()
                     fEIMParams[1 + in][9] = p->MoverParameters->Voltage;
                     fEIMParams[0][6] += fEIMParams[1 + in][8];
                     in++;
+					iPowerNo = in;
                 }
                 p = p->NextC(4);
+				iCarNo = i;
             }
             else
             {
