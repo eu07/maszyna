@@ -49,7 +49,7 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "15.3.1167.470";
+AnsiString Global::asRelease = "15.3.1169.472";
 AnsiString Global::asVersion =
     "Compilation 2015-04-14, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
