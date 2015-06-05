@@ -3923,9 +3923,9 @@ bool TController::UpdateSituation(double dt)
                                 TrainParams
                                     ->TTVmax); // jesli nie spozniony to nie przekraczaæ rozkladowej
                 if (VelDesired > 0.0)
-                    if (VelNext > 0.0)
+                    if (VelNext > 0.0 || (iDrivigFlags & moveStopHere)==0)
                     { // jeœli mo¿na jechaæ, to odpaliæ dŸwiêk kierownika oraz zamkn¹æ drzwi w
-                        // sk³adzie
+                        // sk³adzie, jeœli nie mamy czekaæ na sygna³ te¿ trzeba odpaliæ
                         if (iDrivigFlags & moveGuardSignal)
                         { // komunikat od kierownika tu, bo musi byæ wolna droga i odczekany czas
                             // stania
@@ -4096,19 +4096,19 @@ bool TController::UpdateSituation(double dt)
                         // if (iDrivigFlags&moveStopHere) //to nie dotyczy podczepiania
                         // if ((VelNext>0.0)||(ActualProximityDist>fMaxProximityDist*1.2))
                         if (VelNext > 0.0)
-                        AccDesired = AccPreferred; // mo¿na jechaæ
-                    else // jeœli daleko jechaæ nie mo¿na
-                        if (ActualProximityDist >
-                            fMaxProximityDist) // ale ma kawa³ek do sygnalizatora
-                    { // if ((iDrivigFlags&moveStopHere)?false:AccPreferred>0)
-                        if (AccPreferred > 0)
-                            AccDesired = AccPreferred; // dociagnij do semafora;
-                        else
-                            VelDesired = 0.0; //,AccDesired=-fabs(fAccGravity); //stoj (hamuj z si³¹
-                        // równ¹ sk³adowej stycznej grawitacji)
-                    }
-                    else
-                        VelDesired = 0.0; // VelNext=0 i stoi bli¿ej ni¿ fMaxProximityDist
+							AccDesired = AccPreferred; // mo¿na jechaæ
+						else // jeœli daleko jechaæ nie mo¿na
+							if (ActualProximityDist >
+								fMaxProximityDist) // ale ma kawa³ek do sygnalizatora
+							{ // if ((iDrivigFlags&moveStopHere)?false:AccPreferred>0)
+								if (AccPreferred > 0)
+									AccDesired = AccPreferred; // dociagnij do semafora;
+								else
+									VelDesired = 0.0; //,AccDesired=-fabs(fAccGravity); //stoj (hamuj z si³¹
+								// równ¹ sk³adowej stycznej grawitacji)
+							}
+							else
+								VelDesired = 0.0; // VelNext=0 i stoi bli¿ej ni¿ fMaxProximityDist
                 }
                 else // gdy jedzie wolniej ni¿ potrzeba, albo nie ma przeszkód na drodze
                     AccDesired = (VelDesired != 0.0 ? AccPreferred : -0.01); // normalna jazda
