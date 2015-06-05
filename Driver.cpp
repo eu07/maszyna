@@ -842,9 +842,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                              AnsiString(GlobalTime->mm) + " next " +
                                              asNextStop); // informacja
 #endif
-                                    if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
-                                        iDrivigFlags |= moveStopHere; // nie podje¿d¿aæ do semafora,
-                                    // jeœli droga nie jest wolna
+									if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
+										iDrivigFlags |= moveStopHere; // nie podje¿d¿aæ do semafora,
+									// jeœli droga nie jest wolna
+									else
+										iDrivigFlags &= ~moveStopHere; //po czasie jedŸ dalej
                                     iDrivigFlags |= moveStopCloser; // do nastêpnego W4 podjechaæ
                                     // blisko (z doci¹ganiem)
                                     iDrivigFlags &= ~moveStartHorn; // bez tr¹bienia przed odjazdem

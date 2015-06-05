@@ -52,3 +52,9 @@ install_manifest.txt
 *.~h
 *.~bpr
 *.~pas
+format_all_files.py
+MaSzyna.opensdf
+MaSzyna.sdf
+MaSzyna.sln
+MaSzyna.vcxproj
+MaSzyna.vcxproj.filters
