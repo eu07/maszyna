@@ -391,8 +391,9 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 return; // ju¿ lepiej, ale jeszcze nie tym razem
             sSpeedTable[iLast].iFlags &= 0xBE; // kontynuowaæ próby doskanowania
         }
-        else if (VelNext == 0)
-            return; // znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
+        //else if (VelNext == 0)
+        //    return; // znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
+        //trzeba dalej sprawdzaæ, gdy¿ przy stopinfo potrafi³ zgubiæ semafor
         pTrack = sSpeedTable[iLast].trTrack; // ostatnio sprawdzony tor
         if (!pTrack)
             return; // koniec toru, to nie ma co sprawdzaæ (nie ma prawa tak byæ)
