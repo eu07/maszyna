@@ -122,46 +122,61 @@ void TSpeedPos::CommandCheck()
     TCommandType command = evEvent->Command();
     double value1 = evEvent->ValueGet(1);
     double value2 = evEvent->ValueGet(2);
-    if (command == cm_ShuntVelocity)
-    { // prêdkoœæ manewrow¹ zapisaæ, najwy¿ej AI zignoruje przy analizie tabelki
+    switch (command)
+    {
+    case cm_ShuntVelocity:
+        // prêdkoœæ manewrow¹ zapisaæ, najwy¿ej AI zignoruje przy analizie tabelki
         fVelNext = value1; // powinno byæ value2, bo druga okreœla "za"?
-        iFlags |= 0x200;
-    }
-    else if (command == cm_SetVelocity)
-    { // w semaforze typu "m" jest ShuntVelocity dla Ms2 i SetVelocity dla S1
+        iFlags |= spShuntSemaphor;
+        break;
+    case cm_SetVelocity:
+        // w semaforze typu "m" jest ShuntVelocity dla Ms2 i SetVelocity dla S1
         // SetVelocity * 0    -> mo¿na jechaæ, ale stan¹æ przed
         // SetVelocity 0 20   -> stan¹æ przed, potem mo¿na jechaæ 20 (SBL)
         // SetVelocity -1 100 -> mo¿na jechaæ, przy nastêpnym ograniczenie (SBL)
         // SetVelocity 40 -1  -> PutValues: jechaæ 40 a¿ do miniêcia (koniec ograniczenia(
         fVelNext = value1;
-        iFlags &= ~0xE00; // nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
+        iFlags &= ~(spShuntSemaphor | spPassengerStopPoint | spStopOnSBL);
+        iFlags |= spSemaphor;// nie manewrowa, nie przystanek, nie zatrzymaæ na SBL, ale semafor
         if (value1 == 0.0) // jeœli pierwsza zerowa
             if (value2 != 0.0) // a druga nie
             { // S1 na SBL, mo¿na przejechaæ po zatrzymaniu (tu nie mamy prêdkoœci ani odleg³oœci)
                 fVelNext = value2; // normalnie bêdzie zezwolenie na jazdê, aby siê usun¹³ z tabelki
-                iFlags |= 0x800; // flaga, ¿e ma zatrzymaæ; na pewno nie zezwoli na manewry
+                iFlags |= spStopOnSBL; // flaga, ¿e ma zatrzymaæ; na pewno nie zezwoli na manewry
             }
-    }
-    else if (command == cm_PassengerStopPoint) // nie ma dostêpu do rozk³adu
-    { // przystanek, najwy¿ej AI zignoruje przy analizie tabelki
-        if ((iFlags & 0x400) == 0)
+        break;
+    case cm_SectionVelocity:
+        // odcinek z ograniczeniem prêdkoœci
+        fVelNext = value1;
+        iFlags |= spSectionVel;
+        break;
+    case cm_RoadVelocity:
+        // prêdkoœæ drogowa (od tej pory bêdzie jako domyœlna najwy¿sza
+        fVelNext = value1;
+        iFlags |= spRoadVel;
+        break;
+    case cm_PassengerStopPoint:
+        // nie ma dostêpu do rozk³adu
+        // przystanek, najwy¿ej AI zignoruje przy analizie tabelki
+        if ((iFlags & spPassengerStopPoint) == 0)
             fVelNext = 0.0; // TrainParams->IsStop()?0.0:-1.0; //na razie tak
-        iFlags |= 0x400; // niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
-    }
-    else if (command == cm_SetProximityVelocity)
-    { // ignorowaæ
+        iFlags |= spPassengerStopPoint; // niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
+        break;
+    case cm_SetProximityVelocity:
+        // ignorowaæ
         fVelNext = -1;
-    }
-    else if (command == cm_OutsideStation)
-    { // w trybie manewrowym: skanowaæ od niej wstecz i stan¹æ po wyjechaniu za sygnalizator i
+        break;
+    case cm_OutsideStation:
+        // w trybie manewrowym: skanowaæ od niej wstecz i stan¹æ po wyjechaniu za sygnalizator i
         // zmieniæ kierunek
         // w trybie poci¹gowym: mo¿na przyspieszyæ do wskazanej prêdkoœci (po zjechaniu z rozjazdów)
         fVelNext = -1;
-        iFlags |= 0x2100; // W5
-    }
-    else
-    { // inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
-        iFlags &= ~0xE00; // nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
+        iFlags |= spOutsideStation; // W5
+        break;
+    default:
+        // inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
+        iFlags &= ~(spShuntSemaphor | spPassengerStopPoint |
+                    spStopOnSBL); // nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
         fVelNext = 0; // jak nieznana komenda w komórce sygna³owej, to ma staæ
     }
 };
@@ -180,17 +195,17 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
         if (iska < 0.0) // iloczyn skalarny jest ujemny, gdy punkt jest z ty³u
         { // jeœli coœ jest z ty³u, to dok³adna odleg³oœæ nie ma ju¿ wiêkszego znaczenia
             fDist = -fDist; // potrzebne do badania wyjechania sk³adem poza ograniczenie
-            if (iFlags & 32) // 32 ustawione, gdy obiekt ju¿ zosta³ miniêty
+            if (iFlags & spElapsed) // 32 ustawione, gdy obiekt ju¿ zosta³ miniêty
             { // jeœli miniêty (musi byæ miniêty równie¿ przez koñcówkê sk³adu)
             }
             else
             {
-                iFlags ^= 32; // 32-miniêty - bêdziemy liczyæ odleg³oœæ wzglêdem przeciwnego koñca
+                iFlags ^= spElapsed; // 32-miniêty - bêdziemy liczyæ odleg³oœæ wzglêdem przeciwnego koñca
                 // toru (nadal mo¿e byæ z przodu i ogdaniczaæ)
                 if ((iFlags & 0x43) == 3) // tylko jeœli (istotny) tor, bo eventy s¹ punktowe
                     if (trTrack) // mo¿e byæ NULL, jeœli koniec toru (????)
                         vPos =
-                            (iFlags & 4) ?
+                            (iFlags & spReverse) ?
                                 trTrack->CurrentSegment()->FastGetPoint_0() :
                                 trTrack->CurrentSegment()->FastGetPoint_1(); // drugi koniec istotny
             }
@@ -201,14 +216,14 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
         // dok³adniejsze wartoœci
     }
     if (fDist > 0.0) // nie mo¿e byæ 0.0, a przypadkiem mog³o by siê trafiæ i by³o by Ÿle
-        if ((iFlags & 32) == 0) // 32 ustawione, gdy obiekt ju¿ zosta³ miniêty
+        if ((iFlags & spElapsed) == 0) // 32 ustawione, gdy obiekt ju¿ zosta³ miniêty
         { // jeœli obiekt nie zosta³ miniêty, mo¿na od niego zliczaæ narastaj¹co (inaczej mo¿e byæ
             // problem z wektorem kierunku)
             len = fDist = len + fDist; // zliczanie dlugoœci narastaj¹co
             *p = vPos; // nowy punkt odniesienia
             *dir = Normalize(v); // nowy wektor kierunku od poprzedniego obiektu do aktualnego
         }
-    if (iFlags & 2) // jeœli tor
+    if (iFlags & spTrack) // jeœli tor
     {
         if (trTrack) // mo¿e byæ NULL, jeœli koniec toru (???)
         {
@@ -221,25 +236,25 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     // g³ównej drogi - chyba ¿e jest równorzêdne...
                     fVelNext = 30.0; // uzale¿niæ prêdkoœæ od promienia; albo niech bêdzie
                 // ograniczona w skrzy¿owaniu (velocity z ujemn¹ wartoœci¹)
-                if ((iFlags & 32) == 0) // jeœli nie wjecha³
+                if ((iFlags & spElapsed) == 0) // jeœli nie wjecha³
                     if (trTrack->iNumDynamics > 0) // a skrzy¿owanie zawiera pojazd
                         fVelNext =
                             0.0; // to zabroniæ wjazdu (chyba ¿e ten z przodu te¿ jedzie prosto)
             }
-            if (iFlags & 8) // jeœli odcinek zmienny
+            if (iFlags & spSwitch) // jeœli odcinek zmienny
             {
                 if (bool(trTrack->GetSwitchState() & 1) !=
-                    bool(iFlags & 16)) // czy stan siê zmieni³?
+                    bool(iFlags & spSwitchStatus)) // czy stan siê zmieni³?
                 { // Ra: zak³adam, ¿e s¹ tylko 2 mo¿liwe stany
-                    iFlags ^= 16;
+                    iFlags ^= spSwitchStatus;
                     // fVelNext=trTrack->VelocityGet(); //nowa prêdkoœæ
-                    if ((iFlags & 32) == 0)
+                    if ((iFlags & spElapsed) == 0)
                         return true; // jeszcze trzeba skanowanie wykonaæ od tego toru
                     // problem jest chyba, jeœli zwrotnica siê prze³o¿y zaraz po zjechaniu z niej
                     // na Mydelniczce potrafi skanowaæ na wprost mimo pojechania na bok
                 }
                 // poni¿sze nie dotyczy trybu ³¹czenia?
-                if ((iFlags & 32) ? false :
+                if ((iFlags & spElapsed) ? false :
                                     trTrack->iNumDynamics >
                                         0) // jeœli jeszcze nie wjechano na tor, a coœ na nim jest
                     fDist -= 30.0, fVelNext = 0.0; // to niech stanie w zwiêkszonej odleg³oœci
@@ -248,7 +263,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
             }
         }
     }
-    else if (iFlags & 0x100) // jeœli event
+    else if (iFlags & spEvent) // jeœli event
     { // odczyt komórki pamiêci najlepiej by by³o zrobiæ jako notyfikacjê, czyli zmiana komórki
         // wywo³a jak¹œ podan¹ funkcjê
         CommandCheck(); // sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
@@ -258,12 +273,12 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
 
 AnsiString TSpeedPos::TableText()
 { // pozycja tabelki prêdkoœci
-    if (iFlags & 0x1)
+    if (iFlags & spEnabled)
     { // o ile pozycja istotna
-        if (iFlags & 0x2) // jeœli tor
+        if (iFlags & spTrack) // jeœli tor
             return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
                    ", Vel=" + AnsiString(fVelNext) + ", Track=" + trTrack->NameGet();
-        else if (iFlags & 0x100) // jeœli event
+        else if (iFlags & spEvent) // jeœli event
             return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
                    ", Vel=" + AnsiString(fVelNext) + ", Event=" + evEvent->asName;
     }
@@ -273,7 +288,7 @@ AnsiString TSpeedPos::TableText()
 bool TSpeedPos::Set(TEvent *e, double d)
 { // zapamiêtanie zdarzenia
     fDist = d;
-    iFlags = 0x101; // event+istotny
+    iFlags = spEnabled | spEvent; // event+istotny
     evEvent = e;
     vPos = e->PositionGet(); // wspó³rzêdne eventu albo komórki pamiêci (zrzutowaæ na tor?)
     CommandCheck(); // sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
@@ -287,17 +302,17 @@ void TSpeedPos::Set(TTrack *t, double d, int f)
     if (trTrack)
     {
         iFlags = f | (trTrack->eType == tt_Normal ? 2 : 10); // zapamiêtanie kierunku wraz z typem
-        if (iFlags & 8)
+        if (iFlags & spSwitch)
             if (trTrack->GetSwitchState() & 1)
-                iFlags |= 16;
+                iFlags |= spSwitchStatus;
         fVelNext = trTrack->VelocityGet();
         if (trTrack->iDamageFlag & 128)
             fVelNext = 0.0; // jeœli uszkodzony, to te¿ stój
-        if (iFlags & 64)
+        if (iFlags & spEnd)
             fVelNext = (trTrack->iCategoryFlag & 1) ?
                            0.0 :
                            20.0; // jeœli koniec, to poci¹g stój, a samochód zwolnij
-        vPos = (bool(iFlags & 4) != bool(iFlags & 64)) ?
+        vPos = (bool(iFlags & spReverse) != bool(iFlags & spEnd)) ?
                    trTrack->CurrentSegment()->FastGetPoint_1() :
                    trTrack->CurrentSegment()->FastGetPoint_0();
     }
@@ -344,7 +359,8 @@ bool TController::TableNotFound(TEvent *e)
 { // sprawdzenie, czy nie zosta³ ju¿ dodany do tabelki (np. podwójne W4 robi problemy)
     int i, j = (iLast + 1) % iSpeedTableSize; // j, aby sprawdziæ te¿ ostatni¹ pozycjê
     for (i = iFirst; i != j; i = (i + 1) % iSpeedTableSize)
-        if ((sSpeedTable[i].iFlags & 0x101) == 0x101) // o ile u¿ywana pozycja
+        if ((sSpeedTable[i].iFlags & (spEnabled | spEvent)) == spEnabled |
+            spEvent) // o ile u¿ywana pozycja
             if (sSpeedTable[i].evEvent == e)
                 return false; // ju¿ jest, drugi raz dodawaæ nie ma po co
     return true; // nie ma, czyli mo¿na dodaæ

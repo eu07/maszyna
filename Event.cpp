@@ -338,6 +338,16 @@ void TEvent::Load(cParser *parser, vector3 *org)
             bEnabled = false;
             Params[6].asCommand = cm_SetVelocity;
         }
+        else if (str == "RoadVelocity")
+        {
+            bEnabled = false;
+            Params[6].asCommand = cm_RoadVelocity;
+        }
+        else if (str == "SectionVelocity")
+        {
+            bEnabled = false;
+            Params[6].asCommand = cm_SectionVelocity;
+        }
         else if (str == "ShuntVelocity")
         {
             bEnabled = false;

@@ -92,17 +92,39 @@ enum TAction
     actTrial // próba hamulca (na postoju)
 };
 
+enum TSpeedPosFlag
+{ // wartoœci dla iFlag w TSpeedPos
+    spEnabled = 0x1, // pozycja brana pod uwagê
+    spTrack = 0x2, // to jest tor
+    spReverse = 0x4, // odwrotnie
+    spSwitch = 0x8, // to zwrotnica
+    spSwitchStatus = 0x10, // stan zwrotnicy
+    spElapsed = 0x20, // pozycja miniêta przez pojazd
+    spEnd = 0x40, // koniec
+    spCurve = 0x80, // ³uk
+    spEvent = 0x100, // event
+    spShuntSemaphor = 0x200, // tarcza manewrowa
+    spPassengerStopPoint = 0x400, // przystanek osobowy (wskaŸnik W4)
+    spStopOnSBL = 0x800, // zatrzymanie na SBL
+    spCommandSent = 0x1000, // komenda wys³ana
+    spOutsideStation = 0x2000, // wskaŸnik koñca manewrów
+    spSemaphor = 0x4000, // semafor poci¹gowy
+    spRoadVel = 0x8000, // zadanie prêdkoœci drogowej
+    spSectionVel = 0x20000, // odcinek z ograniczeniem
+    spEndOfTable = 0x10000 // zatkanie tabelki
+};
+
 class TSpeedPos
 { // pozycja tabeli prêdkoœci dla AI
   public:
     double fDist; // aktualna odleg³oœæ (ujemna gdy miniête)
     double fVelNext; // prêdkoœæ obowi¹zuj¹ca od tego miejsca
     // double fAcc;
-    int iFlags;
+    int iFlags; //flagi typu wpisu do tabelki
     // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan
     // zwrotnicy,32-miniêty,64=koniec,128=³uk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wys³ana komenda,0x2000=W5
-    // 0x10000=zatkanie
+    // 0x4000=semafor,0x10000=zatkanie
     vector3 vPos; // wspó³rzêdne XYZ do liczenia odleg³oœci
     struct
     {
