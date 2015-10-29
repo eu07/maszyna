@@ -50,7 +50,11 @@ enum TMovementStatus
     moveGuardSignal = 0x8000, // sygna³ od kierownika (min¹³ czas postoju)
     moveVisibility = 0x10000, // jazda na widocznoœæ po przejechaniu S1 na SBL
     moveDoorOpened = 0x20000, // drzwi zosta³y otwarte - doliczyæ czas na zamkniêcie
-    movePushPull = 0x40000 // zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
+    movePushPull = 0x40000, // zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
+    moveSemaphorFound = 0x80000, // na drodze skanowania zosta³ znaleziony semafor
+    moveSemaphorWasElapsed = 0x100000, // miniêty zosta³ semafor
+    moveTrainInsideStation = 0x200000, // poci¹g miêdzy semaforem a rozjazdami lub nastêpnym semaforem
+    moveSpeedLimitFound = 0x400000 // poci¹g w ograniczeniu z podan¹ jego d³ugoœci¹
 };
 
 enum TStopReason
@@ -111,6 +115,7 @@ enum TSpeedPosFlag
     spSemaphor = 0x4000, // semafor poci¹gowy
     spRoadVel = 0x8000, // zadanie prêdkoœci drogowej
     spSectionVel = 0x20000, // odcinek z ograniczeniem
+    // spProximityVelocity = 0x40000, // odcinek z ograniczeniem i podan¹ jego d³ugoœcia
     spEndOfTable = 0x10000 // zatkanie tabelki
 };
 
@@ -119,6 +124,7 @@ class TSpeedPos
   public:
     double fDist; // aktualna odleg³oœæ (ujemna gdy miniête)
     double fVelNext; // prêdkoœæ obowi¹zuj¹ca od tego miejsca
+    double fSectionVelocityDist; //d³ugoœæ ograniczenia prêdkoœci
     // double fAcc;
     int iFlags; //flagi typu wpisu do tabelki
     // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan
@@ -224,8 +230,11 @@ class TController
   private:
     double VelforDriver; // prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci
     // szlaku?)
-    double VelSignal; // predkoœæ zadawana przez semafor (funkcj¹ SetVelocity())
+    double VelSignal; // ograniczenie prêdkoœci z kompilacji znaków i sygna³ów
     double VelLimit; // predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci
+    double VelSignalLast; // prêdkoœæ zadana na ostatnim semaforze
+    double VelLimitLast; // prêdkoœæ zadana przez ograniczenie
+    double VelRoad; // aktualna prêdkoœæ drogowa (ze znaku W27)
     // (PutValues albo komend¹)
   public:
     double VelNext; // prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist

@@ -353,11 +353,11 @@ void TEvent::Load(cParser *parser, vector3 *org)
             bEnabled = false;
             Params[6].asCommand = cm_ShuntVelocity;
         }
-        else if (str == "SetProximityVelocity")
-        {
-            bEnabled = false;
-            Params[6].asCommand = cm_SetProximityVelocity;
-        }
+        //else if (str == "SetProximityVelocity")
+        //{
+        //    bEnabled = false;
+        //    Params[6].asCommand = cm_SetProximityVelocity;
+        //}
         else if (str == "OutsideStation")
         {
             bEnabled = false; // ma byæ skanowny, aby AI nie przekracza³o W5
