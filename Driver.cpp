@@ -659,7 +659,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     if (k < 0)
         k += iSpeedTableSize; // iloœæ pozycji do przeanalizowania
     iDrivigFlags &=
-        ~(moveTrackEnd | moveSwitchFound); // te flagi s¹ ustawiane tutaj, w razie potrzeby
+        ~(moveTrackEnd | moveSwitchFound | moveSemaphorFound); // te flagi s¹ ustawiane tutaj, w razie potrzeby
     for (i = iFirst; k > 0; --k, i = (i + 1) % iSpeedTableSize)
     { // sprawdzenie rekordów od (iFirst) do (iLast), o ile s¹ istotne
         if (sSpeedTable[i].iFlags & spEnabled) // badanie istotnoœci
@@ -971,8 +971,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
                 else if (sSpeedTable[i].iFlags & spSemaphor)
                 { // to semaphor
-                    if (sSpeedTable[i].fDist < 0)
-                        VelSignalLast = sSpeedTable[i].fVelNext; //miniêty daje prêdkoœæ obowi¹zuj¹c¹
+					if (sSpeedTable[i].fDist < 0)
+						VelSignalLast = sSpeedTable[i].fVelNext; //miniêty daje prêdkoœæ obowi¹zuj¹c¹
+					else
+						iDrivigFlags |= moveSemaphorFound; //jeœli z przodu to dajemy falgê, ¿e jest
                 }
                 else if (sSpeedTable[i].iFlags & spRoadVel)
                 { // to W6
@@ -983,9 +985,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 { // to W27
                     if (sSpeedTable[i].fDist < 0)
                         VelLimitLast = sSpeedTable[i].fVelNext;
+                    if (sSpeedTable[i].evEvent->ValueGet(1) > 0.0 &&
+                        sSpeedTable[i].fDist + sSpeedTable[i].evEvent->ValueGet(1) > -fLength)
+                        iDrivigFlags |= moveSpeedLimitFound; // jeœli jesteœmy w ograniczeniu
                 }
 
-				//sprawdzenie eventów pasywnych przed nami
+                //sprawdzenie eventów pasywnych przed nami
                 if ((mvOccupied->CategoryFlag & 1) ?
                         sSpeedTable[i].fDist > pVehicles[0]->fTrackBlock - 20.0 :
                         false) // jak sygna³ jest dalej ni¿ zawalidroga
@@ -1034,10 +1039,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // VelSignal=v; //nie do koñca tak, to jest druga prêdkoœæ; -1 nie
                             // wpisywaæ...
                             if (VelSignal == 0.0)
-                                VelSignal = v; // aby stoj¹cy ruszy³
+                                VelSignal = -1.0; // aby stoj¹cy ruszy³
                             if (sSpeedTable[i].fDist < 0.0) // jeœli przejechany
                             {
-                                VelSignal = v; //!!! ustawienie, gdy przejechany jest lepsze ni¿
+								if (v != 0 ? VelSignal = -1.0 : VelSignal = 0.0); //!!! ustawienie, gdy przejechany jest lepsze ni¿
                                 // wcale, ale to jeszcze nie to
                                 if (sSpeedTable[i].iFlags & 0x100) // jeœli semafor
                                     if ((sSpeedTable[i].evEvent != eSignSkip) ?
@@ -1134,12 +1139,17 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
             }
         } // if (sSpeedTable[i].iFlags&1)
     } // for
+
+	if (VelSignalLast >= 0.0 && !(iDrivigFlags & (moveSemaphorFound | moveSwitchFound)) &&
+		(OrderCurrentGet() & Obey_train))
+			VelSignalLast = -1.0; // jeœli mieliœmy ograniczenie z semafora i nie ma przed nami
 	if (fVelDes > VelSignalLast) //analiza spisanych z tabelki ograniczeñ i nadpisanie aktualnego
 		fVelDes = VelSignalLast;
-	else if (fVelDes > VelLimitLast)
+	if (fVelDes > VelLimitLast)
 		fVelDes = VelLimitLast;
-	else if (fVelDes > VelRoad)
+	if (fVelDes > VelRoad)
 		fVelDes = VelRoad;
+	// nastepnego semafora albo zwrotnicy to uznajemy, ¿e mijamy W5
     return go;
 };
 
@@ -3950,9 +3960,10 @@ bool TController::UpdateSituation(double dt)
                     VelDesired = 0.0; // jak ma czekaæ, to nie ma jazdy
                 // else if (VelSignal<0)
                 // VelDesired=fVelMax; //ile fabryka dala (Ra: uwzglêdione wagony)
-                else if (VelSignal >= 0) // VelSignal>0 jest ograniczeniem prêdkoœci (z semafora)
+                else if (VelSignal >= 0) // jeœli sk³ad by³ zatrzymany na pocz¹tku i teraz ju¿ mo¿e jechaæ
                     VelDesired = Min0R(VelDesired, VelSignal);
-                if (mvOccupied->RunningTrack.Velmax >=
+				
+				if (mvOccupied->RunningTrack.Velmax >=
                     0) // ograniczenie prêdkoœci z trajektorii ruchu
                     VelDesired =
                         Min0R(VelDesired,

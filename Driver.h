@@ -227,11 +227,12 @@ class TController
     double VelDesired; // predkoœæ, z jak¹ ma jechaæ, wynikaj¹ca z analizy tableki; <=VelSignal
     double fAccDesiredAv; // uœrednione przyspieszenie z kolejnych przeb³ysków œwiadomoœci, ¿eby
     // ograniczyæ migotanie
-  private:
+  public:
     double VelforDriver; // prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci
     // szlaku?)
     double VelSignal; // ograniczenie prêdkoœci z kompilacji znaków i sygna³ów
     double VelLimit; // predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci
+  public:
     double VelSignalLast; // prêdkoœæ zadana na ostatnim semaforze
     double VelLimitLast; // prêdkoœæ zadana przez ograniczenie
     double VelRoad; // aktualna prêdkoœæ drogowa (ze znaku W27)
