@@ -99,7 +99,7 @@ GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 bool Global::bRollFix = true; // czy wykonaæ przeliczanie przechy³ki
 bool Global::bJoinEvents = false; // czy grupowaæ eventy o tych samych nazwach
-int Global::iHiddenEvents = 0; // czy ³¹czyæ eventy z torami poprzez nazwê toru
+int Global::iHiddenEvents = 1; // czy ³¹czyæ eventy z torami poprzez nazwê toru
 
 // parametry u¿ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
