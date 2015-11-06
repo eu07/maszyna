@@ -179,7 +179,8 @@ void TSpeedPos::CommandCheck()
         // inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
         iFlags &= ~(spShuntSemaphor | spPassengerStopPoint |
                     spStopOnSBL); // nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
-        fVelNext = 0; // jak nieznana komenda w komórce sygna³owej, to ma staæ
+        fVelNext = -1.0; // jak nieznana komenda w komórce sygna³owej, to pokazujemy w tabelce ale
+                         // ignorujemy
     }
 };
 
@@ -359,12 +360,15 @@ bool TController::TableAddNew()
 
 bool TController::TableNotFound(TEvent *e)
 { // sprawdzenie, czy nie zosta³ ju¿ dodany do tabelki (np. podwójne W4 robi problemy)
-    int i, j = (iLast + 1) % iSpeedTableSize; // j, aby sprawdziæ te¿ ostatni¹ pozycjê
-    for (i = iFirst; i != j; i = (i + 1) % iSpeedTableSize)
-        if ((sSpeedTable[i].iFlags & (spEnabled | spEvent)) == spEnabled |
-            spEvent) // o ile u¿ywana pozycja
-            if (sSpeedTable[i].evEvent == e)
-                return false; // ju¿ jest, drugi raz dodawaæ nie ma po co
+    int j = (iLast + 1) % iSpeedTableSize; // j, aby sprawdziæ te¿ ostatni¹ pozycjê
+    for (int i = iFirst; i != j; i = (i + 1) % iSpeedTableSize)
+        if ((sSpeedTable[i].iFlags & (spEnabled | spEvent)) == (spEnabled |
+            spEvent)) // o ile u¿ywana pozycja
+			if (sSpeedTable[i].evEvent == e)
+			{
+				WriteLog("TableNotFound: Event already in SpeedTable: " + sSpeedTable[i].evEvent->asName);
+				return false; // ju¿ jest, drugi raz dodawaæ nie ma po co
+			}
     return true; // nie ma, czyli mo¿na dodaæ
 };
 
@@ -399,7 +403,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
     }
     else
     { // kontynuacja skanowania od ostatnio sprawdzonego toru (w ostatniej pozycji zawsze jest tor)
-        if (sSpeedTable[iLast].iFlags & 0x10000) // zatkanie
+        if (sSpeedTable[iLast].iFlags & spEndOfTable) // zatkanie
         { // jeœli zape³ni³a siê tabelka
             if ((iLast + 1) % iSpeedTableSize == iFirst) // jeœli nadal jest zape³niona
                 return; // nic siê nie da zrobiæ
@@ -415,7 +419,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         pTrack = sSpeedTable[iLast].trTrack; // ostatnio sprawdzony tor
         if (!pTrack)
             return; // koniec toru, to nie ma co sprawdzaæ (nie ma prawa tak byæ)
-        fLastDir = sSpeedTable[iLast].iFlags & 4 ?
+        fLastDir = sSpeedTable[iLast].iFlags & spReverse ?
                        -1.0 :
                        1.0; // flaga ustawiona, gdy Point2 toru jest bli¿ej
         fCurrentDistance = sSpeedTable[iLast].fDist; // aktualna odleg³oœæ do jego Point1
@@ -584,27 +588,40 @@ void TController::TableCheck(double fDistance)
         double len = 0.0; // odleg³oœæ bêdziemy zliczaæ narastaj¹co
         for (int i = iFirst; i != iLast; i = (i + 1) % iSpeedTableSize)
         { // aktualizacja rekordów z wyj¹tkiem ostatniego
-            if (sSpeedTable[i].iFlags & 1) // jeœli pozycja istotna
+            if (sSpeedTable[i].iFlags & spEnabled) // jeœli pozycja istotna
             {
                 if (sSpeedTable[i].Update(&pos, &dir, len))
                 {
-                    iLast = i; // wykryta zmiana zwrotnicy - konieczne ponowne przeskanowanie
-                    // dalszej czêœci
-                    break; // nie kontynuujemy pêtli, trzeba doskanowaæ ci¹g dalszy
+					int k = (iLast + 1) % iSpeedTableSize; // skanujemy razem z ostatni¹ pozycj¹
+					for (int j = (i+1) % iSpeedTableSize; j != k; j = (j + 1) % iSpeedTableSize)
+					{ // kasowanie wszystkich rekordów za zmienion¹ zwrotnic¹
+						//if (sSpeedTable[j].iFlags & spTrack)
+						//	WriteLog("TableCheck: Switch change. Delete from table: " + sSpeedTable[j].trTrack->NameGet());
+						//else if (sSpeedTable[j].iFlags & spEvent)
+						//	WriteLog("TableCheck: Switch change. Delete from table: " + sSpeedTable[j].evEvent->asName);
+						sSpeedTable[j].iFlags = 0;
+					}
+					TablePurger();
+					iLast = i; // pokazujemy gdzie jest ostatni kawa³ek
+					break; // nie kontynuujemy pêtli, trzeba doskanowaæ ci¹g dalszy
                 }
-                if (sSpeedTable[i].iFlags & 2) // jeœli odcinek
+                if (sSpeedTable[i].iFlags & spTrack) // jeœli odcinek
                 {
                     if (sSpeedTable[i].fDist < -fLength) // a sk³ad wyjecha³ ca³¹ d³ugoœci¹ poza
                     { // degradacja pozycji
-                        sSpeedTable[i].iFlags &= ~1; // nie liczy siê
+						// WriteLog( "TableCheck: Track is behind. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
+						sSpeedTable[i].iFlags &= ~spEnabled; // nie liczy siê
                     }
                     else if ((sSpeedTable[i].iFlags & 0xF0000028) ==
-                             0x20) // jest z ty³u (najechany) i nie jest zwrotnic¹ ani skrzy¿owaniem
-                        if (sSpeedTable[i].fVelNext < 0) // a nie ma ograniczenia prêdkoœci
-                            sSpeedTable[i].iFlags =
-                                0; // to nie ma go po co trzymaæ (odtykacz usunie ze œrodka)
+						spElapsed) // jest z ty³u (najechany) i nie jest zwrotnic¹ ani skrzy¿owaniem
+						if (sSpeedTable[i].fVelNext < 0) // a nie ma ograniczenia prêdkoœci
+						{
+							sSpeedTable[i].iFlags =
+								0; // to nie ma go po co trzymaæ (odtykacz usunie ze œrodka)
+							// WriteLog("TableCheck: Track without speed limit is under train . Delete from table: " + sSpeedTable[i].trTrack->NameGet());
+						}
                 }
-                else if (sSpeedTable[i].iFlags & 0x100) // jeœli event
+                else if (sSpeedTable[i].iFlags & spEvent) // jeœli event
                 {
                     if (sSpeedTable[i].fDist < (sSpeedTable[i].evEvent->Type == tp_PutValues ?
                                                     -fLength :
@@ -613,9 +630,10 @@ void TController::TableCheck(double fDistance)
                                                              sSpeedTable[i].fDist < -fLength)
                         { // poci¹g staje zawsze, a samochód tylko jeœli nie przejedzie ca³¹
                             // d³ugoœci¹ (mo¿e byæ zaskoczony zmian¹)
-                            sSpeedTable[i].iFlags &= ~1; // degradacja pozycji dla samochodu;
+							// WriteLog("TableCheck: Event is behind. Delete from table: " + sSpeedTable[i].evEvent->asName);
+							sSpeedTable[i].iFlags &= ~1; // degradacja pozycji dla samochodu;
                             // semafory usuwane tylko przy sprawdzaniu,
-                            // bo wysy³aj¹ komendy
+                            // bo wysy³aj¹ komendy 
                         }
                 }
                 // if (sSpeedTable[i].fDist<-20.0*fLength) //jeœli to coœ jest 20 razy dalej ni¿
@@ -1112,7 +1130,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 else // event trzyma tylko jeœli VelNext=0, nawet po przejechaniu (nie powinno
                     // dotyczyæ samochodów?)
                     a = (v == 0.0 ? -1.0 : fAcc); // ruszanie albo hamowanie
-                if (a < fAcc)
+                if (a < fAcc && v == Min0R(v, fNext))
                 { // mniejsze przyspieszenie to mniejsza mo¿liwoœæ rozpêdzenia siê albo koniecznoœæ
                     // hamowania
                     // jeœli droga wolna, to mo¿e byæ a>1.0 i siê tu nie za³apuje
@@ -1143,12 +1161,13 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 	if (VelSignalLast >= 0.0 && !(iDrivigFlags & (moveSemaphorFound | moveSwitchFound)) &&
 		(OrderCurrentGet() & Obey_train))
 			VelSignalLast = -1.0; // jeœli mieliœmy ograniczenie z semafora i nie ma przed nami
-	if (fVelDes > VelSignalLast) //analiza spisanych z tabelki ograniczeñ i nadpisanie aktualnego
-		fVelDes = VelSignalLast;
-	if (fVelDes > VelLimitLast)
-		fVelDes = VelLimitLast;
-	if (fVelDes > VelRoad)
-		fVelDes = VelRoad;
+
+	if (VelSignalLast >= 0.0) //analiza spisanych z tabelki ograniczeñ i nadpisanie aktualnego
+		fVelDes = Min0R(fVelDes, VelSignalLast);
+	if (VelLimitLast >= 0.0)
+		fVelDes = Min0R(fVelDes, VelLimitLast);
+	if (VelRoad >= 0.0)
+		fVelDes = Min0R(fVelDes, VelRoad);
 	// nastepnego semafora albo zwrotnicy to uznajemy, ¿e mijamy W5
     return go;
 };
@@ -1161,14 +1180,14 @@ void TController::TablePurger()
         k += iSpeedTableSize; // iloœæ pozycji do przeanalizowania
     for (i = iFirst; k > 0; --k, i = (i + 1) % iSpeedTableSize)
     { // sprawdzenie rekordów od (iFirst) do (iLast), o ile s¹ istotne
-        if ((sSpeedTable[i].iFlags & 1) ?
+        if ((sSpeedTable[i].iFlags & spEnabled) ?
                 (sSpeedTable[i].fVelNext < 0) && ((sSpeedTable[i].iFlags & 0xAB) == 0xA3) :
                 true)
         { // jeœli jest to miniêty (0x20) tor (0x03) do liczenia ciêciw (0x80), a nie zwrotnica
             // (0x08)
-            for (; k > 0; --k, i = (i + 1) % iSpeedTableSize)
-                sSpeedTable[i] = sSpeedTable[(i + 1) % iSpeedTableSize]; // skopiowanie
-            // WriteLog("Odtykacz usuwa pozycjê");
+			for (; k > 0; --k, i = (i + 1) % iSpeedTableSize)
+				sSpeedTable[i] = sSpeedTable[(i + 1) % iSpeedTableSize]; // skopiowanie
+            //WriteLog("Odtykacz usuwa pozycjê");
             iLast = (iLast - 1 + iSpeedTableSize) % iSpeedTableSize; // cofniêcie z zawiniêciem
             return;
         }
@@ -3258,7 +3277,7 @@ bool TController::UpdateSituation(double dt)
         // double scanmax=(mvOccupied->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
         double scanmax = (mvOccupied->Vel > 5.0) ?
                              400 + fBrakeDist :
-                             50.0 * fDriverDist; // 1000m dla stoj¹cych poci¹gów; Ra 2015-01: przy
+                             30.0 * fDriverDist; // 1500m dla stoj¹cych poci¹gów; Ra 2015-01: przy
         // d³u¿szej drodze skanowania AI jeŸdzi spokojniej
         // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
         // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ,
@@ -3779,7 +3798,7 @@ bool TController::UpdateSituation(double dt)
                     if (VelNext == 0.0)
                         break; // ale jak coœ z przodu zamyka, to ma staæ
                     if (iDrivigFlags & moveStopCloser)
-                        VelSignal = VelDesired; // niech jedzie, jak W4 puœci³o - nie, ma czekaæ na
+                        VelSignal = -1.0; // niech jedzie, jak W4 puœci³o - nie, ma czekaæ na
                 // sygna³ z sygnalizatora!
                 case cm_SetVelocity: // od wersji 357 semafor nie budzi wy³¹czonej lokomotywy
                     if (!(OrderList[OrderPos] &
