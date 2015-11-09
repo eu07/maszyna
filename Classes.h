@@ -48,9 +48,11 @@ typedef enum
 { // binarne odpowiedniki komend w komórce pamiêci
     cm_Unknown, // ci¹g nierozpoznany (nie jest komend¹)
     cm_Ready, // W4 zezwala na odjazd, ale semafor mo¿e zatrzymaæ
-    cm_SetVelocity,
-    cm_ShuntVelocity,
-    cm_SetProximityVelocity,
+    cm_SetVelocity, // prêdkoœæ poci¹gowa zadawana na semaforze
+    cm_RoadVelocity, // prêdkoœæ drogowa
+    cm_SectionVelocity, //ograniczenie prêdkoœci na odcinku
+    cm_ShuntVelocity, // prêdkoœæ manewrowa na semaforze
+    cm_SetProximityVelocity, // informacja wstêpna o ograniczeniu
     cm_ChangeDirection,
     cm_PassengerStopPoint,
     cm_OutsideStation,

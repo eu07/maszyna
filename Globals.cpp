@@ -49,9 +49,9 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "15.3.1169.472";
+AnsiString Global::asRelease = "15.4.1170.473";
 AnsiString Global::asVersion =
-    "Compilation 2015-04-17, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2015-11-06, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -99,7 +99,7 @@ GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 bool Global::bRollFix = true; // czy wykonaæ przeliczanie przechy³ki
 bool Global::bJoinEvents = false; // czy grupowaæ eventy o tych samych nazwach
-int Global::iHiddenEvents = 0; // czy ³¹czyæ eventy z torami poprzez nazwê toru
+int Global::iHiddenEvents = 1; // czy ³¹czyæ eventy z torami poprzez nazwê toru
 
 // parametry u¿ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
@@ -842,5 +842,15 @@ AnsiString Global::Bezogonkow(AnsiString str, bool _)
                 str[i] = ' '; // wiêc trzeba wyœwietlaæ inaczej
     return str;
 }
+
+double Global::Min0RSpeed(double vel1, double vel2)
+{ // rozszerzenie funkcji Min0R o wartoœci -1.0
+	if (vel1 == -1.0)
+		vel1 = std::numeric_limits<double>::max();
+	if (vel2 == -1.0)
+		vel2 = std::numeric_limits<double>::max();
+	return Min0R(vel1, vel2);
+}
+
 
 #pragma package(smart_init)

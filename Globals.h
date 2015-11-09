@@ -314,6 +314,7 @@ class Global
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
     static AnsiString Bezogonkow(AnsiString str, bool _ = false);
+	static double Min0RSpeed(double vel1, double vel2);
 };
 
 //---------------------------------------------------------------------------

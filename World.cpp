@@ -2010,12 +2010,15 @@ bool TWorld::Update()
                         if (tmp->Mechanik->DrivigFlags() & j) // jak bit ustawiony
                             flags[i + 1] ^= 0x20; // to zmiana na wielk¹ literê
                     OutText4 = flags;
-                    OutText4 +=
-                        AnsiString("Driver: Vd=") +
-                        FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
-                        FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
-                        FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
-                        AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0);
+					OutText4 +=
+						AnsiString("Driver: Vd=") +
+						FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
+						FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
+						FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
+						AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0) +
+						AnsiString(" VSm=") + FloatToStrF(tmp->Mechanik->VelSignalLast, ffFixed, 4, 0) +
+						AnsiString(" VLm=") + FloatToStrF(tmp->Mechanik->VelLimitLast, ffFixed, 4, 0) +
+						AnsiString(" VRd=") + FloatToStrF(tmp->Mechanik->VelRoad, ffFixed, 4, 0);
                     if (tmp->Mechanik->VelNext == 0.0)
                         if (tmp->Mechanik->eSignNext)
                         { // jeœli ma zapamiêtany event semafora
@@ -2050,7 +2053,7 @@ bool TWorld::Update()
             { // ekran drugi, czyli tabelka skanowania AI
                 if (tmp->Mechanik) //¿eby by³a tabelka, musi byæ AI
                 { // tabelka jest na u¿ytek testuj¹cych scenerie, wiêc nie musi byæ "³adna"
-                    glColor3f(0.0f, 1.0f, 0.0f); // a, damy zielony
+                    glColor3f(1.0f, 1.0f, 1.0f); // a, damy zielony. GF: jednak bia³y
                     // glTranslatef(0.0f,0.0f,-0.50f);
                     glRasterPos2f(-0.25f, 0.20f);
                     // OutText1="Scan distance: "+AnsiString(tmp->Mechanik->scanmax)+", back:
@@ -2081,7 +2084,11 @@ bool TWorld::Update()
                         FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
                         FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
                         FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
-                        AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0);
+                        AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0) +
+						AnsiString("\n VSm=") + FloatToStrF(tmp->Mechanik->VelSignalLast, ffFixed, 4, 0) +
+						AnsiString(" VLm=") + FloatToStrF(tmp->Mechanik->VelLimitLast, ffFixed, 4, 0) +
+						AnsiString(" VRd=") + FloatToStrF(tmp->Mechanik->VelRoad, ffFixed, 4, 0) +
+						AnsiString(" VSig=") + FloatToStrF(tmp->Mechanik->VelSignal, ffFixed, 4, 0);
                     if (tmp->Mechanik->VelNext == 0.0)
                         if (tmp->Mechanik->eSignNext)
                         { // jeœli ma zapamiêtany event semafora

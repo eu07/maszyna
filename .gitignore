@@ -58,4 +58,9 @@ install_manifest.txt
 *.vcxproj
 *.filters
 format_all_files.py
-~$kumentacja zmiennych Python.docx
+MaSzyna.opensdf
+MaSzyna.sdf
+MaSzyna.sln
+MaSzyna.vcxproj
+MaSzyna.vcxproj.filters
+*.suo
