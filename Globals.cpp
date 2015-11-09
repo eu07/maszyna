@@ -839,4 +839,14 @@ AnsiString Global::Bezogonkow(AnsiString str, bool _)
     return str;
 }
 
+double Global::Min0RSpeed(double vel1, double vel2)
+{ // rozszerzenie funkcji Min0R o wartoœci -1.0
+	if (vel1 == -1.0)
+		vel1 = std::numeric_limits<double>::max();
+	if (vel2 == -1.0)
+		vel2 = std::numeric_limits<double>::max();
+	return Min0R(vel1, vel2);
+}
+
+
 #pragma package(smart_init)

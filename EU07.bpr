@@ -57,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=15
-MinorVer=3
-Release=1169
-Build=472
+MinorVer=4
+Release=1170
+Build=473
 Debug=1
 PreRelease=0
 Special=0
@@ -71,7 +71,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=15.3.1169.472
+FileVersion=15.4.1170.473
 InternalName=9th by firleju + Ra + SPKS + MP
 LegalCopyright=
 LegalTrademarks=
