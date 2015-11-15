@@ -115,7 +115,7 @@ enum TSpeedPosFlag
     spSemaphor = 0x4000, // semafor poci¹gowy
     spRoadVel = 0x8000, // zadanie prêdkoœci drogowej
     spSectionVel = 0x20000, // odcinek z ograniczeniem
-    // spProximityVelocity = 0x40000, // odcinek z ograniczeniem i podan¹ jego d³ugoœcia
+    spProximityVelocity = 0x40000, // odcinek z ograniczeniem i podan¹ jego d³ugoœcia
     spEndOfTable = 0x10000 // zatkanie tabelki
 };
 
@@ -240,7 +240,7 @@ class TController
   public:
     double VelNext; // prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
   private:
-    // double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
+     double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
     // punktu, <0:podana wartoœæ
   public:
     double

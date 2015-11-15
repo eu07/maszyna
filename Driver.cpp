@@ -164,12 +164,12 @@ void TSpeedPos::CommandCheck()
             fVelNext = 0.0; // TrainParams->IsStop()?0.0:-1.0; //na razie tak
         iFlags |= spPassengerStopPoint; // niestety nie da siê w tym miejscu wspó³pracowaæ z rozk³adem
         break;
-    //case cm_SetProximityVelocity:
-    //    // odcinek z ograniczeniem prêdkoœci o podanej d³ugoœci
-    //    fVelNext = value1;
-    //    iFlags |= spProximityVelocity;
-    //    fSectionVelocityDist = value2;
-    //    break;
+    case cm_SetProximityVelocity:
+        // musi zostaæ gdy¿ inaczej nie dzia³aj¹ manewry
+		fVelNext = -1;
+        iFlags |= spProximityVelocity;
+		// fSectionVelocityDist = value2;
+        break;
     case cm_OutsideStation:
         // w trybie manewrowym: skanowaæ od niej wstecz i stan¹æ po wyjechaniu za sygnalizator i
         // zmieniæ kierunek
@@ -177,12 +177,11 @@ void TSpeedPos::CommandCheck()
         fVelNext = -1;
         iFlags |= spOutsideStation; // W5
         break;
-    default:
+	default:
         // inna komenda w evencie skanowanym powoduje zatrzymanie i wys³anie tej komendy
         iFlags &= ~(spShuntSemaphor | spPassengerStopPoint |
                     spStopOnSBL); // nie manewrowa, nie przystanek, nie zatrzymaæ na SBL
-        fVelNext = -1.0; // jak nieznana komenda w komórce sygna³owej, to pokazujemy w tabelce ale
-                         // ignorujemy
+        fVelNext = 0.0; // jak nieznana komenda w komórce sygna³owej, to zatrzymujemy
     }
 };
 
