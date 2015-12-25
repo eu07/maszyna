@@ -241,9 +241,12 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     fVelNext = 30.0; // uzale¿niæ prêdkoœæ od promienia; albo niech bêdzie
                 // ograniczona w skrzy¿owaniu (velocity z ujemn¹ wartoœci¹)
                 if ((iFlags & spElapsed) == 0) // jeœli nie wjecha³
-                    if (trTrack->iNumDynamics > 0) // a skrzy¿owanie zawiera pojazd
-                        fVelNext =
-                            0.0; // to zabroniæ wjazdu (chyba ¿e ten z przodu te¿ jedzie prosto)
+					if (trTrack->iNumDynamics > 0) // a skrzy¿owanie zawiera pojazd
+					{
+						WriteLog("Tor " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + trTrack->iNumDynamics + "Dist= " + fDist);
+						fVelNext =
+							0.0; // to zabroniæ wjazdu (chyba ¿e ten z przodu te¿ jedzie prosto)
+					}
             }
             if (iFlags & spSwitch) // jeœli odcinek zmienny
             {
@@ -258,12 +261,16 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     // na Mydelniczce potrafi skanowaæ na wprost mimo pojechania na bok
                 }
                 // poni¿sze nie dotyczy trybu ³¹czenia?
-                if ((iFlags & spElapsed) ? false :
-                                    trTrack->iNumDynamics >
-                                        0) // jeœli jeszcze nie wjechano na tor, a coœ na nim jest
-                    fDist -= 30.0, fVelNext = 0.0; // to niech stanie w zwiêkszonej odleg³oœci
-                // else if (fVelNext==0.0) //jeœli zosta³a wyzerowana
-                // fVelNext=trTrack->VelocityGet(); //odczyt prêdkoœci
+				if ((iFlags & spElapsed) ? false :
+					trTrack->iNumDynamics >
+					0) // jeœli jeszcze nie wjechano na tor, a coœ na nim jest
+				{
+					WriteLog("Rozjazd " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + trTrack->iNumDynamics + "Dist= "+fDist);
+					//fDist -= 30.0;
+					fVelNext = 0.0; // to niech stanie w zwiêkszonej odleg³oœci
+				// else if (fVelNext==0.0) //jeœli zosta³a wyzerowana
+				// fVelNext=trTrack->VelocityGet(); //odczyt prêdkoœci
+				}
             }
         }
     }
@@ -289,23 +296,23 @@ AnsiString TSpeedPos::TableText()
     return "Empty";
 }
 
-bool TSpeedPos::Set(TEvent *e, double d)
+bool TSpeedPos::Set(TEvent *event, double dist)
 { // zapamiêtanie zdarzenia
-    fDist = d;
+    fDist = dist;
     iFlags = spEnabled | spEvent; // event+istotny
-    evEvent = e;
-    vPos = e->PositionGet(); // wspó³rzêdne eventu albo komórki pamiêci (zrzutowaæ na tor?)
+    evEvent = event;
+    vPos = event->PositionGet(); // wspó³rzêdne eventu albo komórki pamiêci (zrzutowaæ na tor?)
     CommandCheck(); // sprawdzenie typu komendy w evencie i okreœlenie prêdkoœci
     return fVelNext == 0.0; // true gdy zatrzymanie, wtedy nie ma po co skanowaæ dalej
 };
 
-void TSpeedPos::Set(TTrack *t, double d, int f)
+void TSpeedPos::Set(TTrack *track, double dist, int flag)
 { // zapamiêtanie zmiany prêdkoœci w torze
-    fDist = d; // odleg³oœæ do pocz¹tku toru
-    trTrack = t; // TODO: (t) mo¿e byæ NULL i nie odczytamy koñca poprzedniego :/
+    fDist = dist; // odleg³oœæ do pocz¹tku toru
+    trTrack = track; // TODO: (t) mo¿e byæ NULL i nie odczytamy koñca poprzedniego :/
     if (trTrack)
     {
-        iFlags = f | (trTrack->eType == tt_Normal ? 2 : 10); // zapamiêtanie kierunku wraz z typem
+        iFlags = flag | (trTrack->eType == tt_Normal ? 2 : 10); // zapamiêtanie kierunku wraz z typem
         if (iFlags & spSwitch)
             if (trTrack->GetSwitchState() & 1)
                 iFlags |= spSwitchStatus;
@@ -406,16 +413,22 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
     { // kontynuacja skanowania od ostatnio sprawdzonego toru (w ostatniej pozycji zawsze jest tor)
         if (sSpeedTable[iLast].iFlags & spEndOfTable) // zatkanie
         { // jeœli zape³ni³a siê tabelka
-            if ((iLast + 1) % iSpeedTableSize == iFirst) // jeœli nadal jest zape³niona
-                return; // nic siê nie da zrobiæ
-            if ((iLast + 2) % iSpeedTableSize == iFirst) // musi byæ jeszcze miejsce wolne na
-                // ewentualny event, bo tor jeszcze nie
-                // sprawdzony
-                return; // ju¿ lepiej, ale jeszcze nie tym razem
+			if ((iLast + 1) % iSpeedTableSize == iFirst) // jeœli nadal jest zape³niona
+			{
+				TablePurger(); // nic siê nie da zrobiæ
+				return;
+			}
+			if ((iLast + 2) % iSpeedTableSize == iFirst) // musi byæ jeszcze miejsce wolne na
+				// ewentualny event, bo tor jeszcze nie
+				// sprawdzony
+			{
+				TablePurger();
+				return; // ju¿ lepiej, ale jeszcze nie tym razem
+			}
             sSpeedTable[iLast].iFlags &= 0xBE; // kontynuowaæ próby doskanowania
         }
-        //else if (VelNext == 0)
-        //    return; // znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
+        else if (VelNext == 0)
+            return; // znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
         //trzeba dalej sprawdzaæ, gdy¿ przy stopinfo potrafi³ zgubiæ semafor
         pTrack = sSpeedTable[iLast].trTrack; // ostatnio sprawdzony tor
         if (!pTrack)
@@ -425,7 +438,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                        1.0; // flaga ustawiona, gdy Point2 toru jest bli¿ej
         fCurrentDistance = sSpeedTable[iLast].fDist; // aktualna odleg³oœæ do jego Point1
         fTrackLength =
-            sSpeedTable[iLast].iFlags & 0x60 ? 0.0 : pTrack->Length(); // nie doliczaæ d³ugoœci gdy:
+            sSpeedTable[iLast].iFlags & (spElapsed | spEnd) ? 0.0 : pTrack->Length(); // nie doliczaæ d³ugoœci gdy:
         // 32-miniêty pocz¹tek,
         // 64-jazda do koñca toru
     }
@@ -436,14 +449,17 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         {
             if (pTrack != tLast) // ostatni zapisany w tabelce nie by³ jeszcze sprawdzony
             { // jeœli tor nie by³ jeszcze sprawdzany
-                if ((pEvent = CheckTrackEvent(fLastDir, pTrack)) !=
+				if (pTrack)
+					WriteLog("TableTraceRoute: checking track " + pTrack->NameGet());
+				if ((pEvent = CheckTrackEvent(fLastDir, pTrack)) !=
                     NULL) // jeœli jest semafor na tym torze
                 { // trzeba sprawdziæ tabelkê, bo dodawanie drugi raz tego samego przystanku nie
                     // jest korzystne
                     if (TableNotFound(pEvent)) // jeœli nie ma
                         if (TableAddNew())
                         {
-                            if (sSpeedTable[iLast].Set(pEvent,
+							WriteLog("TableTraceRoute: new event found " + pEvent->asName);
+							if (sSpeedTable[iLast].Set(pEvent,
                                                        fCurrentDistance)) // dodanie odczytu sygna³u
                                 fDistance = fCurrentDistance; // jeœli sygna³ stop, to nie ma
                             // potrzeby dalej skanowaæ
@@ -471,10 +487,10 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                                  15)
                                 << 28; // ostatnie 4 bity pola flag
                             sSpeedTable[iLast].iFlags &=
-                                ~4; // usuniêcie flagi kierunku, bo mo¿e byæ b³êdna
+                                ~spReverse; // usuniêcie flagi kierunku, bo mo¿e byæ b³êdna
                             if (sSpeedTable[iLast].iFlags < 0)
                                 sSpeedTable[iLast].iFlags |=
-                                    4; // ustawienie flagi kierunku na podstawie wybranego segmentu
+                                    spReverse; // ustawienie flagi kierunku na podstawie wybranego segmentu
                             if (int(fLastDir) * sSpeedTable[iLast].iFlags < 0)
                                 fLastDir = -fLastDir;
                             if (AIControllFlag) // dla AI na razie losujemy kierunek na kolejnym
@@ -490,6 +506,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                         sSpeedTable[iLast].Set(pTrack, fCurrentDistance,
                                                fLastDir < 0 ? 0x85 :
                                                               0x81); // dodanie odcinka do tabelki
+					// 0x85 = spEnabled, spReverse, SpCurve
                 }
             }
             fCurrentDistance +=
@@ -593,6 +610,7 @@ void TController::TableCheck(double fDistance)
             {
                 if (sSpeedTable[i].Update(&pos, &dir, len))
                 {
+					WriteLog("TableCheck: Przestawiona zwrotnica. Kasowanie tableki.");
 					int k = (iLast + 1) % iSpeedTableSize; // skanujemy razem z ostatni¹ pozycj¹
 					for (int j = (i+1) % iSpeedTableSize; j != k; j = (j + 1) % iSpeedTableSize)
 					{ // kasowanie wszystkich rekordów za zmienion¹ zwrotnic¹
@@ -602,6 +620,7 @@ void TController::TableCheck(double fDistance)
 						//	WriteLog("TableCheck: Switch change. Delete from table: " + sSpeedTable[j].evEvent->asName);
 						sSpeedTable[j].iFlags = 0;
 					}
+					WriteLog("TableCheck: Kasowanie tableki OK.");
 					TablePurger();
 					iLast = i; // pokazujemy gdzie jest ostatni kawa³ek
 					break; // nie kontynuujemy pêtli, trzeba doskanowaæ ci¹g dalszy
@@ -610,7 +629,7 @@ void TController::TableCheck(double fDistance)
                 {
                     if (sSpeedTable[i].fDist < -fLength) // a sk³ad wyjecha³ ca³¹ d³ugoœci¹ poza
                     { // degradacja pozycji
-						// WriteLog( "TableCheck: Track is behind. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
+						WriteLog( "TableCheck: Track is behind. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
 						sSpeedTable[i].iFlags &= ~spEnabled; // nie liczy siê
                     }
                     else if ((sSpeedTable[i].iFlags & 0xF0000028) ==
@@ -619,7 +638,7 @@ void TController::TableCheck(double fDistance)
 						{
 							sSpeedTable[i].iFlags =
 								0; // to nie ma go po co trzymaæ (odtykacz usunie ze œrodka)
-							// WriteLog("TableCheck: Track without speed limit is under train . Delete from table: " + sSpeedTable[i].trTrack->NameGet());
+							WriteLog("TableCheck: Track without speed. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
 						}
                 }
                 else if (sSpeedTable[i].iFlags & spEvent) // jeœli event
@@ -1214,7 +1233,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 void TController::TablePurger()
 { // odtykacz: usuwa mniej istotne pozycje ze œrodka tabelki, aby unikn¹æ zatkania
     //(np. brak ograniczenia pomiêdzy zwrotnicami, usuniête sygna³y, miniête odcinki ³uku)
-    int i, j, k = iLast - iFirst; // mo¿e byæ 15 albo 16 pozycji, ostatniej nie ma co sprawdzaæ
+	WriteLog("TablePurger: Czyszczenie tableki.");
+	int i, j, k = iLast - iFirst; // mo¿e byæ 15 albo 16 pozycji, ostatniej nie ma co sprawdzaæ
     if (k < 0)
         k += iSpeedTableSize; // iloœæ pozycji do przeanalizowania
     for (i = iFirst; k > 0; --k, i = (i + 1) % iSpeedTableSize)
@@ -1226,7 +1246,7 @@ void TController::TablePurger()
             // (0x08)
 			for (; k > 0; --k, i = (i + 1) % iSpeedTableSize)
 				sSpeedTable[i] = sSpeedTable[(i + 1) % iSpeedTableSize]; // skopiowanie
-            //WriteLog("Odtykacz usuwa pozycjê");
+            WriteLog("Odtykacz usuwa pozycjê");
             iLast = (iLast - 1 + iSpeedTableSize) % iSpeedTableSize; // cofniêcie z zawiniêciem
             return;
         }
