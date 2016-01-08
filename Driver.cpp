@@ -610,18 +610,22 @@ void TController::TableCheck(double fDistance)
             {
                 if (sSpeedTable[i].Update(&pos, &dir, len))
                 {
-					WriteLog("TableCheck: Przestawiona zwrotnica. Kasowanie tableki.");
-					int k = (iLast + 1) % iSpeedTableSize; // skanujemy razem z ostatni¹ pozycj¹
-					for (int j = (i+1) % iSpeedTableSize; j != k; j = (j + 1) % iSpeedTableSize)
+                    WriteLog("TableCheck: Switch change. Delete next entries. (" +
+                             sSpeedTable[i].trTrack->NameGet() + ")");
+                    int k = (iLast + 1) % iSpeedTableSize; // skanujemy razem z ostatni¹ pozycj¹
+                                        for (int j = (i+1) % iSpeedTableSize; j != k; j = (j + 1) % iSpeedTableSize)
 					{ // kasowanie wszystkich rekordów za zmienion¹ zwrotnic¹
-						//if (sSpeedTable[j].iFlags & spTrack)
-						//	WriteLog("TableCheck: Switch change. Delete from table: " + sSpeedTable[j].trTrack->NameGet());
-						//else if (sSpeedTable[j].iFlags & spEvent)
-						//	WriteLog("TableCheck: Switch change. Delete from table: " + sSpeedTable[j].evEvent->asName);
+						if (sSpeedTable[j].iFlags & spTrack)
+							WriteLog("TableCheck: Delete from table: " + sSpeedTable[j].trTrack->NameGet());
+						else if (sSpeedTable[j].iFlags & spEvent)
+							WriteLog("TableCheck: Delete from table: " + sSpeedTable[j].evEvent->asName);
 						sSpeedTable[j].iFlags = 0;
 					}
-					WriteLog("TableCheck: Kasowanie tableki OK.");
-					TablePurger();
+					WriteLog("TableCheck: Delete entries OK.");
+					if (sSpeedTable[i].iFlags & spTrack)
+						WriteLog("TableCheck: New last element: " + sSpeedTable[i].trTrack->NameGet());
+					else if (sSpeedTable[i].iFlags & spEvent)
+						WriteLog("TableCheck: New last element: " + sSpeedTable[i].evEvent->asName);
 					iLast = i; // pokazujemy gdzie jest ostatni kawa³ek
 					break; // nie kontynuujemy pêtli, trzeba doskanowaæ ci¹g dalszy
                 }
@@ -629,7 +633,7 @@ void TController::TableCheck(double fDistance)
                 {
                     if (sSpeedTable[i].fDist < -fLength) // a sk³ad wyjecha³ ca³¹ d³ugoœci¹ poza
                     { // degradacja pozycji
-						WriteLog( "TableCheck: Track is behind. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
+						// WriteLog( "TableCheck: Track is behind. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
 						sSpeedTable[i].iFlags &= ~spEnabled; // nie liczy siê
                     }
                     else if ((sSpeedTable[i].iFlags & 0xF0000028) ==
@@ -638,7 +642,7 @@ void TController::TableCheck(double fDistance)
 						{
 							sSpeedTable[i].iFlags =
 								0; // to nie ma go po co trzymaæ (odtykacz usunie ze œrodka)
-							WriteLog("TableCheck: Track without speed. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
+							// WriteLog("TableCheck: Track without speed. Delete from table: " + sSpeedTable[i].trTrack->NameGet());
 						}
                 }
                 else if (sSpeedTable[i].iFlags & spEvent) // jeœli event
@@ -650,7 +654,7 @@ void TController::TableCheck(double fDistance)
                                                              sSpeedTable[i].fDist < -fLength)
                         { // poci¹g staje zawsze, a samochód tylko jeœli nie przejedzie ca³¹
                             // d³ugoœci¹ (mo¿e byæ zaskoczony zmian¹)
-							WriteLog("TableCheck: Event is behind. Delete from table: " + sSpeedTable[i].evEvent->asName);
+							// WriteLog("TableCheck: Event is behind. Delete from table: " + sSpeedTable[i].evEvent->asName);
 							sSpeedTable[i].iFlags &= ~1; // degradacja pozycji dla samochodu;
                             // semafory usuwane tylko przy sprawdzaniu,
                             // bo wysy³aj¹ komendy 
