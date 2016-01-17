@@ -427,8 +427,8 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
 			}
             sSpeedTable[iLast].iFlags &= 0xBE; // kontynuowaæ próby doskanowania
         }
-        else if (VelNext == 0)
-            return; // znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
+        //else if (VelNext == 0)
+        //    return; // znaleziono semafor lub tor z prêdkoœci¹ zero i nie ma co dalej sprawdzaæ
         //trzeba dalej sprawdzaæ, gdy¿ przy stopinfo potrafi³ zgubiæ semafor
         pTrack = sSpeedTable[iLast].trTrack; // ostatnio sprawdzony tor
         if (!pTrack)
@@ -3700,7 +3700,7 @@ bool TController::UpdateSituation(double dt)
         case Change_direction | Connect: // zmiana kierunku podczas pod³¹czania
             if (OrderList[OrderPos] != Obey_train) // spokojne manewry
             {
-                VelSignal = Min0R(VelSignal, 40); // jeœli manewry, to ograniczamy prêdkoœæ
+                VelSignal = Global::Min0RSpeed(VelSignal, 40); // jeœli manewry, to ograniczamy prêdkoœæ
                 if (AIControllFlag)
                 { // to poni¿ej tylko dla AI
                     if (iVehicleCount >= 0) // jeœli jest co odczepiæ
@@ -3834,7 +3834,7 @@ bool TController::UpdateSituation(double dt)
                 // nastêpnie ograniczana
                 if (TrainParams) // jeœli ma rozk³ad
                     if (TrainParams->TTVmax > 0.0) // i ograniczenie w rozk³adzie
-                        VelDesired = Min0R(VelDesired,
+                        VelDesired = Global::Min0RSpeed(VelDesired,
                                            TrainParams->TTVmax); // to nie przekraczaæ rozkladowej
                 SetDriverPsyche(); // ustawia AccPreferred (potrzebne tu?)
                 // Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prêdkosci
@@ -3902,7 +3902,7 @@ bool TController::UpdateSituation(double dt)
                         // ma taboru do pod³¹czenia
                         // Ra 2F1H: z tym (fTrackBlock) to nie jest najlepszy pomys³, bo lepiej by
                         // by³o porównaæ z odleg³oœci¹ od sygnalizatora z przodu
-                        if ((OrderList[OrderPos] | Connect) ? pVehicles[0]->fTrackBlock > 2000 :
+                        if ((OrderList[OrderPos] & Connect) ? pVehicles[0]->fTrackBlock > 2000 :
                                                               true)
                             if ((comm = BackwardScan()) != cm_Unknown) // jeœli w drug¹ mo¿na jechaæ
                             { // nale¿y sprawdzaæ odleg³oœæ od znalezionego sygnalizatora,
@@ -4043,22 +4043,22 @@ bool TController::UpdateSituation(double dt)
                 // else if (VelSignal<0)
                 // VelDesired=fVelMax; //ile fabryka dala (Ra: uwzglêdione wagony)
                 else if (VelSignal >= 0) // jeœli sk³ad by³ zatrzymany na pocz¹tku i teraz ju¿ mo¿e jechaæ
-                    VelDesired = Min0R(VelDesired, VelSignal);
+                    VelDesired = Global::Min0RSpeed(VelDesired, VelSignal);
 				
 				if (mvOccupied->RunningTrack.Velmax >=
                     0) // ograniczenie prêdkoœci z trajektorii ruchu
                     VelDesired =
-                        Min0R(VelDesired,
+                        Global::Min0RSpeed(VelDesired,
                               mvOccupied->RunningTrack.Velmax); // uwaga na ograniczenia szlakowej!
                 if (VelforDriver >= 0) // tu jest zero przy zmianie kierunku jazdy
-                    VelDesired = Min0R(VelDesired, VelforDriver); // Ra: tu mo¿e byæ 40, jeœli
+                    VelDesired = Global::Min0RSpeed(VelDesired, VelforDriver); // Ra: tu mo¿e byæ 40, jeœli
                 // mechanik nie ma znajomoœci
                 // szlaaku, albo kierowca jeŸdzi
                 // 70
                 if (TrainParams)
                     if (TrainParams->CheckTrainLatency() < 5.0)
                         if (TrainParams->TTVmax > 0.0)
-                            VelDesired = Min0R(
+                            VelDesired = Global::Min0RSpeed(
                                 VelDesired,
                                 TrainParams
                                     ->TTVmax); // jesli nie spozniony to nie przekraczaæ rozkladowej
