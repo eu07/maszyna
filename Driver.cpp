@@ -695,6 +695,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     double a; // przyspieszenie
     double v; // prêdkoœæ
     double d; // droga
+	double d_to_next_sem = 10000.0; //ustaiwamy na pewno dalej ni¿ widzi AI
     TCommandType go = cm_Unknown;
     eSignNext = NULL;
     int i, k = iLast - iFirst + 1;
@@ -1016,7 +1017,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 					if (sSpeedTable[i].fDist < 0)
 						VelSignalLast = sSpeedTable[i].fVelNext; //miniêty daje prêdkoœæ obowi¹zuj¹c¹
 					else
+					{
 						iDrivigFlags |= moveSemaphorFound; //jeœli z przodu to dajemy falgê, ¿e jest
+						d_to_next_sem = Min0R(sSpeedTable[i].fDist, d_to_next_sem);
+					}
                 }
                 else if (sSpeedTable[i].iFlags & spRoadVel)
                 { // to W6
@@ -1231,6 +1235,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 	if (VelRoad >= 0.0)
 		fVelDes = Min0R(fVelDes, VelRoad);
 	// nastepnego semafora albo zwrotnicy to uznajemy, ¿e mijamy W5
+	FirstSemaphorDist = d_to_next_sem; // przepisanie znalezionej wartosci do zmiennej
     return go;
 };
 
@@ -1291,6 +1296,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
     HelpMeFlag = false;
     // fProximityDist=1; //nie u¿ywane
     ActualProximityDist = 1;
+	FirstSemaphorDist = 10000.0;
     vCommandLocation.x = 0;
     vCommandLocation.y = 0;
     vCommandLocation.z = 0;
@@ -3902,7 +3908,7 @@ bool TController::UpdateSituation(double dt)
                         // ma taboru do pod³¹czenia
                         // Ra 2F1H: z tym (fTrackBlock) to nie jest najlepszy pomys³, bo lepiej by
                         // by³o porównaæ z odleg³oœci¹ od sygnalizatora z przodu
-                        if ((OrderList[OrderPos] & Connect) ? pVehicles[0]->fTrackBlock > 2000 :
+                        if ((OrderList[OrderPos] & Connect) ? (pVehicles[0]->fTrackBlock > 2000 || pVehicles[0]->fTrackBlock > FirstSemaphorDist) :
                                                               true)
                             if ((comm = BackwardScan()) != cm_Unknown) // jeœli w drug¹ mo¿na jechaæ
                             { // nale¿y sprawdzaæ odleg³oœæ od znalezionego sygnalizatora,

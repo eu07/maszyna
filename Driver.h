@@ -242,6 +242,7 @@ class TController
   private:
      double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
     // punktu, <0:podana wartoœæ
+	 double FirstSemaphorDist; // odleg³oœæ do pierwszego znalezionego semafora
   public:
     double
         ActualProximityDist; // odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
