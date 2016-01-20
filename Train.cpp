@@ -3763,14 +3763,20 @@ bool TTrain::Update()
                 TestFlag(mvOccupied->SecuritySystem.Status, s_SHPalarm))
             {
                 dsbBuzzer->GetStatus(&stat);
-                if (!(stat & DSBSTATUS_PLAYING))
+				if (!(stat & DSBSTATUS_PLAYING))
+				{
                     dsbBuzzer->Play(0, 0, DSBPLAY_LOOPING);
+					Console::BitsSet(1 << 14); // ustawienie bitu 16 na PoKeys
+				}
             }
             else
             {
                 dsbBuzzer->GetStatus(&stat);
-                if (stat & DSBSTATUS_PLAYING)
+				if (stat & DSBSTATUS_PLAYING)
+				{
                     dsbBuzzer->Stop();
+					Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
+				}
             }
         }
         else // wylaczone
@@ -3778,8 +3784,11 @@ bool TTrain::Update()
             btLampkaCzuwaka.TurnOff();
             btLampkaSHP.TurnOff();
             dsbBuzzer->GetStatus(&stat);
-            if (stat & DSBSTATUS_PLAYING)
+			if (stat & DSBSTATUS_PLAYING)
+			{
                 dsbBuzzer->Stop();
+				Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
+			}
         }
 
         //******************************************
@@ -5063,6 +5072,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 // ggEngageRatio.Clear();
                 ggMainGearStatus.Clear();
                 ggIgnitionKey.Clear();
+				// Jeœli ustawiamy now¹ wartoœæ dla PoKeys wolna jest 15
+				// Numer 14 jest u¿ywany dla buczka SHP w innym miejscu
                 btLampkaPoslizg.Clear(6);
                 btLampkaStyczn.Clear(5);
                 btLampkaNadmPrzetw.Clear(
