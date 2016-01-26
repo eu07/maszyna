@@ -33,14 +33,15 @@ void WriteConsoleOnly(const char *str, double value)
     // WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
 }
 
-void WriteConsoleOnly(const char *str)
+void WriteConsoleOnly(const char *str, bool newline)
 {
     // printf("%n ffafaf /n",str);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
                             FOREGROUND_GREEN | FOREGROUND_INTENSITY);
     DWORD wr = 0;
     WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), str, strlen(str), &wr, NULL);
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
+	if (newline)
+		WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
 }
 
 void WriteLog(const char *str, double value)
@@ -55,7 +56,7 @@ void WriteLog(const char *str, double value)
         }
     }
 };
-void WriteLog(const char *str)
+void WriteLog(const char *str, bool newline)
 {
     if (str)
     {
@@ -63,12 +64,14 @@ void WriteLog(const char *str)
         {
             if (!output.is_open())
                 output.open("log.txt", std::ios::trunc);
-            output << str << "\n";
+			output << str;
+			if (newline)
+				output << "\n";
             output.flush();
         }
         // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
         if (Global::iWriteLogEnabled & 2)
-            WriteConsoleOnly(str);
+            WriteConsoleOnly(str, newline);
     }
 };
 void ErrorLog(const char *str)
@@ -96,9 +99,9 @@ void ErrorLog(const AnsiString &asMessage)
     WriteLog(asMessage.c_str()); // do "log.txt" ewentualnie te¿
 }
 
-void WriteLog(const AnsiString &str)
+void WriteLog(const AnsiString &str, bool newline)
 { // Ra: wersja z AnsiString jest zamienna z Error()
-    WriteLog(str.c_str());
+    WriteLog(str.c_str(), newline);
 };
 //---------------------------------------------------------------------------
 
