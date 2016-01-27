@@ -1046,21 +1046,24 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     moveSwitchFound; // rozjazd z przodu/pod ogranicza np. sens skanowania wstecz
             else if (sSpeedTable[i].iFlags & spEvent) // W4 mo¿e siê deaktywowaæ
             { // je¿eli event, mo¿e byæ potrzeba wys³ania komendy, aby ruszy³
-				//sprawdzanie eventów pasywnych miniêtych
-				if (sSpeedTable[i].fDist < 0.0 && sSemNext == &sSpeedTable[i])
-				{
-					WriteLog("TableUpdate: semaphor " + sSemNext->GetName() + " passed");
-					sSemNext = NULL; // jeœli minêliœmy semafor od ograniczenia to go kasujemy ze
-									 // zmiennej sprawdzaj¹cej dla skanowania w przód
-				}
-				if (sSpeedTable[i].fDist > 0.0 && !sSemNext &&
-					sSpeedTable[i].IsProperSemaphor(OrderCurrentGet()))
-				{
-					sSemNext = &sSpeedTable[i]; // jeœli jest mieniêty poprzedni semafor a wczeœniej
-												// byl nowy to go dorzucamy do zmiennej, ¿eby ca³y
-												// czas widzia³ najbli¿szy
-					WriteLog("TableUpdate: Next semaphor: " + sSemNext->GetName());
-				}
+                // sprawdzanie eventów pasywnych miniêtych
+                if (sSpeedTable[i].fDist < 0.0 && sSemNext == &sSpeedTable[i])
+                {
+                    WriteLog("TableUpdate: semaphor " + sSemNext->GetName() + " passed");
+                    sSemNext = NULL; // jeœli minêliœmy semafor od ograniczenia to go kasujemy ze
+                    // zmiennej sprawdzaj¹cej dla skanowania w przód
+                }
+                if (sSpeedTable[i].fDist > 0.0 &&
+                    sSpeedTable[i].IsProperSemaphor(OrderCurrentGet()) &&
+                    (!sSemNext ||
+                     (sSemNext && sSemNext->fVelNext != 0 && sSpeedTable[i].fVelNext == 0)))
+                    {
+                        sSemNext = &sSpeedTable[i]; // jeœli jest mieniêty poprzedni
+                        // semafor a wczeœniej
+                        // byl nowy to go dorzucamy do zmiennej, ¿eby ca³y
+                        // czas widzia³ najbli¿szy
+                        WriteLog("TableUpdate: Next semaphor: " + sSemNext->GetName());
+                    }
                 if (sSpeedTable[i].iFlags & spOutsideStation)
                 { // jeœli W5, to reakcja zale¿na od trybu jazdy
                     if (OrderCurrentGet() & Obey_train)
