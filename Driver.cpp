@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 */
-#include <iostream>
+
 #include "system.hpp"
 #include "classes.hpp"
 #pragma hdrstop
@@ -508,9 +508,9 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         {
             if (pTrack != tLast) // ostatni zapisany w tabelce nie by³ jeszcze sprawdzony
             { // jeœli tor nie by³ jeszcze sprawdzany
-                if (pTrack)
-                    WriteLog("TableTraceRoute: " + OwnerName() + " checking track " +
-                             pTrack->NameGet());
+                // if (pTrack)
+                // WriteLog("TableTraceRoute: " + OwnerName() + " checking track " +
+                //         pTrack->NameGet());
                 if ((pEvent = CheckTrackEvent(fLastDir, pTrack)) !=
                     NULL) // jeœli jest semafor na tym torze
                 { // trzeba sprawdziæ tabelkê, bo dodawanie drugi raz tego samego przystanku nie
