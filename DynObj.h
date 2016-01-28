@@ -157,7 +157,7 @@ class TDynamicObject
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     vector3 modelRot; // obrot pud³a wzglêdem œwiata - do przeanalizowania, czy potrzebne!!!
     // bool bCameraNear; //blisko kamer s¹ potrzebne dodatkowe obliczenia szczegó³ów
-    TDynamicObject *__fastcall ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer,
+    TDynamicObject * ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer,
                                                     int &CouplNr);
 
   public: // parametry po³o¿enia pojazdu dostêpne publicznie
@@ -197,7 +197,8 @@ class TDynamicObject
     void UpdateDoorTranslate(TAnim *pAnim); // animacja drzwi - przesuw
     void UpdateDoorRotate(TAnim *pAnim); // animacja drzwi - obrót
     void UpdateDoorFold(TAnim *pAnim); // animacja drzwi - sk³adanie
-    void UpdatePant(TAnim *pAnim); // animacja pantografu
+	void UpdateDoorPlug(TAnim *pAnim);      // animacja drzwi - odskokowo-przesuwne
+	void UpdatePant(TAnim *pAnim); // animacja pantografu
     void UpdateLeverDouble(TAnim *pAnim); // animacja ga³ki zale¿na od double
     void UpdateLeverFloat(TAnim *pAnim); // animacja ga³ki zale¿na od float
     void UpdateLeverInt(TAnim *pAnim); // animacja ga³ki zale¿na od int (wartoœæ)
@@ -325,7 +326,7 @@ class TDynamicObject
     void ABuScanObjects(int ScanDir, double ScanDist);
 
   protected:
-    TDynamicObject *__fastcall ABuFindObject(TTrack *Track, int ScanDir, Byte &CouplFound,
+    TDynamicObject * ABuFindObject(TTrack *Track, int ScanDir, Byte &CouplFound,
                                              double &dist);
     void ABuCheckMyTrack();
 
@@ -333,10 +334,11 @@ class TDynamicObject
     int *iLights; // wskaŸnik na bity zapalonych œwiate³ (w³asne albo innego cz³onu)
     double fTrackBlock; // odleg³oœæ do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
     // pojazdem)
-    TDynamicObject *__fastcall PrevAny();
-    TDynamicObject *__fastcall Prev();
-    TDynamicObject *__fastcall Next();
-    TDynamicObject *__fastcall NextC(int C);
+    TDynamicObject * PrevAny();
+    TDynamicObject * Prev();
+    TDynamicObject * Next();
+	TDynamicObject * PrevC(int C);
+	TDynamicObject * NextC(int C);
     double NextDistance(double d = -1.0);
     void SetdMoveLen(double dMoveLen)
     {
@@ -367,9 +369,9 @@ class TDynamicObject
     // float EmR;
     // vector3 smokeoffset;
 
-    TDynamicObject *__fastcall ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist,
+    TDynamicObject * ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist,
                                                     int &CouplNr);
-    TDynamicObject *__fastcall GetFirstDynamic(int cpl_type);
+    TDynamicObject * GetFirstDynamic(int cpl_type);
     // TDynamicObject* GetFirstCabDynamic(int cpl_type);
     void ABuSetModelShake(vector3 mShake);
 
@@ -435,7 +437,7 @@ class TDynamicObject
     {
         return vLeft;
     };
-    inline double *__fastcall Matrix()
+    inline double * Matrix()
     {
         return mMatrix.getArray();
     };
@@ -451,7 +453,7 @@ class TDynamicObject
     {
         return MoverParameters->Dim.W;
     };
-    inline TTrack *__fastcall GetTrack()
+    inline TTrack * GetTrack()
     {
         return (iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack());
     };
@@ -476,15 +478,16 @@ class TDynamicObject
     { // zwraca przesuniêcie wózka wzglêdem Point1 toru z aktywn¹ osi¹
         return iAxleFirst ? Axle1.GetTranslation() : Axle0.GetTranslation();
     };
-    inline TTrack *__fastcall RaTrackGet()
+    inline TTrack * RaTrackGet()
     { // zwraca tor z aktywn¹ osi¹
         return iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack();
     };
     void CouplersDettach(double MinDist, int MyScanDir);
     void RadioStop();
-    void RaLightsSet(int head, int rear);
+	void Damage(char flag);
+	void RaLightsSet(int head, int rear);
     // void RaAxleEvent(TEvent *e);
-    TDynamicObject *__fastcall FirstFind(int &coupler_nr);
+    TDynamicObject * FirstFind(int &coupler_nr);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w sk³adzie
     int DirectionGet()
@@ -493,15 +496,16 @@ class TDynamicObject
     }; // odczyt kierunku w sk³adzie
     int DettachStatus(int dir);
     int Dettach(int dir);
-    TDynamicObject *__fastcall Neightbour(int &dir);
+    TDynamicObject * Neightbour(int &dir);
     void CoupleDist();
-    TDynamicObject *__fastcall ControlledFind();
+    TDynamicObject * ControlledFind();
     void ParamSet(int what, int into);
     int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
     // jechaæ
     void DestinationSet(AnsiString to);
     AnsiString TextureTest(AnsiString &name);
     void OverheadTrack(float o);
+    double MED[9][8]; // lista zmiennych do debugowania hamulca ED
 };
 
 //---------------------------------------------------------------------------

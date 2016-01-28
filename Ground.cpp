@@ -4774,6 +4774,24 @@ void TGround::WyslijEvent(const AnsiString &e, const AnsiString &d)
     cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera koÒczπce
     cData.lpData = &r;
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + e + " sent");
+};
+//---------------------------------------------------------------------------
+void TGround::WyslijUszkodzenia(const AnsiString &t, char fl)
+{ // wys≥anie informacji w postaci pojedynczego tekstu
+	DaneRozkaz r;
+	r.iSygn = 'EU07';
+	r.iComm = 13; // numer komunikatu
+	int i = t.Length();
+	r.cString[0] = char(fl);
+	r.cString[1] = char(i);
+	strcpy(r.cString + 2, t.c_str()); // z zerem koÒczπcym
+	COPYDATASTRUCT cData;
+	cData.dwData = 'EU07'; // sygnatura
+	cData.cbData = 11 + i; // 8+licznik i zero koÒczπce
+	cData.lpData = &r;
+	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijString(const AnsiString &t, int n)
@@ -4789,6 +4807,7 @@ void TGround::WyslijString(const AnsiString &t, int n)
     cData.cbData = 10 + i; // 8+licznik i zero koÒczπce
     cData.lpData = &r;
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijWolny(const AnsiString &t)
@@ -4868,7 +4887,51 @@ void TGround::WyslijNamiary(TGroundNode *t)
     // WriteLog("Ramka gotowa");
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
     // WriteLog("Ramka poszla!");
+	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t->asName + " sent");
 };
+//
+void TGround::WyslijObsadzone()
+{   // wys≥anie informacji o pojeüdzie
+	DaneRozkaz2 r;
+	r.iSygn = 'EU07';
+	r.iComm = 12;   // kod 12
+	for (int i; i<1984; i++) r.cString[i] = 0;
+
+	int i = 0;
+	for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
+		if (Current->DynamicObject->Mechanik)
+		{
+			strcpy(r.cString + 64 * i, Current->DynamicObject->asName.c_str());
+			r.fPar[16 * i + 4] = Current->DynamicObject->GetPosition().x;
+			r.fPar[16 * i + 5] = Current->DynamicObject->GetPosition().y;
+			r.fPar[16 * i + 6] = Current->DynamicObject->GetPosition().z;
+			r.iPar[16 * i + 7] = Current->DynamicObject->Mechanik->GetAction();
+			strcpy(r.cString + 64 * i + 32, Current->DynamicObject->GetTrack()->IsolatedName().c_str());
+			strcpy(r.cString + 64 * i + 48, Current->DynamicObject->Mechanik->Timetable()->TrainName.c_str());
+			i++;
+			if (i>30) break;
+		}
+	while (i <= 30)
+	{
+		strcpy(r.cString + 64 * i, AnsiString("none").c_str());
+		r.fPar[16 * i + 4] = 1;
+		r.fPar[16 * i + 5] = 2;
+		r.fPar[16 * i + 6] = 3;
+		r.iPar[16 * i + 7] = 0;
+		strcpy(r.cString + 64 * i + 32, AnsiString("none").c_str());
+		strcpy(r.cString + 64 * i + 48, AnsiString("none").c_str());
+		i++;
+	}
+
+	COPYDATASTRUCT cData;
+	cData.dwData = 'EU07';     // sygnatura
+	cData.cbData = 8 + 1984; // 8+licznik i zero koÒczπce
+	cData.lpData = &r;
+	// WriteLog("Ramka gotowa");
+	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " obsadzone" + " sent");
+}
+
 //--------------------------------
 void TGround::WyslijParam(int nr, int fl)
 { // wys≥anie parametrÛw symulacji w ramce (nr) z flagami (fl)

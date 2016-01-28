@@ -92,8 +92,8 @@ enum TBrakeValve { NoValve, W, W_Lu_VI, W_Lu_L, W_Lu_XR, K, Kg, Kp, Kss, Kkg, Kk
 #pragma option pop
 
 #pragma option push -b-
-enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113 
-	};
+enum TBrakeHandle { NoHandle, West, FV4a, M394, M254, FVel1, FVel6, D2, Knorr, FD1, BS2, testH, St113, 
+	MHZ_P, MHZ_T, MHZ_EN57 };
 #pragma option pop
 
 #pragma option push -b-
@@ -404,6 +404,10 @@ public:
 	Byte BrakeCtrlPosNo;
 	Byte MainCtrlPosNo;
 	Byte ScndCtrlPosNo;
+	Byte LightsPosNo;
+	Byte LightsDefPos;
+	bool LightsWrap;
+	Byte Lights[2][16];
 	bool ScndInMain;
 	bool MBrake;
 	TSecuritySystem SecuritySystem;
@@ -433,6 +437,7 @@ public:
 	double RVentCutOff;
 	int CompressorPower;
 	int SmallCompressorPower;
+	bool Trafo;
 	double dizel_Mmax;
 	double dizel_nMmax;
 	double dizel_Mnmax;
@@ -460,7 +465,7 @@ public:
 	TShuntScheme SST[33];
 	double PowerCorRatio;
 	double Ftmax;
-	double eimc[21];
+	double eimc[26];
 	int MaxLoad;
 	AnsiString LoadAccepted;
 	AnsiString LoadQuantity;
@@ -475,7 +480,11 @@ public:
 	double DoorCloseSpeed;
 	double DoorMaxShiftL;
 	double DoorMaxShiftR;
+	double DoorMaxPlugShift;
 	Byte DoorOpenMethod;
+	double PlatformSpeed;
+	double PlatformMaxShift;
+	Byte PlatformOpenMethod;
 	bool ScndS;
 	TLocation Loc;
 	TRotation Rot;
@@ -538,6 +547,7 @@ public:
 	double LimPipePress;
 	double ActFlowSpeed;
 	Byte DamageFlag;
+	Byte EngDmgFlag;
 	Byte DerailReason;
 	TCommand CommandIn;
 	AnsiString CommandOut;
@@ -550,6 +560,7 @@ public:
 	bool Mains;
 	Byte MainCtrlPos;
 	Byte ScndCtrlPos;
+	Byte LightsPos;
 	int ActiveDir;
 	int CabNo;
 	int DirAbsolute;
@@ -761,6 +772,7 @@ static const Shortint maxcc = 0x4;
 static const Shortint LocalBrakePosNo = 0xa;
 static const Shortint MainBrakeMaxPos = 0xa;
 static const Shortint ManualBrakePosNo = 0x14;
+static const Shortint LightsSwitchPosNo = 0x10;
 static const Shortint dtrack_railwear = 0x2;
 static const Shortint dtrack_freerail = 0x4;
 static const Shortint dtrack_thinrail = 0x8;
@@ -845,6 +857,8 @@ static const Shortint eimc_p_Ph = 0x11;
 static const Shortint eimc_p_Vh0 = 0x12;
 static const Shortint eimc_p_Vh1 = 0x13;
 static const Shortint eimc_p_Imax = 0x14;
+static const Shortint eimc_p_abed = 0x15;
+static const Shortint eimc_p_eped = 0x16;
 static const Shortint eimv_FMAXMAX = 0x0;
 static const Shortint eimv_Fmax = 0x1;
 static const Shortint eimv_ks = 0x2;

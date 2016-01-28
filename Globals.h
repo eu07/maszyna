@@ -215,7 +215,8 @@ class Global
     static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     // McZapkie-221002: definicja swiatla dziennego
-    static GLfloat AtmoColor[];
+	static float Background[3];
+	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
     // static bool bTimeChange;
     static GLfloat ambientDayLight[];

@@ -625,8 +625,8 @@ double TMoverParameters::ShowEngineRotation(int VehN)
 
 void TMoverParameters::ConverterCheck()
 { // sprawdzanie przetwornicy
-    if (ConverterAllow && Mains)
-        ConverterFlag = true;
+	if (ConverterAllow && Mains && !ConvOvldFlag)
+		ConverterFlag = true;
     else
         ConverterFlag = false;
 };

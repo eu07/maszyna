@@ -139,7 +139,7 @@ void TAnim::Parovoz(){
     // animowanie t³oka i rozrz¹du parowozu
 };
 //---------------------------------------------------------------------------
-TDynamicObject *__fastcall TDynamicObject::FirstFind(int &coupler_nr)
+TDynamicObject * TDynamicObject::FirstFind(int &coupler_nr)
 { // szukanie skrajnego po³¹czonego pojazdu w pociagu
     // od strony sprzegu (coupler_nr) obiektu (start)
     TDynamicObject *temp = this;
@@ -255,7 +255,7 @@ float TDynamicObject::GetEPP()
 };
 
 //---------------------------------------------------------------------------
-TDynamicObject *__fastcall TDynamicObject::GetFirstDynamic(int cpl_type)
+TDynamicObject * TDynamicObject::GetFirstDynamic(int cpl_type)
 { // Szukanie skrajnego po³¹czonego pojazdu w pociagu
     // od strony sprzegu (cpl_type) obiektu szukajacego
     // Ra: wystarczy jedna funkcja do szukania w obu kierunkach
@@ -413,10 +413,10 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim)
     {
         if (pAnim->iNumber & 1)
             pAnim->smAnimated->SetTranslate(
-                vector3(0, 0, Max0R(dDoorMoveR * pAnim->fSpeed, dDoorMoveR)));
+                vector3(0, 0, Min0R(dDoorMoveR * pAnim->fSpeed, dDoorMoveR)));
         else
             pAnim->smAnimated->SetTranslate(
-                vector3(0, 0, Max0R(dDoorMoveL * pAnim->fSpeed, dDoorMoveL)));
+                vector3(0, 0, Min0R(dDoorMoveL * pAnim->fSpeed, dDoorMoveL)));
     }
 };
 
@@ -483,6 +483,23 @@ void TDynamicObject::UpdatePant(TAnim *pAnim)
         pAnim->smElement[3]->SetRotate(float3(-1, 0, 0), c);
     if (pAnim->smElement[4])
         pAnim->smElement[4]->SetRotate(float3(-1, 0, 0), b); //œlizg
+};
+
+void TDynamicObject::UpdateDoorPlug(TAnim *pAnim)
+{ // animacja drzwi - odskokprzesuw
+    if (pAnim->smAnimated)
+    {
+        if (pAnim->iNumber & 1)
+            pAnim->smAnimated->SetTranslate(
+                vector3(Min0R(dDoorMoveR * 2, MoverParameters->DoorMaxPlugShift), 0,
+                        Max0R(0, Min0R(dDoorMoveR * pAnim->fSpeed, dDoorMoveR) -
+                                     MoverParameters->DoorMaxPlugShift * 0.5f)));
+        else
+            pAnim->smAnimated->SetTranslate(
+                vector3(Min0R(dDoorMoveL * 2, MoverParameters->DoorMaxPlugShift), 0,
+                        Max0R(0, Min0R(dDoorMoveL * pAnim->fSpeed, dDoorMoveL) -
+                                     MoverParameters->DoorMaxPlugShift * 0.5f)));
+    }
 };
 
 void TDynamicObject::UpdateLeverDouble(TAnim *pAnim)
@@ -919,7 +936,7 @@ double ABuAcos(const vector3 &calc_temp)
     return atan2(-calc_temp.x, calc_temp.z); // Ra: tak proœciej
 }
 
-TDynamicObject *__fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,
+TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track,
                                                                 TDynamicObject *MyPointer,
                                                                 int &CouplNr)
 { // zwraca wskaznik do obiektu znajdujacego sie na torze
@@ -983,7 +1000,7 @@ TDynamicObject *__fastcall TDynamicObject::ABuFindNearestObject(TTrack *Track,
     return NULL;
 }
 
-TDynamicObject *__fastcall TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir,
+TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir,
                                                                 double ScanDist, int &CouplNr)
 { // skanowanie toru w poszukiwaniu obiektu najblizszego
     // kamerze
@@ -1086,7 +1103,7 @@ void TDynamicObject::ABuCheckMyTrack()
 }
 
 // Ra: w poni¿szej funkcji jest problem ze sprzêgami
-TDynamicObject *__fastcall TDynamicObject::ABuFindObject(TTrack *Track, int ScanDir,
+TDynamicObject * TDynamicObject::ABuFindObject(TTrack *Track, int ScanDir,
                                                          Byte &CouplFound, double &dist)
 { // Zwraca wskaŸnik najbli¿szego obiektu znajduj¹cego siê
     // na torze w okreœlonym kierunku, ale tylko wtedy, kiedy
@@ -2625,18 +2642,22 @@ bool TDynamicObject::Update(double dt, double dt1)
         // asynchronami, to
         // niech steruje
         { // hamulcem lacznie dla calego pociagu/ezt
-            float FED = 0;
+			bool kier = (DirectionGet() * MoverParameters->ActiveCab > 0);
+			float FED = 0;
             float np = 0;
             float masa = 0;
             float FrED = 0;
             float masamax = 0;
             float FmaxPN = 0;
-            float FmaxED = 0;
+			float FfulED = 0;
+			float FmaxED = 0;
             float Fzad = 0;
             float FzadED = 0;
             float FzadPN = 0;
-            float amax = 0;
-            // 1. ustal wymagana sile hamowania calego pociagu
+			float Frj = 0;
+			float amax = 0;
+			float osie = 0;
+			// 1. ustal wymagana sile hamowania calego pociagu
             //   - opoznienie moze byc ustalane na podstawie charakterystyki
             //   - opoznienie moze byc ustalane na podstawie mas i cisnien granicznych
             //
@@ -2644,7 +2665,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             // 2. ustal mozliwa do realizacji sile hamowania ED
             //   - w szczegolnosci powinien brac pod uwage rozne sily hamowania
             for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
-                 p = p->NextC(4))
+				(kier ? p = p->NextC(4) : p = p->PrevC(4)))
             {
                 np++;
                 masamax += p->MoverParameters->MBPM +
@@ -2655,28 +2676,64 @@ bool TDynamicObject::Update(double dt, double dt1)
                                   p->MoverParameters->BrakeCylMult[0] -
                               p->MoverParameters->BrakeSlckAdj) *
                              p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
-                FmaxPN += Nmax *
-                          p->MoverParameters->Hamulec->GetFC(
+                FmaxPN += Nmax * p->MoverParameters->Hamulec->GetFC(
                               Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
                               p->MoverParameters->Vmax) *
                           1000; // sila hamowania pn
-                FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->eimc[eimc_p_Fh] *
-                                                               p->MoverParameters->NPoweredAxles >
+                FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->ActiveDir != 0) &&
+					(p->MoverParameters->eimc[eimc_p_Fh] * p->MoverParameters->NPoweredAxles >
                                                            0) ?
                                p->MoverParameters->eimc[eimc_p_Fh] * 1000 :
                                0); // chwilowy max ED -> do rozdzialu sil
                 FED -= Min0R(p->MoverParameters->eimv[eimv_Fmax], 0) *
                        1000; // chwilowy max ED -> do rozdzialu sil
-                FrED -= Min0R(p->MoverParameters->eimv[eimv_Fr], 0) *
+				FfulED = Min0R(p->MoverParameters->eimv[eimv_Fful], 0) *
+					1000; // chwilowy max ED -> do rozdzialu sil
+				FrED -= Min0R(p->MoverParameters->eimv[eimv_Fr], 0) *
                         1000; // chwilowo realizowane ED -> do pneumatyki
-                masa += p->MoverParameters->TotalMass;
-            }
+				Frj += Max0R(p->MoverParameters->eimv[eimv_Fr], 0) *
+					1000;// chwilowo realizowany napêd -> do utrzymuj¹cego
+				masa += p->MoverParameters->TotalMass;
+				osie += p->MoverParameters->NAxles;
+			}
             amax = FmaxPN / masamax;
+            if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) ||
+                (dDoorMoveL > 0.001) || (dDoorMoveR > 0.001))
+            {
+                MoverParameters->ShuntMode = true;
+            }
+            if (MoverParameters->ShuntMode)
+            {
+                MoverParameters->ShuntModeAllow = (dDoorMoveL < 0.001) && (dDoorMoveR < 0.001) &&
+                                                  (MoverParameters->LocalBrakeRatio() < 0.01);
+            }
+            if ((MoverParameters->Vel > 1) && (dDoorMoveL < 0.001) && (dDoorMoveR < 0.001))
+            {
+                MoverParameters->ShuntMode = false;
+                MoverParameters->ShuntModeAllow = (MoverParameters->BrakePress > 0.2) &&
+                                                  (MoverParameters->LocalBrakeRatio() < 0.01);
+            }
             Fzad = amax * MoverParameters->LocalBrakeRatio() * masa;
+            if ((MoverParameters->ScndS) &&
+                (MoverParameters->Vel > MoverParameters->eimc[eimc_p_Vh1]) && (FmaxED > 0))
+            {
+                Fzad = Min0R(MoverParameters->LocalBrakeRatio() * FmaxED, FfulED);
+            }
+            if (((MoverParameters->ShuntMode) && (Frj < 0.0015 * masa)) ||
+                (MoverParameters->V * MoverParameters->DirAbsolute < -0.2))
+            {
+                Fzad = Max0R(0.5 * masa, Fzad);
+            }
             FzadED = Min0R(Fzad, FmaxED);
             FzadPN = Fzad - FrED;
             np = 0;
-            // 3. ustaw pojazdom sile hamowania ED
+			bool* PrzekrF = new bool[np];
+			float nPrzekrF = 0;
+			bool test = true;
+			float* FzED = new float[np];
+			float* FzEP = new float[np];
+			float* FmaxEP = new float[np];
+			// 3. ustaw pojazdom sile hamowania ED
             //   - proporcjonalnie do mozliwosci
 
             // 4. ustal potrzebne dohamowanie pneumatyczne
@@ -2685,30 +2742,142 @@ bool TDynamicObject::Update(double dt, double dt1)
             //   - gdy zahamowany ma ponizej 2 km/h
             // 6. ustaw pojazdom sile hamowania ep
             //   - proporcjonalnie do masy, do liczby osi, rowne cisnienia - jak
-            //   bedzie, tak bedzie
-            //   dobrze
-            float Fpoj = 0;
-            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
-                 p = p->NextC(4))
-            {
+            //   bedzie, tak bedzie dobrze
+            float Fpoj = 0; // MoverParameters->ActiveCab < 0
+            ////ALGORYTM 2 - KAZDEMU PO ROWNO, ale nie wiecej niz eped * masa
+            // 1. najpierw daj kazdemu tyle samo
+            int i = 0;
+			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+				(kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+			{
                 np++;
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
                                   p->MoverParameters->BrakeCylMult[0] -
                               p->MoverParameters->BrakeSlckAdj) *
                              p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
-                float FmaxPoj = Nmax *
-                                p->MoverParameters->Hamulec->GetFC(
-                                    Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
-                                    p->MoverParameters->Vel) *
-                                1000; // sila hamowania pn
-                //         Fpoj=(FED>0?-FzadED*p->MoverParameters->eimv[eimv_Fmax]*1000/FED:0);
-                //         p->MoverParameters->AnPos=(p->MoverParameters->eimc[eimc_p_Fh]>1?0.001f*Fpoj/(p->MoverParameters->eimc[eimc_p_Fh]):0);
-                p->MoverParameters->AnPos = (FmaxED > 0 ? FzadED / FmaxED : 0);
-                Fpoj = FzadPN * Min0R(p->MoverParameters->TotalMass / masa, 1);
-                p->MoverParameters->LocalBrakePosA =
-                    (p->MoverParameters->SlippingWheels ? 0 : Min0R(Max0R(Fpoj / FmaxPoj, 0), 1));
+                FmaxEP[i] = Nmax *
+                            p->MoverParameters->Hamulec->GetFC(
+                                Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
+                                p->MoverParameters->Vmax) *
+                            1000; // sila hamowania pn
+
+                PrzekrF[i] = false;
+                FzED[i] = (FmaxED > 0 ? FzadED / FmaxED : 0);
+                p->MoverParameters->AnPos =
+                    (MoverParameters->ScndS ? MoverParameters->LocalBrakeRatio() : FzED[i]);
+                FzEP[i] = FzadPN * p->MoverParameters->NAxles / osie;
+                i++;
+                p->MoverParameters->ShuntMode = MoverParameters->ShuntMode;
+                p->MoverParameters->ShuntModeAllow = MoverParameters->ShuntModeAllow;
             }
+            while (test)
+            {
+                test = false;
+                i = 0;
+                float przek = 0;
+                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+                     (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                {
+                    if ((FzEP[i] > 0.01) &&
+                        (FzEP[i] >
+                         p->MoverParameters->TotalMass * p->MoverParameters->eimc[eimc_p_eped] +
+                             Min0R(p->MoverParameters->eimv[eimv_Fr], 0) * 1000) &&
+                        (!PrzekrF[i]))
+                    {
+                        float przek1 = -Min0R(p->MoverParameters->eimv[eimv_Fr], 0) * 1000 +
+                                       FzEP[i] -
+                                       p->MoverParameters->TotalMass *
+                                           p->MoverParameters->eimc[eimc_p_eped] * 0.999;
+                        PrzekrF[i] = true;
+                        test = true;
+                        nPrzekrF++;
+                        przek1 = Min0R(przek1, FzEP[i]);
+                        FzEP[i] -= przek1;
+                        if (FzEP[i] < 0)
+                            FzEP[i] = 0;
+                        przek += przek1;
+                    }
+                    i++;
+                }
+                i = 0;
+                przek = przek / (np - nPrzekrF);
+                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+                     (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                {
+                    if (!PrzekrF[i])
+                    {
+                        FzEP[i] += przek;
+                    }
+                    i++;
+                }
+            }
+            i = 0;
+            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+                 (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+            {
+                float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
+                               p->MoverParameters->BrakeCylSpring) *
+                                  p->MoverParameters->BrakeCylMult[0] -
+                              p->MoverParameters->BrakeSlckAdj) *
+                             p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
+                float FmaxPoj = Nmax * 
+					p->MoverParameters->Hamulec->GetFC(
+						Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
+						p->MoverParameters->Vel) *
+					1000; // sila hamowania pn
+				p->MoverParameters->LocalBrakePosA = (p->MoverParameters->SlippingWheels ? 0 : FzEP[i] / FmaxPoj);
+				if (p->MoverParameters->LocalBrakePosA>0.009)
+					if (p->MoverParameters->P2FTrans * p->MoverParameters->BrakeCylMult[0] *
+						p->MoverParameters->MaxBrakePress[0] != 0)
+					{
+						float x = (p->MoverParameters->BrakeSlckAdj / p->MoverParameters->BrakeCylMult[0] +
+							p->MoverParameters->BrakeCylSpring) / (p->MoverParameters->P2FTrans *
+								p->MoverParameters->MaxBrakePress[0]);
+						p->MoverParameters->LocalBrakePosA = x + (1 - x) * p->MoverParameters->LocalBrakePosA;
+					}
+					else
+						p->MoverParameters->LocalBrakePosA = p->MoverParameters->LocalBrakePosA;
+				else
+					p->MoverParameters->LocalBrakePosA = 0;
+				i++;
+			}
+			/*            ////ALGORYTM 1 - KAZDEMU PO ROWNO
+			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+			(iDirection > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+			{
+
+			float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
+			p->MoverParameters->BrakeCylSpring) *
+			p->MoverParameters->BrakeCylMult[0] -
+			p->MoverParameters->BrakeSlckAdj) *
+			p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
+			float FmaxPoj = Nmax *
+			p->MoverParameters->Hamulec->GetFC(
+                            Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
+                            p->MoverParameters->Vel) *
+                        1000; // sila hamowania pn
+			//         Fpoj=(FED>0?-FzadED*p->MoverParameters->eimv[eimv_Fmax]*1000/FED:0);
+			//         p->MoverParameters->AnPos=(p->MoverParameters->eimc[eimc_p_Fh]>1?0.001f*Fpoj/(p->MoverParameters->eimc[eimc_p_Fh]):0);
+			p->MoverParameters->AnPos = (FmaxED > 0 ? FzadED / FmaxED : 0);
+			// Fpoj = FzadPN * Min0R(p->MoverParameters->TotalMass / masa, 1);
+			// p->MoverParameters->LocalBrakePosA =
+			//     (p->MoverParameters->SlippingWheels ? 0 : Min0R(Max0R(Fpoj / FmaxPoj, 0), 1));
+			p->MoverParameters->LocalBrakePosA = (p->MoverParameters->SlippingWheels ? 0 : FzadPN / FmaxPN);
+			}    */
+
+			MED[0][0] = masa*0.001;
+			MED[0][1] = amax;
+			MED[0][2] = Fzad*0.001;
+			MED[0][3] = FmaxPN*0.001;
+			MED[0][4] = FmaxED*0.001;
+			MED[0][5] = FrED*0.001;
+			MED[0][6] = FzadPN*0.001;
+			MED[0][7] = nPrzekrF;
+
+			delete[] PrzekrF;
+			delete[] FzED;
+			delete[] FzEP;
         }
 
         // yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
@@ -2923,7 +3092,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         TAnimPant *p; // wskaŸnik do obiektu danych pantografu
         double fCurrent = (MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ?
                                0 :
-                               fabs(MoverParameters->Itot)) +
+                               MoverParameters->Itot) +
                           MoverParameters->TotalCurrent; // pr¹d pobierany przez pojazd - bez
         // sensu z tym (TotalCurrent)
         // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
@@ -4788,7 +4957,10 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                             case 3:
                                 pAnimations[i + j].yUpdate = UpdateDoorFold;
                                 break; // obrót 3 kolejnych submodeli
-                            }
+							case 4:
+								pAnimations[i + j].yUpdate = UpdateDoorPlug;
+								break;
+							}
                             pAnimations[i + j].iNumber =
                                 i; // parzyste dzia³aj¹ inaczej ni¿ nieparzyste
                             pAnimations[i + j].fMaxDist = 300 * 300; // drzwi to z daleka widaæ
@@ -5064,9 +5236,81 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
 void TDynamicObject::RadioStop()
 { // zatrzymanie pojazdu
     if (Mechanik) // o ile ktoœ go prowadzi
-        if (MoverParameters->SecuritySystem.RadioStop) // jeœli pojazd ma RadioStop i jest on
-            // aktywny
+        if (MoverParameters->SecuritySystem.RadioStop &&
+            MoverParameters->Radio) // jeœli pojazd ma RadioStop i jest on aktywny
             Mechanik->PutCommand("Emergency_brake", 1.0, 1.0, &vPosition, stopRadio);
+};
+
+//---------------------------------------------------------------------------
+void TDynamicObject::Damage(char flag)
+{
+	if (flag & 1)  //ró¿nicówka nie robi nic
+	{
+		MoverParameters->MainSwitch(false);
+		MoverParameters->FuseOff();
+	}
+	else
+	{
+	}
+
+	if (flag & 2)  //usterka sterowania
+	{
+		MoverParameters->StLinFlag = false;
+		if (MoverParameters->InitialCtrlDelay<100000000)
+			MoverParameters->InitialCtrlDelay += 100000001;
+	}
+	else
+	{
+		if (MoverParameters->InitialCtrlDelay>100000000)
+			MoverParameters->InitialCtrlDelay -= 100000001;
+	}
+
+	if (flag & 4)  //blokada przetwornicy
+	{
+		MoverParameters->ConvOvldFlag = true;
+	}
+	else
+	{
+	}
+
+	if (flag & 8)  //blokada sprezarki
+	{
+		if (MoverParameters->MinCompressor>0)
+			MoverParameters->MinCompressor -= 100000001;
+		if (MoverParameters->MaxCompressor>0)
+			MoverParameters->MaxCompressor -= 100000001;
+	}
+	else
+	{
+		if (MoverParameters->MinCompressor<0)
+			MoverParameters->MinCompressor += 100000001;
+		if (MoverParameters->MaxCompressor<0)
+			MoverParameters->MaxCompressor += 100000001;
+	}
+
+	if (flag & 16)  //blokada wa³u
+	{
+		if (MoverParameters->CtrlDelay<100000000)
+			MoverParameters->CtrlDelay += 100000001;
+		if (MoverParameters->CtrlDownDelay<100000000)
+			MoverParameters->CtrlDownDelay += 100000001;
+	}
+	else
+	{
+		if (MoverParameters->CtrlDelay>100000000)
+			MoverParameters->CtrlDelay -= 100000001;
+		if (MoverParameters->CtrlDownDelay>100000000)
+			MoverParameters->CtrlDownDelay -= 100000001;
+	}
+
+	if (flag & 32)  //hamowanie nag£e
+	{
+	}
+	else
+	{
+	}
+
+	MoverParameters->EngDmgFlag = flag;
 };
 
 void TDynamicObject::RaLightsSet(int head, int rear)
@@ -5132,24 +5376,30 @@ int TDynamicObject::DirectionSet(int d)
     // nastêpnego
 };
 
-TDynamicObject *__fastcall TDynamicObject::PrevAny()
+TDynamicObject * TDynamicObject::PrevAny()
 { // wskaŸnik na poprzedni,
     // nawet wirtualny
     return iDirection ? PrevConnected : NextConnected;
 };
-TDynamicObject *__fastcall TDynamicObject::Prev()
+TDynamicObject * TDynamicObject::Prev()
 {
     if (MoverParameters->Couplers[iDirection ^ 1].CouplingFlag)
         return iDirection ? PrevConnected : NextConnected;
     return NULL; // gdy sprzêg wirtualny, to jakby nic nie by³o
 };
-TDynamicObject *__fastcall TDynamicObject::Next()
+TDynamicObject * TDynamicObject::Next()
 {
     if (MoverParameters->Couplers[iDirection].CouplingFlag)
         return iDirection ? NextConnected : PrevConnected;
     return NULL; // gdy sprzêg wirtualny, to jakby nic nie by³o
 };
-TDynamicObject *__fastcall TDynamicObject::NextC(int C)
+TDynamicObject * TDynamicObject::PrevC(int C)
+{
+	if (MoverParameters->Couplers[iDirection ^ 1].CouplingFlag & C)
+		return iDirection ? PrevConnected : NextConnected;
+	return NULL; // gdy sprzêg wirtualny, to jakby nic nie by³o
+};
+TDynamicObject * TDynamicObject::NextC(int C)
 {
     if (MoverParameters->Couplers[iDirection].CouplingFlag & C)
         return iDirection ? NextConnected : PrevConnected;
@@ -5167,7 +5417,7 @@ double TDynamicObject::NextDistance(double d)
         return d;
 };
 
-TDynamicObject *__fastcall TDynamicObject::Neightbour(int &dir)
+TDynamicObject * TDynamicObject::Neightbour(int &dir)
 { // ustalenie nastêpnego (1) albo poprzedniego (0) w sk³adzie bez
     // wzglêdu na prawid³owoœæ
     // iDirection
@@ -5242,7 +5492,7 @@ void TDynamicObject::CoupleDist()
     }
 };
 
-TDynamicObject *__fastcall TDynamicObject::ControlledFind()
+TDynamicObject * TDynamicObject::ControlledFind()
 { // taka proteza:
     // chcê pod³¹czyæ
     // kabinê EN57

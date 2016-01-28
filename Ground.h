@@ -46,6 +46,18 @@ struct DaneRozkaz
     };
 };
 
+struct DaneRozkaz2
+{              // struktura komunikacji z EU07.EXE
+	int iSygn; // sygnatura 'EU07'
+	int iComm; // rozkaz/status (kod ramki)
+	union
+	{
+		float fPar[496];
+		int iPar[496];
+		char cString[1984]; // upakowane stringi
+	};
+};
+
 typedef int TGroundNodeType;
 
 struct TGroundVertex
@@ -386,7 +398,10 @@ class TGround
     void WyslijWolny(const AnsiString &t);
     void WyslijNamiary(TGroundNode *t);
     void WyslijParam(int nr, int fl);
-    void RadioStop(vector3 pPosition);
+	void WyslijUszkodzenia(const AnsiString &t, char fl);
+	void WyslijPojazdy(int nr); // -> skladanie wielu pojazdow
+	void WyslijObsadzone(); // -> skladanie wielu pojazdow    
+	void RadioStop(vector3 pPosition);
     TDynamicObject *__fastcall DynamicNearest(vector3 pPosition, double distance = 20.0,
                                               bool mech = false);
     TDynamicObject *__fastcall CouplerNearest(vector3 pPosition, double distance = 20.0,

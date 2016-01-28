@@ -2386,7 +2386,11 @@ bool TController::IncBrake()
             mvOccupied->BrakeReleaser(0);
         break;
     case ElectroPneumatic:
-        if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPB))
+		if (mvOccupied->EngineType == ElectricInductionMotor)
+		{
+			OK = mvOccupied->IncLocalBrakeLevel(1);
+		}
+		else if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPB))
         {
             mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPB));
             if (mvOccupied->Handle->GetPos(bh_EPR) - mvOccupied->Handle->GetPos(bh_EPN) < 0.1)
@@ -2423,7 +2427,11 @@ bool TController::DecBrake()
             Need_BrakeRelease = true;
         break;
     case ElectroPneumatic:
-        if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPR))
+		if (mvOccupied->EngineType == ElectricInductionMotor)
+		{
+			OK = mvOccupied->DecLocalBrakeLevel(1);
+		}
+		else if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPR))
         {
             mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPR));
             if (mvOccupied->Handle->GetPos(bh_EPR) - mvOccupied->Handle->GetPos(bh_EPN) < 0.1)
@@ -2527,7 +2535,15 @@ bool TController::IncSpeed()
                     OK = mvControlling->IncScndCtrl(1);
             }
         break;
-    case WheelsDriven:
+	case ElectricInductionMotor:
+		if (!mvControlling->FuseFlag)
+			if (Ready || (iDrivigFlags & movePress) || (mvOccupied->ShuntMode)) //{(BrakePress<=0.01*MaxBrakePress)}
+			{
+				OK = mvControlling->IncMainCtrl(1);
+			}
+		break;
+		break;
+	case WheelsDriven:
         if (!mvControlling->CabNo)
             mvControlling->CabActivisation();
         if (sin(mvControlling->eAngle) > 0)
@@ -2577,7 +2593,8 @@ bool TController::DecSpeed(bool force)
         break;
     case Dumb:
     case DieselElectric:
-        OK = mvControlling->DecScndCtrl(2);
+	case ElectricInductionMotor:
+		OK = mvControlling->DecScndCtrl(2);
         if (!OK)
             OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPos / 2));
         break;
@@ -2740,7 +2757,8 @@ void TController::SpeedSet()
         break;
     case Dumb:
     case DieselElectric:
-        break;
+	case ElectricInductionMotor:
+		break;
     // WheelsDriven :
     // begin
     //  OK:=False;

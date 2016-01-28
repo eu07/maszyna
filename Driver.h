@@ -207,6 +207,10 @@ class TController
     TAction eAction; // aktualny stan
     bool HelpMeFlag; // wystawiane True jesli cos niedobrego sie dzieje
   public:
+    inline TAction GetAction()
+    {
+        return eAction;
+    }
     bool AIControllFlag; // rzeczywisty/wirtualny maszynista
     int iRouteWanted; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
     // migacz lub czeka na stan zwrotnicy

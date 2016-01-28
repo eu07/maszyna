@@ -18,5 +18,7 @@ void WriteLog(const char *str, bool newline = true);
 void Error(const AnsiString &asMessage, bool box = true);
 void ErrorLog(const AnsiString &asMessage);
 void WriteLog(const AnsiString &str, bool newline = true);
+void CommLog(const char *str);
+void CommLog(const AnsiString &str);
 //---------------------------------------------------------------------------
 #endif

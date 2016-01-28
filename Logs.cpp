@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 
 std::ofstream output; // standardowy "log.txt", mo¿na go wy³¹czyæ
 std::ofstream errors; // lista b³êdów "errors.txt", zawsze dzia³a
+std::ofstream comms; // lista komunikatow "comms.txt", mo¿na go wy³¹czyæ
 
 char endstring[10] = "\n";
 
@@ -103,6 +104,29 @@ void WriteLog(const AnsiString &str, bool newline)
 { // Ra: wersja z AnsiString jest zamienna z Error()
     WriteLog(str.c_str(), newline);
 };
+
+void CommLog(const char *str)
+{ // Ra: warunkowa rejestracja komunikatów
+	WriteLog(str);
+	/*    if (Global::iWriteLogEnabled & 4)
+	{
+	if (!comms.is_open())
+	{
+	comms.open("comms.txt", std::ios::trunc);
+	comms << AnsiString("EU07.EXE " + Global::asRelease).c_str() << "\n";
+	}
+	if (str)
+	comms << str;
+	comms << "\n";
+	comms.flush();
+	}*/
+};
+
+void CommLog(const AnsiString &str)
+{ // Ra: wersja z AnsiString jest zamienna z Error()
+	CommLog(str.c_str());
+};
+
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

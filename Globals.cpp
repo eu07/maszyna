@@ -85,6 +85,7 @@ vector3 Global::pFreeCameraInit[10];
 vector3 Global::pFreeCameraInitAngle[10];
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
+float Global::Background[3] = { 0.2, 0.4, 0.33 }; 
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
@@ -469,7 +470,13 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
                                                                 // renderer
             TPythonInterpreter::getInstance()->setScreenRendererPriority(
                 GetNextSymbol().LowerCase().c_str());
-    } while (str != "endconfig"); //(!Parser->EndOfFile)
+		else if (str == AnsiString("background"))
+		{
+			Background[0] = GetNextSymbol().ToDouble(); // r
+			Background[1] = GetNextSymbol().ToDouble(); // g
+			Background[2] = GetNextSymbol().ToDouble(); // b
+		}
+	} while (str != "endconfig"); //(!Parser->EndOfFile)
     // na koniec trochê zale¿noœci
     if (!bLoadTraction) // wczytywanie drutów i s³upów
     { // tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI

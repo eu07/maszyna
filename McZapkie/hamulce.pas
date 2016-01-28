@@ -95,6 +95,7 @@ CONST
    bp_MHS    = 128; //magnetyczny hamulec szynowy
    bp_P10yBg =  15; //¿eliwo fosforowe P10
    bp_P10yBgu=  16;
+   bp_FR510  =  17; //Frenoplast FR510
 
    sf_Acc  = 1;  //przyspieszacz
    sf_BR   = 2;  //przekladnia
@@ -289,10 +290,15 @@ TYPE
         Zamykajacy: boolean;       //pamiec zaworka zamykajacego
         Przys_blok: boolean;       //blokada przyspieszacza
         Miedzypoj: TReservoir;     //pojemnosc posrednia (urojona) do napelniania ZP i ZS
+        TareM, LoadM: real;  //masa proznego i pelnego
+        TareBP: real;  //cisnienie dla proznego
+        LoadC: real;        
       public
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
         function GetEDBCP: real; override;   //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
+        procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
+        procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej        
       end;  
 
     TEStEP2= class(TLSt)
@@ -489,9 +495,11 @@ TYPE
         MaxBP: real;  //najwyzsze cisnienie
         BP: real;     //aktualne cisnienie
       public
+        Speed: real;  //szybkosc dzialania
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         procedure Init(press: real); override;
         function GetCP(): real; override;
+        procedure SetSpeed(nSpeed: real);
 //        procedure Init(press: real; MaxBP: real); overload;
       end;
 
@@ -771,6 +779,7 @@ begin
   bp_P10Bg:   FM:=TP10Bg.Create;
   bp_P10Bgu:  FM:=TP10Bgu.Create;
   bp_FR513:   FM:=TFR513.Create;
+  bp_FR510:   FM:=TFR510.Create;  
   bp_Cosid:   FM:=TCosid.Create;
   bp_P10yBg:  FM:=TP10yBg.Create;
   bp_P10yBgu: FM:=TP10yBgu.Create;
@@ -1815,18 +1824,18 @@ begin
 
 
   RapidTemp:=RapidTemp+(RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R))-RapidTemp)*dt/2;
-  temp:=1-RapidTemp;
+  temp:=Max0R(1-RapidTemp,0.001);
 //  if EDFlag then temp:=1000;
 //  temp:=temp/(1-);
 
 //powtarzacz — podwojny zawor zwrotny
-  temp:=Max0R(BCP/temp*Min0R(Max0R(1-EDFlag,0),1),LBP);
+  temp:=Max0R(LoadC*BCP/temp*Min0R(Max0R(1-EDFlag,0),1),LBP);
 
   if(BrakeCyl.P>temp)then
-   dV:=-PFVd(BrakeCyl.P,0,0.02,temp)*dt
+   dV:=-PFVd(BrakeCyl.P,0,0.02*sizeBC,temp)*dt
   else
   if(BrakeCyl.P<temp)then
-   dV:=PFVa(BVP,BrakeCyl.P,0.02,temp)*dt
+   dV:=PFVa(BVP,BrakeCyl.P,0.02*sizeBC,temp)*dt
   else dV:=0;
 
   BrakeCyl.Flow(dV);
@@ -1915,9 +1924,20 @@ end;
 
 function TEStED.GetEDBCP: real;
 begin
-  GetEDBCP:=ImplsRes.P;
+  GetEDBCP:=ImplsRes.P*LoadC;
 end;
 
+procedure TEStED.PLC(mass: real);
+begin
+  LoadC:=1+Byte(Mass<LoadM)*((TareBP+(MaxBP-TareBP)*(mass-TareM)/(LoadM-TareM))/MaxBP-1);
+end;
+
+procedure TEStED.SetLP(TM, LM, TBP: real);
+begin
+  TareM:=TM;
+  LoadM:=LM;
+  TareBP:=TBP;
+end;
 
 
 //---DAKO CV1---
@@ -2898,7 +2918,7 @@ begin
 //  MaxBP:=4;
 //  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
   temp:=Min0R(i_bcp*MaxBP,HP);              //0011
-  dp:=10*Min0R(abs(temp-BP),0.1)*PF(temp,BP,0.0006*(2+Byte(temp>BP)))*dt;
+  dp:=10*Min0R(abs(temp-BP),0.1)*PF(temp,BP,0.0006*(2+Byte(temp>BP)))*dt*Speed;
   BP:=BP-dp;
   GetPF:=-dp;
 end;
@@ -2909,11 +2929,17 @@ begin
   MaxBP:=press;
   Time:=false;
   TimeEP:=false;
+  Speed:=1;
 end;
 
 function TFD1.GetCP: real;
 begin
   GetCP:=BP;
+end;
+
+procedure TFD1.SetSpeed(nSpeed: real);
+begin
+  Speed:=nSpeed;
 end;
 
 

@@ -270,7 +270,8 @@ PyObject *TTrain::GetTrainState()
     }
 
     PyDict_SetItemString(dict, "direction", PyGetInt(DynamicObject->MoverParameters->ActiveDir));
-    PyDict_SetItemString(dict, "slipping_wheels",
+	PyDict_SetItemString(dict, "cab", PyGetInt(DynamicObject->MoverParameters->ActiveCab));
+	PyDict_SetItemString(dict, "slipping_wheels",
                          PyGetBool(DynamicObject->MoverParameters->SlippingWheels));
     PyDict_SetItemString(dict, "converter",
                          PyGetBool(DynamicObject->MoverParameters->ConverterFlag));
@@ -290,16 +291,59 @@ PyObject *TTrain::GetTrainState()
     PyDict_SetItemString(dict, "minutes", PyGetInt(GlobalTime->mm));
     PyDict_SetItemString(dict, "seconds", PyGetInt(GlobalTime->mr));
     PyDict_SetItemString(dict, "velocity_desired", PyGetFloat(DynamicObject->Mechanik->VelDesired));
-	Char* TXTT[10] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
-	Char* TXTC[10] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
+	Char* TXTT[10] = { "fd","fdt","fdb","pd","pdt","pdb","itothv","1","2","3" };
+	Char* TXTC[10] = { "fr","frt","frb","pr","prt","prb","im","vm","ihv","uhv" };
+	Char* TXTP[3] = { "bc","bp","sp" };
 	for (int j = 0; j<10; j++)
 		PyDict_SetItemString(dict, (AnsiString("eimp_t_") + AnsiString(TXTT[j])).c_str(), PyGetFloatS(fEIMParams[0][j]));
 	for (int i = 0; i<8; i++)
+	{
 		for (int j = 0; j<10; j++)
 			PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_") + AnsiString(TXTC[j])).c_str(), PyGetFloatS(fEIMParams[i + 1][j]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_ms")).c_str(), PyGetBool(bMains[i]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_cv")).c_str(), PyGetFloatS(fCntVol[i]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_u") + IntToStr(i + 1) + AnsiString("_pf")).c_str(), PyGetBool(bPants[i][0]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_u") + IntToStr(i + 1) + AnsiString("_pr")).c_str(), PyGetBool(bPants[i][1]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_fuse")).c_str(), PyGetBool(bFuse[i]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_batt")).c_str(), PyGetBool(bBatt[i]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_conv")).c_str(), PyGetBool(bConv[i]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_u") + IntToStr(i + 1) + AnsiString("_comp_a")).c_str(), PyGetBool(bComp[i][0]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_u") + IntToStr(i + 1) + AnsiString("_comp_w")).c_str(), PyGetBool(bComp[i][1]));
+		PyDict_SetItemString(dict, (AnsiString("eimp_c") + IntToStr(i + 1) + AnsiString("_heat")).c_str(), PyGetBool(bHeat[i]));
+
+	}
+	for (int i = 0; i<20; i++)
+	{
+		for (int j = 0; j<3; j++)
+			PyDict_SetItemString(dict, (AnsiString("eimp_pn") + IntToStr(i + 1) + AnsiString("_") + AnsiString(TXTP[j])).c_str(),
+				PyGetFloatS(fPress[i][j]));
+	}
+	bool bEP, bPN;
+	bEP = (mvControlled->LocHandle->GetCP()>0.2) || (fEIMParams[0][2]>0.01);
+	PyDict_SetItemString(dict, "dir_brake", PyGetBool(bEP));
+	if (mvControlled->Hamulec->ClassNameIs("TLSt") || mvControlled->Hamulec->ClassNameIs("TEStED"))
+	{
+		TBrake* temp_ham = mvControlled->Hamulec;
+		//        TLSt* temp_ham2 = temp_ham;
+		bPN = (static_cast<TLSt*>(temp_ham)->GetEDBCP()>0.2);
+	}
+	else
+		bPN = false;
+	PyDict_SetItemString(dict, "indir_brake", PyGetBool(bPN));
+	for (int i = 0; i<20; i++)
+	{
+		PyDict_SetItemString(dict, (AnsiString("doors_") + IntToStr(i + 1)).c_str(), PyGetFloatS(bDoors[i][0]));
+		PyDict_SetItemString(dict, (AnsiString("doors_r_") + IntToStr(i + 1)).c_str(), PyGetFloatS(bDoors[i][1]));
+		PyDict_SetItemString(dict, (AnsiString("doors_l_") + IntToStr(i + 1)).c_str(), PyGetFloatS(bDoors[i][2]));
+		PyDict_SetItemString(dict, (AnsiString("doors_no_") + IntToStr(i + 1)).c_str(), PyGetInt(iDoorNo[i]));
+		PyDict_SetItemString(dict, (AnsiString("code_") + IntToStr(i + 1)).c_str(), PyGetString(AnsiString(IntToStr(iUnits[i]) +
+			cCode[i]).c_str()));
+		PyDict_SetItemString(dict, (AnsiString("car_name") + IntToStr(i + 1)).c_str(), PyGetString(asCarName[i].c_str()));
+	}
 	PyDict_SetItemString(dict, "car_no", PyGetInt(iCarNo));
 	PyDict_SetItemString(dict, "power_no", PyGetInt(iPowerNo));
-    return dict;
+	PyDict_SetItemString(dict, "unit_no", PyGetInt(iUnitNo));
+	return dict;
 }
 
 void TTrain::OnKeyDown(int cKey)
@@ -325,12 +369,12 @@ void TTrain::OnKeyDown(int cKey)
         }
         else if (cKey == Global::Keys[k_DirectionBackward])
         {
-            if (mvControlled->Radio == false)
+            if (mvOccupied->Radio == false)
                 if (GetAsyncKeyState(VK_CONTROL) >= 0)
                 {
                     dsbSwitch->SetVolume(DSBVOLUME_MAX);
                     dsbSwitch->Play(0, 0, 0);
-                    mvControlled->Radio = true;
+					mvOccupied->Radio = true;
                 }
         }
         else
@@ -898,8 +942,21 @@ void TTrain::OnKeyDown(int cKey)
         else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: œwiat³o górne -
         // w³¹czenie
         {
-            if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
-                (ggRearUpperLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
+			if (mvOccupied->LightsPosNo > 0) //krêciolek od swiatel
+			{
+				if ((mvOccupied->LightsPos < mvOccupied->LightsPosNo) || (mvOccupied->LightsWrap))
+				{
+					mvOccupied->LightsPos++;
+					if (mvOccupied->LightsPos > mvOccupied->LightsPosNo)
+					{
+						mvOccupied->LightsPos = 1;
+					}
+					SetLights();
+				}
+
+			}
+			else if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
+				(ggRearUpperLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
             {
                 //------------------------------
                 if ((mvOccupied->ActiveCab) == 1)
@@ -1329,7 +1386,8 @@ void TTrain::OnKeyDown(int cKey)
             if (GetAsyncKeyState(VK_CONTROL) < 0) // z controlem
             {
                 ggConverterFuseButton.PutValue(1); // hunter-261211
-                if ((mvControlled->Mains == false) && (ggConverterButton.GetValue() == 0))
+                if ((mvControlled->Mains == false) && (ggConverterButton.GetValue() == 0) &&
+                    (mvControlled->TrainType != dt_EZT))
                     mvControlled->ConvOvldFlag = false;
             }
             else
@@ -1369,11 +1427,11 @@ void TTrain::OnKeyDown(int cKey)
         {
             if (GetAsyncKeyState(VK_CONTROL) < 0)
             { // wciœniêty [Ctrl]
-                if (mvControlled->Radio == true)
+                if (mvOccupied->Radio == true)
                 {
                     dsbSwitch->SetVolume(DSBVOLUME_MAX);
                     dsbSwitch->Play(0, 0, 0);
-                    mvControlled->Radio = false;
+					mvOccupied->Radio = false;
                 }
             }
             else if (mvOccupied->DirectionBackward())
@@ -2085,8 +2143,20 @@ if
         else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: œwiat³o górne -
         // wy³¹czenie
         {
-            if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
-                (ggRearUpperLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
+			if (mvOccupied->LightsPosNo > 0) //krêciolek od swiatel
+			{
+				if ((mvOccupied->LightsPos > 1) || (mvOccupied->LightsWrap))
+				{
+					mvOccupied->LightsPos--;
+					if (mvOccupied->LightsPos < 1)
+					{
+						mvOccupied->LightsPos = mvOccupied->LightsPosNo;
+					}
+					SetLights();
+				}
+			}
+			else if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
+				(ggRearUpperLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
             {
                 //------------------------------
                 if (mvOccupied->ActiveCab == 1)
@@ -2578,20 +2648,49 @@ bool TTrain::Update()
             fHCurrent[3] = mvControlled->ShowCurrent(3);
         }
 
-        TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0);
+		bool kier = (DynamicObject->DirectionGet()*mvOccupied->ActiveCab > 0);
+		TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0);
         int in = 0;
         fEIMParams[0][6] = 0;
 		iCarNo = 0;
 		iPowerNo = 0;
-        for (int i = 0; i < 20; i++)
+		iUnitNo = 1;
+
+		for (int i = 0; i < 8; i++)
+		{
+			bMains[i] = false;
+			fCntVol[i] = 0.0f;
+			bPants[i][0] = false;
+			bPants[i][1] = false;
+			bFuse[i] = false;
+			bBatt[i] = false;
+			bConv[i] = false;
+			bComp[i][0] = false;
+			bComp[i][1] = false;
+			bHeat[i] = false;
+		}
+		for (int i = 0; i < 20; i++)
         {
             if (p)
             {
                 fPress[i][0] = p->MoverParameters->BrakePress;
                 fPress[i][1] = p->MoverParameters->PipePress;
                 fPress[i][2] = p->MoverParameters->ScndPipePress;
-                bDoors[i] = (p->dDoorMoveL > 0.001) || (p->dDoorMoveR > 0.001);
-                if ((in < 8) && (p->MoverParameters->eimc[eimc_p_Pmax] > 1))
+				bDoors[i][0] = (p->dDoorMoveL > 0.001) || (p->dDoorMoveR > 0.001);
+				bDoors[i][1] = (p->dDoorMoveR > 0.001);
+				bDoors[i][2] = (p->dDoorMoveL > 0.001);
+				iDoorNo[i] = p->iAnimType[ANIM_DOORS];
+				iUnits[i] = iUnitNo;
+				cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.Length()];
+				asCarName[i] = p->GetName();
+				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
+				bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
+				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow);
+				if (p->MoverParameters->CompressorSpeed>0.00001)
+				{
+					bComp[iUnitNo - 1][1] = (bComp[iUnitNo - 1][1] || p->MoverParameters->CompressorFlag);
+				}
+				if ((in < 8) && (p->MoverParameters->eimc[eimc_p_Pmax] > 1))
                 {
                     fEIMParams[1 + in][0] = p->MoverParameters->eimv[eimv_Fr];
                     fEIMParams[1 + in][1] = Max0R(fEIMParams[1 + in][0], 0);
@@ -2602,22 +2701,36 @@ bool TTrain::Update()
                     fEIMParams[1 + in][5] = -Min0R(fEIMParams[1 + in][3], 0);
                     fEIMParams[1 + in][6] = p->MoverParameters->eimv[eimv_If];
                     fEIMParams[1 + in][7] = p->MoverParameters->eimv[eimv_U];
-                    fEIMParams[1 + in][8] = p->MoverParameters->eimv[eimv_Ipoj];
-                    fEIMParams[1 + in][9] = p->MoverParameters->Voltage;
+					fEIMParams[1 + in][8] = p->MoverParameters->Itot;//p->MoverParameters->eimv[eimv_Ipoj];
+					fEIMParams[1 + in][9] = p->MoverParameters->Voltage;
                     fEIMParams[0][6] += fEIMParams[1 + in][8];
-                    in++;
+					bMains[in] = p->MoverParameters->Mains;
+					fCntVol[in] = p->MoverParameters->BatteryVoltage;
+					bFuse[in] = p->MoverParameters->FuseFlag;
+					bBatt[in] = p->MoverParameters->Battery;
+					bConv[in] = p->MoverParameters->ConverterFlag;
+					bHeat[in] = p->MoverParameters->Heating;
+					in++;
 					iPowerNo = in;
                 }
-                p = p->NextC(4);
-				iCarNo = i;
-            }
+				//                p = p->NextC(4);                                       //prev
+				if ((kier ? p->NextC(16) : p->PrevC(16)) != (kier ? p->NextC(4) : p->PrevC(4)))
+					iUnitNo++;
+				p = (kier ? p->NextC(4) : p->PrevC(4));
+				iCarNo = i + 1;
+			}
             else
             {
                 fPress[i][0] = 0;
                 fPress[i][1] = 0;
                 fPress[i][2] = 0;
-                bDoors[i] = false;
-            }
+				bDoors[i][0] = false;
+				bDoors[i][1] = false;
+				bDoors[i][2] = false;
+				iUnits[i] = 0;
+				cCode[i] = 0;//'0';
+				asCarName[i] = "";
+			}
         }
 
         if (mvControlled == mvOccupied)
@@ -2705,8 +2818,9 @@ bool TTrain::Update()
                 if (fConverterTimer < fConverterPrzekaznik)
                 {
                     mvControlled->ConvOvldFlag = true;
-                    mvControlled->MainSwitch(false);
-                }
+					if (mvControlled->TrainType != dt_EZT)
+						mvControlled->MainSwitch(false);
+				}
                 else if (fConverterTimer >= fConverterPrzekaznik)
                     mvControlled->CompressorSwitch(true);
             }
@@ -3282,6 +3396,15 @@ bool TTrain::Update()
                     dsbSlipAlarm->Stop();
         }
 
+		if ((mvControlled->Mains) || (mvControlled->TrainType == dt_EZT))
+		{
+			btLampkaNadmSil.Turn(mvControlled->FuseFlagCheck());
+		}
+		else
+		{
+			btLampkaNadmSil.TurnOff();
+		}
+
         if (mvControlled->Mains)
         {
             btLampkaWylSzybki.TurnOn();
@@ -3324,7 +3447,6 @@ bool TTrain::Update()
                                   mvControlled->ResistorsFlagCheck());
             //-------
 
-            btLampkaNadmSil.Turn(mvControlled->FuseFlagCheck());
             btLampkaWysRozr.Turn(mvControlled->Imax == mvControlled->ImaxHi);
             if (((mvControlled->ScndCtrlActualPos > 0) ||
                  ((mvControlled->RList[mvControlled->MainCtrlActualPos].ScndAct != 0) &&
@@ -3376,7 +3498,6 @@ bool TTrain::Update()
             btLampkaWylSzybki.TurnOff();
             btLampkaOpory.TurnOff();
             btLampkaStyczn.TurnOff();
-            btLampkaNadmSil.TurnOff();
             btLampkaUkrotnienie.TurnOff();
             btLampkaHamPosp.TurnOff();
             btLampkaBoczniki.TurnOff();
@@ -3511,7 +3632,7 @@ bool TTrain::Update()
             // KURS90
             btLampkaMaxSila.Turn(abs(mvControlled->Im) >= 350);
             btLampkaPrzekrMaxSila.Turn(abs(mvControlled->Im) >= 450);
-            btLampkaRadio.Turn(mvControlled->Radio);
+            btLampkaRadio.Turn(mvOccupied->Radio);
             btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
             // NBMX wrzesien 2003 - drzwi oraz sygna³ odjazdu
             btLampkaDoorLeft.Turn(mvOccupied->DoorLeftOpened);
@@ -3680,7 +3801,7 @@ bool TTrain::Update()
             ggMainButton.Update();
         if (ggRadioButton.SubModel)
         {
-            ggRadioButton.PutValue(mvControlled->Radio ? 1 : 0);
+            ggRadioButton.PutValue(mvOccupied->Radio ? 1 : 0);
             ggRadioButton.Update();
         }
         if (ggConverterButton.SubModel)
@@ -3864,6 +3985,11 @@ bool TTrain::Update()
                 else
                     ggRearRightLightButton.PutValue(-1);
             }
+		if (ggLightsButton.SubModel)
+		{
+			ggLightsButton.PutValue(mvOccupied->LightsPos - 1);
+			ggLightsButton.Update();
+		}
 
         //---------
         // Winger 010304 - pantografy
@@ -4228,7 +4354,9 @@ bool TTrain::Update()
             ggConverterButton.PutValue(0);
             ggConverterOffButton.PutValue(1);
             mvControlled->ConverterSwitch(false);
-        }
+			if ((mvControlled->TrainType == dt_EZT) && (!TestFlag(mvControlled->EngDmgFlag, 4)))
+				mvControlled->ConvOvldFlag = false;
+		}
 
         //     if (
         //     !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->TrainType==dt_EZT))
@@ -4263,8 +4391,8 @@ bool TTrain::Update()
         */
         //-----------------
 
-        if (!FreeFlyModeFlag)
-        {
+		if ((!FreeFlyModeFlag) && (!DynamicObject->Mechanik->AIControllFlag))
+		{
             if (Console::Pressed(Global::Keys[k_Releaser])) // yB: odluzniacz caly
             // czas trzymany, warunki
             // powinny byc takie same,
@@ -5348,7 +5476,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 ggUpperLightButton.Clear();
                 ggLeftEndLightButton.Clear();
                 ggRightEndLightButton.Clear();
-                // hunter-230112
+				ggLightsButton.Clear();                
+				// hunter-230112
                 ggRearLeftLightButton.Clear();
                 ggRearRightLightButton.Clear();
                 ggRearUpperLightButton.Clear();
@@ -5432,7 +5561,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 ggLeftEndLightButton.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("rightend_sw:")) // swiatlo
                 ggRightEndLightButton.Load(Parser, DynamicObject->mdKabina);
-            //---------------------
+			else if (str == AnsiString("lights_sw:")) // swiatla wszystkie
+				ggLightsButton.Load(Parser, DynamicObject->mdKabina);
+			//---------------------
             // hunter-230112: przelaczniki swiatel tylnich
             else if (str == AnsiString("rearupperlight_sw:")) // swiatlo
                 ggRearUpperLightButton.Load(Parser, DynamicObject->mdKabina);
@@ -5541,7 +5672,15 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 gg->Load(Parser, DynamicObject->mdKabina);
                 gg->AssignFloat(&fEIMParams[i][j]);
             }
-            else if ((str == AnsiString("brakepress:")) || (str == AnsiString("brakepressb:")))
+			else if (str == AnsiString("brakes:"))
+			{ // amperomierz calkowitego pradu
+				int i = Parser->GetNextSymbol().ToInt();
+				int j = Parser->GetNextSymbol().ToInt();
+				gg = Cabine[cabindex].Gauge(-1); // pierwsza wolna ga³ka
+				gg->Load(Parser, DynamicObject->mdKabina);
+				gg->AssignFloat(&fPress[i - 1][j]);
+			}
+			else if ((str == AnsiString("brakepress:")) || (str == AnsiString("brakepressb:")))
             { // manometr cylindrow
                 // hamulcowych //Ra
                 // 2014-08: przeniesione
@@ -5759,8 +5898,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 int i = Parser->GetNextSymbol().ToInt() - 1;
                 bt = Cabine[cabindex].Button(-1); // pierwsza wolna lampka
                 bt->Load(Parser, DynamicObject->mdKabina);
-                bt->AssignBool(bDoors + i);
-            }
+				bt->AssignBool(bDoors[0] + 3 * i);
+			}
             else if (str == AnsiString("pyscreen:"))
                 pyScreens.init(Parser, DynamicObject->mdKabina, DynamicObject->GetName(), NewCabNo);
             // btLampkaUnknown.Init("unknown",mdKabina,false);
@@ -5928,4 +6067,35 @@ void TTrain::Silence()
         dsbEN57_CouplerStretch->Stop();
     if (dsbBufferClamp)
         dsbBufferClamp->Stop();
+};
+
+void TTrain::SetLights()
+{
+    TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0);
+    bool kier = (DynamicObject->DirectionGet() * mvOccupied->ActiveCab > 0);
+    int xs = (kier ? 0 : 1);
+    if (kier ? p->NextC(4) : p->PrevC(4)) // jesli jest nastepny, to tylko przod
+    {
+        p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1] * (1 - xs),
+                       mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1] * xs);
+        p = (kier ? p->NextC(4) : p->PrevC(4));
+        while (p)
+        {
+            if (kier ? p->NextC(4) : p->PrevC(4))
+            {
+                p->RaLightsSet(0, 0);
+            }
+            else
+            {
+                p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1] * xs,
+                               mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1] * (1 - xs));
+            }
+            p = (kier ? p->NextC(4) : p->PrevC(4));
+        }
+    }
+    else // calosc
+    {
+        p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1],
+                       mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1]);
+    }
 };

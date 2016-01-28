@@ -62,6 +62,9 @@ class TWorld
     double fTimeBuffer; // bufor czasu aktualizacji dla sta³ego kroku fizyki
     double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
     int iPause; // wykrywanie zmian w zapauzowaniu
+    double VelPrev; // poprzednia prêdkoœæ
+    int tprev; // poprzedni czas
+    double Acc; // przyspieszenie styczne
   public:
     void ModifyTGA(const AnsiString &dir = "");
     void CreateE3D(const AnsiString &dir = "", bool dyn = false);
