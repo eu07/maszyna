@@ -171,6 +171,7 @@ class TController
     TTrack *tLast; // ostatni analizowany tor
     TEvent *eSignSkip; // mo¿na pomin¹æ ten SBL po zatrzymaniu
 	TSpeedPos *sSemNext; // nastêpny semafor na drodze zale¿ny od trybu jazdy
+	TSpeedPos *sSemNextStop; // nastêpny semafor na drodze zale¿ny od trybu jazdy i na stój
   private: // parametry aktualnego sk³adu
     double fLength; // d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
     double fMass; // ca³kowita masa do liczenia stycznej sk³adowej grawitacji
