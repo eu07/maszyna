@@ -2726,7 +2726,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             }
             FzadED = Min0R(Fzad, FmaxED);
             FzadPN = Fzad - FrED;
-            np = 0;
+            //np = 0;
 			bool* PrzekrF = new bool[np];
 			float nPrzekrF = 0;
 			bool test = true;
@@ -2750,7 +2750,6 @@ bool TDynamicObject::Update(double dt, double dt1)
 			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
 				(kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
 			{
-                np++;
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
                                   p->MoverParameters->BrakeCylMult[0] -
