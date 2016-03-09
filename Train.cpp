@@ -4391,8 +4391,9 @@ bool TTrain::Update()
         */
         //-----------------
 
-		if ((!FreeFlyModeFlag) && (!DynamicObject->Mechanik->AIControllFlag))
-		{
+        if ((!FreeFlyModeFlag) &&
+            (!(DynamicObject->Mechanik ? DynamicObject->Mechanik->AIControllFlag : false)))
+        {
             if (Console::Pressed(Global::Keys[k_Releaser])) // yB: odluzniacz caly
             // czas trzymany, warunki
             // powinny byc takie same,
