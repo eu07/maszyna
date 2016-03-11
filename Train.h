@@ -151,6 +151,7 @@ class TTrain
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
+	TGauge ggSandButton; //guzik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania

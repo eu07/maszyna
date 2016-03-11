@@ -2361,7 +2361,10 @@ bool TController::IncBrake()
     switch (mvOccupied->BrakeSystem)
     {
     case Individual:
-        OK = mvOccupied->IncLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
+		if (mvOccupied->LocalBrake == ManualBrake)
+			OK = mvOccupied->IncManualBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
+		else
+			OK = mvOccupied->IncLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case Pneumatic:
         if ((mvOccupied->Couplers[0].Connected == NULL) &&
@@ -2434,7 +2437,10 @@ bool TController::DecBrake()
     switch (mvOccupied->BrakeSystem)
     {
     case Individual:
-        OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
+		if (mvOccupied->LocalBrake == ManualBrake)
+			OK = mvOccupied->DecManualBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
+		else
+			OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case Pneumatic:
         if (mvOccupied->BrakeCtrlPos > 0)
@@ -3483,10 +3489,10 @@ bool TController::UpdateSituation(double dt)
             fBrakeDist = fBrakeDist + 2 * mvOccupied->Vel; // dla nastawienia G
         // koniecznie nale¿y wyd³u¿yæ drogê na czas reakcji
         // double scanmax=(mvOccupied->Vel>0.0)?3*fDriverDist+fBrakeDist:10.0*fDriverDist;
-        //double scanmax = (mvOccupied->Vel > 5.0) ?
-        //                     400 + fBrakeDist :
-        //                     30.0 * fDriverDist; // 1500m dla stoj¹cych poci¹gów; Ra 2015-01: przy
-		double scanmax = Max0R(400 + fBrakeDist, 1500);
+        double scanmax = (mvOccupied->Vel > 5.0) ?
+                             400 + fBrakeDist :
+                             30.0 * fDriverDist; // 1500m dla stoj¹cych poci¹gów; Ra 2015-01: przy
+		//double scanmax = Max0R(400 + fBrakeDist, 1500);
         // d³u¿szej drodze skanowania AI jeŸdzi spokojniej
         // 2. Sprawdziæ, czy tabelka pokrywa za³o¿ony odcinek (nie musi, jeœli jest STOP).
         // 3. Sprawdziæ, czy trajektoria ruchu przechodzi przez zwrotnice - jeœli tak, to sprawdziæ,
@@ -5354,7 +5360,7 @@ AnsiString TController::Relation()
 };
 
 AnsiString TController::TrainName()
-{ // zwraca relacjê poci¹gu
+{ // zwraca numer poci¹gu
     return TrainParams->TrainName;
 };
 

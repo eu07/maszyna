@@ -664,7 +664,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
-    light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga.tga");
+    light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga2.tga");
     // Camera.Reset();
     ResetTimers();
     WriteLog("Load time: " + FloatToStrF((86400.0 * ((double)Now() - time)), ffFixed, 7, 1) +
