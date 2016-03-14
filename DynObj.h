@@ -371,7 +371,7 @@ class TDynamicObject
 
     TDynamicObject * ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist,
                                                     int &CouplNr);
-    TDynamicObject * GetFirstDynamic(int cpl_type);
+    TDynamicObject * GetFirstDynamic(int cpl_type, int cf = 1);
     // TDynamicObject* GetFirstCabDynamic(int cpl_type);
     void ABuSetModelShake(vector3 mShake);
 
@@ -487,7 +487,7 @@ class TDynamicObject
 	void Damage(char flag);
 	void RaLightsSet(int head, int rear);
     // void RaAxleEvent(TEvent *e);
-    TDynamicObject * FirstFind(int &coupler_nr);
+    TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w sk³adzie
     int DirectionGet()

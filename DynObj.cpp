@@ -139,7 +139,7 @@ void TAnim::Parovoz(){
     // animowanie t³oka i rozrz¹du parowozu
 };
 //---------------------------------------------------------------------------
-TDynamicObject * TDynamicObject::FirstFind(int &coupler_nr)
+TDynamicObject * TDynamicObject::FirstFind(int &coupler_nr, int cf)
 { // szukanie skrajnego po³¹czonego pojazdu w pociagu
     // od strony sprzegu (coupler_nr) obiektu (start)
     TDynamicObject *temp = this;
@@ -147,8 +147,8 @@ TDynamicObject * TDynamicObject::FirstFind(int &coupler_nr)
     {
         if (!temp)
             return NULL; // Ra: zabezpieczenie przed ewentaulnymi b³êdami sprzêgów
-        if (temp->MoverParameters->Couplers[coupler_nr].CouplingFlag == 0)
-            return temp; // nic nie ma ju¿ dalej pod³¹czone
+        if ((temp->MoverParameters->Couplers[coupler_nr].CouplingFlag & cf) != cf)
+            return temp; // nic nie ma ju¿ dalej pod³¹czone sprzêgiem cf
         if (coupler_nr == 0)
         { // je¿eli szukamy od sprzêgu 0
             if (temp->PrevConnected) // jeœli mamy coœ z przodu
@@ -255,11 +255,11 @@ float TDynamicObject::GetEPP()
 };
 
 //---------------------------------------------------------------------------
-TDynamicObject * TDynamicObject::GetFirstDynamic(int cpl_type)
+TDynamicObject * TDynamicObject::GetFirstDynamic(int cpl_type, int cf)
 { // Szukanie skrajnego po³¹czonego pojazdu w pociagu
     // od strony sprzegu (cpl_type) obiektu szukajacego
     // Ra: wystarczy jedna funkcja do szukania w obu kierunkach
-    return FirstFind(cpl_type); // u¿ywa referencji
+    return FirstFind(cpl_type, cf); // u¿ywa referencji
 };
 
 /*
@@ -2664,7 +2664,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 
             // 2. ustal mozliwa do realizacji sile hamowania ED
             //   - w szczegolnosci powinien brac pod uwage rozne sily hamowania
-            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
 				(kier ? p = p->NextC(4) : p = p->PrevC(4)))
             {
                 np++;
@@ -2747,7 +2747,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             ////ALGORYTM 2 - KAZDEMU PO ROWNO, ale nie wiecej niz eped * masa
             // 1. najpierw daj kazdemu tyle samo
             int i = 0;
-			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
 				(kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
 			{
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
@@ -2775,7 +2775,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 test = false;
                 i = 0;
                 float przek = 0;
-                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
                      (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
                 {
                     if ((FzEP[i] > 0.01) &&
@@ -2801,7 +2801,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 }
                 i = 0;
                 przek = przek / (np - nPrzekrF);
-                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
                      (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
                 {
                     if (!PrzekrF[i])
@@ -2812,7 +2812,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 }
             }
             i = 0;
-            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
+            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
                  (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
             {
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
