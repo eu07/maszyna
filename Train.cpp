@@ -2670,7 +2670,7 @@ bool TTrain::Update()
         }
 
 		bool kier = (DynamicObject->DirectionGet()*mvOccupied->ActiveCab > 0);
-		TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0);
+		TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0, 4);
         int in = 0;
         fEIMParams[0][6] = 0;
 		iCarNo = 0;
@@ -2735,7 +2735,7 @@ bool TTrain::Update()
 					iPowerNo = in;
                 }
 				//                p = p->NextC(4);                                       //prev
-				if ((kier ? p->NextC(16) : p->PrevC(16)) != (kier ? p->NextC(4) : p->PrevC(4)))
+				if ((kier ? p->NextC(128) : p->PrevC(128)) != (kier ? p->NextC(4) : p->PrevC(4)))
 					iUnitNo++;
 				p = (kier ? p->NextC(4) : p->PrevC(4));
 				iCarNo = i + 1;
@@ -6093,7 +6093,7 @@ void TTrain::Silence()
 
 void TTrain::SetLights()
 {
-    TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0);
+    TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0, 4);
     bool kier = (DynamicObject->DirectionGet() * mvOccupied->ActiveCab > 0);
     int xs = (kier ? 0 : 1);
     if (kier ? p->NextC(1) : p->PrevC(1)) // jesli jest nastepny, to tylko przod
