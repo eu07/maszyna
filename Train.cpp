@@ -1681,11 +1681,15 @@ void TTrain::OnKeyDown(int cKey)
             */
             if (mvControlled->TrainType == dt_EZT)
             {
-                if (mvControlled->DoorSignalling)
-                {
-                    dsbSwitch->Play(0, 0, 0);
-                    mvControlled->DoorSignalling = false;
-                }
+				if (ggDoorSignallingButton.SubModel != NULL)
+				{
+					if (mvControlled->DoorSignalling)
+					{
+						mvOccupied->DoorBlocked = false;
+						dsbSwitch->Play(0, 0, 0);
+						mvControlled->DoorSignalling = false;
+					}
+				}
             }
         }
         else if (cKey == Global::Keys[k_CabForward])
@@ -4308,8 +4312,12 @@ bool TTrain::Update()
 
         if (Console::Pressed(Global::Keys[k_Sand]))
         {
-            mvControlled->SandDose = true;
-            // mvControlled->SandDoseOn(true);
+			if (mvControlled->TrainType != dt_EZT && ggSandButton.SubModel != NULL)
+			{
+				mvControlled->SandDose = true;
+				ggSandButton.PutValue(1);
+				// mvControlled->SandDoseOn(true);
+			}
         }
         else
         {
@@ -4906,7 +4914,8 @@ bool TTrain::Update()
         ggSecurityResetButton.Update();
         ggReleaserButton.Update();
         ggAntiSlipButton.Update();
-        ggFuseButton.Update();
+		ggSandButton.Update(); 
+		ggFuseButton.Update();
         ggConverterFuseButton.Update();
         ggStLinOffButton.Update();
         ggRadioButton.Update();
@@ -4948,7 +4957,8 @@ bool TTrain::Update()
         ggMainOnButton.UpdateValue(0);
         ggSecurityResetButton.UpdateValue(0);
         ggReleaserButton.UpdateValue(0);
-        ggAntiSlipButton.UpdateValue(0);
+		ggSandButton.UpdateValue(0); 
+		ggAntiSlipButton.UpdateValue(0);
         ggDepartureSignalButton.UpdateValue(0);
         ggFuseButton.UpdateValue(0);
         ggConverterFuseButton.UpdateValue(0);
@@ -5395,7 +5405,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 ggMainOnButton.Clear();
                 ggSecurityResetButton.Clear();
                 ggReleaserButton.Clear();
-                ggAntiSlipButton.Clear();
+				ggSandButton.Clear();
+				ggAntiSlipButton.Clear();
                 ggHornButton.Clear();
                 ggNextCurrentButton.Clear();
                 ggUniversal1Button.Clear();
@@ -5549,8 +5560,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 ggSecurityResetButton.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("releaser_bt:")) // przycisk odluzniacza
                 ggReleaserButton.Load(Parser, DynamicObject->mdKabina);
-            else if (str == AnsiString("releaser_bt:")) // przycisk odluzniacza
-                ggReleaserButton.Load(Parser, DynamicObject->mdKabina);
+			else if (str == AnsiString("sand_bt:")) // przycisk piasecznicy
+				ggSandButton.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("antislip_bt:")) // przycisk antyposlizgowy
                 ggAntiSlipButton.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("horn_bt:")) // dzwignia syreny
@@ -5619,7 +5630,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 ggSignallingButton.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("door_signalling_sw:")) // Sygnalizacja blokady drzwi
                 ggDoorSignallingButton.Load(Parser, DynamicObject->mdKabina);
-            else if (str == AnsiString("nextcurrent_sw:")) // grzanie skladu
+            else if (str == AnsiString("nextcurrent_sw:")) //  pr¹d drugiego cz³onu
                 ggNextCurrentButton.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("cablight_sw:")) // hunter-091012: swiatlo w kabinie
                 ggCabLightButton.Load(Parser, DynamicObject->mdKabina);
