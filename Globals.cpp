@@ -161,15 +161,19 @@ bool Global::bDecompressDDS = false; // czy programowa dekompresja DDS
 
 // parametry do kalibracji
 // kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
-double Global::fCalibrateIn[6][4] = {
-    {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}};
-double Global::fCalibrateOut[7][4] = {{0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0}};
+double Global::fCalibrateIn[6][6] = {{0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0}};
+double Global::fCalibrateOut[7][6] = {{0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0}};
 
 // parametry przejœciowe (do usuniêcia)
 // bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
@@ -442,7 +446,21 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
             fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
             fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-        }
+			fCalibrateIn[i][4] = 0.0; // mno¿nik 4 potêgi
+			fCalibrateIn[i][5] = 0.0; // mno¿nik 5 potêgi
+		}
+		else if (str == AnsiString("calibrate5din")) // parametry kalibracji wejœæ
+		{ //
+			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
+			if ((i < 0) || (i > 5))
+				i = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			fCalibrateIn[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
+			fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
+			fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
+			fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
+			fCalibrateIn[i][4] = GetNextSymbol().ToDouble(); // mno¿nik 4 potêgi
+			fCalibrateIn[i][5] = GetNextSymbol().ToDouble(); // mno¿nik 5 potêgi
+		}
         else if (str == AnsiString("calibrateout")) // parametry kalibracji wyjœæ
         { //
             i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
@@ -452,7 +470,21 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
             fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
             fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
+			fCalibrateOut[i][4] = 0.0; // mno¿nik dla 4 potêgi
+			fCalibrateOut[i][5] = 0.0; // mno¿nik dla 5 potêgi
         }
+		else if (str == AnsiString("calibrate5dout")) // parametry kalibracji wyjœæ
+		{ //
+			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
+			if ((i < 0) || (i > 6))
+				i = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			fCalibrateOut[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
+			fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
+			fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
+			fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
+			fCalibrateOut[i][4] = GetNextSymbol().ToDouble(); // mno¿nik dla 4 potêgi
+			fCalibrateOut[i][5] = GetNextSymbol().ToDouble(); // mno¿nik dla 5 potêgi
+		}
         else if (str == AnsiString("brakestep")) // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
             fBrakeStep = GetNextSymbol().ToDouble();
         else if (str ==
@@ -848,7 +880,7 @@ AnsiString Global::Bezogonkow(AnsiString str, bool _)
             if (str[i] == '_') // nazwy stacji nie mog¹ zawieraæ spacji
                 str[i] = ' '; // wiêc trzeba wyœwietlaæ inaczej
     return str;
-}
+};
 
 double Global::Min0RSpeed(double vel1, double vel2)
 { // rozszerzenie funkcji Min0R o wartoœci -1.0
@@ -857,7 +889,14 @@ double Global::Min0RSpeed(double vel1, double vel2)
 	if (vel2 == -1.0)
 		vel2 = std::numeric_limits<double>::max();
 	return Min0R(vel1, vel2);
-}
+};
+
+double Global::CutValueToRange(double min, double value, double max)
+{ // przycinanie wartosci do podanych granic
+	value = Max0R(value, min);
+	value = Min0R(value, max);
+	return value;
+};
 
 
 #pragma package(smart_init)

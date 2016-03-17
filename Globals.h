@@ -296,8 +296,8 @@ class Global
     static double fRadiusFactor; // wspó³czynnik zmiany promienia
     static TCamera *pCamera; // parametry kamery
     static TDynamicObject *pUserDynamic; // pojazd u¿ytkownika, renderowany bez trzêsienia
-    static double fCalibrateIn[6][4]; // parametry kalibracyjne wejœæ z pulpitu
-    static double fCalibrateOut[7][4]; // parametry kalibracyjne wyjœæ dla pulpitu
+    static double fCalibrateIn[6][6]; // parametry kalibracyjne wejœæ z pulpitu
+    static double fCalibrateOut[7][6]; // parametry kalibracyjne wyjœæ dla pulpitu
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     static bool bJoinEvents; // czy grupowaæ eventy o tych samych nazwach
     static bool bSmudge; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
@@ -316,6 +316,7 @@ class Global
     static bool DoEvents();
     static AnsiString Bezogonkow(AnsiString str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
+	static double CutValueToRange(double min, double value, double max);
 };
 
 //---------------------------------------------------------------------------

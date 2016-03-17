@@ -197,7 +197,8 @@ void Console::BitsSet(int mask, int entry)
         int old = iBits; // poprzednie stany
         iBits |= mask;
         BitsUpdate(old ^ iBits); // 1 dla bitów zmienionych
-		WriteLog("PoKeys::BitsSet: mask: " + AnsiString(mask) + " iBits: " + AnsiString(iBits));
+		if (iMode == 4)
+			WriteLog("PoKeys::BitsSet: mask: " + AnsiString(mask) + " iBits: " + AnsiString(iBits));
     }
 };
 
@@ -288,10 +289,10 @@ void Console::ValueSet(int x, double y)
         if (PoKeys55[0])
         {
             PoKeys55[0]->PWM(
-                x, (((Global::fCalibrateOut[x][3] * y) + Global::fCalibrateOut[x][2]) * y +
-                    Global::fCalibrateOut[x][1]) *
-                           y +
-                       Global::fCalibrateOut[x][0]); // zakres <0;1>
+                x, (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
+					Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
+                    Global::fCalibrateOut[x][1]) * y +
+                    Global::fCalibrateOut[x][0]); // zakres <0;1>
         }
 };
 
@@ -318,6 +319,18 @@ float Console::AnalogGet(int x)
         if (PoKeys55[0])
             return PoKeys55[0]->fAnalog[x];
     return -1.0;
+};
+
+float Console::AnalogCalibrateGet(int x)
+{ // pobranie i kalibracja wartoœci analogowej, jeœli nie ma PoKeys zwraca NULL
+	if (iMode == 4 && PoKeys55[0])
+	{
+		float b = PoKeys55[0]->fAnalog[x];
+		return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+			Global::fCalibrateIn[x][3]) * b + Global::fCalibrateIn[x][2]) * b +
+			Global::fCalibrateIn[x][1]) *b + Global::fCalibrateIn[x][0];
+	}
+    return NULL;
 };
 
 unsigned char Console::DigitalGet(int x)
