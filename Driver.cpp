@@ -843,7 +843,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                      sSpeedTable[i].fDist + fLength <=
                                          Max0R(sSpeedTable[i].evEvent->ValueGet(2),
                                                fMaxProximityDist + fLength) :
-                                     true)
+                                     sSpeedTable[i].fDist < d_to_next_sem)
                         // Ra 2F1I: odleg³oœæ plus d³ugoœæ poci¹gu musi byæ mniejsza od d³ugoœci
                         // peronu, chyba ¿e poci¹g jest d³u¿szy, to wtedy minimalna
                         // jeœli d³ugoœæ peronu ((sSpeedTable[i].evEvent->ValueGet(2)) nie podana,
@@ -1121,7 +1121,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     // TODO sprawdziæ do której zmiennej jest przypisywane v i zmieniæ to tutaj
 						v = sSpeedTable[i].evEvent->ValueGet(1); // to ma 0 odczytywaæ
                 }
-                else if (sSpeedTable[i].iFlags & spSemaphor)
+                else if (sSpeedTable[i].IsProperSemaphor(OrderCurrentGet()))
                 { // to semaphor
 					if (sSpeedTable[i].fDist < 0)
 						VelSignalLast = sSpeedTable[i].fVelNext; //miniêty daje prêdkoœæ obowi¹zuj¹c¹
