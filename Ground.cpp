@@ -1704,9 +1704,7 @@ TGroundNode *__fastcall TGround::AddGroundNode(cParser *parser)
         parser->getTokens(3);
         *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
         tmp->pCenter += pOrigin;
-        tmp->psTractionPowerSource = new TTractionPowerSource();
-        tmp->psTractionPowerSource->gMyNode =
-            tmp; // Ra 2015-03: znowu prowizorka, aby mieæ nazwê do logowania
+        tmp->psTractionPowerSource = new TTractionPowerSource(tmp);
         tmp->psTractionPowerSource->Load(parser);
         break;
     case TP_MEMCELL:
@@ -3374,7 +3372,7 @@ void TGround::InitTraction()
                 nTemp = new TGroundNode();
                 nTemp->iType = TP_TRACTIONPOWERSOURCE;
                 nTemp->asName = Traction->asPowerSupplyName;
-                nTemp->psTractionPowerSource = new TTractionPowerSource();
+                nTemp->psTractionPowerSource = new TTractionPowerSource(nTemp);
                 nTemp->psTractionPowerSource->Init(Traction->NominalVoltage, Traction->MaxCurrent);
                 nTemp->nNext = nRootOfType[nTemp->iType]; // ostatni dodany do³¹czamy na koñcu
                 // nowego

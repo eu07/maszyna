@@ -33,15 +33,15 @@ class TTractionPowerSource
     bool SlowFuse;
     double FuseTimer;
     int FuseCounter;
+    TGroundNode *gMyNode; // wskaŸnik na wêze³ rodzica
 
   protected:
   public: // zmienne publiczne
     TTractionPowerSource *psNode[2]; // zasilanie na koñcach dla sekcji
     bool bSection; // czy jest sekcj¹
-    TGroundNode *gMyNode; // Ra 2015-03: znowu prowizorka, aby mieæ nazwê do logowania
   public:
     // AnsiString asName;
-    TTractionPowerSource();
+    TTractionPowerSource(TGroundNode *node);
     ~TTractionPowerSource();
     void Init(double u, double i);
     bool Load(cParser *parser);

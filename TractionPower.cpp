@@ -28,7 +28,7 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-TTractionPowerSource::TTractionPowerSource()
+TTractionPowerSource::TTractionPowerSource(TGroundNode *node)
 {
     NominalVoltage = 0;
     VoltageFrequency = 0;
@@ -49,6 +49,7 @@ TTractionPowerSource::TTractionPowerSource()
     psNode[0] = NULL; // sekcje zostan¹ pod³¹czone do zasilaczy
     psNode[1] = NULL;
     bSection = false; // sekcja nie jest Ÿród³em zasilania, tylko grupuje przês³a
+	gMyNode = node;
 };
 
 TTractionPowerSource::~TTractionPowerSource(){};
@@ -62,7 +63,7 @@ void TTractionPowerSource::Init(double u, double i)
 
 bool TTractionPowerSource::Load(cParser *parser)
 {
-    std::string token;
+	std::string token;
     // AnsiString str;
     // str= Parser->GetNextSymbol()LowerCase();
     // asName= str;
