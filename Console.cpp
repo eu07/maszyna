@@ -330,7 +330,7 @@ float Console::AnalogCalibrateGet(int x)
 			Global::fCalibrateIn[x][3]) * b + Global::fCalibrateIn[x][2]) * b +
 			Global::fCalibrateIn[x][1]) *b + Global::fCalibrateIn[x][0];
 	}
-    return NULL;
+    return -1.0; //odciêcie
 };
 
 unsigned char Console::DigitalGet(int x)

@@ -3721,19 +3721,12 @@ bool TTrain::Update()
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcj¹ w Console
-                // double b = Console::AnalogGet(0); // odczyt z pulpitu i modyfikacja pozycji kranu
-                if (double b = Console::AnalogCalibrateGet(0) && ((mvOccupied->BrakeHandle == FV4a) ||
+                if (((mvOccupied->BrakeHandle == FV4a) ||
                                    (mvOccupied->BrakeHandle == FVel6))) // mo¿e mo¿na usun¹æ ograniczenie do FV4a i FVel6?
                 {
-                    // b = (((Global::fCalibrateIn[0][3] * b) + Global::fCalibrateIn[0][2]) * b +
-                    //     Global::fCalibrateIn[0][1]) *b +
-                    //    Global::fCalibrateIn[0][0];
-                    
+					double b = Console::AnalogCalibrateGet(0);
 					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przyciêcie zmiennej do granic
-					/*if (b < -2.0)
-                        b = -2.0;
-                    else if (b > mvOccupied->BrakeCtrlPosNo)
-                        b = mvOccupied->BrakeCtrlPosNo;*/
+
                     ggBrakeCtrl.UpdateValue(b); // przesów bez zaokr¹glenia
                     mvOccupied->BrakeLevelSet(b);
                 }
@@ -3752,18 +3745,10 @@ bool TTrain::Update()
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na pocz¹tek gdzieœ to daæ trzeba
 			  // Firleju: dlatego kasujemy i zastepujemy funkcj¹ w Console
-                // double b = Console::AnalogGet(1); // odczyt z pulpitu i modyfikacja pozycji kranu
-                if (double b = Console::AnalogCalibrateGet(1) && (mvOccupied->BrakeLocHandle == FD1))
+                if ((mvOccupied->BrakeLocHandle == FD1))
                 {
-                    //b = (((Global::fCalibrateIn[1][3] * b) + Global::fCalibrateIn[1][2]) * b +
-                    //     Global::fCalibrateIn[1][1]) *
-                    //        b +
-                    //    Global::fCalibrateIn[1][0];
+					double b = Console::AnalogCalibrateGet(1);
 					b = Global::CutValueToRange(0.0, b, Hamulce::LocalBrakePosNo); // przyciêcie zmiennej do granic
-                    /*if (b < 0.0)
-                        b = 0.0;
-                    else if (b > Hamulce::LocalBrakePosNo)
-                        b = Hamulce::LocalBrakePosNo;*/
                     ggLocalBrake.UpdateValue(b); // przesów bez zaokr¹glenia
                     mvOccupied->LocalBrakePos =
                         int(1.09 * b); // sposób zaokr¹glania jest do ustalenia
