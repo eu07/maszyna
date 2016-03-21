@@ -174,7 +174,7 @@ double Global::fCalibrateOut[7][6] = {{0, 1, 0, 0, 0, 0},
                                       {0, 1, 0, 0, 0, 0},
                                       {0, 1, 0, 0, 0, 0},
                                       {0, 1, 0, 0, 0, 0}};
-
+double Global::fCalibrateOutMax[7] = {0, 0, 0, 0, 0, 0, 0};
 // parametry przejœciowe (do usuniêcia)
 // bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
 // bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
@@ -484,6 +484,16 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
 			fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
 			fCalibrateOut[i][4] = GetNextSymbol().ToDouble(); // mno¿nik dla 4 potêgi
 			fCalibrateOut[i][5] = GetNextSymbol().ToDouble(); // mno¿nik dla 5 potêgi
+		}
+		else if (str == AnsiString("calibrateoutmaxvalues"))
+		{ // maksymalne wartoœci jakie mo¿na wyœwietliæ na mierniku
+			fCalibrateOutMax[0] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[1] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[2] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[3] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[4] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[5] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[6] = GetNextSymbol().ToDouble();
 		}
         else if (str == AnsiString("brakestep")) // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
             fBrakeStep = GetNextSymbol().ToDouble();
