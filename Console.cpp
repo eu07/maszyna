@@ -289,7 +289,10 @@ void Console::ValueSet(int x, double y)
         if (PoKeys55[0])
         {
 			if (Global::fCalibrateOutMax[x] > 0)
-				x = x / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
+			{
+				y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
+				y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
+			}
 
             PoKeys55[0]->PWM(
                 x, (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
