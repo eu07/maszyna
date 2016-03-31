@@ -288,17 +288,27 @@ void Console::ValueSet(int x, double y)
     if (iMode == 4)
         if (PoKeys55[0])
         {
-			if (Global::fCalibrateOutMax[x] > 0)
-			{
-				y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
-				y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
-			}
-
-            PoKeys55[0]->PWM(
-                x, (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
+            if (x == 7)
+            {
+                PoKeys55[0]->PoExtUpdate(8, y);
+            } // nbmx: wal kulakowy
+            else
+            {
+				if (Global::fCalibrateOutMax[x] > 0)
+				{
+					y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
+					y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
+				}
+				double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
 					Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
-                    Global::fCalibrateOut[x][1]) * y +
-                    Global::fCalibrateOut[x][0]); // zakres <0;1>
+					Global::fCalibrateOut[x][1]) * y +
+					Global::fCalibrateOut[x][0] // zakres <0;1>
+				PoKeys55[0]->PWM(x, temp); 
+				if (x == 6)
+				{
+					PoKeys55[0]->PoExtUpdate(9, temp); //dodatkowo hasler na PoExt
+				}
+			}
         }
 };
 

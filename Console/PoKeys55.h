@@ -16,7 +16,8 @@ class TPoKeys55
     unsigned char OutputBuffer[65]; // Allocate a memory buffer equal to our endpoint size + 1
     unsigned char InputBuffer[65]; // Allocate a memory buffer equal to our endpoint size + 1
     int iPWM[8]; // 0-5:wyjœcia PWM,6:analogowe,7:czêstotliwoœc PWM
-    int iPWMbits;
+	char PoExt[10];// Wyjscia PoExt
+	int iPWMbits;
     int iLastCommand;
     int iFaza;
     int iRepeats; // liczba powtórzeñ
@@ -29,11 +30,13 @@ class TPoKeys55
     bool Connect();
     bool Close();
     bool Write(unsigned char c, unsigned char b3, unsigned char b4 = 0, unsigned char b5 = 0);
-    bool Read();
+	bool PoExtWrite(unsigned char *c);
+	bool Read();
     bool ReadLoop(int i);
     AnsiString Version();
     bool PWM(int x, float y);
-    bool Update(bool pause);
+	bool PoExtUpdate(int x, char y);
+	bool Update(bool pause);
 };
 //---------------------------------------------------------------------------
 #endif
