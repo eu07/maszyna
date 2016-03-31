@@ -302,7 +302,7 @@ void Console::ValueSet(int x, double y)
 				double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
 					Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
 					Global::fCalibrateOut[x][1]) * y +
-					Global::fCalibrateOut[x][0] // zakres <0;1>
+					Global::fCalibrateOut[x][0]; // zakres <0;1>
 				PoKeys55[0]->PWM(x, temp); 
 				if (x == 6)
 				{
