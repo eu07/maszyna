@@ -175,6 +175,7 @@ double Global::fCalibrateOut[7][6] = {{0, 1, 0, 0, 0, 0},
                                       {0, 1, 0, 0, 0, 0},
                                       {0, 1, 0, 0, 0, 0}};
 double Global::fCalibrateOutMax[7] = {0, 0, 0, 0, 0, 0, 0};
+int Global::iCalibrateOutDebugInfo = -1;
 // parametry przejœciowe (do usuniêcia)
 // bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
 // bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
@@ -495,6 +496,8 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
 			fCalibrateOutMax[5] = GetNextSymbol().ToDouble();
 			fCalibrateOutMax[6] = GetNextSymbol().ToDouble();
 		}
+		else if (str == AnsiString("calibrateoutdebuginfo")) // wyjœcie z info o przebiegu kalibracji
+			iCalibrateOutDebugInfo = GetNextSymbol().ToInt();
         else if (str == AnsiString("brakestep")) // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
             fBrakeStep = GetNextSymbol().ToDouble();
         else if (str ==
