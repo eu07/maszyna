@@ -309,7 +309,7 @@ class TController
     void ControllingSet(); // znajduje cz³on do sterowania
     void AutoRewident(); // ustawia hamulce w sk³adzie
   public:
-    Mtable::TTrainParameters *__fastcall Timetable()
+    Mtable::TTrainParameters * Timetable()
     {
         return TrainParams;
     };
@@ -355,12 +355,12 @@ class TController
     double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
   private: // Ra: metody obs³uguj¹ce skanowanie toru
-    TEvent *__fastcall CheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent * CheckTrackEvent(double fDirection, TTrack *Track);
     bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
     bool TableNotFound(TEvent *e);
     void TableClear();
-    TEvent *__fastcall TableCheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent * TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
@@ -368,8 +368,8 @@ class TController
 
   private: // Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
     bool BackwardTrackBusy(TTrack *Track);
-    TEvent *__fastcall CheckTrackEventBackward(double fDirection, TTrack *Track);
-    TTrack *__fastcall BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
+    TEvent * CheckTrackEventBackward(double fDirection, TTrack *Track);
+    TTrack * BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
                                           TEvent *&Event);
     void SetProximityVelocity(double dist, double vel, const vector3 *pos);
     TCommandType BackwardScan();

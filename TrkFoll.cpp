@@ -53,7 +53,7 @@ bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
     return true;
 }
 
-TTrack *__fastcall TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
+TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
 { // przejechanie na inny odcinkek toru, z ewentualnym rozpruciem
     if (pTrack)
         switch (pTrack->eType)

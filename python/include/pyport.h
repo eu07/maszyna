@@ -272,8 +272,8 @@ typedef Py_intptr_t     Py_ssize_t;
 /* ignore warnings if the compiler decides not to inline a function */
 #pragma warning(disable: 4710)
 /* fastest possible local call under MSVC */
-#define Py_LOCAL(type) static type __fastcall
-#define Py_LOCAL_INLINE(type) static __inline type __fastcall
+#define Py_LOCAL(type) static type 
+#define Py_LOCAL_INLINE(type) static __inline type 
 #elif defined(USE_INLINE)
 #define Py_LOCAL(type) static type
 #define Py_LOCAL_INLINE(type) static inline type

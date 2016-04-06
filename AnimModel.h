@@ -80,7 +80,7 @@ class TAnimContainer
     // std::string(pSubModel?pSubModel->asName.c_str():""); };
     // std::string inline GetName() { return std::string(pSubModel?pSubModel->pName:"");
     // };
-    char *__fastcall NameGet()
+    char * NameGet()
     {
         return (pSubModel ? pSubModel->pName : NULL);
     };
@@ -107,7 +107,7 @@ class TAnimContainer
             pSubModel->WillBeAnimated();
     };
     void EventAssign(TEvent *ev);
-    TEvent *__fastcall Event()
+    TEvent * Event()
     {
         return evDone;
     };
@@ -156,8 +156,8 @@ class TAnimModel
     bool Init(TModel3d *pNewModel);
     bool Init(AnsiString asName, AnsiString asReplacableTexture);
     bool Load(cParser *parser, bool ter = false);
-    TAnimContainer *__fastcall AddContainer(char *pName);
-    TAnimContainer *__fastcall GetContainer(char *pName);
+    TAnimContainer * AddContainer(char *pName);
+    TAnimContainer * GetContainer(char *pName);
     void RenderDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
     void RenderAlphaDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
     void RenderVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
@@ -175,7 +175,7 @@ class TAnimModel
     };
     bool TerrainLoaded();
     int TerrainCount();
-    TSubModel *__fastcall TerrainSquare(int n);
+    TSubModel * TerrainSquare(int n);
     void TerrainRenderVBO(int n);
     void AnimationVND(void *pData, double a, double b, double c, double d);
     void LightSet(int n, float v);

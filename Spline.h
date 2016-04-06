@@ -74,7 +74,7 @@ class TSpline
     int Load(TQueryParserComp *Parser, AnsiString asEndString = "endspline");
     float GetLength();
     vector3 GetCenter();
-    TKnot *__fastcall GetLastKnot();
+    TKnot * GetLastKnot();
     bool Render();
 
     //    inline int NextIndex(int n) { return (n<KnotsCount-1 ? n+1 : 0); };

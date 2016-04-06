@@ -156,7 +156,7 @@ class TGroundNode : public Resource
     void MoveMe(vector3 pPosition); // przesuwanie (nie dzia³a)
 
     // bool Disable();
-    inline TGroundNode *__fastcall Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType)
+    inline TGroundNode * Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType)
     { // wyszukiwanie czo³gowe z typem
         if ((iNodeType == iType) && (asNameToFind == asName))
             return this;
@@ -208,8 +208,8 @@ class TSubRect : public Resource, public CMesh
     void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
     void RaNodeAdd(TGroundNode *Node); // dodanie obiektu do listy renderowania
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
-    TTrack *__fastcall FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
-    TTraction *__fastcall FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude);
+    TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
+    TTraction * FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude);
     bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i
     // (nRenderWires)
     bool RaTrackAnimAdd(TTrack *t); // zg³oszenie toru do animacji
@@ -249,13 +249,13 @@ class TGroundRect : public TSubRect
     TGroundRect();
     virtual ~TGroundRect();
 
-    TSubRect *__fastcall SafeGetRect(int iCol, int iRow)
+    TSubRect * SafeGetRect(int iCol, int iRow)
     { // pobranie wskaŸnika do ma³ego kwadratu, utworzenie jeœli trzeba
         if (!pSubRects)
             Init(); // utworzenie ma³ych kwadratów
         return pSubRects + iRow * iNumSubRects + iCol; // zwrócenie w³aœciwego
     };
-    TSubRect *__fastcall FastGetRect(int iCol, int iRow)
+    TSubRect * FastGetRect(int iCol, int iRow)
     { // pobranie wskaŸnika do ma³ego kwadratu, bez tworzenia jeœli nie ma
         return (pSubRects ? pSubRects + iRow * iNumSubRects + iCol : NULL);
     };
@@ -308,11 +308,11 @@ class TGround
     void InitTraction();
     bool InitEvents();
     bool InitLaunchers();
-    TTrack *__fastcall FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
-    TTraction *__fastcall FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude);
-    TTraction *__fastcall TractionNearestFind(vector3 &p, int dir, TGroundNode *n);
+    TTrack * FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
+    TTraction * FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude);
+    TTraction * TractionNearestFind(vector3 &p, int dir, TGroundNode *n);
     // TGroundNode* CreateGroundNode();
-    TGroundNode *__fastcall AddGroundNode(cParser *parser);
+    TGroundNode * AddGroundNode(cParser *parser);
     bool AddGroundNode(double x, double z, TGroundNode *Node)
     {
         TSubRect *tmp = GetSubRect(x, z);
@@ -326,7 +326,7 @@ class TGround
     };
     //    bool Include(TQueryParserComp *Parser);
     // TGroundNode* GetVisible(AnsiString asName);
-    TGroundNode *__fastcall GetNode(AnsiString asName);
+    TGroundNode * GetNode(AnsiString asName);
     bool AddDynamic(TGroundNode *Node);
     void MoveGroundNode(vector3 pPosition);
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki sta³ym krokiem
@@ -355,24 +355,24 @@ class TGround
              return NULL;
      }
     */
-    TGroundNode *__fastcall DynamicFindAny(AnsiString asNameToFind);
-    TGroundNode *__fastcall DynamicFind(AnsiString asNameToFind);
+    TGroundNode * DynamicFindAny(AnsiString asNameToFind);
+    TGroundNode * DynamicFind(AnsiString asNameToFind);
     void DynamicList(bool all = false);
-    TGroundNode *__fastcall FindGroundNode(AnsiString asNameToFind, TGroundNodeType iNodeType);
-    TGroundRect *__fastcall GetRect(double x, double z)
+    TGroundNode * FindGroundNode(AnsiString asNameToFind, TGroundNodeType iNodeType);
+    TGroundRect * GetRect(double x, double z)
     {
         return &Rects[GetColFromX(x) / iNumSubRects][GetRowFromZ(z) / iNumSubRects];
     };
-    TSubRect *__fastcall GetSubRect(double x, double z)
+    TSubRect * GetSubRect(double x, double z)
     {
         return GetSubRect(GetColFromX(x), GetRowFromZ(z));
     };
-    TSubRect *__fastcall FastGetSubRect(double x, double z)
+    TSubRect * FastGetSubRect(double x, double z)
     {
         return FastGetSubRect(GetColFromX(x), GetRowFromZ(z));
     };
-    TSubRect *__fastcall GetSubRect(int iCol, int iRow);
-    TSubRect *__fastcall FastGetSubRect(int iCol, int iRow);
+    TSubRect * GetSubRect(int iCol, int iRow);
+    TSubRect * FastGetSubRect(int iCol, int iRow);
     int GetRowFromZ(double z)
     {
         return (z / fSubRectSize + fHalfTotalNumSubRects);
@@ -381,8 +381,8 @@ class TGround
     {
         return (x / fSubRectSize + fHalfTotalNumSubRects);
     };
-    TEvent *__fastcall FindEvent(const AnsiString &asEventName);
-    TEvent *__fastcall FindEventScan(const AnsiString &asEventName);
+    TEvent * FindEvent(const AnsiString &asEventName);
+    TEvent * FindEventScan(const AnsiString &asEventName);
     void TrackJoin(TGroundNode *Current);
 
   private:
@@ -402,9 +402,9 @@ class TGround
 	void WyslijPojazdy(int nr); // -> skladanie wielu pojazdow
 	void WyslijObsadzone(); // -> skladanie wielu pojazdow    
 	void RadioStop(vector3 pPosition);
-    TDynamicObject *__fastcall DynamicNearest(vector3 pPosition, double distance = 20.0,
+    TDynamicObject * DynamicNearest(vector3 pPosition, double distance = 20.0,
                                               bool mech = false);
-    TDynamicObject *__fastcall CouplerNearest(vector3 pPosition, double distance = 20.0,
+    TDynamicObject * CouplerNearest(vector3 pPosition, double distance = 20.0,
                                               bool mech = false);
     void DynamicRemove(TDynamicObject *dyn);
     void TerrainRead(const AnsiString &f);

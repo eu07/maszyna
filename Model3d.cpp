@@ -657,7 +657,7 @@ int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
     return s->iNumVerts - tri; // zwraca pozycjê tych trójk¹tów w submodelu
 };
 
-float8 *__fastcall TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
+float8 * TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
 { // zwraca wskaŸnik do wype³nienia tabeli wierzcho³ków, u¿ywane
     // przy tworzeniu E3D terenu
     TSubModel *s = this;
@@ -959,12 +959,12 @@ struct ToLower
     }
 };
 
-TSubModel *__fastcall TSubModel::GetFromName(AnsiString search, bool i)
+TSubModel * TSubModel::GetFromName(AnsiString search, bool i)
 {
     return GetFromName(search.c_str(), i);
 };
 
-TSubModel *__fastcall TSubModel::GetFromName(char *search, bool i)
+TSubModel * TSubModel::GetFromName(char *search, bool i)
 {
     TSubModel *result;
     // std::transform(search.begin(),search.end(),search.begin(),ToLower());
@@ -1724,7 +1724,7 @@ TModel3d::TModel3d()
     iNumVerts = 0; // nie ma jeszcze wierzcho³ków
 };
 /*
-__fastcall TModel3d::TModel3d(char *FileName)
+ TModel3d::TModel3d(char *FileName)
 {
 //    Root=NULL;
 //    Materials=NULL;
@@ -1752,7 +1752,7 @@ TModel3d::~TModel3d()
     // póŸniej siê jeszcze usuwa obiekt z którego dziedziczymy tabelê VBO
 };
 
-TSubModel *__fastcall TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
+TSubModel * TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
 {
     TSubModel *sm = Name ? GetFromName(Name) : NULL;
     AddTo(sm, SubModel); // szukanie nadrzêdnego
@@ -1776,7 +1776,7 @@ void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel)
     iFlags |= 0x0200; // submodele s¹ oddzielne
 };
 
-TSubModel *__fastcall TModel3d::GetFromName(const char *sName)
+TSubModel * TModel3d::GetFromName(const char *sName)
 { // wyszukanie submodelu po nazwie
     if (!sName)
         return Root; // potrzebne do terenu z E3D
@@ -2347,7 +2347,7 @@ int TModel3d::TerrainCount()
     }
     return i;
 };
-TSubModel *__fastcall TModel3d::TerrainSquare(int n)
+TSubModel * TModel3d::TerrainSquare(int n)
 { // pobieranie wskaŸnika do submodelu (n)
     int i = 0;
     TSubModel *r = Root;

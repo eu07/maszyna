@@ -95,7 +95,7 @@ TCab::~TCab()
     delete[] btList;
 };
 
-TGauge *__fastcall TCab::Gauge(int n)
+TGauge * TCab::Gauge(int n)
 { // pobranie adresu obiektu aniomowanego ruchem
     if (n < 0)
     { // rezerwacja wolnego
@@ -106,7 +106,7 @@ TGauge *__fastcall TCab::Gauge(int n)
         return ggList + n;
     return NULL;
 };
-TButton *__fastcall TCab::Button(int n)
+TButton * TCab::Button(int n)
 { // pobranie adresu obiektu animowanego wyborem 1 z 2
     if (n < 0)
     { // rezerwacja wolnego

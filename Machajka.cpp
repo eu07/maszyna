@@ -15,12 +15,12 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Globals.h"
 
-__fastcall TMachajka::TMachajka() : TTrain()
+ TMachajka::TMachajka() : TTrain()
 {
     TTrain::TTrain();
 }
 
-__fastcall TMachajka::~TMachajka()
+ TMachajka::~TMachajka()
 {
 }
 

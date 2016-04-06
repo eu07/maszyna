@@ -182,7 +182,7 @@ void TSoundsManager::Free()
     SAFE_RELEASE(pDS);
 };
 
-TSoundContainer *__fastcall TSoundsManager::LoadFromFile(char *Dir, char *Name, int Concurrent)
+TSoundContainer * TSoundsManager::LoadFromFile(char *Dir, char *Name, int Concurrent)
 {
     TSoundContainer *Tmp = First;
     First = new TSoundContainer(pDS, Dir, Name, Concurrent);
@@ -303,7 +303,7 @@ void TSoundsManager::RestoreAll()
 };
 
 // void TSoundsManager::Init(char *Name, int Concurrent)
-//__fastcall TSoundsManager::TSoundsManager(HWND hWnd)
+// TSoundsManager::TSoundsManager(HWND hWnd)
 // void TSoundsManager::Init(HWND hWnd, char *NDirectory)
 
 void TSoundsManager::Init(HWND hWnd)

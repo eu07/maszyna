@@ -975,7 +975,7 @@ void TSubRect::Sort()
     };
 }
 
-TTrack *__fastcall TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
+TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
 { // szukanie toru, którego koniec jest najbli¿szy (*Point)
     TTrack *Track;
     for (int i = 0; i < iTracks; ++i)
@@ -1022,7 +1022,7 @@ void TSubRect::RaAnimate()
     tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
 };
 
-TTraction *__fastcall TSubRect::FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude)
+TTraction * TSubRect::FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude)
 { // szukanie przês³a w sektorze, którego koniec jest najbli¿szy (*Point)
     TGroundNode *Current;
     for (Current = nRenderWires; Current; Current = Current->nNext3)
@@ -1360,7 +1360,7 @@ void TGround::Free()
     delete sTracks;
 }
 
-TGroundNode *__fastcall TGround::DynamicFindAny(AnsiString asNameToFind)
+TGroundNode * TGround::DynamicFindAny(AnsiString asNameToFind)
 { // wyszukanie pojazdu o podanej nazwie, szukanie po wszystkich (u¿yæ drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
         if ((Current->asName == asNameToFind))
@@ -1368,7 +1368,7 @@ TGroundNode *__fastcall TGround::DynamicFindAny(AnsiString asNameToFind)
     return NULL;
 };
 
-TGroundNode *__fastcall TGround::DynamicFind(AnsiString asNameToFind)
+TGroundNode * TGround::DynamicFind(AnsiString asNameToFind)
 { // wyszukanie pojazdu z obsad¹ o podanej nazwie (u¿yæ drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
         if (Current->DynamicObject->Mechanik)
@@ -1386,7 +1386,7 @@ void TGround::DynamicList(bool all)
     WyslijString("none", 6); // informacja o koñcu listy
 };
 
-TGroundNode *__fastcall TGround::FindGroundNode(AnsiString asNameToFind, TGroundNodeType iNodeType)
+TGroundNode * TGround::FindGroundNode(AnsiString asNameToFind, TGroundNodeType iNodeType)
 { // wyszukiwanie obiektu o podanej nazwie i konkretnym typie
     if ((iNodeType == TP_TRACK) || (iNodeType == TP_MEMCELL) || (iNodeType == TP_MODEL))
     { // wyszukiwanie w drzewie binarnym
@@ -1540,7 +1540,7 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     RaTriangleDivider(ntri);
 };
 
-TGroundNode *__fastcall TGround::AddGroundNode(cParser *parser)
+TGroundNode * TGround::AddGroundNode(cParser *parser)
 { // wczytanie wpisu typu "node"
     // parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzaæ
     AnsiString str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
@@ -2199,7 +2199,7 @@ TGroundNode *__fastcall TGround::AddGroundNode(cParser *parser)
     return tmp;
 }
 
-TSubRect *__fastcall TGround::FastGetSubRect(int iCol, int iRow)
+TSubRect * TGround::FastGetSubRect(int iCol, int iRow)
 {
     int br, bc, sr, sc;
     br = iRow / iNumSubRects;
@@ -2211,7 +2211,7 @@ TSubRect *__fastcall TGround::FastGetSubRect(int iCol, int iRow)
     return (Rects[br][bc].FastGetRect(sc, sr));
 }
 
-TSubRect *__fastcall TGround::GetSubRect(int iCol, int iRow)
+TSubRect * TGround::GetSubRect(int iCol, int iRow)
 { // znalezienie ma³ego kwadratu mapy
     int br, bc, sr, sc;
     br = iRow / iNumSubRects; // wspó³rzêdne kwadratu kilometrowego
@@ -2223,7 +2223,7 @@ TSubRect *__fastcall TGround::GetSubRect(int iCol, int iRow)
     return (Rects[br][bc].SafeGetRect(sc, sr)); // pobranie ma³ego kwadratu
 }
 
-TEvent *__fastcall TGround::FindEvent(const AnsiString &asEventName)
+TEvent * TGround::FindEvent(const AnsiString &asEventName)
 {
     return (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie
     /* //powolna wyszukiwarka
@@ -2236,7 +2236,7 @@ TEvent *__fastcall TGround::FindEvent(const AnsiString &asEventName)
     */
 }
 
-TEvent *__fastcall TGround::FindEventScan(const AnsiString &asEventName)
+TEvent * TGround::FindEventScan(const AnsiString &asEventName)
 { // wyszukanie eventu z opcj¹ utworzenia niejawnego dla komórek skanowanych
     TEvent *e = (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie eventów
     if (e)
@@ -3619,7 +3619,7 @@ bool TGround::InitLaunchers()
     return true;
 }
 
-TTrack *__fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude)
+TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude)
 { // wyszukiwanie innego toru koñcz¹cego siê w (Point)
     TTrack *Track;
     TGroundNode *Current;
@@ -3667,7 +3667,7 @@ TTrack *__fastcall TGround::FindTrack(vector3 Point, int &iConnection, TGroundNo
     return NULL;
 }
 
-TTraction *__fastcall TGround::FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude)
+TTraction * TGround::FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude)
 { // wyszukiwanie innego przês³a koñcz¹cego siê w (Point)
     TTraction *Traction;
     TGroundNode *Current;
@@ -3705,7 +3705,7 @@ TTraction *__fastcall TGround::FindTraction(vector3 *Point, int &iConnection, TG
     return NULL;
 };
 
-TTraction *__fastcall TGround::TractionNearestFind(vector3 &p, int dir, TGroundNode *n)
+TTraction * TGround::TractionNearestFind(vector3 &p, int dir, TGroundNode *n)
 { // wyszukanie najbli¿szego do (p) przês³a o tej samej nazwie sekcji (ale innego ni¿ pod³¹czone)
     // oraz zasilanego z kierunku (dir)
     TGroundNode *nCurrent, *nBest = NULL;
@@ -4971,7 +4971,7 @@ void TGround::RadioStop(vector3 pPosition)
                         node->pTrack->RadioStop(); // przekazanie do ka¿dego toru w ka¿dym segmencie
 };
 
-TDynamicObject *__fastcall TGround::DynamicNearest(vector3 pPosition, double distance, bool mech)
+TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, bool mech)
 { // wyszukanie pojazdu najbli¿szego wzglêdem (pPosition)
     TGroundNode *node;
     TSubRect *tmp;
@@ -4997,7 +4997,7 @@ TDynamicObject *__fastcall TGround::DynamicNearest(vector3 pPosition, double dis
                                 }
     return dyn;
 };
-TDynamicObject *__fastcall TGround::CouplerNearest(vector3 pPosition, double distance, bool mech)
+TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, bool mech)
 { // wyszukanie pojazdu, którego sprzêg jest najbli¿ej wzglêdem (pPosition)
     TGroundNode *node;
     TSubRect *tmp;

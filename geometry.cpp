@@ -16,15 +16,15 @@ inline double sqr(double a)
     return (a * a);
 };
 
-__fastcall TLine::TLine(){};
+ TLine::TLine(){};
 
-__fastcall TLine::TLine(vector3 NPoint, vector3 NVector)
+ TLine::TLine(vector3 NPoint, vector3 NVector)
 {
     Vector = NVector;
     Point = NPoint;
 };
 
-__fastcall TLine::~TLine(){};
+ TLine::~TLine(){};
 
 TPlane TLine::GetPlane()
 {
@@ -42,31 +42,31 @@ double TLine::GetDistance(vector3 Point1)
 
 //---------------------------------------------------------------------------
 
-__fastcall TPlane::TPlane()
+ TPlane::TPlane()
 {
     Vector = vector3(0, 0, 0);
     d = 0;
 };
 
-__fastcall TPlane::TPlane(vector3 NVector, double nd)
+ TPlane::TPlane(vector3 NVector, double nd)
 {
     Vector = NVector;
     d = nd;
 }
 
-__fastcall TPlane::TPlane(vector3 Point, vector3 NVector)
+ TPlane::TPlane(vector3 Point, vector3 NVector)
 {
     Vector = NVector;
     d = -NVector.x * Point.x - NVector.y * Point.y - NVector.z * Point.z;
 };
 
-__fastcall TPlane::TPlane(vector3 Point1, vector3 Vector1, vector3 Vector2)
+ TPlane::TPlane(vector3 Point1, vector3 Vector1, vector3 Vector2)
 {
     Vector = CrossProduct(Vector1, Vector2);
     d = -Vector.x * Point1.x - Vector.y * Point1.y - Vector.z * Point1.z;
 };
 
-__fastcall TPlane::~TPlane(){};
+ TPlane::~TPlane(){};
 
 void TPlane::Normalize()
 {

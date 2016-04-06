@@ -33,9 +33,9 @@ class TTrackFollower
     vector3 vAngles; // x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
     TTrackFollower();
     ~TTrackFollower();
-    TTrack *__fastcall SetCurrentTrack(TTrack *pTrack, int end);
+    TTrack * SetCurrentTrack(TTrack *pTrack, int end);
     bool Move(double fDistance, bool bPrimary);
-    inline TTrack *__fastcall GetTrack()
+    inline TTrack * GetTrack()
     {
         return pCurrentTrack;
     };

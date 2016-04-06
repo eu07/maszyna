@@ -62,8 +62,8 @@ class TCab
     TButton *btList; // Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
     int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w u¿yciu
   public:
-    TGauge *__fastcall Gauge(int n = -1); // pobranie adresu obiektu
-    TButton *__fastcall Button(int n = -1); // pobranie adresu obiektu
+    TGauge * Gauge(int n = -1); // pobranie adresu obiektu
+    TButton * Button(int n = -1); // pobranie adresu obiektu
     void Update();
 };
 
@@ -410,11 +410,11 @@ class TTrain
     {
         return iRadioChannel;
     };
-    inline TDynamicObject *__fastcall Dynamic()
+    inline TDynamicObject * Dynamic()
     {
         return DynamicObject;
     };
-    inline TMoverParameters *__fastcall Controlled()
+    inline TMoverParameters * Controlled()
     {
         return mvControlled;
     };

@@ -115,7 +115,7 @@ TIsolated::~TIsolated(){
     */
 };
 
-TIsolated *__fastcall TIsolated::Find(const AnsiString &n)
+TIsolated * TIsolated::Find(const AnsiString &n)
 { // znalezienie obiektu albo utworzenie nowego
     TIsolated *p = pRoot;
     while (p)
@@ -248,7 +248,7 @@ void TTrack::Init()
     }
 }
 
-TTrack *__fastcall TTrack::Create400m(int what, double dx)
+TTrack * TTrack::Create400m(int what, double dx)
 { // tworzenie toru do wstawiania taboru podczas konwersji na E3D
     TGroundNode *tmp = new TGroundNode(TP_TRACK); // node
     TTrack *trk = tmp->pTrack;
@@ -264,7 +264,7 @@ TTrack *__fastcall TTrack::Create400m(int what, double dx)
     return trk;
 };
 
-TTrack *__fastcall TTrack::NullCreate(int dir)
+TTrack * TTrack::NullCreate(int dir)
 { // tworzenie toru wykolejaj¹cego od strony (dir), albo pêtli dla samochodów
     TGroundNode *tmp = new TGroundNode(TP_TRACK), *tmp2 = NULL; // node
     TTrack *trk = tmp->pTrack; // tor; UWAGA! obrotnica mo¿e generowaæ du¿e iloœci tego
@@ -2828,7 +2828,7 @@ void TTrack::RaAnimListAdd(TTrack *t)
     }
 };
 
-TTrack *__fastcall TTrack::RaAnimate()
+TTrack * TTrack::RaAnimate()
 { // wykonanie rekurencyjne animacji, wywo³ywane przed wyœwietleniem sektora
     // zwraca wskaŸnik toru wymagaj¹cego dalszej animacji
     if (SwitchExtension->pNextAnim)
@@ -3146,7 +3146,7 @@ void TTrack::ConnectionsLog()
         }
 };
 
-TTrack *__fastcall TTrack::Neightbour(int s, double &d)
+TTrack * TTrack::Neightbour(int s, double &d)
 { // zwraca wskaŸnik na s¹siedni tor, w kierunku okreœlonym znakiem (s), odwraca (d) w razie
     // niezgodnoœci kierunku torów
     TTrack *t; // nie zmieniamy kierunku (d), jeœli nie ma toru dalej

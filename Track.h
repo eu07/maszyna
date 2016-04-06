@@ -108,18 +108,18 @@ class TIsolated
     TIsolated();
     TIsolated(const AnsiString &n, TIsolated *i);
     ~TIsolated();
-    static TIsolated *__fastcall Find(
+    static TIsolated * Find(
         const AnsiString &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjêcie osi
     bool Busy()
     {
         return (iAxles > 0);
     };
-    static TIsolated *__fastcall Root()
+    static TIsolated * Root()
     {
         return (pRoot);
     };
-    TIsolated *__fastcall Next()
+    TIsolated * Next()
     {
         return (pNext);
     };
@@ -192,8 +192,8 @@ class TTrack : public Resource
     TTrack(TGroundNode *g);
     ~TTrack();
     void Init();
-    static TTrack *__fastcall Create400m(int what, double dx);
-    TTrack *__fastcall NullCreate(int dir);
+    static TTrack * Create400m(int what, double dx);
+    TTrack * NullCreate(int dir);
     inline bool IsEmpty()
     {
         return (iNumDynamics <= 0);
@@ -206,19 +206,19 @@ class TTrack : public Resource
     {
         return Segment->GetLength();
     };
-    inline TSegment *__fastcall CurrentSegment()
+    inline TSegment * CurrentSegment()
     {
         return Segment;
     };
-    inline TTrack *__fastcall CurrentNext()
+    inline TTrack * CurrentNext()
     {
         return (trNext);
     };
-    inline TTrack *__fastcall CurrentPrev()
+    inline TTrack * CurrentPrev()
     {
         return (trPrev);
     };
-    TTrack *__fastcall Neightbour(int s, double &d);
+    TTrack * Neightbour(int s, double &d);
     bool SetConnections(int i);
     bool Switch(int i, double t = -1.0, double d = -1.0);
     bool SwitchForced(int i, TDynamicObject *o);
@@ -257,7 +257,7 @@ class TTrack : public Resource
     void RaAssign(TGroundNode *gn, TAnimContainer *ac);
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
     void RaAnimListAdd(TTrack *t);
-    TTrack *__fastcall RaAnimate();
+    TTrack * RaAnimate();
 
     void RadioStop();
     void AxleCounter(int i, TDynamicObject *o)

@@ -386,7 +386,7 @@ void TController::TableClear()
     eSignSkip = NULL; // nic nie pomijamy
 };
 
-TEvent *__fastcall TController::CheckTrackEvent(double fDirection, TTrack *Track)
+TEvent * TController::CheckTrackEvent(double fDirection, TTrack *Track)
 { // sprawdzanie eventów na podanym torze do podstawowego skanowania
     TEvent *e = (fDirection > 0) ? Track->evEvent2 : Track->evEvent1;
     if (!e)
@@ -4994,7 +4994,7 @@ bool TController::BackwardTrackBusy(TTrack *Track)
     return false; // wolny
 };
 
-TEvent *__fastcall TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
+TEvent * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
 { // sprawdzanie eventu w torze, czy jest sygna³owym - skanowanie do ty³u
     TEvent *e = (fDirection > 0) ? Track->evEvent2 : Track->evEvent1;
     if (e)
@@ -5004,7 +5004,7 @@ TEvent *__fastcall TController::CheckTrackEventBackward(double fDirection, TTrac
     return NULL;
 };
 
-TTrack *__fastcall TController::BackwardTraceRoute(double &fDistance, double &fDirection,
+TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection,
                                                    TTrack *Track, TEvent *&Event)
 { // szukanie sygnalizatora w kierunku przeciwnym jazdy (eventu odczytu komórki pamiêci)
     TTrack *pTrackChVel = Track; // tor ze zmian¹ prêdkoœci

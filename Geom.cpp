@@ -19,11 +19,11 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Geom.h"
 
-__fastcall TGeometry::TGeometry()
+ TGeometry::TGeometry()
 {
 }
 
-__fastcall TGeometry::~TGeometry()
+ TGeometry::~TGeometry()
 {
 }
 

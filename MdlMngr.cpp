@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 
 #define SeekFiles AnsiString("*.t3d")
 
-TModel3d *__fastcall TMdlContainer::LoadModel(char *newName, bool dynamic)
+TModel3d * TMdlContainer::LoadModel(char *newName, bool dynamic)
 { // wczytanie modelu do kontenerka
     SafeDeleteArray(Name);
     SafeDelete(Model);
@@ -45,14 +45,14 @@ void TModelsManager::Init()
     Count = 0;
 }
 /*
-__fastcall TModelsManager::TModelsManager()
+ TModelsManager::TModelsManager()
 {
 //    Models= NULL;
     Models= new TMdlContainer[MAX_MODELS];
     Count= 0;
 };
 
-__fastcall TModelsManager::~TModelsManager()
+ TModelsManager::~TModelsManager()
 {
     Free();
 };
@@ -62,7 +62,7 @@ void TModelsManager::Free()
     SafeDeleteArray(Models);
 }
 
-TModel3d *__fastcall TModelsManager::LoadModel(char *Name, bool dynamic)
+TModel3d * TModelsManager::LoadModel(char *Name, bool dynamic)
 { // wczytanie modelu do tablicy
     TModel3d *mdl = NULL;
     if (Count >= MAX_MODELS)
@@ -76,7 +76,7 @@ TModel3d *__fastcall TModelsManager::LoadModel(char *Name, bool dynamic)
     return mdl;
 }
 
-TModel3d *__fastcall TModelsManager::GetModel(const char *Name, bool dynamic)
+TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
 { // model mo¿e byæ we wpisie "node...model" albo "node...dynamic", a tak¿e byæ dodatkowym w dynamic
     // (kabina, wnêtrze, ³adunek)
     // dla "node...dynamic" mamy podan¹ œcie¿kê w "\dynamic\" i musi byæ co najmniej 1 poziom, zwkle

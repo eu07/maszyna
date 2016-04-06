@@ -313,8 +313,8 @@ class Global
     static void TrainDelete(TDynamicObject *d);
     static void ConfigParse(Queryparsercomp::TQueryParserComp *qp, cParser *cp = NULL);
     static AnsiString GetNextSymbol();
-    static TDynamicObject *__fastcall DynamicNearest();
-    static TDynamicObject *__fastcall CouplerNearest();
+    static TDynamicObject * DynamicNearest();
+    static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
     static AnsiString Bezogonkow(AnsiString str, bool _ = false);

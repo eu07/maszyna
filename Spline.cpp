@@ -47,7 +47,7 @@ float CurveLength(vector3 p1, vector3 cp1, vector3 cp2, vector3 p2)
     return (l);
 }
 
-__fastcall TKnot::TKnot()
+ TKnot::TKnot()
 {
     Next = Prev = NULL;
     Length = -1;
@@ -58,7 +58,7 @@ __fastcall TKnot::TKnot()
     bSwitchDirectionBackward = false;
 }
 
-__fastcall TKnot::TKnot(int n)
+ TKnot::TKnot(int n)
 {
     bSwitchDirectionForward = false;
     bSwitchDirectionBackward = false;
@@ -73,7 +73,7 @@ __fastcall TKnot::TKnot(int n)
     }
 }
 
-__fastcall TKnot::~TKnot()
+ TKnot::~TKnot()
 {
 }
 
@@ -241,7 +241,7 @@ float TKnot::RombergIntegral(float fA, float fB)
 
 //----------------------------------------------------------------------------//
 
-__fastcall TSpline::TSpline()
+ TSpline::TSpline()
 {
     //    Closed= true;
     //    asName= "foo";
@@ -252,7 +252,7 @@ __fastcall TSpline::TSpline()
     //    Next=Prev= this;
 }
 
-__fastcall TSpline::TSpline(AnsiString asNName)
+ TSpline::TSpline(AnsiString asNName)
 {
     //    Closed= true;
     //    asName= asNName;
@@ -263,7 +263,7 @@ __fastcall TSpline::TSpline(AnsiString asNName)
     //    Next=Prev= this;
 }
 
-__fastcall TSpline::~TSpline()
+ TSpline::~TSpline()
 {
     //  if (KnotsAllocated)
     //        SafeDeleteArray(Knots);
@@ -473,7 +473,7 @@ vector3 TSpline::GetCenter()
         pt /= iNumKnots;
 }
 
-TKnot *__fastcall TSpline::GetLastKnot()
+TKnot * TSpline::GetLastKnot()
 {
     TKnot *ck;
     ck = RootKnot;

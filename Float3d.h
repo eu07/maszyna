@@ -192,11 +192,11 @@ class float4x4
         for (int i = 0; i < 16; ++i)
             e[i] = f[i];
     };
-    float *__fastcall operator()(int i)
+    float * operator()(int i)
     {
         return &e[i << 2];
     }
-    const float *__fastcall readArray(void)
+    const float * readArray(void)
     {
         return e;
     }

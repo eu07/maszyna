@@ -725,12 +725,12 @@ void Global::TrainDelete(TDynamicObject *d)
         pWorld->TrainDelete(d);
 };
 
-TDynamicObject *__fastcall Global::DynamicNearest()
+TDynamicObject * Global::DynamicNearest()
 { // ustalenie pojazdu najbli¿szego kamerze
     return pGround->DynamicNearest(pCamera->Pos);
 };
 
-TDynamicObject *__fastcall Global::CouplerNearest()
+TDynamicObject * Global::CouplerNearest()
 { // ustalenie pojazdu najbli¿szego kamerze
     return pGround->CouplerNearest(pCamera->Pos);
 };
