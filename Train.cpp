@@ -4302,8 +4302,10 @@ bool TTrain::Update()
         {
 			if (mvControlled->TrainType != dt_EZT && ggSandButton.SubModel != NULL)
 			{
-				mvControlled->SandDose = true;
+				dsbPneumaticRelay->SetVolume(-30);
+				dsbPneumaticRelay->Play(0,0,0);
 				ggSandButton.PutValue(1);
+				mvControlled->SandDose = true;
 				// mvControlled->SandDoseOn(true);
 			}
         }
