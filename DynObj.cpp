@@ -3858,7 +3858,17 @@ void TDynamicObject::RenderSounds()
         else
             rsPisk.Stop();
     }
-
+	
+	if (MoverParameters->SandDose) // Dzwiek piasecznicy
+		sSand.TurnOn(MechInside, GetPosition());
+	else
+		sSand.TurnOff(MechInside, GetPosition());
+	sSand.Update(MechInside, GetPosition());
+	if (MoverParameters->Hamulec->GetStatus() & b_rls) // Dzwiek odluzniacza
+		sReleaser.TurnOn(MechInside, GetPosition());
+	else
+		sReleaser.TurnOff(MechInside, GetPosition());
+	sReleaser.Update(MechInside, GetPosition());
     // if ((MoverParameters->ConverterFlag==false) &&
     // (MoverParameters->TrainType!=dt_ET22))
     // if
@@ -5187,7 +5197,15 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     rsDoorClose.FM = 1.0;
                     rsDoorClose.FA = 0.0;
                 }
-            }
+				else if (str == AnsiString("sand:")) // pliki z piasecznica
+                {
+                    sSand.Load(Parser, GetPosition());
+                }
+				else if (str == AnsiString("releaser:")) // pliki z odluzniaczem
+                {
+                    sReleaser.Load(Parser, GetPosition());
+                }
+			}
         else if (str == AnsiString("internaldata:")) // dalej nie czytaj
         {
             while (!Parser->EndOfFile)

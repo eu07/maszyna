@@ -499,8 +499,8 @@ void TTrain::OnKeyDown(int cKey)
 				if (ggSandButton.SubModel != NULL)
 				{
 					ggSandButton.PutValue(1);
-					dsbPneumaticRelay->SetVolume(-80);
-					dsbPneumaticRelay->Play(0, 0, 0);
+					// dsbPneumaticRelay->SetVolume(-80);
+					// dsbPneumaticRelay->Play(0, 0, 0);
 				}
 			}
 		}
@@ -1600,11 +1600,12 @@ void TTrain::OnKeyDown(int cKey)
                         if (mvOccupied->BrakeCtrlPosNo > 0)
                         {
                             ggReleaserButton.PutValue(1);
-                            if (mvOccupied->BrakeReleaser(1))
-                            {
-                                dsbPneumaticRelay->SetVolume(-80);
-                                dsbPneumaticRelay->Play(0, 0, 0);
-                            }
+							mvOccupied->BrakeReleaser(1);
+                            // if (mvOccupied->BrakeReleaser(1))
+                            // {
+                                // dsbPneumaticRelay->SetVolume(-80);
+                                // dsbPneumaticRelay->Play(0, 0, 0);
+                            // }
                         }
             }
         }
@@ -4302,8 +4303,10 @@ bool TTrain::Update()
         {
 			if (mvControlled->TrainType != dt_EZT && ggSandButton.SubModel != NULL)
 			{
-				mvControlled->SandDose = true;
+				// dsbPneumaticRelay->SetVolume(-30);
+				// dsbPneumaticRelay->Play(0,0,0);
 				ggSandButton.PutValue(1);
+				mvControlled->SandDose = true;
 				// mvControlled->SandDoseOn(true);
 			}
         }

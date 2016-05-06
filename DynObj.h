@@ -287,6 +287,8 @@ class TDynamicObject
     TAdvancedSound sSmallCompressor;
     TAdvancedSound sDepartureSignal;
     TAdvancedSound sTurbo;
+	TAdvancedSound sSand;
+	TAdvancedSound sReleaser;
 
     // Winger 010304
     //    TRealSound rsPanTup; //PSound sPantUp;

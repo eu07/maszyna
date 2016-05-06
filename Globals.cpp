@@ -51,7 +51,7 @@ HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
 AnsiString Global::asRelease = "15.4.1171.475";
 AnsiString Global::asVersion =
-    "Compilation 2016-03-14, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2016-05-03, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
