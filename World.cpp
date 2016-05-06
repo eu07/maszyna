@@ -1748,7 +1748,9 @@ bool TWorld::Update()
                 Train->Dynamic()->Controller = AIdriver;
                 // Train->Dynamic()->MoverParameters->SecuritySystem.Status=0; //rozwala CA w EZT
                 Train->Dynamic()->MoverParameters->ActiveCab = 0;
-                Train->Dynamic()->MoverParameters->BrakeLevelSet(-2);
+                Train->Dynamic()->MoverParameters->BrakeLevelSet(
+					Train->Dynamic()->MoverParameters->Handle->GetPos(
+						bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
                 Train->Dynamic()->MechInside = false;
             }
         // int CabNr;
