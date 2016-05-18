@@ -590,6 +590,37 @@ public:
 };
 
 
+class DELPHICLASS TMHZ_EN57;
+class PASCALIMPLEMENTATION TMHZ_EN57 : public THandle 
+{
+	typedef THandle inherited;
+	
+private:
+	double CP;
+	double TP;
+	double RP;
+	double RedAdj;
+	bool Fala;
+	
+public:
+	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
+	virtual void __fastcall Init(double press);
+	virtual void __fastcall SetReductor(double nAdj);
+	virtual double __fastcall GetSound(Byte i);
+	virtual double __fastcall GetPos(Byte i);
+	virtual double __fastcall GetCP(void);
+	double __fastcall GetEP(double pos);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TMHZ_EN57(void) : THandle() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TMHZ_EN57(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS TM394;
 class PASCALIMPLEMENTATION TM394 : public THandle 
 {
