@@ -209,6 +209,10 @@ CONST
   eimv_Imax=19;
   eimv_Fful=20;
 
+  bom_PS = 1;
+  bom_PN = 2;
+  bom_EP = 4;
+  bom_MED = 8;
 
 TYPE
     {ogolne}
@@ -294,6 +298,7 @@ TYPE
                           MinH,MaxH: real; //zakres ruchu pantografu, nigdzie nie u¿ywany
                           CSW: real;       //szerokoœæ czêœci roboczej (styku) œlizgacza
                           MinV,MaxV: real; //minimalne i maksymalne akceptowane napiêcie
+                          OVP: real;       //czy jest przekaznik nadnapieciowy
                           InsetV: real;    //minimalne napiêcie wymagane do za³¹czenia
                           MinPress: real;  //minimalne ciœnienie do za³¹czenia WS
                           MaxPress: real;  //maksymalne ciœnienie za reduktorem
@@ -492,6 +497,7 @@ TYPE
                Lights: array [0..1] of array [1..16] of byte;
                ScndInMain: boolean;     {zaleznosc bocznika od nastawnika}
                MBrake: boolean;     {Czy jest hamulec reczny}
+               StopBrakeDecc: real;
                SecuritySystem: TSecuritySystem;
 
                        {-sekcja parametrow dla lokomotywy elektrycznej}
@@ -632,6 +638,8 @@ TYPE
                 EmergencyBrakeFlag: boolean;        {hamowanie nagle}
                 BrakeDelayFlag: byte;               {nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4}
                 BrakeDelays: byte;                   {nastawy mozliwe do uzyskania}
+                BrakeOpModeFlag: byte;               {nastawa trybu pracy PS/PN/EP/MED 1/2/4/8}
+                BrakeOpModes: byte;                   {nastawy mozliwe do uzyskania}
                 DynamicBrakeFlag: boolean;          {czy wlaczony hamulec elektrodymiczny}
 //                NapUdWsp: integer;
                 LimPipePress: real;                 {stabilizator cisnienia}
@@ -1130,6 +1138,12 @@ function T_MoverParameters.BrakeRatio: real;
 function T_MoverParameters.LocalBrakeRatio: real;
 var LBR:real;
 begin
+  if BrakeHandle=MHZ_EN57 then
+    if (BrakeOpModeFlag>=bom_EP) then
+      LBR:=(Handle as TMHZ_EN57).GetEP(BrakeCtrlPosR)
+    else
+      LBR:=0  
+  else
   if LocalBrakePosNo>0 then
    LBR:=LocalBrakePos/LocalBrakePosNo
   else
@@ -2281,7 +2295,17 @@ end;
 function T_MoverParameters.BrakeDelaySwitch(BDS:byte): boolean;
 begin
 //  if BrakeCtrlPosNo>0 then
-   if Hamulec.SetBDF(BDS) then
+   if BrakeHandle=MHZ_EN57 then
+    begin
+      if (BDS<>BrakeOpModeFlag) and ((BDS and BrakeOpModes) > 0) then
+       begin
+        BrakeOpModeFlag:=BDS;
+        BrakeDelaySwitch:=true;
+       end
+      else
+         BrakeDelaySwitch:=false;
+    end
+   else if Hamulec.SetBDF(BDS) then
     begin
       BrakeDelayFlag:=BDS;
       BrakeDelaySwitch:=true;
@@ -2467,7 +2491,12 @@ with BrakePressureTable[BrakeCtrlPos] do
             temp:=ScndPipePress;
           Handle.SetReductor(BrakeCtrlPos2);
 
-          dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
+          if (BrakeOpModeFlag<>bom_PS) then
+            if (BrakeOpModeFlag<bom_EP) or (Handle.GetPos(bh_EB)-0.5<BrakeCtrlPosR) or (BrakeHandle<>MHZ_EN57) then
+              dpMainValve:=Handle.GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress)
+            else
+              dpMainValve:=Handle.GetPF(0, PipePress, temp, dt, EqvtPipePress);
+              
           if (dpMainValve<0){and(PipePressureVal>0.01)} then             {50}
             if Compressor>ScndPipePress then
                begin
@@ -4145,7 +4174,7 @@ begin
 //         dec(MainCtrlActualPos);
          FuseOff;                     {wywalanie bezpiecznika z powodu przetezenia silnikow}
         if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
-         if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
+         if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)*EnginePowerSource.CollectorParameters.OVP>EnginePowerSource.CollectorParameters.MaxV) then
           if MainSwitch(false) then
            EventFlag:=true; //wywalanie szybkiego z powodu niew³aœciwego napiêcia
 
@@ -4337,7 +4366,7 @@ begin
    ElectricInductionMotor:
      begin
       if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
-        if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV+100) then
+        if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or (Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV+200) then
          begin
           MainSwitch(false);
          end; 
@@ -4346,7 +4375,9 @@ begin
         begin
 
          dtrans:=(Hamulec as TLSt).GetEDBCP;
-         if ((dtrans<0.25) and (LocHandle.GetCP<0.25) and (AnPos<0.01)) or ((ShuntModeAllow) and (LocalBrakePos=0)) then
+         if ((DoorLeftOpened)or(DoorRightOpened)) then
+           DynamicBrakeFlag:=true
+         else if ((dtrans<0.25) and (LocHandle.GetCP<0.25) and (AnPos<0.01)) or ((dtrans<0.25) and (ShuntModeAllow) and (LocalBrakePos=0)) then
            DynamicBrakeFlag:=false
          else if (((BrakePress>0.25) and (dtrans>0.25) or (LocHandle.GetCP>0.25))) or (AnPos>0.02) then
            DynamicBrakeFlag:=true;
@@ -4391,8 +4422,8 @@ begin
          dmoment:=eimv[eimv_Fful];
 //         else
 //           dmoment:=eimc[eimc_p_F0]*0.99;
-         if (abs((PosRatio+9.66*dizel_fill)*dmoment*100)>Adhesive(RunningTrack.friction)*TotalMassxg) then begin PosRatio:=0; tmp:=4; SandDoseOn; end;//przeciwposlizg
-         if (abs((PosRatio+9.80*dizel_fill)*dmoment*100)>Adhesive(RunningTrack.friction)*TotalMassxg) then begin PosRatio:=0; tmp:=9; SandDoseOn; end;//przeciwposlizg
+         if (abs((PosRatio+9.66*dizel_fill)*dmoment*100)>0.95*Adhesive(RunningTrack.friction)*TotalMassxg) then begin PosRatio:=0; tmp:=4; SandDoseOn; end;//przeciwposlizg
+         if (abs((PosRatio+9.80*dizel_fill)*dmoment*100)>0.95*Adhesive(RunningTrack.friction)*TotalMassxg) then begin PosRatio:=0; tmp:=9; SandDoseOn; end;//przeciwposlizg
          if (SlippingWheels) then begin PosRatio:=-PosRatio*0; tmp:=9; SandDoseOn; end;//przeciwposlizg
 
          dizel_fill:=dizel_fill+Max0R(Min0R(PosRatio-dizel_fill,0.1),-0.1)*2*(tmp{2{+4*byte(PosRatio<dizel_fill)})*dt; //wartoœæ zadana/procent czegoœ
@@ -4445,7 +4476,7 @@ begin
          else if (Voltage<EnginePowerSource.CollectorParameters.MaxV) then
            Vadd:=Vadd*(1-dt)
          else
-           Vadd:=Max0R(Vadd*(1-0.2*dt),0.02*(Voltage-EnginePowerSource.CollectorParameters.MaxV));
+           Vadd:=Max0R(Vadd*(1-0.2*dt),0.007*(Voltage-(EnginePowerSource.CollectorParameters.MaxV-100)));
          Itot:=eimv[eimv_Ipoj]*(0.01+Min0R(0.99,0.99-Vadd));
 
 
@@ -4950,7 +4981,7 @@ var b:byte;
 const Vepsilon=1e-5; Aepsilon=1e-3; //ASBSpeed=0.8;
 begin
     TotalCurrent:=0;
-    hvc:=Max0R(PantFrontVolt,PantRearVolt);
+    hvc:=Max0R(Max0R(PantFrontVolt,PantRearVolt),ElectricTraction.TractionVoltage);
     for b:=0 to 1 do //przekazywanie napiec
      if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then
       begin
@@ -5740,6 +5771,7 @@ begin
   for b:=0 to 25 do
     eimc[b]:=0;
   eimc[eimc_p_eped]:=1.5;
+  StopBrakeDecc:=0;  
 
   ScndInMain:=false;
 
@@ -6039,6 +6071,7 @@ Hamulec.SetASBP(MaxBrakePress[4]);
 
 case BrakeHandle of
   FV4a: Handle := TFV4aM.Create;
+  MHZ_EN57: Handle := TMHZ_EN57.Create;  
   FVel6: Handle := TFVel6.Create;
   testH: Handle := Ttest.Create;
   M394: Handle := TM394.Create;
@@ -6157,6 +6190,12 @@ end;
   if(TestFlag(BrakeDelays,bdelay_R))and not(TestFlag(BrakeDelays,bdelay_G))then
     BrakeDelayFlag:=bdelay_R;
 
+//ustawianie PS/PN/EP/MED
+  BrakeOpModeFlag:=bom_PN;
+  if (BrakeOpModes and bom_PS)>0 then BrakeOpModeFlag:=bom_PS;
+//  if (BrakeOpModes and bom_EP)>0 then BrakeOpModeFlag:=bom_EP;
+//  if (BrakeOpModes and bom_MED)>0 then BrakeOpModeFlag:=bom_MED;
+//
 //yB: jesli pojazdy nie maja zadeklarowanych czasow, to wsadz z przepisow +-16,(6)%
   for b:=1 to 4 do
    begin
@@ -6440,6 +6479,11 @@ function PowerDecode(s:string): TPowerType;
                                MaxH:=s2rE(DUE(ExtractKeyWord(lines,'MaxH=')));
                                CSW:=s2rE(DUE(ExtractKeyWord(lines,'CSW='))); //szerokoœæ czêœci roboczej
                                MaxV:=s2rE(DUE(ExtractKeyWord(lines,'MaxVoltage=')));
+                               s:=ExtractKeyWord(lines,'OverVoltProt='); //przekaŸnik nadnapiêciowy
+                               if s='Yes' then
+                                OVP:=1
+                               else
+                                OVP:=0; 
                                s:=ExtractKeyWord(lines,'MinV='); //napiêcie roz³¹czaj¹ce WS
                                if s='' then
                                 MinV:=0.5*MaxV //gdyby parametr nie podany
@@ -6968,6 +7012,10 @@ begin
                  else if s='GPR+Mg' then BrakeDelays:=bdelay_G+bdelay_P+bdelay_R+bdelay_M
                  else if s='PR+Mg' then BrakeDelays:=bdelay_P+bdelay_R+bdelay_M;
 
+                 s:=DUE(ExtractKeyWord(lines,'BrakeOpModes='));
+                 if s='PN' then BrakeOpModes:=bom_PS+bom_PN
+                 else if s='PNEPMED' then BrakeOpModes:=bom_PS+bom_PN+bom_EP+bom_MED;
+
 {                 else if s='DPR+Mg' then begin Brakedelays:=bdelay_R; BrakeMethod:=3; end
                  else if s='DGPR+Mg' then begin Brakedelays:=bdelay_G+bdelay_R; BrakeMethod:=3; end
                  else if s='DGPR' then begin Brakedelays:=bdelay_G+bdelay_R; BrakeMethod:=1; end
@@ -6979,6 +7027,7 @@ begin
                       if s='FV4a' then BrakeHandle:=FV4a
                  else if s='test' then BrakeHandle:=testH
                  else if s='D2' then BrakeHandle:=D2
+                 else if s='MHZ_EN57' then BrakeHandle:=MHZ_EN57                 
                  else if s='M394' then BrakeHandle:=M394
                  else if s='Knorr' then BrakeHandle:=Knorr
                  else if s='Westinghouse' then BrakeHandle:=West
@@ -7059,6 +7108,8 @@ begin
                FastSerialCircuit:=1
               else
                FastSerialCircuit:=0;
+              s:=ExtractKeyWord(lines,'SBD=');
+              StopBrakeDecc:=s2r(DUE(s));
 
               if BrakeCtrlPosNo>0 then
                for i:=0 to BrakeCtrlPosNo+1 do

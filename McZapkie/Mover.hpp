@@ -154,6 +154,7 @@ struct TCurrentCollector
 	double CSW;
 	double MinV;
 	double MaxV;
+	double OVP;
 	double InsetV;
 	double MinPress;
 	double MaxPress;
@@ -432,6 +433,7 @@ public:
 	Byte Lights[2][16];
 	bool ScndInMain;
 	bool MBrake;
+	double StopBrakeDecc;
 	TSecuritySystem SecuritySystem;
 	TScheme RList[65];
 	int RlistSize;
@@ -565,6 +567,8 @@ public:
 	bool EmergencyBrakeFlag;
 	Byte BrakeDelayFlag;
 	Byte BrakeDelays;
+	Byte BrakeOpModeFlag;
+	Byte BrakeOpModes;
 	bool DynamicBrakeFlag;
 	double LimPipePress;
 	double ActFlowSpeed;
@@ -883,6 +887,10 @@ static const Shortint eimv_Pmax = 0x11;
 static const Shortint eimv_Fzad = 0x12;
 static const Shortint eimv_Imax = 0x13;
 static const Shortint eimv_Fful = 0x14;
+static const Shortint bom_PS = 0x1;
+static const Shortint bom_PN = 0x2;
+static const Shortint bom_EP = 0x4;
+static const Shortint bom_MED = 0x8;
 extern PACKAGE double __fastcall Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension 
 	&Dim1, const TDimension &Dim2);
 

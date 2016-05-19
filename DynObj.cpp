@@ -2591,8 +2591,11 @@ bool TDynamicObject::Update(double dt, double dt1)
                             // inaczej
                             // if (NoVoltTime>0.02) //tu mo¿na ograniczyæ czas roz³¹czenia
                             // if (DebugModeFlag) //logowanie nie zawsze
-                            if (MoverParameters->Mains)
+                            if ((MoverParameters->Mains) &&
+                               ((MoverParameters->EngineType != ElectricInductionMotor)
+                                || (MoverParameters->GetTrainsetVoltage() < 0.1f)))
                             { // Ra 15-01: logowaæ tylko, jeœli WS za³¹czony
+                              // yB 16-03: i nie jest to asynchron zasilany z daleka 
                                 // if (MoverParameters->PantFrontUp&&pants)
                                 // Ra 15-01: bezwzglêdne wspó³rzêdne pantografu nie s¹ dostêpne,
                                 // wiêc lepiej siê tego nie zaloguje
@@ -2722,9 +2725,13 @@ bool TDynamicObject::Update(double dt, double dt1)
             if (((MoverParameters->ShuntMode) && (Frj < 0.0015 * masa)) ||
                 (MoverParameters->V * MoverParameters->DirAbsolute < -0.2))
             {
-                Fzad = Max0R(0.5 * masa, Fzad);
+                Fzad = Max0R(MoverParameters->StopBrakeDecc * masa, Fzad);
             }
-            FzadED = Min0R(Fzad, FmaxED);
+
+            if (MoverParameters->BrakeHandle == MHZ_EN57?MoverParameters->BrakeOpModeFlag & bom_MED:MoverParameters->EpFuse)
+              FzadED = Min0R(Fzad, FmaxED);
+            else
+              FzadED = 0;
             FzadPN = Fzad - FrED;
             //np = 0;
 			bool* PrzekrF = new bool[np];

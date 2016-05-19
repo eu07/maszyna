@@ -296,7 +296,7 @@ TYPE
       public
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
-        function GetEDBCP: real; override;   //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
+        function GetEDBCP: real; override;   //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
         procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
         procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej        
       end;  
@@ -417,6 +417,22 @@ TYPE
         function GetSound(i: byte): real; override;
         function GetPos(i: byte): real; override;
       end;
+
+    TMHZ_EN57= class(THandle)
+      private
+        CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
+        RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+        Fala: boolean;
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+        procedure SetReductor(nAdj: real); override;
+        function GetSound(i: byte): real; override;
+        function GetPos(i: byte): real; override;
+        function GetCP: real; override;
+        function GetEP(pos: real): real;
+      end;
+
 
 {    FBS2= class(THandle)
       private
@@ -707,7 +723,7 @@ var VtoC: real; //stosunek cisnienia do objetosci
 const
   VS = 0.005;
   pS = 0.05;
-  VD = 1.40;
+  VD = 1.10;
   cD = 1;
   pD = VD-cD;
 begin
@@ -2672,6 +2688,142 @@ const
   table: array[0..10] of real = (-2,6,-1,0,-2,1,4,6,0,0,0);
 begin
   GetPos:=table[i];
+end;
+
+//---FV4a/M--- nowonapisany kran bez poprawki IC
+
+function TMHZ_EN57.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+function LPP_RP(pos: real): real; //cisnienie z zaokraglonej pozycji;
+begin
+  if pos>8.5 then
+   LPP_RP:=5.0-0.15*pos-0.35
+  else  if pos>0.5 then
+   LPP_RP:=5.0-0.15*pos-0.1
+  else
+   LPP_RP:=5.0
+end;
+function EQ(pos: real; i_pos: real): boolean;
+begin
+  EQ:=(pos<=i_pos+0.5)and(pos>i_pos-0.5);
+end;
+const
+  LBDelay = 100;
+var
+  LimPP, dpPipe, dpMainValve, ActFlowSpeed, dp: real;
+  pom: real;
+  i: byte;
+begin
+
+          for i:=0 to 4 do
+            Sounds[i]:=0;
+          dp:=0;
+
+          i_bcp:=Max0R(Min0R(i_bcp,9.999),-0.999); //na wszelki wypadek, zeby nie wyszlo poza zakres
+
+          if(tp>0)then
+           begin
+            dp:=0.045;
+            if EQ(i_bcp,0) then
+              tp:=tp-dp*dt;
+            Sounds[s_fv4a_t]:=dp;
+           end
+          else
+           begin
+            tp:=0;
+           end;
+
+          Limpp:=Min0R(LPP_RP(i_bcp)+tp*0.08+RedAdj,HP); //pozycja + czasowy lub zasilanie
+          ActFlowSpeed:=4;
+
+          if(EQ(i_bcp,-1))then pom:=Min0R(HP,5.4+RedAdj) else pom:=Min0R(cp,HP);
+
+          if(Limpp>cp)then //podwyzszanie szybkie
+            cp:=cp+60*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+          else
+            cp:=cp+13*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+
+          Limpp:=pom; //cp
+          if EQ(i_bcp,-1) then
+            dpPipe:=HP
+          else
+            dpPipe:=Min0R(HP,Limpp);
+
+          if dpPipe>pp then
+            dpMainValve:=-PFVa(HP,pp,ActFlowSpeed/(LBDelay),dpPipe,0.4)
+          else
+            dpMainValve:=PFVd(pp,0,ActFlowSpeed/(LBDelay),dpPipe,0.4);
+
+          if EQ(i_bcp,-1) then
+           begin
+            if(tp<5)then tp:=tp+dt; //5/10
+            if(tp<1)then tp:=tp-0.5*dt; //5/10            
+           end;
+
+          if(EQ(i_bcp,10))or(EQ(i_bcp,-2))then
+           begin
+            dp:=PF(0,pp,2*(ActFlowSpeed)/(LBDelay));
+            dpMainValve:=dp;
+            Sounds[s_fv4a_e]:=dp;
+            Sounds[s_fv4a_u]:=0;
+            Sounds[s_fv4a_b]:=0;
+            Sounds[s_fv4a_x]:=0;
+           end
+          else
+           begin
+            if dpMainValve>0 then
+              Sounds[s_fv4a_b]:=dpMainValve
+            else
+              Sounds[s_fv4a_u]:=-dpMainValve;
+           end;
+
+  if (i_bcp<1.5) then
+    RP:=Max0R(0,0.125*i_bcp)
+  else
+    RP:=Min0R(1,0.125*i_bcp-0.125);
+
+  GetPF:=dpMainValve*dt;
+end;
+
+procedure TMHZ_EN57.Init(press: real);
+begin
+  CP:= press;
+  TP:= 0;
+  RP:= 0;
+  Time:=false;
+  TimeEP:=false;
+end;
+
+procedure TMHZ_EN57.SetReductor(nAdj: real);
+begin
+  RedAdj:= nAdj;
+end;
+
+function TMHZ_EN57.GetSound(i: byte): real;
+begin
+  if i>4 then
+    GetSound:=0
+  else
+    GetSound:=Sounds[i];
+end;
+
+function TMHZ_EN57.GetPos(i: byte): real;
+const
+  table: array[0..10] of real = (-2,10,-1,0,0,2,9,10,0,0,0);
+begin
+  GetPos:=table[i];
+end;
+
+function TMHZ_EN57.GetCP: real;
+begin
+  GetCP:=RP;
+end;
+
+function TMHZ_EN57.GetEP(pos: real): real;
+begin
+  if pos<9.5 then
+    GetEP:=Min0R(Max0R(0,0.125*pos),1)
+  else
+    GetEP:=0;  
 end;
 
 //---M394--- Matrosow
