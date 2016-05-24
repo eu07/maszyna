@@ -288,12 +288,12 @@ void Console::ValueSet(int x, double y)
     if (iMode == 4)
         if (PoKeys55[0])
         {
-            if (x == 7)
-            {
-                PoKeys55[0]->PoExtUpdate(8, y);
-            } // nbmx: wal kulakowy
-            else
-            {
+            //if (x == 7)
+            //{
+            //    PoKeys55[0]->PoExtUpdate(8, y);
+            //} // nbmx: wal kulakowy
+            //else
+            //{
 				if (Global::iCalibrateOutDebugInfo == x)
 					WriteLog("CalibrateOutDebugInfo: oryginal=" + AnsiString(y), false);
 				if (Global::fCalibrateOutMax[x] > 0)
@@ -312,11 +312,11 @@ void Console::ValueSet(int x, double y)
 				if (Global::iCalibrateOutDebugInfo == x)
 					WriteLog(" calibrated=" + AnsiString(temp));
 				PoKeys55[0]->PWM(x, temp); 
-				if (x == 6)
-				{
-					PoKeys55[0]->PoExtUpdate(9, temp); //dodatkowo hasler na PoExt
-				}
-			}
+				//if (x == 6)
+				//{
+				//	PoKeys55[0]->PoExtUpdate(9, temp); //dodatkowo hasler na PoExt
+				//}
+			//}
         }
 };
 

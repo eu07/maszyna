@@ -11,7 +11,11 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 */
-
+/*
+Authors:
+MarcinW, McZapkie, Shaxbee, ABu, nbmx, youBy, Ra, winger, mamut, Q424,
+Stele, firleju, szociu, hunter, ZiomalCl and others
+*/
 #include "opengl/glew.h"
 #include "opengl/glut.h"
 #include "opengl/ARB_Multisample.h"

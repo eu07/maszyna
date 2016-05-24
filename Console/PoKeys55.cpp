@@ -389,8 +389,8 @@ bool TPoKeys55::Update(bool pause)
         // powinno jeszcze przyjœæ potwierdzenie o kodzie 0x41
         break;
 	case 4: //ustawienie
-		if (PoExtWrite(PoExt))
-			iRepeats = 0; //informacja, ¿e posz³o dobrze
+		//if (PoExtWrite(PoExt))
+		//	iRepeats = 0; //informacja, ¿e posz³o dobrze
 		iFaza = 0; //++iFaza; //ta faza zosta³a zakoñczona
 		break;
 	default:

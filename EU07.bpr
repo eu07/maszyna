@@ -57,9 +57,9 @@
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=15
-MinorVer=4
-Release=1171
+MajorVer=16
+MinorVer=0
+Release=1172
 Build=475
 Debug=1
 PreRelease=0
@@ -72,14 +72,21 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=15.4.1171.475
-InternalName=9th by firleju + Ra + SPKS + MP
+FileVersion=16.0.1172.475
+InternalName=10th exe + SPKS + asynch + python
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=15.4
+ProductVersion=16.0
 Comments=
+
+[Excluded Packages]
+$(BCB)\Bin\bcbsmp50.bpl=Borland C++ Sample Components
+$(BCB)\Bin\dclqrt50.bpl=QuickReport Components
+C:\Windows\system32\ibsmp50.bpl=Borland C++ InterBase Alerter Component
+$(BCB)\Bin\dcltee50.bpl=TeeChart 5.0 Components
+$(BCB)\Bin\applet50.bpl=Borland Control Panel Applet Package
 
 [HistoryLists\hlIncludePath]
 Count=2
