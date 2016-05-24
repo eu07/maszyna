@@ -235,9 +235,9 @@ bool TMoverParameters::IncBrakeLevel()
 };
 
 bool TMoverParameters::DecBrakeLevel()
-{
+{ // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
     return BrakeLevelAdd(-1.0);
-}; // nowa wersja na u¿ytek AI, false gdy osi¹gniêto pozycjê -1
+};
 
 bool TMoverParameters::ChangeCab(int direction)
 { // zmiana kabiny i resetowanie ustawien
@@ -625,8 +625,8 @@ double TMoverParameters::ShowEngineRotation(int VehN)
 
 void TMoverParameters::ConverterCheck()
 { // sprawdzanie przetwornicy
-    if (ConverterAllow && Mains)
-        ConverterFlag = true;
+	if (ConverterAllow && Mains && !ConvOvldFlag)
+		ConverterFlag = true;
     else
         ConverterFlag = false;
 };

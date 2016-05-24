@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 
 std::ofstream output; // standardowy "log.txt", mo¿na go wy³¹czyæ
 std::ofstream errors; // lista b³êdów "errors.txt", zawsze dzia³a
+std::ofstream comms; // lista komunikatow "comms.txt", mo¿na go wy³¹czyæ
 
 char endstring[10] = "\n";
 
@@ -33,14 +34,15 @@ void WriteConsoleOnly(const char *str, double value)
     // WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
 }
 
-void WriteConsoleOnly(const char *str)
+void WriteConsoleOnly(const char *str, bool newline)
 {
     // printf("%n ffafaf /n",str);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
                             FOREGROUND_GREEN | FOREGROUND_INTENSITY);
     DWORD wr = 0;
     WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), str, strlen(str), &wr, NULL);
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
+	if (newline)
+		WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
 }
 
 void WriteLog(const char *str, double value)
@@ -55,7 +57,7 @@ void WriteLog(const char *str, double value)
         }
     }
 };
-void WriteLog(const char *str)
+void WriteLog(const char *str, bool newline)
 {
     if (str)
     {
@@ -63,12 +65,14 @@ void WriteLog(const char *str)
         {
             if (!output.is_open())
                 output.open("log.txt", std::ios::trunc);
-            output << str << "\n";
+			output << str;
+			if (newline)
+				output << "\n";
             output.flush();
         }
         // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
         if (Global::iWriteLogEnabled & 2)
-            WriteConsoleOnly(str);
+            WriteConsoleOnly(str, newline);
     }
 };
 void ErrorLog(const char *str)
@@ -96,10 +100,33 @@ void ErrorLog(const AnsiString &asMessage)
     WriteLog(asMessage.c_str()); // do "log.txt" ewentualnie te¿
 }
 
-void WriteLog(const AnsiString &str)
+void WriteLog(const AnsiString &str, bool newline)
 { // Ra: wersja z AnsiString jest zamienna z Error()
-    WriteLog(str.c_str());
+    WriteLog(str.c_str(), newline);
 };
+
+void CommLog(const char *str)
+{ // Ra: warunkowa rejestracja komunikatów
+	WriteLog(str);
+	/*    if (Global::iWriteLogEnabled & 4)
+	{
+	if (!comms.is_open())
+	{
+	comms.open("comms.txt", std::ios::trunc);
+	comms << AnsiString("EU07.EXE " + Global::asRelease).c_str() << "\n";
+	}
+	if (str)
+	comms << str;
+	comms << "\n";
+	comms.flush();
+	}*/
+};
+
+void CommLog(const AnsiString &str)
+{ // Ra: wersja z AnsiString jest zamienna z Error()
+	CommLog(str.c_str());
+};
+
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)

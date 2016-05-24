@@ -169,7 +169,7 @@ class TMoverParameters : public T_MoverParameters
     // &Track, const
     //	TLocation &NewLoc, TRotation &NewRot);
     // bool ChangeOffsetH(double DeltaOffset);
-    //__fastcall T_MoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
+    // T_MoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit,
     // int LoadInitial
     //	, AnsiString LoadTypeInitial, int Cab);
     // bool LoadChkFile(AnsiString chkpath);

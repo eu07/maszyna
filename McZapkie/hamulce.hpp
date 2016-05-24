@@ -322,11 +322,17 @@ private:
 	bool Zamykajacy;
 	bool Przys_blok;
 	TReservoir* Miedzypoj;
+	double TareM;
+	double LoadM;
+	double TareBP;
+	double LoadC;
 	
 public:
 	virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, Byte BDF);
 	virtual double __fastcall GetPF(double PP, double dt, double Vel);
 	virtual double __fastcall GetEDBCP(void);
+	void __fastcall PLC(double mass);
+	void __fastcall SetLP(double TM, double LM, double TBP);
 public:
 	#pragma option push -w-inl
 	/* TBrake.Create */ inline __fastcall TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc
@@ -584,6 +590,37 @@ public:
 };
 
 
+class DELPHICLASS TMHZ_EN57;
+class PASCALIMPLEMENTATION TMHZ_EN57 : public THandle 
+{
+	typedef THandle inherited;
+	
+private:
+	double CP;
+	double TP;
+	double RP;
+	double RedAdj;
+	bool Fala;
+	
+public:
+	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
+	virtual void __fastcall Init(double press);
+	virtual void __fastcall SetReductor(double nAdj);
+	virtual double __fastcall GetSound(Byte i);
+	virtual double __fastcall GetPos(Byte i);
+	virtual double __fastcall GetCP(void);
+	double __fastcall GetEP(double pos);
+public:
+	#pragma option push -w-inl
+	/* TObject.Create */ inline __fastcall TMHZ_EN57(void) : THandle() { }
+	#pragma option pop
+	#pragma option push -w-inl
+	/* TObject.Destroy */ inline __fastcall virtual ~TMHZ_EN57(void) { }
+	#pragma option pop
+	
+};
+
+
 class DELPHICLASS TM394;
 class PASCALIMPLEMENTATION TM394 : public THandle 
 {
@@ -692,9 +729,11 @@ private:
 	double BP;
 	
 public:
+	double Speed;
 	virtual double __fastcall GetPF(double i_bcp, double pp, double hp, double dt, double ep);
 	virtual void __fastcall Init(double press);
 	virtual double __fastcall GetCP(void);
+	void __fastcall SetSpeed(double nSpeed);
 public:
 	#pragma option push -w-inl
 	/* TObject.Create */ inline __fastcall TFD1(void) : THandle() { }
@@ -802,6 +841,7 @@ static const Shortint bp_PKPBgu = 0xe;
 static const Byte bp_MHS = 0x80;
 static const Shortint bp_P10yBg = 0xf;
 static const Shortint bp_P10yBgu = 0x10;
+static const Shortint bp_FR510 = 0x11;
 static const Shortint sf_Acc = 0x1;
 static const Shortint sf_BR = 0x2;
 static const Shortint sf_CylB = 0x4;

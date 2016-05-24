@@ -680,7 +680,7 @@ double TTraction::VoltageGet(double u, double i)
     // 1. zasilacz psPower[0] z rezystancj¹ fResistance[0] oraz jego wewnêtrzn¹
     // 2. zasilacz psPower[1] z rezystancj¹ fResistance[1] oraz jego wewnêtrzn¹
     // 3. zasilacz psPowered z jego wewnêtrzn¹ rezystancj¹ dla przêse³ zasilanych bezpoœrednio
-    double res = (i != 0.0) ? fabs(u / i) : 10000.0;
+    double res = (i != 0.0) ? (u / i) : 10000.0;
     if (psPowered)
         return psPowered->CurrentGet(res) *
                res; // yB: dla zasilanego nie baw siê w gwiazdy, tylko bierz bezpoœrednio

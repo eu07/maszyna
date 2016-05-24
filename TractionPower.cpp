@@ -28,7 +28,7 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-TTractionPowerSource::TTractionPowerSource()
+TTractionPowerSource::TTractionPowerSource(TGroundNode *node)
 {
     NominalVoltage = 0;
     VoltageFrequency = 0;
@@ -49,6 +49,7 @@ TTractionPowerSource::TTractionPowerSource()
     psNode[0] = NULL; // sekcje zostan¹ pod³¹czone do zasilaczy
     psNode[1] = NULL;
     bSection = false; // sekcja nie jest Ÿród³em zasilania, tylko grupuje przês³a
+	gMyNode = node;
 };
 
 TTractionPowerSource::~TTractionPowerSource(){};
@@ -62,7 +63,7 @@ void TTractionPowerSource::Init(double u, double i)
 
 bool TTractionPowerSource::Load(cParser *parser)
 {
-    std::string token;
+	std::string token;
     // AnsiString str;
     // str= Parser->GetNextSymbol()LowerCase();
     // asName= str;
@@ -98,7 +99,10 @@ bool TTractionPowerSource::Render()
 
 bool TTractionPowerSource::Update(double dt)
 { // powinno byæ wykonane raz na krok fizyki
-    if (NominalVoltage * TotalPreviousAdmitance >
+  //    if (NominalVoltage * TotalPreviousAdmitance >
+  //        MaxOutputCurrent * 0.00000005) // iloczyn napiêcia i admitancji daje pr¹d
+  //        ErrorLog("Power overload: \"" + gMyNode->asName + "\" with current " + AnsiString(NominalVoltage * TotalPreviousAdmitance) + "A");
+	if (NominalVoltage * TotalPreviousAdmitance >
         MaxOutputCurrent) // iloczyn napiêcia i admitancji daje pr¹d
     {
         FastFuse = true;
@@ -145,14 +149,15 @@ double TTractionPowerSource::CurrentGet(double res)
             FuseTimer = 0;
         return 0;
     }
-    if ((res > 0) || ((res < 0) && (Recuperation)))
-        TotalAdmitance +=
+	if ((res > 0) || ((res < 0) && (Recuperation || true)))
+		TotalAdmitance +=
             1.0 / res; // po³¹czenie równoleg³e rezystancji jest równowa¿ne sumie admitancji
-    TotalCurrent = (TotalPreviousAdmitance != 0.0) ?
-                       NominalVoltage / (InternalRes + 1.0 / TotalPreviousAdmitance) :
-                       0.0; // napiêcie dzielone przez sumê rezystancji wewnêtrznej i obci¹¿enia
-    OutputVoltage = NominalVoltage - InternalRes * TotalCurrent; // napiêcie na obci¹¿eniu
-    return TotalCurrent / (res * TotalPreviousAdmitance); // pr¹d proporcjonalny do udzia³u (1/res)
+	float NomVolt = (TotalPreviousAdmitance < 0 ? NominalVoltage * 1.083 : NominalVoltage);
+	TotalCurrent = (TotalPreviousAdmitance != 0.0) ?
+		NomVolt / (InternalRes + 1.0 / TotalPreviousAdmitance) :
+		0.0; // napiêcie dzielone przez sumê rezystancji wewnêtrznej i obci¹¿enia
+	OutputVoltage = NomVolt - InternalRes * TotalCurrent; // napiêcie na obci¹¿eniu
+	return TotalCurrent / (res * TotalPreviousAdmitance); // pr¹d proporcjonalny do udzia³u (1/res)
     // w ca³kowitej admitancji
 };
 

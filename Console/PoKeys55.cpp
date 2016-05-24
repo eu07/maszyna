@@ -34,7 +34,8 @@ TPoKeys55::TPoKeys55()
     fAnalog[0] = fAnalog[1] = fAnalog[2] = fAnalog[3] = fAnalog[4] = fAnalog[5] = fAnalog[6] = -1.0;
     iPWM[0] = iPWM[1] = iPWM[2] = iPWM[3] = iPWM[4] = iPWM[5] = iPWM[6] = 0;
     iPWM[7] = 4096;
-    iInputs[0] = 0; // czy normalnie s¹ w stanie wysokim?
+	PoExt[0] = PoExt[1] = PoExt[2] = PoExt[3] = PoExt[4] = PoExt[5] = PoExt[6] = PoExt[7] = PoExt[8] = PoExt[9] = PoExt[10] = 0;
+	iInputs[0] = 0; // czy normalnie s¹ w stanie wysokim?
     iRepeats = 0;
     bNoError = true;
 };
@@ -229,6 +230,30 @@ bool TPoKeys55::Write(unsigned char c, unsigned char b3, unsigned char b4, unsig
     return (BytesWritten == 65);
     // Read(); //odczyt trzeba zrobiæ inaczej - w tym miejscu bêdzie za szybko i nic siê nie odczyta
 }
+
+bool TPoKeys55::PoExtWrite(unsigned char *c)
+{
+	DWORD BytesWritten = 0;
+	OutputBuffer[0] = 0;    //The first byte is the "Report ID" and does not get transmitted over the USB bus. Always set=0.
+	OutputBuffer[1] = 0xBB; //0xBB - bajt rozpoznawczy dla PoKeys55
+	OutputBuffer[2] = iLastCommand = 0xDA;    //operacja: 0xDA PoExt
+	OutputBuffer[3] = 1;   //1 = enable PoExt
+	OutputBuffer[4] = 0;   // Connector selection 0: dedicated , 1: normal pins
+	OutputBuffer[5] = 0;
+	OutputBuffer[6] = 0;
+	OutputBuffer[7] = ++cRequest; //numer ¿¹dania
+	OutputBuffer[8] = 0;
+	for (int i = 0; i<10; ++i)
+		OutputBuffer[9 + i] = c[i];
+	for (int i = 0; i<8; ++i)
+		OutputBuffer[8] += OutputBuffer[i]; //czy sumowaæ te¿ od 9 do 64?
+											//The basic Windows I/O functions WriteFile() and ReadFile() can be used to read and write to HID class USB devices
+											//(once we have the read and write handles to the device, which are obtained with CreateFile()).
+											//The following call to WriteFile() sends 64 bytes of data to the USB device.
+	WriteFile(WriteHandle, &OutputBuffer, 65, &BytesWritten, 0); //Blocking function, unless an "overlapped" structure is used
+	return (BytesWritten == 65);
+	//Read(); //odczyt trzeba zrobiæ inaczej - w tym miejscu bêdzie za szybko i nic siê nie odczyta
+}
 //---------------------------------------------------------------------------
 
 bool TPoKeys55::Read()
@@ -297,6 +322,13 @@ bool TPoKeys55::PWM(int x, float y)
     return true;
 }
 
+bool TPoKeys55::PoExtUpdate(int x, char y)
+{//ustawienie wskazanego PWM (@12Mhz: 12000=1ms=1000Hz)
+ //iPWM[7]=1024; //1024==85333.3333333333ns=11718.75Hz
+	PoExt[x] = y & 0x0FF; //0x0FF=256
+	return true;
+}
+
 bool TPoKeys55::Update(bool pause)
 { // funkcja powinna byæ wywo³ywana regularnie, np. raz w ka¿dej ramce ekranowej
     if (pause)
@@ -353,10 +385,15 @@ bool TPoKeys55::Update(bool pause)
     case 3: // ustawienie wyjœæ analogowych, 0..4095 mapowaæ na 0..65520 (<<4)
         if (Write(0x41, 43 - 1, (iPWM[6] >> 4), (iPWM[6] << 4))) // wys³anie ustawieñ
             iRepeats = 0; // informacja, ¿e posz³o dobrze
-        iFaza = 0; //++iFaza; //ta faza zosta³a zakoñczona
+        iFaza = 4; //++iFaza; //ta faza zosta³a zakoñczona
         // powinno jeszcze przyjœæ potwierdzenie o kodzie 0x41
         break;
-    default:
+	case 4: //ustawienie
+		//if (PoExtWrite(PoExt))
+		//	iRepeats = 0; //informacja, ¿e posz³o dobrze
+		iFaza = 0; //++iFaza; //ta faza zosta³a zakoñczona
+		break;
+	default:
         iFaza = 0; // na wypadek, gdyby zb³¹dzi³o po jakichœ zmianach w kodzie
         // iRepeats=0;
     }

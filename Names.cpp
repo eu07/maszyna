@@ -69,13 +69,13 @@ void ItemRecord::ListGet(ItemRecord *r, int *&n)
         rNext->ListGet(r, n); // dodanie wszystkich póŸniejszych
 };
 
-void *__fastcall ItemRecord::TreeFind(const char *n)
+void * ItemRecord::TreeFind(const char *n)
 { // wyszukanie ci¹gu (n)
     ItemRecord *r = TreeFindRecord(n);
     return r ? r->pData : NULL;
 };
 
-ItemRecord *__fastcall ItemRecord::TreeFindRecord(const char *n)
+ItemRecord * ItemRecord::TreeFindRecord(const char *n)
 { // wyszukanie ci¹gu (n)
     ItemRecord *r = this; //¿eby nie robiæ rekurencji
     int i = 0;
@@ -147,7 +147,7 @@ bool TNames::Update(int t, const char *n, void *d)
     return false; // zosta³ dodany nowy
 };
 
-ItemRecord *__fastcall TNames::TreeSet(int *n, int d, int u)
+ItemRecord * TNames::TreeSet(int *n, int d, int u)
 { // rekurencyjne wype³nianie drzewa pozycjami od (d) do (u)
     if (d == u)
     {
@@ -177,7 +177,7 @@ void TNames::Sort(int t)
     return;
 };
 
-ItemRecord *__fastcall TNames::FindRecord(const int t, const char *n)
+ItemRecord * TNames::FindRecord(const int t, const char *n)
 { // poszukiwanie rekordu w celu np. zmiany wskaŸnika
     return rTypes[t] ? rTypes[t]->TreeFindRecord(n) : NULL;
 };

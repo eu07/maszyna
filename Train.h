@@ -23,6 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "RealSound.h"
 #include "FadeSound.h"
+#include "PyInt.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -61,8 +62,8 @@ class TCab
     TButton *btList; // Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
     int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w u¿yciu
   public:
-    TGauge *__fastcall Gauge(int n = -1); // pobranie adresu obiektu
-    TButton *__fastcall Button(int n = -1); // pobranie adresu obiektu
+    TGauge * Gauge(int n = -1); // pobranie adresu obiektu
+    TButton * Button(int n = -1); // pobranie adresu obiektu
     void Update();
 };
 
@@ -94,9 +95,11 @@ class TTrain
     void UpdateMechPosition(double dt);
     bool Update();
     void MechStop();
-    //    virtual bool RenderAlpha();
+	void SetLights();
+	//    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(AnsiString asFileName);
+    PyObject *GetTrainState();
 
   private: //¿eby go nic z zewn¹trz nie przestawia³o
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -148,10 +151,11 @@ class TTrain
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
+	TGauge ggSandButton; //guzik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
-    TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i
-    // ogrzewania
+    TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania
+    // nadmiarowego przetwornic i ogrzewania
     TGauge ggStLinOffButton;
     TGauge ggRadioButton;
     TGauge ggUpperLightButton;
@@ -159,6 +163,7 @@ class TTrain
     TGauge ggRightLightButton;
     TGauge ggLeftEndLightButton;
     TGauge ggRightEndLightButton;
+	TGauge ggLightsButton;  //przelacznik reflektorow (wszystkich)    
 
     // hunter-230112: przelacznik swiatel tylnich
     TGauge ggRearUpperLightButton;
@@ -183,7 +188,8 @@ class TTrain
     TGauge ggUniversal4Button;
 
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
-    TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia oswietlenia kabiny
+    TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
+    // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftButton;
@@ -231,7 +237,8 @@ class TTrain
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
     TButton btLampkaUniversal3;
-    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
+    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic,
+    // 1-obw.gl, 2-przetw.
     bool LampkaUniversal3_st;
     TButton btLampkaWentZaluzje; // ET22
     TButton btLampkaOgrzewanieSkladu;
@@ -332,7 +339,8 @@ class TTrain
     // TFadeSound sConverter;  //przetwornica
     // TFadeSound sSmallCompressor;  //przetwornica
 
-    int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
+    int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1:
+    // przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 
@@ -354,6 +362,7 @@ class TTrain
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
+	float fLightsTimer; // yB 150617: timer do swiatel    
 
     int CAflag; // hunter-131211: dla osobnego zbijania CA i SHP
 
@@ -370,24 +379,42 @@ class TTrain
     float fTachoVelocityJump; // ze skakaniem
     float fTachoTimer;
     float fTachoCount;
-    float fHVoltage; // napiêcie dla dynamicznych ga³ek
-    float fHCurrent[4]; // pr¹dy: suma i amperomierze 1,2,3
-    float fEngine[4]; // obroty te?trzeba pobra?
-    // McZapkie: do syczenia
+    float fHVoltage; // napi?cie dla dynamicznych ga?ek
+    float fHCurrent[4]; // pr?dy: suma i amperomierze 1,2,3
+    float fEngine[4]; // obroty te? trzeba pobra?
+	int iCarNo, iPowerNo, iUnitNo; //liczba pojazdow, czlonow napednych i jednostek spiêtych ze sob¹
+	bool bDoors[20][3];     // drzwi dla wszystkich czlonow
+	int iUnits[20];     // numer jednostki
+	int iDoorNo[20];     // liczba drzwi
+	char cCode[20];     //kod pojazdu
+	AnsiString asCarName[20]; //nazwa czlonu
+	bool bMains[8]; //WSy
+	float fCntVol[8]; //napiecie NN
+	bool bPants[8][2]; //podniesienie pantografow
+	bool bFuse[8]; //nadmiarowe
+	bool bBatt[8]; //baterie
+	bool bConv[8]; //przetwornice
+	bool bComp[8][2]; //sprezarki
+	bool bHeat[8]; //grzanie
+	// McZapkie: do syczenia
     float fPPress, fNPress;
     float fSPPress, fSNPress;
-    int iSekunda; // Ra: sekunda aktualizacji prêdkoœci
-    int iRadioChannel; // numer aktualnego kana³u radiowego
+    int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
+    int iRadioChannel; // numer aktualnego kana?u radiowego
+    TPythonScreens pyScreens;
+
   public:
+	float fPress[20][3]; // cisnienia dla wszystkich czlonow  
+	float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel()
     {
         return iRadioChannel;
     };
-    inline TDynamicObject *__fastcall Dynamic()
+    inline TDynamicObject * Dynamic()
     {
         return DynamicObject;
     };
-    inline TMoverParameters *__fastcall Controlled()
+    inline TMoverParameters * Controlled()
     {
         return mvControlled;
     };

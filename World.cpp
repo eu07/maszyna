@@ -274,9 +274,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glLoadIdentity();
     // WriteLog("glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); ");
     // glClearColor (1.0, 0.0, 0.0, 0.0);                  // Background Color
-    // glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0);                  // Background
-    // Color
-    glClearColor(0.2, 0.4, 0.33, 1.0); // Background Color
+    // glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0);
+	// Background    // Color
+	glClearColor(Global::Background[0], Global::Background[1], Global::Background[2], 1.0); // Background Color
 
     WriteLog("glFogfv(GL_FOG_COLOR, FogColor);");
     glFogfv(GL_FOG_COLOR, FogColor); // Set Fog Color
@@ -664,7 +664,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
-    light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga.tga");
+    light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga2.tga");
     // Camera.Reset();
     ResetTimers();
     WriteLog("Load time: " + FloatToStrF((86400.0 * ((double)Now() - time)), ffFixed, 7, 1) +
@@ -846,8 +846,9 @@ void TWorld::OnKeyDown(int cKey)
     }
     else if (cKey == 3) //[Ctrl]+[Break]
     { // hamowanie wszystkich pojazdów w okolicy
-        Ground.RadioStop(Camera.Pos);
-    }
+		if (Controlled->MoverParameters->Radio)
+			Ground.RadioStop(Camera.Pos);
+	}
     else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
         if (Train)
             if (Controlled)
@@ -1496,44 +1497,52 @@ bool TWorld::Update()
                 // 3. jeœli smuga w³aczona, wyrenderowaæ pojazd u¿ytkownia po dodaniu smugi do sceny
                 if (Train->Controlled()->Battery)
                 { // trochê na skróty z t¹ bateri¹
-                    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
-                    //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
+					glBlendFunc(GL_DST_COLOR, GL_ONE);
+					//    glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+					//    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
+					//    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
                     //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
-                    glDisable(GL_DEPTH_TEST);
-                    glDisable(GL_LIGHTING);
+					glDepthFunc(GL_GEQUAL);
+					glAlphaFunc(GL_GREATER, 0.004);
+					// glDisable(GL_DEPTH_TEST);
+					glDisable(GL_LIGHTING);
                     glDisable(GL_FOG);
-                    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-                    glBindTexture(GL_TEXTURE_2D, light); // Select our texture
+					glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
+					glBindTexture(GL_TEXTURE_2D, light); // Select our texture
                     glBegin(GL_QUADS);
                     float fSmudge =
                         Train->Dynamic()->MoverParameters->DimHalf.y + 7; // gdzie zaczynaæ smugê
                     if (Train->Controlled()->iLights[0] & 21)
                     { // wystarczy jeden zapalony z przodu
-                        glTexCoord2f(0, 0);
-                        glVertex3f(15.0, 0.0, +fSmudge); // rysowanie wzglêdem po³o¿enia modelu
-                        glTexCoord2f(1, 0);
-                        glVertex3f(-15.0, 0.0, +fSmudge);
-                        glTexCoord2f(1, 1);
-                        glVertex3f(-15.0, 2.5, 250.0);
-                        glTexCoord2f(0, 1);
-                        glVertex3f(15.0, 2.5, 250.0);
-                    }
+						for (int i = 15; i <= 35; i++)
+						{
+							float z = i * i * i * 0.01f;//25/4;
+							float C = (36 - i*0.5)*0.05*0.1;
+							glColor4f(C, C, C, 0.25f);
+							glTexCoord2f(0, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
+							glTexCoord2f(1, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
+							glTexCoord2f(1, 1);  glVertex3f(10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
+							glTexCoord2f(0, 1);  glVertex3f(-10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
+						}
+					}
                     if (Train->Controlled()->iLights[1] & 21)
                     { // wystarczy jeden zapalony z ty³u
-                        glTexCoord2f(0, 0);
-                        glVertex3f(-15.0, 0.0, -fSmudge);
-                        glTexCoord2f(1, 0);
-                        glVertex3f(15.0, 0.0, -fSmudge);
-                        glTexCoord2f(1, 1);
-                        glVertex3f(15.0, 2.5, -250.0);
-                        glTexCoord2f(0, 1);
-                        glVertex3f(-15.0, 2.5, -250.0);
-                    }
+						for (int i = 15; i <= 35; i++)
+						{
+							float z = i * i * i * 0.01f;//25/4;
+							glTexCoord2f(0, 0);  glVertex3f(10 / 2 + 3 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
+							glTexCoord2f(1, 0);  glVertex3f(-10 / 2 - 3 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
+							glTexCoord2f(1, 1);  glVertex3f(-10 / 2 - 3 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
+							glTexCoord2f(0, 1);  glVertex3f(10 / 2 + 3 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
+						}
+					}
                     glEnd();
 
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    glEnable(GL_DEPTH_TEST);
-                    // glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
+					// glEnable(GL_DEPTH_TEST);
+					glAlphaFunc(GL_GREATER, 0.04);
+					glDepthFunc(GL_LEQUAL);
+					glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
                     glEnable(GL_FOG);
                 }
                 glEnable(GL_LIGHTING); // po renderowaniu smugi jest to wy³¹czone
@@ -1739,7 +1748,9 @@ bool TWorld::Update()
                 Train->Dynamic()->Controller = AIdriver;
                 // Train->Dynamic()->MoverParameters->SecuritySystem.Status=0; //rozwala CA w EZT
                 Train->Dynamic()->MoverParameters->ActiveCab = 0;
-                Train->Dynamic()->MoverParameters->BrakeLevelSet(-2);
+                Train->Dynamic()->MoverParameters->BrakeLevelSet(
+					Train->Dynamic()->MoverParameters->Handle->GetPos(
+						bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
                 Train->Dynamic()->MechInside = false;
             }
         // int CabNr;
@@ -1900,9 +1911,23 @@ bool TWorld::Update()
                 //          u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
                 //          OutText2+=AnsiString(",
                 //          N:")+FloatToStrF(tmp->MoverParameters->Ntotal,ffFixed,4,0);
-                OutText2 +=
-                    AnsiString(", Ft:") + FloatToStrF(tmp->MoverParameters->Ft, ffFixed, 4, 0);
-                //          OutText3= AnsiString("BP:
+				OutText2 += AnsiString(", MED:") +
+					FloatToStrF(tmp->MoverParameters->LocalBrakePosA, ffFixed, 6, 2);
+				OutText2 += AnsiString("+") + 
+					FloatToStrF(tmp->MoverParameters->AnPos, ffFixed, 6, 2);
+				OutText2 += AnsiString(", Ft:") +
+					FloatToStrF(tmp->MoverParameters->Ft * 0.001f, ffFixed, 4, 0);
+				OutText2 += AnsiString(", HV0:") +
+					FloatToStrF(tmp->MoverParameters->HVCouplers[0][1], ffFixed, 4, 0);
+				OutText2 += AnsiString("@") +
+					FloatToStrF(tmp->MoverParameters->HVCouplers[0][0], ffFixed, 4, 0);
+				OutText2 += AnsiString("+HV1:") +
+					FloatToStrF(tmp->MoverParameters->HVCouplers[1][1], ffFixed, 4, 0);
+				OutText2 += AnsiString("@") +
+					FloatToStrF(tmp->MoverParameters->HVCouplers[1][0], ffFixed, 4, 0);
+				OutText2 += AnsiString(" TC:") +
+					FloatToStrF(tmp->MoverParameters->TotalCurrent, ffFixed, 4, 0);
+				//          OutText3= AnsiString("BP:
                 //          ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(",
                 //          ");
                 //          OutText3+= AnsiString("PP:
@@ -2010,12 +2035,15 @@ bool TWorld::Update()
                         if (tmp->Mechanik->DrivigFlags() & j) // jak bit ustawiony
                             flags[i + 1] ^= 0x20; // to zmiana na wielk¹ literê
                     OutText4 = flags;
-                    OutText4 +=
-                        AnsiString("Driver: Vd=") +
-                        FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
-                        FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
-                        FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
-                        AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0);
+					OutText4 +=
+						AnsiString("Driver: Vd=") +
+						FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
+						FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
+						FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
+						AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0) +
+						AnsiString(" VSm=") + FloatToStrF(tmp->Mechanik->VelSignalLast, ffFixed, 4, 0) +
+						AnsiString(" VLm=") + FloatToStrF(tmp->Mechanik->VelLimitLast, ffFixed, 4, 0) +
+						AnsiString(" VRd=") + FloatToStrF(tmp->Mechanik->VelRoad, ffFixed, 4, 0);
                     if (tmp->Mechanik->VelNext == 0.0)
                         if (tmp->Mechanik->eSignNext)
                         { // jeœli ma zapamiêtany event semafora
@@ -2050,7 +2078,7 @@ bool TWorld::Update()
             { // ekran drugi, czyli tabelka skanowania AI
                 if (tmp->Mechanik) //¿eby by³a tabelka, musi byæ AI
                 { // tabelka jest na u¿ytek testuj¹cych scenerie, wiêc nie musi byæ "³adna"
-                    glColor3f(0.0f, 1.0f, 0.0f); // a, damy zielony
+                    glColor3f(1.0f, 1.0f, 1.0f); // a, damy zielony. GF: jednak bia³y
                     // glTranslatef(0.0f,0.0f,-0.50f);
                     glRasterPos2f(-0.25f, 0.20f);
                     // OutText1="Scan distance: "+AnsiString(tmp->Mechanik->scanmax)+", back:
@@ -2081,7 +2109,11 @@ bool TWorld::Update()
                         FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
                         FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
                         FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
-                        AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0);
+                        AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0) +
+						AnsiString("\n VSm=") + FloatToStrF(tmp->Mechanik->VelSignalLast, ffFixed, 4, 0) +
+						AnsiString(" VLm=") + FloatToStrF(tmp->Mechanik->VelLimitLast, ffFixed, 4, 0) +
+						AnsiString(" VRd=") + FloatToStrF(tmp->Mechanik->VelRoad, ffFixed, 4, 0) +
+						AnsiString(" VSig=") + FloatToStrF(tmp->Mechanik->VelSignal, ffFixed, 4, 0);
                     if (tmp->Mechanik->VelNext == 0.0)
                         if (tmp->Mechanik->eSignNext)
                         { // jeœli ma zapamiêtany event semafora
@@ -2196,8 +2228,10 @@ bool TWorld::Update()
                     FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega, ffFixed, 6, 3);
         OutText2 = AnsiString("HamZ=") +
                    FloatToStrF(Controlled->MoverParameters->fBrakeCtrlPos, ffFixed, 6, 1);
-        OutText2 += AnsiString("; HamP=") + AnsiString(Controlled->MoverParameters->LocalBrakePos);
-        // mvControlled->MainCtrlPos;
+		OutText2 += AnsiString("; HamP=") + AnsiString(mvControlled->LocalBrakePos);
+		OutText2 += AnsiString("/") +
+			FloatToStrF(Controlled->MoverParameters->LocalBrakePosA, ffFixed, 6, 2);
+		// mvControlled->MainCtrlPos;
         // if (mvControlled->MainCtrlPos<0)
         //    OutText2+= AnsiString("; nastawnik 0");
         //      if (mvControlled->MainCtrlPos>iPozSzereg)
@@ -2221,8 +2255,14 @@ bool TWorld::Update()
                     FloatToStrF(Controlled->MoverParameters->RunningShape.R, ffFixed, 4, 1);
         OutText2 += AnsiString(" An=") + FloatToStrF(Controlled->MoverParameters->AccN, ffFixed, 4,
                                                      2); // przyspieszenie poprzeczne
-        OutText2 += AnsiString("; As=") + FloatToStrF(Controlled->MoverParameters->AccS, ffFixed, 4,
-                                                      2); // przyspieszenie wzd³u¿ne
+		if (tprev != int(GlobalTime->mr))
+		{
+			tprev = GlobalTime->mr;
+			Acc = (Controlled->MoverParameters->Vel - VelPrev) / 3.6;
+			VelPrev = Controlled->MoverParameters->Vel;
+		}
+		OutText2 += AnsiString("; As=") + FloatToStrF(Acc/*Controlled->MoverParameters->AccS*/, ffFixed, 4,
+			2); // przyspieszenie wzd³u¿ne
         // OutText2+=AnsiString("; P=")+FloatToStrF(mvControlled->EnginePower,ffFixed,6,1);
         OutText3 += AnsiString("cyl.ham. ") +
                     FloatToStrF(Controlled->MoverParameters->BrakePress, ffFixed, 5, 2);
@@ -2234,32 +2274,53 @@ bool TWorld::Update()
         OutText3 += AnsiString("; p.zas. ") +
                     FloatToStrF(Controlled->MoverParameters->ScndPipePress, ffFixed, 6, 2);
 
-        if (Controlled->MoverParameters->EngineType == ElectricInductionMotor)
-        {
-            // glTranslatef(0.0f,0.0f,-0.50f);
-            glColor3f(1.0f, 1.0f, 1.0f); // a, damy bia³ym
-            for (int i = 0; i <= 20; i++)
-            {
-                glRasterPos2f(-0.25f, 0.16f - 0.01f * i);
-                if (Controlled->MoverParameters->eimc[i] < 10)
-                    OutText4 = FloatToStrF(Controlled->MoverParameters->eimc[i], ffFixed, 6, 3);
-                else
-                    OutText4 = FloatToStrF(Controlled->MoverParameters->eimc[i], ffGeneral, 5, 3);
-                glPrint(OutText4.c_str());
-            }
-            for (int i = 0; i <= 20; i++)
-            {
-                glRasterPos2f(-0.2f, 0.16f - 0.01f * i);
-                if (Controlled->MoverParameters->eimv[i] < 10)
-                    OutText4 = FloatToStrF(Controlled->MoverParameters->eimv[i], ffFixed, 6, 3);
-                else
-                    OutText4 = FloatToStrF(Controlled->MoverParameters->eimv[i], ffGeneral, 5, 3);
-                glPrint(OutText4.c_str());
-            }
-            OutText4 = "";
-            // glTranslatef(0.0f,0.0f,+0.50f);
-            glColor3f(1.0f, 0.0f, 0.0f); // a, damy czerwonym
-        }
+		if (Controlled->MoverParameters->EngineType == ElectricInductionMotor)
+		{
+			// glTranslatef(0.0f,0.0f,-0.50f);
+			glColor3f(1.0f, 1.0f, 1.0f); // a, damy bia³ym
+			for (int i = 0; i <= 20; i++)
+			{
+				glRasterPos2f(-0.25f, 0.16f - 0.01f * i);
+				if (Controlled->MoverParameters->eimc[i] < 10)
+					OutText4 = FloatToStrF(Controlled->MoverParameters->eimc[i], ffFixed, 6, 3);
+				else
+					OutText4 = FloatToStrF(Controlled->MoverParameters->eimc[i], ffGeneral, 5, 3);
+				glPrint(OutText4.c_str());
+			}
+			for (int i = 0; i <= 20; i++)
+			{
+				glRasterPos2f(-0.2f, 0.16f - 0.01f * i);
+				if (Controlled->MoverParameters->eimv[i] < 10)
+					OutText4 = FloatToStrF(Controlled->MoverParameters->eimv[i], ffFixed, 6, 3);
+				else
+					OutText4 = FloatToStrF(Controlled->MoverParameters->eimv[i], ffGeneral, 5, 3);
+				glPrint(OutText4.c_str());
+			}
+			for (int i = 0; i <= 10; i++)
+			{
+				glRasterPos2f(-0.15f, 0.16f - 0.01f * i);
+				OutText4 = FloatToStrF(Train->fPress[i][0], ffFixed, 6, 3);
+				glPrint(OutText4.c_str());
+			}
+			for (int i = 0; i <= 8; i++)
+			{
+				glRasterPos2f(-0.15f, 0.04f - 0.01f * i);
+				OutText4 = FloatToStrF(Controlled->MED[0][i], ffFixed, 6, 3);
+				glPrint(OutText4.c_str());
+			}
+			for (int i = 0; i <= 8; i++)
+			{
+				for (int j = 0; j <= 9; j++)
+				{
+					glRasterPos2f(0.05f + 0.03f * i, 0.16f - 0.01f * j);
+					OutText4 = FloatToStrF(Train->fEIMParams[i][j], ffGeneral, 4, 2);
+					glPrint(OutText4.c_str());
+				}
+			}
+			OutText4 = "";
+			// glTranslatef(0.0f,0.0f,+0.50f);
+			glColor3f(1.0f, 0.0f, 0.0f); // a, damy czerwonym
+		}
 
         // ABu: testy sprzegow-> (potem przeniesc te zmienne z public do protected!)
         // OutText3+=AnsiString("; EnginePwr=")+FloatToStrF(mvControlled->EnginePower,ffFixed,1,5);
@@ -2685,12 +2746,16 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         switch (pRozkaz->iComm)
         {
         case 0: // odes³anie identyfikatora wersji
-            Ground.WyslijString(Global::asVersion, 0); // przedsatwienie siê
+			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " version" + " rcvd");
+			Ground.WyslijString(Global::asVersion, 0); // przedsatwienie siê
             break;
         case 1: // odes³anie identyfikatora wersji
-            Ground.WyslijString(Global::szSceneryFile, 1); // nazwa scenerii
+			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " scenery" + " rcvd");
+			Ground.WyslijString(Global::szSceneryFile, 1); // nazwa scenerii
             break;
         case 2: // event
+            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
+                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
             if (Global::iMultiplayer)
             { // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
                 TEvent *e = Ground.FindEvent(
@@ -2707,6 +2772,10 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             {
                 int i =
                     int(pRozkaz->cString[8]); // d³ugoœæ pierwszego ³añcucha (z przodu dwa floaty)
+                CommLog(
+                    AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
+                    AnsiString(pRozkaz->cString + 11 + i, (unsigned)(pRozkaz->cString[10 + i])) +
+                    " rcvd");
                 TGroundNode *t = Ground.DynamicFind(
                     AnsiString(pRozkaz->cString + 11 + i,
                                (unsigned)pRozkaz->cString[10 + i])); // nazwa pojazdu jest druga
@@ -2722,6 +2791,8 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             break;
         case 4: // badanie zajêtoœci toru
         {
+            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
+                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
             TGroundNode *t = Ground.FindGroundNode(
                 AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])), TP_TRACK);
             if (t)
@@ -2731,19 +2802,22 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         break;
         case 5: // ustawienie parametrów
         {
-            if (*pRozkaz->iPar & 1) // ustawienie czasu
-            {
-                double t = pRozkaz->fPar[1];
-                GlobalTime->dd = floor(t); // niby nie powinno byæ dnia, ale...
-                if (Global::fMoveLight >= 0)
-                    Global::fMoveLight = t; // trzeba by deklinacjê S³oñca przeliczyæ
-                GlobalTime->hh = floor(24 * t) - 24.0 * GlobalTime->dd;
-                GlobalTime->mm =
-                    floor(60 * 24 * t) - 60.0 * (24.0 * GlobalTime->dd + GlobalTime->hh);
-                GlobalTime->mr =
-                    floor(60 * 60 * 24 * t) -
-                    60.0 * (60.0 * (24.0 * GlobalTime->dd + GlobalTime->hh) + GlobalTime->mm);
-            }
+            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " params " +
+                    IntToStr(*pRozkaz->iPar) + " rcvd");
+            if (*pRozkaz->iPar == 0) // sprawdzenie czasu
+                if (*pRozkaz->iPar & 1) // ustawienie czasu
+                {
+                    double t = pRozkaz->fPar[1];
+                    GlobalTime->dd = floor(t); // niby nie powinno byæ dnia, ale...
+                    if (Global::fMoveLight >= 0)
+                        Global::fMoveLight = t; // trzeba by deklinacjê S³oñca przeliczyæ
+                    GlobalTime->hh = floor(24 * t) - 24.0 * GlobalTime->dd;
+                    GlobalTime->mm =
+                        floor(60 * 24 * t) - 60.0 * (24.0 * GlobalTime->dd + GlobalTime->hh);
+                    GlobalTime->mr =
+                        floor(60 * 60 * 24 * t) -
+                        60.0 * (60.0 * (24.0 * GlobalTime->dd + GlobalTime->hh) + GlobalTime->mm);
+                }
             if (*pRozkaz->iPar & 2)
             { // ustawienie flag zapauzowania
                 Global::iPause = pRozkaz->fPar[2]; // zak³adamy, ¿e wysy³aj¹cy wie, co robi
@@ -2753,6 +2827,9 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         case 6: // pobranie parametrów ruchu pojazdu
             if (Global::iMultiplayer)
             { // Ra 2014-12: to ma dzia³aæ równie¿ dla pojazdów bez obsady
+                CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
+                        AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
+                        " rcvd");
                 if (pRozkaz->cString[0]) // jeœli d³ugoœæ nazwy jest niezerowa
                 { // szukamy pierwszego pojazdu o takiej nazwie i odsy³amy parametry ramk¹ #7
                     TGroundNode *t;
@@ -2773,18 +2850,62 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             }
             break;
         case 8: // ponowne wys³anie informacji o zajêtych odcinkach toru
-            Ground.TrackBusyList();
+			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " all busy track" + " rcvd");
+			Ground.TrackBusyList();
             break;
         case 9: // ponowne wys³anie informacji o zajêtych odcinkach izolowanych
-            Ground.IsolatedBusyList();
+			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " all busy isolated" + " rcvd");
+			Ground.IsolatedBusyList();
             break;
         case 10: // badanie zajêtoœci jednego odcinka izolowanego
+            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
+                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
             Ground.IsolatedBusy(AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
             break;
-        case 11: // ustawienie paerametrów ruchu pojazdu
+        case 11: // ustawienie parametrów ruchu pojazdu
             //    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
             break;
-        }
+		case 12: // skrocona ramka parametrow pojazdow AI (wszystkich!!)
+			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " obsadzone" + " rcvd");
+			Ground.WyslijObsadzone();
+			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+			break;
+		case 13: // ramka uszkodzenia i innych stanow pojazdu, np. wylaczenie CA, wlaczenie recznego itd.
+				 //            WriteLog("Przyszlo 13!");
+				 //            WriteLog(pRozkaz->cString);
+                    CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
+                            AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
+                            " rcvd");
+                    if (pRozkaz->cString[1]) // jeœli d³ugoœæ nazwy jest niezerowa
+                        { // szukamy pierwszego pojazdu o takiej nazwie i odsy³amy parametry ramk¹ #13
+				TGroundNode *t;
+				if (pRozkaz->cString[2] == '*')
+					t = Ground.DynamicFind(
+						Global::asHumanCtrlVehicle); // nazwa pojazdu u¿ytkownika
+				else
+					t = Ground.DynamicFindAny(
+						AnsiString(pRozkaz->cString + 2,
+							(unsigned)pRozkaz->cString[1])); // nazwa pojazdu
+				if (t)
+				{
+					TDynamicObject *d = t->DynamicObject;
+					while (d)
+					{
+						d->Damage(pRozkaz->cString[0]);
+						d = d->Next(); // pozosta³e te¿
+					}
+					d = t->DynamicObject->Prev();
+					while (d)
+					{
+						d->Damage(pRozkaz->cString[0]);
+						d = d->Prev(); // w drug¹ stronê te¿
+					}
+					Ground.WyslijUszkodzenia(t->asName, t->DynamicObject->MoverParameters->EngDmgFlag); // zwrot informacji o pojeŸdzie
+				}
+			}
+			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
+			break;
+		}
 };
 
 //---------------------------------------------------------------------------

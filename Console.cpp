@@ -197,6 +197,8 @@ void Console::BitsSet(int mask, int entry)
         int old = iBits; // poprzednie stany
         iBits |= mask;
         BitsUpdate(old ^ iBits); // 1 dla bitów zmienionych
+		if (iMode == 4)
+			WriteLog("PoKeys::BitsSet: mask: " + AnsiString(mask) + " iBits: " + AnsiString(iBits));
     }
 };
 
@@ -269,26 +271,52 @@ void Console::BitsUpdate(int mask)
                 PoKeys55[0]->Write(0x40, 52 - 1, iBits & 0x1000 ? 1 : 0);
             if (mask & 0x2000) // b13 Pr¹d na silnikach do odbijania w haslerze
                 PoKeys55[0]->Write(0x40, 53 - 1, iBits & 0x2000 ? 1 : 0);
-        }
+			if (mask & 0x4000) // b14 Brzêczyk SHP lub CA
+				PoKeys55[0]->Write(0x40, 16 - 1, iBits & 0x4000 ? 1 : 0);
+		}
         break;
     }
 };
 
 bool Console::Pressed(int x)
-{
+{ // na razie tak - czyta siê tylko klawiatura
     return Global::bActive && (GetKeyState(x) < 0);
-}; // na razie tak - czyta siê tylko klawiatura
+};
 
 void Console::ValueSet(int x, double y)
 { // ustawienie wartoœci (y) na kanale analogowym (x)
     if (iMode == 4)
         if (PoKeys55[0])
         {
-            PoKeys55[0]->PWM(
-                x, (((Global::fCalibrateOut[x][3] * y) + Global::fCalibrateOut[x][2]) * y +
-                    Global::fCalibrateOut[x][1]) *
-                           y +
-                       Global::fCalibrateOut[x][0]); // zakres <0;1>
+            //if (x == 7)
+            //{
+            //    PoKeys55[0]->PoExtUpdate(8, y);
+            //} // nbmx: wal kulakowy
+            //else
+            //{
+				if (Global::iCalibrateOutDebugInfo == x)
+					WriteLog("CalibrateOutDebugInfo: oryginal=" + AnsiString(y), false);
+				if (Global::fCalibrateOutMax[x] > 0)
+				{
+					y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
+					if (Global::iCalibrateOutDebugInfo == x)
+						WriteLog(" cutted=" + AnsiString(y),false);
+					y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
+					if (Global::iCalibrateOutDebugInfo == x)
+						WriteLog(" fraction=" + AnsiString(y),false);
+				}
+				double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
+					Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
+					Global::fCalibrateOut[x][1]) * y +
+					Global::fCalibrateOut[x][0]; // zakres <0;1>
+				if (Global::iCalibrateOutDebugInfo == x)
+					WriteLog(" calibrated=" + AnsiString(temp));
+				PoKeys55[0]->PWM(x, temp); 
+				//if (x == 6)
+				//{
+				//	PoKeys55[0]->PoExtUpdate(9, temp); //dodatkowo hasler na PoExt
+				//}
+			//}
         }
 };
 
@@ -315,6 +343,18 @@ float Console::AnalogGet(int x)
         if (PoKeys55[0])
             return PoKeys55[0]->fAnalog[x];
     return -1.0;
+};
+
+float Console::AnalogCalibrateGet(int x)
+{ // pobranie i kalibracja wartoœci analogowej, jeœli nie ma PoKeys zwraca NULL
+	if (iMode == 4 && PoKeys55[0])
+	{
+		float b = PoKeys55[0]->fAnalog[x];
+		return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+			Global::fCalibrateIn[x][3]) * b + Global::fCalibrateIn[x][2]) * b +
+			Global::fCalibrateIn[x][1]) *b + Global::fCalibrateIn[x][0];
+	}
+    return -1.0; //odciêcie
 };
 
 unsigned char Console::DigitalGet(int x)

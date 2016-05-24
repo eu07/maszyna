@@ -51,6 +51,7 @@ class Console
     static void ValueSet(int x, double y);
     static void Update();
     static float AnalogGet(int x);
+	static float AnalogCalibrateGet(int x);
     static unsigned char DigitalGet(int x);
     static void OnKeyDown(int k);
     static void OnKeyUp(int k);

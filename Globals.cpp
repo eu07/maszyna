@@ -49,9 +49,9 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "15.3.1167.470";
+AnsiString Global::asRelease = "16.0.1172.475";
 AnsiString Global::asVersion =
-    "Compilation 2015-04-14, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2016-05-25, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -85,6 +85,7 @@ vector3 Global::pFreeCameraInit[10];
 vector3 Global::pFreeCameraInitAngle[10];
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
+float Global::Background[3] = { 0.2, 0.4, 0.33 }; 
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
@@ -99,7 +100,7 @@ GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //œladowe
 GLfloat Global::lightPos[4];
 bool Global::bRollFix = true; // czy wykonaæ przeliczanie przechy³ki
 bool Global::bJoinEvents = false; // czy grupowaæ eventy o tych samych nazwach
-int Global::iHiddenEvents = 0; // czy ³¹czyæ eventy z torami poprzez nazwê toru
+int Global::iHiddenEvents = 1; // czy ³¹czyæ eventy z torami poprzez nazwê toru
 
 // parametry u¿ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
@@ -160,16 +161,21 @@ bool Global::bDecompressDDS = false; // czy programowa dekompresja DDS
 
 // parametry do kalibracji
 // kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
-double Global::fCalibrateIn[6][4] = {
-    {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}, {0, 1, 0, 0}};
-double Global::fCalibrateOut[7][4] = {{0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0},
-                                      {0, 1, 0, 0}};
-
+double Global::fCalibrateIn[6][6] = {{0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0},
+                                     {0, 1, 0, 0, 0, 0}};
+double Global::fCalibrateOut[7][6] = {{0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0},
+                                      {0, 1, 0, 0, 0, 0}};
+double Global::fCalibrateOutMax[7] = {0, 0, 0, 0, 0, 0, 0};
+int Global::iCalibrateOutDebugInfo = -1;
 // parametry przejœciowe (do usuniêcia)
 // bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
 // bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
@@ -441,7 +447,21 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
             fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
             fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-        }
+			fCalibrateIn[i][4] = 0.0; // mno¿nik 4 potêgi
+			fCalibrateIn[i][5] = 0.0; // mno¿nik 5 potêgi
+		}
+		else if (str == AnsiString("calibrate5din")) // parametry kalibracji wejœæ
+		{ //
+			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
+			if ((i < 0) || (i > 5))
+				i = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			fCalibrateIn[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
+			fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
+			fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
+			fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
+			fCalibrateIn[i][4] = GetNextSymbol().ToDouble(); // mno¿nik 4 potêgi
+			fCalibrateIn[i][5] = GetNextSymbol().ToDouble(); // mno¿nik 5 potêgi
+		}
         else if (str == AnsiString("calibrateout")) // parametry kalibracji wyjœæ
         { //
             i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
@@ -451,7 +471,33 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
             fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
             fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
+			fCalibrateOut[i][4] = 0.0; // mno¿nik dla 4 potêgi
+			fCalibrateOut[i][5] = 0.0; // mno¿nik dla 5 potêgi
         }
+		else if (str == AnsiString("calibrate5dout")) // parametry kalibracji wyjœæ
+		{ //
+			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
+			if ((i < 0) || (i > 6))
+				i = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			fCalibrateOut[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
+			fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
+			fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
+			fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
+			fCalibrateOut[i][4] = GetNextSymbol().ToDouble(); // mno¿nik dla 4 potêgi
+			fCalibrateOut[i][5] = GetNextSymbol().ToDouble(); // mno¿nik dla 5 potêgi
+		}
+		else if (str == AnsiString("calibrateoutmaxvalues"))
+		{ // maksymalne wartoœci jakie mo¿na wyœwietliæ na mierniku
+			fCalibrateOutMax[0] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[1] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[2] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[3] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[4] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[5] = GetNextSymbol().ToDouble();
+			fCalibrateOutMax[6] = GetNextSymbol().ToDouble();
+		}
+		else if (str == AnsiString("calibrateoutdebuginfo")) // wyjœcie z info o przebiegu kalibracji
+			iCalibrateOutDebugInfo = GetNextSymbol().ToInt();
         else if (str == AnsiString("brakestep")) // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
             fBrakeStep = GetNextSymbol().ToDouble();
         else if (str ==
@@ -465,7 +511,17 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             asLang = GetNextSymbol(); // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
         else if (str == AnsiString("opengl")) // deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy
             fOpenGL = GetNextSymbol().ToDouble(); // wymuszenie wersji OpenGL
-    } while (str != "endconfig"); //(!Parser->EndOfFile)
+        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen
+                                                                // renderer
+            TPythonInterpreter::getInstance()->setScreenRendererPriority(
+                GetNextSymbol().LowerCase().c_str());
+		else if (str == AnsiString("background"))
+		{
+			Background[0] = GetNextSymbol().ToDouble(); // r
+			Background[1] = GetNextSymbol().ToDouble(); // g
+			Background[2] = GetNextSymbol().ToDouble(); // b
+		}
+	} while (str != "endconfig"); //(!Parser->EndOfFile)
     // na koniec trochê zale¿noœci
     if (!bLoadTraction) // wczytywanie drutów i s³upów
     { // tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
@@ -669,12 +725,12 @@ void Global::TrainDelete(TDynamicObject *d)
         pWorld->TrainDelete(d);
 };
 
-TDynamicObject *__fastcall Global::DynamicNearest()
+TDynamicObject * Global::DynamicNearest()
 { // ustalenie pojazdu najbli¿szego kamerze
     return pGround->DynamicNearest(pCamera->Pos);
 };
 
-TDynamicObject *__fastcall Global::CouplerNearest()
+TDynamicObject * Global::CouplerNearest()
 { // ustalenie pojazdu najbli¿szego kamerze
     return pGround->CouplerNearest(pCamera->Pos);
 };
@@ -837,6 +893,23 @@ AnsiString Global::Bezogonkow(AnsiString str, bool _)
             if (str[i] == '_') // nazwy stacji nie mog¹ zawieraæ spacji
                 str[i] = ' '; // wiêc trzeba wyœwietlaæ inaczej
     return str;
-}
+};
+
+double Global::Min0RSpeed(double vel1, double vel2)
+{ // rozszerzenie funkcji Min0R o wartoœci -1.0
+	if (vel1 == -1.0)
+		vel1 = std::numeric_limits<double>::max();
+	if (vel2 == -1.0)
+		vel2 = std::numeric_limits<double>::max();
+	return Min0R(vel1, vel2);
+};
+
+double Global::CutValueToRange(double min, double value, double max)
+{ // przycinanie wartosci do podanych granic
+	value = Max0R(value, min);
+	value = Min0R(value, max);
+	return value;
+};
+
 
 #pragma package(smart_init)

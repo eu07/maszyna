@@ -262,16 +262,16 @@ class TSubModel
     int Load(cParser &Parser, TModel3d *Model, int Pos, bool dynamic);
     void ChildAdd(TSubModel *SubModel);
     void NextAdd(TSubModel *SubModel);
-    TSubModel *__fastcall NextGet()
+    TSubModel * NextGet()
     {
         return Next;
     };
-    TSubModel *__fastcall ChildGet()
+    TSubModel * ChildGet()
     {
         return Child;
     };
     int TriangleAdd(TModel3d *m, int tex, int tri);
-    float8 *__fastcall TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
+    float8 * TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
     // float8* TrianglePtr(const char *tex,int tri);
     // void SetRotate(vector3 vNewRotateAxis,float fNewAngle);
     void SetRotate(float3 vNewRotateAxis, float fNewAngle);
@@ -280,14 +280,14 @@ class TSubModel
     void SetTranslate(vector3 vNewTransVector);
     void SetTranslate(float3 vNewTransVector);
     void SetRotateIK1(float3 vNewAngles);
-    TSubModel *__fastcall GetFromName(AnsiString search, bool i = true);
-    TSubModel *__fastcall GetFromName(char *search, bool i = true);
+    TSubModel * GetFromName(AnsiString search, bool i = true);
+    TSubModel * GetFromName(char *search, bool i = true);
     void RenderDL();
     void RenderAlphaDL();
     void RenderVBO();
     void RenderAlphaVBO();
     // inline matrix4x4* GetMatrix() {return dMatrix;};
-    inline float4x4 *__fastcall GetMatrix()
+    inline float4x4 * GetMatrix()
     {
         return fMatrix;
     };
@@ -334,6 +334,10 @@ class TSubModel
     inline float3 Translation2Get()
     {
         return *(fMatrix->TranslationGet()) + Child->Translation1Get();
+    }
+    int GetTextureId()
+    {
+        return TextureID;
     }
     void ParentMatrix(float4x4 *m);
     float MaxY(const float4x4 &m);
@@ -386,7 +390,7 @@ class TModel3d : public CMesh
     int iSubModelsCount; // Ra: u¿ywane do tworzenia binarnych
     AnsiString asBinary; // nazwa pod któr¹ zapisaæ model binarny
   public:
-    inline TSubModel *__fastcall GetSMRoot()
+    inline TSubModel * GetSMRoot()
     {
         return (Root);
     };
@@ -394,9 +398,9 @@ class TModel3d : public CMesh
     TModel3d();
     TModel3d(char *FileName);
     ~TModel3d();
-    TSubModel *__fastcall GetFromName(const char *sName);
+    TSubModel * GetFromName(const char *sName);
     // TMaterial* GetMaterialFromName(char *sName);
-    TSubModel *__fastcall AddToNamed(const char *Name, TSubModel *SubModel);
+    TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
     void AddTo(TSubModel *tmp, TSubModel *SubModel);
     void LoadFromTextFile(char *FileName, bool dynamic);
     void LoadFromBinFile(char *FileName, bool dynamic);
@@ -434,12 +438,12 @@ class TModel3d : public CMesh
         return iFlags;
     };
     void Init();
-    char *__fastcall NameGet()
+    char * NameGet()
     {
         return Root ? Root->pName : NULL;
     };
     int TerrainCount();
-    TSubModel *__fastcall TerrainSquare(int n);
+    TSubModel * TerrainSquare(int n);
     void TerrainRenderVBO(int n);
 };
 

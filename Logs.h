@@ -12,11 +12,13 @@ http://mozilla.org/MPL/2.0/.
 #include <system.hpp>
 
 void WriteConsoleOnly(const char *str, double value);
-void WriteConsoleOnly(const char *str);
+void WriteConsoleOnly(const char *str, bool newline = true);
 void WriteLog(const char *str, double value);
-void WriteLog(const char *str);
+void WriteLog(const char *str, bool newline = true);
 void Error(const AnsiString &asMessage, bool box = true);
 void ErrorLog(const AnsiString &asMessage);
-void WriteLog(const AnsiString &str);
+void WriteLog(const AnsiString &str, bool newline = true);
+void CommLog(const char *str);
+void CommLog(const AnsiString &str);
 //---------------------------------------------------------------------------
 #endif

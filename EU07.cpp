@@ -11,7 +11,11 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 */
-
+/*
+Authors:
+MarcinW, McZapkie, Shaxbee, ABu, nbmx, youBy, Ra, winger, mamut, Q424,
+Stele, firleju, szociu, hunter, ZiomalCl and others
+*/
 #include "opengl/glew.h"
 #include "opengl/glut.h"
 #include "opengl/ARB_Multisample.h"
@@ -33,6 +37,7 @@ USEUNIT("Camera.cpp");
 USEUNIT("Texture.cpp");
 USEUNIT("World.cpp");
 USELIB("opengl\glut32.lib");
+USELIB("omf_python27.lib");
 USEUNIT("Model3d.cpp");
 USEUNIT("MdlMngr.cpp");
 USEUNIT("Train.cpp");
@@ -77,9 +82,11 @@ USEUNIT("Console.cpp");
 USEUNIT("Mover.cpp");
 USEUNIT("McZapkie\_mover.pas");
 USEUNIT("McZapkie\hamulce.pas");
+USEUNIT("McZapkie\Oerlikon_ESt.pas");
 USEUNIT("Console\PoKeys55.cpp");
 USEUNIT("Forth.cpp");
 USEUNIT("Console\LPT.cpp");
+USEUNIT("PyInt.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"
 

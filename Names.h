@@ -34,8 +34,8 @@ class ItemRecord
     {
         pData = (void *)x;
     };
-    void *__fastcall TreeFind(const char *n);
-    ItemRecord *__fastcall TreeFindRecord(const char *n);
+    void * TreeFind(const char *n);
+    ItemRecord * TreeFindRecord(const char *n);
 };
 
 class TNames
@@ -54,14 +54,14 @@ class TNames
     int Add(int t, const char *n, int d); // dodanie obiektu z numerem
     bool Update(int t, const char *n, void *d); // dodanie jeœli nie ma, wymiana (d), gdy jest
     void TreeSet();
-    ItemRecord *__fastcall TreeSet(int *n, int d, int u);
+    ItemRecord * TreeSet(int *n, int d, int u);
     void Sort(int t); // przebudowa drzewa typu (t)
-    ItemRecord *__fastcall Item(int n); // rekord o numerze (n)
+    ItemRecord * Item(int n); // rekord o numerze (n)
     inline void *Find(const int t, const char *n)
     {
         return rTypes[t] ? rTypes[t]->TreeFind(n) : NULL;
     };
-    ItemRecord *__fastcall FindRecord(const int t, const char *n);
+    ItemRecord * FindRecord(const int t, const char *n);
     // template <typename TOut> inline TOut* Find(const int t,const char *n)
     //{return (TOut*)(rTypes[t]->TreeFind(n));};
 };

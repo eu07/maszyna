@@ -51,7 +51,7 @@ class TSoundsManager
     // static char Directory[80];
     static int Count;
     static TSoundContainer *First;
-    static TSoundContainer *__fastcall LoadFromFile(char *Dir, char *Name, int Concurrent);
+    static TSoundContainer * LoadFromFile(char *Dir, char *Name, int Concurrent);
 
   public:
     // TSoundsManager(HWND hWnd);

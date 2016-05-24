@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "system.hpp"
 #include "opengl/glew.h"
 #include "dumb3d.h"
+#include "PyInt.h"
 //#include "Classes.h"
 
 using namespace Math3D;
@@ -214,7 +215,8 @@ class Global
     static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     // McZapkie-221002: definicja swiatla dziennego
-    static GLfloat AtmoColor[];
+	static float Background[3];
+	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
     // static bool bTimeChange;
     static GLfloat ambientDayLight[];
@@ -294,8 +296,11 @@ class Global
     static double fRadiusFactor; // wspó³czynnik zmiany promienia
     static TCamera *pCamera; // parametry kamery
     static TDynamicObject *pUserDynamic; // pojazd u¿ytkownika, renderowany bez trzêsienia
-    static double fCalibrateIn[6][4]; // parametry kalibracyjne wejœæ z pulpitu
-    static double fCalibrateOut[7][4]; // parametry kalibracyjne wyjœæ dla pulpitu
+    static double fCalibrateIn[6][6]; // parametry kalibracyjne wejœæ z pulpitu
+    static double fCalibrateOut[7][6]; // parametry kalibracyjne wyjœæ dla pulpitu
+	static double fCalibrateOutMax[7]; // wartoœci maksymalne wyjœæ dla pulpitu
+	static int iCalibrateOutDebugInfo; // numer wyjœcia kalibrowanego dla którego wyœwietlaæ
+									   // informacje podczas kalibracji
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     static bool bJoinEvents; // czy grupowaæ eventy o tych samych nazwach
     static bool bSmudge; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
@@ -308,11 +313,13 @@ class Global
     static void TrainDelete(TDynamicObject *d);
     static void ConfigParse(Queryparsercomp::TQueryParserComp *qp, cParser *cp = NULL);
     static AnsiString GetNextSymbol();
-    static TDynamicObject *__fastcall DynamicNearest();
-    static TDynamicObject *__fastcall CouplerNearest();
+    static TDynamicObject * DynamicNearest();
+    static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
     static AnsiString Bezogonkow(AnsiString str, bool _ = false);
+	static double Min0RSpeed(double vel1, double vel2);
+	static double CutValueToRange(double min, double value, double max);
 };
 
 //---------------------------------------------------------------------------

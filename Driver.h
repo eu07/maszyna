@@ -50,7 +50,11 @@ enum TMovementStatus
     moveGuardSignal = 0x8000, // sygna³ od kierownika (min¹³ czas postoju)
     moveVisibility = 0x10000, // jazda na widocznoœæ po przejechaniu S1 na SBL
     moveDoorOpened = 0x20000, // drzwi zosta³y otwarte - doliczyæ czas na zamkniêcie
-    movePushPull = 0x40000 // zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
+    movePushPull = 0x40000, // zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
+    moveSemaphorFound = 0x80000, // na drodze skanowania zosta³ znaleziony semafor
+    moveSemaphorWasElapsed = 0x100000, // miniêty zosta³ semafor
+    moveTrainInsideStation = 0x200000, // poci¹g miêdzy semaforem a rozjazdami lub nastêpnym semaforem
+    moveSpeedLimitFound = 0x400000 // poci¹g w ograniczeniu z podan¹ jego d³ugoœci¹
 };
 
 enum TStopReason
@@ -92,17 +96,41 @@ enum TAction
     actTrial // próba hamulca (na postoju)
 };
 
+enum TSpeedPosFlag
+{ // wartoœci dla iFlag w TSpeedPos
+    spEnabled = 0x1, // pozycja brana pod uwagê
+    spTrack = 0x2, // to jest tor
+    spReverse = 0x4, // odwrotnie
+    spSwitch = 0x8, // to zwrotnica
+    spSwitchStatus = 0x10, // stan zwrotnicy
+    spElapsed = 0x20, // pozycja miniêta przez pojazd
+    spEnd = 0x40, // koniec
+    spCurve = 0x80, // ³uk
+    spEvent = 0x100, // event
+    spShuntSemaphor = 0x200, // tarcza manewrowa
+    spPassengerStopPoint = 0x400, // przystanek osobowy (wskaŸnik W4)
+    spStopOnSBL = 0x800, // zatrzymanie na SBL
+    spCommandSent = 0x1000, // komenda wys³ana
+    spOutsideStation = 0x2000, // wskaŸnik koñca manewrów
+    spSemaphor = 0x4000, // semafor poci¹gowy
+    spRoadVel = 0x8000, // zadanie prêdkoœci drogowej
+    spSectionVel = 0x20000, // odcinek z ograniczeniem
+    spProximityVelocity = 0x40000, // odcinek z ograniczeniem i podan¹ jego d³ugoœcia
+    spEndOfTable = 0x10000 // zatkanie tabelki
+};
+
 class TSpeedPos
 { // pozycja tabeli prêdkoœci dla AI
   public:
     double fDist; // aktualna odleg³oœæ (ujemna gdy miniête)
     double fVelNext; // prêdkoœæ obowi¹zuj¹ca od tego miejsca
+    double fSectionVelocityDist; //d³ugoœæ ograniczenia prêdkoœci
     // double fAcc;
-    int iFlags;
+    int iFlags; //flagi typu wpisu do tabelki
     // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan
     // zwrotnicy,32-miniêty,64=koniec,128=³uk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wys³ana komenda,0x2000=W5
-    // 0x10000=zatkanie
+    // 0x4000=semafor,0x10000=zatkanie
     vector3 vPos; // wspó³rzêdne XYZ do liczenia odleg³oœci
     struct
     {
@@ -114,9 +142,11 @@ class TSpeedPos
   public:
     void Clear();
     bool Update(vector3 *p, vector3 *dir, double &len);
-    bool Set(TEvent *e, double d);
+    bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     AnsiString TableText();
+	AnsiString GetName();
+	bool IsProperSemaphor(TOrders order = Wait_for_orders);
 };
 
 //----------------------------------------------------------------------------
@@ -140,6 +170,8 @@ class TController
     double fLastVel; // prêdkoœæ na poprzednio sprawdzonym torze
     TTrack *tLast; // ostatni analizowany tor
     TEvent *eSignSkip; // mo¿na pomin¹æ ten SBL po zatrzymaniu
+	TSpeedPos *sSemNext; // nastêpny semafor na drodze zale¿ny od trybu jazdy
+	TSpeedPos *sSemNextStop; // nastêpny semafor na drodze zale¿ny od trybu jazdy i na stój
   private: // parametry aktualnego sk³adu
     double fLength; // d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
     double fMass; // ca³kowita masa do liczenia stycznej sk³adowej grawitacji
@@ -176,6 +208,10 @@ class TController
     TAction eAction; // aktualny stan
     bool HelpMeFlag; // wystawiane True jesli cos niedobrego sie dzieje
   public:
+    inline TAction GetAction()
+    {
+        return eAction;
+    }
     bool AIControllFlag; // rzeczywisty/wirtualny maszynista
     int iRouteWanted; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
     // migacz lub czeka na stan zwrotnicy
@@ -199,17 +235,22 @@ class TController
     double VelDesired; // predkoœæ, z jak¹ ma jechaæ, wynikaj¹ca z analizy tableki; <=VelSignal
     double fAccDesiredAv; // uœrednione przyspieszenie z kolejnych przeb³ysków œwiadomoœci, ¿eby
     // ograniczyæ migotanie
-  private:
+  public:
     double VelforDriver; // prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci
     // szlaku?)
-    double VelSignal; // predkoœæ zadawana przez semafor (funkcj¹ SetVelocity())
+    double VelSignal; // ograniczenie prêdkoœci z kompilacji znaków i sygna³ów
     double VelLimit; // predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci
+  public:
+    double VelSignalLast; // prêdkoœæ zadana na ostatnim semaforze
+    double VelLimitLast; // prêdkoœæ zadana przez ograniczenie
+    double VelRoad; // aktualna prêdkoœæ drogowa (ze znaku W27)
     // (PutValues albo komend¹)
   public:
     double VelNext; // prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
   private:
-    // double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
+     double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
     // punktu, <0:podana wartoœæ
+	 double FirstSemaphorDist; // odleg³oœæ do pierwszego znalezionego semafora
   public:
     double
         ActualProximityDist; // odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
@@ -268,7 +309,7 @@ class TController
     void ControllingSet(); // znajduje cz³on do sterowania
     void AutoRewident(); // ustawia hamulce w sk³adzie
   public:
-    Mtable::TTrainParameters *__fastcall Timetable()
+    Mtable::TTrainParameters * Timetable()
     {
         return TrainParams;
     };
@@ -288,8 +329,8 @@ class TController
     void JumpToFirstOrder();
     void OrderPush(TOrders NewOrder);
     void OrderNext(TOrders NewOrder);
-    TOrders OrderCurrentGet();
-    TOrders OrderNextGet();
+    inline TOrders OrderCurrentGet();
+    inline TOrders OrderNextGet();
     bool CheckVehicles(TOrders user = Wait_for_orders);
 
   private:
@@ -314,12 +355,12 @@ class TController
     double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
   private: // Ra: metody obs³uguj¹ce skanowanie toru
-    TEvent *__fastcall CheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent * CheckTrackEvent(double fDirection, TTrack *Track);
     bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
     bool TableNotFound(TEvent *e);
     void TableClear();
-    TEvent *__fastcall TableCheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent * TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
@@ -327,8 +368,8 @@ class TController
 
   private: // Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
     bool BackwardTrackBusy(TTrack *Track);
-    TEvent *__fastcall CheckTrackEventBackward(double fDirection, TTrack *Track);
-    TTrack *__fastcall BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
+    TEvent * CheckTrackEventBackward(double fDirection, TTrack *Track);
+    TTrack * BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
                                           TEvent *&Event);
     void SetProximityVelocity(double dist, double vel, const vector3 *pos);
     TCommandType BackwardScan();

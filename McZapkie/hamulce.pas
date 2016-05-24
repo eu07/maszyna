@@ -95,6 +95,7 @@ CONST
    bp_MHS    = 128; //magnetyczny hamulec szynowy
    bp_P10yBg =  15; //¿eliwo fosforowe P10
    bp_P10yBgu=  16;
+   bp_FR510  =  17; //Frenoplast FR510
 
    sf_Acc  = 1;  //przyspieszacz
    sf_BR   = 2;  //przekladnia
@@ -289,10 +290,15 @@ TYPE
         Zamykajacy: boolean;       //pamiec zaworka zamykajacego
         Przys_blok: boolean;       //blokada przyspieszacza
         Miedzypoj: TReservoir;     //pojemnosc posrednia (urojona) do napelniania ZP i ZS
+        TareM, LoadM: real;  //masa proznego i pelnego
+        TareBP: real;  //cisnienie dla proznego
+        LoadC: real;        
       public
         procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
         function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
-        function GetEDBCP: real; override;   //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
+        function GetEDBCP: real; override;   //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
+        procedure PLC(mass: real);  //wspolczynnik cisnienia przystawki wazacej
+        procedure SetLP(TM, LM, TBP: real);  //parametry przystawki wazacej        
       end;  
 
     TEStEP2= class(TLSt)
@@ -412,6 +418,22 @@ TYPE
         function GetPos(i: byte): real; override;
       end;
 
+    TMHZ_EN57= class(THandle)
+      private
+        CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
+        RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+        Fala: boolean;
+      public
+        function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+        procedure Init(press: real); override;
+        procedure SetReductor(nAdj: real); override;
+        function GetSound(i: byte): real; override;
+        function GetPos(i: byte): real; override;
+        function GetCP: real; override;
+        function GetEP(pos: real): real;
+      end;
+
+
 {    FBS2= class(THandle)
       private
         CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
@@ -489,9 +511,11 @@ TYPE
         MaxBP: real;  //najwyzsze cisnienie
         BP: real;     //aktualne cisnienie
       public
+        Speed: real;  //szybkosc dzialania
         function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
         procedure Init(press: real); override;
         function GetCP(): real; override;
+        procedure SetSpeed(nSpeed: real);
 //        procedure Init(press: real; MaxBP: real); overload;
       end;
 
@@ -699,7 +723,7 @@ var VtoC: real; //stosunek cisnienia do objetosci
 const
   VS = 0.005;
   pS = 0.05;
-  VD = 1.40;
+  VD = 1.10;
   cD = 1;
   pD = VD-cD;
 begin
@@ -771,6 +795,7 @@ begin
   bp_P10Bg:   FM:=TP10Bg.Create;
   bp_P10Bgu:  FM:=TP10Bgu.Create;
   bp_FR513:   FM:=TFR513.Create;
+  bp_FR510:   FM:=TFR510.Create;  
   bp_Cosid:   FM:=TCosid.Create;
   bp_P10yBg:  FM:=TP10yBg.Create;
   bp_P10yBgu: FM:=TP10yBgu.Create;
@@ -1815,18 +1840,18 @@ begin
 
 
   RapidTemp:=RapidTemp+(RM*Byte((Vel>55)and(BrakeDelayFlag=bdelay_R))-RapidTemp)*dt/2;
-  temp:=1-RapidTemp;
+  temp:=Max0R(1-RapidTemp,0.001);
 //  if EDFlag then temp:=1000;
 //  temp:=temp/(1-);
 
 //powtarzacz — podwojny zawor zwrotny
-  temp:=Max0R(BCP/temp*Min0R(Max0R(1-EDFlag,0),1),LBP);
+  temp:=Max0R(LoadC*BCP/temp*Min0R(Max0R(1-EDFlag,0),1),LBP);
 
   if(BrakeCyl.P>temp)then
-   dV:=-PFVd(BrakeCyl.P,0,0.02,temp)*dt
+   dV:=-PFVd(BrakeCyl.P,0,0.02*sizeBC,temp)*dt
   else
   if(BrakeCyl.P<temp)then
-   dV:=PFVa(BVP,BrakeCyl.P,0.02,temp)*dt
+   dV:=PFVa(BVP,BrakeCyl.P,0.02*sizeBC,temp)*dt
   else dV:=0;
 
   BrakeCyl.Flow(dV);
@@ -1915,9 +1940,20 @@ end;
 
 function TEStED.GetEDBCP: real;
 begin
-  GetEDBCP:=ImplsRes.P;
+  GetEDBCP:=ImplsRes.P*LoadC;
 end;
 
+procedure TEStED.PLC(mass: real);
+begin
+  LoadC:=1+Byte(Mass<LoadM)*((TareBP+(MaxBP-TareBP)*(mass-TareM)/(LoadM-TareM))/MaxBP-1);
+end;
+
+procedure TEStED.SetLP(TM, LM, TBP: real);
+begin
+  TareM:=TM;
+  LoadM:=LM;
+  TareBP:=TBP;
+end;
 
 
 //---DAKO CV1---
@@ -2654,6 +2690,142 @@ begin
   GetPos:=table[i];
 end;
 
+//---FV4a/M--- nowonapisany kran bez poprawki IC
+
+function TMHZ_EN57.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
+function LPP_RP(pos: real): real; //cisnienie z zaokraglonej pozycji;
+begin
+  if pos>8.5 then
+   LPP_RP:=5.0-0.15*pos-0.35
+  else  if pos>0.5 then
+   LPP_RP:=5.0-0.15*pos-0.1
+  else
+   LPP_RP:=5.0
+end;
+function EQ(pos: real; i_pos: real): boolean;
+begin
+  EQ:=(pos<=i_pos+0.5)and(pos>i_pos-0.5);
+end;
+const
+  LBDelay = 100;
+var
+  LimPP, dpPipe, dpMainValve, ActFlowSpeed, dp: real;
+  pom: real;
+  i: byte;
+begin
+
+          for i:=0 to 4 do
+            Sounds[i]:=0;
+          dp:=0;
+
+          i_bcp:=Max0R(Min0R(i_bcp,9.999),-0.999); //na wszelki wypadek, zeby nie wyszlo poza zakres
+
+          if(tp>0)then
+           begin
+            dp:=0.045;
+            if EQ(i_bcp,0) then
+              tp:=tp-dp*dt;
+            Sounds[s_fv4a_t]:=dp;
+           end
+          else
+           begin
+            tp:=0;
+           end;
+
+          Limpp:=Min0R(LPP_RP(i_bcp)+tp*0.08+RedAdj,HP); //pozycja + czasowy lub zasilanie
+          ActFlowSpeed:=4;
+
+          if(EQ(i_bcp,-1))then pom:=Min0R(HP,5.4+RedAdj) else pom:=Min0R(cp,HP);
+
+          if(Limpp>cp)then //podwyzszanie szybkie
+            cp:=cp+60*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy
+          else
+            cp:=cp+13*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt; //zbiornik sterujacy
+
+          Limpp:=pom; //cp
+          if EQ(i_bcp,-1) then
+            dpPipe:=HP
+          else
+            dpPipe:=Min0R(HP,Limpp);
+
+          if dpPipe>pp then
+            dpMainValve:=-PFVa(HP,pp,ActFlowSpeed/(LBDelay),dpPipe,0.4)
+          else
+            dpMainValve:=PFVd(pp,0,ActFlowSpeed/(LBDelay),dpPipe,0.4);
+
+          if EQ(i_bcp,-1) then
+           begin
+            if(tp<5)then tp:=tp+dt; //5/10
+            if(tp<1)then tp:=tp-0.5*dt; //5/10            
+           end;
+
+          if(EQ(i_bcp,10))or(EQ(i_bcp,-2))then
+           begin
+            dp:=PF(0,pp,2*(ActFlowSpeed)/(LBDelay));
+            dpMainValve:=dp;
+            Sounds[s_fv4a_e]:=dp;
+            Sounds[s_fv4a_u]:=0;
+            Sounds[s_fv4a_b]:=0;
+            Sounds[s_fv4a_x]:=0;
+           end
+          else
+           begin
+            if dpMainValve>0 then
+              Sounds[s_fv4a_b]:=dpMainValve
+            else
+              Sounds[s_fv4a_u]:=-dpMainValve;
+           end;
+
+  if (i_bcp<1.5) then
+    RP:=Max0R(0,0.125*i_bcp)
+  else
+    RP:=Min0R(1,0.125*i_bcp-0.125);
+
+  GetPF:=dpMainValve*dt;
+end;
+
+procedure TMHZ_EN57.Init(press: real);
+begin
+  CP:= press;
+  TP:= 0;
+  RP:= 0;
+  Time:=false;
+  TimeEP:=false;
+end;
+
+procedure TMHZ_EN57.SetReductor(nAdj: real);
+begin
+  RedAdj:= nAdj;
+end;
+
+function TMHZ_EN57.GetSound(i: byte): real;
+begin
+  if i>4 then
+    GetSound:=0
+  else
+    GetSound:=Sounds[i];
+end;
+
+function TMHZ_EN57.GetPos(i: byte): real;
+const
+  table: array[0..10] of real = (-2,10,-1,0,0,2,9,10,0,0,0);
+begin
+  GetPos:=table[i];
+end;
+
+function TMHZ_EN57.GetCP: real;
+begin
+  GetCP:=RP;
+end;
+
+function TMHZ_EN57.GetEP(pos: real): real;
+begin
+  if pos<9.5 then
+    GetEP:=Min0R(Max0R(0,0.125*pos),1)
+  else
+    GetEP:=0;  
+end;
+
 //---M394--- Matrosow
 
 function TM394.GetPF(i_bcp:real; pp, hp, dt, ep: real): real;
@@ -2898,7 +3070,7 @@ begin
 //  MaxBP:=4;
 //  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
   temp:=Min0R(i_bcp*MaxBP,HP);              //0011
-  dp:=10*Min0R(abs(temp-BP),0.1)*PF(temp,BP,0.0006*(2+Byte(temp>BP)))*dt;
+  dp:=10*Min0R(abs(temp-BP),0.1)*PF(temp,BP,0.0006*(2+Byte(temp>BP)))*dt*Speed;
   BP:=BP-dp;
   GetPF:=-dp;
 end;
@@ -2909,11 +3081,17 @@ begin
   MaxBP:=press;
   Time:=false;
   TimeEP:=false;
+  Speed:=1;
 end;
 
 function TFD1.GetCP: real;
 begin
   GetCP:=BP;
+end;
+
+procedure TFD1.SetSpeed(nSpeed: real);
+begin
+  Speed:=nSpeed;
 end;
 
 

@@ -35,7 +35,7 @@ class TMemCell
     void PutCommand(TController *Mech, vector3 *Loc);
     bool Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask);
     bool Render();
-    inline char *__fastcall Text()
+    inline char * Text()
     {
         return szText;
     };

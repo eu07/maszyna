@@ -25,7 +25,7 @@ class TMdlContainer
         SafeDeleteArray(Name);
         SafeDelete(Model);
     };
-    TModel3d *__fastcall LoadModel(char *newName, bool dynamic);
+    TModel3d * LoadModel(char *newName, bool dynamic);
     TModel3d *Model;
     char *Name;
 };
@@ -35,7 +35,7 @@ class TModelsManager
   private:
     static TMdlContainer *Models;
     static int Count;
-    static TModel3d *__fastcall LoadModel(char *Name, bool dynamic);
+    static TModel3d * LoadModel(char *Name, bool dynamic);
 
   public:
     //    TModelsManager();
@@ -43,7 +43,7 @@ class TModelsManager
     static void Init();
     static void Free();
     // McZapkie: dodalem sciezke, notabene Path!=Patch :)
-    static TModel3d *__fastcall GetModel(const char *Name, bool dynamic = false);
+    static TModel3d * GetModel(const char *Name, bool dynamic = false);
 };
 //---------------------------------------------------------------------------
 #endif

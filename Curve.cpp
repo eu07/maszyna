@@ -13,14 +13,14 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Curve.h"
 
-__fastcall TCurve::TCurve()
+ TCurve::TCurve()
 {
     Values = NULL;
     iNumValues = 0;
     iNumCols = 0;
 }
 
-__fastcall TCurve::~TCurve()
+ TCurve::~TCurve()
 {
     for (int i = 0; i < iNumValues; i++)
         SafeDelete(Values[i]);
