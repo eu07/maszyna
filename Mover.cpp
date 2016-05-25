@@ -187,7 +187,7 @@ void TMoverParameters::BrakeLevelSet(double b)
     if (fBrakeCtrlPos == b)
         return; // nie przeliczaæ, jak nie ma zmiany
     fBrakeCtrlPos = b;
-    BrakeCtrlPosR = b;
+    BrakeCtrlPosR = fBrakeCtrlPos;
     if (fBrakeCtrlPos < Handle->GetPos(bh_MIN))
         fBrakeCtrlPos = Handle->GetPos(bh_MIN); // odciêcie
     else if (fBrakeCtrlPos > Handle->GetPos(bh_MAX))
