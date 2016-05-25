@@ -180,8 +180,8 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     return false;
 #endif
     WriteLog("Online documentation and additional files on http://eu07.pl");
-    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, "
-             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter and others");
+    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others");
     WriteLog("Renderer:");
     WriteLog((char *)glGetString(GL_RENDERER));
     WriteLog("Vendor:");

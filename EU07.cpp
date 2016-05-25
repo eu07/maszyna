@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 /*
 Authors:
 MarcinW, McZapkie, Shaxbee, ABu, nbmx, youBy, Ra, winger, mamut, Q424,
-Stele, firleju, szociu, hunter, ZiomalCl and others
+Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
 #include "opengl/glew.h"
 #include "opengl/glut.h"
