@@ -151,6 +151,7 @@ double Global::fFpsMax = 0.0; // górna granica FPS, przy której promieñ scenerii
 double Global::fFpsRadiusMax = 3000.0; // maksymalny promieñ renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promieñ renderowania
 double Global::fRadiusFactor = 1.1; // wspó³czynnik jednorazowej zmiany promienia scenerii
+bool Global::bOldSmudge = false; // U¿ywanie starej smugi
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
@@ -428,6 +429,8 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             iModifyTGA = GetNextSymbol().ToIntDef(0); // domyœlnie 0
         else if (str == AnsiString("hideconsole")) // hunter-271211: ukrywanie konsoli
             bHideConsole = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+		else if (str == AnsiString("oldsmudge"))
+            bOldSmudge = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str ==
                  AnsiString(
                      "rollfix")) // Ra: poprawianie przechy³ki, aby wewnêtrzna szyna by³a "pozioma"
