@@ -49,9 +49,9 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "16.0.1172.476";
+AnsiString Global::asRelease = "16.0.1172.477";
 AnsiString Global::asVersion =
-    "Compilation 2016-05-25, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2016-06-10, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -514,10 +514,8 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             asLang = GetNextSymbol(); // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
         else if (str == AnsiString("opengl")) // deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy
             fOpenGL = GetNextSymbol().ToDouble(); // wymuszenie wersji OpenGL
-        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen
-                                                                // renderer
-            TPythonInterpreter::getInstance()->setScreenRendererPriority(
-                GetNextSymbol().LowerCase().c_str());
+        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen renderer
+            TPythonInterpreter::getInstance()->setScreenRendererPriority(GetNextSymbol().LowerCase().c_str());
 		else if (str == AnsiString("background"))
 		{
 			Background[0] = GetNextSymbol().ToDouble(); // r

@@ -208,30 +208,30 @@ void TPythonInterpreter::setScreenRendererPriority(const char *priority)
     if (strncmp(priority, "normal", 6) == 0)
     {
         _screenRendererPriority = THREAD_PRIORITY_NORMAL;
-#ifdef _PY_INT_MORE_LOG
+//#ifdef _PY_INT_MORE_LOG
         WriteLog("Python screen renderer priority: Normal");
-#endif // _PY_INT_MORE_LOG
+//#endif // _PY_INT_MORE_LOG
     }
     else if (strncmp(priority, "lower", 5) == 0)
     {
         _screenRendererPriority = THREAD_PRIORITY_BELOW_NORMAL;
-#ifdef _PY_INT_MORE_LOG
+//#ifdef _PY_INT_MORE_LOG
         WriteLog("Python screen renderer priority: Lower");
-#endif // _PY_INT_MORE_LOG
+//#endif // _PY_INT_MORE_LOG
     }
     else if (strncmp(priority, "lowest", 6) == 0)
     {
         _screenRendererPriority = THREAD_PRIORITY_LOWEST;
-#ifdef _PY_INT_MORE_LOG
+//#ifdef _PY_INT_MORE_LOG
         WriteLog("Python screen renderer priority: Lowest");
-#endif // _PY_INT_MORE_LOG
+//#endif // _PY_INT_MORE_LOG
     }
     else if (strncmp(priority, "idle", 4) == 0)
     {
         _screenRendererPriority = THREAD_PRIORITY_IDLE;
-#ifdef _PY_INT_MORE_LOG
+//#ifdef _PY_INT_MORE_LOG
         WriteLog("Python screen renderer priority: Idle");
-#endif // _PY_INT_MORE_LOG
+//#endif // _PY_INT_MORE_LOG
     }
 }
 
