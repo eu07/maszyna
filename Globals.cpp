@@ -49,9 +49,9 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "16.0.1172.476";
+AnsiString Global::asRelease = "16.0.1172.477";
 AnsiString Global::asVersion =
-    "Compilation 2016-05-25, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2016-06-10, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -151,6 +151,7 @@ double Global::fFpsMax = 0.0; // górna granica FPS, przy której promieñ scenerii
 double Global::fFpsRadiusMax = 3000.0; // maksymalny promieñ renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promieñ renderowania
 double Global::fRadiusFactor = 1.1; // wspó³czynnik jednorazowej zmiany promienia scenerii
+bool Global::bOldSmudge = false; // U¿ywanie starej smugi
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
@@ -428,6 +429,8 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             iModifyTGA = GetNextSymbol().ToIntDef(0); // domyœlnie 0
         else if (str == AnsiString("hideconsole")) // hunter-271211: ukrywanie konsoli
             bHideConsole = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+		else if (str == AnsiString("oldsmudge"))
+            bOldSmudge = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         else if (str ==
                  AnsiString(
                      "rollfix")) // Ra: poprawianie przechy³ki, aby wewnêtrzna szyna by³a "pozioma"
@@ -511,10 +514,8 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             asLang = GetNextSymbol(); // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
         else if (str == AnsiString("opengl")) // deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy
             fOpenGL = GetNextSymbol().ToDouble(); // wymuszenie wersji OpenGL
-        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen
-                                                                // renderer
-            TPythonInterpreter::getInstance()->setScreenRendererPriority(
-                GetNextSymbol().LowerCase().c_str());
+        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen renderer
+            TPythonInterpreter::getInstance()->setScreenRendererPriority(GetNextSymbol().LowerCase().c_str());
 		else if (str == AnsiString("background"))
 		{
 			Background[0] = GetNextSymbol().ToDouble(); // r

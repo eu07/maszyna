@@ -280,6 +280,8 @@ class Global
     static int iSlowMotionMask; // maska wy³¹czanych w³aœciwoœci
     static int iModifyTGA; // czy korygowaæ pliki TGA dla szybszego wczytywania
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
+	static bool bOldSmudge; // U¿ywanie starej smugi
+	
     static TWorld *pWorld; // wskaŸnik na œwiat do usuwania pojazdów
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
     static AnsiString asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
