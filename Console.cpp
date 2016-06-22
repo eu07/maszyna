@@ -288,35 +288,24 @@ void Console::ValueSet(int x, double y)
     if (iMode == 4)
         if (PoKeys55[0])
         {
-            //if (x == 7)
-            //{
-            //    PoKeys55[0]->PoExtUpdate(8, y);
-            //} // nbmx: wal kulakowy
-            //else
-            //{
+			if (Global::iCalibrateOutDebugInfo == x)
+				WriteLog("CalibrateOutDebugInfo: oryginal=" + AnsiString(y), false);
+			if (Global::fCalibrateOutMax[x] > 0)
+			{
+				y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
 				if (Global::iCalibrateOutDebugInfo == x)
-					WriteLog("CalibrateOutDebugInfo: oryginal=" + AnsiString(y), false);
-				if (Global::fCalibrateOutMax[x] > 0)
-				{
-					y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
-					if (Global::iCalibrateOutDebugInfo == x)
-						WriteLog(" cutted=" + AnsiString(y),false);
-					y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
-					if (Global::iCalibrateOutDebugInfo == x)
-						WriteLog(" fraction=" + AnsiString(y),false);
-				}
-				double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
-					Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
-					Global::fCalibrateOut[x][1]) * y +
-					Global::fCalibrateOut[x][0]; // zakres <0;1>
+					WriteLog(" cutted=" + AnsiString(y),false);
+				y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
 				if (Global::iCalibrateOutDebugInfo == x)
-					WriteLog(" calibrated=" + AnsiString(temp));
-				PoKeys55[0]->PWM(x, temp); 
-				//if (x == 6)
-				//{
-				//	PoKeys55[0]->PoExtUpdate(9, temp); //dodatkowo hasler na PoExt
-				//}
-			//}
+					WriteLog(" fraction=" + AnsiString(y),false);
+			}
+			double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
+				Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
+				Global::fCalibrateOut[x][1]) * y +
+				Global::fCalibrateOut[x][0]; // zakres <0;1>
+			if (Global::iCalibrateOutDebugInfo == x)
+				WriteLog(" calibrated=" + AnsiString(temp));
+			PoKeys55[0]->PWM(x, temp); 
         }
 };
 
