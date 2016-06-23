@@ -1552,7 +1552,7 @@ bool TWorld::Update()
 						glDisable(GL_FOG);
 						//glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
 						glBindTexture(GL_TEXTURE_2D, light); // Select our texture
-						float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
+						//float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
 						glBegin(GL_QUADS);
 						float fSmudge = Train->Dynamic()->MoverParameters->DimHalf.y + 7; // gdzie zaczynaæ smugê
 						if (Train->Controlled()->iLights[0] & 21)
@@ -1561,7 +1561,7 @@ bool TWorld::Update()
 							{
 								float z = i * i * i * 0.01f;//25/4;
 								//float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
-								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(ddl+0.015))-1);
+								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(Global::fLuminance+0.015))-1);
 								glColor4f(C, C, C, 0.25f);
 								glTexCoord2f(0, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
 								glTexCoord2f(1, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
@@ -1574,7 +1574,7 @@ bool TWorld::Update()
 							for (int i = 15; i <= 35; i++)
 							{
 								float z = i * i * i * 0.01f;//25/4;
-								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(ddl+0.015))-1);
+								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(Global::fLuminance+0.015))-1);
 								glColor4f(C, C, C, 0.25f);
 								glTexCoord2f(0, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
 								glTexCoord2f(1, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);

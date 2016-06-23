@@ -459,7 +459,10 @@ void TTrain::OnKeyDown(int cKey)
 				if (mvOccupied->BatterySwitch(true)) // bateria potrzebna np. do zapalenia œwiate³
 				{
 					dsbSwitch->Play(0, 0, 0);
-					SetLights();
+					if (mvOccupied->LightsPosNo > 0)
+					{
+						SetLights();
+					}
 					if (TestFlag(mvOccupied->SecuritySystem.SystemType,
 						2)) // Ra: znowu w kabinie jest coœ, co byæ nie powinno!
 					{
