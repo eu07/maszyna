@@ -867,8 +867,7 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 if (smWahacze[i])
                     smWahacze[i]->SetRotate(float3(1, 0, 0),
                                             fWahaczeAmp * cos(MoverParameters->eAngle));
-        //if (Mechanik && (Controller != Humandriver))
-		if (DriverType != "") //rysowanie dla pojazdu z obsad¹
+        if (Mechanik && (Controller != Humandriver))
         { // rysowanie figurki mechanika
             if (smMechanik0) // mechanik od strony sprzêgu 0
                 if (smMechanik1) // jak jest drugi, to pierwszego jedynie pokazujemy
