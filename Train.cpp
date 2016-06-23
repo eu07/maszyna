@@ -2800,7 +2800,6 @@ bool TTrain::Update()
                 fHCurrent[(mvControlled->TrainType & dt_EZT) ? 0 : 1]); // pierwszy amperomierz; dla
             // EZT pr¹d ca³kowity
             Console::ValueSet(6, fTachoVelocity); ////Ra: prêdkoœæ na pin 43 - wyjœcie
-			Console::ValueSet(7, mvControlled->MainCtrlActualPos + mvControlled->ScndCtrlActualPos);   //nbmx: Wal kulakowy
 			/// analogowe (to nie jest PWM);
             /// skakanie zapewnia mechanika
             /// napêdu
