@@ -4244,6 +4244,10 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
             { // tekstura wymienna jest raczej jedynie w "dynamic\"
                 ReplacableSkin =
                     Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
+					AnsiString x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+					if (!x.IsEmpty())
+						ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, (Global::asCurrentTexturePath + "nowhere").c_str(), 9);
+					/*
                 if ((i = ReplacableSkin.Pos("|")) > 0) // replacable dzielone
                 {
                     iMultiTex = -1;
@@ -4302,6 +4306,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         }
                     }
                 }
+				*/
                 if (iMultiTex > 0)
                 { // jeœli model ma 4 tekstury
                     ReplacableSkinID[1] = TTexturesManager::GetTextureID(
@@ -4336,6 +4341,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     }
                 }
                 else
+				
                     ReplacableSkinID[1] = TTexturesManager::GetTextureID(
                         NULL, NULL, ReplacableSkin.c_str(), Global::iDynamicFiltering);
                 if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
