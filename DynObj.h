@@ -504,7 +504,7 @@ class TDynamicObject
     void ParamSet(int what, int into);
     int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
     // jechaæ
-    void DestinationSet(AnsiString to);
+    void DestinationSet(AnsiString to, AnsiString numer);
     AnsiString TextureTest(AnsiString &name);
     void OverheadTrack(float o);
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED

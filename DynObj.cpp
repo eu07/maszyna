@@ -5634,7 +5634,7 @@ AnsiString TDynamicObject::TextureTest(AnsiString &name)
     return ""; // nie znaleziona
 };
 
-void TDynamicObject::DestinationSet(AnsiString to)
+void TDynamicObject::DestinationSet(AnsiString to, AnsiString numer)
 { // ustawienie stacji
     // docelowej oraz wymiennej
     // tekstury 4, jeœli
@@ -5645,25 +5645,39 @@ void TDynamicObject::DestinationSet(AnsiString to)
     // rozk³adu
     if (abs(iMultiTex) >= 4)
         return; // jak s¹ 4 tekstury wymienne, to nie zmieniaæ rozk³adem
+	numer = Global::Bezogonkow(numer);
     asDestination = to;
     to = Global::Bezogonkow(to); // do szukania pliku obcinamy ogonki
     AnsiString x;
+	x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
+	if (!x.IsEmpty())
+    {
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        return;
+    }
+	x = TextureTest(asBaseDir + numer );
+	if (!x.IsEmpty())
+    {
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        return;
+    }
     if (to.IsEmpty())
         to = "nowhere";
-    x = TextureTest(asBaseDir + to + "@" +
-                    MoverParameters->TypeName); // w pierwszej kolejnoœci z nazw¹ FIZ/MMD
+    x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejnoœci z nazw¹ FIZ/MMD
     if (!x.IsEmpty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID(
-            NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
         return;
     }
     x = TextureTest(asBaseDir + to); // na razie prymitywnie
     if (!x.IsEmpty())
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID(
-            NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
     else
-        ReplacableSkinID[4] = 0; // 0 to brak? -1 odpada, bo inaczej siê bêdzie mapowaæ
+		{
+        x = TextureTest(asBaseDir + "nowhere"); // jak nie znalaz³ dedykowanej, to niech daje nowhere
+		if (!x.IsEmpty())
+			ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, x.c_str(), 9);
+		}
     // Ra 2015-01: ¿eby zalogowaæ b³¹d, trzeba by mieæ pewnoœæ, ¿e model u¿ywa
     // tekstury nr 4
 };
