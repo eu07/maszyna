@@ -867,9 +867,11 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 if (smWahacze[i])
                     smWahacze[i]->SetRotate(float3(1, 0, 0),
                                             fWahaczeAmp * cos(MoverParameters->eAngle));
-        if (Mechanik && (Controller != Humandriver))
+        
+		if (Mechanik)
         { // rysowanie figurki mechanika
-            if (smMechanik0) // mechanik od strony sprzêgu 0
+		/*
+			if (smMechanik0) // mechanik od strony sprzêgu 0
                 if (smMechanik1) // jak jest drugi, to pierwszego jedynie pokazujemy
                     smMechanik0->iVisible = MoverParameters->ActiveCab > 0;
                 else
@@ -881,6 +883,17 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 }
             if (smMechanik1) // mechanik od strony sprzêgu 1
                 smMechanik1->iVisible = MoverParameters->ActiveCab < 0;
+		*/
+		if (MoverParameters->ActiveCab > 0)
+			{
+			btMechanik1.TurnOn();
+				btnOn = true;
+			}
+		if (MoverParameters->ActiveCab < 0)
+			{
+			btMechanik2.TurnOn();
+				btnOn = true;
+			}
         }
         // ABu: Przechyly na zakretach
         // Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
@@ -1572,7 +1585,7 @@ TDynamicObject::TDynamicObject()
     mdLoad = NULL;
     mdLowPolyInt = NULL;
     mdPrzedsionek = NULL;
-    smMechanik0 = smMechanik1 = NULL;
+    //smMechanik0 = smMechanik1 = NULL;
     smBuforLewy[0] = smBuforLewy[1] = NULL;
     smBuforPrawy[0] = smBuforPrawy[1] = NULL;
     enginevolume = 0;
@@ -1968,6 +1981,8 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
     btHeadSignals21.Init("headlamp23", mdModel, false);
     btHeadSignals22.Init("headlamp21", mdModel, false);
     btHeadSignals23.Init("headlamp22", mdModel, false);
+	btMechanik1.Init("mechanik1", mdLowPolyInt, false);
+	btMechanik2.Init("mechanik2", mdLowPolyInt, false);
     TurnOff(); // resetowanie zmiennych submodeli
     // wyszukiwanie zderzakow
     if (mdModel) // jeœli ma w czym szukaæ
@@ -3512,6 +3527,8 @@ void TDynamicObject::TurnOff()
     btHeadSignals21.TurnOff();
     btHeadSignals22.TurnOff();
     btHeadSignals23.TurnOff();
+	btMechanik1.TurnOff();
+	btMechanik2.TurnOff();
 };
 
 void TDynamicObject::Render()
@@ -4935,7 +4952,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     if (str == AnsiString("pendulumamplitude:"))
                         fWahaczeAmp = Parser->GetNextSymbol().ToDouble();
                 }
-                else if (str == AnsiString("engineer:"))
+                /*
+				else if (str == AnsiString("engineer:"))
                 { // nazwa submodelu maszynisty
                     str = Parser->GetNextSymbol();
                     smMechanik0 = mdModel->GetFromName(str.c_str());
@@ -4950,6 +4968,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     // if (smMechanik0) //a jest pierwszy
                     //  smMechanik0->WillBeAnimated(); //to bêdziemy go obracaæ
                 }
+				*/
                 else if (str == AnsiString("animdoorprefix:"))
                 { // nazwa animowanych drzwi
                     int i, j, k, m;
