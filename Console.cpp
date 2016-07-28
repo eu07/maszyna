@@ -288,6 +288,7 @@ void Console::ValueSet(int x, double y)
     if (iMode == 4)
         if (PoKeys55[0])
         {
+   			x = Global::iPoKeysPWM[x];
 			if (Global::iCalibrateOutDebugInfo == x)
 				WriteLog("CalibrateOutDebugInfo: oryginal=" + AnsiString(y), false);
 			if (Global::fCalibrateOutMax[x] > 0)

@@ -311,7 +311,9 @@ class Global
     static AnsiString asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy ³¹czyæ eventy z torami poprzez nazwê toru
     static TTextSound *tsRadioBusy[10]; // zajêtoœæ kana³ów radiowych (wskaŸnik na odgrywany dŸwiêk)
-    // metody
+	static int iPoKeysPWM[7]; // numery wejœæ dla PWM
+
+	// metody
     static void TrainDelete(TDynamicObject *d);
     static void ConfigParse(Queryparsercomp::TQueryParserComp *qp, cParser *cp = NULL);
     static AnsiString GetNextSymbol();
@@ -322,6 +324,7 @@ class Global
     static AnsiString Bezogonkow(AnsiString str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
 	static double CutValueToRange(double min, double value, double max);
+
 };
 
 //---------------------------------------------------------------------------
