@@ -3892,7 +3892,11 @@ void TDynamicObject::RenderSounds()
 		sReleaser.TurnOn(MechInside, GetPosition());
 	else
 		sReleaser.TurnOff(MechInside, GetPosition());
-	sReleaser.Update(MechInside, GetPosition());
+	//sReleaser.Update(MechInside, GetPosition());
+	double releaser_vol = 1;
+	if (MoverParameters->BrakePress < 0.1)
+		releaser_vol = MoverParameters->BrakePress * 10;
+	sReleaser.UpdateAF(releaser_vol, 1, MechInside, GetPosition());
     // if ((MoverParameters->ConverterFlag==false) &&
     // (MoverParameters->TrainType!=dt_ET22))
     // if
