@@ -3371,17 +3371,25 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if ((dDoorMoveL < MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
+	{
+		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
         dDoorMoveL += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
+	}
     if ((dDoorMoveL > 0) && (!MoverParameters->DoorLeftOpened))
     {
+		rsDoorClose.Play(vol, 0, MechInside, vPosition);
         dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveL < 0)
             dDoorMoveL = 0;
     }
     if ((dDoorMoveR < MoverParameters->DoorMaxShiftR) && (MoverParameters->DoorRightOpened))
+	{
+		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
         dDoorMoveR += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
+	}
     if ((dDoorMoveR > 0) && (!MoverParameters->DoorRightOpened))
     {
+		rsDoorClose.Play(vol, 0, MechInside, vPosition);
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveR < 0)
             dDoorMoveR = 0;
@@ -3447,7 +3455,8 @@ bool TDynamicObject::Update(double dt, double dt1)
     }
     if (MoverParameters->LoadStatus)
         LoadUpdate(); // zmiana modelu ³adunku
-    return true; // Ra: chyba tak?
+	
+	return true; // Ra: chyba tak?
 }
 
 bool TDynamicObject::FastUpdate(double dt)
