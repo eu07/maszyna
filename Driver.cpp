@@ -851,8 +851,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     } // koniec obs³ugi przelotu na W4
                     else
                     { // zatrzymanie na W4
-                        if (!eSignNext)
-                            eSignNext = sSpeedTable[i].evEvent;
+                        if (!eSignNext) //jeœli nie widzi nastêpnego sygna³u
+                            eSignNext = sSpeedTable[i].evEvent; //ustawia dotychczasow¹
                         if (mvOccupied->Vel > 0.3) // jeœli jedzie (nie trzeba czekaæ, a¿ siê
                             // drgania wyt³umi¹ - drzwi zamykane od 1.0)
                             sSpeedTable[i].fVelNext = 0; // to bêdzie zatrzymanie
@@ -983,10 +983,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                             if (TrainParams->StationIndex < TrainParams->StationCount)
                             { // jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
+							
                                 if (TrainParams->IsTimeToGo(GlobalTime->hh, GlobalTime->mm))
                                 { // z dalsz¹ akcj¹ czekamy do godziny odjazdu
-                                    // if (TrainParams->CheckTrainLatency()<0.0) //jak siê ma odjazd
-                                    // do czasu odjazdu?
+									if (TrainParams->CheckTrainLatency() < 0)
+										WaitingSet(20); //Jak spóŸniony to czeka 20s
                                     // iDrivigFlags|=moveLate1; //oflagowaæ, gdy odjazd ze
                                     // spóŸnieniem, bêdzie jecha³ forsowniej
                                     fLastStopExpDist =
@@ -995,14 +996,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // ma przesun¹æ na nastêpny postój
                                     //         Controlled->    //zapisaæ odleg³oœæ do przejechania
                                     TrainParams->StationIndexInc(); // przejœcie do nastêpnej
-                                    asNextStop =
-                                        TrainParams
-                                            ->NextStop(); // pobranie kolejnego miejsca zatrzymania
+                                    asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
 // TableClear(); //aby od nowa sprawdzi³o W4 z inn¹ nazw¹ ju¿ - to nie jest dobry pomys³
 #if LOGSTOPS
                                     WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
                                              ": at " + AnsiString(GlobalTime->hh) + ":" +
-                                             AnsiString(GlobalTime->mm) + " next " +
+                                             AnsiString(GlobalTime->mm) + " Latency:" + AnsiString(TrainParams->CheckTrainLatency()) + " next " +
                                              asNextStop); // informacja
 #endif
 									if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
