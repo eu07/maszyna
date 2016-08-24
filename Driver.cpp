@@ -4245,6 +4245,7 @@ bool TController::UpdateSituation(double dt)
                     if ((sSemNext && sSemNext->fVelNext != 0.0) || (iDrivigFlags & moveStopHere)==0)
                     { // jeœli mo¿na jechaæ, to odpaliæ dŸwiêk kierownika oraz zamkn¹æ drzwi w
                         // sk³adzie, jeœli nie mamy czekaæ na sygna³ te¿ trzeba odpaliæ
+						
                         if (iDrivigFlags & moveGuardSignal)
                         { // komunikat od kierownika tu, bo musi byæ wolna droga i odczekany czas
                             // stania
