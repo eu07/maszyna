@@ -4981,7 +4981,7 @@ var b:byte;
 const Vepsilon=1e-5; Aepsilon=1e-3; //ASBSpeed=0.8;
 begin
     TotalCurrent:=0;
-    hvc:=Max0R(Max0R(PantFrontVolt,PantRearVolt),ElectricTraction.TractionVoltage);
+    hvc:=Max0R(Max0R(PantFrontVolt,PantRearVolt),ElectricTraction.TractionVoltage*0.9);
     for b:=0 to 1 do //przekazywanie napiec
      if ((Couplers[b].CouplingFlag and ctrain_power) = ctrain_power)or(((Couplers[b].CouplingFlag and ctrain_heating) = ctrain_heating)and(Heating)) then
       begin

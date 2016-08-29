@@ -3139,7 +3139,7 @@ bool TTrain::Update()
                     dsbWejscie_na_drugi_uklad->Play(0, 0, 0);
             }
         }
-        // potem dorobic bufory, sprzegi jako RealSound.
+        
         if (TestFlag(mvOccupied->SoundFlag, sound_bufferclamp)) // zderzaki uderzaja o siebie
         {
             if (TestFlag(mvOccupied->SoundFlag, sound_loud))
@@ -4096,20 +4096,26 @@ bool TTrain::Update()
             if (TestFlag(mvOccupied->SecuritySystem.Status, s_CAalarm) ||
                 TestFlag(mvOccupied->SecuritySystem.Status, s_SHPalarm))
             {
+				if(dsbBuzzer)
+				{
                 dsbBuzzer->GetStatus(&stat);
 				if (!(stat & DSBSTATUS_PLAYING))
 				{
                     dsbBuzzer->Play(0, 0, DSBPLAY_LOOPING);
 					Console::BitsSet(1 << 14); // ustawienie bitu 16 na PoKeys
 				}
+				}
             }
             else
             {
+				if(dsbBuzzer)
+				{
                 dsbBuzzer->GetStatus(&stat);
 				if (stat & DSBSTATUS_PLAYING)
 				{
                     dsbBuzzer->Stop();
 					Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
+				}
 				}
             }
         }
@@ -4117,11 +4123,14 @@ bool TTrain::Update()
         {
             btLampkaCzuwaka.TurnOff();
             btLampkaSHP.TurnOff();
+			if(dsbBuzzer)
+			{
             dsbBuzzer->GetStatus(&stat);
 			if (stat & DSBSTATUS_PLAYING)
 			{
                 dsbBuzzer->Stop();
 				Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
+			}
 			}
         }
 
@@ -5014,7 +5023,12 @@ bool TTrain::LoadMMediaFile(AnsiString asFileName)
     //    Parser->LoadStringToParse(asFile);
     Parser->First();
     str = "";
+	//Wartoœci domyœlne by nie wysypywa³o przy wybrakowanych mmd @240816 Stele
     dsbPneumaticSwitch = TSoundsManager::GetFromName("silence1.wav", true);
+	dsbBufferClamp = TSoundsManager::GetFromName("en57_bufferclamp.wav", true);
+	dsbCouplerDetach = TSoundsManager::GetFromName("couplerdetach.wav", true);
+	dsbCouplerStretch = TSoundsManager::GetFromName("en57_couplerstretch.wav", true);
+	dsbCouplerAttach = TSoundsManager::GetFromName("couplerattach.wav", true);
     while ((!Parser->EndOfFile) && (str != AnsiString("internaldata:")))
     {
         str = Parser->GetNextSymbol().LowerCase();
@@ -5109,16 +5123,23 @@ bool TTrain::LoadMMediaFile(AnsiString asFileName)
             {
                 str = Parser->GetNextSymbol().LowerCase();
                 dsbCouplerAttach = TSoundsManager::GetFromName(str.c_str(), true);
-                dsbCouplerStretch = TSoundsManager::GetFromName(
-                    "en57_couplerstretch.wav", true); // McZapkie-090503: PROWIZORKA!!!
             }
+			else if (str == AnsiString("couplerstretch:")) // laczenie:
+            {
+				str = Parser->GetNextSymbol().LowerCase();
+				dsbCouplerStretch = TSoundsManager::GetFromName(str.c_str(), true); // McZapkie-090503: PROWIZORKA!!! "en57_couplerstretch.wav"
+			}
             else if (str == AnsiString("couplerdetach:")) // rozlaczanie:
             {
                 str = Parser->GetNextSymbol().LowerCase();
                 dsbCouplerDetach = TSoundsManager::GetFromName(str.c_str(), true);
-                dsbBufferClamp = TSoundsManager::GetFromName(
-                    "en57_bufferclamp.wav", true); // McZapkie-090503: PROWIZORKA!!!
+                
             }
+			else if (str == AnsiString("bufferclamp:")) // laczenie:
+            {
+				str = Parser->GetNextSymbol().LowerCase();
+				dsbBufferClamp = TSoundsManager::GetFromName(str.c_str(), true); // McZapkie-090503: PROWIZORKA!!! "en57_bufferclamp.wav"
+			}
             else if (str == AnsiString("ignition:"))
             { // odpalanie silnika
                 str = Parser->GetNextSymbol().LowerCase();

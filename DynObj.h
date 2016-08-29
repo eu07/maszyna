@@ -266,8 +266,10 @@ class TDynamicObject
     TButton btHeadSignals21; // oswietlenie czolowe - tyl
     TButton btHeadSignals22;
     TButton btHeadSignals23;
-    TSubModel *smMechanik0; // Ra: mechanik wbudowany w model jako submodel?
-    TSubModel *smMechanik1; // mechanik od strony sprzêgu 1
+	TButton btMechanik1;
+	TButton btMechanik2;
+    //TSubModel *smMechanik0; // Ra: mechanik wbudowany w model jako submodel?
+    //TSubModel *smMechanik1; // mechanik od strony sprzêgu 1
     double enginevolume; // MC: pomocnicze zeby gladziej silnik buczal
 
     int iAxles; // McZapkie: to potem mozna skasowac i zastapic iNumAxles
@@ -504,7 +506,7 @@ class TDynamicObject
     void ParamSet(int what, int into);
     int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
     // jechaæ
-    void DestinationSet(AnsiString to);
+    void DestinationSet(AnsiString to, AnsiString numer);
     AnsiString TextureTest(AnsiString &name);
     void OverheadTrack(float o);
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED

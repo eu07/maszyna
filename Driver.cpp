@@ -851,8 +851,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     } // koniec obs³ugi przelotu na W4
                     else
                     { // zatrzymanie na W4
-                        if (!eSignNext)
-                            eSignNext = sSpeedTable[i].evEvent;
+                        if (!eSignNext) //jeœli nie widzi nastêpnego sygna³u
+                            eSignNext = sSpeedTable[i].evEvent; //ustawia dotychczasow¹
                         if (mvOccupied->Vel > 0.3) // jeœli jedzie (nie trzeba czekaæ, a¿ siê
                             // drgania wyt³umi¹ - drzwi zamykane od 1.0)
                             sSpeedTable[i].fVelNext = 0; // to bêdzie zatrzymanie
@@ -983,10 +983,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                             if (TrainParams->StationIndex < TrainParams->StationCount)
                             { // jeœli s¹ dalsze stacje, czekamy do godziny odjazdu
+							
                                 if (TrainParams->IsTimeToGo(GlobalTime->hh, GlobalTime->mm))
                                 { // z dalsz¹ akcj¹ czekamy do godziny odjazdu
-                                    // if (TrainParams->CheckTrainLatency()<0.0) //jak siê ma odjazd
-                                    // do czasu odjazdu?
+									if (TrainParams->CheckTrainLatency() < 0)
+										WaitingSet(20); //Jak spóŸniony to czeka 20s
                                     // iDrivigFlags|=moveLate1; //oflagowaæ, gdy odjazd ze
                                     // spóŸnieniem, bêdzie jecha³ forsowniej
                                     fLastStopExpDist =
@@ -995,14 +996,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // ma przesun¹æ na nastêpny postój
                                     //         Controlled->    //zapisaæ odleg³oœæ do przejechania
                                     TrainParams->StationIndexInc(); // przejœcie do nastêpnej
-                                    asNextStop =
-                                        TrainParams
-                                            ->NextStop(); // pobranie kolejnego miejsca zatrzymania
+                                    asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
 // TableClear(); //aby od nowa sprawdzi³o W4 z inn¹ nazw¹ ju¿ - to nie jest dobry pomys³
 #if LOGSTOPS
                                     WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
                                              ": at " + AnsiString(GlobalTime->hh) + ":" +
-                                             AnsiString(GlobalTime->mm) + " next " +
+                                             AnsiString(GlobalTime->mm) + " Latency:" + AnsiString(TrainParams->CheckTrainLatency()) + " next " +
                                              asNextStop); // informacja
 #endif
 									if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
@@ -1875,7 +1874,7 @@ bool TController::CheckVehicles(TOrders user)
         {
             if (TrainParams)
                 if (p->asDestination == "none")
-                    p->DestinationSet(TrainParams->Relation2); // relacja docelowa, jeœli nie by³o
+                    p->DestinationSet(TrainParams->Relation2, TrainParams->TrainName); // relacja docelowa, jeœli nie by³o
             if (AIControllFlag) // jeœli prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy œwiat³a
             if (p->MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
@@ -2986,7 +2985,7 @@ bool TController::PutCommand(AnsiString NewCommand, double NewValue1, double New
             TDynamicObject *p = pVehicles[0];
             while (p)
             {
-                p->DestinationSet(NewCommand); // relacja docelowa
+                p->DestinationSet(NewCommand, TrainParams->TrainName); // relacja docelowa
                 p = p->Next(); // pojazd pod³¹czony od ty³u (licz¹c od czo³a)
             }
         }
@@ -4246,6 +4245,7 @@ bool TController::UpdateSituation(double dt)
                     if ((sSemNext && sSemNext->fVelNext != 0.0) || (iDrivigFlags & moveStopHere)==0)
                     { // jeœli mo¿na jechaæ, to odpaliæ dŸwiêk kierownika oraz zamkn¹æ drzwi w
                         // sk³adzie, jeœli nie mamy czekaæ na sygna³ te¿ trzeba odpaliæ
+						
                         if (iDrivigFlags & moveGuardSignal)
                         { // komunikat od kierownika tu, bo musi byæ wolna droga i odczekany czas
                             // stania
