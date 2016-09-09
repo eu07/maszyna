@@ -105,6 +105,11 @@ void WriteLog(const AnsiString &str, bool newline)
     WriteLog(str.c_str(), newline);
 };
 
+void WriteLog(const std::string &str, bool newline)
+{ // Ra: wersja z AnsiString jest zamienna z Error()
+	WriteLog(str.c_str(), newline);
+};
+
 void CommLog(const char *str)
 { // Ra: warunkowa rejestracja komunikatów
 	WriteLog(str);

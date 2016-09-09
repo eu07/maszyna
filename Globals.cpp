@@ -919,4 +919,12 @@ double Global::CutValueToRange(double min, double value, double max)
 	return value;
 };
 
+std::string Global::to_string(int _Val)
+{
+	std::string str;
+	int num = 3;
+	sprintf((char*)str.c_str(), "%d", _Val);
+	return str;
+};
+
 #pragma package(smart_init)

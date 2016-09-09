@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "system.hpp"
 #pragma hdrstop
 
-#include "mtable.hpp"
+#include "mtable.h"
 #include "Timer.h"
 #include "Globals.h"
 #include "EvLaunch.h"
@@ -26,6 +26,8 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "parser.h"
 #include "Console.h"
+
+using namespace Mtable;
 
 //---------------------------------------------------------------------------
 

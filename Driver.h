@@ -13,7 +13,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "dumb3d.h"
 #include <fstream>
+#include <string>
 using namespace Math3D;
+using namespace Mtable;
 
 enum TOrders
 { // rozkazy dla AI
@@ -178,7 +180,7 @@ class TController
     double fAccGravity; // przyspieszenie sk³adowej stycznej grawitacji
   public:
     TEvent *eSignNext; // sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
-    AnsiString asNextStop; // nazwa nastêpnego punktu zatrzymania wg rozk³adu
+    std::string asNextStop; // nazwa nastêpnego punktu zatrzymania wg rozk³adu
     int iStationStart; // numer pierwszej stacji pokazywanej na podgl¹dzie rozk³adu
   private: // parametry sterowania pojazdem (stan, hamowanie)
     double fShuntVelocity; // maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
@@ -221,7 +223,7 @@ class TController
         pVehicles[2]; // skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
     TMoverParameters *mvControlling; // jakim pojazdem steruje (mo¿e silnikowym w EZT)
     TMoverParameters *mvOccupied; // jakim pojazdem hamuje
-    Mtable::TTrainParameters *TrainParams; // rozk³ad jazdy zawsze jest, nawet jeœli pusty
+    TTrainParameters *TrainParams; // rozk³ad jazdy zawsze jest, nawet jeœli pusty
     // int TrainNumber; //numer rozkladowy tego pociagu
     // AnsiString OrderCommand; //komenda pobierana z pojazdu
     // double OrderValue; //argument komendy
@@ -378,10 +380,10 @@ class TController
     void PhysicsLog();
     AnsiString StopReasonText();
     ~TController();
-    AnsiString NextStop();
+    std::string NextStop();
     void TakeControl(bool yes);
-    AnsiString Relation();
-    AnsiString TrainName();
+	std::string Relation();
+	std::string TrainName();
     int StationCount();
     int StationIndex();
     bool IsStop();

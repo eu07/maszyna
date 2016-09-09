@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma hdrstop
 
 #include "Driver.h"
-#include <mtable.hpp>
+#include "mtable.h"
 #include "DynObj.h"
 #include <math.h>
 #include "Globals.h"
@@ -810,7 +810,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
         { // o ile dana pozycja tabelki jest istotna
             if (sSpeedTable[i].iFlags & spPassengerStopPoint)
             { // jeœli przystanek, trzeba obs³u¿yæ wg rozk³adu
-                if (sSpeedTable[i].evEvent->CommandGet() != asNextStop)
+                if (sSpeedTable[i].evEvent->CommandGet() != AnsiString(asNextStop.c_str()))
                 { // jeœli nazwa nie jest zgodna
                     if (sSpeedTable[i].fDist < -fLength) // jeœli zosta³ przejechany
                         sSpeedTable[i].iFlags =
@@ -828,9 +828,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         { // zaliczamy posterunek w pewnej odleg³oœci przed (choæ W4 nie zas³ania
 // ju¿ semafora)
 #if LOGSTOPS
-                            WriteLog(pVehicle->asName + " as " + TrainParams->TrainName + ": at " +
+                            WriteLog(pVehicle->asName + " as " + TrainParams->TrainName.c_str() + ": at " +
                                      AnsiString(GlobalTime->hh) + ":" + AnsiString(GlobalTime->mm) +
-                                     " skipped " + asNextStop); // informacja
+                                     " skipped " + AnsiString(asNextStop.c_str())); // informacja
 #endif
                             fLastStopExpDist = mvOccupied->DistCounter + 0.250 +
                                                0.001 * fLength; // przy jakim dystansie (stanie
@@ -838,7 +838,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // nastêpny postój
                             TrainParams->UpdateMTable(
                                 GlobalTime->hh, GlobalTime->mm,
-                                asNextStop.SubString(20, asNextStop.Length()));
+                                asNextStop.substr(20, asNextStop.length()));
                             TrainParams->StationIndexInc(); // przejœcie do nastêpnej
                             asNextStop =
                                 TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
@@ -938,7 +938,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                             if (TrainParams->UpdateMTable(
                                     GlobalTime->hh, GlobalTime->mm,
-                                    asNextStop.SubString(20, asNextStop.Length())))
+                                    asNextStop.substr(20, asNextStop.length())))
                             { // to siê wykona tylko raz po zatrzymaniu na W4
                                 if (TrainParams->CheckTrainLatency() < 0.0)
                                     iDrivigFlags |= moveLate; // odnotowano spóŸnienie
@@ -1000,10 +1000,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                             ->NextStop(); // pobranie kolejnego miejsca zatrzymania
 // TableClear(); //aby od nowa sprawdzi³o W4 z inn¹ nazw¹ ju¿ - to nie jest dobry pomys³
 #if LOGSTOPS
-                                    WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
+                                    WriteLog(pVehicle->asName + " as " + AnsiString(TrainParams->TrainName.c_str()) +
                                              ": at " + AnsiString(GlobalTime->hh) + ":" +
                                              AnsiString(GlobalTime->mm) + " next " +
-                                             asNextStop); // informacja
+                                             AnsiString(asNextStop.c_str())); // informacja
 #endif
 									if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
 										iDrivigFlags |= moveStopHere; // nie podje¿d¿aæ do semafora,
@@ -1027,7 +1027,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             else
                             { // jeœli dojechaliœmy do koñca rozk³adu
 #if LOGSTOPS
-                                WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
+                                WriteLog(pVehicle->asName + " as " + AnsiString(TrainParams->TrainName.c_str()) +
                                          ": at " + AnsiString(GlobalTime->hh) + ":" +
                                          AnsiString(GlobalTime->mm) +
                                          " end of route."); // informacja
@@ -1875,7 +1875,7 @@ bool TController::CheckVehicles(TOrders user)
         {
             if (TrainParams)
                 if (p->asDestination == "none")
-                    p->DestinationSet(TrainParams->Relation2); // relacja docelowa, jeœli nie by³o
+                    p->DestinationSet(AnsiString(TrainParams->Relation2.c_str())); // relacja docelowa, jeœli nie by³o
             if (AIControllFlag) // jeœli prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy œwiat³a
             if (p->MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
@@ -2933,15 +2933,15 @@ bool TController::PutCommand(AnsiString NewCommand, double NewValue1, double New
         WriteLog("New timetable for " + pVehicle->asName + ": " + NewCommand); // informacja
 #endif
         if (!TrainParams)
-            TrainParams = new TTrainParameters(NewCommand); // rozk³ad jazdy
+            TrainParams = new TTrainParameters(std::string(NewCommand.c_str())); // rozk³ad jazdy
         else
-            TrainParams->NewName(NewCommand); // czyœci tabelkê przystanków
+            TrainParams->NewName(std::string(NewCommand.c_str())); // czyœci tabelkê przystanków
         delete tsGuardSignal;
         tsGuardSignal = NULL; // wywalenie kierownika
         if (NewCommand != "none")
         {
             if (!TrainParams->LoadTTfile(
-                    Global::asCurrentSceneryPath, floor(NewValue2 + 0.5),
+                    std::string(Global::asCurrentSceneryPath.c_str()), floor(NewValue2 + 0.5),
                     NewValue1)) // pierwszy parametr to przesuniêcie rozk³adu w czasie
             {
                 if (ConversionError == -8)
@@ -2980,7 +2980,7 @@ bool TController::PutCommand(AnsiString NewCommand, double NewValue1, double New
                         iGuardRadio = iRadioChannel;
                     }
                 }
-                NewCommand = TrainParams->Relation2; // relacja docelowa z rozk³adu
+                NewCommand = AnsiString(TrainParams->Relation2.c_str()); // relacja docelowa z rozk³adu
             }
             // jeszcze poustawiaæ tekstury na wyœwietlaczach
             TDynamicObject *p = pVehicles[0];
@@ -4903,7 +4903,7 @@ void TController::OrdersInit(double fVel)
     // OrderPos=OrderTop=0; //wype³niamy od pozycji 0
     OrdersClear(); // usuniêcie poprzedniej tabeli
     OrderPush(Prepare_engine); // najpierw odpalenie silnika
-    if (TrainParams->TrainName == AnsiString("none"))
+    if (TrainParams->TrainName == "none")
     { // brak rozk³adu to jazda manewrowa
         if (fVel > 0.05) // typowo 0.1 oznacza gotowoœæ do jazdy, 0.01 tylko za³¹czenie silnika
             OrderPush(Shunt); // jeœli nie ma rozk³adu, to manewruje
@@ -4913,8 +4913,7 @@ void TController::OrdersInit(double fVel)
         if ((fVel > 0.0) && (fVel < 0.02))
             OrderPush(Shunt); // dla prêdkoœci 0.01 w³¹czamy jazdê manewrow¹
         else if (TrainParams ?
-                     (TrainParams->TimeTable[1].StationWare.Pos(
-                          "@") ? // jeœli obrót na pierwszym przystanku
+                     (TrainParams->DirectionChange() ? // jeœli obrót na pierwszym przystanku
                           ((iDrivigFlags &
                             movePushPull) ? // SZT równie¿! SN61 zale¿nie od wagonów...
                                (TrainParams->TimeTable[1].StationName == TrainParams->Relation1) :
@@ -4933,10 +4932,10 @@ void TController::OrdersInit(double fVel)
         {
             t = TrainParams->TimeTable + i;
             if (DebugModeFlag) // normalnie nie ma po co tego wypisywaæ
-                WriteLog(AnsiString(t->StationName) + " " + AnsiString((int)t->Ah) + ":" +
+                WriteLog(AnsiString(t->StationName.c_str()) + " " + AnsiString((int)t->Ah) + ":" +
                          AnsiString((int)t->Am) + ", " + AnsiString((int)t->Dh) + ":" +
-                         AnsiString((int)t->Dm) + " " + AnsiString(t->StationWare));
-            if (AnsiString(t->StationWare).Pos("@"))
+                         AnsiString((int)t->Dm) + " " + AnsiString(t->StationWare.c_str()));
+            if (AnsiString(t->StationWare.c_str()).Pos("@"))
             { // zmiana kierunku i dalsza jazda wg rozk³adu
                 if (iDrivigFlags & movePushPull) // SZT równie¿! SN61 zale¿nie od wagonów...
                 { // jeœli sk³ad zespolony, wystarczy zmieniæ kierunek jazdy
@@ -5291,21 +5290,22 @@ TCommandType TController::BackwardScan()
     return cm_Unknown; // nic
 };
 
-AnsiString TController::NextStop()
+std::string TController::NextStop()
 { // informacja o nastêpnym zatrzymaniu, wyœwietlane pod [F1]
-    if (asNextStop.Length() < 20)
+    if (asNextStop.length() < 20)
         return ""; // nie zawiera nazwy stacji, gdy dojecha³ do koñca
     // dodaæ godzinê odjazdu
     if (!TrainParams)
         return ""; // tu nie powinno nigdy wejœæ
     TMTableLine *t = TrainParams->TimeTable + TrainParams->StationIndex;
+	std::string tmp = "";
     if (t->Dh >= 0) // jeœli jest godzina odjazdu
-        return asNextStop.SubString(20, 30) + AnsiString(" ") + AnsiString(int(t->Dh)) +
-               AnsiString(":") + AnsiString(int(100 + t->Dm)).SubString(2, 2); // odjazd
+        return asNextStop.substr(20, 30) + " " + Global::to_string(t->Dh) +
+               ":" + Global::to_string(100 + t->Dm).substr(2, 2); // odjazd
     else if (t->Ah >= 0) // przyjazd
-        return asNextStop.SubString(20, 30) + AnsiString(" (") + AnsiString(int(t->Ah)) +
-               AnsiString(":") + AnsiString(int(100 + t->Am)).SubString(2, 2) +
-               AnsiString(")"); // przyjazd
+        return asNextStop.substr(20, 30) + " (" + Global::to_string(t->Ah) +
+               ":" + Global::to_string(100 + t->Am).substr(2, 2) +
+               ")"; // przyjazd
     return "";
 };
 
@@ -5382,12 +5382,12 @@ void TController::DirectionForward(bool forward)
                 mvControlling->IncMainCtrl(1); //¿eby nie zgas³
 };
 
-AnsiString TController::Relation()
+std::string TController::Relation()
 { // zwraca relacjê poci¹gu
     return TrainParams->ShowRelation();
 };
 
-AnsiString TController::TrainName()
+std::string TController::TrainName()
 { // zwraca numer poci¹gu
     return TrainParams->TrainName;
 };

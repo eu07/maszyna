@@ -33,7 +33,7 @@ http://mozilla.org/MPL/2.0/.
 #include "RealSound.h"
 #include "AnimModel.h"
 #include "MemCell.h"
-#include "mtable.hpp"
+#include "mtable.h"
 #include "DynObj.h"
 #include "Data.h"
 #include "parser.h" //Tolaris-010603
@@ -4179,7 +4179,7 @@ bool TGround::CheckQuery()
                     if (tmpEvent->Activator->Mechanik->Primary())
                     { // tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
                         tmpEvent->Params[9].asMemCell->UpdateValues(
-                            tmpEvent->Activator->Mechanik->TrainName().c_str(),
+							const_cast<char *>(tmpEvent->Activator->Mechanik->TrainName().c_str()),
                             tmpEvent->Activator->Mechanik->StationCount() -
                                 tmpEvent->Activator->Mechanik
                                     ->StationIndex(), // ile przystanków do koñca

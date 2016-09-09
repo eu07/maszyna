@@ -22,9 +22,11 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "Globals.h"
 #include "Timer.h"
-#include "mtable.hpp"
+#include "mtable.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
+
+using namespace Mtable;
 
 double TSubModel::fSquareDist = 0;
 int TSubModel::iInstance; // numer renderowanego egzemplarza obiektu

@@ -324,6 +324,7 @@ class Global
     static AnsiString Bezogonkow(AnsiString str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
 	static double CutValueToRange(double min, double value, double max);
+	static std::string to_string(int _Val);
 
 };
 

@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Gauge.h"
 #include "Button.h"
 #include "DynObj.h"
-#include "mtable.hpp"
+#include "mtable.h"
 
 #include "Sound.h"
 #include "AdvSound.h"

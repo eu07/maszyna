@@ -20,7 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma hdrstop
 
 #include "Timer.h"
-#include "mtable.hpp"
+#include "mtable.h"
 #include "Sound.h"
 #include "World.h"
 #include "Logs.h"
@@ -1891,11 +1891,11 @@ bool TWorld::Update()
         if (Controlled)
             if (Controlled->Mechanik)
             {
-                OutText2 = Controlled->Mechanik->Relation();
+                OutText2 = Controlled->Mechanik->Relation().c_str();
                 if (!OutText2.IsEmpty()) // jeœli jest podana relacja, to dodajemy punkt nastêpnego
                     // zatrzymania
                     OutText2 =
-                        Global::Bezogonkow(OutText2 + ": -> " + Controlled->Mechanik->NextStop(),
+                        Global::Bezogonkow(OutText2 + ": -> " + Controlled->Mechanik->NextStop().c_str(),
                                            true); // dopisanie punktu zatrzymania
             }
         // double CtrlPos=mvControlled->MainCtrlPos;
@@ -2502,8 +2502,8 @@ bool TWorld::Update()
                         glColor3f(1.0f, 1.0f, 1.0f); // a, damy bia³ym
                         // glTranslatef(0.0f,0.0f,-0.50f);
                         glRasterPos2f(-0.25f, 0.20f);
-                        OutText1 = tmp->Mechanik->Relation() + " (" +
-                                   tmp->Mechanik->Timetable()->TrainName + ")";
+                        OutText1 = AnsiString(tmp->Mechanik->Relation().c_str()) + " (" +
+                                   tmp->Mechanik->Timetable()->TrainName.c_str() + ")";
                         glPrint(Global::Bezogonkow(OutText1, true).c_str());
                         glRasterPos2f(-0.25f, 0.19f);
                         // glPrint("|============================|=======|=======|=====|");
@@ -2514,7 +2514,7 @@ bool TWorld::Update()
                         for (int i = tmp->Mechanik->iStationStart; i <= tt->StationCount; ++i)
                         { // wyœwietlenie pozycji z rozk³adu
                             t = tt->TimeTable + i; // linijka rozk³adu
-                            OutText1 = AnsiString(AnsiString(t->StationName) +
+                            OutText1 = AnsiString(AnsiString(t->StationName.c_str()) +
                                                   "                          ").SubString(1, 26);
                             OutText2 = (t->Ah >= 0) ?
                                            AnsiString(int(100 + t->Ah)).SubString(2, 2) + ":" +
@@ -2529,7 +2529,7 @@ bool TWorld::Update()
                                                           3); // z wyrównaniem do prawej
                             // if (AnsiString(t->StationWare).Pos("@"))
                             OutText1 = "| " + OutText1 + " | " + OutText2 + " | " + OutText3 +
-                                       " | " + OutText4 + " | " + AnsiString(t->StationWare);
+                                       " | " + OutText4 + " | " + AnsiString(t->StationWare.c_str());
                             glRasterPos2f(-0.25f,
                                           0.18f - 0.02f * (i - tmp->Mechanik->iStationStart));
                             if ((tmp->Mechanik->iStationStart < tt->StationIndex) ?

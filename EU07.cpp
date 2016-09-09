@@ -71,7 +71,7 @@ USEUNIT("AirCoupler.cpp");
 USEUNIT("opengl\glew.c");
 USEUNIT("ResourceManager.cpp");
 USEUNIT("VBO.cpp");
-USEUNIT("McZapkie\mtable.pas");
+USEUNIT("mtable.cpp");
 USEUNIT("TextureDDS.cpp");
 USEUNIT("opengl\ARB_Multisample.cpp");
 USEUNIT("Float3d.cpp");
