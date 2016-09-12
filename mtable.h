@@ -77,9 +77,10 @@ namespace Mtable
 		void StationIndexInc();
 	};
 
-	struct /*class*/ TMTableTime
+	class TMTableTime
 
 	{
+	public:
 		double GameTime;
 		int dd;
 		int hh;
@@ -93,6 +94,11 @@ namespace Mtable
 		TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int InitSSH, int InitSSM);
 	};
 
-	TMTableTime *GlobalTime;
+	extern TMTableTime *GlobalTime;
 }
+
+#if !defined(NO_IMPLICIT_NAMESPACE_USE)
+using namespace Mtable;
+#endif
+
 #endif // MTABLE_H

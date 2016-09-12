@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include <Controls.hpp> //do odczytu daty
 #include "World.h"
-
+#include <ostream>
 // namespace Global {
 
 // parametry do u¿ytku wewnêtrznego
@@ -921,10 +921,9 @@ double Global::CutValueToRange(double min, double value, double max)
 
 std::string Global::to_string(int _Val)
 {
-	std::string str;
-	int num = 3;
-	sprintf((char*)str.c_str(), "%d", _Val);
-	return str;
+    std::ostringstream o;
+    o << _Val;
+    return o.str();
 };
 
 #pragma package(smart_init)

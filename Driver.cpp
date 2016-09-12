@@ -838,7 +838,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // nastêpny postój
                             TrainParams->UpdateMTable(
                                 GlobalTime->hh, GlobalTime->mm,
-                                asNextStop.substr(20, asNextStop.length()));
+                                asNextStop.substr(19, asNextStop.length()));
                             TrainParams->StationIndexInc(); // przejœcie do nastêpnej
                             asNextStop =
                                 TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
@@ -5292,20 +5292,18 @@ TCommandType TController::BackwardScan()
 
 std::string TController::NextStop()
 { // informacja o nastêpnym zatrzymaniu, wyœwietlane pod [F1]
-    if (asNextStop.length() < 20)
+    if (asNextStop.length() < 19)
         return ""; // nie zawiera nazwy stacji, gdy dojecha³ do koñca
     // dodaæ godzinê odjazdu
     if (!TrainParams)
         return ""; // tu nie powinno nigdy wejœæ
     TMTableLine *t = TrainParams->TimeTable + TrainParams->StationIndex;
-	std::string tmp = "";
     if (t->Dh >= 0) // jeœli jest godzina odjazdu
-        return asNextStop.substr(20, 30) + " " + Global::to_string(t->Dh) +
-               ":" + Global::to_string(100 + t->Dm).substr(2, 2); // odjazd
+        return asNextStop.substr(19, 30) + " " + Global::to_string(t->Dh) + ":" +
+               Global::to_string(t->Dm); // odjazd
     else if (t->Ah >= 0) // przyjazd
-        return asNextStop.substr(20, 30) + " (" + Global::to_string(t->Ah) +
-               ":" + Global::to_string(100 + t->Am).substr(2, 2) +
-               ")"; // przyjazd
+        return asNextStop.substr(19, 30) + " (" + Global::to_string(t->Ah) + ":" +
+               Global::to_string(t->Am) + ")"; // przyjazd
     return "";
 };
 

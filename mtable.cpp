@@ -14,7 +14,8 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include <fstream>
 
-using namespace Mtable;
+//using namespace Mtable;
+TMTableTime *Mtable::GlobalTime;
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
 // zwraca ró¿nicê czasu

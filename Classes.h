@@ -39,6 +39,7 @@ class TRotation;
 namespace Mtable
 {
 class TTrainParameters; // rozk³ad jazdy
+class TMtableTime; // czas dla danego posterunku
 };
 
 class TController; // obiekt steruj¹cy poci¹giem (AI)
