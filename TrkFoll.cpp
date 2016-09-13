@@ -26,6 +26,7 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 #include "Ground.h"
 #include "Event.h"
+#include "Driver.h"
 
 TTrackFollower::TTrackFollower()
 {
@@ -132,7 +133,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             {
                 if (iSetFlag(iEventFlag, -1)) // zawsze zeruje flagê sprawdzenia, jak mechanik
                     // dosi¹dzie, to siê nie wykona
-                    if (Owner->Mechanik) // tylko dla jednego cz³onu
+                    if (Owner->Mechanik->Primary()) // tylko dla jednego cz³onu
                         // if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla
                         // pojazdow z obsada
                         if (bPrimary && pCurrentTrack->evEvent1 &&
@@ -154,7 +155,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             {
                 if (iSetFlag(iEventFlag, -2)) // zawsze ustawia flagê sprawdzenia, jak mechanik
                     // dosi¹dzie, to siê nie wykona
-                    if (Owner->Mechanik) // tylko dla jednego cz³onu
+                    if (Owner->Mechanik->Primary()) // tylko dla jednego cz³onu
                         // if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym
                         // warunku
                         if (bPrimary && pCurrentTrack->evEvent2 &&
@@ -173,7 +174,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             }
             else // if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
             {
-                if (Owner->Mechanik) // tylko dla jednego cz³onu
+                if (Owner->Mechanik->Primary()) // tylko dla jednego cz³onu
                     if (pCurrentTrack->evEvent0)
                         if (!pCurrentTrack->evEvent0->iQueued)
                             Global::AddToQuery(pCurrentTrack->evEvent0, Owner);

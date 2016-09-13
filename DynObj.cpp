@@ -867,9 +867,11 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 if (smWahacze[i])
                     smWahacze[i]->SetRotate(float3(1, 0, 0),
                                             fWahaczeAmp * cos(MoverParameters->eAngle));
-        if (Mechanik && (Controller != Humandriver))
+        
+		if (Mechanik)
         { // rysowanie figurki mechanika
-            if (smMechanik0) // mechanik od strony sprzêgu 0
+		/*
+			if (smMechanik0) // mechanik od strony sprzêgu 0
                 if (smMechanik1) // jak jest drugi, to pierwszego jedynie pokazujemy
                     smMechanik0->iVisible = MoverParameters->ActiveCab > 0;
                 else
@@ -881,6 +883,17 @@ void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 }
             if (smMechanik1) // mechanik od strony sprzêgu 1
                 smMechanik1->iVisible = MoverParameters->ActiveCab < 0;
+		*/
+		if (MoverParameters->ActiveCab > 0)
+			{
+			btMechanik1.TurnOn();
+				btnOn = true;
+			}
+		if (MoverParameters->ActiveCab < 0)
+			{
+			btMechanik2.TurnOn();
+				btnOn = true;
+			}
         }
         // ABu: Przechyly na zakretach
         // Ra: przechy³kê za³atwiamy na etapie przesuwania modelu
@@ -1572,7 +1585,7 @@ TDynamicObject::TDynamicObject()
     mdLoad = NULL;
     mdLowPolyInt = NULL;
     mdPrzedsionek = NULL;
-    smMechanik0 = smMechanik1 = NULL;
+    //smMechanik0 = smMechanik1 = NULL;
     smBuforLewy[0] = smBuforLewy[1] = NULL;
     smBuforPrawy[0] = smBuforPrawy[1] = NULL;
     enginevolume = 0;
@@ -1968,6 +1981,8 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
     btHeadSignals21.Init("headlamp23", mdModel, false);
     btHeadSignals22.Init("headlamp21", mdModel, false);
     btHeadSignals23.Init("headlamp22", mdModel, false);
+	btMechanik1.Init("mechanik1", mdLowPolyInt, false);
+	btMechanik2.Init("mechanik2", mdLowPolyInt, false);
     TurnOff(); // resetowanie zmiennych submodeli
     // wyszukiwanie zderzakow
     if (mdModel) // jeœli ma w czym szukaæ
@@ -3356,17 +3371,25 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if ((dDoorMoveL < MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
+	{
+		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
         dDoorMoveL += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
+	}
     if ((dDoorMoveL > 0) && (!MoverParameters->DoorLeftOpened))
     {
+		rsDoorClose.Play(vol, 0, MechInside, vPosition);
         dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveL < 0)
             dDoorMoveL = 0;
     }
     if ((dDoorMoveR < MoverParameters->DoorMaxShiftR) && (MoverParameters->DoorRightOpened))
+	{
+		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
         dDoorMoveR += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
+	}
     if ((dDoorMoveR > 0) && (!MoverParameters->DoorRightOpened))
     {
+		rsDoorClose.Play(vol, 0, MechInside, vPosition);
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveR < 0)
             dDoorMoveR = 0;
@@ -3432,7 +3455,8 @@ bool TDynamicObject::Update(double dt, double dt1)
     }
     if (MoverParameters->LoadStatus)
         LoadUpdate(); // zmiana modelu ³adunku
-    return true; // Ra: chyba tak?
+	
+	return true; // Ra: chyba tak?
 }
 
 bool TDynamicObject::FastUpdate(double dt)
@@ -3512,6 +3536,8 @@ void TDynamicObject::TurnOff()
     btHeadSignals21.TurnOff();
     btHeadSignals22.TurnOff();
     btHeadSignals23.TurnOff();
+	btMechanik1.TurnOff();
+	btMechanik2.TurnOff();
 };
 
 void TDynamicObject::Render()
@@ -3875,7 +3901,11 @@ void TDynamicObject::RenderSounds()
 		sReleaser.TurnOn(MechInside, GetPosition());
 	else
 		sReleaser.TurnOff(MechInside, GetPosition());
-	sReleaser.Update(MechInside, GetPosition());
+	//sReleaser.Update(MechInside, GetPosition());
+	double releaser_vol = 1;
+	if (MoverParameters->BrakePress < 0.1)
+		releaser_vol = MoverParameters->BrakePress * 10;
+	sReleaser.UpdateAF(releaser_vol, 1, MechInside, GetPosition());
     // if ((MoverParameters->ConverterFlag==false) &&
     // (MoverParameters->TrainType!=dt_ET22))
     // if
@@ -4244,6 +4274,10 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
             { // tekstura wymienna jest raczej jedynie w "dynamic\"
                 ReplacableSkin =
                     Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
+					AnsiString x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+					if (!x.IsEmpty())
+						ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, (Global::asCurrentTexturePath + "nowhere").c_str(), 9);
+					/*
                 if ((i = ReplacableSkin.Pos("|")) > 0) // replacable dzielone
                 {
                     iMultiTex = -1;
@@ -4302,6 +4336,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         }
                     }
                 }
+				*/
                 if (iMultiTex > 0)
                 { // jeœli model ma 4 tekstury
                     ReplacableSkinID[1] = TTexturesManager::GetTextureID(
@@ -4336,6 +4371,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     }
                 }
                 else
+				
                     ReplacableSkinID[1] = TTexturesManager::GetTextureID(
                         NULL, NULL, ReplacableSkin.c_str(), Global::iDynamicFiltering);
                 if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
@@ -4929,7 +4965,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     if (str == AnsiString("pendulumamplitude:"))
                         fWahaczeAmp = Parser->GetNextSymbol().ToDouble();
                 }
-                else if (str == AnsiString("engineer:"))
+                /*
+				else if (str == AnsiString("engineer:"))
                 { // nazwa submodelu maszynisty
                     str = Parser->GetNextSymbol();
                     smMechanik0 = mdModel->GetFromName(str.c_str());
@@ -4944,6 +4981,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     // if (smMechanik0) //a jest pierwszy
                     //  smMechanik0->WillBeAnimated(); //to bêdziemy go obracaæ
                 }
+				*/
                 else if (str == AnsiString("animdoorprefix:"))
                 { // nazwa animowanych drzwi
                     int i, j, k, m;
@@ -5628,7 +5666,7 @@ AnsiString TDynamicObject::TextureTest(AnsiString &name)
     return ""; // nie znaleziona
 };
 
-void TDynamicObject::DestinationSet(AnsiString to)
+void TDynamicObject::DestinationSet(AnsiString to, AnsiString numer)
 { // ustawienie stacji
     // docelowej oraz wymiennej
     // tekstury 4, jeœli
@@ -5639,25 +5677,39 @@ void TDynamicObject::DestinationSet(AnsiString to)
     // rozk³adu
     if (abs(iMultiTex) >= 4)
         return; // jak s¹ 4 tekstury wymienne, to nie zmieniaæ rozk³adem
+	numer = Global::Bezogonkow(numer);
     asDestination = to;
     to = Global::Bezogonkow(to); // do szukania pliku obcinamy ogonki
     AnsiString x;
+	x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
+	if (!x.IsEmpty())
+    {
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        return;
+    }
+	x = TextureTest(asBaseDir + numer );
+	if (!x.IsEmpty())
+    {
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        return;
+    }
     if (to.IsEmpty())
         to = "nowhere";
-    x = TextureTest(asBaseDir + to + "@" +
-                    MoverParameters->TypeName); // w pierwszej kolejnoœci z nazw¹ FIZ/MMD
+    x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejnoœci z nazw¹ FIZ/MMD
     if (!x.IsEmpty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID(
-            NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
         return;
     }
     x = TextureTest(asBaseDir + to); // na razie prymitywnie
     if (!x.IsEmpty())
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID(
-            NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
+        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
     else
-        ReplacableSkinID[4] = 0; // 0 to brak? -1 odpada, bo inaczej siê bêdzie mapowaæ
+		{
+        x = TextureTest(asBaseDir + "nowhere"); // jak nie znalaz³ dedykowanej, to niech daje nowhere
+		if (!x.IsEmpty())
+			ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, x.c_str(), 9);
+		}
     // Ra 2015-01: ¿eby zalogowaæ b³¹d, trzeba by mieæ pewnoœæ, ¿e model u¿ywa
     // tekstury nr 4
 };

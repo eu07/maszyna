@@ -100,7 +100,7 @@ end;
 
 function TTrainParameters.CheckTrainLatency: real;
 begin
-  if (LastStationLatency>1.0) or (LastStationLatency<-1.0) then
+  if (LastStationLatency>1.0) or (LastStationLatency<0) then
    CheckTrainLatency:=LastStationLatency {spoznienie + lub do przodu - z tolerancja 1 min}
   else
    CheckTrainLatency:=0
