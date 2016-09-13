@@ -1874,7 +1874,8 @@ bool TController::CheckVehicles(TOrders user)
         {
             if (TrainParams)
                 if (p->asDestination == "none")
-                    p->DestinationSet(TrainParams->Relation2, TrainParams->TrainName); // relacja docelowa, je�li nie by�o
+                    p->DestinationSet(AnsiString(TrainParams->Relation2.c_str()),
+                                AnsiString(TrainParams->TrainName.c_str())); // relacja docelowa, je�li nie by�o
             if (AIControllFlag) // je�li prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy �wiat�a
             if (p->MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
@@ -2985,7 +2986,7 @@ bool TController::PutCommand(AnsiString NewCommand, double NewValue1, double New
             TDynamicObject *p = pVehicles[0];
             while (p)
             {
-                p->DestinationSet(NewCommand, TrainParams->TrainName); // relacja docelowa
+                p->DestinationSet(NewCommand, AnsiString(TrainParams->TrainName.c_str())); // relacja docelowa
                 p = p->Next(); // pojazd pod��czony od ty�u (licz�c od czo�a)
             }
         }

@@ -39,7 +39,7 @@ double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica cza
 
 double TTrainParameters::CheckTrainLatency()
 {
-	if ((LastStationLatency > 1.0) || (LastStationLatency < -1.0))
+	if ((LastStationLatency > 1.0) || (LastStationLatency < 0))
 		return LastStationLatency; /*spoznienie + lub do przodu - z tolerancja 1 min*/
     else
         return 0;
