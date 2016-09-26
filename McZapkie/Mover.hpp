@@ -11,7 +11,7 @@
 #pragma delphiheader begin
 #pragma option push -w-
 #pragma option push -Vx
-#include <Oerlikon_ESt.hpp>	// Pascal unit
+#include <Oerlikon_ESt.h>	// Pascal unit
 #include <hamulce.hpp>	// Pascal unit
 #include <SysUtils.hpp>	// Pascal unit
 #include <mctools.hpp>	// Pascal unit

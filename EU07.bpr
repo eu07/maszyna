@@ -4,16 +4,16 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="E:\Gry\MaSzyna_15_04\EU07.exe"/>
-    <OBJFILES value="QueryParserComp.obj McZapkie\_mover.obj McZapkie\hamulce.obj 
-      McZapkie\Oerlikon_ESt.obj EU07.obj dumb3d.obj Camera.obj Texture.obj 
-      World.obj Model3d.obj MdlMngr.obj Train.obj wavread.obj Timer.obj 
-      Event.obj MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
-      AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
-      Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
-      TractionPower.obj parser.obj sky.obj AirCoupler.obj opengl\glew.obj 
-      ResourceManager.obj VBO.obj mtable.obj TextureDDS.obj 
-      opengl\ARB_Multisample.obj Float3d.obj Classes.obj Driver.obj Names.obj 
-      Console.obj Mover.obj Console\PoKeys55.obj Forth.obj Console\LPT.obj 
+    <OBJFILES value="QueryParserComp.obj McZapkie\_mover.obj McZapkie\hamulce.obj EU07.obj 
+      dumb3d.obj Camera.obj Texture.obj World.obj Model3d.obj MdlMngr.obj 
+      Train.obj wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj Spring.obj 
+      Button.obj Globals.obj Gauge.obj AnimModel.obj Ground.obj TrkFoll.obj 
+      Segment.obj Sound.obj AdvSound.obj Track.obj DynObj.obj RealSound.obj 
+      EvLaunch.obj FadeSound.obj Traction.obj TractionPower.obj parser.obj 
+      sky.obj AirCoupler.obj opengl\glew.obj ResourceManager.obj VBO.obj 
+      mtable.obj TextureDDS.obj opengl\ARB_Multisample.obj Float3d.obj 
+      Classes.obj Driver.obj Names.obj Console.obj Mover.obj 
+      McZapkie\Oerlikon_ESt.obj Console\PoKeys55.obj Forth.obj Console\LPT.obj 
       PyInt.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
@@ -24,7 +24,7 @@
     <LIBRARIES value="dclocx50.bpi bcbsmp50.bpi VCLX50.lib bcbsmp50.lib Vcl50.lib"/>
     <SPARELIBS value="Vcl50.lib bcbsmp50.lib VCLX50.lib bcbsmp50.bpi dclocx50.bpi"/>
     <PACKAGES value="Vcl50.bpi Vclx50.bpi"/>
-    <PATHCPP value=".;opengl;Console"/>
+    <PATHCPP value=".;opengl;McZapkie;Console"/>
     <PATHPAS value=".;McZapkie"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
