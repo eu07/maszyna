@@ -310,9 +310,9 @@ class TESt4R: public TESt
 {
 private:
         bool RapidStatus;
-        double RapidTemp;           //akrualne, zmienne przelozenie
 protected:
         TReservoir *ImplsRes;      //komora impulsowa
+        double RapidTemp;           //akrualne, zmienne przelozenie
 
 public:
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
@@ -327,10 +327,10 @@ class TLSt: public TESt4R
 {
 private:
         double CylFlowSpeed[2][2];
-        double RM;        //przelozenie rapida
-        double EDFlag; //luzowanie hamulca z powodu zalaczonego ED
 protected:
         double LBP;       //cisnienie hamulca pomocniczego
+        double RM;        //przelozenie rapida
+        double EDFlag; //luzowanie hamulca z powodu zalaczonego ED
 
 public:
         void SetLBP(double P);   //cisnienie z hamulca pomocniczego
@@ -392,9 +392,10 @@ class TCV1: public TBrake
       
 {
 private:
-        TReservoir *CntrlRes;      //zbiornik steruj¹cy
         double BVM;                 //przelozenie PG-CH
-      
+protected:
+        TReservoir *CntrlRes;      //zbiornik steruj¹cy
+
 public:
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
         void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
@@ -402,8 +403,6 @@ public:
         void CheckState(double BCP,   double & dV1);
         double CVs(double BP);
         double BVs(double BCP);
-      
-public:
       
 };
 
@@ -522,7 +521,8 @@ private:
         double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
         bool Fala;
-      
+		double LPP_RP(double pos);
+		bool EQ(double pos, double i_pos);
 public:
         double GetPF(double i_bcp,  double PP, double HP, double dt, double ep)/*override*/; 
         void Init(double Press)/*override*/; 
@@ -541,7 +541,8 @@ private:
         double CP; double TP; double RP;      //zbiornik steruj¹cy, czasowy, redukcyjny
         double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
         bool Fala;
-      
+		bool EQ(double pos, double i_pos);
+
 public:
         double GetPF(double i_bcp,  double PP, double HP, double dt, double ep)/*override*/; 
         void Init(double Press)/*override*/; 
