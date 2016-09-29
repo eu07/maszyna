@@ -41,6 +41,7 @@ Knorr/West EP - ¿eby by³
 #include <SysInit.hpp> // Pascal unit
 #include <System.hpp> // Pascal unit
 
+using namespace Friction;
 
    static int const LocalBrakePosNo = 10;         /*ilosc nastaw hamulca recznego lub pomocniczego*/
    static int const MainBrakeMaxPos = 10;          /*max. ilosc nastaw hamulca zasadniczego*/
@@ -121,8 +122,8 @@ Knorr/West EP - ¿eby by³
    static int const bh_EPB = 10;  //ep - hamowanie  //pelne hamowanie dla ep k¹towego
 
 
-   static double/*?*/ const SpgD = 0.7917;
-   static double/*?*/ const SpO = 0.5067;  //przekroj przewodu 1" w l/m
+   static double const SpgD = 0.7917;
+   static double const SpO = 0.5067;  //przekroj przewodu 1" w l/m
                 //wyj: jednostka dosyc dziwna, ale wszystkie obliczenia
                 //i pojemnosci sa podane w litrach (rozsadne wielkosci)
                 //zas dlugosc pojazdow jest podana w metrach
@@ -130,17 +131,17 @@ Knorr/West EP - ¿eby by³
                                                                        //7//1.5
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (2.0, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
-   static double const BPT[ /*?*//*-2..6*/ (6)-(-2)+1 ][2] = ( ( 0 , 5.0 ) , ( 7 , 5.0 ) , ( 2.0 , 5.0 ) , ( 4.5 , 4.6 ) , ( 4.5 , 4.2 ) , ( 4.5 , 3.8 ) , ( 4.5 , 3.4 ) , ( 4.5 , 2.8 ) , ( 8 , 2.8 ) );
-   static double const BPT_394[ /*?*//*-1..5*/ (5)-(-1)+1 ][2] = ( ( 13 , 10.0 ) , ( 5 , 5.0 ) , ( 0 , -1 ) , ( 5 , -1 ) , ( 5 , 0.0 ) , ( 5 , 0.0 ) , ( 18 , 0.0 ) );
+   static double const BPT[ /*?*//*-2..6*/ (6) - (-2) + 1][2] = { (0 , 5.0) , (7 , 5.0) , (2.0 , 5.0) , (4.5 , 4.6) , (4.5 , 4.2) , (4.5 , 3.8) , (4.5 , 3.4) , (4.5 , 2.8) , (8 , 2.8) };
+   static double const BPT_394[ /*?*//*-1..5*/ (5)-(-1)+1 ][2] = { ( 13 , 10.0 ) , ( 5 , 5.0 ) , ( 0 , -1 ) , ( 5 , -1 ) , ( 5 , 0.0 ) , ( 5 , 0.0 ) , ( 18 , 0.0 ) };
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
-   static double/*?*/ const i_bcpno = 6;
+   static int const i_bcpno = 6;
 
 
   //klasa obejmujaca pojedyncze zbiorniki
     
       
-struct/*class*/ TReservoir: public TObject
+class TReservoir: public TObject
 {
 protected:
         double Cap;
@@ -148,7 +149,7 @@ protected:
         double dVol;
       
 public:
-        /*?*/static/*CONSTRUCTOR*/void Create();
+        TReservoir();
         void CreateCap(double Capacity);
         void CreatePress(double Press);
         virtual double pa(); 
@@ -162,7 +163,7 @@ public:
     typedef TReservoir *PReservoir;
 
     
-struct/*class*/ TBrakeCyl: public TReservoir
+class TBrakeCyl: public TReservoir
       
 {
 public:
@@ -175,32 +176,32 @@ public:
   //klasa obejmujaca uklad hamulca zespolonego pojazdu
     
       
-struct/*class*/ TBrake: public TObject
+class TBrake: public TObject
 {
 protected:
-        TReservoir BrakeCyl;      //silownik
-        TReservoir BrakeRes;      //ZP
-        TReservoir ValveRes;      //komora wstepna
-        unsigned char BCN;                 //ilosc silownikow
+        TReservoir *BrakeCyl;      //silownik
+        TReservoir *BrakeRes;      //ZP
+        TReservoir *ValveRes;      //komora wstepna
+        Byte BCN;                 //ilosc silownikow
         double BCM;                 //przekladnia hamulcowa
         double BCA;                 //laczny przekroj silownikow
-        unsigned char BrakeDelays;         //dostepne opoznienia
-        unsigned char BrakeDelayFlag;      //aktualna nastawa
-        TFricMat FM;              //material cierny
+        Byte BrakeDelays;         //dostepne opoznienia
+        Byte BrakeDelayFlag;      //aktualna nastawa
+        TFricMat *FM;              //material cierny
         double MaxBP;               //najwyzsze cisnienie
-        unsigned char BA;                  //osie hamowane
-        unsigned char NBpA;                //klocki na os
+        Byte BA;                  //osie hamowane
+        Byte NBpA;                //klocki na os
         double SizeBR;              //rozmiar^2 ZP (w stosunku do 14")
         double SizeBC;              //rozmiar^2 CH (w stosunku do 14")
         bool DCV;              //podwojny zawor zwrotny
         double ASBP;                //cisnienie hamulca pp
 
-        unsigned char BrakeStatus; //flaga stanu
-        unsigned char SoundFlag;
+        Byte BrakeStatus; //flaga stanu
+        Byte SoundFlag;
       
 public:
-        /*?*/static/*CONSTRUCTOR*/void Create(double i_mbp, double i_bcr, double i_bcd, double i_brc, 
-                           unsigned char i_bcn, unsigned char i_BD, unsigned char i_mat, unsigned char i_ba, unsigned char i_nbpa);
+        TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, 
+                           Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa);
                     //maksymalne cisnienie, promien, skok roboczy, pojemnosc ZP;
                     //ilosc cylindrow, opoznienia hamulca, material klockow, osie hamowane, klocki na os;
 
@@ -212,22 +213,22 @@ public:
         double GetBRP(); //cisnienie zbiornika pomocniczego
         double GetVRP(); //cisnienie komory wstepnej rozdzielacza
         virtual double GetCRP();  //cisnienie zbiornika sterujacego
-        virtual void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF);  //inicjalizacja hamulca
-        bool SetBDF(unsigned char nBDF); //nastawiacz GPRM
-        void Releaser(unsigned char state); //odluzniacz
+        virtual void Init(double PP, double HPP, double LPP, double BP,  Byte BDF);  //inicjalizacja hamulca
+        bool SetBDF(Byte nBDF); //nastawiacz GPRM
+        void Releaser(Byte state); //odluzniacz
         virtual void SetEPS(double nEPS); //hamulec EP
-        void ASB(unsigned char state); //hamulec przeciwposlizgowy
-        unsigned char GetStatus(); //flaga statusu, moze sie przydac do odglosow
+        void ASB(Byte state); //hamulec przeciwposlizgowy
+        Byte GetStatus(); //flaga statusu, moze sie przydac do odglosow
         void SetASBP(double Press); //ustalenie cisnienia pp
         virtual void ForceEmptiness(); 
-        unsigned char GetSoundFlag();
+        Byte GetSoundFlag();
 //        procedure
     
 };
 
 
     
-struct/*class*/ TWest: public TBrake
+class TWest: public TBrake
       
 {
 private:
@@ -241,7 +242,7 @@ private:
 public:
         void SetLBP(double P);   //cisnienie z hamulca pomocniczego
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
         double GetHPFlow(double HP, double dt)/*override*/; 
         void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
@@ -251,17 +252,17 @@ public:
 
 
     
-struct/*class*/ TESt: public TBrake
+class TESt: public TBrake
       
 {
-private:
-        TReservoir CntrlRes;      //zbiornik steruj¹cy
+protected:
+        TReservoir *CntrlRes;      //zbiornik steruj¹cy
         double BVM;                 //przelozenie PG-CH
       
 public:
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
         void EStParams(double i_crc);                 //parametry charakterystyczne dla ESt
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
         double GetCRP()/*override*/; 
         void CheckState(double BCP,   double & dV1); //glowny przyrzad rozrzadczy
         void CheckReleaser(double dt); //odluzniacz
@@ -272,7 +273,7 @@ public:
 
 
     
-struct/*class*/ TESt3: public TESt
+class TESt3: public TESt
       
 {
 private:
@@ -285,7 +286,7 @@ public:
 
 
     
-struct/*class*/ TESt3AL2: public TESt3
+class TESt3AL2: public TESt3
       
 {
 private:
@@ -294,47 +295,49 @@ private:
         double LoadC;
       
 public:
-        TReservoir ImplsRes;      //komora impulsowa
+        TReservoir *ImplsRes;      //komora impulsowa
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
         void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
       
 };
 
 
     
-struct/*class*/ TESt4R: public TESt
+class TESt4R: public TESt
       
 {
 private:
         bool RapidStatus;
         double RapidTemp;           //akrualne, zmienne przelozenie
-      
+protected:
+        TReservoir *ImplsRes;      //komora impulsowa
+
 public:
-        TReservoir ImplsRes;      //komora impulsowa
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
       
 };
 
 
     
-struct/*class*/ TLSt: public TESt4R
+class TLSt: public TESt4R
       
 {
 private:
         double CylFlowSpeed[2][2];
-        double LBP;       //cisnienie hamulca pomocniczego
         double RM;        //przelozenie rapida
         double EDFlag; //luzowanie hamulca z powodu zalaczonego ED
-      
+protected:
+        double LBP;       //cisnienie hamulca pomocniczego
+
 public:
         void SetLBP(double P);   //cisnienie z hamulca pomocniczego
         void SetRM(double RMR);   //ustalenie przelozenia rapida
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
         double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
         virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
         void SetED(double EDstate); //stan hamulca ED do luzowania
       
@@ -342,20 +345,20 @@ public:
 
 
     
-struct/*class*/ TEStED: public TLSt  //zawor z EP09 - Est4 z oddzielnym przekladnikiem, kontrola rapidu i takie tam
+class TEStED: public TLSt  //zawor z EP09 - Est4 z oddzielnym przekladnikiem, kontrola rapidu i takie tam
       
 {
 private:
         double Nozzles[11]; //dysze
         bool Zamykajacy;       //pamiec zaworka zamykajacego
         bool Przys_blok;       //blokada przyspieszacza
-        TReservoir Miedzypoj;     //pojemnosc posrednia (urojona) do napelniania ZP i ZS
+        TReservoir *Miedzypoj;     //pojemnosc posrednia (urojona) do napelniania ZP i ZS
         double TareM; double LoadM;  //masa proznego i pelnego
         double TareBP;  //cisnienie dla proznego
         double LoadC;        
       
 public:
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
         double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
         void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
@@ -365,7 +368,7 @@ public:
   
 
     
-struct/*class*/ TEStEP2: public TLSt
+class TEStEP2: public TLSt
       
 {
 private:
@@ -376,7 +379,7 @@ private:
       
 public:
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/;   //inicjalizacja
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/;   //inicjalizacja
         void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
         void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
@@ -385,16 +388,16 @@ public:
 
 
     
-struct/*class*/ TCV1: public TBrake
+class TCV1: public TBrake
       
 {
 private:
-        TReservoir CntrlRes;      //zbiornik steruj¹cy
+        TReservoir *CntrlRes;      //zbiornik steruj¹cy
         double BVM;                 //przelozenie PG-CH
       
 public:
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
         double GetCRP()/*override*/; 
         void CheckState(double BCP,   double & dV1);
         double CVs(double BP);
@@ -406,11 +409,11 @@ public:
 
 
     
-struct/*class*/ TCV1R: public TCV1
+class TCV1R: public TCV1
       
 {
 private:
-        TReservoir ImplsRes;      //komora impulsowa
+        TReservoir *ImplsRes;      //komora impulsowa
         bool RapidStatus;
       
 public:
@@ -421,16 +424,16 @@ public:
 
 
     
-struct/*class*/ TCV1L_TR: public TCV1
+class TCV1L_TR: public TCV1
       
 {
 private:
-        TReservoir ImplsRes;      //komora impulsowa
+        TReservoir *ImplsRes;      //komora impulsowa
         double LBP;     //cisnienie hamulca pomocniczego
       
 public:
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
         void SetLBP(double P);   //cisnienie z hamulca pomocniczego
         double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
       
@@ -438,14 +441,14 @@ public:
 
 
     
-struct/*class*/ TKE: public TBrake //Knorr Einheitsbauart — jeden do wszystkiego
+class TKE: public TBrake //Knorr Einheitsbauart — jeden do wszystkiego
       
 {
 private:
         bool RapidStatus;
-        TReservoir ImplsRes;      //komora impulsowa
-        TReservoir CntrlRes;      //zbiornik steruj¹cy
-        TReservoir Brak2Res;      //zbiornik pomocniczy 2        
+        TReservoir *ImplsRes;      //komora impulsowa
+        TReservoir *CntrlRes;      //zbiornik steruj¹cy
+        TReservoir *Brak2Res;      //zbiornik pomocniczy 2        
         double BVM;                 //przelozenie PG-CH
         double TareM; double LoadM;        //masa proznego i pelnego
         double TareBP;              //cisnienie dla proznego
@@ -456,7 +459,7 @@ private:
 public:
         void SetRM(double RMR);   //ustalenie przelozenia rapida
         double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-        void Init(double PP, double HPP, double LPP, double BP,  unsigned char BDF)/*override*/; 
+        void Init(double PP, double HPP, double LPP, double BP,  Byte BDF)/*override*/; 
         double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
         double GetCRP()/*override*/; 
         void CheckState(double BCP,   double & dV1);
@@ -476,7 +479,7 @@ public:
   //klasa obejmujaca krany
     
       
-struct/*class*/ HANDLE: public TObject
+class HANDLE: public TObject
 {
 private:
 //        BCP: integer;
@@ -489,14 +492,14 @@ public:
         virtual void Init(double Press); 
         virtual double GetCP(); 
         virtual void SetReductor(double nAdj); 
-        virtual double GetSound(unsigned char i); 
-        virtual double GetPos(unsigned char i); 
+        virtual double GetSound(Byte i); 
+        virtual double GetPos(Byte i); 
       
 };
 
 
     
-struct/*class*/ TFV4a: public HANDLE
+class TFV4a: public HANDLE
       
 {
 private:
@@ -510,7 +513,7 @@ public:
 
 
     
-struct/*class*/ TFV4aM: public HANDLE
+class TFV4aM: public HANDLE
       
 {
 private:
@@ -524,14 +527,14 @@ public:
         double GetPF(double i_bcp,  double PP, double HP, double dt, double ep)/*override*/; 
         void Init(double Press)/*override*/; 
         void SetReductor(double nAdj)/*override*/; 
-        double GetSound(unsigned char i)/*override*/; 
-        double GetPos(unsigned char i)/*override*/; 
+        double GetSound(Byte i)/*override*/; 
+        double GetPos(Byte i)/*override*/; 
       
 };
 
 
     
-struct/*class*/ TMHZ_EN57: public HANDLE
+class TMHZ_EN57: public HANDLE
       
 {
 private:
@@ -543,8 +546,8 @@ public:
         double GetPF(double i_bcp,  double PP, double HP, double dt, double ep)/*override*/; 
         void Init(double Press)/*override*/; 
         void SetReductor(double nAdj)/*override*/; 
-        double GetSound(unsigned char i)/*override*/; 
-        double GetPos(unsigned char i)/*override*/; 
+        double GetSound(Byte i)/*override*/; 
+        double GetPos(Byte i)/*override*/; 
         double GetCP()/*override*/; 
         double GetEP(double pos);
       
@@ -583,7 +586,7 @@ public:
       end;*/
 
     
-struct/*class*/ TM394: public HANDLE
+class TM394: public HANDLE
       
 {
 private:
@@ -595,13 +598,13 @@ public:
         void Init(double Press)/*override*/; 
         void SetReductor(double nAdj)/*override*/; 
         double GetCP()/*override*/; 
-        double GetPos(unsigned char i)/*override*/; 
+        double GetPos(Byte i)/*override*/; 
       
 };
 
 
     
-struct/*class*/ TH14K1: public HANDLE
+class TH14K1: public HANDLE
       
 {
 private:
@@ -613,13 +616,13 @@ public:
         void Init(double Press)/*override*/; 
         void SetReductor(double nAdj)/*override*/; 
         double GetCP()/*override*/; 
-        double GetPos(unsigned char i)/*override*/; 
+        double GetPos(Byte i)/*override*/; 
       
 };
 
 
     
-struct/*class*/ TSt113: public TH14K1
+class TSt113: public TH14K1
       
 {
 private:
@@ -628,14 +631,14 @@ private:
 public:
         double GetPF(double i_bcp,  double PP, double HP, double dt, double ep)/*override*/; 
         double GetCP()/*override*/; 
-        double GetPos(unsigned char i)/*override*/; 
+        double GetPos(Byte i)/*override*/; 
         void Init(double Press)/*override*/; 
       
 };
 
 
     
-struct/*class*/ Ttest: public HANDLE
+class Ttest: public HANDLE
       
 {
 private:
@@ -649,7 +652,7 @@ public:
 
 
     
-struct/*class*/ TFD1: public HANDLE
+class TFD1: public HANDLE
       
 {
 private:
@@ -668,7 +671,7 @@ public:
 
 
     
-struct/*class*/ TH1405: public HANDLE
+class TH1405: public HANDLE
       
 {
 private:
@@ -686,7 +689,7 @@ public:
 
 
     
-struct/*class*/ TFVel6: public HANDLE
+class TFVel6: public HANDLE
       
 {
 private:
@@ -695,18 +698,18 @@ private:
 public:
         double GetPF(double i_bcp,  double PP, double HP, double dt, double ep)/*override*/; 
         double GetCP()/*override*/; 
-        double GetPos(unsigned char i)/*override*/; 
-        double GetSound(unsigned char i)/*override*/; 
+        double GetPos(Byte i)/*override*/; 
+        double GetSound(Byte i)/*override*/; 
         void Init(double Press)/*override*/; 
       
 };
 
 
-double PF(double P1, double P2, double S,  double DP = 0.25);
-double PF1(double P1, double P2, double S);
+extern double PF(double P1, double P2, double S,  double DP = 0.25);
+extern double PF1(double P1, double P2, double S);
 
-double PFVa(double PH, double PL, double S, double LIM,  double DP = 0.1); //zawor napelniajacy z PH do PL, PL do LIM
-double PFVd(double PH, double PL, double S, double LIM,  double DP = 0.1); //zawor wypuszczajacy z PH do PL, PH do LIM
+extern double PFVa(double PH, double PL, double S, double LIM,  double DP = 0.1); //zawor napelniajacy z PH do PL, PL do LIM
+extern double PFVd(double PH, double PL, double S, double LIM,  double DP = 0.1); //zawor wypuszczajacy z PH do PL, PH do LIM
 
 
 
