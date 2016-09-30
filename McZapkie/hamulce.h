@@ -541,6 +541,7 @@ private:
         double CP; double TP; double RP;      //zbiornik steruj¹cy, czasowy, redukcyjny
         double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
         bool Fala;
+		double LPP_RP(double pos);
 		bool EQ(double pos, double i_pos);
 
 public:
@@ -608,10 +609,10 @@ public:
 class TH14K1: public HANDLE
       
 {
-private:
+protected:
         double CP;      //zbiornik steruj¹cy, czasowy, redukcyjny
         double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
-      
+
 public:
         double GetPF(double i_bcp,  double PP, double HP, double dt, double ep)/*override*/; 
         void Init(double Press)/*override*/; 

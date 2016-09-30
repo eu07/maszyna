@@ -2366,512 +2366,546 @@ bool TFV4aM::EQ(double pos, double i_pos)
 
 //---FV4a/M--- nowonapisany kran bez poprawki IC
 
-double TMHZ_EN57::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result;/*?*//*SUB-FUNCTION TO BE EXTRACTED*/double LPP_RP(double pos) //cisnienie z zaokraglonej pozycji;
-{   double result;
-  if(  pos>8.5 )
-   LPP_RP =5.0-0.15*pos-0.35;else  if(  pos>0.5 )
-   LPP_RP =5.0-0.15*pos-0.1;else
-   LPP_RP =5.0;return result;
-}
-/*?*//*SUB-FUNCTION TO BE EXTRACTED*/bool EQ(double pos,  double i_pos)
-{   bool result;
-  EQ =( pos<=i_pos+0.5 )&&( pos>i_pos-0.5 );
-return result;
-}
+double TMHZ_EN57::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    static int const LBDelay = 100;
 
-  static double/*?*/ const LBDelay = 100;
+    double LimPP;
+    double dpPipe;
+    double dpMainValve;
+    double ActFlowSpeed;
+    double DP;
+    double pom;
+    Byte i;
 
-  double LimPP; double dpPipe; double dpMainValve; double ActFlowSpeed; double DP;
-  double pom;
-  Byte i;
+    {
+        long i_end = 5;
+        for (i = 0; i < i_end; ++i)
+            Sounds[i] = 0;
+    }
+    DP = 0;
 
+    i_bcp = Max0R(Min0R(i_bcp, 9.999), -0.999); // na wszelki wypadek, zeby nie wyszlo poza zakres
 
-          { long i_end = 5 ; for( i = 0 ; i < i_end ; ++i )
-            Sounds[ i ] =0;}
-          DP =0;
+    if ((TP > 0))
+    {
+        DP = 0.045;
+        if (EQ(i_bcp, 0))
+            TP = TP - DP * dt;
+        Sounds[s_fv4a_t] = DP;
+    }
+    else
+    {
+        TP = 0;
+    }
 
-          i_bcp =Max0R( Min0R( i_bcp, 9.999 ), -0.999 ); //na wszelki wypadek, zeby nie wyszlo poza zakres
+    LimPP = Min0R(LPP_RP(i_bcp) + TP * 0.08 + RedAdj, HP); // pozycja + czasowy lub zasilanie
+    ActFlowSpeed = 4;
 
-          if( ( TP>0 ) )
-           {
-            DP =0.045;
-            if(  EQ( i_bcp, 0 ) )
-              TP =TP-DP*dt;
-            Sounds[ s_fv4a_t ] =DP;
-           }
-          else
-           {
-            TP =0;
-           }
+    if ((EQ(i_bcp, -1)))
+        pom = Min0R(HP, 5.4 + RedAdj);
+    else
+        pom = Min0R(CP, HP);
 
-          LimPP =Min0R( LPP_RP( i_bcp )+TP*0.08+RedAdj, HP ); //pozycja + czasowy lub zasilanie
-          ActFlowSpeed =4;
+    if ((LimPP > CP)) // podwyzszanie szybkie
+        CP = CP + 60 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy;
+    else
+        CP = CP + 13 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
-          if( ( EQ( i_bcp, -1 ) ) ) pom =Min0R( HP, 5.4+RedAdj );else pom =Min0R( CP, HP );
+    LimPP = pom; // cp
+    if (EQ(i_bcp, -1))
+        dpPipe = HP;
+    else
+        dpPipe = Min0R(HP, LimPP);
 
-          if( ( LimPP>CP ) ) //podwyzszanie szybkie
-            CP =CP+60*Min0R( abs( LimPP-CP ), 0.05 )*PR( CP, LimPP )*dt //zbiornik sterujacy;else
-            CP =CP+13*Min0R( abs( LimPP-CP ), 0.05 )*PR( CP, LimPP )*dt; //zbiornik sterujacy
+    if (dpPipe > PP)
+        dpMainValve = -PFVa(HP, PP, ActFlowSpeed * 1.0 / (LBDelay), dpPipe, 0.4);
+    else
+        dpMainValve = PFVd(PP, 0, ActFlowSpeed * 1.0 / (LBDelay), dpPipe, 0.4);
 
-          LimPP =pom; //cp
-          if(  EQ( i_bcp, -1 ) )
-            dpPipe =HP;else
-            dpPipe =Min0R( HP, LimPP );
+    if (EQ(i_bcp, -1))
+    {
+        if ((TP < 5))
+            TP = TP + dt; // 5/10
+        if ((TP < 1))
+            TP = TP - 0.5 * dt; // 5/10
+    }
 
-          if(  dpPipe>PP )
-            dpMainValve =-PFVa( HP, PP, ActFlowSpeed*1.0/( LBDelay ), dpPipe, 0.4 );else
-            dpMainValve =PFVd( PP, 0, ActFlowSpeed*1.0/( LBDelay ), dpPipe, 0.4 );
+    if ((EQ(i_bcp, 10)) || (EQ(i_bcp, -2)))
+    {
+        DP = PF(0, PP, 2 * (ActFlowSpeed)*1.0 / (LBDelay));
+        dpMainValve = DP;
+        Sounds[s_fv4a_e] = DP;
+        Sounds[s_fv4a_u] = 0;
+        Sounds[s_fv4a_b] = 0;
+        Sounds[s_fv4a_x] = 0;
+    }
+    else
+    {
+        if (dpMainValve > 0)
+            Sounds[s_fv4a_b] = dpMainValve;
+        else
+            Sounds[s_fv4a_u] = -dpMainValve;
+    }
 
-          if(  EQ( i_bcp, -1 ) )
-           {
-            if( ( TP<5 ) ) TP =TP+dt; //5/10
-            if( ( TP<1 ) ) TP =TP-0.5*dt; //5/10            
-           }
+    if ((i_bcp < 1.5))
+        RP = Max0R(0, 0.125 * i_bcp);
+    else
+        RP = Min0R(1, 0.125 * i_bcp - 0.125);
 
-          if( ( EQ( i_bcp, 10 ) )||( EQ( i_bcp, -2 ) ) )
-           {
-            DP =PF( 0, PP, 2*( ActFlowSpeed )*1.0/( LBDelay ) );
-            dpMainValve =DP;
-            Sounds[ s_fv4a_e ] =DP;
-            Sounds[ s_fv4a_u ] =0;
-            Sounds[ s_fv4a_b ] =0;
-            Sounds[ s_fv4a_x ] =0;
-           }
-          else
-           {
-            if(  dpMainValve>0 )
-              Sounds[ s_fv4a_b ] =dpMainValve;else
-              Sounds[ s_fv4a_u ] =-dpMainValve;
-           }
-
-  if(  ( i_bcp<1.5 ) )
-    RP =Max0R( 0, 0.125*i_bcp );else
-    RP =Min0R( 1, 0.125*i_bcp-0.125 );
-
-  GetPF =dpMainValve*dt;
-return result;
+    return dpMainValve * dt;
 }
 
 void TMHZ_EN57::Init(double Press)
 {
-  CP = Press;
-  TP = 0;
-  RP = 0;
-  Time =false;
-  TimeEP =false;
+    CP = Press;
+    TP = 0;
+    RP = 0;
+    Time = false;
+    TimeEP = false;
 }
 
 void TMHZ_EN57::SetReductor(double nAdj)
 {
-  RedAdj = nAdj;
+    RedAdj = nAdj;
 }
 
 double TMHZ_EN57::GetSound(Byte i)
-{   double result;
-  if(  i>4 )
-    GetSound =0;else
-    GetSound =Sounds[ i ];
-return result;
+{
+    if (i > 4)
+        return 0;
+    else
+        return Sounds[i];
 }
 
 double TMHZ_EN57::GetPos(Byte i)
-{   double result;
-  static double const table[11] = ( -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 );
+{
+	static double const table[11] = { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
-  GetPos =table[ i ];
-return result;
+    return table[i];
 }
 
 double TMHZ_EN57::GetCP()
-{   double result;
-  GetCP =RP;
-return result;
+{
+    return RP;
 }
 
 double TMHZ_EN57::GetEP(double pos)
-{   double result;
-  if(  pos<9.5 )
-    GetEP =Min0R( Max0R( 0, 0.125*pos ), 1 );else
-    GetEP =0;  
-return result;
+{
+    if (pos < 9.5)
+        return Min0R(Max0R(0, 0.125 * pos), 1);
+    else
+        return 0;
+}
+
+double TMHZ_EN57::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
+{
+    if (pos > 8.5)
+        return 5.0 - 0.15 * pos - 0.35;
+    else if (pos > 0.5)
+        return 5.0 - 0.15 * pos - 0.1;
+    else
+        return 5.0;
+}
+
+bool TMHZ_EN57::EQ(double pos, double i_pos)
+{
+    return (pos <= i_pos + 0.5) && (pos > i_pos - 0.5);
 }
 
 //---M394--- Matrosow
 
-double TM394::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result;
-  static double/*?*/ const LBDelay = 65;
+double TM394::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    static int const LBDelay = 65;
 
-  double LimPP; double dpPipe; double dpMainValve; double ActFlowSpeed;
-  int BCP;
+    double LimPP;
+    double dpPipe;
+    double dpMainValve;
+    double ActFlowSpeed;
+    int BCP;
 
-  BCP =Round( i_bcp );
-  if(  BCP<-1 ) BCP =1;
+    BCP = lround(i_bcp);
+    if (BCP < -1)
+        BCP = 1;
 
-  LimPP =Min0R( BPT_394[ BCP ][ 1 ], HP );
-  ActFlowSpeed =BPT_394[ BCP ][ 0 ];
-  if(  ( BCP==1 )||( BCP==i_bcpno ) )
-    LimPP =PP;
-  if(  ( BCP==0 ) )
-    LimPP =LimPP+RedAdj;
-  if(  ( BCP!=2 ) )
-    if(  CP<LimPP )
-      CP =CP+4*Min0R( abs( LimPP-CP ), 0.05 )*PR( CP, LimPP )*dt //zbiornik sterujacy
-//      cp:=cp+6*(2+Byte(bcp<0))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik sterujacy;else
-      if(  BCP==0 )
-        CP =CP-0.2*dt*1.0/100;else
-        CP =CP+4*( 1+Byte( BCP!=3 )+Byte( BCP>4 ) )*Min0R( abs( LimPP-CP ), 0.05 )*PR( CP, LimPP )*dt; //zbiornik sterujacy
+    LimPP = Min0R(BPT_394[BCP][1], HP);
+    ActFlowSpeed = BPT_394[BCP][0];
+    if ((BCP == 1) || (BCP == i_bcpno))
+        LimPP = PP;
+    if ((BCP == 0))
+        LimPP = LimPP + RedAdj;
+    if ((BCP != 2))
+        if (CP < LimPP)
+            CP = CP + 4 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
+        //      cp:=cp+6*(2+Byte(bcp<0))*Min0R(abs(Limpp-cp),0.05)*PR(cp,Limpp)*dt //zbiornik
+        //      sterujacy;
+        else if (BCP == 0)
+            CP = CP - 0.2 * dt * 1.0 / 100;
+        else
+            CP = CP +
+                 4 * (1 + Byte(BCP != 3) + Byte(BCP > 4)) * Min0R(abs(LimPP - CP), 0.05) *
+                     PR(CP, LimPP) * dt; // zbiornik sterujacy
 
-  LimPP =CP;
-  dpPipe =Min0R( HP, LimPP );
+    LimPP = CP;
+    dpPipe = Min0R(HP, LimPP);
 
-//  if(dpPipe>pp)then //napelnianie
-//    dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
-//  else //spuszczanie
-    dpMainValve =PF( dpPipe, PP, ActFlowSpeed*1.0/( LBDelay ) )*dt;
+    //  if(dpPipe>pp)then //napelnianie
+    //    dpMainValve:=PF(dpPipe,pp,ActFlowSpeed/(LBDelay))*dt
+    //  else //spuszczanie
+    dpMainValve = PF(dpPipe, PP, ActFlowSpeed * 1.0 / (LBDelay)) * dt;
 
-          if(  BCP==-1 )
-//           begin
-              dpMainValve =PF( HP, PP, ( ActFlowSpeed )*1.0/( LBDelay ) )*dt;
-//           end;
+    if (BCP == -1)
+        dpMainValve = PF(HP, PP, (ActFlowSpeed)*1.0 / (LBDelay)) * dt;
 
-          if(  BCP==i_bcpno )
-//           begin
-            dpMainValve =PF( 0, PP, ( ActFlowSpeed )*1.0/( LBDelay ) )*dt;
-//           end;
+    if (BCP == i_bcpno)
+        dpMainValve = PF(0, PP, (ActFlowSpeed)*1.0 / (LBDelay)) * dt;
 
-  GetPF =dpMainValve;
-return result;
+    return dpMainValve;
 }
 
 void TM394::Init(double Press)
 {
-  CP = Press;
-  RedAdj = 0;
-  Time =true;
-  TimeEP =false;
+    CP = Press;
+    RedAdj = 0;
+    Time = true;
+    TimeEP = false;
 }
 
 void TM394::SetReductor(double nAdj)
 {
-  RedAdj = nAdj;
+    RedAdj = nAdj;
 }
 
 double TM394::GetCP()
-{   double result;
-  GetCP = CP;
-return result;
+{
+    return CP;
 }
 
 double TM394::GetPos(Byte i)
-{   double result;
-  static double const table[11] = ( -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 );
+{
+	static double const table[11] = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
 
-  GetPos =table[ i ];
-return result;
+    return table[i];
 }
 
 //---H14K1-- Knorr
 
-double TH14K1::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result;
-  static double/*?*/ const LBDelay = 100;                                    //szybkosc + zasilanie sterujacego
-  static double const BPT_K[ /*?*//*-1..4*/ (4)-(-1)+1 ][2] = ( ( 10 , 0 ) , ( 4 , 1 ) , ( 0 , 1 ) , ( 4 , 0 ) , ( 4 , -1 ) , ( 15 , -1 ) );
-  static double/*?*/ const NomPress = 5.0;
+double TH14K1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    static int const LBDelay = 100; // szybkosc + zasilanie sterujacego
+    static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
+	{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+    static double const NomPress = 5.0;
 
-  double LimPP; double dpPipe; double dpMainValve; double ActFlowSpeed;
-  int BCP;
+    double LimPP;
+    double dpPipe;
+    double dpMainValve;
+    double ActFlowSpeed;
+    int BCP;
 
-  BCP =Round( i_bcp );
-  if(  i_bcp<-1 ) BCP =1;
-  LimPP =BPT_K[ BCP ][ 1 ];
-  if(  LimPP<0 )
-    LimPP =0.5*PP;else if(  LimPP>0 )
-    LimPP =PP;else
-    LimPP =CP;
-  ActFlowSpeed =BPT_K[ BCP ][ 0 ];
+    BCP = lround(i_bcp);
+    if (i_bcp < -1)
+        BCP = 1;
+    LimPP = BPT_K[BCP][1];
+    if (LimPP < 0)
+        LimPP = 0.5 * PP;
+    else if (LimPP > 0)
+        LimPP = PP;
+    else
+        LimPP = CP;
+    ActFlowSpeed = BPT_K[BCP][0];
 
-  CP =CP+6*Min0R( abs( LimPP-CP ), 0.05 )*PR( CP, LimPP )*dt; //zbiornik sterujacy
+    CP = CP + 6 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
-  dpMainValve =0;
+    dpMainValve = 0;
 
-  if(  BCP==-1 )
-    dpMainValve =PF( HP, PP, ( ActFlowSpeed )*1.0/( LBDelay ) )*dt;
-  if( ( BCP==0 ) )
-    dpMainValve =-PFVa( HP, PP, ( ActFlowSpeed )*1.0/( LBDelay ), NomPress+RedAdj )*dt;
-  if(  ( BCP>1 )&&( PP>CP ) )
-    dpMainValve =PFVd( PP, 0, ( ActFlowSpeed )*1.0/( LBDelay ), CP )*dt;
-  if(  BCP==i_bcpno )
-    dpMainValve =PF( 0, PP, ( ActFlowSpeed )*1.0/( LBDelay ) )*dt;
+    if (BCP == -1)
+        dpMainValve = PF(HP, PP, (ActFlowSpeed)*1.0 / (LBDelay)) * dt;
+    if ((BCP == 0))
+        dpMainValve = -PFVa(HP, PP, (ActFlowSpeed)*1.0 / (LBDelay), NomPress + RedAdj) * dt;
+    if ((BCP > 1) && (PP > CP))
+        dpMainValve = PFVd(PP, 0, (ActFlowSpeed)*1.0 / (LBDelay), CP) * dt;
+    if (BCP == i_bcpno)
+        dpMainValve = PF(0, PP, (ActFlowSpeed)*1.0 / (LBDelay)) * dt;
 
-  GetPF =dpMainValve;
-return result;
+    return dpMainValve;
 }
 
 void TH14K1::Init(double Press)
 {
-  CP = Press;
-  RedAdj = 0;
-  Time =true;
-  TimeEP =true;
+    CP = Press;
+    RedAdj = 0;
+    Time = true;
+    TimeEP = true;
 }
 
 void TH14K1::SetReductor(double nAdj)
 {
-  RedAdj = nAdj;
+    RedAdj = nAdj;
 }
 
 double TH14K1::GetCP()
-{   double result;
-  GetCP = CP;
-return result;
+{
+    return CP;
 }
 
 double TH14K1::GetPos(Byte i)
-{   double result;
-  static double const table[11] = ( -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 );
+{
+	static double const table[11] = { -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 };
 
-  GetPos =table[ i ];
-return result;
+    return table[i];
 }
 
 //---St113-- Knorr EP
 
-double TSt113::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result;
-  static double/*?*/ const LBDelay = 100;                                    //szybkosc + zasilanie sterujacego
-  static double const BPT_K[ /*?*//*-1..4*/ (4)-(-1)+1 ][2] = ( ( 10 , 0 ) , ( 4 , 1 ) , ( 0 , 1 ) , ( 4 , 0 ) , ( 4 , -1 ) , ( 15 , -1 ) );
-  static double const BEP_K[ /*?*//*-1..5*/ (5)-(-1)+1 ] = ( 0 , -1 , 1 , 0 , 0 , 0 , 0 );
-  static double/*?*/ const NomPress = 5.0;
+double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    static int const LBDelay = 100; // szybkosc + zasilanie sterujacego
+    static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
+	{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+	static double const BEP_K[/*?*/ /*-1..5*/ (5) - (-1) + 1] = { 0, -1, 1, 0, 0, 0, 0 };
+    static double const NomPress = 5.0;
 
-  double LimPP; double dpPipe; double dpMainValve; double ActFlowSpeed;
-  int BCP;
+    double LimPP;
+    double dpPipe;
+    double dpMainValve;
+    double ActFlowSpeed;
+    int BCP;
 
-  BCP =Round( i_bcp );
+    BCP = lround(i_bcp);
 
-  EPS =BEP_K[ BCP ];
+    EPS = BEP_K[BCP];
 
-  if(  BCP>0 ) BCP =BCP-1;
+    if (BCP > 0)
+        BCP = BCP - 1;
 
-  if(  BCP<-1 ) BCP =1;
-  LimPP =BPT_K[ BCP ][ 1 ];
-  if(  LimPP<0 )
-    LimPP =0.5*PP;else if(  LimPP>0 )
-    LimPP =PP;else
-    LimPP =CP;
-  ActFlowSpeed =BPT_K[ BCP ][ 0 ];
+    if (BCP < -1)
+        BCP = 1;
+    LimPP = BPT_K[BCP][1];
+    if (LimPP < 0)
+        LimPP = 0.5 * PP;
+    else if (LimPP > 0)
+        LimPP = PP;
+    else
+        LimPP = CP;
+    ActFlowSpeed = BPT_K[BCP][0];
 
-  CP =CP+6*Min0R( abs( LimPP-CP ), 0.05 )*PR( CP, LimPP )*dt; //zbiornik sterujacy
+    CP = CP + 6 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
-  dpMainValve =0;
+    dpMainValve = 0;
 
-  if(  BCP==-1 )
-    dpMainValve =PF( HP, PP, ( ActFlowSpeed )*1.0/( LBDelay ) )*dt;
-  if( ( BCP==0 ) )
-    dpMainValve =-PFVa( HP, PP, ( ActFlowSpeed )*1.0/( LBDelay ), NomPress+RedAdj )*dt;
-  if(  ( BCP>1 )&&( PP>CP ) )
-    dpMainValve =PFVd( PP, 0, ( ActFlowSpeed )*1.0/( LBDelay ), CP )*dt;
-  if(  BCP==i_bcpno )
-    dpMainValve =PF( 0, PP, ( ActFlowSpeed )*1.0/( LBDelay ) )*dt;
+    if (BCP == -1)
+        dpMainValve = PF(HP, PP, (ActFlowSpeed)*1.0 / (LBDelay)) * dt;
+    if ((BCP == 0))
+        dpMainValve = -PFVa(HP, PP, (ActFlowSpeed)*1.0 / (LBDelay), NomPress + RedAdj) * dt;
+    if ((BCP > 1) && (PP > CP))
+        dpMainValve = PFVd(PP, 0, (ActFlowSpeed)*1.0 / (LBDelay), CP) * dt;
+    if (BCP == i_bcpno)
+        dpMainValve = PF(0, PP, (ActFlowSpeed)*1.0 / (LBDelay)) * dt;
 
-  GetPF =dpMainValve;
-return result;
+    return dpMainValve;
 }
 
 double TSt113::GetCP()
-{   double result;
-  GetCP =EPS;
-return result;
+{
+    return EPS;
 }
 
 double TSt113::GetPos(Byte i)
-{   double result;
-  static double const table[11] = ( -1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1 );
+{
+	static double const table[11] = { -1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1 };
 
-  GetPos =table[ i ];
-return result;
+    return table[i];
 }
 
 void TSt113::Init(double Press)
 {
-  Time =true;
-  TimeEP =true;
+    Time = true;
+    TimeEP = true;
 }
 
 //--- test ---
 
-double Ttest::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result;
-  static double/*?*/ const LBDelay = 100;
+double Ttest::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    double result;
+    static int const LBDelay = 100;
 
-  double LimPP; double dpPipe; double dpMainValve; double ActFlowSpeed;
+    double LimPP;
+    double dpPipe;
+    double dpMainValve;
+    double ActFlowSpeed;
 
+    LimPP = BPT[lround(i_bcp)][1];
+    ActFlowSpeed = BPT[lround(i_bcp)][0];
 
-          LimPP =BPT[ Round( i_bcp ) ][ 1 ];
-          ActFlowSpeed =BPT[ Round( i_bcp ) ][ 0 ];
+    if ((i_bcp == i_bcpno))
+        LimPP = 0.0;
 
-          if( ( i_bcp==i_bcpno ) ) LimPP =0.0;
+    if ((i_bcp == -1))
+        LimPP = 7;
 
-          if( ( i_bcp==-1 ) ) LimPP =7;
+    CP = CP + 20 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt * 1.0 / 1;
 
-          CP =CP+20*Min0R( abs( LimPP-CP ), 0.05 )*PR( CP, LimPP )*dt*1.0/1;
+    LimPP = CP;
+    dpPipe = Min0R(HP, LimPP);
 
-          LimPP =CP;
-          dpPipe =Min0R( HP, LimPP );
+    dpMainValve = PF(dpPipe, PP, ActFlowSpeed * 1.0 / (LBDelay)) * dt;
 
-          dpMainValve =PF( dpPipe, PP, ActFlowSpeed*1.0/( LBDelay ) )*dt;
+    if ((lround(i_bcp) == i_bcpno))
+    {
+        dpMainValve = PF(0, PP, (ActFlowSpeed)*1.0 / (LBDelay)) * dt;
+    }
 
-          if( ( Round( i_bcp )==i_bcpno ) )
-           {
-            dpMainValve =PF( 0, PP, ( ActFlowSpeed )*1.0/( LBDelay ) )*dt;
-           }
-
-  GetPF =dpMainValve;
-return result;
+    return dpMainValve;
 }
 
 void Ttest::Init(double Press)
 {
-  CP = Press;
+    CP = Press;
 }
-
 
 //---FD1---
 
-double TFD1::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result; double DP; double temp;
+double TFD1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    double DP;
+    double temp;
 
-//  MaxBP:=4;
-//  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
-  temp =Min0R( i_bcp*MaxBP, HP );              //0011
-  DP =10*Min0R( abs( temp-BP ), 0.1 )*PF( temp, BP, 0.0006*( 2+Byte( temp>BP ) ) )*dt*Speed;
-  BP =BP-DP;
-  GetPF =-DP;
-return result;
+    //  MaxBP:=4;
+    //  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
+    temp = Min0R(i_bcp * MaxBP, HP); // 0011
+    DP =
+        10 * Min0R(abs(temp - BP), 0.1) * PF(temp, BP, 0.0006 * (2 + Byte(temp > BP))) * dt * Speed;
+    BP = BP - DP;
+    return -DP;
 }
 
 void TFD1::Init(double Press)
 {
-  BP =0;
-  MaxBP =Press;
-  Time =false;
-  TimeEP =false;
-  Speed =1;
+    BP = 0;
+    MaxBP = Press;
+    Time = false;
+    TimeEP = false;
+    Speed = 1;
 }
 
 double TFD1::GetCP()
-{   double result;
-  GetCP =BP;
-return result;
+{
+    return BP;
 }
 
 void TFD1::SetSpeed(double nSpeed)
 {
-  Speed =nSpeed;
+    Speed = nSpeed;
 }
-
 
 //---KNORR---
 
-double TH1405::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result; double DP; double temp; double A;
+double TH1405::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    double DP;
+    double temp;
+    double A;
 
-  PP =Min0R( PP, MaxBP );
-  if(  i_bcp>0.5 )
-   {
-    temp =Min0R( MaxBP, HP );
-    A =2*( i_bcp-0.5 )*0.0011;
-    BP =Max0R( BP, PP );
-   }
-  else
-   {
-    temp =0;
-    A =0.2*( 0.5-i_bcp )*0.0033;
-    BP =Min0R( BP, PP );
-   }
-  DP =PF( temp, BP, A )*dt;
-  BP =BP-DP;
-  GetPF =-DP;
-return result;
+    PP = Min0R(PP, MaxBP);
+    if (i_bcp > 0.5)
+    {
+        temp = Min0R(MaxBP, HP);
+        A = 2 * (i_bcp - 0.5) * 0.0011;
+        BP = Max0R(BP, PP);
+    }
+    else
+    {
+        temp = 0;
+        A = 0.2 * (0.5 - i_bcp) * 0.0033;
+        BP = Min0R(BP, PP);
+    }
+    DP = PF(temp, BP, A) * dt;
+    BP = BP - DP;
+    return -DP;
 }
 
 void TH1405::Init(double Press)
 {
-  BP =0;
-  MaxBP =Press;
-  Time =true;
-  TimeEP =false;
+    BP = 0;
+    MaxBP = Press;
+    Time = true;
+    TimeEP = false;
 }
 
 double TH1405::GetCP()
-{   double result;
-  GetCP =BP;
-return result;
+{
+    return BP;
 }
-
 
 //---FVel6---
 
-double TFVel6::GetPF(double i_bcp,  double PP, double HP, double dt, double ep)
-{   double result;
-  static double/*?*/ const LBDelay = 100;
+double TFVel6::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+{
+    static int const LBDelay = 100;
 
-  double LimPP; double dpPipe; double dpMainValve; double ActFlowSpeed;
+    double LimPP;
+    double dpPipe;
+    double dpMainValve;
+    double ActFlowSpeed;
 
-  LimPP =Min0R( 5*Byte( i_bcp<3.5 ), HP );
-  if(  ( i_bcp>=3.5 ) && ( ( i_bcp<4.3 )||( i_bcp>5.5 ) ) )
-    ActFlowSpeed =0;else if(  ( i_bcp>4.3 ) && ( i_bcp<4.8 ) )
-    ActFlowSpeed =4*( i_bcp-4.3 ) //konsultacje wawa1 - bylo 8;else if(  ( i_bcp<4 ) )
-    ActFlowSpeed =2;else
-    ActFlowSpeed =4;
-  dpMainValve =PF( LimPP, PP, ActFlowSpeed*1.0/( LBDelay ) )*dt;
+    LimPP = Min0R(5 * Byte(i_bcp < 3.5), HP);
+    if ((i_bcp >= 3.5) && ((i_bcp < 4.3) || (i_bcp > 5.5)))
+        ActFlowSpeed = 0;
+    else if ((i_bcp > 4.3) && (i_bcp < 4.8))
+        ActFlowSpeed = 4 * (i_bcp - 4.3); // konsultacje wawa1 - bylo 8;
+    else if ((i_bcp < 4))
+        ActFlowSpeed = 2;
+    else
+        ActFlowSpeed = 4;
+    dpMainValve = PF(LimPP, PP, ActFlowSpeed * 1.0 / (LBDelay)) * dt;
 
+    Sounds[s_fv4a_e] = 0;
+    Sounds[s_fv4a_u] = 0;
+    Sounds[s_fv4a_b] = 0;
+    if ((i_bcp < 3.5))
+        Sounds[s_fv4a_u] = -dpMainValve;
+    else if ((i_bcp < 4.8))
+        Sounds[s_fv4a_b] = dpMainValve;
+    else if ((i_bcp < 5.5))
+        Sounds[s_fv4a_e] = dpMainValve;
 
-  Sounds[ s_fv4a_e ] =0;
-  Sounds[ s_fv4a_u ] =0;
-  Sounds[ s_fv4a_b ] =0;
-  if( ( i_bcp<3.5 ) ) Sounds[ s_fv4a_u ] =-dpMainValve;else
-  if( ( i_bcp<4.8 ) ) Sounds[ s_fv4a_b ] =dpMainValve;else
-  if( ( i_bcp<5.5 ) ) Sounds[ s_fv4a_e ] =dpMainValve;
-
-  GetPF =dpMainValve;
-  if( ( i_bcp<-0.5 ) )
-    EPS =-1;else if( ( i_bcp>0.5 )&&( i_bcp<4.7 ) )
-    EPS =1;else
-    EPS =0;
-//    EPS:=i_bcp*Byte(i_bcp<2)
-return result;
+    if ((i_bcp < -0.5))
+        EPS = -1;
+    else if ((i_bcp > 0.5) && (i_bcp < 4.7))
+        EPS = 1;
+    else
+        EPS = 0;
+    //    EPS:=i_bcp*Byte(i_bcp<2)
+    return dpMainValve;
 }
 
 double TFVel6::GetCP()
-{   double result;
-  GetCP =EPS;
-return result;
+{
+    return EPS;
 }
 
 double TFVel6::GetPos(Byte i)
-{   double result;
-  static double const table[11] = ( -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 );
+{
+	static double const table[11] = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
 
-  GetPos =table[ i ];
-return result;
+    return table[i];
 }
 
 double TFVel6::GetSound(Byte i)
-{   double result;
-  if(  i>2 )
-    GetSound =0;else
-    GetSound =Sounds[ i ];
-return result;
+{
+    if (i > 2)
+        return 0;
+    else
+        return Sounds[i];
 }
 
 void TFVel6::Init(double Press)
 {
-  Time =true;
-  TimeEP =true;
+    Time = true;
+    TimeEP = true;
 }
-
-
 
 //END
