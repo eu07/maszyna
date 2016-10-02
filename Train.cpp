@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Driver.h"
 #include "Console.h"
+#include "McZapkie\hamulce.h"
+#include <typeinfo>
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
@@ -321,7 +323,7 @@ PyObject *TTrain::GetTrainState()
 	bool bEP, bPN;
 	bEP = (mvControlled->LocHandle->GetCP()>0.2) || (fEIMParams[0][2]>0.01);
 	PyDict_SetItemString(dict, "dir_brake", PyGetBool(bEP));
-	if (mvControlled->Hamulec->ClassNameIs("TLSt") || mvControlled->Hamulec->ClassNameIs("TEStED"))
+	if (typeid(mvControlled->Hamulec) == typeid(TLSt) || typeid(mvControlled->Hamulec) == typeid(TEStED))
 	{
 		TBrake* temp_ham = mvControlled->Hamulec;
 		//        TLSt* temp_ham2 = temp_ham;

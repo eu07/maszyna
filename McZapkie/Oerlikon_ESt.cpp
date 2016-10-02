@@ -22,7 +22,7 @@ double d2A(double d)
 
 // ------ RURA ------
 
-double __fastcall TRura::P(void)
+double TRura::P(void)
 {
     return Next->P();
 }
@@ -209,7 +209,7 @@ void TPrzekED::Update(double dt)
 
 // ------ OERLIKON EST NA BOGATO ------
 
-double __fastcall TNESt3::GetPF(double PP, double dt, double Vel) // przeplyw miedzy komora wstepna i PG
+double TNESt3::GetPF(double PP, double dt, double Vel) // przeplyw miedzy komora wstepna i PG
 {
     double dV;
     double dV1;
@@ -322,7 +322,7 @@ void TNESt3::EStParams(double i_crc) // parametry charakterystyczne dla ESt
 {
 }
 
-void __fastcall TNESt3::Init(double PP, double HPP, double LPP, double BP, unsigned char BDF)
+void TNESt3::Init(double PP, double HPP, double LPP, double BP, unsigned char BDF)
 {
     ValveRes->CreatePress(1 * PP);
     BrakeCyl->CreatePress(1 * BP);
@@ -347,7 +347,7 @@ void __fastcall TNESt3::Init(double PP, double HPP, double LPP, double BP, unsig
         RapidStaly = true;
 }
 
-double __fastcall TNESt3::GetCRP()
+double TNESt3::GetCRP()
 {
     return CntrlRes->P();
     //  return Przekladniki[1].P;
@@ -462,7 +462,7 @@ void TNESt3::PLC(double mass)
              1);
 }
 
-void __fastcall TNESt3::ForceEmptiness()
+void TNESt3::ForceEmptiness()
 {
     ValveRes->CreatePress(0);
     BrakeRes->CreatePress(0);

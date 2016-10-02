@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2007-2014 Maciej Cierniak
 */
 
-#include <hamulce.hpp> // Pascal unit
+#include "hamulce.h" // Pascal unit
 #include <friction.hpp> // Pascal unit
 #include <SysUtils.hpp> // Pascal unit
 #include <mctools.hpp> // Pascal unit
@@ -93,7 +93,7 @@ class TRura : public TPrzekladnik // nieprzekladnik, rura laczaca
 {
   private:
   public:
-    virtual __fastcall double P(void) /*override*/;
+    virtual double P(void) /*override*/;
     virtual void Update(double dt) /*override*/;
 };
 
@@ -190,11 +190,11 @@ class TNESt3 : public TBrake
     double LBP; // cisnienie hamulca pomocniczego
 
   public:
-    virtual double __fastcall GetPF(double PP, double dt,
+    virtual double GetPF(double PP, double dt,
                  double Vel) /*override*/; // przeplyw miedzy komora wstepna i PG
     void EStParams(double i_crc); // parametry charakterystyczne dla ESt
-    virtual void __fastcall Init(double PP, double HPP, double LPP, double BP, unsigned char BDF) /*override*/;
-    virtual double __fastcall GetCRP() /*override*/;
+    virtual void Init(double PP, double HPP, double LPP, double BP, unsigned char BDF) /*override*/;
+    virtual double GetCRP() /*override*/;
     void CheckState(double BCP, double &dV1); // glowny przyrzad rozrzadczy
     void CheckReleaser(double dt); // odluzniacz
     double CVs(double BP); // napelniacz sterujacego
@@ -202,7 +202,7 @@ class TNESt3 : public TBrake
     void SetSize(int size, std::string params); // ustawianie dysz (rozmiaru ZR), przekladniki
     void PLC(double mass); // wspolczynnik cisnienia przystawki wazacej
     void SetLP(double TM, double LM, double TBP); // parametry przystawki wazacej
-    virtual void __fastcall ForceEmptiness() /*override*/; // wymuszenie bycia pustym
+    virtual void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
     void SetLBP(double P); // cisnienie z hamulca pomocniczego
 };
 

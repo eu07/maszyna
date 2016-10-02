@@ -10,7 +10,7 @@
 #pragma delphiheader begin
 #pragma option push -w-
 #pragma option push -Vx
-#include <hamulce.hpp>	// Pascal unit
+#include <hamulce.h>	// Pascal unit
 #include <friction.hpp>	// Pascal unit
 #include <SysUtils.hpp>	// Pascal unit
 #include <mctools.hpp>	// Pascal unit

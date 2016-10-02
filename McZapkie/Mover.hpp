@@ -3,7 +3,7 @@
 // All rights reserved
 
 // (DO NOT EDIT: machine generated header) '_mover.pas' rev: 5.00
-//Ra: eee... tam, sam siê generuje b³êdnie i trzeba rêcznie poprawiaæ!
+//Ra: eee... tam, sam siï¿½ generuje bï¿½ï¿½dnie i trzeba rï¿½cznie poprawiaï¿½!
 
 #ifndef _moverHPP
 #define _moverHPP
@@ -12,7 +12,7 @@
 #pragma option push -w-
 #pragma option push -Vx
 #include <Oerlikon_ESt.h>	// Pascal unit
-#include <hamulce.hpp>	// Pascal unit
+#include <hamulce.h>	// Pascal unit
 #include <SysUtils.hpp>	// Pascal unit
 #include <mctools.hpp>	// Pascal unit
 #include <SysInit.hpp>	// Pascal unit

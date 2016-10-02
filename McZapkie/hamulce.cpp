@@ -14,7 +14,6 @@ Copyright (C) 2007-2014 Maciej Cierniak
 
 #include "hamulce.h"
 #include "../Mover.h"
-#include <math.h>
 #include <typeinfo>
 #include <cmath>
 
@@ -46,7 +45,7 @@ double PF(double P1, double P2, double S, double DP = 0.25)
     double PH = Max0R(P1, P2) + 1; // wyzsze cisnienie absolutne
     double PL = P1 + P2 - PH + 2; // nizsze cisnienie absolutne
     double sg = PL * 1.0 / PH; // bezwymiarowy stosunek cisnien
-    double FM = PH * 197 * S * sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
+    double FM = PH * 197 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
     if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
         if ((PH - PL) < DP) // niewielka roznica cisnien
             return (1 - sg) * 1.0 / DPL * FM * 2 * sqrt((DP) * (PH - DP));
@@ -64,7 +63,7 @@ double PF1(double P1, double P2, double S)
     double PH = Max0R(P1, P2) + 1; // wyzsze cisnienie absolutne
     double PL = P1 + P2 - PH + 2; // nizsze cisnienie absolutne
     double sg = PL * 1.0 / PH; // bezwymiarowy stosunek cisnien
-    double FM = PH * 197 * S * sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
+    double FM = PH * 197 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
     if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
         if ((sg < DPS)) // niewielka roznica cisnien
             return (1 - sg) * 1.0 / DPS * FM * 2 * sqrt((DPS) * (1 - DPS));
@@ -72,6 +71,11 @@ double PF1(double P1, double P2, double S)
             return FM * 2 * sqrt((sg) * (1 - sg));
     else // powyzej stosunku krytycznego
         return FM;
+}
+
+long lround(double value)
+{
+	return floorl(value + 0.5);
 }
 
 double PFVa(double PH, double PL, double S, double LIM,
@@ -1841,24 +1845,24 @@ void TKE::CheckState(double BCP, double &dV1)
     // sprawdzanie stanu
     if ((BrakeStatus && 1) == 1)
         if ((VVP + 0.003 + BCP * 1.0 / BVM < CVP))
-            BrakeStatus =
-                (BrakeStatus || 2) // hamowanie stopniowe;else if( ( VVP-0.003+BCP*1.0/BVM>CVP ) )
-                BrakeStatus = (BrakeStatus && 252) // luzowanie;else if( ( VVP+BCP*1.0/BVM>CVP ) )
-                BrakeStatus = (BrakeStatus && 253) // zatrzymanie napelaniania;else
-                ;
-        else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
-        {
-            BrakeStatus = (BrakeStatus || 3);
-            ValveRes.CreatePress(0.8 * VVP); // przyspieszacz
-        }
-        else if ((VVP + BCP * 1.0 / BVM < CVP) &&
-                 ((CVP - VVP) * BVM > 0.25)) // zatrzymanie luzowanie
-            BrakeStatus = (BrakeStatus || 1);
+            BrakeStatus = (BrakeStatus || 2); // hamowanie stopniowe;
+        else if ((VVP - 0.003 + BCP * 1.0 / BVM > CVP))
+            BrakeStatus = (BrakeStatus && 252); // luzowanie;
+        else if ((VVP + BCP * 1.0 / BVM > CVP))
+            BrakeStatus = (BrakeStatus && 253); // zatrzymanie napelaniania;
+        else
+            ;
+    else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
+    {
+        BrakeStatus = (BrakeStatus || 3);
+        ValveRes->CreatePress(0.8 * VVP); // przyspieszacz
+    }
+    else if ((VVP + BCP * 1.0 / BVM < CVP) && ((CVP - VVP) * BVM > 0.25)) // zatrzymanie luzowanie
+        BrakeStatus = (BrakeStatus || 1);
 }
 
 double TKE::CVs(double BP)
 {
-    double result;
     double VVP;
     double BVP;
     double CVP;
@@ -1869,17 +1873,15 @@ double TKE::CVs(double BP)
 
     // przeplyw ZS <-> PG
     if ((BP > 0.2))
-        CVs = 0;
+        return 0;
     else if ((VVP > CVP + 0.4))
-        CVs = 0.05;
+        return 0.05;
     else
-        CVs = 0.23;
-    return result;
+        return 0.23;
 }
 
 double TKE::BVs(double BCP)
 {
-    double result;
     double VVP;
     double BVP;
     double CVP;
@@ -1890,12 +1892,11 @@ double TKE::BVs(double BCP)
 
     // przeplyw ZP <-> rozdzielacz
     if ((BVP > VVP))
-        BVs = 0;
+        return 0;
     else if ((BVP < CVP - 0.3))
-        BVs = 0.6;
+        return 0.6;
     else
-        BVs = 0.13;
-    return result;
+        return 0.13;
 }
 
 double TKE::GetPF(double PP, double dt, double Vel)
@@ -2077,32 +2078,32 @@ void TKE::SetLBP(double P)
 
 //---KRANY---
 
-double HANDLE::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+double THandle::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
     return 0;
 }
 
-void HANDLE::Init(double Press)
+void THandle::Init(double Press)
 {
     Time = false;
     TimeEP = false;
 }
 
-void HANDLE::SetReductor(double nAdj)
+void THandle::SetReductor(double nAdj)
 {
 }
 
-double HANDLE::GetCP()
-{
-    return 0;
-}
-
-double HANDLE::GetSound(Byte i)
+double THandle::GetCP()
 {
     return 0;
 }
 
-double HANDLE::GetPos(Byte i)
+double THandle::GetSound(Byte i)
+{
+    return 0;
+}
+
+double THandle::GetPos(Byte i)
 {
     return 0;
 }
