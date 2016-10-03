@@ -35,13 +35,12 @@ H14K1 (zasadniczy), H1405 (pomocniczy), St113 (ep)
 Knorr/West EP - ¿eby by³
 */
 
-#include <friction.hpp> // Pascal unit
+#include "friction.h" // Pascal unit
 #include <SysUtils.hpp> // Pascal unit
 #include <mctools.hpp> // Pascal unit
 #include <SysInit.hpp> // Pascal unit
 #include <System.hpp> // Pascal unit
 
-using namespace Friction;
 
 namespace Hamulce
 {

@@ -10,7 +10,7 @@
 #pragma delphiheader begin
 #pragma option push -w-
 #pragma option push -Vx
-#include <friction.hpp>	// Pascal unit
+#include <friction.h>	// Pascal unit
 #include <SysUtils.hpp>	// Pascal unit
 #include <mctools.hpp>	// Pascal unit
 #include <SysInit.hpp>	// Pascal unit

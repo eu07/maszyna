@@ -35,16 +35,8 @@ Zrobione:
 
 //uses hamulce;
  
-#include <SysUtils.hpp>	// Pascal unit
-#include <mctools.hpp>	// Pascal unit
-#include <SysInit.hpp>	// Pascal unit
-#include <System.hpp>	// Pascal unit
 
-
-
-  
-    
-struct/*class*/ TFricMat: public TObject
+class TFricMat
 {
 public:
     virtual double GetFC(double N, double Vel); 
@@ -53,7 +45,7 @@ public:
 
 
   
-struct/*class*/ TP10Bg: public TFricMat
+class TP10Bg: public TFricMat
     
 {
 public:
@@ -63,7 +55,7 @@ public:
 
 
   
-struct/*class*/ TP10Bgu: public TFricMat
+class TP10Bgu: public TFricMat
     
 {
 public:
@@ -73,7 +65,7 @@ public:
 
 
   
-struct/*class*/ TP10yBg: public TFricMat
+class TP10yBg: public TFricMat
     
 {
 public:
@@ -83,7 +75,7 @@ public:
 
 
   
-struct/*class*/ TP10yBgu: public TFricMat
+class TP10yBgu: public TFricMat
     
 {
 public:
@@ -93,7 +85,7 @@ public:
 
 
   
-struct/*class*/ TP10: public TFricMat
+class TP10: public TFricMat
     
 {
 public:
@@ -103,7 +95,7 @@ public:
 
 
   
-struct/*class*/ TFR513: public TFricMat
+class TFR513: public TFricMat
     
 {
 public:
@@ -113,7 +105,7 @@ public:
 
 
   
-struct/*class*/ TFR510: public TFricMat
+class TFR510: public TFricMat
     
 {
 public:
@@ -123,7 +115,7 @@ public:
 
 
   
-struct/*class*/ TCosid: public TFricMat
+class TCosid: public TFricMat
     
 {
 public:
@@ -133,7 +125,7 @@ public:
 
 
   
-struct/*class*/ TDisk1: public TFricMat
+class TDisk1: public TFricMat
     
 {
 public:
@@ -143,7 +135,7 @@ public:
 
 
   
-struct/*class*/ TDisk2: public TFricMat
+class TDisk2: public TFricMat
     
 {
 public:
