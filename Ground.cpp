@@ -3785,13 +3785,13 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                             Event->Params[5].asMemCell->PutCommand(
                                 Event->Params[6].asTrack->Dynamics[i]->Mechanik,
                                 &Event->Params[4].nGroundNode->pCenter);
-                        if (DebugModeFlag)
+                        //if (DebugModeFlag)
                             WriteLog("EVENT EXECUTED: AddValues & Track command - " +
                                      AnsiString(Event->Params[0].asText) + " " +
                                      AnsiString(Event->Params[1].asdouble) + " " +
                                      AnsiString(Event->Params[2].asdouble));
                     }
-                    else if (DebugModeFlag)
+                    //else if (DebugModeFlag)
                         WriteLog("EVENT EXECUTED: AddValues - " +
                                  AnsiString(Event->Params[0].asText) + " " +
                                  AnsiString(Event->Params[1].asdouble) + " " +
@@ -3842,8 +3842,28 @@ bool TGround::EventConditon(TEvent *e)
     { // porównanie wartoœci
         if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText, e->Params[11].asdouble,
                                                    e->Params[12].asdouble, e->iFlags))
+			{ //logowanie spe³nionych warunków
+			LogComment = e->Params[9].asMemCell->Text() + AnsiString(" ") +
+                         FloatToStrF(e->Params[9].asMemCell->Value1(), ffFixed, 8, 2) + " " +
+                         FloatToStrF(tmpEvent->Params[9].asMemCell->Value2(), ffFixed, 8, 2) +
+                         " = ";
+            if (TestFlag(e->iFlags, conditional_memstring))
+                LogComment += AnsiString(tmpEvent->Params[10].asText);
+            else
+                LogComment += "*";
+            if (TestFlag(tmpEvent->iFlags, conditional_memval1))
+                LogComment += " " + FloatToStrF(tmpEvent->Params[11].asdouble, ffFixed, 8, 2);
+            else
+                LogComment += " *";
+            if (TestFlag(tmpEvent->iFlags, conditional_memval2))
+                LogComment += " " + FloatToStrF(tmpEvent->Params[12].asdouble, ffFixed, 8, 2);
+            else
+                LogComment += " *";
+			WriteLog(LogComment.c_str());
             return true;
-        else if (Global::iWriteLogEnabled && DebugModeFlag)
+			}
+        //else if (Global::iWriteLogEnabled && DebugModeFlag) //zawsze bo to bardzo istotne w debugowaniu scenariuszy
+		else
         { // nie zgadza siê, wiêc sprawdzmy, co
             LogComment = e->Params[9].asMemCell->Text() + AnsiString(" ") +
                          FloatToStrF(e->Params[9].asMemCell->Value1(), ffFixed, 8, 2) + " " +
@@ -3957,13 +3977,13 @@ bool TGround::CheckQuery()
                             tmpEvent->Params[5].asMemCell->PutCommand(
                                 tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,
                                 &tmpEvent->Params[4].nGroundNode->pCenter);
-                        if (DebugModeFlag)
+                        //if (DebugModeFlag)
                             WriteLog("Type: UpdateValues & Track command - " +
                                      AnsiString(tmpEvent->Params[0].asText) + " " +
                                      AnsiString(tmpEvent->Params[1].asdouble) + " " +
                                      AnsiString(tmpEvent->Params[2].asdouble));
                     }
-                    else if (DebugModeFlag)
+                    else //if (DebugModeFlag)
                         WriteLog("Type: UpdateValues - " + AnsiString(tmpEvent->Params[0].asText) +
                                  " " + AnsiString(tmpEvent->Params[1].asdouble) + " " +
                                  AnsiString(tmpEvent->Params[2].asdouble));

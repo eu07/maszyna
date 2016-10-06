@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="E:\Gry\MaSzyna_15_04\EU07.exe"/>
+    <PROJECT value="EU07.exe"/>
     <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
       McZapkie\hamulce.obj McZapkie\Oerlikon_ESt.obj EU07.obj dumb3d.obj 
       Camera.obj Texture.obj World.obj Model3d.obj MdlMngr.obj Train.obj 
@@ -59,8 +59,8 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=16
 MinorVer=0
-Release=1172
-Build=475
+Release=1173
+Build=481
 Debug=1
 PreRelease=0
 Special=0
@@ -72,8 +72,8 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=16.0.1172.475
-InternalName=10th exe + SPKS + asynch + python
+FileVersion=16.0.1173.481
+InternalName=DP+SPKS+asynch+python
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
@@ -84,7 +84,7 @@ Comments=
 [Excluded Packages]
 $(BCB)\Bin\bcbsmp50.bpl=Borland C++ Sample Components
 $(BCB)\Bin\dclqrt50.bpl=QuickReport Components
-C:\Windows\system32\ibsmp50.bpl=Borland C++ InterBase Alerter Component
+C:\WINDOWS\system32\ibsmp50.bpl=Borland C++ InterBase Alerter Component
 $(BCB)\Bin\dcltee50.bpl=TeeChart 5.0 Components
 $(BCB)\Bin\applet50.bpl=Borland Control Panel Applet Package
 
@@ -115,11 +115,12 @@ Item6=GLEW_STATIC;_DEBUG;USE_VERTEX_ARRAYS
 Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
-Count=4
-Item0=E:\Gry\MaSzyna_15_04\
-Item1=E:\Gry\MaSzyna_15_04
-Item2=D:\EU07\
-Item3=E:\EU07\
+Count=5
+Item0=D:\Maszyna
+Item1=E:\Gry\MaSzyna_15_04\
+Item2=E:\Gry\MaSzyna_15_04
+Item3=D:\EU07\
+Item4=E:\EU07\
 
 [Debugging]
 DebugSourceDirs=McZapkie\

@@ -180,8 +180,8 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     return false;
 #endif
     WriteLog("Online documentation and additional files on http://eu07.pl");
-    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx_EU, OLO_EU, Bart, Quark-t, "
-             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter and others");
+    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others");
     WriteLog("Renderer:");
     WriteLog((char *)glGetString(GL_RENDERER));
     WriteLog("Vendor:");
@@ -664,6 +664,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
+	if (Global::bOldSmudge == true)
+	light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga.tga");
+	else
     light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga2.tga");
     // Camera.Reset();
     ResetTimers();
@@ -1497,53 +1500,97 @@ bool TWorld::Update()
                 // 3. jeœli smuga w³aczona, wyrenderowaæ pojazd u¿ytkownia po dodaniu smugi do sceny
                 if (Train->Controlled()->Battery)
                 { // trochê na skróty z t¹ bateri¹
-					glBlendFunc(GL_DST_COLOR, GL_ONE);
-					//    glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
-					//    glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
-					//    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
+					if (Global::bOldSmudge == true)
+					{
+					glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
+                    //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
                     //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
-					glDepthFunc(GL_GEQUAL);
-					glAlphaFunc(GL_GREATER, 0.004);
-					// glDisable(GL_DEPTH_TEST);
-					glDisable(GL_LIGHTING);
+                    glDisable(GL_DEPTH_TEST);
+                    glDisable(GL_LIGHTING);
                     glDisable(GL_FOG);
-					glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
-					glBindTexture(GL_TEXTURE_2D, light); // Select our texture
+                    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+                    glBindTexture(GL_TEXTURE_2D, light); // Select our texture
                     glBegin(GL_QUADS);
                     float fSmudge =
                         Train->Dynamic()->MoverParameters->DimHalf.y + 7; // gdzie zaczynaæ smugê
                     if (Train->Controlled()->iLights[0] & 21)
                     { // wystarczy jeden zapalony z przodu
-						for (int i = 15; i <= 35; i++)
-						{
-							float z = i * i * i * 0.01f;//25/4;
-							float C = (36 - i*0.5)*0.05*0.1;
-							glColor4f(C, C, C, 0.25f);
-							glTexCoord2f(0, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
-							glTexCoord2f(1, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
-							glTexCoord2f(1, 1);  glVertex3f(10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
-							glTexCoord2f(0, 1);  glVertex3f(-10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
-						}
-					}
+                        glTexCoord2f(0, 0);
+                        glVertex3f(15.0, 0.0, +fSmudge); // rysowanie wzglêdem po³o¿enia modelu
+                        glTexCoord2f(1, 0);
+                        glVertex3f(-15.0, 0.0, +fSmudge);
+                        glTexCoord2f(1, 1);
+                        glVertex3f(-15.0, 2.5, 250.0);
+                        glTexCoord2f(0, 1);
+                        glVertex3f(15.0, 2.5, 250.0);
+                    }
                     if (Train->Controlled()->iLights[1] & 21)
                     { // wystarczy jeden zapalony z ty³u
-						for (int i = 15; i <= 35; i++)
-						{
-							float z = i * i * i * 0.01f;//25/4;
-							glTexCoord2f(0, 0);  glVertex3f(10 / 2 + 3 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
-							glTexCoord2f(1, 0);  glVertex3f(-10 / 2 - 3 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
-							glTexCoord2f(1, 1);  glVertex3f(-10 / 2 - 3 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
-							glTexCoord2f(0, 1);  glVertex3f(10 / 2 + 3 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
-						}
-					}
+                        glTexCoord2f(0, 0);
+                        glVertex3f(-15.0, 0.0, -fSmudge);
+                        glTexCoord2f(1, 0);
+                        glVertex3f(15.0, 0.0, -fSmudge);
+                        glTexCoord2f(1, 1);
+                        glVertex3f(15.0, 2.5, -250.0);
+                        glTexCoord2f(0, 1);
+                        glVertex3f(-15.0, 2.5, -250.0);
+                    }
                     glEnd();
 
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-					// glEnable(GL_DEPTH_TEST);
-					glAlphaFunc(GL_GREATER, 0.04);
-					glDepthFunc(GL_LEQUAL);
-					glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
+                    glEnable(GL_DEPTH_TEST);
+                    // glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
                     glEnable(GL_FOG);
+					}
+					else
+					{
+						glBlendFunc(GL_DST_COLOR, GL_ONE);
+						glDepthFunc(GL_GEQUAL);
+						glAlphaFunc(GL_GREATER, 0.004);
+						// glDisable(GL_DEPTH_TEST);
+						glDisable(GL_LIGHTING);
+						glDisable(GL_FOG);
+						//glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
+						glBindTexture(GL_TEXTURE_2D, light); // Select our texture
+						//float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
+						glBegin(GL_QUADS);
+						float fSmudge = Train->Dynamic()->MoverParameters->DimHalf.y + 7; // gdzie zaczynaæ smugê
+						if (Train->Controlled()->iLights[0] & 21)
+						{ // wystarczy jeden zapalony z przodu
+							for (int i = 15; i <= 35; i++)
+							{
+								float z = i * i * i * 0.01f;//25/4;
+								//float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
+								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(Global::fLuminance+0.015))-1);
+								glColor4f(C, C, C, 0.25f);
+								glTexCoord2f(0, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
+								glTexCoord2f(1, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
+								glTexCoord2f(1, 1);  glVertex3f(10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
+								glTexCoord2f(0, 1);  glVertex3f(-10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
+							}
+						}
+						if (Train->Controlled()->iLights[1] & 21)
+						{ // wystarczy jeden zapalony z ty³u
+							for (int i = 15; i <= 35; i++)
+							{
+								float z = i * i * i * 0.01f;//25/4;
+								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(Global::fLuminance+0.015))-1);
+								glColor4f(C, C, C, 0.25f);
+								glTexCoord2f(0, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
+								glTexCoord2f(1, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
+								glTexCoord2f(1, 1);  glVertex3f(-10 / 2 - 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
+								glTexCoord2f(0, 1);  glVertex3f(10 / 2 + 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
+							}
+						}
+						glEnd();
+
+						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+						// glEnable(GL_DEPTH_TEST);
+						glAlphaFunc(GL_GREATER, 0.04);
+						glDepthFunc(GL_LEQUAL);
+						glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
+						glEnable(GL_FOG);
+					}
                 }
                 glEnable(GL_LIGHTING); // po renderowaniu smugi jest to wy³¹czone
                 // Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
