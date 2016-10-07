@@ -3752,7 +3752,7 @@ bool TTrain::Update()
                 if ((mvOccupied->BrakeLocHandle == FD1))
                 {
 					double b = Console::AnalogCalibrateGet(1);
-					b = Global::CutValueToRange(0.0, b, Hamulce::LocalBrakePosNo); // przyciêcie zmiennej do granic
+					b = Global::CutValueToRange(0.0, b, LocalBrakePosNo); // przyciêcie zmiennej do granic
                     ggLocalBrake.UpdateValue(b); // przesów bez zaokr¹glenia
                     mvOccupied->LocalBrakePos =
                         int(1.09 * b); // sposób zaokr¹glania jest do ustalenia

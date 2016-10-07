@@ -25,8 +25,6 @@ http://mozilla.org/MPL/2.0/.
 #include <System.hpp> // Pascal unit
 #include <string>
 
-using namespace Hamulce;
-
 /*
 (C) youBy
 Co jest:

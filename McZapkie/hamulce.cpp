@@ -2078,32 +2078,32 @@ void TKE::SetLBP(double P)
 
 //---KRANY---
 
-double THandle::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
+double TDriverHandle::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
     return 0;
 }
 
-void THandle::Init(double Press)
+void TDriverHandle::Init(double Press)
 {
     Time = false;
     TimeEP = false;
 }
 
-void THandle::SetReductor(double nAdj)
+void TDriverHandle::SetReductor(double nAdj)
 {
 }
 
-double THandle::GetCP()
-{
-    return 0;
-}
-
-double THandle::GetSound(Byte i)
+double TDriverHandle::GetCP()
 {
     return 0;
 }
 
-double THandle::GetPos(Byte i)
+double TDriverHandle::GetSound(Byte i)
+{
+    return 0;
+}
+
+double TDriverHandle::GetPos(Byte i)
 {
     return 0;
 }

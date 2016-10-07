@@ -42,8 +42,6 @@ Knorr/West EP - ¿eby by³
 #include <System.hpp> // Pascal unit
 
 
-namespace Hamulce
-{
 
 	static int const LocalBrakePosNo = 10;         /*ilosc nastaw hamulca recznego lub pomocniczego*/
 	static int const MainBrakeMaxPos = 10;          /*max. ilosc nastaw hamulca zasadniczego*/
@@ -516,7 +514,7 @@ namespace Hamulce
 	//klasa obejmujaca krany
 
 
-	class THandle
+	class TDriverHandle
 	{
 	private:
 		//        BCP: integer;
@@ -536,7 +534,7 @@ namespace Hamulce
 
 
 
-	class TFV4a : public THandle
+	class TFV4a : public TDriverHandle
 
 	{
 	private:
@@ -546,13 +544,13 @@ namespace Hamulce
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 
-		inline TFV4a(void) : THandle() { }
+		inline TFV4a(void) : TDriverHandle() { }
 
 	};
 
 
 
-	class TFV4aM : public THandle
+	class TFV4aM : public TDriverHandle
 
 	{
 	private:
@@ -570,12 +568,12 @@ namespace Hamulce
 		double GetSound(Byte i)/*override*/;
 		double GetPos(Byte i)/*override*/;
 
-		inline TFV4aM(void) : THandle() { }
+		inline TFV4aM(void) : TDriverHandle() { }
 	};
 
 
 
-	class TMHZ_EN57 : public THandle
+	class TMHZ_EN57 : public TDriverHandle
 
 	{
 	private:
@@ -594,12 +592,12 @@ namespace Hamulce
 		double GetCP()/*override*/;
 		double GetEP(double pos);
 
-		inline TMHZ_EN57(void) : THandle() { }
+		inline TMHZ_EN57(void) : TDriverHandle() { }
 	};
 
 
 
-	/*    FBS2= class(TTHandle)
+	/*    FBS2= class(TTDriverHandle)
 		  private
 			CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
 			XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
@@ -614,7 +612,7 @@ namespace Hamulce
 			function GetPos(i: byte): real; override;
 		  end;                    */
 
-		  /*    TD2= class(TTHandle)
+		  /*    TD2= class(TTDriverHandle)
 				private
 				  CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
 				  XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
@@ -630,7 +628,7 @@ namespace Hamulce
 				end;*/
 
 
-	class TM394 : public THandle
+	class TM394 : public TDriverHandle
 
 	{
 	private:
@@ -644,12 +642,12 @@ namespace Hamulce
 		double GetCP()/*override*/;
 		double GetPos(Byte i)/*override*/;
 
-		inline TM394(void) : THandle() { }
+		inline TM394(void) : TDriverHandle() { }
 	};
 
 
 
-	class TH14K1 : public THandle
+	class TH14K1 : public TDriverHandle
 
 	{
 	protected:
@@ -663,7 +661,7 @@ namespace Hamulce
 		double GetCP()/*override*/;
 		double GetPos(Byte i)/*override*/;
 
-		inline TH14K1(void) : THandle() { }
+		inline TH14K1(void) : TDriverHandle() { }
 	};
 
 
@@ -685,7 +683,7 @@ namespace Hamulce
 
 
 
-	class Ttest : public THandle
+	class Ttest : public TDriverHandle
 
 	{
 	private:
@@ -695,12 +693,12 @@ namespace Hamulce
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 
-		inline Ttest(void) : THandle() { }
+		inline Ttest(void) : TDriverHandle() { }
 	};
 
 
 
-	class TFD1 : public THandle
+	class TFD1 : public TDriverHandle
 
 	{
 	private:
@@ -715,12 +713,12 @@ namespace Hamulce
 		void SetSpeed(double nSpeed);
 		//        procedure Init(press: real; MaxBP: real); overload;
 
-		inline TFD1(void) : THandle() { }
+		inline TFD1(void) : TDriverHandle() { }
 	};
 
 
 
-	class TH1405 : public THandle
+	class TH1405 : public TDriverHandle
 
 	{
 	private:
@@ -733,13 +731,13 @@ namespace Hamulce
 		double GetCP()/*override*/;
 		//        procedure Init(press: real; MaxBP: real); overload;
 
-		inline TH1405(void) : THandle() { }
+		inline TH1405(void) : TDriverHandle() { }
 	};
 
 
 
 
-	class TFVel6 : public THandle
+	class TFVel6 : public TDriverHandle
 
 	{
 	private:
@@ -752,7 +750,7 @@ namespace Hamulce
 		double GetSound(Byte i)/*override*/;
 		void Init(double Press)/*override*/;
 
-		inline TFVel6(void) : THandle() { }
+		inline TFVel6(void) : TDriverHandle() { }
 	};
 
 
@@ -763,9 +761,8 @@ namespace Hamulce
 	extern double PFVd(double PH, double PL, double S, double LIM, double DP = 0.1); //zawor wypuszczajacy z PH do PL, PH do LIM
 
 	extern long lround(double value); //zastepuje funkcje nieobecna w C++99
-}
+
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
-using namespace Hamulce;
 #endif
 #endif//INCLUDED_HAMULCE_H
 //END
