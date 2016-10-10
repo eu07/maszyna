@@ -899,8 +899,8 @@ class TMoverParameters
     bool ChangeCab(int direction);
     bool CurrentSwitch(int direction);
     void UpdateBatteryVoltage(double dt);
-    double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot);
-    double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot);
+    double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
+    double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
     double ShowEngineRotation(int VehN);
 
     // Q *******************************************************************************************
@@ -908,10 +908,11 @@ class TMoverParameters
     bool Physic_ReActivation(void);
     double LocalBrakeRatio(void);
     double ManualBrakeRatio(void);
-    double PipeRatio(void);
-    double RealPipeRatio(void);
+    double PipeRatio(void);/*ile napelniac*/
+    double RealPipeRatio(void);/*jak szybko*/
     double BrakeVP(void);
 
+/*! przesylanie komend sterujacych*/
     bool SendCtrlBroadcast(AnsiString CtrlCommand, double ctrlvalue);
     bool SendCtrlToNext(AnsiString CtrlCommand, double ctrlvalue, double dir);
     bool SetInternalCommand(AnsiString NewCommand, double NewValue1, double NewValue2);
@@ -921,21 +922,34 @@ class TMoverParameters
     void PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
     bool CabActivisation(void);
     bool CabDeactivisation(void);
+
+/*! funkcje zwiekszajace/zmniejszajace nastawniki*/
+               /*! glowny nastawnik:*/
     bool IncMainCtrl(int CtrlSpeed);
     bool DecMainCtrl(int CtrlSpeed);
-    bool IncScndCtrl(int CtrlSpeed);
+    /*! pomocniczy nastawnik:*/
+	bool IncScndCtrl(int CtrlSpeed);
     bool DecScndCtrl(int CtrlSpeed);
-    bool AddPulseForce(int Multipler);
-    bool SandDoseOn(void);
-    void SSReset(void);
+
+
+    bool AddPulseForce(int Multipler);/*dla drezyny*/
+
+    bool SandDoseOn(void);/*wlacza/wylacza sypanie piasku*/
+
+/*! zbijanie czuwaka/SHP*/
+	void SSReset(void);
     bool SecuritySystemReset(void);
     void SecuritySystemCheck(double dt);
+
     bool BatterySwitch(bool State);
     bool EpFuseSwitch(bool State);
+
+               /*! stopnie hamowania - hamulec zasadniczy*/
     bool IncBrakeLevelOld(void);
     bool DecBrakeLevelOld(void);
     bool IncLocalBrakeLevel(Byte CtrlSpeed);
     bool DecLocalBrakeLevel(Byte CtrlSpeed);
+	/*! ABu 010205: - skrajne polozenia ham. pomocniczego*/
     bool IncLocalBrakeLevelFAST(void);
     bool DecLocalBrakeLevelFAST(void);
     bool IncManualBrakeLevel(Byte CtrlSpeed);
@@ -945,19 +959,24 @@ class TMoverParameters
     bool AntiSlippingBrake(void);
     bool BrakeReleaser(Byte state);
     bool SwitchEPBrake(Byte state);
-    bool AntiSlippingButton(void);
+    bool AntiSlippingButton(void); /*! reczny wlacznik urzadzen antyposlizgowych*/
+
+/*funkcje dla ukladow pneumatycznych*/
     bool IncBrakePress(double &brake, double PressLimit, double dp);
     bool DecBrakePress(double &brake, double PressLimit, double dp);
-    bool BrakeDelaySwitch(Byte BDS);
-    bool IncBrakeMult(void);
+    bool BrakeDelaySwitch(Byte BDS);/*! przelaczanie nastawy opoznienia*/
+    bool IncBrakeMult(void);/*przelaczanie prozny/ladowny*/
     bool DecBrakeMult(void);
+	/*pomocnicze funkcje dla ukladow pneumatycznych*/
     void UpdateBrakePressure(double dt);
     void UpdatePipePressure(double dt);
-    void CompressorCheck(double dt);
+    void CompressorCheck(double dt);/*wlacza, wylacza kompresor, laduje zbiornik*/
     void UpdatePantVolume(double dt);             //Ra
     void UpdateScndPipePressure(double dt);
     double GetDVc(double dt);
-    void ComputeConstans(void);
+
+/*funkcje obliczajace sily*/
+    void ComputeConstans(void);//ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
     double ComputeMass(void);
     void ComputeTotalForce(double dt, double dt1, bool FullVer);
     double Adhesive(double staticfriction);
@@ -966,41 +985,60 @@ class TMoverParameters
     double BrakeForce(const TTrackParam &Track);
     double CouplerForce(Byte CouplerN, double dt);
     void CollisionDetect(Byte CouplerN, double dt);
+/*obrot kol uwzgledniajacy poslizg*/
     double ComputeRotatingWheel(double WForce, double dt, double n);
-    bool DirectionBackward(void);
-    bool MainSwitch(bool State);
-    bool ConverterSwitch(bool State);
-    bool CompressorSwitch(bool State);
-    void ConverterCheck();
-    bool FuseOn(void);
-    bool FuseFlagCheck(void);
-    void FuseOff(void);
-    int ShowCurrent(Byte AmpN);
-    double v2n(void);
-    double current(double n, double U);
 
+	/*--funkcje dla lokomotyw*/
+    bool DirectionBackward(void);/*! kierunek ruchu*/
+    bool MainSwitch(bool State);/*! wylacznik glowny*/
+    bool ConverterSwitch(bool State);/*! wl/wyl przetwornicy*/
+    bool CompressorSwitch(bool State);/*! wl/wyl sprezarki*/
+
+	/*-funkcje typowe dla lokomotywy elektrycznej*/
+	void ConverterCheck(); // przetwornica
+    bool FuseOn(void); //bezpiecznik nadamiary
+    bool FuseFlagCheck(void); // sprawdzanie flagi nadmiarowego
+    void FuseOff(void); // wylaczenie nadmiarowego
+    int ShowCurrent(Byte AmpN); //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
+    int ShowCurrentP(Byte AmpN);  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
+
+	/*!o pokazuje bezwgl. wartosc obrotow na obrotomierzu jednego z 3 pojazdow*/
+	/*function ShowEngineRotation(VehN:byte): integer; //Ra 2014-06: przeniesione do C++*/
+	/*funkcje uzalezniajace sile pociagowa od predkosci: v2n, n2r, current, momentum*/
+	double v2n(void);
+    double current(double n, double U);
     double Momentum(double I);
     double MomentumF(double I, double Iw, Byte SCP);
-    bool CutOffEngine(void);
-    bool MaxCurrentSwitch(bool State);
-    bool ResistorsFlagCheck(void);
-    bool MinCurrentSwitch(bool State);
-    bool AutoRelaySwitch(bool State);
-    bool AutoRelayCheck(void);
-    bool PantFront(bool State);
-    bool PantRear(bool State);
+
+	bool CutOffEngine(void); //odlaczenie udszkodzonych silnikow
+/*funkcje automatycznego rozruchu np EN57*/   
+	bool MaxCurrentSwitch(bool State); //przelacznik pradu wysokiego rozruchu
+    bool MinCurrentSwitch(bool State); //przelacznik pradu automatycznego rozruchu
+    bool AutoRelaySwitch(bool State); //przelacznik automatycznego rozruchu
+    bool AutoRelayCheck(void);//symulacja automatycznego rozruchu
+    
+	bool ResistorsFlagCheck(void); //sprawdzenie kontrolki oporow rozruchowych NBMX
+    bool PantFront(bool State); //obsluga pantografou przedniego
+    bool PantRear(bool State); //obsluga pantografu tylnego
+
+/*-funkcje typowe dla lokomotywy spalinowej z przekladnia mechaniczna*/
     bool dizel_EngageSwitch(double state);
     bool dizel_EngageChange(double dt);
     bool dizel_AutoGearCheck(void);
     double dizel_fillcheck(Byte mcp);
     double dizel_Momentum(double dizel_fill, double n, double dt);
     bool dizel_Update(double dt);
+
+	/* funckje dla wagonow*/
     bool LoadingDone(double LSpeed, AnsiString LoadInit);
-    bool DoorLeft(bool State);
-    bool DoorRight(bool State);
-    bool DoorBlockedFlag(void);
+    bool DoorLeft(bool State); //obsluga drzwi lewych
+    bool DoorRight(bool State); //obsluga drzwi prawych
+    bool DoorBlockedFlag(void); //sprawdzenie blokady drzwi
+
+	/* funkcje dla samochodow*/
     bool ChangeOffsetH(double DeltaOffset);
 
+	/*funkcje ladujace pliki opisujace pojazd*/
     bool LoadFIZ(AnsiString chkpath);                                                               //Q 20160717    bool LoadChkFile(AnsiString chkpath);
     bool readMPT(int ln, AnsiString xline);                                                         //Q 20160717
     bool readRLIST(int ln, AnsiString xline);                                                       //Q 20160718
@@ -1014,7 +1052,6 @@ class TMoverParameters
     bool CreateBrakeSys();                                                                          //Q 20160722
     bool CheckLocomotiveParametersQ(bool ReadyFlag, int Dir);
     AnsiString EngineDescription(int what);
-    int ShowCurrentP(Byte AmpN);                                                                    //Q 20160722
 };
 
 #endif
