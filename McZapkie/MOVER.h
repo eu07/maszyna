@@ -882,7 +882,7 @@ class TMoverParameters
         double CouplerDist(Byte Coupler);
 
   public:
-    TMoverParameters(double VelInitial, AnsiString TypeNameInit, AnsiString NameInit, int LoadInitial, AnsiString LoadTypeInitial, int Cab);
+    TMoverParameters(double VelInitial, std::string TypeNameInit, std::string NameInit, int LoadInitial, std::string LoadTypeInitial, int Cab);
     // obs³uga sprzêgów
     double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1, const TDimension &Dim2);
     double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1, const vector3 &Dim2);
@@ -913,13 +913,13 @@ class TMoverParameters
     double BrakeVP(void);
 
 /*! przesylanie komend sterujacych*/
-    bool SendCtrlBroadcast(AnsiString CtrlCommand, double ctrlvalue);
-    bool SendCtrlToNext(AnsiString CtrlCommand, double ctrlvalue, double dir);
-    bool SetInternalCommand(AnsiString NewCommand, double NewValue1, double NewValue2);
-    double GetExternalCommand(AnsiString &Command);
-    bool RunCommand(AnsiString command, double CValue1, double CValue2);
+    bool SendCtrlBroadcast(std::string CtrlCommand, double ctrlvalue);
+    bool SendCtrlToNext(std::string CtrlCommand, double ctrlvalue, double dir);
+    bool SetInternalCommand(std::string NewCommand, double NewValue1, double NewValue2);
+    double GetExternalCommand(std::string &Command);
+    bool RunCommand(std::string command, double CValue1, double CValue2);
     bool RunInternalCommand(void);
-    void PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
+    void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
     bool CabActivisation(void);
     bool CabDeactivisation(void);
 
@@ -947,24 +947,24 @@ class TMoverParameters
                /*! stopnie hamowania - hamulec zasadniczy*/
     bool IncBrakeLevelOld(void);
     bool DecBrakeLevelOld(void);
-    bool IncLocalBrakeLevel(Byte CtrlSpeed);
-    bool DecLocalBrakeLevel(Byte CtrlSpeed);
+    bool IncLocalBrakeLevel(int CtrlSpeed);
+    bool DecLocalBrakeLevel(int CtrlSpeed);
 	/*! ABu 010205: - skrajne polozenia ham. pomocniczego*/
     bool IncLocalBrakeLevelFAST(void);
     bool DecLocalBrakeLevelFAST(void);
-    bool IncManualBrakeLevel(Byte CtrlSpeed);
-    bool DecManualBrakeLevel(Byte CtrlSpeed);
+    bool IncManualBrakeLevel(int CtrlSpeed);
+    bool DecManualBrakeLevel(int CtrlSpeed);
     bool DynamicBrakeSwitch(bool Switch);
     bool EmergencyBrakeSwitch(bool Switch);
     bool AntiSlippingBrake(void);
-    bool BrakeReleaser(Byte state);
-    bool SwitchEPBrake(Byte state);
+    bool BrakeReleaser(int state);
+    bool SwitchEPBrake(int state);
     bool AntiSlippingButton(void); /*! reczny wlacznik urzadzen antyposlizgowych*/
 
 /*funkcje dla ukladow pneumatycznych*/
     bool IncBrakePress(double &brake, double PressLimit, double dp);
     bool DecBrakePress(double &brake, double PressLimit, double dp);
-    bool BrakeDelaySwitch(Byte BDS);/*! przelaczanie nastawy opoznienia*/
+    bool BrakeDelaySwitch(int BDS);/*! przelaczanie nastawy opoznienia*/
     bool IncBrakeMult(void);/*przelaczanie prozny/ladowny*/
     bool DecBrakeMult(void);
 	/*pomocnicze funkcje dla ukladow pneumatycznych*/
@@ -981,10 +981,10 @@ class TMoverParameters
     void ComputeTotalForce(double dt, double dt1, bool FullVer);
     double Adhesive(double staticfriction);
     double TractionForce(double dt);
-    double FrictionForce(double R, Byte TDamage);
+    double FrictionForce(double R, int TDamage);
     double BrakeForce(const TTrackParam &Track);
-    double CouplerForce(Byte CouplerN, double dt);
-    void CollisionDetect(Byte CouplerN, double dt);
+    double CouplerForce(int CouplerN, double dt);
+    void CollisionDetect(int CouplerN, double dt);
 /*obrot kol uwzgledniajacy poslizg*/
     double ComputeRotatingWheel(double WForce, double dt, double n);
 
@@ -999,16 +999,16 @@ class TMoverParameters
     bool FuseOn(void); //bezpiecznik nadamiary
     bool FuseFlagCheck(void); // sprawdzanie flagi nadmiarowego
     void FuseOff(void); // wylaczenie nadmiarowego
-    int ShowCurrent(Byte AmpN); //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
-    int ShowCurrentP(Byte AmpN);  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
+    int ShowCurrent(int AmpN); //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
+    int ShowCurrentP(int AmpN);  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
 
 	/*!o pokazuje bezwgl. wartosc obrotow na obrotomierzu jednego z 3 pojazdow*/
-	/*function ShowEngineRotation(VehN:byte): integer; //Ra 2014-06: przeniesione do C++*/
+	/*function ShowEngineRotation(VehN:int): integer; //Ra 2014-06: przeniesione do C++*/
 	/*funkcje uzalezniajace sile pociagowa od predkosci: v2n, n2r, current, momentum*/
 	double v2n(void);
     double current(double n, double U);
     double Momentum(double I);
-    double MomentumF(double I, double Iw, Byte SCP);
+    double MomentumF(double I, double Iw, int SCP);
 
 	bool CutOffEngine(void); //odlaczenie udszkodzonych silnikow
 /*funkcje automatycznego rozruchu np EN57*/   
@@ -1025,12 +1025,12 @@ class TMoverParameters
     bool dizel_EngageSwitch(double state);
     bool dizel_EngageChange(double dt);
     bool dizel_AutoGearCheck(void);
-    double dizel_fillcheck(Byte mcp);
+    double dizel_fillcheck(int mcp);
     double dizel_Momentum(double dizel_fill, double n, double dt);
     bool dizel_Update(double dt);
 
 	/* funckje dla wagonow*/
-    bool LoadingDone(double LSpeed, AnsiString LoadInit);
+    bool LoadingDone(double LSpeed, std::string LoadInit);
     bool DoorLeft(bool State); //obsluga drzwi lewych
     bool DoorRight(bool State); //obsluga drzwi prawych
     bool DoorBlockedFlag(void); //sprawdzenie blokady drzwi
@@ -1039,19 +1039,21 @@ class TMoverParameters
     bool ChangeOffsetH(double DeltaOffset);
 
 	/*funkcje ladujace pliki opisujace pojazd*/
-    bool LoadFIZ(AnsiString chkpath);                                                               //Q 20160717    bool LoadChkFile(AnsiString chkpath);
-    bool readMPT(int ln, AnsiString xline);                                                         //Q 20160717
-    bool readRLIST(int ln, AnsiString xline);                                                       //Q 20160718
-    bool readBPT(int ln, AnsiString xline);                                                         //Q 20160721
-    void BrakeValveDecode(AnsiString s);                                                            //Q 20160719
+    bool LoadFIZ(std::string chkpath);                                                               //Q 20160717    bool LoadChkFile(std::string chkpath);
+    bool readMPT(int ln, std::string xline);                                                         //Q 20160717
+    bool readRLIST(int ln, std::string xline);                                                       //Q 20160718
+    bool readBPT(int ln, std::string xline);                                                         //Q 20160721
+    void BrakeValveDecode(std::string s);                                                            //Q 20160719
     void BrakeSubsystemDecode();                                                                    //Q 20160719
-    void PowerParamDecode(AnsiString lines, AnsiString prefix, TPowerParameters &PowerParamDecode); //Q 20160719
-    TPowerSource PowerSourceDecode(AnsiString s);                                                   //Q 20160719
-    TPowerType PowerDecode(AnsiString s);                                                           //Q 20160719
-    TEngineTypes EngineDecode(AnsiString s);                                                        //Q 20160721
+    void PowerParamDecode(std::string lines, std::string prefix, TPowerParameters &PowerParamDecode); //Q 20160719
+    TPowerSource PowerSourceDecode(std::string s);                                                   //Q 20160719
+    TPowerType PowerDecode(std::string s);                                                           //Q 20160719
+    TEngineTypes EngineDecode(std::string s);                                                        //Q 20160721
     bool CreateBrakeSys();                                                                          //Q 20160722
     bool CheckLocomotiveParametersQ(bool ReadyFlag, int Dir);
-    AnsiString EngineDescription(int what);
+    std::string EngineDescription(int what);
 };
+
+extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
 
 #endif
