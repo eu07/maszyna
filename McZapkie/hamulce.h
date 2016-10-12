@@ -182,26 +182,26 @@ Knorr/West EP - ¿eby by³
 		TReservoir *BrakeCyl;      //silownik
 		TReservoir *BrakeRes;      //ZP
 		TReservoir *ValveRes;      //komora wstepna
-		Byte BCN;                 //ilosc silownikow
+		int BCN;                 //ilosc silownikow
 		double BCM;                 //przekladnia hamulcowa
 		double BCA;                 //laczny przekroj silownikow
-		Byte BrakeDelays;         //dostepne opoznienia
-		Byte BrakeDelayFlag;      //aktualna nastawa
+		int BrakeDelays;         //dostepne opoznienia
+		int BrakeDelayFlag;      //aktualna nastawa
 		TFricMat *FM;              //material cierny
 		double MaxBP;               //najwyzsze cisnienie
-		Byte BA;                  //osie hamowane
-		Byte NBpA;                //klocki na os
+		int BA;                  //osie hamowane
+		int NBpA;                //klocki na os
 		double SizeBR;              //rozmiar^2 ZP (w stosunku do 14")
 		double SizeBC;              //rozmiar^2 CH (w stosunku do 14")
 		bool DCV;              //podwojny zawor zwrotny
 		double ASBP;                //cisnienie hamulca pp
 
-		Byte BrakeStatus; //flaga stanu
-		Byte SoundFlag;
+		int BrakeStatus; //flaga stanu
+		int SoundFlag;
 
 	public:
 		TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa);
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa);
 		//maksymalne cisnienie, promien, skok roboczy, pojemnosc ZP;
 		//ilosc cylindrow, opoznienia hamulca, material klockow, osie hamowane, klocki na os;
 
@@ -213,15 +213,15 @@ Knorr/West EP - ¿eby by³
 		double GetBRP(); //cisnienie zbiornika pomocniczego
 		double GetVRP(); //cisnienie komory wstepnej rozdzielacza
 		virtual double GetCRP();  //cisnienie zbiornika sterujacego
-		virtual void Init(double PP, double HPP, double LPP, double BP, Byte BDF);  //inicjalizacja hamulca
-		bool SetBDF(Byte nBDF); //nastawiacz GPRM
-		void Releaser(Byte state); //odluzniacz
+		virtual void Init(double PP, double HPP, double LPP, double BP, int BDF);  //inicjalizacja hamulca
+		bool SetBDF(int nBDF); //nastawiacz GPRM
+		void Releaser(int state); //odluzniacz
 		virtual void SetEPS(double nEPS); //hamulec EP
-		void ASB(Byte state); //hamulec przeciwposlizgowy
-		Byte GetStatus(); //flaga statusu, moze sie przydac do odglosow
+		void ASB(int state); //hamulec przeciwposlizgowy
+		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
 		void SetASBP(double Press); //ustalenie cisnienia pp
 		virtual void ForceEmptiness();
-		Byte GetSoundFlag();
+		int GetSoundFlag();
 		//        procedure
 
 	};
@@ -242,14 +242,14 @@ Knorr/West EP - ¿eby by³
 	public:
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetHPFlow(double HP, double dt)/*override*/;
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
 
 		inline TWest(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -265,7 +265,7 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void EStParams(double i_crc);                 //parametry charakterystyczne dla ESt
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1); //glowny przyrzad rozrzadczy
 		void CheckReleaser(double dt); //odluzniacz
@@ -273,7 +273,7 @@ Knorr/West EP - ¿eby by³
 		double BVs(double BCP);     //napelniacz pomocniczego
 
 		inline TESt(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -289,7 +289,7 @@ Knorr/West EP - ¿eby by³
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 
 		inline TESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -308,10 +308,10 @@ Knorr/West EP - ¿eby by³
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 
 		inline TESt3AL2(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TESt3(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt3(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -328,10 +328,10 @@ Knorr/West EP - ¿eby by³
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 
 		inline TESt4R(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -352,12 +352,12 @@ Knorr/West EP - ¿eby by³
 		void SetRM(double RMR);   //ustalenie przelozenia rapida
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
 		void SetED(double EDstate); //stan hamulca ED do luzowania
 
 		inline TLSt(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TESt4R(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt4R(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -376,14 +376,14 @@ Knorr/West EP - ¿eby by³
 		double LoadC;
 
 	public:
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej        
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -400,13 +400,13 @@ Knorr/West EP - ¿eby by³
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;   //inicjalizacja
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;   //inicjalizacja
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
 
 		inline TEStEP2(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -422,14 +422,14 @@ Knorr/West EP - ¿eby by³
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1);
 		double CVs(double BP);
 		double BVs(double BCP);
 
 		inline TCV1(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -444,10 +444,10 @@ Knorr/West EP - ¿eby by³
 
 	public:
 		//        function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
-		//        procedure Init(PP, HPP, LPP, BP: real; BDF: byte); override;
+		//        procedure Init(PP, HPP, LPP, BP: real; BDF: int); override;
 
 		inline TCV1R(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -462,12 +462,12 @@ Knorr/West EP - ¿eby by³
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
 
 		inline TCV1L_TR(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, Byte i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -491,7 +491,7 @@ Knorr/West EP - ¿eby by³
 	public:
 		void SetRM(double RMR);   //ustalenie przelozenia rapida
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, Byte BDF)/*override*/;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1);
@@ -502,8 +502,8 @@ Knorr/West EP - ¿eby by³
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 
-		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, Byte
-			i_bcn, Byte i_BD, Byte i_mat, Byte i_ba, Byte i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn,
+		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, int
+			i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn,
 				i_BD, i_mat, i_ba, i_nbpa) { }
 	};
 
@@ -527,8 +527,8 @@ Knorr/West EP - ¿eby by³
 		virtual void Init(double Press);
 		virtual double GetCP();
 		virtual void SetReductor(double nAdj);
-		virtual double GetSound(Byte i);
-		virtual double GetPos(Byte i);
+		virtual double GetSound(int i);
+		virtual double GetPos(int i);
 
 	};
 
@@ -565,8 +565,8 @@ Knorr/West EP - ¿eby by³
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
-		double GetSound(Byte i)/*override*/;
-		double GetPos(Byte i)/*override*/;
+		double GetSound(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 
 		inline TFV4aM(void) : TDriverHandle() { }
 	};
@@ -587,8 +587,8 @@ Knorr/West EP - ¿eby by³
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
-		double GetSound(Byte i)/*override*/;
-		double GetPos(Byte i)/*override*/;
+		double GetSound(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
 		double GetEP(double pos);
 
@@ -608,8 +608,8 @@ Knorr/West EP - ¿eby by³
 			function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
 			procedure Init(press: real); override;
 			procedure SetReductor(nAdj: real); override;
-			function GetSound(i: byte): real; override;
-			function GetPos(i: byte): real; override;
+			function GetSound(i: int): real; override;
+			function GetPos(i: int): real; override;
 		  end;                    */
 
 		  /*    TD2= class(TTDriverHandle)
@@ -623,8 +623,8 @@ Knorr/West EP - ¿eby by³
 				  function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
 				  procedure Init(press: real); override;
 				  procedure SetReductor(nAdj: real); override;
-				  function GetSound(i: byte): real; override;
-				  function GetPos(i: byte): real; override;
+				  function GetSound(i: int): real; override;
+				  function GetPos(i: int): real; override;
 				end;*/
 
 
@@ -640,7 +640,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(Byte i)/*override*/;
+		double GetPos(int i)/*override*/;
 
 		inline TM394(void) : TDriverHandle() { }
 	};
@@ -659,7 +659,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(Byte i)/*override*/;
+		double GetPos(int i)/*override*/;
 
 		inline TH14K1(void) : TDriverHandle() { }
 	};
@@ -675,7 +675,7 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(Byte i)/*override*/;
+		double GetPos(int i)/*override*/;
 		void Init(double Press)/*override*/;
 
 		inline TSt113(void) : TH14K1() { }
@@ -746,8 +746,8 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(Byte i)/*override*/;
-		double GetSound(Byte i)/*override*/;
+		double GetPos(int i)/*override*/;
+		double GetSound(int i)/*override*/;
 		void Init(double Press)/*override*/;
 
 		inline TFVel6(void) : TDriverHandle() { }
