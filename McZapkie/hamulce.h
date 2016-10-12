@@ -36,10 +36,8 @@ Knorr/West EP - ¿eby by³
 */
 
 #include "friction.h" // Pascal unit
-#include <SysUtils.hpp> // Pascal unit
-#include <mctools.hpp> // Pascal unit
-#include <SysInit.hpp> // Pascal unit
-#include <System.hpp> // Pascal unit
+#include "mctools.h" // Pascal unit
+
 
 
 
@@ -131,12 +129,14 @@ Knorr/West EP - ¿eby by³
 																		//7//1.5
  //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
  //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (2.0, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
-	static double const BPT[ /*?*//*-2..6*/ (6) - (-2) + 1][2] = { (0 , 5.0) , (7 , 5.0) , (2.0 , 5.0) , (4.5 , 4.6) , (4.5 , 4.2) , (4.5 , 3.8) , (4.5 , 3.4) , (4.5 , 2.8) , (8 , 2.8) };
-	static double const BPT_394[ /*?*//*-1..5*/ (5) - (-1) + 1][2] = { (13 , 10.0) , (5 , 5.0) , (0 , -1) , (5 , -1) , (5 , 0.0) , (5 , 0.0) , (18 , 0.0) };
+	static double zero_based_BPT[ /*?*//*-2..6*/ (6) - (-2) + 1][2] = { (0 , 5.0) , (7 , 5.0) , (2.0 , 5.0) , (4.5 , 4.6) , (4.5 , 4.2) , (4.5 , 3.8) , (4.5 , 3.4) , (4.5 , 2.8) , (8 , 2.8) };
+	static double zero_based_BPT_394[ /*?*//*-1..5*/ (5) - (-1) + 1][2] = { (13 , 10.0) , (5 , 5.0) , (0 , -1) , (5 , -1) , (5 , 0.0) , (5 , 0.0) , (18 , 0.0) };
+	double *BPT = zero_based_BPT[2]; //tablica pozycji hamulca dla zakresu -2..6
+	double *BPT_394 = zero_based_BPT_394[1]; //tablica pozycji hamulca dla zakresu -1..5
 	//   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 	//      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
 	static int const i_bcpno = 6;
-	static double const pi = 3.141592653589793;
+	// static double const pi = 3.141592653589793; //definicja w mctools
 
 	//klasa obejmujaca pojedyncze zbiorniki
 
