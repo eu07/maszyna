@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 /*konwersja zmiennych na stringi, funkcje matematyczne, logiczne, lancuchowe, I/O etc*/
 
 #include <string>
-#include <ifstream>
+#include <istream>
 
 
 /*Ra: te sta³e nie s¹ u¿ywane...
@@ -29,12 +29,12 @@ http://mozilla.org/MPL/2.0/.
         _Delimiter_Space=_Delimiter+[' '];
 */
 static char _EOL[2] = { (char)13, (char)10 };
-        //static char const _SPACE = " "; // to jest w <string>
-static char  _Spacesigns[5] = { " ",_SPACE,(char)9, (char)13, (char)10};
+        //static char const _SPACE = " ";
+static char  _Spacesigns[4] = { (char)" ",(char)9, (char)13, (char)10};
         static int const CutLeft = -1;
 		static int const CutRight = 1;
 		static int const CutBoth = 0;  /*Cut_Space*/
-
+		static double const pi = 3.141592653589793;
 
         int ConversionError = 0;
         int LineCount = 0;

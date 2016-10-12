@@ -13,8 +13,9 @@ Copyright (C) 2007-2014 Maciej Cierniak
 */
 #include "mctools.h"
 #include <cmath>
-#include <ifstream>
+#include <istream>
 
+using namespace std;
 /*================================================*/
 
 std::string Ups(std::string s)
@@ -180,79 +181,63 @@ std::string Cut_Space(std::string s, int Just)
 
 std::string ExtractKeyWord(std::string InS, std::string KeyWord)
 {
-    std::string result;
     std::string s;
-    unsigned char kwp;
-
     InS = InS + " ";
-    kwp = Pos(KeyWord, InS);
-    if (kwp > 0)
+    std::size_t kwp = InS.find(KeyWord);
+    if (kwp != string::npos)
     {
-        s = Copy(InS, kwp, length(InS));
-        s = Copy(s, 1, Pos(" ", s) - 1);
+		s = InS.substr(kwp, InS.length());
+        //s = Copy(InS, kwp, length(InS));
+		s = s.substr(0, s.find_first_of(" "));
+        //s = Copy(s, 1, Pos(" ", s) - 1);
     }
     else
         s = "";
-    ExtractKeyWord = s;
-    return result;
+    return s;
 }
 
 std::string DUE(std::string s) /*Delete Until Equal sign*/
 {
-    std::string result;
-    DUE = Copy(s, Pos("=", s) + 1, length(s));
-    return result;
+    //DUE = Copy(s, Pos("=", s) + 1, length(s));
+	return s.substr(s.find("=") + 1, s.length());
 }
 
 std::string DWE(std::string s) /*Delete While Equal sign*/
 {
-    std::string result;
-    unsigned char ep;
-
-    ep = Pos("=", s);
-    if (ep > 0)
-        DWE = Copy(s, 1, ep - 1);
+    size_t ep = s.find("=");
+	if (ep != string::npos)
+		//DWE = Copy(s, 1, ep - 1);
+		return s.substr(0, ep);
     else
-        DWE = s;
-    return result;
+        return s;
 }
 
 std::string Ld2Sp(std::string s) /*Low dash to Space sign*/
 {
-    std::string result;
-    unsigned char b;
-    std::string s2;
-
-    s2 = "";
-    {
-        long b_end = length(s) + 1;
-        for (b = 1; b < b_end; ++b)
-            if (s[b] == "_")
-                s2 = s2 + " ";
-            else
-                s2 = s2 + s[b];
-    }
-    Ld2Sp = s2;
-    return result;
+    std::string s2 = "";
+	char tmp[] = { "_" };
+	for (int b = 0; b < s.length(); ++b)
+	{
+		if (s[b] == tmp[0])
+			s2 = s2 + " ";
+		else
+			s2 = s2 + s[b];
+	}
+    return s2;
 }
 
 std::string Tab2Sp(std::string s) /*Tab to Space sign*/
 {
-    std::string result;
-    unsigned char b;
-    std::string s2;
-
-    s2 = "";
-    {
-        long b_end = length(s) + 1;
-        for (b = 1; b < b_end; ++b)
-            if (s[b] == (char)9)
-                s2 = s2 + " ";
-            else
-                s2 = s2 + s[b];
-    }
-    Tab2Sp = s2;
-    return result;
+	std::string s2 = "";
+	char tmp[] = { (char)9 };
+	for (int b = 0; b < s.length(); ++b)
+	{
+		if (s[b] == tmp[0])
+			s2 = s2 + " ";
+		else
+			s2 = s2 + s[b];
+	}
+	return s2;
 }
 
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,
@@ -275,11 +260,11 @@ void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, 
         if (dX != 0)
             gamma = atan(dY * 1.0 / dX);
         else if (dY > 0)
-            gamma = Pi * 1.0 / 2;
+            gamma = pi * 1.0 / 2;
         else
-            gamma = 3 * Pi * 1.0 / 2;
+            gamma = 3 * pi * 1.0 / 2;
         alfa = L * 1.0 / R;
-        phi = gamma - (alfa + Pi * Round(R * 1.0 / AbsR)) * 1.0 / 2;
+        phi = gamma - (alfa + pi * Round(R * 1.0 / AbsR)) * 1.0 / 2;
         Xc = X0 - AbsR * cos(phi);
         Yc = Y0 - AbsR * sin(phi);
         phi = phi + alfa * dL * 1.0 / L;
