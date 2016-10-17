@@ -11,9 +11,9 @@
 #pragma option push -w-
 #pragma option push -Vx
 #include <hamulce.h>	// Pascal unit
-#include <friction.hpp>	// Pascal unit
+#include <friction.h>	// Pascal unit
 #include <SysUtils.hpp>	// Pascal unit
-#include <mctools.hpp>	// Pascal unit
+#include <mctools.h>	// Pascal unit
 #include <SysInit.hpp>	// Pascal unit
 #include <System.hpp>	// Pascal unit
 
@@ -23,17 +23,17 @@ namespace Oerlikon_est
 {
 //-- type declarations -------------------------------------------------------
 class DELPHICLASS TPrzekladnik;
-class PASCALIMPLEMENTATION TPrzekladnik : public Hamulce::TReservoir 
+class PASCALIMPLEMENTATION TPrzekladnik : public TReservoir 
 {
-	typedef Hamulce::TReservoir inherited;
+	typedef TReservoir inherited;
 	
 public:
-	Hamulce::TReservoir* *BrakeRes;
-	Hamulce::TReservoir* *Next;
+	TReservoir* *BrakeRes;
+	TReservoir* *Next;
 	virtual void __fastcall Update(double dt);
 public:
 	#pragma option push -w-inl
-	/* TReservoir.Create */ inline __fastcall TPrzekladnik(void) : Hamulce::TReservoir() { }
+	/* TReservoir.Create */ inline __fastcall TPrzekladnik(void) : TReservoir() { }
 	#pragma option pop
 	
 public:

@@ -12,12 +12,12 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
+//#include "system.hpp"
+//#include "classes.hpp"
 #pragma hdrstop
 
 #include "Traction.h"
-#include "mctools.hpp"
+#include "mctools.h"
 #include "Globals.h"
 #include "Usefull.h"
 #include "TractionPower.h"

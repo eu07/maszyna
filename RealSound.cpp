@@ -12,8 +12,8 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
+//#include "system.hpp"
+//#include "classes.hpp"
 #pragma hdrstop
 
 #include "math.h"
@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
-#include "McZapkie\mctools.hpp"
+#include "McZapkie\mctools.h"
 
 TRealSound::TRealSound()
 {

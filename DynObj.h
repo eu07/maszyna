@@ -21,6 +21,8 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
+
+#include <string>
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -161,8 +163,8 @@ class TDynamicObject
                                                     int &CouplNr);
 
   public: // parametry po³o¿enia pojazdu dostêpne publicznie
-    AnsiString asTrack; // nazwa toru pocz¹tkowego; wywaliæ?
-    AnsiString asDestination; // dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
+    std::string asTrack; // nazwa toru pocz¹tkowego; wywaliæ?
+    std::string asDestination; // dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
     matrix4x4 mMatrix; // macierz przekszta³cenia do renderowania modeli
     TMoverParameters *MoverParameters; // parametry fizyki ruchu oraz przeliczanie
     // TMoverParameters *pControlled; //wskaŸnik do sterowanego cz³onu silnikowego
@@ -324,7 +326,7 @@ class TDynamicObject
     // TTrackFollower Axle3; //Ra: wy³¹czy³em, bo k¹ty s¹ liczone w Segment.cpp
     int iNumAxles; // iloœæ osi
     int CouplCounter;
-    AnsiString asModel;
+    std::string asModel;
 
   public:
     void ABuScanObjects(int ScanDir, double ScanDist);
@@ -359,10 +361,10 @@ class TDynamicObject
 
     int GetPneumatic(bool front, bool red);
     void SetPneumatic(bool front, bool red);
-    AnsiString asName;
-    AnsiString GetName()
+    std::string asName;
+    std::string GetName()
     {
-        return this ? asName : AnsiString("");
+        return this ? asName : std::string("");
     };
 
     TRealSound rsDiesielInc; // youBy
@@ -388,7 +390,7 @@ class TDynamicObject
     bool bDisplayCab; // czy wyswietlac kabine w train.cpp
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
-    AnsiString asBaseDir;
+    std::string asBaseDir;
     GLuint ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
     int iAlpha; // maska przezroczystoœci tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
@@ -400,9 +402,9 @@ class TDynamicObject
     TDynamicObject();
     ~TDynamicObject();
     double TDynamicObject::Init( // zwraca d³ugoœæ pojazdu albo 0, jeœli b³¹d
-        AnsiString Name, AnsiString BaseDir, AnsiString asReplacableSkin, AnsiString Type_Name,
-        TTrack *Track, double fDist, AnsiString DriverType, double fVel, AnsiString TrainName,
-        float Load, AnsiString LoadType, bool Reversed, AnsiString);
+        std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
+        TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
+        float Load, std::string LoadType, bool Reversed, std::string);
     void AttachPrev(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt, double dt1, bool FullVer);
     void LoadUpdate();
@@ -464,7 +466,7 @@ class TDynamicObject
     // void UpdatePos();
 
     // McZapkie-260202
-    void LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName, AnsiString ReplacableSkin);
+    void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
 
     inline double ABuGetDirection() // ABu.
     {
@@ -506,8 +508,8 @@ class TDynamicObject
     void ParamSet(int what, int into);
     int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
     // jechaæ
-    void DestinationSet(AnsiString to, AnsiString numer);
-    AnsiString TextureTest(AnsiString &name);
+    void DestinationSet(std::string to, std::string numer);
+    std::string TextureTest(std::string &name);
     void OverheadTrack(float o);
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
 };

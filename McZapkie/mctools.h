@@ -16,8 +16,10 @@ http://mozilla.org/MPL/2.0/.
 /*konwersja zmiennych na stringi, funkcje matematyczne, logiczne, lancuchowe, I/O etc*/
 
 #include <string>
-#include <istream>
+#include <fstream>
+#include <time.h>
 
+using namespace std;
 
 /*Ra: te sta³e nie s¹ u¿ywane...
         _FileName = ['a'..'z','A'..'Z',':','\','.','*','?','0'..'9','_','-'];
@@ -31,6 +33,7 @@ http://mozilla.org/MPL/2.0/.
 static char _EOL[2] = { (char)13, (char)10 };
         //static char const _SPACE = " ";
 static char  _Spacesigns[4] = { (char)" ",(char)9, (char)13, (char)10};
+static string _spacesigns = " " + (char)9  + (char)13  + (char)10;
         static int const CutLeft = -1;
 		static int const CutRight = 1;
 		static int const CutBoth = 0;  /*Cut_Space*/
@@ -54,6 +57,17 @@ double Max0R(double x1, double x2);
 double Min0R(double x1, double x2);
 
 int Sign(double x);
+inline long Round(float f)
+{
+	return (long)(f + 0.5);
+	//return lround(f);
+}
+
+inline int Random()
+{
+	srand(time(NULL));
+	return rand();
+}
 
 /*funkcje logiczne*/
 bool TestFlag(int Flag,  int Value);
@@ -66,8 +80,8 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*to samo ale zawsze niezaleznie od DebugFlag*/
 
 /*operacje na stringach*/
-std::string ReadWord( std::ifstream & infile); /*czyta slowo z wiersza pliku tekstowego*/
-std::string Ups(std::string s);
+std::string ReadWord( std::ifstream& infile); /*czyta slowo z wiersza pliku tekstowego*/
+//std::string Ups(std::string s);
 std::string Cut_Space(std::string s,  int Just);
 std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/

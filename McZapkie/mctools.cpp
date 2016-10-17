@@ -13,24 +13,24 @@ Copyright (C) 2007-2014 Maciej Cierniak
 */
 #include "mctools.h"
 #include <cmath>
-#include <istream>
+#include <fstream>
 
 using namespace std;
 /*================================================*/
 
-std::string Ups(std::string s)
-{
-    int jatka;
-    std::string swy;
-
-    swy = "";
-    {
-        long jatka_end = s.length() + 1;
-        for (jatka = 0; jatka < jatka_end; jatka++)
-            swy = swy + UpCase(s[jatka]);
-    }
-    return swy;
-} /*=Ups=*/
+//std::string Ups(std::string s)
+//{
+//    int jatka;
+//    std::string swy;
+//
+//    swy = "";
+//    {
+//        long jatka_end = s.length() + 1;
+//        for (jatka = 0; jatka < jatka_end; jatka++)
+//            swy = swy + UpCase(s[jatka]);
+//    }
+//    return swy;
+//} /*=Ups=*/
 
 int Max0(int x1, int x2)
 {
@@ -50,22 +50,18 @@ int Min0(int x1, int x2)
 
 double Max0R(double x1, double x2)
 {
-    double result;
     if (x1 > x2)
-        Max0R = x1;
+        return x1;
     else
-        Max0R = x2;
-    return result;
+        return x2;
 }
 
 double Min0R(double x1, double x2)
 {
-    double result;
     if (x1 < x2)
-        Min0R = x1;
+        return x1;
     else
-        Min0R = x2;
-    return result;
+        return x2;
 }
 
 int Sign(double x)
@@ -111,7 +107,7 @@ bool FuzzyLogic(double Test, double Threshold, double Probability)
 {
     if ((Test > Threshold) && (!DebugModeFlag))
         return
-            (Random < Probability * Threshold * 1.0 / Test) /*im wiekszy Test tym wieksza szansa*/;
+            (Random() < Probability * Threshold * 1.0 / Test) /*im wiekszy Test tym wieksza szansa*/;
     else
         return false;
 }
@@ -120,53 +116,48 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability)
 {
     if ((Test > Threshold))
         return
-            (Random < Probability * Threshold * 1.0 / Test) /*im wiekszy Test tym wieksza szansa*/;
+            (Random() < Probability * Threshold * 1.0 / Test) /*im wiekszy Test tym wieksza szansa*/;
     else
         return false;
 }
 
-std::string ReadWord(std::ifstream &infile)
+std::string ReadWord(std::ifstream& infile)
 {
-    std::string result;
-    std::string s;
+    std::string s = "";
     char c;
-    bool nextword;
+	bool nextword = false;
 
-    s = "";
-    nextword = false;
-    while ((!eof(infile)) && (!nextword))
+    while ((!infile.eof()) && (!nextword))
     {
-        read(infile, c);
-        if (c in _Spacesigns)
+        infile.get(c);
+        if (_spacesigns.find(c) != string::npos)
             if (s != "")
                 nextword = true;
-        if (!(c in _Spacesigns))
-            s = s + c;
+        if (_spacesigns.find(c) == string::npos)
+            s += c;
     }
-    ReadWord = s;
-    return result;
+    return s;
 }
 
 std::string Cut_Space(std::string s, int Just)
 {
-    std::string result;
-    unsigned char ii;
+    int ii;
 
     switch (Just)
     {
     case CutLeft:
     {
         ii = 0;
-        while ((ii < length(s)) && (s[ii + 1] == _SPACE))
+        while ((ii < s.length()) && (s[ii + 1] == _SPACE))
             ++ii;
-        s = Copy(s, ii + 1, length(s) - ii);
+        s = s.substr(ii + 1, s.length() - ii);
     }
     case CutRight:
     {
-        ii = length(s);
+        ii = s.length();
         while ((ii > 0) && (s[ii] == _SPACE))
             --ii;
-        s = Copy(s, 1, ii);
+        s = s.substr(0, ii);
     }
     case CutBoth:
     {
@@ -174,8 +165,7 @@ std::string Cut_Space(std::string s, int Just)
         s = Cut_Space(s, CutRight);
     }
     }
-    Cut_Space = s;
-    return result;
+    return s;
 }
 /*Cut_Space*/
 
@@ -214,30 +204,37 @@ std::string DWE(std::string s) /*Delete While Equal sign*/
 
 std::string Ld2Sp(std::string s) /*Low dash to Space sign*/
 {
-    std::string s2 = "";
-	char tmp[] = { "_" };
+    //std::string s2 = "";
+	char tmp[] = { (char)"_", (char)" " };
 	for (int b = 0; b < s.length(); ++b)
-	{
 		if (s[b] == tmp[0])
-			s2 = s2 + " ";
-		else
-			s2 = s2 + s[b];
-	}
-    return s2;
+			s[b] = tmp[1];
+	//{
+	//	if (s[b] == tmp[0])
+	//		s2 = s2 + " ";
+	//	else
+	//		s2 = s2 + s[b];
+	//}
+ //   return s2;
 }
 
 std::string Tab2Sp(std::string s) /*Tab to Space sign*/
 {
-	std::string s2 = "";
-	char tmp[] = { (char)9 };
+	//std::string s2 = "";
+	char tmp[] = { (char)9, (char)" " };
 	for (int b = 0; b < s.length(); ++b)
 	{
 		if (s[b] == tmp[0])
-			s2 = s2 + " ";
-		else
-			s2 = s2 + s[b];
+			s[b] = tmp[0];
 	}
-	return s2;
+	return s;
+	//{
+	//	if (s[b] == tmp[0])
+	//		s2 = s2 + " ";
+	//	else
+	//		s2 = s2 + s[b];
+	//}
+	//return s2;
 }
 
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,
@@ -288,9 +285,9 @@ void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R
     if (dX != 0)
         gamma = atan(dY * 1.0 / dX);
     else if (dY > 0)
-        gamma = Pi * 1.0 / 2;
+        gamma = pi * 1.0 / 2;
     else
-        gamma = 3 * Pi * 1.0 / 2;
+        gamma = 3 * pi * 1.0 / 2;
     if (R != 0)
         alfa = L * 1.0 / R;
     Xout = X0 + L * cos(alfa * 1.0 / 2 - gamma);
@@ -301,44 +298,36 @@ void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R
 
 double Xhor(double h)
 {
-    double result;
-    Xhor = h * Hstep + Xmin;
-    return result;
+    return h * Hstep + Xmin;
 }
 
 double Yver(double v)
 {
-    double result;
-    Yver = (Vsize - v) * Vstep + Ymin;
-    return result;
+    return (Vsize - v) * Vstep + Ymin;
 }
 
 long Horiz(double x)
 {
-    long result;
     x = (x - Xmin) * 1.0 / Hstep;
-    if (x > -MaxInt)
-        if (x < MaxInt)
-            Horiz = Round(x);
+    if (x > -INT_MAX)
+        if (x < INT_MAX)
+            return Round(x);
         else
-            Horiz = MaxInt;
+            return INT_MAX;
     else
-        Horiz = -MaxInt;
-    return result;
+        return -INT_MAX;
 }
 
 long Vert(double Y)
 {
-    long result;
     Y = (Y - Ymin) * 1.0 / Vstep;
-    if (Y > -MaxInt)
-        if (Y < MaxInt)
-            Vert = Vsize - Round(Y);
+    if (Y > -INT_MAX)
+        if (Y < INT_MAX)
+            return Vsize - Round(Y);
         else
-            Vert = MaxInt;
+            return INT_MAX;
     else
-        Vert = -MaxInt;
-    return result;
+        return -INT_MAX;
 }
 
 void ClearPendingExceptions()

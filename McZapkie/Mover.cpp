@@ -6,30 +6,27 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
-#include "system.hpp"
-#include "classes.hpp"
 
 #include <MATH.H>
 #include <FLOAT.H>
 #include <typeinfo>
 #include <fstream> // std::ifstream
 #include <sstream>
-#include <istream>
+#include <istream> 
 #include <iostream>
 #include <stdio.h> // sprintf()
 #include <stdlib.h>
 #include <math.h>
 #include <cmath>
-#include <math>
 #include <stdio.h>
 
 #include "Mover.h"
-#include "globals.h"
-#include "qutils.h"
-#include "mctools.hpp"
-#include "logs.h"
-#include "hamulce.hpp"
-#include "Oerlikon_ESt.hpp"
+#include "../globals.h"
+//#include "../qutils.h"
+#include "mctools.h"
+#include "../logs.h"
+#include "hamulce.h"
+#include "Oerlikon_ESt.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 
@@ -37,7 +34,7 @@ http://mozilla.org/MPL/2.0/.
 // Jeœli jakieœ zmienne nie s¹ u¿ywane w mover.pas, te¿ mo¿na je przenosiæ.
 // Przeniesienie wszystkiego na raz zrobi³o by zbyt wielki chaos do ogarniêcia.
 
-const dEpsilon = 0.01; // 1cm (zale¿y od typu sprzêgu...)
+const double dEpsilon = 0.01; // 1cm (zale¿y od typu sprzêgu...)
 const double CouplerTune = 0.1; // skalowanie tlumiennosci
 
 long Trunc(float f)
@@ -64,7 +61,7 @@ double TMoverParameters::current(double n, double U)
     // w zaleznosci od polozenia nastawnikow MainCtrl i ScndCtrl oraz predkosci obrotowej n
     // a takze wywala bezpiecznik nadmiarowy gdy za duzy prad lub za male napiecie
     // jest takze mozliwosc uszkodzenia silnika wskutek nietypowych parametrow
-    const ep09resED = 5.8; // TODO: dobrac tak aby sie zgadzalo ze wbudzeniem
+    const float ep09resED = 5.8; // TODO: dobrac tak aby sie zgadzalo ze wbudzeniem
 
     double R, MotorCurrent;
     double Rz, Delta, Isf;

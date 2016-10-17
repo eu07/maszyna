@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #ifndef MTABLE_H
 #define MTABLE_H
 
-#include "McZapkie/mctools.hpp"
+#include "McZapkie/mctools.h"
 #include <string>
 // using namespace std;
 //#include "sysutils.h"
