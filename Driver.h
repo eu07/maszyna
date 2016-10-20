@@ -242,6 +242,7 @@ class TController
     double VelLimit; // predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci
   public:
     double VelSignalLast; // prêdkoœæ zadana na ostatnim semaforze
+	double VelSignalNext; // prêdkoœæ zadana na nastêpnym semaforze
     double VelLimitLast; // prêdkoœæ zadana przez ograniczenie
     double VelRoad; // aktualna prêdkoœæ drogowa (ze znaku W27)
     // (PutValues albo komend¹)

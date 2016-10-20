@@ -1151,6 +1151,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 						iDrivigFlags |= moveSemaphorFound; //jeœli z przodu to dajemy falgê, ¿e jest
 						d_to_next_sem = Min0R(sSpeedTable[i].fDist, d_to_next_sem);
 					}
+					if (sSpeedTable[i].fDist <= d_to_next_sem)
+					{
+					VelSignalNext = sSpeedTable[i].fVelNext;
+					}
                 }
                 else if (sSpeedTable[i].iFlags & spRoadVel)
                 { // to W6

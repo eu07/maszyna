@@ -349,6 +349,14 @@ PyObject *TTrain::GetTrainState()
 	PyDict_SetItemString(dict, "manual_brake", PyGetBool(mvOccupied->ManualBrakePos > 0));
 	PyDict_SetItemString(dict, "pantpress", PyGetFloat(mvControlled->PantPress));
 	PyDict_SetItemString(dict, "trainnumber", PyGetString(DynamicObject->Mechanik->TrainName().c_str()));
+	PyDict_SetItemString(dict, "velnext", PyGetFloat(DynamicObject->Mechanik->VelNext));
+	PyDict_SetItemString(dict, "actualproximitydist", PyGetFloat(DynamicObject->Mechanik->ActualProximityDist));
+	PyDict_SetItemString(dict, "velsignallast", PyGetFloat(DynamicObject->Mechanik->VelSignalLast));
+	PyDict_SetItemString(dict, "vellimitlast", PyGetFloat(DynamicObject->Mechanik->VelLimitLast));
+	PyDict_SetItemString(dict, "velroad", PyGetFloat(DynamicObject->Mechanik->VelRoad));
+	PyDict_SetItemString(dict, "velsignalnext", PyGetFloat(DynamicObject->Mechanik->VelSignalNext));
+	PyDict_SetItemString(dict, "battery", PyGetBool(mvControlled->Battery));
+	
 	
 	return dict;
 }
