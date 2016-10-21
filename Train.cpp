@@ -5007,7 +5007,7 @@ bool TTrain::CabChange(int iDirection)
 
 // McZapkie-310302
 // wczytywanie pliku z danymi multimedialnymi (dzwieki, kontrolki, kabiny)
-bool TTrain::LoadMMediaFile(AnsiString asFileName)
+bool TTrain::LoadMMediaFile(std::string asFileName)
 {
     double dSDist;
     TFileStream *fs;
@@ -5296,7 +5296,7 @@ bool TTrain::LoadMMediaFile(AnsiString asFileName)
     }
 }
 
-bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
+bool TTrain::InitializeCab(int NewCabNo, std::string asFileName)
 {
     pyScreens.reset(this);
     pyScreens.setLookupPath(DynamicObject->asBaseDir);

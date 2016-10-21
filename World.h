@@ -41,10 +41,10 @@ class TWorld
     ~TWorld();
     // double Aspect;
   private:
-    AnsiString OutText1; // teksty na ekranie
-    AnsiString OutText2;
-    AnsiString OutText3;
-    AnsiString OutText4;
+    string OutText1; // teksty na ekranie
+    string OutText2;
+    string OutText3;
+    string OutText4;
     void ShowHints();
     bool Render();
     TCamera Camera;

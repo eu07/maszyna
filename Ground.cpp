@@ -1360,7 +1360,7 @@ void TGround::Free()
     delete sTracks;
 }
 
-TGroundNode * TGround::DynamicFindAny(AnsiString asNameToFind)
+TGroundNode * TGround::DynamicFindAny(std::string asNameToFind)
 { // wyszukanie pojazdu o podanej nazwie, szukanie po wszystkich (u¿yæ drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
         if ((Current->asName == asNameToFind))
@@ -1368,7 +1368,7 @@ TGroundNode * TGround::DynamicFindAny(AnsiString asNameToFind)
     return NULL;
 };
 
-TGroundNode * TGround::DynamicFind(AnsiString asNameToFind)
+TGroundNode * TGround::DynamicFind(std::string asNameToFind)
 { // wyszukanie pojazdu z obsad¹ o podanej nazwie (u¿yæ drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
         if (Current->DynamicObject->Mechanik)
@@ -1386,7 +1386,7 @@ void TGround::DynamicList(bool all)
     WyslijString("none", 6); // informacja o koñcu listy
 };
 
-TGroundNode * TGround::FindGroundNode(AnsiString asNameToFind, TGroundNodeType iNodeType)
+TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType)
 { // wyszukiwanie obiektu o podanej nazwie i konkretnym typie
     if ((iNodeType == TP_TRACK) || (iNodeType == TP_MEMCELL) || (iNodeType == TP_MODEL))
     { // wyszukiwanie w drzewie binarnym
@@ -2362,10 +2362,10 @@ void TGround::FirstInit()
     WriteLog("FirstInit is done");
 };
 
-bool TGround::Init(AnsiString asFile, HDC hDC)
+bool TGround::Init(std::string asFile, HDC hDC)
 { // g³ówne wczytywanie scenerii
-    if (asFile.LowerCase().SubString(1, 7) == "scenery")
-        asFile.Delete(1, 8); // Ra: usuniêcie niepotrzebnych znaków - zgodnoœæ wstecz z 2003
+    if (AnsiString(asFile.c_str()).LowerCase().SubString(1, 7) == "scenery")
+        AnsiString(asFile.c_str()).Delete(1, 8); // Ra: usuniêcie niepotrzebnych znaków - zgodnoœæ wstecz z 2003
     WriteLog("Loading scenery from " + asFile);
     Global::pGround = this;
     // pTrain=NULL;
@@ -2373,8 +2373,8 @@ bool TGround::Init(AnsiString asFile, HDC hDC)
     AnsiString str = "";
     // TFileStream *fs;
     // int size;
-    std::string subpath = Global::asCurrentSceneryPath.c_str(); //   "scenery/";
-    cParser parser(asFile.c_str(), cParser::buffer_FILE, subpath, Global::bLoadTraction);
+    std::string subpath = Global::asCurrentSceneryPath; //   "scenery/";
+    cParser parser(asFile, cParser::buffer_FILE, subpath, Global::bLoadTraction);
     std::string token;
 
     /*
@@ -2800,8 +2800,7 @@ bool TGround::Init(AnsiString asFile, HDC hDC)
             WriteLog("Scenery sky definition");
             parser.getTokens();
             parser >> token;
-            AnsiString SkyTemp;
-            SkyTemp = AnsiString(token.c_str());
+            string SkyTemp = token;
             if (Global::asSky == "1")
                 Global::asSky = SkyTemp;
             do
@@ -4777,12 +4776,12 @@ void TGround::Navigate(String ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
     SendMessage(h, Msg, wParam, lParam);
 };
 //--------------------------------
-void TGround::WyslijEvent(const AnsiString &e, const AnsiString &d)
+void TGround::WyslijEvent(const std::string &e, const std::string &d)
 { // Ra: jeszcze do wyczyszczenia
     DaneRozkaz r;
     r.iSygn = 'EU07';
     r.iComm = 2; // 2 - event
-    int i = e.Length(), j = d.Length();
+    int i = e.length(), j = d.length();
     r.cString[0] = char(i);
     strcpy(r.cString + 1, e.c_str()); // zakoñczony zerem
     r.cString[i + 2] = char(j); // licznik po zerze koñcz¹cym
@@ -4792,15 +4791,15 @@ void TGround::WyslijEvent(const AnsiString &e, const AnsiString &d)
     cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera koñcz¹ce
     cData.lpData = &r;
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + e + " sent");
+	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + e + " sent");
 };
 //---------------------------------------------------------------------------
-void TGround::WyslijUszkodzenia(const AnsiString &t, char fl)
+void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 { // wys³anie informacji w postaci pojedynczego tekstu
 	DaneRozkaz r;
 	r.iSygn = 'EU07';
 	r.iComm = 13; // numer komunikatu
-	int i = t.Length();
+	int i = t.length();
 	r.cString[0] = char(fl);
 	r.cString[1] = char(i);
 	strcpy(r.cString + 2, t.c_str()); // z zerem koñcz¹cym
@@ -4809,15 +4808,15 @@ void TGround::WyslijUszkodzenia(const AnsiString &t, char fl)
 	cData.cbData = 11 + i; // 8+licznik i zero koñcz¹ce
 	cData.lpData = &r;
 	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t + " sent");
+	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
-void TGround::WyslijString(const AnsiString &t, int n)
+void TGround::WyslijString(const std::string &t, int n)
 { // wys³anie informacji w postaci pojedynczego tekstu
     DaneRozkaz r;
     r.iSygn = 'EU07';
     r.iComm = n; // numer komunikatu
-    int i = t.Length();
+    int i = t.length();
     r.cString[0] = char(i);
     strcpy(r.cString + 1, t.c_str()); // z zerem koñcz¹cym
     COPYDATASTRUCT cData;
@@ -4825,10 +4824,10 @@ void TGround::WyslijString(const AnsiString &t, int n)
     cData.cbData = 10 + i; // 8+licznik i zero koñcz¹ce
     cData.lpData = &r;
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t + " sent");
+	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
-void TGround::WyslijWolny(const AnsiString &t)
+void TGround::WyslijWolny(const std::string &t)
 { // Ra: jeszcze do wyczyszczenia
     WyslijString(t, 4); // tor wolny
 };
@@ -4839,7 +4838,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     DaneRozkaz r;
     r.iSygn = 'EU07';
     r.iComm = 7; // 7 - dane pojazdu
-    int i = 32, j = t->asName.Length();
+    int i = 32, j = t->asName.length();
     r.iPar[0] = i; // iloœæ danych liczbowych
     r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
     r.fPar[2] = t->DynamicObject->MoverParameters->Loc.X; // pozycja X
@@ -4905,7 +4904,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     // WriteLog("Ramka gotowa");
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
     // WriteLog("Ramka poszla!");
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t->asName + " sent");
+	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + t->asName + " sent");
 };
 //
 void TGround::WyslijObsadzone()
@@ -4931,13 +4930,13 @@ void TGround::WyslijObsadzone()
 		}
 	while (i <= 30)
 	{
-		strcpy(r.cString + 64 * i, AnsiString("none").c_str());
+		strcpy(r.cString + 64 * i, string("none").c_str());
 		r.fPar[16 * i + 4] = 1;
 		r.fPar[16 * i + 5] = 2;
 		r.fPar[16 * i + 6] = 3;
 		r.iPar[16 * i + 7] = 0;
-		strcpy(r.cString + 64 * i + 32, AnsiString("none").c_str());
-		strcpy(r.cString + 64 * i + 48, AnsiString("none").c_str());
+		strcpy(r.cString + 64 * i + 32, string("none").c_str());
+		strcpy(r.cString + 64 * i + 48, string("none").c_str());
 		i++;
 	}
 
@@ -4947,7 +4946,7 @@ void TGround::WyslijObsadzone()
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
 	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " obsadzone" + " sent");
+	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " obsadzone" + " sent");
 }
 
 //--------------------------------
@@ -5207,7 +5206,7 @@ void TGround::IsolatedBusyList()
 };
 //---------------------------------------------------------------------------
 
-void TGround::IsolatedBusy(const AnsiString t)
+void TGround::IsolatedBusy(const std::string t)
 { // wys³anie informacji o odcinku izolowanym (t)
     // Ra 2014-06: do wyszukania u¿yæ drzewka nazw
     TIsolated *Current;

@@ -84,7 +84,7 @@ class TEvent // zmienne: ev*
     void Conditions(cParser *parser, AnsiString s);
 
   public:
-    AnsiString asName;
+    std::string asName;
     bool bEnabled; // false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
     int iQueued; // ile razy dodany do kolejki
     // bool bIsHistory;

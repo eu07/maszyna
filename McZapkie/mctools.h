@@ -69,6 +69,20 @@ inline int Random()
 	return rand();
 }
 
+inline double BorlandTime()
+{
+	std::tm epoch;
+	epoch.tm_sec = 0;
+	epoch.tm_min = 0;
+	epoch.tm_hour = 0;
+	epoch.tm_mday = 1;
+	epoch.tm_mon = 0;
+	epoch.tm_year = 0;
+	time_t basetime = mktime(&epoch);
+	time_t raw_t = time(NULL);
+	return (difftime(raw_t, basetime) / 24) + 2;
+}
+
 /*funkcje logiczne*/
 bool TestFlag(int Flag,  int Value);
 bool SetFlag( int & Flag,  int Value);

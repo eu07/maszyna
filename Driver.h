@@ -146,8 +146,8 @@ class TSpeedPos
     bool Update(vector3 *p, vector3 *dir, double &len);
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
-    AnsiString TableText();
-	AnsiString GetName();
+    std::string TableText();
+	std::string GetName();
 	bool IsProperSemaphor(TOrders order = Wait_for_orders);
 };
 
@@ -315,9 +315,9 @@ class TController
     {
         return TrainParams;
     };
-    void PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
-                    const _mover::TLocation &NewLocation, TStopReason reason = stopComm);
-    bool PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
+    void PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
+                    const TLocation &NewLocation, TStopReason reason = stopComm);
+    bool PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
                     const vector3 *NewLocation, TStopReason reason = stopComm);
     bool UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundê
     // procedury dotyczace rozkazow dla maszynisty
@@ -346,11 +346,11 @@ class TController
     TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
                 bool primary = true // czy ma aktywnie prowadziæ?
                 );
-    AnsiString OrderCurrent();
+    std::string OrderCurrent();
     void WaitingSet(double Seconds);
 
   private:
-    AnsiString Order2Str(TOrders Order);
+    std::string Order2Str(TOrders Order);
     void DirectionForward(bool forward);
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
@@ -397,10 +397,10 @@ class TController
     };
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
-    AnsiString TableText(int i);
+    std::string TableText(int i);
     int CrossRoute(TTrack *tr);
     void RouteSwitch(int d);
-    AnsiString OwnerName();
+    std::string OwnerName();
 };
 
 #endif

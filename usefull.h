@@ -23,6 +23,8 @@ http://mozilla.org/MPL/2.0/.
 
 // Ra: "delete NULL" nic nie zrobi, wiêc "if (a!=NULL)" jest zbêdne
 //#define SafeFree(a) if (a!=NULL) free(a)
+//#define M_PI  = 3.141592653589793
+
 #define SafeDelete(a) \
     {                 \
         delete (a);   \

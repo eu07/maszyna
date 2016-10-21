@@ -101,7 +101,7 @@ class TIsolated
     TIsolated *pNext; // odcinki izolowane s¹ trzymane w postaci listy jednikierunkowej
     static TIsolated *pRoot; // pocz¹tek listy
   public:
-    AnsiString asName; // nazwa obiektu, baza do nazw eventów
+    std::string asName; // nazwa obiektu, baza do nazw eventów
     TEvent *evBusy; // zdarzenie wyzwalane po zajêciu grupy
     TEvent *evFree; // zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
     TMemCell *pMemCell; // automatyczna komórka pamiêci, która wspó³pracuje z odcinkiem izolowanym

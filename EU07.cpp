@@ -662,7 +662,7 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
             else if (str == AnsiString("-v"))
             { // nazwa wybranego pojazdu
                 str = Parser->GetNextSymbol().LowerCase();
-                Global::asHumanCtrlVehicle = str;
+                Global::asHumanCtrlVehicle = str.c_str();
             }
             else if (str == AnsiString("-modifytga"))
             { // wykonanie modyfikacji wszystkich plików TGA
@@ -695,7 +695,7 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     if (Bpp != 32)
         Bpp = 16;
     // create our OpenGL window
-    if (!CreateGLWindow(Global::asHumanCtrlVehicle.c_str(), WindowWidth, WindowHeight, Bpp,
+    if (!CreateGLWindow(const_cast<char*>(Global::asHumanCtrlVehicle.c_str()), WindowWidth, WindowHeight, Bpp,
                         fullscreen))
         return 0; // quit if window was not created
     SetForegroundWindow(hWnd);

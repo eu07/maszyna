@@ -115,7 +115,7 @@ class TGroundNode : public Resource
         TTextSound *tsStaticSound; // dŸwiêk przestrzenny
         TGroundNode *nNode; // obiekt renderuj¹cy grupowo ma tu wskaŸnik na listê obiektów
     };
-    AnsiString asName; // nazwa (nie zawsze ma znaczenie)
+    std::string asName; // nazwa (nie zawsze ma znaczenie)
     union
     {
         int iNumVerts; // dla trójk¹tów
@@ -156,7 +156,7 @@ class TGroundNode : public Resource
     void MoveMe(vector3 pPosition); // przesuwanie (nie dzia³a)
 
     // bool Disable();
-    inline TGroundNode * Find(const AnsiString &asNameToFind, TGroundNodeType iNodeType)
+    inline TGroundNode * Find(const std::string &asNameToFind, TGroundNodeType iNodeType)
     { // wyszukiwanie czo³gowe z typem
         if ((iNodeType == iType) && (asNameToFind == asName))
             return this;
@@ -302,7 +302,7 @@ class TGround
     TGround();
     ~TGround();
     void Free();
-    bool Init(AnsiString asFile, HDC hDC);
+    bool Init(std::string asFile, HDC hDC);
     void FirstInit();
     void InitTracks();
     void InitTraction();
@@ -326,7 +326,7 @@ class TGround
     };
     //    bool Include(TQueryParserComp *Parser);
     // TGroundNode* GetVisible(AnsiString asName);
-    TGroundNode * GetNode(AnsiString asName);
+    TGroundNode * GetNode(std::string asName);
     bool AddDynamic(TGroundNode *Node);
     void MoveGroundNode(vector3 pPosition);
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki sta³ym krokiem
@@ -355,10 +355,10 @@ class TGround
              return NULL;
      }
     */
-    TGroundNode * DynamicFindAny(AnsiString asNameToFind);
-    TGroundNode * DynamicFind(AnsiString asNameToFind);
+    TGroundNode * DynamicFindAny(std::string asNameToFind);
+    TGroundNode * DynamicFind(std::string asNameToFind);
     void DynamicList(bool all = false);
-    TGroundNode * FindGroundNode(AnsiString asNameToFind, TGroundNodeType iNodeType);
+    TGroundNode * FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType);
     TGroundRect * GetRect(double x, double z)
     {
         return &Rects[GetColFromX(x) / iNumSubRects][GetRowFromZ(z) / iNumSubRects];
@@ -394,11 +394,11 @@ class TGround
   public:
     void WyslijEvent(const AnsiString &e, const AnsiString &d);
     int iRendered; // iloœæ renderowanych sektorów, pobierana przy pokazywniu FPS
-    void WyslijString(const AnsiString &t, int n);
-    void WyslijWolny(const AnsiString &t);
+    void WyslijString(const std::string &t, int n);
+    void WyslijWolny(const std::string &t);
     void WyslijNamiary(TGroundNode *t);
     void WyslijParam(int nr, int fl);
-	void WyslijUszkodzenia(const AnsiString &t, char fl);
+	void WyslijUszkodzenia(const std::string &t, char fl);
 	void WyslijPojazdy(int nr); // -> skladanie wielu pojazdow
 	void WyslijObsadzone(); // -> skladanie wielu pojazdow    
 	void RadioStop(vector3 pPosition);
@@ -411,7 +411,7 @@ class TGround
     void TerrainWrite();
     void TrackBusyList();
     void IsolatedBusyList();
-    void IsolatedBusy(const AnsiString t);
+    void IsolatedBusy(const std::string t);
     void Silence(vector3 gdzie);
 };
 //---------------------------------------------------------------------------

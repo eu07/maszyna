@@ -284,7 +284,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
     return false;
 };
 
-AnsiString TSpeedPos::GetName()
+std::string TSpeedPos::GetName()
 {
 	if (iFlags & spTrack) // je�li tor
 		return trTrack->NameGet();
@@ -292,12 +292,12 @@ AnsiString TSpeedPos::GetName()
 		return evEvent->asName;
 }
 
-AnsiString TSpeedPos::TableText()
+std::string TSpeedPos::TableText()
 { // pozycja tabelki pr�dko�ci
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
-		return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
-			", Vel=" + AnsiString(fVelNext) + ", Name=" + GetName();
+		return "Flags=#" + to_hex_str(iFlags, 8) + ", Dist=" + to_string(fDist, 1, 7) +
+			", Vel=" + to_string(fVelNext) + ", Name=" + GetName();
         //if (iFlags & spTrack) // je�li tor
         //    return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
         //           ", Vel=" + AnsiString(fVelNext) + ", Track=" + trTrack->NameGet();
@@ -1603,7 +1603,7 @@ TController::~TController()
     CloseLog();
 };
 
-AnsiString TController::Order2Str(TOrders Order)
+std::string TController::Order2Str(TOrders Order)
 { // zamiana kodu rozkazu na opis
     if (Order & Change_direction)
         return "Change_direction"; // mo�e by� na�o�ona na inn� i wtedy ma priorytet
@@ -1638,9 +1638,9 @@ AnsiString TController::Order2Str(TOrders Order)
     return "Undefined!";
 }
 
-AnsiString TController::OrderCurrent()
+std::string TController::OrderCurrent()
 { // pobranie aktualnego rozkazu celem wy�wietlenia
-    return AnsiString(OrderPos) + ". " + Order2Str(OrderList[OrderPos]);
+    return to_string(OrderPos) + ". " + Order2Str(OrderList[OrderPos]);
 };
 
 void TController::OrdersClear()
@@ -2889,8 +2889,8 @@ void TController::RecognizeCommand()
     c->Command = ""; // usuni�cie obs�u�onej komendy
 }
 
-void TController::PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
-                             const TLocation &NewLocation, TStopReason reason)
+void TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
+                             const TLocation &NewLocation, TStopReason reason = stopComm)
 { // wys�anie komendy przez event PutValues, jak pojazd ma obsad�, to wysy�a tutaj, a nie do pojazdu
     // bezpo�rednio
     vector3 sl;
@@ -2901,8 +2901,8 @@ void TController::PutCommand(AnsiString NewCommand, double NewValue1, double New
         mvOccupied->PutCommand(NewCommand, NewValue1, NewValue2, NewLocation);
 }
 
-bool TController::PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
-                             const vector3 *NewLocation, TStopReason reason)
+bool TController::PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
+                             const vector3 *NewLocation, TStopReason reason = stopComm)
 { // analiza komendy
     if (NewCommand == "CabSignal")
     { // SHP wyzwalane jest przez cz�on z obsad�, ale obs�ugiwane przez silnikowy
@@ -5425,7 +5425,7 @@ void TController::ControllingSet()
     mvControlling = pVehicle->ControlledFind()->MoverParameters; // poszukiwanie cz�onu sterowanego
 };
 
-AnsiString TController::TableText(int i)
+std::string TController::TableText(int i)
 { // pozycja tabelki pr�dko�ci
     i = (iFirst + i) % iSpeedTableSize; // numer pozycji
     if (i != iLast) // w (iLast) znajduje si� kolejny tor do przeskanowania, ale nie jest ona
@@ -5475,7 +5475,7 @@ void TController::RouteSwitch(int d)
                 }
         }
 };
-AnsiString TController::OwnerName()
+std::string TController::OwnerName()
 {
-    return pVehicle ? pVehicle->MoverParameters->Name : AnsiString("none");
+    return pVehicle ? pVehicle->MoverParameters->Name : ("none");
 };

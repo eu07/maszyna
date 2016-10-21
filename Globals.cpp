@@ -24,6 +24,8 @@ http://mozilla.org/MPL/2.0/.
 #include <Controls.hpp> //do odczytu daty
 #include "World.h"
 #include <ostream>
+#include <iomanip>
+#include <ctype.h>
 // namespace Global {
 
 // parametry do u¿ytku wewnêtrznego
@@ -34,23 +36,23 @@ TGround *Global::pGround = NULL;
 // char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
 // char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";
 // char Global::CreatorName5[30]="2003-2009 £ukasz Kirchner <Nbmx>";
-AnsiString Global::asCurrentSceneryPath = "scenery/";
-AnsiString Global::asCurrentTexturePath = AnsiString(szTexturePath);
-AnsiString Global::asCurrentDynamicPath = "";
+std::string Global::asCurrentSceneryPath = "scenery/";
+std::string Global::asCurrentTexturePath = std::string(szTexturePath);
+std::string Global::asCurrentDynamicPath = "";
 int Global::iSlowMotion =
     0; // info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling, 3-promieñ 1.5km, 7-1km
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
 bool Global::detonatoryOK; // info o nowych detonatorach
 double Global::ABuDebug = 0;
-AnsiString Global::asSky = "1";
+std::string Global::asSky = "1";
 double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecnoœci rozszerzeñ
 bool Global::bOpenGL_1_5 = false; // czy s¹ dostêpne funkcje OpenGL 1.5
 double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "16.0.1172.481";
-AnsiString Global::asVersion =
+std::string Global::asRelease = "16.0.1172.481";
+std::string Global::asVersion =
     "Compilation 2016-08-24, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
@@ -74,7 +76,7 @@ int Global::iSegmentsRendered = 90; // iloœæ segmentów do regulacji wydajnoœci
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd u¿ytkownika, renderowany bez trzêsienia
 bool Global::bSmudge = false; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
-AnsiString Global::asTranscript[5]; // napisy na ekranie (widoczne)
+std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
 TTranscripts Global::tranTexts; // obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
 
 // parametry scenerii
@@ -115,13 +117,13 @@ bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
 float Global::fMouseXScale = 1.5;
 float Global::fMouseYScale = 0.2;
 char Global::szSceneryFile[256] = "td.scn";
-AnsiString Global::asHumanCtrlVehicle = "EU07-424";
+std::string Global::asHumanCtrlVehicle = "EU07-424";
 int Global::iMultiplayer = 0; // blokada dzia³ania niektórych funkcji na rzecz komunikacji
 double Global::fMoveLight = -1; // ruchome œwiat³o
 double Global::fLatitudeDeg = 52.0; // szerokoœæ geograficzna
 float Global::fFriction = 1.0; // mno¿nik tarcia - KURS90
 double Global::fBrakeStep = 1.0; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-AnsiString Global::asLang = "pl"; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+std::string Global::asLang = "pl"; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
 
 // parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
 bool Global::bAdjustScreenFreq = true;
@@ -143,7 +145,7 @@ int Global::iSlowMotionMask = -1; // maska wy³¹czanych w³aœciwoœci dla zwiêkszen
 int Global::iModifyTGA = 7; // czy korygowaæ pliki TGA dla szybszego wczytywania
 // bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku
 TAnimModel *Global::pTerrainCompact = NULL; // do zapisania terenu w pliku
-AnsiString Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
+std::string Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
 double Global::fFpsAverage = 20.0; // oczekiwana wartosæ FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
 double Global::fFpsMin = 0.0; // dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
@@ -205,7 +207,7 @@ AnsiString Global::GetNextSymbol()
     return "";
 };
 
-void Global::LoadIniFile(AnsiString asFileName)
+void Global::LoadIniFile(std::string asFileName)
 {
     int i;
     for (i = 0; i < 10; ++i)
@@ -217,7 +219,7 @@ void Global::LoadIniFile(AnsiString asFileName)
     fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
     if (!fs)
         return;
-    AnsiString str = "";
+    std::string str = "";
     int size = fs->Size;
     str.SetLength(size);
     fs->Read(str.c_str(), size);
@@ -342,7 +344,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             str = GetNextSymbol().LowerCase(); // rozszerzenie
             if (str == "tga")
                 szDefaultExt = szTexturesTGA; // domyœlnie od TGA
-            // szDefaultExt=std::string(Parser->GetNextSymbol().LowerCase().c_str());
+            // szDefaultExt=AnsiString(Parser->GetNextSymbol().LowerCase().c_str());
         }
         else if (str == AnsiString("newaircouplers"))
             bnewAirCouplers = (GetNextSymbol().LowerCase() == AnsiString("yes"));
@@ -573,7 +575,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
     }
 }
 
-void Global::InitKeys(AnsiString asFileName)
+void Global::InitKeys(std::string asFileName)
 {
     //    if (FileExists(asFileName))
     //    {
@@ -798,7 +800,7 @@ void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
                 aLines[j].fShow = show; // wyœwietlaæ od
                 aLines[j].fHide = hide; // wyœwietlaæ do
                 aLines[j].bItalic = it;
-                aLines[j].asText = AnsiString(txt); // bez sensu, wystarczy³by wskaŸnik
+                aLines[j].asText = std::string(txt); // bez sensu, wystarczy³by wskaŸnik
                 if ((k = aLines[j].asText.Pos("|")) > 0)
                 { // jak jest podzia³ linijki na wiersze
                     aLines[j].asText = aLines[j].asText.SubString(1, k - 1);
@@ -890,9 +892,9 @@ char bezogonkowo[128] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
                         "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
                         "raaaalccceeeeiiddnnoooo-ruuuuyt?";
 
-AnsiString Global::Bezogonkow(AnsiString str, bool _)
+std::string Global::Bezogonkow(std::string str, bool _)
 { // wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
-    for (int i = 1; i <= str.Length(); ++i)
+    for (int i = 1; i <= str.length(); ++i)
         if (str[i] & 0x80)
             str[i] = bezogonkowo[str[i] & 0x7F];
         else if (str[i] < ' ') // znaki steruj¹ce nie s¹ obs³ugiwane
@@ -919,11 +921,81 @@ double Global::CutValueToRange(double min, double value, double max)
 	return value;
 };
 
-std::string Global::to_string(int _Val)
+std::string to_string(int _Val)
 {
     std::ostringstream o;
     o << _Val;
     return o.str();
 };
+
+std::string to_string(unsigned int _Val)
+{
+	std::ostringstream o;
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(double _Val)
+{
+    std::ostringstream o;
+    o << _Val;
+    return o.str();
+};
+
+std::string to_string(int _Val, int precision)
+{
+    std::ostringstream o;
+	o << std::fixed << std::setprecision(precision);
+    o << _Val;
+    return o.str();
+};
+
+std::string to_string(double _Val, int precision)
+{
+    std::ostringstream o;
+	o << std::fixed << std::setprecision(precision);
+    o << _Val;
+    return o.str();
+};
+
+std::string to_string(int _Val, int precision, int width)
+{
+	std::ostringstream o;
+	o.width(width);
+	o << std::fixed << std::setprecision(precision);
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(double _Val, int precision, int width)
+{
+	std::ostringstream o;
+	o.width(width);
+	o << std::fixed << std::setprecision(precision);
+	o << _Val;
+	return o.str();
+};
+
+std::string to_hex_str(double _Val, int precision = 0, int width = 0)
+{
+    std::ostringstream o;
+    if (width)
+        o.width(width);
+    o << std::fixed << std::hex;
+    if (precision)
+        o << std::setprecision(precision);
+    o << _Val;
+    return o.str();
+};
+
+std::string ToLower(std::string text)
+{
+	std::transform(text.begin(), text.end(), text.begin(), ::tolower);
+}
+
+std::string ToUpper(std::string text)
+{
+	std::transform(text.begin(), text.end(), text.begin(), ::toupper);
+}
 
 #pragma package(smart_init)

@@ -127,6 +127,11 @@ void CommLog(const char *str)
 	}*/
 };
 
+void CommLog(const std::string &str)
+{ // Ra: wersja z AnsiString jest zamienna z Error()
+	WriteLog(str);
+};
+
 void CommLog(const AnsiString &str)
 { // Ra: wersja z AnsiString jest zamienna z Error()
 	CommLog(str.c_str());

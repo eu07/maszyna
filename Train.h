@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "RealSound.h"
 #include "FadeSound.h"
 #include "PyInt.h"
+#include <string>
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -73,7 +74,7 @@ class TTrain
     bool CabChange(int iDirection);
     bool ActiveUniversal4;
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
-    bool InitializeCab(int NewCabNo, AnsiString asFileName);
+    bool InitializeCab(int NewCabNo, std::string asFileName);
     TTrain();
     ~TTrain();
     //    bool Init(TTrack *Track);
@@ -98,7 +99,7 @@ class TTrain
 	void SetLights();
 	//    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
-    bool LoadMMediaFile(AnsiString asFileName);
+    bool LoadMMediaFile(std::string asFileName);
     PyObject *GetTrainState();
 
   private: //¿eby go nic z zewn¹trz nie przestawia³o

@@ -134,7 +134,7 @@ class TTranscript
   public:
     float fShow; // czas pokazania
     float fHide; // czas ukrycia/usuniêcia
-    AnsiString asText; // tekst gotowy do wyœwietlenia (usuniête znaczniki czasu)
+    std::string asText; // tekst gotowy do wyœwietlenia (usuniête znaczniki czasu)
     bool bItalic; // czy kursywa (dŸwiêk nieistotny dla prowadz¹cego)
     int iNext; // nastêpna u¿ywana linijka, ¿eby nie przestawiaæ fizycznie tabeli
 };
@@ -200,13 +200,13 @@ class Global
     static char CreatorName3[20];
     static char CreatorName4[30];
     static char CreatorName5[30];
-    static AnsiString asCurrentSceneryPath;
-    static AnsiString asCurrentTexturePath;
-    static AnsiString asCurrentDynamicPath;
+    static std::string asCurrentSceneryPath;
+    static std::string asCurrentTexturePath;
+    static std::string asCurrentDynamicPath;
     // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
-    static AnsiString asHumanCtrlVehicle;
-    static void LoadIniFile(AnsiString asFileName);
-    static void InitKeys(AnsiString asFileName);
+    static std::string asHumanCtrlVehicle;
+    static void LoadIniFile(std::string asFileName);
+    static void InitKeys(std::string asFileName);
     inline static vector3 GetCameraPosition()
     {
         return pCameraPosition;
@@ -233,7 +233,7 @@ class Global
     static TDynamicObject *changeDynObj;
     static double ABuDebug;
     static bool detonatoryOK;
-    static AnsiString asSky;
+    static std::string asSky;
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
     static int iDefaultFiltering; // domyœlne rozmywanie tekstur TGA
@@ -250,8 +250,8 @@ class Global
     static int iMultiplayer; // blokada dzia³ania niektórych eventów na rzecz kominikacji
     static HWND hWnd; // uchwyt okna
     static int iCameraLast;
-    static AnsiString asRelease; // numer
-    static AnsiString asVersion; // z opisem
+    static std::string asRelease; // numer
+    static std::string asVersion; // z opisem
     static int
         iViewMode; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
@@ -284,7 +284,7 @@ class Global
 	
     static TWorld *pWorld; // wskaŸnik na œwiat do usuwania pojazdów
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
-    static AnsiString asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
+    static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
     static bool bRollFix; // czy wykonaæ przeliczanie przechy³ki
     static Queryparsercomp::TQueryParserComp *qParser;
     static cParser *pParser;
@@ -306,9 +306,9 @@ class Global
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     static bool bJoinEvents; // czy grupowaæ eventy o tych samych nazwach
     static bool bSmudge; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
-    static AnsiString asTranscript[5]; // napisy na ekranie (widoczne)
+    static std::string asTranscript[5]; // napisy na ekranie (widoczne)
     static TTranscripts tranTexts; // obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
-    static AnsiString asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+    static std::string asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy ³¹czyæ eventy z torami poprzez nazwê toru
     static TTextSound *tsRadioBusy[10]; // zajêtoœæ kana³ów radiowych (wskaŸnik na odgrywany dŸwiêk)
 	static int iPoKeysPWM[7]; // numery wejœæ dla PWM
@@ -321,12 +321,23 @@ class Global
     static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
-    static AnsiString Bezogonkow(AnsiString str, bool _ = false);
+    static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
 	static double CutValueToRange(double min, double value, double max);
-	static std::string to_string(int _Val);
-
 };
+
+	std::string to_string(int _Val);
+	std::string to_string(unsigned int _Val);
+	std::string to_string(int _Val, int precision);
+	std::string to_string(int _Val, int precision, int width);
+	std::string to_string(double _Val);
+	std::string to_string(double _Val, int precision);
+	std::string to_string(double _Val, int precision, int width);
+	std::string to_hex_str(int _Val, int precision, int width);
+
+
+	std::string ToLower(std::string text);
+	std::string ToUpper(std::string text);
 
 //---------------------------------------------------------------------------
 #endif
