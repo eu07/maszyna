@@ -427,7 +427,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             if (texture.find_first_of("/\\") == texture.npos)
                 texture.insert(0, Global::asCurrentTexturePath.c_str());
             TextureID = TTexturesManager::GetTextureID(
-                szTexturePath, Global::asCurrentTexturePath.c_str(), texture);
+                szTexturePath, const_cast<char*>(Global::asCurrentTexturePath.c_str()), texture);
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
             if (Opacity < 1.0) // przezroczystoœæ z tekstury brana tylko dla Opacity

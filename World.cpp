@@ -3003,12 +3003,12 @@ void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
                         // Global::asCurrentTexturePath=dir; //pojazdy maj¹ tekstury we w³asnych
                         // katalogach
                         at -= tmp->DynamicObject->Init(
-                            "", dir.SubString(9, dir.Length() - 9), "none",
-                            sr.Name.SubString(1, sr.Name.Length() - 4), trk, at, "nobody", 0.0,
+                            "", string((dir.SubString(9, dir.Length() - 9)).c_str()), "none",
+                            string(sr.Name.SubString(1, sr.Name.Length() - 4).c_str()), trk, at, "nobody", 0.0,
                             "none", 0.0, "", false, "");
                         // po wczytaniu CHK zrobiæ pêtlê po ³adunkach, aby ka¿dy z nich skonwertowaæ
                         AnsiString loads, load;
-                        loads = tmp->DynamicObject->MoverParameters->LoadAccepted; // typy ³adunków
+                        loads = AnsiString(tmp->DynamicObject->MoverParameters->LoadAccepted.c_str()); // typy ³adunków
                         if (!loads.IsEmpty())
                         {
                             loads += ","; // przecinek na koñcu
@@ -3022,9 +3022,9 @@ void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
                                             dir + load +
                                             ".e3d")) // a nie ma jeszcze odpowiednika binarnego
                                         at -= tmp->DynamicObject->Init(
-                                            "", dir.SubString(9, dir.Length() - 9), "none",
-                                            sr.Name.SubString(1, sr.Name.Length() - 4), trk, at,
-                                            "nobody", 0.0, "none", 1.0, load, false, "");
+                                            "", dir.SubString(9, dir.Length() - 9).c_str(), "none",
+                                            sr.Name.SubString(1, sr.Name.Length() - 4).c_str(), trk, at,
+                                            "nobody", 0.0, "none", 1.0, load.c_str(), false, "");
                                 loads.Delete(1, i); // usuniêcie z nastêpuj¹cym przecinkiem
                                 i = loads.Pos(",");
                             }
@@ -3050,12 +3050,12 @@ void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
                             }
                         }
                         Global::asCurrentTexturePath =
-                            AnsiString(szTexturePath); // z powrotem defaultowa sciezka do tekstur
+                            (szTexturePath); // z powrotem defaultowa sciezka do tekstur
                     }
                 }
                 else if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".t3d")
                 { // z modelami jest proœciej
-                    Global::asCurrentTexturePath = dir;
+                    Global::asCurrentTexturePath = dir.c_str();
                     TModelsManager::GetModel(AnsiString(dir + sr.Name).c_str(), false);
                 }
         } while (FindNext(sr) == 0);

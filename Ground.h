@@ -392,7 +392,7 @@ class TGround
     bool PROBLEND;
 
   public:
-    void WyslijEvent(const AnsiString &e, const AnsiString &d);
+    void WyslijEvent(const std::string &e, const std::string &d);
     int iRendered; // iloœæ renderowanych sektorów, pobierana przy pokazywniu FPS
     void WyslijString(const std::string &t, int n);
     void WyslijWolny(const std::string &t);
