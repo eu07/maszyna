@@ -333,7 +333,7 @@ class Global
 	std::string to_string(double _Val);
 	std::string to_string(double _Val, int precision);
 	std::string to_string(double _Val, int precision, int width);
-	std::string to_hex_str(int _Val, int precision, int width);
+	std::string to_hex_str(int _Val, int precision = 0, int width = 0);
 
 
 	std::string ToLower(std::string text);

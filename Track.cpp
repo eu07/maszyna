@@ -3104,7 +3104,7 @@ void TTrack::MovedUp1(double dh)
     fTexHeight1 += dh;
 };
 
-AnsiString TTrack::NameGet()
+string TTrack::NameGet()
 { // ustalenie nazwy toru
     if (this)
         if (pMyNode)

@@ -163,7 +163,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
 
     parser->getTokens();
     *parser >> token;
-    asName = AnsiString(token.c_str()).LowerCase(); // u¿ycie parametrów mo¿e dawaæ wielkie
+    asName = ToLower(token); // u¿ycie parametrów mo¿e dawaæ wielkie
 
     parser->getTokens();
     *parser >> token;
@@ -224,7 +224,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
     if (str != "none")
         asNodeName = str; // nazwa obiektu powi¹zanego
 
-    if (asName.SubString(1, 5) == "none_")
+    if (asName.substr(0, 5) == "none_")
         Type = tp_Ignored; // Ra: takie s¹ ignorowane
 
     switch (Type)
@@ -568,9 +568,9 @@ void TEvent::Load(cParser *parser, vector3 *org)
                     ti = !ti; // zmiana flagi dla s³owa "else"
             }
             else if (i >= 8)
-                ErrorLog("Bad event: \"" + str + "\" ignored in multiple \"" + asName + "\"!");
+                ErrorLog("Bad event: \"" + string(str.c_str()) + "\" ignored in multiple \"" + asName + "\"!");
             else
-                WriteLog("Event \"" + str + "\" ignored in multiple \"" + asName + "\"!");
+                WriteLog("Event \"" + string(str.c_str()) + "\" ignored in multiple \"" + asName + "\"!");
             parser->getTokens();
             *parser >> token;
             str = AnsiString(token.c_str());

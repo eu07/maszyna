@@ -976,7 +976,7 @@ std::string to_string(double _Val, int precision, int width)
 	return o.str();
 };
 
-std::string to_hex_str(double _Val, int precision = 0, int width = 0)
+std::string to_hex_str(double _Val, int precision, int width)
 {
     std::ostringstream o;
     if (width)

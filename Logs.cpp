@@ -75,6 +75,7 @@ void WriteLog(const char *str, bool newline)
             WriteConsoleOnly(str, newline);
     }
 };
+
 void ErrorLog(const char *str)
 { // Ra: bezwarunkowa rejestracja powa¿nych b³êdów
     if (!errors.is_open())
@@ -94,6 +95,13 @@ void Error(const AnsiString &asMessage, bool box)
         MessageBox(NULL, asMessage.c_str(), AnsiString("EU07 " + Global::asRelease).c_str(), MB_OK);
     WriteLog(asMessage.c_str());
 }
+
+void ErrorLog(const std::string &str, bool newline = true)
+{
+	ErrorLog(str.c_str());
+	WriteLog(str.c_str(), newline);
+}
+
 void ErrorLog(const AnsiString &asMessage)
 { // zapisywanie b³êdów "errors.txt"
     ErrorLog(asMessage.c_str());

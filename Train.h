@@ -388,7 +388,7 @@ class TTrain
 	int iUnits[20];     // numer jednostki
 	int iDoorNo[20];     // liczba drzwi
 	char cCode[20];     //kod pojazdu
-	AnsiString asCarName[20]; //nazwa czlonu
+	string asCarName[20]; //nazwa czlonu
 	bool bMains[8]; //WSy
 	float fCntVol[8]; //napiecie NN
 	bool bPants[8][2]; //podniesienie pantografow

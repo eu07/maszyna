@@ -1624,11 +1624,11 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
         // TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
         // asTexture=AnsiString(t->String(iTexture));
         pTexture = t->String(iTexture);
-        AnsiString t = AnsiString(pTexture);
-        if (t.LastDelimiter("/\\") == 0)
-            t.Insert(Global::asCurrentTexturePath, 1);
-        TextureID = TTexturesManager::GetTextureID(szTexturePath,
-                                                   Global::asCurrentTexturePath.c_str(), t.c_str());
+        string tex = pTexture;
+        if (tex.find_last_of("/\\") == string::npos)
+            tex.insert(0, Global::asCurrentTexturePath);
+        TextureID = TTexturesManager::GetTextureID(
+            szTexturePath, const_cast<char*>(Global::asCurrentTexturePath.c_str()), tex);
         // TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
         // ustawienie cyklu przezroczyste/nieprzezroczyste zale¿nie od w³asnoœci
         // sta³ej tekstury

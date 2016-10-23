@@ -828,9 +828,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         { // zaliczamy posterunek w pewnej odleg�o�ci przed (cho� W4 nie zas�ania
 // ju� semafora)
 #if LOGSTOPS
-                            WriteLog(pVehicle->asName + " as " + TrainParams->TrainName.c_str() + ": at " +
-                                     AnsiString(GlobalTime->hh) + ":" + AnsiString(GlobalTime->mm) +
-                                     " skipped " + AnsiString(asNextStop.c_str())); // informacja
+                            WriteLog(pVehicle->asName + " as " + TrainParams->TrainName + ": at " +
+                                     to_string(GlobalTime->hh) + ":" + to_string(GlobalTime->mm) +
+                                     " skipped " + asNextStop.); // informacja
 #endif
                             fLastStopExpDist = mvOccupied->DistCounter + 0.250 +
                                                0.001 * fLength; // przy jakim dystansie (stanie
@@ -999,10 +999,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
 // TableClear(); //aby od nowa sprawdzi�o W4 z inn� nazw� ju� - to nie jest dobry pomys�
 #if LOGSTOPS
-                                    WriteLog(pVehicle->asName + " as " + AnsiString(TrainParams->TrainName.c_str()) +
-                                             ": at " + AnsiString(GlobalTime->hh) + ":" +
-                                             AnsiString(GlobalTime->mm) + " next " +
-                                             AnsiString(asNextStop.c_str())); // informacja
+                                    WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
+                                             ": at " + to_string(GlobalTime->hh) + ":" +
+                                             to_string(GlobalTime->mm) + " next " +
+                                             asNextStop); // informacja
 #endif
 									if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
 										iDrivigFlags |= moveStopHere; // nie podje�d�a� do semafora,
@@ -1026,9 +1026,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             else
                             { // je�li dojechali�my do ko�ca rozk�adu
 #if LOGSTOPS
-                                WriteLog(pVehicle->asName + " as " + AnsiString(TrainParams->TrainName.c_str()) +
-                                         ": at " + AnsiString(GlobalTime->hh) + ":" +
-                                         AnsiString(GlobalTime->mm) +
+                                WriteLog(pVehicle->asName + " as " + TrainParams->TrainName) +
+                                         ": at " + to_string(GlobalTime->hh) + ":" +
+                                         to_string(GlobalTime->mm) +
                                          " end of route."); // informacja
 #endif
                                 asNextStop = TrainParams->NextStop(); // informacja o ko�cu trasy
@@ -1486,7 +1486,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
     if (WriteLogFlag)
     {
         mkdir("physicslog\\");
-        LogFile.open(AnsiString("physicslog\\" + VehicleName + ".dat").c_str(),
+        LogFile.open("physicslog\\" + VehicleName.c_str() + ".dat",
                      std::ios::in | std::ios::out | std::ios::trunc);
 #if LOGPRESS == 0
         LogFile << AnsiString(" Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "

@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "McZapkie\hamulce.h"
 #include <typeinfo>
+#include <fstream>
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
@@ -2709,7 +2710,7 @@ bool TTrain::Update()
 				bDoors[i][2] = (p->dDoorMoveL > 0.001);
 				iDoorNo[i] = p->iAnimType[ANIM_DOORS];
 				iUnits[i] = iUnitNo;
-				cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.Length()];
+				cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.length()];
 				asCarName[i] = p->GetName();
 				bPants[iUnitNo - 1][0] = (bPants[iUnitNo - 1][0] || p->MoverParameters->PantFrontUp);
 				bPants[iUnitNo - 1][1] = (bPants[iUnitNo - 1][1] || p->MoverParameters->PantRearUp);
@@ -5010,15 +5011,18 @@ bool TTrain::CabChange(int iDirection)
 bool TTrain::LoadMMediaFile(std::string asFileName)
 {
     double dSDist;
-    TFileStream *fs;
-    fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
-    AnsiString str = "";
+	std::ifstream t(asFileName.c_str());
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+    //TFileStream *fs;
+    //fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
+	AnsiString str = AnsiString(buffer.str().c_str());
     //    DecimalSeparator='.';
-    int size = fs->Size;
-    str.SetLength(size);
-    fs->Read(str.c_str(), size);
-    str += "";
-    delete fs;
+    //int size = fs->Size;
+    //str.SetLength(size);
+    //fs->Read(str.c_str(), size);
+    //str += "";
+    //delete fs;
     TQueryParserComp *Parser;
     Parser = new TQueryParserComp(NULL);
     Parser->TextToParse = str;
@@ -5302,15 +5306,18 @@ bool TTrain::InitializeCab(int NewCabNo, std::string asFileName)
     pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
     double dSDist;
-    TFileStream *fs;
-    fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
-    AnsiString str = "";
+	std::ifstream t(asFileName.c_str());
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+    //TFileStream *fs;
+    //fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
+    AnsiString str = AnsiString(buffer.str().c_str());
     // DecimalSeparator='.';
-    int size = fs->Size;
-    str.SetLength(size);
-    fs->Read(str.c_str(), size);
-    str += "";
-    delete fs;
+    //int size = fs->Size;
+    //str.SetLength(size);
+    //fs->Read(str.c_str(), size);
+    //str += "";
+    //delete fs;
     TQueryParserComp *Parser;
     Parser = new TQueryParserComp(NULL);
     Parser->TextToParse = str;
@@ -5386,13 +5393,13 @@ bool TTrain::InitializeCab(int NewCabNo, std::string asFileName)
                 str = Parser->GetNextSymbol().LowerCase();
                 if (str != AnsiString("none"))
                 {
-                    str = DynamicObject->asBaseDir + str;
+                    str = AnsiString(DynamicObject->asBaseDir.c_str()) + str;
                     Global::asCurrentTexturePath =
                         DynamicObject->asBaseDir; // bie¿¹ca sciezka do tekstur to dynamic/...
                     TModel3d *k = TModelsManager::GetModel(
                         str.c_str(), true); // szukaj kabinê jako oddzielny model
                     Global::asCurrentTexturePath =
-                        AnsiString(szTexturePath); // z powrotem defaultowa sciezka do tekstur
+                        szTexturePath; // z powrotem defaultowa sciezka do tekstur
                     // if (DynamicObject->mdKabina!=k)
                     if (k)
                         DynamicObject->mdKabina = k; // nowa kabina

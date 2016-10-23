@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "MdlMngr.h"
 #include "Globals.h"
+#include <string>
 
 #define SeekFiles AnsiString("*.t3d")
 
@@ -99,7 +100,7 @@ TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
     // - niebo animowane, œcie¿ka brana ze wpisu, tekstury nieokreœlone
     // - wczytanie modelu animowanego - Init() - sprawdziæ
     char buf[255];
-    AnsiString buftp = Global::asCurrentTexturePath; // zapamiêtanie aktualnej œcie¿ki do tekstur,
+    std::string buftp = Global::asCurrentTexturePath; // zapamiêtanie aktualnej œcie¿ki do tekstur,
     // bo bêdzie tyczmasowo zmieniana
     /*
     // Ra: niby tak jest lepiej, ale dzia³a gorzej, wiêc przywrócone jest oryginalne
@@ -148,9 +149,9 @@ TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
         strcat(buf, Name);
         if (strchr(Name, '/') != NULL)
         {
-            Global::asCurrentTexturePath = Global::asCurrentTexturePath + AnsiString(Name);
-            Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/") + 1,
-                                                Global::asCurrentTexturePath.Length());
+            Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
+            Global::asCurrentTexturePath.erase(Global::asCurrentTexturePath.find("/") + 1,
+                                                Global::asCurrentTexturePath.length());
         }
     }
     else
@@ -159,9 +160,9 @@ TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
         if (dynamic) // na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
             if (strchr(Name, '/') != NULL)
             { // pobieranie tekstur z katalogu, w którym jest model
-                Global::asCurrentTexturePath = Global::asCurrentTexturePath + AnsiString(Name);
-                Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/") + 1,
-                                                    Global::asCurrentTexturePath.Length());
+                Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
+                Global::asCurrentTexturePath.erase(Global::asCurrentTexturePath.find("/") + 1,
+                                                    Global::asCurrentTexturePath.length() - 1);
             }
     }
     StrLower(buf);

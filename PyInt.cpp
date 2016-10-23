@@ -400,7 +400,7 @@ void TPythonScreens::reset(void *train)
     _train = train;
 }
 
-void TPythonScreens::init(TQueryParserComp *parser, TModel3d *model, AnsiString name, int cab)
+void TPythonScreens::init(TQueryParserComp *parser, TModel3d *model, string name, int cab)
 {
     char buff[255];
     AnsiString asSubModelName = parser->GetNextSymbol();
@@ -471,13 +471,13 @@ void TPythonScreens::update()
     _cleanupReadyFlag = true;
 }
 
-void TPythonScreens::setLookupPath(AnsiString path)
+void TPythonScreens::setLookupPath(string path)
 {
     if (_lookupPath != NULL)
     {
         free(_lookupPath);
     }
-    _lookupPath = (char *)calloc(path.Length() + 1, sizeof(char));
+    _lookupPath = (char *)calloc(path.length() + 1, sizeof(char));
     strcpy(_lookupPath, path.c_str());
 }
 

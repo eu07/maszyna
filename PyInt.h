@@ -8,6 +8,9 @@
 #include "Model3d.h"
 #include <vector>
 #include <set>
+#include <string>
+
+using namespace std;
 
 #define PyGetFloat(param) PyFloat_FromDouble(param >= 0 ? param : -param)
 #define PyGetFloatS(param) PyFloat_FromDouble(param)
@@ -85,8 +88,8 @@ class TPythonScreens
 
   public:
     void reset(void *train);
-    void setLookupPath(AnsiString path);
-    void init(TQueryParserComp *parser, TModel3d *model, AnsiString name, int cab);
+    void setLookupPath(string path);
+    void init(TQueryParserComp *parser, TModel3d *model, string name, int cab);
     void update();
     TPythonScreens();
     ~TPythonScreens();

@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "opengl/glew.h"
 #include <system.hpp>
 #include "Classes.h"
+#include <string>
 
 class TEvent;
 
@@ -275,7 +276,7 @@ class TTrack : public Resource
     bool IsGroupable();
     int TestPoint(vector3 *Point);
     void MovedUp1(double dh);
-    AnsiString NameGet();
+    string NameGet();
     void VelocitySet(float v);
     float VelocityGet();
     void ConnectionsLog();

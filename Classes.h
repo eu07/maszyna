@@ -30,11 +30,8 @@ class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
 
 class TMoverParameters;
-namespace _mover
-{
 class TLocation;
 class TRotation;
-};
 
 namespace Mtable
 {

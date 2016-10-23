@@ -288,7 +288,7 @@ class TController
   private:
     double fMaxProximityDist; // akceptowalna odleg³oœæ staniêcia przed przeszkod¹
     TStopReason eStopReason; // powód zatrzymania przy ustawieniu zerowej prêdkoœci
-    AnsiString VehicleName;
+    std::string VehicleName;
     double fVelPlus; // dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
     double fVelMinus; // margines obni¿enia prêdkoœci, powoduj¹cy za³¹czenie napêdu
     double fWarningDuration; // ile czasu jeszcze tr¹biæ

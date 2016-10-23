@@ -12,6 +12,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Classes.h"
 #include "dumb3d.h"
+#include <string>
+
 using namespace Math3D;
 
 typedef enum

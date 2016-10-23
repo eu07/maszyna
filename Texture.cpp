@@ -75,7 +75,7 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     if (!texinfo.first)
     {
         WriteLog("Failed");
-        ErrorLog("Missed texture: " + AnsiString(realFileName.c_str()));
+        ErrorLog("Missed texture: " + realFileName);
         return _names.end();
     };
 
