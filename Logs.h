@@ -17,6 +17,8 @@ void WriteConsoleOnly(const char *str, bool newline = true);
 void WriteLog(const char *str, double value);
 void WriteLog(const char *str, bool newline = true);
 void Error(const AnsiString &asMessage, bool box = true);
+void Error(const std::string &asMessage, bool box = true);
+void Error(const char* &asMessage, bool box = true);
 void ErrorLog(const std::string &str, bool newline = true);
 //void ErrorLog(const AnsiString &asMessage);
 void WriteLog(const AnsiString &str, bool newline = true);

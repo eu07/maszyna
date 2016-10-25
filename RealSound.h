@@ -10,8 +10,12 @@ http://mozilla.org/MPL/2.0/.
 #ifndef RealSoundH
 #define RealSoundH
 
+#include "system.hpp"
+#include "classes.hpp"
+
 #include "Sound.h"
 #include "Geometry.h"
+#include <string>
 
 class TRealSound
 {

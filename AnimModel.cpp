@@ -463,26 +463,26 @@ bool TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
 
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie œwiate³
-    AnsiString str;
+    std::string str;
     std::string token;
     parser->getTokens(); // nazwa modelu
-    *parser >> token;
-    str = AnsiString(token.c_str());
+    *parser >> str;
+    //str = token;
     parser->getTokens(1, false); // tekstura (zmienia na ma³e)
     *parser >> token;
-    if (!Init(str, AnsiString(token.c_str())))
+    if (!Init(AnsiString(str.c_str()), AnsiString(token.c_str())))
     {
         if (str != "notload")
         { // gdy brak modelu
             if (ter) // jeœli teren
             {
-                if (str.SubString(str.Length() - 3, 4) == ".t3d")
-                    str[str.Length() - 2] = 'e';
+                if (str.substr(str.length() - 3, 4) == ".t3d")
+                    str[str.length() - 2] = 'e';
                 Global::asTerrainModel = str;
-                WriteLog(AnsiString("Terrain model \"" + str + "\" will be created."));
+                WriteLog("Terrain model \"" + str + "\" will be created.");
             }
             else
-                ErrorLog(AnsiString("Missed file: " + str));
+                ErrorLog("Missed file: " + str);
         }
     }
     else
@@ -516,16 +516,16 @@ bool TAnimModel::Load(cParser *parser, bool ter)
     if (token.compare("lights") == 0)
     {
         parser->getTokens();
-        *parser >> token;
-        str = AnsiString(token.c_str());
+        *parser >> str;
+        //str = AnsiString(token.c_str());
         do
         {
-            ti = str.ToDouble(); // stan œwiat³a jest liczb¹ z u³amkiem
+            ti = atof(str.c_str()); // stan œwiat³a jest liczb¹ z u³amkiem
             LightSet(i, ti);
             i++;
             parser->getTokens();
-            *parser >> token;
-            str = AnsiString(token.c_str());
+            *parser >> str;
+            //str = AnsiString(token.c_str());
         } while (str != "endmodel");
     }
     return true;

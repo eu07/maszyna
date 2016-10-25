@@ -129,7 +129,7 @@ bool TMemCell::Load(cParser *parser)
     parser->getTokens();
     *parser >> token;
     if (token.compare("none") != 0) // gdy ró¿ne od "none"
-        asTrackName = AnsiString(token.c_str()); // sprawdzane przez IsEmpty()
+        asTrackName = token; // sprawdzane przez IsEmpty()
     parser->getTokens();
     *parser >> token;
     if (token.compare("endmemcell") != 0)

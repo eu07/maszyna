@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <fstream>
 #include <time.h>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -69,6 +70,12 @@ inline int Random()
 	return rand();
 }
 
+inline float random(float a, float b)
+{
+	srand(time(NULL));
+	return a + rand() / (float)RAND_MAX * (b - a);
+}
+
 inline double BorlandTime()
 {
 	std::tm epoch;
@@ -108,7 +115,11 @@ void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, 
 /*wylicza polozenie Xout Yout i orientacje phi punktu na elemencie dL luku*/
 void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R,   double & Xout, double & Yout);
 
-
+inline bool fileExist(const std::string &name)
+{
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
 
  double Xmin; double Ymin; double Xmax; double Ymax;
  double Xaspect; double Yaspect;

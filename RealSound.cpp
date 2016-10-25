@@ -12,8 +12,8 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-//#include "system.hpp"
-//#include "classes.hpp"
+#include "system.hpp"
+#include "classes.hpp"
 #pragma hdrstop
 
 #include "math.h"
@@ -61,7 +61,7 @@ void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, dou
             { // dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹
                 // ignorowana, a mog³a byæ inna ni¿ 22050
                 fFrequency = 22050.0;
-                ErrorLog("Bad sound: " + AnsiString(SoundName) +
+                ErrorLog("Bad sound: " + string(SoundName) +
                          ", as modulated, should have 22.05kHz in header");
             }
         AM = 1.0;
@@ -70,7 +70,7 @@ void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, dou
     else
     { // nie ma dŸwiêku, to jest wysyp
         AM = 0;
-        ErrorLog("Missed sound: " + AnsiString(SoundName));
+        ErrorLog("Missed sound: " + string(SoundName));
     }
     if (DistanceAttenuation > 0.0)
     {

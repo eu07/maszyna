@@ -2802,7 +2802,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             if (Global::iMultiplayer)
             { // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
                 TEvent *e = Ground.FindEvent(
-                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
+                    string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
                 if (e)
                     if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
                         bool(e->evJoined)) // tylko jawne albo niejawne Multiple

@@ -81,7 +81,7 @@ void ErrorLog(const char *str)
     if (!errors.is_open())
     {
         errors.open("errors.txt", std::ios::trunc);
-        errors << AnsiString("EU07.EXE " + Global::asRelease).c_str() << "\n";
+        errors << "EU07.EXE " + Global::asRelease << "\n";
     }
     if (str)
         errors << str;
@@ -92,11 +92,25 @@ void ErrorLog(const char *str)
 void Error(const AnsiString &asMessage, bool box)
 {
     if (box)
-        MessageBox(NULL, asMessage.c_str(), AnsiString("EU07 " + Global::asRelease).c_str(), MB_OK);
+        MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
     WriteLog(asMessage.c_str());
 }
 
-void ErrorLog(const std::string &str, bool newline = true)
+void Error(const std::string &asMessage, bool box)
+{
+	if (box)
+		MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
+	WriteLog(asMessage.c_str());
+}
+
+void Error(const char* &asMessage, bool box)
+{
+	if (box)
+		MessageBox(NULL, asMessage, string("EU07 " + Global::asRelease).c_str(), MB_OK);
+	WriteLog(asMessage);
+}
+
+void ErrorLog(const std::string &str, bool newline)
 {
 	ErrorLog(str.c_str());
 	WriteLog(str.c_str(), newline);

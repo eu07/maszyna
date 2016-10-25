@@ -56,7 +56,6 @@ void TEventLauncher::Init()
 
 bool TEventLauncher::Load(cParser *parser)
 { // wczytanie wyzwalacza zdarzeñ
-    AnsiString str;
     std::string token;
     parser->getTokens();
     *parser >> dRadius; // promieñ dzia³ania
@@ -64,13 +63,12 @@ bool TEventLauncher::Load(cParser *parser)
         dRadius *= dRadius; // do kwadratu, pod warunkiem, ¿e nie jest ujemne
     parser->getTokens(); // klawisz steruj¹cy
     *parser >> token;
-    str = AnsiString(token.c_str());
-    if (str != "none")
+    if (token != "none")
     {
-        if (str.Length() == 1)
-            iKey = VkKeyScan(str[1]); // jeden znak jest konwertowany na kod klawisza
+        if (token.length() == 1)
+            iKey = VkKeyScan(token[1]); // jeden znak jest konwertowany na kod klawisza
         else
-            iKey = str.ToIntDef(0); // a jak wiêcej, to jakby numer klawisza jest
+            iKey = stol_def(token,0); // a jak wiêcej, to jakby numer klawisza jest
     }
     parser->getTokens();
     *parser >> DeltaTime;
@@ -81,31 +79,31 @@ bool TEventLauncher::Load(cParser *parser)
         iMinute = int(DeltaTime) % 100; // minuty s¹ najm³odszymi cyframi dziesietnymi
         iHour = int(DeltaTime - iMinute) / 100; // godzina to setki
         DeltaTime = 0; // bez powtórzeñ
-        WriteLog("EventLauncher at " + IntToStr(iHour) + ":" +
-                 IntToStr(iMinute)); // wyœwietlenie czasu
+        WriteLog("EventLauncher at " + to_string(iHour) + ":" +
+                 to_string(iMinute)); // wyœwietlenie czasu
     }
     parser->getTokens();
     *parser >> token;
-    asEvent1Name = AnsiString(token.c_str()); // pierwszy event
+    asEvent1Name = token; // pierwszy event
     parser->getTokens();
     *parser >> token;
-    asEvent2Name = AnsiString(token.c_str()); // drugi event
+    asEvent2Name = token; // drugi event
     if ((asEvent2Name == "end") || (asEvent2Name == "condition"))
     { // drugiego eventu mo¿e nie byæ, bo s¹ z tym problemy, ale ciii...
-        str = asEvent2Name; // rozpoznane s³owo idzie do dalszego przetwarzania
+		token = asEvent2Name; // rozpoznane s³owo idzie do dalszego przetwarzania
         asEvent2Name = "none"; // a drugiego eventu nie ma
     }
     else
     { // gdy s¹ dwa eventy
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
+        //str = AnsiString(token.c_str());
     }
-    if (str == AnsiString("condition"))
+    if (token == "condition")
     { // obs³uga wyzwalania warunkowego
         parser->getTokens();
         *parser >> token;
-        asMemCellName = AnsiString(token.c_str());
+		asMemCellName = token;
         parser->getTokens();
         *parser >> token;
         SafeDeleteArray(szText);
@@ -118,8 +116,8 @@ bool TEventLauncher::Load(cParser *parser)
         if (token.compare("*") != 0) //*=nie braæ wartoœci 1. pod uwagê
         {
             iCheckMask |= conditional_memval1;
-            str = AnsiString(token.c_str());
-            fVal1 = str.ToDouble();
+            //str = AnsiString(token.c_str());
+            fVal1 = atof(token.c_str());
         }
         else
             fVal1 = 0;
@@ -128,8 +126,8 @@ bool TEventLauncher::Load(cParser *parser)
         if (token.compare("*") != 0) //*=nie braæ wartoœci 2. pod uwagê
         {
             iCheckMask |= conditional_memval2;
-            str = AnsiString(token.c_str());
-            fVal2 = str.ToDouble();
+            //str = AnsiString(token.c_str());
+            fVal2 = atof(token.c_str());
         }
         else
             fVal2 = 0;

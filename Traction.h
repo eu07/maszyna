@@ -13,8 +13,10 @@ http://mozilla.org/MPL/2.0/.
 #include "opengl/glew.h"
 #include "dumb3d.h"
 #include "VBO.h"
+#include <string>
 
 using namespace Math3D;
+using namespace std;
 
 class TTractionPowerSource;
 
@@ -50,10 +52,10 @@ class TTraction
     DWORD DamageFlag; // 1: zasniedziale, 128: zerwana
     int Wires;
     float WireOffset;
-    AnsiString asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
+    string asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
     TTractionPowerSource *
         psSection; // zasilacz (opcjonalnie mo¿e to byæ pulpit steruj¹cy EL2 w hali!)
-    AnsiString asParallel; // nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
+    string asParallel; // nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
     TTraction *hvParallel; // jednokierunkowa i zapêtlona lista przêse³ ewentualnej bie¿ni wspólnej
     float fResistance[2]; // rezystancja zastêpcza do punktu zasilania (0: przês³o zasilane, <0: do
     // policzenia)

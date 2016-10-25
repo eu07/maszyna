@@ -93,7 +93,7 @@ TIsolated::TIsolated()
     TIsolated("none", NULL);
 };
 
-TIsolated::TIsolated(const AnsiString &n, TIsolated *i)
+TIsolated::TIsolated(const string &n, TIsolated *i)
 { // utworznie obwodu izolowanego
     asName = n;
     pNext = i;
@@ -115,7 +115,7 @@ TIsolated::~TIsolated(){
     */
 };
 
-TIsolated * TIsolated::Find(const AnsiString &n)
+TIsolated * TIsolated::Find(const string &n)
 { // znalezienie obiektu albo utworzenie nowego
     TIsolated *p = pRoot;
     while (p)
@@ -453,18 +453,18 @@ vector3 LoadPoint(cParser *parser)
     return p;
 }
 
-void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
+void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
 { // pobranie obiektu trajektorii ruchu
     vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzy¿owañ
     double a1, a2, r1, r2, r3, r4, d1, d2, a;
-    AnsiString str;
+    string str;
     bool bCurve;
     int i; //,state; //Ra: teraz ju¿ nie ma pocz¹tkowego stanu zwrotnicy we wpisie
     std::string token;
 
     parser->getTokens();
     *parser >> token;
-    str = AnsiString(token.c_str()); // typ toru
+    str = token; // typ toru
 
     if (str == "normal")
     {
@@ -509,7 +509,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
     else
         eType = tt_Unknown;
     if (Global::iWriteLogEnabled & 4)
-        WriteLog(str.c_str());
+        WriteLog(str);
     parser->getTokens(4);
     *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
     //    fTrackLength=Parser->GetNextSymbol().ToDouble();                       //track length
@@ -526,7 +526,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
         iAction |= 0x80; // flaga wykolejania z powodu uszkodzenia
     parser->getTokens();
     *parser >> token;
-    str = AnsiString(token.c_str()); // environment
+    str = token; // environment
     if (str == "flat")
         eEnvironment = e_flat;
     else if (str == "mountains" || str == "mountain")
@@ -551,9 +551,9 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
     {
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str()); // railtex
+        str = token; // railtex
         TextureID1 = (str == "none" ? 0 : TTexturesManager::GetTextureID(
-                                              szTexturePath, szSceneryPath, str.c_str(),
+                                              szTexturePath, szSceneryPath, str,
                                               (iCategoryFlag & 1) ? Global::iRailProFiltering :
                                                                     Global::iBallastFiltering));
         parser->getTokens();
@@ -562,9 +562,9 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
             fTexLength = 4; // Ra: zabezpiecznie przed zawieszeniem
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str()); // sub || railtex
+        str = token; // sub || railtex
         TextureID2 = (str == "none" ? 0 : TTexturesManager::GetTextureID(
-                                              szTexturePath, szSceneryPath, str.c_str(),
+                                              szTexturePath, szSceneryPath, str,
                                               (eType == tt_Normal) ? Global::iBallastFiltering :
                                                                      Global::iRailProFiltering));
         parser->getTokens(3);
@@ -751,44 +751,44 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
     }
     parser->getTokens();
     *parser >> token;
-    str = AnsiString(token.c_str());
+    str = token;
     while (str != "endtrack")
     {
         if (str == "event0")
         {
             parser->getTokens();
             *parser >> token;
-            asEvent0Name = AnsiString(token.c_str());
+            asEvent0Name = token;
         }
         else if (str == "event1")
         {
             parser->getTokens();
             *parser >> token;
-            asEvent1Name = AnsiString(token.c_str());
+            asEvent1Name = token;
         }
         else if (str == "event2")
         {
             parser->getTokens();
             *parser >> token;
-            asEvent2Name = AnsiString(token.c_str());
+			asEvent2Name = token;
         }
         else if (str == "eventall0")
         {
             parser->getTokens();
             *parser >> token;
-            asEventall0Name = AnsiString(token.c_str());
+			asEventall0Name = token;
         }
         else if (str == "eventall1")
         {
             parser->getTokens();
             *parser >> token;
-            asEventall1Name = AnsiString(token.c_str());
+			asEventall1Name = token;
         }
         else if (str == "eventall2")
         {
             parser->getTokens();
             *parser >> token;
-            asEventall2Name = AnsiString(token.c_str());
+			asEventall2Name = token;
         }
         else if (str == "velocity")
         {
@@ -803,7 +803,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
         { // obwód izolowany, do którego tor nale¿y
             parser->getTokens();
             *parser >> token;
-            pIsolated = TIsolated::Find(AnsiString(token.c_str()));
+            pIsolated = TIsolated::Find(token);
         }
         else if (str == "angle1")
         { // k¹t œciêcia koñca od strony 1
@@ -849,15 +849,15 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, AnsiString name)
             ErrorLog("Unknown property: \"" + str + "\" in track \"" + name + "\"");
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
+		str = token;
     }
     // alternatywny zapis nazwy odcinka izolowanego - po znaku "@" w nazwie toru
     if (!pIsolated)
-        if ((i = name.Pos("@")) > 0)
-            if (i < name.Length()) // nie mo¿e byæ puste
+        if ((i = name.find("@")) != string::npos)
+            if (i < name.length()) // nie mo¿e byæ puste
             {
-                pIsolated = TIsolated::Find(name.SubString(i + 1, name.Length()));
-                name = name.SubString(1, i - 1); // usuniêcie z nazwy
+                pIsolated = TIsolated::Find(name.substr(i + 1, name.length()));
+                name = name.substr(0, i - 1); // usuniêcie z nazwy
             }
 }
 
@@ -874,10 +874,10 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
         }
         else
         {
-            if (!asEvent0Name.IsEmpty())
+            if (!asEvent0Name.empty())
             {
-                ErrorLog(AnsiString("Bad track: Event0 \"") + asEvent0Name +
-                         AnsiString("\" does not exist"));
+                ErrorLog("Bad track: Event0 \"" + asEvent0Name +
+                         "\" does not exist");
                 bError = true;
             }
         }
@@ -885,7 +885,7 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
     else
     {
         ErrorLog(
-            AnsiString("Bad track: Event0 cannot be assigned to track, track already has one"));
+            "Bad track: Event0 cannot be assigned to track, track already has one");
         bError = true;
     }
     if (!evEvent1)
@@ -896,17 +896,17 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
             asEvent1Name = "";
             iEvents |= 2; // sumaryczna informacja o eventach
         }
-        else if (!asEvent1Name.IsEmpty())
+        else if (!asEvent1Name.empty())
         { // Ra: tylko w logu informacja
-            ErrorLog(AnsiString("Bad track: Event1 \"") + asEvent1Name +
-                     AnsiString("\" does not exist").c_str());
+            ErrorLog("Bad track: Event1 \"" + asEvent1Name +
+                     "\" does not exist");
             bError = true;
         }
     }
     else
     {
         ErrorLog(
-            AnsiString("Bad track: Event1 cannot be assigned to track, track already has one"));
+            "Bad track: Event1 cannot be assigned to track, track already has one");
         bError = true;
     }
     if (!evEvent2)
@@ -917,17 +917,17 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
             asEvent2Name = "";
             iEvents |= 4; // sumaryczna informacja o eventach
         }
-        else if (!asEvent2Name.IsEmpty())
+        else if (!asEvent2Name.empty())
         { // Ra: tylko w logu informacja
-            ErrorLog(AnsiString("Bad track: Event2 \"") + asEvent2Name +
-                     AnsiString("\" does not exist"));
+            ErrorLog("Bad track: Event2 \"" + asEvent2Name +
+                     "\" does not exist");
             bError = true;
         }
     }
     else
     {
         ErrorLog(
-            AnsiString("Bad track: Event2 cannot be assigned to track, track already has one"));
+            "Bad track: Event2 cannot be assigned to track, track already has one");
         bError = true;
     }
     return !bError;
@@ -946,17 +946,17 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
         }
         else
         {
-            if (!asEvent0Name.IsEmpty())
+            if (!asEvent0Name.empty())
             {
-                Error(AnsiString("Eventall0 \"") + asEventall0Name +
-                      AnsiString("\" does not exist"));
+                Error("Eventall0 \"" + asEventall0Name +
+                      "\" does not exist");
                 bError = true;
             }
         }
     }
     else
     {
-        Error(AnsiString("Eventall0 cannot be assigned to track, track already has one"));
+        Error("Eventall0 cannot be assigned to track, track already has one");
         bError = true;
     }
     if (!evEventall1)
@@ -969,17 +969,17 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
         }
         else
         {
-            if (!asEvent0Name.IsEmpty())
+            if (!asEvent0Name.empty())
             { // Ra: tylko w logu informacja
-                WriteLog(AnsiString("Eventall1 \"") + asEventall1Name +
-                         AnsiString("\" does not exist"));
+                WriteLog("Eventall1 \"" + asEventall1Name +
+                         "\" does not exist");
                 bError = true;
             }
         }
     }
     else
     {
-        Error(AnsiString("Eventall1 cannot be assigned to track, track already has one"));
+        Error("Eventall1 cannot be assigned to track, track already has one");
         bError = true;
     }
     if (!evEventall2)
@@ -992,17 +992,17 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
         }
         else
         {
-            if (!asEvent0Name.IsEmpty())
+            if (!asEvent0Name.empty())
             { // Ra: tylko w logu informacja
-                WriteLog(AnsiString("Eventall2 \"") + asEventall2Name +
-                         AnsiString("\" does not exist"));
+                WriteLog("Eventall2 \"" + asEventall2Name +
+                         "\" does not exist");
                 bError = true;
             }
         }
     }
     else
     {
-        Error(AnsiString("Eventall2 cannot be assigned to track, track already has one"));
+        Error("Eventall2 cannot be assigned to track, track already has one");
         bError = true;
     }
     return !bError;
@@ -1021,7 +1021,7 @@ bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
     return false;
 };
 
-AnsiString TTrack::IsolatedName()
+string TTrack::IsolatedName()
 { // podaje nazwê odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeñ
     if (pIsolated)
         if (!pIsolated->evBusy && !pIsolated->evFree)
@@ -3136,13 +3136,13 @@ void TTrack::ConnectionsLog()
         for (i = 0; i < 2; ++i)
         {
             if (SwitchExtension->pPrevs[i])
-                WriteLog("Point " + AnsiString(i + i + 1) + " -> track " +
+                WriteLog("Point " + to_string(i + i + 1) + " -> track " +
                          SwitchExtension->pPrevs[i]->pMyNode->asName + ":" +
-                         AnsiString(int(SwitchExtension->iPrevDirection[i])));
+                         to_string(int(SwitchExtension->iPrevDirection[i])));
             if (SwitchExtension->pNexts[i])
-                WriteLog("Point " + AnsiString(i + i + 2) + " -> track " +
+                WriteLog("Point " + to_string(i + i + 2) + " -> track " +
                          SwitchExtension->pNexts[i]->pMyNode->asName + ":" +
-                         AnsiString(int(SwitchExtension->iNextDirection[i])));
+                         to_string(int(SwitchExtension->iNextDirection[i])));
         }
 };
 

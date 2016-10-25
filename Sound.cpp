@@ -58,10 +58,10 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFi
         {
             //        SetFileUI( hDlg, TEXT("Bad wave file.") );
             return;
-            ErrorLog("Missed sound: " + AnsiString(strFileName));
+            ErrorLog("Missed sound: " + string(strFileName));
         }
 
-    strcpy(Name, AnsiString(strFileName).LowerCase().c_str());
+    strcpy(Name, ToLower(strFileName).c_str());
 
     // Set up the direct sound buffer, and only request the flags needed
     // since each requires some overhead and limits if the buffer can
@@ -208,7 +208,7 @@ LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(char *Name, bool Dynamic, float 
     AnsiString file;
     if (Dynamic)
     { // próba wczytania z katalogu pojazdu
-        file = Global::asCurrentDynamicPath + AnsiString(Name);
+        file = AnsiString(Global::asCurrentDynamicPath.c_str()) + AnsiString(Name);
         if (FileExists(file))
             Name = file.c_str(); // nowa nazwa
         else
@@ -259,7 +259,7 @@ LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(char *Name, bool Dynamic, float 
             *fSamplingRate = Next->fSamplingRate; // czêstotliwoœæ
         return Next->GetUnique(pDS);
     }
-    ErrorLog("Missed sound: " + AnsiString(Name));
+    ErrorLog("Missed sound: " + string(Name));
     return (NULL);
 };
 

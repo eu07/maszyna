@@ -32,6 +32,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h" //bo likwidujemy trzêsienie
 #include "Console.h"
 #include "Traction.h"
+#include <fstream>
 #pragma package(smart_init)
 
 // Ra: taki zapis funkcjonuje lepiej, ale mo¿e nie jest optymalny
@@ -1395,18 +1396,18 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
                 if (FoundedObj->PrevConnected)
                     if (FoundedObj->PrevConnected != this) // odœwie¿enie tego samego siê nie liczy
                         WriteLog("0! Coupler warning on " + asName + ":" +
-                                 AnsiString(MyCouplFound) + " - " + FoundedObj->asName +
+                                 to_string(MyCouplFound) + " - " + FoundedObj->asName +
                                  ":0 connected to " + FoundedObj->PrevConnected->asName + ":" +
-                                 AnsiString(FoundedObj->PrevConnectedNo));
+                                 to_string(FoundedObj->PrevConnectedNo));
             }
             else
             {
                 if (FoundedObj->NextConnected)
                     if (FoundedObj->NextConnected != this) // odœwie¿enie tego samego siê nie liczy
                         WriteLog("0! Coupler warning on " + asName + ":" +
-                                 AnsiString(MyCouplFound) + " - " + FoundedObj->asName +
+                                 to_string(MyCouplFound) + " - " + FoundedObj->asName +
                                  ":1 connected to " + FoundedObj->NextConnected->asName + ":" +
-                                 AnsiString(FoundedObj->NextConnectedNo));
+                                 to_string(FoundedObj->NextConnectedNo));
             }
 
     if (FoundedObj == NULL) // jeœli nie ma na tym samym, szukamy po okolicy
@@ -1486,9 +1487,9 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
                     if (FoundedObj->PrevConnected)
                         if (FoundedObj->PrevConnected != this)
                             WriteLog("1! Coupler warning on " + asName + ":" +
-                                     AnsiString(MyCouplFound) + " - " + FoundedObj->asName +
+                                     to_string(MyCouplFound) + " - " + FoundedObj->asName +
                                      ":0 connected to " + FoundedObj->PrevConnected->asName + ":" +
-                                     AnsiString(FoundedObj->PrevConnectedNo));
+                                     to_string(FoundedObj->PrevConnectedNo));
                 FoundedObj->PrevConnected = this;
                 FoundedObj->PrevConnectedNo = MyCouplFound;
             }
@@ -1498,9 +1499,9 @@ void TDynamicObject::ABuScanObjects(int ScanDir, double ScanDist)
                     if (FoundedObj->NextConnected)
                         if (FoundedObj->NextConnected != this)
                             WriteLog("1! Coupler warning on " + asName + ":" +
-                                     AnsiString(MyCouplFound) + " - " + FoundedObj->asName +
+                                     to_string(MyCouplFound) + " - " + FoundedObj->asName +
                                      ":1 connected to " + FoundedObj->NextConnected->asName + ":" +
-                                     AnsiString(FoundedObj->NextConnectedNo));
+                                     to_string(FoundedObj->NextConnectedNo));
                 FoundedObj->NextConnected = this;
                 FoundedObj->NextConnectedNo = MyCouplFound;
             }
@@ -1660,26 +1661,26 @@ TDynamicObject::~TDynamicObject()
 }
 
 double
-TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
-                     AnsiString BaseDir, // z którego katalogu wczytany, np. "PKP/EU07"
-                     AnsiString asReplacableSkin, // nazwa wymiennej tekstury
-                     AnsiString Type_Name, // nazwa CHK/MMD, np. "303E"
+TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
+                     string BaseDir, // z którego katalogu wczytany, np. "PKP/EU07"
+                     string asReplacableSkin, // nazwa wymiennej tekstury
+                     string Type_Name, // nazwa CHK/MMD, np. "303E"
                      TTrack *Track, // tor pocz¹tkowy wstwawienia (pocz¹tek sk³adu)
                      double fDist, // dystans wzglêdem punktu 1
-                     AnsiString DriverType, // typ obsady
+                     string DriverType, // typ obsady
                      double fVel, // prêdkoœæ pocz¹tkowa
-                     AnsiString TrainName, // nazwa sk³adu, np. "PE2307" albo Vmax, jeœli pliku
+                     string TrainName, // nazwa sk³adu, np. "PE2307" albo Vmax, jeœli pliku
                      // nie ma a s¹ cyfry
                      float Load, // iloœæ ³adunku
-                     AnsiString LoadType, // nazwa ³adunku
+                     string LoadType, // nazwa ³adunku
                      bool Reversed, // true, jeœli ma staæ odwrotnie w sk³adzie
-                     AnsiString MoreParams // dodatkowe parametry wczytywane w postaci tekstowej
+                     string MoreParams // dodatkowe parametry wczytywane w postaci tekstowej
                      )
 { // Ustawienie pocz¹tkowe pojazdu
     iDirection = (Reversed ? 0 : 1); // Ra: 0, jeœli ma byæ wstawiony jako obrócony ty³em
     asBaseDir = "dynamic\\" + BaseDir + "\\"; // McZapkie-310302
     asName = Name;
-    AnsiString asAnimName = ""; // zmienna robocza do wyszukiwania osi i wózków
+    string asAnimName = ""; // zmienna robocza do wyszukiwania osi i wózków
     // Ra: zmieniamy znaczenie obsady na jednoliterowe, ¿eby dosadziæ kierownika
     if (DriverType == "headdriver")
         DriverType = "1"; // steruj¹cy kabin¹ +1
@@ -1693,9 +1694,9 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
     else if (DriverType == "nobody")
         DriverType = ""; // nikt nie siedzi
     int Cab = 0; // numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
-    if (DriverType.Pos("1")) // od przodu sk³adu
+    if (DriverType.find("1")) // od przodu sk³adu
         Cab = 1; // iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
-    else if (DriverType.Pos("2")) // od ty³u sk³adu
+    else if (DriverType.find("2")) // od ty³u sk³adu
         Cab = -1; // iDirection?-1:1;
     else if (DriverType == "p")
     {
@@ -1719,12 +1720,12 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
     iLights = MoverParameters->iLights; // wskaŸnik na stan w³asnych œwiate³
     // (zmienimy dla rozrz¹dczych EZT)
     // McZapkie: TypeName musi byc nazw¹ CHK/MMD pojazdu
-    if (!MoverParameters->LoadChkFile(asBaseDir))
+    if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK siê nie uda, to b³¹d
         if (ConversionError == -8)
             ErrorLog("Missed file: " + BaseDir + "\\" + Type_Name + ".fiz");
         Error("Cannot load dynamic object " + asName + " from:\r\n" + BaseDir + "\\" + Type_Name +
-              ".fiz\r\nError " + ConversionError + " in line " + LineCount);
+              ".fiz\r\nError " + to_string(ConversionError) + " in line " + to_string(LineCount));
         return 0.0; // zerowa d³ugoœæ to brak pojazdu
     }
     bool driveractive = (fVel != 0.0); // jeœli prêdkoœæ niezerowa, to aktywujemy ruch
@@ -1744,55 +1745,55 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
     // dodatkowe parametry yB
     MoreParams += "."; // wykonuje o jedn¹ iteracjê za ma³o, wiêc trzeba mu dodaæ
     // kropkê na koniec
-    int kropka = MoreParams.Pos("."); // znajdŸ kropke
-    AnsiString ActPar; // na parametry
+    int kropka = MoreParams.find("."); // znajdŸ kropke
+    string ActPar; // na parametry
     while (kropka > 0) // jesli sa kropki jeszcze
     {
-        int dlugosc = MoreParams.Length();
-        ActPar = MoreParams.SubString(1, kropka - 1).UpperCase(); // pierwszy parametr;
-        MoreParams = MoreParams.SubString(kropka + 1, dlugosc - kropka); // reszta do dalszej
+        int dlugosc = MoreParams.length();
+        ActPar = ToUpper(MoreParams.substr(0, kropka - 1)); // pierwszy parametr;
+        MoreParams = MoreParams.substr(kropka + 1, dlugosc - kropka); // reszta do dalszej
         // obrobki
-        kropka = MoreParams.Pos(".");
+        kropka = MoreParams.find(".");
 
-        if (ActPar.SubString(1, 1) == "B") // jesli hamulce
+        if (ActPar.substr(0, 1) == "B") // jesli hamulce
         { // sprawdzanie kolejno nastaw
             WriteLog("Wpis hamulca: " + ActPar);
-            if (ActPar.Pos("G") > 0)
+            if (ActPar.find("G") != string::npos)
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_G);
             }
-            if (ActPar.Pos("P") > 0)
+            if (ActPar.find("P") != string::npos)
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_P);
             }
-            if (ActPar.Pos("R") > 0)
+            if (ActPar.find("R") != string::npos)
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_R);
             }
-            if (ActPar.Pos("M") > 0)
+            if (ActPar.find("M") != string::npos)
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_R);
                 MoverParameters->BrakeDelaySwitch(bdelay_R + bdelay_M);
             }
             // wylaczanie hamulca
-            if (ActPar.Pos("<>") > 0) // wylaczanie na probe hamowania naglego
+            if (ActPar.find("<>") != string::npos) // wylaczanie na probe hamowania naglego
             {
                 MoverParameters->BrakeStatus |= 128; // wylacz
             }
-            if (ActPar.Pos("0") > 0) // wylaczanie na sztywno
+            if (ActPar.find("0") != string::npos) // wylaczanie na sztywno
             {
                 MoverParameters->BrakeStatus |= 128; // wylacz
                 MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->BrakeReleaser(1); // odluznij automatycznie
             }
-            if (ActPar.Pos("E") > 0) // oprozniony
+            if (ActPar.find("E") != string::npos) // oprozniony
             {
                 MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 MoverParameters->Pipe->CreatePress(0);
                 MoverParameters->Pipe2->CreatePress(0);
             }
-            if (ActPar.Pos("Q") > 0) // oprozniony
+            if (ActPar.find("Q") != string::npos) // oprozniony
             {
                 //    MoverParameters->Hamulec->ForceEmptiness(); //TODO: sprawdzic,
                 //    dlaczego
@@ -1807,7 +1808,7 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
                 MoverParameters->CompressedVolume = 0;
             }
 
-            if (ActPar.Pos("1") > 0) // wylaczanie 10%
+            if (ActPar.find("1") != string::npos) // wylaczanie 10%
             {
                 if (random(10) < 1) // losowanie 1/10
                 {
@@ -1816,7 +1817,7 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
                     MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 }
             }
-            if (ActPar.Pos("X") > 0) // agonalny wylaczanie 20%, usrednienie przekladni
+            if (ActPar.find("X") != string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
             {
                 if (random(100) < 20) // losowanie 20/100
                 {
@@ -1850,27 +1851,27 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
                 }
             }
             // nastawianie ladunku
-            if (ActPar.Pos("T") > 0) // prozny
+            if (ActPar.find("T") != string::npos) // prozny
             {
                 MoverParameters->DecBrakeMult();
                 MoverParameters->DecBrakeMult();
             } // dwa razy w dol
-            if (ActPar.Pos("H") > 0) // ladowny I (dla P-£ dalej prozny)
+            if (ActPar.find("H") != string::npos) // ladowny I (dla P-£ dalej prozny)
             {
                 MoverParameters->IncBrakeMult();
                 MoverParameters->IncBrakeMult();
                 MoverParameters->DecBrakeMult();
             } // dwa razy w gore i obniz
-            if (ActPar.Pos("F") > 0) // ladowny II
+            if (ActPar.find("F") != string::npos) // ladowny II
             {
                 MoverParameters->IncBrakeMult();
                 MoverParameters->IncBrakeMult();
             } // dwa razy w gore
-            if (ActPar.Pos("N") > 0) // parametr neutralny
+            if (ActPar.find("N") != string::npos) // parametr neutralny
             {
             }
         } // koniec hamulce
-        else if (ActPar.SubString(1, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
+        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
         {
             // jakies inne prefiksy
         }
@@ -1903,7 +1904,7 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
     // if (MoverParameters->CabNo!=0)
     if (DriverType != "")
     { // McZapkie-040602: jeœli coœ siedzi w pojeŸdzie
-        if (Name == AnsiString(Global::asHumanCtrlVehicle)) // jeœli pojazd wybrany do prowadzenia
+        if (Name == Global::asHumanCtrlVehicle) // jeœli pojazd wybrany do prowadzenia
         {
             if (DebugModeFlag ? false : MoverParameters->EngineType !=
                                             Dumb) // jak nie Debugmode i nie jest dumbem
@@ -1913,13 +1914,13 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
         }
         // McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym
         // jest sceneria
-        if (DriverType.Pos("1") || DriverType.Pos("2"))
+        if (DriverType.find("1") || DriverType.find("2"))
         { // McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
             // MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej
             // kabiny
             // (rozrz¹d)
             Mechanik = new TController(Controller, this, Aggressive);
-            if (TrainName.IsEmpty()) // jeœli nie w sk³adzie
+            if (TrainName.empty()) // jeœli nie w sk³adzie
             {
                 Mechanik->DirectionInitial(); // za³¹czenie rozrz¹du (wirtualne kabiny) itd.
                 Mechanik->PutCommand(
@@ -1988,11 +1989,11 @@ TDynamicObject::Init(AnsiString Name, // nazwa pojazdu, np. "EU07-424"
     if (mdModel) // jeœli ma w czym szukaæ
         for (int i = 0; i < 2; i++)
         {
-            asAnimName = AnsiString("buffer_left0") + (i + 1);
+            asAnimName = string("buffer_left0") + to_string(i + 1);
             smBuforLewy[i] = mdModel->GetFromName(asAnimName.c_str());
             if (smBuforLewy[i])
                 smBuforLewy[i]->WillBeAnimated(); // ustawienie flagi animacji
-            asAnimName = AnsiString("buffer_right0") + (i + 1);
+            asAnimName = string("buffer_right0") + to_string(i + 1);
             smBuforPrawy[i] = mdModel->GetFromName(asAnimName.c_str());
             if (smBuforPrawy[i])
                 smBuforPrawy[i]->WillBeAnimated();
@@ -2329,14 +2330,14 @@ void TDynamicObject::LoadUpdate()
     // Ra: nie próbujemy wczytywaæ modeli miliony razy podczas renderowania!!!
     if ((mdLoad == NULL) && (MoverParameters->Load > 0))
     {
-        AnsiString asLoadName =
+        string asLoadName =
             asBaseDir + MoverParameters->LoadType + ".t3d"; // zapamiêtany katalog pojazdu
         // asLoadName=MoverParameters->LoadType;
         // if (MoverParameters->LoadType!=AnsiString("passengers"))
         Global::asCurrentTexturePath = asBaseDir; // bie¿¹ca œcie¿ka do tekstur to dynamic/...
         mdLoad = TModelsManager::GetModel(asLoadName.c_str()); // nowy ³adunek
         Global::asCurrentTexturePath =
-            AnsiString(szTexturePath); // z powrotem defaultowa sciezka do tekstur
+            string(szTexturePath); // z powrotem defaultowa sciezka do tekstur
         // Ra: w MMD mo¿na by zapisaæ po³o¿enie modelu ³adunku (np. wêgiel) w
         // zale¿noœci od
         // za³adowania
@@ -2615,10 +2616,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                                 // Ra 15-01: bezwzglêdne wspó³rzêdne pantografu nie s¹ dostêpne,
                                 // wiêc lepiej siê tego nie zaloguje
                                 ErrorLog("Voltage loss: by " + MoverParameters->Name + " at " +
-                                         FloatToStrF(vPosition.x, ffFixed, 7, 2) + " " +
-                                         FloatToStrF(vPosition.y, ffFixed, 7, 2) + " " +
-                                         FloatToStrF(vPosition.z, ffFixed, 7, 2) + ", time " +
-                                         FloatToStrF(NoVoltTime, ffFixed, 7, 2));
+                                         to_string(vPosition.x, 2, 7) + " " +
+                                         to_string(vPosition.y, 2, 7) + " " +
+                                         to_string(vPosition.z, 2, 7) + ", time " +
+                                         to_string(NoVoltTime, 2, 7));
                                 // if (MoverParameters->PantRearUp)
                                 // if (iAnimType[ANIM_PANTS]>1)
                                 //  if (pants[1])
@@ -4204,38 +4205,37 @@ void TDynamicObject::RenderAlpha()
 
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
-void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
-                                    AnsiString ReplacableSkin)
+void TDynamicObject::LoadMMediaFile(string BaseDir, string TypeName,
+                                    string ReplacableSkin)
 {
     double dSDist;
-    TFileStream *fs;
     // asBaseDir=BaseDir;
     Global::asCurrentDynamicPath = BaseDir;
-    AnsiString asFileName = BaseDir + TypeName + ".mmd";
-    AnsiString asLoadName = BaseDir + MoverParameters->LoadType + ".t3d";
-    if (!FileExists(asFileName))
+    string asFileName = BaseDir + TypeName + ".mmd";
+    string asLoadName = BaseDir + MoverParameters->LoadType + ".t3d";
+    ifstream *fs = new ifstream(asFileName.c_str());
+
+    if (!fs->is_open())
     {
         ErrorLog("Missed file: " + asFileName); // brak MMD
+		delete fs;
         return;
     }
-    fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
-    if (!fs)
-        return;
-    int size = fs->Size;
-    if (!size)
+    if (fs->width() == 0)
     {
         return delete fs;
     };
-    AnsiString asAnimName;
+    string asAnimName;
     bool Stop_InternalData = false;
-    char *buf = new char[size + 1]; // ci¹g bajtów o d³ugoœci równej rozmiwarowi pliku
-    buf[size] = '\0'; // zakoñczony zerem na wszelki wypadek
-    fs->Read(buf, size);
+    //char *buf = new char[size + 1]; // ci¹g bajtów o d³ugoœci równej rozmiwarowi pliku
+	stringstream buffer;
+	buffer << fs->rdbuf();
+    //buf[size] = '\0'; // zakoñczony zerem na wszelki wypadek
     delete fs;
     TQueryParserComp *Parser;
     Parser = new TQueryParserComp(NULL);
-    Parser->TextToParse = AnsiString(buf);
-    delete[] buf;
+    Parser->TextToParse = AnsiString(buffer.str().c_str());
+    //delete[] buf;
     AnsiString str;
     // Parser->LoadStringToParse(asFile);
     Parser->First();
@@ -4248,18 +4248,18 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
         if (str == AnsiString("models:")) // modele i podmodele
         {
             iMultiTex = 0; // czy jest wiele tekstur wymiennych?
-            asModel = Parser->GetNextSymbol().LowerCase();
-            if (asModel.Pos("#") == asModel.Length()) // Ra 2015-01: nie podoba mi siê to
+            asModel = Parser->GetNextSymbol().LowerCase().c_str();
+            if (asModel.find("#") == asModel.length()) // Ra 2015-01: nie podoba mi siê to
             { // model wymaga wielu tekstur wymiennych
                 iMultiTex = 1;
-                asModel = asModel.SubString(1, asModel.Length() - 1);
+                asModel = asModel.substr(0, asModel.length() - 1);
             }
-            if ((i = asModel.Pos(",")) > 0)
+            if ((i = asModel.find(",")) != string::npos)
             { // Ra 2015-01: mo¿e szukaæ przecinka w
                 // nazwie modelu, a po przecinku by³a by
                 // liczba
                 // tekstur?
-                if (i < asModel.Length())
+                if (i < asModel.length())
                     iMultiTex = asModel[i + 1] - '0';
                 if (iMultiTex < 0)
                     iMultiTex = 0;
@@ -4270,12 +4270,12 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
             // modele w dynamics/basedir
             Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel.c_str(), true);
-            if (ReplacableSkin != AnsiString("none"))
+            if (ReplacableSkin != "none")
             { // tekstura wymienna jest raczej jedynie w "dynamic\"
                 ReplacableSkin =
                     Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
-					AnsiString x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
-					if (!x.IsEmpty())
+					string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+					if (!x.empty())
 						ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, (Global::asCurrentTexturePath + "nowhere").c_str(), 9);
 					/*
                 if ((i = ReplacableSkin.Pos("|")) > 0) // replacable dzielone
@@ -4404,7 +4404,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 asModel = BaseDir + asModel;
                 mdPrzedsionek = TModelsManager::GetModel(asModel.c_str(), true);
             }
-            if (!MoverParameters->LoadAccepted.IsEmpty())
+            if (!MoverParameters->LoadAccepted.empty())
                 // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
                 // MoverParameters->LoadType!=AnsiString("passengers"))
                 if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
@@ -4441,7 +4441,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 else // Ra: tu wczytywanie modelu ³adunku jest w porz¹dku
                     mdLoad = TModelsManager::GetModel(asLoadName.c_str(), true); // ladunek
             Global::asCurrentTexturePath =
-                AnsiString(szTexturePath); // z powrotem defaultowa sciezka do tekstur
+                string(szTexturePath); // z powrotem defaultowa sciezka do tekstur
             while (!Parser->EndOfFile && str != AnsiString("endmodels"))
             {
                 str = Parser->GetNextSymbol().LowerCase();
@@ -4518,7 +4518,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 }
                 if (str == AnsiString("lowpolyinterior:")) // ABu: wnetrze lowpoly
                 {
-                    asModel = Parser->GetNextSymbol().LowerCase();
+                    asModel = Parser->GetNextSymbol().LowerCase().c_str();
                     asModel = BaseDir + asModel; // McZapkie-200702 - dynamics maja swoje
                     // modele w dynamic/basedir
                     Global::asCurrentTexturePath =
@@ -4530,13 +4530,13 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 }
                 if (str == AnsiString("brakemode:"))
                 { // Ra 15-01: ga³ka nastawy hamulca
-                    asAnimName = Parser->GetNextSymbol().LowerCase();
+                    asAnimName = Parser->GetNextSymbol().LowerCase().c_str();
                     smBrakeMode = mdModel->GetFromName(asAnimName.c_str());
                     // jeszcze wczytaæ k¹ty obrotu dla poszczególnych ustawieñ
                 }
                 if (str == AnsiString("loadmode:"))
                 { // Ra 15-01: ga³ka nastawy hamulca
-                    asAnimName = Parser->GetNextSymbol().LowerCase();
+                    asAnimName = Parser->GetNextSymbol().LowerCase().c_str();
                     smLoadMode = mdModel->GetFromName(asAnimName.c_str());
                     // jeszcze wczytaæ k¹ty obrotu dla poszczególnych ustawieñ
                 }
@@ -4546,7 +4546,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     str = Parser->GetNextSymbol();
                     for (i = 0; i < iAnimType[ANIM_WHEELS]; ++i) // liczba osi
                     { // McZapkie-050402: wyszukiwanie kol o nazwie str*
-                        asAnimName = str + AnsiString(i + 1);
+                        asAnimName = str.c_str() + to_string(i + 1);
                         pAnimations[i].smAnimated =
                             mdModel->GetFromName(asAnimName.c_str()); // ustalenie submodelu
                         if (pAnimations[i].smAnimated)
@@ -4580,7 +4580,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     { // obs³uga ró¿nych œrednic, o
                         // ile wystêpuj¹
                         while ((i < iAnimType[ANIM_WHEELS]) &&
-                               (j <= MoverParameters->AxleArangement.Length()))
+                               (j <= MoverParameters->AxleArangement.length()))
                         { // wersja ze wskaŸnikami jest
                             // bardziej elastyczna na nietypowe
                             // uk³ady
@@ -4630,7 +4630,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
                         { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
                             // str*
-                            asAnimName = str + AnsiString(i + 1);
+                            asAnimName = str.c_str() + to_string(i + 1);
                             sm = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[0] = sm; // jak NULL, to nie bêdzie animowany
                             if (sm)
@@ -4737,8 +4737,8 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                                             pants[i].fParamPants->fHeight =
                                                 0.0; // niech bêdzie odczyt z pantfactors:
                                             ErrorLog("Bad model: " + asModel + ", scale of " +
-                                                     AnsiString(sm->pName) + " is " +
-                                                     AnsiString(100.0 * det) + "%");
+                                                     (sm->pName) + " is " +
+                                                     to_string(100.0 * det) + "%");
                                         }
                                     }
                                 }
@@ -4757,7 +4757,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
                         { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
                             // str*
-                            asAnimName = str + AnsiString(i + 1);
+                            asAnimName = str.c_str() + to_string(i + 1);
                             sm = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[1] = sm; // jak NULL, to nie bêdzie animowany
                             if (sm)
@@ -4796,7 +4796,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
                         { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
                             // str*
-                            asAnimName = str + AnsiString(i + 1);
+                            asAnimName = str.c_str() + to_string(i + 1);
                             pants[i].smElement[2] = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[2]->WillBeAnimated();
                         }
@@ -4808,7 +4808,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
                         { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
                             // str*
-                            asAnimName = str + AnsiString(i + 1);
+                            asAnimName = str.c_str() + to_string(i + 1);
                             pants[i].smElement[3] = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[3]->WillBeAnimated();
                         }
@@ -4820,7 +4820,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
                         { // Winger 160204: wyszukiwanie max 2 patykow o nazwie
                             // str*
-                            asAnimName = str + AnsiString(i + 1);
+                            asAnimName = str.c_str() + to_string(i + 1);
                             pants[i].smElement[4] = mdModel->GetFromName(asAnimName.c_str());
                             pants[i].smElement[4]->WillBeAnimated();
                             pants[i].yUpdate = UpdatePant;
@@ -4957,7 +4957,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     for (int i = 1; i <= 4; i++)
                     { // McZapkie-050402: wyszukiwanie max 4
                         // wahaczy o nazwie str*
-                        asAnimName = str + AnsiString(i);
+                        asAnimName = str.c_str() + to_string(i);
                         smWahacze[i - 1] = mdModel->GetFromName(asAnimName.c_str());
                         smWahacze[i - 1]->WillBeAnimated();
                     }
@@ -4990,7 +4990,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                         j += iAnimType[i]; // zliczanie wczeœniejszych animacji
                     for (i = 0; i < iAnimType[ANIM_DOORS]; ++i) // liczba drzwi
                     { // NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
-                        asAnimName = str + AnsiString(i + 1);
+                        asAnimName = str.c_str() + to_string(i + 1);
                         pAnimations[i + j].smAnimated =
                             mdModel->GetFromName(asAnimName.c_str()); // ustalenie submodelu
                         if (pAnimations[i + j].smAnimated)
@@ -5057,7 +5057,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     rsSilnik.Init(str.c_str(), Parser->GetNextSymbol().ToDouble(), GetPosition().x,
                                   GetPosition().y, GetPosition().z, true, true);
                     if (rsSilnik.GetWaveTime() == 0)
-                        ErrorLog("Missed sound: \"" + str + "\" for " + asFileName);
+                        ErrorLog("Missed sound: \"" + string(str.c_str()) + "\" for " + asFileName);
                     if (MoverParameters->EngineType == DieselEngine)
                         rsSilnik.AM = Parser->GetNextSymbol().ToDouble() /
                                       (MoverParameters->Power + MoverParameters->nmax * 60);
@@ -5291,7 +5291,7 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
         mdLowPolyInt->Init();
     // sHorn2.CopyIfEmpty(sHorn1); //¿eby jednak tr¹bi³ te¿ drugim
     Global::asCurrentTexturePath =
-        AnsiString(szTexturePath); // kiedyœ uproszczone wnêtrze miesza³o tekstury nieba
+        string(szTexturePath); // kiedyœ uproszczone wnêtrze miesza³o tekstury nieba
 }
 
 //---------------------------------------------------------------------------
@@ -5646,27 +5646,27 @@ int TDynamicObject::RouteWish(TTrack *tr)
     return Mechanik ? Mechanik->CrossRoute(tr) : 0; // wg AI albo prosto
 };
 
-AnsiString TDynamicObject::TextureTest(AnsiString &name)
+string TDynamicObject::TextureTest(string &name)
 { // Ra 2015-01: sprawdzenie dostêpnoœci tekstury o podanej nazwie
-    AnsiString x = name + ".dds"; // na razie prymitywnie
-    if (FileExists(x))
+    string x = name + ".dds"; // na razie prymitywnie
+    if (FileExists(x.c_str()))
         return x;
     else
     {
         x = name + ".tga"; // w zasadzie to nale¿a³oby uwzglêdniæ deklarowan¹ kolejnoœæ
-        if (FileExists(x))
+        if (FileExists(x.c_str()))
             return x;
         else
         {
             x = name + ".bmp";
-            if (FileExists(x))
+            if (FileExists(x.c_str()))
                 return x;
         }
     }
     return ""; // nie znaleziona
 };
 
-void TDynamicObject::DestinationSet(AnsiString to, AnsiString numer)
+void TDynamicObject::DestinationSet(string to, string numer)
 { // ustawienie stacji
     // docelowej oraz wymiennej
     // tekstury 4, jeœli
@@ -5680,34 +5680,34 @@ void TDynamicObject::DestinationSet(AnsiString to, AnsiString numer)
 	numer = Global::Bezogonkow(numer);
     asDestination = to;
     to = Global::Bezogonkow(to); // do szukania pliku obcinamy ogonki
-    AnsiString x;
+    string x;
 	x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
-	if (!x.IsEmpty())
+	if (!x.empty())
     {
         ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
         return;
     }
 	x = TextureTest(asBaseDir + numer );
-	if (!x.IsEmpty())
+	if (!x.empty())
     {
         ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
         return;
     }
-    if (to.IsEmpty())
+    if (to.empty())
         to = "nowhere";
     x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejnoœci z nazw¹ FIZ/MMD
-    if (!x.IsEmpty())
+    if (!x.empty())
     {
         ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
         return;
     }
     x = TextureTest(asBaseDir + to); // na razie prymitywnie
-    if (!x.IsEmpty())
+    if (!x.empty())
         ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x.c_str(), 9); // rozmywania 0,1,4,5 nie nadaj¹ siê
     else
 		{
         x = TextureTest(asBaseDir + "nowhere"); // jak nie znalaz³ dedykowanej, to niech daje nowhere
-		if (!x.IsEmpty())
+		if (!x.empty())
 			ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, x.c_str(), 9);
 		}
     // Ra 2015-01: ¿eby zalogowaæ b³¹d, trzeba by mieæ pewnoœæ, ¿e model u¿ywa

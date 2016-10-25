@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "dumb3d.h"
 using namespace Math3D;
+using namespace std;
 
 class TMemCell
 {
@@ -25,7 +26,7 @@ class TMemCell
     bool bCommand; // czy zawiera komendê dla zatrzymanego AI
     TEvent *OnSent; // event dodawany do kolejki po wys³aniu komendy zatrzymuj¹cej sk³ad
   public:
-    AnsiString
+    string
         asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
     TMemCell(vector3 *p);
     ~TMemCell();

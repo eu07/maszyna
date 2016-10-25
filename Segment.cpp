@@ -25,9 +25,9 @@ http://mozilla.org/MPL/2.0/.
 // 101206 Ra: trapezoidalne drogi
 // 110806 Ra: odwrócone mapowanie wzd³u¿ - Point1 == 1.0
 
-AnsiString Where(vector3 p)
+string Where(vector3 p)
 { // zamiana wspó³rzêdnych na tekst, u¿ywana w b³êdach
-    return AnsiString(p.x) + " " + AnsiString(p.y) + " " + AnsiString(p.z);
+    return to_string(p.x) + " " + to_string(p.y) + " " + to_string(p.z);
 };
 
 TSegment::TSegment(TTrack *owner)

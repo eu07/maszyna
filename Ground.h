@@ -14,8 +14,10 @@ http://mozilla.org/MPL/2.0/.
 #include "ResourceManager.h"
 #include "VBO.h"
 #include "Classes.h"
+#include <string>
 
 using namespace Math3D;
+using namespace std;
 
 // Ra: zmniejszone liczby, aby zrobiæ tabelkê i zoptymalizowaæ wyszukiwanie
 const int TP_MODEL = 10;
@@ -381,8 +383,8 @@ class TGround
     {
         return (x / fSubRectSize + fHalfTotalNumSubRects);
     };
-    TEvent * FindEvent(const AnsiString &asEventName);
-    TEvent * FindEventScan(const AnsiString &asEventName);
+    TEvent * FindEvent(const string &asEventName);
+    TEvent * FindEventScan(const string &asEventName);
     void TrackJoin(TGroundNode *Current);
 
   private:

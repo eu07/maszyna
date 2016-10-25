@@ -24,8 +24,11 @@ http://mozilla.org/MPL/2.0/.
 #include <Controls.hpp> //do odczytu daty
 #include "World.h"
 #include <ostream>
+#include <fstream>
 #include <iomanip>
 #include <ctype.h>
+#include <cctype>
+
 // namespace Global {
 
 // parametry do u¿ytku wewnêtrznego
@@ -123,7 +126,7 @@ double Global::fMoveLight = -1; // ruchome œwiat³o
 double Global::fLatitudeDeg = 52.0; // szerokoœæ geograficzna
 float Global::fFriction = 1.0; // mno¿nik tarcia - KURS90
 double Global::fBrakeStep = 1.0; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-std::string Global::asLang = "pl"; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+AnsiString Global::asLang = "pl"; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
 
 // parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
 bool Global::bAdjustScreenFreq = true;
@@ -215,16 +218,19 @@ void Global::LoadIniFile(std::string asFileName)
         pFreeCameraInit[i] = vector3(0, 0, 0); // wspó³rzêdne w scenerii
         pFreeCameraInitAngle[i] = vector3(0, 0, 0); // k¹ty obrotu w radianach
     }
-    TFileStream *fs;
-    fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
-    if (!fs)
-        return;
-    std::string str = "";
-    int size = fs->Size;
-    str.SetLength(size);
-    fs->Read(str.c_str(), size);
+	ifstream f = ifstream(asFileName.c_str());
+	stringstream buffer;
+	buffer << f.rdbuf();
+	//TFileStream *fs;
+ //   fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
+ //   if (!fs)
+ //       return;
+	AnsiString str = AnsiString(buffer.str().c_str());
+    //int size = fs->Size;
+    //str.SetLength(size);
+    //fs->Read(str.c_str(), size);
     // str+="";
-    delete fs;
+    //delete fs;
     TQueryParserComp *Parser;
     Parser = new TQueryParserComp(NULL);
     Parser->TextToParse = str;
@@ -251,7 +257,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
         else if (str == AnsiString("humanctrlvehicle"))
         {
             str = GetNextSymbol().LowerCase();
-            asHumanCtrlVehicle = str;
+            asHumanCtrlVehicle = string(str.c_str());
         }
         else if (str == AnsiString("width"))
             iWindowWidth = GetNextSymbol().ToInt();
@@ -801,9 +807,9 @@ void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
                 aLines[j].fHide = hide; // wyœwietlaæ do
                 aLines[j].bItalic = it;
                 aLines[j].asText = std::string(txt); // bez sensu, wystarczy³by wskaŸnik
-                if ((k = aLines[j].asText.Pos("|")) > 0)
+                if ((k = aLines[j].asText.find("|")) != std::string::npos)
                 { // jak jest podzia³ linijki na wiersze
-                    aLines[j].asText = aLines[j].asText.SubString(1, k - 1);
+                    aLines[j].asText = aLines[j].asText.substr(0, k - 1);
                     txt += k;
                     i = j; // kolejna linijka dopisywana bêdzie na koniec w³aœnie dodanej
                 }
@@ -987,6 +993,28 @@ std::string to_hex_str(double _Val, int precision, int width)
     o << _Val;
     return o.str();
 };
+
+int stol_def(const std::string &str, const int &DefaultValue)
+{
+    // this function was developed iteratively on Codereview.stackexchange
+    // with the assistance of @Corbin
+    std::size_t len = str.size();
+    while (std::isspace(str[len - 1]))
+        len--;
+    if (len == 0)
+        return DefaultValue;
+    errno = 0;
+    char *s = new char[len + 1];
+    std::strncpy(s, str.c_str(), len);
+    char *p;
+    int result = strtol(s, &p, 0);
+    if ((*p != '\0') || (errno != 0))
+    {
+        return DefaultValue;
+    }
+    delete s;
+    return result;
+}
 
 std::string ToLower(std::string text)
 {

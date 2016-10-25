@@ -172,7 +172,7 @@ static int const sound_relay = 16;
 static int const sound_manyrelay = 32;
 static int const sound_brakeacc = 64;
 
-static bool const PhysicActivationFlag = false;
+static bool  PhysicActivationFlag = false;
 
 //szczególne typy pojazdów (inna obs³uga) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybieraæ grupê (np. EZT+SZT)
@@ -879,7 +879,7 @@ public:
 	int iProblem; // flagi problemów z taborem, aby AI nie musia³o porównywaæ; 0=mo¿e jechaæ
 	int iLights[2]; // bity zapalonych œwiate³ tutaj, ¿eby da³o siê liczyæ pobór pr¹du
 private:
-	double CouplerDist(Byte Coupler);
+	double CouplerDist(int Coupler);
 
 public:
 	TMoverParameters(double VelInitial, std::string TypeNameInit, std::string NameInit, int LoadInitial, std::string LoadTypeInitial, int Cab);
@@ -1050,7 +1050,7 @@ public:
 	TPowerType PowerDecode(std::string s);                                                           //Q 20160719
 	TEngineTypes EngineDecode(std::string s);                                                        //Q 20160721
 	bool CreateBrakeSys();                                                                          //Q 20160722
-	bool CheckLocomotiveParametersQ(bool ReadyFlag, int Dir);
+	bool CheckLocomotiveParameters(bool ReadyFlag, int Dir);
 	std::string EngineDescription(int what);
 };
 

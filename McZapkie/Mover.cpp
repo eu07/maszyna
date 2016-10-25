@@ -52,6 +52,39 @@ double sqr(double val) // SQR() zle liczylo w current() ...
     return val * val;
 }
 
+double ComputeCollision(double v1, double v2, double m1, double m2, double beta, bool vc)
+{ // oblicza zmiane predkosci i przyrost pedu wskutek kolizji
+	if (v1 < v2 && vc)
+		return 0;
+	else
+	{
+		double sum = m1 + m2;
+		double w1 = ((m1 - m2) * v1 + 2 * m2 * v2) / sum;
+		double w2 = ((m2 - m1) * v2 + 2 * m1 * v1) / sum;
+		v1 = w1 * sqrt(1 - beta); // niejawna zmiana predkosci wskutek zderzenia
+		v2 = w2 * sqrt(1 - beta);
+		return m1 * (w2 - w1) * (1 - beta);
+	}
+}
+
+int DirPatch(int Coupler1, int Coupler2)
+{
+	return (Coupler1 != Coupler2 ? 1 : -1);
+}
+
+int DirF(int CouplerN)
+{
+	switch (CouplerN)
+	{
+	case 0:
+		return -1;
+	case 1:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 // *************************************************************************************************
 // Q: 20160716
 // *************************************************************************************************
@@ -284,7 +317,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     BrakeCtrlPosNo = 0;
     LightsPosNo = 0;
     LightsDefPos = 1;
-    for (k = -1; k < Hamulce::MainBrakeMaxPos; k++)
+    for (k = -1; k < MainBrakeMaxPos; k++)
     {
         BrakePressureTable[k].PipePressureVal = 0;
         BrakePressureTable[k].BrakePressureVal = 0;
@@ -2464,9 +2497,9 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 {
     bool IBL;
-    if ((LocalBrakePos < Hamulce::LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
+    if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
     {
-        while ((LocalBrakePos < Hamulce::LocalBrakePosNo) && (CtrlSpeed > 0))
+        while ((LocalBrakePos < LocalBrakePosNo) && (CtrlSpeed > 0))
         {
             LocalBrakePos++;
             CtrlSpeed--;
@@ -2508,9 +2541,9 @@ bool TMoverParameters::DecLocalBrakeLevel(int CtrlSpeed)
 bool TMoverParameters::IncLocalBrakeLevelFAST(void)
 {
     bool ILBLF;
-    if (LocalBrakePos < Hamulce::LocalBrakePosNo)
+    if (LocalBrakePos < LocalBrakePosNo)
     {
-        LocalBrakePos = Hamulce::LocalBrakePosNo;
+        LocalBrakePos = LocalBrakePosNo;
         ILBLF = true;
     }
     else
@@ -2972,7 +3005,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
     if ((BrakeCtrlPosNo > 1) && (ActiveCab != 0))
     // with BrakePressureTable[BrakeCtrlPos] do
     {
-        dpLocalValve = LocHandle->GetPF(LocalBrakePos / Hamulce::LocalBrakePosNo, Hamulec->GetBCP(),
+        dpLocalValve = LocHandle->GetPF(LocalBrakePos / LocalBrakePosNo, Hamulec->GetBCP(),
                                         ScndPipePress, dt, 0);
         if ((BrakeHandle == FV4a) &&
             ((PipePress < 2.75) && ((Hamulec->GetStatus() && b_rls) == 0)) &&
@@ -5378,25 +5411,25 @@ int nSize;
 
 int ti(std::string val)
 {
-    return StrToInt(val);
+    return atoi(val.c_str());
 }
 
 double td(std::string val)
 {
-    return val.ToDouble();
+    return atof(val.c_str());
 }
 
 std::string ts(std::string val)
 {
     // WriteLog("["+ val + "]");
 
-    return (std::string(val));
+    return val;
     //   else return "unknown";
 }
 
 std::string tS(std::string val)
 {
-    return (val.UpperCase());
+    return ToUpper(val);
 }
 
 // *************************************************************************************************
@@ -6768,7 +6801,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 // Q: 20160717
 // *************************************************************************************************
 
-bool TMoverParameters::CheckLocomotiveParametersQ(bool ReadyFlag, int Dir)
+bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 {
     bool OK;
     int b;

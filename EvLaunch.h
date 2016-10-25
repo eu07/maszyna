@@ -11,6 +11,9 @@ http://mozilla.org/MPL/2.0/.
 #define EvLaunchH
 
 #include "Classes.h"
+#include <string>
+
+using namespace std;
 
 class TEventLauncher
 {
@@ -24,9 +27,9 @@ class TEventLauncher
     int iHour, iMinute; // minuta uruchomienia
   public:
     double dRadius;
-    AnsiString asEvent1Name;
-    AnsiString asEvent2Name;
-    AnsiString asMemCellName;
+    string asEvent1Name;
+    string asEvent2Name;
+    string asMemCellName;
     TEvent *Event1;
     TEvent *Event2;
     TMemCell *MemCell;

@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include <string>
 
+using namespace std;
+
 class TEvent;
 
 typedef enum
@@ -107,10 +109,10 @@ class TIsolated
     TEvent *evFree; // zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
     TMemCell *pMemCell; // automatyczna komórka pamiêci, która wspó³pracuje z odcinkiem izolowanym
     TIsolated();
-    TIsolated(const AnsiString &n, TIsolated *i);
+    TIsolated(const string &n, TIsolated *i);
     ~TIsolated();
     static TIsolated * Find(
-        const AnsiString &n); // znalezienie obiektu albo utworzenie nowego
+        const string &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjêcie osi
     bool Busy()
     {
@@ -158,12 +160,12 @@ class TTrack : public Resource
     TEvent *evEvent0; // McZapkie-280503: wyzwalany tylko gdy headdriver
     TEvent *evEvent1;
     TEvent *evEvent2;
-    AnsiString asEventall0Name; // nazwy eventów
-    AnsiString asEventall1Name;
-    AnsiString asEventall2Name;
-    AnsiString asEvent0Name;
-    AnsiString asEvent1Name;
-    AnsiString asEvent2Name;
+    string asEventall0Name; // nazwy eventów
+    string asEventall1Name;
+    string asEventall2Name;
+    string asEvent0Name;
+    string asEvent1Name;
+    string asEvent2Name;
     int iNextDirection; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
     int iPrevDirection;
     TTrackType eType;
@@ -228,7 +230,7 @@ class TTrack : public Resource
     {
         return (SwitchExtension ? SwitchExtension->CurrentIndex : -1);
     };
-    void Load(cParser *parser, vector3 pOrigin, AnsiString name);
+    void Load(cParser *parser, vector3 pOrigin, std::string name);
     bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
@@ -266,7 +268,7 @@ class TTrack : public Resource
         if (pIsolated)
             pIsolated->Modify(i, o);
     }; // dodanie lub odjêcie osi
-    AnsiString IsolatedName();
+    string IsolatedName();
     bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
     GLuint TextureGet(int i)

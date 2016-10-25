@@ -26,7 +26,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Ground.h"
 #pragma package(smart_init)
 
-TEvent::TEvent(AnsiString m)
+TEvent::TEvent(string m)
 {
     // asName=""; //czy nazwa eventu jest niezbêdna w tym przypadku? chyba nie
     evNext = evNext2 = NULL;
@@ -37,7 +37,7 @@ TEvent::TEvent(AnsiString m)
     // bIsHistory=false;
     fDelay = 0;
     fStartTime = 0; // 0 nie ma sensu
-    Type = m.IsEmpty() ? tp_Unknown :
+    Type = m.empty() ? tp_Unknown :
                          tp_GetValues; // utworzenie niejawnego odczytu komórki pamiêci w torze
     for (int i = 0; i < 13; i++)
         Params[i].asPointer = NULL;
@@ -82,37 +82,36 @@ void TEvent::Init(){
 
 };
 
-void TEvent::Conditions(cParser *parser, AnsiString s)
+void TEvent::Conditions(cParser *parser, string s)
 { // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
     if (s == "condition")
     { // jesli nie "endevent"
-        std::string token;
-        AnsiString str;
-        if (!asNodeName.IsEmpty())
+        std::string token, str;
+        if (!asNodeName.empty())
         { // podczepienie ³añcucha, jeœli nie jest pusty
-            Params[9].asText = new char[asNodeName.Length() + 1]; // usuwane i zamieniane na
+            Params[9].asText = new char[asNodeName.length() + 1]; // usuwane i zamieniane na
             // wskaŸnik
             strcpy(Params[9].asText, asNodeName.c_str());
         }
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        if (str == AnsiString("trackoccupied"))
+		str = token;
+        if (str == "trackoccupied")
             iFlags |= conditional_trackoccupied;
-        else if (str == AnsiString("trackfree"))
+        else if (str == "trackfree")
             iFlags |= conditional_trackfree;
-        else if (str == AnsiString("propability"))
+        else if (str == "propability")
         {
             iFlags |= conditional_propability;
             parser->getTokens();
             *parser >> Params[10].asdouble;
         }
-        else if (str == AnsiString("memcompare"))
+        else if (str == "memcompare")
         {
             iFlags |= conditional_memcompare;
             parser->getTokens(1, false); // case sensitive
             *parser >> token;
-            str = AnsiString(token.c_str());
+			str = token;
             if (str != "*") //"*" - nie brac command pod uwage
             { // zapamiêtanie ³añcucha do porównania
                 Params[10].asText = new char[255];
@@ -121,24 +120,24 @@ void TEvent::Conditions(cParser *parser, AnsiString s)
             }
             parser->getTokens();
             *parser >> token;
-            str = AnsiString(token.c_str());
+			str = token;
             if (str != "*") //"*" - nie brac val1 pod uwage
             {
-                Params[11].asdouble = str.ToDouble();
+                Params[11].asdouble = atof(str.c_str());
                 iFlags |= conditional_memval1;
             }
             parser->getTokens();
             *parser >> token;
-            str = AnsiString(token.c_str());
-            if (str != AnsiString("*")) //"*" - nie brac val2 pod uwage
+            str = token;
+            if (str != "*") //"*" - nie brac val2 pod uwage
             {
-                Params[12].asdouble = str.ToDouble();
+                Params[12].asdouble = atof(str.c_str());
                 iFlags |= conditional_memval2;
             }
         }
         parser->getTokens();
         *parser >> token;
-        s = AnsiString(token.c_str()); // ewentualnie dalej losowe opóŸnienie
+        s = token; // ewentualnie dalej losowe opóŸnienie
     }
     if (s == "randomdelay")
     { // losowe opóŸnienie
@@ -156,7 +155,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
     int ti;
     double tf;
     std::string token;
-    AnsiString str;
+    //string str;
     char *ptr;
 
     bEnabled = true; // zmieniane na false dla eventów u¿ywanych do skanowania sygna³ów
@@ -167,49 +166,49 @@ void TEvent::Load(cParser *parser, vector3 *org)
 
     parser->getTokens();
     *parser >> token;
-    str = AnsiString(token.c_str());
+    // str = AnsiString(token.c_str());
 
-    if (str == AnsiString("exit"))
+    if (token == "exit")
         Type = tp_Exit;
-    else if (str == AnsiString("updatevalues"))
+    else if (token == "updatevalues")
         Type = tp_UpdateValues;
-    else if (str == AnsiString("getvalues"))
+    else if (token == "getvalues")
         Type = tp_GetValues;
-    else if (str == AnsiString("putvalues"))
+    else if (token == "putvalues")
         Type = tp_PutValues;
-    else if (str == AnsiString("disable"))
+    else if (token == "disable")
         Type = tp_Disable;
-    else if (str == AnsiString("sound"))
+    else if (token == "sound")
         Type = tp_Sound;
-    else if (str == AnsiString("velocity"))
+    else if (token == "velocity")
         Type = tp_Velocity;
-    else if (str == AnsiString("animation"))
+    else if (token == "animation")
         Type = tp_Animation;
-    else if (str == AnsiString("lights"))
+    else if (token == "lights")
         Type = tp_Lights;
-    else if (str == AnsiString("visible"))
+    else if (token == "visible")
         Type = tp_Visible; // zmiana wyœwietlania obiektu
-    else if (str == AnsiString("switch"))
+    else if (token == "switch")
         Type = tp_Switch;
-    else if (str == AnsiString("dynvel"))
+    else if (token == "dynvel")
         Type = tp_DynVel;
-    else if (str == AnsiString("trackvel"))
+    else if (token == "trackvel")
         Type = tp_TrackVel;
-    else if (str == AnsiString("multiple"))
+    else if (token == "multiple")
         Type = tp_Multiple;
-    else if (str == AnsiString("addvalues"))
+    else if (token == "addvalues")
         Type = tp_AddValues;
-    else if (str == AnsiString("copyvalues"))
+    else if (token == "copyvalues")
         Type = tp_CopyValues;
-    else if (str == AnsiString("whois"))
+    else if (token == "whois")
         Type = tp_WhoIs;
-    else if (str == AnsiString("logvalues"))
+    else if (token == "logvalues")
         Type = tp_LogValues;
-    else if (str == AnsiString("voltage"))
+    else if (token == "voltage")
         Type = tp_Voltage; // zmiana napiêcia w zasilaczu (TractionPowerSource)
-    else if (str == AnsiString("message"))
+    else if (token == "message")
         Type = tp_Message; // wyœwietlenie komunikatu
-    else if (str == AnsiString("friction"))
+    else if (token == "friction")
         Type = tp_Friction; // zmiana tarcia na scenerii
     else
         Type = tp_Unknown;
@@ -219,10 +218,10 @@ void TEvent::Load(cParser *parser, vector3 *org)
 
     parser->getTokens();
     *parser >> token;
-    str = AnsiString(token.c_str());
+    // str = AnsiString(token.c_str());
 
-    if (str != "none")
-        asNodeName = str; // nazwa obiektu powi¹zanego
+    if (token != "none")
+        asNodeName = token; // nazwa obiektu powi¹zanego
 
     if (asName.substr(0, 5) == "none_")
         Type = tp_Ignored; // Ra: takie s¹ ignorowane
@@ -235,34 +234,34 @@ void TEvent::Load(cParser *parser, vector3 *org)
         // if (Type==tp_UpdateValues) iFlags=0; //co modyfikowaæ
         parser->getTokens(1, false); // case sensitive
         *parser >> token;
-        str = AnsiString(token.c_str());
-        Params[0].asText = new char[str.Length() + 1];
-        strcpy(Params[0].asText, str.c_str());
-        if (str != "*") // czy ma zostaæ bez zmian?
+        // str = AnsiString(token.c_str());
+        Params[0].asText = new char[token.length() + 1];
+        strcpy(Params[0].asText, token.c_str());
+        if (token != "*") // czy ma zostaæ bez zmian?
             iFlags |= update_memstring;
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        if (str != "*") // czy ma zostaæ bez zmian?
+        // str = AnsiString(token.c_str());
+        if (token != "*") // czy ma zostaæ bez zmian?
         {
-            Params[1].asdouble = str.ToDouble();
+            Params[1].asdouble = atof(token.c_str());
             iFlags |= update_memval1;
         }
         else
             Params[1].asdouble = 0;
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        if (str != "*") // czy ma zostaæ bez zmian?
+        // str = AnsiString(token.c_str());
+        if (token != "*") // czy ma zostaæ bez zmian?
         {
-            Params[2].asdouble = str.ToDouble();
+            Params[2].asdouble = atof(token.c_str());
             iFlags |= update_memval2;
         }
         else
             Params[2].asdouble = 0;
         parser->getTokens();
         *parser >> token;
-        Conditions(parser, token.c_str()); // sprawdzanie warunków
+        Conditions(parser, token); // sprawdzanie warunków
         break;
     case tp_CopyValues:
         Params[9].asText = NULL;
@@ -279,8 +278,8 @@ void TEvent::Load(cParser *parser, vector3 *org)
                 strcpy(Params[9].asText, token.c_str());
                 break;
             case 2: // maska wartoœci
-                iFlags = AnsiString(token.c_str())
-                             .ToIntDef(update_memstring | update_memval1 | update_memval2);
+                iFlags = stol_def(token,
+                             (update_memstring | update_memval1 | update_memval2));
                 break;
             }
             parser->getTokens();
@@ -297,8 +296,8 @@ void TEvent::Load(cParser *parser, vector3 *org)
             switch (++i)
             { // znaczenie kolejnych parametrów
             case 1: // maska wartoœci
-                iFlags = AnsiString(token.c_str())
-                             .ToIntDef(update_memstring | update_memval1 | update_memval2);
+                iFlags = stol_def(token,
+                             (update_memstring | update_memval1 | update_memval2));
                 break;
             }
             parser->getTokens();
@@ -324,31 +323,31 @@ void TEvent::Load(cParser *parser, vector3 *org)
         // Params[12].asInt=0;
         parser->getTokens(1, false); // komendy 'case sensitive'
         *parser >> token;
-        str = AnsiString(token.c_str());
-        if (str.SubString(1, 19) == "PassengerStopPoint:")
+        // str = AnsiString(token.c_str());
+        if (token.substr(0, 19) == "PassengerStopPoint:")
         {
-            if (str.Pos("#"))
-                str = str.SubString(1, str.Pos("#") - 1); // obciêcie unikatowoœci
+            if (token.find("#"))
+				token = token.substr(0, token.find("#") - 1); // obciêcie unikatowoœci
             bEnabled = false; // nie do kolejki (dla SetVelocity te¿, ale jak jest do toru
             // dowi¹zany)
             Params[6].asCommand = cm_PassengerStopPoint;
         }
-        else if (str == "SetVelocity")
+        else if (token == "SetVelocity")
         {
             bEnabled = false;
             Params[6].asCommand = cm_SetVelocity;
         }
-        else if (str == "RoadVelocity")
+        else if (token == "RoadVelocity")
         {
             bEnabled = false;
             Params[6].asCommand = cm_RoadVelocity;
         }
-        else if (str == "SectionVelocity")
+        else if (token == "SectionVelocity")
         {
             bEnabled = false;
             Params[6].asCommand = cm_SectionVelocity;
         }
-        else if (str == "ShuntVelocity")
+        else if (token == "ShuntVelocity")
         {
             bEnabled = false;
             Params[6].asCommand = cm_ShuntVelocity;
@@ -358,44 +357,44 @@ void TEvent::Load(cParser *parser, vector3 *org)
         //    bEnabled = false;
         //    Params[6].asCommand = cm_SetProximityVelocity;
         //}
-        else if (str == "OutsideStation")
+        else if (token == "OutsideStation")
         {
             bEnabled = false; // ma byæ skanowny, aby AI nie przekracza³o W5
             Params[6].asCommand = cm_OutsideStation;
         }
         else
             Params[6].asCommand = cm_Unknown;
-        Params[0].asText = new char[str.Length() + 1];
-        strcpy(Params[0].asText, str.c_str());
+        Params[0].asText = new char[token.length() + 1];
+        strcpy(Params[0].asText, token.c_str());
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        if (str == "none")
+        // str = AnsiString(token.c_str());
+        if (token == "none")
             Params[1].asdouble = 0.0;
         else
             try
             {
-                Params[1].asdouble = str.ToDouble();
+                Params[1].asdouble = atof(token.c_str());
             }
             catch (...)
             {
                 Params[1].asdouble = 0.0;
-                WriteLog("Error: number expected in PutValues event, found: " + str);
+                WriteLog("Error: number expected in PutValues event, found: " + token);
             }
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        if (str == "none")
+        // str = AnsiString(token.c_str());
+        if (token == "none")
             Params[2].asdouble = 0.0;
         else
             try
             {
-                Params[2].asdouble = str.ToDouble();
+                Params[2].asdouble = atof(token.c_str());
             }
             catch (...)
             {
                 Params[2].asdouble = 0.0;
-                WriteLog("Error: number expected in PutValues event, found: " + str);
+                WriteLog("Error: number expected in PutValues event, found: " + token);
             }
         parser->getTokens();
         *parser >> token;
@@ -408,9 +407,9 @@ void TEvent::Load(cParser *parser, vector3 *org)
             *parser >> token;
             if (token.compare("endevent") != 0)
             {
-                str = AnsiString(token.c_str());
+                // str = AnsiString(token.c_str());
                 if (i < 8)
-                    Params[i].asdouble = str.ToDouble(); // teraz mo¿e mieæ u³amek
+                    Params[i].asdouble = atof(token.c_str()); // teraz mo¿e mieæ u³amek
                 i++;
             }
         } while (token.compare("endevent") != 0);
@@ -418,16 +417,16 @@ void TEvent::Load(cParser *parser, vector3 *org)
     case tp_Visible: // zmiana wyœwietlania obiektu
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        Params[0].asInt = str.ToInt();
+        // str = AnsiString(token.c_str());
+        Params[0].asInt = atoi(token.c_str());
         parser->getTokens();
         *parser >> token;
         break;
     case tp_Velocity:
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        Params[0].asdouble = str.ToDouble() * 0.28;
+        // str = AnsiString(token.c_str());
+        Params[0].asdouble = atof(token.c_str()) * 0.28;
         parser->getTokens();
         *parser >> token;
         break;
@@ -443,7 +442,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         *parser >> token;
         break;
     case tp_Exit:
-        while ((ptr = strchr(asNodeName.c_str(), '_')) != NULL)
+        while ((ptr = strchr(strdup(asNodeName.c_str()), '_')) != NULL)
             *ptr = ' ';
         parser->getTokens();
         *parser >> token;
@@ -513,20 +512,20 @@ void TEvent::Load(cParser *parser, vector3 *org)
         *parser >> Params[0].asInt;
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        if (str != "endevent")
+        // str = AnsiString(token.c_str());
+        if (token != "endevent")
         {
-            Params[1].asdouble = str.ToDouble(); // prêdkoœæ liniowa ruchu iglic
+            Params[1].asdouble = atof(token.c_str()); // prêdkoœæ liniowa ruchu iglic
             parser->getTokens();
             *parser >> token;
-            str = AnsiString(token.c_str());
+            // str = AnsiString(token.c_str());
         }
         else
             Params[1].asdouble = -1.0; // u¿yæ domyœlnej
-        if (str != "endevent")
+        if (token != "endevent")
         {
             Params[2].asdouble =
-                str.ToDouble(); // dodatkowy ruch drugiej iglicy (zamkniêcie nastawnicze)
+                atof(token.c_str()); // dodatkowy ruch drugiej iglicy (zamkniêcie nastawnicze)
             parser->getTokens();
             *parser >> token;
         }
@@ -550,16 +549,16 @@ void TEvent::Load(cParser *parser, vector3 *org)
         ti = 0; // flaga dla else
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        while (str != AnsiString("endevent") && str != AnsiString("condition") &&
-               str != AnsiString("randomdelay"))
+        // str = AnsiString(token.c_str());
+        while (token != "endevent" && token != "condition" &&
+			token != "randomdelay")
         {
-            if ((str.SubString(1, 5) != "none_") ? (i < 8) : false)
+            if ((token.substr(0, 5) != "none_") ? (i < 8) : false)
             { // eventy rozpoczynaj¹ce siê od "none_" s¹ ignorowane
-                if (str != "else")
+                if (token != "else")
                 {
                     Params[i].asText = new char[255];
-                    strcpy(Params[i].asText, str.c_str());
+                    strcpy(Params[i].asText, token.c_str());
                     if (ti)
                         iFlags |= conditional_else << i; // oflagowanie dla eventów "else"
                     i++;
@@ -568,14 +567,14 @@ void TEvent::Load(cParser *parser, vector3 *org)
                     ti = !ti; // zmiana flagi dla s³owa "else"
             }
             else if (i >= 8)
-                ErrorLog("Bad event: \"" + string(str.c_str()) + "\" ignored in multiple \"" + asName + "\"!");
+                ErrorLog("Bad event: \"" + token + "\" ignored in multiple \"" + asName + "\"!");
             else
-                WriteLog("Event \"" + string(str.c_str()) + "\" ignored in multiple \"" + asName + "\"!");
+                WriteLog("Event \"" + token + "\" ignored in multiple \"" + asName + "\"!");
             parser->getTokens();
             *parser >> token;
-            str = AnsiString(token.c_str());
+            // str = AnsiString(token.c_str());
         }
-        Conditions(parser, str); // sprawdzanie warunków
+        Conditions(parser, token); // sprawdzanie warunków
         break;
     case tp_Voltage: // zmiana napiêcia w zasilaczu (TractionPowerSource)
     case tp_Friction: // zmiana przyczepnosci na scenerii
@@ -589,8 +588,8 @@ void TEvent::Load(cParser *parser, vector3 *org)
         {
             parser->getTokens();
             *parser >> token;
-            str = AnsiString(token.c_str());
-        } while (str != "endevent");
+            // str = AnsiString(token.c_str());
+        } while (token != "endevent");
         break;
     case tp_Ignored: // ignorowany
     case tp_Unknown: // nieznany
@@ -598,8 +597,8 @@ void TEvent::Load(cParser *parser, vector3 *org)
         {
             parser->getTokens();
             *parser >> token;
-            str = AnsiString(token.c_str());
-        } while (str != "endevent");
+            // str = AnsiString(token.c_str());
+        } while (token != "endevent");
         WriteLog("Bad event: \"" + asName +
                  (Type == tp_Unknown ? "\" has unknown type." : "\" is ignored."));
         break;
@@ -619,14 +618,14 @@ void TEvent::AddToQuery(TEvent *e)
 
 //---------------------------------------------------------------------------
 
-AnsiString TEvent::CommandGet()
+string TEvent::CommandGet()
 { // odczytanie komendy z eventu
     switch (Type)
     { // to siê wykonuje równie¿ sk³adu jad¹cego bez obs³ugi
     case tp_GetValues:
-        return String(Params[9].asMemCell->Text());
+        return string(Params[9].asMemCell->Text());
     case tp_PutValues:
-        return String(Params[0].asText);
+        return string(Params[0].asText);
     }
     return ""; // inne eventy siê nie licz¹
 };

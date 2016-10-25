@@ -308,7 +308,7 @@ class Global
     static bool bSmudge; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
     static std::string asTranscript[5]; // napisy na ekranie (widoczne)
     static TTranscripts tranTexts; // obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
-    static std::string asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+    static AnsiString asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy ³¹czyæ eventy z torami poprzez nazwê toru
     static TTextSound *tsRadioBusy[10]; // zajêtoœæ kana³ów radiowych (wskaŸnik na odgrywany dŸwiêk)
 	static int iPoKeysPWM[7]; // numery wejœæ dla PWM
@@ -335,6 +335,7 @@ class Global
 	std::string to_string(double _Val, int precision, int width);
 	std::string to_hex_str(int _Val, int precision = 0, int width = 0);
 
+	int stol_def(const std::string & str, const int & DefaultValue);
 
 	std::string ToLower(std::string text);
 	std::string ToUpper(std::string text);

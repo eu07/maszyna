@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 using namespace Math3D;
 using namespace Mtable;
+using namespace std;
 
 enum TOrders
 { // rozkazy dla AI
@@ -378,7 +379,7 @@ class TController
 
   public:
     void PhysicsLog();
-    AnsiString StopReasonText();
+    string StopReasonText();
     ~TController();
     std::string NextStop();
     void TakeControl(bool yes);
