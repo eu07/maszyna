@@ -22,6 +22,11 @@ Copyright (C) 2007-2014 Maciej Cierniak
 using namespace std;
 /*================================================*/
 
+int ConversionError = 0;
+int LineCount = 0;
+bool DebugModeFlag = false;
+bool FreeFlyModeFlag = false;
+
 //std::string Ups(std::string s)
 //{
 //    int jatka;

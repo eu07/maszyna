@@ -42,10 +42,10 @@ static int const CutRight = 1;
 static int const CutBoth = 0;  /*Cut_Space*/
 static double const pi = 3.141592653589793;
 
-int ConversionError = 0;
-int LineCount = 0;
-bool DebugModeFlag = false;
-bool FreeFlyModeFlag = false;
+extern int ConversionError;
+extern int LineCount;
+extern bool DebugModeFlag;
+extern bool FreeFlyModeFlag;
 
 
 typedef unsigned long/*?*//*set of: char */ TableChar;  /*MCTUTIL*/
@@ -150,10 +150,16 @@ inline bool fileExists(const std::string &name)
     return (stat(name.c_str(), &buffer) == 0);
 }
 
- double Xmin; double Ymin; double Xmax; double Ymax;
- double Xaspect; double Yaspect;
- double Hstep; double Vstep;
- int Vsize; int Hsize;
+extern double Xmin;
+extern double Ymin;
+extern double Xmax;
+extern double Ymax;
+extern double Xaspect;
+extern double Yaspect;
+extern double Hstep;
+extern double Vstep;
+extern int Vsize;
+extern int Hsize;
 
 double Xhor( double h);
        /* Converts horizontal screen coordinate into real X-coordinate. */
