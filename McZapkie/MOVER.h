@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Oerlikon_ESt.h"
 #include "hamulce.h"
 #include <string>
+#include <mctools.h>
 
 
 /*

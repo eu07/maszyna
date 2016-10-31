@@ -185,6 +185,9 @@ class TNESt3 : public TBrake
     double LBP; // cisnienie hamulca pomocniczego
 
   public:
+	inline TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc,
+		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, i_BD, i_mat, i_ba, i_nbpa) { }
     virtual double GetPF(double PP, double dt,
                  double Vel) /*override*/; // przeplyw miedzy komora wstepna i PG
     void EStParams(double i_crc); // parametry charakterystyczne dla ESt

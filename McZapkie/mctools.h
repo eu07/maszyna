@@ -19,6 +19,8 @@ http://mozilla.org/MPL/2.0/.
 #include <fstream>
 #include <time.h>
 #include <sys/stat.h>
+#include <vector>
+#include <sstream>
 
 using namespace std;
 
@@ -35,18 +37,18 @@ static char _EOL[2] = { (char)13, (char)10 };
         //static char const _SPACE = " ";
 static char  _Spacesigns[4] = { (char)" ",(char)9, (char)13, (char)10};
 static string _spacesigns = " " + (char)9  + (char)13  + (char)10;
-        static int const CutLeft = -1;
-		static int const CutRight = 1;
-		static int const CutBoth = 0;  /*Cut_Space*/
-		static double const pi = 3.141592653589793;
+static int const CutLeft = -1;
+static int const CutRight = 1;
+static int const CutBoth = 0;  /*Cut_Space*/
+static double const pi = 3.141592653589793;
 
-        int ConversionError = 0;
-        int LineCount = 0;
-        bool DebugModeFlag = false;
-        bool FreeFlyModeFlag = false;
+int ConversionError = 0;
+int LineCount = 0;
+bool DebugModeFlag = false;
+bool FreeFlyModeFlag = false;
 
 
-        typedef unsigned long/*?*//*set of: char */ TableChar;  /*MCTUTIL*/
+typedef unsigned long/*?*//*set of: char */ TableChar;  /*MCTUTIL*/
 
 /*konwersje*/
 
@@ -70,10 +72,15 @@ inline int Random()
 	return rand();
 }
 
-inline float random(float a, float b)
+inline double Random(double a, double b)
 {
 	srand(time(NULL));
 	return a + rand() / (float)RAND_MAX * (b - a);
+}
+
+inline double Random(double b)
+{
+	return Random(0.0, b);
 }
 
 inline double BorlandTime()
@@ -91,9 +98,9 @@ inline double BorlandTime()
 }
 
 /*funkcje logiczne*/
-bool TestFlag(int Flag,  int Value);
-bool SetFlag( int & Flag,  int Value);
-bool iSetFlag( int & Flag,  int Value);
+extern bool TestFlag(int Flag,  int Value);
+extern bool SetFlag( int & Flag,  int Value);
+extern bool iSetFlag( int & Flag,  int Value);
 
 bool FuzzyLogic(double Test, double Threshold, double Probability);
 /*jesli Test>Threshold to losowanie*/
@@ -103,19 +110,41 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*operacje na stringach*/
 std::string ReadWord( std::ifstream& infile); /*czyta slowo z wiersza pliku tekstowego*/
 //std::string Ups(std::string s);
-std::string Cut_Space(std::string s,  int Just);
+std::string TrimSpace(std::string s,  int Just = CutBoth);
+char* TrimAndReduceSpaces(const char* s);
 std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
 std::string Ld2Sp(std::string s); /*Low dash to Space sign*/
 std::string Tab2Sp(std::string s); /*Tab to Space sign*/
+std::string ExchangeCharInString(string s,  const char &aim, const char &target); // zamienia jeden znak na drugi
+std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
+std::vector<std::string> Split(const std::string &s, char delim);
+
+std::string to_string(int _Val);
+std::string to_string(unsigned int _Val);
+std::string to_string(int _Val, int precision);
+std::string to_string(int _Val, int precision, int width);
+std::string to_string(double _Val);
+std::string to_string(double _Val, int precision);
+std::string to_string(double _Val, int precision, int width);
+std::string to_hex_str(double _Val, int precision = 0, int width = 0);
+inline std::string to_string(bool _Val)
+{
+	to_string((int)_Val);
+}
+
+int stol_def(const std::string & str, const int & DefaultValue);
+
+std::string ToLower(std::string text);
+std::string ToUpper(std::string text);
 
 /*procedury, zmienne i funkcje graficzne*/
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,   double & phi, double & Xout, double & Yout);
 /*wylicza polozenie Xout Yout i orientacje phi punktu na elemencie dL luku*/
 void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R,   double & Xout, double & Yout);
 
-inline bool fileExist(const std::string &name)
+inline bool fileExists(const std::string &name)
 {
     struct stat buffer;
     return (stat(name.c_str(), &buffer) == 0);

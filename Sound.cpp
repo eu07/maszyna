@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Sound.h"
 #include "Usefull.h"
 #include "Globals.h"
+#include <mctools.h>
 //#define SAFE_DELETE(p)  { if(p) { delete (p);     (p)=NULL; } }
 #define SAFE_RELEASE(p)     \
     {                       \
@@ -33,7 +34,7 @@ LPDIRECTSOUNDNOTIFY TSoundsManager::pDSNotify;
 int TSoundsManager::Count = 0;
 TSoundContainer *TSoundsManager::First = NULL;
 
-TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName,
+TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const char *strFileName,
                                  int NConcurrent)
 { // wczytanie pliku dŸwiêkowego
     int hr = 111;
@@ -54,7 +55,7 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFi
 
     // Load the wave file
     if (FAILED(pWaveSoundRead->Open(Name)))
-        if (FAILED(pWaveSoundRead->Open(strFileName)))
+        if (FAILED(pWaveSoundRead->Open(strdup(strFileName))))
         {
             //        SetFileUI( hDlg, TEXT("Bad wave file.") );
             return;
@@ -182,7 +183,7 @@ void TSoundsManager::Free()
     SAFE_RELEASE(pDS);
 };
 
-TSoundContainer * TSoundsManager::LoadFromFile(char *Dir, char *Name, int Concurrent)
+TSoundContainer * TSoundsManager::LoadFromFile(const char *Dir, const char *Name, int Concurrent)
 {
     TSoundContainer *Tmp = First;
     First = new TSoundContainer(pDS, Dir, Name, Concurrent);
@@ -203,7 +204,7 @@ void TSoundsManager::LoadSounds(char *Directory)
     FindClose(handle);
 };
 
-LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(char *Name, bool Dynamic, float *fSamplingRate)
+LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(const char *Name, bool Dynamic, float *fSamplingRate)
 { // wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
     AnsiString file;
     if (Dynamic)

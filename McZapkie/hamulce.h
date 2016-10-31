@@ -129,10 +129,10 @@ Knorr/West EP - ¿eby by³
 																		//7//1.5
  //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (14, 5.4), (9, 5.0), (6, 4.6), (9, 4.5), (9, 4.0), (9, 3.5), (9, 2.8), (34, 2.8));
  //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (7, 5.0), (2.0, 5.0), (4.5, 4.6), (4.5, 4.2), (4.5, 3.8), (4.5, 3.4), (4.5, 2.8), (8, 2.8));
-	static double zero_based_BPT[ /*?*//*-2..6*/ (6) - (-2) + 1][2] = { (0 , 5.0) , (7 , 5.0) , (2.0 , 5.0) , (4.5 , 4.6) , (4.5 , 4.2) , (4.5 , 3.8) , (4.5 , 3.4) , (4.5 , 2.8) , (8 , 2.8) };
-	static double zero_based_BPT_394[ /*?*//*-1..5*/ (5) - (-1) + 1][2] = { (13 , 10.0) , (5 , 5.0) , (0 , -1) , (5 , -1) , (5 , 0.0) , (5 , 0.0) , (18 , 0.0) };
-	double *BPT = zero_based_BPT[2]; //tablica pozycji hamulca dla zakresu -2..6
-	double *BPT_394 = zero_based_BPT_394[1]; //tablica pozycji hamulca dla zakresu -1..5
+	static double BPT[ /*?*//*-2..6*/ (6) - (-2) + 1][2] = { (0 , 5.0) , (7 , 5.0) , (2.0 , 5.0) , (4.5 , 4.6) , (4.5 , 4.2) , (4.5 , 3.8) , (4.5 , 3.4) , (4.5 , 2.8) , (8 , 2.8) };
+	static double BPT_394[ /*?*//*-1..5*/ (5) - (-1) + 1][2] = { (13 , 10.0) , (5 , 5.0) , (0 , -1) , (5 , -1) , (5 , 0.0) , (5 , 0.0) , (18 , 0.0) };
+	//double *BPT = zero_based_BPT[2]; //tablica pozycji hamulca dla zakresu -2..6
+	//double *BPT_394 = zero_based_BPT_394[1]; //tablica pozycji hamulca dla zakresu -1..5
 	//   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 	//      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
 	static int const i_bcpno = 6;
@@ -559,6 +559,8 @@ Knorr/West EP - ¿eby by³
 		double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
 		bool Fala;
+		// const double pos_table[11] = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
+		static double pos_table[11];
 		double LPP_RP(double pos);
 		bool EQ(double pos, double i_pos);
 	public:
@@ -580,6 +582,8 @@ Knorr/West EP - ¿eby by³
 		double CP; double TP; double RP;      //zbiornik steruj¹cy, czasowy, redukcyjny
 		double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 		bool Fala;
+		// const double pos_table[11] = { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
+		static double pos_table[11]; //= { 0, 12, 1, 2, 2, 4, 11, 12, 2, 2, 2 };
 		double LPP_RP(double pos);
 		bool EQ(double pos, double i_pos);
 
@@ -634,6 +638,8 @@ Knorr/West EP - ¿eby by³
 	private:
 		double CP;      //zbiornik steruj¹cy, czasowy, redukcyjny
 		double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+//		double const pos_table[11] = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
+		static double pos_table[11]; // = { 0, 6, 0, 1, 2, 3, 5, 6, 1, 1, 1 };
 
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
@@ -650,6 +656,10 @@ Knorr/West EP - ¿eby by³
 	class TH14K1 : public TDriverHandle
 
 	{
+	private:
+		double static BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2];
+//		double const table[11] = { -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 };
+		double static pos_table[11]; // = { 0, 5, 0, 1, 2, 3, 4, 5, 1, 1, 1 };
 	protected:
 		double CP;      //zbiornik steruj¹cy, czasowy, redukcyjny
 		double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
@@ -671,6 +681,10 @@ Knorr/West EP - ¿eby by³
 	{
 	private:
 		double EPS;
+		double static BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2];
+		double static BEP_K[/*?*/ /*-1..5*/ (5) - (-1) + 1];
+//		double const pos_table[11] = { -1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1 };
+		double static pos_table[11]; // = { 0, 6, 0, 1, 3, 4, 5, 6, 1, 1, 2 };
 
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
@@ -742,6 +756,8 @@ Knorr/West EP - ¿eby by³
 	{
 	private:
 		double EPS;
+//		double const table[11] = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
+		double static pos_table[11]; // = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
 
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;

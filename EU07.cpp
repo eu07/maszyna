@@ -83,6 +83,7 @@ USEUNIT("McZapkie\Mover.cpp");
 USEUNIT("McZapkie\hamulce.cpp");
 USEUNIT("McZapkie\Oerlikon_ESt.cpp");
 USEUNIT("McZapkie\friction.cpp");
+USEUNIT("McZapkie\mctools.cpp");
 USEUNIT("Console\PoKeys55.cpp");
 USEUNIT("Forth.cpp");
 USEUNIT("Console\LPT.cpp");
@@ -761,3 +762,6 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     KillGLWindow(); // kill the window
     return (msg.wParam); // exit the program
 }
+
+
+

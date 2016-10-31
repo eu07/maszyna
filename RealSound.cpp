@@ -40,6 +40,12 @@ TRealSound::TRealSound()
     bLoopPlay = false; // dŸwiêk wy³¹czony
 }
 
+TRealSound::TRealSound(const char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+	bool freqmod, double rmin)
+{
+	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
+}
+
 TRealSound::~TRealSound()
 {
     // if (this) if (pSound) pSound->Stop();
@@ -49,7 +55,7 @@ void TRealSound::Free()
 {
 }
 
-void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,
+void TRealSound::Init(const char *SoundName, double DistanceAttenuation, double X, double Y, double Z,
                       bool Dynamic, bool freqmod, double rmin)
 {
     // Nazwa=SoundName; //to tak raczej nie zadzia³a, (SoundName) jest tymczasowe
@@ -247,10 +253,17 @@ void TRealSound::ResetPosition()
         pSound->SetCurrentPosition(0);
 }
 
-void TTextSound::Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+TTextSound::TTextSound(const char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+	bool Dynamic, bool freqmod, double rmin)
+	: TRealSound(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin)
+{
+	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
+}
+
+void TTextSound::Init(const char *SoundName, double SoundAttenuation, double X, double Y, double Z,
                       bool Dynamic, bool freqmod, double rmin)
 { // dodatkowo doczytuje plik tekstowy
-    TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
+    //TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
     fTime = GetWaveTime();
     AnsiString txt = AnsiString(SoundName);
     txt.Delete(txt.Length() - 3, 4); // obciêcie rozszerzenia

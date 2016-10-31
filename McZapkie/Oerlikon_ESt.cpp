@@ -330,7 +330,7 @@ void TNESt3::Init(double PP, double HPP, double LPP, double BP, unsigned char BD
     CntrlRes = new TReservoir();
     CntrlRes->CreateCap(15);
     CntrlRes->CreatePress(1 * HPP);
-    BrakeStatus = Byte(BP > 1) * 1;
+    BrakeStatus = int(BP > 1) * 1;
     Miedzypoj = new TReservoir();
     Miedzypoj->CreateCap(5);
     Miedzypoj->CreatePress(PP);
@@ -457,7 +457,7 @@ void TNESt3::PLC(double mass)
 {
     LoadC =
         1 +
-        Byte(mass < LoadM) *
+        double(mass < LoadM) *
             ((TareBP + (MaxBP - TareBP) * (mass - TareM) * 1.0 / (LoadM - TareM)) * 1.0 / MaxBP -
              1);
 }

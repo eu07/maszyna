@@ -13,8 +13,8 @@
       ResourceManager.obj VBO.obj mtable.obj TextureDDS.obj 
       opengl\ARB_Multisample.obj Float3d.obj Classes.obj Driver.obj Names.obj 
       Console.obj McZapkie\Mover.obj McZapkie\hamulce.obj 
-      McZapkie\Oerlikon_ESt.obj McZapkie\friction.obj Console\PoKeys55.obj 
-      Forth.obj Console\LPT.obj PyInt.obj"/>
+      McZapkie\Oerlikon_ESt.obj McZapkie\friction.obj McZapkie\mctools.obj 
+      Console\PoKeys55.obj Forth.obj Console\LPT.obj PyInt.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>

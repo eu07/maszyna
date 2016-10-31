@@ -111,11 +111,11 @@ bool TTractionPowerSource::Update(double dt)
         {
             SlowFuse = true;
             ErrorLog("Power overload: \"" + gMyNode->asName + "\" disabled for " +
-                     AnsiString(SlowFuseTimeOut) + "s");
+                     to_string(SlowFuseTimeOut) + "s");
         }
         else
             ErrorLog("Power overload: \"" + gMyNode->asName + "\" disabled for " +
-                     AnsiString(FastFuseTimeOut) + "s");
+                     to_string(FastFuseTimeOut) + "s");
         FuseTimer = 0;
     }
     if (FastFuse || SlowFuse)

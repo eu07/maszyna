@@ -24,7 +24,7 @@ void ErrorLog(const std::string &str, bool newline = true);
 void WriteLog(const AnsiString &str, bool newline = true);
 void WriteLog(const std::string &str, bool newline = true);
 void CommLog(const char *str);
-void CommLog(const std::string);
+void CommLog(const std::string &str);
 void CommLog(const AnsiString &str);
 //---------------------------------------------------------------------------
 #endif

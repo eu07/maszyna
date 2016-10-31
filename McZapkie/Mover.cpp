@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Mover.h"
 #include "../globals.h"
 //#include "../qutils.h"
-#include "mctools.h"
+#include <mctools.h>
 #include "../logs.h"
 #include "hamulce.h"
 #include "Oerlikon_ESt.h"
@@ -3574,17 +3574,17 @@ double TMoverParameters::Adhesive(double staticfriction)
     {
         if (SandDose)
             adhesive = (Max0R(staticfriction * (100.0 + Vel) / ((50.0 + Vel) * 11.0), 0.048)) *
-                       (11.0 - 2.0 * random(0.0, 1.0));
+                       (11.0 - 2.0 * Random(0.0, 1.0));
         else
             adhesive = (staticfriction * (100.0 + Vel) / ((50.0 + Vel) * 10)) *
-                       (11.0 - 2.0 * random(0.0, 1.0));
+                       (11.0 - 2.0 * Random(0.0, 1.0));
     }
     else
     {
         if (SandDose)
-            adhesive = (0.048) * (11 - 2 * random(0.0, 1.0));
+            adhesive = (0.048) * (11 - 2 * Random(0.0, 1.0));
         else
-            adhesive = (staticfriction * 0.02) * (11 - 2 * random(0.0, 1.0));
+            adhesive = (staticfriction * 0.02) * (11 - 2 * Random(0.0, 1.0));
     }
     //  WriteLog(FloatToStr(adhesive));      // tutaj jest na poziomie 0.2 - 0.3
     return adhesive;
@@ -5409,12 +5409,12 @@ int mSize;
 double nMmax, nnMmax, nMnmax, nnmax, nnominalfill, nMstand;
 int nSize;
 
-int ti(std::string val)
+/*inline int ti(std::string val)
 {
     return atoi(val.c_str());
 }
 
-double td(std::string val)
+inline double td(std::string val)
 {
     return atof(val.c_str());
 }
@@ -5430,14 +5430,15 @@ std::string ts(std::string val)
 std::string tS(std::string val)
 {
     return ToUpper(val);
-}
+}*/
 
 // *************************************************************************************************
 // Q: 20160717
 // *************************************************************************************************
-int Pos(std::string find, std::string in)
+int Pos(std::string str_find, std::string in)
 {
-    return (in.Pos(find));
+    size_t pos = in.find(str_find);
+    return (pos ? pos : 0);
 }
 
 // *************************************************************************************************
@@ -5446,7 +5447,7 @@ int Pos(std::string find, std::string in)
 bool issection(std::string name)
 {
     sectionname = name;
-    if (xline.Pos(name) > 0)
+    if (xline.find(name) != string::npos)
     {
         lastsectionname = name;
         return true;
@@ -5470,19 +5471,19 @@ std::string getkeyval(int rettype, std::string key)
 
     if (Pos(key, xline) > 0) // jezeli jest klucz w swkcji...
     {
-        int klen = key.Length();
+        int klen = key.length();
         int kpos = Pos(key, xline) - 1;
-        temp.Delete(1, kpos + klen);
-        if (temp.Pos(" ") > 0)
-            to = temp.Pos(" ");
+        temp.erase(0, kpos + klen);
+        if (temp.find(" ") != string::npos)
+            to = temp.find(" ");
         else
             to = 255;
-        kval = temp.SubString(1, to);
+        kval = temp.substr(0, to);
         if (kval != "")
-            kval = kval.Trim(); // wyciagnieta wartosc
+            kval = TrimSpace(kval); // wyciagnieta wartosc
 
-        sectionname = StringReplace(sectionname, ":", "", TReplaceFlags() << rfReplaceAll);
-        sectionname = StringReplace(sectionname, ".", "", TReplaceFlags() << rfReplaceAll);
+        sectionname = ExchangeCharInString(sectionname, (char)":", (char)"");
+        sectionname = ExchangeCharInString(sectionname, (char)".", (char)"");
         //--WriteLog(sectionname + "." + keyname + " val= [" + kval + "]");
 
         //    if (rettype == 1) vS = kval;
@@ -5490,8 +5491,9 @@ std::string getkeyval(int rettype, std::string key)
         //    if (kval != "" && rettype == 3) vD = StrToFloat(kval);
     }
     else
-        kval = "0"; // gdy nie bylo klucza TODO: dodac do funkcji parametr z wartoscia fabryczna
+        kval = ""; // gdy nie bylo klucza TODO: dodac do funkcji parametr z wartoscia fabryczna
     // UWAGA! 0 moze powodowac bledy, przemyslec zwracanie wartosci gdy nie ma klucza!!!
+    // zwraca pusty klucz GF 2016-10-26
     return kval;
 }
 
@@ -5499,6 +5501,32 @@ int MARKERROR(int code, std::string type, std::string msg)
 {
     WriteLog(msg);
     return code;
+}
+
+int s2NPW(string s)
+{ // wylicza ilosc osi napednych z opisu ukladu osi
+	const char A = (char)"A" - (char)1;
+	int k;
+	int NPW = 0;
+	for (k = 0; k < s.length(); k++)
+	{
+		if (s[k] >= (char)"A" && s[k] <= (char)"Z")
+			NPW += s[k] - A;
+	}
+	return NPW;
+}
+
+int s2NNW(string s)
+{ // wylicza ilosc osi nienapedzanych z opisu ukladu osi
+	const char Zero = (char)"0";
+	int k;
+	int NNW = 0;
+	for (k = 0; k < s.length(); k++)
+	{
+		if (s[k] >= (char)"1" && s[k] <= (char)"9")
+			NNW += s[k] - Zero;
+	}
+	return NNW;
 }
 
 // *************************************************************************************************
@@ -5515,27 +5543,27 @@ bool TMoverParameters::readMPT(int ln, std::string xline)
     if (ln > 0) // 0 to nazwa sekcji - MotorParamTable0:
     {
         //--WriteLog("MPT: " + xline);
-        x = split(xline.c_str(), ' ');
+        x = Split(xline, ' ');
 
-        p0 = Trim(x[0].c_str());
-        p1 = Trim(x[1].c_str());
-        p2 = Trim(x[2].c_str());
-        p3 = Trim(x[3].c_str());
-        p4 = Trim(x[4].c_str());
-        p5 = Trim(x[5].c_str());
-        p6 = Trim(x[6].c_str());
+        p0 = TrimSpace(x[0]);
+        p1 = TrimSpace(x[1]);
+        p2 = TrimSpace(x[2]);
+        p3 = TrimSpace(x[3]);
+        p4 = TrimSpace(x[4]);
+        p5 = TrimSpace(x[5]);
+        p6 = TrimSpace(x[6]);
 
         if (AutoRelayType == 0)
             as = false;
-        bl = StrToInt(p0); // numer pozycji
+        bl = atoi(p0.c_str()); // numer pozycji
 
-        MotorParam[StrToInt(p0)].mfi = StrToFloat(p1);
-        MotorParam[StrToInt(p0)].mIsat = StrToFloat(p2);
-        MotorParam[StrToInt(p0)].mfi0 = StrToFloat(p3);
-        MotorParam[StrToInt(p0)].fi = StrToFloat(p4);
-        MotorParam[StrToInt(p0)].Isat = StrToFloat(p5);
-        MotorParam[StrToInt(p0)].fi0 = StrToFloat(p6);
-        MotorParam[StrToInt(p0)].AutoSwitch = as;
+        MotorParam[bl].mfi = atof(p1.c_str());
+        MotorParam[bl].mIsat = atof(p2.c_str());
+        MotorParam[bl].mfi0 = atof(p3.c_str());
+        MotorParam[bl].fi = atof(p4.c_str());
+        MotorParam[bl].Isat = atof(p5.c_str());
+        MotorParam[bl].fi0 = atof(p6.c_str());
+        MotorParam[bl].AutoSwitch = as;
 
         //--WriteLog(":::: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4 + "," + p5 + "," +
         //p6);
@@ -5558,29 +5586,29 @@ bool TMoverParameters::readRLIST(int ln, std::string xline)
         // WriteLog("RLIST: " + xline);
         xline = Tab2Sp(xline); // zamieniamy taby na spacje  (ile tabow tyle spacji bedzie)
 
-        xxx = trim_and_reduce_spaces(stdstrtochar(xline.c_str())); // konwertujemy na *char i
+        xxx = TrimAndReduceSpaces(xline.c_str()); // konwertujemy na *char i
                                                                    // ograniczamy spacje pomiedzy
                                                                    // parametrami do jednej
 
-        x = split(xxx, ' '); // split je wskaznik na char jak i std::string
+        x = Split(xxx, ' '); // split je wskaznik na char jak i std::string
 
-        p0 = Trim(x[0].c_str());
-        p1 = Trim(x[1].c_str());
-        p2 = Trim(x[2].c_str());
-        p3 = Trim(x[3].c_str());
-        p4 = Trim(x[4].c_str());
-        p5 = Trim(x[5].c_str());
+        p0 = TrimSpace(x[0]);
+        p1 = TrimSpace(x[1]);
+        p2 = TrimSpace(x[2]);
+        p3 = TrimSpace(x[3]);
+        p4 = TrimSpace(x[4]);
+        p5 = TrimSpace(x[5]);
 
         int k = ln - 1;
 
-        RlistSize = s2b(mSize);
+        RlistSize = (mSize);
         if (RlistSize > ResArraySize)
             ConversionError = -4;
 
-        RList[k].Relay = p0.ToInt(); // int
-        RList[k].R = p1.ToDouble(); // double
-        RList[k].Bn = p2.ToInt(); // int
-        RList[k].Mn = p3.ToInt(); // int
+        RList[k].Relay = atoi(p0.c_str()); // int
+        RList[k].R = atof(p1.c_str()); // double
+        RList[k].Bn = atoi(p2.c_str()); // int
+        RList[k].Mn = atoi(p3.c_str()); // int
         RList[k].AutoSwitch = false; // p4.ToInt();
 
         //--WriteLog("RLIST: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
@@ -5603,19 +5631,19 @@ bool TMoverParameters::readBPT(int ln, std::string xline)
     {
         // WriteLog("BPT: " + xline);
         xline = Tab2Sp(xline);
-        xxx = trim_and_reduce_spaces(stdstrtochar(xline.c_str()));
-        x = split(xxx, ' ');
+        xxx = TrimAndReduceSpaces(xline.c_str());
+        x = Split(xxx, ' ');
 
-        p0 = Trim(x[0].c_str());
-        p1 = Trim(x[1].c_str());
-        p2 = Trim(x[2].c_str());
-        p3 = Trim(x[3].c_str());
-        p4 = Trim(x[4].c_str());
+        p0 = TrimSpace(x[0]);
+        p1 = TrimSpace(x[1]);
+        p2 = TrimSpace(x[2]);
+        p3 = TrimSpace(x[3]);
+        p4 = TrimSpace(x[4]);
 
-        k = s2iE(p0);
-        BrakePressureTable[k].PipePressureVal = p1.ToDouble();
-        BrakePressureTable[k].BrakePressureVal = p2.ToDouble();
-        BrakePressureTable[k].FlowSpeedVal = p3.ToDouble();
+        k = atoi(p0.c_str());
+        BrakePressureTable[k].PipePressureVal = atof(p1.c_str());
+        BrakePressureTable[k].BrakePressureVal = atof(p2.c_str());
+        BrakePressureTable[k].FlowSpeedVal = atof(p3.c_str());
         if (p4 == "Pneumatic")
             BrakePressureTable[k].BrakeType = Pneumatic;
         else if (p4 == "ElectroPneumatic")
@@ -5685,19 +5713,28 @@ void TMoverParameters::BrakeSubsystemDecode()
     BrakeSubsystem = ss_None;
     switch (BrakeValve)
     {
-    case W, W_Lu_L, W_Lu_VI, W_Lu_XR:
+	case W:
+	case W_Lu_L:
+	case W_Lu_VI:
+	case W_Lu_XR:
         BrakeSubsystem = ss_W;
         break;
-    case ESt3, ESt3AL2, ESt4, EP2, EP1:
+	case ESt3:
+	case ESt3AL2:
+	case ESt4:
+	case EP2:
+	case EP1:
         BrakeSubsystem = ss_ESt;
         break;
     case KE:
         BrakeSubsystem = ss_KE;
         break;
-    case CV1, CV1_L_TR:
+	case CV1:
+	case CV1_L_TR:
         BrakeSubsystem = ss_Dako;
         break;
-    case LSt, EStED:
+	case LSt:
+	case EStED:
         BrakeSubsystem = ss_LSt;
         break;
     }
@@ -5802,18 +5839,18 @@ void TMoverParameters::PowerParamDecode(std::string lines, std::string prefix,
     case CurrentCollector:
     {
 
-        PowerParamDecode.CollectorParameters.CollectorsNo = s2lE(jCollectorsNo);
-        PowerParamDecode.CollectorParameters.MinH = s2rE(jMinH);
-        PowerParamDecode.CollectorParameters.MaxH = s2rE(jMaxH);
-        PowerParamDecode.CollectorParameters.CSW = s2rE(jCSW); // szerokoœæ czêœci roboczej
-        PowerParamDecode.CollectorParameters.MaxV = s2rE(jMaxVoltage);
+        PowerParamDecode.CollectorParameters.CollectorsNo = (jCollectorsNo);
+        PowerParamDecode.CollectorParameters.MinH = (jMinH);
+        PowerParamDecode.CollectorParameters.MaxH = (jMaxH);
+        PowerParamDecode.CollectorParameters.CSW = (jCSW); // szerokoœæ czêœci roboczej
+        PowerParamDecode.CollectorParameters.MaxV = (jMaxVoltage);
 
         // s:=jMinV; //napiêcie roz³¹czaj¹ce WS
         if (jMinV == 0)
             PowerParamDecode.CollectorParameters.MinV =
                 0.5 * PowerParamDecode.CollectorParameters.MaxV; // gdyby parametr nie podany
         else
-            PowerParamDecode.CollectorParameters.MinV = s2rE(jMinV);
+            PowerParamDecode.CollectorParameters.MinV = (jMinV);
 
         //-s:=ExtractKeyWord(lines,'InsetV='); //napiêcie wymagane do za³¹czenia WS
         //-if s='' then
@@ -5825,12 +5862,12 @@ void TMoverParameters::PowerParamDecode(std::string lines, std::string prefix,
             PowerParamDecode.CollectorParameters.MinPress = 2.0; // domyœlnie 2 bary do za³¹czenia
                                                                  // WS
         else
-            PowerParamDecode.CollectorParameters.MinPress = s2rE(jMinPress);
+            PowerParamDecode.CollectorParameters.MinPress = (jMinPress);
         // s:=ExtractKeyWord(lines,'MaxPress='); //maksymalne ciœnienie za reduktorem
         if (jMaxPress == 0)
-            PowerParamDecode.CollectorParameters.MaxPress = 5.0 + 0.001 * (random(50) - random(50));
+            PowerParamDecode.CollectorParameters.MaxPress = 5.0 + 0.001 * (Random(50) - Random(50));
         else
-            PowerParamDecode.CollectorParameters.MaxPress = s2rE(jMaxPress);
+            PowerParamDecode.CollectorParameters.MaxPress = (jMaxPress);
     }
         // case PowerCable:
         //{
@@ -5862,9 +5899,9 @@ void TMoverParameters::PowerParamDecode(std::string lines, std::string prefix,
 // *************************************************************************************************
 bool TMoverParameters::LoadFIZ(std::string chkpath)
 {
-    const param_ok = 1;
-    const wheels_ok = 2;
-    const dimensions_ok = 4;
+    const int param_ok = 1;
+    const int wheels_ok = 2;
+    const int dimensions_ok = 4;
 
     int ishash;
     int bl, i, k;
@@ -5892,6 +5929,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     // appdir = ExtractFilePath(ParamStr(0));
 
     ifstream in(file.c_str());
+	if (!in.is_open())
+	{
+		WriteLog("E8 - FIZ FILE NOT EXIST.");
+		return false;
+	}
 
     bool secBPT, secMotorParamTable0, secPower, secEngine, secParam, secLoad, secDimensions,
         secWheels, secBrake, secBuffCoupl, secCntrl, secSecurity, secLight, secCircuit, secRList,
@@ -5910,7 +5952,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         if ((ishash == 0))
         {
 
-            if (xline.Length() == 0)
+            if (xline.length() == 0)
                 startBPT = false; // Tablica parametyrow hamulca nie ma znacznika konca :(
             if (issection("END-MPT"))
                 startMPT = false;
@@ -5921,207 +5963,207 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             {
                 secParam = true;
                 SetFlag(OKFlag, param_ok);
-                aCategory = ts(getkeyval(1, "Category"));
-                aType = tS(getkeyval(1, "Type"));
-                aMass = td(getkeyval(3, "M"));
-                aMred = td(getkeyval(3, "Mred"));
-                aVmax = td(getkeyval(3, "Vmax"));
-                aPWR = td(getkeyval(3, "PWR"));
-                aSandCap = ti(getkeyval(2, "SandCap"));
-                aHeatingP = td(getkeyval(3, "HeatingP"));
-                aLightP = td(getkeyval(3, "LightP"));
+                aCategory = getkeyval(1, "Category");
+                aType = ToUpper(getkeyval(1, "Type"));
+                aMass = atof(getkeyval(3, "M").c_str());
+                aMred = atof(getkeyval(3, "Mred").c_str());
+                aVmax = atof(getkeyval(3, "Vmax").c_str());
+                aPWR = atof(getkeyval(3, "PWR").c_str());
+                aSandCap = atoi(getkeyval(2, "SandCap").c_str());
+                aHeatingP = atof(getkeyval(3, "HeatingP").c_str());
+                aLightP = atof(getkeyval(3, "LightP").c_str());
             }
 
             if (issection("Load:"))
             {
                 secLoad = true;
-                bMaxLoad = ti(getkeyval(2, "MaxLoad"));
-                bLoadQ = ts(getkeyval(1, "LoadQ"));
-                bLoadAccepted = ts(getkeyval(1, "LoadAccepted"));
-                bLoadSpeed = td(getkeyval(3, "LoadSpeed"));
-                bUnLoadSpeed = td(getkeyval(3, "UnLoadSpeed"));
-                bOverLoadFactor = td(getkeyval(3, "OverLoadFactor"));
+                bMaxLoad = atoi(getkeyval(2, "MaxLoad").c_str());
+                bLoadQ = getkeyval(1, "LoadQ");
+                bLoadAccepted = getkeyval(1, "LoadAccepted");
+                bLoadSpeed = atof(getkeyval(3, "LoadSpeed").c_str());
+                bUnLoadSpeed = atof(getkeyval(3, "UnLoadSpeed").c_str());
+                bOverLoadFactor = atof(getkeyval(3, "OverLoadFactor").c_str());
             }
 
             if (issection("Dimensions:"))
             {
                 secDimensions = true;
                 SetFlag(OKFlag, dimensions_ok);
-                cL = td(getkeyval(3, "L"));
-                cH = td(getkeyval(3, "H"));
-                cW = td(getkeyval(3, "W"));
-                cCx = td(getkeyval(3, "Cx"));
-                cFloor = td(getkeyval(3, "Floor"));
+                cL = atof(getkeyval(3, "L").c_str());
+                cH = atof(getkeyval(3, "H").c_str());
+                cW = atof(getkeyval(3, "W").c_str());
+                cCx = atof(getkeyval(3, "Cx").c_str());
+                cFloor = atof(getkeyval(3, "Floor").c_str());
             }
 
             if (issection("Wheels:"))
             {
                 secWheels = true;
-                dD = td(getkeyval(3, "D"));
-                dDl = td(getkeyval(3, "Dl"));
-                dDt = td(getkeyval(3, "Dt"));
-                dAIM = td(getkeyval(3, "AIM"));
-                dTw = td(getkeyval(3, "Tw"));
-                dAxle = ts(getkeyval(1, "Axle"));
-                dAd = td(getkeyval(3, "Ad"));
-                dBd = td(getkeyval(3, "Bd"));
-                dRmin = td(getkeyval(3, "Rmin"));
-                dBearingType = ts(getkeyval(1, "BearingType"));
+                dD = atof(getkeyval(3, "D").c_str());
+                dDl = atof(getkeyval(3, "Dl").c_str());
+                dDt = atof(getkeyval(3, "Dt").c_str());
+                dAIM = atof(getkeyval(3, "AIM").c_str());
+                dTw = atof(getkeyval(3, "Tw").c_str());
+                dAxle = getkeyval(1, "Axle");
+                dAd = atof(getkeyval(3, "Ad").c_str());
+                dBd = atof(getkeyval(3, "Bd").c_str());
+                dRmin = atof(getkeyval(3, "Rmin").c_str());
+                dBearingType = getkeyval(1, "BearingType");
             }
 
             if (issection("Brake:"))
             {
                 secBrake = true;
-                eBrakeValve = ts(getkeyval(1, "BrakeValve"));
-                eNBpA = ti(getkeyval(2, "NBpA"));
-                eMBF = td(getkeyval(3, "MBF"));
-                eTBF = td(getkeyval(3, "TBF"));
-                eSize = ti(getkeyval(3, "Size"));
-                eMaxBP = td(getkeyval(3, "MaxBP"));
-                eMedMaxBP = td(getkeyval(3, "MedMaxBP"));
-                eTareMaxBP = td(getkeyval(3, "TareMaxBP"));
-                eMaxLBP = td(getkeyval(3, "MaxLBP"));
-                eMaxASBP = td(getkeyval(3, "MaxASBP"));
-                eRM = td(getkeyval(3, "RM"));
-                eBCN = ti(getkeyval(2, "BCN"));
-                eBCR = td(getkeyval(3, "BCR"));
-                eBCD = td(getkeyval(3, "BCD"));
-                eBCM = td(getkeyval(3, "BCM"));
-                eBCMlo = td(getkeyval(3, "BCMlo"));
-                eBCMhi = td(getkeyval(3, "BCMhi"));
-                eVv = td(getkeyval(3, "Vv"));
-                eMinCP = td(getkeyval(3, "MinCP"));
-                eMaxCP = td(getkeyval(3, "MaxCP"));
-                eBCS = td(getkeyval(3, "BCS"));
-                eBSA = td(getkeyval(3, "BSA"));
-                eBM = ts(getkeyval(1, "BM"));
-                eBVV = ti(getkeyval(2, "BVV"));
-                eBRE = td(getkeyval(3, "BRE"));
-                eHiPP = td(getkeyval(3, "HiPP"));
-                eLoPP = td(getkeyval(3, "LoPP"));
-                eCompressorSpeed = td(getkeyval(3, "CompressorSpeed"));
-                eCompressorPower = ts(getkeyval(1, "CompressorPower"));
+                eBrakeValve = getkeyval(1, "BrakeValve");
+                eNBpA = atoi(getkeyval(2, "NBpA").c_str());
+                eMBF = atof(getkeyval(3, "MBF").c_str());
+                eTBF = atof(getkeyval(3, "TBF").c_str());
+                eSize = atoi(getkeyval(3, "Size").c_str());
+                eMaxBP = atof(getkeyval(3, "MaxBP").c_str());
+                eMedMaxBP = atof(getkeyval(3, "MedMaxBP").c_str());
+                eTareMaxBP = atof(getkeyval(3, "TareMaxBP").c_str());
+                eMaxLBP = atof(getkeyval(3, "MaxLBP").c_str());
+                eMaxASBP = atof(getkeyval(3, "MaxASBP").c_str());
+                eRM = atof(getkeyval(3, "RM").c_str());
+                eBCN = atoi(getkeyval(2, "BCN").c_str());
+                eBCR = atof(getkeyval(3, "BCR").c_str());
+                eBCD = atof(getkeyval(3, "BCD").c_str());
+                eBCM = atof(getkeyval(3, "BCM").c_str());
+                eBCMlo = atof(getkeyval(3, "BCMlo").c_str());
+                eBCMhi = atof(getkeyval(3, "BCMhi").c_str());
+                eVv = atof(getkeyval(3, "Vv").c_str());
+                eMinCP = atof(getkeyval(3, "MinCP").c_str());
+                eMaxCP = atof(getkeyval(3, "MaxCP").c_str());
+                eBCS = atof(getkeyval(3, "BCS").c_str());
+                eBSA = atof(getkeyval(3, "BSA").c_str());
+                eBM = atof(getkeyval(1, "BM").c_str());
+                eBVV = atoi(getkeyval(2, "BVV").c_str());
+                eBRE = atof(getkeyval(3, "BRE").c_str());
+                eHiPP = atof(getkeyval(3, "HiPP").c_str());
+                eLoPP = atof(getkeyval(3, "LoPP").c_str());
+                eCompressorSpeed = atof(getkeyval(3, "CompressorSpeed").c_str());
+                eCompressorPower = atof(getkeyval(1, "CompressorPower").c_str());
             }
 
             if (issection("BuffCoupl.") || issection("BuffCoupl1."))
             {
                 secBuffCoupl = true;
-                fCType = ts(getkeyval(1, "CType"));
-                fkB = td(getkeyval(3, "kB"));
-                fDmaxB = td(getkeyval(3, "DmaxB"));
-                fFmaxB = td(getkeyval(3, "FmaxB"));
-                fkC = td(getkeyval(3, "kC"));
-                fDmaxC = td(getkeyval(3, "DmaxC"));
-                fFmaxC = td(getkeyval(3, "FmaxC"));
-                fbeta = td(getkeyval(3, "beta"));
-                fAllowedFlag = ti(getkeyval(2, "AllowedFlag"));
+                fCType = (getkeyval(1, "CType"));
+                fkB = atof(getkeyval(3, "kB").c_str());
+                fDmaxB = atof(getkeyval(3, "DmaxB").c_str());
+                fFmaxB = atof(getkeyval(3, "FmaxB").c_str());
+                fkC = atof(getkeyval(3, "kC").c_str());
+                fDmaxC = atof(getkeyval(3, "DmaxC").c_str());
+                fFmaxC = atof(getkeyval(3, "FmaxC").c_str());
+                fbeta = atof(getkeyval(3, "beta").c_str());
+                fAllowedFlag = atoi(getkeyval(2, "AllowedFlag").c_str());
             }
 
             if (issection("Cntrl."))
             {
                 secCntrl = true;
-                gBrakeSystem = ts(getkeyval(1, "BrakeSystem"));
-                gBCPN = ti(getkeyval(2, "BCPN"));
-                gBDelay1 = ti(getkeyval(2, "BDelay1"));
-                gBDelay2 = ti(getkeyval(2, "BDelay2"));
-                gBDelay3 = ti(getkeyval(2, "BDelay3"));
-                gBDelay4 = ti(getkeyval(2, "BDelay4"));
-                gASB = ts(getkeyval(1, "ASB"));
-                gLocalBrake = ts(getkeyval(1, "LocalBrake"));
-                gDynamicBrake = ts(getkeyval(1, "DynamicBrake"));
-                // gManualBrake =         ts(getkeyval(1, "ManualBrake"));
-                gFSCircuit = ts(getkeyval(1, "FSCircuit"));
-                gMCPN = ti(getkeyval(2, "MCPN"));
-                gSCPN = ti(getkeyval(2, "SCPN"));
-                gSCIM = ti(getkeyval(2, "SCIM"));
-                gScndS = ts(getkeyval(1, "ScndS"));
-                gCoupledCtrl = ts(getkeyval(1, "CoupledCtrl"));
-                gAutoRelay = ts(getkeyval(1, "AutoRelay"));
-                gIniCDelay = td(getkeyval(3, "IniCDelay"));
-                gSCDelay = td(getkeyval(3, "SCDelay"));
-                gSCDDelay = td(getkeyval(3, "SCDDelay"));
-                gBrakeDelays = ts(getkeyval(1, "BrakeDelays"));
-                gBrakeHandle = ts(getkeyval(1, "BrakeHandle"));
-                gLocBrakeHandle = ts(getkeyval(1, "LocBrakeHandle"));
-                gMaxBPMass = td(getkeyval(3, "MaxBPMass"));
+                gBrakeSystem = (getkeyval(1, "BrakeSystem"));
+                gBCPN = atoi(getkeyval(2, "BCPN").c_str());
+                gBDelay1 = atoi(getkeyval(2, "BDelay1").c_str());
+                gBDelay2 = atoi(getkeyval(2, "BDelay2").c_str());
+                gBDelay3 = atoi(getkeyval(2, "BDelay3").c_str());
+                gBDelay4 = atoi(getkeyval(2, "BDelay4").c_str());
+                gASB = (getkeyval(1, "ASB"));
+                gLocalBrake = (getkeyval(1, "LocalBrake"));
+                gDynamicBrake = (getkeyval(1, "DynamicBrake"));
+                // gManualBrake =         (getkeyval(1, "ManualBrake"));
+                gFSCircuit = (getkeyval(1, "FSCircuit").c_str());
+                gMCPN = atoi(getkeyval(2, "MCPN").c_str());
+                gSCPN = atoi(getkeyval(2, "SCPN").c_str());
+                gSCIM = atoi(getkeyval(2, "SCIM").c_str());
+                gScndS = (getkeyval(1, "ScndS"));
+                gCoupledCtrl = (getkeyval(1, "CoupledCtrl"));
+                gAutoRelay = (getkeyval(1, "AutoRelay"));
+                gIniCDelay = atof(getkeyval(3, "IniCDelay").c_str());
+                gSCDelay = atof(getkeyval(3, "SCDelay").c_str());
+                gSCDDelay = atof(getkeyval(3, "SCDDelay").c_str());
+                gBrakeDelays = (getkeyval(1, "BrakeDelays"));
+                gBrakeHandle = (getkeyval(1, "BrakeHandle"));
+                gLocBrakeHandle = (getkeyval(1, "LocBrakeHandle"));
+                gMaxBPMass = atof(getkeyval(3, "MaxBPMass").c_str());
             }
 
             if (issection("Security:"))
             {
                 secSecurity = true;
-                hAwareSystem = ts(getkeyval(1, "AwareSystem"));
-                hAwareMinSpeed = td(getkeyval(3, "AwareMinSpeed"));
-                hAwareDelay = td(getkeyval(3, "AwareDelay"));
-                hSoundSignalDelay = td(getkeyval(3, "SoundSignalDelay"));
-                hEmergencyBrakeDelay = td(getkeyval(3, "EmergencyBrakeDelay"));
-                hRadioStop = ts(getkeyval(1, "RadioStop"));
+                hAwareSystem = (getkeyval(1, "AwareSystem"));
+                hAwareMinSpeed = atof(getkeyval(3, "AwareMinSpeed").c_str());
+                hAwareDelay = atof(getkeyval(3, "AwareDelay").c_str());
+                hSoundSignalDelay = atof(getkeyval(3, "SoundSignalDelay").c_str());
+                hEmergencyBrakeDelay = atof(getkeyval(3, "EmergencyBrakeDelay").c_str());
+                hRadioStop = (getkeyval(1, "RadioStop"));
             }
 
             if (issection("Light:"))
             {
                 secLight = true;
-                iLight = ts(getkeyval(1, "Light"));
-                iLGeneratorEngine = ts(getkeyval(1, "LGeneratorEngine"));
-                iLMaxVoltage = td(getkeyval(3, "LMaxVoltage"));
-                iLMaxCurrent = td(getkeyval(3, "LMaxCurrent"));
+                iLight = (getkeyval(1, "Light"));
+                iLGeneratorEngine = (getkeyval(1, "LGeneratorEngine"));
+                iLMaxVoltage = atof(getkeyval(3, "LMaxVoltage").c_str());
+                iLMaxCurrent = atof(getkeyval(3, "LMaxCurrent").c_str());
             }
 
             if (issection("Power:"))
             {
                 secPower = true;
-                jEnginePower = ts(getkeyval(1, "EnginePower"));
-                jSystemPower = ts(getkeyval(1, "SystemPower"));
-                jCollectorsNo = ti(getkeyval(2, "CollectorsNo"));
-                jMaxVoltage = td(getkeyval(3, "MaxVoltage"));
-                jMaxCurrent = td(getkeyval(3, "MaxCurrent"));
-                jIntR = td(getkeyval(3, "IntR"));
-                jMinH = td(getkeyval(3, "MinH"));
-                jMaxH = td(getkeyval(3, "MaxH"));
-                jCSW = td(getkeyval(3, "CSW"));
-                jMinV = td(getkeyval(3, "MinV"));
-                jMinPress = td(getkeyval(3, "MinPress"));
-                jMaxPress = td(getkeyval(3, "MaxPress"));
+                jEnginePower = (getkeyval(1, "EnginePower"));
+                jSystemPower = (getkeyval(1, "SystemPower"));
+                jCollectorsNo = atoi(getkeyval(2, "CollectorsNo").c_str());
+                jMaxVoltage = atof(getkeyval(3, "MaxVoltage").c_str());
+                jMaxCurrent = atof(getkeyval(3, "MaxCurrent").c_str());
+                jIntR = atof(getkeyval(3, "IntR").c_str());
+                jMinH = atof(getkeyval(3, "MinH").c_str());
+                jMaxH = atof(getkeyval(3, "MaxH").c_str());
+                jCSW = atof(getkeyval(3, "CSW").c_str());
+                jMinV = atof(getkeyval(3, "MinV").c_str());
+                jMinPress = atof(getkeyval(3, "MinPress").c_str());
+                jMaxPress = atof(getkeyval(3, "MaxPress").c_str());
             }
 
             if (issection("Engine:"))
             {
                 secEngine = true;
-                kEngineType = ts(getkeyval(1, "EngineType"));
-                kTrans = ts(getkeyval(1, "Trans"));
-                kVolt = td(getkeyval(3, "Volt"));
-                kWindingRes = td(getkeyval(3, "WindingRes"));
-                knmax = td(getkeyval(3, "nmax"));
+                kEngineType = (getkeyval(1, "EngineType"));
+                kTrans = (getkeyval(1, "Trans"));
+                kVolt = atof(getkeyval(3, "Volt").c_str());
+                kWindingRes = atof(getkeyval(3, "WindingRes").c_str());
+                knmax = atof(getkeyval(3, "nmax").c_str());
             }
 
             if (issection("Circuit:"))
             {
                 secCircuit = true;
-                lCircuitRes = td(getkeyval(3, "CircuitRes"));
-                lImaxLo = ti(getkeyval(2, "ImaxLo"));
-                lImaxHi = ti(getkeyval(2, "ImaxHi"));
-                lIminLo = ti(getkeyval(2, "IminLo"));
-                lIminHi = ti(getkeyval(2, "IminHi"));
+                lCircuitRes = atof(getkeyval(3, "CircuitRes").c_str());
+                lImaxLo = atoi(getkeyval(2, "ImaxLo").c_str());
+                lImaxHi = atoi(getkeyval(2, "ImaxHi").c_str());
+                lIminLo = atoi(getkeyval(2, "IminLo").c_str());
+                lIminHi = atoi(getkeyval(2, "IminHi").c_str());
             }
 
             if (issection("RList:"))
             {
                 secRList = true;
-                mSize = ti(getkeyval(2, "Size"));
-                mRVent = ts(getkeyval(1, "RVent"));
-                mRVentnmax = td(getkeyval(3, "RVentnmax"));
-                mRVentCutOff = td(getkeyval(3, "RVentCutOff"));
+                mSize = atoi(getkeyval(2, "Size").c_str());
+                mRVent = (getkeyval(1, "RVent"));
+                mRVentnmax = atof(getkeyval(3, "RVentnmax").c_str());
+                mRVentCutOff = atof(getkeyval(3, "RVentCutOff").c_str());
             }
 
             if (issection("DList:"))
             {
                 secDList = true;
-                nMmax = td(getkeyval(3, "Mmax"));
-                nnMmax = td(getkeyval(3, "nMmax"));
-                nMnmax = td(getkeyval(3, "Mnmax"));
-                nnmax = td(getkeyval(3, "nmax"));
-                nnominalfill = td(getkeyval(3, "nominalfill"));
-                nMstand = td(getkeyval(3, "Mstand"));
-                nSize = ti(getkeyval(2, "Size"));
+                nMmax = atof(getkeyval(3, "Mmax").c_str());
+                nnMmax = atof(getkeyval(3, "nMmax").c_str());
+                nMnmax = atof(getkeyval(3, "Mnmax").c_str());
+                nnmax = atof(getkeyval(3, "nmax").c_str());
+                nnominalfill = atof(getkeyval(3, "nominalfill").c_str());
+                nMstand = atof(getkeyval(3, "Mstand").c_str());
+                nSize = atoi(getkeyval(2, "Size").c_str());
             }
 
             if (issection("WWList:"))
@@ -6185,7 +6227,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     else if (aCategory == "unimog")
         CategoryFlag = 3;
     else
-        ConversionError = MARKERROR(-7, 1, "Improper vechicle category");
+        ConversionError = MARKERROR(-7, "1", "Improper vechicle category");
 
     Mass = aMass;
     Mred = aMred;
@@ -6274,7 +6316,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         AxleInertialMoment = 1;
 
     if (NAxles == 0)
-        ConversionError = MARKERROR(-1, 1, "0 axles, hover cat?");
+        ConversionError = MARKERROR(-1, "1", "0 axles, hover cat?");
 
     if (dBearingType == "Roll")
         BearingType = 1;
@@ -6368,7 +6410,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                     RapidMult = 1;
             }
             else
-                ConversionError = MARKERROR(-5, 1, "0 brake cylinder units");
+                ConversionError = MARKERROR(-5, "1", "0 brake cylinder units");
         }
         else
             P2FTrans = 0;
@@ -6379,7 +6421,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             CntrlPipePress = eHiPP;
         else
             CntrlPipePress =
-                5 + 0.001 * (random(10) - random(10)); // Ra 2014-07: trochê niedok³adnoœci
+                5 + 0.001 * (Random(10) - Random(10)); // Ra 2014-07: trochê niedok³adnoœci
         HighPipePress = CntrlPipePress;
 
         if (eHiPP != 0)
@@ -6705,13 +6747,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             {
                 NominalVoltage = kVolt;
 
-                x = split(kTrans.c_str(), ':'); // 18:79
+                x = Split(kTrans, ':'); // 18:79
 
-                p0 = Trim(x[0].c_str());
-                p1 = Trim(x[1].c_str());
+                p0 = TrimSpace(x[0]);
+                p1 = TrimSpace(x[1]);
 
-                Transmision.NToothW = s2b(p1);
-                Transmision.NToothM = s2b(p0);
+                Transmision.NToothW = atoi(p1.c_str());
+                Transmision.NToothM = atoi(p0.c_str());
 
                 // ToothW to drugi parametr czyli 79
                 // ToothM to pierwszy czyli 18
@@ -6745,19 +6787,19 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     if (secCircuit)
     {
         // s := DUE(ExtractKeyWord(lines, 'CircuitRes=')); writepaslog('CircuitRes', s);
-        CircuitRes = s2r(lCircuitRes);
+        CircuitRes = (lCircuitRes);
 
         // s := DUE(ExtractKeyWord(lines, 'IminLo=')); writepaslog('IminLo', s);
-        IminLo = s2iE(lIminLo);
+        IminLo = (lIminLo);
 
         // s := DUE(ExtractKeyWord(lines, 'IminHi=')); writepaslog('IminHi', s);
-        IminHi = s2i(lIminHi);
+        IminHi = (lIminHi);
 
         // s := DUE(ExtractKeyWord(lines, 'ImaxLo=')); writepaslog('ImaxLo', s);
-        ImaxLo = s2iE(lImaxLo);
+        ImaxLo = (lImaxLo);
 
         // s := DUE(ExtractKeyWord(lines, 'ImaxHi=')); writepaslog('ImaxHi', s);
-        ImaxHi = s2i(lImaxHi);
+        ImaxHi = (lImaxHi);
         Imin = IminLo;
         Imax = ImaxLo;
     }
@@ -6767,7 +6809,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     if (secRList)
     {
-        RlistSize = s2b(mSize);
+        RlistSize = (mSize);
 
         if (mRVent == "Automatic")
             RVentType = 2;
@@ -6778,9 +6820,9 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
         if (RVentType > 0)
         {
-            RVentnmax = s2rE(mRVentnmax) / 60.0;
+            RVentnmax = (mRVentnmax) / 60.0;
 
-            RVentCutOff = s2r(mRVentCutOff);
+            RVentCutOff = (mRVentCutOff);
         }
     }
 
@@ -6791,9 +6833,9 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     // WriteLog("");
     // WriteLog("----------------------------------------------------------------------------------------");
-    WriteLog("CERROR: " + IntToStr(ConversionError) + ", SUCCES: " + AS(BoolToYN(OK)));
+    WriteLog("CERROR: " + to_string(ConversionError) + ", SUCCES: " + to_string(OK));
     // WriteLogSS();
-    WriteLog("");
+    //WriteLog("");
     return OK;
 } // LoadFIZ()
 
@@ -6940,7 +6982,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         Handle = new TSt113();
         break;
     default:
-        Handle = new TBHandle();
+        Handle = new TDriverHandle();
     }
 
     switch (BrakeLocHandle)
@@ -6958,7 +7000,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         break;
     }
     default:
-        LocHandle = new TBHandle();
+        LocHandle = new TDriverHandle();
     }
 
     // ustalanie srednicy przewodu glownego (lokomotywa lub napêdowy
@@ -7070,7 +7112,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     // Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
 
     // ScndPipePress = Compressor;
-    WriteLogSS("OK=", BoolTo10(OK));
+    WriteLog("OK=" + to_string(OK));
 
     return OK;
 }
@@ -7228,7 +7270,7 @@ bool TMoverParameters::CreateBrakeSys()
         Handle = new TSt113();
         break;
     default:
-        Handle = new TBHandle();
+        Handle = new TDriverHandle();
     }
 
     switch (BrakeLocHandle)
@@ -7246,7 +7288,7 @@ bool TMoverParameters::CreateBrakeSys()
         break;
     }
     default:
-        LocHandle = new TBHandle();
+        LocHandle = new TDriverHandle();
     }
 
     Pipe = new TReservoir();
@@ -7336,7 +7378,7 @@ bool TMoverParameters::CreateBrakeSys()
     ScndPipePress = Compressor;
 
     // WriteLogSS("OK=", BoolTo10(OK));
-    WriteLog("");
+    //WriteLog("");
 
     return OK;
 }

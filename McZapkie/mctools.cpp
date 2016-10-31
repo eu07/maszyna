@@ -14,6 +14,10 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #include "mctools.h"
 #include <cmath>
 #include <fstream>
+#include <cctype>
+#include <ostream>
+#include <iomanip>
+#include <algorithm>
 
 using namespace std;
 /*================================================*/
@@ -139,7 +143,7 @@ std::string ReadWord(std::ifstream& infile)
     return s;
 }
 
-std::string Cut_Space(std::string s, int Just)
+std::string TrimSpace(std::string s, int Just)
 {
     int ii;
 
@@ -148,26 +152,45 @@ std::string Cut_Space(std::string s, int Just)
     case CutLeft:
     {
         ii = 0;
-        while ((ii < s.length()) && (s[ii + 1] == _SPACE))
+        while ((ii < s.length()) && (s[ii + 1] == (char)" "))
             ++ii;
         s = s.substr(ii + 1, s.length() - ii);
     }
     case CutRight:
     {
         ii = s.length();
-        while ((ii > 0) && (s[ii] == _SPACE))
+        while ((ii > 0) && (s[ii] == (char)" "))
             --ii;
         s = s.substr(0, ii);
     }
     case CutBoth:
     {
-        s = Cut_Space(s, CutLeft);
-        s = Cut_Space(s, CutRight);
+        s = TrimSpace(s, CutLeft);
+        s = TrimSpace(s, CutRight);
     }
     }
     return s;
 }
-/*Cut_Space*/
+
+char* TrimAndReduceSpaces(const char* s)
+{ // redukuje spacje pomiedzy znakami do jednej
+	char* tmp;	
+	if (s)
+	{
+
+		strcpy(tmp, s);
+		char* from = tmp + strspn(tmp, " ");
+		char* to = tmp;
+
+		do if ((*to = *from++) == ' ')
+			from += strspn(from, " ");
+		while (*to++);
+
+		while (*--to == ' ')
+			*to = '\0';
+	}
+	return tmp;
+}
 
 std::string ExtractKeyWord(std::string InS, std::string KeyWord)
 {
@@ -186,13 +209,13 @@ std::string ExtractKeyWord(std::string InS, std::string KeyWord)
     return s;
 }
 
-std::string DUE(std::string s) /*Delete Until Equal sign*/
+std::string DUE(std::string s) /*Delete Before Equal sign*/
 {
     //DUE = Copy(s, Pos("=", s) + 1, length(s));
 	return s.substr(s.find("=") + 1, s.length());
 }
 
-std::string DWE(std::string s) /*Delete While Equal sign*/
+std::string DWE(std::string s) /*Delete After Equal sign*/
 {
     size_t ep = s.find("=");
 	if (ep != string::npos)
@@ -235,6 +258,141 @@ std::string Tab2Sp(std::string s) /*Tab to Space sign*/
 	//		s2 = s2 + s[b];
 	//}
 	//return s2;
+}
+
+std::string ExchangeCharInString(string s, const char &aim, const char &target)
+{
+	char *tmp = new char[s.length()];
+	for (int b = 0; b < s.length(); ++b)
+	{
+		if (s[b] == aim)
+			if (target == (char)"")
+				b++;
+			else
+				tmp[b] = target;
+		else
+			tmp[b] = s[b];
+	}
+	return string(tmp);
+}
+
+std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems)
+{ // dzieli tekst na wektor tekstow
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim))
+    {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+std::vector<std::string> Split(const std::string &s, char delim)
+{ // dzieli tekst na wektor tekstow
+    std::vector<std::string> elems;
+    Split(s, delim, elems);
+    return elems;
+}
+
+std::string to_string(int _Val)
+{
+	std::ostringstream o;
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(unsigned int _Val)
+{
+	std::ostringstream o;
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(double _Val)
+{
+	std::ostringstream o;
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(int _Val, int precision)
+{
+	std::ostringstream o;
+	o << std::fixed << std::setprecision(precision);
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(double _Val, int precision)
+{
+	std::ostringstream o;
+	o << std::fixed << std::setprecision(precision);
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(int _Val, int precision, int width)
+{
+	std::ostringstream o;
+	o.width(width);
+	o << std::fixed << std::setprecision(precision);
+	o << _Val;
+	return o.str();
+};
+
+std::string to_string(double _Val, int precision, int width)
+{
+	std::ostringstream o;
+	o.width(width);
+	o << std::fixed << std::setprecision(precision);
+	o << _Val;
+	return o.str();
+};
+
+std::string to_hex_str(double _Val, int precision, int width)
+{
+	std::ostringstream o;
+	if (width)
+		o.width(width);
+	o << std::fixed << std::hex;
+	if (precision)
+		o << std::setprecision(precision);
+	o << _Val;
+	return o.str();
+};
+
+int stol_def(const std::string &str, const int &DefaultValue)
+{
+	// this function was developed iteratively on Codereview.stackexchange
+	// with the assistance of @Corbin
+	std::size_t len = str.size();
+	while (std::isspace(str[len - 1]))
+		len--;
+	if (len == 0)
+		return DefaultValue;
+	errno = 0;
+	char *s = new char[len + 1];
+	std::strncpy(s, str.c_str(), len);
+	char *p;
+	int result = strtol(s, &p, 0);
+	if ((*p != '\0') || (errno != 0))
+	{
+		return DefaultValue;
+	}
+	delete s;
+	return result;
+}
+
+std::string ToLower(std::string text)
+{
+	std::transform(text.begin(), text.end(), text.begin(), ::tolower);
+	return text;
+}
+
+std::string ToUpper(std::string text)
+{
+	std::transform(text.begin(), text.end(), text.begin(), ::toupper);
+	return text;
 }
 
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,

@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Usefull.h"
 #include "Globals.h"
 #include "Track.h"
+#include <mctools.h>
 
 //#define Precision 10000
 

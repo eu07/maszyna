@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "Globals.h"
 #include "Ground.h"
+#include "McZapkie\mctools.h"
 #pragma package(smart_init)
 
 TEvent::TEvent(string m)

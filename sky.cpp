@@ -25,11 +25,9 @@ void TSky::Init()
 {
     WriteLog(Global::asSky.c_str());
     WriteLog("init");
-    AnsiString asModel;
-    asModel = Global::asSky;
-    if ((asModel != "1") && (asModel != "0"))
+    if ((Global::asSky != "1") && (Global::asSky != "0"))
         //   {
-        mdCloud = TModelsManager::GetModel(asModel.c_str());
+        mdCloud = TModelsManager::GetModel(Global::asSky.c_str());
     //   }
 };
 

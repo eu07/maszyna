@@ -20,6 +20,18 @@ Copyright (C) 2007-2014 Maciej Cierniak
 //---FUNKCJE OGOLNE---
 
 static double const DPL = 0.25;
+double TFV4aM::pos_table[11] = { 0, 8, 1, 2, 0, 3, 6, 8, 2, 2, 2 };
+double TMHZ_EN57::pos_table[11] = { 0, 12, 1, 2, 2, 4, 11, 12, 2, 2, 2 };
+double TM394::pos_table[11] = { 0, 6, 0, 1, 2, 3, 5, 6, 1, 1, 1 };
+double TH14K1::BPT_K[6][2] =
+{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+double TH14K1::pos_table[11] = { 0, 5, 0, 1, 2, 3, 4, 5, 1, 1, 1 };
+double TSt113::BPT_K[6][2] =
+{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+double TSt113::BEP_K[7] = { 0, -1, 1, 0, 0, 0, 0 };
+double TSt113::pos_table[11] = { 0, 6, 0, 1, 3, 4, 5, 6, 1, 1, 2 };
+double TFVel6::pos_table[11] = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
+
 
 double PR(double P1, double P2)
 {
@@ -40,7 +52,7 @@ double PF_old(double P1, double P2, double S)
         return (PH + 1) * 222 * S * (P2 - P1) * 1.0 / (1.13 * PH - PL);
 }
 
-double PF(double P1, double P2, double S, double DP = 0.25)
+double PF(double P1, double P2, double S, double DP)
 {
     double PH = Max0R(P1, P2) + 1; // wyzsze cisnienie absolutne
     double PL = P1 + P2 - PH + 2; // nizsze cisnienie absolutne
@@ -79,7 +91,7 @@ long lround(double value)
 }
 
 double PFVa(double PH, double PL, double S, double LIM,
-            double DP = 0.1) // zawor napelniajacy z PH do PL, PL do LIM
+            double DP) // zawor napelniajacy z PH do PL, PL do LIM
 {
     if (LIM > PL)
     {
@@ -104,7 +116,7 @@ double PFVa(double PH, double PL, double S, double LIM,
 }
 
 double PFVd(double PH, double PL, double S, double LIM,
-            double DP = 0.1) // zawor wypuszczajacy z PH do PL, PH do LIM
+            double DP) // zawor wypuszczajacy z PH do PL, PH do LIM
 {
     if (LIM < PH)
     {
@@ -2347,9 +2359,7 @@ double TFV4aM::GetSound(int i)
 
 double TFV4aM::GetPos(int i)
 {
-	static double const table[11] = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
-
-    return table[i];
+    return pos_table[i];
 }
 
 double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
@@ -2481,9 +2491,7 @@ double TMHZ_EN57::GetSound(int i)
 
 double TMHZ_EN57::GetPos(int i)
 {
-	static double const table[11] = { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
-
-    return table[i];
+    return pos_table[i];
 }
 
 double TMHZ_EN57::GetCP()
@@ -2585,9 +2593,7 @@ double TM394::GetCP()
 
 double TM394::GetPos(int i)
 {
-	static double const table[11] = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
-
-    return table[i];
+    return pos_table[i];
 }
 
 //---H14K1-- Knorr
@@ -2595,8 +2601,8 @@ double TM394::GetPos(int i)
 double TH14K1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
     static int const LBDelay = 100; // szybkosc + zasilanie sterujacego
-    static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
-	{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+ //   static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
+	//{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
     static double const NomPress = 5.0;
 
     double LimPP;
@@ -2653,9 +2659,7 @@ double TH14K1::GetCP()
 
 double TH14K1::GetPos(int i)
 {
-	static double const table[11] = { -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 };
-
-    return table[i];
+    return pos_table[i];
 }
 
 //---St113-- Knorr EP
@@ -2663,9 +2667,6 @@ double TH14K1::GetPos(int i)
 double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
     static int const LBDelay = 100; // szybkosc + zasilanie sterujacego
-    static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
-	{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
-	static double const BEP_K[/*?*/ /*-1..5*/ (5) - (-1) + 1] = { 0, -1, 1, 0, 0, 0, 0 };
     static double const NomPress = 5.0;
 
     double LimPP;
@@ -2715,9 +2716,7 @@ double TSt113::GetCP()
 
 double TSt113::GetPos(int i)
 {
-	static double const table[11] = { -1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1 };
-
-    return table[i];
+    return pos_table[i];
 }
 
 void TSt113::Init(double Press)
@@ -2890,9 +2889,7 @@ double TFVel6::GetCP()
 
 double TFVel6::GetPos(int i)
 {
-	static double const table[11] = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
-
-    return table[i];
+    return pos_table[i];
 }
 
 double TFVel6::GetSound(int i)

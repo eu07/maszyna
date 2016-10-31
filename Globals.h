@@ -326,19 +326,7 @@ class Global
 	static double CutValueToRange(double min, double value, double max);
 };
 
-	std::string to_string(int _Val);
-	std::string to_string(unsigned int _Val);
-	std::string to_string(int _Val, int precision);
-	std::string to_string(int _Val, int precision, int width);
-	std::string to_string(double _Val);
-	std::string to_string(double _Val, int precision);
-	std::string to_string(double _Val, int precision, int width);
-	std::string to_hex_str(int _Val, int precision = 0, int width = 0);
 
-	int stol_def(const std::string & str, const int & DefaultValue);
-
-	std::string ToLower(std::string text);
-	std::string ToUpper(std::string text);
 
 //---------------------------------------------------------------------------
 #endif

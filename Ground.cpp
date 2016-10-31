@@ -1760,7 +1760,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                        3.0;
         break;
     case TP_SOUND:
-        tmp->tsStaticSound = new TTextSound;
         parser->getTokens(3);
         *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
         tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzglêdnienie rotacji
@@ -1769,7 +1768,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         *parser >> token;
 		str = token;
 		//str = AnsiString(token.c_str());
-        tmp->tsStaticSound->Init(strdup(str.c_str()), sqrt(tmp->fSquareRadius), tmp->pCenter.x,
+        tmp->tsStaticSound = new TTextSound(strdup(str.c_str()), sqrt(tmp->fSquareRadius), tmp->pCenter.x,
                                  tmp->pCenter.y, tmp->pCenter.z, false, rmin);
         if (rmin < 0.0)
             rmin =
