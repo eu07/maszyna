@@ -148,9 +148,9 @@ std::string ReadWord(std::ifstream& infile)
     return s;
 }
 
-std::string TrimSpace(std::string s, int Just)
+std::string TrimSpace(std::string &s, int Just)
 {
-    int ii;
+    /*int ii;
 
     switch (Just)
     {
@@ -174,7 +174,15 @@ std::string TrimSpace(std::string s, int Just)
         s = TrimSpace(s, CutRight);
     }
     }
-    return s;
+    return s;*/
+
+    if (s.empty())
+        return "";
+    size_t first = s.find_first_not_of(' ');
+    if (first == string::npos)
+        return "";
+    size_t last = s.find_last_not_of(' ');
+    return s.substr(first, (last - first + 1));
 }
 
 char* TrimAndReduceSpaces(const char* s)
@@ -183,7 +191,7 @@ char* TrimAndReduceSpaces(const char* s)
 	if (s)
 	{
 
-		strcpy(tmp, s);
+		tmp = strdup(s);
 		char* from = tmp + strspn(tmp, " ");
 		char* to = tmp;
 
@@ -248,21 +256,21 @@ std::string Ld2Sp(std::string s) /*Low dash to Space sign*/
 
 std::string Tab2Sp(std::string s) /*Tab to Space sign*/
 {
-	//std::string s2 = "";
-	char tmp[] = { (char)9, (char)" " };
+	std::string s2 = "";
+	char tmp = (char)9;
 	for (int b = 0; b < s.length(); ++b)
-	{
-		if (s[b] == tmp[0])
-			s[b] = tmp[0];
-	}
-	return s;
 	//{
 	//	if (s[b] == tmp[0])
-	//		s2 = s2 + " ";
-	//	else
-	//		s2 = s2 + s[b];
+	//		s[b] = tmp[1];
 	//}
-	//return s2;
+	//return s;
+	{
+		if (s[b] == tmp)
+			s2 = s2 + " ";
+		else
+			s2 = s2 + s[b];
+	}
+	return s2;
 }
 
 std::string ExchangeCharInString(string s, const char &aim, const char &target)
@@ -283,6 +291,7 @@ std::string ExchangeCharInString(string s, const char &aim, const char &target)
 
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems)
 { // dzieli tekst na wektor tekstow
+
     std::stringstream ss(s);
     std::string item;
     while (std::getline(ss, item, delim))
@@ -297,6 +306,18 @@ std::vector<std::string> Split(const std::string &s, char delim)
     std::vector<std::string> elems;
     Split(s, delim, elems);
     return elems;
+}
+
+std::vector<std::string> Split(const std::string &s)
+{ // dzieli tekst na wektor tekstow po bia³ych znakach
+	std::vector<std::string> elems;
+	std::stringstream ss(s);
+	std::string item;
+	while (ss >> item)
+	{
+		elems.push_back(item);
+	}
+	return elems;
 }
 
 std::string to_string(int _Val)
@@ -502,3 +523,4 @@ void ClearPendingExceptions()
 }
 
 // END
+

@@ -5438,7 +5438,7 @@ std::string tS(std::string val)
 int Pos(std::string str_find, std::string in)
 {
     size_t pos = in.find(str_find);
-    return (pos ? pos : 0);
+    return (pos != string::npos ? pos+1 : 0);
 }
 
 // *************************************************************************************************
@@ -5505,12 +5505,12 @@ int MARKERROR(int code, std::string type, std::string msg)
 
 int s2NPW(string s)
 { // wylicza ilosc osi napednych z opisu ukladu osi
-	const char A = (char)"A" - (char)1;
+	const char A = 64;
 	int k;
 	int NPW = 0;
 	for (k = 0; k < s.length(); k++)
 	{
-		if (s[k] >= (char)"A" && s[k] <= (char)"Z")
+		if (s[k] >= (char)65 && s[k] <= (char)90)
 			NPW += s[k] - A;
 	}
 	return NPW;
@@ -5518,12 +5518,12 @@ int s2NPW(string s)
 
 int s2NNW(string s)
 { // wylicza ilosc osi nienapedzanych z opisu ukladu osi
-	const char Zero = (char)"0";
+	const char Zero = 48;
 	int k;
 	int NNW = 0;
 	for (k = 0; k < s.length(); k++)
 	{
-		if (s[k] >= (char)"1" && s[k] <= (char)"9")
+		if (s[k] >= (char)49 && s[k] <= (char)57)
 			NNW += s[k] - Zero;
 	}
 	return NNW;
@@ -5533,7 +5533,7 @@ int s2NNW(string s)
 // Q: 20160717
 // *************************************************************************************************
 // parsowanie Motor Param Table
-bool TMoverParameters::readMPT(int ln, std::string xline)
+bool TMoverParameters::readMPT(int ln, std::string line)
 {
     // bl, mfi, mIsat, mfi0, fi, Isat, fi0
     bool as;
@@ -5543,7 +5543,14 @@ bool TMoverParameters::readMPT(int ln, std::string xline)
     if (ln > 0) // 0 to nazwa sekcji - MotorParamTable0:
     {
         //--WriteLog("MPT: " + xline);
-        x = Split(xline, ' ');
+        x = Split(line);
+
+		if (x.size() != 7)
+		{
+			WriteLog("Read MPT: wrong argument number of arguments in line " + to_string(ln -1));
+			return false;
+		}
+
 
         p0 = TrimSpace(x[0]);
         p1 = TrimSpace(x[1]);
@@ -5576,7 +5583,7 @@ bool TMoverParameters::readMPT(int ln, std::string xline)
 // Q: 20160718
 // *************************************************************************************************
 // parsowanie RList
-bool TMoverParameters::readRLIST(int ln, std::string xline)
+bool TMoverParameters::readRLIST(int ln, std::string line)
 {
     char *xxx;
     startRLIST = true;
@@ -5584,20 +5591,26 @@ bool TMoverParameters::readRLIST(int ln, std::string xline)
     if (ln > 0) // 0 to nazwa sekcji - RList:
     {
         // WriteLog("RLIST: " + xline);
-        xline = Tab2Sp(xline); // zamieniamy taby na spacje  (ile tabow tyle spacji bedzie)
+        line = Tab2Sp(line); // zamieniamy taby na spacje  (ile tabow tyle spacji bedzie)
 
-        xxx = TrimAndReduceSpaces(xline.c_str()); // konwertujemy na *char i
+        xxx = TrimAndReduceSpaces(line.c_str()); // konwertujemy na *char i
                                                                    // ograniczamy spacje pomiedzy
                                                                    // parametrami do jednej
 
-        x = Split(xxx, ' '); // split je wskaznik na char jak i std::string
+        x = Split(xxx); // split je wskaznik na char jak i std::string
+
+        if (x.size() != 5)
+        {
+			WriteLog("Read RLIST: wrong argument number of arguments in line " + to_string(ln - 1));
+            delete[] xxx;
+            return false;
+        }
 
         p0 = TrimSpace(x[0]);
         p1 = TrimSpace(x[1]);
         p2 = TrimSpace(x[2]);
         p3 = TrimSpace(x[3]);
         p4 = TrimSpace(x[4]);
-        p5 = TrimSpace(x[5]);
 
         int k = ln - 1;
 
@@ -5613,6 +5626,7 @@ bool TMoverParameters::readRLIST(int ln, std::string xline)
 
         //--WriteLog("RLIST: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
     }
+	delete[] xxx;
     RLISTLINE++;
     return true;
 }
@@ -5621,7 +5635,7 @@ bool TMoverParameters::readRLIST(int ln, std::string xline)
 // Q: 20160721
 // *************************************************************************************************
 // parsowanie Brake Param Table
-bool TMoverParameters::readBPT(int ln, std::string xline)
+bool TMoverParameters::readBPT(int ln, std::string line)
 {
     char *xxx;
     startBPT = true;
@@ -5630,9 +5644,16 @@ bool TMoverParameters::readBPT(int ln, std::string xline)
     if (ln > 0) // 0 to nazwa sekcji - Cntrl. - po niej jest tablica hamulcow
     {
         // WriteLog("BPT: " + xline);
-        xline = Tab2Sp(xline);
-        xxx = TrimAndReduceSpaces(xline.c_str());
-        x = Split(xxx, ' ');
+        line = Tab2Sp(line);
+        xxx = TrimAndReduceSpaces(line.c_str());
+        x = Split(xxx);
+
+		if (x.size() != 5)
+		{
+			WriteLog("Read BPT: wrong argument number of arguments in line " + to_string(ln - 1));
+			delete[] xxx;
+			return false;
+		}
 
         p0 = TrimSpace(x[0]);
         p1 = TrimSpace(x[1]);
@@ -5653,7 +5674,7 @@ bool TMoverParameters::readBPT(int ln, std::string xline)
 
         //-- WriteLog("BPT: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
     }
-
+    delete[] xxx;
     BPTLINE++;
     return true;
 }
@@ -5935,9 +5956,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 		return false;
 	}
 
-    bool secBPT, secMotorParamTable0, secPower, secEngine, secParam, secLoad, secDimensions,
-        secWheels, secBrake, secBuffCoupl, secCntrl, secSecurity, secLight, secCircuit, secRList,
-        secDList, secWWList, secffList, secTurboPos;
+    bool secBPT = false, secMotorParamTable0 = false, secPower = false, secEngine = false,
+		secParam = false, secLoad = false, secDimensions = false,
+        secWheels = false, secBrake = false, secBuffCoupl = false, secCntrl = false,
+		secSecurity = false, secLight = false, secCircuit = false, secRList = false,
+        secDList = false, secWWList = false, secffList = false, secTurboPos = false;
 
     ConversionError = 0;
 
@@ -5947,9 +5970,9 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     {
         // wers.find('#');
         xline = wers.c_str();
-        ishash = Pos("#", xline);
+        ishash = xline.find("#");
         // if ((ishash == 1)) WriteLog("zakomentowane " + xline);
-        if ((ishash == 0))
+        if ((ishash == string::npos))
         {
 
             if (xline.length() == 0)
@@ -6205,7 +6228,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             }
         } // is hash
     } // while line
-
+    in.close();
     // Sprawdzenie poprawnosci wczytanych parametrow
     // WriteLog("DATA TEST: " + aCategory + ", " + aType + ", " + bLoadQ + ", " + bLoadAccepted + ",
     // " + dAxle + ", " + dBearingType + ", " + eBrakeValve + ", " + eBM + ", " + jEnginePower + ",
@@ -6748,6 +6771,12 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 NominalVoltage = kVolt;
 
                 x = Split(kTrans, ':'); // 18:79
+
+                if (x.size() != 2)
+                {
+                    WriteLog("Wrong transmition definition: " + kTrans);
+                    break;
+                }
 
                 p0 = TrimSpace(x[0]);
                 p1 = TrimSpace(x[1]);
@@ -7874,3 +7903,5 @@ int TMoverParameters::ShowCurrentP(int AmpN)
                 if (Couplers[b].Connected->Power > 0.01)
                     return Couplers[b].Connected->ShowCurrent(AmpN);
 }
+
+

@@ -110,7 +110,7 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*operacje na stringach*/
 std::string ReadWord( std::ifstream& infile); /*czyta slowo z wiersza pliku tekstowego*/
 //std::string Ups(std::string s);
-std::string TrimSpace(std::string s,  int Just = CutBoth);
+std::string TrimSpace(std::string &s,  int Just = CutBoth);
 char* TrimAndReduceSpaces(const char* s);
 std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
@@ -120,6 +120,7 @@ std::string Tab2Sp(std::string s); /*Tab to Space sign*/
 std::string ExchangeCharInString(string s,  const char &aim, const char &target); // zamienia jeden znak na drugi
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
+std::vector<std::string> Split(const std::string &s);
 
 std::string to_string(int _Val);
 std::string to_string(unsigned int _Val);
@@ -131,7 +132,7 @@ std::string to_string(double _Val, int precision, int width);
 std::string to_hex_str(double _Val, int precision = 0, int width = 0);
 inline std::string to_string(bool _Val)
 {
-	to_string((int)_Val);
+	return to_string((int)_Val);
 }
 
 int stol_def(const std::string & str, const int & DefaultValue);

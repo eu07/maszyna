@@ -1041,9 +1041,9 @@ public:
 
 	/*funkcje ladujace pliki opisujace pojazd*/
 	bool LoadFIZ(std::string chkpath);                                                               //Q 20160717    bool LoadChkFile(std::string chkpath);
-	bool readMPT(int ln, std::string xline);                                                         //Q 20160717
-	bool readRLIST(int ln, std::string xline);                                                       //Q 20160718
-	bool readBPT(int ln, std::string xline);                                                         //Q 20160721
+	bool readMPT(int ln, std::string line);                                                         //Q 20160717
+	bool readRLIST(int ln, std::string line);                                                       //Q 20160718
+	bool readBPT(int ln, std::string line);                                                         //Q 20160721
 	void BrakeValveDecode(std::string s);                                                            //Q 20160719
 	void BrakeSubsystemDecode();                                                                    //Q 20160719
 	void PowerParamDecode(std::string lines, std::string prefix, TPowerParameters &PowerParamDecode); //Q 20160719
