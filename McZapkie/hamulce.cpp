@@ -250,7 +250,8 @@ begin
 end  ; */
 
 TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD,
-               int i_mat, int i_ba, int i_nbpa)
+               int i_mat, int i_ba, int i_nbpa,
+			   double PP, double HPP, double LPP, double BP, int BDF)
 {
     // inherited:: Create;
     MaxBP = i_mbp;

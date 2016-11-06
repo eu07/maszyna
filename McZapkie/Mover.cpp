@@ -7196,7 +7196,8 @@ bool TMoverParameters::CreateBrakeSys()
     {
         WriteLog("XBT W, K");
         Hamulec = new TWest(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                            BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+                            BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA,
+							PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         if (MBPM < 2) // jesli przystawka wazaca
             (static_cast<TWest *>(Hamulec))->SetLP(0, MaxBrakePress[3], 0);
         else
@@ -7207,7 +7208,8 @@ bool TMoverParameters::CreateBrakeSys()
     {
         WriteLog("XBT WKE");
         Hamulec = new TKE(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-                          BrakeDelays, BrakeMethod, NAxles, NBpA);
+                          BrakeDelays, BrakeMethod, NAxles, NBpA,
+						  PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         (static_cast<TKE *>(Hamulec))->SetRM(RapidMult);
         if (MBPM < 2) // jesli przystawka wazaca
             (static_cast<TKE *>(Hamulec))->SetLP(0, MaxBrakePress[3], 0);
@@ -7222,7 +7224,8 @@ bool TMoverParameters::CreateBrakeSys()
     {
         WriteLog("XBT NESt3, ESt3, ESt3AL2, ESt4");
         Hamulec = new TNESt3(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA,
+							 PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         (static_cast<TNESt3 *>(Hamulec))->SetSize(BrakeValveSize, BrakeValveParams);
         if (MBPM < 2) // jesli przystawka wazaca
             (static_cast<TNESt3 *>(Hamulec))->SetLP(0, MaxBrakePress[3], 0);
@@ -7235,7 +7238,8 @@ bool TMoverParameters::CreateBrakeSys()
     {
         WriteLog("XBT LSt");
         Hamulec = new TLSt(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-                           BrakeDelays, BrakeMethod, NAxles, NBpA);
+                           BrakeDelays, BrakeMethod, NAxles, NBpA,
+						   PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         (static_cast<TLSt *>(Hamulec))->SetRM(RapidMult);
         break;
     }
@@ -7243,7 +7247,8 @@ bool TMoverParameters::CreateBrakeSys()
     {
         WriteLog("XBT EStED");
         Hamulec = new TEStED(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, 
+			PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         (static_cast<TEStED *>(Hamulec))->SetRM(RapidMult);
         break;
     }
@@ -7251,7 +7256,8 @@ bool TMoverParameters::CreateBrakeSys()
     {
         WriteLog("XBT EP2");
         Hamulec = new TEStEP2(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                              BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+                              BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA,
+			PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         (static_cast<TEStEP2 *>(Hamulec))->SetLP(Mass, MBPM, MaxBrakePress[1]);
         break;
     }
@@ -7260,20 +7266,23 @@ bool TMoverParameters::CreateBrakeSys()
     {
         WriteLog("XBT CV1");
         Hamulec = new TCV1(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-                           BrakeDelays, BrakeMethod, NAxles, NBpA);
+                           BrakeDelays, BrakeMethod, NAxles, NBpA, 
+			PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         break;
     }
     case CV1_L_TR:
     {
         WriteLog("XBT CV1_L_T");
         Hamulec = new TCV1L_TR(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                               BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+                               BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, 
+			PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
         break;
     }
 
     default:
         Hamulec = new TBrake(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, 
+			PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
     }
 
     Hamulec->SetASBP(MaxBrakePress[4]);
@@ -7402,7 +7411,7 @@ bool TMoverParameters::CreateBrakeSys()
     //  if(TrainType == dt_ET22)
     //    CompressorPower = 0;
 
-    Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+    //Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
 
     ScndPipePress = Compressor;
 

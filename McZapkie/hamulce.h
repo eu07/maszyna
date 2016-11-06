@@ -199,9 +199,12 @@ Knorr/West EP - ¿eby by³
 		int BrakeStatus; //flaga stanu
 		int SoundFlag;
 
+		void Init(double PP, double HPP, double LPP, double BP, int BDF);  //inicjalizacja hamulca
+
 	public:
 		TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa);
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF);
 		//maksymalne cisnienie, promien, skok roboczy, pojemnosc ZP;
 		//ilosc cylindrow, opoznienia hamulca, material klockow, osie hamowane, klocki na os;
 
@@ -213,7 +216,6 @@ Knorr/West EP - ¿eby by³
 		double GetBRP(); //cisnienie zbiornika pomocniczego
 		double GetVRP(); //cisnienie komory wstepnej rozdzielacza
 		virtual double GetCRP();  //cisnienie zbiornika sterujacego
-		virtual void Init(double PP, double HPP, double LPP, double BP, int BDF);  //inicjalizacja hamulca
 		bool SetBDF(int nBDF); //nastawiacz GPRM
 		void Releaser(int state); //odluzniacz
 		virtual void SetEPS(double nEPS); //hamulec EP
@@ -239,18 +241,22 @@ Knorr/West EP - ¿eby by³
 		double TareBP;        //cisnienie dla proznego
 		double LoadC;         //wspolczynnik przystawki wazacej
 
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 	public:
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetHPFlow(double HP, double dt)/*override*/;
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
 
 		inline TWest(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa, 
+			double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -258,6 +264,9 @@ Knorr/West EP - ¿eby by³
 	class TESt : public TBrake
 
 	{
+	private:
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
 	protected:
 		TReservoir *CntrlRes;      //zbiornik steruj¹cy
 		double BVM;                 //przelozenie PG-CH
@@ -265,7 +274,6 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void EStParams(double i_crc);                 //parametry charakterystyczne dla ESt
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1); //glowny przyrzad rozrzadczy
 		void CheckReleaser(double dt); //odluzniacz
@@ -273,8 +281,12 @@ Knorr/West EP - ¿eby by³
 		double BVs(double BCP);     //napelniacz pomocniczego
 
 		inline TESt(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -289,8 +301,9 @@ Knorr/West EP - ¿eby by³
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 
 		inline TESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF) { }
 	};
 
 
@@ -303,16 +316,21 @@ Knorr/West EP - ¿eby by³
 		double TareBP;  //cisnienie dla proznego
 		double LoadC;
 
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
 	public:
 		TReservoir *ImplsRes;      //komora impulsowa
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 
 		inline TESt3AL2(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt3(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TESt3(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -322,17 +340,22 @@ Knorr/West EP - ¿eby by³
 	{
 	private:
 		bool RapidStatus;
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
 	protected:
 		TReservoir *ImplsRes;      //komora impulsowa
 		double RapidTemp;           //akrualne, zmienne przelozenie
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 
 		inline TESt4R(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -342,6 +365,8 @@ Knorr/West EP - ¿eby by³
 	{
 	private:
 		double CylFlowSpeed[2][2];
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
 	protected:
 		double LBP;       //cisnienie hamulca pomocniczego
 		double RM;        //przelozenie rapida
@@ -352,13 +377,16 @@ Knorr/West EP - ¿eby by³
 		void SetRM(double RMR);   //ustalenie przelozenia rapida
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
 		void SetED(double EDstate); //stan hamulca ED do luzowania
 
 		inline TLSt(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TESt4R(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TESt4R(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -375,16 +403,21 @@ Knorr/West EP - ¿eby by³
 		double TareBP;  //cisnienie dla proznego
 		double LoadC;
 
-	public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
+	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej        
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -398,16 +431,21 @@ Knorr/West EP - ¿eby by³
 		double LoadC;
 		double EPS;
 
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;   //inicjalizacja
+
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;   //inicjalizacja
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
 		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
 
 		inline TEStEP2(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -417,39 +455,46 @@ Knorr/West EP - ¿eby by³
 	{
 	private:
 		double BVM;                 //przelozenie PG-CH
+
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
 	protected:
 		TReservoir *CntrlRes;      //zbiornik steruj¹cy
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1);
 		double CVs(double BP);
 		double BVs(double BCP);
 
 		inline TCV1(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
 
-	class TCV1R : public TCV1
+	//class TCV1R : public TCV1
 
-	{
-	private:
-		TReservoir *ImplsRes;      //komora impulsowa
-		bool RapidStatus;
+	//{
+	//private:
+	//	TReservoir *ImplsRes;      //komora impulsowa
+	//	bool RapidStatus;
 
-	public:
-		//        function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
-		//        procedure Init(PP, HPP, LPP, BP: real; BDF: int); override;
+	//public:
+	//	//        function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
+	//	//        procedure Init(PP, HPP, LPP, BP: real; BDF: int); override;
 
-		inline TCV1R(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
-	};
+	//	inline TCV1R(double i_mbp, double i_bcr, double i_bcd, double i_brc,
+	//		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+	//		double PP, double HPP, double LPP, double BP, int BDF) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+	//			, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF) { }
+	//};
 
 
 
@@ -460,15 +505,20 @@ Knorr/West EP - ¿eby by³
 		TReservoir *ImplsRes;      //komora impulsowa
 		double LBP;     //cisnienie hamulca pomocniczego
 
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
 
 		inline TCV1L_TR(double i_mbp, double i_bcr, double i_bcd, double i_brc
-			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-				, i_BD, i_mat, i_ba, i_nbpa) { }
+			, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
@@ -488,10 +538,11 @@ Knorr/West EP - ¿eby by³
 		double RM;                  //przelozenie rapida
 		double LBP;                 //cisnienie hamulca pomocniczego
 
+		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
+
 	public:
 		void SetRM(double RMR);   //ustalenie przelozenia rapida
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1);
@@ -503,8 +554,12 @@ Knorr/West EP - ¿eby by³
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 
 		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, int
-			i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn,
-				i_BD, i_mat, i_ba, i_nbpa) { }
+			i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+			double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn,
+				i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		{
+			Init(PP, HPP, LPP, BP, BDF);
+		}
 	};
 
 
