@@ -219,6 +219,8 @@ Knorr/West EP - ¿eby by³
 		bool SetBDF(int nBDF); //nastawiacz GPRM
 		void Releaser(int state); //odluzniacz
 		virtual void SetEPS(double nEPS); //hamulec EP
+		virtual void SetRM(double RMR) {};   //ustalenie przelozenia rapida
+		virtual void SetLP(double TM, double LM, double TBP) {};  //parametry przystawki wazacej
 		void ASB(int state); //hamulec przeciwposlizgowy
 		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
 		void SetASBP(double Press); //ustalenie cisnienia pp

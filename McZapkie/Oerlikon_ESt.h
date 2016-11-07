@@ -184,14 +184,19 @@ class TNESt3 : public TBrake
     bool autom; // odluzniacz samoczynny
     double LBP; // cisnienie hamulca pomocniczego
 
+    void Init(double PP, double HPP, double LPP, double BP, int BDF) /*override*/;
+
   public:
 	inline TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-			, i_BD, i_mat, i_ba, i_nbpa) { }
+		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+		double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+	{
+		Init(PP, HPP, LPP, BP, BDF);
+	}
     virtual double GetPF(double PP, double dt,
                  double Vel) /*override*/; // przeplyw miedzy komora wstepna i PG
     void EStParams(double i_crc); // parametry charakterystyczne dla ESt
-    virtual void Init(double PP, double HPP, double LPP, double BP, unsigned char BDF) /*override*/;
     virtual double GetCRP() /*override*/;
     void CheckState(double BCP, double &dV1); // glowny przyrzad rozrzadczy
     void CheckReleaser(double dt); // odluzniacz
