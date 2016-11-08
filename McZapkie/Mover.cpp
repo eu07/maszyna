@@ -6926,12 +6926,6 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		ScndPipePress = CompressedVolume / VeselVolume;
 		PipePress = CntrlPipePress;
 		BrakePress = 0;
-		LocalBrakePos = 0;
-
-		if (CabNo == 0)
-			BrakeCtrlPos = floor(Handle->GetPos(bh_NP)); // Q: TODO: Trunc na floor
-		else
-			BrakeCtrlPos = floor(Handle->GetPos(bh_RP));
 		MainSwitch(false);
 		PantFront(true);
 		PantRear(true);
@@ -6950,7 +6944,6 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		PipeBrakePress = MaxBrakePress[3];
 		BrakePress = MaxBrakePress[3];
 		LocalBrakePos = 0;
-		BrakeCtrlPos = Trunc(Handle->GetPos(bh_NP)); // Q: TODO: Trunc na floor
 		LimPipePress = LowPipePress;
 	}
 

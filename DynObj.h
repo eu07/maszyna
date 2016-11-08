@@ -469,7 +469,7 @@ class TDynamicObject
     // void UpdatePos();
 
     // McZapkie-260202
-    void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
+    void LoadMMediaFile(string BaseDir, string TypeName, string ReplacableSkin);
 
     inline double ABuGetDirection() // ABu.
     {

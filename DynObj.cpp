@@ -1607,12 +1607,14 @@ TDynamicObject::TDynamicObject()
     RaLightsSet(0, 0); // pocz¹tkowe zerowanie stanu œwiate³
     // Ra: domyœlne iloœci animacji dla zgodnoœci wstecz (gdy brak iloœci podanych
     // w MMD)
-    iAnimType[ANIM_WHEELS] = 8; // 0-osie (8)
-    iAnimType[ANIM_DOORS] = 8; // 1-drzwi (8)
-    iAnimType[ANIM_LEVERS] = 4; // 2-wahacze (4) - np. nogi konia
-    iAnimType[ANIM_BUFFERS] = 4; // 3-zderzaki (4)
-    iAnimType[ANIM_BOOGIES] = 2; // 4-wózki (2)
-    iAnimType[ANIM_PANTS] = 2; // 5-pantografy (2)
+	// ustawienie liczby modeli animowanych podczas konstruowania obiektu a nie na 0
+	// prowadzi prosto do wysypów jeœli Ÿle zdefiniowane mmd
+    iAnimType[ANIM_WHEELS] = 0; // 0-osie (8)
+    iAnimType[ANIM_DOORS] = 0; // 1-drzwi (8)
+    iAnimType[ANIM_LEVERS] = 0; // 2-wahacze (4) - np. nogi konia
+    iAnimType[ANIM_BUFFERS] = 0; // 3-zderzaki (4)
+    iAnimType[ANIM_BOOGIES] = 0; // 4-wózki (2)
+    iAnimType[ANIM_PANTS] = 0; // 5-pantografy (2)
     iAnimType[ANIM_STEAMS] = 0; // 6-t³oki (napêd parowozu)
     iAnimations = 0; // na razie nie ma ¿adnego
     pAnimations = NULL;
@@ -1738,6 +1740,20 @@ TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
               Type_Name);
         return 0.0; // zerowa d³ugoœæ to brak pojazdu
     }
+    // ustawienie pozycji hamulca
+    MoverParameters->LocalBrakePos = 0;
+    if (driveractive)
+    {
+        if (Cab == 0)
+            MoverParameters->BrakeCtrlPos =
+                floor(MoverParameters->Handle->GetPos(bh_NP));
+        else
+            MoverParameters->BrakeCtrlPos = floor(MoverParameters->Handle->GetPos(bh_RP));
+    }
+    else
+        MoverParameters->BrakeCtrlPos =
+            floor(MoverParameters->Handle->GetPos(bh_NP));
+
     MoverParameters->BrakeLevelSet(
         MoverParameters->BrakeCtrlPos); // poprawienie hamulca po ewentualnym
     // przestawieniu przez Pascal
@@ -1810,7 +1826,7 @@ TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
 
             if (ActPar.find("1") != string::npos) // wylaczanie 10%
             {
-                if (random(10) < 1) // losowanie 1/10
+                if (Random(10) < 1) // losowanie 1/10
                 {
                     MoverParameters->BrakeStatus |= 128; // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
@@ -1819,7 +1835,7 @@ TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
             }
             if (ActPar.find("X") != string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
             {
-                if (random(100) < 20) // losowanie 20/100
+                if (Random(100) < 20) // losowanie 20/100
                 {
                     MoverParameters->BrakeStatus |= 128; // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
@@ -1828,7 +1844,7 @@ TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
                 if (MoverParameters->BrakeCylMult[2] * MoverParameters->BrakeCylMult[1] >
                     0.01) // jesli jest nastawiacz mechaniczny PL
                 {
-                    float rnd = random(100);
+                    float rnd = Random(100);
                     if (rnd < 20) // losowanie 20/100         usrednienie
                     {
                         MoverParameters->BrakeCylMult[2] = MoverParameters->BrakeCylMult[1] =
@@ -4221,10 +4237,10 @@ void TDynamicObject::LoadMMediaFile(string BaseDir, string TypeName,
 		delete fs;
         return;
     }
-    if (fs->width() == 0)
-    {
-        return delete fs;
-    };
+    // if (fs->width() == 0)
+    // {
+    //    return delete fs;
+    // };
     string asAnimName;
     bool Stop_InternalData = false;
     //char *buf = new char[size + 1]; // ci¹g bajtów o d³ugoœci równej rozmiwarowi pliku
