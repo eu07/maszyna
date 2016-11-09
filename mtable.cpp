@@ -230,7 +230,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         else
         { /*analiza rozk³adu jazdy*/
             ConversionError = 0;
-            while (!(fin.bad() || (ConversionError != 0) || EndTable))
+            while (fin.good() && !((ConversionError != 0) || EndTable))
             {
                 std::getline(fin,lines); /*wczytanie linii*/
 				if (lines.find("___________________") != std::string::npos) /*linia pozioma górna*/
@@ -245,6 +245,11 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
 								fin >> s;
 							} while (!(s == "|") || (fin.eof())); /*œrodkowy pion*/
 					}
+				}
+				else if (lines == "")
+				{
+					fin.close();
+					break;
 				}
 				fin >> s; /*nazwa poci¹gu*/
                 // if LowerCase(s)<>ExtractFileName(TrainName) then {musi byæ taka sama, jak nazwa
