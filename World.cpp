@@ -2511,17 +2511,17 @@ bool TWorld::Update()
                         { // wyœwietlenie pozycji z rozk³adu
                             t = tt->TimeTable + i; // linijka rozk³adu
                             OutText1 = (t->StationName +
-                                                  "                          ").substr(1, 26);
+                                                  "                          ").substr(0, 26);
                             OutText2 = (t->Ah >= 0) ?
-                                           to_string(int(100 + t->Ah)).substr(2, 2) + ":" +
-                                               to_string(int(100 + t->Am)).substr(2, 2) :
+                                           to_string(int(100 + t->Ah)).substr(1, 2) + ":" +
+                                               to_string(int(100 + t->Am)).substr(1, 2) :
                                            string("     ");
                             OutText3 = (t->Dh >= 0) ?
-                                           to_string(int(100 + t->Dh)).substr(2, 2) + ":" +
-                                               to_string(int(100 + t->Dm)).substr(2, 2) :
+                                           to_string(int(100 + t->Dh)).substr(1, 2) + ":" +
+                                               to_string(int(100 + t->Dm)).substr(1, 2) :
                                            string("     ");
                             OutText4 = "   " + to_string(t->vmax, 0);
-                            OutText4 = OutText4.substr(OutText4.length() - 2,
+                            OutText4 = OutText4.substr(OutText4.length() - 3,
                                                           3); // z wyrównaniem do prawej
                             // if (AnsiString(t->StationWare).Pos("@"))
                             OutText1 = "| " + OutText1 + " | " + OutText2 + " | " + OutText3 +
