@@ -296,14 +296,14 @@ void Console::BitsUpdate(int mask)
            out4: stycz.liniowe, pezekaznikr??nicobwpomoc, nadmiarprzetw, roznicowy obw. g?, nadmiarsilniki, wylszybki, zanikpr?duprzyje?dzienaoporach, nadmiarsprezarki
            out5: HASLER */
         if(mask & 0x0001) if(iBits & 1){
-            MWD->WriteDataBuff[3] |= 1<<7;  	// SHP	HASLER te¿
+            MWD->WriteDataBuff[4] |= 1<<7;  	// SHP	HASLER te¿
             if(!MWD->bSHPstate){
                 MWD->bSHPstate = true;
                 MWD->bPrzejazdSHP = true;
             }else MWD->bPrzejazdSHP = false;
         }
         else{
-            MWD->WriteDataBuff[3] &= ~(1<<7);
+            MWD->WriteDataBuff[4] &= ~(1<<7);
             MWD->bPrzejazdSHP = false;
             MWD->bSHPstate = false;
         }
@@ -391,7 +391,7 @@ void Console::ValueSet(int x, double y)
             MWD->WriteDataBuff[14] = (unsigned char)(iliczba>>8);
             MWD->WriteDataBuff[13] = (unsigned char)iliczba;
         }else if(x==4){
-            iliczba = (unsigned char)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 1
+            iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 1
             MWD->WriteDataBuff[16] = (unsigned char)(iliczba>>8);
             MWD->WriteDataBuff[15] = (unsigned char)iliczba;
         }else if(x==5){
