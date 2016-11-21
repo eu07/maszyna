@@ -21,9 +21,9 @@ HANDLE hComm;
 MWDComm::MWDComm()		// konstruktor
 {
     MWDTime = 0;
-    bSHPstate = false;	// // usun¹³em typy zmiennych (bool-e) - po co jeszcze raz deklarowaæ przy inicjalizacji?
+    bSHPstate = false;
     bPrzejazdSHP = false;
-    bKabina1 = true;		// pasuje wyci¹gn¹æ dane na temat kabiny i ustawiaæ te dwa parametry!
+    bKabina1 = true;	// pasuje wyci¹gn¹æ dane na temat kabiny i ustawiaæ te dwa parametry!
     bKabina2 = false;
     bHamowanie = false;
     bCzuwak = false;
@@ -137,15 +137,12 @@ bool MWDComm::ReadData()	// odbieranie danych + odczyta danych analogowych i zap
 {
     DWORD bytes_read;
     ReadFile(hComm, &ReadDataBuff[0], BYTETOREAD, &bytes_read, NULL);
-    //WriteConsoleOnly("Read OK!");
+
     fAnalog[0] = (float)((ReadDataBuff[9]<<8)+ReadDataBuff[8]) / Global::fMWDAnalogCalib[0][3]; //4095.0f; //max wartosc wynikaj¹ca z rozdzielczoœci
     fAnalog[1] = (float)((ReadDataBuff[11]<<8)+ReadDataBuff[10]) / Global::fMWDAnalogCalib[1][3];
     fAnalog[2] = (float)((ReadDataBuff[13]<<8)+ReadDataBuff[12]) / Global::fMWDAnalogCalib[2][3];
     fAnalog[3] = (float)((ReadDataBuff[15]<<8)+ReadDataBuff[14]) / Global::fMWDAnalogCalib[3][3];
     CheckData();
-    //WriteLog("hamulec zespolony VALUE: "+AnsiString(fAnalog[0]));
-    //WriteLog("hamulec zespolony ReadB[9]: "+AnsiString(ReadDataBuff[9]));
-    //WriteLog("hamulec zespolony calib: "+AnsiString(Global::fMWDAnalogCalib[0][3]));
 
     return TRUE;
 }
@@ -160,7 +157,7 @@ bool MWDComm::SendData()	// wysy³anie danych
     return TRUE;
 }
 
-bool MWDComm::Run()			// wysyo³ywanie obs³ugi MWD + generacja wiêkszego opóŸnienia
+bool MWDComm::Run()		// wywo³ywanie obs³ugi MWD + generacja wiêkszego opóŸnienia
 {
     MWDTime++;
     if(!(MWDTime%5))
@@ -579,7 +576,7 @@ bool MWDComm::CheckData()	// sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
 
     /* NASTAWNIK, BOCZNIK i KIERUNEK */
 
-    if(bnkMask & 1){
+    if(bnkMask & 1){    //puszczanie klawiszy
         KeyBoard(0x6B,0);
         bnkMask &= ~1;
     }
@@ -622,7 +619,6 @@ bool MWDComm::CheckData()	// sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
     }
 
     /* Obs³uga HASLERA */
-
     if(ReadDataBuff[0] & 0x80) bCzuwak = true;
 
     if(bKabina1){			// logika rysika 1
