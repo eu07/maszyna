@@ -86,6 +86,7 @@ USEUNIT("McZapkie\Oerlikon_ESt.pas");
 USEUNIT("Console\PoKeys55.cpp");
 USEUNIT("Forth.cpp");
 USEUNIT("Console\LPT.cpp");
+USEUNIT("Console\MWD.cpp");
 USEUNIT("PyInt.cpp");
 //---------------------------------------------------------------------------
 #include "World.h"

@@ -186,6 +186,17 @@ bool Global::bDoubleAmbient = false; // podwójna jasnoœæ ambient
 double Global::fTimeSpeed = 1.0; // przyspieszenie czasu, zmienna do testów
 bool Global::bHideConsole = false; // hunter-271211: ukrywanie konsoli
 int Global::iBpp = 32; // chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ poprawi
+// maciek001: konfiguracja wstêpna portu COM
+bool Global::bMWDdebugEnable = false;
+unsigned long int Global::iMWDBaudrate = 500000;
+AnsiString Global::sMWDPortId = "COM1";		// nazwa portu z którego korzystamy - na razie nie dzia³a
+bool Global::bMWDBreakEnable = false;		// zmieniæ na FALSE!!! jak ju¿ bêdzie dzia³aæ wczytywanie z *.ini
+double Global::fMWDAnalogCalib[4][3] = {{1023, 0, 1023},{1023, 0, 1023},{1023, 0, 1023},{1023, 0, 1023}};	// wartoœæ max potencjometru, wartoœæ min potencjometru, rozdzielczoœæ (max. wartoœæ jaka mo¿e byæ -1)
+double Global::fMWDzg[2] = {0.9, 1023};
+double Global::fMWDpg[2] = {0.8, 1023};
+double Global::fMWDph[2] = {0.6, 1023};
+double Global::fMWDvolt[2] = {4000, 1023};
+double Global::fMWDamp[2] = {800, 1023};
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -529,6 +540,53 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
 			Background[1] = GetNextSymbol().ToDouble(); // g
 			Background[2] = GetNextSymbol().ToDouble(); // b
 		}
+        // maciek001: ustawienia MWD
+        else if (str == AnsiString("mwddebug")){ 			// czy w³¹czyæ obs³ugê hamulców
+                    bMWDdebugEnable = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+        }else if (str == AnsiString("comportname"))
+        {
+            sMWDPortId = GetNextSymbol().LowerCase();
+            if (bMWDdebugEnable) WriteLog("PortName " + AnsiString(sMWDPortId));
+        }else if (str == AnsiString("mwdbaudrate")){		// pobierz prêdkoœæ transmisji danych
+            iMWDBaudrate = GetNextSymbol().ToInt();
+            if (bMWDdebugEnable) WriteLog("PortName " + AnsiString(iMWDBaudrate));
+        }else if (str == AnsiString("mwdbreakenable")){ 			// czy w³¹czyæ obs³ugê hamulców
+            bMWDBreakEnable = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+        }else if(str == AnsiString("mwdbreak"))				// wartoœæ max dla potencjometru hamulca zasadniczego
+        {
+            i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
+            if ((i >= 0) || (i <= 1)){
+                fMWDAnalogCalib[i][0] = GetNextSymbol().ToDouble();	// max -> 2^16 -1
+                fMWDAnalogCalib[i][1] = GetNextSymbol().ToDouble();	// min -> 0
+                fMWDAnalogCalib[i][2] = GetNextSymbol().ToDouble();	// rozdzielczoœæ -> 255 maksymalna mo¿liwa wartoœæ z ADC
+                if (bMWDdebugEnable) WriteLog("Break settings " + AnsiString(i) + AnsiString(": ") + AnsiString(fMWDAnalogCalib[i][0]) + AnsiString(" ") + AnsiString(fMWDAnalogCalib[i][1]) + AnsiString(" ") + AnsiString(fMWDAnalogCalib[i][2]));
+            }
+        }
+        else if(str == AnsiString("mwdzbiornikglowny")){
+            fMWDzg[0] = GetNextSymbol().ToDouble();
+            fMWDzg[1] = GetNextSymbol().ToDouble();
+            if (bMWDdebugEnable) WriteLog("AirTank settings: " + AnsiString(fMWDzg[0]) + AnsiString(" ") + AnsiString(fMWDzg[1]));
+        }
+        else if(str == AnsiString("mwdprzewodglowny")){
+            fMWDpg[0] = GetNextSymbol().ToDouble();
+            fMWDpg[1] = GetNextSymbol().ToDouble();
+            if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + AnsiString(fMWDpg[0]) + AnsiString(" ") + AnsiString(fMWDpg[1]));
+        }
+        else if(str == AnsiString("mwdcylinderhamulcowy")){
+            fMWDph[0] = GetNextSymbol().ToDouble();
+            fMWDph[1] = GetNextSymbol().ToDouble();
+            if (bMWDdebugEnable) WriteLog("AirPipe settings: " + AnsiString(fMWDph[0]) + AnsiString(" ") + AnsiString(fMWDph[1]));
+        }
+        else if(str == AnsiString("mwdwoltomierzwn")){
+            fMWDvolt[0] = GetNextSymbol().ToDouble();
+            fMWDvolt[1] = GetNextSymbol().ToDouble();
+            if (bMWDdebugEnable) WriteLog("Volt settings: " + AnsiString(fMWDvolt[0]) + AnsiString(" ") + AnsiString(fMWDvolt[1]));
+        }
+        else if(str == AnsiString("mwdamperomierzwn")){
+            fMWDamp[0] = GetNextSymbol().ToDouble();
+            fMWDamp[1] = GetNextSymbol().ToDouble();
+            if (bMWDdebugEnable) WriteLog("Amp settings: " + AnsiString(fMWDamp[0]) + AnsiString(" ") + AnsiString(fMWDamp[1]));
+        }
 	} while (str != "endconfig"); //(!Parser->EndOfFile)
     // na koniec trochê zale¿noœci
     if (!bLoadTraction) // wczytywanie drutów i s³upów
@@ -886,7 +944,7 @@ void TTranscripts::Update()
 
 // Ra: tymczasowe rozwi¹zanie kwestii zagranicznych (czeskich) napisów
 char bezogonkowo[128] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
-                        " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
+                        " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
                         "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
                         "raaaalccceeeeiiddnnoooo-ruuuuyt?";
 

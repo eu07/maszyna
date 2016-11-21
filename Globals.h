@@ -322,9 +322,20 @@ class Global
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
     static AnsiString Bezogonkow(AnsiString str, bool _ = false);
-	static double Min0RSpeed(double vel1, double vel2);
-	static double CutValueToRange(double min, double value, double max);
+    static double Min0RSpeed(double vel1, double vel2);
+    static double CutValueToRange(double min, double value, double max);
 
+    // maciek001: zmienne dla MWD
+    static bool bMWDdebugEnable;
+    static unsigned long int iMWDBaudrate;
+    static AnsiString sMWDPortId;
+    static bool bMWDBreakEnable;
+    static double fMWDAnalogCalib[4][3];
+    static double fMWDzg[2];
+    static double fMWDpg[2];
+    static double fMWDph[2];
+    static double fMWDvolt[2];
+    static double fMWDamp[2];
 };
 
 //---------------------------------------------------------------------------
