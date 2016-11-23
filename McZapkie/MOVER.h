@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "hamulce.h"
 #include <string>
 #include <mctools.h>
-
+#include <map>
 
 /*
 MaSzyna EU07 locomotive simulator
@@ -321,7 +321,7 @@ struct TBrakePressure
 	TBrakeSystem BrakeType;
 };
 
-typedef TBrakePressure TBrakePressureTable[MainBrakeMaxPos];
+typedef std::map<int,TBrakePressure> TBrakePressureTable;
 
 
 /*typy napedow*/

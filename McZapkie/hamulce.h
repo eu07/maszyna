@@ -585,7 +585,8 @@ Knorr/West EP - ¿eby by³
 		virtual double GetCP();
 		virtual void SetReductor(double nAdj);
 		virtual double GetSound(int i);
-		virtual double GetPos(int i);
+		static double GetPos(int i);
+		double GetEP(double pos);
 
 	};
 
@@ -625,7 +626,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
-		double GetPos(int i)/*override*/;
+		static double GetPos(int i)/*override*/;
 
 		inline TFV4aM(void) : TDriverHandle() { }
 	};
@@ -649,7 +650,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
-		double GetPos(int i)/*override*/;
+		static double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
 		double GetEP(double pos);
 
@@ -703,7 +704,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(int i)/*override*/;
+		static double GetPos(int i)/*override*/;
 
 		inline TM394(void) : TDriverHandle() { }
 	};
@@ -726,7 +727,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(int i)/*override*/;
+		static double GetPos(int i)/*override*/;
 
 		inline TH14K1(void) : TDriverHandle() { }
 	};
@@ -746,7 +747,7 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(int i)/*override*/;
+		static double GetPos(int i)/*override*/;
 		void Init(double Press)/*override*/;
 
 		inline TSt113(void) : TH14K1() { }
@@ -819,7 +820,7 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
-		double GetPos(int i)/*override*/;
+		static double GetPos(int i)/*override*/;
 		double GetSound(int i)/*override*/;
 		void Init(double Press)/*override*/;
 

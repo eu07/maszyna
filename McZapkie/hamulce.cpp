@@ -20,16 +20,16 @@ Copyright (C) 2007-2014 Maciej Cierniak
 //---FUNKCJE OGOLNE---
 
 static double const DPL = 0.25;
-double TFV4aM::pos_table[11] = { 0, 8, 1, 2, 0, 3, 6, 8, 2, 2, 2 };
-double TMHZ_EN57::pos_table[11] = { 0, 12, 1, 2, 2, 4, 11, 12, 2, 2, 2 };
-double TM394::pos_table[11] = { 0, 6, 0, 1, 2, 3, 5, 6, 1, 1, 1 };
+double TFV4aM::pos_table[11] = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
+double TMHZ_EN57::pos_table[11] = { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
+double TM394::pos_table[11] = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
 double TH14K1::BPT_K[6][2] =
 { (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
-double TH14K1::pos_table[11] = { 0, 5, 0, 1, 2, 3, 4, 5, 1, 1, 1 };
+double TH14K1::pos_table[11] = { -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 };
 double TSt113::BPT_K[6][2] =
 { (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
 double TSt113::BEP_K[7] = { 0, -1, 1, 0, 0, 0, 0 };
-double TSt113::pos_table[11] = { 0, 6, 0, 1, 3, 4, 5, 6, 1, 1, 2 };
+double TSt113::pos_table[11] = { -1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1 };
 double TFVel6::pos_table[11] = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
 
 
@@ -2121,6 +2121,10 @@ double TDriverHandle::GetPos(int i)
     return 0;
 }
 
+double TDriverHandle::GetEP(double pos)
+{
+	return 0;
+}
 //---FV4a---
 
 double TFV4a::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
@@ -2133,8 +2137,8 @@ double TFV4a::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     double ActFlowSpeed;
 
     ep = PP; // SPKS!!
-    LimPP = Min0R(BPT[lround(i_bcp)][1], HP);
-    ActFlowSpeed = BPT[lround(i_bcp)][0];
+    LimPP = Min0R(BPT[lround(i_bcp) + 2][1], HP);
+    ActFlowSpeed = BPT[lround(i_bcp) + 2][0];
 
     if ((i_bcp == i_bcpno))
         LimPP = 2.9;
@@ -2254,7 +2258,7 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
         XP = 0; // jak pusty, to pusty
 
     LimPP = Min0R(LPP_RP(i_bcp) + TP * 0.08 + RedAdj, HP); // pozycja + czasowy lub zasilanie
-    ActFlowSpeed = BPT[lround(i_bcp)][0];
+    ActFlowSpeed = BPT[lround(i_bcp) + 2][0];
 
     if ((EQ(i_bcp, -1)))
         pom = Min0R(HP, 5.4 + RedAdj);
@@ -2311,7 +2315,7 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 														   // jednak trzeba wydluzyc, bo
 														   // obecnie zle dziala
     if ((RP < ep) &&
-        (RP < BPT[lround(i_bcpno)][1])) // jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
+        (RP < BPT[lround(i_bcpno) + 2][1])) // jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
         RP = RP + PF(RP, CP, 0.005) * dt; // przypisz cisnienie w PG - wydluzanie napelniania o czas
                                           // potrzebny do napelnienia PG
 
@@ -2367,9 +2371,9 @@ double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
 {
     int i_pos;
 
-    i_pos = lround(pos - 0.5); // zaokraglone w dol
+    i_pos = lround(pos - 0.5) + 2; // zaokraglone w dol
     return
-        BPT[i_pos][1] + (BPT[i_pos + 1][1] - BPT[i_pos][1]) * (pos - i_pos); // interpolacja liniowa
+        BPT[i_pos][1] + (BPT[i_pos + 1][1] - BPT[i_pos][1]) * (pos + 2 - i_pos); // interpolacja liniowa
 }
 bool TFV4aM::EQ(double pos, double i_pos)
 {
@@ -2539,8 +2543,8 @@ double TM394::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     if (BCP < -1)
         BCP = 1;
 
-    LimPP = Min0R(BPT_394[BCP][1], HP);
-    ActFlowSpeed = BPT_394[BCP][0];
+    LimPP = Min0R(BPT_394[BCP+1][1], HP);
+    ActFlowSpeed = BPT_394[BCP+1][0];
     if ((BCP == 1) || (BCP == i_bcpno))
         LimPP = PP;
     if ((BCP == 0))
@@ -2615,14 +2619,14 @@ double TH14K1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     BCP = lround(i_bcp);
     if (i_bcp < -1)
         BCP = 1;
-    LimPP = BPT_K[BCP][1];
+    LimPP = BPT_K[BCP+1][1];
     if (LimPP < 0)
         LimPP = 0.5 * PP;
     else if (LimPP > 0)
         LimPP = PP;
     else
         LimPP = CP;
-    ActFlowSpeed = BPT_K[BCP][0];
+    ActFlowSpeed = BPT_K[BCP+1][0];
 
     CP = CP + 6 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
@@ -2685,14 +2689,14 @@ double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
     if (BCP < -1)
         BCP = 1;
-    LimPP = BPT_K[BCP][1];
+    LimPP = BPT_K[BCP+1][1];
     if (LimPP < 0)
         LimPP = 0.5 * PP;
     else if (LimPP > 0)
         LimPP = PP;
     else
         LimPP = CP;
-    ActFlowSpeed = BPT_K[BCP][0];
+    ActFlowSpeed = BPT_K[BCP+1][0];
 
     CP = CP + 6 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
@@ -2738,8 +2742,8 @@ double Ttest::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     double dpMainValve;
     double ActFlowSpeed;
 
-    LimPP = BPT[lround(i_bcp)][1];
-    ActFlowSpeed = BPT[lround(i_bcp)][0];
+    LimPP = BPT[lround(i_bcp)+2][1];
+    ActFlowSpeed = BPT[lround(i_bcp)+2][0];
 
     if ((i_bcp == i_bcpno))
         LimPP = 0.0;
