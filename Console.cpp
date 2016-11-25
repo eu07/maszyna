@@ -315,7 +315,7 @@ void Console::BitsUpdate(int mask)
         else MWD->WriteDataBuff[5] &= ~(1<<5);
         if(mask & 0x0010) if(iBits & 0x10) MWD->WriteDataBuff[5] |= 1<<4; 	// nadmiarowy silnik?w trakcyjnych
         else MWD->WriteDataBuff[5] &= ~(1<<4);
-        if(mask & 0x0020) if(iBits & 0x20) MWD->WriteDataBuff[5] |= 1<<0; 	// styczniki liniowe
+        if(mask & 0x0020) if(iBits & 0x20) MWD->WriteDataBuff[4] |= 1<<0; 	// styczniki liniowe
         else MWD->WriteDataBuff[5] &= ~(1<<0);
         if(mask & 0x0040) if(iBits & 0x40) MWD->WriteDataBuff[4] |= 1<<2; 	// po?lizg
         else MWD->WriteDataBuff[4] &= ~(1<<2);
