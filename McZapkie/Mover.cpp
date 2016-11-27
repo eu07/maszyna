@@ -1881,6 +1881,7 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
 
 // *************************************************************************************************
 // Q: 20160710
+// zwiêkszenie bocznika
 // *************************************************************************************************
 bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 {
@@ -1926,11 +1927,18 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
         if (LastRelayTime > CtrlDelay)
             LastRelayTime = 0;
 
+	if ((OK) && (EngineType == ElectricInductionMotor))
+		if ((Vmax < 250))
+			ScndCtrlActualPos = Round(Vel + 0.5);
+		else
+			ScndCtrlActualPos = Round(Vel * 1.0 / 2 + 0.5);
+
     return OK;
 }
 
 // *************************************************************************************************
 // Q: 20160710
+// zmniejszenie bocznika
 // *************************************************************************************************
 bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 {
@@ -1972,6 +1980,9 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
     if (OK)
         if (LastRelayTime > CtrlDownDelay)
             LastRelayTime = 0;
+
+	if ((OK) && (EngineType == ElectricInductionMotor))
+		ScndCtrlActualPos = 0;
 
     return OK;
 }
@@ -2042,6 +2053,7 @@ bool TMoverParameters::AddPulseForce(int Multipler)
 
 // *************************************************************************************************
 // Q: 20160713
+// sypanie piasku
 // *************************************************************************************************
 bool TMoverParameters::SandDoseOn(void)
 {
@@ -2063,7 +2075,7 @@ bool TMoverParameters::SandDoseOn(void)
 }
 
 void TMoverParameters::SSReset(void)
-{
+{ // funkcja pomocnicza dla SecuritySystemReset - w Delphi Reset()
     SecuritySystem.SystemTimer = 0;
 
     if (TestFlag(SecuritySystem.Status, s_aware))
@@ -2090,6 +2102,7 @@ void TMoverParameters::SSReset(void)
 
 // *****************************************************************************
 // Q: 20160710
+// zbicie czuwaka / SHP
 // *****************************************************************************
 // hunter-091012: rozbicie alarmow, dodanie testu czuwaka
 bool TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
@@ -2117,13 +2130,15 @@ bool TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
 
 // *************************************************************************************************
 // Q: 20160711
+// sprawdzanie stanu CA/SHP
 // *************************************************************************************************
 void TMoverParameters::SecuritySystemCheck(double dt)
 {
     // Ra: z CA/SHP w EZT jest ten problem, ¿e w rozrz¹dczym nie ma kierunku, a w silnikowym nie ma
     // obsady
     // poza tym jest zdefiniowany we wszystkich 3 cz³onach EN57
-    // SecuritySystem SS;
+	if ((!Radio))
+		EmergencyBrakeSwitch(false);
 
     if ((SecuritySystem.SystemType > 0) && (SecuritySystem.Status > 0) &&
         (Battery)) // Ra: EZT ma teraz czuwak w rozrz¹dczym
@@ -2133,13 +2148,13 @@ void TMoverParameters::SecuritySystemCheck(double dt)
             SecuritySystem
                 .AwareMinSpeed) // domyœlnie predkoœæ wiêksza od 10% Vmax, albo podanej jawnie w FIZ
         {
-            SecuritySystem.SystemTimer = SecuritySystem.SystemTimer + dt;
+            SecuritySystem.SystemTimer += dt;
             if (TestFlag(SecuritySystem.SystemType, 1) &&
                 TestFlag(SecuritySystem.Status, s_aware)) // jeœli œwieci albo miga
-                SecuritySystem.SystemSoundCATimer = SecuritySystem.SystemSoundCATimer + dt;
+                SecuritySystem.SystemSoundCATimer += dt;
             if (TestFlag(SecuritySystem.SystemType, 1) &&
                 TestFlag(SecuritySystem.Status, s_CAalarm)) // jeœli buczy
-                SecuritySystem.SystemBrakeCATimer = SecuritySystem.SystemBrakeCATimer + dt;
+                SecuritySystem.SystemBrakeCATimer += dt;
             if (TestFlag(SecuritySystem.SystemType, 1))
                 if ((SecuritySystem.SystemTimer > SecuritySystem.AwareDelay) &&
                     (SecuritySystem.AwareDelay >= 0)) //-1 blokuje
@@ -2156,10 +2171,10 @@ void TMoverParameters::SecuritySystemCheck(double dt)
             // SHP
             if (TestFlag(SecuritySystem.SystemType, 2) &&
                 TestFlag(SecuritySystem.Status, s_active)) // jeœli œwieci albo miga
-                SecuritySystem.SystemSoundSHPTimer = SecuritySystem.SystemSoundSHPTimer + dt;
+                SecuritySystem.SystemSoundSHPTimer += dt;
             if (TestFlag(SecuritySystem.SystemType, 2) &&
                 TestFlag(SecuritySystem.Status, s_SHPalarm)) // jeœli buczy
-                SecuritySystem.SystemBrakeSHPTimer = SecuritySystem.SystemBrakeSHPTimer + dt;
+                SecuritySystem.SystemBrakeSHPTimer += dt;
             if (TestFlag(SecuritySystem.SystemType, 2) && TestFlag(SecuritySystem.Status, s_active))
                 if ((Vel > SecuritySystem.VelocityAllowed) && (SecuritySystem.VelocityAllowed >= 0))
                     SetFlag(SecuritySystem.Status, s_SHPebrake);
@@ -2178,7 +2193,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
 
         // TEST CA
         if (TestFlag(SecuritySystem.Status, s_CAtest)) // jeœli œwieci albo miga
-            SecuritySystem.SystemBrakeCATestTimer = SecuritySystem.SystemBrakeCATestTimer + dt;
+            SecuritySystem.SystemBrakeCATestTimer += dt;
         if (TestFlag(SecuritySystem.SystemType, 1))
             if (TestFlag(SecuritySystem.Status, s_CAtest)) // juz wlaczony sygnal swietlny
                 if ((SecuritySystem.SystemBrakeCATestTimer > SecuritySystem.EmergencyBrakeDelay) &&
@@ -2192,12 +2207,14 @@ void TMoverParameters::SecuritySystemCheck(double dt)
     }
     else if (!Battery)
     { // wy³¹czenie baterii deaktywuje sprzêt
+		EmergencyBrakeSwitch(false);
         // SecuritySystem.Status = 0; //deaktywacja czuwaka
     }
 }
 
 // *************************************************************************************************
 // Q: 20160710
+// w³¹czenie / wy³¹czenie baterii
 // *************************************************************************************************
 bool TMoverParameters::BatterySwitch(bool State)
 {
@@ -2214,7 +2231,7 @@ bool TMoverParameters::BatterySwitch(bool State)
     BS = true;
 
     if ((Battery) && (ActiveCab != 0)) /*|| (TrainType==dt_EZT)*/
-        SecuritySystem.Status = (SecuritySystem.Status || s_waiting); // aktywacja czuwaka
+        SecuritySystem.Status = (SecuritySystem.Status | s_waiting); // aktywacja czuwaka
     else
         SecuritySystem.Status = 0; // wy³¹czenie czuwaka
 
@@ -2223,6 +2240,7 @@ bool TMoverParameters::BatterySwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160710
+// w³¹czenie / wy³¹czenie hamulca elektro-pneumatycznego
 // *************************************************************************************************
 bool TMoverParameters::EpFuseSwitch(bool State)
 {
@@ -2239,6 +2257,7 @@ bool TMoverParameters::EpFuseSwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160710
+// kierunek do ty³u
 // *************************************************************************************************
 bool TMoverParameters::DirectionBackward(void)
 {
@@ -2269,6 +2288,7 @@ bool TMoverParameters::DirectionBackward(void)
 
 // *************************************************************************************************
 // Q: 20160710
+// za³¹czenie przycisku przeciwpoœlizgowego
 // *************************************************************************************************
 bool TMoverParameters::AntiSlippingButton(void)
 {
@@ -2280,17 +2300,19 @@ bool TMoverParameters::AntiSlippingButton(void)
 
 // *************************************************************************************************
 // Q: 20160713
+// w³¹czenie / wy³¹czenie obwodu g³ownego
 // *************************************************************************************************
 bool TMoverParameters::MainSwitch(bool State)
 {
-    bool MS = false;
+    bool MS;
 
     MS = false; // Ra: przeniesione z koñca
     if ((Mains != State) && (MainCtrlPosNo > 0))
     {
         if ((State == false) ||
-            ((ScndCtrlPos == 0) && (ConvOvldFlag == false) && (LastSwitchingTime > CtrlDelay) &&
-             !TestFlag(DamageFlag, dtrain_out)))
+            ((ScndCtrlPos == 0) && ((ConvOvldFlag == false) || (TrainType == dt_EZT)) &&
+             (LastSwitchingTime > CtrlDelay) && !TestFlag(DamageFlag, dtrain_out) &&
+             !TestFlag(EngDmgFlag, 1)))
         {
             if (Mains) // jeœli by³ za³¹czony
                 SendCtrlToNext("MainSwitch", int(State),
@@ -2305,7 +2327,9 @@ bool TMoverParameters::MainSwitch(bool State)
             {
                 dizel_enginestart = State;
             }
-            // if (State=false) then //jeœli wy³¹czony
+			if (((TrainType == dt_EZT) && (!State)))
+				ConvOvldFlag = true;
+			// if (State=false) then //jeœli wy³¹czony
             // begin
             // SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie
             // nie zapetlal
@@ -2323,6 +2347,7 @@ bool TMoverParameters::MainSwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160713
+// w³¹czenie / wy³¹czenie przetwornicy
 // *************************************************************************************************
 bool TMoverParameters::ConverterSwitch(bool State)
 {
@@ -2344,6 +2369,7 @@ bool TMoverParameters::ConverterSwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160713
+// w³¹czenie / wy³¹czenie sprê¿arki
 // *************************************************************************************************
 bool TMoverParameters::CompressorSwitch(bool State)
 {
@@ -2366,6 +2392,7 @@ bool TMoverParameters::CompressorSwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160711
+// zwiêkszenie nastawy hamulca
 // *************************************************************************************************
 bool TMoverParameters::IncBrakeLevelOld(void)
 {
@@ -2401,20 +2428,21 @@ bool TMoverParameters::IncBrakeLevelOld(void)
                 (BrakePressureTable[BrakeCtrlPos - 1].PipePressureVal > 0))
                 LimPipePress = PipePress;
 
-            if (BrakeSystem == ElectroPneumatic)
-                if (BrakeSubsystem != ss_K)
-                {
-                    if ((BrakeCtrlPos * BrakeCtrlPos) == 1)
-                    {
-                        //                SendCtrlToNext('Brake',BrakeCtrlPos,CabNo);
-                        //                SetFlag(BrakeStatus,b_epused);
-                    }
-                    else
-                    {
-                        //                SendCtrlToNext('Brake',0,CabNo);
-                        //                SetFlag(BrakeStatus,-b_epused);
-                    }
-                }
+			//ten kawa³ek jest bez sensu gdy¿ nic nie robi³. Zakomntowa³em. GF 20161124
+            //if (BrakeSystem == ElectroPneumatic)
+            //    if (BrakeSubsystem != ss_K)
+            //    {
+            //        if ((BrakeCtrlPos * BrakeCtrlPos) == 1)
+            //        {
+            //            //                SendCtrlToNext('Brake',BrakeCtrlPos,CabNo);
+            //            //                SetFlag(BrakeStatus,b_epused);
+            //        }
+            //        else
+            //        {
+            //            //                SendCtrlToNext('Brake',0,CabNo);
+            //            //                SetFlag(BrakeStatus,-b_epused);
+            //        }
+            //    }
         }
         else
         {
@@ -2431,6 +2459,7 @@ bool TMoverParameters::IncBrakeLevelOld(void)
 
 // *****************************************************************************
 // Q: 20160711
+// zmniejszenie nastawy hamulca
 // *****************************************************************************
 bool TMoverParameters::DecBrakeLevelOld(void)
 {
@@ -2442,11 +2471,11 @@ bool TMoverParameters::DecBrakeLevelOld(void)
         {
             BrakeCtrlPos--;
             //        BrakeCtrlPosR:=BrakeCtrlPos;
-            if (EmergencyBrakeFlag)
-            {
-                EmergencyBrakeFlag = false; //!!!
-                SendCtrlToNext("Emergency_brake", 0, CabNo);
-            }
+            //if (EmergencyBrakeFlag)
+            //{
+            //    EmergencyBrakeFlag = false; //!!!
+            //    SendCtrlToNext("Emergency_brake", 0, CabNo);
+            //}
 
             // youBy: wywalilem to, jak jest EP, to sa przenoszone sygnaly nt. co ma robic, a nie
             // poszczegolne pozycje;
@@ -2473,20 +2502,21 @@ bool TMoverParameters::DecBrakeLevelOld(void)
             //        (BrakePressureTable[BrakeCtrlPos+1].PipePressureVal > 0))
             //          LimPipePress:=PipePress;
 
-            if (BrakeSystem == ElectroPneumatic)
-                if (BrakeSubsystem != ss_K)
-                {
-                    if ((BrakeCtrlPos * BrakeCtrlPos) == 1)
-                    {
-                        //                SendCtrlToNext("Brake", BrakeCtrlPos, CabNo);
-                        //                SetFlag(BrakeStatus, b_epused);
-                    }
-                    else
-                    {
-                        //                SendCtrlToNext("Brake", 0, CabNo);
-                        //                SetFlag(BrakeStatus, -b_epused);
-                    }
-                }
+			// to nic nie robi. Zakomentowa³em. GF 20161124
+            //if (BrakeSystem == ElectroPneumatic)
+            //    if (BrakeSubsystem != ss_K)
+            //    {
+            //        if ((BrakeCtrlPos * BrakeCtrlPos) == 1)
+            //        {
+            //            //                SendCtrlToNext("Brake", BrakeCtrlPos, CabNo);
+            //            //                SetFlag(BrakeStatus, b_epused);
+            //        }
+            //        else
+            //        {
+            //            //                SendCtrlToNext("Brake", 0, CabNo);
+            //            //                SetFlag(BrakeStatus, -b_epused);
+            //        }
+            //    }
             //    for b:=0 to 1 do  {poprawic to!}
             //     with Couplers[b] do
             //      if CouplingFlag and ctrain_controll=ctrain_controll then
@@ -2504,6 +2534,7 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 
 // *************************************************************************************************
 // Q: 20160711
+// zwiêkszenie nastawy hamulca pomocnicznego
 // *************************************************************************************************
 bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 {
@@ -2526,6 +2557,7 @@ bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 
 // *************************************************************************************************
 // Q: 20160711
+// zmniejszenie nastawy hamulca pomocniczego
 // *************************************************************************************************
 bool TMoverParameters::DecLocalBrakeLevel(int CtrlSpeed)
 {
@@ -2548,6 +2580,7 @@ bool TMoverParameters::DecLocalBrakeLevel(int CtrlSpeed)
 
 // *************************************************************************************************
 // Q: 20160711
+// ustawienie pozycji kranu pomocniczego na masymaln¹ wartoœæ
 // *************************************************************************************************
 bool TMoverParameters::IncLocalBrakeLevelFAST(void)
 {
@@ -2565,6 +2598,7 @@ bool TMoverParameters::IncLocalBrakeLevelFAST(void)
 
 // *************************************************************************************************
 // Q: 20160711
+// ustawienie pozycji hamulca pomocniczego na minimaln¹
 // *************************************************************************************************
 bool TMoverParameters::DecLocalBrakeLevelFAST(void)
 {
@@ -2582,6 +2616,7 @@ bool TMoverParameters::DecLocalBrakeLevelFAST(void)
 
 // *************************************************************************************************
 // Q: 20160711
+// zwiêkszenie nastawy hamulca rêcznego
 // *************************************************************************************************
 bool TMoverParameters::IncManualBrakeLevel(int CtrlSpeed)
 {
@@ -2603,6 +2638,7 @@ bool TMoverParameters::IncManualBrakeLevel(int CtrlSpeed)
 
 // *************************************************************************************************
 // Q: 20160711
+// zmniejszenie nastawy hamulca rêcznego
 // *************************************************************************************************
 bool TMoverParameters::DecManualBrakeLevel(int CtrlSpeed)
 {
@@ -2651,6 +2687,7 @@ bool TMoverParameters::DynamicBrakeSwitch(bool Switch)
 
 // *************************************************************************************************
 // Q: 20160711
+// w³¹czenie / wy³¹czenie hamowania awaryjnego
 // *************************************************************************************************
 bool TMoverParameters::EmergencyBrakeSwitch(bool Switch)
 {
@@ -2682,6 +2719,7 @@ bool TMoverParameters::EmergencyBrakeSwitch(bool Switch)
 
 // *************************************************************************************************
 // Q: 20160710
+// hamowanie przeciwpoœlizgowe
 // *************************************************************************************************
 bool TMoverParameters::AntiSlippingBrake(void)
 {
@@ -2697,10 +2735,11 @@ bool TMoverParameters::AntiSlippingBrake(void)
 
 // *************************************************************************************************
 // Q: 20160711
+// w³¹czenie / wy³¹czenie odluŸniacza
 // *************************************************************************************************
 bool TMoverParameters::BrakeReleaser(int state)
 {
-    bool OK;
+    bool OK = true; //false tylko jeœli nie uda siê wys³aæ, GF 20161124
     Hamulec->Releaser(state);
     if (CabNo != 0) // rekurencyjne wys³anie do nastêpnego
         OK = SendCtrlToNext("BrakeReleaser", state, CabNo);
@@ -2709,6 +2748,7 @@ bool TMoverParameters::BrakeReleaser(int state)
 
 // *************************************************************************************************
 // Q: 20160711
+// w³¹czenie / wy³¹czenie hamulca elektro-pneumatycznego
 // *************************************************************************************************
 bool TMoverParameters::SwitchEPBrake(int state)
 {
@@ -2718,10 +2758,10 @@ bool TMoverParameters::SwitchEPBrake(int state)
     OK = false;
     if ((BrakeHandle == St113) && (ActiveCab != 0))
     {
-        // if(state > 0)
-        //  temp = (Handle as TSt113).GetCP    // TODO: przetlumaczyc
-        // else
-        temp = 0;
+        if (state > 0)
+            temp = Handle->GetCP(); // TODO: przetlumaczyc
+        else
+            temp = 0;
         Hamulec->SetEPS(temp);
         SendCtrlToNext("Brake", temp, CabNo);
     }
@@ -2732,6 +2772,7 @@ bool TMoverParameters::SwitchEPBrake(int state)
 
 // *************************************************************************************************
 // Q: 20160711
+// zwiêkszenie ciœnienia hamowania
 // *************************************************************************************************
 bool TMoverParameters::IncBrakePress(double &brake, double PressLimit, double dp)
 {
@@ -2763,6 +2804,7 @@ bool TMoverParameters::IncBrakePress(double &brake, double PressLimit, double dp
 
 // *************************************************************************************************
 // Q: 20160711
+// zmniejszenie ciœnienia hamowania
 // *************************************************************************************************
 bool TMoverParameters::DecBrakePress(double &brake, double PressLimit, double dp)
 {
@@ -2789,12 +2831,23 @@ bool TMoverParameters::DecBrakePress(double &brake, double PressLimit, double dp
 
 // *************************************************************************************************
 // Q: 20160711
+// prze³¹czenie nastawy hamulca O/P/T
 // *************************************************************************************************
 bool TMoverParameters::BrakeDelaySwitch(int BDS)
 {
     bool rBDS;
     //  if (BrakeCtrlPosNo > 0)
-    if (Hamulec->SetBDF(BDS))
+	if (BrakeHandle == MHZ_EN57)
+	{
+		if ((BDS != BrakeOpModeFlag) && ((BDS & BrakeOpModes) > 0))
+		{
+			BrakeOpModeFlag = BDS;
+			rBDS = true;
+		}
+		else
+			rBDS = false;
+	}
+	else if (Hamulec->SetBDF(BDS))
     {
         BrakeDelayFlag = BDS;
         rBDS = true;
@@ -2810,6 +2863,7 @@ bool TMoverParameters::BrakeDelaySwitch(int BDS)
 
 // *************************************************************************************************
 // Q: 20160712
+// zwiêkszenie prze³o¿enia hamulca
 // *************************************************************************************************
 bool TMoverParameters::IncBrakeMult(void)
 {
@@ -2833,6 +2887,7 @@ bool TMoverParameters::IncBrakeMult(void)
 
 // *************************************************************************************************
 // Q: 20160712
+// zmniejszenie prze³o¿enia hamulca
 // *************************************************************************************************
 bool TMoverParameters::DecBrakeMult(void)
 {
@@ -2855,11 +2910,12 @@ bool TMoverParameters::DecBrakeMult(void)
 
 // *************************************************************************************************
 // Q: 20160712
+// zaktualizowanie ciœnienia w hamulcach
 // *************************************************************************************************
 void TMoverParameters::UpdateBrakePressure(double dt)
 {
-    const LBDelay = 5.0; // stala czasowa hamulca
-    double Rate, Speed, dp, sm;
+    //const double LBDelay = 5.0; // stala czasowa hamulca
+    //double Rate, Speed, dp, sm;
 
     dpLocalValve = 0;
     dpBrake = 0;
@@ -2998,11 +3054,12 @@ void TMoverParameters::CompressorCheck(double dt)
 
 // *************************************************************************************************
 // Q: 20160712
+// aktualizacja ciœnienia w przewodzie g³ównym
 // *************************************************************************************************
 void TMoverParameters::UpdatePipePressure(double dt)
 {
-    const LBDelay = 100;
-    const kL = 0.5;
+    const double LBDelay = 100;
+    const double kL = 0.5;
     double dV;
     TMoverParameters *c; // T_MoverParameters
     double temp;
@@ -3013,21 +3070,32 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     dpMainValve = 0;
 
-    if ((BrakeCtrlPosNo > 1) && (ActiveCab != 0))
+    if ((BrakeCtrlPosNo > 1) /*&& (ActiveCab != 0)*/)
     // with BrakePressureTable[BrakeCtrlPos] do
     {
-        dpLocalValve = LocHandle->GetPF(LocalBrakePos / LocalBrakePosNo, Hamulec->GetBCP(),
-                                        ScndPipePress, dt, 0);
+        if ((EngineType != ElectricInductionMotor))
+            dpLocalValve =
+                LocHandle->GetPF(Max0R(LocalBrakePos * 1.0 / LocalBrakePosNo, LocalBrakePosA),
+                                 Hamulec->GetBCP, ScndPipePress, dt, 0);
+        else
+            dpLocalValve =
+                LocHandle->GetPF(LocalBrakePosA, Hamulec->GetBCP(), ScndPipePress, dt, 0);
         if ((BrakeHandle == FV4a) &&
-            ((PipePress < 2.75) && ((Hamulec->GetStatus() && b_rls) == 0)) &&
+            ((PipePress < 2.75) && ((Hamulec->GetStatus() & b_rls) == 0)) &&
             (BrakeSubsystem == ss_LSt) && (TrainType != dt_EZT))
             temp = PipePress + 0.00001;
         else
             temp = ScndPipePress;
         Handle->SetReductor(BrakeCtrlPos2);
 
-        dpMainValve = Handle->GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
-        if (dpMainValve < 0) // && (PipePressureVal > 0.01)           //50
+		if ((BrakeOpModeFlag != bom_PS))
+			if ((BrakeOpModeFlag < bom_EP) || (Handle->GetPos(bh_EB) - 0.5 < BrakeCtrlPosR) ||
+				(BrakeHandle != MHZ_EN57))
+				dpMainValve = Handle->GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
+			else
+				dpMainValve = Handle->GetPF(0, PipePress, temp, dt, EqvtPipePress);
+		
+		if (dpMainValve < 0) // && (PipePressureVal > 0.01)           //50
             if (Compressor > ScndPipePress)
             {
                 CompressedVolume = CompressedVolume + dpMainValve / 1500;
@@ -3040,10 +3108,9 @@ void TMoverParameters::UpdatePipePressure(double dt)
     //      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         //ulepszony hamulec bezp.
     if ((EmergencyBrakeFlag) || (TestFlag(SecuritySystem.Status, s_SHPebrake)) ||
         (TestFlag(SecuritySystem.Status, s_CAebrake)) ||
-        (s_CAtestebrake == true)) // ulepszony hamulec bezp.
-        dpMainValve = dpMainValve / 1 +
-                      PF(0, PipePress, 0.15, 0.25) *
-                          dt; // Q: dodalem 4 paraMETR 0.25 bo wywalalo ze za malo parametrow
+        (s_CAtestebrake == true) ||
+		(TestFlag(EngDmgFlag, 32)) /* or (not Battery)*/) // ulepszony hamulec bezp.
+        dpMainValve = dpMainValve + PF(0, PipePress, 0.15) * dt;
     // 0.2*Spg
     Pipe->Flow(-dpMainValve);
     Pipe->Flow(-(PipePress)*0.001 * dt);
@@ -3066,14 +3133,14 @@ void TMoverParameters::UpdatePipePressure(double dt)
             LocBrakePress = LocHandle->GetCP();
 
             //(Hamulec as TWest).SetLBP(LocBrakePress);
-            static_cast<TWest *>(Hamulec)->SetLBP(LocBrakePress);
+            Hamulec->SetLBP(LocBrakePress);
         }
         if (MBPM < 2)
             //(Hamulec as TWest).PLC(MaxBrakePress[LoadFlag])
-            static_cast<TWest *>(Hamulec)->PLC(MaxBrakePress[LoadFlag]);
+            Hamulec->PLC(MaxBrakePress[LoadFlag]);
         else
             //(Hamulec as TWest).PLC(TotalMass);
-            static_cast<TWest *>(Hamulec)->PLC(TotalMass);
+            Hamulec->PLC(TotalMass);
         break;
     }
 
@@ -3081,36 +3148,45 @@ void TMoverParameters::UpdatePipePressure(double dt)
     case EStED:
     {
         LocBrakePress = LocHandle->GetCP();
-        for (int b = 0; b < 1; b++)
-            if (((TrainType && (dt_ET41 || dt_ET42)) > 0) &&
+        for (int b = 0; b < 2; b++)
+            if (((TrainType & (dt_ET41 | dt_ET42)) != 0) &&
                 (Couplers[b].Connected != NULL)) // nie podoba mi siê to rozwi¹zanie, chyba trzeba
                                                  // dodaæ jakiœ wpis do fizyki na to
-                if (((Couplers[b].Connected->TrainType && (dt_ET41 || dt_ET42)) > 0) &&
+                if (((Couplers[b].Connected->TrainType & (dt_ET41 | dt_ET42)) != 0) &&
                     ((Couplers[b].CouplingFlag & 36) == 36))
                     LocBrakePress = Max0R(Couplers[b].Connected->LocHandle->GetCP(), LocBrakePress);
 
-        if ((DynamicBrakeFlag) && (EngineType == ElectricInductionMotor))
-        {
-            if (Vel > 10)
-                LocBrakePress = 0;
-            else if (Vel > 5)
-                LocBrakePress = (10 - Vel) / 5 * LocBrakePress;
-        }
+        //if ((DynamicBrakeFlag) && (EngineType == ElectricInductionMotor))
+        //{
+        //    //if (Vel > 10)
+        //    //    LocBrakePress = 0;
+        //    //else if (Vel > 5)
+        //    //    LocBrakePress = (10 - Vel) / 5 * LocBrakePress;
+        //}
 
         //(Hamulec as TLSt).SetLBP(LocBrakePress);
-        static_cast<TLSt *>(Hamulec)->SetLBP(LocBrakePress);
-        break;
+        Hamulec->SetLBP(LocBrakePress);
+		if ((BrakeValve == EStED))
+			if (MBPM < 2)
+				Hamulec->PLC(MaxBrakePress[LoadFlag]);
+			else
+				Hamulec->PLC(TotalMass);
+		break;
     }
 
     case CV1_L_TR:
     {
         LocBrakePress = LocHandle->GetCP();
         //(Hamulec as TCV1L_TR).SetLBP(LocBrakePress);
-        static_cast<TCV1L_TR *>(Hamulec)->SetLBP(LocBrakePress);
+        Hamulec->SetLBP(LocBrakePress);
         break;
     }
 
-    // EP2:      (Hamulec as TEStEP2).PLC(TotalMass);
+    case EP2:
+	{
+		Hamulec->PLC(TotalMass);
+		break;
+	}
     case ESt3AL2:
     case NESt3:
     case ESt4:
@@ -3118,26 +3194,26 @@ void TMoverParameters::UpdatePipePressure(double dt)
     {
         if (MBPM < 2)
             //(Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
-            static_cast<TNESt3 *>(Hamulec)->PLC(MaxBrakePress[LoadFlag]);
+            Hamulec->PLC(MaxBrakePress[LoadFlag]);
         else
             //(Hamulec as TNESt3).PLC(TotalMass);
-            static_cast<TNESt3 *>(Hamulec)->PLC(TotalMass);
+            Hamulec->PLC(TotalMass);
         LocBrakePress = LocHandle->GetCP();
         //(Hamulec as TNESt3).SetLBP(LocBrakePress);
-        static_cast<TNESt3 *>(Hamulec)->SetLBP(LocBrakePress);
+        Hamulec->SetLBP(LocBrakePress);
         break;
     }
     case KE:
     {
         LocBrakePress = LocHandle->GetCP();
         //(Hamulec as TKE).SetLBP(LocBrakePress);
-        static_cast<TKE *>(Hamulec)->SetLBP(LocBrakePress);
+        Hamulec->SetLBP(LocBrakePress);
         if (MBPM < 2)
             //(Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
-            static_cast<TKE *>(Hamulec)->PLC(MaxBrakePress[LoadFlag]);
+            Hamulec->PLC(MaxBrakePress[LoadFlag]);
         else
             //(Hamulec as TKE).PLC(TotalMass);
-            static_cast<TKE *>(Hamulec)->PLC(TotalMass);
+            Hamulec->PLC(TotalMass);
         break;
     }
     } // switch
@@ -3147,7 +3223,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
         if ((Battery) && (ActiveDir != 0) &&
             (EpFuse)) // tu powinien byc jeszcze bezpiecznik EP i baterie -
             // temp = (Handle as TFVel6).GetCP
-            temp = static_cast<TFVel6 *>(Handle)->GetCP();
+            temp = Handle->GetCP();
         else
             temp = 0;
         Hamulec->SetEPS(temp);
@@ -3251,6 +3327,7 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
 
 // *************************************************************************************************
 // Q: 20160715
+// oblicza i zwraca przep³yw powietrza pomiêdzy pojazdami
 // *************************************************************************************************
 double TMoverParameters::GetDVc(double dt)
 {
@@ -3265,7 +3342,7 @@ double TMoverParameters::GetDVc(double dt)
         if (TestFlag(Couplers[0].CouplingFlag, ctrain_pneumatic))
         { //*0.85
             c = Couplers[0].Connected; // skrot           //0.08           //e/D * L/D = e/D^2 * L
-            dv1 = 0.5 * dt * PF(PipePress, c->PipePress, (Spg) / (1 + 0.015 / Spg * Dim.L), 0.25);
+            dv1 = 0.5 * dt * PF(PipePress, c->PipePress, (Spg) / (1 + 0.015 / Spg * Dim.L));
             if (dv1 * dv1 > 0.00000000000001)
                 c->Physic_ReActivation();
             c->Pipe->Flow(-dv1);
@@ -3275,21 +3352,21 @@ double TMoverParameters::GetDVc(double dt)
         if (TestFlag(Couplers[1].CouplingFlag, ctrain_pneumatic))
         {
             c = Couplers[1].Connected; // skrot
-            dv2 = 0.5 * dt * PF(PipePress, c->PipePress, (Spg) / (1 + 0.015 / Spg * Dim.L), 0.25);
+            dv2 = 0.5 * dt * PF(PipePress, c->PipePress, (Spg) / (1 + 0.015 / Spg * Dim.L));
             if (dv2 * dv2 > 0.00000000000001)
                 c->Physic_ReActivation();
             c->Pipe->Flow(-dv2);
         }
-    if ((Couplers[1].Connected != NULL) && (Couplers[0].Connected != NULL))
-        if ((TestFlag(Couplers[0].CouplingFlag, ctrain_pneumatic)) &&
-            (TestFlag(Couplers[1].CouplingFlag, ctrain_pneumatic)))
-        {
-            dV = 0.05 * dt * PF(Couplers[0].Connected->PipePress, Couplers[1].Connected->PipePress,
-                                (Spg * 0.85) / (1 + 0.03 * Dim.L), 0.25) *
-                 0;
-            Couplers[0].Connected->Pipe->Flow(+dV);
-            Couplers[1].Connected->Pipe->Flow(-dV);
-        }
+    //if ((Couplers[1].Connected != NULL) && (Couplers[0].Connected != NULL))
+    //    if ((TestFlag(Couplers[0].CouplingFlag, ctrain_pneumatic)) &&
+    //        (TestFlag(Couplers[1].CouplingFlag, ctrain_pneumatic)))
+    //    {
+    //        dV = 0.05 * dt * PF(Couplers[0].Connected->PipePress, Couplers[1].Connected->PipePress,
+    //                            (Spg * 0.85) / (1 + 0.03 * Dim.L)) *
+    //             0; // ktoœ mi powie jaki jest sens tego bloku jeœli przep³yw mno¿ony przez zero?
+    //        Couplers[0].Connected->Pipe->Flow(+dV);
+    //        Couplers[1].Connected->Pipe->Flow(-dV);
+    //    }
     // suma
     return dv2 + dv1;
 }

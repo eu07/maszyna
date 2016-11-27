@@ -208,11 +208,11 @@ Knorr/West EP - ¿eby by³
 		//maksymalne cisnienie, promien, skok roboczy, pojemnosc ZP;
 		//ilosc cylindrow, opoznienia hamulca, material klockow, osie hamowane, klocki na os;
 
-		virtual double GetFC(double Vel, double N);         //wspolczynnik tarcia - hamulec wie lepiej
+		double GetFC(double Vel, double N);         //wspolczynnik tarcia - hamulec wie lepiej
 		virtual double GetPF(double PP, double dt, double Vel);      //przeplyw miedzy komora wstepna i PG
 		double GetBCF();                           //sila tlokowa z tloka
 		virtual double GetHPFlow(double HP, double dt);  //przeplyw - 8 bar
-		virtual double GetBCP();  //cisnienie cylindrow hamulcowych
+		double GetBCP();  //cisnienie cylindrow hamulcowych
 		double GetBRP(); //cisnienie zbiornika pomocniczego
 		double GetVRP(); //cisnienie komory wstepnej rozdzielacza
 		virtual double GetCRP();  //cisnienie zbiornika sterujacego
@@ -221,6 +221,8 @@ Knorr/West EP - ¿eby by³
 		virtual void SetEPS(double nEPS); //hamulec EP
 		virtual void SetRM(double RMR) {};   //ustalenie przelozenia rapida
 		virtual void SetLP(double TM, double LM, double TBP) {};  //parametry przystawki wazacej
+		virtual void SetLBP(double P) {};   //cisnienie z hamulca pomocniczego
+		virtual void PLC(double mass) {};  //wspolczynnik cisnienia przystawki wazacej
 		void ASB(int state); //hamulec przeciwposlizgowy
 		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
 		void SetASBP(double Press); //ustalenie cisnienia pp
@@ -585,8 +587,8 @@ Knorr/West EP - ¿eby by³
 		virtual double GetCP();
 		virtual void SetReductor(double nAdj);
 		virtual double GetSound(int i);
-		static double GetPos(int i);
-		double GetEP(double pos);
+		virtual double GetPos(int i);
+		virtual double GetEP(double pos);
 
 	};
 
