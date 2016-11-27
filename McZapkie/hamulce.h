@@ -213,6 +213,7 @@ Knorr/West EP - ¿eby by³
 		double GetBCF();                           //sila tlokowa z tloka
 		virtual double GetHPFlow(double HP, double dt);  //przeplyw - 8 bar
 		double GetBCP();  //cisnienie cylindrow hamulcowych
+		virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
 		double GetBRP(); //cisnienie zbiornika pomocniczego
 		double GetVRP(); //cisnienie komory wstepnej rozdzielacza
 		virtual double GetCRP();  //cisnienie zbiornika sterujacego
@@ -228,6 +229,8 @@ Knorr/West EP - ¿eby by³
 		void SetASBP(double Press); //ustalenie cisnienia pp
 		virtual void ForceEmptiness();
 		int GetSoundFlag();
+		virtual void SetED(double EDstate) {}; //stan hamulca ED do luzowania
+
 		//        procedure
 
 	};
@@ -382,7 +385,7 @@ Knorr/West EP - ¿eby by³
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
 		virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
-		void SetED(double EDstate); //stan hamulca ED do luzowania
+		virtual void SetED(double EDstate); //stan hamulca ED do luzowania
 
 		inline TLSt(double i_mbp, double i_bcr, double i_bcd, double i_brc,
 			int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,

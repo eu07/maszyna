@@ -323,6 +323,12 @@ double TBrake::GetBCP()
     return BrakeCyl->P();
 }
 
+// ciœnienie steruj¹ce hamowaniem elektro-dynamicznym
+double TBrake::GetEDBCP()
+{
+	return 0;
+}
+
 // cisnienie zbiornika pomocniczego
 double TBrake::GetBRP()
 {

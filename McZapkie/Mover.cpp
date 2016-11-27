@@ -87,6 +87,7 @@ int DirF(int CouplerN)
 
 // *************************************************************************************************
 // Q: 20160716
+// Obliczanie natê¿enie pr¹du w silnikach
 // *************************************************************************************************
 double TMoverParameters::current(double n, double U)
 {
@@ -105,32 +106,30 @@ double TMoverParameters::current(double n, double U)
 
     MotorCurrent = 0;
     // i dzialanie hamulca ED w EP09
-    //-  if (DynamicBrakeType == dbrake_automatic)
-    //-   {
-    //-    if ((( static_cast<TLSt*>(Hamulec)->GetEDBCP() < 0.25) && (Vadd < 1)) || (BrakePress >
-    //2.1))
-    //-      DynamicBrakeFlag = false;
-    //-    else if ((BrakePress > 0.25) && (static_cast<TLSt*>(Hamulec)->GetEDBCP() > 0.25))
-    //-      DynamicBrakeFlag = true;
-    //-    DynamicBrakeFlag = (DynamicBrakeFlag && ConverterFlag);
-    //-   }
+    if (DynamicBrakeType == dbrake_automatic)
+    {
+        if (((Hamulec->GetEDBCP() < 0.25) && (Vadd < 1)) || (BrakePress > 2.1))
+            DynamicBrakeFlag = false;
+        else if ((BrakePress > 0.25) && (Hamulec->GetEDBCP() > 0.25))
+            DynamicBrakeFlag = true;
+        DynamicBrakeFlag = (DynamicBrakeFlag && ConverterFlag);
+    }
 
     // wylacznik cisnieniowy yBARC - to jest chyba niepotrzebne tutaj   Q: no to usuwam...
 
     // BrakeSubsystem = ss_LSt;
     // if (BrakeSubsystem == ss_LSt) WriteLog("LSt");
-    if (BrakeSubsystem == ss_LSt)
-        if (DynamicBrakeFlag)
-        {
-            static_cast<TLSt *>(Hamulec)
-                ->SetED(abs(Im / 350)); // hamulec ED na EP09 dziala az do zatrzymania lokomotywy
-            //-     WriteLog("A");
-        }
-        else
-        {
-            static_cast<TLSt *>(Hamulec)->SetED(0);
-            //-     WriteLog("B");
-        }
+    // if (BrakeSubsystem == ss_LSt) // zrobiona funkcja virtualna
+    if (DynamicBrakeFlag)
+    {
+        Hamulec->SetED(abs(Im / 350)); // hamulec ED na EP09 dziala az do zatrzymania lokomotywy
+        //-     WriteLog("A");
+    }
+    else
+    {
+        Hamulec->SetED(0);
+        //-     WriteLog("B");
+    }
 
     ResistorsFlag = (RList[MainCtrlActualPos].R > 0.01); // and (!DelayCtrlFlag)
     ResistorsFlag =
@@ -165,16 +164,14 @@ double TMoverParameters::current(double n, double U)
 
     // z Megapacka ... bylo tutaj zakomentowane    Q: no to usuwam...
 
-    //-  if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
-    //ConverterFlag && Mains)    //hamowanie EP09   //TUHEX
-    //-     {
-    //-       WriteLog("TUHEX");
-    //-       MotorCurrent = -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) -
-    //MotorParam[0].fi0), 0) * n * 2 / ep09resED; //TODO: zrobic bardziej uniwersalne nie tylko dla
-    //EP09
-    //-     }
-    //-  else
-    if ((RList[MainCtrlActualPos].Bn == 0) || (!StLinFlag))
+    if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
+        ConverterFlag && Mains) // hamowanie EP09   //TUHEX
+    {
+        MotorCurrent =
+            -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) *
+            n * 2 / ep09resED; // TODO: zrobic bardziej uniwersalne nie tylko dla EP09
+    }
+    else if ((RList[MainCtrlActualPos].Bn == 0) || (!StLinFlag))
         MotorCurrent = 0; // wylaczone
     else
     { // wlaczone...
@@ -188,23 +185,29 @@ double TMoverParameters::current(double n, double U)
 
             Rz = Mn * WindingRes + R;
 
-            //-        if (DynamicBrakeFlag) //hamowanie
-            //-         {
-            //-
-            //-           if (DynamicBrakeType > 1)
-            //-            {
-            //-
-            //-            if ((DynamicBrakeType == dbrake_switch) && (TrainType == dt_ET42))
-            //-             { //z Megapacka
-            //-               Rz = WindingRes + R;
-            //-               MotorCurrent = -MotorParam[SP].fi * n / Rz;
-            ////{hamowanie silnikiem na oporach rozruchowych}
-            //-             }
-            //-            }
-            //-           else
-            //-             MotorCurrent = 0; //odciecie pradu od silnika
-            //-         }
-            //-        else
+            if (DynamicBrakeFlag) // hamowanie
+            {
+                if (DynamicBrakeType > 1)
+                {
+					// if DynamicBrakeType<>dbrake_automatic then
+					// MotorCurrent:=-fi*n/Rz  {hamowanie silnikiem na oporach rozruchowych}
+					/*               begin
+					U:=0;
+					Isf:=Isat;
+					Delta:=SQR(Isf*Rz+Mn*fi*n-U)+4*U*Isf*Rz;
+					MotorCurrent:=(U-Isf*Rz-Mn*fi*n+SQRT(Delta))/(2*Rz)
+					end*/
+					if ((DynamicBrakeType == dbrake_switch) && (TrainType == dt_ET42))
+					{ // z Megapacka
+						Rz = WindingRes + R;
+						MotorCurrent =
+							-MotorParam[SP].fi * n / Rz; //{hamowanie silnikiem na oporach rozruchowych}
+					}
+				}
+                else
+                    MotorCurrent = 0; // odciecie pradu od silnika
+            }
+            else
             {
                 U1 = U + Mn * n * MotorParam[SP].fi0 * MotorParam[SP].fi;
                 //          writepaslog("U1             ", FloatToStr(U1));
@@ -237,42 +240,37 @@ double TMoverParameters::current(double n, double U)
     }
     //  writepaslog("MotorCurrent   ", FloatToStr(MotorCurrent));
 
-    //-  if ((DynamicBrakeType == dbrake_switch) && ((BrakePress > 2.0) || (PipePress < 3.6)))
-    //-   {
-    //-    WriteLog("DynamicBrakeType=" + IntToStr( dbrake_switch ));
-    //-    Im = 0;
-    //-    MotorCurrent = 0;
-    //-    Itot = 0;
-    //-   }
-    //-  else
-    {
-        Im = MotorCurrent;
-    }
+	if ((DynamicBrakeType == dbrake_switch) && ((BrakePress > 2.0) || (PipePress < 3.6)))
+	{
+		Im = 0;
+		MotorCurrent = 0;
+		// Im:=0;
+		Itot = 0;
+	}
+	else
+		Im = MotorCurrent;
 
     EnginePower = abs(Itot) * (1 + RList[MainCtrlActualPos].Mn) * abs(U);
 
     // awarie
     MotorCurrent = abs(Im); // zmienna pomocnicza
 
-    if (MotorCurrent > 0)
-    {
-
-        //-if FuzzyLogic(Abs(n),nmax*1.1,p_elengproblem) then
-        //- if MainSwitch(false) then
-        //-   EventFlag:=true; {zbyt duze obroty - wywalanie wskutek ognia okreznego}
-        //-if TestFlag(DamageFlag,dtrain_engine) then
-        //- if FuzzyLogic(MotorCurrent,ImaxLo/10.0,p_elengproblem) then
-        //-  if MainSwitch(false) then
-        //-   EventFlag:=true;
-        // uszkodzony silnik (uplywy)
-        //-if ((FuzzyLogic(abs(Im), Imax * 2, p_elengproblem) || FuzzyLogic(abs(n), nmax * 1.11,
-        //p_elengproblem)))
-
-        //-if (SetFlag(DamageFlag, dtrain_engine))
-        //-   EventFlag = true;
-
-        //! dorobic grzanie oporow rozruchowych i silnika
-    }
+	if (MotorCurrent > 0)
+	{
+		if (FuzzyLogic(abs(n), nmax * 1.1, p_elengproblem))
+			if (MainSwitch(false))
+				EventFlag = true; /*zbyt duze obroty - wywalanie wskutek ognia okreznego*/
+		if (TestFlag(DamageFlag, dtrain_engine))
+			if (FuzzyLogic(MotorCurrent, ImaxLo / 10.0, p_elengproblem))
+				if (MainSwitch(false))
+					EventFlag = true; /*uszkodzony silnik (uplywy)*/
+		if ((FuzzyLogic(abs(Im), Imax * 2, p_elengproblem) ||
+			FuzzyLogic(abs(n), nmax * 1.11, p_elengproblem)))
+			/*       or FuzzyLogic(Abs(U/Mn),2*NominalVoltage,1)) then */ /*poprawic potem*/
+			if ((SetFlag(DamageFlag, dtrain_engine)))
+				EventFlag = true;
+		/*! dorobic grzanie oporow rozruchowych i silnika*/
+	}
 
     return Im;
 }
@@ -1537,7 +1535,7 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
 };
 
 double TMoverParameters::ShowEngineRotation(int VehN)
-{ // pokazywanie obrotów silnika, równie¿ dwóch dalszych pojazdów (3×SN61)
+{ // Zwraca wartoœæ prêdkoœci obrotowej silnika wybranego pojazdu. Do 3 pojazdów (3×SN61).
     int b;
     switch (VehN)
     { // numer obrotomierza
@@ -1570,7 +1568,7 @@ void TMoverParameters::ConverterCheck()
 };
 
 int TMoverParameters::ShowCurrent(int AmpN)
-{ // odczyt ampera¿u
+{ // Odczyt poboru pr¹du na podanym amperomierzu
     switch (EngineType)
     {
     case ElectricInductionMotor:
@@ -2927,6 +2925,7 @@ void TMoverParameters::UpdateBrakePressure(double dt)
 
 // *************************************************************************************************
 // Q: 20160712
+// Obliczanie pracy sprê¿arki
 // *************************************************************************************************
 void TMoverParameters::CompressorCheck(double dt)
 {
@@ -2940,24 +2939,21 @@ void TMoverParameters::CompressorCheck(double dt)
             {
                 if (Compressor < MaxCompressor)
                     if ((EngineType == DieselElectric) && (CompressorPower > 0))
-                        CompressedVolume = CompressedVolume +
-                                           dt * CompressorSpeed * (2 * MaxCompressor - Compressor) /
-                                               MaxCompressor * (DElist[MainCtrlPos].RPM /
-                                                                DElist[MainCtrlPosNo].RPM);
+                        CompressedVolume += dt * CompressorSpeed *
+                                            (2 * MaxCompressor - Compressor) / MaxCompressor *
+                                            (DElist[MainCtrlPos].RPM / DElist[MainCtrlPosNo].RPM);
                     else
                     {
-                        CompressedVolume =
-                            CompressedVolume +
+                        CompressedVolume +=
                             dt * CompressorSpeed * (2 * MaxCompressor - Compressor) / MaxCompressor;
-                        TotalCurrent =
-                            0.0015 *
-                            Voltage; // tymczasowo tylko obci¹¿enie sprê¿arki, tak z 5A na sprê¿arkê
+                        TotalCurrent += 0.0015 
+							* Voltage; // tymczasowo tylko obci¹¿enie sprê¿arki, tak z 5A na sprê¿arkê
                     }
                 else
                 {
                     CompressedVolume = CompressedVolume * 0.8;
-                    SetFlag(SoundFlag, sound_relay);
-                    SetFlag(SoundFlag, sound_loud);
+                    SetFlag(SoundFlag, sound_relay | sound_loud);
+                    // SetFlag(SoundFlag, sound_loud);
                 }
             }
         }
@@ -2984,8 +2980,8 @@ void TMoverParameters::CompressorCheck(double dt)
                         CompressorFlag = false; // bez tamtego cz³onu nie zadzia³a
                 }
                 else
-                    CompressorFlag = ((CompressorAllow) &&
-                                      ((ConverterFlag) || (CompressorPower == 0)) && (Mains));
+                    CompressorFlag = (CompressorAllow) &&
+                                      ((ConverterFlag) || (CompressorPower == 0)) && (Mains);
                 if (Compressor >
                     MaxCompressor) // wy³¹cznik ciœnieniowy jest niezale¿ny od sposobu zasilania
                     CompressorFlag = false;
@@ -3013,8 +3009,8 @@ void TMoverParameters::CompressorCheck(double dt)
                         CompressorFlag = false; // bez tamtego cz³onu nie zadzia³a
                 }
                 else
-                    CompressorFlag = ((CompressorAllow) &&
-                                      ((ConverterFlag) || (CompressorPower == 0)) && (Mains));
+                    CompressorFlag = (CompressorAllow) &&
+                                      ((ConverterFlag) || (CompressorPower == 0)) && (Mains);
                 if (CompressorFlag) // jeœli zosta³a za³¹czona
                     LastSwitchingTime = 0; // to trzeba ograniczyæ ponowne w³¹czenie
             }
@@ -3024,28 +3020,25 @@ void TMoverParameters::CompressorCheck(double dt)
             //      Connected.CompressorFlag:=CompressorFlag;
             if (CompressorFlag)
                 if ((EngineType == DieselElectric) && (CompressorPower > 0))
-                    CompressedVolume = CompressedVolume +
-                                       dt * CompressorSpeed * (2 * MaxCompressor - Compressor) /
-                                           MaxCompressor *
-                                           (DElist[MainCtrlPos].RPM / DElist[MainCtrlPosNo].RPM);
+                    CompressedVolume += dt * CompressorSpeed * (2 * MaxCompressor - Compressor) /
+                                        MaxCompressor *
+                                        (DElist[MainCtrlPos].RPM / DElist[MainCtrlPosNo].RPM);
                 else
                 {
-                    CompressedVolume =
-                        CompressedVolume +
+                    CompressedVolume +=
                         dt * CompressorSpeed * (2 * MaxCompressor - Compressor) / MaxCompressor;
                     if ((CompressorPower == 5) && (Couplers[1].Connected != NULL))
-                        Couplers[1].Connected->TotalCurrent =
+                        Couplers[1].Connected->TotalCurrent +=
                             0.0015 * Couplers[1].Connected->Voltage; // tymczasowo tylko obci¹¿enie
                                                                      // sprê¿arki, tak z 5A na
                                                                      // sprê¿arkê
                     else if ((CompressorPower == 4) && (Couplers[0].Connected != NULL))
-                        Couplers[0].Connected->TotalCurrent =
+                        Couplers[0].Connected->TotalCurrent +=
                             0.0015 * Couplers[0].Connected->Voltage; // tymczasowo tylko obci¹¿enie
                                                                      // sprê¿arki, tak z 5A na
                                                                      // sprê¿arkê
                     else
-                        TotalCurrent =
-                            0.0015 *
+                        TotalCurrent += 0.0015 *
                             Voltage; // tymczasowo tylko obci¹¿enie sprê¿arki, tak z 5A na sprê¿arkê
                 }
         }
@@ -3263,11 +3256,11 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
 // *************************************************************************************************
 // Q: 20160713
+// Aktualizacja ciœnienia w przewodzie zasilaj¹cym
 // *************************************************************************************************
 void TMoverParameters::UpdateScndPipePressure(double dt)
 {
-    const Spz = 0.5067;
-    // T_MoverParameters *c;
+    const double Spz = 0.5067;
     TMoverParameters *c;
     double dv1, dv2, dV;
 
@@ -3279,7 +3272,7 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
         if (TestFlag(Couplers[0].CouplingFlag, ctrain_scndpneumatic))
         {
             c = Couplers[0].Connected; // skrot
-            dv1 = 0.5 * dt * PF(ScndPipePress, c->ScndPipePress, Spz * 0.75, 0.25);
+            dv1 = 0.5 * dt * PF(ScndPipePress, c->ScndPipePress, Spz * 0.75);
             if (dv1 * dv1 > 0.00000000000001)
                 c->Physic_ReActivation();
             c->Pipe2->Flow(-dv1);
@@ -3289,7 +3282,7 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
         if (TestFlag(Couplers[1].CouplingFlag, ctrain_scndpneumatic))
         {
             c = Couplers[1].Connected; // skrot
-            dv2 = 0.5 * dt * PF(ScndPipePress, c->ScndPipePress, Spz * 0.75, 0.25);
+            dv2 = 0.5 * dt * PF(ScndPipePress, c->ScndPipePress, Spz * 0.75);
             if (dv2 * dv2 > 0.00000000000001)
                 c->Physic_ReActivation();
             c->Pipe2->Flow(-dv2);
@@ -3299,7 +3292,7 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
             (TestFlag(Couplers[1].CouplingFlag, ctrain_scndpneumatic)))
         {
             dV = 0.00025 * dt * PF(Couplers[0].Connected->ScndPipePress,
-                                   Couplers[1].Connected->ScndPipePress, Spz * 0.25, 0.25);
+                                   Couplers[1].Connected->ScndPipePress, Spz * 0.25);
             Couplers[0].Connected->Pipe2->Flow(+dV);
             Couplers[1].Connected->Pipe2->Flow(-dV);
         }
@@ -3308,8 +3301,8 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
 
     if (((Compressor > ScndPipePress) && (CompressorSpeed > 0.0001)) || (TrainType == dt_EZT))
     {
-        dV = PF(Compressor, ScndPipePress, Spz, 0.25) * dt;
-        CompressedVolume = CompressedVolume + dV / 1000;
+        dV = PF(Compressor, ScndPipePress, Spz) * dt;
+        CompressedVolume += dV / 1000;
         Pipe2->Flow(-dV);
     }
 
@@ -4365,11 +4358,11 @@ double TMoverParameters::TractionForce(double dt)
 
 // *************************************************************************************************
 // Q: 20160713
+//Obliczenie predkoœci obrotowej kó³???
 // *************************************************************************************************
 double TMoverParameters::ComputeRotatingWheel(double WForce, double dt, double n)
 {
     double newn, eps;
-    bool CRW;
     if ((n == 0) && (WForce * Sign(V) < 0))
         newn = 0;
     else
@@ -4379,46 +4372,45 @@ double TMoverParameters::ComputeRotatingWheel(double WForce, double dt, double n
         if ((newn * n <= 0) && (eps * n < 0))
             newn = 0;
     }
-    CRW = newn;
-    return CRW;
+    return newn;
 }
 
 // *************************************************************************************************
 // Q: 20160713
+// Sprawdzenie bezpiecznika nadmiarowego
 // *************************************************************************************************
 bool TMoverParameters::FuseFlagCheck(void)
 {
-    int b;
     bool FFC;
 
     FFC = false;
     if (Power > 0.01)
         FFC = FuseFlag;
-    // Q: TODO: zakomentowalem bo nie widzi funkcji
-    //- else               //pobor pradu jezeli niema mocy
-    //-  for (b=0; b < 1; b++)
-    //-    if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
-    //-     if (Couplers[b].Connected->Power > 0.01)
-    //-      FFC = Couplers[b].Connected->FuseFlagCheck();
+    else // pobor pradu jezeli niema mocy
+        for (int b = 0; b < 2; b++)
+            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+                if (Couplers[b].Connected->Power > 0.01)
+                    FFC = Couplers[b].Connected->FuseFlagCheck();
 
     return FFC;
 }
 
 // *************************************************************************************************
 // Q: 20160713
+// Za³¹czenie bezpiecznika nadmiarowego
 // *************************************************************************************************
 bool TMoverParameters::FuseOn(void)
 {
     bool FO = false;
-    if ((MainCtrlPos == 0) && (ScndCtrlPos == 0) && (TrainType != dt_ET40) && Mains)
+    if ((MainCtrlPos == 0) && (ScndCtrlPos == 0) && (TrainType != dt_ET40) &&
+        ((Mains) || (TrainType != dt_EZT)) && (!TestFlag(EngDmgFlag, 1)))
     { // w ET40 jest blokada nastawnika, ale czy dzia³a dobrze?
         SendCtrlToNext("FuseSwitch", 1, CabNo);
         if (((EngineType == ElectricSeriesMotor) || ((EngineType == DieselElectric))) && FuseFlag)
         {
             FuseFlag = false; // wlaczenie ponowne obwodu
             FO = true;
-            SetFlag(SoundFlag, sound_relay);
-            SetFlag(SoundFlag, sound_loud);
+            SetFlag(SoundFlag, sound_relay | sound_loud);
         }
     }
     return FO;
@@ -4426,6 +4418,7 @@ bool TMoverParameters::FuseOn(void)
 
 // *************************************************************************************************
 // Q: 20160713
+// Wy³¹czenie bezpiecznika nadmiarowego
 // *************************************************************************************************
 void TMoverParameters::FuseOff(void)
 {
@@ -4433,18 +4426,18 @@ void TMoverParameters::FuseOff(void)
     {
         FuseFlag = true;
         EventFlag = true;
-        SetFlag(SoundFlag, sound_relay);
-        SetFlag(SoundFlag, sound_loud);
+        SetFlag(SoundFlag, sound_relay | sound_loud);
     }
 }
 
 // *************************************************************************************************
 // Q: 20160713
+// Przeliczenie prêdkoœci liniowej na obrotow¹
 // *************************************************************************************************
 double TMoverParameters::v2n(void)
 {
     // przelicza predkosc liniowa na obrotowa
-    const dmgn = 0.5;
+    const double dmgn = 0.5;
     double n, deltan;
 
     n = V / (PI * WheelDiameter); // predkosc obrotowa wynikajaca z liniowej [obr/s]
@@ -4469,6 +4462,7 @@ double TMoverParameters::v2n(void)
 
 // *************************************************************************************************
 // Q: 20160714
+// Oblicza moment si³y wytwarzany przez silnik
 // *************************************************************************************************
 double TMoverParameters::Momentum(double I)
 {
@@ -4487,6 +4481,7 @@ double TMoverParameters::Momentum(double I)
 
 // *************************************************************************************************
 // Q: 20160714
+// Oblicza moment si³y do sterowania wzbudzeniem
 // *************************************************************************************************
 double TMoverParameters::MomentumF(double I, double Iw, int SCP)
 {
@@ -4498,6 +4493,7 @@ double TMoverParameters::MomentumF(double I, double Iw, int SCP)
 
 // *************************************************************************************************
 // Q: 20160713
+// Od³¹czenie uszkodzonych silników
 // *************************************************************************************************
 bool TMoverParameters::CutOffEngine(void)
 {
@@ -4515,6 +4511,7 @@ bool TMoverParameters::CutOffEngine(void)
 
 // *************************************************************************************************
 // Q: 20160713
+// Prze³¹czenie wysoki / niski pr¹d rozruchu
 // *************************************************************************************************
 bool TMoverParameters::MaxCurrentSwitch(bool State)
 {
@@ -4545,6 +4542,7 @@ bool TMoverParameters::MaxCurrentSwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160713
+// Prze³¹czenie wysoki / niski pr¹d rozruchu automatycznego
 // *************************************************************************************************
 bool TMoverParameters::MinCurrentSwitch(bool State)
 {
@@ -4571,26 +4569,27 @@ bool TMoverParameters::MinCurrentSwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160713
+// Sprawdzenie wskaŸnika jazdy na oporach
 // *************************************************************************************************
 bool TMoverParameters::ResistorsFlagCheck(void)
 {
-    int b;
     bool RFC = false;
 
     if (Power > 0.01)
         RFC = ResistorsFlag;
-    // Q: TODO: zakomentowalem bo nie widzi funkcji, do czasu przenesienia TCoupling do mover.h
-    else // pobor pradu jezeli niema mocy
-        RFC = false; // po przeniesieniu usunac te linie
-    //-   for (b=0; b<1; b++)
-    //-    if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
-    //-     if (Couplers[b].Connected->Power > 0.01)
-    //-       RFC = Couplers[b].Connected->ResistorsFlagCheck();
+	else // pobor pradu jezeli niema mocy
+	{
+		for (int b = 0; b < 2; b++)
+			if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+				if (Couplers[b].Connected->Power > 0.01)
+					RFC = Couplers[b].Connected->ResistorsFlagCheck();
+	}
     return RFC;
 }
 
 // *************************************************************************************************
 // Q: 20160713
+// W³¹czenie / wy³¹czenie automatycznego rozruchu
 // *************************************************************************************************
 bool TMoverParameters::AutoRelaySwitch(bool State)
 {
@@ -4609,6 +4608,7 @@ bool TMoverParameters::AutoRelaySwitch(bool State)
 
 // *************************************************************************************************
 // Q: 20160724
+// Sprawdzenie warunków pracy automatycznego rozruchu
 // *************************************************************************************************
 
 bool TMoverParameters::AutoRelayCheck(void)
@@ -4619,7 +4619,8 @@ bool TMoverParameters::AutoRelayCheck(void)
 
     // Ra 2014-06: dla SN61 nie dzia³a prawid³owo
     // rozlaczanie stycznikow liniowych
-    if ((!Mains) || (FuseFlag) || (MainCtrlPos == 0) || (BrakePress > 2.1) ||
+    if ((!Mains) || (FuseFlag) || (MainCtrlPos == 0) ||
+        ((BrakePress > 2.1) && (TrainType != dt_EZT)) ||
         (ActiveDir == 0)) // hunter-111211: wylacznik cisnieniowy
     {
         StLinFlag = false; // yBARC - rozlaczenie stycznikow liniowych
@@ -4632,11 +4633,11 @@ bool TMoverParameters::AutoRelayCheck(void)
         }
     }
 
-    ARFASI2 = ((!AutoRelayFlag) || ((MotorParam[ScndCtrlActualPos].AutoSwitch) &&
-                                    (abs(Im) < Imin))); // wszystkie warunki w jednym
-    ARFASI = ((!AutoRelayFlag) || ((RList[MainCtrlActualPos].AutoSwitch) && (abs(Im) < Imin)) ||
+    ARFASI2 = (!AutoRelayFlag) || ((MotorParam[ScndCtrlActualPos].AutoSwitch) &&
+                                    (abs(Im) < Imin)); // wszystkie warunki w jednym
+    ARFASI = (!AutoRelayFlag) || ((RList[MainCtrlActualPos].AutoSwitch) && (abs(Im) < Imin)) ||
               ((!RList[MainCtrlActualPos].AutoSwitch) &&
-               (RList[MainCtrlActualPos].Relay < MainCtrlPos))); // wszystkie warunki w jednym
+               (RList[MainCtrlActualPos].Relay < MainCtrlPos)); // wszystkie warunki w jednym
     // brak PSR                   na tej pozycji dzia³a PSR i pr¹d poni¿ej progu
     // na tej pozycji nie dzia³a PSR i pozycja walu ponizej
     //                         chodzi w tym wszystkim o to, ¿eby mo¿na by³o zatrzymaæ rozruch na
@@ -4650,7 +4651,7 @@ bool TMoverParameters::AutoRelayCheck(void)
                 ((ScndCtrlActualPos > 0) || (ScndCtrlPos > 0)) &&
                 (!(CoupledCtrl) || (RList[MainCtrlActualPos].Relay == MainCtrlPos)))
             { // zmieniaj scndctrlactualpos
-                //{                                              //scnd bez samoczynnego rozruchu
+                // scnd bez samoczynnego rozruchu
                 if (ScndCtrlActualPos < ScndCtrlPos)
                 {
                     if ((LastRelayTime > CtrlDelay) && (ARFASI2))
@@ -4669,114 +4670,109 @@ bool TMoverParameters::AutoRelayCheck(void)
                 }
                 else
                     OK = false;
-                // }
             }
             else
             { // zmieniaj mainctrlactualpos
                 if ((ActiveDir < 0) && (TrainType != dt_PseudoDiesel))
                     if (RList[MainCtrlActualPos + 1].Bn > 1)
                     {
-                        OK = false;
+                        return false; // nie poprawiamy przy konwersji
                         // return ARC;// bbylo exit; //Ra: to powoduje, ¿e EN57 nie wy³¹cza siê przy
                         // IminLo
                     }
-                { // main bez samoczynnego rozruchu
+                // main bez samoczynnego rozruchu
 
-                    if ((RList[MainCtrlActualPos].Relay < MainCtrlPos) ||
-                        (RList[MainCtrlActualPos + 1].Relay == MainCtrlPos) ||
-                        ((TrainType == dt_ET22) && (DelayCtrlFlag)))
+                if ((RList[MainCtrlActualPos].Relay < MainCtrlPos) ||
+                    (RList[MainCtrlActualPos + 1].Relay == MainCtrlPos) ||
+                    ((TrainType == dt_ET22) && (DelayCtrlFlag)))
+                {
+                    if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
+                        (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
                     {
-                        if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
-                            (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
-                        {
-                            MainCtrlActualPos++;
-                            //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
-                            //                 szybkie wchodzenie na bezoporowa (303E)
-                            OK = true;
-                            SetFlag(SoundFlag, sound_manyrelay);
-                            SetFlag(SoundFlag, sound_loud);
-                        }
-                        else if ((LastRelayTime > CtrlDelay) && (ARFASI))
-                        {
-                            // WriteLog("LRT = " + FloatToStr(LastRelayTime) + ", " +
-                            // FloatToStr(CtrlDelay));
-                            if ((TrainType == dt_ET22) && (MainCtrlPos > 1) &&
-                                ((RList[MainCtrlActualPos].Bn < RList[MainCtrlActualPos + 1].Bn) ||
-                                 (DelayCtrlFlag))) // et22 z walem grupowym
-                                if (!DelayCtrlFlag) // najpierw przejscie
-                                {
-                                    MainCtrlActualPos++;
-                                    DelayCtrlFlag = true; // tryb przejscia
-                                    OK = true;
-                                }
-                                else if (LastRelayTime > 4 * CtrlDelay) // przejscie
-                                {
-
-                                    DelayCtrlFlag = false;
-                                    OK = true;
-                                }
-                                else
-                                    ;
-                            else // nie ET22 z wa³em grupowym
+                        MainCtrlActualPos++;
+                        //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
+                        //                 szybkie wchodzenie na bezoporowa (303E)
+                        OK = true;
+                        SetFlag(SoundFlag, sound_manyrelay | sound_loud);
+                    }
+                    else if ((LastRelayTime > CtrlDelay) && (ARFASI))
+                    {
+                        // WriteLog("LRT = " + FloatToStr(LastRelayTime) + ", " +
+                        // FloatToStr(CtrlDelay));
+                        if ((TrainType == dt_ET22) && (MainCtrlPos > 1) &&
+                            ((RList[MainCtrlActualPos].Bn < RList[MainCtrlActualPos + 1].Bn) ||
+                             (DelayCtrlFlag))) // et22 z walem grupowym
+                            if (!DelayCtrlFlag) // najpierw przejscie
                             {
                                 MainCtrlActualPos++;
+                                DelayCtrlFlag = true; // tryb przejscia
                                 OK = true;
                             }
-                            //---------
-                            // hunter-111211: poprawki
-                            if (MainCtrlActualPos > 0)
-                                if ((RList[MainCtrlActualPos].R == 0) &&
-                                    (!(MainCtrlActualPos ==
-                                       MainCtrlPosNo))) // wejscie na bezoporowa
-                                {
-                                    SetFlag(SoundFlag, sound_manyrelay);
-                                    SetFlag(SoundFlag, sound_loud);
-                                }
-                                else if ((RList[MainCtrlActualPos].R > 0) &&
-                                         (RList[MainCtrlActualPos - 1].R ==
-                                          0)) // wejscie na drugi uklad
-                                {
-                                    SetFlag(SoundFlag, sound_manyrelay);
-                                }
+                            else if (LastRelayTime > 4 * CtrlDelay) // przejscie
+                            {
+
+                                DelayCtrlFlag = false;
+                                OK = true;
+                            }
+                            else
+                                ;
+                        else // nie ET22 z wa³em grupowym
+                        {
+                            MainCtrlActualPos++;
+                            OK = true;
                         }
+                        //---------
+                        // hunter-111211: poprawki
+                        if (MainCtrlActualPos > 0)
+                            if ((RList[MainCtrlActualPos].R == 0) &&
+                                (!(MainCtrlActualPos == MainCtrlPosNo))) // wejscie na bezoporowa
+                            {
+                                SetFlag(SoundFlag, sound_manyrelay | sound_loud);
+                            }
+                            else if ((RList[MainCtrlActualPos].R > 0) &&
+                                     (RList[MainCtrlActualPos - 1].R ==
+                                      0)) // wejscie na drugi uklad
+                            {
+                                SetFlag(SoundFlag, sound_manyrelay);
+                            }
                     }
-                    else if (RList[MainCtrlActualPos].Relay > MainCtrlPos)
+                }
+                else if (RList[MainCtrlActualPos].Relay > MainCtrlPos)
+                {
+                    if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
+                        (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
                     {
-                        if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
-                            (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
+                        MainCtrlActualPos--;
+                        //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
+                        //                 szybkie wchodzenie na bezoporowa (303E)
+                        OK = true;
+                        SetFlag(SoundFlag, sound_manyrelay);
+                    }
+                    else if (LastRelayTime > CtrlDownDelay)
+                    {
+                        if (TrainType != dt_EZT) // tutaj powinien byæ tryb sterowania wa³em
                         {
                             MainCtrlActualPos--;
-                            //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
-                            //                 szybkie wchodzenie na bezoporowa (303E)
                             OK = true;
-                            SetFlag(SoundFlag, sound_manyrelay);
                         }
-                        else if (LastRelayTime > CtrlDownDelay)
-                        {
-                            if (TrainType != dt_EZT) // tutaj powinien byæ tryb sterowania wa³em
+                        if (MainCtrlActualPos > 0) // hunter-111211: poprawki
+                            if (RList[MainCtrlActualPos].R ==
+                                0) // dzwieki schodzenia z bezoporowej}
                             {
-                                MainCtrlActualPos--;
-                                OK = true;
+                                SetFlag(SoundFlag, sound_manyrelay);
                             }
-                            if (MainCtrlActualPos > 0) // hunter-111211: poprawki
-                                if (RList[MainCtrlActualPos].R ==
-                                    0) // dzwieki schodzenia z bezoporowej}
-                                {
-                                    SetFlag(SoundFlag, sound_manyrelay);
-                                }
-                        }
                     }
-                    else if ((RList[MainCtrlActualPos].R > 0) && (ScndCtrlActualPos > 0))
-                    {
-                        if (LastRelayTime > CtrlDownDelay)
-                        {
-                            ScndCtrlActualPos--; // boczniki nie dzialaja na poz. oporowych
-                            OK = true;
-                        }
-                    }
-                    else
-                        OK = false;
                 }
+                else if ((RList[MainCtrlActualPos].R > 0) && (ScndCtrlActualPos > 0))
+                {
+                    if (LastRelayTime > CtrlDownDelay)
+                    {
+                        ScndCtrlActualPos--; // boczniki nie dzialaja na poz. oporowych
+                        OK = true;
+                    }
+                }
+                else
+                    OK = false;
             }
         }
         else // not StLinFlag
@@ -4785,8 +4781,8 @@ bool TMoverParameters::AutoRelayCheck(void)
             // ybARC - tutaj sa wszystkie warunki, jakie musza byc spelnione, zeby mozna byla
             // zalaczyc styczniki liniowe
             if (((MainCtrlPos == 1) || ((TrainType == dt_EZT) && (MainCtrlPos > 0))) &&
-                (!FuseFlag) && (Mains) && /*(BrakePress < 1.0) &&*/ (MainCtrlActualPos == 0) &&
-                (ActiveDir != 0))
+                (!FuseFlag) && (Mains) && ((BrakePress < 1.0) || (TrainType == dt_EZT)) &&
+                (MainCtrlActualPos == 0) && (ActiveDir != 0))
             { //^^ TODO: sprawdzic BUG, prawdopodobnie w CreateBrakeSys()
                 DelayCtrlFlag = true;
                 if (LastRelayTime >= InitialCtrlDelay)
@@ -4794,8 +4790,7 @@ bool TMoverParameters::AutoRelayCheck(void)
                     StLinFlag = true; // ybARC - zalaczenie stycznikow liniowych
                     MainCtrlActualPos = 1;
                     DelayCtrlFlag = false;
-                    SetFlag(SoundFlag, sound_relay);
-                    SetFlag(SoundFlag, sound_loud);
+                    SetFlag(SoundFlag, sound_relay | sound_loud);
                     OK = true;
                 }
             }
@@ -4932,6 +4927,7 @@ bool TMoverParameters::PantRear(bool State)
 
 // *************************************************************************************************
 // Q: 20160715
+// Zmienia parametr do którego d¹¿y sprzêg³o
 // *************************************************************************************************
 bool TMoverParameters::dizel_EngageSwitch(double state)
 {
@@ -4947,12 +4943,12 @@ bool TMoverParameters::dizel_EngageSwitch(double state)
 
 // *************************************************************************************************
 // Q: 20160715
+// Zmienia parametr do którego d¹¿y sprzêg³o
 // *************************************************************************************************
 bool TMoverParameters::dizel_EngageChange(double dt)
 {
-    // zmienia parametr do ktorego dazy sprzeglo
-    const engagedownspeed = 0.9;
-    const engageupspeed = 0.5;
+    const double engagedownspeed = 0.9;
+    const double engageupspeed = 0.5;
     double engagespeed; // OK:boolean;
     bool DEC;
 
@@ -4983,6 +4979,7 @@ bool TMoverParameters::dizel_EngageChange(double dt)
 
 // *************************************************************************************************
 // Q: 20160715
+// Automatyczna zmiana biegów gdy prêdkoœæ przekroczy wide³ki
 // *************************************************************************************************
 bool TMoverParameters::dizel_AutoGearCheck(void)
 {
@@ -5035,8 +5032,10 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
             {
             case 1:
                 dizel_EngageSwitch(0.5);
+				break;
             case 2:
                 dizel_EngageSwitch(1.0);
+				break;
             default:
                 dizel_EngageSwitch(0.0);
             }
@@ -5052,10 +5051,11 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
 
 // *************************************************************************************************
 // Q: 20160715
+// Aktualizacja stanu silnika
 // *************************************************************************************************
 bool TMoverParameters::dizel_Update(double dt)
-{ // odœwie¿a informacje o silniku
-    const fillspeed = 2;
+{
+    const double fillspeed = 2;
     bool DU;
 
     // dizel_Update:=false;
@@ -5077,9 +5077,10 @@ bool TMoverParameters::dizel_Update(double dt)
 
 // *************************************************************************************************
 // Q: 20160715
+// oblicza napelnienie, uzwglednia regulator obrotow
 // *************************************************************************************************
 double TMoverParameters::dizel_fillcheck(int mcp)
-{ // oblicza napelnienie, uzwglednia regulator obrotow
+{ 
     double realfill, nreg;
 
     realfill = 0;
@@ -5098,11 +5099,13 @@ double TMoverParameters::dizel_fillcheck(int mcp)
             case 0:
             case 1:
                 nreg = dizel_nmin;
+				break;
             case 2:
                 if (dizel_automaticgearstatus == 0)
                     nreg = dizel_nmax;
                 else
                     nreg = dizel_nmin;
+				break;
             default:
                 realfill = 0; // sluczaj
             }
@@ -5123,11 +5126,11 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 
 // *************************************************************************************************
 // Q: 20160715
+// Oblicza moment si³y wytwarzany przez silnik spalinowy
 // *************************************************************************************************
 double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 { // liczy moment sily wytwarzany przez silnik spalinowy}
     double Moment, enMoment, eps, newn, friction;
-    double DM;
 
     // friction =dizel_engagefriction*(11-2*random)/10;
     friction = dizel_engagefriction;
@@ -5177,11 +5180,10 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
         }
         enrot = newn;
     }
-    DM = Moment;
     if ((enrot == 0) && (!dizel_enginestart))
         Mains = false;
 
-    return DM;
+    return Moment;
 }
 
 // *************************************************************************************************
@@ -7988,6 +7990,7 @@ bool TMoverParameters::RunInternalCommand(void)
 
 // *************************************************************************************************
 // Q: 20160714
+// Zwraca wartoœæ natê¿enia pr¹du na wybranym amperomierzu. Podfunkcja do ShowCurrent.
 // *************************************************************************************************
 int TMoverParameters::ShowCurrentP(int AmpN)
 {
@@ -8012,12 +8015,16 @@ int TMoverParameters::ShowCurrentP(int AmpN)
         else // podaæ ca³kowity
             return floor(abs(Itot));
     }
-    else // pobor pradu jezeli niema mocy
-        for (b = 0; b < 1; b++)
-            // with Couplers[b] do
-            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
-                if (Couplers[b].Connected->Power > 0.01)
-                    return Couplers[b].Connected->ShowCurrent(AmpN);
+	else // pobor pradu jezeli niema mocy
+	{
+		int current = 0;
+		for (b = 0; b < 1; b++)
+			// with Couplers[b] do
+			if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+				if (Couplers[b].Connected->Power > 0.01)
+					current = Couplers[b].Connected->ShowCurrent(AmpN);
+		return current;
+	}
 }
 
 
