@@ -1130,6 +1130,7 @@ double TMoverParameters::PipeRatio(void)
 
 // *************************************************************************************************
 // Q: 20160716
+// Wykrywanie kolizji
 // *************************************************************************************************
 void TMoverParameters::CollisionDetect(int CouplerN, double dt)
 {
@@ -1169,8 +1170,7 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
             break; // czemu tu jest +0.01??
         }
         AccS = AccS + (V - Vprev) / dt; // korekta przyspieszenia o si³y wynikaj¹ce ze zderzeñ?
-        Couplers[CouplerN].Connected->AccS =
-            Couplers[CouplerN].Connected->AccS + (Couplers[CouplerN].Connected->V - VprevC) / dt;
+        Couplers[CouplerN].Connected->AccS += (Couplers[CouplerN].Connected->V - VprevC) / dt;
         if ((Couplers[CouplerN].Dist > 0) && (!VirtualCoupling))
             if (FuzzyLogic(abs(CCF), 5 * (Couplers[CouplerN].FmaxC + 1), p_coupldmg))
             { //! zerwanie sprzegu
@@ -1194,19 +1194,68 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
     }
 }
 
+// *************************************************************************************************
+// Oblicza przemieszczenie taboru
+// *************************************************************************************************
 double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
                                          TTrackParam &Track, TTractionParam &ElectricTraction,
                                          const TLocation &NewLoc, TRotation &NewRot)
 {
-    const Vepsilon = 1e-5;
-    const Aepsilon = 1e-3; // ASBSpeed=0.8;
+    const double Vepsilon = 1e-5;
+    const double  Aepsilon = 1e-3; // ASBSpeed=0.8;
     int b;
-    double Vprev, AccSprev, d;
+    double Vprev, AccSprev, d, hvc;
 
     // T_MoverParameters::ComputeMovement(dt, dt1, Shape, Track, ElectricTraction, NewLoc, NewRot);
     // // najpierw kawalek z funkcji w pliku mover.pas
+	TotalCurrent = 0;
+	hvc = Max0R(Max0R(PantFrontVolt, PantRearVolt), ElectricTraction.TractionVoltage * 0.9);
+    for (b = 0; b < 2; b++) // przekazywanie napiec
+        if (((Couplers[b].CouplingFlag & ctrain_power) == ctrain_power) ||
+            (((Couplers[b].CouplingFlag & ctrain_heating) == ctrain_heating) && (Heating)))
+        {
+            HVCouplers[1 - b][1] =
+                Max0R(abs(hvc), Couplers[b].Connected->HVCouplers[Couplers[b].ConnectedNr][1] -
+                                    HVCouplers[b][0] * 0.02);
+        }
+        else
+            HVCouplers[1 - b][1] = abs(hvc) - HVCouplers[b][0] * 0.02;
+    // Max0R(Abs(Voltage),0);
+    //      end;
 
-    ClearPendingExceptions; // ma byc
+    hvc = HVCouplers[0][1] + HVCouplers[1][1];
+
+    if ((abs(PantFrontVolt) + abs(PantRearVolt) < 1) &&
+		(hvc > 1)) // bez napiecia, ale jest cos na sprzegach:
+	{
+		for (b = 0; b < 2; ++b) // przekazywanie pradow
+			if (((Couplers[b].CouplingFlag & ctrain_power) == ctrain_power) ||
+				(((Couplers[b].CouplingFlag & ctrain_heating) == ctrain_heating) &&
+					(Heating))) // jesli spiety
+			{
+				HVCouplers[b][0] =
+					Couplers[b].Connected->HVCouplers[1 - Couplers[b].ConnectedNr][0] +
+					Itot * HVCouplers[b][1] / hvc // obci¹¿enie rozkladane stosownie do napiec
+			}
+			else // pierwszy pojazd
+			{
+				HVCouplers[b][0] = Itot * HVCouplers[b][1] / hvc;
+			}
+	}
+	else
+	{
+		if (((Couplers[0].CouplingFlag & ctrain_power) == ctrain_power) ||
+			(((Couplers[0].CouplingFlag & ctrain_heating) == ctrain_heating) && (Heating)))
+			TotalCurrent +=
+			Couplers[0].Connected->HVCouplers[1 - Couplers[0].ConnectedNr][0];
+		if (((Couplers[1].CouplingFlag & ctrain_power) == ctrain_power) ||
+			(((Couplers[1].CouplingFlag & ctrain_heating) == ctrain_heating) && (Heating)))
+			TotalCurrent +=
+			Couplers[1].Connected->HVCouplers[1 - Couplers[1].ConnectedNr][0];
+		HVCouplers[0][0] = 0;
+		HVCouplers[1][0] = 0;
+	}
+    ClearPendingExceptions(); // ma byc
 
     if (!TestFlag(DamageFlag, dtrain_out))
     { // Ra: to przepisywanie tu jest bez sensu
@@ -1214,15 +1263,15 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         RunningTrack = Track;
         RunningTraction = ElectricTraction;
 
-        if (!DynamicBrakeFlag)
-            RunningTraction.TractionVoltage = ElectricTraction.TractionVoltage -
-                                              abs(ElectricTraction.TractionResistivity *
-                                                  (Itot + HVCouplers[0][0] + HVCouplers[1][0]));
-        else
-            RunningTraction.TractionVoltage =
-                ElectricTraction.TractionVoltage -
-                abs(ElectricTraction.TractionResistivity * Itot *
-                    0); // zasadniczo ED oporowe nie zmienia napiêcia w sieci
+        //if (!DynamicBrakeFlag)
+        //    RunningTraction.TractionVoltage = ElectricTraction.TractionVoltage /*-
+        //                                      abs(ElectricTraction.TractionResistivity *
+        //                                          (Itot + HVCouplers[0][0] + HVCouplers[1][0]))*/;
+        //else
+        //    RunningTraction.TractionVoltage =
+        //        ElectricTraction.TractionVoltage /*-
+        //        abs(ElectricTraction.TractionResistivity * Itot *
+        //            0)*/; // zasadniczo ED oporowe nie zmienia napiêcia w sieci
     }
 
     if (CategoryFlag == 4)
@@ -1261,13 +1310,13 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         // szarpanie
         if (FuzzyLogic((10 + Track.DamageFlag) * Mass * Vel / Vmax, 500000,
                        p_accn)) // Ra: czemu tu masa bez ³adunku?
-            AccV = sqrt((1 + Track.DamageFlag) * random(Trunc(50 * Mass / 1000000.0)) * Vel /
-                        (Vmax * (10 + (Track.QualityFlag & 31)))); // TODO: Trunc na floor
+            AccV = sqrt((1 + Track.DamageFlag) * Random(floor(50 * Mass / 1000000.0)) * Vel /
+                        (Vmax * (10 + (Track.QualityFlag & 31))));
         else
             AccV = AccV / 2.0;
 
         if (AccV > 1.0)
-            AccN = AccN + (7 - random(2)) * (100.0 + Track.DamageFlag / 2.0) * AccV / 2000.0;
+            AccN += (7 - Random(5)) * (100.0 + Track.DamageFlag / 2.0) * AccV / 2000.0;
 
         // wykolejanie na luku oraz z braku szyn
         if (TestFlag(CategoryFlag, 1))
@@ -1304,7 +1353,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 DerailReason = 4; // Ra: powód wykolejenia: nieodpowiednia trajektoria
             }
 
-        V = V + (3 * AccS - AccSprev) * dt / 2.0; // przyrost predkosci
+        V += (3 * AccS - AccSprev) * dt / 2.0; // przyrost predkosci
 
         if (TestFlag(DamageFlag, dtrain_out))
             if (Vel < 1)
@@ -1323,7 +1372,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         //   przesuniecie
         dL = (3 * V - Vprev) * dt / 2.0; // metoda Adamsa-Bashfortha}
         // ale jesli jest kolizja (zas. zach. pedu) to...}
-        for (b = 0; b < 1; b++)
+        for (b = 0; b < 2; b++)
             if (Couplers[b].CheckCollision)
                 CollisionDetect(b, dt); // zmienia niejawnie AccS, V !!!
 
@@ -1336,14 +1385,14 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         d = CabNo * dL; // na chwile dla testu
     else
         d = dL;
-    DistCounter = DistCounter + fabs(dL) / 1000.0;
+    DistCounter += fabs(dL) / 1000.0;
     dL = 0;
 
     // koniec procedury, tu nastepuja dodatkowe procedury pomocnicze
 
     // sprawdzanie i ewentualnie wykonywanie->kasowanie poleceñ
     if (LoadStatus > 0) // czas doliczamy tylko jeœli trwa (roz)³adowanie
-        LastLoadChangeTime = LastLoadChangeTime + dt; // czas (roz)³adunku
+        LastLoadChangeTime += dt; // czas (roz)³adunku
 
     RunInternalCommand();
 
@@ -1375,7 +1424,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     if ((BrakeSlippingTimer > 0.8) && (ASBType != 128)) // ASBSpeed=0.8
         Hamulec->ASB(0);
     // SetFlag(BrakeStatus,-b_antislip);
-    BrakeSlippingTimer = BrakeSlippingTimer + dt;
+    BrakeSlippingTimer += dt;
     // sypanie piasku - wy³¹czone i piasek siê nie koñczy - b³êdy AI
     // if AIControllFlag then
     // if SandDose then
@@ -1396,16 +1445,20 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     return d;
 };
 
+// *************************************************************************************************
+// Oblicza przemieszczenie taboru - uproszczona wersja
+// *************************************************************************************************
+
 double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape,
                                              TTrackParam &Track, const TLocation &NewLoc,
                                              TRotation &NewRot)
-{ // trzeba po ma³u przenosiæ tu tê funkcjê
+{
 
     double Vprev, AccSprev, d;
     int b;
     // T_MoverParameters::FastComputeMovement(dt, Shape, Track, NewLoc, NewRot);
 
-    ClearPendingExceptions; // nie bylo
+    ClearPendingExceptions(); // nie bylo
 
     Loc = NewLoc;
     Rot = NewRot;
@@ -1432,14 +1485,14 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
         // szarpanie}
         if (FuzzyLogic((10 + Track.DamageFlag) * Mass * Vel / Vmax, 500000, p_accn))
         {
-            AccV = sqrt((1 + Track.DamageFlag) * random(int(floor(50 * Mass / 1000000.0))) * Vel /
+            AccV = sqrt((1 + Track.DamageFlag) * Random(floor(50 * Mass / 1000000.0)) * Vel /
                         (Vmax * (10 + (Track.QualityFlag & 31)))); // Trunc na floor, czy dobrze?
         }
         else
             AccV = AccV / 2.0;
 
         if (AccV > 1.0)
-            AccN = AccN + (7 - random(2)) * (100.0 + Track.DamageFlag / 2.0) * AccV / 2000.0;
+            AccN += (7 - Random(5)) * (100.0 + Track.DamageFlag / 2.0) * AccV / 2000.0;
 
         //     {wykolejanie na luku oraz z braku szyn}
         //     if TestFlag(CategoryFlag,1) then
@@ -1470,7 +1523,7 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
         //          MainS:=false;
         //        end;
 
-        V = V + (3.0 * AccS - AccSprev) * dt / 2.0; // przyrost predkosci
+        V += (3.0 * AccS - AccSprev) * dt / 2.0; // przyrost predkosci
 
         if (TestFlag(DamageFlag, dtrain_out))
             if (Vel < 1)
@@ -1486,7 +1539,7 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
         }
         dL = (3 * V - Vprev) * dt / 2.0; // metoda Adamsa-Bashfortha
         // ale jesli jest kolizja (zas. zach. pedu) to...
-        for (b = 0; b < 1; b++)
+        for (b = 0; b < 2; b++)
             if (Couplers[b].CheckCollision)
                 CollisionDetect(b, dt); // zmienia niejawnie AccS, V !!!
     } // liczone dL, predkosc i przyspieszenie
@@ -1498,14 +1551,14 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
         d = CabNo * dL; // na chwile dla testu
     else
         d = dL;
-    DistCounter = DistCounter + fabs(dL) / 1000.0;
+    DistCounter += fabs(dL) / 1000.0;
     dL = 0;
 
     // koniec procedury, tu nastepuja dodatkowe procedury pomocnicze
 
     // sprawdzanie i ewentualnie wykonywanie->kasowanie poleceñ
     if (LoadStatus > 0) // czas doliczamy tylko jeœli trwa (roz)³adowanie
-        LastLoadChangeTime = LastLoadChangeTime + dt; // czas (roz)³adunku
+        LastLoadChangeTime += dt; // czas (roz)³adunku
 
     RunInternalCommand();
 
@@ -1530,7 +1583,7 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
     // hamulec antyposlizgowy - wy³¹czanie
     if ((BrakeSlippingTimer > 0.8) && (ASBType != 128)) // ASBSpeed=0.8
         Hamulec->ASB(0);
-    BrakeSlippingTimer = BrakeSlippingTimer + dt;
+    BrakeSlippingTimer += dt;
     return d;
 };
 
@@ -2024,6 +2077,7 @@ bool TMoverParameters::CabDeactivisation(void)
 
 // *************************************************************************************************
 // Q: 20160710
+// Si³a napêdzaj¹ca drezynê po naciœniêciu wajhy
 // *************************************************************************************************
 bool TMoverParameters::AddPulseForce(int Multipler)
 {
@@ -3366,6 +3420,7 @@ double TMoverParameters::GetDVc(double dt)
 
 // *************************************************************************************************
 // Q: 20160713
+// Obliczenie sta³ych potrzebnych do dalszych obliczeñ
 // *************************************************************************************************
 void TMoverParameters::ComputeConstans(void)
 {
@@ -3383,14 +3438,14 @@ void TMoverParameters::ComputeConstans(void)
         RollF = 0.05; // slizgowe
     else
         RollF = 0.015; // toczne
-    RollF = RollF + BearingF / 200.0;
+    RollF += BearingF / 200.0;
 
     //    if (NPoweredAxles > 0)
     //     RollF = RollF * 1.5;    //dodatkowe lozyska silnikow
 
     if (NPoweredAxles > 0) // drobna optymalka
     {
-        RollF = RollF + 0.025;
+        RollF += 0.025;
         //       if (Ft * Ft < 1)
         //         HideModifier = HideModifier - 3;
     }
@@ -3411,21 +3466,22 @@ void TMoverParameters::ComputeConstans(void)
 
 // *************************************************************************************************
 // Q: 20160713
+// Oblicza masê ³adunku
 // *************************************************************************************************
 double TMoverParameters::ComputeMass(void)
 {
     double M;
-
+	LoadType = ToLower(LoadType); // po co zak³adaæ jak mo¿na mieæ na pewno
     if (Load > 0)
     { // zak³adamy, ¿e ³adunek jest pisany ma³ymi literami
-        if (LoadQuantity == "tonns")
+        if (ToLower(LoadQuantity) == "tonns")
             M = Load * 1000;
         else if (LoadType == "passengers")
             M = Load * 80;
         else if (LoadType == "luggage")
             M = Load * 100;
         else if (LoadType == "cars")
-            M = Load * 800;
+            M = Load * 1200; // 800 kilo to mia³ maluch
         else if (LoadType == "containers")
             M = Load * 8000;
         else if (LoadType == "transformers")
@@ -3441,6 +3497,7 @@ double TMoverParameters::ComputeMass(void)
 
 // *************************************************************************************************
 // Q: 20160713
+// Obliczanie wypadkowej si³y z wszystkich dzia³aj¹cych si³
 // *************************************************************************************************
 void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
 {
@@ -3461,16 +3518,14 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
 
         if (TestFlag(BrakeMethod, bp_MHS) && (PipePress < 3.0) && (Vel > 45) &&
             TestFlag(BrakeDelayFlag, bdelay_M)) // ustawione na sztywno na 3 bar
-            FStand = FStand + /*(RunningTrack.friction)**/ TrackBrakeForce; // doliczenie hamowania
-                                                                            // hamulcem szynowym
+            FStand += TrackBrakeForce; // doliczenie hamowania hamulcem szynowym
         // w charakterystykach jest wartoœæ si³y hamowania zamiast nacisku
         //    if(FullVer=true) then
-        //    begin //ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na
+        //    ABu: to dla optymalizacji, bo chyba te rzeczy wystarczy sprawdzac 1 raz na
         //    klatke?
-        LastSwitchingTime = LastSwitchingTime + dt1;
+        LastSwitchingTime += dt1;
         if (EngineType == ElectricSeriesMotor)
-            LastRelayTime = LastRelayTime + dt1;
-        //    end;
+            LastRelayTime += dt1;
         if (Mains && /*(abs(CabNo) < 2) &&*/ (EngineType ==
                                               ElectricSeriesMotor)) // potem ulepszyc! pantogtrafy!
         { // Ra 2014-03: uwzglêdnienie kierunku jazdy w napiêciu na silnikach, a powinien byæ
@@ -3480,12 +3535,17 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
             else
                 Voltage = RunningTraction.TractionVoltage * DirAbsolute; // ActiveDir*CabNo;
         } // bo nie dzialalo
-        else
+		else if ((EngineType == ElectricInductionMotor) ||
+			(((Couplers[0].CouplingFlag & ctrain_power) == ctrain_power) ||
+				((Couplers[1].CouplingFlag & ctrain_power) ==
+					ctrain_power))) // potem ulepszyc! pantogtrafy!
+			Voltage =
+			Max0R(Max0R(RunningTraction.TractionVoltage, HVCouplers[0][1]), HVCouplers[1][1]);
+		else
             Voltage = 0;
-        if (Mains && /*(abs(CabNo) < 2) &&*/ (
-                         EngineType == ElectricInductionMotor)) // potem ulepszyc! pantogtrafy!
-            Voltage = RunningTraction.TractionVoltage;
-        // end;
+        //if (Mains && /*(abs(CabNo) < 2) &&*/ (
+        //                 EngineType == ElectricInductionMotor)) // potem ulepszyc! pantogtrafy!
+        //    Voltage = RunningTraction.TractionVoltage;
 
         if (Power > 0)
             FTrain = TractionForce(dt);
@@ -3493,9 +3553,8 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
             FTrain = 0;
         Fb = BrakeForce(RunningTrack);
         if (Max0R(abs(FTrain), Fb) > TotalMassxg * Adhesive(RunningTrack.friction)) // poslizg
-            SlippingWheels = true;
-        if (SlippingWheels)
         {
+            SlippingWheels = true;
             //     TrainForce:=TrainForce-Fb;
             nrot = ComputeRotatingWheel((FTrain - Fb * Sign(V) - FStand) / NAxles -
                                             Sign(nrot * PI * WheelDiameter - V) *
@@ -3506,19 +3565,19 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
         }
         //  else SlippingWheels:=false;
         //  FStand:=0;
-        for (b = 0; b < 1; b++)
+        for (b = 0; b < 2; b++)
             if (Couplers[b].Connected != NULL) /*and (Couplers[b].CouplerType<>Bare) and
                                                   (Couplers[b].CouplerType<>Articulated)*/
             { // doliczenie si³ z innych pojazdów
                 Couplers[b].CForce = CouplerForce(b, dt);
-                FTrain = FTrain + Couplers[b].CForce;
+                FTrain += Couplers[b].CForce;
             }
             else
                 Couplers[b].CForce = 0;
         // FStand:=Fb+FrictionForce(RunningShape.R,RunningTrack.DamageFlag);
-        FStand = Fb + FStand;
-        FTrain =
-            FTrain + TotalMassxg * RunningShape.dHtrack; // doliczenie sk³adowej stycznej grawitacji
+        FStand += Fb;
+        FTrain +=
+            TotalMassxg * RunningShape.dHtrack; // doliczenie sk³adowej stycznej grawitacji
         //!niejawne przypisanie zmiennej!
         FTotal = FTrain - Sign(V) * FStand;
     }
@@ -3551,6 +3610,7 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
 
 // *************************************************************************************************
 // Q: 20160713
+// oblicza si³ê na styku ko³a i szyny
 // *************************************************************************************************
 double TMoverParameters::BrakeForce(const TTrackParam &Track)
 {
@@ -3566,10 +3626,13 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
     {
     case NoBrake:
         K = 0;
+		break;
     case ManualBrake:
         K = MaxBrakeForce * ManualBrakeRatio();
+		break;
     case HydraulicBrake:
         K = MaxBrakeForce * LocalBrakeRatio();
+		break;
     case PneumaticBrake:
         if (Compressor < MaxBrakePress[3])
             K = MaxBrakeForce * LocalBrakeRatio() / 2.0;
@@ -3590,15 +3653,15 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
     else
     {
         u = (BrakePress * P2FTrans) * BrakeCylMult[0] - BrakeSlckAdj;
-        if (u * (2 - 1 * BrakeRigEff) < Ntotal) // histereza na nacisku klockow
-            Ntotal = u * (2 - 1 * BrakeRigEff);
+        if (u * (2 - BrakeRigEff) < Ntotal) // histereza na nacisku klockow
+            Ntotal = u * (2 - BrakeRigEff);
     }
 
     if (NBrakeAxles * NBpA > 0)
     {
         if (Ntotal > 0) // nie luz
-            K = K + Ntotal; // w kN
-        K = K * BrakeCylNo / (NBrakeAxles * NBpA); // w kN na os
+            K += Ntotal; // w kN
+        K *= BrakeCylNo / (NBrakeAxles * NBpA); // w kN na os
     }
     if ((BrakeSystem == Pneumatic) || (BrakeSystem == ElectroPneumatic))
     {
@@ -3630,6 +3693,7 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
 
 // *************************************************************************************************
 // Q: 20160713
+// Obliczanie si³y tarcia
 // *************************************************************************************************
 double TMoverParameters::FrictionForce(double R, int TDamage)
 {
@@ -3644,6 +3708,7 @@ double TMoverParameters::FrictionForce(double R, int TDamage)
 
 // *************************************************************************************************
 // Q: 20160713
+// Oblicza przyczepnoœæ
 // *************************************************************************************************
 double TMoverParameters::Adhesive(double staticfriction)
 {
@@ -3697,15 +3762,16 @@ double DirF(int CouplerN)
 
 // *************************************************************************************************
 // Q: 20160713
+// Obliczanie si³ dzialaj¹cych na sprzêgach
 // *************************************************************************************************
 double TMoverParameters::CouplerForce(int CouplerN, double dt)
 {
     // wyliczenie si³y na sprzêgu
     double tempdist, newdist, distDelta, CF, dV, absdV, Fmax, BetaAvg;
     int CNext;
-    const MaxDist = 405.0; // ustawione + 5 m, bo skanujemy do 400 m
-    const MinDist = 0.5; // ustawione +.5 m, zeby nie rozlaczac przy malych odleglosciach
-    const MaxCount = 1500;
+    const double MaxDist = 405.0; // ustawione + 5 m, bo skanujemy do 400 m
+    const double MinDist = 0.5; // ustawione +.5 m, zeby nie rozlaczac przy malych odleglosciach
+    const int MaxCount = 1500;
     bool rCF;
     CF = 0;
     // distDelta:=0; //Ra: value never used
@@ -3721,7 +3787,7 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
         tempdist = ((Couplers[CouplerN].Connected->dMoveLen *
                      DirPatch(0, Couplers[CouplerN].ConnectedNr)) -
                     dMoveLen);
-        newdist = newdist + 10.0 * tempdist;
+        newdist += 10.0 * tempdist;
         // tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
     }
     else
@@ -3729,7 +3795,7 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
         // ABu: bylo newdist+10*((...
         tempdist = ((dMoveLen - (Couplers[CouplerN].Connected->dMoveLen *
                                  DirPatch(1, Couplers[CouplerN].ConnectedNr))));
-        newdist = newdist + 10.0 * tempdist;
+        newdist += 10.0 * tempdist;
         // tempdist:=tempdist+CoupleDist; //ABu: proby szybkiego naprawienia bledu
     }
 
@@ -3746,7 +3812,7 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
             // Connected.Couplers[CNext].Connected:=nil; //Ra: ten pod³¹czony niekoniecznie jest
             // wirtualny
             Couplers[CouplerN].Connected = NULL;
-            ScanCounter = random(500); // Q: TODO: cy dobrze przetlumaczone?
+            ScanCounter = Random(500); // Q: TODO: cy dobrze przetlumaczone?
             // WriteLog(FloatToStr(ScanCounter));
         }
     }
@@ -3847,9 +3913,10 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
 
 // *************************************************************************************************
 // Q: 20160714
+// oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)
 // *************************************************************************************************
 double TMoverParameters::TractionForce(double dt)
-{ // oblicza sile trakcyjna lokomotywy (dla elektrowozu tez calkowity prad)
+{
     double PosRatio, dmoment, dtrans, tmp, tmpV;
     int i;
 
@@ -3865,7 +3932,7 @@ double TMoverParameters::TractionForce(double dt)
         {
             i = MainCtrlPosNo;
             while (DElist[i - 2].RPM / 60.0 > tmp)
-                i = i - 1;
+                i--;
             tmp = DElist[i].RPM / 60.0;
         }
 
@@ -3873,9 +3940,9 @@ double TMoverParameters::TractionForce(double dt)
             if (abs(tmp * int(ConverterFlag) - enrot) < 0.001)
                 enrot = tmp * int(ConverterFlag);
             else if ((enrot < DElist[0].RPM * 0.01) && (ConverterFlag))
-                enrot = enrot + (tmp * int(ConverterFlag) - enrot) * dt / 5.0;
+                enrot += (tmp * int(ConverterFlag) - enrot) * dt / 5.0;
             else
-                enrot = enrot + (tmp * int(ConverterFlag) - enrot) * 1.5 * dt;
+                enrot += (tmp * int(ConverterFlag) - enrot) * 1.5 * dt;
     }
     else if (EngineType != DieselEngine)
         enrot = Transmision.Ratio * nrot;
@@ -3885,14 +3952,14 @@ double TMoverParameters::TractionForce(double dt)
             dtrans = AnPos * Transmision.Ratio * MotorParam[ScndCtrlActualPos].mIsat;
         else
             dtrans = Transmision.Ratio * MotorParam[ScndCtrlActualPos].mIsat;
-        dmoment = dizel_Momentum(dizel_fill, ActiveDir * 1 * dtrans * nrot, dt); // oblicza tez
+        dmoment = dizel_Momentum(dizel_fill, ActiveDir * dtrans * nrot, dt); // oblicza tez
                                                                                  // enrot
     }
 
-    eAngle = eAngle + enrot * dt;
+    eAngle += enrot * dt;
     if (eAngle > Pirazy2)
         // eAngle = Pirazy2 - eAngle; <- ABu: a nie czasem tak, jak nizej?
-        eAngle = eAngle - Pirazy2;
+        eAngle -= Pirazy2;
 
     // hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala
     // predkosc wentylatorow)
@@ -3903,20 +3970,19 @@ double TMoverParameters::TractionForce(double dt)
         case 1:
         {
             if (ActiveDir != 0)
-                RventRot = RventRot + (RVentnmax - RventRot) * RVentSpeed * dt;
+                RventRot += (RVentnmax - RventRot) * RVentSpeed * dt;
             else
-                RventRot = RventRot * (1 - RVentSpeed * dt);
+                RventRot *= (1 - RVentSpeed * dt);
             break;
         }
         case 2:
         {
             if ((abs(Itot) > RVentMinI) && (RList[MainCtrlActualPos].R > RVentCutOff))
-                RventRot =
-                    RventRot +
+                RventRot +=
                     (RVentnmax * abs(Itot) / (ImaxLo * RList[MainCtrlActualPos].Bn) - RventRot) *
-                        RVentSpeed * dt;
+                    RVentSpeed * dt;
             else if ((DynamicBrakeType == dbrake_automatic) && (DynamicBrakeFlag))
-                RventRot = RventRot + (RVentnmax * Im / ImaxLo - RventRot) * RVentSpeed * dt;
+                RventRot += (RVentnmax * Im / ImaxLo - RventRot) * RVentSpeed * dt;
             else
             {
                 RventRot = RventRot * (1 - RVentSpeed * dt);
@@ -3925,7 +3991,6 @@ double TMoverParameters::TractionForce(double dt)
             }
             break;
         }
-        break;
         }
     }
 
@@ -3975,9 +4040,6 @@ double TMoverParameters::TractionForce(double dt)
                 Voltage = Voltage / 2.0;
             Mm = Momentum(current(enrot, Voltage)); // oblicza tez prad p/slinik
 
-            // double qMm = Momentum(qcurrent(enrot, Voltage));  // Q: funkcja w C++ - porownanie
-            // poprawnosci
-
             if (TrainType == dt_ET42)
             {
                 if (Imax == ImaxHi)
@@ -3987,15 +4049,15 @@ double TMoverParameters::TractionForce(double dt)
             }
             if ((DynamicBrakeType == dbrake_automatic) && (DynamicBrakeFlag))
             {
-                if (((Vadd + abs(Im)) > 760) || (static_cast<TLSt *>(Hamulec)->GetEDBCP() < 0.25))
+                if (((Vadd + abs(Im)) > 760) || (Hamulec->GetEDBCP() < 0.25))
                 {
-                    Vadd = Vadd - 500 * dt;
+                    Vadd -= 500 * dt;
                     if (Vadd < 1)
                         Vadd = 0;
                 }
                 else if ((DynamicBrakeFlag) && ((Vadd + abs(Im)) < 740))
                 {
-                    Vadd = Vadd + 70 * dt;
+                    Vadd += 70 * dt;
                     Vadd = Min0R(Max0R(Vadd, 60), 400);
                 }
                 if (Vadd > 0)
@@ -4007,18 +4069,19 @@ double TMoverParameters::TractionForce(double dt)
                      (RList[MainCtrlActualPos].Bn +
                       1); // zrobione w momencie, ¿eby nie dawac elektryki w przeliczaniu si³
 
-            if (abs(Im) > Imax)
-                Vhyp = Vhyp + dt * (abs(Im) / Imax - 0.9) * 10; // zwieksz czas oddzialywania na PN
+			if (abs(Im) > Imax)
+				Vhyp += dt; //*(abs(Im) / Imax - 0.9) * 10; // zwieksz czas oddzialywania na PN
             else
                 Vhyp = 0;
             if (Vhyp > CtrlDelay / 2) // jesli czas oddzialywania przekroczony
                 FuseOff(); // wywalanie bezpiecznika z powodu przetezenia silnikow
 
-            //-if (Mains) then //nie wchodziæ w funkcjê bez potrzeby
-            //- if (Abs(Voltage)<EnginePowerSource.CollectorParameters.MinV) or
-            //(Abs(Voltage)>EnginePowerSource.CollectorParameters.MaxV) then
-            //-  if MainSwitch(false) then
-            //-   EventFlag:=true; //wywalanie szybkiego z powodu niew³aœciwego napiêcia
+			if ((Mains)) // nie wchodziæ w funkcjê bez potrzeby
+				if ((abs(Voltage) < EnginePowerSource.CollectorParameters.MinV) ||
+					(abs(Voltage) * EnginePowerSource.CollectorParameters.OVP >
+						EnginePowerSource.CollectorParameters.MaxV))
+					if (MainSwitch(false))
+						EventFlag = true; // wywalanie szybkiego z powodu niew³aœciwego napiêcia
 
             if (((DynamicBrakeType == dbrake_automatic) || (DynamicBrakeType == dbrake_switch)) &&
                 (DynamicBrakeFlag))
@@ -4038,8 +4101,7 @@ double TMoverParameters::TractionForce(double dt)
         {
             EnginePower = dmoment * enrot;
             if (MainCtrlPos > 1)
-                dmoment =
-                    dmoment -
+                dmoment -=
                     dizel_Mstand * (0.2 * enrot / nmax); // dodatkowe opory z powodu sprezarki}
             Mm = dizel_engage * dmoment;
             Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
@@ -4048,310 +4110,430 @@ double TMoverParameters::TractionForce(double dt)
             Ft = Ft * DirAbsolute; // ActiveDir*CabNo;
             break;
         }
-            /*
-               case DieselElectric:    //youBy
-                 {
+
+        case DieselElectric: // youBy
+        {
             //       tmpV:=V*CabNo*ActiveDir;
-                     tmpV =nrot*Pirazy2*0.5*WheelDiameter*DirAbsolute; //*CabNo*ActiveDir;
-                   //jazda manewrowa
-                   if (ShuntMode)
-                    {
-                     Voltage =(SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1 -
-            AnPos));
-                     tmp = (SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1 - AnPos));
-                     Ft = tmp * 1000.0 / (abs(tmpV)+1.6);
-                     PosRatio = 1;
-                    }
-                   else  //jazda ciapongowa
-                   {
+            tmpV = nrot * Pirazy2 * 0.5 * WheelDiameter * DirAbsolute; //*CabNo*ActiveDir;
+            // jazda manewrowa
+            if (ShuntMode)
+            {
+                Voltage = (SST[MainCtrlPos].Umax * AnPos) + (SST[MainCtrlPos].Umin * (1 - AnPos));
+                tmp = (SST[MainCtrlPos].Pmax * AnPos) + (SST[MainCtrlPos].Pmin * (1 - AnPos));
+                Ft = tmp * 1000.0 / (abs(tmpV) + 1.6);
+                PosRatio = 1;
+            }
+            else // jazda ciapongowa
+            {
 
-                    tmp = Min0R(DElist[MainCtrlPos].GenPower,Power-HeatingPower*int(Heating));
+                tmp = Min0R(DElist[MainCtrlPos].GenPower, Power - HeatingPower * int(Heating));
 
-                    PosRatio = DElist[MainCtrlPos].GenPower / DElist[MainCtrlPosNo].GenPower;
-            //stosunek mocy teraz do mocy max
-                    if ((MainCtrlPos>0) && (ConverterFlag))
-                      if (tmpV <
-            (Vhyp*(Power-HeatingPower*int(Heating))/DElist[MainCtrlPosNo].GenPower)) //czy na czesci
-            prostej, czy na hiperboli
-                        Ft = (Ftmax - ((Ftmax - 1000.0 * DElist[MainCtrlPosNo].GenPower /
-            (Vhyp+Vadd)) * (tmpV/Vhyp) / PowerCorRatio)) * PosRatio; //posratio - bo sila jakos tam
-            sie rozklada
-                        //Ft:=(Ftmax - (Ftmax - (1000.0 * DEList[MainCtrlPosNo].genpower /
-            (Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //wersja z Megapacka
-                      else //na hiperboli                             //1.107 - wspolczynnik
-            sredniej nadwyzki Ft w symku nad charakterystyka
-                        Ft = 1000.0 * tmp / (tmpV+Vadd) / PowerCorRatio; //tu jest zawarty stosunek
-            mocy
-                    else Ft = 0; //jak nastawnik na zero, to sila tez zero
+                PosRatio = DElist[MainCtrlPos].GenPower / DElist[MainCtrlPosNo].GenPower;
+                // stosunek mocy teraz do mocy max
+                if ((MainCtrlPos > 0) && (ConverterFlag))
+                    if (tmpV <
+                        (Vhyp * (Power - HeatingPower * int(Heating)) /
+                         DElist[MainCtrlPosNo].GenPower)) // czy na czesci prostej, czy na hiperboli
+                        Ft = (Ftmax -
+                              ((Ftmax - 1000.0 * DElist[MainCtrlPosNo].GenPower / (Vhyp + Vadd)) *
+                               (tmpV / Vhyp) / PowerCorRatio)) *
+                             PosRatio; // posratio - bo sila jakos tam sie rozklada
 
-                    PosRatio = tmp/DElist[MainCtrlPosNo].GenPower;
+                    // Ft:=(Ftmax - (Ftmax - (1000.0 * DEList[MainCtrlPosNo].genpower /
+                    //(Vhyp+Vadd) / PowerCorRatio)) * (tmpV/Vhyp)) * PosRatio //wersja z Megapacka
+                    else // na hiperboli                             //1.107 -
+                        // wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
+                        Ft = 1000.0 * tmp / (tmpV + Vadd) /
+                             PowerCorRatio; // tu jest zawarty stosunek mocy
+                else
+                    Ft = 0; // jak nastawnik na zero, to sila tez zero
 
-                   }
+                PosRatio = tmp / DElist[MainCtrlPosNo].GenPower;
+            }
 
-                    if (FuseFlag) Ft = 0; else
-                    Ft =Ft*DirAbsolute; //ActiveDir * CabNo; //zwrot sily i jej wartosc
-                    Fw =Ft/NPoweredAxles; //sila na obwodzie kola
-                    Mw =Fw*WheelDiameter / 2.0; // moment na osi kola
-                    Mm =Mw/Transmision.Ratio; // moment silnika trakcyjnego
+            if (FuseFlag)
+                Ft = 0;
+            else
+                Ft = Ft * DirAbsolute; // ActiveDir * CabNo; //zwrot sily i jej wartosc
+            Fw = Ft / NPoweredAxles; // sila na obwodzie kola
+            Mw = Fw * WheelDiameter / 2.0; // moment na osi kola
+            Mm = Mw / Transmision.Ratio; // moment silnika trakcyjnego
 
+            // with MotorParam[ScndCtrlPos] do
+            if (abs(Mm) > MotorParam[ScndCtrlPos].fi)
+                Im = NPoweredAxles *
+                     abs(abs(Mm) / MotorParam[ScndCtrlPos].mfi + MotorParam[ScndCtrlPos].mIsat);
+            else
+                Im = NPoweredAxles * sqrt(abs(Mm * MotorParam[ScndCtrlPos].Isat));
 
-                   //with MotorParam[ScndCtrlPos] do
-                     if (abs(Mm) > MotorParam[ScndCtrlPos].fi)
-                       Im = NPoweredAxles * abs(abs(Mm) / MotorParam[ScndCtrlPos].mfi +
-            MotorParam[ScndCtrlPos].mIsat);
-                     else
-                       Im = NPoweredAxles * sqrt(abs(Mm * MotorParam[ScndCtrlPos].Isat));
+            if (ShuntMode)
+            {
+                EnginePower = Voltage * Im / 1000.0;
+                if (EnginePower > tmp)
+                {
+                    EnginePower = tmp * 1000.0;
+                    Voltage = EnginePower / Im;
+                }
+                if (EnginePower < tmp)
+                    Ft = Ft * EnginePower / tmp;
+            }
+            else
+            {
+                if (abs(Im) > DElist[MainCtrlPos].Imax)
+                { // nie ma nadmiarowego, tylko Imax i zwarcie na pradnicy
+                    Ft = Ft / Im * DElist[MainCtrlPos].Imax;
+                    Im = DElist[MainCtrlPos].Imax;
+                }
 
-                   if (ShuntMode)
-                   {
-                     EnginePower = Voltage * Im/1000.0;
-                     if (EnginePower > tmp)
-                     {
-                       EnginePower = tmp*1000.0;
-                       Voltage = EnginePower / Im;
-                     }
-                     if (EnginePower < tmp)
-                     Ft = Ft * EnginePower / tmp;
-                   }
-                   else
-                   {
-                    if (abs(Im) > DElist[MainCtrlPos].Imax)
-                    { //nie ma nadmiarowego, tylko Imax i zwarcie na pradnicy
-                      Ft = Ft/Im*DElist[MainCtrlPos].Imax;
-                      Im = DElist[MainCtrlPos].Imax;
-                    }
-
-                    if (Im > 0)  //jak pod obciazeniem
-                      if (Flat)  //ograniczenie napiecia w pradnicy - plaszczak u gory
+                if (Im > 0) // jak pod obciazeniem
+                    if (Flat) // ograniczenie napiecia w pradnicy - plaszczak u gory
                         Voltage = 1000.0 * tmp / abs(Im);
-                      else  //charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie
-            Pitagorasa
-                      {                  //sqr()   TODO: sqr
-                        Voltage = sqrt(abs(sqrt(DElist[MainCtrlPos].Umax) -
-            sqrt(DElist[MainCtrlPos].Umax*Im/DElist[MainCtrlPos].Imax)))*(MainCtrlPos-1)+
-                                 (1-Im/DElist[MainCtrlPos].Imax)*DElist[MainCtrlPos].Umax*(MainCtrlPosNo-MainCtrlPos);
-                        Voltage = Voltage/(MainCtrlPosNo-1);
-                        Voltage = Min0R(Voltage,(1000.0 * tmp / abs(Im)));
-                        if (Voltage<(Im*0.05)) Voltage = Im*0.05;
-                      }
-                    if ((Voltage > DElist[MainCtrlPos].Umax) || (Im == 0)) //gdy wychodzi za duze
-            napiecie
-                      Voltage = DElist[MainCtrlPos].Umax * int(ConverterFlag);     //albo przy biegu
-            jalowym (jest cos takiego?)
+                    else // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
 
-                    EnginePower = Voltage * Im / 1000.0;
+                    {
+                        Voltage = sqrt(abs(sqr(DElist[MainCtrlPos].Umax) -
+                                           sqr(DElist[MainCtrlPos].Umax * Im /
+                                               DElist[MainCtrlPos].Imax))) *
+                                      (MainCtrlPos - 1) +
+                                  (1 - Im / DElist[MainCtrlPos].Imax) * DElist[MainCtrlPos].Umax *
+                                      (MainCtrlPosNo - MainCtrlPos);
+                        Voltage = Voltage / (MainCtrlPosNo - 1);
+                        Voltage = Min0R(Voltage, (1000.0 * tmp / abs(Im)));
+                        if (Voltage < (Im * 0.05))
+                            Voltage = Im * 0.05;
+                    }
+                if ((Voltage > DElist[MainCtrlPos].Umax) ||
+                    (Im == 0)) // gdy wychodzi za duze napiecie
+                    Voltage = DElist[MainCtrlPos].Umax *
+                              int(ConverterFlag); // albo przy biegu jalowym (jest cos takiego?)
 
-                    if ((tmpV > 2) && (EnginePower < tmp))
-                      Ft =Ft*EnginePower/tmp;
+                EnginePower = Voltage * Im / 1000.0;
 
-                   }
+                if ((tmpV > 2) && (EnginePower < tmp))
+                    Ft = Ft * EnginePower / tmp;
+            }
 
-                     //--if (Imax>1) and (Im>Imax) then FuseOff;  //przeniesione do mover.cpp
-                     if (FuseFlag) Voltage = 0;
+            if ((Imax > 1) and (Im > Imax))
+                FuseOff();
+            if (FuseFlag)
+                Voltage = 0;
 
-                 //przekazniki bocznikowania, kazdy inny dla kazdej pozycji
-                     if ((MainCtrlPos == 0) || (ShuntMode))
-                       ScndCtrlPos = 0;
+            // przekazniki bocznikowania, kazdy inny dla kazdej pozycji
+            if ((MainCtrlPos == 0) || (ShuntMode))
+                ScndCtrlPos = 0;
 
-                     else if (AutoRelayFlag)
-                      switch (RelayType)
-                      {
-                      case 0:
-                         {
-                          if (Im <= (MPTRelay[ScndCtrlPos].Iup*PosRatio)) and
-            (ScndCtrlPos<ScndCtrlPosNo) then
-                            inc(ScndCtrlPos);
-                          if (Im >= (MPTRelay[ScndCtrlPos].Idown*PosRatio)) and (ScndCtrlPos>0) then
-                            dec(ScndCtrlPos);
-                         }
-                      case 1:
-                         {
-                          if (MPTRelay[ScndCtrlPos].Iup<Vel) and (ScndCtrlPos<ScndCtrlPosNo) then
-                            inc(ScndCtrlPos);
-                          if (MPTRelay[ScndCtrlPos].Idown>Vel) and (ScndCtrlPos>0) then
-                            dec(ScndCtrlPos);
-                         }
-                      case 2:
-                         {
-                          if (MPTRelay[ScndCtrlPos].Iup<Vel) and (ScndCtrlPos<ScndCtrlPosNo) and
-            (EnginePower<(tmp*0.99)) then
-                            inc(ScndCtrlPos);
-                          if (MPTRelay[ScndCtrlPos].Idown<Im) and (ScndCtrlPos>0) then
-                            dec(ScndCtrlPos);
-                         }
-                      case 41:
-                         {
-                          if (MainCtrlPos=MainCtrlPosNo) and (tmpV*3.6>MPTRelay[ScndCtrlPos].Iup)
-            and (ScndCtrlPos<ScndCtrlPosNo)then
-                            begin inc(ScndCtrlPos); enrot:=enrot*0.73; end;
-                          if (Im>MPTRelay[ScndCtrlPos].Idown)and (ScndCtrlPos>0) then
-                            dec(ScndCtrlPos);
-                         }
-                      case 45:
-                         {
-                          //wzrastanie
-                          if (MainCtrlPos>11) and (ScndCtrlPos<ScndCtrlPosNo) then
-                           if (ScndCtrlPos=0) then
-                            if (MPTRelay[ScndCtrlPos].Iup>Im) then
-                             inc(ScndCtrlPos)
-                            else
-                           else
-                            if (MPTRelay[ScndCtrlPos].Iup<Vel) then
-                             inc(ScndCtrlPos);
+            else if (AutoRelayFlag)
+                switch (RelayType)
+                {
+                case 0:
+                {
+                    if ((Im <= (MPTRelay[ScndCtrlPos].Iup * PosRatio)) &&
+                        (ScndCtrlPos < ScndCtrlPosNo))
+                        ++ScndCtrlPos;
+                    if ((Im >= (MPTRelay[ScndCtrlPos].Idown * PosRatio)) && (ScndCtrlPos > 0))
+                        --ScndCtrlPos;
+                    break;
+                }
+                case 1:
+                {
+                    if ((MPTRelay[ScndCtrlPos].Iup < Vel) && (ScndCtrlPos < ScndCtrlPosNo))
+                        ++ScndCtrlPos;
+                    if ((MPTRelay[ScndCtrlPos].Idown > Vel) && (ScndCtrlPos > 0))
+                        --ScndCtrlPos;
+                    break;
+                }
+                case 2:
+                {
+                    if ((MPTRelay[ScndCtrlPos].Iup < Vel) && (ScndCtrlPos < ScndCtrlPosNo) &&
+                        (EnginePower < (tmp * 0.99)))
+                        ++ScndCtrlPos;
+                    if ((MPTRelay[ScndCtrlPos].Idown < Im) && (ScndCtrlPos > 0))
+                        --ScndCtrlPos;
+                    break;
+                }
+                case 41:
+                {
+                    if ((MainCtrlPos == MainCtrlPosNo) &&
+                        (tmpV * 3.6 > MPTRelay[ScndCtrlPos].Iup) && (ScndCtrlPos < ScndCtrlPosNo))
+                    {
+                        ++ScndCtrlPos;
+                        enrot = enrot * 0.73;
+                    }
+                    if ((Im > MPTRelay[ScndCtrlPos].Idown) && (ScndCtrlPos > 0))
+                        --ScndCtrlPos;
+                    break;
+                }
+                case 45:
+                {
+                    if ((MainCtrlPos > 11) && (ScndCtrlPos < ScndCtrlPosNo))
+                        if ((ScndCtrlPos == 0))
+                            if ((MPTRelay[ScndCtrlPos].Iup > Im))
+                                ++ScndCtrlPos;
+                            else if ((MPTRelay[ScndCtrlPos].Iup < Vel))
+                                ++ScndCtrlPos;
 
-                          //malenie
-                          if(ScndCtrlPos>0)and(MainCtrlPos<12)then
-                          if (ScndCtrlPos=ScndCtrlPosNo)then
-                            if (MPTRelay[ScndCtrlPos].Idown<Im)then
-                             dec(ScndCtrlPos)
-                            else
-                           else
-                            if (MPTRelay[ScndCtrlPos].Idown>Vel)then
-                             dec(ScndCtrlPos);
-                          if (MainCtrlPos<11)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
-                          if (MainCtrlPos<9)and(ScndCtrlPos>0) then ScndCtrlPos:=0;
-                         }
-                      case 46:
-                         {
-                          //wzrastanie
-                          if (MainCtrlPos>9) and (ScndCtrlPos<ScndCtrlPosNo) then
-                           if (ScndCtrlPos) mod 2 = 0 then
-                            if (MPTRelay[ScndCtrlPos].Iup>Im) then
-                             inc(ScndCtrlPos)
-                            else
-                           else
-                            if (MPTRelay[ScndCtrlPos-1].Iup>Im) and (MPTRelay[ScndCtrlPos].Iup<Vel)
-            then
-                             inc(ScndCtrlPos);
+                    // malenie
+                    if ((ScndCtrlPos > 0) && (MainCtrlPos < 12))
+                        if ((ScndCtrlPos == ScndCtrlPosNo))
+                            if ((MPTRelay[ScndCtrlPos].Idown < Im))
+                                --ScndCtrlPos;
+                            else if ((MPTRelay[ScndCtrlPos].Idown > Vel))
+                                --ScndCtrlPos;
+                    if ((MainCtrlPos < 11) && (ScndCtrlPos > 2))
+                        ScndCtrlPos = 2;
+                    if ((MainCtrlPos < 9) && (ScndCtrlPos > 0))
+                        ScndCtrlPos = 0;
+                }
+                case 46:
+                {
+                    // wzrastanie
+                    if ((MainCtrlPos > 9) && (ScndCtrlPos < ScndCtrlPosNo))
+                        if ((ScndCtrlPos) % 2 == 0)
+                            if ((MPTRelay[ScndCtrlPos].Iup > Im))
+                                ++ScndCtrlPos;
+                            else if ((MPTRelay[ScndCtrlPos - 1].Iup > Im) &&
+                                     (MPTRelay[ScndCtrlPos].Iup < Vel))
+                                ++ScndCtrlPos;
 
-                          //malenie
-                          if (MainCtrlPos<10) and (ScndCtrlPos>0)then
-                           if (ScndCtrlPos) mod 2 = 0 then
-                            if (MPTRelay[ScndCtrlPos].Idown<Im)then
-                             dec(ScndCtrlPos)
-                            else
-                           else
-                            if (MPTRelay[ScndCtrlPos+1].Idown<Im) and
-            (MPTRelay[ScndCtrlPos].Idown>Vel)then
-                             dec(ScndCtrlPos);
-                          if (MainCtrlPos<9)and(ScndCtrlPos>2) then ScndCtrlPos:=2;
-                          if (MainCtrlPos<6)and(ScndCtrlPos>0) then ScndCtrlPos:=0;
-                        }
-                    } //switch RelayType
-                 } // DieselElectric
-            */
-            /*
-               case ElectricInductionMotor:
-                 {
-                   if (Voltage>1800) and (MainS) then
-                    begin
+                    // malenie
+                    if ((MainCtrlPos < 10) && (ScndCtrlPos > 0))
+                        if ((ScndCtrlPos) % 2 == 0)
+                            if ((MPTRelay[ScndCtrlPos].Idown < Im))
+                                --ScndCtrlPos;
+                            else if ((MPTRelay[ScndCtrlPos + 1].Idown < Im) &&
+                                     (MPTRelay[ScndCtrlPos].Idown > Vel))
+                                --ScndCtrlPos;
+                    if ((MainCtrlPos < 9) && (ScndCtrlPos > 2))
+                        ScndCtrlPos = 2;
+                    if ((MainCtrlPos < 6) && (ScndCtrlPos > 0))
+                        ScndCtrlPos = 0;
+                }
+                } // switch RelayType
+			break;
+        } // DieselElectric
 
-                     if ((Hamulec as TLSt).GetEDBCP<0.25)and(LocHandle.GetCP<0.25) then
-                       DynamicBrakeFlag:=false
-                     else if ((BrakePress>0.25) and ((Hamulec as TLSt).GetEDBCP>0.25)) or
-            (LocHandle.GetCP>0.25) then
-                       DynamicBrakeFlag:=true;
+        case ElectricInductionMotor:
+        {
+            if ((Mains)) // nie wchodziæ w funkcjê bez potrzeby
+                if ((abs(Voltage) < EnginePowerSource.CollectorParameters.MinV) ||
+                    (abs(Voltage) > EnginePowerSource.CollectorParameters.MaxV + 200))
+                {
+                    MainSwitch(false);
+                }
+            tmpV = abs(nrot) * (PI * WheelDiameter) *
+                   3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
+            if ((Mains))
+            {
 
-                     if(DynamicBrakeFlag)then
-                      begin
-                       if eimv[eimv_Fmax]*sign(V)*DirAbsolute<-1 then
-                         PosRatio:=-sign(V)*DirAbsolute*eimv[eimv_Fr]/(eimc[eimc_p_Fh]*Max0R((Hamulec
-            as TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0]{dizel_fill})
-                       else
-                         PosRatio:=0;
-                       PosRatio:=round(20*Posratio)/20;
-                       if PosRatio<19.5/20 then PosRatio:=PosRatio*0.9;
-                       (Hamulec as TLSt).SetED(PosRatio);
-                       PosRatio:=-Max0R((Hamulec as
-            TLSt).GetEDBCP,LocHandle.GetCP)/MaxBrakePress[0]*Max0R(0,Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0])));
-                       tmp:=5;
-                      end
-                     else
-                      begin
-                       PosRatio:=(MainCtrlPos/MainCtrlPosNo);
-                       PosRatio:=1.0*(PosRatio*0+1)*PosRatio;
-                       (Hamulec as TLSt).SetED(0);
-                       if (PosRatio>dizel_fill) then tmp:=1 else tmp:=4; //szybkie malenie, powolne
-            wzrastanie
-                      end;
-                     if SlippingWheels
-                      then
-                       begin
-                        PosRatio:=0;
-                        tmp:=10;
-                        //--SandDoseOn;       // przeniesione do mover.cpp
-                       end;//przeciwposlizg
+                dtrans = Hamulec->GetEDBCP();
+                if (((DoorLeftOpened) || (DoorRightOpened)))
+                    DynamicBrakeFlag = true;
+                else if (((dtrans < 0.25) && (LocHandle->GetCP() < 0.25) && (AnPos < 0.01)) ||
+                         ((dtrans < 0.25) && (ShuntModeAllow) && (LocalBrakePos == 0)))
+                    DynamicBrakeFlag = false;
+                else if ((((BrakePress > 0.25) && (dtrans > 0.25) || (LocHandle->GetCP() > 0.25))) ||
+                         (AnPos > 0.02))
+                    DynamicBrakeFlag = true;
+                dtrans = Hamulec->GetEDBCP() * eimc[eimc_p_abed]; // stala napedu
+                if ((DynamicBrakeFlag))
+                {
+                    if (eimv[eimv_Fmax] * Sign(V) * DirAbsolute < -1)
+                    {
+                        PosRatio = -Sign(V) * DirAbsolute * eimv[eimv_Fr] /
+                                   (eimc[eimc_p_Fh] *
+                                    Max0R(dtrans / MaxBrakePress[0], AnPos) /*dizel_fill*/);
+                    }
+                    else
+                        PosRatio = 0;
+                    PosRatio = Round(20 * PosRatio) / 20;
+                    if (PosRatio < 19.5 / 20)
+                        PosRatio *= 0.9;
+                    //           if PosRatio<0 then
+                    //             PosRatio:=2+PosRatio-2;
+                    Hamulec->SetED(Max0R(0.0, Min0R(PosRatio, 1)));
+                    //           (Hamulec as TLSt).SetLBP(LocBrakePress*(1-PosRatio));
+                    PosRatio = -Max0R(Min0R(dtrans * 1.0 / MaxBrakePress[0], 1), AnPos) *
+                               Max0R(0, Min0R(1, (Vel - eimc[eimc_p_Vh0]) /
+                                                     (eimc[eimc_p_Vh1] - eimc[eimc_p_Vh0])));
+                    eimv[eimv_Fzad] = -Max0R(LocalBrakeRatio(), dtrans / MaxBrakePress[0]);
+                    tmp = 5;
+                }
+                else
+                {
+                    PosRatio = (MainCtrlPos / MainCtrlPosNo);
+                    eimv[eimv_Fzad] = PosRatio;
+                    if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))
+                        PosRatio = Min0R(PosRatio * eimc[eimc_p_F0] / eimv[eimv_Fful], 1);
+                    if (ScndCtrlActualPos > 0)
+                        if (Vmax < 250)
+                            PosRatio = Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos - Vel)));
+                        else
+                            PosRatio =
+                                Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos * 2 - Vel)));
+                    // PosRatio = 1.0 * (PosRatio * 0 + 1) * PosRatio; // 1 * 1 * PosRatio = PosRatio
+                    Hamulec->SetED(0);
+                    //           (Hamulec as TLSt).SetLBP(LocBrakePress);
+                    if ((PosRatio > dizel_fill))
+                        tmp = 1;
+                    else
+                        tmp = 4; // szybkie malenie, powolne wzrastanie
+                }
+                //         if SlippingWheels then begin PosRatio:=0; tmp:=10; SandDoseOn;
+                //         end;//przeciwposlizg
 
-                     dizel_fill:=dizel_fill+Max0R(Min0R(PosRatio-dizel_fill,0.1),-0.1)*2*(tmp{2{+4*int(PosRatio<dizel_fill)})*dt;
-            //wartoœæ zadana/procent czegoœ
+                //         if(Flat)then //PRZECIWPOŒLIZG
+                dmoment = eimv[eimv_Fful];
+                //         else
+                //           dmoment:=eimc[eimc_p_F0]*0.99;
+                if ((abs((PosRatio + 9.66 * dizel_fill) * dmoment * 100) >
+                     0.95 * Adhesive(RunningTrack.friction) * TotalMassxg))
+                {
+                    PosRatio = 0;
+                    tmp = 4;
+                    SandDoseOn();
+                } // przeciwposlizg
+                if ((abs((PosRatio + 9.80 * dizel_fill) * dmoment * 100) >
+                     0.95 * Adhesive(RunningTrack.friction) * TotalMassxg))
+                {
+                    PosRatio = 0;
+                    tmp = 9;
+                    SandDoseOn();
+                } // przeciwposlizg
+                if ((SlippingWheels))
+                {
+                    // PosRatio = -PosRatio * 0; // serio -0 ???
+					PosRatio = 0;
+                    tmp = 9;
+                    SandDoseOn();
+                } // przeciwposlizg
 
-                     if(DynamicBrakeFlag)then tmp:=eimc[eimc_f_Uzh] else tmp:=eimc[eimc_f_Uzmax];
+                dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.1), -0.1) * 2 *
+                                 (tmp /*2{+4*byte(PosRatio<dizel_fill)*/) *
+                                 dt; // wartoœæ zadana/procent czegoœ
 
-                     eimv[eimv_Uzsmax]:=Min0R(Voltage-eimc[eimc_f_DU],tmp);
-                     eimv[eimv_fkr]:=eimv[eimv_Uzsmax]/eimc[eimc_f_cfu];
-                     if(DynamicBrakeFlag)then
-                       eimv[eimv_Pmax]:=eimc[eimc_p_Ph]
-                     else
-                       eimv[eimv_Pmax]:=Min0R(eimc[eimc_p_Pmax],0.001*Voltage*(eimc[eimc_p_Imax]-eimc[eimc_f_I0])*Pirazy2*eimc[eimc_s_cim]/eimc[eimc_s_p]/eimc[eimc_s_cfu]);
+                if ((DynamicBrakeFlag))
+                    tmp = eimc[eimc_f_Uzh];
+                else
+                    tmp = eimc[eimc_f_Uzmax];
 
-                     eimv[eimv_FMAXMAX]:=0.001*SQR(Min0R(eimv[eimv_fkr]/Max0R(abs(enrot)*eimc[eimc_s_p]+eimc[eimc_s_dfmax]*eimv[eimv_ks],eimc[eimc_s_dfmax]),1)*eimc[eimc_f_cfu]/eimc[eimc_s_cfu])*(eimc[eimc_s_dfmax]*eimc[eimc_s_dfic]*eimc[eimc_s_cim])*Transmision.Ratio*NPoweredAxles*2/WheelDiameter;
-                     if(DynamicBrakeFlag)then
-            //           if(Vel>eimc[eimc_p_Vh0])then
-                        eimv[eimv_Fmax]:=-sign(V)*(DirAbsolute)*Min0R(eimc[eimc_p_Ph]*3.6/Vel,-eimc[eimc_p_Fh]*dizel_fill)//*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
-            //           else
-            //            eimv[eimv_Fmax]:=0
-                     else
-                       eimv[eimv_Fmax]:=Min0R(Min0R(3.6*eimv[eimv_Pmax]/Max0R(Vel,1),eimc[eimc_p_F0]-Vel*eimc[eimc_p_a1]),eimv[eimv_FMAXMAX])*dizel_fill;
+                eimv[eimv_Uzsmax] = Min0R(Voltage - eimc[eimc_f_DU], tmp);
+                eimv[eimv_fkr] = eimv[eimv_Uzsmax] / eimc[eimc_f_cfu];
+                if ((dizel_fill < 0))
+                    eimv[eimv_Pmax] = eimc[eimc_p_Ph];
+                else
+                    eimv[eimv_Pmax] =
+                        Min0R(eimc[eimc_p_Pmax],
+                              0.001 * Voltage * (eimc[eimc_p_Imax] - eimc[eimc_f_I0]) * Pirazy2 *
+                                  eimc[eimc_s_cim] / eimc[eimc_s_p] / eimc[eimc_s_cfu]);
+                eimv[eimv_FMAXMAX] =
+                    0.001 * sqr(Min0R(eimv[eimv_fkr] / Max0R(abs(enrot) * eimc[eimc_s_p] +
+                                                                 eimc[eimc_s_dfmax] * eimv[eimv_ks],
+                                                             eimc[eimc_s_dfmax]),
+                                      1) *
+                                eimc[eimc_f_cfu] / eimc[eimc_s_cfu]) *
+                    (eimc[eimc_s_dfmax] * eimc[eimc_s_dfic] * eimc[eimc_s_cim]) *
+                    Transmision.Ratio * NPoweredAxles * 2 / WheelDiameter;
+                if ((dizel_fill < 0))
+                {
+                    eimv[eimv_Fful] = Min0R(eimc[eimc_p_Ph] * 3.6 / Vel,
+                                            Min0R(eimc[eimc_p_Fh], eimv[eimv_FMAXMAX]));
+                    eimv[eimv_Fmax] =
+                        -Sign(V) * (DirAbsolute)*Min0R(
+                                       eimc[eimc_p_Ph] * 3.6 / Vel,
+                                       Min0R(-eimc[eimc_p_Fh] * dizel_fill, eimv[eimv_FMAXMAX]));
+                    //*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
+                }
+                else
+                {
+                    eimv[eimv_Fful] = Min0R(Min0R(3.6 * eimv[eimv_Pmax] / Max0R(Vel, 1),
+                                                  eimc[eimc_p_F0] - Vel * eimc[eimc_p_a1]),
+                                            eimv[eimv_FMAXMAX]);
+                    //           if(not Flat)then
+                    eimv[eimv_Fmax] = eimv[eimv_Fful] * dizel_fill;
+                    //           else
+                    //             eimv[eimv_Fmax]:=Min0R(eimc[eimc_p_F0]*dizel_fill,eimv[eimv_Fful]);
+                }
 
-                     eimv[eimv_ks]:=eimv[eimv_Fmax]/eimv[eimv_FMAXMAX];
-                     eimv[eimv_df]:=eimv[eimv_ks]*eimc[eimc_s_dfmax];
-                     eimv[eimv_fp]:=DirAbsolute*enrot*eimc[eimc_s_p]+eimv[eimv_df];
-            //
-            eimv[eimv_U]:=Max0R(eimv[eimv_Uzsmax],Min0R(eimc[eimc_f_cfu]*eimv[eimv_fp],eimv[eimv_Uzsmax]));
-            //         eimv[eimv_pole]:=eimv[eimv_U]/(eimv[eimv_fp]*eimc[eimc_s_cfu]);
-                     if(abs(eimv[eimv_fp])<=eimv[eimv_fkr])then
-                       eimv[eimv_pole]:=eimc[eimc_f_cfu]/eimc[eimc_s_cfu]
-                     else
-                       eimv[eimv_pole]:=eimv[eimv_Uzsmax]/eimc[eimc_s_cfu]/abs(eimv[eimv_fp]);
-                     eimv[eimv_U]:=eimv[eimv_pole]*eimv[eimv_fp]*eimc[eimc_s_cfu];
-                     eimv[eimv_Ic]:=(eimv[eimv_fp]-DirAbsolute*enrot*eimc[eimc_s_p])*eimc[eimc_s_dfic]*eimv[eimv_pole];
-                     eimv[eimv_If]:=eimv[eimv_Ic]*eimc[eimc_s_icif];
-                     eimv[eimv_M]:=eimv[eimv_pole]*eimv[eimv_Ic]*eimc[eimc_s_cim];
-                     eimv[eimv_Ipoj]:=(eimv[eimv_Ic]*NPoweredAxles*eimv[eimv_U])/(Voltage-eimc[eimc_f_DU])+eimc[eimc_f_I0];
-                     eimv[eimv_Pm]:=ActiveDir*eimv[eimv_M]*NPoweredAxles*enrot*Pirazy2/1000;
-                     eimv[eimv_Pe]:=eimv[eimv_Ipoj]*Voltage/1000;
-                     eimv[eimv_eta]:=eimv[eimv_Pm]/eimv[eimv_Pe];
+                eimv[eimv_ks] = eimv[eimv_Fmax] / eimv[eimv_FMAXMAX];
+                eimv[eimv_df] = eimv[eimv_ks] * eimc[eimc_s_dfmax];
+                eimv[eimv_fp] = DirAbsolute * enrot * eimc[eimc_s_p] +
+                                eimv[eimv_df]; // do przemyslenia dzialanie pp z tmpV
+                //         eimv[eimv_U]:=Max0R(eimv[eimv_Uzsmax],Min0R(eimc[eimc_f_cfu]*eimv[eimv_fp],eimv[eimv_Uzsmax]));
+                //         eimv[eimv_pole]:=eimv[eimv_U]/(eimv[eimv_fp]*eimc[eimc_s_cfu]);
+                if ((abs(eimv[eimv_fp]) <= eimv[eimv_fkr]))
+                    eimv[eimv_pole] = eimc[eimc_f_cfu] / eimc[eimc_s_cfu];
+                else
+                    eimv[eimv_pole] =
+                        eimv[eimv_Uzsmax] / eimc[eimc_s_cfu] / abs(eimv[eimv_fp]);
+                eimv[eimv_U] = eimv[eimv_pole] * eimv[eimv_fp] * eimc[eimc_s_cfu];
+                eimv[eimv_Ic] = (eimv[eimv_fp] - DirAbsolute * enrot * eimc[eimc_s_p]) *
+                                eimc[eimc_s_dfic] * eimv[eimv_pole];
+                eimv[eimv_If] = eimv[eimv_Ic] * eimc[eimc_s_icif];
+                eimv[eimv_M] = eimv[eimv_pole] * eimv[eimv_Ic] * eimc[eimc_s_cim];
+                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * eimv[eimv_U]) /
+                                      (Voltage - eimc[eimc_f_DU]) +
+                                  eimc[eimc_f_I0];
+                eimv[eimv_Pm] =
+                    ActiveDir * eimv[eimv_M] * NPoweredAxles * enrot * Pirazy2 / 1000;
+                eimv[eimv_Pe] = eimv[eimv_Ipoj] * Voltage / 1000;
+                eimv[eimv_eta] = eimv[eimv_Pm] / eimv[eimv_Pe];
 
-                     Im:=eimv[eimv_If];
-                     Itot:=eimv[eimv_Ipoj];
+                Im = eimv[eimv_If];
+                if ((eimv[eimv_Ipoj] >= 0))
+                    Vadd *= (1 - 2 * dt);
+                else if ((Voltage < EnginePowerSource.CollectorParameters.MaxV))
+                    Vadd *= (1 - dt);
+                else
+                    Vadd = Max0R(
+                        Vadd * (1 - 0.2 * dt),
+                        0.007 * (Voltage - (EnginePowerSource.CollectorParameters.MaxV - 100)));
+                Itot = eimv[eimv_Ipoj] * (0.01 + Min0R(0.99, 0.99 - Vadd));
 
+                EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
+                tmpV = eimv[eimv_fp];
+                if (((abs(eimv[eimv_If]) > 1) || (abs(tmpV) > 0.1)) && (RlistSize > 0))
+                {
+                    i = 0;
+                    while ((i < RlistSize - 1) && (DElist[i + 1].RPM < abs(tmpV)))
+                        i++;
+                    RventRot = (abs(tmpV) - DElist[i].RPM) /
+                                   (DElist[i + 1].RPM - DElist[i].RPM) *
+                                   (DElist[i + 1].GenPower - DElist[i].GenPower) +
+                               DElist[i].GenPower;
+                }
+                else
+                    RventRot = 0;
 
-                     EnginePower:=Abs(eimv[eimv_Ic]*eimv[eimv_U]*NPoweredAxles)/1000;
-                     tmpV:=eimv[eimv_fp];
-                     if (abs(eimv[eimv_If])>1) or (abs(tmpV)>0.1) then
-                      begin
-                       if abs(tmpV)<32 then RventRot:=1.0 else
-                       if abs(tmpV)<39 then RventRot:=0.33*abs(tmpV)/32 else
-                         RventRot:=0.25*abs(tmpV)/39;//}
-                      end
-                     else              RVentRot:=0;
-
-                     Mm:=eimv[eimv_M]*DirAbsolute;
-                     Mw:=Mm*Transmision.Ratio;
-                     Fw:=Mw*2.0/WheelDiameter;
-                     Ft:=Fw*NPoweredAxles;
-                     eimv[eimv_Fr]:=DirAbsolute*Ft/1000;
-            //       RventRot;
-                    end
-                   else
-                    begin
-                     Im:=0;Mm:=0;Mw:=0;Fw:=0;Ft:=0;Itot:=0;dizel_fill:=0;EnginePower:=0;
-                     (Hamulec as TLSt).SetED(0);RventRot:=0.0;
-                    end;
-                 }  // ElectricInductionMotor
-            */
-
-            // None: begin end;
+                Mm = eimv[eimv_M] * DirAbsolute;
+                Mw = Mm * Transmision.Ratio;
+                Fw = Mw * 2.0 / WheelDiameter;
+                Ft = Fw * NPoweredAxles;
+                eimv[eimv_Fr] = DirAbsolute * Ft / 1000;
+                //       RventRot;
+            }
+            else
+            {
+                Im = 0;
+                Mm = 0;
+                Mw = 0;
+                Fw = 0;
+                Ft = 0;
+                Itot = 0;
+                dizel_fill = 0;
+                EnginePower = 0;
+                {
+                    for (i = 0; i < 21; i++)
+                        eimv[i] = 0;
+                }
+                Hamulec->SetED(0);
+                RventRot = 0.0; //(Hamulec as TLSt).SetLBP(LocBrakePress);
+            }
+			break;
+        } // ElectricInductionMotor
+        case None:
+        {
+            break;
+        }
         } // case EngineType
     return Ft;
 }
@@ -5188,6 +5370,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 
 // *************************************************************************************************
 // Q: 20160713
+// Test zakoñczenia za³adunku / roz³adunku
 // *************************************************************************************************
 bool TMoverParameters::LoadingDone(double LSpeed, std::string LoadInit)
 {
@@ -5195,22 +5378,21 @@ bool TMoverParameters::LoadingDone(double LSpeed, std::string LoadInit)
     long LoadChange;
     bool LD;
 
-    ClearPendingExceptions; // zabezpieczenie dla Trunc()
+    // ClearPendingExceptions; // zabezpieczenie dla Trunc()
     // LoadingDone:=false; //nie zakoñczone
-    if (LoadInit != "") // nazwa ³adunku niepusta
+    if (!LoadInit.empty()) // nazwa ³adunku niepusta
     {
         if (Load > MaxLoad)
-            LoadChange = abs(int(LSpeed * LastLoadChangeTime /
-                                 2.0)); // prze³adowanie?      // trunc zamieniam na int()
+            LoadChange = abs(long(LSpeed * LastLoadChangeTime / 2.0)); // prze³adowanie?
         else
-            LoadChange = abs(int(LSpeed * LastLoadChangeTime));
+            LoadChange = abs(long(LSpeed * LastLoadChangeTime));
         if (LSpeed < 0) // gdy roz³adunek
         {
             LoadStatus = 2; // trwa roz³adunek (w³¹czenie naliczania czasu)
             if (LoadChange != 0) // jeœli coœ prze³adowano
             {
                 LastLoadChangeTime = 0; // naliczony czas zosta³ zu¿yty
-                Load = Load - LoadChange; // zmniejszenie iloœci ³adunku
+                Load -= LoadChange; // zmniejszenie iloœci ³adunku
                 CommandIn.Value1 =
                     CommandIn.Value1 - LoadChange; // zmniejszenie iloœci do roz³adowania
                 if (Load < 0)
@@ -5218,7 +5400,7 @@ bool TMoverParameters::LoadingDone(double LSpeed, std::string LoadInit)
                 if ((Load == 0) || (CommandIn.Value1 < 0)) // pusto lub roz³adowano ¿¹dan¹ iloœæ
                     LoadStatus = 4; // skoñczony roz³adunek
                 if (Load == 0)
-                    LoadType = ""; // jak nic nie ma, to nie ma te¿ nazwy
+                    LoadType.clear(); // jak nic nie ma, to nie ma te¿ nazwy
             }
         }
         else if (LSpeed > 0) // gdy za³adunek
@@ -5228,7 +5410,7 @@ bool TMoverParameters::LoadingDone(double LSpeed, std::string LoadInit)
             {
                 LastLoadChangeTime = 0; // naliczony czas zosta³ zu¿yty
                 LoadType = LoadInit; // nazwa
-                Load = Load + LoadChange; // zwiêkszenie ³adunku
+                Load += LoadChange; // zwiêkszenie ³adunku
                 CommandIn.Value1 = CommandIn.Value1 - LoadChange;
                 if ((Load >= MaxLoad * (1 + OverLoadFactor)) || (CommandIn.Value1 < 0))
                     LoadStatus = 4; // skoñczony za³adunek
@@ -5237,8 +5419,7 @@ bool TMoverParameters::LoadingDone(double LSpeed, std::string LoadInit)
         else
             LoadStatus = 4; // zerowa prêdkoœæ zmiany, to koniec
     }
-    LD = (LoadStatus >= 4);
-    return LD;
+    return (LoadStatus >= 4);
 }
 
 // *************************************************************************************************
