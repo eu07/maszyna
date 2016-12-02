@@ -315,12 +315,12 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     BrakeCtrlPosNo = 0;
     LightsPosNo = 0;
     LightsDefPos = 1;
-    //for (k = -1; k < MainBrakeMaxPos; k++)
-    //{
-    //    BrakePressureTable[k].PipePressureVal = 0;
-    //    BrakePressureTable[k].BrakePressureVal = 0;
-    //    BrakePressureTable[k].FlowSpeedVal = 0;
-    //}
+    for (k = -1; k <= MainBrakeMaxPos; k++)
+    {
+        BrakePressureTable[k].PipePressureVal = 0;
+        BrakePressureTable[k].BrakePressureVal = 0;
+        BrakePressureTable[k].FlowSpeedVal = 0;
+    }
 
     // with BrakePressureTable[-2] do  {pozycja odciecia}
     {
@@ -333,7 +333,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     DynamicBrakeType = 0;
     ASBType = 0;
     AutoRelayType = 0;
-    for (b = 0; b < 1; b++) // Ra: kto tu zrobi³ "for b:=1 to 2 do" ???
+    for (b = 0; b < 2; b++) // Ra: kto tu zrobi³ "for b:=1 to 2 do" ???
     {
         Couplers[b].CouplerType = NoCoupler;
         Couplers[b].SpringKB = 1;
@@ -418,6 +418,11 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     CompressorPower = 1;
     SmallCompressorPower = 0;
 
+	for (b = 0; b < 26; b++)
+		eimc[b] = 0;
+	eimc[eimc_p_eped] = 1.5;
+	StopBrakeDecc = 0;
+
     ScndInMain = false;
 
     Vhyp = 1;
@@ -428,7 +433,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     // Loc:=LocInitial; //Ra: to i tak trzeba potem przesun¹æ, po ustaleniu pozycji na torze
     // (potrzebna d³ugoœæ)
     // Rot:=RotInitial;
-    for (b = 0; b < 1; b++)
+    for (b = 0; b < 2; b++)
     {
         Couplers[b].AllowedFlag = 3; // domyœlnie hak i hamulec, inne trzeba w³¹czyæ jawnie w FIZ
         Couplers[b].CouplingFlag = 0;
@@ -448,6 +453,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     ScndCtrlPos = 0;
     MainCtrlActualPos = 0;
     ScndCtrlActualPos = 0;
+	LightsPos = 0;
     Heating = false;
     Mains = false;
     ActiveDir = 0; // kierunek nie ustawiony
@@ -523,6 +529,9 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     dizel_enginestart = false;
     dizel_engagedeltaomega = 0;
     PhysicActivation = true;
+
+	for (b = 0; b < 21; b++)
+		eimv[b] = 0;
 
     RunningShape.R = 0;
     RunningShape.Len = 1;
@@ -610,7 +619,7 @@ double TMoverParameters::CouplerDist(int Coupler)
                         Couplers[Coupler].Connected->Dim); // odleg³oœæ pomiêdzy sprzêgami (kula!)
 };
 
-bool TMoverParameters::AttachA(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo,
+bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo,
                                int CouplingType, bool Forced)
 { //³¹czenie do swojego sprzêgu (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
     // Ra: zwykle wykonywane dwukrotnie, dla ka¿dego pojazdu oddzielnie
@@ -653,11 +662,12 @@ bool TMoverParameters::AttachA(int ConnectNo, int ConnectToNr, TMoverParameters 
     // sprzêgu, brak haka
 };
 
-bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo,
-                              int CouplingType, bool Forced)
-{ //³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
-    return AttachA(ConnectNo, ConnectToNr, (TMoverParameters *)ConnectTo, CouplingType, Forced);
-};
+// to jest ju¿ niepotrzebne bo nie ma Delphi
+//bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo,
+//                              int CouplingType, bool Forced)
+//{ //³¹czenie do (ConnectNo) pojazdu (ConnectTo) stron¹ (ConnectToNr)
+//    return Attach(ConnectNo, ConnectToNr, (TMoverParameters *)ConnectTo, CouplingType, Forced);
+//};
 
 int TMoverParameters::DettachStatus(int ConnectNo)
 { // Ra: sprawdzenie, czy odleg³oœæ jest dobra do roz³¹czania
@@ -1037,6 +1047,7 @@ ZN //masa
 
 // *****************************************************************************
 // Q: 20160714
+// Oblicza iloraz aktualnej pozycji do maksymalnej hamulca pomocnicznego
 // *****************************************************************************
 double TMoverParameters::LocalBrakeRatio(void)
 {
@@ -1060,6 +1071,7 @@ double TMoverParameters::LocalBrakeRatio(void)
 
 // *****************************************************************************
 // Q: 20160714
+// Oblicza iloraz aktualnej pozycji do maksymalnej hamulca rêcznego
 // *****************************************************************************
 double TMoverParameters::ManualBrakeRatio(void)
 {
@@ -1074,6 +1086,7 @@ double TMoverParameters::ManualBrakeRatio(void)
 
 // *****************************************************************************
 // Q: 20160713
+// Zwraca objêtoœæ
 // *****************************************************************************
 double TMoverParameters::BrakeVP(void)
 {
@@ -1085,8 +1098,8 @@ double TMoverParameters::BrakeVP(void)
 
 // *****************************************************************************
 // Q: 20160713
+// Zwraca iloraz ró¿nicy miêdzy przewodem kontrolnym i g³ównym oraz DeltaPipePress
 // *****************************************************************************
-
 double TMoverParameters::RealPipeRatio(void)
 {
     double rpp;
@@ -1100,6 +1113,7 @@ double TMoverParameters::RealPipeRatio(void)
 
 // *****************************************************************************
 // Q: 20160713
+// Zwraca iloraz ciœnienia w przewodzie do DeltaPipePress
 // *****************************************************************************
 double TMoverParameters::PipeRatio(void)
 {
@@ -5028,6 +5042,7 @@ bool TMoverParameters::AutoRelayCheck(void)
 
 // *************************************************************************************************
 // Q: 20160713
+// Podnosi / opuszcza przedni pantograf
 // *************************************************************************************************
 bool TMoverParameters::PantFront(bool State)
 {
@@ -5073,6 +5088,7 @@ bool TMoverParameters::PantFront(bool State)
 
 // *************************************************************************************************
 // Q: 20160713
+// Podnoszenie / opuszczanie pantografu tylnego
 // *************************************************************************************************
 bool TMoverParameters::PantRear(bool State)
 {
@@ -5424,6 +5440,7 @@ bool TMoverParameters::LoadingDone(double LSpeed, std::string LoadInit)
 
 // *************************************************************************************************
 // Q: 20160713
+// Zwraca informacje o dzia³aj¹cej blokadzie drzwi
 // *************************************************************************************************
 bool TMoverParameters::DoorBlockedFlag(void)
 {
@@ -5437,6 +5454,7 @@ bool TMoverParameters::DoorBlockedFlag(void)
 
 // *************************************************************************************************
 // Q: 20160713
+// Otwiera / zamyka lewe drzwi
 // *************************************************************************************************
 bool TMoverParameters::DoorLeft(bool State)
 {
@@ -5451,7 +5469,7 @@ bool TMoverParameters::DoorLeft(bool State)
                 SendCtrlToNext("DoorOpen", 1, CabNo); // 1=lewe, 2=prawe
             else
                 SendCtrlToNext("DoorOpen", 2, CabNo); // zamiana
-            CompressedVolume = CompressedVolume - 0.003;
+            CompressedVolume -= 0.003;
         }
         else
         {
@@ -5468,6 +5486,7 @@ bool TMoverParameters::DoorLeft(bool State)
 
 // *************************************************************************************************
 // Q: 20160713
+// Otwiera / zamyka prawe drzwi
 // *************************************************************************************************
 bool TMoverParameters::DoorRight(bool State)
 {
@@ -5482,7 +5501,7 @@ bool TMoverParameters::DoorRight(bool State)
                 SendCtrlToNext("DoorOpen", 2, CabNo); // 1=lewe, 2=prawe
             else
                 SendCtrlToNext("DoorOpen", 1, CabNo); // zamiana
-            CompressedVolume = CompressedVolume - 0.003;
+            CompressedVolume -= 0.003;
         }
         else
         {
@@ -5500,6 +5519,7 @@ bool TMoverParameters::DoorRight(bool State)
 
 // *************************************************************************************************
 // Q: 20160713
+// Przesuwa pojazd o podan¹ wartoœæ w bok wzglêdem toru (dla samochodów)
 // *************************************************************************************************
 bool TMoverParameters::ChangeOffsetH(double DeltaOffset)
 {
@@ -5522,6 +5542,7 @@ bool TMoverParameters::ChangeOffsetH(double DeltaOffset)
 
 // *************************************************************************************************
 // Q: 20160713
+// Testuje zmienn¹ (narazie tylko 0) i na podstawie uszkodzenia zwraca informacjê tekstow¹
 // *************************************************************************************************
 std::string TMoverParameters::EngineDescription(int what)
 {
@@ -5574,6 +5595,7 @@ std::string TMoverParameters::EngineDescription(int what)
 
 // *************************************************************************************************
 // Q: 20160709
+// Funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
 // *************************************************************************************************
 double TMoverParameters::GetTrainsetVoltage(void)
 {//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
@@ -5581,7 +5603,7 @@ double TMoverParameters::GetTrainsetVoltage(void)
 }
 
 // *************************************************************************************************
-//
+// Kasowanie zmiennych pracy fizyki
 // *************************************************************************************************
 bool TMoverParameters::Physic_ReActivation(void) // DO PRZETLUMACZENIA NA KONCU
 {
@@ -7711,6 +7733,7 @@ bool TMoverParameters::CreateBrakeSys(bool ReadyFlag)
 
 // *************************************************************************************************
 // Q: 20160714
+// Wstawia komendê z parametrem, od sprzêgu i w lokalizacji do pojazdu
 // *************************************************************************************************
 void TMoverParameters::PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
                                   const TLocation &NewLocation)
@@ -7726,6 +7749,7 @@ void TMoverParameters::PutCommand(std::string NewCommand, double NewValue1, doub
 
 // *************************************************************************************************
 // Q: 20160714
+// Pobiera komendê z parametru funkcji oraz wartoœæ zmiennej jako return
 // *************************************************************************************************
 double TMoverParameters::GetExternalCommand(std::string &Command)
 {
@@ -7755,6 +7779,7 @@ bool TMoverParameters::SendCtrlBroadcast(std::string CtrlCommand, double ctrlval
 
 // *************************************************************************************************
 // Q: 20160714
+// Ustawienie komendy wraz z parametrami
 // *************************************************************************************************
 bool TMoverParameters::SetInternalCommand(std::string NewCommand, double NewValue1,
                                           double NewValue2)
@@ -7812,349 +7837,361 @@ bool TMoverParameters::SendCtrlToNext(std::string CtrlCommand, double ctrlvalue,
 // Komenda musi byæ zdefiniowana tutaj, a jeœli siê wywo³uje funkcjê, to ona nie mo¿e
 // sama przesy³aæ do kolejnych pojazdów. Nale¿y te¿ siê zastanowiæ, czy dla uzyskania
 // jakiejœ zmiany (np. IncMainCtrl) lepiej wywo³aæ funkcjê, czy od razu wys³aæ komendê.
-bool TMoverParameters::RunCommand(std::string command, double CValue1, double CValue2)
+bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CValue2)
 {
     bool OK;
     std::string testload;
     OK = false;
     ClearPendingExceptions();
-    /*
-      {test komend sterowania ukrotnionego}
-      if command='MainCtrl' then
-       begin
-         if MainCtrlPosNo>=Trunc(CValue1) then
-          MainCtrlPos:=Trunc(CValue1);
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='ScndCtrl' then
-       begin
-         if ScndCtrlPosNo>=Trunc(CValue1) then
-          ScndCtrlPos:=Trunc(CValue1);
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-    (*  else if command='BrakeCtrl' then
-       begin
-         if BrakeCtrlPosNo>=Trunc(CValue1) then
-          begin
-            BrakeCtrlPos:=Trunc(CValue1);
-            OK:=SendCtrlToNext(command,CValue1,CValue2);
-          end;
-       end *)
-      else if command='Brake' then //youBy - jak sie EP hamuje, to trza sygnal wyslac...
-       begin
-         Hamulec.SetEPS(CValue1);
-         //fBrakeCtrlPos:=BrakeCtrlPos; //to powinnno byæ w jednym miejscu, aktualnie w C++!!!
-         BrakePressureActual:=BrakePressureTable[BrakeCtrlPos];
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end //youby - odluzniacz hamulcow, przyda sie
-      else if command='BrakeReleaser' then
-       begin
-         //--OK:=BrakeReleaser(Round(CValue1)); //samo siê przesy³a dalej    // TODO: funkcja
-    przeniesiona do mover.cpp
-         //OK:=SendCtrlToNext(command,CValue1,CValue2); //to robi³o kaskadê 2^n
-       end
-      else if command='MainSwitch' then
-       begin
-         if CValue1=1 then
-          begin
-            Mains:=true;
-            if (EngineType=DieselEngine) and Mains then
-              dizel_enginestart:=true;
-          end
-         else Mains:=false;
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='Direction' then
-       begin
-         ActiveDir:=Trunc(CValue1);
-         DirAbsolute:=ActiveDir*CabNo;
-        //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='CabActivisation' then
-       begin
-    //  OK:=Power>0.01;
-        case Trunc(CValue1*CValue2) of //CValue2 ma zmieniany znak przy niezgodnoœci sprzêgów
-          1 : CabNo:= 1;
-         -1 : CabNo:=-1;
-        else CabNo:=0; //gdy CValue1==0
-        end;
-        DirAbsolute:=ActiveDir*CabNo;
-        //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='AutoRelaySwitch' then
-       begin
-         if (CValue1=1) and (AutoRelayType=2) then AutoRelayFlag:=true
-         else AutoRelayFlag:=false;
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='FuseSwitch' then
-       begin
-          if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and FuseFlag and
-    (CValue1=1) and
-             (MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then
-    {      if (EngineType=ElectricSeriesMotor) and (CValue1=1) and
-             (MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then}
-            FuseFlag:=false;  {wlaczenie ponowne obwodu}
-         // if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and not FuseFlag and
-    (CValue1=0) and Mains then
-         //   FuseFlag:=true;
-          //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='ConverterSwitch' then         {NBMX}
-       begin
-         if (CValue1=1) then ConverterAllow:=true
-         else if (CValue1=0) then ConverterAllow:=false;
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='BatterySwitch' then         {NBMX}
-       begin
-         //--if (CValue1=1) then Battery:=true
-         //--else if (CValue1=0) then Battery:=false;
-         //--if (Battery) and (ActiveCab<>0) {or (TrainType=dt_EZT)} then
-         //-- SecuritySystem.Status:=SecuritySystem.Status or s_waiting //aktywacja czuwaka
-         //--else
-         //-- SecuritySystem.Status:=0; //wy³¹czenie czuwaka
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-    //   else if command='EpFuseSwitch' then         {NBMX}
-    //   begin
-    //     if (CValue1=1) then EpFuse:=true
-    //     else if (CValue1=0) then EpFuse:=false;
-    //     OK:=SendCtrlToNext(command,CValue1,CValue2);
-    //   end
-      else if command='CompressorSwitch' then         {NBMX}
-       begin
-         if (CValue1=1) then CompressorAllow:=true
-         else if (CValue1=0) then CompressorAllow:=false;
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='DoorOpen' then         {NBMX}
-       begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
-        if (CValue2>0) then
-         begin //normalne ustawienie pojazdu
-          if (CValue1=1) OR (CValue1=3) then
-           DoorLeftOpened:=true;
-          if (CValue1=2) OR (CValue1=3) then
-           DoorRightOpened:=true;
-         end
-        else
-         begin //odwrotne ustawienie pojazdu
-          if (CValue1=2) OR (CValue1=3) then
-           DoorLeftOpened:=true;
-          if (CValue1=1) OR (CValue1=3) then
-           DoorRightOpened:=true;
-         end;
-        //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='DoorClose' then         {NBMX}
-       begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
-        if (CValue2>0) then
-         begin //normalne ustawienie pojazdu
-          if (CValue1=1) OR (CValue1=3) then
-           DoorLeftOpened:=false;
-          if (CValue1=2) OR (CValue1=3) then
-           DoorRightOpened:=false;
-         end
-        else
-         begin //odwrotne ustawienie pojazdu
-          if (CValue1=2) OR (CValue1=3) then
-           DoorLeftOpened:=false;
-          if (CValue1=1) OR (CValue1=3) then
-           DoorRightOpened:=false;
-         end;
-        //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='PantFront' then         {Winger 160204}
-       begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
-       //Czemu EZT ma byæ traktowane inaczej? Ukrotnienie ma, a cz³on mo¿e byæ odwrócony
-         if (TrainType=dt_EZT) then
-         begin //'ezt'
-           if (CValue1=1) then
-            begin
-            PantFrontUp:=true;
-            PantFrontStart:=0;
-            end
-           else if (CValue1=0) then
-            begin
-            PantFrontUp:=false;
-            PantFrontStart:=1;
-            end;
-         end
-         else
-         begin //nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^-
-          (*
-           if (CValue1=1) then
-            if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
-             or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
-             then
-             begin
-              PantFrontUp:=true;
-              PantFrontStart:=0;
-             end
-            else
-             begin
-              PantRearUp:=true;
-              PantRearStart:=0;
-             end
-           else if (CValue1=0) then
-            if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
-             or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
-            then
-            begin
-              PantFrontUp:=false;
-              PantFrontStart:=1;
-             end
-            else
-             begin
-              PantRearUp:=false;
-              PantRearStart:=1;
-             end;
-             *)
-         end;
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='PantRear' then         {Winger 160204, ABu 310105 i 030305}
-       begin //Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
-         if (TrainType=dt_EZT) then
-         begin {'ezt'}
-          if (CValue1=1) then
-            begin
-            PantRearUp:=true;
-            PantRearStart:=0;
-            end
-           else if (CValue1=0) then
-            begin
-            PantRearUp:=false;
-            PantRearStart:=1;
-            end;
-         end
-         else
-         begin {nie 'ezt'}
-         (*
-          if (CValue1=1) then
-           {if ostatni polaczony sprz. sterowania}
-           if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
-            or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
-           then
-            begin
-             PantRearUp:=true;
-             PantRearStart:=0;
-            end
-           else
-            begin
-             PantFrontUp:=true;
-             PantFrontStart:=0;
-            end
-          else if (CValue1=0) then
-           if (TestFlag(Couplers[1].CouplingFlag,ctrain_controll)and(CValue2= 1))
-            or(TestFlag(Couplers[0].CouplingFlag,ctrain_controll)and(CValue2=-1))
-           then
-            begin
-             PantRearUp:=false;
-             PantRearStart:=1;
-            end
-           else
-            begin
-             PantFrontUp:=false;
-             PantFrontStart:=1;
-            end;
-            *)
-         end;
-         //--OK:=SendCtrlToNext(command,CValue1,CValue2);
-       end
-      else if command='MaxCurrentSwitch' then
-       begin
-          //--OK:=MaxCurrentSwitch(CValue1=1);
-       end
-      else if command='MinCurrentSwitch' then
-       begin
-          //--OK:=MinCurrentSwitch(CValue1=1);
-       end
-    {test komend oddzialywujacych na tabor}
-      else if command='SetDamage' then
-       begin
-         if CValue2=1 then OK:=SetFlag(DamageFlag,Trunc(CValue1));
-         if CValue2=-1 then OK:=SetFlag(DamageFlag,-Trunc(CValue1));
-       end
-      else if command='Emergency_brake' then
-       begin
-        //-- if EmergencyBrakeSwitch(Trunc(CValue1)=1) then                // moe ma w pas TODO:
-        //--   OK:=true
-       //--  else OK:=false;
-       end
-      else if command='BrakeDelay' then
-       begin
-          BrakeDelayFlag:=Trunc(CValue1);
-          OK:=true;
-       end
-      //--else if command='SandDoseOn' then
-      //-- begin
-      //--   if SandDoseOn then
-      //--     OK:=true
-      //--   else OK:=false;
-      //-- end
-      else if command='CabSignal' then {SHP,Indusi}
-       begin //Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
-      //--   if {(TrainType=dt_EZT)or} (ActiveCab<>0) and (Battery) and
-    TestFlag(SecuritySystem.SystemType,2) then //jeœli kabina jest obsadzona (silnikowy w EZT?)
-      //--    with SecuritySystem do
-      //--     begin
-      //--      VelocityAllowed:=Trunc(CValue1);
-      //--      NextVelocityAllowed:=Trunc(CValue2);
-      //--      SystemSoundSHPTimer:=0; //hunter-091012
-      //--      SetFlag(Status,s_active);
-      //--     end;
-         //else OK:=false;
-        OK:=true; //true, gdy mo¿na usun¹æ komendê
-       end
-     {naladunek/rozladunek}
-      else if Pos('Load=',command)=1 then
-       begin
-        OK:=false; //bêdzie powtarzane a¿ siê za³aduje
-        //-if (Vel=0) and (MaxLoad>0) and (Load<MaxLoad*(1+OverLoadFactor)) then //czy mo¿na
-    ³adowac?
-        //- if Distance(Loc,CommandIn.Location,Dim,Dim)<10 then //ten peron/rampa
-        //-  begin
-        //-   testload:=LowerCase(DUE(command));
-           //-if Pos(testload,LoadAccepted)>0 then //nazwa jest obecna w CHK
-           //- OK:=LoadingDone(Min0R(CValue2,LoadSpeed),testload); //zmienia LoadStatus       //
-    przeniesione do mover.cpp
-        //-  end;
-        //if OK then LoadStatus:=0; //nie udalo sie w ogole albo juz skonczone
-       end
-      else if Pos('UnLoad=',command)=1 then
-       begin
-        OK:=false; //bêdzie powtarzane a¿ siê roz³aduje
-        //-if (Vel=0) and (Load>0) then //czy jest co rozladowac?
-        //- if Distance(Loc,CommandIn.Location,Dim,Dim)<10 then //ten peron
-        //-  begin
-        //-   testload:=DUE(command); //zgodnoœæ nazwy ³adunku z CHK
-           //-if LoadType=testload then {mozna to rozladowac}
-           //- OK:=LoadingDone(-Min0R(CValue2,LoadSpeed),testload);                    //
-    przeniesione do mover.cpp
-        //-  end;
-        //if OK then LoadStatus:=0;
-       end;
-      RunCommand:=OK; //dla true komenda bêdzie usuniêta, dla false wykonana ponownie
 
-      */
-    return OK;
+	if (Command == "MainCtrl")
+	{
+		if (MainCtrlPosNo >= floor(CValue1))
+			MainCtrlPos = floor(CValue1);
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "ScndCtrl")
+	{
+		if ((EngineType == ElectricInductionMotor))
+			if ((ScndCtrlPos == 0) && (floor(CValue1) > 0))
+				if ((Vmax < 250))
+					ScndCtrlActualPos = Round(Vel + 0.5);
+				else
+					ScndCtrlActualPos = Round(Vel * 1.0 / 2 + 0.5);
+			else if ((floor(CValue1) == 0))
+				ScndCtrlActualPos = 0;
+		if (ScndCtrlPosNo >= floor(CValue1))
+			ScndCtrlPos = floor(CValue1);
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	/*  else if command='BrakeCtrl' then
+	begin
+	if BrakeCtrlPosNo>=Trunc(CValue1) then
+	begin
+	BrakeCtrlPos:=Trunc(CValue1);
+	OK:=SendCtrlToNext(command,CValue1,CValue2);
+	end;
+	end */
+	else if (Command == "Brake") // youBy - jak sie EP hamuje, to trza sygnal wyslac...
+	{
+		Hamulec->SetEPS(CValue1);
+		// fBrakeCtrlPos:=BrakeCtrlPos; //to powinnno byæ w jednym miejscu, aktualnie w C++!!!
+		BrakePressureActual = BrakePressureTable[BrakeCtrlPos];
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	} // youby - odluzniacz hamulcow, przyda sie
+	else if (Command == "BrakeReleaser")
+	{
+		OK = BrakeReleaser(Round(CValue1)); // samo siê przesy³a dalej
+											// OK:=SendCtrlToNext(command,CValue1,CValue2); //to robi³o kaskadê 2^n
+	}
+	else if (Command == "MainSwitch")
+	{
+		if (CValue1 == 1)
+		{
+			Mains = true;
+			if ((EngineType == DieselEngine) && Mains)
+				dizel_enginestart = true;
+		}
+		else
+			Mains = false;
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "Direction")
+	{
+		ActiveDir = floor(CValue1);
+		DirAbsolute = ActiveDir * CabNo;
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "CabActivisation")
+	{
+		//  OK:=Power>0.01;
+		switch (static_cast<int>(CValue1 * CValue2))
+		{ // CValue2 ma zmieniany znak przy niezgodnoœci sprzêgów
+		case 1:
+			CabNo = 1;
+		case -1:
+			CabNo = -1;
+		default:
+			CabNo = 0; // gdy CValue1==0
+		}
+		DirAbsolute = ActiveDir * CabNo;
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "AutoRelaySwitch")
+	{
+		if ((CValue1 == 1) && (AutoRelayType == 2))
+			AutoRelayFlag = true;
+		else
+			AutoRelayFlag = false;
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "FuseSwitch")
+	{
+		if (((EngineType == ElectricSeriesMotor) || (EngineType == DieselElectric)) && FuseFlag &&
+			(CValue1 == 1) && (MainCtrlActualPos == 0) && (ScndCtrlActualPos == 0) && Mains)
+			/*      if (EngineType=ElectricSeriesMotor) and (CValue1=1) and
+			(MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then*/
+			FuseFlag = false; /*wlaczenie ponowne obwodu*/
+							  // if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and not FuseFlag and
+							  // (CValue1=0) and Mains then
+							  //   FuseFlag:=true;
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "ConverterSwitch") /*NBMX*/
+	{
+		if ((CValue1 == 1))
+			ConverterAllow = true;
+		else if ((CValue1 == 0))
+			ConverterAllow = false;
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "BatterySwitch") /*NBMX*/
+    {
+        if ((CValue1 == 1))
+            Battery = true;
+        else if ((CValue1 == 0))
+            Battery = false;
+        if ((Battery) && (ActiveCab != 0) /*or (TrainType=dt_EZT)*/)
+            SecuritySystem.Status = SecuritySystem.Status || s_waiting; // aktywacja czuwaka
+        else
+            SecuritySystem.Status = 0; // wy³¹czenie czuwaka
+        OK = SendCtrlToNext(Command, CValue1, CValue2);
+    }
+    //   else if command='EpFuseSwitch' then         {NBMX}
+        //   begin
+        //     if (CValue1=1) then EpFuse:=true
+        //     else if (CValue1=0) then EpFuse:=false;
+        //     OK:=SendCtrlToNext(command,CValue1,CValue2);
+        //   end
+    else if (Command == "CompressorSwitch") /*NBMX*/
+	{
+		if ((CValue1 == 1))
+			CompressorAllow = true;
+		else if ((CValue1 == 0))
+			CompressorAllow = false;
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "DoorOpen") /*NBMX*/
+	{ // Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+		if ((CValue2 > 0))
+		{ // normalne ustawienie pojazdu
+			if ((CValue1 == 1) || (CValue1 == 3))
+				DoorLeftOpened = true;
+			if ((CValue1 == 2) || (CValue1 == 3))
+				DoorRightOpened = true;
+		}
+		else
+		{ // odwrotne ustawienie pojazdu
+			if ((CValue1 == 2) || (CValue1 == 3))
+				DoorLeftOpened = true;
+			if ((CValue1 == 1) || (CValue1 == 3))
+				DoorRightOpened = true;
+		}
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "DoorClose") /*NBMX*/
+	{ // Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+		if ((CValue2 > 0))
+		{ // normalne ustawienie pojazdu
+			if ((CValue1 == 1) || (CValue1 == 3))
+				DoorLeftOpened = false;
+			if ((CValue1 == 2) || (CValue1 == 3))
+				DoorRightOpened = false;
+		}
+		else
+		{ // odwrotne ustawienie pojazdu
+			if ((CValue1 == 2) || (CValue1 == 3))
+				DoorLeftOpened = false;
+			if ((CValue1 == 1) || (CValue1 == 3))
+				DoorRightOpened = false;
+		}
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "PantFront") /*Winger 160204*/
+	{ // Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+	  // Czemu EZT ma byæ traktowane inaczej? Ukrotnienie ma, a cz³on mo¿e byæ odwrócony
+		if ((TrainType == dt_EZT))
+		{ //'ezt'
+			if ((CValue1 == 1))
+			{
+				PantFrontUp = true;
+				PantFrontStart = 0;
+			}
+			else if ((CValue1 == 0))
+			{
+				PantFrontUp = false;
+				PantFrontStart = 1;
+			}
+		}
+		else
+		{ // nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^-
+			if ((CValue1 == 1))
+				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
+					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
+				{
+					PantFrontUp = true;
+					PantFrontStart = 0;
+				}
+				else
+				{
+					PantRearUp = true;
+					PantRearStart = 0;
+				}
+			else if ((CValue1 == 0))
+				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
+					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
+				{
+					PantFrontUp = false;
+					PantFrontStart = 1;
+				}
+				else
+				{
+					PantRearUp = false;
+					PantRearStart = 1;
+				}
+		}
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "PantRear") /*Winger 160204, ABu 310105 i 030305*/
+	{ // Ra: uwzglêdniæ trzeba jeszcze zgodnoœæ sprzêgów
+		if ((TrainType == dt_EZT))
+		{ /*'ezt'*/
+			if ((CValue1 == 1))
+			{
+				PantRearUp = true;
+				PantRearStart = 0;
+			}
+			else if ((CValue1 == 0))
+			{
+				PantRearUp = false;
+				PantRearStart = 1;
+			}
+		}
+		else
+		{ /*nie 'ezt'*/
+			if ((CValue1 == 1))
+				/*if ostatni polaczony sprz. sterowania*/
+				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
+					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
+				{
+					PantRearUp = true;
+					PantRearStart = 0;
+				}
+				else
+				{
+					PantFrontUp = true;
+					PantFrontStart = 0;
+				}
+			else if ((CValue1 == 0))
+				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
+					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
+				{
+					PantRearUp = false;
+					PantRearStart = 1;
+				}
+				else
+				{
+					PantFrontUp = false;
+					PantFrontStart = 1;
+				}
+		}
+		OK = SendCtrlToNext(Command, CValue1, CValue2);
+	}
+	else if (Command == "MaxCurrentSwitch")
+	{
+		OK = MaxCurrentSwitch(CValue1 == 1);
+	}
+	else if (Command == "MinCurrentSwitch")
+	{
+		OK = MinCurrentSwitch(CValue1 == 1);
+	}
+	/*test komend oddzialywujacych na tabor*/
+	else if (Command == "SetDamage")
+	{
+		if (CValue2 == 1)
+			OK = SetFlag(DamageFlag, floor(CValue1));
+		if (CValue2 == -1)
+			OK = SetFlag(DamageFlag, -floor(CValue1));
+	}
+	else if (Command == "Emergency_brake")
+	{
+		if (EmergencyBrakeSwitch(floor(CValue1) == 1)) // YB: czy to jest potrzebne?
+			OK = true;
+		else
+			OK = false;
+	}
+	else if (Command == "BrakeDelay")
+	{
+		BrakeDelayFlag = floor(CValue1);
+		OK = true;
+	}
+	else if (Command == "SandDoseOn")
+	{
+		if (SandDoseOn)
+			OK = true;
+		else
+			OK = false;
+	}
+	else if (Command == "CabSignal") /*SHP,Indusi*/
+	{ // Ra: to powinno dzia³aæ tylko w cz³onie obsadzonym
+		if (/*(TrainType=dt_EZT)or*/ (ActiveCab != 0) && (Battery) &&
+			TestFlag(SecuritySystem.SystemType,
+				2)) // jeœli kabina jest obsadzona (silnikowy w EZT?)
+					/*?*/ /* WITH  SecuritySystem */
+		{
+			SecuritySystem.VelocityAllowed = floor(CValue1);
+			SecuritySystem.NextVelocityAllowed = floor(CValue2);
+			SecuritySystem.SystemSoundSHPTimer = 0; // hunter-091012
+			SetFlag(SecuritySystem.Status, s_active);
+		}
+		// else OK:=false;
+		OK = true; // true, gdy mo¿na usun¹æ komendê
+	}
+	/*naladunek/rozladunek*/
+	else if (Pos("Load=", Command) == 1)
+	{
+		OK = false; // bêdzie powtarzane a¿ siê za³aduje
+		if ((Vel == 0) && (MaxLoad > 0) &&
+			(Load < MaxLoad * (1 + OverLoadFactor))) // czy mo¿na ³adowac?
+			if (Distance(Loc, CommandIn.Location, Dim, Dim) < 10) // ten peron/rampa
+			{
+				testload = ToLower(DUE(Command));
+				if (Pos(testload, LoadAccepted) > 0) // nazwa jest obecna w CHK
+					OK = LoadingDone(Min0R(CValue2, LoadSpeed), testload); // zmienia LoadStatus
+			}
+		// if OK then LoadStatus:=0; //nie udalo sie w ogole albo juz skonczone
+	}
+	else if (Pos("UnLoad=", Command) == 1)
+	{
+		OK = false; // bêdzie powtarzane a¿ siê roz³aduje
+		if ((Vel == 0) && (Load > 0)) // czy jest co rozladowac?
+			if (Distance(Loc, CommandIn.Location, Dim, Dim) < 10) // ten peron
+			{
+				testload = DUE(Command); // zgodnoœæ nazwy ³adunku z CHK
+				if (LoadType == testload) /*mozna to rozladowac*/
+					OK = LoadingDone(-Min0R(CValue2, LoadSpeed), testload);
+			}
+		// if OK then LoadStatus:=0;
+	}
+
+	return OK; // dla true komenda bêdzie usuniêta, dla false wykonana ponownie
 }
 
 // *************************************************************************************************
 // Q: 20160714
+// Uruchamia funkcjê RunCommand a¿ do skutku. Jeœli bêdzie pozytywny to kasuje komendê.
 // *************************************************************************************************
 bool TMoverParameters::RunInternalCommand(void)
 {
     bool OK;
 
-    if (CommandIn.Command != "")
+    if (!CommandIn.Command.empty())
     {
         OK = RunCommand(CommandIn.Command, CommandIn.Value1, CommandIn.Value2);
         if (OK)
 
         {
-            CommandIn.Command = ""; // kasowanie bo rozkaz wykonany
+            CommandIn.Command.clear(); // kasowanie bo rozkaz wykonany
             CommandIn.Value1 = 0;
             CommandIn.Value2 = 0;
             CommandIn.Location.X = 0;

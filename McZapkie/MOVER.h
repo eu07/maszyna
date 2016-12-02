@@ -887,7 +887,7 @@ public:
 	// obs³uga sprzêgów
 	double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1, const TDimension &Dim2);
 	double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1, const vector3 &Dim2);
-	bool AttachA(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
+	//bool AttachA(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
 	bool Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
@@ -918,7 +918,7 @@ public:
 	bool SendCtrlToNext(std::string CtrlCommand, double ctrlvalue, double dir);
 	bool SetInternalCommand(std::string NewCommand, double NewValue1, double NewValue2);
 	double GetExternalCommand(std::string &Command);
-	bool RunCommand(std::string command, double CValue1, double CValue2);
+	bool RunCommand(std::string Command, double CValue1, double CValue2);
 	bool RunInternalCommand(void);
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
 	bool CabActivisation(void);
