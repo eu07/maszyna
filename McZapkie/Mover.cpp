@@ -1249,7 +1249,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 			{
 				HVCouplers[b][0] =
 					Couplers[b].Connected->HVCouplers[1 - Couplers[b].ConnectedNr][0] +
-					Itot * HVCouplers[b][1] / hvc // obci¹¿enie rozkladane stosownie do napiec
+					Itot * HVCouplers[b][1] / hvc; // obci¹¿enie rozkladane stosownie do napiec
 			}
 			else // pierwszy pojazd
 			{
@@ -3136,8 +3136,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
     {
         if ((EngineType != ElectricInductionMotor))
             dpLocalValve =
-                LocHandle->GetPF(Max0R(LocalBrakePos * 1.0 / LocalBrakePosNo, LocalBrakePosA),
-                                 Hamulec->GetBCP, ScndPipePress, dt, 0);
+                LocHandle->GetPF(Max0R(LocalBrakePos / LocalBrakePosNo, LocalBrakePosA),
+                                 Hamulec->GetBCP(), ScndPipePress, dt, 0);
         else
             dpLocalValve =
                 LocHandle->GetPF(LocalBrakePosA, Hamulec->GetBCP(), ScndPipePress, dt, 0);
@@ -4227,7 +4227,7 @@ double TMoverParameters::TractionForce(double dt)
                     Ft = Ft * EnginePower / tmp;
             }
 
-            if ((Imax > 1) and (Im > Imax))
+            if ((Imax > 1) && (Im > Imax))
                 FuseOff();
             if (FuseFlag)
                 Voltage = 0;
@@ -8127,7 +8127,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 	}
 	else if (Command == "SandDoseOn")
 	{
-		if (SandDoseOn)
+		if (SandDoseOn())
 			OK = true;
 		else
 			OK = false;
@@ -8233,16 +8233,14 @@ int TMoverParameters::ShowCurrentP(int AmpN)
         else // podaæ ca³kowity
             return floor(abs(Itot));
     }
-	else // pobor pradu jezeli niema mocy
-	{
-		int current = 0;
-		for (b = 0; b < 1; b++)
-			// with Couplers[b] do
-			if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
-				if (Couplers[b].Connected->Power > 0.01)
-					current = Couplers[b].Connected->ShowCurrent(AmpN);
-		return current;
-	}
+    else // pobor pradu jezeli niema mocy
+    {
+        int current = 0;
+        for (b = 0; b < 2; b++)
+            // with Couplers[b] do
+            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+                if (Couplers[b].Connected->Power > 0.01)
+                    current = Couplers[b].Connected->ShowCurrent(AmpN);
+        return current;
+    }
 }
-
-
