@@ -771,7 +771,7 @@ void TMoverParameters::BrakeLevelSet(double b)
     while ((x < BrakeCtrlPos) && (BrakeCtrlPos >= -1)) // jeœli zmniejszy³o siê o 1
         if (!DecBrakeLevelOld()) // T_MoverParameters::
             break;
-    BrakePressureActual = BrakePressureTable[BrakeCtrlPos + 2]; // skopiowanie pozycji
+    BrakePressureActual = BrakePressureTable[BrakeCtrlPos]; // skopiowanie pozycji
     /*
     //youBy: obawiam sie, ze tutaj to nie dziala :P
     //Ra 2014-03: by³o tak zrobione, ¿e dzia³a³o - po ka¿dej zmianie pozycji by³a wywo³ywana ta
@@ -5913,41 +5913,45 @@ bool TMoverParameters::readBPT(int ln, std::string line)
     startBPT = true;
     int k;
 
-	if (ln > 0) // 0 to nazwa sekcji - Cntrl. - po niej jest tablica hamulcow
-	{
-		// WriteLog("BPT: " + xline);
-		line = Tab2Sp(line);
-		xxx = TrimAndReduceSpaces(line.c_str());
-		x = Split(xxx);
+    if (ln > 0) // 0 to nazwa sekcji - Cntrl. - po niej jest tablica hamulcow
+    {
+        // WriteLog("BPT: " + xline);
+        line = Tab2Sp(line);
+        xxx = TrimAndReduceSpaces(line.c_str());
+        x = Split(xxx);
 
-		if (x.size() != 5)
-		{
-			WriteLog("Read BPT: wrong argument number of arguments in line " + to_string(ln - 1));
-			delete[] xxx;
-			return false;
-		}
+        if (x.size() != 5)
+        {
+            WriteLog("Read BPT: wrong argument number of arguments in line " + to_string(ln - 1));
+            delete[] xxx;
+            return false;
+        }
 
-		p0 = TrimSpace(x[0]);
-		p1 = TrimSpace(x[1]);
-		p2 = TrimSpace(x[2]);
-		p3 = TrimSpace(x[3]);
-		p4 = TrimSpace(x[4]);
+        p0 = TrimSpace(x[0]);
+        p1 = TrimSpace(x[1]);
+        p2 = TrimSpace(x[2]);
+        p3 = TrimSpace(x[3]);
+        p4 = TrimSpace(x[4]);
 
-		k = atoi(p0.c_str());
-		BrakePressureTable[k].PipePressureVal = atof(p1.c_str());
-		BrakePressureTable[k].BrakePressureVal = atof(p2.c_str());
-		BrakePressureTable[k].FlowSpeedVal = atof(p3.c_str());
-		if (p4 == "Pneumatic")
-			BrakePressureTable[k].BrakeType = Pneumatic;
-		else if (p4 == "ElectroPneumatic")
-			BrakePressureTable[k].BrakeType = ElectroPneumatic;
-		else
-			BrakePressureTable[k].BrakeType = Individual;
+        k = atoi(p0.c_str());
+        BrakePressureTable[k].PipePressureVal = atof(p1.c_str());
+        BrakePressureTable[k].BrakePressureVal = atof(p2.c_str());
+        BrakePressureTable[k].FlowSpeedVal = atof(p3.c_str());
+        if (p4 == "Pneumatic")
+            BrakePressureTable[k].BrakeType = Pneumatic;
+        else if (p4 == "ElectroPneumatic")
+            BrakePressureTable[k].BrakeType = ElectroPneumatic;
+        else
+            BrakePressureTable[k].BrakeType = Individual;
 
-		//-- WriteLog("BPT: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
-		if (k == gBCPN)
-			startBPT = false;
-	}
+        // WriteLog("BPTx: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
+        //WriteLog("BPTk: " + to_string(k) + "," + to_string(BrakePressureTable[k].PipePressureVal) +
+        //         "," + to_string(BrakePressureTable[k].BrakePressureVal) + "," +
+        //         to_string(BrakePressureTable[k].FlowSpeedVal) + "," + p4);
+
+        if (k == gBCPN)
+            startBPT = false;
+    }
     delete[] xxx;
     BPTLINE++;
     return true;
@@ -6506,8 +6510,16 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     // WriteLog("DATA TEST: " + aCategory + ", " + aType + ", " + bLoadQ + ", " + bLoadAccepted + ",
     // " + dAxle + ", " + dBearingType + ", " + eBrakeValve + ", " + eBM + ", " + jEnginePower + ",
     // " + kEngineType + ", " + mRVent  );
-    // WriteLog(" ");
-    // WriteLog(" ");
+    //   WriteLog("BPT Table:");
+    // string str;
+    //   for (TBrakePressureTable::iterator it = BrakePressureTable.begin();
+    //           it != BrakePressureTable.end(); ++it)
+    //   {
+    //       str = to_string(it->first) + " " + to_string(it->second.PipePressureVal) + " " +
+    //               to_string(it->second.BrakePressureVal) + " " +
+    //               to_string(it->second.FlowSpeedVal);
+    //       WriteLog(str);
+    //   } // WriteLog(" ");
 
     // Operacje na zebranych parametrach - przypisywanie do wlasciwych zmiennych i ustawianie
     // zaleznosci

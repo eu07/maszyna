@@ -37,7 +37,7 @@ Knorr/West EP - ¿eby by³
 
 #include "friction.h" // Pascal unit
 #include "mctools.h" // Pascal unit
-
+//#include <array>
 
 
 
@@ -622,7 +622,8 @@ Knorr/West EP - ¿eby by³
 		double RedAdj;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
 		bool Fala;
-		// const double pos_table[11] = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
+		//double pos_table[];
+		// double *pos_table; // = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
 		static double pos_table[11];
 		double LPP_RP(double pos);
 		bool EQ(double pos, double i_pos);
@@ -631,7 +632,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
-		static double GetPos(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 
 		inline TFV4aM(void) : TDriverHandle() { }
 	};
@@ -655,7 +656,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
-		static double GetPos(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
 		double GetEP(double pos);
 
@@ -709,7 +710,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
-		static double GetPos(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 
 		inline TM394(void) : TDriverHandle() { }
 	};
@@ -732,7 +733,7 @@ Knorr/West EP - ¿eby by³
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
-		static double GetPos(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 
 		inline TH14K1(void) : TDriverHandle() { }
 	};
@@ -752,7 +753,7 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
-		static double GetPos(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 		void Init(double Press)/*override*/;
 
 		inline TSt113(void) : TH14K1() { }
@@ -825,7 +826,7 @@ Knorr/West EP - ¿eby by³
 	public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
-		static double GetPos(int i)/*override*/;
+		double GetPos(int i)/*override*/;
 		double GetSound(int i)/*override*/;
 		void Init(double Press)/*override*/;
 
