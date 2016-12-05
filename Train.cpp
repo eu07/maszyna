@@ -23,6 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "McZapkie\hamulce.h"
+#include "McZapkie\MOVER.h"
 #include <typeinfo>
 #include <fstream>
 //---------------------------------------------------------------------------

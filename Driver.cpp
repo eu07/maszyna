@@ -26,7 +26,8 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "World.h"
 #include "dir.h"
-#include "mctools.h"
+#include "McZapkie/mctools.h"
+#include "McZapkie/MOVER.h"
 
 #define LOGVELOCITY 0
 #define LOGORDERS 0

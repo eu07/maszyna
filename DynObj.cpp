@@ -1696,9 +1696,9 @@ TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
     else if (DriverType == "nobody")
         DriverType = ""; // nikt nie siedzi
     int Cab = 0; // numer kabiny z obsad¹ (nie mo¿na zaj¹æ obu)
-    if (DriverType.find("1")) // od przodu sk³adu
+    if (DriverType == "1") // od przodu sk³adu
         Cab = 1; // iDirection?1:-1; //iDirection=1 gdy normalnie, =0 odwrotnie
-    else if (DriverType.find("2")) // od ty³u sk³adu
+    else if (DriverType == "2") // od ty³u sk³adu
         Cab = -1; // iDirection?-1:1;
     else if (DriverType == "p")
     {
@@ -1930,7 +1930,7 @@ TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
         }
         // McZapkie-151102: rozk³ad jazdy czytany z pliku *.txt z katalogu w którym
         // jest sceneria
-        if (DriverType.find("1") || DriverType.find("2"))
+        if (DriverType == "1" || DriverType == "2")
         { // McZapkie-110303: mechanik i rozklad tylko gdy jest obsada
             // MoverParameters->ActiveCab=MoverParameters->CabNo; //ustalenie aktywnej
             // kabiny
