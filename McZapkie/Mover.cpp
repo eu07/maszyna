@@ -7210,7 +7210,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	// to dac potem do init
 	if (ReadyFlag) // gotowy do drogi
 	{
-		// WriteLog("Ready to depart");
+		WriteLog("Ready to depart");
 		CompressedVolume = VeselVolume * MinCompressor * (9.8) / 10;
 		ScndPipePress = CompressedVolume / VeselVolume;
 		PipePress = CntrlPipePress;
@@ -7225,7 +7225,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	}
 	else
 	{ // zahamowany}
-		WriteLog("Bracked");
+		WriteLog("Braked");
 		Volume = BrakeVVolume * MaxBrakePress[3];
 		CompressedVolume = VeselVolume * MinCompressor * 0.55;
 		ScndPipePress = 5.1;

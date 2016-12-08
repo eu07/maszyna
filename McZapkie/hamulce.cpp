@@ -24,10 +24,10 @@ double TFV4aM::pos_table[11] = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
 double TMHZ_EN57::pos_table[11] = { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 double TM394::pos_table[11] = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
 double TH14K1::BPT_K[6][2] =
-{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+{ {10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1} };
 double TH14K1::pos_table[11] = { -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 };
 double TSt113::BPT_K[6][2] =
-{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+{ {10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1} };
 double TSt113::BEP_K[7] = { 0, -1, 1, 0, 0, 0, 0 };
 double TSt113::pos_table[11] = { -1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1 };
 double TFVel6::pos_table[11] = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
@@ -2233,11 +2233,8 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     //          ep:=cp/3+pp/3+ep/3;
     //          ep:=cp;
 
-    {
-        long i_end = 5;
-        for (i = 0; i < i_end; ++i)
-            Sounds[i] = 0;
-    }
+    for (i = 0; i < 5; ++i)
+        Sounds[i] = 0;
     DP = 0;
 
     i_bcp = Max0R(Min0R(i_bcp, 5.999), -1.999); // na wszelki wypadek, zeby nie wyszlo poza zakres
@@ -2378,8 +2375,14 @@ double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
     int i_pos;
 
     i_pos = lround(pos - 0.5) + 2; // zaokraglone w dol
-    return
+	double i, j, k, l;
+	i = BPT[i_pos][1];
+	j = BPT[i_pos + 1][1];
+	k = pos + 2 - i_pos;
+	l = i + (j - i) * k;
+    double r =
         BPT[i_pos][1] + (BPT[i_pos + 1][1] - BPT[i_pos][1]) * (pos + 2 - i_pos); // interpolacja liniowa
+	return r;
 }
 bool TFV4aM::EQ(double pos, double i_pos)
 {

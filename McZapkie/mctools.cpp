@@ -103,10 +103,11 @@ bool iSetFlag(int &Flag, int Value)
             Flag |= Value;
             return true; // true, gdy by³o wczeœniej 0 i zosta³o ustawione
         }
-    if (Value < 0)
-        if ((Flag & abs(Value)) == abs(Value))
+	if (Value < 0)
+		Value = abs(Value);
+        if ((Flag & Value) == Value)
         {
-            Flag |= Value; // Value jest ujemne, czyli zerowanie flagi
+            Flag &= ~Value; // Value jest ujemne, czyli zerowanie flagi
             return true; // true, gdy by³o wczeœniej 1 i zosta³o wyzerowane
         }
 	return false;

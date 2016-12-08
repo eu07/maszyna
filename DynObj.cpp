@@ -3492,7 +3492,7 @@ bool TDynamicObject::FastUpdate(double dt)
     l.Y = vPosition.z;
     l.Z = vPosition.y;
     TRotation r;
-    r.Rx = r.Ry = r.Rz = 0;
+    r.Rx = r.Ry = r.Rz = 0.0;
 
     // McZapkie: parametry powinny byc pobierane z toru
     // ts.R=MyTrack->fRadius;
