@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Oerlikon_ESt.h"
 #include "hamulce.h"
 #include <string>
-#include <mctools.h>
+#include "mctools.h"
 #include <map>
 
 /*
@@ -85,12 +85,12 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 #include "dumb3d.h"
 using namespace Math3D;
 
-const Steel2Steel_friction = 0.15;      //tarcie statyczne
-const g = 9.81;                     //przyspieszenie ziemskie
-const SandSpeed = 0.1;              //ile kg/s}
-const RVentSpeed = 0.4;             //rozpedzanie sie wentylatora obr/s^2}
-const RVentMinI = 50.0;             //przy jakim pradzie sie wylaczaja}
-const Pirazy2 = 6.2831853071794f;
+const double Steel2Steel_friction = 0.15;      //tarcie statyczne
+const double g = 9.81;                     //przyspieszenie ziemskie
+const double SandSpeed = 0.1;              //ile kg/s}
+const double RVentSpeed = 0.4;             //rozpedzanie sie wentylatora obr/s^2}
+const double RVentMinI = 50.0;             //przy jakim pradzie sie wylaczaja}
+const double Pirazy2 = 6.2831853071794f;
 #define PI 3.1415926535897f
 
 //-- var, const, procedure ---------------------------------------------------
