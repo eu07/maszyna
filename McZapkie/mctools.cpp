@@ -113,6 +113,12 @@ bool iSetFlag(int &Flag, int Value)
 	return false;
 }
 
+bool UnSetFlag(int &Flag, int Value)
+{
+	Flag &= ~Value;
+	return true;
+}
+
 bool FuzzyLogic(double Test, double Threshold, double Probability)
 {
     if ((Test > Threshold) && (!DebugModeFlag))

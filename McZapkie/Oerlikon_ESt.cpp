@@ -324,22 +324,24 @@ void TNESt3::EStParams(double i_crc) // parametry charakterystyczne dla ESt
 
 void TNESt3::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ValveRes->CreatePress(1 * PP);
-    BrakeCyl->CreatePress(1 * BP);
-    BrakeRes->CreatePress(1 * PP);
+    ValveRes->CreatePress(PP);
+    BrakeCyl->CreatePress(BP);
+    BrakeRes->CreatePress(PP);
     CntrlRes = new TReservoir();
     CntrlRes->CreateCap(15);
-    CntrlRes->CreatePress(1 * HPP);
-    BrakeStatus = int(BP > 1) * 1;
+    CntrlRes->CreatePress(HPP);
+    BrakeStatus = int(BP > 1);
     Miedzypoj = new TReservoir();
     Miedzypoj->CreateCap(5);
     Miedzypoj->CreatePress(PP);
 
-    BVM = 1 * 1.0 / (HPP - 0.05 - LPP) * MaxBP;
+    BVM = 1 / (HPP - 0.05 - LPP) * MaxBP;
 
     BrakeDelayFlag = BDF;
+	RapidStatus = false;
+	LoadC, LoadM, TareBP, TareM, Podskok, LBP = 0.0;
 
-    Zamykajacy = false;
+    Zamykajacy, Przys_blok = false;
 
     if (!(typeid(FM) == typeid(TDisk1) || typeid(FM) == typeid(TDisk2))) // jesli zeliwo to schodz
         RapidStaly = false;
@@ -491,10 +493,10 @@ void TNESt3::SetLBP(double P)
 
 void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru ZR)
 {
-    static double /*?*/ const dNO1l = 1.250;
-    static double /*?*/ const dNT1l = 0.510;
-    static double /*?*/ const dOO1l = 0.907;
-    static double /*?*/ const dOT1l = 0.524;
+    static double const dNO1l = 1.250;
+    static double const dNT1l = 0.510;
+    static double const dOO1l = 0.907;
+    static double const dOT1l = 0.524;
 
     int i;
 

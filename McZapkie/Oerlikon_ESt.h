@@ -46,26 +46,26 @@ Co brakuje:
 - PZZ dla dodatkowego
 */
 
-static int /*?*/ const dMAX = 11; // dysze
-static int /*?*/ const dON = 0; // osobowy napelnianie (+ZP)
-static int /*?*/ const dOO = 1; // osobowy oproznianie
-static int /*?*/ const dTN = 2; // towarowy napelnianie (+ZP)
-static int /*?*/ const dTO = 3; // towarowy oproznianie
-static int /*?*/ const dP = 4; // zbiornik pomocniczy
-static int /*?*/ const dSd = 5; // zbiornik sterujacy
-static int /*?*/ const dSm = 6; // zbiornik sterujacy
-static int /*?*/ const dPd = 7; // duzy przelot zamykajcego
-static int /*?*/ const dPm = 8; // maly przelot zamykajacego
-static int /*?*/ const dPO = 9; // zasilanie pomocniczego O
-static int /*?*/ const dPT = 10; // zasilanie pomocniczego T
+static int const dMAX = 11; // dysze
+static int const dON = 0; // osobowy napelnianie (+ZP)
+static int const dOO = 1; // osobowy oproznianie
+static int const dTN = 2; // towarowy napelnianie (+ZP)
+static int const dTO = 3; // towarowy oproznianie
+static int const dP = 4; // zbiornik pomocniczy
+static int const dSd = 5; // zbiornik sterujacy
+static int const dSm = 6; // zbiornik sterujacy
+static int const dPd = 7; // duzy przelot zamykajcego
+static int const dPm = 8; // maly przelot zamykajacego
+static int const dPO = 9; // zasilanie pomocniczego O
+static int const dPT = 10; // zasilanie pomocniczego T
 
 // przekladniki
-static int /*?*/ const p_none = 0;
-static int /*?*/ const p_rapid = 1;
-static int/*?*/ const p_pp = 2;
-static int /*?*/ const p_al2 = 3;
-static int /*?*/ const p_ppz = 4;
-static int /*?*/ const P_ed = 5;
+static int const p_none = 0;
+static int const p_rapid = 1;
+static int const p_pp = 2;
+static int const p_al2 = 3;
+static int const p_ppz = 4;
+static int const P_ed = 5;
 
 class TPrzekladnik : public TReservoir // przekladnik (powtarzacz)
 
@@ -101,6 +101,10 @@ class TPrzeciwposlizg : public TRura // przy napelnianiu - rura, przy poslizgu -
   public:
     void SetPoslizg(bool flag);
     void Update(double dt) /*override*/;
+	inline TPrzeciwposlizg()
+	{
+		Poslizg = false;
+	}
 };
 
 class TRapid : public TPrzekladnik // przekladnik dwustopniowy
@@ -117,6 +121,11 @@ class TRapid : public TPrzekladnik // przekladnik dwustopniowy
     void SetRapidParams(double mult, double size);
     void SetRapidStatus(bool rs);
     void Update(double dt) /*override*/;
+	inline TRapid()
+	{
+		RapidStatus = false;
+		RapidMult, DN, DL = 0.0;
+	}
 };
 
 class TPrzekCiagly : public TPrzekladnik // AL2
@@ -128,6 +137,10 @@ class TPrzekCiagly : public TPrzekladnik // AL2
   public:
     void SetMult(double m);
     void Update(double dt) /*override*/;
+	inline TPrzekCiagly()
+	{
+		mult = 0.0;
+	}
 };
 
 class TPrzek_PZZ : public TPrzekladnik // podwojny zawor zwrotny
@@ -139,6 +152,10 @@ class TPrzek_PZZ : public TPrzekladnik // podwojny zawor zwrotny
   public:
     void SetLBP(double P);
     void Update(double dt) /*override*/;
+	inline TPrzek_PZZ()
+	{
+		LBP = 0.0;
+	}
 };
 
 class TPrzekZalamany : public TPrzekladnik // Knicksventil
@@ -157,6 +174,10 @@ class TPrzekED : public TRura // przy napelnianiu - rura, przy hamowaniu - upust
   public:
     void SetP(double P);
     void Update(double dt) /*override*/;
+	inline TPrzekED()
+	{
+		MaxP = 0.0;
+	}
 };
 
 class TNESt3 : public TBrake

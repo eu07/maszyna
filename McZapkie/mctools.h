@@ -101,6 +101,7 @@ inline double BorlandTime()
 extern bool TestFlag(int Flag,  int Value);
 extern bool SetFlag( int & Flag,  int Value);
 extern bool iSetFlag( int & Flag,  int Value);
+extern bool UnSetFlag(int &Flag, int Value);
 
 bool FuzzyLogic(double Test, double Threshold, double Probability);
 /*jesli Test>Threshold to losowanie*/

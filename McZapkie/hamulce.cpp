@@ -162,6 +162,7 @@ TReservoir::TReservoir()
     // inherited:: Create;
     Cap = 1;
     Vol = 0;
+	dVol = 0;
 }
 
 void TReservoir::Act()
@@ -256,10 +257,16 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
     // inherited:: Create;
     MaxBP = i_mbp;
     BCN = i_bcn;
+	BCM = 1;
     BCA = i_bcn * i_bcr * i_bcr * pi;
     BA = i_ba;
     NBpA = i_nbpa;
     BrakeDelays = i_BD;
+	BrakeDelayFlag = bdelay_P;
+	DCV = false;
+	ASBP = 0.0;
+	BrakeStatus = b_hld;
+	SoundFlag = 0;
     // 210.88
     //  SizeBR:=i_bcn*i_bcr*i_bcr*i_bcd*40.17*MaxBP/(5-MaxBP);  //objetosc ZP w stosunku do cylindra
     //  14" i cisnienia 4.2 atm
@@ -308,6 +315,7 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
 // inicjalizacja hamulca (stan poczatkowy)
 void TBrake::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
+	BrakeDelayFlag = BDF;
 }
 
 // pobranie wspolczynnika tarcia materialu
@@ -1397,7 +1405,7 @@ double TEStED::GetPF(double PP, double dt, double Vel)
         if ((!Przys_blok))
         {
             ValveRes->CreatePress(0.75 * VVP);
-            SoundFlag = SoundFlag || sf_Acc;
+            SoundFlag = SoundFlag | sf_Acc;
             ValveRes->Act();
             Przys_blok = true;
         }
@@ -2345,11 +2353,13 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 void TFV4aM::Init(double Press)
 {
     CP = Press;
-    TP = 0;
+    TP = 0.0;
     RP = Press;
-    XP = 0;
+    XP = 0.0;
     Time = false;
     TimeEP = false;
+	RedAdj = 0.0;
+	Fala = false;
 }
 
 void TFV4aM::SetReductor(double nAdj)
@@ -2484,10 +2494,12 @@ double TMHZ_EN57::GetPF(double i_bcp, double PP, double HP, double dt, double ep
 void TMHZ_EN57::Init(double Press)
 {
     CP = Press;
-    TP = 0;
-    RP = 0;
+    TP = 0.0;
+    RP = 0.0;
     Time = false;
     TimeEP = false;
+	RedAdj = 0.0;
+	Fala = false;
 }
 
 void TMHZ_EN57::SetReductor(double nAdj)
@@ -2737,6 +2749,7 @@ void TSt113::Init(double Press)
 {
     Time = true;
     TimeEP = true;
+	EPS = 0.0;
 }
 
 //--- test ---
@@ -2918,6 +2931,7 @@ void TFVel6::Init(double Press)
 {
     Time = true;
     TimeEP = true;
+	EPS = 0.0;
 }
 
 //END

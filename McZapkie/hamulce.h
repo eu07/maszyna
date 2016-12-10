@@ -262,6 +262,7 @@ Knorr/West EP - ¿eby by³
 			double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
 		{
+			LBP, dVP, EPS, TareM, TareBP, LoadM, LoadC = 0.0;
 			Init(PP, HPP, LPP, BP, BDF);
 		}
 	};
@@ -302,7 +303,7 @@ Knorr/West EP - ¿eby by³
 
 	{
 	private:
-		double CylFlowSpeed[2][2];
+		//double CylFlowSpeed[2][2]; //zmienna nie uzywana
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
@@ -336,6 +337,7 @@ Knorr/West EP - ¿eby by³
 			double PP, double HPP, double LPP, double BP, int BDF) : TESt3(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
 		{
+			TareM, TareBP, LoadM, LoadC = 0.0;
 			Init(PP, HPP, LPP, BP, BDF);
 		}
 	};
@@ -351,7 +353,7 @@ Knorr/West EP - ¿eby by³
 
 	protected:
 		TReservoir *ImplsRes;      //komora impulsowa
-		double RapidTemp;           //akrualne, zmienne przelozenie
+		double RapidTemp;           //aktualne, zmienne przelozenie
 
 	public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
@@ -361,6 +363,7 @@ Knorr/West EP - ¿eby by³
 			double PP, double HPP, double LPP, double BP, int BDF) : TESt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
 		{
+			RapidTemp = 0.0;
 			Init(PP, HPP, LPP, BP, BDF);
 		}
 	};
@@ -371,7 +374,7 @@ Knorr/West EP - ¿eby by³
 
 	{
 	private:
-		double CylFlowSpeed[2][2];
+		// double CylFlowSpeed[2][2]; // zmienna nie u¿ywana
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 
 	protected:
@@ -423,6 +426,8 @@ Knorr/West EP - ¿eby by³
 			double PP, double HPP, double LPP, double BP, int BDF) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
 		{
+			Przys_blok = false;
+			TareM, TareBP, LoadM, LoadC = 0.0;
 			Init(PP, HPP, LPP, BP, BDF);
 		}
 	};
@@ -451,6 +456,7 @@ Knorr/West EP - ¿eby by³
 			double PP, double HPP, double LPP, double BP, int BDF) : TLSt(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
 		{
+			TareM, TareBP, LoadM, LoadC, EPS = 0.0;
 			Init(PP, HPP, LPP, BP, BDF);
 		}
 	};
@@ -524,6 +530,7 @@ Knorr/West EP - ¿eby by³
 			double PP, double HPP, double LPP, double BP, int BDF) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
 				, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
 		{
+			LBP = 0.0;
 			Init(PP, HPP, LPP, BP, BDF);
 		}
 	};
@@ -565,6 +572,8 @@ Knorr/West EP - ¿eby by³
 			double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn,
 				i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
 		{
+			RapidStatus = false;
+			TareM, TareBP, LoadM, LoadC, RM, LBP = 0.0;
 			Init(PP, HPP, LPP, BP, BDF);
 		}
 	};
