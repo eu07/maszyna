@@ -1,3 +1,21 @@
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
+
+/*
+    Program obs³ugi portu COM i innych na potrzeby sterownika MWDevice
+	(oraz innych wykorzystuj¹cych komunikacjê przez port COM)
+    dla Symulatora Pojazdów Szynowych MaSzyna
+    author: Maciej Witek 2016
+	Autor nie ponosi odpowiedzialnoœci za niew³aciwe u¿ywanie lub dzia³anie programu!
+*/
+
+
 #ifndef MWDH
 #define MWDH
 //---------------------------------------------------------------------------
@@ -16,7 +34,7 @@ private:
     bool ReadData();	//BYTE *pReadDataBuff);
     bool SendData();	//BYTE *pWriteDataBuff);
     bool CheckData();	//sprawdzanie zmian wejœæ i kontrola mazaków HASLERA
-    bool KeyBoard(int key, int s);
+    void KeyBoard(int key, bool s);
 
     bool bRysik1H;
     bool bRysik1L;

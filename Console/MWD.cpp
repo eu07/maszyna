@@ -1,9 +1,18 @@
 /*
-        Program obs³ugi portu COM i innych na potrzeby sterownika MWDevise
-        dla Symulatora Pojazdów Szynowych MaSzyna
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
 
-        author: Maciej Witek 2016
-        wszelkie prawa zastrze¿one!
+/*
+    Program obs³ugi portu COM i innych na potrzeby sterownika MWDevice
+	(oraz innych wykorzystuj¹cych komunikacjê przez port COM)
+    dla Symulatora Pojazdów Szynowych MaSzyna
+    author: Maciej Witek 2016
+	Autor nie ponosi odpowiedzialnoœci za niew³aciwe u¿ywanie lub dzia³anie programu!
 */
 
 #include "MWD.h"
@@ -110,20 +119,20 @@ bool MWDComm::Open()		// otwieranie portu COM
     return TRUE;
 }
 
-bool MWDComm::Close()		// zamykanie portu COM
+bool MWDComm::Close()			// zamykanie portu COM
 {
-    WriteLog("zamykam COM-a");
+    WriteLog("COM Port is closing...");
     int i = 0;
-    while(i<BYTETOWRITE)
+    while(i<BYTETOWRITE)		// zerowanie danych...
     {
         WriteDataBuff[i] = 0;
         i++;
     }
     Sleep(100);
-    SendData();
+    SendData();					// wysy³anie do pulpitu: zatrzymanie haslera i zgaszenie lampek
     Sleep(700);
     CloseHandle(hComm);
-    WriteLog("COM zamkniety");
+    WriteLog("COM is close!");
     return TRUE;
 }
 
@@ -169,7 +178,7 @@ bool MWDComm::Run()		// wywo³ywanie obs³ugi MWD + generacja wiêkszego opóŸnienia
             return 1;
         }else
         {
-            WriteLog("Port COM: blad polaczenia!");
+            WriteLog("Port COM: connection ERROR!");
             // mo¿e spróbowaæ siê po³¹czyæ znowu?
             return 0;
         }
@@ -653,7 +662,7 @@ bool MWDComm::CheckData()	// sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
     else 			WriteDataBuff[6] &= ~(1<<3);
 }
 
-bool MWDComm::KeyBoard(int key, int s)	// emulacja klawiatury
+void MWDComm::KeyBoard(int key, bool s)	// emulacja klawiatury
 {
     INPUT ip;
     // Set up a generic keyboard event.
@@ -664,7 +673,7 @@ bool MWDComm::KeyBoard(int key, int s)	// emulacja klawiatury
 
     ip.ki.wVk = key; // virtual-key code for the "a" key
     
-    if(s!=0){// Press the "A" key
+    if(s){// Press the "A" key
         ip.ki.dwFlags = 0; // 0 for key press
         SendInput(1, &ip, sizeof(INPUT));
     }else{
@@ -672,7 +681,7 @@ bool MWDComm::KeyBoard(int key, int s)	// emulacja klawiatury
         SendInput(1, &ip, sizeof(INPUT));
     }
 
-    return 1;
+    //return 1;
 }
 
 
