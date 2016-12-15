@@ -447,7 +447,8 @@ float Console::AnalogCalibrateGet(int x)
     if(iMode == 5 && MWD) // maciek001: obs?uga hamulc?w (wej?? analogowych) OK
     {
         float b = MWD->fAnalog[x];
-        b=b*(Global::fMWDAnalogCalib[x][0]-Global::fMWDAnalogCalib[x][1])/Global::fMWDAnalogCalib[x][3]+Global::fMWDAnalogCalib[x][1]/Global::fMWDAnalogCalib[x][3];
+        //b = b*(Global::fMWDAnalogCalib[x][0]-Global::fMWDAnalogCalib[x][1])/Global::fMWDAnalogCalib[x][3]+Global::fMWDAnalogCalib[x][1]/Global::fMWDAnalogCalib[x][3];
+        b = (b-Global::fMWDAnalogCalib[x][1])/(Global::fMWDAnalogCalib[x][1]-Global::fMWDAnalogCalib[x][0]);
         switch(x)
         {
         case 0: return (b*8-2);
