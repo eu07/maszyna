@@ -552,6 +552,8 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
             if (bMWDdebugEnable) WriteLog("PortName " + AnsiString(iMWDBaudrate));
         }else if (str == AnsiString("mwdbreakenable")){ 			// czy w³¹czyæ obs³ugê hamulców
             bMWDBreakEnable = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+        }else if (str == AnsiString("mwdinputenable")){
+            bMWDInputDataEnable = (GetNextSymbol().LowerCase() == AnsiString("yes"));
         }else if(str == AnsiString("mwdbreak"))				// wartoœæ max dla potencjometru hamulca zasadniczego
         {
             i = GetNextSymbol().ToIntDef(-1); // numer wejœcia

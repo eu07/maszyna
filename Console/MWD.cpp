@@ -174,7 +174,7 @@ bool MWDComm::Run()		// wywo³ywanie obs³ugi MWD + generacja wiêkszego opóŸnienia
         if(GetMWDState())
         {
             SendData();
-            ReadData();
+            if (Global::bMWDInputDataEnable) ReadData();
             return 1;
         }else
         {
