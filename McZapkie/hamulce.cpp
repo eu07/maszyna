@@ -251,8 +251,7 @@ begin
 end  ; */
 
 TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD,
-               int i_mat, int i_ba, int i_nbpa,
-			   double PP, double HPP, double LPP, double BP, int BDF)
+               int i_mat, int i_ba, int i_nbpa)
 {
     // inherited:: Create;
     MaxBP = i_mbp;
@@ -430,7 +429,8 @@ void TBrake::ForceEmptiness()
 
 void TWest::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ValveRes->CreatePress(PP);
+	TBrake::Init(PP, HPP, LPP, BP, BDF);
+	ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP / 2 + HPP / 2);
     // BrakeStatus:=3*int(BP>0.1);
@@ -749,10 +749,10 @@ double TESt::GetPF(double PP, double dt, double Vel)
 
 void TESt::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ValveRes->CreatePress(PP);
+	TBrake::Init(PP, HPP, LPP, BP, BDF);
+	ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP);
-    CntrlRes = new TReservoir();
     CntrlRes->CreateCap(15);
     CntrlRes->CreatePress(HPP);
     BrakeStatus = 0;
@@ -775,7 +775,8 @@ double TESt::GetCRP()
 
 void TEStEP2::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ImplsRes->CreateCap(1);
+	TLSt::Init(PP, HPP, LPP, BP, BDF);
+	ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 
     BrakeRes->CreatePress(PP);
@@ -1084,7 +1085,7 @@ double TESt4R::GetPF(double PP, double dt, double Vel)
 
 void TESt4R::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ImplsRes = new TReservoir();
+	TESt::Init(PP, HPP, LPP, BP, BDF);
     ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 
@@ -1194,8 +1195,8 @@ void TESt3AL2::SetLP(double TM, double LM, double TBP)
 
 void TESt3AL2::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ImplsRes = new TReservoir();
-    ImplsRes->CreateCap(1);
+	TESt::Init(PP, HPP, LPP, BP, BDF);
+	ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 }
 
@@ -1318,6 +1319,7 @@ double TLSt::GetPF(double PP, double dt, double Vel)
 
 void TLSt::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
+	TESt4R::Init(PP, HPP, LPP, BP, BDF);
     ValveRes->CreateCap(1);
     ImplsRes->CreateCap(8);
     ImplsRes->CreatePress(PP);
@@ -1516,7 +1518,8 @@ double TEStED::GetPF(double PP, double dt, double Vel)
 
 void TEStED::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    int i;
+	TLSt::Init(PP, HPP, LPP, BP, BDF);
+	int i;
 
     ValveRes->CreatePress(1 * PP);
     BrakeCyl->CreatePress(1 * BP);
@@ -1526,7 +1529,6 @@ void TEStED::Init(double PP, double HPP, double LPP, double BP, int BDF)
     //  CntrlRes.CreatePress(1*HPP);
 
     BrakeStatus = int(BP > 1) * 1;
-    Miedzypoj = new TReservoir();
     Miedzypoj->CreateCap(5);
     Miedzypoj->CreatePress(PP);
 
@@ -1713,10 +1715,10 @@ double TCV1::GetPF(double PP, double dt, double Vel)
 
 void TCV1::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ValveRes->CreatePress(PP);
+	TBrake::Init(PP, HPP, LPP, BP, BDF);
+	ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP);
-    CntrlRes = new TReservoir();
     CntrlRes->CreateCap(15);
     CntrlRes->CreatePress(HPP);
     BrakeStatus = 0;
@@ -1750,8 +1752,8 @@ double TCV1L_TR::GetHPFlow(double HP, double dt)
 
 void TCV1L_TR::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ImplsRes = new TReservoir();
-    ImplsRes->CreateCap(2.5);
+	TCV1::Init(PP, HPP, LPP, BP, BDF);
+	ImplsRes->CreateCap(2.5);
     ImplsRes->CreatePress(BP);
 }
 
@@ -2043,15 +2045,14 @@ double TKE::GetPF(double PP, double dt, double Vel)
 
 void TKE::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ValveRes->CreatePress(PP);
+	TBrake::Init(PP, HPP, LPP, BP, BDF);
+	ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP);
 
-    CntrlRes = new TReservoir(); // komora sterujaca
     CntrlRes->CreateCap(5);
     CntrlRes->CreatePress(HPP);
 
-    ImplsRes = new TReservoir(); // komora zastepcza silownika
     ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 

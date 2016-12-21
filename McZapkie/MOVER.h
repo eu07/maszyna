@@ -1050,7 +1050,6 @@ public:
 	TPowerSource PowerSourceDecode(std::string s);                                                   //Q 20160719
 	TPowerType PowerDecode(std::string s);                                                           //Q 20160719
 	TEngineTypes EngineDecode(std::string s);                                                        //Q 20160721
-	bool CreateBrakeSys(bool ReadyFlag = true);                                                                          //Q 20160722
 	bool CheckLocomotiveParameters(bool ReadyFlag, int Dir);
 	std::string EngineDescription(int what);
 };

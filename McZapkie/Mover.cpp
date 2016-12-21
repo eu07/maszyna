@@ -6642,8 +6642,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
      WriteLog("NBpA " + IntToStr(NBpA));
      WriteLog("MaxBrakeForce " + FloatToStr(MaxBrakeForce));
      WriteLog("TrackBrakeForce " + FloatToStr(TrackBrakeForce));
-     WriteLog("MaxBrakePress[3] " + FloatToStr(MaxBrakePress[3]));
-     WriteLog("BrakeCylNo " + IntToStr(BrakeCylNo));
+     WriteLog("MaxBrakePress[3] " + to_string(MaxBrakePress[3]));
+     /*WriteLog("BrakeCylNo " + IntToStr(BrakeCylNo));
      WriteLog("BCD " + FloatToStr(eBCD));
      WriteLog("BCR " + FloatToStr(eBCR));
      WriteLog("BCS " + FloatToStr(eBCS));
@@ -6663,7 +6663,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         BrakeValveSize = eSize;
         TrackBrakeForce = eTBF * 1000;
         MaxBrakePress[3] = eMaxBP;
-        // WriteLog("eMaxBP " + FloatToStr(MaxBrakePress[3]));
+        WriteLog("eMaxBP " + to_string(MaxBrakePress[3]));
         if (MaxBrakePress[3] > 0)
         {
             BrakeCylNo = eBCN;
@@ -7206,36 +7206,6 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 
 	int DefBrakeTable[8] = { 15, 4, 25, 25, 13, 3, 12, 2 };
 
-	// checking ready flag
-	// to dac potem do init
-	if (ReadyFlag) // gotowy do drogi
-	{
-		WriteLog("Ready to depart");
-		CompressedVolume = VeselVolume * MinCompressor * (9.8) / 10;
-		ScndPipePress = CompressedVolume / VeselVolume;
-		PipePress = CntrlPipePress;
-		BrakePress = 0;
-		MainSwitch(false);
-		PantFront(true);
-		PantRear(true);
-		MainSwitch(true);
-		ActiveDir = 0; // Dir; //nastawnik kierunkowy - musi byæ ustawiane osobno!
-		DirAbsolute = ActiveDir * CabNo; // kierunek jazdy wzglêdem sprzêgów
-		LimPipePress = CntrlPipePress;
-	}
-	else
-	{ // zahamowany}
-		WriteLog("Braked");
-		Volume = BrakeVVolume * MaxBrakePress[3];
-		CompressedVolume = VeselVolume * MinCompressor * 0.55;
-		ScndPipePress = 5.1;
-		PipePress = LowPipePress;
-		PipeBrakePress = MaxBrakePress[3];
-		BrakePress = MaxBrakePress[3];
-		LocalBrakePos = 0;
-		LimPipePress = LowPipePress;
-	}
-
 	if (LoadFlag > 0)
 	{
 		if (Load < MaxLoad * 0.45)
@@ -7276,8 +7246,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	{
 		WriteLog("XBT W, K");
 		Hamulec = new TWest(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-			HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
 		else
@@ -7288,8 +7257,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	{
 		WriteLog("XBT WKE");
 		Hamulec = new TKE(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress, HighPipePress,
-			LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
@@ -7304,8 +7272,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	{
 		WriteLog("XBT NESt3, ESt3, ESt3AL2, ESt4");
 		Hamulec = new TNESt3(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-			HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		(static_cast<TNESt3 *>(Hamulec))->SetSize(BrakeValveSize, BrakeValveParams);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
@@ -7318,8 +7285,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	{
 		WriteLog("XBT LSt");
 		Hamulec = new TLSt(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress, HighPipePress,
-			LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		break;
 	}
@@ -7327,8 +7293,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	{
 		WriteLog("XBT EStED");
 		Hamulec = new TEStED(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-			HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		break;
 	}
@@ -7336,8 +7301,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	{
 		WriteLog("XBT EP2");
 		Hamulec = new TEStEP2(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-			HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
 		break;
 	}
@@ -7346,23 +7310,20 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	{
 		WriteLog("XBT CV1");
 		Hamulec = new TCV1(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress, HighPipePress,
-			LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeDelays, BrakeMethod, NAxles, NBpA);
 		break;
 	}
 	case CV1_L_TR:
 	{
 		WriteLog("XBT CV1_L_T");
 		Hamulec = new TCV1L_TR(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-			HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		break;
 	}
 
 	default:
 		Hamulec = new TBrake(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-			HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 	}
 
 	Hamulec->SetASBP(MaxBrakePress[4]);
@@ -7418,6 +7379,41 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	if (LightsPosNo > 0)
 		LightsPos = LightsDefPos;
 
+	// checking ready flag
+	// to dac potem do init
+	if (ReadyFlag) // gotowy do drogi
+	{
+		WriteLog("Ready to depart");
+		CompressedVolume = VeselVolume * MinCompressor * (9.8) / 10;
+		ScndPipePress = CompressedVolume / VeselVolume;
+		PipePress = CntrlPipePress;
+		BrakePress = 0;
+		LocalBrakePos = 0;
+		if (CabNo == 0)
+			BrakeCtrlPos = Handle->GetPos(bh_NP);
+		else
+			BrakeCtrlPos = Handle->GetPos(bh_RP);
+		MainSwitch(false);
+		PantFront(true);
+		PantRear(true);
+		MainSwitch(true);
+		ActiveDir = 0; // Dir; //nastawnik kierunkowy - musi byæ ustawiane osobno!
+		DirAbsolute = ActiveDir * CabNo; // kierunek jazdy wzglêdem sprzêgów
+		LimPipePress = CntrlPipePress;
+	}
+	else
+	{ // zahamowany}
+		WriteLog("Braked");
+		Volume = BrakeVVolume * MaxBrakePress[3];
+		CompressedVolume = VeselVolume * MinCompressor * 0.55;
+		ScndPipePress = 5.1;
+		PipePress = LowPipePress;
+		PipeBrakePress = MaxBrakePress[3] / 2;
+		BrakePress = MaxBrakePress[3] / 2;
+		LocalBrakePos = 0;
+		LimPipePress = LowPipePress;
+	}
+
 	ActFlowSpeed = 0;
 	BrakeCtrlPosR = BrakeCtrlPos;
 
@@ -7438,7 +7434,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	if (TrainType == dt_ET22)
 		CompressorPower = 0;
 
-	// Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
+	Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
 
 	ScndPipePress = Compressor;
 
@@ -7446,305 +7442,6 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	// WriteLog("");
 
 	return OK;
-}
-
-// *************************************************************************************************
-// Q: 20160717
-// Funkcja pelniaca role pierwotnej CheckLocomotiveParameters(bool ReadyFlag, int Dir)
-// wywolywana w dynobj.cpp w double TDynamicObject::Init()
-// *************************************************************************************************
-bool TMoverParameters::CreateBrakeSys(bool ReadyFlag)
-{
-    WriteLog("check locomotive parameters...");
-    int b;
-    bool OK = true;
-
-    AutoRelayFlag = (AutoRelayType == 1);
-
-    Sand = SandCapacity;
-
-    // WriteLog("aa = " + AxleArangement + " " + std::string( Pos("o", AxleArangement)) );
-
-    if ((Pos("o", AxleArangement) > 0) && (EngineType == ElectricSeriesMotor))
-        OK = (RList[1].Bn * RList[1].Mn ==
-              NPoweredAxles); // test poprawnosci ilosci osi indywidualnie napedzanych
-    // WriteLogSS("aa ok", BoolToYN(OK));
-
-    if (BrakeSystem == Individual)
-        if (BrakeSubsystem != ss_None)
-            OK = false; //!
-
-    if ((BrakeVVolume == 0) && (MaxBrakePress[3] > 0) && (BrakeSystem != Individual))
-        BrakeVVolume = MaxBrakePress[3] / (5 - MaxBrakePress[3]) *
-                       (BrakeCylRadius * BrakeCylRadius * BrakeCylDist * BrakeCylNo * PI) * 1000;
-    if (BrakeVVolume == 0)
-        BrakeVVolume = 0.01;
-
-    // WriteLog("BVV = "  + FloatToStr(BrakeVVolume));
-
-    if ((TestFlag(BrakeDelays, bdelay_G)) &&
-        ((!TestFlag(BrakeDelays, bdelay_R)) ||
-         (Power > 1))) // ustalanie srednicy przewodu glownego (lokomotywa lub napêdowy
-        Spg = 0.792;
-    else
-        Spg = 0.507;
-
-    // taki mini automat - powinno byc ladnie dobrze :)
-    BrakeDelayFlag = bdelay_P;
-    if ((TestFlag(BrakeDelays, bdelay_G)) && !(TestFlag(BrakeDelays, bdelay_R)))
-        BrakeDelayFlag = bdelay_G;
-    if ((TestFlag(BrakeDelays, bdelay_R)) && !(TestFlag(BrakeDelays, bdelay_G)))
-        BrakeDelayFlag = bdelay_R;
-
-    int DefBrakeTable[8] = {15, 4, 25, 25, 13, 3, 12, 2};
-
-    // checking ready flag
-    // to dac potem do init
-    if (ReadyFlag) // gotowy do drogi
-    {
-        // WriteLog("Ready to depart");
-        CompressedVolume = VeselVolume * MinCompressor * (9.8) / 10;
-        ScndPipePress = CompressedVolume / VeselVolume;
-        PipePress = CntrlPipePress;
-        BrakePress = 0;
-        LocalBrakePos = 0;
-
-        if (CabNo == 0)
-            BrakeCtrlPos = floor(Handle->GetPos(bh_NP)); // Q: TODO: Trunc na floor
-        else
-            BrakeCtrlPos = floor(Handle->GetPos(bh_RP));
-        MainSwitch(false);
-        PantFront(true);
-        PantRear(true);
-        MainSwitch(true);
-        ActiveDir = 0; // Dir; //nastawnik kierunkowy - musi byæ ustawiane osobno!
-        DirAbsolute = ActiveDir * CabNo; // kierunek jazdy wzglêdem sprzêgów
-        LimPipePress = CntrlPipePress;
-    }
-    else
-    { // zahamowany}
-        WriteLog("Bracked");
-        Volume = BrakeVVolume * MaxBrakePress[3];
-        CompressedVolume = VeselVolume * MinCompressor * 0.55;
-        ScndPipePress = 5.1;
-        PipePress = LowPipePress;
-        PipeBrakePress = MaxBrakePress[3];
-        BrakePress = MaxBrakePress[3];
-        LocalBrakePos = 0;
-        BrakeCtrlPos = Trunc(Handle->GetPos(bh_NP)); // Q: TODO: Trunc na floor
-        LimPipePress = LowPipePress;
-    }
-
-    if (LoadFlag > 0)
-    {
-        if (Load < MaxLoad * 0.45)
-        {
-            IncBrakeMult();
-            IncBrakeMult();
-            DecBrakeMult(); // TODO: przeinesiono do mover.cpp
-            if (Load < MaxLoad * 0.35)
-                DecBrakeMult();
-        }
-        if (Load >= MaxLoad * 0.45)
-        {
-            IncBrakeMult(); // TODO: przeinesiono do mover.cpp
-            if (Load >= MaxLoad * 0.55)
-                IncBrakeMult();
-        }
-    }
-
-    if (BrakeOpModes & bom_PS)
-        BrakeOpModeFlag = bom_PS;
-    else
-        BrakeOpModeFlag = bom_PN;
-
-    // yB: jesli pojazdy nie maja zadeklarowanych czasow, to wsadz z przepisow +-16,(6)%
-    for (b = 1; b < 4; b++)
-    {
-        if (BrakeDelay[b] == 0)
-            BrakeDelay[b] = DefBrakeTable[b];
-        BrakeDelay[b] = BrakeDelay[b] * (2.5 + Random(0.0, 0.2)) / 3.0;
-    }
-
-    // WriteLog("SPG = " + FloatToStr(Spg));
-
-    switch (BrakeValve)
-    {
-    case W:
-    case K:
-    {
-        WriteLog("XBT W, K");
-        Hamulec = new TWest(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                            BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-                            HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-        if (MBPM < 2) // jesli przystawka wazaca
-            Hamulec->SetLP(0, MaxBrakePress[3], 0);
-        else
-            Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
-        break;
-    }
-    case KE:
-    {
-        WriteLog("XBT WKE");
-        Hamulec = new TKE(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-                          BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress, HighPipePress,
-                          LowPipePress, BrakePress, BrakeDelayFlag);
-        Hamulec->SetRM(RapidMult);
-        if (MBPM < 2) // jesli przystawka wazaca
-            Hamulec->SetLP(0, MaxBrakePress[3], 0);
-        else
-            Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
-        break;
-    }
-    case NESt3:
-    case ESt3:
-    case ESt3AL2:
-    case ESt4:
-    {
-        WriteLog("XBT NESt3, ESt3, ESt3AL2, ESt4");
-        Hamulec = new TNESt3(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-                             HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-        (static_cast<TNESt3 *>(Hamulec))->SetSize(BrakeValveSize, BrakeValveParams);
-        if (MBPM < 2) // jesli przystawka wazaca
-            Hamulec->SetLP(0, MaxBrakePress[3], 0);
-        else
-            Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
-        break;
-    }
-
-    case LSt:
-    {
-        WriteLog("XBT LSt");
-        Hamulec = new TLSt(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-                           BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress, HighPipePress,
-                           LowPipePress, BrakePress, BrakeDelayFlag);
-        Hamulec->SetRM(RapidMult);
-        break;
-    }
-    case EStED:
-    {
-        WriteLog("XBT EStED");
-        Hamulec = new TEStED(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-                             HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-        Hamulec->SetRM(RapidMult);
-        break;
-    }
-    case EP2:
-    {
-        WriteLog("XBT EP2");
-        Hamulec = new TEStEP2(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                              BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-                              HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-        Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
-        break;
-    }
-
-    case CV1:
-    {
-        WriteLog("XBT CV1");
-        Hamulec = new TCV1(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-                           BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress, HighPipePress,
-                           LowPipePress, BrakePress, BrakeDelayFlag);
-        break;
-    }
-    case CV1_L_TR:
-    {
-        WriteLog("XBT CV1_L_T");
-        Hamulec = new TCV1L_TR(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                               BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-                               HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-        break;
-    }
-
-    default:
-        Hamulec = new TBrake(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-                             BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA, PipePress,
-                             HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-    }
-
-    Hamulec->SetASBP(MaxBrakePress[4]);
-
-    switch (BrakeHandle)
-    {
-    case FV4a:
-        Handle = new TFV4aM();
-        break;
-    case FVel6:
-        Handle = new TFVel6();
-        break;
-    case testH:
-        Handle = new Ttest();
-        break;
-    case M394:
-        Handle = new TM394();
-        break;
-    case Knorr:
-        Handle = new TH14K1();
-        break;
-    case St113:
-        Handle = new TSt113();
-        break;
-    default:
-        Handle = new TDriverHandle();
-    }
-
-    switch (BrakeLocHandle)
-    {
-    case FD1:
-    {
-        LocHandle = new TFD1();
-        LocHandle->Init(MaxBrakePress[0]);
-        break;
-    }
-    case Knorr:
-    {
-        LocHandle = new TH1405();
-        LocHandle->Init(MaxBrakePress[0]);
-        break;
-    }
-    default:
-        LocHandle = new TDriverHandle();
-    }
-
-    Pipe = new TReservoir();
-    Pipe2 = new TReservoir(); // zabezpieczenie, bo sie PG wywala... :(
-    Pipe->CreateCap((Max0R(Dim.L, 14) + 0.5) * Spg * 1); // dlugosc x przekroj x odejscia i takie
-    // tam
-    Pipe2->CreateCap((Max0R(Dim.L, 14) + 0.5) * Spg * 1);
-
-    if (LightsPosNo > 0)
-        LightsPos = LightsDefPos;
-
-    ActFlowSpeed = 0;
-    BrakeCtrlPosR = BrakeCtrlPos;
-
-    if (BrakeLocHandle == Knorr)
-        LocalBrakePos = 5;
-
-    Pipe->CreatePress(PipePress);
-    Pipe2->CreatePress(ScndPipePress);
-    Pipe->Act();
-    Pipe2->Act();
-
-    EqvtPipePress = PipePress;
-
-    Handle->Init(PipePress);
-
-    ComputeConstans();
-
-    if (TrainType == dt_ET22)
-        CompressorPower = 0;
-
-    // Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
-
-    ScndPipePress = Compressor;
-
-    // WriteLogSS("OK=", BoolTo10(OK));
-    // WriteLog("");
-
-    return OK;
 }
 
 // *************************************************************************************************

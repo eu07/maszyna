@@ -324,7 +324,8 @@ void TNESt3::EStParams(double i_crc) // parametry charakterystyczne dla ESt
 
 void TNESt3::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-    ValveRes->CreatePress(PP);
+	TBrake::Init(PP, HPP, LPP, BP, BDF);
+	ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP);
     CntrlRes = new TReservoir();

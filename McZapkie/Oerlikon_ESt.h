@@ -74,6 +74,8 @@ class TPrzekladnik : public TReservoir // przekladnik (powtarzacz)
   public:
     TReservoir *BrakeRes;
     TReservoir *Next;
+
+	TPrzekladnik() : TReservoir() {};
     virtual void Update(double dt);
 	void SetPoslizg(bool flag) {};
 	void SetP(double P) {};
@@ -88,6 +90,7 @@ class TRura : public TPrzekladnik // nieprzekladnik, rura laczaca
 {
   private:
   public:
+	  TRura() : TPrzekladnik() {};
     virtual double P(void) /*override*/;
     virtual void Update(double dt) /*override*/;
 };
@@ -101,7 +104,7 @@ class TPrzeciwposlizg : public TRura // przy napelnianiu - rura, przy poslizgu -
   public:
     void SetPoslizg(bool flag);
     void Update(double dt) /*override*/;
-	inline TPrzeciwposlizg()
+	inline TPrzeciwposlizg() : TRura()
 	{
 		Poslizg = false;
 	}
@@ -121,7 +124,7 @@ class TRapid : public TPrzekladnik // przekladnik dwustopniowy
     void SetRapidParams(double mult, double size);
     void SetRapidStatus(bool rs);
     void Update(double dt) /*override*/;
-	inline TRapid()
+	inline TRapid() : TPrzekladnik()
 	{
 		RapidStatus = false;
 		RapidMult, DN, DL = 0.0;
@@ -137,7 +140,7 @@ class TPrzekCiagly : public TPrzekladnik // AL2
   public:
     void SetMult(double m);
     void Update(double dt) /*override*/;
-	inline TPrzekCiagly()
+	inline TPrzekCiagly() : TPrzekladnik()
 	{
 		mult = 0.0;
 	}
@@ -152,7 +155,7 @@ class TPrzek_PZZ : public TPrzekladnik // podwojny zawor zwrotny
   public:
     void SetLBP(double P);
     void Update(double dt) /*override*/;
-	inline TPrzek_PZZ()
+	inline TPrzek_PZZ() : TPrzekladnik()
 	{
 		LBP = 0.0;
 	}
@@ -163,6 +166,7 @@ class TPrzekZalamany : public TPrzekladnik // Knicksventil
 {
   private:
   public:
+	  TPrzekZalamany() : TPrzekladnik() {};
 };
 
 class TPrzekED : public TRura // przy napelnianiu - rura, przy hamowaniu - upust
@@ -174,7 +178,7 @@ class TPrzekED : public TRura // przy napelnianiu - rura, przy hamowaniu - upust
   public:
     void SetP(double P);
     void Update(double dt) /*override*/;
-	inline TPrzekED()
+	inline TPrzekED() : TRura()
 	{
 		MaxP = 0.0;
 	}
@@ -205,16 +209,14 @@ class TNESt3 : public TBrake
     bool autom; // odluzniacz samoczynny
     double LBP; // cisnienie hamulca pomocniczego
 
-    void Init(double PP, double HPP, double LPP, double BP, int BDF) /*override*/;
 
   public:
 	inline TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
-		double PP, double HPP, double LPP, double BP, int BDF) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-			, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF)
+		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
+			, i_BD, i_mat, i_ba, i_nbpa)
 	{
-		Init(PP, HPP, LPP, BP, BDF);
 	}
+    void Init(double PP, double HPP, double LPP, double BP, int BDF) /*override*/;
     virtual double GetPF(double PP, double dt,
                  double Vel) /*override*/; // przeplyw miedzy komora wstepna i PG
     void EStParams(double i_crc); // parametry charakterystyczne dla ESt
