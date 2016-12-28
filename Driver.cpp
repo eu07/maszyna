@@ -986,8 +986,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 							
                                 if (TrainParams->IsTimeToGo(GlobalTime->hh, GlobalTime->mm))
                                 { // z dalsz¹ akcj¹ czekamy do godziny odjazdu
+									/* potencjalny problem z ruszaniem z w4
 									if (TrainParams->CheckTrainLatency() < 0)
 										WaitingSet(20); //Jak spóŸniony to czeka 20s
+									*/
                                     // iDrivigFlags|=moveLate1; //oflagowaæ, gdy odjazd ze
                                     // spóŸnieniem, bêdzie jecha³ forsowniej
                                     fLastStopExpDist =
