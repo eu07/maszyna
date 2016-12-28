@@ -189,6 +189,7 @@ class TTrain
 
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
+	TGauge ggBatteryButton; // Stele 161228 hebelek baterii
     // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
@@ -255,6 +256,7 @@ class TTrain
     TButton btLampkaBocznik4;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
+	TButton btLampkaED; //Stele 161228 hamowanie elektrodynamiczne
     TButton btLampkaJazda; // Ra: nie u¿ywane
     // KURS90
     TButton btLampkaBoczniki;
