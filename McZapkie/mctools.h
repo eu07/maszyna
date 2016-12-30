@@ -83,6 +83,16 @@ inline double Random(double b)
 	return Random(0.0, b);
 }
 
+inline double abs(double _val)
+{
+    return _val < 0 ? -_val : _val;
+}
+
+inline long abs(long _val)
+{
+    return _val < 0 ? -_val : _val;
+}
+
 inline double BorlandTime()
 {
 	std::tm epoch;
