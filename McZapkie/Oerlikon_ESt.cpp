@@ -259,23 +259,23 @@ double TNESt3::GetPF(double PP, double dt, double Vel) // przeplyw miedzy komora
         for (i = 1; i < i_end; ++i)
         {
             Przekladniki[i]->Update(dt);
-            if (typeid(Przekladniki[i]) == typeid(TRapid))
+            if (typeid(*Przekladniki[i]) == typeid(TRapid))
             {
                 RapidStatus =
                     (((BrakeDelayFlag & bdelay_R) == bdelay_R) &&
                      ((abs(Vel) > 70) || ((RapidStatus) && (abs(Vel) > 50)) || (RapidStaly)));
                 Przekladniki[i]->SetRapidStatus(RapidStatus);
             }
-            else if (typeid(Przekladniki[i]) == typeid(TPrzeciwposlizg))
+            else if (typeid(*Przekladniki[i]) == typeid(TPrzeciwposlizg))
                 Przekladniki[i]->SetPoslizg((BrakeStatus & b_asb) == b_asb);
-            else if (typeid(Przekladniki[i]) == typeid(TPrzekED))
+            else if (typeid(*Przekladniki[i]) == typeid(TPrzekED))
                 if ((Vel < -15))
                     Przekladniki[i]->SetP(0);
                 else
 					Przekladniki[i]->SetP(MaxBP * 3);
-            else if (typeid(Przekladniki[i]) == typeid(TPrzekCiagly))
+            else if (typeid(*Przekladniki[i]) == typeid(TPrzekCiagly))
                 Przekladniki[i]->SetMult(LoadC);
-            else if (typeid(Przekladniki[i]) == typeid(TPrzek_PZZ))
+            else if (typeid(*Przekladniki[i]) == typeid(TPrzek_PZZ))
                 Przekladniki[i]->SetLBP(LBP);
         }
     }
@@ -344,7 +344,7 @@ void TNESt3::Init(double PP, double HPP, double LPP, double BP, int BDF)
 
     Zamykajacy, Przys_blok = false;
 
-    if (!(typeid(FM) == typeid(TDisk1) || typeid(FM) == typeid(TDisk2))) // jesli zeliwo to schodz
+    if (!(typeid(*FM) == typeid(TDisk1) || typeid(*FM) == typeid(TDisk2))) // jesli zeliwo to schodz
         RapidStaly = false;
     else
         RapidStaly = true;
