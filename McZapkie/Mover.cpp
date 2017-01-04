@@ -289,10 +289,13 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
         "----------------------------------------------------------------------------------------");
     WriteLog("init default physic values for " + NameInit + ", [" + TypeNameInit + "], [" +
              LoadTypeInitial + "]");
-
+    Dim = TDimension();
     DimHalf.x = 0.5 * Dim.W; // po³owa szerokoœci, OX jest w bok?
     DimHalf.y = 0.5 * Dim.L; // po³owa d³ugoœci, OY jest do przodu?
     DimHalf.z = 0.5 * Dim.H; // po³owa wysokoœci, OZ jest w górê?
+    Cx = 0.0;
+    Floor = 0.960; // standardowa wysokoœæ pod³ogi
+
     // BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odciêcie (CHK jest jeszcze nie
     // wczytane!)
     bPantKurek3 = true; // domyœlnie zbiornik pantografu po³¹czony jest ze zbiornikiem g³ównym
@@ -302,19 +305,39 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     // inicjalizacja stalych
     dMoveLen = 0.0;
     CategoryFlag = 1;
+    TrainType = 0;
     EngineType = None;
-    for (b = 0; b < ResArraySize; b++)
+    EnginePowerSource = TPowerParameters();
+    SystemPowerSource = TPowerParameters();
+    for (b = 0; b <= ResArraySize + 1; b++)
     {
-        RList[b].Relay = 0;
-        RList[b].R = 0.0;
-        RList[b].Bn = 0;
-        RList[b].Mn = 0;
-        RList[b].AutoSwitch = false;
+        RList[b] = TScheme();
     }
+    RlistSize = 0;
+    for (b = 0; b <= MotorParametersArraySize + 1; b++)
+        MotorParam[b] = TMotorParameters();
+
     WheelDiameter = 1.0;
+    WheelDiameterL = 0.9;
+    WheelDiameterT = 0.9;
+    TrackW = 1.435;
+    AxleInertialMoment = 0.0;
+    AxleArangement = "";
+    NPoweredAxles = 0;
+    NAxles = 0;
+    BearingType = 1;
+    ADist = 0.0;
+    BDist = 0.0;
+    SandCapacity = 0.0;
+
     BrakeCtrlPosNo = 0;
     LightsPosNo = 0;
     LightsDefPos = 1;
+    LightsWrap = false;
+    for (b = 0; b < 2; b++)
+        for (k = 1; k <= 17; k++)
+            Lights[b][k] = 0;
+
     for (k = -1; k <= MainBrakeMaxPos; k++)
     {
         BrakePressureTable[k].PipePressureVal = 0.0;
@@ -328,7 +351,8 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
         BrakePressureTable[-2].BrakePressureVal = -1.0;
         BrakePressureTable[-2].FlowSpeedVal = 0.0;
     }
-    Transmision.Ratio = 1.0;
+    Transmision = TTransmision();
+
     NBpA = 0;
     DynamicBrakeType = 0;
     ASBType = 0;
@@ -350,40 +374,55 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     UnLoadSpeed = 0.0;
     HeatingPower = 0.0;
     LightPower = 0.0;
+    BatteryVoltage = 0.0;
+    NominalBatteryVoltage = 0.0;
+    NominalVoltage = 0.0;
+    WindingRes = 0.0;
+    u = 0.0;
+    CircuitRes = 0.0;
+    IminLo, IminHi, ImaxLo, ImaxHi, Imin, Imax = 0.0;
+    nmax = 0.0;
+    Voltage = 0.0;
 
-    HeatingPowerSource.MaxVoltage = 0.0;
-    HeatingPowerSource.MaxCurrent = 0.0;
-    HeatingPowerSource.IntR = 0.001;
-    HeatingPowerSource.SourceType = NotDefined;
-    HeatingPowerSource.PowerType = NoPower;
-    HeatingPowerSource.RPowerCable.PowerTrans = NoPower;
 
-    AlterHeatPowerSource.MaxVoltage = 0.0;
-    AlterHeatPowerSource.MaxCurrent = 0.0;
-    AlterHeatPowerSource.IntR = 0.001;
-    AlterHeatPowerSource.SourceType = NotDefined;
-    AlterHeatPowerSource.PowerType = NoPower;
-    AlterHeatPowerSource.RPowerCable.PowerTrans = NoPower;
+    HeatingPowerSource = TPowerParameters();
+    //HeatingPowerSource.MaxVoltage = 0.0;
+    //HeatingPowerSource.MaxCurrent = 0.0;
+    //HeatingPowerSource.IntR = 0.001;
+    //HeatingPowerSource.SourceType = NotDefined;
+    //HeatingPowerSource.PowerType = NoPower;
+    //HeatingPowerSource.RPowerCable.PowerTrans = NoPower;
 
-    LightPowerSource.MaxVoltage = 0.0;
-    LightPowerSource.MaxCurrent = 0.0;
-    LightPowerSource.IntR = 0.001;
-    LightPowerSource.SourceType = NotDefined;
-    LightPowerSource.PowerType = NoPower;
-    LightPowerSource.RPowerCable.PowerTrans = NoPower;
+    AlterHeatPowerSource = TPowerParameters();
+    //AlterHeatPowerSource.MaxVoltage = 0.0;
+    //AlterHeatPowerSource.MaxCurrent = 0.0;
+    //AlterHeatPowerSource.IntR = 0.001;
+    //AlterHeatPowerSource.SourceType = NotDefined;
+    //AlterHeatPowerSource.PowerType = NoPower;
+    //AlterHeatPowerSource.RPowerCable.PowerTrans = NoPower;
 
-    AlterLightPowerSource.MaxVoltage = 0.0;
-    AlterLightPowerSource.MaxCurrent = 0.0;
-    AlterLightPowerSource.IntR = 0.001;
-    AlterLightPowerSource.SourceType = NotDefined;
-    AlterLightPowerSource.PowerType = NoPower;
-    AlterLightPowerSource.RPowerCable.PowerTrans = NoPower;
+    LightPowerSource = TPowerParameters();
+    //LightPowerSource.MaxVoltage = 0.0;
+    //LightPowerSource.MaxCurrent = 0.0;
+    //LightPowerSource.IntR = 0.001;
+    //LightPowerSource.SourceType = NotDefined;
+    //LightPowerSource.PowerType = NoPower;
+    //LightPowerSource.RPowerCable.PowerTrans = NoPower;
+
+    AlterLightPowerSource = TPowerParameters();
+    //AlterLightPowerSource.MaxVoltage = 0.0;
+    //AlterLightPowerSource.MaxCurrent = 0.0;
+    //AlterLightPowerSource.IntR = 0.001;
+    //AlterLightPowerSource.SourceType = NotDefined;
+    //AlterLightPowerSource.PowerType = NoPower;
+    //AlterLightPowerSource.RPowerCable.PowerTrans = NoPower;
 
     TypeName = TypeNameInit;
     HighPipePress = 0.0;
     LowPipePress = 0.0;
     DeltaPipePress = 0.0;
 	EqvtPipePress = 0.0;
+    CntrlPipePress = 0.0;
     BrakeCylNo = 0;
     BrakeCylRadius = 0.0;
     BrakeCylDist = 0.0;
@@ -391,7 +430,33 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
         BrakeCylMult[b] = 0.0;
     VeselVolume = 0.0;
     BrakeVolume = 0.0;
+    BrakeVVolume = 0.0;
     RapidMult = 1.0;
+    BrakeCylSpring = 0.0;
+    BrakeSlckAdj = 0.0;
+    BrakeRigEff = 0.0;
+    BrakeValveSize = 0.0;
+    BrakeValveParams = "";
+    AnPos = 0.0;
+    AnalogCtrl, AnMainCtrl = false;
+    Spg = 0.0;
+    MinCompressor = 0.0;
+    MaxCompressor = 0.0;
+    CompressorSpeed = 0.0;
+    ScndPipePress = 0.0;
+    BrakePress = 0.0;
+    LocBrakePress = 0.0;
+    PipeBrakePress = 0.0;
+    EqvtPipePress = 0.0;
+    Volume = 0.0;
+    CompressedVolume = 0.0;
+    Compressor = 0.0;
+    CompressorFlag = false;
+    PantCompFlag = false;
+    ConverterAllow = false;
+    LimPipePress = 0.0;
+    ActFlowSpeed = 0.0;
+
     dizel_Mmax = 1.0;
     dizel_nMmax = 1.0;
     dizel_Mnmax = 2.0;
@@ -405,6 +470,8 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     dizel_engageDia = 0.5;
     dizel_engageMaxForce = 6000.0;
     dizel_engagefriction = 0.5;
+    TurboTest = 0;
+    
     DoorOpenCtrl = 0;
     DoorCloseCtrl = 0;
     DoorStayOpen = 0.0;
@@ -413,7 +480,14 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     DoorCloseSpeed = 1.0;
     DoorMaxShiftL = 0.5;
     DoorMaxShiftR = 0.5;
+    DoorMaxPlugShift = 0.5;
     DoorOpenMethod = 2;
+    DoorBlocked = false;
+
+    PlatformSpeed = 0.25;
+    PlatformMaxShift = 0.5;
+    PlatformOpenMethod = 1;
+
     DepartureSignal = false;
     InsideConsist = false;
     CompressorPower = 1.0;
@@ -428,8 +502,14 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
 
     Vhyp = 1.0;
     Vadd = 1.0;
+    Vmax = -1.0;
+    Mass = 0.0;
+    Power = 0.0;
+    Mred = 0.0;
+    TotalMass = 0.0;
     PowerCorRatio = 1.0;
-
+    Ftmax = 0.0;
+    ScndS = false;
     // inicjalizacja zmiennych}
     // Loc:=LocInitial; //Ra: to i tak trzeba potem przesun¹æ, po ustaleniu pozycji na torze
     // (potrzebna d³ugoœæ)
@@ -447,6 +527,15 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     }
     ScanCounter = 0;
     BrakeCtrlPos = -2; // to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
+    fBrakeCtrlPos = BrakeCtrlPos;
+    BrakeCtrlPosR = 0.0;
+    BrakeCtrlPos2 = 0.0;
+    LocalBrakePos = 0.0;
+    LocalBrakePosA = 0.0;
+    BrakeDelays = 0;
+    BrakeOpModeFlag = 0;
+    BrakeOpModes = 0;
+
     BrakeDelayFlag = 0;
     BrakeStatus = b_off;
     EmergencyBrakeFlag = false;
@@ -454,6 +543,11 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     ScndCtrlPos = 0;
     MainCtrlActualPos = 0;
     ScndCtrlActualPos = 0;
+    CoupledCtrl = false;
+    IsCoupled = false;
+    DelayCtrlFlag = false;
+    AutoRelayFlag = false;
+
 	LightsPos = 0;
     Heating = false;
     Mains = false;
@@ -468,13 +562,21 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     StLinFlag = false;
     ResistorsFlag = false;
     RventRot = 0.0;
+    RVentType = 0;
+    RVentnmax = 0.0;
+    RVentCutOff = 0.0;
+
     enrot = 0.0;
     nrot = 0.0;
+    Im = 0.0;
     Itot = 0.0;
+    IHeating = 0.0;
+    ITraction = 0.0;
     EnginePower = 0.0;
     BrakePress = 0.0;
     Compressor = 0.0;
     ConverterFlag = false;
+    Trafo = false;
     CompressorAllow = false;
     DoorLeftOpened = false;
     DoorRightOpened = false;
@@ -493,6 +595,11 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     PantRearStart = 0;
     PantFrontSP = true;
     PantRearSP = true;
+    PantPress = 0.0;
+    PantFrontVolt = 0.0;
+    PantRearVolt = 0.0;
+    PantSwitchType = "";
+    ConvSwitchType = "";
     DoubleTr = 1;
     BrakeSlippingTimer = 0.0;
     dpBrake = 0.0;
@@ -503,6 +610,26 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     DynamicBrakeFlag = false;
     BrakeSystem = Individual;
     BrakeSubsystem = ss_None;
+    BrakeValve = NoValve;
+    BrakeHandle = NoHandle;
+    BrakeLocHandle = NoHandle;
+    Hamulec = NULL;
+    Handle = NULL;
+    LocHandle = NULL;
+    Pipe = NULL;
+    Pipe2 = NULL;
+    LocalBrake = NoBrake;
+    MaxBrakeForce = 0.0;
+    MBrake = false;
+
+    for (b = 0; b < 5; b++)
+    {
+        MaxBrakePress[b] = 0.0;
+    }
+    P2FTrans = 0.0;
+    TrackBrakeForce = 0.0;
+    BrakeMethod = 0;
+
     Ft = 0.0;
     Ff = 0.0;
     Fb = 0.0;
@@ -525,6 +652,11 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     PulseForce = 0.0;
     PulseForceTimer = 0.0;
     PulseForceCount = 0.0;
+    MainCtrlPosNo = 0;
+    ScndCtrlPosNo = 0;
+    InitialCtrlDelay, CtrlDelay, CtrlDownDelay = 0.0;
+    FastSerialCircuit = 0;
+
     eAngle = 1.5;
     dizel_fill = 0.0;
     dizel_engagestate = 0.0;
@@ -557,13 +689,15 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     OffsetTrackH = 0.0;
     OffsetTrackV = 0.0;
 
-    CommandIn.Command = "";
-    CommandIn.Value1 = 0.0;
-    CommandIn.Value2 = 0.0;
-    CommandIn.Location.X = 0.0;
-    CommandIn.Location.Y = 0.0;
-    CommandIn.Location.Z = 0.0;
-
+    CommandIn = TCommand();
+    //CommandIn.Command = "";
+    //CommandIn.Value1 = 0.0;
+    //CommandIn.Value2 = 0.0;
+    //CommandIn.Location.X = 0.0;
+    //CommandIn.Location.Y = 0.0;
+    //CommandIn.Location.Z = 0.0;
+    CommandLast, CommandOut = "";
+    ValueOut = 0.0;
     // czesciowo stale, czesciowo zmienne}
 
     SecuritySystem.SystemType = 0;
@@ -578,7 +712,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     SecuritySystem.NextVelocityAllowed = -1.0;
     SecuritySystem.RadioStop = false; // domyœlnie nie ma
     SecuritySystem.AwareMinSpeed = 0.1 * Vmax;
-
+    s_CAtestebrake = false;
     // ABu 240105:
     // CouplerNr[0]:=1;
     // CouplerNr[1]:=0;
@@ -592,6 +726,10 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     Load = LoadInitial;
     LoadStatus = 0;
     LastLoadChangeTime = 0.0;
+    LoadFlag = 0;
+    LoadQuantity = "";
+    OverLoadFactor = 0.0;
+
     //{
     //   end
     //  else Load:=0;
@@ -602,6 +740,11 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     TotalCurrent = 0.0;
     ShuntModeAllow = false;
     ShuntMode = false;
+    Flat = false;
+    DamageFlag = 0;
+    EngDmgFlag = 0;
+    DerailReason = 0;
+    WarningSignal = 0;
 };
 
 double TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,

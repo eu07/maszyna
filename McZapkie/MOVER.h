@@ -252,18 +252,30 @@ struct TLocation
 	double X;
 	double Y;
 	double Z; /*lokacja*/
+    inline TLocation() {
+        X, Y, Z = 0.0;
+    }
 };
 struct TRotation
 {
 	double Rx;
 	double Ry;
 	double Rz; /*rotacja*/
+    inline TRotation() {
+        Rx, Ry, Rz = 0.0;
+    }
 };
 struct TDimension
 {
 	double W;
 	double L;
 	double H; /*wymiary*/
+    inline TDimension()
+    {
+        W = 0.0;
+        L = 0.0;
+        H = 0.0;
+    }
 };
 
 struct TCommand
@@ -272,6 +284,11 @@ struct TCommand
 	double Value1;
 	double Value2; /*argumenty komendy*/
 	TLocation Location;
+    inline TCommand() {
+        Command = "";
+        Value1, Value2 = 0.0;
+        Location = TLocation();
+    }
 };
 
 /*tory*/
@@ -281,6 +298,9 @@ struct TTrackShape
 	double Len;
 	double dHtrack;
 	double dHrail;
+    inline TTrackShape() {
+        R, Len, dHrail, dHtrack = 0.0;
+    }
 };
 
 struct TTrackParam
@@ -291,6 +311,10 @@ struct TTrackParam
 	int QualityFlag;
 	int DamageFlag;
 	double Velmax; /*dla uzytku maszynisty w ai_driver*/
+    inline TTrackParam() {
+        Width, friction, Velmax = 0.0;
+        CategoryFlag, QualityFlag, DamageFlag = 0;
+    }
 };
 
 struct TTractionParam
@@ -299,6 +323,10 @@ struct TTractionParam
 	double TractionFreq; /*czestotliwosc*/
 	double TractionMaxCurrent; /*obciazalnosc*/
 	double TractionResistivity; /*rezystancja styku*/
+    inline TTractionParam() {
+        TractionVoltage, TractionFreq = 0.0;
+        TractionMaxCurrent, TractionResistivity = 0.0;
+    }
 };
 /*powyzsze parametry zwiazane sa z torem po ktorym aktualnie pojazd jedzie*/
 
@@ -319,6 +347,10 @@ struct TBrakePressure
 	double BrakePressureVal;
 	double FlowSpeedVal;
 	TBrakeSystem BrakeType;
+    inline TBrakePressure() {
+        BrakeType = Pneumatic;
+        PipePressureVal, BrakePressureVal, FlowSpeedVal = 0.0;
+    }
 };
 
 typedef std::map<int,TBrakePressure> TBrakePressureTable;
@@ -337,6 +369,13 @@ struct TGrateType {
 	double FuelTransportSpeed;
 	double IgnitionTemperature;
 	double MaxTemperature;
+    //inline TGrateType() {
+    //    FuelType = Undefined;
+    //    GrateSurface = 0.0;
+    //    FuelTransportSpeed = 0.0;
+    //    IgnitionTemperature = 0.0;
+    //    MaxTemperature = 0.0;
+    //}
 };
 /*rodzaj kotla*/
 struct TBoilerType {
@@ -345,6 +384,14 @@ struct TBoilerType {
 	double SuperHeaterSurface;
 	double MaxWaterVolume; double MinWaterVolume;
 	double MaxPressure;
+    //inline TBoilerType() {
+    //    BoilerVolume = 0.0;
+    //    BoilerHeatSurface = 0.0;
+    //    SuperHeaterSurface = 0.0;
+    //    MaxWaterVolume = 0.0;
+    //    MinWaterVolume = 0.0;
+    //    MaxPressure = 0.0;
+    //}
 };
 /*rodzaj odbieraka pradu*/
 struct TCurrentCollector {
@@ -356,6 +403,11 @@ struct TCurrentCollector {
 	double InsetV;    //minimalne napiêcie wymagane do za³¹czenia
 	double MinPress;  //minimalne ciœnienie do za³¹czenia WS
 	double MaxPress;  //maksymalne ciœnienie za reduktorem
+    //inline TCurrentCollector() {
+    //    CollectorsNo = 0;
+    //    MinH, MaxH, CSW, MinV, MaxV = 0.0;
+    //    OVP, InsetV, MinPress, MaxPress = 0.0;
+    //}
 };
 /*typy Ÿróde³ mocy*/
 enum TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater };
@@ -365,12 +417,20 @@ struct _mover__1
 {
 	double MaxCapacity;
 	TPowerSource RechargeSource;
+    //inline _mover__1() {
+    //    MaxCapacity = 0.0;
+    //    RechargeSource = NotDefined;
+    //}
 };
 
 struct _mover__2
 {
 	TPowerType PowerTrans;
 	double SteamPressure;
+    //inline _mover__2() {
+    //    SteamPressure = 0.0;
+    //    PowerTrans = NoPower;
+    //}
 };
 
 struct _mover__3
@@ -425,6 +485,15 @@ struct TPowerParameters
 		};
 
 	};
+    inline TPowerParameters()
+    {
+        MaxVoltage = 0.0;
+        MaxCurrent = 0.0;
+        IntR = 0.001;
+        SourceType = NotDefined;
+        PowerType = NoPower;
+        RPowerCable.PowerTrans = NoPower;
+    }
 };
 
 /*dla lokomotyw elektrycznych:*/
@@ -436,6 +505,15 @@ struct TScheme
 	int Mn; /*ilosc galezi i silnikow w galezi*/ /*dla dizla Mn: czy luz czy nie*/
 	bool AutoSwitch; /*czy dana pozycja nastawniana jest recznie czy autom.*/
 	int ScndAct; /*jesli ma bocznik w nastawniku, to ktory bocznik na ktorej pozycji*/
+    inline TScheme()
+    {
+        Relay = 0;
+        R = 0.0;
+        Bn = 0.0;
+        Mn = 0.0;
+        AutoSwitch = false;
+        ScndAct = 0;
+    }
 };
 typedef TScheme TSchemeTable[ResArraySize + 1]; /*tablica rezystorow rozr.*/
 struct TDEScheme
@@ -470,6 +548,15 @@ struct TMotorParameters
 	double Isat;
 	double fi0; // aproksymacja E(n)=fi*n}    {dla dizla fi, mfi: predkosci przelozenia biegu <->
 	bool AutoSwitch;
+    TMotorParameters() {
+        mfi = 0.0;
+        mIsat = 0.0;
+        mfi0 = 0.0;
+        fi = 0.0;
+        Isat = 0.0;
+        fi0 = 0.0;
+        AutoSwitch = false;
+    }
 };
 
 struct TSecuritySystem
@@ -496,6 +583,10 @@ struct TTransmision
 	int NToothM;
 	int NToothW;
 	double Ratio;
+    TTransmision() {
+        NToothM, NToothW = 0;
+        Ratio = 1.0;
+    }
 };
 
 enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
@@ -615,7 +706,7 @@ public:
 	int ScndCtrlPosNo;
 	int LightsPosNo; int LightsDefPos;
 	bool LightsWrap;
-	int Lights[2][ /*?*//*1..16*/ (16) - (1) + 1];
+	int Lights[2][17]; // pozycje œwiate³, przód - ty³, 1 .. 16
 	bool ScndInMain;     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc;
