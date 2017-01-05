@@ -14,24 +14,21 @@ Copyright (C) 2007-2014 Maciej Cierniak
 
 #include "hamulce.h"
 #include "Mover.h"
-#include <typeinfo>
 #include <cmath>
+#include <typeinfo>
 
 //---FUNKCJE OGOLNE---
 
 static double const DPL = 0.25;
-double TFV4aM::pos_table[11] = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
-double TMHZ_EN57::pos_table[11] = { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
-double TM394::pos_table[11] = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
-double TH14K1::BPT_K[6][2] =
-{ {10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1} };
-double TH14K1::pos_table[11] = { -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 };
-double TSt113::BPT_K[6][2] =
-{ {10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1} };
-double TSt113::BEP_K[7] = { 0, -1, 1, 0, 0, 0, 0 };
-double TSt113::pos_table[11] = { -1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1 };
-double TFVel6::pos_table[11] = { -1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1 };
-
+double TFV4aM::pos_table[11] = {-2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0};
+double TMHZ_EN57::pos_table[11] = {-2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0};
+double TM394::pos_table[11] = {-1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0};
+double TH14K1::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1}};
+double TH14K1::pos_table[11] = {-1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0};
+double TSt113::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1}};
+double TSt113::BEP_K[7] = {0, -1, 1, 0, 0, 0, 0};
+double TSt113::pos_table[11] = {-1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1};
+double TFVel6::pos_table[11] = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
 
 double PR(double P1, double P2)
 {
@@ -87,7 +84,7 @@ double PF1(double P1, double P2, double S)
 
 long lround(double value)
 {
-	return floorl(value + 0.5);
+    return floorl(value + 0.5);
 }
 
 double PFVa(double PH, double PL, double S, double LIM,
@@ -101,8 +98,7 @@ double PFVa(double PH, double PL, double S, double LIM,
         double sg = PL / PH; // bezwymiarowy stosunek cisnien
         double FM = PH * 197 * S; // najwyzszy mozliwy przeplyw, wraz z kierunkiem
         if ((LIM - PL) < DP)
-            FM = FM * (LIM - PL) /
-                DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
+            FM = FM * (LIM - PL) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
         if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
             if ((PH - PL) < DPL) // niewielka roznica cisnien
                 return (PH - PL) / DPL * FM * 2 * sqrt((sg) * (1 - sg));
@@ -126,8 +122,7 @@ double PFVd(double PH, double PL, double S, double LIM,
         double sg = PL / PH; // bezwymiarowy stosunek cisnien
         double FM = PH * 197 * S; // najwyzszy mozliwy przeplyw, wraz z kierunkiem
         if ((PH - LIM) < 0.1)
-            FM = FM * (PH - LIM) /
-                DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
+            FM = FM * (PH - LIM) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
         if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
             if ((PH - PL) < DPL) // niewielka roznica cisnien
                 return (PH - PL) / DPL * FM * 2 * sqrt((sg) * (1 - sg));
@@ -162,7 +157,7 @@ TReservoir::TReservoir()
     // inherited:: Create;
     Cap = 1;
     Vol = 0;
-	dVol = 0;
+    dVol = 0;
 }
 
 void TReservoir::Act()
@@ -214,7 +209,7 @@ double TBrakeCyl::P()
     double VtoC = Vol / Cap; // stosunek cisnienia do objetosci
     //  P:=VtoC;
     if (VtoC < VS)
-        return VtoC *pS / VS; // objetosc szkodliwa
+        return VtoC * pS / VS; // objetosc szkodliwa
     else if (VtoC > VD)
         return VtoC - cD; // caly silownik;
     else
@@ -256,16 +251,16 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
     // inherited:: Create;
     MaxBP = i_mbp;
     BCN = i_bcn;
-	BCM = 1;
+    BCM = 1;
     BCA = i_bcn * i_bcr * i_bcr * pi;
     BA = i_ba;
     NBpA = i_nbpa;
     BrakeDelays = i_BD;
-	BrakeDelayFlag = bdelay_P;
-	DCV = false;
-	ASBP = 0.0;
-	BrakeStatus = b_hld;
-	SoundFlag = 0;
+    BrakeDelayFlag = bdelay_P;
+    DCV = false;
+    ASBP = 0.0;
+    BrakeStatus = b_hld;
+    SoundFlag = 0;
     // 210.88
     //  SizeBR:=i_bcn*i_bcr*i_bcr*i_bcd*40.17*MaxBP/(5-MaxBP);  //objetosc ZP w stosunku do cylindra
     //  14" i cisnienia 4.2 atm
@@ -285,27 +280,36 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
 
     //  FM.Free;
     // materialy cierne
-    i_mat = i_mat && (255 - bp_MHS);
+    i_mat = i_mat & (255 - bp_MHS);
     switch (i_mat)
     {
     case bp_P10Bg:
         FM = new TP10Bg();
+        break;
     case bp_P10Bgu:
         FM = new TP10Bgu();
+        break;
     case bp_FR513:
         FM = new TFR513();
+        break;
     case bp_FR510:
         FM = new TFR510();
+        break;
     case bp_Cosid:
         FM = new TCosid();
+        break;
     case bp_P10yBg:
         FM = new TP10yBg();
+        break;
     case bp_P10yBgu:
         FM = new TP10yBgu();
+        break;
     case bp_D1:
         FM = new TDisk1();
+        break;
     case bp_D2:
         FM = new TDisk2();
+        break;
     default: // domyslnie
         FM = new TP10();
     }
@@ -314,7 +318,7 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
 // inicjalizacja hamulca (stan poczatkowy)
 void TBrake::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	BrakeDelayFlag = BDF;
+    BrakeDelayFlag = BDF;
 }
 
 // pobranie wspolczynnika tarcia materialu
@@ -333,7 +337,7 @@ double TBrake::GetBCP()
 // ciœnienie steruj¹ce hamowaniem elektro-dynamicznym
 double TBrake::GetEDBCP()
 {
-	return 0;
+    return 0;
 }
 
 // cisnienie zbiornika pomocniczego
@@ -429,8 +433,8 @@ void TBrake::ForceEmptiness()
 
 void TWest::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TBrake::Init(PP, HPP, LPP, BP, BDF);
-	ValveRes->CreatePress(PP);
+    TBrake::Init(PP, HPP, LPP, BP, BDF);
+    ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP / 2 + HPP / 2);
     // BrakeStatus:=3*int(BP>0.1);
@@ -557,11 +561,9 @@ void TWest::SetEPS(double nEPS)
 
 void TWest::PLC(double mass)
 {
-    LoadC =
-        1 +
-        int(mass < LoadM) *
-            ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP -
-             1);
+    LoadC = 1 +
+            int(mass < LoadM) *
+                ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP - 1);
 }
 
 void TWest::SetLP(double TM, double LM, double TBP)
@@ -749,15 +751,15 @@ double TESt::GetPF(double PP, double dt, double Vel)
 
 void TESt::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TBrake::Init(PP, HPP, LPP, BP, BDF);
-	ValveRes->CreatePress(PP);
+    TBrake::Init(PP, HPP, LPP, BP, BDF);
+    ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP);
     CntrlRes->CreateCap(15);
     CntrlRes->CreatePress(HPP);
     BrakeStatus = 0;
 
-    BVM = 1 / (HPP - LPP) * MaxBP;
+    BVM = 1.0 / (HPP - LPP) * MaxBP;
 
     BrakeDelayFlag = BDF;
 }
@@ -775,8 +777,8 @@ double TESt::GetCRP()
 
 void TEStEP2::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TLSt::Init(PP, HPP, LPP, BP, BDF);
-	ImplsRes->CreateCap(1);
+    TLSt::Init(PP, HPP, LPP, BP, BDF);
+    ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 
     BrakeRes->CreatePress(PP);
@@ -898,11 +900,9 @@ double TEStEP2::GetPF(double PP, double dt, double Vel)
 
 void TEStEP2::PLC(double mass)
 {
-    LoadC =
-        1 +
-        int(mass < LoadM) *
-            ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP -
-             1);
+    LoadC = 1 +
+            int(mass < LoadM) *
+                ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP - 1);
 }
 
 void TEStEP2::SetEPS(double nEPS)
@@ -960,8 +960,9 @@ double TESt3::GetPF(double PP, double dt, double Vel)
     BrakeCyl->Flow(-dv);
     // przeplyw ZP <-> silowniki
     if ((BrakeStatus & b_on) == b_on)
-        dv = PF(BVP, BCP, 0.017 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
-             (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G))) * SizeBC) *
+        dv = PF(BVP, BCP,
+                0.017 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
+                    (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G))) * SizeBC) *
              dt;
     else
         dv = 0;
@@ -1085,7 +1086,7 @@ double TESt4R::GetPF(double PP, double dt, double Vel)
 
 void TESt4R::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TESt::Init(PP, HPP, LPP, BP, BDF);
+    TESt::Init(PP, HPP, LPP, BP, BDF);
     ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 
@@ -1133,8 +1134,9 @@ double TESt3AL2::GetPF(double PP, double dt, double Vel)
     ImplsRes->Flow(-dv);
     // przeplyw ZP <-> KI
     if (((BrakeStatus & b_on) == b_on) && (BCP < MaxBP))
-        dv = PF(BVP, BCP, 0.0008 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
-                              (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G)))) *
+        dv = PF(BVP, BCP,
+                0.0008 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
+                    (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G)))) *
              dt;
     else
         dv = 0;
@@ -1179,11 +1181,9 @@ double TESt3AL2::GetPF(double PP, double dt, double Vel)
 
 void TESt3AL2::PLC(double mass)
 {
-    LoadC =
-        1 +
-        int(mass < LoadM) *
-            ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP -
-             1);
+    LoadC = 1 +
+            int(mass < LoadM) *
+                ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP - 1);
 }
 
 void TESt3AL2::SetLP(double TM, double LM, double TBP)
@@ -1195,8 +1195,8 @@ void TESt3AL2::SetLP(double TM, double LM, double TBP)
 
 void TESt3AL2::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TESt::Init(PP, HPP, LPP, BP, BDF);
-	ImplsRes->CreateCap(1);
+    TESt::Init(PP, HPP, LPP, BP, BDF);
+    ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 }
 
@@ -1281,15 +1281,14 @@ double TLSt::GetPF(double PP, double dt, double Vel)
     //  if Vel>55 then temp:=0.72 else
     //    temp:=1;{R}
     // cisnienie PP
-    RapidTemp = RapidTemp +
-                (RM * int((Vel > 55) && (BrakeDelayFlag == bdelay_R)) - RapidTemp) * dt / 2;
+    RapidTemp =
+        RapidTemp + (RM * int((Vel > 55) && (BrakeDelayFlag == bdelay_R)) - RapidTemp) * dt / 2;
     temp = 1 - RapidTemp;
     if (EDFlag > 0.2)
         temp = 10000;
 
     // powtarzacz — podwojny zawor zwrotny
-    temp =
-        Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb) == b_asb)) / temp, LBP);
+    temp = Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb) == b_asb)) / temp, LBP);
     // luzowanie CH
     if ((BrakeCyl->P() > temp + 0.005) || (temp < 0.28))
         //   dV:=PF(0,BrakeCyl->P(),0.0015*3*sizeBC)*dt
@@ -1319,7 +1318,7 @@ double TLSt::GetPF(double PP, double dt, double Vel)
 
 void TLSt::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TESt4R::Init(PP, HPP, LPP, BP, BDF);
+    TESt4R::Init(PP, HPP, LPP, BP, BDF);
     ValveRes->CreateCap(1);
     ImplsRes->CreateCap(8);
     ImplsRes->CreatePress(PP);
@@ -1430,8 +1429,8 @@ double TEStED::GetPF(double PP, double dt, double Vel)
         dv = 0;
     ImplsRes->Flow(-dv);
     if (((BrakeStatus & b_on) == b_on) && (BCP < MaxBP))
-        dv = PF(BVP, BCP, Nozzles[2] * (nastG + 2 * int(BCP < 0.8)) + Nozzles[0] * (1 - nastG)) *
-             dt;
+        dv =
+            PF(BVP, BCP, Nozzles[2] * (nastG + 2 * int(BCP < 0.8)) + Nozzles[0] * (1 - nastG)) * dt;
     else
         dv = 0;
     ImplsRes->Flow(-dv);
@@ -1463,8 +1462,8 @@ double TEStED::GetPF(double PP, double dt, double Vel)
         dv = dv + PF(MPP, VVP, 0.02);
     Miedzypoj->Flow(dv * dt * 0.15);
 
-    RapidTemp = RapidTemp +
-                (RM * int((Vel > 55) && (BrakeDelayFlag == bdelay_R)) - RapidTemp) * dt / 2;
+    RapidTemp =
+        RapidTemp + (RM * int((Vel > 55) && (BrakeDelayFlag == bdelay_R)) - RapidTemp) * dt / 2;
     temp = Max0R(1 - RapidTemp, 0.001);
     //  if EDFlag then temp:=1000;
     //  temp:=temp/(1-);
@@ -1518,8 +1517,8 @@ double TEStED::GetPF(double PP, double dt, double Vel)
 
 void TEStED::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TLSt::Init(PP, HPP, LPP, BP, BDF);
-	int i;
+    TLSt::Init(PP, HPP, LPP, BP, BDF);
+    int i;
 
     ValveRes->CreatePress(1 * PP);
     BrakeCyl->CreatePress(1 * BP);
@@ -1569,11 +1568,9 @@ double TEStED::GetEDBCP()
 
 void TEStED::PLC(double mass)
 {
-    LoadC =
-        1 +
-        int(mass < LoadM) *
-            ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP -
-             1);
+    LoadC = 1 +
+            int(mass < LoadM) *
+                ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP - 1);
 }
 
 void TEStED::SetLP(double TM, double LM, double TBP)
@@ -1600,23 +1597,22 @@ void TCV1::CheckState(double BCP, double &dV1)
         BrakeStatus = BrakeStatus & 247;
 
     // sprawdzanie stanu
-	if ((BrakeStatus & b_hld) == b_hld)
-		if ((VVP + 0.003 + BCP / BVM < CVP))
-			BrakeStatus =
-			(BrakeStatus | 2); // hamowanie stopniowe;
-		else if ((VVP - 0.003 + BCP*1.0 / BVM>CVP))
-			BrakeStatus = (BrakeStatus & 252); // luzowanie;
-		else if ((VVP + BCP*1.0 / BVM > CVP))
-			BrakeStatus = (BrakeStatus & 253); // zatrzymanie napelaniania;
-		else
-                ;
-        else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
-        {
-            BrakeStatus = (BrakeStatus | 3);
-            dV1 = 1.25;
-        }
-        else if ((VVP + BCP / BVM < CVP) && (BCP > 0.25)) // zatrzymanie luzowanie
-            BrakeStatus = (BrakeStatus | 1);
+    if ((BrakeStatus & b_hld) == b_hld)
+        if ((VVP + 0.003 + BCP / BVM < CVP))
+            BrakeStatus = (BrakeStatus | 2); // hamowanie stopniowe;
+        else if ((VVP - 0.003 + BCP * 1.0 / BVM > CVP))
+            BrakeStatus = (BrakeStatus & 252); // luzowanie;
+        else if ((VVP + BCP * 1.0 / BVM > CVP))
+            BrakeStatus = (BrakeStatus & 253); // zatrzymanie napelaniania;
+        else
+            ;
+    else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
+    {
+        BrakeStatus = (BrakeStatus | 3);
+        dV1 = 1.25;
+    }
+    else if ((VVP + BCP / BVM < CVP) && (BCP > 0.25)) // zatrzymanie luzowanie
+        BrakeStatus = (BrakeStatus | 1);
 }
 
 double TCV1::CVs(double BP)
@@ -1685,8 +1681,9 @@ double TCV1::GetPF(double PP, double dt, double Vel)
 
     // przeplyw ZP <-> silowniki
     if ((BrakeStatus & b_on) == b_on)
-        dv = PF(BVP, BCP, 0.017 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
-                              (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G))) * SizeBC) *
+        dv = PF(BVP, BCP,
+                0.017 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
+                    (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G))) * SizeBC) *
              dt;
     else
         dv = 0;
@@ -1715,8 +1712,8 @@ double TCV1::GetPF(double PP, double dt, double Vel)
 
 void TCV1::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TBrake::Init(PP, HPP, LPP, BP, BDF);
-	ValveRes->CreatePress(PP);
+    TBrake::Init(PP, HPP, LPP, BP, BDF);
+    ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP);
     CntrlRes->CreateCap(15);
@@ -1752,8 +1749,8 @@ double TCV1L_TR::GetHPFlow(double HP, double dt)
 
 void TCV1L_TR::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TCV1::Init(PP, HPP, LPP, BP, BDF);
-	ImplsRes->CreateCap(2.5);
+    TCV1::Init(PP, HPP, LPP, BP, BDF);
+    ImplsRes->CreateCap(2.5);
     ImplsRes->CreatePress(BP);
 }
 
@@ -1795,8 +1792,9 @@ double TCV1L_TR::GetPF(double PP, double dt, double Vel)
     ImplsRes->Flow(-dv);
     // przeplyw ZP <-> KI
     if (((BrakeStatus & b_on) == b_on) && (BCP < MaxBP))
-        dv = PF(BVP, BCP, 0.002 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
-                              (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G)))) *
+        dv = PF(BVP, BCP,
+                0.002 * (1 + int((BCP < 0.58) && (BrakeDelayFlag == bdelay_G))) *
+                    (1.13 - int((BCP > 0.6) && (BrakeDelayFlag == bdelay_G)))) *
              dt;
     else
         dv = 0;
@@ -1988,7 +1986,8 @@ double TKE::GetPF(double PP, double dt, double Vel)
     ImplsRes->Flow(-dv);
 
     // rapid
-    if (!((typeid(FM) == typeid(TDisk1)) || (typeid(FM) == typeid(TDisk2)))) // jesli zeliwo to schodz
+    if (!((typeid(FM) == typeid(TDisk1)) ||
+          (typeid(FM) == typeid(TDisk2)))) // jesli zeliwo to schodz
         RapidStatus = ((BrakeDelayFlag & bdelay_R) == bdelay_R) &&
                       (((Vel > 50) && (RapidStatus)) || (Vel > 70));
     else // jesli tarczowki, to zostan
@@ -2045,8 +2044,8 @@ double TKE::GetPF(double PP, double dt, double Vel)
 
 void TKE::Init(double PP, double HPP, double LPP, double BP, int BDF)
 {
-	TBrake::Init(PP, HPP, LPP, BP, BDF);
-	ValveRes->CreatePress(PP);
+    TBrake::Init(PP, HPP, LPP, BP, BDF);
+    ValveRes->CreatePress(PP);
     BrakeCyl->CreatePress(BP);
     BrakeRes->CreatePress(PP);
 
@@ -2080,11 +2079,9 @@ double TKE::GetHPFlow(double HP, double dt)
 
 void TKE::PLC(double mass)
 {
-    LoadC =
-        1 +
-        int(mass < LoadM) *
-            ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP -
-             1);
+    LoadC = 1 +
+            int(mass < LoadM) *
+                ((TareBP + (MaxBP - TareBP) * (mass - TareM) / (LoadM - TareM)) / MaxBP - 1);
 }
 
 void TKE::SetLP(double TM, double LM, double TBP)
@@ -2138,7 +2135,7 @@ double TDriverHandle::GetPos(int i)
 
 double TDriverHandle::GetEP(double pos)
 {
-	return 0;
+    return 0;
 }
 //---FV4a---
 
@@ -2308,7 +2305,7 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
         if ((TP < 1))
             TP = TP - 0.5 * dt; // 5/10
         // dpMainValve:=dpMainValve*2;
-		//+1*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby
+        //+1*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby
         // nie przeszkadzal przy ladowaniu z zaworu obok
     }
 
@@ -2316,7 +2313,7 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     {
         if ((TP > 2))
             dpMainValve = dpMainValve * 1.5; //+0.5*PF(dpPipe,pp,(ActFlowSpeed)/(LBDelay))//coby nie
-                                             //przeszkadzal przy ladowaniu z zaworu obok
+        // przeszkadzal przy ladowaniu z zaworu obok
     }
 
     ep = dpPipe;
@@ -2324,12 +2321,13 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
         RP = RP + PF(RP, ep, 0.0007) * dt; // powolne wzrastanie, ale szybsze na jezdzie;
     else
         RP = RP + PF(RP, ep, 0.000093 / 2 * 2) * dt; // powolne wzrastanie i to bardzo
-														   // jednak trzeba wydluzyc, bo
-														   // obecnie zle dziala
+    // jednak trzeba wydluzyc, bo
+    // obecnie zle dziala
     if ((RP < ep) &&
-        (RP < BPT[lround(i_bcpno) + 2][1])) // jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
+        (RP <
+         BPT[lround(i_bcpno) + 2][1])) // jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
         RP = RP + PF(RP, CP, 0.005) * dt; // przypisz cisnienie w PG - wydluzanie napelniania o czas
-                                          // potrzebny do napelnienia PG
+    // potrzebny do napelnienia PG
 
     if ((EQ(i_bcp, i_bcpno)) || (EQ(i_bcp, -2)))
     {
@@ -2359,8 +2357,8 @@ void TFV4aM::Init(double Press)
     XP = 0.0;
     Time = false;
     TimeEP = false;
-	RedAdj = 0.0;
-	Fala = false;
+    RedAdj = 0.0;
+    Fala = false;
 }
 
 void TFV4aM::SetReductor(double nAdj)
@@ -2386,14 +2384,14 @@ double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
     int i_pos;
 
     i_pos = lround(pos - 0.5) + 2; // zaokraglone w dol
-	double i, j, k, l;
-	i = BPT[i_pos][1];
-	j = BPT[i_pos + 1][1];
-	k = pos + 2 - i_pos;
-	l = i + (j - i) * k;
-    double r =
-        BPT[i_pos][1] + (BPT[i_pos + 1][1] - BPT[i_pos][1]) * (pos + 2 - i_pos); // interpolacja liniowa
-	return r;
+    double i, j, k, l;
+    i = BPT[i_pos][1];
+    j = BPT[i_pos + 1][1];
+    k = pos + 2 - i_pos;
+    l = i + (j - i) * k;
+    double r = BPT[i_pos][1] +
+               (BPT[i_pos + 1][1] - BPT[i_pos][1]) * (pos + 2 - i_pos); // interpolacja liniowa
+    return r;
 }
 bool TFV4aM::EQ(double pos, double i_pos)
 {
@@ -2499,8 +2497,8 @@ void TMHZ_EN57::Init(double Press)
     RP = 0.0;
     Time = false;
     TimeEP = false;
-	RedAdj = 0.0;
-	Fala = false;
+    RedAdj = 0.0;
+    Fala = false;
 }
 
 void TMHZ_EN57::SetReductor(double nAdj)
@@ -2565,8 +2563,8 @@ double TM394::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     if (BCP < -1)
         BCP = 1;
 
-    LimPP = Min0R(BPT_394[BCP+1][1], HP);
-    ActFlowSpeed = BPT_394[BCP+1][0];
+    LimPP = Min0R(BPT_394[BCP + 1][1], HP);
+    ActFlowSpeed = BPT_394[BCP + 1][0];
     if ((BCP == 1) || (BCP == i_bcpno))
         LimPP = PP;
     if ((BCP == 0))
@@ -2628,8 +2626,8 @@ double TM394::GetPos(int i)
 double TH14K1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
     static int const LBDelay = 100; // szybkosc + zasilanie sterujacego
- //   static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
-	//{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
+    //   static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
+    //{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
     static double const NomPress = 5.0;
 
     double LimPP;
@@ -2641,14 +2639,14 @@ double TH14K1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     BCP = lround(i_bcp);
     if (i_bcp < -1)
         BCP = 1;
-    LimPP = BPT_K[BCP+1][1];
+    LimPP = BPT_K[BCP + 1][1];
     if (LimPP < 0)
         LimPP = 0.5 * PP;
     else if (LimPP > 0)
         LimPP = PP;
     else
         LimPP = CP;
-    ActFlowSpeed = BPT_K[BCP+1][0];
+    ActFlowSpeed = BPT_K[BCP + 1][0];
 
     CP = CP + 6 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
@@ -2711,14 +2709,14 @@ double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
     if (BCP < -1)
         BCP = 1;
-    LimPP = BPT_K[BCP+1][1];
+    LimPP = BPT_K[BCP + 1][1];
     if (LimPP < 0)
         LimPP = 0.5 * PP;
     else if (LimPP > 0)
         LimPP = PP;
     else
         LimPP = CP;
-    ActFlowSpeed = BPT_K[BCP+1][0];
+    ActFlowSpeed = BPT_K[BCP + 1][0];
 
     CP = CP + 6 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
@@ -2750,7 +2748,7 @@ void TSt113::Init(double Press)
 {
     Time = true;
     TimeEP = true;
-	EPS = 0.0;
+    EPS = 0.0;
 }
 
 //--- test ---
@@ -2765,8 +2763,8 @@ double Ttest::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     double dpMainValve;
     double ActFlowSpeed;
 
-    LimPP = BPT[lround(i_bcp)+2][1];
-    ActFlowSpeed = BPT[lround(i_bcp)+2][0];
+    LimPP = BPT[lround(i_bcp) + 2][1];
+    ActFlowSpeed = BPT[lround(i_bcp) + 2][0];
 
     if ((i_bcp == i_bcpno))
         LimPP = 0.0;
@@ -2804,8 +2802,7 @@ double TFD1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     //  MaxBP:=4;
     //  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
     temp = Min0R(i_bcp * MaxBP, HP); // 0011
-    DP =
-        10 * Min0R(abs(temp - BP), 0.1) * PF(temp, BP, 0.0006 * (2 + int(temp > BP))) * dt * Speed;
+    DP = 10 * Min0R(abs(temp - BP), 0.1) * PF(temp, BP, 0.0006 * (2 + int(temp > BP))) * dt * Speed;
     BP = BP - DP;
     return -DP;
 }
@@ -2932,7 +2929,7 @@ void TFVel6::Init(double Press)
 {
     Time = true;
     TimeEP = true;
-	EPS = 0.0;
+    EPS = 0.0;
 }
 
-//END
+// END

@@ -6484,7 +6484,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 eMaxCP = atof(getkeyval(3, "MaxCP").c_str());
                 eBCS = atof(getkeyval(3, "BCS").c_str());
                 eBSA = atof(getkeyval(3, "BSA").c_str());
-                eBM = atof(getkeyval(1, "BM").c_str());
+                eBM = (getkeyval(1, "BM"));
                 eBVV = atoi(getkeyval(2, "BVV").c_str());
                 eBRE = atof(getkeyval(3, "BRE").c_str());
                 eHiPP = atof(getkeyval(3, "HiPP").c_str());
