@@ -356,6 +356,7 @@ PyObject *TTrain::GetTrainState()
 	PyDict_SetItemString(dict, "velroad", PyGetFloat(DynamicObject->Mechanik->VelRoad));
 	PyDict_SetItemString(dict, "velsignalnext", PyGetFloat(DynamicObject->Mechanik->VelSignalNext));
 	PyDict_SetItemString(dict, "battery", PyGetBool(mvControlled->Battery));
+	PyDict_SetItemString(dict, "tractionforce", PyGetFloat(DynamicObject->MoverParameters->Ft));
 	
 	
 	return dict;
