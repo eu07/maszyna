@@ -118,9 +118,9 @@ void TRapid::Update(double dt)
     }
 
     if ((BCP * RapidMult > P() * ActMult))
-        dV = -PFVd(BCP, 0, DL, P() * ActMult * 1.0 / RapidMult) * dt;
+        dV = -PFVd(BCP, 0, DL, P() * ActMult / RapidMult) * dt;
     else if ((BCP * RapidMult < P() * ActMult))
-        dV = PFVa(BVP, BCP, DN, P() * ActMult * 1.0 / RapidMult) * dt;
+        dV = PFVa(BVP, BCP, DN, P() * ActMult / RapidMult) * dt;
     else
         dV = 0;
 
@@ -226,7 +226,7 @@ double TNESt3::GetPF(double PP, double dt, double Vel) // przeplyw miedzy komora
     VVP = ValveRes->P();
     //  BCP:=BrakeCyl.P;
     BCP = Przekladniki[1]->P();
-    CVP = CntrlRes->P() - 0.0;
+    CVP = CntrlRes->P();
     MPP = Miedzypoj->P();
     dV1 = 0;
 
@@ -290,7 +290,7 @@ double TNESt3::GetPF(double PP, double dt, double Vel) // przeplyw miedzy komora
     // przeplyw ZS <-> PG
     temp = CVs(BCP);
     dV = PF(CVP, MPP, temp) * dt;
-    CntrlRes->Flow(+dV);
+    CntrlRes->Flow(dV);
     ValveRes->Flow(-0.02 * dV);
     dV1 += 0.98 * dV;
 
@@ -373,13 +373,13 @@ void TNESt3::CheckState(double BCP, double &dV1) // glowny przyrzad rozrzadczy
 
     // sprawdzanie stanu
     // if ((BrakeStatus and 1)=1)and(BCP>0.25)then
-    if ((VVP + 0.01 + BCP * 1.0 / BVM < CVP - 0.05) && (Przys_blok))
+    if ((VVP + 0.01 + BCP / BVM < CVP - 0.05) && (Przys_blok))
         BrakeStatus |= 3; // hamowanie stopniowe;
-    else if ((VVP - 0.01 + (BCP - 0.1) * 1.0 / BVM > CVP - 0.05))
+    else if ((VVP - 0.01 + (BCP - 0.1) / BVM > CVP - 0.05))
         BrakeStatus &= 252; // luzowanie;
-    else if ((VVP + BCP * 1.0 / BVM > CVP - 0.05))
+    else if ((VVP + BCP / BVM > CVP - 0.05))
         BrakeStatus &= 253; // zatrzymanie napelaniania;
-    else if ((VVP + (BCP - 0.1) * 1.0 / BVM < CVP - 0.05) && (BCP > 0.25)) // zatrzymanie luzowania
+    else if ((VVP + (BCP - 0.1) / BVM < CVP - 0.05) && (BCP > 0.25)) // zatrzymanie luzowania
         BrakeStatus |= 1;
 
     if ((BrakeStatus & 1) == 0)
@@ -409,9 +409,9 @@ void TNESt3::CheckReleaser(double dt) // odluzniacz
     CVP = CntrlRes->P();
 
     // odluzniacz automatyczny
-    if ((BrakeStatus & b_rls == b_rls))
+    if ((BrakeStatus & b_rls) == b_rls)
     {
-        CntrlRes->Flow(+PF(CVP, 0, 0.02) * dt);
+        CntrlRes->Flow(PF(CVP, 0, 0.02) * dt);
         if ((CVP < VVP + 0.3) || (!autom))
             BrakeStatus &= 247;
     }
