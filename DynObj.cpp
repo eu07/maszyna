@@ -3372,24 +3372,24 @@ bool TDynamicObject::Update(double dt, double dt1)
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if ((dDoorMoveL < MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
 	{
-		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
+		rsDoorOpen.Play(1, 0, MechInside, vPosition);
         dDoorMoveL += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveL > 0) && (!MoverParameters->DoorLeftOpened))
     {
-		rsDoorClose.Play(vol, 0, MechInside, vPosition);
+		rsDoorClose.Play(1, 0, MechInside, vPosition);
         dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveL < 0)
             dDoorMoveL = 0;
     }
     if ((dDoorMoveR < MoverParameters->DoorMaxShiftR) && (MoverParameters->DoorRightOpened))
 	{
-		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
+		rsDoorOpen.Play(1, 0, MechInside, vPosition);
         dDoorMoveR += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveR > 0) && (!MoverParameters->DoorRightOpened))
     {
-		rsDoorClose.Play(vol, 0, MechInside, vPosition);
+		rsDoorClose.Play(1, 0, MechInside, vPosition);
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveR < 0)
             dDoorMoveR = 0;
@@ -5189,20 +5189,12 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                     str = Parser->GetNextSymbol();
                     sPantUp.Init(str.c_str(), 50, GetPosition().x, GetPosition().y, GetPosition().z,
                                  true);
-                    sPantUp.AM = 50000;
-                    sPantUp.AA = -1 * (105 - random(10)) / 100;
-                    sPantUp.FM = 1.0;
-                    sPantUp.FA = 0.0;
                 }
                 if (str == AnsiString("pantographdown:")) // pliki dzwiekow pantografow
                 {
                     str = Parser->GetNextSymbol();
                     sPantDown.Init(str.c_str(), 50, GetPosition().x, GetPosition().y,
                                    GetPosition().z, true);
-                    sPantDown.AM = 50000;
-                    sPantDown.AA = -1 * (105 - random(10)) / 100;
-                    sPantDown.FM = 1.0;
-                    sPantDown.FA = 0.0;
                 }
                 else if (str == AnsiString("compressor:")) // pliki ze sprezarka
                 {
@@ -5225,22 +5217,13 @@ void TDynamicObject::LoadMMediaFile(AnsiString BaseDir, AnsiString TypeName,
                 else if (str == AnsiString("dooropen:"))
                 {
                     str = Parser->GetNextSymbol();
-                    rsDoorOpen.Init(str.c_str(), 50, GetPosition().x, GetPosition().y,
-                                    GetPosition().z, true);
-                    rsDoorOpen.AM = 50000;
-                    rsDoorOpen.AA = -1 * (105 - random(10)) / 100;
-                    rsDoorOpen.FM = 1.0;
-                    rsDoorOpen.FA = 0.0;
+                    rsDoorOpen.Init(str.c_str(), 50, GetPosition().x, GetPosition().y, GetPosition().z, true);
                 }
                 else if (str == AnsiString("doorclose:"))
                 {
                     str = Parser->GetNextSymbol();
                     rsDoorClose.Init(str.c_str(), 50, GetPosition().x, GetPosition().y,
                                      GetPosition().z, true);
-                    rsDoorClose.AM = 50000;
-                    rsDoorClose.AA = -1 * (105 - random(10)) / 100;
-                    rsDoorClose.FM = 1.0;
-                    rsDoorClose.FA = 0.0;
                 }
 				else if (str == AnsiString("sand:")) // pliki z piasecznica
                 {
