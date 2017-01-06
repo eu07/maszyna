@@ -527,7 +527,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
     else
         Przekladniki[2] = new TRura();
 
-    if ((params.find("3d") + params.find("4d") != std::string::npos))
+    if ((params.find("3d") + params.find("4d")) != std::string::npos)
         autom = false;
     else
         autom = true;
@@ -549,6 +549,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 1.25;
         Nozzles[dPO] = Nozzles[dON];
         Nozzles[dPT] = Nozzles[dTN];
+        break;
     }
     case 14:
     { // dON,dOO,dTN,dTO,dP,dS
@@ -561,6 +562,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 1.10;
         Nozzles[dPO] = Nozzles[dON];
         Nozzles[dPT] = Nozzles[dTN];
+        break;
     }
     case 12:
     { // dON,dOO,dTN,dTO,dP,dS
@@ -573,6 +575,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 0.85;
         Nozzles[dPO] = Nozzles[dON];
         Nozzles[dPT] = Nozzles[dTN];
+        break;
     }
     case 10:
     { // dON,dOO,dTN,dTO,dP,dS
@@ -585,6 +588,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 0.7;
         Nozzles[dPO] = Nozzles[dON];
         Nozzles[dPT] = Nozzles[dTN];
+        break;
     }
     case 200:
     { // dON,dOO,dTN,dTO,dP,dS
@@ -597,6 +601,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 2.5;
         Nozzles[dPO] = 7.28;
         Nozzles[dPT] = 2.96;
+        break;
     }
     case 375:
     { // dON,dOO,dTN,dTO,dP,dS
@@ -609,6 +614,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 4.4;
         Nozzles[dPO] = 9.92;
         Nozzles[dPT] = 3.99;
+        break;
     }
     case 150:
     { // dON,dOO,dTN,dTO,dP,dS
@@ -621,6 +627,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 1.9;
         Nozzles[dPO] = 6.33;
         Nozzles[dPT] = 2.58;
+        break;
     }
     case 100:
     { // dON,dOO,dTN,dTO,dP,dS
@@ -633,6 +640,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Nozzles[dPm] = 1.4;
         Nozzles[dPO] = 5.19;
         Nozzles[dPT] = 2.14;
+        break;
     }
     default:
     {

@@ -77,12 +77,12 @@ class TPrzekladnik : public TReservoir // przekladnik (powtarzacz)
 
 	TPrzekladnik() : TReservoir() {};
     virtual void Update(double dt);
-	void SetPoslizg(bool flag) {};
-	void SetP(double P) {};
-	void SetMult(double m) {};
-	void SetLBP(double P) {};
-	void SetRapidParams(double mult, double size) {};
-	void SetRapidStatus(bool rs) {};
+	virtual void SetPoslizg(bool flag) {};
+	virtual void SetP(double P) {};
+	virtual void SetMult(double m) {};
+	virtual void SetLBP(double P) {};
+	virtual void SetRapidParams(double mult, double size) {};
+	virtual void SetRapidStatus(bool rs) {};
 };
 
 class TRura : public TPrzekladnik // nieprzekladnik, rura laczaca
