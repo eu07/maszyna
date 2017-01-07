@@ -821,7 +821,7 @@ double TEStEP2::GetPF(double PP, double dt, double Vel)
             ;
     else if ((VVP + 0.10 < CVP - 0.12) && (BCP < 0.25)) // poczatek hamowania
     {
-        //if ((BrakeStatus & 1) == 0)
+        // if ((BrakeStatus & 1) == 0)
         //{
         //    //       ValveRes.CreatePress(0.5*VVP);  //110115 - konsultacje warszawa1
         //    //       SoundFlag:=SoundFlag or sf_Acc;
@@ -1406,7 +1406,7 @@ double TEStED::GetPF(double PP, double dt, double Vel)
         if ((!Przys_blok))
         {
             ValveRes->CreatePress(0.75 * VVP);
-            SoundFlag |=  sf_Acc;
+            SoundFlag |= sf_Acc;
             ValveRes->Act();
             Przys_blok = true;
         }
@@ -1593,7 +1593,7 @@ void TCV1::CheckState(double BCP, double &dV1)
 
     // odluzniacz
     if (((BrakeStatus & b_rls) == b_rls) && (CVP - VVP < 0))
-        BrakeStatus &=  247;
+        BrakeStatus &= 247;
 
     // sprawdzanie stanu
     if ((BrakeStatus & b_hld) == b_hld)

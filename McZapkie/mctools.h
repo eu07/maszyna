@@ -59,7 +59,16 @@ int Min0(int x1, int x2);
 double Max0R(double x1, double x2);
 double Min0R(double x1, double x2);
 
-int Sign(double x);
+inline int Sign(int x)
+{
+    return x >= 0 ? 1 : -1;
+}
+
+inline double Sign(double x)
+{
+    return x >= 0 ? 1.0 : -1.0;
+}
+
 inline long Round(float f)
 {
 	return (long)(f + 0.5);

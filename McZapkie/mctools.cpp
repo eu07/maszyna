@@ -73,15 +73,6 @@ double Min0R(double x1, double x2)
         return x2;
 }
 
-int Sign(double x)
-{
-    if (x > 0)
-        return 1;
-    else if (x < 0)
-        return -1;
-    return 0;
-}
-
 bool TestFlag(int Flag, int Value)
 {
     if ((Flag & Value) == Value)
