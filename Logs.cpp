@@ -7,16 +7,16 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
 #include "classes.hpp"
+#include "system.hpp"
 #pragma hdrstop
 
-#include "Logs.h"
 #include "Globals.h"
+#include "Logs.h"
 
-#include <stdio.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <stdio.h>
 
 std::ofstream output; // standardowy "log.txt", mo¿na go wy³¹czyæ
 std::ofstream errors; // lista b³êdów "errors.txt", zawsze dzia³a
@@ -41,8 +41,8 @@ void WriteConsoleOnly(const char *str, bool newline)
                             FOREGROUND_GREEN | FOREGROUND_INTENSITY);
     DWORD wr = 0;
     WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), str, strlen(str), &wr, NULL);
-	if (newline)
-		WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
+    if (newline)
+        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
 }
 
 void WriteLog(const char *str, double value)
@@ -65,9 +65,9 @@ void WriteLog(const char *str, bool newline)
         {
             if (!output.is_open())
                 output.open("log.txt", std::ios::trunc);
-			output << str;
-			if (newline)
-				output << "\n";
+            output << str;
+            if (newline)
+                output << "\n";
             output.flush();
         }
         // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
@@ -91,29 +91,30 @@ void ErrorLog(const char *str)
 
 void Error(const AnsiString &asMessage, bool box)
 {
-    if (box)
-        MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
-    WriteLog(asMessage.c_str());
+    // if (box)
+    //    MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
+    ErrorLog(asMessage.c_str());
 }
 
 void Error(const std::string &asMessage, bool box)
 {
-	if (box)
-		MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
-	WriteLog(asMessage.c_str());
+    // if (box)
+    //	MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
+    ErrorLog(asMessage.c_str());
 }
 
-void Error(const char* &asMessage, bool box)
+void Error(const char *&asMessage, bool box)
 {
-	if (box)
-		MessageBox(NULL, asMessage, string("EU07 " + Global::asRelease).c_str(), MB_OK);
-	WriteLog(asMessage);
+    // if (box)
+    //	MessageBox(NULL, asMessage, string("EU07 " + Global::asRelease).c_str(), MB_OK);
+    ErrorLog(asMessage);
+    WriteLog(asMessage);
 }
 
 void ErrorLog(const std::string &str, bool newline)
 {
-	ErrorLog(str.c_str());
-	WriteLog(str.c_str(), newline);
+    ErrorLog(str.c_str());
+    WriteLog(str.c_str(), newline);
 }
 
 void ErrorLog(const AnsiString &asMessage)
@@ -129,34 +130,34 @@ void WriteLog(const AnsiString &str, bool newline)
 
 void WriteLog(const std::string &str, bool newline)
 { // Ra: wersja z AnsiString jest zamienna z Error()
-	WriteLog(str.c_str(), newline);
+    WriteLog(str.c_str(), newline);
 };
 
 void CommLog(const char *str)
 { // Ra: warunkowa rejestracja komunikatów
-	WriteLog(str);
-	/*    if (Global::iWriteLogEnabled & 4)
-	{
-	if (!comms.is_open())
-	{
-	comms.open("comms.txt", std::ios::trunc);
-	comms << AnsiString("EU07.EXE " + Global::asRelease).c_str() << "\n";
-	}
-	if (str)
-	comms << str;
-	comms << "\n";
-	comms.flush();
-	}*/
+    WriteLog(str);
+    /*    if (Global::iWriteLogEnabled & 4)
+    {
+    if (!comms.is_open())
+    {
+    comms.open("comms.txt", std::ios::trunc);
+    comms << AnsiString("EU07.EXE " + Global::asRelease).c_str() << "\n";
+    }
+    if (str)
+    comms << str;
+    comms << "\n";
+    comms.flush();
+    }*/
 };
 
 void CommLog(const std::string &str)
 { // Ra: wersja z AnsiString jest zamienna z Error()
-	WriteLog(str);
+    WriteLog(str);
 };
 
 void CommLog(const AnsiString &str)
 { // Ra: wersja z AnsiString jest zamienna z Error()
-	CommLog(str.c_str());
+    CommLog(str.c_str());
 };
 
 //---------------------------------------------------------------------------
