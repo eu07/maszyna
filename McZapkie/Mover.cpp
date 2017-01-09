@@ -5959,32 +5959,26 @@ bool TMoverParameters::readMPT(int ln, std::string line)
         //--WriteLog("MPT: " + xline);
         x = Split(line);
 
-		if (x.size() != 7)
+        int s = x.size();
+		if ( s < 7 && s > 8)
 		{
 			WriteLog("Read MPT: wrong argument number of arguments in line " + to_string(ln -1));
+            MPTLINE++;
 			return false;
 		}
 
+        for(int i = 0; i < s; i++)
+            x[i] = TrimSpace(x[i]);
 
-        p0 = TrimSpace(x[0]);
-        p1 = TrimSpace(x[1]);
-        p2 = TrimSpace(x[2]);
-        p3 = TrimSpace(x[3]);
-        p4 = TrimSpace(x[4]);
-        p5 = TrimSpace(x[5]);
-        p6 = TrimSpace(x[6]);
+        bl = atoi(x[0].c_str()); // numer pozycji
 
-        if (AutoRelayType == 0)
-            as = false;
-        bl = atoi(p0.c_str()); // numer pozycji
-
-        MotorParam[bl].mfi = atof(p1.c_str());
-        MotorParam[bl].mIsat = atof(p2.c_str());
-        MotorParam[bl].mfi0 = atof(p3.c_str());
-        MotorParam[bl].fi = atof(p4.c_str());
-        MotorParam[bl].Isat = atof(p5.c_str());
-        MotorParam[bl].fi0 = atof(p6.c_str());
-        MotorParam[bl].AutoSwitch = as;
+        MotorParam[bl].mfi = atof(x[1].c_str());
+        MotorParam[bl].mIsat = atof(x[2].c_str());
+        MotorParam[bl].mfi0 = atof(x[3].c_str());
+        MotorParam[bl].fi = atof(x[4].c_str());
+        MotorParam[bl].Isat = atof(x[5].c_str());
+        MotorParam[bl].fi0 = atof(x[6].c_str());
+        MotorParam[bl].AutoSwitch = s == 8 ? atoi(x[7].c_str()): false;
 
         //--WriteLog(":::: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4 + "," + p5 + "," +
         //p6);
@@ -6013,18 +6007,17 @@ bool TMoverParameters::readRLIST(int ln, std::string line)
 
         x = Split(xxx); // split je wskaznik na char jak i std::string
 
-        if (x.size() != 5)
+        int s = x.size();
+        if ( s < 5 && s > 6)
         {
 			WriteLog("Read RLIST: wrong argument number of arguments in line " + to_string(ln - 1));
             delete[] xxx;
+            RLISTLINE++;
             return false;
         }
 
-        p0 = TrimSpace(x[0]);
-        p1 = TrimSpace(x[1]);
-        p2 = TrimSpace(x[2]);
-        p3 = TrimSpace(x[3]);
-        p4 = TrimSpace(x[4]);
+        for (int i = 0; i < s; i++)
+            x[i] = TrimSpace(x[i]);
 
         int k = ln - 1;
 
@@ -6032,12 +6025,12 @@ bool TMoverParameters::readRLIST(int ln, std::string line)
         if (RlistSize > ResArraySize)
             ConversionError = -4;
 
-        RList[k].Relay = atoi(p0.c_str()); // int
-        RList[k].R = atof(p1.c_str()); // double
-        RList[k].Bn = atoi(p2.c_str()); // int
-        RList[k].Mn = atoi(p3.c_str()); // int
-        RList[k].AutoSwitch = false; // p4.ToInt();
-
+        RList[k].Relay = atoi(x[0].c_str()); // int
+        RList[k].R = atof(x[1].c_str()); // double
+        RList[k].Bn = atoi(x[2].c_str()); // int
+        RList[k].Mn = atoi(x[3].c_str()); // int
+        RList[k].AutoSwitch = (bool)atoi(x[4].c_str()); // p4.ToInt();
+        RList[k].ScndAct = s == 6 ? atoi(x[5].c_str()) : 0; //jeœli ma boczniki w nastawniku
         //--WriteLog("RLIST: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
     }
 	delete[] xxx;
@@ -6062,26 +6055,24 @@ bool TMoverParameters::readBPT(int ln, std::string line)
         xxx = TrimAndReduceSpaces(line.c_str());
         x = Split(xxx);
 
-        if (x.size() != 5)
+        int s = x.size();
+        if (s != 5)
         {
             WriteLog("Read BPT: wrong argument number of arguments in line " + to_string(ln - 1));
             delete[] xxx;
             return false;
         }
 
-        p0 = TrimSpace(x[0]);
-        p1 = TrimSpace(x[1]);
-        p2 = TrimSpace(x[2]);
-        p3 = TrimSpace(x[3]);
-        p4 = TrimSpace(x[4]);
+        for (int i = 0; i < s; i++)
+            x[i] = TrimSpace(x[i]);
 
-        k = atoi(p0.c_str());
-        BrakePressureTable[k].PipePressureVal = atof(p1.c_str());
-        BrakePressureTable[k].BrakePressureVal = atof(p2.c_str());
-        BrakePressureTable[k].FlowSpeedVal = atof(p3.c_str());
-        if (p4 == "Pneumatic")
+        k = atoi(x[0].c_str());
+        BrakePressureTable[k].PipePressureVal = atof(x[1].c_str());
+        BrakePressureTable[k].BrakePressureVal = atof(x[2].c_str());
+        BrakePressureTable[k].FlowSpeedVal = atof(x[3].c_str());
+        if (x[4] == "Pneumatic")
             BrakePressureTable[k].BrakeType = Pneumatic;
-        else if (p4 == "ElectroPneumatic")
+        else if (x[4] == "ElectroPneumatic")
             BrakePressureTable[k].BrakeType = ElectroPneumatic;
         else
             BrakePressureTable[k].BrakeType = Individual;

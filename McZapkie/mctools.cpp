@@ -89,18 +89,22 @@ bool SetFlag(int &Flag, int Value)
 bool iSetFlag(int &Flag, int Value)
 {
     if (Value > 0)
+    {
         if ((Flag & Value) == 0)
         {
             Flag |= Value;
             return true; // true, gdy by³o wczeœniej 0 i zosta³o ustawione
         }
-	if (Value < 0)
-		Value = abs(Value);
+    }
+    else if (Value < 0)
+    {
+        Value = abs(Value);
         if ((Flag & Value) == Value)
         {
             Flag &= ~Value; // Value jest ujemne, czyli zerowanie flagi
             return true; // true, gdy by³o wczeœniej 1 i zosta³o wyzerowane
         }
+    }
 	return false;
 }
 
