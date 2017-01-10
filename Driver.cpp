@@ -1382,7 +1382,7 @@ void TController::TablePurger()
 { // odtykacz: usuwa mniej istotne pozycje ze œrodka tabelki, aby unikn¹æ zatkania
     //(np. brak ograniczenia pomiêdzy zwrotnicami, usuniête sygna³y, miniête odcinki ³uku)
 	if (Global::iWriteLogEnabled & 8)
-	WriteLog("TablePurger: Czyszczenie tableki.");
+	WriteLog("TablePurger: Czyszczenie tabelki.");
 	int i, j, k = iLast - iFirst; // mo¿e byæ 15 albo 16 pozycji, ostatniej nie ma co sprawdzaæ
     if (k < 0)
         k += iSpeedTableSize; // iloœæ pozycji do przeanalizowania

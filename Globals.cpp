@@ -49,9 +49,9 @@ double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
 int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "16.0.1172.481";
+AnsiString Global::asRelease = "16.0.1172.482";
 AnsiString Global::asVersion =
-    "Compilation 2016-08-24, release " + Global::asRelease + "."; // tutaj, bo wysy³any
+    "Compilation 2017-01-10, release " + Global::asRelease + "."; // tutaj, bo wysy³any
 int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
