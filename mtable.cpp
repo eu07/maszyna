@@ -169,6 +169,9 @@ void TTrainParameters::NewName(std::string NewTrainName)
         t->WaitTime = 0;
     }
     TTVmax = 100; /*wykasowac*/
+    BrakeRatio = 0;
+    LocSeries = "";
+    LocLoad = 0;
 }
 
 void TTrainParameters::UpdateVelocity(int StationCount, double vActual)
@@ -526,6 +529,7 @@ TMTableTime::TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int Ini
     srm = InitSRM;
     ssh = InitSSH;
     ssm = InitSSM;
+    mr = 0.0;
 }
 
 bool TTrainParameters::DirectionChange()

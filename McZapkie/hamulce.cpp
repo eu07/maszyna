@@ -324,7 +324,6 @@ void TBrake::Init(double PP, double HPP, double LPP, double BP, int BDF)
 // pobranie wspolczynnika tarcia materialu
 double TBrake::GetFC(double Vel, double N)
 {
-    double result;
     return FM->GetFC(N, Vel);
 }
 
@@ -380,7 +379,6 @@ double TBrake::GetBCF()
 
 bool TBrake::SetBDF(int nBDF)
 {
-    bool result;
     if (((nBDF & BrakeDelays) == nBDF) && (nBDF != BrakeDelayFlag))
     {
         BrakeDelayFlag = nBDF;

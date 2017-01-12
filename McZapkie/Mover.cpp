@@ -286,7 +286,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
 {
     int b, k;
     WriteLog(
-        "----------------------------------------------------------------------------------------");
+        "------------------------------------------------------");
     WriteLog("init default physic values for " + NameInit + ", [" + TypeNameInit + "], [" +
              LoadTypeInitial + "]");
     Dim = TDimension();
@@ -530,8 +530,9 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     fBrakeCtrlPos = BrakeCtrlPos;
     BrakeCtrlPosR = 0.0;
     BrakeCtrlPos2 = 0.0;
-    LocalBrakePos = 0.0;
+    LocalBrakePos = 0;
     LocalBrakePosA = 0.0;
+    ManualBrakePos = 0;
     BrakeDelays = 0;
     BrakeOpModeFlag = 0;
     BrakeOpModes = 0;
@@ -1705,7 +1706,6 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
                 CollisionDetect(b, dt); // zmienia niejawnie AccS, V !!!
     } // liczone dL, predkosc i przyspieszenie
     // QQQ
-
     if (Power > 1.0) // w rozrz¹dczym nie (jest b³¹d w FIZ!)
         UpdatePantVolume(dt); // Ra 2014-07: obs³uga zbiornika rozrz¹du oraz pantografów
     if (EngineType == WheelsDriven)
@@ -3924,7 +3924,8 @@ double DirF(int CouplerN)
 double TMoverParameters::CouplerForce(int CouplerN, double dt)
 {
     // wyliczenie si³y na sprzêgu
-    double tempdist, newdist, distDelta, CF, dV, absdV, Fmax, BetaAvg = 0;
+    double tempdist = 0, newdist = 0, distDelta = 0, CF = 0, dV = 0, absdV = 0, Fmax = 0;
+    double BetaAvg = 0;
     int CNext = 0;
     const double MaxDist = 405.0; // ustawione + 5 m, bo skanujemy do 400 m
     const double MinDist = 0.5; // ustawione +.5 m, zeby nie rozlaczac przy malych odleglosciach
@@ -4700,7 +4701,7 @@ double TMoverParameters::TractionForce(double dt)
 // *************************************************************************************************
 double TMoverParameters::ComputeRotatingWheel(double WForce, double dt, double n)
 {
-    double newn, eps = 0;
+    double newn = 0, eps = 0;
     if ((n == 0) && (WForce * Sign(V) < 0))
         newn = 0;
     else
@@ -4952,7 +4953,8 @@ bool TMoverParameters::AutoRelaySwitch(bool State)
 bool TMoverParameters::AutoRelayCheck(void)
 {
     bool OK = false; // b:int;
-    bool ARFASI, ARFASI2 = false; // sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
+    bool ARFASI = false;
+    bool ARFASI2 = false; // sprawdzenie wszystkich warunkow (AutoRelayFlag, AutoSwitch, Im<Imin)
     bool ARC = false;
 
     // Ra 2014-06: dla SN61 nie dzia³a prawid³owo
@@ -5470,7 +5472,7 @@ double TMoverParameters::dizel_fillcheck(int mcp)
 // *************************************************************************************************
 double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 { // liczy moment sily wytwarzany przez silnik spalinowy}
-    double Moment, enMoment, eps, newn, friction = 0;
+    double Moment = 0, enMoment = 0, eps = 0, newn = 0, friction = 0;
 
     // friction =dizel_engagefriction*(11-2*random)/10;
     friction = dizel_engagefriction;
