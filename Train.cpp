@@ -349,6 +349,15 @@ PyObject *TTrain::GetTrainState()
 	PyDict_SetItemString(dict, "manual_brake", PyGetBool(mvOccupied->ManualBrakePos > 0));
 	PyDict_SetItemString(dict, "pantpress", PyGetFloat(mvControlled->PantPress));
 	PyDict_SetItemString(dict, "trainnumber", PyGetString(DynamicObject->Mechanik->TrainName().c_str()));
+	PyDict_SetItemString(dict, "velnext", PyGetFloat(DynamicObject->Mechanik->VelNext));
+	PyDict_SetItemString(dict, "actualproximitydist", PyGetFloat(DynamicObject->Mechanik->ActualProximityDist));
+	PyDict_SetItemString(dict, "velsignallast", PyGetFloat(DynamicObject->Mechanik->VelSignalLast));
+	PyDict_SetItemString(dict, "vellimitlast", PyGetFloat(DynamicObject->Mechanik->VelLimitLast));
+	PyDict_SetItemString(dict, "velroad", PyGetFloat(DynamicObject->Mechanik->VelRoad));
+	PyDict_SetItemString(dict, "velsignalnext", PyGetFloat(DynamicObject->Mechanik->VelSignalNext));
+	PyDict_SetItemString(dict, "battery", PyGetBool(mvControlled->Battery));
+	PyDict_SetItemString(dict, "tractionforce", PyGetFloat(DynamicObject->MoverParameters->Ft));
+	
 	
 	return dict;
 }
@@ -459,6 +468,10 @@ void TTrain::OnKeyDown(int cKey)
 				if (mvOccupied->BatterySwitch(true)) // bateria potrzebna np. do zapalenia œwiate³
 				{
 					dsbSwitch->Play(0, 0, 0);
+					if (ggBatteryButton.SubModel)
+                    {
+                        ggBatteryButton.PutValue(1);
+                    }
 					if (mvOccupied->LightsPosNo > 0)
 					{
 						SetLights();
@@ -1500,6 +1513,10 @@ void TTrain::OnKeyDown(int cKey)
             { // ewentualnie zablokowaæ z FIZ,
                 // np. w samochodach siê nie
                 // od³¹cza akumulatora
+				if (ggBatteryButton.SubModel)
+                    {
+                        ggBatteryButton.PutValue(0);
+                    }
                 dsbSwitch->Play(0, 0, 0);
                 // mvOccupied->SecuritySystem.Status=0;
                 mvControlled->PantFront(false);
@@ -3665,6 +3682,7 @@ bool TTrain::Update()
                                     (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
             btLampkaForward.Turn(mvControlled->ActiveDir > 0); // jazda do przodu
             btLampkaBackward.Turn(mvControlled->ActiveDir < 0); // jazda do ty³u
+            btLampkaED.Turn(mvControlled->DynamicBrakeFlag); //hamulec ED
         }
         else
         { // gdy bateria wy³¹czona
@@ -3678,6 +3696,7 @@ bool TTrain::Update()
             btLampkaNapNastHam.TurnOff();
             btLampkaForward.TurnOff();
             btLampkaBackward.TurnOff();
+			btLampkaED.TurnOff();
         }
         // McZapkie-080602: obroty (albo translacje) regulatorow
         if (ggMainCtrl.SubModel)
@@ -4950,6 +4969,7 @@ bool TTrain::Update()
         // hunter-091012
         ggCabLightButton.Update();
         ggCabLightDimButton.Update();
+		ggBatteryButton.Update();
         //------
         if (ActiveUniversal4)
             ggUniversal4Button.PermIncValue(dt);
@@ -5429,6 +5449,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 // hunter-091012
                 ggCabLightButton.Clear();
                 ggCabLightDimButton.Clear();
+				ggBatteryButton.Clear();
                 //-------
                 ggUniversal4Button.Clear();
                 ggFuseButton.Clear();
@@ -5514,6 +5535,7 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 btLampkaWylSzybkiB.Clear();
                 btLampkaForward.Clear();
                 btLampkaBackward.Clear();
+				btLampkaED.Clear();
                 btCabLight.Clear(); // hunter-171012
                 ggLeftLightButton.Clear();
                 ggRightLightButton.Clear();
@@ -5649,9 +5671,9 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
             else if (str == AnsiString("cablight_sw:")) // hunter-091012: swiatlo w kabinie
                 ggCabLightButton.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("cablightdim_sw:"))
-                ggCabLightDimButton.Load(
-                    Parser,
-                    DynamicObject->mdKabina); // hunter-091012: przyciemnienie swiatla w kabinie
+                ggCabLightDimButton.Load(Parser, DynamicObject->mdKabina); // hunter-091012: przyciemnienie swiatla w kabinie
+            else if (str == AnsiString("battery_sw:"))
+                ggBatteryButton.Load(Parser, DynamicObject->mdKabina);
             // ABu 090305: uniwersalne przyciski lub inne rzeczy
             else if (str == AnsiString("universal1:"))
                 ggUniversal1Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
@@ -5911,6 +5933,8 @@ bool TTrain::InitializeCab(int NewCabNo, AnsiString asFileName)
                 btLampkaBocznik4.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("i-braking:"))
                 btLampkaHamienie.Load(Parser, DynamicObject->mdKabina);
+			else if (str == AnsiString("i-dynamicbrake:"))
+                btLampkaED.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("i-braking-ezt:"))
                 btLampkaHamowanie1zes.Load(Parser, DynamicObject->mdKabina);
             else if (str == AnsiString("i-braking-ezt2:"))

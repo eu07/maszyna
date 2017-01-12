@@ -4085,7 +4085,7 @@ begin
   if (EngineType=ElectricSeriesMotor) then
    begin
         case RVentType of {wentylatory rozruchowe}
-        1: if ActiveDir<>0 then
+        1: if (ActiveDir<>0) and (RList[MainCtrlActualPos].R>RVentCutOff) then
             RventRot:=RventRot+(RVentnmax-RventRot)*RVentSpeed*dt
            else
             RventRot:=RventRot*(1-RVentSpeed*dt);
