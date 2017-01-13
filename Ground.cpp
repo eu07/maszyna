@@ -1809,7 +1809,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             if (int2 != string::npos) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
             {
                 int dlugosc = str4.length();
-                int1 = atoi(str4.substr(0, int2 - 1).c_str()); // niech sprzegiem bedzie do kropki cos
+                int1 = atoi(str4.substr(0, int2).c_str()); // niech sprzegiem bedzie do kropki cos
                 str4 = str4.substr(int2 + 1, dlugosc - int2);
             }
             else

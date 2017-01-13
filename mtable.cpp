@@ -1,5 +1,5 @@
-/**   @file  
-     @brief  
+/**   @file
+     @brief
 */
 
 /*
@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include <fstream>
 
-//using namespace Mtable;
+// using namespace Mtable;
 TMTableTime *Mtable::GlobalTime;
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
@@ -39,14 +39,14 @@ double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica cza
 
 double TTrainParameters::CheckTrainLatency()
 {
-	if ((LastStationLatency > 1.0) || (LastStationLatency < 0))
-		return LastStationLatency; /*spoznienie + lub do przodu - z tolerancja 1 min*/
+    if ((LastStationLatency > 1.0) || (LastStationLatency < 0))
+        return LastStationLatency; /*spoznienie + lub do przodu - z tolerancja 1 min*/
     else
         return 0;
 }
 
 double TTrainParameters::WatchMTable(double DistCounter)
-{ //zwraca odlegloœæ do najblizszej stacji z zatrzymaniem
+{ // zwraca odlegloœæ do najblizszej stacji z zatrzymaniem
     double dist;
 
     if (Direction == 1)
@@ -81,7 +81,8 @@ bool TTrainParameters::UpdateMTable(double hh, double mm, std::string NewName)
     {
         if (NewName == NextStationName) // jeœli dojechane do nastêpnego
         { // Ra: wywo³anie mo¿e byæ powtarzane, jak stoi na W4
-            if (TimeTable[StationIndex + 1].km - TimeTable[StationIndex].km < 0) // to jest bez sensu
+            if (TimeTable[StationIndex + 1].km - TimeTable[StationIndex].km <
+                0) // to jest bez sensu
                 Direction = -1;
             else
                 Direction = 1; // prowizorka bo moze byc zmiana kilometrazu
@@ -187,7 +188,7 @@ void TTrainParameters::UpdateVelocity(int StationCount, double vActual)
     }
 }
 
-//bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
+// bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
 //{
 //	return false;
 //}
@@ -216,10 +217,10 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
         s = scnpath + TrainName + ".txt";
         // Ra 2014-09: ustaliæ zasady wyznaczenia pierwotnego pliku przy przesuniêtych rozk³adach
         // (kolejny poci¹g dostaje numer +2)
-		fin.open(s.c_str()); //otwieranie pliku
-		
-		if (!fin.is_open())
-        { //jeœli nie ma pliku
+        fin.open(s.c_str()); // otwieranie pliku
+
+        if (!fin.is_open())
+        { // jeœli nie ma pliku
             vmax = atoi(TrainName.c_str()); // nie ma pliku ale jest liczba
             if ((vmax > 10) && (vmax < 200))
             {
@@ -235,91 +236,91 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
             ConversionError = 0;
             while (fin.good() && !((ConversionError != 0) || EndTable))
             {
-                std::getline(fin,lines); /*wczytanie linii*/
-				if (lines.find("___________________") != std::string::npos) /*linia pozioma górna*/
-				{
-					fin >> s;
-					if (s == "[") /*lewy pion*/
-					{
-						fin >> s;
-						if (s == "Rodzaj") /*"Rodzaj i numer pociagu"*/
-							do
-							{
-								fin >> s;
-							} while (!(s == "|") || (fin.eof())); /*œrodkowy pion*/
-					}
-				}
-				else if (lines == "")
-				{
-					fin.close();
-					break;
-				}
-				fin >> s; /*nazwa poci¹gu*/
+                std::getline(fin, lines); /*wczytanie linii*/
+                if (lines.find("___________________") != std::string::npos) /*linia pozioma górna*/
+                {
+                    fin >> s;
+                    if (s == "[") /*lewy pion*/
+                    {
+                        fin >> s;
+                        if (s == "Rodzaj") /*"Rodzaj i numer pociagu"*/
+                            do
+                            {
+                                fin >> s;
+                            } while (!(s == "|") || (fin.eof())); /*œrodkowy pion*/
+                    }
+                }
+                else if (lines == "")
+                {
+                    fin.close();
+                    break;
+                }
+                fin >> s; /*nazwa poci¹gu*/
                 // if LowerCase(s)<>ExtractFileName(TrainName) then {musi byæ taka sama, jak nazwa
                 // pliku}
                 // ConversionError:=-7 {b³¹d niezgodnoœci}
                 TrainName = s; // nadanie nazwy z pliku TXT (bez œcie¿ki do pliku)
                 // else
                 { /*czytaj naglowek*/
-                    while(fin >> s || !fin.bad())
+                    while (fin >> s || !fin.bad())
                     {
-						if (s.find("_______|") != std::string::npos)
-							break;
-						//fin >> s;
-                    } //while (!(s.find("_______|") != std::string::npos) || fin.eof());
-					while (fin >> s || !fin.bad())
+                        if (s.find("_______|") != std::string::npos)
+                            break;
+                        // fin >> s;
+                    } // while (!(s.find("_______|") != std::string::npos) || fin.eof());
+                    while (fin >> s || !fin.bad())
                     {
-						if (s == "[")
-							break;
-                    } //while (!() || (fin.eof())); /*pierwsza linia z relacj¹*/
-                    while(fin >> s || !fin.bad())
+                        if (s == "[")
+                            break;
+                    } // while (!() || (fin.eof())); /*pierwsza linia z relacj¹*/
+                    while (fin >> s || !fin.bad())
                     {
-						if (s != "|")
-							break;
-                    } //while (!(() || fin.eof()));
+                        if (s != "|")
+                            break;
+                    } // while (!(() || fin.eof()));
                     if (s != "|")
                         Relation1 = s;
                     else
                         ConversionError = -5;
-                    while(fin >> s || !fin.bad())
-                    {
-						if (s == "Relacja")
-							break;
-                    } //while (
-                      //  !( || (fin.eof()))); /*druga linia z relacj¹*/
                     while (fin >> s || !fin.bad())
                     {
-						if (s == "|")
-							break;
-                    } //while (!( || (fin.eof())));
+                        if (s == "Relacja")
+                            break;
+                    } // while (
+                    //  !( || (fin.eof()))); /*druga linia z relacj¹*/
+                    while (fin >> s || !fin.bad())
+                    {
+                        if (s == "|")
+                            break;
+                    } // while (!( || (fin.eof())));
                     fin >> Relation2;
                     while (fin >> s || !fin.bad())
                     {
-						if (s == "Wymagany")
-							break;
-                    }// while (!();
+                        if (s == "Wymagany")
+                            break;
+                    } // while (!();
                     while (fin >> s || !fin.bad())
                     {
-						if ((s == "|") || (s == "\n"))
-							break;
-                    } //while (!());
+                        if ((s == "|") || (s == "\n"))
+                            break;
+                    } // while (!());
                     fin >> s;
                     s = s.substr(0, s.find("%"));
                     BrakeRatio = atof(s.c_str());
                     while (fin >> s || fin.bad())
                     {
-						if (s == "Seria")
-							break;
-                    } //while (!(s == "Seria"));
+                        if (s == "Seria")
+                            break;
+                    } // while (!(s == "Seria"));
                     do
                     {
-						fin >> s;
+                        fin >> s;
                     } while (!((s == "|") || (fin.bad())));
                     fin >> LocSeries;
-					fin >> LocLoad;// = s2rE(ReadWord(fin));
+                    fin >> LocLoad; // = s2rE(ReadWord(fin));
                     do
                     {
-						fin >> s;
+                        fin >> s;
                     } while (!(s.find("[______________") != std::string::npos || fin.bad()));
                     while (!fin.bad() && !EndTable)
                     {
@@ -328,7 +329,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                         {
                             fin >> s;
                         } while (!((s == "[") || (fin.bad())));
-						TMTableLine *record = &TimeTable[StationCount];
+                        TMTableLine *record = &TimeTable[StationCount];
                         {
                             if (s == "[")
                                 fin >> s;
@@ -336,10 +337,11 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                 ConversionError = -4;
                             if (s.find("|") == std::string::npos)
                             {
-								record->km = atof(s.c_str());
+                                record->km = atof(s.c_str());
                                 fin >> s;
                             }
-                            if (s.find("|_____|") != std::string::npos) /*zmiana predkosci szlakowej*/
+                            if (s.find("|_____|") !=
+                                std::string::npos) /*zmiana predkosci szlakowej*/
                                 UpdateVelocity(StationCount, vActual);
                             else
                             {
@@ -360,14 +362,15 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                             {
                                 if (s.find(hrsd) != std::string::npos)
                                 {
-                                    record->Ah = atoi(s.substr(0, s.find(hrsd)).c_str()); // godzina przyjazdu
-									record->Am = atoi(
-										s.substr(s.find(hrsd) + 1, s.length()).c_str()); // minuta przyjazdu
+                                    record->Ah = atoi(
+                                        s.substr(0, s.find(hrsd)).c_str()); // godzina przyjazdu
+                                    record->Am = atoi(s.substr(s.find(hrsd) + 1, s.length())
+                                                          .c_str()); // minuta przyjazdu
                                 }
                                 else
                                 {
                                     record->Ah = TimeTable[StationCount - 1]
-                                             .Ah; // godzina z poprzedniej pozycji
+                                                     .Ah; // godzina z poprzedniej pozycji
                                     record->Am = atoi(s.c_str()); // bo tylko minuty podane
                                 }
                             }
@@ -387,7 +390,8 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                 /*tu s moze byc miejscem zmiany predkosci szlakowej*/
                                 fin >> s;
                             }
-                            if (s.find("|_____|") != std::string::npos) /*zmiana predkosci szlakowej*/
+                            if (s.find("|_____|") !=
+                                std::string::npos) /*zmiana predkosci szlakowej*/
                                 UpdateVelocity(StationCount, vActual);
                             else
                             {
@@ -408,24 +412,29 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                             {
                                 if (s.find(hrsd) != std::string::npos)
                                 {
-                                    record->Dh = atoi(s.substr(0, s.find(hrsd)).c_str()); // godzina odjazdu
-                                    record->Dm = atoi(
-                                        s.substr(s.find(hrsd) + 1, s.length()).c_str()); // minuta odjazdu
+                                    record->Dh =
+                                        atoi(s.substr(0, s.find(hrsd)).c_str()); // godzina odjazdu
+                                    record->Dm = atoi(s.substr(s.find(hrsd) + 1, s.length())
+                                                          .c_str()); // minuta odjazdu
                                 }
                                 else
                                 {
                                     record->Dh = TimeTable[StationCount - 1]
-                                             .Dh; // godzina z poprzedniej pozycji
+                                                     .Dh; // godzina z poprzedniej pozycji
                                     record->Dm = atoi(s.c_str()); // bo tylko minuty podane
                                 }
                             }
                             else
                             {
-                                record->Dh = record->Ah; // odjazd o tej samej, co przyjazd (dla ostatniego te¿)
-                                record->Dm = record->Am; // bo s¹ u¿ywane do wyliczenia opóŸnienia po dojechaniu
+                                record->Dh = record->Ah; // odjazd o tej samej, co przyjazd (dla
+                                                         // ostatniego te¿)
+                                record->Dm = record->Am; // bo s¹ u¿ywane do wyliczenia opóŸnienia
+                                                         // po dojechaniu
                             }
                             if ((record->Ah >= 0))
-                                record->WaitTime = (int)(CompareTime(record->Ah, record->Am, record->Dh, record->Dm) + 0.1);
+                                record->WaitTime = (int)(CompareTime(record->Ah, record->Am,
+                                                                     record->Dh, record->Dm) +
+                                                         0.1);
                             do
                             {
                                 fin >> s;
@@ -443,7 +452,8 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                 /*tu s moze byc miejscem zmiany predkosci szlakowej*/
                                 fin >> s;
                             }
-                            if (s.find("|_____|") != std::string::npos) /*zmiana predkosci szlakowej*/
+                            if (s.find("|_____|") !=
+                                std::string::npos) /*zmiana predkosci szlakowej*/
                                 UpdateVelocity(StationCount, vActual);
                             else
                             {
@@ -536,12 +546,7 @@ bool TTrainParameters::DirectionChange()
 // sprawdzenie, czy po zatrzymaniu wykonaæ kolejne komendy
 {
     if ((StationIndex > 0) && (StationIndex < StationCount)) // dla ostatniej stacji nie
-		if (TimeTable[StationIndex].StationWare.find("@") != std::string::npos)
+        if (TimeTable[StationIndex].StationWare.find("@") != std::string::npos)
             return true;
     return false;
 }
-
-
-
-
-

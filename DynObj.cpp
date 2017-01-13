@@ -1763,10 +1763,10 @@ TDynamicObject::Init(string Name, // nazwa pojazdu, np. "EU07-424"
     // kropkê na koniec
     int kropka = MoreParams.find("."); // znajdŸ kropke
     string ActPar; // na parametry
-    while (kropka > 0) // jesli sa kropki jeszcze
+    while (kropka != std::string::npos) // jesli sa kropki jeszcze
     {
         int dlugosc = MoreParams.length();
-        ActPar = ToUpper(MoreParams.substr(0, kropka - 1)); // pierwszy parametr;
+        ActPar = ToUpper(MoreParams.substr(0, kropka)); // pierwszy parametr;
         MoreParams = MoreParams.substr(kropka + 1, dlugosc - kropka); // reszta do dalszej
         // obrobki
         kropka = MoreParams.find(".");

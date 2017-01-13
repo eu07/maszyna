@@ -41,8 +41,7 @@
   <OPTIONS>
     <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
       -I$(BCB)\include -I$(BCB)\include\vcl -Ipython\include -boa"/>
-    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -w- -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v 
-      -vi- -c -tW -tWM"/>
+    <CFLAG1 value="-Od -w- -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zi"/>
@@ -58,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=16
-MinorVer=0
-Release=1173
-Build=481
+MinorVer=1
+Release=1174
+Build=483
 Debug=1
 PreRelease=0
 Special=0
@@ -72,13 +71,13 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=16.0.1173.481
+FileVersion=16.1.1174.483
 InternalName=DP+SPKS+asynch+python
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=16.0
+ProductVersion=16.1
 Comments=
 
 [Excluded Packages]

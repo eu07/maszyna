@@ -64,3 +64,7 @@ MaSzyna.sln
 MaSzyna.vcxproj
 MaSzyna.vcxproj.filters
 *.suo
+EU07.tds
+MaSzyna.VC.VC.opendb
+MaSzyna.VC.db
+.vs/
