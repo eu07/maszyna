@@ -7,16 +7,13 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef EventH
-#define EventH
+#pragma once
 
-#include <system.hpp>
-#include "Classes.h"
-#include "dumb3d.h"
 #include <string>
+#include "dumb3d.h"
+#include "Classes.h"
 
 using namespace Math3D;
-using namespace std;
 
 typedef enum
 {
@@ -85,7 +82,7 @@ union TParam
 class TEvent // zmienne: ev*
 { // zdarzenie
   private:
-    void Conditions(cParser *parser, string s);
+    void Conditions(cParser *parser, std::string s);
 
   public:
     std::string asName;
@@ -100,16 +97,16 @@ class TEvent // zmienne: ev*
     TDynamicObject *Activator;
     TParam Params[13]; // McZapkie-070502 //Ra: zamieniæ to na union/struct
     unsigned int iFlags; // zamiast Params[8] z flagami warunku
-    string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
+    std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
     TEvent *evJoined; // kolejny event z t¹ sam¹ nazw¹ - od wersji 378
     double fRandomDelay; // zakres dodatkowego opóŸnienia
   public: // metody
-    TEvent(string m = "");
+    TEvent(std::string m = "");
     ~TEvent();
     void Init();
     void Load(cParser *parser, vector3 *org);
     void AddToQuery(TEvent *e);
-    string CommandGet();
+    std::string CommandGet();
     TCommandType Command();
     double ValueGet(int n);
     vector3 PositionGet();
@@ -119,4 +116,3 @@ class TEvent // zmienne: ev*
 };
 
 //---------------------------------------------------------------------------
-#endif

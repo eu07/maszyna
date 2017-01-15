@@ -7,13 +7,11 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
-#include <setupapi.h>
+#include "stdafx.h"
 #include "PoKeys55.h"
+#include <setupapi.h>
+#include "mczapkie/mctools.h"
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 // HIDscaner: http://forum.simflight.com/topic/68257-latest-lua-package-for-fsuipc-and-wideclient/
 //#define MY_DEVICE_ID  "Vid_04d8&Pid_003F"
 //#define MY_DEVICE_ID  "Vid_1dc3&Pid_1001&Rev_1000&MI_01"
@@ -44,7 +42,7 @@ TPoKeys55::~TPoKeys55()
     Close();
 };
 //---------------------------------------------------------------------------
-bool TPoKeys55::Close()
+void TPoKeys55::Close()
 { // roz³¹czenie komunikacji
     if (WriteHandle != INVALID_HANDLE_VALUE)
         CloseHandle(WriteHandle);
@@ -73,8 +71,8 @@ bool TPoKeys55::Connect()
     bool MatchFound;
     DWORD ErrorStatus;
     HDEVINFO hDevInfo;
-    String DeviceIDFromRegistry;
-    String DeviceIDToFind = "Vid_1dc3&Pid_1001&Rev_1000&MI_01";
+    std::string DeviceIDFromRegistry;
+    std::string DeviceIDToFind = "Vid_1dc3&Pid_1001&Rev_1000&MI_01";
     // First populate a list of plugged in devices (by specifying "DIGCF_PRESENT"), which are of the
     // specified class GUID.
     DeviceInfoTable =
@@ -118,7 +116,7 @@ bool TPoKeys55::Connect()
                                          &dwRegType, NULL, 0, &dwRegSize);
         // Allocate a buffer for the hardware ID.
         // PropertyValueBuffer=(BYTE*)malloc(dwRegSize);
-        PropertyValueBuffer = new char[dwRegSize];
+        PropertyValueBuffer = new BYTE[dwRegSize];
         if (PropertyValueBuffer == NULL) // if null,error,couldn't allocate enough memory
         { // Can't really recover from this situation,just exit instead.
             // ShowMessage("Allocation PropertyValueBuffer impossible");
@@ -137,17 +135,17 @@ bool TPoKeys55::Connect()
                                          &dwRegType, PropertyValueBuffer, dwRegSize, NULL);
         // Now check if the first string in the hardware ID matches the device ID of my USB device.
         // ListBox1->Items->Add((char*)PropertyValueBuffer);
-        DeviceIDFromRegistry = StrPas((char *)PropertyValueBuffer);
+        DeviceIDFromRegistry = reinterpret_cast<char*>(PropertyValueBuffer);
         // free(PropertyValueBuffer); //No longer need the PropertyValueBuffer,free the memory to
         // prevent potential memory leaks
         delete PropertyValueBuffer; // No longer need the PropertyValueBuffer,free the memory to
         // prevent potential memory leaks
         // Convert both strings to lower case.  This makes the code more robust/portable accross OS
         // Versions
-        DeviceIDFromRegistry = DeviceIDFromRegistry.LowerCase();
-        DeviceIDToFind = DeviceIDToFind.LowerCase();
+        DeviceIDFromRegistry = ToLower( DeviceIDFromRegistry );
+        DeviceIDToFind = ToLower( DeviceIDToFind );
         // Now check if the hardware ID we are looking at contains the correct VID/PID
-        MatchFound = (DeviceIDFromRegistry.AnsiPos(DeviceIDToFind) > 0);
+        MatchFound = ( DeviceIDFromRegistry.find( DeviceIDToFind ) != std::string::npos );
         if (MatchFound == true)
         {
             // Device must have been found.  Open read and write handles.  In order to do this,we
@@ -258,16 +256,16 @@ bool TPoKeys55::ReadLoop(int i)
     return false;
 }
 //---------------------------------------------------------------------------
-AnsiString TPoKeys55::Version()
+std::string TPoKeys55::Version()
 { // zwraca numer wersji, funkcja nieoptymalna czasowo (czeka na odpowiedŸ)
     if (!WriteHandle)
         return "";
     Write(0x00, 0); // 0x00 - Read serial number, version
     if (ReadLoop(10))
     { // 3: serial MSB; 4: serial LSB; 5: software version (v(1+[4-7]).([0-3])); 6: revision number
-        AnsiString s = "PoKeys55 #" + AnsiString((InputBuffer[3] << 8) + InputBuffer[4]);
-        s += " v" + AnsiString(1 + (InputBuffer[5] >> 4)) + "." + AnsiString(InputBuffer[5] & 15) +
-             "." + AnsiString(InputBuffer[6]);
+        std::string s = "PoKeys55 #" + std::to_string((InputBuffer[3] << 8) + InputBuffer[4]);
+        s += " v" + std::to_string(1 + (InputBuffer[5] >> 4)) + "." + std::to_string(InputBuffer[5] & 15) +
+             "." + std::to_string(InputBuffer[6]);
         /* //Ra: pozyskiwanie daty mo¿na sobie darowaæ, jest poniek¹d bez sensu
           Write(0x04,0); //0x04 - Read build date: drugi argument zmieniaæ od 0 do 2, uzyskuj¹c
           kolejno po 4 znaki

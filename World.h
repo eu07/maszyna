@@ -7,18 +7,13 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef WorldH
-#define WorldH
+#pragma once
 
-#include "Usefull.h"
-#include "Classes.h"
-#include "Texture.h"
+#include <string>
 #include "Camera.h"
 #include "Ground.h"
-#include "MdlMngr.h"
-#include "Globals.h"
 #include "sky.h"
-//#include <winuser.h>
+#include "mczapkie/mover.h"
 
 class TWorld
 {
@@ -41,10 +36,10 @@ class TWorld
     ~TWorld();
     // double Aspect;
   private:
-    string OutText1; // teksty na ekranie
-    string OutText2;
-    string OutText3;
-    string OutText4;
+    std::string OutText1; // teksty na ekranie
+    std::string OutText2;
+    std::string OutText3;
+    std::string OutText4;
     void ShowHints();
     bool Render();
     TCamera Camera;
@@ -66,9 +61,9 @@ class TWorld
     int tprev; // poprzedni czas
     double Acc; // przyspieszenie styczne
   public:
-    void ModifyTGA(const AnsiString &dir = "");
-    void CreateE3D(const AnsiString &dir = "", bool dyn = false);
+    void ModifyTGA(std::string const &dir = "");
+    void CreateE3D(std::string const &dir = "", bool dyn = false);
     void CabChange(TDynamicObject *old, TDynamicObject *now);
 };
 //---------------------------------------------------------------------------
-#endif
+

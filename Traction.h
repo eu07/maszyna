@@ -7,16 +7,14 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TractionH
-#define TractionH
+#pragma once
 
-#include "opengl/glew.h"
-#include "dumb3d.h"
-#include "VBO.h"
 #include <string>
+#include "opengl/glew.h"
+#include "VBO.h"
+#include "dumb3d.h"
 
 using namespace Math3D;
-using namespace std;
 
 class TTractionPowerSource;
 
@@ -52,10 +50,10 @@ class TTraction
     DWORD DamageFlag; // 1: zasniedziale, 128: zerwana
     int Wires;
     float WireOffset;
-    string asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
+    std::string asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
     TTractionPowerSource *
         psSection; // zasilacz (opcjonalnie mo¿e to byæ pulpit steruj¹cy EL2 w hali!)
-    string asParallel; // nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
+    std::string asParallel; // nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
     TTraction *hvParallel; // jednokierunkowa i zapêtlona lista przêse³ ewentualnej bie¿ni wspólnej
     float fResistance[2]; // rezystancja zastêpcza do punktu zasilania (0: przês³o zasilane, <0: do
     // policzenia)
@@ -86,4 +84,3 @@ class TTraction
     double VoltageGet(double u, double i);
 };
 //---------------------------------------------------------------------------
-#endif

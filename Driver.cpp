@@ -12,20 +12,18 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Driver.h"
+
+#include <direct.h>
+#include "Globals.h"
+#include "Logs.h"
 #include "mtable.h"
 #include "DynObj.h"
-#include <math.h>
-#include "Globals.h"
 #include "Event.h"
 #include "Ground.h"
 #include "MemCell.h"
 #include "World.h"
-#include "dir.h"
 #include "McZapkie/mctools.h"
 #include "McZapkie/MOVER.h"
 
@@ -247,7 +245,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
 					{
 						if (Global::iWriteLogEnabled & 8)
 						WriteLog("Tor " + trTrack->NameGet() + " zajety przed pojazdem. Num=" +
-							to_string(trTrack->iNumDynamics) + "Dist= " + to_string(fDist));
+							std::to_string(trTrack->iNumDynamics) + "Dist= " + std::to_string(fDist));
 						fVelNext =
 							0.0; // to zabroni� wjazdu (chyba �e ten z przodu te� jedzie prosto)
 					}
@@ -271,7 +269,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
 				{
 					if (Global::iWriteLogEnabled & 8)
 					WriteLog("Rozjazd " + trTrack->NameGet() + " zajety przed pojazdem. Num=" +
-						to_string(trTrack->iNumDynamics) + "Dist= "+ to_string(fDist));
+						std::to_string(trTrack->iNumDynamics) + "Dist= "+ std::to_string(fDist));
 					//fDist -= 30.0;
 					fVelNext = 0.0; // to niech stanie w zwi�kszonej odleg�o�ci
 				// else if (fVelNext==0.0) //je�li zosta�a wyzerowana
@@ -301,7 +299,7 @@ std::string TSpeedPos::TableText()
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
 		return "Flags=#" + to_hex_str(iFlags, 8) + ", Dist=" + to_string(fDist, 1, 7) +
-			", Vel=" + to_string(fVelNext) + ", Name=" + GetName();
+			", Vel=" + std::to_string(fVelNext) + ", Name=" + GetName();
         //if (iFlags & spTrack) // je�li tor
         //    return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
         //           ", Vel=" + AnsiString(fVelNext) + ", Track=" + trTrack->NameGet();
@@ -597,7 +595,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                                 fLastDir = -fLastDir;
                             if (AIControllFlag) // dla AI na razie losujemy kierunek na kolejnym
                                 // skrzy�owaniu
-                                iRouteWanted = 1 + random(3);
+                                iRouteWanted = 1 + Random(3);
                         }
                     }
                 }
@@ -833,7 +831,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 // ju� semafora)
 #if LOGSTOPS
                             WriteLog(pVehicle->asName + " as " + TrainParams->TrainName + ": at " +
-                                     to_string(GlobalTime->hh) + ":" + to_string(GlobalTime->mm) +
+                                     std::to_string(GlobalTime->hh) + ":" + std::to_string(GlobalTime->mm) +
                                      " skipped " + asNextStop); // informacja
 #endif
                             fLastStopExpDist = mvOccupied->DistCounter + 0.250 +
@@ -1004,8 +1002,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 // TableClear(); //aby od nowa sprawdzi�o W4 z inn� nazw� ju� - to nie jest dobry pomys�
 #if LOGSTOPS
                                     WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
-                                             ": at " + to_string(GlobalTime->hh) + ":" +
-                                             to_string(GlobalTime->mm) + " next " +
+                                             ": at " + std::to_string(GlobalTime->hh) + ":" +
+                                             std::to_string(GlobalTime->mm) + " next " +
                                              asNextStop); // informacja
 #endif
 									if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
@@ -1031,8 +1029,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             { // je�li dojechali�my do ko�ca rozk�adu
 #if LOGSTOPS
                                 WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
-                                         ": at " + to_string(GlobalTime->hh) + ":" +
-                                         to_string(GlobalTime->mm) +
+                                         ": at " + std::to_string(GlobalTime->hh) + ":" +
+                                         std::to_string(GlobalTime->mm) +
                                          " end of route."); // informacja
 #endif
                                 asNextStop = TrainParams->NextStop(); // informacja o ko�cu trasy
@@ -1425,7 +1423,7 @@ void TController::TablePurger()
     sSpeedTable = t; // bo jest nowe
     iSpeedTableSize += 16;
 	if (Global::iWriteLogEnabled & 8)
-    WriteLog("Tabelka powi�kszona do "+AnsiString(iSpeedTableSize)+" pozycji");
+    WriteLog("Tabelka powi�kszona do " + std::to_string(iSpeedTableSize) + " pozycji");
 };
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -1644,7 +1642,7 @@ std::string TController::Order2Str(TOrders Order)
 
 std::string TController::OrderCurrent()
 { // pobranie aktualnego rozkazu celem wy�wietlenia
-    return to_string(OrderPos) + ". " + Order2Str(OrderList[OrderPos]);
+    return std::to_string(OrderPos) + ". " + Order2Str(OrderList[OrderPos]);
 };
 
 void TController::OrdersClear()
@@ -2023,8 +2021,8 @@ void TController::SetVelocity(double NewVel, double NewVelNext, TStopReason r)
 { // ustawienie nowej pr�dko�ci
     WaitingTime = -WaitingExpireTime; // przypisujemy -WaitingExpireTime, a potem por�wnujemy z
     // zerem
-    MaxVelFlag = False; // Ra: to nie jest u�ywane
-    MinVelFlag = False; // Ra: to nie jest u�ywane
+    MaxVelFlag = false; // Ra: to nie jest u�ywane
+    MinVelFlag = false; // Ra: to nie jest u�ywane
     /* nie u�ywane
      if ((NewVel>NewVelNext) //je�li oczekiwana wi�ksza ni� nast�pna
       || (NewVel<mvOccupied->Vel)) //albo aktualna jest mniejsza ni� aktualna
@@ -2866,7 +2864,7 @@ void TController::Doors(bool what)
                     mvOccupied->DoorLeft(false); // zamykanie drzwi
                     mvOccupied->DoorRight(false);
                     // Ra: trzeba by ustawi� jaki� czas oczekiwania na zamkni�cie si� drzwi
-                    fActionTime = -1.5 - 0.1 * random(10); // czekanie sekund�, mo�e troch� d�u�ej
+                    fActionTime = -1.5 - 0.1 * Random(10); // czekanie sekund�, mo�e troch� d�u�ej
                     iDrivigFlags &= ~moveDoorOpened; // nie wykonywa� drugi raz
                 }
         }
@@ -2880,7 +2878,7 @@ void TController::Doors(bool what)
                 p = p->Next(); // pojazd pod��czony z ty�u (patrz�c od czo�a)
             }
             // WaitingSet(5); //10 sekund tu to za d�ugo, op��nia odjazd o p�� minuty
-            fActionTime = -1.5 - 0.1 * random(10); // czekanie sekund�, mo�e troch� d�u�ej
+            fActionTime = -1.5 - 0.1 * Random(10); // czekanie sekund�, mo�e troch� d�u�ej
             iDrivigFlags &= ~moveDoorOpened; // zosta�y zamkni�te - nie wykonywa� drugi raz
         }
     }
@@ -2951,7 +2949,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                 if (ConversionError == -8)
                     ErrorLog("Missed timetable: " + NewCommand);
                 WriteLog("Cannot load timetable file " + NewCommand + "\r\nError " +
-                         to_string(ConversionError) + " in position " + to_string(TrainParams->StationCount));
+                         std::to_string(ConversionError) + " in position " + std::to_string(TrainParams->StationCount));
                 NewCommand = ""; // puste, dla wymiennej tekstury
             }
             else
@@ -2963,7 +2961,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                 asNextStop = TrainParams->NextStop();
                 iDrivigFlags |= movePrimary; // skoro dosta� rozk�ad, to jest teraz g��wnym
                 NewCommand = Global::asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
-                if (fileExists(NewCommand))
+                if (FileExists(NewCommand))
                 { // wczytanie d�wi�ku odjazdu podawanego bezpo�renido
                     tsGuardSignal = new TTextSound(NewCommand.c_str(), 30, pVehicle->GetPosition().x,
                                         pVehicle->GetPosition().y, pVehicle->GetPosition().z,
@@ -2974,7 +2972,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                 else
                 {
                     NewCommand = NewCommand.insert(NewCommand.find_last_of("."),"radio"); // wstawienie przed kropk�
-                    if (fileExists(NewCommand))
+                    if (FileExists(NewCommand))
                     { // wczytanie d�wi�ku odjazdu w wersji radiowej (s�ycha� tylko w kabinie)
                         tsGuardSignal = new TTextSound(NewCommand.c_str(), -1, pVehicle->GetPosition().x,
                                             pVehicle->GetPosition().y, pVehicle->GetPosition().z,
@@ -3405,7 +3403,7 @@ bool TController::UpdateSituation(double dt)
                                .MinV) // gdy roz��czenie WS z powodu niskiego napi�cia
                 if (fActionTime >= 0) // je�li czas oczekiwania nie zosta� ustawiony
                     fActionTime =
-                        -2 - random(10); // losowy czas oczekiwania przed ponownym za��czeniem jazdy
+                        -2 - Random(10); // losowy czas oczekiwania przed ponownym za��czeniem jazdy
         }
         if (mvOccupied->Vel > 0.0)
         { // je�eli jedzie
@@ -4882,7 +4880,7 @@ void TController::OrdersDump()
     WriteLog("Orders for " + pVehicle->asName + ":");
     for (int b = 0; b < maxorders; ++b)
     {
-        WriteLog(to_string(b) + ": " + Order2Str(OrderList[b]) + (OrderPos == b ? " <-" : ""));
+        WriteLog(std::to_string(b) + ": " + Order2Str(OrderList[b]) + (OrderPos == b ? " <-" : ""));
         if (b) // z wyj�tkiem pierwszej pozycji
             if (OrderList[b] == Wait_for_orders) // je�li ko�cowa komenda
                 break; // dalej nie trzeba
@@ -4935,10 +4933,10 @@ void TController::OrdersInit(double fVel)
         {
             t = TrainParams->TimeTable + i;
             if (DebugModeFlag) // normalnie nie ma po co tego wypisywa�
-                WriteLog(AnsiString(t->StationName.c_str()) + " " + AnsiString((int)t->Ah) + ":" +
-                         AnsiString((int)t->Am) + ", " + AnsiString((int)t->Dh) + ":" +
-                         AnsiString((int)t->Dm) + " " + AnsiString(t->StationWare.c_str()));
-            if (AnsiString(t->StationWare.c_str()).Pos("@"))
+                WriteLog( t->StationName + " " + std::to_string(t->Ah) + ":" +
+                         std::to_string(t->Am) + ", " + std::to_string(t->Dh) + ":" +
+                         std::to_string(t->Dm) + " " + t->StationWare);
+            if( t->StationWare.find('@') != std::string::npos )
             { // zmiana kierunku i dalsza jazda wg rozk�adu
                 if (iDrivigFlags & movePushPull) // SZT r�wnie�! SN61 zale�nie od wagon�w...
                 { // je�li sk�ad zespolony, wystarczy zmieni� kierunek jazdy
@@ -5302,11 +5300,11 @@ std::string TController::NextStop()
         return ""; // tu nie powinno nigdy wej��
     TMTableLine *t = TrainParams->TimeTable + TrainParams->StationIndex;
     if (t->Dh >= 0) // je�li jest godzina odjazdu
-        return asNextStop.substr(19, 30) + " " + to_string(t->Dh) + ":" +
-               to_string(t->Dm); // odjazd
+        return asNextStop.substr(19, 30) + " " + std::to_string(t->Dh) + ":" +
+               std::to_string(t->Dm); // odjazd
     else if (t->Ah >= 0) // przyjazd
-        return asNextStop.substr(19, 30) + " (" + to_string(t->Ah) + ":" +
-               to_string(t->Am) + ")"; // przyjazd
+        return asNextStop.substr(19, 30) + " (" + std::to_string(t->Ah) + ":" +
+               std::to_string(t->Am) + ")"; // przyjazd
     return "";
 };
 

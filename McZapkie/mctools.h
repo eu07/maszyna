@@ -1,7 +1,4 @@
 #pragma once
-#ifndef INCLUDED_MCTOOLS_H
-#define INCLUDED_MCTOOLS_H
- 
 
 /*
 This Source Code Form is subject to the
@@ -17,12 +14,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include <fstream>
-#include <time.h>
+#include <ctime>
 #include <sys/stat.h>
 #include <vector>
 #include <sstream>
-
-using namespace std;
 
 /*Ra: te sta³e nie s¹ u¿ywane...
         _FileName = ['a'..'z','A'..'Z',':','\','.','*','?','0'..'9','_','-'];
@@ -34,13 +29,11 @@ using namespace std;
         _Delimiter_Space=_Delimiter+[' '];
 */
 static char _EOL[2] = { (char)13, (char)10 };
-        //static char const _SPACE = " ";
-static char  _Spacesigns[4] = { (char)" ",(char)9, (char)13, (char)10};
-static string _spacesigns = " " + (char)9  + (char)13  + (char)10;
+static char  _Spacesigns[4] = { (char)' ', (char)9, (char)13, (char)10 };
+static std::string _spacesigns = " " + (char)9  + (char)13  + (char)10;
 static int const CutLeft = -1;
 static int const CutRight = 1;
 static int const CutBoth = 0;  /*Cut_Space*/
-static double const pi = 3.141592653589793;
 
 extern int ConversionError;
 extern int LineCount;
@@ -77,29 +70,19 @@ inline long Round(float f)
 
 inline int Random()
 {
-	srand(time(NULL));
-	return rand();
+	std::srand(std::time(NULL));
+	return std::rand();
 }
 
 inline double Random(double a, double b)
 {
-	srand(time(NULL));
-	return a + rand() / (float)RAND_MAX * (b - a);
+	std::srand(std::time(NULL));
+	return a + std::rand() / (float)RAND_MAX * (b - a);
 }
 
 inline double Random(double b)
 {
 	return Random(0.0, b);
-}
-
-inline double abs(double _val)
-{
-    return _val < 0 ? -_val : _val;
-}
-
-inline long abs(long _val)
-{
-    return _val < 0 ? -_val : _val;
 }
 
 inline double BorlandTime()
@@ -115,6 +98,8 @@ inline double BorlandTime()
 	time_t raw_t = time(NULL);
 	return (difftime(raw_t, basetime) / 24) + 2;
 }
+
+std::string Now();
 
 /*funkcje logiczne*/
 extern bool TestFlag(int Flag,  int Value);
@@ -135,9 +120,9 @@ char* TrimAndReduceSpaces(const char* s);
 std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
-std::string Ld2Sp(std::string s); /*Low dash to Space sign*/
-std::string Tab2Sp(std::string s); /*Tab to Space sign*/
-std::string ExchangeCharInString(string s,  const char &aim, const char &target); // zamienia jeden znak na drugi
+std::string Ld2Sp(std::string const &s); /*Low dash to Space sign*/
+std::string Tab2Sp(std::string const &s); /*Tab to Space sign*/
+std::string ExchangeCharInString(std::string s,  const char &aim, const char &target); // zamienia jeden znak na drugi
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
 std::vector<std::string> Split(const std::string &s);
@@ -152,25 +137,26 @@ std::string to_string(double _Val, int precision, int width);
 std::string to_hex_str(double _Val, int precision = 0, int width = 0);
 inline std::string to_string(bool _Val)
 {
-	return to_string((int)_Val);
+	return _Val == true ? "true" : "false";
 }
 
 int stol_def(const std::string & str, const int & DefaultValue);
 
-std::string ToLower(std::string text);
-std::string ToUpper(std::string text);
+std::string ToLower(std::string const &text);
+std::string ToUpper(std::string const &text);
 
 /*procedury, zmienne i funkcje graficzne*/
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,   double & phi, double & Xout, double & Yout);
 /*wylicza polozenie Xout Yout i orientacje phi punktu na elemencie dL luku*/
 void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R,   double & Xout, double & Yout);
-
+/*
 inline bool fileExists(const std::string &name)
 {
     struct stat buffer;
     return (stat(name.c_str(), &buffer) == 0);
-}
-
+}*/
+bool FileExists( std::string const &Filename );
+/*
 extern double Xmin;
 extern double Ymin;
 extern double Xmax;
@@ -182,20 +168,17 @@ extern double Vstep;
 extern int Vsize;
 extern int Hsize;
 
-double Xhor( double h);
-       /* Converts horizontal screen coordinate into real X-coordinate. */
 
-double Yver( double v);
-       /* Converts vertical screen coordinate into real Y-coordinate. */
+// Converts horizontal screen coordinate into real X-coordinate.
+double Xhor( double h );
+
+// Converts vertical screen coordinate into real Y-coordinate.
+double Yver( double v );
 
 long Horiz(double x);
 
 long Vert(double Y);
+*/
 
 void ClearPendingExceptions();
 
-/*------------------------------------------------*/
-
-
-#endif//INCLUDED_MCTOOLS_H
-//END

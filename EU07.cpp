@@ -16,80 +16,28 @@ Authors:
 MarcinW, McZapkie, Shaxbee, ABu, nbmx, youBy, Ra, winger, mamut, Q424,
 Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-#include "opengl/ARB_Multisample.h"
 
-#include "system.hpp"
-#include "classes.hpp"
-#include "Globals.h"
-#include "Console.h"
-#include "QueryParserComp.hpp"
-#include "Mover.h"
-#include "Logs.h"
-#pragma hdrstop
+#include "stdafx.h"
 
 #include <dsound.h> //_clear87() itp.
 
-USERES("EU07.res");
-USEUNIT("dumb3d.cpp");
-USEUNIT("Camera.cpp");
-USEUNIT("Texture.cpp");
-USEUNIT("World.cpp");
-USELIB("opengl\glut32.lib");
-USELIB("omf_python27.lib");
-USEUNIT("Model3d.cpp");
-USEUNIT("MdlMngr.cpp");
-USEUNIT("Train.cpp");
-USEUNIT("wavread.cpp");
-USEUNIT("Timer.cpp");
-USEUNIT("Event.cpp");
-USEUNIT("MemCell.cpp");
-USEUNIT("Logs.cpp");
-USELIB("DirectX\Dsound.lib");
-USEUNIT("Spring.cpp");
-USEUNIT("Button.cpp");
-USEUNIT("Globals.cpp");
-USEUNIT("Gauge.cpp");
-USEUNIT("AnimModel.cpp");
-USEUNIT("Ground.cpp");
-USEUNIT("TrkFoll.cpp");
-USEUNIT("Segment.cpp");
-USEUNIT("Sound.cpp");
-USEUNIT("AdvSound.cpp");
-USEUNIT("Track.cpp");
-USEUNIT("DynObj.cpp");
-USEUNIT("RealSound.cpp");
-USEUNIT("EvLaunch.cpp");
-USEUNIT("QueryParserComp.pas");
-USEUNIT("FadeSound.cpp");
-USEUNIT("Traction.cpp");
-USEUNIT("TractionPower.cpp");
-USEUNIT("parser.cpp");
-USEUNIT("sky.cpp");
-USEUNIT("AirCoupler.cpp");
-USEUNIT("opengl\glew.c");
-USEUNIT("ResourceManager.cpp");
-USEUNIT("VBO.cpp");
-USEUNIT("mtable.cpp");
-USEUNIT("TextureDDS.cpp");
-USEUNIT("opengl\ARB_Multisample.cpp");
-USEUNIT("Float3d.cpp");
-USEUNIT("Classes.cpp");
-USEUNIT("Driver.cpp");
-USEUNIT("Names.cpp");
-USEUNIT("Console.cpp");
-USEUNIT("McZapkie\Mover.cpp");
-USEUNIT("McZapkie\hamulce.cpp");
-USEUNIT("McZapkie\Oerlikon_ESt.cpp");
-USEUNIT("McZapkie\friction.cpp");
-USEUNIT("McZapkie\mctools.cpp");
-USEUNIT("Console\PoKeys55.cpp");
-USEUNIT("Forth.cpp");
-USEUNIT("Console\LPT.cpp");
-USEUNIT("PyInt.cpp");
-//---------------------------------------------------------------------------
+#include "opengl/glew.h"
+#include "opengl/wglew.h"
+#include "opengl/ARB_Multisample.h"
+
+#include "Globals.h"
+#include "Console.h"
+#include "Logs.h"
 #include "World.h"
+#include "Mover.h"
+
+#pragma comment( lib, "glew32.lib" )
+#pragma comment( lib, "glu32.lib" )
+#pragma comment( lib, "opengl32.lib" )
+#pragma comment( lib, "dsound.lib" )
+#pragma comment( lib, "winmm.lib" )
+#pragma comment( lib, "setupapi.lib" )
+#pragma comment( lib, "python27.lib" )
 
 HDC hDC = NULL; // Private GDI Device Context
 HGLRC hRC = NULL; // Permanent Rendering Context
@@ -452,7 +400,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
                          WPARAM wParam, // additional message information
                          LPARAM lParam) // additional message information
 {
-    TRect rect;
+    RECT rect;
     switch (uMsg) // check for windows messages
     {
     case WM_PASTE: //[Ctrl]+[V] potrzebujemy do innych celów
@@ -623,18 +571,13 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                    LPSTR lpCmdLine, // command line parameters
                    int nCmdShow) // window show state
 {
+#ifdef _MSC_VER
+	_CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
+#endif
+
     MSG msg; // windows message structure
     BOOL done = FALSE; // bool variable to exit loop
     fullscreen = true;
-    DecimalSeparator = '.';
-    /* //Ra: tutaj to nie dzia³a - zwraca NULL
-     //najpierw ustalmy wersjê OpenGL
-     AnsiString glver=((char*)glGetString(GL_VERSION));
-     while (glver.LastDelimiter(".")>glver.Pos("."))
-      glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
-     try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
-     Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
-    */
     DeleteFile("errors.txt"); // usuniêcie starego
     Global::LoadIniFile("eu07.ini"); // teraz dopiero mo¿na przejrzeæ plik z ustawieniami
     Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na sta³e
@@ -645,31 +588,31 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
         AllocConsole();
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
     }
-    AnsiString str = lpCmdLine; // parametry uruchomienia
-    if (!str.IsEmpty())
+    std::string commandline( lpCmdLine ); // parametry uruchomienia
+    if( false == commandline.empty() )
     { // analizowanie parametrów
-        TQueryParserComp *Parser;
-        Parser = new TQueryParserComp(NULL);
-        Parser->TextToParse = lpCmdLine;
-        Parser->First();
-        while (!Parser->EndOfFile)
-        {
-            str = Parser->GetNextSymbol().LowerCase();
-            if (str == AnsiString("-s"))
+		cParser parser( commandline );
+		std::string token;
+		do {
+			parser.getTokens();
+			token.clear();
+			parser >> token;
+
+            if( token == "-s" )
             { // nazwa scenerii
-                str = Parser->GetNextSymbol().LowerCase();
-                strcpy(Global::szSceneryFile, str.c_str());
+				parser.getTokens();
+				parser >> Global::SceneryFile;
             }
-            else if (str == AnsiString("-v"))
+            else if( token == "-v")
             { // nazwa wybranego pojazdu
-                str = Parser->GetNextSymbol().LowerCase();
-                Global::asHumanCtrlVehicle = str.c_str();
+				parser.getTokens();
+				parser >> Global::asHumanCtrlVehicle;
             }
-            else if (str == AnsiString("-modifytga"))
+            else if( token == "-modifytga" )
             { // wykonanie modyfikacji wszystkich plików TGA
                 Global::iModifyTGA = -1; // specjalny tryb wykonania totalnej modyfikacji
             }
-            else if (str == AnsiString("-e3d"))
+            else if( token == "-e3d" )
             { // wygenerowanie wszystkich plików E3D
                 if (Global::iConvertModels > 0)
                     Global::iConvertModels = -Global::iConvertModels; // specjalny tryb
@@ -680,8 +623,8 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                 Error(
                     "Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",
                     !Global::iWriteLogEnabled);
-        }
-        delete Parser; // ABu 050205: tego wczesniej nie bylo
+		}
+		while( false == token.empty() );
     }
     /* MC: usunalem tymczasowo bo sie gryzlo z nowym parserem - 8.6.2003
         AnsiString csp=AnsiString(Global::szSceneryFile);

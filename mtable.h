@@ -7,13 +7,9 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef MTABLE_H
-#define MTABLE_H
+#pragma once
 
-#include "McZapkie/mctools.h"
 #include <string>
-// using namespace std;
-//#include "sysutils.h"
 
 namespace Mtable
 {
@@ -109,5 +105,3 @@ namespace Mtable
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
 using namespace Mtable;
 #endif
-
-#endif // MTABLE_H

@@ -11,15 +11,9 @@ MaSzyna EU07 - SPKS
 Brakes.
 Copyright (C) 2007-2014 Maciej Cierniak
 */
+#include "stdafx.h"
 #include "mctools.h"
-#include <cmath>
-#include <fstream>
-#include <cctype>
-#include <ostream>
-#include <iomanip>
-#include <algorithm>
 
-using namespace std;
 /*================================================*/
 
 int ConversionError = 0;
@@ -71,6 +65,31 @@ double Min0R(double x1, double x2)
         return x1;
     else
         return x2;
+}
+
+// shitty replacement for Borland timestamp function
+// TODO: replace with something sensible
+std::string Now() {
+
+	std::time_t timenow = std::time( nullptr );
+	std::tm tm = *std::localtime( &timenow );
+	std::stringstream  converter;
+	std::string output;
+	converter << std::put_time( &tm, "%c" );
+	converter >> output;
+	return output;
+
+/*	char buffer[ 256 ];
+	sprintf( buffer,
+		"%d-%02d-%02d %02d:%02d:%02d.%03d",
+		st.wYear,
+		st.wMonth,
+		st.wDay,
+		st.wHour,
+		st.wMinute,
+		st.wSecond,
+		st.wMilliseconds );
+*/
 }
 
 bool TestFlag(int Flag, int Value)
@@ -141,10 +160,10 @@ std::string ReadWord(std::ifstream& infile)
     while ((!infile.eof()) && (!nextword))
     {
         infile.get(c);
-        if (_spacesigns.find(c) != string::npos)
+        if (_spacesigns.find(c) != std::string::npos)
             if (s != "")
                 nextword = true;
-        if (_spacesigns.find(c) == string::npos)
+        if (_spacesigns.find(c) == std::string::npos)
             s += c;
     }
     return s;
@@ -181,7 +200,7 @@ std::string TrimSpace(std::string &s, int Just)
     if (s.empty())
         return "";
     size_t first = s.find_first_not_of(' ');
-    if (first == string::npos)
+    if (first == std::string::npos)
         return "";
     size_t last = s.find_last_not_of(' ');
     return s.substr(first, (last - first + 1));
@@ -193,7 +212,7 @@ char* TrimAndReduceSpaces(const char* s)
 	if (s)
 	{
 
-		tmp = strdup(s);
+		tmp = _strdup(s);
 		char* from = tmp + strspn(tmp, " ");
 		char* to = tmp;
 
@@ -212,7 +231,7 @@ std::string ExtractKeyWord(std::string InS, std::string KeyWord)
     std::string s;
     InS = InS + " ";
     std::size_t kwp = InS.find(KeyWord);
-    if (kwp != string::npos)
+    if (kwp != std::string::npos)
     {
 		s = InS.substr(kwp, InS.length());
         //s = Copy(InS, kwp, length(InS));
@@ -233,30 +252,30 @@ std::string DUE(std::string s) /*Delete Before Equal sign*/
 std::string DWE(std::string s) /*Delete After Equal sign*/
 {
     size_t ep = s.find("=");
-	if (ep != string::npos)
+	if (ep != std::string::npos)
 		//DWE = Copy(s, 1, ep - 1);
 		return s.substr(0, ep);
     else
         return s;
 }
 
-std::string Ld2Sp(std::string s) /*Low dash to Space sign*/
+std::string Ld2Sp(std::string const &s) /*Low dash to Space sign*/
 {
-    //std::string s2 = "";
-	char tmp[] = { (char)"_", (char)" " };
-	for (int b = 0; b < s.length(); ++b)
-		if (s[b] == tmp[0])
-			s[b] = tmp[1];
+    std::string s2( s );
+	char tmp[] = { '_', ' ' };
+	for (int b = 0; b < s2.length(); ++b)
+		if (s2[b] == tmp[0])
+			s2[b] = tmp[1];
 	//{
 	//	if (s[b] == tmp[0])
 	//		s2 = s2 + " ";
 	//	else
 	//		s2 = s2 + s[b];
 	//}
- //   return s2;
+	return s2;
 }
 
-std::string Tab2Sp(std::string s) /*Tab to Space sign*/
+std::string Tab2Sp(std::string const &s) /*Tab to Space sign*/
 {
 	std::string s2 = "";
 	char tmp = (char)9;
@@ -275,7 +294,7 @@ std::string Tab2Sp(std::string s) /*Tab to Space sign*/
 	return s2;
 }
 
-std::string ExchangeCharInString(string s, const char &aim, const char &target)
+std::string ExchangeCharInString(std::string s, const char &aim, const char &target)
 {
 	char *tmp = new char[s.length()];
 	for (int b = 0; b < s.length(); ++b)
@@ -288,7 +307,7 @@ std::string ExchangeCharInString(string s, const char &aim, const char &target)
 		else
 			tmp[b] = s[b];
 	}
-	return string(tmp);
+	return std::string(tmp);
 }
 
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems)
@@ -411,16 +430,18 @@ int stol_def(const std::string &str, const int &DefaultValue)
 	return result;
 }
 
-std::string ToLower(std::string text)
+std::string ToLower(std::string const &text)
 {
-	std::transform(text.begin(), text.end(), text.begin(), ::tolower);
-	return text;
+	std::string lowercase( text );
+	std::transform(text.begin(), text.end(), lowercase.begin(), ::tolower);
+	return lowercase;
 }
 
-std::string ToUpper(std::string text)
+std::string ToUpper(std::string const &text)
 {
-	std::transform(text.begin(), text.end(), text.begin(), ::toupper);
-	return text;
+	std::string uppercase( text );
+	std::transform(text.begin(), text.end(), uppercase.begin(), ::toupper);
+	return uppercase;
 }
 
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,
@@ -443,11 +464,11 @@ void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, 
         if (dX != 0)
             gamma = atan(dY * 1.0 / dX);
         else if (dY > 0)
-            gamma = pi * 1.0 / 2;
+            gamma = M_PI * 1.0 / 2;
         else
-            gamma = 3 * pi * 1.0 / 2;
+            gamma = 3 * M_PI * 1.0 / 2;
         alfa = L * 1.0 / R;
-        phi = gamma - (alfa + pi * Round(R * 1.0 / AbsR)) * 1.0 / 2;
+        phi = gamma - (alfa + M_PI * Round(R * 1.0 / AbsR)) * 1.0 / 2;
         Xc = X0 - AbsR * cos(phi);
         Yc = Y0 - AbsR * sin(phi);
         phi = phi + alfa * dL * 1.0 / L;
@@ -471,16 +492,24 @@ void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R
     if (dX != 0)
         gamma = atan(dY * 1.0 / dX);
     else if (dY > 0)
-        gamma = pi * 1.0 / 2;
+        gamma = M_PI * 1.0 / 2;
     else
-        gamma = 3 * pi * 1.0 / 2;
+        gamma = 3 * M_PI * 1.0 / 2;
     if (R != 0)
         alfa = L * 1.0 / R;
     Xout = X0 + L * cos(alfa * 1.0 / 2 - gamma);
     Yout = Y0 + L * sin(alfa * 1.0 / 2 - gamma);
 }
 
-/*graficzne:*/
+bool FileExists( std::string const &Filename ) {
+
+	std::ifstream file( Filename );
+	if( file.is_open() == false ) { return false; }
+	else                          { return true; }
+}
+
+/*
+//graficzne:
 
 double Xhor(double h)
 {
@@ -515,7 +544,9 @@ long Vert(double Y)
     else
         return -INT_MAX;
 }
+*/
 
+// NOTE: this now does nothing.
 void ClearPendingExceptions()
 // resetuje b³êdy FPU, wymagane dla Trunc()
 {
@@ -525,4 +556,3 @@ void ClearPendingExceptions()
 }
 
 // END
-

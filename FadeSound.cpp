@@ -12,12 +12,9 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "Timer.h"
+#include "stdafx.h"
 #include "FadeSound.h"
+#include "Timer.h"
 
 TFadeSound::TFadeSound()
 {
@@ -101,5 +98,3 @@ void TFadeSound::Volume(long vol)
 }
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

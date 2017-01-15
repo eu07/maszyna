@@ -7,14 +7,11 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
+#include"stdafx.h"
 #include "Names.h"
 
 //---------------------------------------------------------------------------
 
-#pragma package(smart_init)
 /*
 Modu³ zarz¹dzaj¹cy plikami oraz wyszukiwaniem obiektów wg nazw.
 1. Ma przydzielony z góry (EU07.INI) obszar pamiêci (rzêdu 16MB).

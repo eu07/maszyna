@@ -7,17 +7,16 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef groundH
-#define groundH
+#pragma once
 
-#include "dumb3d.h"
-#include "ResourceManager.h"
+#include <string>
+#include "opengl/glew.h"
 #include "VBO.h"
 #include "Classes.h"
-#include <string>
+#include "ResourceManager.h"
+#include "dumb3d.h"
 
 using namespace Math3D;
-using namespace std;
 
 // Ra: zmniejszone liczby, aby zrobiæ tabelkê i zoptymalizowaæ wyszukiwanie
 const int TP_MODEL = 10;
@@ -383,14 +382,14 @@ class TGround
     {
         return (x / fSubRectSize + fHalfTotalNumSubRects);
     };
-    TEvent * FindEvent(const string &asEventName);
-    TEvent * FindEventScan(const string &asEventName);
+    TEvent * FindEvent(const std::string &asEventName);
+    TEvent * FindEventScan(const std::string &asEventName);
     void TrackJoin(TGroundNode *Current);
 
   private:
     void OpenGLUpdate(HDC hDC);
     void RaTriangleDivider(TGroundNode *node);
-    void Navigate(String ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
+    void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
     bool PROBLEND;
 
   public:
@@ -409,7 +408,7 @@ class TGround
     TDynamicObject * CouplerNearest(vector3 pPosition, double distance = 20.0,
                                               bool mech = false);
     void DynamicRemove(TDynamicObject *dyn);
-    void TerrainRead(const AnsiString &f);
+    void TerrainRead(std::string const &f);
     void TerrainWrite();
     void TrackBusyList();
     void IsolatedBusyList();
@@ -417,4 +416,3 @@ class TGround
     void Silence(vector3 gdzie);
 };
 //---------------------------------------------------------------------------
-#endif

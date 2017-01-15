@@ -7,17 +7,12 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef GlobalsH
-#define GlobalsH
+#pragma once
 
 #include <string>
-#include "system.hpp"
+#include <Windows.h>
 #include "opengl/glew.h"
 #include "dumb3d.h"
-#include "PyInt.h"
-//#include "Classes.h"
-
-using namespace Math3D;
 
 // definicje klawiszy
 const int k_IncMainCtrl = 0; //[Num+]
@@ -121,10 +116,6 @@ class TWorld;
 class TCamera;
 class TDynamicObject;
 class TAnimModel; // obiekt terenu
-namespace Queryparsercomp
-{
-class TQueryParserComp; // stary(?) parser
-}
 class cParser; // nowy (powolny!) parser
 class TEvent;
 class TTextSound;
@@ -150,8 +141,8 @@ class TTranscripts
   public:
     TTranscripts();
     ~TTranscripts();
-    void AddLine(char *txt, float show, float hide, bool it);
-    void Add(char *txt, float len,
+    void AddLine(char const *txt, float show, float hide, bool it);
+    void Add(char const *txt, float len,
              bool backgorund = false); // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
     void Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekundê)
 };
@@ -163,12 +154,12 @@ class Global
   public:
     // double Global::tSinceStart;
     static int Keys[MaxKeys];
-    static vector3 pCameraPosition; // pozycja kamery w œwiecie
+    static Math3D::vector3 pCameraPosition; // pozycja kamery w œwiecie
     static double
         pCameraRotation; // kierunek bezwzglêdny kamery w œwiecie: 0=pó³noc, 90°=zachód (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard
-    static vector3 pFreeCameraInit[10]; // pozycje kamery
-    static vector3 pFreeCameraInitAngle[10];
+	static Math3D::vector3 pFreeCameraInit[ 10 ]; // pozycje kamery
+	static Math3D::vector3 pFreeCameraInitAngle[ 10 ];
     static int iWindowWidth;
     static int iWindowHeight;
     static float fDistanceFactor;
@@ -194,7 +185,7 @@ class Global
     static double fFogEnd;
     static TGround *pGround;
     static char **szDefaultExt;
-    static char szSceneryFile[256];
+    static std::string SceneryFile;
     static char CreatorName1[20];
     static char CreatorName2[20];
     static char CreatorName3[20];
@@ -207,11 +198,11 @@ class Global
     static std::string asHumanCtrlVehicle;
     static void LoadIniFile(std::string asFileName);
     static void InitKeys(std::string asFileName);
-    inline static vector3 GetCameraPosition()
+    inline static Math3D::vector3 GetCameraPosition()
     {
         return pCameraPosition;
     };
-    static void SetCameraPosition(vector3 pNewCameraPosition);
+    static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
     static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     // McZapkie-221002: definicja swiatla dziennego
@@ -286,7 +277,6 @@ class Global
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
     static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
     static bool bRollFix; // czy wykonaæ przeliczanie przechy³ki
-    static Queryparsercomp::TQueryParserComp *qParser;
     static cParser *pParser;
     static int iSegmentsRendered; // iloœæ segmentów do regulacji wydajnoœci
     static double fFpsAverage; // oczekiwana wartosæ FPS
@@ -308,15 +298,15 @@ class Global
     static bool bSmudge; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
     static std::string asTranscript[5]; // napisy na ekranie (widoczne)
     static TTranscripts tranTexts; // obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
-    static AnsiString asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+    static std::string asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy ³¹czyæ eventy z torami poprzez nazwê toru
     static TTextSound *tsRadioBusy[10]; // zajêtoœæ kana³ów radiowych (wskaŸnik na odgrywany dŸwiêk)
 	static int iPoKeysPWM[7]; // numery wejœæ dla PWM
 
 	// metody
     static void TrainDelete(TDynamicObject *d);
-    static void ConfigParse(Queryparsercomp::TQueryParserComp *qp, cParser *cp = NULL);
-    static AnsiString GetNextSymbol();
+    static void ConfigParse(cParser &parser);
+    static std::string GetNextSymbol();
     static TDynamicObject * DynamicNearest();
     static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
@@ -325,8 +315,4 @@ class Global
 	static double Min0RSpeed(double vel1, double vel2);
 	static double CutValueToRange(double min, double value, double max);
 };
-
-
-
 //---------------------------------------------------------------------------
-#endif

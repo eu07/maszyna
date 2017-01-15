@@ -13,18 +13,17 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
+#include "stdafx.h"
+#include "Ground.h"
 
 #include "opengl/glew.h"
 #include "opengl/glut.h"
 
-#pragma hdrstop
-
+#include "Globals.h"
+#include "Logs.h"
+#include "usefull.h"
 #include "Timer.h"
 #include "Texture.h"
-#include "Ground.h"
-#include "Globals.h"
 #include "Event.h"
 #include "EvLaunch.h"
 #include "TractionPower.h"
@@ -1412,7 +1411,7 @@ TGroundNode *nTrainSetNode = NULL; // poprzedni pojazd do ³¹czenia
 TGroundNode *nTrainSetDriver = NULL; // pojazd, któremu zostanie wys³any rozk³ad
 
 TGroundVertex TempVerts[10000]; // tu wczytywane s¹ trójk¹ty
-Byte TempConnectionType[200]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
+BYTE TempConnectionType[200]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
 void TGround::RaTriangleDivider(TGroundNode *node)
 { // tworzy dodatkowe trójk¹ty i zmiejsza podany
@@ -2834,7 +2833,7 @@ bool TGround::Init(std::string asFile, HDC hDC)
         }
         else if (str == "config")
         { // mo¿liwoœæ przedefiniowania parametrów w scenerii
-            Global::ConfigParse(NULL, &parser); // parsowanie dodatkowych ustawieñ
+            Global::ConfigParse(parser); // parsowanie dodatkowych ustawieñ
         }
         else if (str != "")
         { // pomijanie od nierozpoznanej komendy do jej zakoñczenia
@@ -2862,7 +2861,6 @@ bool TGround::Init(std::string asFile, HDC hDC)
         parser >> token;
     }
 
-    delete parser;
     sTracks->Sort(TP_TRACK); // finalne sortowanie drzewa torów
     sTracks->Sort(TP_MEMCELL); // finalne sortowanie drzewa komórek pamiêci
     sTracks->Sort(TP_MODEL); // finalne sortowanie drzewa modeli
@@ -3787,15 +3785,15 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                                 &Event->Params[4].nGroundNode->pCenter);
                         //if (DebugModeFlag)
                             WriteLog("EVENT EXECUTED: AddValues & Track command - " +
-                                     string(Event->Params[0].asText) + " " +
-                                     to_string(Event->Params[1].asdouble) + " " +
-                                     to_string(Event->Params[2].asdouble));
+                                     std::string(Event->Params[0].asText) + " " +
+                                     std::to_string(Event->Params[1].asdouble) + " " +
+                                     std::to_string(Event->Params[2].asdouble));
                     }
                     //else if (DebugModeFlag)
                         WriteLog("EVENT EXECUTED: AddValues - " +
-                                 string(Event->Params[0].asText) + " " +
-                                 to_string(Event->Params[1].asdouble) + " " +
-                                 to_string(Event->Params[2].asdouble));
+                                 std::string(Event->Params[0].asText) + " " +
+                                 std::to_string(Event->Params[1].asdouble) + " " +
+                                 std::to_string(Event->Params[2].asdouble));
                 }
                 Event =
                     Event
@@ -3808,7 +3806,7 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                 Event->fStartTime =
                     fabs(Event->fDelay) + Timer::GetTime(); // czas od uruchomienia scenerii
                 if (Event->fRandomDelay > 0.0)
-                    Event->fStartTime += Event->fRandomDelay * random(10000) *
+                    Event->fStartTime += Event->fRandomDelay * Random(10000) *
                                          0.0001; // doliczenie losowego czasu opóŸnienia
                 ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
                 if (QueryRootEvent ? Event->fStartTime >= QueryRootEvent->fStartTime : false)
@@ -3834,8 +3832,8 @@ bool TGround::EventConditon(TEvent *e)
     else if (e->iFlags & conditional_propability)
     {
         double rprobability = 1.0 * rand() / RAND_MAX;
-        WriteLog("Random integer: " + CurrToStr(rprobability) + "/" +
-                 CurrToStr(e->Params[10].asdouble));
+        WriteLog("Random integer: " + std::to_string(rprobability) + "/" +
+                 std::to_string(e->Params[10].asdouble));
         return (e->Params[10].asdouble > rprobability);
     }
     else if (e->iFlags & conditional_memcompare)
@@ -3979,14 +3977,14 @@ bool TGround::CheckQuery()
                                 &tmpEvent->Params[4].nGroundNode->pCenter);
                         //if (DebugModeFlag)
                             WriteLog("Type: UpdateValues & Track command - " +
-                                     AnsiString(tmpEvent->Params[0].asText) + " " +
-                                     AnsiString(tmpEvent->Params[1].asdouble) + " " +
-                                     AnsiString(tmpEvent->Params[2].asdouble));
+                                     std::string(tmpEvent->Params[0].asText) + " " +
+                                     std::to_string(tmpEvent->Params[1].asdouble) + " " +
+                                     std::to_string(tmpEvent->Params[2].asdouble));
                     }
                     else //if (DebugModeFlag)
-                        WriteLog("Type: UpdateValues - " + AnsiString(tmpEvent->Params[0].asText) +
-                                 " " + AnsiString(tmpEvent->Params[1].asdouble) + " " +
-                                 AnsiString(tmpEvent->Params[2].asdouble));
+                        WriteLog("Type: UpdateValues - " + std::string( tmpEvent->Params[0].asText ) +
+                                 " " + std::to_string(tmpEvent->Params[1].asdouble) + " " +
+                                 std::to_string(tmpEvent->Params[2].asdouble));
                 }
                 break;
             case tp_GetValues:
@@ -4193,14 +4191,14 @@ bool TGround::CheckQuery()
                 if (tmpEvent->Params[9].asMemCell) // jeœli by³a podana nazwa komórki
                     WriteLog("Memcell \"" + tmpEvent->asNodeName + "\": " +
                              tmpEvent->Params[9].asMemCell->Text() + " " +
-                             to_string(tmpEvent->Params[9].asMemCell->Value1()) + " " +
-                             to_string(tmpEvent->Params[9].asMemCell->Value2()));
+                             std::to_string(tmpEvent->Params[9].asMemCell->Value1()) + " " +
+                             std::to_string(tmpEvent->Params[9].asMemCell->Value2()));
                 else // lista wszystkich
                     for (TGroundNode *Current = nRootOfType[TP_MEMCELL]; Current;
                          Current = Current->nNext)
                         WriteLog("Memcell \"" + Current->asName + "\": " +
-                                 Current->MemCell->Text() + " " + to_string(Current->MemCell->Value1()) + " " +
-                                 to_string(Current->MemCell->Value2()));
+                                 Current->MemCell->Text() + " " + std::to_string(Current->MemCell->Value1()) + " " +
+                                 std::to_string(Current->MemCell->Value2()));
                 break;
             case tp_Voltage: // zmiana napiêcia w zasilaczu (TractionPowerSource)
                 if (tmpEvent->Params[9].psPower)
@@ -4769,7 +4767,7 @@ bool TGround::RenderAlphaVBO(vector3 pPosition)
 };
 
 //---------------------------------------------------------------------------
-void TGround::Navigate(String ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
+void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
 { // wys³anie komunikatu do steruj¹cego
     HWND h = FindWindow(ClassName.c_str(), 0); // mo¿na by to zapamiêtaæ
     if (h == 0)
@@ -4792,7 +4790,7 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
     cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera koñcz¹ce
     cData.lpData = &r;
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + e + " sent");
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijUszkodzenia(const std::string &t, char fl)
@@ -4809,7 +4807,7 @@ void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 	cData.cbData = 11 + i; // 8+licznik i zero koñcz¹ce
 	cData.lpData = &r;
 	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + t + " sent");
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijString(const std::string &t, int n)
@@ -4825,7 +4823,7 @@ void TGround::WyslijString(const std::string &t, int n)
     cData.cbData = 10 + i; // 8+licznik i zero koñcz¹ce
     cData.lpData = &r;
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + t + " sent");
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijWolny(const std::string &t)
@@ -4905,7 +4903,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     // WriteLog("Ramka gotowa");
     Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
     // WriteLog("Ramka poszla!");
-	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " " + t->asName + " sent");
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
 };
 //
 void TGround::WyslijObsadzone()
@@ -4913,7 +4911,7 @@ void TGround::WyslijObsadzone()
 	DaneRozkaz2 r;
 	r.iSygn = 'EU07';
 	r.iComm = 12;   // kod 12
-	for (int i; i<1984; i++) r.cString[i] = 0;
+	for (int i=0; i<1984; ++i) r.cString[i] = 0;
 
 	int i = 0;
 	for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
@@ -4947,7 +4945,7 @@ void TGround::WyslijObsadzone()
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
 	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(to_string(BorlandTime()) + " " + to_string(r.iComm) + " obsadzone" + " sent");
+	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
 }
 
 //--------------------------------
@@ -5087,7 +5085,7 @@ void TGround::DynamicRemove(TDynamicObject *dyn)
 };
 
 //---------------------------------------------------------------------------
-void TGround::TerrainRead(const AnsiString &f){
+void TGround::TerrainRead(std::string const &f){
     // Ra: wczytanie trójk¹tów terenu z pliku E3D
 };
 
@@ -5122,8 +5120,7 @@ void TGround::TerrainWrite()
                 sk = new TSubModel(); // nowy submodel dla kawadratu
                 // numer kwadratu XXXZZZ, przy czym X jest ujemne - XXX roœnie na wschód, ZZZ roœnie
                 // na pó³noc
-                sk->NameSet(AnsiString(1000 * (500 + i - iNumRects / 2) + (500 + j - iNumRects / 2))
-                                .c_str()); // nazwa=numer kwadratu
+                sk->NameSet( std::to_string(1000 * (500 + i - iNumRects / 2) + (500 + j - iNumRects / 2)).c_str() ); // nazwa=numer kwadratu
                 m->AddTo(NULL, sk); // dodanie submodelu dla kwadratu
                 for (Current = Rects[i][j].nRootNode; Current; Current = Current->nNext2)
                     if (Current->TextureID)
@@ -5187,7 +5184,6 @@ void TGround::TrackBusyList()
 { // wys³anie informacji o wszystkich zajêtych odcinkach
     TGroundNode *Current;
     TTrack *Track;
-    AnsiString name;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
         if (!Current->asName.empty()) // musi byæ nazwa
             if (Current->pTrack->iNumDynamics) // osi to chyba nie ma jak policzyæ

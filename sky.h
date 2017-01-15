@@ -1,9 +1,8 @@
 //---------------------------------------------------------------------------
 
-#ifndef skyH
-#define skyH
+#pragma once
 
-#include "MdlMngr.h"
+#include "Model3d.h"
 
 class TSky
 {
@@ -18,7 +17,6 @@ class TSky
 };
 
 //---------------------------------------------------------------------------
-#endif
 /*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.

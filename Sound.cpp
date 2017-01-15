@@ -7,15 +7,13 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #define STRICT
 #include "Sound.h"
-#include "Usefull.h"
 #include "Globals.h"
-#include <mctools.h>
+#include "Logs.h"
+#include "Usefull.h"
+#include "mczapkie/mctools.h"
 //#define SAFE_DELETE(p)  { if(p) { delete (p);     (p)=NULL; } }
 #define SAFE_RELEASE(p)     \
     {                       \
@@ -59,7 +57,7 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const
         {
             //        SetFileUI( hDlg, TEXT("Bad wave file.") );
             return;
-            ErrorLog("Missed sound: " + string(strFileName));
+            ErrorLog( "Missed sound: " + std::string(strFileName) );
         }
 
     strcpy(Name, ToLower(strFileName).c_str());
@@ -206,10 +204,10 @@ void TSoundsManager::LoadSounds(char *Directory)
 
 LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(const char *Name, bool Dynamic, float *fSamplingRate)
 { // wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
-    AnsiString file;
+    std::string file;
     if (Dynamic)
     { // próba wczytania z katalogu pojazdu
-        file = AnsiString(Global::asCurrentDynamicPath.c_str()) + AnsiString(Name);
+        file = Global::asCurrentDynamicPath + Name;
         if (FileExists(file))
             Name = file.c_str(); // nowa nazwa
         else
@@ -260,7 +258,7 @@ LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(const char *Name, bool Dynamic, 
             *fSamplingRate = Next->fSamplingRate; // czêstotliwoœæ
         return Next->GetUnique(pDS);
     }
-    ErrorLog("Missed sound: " + string(Name));
+    ErrorLog("Missed sound: " + std::string(Name) );
     return (NULL);
 };
 

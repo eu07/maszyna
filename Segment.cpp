@@ -7,28 +7,23 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#pragma hdrstop
-#include "opengl/glew.h"
-//#include "opengl/glut.h"
-
+#include "stdafx.h"
 #include "Segment.h"
-#include "Usefull.h"
+#include "opengl/glew.h"
+
 #include "Globals.h"
+#include "Logs.h"
+#include "Usefull.h"
 #include "Track.h"
-#include <mctools.h>
 
-//#define Precision 10000
-
-#pragma package(smart_init)
 //---------------------------------------------------------------------------
 
 // 101206 Ra: trapezoidalne drogi
 // 110806 Ra: odwrócone mapowanie wzd³u¿ - Point1 == 1.0
 
-string Where(vector3 p)
+std::string Where(vector3 p)
 { // zamiana wspó³rzêdnych na tekst, u¿ywana w b³êdach
-    return to_string(p.x) + " " + to_string(p.y) + " " + to_string(p.z);
+    return std::to_string(p.x) + " " + std::to_string(p.y) + " " + std::to_string(p.z);
 };
 
 TSegment::TSegment(TTrack *owner)

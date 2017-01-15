@@ -13,9 +13,10 @@ http://mozilla.org/MPL/2.0/.
 #include "opengl/glew.h"
 #include "Parser.h"
 #include "dumb3d.h"
-using namespace Math3D;
 #include "Float3d.h"
 #include "VBO.h"
+
+using namespace Math3D;
 
 struct GLVERTEX
 {
@@ -206,7 +207,7 @@ class TSubModel
     // McZapkie-050702: parametry dla swiatla:
     float fNearAttenStart;
     float fNearAttenEnd;
-    int bUseNearAtten; // te 3 zmienne okreslaja rysowanie aureoli wokol zrodla swiatla
+    bool bUseNearAtten; // te 3 zmienne okreslaja rysowanie aureoli wokol zrodla swiatla
     int iFarAttenDecay; // ta zmienna okresla typ zaniku natezenia swiatla (0:brak, 1,2: potega 1/R)
     float fFarDecayRadius; // normalizacja j.w.
     float fCosFalloffAngle; // cosinus k¹ta sto¿ka pod którym widaæ œwiat³o
@@ -215,7 +216,7 @@ class TSubModel
     float fCosViewAngle; // cos kata pod jakim sie teraz patrzy
     // Ra: dalej s¹ zmienne robocze, mo¿na je przestawiaæ z zachowaniem rozmiaru klasy
     int TextureID; // numer tekstury, -1 wymienna, 0 brak
-    int bWire; // nie u¿ywane, ale wczytywane
+    bool bWire; // nie u¿ywane, ale wczytywane
     // short TexAlpha;  //Ra: nie u¿ywane ju¿
     GLuint uiDisplayList; // roboczy numer listy wyœwietlania
     float Opacity; // nie u¿ywane, ale wczytywane
@@ -246,7 +247,7 @@ class TSubModel
   private:
     // int SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX
     // *Vertices);
-    int SeekFaceNormal(DWORD *Masks, int f, DWORD dwMask, float3 *pt, float8 *Vertices);
+    int SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, float3 *pt, float8 *Vertices);
     void RaAnimation(TAnimType a);
 
   public:
@@ -255,7 +256,7 @@ class TSubModel
     static int iAlpha; // maska bitowa dla danego przebiegu
     static double fSquareDist;
     static TModel3d *pRoot;
-    static AnsiString *pasText; // tekst dla wyœwietlacza (!!!! do przemyœlenia)
+    static std::string *pasText; // tekst dla wyœwietlacza (!!!! do przemyœlenia)
     TSubModel();
     ~TSubModel();
     void FirstInit();
@@ -280,8 +281,8 @@ class TSubModel
     void SetTranslate(vector3 vNewTransVector);
     void SetTranslate(float3 vNewTransVector);
     void SetRotateIK1(float3 vNewAngles);
-    TSubModel * GetFromName(AnsiString search, bool i = true);
-    TSubModel * GetFromName(char *search, bool i = true);
+    TSubModel * GetFromName(std::string const &search, bool i = true);
+    TSubModel * GetFromName(char const *search, bool i = true);
     void RenderDL();
     void RenderAlphaDL();
     void RenderVBO();
@@ -388,7 +389,7 @@ class TModel3d : public CMesh
     TStringPack Names; // nazwy submodeli
     int *iModel; // zawartoœæ pliku binarnego
     int iSubModelsCount; // Ra: u¿ywane do tworzenia binarnych
-    AnsiString asBinary; // nazwa pod któr¹ zapisaæ model binarny
+    std::string asBinary; // nazwa pod któr¹ zapisaæ model binarny
   public:
     inline TSubModel * GetSMRoot()
     {
@@ -402,10 +403,10 @@ class TModel3d : public CMesh
     // TMaterial* GetMaterialFromName(char *sName);
     TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
     void AddTo(TSubModel *tmp, TSubModel *SubModel);
-    void LoadFromTextFile(char *FileName, bool dynamic);
-    void LoadFromBinFile(char *FileName, bool dynamic);
-    bool LoadFromFile(char *FileName, bool dynamic);
-    void SaveToBinFile(char *FileName);
+    void LoadFromTextFile(std::string const &FileName, bool dynamic);
+    void LoadFromBinFile(std::string const &FileName, bool dynamic);
+    bool LoadFromFile(std::string const &FileName, bool dynamic);
+    void SaveToBinFile(char const *FileName);
     void BreakHierarhy();
     // renderowanie specjalne
     void Render(double fSquareDistance, GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);

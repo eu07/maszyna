@@ -7,17 +7,15 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Console.h"
 #include "Globals.h"
 #include "Logs.h"
 #include "PoKeys55.h"
 #include "LPT.h"
+#include "mczapkie/mctools.h"
 
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 // Ra: klasa statyczna gromadz¹ca sygna³y steruj¹ce oraz informacje zwrotne
 // Ra: stan wejœcia zmieniany klawiatur¹ albo dedykowanym urz¹dzeniem
 // Ra: stan wyjœcia zmieniany przez symulacjê (mierniki, kontrolki)
@@ -80,10 +78,15 @@ public static Int32 GetScreenSaverTimeout()
 };
 */
 
+// static class member storage allocation
+TKeyTrans Console::ktTable[ 4 * 256 ];
+
 // Ra: do poprawienia
 void SetLedState(char Code, bool bOn)
 { // Ra: bajer do migania LED-ami w klawiaturze
-    if (Win32Platform == VER_PLATFORM_WIN32_NT)
+// NOTE: disabled for the time being
+// TODO: find non Borland specific equivalent, or get rid of it
+/*   if (Win32Platform == VER_PLATFORM_WIN32_NT)
     {
         // WriteLog(AnsiString(int(GetAsyncKeyState(Code))));
         if (bool(GetAsyncKeyState(Code)) != bOn)
@@ -99,6 +102,7 @@ void SetLedState(char Code, bool bOn)
         KBState[Code] = bOn ? 1 : 0;
         SetKeyboardState(KBState);
     };
+*/
 };
 
 //---------------------------------------------------------------------------
@@ -198,7 +202,7 @@ void Console::BitsSet(int mask, int entry)
         iBits |= mask;
         BitsUpdate(old ^ iBits); // 1 dla bitów zmienionych
 		if (iMode == 4)
-			WriteLog("PoKeys::BitsSet: mask: " + AnsiString(mask) + " iBits: " + AnsiString(iBits));
+			WriteLog("PoKeys::BitsSet: mask: " + std::to_string(mask) + " iBits: " + std::to_string(iBits));
     }
 };
 
@@ -290,22 +294,22 @@ void Console::ValueSet(int x, double y)
         {
    			x = Global::iPoKeysPWM[x];
 			if (Global::iCalibrateOutDebugInfo == x)
-				WriteLog("CalibrateOutDebugInfo: oryginal=" + AnsiString(y), false);
+				WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y), false);
 			if (Global::fCalibrateOutMax[x] > 0)
 			{
 				y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
 				if (Global::iCalibrateOutDebugInfo == x)
-					WriteLog(" cutted=" + AnsiString(y),false);
+					WriteLog(" cutted=" + std::to_string(y),false);
 				y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
 				if (Global::iCalibrateOutDebugInfo == x)
-					WriteLog(" fraction=" + AnsiString(y),false);
+					WriteLog(" fraction=" + std::to_string(y),false);
 			}
 			double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
 				Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
 				Global::fCalibrateOut[x][1]) * y +
 				Global::fCalibrateOut[x][0]; // zakres <0;1>
 			if (Global::iCalibrateOutDebugInfo == x)
-				WriteLog(" calibrated=" + AnsiString(temp));
+				WriteLog(" calibrated=" + std::to_string(temp));
 			PoKeys55[0]->PWM(x, temp); 
         }
 };

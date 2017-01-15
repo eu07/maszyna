@@ -13,23 +13,18 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include "opengl/glew.h"
-#include <ddraw>
-
-#include "system.hpp"
-#include "classes.hpp"
-#include "stdio.h"
-#pragma hdrstop
-
-#include "Usefull.h"
+#include "stdafx.h"
 #include "Texture.h"
-#include "TextureDDS.h"
 
-#include "logs.h"
+#include <ddraw.h>
+#include <io.h>
+#include <fcntl.h>
+#include "opengl/glew.h"
+
 #include "Globals.h"
-#include "io.h"
+#include "logs.h"
+#include "Usefull.h"
+#include "TextureDDS.h"
 
 TTexturesManager::Alphas TTexturesManager::_alphas;
 TTexturesManager::Names TTexturesManager::_names;
@@ -260,7 +255,6 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     };
 
     BITMAPFILEHEADER header;
-    size_t bytes;
 
     file.read((char *)&header, sizeof(BITMAPFILEHEADER));
     if (file.eof())
@@ -342,8 +336,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
     // check if width, height and bpp is correct
     if (!width || !height || (header[4] != 24 && header[4] != 32))
     {
-        WriteLog("Bad texture: " + AnsiString(fileName.c_str()) +
-                 " has wrong header or bits per pixel");
+        WriteLog("Bad texture: " + fileName + " has wrong header or bits per pixel");
         file.close();
         return fail;
     };
@@ -357,8 +350,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                 if (i & 1)
                     ++j;
         if (j != 1)
-            WriteLog("Bad texture: " + AnsiString(fileName.c_str()) + " is " + AnsiString(width) +
-                     "×" + AnsiString(height));
+            WriteLog("Bad texture: " + fileName + " is " + std::to_string(width) + "×" + std::to_string(height) );
     }
     GLuint bpp = header[4]; // grab the TGA's bits per pixel (24 or 32)
     GLuint bytesPerPixel = bpp / 8; // divide by 8 to get the bytes per pixel
@@ -367,7 +359,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
     GLubyte *imageData = new GLubyte[imageSize]; // reserve memory to hold the TGA data
     if (!compressed)
     { // WriteLog("Not compressed.");
-        file.read(imageData, imageSize);
+        file.read(reinterpret_cast<char*>(imageData), imageSize);
         if (file.eof())
         {
             delete[] imageData;
@@ -379,9 +371,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
     { // skompresowany plik TGA
         GLuint filesize; // current byte
         GLuint colorbuffer[1]; // Storage for 1 pixel
-        file.seekg(0, ios::end); // na koniec
+        file.seekg(0, std::ios::end); // na koniec
         filesize = (int)file.tellg() - 18; // rozmiar bez nag³ówka
-        file.seekg(18, ios::beg); // ponownie za nag³ówkiem
+        file.seekg(18, std::ios::beg); // ponownie za nag³ówkiem
         GLubyte *copyto = imageData; // gdzie wstawiaæ w buforze
         GLubyte *copyend = imageData + imageSize; // za ostatnim bajtem bufora
         GLubyte *copyfrom = imageData + imageSize - filesize; // gdzie jest pocz¹tek
@@ -389,7 +381,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
         if (filesize < imageSize) // jeœli po kompresji jest mniejszy ni¿ przed
         { // Ra: nowe wczytywanie skompresowanych: czytamy ca³e od razu, dekompresja w pamiêci
             GLuint copybytes;
-            file.read(copyfrom, filesize); // wczytanie reszty po nag³ówku
+            file.read(reinterpret_cast<char*>(copyfrom), filesize); // wczytanie reszty po nag³ówku
             // najpierw trzeba ustaliæ, ile skopiowanych pikseli jest na samym koñcu
             copyto = copyfrom; // roboczo przelatujemy wczytane dane
             copybytes = 0; // licznik bajtów obrazka
@@ -413,7 +405,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
             int extraend = copyend - copyto; // d³ugoœæ œmieci na koñcu
             if (extraend > 0)
             { // przesuwamy bufor do koñca obszaru dekompresji
-                WriteLog("Extra bytes: " + AnsiString(extraend));
+                WriteLog("Extra bytes: " + std::to_string(extraend));
                 memmove(copyfrom + extraend, copyfrom, filesize - extraend);
                 copyfrom += extraend;
                 file.close();
@@ -421,10 +413,12 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                 if (Global::iModifyTGA & 2) // flaga obcinania œmieci
                 { // najlepiej by by³o obci¹æ plik, ale fstream tego nie potrafi
                     int handle;
-                    for (unsigned int i = 0; i < fileName.length(); ++i)
-                        if (fileName[i] == '/')
-                            fileName[i] == '\\'; // bo to Windows
+					for( unsigned int i = 0; i < fileName.length(); ++i ) {
+						if( fileName[ i ] == '/' ) { fileName[ i ] = '\\'; } // bo to Windows }
+					}
                     WriteLog("Truncating extra bytes");
+					// NOTE: this posix code is unsafe, and being deprecated in visual c
+					// TODO: replace with something up to date
                     handle = open(fileName.c_str(), O_RDWR | O_BINARY);
                     chsize(handle, 18 + filesize); // obciêcie œmieci
                     close(handle);
@@ -454,7 +448,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                     writeback = imageData + imageSize + extraend -
                                 copyfrom; // ile bajtów skompresowanych zosta³o do koñca
                     copyfrom = copyto; // adres piksela do zapisania
-                    file.seekg(-writeback, ios::end); // odleg³oœæ od koñca (ujemna)
+                    file.seekg(-writeback, std::ios::end); // odleg³oœæ od koñca (ujemna)
                     if ((filesize > 128) ||
                         !(Global::iModifyTGA & 4)) // gdy za du¿o pikseli albo wy³¹czone
                         writeback = -1; // zapis mo¿liwe jeœli iloœæ problematycznych pikseli nie
@@ -478,7 +472,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                         __int32 bgra = *((__int32 *)++copyfrom); // kolor wype³niaj¹cy (4 bajty)
                         for (int counter = 0; counter < chunkheader; counter++)
                             *ptr++ = bgra;
-                        copyto = (char *)(ptr); // rzutowanie, ¿eby nie dodawaæ
+                        copyto = reinterpret_cast<GLubyte *>(ptr); // rzutowanie, ¿eby nie dodawaæ
                         copyfrom += 4;
                     }
                     else
@@ -516,7 +510,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
             { // if the header is < 128, it means the that is the number of RAW color packets minus
                 // 1
                 chunkheader++; // add 1 to get number of following color values
-                file.read(copyto, chunkheader * bytesPerPixel);
+                file.read(reinterpret_cast<char*>(copyto), chunkheader * bytesPerPixel);
                 copyto += chunkheader * bytesPerPixel;
             }
             else
@@ -529,7 +523,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                     __int32 *ptr = (__int32 *)(copyto), bgra = *((__int32 *)colorbuffer);
                     for (int counter = 0; counter < chunkheader; counter++)
                         *ptr++ = bgra;
-                    copyto = (char *)(ptr); // rzutowanie, ¿eby nie dodawaæ
+                    copyto = reinterpret_cast<GLubyte*>(ptr); // rzutowanie, ¿eby nie dodawaæ
                 }
                 else
                     for (int counter = 0; counter < chunkheader; counter++)
@@ -547,9 +541,9 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                 WriteLog("Rewriting end of file...");
                 chunkheader = filesize - 1; // licznik jest o 1 mniejszy
                 file.open(fileName.c_str(), std::ios::binary | std::ios::out | std::ios::in);
-                file.seekg(-writeback, ios::end); // odleg³oœæ od koñca (ujemna)
+                file.seekg(-writeback, std::ios::end); // odleg³oœæ od koñca (ujemna)
                 file.write((char *)&chunkheader, 1); // zapisanie licznika
-                file.write(copyfrom, filesize * bytesPerPixel); // piksele bez kompresji
+                file.write(reinterpret_cast<char*>(copyfrom), filesize * bytesPerPixel); // piksele bez kompresji
             }
             else
             { // zapisywanie ca³oœci pliku, bêdzie krótszy, wiêc trzeba usun¹æ go w ca³oœci
@@ -558,7 +552,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
                 file.open(fileName.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
                 file.write((char *)TGAcompare, sizeof(TGAcompare));
                 file.write((char *)header, sizeof(header));
-                file.write(imageData, imageSize);
+                file.write(reinterpret_cast<char*>(imageData), imageSize);
             }
         }
     };
@@ -602,7 +596,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
 
     AlphaValue fail(0, false);
 
-    std::ifstream file(fileName.c_str(), ios::binary);
+    std::ifstream file(fileName.c_str(), std::ios::binary);
 
     char head[5];
     file.read(head, 4);
@@ -636,7 +630,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTEX(std::string fileName)
     GLuint size = width * height * bpp;
 
     GLubyte *data = new GLubyte[size];
-    file.read(data, size);
+    file.read(reinterpret_cast<char*>(data), size);
 
     bool hash = (fileName.find('#') != std::string::npos);
 
@@ -651,7 +645,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName, int
 
     AlphaValue fail(0, false);
 
-    std::ifstream file(fileName.c_str(), ios::binary);
+    std::ifstream file(fileName.c_str(), std::ios::binary);
 
     char filecode[5];
     file.read(filecode, 4);
@@ -720,8 +714,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName, int
                 if (i & 1)
                     ++j;
         if (j != 1)
-            WriteLog("Bad texture: " + AnsiString(fileName.c_str()) + " is " +
-                     AnsiString(data.width) + "×" + AnsiString(data.height));
+            WriteLog( "Bad texture: " + fileName + " is " + std::to_string(data.width) + "×" + std::to_string(data.height) );
     }
 
     if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
@@ -846,7 +839,7 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(char *buff, GLint bpp, int width, int height, bool bHasAlpha,
+GLuint TTexturesManager::CreateTexture(GLubyte *buff, GLint bpp, int width, int height, bool bHasAlpha,
                                        bool bHash, bool bDollar, int filter)
 { // Ra: u¿ywane tylko dla TGA i TEX
     // Ra: dodana obs³uga GL_BGR oraz GL_BGRA dla TGA - szybciej siê wczytuje
@@ -873,8 +866,12 @@ GLuint TTexturesManager::CreateTexture(char *buff, GLint bpp, int width, int hei
 
 void TTexturesManager::Free()
 { // usuniêcie wszyskich tekstur (bez usuwania struktury)
-    for (Names::iterator iter = _names.begin(); iter != _names.end(); iter++)
-        glDeleteTextures(1, &(iter->second));
+	//    for (Names::iterator iter = _names.begin(); iter != _names.end(); iter++)
+	if( false == _names.empty() ) {
+		for( auto texture : _names ) {
+			glDeleteTextures( 1, &texture.second );
+		}
+	}
 }
 
 std::string TTexturesManager::GetName(GLuint id)
@@ -884,4 +881,3 @@ std::string TTexturesManager::GetName(GLuint id)
             return iter->first;
     return "";
 };
-#pragma package(smart_init)

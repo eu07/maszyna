@@ -835,8 +835,6 @@ Knorr/West EP - ¿eby by³
 	extern double PFVa(double PH, double PL, double S, double LIM, double DP = 0.1); //zawor napelniajacy z PH do PL, PL do LIM
 	extern double PFVd(double PH, double PL, double S, double LIM, double DP = 0.1); //zawor wypuszczajacy z PH do PL, PH do LIM
 
-	extern long lround(double value); //zastepuje funkcje nieobecna w C++99
-
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)
 #endif
 #endif//INCLUDED_HAMULCE_H

@@ -7,14 +7,10 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TextureH
-#define TextureH
+#pragma once
 
-#include <map>
 #include <string>
-
 #include "opengl/glew.h"
-#include "usefull.h"
 
 /*
 //Ra: miejsce umieszczenia tego jest deczko bezsensowne
@@ -54,7 +50,7 @@ class TTexturesManager
 
     static void SetFiltering(int filter);
     static void SetFiltering(bool alpha, bool hash);
-    static GLuint CreateTexture(char *buff, GLint bpp, int width, int height, bool bHasAlpha,
+    static GLuint CreateTexture(GLubyte *buff, GLint bpp, int width, int height, bool bHasAlpha,
                                 bool bHash, bool bDollar = true, int filter = -1);
 
     static Names _names;
@@ -62,4 +58,3 @@ class TTexturesManager
     //    std::list<TTexture> Textures;
 };
 //---------------------------------------------------------------------------
-#endif

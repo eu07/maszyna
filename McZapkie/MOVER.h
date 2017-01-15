@@ -7,16 +7,11 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef MoverH
-#define MoverH
+#pragma once
 //---------------------------------------------------------------------------
-//#include "Mover.hpp"                                                         //Q: 20160805 - odlaczenie pliku fizyki .pas od kompilacji
-#include "Oerlikon_ESt.h"
-#include "hamulce.h"
-#include <string>
-#include "mctools.h"
+//Q: 20160805 - odlaczenie pliku fizyki .pas od kompilacji
 #include <map>
-
+#include "hamulce.h"
 /*
 MaSzyna EU07 locomotive simulator
 Copyright (C) 2001-2004  Maciej Czapkiewicz and others
@@ -247,60 +242,43 @@ enum TProblem // lista problemów taboru, które uniemo¿liwiaj¹ jazdê
 };
 
 /*ogolne*/
+/*lokacja*/
 struct TLocation
 {
-	double X;
-	double Y;
-	double Z; /*lokacja*/
-    inline TLocation() {
-        X, Y, Z = 0.0;
-    }
+	double X = 0.0;
+	double Y = 0.0;
+	double Z = 0.0;
 };
+/*rotacja*/
 struct TRotation
 {
-	double Rx;
-	double Ry;
-	double Rz; /*rotacja*/
-    inline TRotation() {
-        Rx, Ry, Rz = 0.0;
-    }
+	double Rx = 0.0;
+	double Ry = 0.0;
+	double Rz = 0.0;
 };
+/*wymiary*/
 struct TDimension
 {
-	double W;
-	double L;
-	double H; /*wymiary*/
-    inline TDimension()
-    {
-        W = 0.0;
-        L = 0.0;
-        H = 0.0;
-    }
+	double W = 0.0;
+	double L = 0.0;
+	double H = 0.0;
 };
 
 struct TCommand
 {
 	std::string Command; /*komenda*/
-	double Value1;
-	double Value2; /*argumenty komendy*/
+	double Value1 = 0.0; /*argumenty komendy*/
+	double Value2 = 0.0;
 	TLocation Location;
-    inline TCommand() {
-        Command = "";
-        Value1, Value2 = 0.0;
-        Location = TLocation();
-    }
 };
 
 /*tory*/
 struct TTrackShape
-{/*ksztalt odcinka - promien, dlugosc, nachylenie, przechylka*/
-	double R;
-	double Len;
-	double dHtrack;
-	double dHrail;
-    inline TTrackShape() {
-        R, Len, dHrail, dHtrack = 0.0;
-    }
+{/*ksztalt odcinka*/
+	double R = 0.0; // promien
+	double Len = 0.0; // dlugosc
+	double dHtrack = 0.0; // nachylenie
+	double dHrail = 0.0; // przechylka
 };
 
 struct TTrackParam
@@ -977,8 +955,8 @@ public:
 	TMoverParameters(double VelInitial, std::string TypeNameInit, std::string NameInit, int LoadInitial, std::string LoadTypeInitial, int Cab);
 	// obs³uga sprzêgów
 	double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1, const TDimension &Dim2);
-	double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1, const vector3 &Dim2);
-	//bool AttachA(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
+/*	double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1, const vector3 &Dim2);
+*/	//bool AttachA(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
 	bool Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
@@ -1146,5 +1124,3 @@ public:
 };
 
 extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
-
-#endif

@@ -7,12 +7,11 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "sky.h"
+#include "Logs.h"
 #include "Globals.h"
+#include "MdlMngr.h"
 
 //---------------------------------------------------------------------------
 GLfloat lightPos[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -59,5 +58,3 @@ void TSky::Render()
 };
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

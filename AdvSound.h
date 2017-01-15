@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Sound.h"
 #include "RealSound.h"
-#include "QueryParserComp.hpp"
+#include "parser.h"
 
 typedef enum
 {
@@ -37,9 +37,8 @@ class TAdvancedSound
   public:
     TAdvancedSound();
     ~TAdvancedSound();
-    void Init(char *NameOn, char *Name, char *NameOff, double DistanceAttenuation,
-              vector3 pPosition);
-    void Load(TQueryParserComp *Parser, vector3 pPosition);
+	void Init( std::string const &NameOn, std::string const &Name, std::string const &NameOff, double DistanceAttenuation, vector3 const &pPosition);
+    void Load(cParser &Parser, vector3 const &pPosition);
     void TurnOn(bool ListenerInside, vector3 NewPosition);
     void TurnOff(bool ListenerInside, vector3 NewPosition);
     void Free();

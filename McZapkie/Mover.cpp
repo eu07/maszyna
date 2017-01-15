@@ -7,28 +7,12 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <MATH.H>
-#include <FLOAT.H>
-#include <typeinfo>
-#include <fstream> // std::ifstream
-#include <sstream>
-#include <istream> 
-#include <iostream>
-#include <stdio.h> // sprintf()
-#include <stdlib.h>
-#include <math.h>
-#include <cmath>
-#include <stdio.h>
-
+#include "stdafx.h"
 #include "Mover.h"
 #include "../globals.h"
-//#include "../qutils.h"
-#include "mctools.h"
 #include "../logs.h"
-#include "hamulce.h"
 #include "Oerlikon_ESt.h"
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 
 // Ra: tu nale¿y przenosiæ funcje z mover.pas, które nie s¹ z niego wywo³ywane.
 // Jeœli jakieœ zmienne nie s¹ u¿ywane w mover.pas, te¿ mo¿na je przenosiæ.
@@ -753,13 +737,13 @@ double TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,
 { // zwraca odleg³oœæ pomiêdzy pojazdami (Loc1) i (Loc2) z uwzglêdnieneim ich d³ugoœci (kule!)
     return hypot(Loc2.X - Loc1.X, Loc1.Y - Loc2.Y) - 0.5 * (Dim2.L + Dim1.L);
 };
-
+/*
 double TMoverParameters::Distance(const vector3 &s1, const vector3 &s2, const vector3 &d1,
                                   const vector3 &d2){
     // obliczenie odleg³oœci prostopad³oœcianów o œrodkach (s1) i (s2) i wymiarach (d1) i (d2)
     // return 0.0; //bêdzie zg³aszaæ warning - funkcja do usuniêcia, chyba ¿e siê przyda...
 };
-
+*/
 double TMoverParameters::CouplerDist(int Coupler)
 { // obliczenie odleg³oœci pomiêdzy sprzêgami (kula!)
     return Couplers[Coupler].CoupleDist =
@@ -1417,7 +1401,6 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 		HVCouplers[0][0] = 0;
 		HVCouplers[1][0] = 0;
 	}
-    ClearPendingExceptions(); // ma byc
 
     if (!TestFlag(DamageFlag, dtrain_out))
     { // Ra: to przepisywanie tu jest bez sensu
@@ -1619,8 +1602,6 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
     double Vprev, AccSprev, d;
     int b;
     // T_MoverParameters::FastComputeMovement(dt, Shape, Track, NewLoc, NewRot);
-
-    ClearPendingExceptions(); // nie bylo
 
     Loc = NewLoc;
     Rot = NewRot;
@@ -5237,7 +5218,7 @@ bool TMoverParameters::PantFront(bool State)
 bool TMoverParameters::PantRear(bool State)
 {
     double pf1;
-    bool PR;
+	bool PR = false;
 
     if (Battery == true)
     {
@@ -5854,7 +5835,7 @@ std::string tS(std::string val)
 int Pos(std::string str_find, std::string in)
 {
     size_t pos = in.find(str_find);
-    return (pos != string::npos ? pos+1 : 0);
+    return (pos != std::string::npos ? pos+1 : 0);
 }
 
 // *************************************************************************************************
@@ -5863,7 +5844,7 @@ int Pos(std::string str_find, std::string in)
 bool issection(std::string name)
 {
     sectionname = name;
-    if (xline.find(name) != string::npos)
+    if (xline.find(name) != std::string::npos)
     {
         lastsectionname = name;
         return true;
@@ -5890,7 +5871,7 @@ std::string getkeyval(int rettype, std::string key)
         int klen = key.length();
         int kpos = Pos(key, xline) - 1;
         temp.erase(0, kpos + klen);
-        if (temp.find(" ") != string::npos)
+        if (temp.find(" ") != std::string::npos)
             to = temp.find(" ");
         else
             to = 255;
@@ -5919,7 +5900,7 @@ int MARKERROR(int code, std::string type, std::string msg)
     return code;
 }
 
-int s2NPW(string s)
+int s2NPW(std::string s)
 { // wylicza ilosc osi napednych z opisu ukladu osi
 	const char A = 64;
 	int k;
@@ -5932,7 +5913,7 @@ int s2NPW(string s)
 	return NPW;
 }
 
-int s2NNW(string s)
+int s2NNW(std::string s)
 { // wylicza ilosc osi nienapedzanych z opisu ukladu osi
 	const char Zero = 48;
 	int k;
@@ -5995,7 +5976,7 @@ bool TMoverParameters::readMPT(int ln, std::string line)
 // parsowanie RList
 bool TMoverParameters::readRLIST(int ln, std::string line)
 {
-    char *xxx;
+	char *xxx = nullptr;
     startRLIST = true;
 
     if (ln > 0) // 0 to nazwa sekcji - RList:
@@ -6046,7 +6027,7 @@ bool TMoverParameters::readRLIST(int ln, std::string line)
 // parsowanie Brake Param Table
 bool TMoverParameters::readBPT(int ln, std::string line)
 {
-    char *xxx;
+	char *xxx = nullptr;
     startBPT = true;
     int k;
 
@@ -6342,7 +6323,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     int b, OKFlag;
     std::string lines, s, appdir;
     std::string APPDIR, filetocheck, line, node, key, file, CERR;
-    string wers;
+    std::string wers;
     bool noexist = false;
     bool OK;
 
@@ -6362,7 +6343,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     // appdir = ExtractFilePath(ParamStr(0));
 
-    ifstream in(file.c_str());
+    std::ifstream in(file.c_str());
 	if (!in.is_open())
 	{
 		WriteLog("E8 - FIZ FILE NOT EXIST.");
@@ -6385,7 +6366,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         xline = wers.c_str();
         ishash = xline.find("#");
         // if ((ishash == 1)) WriteLog("zakomentowane " + xline);
-        if ((ishash == string::npos))
+        if ((ishash == std::string::npos))
         {
 
             if (xline.length() == 0)
@@ -7685,7 +7666,6 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
     bool OK;
     std::string testload;
     OK = false;
-    ClearPendingExceptions();
 
 	if (Command == "MainCtrl")
 	{

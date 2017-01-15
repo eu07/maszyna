@@ -11,8 +11,8 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
+#include "stdafx.h"
 #include "mtable.h"
-#include <fstream>
 
 //using namespace Mtable;
 TMTableTime *Mtable::GlobalTime;

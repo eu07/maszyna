@@ -13,15 +13,11 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "Timer.h"
-#include "QueryParserComp.hpp"
-#include "Model3d.h"
+#include "stdafx.h"
 #include "Gauge.h"
-#include "Console.h"
+#include "Timer.h"
+#include "parser.h"
+#include "Model3d.h"
 
 TGauge::TGauge()
 {
@@ -78,14 +74,18 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
     }
 };
 
-bool TGauge::Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2, double mul)
+bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul)
 {
-    AnsiString str1 = Parser->GetNextSymbol();
-    AnsiString str2 = Parser->GetNextSymbol().LowerCase();
-    double val3 = Parser->GetNextSymbol().ToDouble() * mul;
-    double val4 = Parser->GetNextSymbol().ToDouble();
-    double val5 = Parser->GetNextSymbol().ToDouble();
-    TSubModel *sm = md1->GetFromName(str1.c_str());
+	std::string str1 = Parser.getToken<std::string>(false);
+	std::string str2 = Parser.getToken<std::string>();
+	Parser.getTokens( 3, false );
+	double val3, val4, val5;
+	Parser
+		>> val3
+		>> val4
+		>> val5;
+	val3 *= mul;
+		TSubModel *sm = md1->GetFromName( str1.c_str() );
     if (sm) // jeœli nie znaleziony
         md2 = NULL; // informacja, ¿e znaleziony
     else if (md2) // a jest podany drugi model (np. zewnêtrzny)
@@ -171,8 +171,9 @@ void TGauge::Update()
             break;
         case gt_Digital: // Ra 2014-07: licznik cyfrowy
             sm = SubModel->ChildGet();
-            AnsiString n =
-                FormatFloat("0000000000", floor(fValue)); // na razie tak trochê bez sensu
+/*			std::string n = FormatFloat( "0000000000", floor( fValue ) ); // na razie tak trochê bez sensu
+*/			std::string n( "000000000" + std::to_string( static_cast<int>( std::floor( fValue ) ) ) );
+			if( n.length() > 10 ) { n.erase( 0, n.length() - 10 ); } // also dumb but should work for now
             do
             { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od
                 // cyfry w (fValue)
@@ -224,5 +225,3 @@ void TGauge::UpdateValue()
 };
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

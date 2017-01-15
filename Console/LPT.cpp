@@ -7,8 +7,8 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
+#include "stdafx.h"
 #include "LPT.h"
-#include <windows.h>
 
 // LPT na USB:
 // USB\VID_067B&PID_2305&REV_0200
