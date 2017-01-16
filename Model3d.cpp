@@ -287,7 +287,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     }
     else // dla pozosta³ych modeli blokujemy zapalone œwiat³a, które mog¹ byæ
         // nieobs³ugiwane
-        if (token.find("Light_On") == 0) // jeœli nazwa zaczyna siê od "Light_On"
+        if (token.compare(0, 8, "Light_On") == 0) // jeœli nazwa zaczyna siê od "Light_On"
         iVisible = 0; // to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem
     // "Light_Off"
 

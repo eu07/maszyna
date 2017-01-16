@@ -158,7 +158,8 @@ std::string cParser::readToken(bool ToLower, const char *Break)
             // if (trtest=="x") //jeœli nie wczytywaæ drutów
             // trtest2=includefile; //kopiowanie œcie¿ki do pliku
             std::string parameter = readToken(false); // w parametrach nie zmniejszamy
-            while (parameter.compare("end") != 0)
+            while( (parameter.empty() == false)
+				&& (parameter.compare("end") != 0) )
             {
                 parameters.push_back(parameter);
                 parameter = readToken(ToLower);

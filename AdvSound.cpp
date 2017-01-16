@@ -60,11 +60,13 @@ void TAdvancedSound::Load(cParser &Parser, vector3 const &pPosition)
 {
 	std::string nameon, name, nameoff;
 	double attenuation;
-	Parser.getTokens( 4 );
+	Parser.getTokens( 3, true, "\n\t ;," ); // samples separated with commas
 	Parser
 		>> nameon
 		>> name
-		>> nameoff
+		>> nameoff;
+	Parser.getTokens( 1, false );
+	Parser
 		>> attenuation;
 	Init( nameon, name, nameoff, attenuation, pPosition );
 }

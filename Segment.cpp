@@ -200,33 +200,29 @@ double TSegment::RombergIntegral(double fA, double fB)
 double TSegment::GetTFromS(double s)
 {
     // initial guess for Newton's method
-    int it = 0;
     double fTolerance = 0.001;
     double fRatio = s / RombergIntegral(0, 1);
     double fOmRatio = 1.0 - fRatio;
     double fTime = fOmRatio * 0 + fRatio * 1;
+	int iteration = 0;
 
-    //    for (int i = 0; i < iIterations; i++)
-    while (true)
-    {
-        it++;
-        if (it > 10)
-        {
-            ErrorLog("Bad geometry: Too many iterations at " + Where(Point1));
-            // MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
-            return fTime;
-        }
-
+	do {
         double fDifference = RombergIntegral(0, fTime) - s;
-        if ((fDifference > 0 ? fDifference : -fDifference) < fTolerance)
-            return fTime;
+		if( ( fDifference > 0 ? fDifference : -fDifference ) < fTolerance ) {
+			return fTime;
+		}
 
         fTime -= fDifference / GetFirstDerivative(fTime).Length();
-    }
+		++iteration;
+	}
+	while( iteration < 10 ); // arbitrary limit
 
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
+	ErrorLog( "Bad geometry: Too many iterations at " + Where( Point1 ) );
+	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
+	return fTime;
 };
 
 vector3 TSegment::RaInterpolate(double t)

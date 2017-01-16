@@ -58,7 +58,7 @@ void ResourceManager::Sweep(double currentTime)
         WriteLog("Releasing resources");
 #endif
 
-    for (Resources::iterator iter = begin; iter != _resources.end(); iter++)
+    for (Resources::iterator iter = begin; iter != _resources.end(); ++iter)
         (*iter)->Release();
 
 #ifdef RESOURCE_REPORTING

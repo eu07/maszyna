@@ -2167,10 +2167,9 @@ void TController::SetDriverPsyche()
 
 bool TController::PrepareEngine()
 { // odpalanie silnika
-    bool OK;
-    bool voltfront, voltrear;
-    voltfront = false;
-    voltrear = false;
+	bool OK = false,
+		voltfront = false,
+		voltrear = false;
     LastReactionTime = 0.0;
     ReactionTime = PrepareTime;
     iDrivigFlags |= moveActive; // mo�e skanowa� sygna�y i reagowa� na komendy
@@ -2596,7 +2595,6 @@ bool TController::IncSpeed()
 				OK = mvControlling->IncMainCtrl(1);
 			}
 		break;
-		break;
 	case WheelsDriven:
         if (!mvControlling->CabNo)
             mvControlling->CabActivisation();
@@ -2751,7 +2749,7 @@ void TController::SpeedSet()
         break;
     case ElectricSeriesMotor:
         if ((!mvControlling->StLinFlag) && (!mvControlling->DelayCtrlFlag) &&
-            (!iDrivigFlags & moveIncSpeed)) // styczniki liniowe roz��czone    yBARC
+            (!(iDrivigFlags & moveIncSpeed))) // styczniki liniowe roz��czone    yBARC
             //    if (iDrivigFlags&moveIncSpeed) {} //je�li czeka na za��czenie liniowych
             //    else
             while (DecSpeed())
@@ -2928,7 +2926,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
         mvOccupied->PutCommand("Emergency_brake", 1.0, 1.0, mvOccupied->Loc);
         return true; // za�atwione
     }
-    else if (NewCommand.find("Timetable:") == 0)
+    else if (NewCommand.compare(0, 10, "Timetable:") == 0)
     { // przypisanie nowego rozk�adu jazdy, r�wnie� prowadzonemu przez u�ytkownika
         NewCommand = NewCommand.erase(0, 10); // zostanie nazwa pliku z rozk�adem
 #if LOGSTOPS

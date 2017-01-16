@@ -105,7 +105,7 @@ void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
     if (!pSound)
         return;
     long int vol;
-    double dS;
+	double dS = 0.0;
     // double Distance;
     DWORD stat;
     if ((Global::bSoundEnabled) && (AM != 0))

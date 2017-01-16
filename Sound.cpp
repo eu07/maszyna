@@ -56,8 +56,8 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const
         if (FAILED(pWaveSoundRead->Open(strdup(strFileName))))
         {
             //        SetFileUI( hDlg, TEXT("Bad wave file.") );
-            return;
-            ErrorLog( "Missed sound: " + std::string(strFileName) );
+			ErrorLog( "Missed sound: " + std::string( strFileName ) );
+			return;
         }
 
     strcpy(Name, ToLower(strFileName).c_str());
@@ -108,16 +108,20 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const
         return; // E_OUTOFMEMORY;
 
     // if (FAILED(hr=pWaveSoundRead->Read( nWaveFileSize,pbWavData,&cbWavSize)))
-    if (FAILED(hr = pWaveSoundRead->Read(nWaveFileSize, pbWavData, &cbWavSize)))
-        return;
+	if( FAILED( hr = pWaveSoundRead->Read( nWaveFileSize, pbWavData, &cbWavSize ) ) ) {
+		delete[] pbWavData;
+		return;
+	}
 
     // Reset the file to the beginning
     pWaveSoundRead->Reset();
 
     // Lock the buffer down
     // if (FAILED(hr=DSBuffer->Lock(0,dwBufferBytes,&pbData,&dwLength,&pbData2,&dwLength2,0)))
-    if (FAILED(hr = DSBuffer->Lock(0, dwBufferBytes, &pbData, &dwLength, &pbData2, &dwLength2, 0L)))
-        return;
+	if( FAILED( hr = DSBuffer->Lock( 0, dwBufferBytes, &pbData, &dwLength, &pbData2, &dwLength2, 0L ) ) ) {
+		delete[] pbWavData;
+		return;
+	}
 
     // Copy the memory to it.
     memcpy(pbData, pbWavData, dwBufferBytes);

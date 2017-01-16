@@ -668,7 +668,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga2.tga");
     // Camera.Reset();
     Timer::ResetTimers();
-	WriteLog( "Load time: " + std::to_string( ( std::chrono::system_clock::now() - timestart ).count() ) + " seconds");
+	WriteLog( "Load time: " +
+		std::to_string( std::chrono::duration_cast<std::chrono::seconds>(( std::chrono::system_clock::now() - timestart )).count() )
+		+ " seconds");
     if (DebugModeFlag) // w Debugmode automatyczne w³¹czenie AI
         if (Train)
             if (Train->Dynamic()->Mechanik)
@@ -2078,7 +2080,7 @@ bool TWorld::Update()
                     std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
 					for (int i = 0, j = 1; i < 19; ++i, j <<= 1)
 						if (tmp->Mechanik->DrivigFlags() & j) // jak bit ustawiony
-							toupper(flags[i + 1]); // ^= 0x20; // to zmiana na wielk¹ literê
+							flags[i + 1] = std::toupper(flags[i + 1]); // ^= 0x20; // to zmiana na wielk¹ literê
                     OutText4 = flags;
 					OutText4 +=
 						("Driver: Vd=") +

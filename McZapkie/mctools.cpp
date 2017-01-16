@@ -208,7 +208,7 @@ std::string TrimSpace(std::string &s, int Just)
 
 char* TrimAndReduceSpaces(const char* s)
 { // redukuje spacje pomiedzy znakami do jednej
-	char* tmp;	
+	char* tmp = nullptr;
 	if (s)
 	{
 
@@ -422,11 +422,11 @@ int stol_def(const std::string &str, const int &DefaultValue)
 	std::strncpy(s, str.c_str(), len);
 	char *p;
 	int result = strtol(s, &p, 0);
-	if ((*p != '\0') || (errno != 0))
+	delete[] s;
+	if( ( *p != '\0' ) || ( errno != 0 ) )
 	{
 		return DefaultValue;
 	}
-	delete s;
 	return result;
 }
 

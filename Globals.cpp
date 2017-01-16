@@ -1012,7 +1012,7 @@ char bezogonkowo[] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
 
 std::string Global::Bezogonkow(std::string str, bool _)
 { // wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
-    for (unsigned int i = 1; i <= str.length(); ++i)
+    for (unsigned int i = 1; i < str.length(); ++i)
         if (str[i] & 0x80)
             str[i] = bezogonkowo[str[i] & 0x7F];
         else if (str[i] < ' ') // znaki steruj¹ce nie s¹ obs³ugiwane

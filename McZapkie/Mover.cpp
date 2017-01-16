@@ -293,12 +293,12 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     EngineType = None;
     EnginePowerSource = TPowerParameters();
     SystemPowerSource = TPowerParameters();
-    for (b = 0; b <= ResArraySize + 1; b++)
+    for (b = 0; b < ResArraySize + 1; ++b)
     {
         RList[b] = TScheme();
     }
     RlistSize = 0;
-    for (b = 0; b <= MotorParametersArraySize + 1; b++)
+    for (b = 0; b < MotorParametersArraySize + 1; ++b)
         MotorParam[b] = TMotorParameters();
 
     WheelDiameter = 1.0;
@@ -5841,10 +5841,10 @@ int Pos(std::string str_find, std::string in)
 // *************************************************************************************************
 // Q: 20160717
 // *************************************************************************************************
-bool issection(std::string name)
+bool issection(std::string const &name)
 {
     sectionname = name;
-    if (xline.find(name) != std::string::npos)
+    if (xline.compare(0, name.size(), name) == 0)
     {
         lastsectionname = name;
         return true;
@@ -5943,9 +5943,10 @@ bool TMoverParameters::readMPT(int ln, std::string line)
         x = Split(line);
 
         int s = x.size();
-		if ( s < 7 && s > 8)
+		if ( (s < 7)
+	      || (s > 8) )
 		{
-			WriteLog("Read MPT: wrong argument number of arguments in line " + to_string(ln -1));
+			WriteLog( "Read MPT: wrong number of arguments (" + std::to_string( s ) + ") in line " + std::to_string( ln - 1 ) );
             MPTLINE++;
 			return false;
 		}
@@ -5991,9 +5992,10 @@ bool TMoverParameters::readRLIST(int ln, std::string line)
         x = Split(xxx); // split je wskaznik na char jak i std::string
 
         int s = x.size();
-        if ( s < 5 && s > 6)
+        if ( ( s < 5 )
+	      || ( s > 6 ))
         {
-			WriteLog("Read RLIST: wrong argument number of arguments in line " + to_string(ln - 1));
+			WriteLog("Read RLIST: wrong number of arguments (" + std::to_string(s) + ") in line " + std::to_string(ln - 1));
             delete[] xxx;
             RLISTLINE++;
             return false;
@@ -6041,7 +6043,7 @@ bool TMoverParameters::readBPT(int ln, std::string line)
         int s = x.size();
         if (s != 5)
         {
-            WriteLog("Read BPT: wrong argument number of arguments in line " + to_string(ln - 1));
+			WriteLog( "Read BPT: wrong number of arguments (" + std::to_string( s ) + ") in line " + std::to_string( ln - 1 ) );
             delete[] xxx;
             return false;
         }
@@ -6215,8 +6217,6 @@ TPowerType TMoverParameters::PowerDecode(std::string s)
 {
     if (s == "BioPower")
         return BioPower;
-    else if (s == "BioPower")
-        return BioPower;
     else if (s == "MechPower")
         return MechPower;
     else if (s == "ElectricPower")
@@ -6360,25 +6360,34 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     // Zbieranie danych zawartych w pliku FIZ
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    while (getline(in, wers))
+    while (std::getline(in, wers))
     {
         // wers.find('#');
-        xline = wers.c_str();
-        ishash = xline.find("#");
+        xline = wers;
+        bool comment = ( ( xline.find('#') != std::string::npos )
+			          || ( xline.compare( 0, 2, "//" ) == 0 ) );
         // if ((ishash == 1)) WriteLog("zakomentowane " + xline);
-        if ((ishash == std::string::npos))
+        if( false == comment )
         {
-
-            if (xline.length() == 0)
-                startBPT = false; // Tablica parametyrow hamulca nie ma znacznika konca :(
-            if (issection("END-MPT"))
-                startMPT = false;
-            if (issection("END-RL"))
-                startRLIST = false;
+			if( xline.length() == 0 ) {
+				startBPT = false;
+				continue;
+			}
+			if( issection( "END-MPT" ) ) {
+				startBPT = false;
+				startMPT = false;
+				continue;
+			}
+			if( issection( "END-RL" ) ) {
+				startBPT = false;
+				startRLIST = false;
+				continue;
+			}
 
             if (issection("Param."))
             {
-                secParam = true;
+				startBPT = false;
+				secParam = true;
                 SetFlag(OKFlag, param_ok);
                 aCategory = getkeyval(1, "Category");
                 aType = ToUpper(getkeyval(1, "Type"));
@@ -6389,33 +6398,39 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 aSandCap = atoi(getkeyval(2, "SandCap").c_str());
                 aHeatingP = atof(getkeyval(3, "HeatingP").c_str());
                 aLightP = atof(getkeyval(3, "LightP").c_str());
+				continue;
             }
 
             if (issection("Load:"))
             {
-                secLoad = true;
+				startBPT = false;
+				secLoad = true;
                 bMaxLoad = atoi(getkeyval(2, "MaxLoad").c_str());
                 bLoadQ = getkeyval(1, "LoadQ");
                 bLoadAccepted = getkeyval(1, "LoadAccepted");
                 bLoadSpeed = atof(getkeyval(3, "LoadSpeed").c_str());
                 bUnLoadSpeed = atof(getkeyval(3, "UnLoadSpeed").c_str());
                 bOverLoadFactor = atof(getkeyval(3, "OverLoadFactor").c_str());
+				continue;
             }
 
             if (issection("Dimensions:"))
             {
-                secDimensions = true;
+				startBPT = false;
+				secDimensions = true;
                 SetFlag(OKFlag, dimensions_ok);
                 cL = atof(getkeyval(3, "L").c_str());
                 cH = atof(getkeyval(3, "H").c_str());
                 cW = atof(getkeyval(3, "W").c_str());
                 cCx = atof(getkeyval(3, "Cx").c_str());
                 cFloor = atof(getkeyval(3, "Floor").c_str());
+				continue;
             }
 
             if (issection("Wheels:"))
             {
-                secWheels = true;
+				startBPT = false;
+				secWheels = true;
                 dD = atof(getkeyval(3, "D").c_str());
                 dDl = atof(getkeyval(3, "Dl").c_str());
                 dDt = atof(getkeyval(3, "Dt").c_str());
@@ -6426,11 +6441,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 dBd = atof(getkeyval(3, "Bd").c_str());
                 dRmin = atof(getkeyval(3, "Rmin").c_str());
                 dBearingType = getkeyval(1, "BearingType");
+				continue;
             }
 
             if (issection("Brake:"))
             {
-                secBrake = true;
+				startBPT = false;
+				secBrake = true;
                 eBrakeValve = getkeyval(1, "BrakeValve");
                 eNBpA = atoi(getkeyval(2, "NBpA").c_str());
                 eMBF = atof(getkeyval(3, "MBF").c_str());
@@ -6460,11 +6477,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 eLoPP = atof(getkeyval(3, "LoPP").c_str());
                 eCompressorSpeed = atof(getkeyval(3, "CompressorSpeed").c_str());
                 eCompressorPower = atof(getkeyval(1, "CompressorPower").c_str());
+				continue;
             }
 
             if (issection("BuffCoupl.") || issection("BuffCoupl1."))
             {
-                secBuffCoupl = true;
+				startBPT = false;
+				secBuffCoupl = true;
                 fCType = (getkeyval(1, "CType"));
                 fkB = atof(getkeyval(3, "kB").c_str());
                 fDmaxB = atof(getkeyval(3, "DmaxB").c_str());
@@ -6474,60 +6493,37 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 fFmaxC = atof(getkeyval(3, "FmaxC").c_str());
                 fbeta = atof(getkeyval(3, "beta").c_str());
                 fAllowedFlag = atoi(getkeyval(2, "AllowedFlag").c_str());
-            }
-
-            if (issection("Cntrl."))
-            {
-                secCntrl = true;
-                gBrakeSystem = (getkeyval(1, "BrakeSystem"));
-                gBCPN = atoi(getkeyval(2, "BCPN").c_str());
-                gBDelay1 = atoi(getkeyval(2, "BDelay1").c_str());
-                gBDelay2 = atoi(getkeyval(2, "BDelay2").c_str());
-                gBDelay3 = atoi(getkeyval(2, "BDelay3").c_str());
-                gBDelay4 = atoi(getkeyval(2, "BDelay4").c_str());
-                gASB = (getkeyval(1, "ASB"));
-                gLocalBrake = (getkeyval(1, "LocalBrake"));
-                gDynamicBrake = (getkeyval(1, "DynamicBrake"));
-                // gManualBrake =         (getkeyval(1, "ManualBrake"));
-                gFSCircuit = (getkeyval(1, "FSCircuit").c_str());
-                gMCPN = atoi(getkeyval(2, "MCPN").c_str());
-                gSCPN = atoi(getkeyval(2, "SCPN").c_str());
-                gSCIM = atoi(getkeyval(2, "SCIM").c_str());
-                gScndS = (getkeyval(1, "ScndS"));
-                gCoupledCtrl = (getkeyval(1, "CoupledCtrl"));
-                gAutoRelay = (getkeyval(1, "AutoRelay"));
-                gIniCDelay = atof(getkeyval(3, "IniCDelay").c_str());
-                gSCDelay = atof(getkeyval(3, "SCDelay").c_str());
-                gSCDDelay = atof(getkeyval(3, "SCDDelay").c_str());
-                gBrakeDelays = (getkeyval(1, "BrakeDelays"));
-                gBrakeHandle = (getkeyval(1, "BrakeHandle"));
-                gLocBrakeHandle = (getkeyval(1, "LocBrakeHandle"));
-                gMaxBPMass = atof(getkeyval(3, "MaxBPMass").c_str());
+				continue;
             }
 
             if (issection("Security:"))
             {
-                secSecurity = true;
+				startBPT = false;
+				secSecurity = true;
                 hAwareSystem = (getkeyval(1, "AwareSystem"));
                 hAwareMinSpeed = atof(getkeyval(3, "AwareMinSpeed").c_str());
                 hAwareDelay = atof(getkeyval(3, "AwareDelay").c_str());
                 hSoundSignalDelay = atof(getkeyval(3, "SoundSignalDelay").c_str());
                 hEmergencyBrakeDelay = atof(getkeyval(3, "EmergencyBrakeDelay").c_str());
                 hRadioStop = (getkeyval(1, "RadioStop"));
+				continue;
             }
 
             if (issection("Light:"))
             {
-                secLight = true;
+				startBPT = false;
+				secLight = true;
                 iLight = (getkeyval(1, "Light"));
                 iLGeneratorEngine = (getkeyval(1, "LGeneratorEngine"));
                 iLMaxVoltage = atof(getkeyval(3, "LMaxVoltage").c_str());
                 iLMaxCurrent = atof(getkeyval(3, "LMaxCurrent").c_str());
+				continue;
             }
 
             if (issection("Power:"))
             {
-                secPower = true;
+				startBPT = false;
+				secPower = true;
                 jEnginePower = (getkeyval(1, "EnginePower"));
                 jSystemPower = (getkeyval(1, "SystemPower"));
                 jCollectorsNo = atoi(getkeyval(2, "CollectorsNo").c_str());
@@ -6540,40 +6536,55 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 jMinV = atof(getkeyval(3, "MinV").c_str());
                 jMinPress = atof(getkeyval(3, "MinPress").c_str());
                 jMaxPress = atof(getkeyval(3, "MaxPress").c_str());
+				continue;
             }
 
             if (issection("Engine:"))
             {
-                secEngine = true;
+				startBPT = false;
+				secEngine = true;
                 kEngineType = (getkeyval(1, "EngineType"));
                 kTrans = (getkeyval(1, "Trans"));
                 kVolt = atof(getkeyval(3, "Volt").c_str());
                 kWindingRes = atof(getkeyval(3, "WindingRes").c_str());
                 knmax = atof(getkeyval(3, "nmax").c_str());
+				continue;
             }
 
             if (issection("Circuit:"))
             {
-                secCircuit = true;
+				startBPT = false;
+				secCircuit = true;
                 lCircuitRes = atof(getkeyval(3, "CircuitRes").c_str());
                 lImaxLo = atoi(getkeyval(2, "ImaxLo").c_str());
                 lImaxHi = atoi(getkeyval(2, "ImaxHi").c_str());
                 lIminLo = atoi(getkeyval(2, "IminLo").c_str());
                 lIminHi = atoi(getkeyval(2, "IminHi").c_str());
+				continue;
             }
 
             if (issection("RList:"))
             {
-                secRList = true;
+				startBPT = false;
+				secRList = true;
                 mSize = atoi(getkeyval(2, "Size").c_str());
                 mRVent = (getkeyval(1, "RVent"));
                 mRVentnmax = atof(getkeyval(3, "RVentnmax").c_str());
                 mRVentCutOff = atof(getkeyval(3, "RVentCutOff").c_str());
+				// don't close loop yet, init data table
             }
 
-            if (issection("DList:"))
+			if( issection( "RList:" ) || startRLIST ) {
+				startBPT = false;
+				secRList = true;
+				readRLIST( RLISTLINE, xline );
+				continue;
+			}
+
+			if( issection( "DList:" ) )
             {
-                secDList = true;
+				startBPT = false;
+				secDList = true;
                 nMmax = atof(getkeyval(3, "Mmax").c_str());
                 nnMmax = atof(getkeyval(3, "nMmax").c_str());
                 nMnmax = atof(getkeyval(3, "Mnmax").c_str());
@@ -6581,45 +6592,78 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 nnominalfill = atof(getkeyval(3, "nominalfill").c_str());
                 nMstand = atof(getkeyval(3, "Mstand").c_str());
                 nSize = atoi(getkeyval(2, "Size").c_str());
+				continue;
             }
 
             if (issection("WWList:"))
             {
-                secWWList = true;
+				startBPT = false;
+				secWWList = true;
                 getkeyval(2, "Size");
+				continue;
             }
 
             if (issection("ffList:"))
             {
-                secffList = true;
+				startBPT = false;
+				secffList = true;
                 getkeyval(2, "Size");
+				continue;
             }
 
             if (issection("TurboPos:"))
             {
-                secTurboPos = true;
+				startBPT = false;
+				secTurboPos = true;
                 getkeyval(2, "TurboPos");
-            }
-
-            if (issection("Cntrl.") || startBPT)
-            {
-                secBPT = true;
-                if (gBCPN > 0)
-                    readBPT(BPTLINE, xline); // np wagony nie maja BPT
+				continue;
             }
 
             if (issection("MotorParamTable0:") || startMPT)
             {
-                secMotorParamTable0 = true;
+				startBPT = false;
+				secMotorParamTable0 = true;
                 readMPT(MPTLINE, xline);
+				continue;
             }
 
-            if (issection("RList:") || startRLIST)
-            {
-                secRList = true;
-                readRLIST(RLISTLINE, xline);
-            }
-        } // is hash
+			if( issection( "Cntrl." ) ) {
+				startBPT = false;
+				secCntrl = true;
+				gBrakeSystem = ( getkeyval( 1, "BrakeSystem" ) );
+				gBCPN = atoi( getkeyval( 2, "BCPN" ).c_str() );
+				gBDelay1 = atoi( getkeyval( 2, "BDelay1" ).c_str() );
+				gBDelay2 = atoi( getkeyval( 2, "BDelay2" ).c_str() );
+				gBDelay3 = atoi( getkeyval( 2, "BDelay3" ).c_str() );
+				gBDelay4 = atoi( getkeyval( 2, "BDelay4" ).c_str() );
+				gASB = ( getkeyval( 1, "ASB" ) );
+				gLocalBrake = ( getkeyval( 1, "LocalBrake" ) );
+				gDynamicBrake = ( getkeyval( 1, "DynamicBrake" ) );
+				// gManualBrake =         (getkeyval(1, "ManualBrake"));
+				gFSCircuit = ( getkeyval( 1, "FSCircuit" ).c_str() );
+				gMCPN = atoi( getkeyval( 2, "MCPN" ).c_str() );
+				gSCPN = atoi( getkeyval( 2, "SCPN" ).c_str() );
+				gSCIM = atoi( getkeyval( 2, "SCIM" ).c_str() );
+				gScndS = ( getkeyval( 1, "ScndS" ) );
+				gCoupledCtrl = ( getkeyval( 1, "CoupledCtrl" ) );
+				gAutoRelay = ( getkeyval( 1, "AutoRelay" ) );
+				gIniCDelay = atof( getkeyval( 3, "IniCDelay" ).c_str() );
+				gSCDelay = atof( getkeyval( 3, "SCDelay" ).c_str() );
+				gSCDDelay = atof( getkeyval( 3, "SCDDelay" ).c_str() );
+				gBrakeDelays = ( getkeyval( 1, "BrakeDelays" ) );
+				gBrakeHandle = ( getkeyval( 1, "BrakeHandle" ) );
+				gLocBrakeHandle = ( getkeyval( 1, "LocBrakeHandle" ) );
+				gMaxBPMass = atof( getkeyval( 3, "MaxBPMass" ).c_str() );
+				// don't break yet, init (optional) data table
+			}
+
+			if( issection( "Cntrl." ) || startBPT ) {
+				secBPT = true;
+				if( gBCPN > 0 )
+					readBPT( BPTLINE, xline ); // np wagony nie maja BPT
+				continue;
+			}
+		} // is hash
     } // while line
     in.close();
     // Sprawdzenie poprawnosci wczytanych parametrow

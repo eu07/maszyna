@@ -752,10 +752,10 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
            }
         */
 
-        int i, j, k, idx;
-        std::string name;
+/*      int i, j, k, idx;
+*/      std::string name;
         TAnimContainer *pSub;
-        for (i = 0; i < pAdvanced->iMovements; ++i)
+        for (int i = 0; i < pAdvanced->iMovements; ++i)
         {
             if (strcmp(pAdvanced->pMovementData[i].cBone, name.c_str()))
             { // jeœli pozycja w tabelce nie by³a wyszukiwana w submodelach

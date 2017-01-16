@@ -2915,6 +2915,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			delete[] PrzekrF;
 			delete[] FzED;
 			delete[] FzEP;
+			delete[] FmaxEP;
         }
 
         // yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)

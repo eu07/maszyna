@@ -1504,9 +1504,9 @@ void TGround::RaTriangleDivider(TGroundNode *node)
         ntri->Vertices[1] = node->Vertices[1]; // wierzcho³ek B przechodzi do nowego
         // node->Vertices[1].HalfSet(node->Vertices[0],node->Vertices[1]); //na razie D tak
         if (divide & 4)
-            node->Vertices[1].SetByZ(node->Vertices[0], node->Vertices[1], divide & 8 ? z1 : z0);
+            node->Vertices[1].SetByZ(node->Vertices[0], node->Vertices[1], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[1].SetByX(node->Vertices[0], node->Vertices[1], divide & 8 ? x1 : x0);
+            node->Vertices[1].SetByX(node->Vertices[0], node->Vertices[1], (divide & 8) ? x1 : x0);
         ntri->Vertices[0] = node->Vertices[1]; // wierzcho³ek D jest wspólny
         break;
     case 1: // podzia³ BC (1-2) -> ABD i ADC
@@ -1514,9 +1514,9 @@ void TGround::RaTriangleDivider(TGroundNode *node)
         ntri->Vertices[2] = node->Vertices[2]; // wierzcho³ek C przechodzi do nowego
         // node->Vertices[2].HalfSet(node->Vertices[1],node->Vertices[2]); //na razie D tak
         if (divide & 4)
-            node->Vertices[2].SetByZ(node->Vertices[1], node->Vertices[2], divide & 8 ? z1 : z0);
+            node->Vertices[2].SetByZ(node->Vertices[1], node->Vertices[2], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[2].SetByX(node->Vertices[1], node->Vertices[2], divide & 8 ? x1 : x0);
+            node->Vertices[2].SetByX(node->Vertices[1], node->Vertices[2], (divide & 8) ? x1 : x0);
         ntri->Vertices[1] = node->Vertices[2]; // wierzcho³ek D jest wspólny
         break;
     case 2: // podzia³ CA (2-0) -> ABD i DBC
@@ -1524,9 +1524,9 @@ void TGround::RaTriangleDivider(TGroundNode *node)
         ntri->Vertices[2] = node->Vertices[2]; // wierzcho³ek C przechodzi do nowego
         // node->Vertices[2].HalfSet(node->Vertices[2],node->Vertices[0]); //na razie D tak
         if (divide & 4)
-            node->Vertices[2].SetByZ(node->Vertices[2], node->Vertices[0], divide & 8 ? z1 : z0);
+            node->Vertices[2].SetByZ(node->Vertices[2], node->Vertices[0], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[2].SetByX(node->Vertices[2], node->Vertices[0], divide & 8 ? x1 : x0);
+            node->Vertices[2].SetByX(node->Vertices[2], node->Vertices[0], (divide & 8) ? x1 : x0);
         ntri->Vertices[0] = node->Vertices[2]; // wierzcho³ek D jest wspólny
         break;
     }
@@ -2269,11 +2269,10 @@ void TGround::FirstInit()
                     srGlobal.NodeAdd(Current); // dodanie do globalnego obiektu
                 else if (i == TP_TERRAIN)
                 { // specjalne przetwarzanie terenu wczytanego z pliku E3D
-                    string xxxzzz; // nazwa kwadratu
                     TGroundRect *gr;
                     for (j = 1; j < Current->iCount; ++j)
                     { // od 1 do koñca s¹ zestawy trójk¹tów
-                        xxxzzz = string(Current->nNode[j].smTerrain->pName); // pobranie nazwy
+                        std::string xxxzzz = Current->nNode[j].smTerrain->pName; // pobranie nazwy
                         gr = GetRect(1000 * (stol_def(xxxzzz.substr(0, 3),0) - 500),
                                      1000 * (stol_def(xxxzzz.substr(3, 3),0) - 500));
                         if (Global::bUseVBO)
@@ -2851,9 +2850,9 @@ bool TGround::Init(std::string asFile, HDC hDC)
             else // jak liczba to na pewno b³¹d
                 Error("Unrecognized command: " + str);
         }
-        else if (str == "")
+/*        else if (str == "")
             break;
-
+*/
         // LastNode=NULL;
 
         token = "";

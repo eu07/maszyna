@@ -868,7 +868,7 @@ void TTexturesManager::Free()
 { // usuniêcie wszyskich tekstur (bez usuwania struktury)
 	//    for (Names::iterator iter = _names.begin(); iter != _names.end(); iter++)
 	if( false == _names.empty() ) {
-		for( auto texture : _names ) {
+		for( auto const &texture : _names ) {
 			glDeleteTextures( 1, &texture.second );
 		}
 	}
@@ -876,8 +876,8 @@ void TTexturesManager::Free()
 
 std::string TTexturesManager::GetName(GLuint id)
 { // pobranie nazwy tekstury
-    for (Names::iterator iter = _names.begin(); iter != _names.end(); iter++)
-        if (iter->second == id)
-            return iter->first;
+	for( auto const &pair : _names ) {
+		if( pair.second == id ) { return pair.first; }
+	}
     return "";
 };

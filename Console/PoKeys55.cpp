@@ -138,7 +138,7 @@ bool TPoKeys55::Connect()
         DeviceIDFromRegistry = reinterpret_cast<char*>(PropertyValueBuffer);
         // free(PropertyValueBuffer); //No longer need the PropertyValueBuffer,free the memory to
         // prevent potential memory leaks
-        delete PropertyValueBuffer; // No longer need the PropertyValueBuffer,free the memory to
+        delete[] PropertyValueBuffer; // No longer need the PropertyValueBuffer,free the memory to
         // prevent potential memory leaks
         // Convert both strings to lower case.  This makes the code more robust/portable accross OS
         // Versions
