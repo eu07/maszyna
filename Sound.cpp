@@ -7,15 +7,13 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #define STRICT
 #include "Sound.h"
-#include "Usefull.h"
 #include "Globals.h"
-#include <mctools.h>
+#include "Logs.h"
+#include "Usefull.h"
+#include "mczapkie/mctools.h"
 //#define SAFE_DELETE(p)  { if(p) { delete (p);     (p)=NULL; } }
 #define SAFE_RELEASE(p)     \
     {                       \
@@ -58,8 +56,8 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const
         if (FAILED(pWaveSoundRead->Open(strdup(strFileName))))
         {
             //        SetFileUI( hDlg, TEXT("Bad wave file.") );
-            return;
-            ErrorLog("Missed sound: " + string(strFileName));
+			ErrorLog( "Missed sound: " + std::string( strFileName ) );
+			return;
         }
 
     strcpy(Name, ToLower(strFileName).c_str());
@@ -110,16 +108,20 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const
         return; // E_OUTOFMEMORY;
 
     // if (FAILED(hr=pWaveSoundRead->Read( nWaveFileSize,pbWavData,&cbWavSize)))
-    if (FAILED(hr = pWaveSoundRead->Read(nWaveFileSize, pbWavData, &cbWavSize)))
-        return;
+	if( FAILED( hr = pWaveSoundRead->Read( nWaveFileSize, pbWavData, &cbWavSize ) ) ) {
+		delete[] pbWavData;
+		return;
+	}
 
     // Reset the file to the beginning
     pWaveSoundRead->Reset();
 
     // Lock the buffer down
     // if (FAILED(hr=DSBuffer->Lock(0,dwBufferBytes,&pbData,&dwLength,&pbData2,&dwLength2,0)))
-    if (FAILED(hr = DSBuffer->Lock(0, dwBufferBytes, &pbData, &dwLength, &pbData2, &dwLength2, 0L)))
-        return;
+	if( FAILED( hr = DSBuffer->Lock( 0, dwBufferBytes, &pbData, &dwLength, &pbData2, &dwLength2, 0L ) ) ) {
+		delete[] pbWavData;
+		return;
+	}
 
     // Copy the memory to it.
     memcpy(pbData, pbWavData, dwBufferBytes);
@@ -206,10 +208,10 @@ void TSoundsManager::LoadSounds(char *Directory)
 
 LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(const char *Name, bool Dynamic, float *fSamplingRate)
 { // wyszukanie dŸwiêku w pamiêci albo wczytanie z pliku
-    AnsiString file;
+    std::string file;
     if (Dynamic)
     { // próba wczytania z katalogu pojazdu
-        file = AnsiString(Global::asCurrentDynamicPath.c_str()) + AnsiString(Name);
+        file = Global::asCurrentDynamicPath + Name;
         if (FileExists(file))
             Name = file.c_str(); // nowa nazwa
         else
@@ -260,7 +262,7 @@ LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(const char *Name, bool Dynamic, 
             *fSamplingRate = Next->fSamplingRate; // czêstotliwoœæ
         return Next->GetUnique(pDS);
     }
-    ErrorLog("Missed sound: " + string(Name));
+    ErrorLog("Missed sound: " + std::string(Name) );
     return (NULL);
 };
 

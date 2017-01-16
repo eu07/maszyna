@@ -12,10 +12,10 @@ Brakes. Oerlikon ESt.
 Copyright (C) 2007-2014 Maciej Cierniak
 */
 
+#include "stdafx.h"
 #include "hamulce.h"
-#include "Mover.h"
-#include <cmath>
 #include <typeinfo>
+#include "Mover.h"
 
 //---FUNKCJE OGOLNE---
 
@@ -80,11 +80,6 @@ double PF1(double P1, double P2, double S)
             return FM * 2 * sqrt((sg) * (1 - sg));
     else // powyzej stosunku krytycznego
         return FM;
-}
-
-long lround(double value)
-{
-    return floorl(value + 0.5);
 }
 
 double PFVa(double PH, double PL, double S, double LIM,
@@ -252,7 +247,7 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
     MaxBP = i_mbp;
     BCN = i_bcn;
     BCM = 1;
-    BCA = i_bcn * i_bcr * i_bcr * pi;
+    BCA = i_bcn * i_bcr * i_bcr * M_PI;
     BA = i_ba;
     NBpA = i_nbpa;
     BrakeDelays = i_BD;

@@ -7,19 +7,15 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "VBO.h"
 #include "opengl/glew.h"
 #include "usefull.h"
 //---------------------------------------------------------------------------
 
-#pragma package(smart_init)
-
 CMesh::CMesh()
 { // utworzenie pustego obiektu
-    m_pVNT = NULL;
+    m_pVNT = nullptr;
     m_nVertexCount = -1;
     m_nVBOVertices = 0; // nie zarezerwowane
 };
@@ -71,9 +67,9 @@ bool CMesh::StartVBO()
     if (m_nVBOVertices)
     {
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
-        glVertexPointer(3, GL_FLOAT, sizeof(CVertNormTex), ((char *)NULL)); // pozycje
-        glNormalPointer(GL_FLOAT, sizeof(CVertNormTex), ((char *)NULL) + 12); // normalne
-        glTexCoordPointer(2, GL_FLOAT, sizeof(CVertNormTex), ((char *)NULL) + 24); // wierzcho³ki
+        glVertexPointer( 3, GL_FLOAT, sizeof(CVertNormTex), static_cast<char *>(nullptr) ); // pozycje
+		glNormalPointer( GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // normalne
+		glTexCoordPointer( 2, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 24 ); // wierzcho³ki
     }
     return true; // mo¿na rysowaæ z VBO
 };
@@ -87,9 +83,9 @@ bool CMesh::StartColorVBO()
     if (m_nVBOVertices)
     {
         glBindBufferARB(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
-        glVertexPointer(3, GL_FLOAT, sizeof(CVertNormTex), ((char *)NULL)); // pozycje
+		glVertexPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) ); // pozycje
         // glColorPointer(3,GL_UNSIGNED_BYTE,sizeof(CVertNormTex),((char*)NULL)+12); //kolory
-        glColorPointer(3, GL_FLOAT, sizeof(CVertNormTex), ((char *)NULL) + 12); // kolory
+		glColorPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // kolory
     }
     return true; // mo¿na rysowaæ z VBO
 };

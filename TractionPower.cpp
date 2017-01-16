@@ -13,17 +13,9 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-//#include "system.hpp"
-//#include "classes.hpp"
-#pragma hdrstop
-
-#include "Mover.h"
-#include "mctools.h"
-#include "Timer.h"
-#include "Globals.h"
+#include "stdafx.h"
 #include "TractionPower.h"
-
-#include "Usefull.h"
+#include "Logs.h"
 #include "Ground.h"
 
 //---------------------------------------------------------------------------
@@ -111,11 +103,11 @@ bool TTractionPowerSource::Update(double dt)
         {
             SlowFuse = true;
             ErrorLog("Power overload: \"" + gMyNode->asName + "\" disabled for " +
-                     to_string(SlowFuseTimeOut) + "s");
+                     std::to_string(SlowFuseTimeOut) + "s");
         }
         else
             ErrorLog("Power overload: \"" + gMyNode->asName + "\" disabled for " +
-                     to_string(FastFuseTimeOut) + "s");
+                     std::to_string(FastFuseTimeOut) + "s");
         FuseTimer = 0;
     }
     if (FastFuse || SlowFuse)
@@ -171,5 +163,3 @@ void TTractionPowerSource::PowerSet(TTractionPowerSource *ps)
 };
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

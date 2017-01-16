@@ -7,28 +7,23 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#pragma hdrstop
-#include "opengl/glew.h"
-//#include "opengl/glut.h"
-
+#include "stdafx.h"
 #include "Segment.h"
-#include "Usefull.h"
+#include "opengl/glew.h"
+
 #include "Globals.h"
+#include "Logs.h"
+#include "Usefull.h"
 #include "Track.h"
-#include <mctools.h>
 
-//#define Precision 10000
-
-#pragma package(smart_init)
 //---------------------------------------------------------------------------
 
 // 101206 Ra: trapezoidalne drogi
 // 110806 Ra: odwrócone mapowanie wzd³u¿ - Point1 == 1.0
 
-string Where(vector3 p)
+std::string Where(vector3 p)
 { // zamiana wspó³rzêdnych na tekst, u¿ywana w b³êdach
-    return to_string(p.x) + " " + to_string(p.y) + " " + to_string(p.z);
+    return std::to_string(p.x) + " " + std::to_string(p.y) + " " + std::to_string(p.z);
 };
 
 TSegment::TSegment(TTrack *owner)
@@ -205,33 +200,29 @@ double TSegment::RombergIntegral(double fA, double fB)
 double TSegment::GetTFromS(double s)
 {
     // initial guess for Newton's method
-    int it = 0;
     double fTolerance = 0.001;
     double fRatio = s / RombergIntegral(0, 1);
     double fOmRatio = 1.0 - fRatio;
     double fTime = fOmRatio * 0 + fRatio * 1;
+	int iteration = 0;
 
-    //    for (int i = 0; i < iIterations; i++)
-    while (true)
-    {
-        it++;
-        if (it > 10)
-        {
-            ErrorLog("Bad geometry: Too many iterations at " + Where(Point1));
-            // MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
-            return fTime;
-        }
-
+	do {
         double fDifference = RombergIntegral(0, fTime) - s;
-        if ((fDifference > 0 ? fDifference : -fDifference) < fTolerance)
-            return fTime;
+		if( ( fDifference > 0 ? fDifference : -fDifference ) < fTolerance ) {
+			return fTime;
+		}
 
         fTime -= fDifference / GetFirstDerivative(fTime).Length();
-    }
+		++iteration;
+	}
+	while( iteration < 10 ); // arbitrary limit
 
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
+	ErrorLog( "Bad geometry: Too many iterations at " + Where( Point1 ) );
+	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
+	return fTime;
 };
 
 vector3 TSegment::RaInterpolate(double t)

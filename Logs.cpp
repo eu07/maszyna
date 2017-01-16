@@ -7,16 +7,10 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "classes.hpp"
-#include "system.hpp"
-#pragma hdrstop
-
-#include "Globals.h"
+#include "stdafx.h"
 #include "Logs.h"
 
-#include <fstream>
-#include <iostream>
-#include <stdio.h>
+#include "Globals.h"
 
 std::ofstream output; // standardowy "log.txt", mo¿na go wy³¹czyæ
 std::ofstream errors; // lista b³êdów "errors.txt", zawsze dzia³a
@@ -89,13 +83,6 @@ void ErrorLog(const char *str)
     errors.flush();
 };
 
-void Error(const AnsiString &asMessage, bool box)
-{
-    // if (box)
-    //    MessageBox(NULL, asMessage.c_str(), string("EU07 " + Global::asRelease).c_str(), MB_OK);
-    ErrorLog(asMessage.c_str());
-}
-
 void Error(const std::string &asMessage, bool box)
 {
     // if (box)
@@ -116,17 +103,6 @@ void ErrorLog(const std::string &str, bool newline)
     ErrorLog(str.c_str());
     WriteLog(str.c_str(), newline);
 }
-
-void ErrorLog(const AnsiString &asMessage)
-{ // zapisywanie b³êdów "errors.txt"
-    ErrorLog(asMessage.c_str());
-    WriteLog(asMessage.c_str()); // do "log.txt" ewentualnie te¿
-}
-
-void WriteLog(const AnsiString &str, bool newline)
-{ // Ra: wersja z AnsiString jest zamienna z Error()
-    WriteLog(str.c_str(), newline);
-};
 
 void WriteLog(const std::string &str, bool newline)
 { // Ra: wersja z AnsiString jest zamienna z Error()
@@ -155,11 +131,4 @@ void CommLog(const std::string &str)
     WriteLog(str);
 };
 
-void CommLog(const AnsiString &str)
-{ // Ra: wersja z AnsiString jest zamienna z Error()
-    CommLog(str.c_str());
-};
-
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

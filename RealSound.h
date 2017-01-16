@@ -10,12 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #ifndef RealSoundH
 #define RealSoundH
 
-#include "system.hpp"
-#include "classes.hpp"
-
+#include <string>
 #include "Sound.h"
 #include "Geometry.h"
-#include <string>
 
 class TRealSound
 {
@@ -38,7 +35,7 @@ class TRealSound
 		bool freqmod = false, double rmin = 0.0);
     ~TRealSound();
     void Free();
-    void Init(const char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+    void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
               bool freqmod = false, double rmin = 0.0);
     double ListenerDistance(vector3 ListenerPosition);
     void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
@@ -54,12 +51,12 @@ class TRealSound
 
 class TTextSound : public TRealSound
 { // dŸwiêk ze stenogramem
-    AnsiString asText;
+    std::string asText;
     float fTime; // czas trwania
   public:
     TTextSound(const char *SoundName, double SoundAttenuation, double X, double Y, double Z,
                bool Dynamic, bool freqmod = false, double rmin = 0.0);
-    void Init(const char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+    void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
               bool Dynamic, bool freqmod = false, double rmin = 0.0);
     void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
 };

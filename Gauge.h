@@ -7,14 +7,9 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef GaugeH
-#define GaugeH
+#pragma once
 
-//#include "Classes.h"
-#include "QueryParserComp.hpp"
-// class Queryparsercomp::TQueryParserComp;
-class TSubModel;
-class TModel3d;
+#include "Classes.h"
 
 typedef enum
 { // typ ruchu
@@ -50,7 +45,7 @@ class TGauge // zmienne "gg"
     void Clear();
     void Init(TSubModel *NewSubModel, TGaugeType eNewTyp, double fNewScale = 1,
               double fNewOffset = 0, double fNewFriction = 0, double fNewValue = 0);
-    bool Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2 = NULL, double mul = 1.0);
+    bool Load(cParser &Parser, TModel3d *md1, TModel3d *md2 = NULL, double mul = 1.0);
     void PermIncValue(double fNewDesired);
     void IncValue(double fNewDesired);
     void DecValue(double fNewDesired);
@@ -70,4 +65,3 @@ class TGauge // zmienne "gg"
 };
 
 //---------------------------------------------------------------------------
-#endif

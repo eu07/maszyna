@@ -7,14 +7,10 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "Timer.h"
+#include "stdafx.h"
 #include "AdvSound.h"
+#include "Timer.h"
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 
 TAdvancedSound::TAdvancedSound()
 {
@@ -36,8 +32,8 @@ void TAdvancedSound::Free()
 {
 }
 
-void TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff, double DistanceAttenuation,
-                          vector3 pPosition)
+void TAdvancedSound::Init( std::string const &NameOn, std::string const &Name, std::string const &NameOff, double DistanceAttenuation,
+                          vector3 const &pPosition)
 {
     SoundStart.Init(NameOn, DistanceAttenuation, pPosition.x, pPosition.y, pPosition.z, true);
     SoundCommencing.Init(Name, DistanceAttenuation, pPosition.x, pPosition.y, pPosition.z, true);
@@ -60,13 +56,19 @@ void TAdvancedSound::Init(char *NameOn, char *Name, char *NameOff, double Distan
     SoundShut.FA = 0.0;
 }
 
-void TAdvancedSound::Load(TQueryParserComp *Parser, vector3 pPosition)
+void TAdvancedSound::Load(cParser &Parser, vector3 const &pPosition)
 {
-    AnsiString NameOn = Parser->GetNextSymbol().LowerCase();
-    AnsiString Name = Parser->GetNextSymbol().LowerCase();
-    AnsiString NameOff = Parser->GetNextSymbol().LowerCase();
-    double DistanceAttenuation = Parser->GetNextSymbol().ToDouble();
-    Init(NameOn.c_str(), Name.c_str(), NameOff.c_str(), DistanceAttenuation, pPosition);
+	std::string nameon, name, nameoff;
+	double attenuation;
+	Parser.getTokens( 3, true, "\n\t ;," ); // samples separated with commas
+	Parser
+		>> nameon
+		>> name
+		>> nameoff;
+	Parser.getTokens( 1, false );
+	Parser
+		>> attenuation;
+	Init( nameon, name, nameoff, attenuation, pPosition );
 }
 
 void TAdvancedSound::TurnOn(bool ListenerInside, vector3 NewPosition)

@@ -19,7 +19,7 @@ class TDynamicObject; // pojazd w scenerii
 class TGroundNode; // statyczny obiekt scenerii
 class TAnimModel; // opakowanie egzemplarz modelu
 class TAnimContainer; // fragment opakowania egzemplarza modelu
-// class TModel3d; //siatka modelu wspólna dla egzemplarzy
+class TModel3d; //siatka modelu wspólna dla egzemplarzy
 class TSubModel; // fragment modelu (tu do wyœwietlania terenu)
 class TMemCell; // komórka pamiêci
 class cParser;
@@ -28,10 +28,6 @@ class TTextSound; // dŸwiêk ze stenogramem
 class TEventLauncher;
 class TTraction; // drut
 class TTractionPowerSource; // zasilanie drutów
-
-class TMoverParameters;
-class TLocation;
-class TRotation;
 
 namespace Mtable
 {

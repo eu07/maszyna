@@ -12,22 +12,16 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Globals.h"
-#include "QueryParserComp.hpp"
 #include "usefull.h"
-#include "Mover.h"
+//#include "Mover.h"
 #include "Driver.h"
 #include "Console.h"
-#include <Controls.hpp> //do odczytu daty
 #include "World.h"
-#include <ostream>
-#include <fstream>
-#include <iomanip>
-#include <ctype.h>
-#include <cctype>
+#include "parser.h"
+#include "Logs.h"
+#include "PyInt.h"
 
 // namespace Global {
 
@@ -73,7 +67,6 @@ bool Global::bActive = true; // czy jest aktywnym oknem
 int Global::iErorrCounter = 0; // licznik sprawdzañ do œledzenia b³êdów OpenGL
 int Global::iTextures = 0; // licznik u¿ytych tekstur
 TWorld *Global::pWorld = NULL;
-Queryparsercomp::TQueryParserComp *Global::qParser = NULL;
 cParser *Global::pParser = NULL;
 int Global::iSegmentsRendered = 90; // iloœæ segmentów do regulacji wydajnoœci
 TCamera *Global::pCamera = NULL; // parametry kamery
@@ -119,14 +112,14 @@ bool Global::bFullScreen = false;
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
 float Global::fMouseXScale = 1.5;
 float Global::fMouseYScale = 0.2;
-char Global::szSceneryFile[256] = "td.scn";
+std::string Global::SceneryFile = "td.scn";
 std::string Global::asHumanCtrlVehicle = "EU07-424";
 int Global::iMultiplayer = 0; // blokada dzia³ania niektórych funkcji na rzecz komunikacji
 double Global::fMoveLight = -1; // ruchome œwiat³o
 double Global::fLatitudeDeg = 52.0; // szerokoœæ geograficzna
 float Global::fFriction = 1.0; // mno¿nik tarcia - KURS90
 double Global::fBrakeStep = 1.0; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-AnsiString Global::asLang = "pl"; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+std::string Global::asLang = "pl"; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
 
 // parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
 bool Global::bAdjustScreenFreq = true;
@@ -196,348 +189,464 @@ int Global::iBpp = 32; // chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ pop
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-AnsiString Global::GetNextSymbol()
+std::string Global::GetNextSymbol()
 { // pobranie tokenu z aktualnego parsera
-    if (qParser)
-        return qParser->EndOfFile ? AnsiString("endconfig") : qParser->GetNextSymbol();
-    if (pParser)
-    {
-        std::string token;
+
+	std::string token;
+	if( pParser != nullptr ) {
+
         pParser->getTokens();
         *pParser >> token;
-        return AnsiString(token.c_str());
     };
-    return "";
+    return token;
 };
 
 void Global::LoadIniFile(std::string asFileName)
 {
-    int i;
-    for (i = 0; i < 10; ++i)
+    for ( int i = 0; i < 10; ++i)
     { // zerowanie pozycji kamer
         pFreeCameraInit[i] = vector3(0, 0, 0); // wspó³rzêdne w scenerii
         pFreeCameraInitAngle[i] = vector3(0, 0, 0); // k¹ty obrotu w radianach
     }
-	ifstream f = ifstream(asFileName.c_str());
-	stringstream buffer;
-	buffer << f.rdbuf();
-	//TFileStream *fs;
- //   fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
- //   if (!fs)
- //       return;
-	AnsiString str = AnsiString(buffer.str().c_str());
-    //int size = fs->Size;
-    //str.SetLength(size);
-    //fs->Read(str.c_str(), size);
-    // str+="";
-    //delete fs;
-    TQueryParserComp *Parser;
-    Parser = new TQueryParserComp(NULL);
-    Parser->TextToParse = str;
-    // Parser->LoadStringToParse(asFile);
-    Parser->First();
-    ConfigParse(Parser);
-    delete Parser; // Ra: tego jak zwykle nie by³o wczeœniej :]
+	cParser parser( asFileName, cParser::buffer_FILE );
+	ConfigParse( parser );
 };
 
-void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
-{ // Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
-    pParser = cp;
-    qParser = qp;
-    AnsiString str;
-    int i;
-    do
-    {
-        str = GetNextSymbol().LowerCase();
-        if (str == AnsiString("sceneryfile"))
-        {
-            str = GetNextSymbol().LowerCase();
-            strcpy(szSceneryFile, str.c_str());
-        }
-        else if (str == AnsiString("humanctrlvehicle"))
-        {
-            str = GetNextSymbol().LowerCase();
-            asHumanCtrlVehicle = string(str.c_str());
-        }
-        else if (str == AnsiString("width"))
-            iWindowWidth = GetNextSymbol().ToInt();
-        else if (str == AnsiString("height"))
-            iWindowHeight = GetNextSymbol().ToInt();
-        else if (str == AnsiString("heightbase"))
-            fDistanceFactor = GetNextSymbol().ToInt();
-        else if (str == AnsiString("bpp"))
-            iBpp = ((GetNextSymbol().LowerCase() == AnsiString("32")) ? 32 : 16);
-        else if (str == AnsiString("fullscreen"))
-            bFullScreen = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("freefly")) // Mczapkie-130302
-        {
-            bFreeFly = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-            pFreeCameraInit[0].x = GetNextSymbol().ToDouble();
-            pFreeCameraInit[0].y = GetNextSymbol().ToDouble();
-            pFreeCameraInit[0].z = GetNextSymbol().ToDouble();
-        }
-        else if (str == AnsiString("wireframe"))
-            bWireFrame = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("debugmode")) // McZapkie! - DebugModeFlag uzywana w mover.pas,
-            // warto tez blokowac cheaty gdy false
-            DebugModeFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("soundenabled")) // McZapkie-040302 - blokada dzwieku - przyda
-            // sie do debugowania oraz na komp. bez karty
-            // dzw.
-            bSoundEnabled = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
-        // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
-        else if (str == AnsiString("physicslog")) // McZapkie-030402 - logowanie parametrow
-            // fizycznych dla kazdego pojazdu z maszynista
-            WriteLogFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("physicsdeactivation")) // McZapkie-291103 - usypianie fizyki
-            PhysicActivationFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("debuglog"))
-        { // McZapkie-300402 - wylaczanie log.txt
-            str = GetNextSymbol().LowerCase();
-            if (str == "yes")
-                iWriteLogEnabled = 3;
-            else if (str == "no")
-                iWriteLogEnabled = 0;
-            else
-                iWriteLogEnabled = str.ToIntDef(3);
-        }
-        else if (str == AnsiString("adjustscreenfreq"))
-        { // McZapkie-240403 - czestotliwosc odswiezania ekranu
-            str = GetNextSymbol();
-            bAdjustScreenFreq = (str.LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("mousescale"))
-        { // McZapkie-060503 - czulosc ruchu myszy (krecenia glowa)
-            str = GetNextSymbol();
-            fMouseXScale = str.ToDouble();
-            str = GetNextSymbol();
-            fMouseYScale = str.ToDouble();
-        }
-        else if (str == AnsiString("enabletraction"))
-        { // Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz ³amanie
-            bEnableTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("loadtraction"))
-        { // Winger 140404 - ladowanie sie trakcji
-            bLoadTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("friction")) // mno¿nik tarcia - KURS90
-            fFriction = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("livetraction"))
-        { // Winger 160404 - zaleznosc napiecia loka od trakcji; Ra 2014-03: teraz pr¹d przy braku
-            // sieci
-            bLiveTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("skyenabled"))
-        { // youBy - niebo
-            if (GetNextSymbol().LowerCase() == AnsiString("yes"))
-                asSky = "1";
-            else
-                asSky = "0";
-        }
-        else if (str == AnsiString("managenodes"))
-        {
-            bManageNodes = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("decompressdds"))
-        {
-            bDecompressDDS = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        // ShaXbee - domyslne rozszerzenie tekstur
-        else if (str == AnsiString("defaultext"))
-        {
-            str = GetNextSymbol().LowerCase(); // rozszerzenie
-            if (str == "tga")
-                szDefaultExt = szTexturesTGA; // domyœlnie od TGA
-            // szDefaultExt=AnsiString(Parser->GetNextSymbol().LowerCase().c_str());
-        }
-        else if (str == AnsiString("newaircouplers"))
-            bnewAirCouplers = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("defaultfiltering"))
-            iDefaultFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("ballastfiltering"))
-            iBallastFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("railprofiltering"))
-            iRailProFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("dynamicfiltering"))
-            iDynamicFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("usevbo"))
-            bUseVBO = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("feedbackmode"))
-            iFeedbackMode = GetNextSymbol().ToIntDef(1); // domyœlnie 1
-        else if (str == AnsiString("feedbackport"))
-            iFeedbackPort = GetNextSymbol().ToIntDef(0); // domyœlnie 0
-        else if (str == AnsiString("multiplayer"))
-            iMultiplayer = GetNextSymbol().ToIntDef(0); // domyœlnie 0
-        else if (str == AnsiString("maxtexturesize"))
-        { // wymuszenie przeskalowania tekstur
-            i = GetNextSymbol().ToIntDef(16384); // domyœlnie du¿e
-            if (i <= 64)
-                iMaxTextureSize = 64;
-            else if (i <= 128)
-                iMaxTextureSize = 128;
-            else if (i <= 256)
-                iMaxTextureSize = 256;
-            else if (i <= 512)
-                iMaxTextureSize = 512;
-            else if (i <= 1024)
-                iMaxTextureSize = 1024;
-            else if (i <= 2048)
-                iMaxTextureSize = 2048;
-            else if (i <= 4096)
-                iMaxTextureSize = 4096;
-            else if (i <= 8192)
-                iMaxTextureSize = 8192;
-            else
-                iMaxTextureSize = 16384;
-        }
-        else if (str == AnsiString("doubleambient")) // podwójna jasnoœæ ambient
-            bDoubleAmbient = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("movelight")) // numer dnia w roku albo -1
-        {
-            fMoveLight = GetNextSymbol().ToIntDef(-1); // numer dnia 1..365
-            if (fMoveLight == 0.0)
-            { // pobranie daty z systemu
-                unsigned short y, m, d;
-                TDate date = Now();
-                date.DecodeDate(&y, &m, &d);
-                fMoveLight =
-                    (double)date - (double)TDate(y, 1, 1) + 1; // numer bie¿¹cego dnia w roku
-            }
-            if (fMoveLight > 0.0) // tu jest nadal zwiêkszone o 1
-            { // obliczenie deklinacji wg:
-                // http://naturalfrequency.com/Tregenza_Sharples/Daylight_Algorithms/algorithm_1_11.htm
-                // Spencer J W Fourier series representation of the position of the sun Search 2 (5)
-                // 172 (1971)
-                fMoveLight = M_PI / 182.5 * (Global::fMoveLight - 1.0); // numer dnia w postaci k¹ta
-                fSunDeclination = 0.006918 - 0.3999120 * cos(fMoveLight) +
-                                  0.0702570 * sin(fMoveLight) - 0.0067580 * cos(2 * fMoveLight) +
-                                  0.0009070 * sin(2 * fMoveLight) -
-                                  0.0026970 * cos(3 * fMoveLight) + 0.0014800 * sin(3 * fMoveLight);
-            }
-        }
-        else if (str == AnsiString("smoothtraction")) // podwójna jasnoœæ ambient
-            bSmoothTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("timespeed")) // przyspieszenie czasu, zmienna do testów
-            fTimeSpeed = GetNextSymbol().ToIntDef(1);
-        else if (str == AnsiString("multisampling")) // tryb antyaliasingu: 0=brak,1=2px,2=4px
-            iMultisampling = GetNextSymbol().ToIntDef(2); // domyœlnie 2
-        else if (str == AnsiString("glutfont")) // tekst generowany przez GLUT
-            bGlutFont = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("latitude")) // szerokoœæ geograficzna
-            fLatitudeDeg = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("convertmodels")) // tworzenie plików binarnych
-            iConvertModels = GetNextSymbol().ToIntDef(7); // domyœlnie 7
-        else if (str == AnsiString("inactivepause")) // automatyczna pauza, gdy okno nieaktywne
-            bInactivePause = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("slowmotion")) // tworzenie plików binarnych
-            iSlowMotionMask = GetNextSymbol().ToIntDef(-1); // domyœlnie -1
-        else if (str == AnsiString("modifytga")) // czy korygowaæ pliki TGA dla szybszego
-            // wczytywania
-            iModifyTGA = GetNextSymbol().ToIntDef(0); // domyœlnie 0
-        else if (str == AnsiString("hideconsole")) // hunter-271211: ukrywanie konsoli
-            bHideConsole = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-		else if (str == AnsiString("oldsmudge"))
-            bOldSmudge = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str ==
-                 AnsiString(
-                     "rollfix")) // Ra: poprawianie przechy³ki, aby wewnêtrzna szyna by³a "pozioma"
-            bRollFix = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("fpsaverage")) // oczekiwana wartosæ FPS
-            fFpsAverage = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("fpsdeviation")) // odchylenie standardowe FPS
-            fFpsDeviation = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("fpsradiusmax")) // maksymalny promieñ renderowania
-            fFpsRadiusMax = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("calibratein")) // parametry kalibracji wejœæ
-        { //
-            i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-            if ((i < 0) || (i > 5))
-                i = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-            fCalibrateIn[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-            fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
-            fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-            fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateIn[i][4] = 0.0; // mno¿nik 4 potêgi
-			fCalibrateIn[i][5] = 0.0; // mno¿nik 5 potêgi
+void Global::ConfigParse(cParser &Parser) {
+
+	std::string token;
+	do {
+
+		token = "";
+		Parser.getTokens(); Parser >> token;
+
+		if( token == "sceneryfile" ) {
+
+			Parser.getTokens(); Parser >> Global::SceneryFile;
 		}
-		else if (str == AnsiString("calibrate5din")) // parametry kalibracji wejœæ
-		{ //
-			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-			if ((i < 0) || (i > 5))
-				i = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-			fCalibrateIn[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-			fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
-			fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-			fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateIn[i][4] = GetNextSymbol().ToDouble(); // mno¿nik 4 potêgi
-			fCalibrateIn[i][5] = GetNextSymbol().ToDouble(); // mno¿nik 5 potêgi
+		else if( token == "humanctrlvehicle" ) {
+
+			Parser.getTokens(); Parser >> Global::asHumanCtrlVehicle;
 		}
-        else if (str == AnsiString("calibrateout")) // parametry kalibracji wyjœæ
-        { //
-            i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-            if ((i < 0) || (i > 6))
-                i = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-            fCalibrateOut[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-            fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
-            fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-            fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateOut[i][4] = 0.0; // mno¿nik dla 4 potêgi
-			fCalibrateOut[i][5] = 0.0; // mno¿nik dla 5 potêgi
+		else if( token == "width" ) {
+
+			Parser.getTokens( 1, false ); Parser >> Global::iWindowWidth;
+		}
+		else if( token == "height" ) {
+
+			Parser.getTokens( 1, false ); Parser >> Global::iWindowHeight;
+		}
+		else if( token == "heightbase" ) {
+
+			Parser.getTokens( 1, false ); Parser >> Global::fDistanceFactor;
+		}
+		else if( token == "bpp" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::iBpp = ( token == "32" ? 32 : 16 );
+		}
+		else if( token == "fullscreen" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::bFullScreen = ( token == "yes" );
+		}
+		else if( token == "freefly" ) { // Mczapkie-130302
+
+			Parser.getTokens(); Parser >> token;
+			Global::bFreeFly = ( token == "yes" );
+			Parser.getTokens( 3, false );
+			Parser >>
+				Global::pFreeCameraInit[ 0 ].x,
+				Global::pFreeCameraInit[ 0 ].y,
+				Global::pFreeCameraInit[ 0 ].z;
+		}
+		else if( token == "wireframe" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::bWireFrame = ( token == "yes" );
+		}
+		else if( token == "debugmode" ) { // McZapkie! - DebugModeFlag uzywana w mover.pas,
+			// warto tez blokowac cheaty gdy false
+			Parser.getTokens(); Parser >> token;
+			DebugModeFlag = ( token == "yes" );
+		}
+		else if( token == "soundenabled" ) { // McZapkie-040302 - blokada dzwieku - przyda
+			// sie do debugowania oraz na komp. bez karty
+			// dzw.
+			Parser.getTokens(); Parser >> token;
+			Global::bSoundEnabled = ( token == "yes" );
+		}
+		// else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
+		// bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
+		else if( token == "physicslog" ) { // McZapkie-030402 - logowanie parametrow
+			// fizycznych dla kazdego pojazdu z maszynista
+			Parser.getTokens(); Parser >> token;
+			WriteLogFlag = ( token == "yes" );
+		}
+		else if( token == "physicsdeactivation" ) { // McZapkie-291103 - usypianie fizyki
+
+			Parser.getTokens(); Parser >> token;
+			PhysicActivationFlag = ( token == "yes" );
+		}
+		else if( token == "debuglog" ) {
+			// McZapkie-300402 - wylaczanie log.txt
+			Parser.getTokens(); Parser >> token;
+			if( token == "yes" ) { Global::iWriteLogEnabled = 3; }
+			else if( token == "no" ) { Global::iWriteLogEnabled = 0; }
+			else { Global::iWriteLogEnabled = std::atoi( token.c_str() ); }
+		}
+		else if( token == "adjustscreenfreq" ) {
+			// McZapkie-240403 - czestotliwosc odswiezania ekranu
+			Parser.getTokens(); Parser >> token;
+			Global::bAdjustScreenFreq = ( token == "yes" );
+		}
+		else if( token == "mousescale" ) {
+			// McZapkie-060503 - czulosc ruchu myszy (krecenia glowa)
+			Parser.getTokens( 2, false );
+			Parser
+				>> Global::fMouseXScale
+				>> Global::fMouseYScale;
+		}
+		else if( token == "enabletraction" ) {
+			// Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz ³amanie
+			Parser.getTokens(); Parser >> token;
+			Global::bEnableTraction = ( token == "yes" );
+		}
+		else if( token == "loadtraction" ) {
+			// Winger 140404 - ladowanie sie trakcji
+			Parser.getTokens(); Parser >> token;
+			Global::bLoadTraction = ( token == "yes" );
+		}
+		else if( token == "friction" ) { // mno¿nik tarcia - KURS90
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::fFriction;
+		}
+		else if( token == "livetraction" ) {
+			// Winger 160404 - zaleznosc napiecia loka od trakcji;
+			// Ra 2014-03: teraz pr¹d przy braku sieci
+			Parser.getTokens(); Parser >> token;
+			Global::bLiveTraction = ( token == "yes" );
+		}
+		else if( token == "skyenabled" ) {
+			// youBy - niebo
+			Parser.getTokens(); Parser >> token;
+			Global::asSky = ( token == "yes" ? "1" : "0" );
+		}
+		else if( token == "managenodes" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::bManageNodes = ( token == "yes" );
+		}
+		else if( token == "decompressdds" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::bDecompressDDS = ( token == "yes" );
+		}
+		else if( token == "defaultext" ) {
+			// ShaXbee - domyslne rozszerzenie tekstur
+			Parser.getTokens(); Parser >> token;
+			if( token == "tga" ) {
+				// domyœlnie od TGA
+				Global::szDefaultExt = Global::szTexturesTGA;
+			}
+		}
+		else if( token == "newaircouplers" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::bnewAirCouplers = ( token == "yes" );
+		}
+		else if( token == "defaultfiltering" ) {
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::iDefaultFiltering;
+		}
+		else if( token == "ballastfiltering" ) {
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::iBallastFiltering;
+		}
+		else if( token == "railprofiltering" ) {
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::iRailProFiltering;
+		}
+		else if( token == "dynamicfiltering" ) {
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::iDynamicFiltering;
+		}
+		else if( token == "usevbo" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::bUseVBO = ( token == "yes" );
+		}
+		else if( token == "feedbackmode" ) {
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::iFeedbackMode;
+		}
+		else if( token == "feedbackport" ) {
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::iFeedbackPort;
+		}
+		else if( token == "multiplayer" ) {
+
+			Parser.getTokens( 1, false );
+			Parser >> Global::iMultiplayer;
+		}
+		else if( token == "maxtexturesize" ) {
+			// wymuszenie przeskalowania tekstur
+			Parser.getTokens( 1, false );
+			int size; Parser >> size;
+			if( size <= 64 ) { Global::iMaxTextureSize = 64; }
+			else if( size <= 128 ) { Global::iMaxTextureSize = 128; }
+			else if( size <= 256 ) { Global::iMaxTextureSize = 256; }
+			else if( size <= 512 ) { Global::iMaxTextureSize = 512; }
+			else if( size <= 1024 ) { Global::iMaxTextureSize = 1024; }
+			else if( size <= 2048 ) { Global::iMaxTextureSize = 2048; }
+			else if( size <= 4096 ) { Global::iMaxTextureSize = 4096; }
+			else if( size <= 8192 ) { Global::iMaxTextureSize = 8192; }
+			else { Global::iMaxTextureSize = 16384; }
+		}
+		else if( token == "doubleambient" ) {
+			// podwójna jasnoœæ ambient
+			Parser.getTokens(); Parser >> token;
+			Global::bDoubleAmbient = ( token == "yes" );
+		}
+		else if( token == "movelight" ) {
+			// numer dnia w roku albo -1
+			Parser.getTokens( 1, false );
+			Parser >> Global::fMoveLight;
+			if( Global::fMoveLight == 0.f ) { // pobranie daty z systemu
+				std::time_t timenow = std::time( 0 );
+				std::tm *localtime = std::localtime( &timenow );
+				Global::fMoveLight = localtime->tm_yday + 1; // numer bie¿¹cego dnia w roku
+			}
+			if( Global::fMoveLight > 0.f ) // tu jest nadal zwiêkszone o 1
+			{ // obliczenie deklinacji wg:
+				// http://naturalfrequency.com/Tregenza_Sharples/Daylight_Algorithms/algorithm_1_11.htm
+				// Spencer J W Fourier series representation of the position of the sun Search 2 (5)
+				// 172 (1971)
+				Global::fMoveLight = M_PI / 182.5 * ( Global::fMoveLight - 1.0 ); // numer dnia w postaci k¹ta
+				fSunDeclination = 0.006918 - 0.3999120 * std::cos( fMoveLight ) +
+					0.0702570 * std::sin( fMoveLight ) - 0.0067580 * std::cos( 2 * fMoveLight ) +
+					0.0009070 * std::sin( 2 * fMoveLight ) -
+					0.0026970 * std::cos( 3 * fMoveLight ) + 0.0014800 * std::sin( 3 * fMoveLight );
+			}
+		}
+		else if( token == "smoothtraction" ) {
+			// podwójna jasnoœæ ambient
+			Parser.getTokens(); Parser >> token;
+			Global::bSmoothTraction = ( token == "yes" );
+		}
+		else if( token == "timespeed" ) {
+			// przyspieszenie czasu, zmienna do testów
+			Parser.getTokens( 1, false );
+			Parser >> Global::fTimeSpeed;
+		}
+		else if( token == "multisampling" ) {
+			// tryb antyaliasingu: 0=brak,1=2px,2=4px
+			Parser.getTokens( 1, false );
+			Parser >> Global::iMultisampling;
+		}
+		else if( token == "glutfont" ) {
+			// tekst generowany przez GLUT
+			Parser.getTokens(); Parser >> token;
+			Global::bGlutFont = ( token == "yes" );
+		}
+		else if( token == "latitude" ) {
+			// szerokoœæ geograficzna
+			Parser.getTokens( 1, false );
+			Parser >> Global::fLatitudeDeg;
+		}
+		else if( token == "convertmodels" ) {
+			// tworzenie plików binarnych
+			Parser.getTokens( 1, false );
+			Parser >> Global::iConvertModels;
+		}
+		else if( token == "inactivepause" ) {
+			// automatyczna pauza, gdy okno nieaktywne
+			Parser.getTokens(); Parser >> token;
+			Global::bInactivePause = ( token == "yes" );
+		}
+		else if( token == "slowmotion" ) {
+			// tworzenie plików binarnych
+			Parser.getTokens( 1, false );
+			Parser >> Global::iSlowMotionMask;
+		}
+		else if( token == "modifytga" ) {
+			// czy korygowaæ pliki TGA dla szybszego wczytywania
+			Parser.getTokens( 1, false );
+			Parser >> Global::iModifyTGA;
+		}
+		else if( token == "hideconsole" ) {
+			// hunter-271211: ukrywanie konsoli
+			Parser.getTokens(); Parser >> token;
+			Global::bHideConsole = ( token == "yes" );
+		}
+		else if( token == "oldsmudge" ) {
+
+			Parser.getTokens(); Parser >> token;
+			Global::bOldSmudge = ( token == "yes" );
+		}
+		else if( token == "rollfix" ) {
+			// Ra: poprawianie przechy³ki, aby wewnêtrzna szyna by³a "pozioma"
+			Parser.getTokens(); Parser >> token;
+			Global::bRollFix = ( token == "yes" );
+		}
+		else if( token == "fpsaverage" ) {
+			// oczekiwana wartosæ FPS
+			Parser.getTokens( 1, false );
+			Parser >> Global::fFpsAverage;
+		}
+		else if( token == "fpsdeviation" ) {
+			// odchylenie standardowe FPS
+			Parser.getTokens( 1, false );
+			Parser >> Global::fFpsDeviation;
+		}
+		else if( token == "fpsradiusmax" ) {
+			// maksymalny promieñ renderowania
+			Parser.getTokens( 1, false );
+			Parser >> Global::fFpsRadiusMax;
+		}
+        else if(token == "calibratein"){
+			// parametry kalibracji wejœæ
+			Parser.getTokens( 1, false );
+			int in; Parser >> in;
+			if( ( in < 0 ) || ( in > 5 ) ) {
+				in = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			}
+			Parser.getTokens( 4, false );
+			Parser
+				>> Global::fCalibrateIn[ in ][ 0 ] // wyraz wolny
+				>> Global::fCalibrateIn[ in ][ 1 ] // mno¿nik
+				>> Global::fCalibrateIn[ in ][ 2 ] // mno¿nik dla kwadratu
+				>> Global::fCalibrateIn[ in ][ 3 ]; // mno¿nik dla szeœcianu
+			Global::fCalibrateIn[ in ][ 4 ] = 0.0; // mno¿nik 4 potêgi
+			Global::fCalibrateIn[ in ][ 5 ] = 0.0; // mno¿nik 5 potêgi
+		}
+		else if(token == "calibrate5din"){
+			// parametry kalibracji wejœæ
+			Parser.getTokens( 1, false );
+			int in; Parser >> in;
+			if( ( in < 0 ) || ( in > 5 ) ) {
+				in = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			}
+			Parser.getTokens( 6, false );
+			Parser
+				>> Global::fCalibrateIn[ in ][ 0 ] // wyraz wolny
+				>> Global::fCalibrateIn[ in ][ 1 ] // mno¿nik
+				>> Global::fCalibrateIn[ in ][ 2 ] // mno¿nik dla kwadratu
+				>> Global::fCalibrateIn[ in ][ 3 ] // mno¿nik dla szeœcianu
+				>> Global::fCalibrateIn[ in ][ 4 ] // mno¿nik 4 potêgi
+				>> Global::fCalibrateIn[ in ][ 5 ]; // mno¿nik 5 potêgi
+		}
+        else if(token == "calibrateout"){
+			// parametry kalibracji wyjœæ
+			Parser.getTokens( 1, false );
+			int out; Parser >> out;
+			if( ( out < 0 ) || ( out > 6 ) ) {
+				out = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			}
+			Parser.getTokens( 4, false );
+			Parser
+				>> Global::fCalibrateOut[ out ][ 0 ] // wyraz wolny
+				>> Global::fCalibrateOut[ out ][ 1 ] // mno¿nik liniowy
+				>> Global::fCalibrateOut[ out ][ 2 ] // mno¿nik dla kwadratu
+				>> Global::fCalibrateOut[ out ][ 3 ]; // mno¿nik dla szeœcianu
+			Global::fCalibrateOut[ out ][ 4 ] = 0.0; // mno¿nik dla 4 potêgi
+			Global::fCalibrateOut[ out ][ 5 ] = 0.0; // mno¿nik dla 5 potêgi
         }
-		else if (str == AnsiString("calibrate5dout")) // parametry kalibracji wyjœæ
-		{ //
-			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-			if ((i < 0) || (i > 6))
-				i = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-			fCalibrateOut[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-			fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
-			fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-			fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateOut[i][4] = GetNextSymbol().ToDouble(); // mno¿nik dla 4 potêgi
-			fCalibrateOut[i][5] = GetNextSymbol().ToDouble(); // mno¿nik dla 5 potêgi
+		else if(token == "calibrate5dout"){
+			// parametry kalibracji wyjœæ
+			Parser.getTokens( 1, false );
+			int out; Parser >> out;
+			if( ( out < 0 ) || ( out > 6 ) ) {
+				out = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
+			}
+			Parser.getTokens( 6, false );
+			Parser
+				>> Global::fCalibrateOut[ out ][ 0 ] // wyraz wolny
+				>> Global::fCalibrateOut[ out ][ 1 ] // mno¿nik liniowy
+				>> Global::fCalibrateOut[ out ][ 2 ] // mno¿nik dla kwadratu
+				>> Global::fCalibrateOut[ out ][ 3 ] // mno¿nik dla szeœcianu
+				>> Global::fCalibrateOut[ out ][ 4 ] // mno¿nik dla 4 potêgi
+				>> Global::fCalibrateOut[ out ][ 5 ]; // mno¿nik dla 5 potêgi
 		}
-		else if (str == AnsiString("calibrateoutmaxvalues"))
-		{ // maksymalne wartoœci jakie mo¿na wyœwietliæ na mierniku
-			fCalibrateOutMax[0] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[1] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[2] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[3] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[4] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[5] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[6] = GetNextSymbol().ToDouble();
+		else if(token == "calibrateoutmaxvalues"){
+			// maksymalne wartoœci jakie mo¿na wyœwietliæ na mierniku
+			Parser.getTokens( 7, false );
+			Parser
+				>> Global::fCalibrateOutMax[ 0 ]
+				>> Global::fCalibrateOutMax[ 1 ]
+				>> Global::fCalibrateOutMax[ 2 ]
+				>> Global::fCalibrateOutMax[ 3 ]
+				>> Global::fCalibrateOutMax[ 4 ]
+				>> Global::fCalibrateOutMax[ 5 ]
+				>> Global::fCalibrateOutMax[ 6 ];
 		}
-		else if (str == AnsiString("calibrateoutdebuginfo")) // wyjœcie z info o przebiegu kalibracji
-			iCalibrateOutDebugInfo = GetNextSymbol().ToInt();
-		else if (str == AnsiString("pwm")) // zmiana numerów wyjœæ PWM
-		{
-			int pwm_out = GetNextSymbol().ToInt();
-			int pwm_no = GetNextSymbol().ToInt();
-			iPoKeysPWM[pwm_out] = pwm_no;
+		else if( token == "calibrateoutdebuginfo" ) {
+			// wyjœcie z info o przebiegu kalibracji
+			Parser.getTokens( 1, false );
+			Parser >> Global::iCalibrateOutDebugInfo;
 		}
-        else if (str == AnsiString("brakestep")) // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-            fBrakeStep = GetNextSymbol().ToDouble();
-        else if (str ==
-                 AnsiString("joinduplicatedevents")) // czy grupowaæ eventy o tych samych nazwach
-            bJoinEvents = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("hiddenevents")) // czy ³¹czyæ eventy z torami poprzez nazwê toru
-            iHiddenEvents = GetNextSymbol().ToIntDef(0);
-        else if (str == AnsiString("pause")) // czy po wczytaniu ma byæ pauza?
-            iPause |= (GetNextSymbol().LowerCase() == AnsiString("yes")) ? 1 : 0;
-        else if (str == AnsiString("lang"))
-            asLang = GetNextSymbol(); // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
-        else if (str == AnsiString("opengl")) // deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy
-            fOpenGL = GetNextSymbol().ToDouble(); // wymuszenie wersji OpenGL
-        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen renderer
-            TPythonInterpreter::getInstance()->setScreenRendererPriority(GetNextSymbol().LowerCase().c_str());
-		else if (str == AnsiString("background"))
-		{
-			Background[0] = GetNextSymbol().ToDouble(); // r
-			Background[1] = GetNextSymbol().ToDouble(); // g
-			Background[2] = GetNextSymbol().ToDouble(); // b
+		else if( token == "pwm" ) {
+			// zmiana numerów wyjœæ PWM
+			Parser.getTokens( 2, false );
+			int pwm_out, pwm_no;
+			Parser
+				>> pwm_out
+				>> pwm_no;
+			Global::iPoKeysPWM[ pwm_out ] = pwm_no;
 		}
-	} while (str != "endconfig"); //(!Parser->EndOfFile)
+		else if( token == "brakestep" ) {
+			// krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+			Parser.getTokens( 1, false );
+			Parser >> Global::fBrakeStep;
+		}
+		else if( token == "joinduplicatedevents" ) {
+			// czy grupowaæ eventy o tych samych nazwach
+			Parser.getTokens(); Parser >> token;
+			Global::bJoinEvents = ( token == "yes" );
+		}
+		else if( token == "hiddenevents" ) {
+			// czy ³¹czyæ eventy z torami poprzez nazwê toru
+			Parser.getTokens( 1, false );
+			Parser >> Global::iHiddenEvents;
+		}
+		else if( token == "pause" ) {
+			// czy po wczytaniu ma byæ pauza?
+			Parser.getTokens(); Parser >> token;
+			iPause |= ( token == "yes" ? 1 : 0 );
+		}
+		else if( token == "lang" ) {
+			// domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+			Parser.getTokens( 1, false );
+			Parser >> Global::asLang;
+		}
+		else if( token == "opengl" ) {
+			// deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy
+			Parser.getTokens( 1, false );
+			Parser >> Global::fOpenGL;
+		}
+		else if( token == "pyscreenrendererpriority" ) {
+			// priority of python screen renderer
+			Parser.getTokens(); Parser >> token;
+			TPythonInterpreter::getInstance()->setScreenRendererPriority( token.c_str() );
+		}
+		else if( token == "background" ) {
+
+			Parser.getTokens( 3, false );
+			Parser
+				>> Global::Background[ 0 ] // r
+				>> Global::Background[ 1 ] // g
+				>> Global::Background[ 2 ];// b
+		}
+	}
+	while( ( token != "" )
+		&& ( token != "endconfig" ) ); //(!Parser->EndOfFile)
     // na koniec trochê zale¿noœci
     if (!bLoadTraction) // wczytywanie drutów i s³upów
     { // tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
@@ -562,6 +671,8 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
               fFpsDeviation; // górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
     if (iPause)
         iTextMode = VK_F1; // jak pauza, to pokazaæ zegar
+/*  this won't execute anymore with the old parser removed
+	// TBD: remove, or launch depending on passed flag?
     if (qp)
     { // to poni¿ej wykonywane tylko raz, jedynie po wczytaniu eu07.ini
         Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
@@ -579,6 +690,7 @@ void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
                 fDistanceFactor; // do kwadratu, bo wiêkszoœæ odleg³oœci to ich kwadraty
         }
     }
+*/
 }
 
 void Global::InitKeys(std::string asFileName)
@@ -783,7 +895,7 @@ TTranscripts::TTranscripts()
     fRefreshTime = 360.0; // wartoœc zaporowa
 };
 TTranscripts::~TTranscripts(){};
-void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
+void TTranscripts::AddLine(char const *txt, float show, float hide, bool it)
 { // dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
     if (show == hide)
         return; // komentarz jest ignorowany
@@ -820,7 +932,7 @@ void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
                 break; // wiêcej ju¿ nic
             }
 };
-void TTranscripts::Add(char *txt, float len, bool backgorund)
+void TTranscripts::Add(char const *txt, float len, bool backgorund)
 { // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
     if (!txt)
         return; // pusty tekst
@@ -893,14 +1005,14 @@ void TTranscripts::Update()
 };
 
 // Ra: tymczasowe rozwi¹zanie kwestii zagranicznych (czeskich) napisów
-char bezogonkowo[128] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
-                        " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
-                        "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
-                        "raaaalccceeeeiiddnnoooo-ruuuuyt?";
+char bezogonkowo[] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
+                     " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
+                     "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
+                     "raaaalccceeeeiiddnnoooo-ruuuuyt?";
 
 std::string Global::Bezogonkow(std::string str, bool _)
 { // wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
-    for (int i = 1; i <= str.length(); ++i)
+    for (unsigned int i = 1; i < str.length(); ++i)
         if (str[i] & 0x80)
             str[i] = bezogonkowo[str[i] & 0x7F];
         else if (str[i] < ' ') // znaki steruj¹ce nie s¹ obs³ugiwane
@@ -913,10 +1025,8 @@ std::string Global::Bezogonkow(std::string str, bool _)
 
 double Global::Min0RSpeed(double vel1, double vel2)
 { // rozszerzenie funkcji Min0R o wartoœci -1.0
-	if (vel1 == -1.0)
-		vel1 = std::numeric_limits<double>::max();
-	if (vel2 == -1.0)
-		vel2 = std::numeric_limits<double>::max();
+	if( vel1 == -1.0 ) { vel1 = std::numeric_limits<double>::max(); }
+	if( vel2 == -1.0 ) { vel2 = std::numeric_limits<double>::max();	}
 	return Min0R(vel1, vel2);
 };
 
@@ -926,6 +1036,3 @@ double Global::CutValueToRange(double min, double value, double max)
 	value = Min0R(value, max);
 	return value;
 };
-
-
-#pragma package(smart_init)

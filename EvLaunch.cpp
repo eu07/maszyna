@@ -13,17 +13,16 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
+#include "EvLaunch.h"
+#include "Globals.h"
+#include "Logs.h"
+#include "Usefull.h"
+#include "McZapkie/mctools.h"
+#include "Event.h"
+#include "MemCell.h"
 #include "mtable.h"
 #include "Timer.h"
-#include "Globals.h"
-#include "EvLaunch.h"
-#include "Event.h"
-
-#include "Usefull.h"
-#include "MemCell.h"
 #include "parser.h"
 #include "Console.h"
 
@@ -79,8 +78,8 @@ bool TEventLauncher::Load(cParser *parser)
         iMinute = int(DeltaTime) % 100; // minuty s¹ najm³odszymi cyframi dziesietnymi
         iHour = int(DeltaTime - iMinute) / 100; // godzina to setki
         DeltaTime = 0; // bez powtórzeñ
-        WriteLog("EventLauncher at " + to_string(iHour) + ":" +
-                 to_string(iMinute)); // wyœwietlenie czasu
+        WriteLog("EventLauncher at " + std::to_string(iHour) + ":" +
+                 std::to_string(iMinute)); // wyœwietlenie czasu
     }
     parser->getTokens();
     *parser >> token;
@@ -189,5 +188,3 @@ bool TEventLauncher::IsGlobal()
     return false;
 };
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

@@ -7,14 +7,8 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Spring.h"
-#include "Usefull.h"
 
 TSpring::TSpring()
 {
@@ -79,5 +73,3 @@ void TSpring::Render()
 }
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

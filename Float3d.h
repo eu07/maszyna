@@ -7,9 +7,9 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef float3dH
-#define float3dH
-#include <math.h>
+#pragma once
+
+#include <cmath>
 //---------------------------------------------------------------------------
 
 class float3
@@ -130,6 +130,7 @@ inline float4 Normalize(const float4 &v)
     else
         return v / sqrt(l); // pierwiastek liczony tylko jeœli trzeba wykonaæ dzielenia
 };
+inline
 float Dot(const float4 &q1, const float4 &q2)
 { // iloczyn skalarny
     return q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
@@ -304,6 +305,7 @@ inline float Det3x3(float a1, float a2, float a3, float b1, float b2, float b3, 
     return +a1 * Det2x2(b2, b3, c2, c3) - b1 * Det2x2(a2, a3, c2, c3) + c1 * Det2x2(a2, a3, b2, b3);
 };
 
+inline
 float Det(const float4x4 &m)
 { // obliczenie wyznacznika macierzy 4×4
     float a1 = m[0][0], a2 = m[1][0], a3 = m[2][0], a4 = m[3][0];
@@ -315,5 +317,3 @@ float Det(const float4x4 &m)
            c1 * Det3x3(a2, a3, a4, b2, b3, b4, d2, d3, d4) -
            d1 * Det3x3(a2, a3, a4, b2, b3, b4, c2, c3, c4);
 };
-
-#endif

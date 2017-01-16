@@ -13,20 +13,13 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "TrkFoll.h"
 #include "Globals.h"
-#include "DynObj.h"
-#include "Ground.h"
-#include "Event.h"
+#include "Logs.h"
 #include "Driver.h"
+#include "DynObj.h"
+#include "Event.h"
 
 TTrackFollower::TTrackFollower()
 {

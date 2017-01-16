@@ -7,6 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
+#include "stdafx.h"
 #include "TextureDDS.h"
 
 void DxtcReadColors(const GLubyte *Data, Color8888 *result)

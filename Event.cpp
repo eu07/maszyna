@@ -13,19 +13,16 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Event.h"
+#include "Globals.h"
+#include "Logs.h"
+#include "Usefull.h"
 #include "parser.h"
 #include "Timer.h"
-#include "Usefull.h"
 #include "MemCell.h"
-#include "Globals.h"
 #include "Ground.h"
 #include "McZapkie\mctools.h"
-#pragma package(smart_init)
 
 TEvent::TEvent(string m)
 {
@@ -491,12 +488,16 @@ void TEvent::Load(cParser *parser, vector3 *org)
         }
         else if (token.substr(token.length() - 4, 4) == ".vmd") // na razie tu, mo¿e bêdzie inaczej
         { // animacja z pliku VMD
-            TFileStream *fs = new TFileStream("models\\" + AnsiString(token.c_str()), fmOpenRead);
-            Params[7].asInt = fs->Size;
-            Params[8].asPointer = new char[fs->Size];
-            fs->Read(Params[8].asPointer, fs->Size); // wczytanie pliku
-            delete fs;
-            parser->getTokens();
+//			TFileStream *fs = new TFileStream( "models\\" + AnsiString( token.c_str() ), fmOpenRead );
+			{
+				std::ifstream file( "models\\" + token, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
+				auto size = file.tellg();   // ios::ate already positioned us at the end of the file
+				file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
+				Params[ 7 ].asInt = size;
+				Params[8].asPointer = new char[size];
+				file.read( static_cast<char*>(Params[ 8 ].asPointer), size ); // wczytanie pliku
+			}
+			parser->getTokens();
             *parser >> token;
             Params[9].asText = new char[255]; // nazwa submodelu
             strcpy(Params[9].asText, token.c_str());

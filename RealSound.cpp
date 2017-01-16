@@ -12,16 +12,13 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "math.h"
+#include "stdafx.h"
 #include "RealSound.h"
 #include "Globals.h"
-#include "Timer.h"
 #include "Logs.h"
-#include "McZapkie\mctools.h"
+//#include "math.h"
+#include "Timer.h"
+#include "mczapkie/mctools.h"
 
 TRealSound::TRealSound()
 {
@@ -55,11 +52,11 @@ void TRealSound::Free()
 {
 }
 
-void TRealSound::Init(const char *SoundName, double DistanceAttenuation, double X, double Y, double Z,
+void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, double X, double Y, double Z,
                       bool Dynamic, bool freqmod, double rmin)
 {
     // Nazwa=SoundName; //to tak raczej nie zadzia³a, (SoundName) jest tymczasowe
-    pSound = TSoundsManager::GetFromName(SoundName, Dynamic, &fFrequency);
+    pSound = TSoundsManager::GetFromName(SoundName.c_str(), Dynamic, &fFrequency);
     if (pSound)
     {
         if (freqmod)
@@ -67,7 +64,7 @@ void TRealSound::Init(const char *SoundName, double DistanceAttenuation, double 
             { // dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹
                 // ignorowana, a mog³a byæ inna ni¿ 22050
                 fFrequency = 22050.0;
-                ErrorLog("Bad sound: " + string(SoundName) +
+                ErrorLog("Bad sound: " + std::string(SoundName) +
                          ", as modulated, should have 22.05kHz in header");
             }
         AM = 1.0;
@@ -76,7 +73,7 @@ void TRealSound::Init(const char *SoundName, double DistanceAttenuation, double 
     else
     { // nie ma dŸwiêku, to jest wysyp
         AM = 0;
-        ErrorLog("Missed sound: " + string(SoundName));
+        ErrorLog("Missed sound: " + std::string(SoundName));
     }
     if (DistanceAttenuation > 0.0)
     {
@@ -108,7 +105,7 @@ void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
     if (!pSound)
         return;
     long int vol;
-    double dS;
+	double dS = 0.0;
     // double Distance;
     DWORD stat;
     if ((Global::bSoundEnabled) && (AM != 0))
@@ -260,14 +257,14 @@ TTextSound::TTextSound(const char *SoundName, double SoundAttenuation, double X,
 	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
 }
 
-void TTextSound::Init(const char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+void TTextSound::Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
                       bool Dynamic, bool freqmod, double rmin)
 { // dodatkowo doczytuje plik tekstowy
     //TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
     fTime = GetWaveTime();
-    AnsiString txt = AnsiString(SoundName);
-    txt.Delete(txt.Length() - 3, 4); // obciêcie rozszerzenia
-    for (int i = txt.Length(); i > 0; --i)
+    std::string txt(SoundName);
+	txt.erase( txt.rfind( '.' ) ); // obciêcie rozszerzenia
+    for (int i = txt.length(); i > 0; --i)
         if (txt[i] == '/')
             txt[i] = '\\'; // bo nie rozumi
     txt += "-" + Global::asLang + ".txt"; // ju¿ mo¿e byæ w ró¿nych jêzykach
@@ -275,39 +272,41 @@ void TTextSound::Init(const char *SoundName, double SoundAttenuation, double X, 
         txt = "sounds\\" + txt; //œcie¿ka mo¿e nie byæ podana
     if (FileExists(txt))
     { // wczytanie
-        TFileStream *ts = new TFileStream(txt, fmOpenRead);
+/*      TFileStream *ts = new TFileStream(txt, fmOpenRead);
         asText = AnsiString::StringOfChar(' ', ts->Size);
         ts->Read(asText.c_str(), ts->Size);
         delete ts;
-    }
+*/		std::ifstream inputfile( txt );
+		asText.assign( std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() );
+	}
 };
 void TTextSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
 {
-    if (!asText.IsEmpty())
+    if (false == asText.empty())
     { // jeœli ma powi¹zany tekst
         DWORD stat;
         pSound->GetStatus(&stat);
         if (!(stat & DSBSTATUS_PLAYING)) // jeœli nie jest aktualnie odgrywany
         {
-            int i;
-            AnsiString t = asText;
+            std::string t( asText );
+			size_t i;
             do
             { // na razie zrobione jakkolwiek, docelowo przenieœæ teksty do tablicy nazw
-                i = t.Pos("\r"); // znak nowej linii
-                if (!i)
-                    Global::tranTexts.Add(t.c_str(), fTime, true);
+                i = t.find('\r'); // znak nowej linii
+				if( i == std::string::npos ) {
+					Global::tranTexts.Add( t.c_str(), fTime, true );
+				}
                 else
                 {
-                    Global::tranTexts.Add(t.SubString(1, i - 1).c_str(), fTime, true);
-                    t.Delete(1, i);
-                    while (t.IsEmpty() ? false : (unsigned char)(t[1]) < 33)
-                        t.Delete(1, 1);
+                    Global::tranTexts.Add(t.substr(0, i).c_str(), fTime, true);
+                    t.erase(0, i + 1);
+                    while (t.empty() ? false : (unsigned char)(t[1]) < 33)
+                        t.erase(0, 1);
                 }
-            } while (i > 0);
+            } while (i != std::string::npos);
         }
     }
     TRealSound::Play(Volume, Looping, ListenerInside, NewPosition);
 };
 
 //---------------------------------------------------------------------------
-#pragma package(smart_init)

@@ -13,23 +13,19 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#include "Texture.h"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "MdlMngr.h"
+
 #include "Globals.h"
-#include <string>
+#include "Logs.h"
+#include "McZapkie/mctools.h"
 
-#define SeekFiles AnsiString("*.t3d")
+//#define SeekFiles std::string("*.t3d")
 
-TModel3d * TMdlContainer::LoadModel(char *newName, bool dynamic)
+TModel3d * TMdlContainer::LoadModel(std::string const &NewName, bool dynamic)
 { // wczytanie modelu do kontenerka
-    SafeDeleteArray(Name);
     SafeDelete(Model);
-    Name = new char[strlen(newName) + 1];
-    strcpy(Name, newName);
+	Name = NewName;
     Model = new TModel3d();
     if (!Model->LoadFromFile(Name, dynamic)) // np. "models\\pkp/head1-y.t3d"
         SafeDelete(Model);
@@ -38,7 +34,7 @@ TModel3d * TMdlContainer::LoadModel(char *newName, bool dynamic)
 
 TMdlContainer *TModelsManager::Models;
 int TModelsManager::Count;
-const MAX_MODELS = 1000;
+int const MAX_MODELS = 1000;
 
 void TModelsManager::Init()
 {
@@ -63,7 +59,7 @@ void TModelsManager::Free()
     SafeDeleteArray(Models);
 }
 
-TModel3d * TModelsManager::LoadModel(char *Name, bool dynamic)
+TModel3d * TModelsManager::LoadModel(std::string const &Name, bool dynamic)
 { // wczytanie modelu do tablicy
     TModel3d *mdl = NULL;
     if (Count >= MAX_MODELS)
@@ -77,7 +73,7 @@ TModel3d * TModelsManager::LoadModel(char *Name, bool dynamic)
     return mdl;
 }
 
-TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
+TModel3d * TModelsManager::GetModel(std::string const &Name, bool dynamic)
 { // model mo¿e byæ we wpisie "node...model" albo "node...dynamic", a tak¿e byæ dodatkowym w dynamic
     // (kabina, wnêtrze, ³adunek)
     // dla "node...dynamic" mamy podan¹ œcie¿kê w "\dynamic\" i musi byæ co najmniej 1 poziom, zwkle
@@ -99,7 +95,7 @@ TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
     // - wczytanie uproszczonego wnêtrza, œcie¿ka dok³adna, tekstury z katalogu modelu
     // - niebo animowane, œcie¿ka brana ze wpisu, tekstury nieokreœlone
     // - wczytanie modelu animowanego - Init() - sprawdziæ
-    char buf[255];
+	std::string buf;
     std::string buftp = Global::asCurrentTexturePath; // zapamiêtanie aktualnej œcie¿ki do tekstur,
     // bo bêdzie tyczmasowo zmieniana
     /*
@@ -143,11 +139,11 @@ TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
       }
      };
     */
-    if (strchr(Name, '\\') == NULL)
+    if( Name.find('\\') == std::string::npos )
     {
-        strcpy(buf, "models\\"); // Ra: by³o by lepiej katalog dodaæ w parserze
-        strcat(buf, Name);
-        if (strchr(Name, '/') != NULL)
+        buf = "models\\"; // Ra: by³o by lepiej katalog dodaæ w parserze
+		buf.append( Name );
+        if( Name.find( '/') != std::string::npos)
         {
             Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
             Global::asCurrentTexturePath.erase(Global::asCurrentTexturePath.find("/") + 1,
@@ -156,19 +152,19 @@ TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
     }
     else
     {
-        strcpy(buf, Name);
+		buf = Name;
         if (dynamic) // na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
-            if (strchr(Name, '/') != NULL)
+            if (Name.find( '/') != std::string::npos)
             { // pobieranie tekstur z katalogu, w którym jest model
                 Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
                 Global::asCurrentTexturePath.erase(Global::asCurrentTexturePath.find("/") + 1,
                                                     Global::asCurrentTexturePath.length() - 1);
             }
     }
-    StrLower(buf);
-    for (int i = 0; i < Count; i++)
+	buf = ToLower( buf );
+    for (int i = 0; i < Count; ++i)
     {
-        if (strcmp(buf, Models[i].Name) == 0)
+        if ( buf == Models[i].Name )
         {
             Global::asCurrentTexturePath = buftp;
             return (Models[i].Model);
@@ -197,4 +193,3 @@ TModel3d TModelsManager::GetModel(char *Name, AnsiString asReplacableTexture)
 */
 
 //---------------------------------------------------------------------------
-#pragma package(smart_init)

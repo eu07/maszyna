@@ -6,9 +6,9 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
+#pragma once
 
-#ifndef PoKeys55H
-#define PoKeys55H
+#include <string>
 //---------------------------------------------------------------------------
 class TPoKeys55
 { // komunikacja z PoKeys bez okreœlania przeznaczenia pinów
@@ -27,13 +27,12 @@ class TPoKeys55
     TPoKeys55();
     ~TPoKeys55();
     bool Connect();
-    bool Close();
+    void Close();
     bool Write(unsigned char c, unsigned char b3, unsigned char b4 = 0, unsigned char b5 = 0);
 	bool Read();
     bool ReadLoop(int i);
-    AnsiString Version();
+    std::string Version();
     bool PWM(int x, float y);
 	bool Update(bool pause);
 };
 //---------------------------------------------------------------------------
-#endif

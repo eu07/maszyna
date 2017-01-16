@@ -12,14 +12,13 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-// nag³ówki identyczne w ka¿dym pliku...
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Track.h"
+#include "Globals.h"
+#include "Logs.h"
 #include "Usefull.h"
 #include "Texture.h"
 #include "Timer.h"
-#include "Globals.h"
 #include "Ground.h"
 #include "parser.h"
 #include "Mover.h"
@@ -27,8 +26,6 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "MemCell.h"
 #include "Event.h"
-
-#pragma package(smart_init)
 
 // 101206 Ra: trapezoidalne drogi i tory
 // 110720 Ra: rozprucie zwrotnicy i odcinki izolowane
@@ -3136,13 +3133,13 @@ void TTrack::ConnectionsLog()
         for (i = 0; i < 2; ++i)
         {
             if (SwitchExtension->pPrevs[i])
-                WriteLog("Point " + to_string(i + i + 1) + " -> track " +
+                WriteLog("Point " + std::to_string(i + i + 1) + " -> track " +
                          SwitchExtension->pPrevs[i]->pMyNode->asName + ":" +
-                         to_string(int(SwitchExtension->iPrevDirection[i])));
+                         std::to_string(int(SwitchExtension->iPrevDirection[i])));
             if (SwitchExtension->pNexts[i])
-                WriteLog("Point " + to_string(i + i + 2) + " -> track " +
+                WriteLog("Point " + std::to_string(i + i + 2) + " -> track " +
                          SwitchExtension->pNexts[i]->pMyNode->asName + ":" +
-                         to_string(int(SwitchExtension->iNextDirection[i])));
+                         std::to_string(int(SwitchExtension->iNextDirection[i])));
         }
 };
 

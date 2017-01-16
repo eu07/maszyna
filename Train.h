@@ -10,8 +10,8 @@ http://mozilla.org/MPL/2.0/.
 #ifndef TrainH
 #define TrainH
 
-#include "Track.h"
-#include "TrkFoll.h"
+//#include "Track.h"
+//#include "TrkFoll.h"
 #include "Model3d.h"
 #include "Spring.h"
 #include "Gauge.h"
@@ -47,7 +47,7 @@ class TCab
     ~TCab();
     void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
               double Initz2, bool InitEnabled, bool InitOccupied);
-    void Load(TQueryParserComp *Parser);
+    void Load(cParser &Parser);
     vector3 CabPos1;
     vector3 CabPos2;
     bool bEnabled;
@@ -74,7 +74,7 @@ class TTrain
     bool CabChange(int iDirection);
     bool ActiveUniversal4;
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
-    bool InitializeCab(int NewCabNo, std::string asFileName);
+    bool InitializeCab(int NewCabNo, std::string const &asFileName);
     TTrain();
     ~TTrain();
     //    bool Init(TTrack *Track);
@@ -99,8 +99,19 @@ class TTrain
 	void SetLights();
 	//    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
-    bool LoadMMediaFile(std::string asFileName);
+    bool LoadMMediaFile(std::string const &asFileName);
     PyObject *GetTrainState();
+
+private:
+	// clears state of all cabin controls
+	void
+		clear_cab_controls();
+	// initializes a gauge matching provided label. returns: true if the label was found, false otherwise
+	bool
+		initialize_gauge( cParser &Parser, std::string const &Label, int const Cabindex );
+	// initializes a button matching provided label. returns: true if the label was found, false otherwise
+	bool
+		initialize_button( cParser &Parser, std::string const &Label, int const Cabindex );
 
   private: //¿eby go nic z zewn¹trz nie przestawia³o
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -388,7 +399,7 @@ class TTrain
 	int iUnits[20];     // numer jednostki
 	int iDoorNo[20];     // liczba drzwi
 	char cCode[20];     //kod pojazdu
-	string asCarName[20]; //nazwa czlonu
+	std::string asCarName[20]; //nazwa czlonu
 	bool bMains[8]; //WSy
 	float fCntVol[8]; //napiecie NN
 	bool bPants[8][2]; //podniesienie pantografow

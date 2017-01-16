@@ -7,10 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Timer.h"
 #include "Globals.h"
 
@@ -119,5 +116,3 @@ void UpdateTimers(bool pause)
 };
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

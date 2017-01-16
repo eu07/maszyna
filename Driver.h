@@ -7,16 +7,15 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef DriverH
-#define DriverH
+#pragma once
 
+//#include <fstream>
+#include <string>
 #include "Classes.h"
 #include "dumb3d.h"
-#include <fstream>
-#include <string>
+#include "mczapkie/mover.h"
 using namespace Math3D;
 using namespace Mtable;
-using namespace std;
 
 enum TOrders
 { // rozkazy dla AI
@@ -379,7 +378,7 @@ class TController
 
   public:
     void PhysicsLog();
-    string StopReasonText();
+    std::string StopReasonText();
     ~TController();
     std::string NextStop();
     void TakeControl(bool yes);
@@ -403,5 +402,3 @@ class TController
     void RouteSwitch(int d);
     std::string OwnerName();
 };
-
-#endif

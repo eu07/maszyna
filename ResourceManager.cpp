@@ -7,10 +7,9 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
+#include "stdafx.h"
 #include "ResourceManager.h"
 #include "Logs.h"
-
-#include <sstream>
 
 ResourceManager::Resources ResourceManager::_resources;
 double ResourceManager::_expiry = 5.0f;
@@ -59,7 +58,7 @@ void ResourceManager::Sweep(double currentTime)
         WriteLog("Releasing resources");
 #endif
 
-    for (Resources::iterator iter = begin; iter != _resources.end(); iter++)
+    for (Resources::iterator iter = begin; iter != _resources.end(); ++iter)
         (*iter)->Release();
 
 #ifdef RESOURCE_REPORTING

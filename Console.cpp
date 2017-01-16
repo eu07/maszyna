@@ -7,17 +7,15 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Console.h"
 #include "Globals.h"
 #include "Logs.h"
 #include "PoKeys55.h"
 #include "LPT.h"
+#include "mczapkie/mctools.h"
 
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 // Ra: klasa statyczna gromadz¹ca sygna³y steruj¹ce oraz informacje zwrotne
 // Ra: stan wejœcia zmieniany klawiatur¹ albo dedykowanym urz¹dzeniem
 // Ra: stan wyjœcia zmieniany przez symulacjê (mierniki, kontrolki)
@@ -80,10 +78,15 @@ public static Int32 GetScreenSaverTimeout()
 };
 */
 
+// static class member storage allocation
+TKeyTrans Console::ktTable[ 4 * 256 ];
+
 // Ra: do poprawienia
 void SetLedState(char Code, bool bOn)
 { // Ra: bajer do migania LED-ami w klawiaturze
-    if (Win32Platform == VER_PLATFORM_WIN32_NT)
+// NOTE: disabled for the time being
+// TODO: find non Borland specific equivalent, or get rid of it
+/*   if (Win32Platform == VER_PLATFORM_WIN32_NT)
     {
         // WriteLog(AnsiString(int(GetAsyncKeyState(Code))));
         if (bool(GetAsyncKeyState(Code)) != bOn)
@@ -99,6 +102,7 @@ void SetLedState(char Code, bool bOn)
         KBState[Code] = bOn ? 1 : 0;
         SetKeyboardState(KBState);
     };
+*/
 };
 
 //---------------------------------------------------------------------------
@@ -198,7 +202,7 @@ void Console::BitsSet(int mask, int entry)
         iBits |= mask;
         BitsUpdate(old ^ iBits); // 1 dla bitów zmienionych
 		if (iMode == 4)
-			WriteLog("PoKeys::BitsSet: mask: " + AnsiString(mask) + " iBits: " + AnsiString(iBits));
+			WriteLog("PoKeys::BitsSet: mask: " + std::to_string(mask) + " iBits: " + std::to_string(iBits));
     }
 };
 
@@ -244,35 +248,35 @@ void Console::BitsUpdate(int mask)
         if (PoKeys55[0])
         { // pewnie trzeba bêdzie to dodatkowo buforowaæ i oczekiwaæ na potwierdzenie
             if (mask & 0x0001) // b0 gdy SHP
-                PoKeys55[0]->Write(0x40, 23 - 1, iBits & 0x0001 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 23 - 1, (iBits & 0x0001) ? 1 : 0);
             if (mask & 0x0002) // b1 gdy zmieniony CA
-                PoKeys55[0]->Write(0x40, 24 - 1, iBits & 0x0002 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 24 - 1, (iBits & 0x0002) ? 1 : 0);
             if (mask & 0x0004) // b2 gdy jazda na oporach
-                PoKeys55[0]->Write(0x40, 32 - 1, iBits & 0x0004 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 32 - 1, (iBits & 0x0004) ? 1 : 0);
             if (mask & 0x0008) // b3 Lampka WS (wy³¹cznika szybkiego)
-                PoKeys55[0]->Write(0x40, 25 - 1, iBits & 0x0008 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 25 - 1, (iBits & 0x0008) ? 1 : 0);
             if (mask & 0x0010) // b4 Lampka przekaŸnika nadmiarowego silników trakcyjnych
-                PoKeys55[0]->Write(0x40, 27 - 1, iBits & 0x0010 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 27 - 1, (iBits & 0x0010) ? 1 : 0);
             if (mask & 0x0020) // b5 Lampka styczników liniowych
-                PoKeys55[0]->Write(0x40, 29 - 1, iBits & 0x0020 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 29 - 1, (iBits & 0x0020) ? 1 : 0);
             if (mask & 0x0040) // b6 Lampka poœlizgu
-                PoKeys55[0]->Write(0x40, 30 - 1, iBits & 0x0040 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 30 - 1, (iBits & 0x0040) ? 1 : 0);
             if (mask & 0x0080) // b7 Lampka "przetwornicy"
-                PoKeys55[0]->Write(0x40, 28 - 1, iBits & 0x0080 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 28 - 1, (iBits & 0x0080) ? 1 : 0);
             if (mask & 0x0100) // b8 Kontrolka przekaŸnika nadmiarowego sprê¿arki
-                PoKeys55[0]->Write(0x40, 33 - 1, iBits & 0x0100 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 33 - 1, (iBits & 0x0100) ? 1 : 0);
             if (mask & 0x0200) // b9 Kontrolka sygnalizacji wentylatorów i oporów
-                PoKeys55[0]->Write(0x40, 26 - 1, iBits & 0x0200 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 26 - 1, (iBits & 0x0200) ? 1 : 0);
             if (mask & 0x0400) // b10 Kontrolka wysokiego rozruchu
-                PoKeys55[0]->Write(0x40, 31 - 1, iBits & 0x0400 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 31 - 1, (iBits & 0x0400) ? 1 : 0);
             if (mask & 0x0800) // b11 Kontrolka ogrzewania poci¹gu
-                PoKeys55[0]->Write(0x40, 34 - 1, iBits & 0x0800 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 34 - 1, (iBits & 0x0800) ? 1 : 0);
             if (mask & 0x1000) // b12 Ciœnienie w cylindrach do odbijania w haslerze
-                PoKeys55[0]->Write(0x40, 52 - 1, iBits & 0x1000 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 52 - 1, (iBits & 0x1000) ? 1 : 0);
             if (mask & 0x2000) // b13 Pr¹d na silnikach do odbijania w haslerze
-                PoKeys55[0]->Write(0x40, 53 - 1, iBits & 0x2000 ? 1 : 0);
+                PoKeys55[0]->Write(0x40, 53 - 1, (iBits & 0x2000) ? 1 : 0);
 			if (mask & 0x4000) // b14 Brzêczyk SHP lub CA
-				PoKeys55[0]->Write(0x40, 16 - 1, iBits & 0x4000 ? 1 : 0);
+				PoKeys55[0]->Write(0x40, 16 - 1, (iBits & 0x4000) ? 1 : 0);
 		}
         break;
     }
@@ -290,22 +294,22 @@ void Console::ValueSet(int x, double y)
         {
    			x = Global::iPoKeysPWM[x];
 			if (Global::iCalibrateOutDebugInfo == x)
-				WriteLog("CalibrateOutDebugInfo: oryginal=" + AnsiString(y), false);
+				WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y), false);
 			if (Global::fCalibrateOutMax[x] > 0)
 			{
 				y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
 				if (Global::iCalibrateOutDebugInfo == x)
-					WriteLog(" cutted=" + AnsiString(y),false);
+					WriteLog(" cutted=" + std::to_string(y),false);
 				y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeœli podana maksymalna wartoœæ
 				if (Global::iCalibrateOutDebugInfo == x)
-					WriteLog(" fraction=" + AnsiString(y),false);
+					WriteLog(" fraction=" + std::to_string(y),false);
 			}
 			double temp = (((((Global::fCalibrateOut[x][5] * y) + Global::fCalibrateOut[x][4]) * y +
 				Global::fCalibrateOut[x][3]) * y + Global::fCalibrateOut[x][2]) * y +
 				Global::fCalibrateOut[x][1]) * y +
 				Global::fCalibrateOut[x][0]; // zakres <0;1>
 			if (Global::iCalibrateOutDebugInfo == x)
-				WriteLog(" calibrated=" + AnsiString(temp));
+				WriteLog(" calibrated=" + std::to_string(temp));
 			PoKeys55[0]->PWM(x, temp); 
         }
 };

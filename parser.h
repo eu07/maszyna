@@ -7,17 +7,13 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#if !defined(rainKERNELTEXTPARSER_H_INCLUDED)
-#define rainKERNELTEXTPARSER_H_INCLUDED
-
-#pragma warning(disable : 4786) // 'containers too long for debug' warning
+#pragma once
 
 #include <string>
 #include <sstream>
-#include <map>
-#include <vector>
 #include <fstream>
-#include <ctype.h>
+#include <vector>
+#include <map>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // cParser -- generic class for parsing text data, either from file or provided string
@@ -37,11 +33,21 @@ class cParser : public std::stringstream
     // destructor:
     virtual ~cParser();
     // methods:
-    template <typename OutputT> inline void getToken(OutputT &output)
+    template <typename _Output>
+	_Output
+		getToken( bool const ToLower = true )
     {
-        getTokens();
+        getTokens( 1, ToLower );
+		_Output output;
         *this >> output;
+		return output;
     };
+	template <>
+	bool
+		getToken<bool>( bool const ToLower ) {
+
+		return ( getToken<std::string>() == "true" );
+	}
     inline void ignoreToken()
     {
         readToken();
@@ -77,11 +83,24 @@ class cParser : public std::stringstream
     // members:
     std::istream *mStream; // relevant kind of buffer is attached on creation.
     std::string mPath; // path to open stream, for relative path lookups.
-    int mSize; // size of open stream, for progress report.
+    std::streamoff mSize; // size of open stream, for progress report.
     typedef std::map<std::string, std::string> commentmap;
     commentmap mComments;
     cParser *mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
 };
 
-#endif // ..!defined(rainKERNELTEXTPARSER_H_INCLUDED)
+inline
+cParser&
+operator>>( cParser &Parser, bool &Right ) {
+
+	std::istream::sentry const streamokay( Parser );
+	if( streamokay ) {
+
+		std::string value;
+		Parser >> value;
+		Right = ( value == "true" );
+	}
+
+	return Parser;
+}
