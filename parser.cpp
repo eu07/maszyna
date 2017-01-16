@@ -7,8 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#define _USE_OLD_RW_STL
-
+#include "stdafx.h"
 #include "parser.h"
 #include "logs.h"
 
@@ -159,7 +158,8 @@ std::string cParser::readToken(bool ToLower, const char *Break)
             // if (trtest=="x") //jeœli nie wczytywaæ drutów
             // trtest2=includefile; //kopiowanie œcie¿ki do pliku
             std::string parameter = readToken(false); // w parametrach nie zmniejszamy
-            while (parameter.compare("end") != 0)
+            while( (parameter.empty() == false)
+				&& (parameter.compare("end") != 0) )
             {
                 parameters.push_back(parameter);
                 parameter = readToken(ToLower);
@@ -205,5 +205,5 @@ std::string cParser::readComment(const std::string Break)
 
 int cParser::getProgress() const
 {
-    return mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize;
+    return static_cast<int>( mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize );
 }

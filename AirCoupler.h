@@ -7,11 +7,10 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef AirCouplerH
-#define AirCouplerH
+#pragma once
 
 #include "Model3d.h"
-#include "QueryParserComp.hpp"
+#include "parser.h"
 
 class TAirCoupler
 {
@@ -46,10 +45,9 @@ class TAirCoupler
     };
     //  inline bool Active() { if ((pModelOn)||(pModelOff)) return true; return false;};
     int GetStatus();
-    void Init(AnsiString asName, TModel3d *pModel);
-    void Load(TQueryParserComp *Parser, TModel3d *pModel);
+    void Init(std::string const &asName, TModel3d *pModel);
+    void Load(cParser *Parser, TModel3d *pModel);
     //  bool Render();
 };
 
 //---------------------------------------------------------------------------
-#endif

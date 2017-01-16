@@ -7,17 +7,12 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TrackH
-#define TrackH
+#pragma once
 
-#include "Segment.h"
-#include "ResourceManager.h"
-#include "opengl/glew.h"
-#include <system.hpp>
-#include "Classes.h"
 #include <string>
-
-using namespace std;
+#include "opengl/glew.h"
+#include "ResourceManager.h"
+#include "Segment.h"
 
 class TEvent;
 
@@ -109,10 +104,10 @@ class TIsolated
     TEvent *evFree; // zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
     TMemCell *pMemCell; // automatyczna komórka pamiêci, która wspó³pracuje z odcinkiem izolowanym
     TIsolated();
-    TIsolated(const string &n, TIsolated *i);
+    TIsolated(const std::string &n, TIsolated *i);
     ~TIsolated();
     static TIsolated * Find(
-        const string &n); // znalezienie obiektu albo utworzenie nowego
+        const std::string &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjêcie osi
     bool Busy()
     {
@@ -160,12 +155,12 @@ class TTrack : public Resource
     TEvent *evEvent0; // McZapkie-280503: wyzwalany tylko gdy headdriver
     TEvent *evEvent1;
     TEvent *evEvent2;
-    string asEventall0Name; // nazwy eventów
-    string asEventall1Name;
-    string asEventall2Name;
-    string asEvent0Name;
-    string asEvent1Name;
-    string asEvent2Name;
+    std::string asEventall0Name; // nazwy eventów
+	std::string asEventall1Name;
+	std::string asEventall2Name;
+	std::string asEvent0Name;
+	std::string asEvent1Name;
+	std::string asEvent2Name;
     int iNextDirection; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
     int iPrevDirection;
     TTrackType eType;
@@ -268,7 +263,7 @@ class TTrack : public Resource
         if (pIsolated)
             pIsolated->Modify(i, o);
     }; // dodanie lub odjêcie osi
-    string IsolatedName();
+    std::string IsolatedName();
     bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
     GLuint TextureGet(int i)
@@ -278,7 +273,7 @@ class TTrack : public Resource
     bool IsGroupable();
     int TestPoint(vector3 *Point);
     void MovedUp1(double dh);
-    string NameGet();
+    std::string NameGet();
     void VelocitySet(float v);
     float VelocityGet();
     void ConnectionsLog();
@@ -289,4 +284,3 @@ class TTrack : public Resource
 };
 
 //---------------------------------------------------------------------------
-#endif

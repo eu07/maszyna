@@ -12,19 +12,14 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-//#include "system.hpp"
-//#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Traction.h"
-#include "mctools.h"
 #include "Globals.h"
-#include "Usefull.h"
+#include "logs.h"
+#include "mctools.h"
 #include "TractionPower.h"
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)
 /*
 
 === Koncepcja dwustronnego zasilania sekcji sieci trakcyjnej, Ra 2014-02 ===
@@ -472,8 +467,8 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
         }
     }
     if ((Vert - old) != iLines)
-        WriteLog("!!! Wygenerowano punktów " + AnsiString(Vert - old) + ", powinno byæ " +
-                 AnsiString(iLines));
+        WriteLog("!!! Wygenerowano punktów " + std::to_string(Vert - old) + ", powinno byæ " +
+                 std::to_string(iLines));
 };
 
 void TTraction::RenderVBO(float mgn, int iPtr)

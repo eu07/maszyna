@@ -8,14 +8,10 @@
 
 ========================================================================================*/
 
-#include <windows.h>
-#include <gl/gl.h>
-#include <gl/glu.h>
-#include "wglext.h"		//WGL extensions
-#include "glext.h"		//GL extensions
-
-
+#include "stdafx.h"
 #include "arb_multisample.h"
+#include "glew.h"
+#include "wglew.h"
 
 // Declairations We'll Use
 #define WGL_SAMPLE_BUFFERS_ARB		 0x2041

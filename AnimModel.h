@@ -138,7 +138,7 @@ class TAnimModel
     TSubModel *LightsOff[iMaxNumLights];
     vector3 vAngle; // bazowe obroty egzemplarza wzglêdem osi
     int iTexAlpha; //¿eby nie sprawdzaæ za ka¿dym razem, dla 4 wymiennych tekstur
-    AnsiString asText; // tekst dla wyœwietlacza znakowego
+    std::string asText; // tekst dla wyœwietlacza znakowego
     TAnimAdvanced *pAdvanced;
     void Advanced();
     TLightState lsLights[iMaxNumLights];
@@ -154,15 +154,15 @@ class TAnimModel
     TAnimModel();
     ~TAnimModel();
     bool Init(TModel3d *pNewModel);
-    bool Init(AnsiString asName, AnsiString asReplacableTexture);
+    bool Init(std::string const &asName, std::string const &asReplacableTexture);
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(char *pName);
     TAnimContainer * GetContainer(char *pName);
-    void RenderDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
+/*  void RenderDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
     void RenderAlphaDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
     void RenderVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
     void RenderAlphaVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void RenderDL(vector3 *vPosition);
+*/  void RenderDL(vector3 *vPosition);
     void RenderAlphaDL(vector3 *vPosition);
     void RenderVBO(vector3 *vPosition);
     void RenderAlphaVBO(vector3 *vPosition);
@@ -181,7 +181,7 @@ class TAnimModel
     void LightSet(int n, float v);
     static void AnimUpdate(double dt);
 };
-TAnimContainer *TAnimModel::acAnimList = NULL;
+
 
 //---------------------------------------------------------------------------
 #endif

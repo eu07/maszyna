@@ -7,14 +7,10 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "float3d.h"
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)
 
 void float4x4::Quaternion(float4 *q)
 { // konwersja kwaternionu obrotu na macierz obrotu

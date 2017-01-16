@@ -12,8 +12,8 @@ Brakes. Oerlikon ESt.
 Copyright (C) 2007-2014 Maciej Cierniak
 */
 
+#include "stdafx.h"
 #include "Oerlikon_ESt.h"
-#include <typeinfo>
 
 double d2A(double d)
 {

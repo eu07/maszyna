@@ -7,11 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef UsefullH
-#define UsefullH
-
-#include "dumb3d.h"
-#include "Logs.h"
+#pragma once
 
 //#define	B1(t)     (t*t*t)
 //#define	B2(t)     (3*t*t*(1-t))
@@ -28,12 +24,12 @@ http://mozilla.org/MPL/2.0/.
 #define SafeDelete(a) \
     {                 \
         delete (a);   \
-        a = NULL;     \
+        a = nullptr;     \
     }
 #define SafeDeleteArray(a) \
     {                      \
         delete[](a);       \
-        a = NULL;          \
+        a = nullptr;          \
     }
 
 #define sign(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
@@ -49,8 +45,8 @@ http://mozilla.org/MPL/2.0/.
             a = c;   \
     }
 
-#define asModelsPath AnsiString("models\\")
-#define asSceneryPath AnsiString("scenery\\")
+#define asModelsPath std::string("models\\")
+#define asSceneryPath std::string("scenery\\")
 //#define asTexturePath AnsiString("textures\\")
 //#define asTextureExt AnsiString(".bmp")
 #define szSceneryPath "scenery\\"
@@ -60,5 +56,6 @@ http://mozilla.org/MPL/2.0/.
 //#define DevelopTime     //FIXME
 //#define EditorMode
 
+#define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
+
 //---------------------------------------------------------------------------
-#endif

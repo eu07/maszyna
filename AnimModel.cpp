@@ -12,20 +12,19 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "AnimModel.h"
+
+#include "Globals.h"
+#include "Logs.h"
 #include "usefull.h"
+#include "McZapkie/mctools.h"
 #include "Timer.h"
 #include "MdlMngr.h"
 // McZapkie:
 #include "Texture.h"
-#include "Globals.h"
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
-//---------------------------------------------------------------------------
+TAnimContainer *TAnimModel::acAnimList = NULL;
 
 TAnimAdvanced::TAnimAdvanced(){};
 
@@ -437,18 +436,17 @@ TAnimModel::~TAnimModel()
 
 bool TAnimModel::Init(TModel3d *pNewModel)
 {
-    fBlinkTimer = double(random(1000 * fOffTime)) / (1000 * fOffTime);
+    fBlinkTimer = double(Random(1000 * fOffTime)) / (1000 * fOffTime);
     ;
     pModel = pNewModel;
     return (pModel != NULL);
 }
 
-bool TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
+bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
-    if (asReplacableTexture.SubString(1, 1) ==
+    if (asReplacableTexture.substr(0, 1) ==
         "*") // od gwiazdki zaczynaj¹ siê teksty na wyœwietlaczach
-        asText = asReplacableTexture.SubString(2, asReplacableTexture.Length() -
-                                                      1); // zapamiêtanie tekstu
+        asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiêtanie tekstu
     else if (asReplacableTexture != "none")
         ReplacableSkinId[1] =
             TTexturesManager::GetTextureID(NULL, NULL, asReplacableTexture.c_str());
@@ -463,26 +461,22 @@ bool TAnimModel::Init(AnsiString asName, AnsiString asReplacableTexture)
 
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie œwiate³
-    std::string str;
-    std::string token;
-    parser->getTokens(); // nazwa modelu
-    *parser >> str;
-    //str = token;
-    parser->getTokens(1, false); // tekstura (zmienia na ma³e)
-    *parser >> token;
-    if (!Init(AnsiString(str.c_str()), AnsiString(token.c_str())))
+	std::string name = parser->getToken<std::string>();
+    std::string texture = parser->getToken<std::string>(false); // tekstura (zmienia na ma³e)
+    if (!Init( name, texture ))
     {
-        if (str != "notload")
+        if (name != "notload")
         { // gdy brak modelu
             if (ter) // jeœli teren
             {
-                if (str.substr(str.length() - 3, 4) == ".t3d")
-                    str[str.length() - 2] = 'e';
-                Global::asTerrainModel = str;
-                WriteLog("Terrain model \"" + str + "\" will be created.");
+				if( name.substr( name.rfind( '.' ) ) == ".t3d" ) {
+					name[ name.length() - 2 ] = 'e';
+				}
+                Global::asTerrainModel = name;
+                WriteLog("Terrain model \"" + name + "\" will be created.");
             }
             else
-                ErrorLog("Missed file: " + str);
+                ErrorLog("Missed file: " + name);
         }
     }
     else
@@ -507,26 +501,20 @@ bool TAnimModel::Load(cParser *parser, bool ter)
     for (int i = 0; i < iMaxNumLights; ++i)
         if (LightsOn[i] || LightsOff[i]) // Ra: zlikwidowa³em wymóg istnienia obu
             iNumLights = i + 1;
-    int i = 0;
-    int ti;
 
-    parser->getTokens();
-    *parser >> token;
-
-    if (token.compare("lights") == 0)
+    if ( parser->getToken<std::string>() == "lights" )
     {
-        parser->getTokens();
-        *parser >> str;
-        //str = AnsiString(token.c_str());
-        do
-        {
-            ti = atof(str.c_str()); // stan œwiat³a jest liczb¹ z u³amkiem
-            LightSet(i, ti);
-            i++;
-            parser->getTokens();
-            *parser >> str;
-            //str = AnsiString(token.c_str());
-        } while (str != "endmodel");
+		int i = 0;
+		std::string token = parser->getToken<std::string>();
+		while( ( token != "" )
+			&& ( token != "endmodel" ) ) {
+
+			LightSet( i, std::stod( token ) ); // stan œwiat³a jest liczb¹ z u³amkiem
+            ++i;
+
+			token = "";
+			parser->getTokens(); *parser >> token;
+		}
     }
     return true;
 }
@@ -606,7 +594,7 @@ void TAnimModel::RaPrepare()
     // for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny ³añcuch
     //  pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
 }
-
+/*
 void TAnimModel::RenderVBO(vector3 pPosition, double fAngle)
 { // sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
     RaAnimate(); // jednorazowe przeliczenie animacji
@@ -636,7 +624,7 @@ void TAnimModel::RenderAlphaDL(vector3 pPosition, double fAngle)
     if (pModel)
         pModel->RenderAlpha(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
 };
-
+*/
 int TAnimModel::Flags()
 { // informacja dla TGround, czy ma byæ w Render, RenderAlpha, czy RenderMixed
     int i = pModel ? pModel->Flags() : 0; // pobranie flag ca³ego modelu
@@ -744,10 +732,10 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
     // w opisach jest podawane 24 albo 36 jako standard => powiedzmy, parametr (d) to FPS animacji
     delete pAdvanced; // usuniêcie ewentualnego poprzedniego
     pAdvanced = NULL; // gdyby siê nie uda³o rozpoznaæ pliku
-    if (AnsiString((char *)pData) == "Vocaloid Motion Data 0002")
+    if (std::string(static_cast<char *>(pData)) == "Vocaloid Motion Data 0002")
     {
         pAdvanced = new TAnimAdvanced();
-        pAdvanced->pVocaloidMotionData = (char *)pData; // podczepienie pliku danych
+        pAdvanced->pVocaloidMotionData = static_cast<unsigned char *>(pData); // podczepienie pliku danych
         pAdvanced->iMovements = *((int *)(((char *)pData) + 50)); // numer ostatniej klatki
         pAdvanced->pMovementData = (TAnimVocaloidFrame *)(((char *)pData) + 54); // rekordy animacji
         // WriteLog(sizeof(TAnimVocaloidFrame));
@@ -764,10 +752,10 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
            }
         */
 
-        int i, j, k, idx;
-        AnsiString name;
+/*      int i, j, k, idx;
+*/      std::string name;
         TAnimContainer *pSub;
-        for (i = 0; i < pAdvanced->iMovements; ++i)
+        for (int i = 0; i < pAdvanced->iMovements; ++i)
         {
             if (strcmp(pAdvanced->pMovementData[i].cBone, name.c_str()))
             { // jeœli pozycja w tabelce nie by³a wyszukiwana w submodelach
@@ -778,7 +766,7 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
                     pSub->AnimSetVMD(0.0); // usuawienie pozycji pocz¹tkowej (powinna byæ zerowa,
                     // inaczej bêdzie skok)
                 }
-                name = AnsiString(pAdvanced->pMovementData[i].cBone); // nowa nazwa do pomijania
+                name = std::string(pAdvanced->pMovementData[i].cBone); // nowa nazwa do pomijania
             }
             if (pAdvanced->fLast < pAdvanced->pMovementData[i].iFrame)
                 pAdvanced->fLast = pAdvanced->pMovementData[i].iFrame;

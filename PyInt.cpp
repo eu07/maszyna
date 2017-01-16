@@ -1,9 +1,10 @@
+#include "stdafx.h"
 #include "PyInt.h"
 #include "Train.h"
 #include "Logs.h"
-#include <process.h>
-#include <windows.h>
-#include <stdlib.h>
+//#include <process.h>
+//#include <windows.h>
+//#include <stdlib.h>
 
 TPythonInterpreter *TPythonInterpreter::_instance = NULL;
 
@@ -400,15 +401,18 @@ void TPythonScreens::reset(void *train)
     _train = train;
 }
 
-void TPythonScreens::init(TQueryParserComp *parser, TModel3d *model, string name, int cab)
+void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &name, int const cab)
 {
     char buff[255];
-    AnsiString asSubModelName = parser->GetNextSymbol();
-    AnsiString asPyClassName = parser->GetNextSymbol();
-    char *subModelName = (char *)calloc(asSubModelName.Length() + 1, sizeof(char));
-    strcpy(subModelName, asSubModelName.LowerCase().c_str());
-    char *pyClassName = (char *)calloc(asPyClassName.Length() + 1, sizeof(char));
-    strcpy(pyClassName, asPyClassName.LowerCase().c_str());
+	std::string asSubModelName, asPyClassName;
+	parser.getTokens( 2, false );
+	parser
+		>> asSubModelName
+		>> asPyClassName;
+    char *subModelName = (char *)calloc(asSubModelName.length() + 1, sizeof(char));
+    strcpy(subModelName, ToLower( asSubModelName).c_str());
+    char *pyClassName = (char *)calloc(asPyClassName.length() + 1, sizeof(char));
+    strcpy(pyClassName, ToLower( asPyClassName ).c_str());
     TSubModel *subModel = model->GetFromName(subModelName);
     if (subModel == NULL)
     {
@@ -471,7 +475,7 @@ void TPythonScreens::update()
     _cleanupReadyFlag = true;
 }
 
-void TPythonScreens::setLookupPath(string path)
+void TPythonScreens::setLookupPath(std::string const &path)
 {
     if (_lookupPath != NULL)
     {
@@ -566,7 +570,7 @@ void TPythonScreens::start()
     if (_screens.size() > 0)
     {
         _thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ScreenRendererThread, this,
-                               CREATE_SUSPENDED, &_threadId);
+                               CREATE_SUSPENDED, reinterpret_cast<LPDWORD>(&_threadId));
         if (_thread != NULL)
         {
             SetThreadPriority(_thread,

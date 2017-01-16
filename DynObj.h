@@ -7,42 +7,36 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef DynObjH
-#define DynObjH
+#pragma once
 
-#include "Classes.h"
+#include <string>
+#include <functional>
+
 #include "TrkFoll.h"
-#include "QueryParserComp.hpp"
-#include "Mover.h"
-#include "TractionPower.h"
 // McZapkie:
-#include "MdlMngr.h"
 #include "RealSound.h"
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
 
-#include <string>
-
-using namespace std;
-
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-const ANIM_TYPES = 7; // Ra: iloœæ typów animacji
-const ANIM_WHEELS = 0; // ko³a
-const ANIM_DOORS = 1; // drzwi
-const ANIM_LEVERS = 2; // elementy obracane (wycieraczki, ko³a skrêtne, przestawiacze, klocki ham.)
-const ANIM_BUFFERS = 3; // elementy przesuwane (zderzaki)
-const ANIM_BOOGIES = 4; // wózki (s¹ skrêcane w dwóch osiach)
-const ANIM_PANTS = 5; // pantografy
-const ANIM_STEAMS = 6; // napêd parowozu
+int const ANIM_TYPES = 7; // Ra: iloœæ typów animacji
+int const ANIM_WHEELS = 0; // ko³a
+int const ANIM_DOORS = 1; // drzwi
+int const ANIM_LEVERS = 2; // elementy obracane (wycieraczki, ko³a skrêtne, przestawiacze, klocki ham.)
+int const ANIM_BUFFERS = 3; // elementy przesuwane (zderzaki)
+int const ANIM_BOOGIES = 4; // wózki (s¹ skrêcane w dwóch osiach)
+int const ANIM_PANTS = 5; // pantografy
+int const ANIM_STEAMS = 6; // napêd parowozu
 
 class TAnim;
-typedef void(__closure *TUpdate)(TAnim *pAnim); // typ funkcji aktualizuj¹cej po³o¿enie submodeli
+//typedef void(__closure *TUpdate)(TAnim *pAnim); // typ funkcji aktualizuj¹cej po³o¿enie submodeli
+typedef std::function<void(TAnim *)> TUpdate; // __closure is Borland-specific extension
 
 // McZapkie-250202
-const MaxAxles = 16; // ABu 280105: zmienione z 8 na 16
+int const MaxAxles = 16; // ABu 280105: zmienione z 8 na 16
 // const MaxAnimatedAxles=16; //i to tez.
 // const MaxAnimatedDoors=16;  //NBMX  wrzesien 2003
 /*
@@ -335,7 +329,7 @@ class TDynamicObject
     void ABuScanObjects(int ScanDir, double ScanDist);
 
   protected:
-    TDynamicObject * ABuFindObject(TTrack *Track, int ScanDir, Byte &CouplFound,
+    TDynamicObject * ABuFindObject(TTrack *Track, int ScanDir, BYTE &CouplFound,
                                              double &dist);
     void ABuCheckMyTrack();
 
@@ -469,7 +463,7 @@ class TDynamicObject
     // void UpdatePos();
 
     // McZapkie-260202
-    void LoadMMediaFile(string BaseDir, string TypeName, string ReplacableSkin);
+    void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
 
     inline double ABuGetDirection() // ABu.
     {
@@ -512,10 +506,9 @@ class TDynamicObject
     int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
     // jechaæ
     void DestinationSet(std::string to, std::string numer);
-    std::string TextureTest(std::string &name);
+    std::string TextureTest(std::string const &name);
     void OverheadTrack(float o);
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
 };
 
 //---------------------------------------------------------------------------
-#endif

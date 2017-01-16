@@ -10,10 +10,7 @@
 #ifndef __ARB_MULTISAMPLE_H__
 #define __ARB_MULTISAMPLE_H__
 
-//#include "wglext.h"		//WGL extensions
-//#include "glext.h"		//GL extensions
 #include <windows.h>
-
 
 //Globals
 extern bool arbMultisampleSupported;

@@ -7,22 +7,15 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Camera.h"
-#include "Usefull.h"
+
 #include "Globals.h"
+#include "Usefull.h"
+#include "Console.h"
 #include "Timer.h"
 #include "mover.h"
-#include "Console.h"
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 
 // TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
