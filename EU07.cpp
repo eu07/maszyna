@@ -69,8 +69,8 @@ int InitGL(GLvoid) // All Setup For OpenGL Goes Here
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    Global::pWorld = &World; // Ra: wskaŸnik potrzebny do usuwania pojazdów
-    return World.Init(hWnd, hDC); // true jeœli wszystko pójdzie dobrze
+    Global::pWorld = &World; // Ra: wskaï¿½nik potrzebny do usuwania pojazdï¿½w
+    return World.Init(hWnd, hDC); // true jeï¿½li wszystko pï¿½jdzie dobrze
 }
 //---------------------------------------------------------------------------
 
@@ -403,22 +403,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
     RECT rect;
     switch (uMsg) // check for windows messages
     {
-    case WM_PASTE: //[Ctrl]+[V] potrzebujemy do innych celów
+    case WM_PASTE: //[Ctrl]+[V] potrzebujemy do innych celï¿½w
         return 0;
-    case WM_COPYDATA: // obs³uga danych przes³anych przez program steruj¹cy
+    case WM_COPYDATA: // obsï¿½uga danych przesï¿½anych przez program sterujï¿½cy
         pDane = (PCOPYDATASTRUCT)lParam;
         if (pDane->dwData == 'EU07') // sygnatura danych
             World.OnCommandGet((DaneRozkaz *)(pDane->lpData));
         break;
     case WM_ACTIVATE: // watch for window activate message
         // case WM_ACTIVATEAPP:
-        { // Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
+        { // Ra: uzaleï¿½nienie aktywnoï¿½ci od bycia na wierzchu
             Global::bActive = (LOWORD(wParam) != WA_INACTIVE);
-            if (Global::bInactivePause) // jeœli ma byæ pauzowanie okna w tle
+            if (Global::bInactivePause) // jeï¿½li ma byï¿½ pauzowanie okna w tle
                 if (Global::bActive)
                     Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
                 else
-                    Global::iPause |= 4; // w³¹czenie pauzy, gdy nieaktywy
+                    Global::iPause |= 4; // wï¿½ï¿½czenie pauzy, gdy nieaktywy
             if (Global::bActive)
                 SetCursorPos(mx, my);
             ShowCursor(!Global::bActive);
@@ -472,8 +472,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
     case WM_KEYDOWN:
         if (Global::bActive)
         {
-            if (wParam != 17) // bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
-                if (wParam != 145) //[Scroll Lock] te¿ nie
+            if (wParam != 17) // bo naciï¿½niï¿½cia [Ctrl] nie ma po co przekazywaï¿½
+                if (wParam != 145) //[Scroll Lock] teï¿½ nie
                     World.OnKeyDown(wParam);
             switch (wParam)
             {
@@ -481,27 +481,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
                 if (DebugModeFlag)
                     break;
             case 19: //[Pause]
-                if (Global::iPause & 1) // jeœli pauza startowa
-                    Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu mia³o nie startowaæ
+                if (Global::iPause & 1) // jeï¿½li pauza startowa
+                    Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miaï¿½o nie startowaï¿½
                 else if (!(Global::iMultiplayer & 2)) // w multiplayerze pauza nie ma sensu
                     if (!Console::Pressed(VK_CONTROL)) // z [Ctrl] to radiostop jest
-                        // Ra: poni¿sze nie ma sensu, bo brak komunikacji natychmiast zapauzuje
+                        // Ra: poniï¿½sze nie ma sensu, bo brak komunikacji natychmiast zapauzuje
                         // ponownie
-                        // if (Global::iPause&8) //jeœli pauza zwi¹zana z brakiem komunikacji z
+                        // if (Global::iPause&8) //jeï¿½li pauza zwiï¿½zana z brakiem komunikacji z
                         // PoKeys
                         // Global::iPause&=~10; //odpauzowanie pauzy PoKeys (chyba nic nie da) i
-                        // ewentualnie klawiszowej równie¿
+                        // ewentualnie klawiszowej rï¿½wnieï¿½
                         // else
                         Global::iPause ^= 2; // zmiana stanu zapauzowania
                 if (Global::iPause) // jak pauza
-                    Global::iTextMode = VK_F1; // to wyœwietliæ zegar i informacjê
+                    Global::iTextMode = VK_F1; // to wyï¿½wietliï¿½ zegar i informacjï¿½
                 break;
             case VK_F7:
                 if (DebugModeFlag)
-                { // siatki wyœwietlane tyko w trybie testowym
+                { // siatki wyï¿½wietlane tyko w trybie testowym
                     Global::bWireFrame = !Global::bWireFrame;
-                    ++Global::iReCompile; // odœwie¿yæ siatki
-                    // Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
+                    ++Global::iReCompile; // odï¿½wieï¿½yï¿½ siatki
+                    // Ra: jeszcze usunï¿½ï¿½ siatki ze skompilowanych obiektï¿½w!
                 }
                 break;
             }
@@ -578,9 +578,9 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     MSG msg; // windows message structure
     BOOL done = FALSE; // bool variable to exit loop
     fullscreen = true;
-    DeleteFile("errors.txt"); // usuniêcie starego
-    Global::LoadIniFile("eu07.ini"); // teraz dopiero mo¿na przejrzeæ plik z ustawieniami
-    Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na sta³e
+    DeleteFile("errors.txt"); // usuniï¿½cie starego
+    Global::LoadIniFile("eu07.ini"); // teraz dopiero moï¿½na przejrzeï¿½ plik z ustawieniami
+    Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na staï¿½e
 
     // hunter-271211: ukrywanie konsoli
     if (Global::iWriteLogEnabled & 2)
@@ -590,7 +590,7 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     }
     std::string commandline( lpCmdLine ); // parametry uruchomienia
     if( false == commandline.empty() )
-    { // analizowanie parametrów
+    { // analizowanie parametrï¿½w
 		cParser parser( commandline );
 		std::string token;
 		do {
@@ -609,15 +609,15 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
 				parser >> Global::asHumanCtrlVehicle;
             }
             else if( token == "-modifytga" )
-            { // wykonanie modyfikacji wszystkich plików TGA
+            { // wykonanie modyfikacji wszystkich plikï¿½w TGA
                 Global::iModifyTGA = -1; // specjalny tryb wykonania totalnej modyfikacji
             }
             else if( token == "-e3d" )
-            { // wygenerowanie wszystkich plików E3D
+            { // wygenerowanie wszystkich plikï¿½w E3D
                 if (Global::iConvertModels > 0)
                     Global::iConvertModels = -Global::iConvertModels; // specjalny tryb
                 else
-                    Global::iConvertModels = -7; // z optymalizacj¹, bananami i prawid³owym Opacity
+                    Global::iConvertModels = -7; // z optymalizacjï¿½, bananami i prawidï¿½owym Opacity
             }
             else
                 Error(
@@ -644,9 +644,9 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
         return 0; // quit if window was not created
     SetForegroundWindow(hWnd);
     // McZapkie: proba przeplukania klawiatury
-    Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoœ zainicjowac trzeba
+    Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoï¿½ zainicjowac trzeba
     while (Console::Pressed(VK_F10))
-        Error("Keyboard buffer problem - press F10"); // na Windows 98 lubi siê to pojawiaæ
+        Error("Keyboard buffer problem - press F10"); // na Windows 98 lubi siï¿½ to pojawiaï¿½
     int iOldSpeed, iOldDelay;
     SystemParametersInfo(SPI_GETKEYBOARDSPEED, 0, &iOldSpeed, 0);
     SystemParametersInfo(SPI_GETKEYBOARDDELAY, 0, &iOldDelay, 0);
@@ -656,20 +656,20 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
         WriteLog("No joystick");
     if (Global::iModifyTGA < 0)
     { // tylko modyfikacja TGA, bez uruchamiania symulacji
-        Global::iMaxTextureSize = 64; //¿eby nie zamulaæ pamiêci
-        World.ModifyTGA(); // rekurencyjne przegl¹danie katalogów
+        Global::iMaxTextureSize = 64; //ï¿½eby nie zamulaï¿½ pamiï¿½ci
+        World.ModifyTGA(); // rekurencyjne przeglï¿½danie katalogï¿½w
     }
     else
     {
         if (Global::iConvertModels < 0)
         {
             Global::iConvertModels = -Global::iConvertModels;
-            World.CreateE3D("models\\"); // rekurencyjne przegl¹danie katalogów
+            World.CreateE3D("models\\"); // rekurencyjne przeglï¿½danie katalogï¿½w
             World.CreateE3D("dynamic\\", true);
-        } // po zrobieniu E3D odpalamy normalnie sceneriê, by j¹ zobaczyæ
+        } // po zrobieniu E3D odpalamy normalnie sceneriï¿½, by jï¿½ zobaczyï¿½
         // else
-        //{//g³ówna pêtla programu
-        Console::On(); // w³¹czenie konsoli
+        //{//gï¿½ï¿½wna pï¿½tla programu
+        Console::On(); // wï¿½ï¿½czenie konsoli
         while (!done) // loop that runs while done=FALSE
         {
             if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) // is there a message waiting?
@@ -689,14 +689,14 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                 // draw the scene, watch for quit messages
                 // DrawGLScene()
                 // if (!pause)
-                // if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
+                // if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z gï¿½ry
                 if (World.Update()) // Was There A Quit Received?
                     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
                 else
                     done = true; //[F10] or DrawGLScene signalled a quit
             }
         }
-        Console::Off(); // wy³¹czenie konsoli (komunikacji zwrotnej)
+        Console::Off(); // wyï¿½ï¿½czenie konsoli (komunikacji zwrotnej)
     }
     SystemParametersInfo(SPI_SETKEYBOARDSPEED, iOldSpeed, NULL, 0);
     SystemParametersInfo(SPI_SETKEYBOARDDELAY, iOldDelay, NULL, 0);

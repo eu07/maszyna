@@ -988,8 +988,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 							
                                 if (TrainParams->IsTimeToGo(GlobalTime->hh, GlobalTime->mm))
                                 { // z dalsz� akcj� czekamy do godziny odjazdu
+									/* potencjalny problem z ruszaniem z w4
 									if (TrainParams->CheckTrainLatency() < 0)
 										WaitingSet(20); //Jak sp��niony to czeka 20s
+									*/
                                     // iDrivigFlags|=moveLate1; //oflagowa�, gdy odjazd ze
                                     // sp��nieniem, b�dzie jecha� forsowniej
                                     fLastStopExpDist =
@@ -1152,6 +1154,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 					{
 						iDrivigFlags |= moveSemaphorFound; //je�li z przodu to dajemy falg�, �e jest
 						d_to_next_sem = Min0R(sSpeedTable[i].fDist, d_to_next_sem);
+					}
+					if (sSpeedTable[i].fDist <= d_to_next_sem)
+					{
+					VelSignalNext = sSpeedTable[i].fVelNext;
 					}
                 }
                 else if (sSpeedTable[i].iFlags & spRoadVel)
@@ -1378,7 +1384,7 @@ void TController::TablePurger()
 { // odtykacz: usuwa mniej istotne pozycje ze �rodka tabelki, aby unikn�� zatkania
     //(np. brak ograniczenia pomi�dzy zwrotnicami, usuni�te sygna�y, mini�te odcinki �uku)
 	if (Global::iWriteLogEnabled & 8)
-	WriteLog("TablePurger: Czyszczenie tableki.");
+	WriteLog("TablePurger: Czyszczenie tabelki.");
 	int i, j, k = iLast - iFirst; // mo�e by� 15 albo 16 pozycji, ostatniej nie ma co sprawdza�
     if (k < 0)
         k += iSpeedTableSize; // ilo�� pozycji do przeanalizowania
