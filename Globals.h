@@ -317,8 +317,8 @@ class Global
 
     // maciek001: zmienne dla MWD
     static bool bMWDdebugEnable;
-    static unsigned long int iMWDBaudrate;
-    static AnsiString sMWDPortId;
+    static unsigned int iMWDBaudrate;
+    static std::string sMWDPortId;
     static bool bMWDBreakEnable;
     static bool bMWDInputDataEnable;
     static double fMWDAnalogCalib[4][3];

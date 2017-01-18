@@ -9,12 +9,11 @@ http://mozilla.org/MPL/2.0/.
 
 /*
     Program obs³ugi portu COM i innych na potrzeby sterownika MWDevice
-	(oraz innych wykorzystuj¹cych komunikacjê przez port COM)
+        (oraz innych wykorzystuj¹cych komunikacjê przez port COM)
     dla Symulatora Pojazdów Szynowych MaSzyna
     author: Maciej Witek 2016
-	Autor nie ponosi odpowiedzialnoœci za niew³aciwe u¿ywanie lub dzia³anie programu!
+        Autor nie ponosi odpowiedzialnoœci za niew³aciwe u¿ywanie lub dzia³anie programu!
 */
-
 
 #ifndef MWDH
 #define MWDH
@@ -25,15 +24,15 @@ typedef unsigned long DWORD;
 
 class MWDComm
 {
-private:
-    int MWDTime;	//
-    char lastStateData[6], maskData[6],maskSwitch[6], bitSwitch[6];
+  private:
+    int MWDTime; //
+    char lastStateData[6], maskData[6], maskSwitch[6], bitSwitch[6];
     int bocznik, nastawnik, kierunek;
     char bnkMask;
-    
-    bool ReadData();	//BYTE *pReadDataBuff);
-    bool SendData();	//BYTE *pWriteDataBuff);
-    bool CheckData();	//sprawdzanie zmian wejœæ i kontrola mazaków HASLERA
+
+    bool ReadData(); // BYTE *pReadDataBuff);
+    bool SendData(); // BYTE *pWriteDataBuff);
+    void CheckData(); // sprawdzanie zmian wejœæ i kontrola mazaków HASLERA
     void KeyBoard(int key, bool s);
 
     bool bRysik1H;
@@ -41,10 +40,10 @@ private:
     bool bRysik2H;
     bool bRysik2L;
 
-public:
-    bool Open();		// Otwarcie portu
-    bool Close();		// Zamkniêcie portu
-    bool Run();			// Obs³uga portu
+  public:
+    bool Open(); // Otwarcie portu
+    bool Close(); // Zamkniêcie portu
+    bool Run(); // Obs³uga portu
     bool GetMWDState(); // sprawdŸ czy port jest otwarty, 0 zamkniêty, 1 otwarty
 
     // zmienne do rysików HASLERA
@@ -55,18 +54,15 @@ public:
     bool bHamowanie;
     bool bCzuwak;
 
+    float fAnalog[4]; // trzymanie danych z wejœæ analogowych
 
-
-    float fAnalog[4]; 		// trzymanie danych z wejœæ analogowych
-
-    BYTE ReadDataBuff[17];	// bufory danych
+    BYTE ReadDataBuff[17]; // bufory danych
     BYTE WriteDataBuff[31];
 
-    MWDComm();	//konstruktor
-    ~MWDComm();	//destruktor
+    MWDComm(); // konstruktor
+    ~MWDComm(); // destruktor
 };
 #endif
-
 
 /*
         INFO - zmiany dokonane w innych plikach niezbêdne do prawid³owego dzia³ania:
