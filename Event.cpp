@@ -72,6 +72,9 @@ TEvent::~TEvent()
             delete[] Params[8].asPointer; // zwolniæ obszar
     case tp_GetValues: // nic
         break;
+	case tp_PutValues: // params[0].astext stores the token
+		SafeDeleteArray( Params[ 0 ].asText );
+		break;
     }
     evJoined = NULL; // nie usuwaæ podczepionych tutaj
 };
@@ -87,6 +90,7 @@ void TEvent::Conditions(cParser *parser, string s)
         std::string token, str;
         if (!asNodeName.empty())
         { // podczepienie ³añcucha, jeœli nie jest pusty
+			// NOTE: source of a memory leak -- the array never gets deleted. fix the destructor
             Params[9].asText = new char[asNodeName.length() + 1]; // usuwane i zamieniane na
             // wskaŸnik
             strcpy(Params[9].asText, asNodeName.c_str());
@@ -457,34 +461,43 @@ void TEvent::Load(cParser *parser, vector3 *org)
         { // obrót wzglêdem osi
             parser->getTokens();
             *parser >> token;
-            Params[9].asText = new char[255]; // nazwa submodelu
-            strcpy(Params[9].asText, token.c_str());
+            Params[9].asText = new char[token.size() + 1]; // nazwa submodelu
+            std::strcpy(Params[9].asText, token.c_str());
             Params[0].asInt = 1;
             parser->getTokens(4);
-            *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >>
-                Params[4].asdouble;
+            *parser
+				>> Params[1].asdouble
+				>> Params[2].asdouble
+				>> Params[3].asdouble
+				>> Params[4].asdouble;
         }
         else if (token.compare("translate") == 0)
         { // przesuw o wektor
             parser->getTokens();
             *parser >> token;
-            Params[9].asText = new char[255]; // nazwa submodelu
-            strcpy(Params[9].asText, token.c_str());
+            Params[9].asText = new char[token.size() + 1]; // nazwa submodelu
+            std::strcpy(Params[9].asText, token.c_str());
             Params[0].asInt = 2;
             parser->getTokens(4);
-            *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >>
-                Params[4].asdouble;
+            *parser
+				>> Params[1].asdouble
+				>> Params[2].asdouble
+				>> Params[3].asdouble
+				>> Params[4].asdouble;
         }
         else if (token.compare("digital") == 0)
         { // licznik cyfrowy
             parser->getTokens();
             *parser >> token;
-            Params[9].asText = new char[255]; // nazwa submodelu
-            strcpy(Params[9].asText, token.c_str());
+            Params[9].asText = new char[token.size() + 1]; // nazwa submodelu
+            std::strcpy(Params[9].asText, token.c_str());
             Params[0].asInt = 8;
             parser->getTokens(4); // jaki ma byæ sens tych parametrów?
-            *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >>
-                Params[4].asdouble;
+            *parser
+				>> Params[1].asdouble
+				>> Params[2].asdouble
+				>> Params[3].asdouble
+				>> Params[4].asdouble;
         }
         else if (token.substr(token.length() - 4, 4) == ".vmd") // na razie tu, mo¿e bêdzie inaczej
         { // animacja z pliku VMD
@@ -499,12 +512,15 @@ void TEvent::Load(cParser *parser, vector3 *org)
 			}
 			parser->getTokens();
             *parser >> token;
-            Params[9].asText = new char[255]; // nazwa submodelu
-            strcpy(Params[9].asText, token.c_str());
+            Params[9].asText = new char[token.size() + 1]; // nazwa submodelu
+            std::strcpy(Params[9].asText, token.c_str());
             Params[0].asInt = 4; // rodzaj animacji
             parser->getTokens(4);
-            *parser >> Params[1].asdouble >> Params[2].asdouble >> Params[3].asdouble >>
-                Params[4].asdouble;
+            *parser
+				>> Params[1].asdouble
+				>> Params[2].asdouble
+				>> Params[3].asdouble
+				>> Params[4].asdouble;
         }
         parser->getTokens();
         *parser >> token;

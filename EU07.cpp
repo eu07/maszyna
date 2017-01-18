@@ -26,8 +26,9 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "opengl/ARB_Multisample.h"
 
 #include "Globals.h"
-#include "Console.h"
 #include "Logs.h"
+#include "Console.h"
+#include "PyInt.h"
 #include "World.h"
 #include "Mover.h"
 
@@ -582,7 +583,7 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     Global::LoadIniFile("eu07.ini"); // teraz dopiero mo¿na przejrzeæ plik z ustawieniami
     Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na sta³e
 
-    // hunter-271211: ukrywanie konsoli
+	// hunter-271211: ukrywanie konsoli
     if (Global::iWriteLogEnabled & 2)
     {
         AllocConsole();
@@ -701,6 +702,8 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     SystemParametersInfo(SPI_SETKEYBOARDSPEED, iOldSpeed, NULL, 0);
     SystemParametersInfo(SPI_SETKEYBOARDDELAY, iOldDelay, NULL, 0);
     delete pConsole; // deaktywania sterownika
+	TPythonInterpreter::killInstance();
+
     // shutdown
     KillGLWindow(); // kill the window
     return (msg.wParam); // exit the program

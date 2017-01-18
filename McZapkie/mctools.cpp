@@ -294,20 +294,32 @@ std::string Tab2Sp(std::string const &s) /*Tab to Space sign*/
 	return s2;
 }
 
-std::string ExchangeCharInString(std::string s, const char &aim, const char &target)
+std::string ExchangeCharInString( std::string const &Source, char const &From, char const &To )
 {
-	char *tmp = new char[s.length()];
-	for (int b = 0; b < s.length(); ++b)
-	{
-		if (s[b] == aim)
-			if (target == (char)"")
-				b++;
-			else
-				tmp[b] = target;
-		else
-			tmp[b] = s[b];
+	std::string replacement; replacement.reserve( Source.size() );
+	std::for_each(Source.cbegin(), Source.cend(), [&](char const idx) {
+		if( idx != From )    { replacement += idx; }
+		else {
+			if( To != NULL ) { replacement += To; } }
+	} );
+
+	return replacement;
+/*
+	int const length = Source.size();
+	std::string replacement; replacement.reserve( length );
+	for( int idx = 0; idx < length; ++idx ) {
+		if( Source[ idx ] != From ) {
+			replacement += Source[ idx ];
+		}
+		else {
+			if( To != NULL ) {
+				replacement += To;
+			}
+		}
 	}
-	return std::string(tmp);
+
+	return replacement;
+*/
 }
 
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems)
@@ -387,25 +399,18 @@ std::string to_string(int _Val, int precision, int width)
 	return o.str();
 };
 
-std::string to_string(double _Val, int precision, int width)
+std::string to_string(double const Value, int const Precision, int const Width)
 {
-	std::ostringstream o;
-	o.width(width);
-	o << std::fixed << std::setprecision(precision);
-	o << _Val;
-	return o.str();
+	std::ostringstream converter;
+	converter << std::setw( Width ) << std::fixed << std::setprecision(Precision) << Value;
+	return converter.str();
 };
 
-std::string to_hex_str(double _Val, int precision, int width)
+std::string to_hex_str( int const Value, int const Width )
 {
-	std::ostringstream o;
-	if (width)
-		o.width(width);
-	o << std::fixed << std::hex;
-	if (precision)
-		o << std::setprecision(precision);
-	o << _Val;
-	return o.str();
+	std::ostringstream converter;
+	converter << "0x" << std::uppercase << std::setfill( '0' ) << std::setw( Width ) << std::hex << Value;
+	return converter.str();
 };
 
 int stol_def(const std::string &str, const int &DefaultValue)

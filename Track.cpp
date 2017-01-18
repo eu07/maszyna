@@ -59,30 +59,26 @@ TSwitchExtension::TSwitchExtension(TTrack *owner, int what)
     pOwner = NULL;
     pNextAnim = NULL;
     bMovement = false; // nie potrzeba przeliczaæ fOffset1
-    Segments[0] = new TSegment(owner); // z punktu 1 do 2
-    Segments[1] = new TSegment(
-        owner); // z punktu 3 do 4 (1=3 dla zwrotnic; odwrócony dla skrzy¿owañ, ewentualnie 1=4)
+    Segments[0] = std::make_shared<TSegment>(owner); // z punktu 1 do 2
+    Segments[1] = std::make_shared<TSegment>(owner); // z punktu 3 do 4 (1=3 dla zwrotnic; odwrócony dla skrzy¿owañ, ewentualnie 1=4)
     Segments[2] = (what >= 3) ?
-                      new TSegment(owner) :
-                      NULL; // z punktu 2 do 4       skrzy¿owanie od góry:      wersja "-1":
-    Segments[3] =
-        (what >= 4) ? new TSegment(owner) : NULL; // z punktu 4 do 1              1       1=4 0 0=3
-    Segments[4] =
-        (what >= 5) ? new TSegment(owner) : NULL; // z punktu 1 do 3            4 x 3   3 3 x 2   2
-    Segments[5] = (what >= 6) ? new TSegment(owner) :
-                                NULL; // z punktu 3 do 2              2       2            1       1
-    evPlus = evMinus = NULL;
+                      std::make_shared<TSegment>(owner) :
+                      nullptr; // z punktu 2 do 4       skrzy¿owanie od góry:      wersja "-1":
+    Segments[3] = (what >= 4) ?
+                      std::make_shared<TSegment>(owner) :
+					  nullptr; // z punktu 4 do 1              1       1=4 0 0=3
+    Segments[4] = (what >= 5) ?
+                      std::make_shared<TSegment>(owner) :
+					  nullptr; // z punktu 1 do 3            4 x 3   3 3 x 2   2
+    Segments[5] = (what >= 6) ?
+                      std::make_shared<TSegment>(owner) :
+                      nullptr; // z punktu 3 do 2              2       2            1       1
+	evPlus = evMinus = NULL;
     fVelocity = -1.0; // maksymalne ograniczenie prêdkoœci (ustawianej eventem)
     vTrans = vector3(0, 0, 0); // docelowa translacja przesuwnicy
 }
 TSwitchExtension::~TSwitchExtension()
 { // nie ma nic do usuwania
-    // delete Segments[0];
-    // delete Segments[1];
-    delete Segments[2];
-    delete Segments[3];
-    delete Segments[4];
-    delete Segments[5];
 }
 
 TIsolated::TIsolated()
@@ -211,7 +207,11 @@ TTrack::TTrack(TGroundNode *g)
 
 TTrack::~TTrack()
 { // likwidacja odcinka
-    if (eType == tt_Normal)
+	if( eType == tt_Cross ) {
+		delete SwitchExtension->vPoints; // skrzy¿owanie mo¿e mieæ punkty
+	}
+
+/*    if (eType == tt_Normal)
         delete Segment; // dla zwrotnic nie usuwaæ tego (kopiowany)
     else
     { // usuwanie dodatkowych danych dla niezwyk³ych odcinków
@@ -219,6 +219,7 @@ TTrack::~TTrack()
             delete SwitchExtension->vPoints; // skrzy¿owanie mo¿e mieæ punkty
         SafeDelete(SwitchExtension);
     }
+*/
 }
 
 void TTrack::Init()
@@ -226,21 +227,21 @@ void TTrack::Init()
     switch (eType)
     {
     case tt_Switch:
-        SwitchExtension = new TSwitchExtension(this, 2); // na wprost i na bok
+		SwitchExtension = std::make_shared<TSwitchExtension>( this, 2 ); // na wprost i na bok
         break;
     case tt_Cross: // tylko dla skrzy¿owania dróg
-        SwitchExtension = new TSwitchExtension(this, 6); // 6 po³¹czeñ
+		SwitchExtension = std::make_shared<TSwitchExtension>( this, 6 ); // 6 po³¹czeñ
         SwitchExtension->vPoints = NULL; // brak tablicy punktów
         SwitchExtension->iPoints = 0;
         SwitchExtension->bPoints = false; // tablica punktów nie wype³niona
         SwitchExtension->iRoads = 4; // domyœlnie 4
         break;
     case tt_Normal:
-        Segment = new TSegment(this);
+		Segment = std::make_shared<TSegment>( this );
         break;
     case tt_Table: // oba potrzebne
-        SwitchExtension = new TSwitchExtension(this, 1); // kopia oryginalnego toru
-        Segment = new TSegment(this);
+		SwitchExtension = std::make_shared<TSwitchExtension>( this, 1 ); // kopia oryginalnego toru
+        Segment = make_shared<TSegment>(this);
         break;
     }
 }

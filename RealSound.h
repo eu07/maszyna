@@ -18,7 +18,7 @@ class TRealSound
 {
   protected:
     PSound pSound;
-    char *Nazwa; // dla celow odwszawiania
+//  char *Nazwa; // dla celow odwszawiania NOTE: currently not used anywhere
     double fDistance, fPreviousDistance; // dla liczenia Dopplera
     float fFrequency; // czêstotliwoœæ samplowania pliku
     int iDoppler; // Ra 2014-07: mo¿liwoœæ wy³¹czenia efektu Dopplera np. dla œpiewu ptaków
@@ -31,7 +31,7 @@ class TRealSound
     double FA; // offset czestotliwosci
     bool bLoopPlay; // czy zapêtlony dŸwiêk jest odtwarzany
 	TRealSound();
-    TRealSound(const char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+	TRealSound( std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
 		bool freqmod = false, double rmin = 0.0);
     ~TRealSound();
     void Free();
@@ -54,7 +54,7 @@ class TTextSound : public TRealSound
     std::string asText;
     float fTime; // czas trwania
   public:
-    TTextSound(const char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+    TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
                bool Dynamic, bool freqmod = false, double rmin = 0.0);
     void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
               bool Dynamic, bool freqmod = false, double rmin = 0.0);

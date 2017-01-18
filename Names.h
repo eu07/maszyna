@@ -49,6 +49,7 @@ class TNames
     int iLast; // ostatnio uøyty rekord
   public:
     TNames();
+	~TNames();
     int Add(int t, const char *n); // dodanie obiektu typu (t)
     int Add(int t, const char *n, void *d); // dodanie obiektu z wskaünikiem
     int Add(int t, const char *n, int d); // dodanie obiektu z numerem

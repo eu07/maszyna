@@ -298,7 +298,7 @@ std::string TSpeedPos::TableText()
 { // pozycja tabelki pr�dko�ci
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
-		return "Flags=#" + to_hex_str(iFlags, 8) + ", Dist=" + to_string(fDist, 1, 7) +
+		return "Flags=" + to_hex_str(iFlags, 6) + ", Dist=" + to_string(fDist, 1, 7) +
 			", Vel=" + std::to_string(fVelNext) + ", Name=" + GetName();
         //if (iFlags & spTrack) // je�li tor
         //    return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
@@ -495,12 +495,9 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         pTrack = sSpeedTable[iLast].trTrack; // ostatnio sprawdzony tor
         if (!pTrack)
             return; // koniec toru, to nie ma co sprawdza� (nie ma prawa tak by�)
-        fLastDir = sSpeedTable[iLast].iFlags & spReverse ?
-                       -1.0 :
-                       1.0; // flaga ustawiona, gdy Point2 toru jest bli�ej
+        fLastDir = (sSpeedTable[iLast].iFlags & spReverse) ? -1.0 : 1.0; // flaga ustawiona, gdy Point2 toru jest bli�ej
         fCurrentDistance = sSpeedTable[iLast].fDist; // aktualna odleg�o�� do jego Point1
-        fTrackLength =
-            sSpeedTable[iLast].iFlags & (spElapsed | spEnd) ? 0.0 : pTrack->Length(); // nie dolicza� d�ugo�ci gdy:
+        fTrackLength = (sSpeedTable[iLast].iFlags & (spElapsed | spEnd)) ? 0.0 : pTrack->Length(); // nie dolicza� d�ugo�ci gdy:
         // 32-mini�ty pocz�tek,
         // 64-jazda do ko�ca toru
     }

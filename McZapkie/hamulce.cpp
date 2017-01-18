@@ -20,15 +20,15 @@ Copyright (C) 2007-2014 Maciej Cierniak
 //---FUNKCJE OGOLNE---
 
 static double const DPL = 0.25;
-double TFV4aM::pos_table[11] = {-2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0};
-double TMHZ_EN57::pos_table[11] = {-2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0};
-double TM394::pos_table[11] = {-1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0};
-double TH14K1::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1}};
-double TH14K1::pos_table[11] = {-1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0};
-double TSt113::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1}};
-double TSt113::BEP_K[7] = {0, -1, 1, 0, 0, 0, 0};
-double TSt113::pos_table[11] = {-1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1};
-double TFVel6::pos_table[11] = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
+double const TFV4aM::pos_table[11] = {-2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0};
+double const TMHZ_EN57::pos_table[11] = {-2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0};
+double const TM394::pos_table[11] = {-1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0};
+double const TH14K1::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1}};
+double const TH14K1::pos_table[11] = {-1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0};
+double const TSt113::BPT_K[6][2] = {{10, 0}, {4, 1}, {0, 1}, {4, 0}, {4, -1}, {15, -1}};
+double const TSt113::BEP_K[7] = {0, -1, 1, 0, 0, 0, 0};
+double const TSt113::pos_table[11] = {-1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1};
+double const TFVel6::pos_table[11] = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
 
 double PR(double P1, double P2)
 {
@@ -147,14 +147,6 @@ void TReservoir::Flow(double dv)
     dVol = dVol + dv;
 }
 
-TReservoir::TReservoir()
-{
-    // inherited:: Create;
-    Cap = 1;
-    Vol = 0;
-    dVol = 0;
-}
-
 void TReservoir::Act()
 {
     Vol = Vol + dVol;
@@ -264,9 +256,9 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
              4.2; // objetosc CH w stosunku do cylindra 14" i cisnienia 4.2 atm
 
     //  BrakeCyl:=TReservoir.Create;
-    BrakeCyl = new TBrakeCyl();
-    BrakeRes = new TReservoir();
-    ValveRes = new TReservoir();
+    BrakeCyl = std::make_shared<TBrakeCyl>();
+    BrakeRes = std::make_shared<TReservoir>();
+    ValveRes = std::make_shared<TReservoir>();
 
     // tworzenie zbiornikow
     BrakeCyl->CreateCap(i_bcd * BCA * 1000);
@@ -279,34 +271,34 @@ TBrake::TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn
     switch (i_mat)
     {
     case bp_P10Bg:
-        FM = new TP10Bg();
+        FM = std::make_shared<TP10Bg>();
         break;
     case bp_P10Bgu:
-        FM = new TP10Bgu();
+        FM = std::make_shared<TP10Bgu>();
         break;
     case bp_FR513:
-        FM = new TFR513();
+        FM = std::make_shared<TFR513>();
         break;
     case bp_FR510:
-        FM = new TFR510();
+        FM = std::make_shared<TFR510>();
         break;
     case bp_Cosid:
-        FM = new TCosid();
+        FM = std::make_shared<TCosid>();
         break;
     case bp_P10yBg:
-        FM = new TP10yBg();
+        FM = std::make_shared<TP10yBg>();
         break;
     case bp_P10yBgu:
-        FM = new TP10yBgu();
+        FM = std::make_shared<TP10yBgu>();
         break;
     case bp_D1:
-        FM = new TDisk1();
+        FM = std::make_shared<TDisk1>();
         break;
     case bp_D2:
-        FM = new TDisk2();
+        FM = std::make_shared<TDisk2>();
         break;
     default: // domyslnie
-        FM = new TP10();
+        FM = std::make_shared<TP10>();
     }
 }
 
@@ -2203,10 +2195,7 @@ double TFV4a::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 void TFV4a::Init(double Press)
 {
     CP = Press;
-    TP = 0;
     RP = Press;
-    Time = false;
-    TimeEP = false;
 }
 
 //---FV4a/M--- nowonapisany kran bez poprawki IC
@@ -2342,13 +2331,7 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 void TFV4aM::Init(double Press)
 {
     CP = Press;
-    TP = 0.0;
     RP = Press;
-    XP = 0.0;
-    Time = false;
-    TimeEP = false;
-    RedAdj = 0.0;
-    Fala = false;
 }
 
 void TFV4aM::SetReductor(double nAdj)
@@ -2483,12 +2466,6 @@ double TMHZ_EN57::GetPF(double i_bcp, double PP, double HP, double dt, double ep
 void TMHZ_EN57::Init(double Press)
 {
     CP = Press;
-    TP = 0.0;
-    RP = 0.0;
-    Time = false;
-    TimeEP = false;
-    RedAdj = 0.0;
-    Fala = false;
 }
 
 void TMHZ_EN57::SetReductor(double nAdj)
@@ -2591,9 +2568,7 @@ double TM394::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 void TM394::Init(double Press)
 {
     CP = Press;
-    RedAdj = 0;
     Time = true;
-    TimeEP = false;
 }
 
 void TM394::SetReductor(double nAdj)
@@ -2657,7 +2632,6 @@ double TH14K1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 void TH14K1::Init(double Press)
 {
     CP = Press;
-    RedAdj = 0;
     Time = true;
     TimeEP = true;
 }
@@ -2738,7 +2712,6 @@ void TSt113::Init(double Press)
 {
     Time = true;
     TimeEP = true;
-    EPS = 0.0;
 }
 
 //--- test ---
@@ -2799,11 +2772,8 @@ double TFD1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 void TFD1::Init(double Press)
 {
-    BP = 0;
     MaxBP = Press;
-    Time = false;
-    TimeEP = false;
-    Speed = 1;
+    Speed = 1.0;
 }
 
 double TFD1::GetCP()
@@ -2844,10 +2814,8 @@ double TH1405::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 void TH1405::Init(double Press)
 {
-    BP = 0;
     MaxBP = Press;
     Time = true;
-    TimeEP = false;
 }
 
 double TH1405::GetCP()
@@ -2919,7 +2887,6 @@ void TFVel6::Init(double Press)
 {
     Time = true;
     TimeEP = true;
-    EPS = 0.0;
 }
 
 // END

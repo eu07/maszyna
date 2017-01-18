@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "Usefull.h"
 #include "mczapkie/mctools.h"
+#include "WavRead.h"
 //#define SAFE_DELETE(p)  { if(p) { delete (p);     (p)=NULL; } }
 #define SAFE_RELEASE(p)     \
     {                       \

@@ -45,13 +45,19 @@ TPythonInterpreter *TPythonInterpreter::getInstance()
     return _instance;
 }
 
-bool TPythonInterpreter::loadClassFile(const char *lookupPath, const char *className)
+void
+TPythonInterpreter::killInstance() {
+
+	delete _instance;
+}
+
+bool TPythonInterpreter::loadClassFile( std::string const &lookupPath, std::string const &className )
 {
-    std::set<const char *, ltstr>::const_iterator it = _classes.find(className);
+    std::set<std::string const>::const_iterator it = _classes.find(className);
     if (it == _classes.end())
     {
         FILE *sourceFile = _getFile(lookupPath, className);
-        if (sourceFile != NULL)
+        if (sourceFile != nullptr)
         {
             fseek(sourceFile, 0, SEEK_END);
             long fsize = ftell(sourceFile);
@@ -72,10 +78,13 @@ bool TPythonInterpreter::loadClassFile(const char *lookupPath, const char *class
                 handleError();
                 return false;
             }
+			_classes.insert( className );
+/*
             char *classNameToRemember = (char *)calloc(strlen(className) + 1, sizeof(char));
             strcpy(classNameToRemember, className);
             _classes.insert(classNameToRemember);
-            free(buffer);
+*/
+			free(buffer);
             return true;
         }
         return false;
@@ -83,13 +92,28 @@ bool TPythonInterpreter::loadClassFile(const char *lookupPath, const char *class
     return true;
 }
 
-PyObject *TPythonInterpreter::newClass(const char *className)
+PyObject *TPythonInterpreter::newClass( std::string const &className )
 {
     return newClass(className, NULL);
 }
 
-FILE *TPythonInterpreter::_getFile(const char *lookupPath, const char *className)
+FILE *TPythonInterpreter::_getFile( std::string const &lookupPath, std::string const &className )
 {
+	if( false == lookupPath.empty() ) {
+		std::string const sourcefilepath = lookupPath + className + ".py";
+		FILE *file = fopen( sourcefilepath.c_str(), "r" );
+#ifdef _PY_INT_MORE_LOG
+		WriteLog( sourceFilePath );
+#endif // _PY_INT_MORE_LOG
+		if( nullptr != file ) { return file; }
+	}
+	std::string  sourcefilepath = "python\\local\\" + className + ".py";
+	FILE *file = fopen( sourcefilepath.c_str(), "r" );
+#ifdef _PY_INT_MORE_LOG
+	WriteLog( sourceFilePath );
+#endif // _PY_INT_MORE_LOG
+	return file; // either the file, or a nullptr on fail
+/*
     char *sourceFilePath;
     if (lookupPath != NULL)
     {
@@ -124,6 +148,7 @@ FILE *TPythonInterpreter::_getFile(const char *lookupPath, const char *className
         return file;
     }
     return NULL;
+*/
 }
 
 void TPythonInterpreter::handleError()
@@ -177,14 +202,14 @@ void TPythonInterpreter::handleError()
         }
     }
 }
-PyObject *TPythonInterpreter::newClass(const char *className, PyObject *argsTuple)
+PyObject *TPythonInterpreter::newClass(std::string const &className, PyObject *argsTuple)
 {
     if (_main == NULL)
     {
         WriteLog("main turned into null");
         return NULL;
     }
-    PyObject *classNameObj = PyObject_GetAttrString(_main, className);
+    PyObject *classNameObj = PyObject_GetAttrString(_main, className.c_str());
     if (classNameObj == NULL)
     {
 #ifdef _PY_INT_MORE_LOG
@@ -477,18 +502,12 @@ void TPythonScreens::update()
 
 void TPythonScreens::setLookupPath(std::string const &path)
 {
-    if (_lookupPath != NULL)
-    {
-        free(_lookupPath);
-    }
-    _lookupPath = (char *)calloc(path.length() + 1, sizeof(char));
-    strcpy(_lookupPath, path.c_str());
+	_lookupPath = path;
 }
 
 TPythonScreens::TPythonScreens()
 {
-    _lookupPath = NULL;
-    TPythonInterpreter::getInstance()->loadClassFile(NULL, "abstractscreenrenderer");
+    TPythonInterpreter::getInstance()->loadClassFile("", "abstractscreenrenderer");
     _terminationFlag = false;
     _renderReadyFlag = false;
     _cleanupReadyFlag = false;
@@ -501,6 +520,7 @@ TPythonScreens::~TPythonScreens()
     WriteLog("Called python sceeens destructor");
 #endif // _PY_INT_MORE_LOG
     reset(NULL);
+/*
     if (_lookupPath != NULL)
     {
 #ifdef _PY_INT_MORE_LOG
@@ -508,6 +528,7 @@ TPythonScreens::~TPythonScreens()
 #endif // _PY_INT_MORE_LOG
         free(_lookupPath);
     }
+*/
 }
 
 void TPythonScreens::run()

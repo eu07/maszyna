@@ -117,6 +117,9 @@ TGroundNode::~TGroundNode()
             delete Model;
         Model = NULL;
         break;
+	case TP_SOUND:
+		SafeDelete(tsStaticSound);
+		break;
     case TP_TERRAIN:
     { // pierwsze nNode zawiera model E3D, reszta to trójk¹ty
         for (int i = 1; i < iCount; ++i)
@@ -697,6 +700,7 @@ TSubRect::~TSubRect()
     if (Global::bManageNodes) // Ra: tu siê coœ sypie
         ResourceManager::Unregister(this); // wyrejestrowanie ze sprz¹tacza
     // TODO: usun¹æ obiekty z listy (nRootMesh), bo s¹ one tworzone dla sektora
+	delete[] tTracks;
 }
 
 void TSubRect::NodeAdd(TGroundNode *Node)
@@ -1767,8 +1771,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         *parser >> token;
 		str = token;
 		//str = AnsiString(token.c_str());
-        tmp->tsStaticSound = new TTextSound(strdup(str.c_str()), sqrt(tmp->fSquareRadius), tmp->pCenter.x,
-                                 tmp->pCenter.y, tmp->pCenter.z, false, rmin);
+        tmp->tsStaticSound = new TTextSound(str, sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z, false, rmin);
         if (rmin < 0.0)
             rmin =
                 0.0; // przywrócenie poprawnej wartoœci, jeœli s³u¿y³a do wy³¹czenia efektu Dopplera
@@ -2320,9 +2323,7 @@ void TGround::FirstInit()
     WriteLog("InitLaunchers OK");
     WriteLog("InitGlobalTime");
     // ABu 160205: juz nie TODO :)
-    GlobalTime = new TMTableTime(
-        hh, mm, srh, srm, ssh,
-        ssm); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
+    GlobalTime = std::make_shared<TMTableTime>( hh, mm, srh, srm, ssh, ssm ); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
     WriteLog("InitGlobalTime OK");
     // jeszcze ustawienie pogody, gdyby nie by³o w scenerii wpisów
     glClearColor(Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2],

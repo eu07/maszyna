@@ -191,7 +191,7 @@ bool cParser::trimComments(std::string &String)
     return false;
 }
 
-std::string cParser::readComment(const std::string Break)
+std::string cParser::readComment(std::string const &Break)
 { // pobieranie znaków a¿ do znalezienia znacznika koñca
     std::string token = "";
     while (mStream->peek() != EOF)

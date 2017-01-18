@@ -1886,11 +1886,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             {
             }
         } // koniec hamulce
-        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
+/*        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
         {
             // jakies inne prefiksy
         }
-
+*/
     } // koniec while kropka
 
     if (MoverParameters->CategoryFlag & 2) // jeœli samochód
@@ -5748,22 +5748,13 @@ int TDynamicObject::RouteWish(TTrack *tr)
 
 std::string TDynamicObject::TextureTest(std::string const &name)
 { // Ra 2015-01: sprawdzenie dostêpnoœci tekstury o podanej nazwie
-    std::string x = name + ".dds"; // na razie prymitywnie
-    if (FileExists(x.c_str()))
-        return x;
-    else
-    {
-        x = name + ".tga"; // w zasadzie to nale¿a³oby uwzglêdniæ deklarowan¹ kolejnoœæ
-        if (FileExists(x.c_str()))
-            return x;
-        else
-        {
-            x = name + ".bmp";
-            if (FileExists(x.c_str()))
-                return x;
-        }
-    }
-    return ""; // nie znaleziona
+	std::vector<std::string> extensions = { ".dds", ".tga", ".bmp" };
+	for( auto const &extension : extensions ) {
+		if( true == FileExists( name + extension ) ) {
+			return name + extension;
+		}
+	}
+	return ""; // nie znaleziona
 };
 
 void TDynamicObject::DestinationSet(std::string to, std::string numer)

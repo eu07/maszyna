@@ -11,14 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #define SoundH
 
 #include <stack>
-#undef EOF
-#include <objbase.h>
-//#include <initguid.h>
-//#include <commdlg.h>
-#include <mmreg.h>
 #include <dsound.h>
-//#include "resource.h"
-#include "WavRead.h"
 
 typedef LPDIRECTSOUNDBUFFER PSound;
 

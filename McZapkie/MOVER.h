@@ -642,10 +642,11 @@ public:
 	TBrakeHandle BrakeLocHandle;
 	double MBPM; /*masa najwiekszego cisnienia*/
 
-	TBrake *Hamulec;
-	TDriverHandle *Handle;
-	TDriverHandle *LocHandle;
-	TReservoir *Pipe; TReservoir *Pipe2;
+	std::shared_ptr<TBrake> Hamulec;
+	std::shared_ptr<TDriverHandle> Handle;
+	std::shared_ptr<TDriverHandle> LocHandle;
+	std::shared_ptr<TReservoir> Pipe;
+	std::shared_ptr<TReservoir> Pipe2;
 
 	TLocalBrake LocalBrake;  /*rodzaj hamulca indywidualnego*/
 	TBrakePressureTable BrakePressureTable; /*wyszczegolnienie cisnien w rurze*/

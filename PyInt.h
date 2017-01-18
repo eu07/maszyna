@@ -30,22 +30,26 @@ class TPythonInterpreter
 {
   protected:
     TPythonInterpreter();
-    ~TPythonInterpreter()
-    {
-    }
+	~TPythonInterpreter() {}
     static TPythonInterpreter *_instance;
     int _screenRendererPriority;
-    std::set<const char *, ltstr> _classes;
-    PyObject *_main;
+//    std::set<const char *, ltstr> _classes;
+	std::set<std::string const> _classes;
+	PyObject *_main;
     PyObject *_stdErr;
-    FILE *_getFile(const char *lookupPath, const char *className);
+//    FILE *_getFile(const char *lookupPath, const char *className);
+	FILE *_getFile( std::string const &lookupPath, std::string const &className );
 
   public:
     static TPythonInterpreter *getInstance();
-    bool loadClassFile(const char *lookupPath, const char *className);
+	static void killInstance();
+/*  bool loadClassFile(const char *lookupPath, const char *className);
     PyObject *newClass(const char *className);
     PyObject *newClass(const char *className, PyObject *argsTuple);
-    int getScreenRendererPriotity()
+*/	bool loadClassFile( std::string const &lookupPath, std::string const &className );
+	PyObject *newClass( std::string const &className );
+	PyObject *newClass( std::string const &className, PyObject *argsTuple );
+	int getScreenRendererPriotity()
     {
         return _screenRendererPriority;
     };
@@ -79,7 +83,7 @@ class TPythonScreens
     void *_thread;
     unsigned int _threadId;
     std::vector<TPythonScreenRenderer *> _screens;
-    char *_lookupPath;
+    std::string _lookupPath;
     void *_train;
     void _cleanup();
     void _freeTrainState();

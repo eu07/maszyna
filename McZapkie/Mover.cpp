@@ -1796,154 +1796,157 @@ int TMoverParameters::ShowCurrent(int AmpN)
 
 bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 {
-    bool OK = false;
-    if ((MainCtrlPosNo > 0) && (CabNo != 0))
+	// basic fail conditions:
+	if( ( CabNo == 0 )
+	 || ( MainCtrlPosNo <= 0 ) ) {
+		// nie ma sterowania
+		return false;
+	}
+	if( ( TrainType == dt_ET22 ) && ( ScndCtrlPos != 0 ) ) {
+		// w ET22 nie da siê krêciæ nastawnikiem przy w³¹czonym boczniku
+		return false;
+	}
+	if( ( TrainType == dt_EZT ) && ( ActiveDir == 0 ) ) {
+		// w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
+		return false;
+	}
+
+	bool OK = false;
+    if (MainCtrlPos < MainCtrlPosNo)
     {
-        if (MainCtrlPos < MainCtrlPosNo)
-        {
-            if ((TrainType != dt_ET22) ||
-                ((TrainType == dt_ET22) &&
-                 (ScndCtrlPos ==
-                  0))) // w ET22 nie da siê krêciæ nastawnikiem przy w³¹czonym boczniku
-                switch (EngineType)
-                {
-                case None:
-                case Dumb:
-                case DieselElectric:
-                case ElectricInductionMotor:
-                {
-                    if (((CtrlSpeed == 1) && (TrainType != dt_EZT)) ||
-                        ((CtrlSpeed == 1) && (TrainType == dt_EZT) && (ActiveDir != 0)))
-                    { // w EZT nie da siê za³¹czyæ pozycji bez ustawienia kierunku
-                        MainCtrlPos++;
-                        OK = true;
-                    }
-                    else if (((CtrlSpeed > 1) && (TrainType != dt_EZT)) ||
-                             ((CtrlSpeed > 1) && (TrainType == dt_EZT) && (ActiveDir != 0)))
-                        OK = (IncMainCtrl(1) && IncMainCtrl(CtrlSpeed - 1));
-                    break;
-                }
+		switch( EngineType ) {
+			case None:
+			case Dumb:
+			case DieselElectric:
+			case ElectricInductionMotor:
+			{
+				if( CtrlSpeed > 1 ) {
+					OK = ( IncMainCtrl( 1 )
+						&& IncMainCtrl( CtrlSpeed - 1 ) ); // a fail will propagate up the recursion chain. should this be || instead?
+				}
+				else {
+					++MainCtrlPos;
+					OK = true;
+				}
+				break;
+			}
 
-                case ElectricSeriesMotor:
-                {
-                    if ((CtrlSpeed == 1) && (ActiveDir != 0))
-                    {
-                        MainCtrlPos++;
-                        OK = true;
-                        if (Imax == ImaxHi)
-                            if (RList[MainCtrlPos].Bn > 1)
-                            {
-                                if (TrainType == dt_ET42)
-                                {
-                                    MainCtrlPos--;
-                                    OK = false;
-                                }
-                                if (MaxCurrentSwitch(false))
-                                    SetFlag(
-                                        SoundFlag,
-                                        sound_relay); // wylaczanie wysokiego rozruchu    // Q TODO:
-                                //         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1)
-                                //         then
-                                //           MainCtrlActualPos:=1;
-                                //
-                            }
-                        if ((CtrlSpeed == 1) && (ActiveDir == -1) && (RList[MainCtrlPos].Bn > 1) &&
-                            (TrainType != dt_PseudoDiesel))
-                        { // blokada wejœcia na równoleg³¹ podczas jazdy do ty³u
-                            MainCtrlPos--;
-                            OK = false;
-                        }
-                        //
-                        // if (TrainType == "et40")
-                        //  if (Abs(Im) > IminHi)
-                        //   {
-                        //    MainCtrlPos--; //Blokada nastawnika po przekroczeniu minimalnego pradu
-                        //    OK = false;
-                        //   }
-                        //}
-                        if (DynamicBrakeFlag)
-                            if (TrainType == dt_ET42)
-                                if (MainCtrlPos > 20)
-                                {
-                                    MainCtrlPos--;
-                                    OK = false;
-                                }
-                    }
-                    else if ((CtrlSpeed > 1) && (ActiveDir != 0) && (TrainType != dt_ET40))
-                    { // szybkie przejœcie na bezoporow¹
+			case ElectricSeriesMotor:
+			{
+				if( ActiveDir == 0 ) { return false; }
 
-                        while ((RList[MainCtrlPos].R > 0) && IncMainCtrl(1))
-                            ; // tutaj ma byæ pêtla na "pusto"
-                        // OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to
-                        // poprawiæ i po co?
-                        if (ActiveDir == -1)
-                            while ((RList[MainCtrlPos].Bn > 1) && IncMainCtrl(1))
-                                MainCtrlPos--;
-                        OK = false;
-                        // if (TrainType=dt_ET40)  then
-                        // while Abs (Im)>IminHi do
-                        //   dec(MainCtrlPos);
-                        //  OK:=false ;
-                        //
-                        if (DynamicBrakeFlag)
-                            if (TrainType == dt_ET42)
-                                while (MainCtrlPos > 20)
-                                    MainCtrlPos--;
-                        OK = false;
-                    }
-                    // return OK;
+				if( CtrlSpeed > 1 ) {
+					// szybkie przejœcie na bezoporow¹
+					if( TrainType == dt_ET40 ) {
+						break; // this means ET40 won't react at all to fast acceleration command. should it issue just IncMainCtrl(1) instead?
+					}
+					while( ( RList[ MainCtrlPos ].R > 0.0 )
+						&& IncMainCtrl( 1 ) ) {
+						// all work is done in the loop header
+						;
+					}
+					// OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to
+					// poprawiæ i po co?
+					if( ActiveDir == -1 ) {
+						while( ( RList[ MainCtrlPos ].Bn > 1 )
+							&& IncMainCtrl( 1 ) ) {
+							--MainCtrlPos;
+						}
+					}
+					OK = false; // shouldn't this be part of the loop above?
+					// if (TrainType=dt_ET40)  then
+					// while Abs (Im)>IminHi do
+					//   dec(MainCtrlPos);
+					//  OK:=false ;
+				}
+				else { // CtrlSpeed == 1
+					++MainCtrlPos;
+					OK = true;
+					if( Imax == ImaxHi ) {
+						if( RList[ MainCtrlPos ].Bn > 1 ) {
+							if( true == MaxCurrentSwitch( false )) {
+								// wylaczanie wysokiego rozruchu
+								SetFlag( SoundFlag, sound_relay );
+							} // Q TODO:
+							//         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1)
+							//         then
+							//           MainCtrlActualPos:=1;
+							//
+							if( TrainType == dt_ET42 ) {
+								--MainCtrlPos;
+								OK = false;
+							}
+						}
+					}
+					if( ActiveDir == -1 ) {
+						if( ( TrainType != dt_PseudoDiesel )
+						 && ( RList[ MainCtrlPos ].Bn > 1 )	) {
+							// blokada wejœcia na równoleg³¹ podczas jazdy do ty³u
+							--MainCtrlPos;
+							OK = false;
+						}
+					}
+					//
+					// if (TrainType == "et40")
+					//  if (Abs(Im) > IminHi)
+					//   {
+					//    MainCtrlPos--; //Blokada nastawnika po przekroczeniu minimalnego pradu
+					//    OK = false;
+					//   }
+					//}
+				}
 
-                    break;
-                }
+				if( ( TrainType == dt_ET42 ) && ( true == DynamicBrakeFlag ) ) {
+					if( MainCtrlPos > 20 ) {
+						MainCtrlPos = 20;
+						OK = false;
+					}
+				}
+				// return OK;
+				break;
+			}
 
-                case DieselEngine:
-                {
-                    if (CtrlSpeed == 1)
-                    {
-                        MainCtrlPos++;
-                        OK = true;
-                        if (MainCtrlPos > 0)
-                            CompressorAllow = true;
-                        else
-                            CompressorAllow = false;
-                    }
-                    else if (CtrlSpeed > 1)
-                    {
-                        while (MainCtrlPos < MainCtrlPosNo)
-                            IncMainCtrl(1);
-                        OK = true;
-                    }
-                    break;
-                }
+			case DieselEngine:
+			{
+				if( CtrlSpeed > 1 ) {
+					while( MainCtrlPos < MainCtrlPosNo ) {
+						IncMainCtrl( 1 );
+					}
+				}
+				else {
+					++MainCtrlPos;
+					if( MainCtrlPos > 0 ) { CompressorAllow = true; }
+					else                  { CompressorAllow = false; }
+				}
+				OK = true;
+				break;
+			}
 
-                case WheelsDriven:
-                {
-                    OK = AddPulseForce(CtrlSpeed);
-                    break;
-                }
-
-                } // switch EngineType of
-        }
-        else // MainCtrlPos>=MainCtrlPosNo
-            if (CoupledCtrl) // wspólny wa³ nastawnika jazdy i bocznikowania
-        {
-            if (ScndCtrlPos < ScndCtrlPosNo) // 3<3 -> false
-            {
-                ScndCtrlPos++;
-                OK = true;
-            }
-            else
-                OK = false;
-        }
-        if (OK)
-        {
-            SendCtrlToNext("MainCtrl", MainCtrlPos, CabNo); //???
-            SendCtrlToNext("ScndCtrl", ScndCtrlPos, CabNo);
-        }
+			case WheelsDriven:
+			{
+				OK = AddPulseForce( CtrlSpeed );
+				break;
+			}
+		} // switch EngineType of
     }
-    else // nie ma sterowania
-        OK = false;
-    // if OK then LastRelayTime:=0;
+    else {// MainCtrlPos>=MainCtrlPosNo
+		if( true == CoupledCtrl ) {
+			// wspólny wa³ nastawnika jazdy i bocznikowania
+			if( ScndCtrlPos < ScndCtrlPosNo ) { // 3<3 -> false
+				++ScndCtrlPos;
+				OK = true;
+			}
+			else {
+				OK = false;
+			}
+		}
+    }
+
+    if( true == OK )
+    {
+        SendCtrlToNext("MainCtrl", MainCtrlPos, CabNo); //???
+        SendCtrlToNext("ScndCtrl", ScndCtrlPos, CabNo);
+    }
 
     // hunter-101012: poprawka
     // poprzedni warunek byl niezbyt dobry, bo przez to przy trzymaniu +
@@ -5871,16 +5874,16 @@ std::string getkeyval(int rettype, std::string key)
         int klen = key.length();
         int kpos = Pos(key, xline) - 1;
         temp.erase(0, kpos + klen);
-        if (temp.find(" ") != std::string::npos)
-            to = temp.find(" ");
+        if (temp.find(' ') != std::string::npos)
+            to = temp.find(' ');
         else
             to = 255;
         kval = temp.substr(0, to);
         if (kval != "")
             kval = TrimSpace(kval); // wyciagnieta wartosc
 
-        sectionname = ExchangeCharInString(sectionname, (char)":", (char)"");
-        sectionname = ExchangeCharInString(sectionname, (char)".", (char)"");
+        sectionname = ExchangeCharInString(sectionname, ':', NULL);
+        sectionname = ExchangeCharInString(sectionname, '.', NULL);
         //--WriteLog(sectionname + "." + keyname + " val= [" + kval + "]");
 
         //    if (rettype == 1) vS = kval;
@@ -6343,7 +6346,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     // appdir = ExtractFilePath(ParamStr(0));
 
-    std::ifstream in(file.c_str());
+    std::ifstream in(file);
 	if (!in.is_open())
 	{
 		WriteLog("E8 - FIZ FILE NOT EXIST.");
@@ -7400,8 +7403,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case K:
 	{
 		WriteLog("XBT W, K");
-		Hamulec = new TWest(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TWest>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
 		else
@@ -7411,8 +7413,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case KE:
 	{
 		WriteLog("XBT WKE");
-		Hamulec = new TKE(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TKE>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
@@ -7426,9 +7427,8 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case ESt4:
 	{
 		WriteLog("XBT NESt3, ESt3, ESt3AL2, ESt4");
-		Hamulec = new TNESt3(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
-		(static_cast<TNESt3 *>(Hamulec))->SetSize(BrakeValveSize, BrakeValveParams);
+		Hamulec = std::make_shared<TNESt3>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		static_cast<TNESt3 *>(Hamulec.get())->SetSize(BrakeValveSize, BrakeValveParams);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
 		else
@@ -7439,24 +7439,21 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case LSt:
 	{
 		WriteLog("XBT LSt");
-		Hamulec = new TLSt(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TLSt>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		break;
 	}
 	case EStED:
 	{
 		WriteLog("XBT EStED");
-		Hamulec = new TEStED(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TEStED>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		break;
 	}
 	case EP2:
 	{
 		WriteLog("XBT EP2");
-		Hamulec = new TEStEP2(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TEStEP2>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
 		break;
 	}
@@ -7464,21 +7461,18 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case CV1:
 	{
 		WriteLog("XBT CV1");
-		Hamulec = new TCV1(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TCV1>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		break;
 	}
 	case CV1_L_TR:
 	{
 		WriteLog("XBT CV1_L_T");
-		Hamulec = new TCV1L_TR(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TCV1L_TR>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		break;
 	}
 
 	default:
-		Hamulec = new TBrake(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TBrake>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 	}
 
 	Hamulec->SetASBP(MaxBrakePress[4]);
@@ -7486,50 +7480,49 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	switch (BrakeHandle)
 	{
 	case FV4a:
-		Handle = new TFV4aM();
+		Handle = std::make_shared<TFV4aM>();
 		break;
 	case FVel6:
-		Handle = new TFVel6();
+		Handle = std::make_shared<TFVel6>();
 		break;
 	case testH:
-		Handle = new Ttest();
+		Handle = std::make_shared<Ttest>();
 		break;
 	case M394:
-		Handle = new TM394();
+		Handle = std::make_shared<TM394>();
 		break;
 	case Knorr:
-		Handle = new TH14K1();
+		Handle = std::make_shared<TH14K1>();
 		break;
 	case St113:
-		Handle = new TSt113();
+		Handle = std::make_shared<TSt113>();
 		break;
 	default:
-		Handle = new TDriverHandle();
+		Handle = std::make_shared<TDriverHandle>();
 	}
 
 	switch (BrakeLocHandle)
 	{
 	case FD1:
 	{
-		LocHandle = new TFD1();
+		LocHandle = std::make_shared<TFD1>();
 		LocHandle->Init(MaxBrakePress[0]);
 		break;
 	}
 	case Knorr:
 	{
-		LocHandle = new TH1405();
+		LocHandle = std::make_shared<TH1405>();
 		LocHandle->Init(MaxBrakePress[0]);
 		break;
 	}
 	default:
-		LocHandle = new TDriverHandle();
+		LocHandle = std::make_shared<TDriverHandle>();
 	}
 
-	Pipe = new TReservoir();
-	Pipe2 = new TReservoir(); // zabezpieczenie, bo sie PG wywala... :(
-	Pipe->CreateCap((Max0R(Dim.L, 14) + 0.5) * Spg * 1); // dlugosc x przekroj x odejscia i takie
-														 // tam
-	Pipe2->CreateCap((Max0R(Dim.L, 14) + 0.5) * Spg * 1);
+	Pipe = std::make_shared<TReservoir>();
+	Pipe->CreateCap( ( Max0R( Dim.L, 14 ) + 0.5 ) * Spg * 1 ); // dlugosc x przekroj x odejscia i takie tam
+	Pipe2 = std::make_shared<TReservoir>(); // zabezpieczenie, bo sie PG wywala... :(
+	Pipe2->CreateCap( (Max0R(Dim.L, 14) + 0.5) * Spg * 1 );
 
 	if (LightsPosNo > 0)
 		LightsPos = LightsDefPos;

@@ -17,8 +17,8 @@ class TTrackFollower
 { // oœ poruszaj¹ca siê po torze
   private:
     TTrack *pCurrentTrack; // na którym torze siê znajduje
-    TSegment *pCurrentSegment; // zwrotnice mog¹ mieæ dwa segmenty
-    double fCurrentDistance; // przesuniêcie wzglêdem Point1 w stronê Point2
+	std::shared_ptr<TSegment> pCurrentSegment; // zwrotnice mog¹ mieæ dwa segmenty
+	double fCurrentDistance; // przesuniêcie wzglêdem Point1 w stronê Point2
     double fDirection; // ustawienie wzglêdem toru: -1.0 albo 1.0, mno¿one przez dystans
     bool ComputatePosition(); // przeliczenie pozycji na torze
     TDynamicObject *Owner; // pojazd posiadaj¹cy

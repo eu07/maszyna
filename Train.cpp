@@ -316,7 +316,6 @@ PyObject *TTrain::GetTrainState()
 		PyDict_SetItemString( dict, ( std::string( "eimp_u" ) + std::to_string( i + 1 ) + "_comp_a" ).c_str(), PyGetBool( bComp[ i ][ 0 ] ) );
 		PyDict_SetItemString( dict, ( std::string( "eimp_u" ) + std::to_string( i + 1 ) + "_comp_w" ).c_str(), PyGetBool( bComp[ i ][ 1 ] ) );
 		PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + "_heat" ).c_str(), PyGetBool( bHeat[ i ] ) );
-
 	}
 	for (int i = 0; i<20; i++)
 	{
@@ -325,13 +324,13 @@ PyObject *TTrain::GetTrainState()
 				PyGetFloatS(fPress[i][j]));
 	}
 	bool bEP, bPN;
-	bEP = (mvControlled->LocHandle->GetCP()>0.2) || (fEIMParams[0][2]>0.01);
+	bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[0][2] > 0.01 );
 	PyDict_SetItemString(dict, "dir_brake", PyGetBool(bEP));
 	if (typeid(mvControlled->Hamulec) == typeid(TLSt) || typeid(mvControlled->Hamulec) == typeid(TEStED))
 	{
-		TBrake* temp_ham = mvControlled->Hamulec;
+		// auto temp_ham = mvControlled->Hamulec;
 		//        TLSt* temp_ham2 = temp_ham;
-		bPN = (static_cast<TLSt*>(temp_ham)->GetEDBCP()>0.2);
+		bPN = ( static_cast<TLSt *>(mvControlled->Hamulec.get())->GetEDBCP() > 0.2 );
 	}
 	else
 		bPN = false;
