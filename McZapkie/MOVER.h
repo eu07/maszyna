@@ -1125,3 +1125,25 @@ public:
 };
 
 extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
+
+template <typename _Type>
+bool getkeyval( _Type &Variable, std::string const &Key, std::string const &Input ) {
+
+	auto lookup = Input.find( Key + "=" );
+	if( lookup == std::string::npos ) {
+		return false; }
+	std::string value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
+	lookup = value.find( ' ' );
+	if( lookup != std::string::npos ) {
+		// trim everything past the value
+		value.erase( lookup );
+	}
+	if( true == value.empty() ) {
+		return false;
+	}
+	// set the specified variable to retrieved value
+	std::stringstream converter;
+	converter << value;
+	converter >> Variable;
+	return true; // all done
+}

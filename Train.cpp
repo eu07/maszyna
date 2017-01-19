@@ -227,9 +227,9 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     fMechPitch = 0.1;
     fMainRelayTimer = 0; // Hunter, do k...y nêdzy, ustawiaj wartoœci pocz¹tkowe zmiennych!
 
-    if (!LoadMMediaFile(DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName +
-                        ".mmd"))
-        return false;
+	if( false == LoadMMediaFile( DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) ) {
+		return false;
+	}
 
     // McZapkie: w razie wykolejenia
     //    dsbDerailment=TSoundsManager::GetFromName("derail.wav");
@@ -698,8 +698,7 @@ void TTrain::OnKeyDown(int cKey)
 		else if (cKey == Global::Keys[k_OpenLeft]) // NBMX 17-09-2003: otwieranie drzwi
 		{
 			if (mvOccupied->DoorOpenCtrl == 1)
-				if (mvOccupied->CabNo < 0 ? mvOccupied->DoorRight(true) :
-					mvOccupied->DoorLeft(true))
+				if (mvOccupied->CabNo < 0 ?	mvOccupied->DoorRight(true) : mvOccupied->DoorLeft(true))
 				{
 					dsbSwitch->SetVolume(DSBVOLUME_MAX);
 					dsbSwitch->Play(0, 0, 0);
@@ -712,9 +711,8 @@ void TTrain::OnKeyDown(int cKey)
 		}
 		else if (cKey == Global::Keys[k_OpenRight]) // NBMX 17-09-2003: otwieranie drzwi
 		{
-			if (mvOccupied->DoorCloseCtrl == 1)
-				if (mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft(true) :
-					mvOccupied->DoorRight(true))
+			if (mvOccupied->DoorOpenCtrl == 1)
+				if (mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft(true) : mvOccupied->DoorRight(true))
 				{
 					dsbSwitch->SetVolume(DSBVOLUME_MAX);
 					dsbSwitch->Play(0, 0, 0);
@@ -1927,29 +1925,29 @@ if
         }
         else if (cKey == Global::Keys[k_CloseLeft]) // NBMX 17-09-2003: zamykanie drzwi
         {
-            if (mvOccupied->CabNo < 0 ? mvOccupied->DoorRight(false) : mvOccupied->DoorLeft(false))
-            {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
-                if (dsbDoorClose)
-                {
-                    dsbDoorClose->SetCurrentPosition(0);
-                    dsbDoorClose->Play(0, 0, 0);
-                }
-            }
+			if( mvOccupied->DoorCloseCtrl == 1 ) {
+				if( mvOccupied->CabNo < 0 ? mvOccupied->DoorRight( false ) : mvOccupied->DoorLeft( false ) ) {
+					dsbSwitch->SetVolume( DSBVOLUME_MAX );
+					dsbSwitch->Play( 0, 0, 0 );
+					if( dsbDoorClose ) {
+						dsbDoorClose->SetCurrentPosition( 0 );
+						dsbDoorClose->Play( 0, 0, 0 );
+					}
+				}
+			}
         }
         else if (cKey == Global::Keys[k_CloseRight]) // NBMX 17-09-2003: zamykanie drzwi
         {
-            if (mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft(false) : mvOccupied->DoorRight(false))
-            {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
-                if (dsbDoorClose)
-                {
-                    dsbDoorClose->SetCurrentPosition(0);
-                    dsbDoorClose->Play(0, 0, 0);
-                }
-            }
+			if( mvOccupied->DoorCloseCtrl == 1 ) {
+				if( mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft( false ) : mvOccupied->DoorRight( false ) ) {
+					dsbSwitch->SetVolume( DSBVOLUME_MAX );
+					dsbSwitch->Play( 0, 0, 0 );
+					if( dsbDoorClose ) {
+						dsbDoorClose->SetCurrentPosition( 0 );
+						dsbDoorClose->Play( 0, 0, 0 );
+					}
+				}
+			}
         }
         
             //-----------
@@ -5019,6 +5017,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 	dsbCouplerDetach = TSoundsManager::GetFromName("couplerdetach.wav", true);
 	dsbCouplerStretch = TSoundsManager::GetFromName("en57_couplerstretch.wav", true);
 	dsbCouplerAttach = TSoundsManager::GetFromName("couplerattach.wav", true);
+
 	std::string token;
 	do {
 		token = "";

@@ -3110,11 +3110,11 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     if (MoverParameters->Vel != 0)
     { // McZapkie-050402: krecenie kolami:
-        dWheelAngle[0] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
-                          MoverParameters->WheelDiameterL; // przednie toczne
+		assert( MoverParameters->WheelDiameterL != 0.0 );
+		assert( MoverParameters->WheelDiameterT != 0.0 );
+		dWheelAngle[ 0 ] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 / MoverParameters->WheelDiameterL; // przednie toczne
         dWheelAngle[1] += MoverParameters->nrot * dt1 * 360.0; // napêdne
-        dWheelAngle[2] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
-                          MoverParameters->WheelDiameterT; // tylne toczne
+        dWheelAngle[2] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 / MoverParameters->WheelDiameterT; // tylne toczne
         if (dWheelAngle[0] > 360.0)
             dWheelAngle[0] -= 360.0; // a w drug¹ stronê jak siê krêc¹?
         if (dWheelAngle[1] > 360.0)
@@ -4224,6 +4224,16 @@ void TDynamicObject::RenderAlpha()
 void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                     std::string ReplacableSkin)
 {
+	// temporary hack to enable door animation in EZT
+	// TODO: add relevant entries to suitable definition file (.mmd ?)
+	//       ensure the parameters are loaded before the main body mesh
+	//       so the code binds proper method of door animation
+	if( MoverParameters->TrainType & dt_EZT ) {
+		MoverParameters->DoorOpenCtrl = 1;
+		MoverParameters->DoorCloseCtrl = 1;
+		MoverParameters->DoorOpenMethod = 1;
+	}
+
     double dSDist;
     // asBaseDir=BaseDir;
     Global::asCurrentDynamicPath = BaseDir;
@@ -4580,31 +4590,23 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     m = 0; // numer osi; kolejny znak; ile osi danego typu; która œrednica
                     if ((MoverParameters->WheelDiameterL != MoverParameters->WheelDiameter) ||
                         (MoverParameters->WheelDiameterT != MoverParameters->WheelDiameter))
-                    { // obs³uga ró¿nych œrednic, o
-                        // ile wystêpuj¹
+                    { // obs³uga ró¿nych œrednic, o ile wystêpuj¹
                         while ((i < iAnimType[ANIM_WHEELS]) &&
                                (j <= MoverParameters->AxleArangement.length()))
-                        { // wersja ze wskaŸnikami jest
-                            // bardziej elastyczna na nietypowe
-                            // uk³ady
+                        { // wersja ze wskaŸnikami jest bardziej elastyczna na nietypowe uk³ady
                             if ((k >= 'A') && (k <= 'J')) // 10 chyba maksimum?
                             {
-                                pAnimations[i++].dWheelAngle =
-                                    dWheelAngle + 1; // obrót osi napêdzaj¹cych
-                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny
-                                // znak
+                                pAnimations[i++].dWheelAngle = dWheelAngle + 1; // obrót osi napêdzaj¹cych
+                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
                                 m = 2; // nastêpuj¹ce toczne bêd¹ mia³y inn¹ œrednicê
                             }
                             else if ((k >= '1') && (k <= '9'))
                             {
-                                pAnimations[i++].dWheelAngle = dWheelAngle + m; // obrót osi
-                                // tocznych
-                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny
-                                // znak
+                                pAnimations[i++].dWheelAngle = dWheelAngle + m; // obrót osi tocznych
+                                --k; // nastêpna bêdzie albo taka sama, albo bierzemy kolejny znak
                             }
                             else
-                                k = MoverParameters->AxleArangement[j++]; // pobranie kolejnego
-                            // znaku
+                                k = MoverParameters->AxleArangement[j++]; // pobranie kolejnego znaku
                         }
                     }
                 }

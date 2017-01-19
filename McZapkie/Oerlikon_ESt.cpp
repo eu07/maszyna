@@ -522,9 +522,11 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
     else
         Przekladniki[2] = std::make_shared<TRura>();
 
-    if ((params.find("3d") + params.find("4d")) != std::string::npos)
-        autom = false;
-    else
+	if( ( params.find( "3d" ) != std::string::npos )
+	 || ( params.find( "4d" ) != std::string::npos ) ) {
+		autom = false;
+	}
+	else
         autom = true;
     if ((params.find("HBG300") != std::string::npos))
         HBG300 = 1;

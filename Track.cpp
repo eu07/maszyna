@@ -117,7 +117,7 @@ TIsolated * TIsolated::Find(const string &n)
             return p;
         p = p->pNext;
     }
-    pRoot = new TIsolated(n, pRoot);
+    pRoot = new TIsolated(n, pRoot); // BUG: source of a memory leak
     return pRoot;
 };
 

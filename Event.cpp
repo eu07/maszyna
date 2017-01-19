@@ -90,7 +90,7 @@ void TEvent::Conditions(cParser *parser, string s)
         std::string token, str;
         if (!asNodeName.empty())
         { // podczepienie ³añcucha, jeœli nie jest pusty
-			// NOTE: source of a memory leak -- the array never gets deleted. fix the destructor
+			// BUG: source of a memory leak -- the array never gets deleted. fix the destructor
             Params[9].asText = new char[asNodeName.length() + 1]; // usuwane i zamieniane na
             // wskaŸnik
             strcpy(Params[9].asText, asNodeName.c_str());

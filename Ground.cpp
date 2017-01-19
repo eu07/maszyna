@@ -739,7 +739,7 @@ void TSubRect::NodeAdd(TGroundNode *Node)
             {
                 if (t && (Node->TextureID != t))
                 { // jeœli s¹ dwie ró¿ne tekstury, dodajemy drugi obiekt dla danego toru
-                    TGroundNode *n = new TGroundNode();
+                    TGroundNode *n = new TGroundNode(); // BUG: source of a memory leak here
                     n->iType = TP_DUMMYTRACK; // obiekt renderuj¹cy siatki dla tekstury
                     n->TextureID = t;
                     n->pTrack = Node->pTrack; // wskazuje na ten sam tor
@@ -962,7 +962,7 @@ void TSubRect::Sort()
         if (t < n1->TextureID) // jeœli (n1) ma inn¹ teksturê ni¿ poprzednie
         { // mo¿na zrobiæ obiekt renderuj¹cy
             t = n1->TextureID;
-            n2 = new TGroundNode();
+			n2 = new TGroundNode(); // BUG: source of a memory leak here
             n2->nNext2 = nRootMesh;
             nRootMesh = n2; // podczepienie na pocz¹tku listy
             nRootMesh->iType = TP_MESH; // obiekt renderuj¹cy siatki dla tekstury
@@ -3135,14 +3135,13 @@ bool TGround::InitEvents()
                     strcpy(buff, Current->Params[i].asText);
                     SafeDeleteArray(Current->Params[i].asText);
                     Current->Params[i].asEvent = FindEvent(buff);
-                    if (!Current->Params[i].asEvent) // Ra: tylko w logu informacja o braku
-                        if (string(Current->Params[i].asText).substr(0, 5) != "none_")
-                        {
-                            WriteLog("Event \"" + string(buff) +
-                                     "\" does not exist");
-                            ErrorLog("Missed event: " + string(buff) + " in multiple " +
-                                     Current->asName);
-                        }
+					if( !Current->Params[ i ].asEvent ) { // Ra: tylko w logu informacja o braku
+						if( ( Current->Params[ i ].asText == NULL )
+						 || ( std::string( Current->Params[ i ].asText ).substr( 0, 5 ) != "none_" ) ) {
+							WriteLog( "Event \"" + string( buff ) + "\" does not exist" );
+							ErrorLog( "Missed event: " + string( buff ) + " in multiple " + Current->asName );
+						}
+					}
                 }
             }
             break;

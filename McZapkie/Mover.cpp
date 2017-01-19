@@ -6392,6 +6392,17 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 				startBPT = false;
 				secParam = true;
                 SetFlag(OKFlag, param_ok);
+				getkeyval( aCategory, "Category", xline );
+				getkeyval( aType, "Type", xline ); aType = ToUpper( aType );
+				getkeyval( aMass, "M", xline );
+				getkeyval( aMred, "Mred", xline );
+				getkeyval( aVmax, "Vmax", xline );
+				getkeyval( aPWR, "PWR", xline );
+				getkeyval( aSandCap, "SandCap", xline );
+				getkeyval( aHeatingP, "HeatingP", xline );
+				getkeyval( aLightP, "LightP", xline );
+				// TODO: switch other sections to the new getkeyval() code
+/*
                 aCategory = getkeyval(1, "Category");
                 aType = ToUpper(getkeyval(1, "Type"));
                 aMass = atof(getkeyval(3, "M").c_str());
@@ -6401,6 +6412,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 aSandCap = atoi(getkeyval(2, "SandCap").c_str());
                 aHeatingP = atof(getkeyval(3, "HeatingP").c_str());
                 aLightP = atof(getkeyval(3, "LightP").c_str());
+*/
 				continue;
             }
 
@@ -6774,11 +6786,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     ADist = dAd;
     BDist = dBd;
 
-    if (WheelDiameterL == -1) // gdyby nie by³o parametru...
+    if (WheelDiameterL == 0.0) // gdyby nie by³o parametru...
         WheelDiameterL = WheelDiameter; //... lepsze to ni¿ zero
     else
         WheelDiameterL = dDl;
-    if (WheelDiameterT == -1) // gdyby nie by³o parametru...
+    if (WheelDiameterT == 0.0) // gdyby nie by³o parametru...
         WheelDiameterT = WheelDiameter; //... lepsze to ni¿ zero
     else
         WheelDiameterT = dDt;
