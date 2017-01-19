@@ -357,9 +357,8 @@ PyObject *TTrain::GetTrainState()
     if (typeid(mvControlled->Hamulec) == typeid(TLSt) ||
         typeid(mvControlled->Hamulec) == typeid(TEStED))
 	{
-        TBrake *temp_ham = mvControlled->Hamulec;
 		//        TLSt* temp_ham2 = temp_ham;
-        bPN = (static_cast<TLSt *>(temp_ham)->GetEDBCP() > 0.2);
+		bPN = ( static_cast<TLSt *>( mvControlled->Hamulec.get() )->GetEDBCP() > 0.2 );
 	}
 	else
 		bPN = false;
