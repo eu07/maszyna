@@ -12,18 +12,18 @@ http://mozilla.org/MPL/2.0/.
 
 //#include "Track.h"
 //#include "TrkFoll.h"
-#include "Model3d.h"
-#include "Spring.h"
-#include "Gauge.h"
 #include "Button.h"
 #include "DynObj.h"
+#include "Gauge.h"
+#include "Model3d.h"
+#include "Spring.h"
 #include "mtable.h"
 
-#include "Sound.h"
 #include "AdvSound.h"
-#include "RealSound.h"
 #include "FadeSound.h"
 #include "PyInt.h"
+#include "RealSound.h"
+#include "Sound.h"
 #include <string>
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
@@ -63,8 +63,8 @@ class TCab
     TButton *btList; // Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
     int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w u¿yciu
   public:
-    TGauge * Gauge(int n = -1); // pobranie adresu obiektu
-    TButton * Button(int n = -1); // pobranie adresu obiektu
+    TGauge *Gauge(int n = -1); // pobranie adresu obiektu
+    TButton *Button(int n = -1); // pobranie adresu obiektu
     void Update();
 };
 
@@ -96,22 +96,21 @@ class TTrain
     void UpdateMechPosition(double dt);
     bool Update();
     void MechStop();
-	void SetLights();
-	//    virtual bool RenderAlpha();
+    void SetLights();
+    //    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
     PyObject *GetTrainState();
 
-private:
-	// clears state of all cabin controls
-	void
-		clear_cab_controls();
-	// initializes a gauge matching provided label. returns: true if the label was found, false otherwise
-	bool
-		initialize_gauge( cParser &Parser, std::string const &Label, int const Cabindex );
-	// initializes a button matching provided label. returns: true if the label was found, false otherwise
-	bool
-		initialize_button( cParser &Parser, std::string const &Label, int const Cabindex );
+  private:
+    // clears state of all cabin controls
+    void clear_cab_controls();
+    // initializes a gauge matching provided label. returns: true if the label was found, false
+    // otherwise
+    bool initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex);
+    // initializes a button matching provided label. returns: true if the label was found, false
+    // otherwise
+    bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
 
   private: //¿eby go nic z zewn¹trz nie przestawia³o
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -163,7 +162,7 @@ private:
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
-	TGauge ggSandButton; //guzik piasecznicy
+    TGauge ggSandButton; // guzik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania
@@ -175,7 +174,7 @@ private:
     TGauge ggRightLightButton;
     TGauge ggLeftEndLightButton;
     TGauge ggRightEndLightButton;
-	TGauge ggLightsButton;  //przelacznik reflektorow (wszystkich)    
+    TGauge ggLightsButton; // przelacznik reflektorow (wszystkich)
 
     // hunter-230112: przelacznik swiatel tylnich
     TGauge ggRearUpperLightButton;
@@ -201,6 +200,7 @@ private:
 
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
+    TGauge ggBatteryButton; // Stele 161228 hebelek baterii
     // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
@@ -267,6 +267,7 @@ private:
     TButton btLampkaBocznik4;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
+    TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
     TButton btLampkaJazda; // Ra: nie u¿ywane
     // KURS90
     TButton btLampkaBoczniki;
@@ -374,7 +375,7 @@ private:
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
-	float fLightsTimer; // yB 150617: timer do swiatel    
+    float fLightsTimer; // yB 150617: timer do swiatel
 
     int CAflag; // hunter-131211: dla osobnego zbijania CA i SHP
 
@@ -394,21 +395,22 @@ private:
     float fHVoltage; // napi?cie dla dynamicznych ga?ek
     float fHCurrent[4]; // pr?dy: suma i amperomierze 1,2,3
     float fEngine[4]; // obroty te? trzeba pobra?
-	int iCarNo, iPowerNo, iUnitNo; //liczba pojazdow, czlonow napednych i jednostek spiêtych ze sob¹
-	bool bDoors[20][3];     // drzwi dla wszystkich czlonow
-	int iUnits[20];     // numer jednostki
-	int iDoorNo[20];     // liczba drzwi
-	char cCode[20];     //kod pojazdu
-	std::string asCarName[20]; //nazwa czlonu
-	bool bMains[8]; //WSy
-	float fCntVol[8]; //napiecie NN
-	bool bPants[8][2]; //podniesienie pantografow
-	bool bFuse[8]; //nadmiarowe
-	bool bBatt[8]; //baterie
-	bool bConv[8]; //przetwornice
-	bool bComp[8][2]; //sprezarki
-	bool bHeat[8]; //grzanie
-	// McZapkie: do syczenia
+    int iCarNo, iPowerNo, iUnitNo; // liczba pojazdow, czlonow napednych i jednostek spiêtych ze
+                                   // sob¹
+    bool bDoors[20][3]; // drzwi dla wszystkich czlonow
+    int iUnits[20]; // numer jednostki
+    int iDoorNo[20]; // liczba drzwi
+    char cCode[20]; // kod pojazdu
+    std::string asCarName[20]; // nazwa czlonu
+    bool bMains[8]; // WSy
+    float fCntVol[8]; // napiecie NN
+    bool bPants[8][2]; // podniesienie pantografow
+    bool bFuse[8]; // nadmiarowe
+    bool bBatt[8]; // baterie
+    bool bConv[8]; // przetwornice
+    bool bComp[8][2]; // sprezarki
+    bool bHeat[8]; // grzanie
+    // McZapkie: do syczenia
     float fPPress, fNPress;
     float fSPPress, fSNPress;
     int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
@@ -416,17 +418,17 @@ private:
     TPythonScreens pyScreens;
 
   public:
-	float fPress[20][3]; // cisnienia dla wszystkich czlonow  
-	float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
+    float fPress[20][3]; // cisnienia dla wszystkich czlonow
+    float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel()
     {
         return iRadioChannel;
     };
-    inline TDynamicObject * Dynamic()
+    inline TDynamicObject *Dynamic()
     {
         return DynamicObject;
     };
-    inline TMoverParameters * Controlled()
+    inline TMoverParameters *Controlled()
     {
         return mvControlled;
     };

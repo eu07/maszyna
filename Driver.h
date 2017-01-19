@@ -10,10 +10,10 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 //#include <fstream>
-#include <string>
 #include "Classes.h"
 #include "dumb3d.h"
 #include "mczapkie/mover.h"
+#include <string>
 using namespace Math3D;
 using namespace Mtable;
 
@@ -52,10 +52,12 @@ enum TMovementStatus
     moveGuardSignal = 0x8000, // sygna³ od kierownika (min¹³ czas postoju)
     moveVisibility = 0x10000, // jazda na widocznoœæ po przejechaniu S1 na SBL
     moveDoorOpened = 0x20000, // drzwi zosta³y otwarte - doliczyæ czas na zamkniêcie
-    movePushPull = 0x40000, // zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
+    movePushPull =
+        0x40000, // zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
     moveSemaphorFound = 0x80000, // na drodze skanowania zosta³ znaleziony semafor
     moveSemaphorWasElapsed = 0x100000, // miniêty zosta³ semafor
-    moveTrainInsideStation = 0x200000, // poci¹g miêdzy semaforem a rozjazdami lub nastêpnym semaforem
+    moveTrainInsideStation =
+        0x200000, // poci¹g miêdzy semaforem a rozjazdami lub nastêpnym semaforem
     moveSpeedLimitFound = 0x400000 // poci¹g w ograniczeniu z podan¹ jego d³ugoœci¹
 };
 
@@ -126,9 +128,9 @@ class TSpeedPos
   public:
     double fDist; // aktualna odleg³oœæ (ujemna gdy miniête)
     double fVelNext; // prêdkoœæ obowi¹zuj¹ca od tego miejsca
-    double fSectionVelocityDist; //d³ugoœæ ograniczenia prêdkoœci
+    double fSectionVelocityDist; // d³ugoœæ ograniczenia prêdkoœci
     // double fAcc;
-    int iFlags; //flagi typu wpisu do tabelki
+    int iFlags; // flagi typu wpisu do tabelki
     // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan
     // zwrotnicy,32-miniêty,64=koniec,128=³uk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wys³ana komenda,0x2000=W5
@@ -147,8 +149,8 @@ class TSpeedPos
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText();
-	std::string GetName();
-	bool IsProperSemaphor(TOrders order = Wait_for_orders);
+    std::string GetName();
+    bool IsProperSemaphor(TOrders order = Wait_for_orders);
 };
 
 //----------------------------------------------------------------------------
@@ -172,8 +174,8 @@ class TController
     double fLastVel; // prêdkoœæ na poprzednio sprawdzonym torze
     TTrack *tLast; // ostatni analizowany tor
     TEvent *eSignSkip; // mo¿na pomin¹æ ten SBL po zatrzymaniu
-	TSpeedPos *sSemNext; // nastêpny semafor na drodze zale¿ny od trybu jazdy
-	TSpeedPos *sSemNextStop; // nastêpny semafor na drodze zale¿ny od trybu jazdy i na stój
+    TSpeedPos *sSemNext; // nastêpny semafor na drodze zale¿ny od trybu jazdy
+    TSpeedPos *sSemNextStop; // nastêpny semafor na drodze zale¿ny od trybu jazdy i na stój
   private: // parametry aktualnego sk³adu
     double fLength; // d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
     double fMass; // ca³kowita masa do liczenia stycznej sk³adowej grawitacji
@@ -219,8 +221,8 @@ class TController
     // migacz lub czeka na stan zwrotnicy
   private:
     TDynamicObject *pVehicle; // pojazd w którym siedzi steruj¹cy
-    TDynamicObject *
-        pVehicles[2]; // skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
+    TDynamicObject
+        *pVehicles[2]; // skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
     TMoverParameters *mvControlling; // jakim pojazdem steruje (mo¿e silnikowym w EZT)
     TMoverParameters *mvOccupied; // jakim pojazdem hamuje
     TTrainParameters *TrainParams; // rozk³ad jazdy zawsze jest, nawet jeœli pusty
@@ -244,15 +246,16 @@ class TController
     double VelLimit; // predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci
   public:
     double VelSignalLast; // prêdkoœæ zadana na ostatnim semaforze
+    double VelSignalNext; // prêdkoœæ zadana na nastêpnym semaforze
     double VelLimitLast; // prêdkoœæ zadana przez ograniczenie
     double VelRoad; // aktualna prêdkoœæ drogowa (ze znaku W27)
     // (PutValues albo komend¹)
   public:
     double VelNext; // prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
   private:
-     double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
+    double fProximityDist; // odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
     // punktu, <0:podana wartoœæ
-	 double FirstSemaphorDist; // odleg³oœæ do pierwszego znalezionego semafora
+    double FirstSemaphorDist; // odleg³oœæ do pierwszego znalezionego semafora
   public:
     double
         ActualProximityDist; // odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
@@ -311,7 +314,7 @@ class TController
     void ControllingSet(); // znajduje cz³on do sterowania
     void AutoRewident(); // ustawia hamulce w sk³adzie
   public:
-    Mtable::TTrainParameters * Timetable()
+    Mtable::TTrainParameters *Timetable()
     {
         return TrainParams;
     };
@@ -357,12 +360,12 @@ class TController
     double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
   private: // Ra: metody obs³uguj¹ce skanowanie toru
-    TEvent * CheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent *CheckTrackEvent(double fDirection, TTrack *Track);
     bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
     bool TableNotFound(TEvent *e);
     void TableClear();
-    TEvent * TableCheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
@@ -370,9 +373,9 @@ class TController
 
   private: // Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
     bool BackwardTrackBusy(TTrack *Track);
-    TEvent * CheckTrackEventBackward(double fDirection, TTrack *Track);
-    TTrack * BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
-                                          TEvent *&Event);
+    TEvent *CheckTrackEventBackward(double fDirection, TTrack *Track);
+    TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
+                               TEvent *&Event);
     void SetProximityVelocity(double dist, double vel, const vector3 *pos);
     TCommandType BackwardScan();
 
@@ -382,8 +385,8 @@ class TController
     ~TController();
     std::string NextStop();
     void TakeControl(bool yes);
-	std::string Relation();
-	std::string TrainName();
+    std::string Relation();
+    std::string TrainName();
     int StationCount();
     int StationIndex();
     bool IsStop();

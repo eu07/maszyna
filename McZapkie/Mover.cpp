@@ -4110,7 +4110,7 @@ double TMoverParameters::TractionForce(double dt)
         {
         case 1:
         {
-            if (ActiveDir != 0)
+            if (ActiveDir != 0 && RList[MainCtrlActualPos].R > RVentCutOff)
                 RventRot += (RVentnmax - RventRot) * RVentSpeed * dt;
             else
                 RventRot *= (1.0 - RVentSpeed * dt);
