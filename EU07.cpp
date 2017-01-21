@@ -59,8 +59,8 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM); // Declaration For WndProc
 
 int InitGL(GLvoid) // All Setup For OpenGL Goes Here
 {
-    _clear87();
-    _control87(MCW_EM, MCW_EM);
+//    _clear87();
+//    _control87(MCW_EM, MCW_EM);
     glewInit();
     // hunter-271211: przeniesione
     // AllocConsole();
@@ -572,8 +572,14 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                    LPSTR lpCmdLine, // command line parameters
                    int nCmdShow) // window show state
 {
-#ifdef _MSC_VER
+#ifdef _MSC_VER & _DEBUG
+    // memory leaks
 	_CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
+    // floating point operation errors
+    auto state = _clearfp();
+    state = _control87( 0, 0 );
+    // this will turn on FPE for #IND and zerodiv
+    state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
 #endif
 
     MSG msg; // windows message structure

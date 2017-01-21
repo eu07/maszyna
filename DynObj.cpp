@@ -2525,14 +2525,21 @@ bool TDynamicObject::Update(double dt, double dt1)
     { // wyliczenie promienia z obrotów
         // osi - modyfikacjê zg³osi³ youBy
         ts.R = Axle0.vAngles.z - Axle1.vAngles.z; // ró¿nica mo¿e dawaæ sta³¹ ±M_2PI
-        if (ts.R > M_PI)
-            ts.R -= M_2PI else if (ts.R < -M_PI) ts.R += M_2PI; // normalizacja
-        //     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
-        ts.R = -0.5 * MoverParameters->BDist / sin(ts.R * 0.5);
-        if ((ts.R > 15000.0) || (ts.R < -15000.0))
-            ts.R = 0.0; // szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie
-        // wymagaj¹cy
-        // przechy³ki
+        if( ( ts.R > 15000.0 ) || ( ts.R < -15000.0 ) ) {
+            // szkoda czasu na zbyt du¿e promienie, 4km to promieñ nie wymagaj¹cy przechy³ki
+            ts.R = 0.0;
+        }
+        else {
+            // normalizacja
+                 if( ts.R >  M_PI ) { ts.R -= M_2PI; }
+            else if( ts.R < -M_PI ) { ts.R += M_2PI; }
+
+            if( ts.R != 0.0 ) {
+                // sin(0) results in division by zero
+                //     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
+                ts.R = -0.5 * MoverParameters->BDist / sin( ts.R * 0.5 );
+            }
+        }
     }
     else
         ts.R = 0.0;
@@ -3769,7 +3776,7 @@ void TDynamicObject::RenderSounds()
                             vol = rsSilnik.AM * MoverParameters->dizel_fill + rsSilnik.AA;
                         else
                             vol =
-                                rsSilnik.AM * fabs(MoverParameters->enrot / MoverParameters->nmax) +
+                                rsSilnik.AM * fabs(MoverParameters->enrot / MoverParameters->dizel_nmax) +
                                 rsSilnik.AA * 0.9;
                     }
                     else
@@ -4224,16 +4231,6 @@ void TDynamicObject::RenderAlpha()
 void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                     std::string ReplacableSkin)
 {
-	// temporary hack to enable door animation in EZT
-	// TODO: add relevant entries to suitable definition file (.mmd ?)
-	//       ensure the parameters are loaded before the main body mesh
-	//       so the code binds proper method of door animation
-	if( MoverParameters->TrainType & dt_EZT ) {
-		MoverParameters->DoorOpenCtrl = 1;
-		MoverParameters->DoorCloseCtrl = 1;
-		MoverParameters->DoorOpenMethod = 1;
-	}
-
     double dSDist;
     // asBaseDir=BaseDir;
     Global::asCurrentDynamicPath = BaseDir;

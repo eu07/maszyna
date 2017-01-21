@@ -496,10 +496,10 @@ struct TScheme
 typedef TScheme TSchemeTable[ResArraySize + 1]; /*tablica rezystorow rozr.*/
 struct TDEScheme
 {
-	double RPM; /*obroty diesla*/
-	double GenPower; /*moc maksymalna*/
-	double Umax; /*napiecie maksymalne*/
-	double Imax; /*prad maksymalny*/
+	double RPM = 0.0; /*obroty diesla*/
+	double GenPower = 0.0; /*moc maksymalna*/
+	double Umax = 0.0; /*napiecie maksymalne*/
+	double Imax = 0.0; /*prad maksymalny*/
 };
 typedef TDEScheme TDESchemeTable[33]; /*tablica rezystorow rozr.*/
 struct TShuntScheme
@@ -569,23 +569,28 @@ struct TTransmision
 
 enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
 
+//class TMoverParameters;                          // wyforwardowanie klasy coby  typ byl widoczny w ponizszej strukturze
 
-class TMoverParameters;                          // wyforwardowanie klasy coby  typ byl widoczny w ponizszej strukturze
 struct TCoupling {
 	/*parametry*/
-	double SpringKB; double SpringKC; double beta;   /*stala sprezystosci zderzaka/sprzegu, %tlumiennosci */
-	double DmaxB; double FmaxB; double DmaxC; double FmaxC; /*tolerancja scisku/rozciagania, sila rozerwania*/
-	TCouplerType CouplerType;     /*typ sprzegu*/
-								  /*zmienne*/
-	int CouplingFlag; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
-	int AllowedFlag;       //Ra: znaczenie jak wy¿ej, maska dostêpnych
-	bool Render;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
-	double CoupleDist;            /*ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji*/
-	TMoverParameters* Connected; /*co jest podlaczone*/
-	int ConnectedNr;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
-	double CForce;                /*sila z jaka dzialal*/
-	double Dist;                  /*strzalka ugiecia zderzaków*/
-	bool CheckCollision;     /*czy sprawdzac sile czy pedy*/
+    double SpringKB = 1.0;   /*stala sprezystosci zderzaka/sprzegu, %tlumiennosci */
+    double SpringKC = 1.0;
+    double beta = 0.0;
+    double DmaxB = 0.1; /*tolerancja scisku/rozciagania, sila rozerwania*/
+    double FmaxB = 1000.0;
+    double DmaxC = 0.1;
+    double FmaxC = 1000.0;
+	TCouplerType CouplerType = NoCoupler;     /*typ sprzegu*/
+    /*zmienne*/
+	int CouplingFlag = 0; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
+	int AllowedFlag = 3;       //Ra: znaczenie jak wy¿ej, maska dostêpnych // domyœlnie hak i hamulec, inne trzeba w³¹czyæ jawnie w FIZ
+	bool Render = false;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
+	double CoupleDist = 0.0;            /*ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji*/
+	class TMoverParameters *Connected = nullptr; /*co jest podlaczone*/
+    int ConnectedNr = 0;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
+	double CForce = 0.0;                /*sila z jaka dzialal*/
+	double Dist = 0.0;                  /*strzalka ugiecia zderzaków*/
+	bool CheckCollision = false;     /*czy sprawdzac sile czy pedy*/
 };
 
 class TMoverParameters
@@ -1111,11 +1116,19 @@ public:
 
 	/*funkcje ladujace pliki opisujace pojazd*/
 	bool LoadFIZ(std::string chkpath);                                                               //Q 20160717    bool LoadChkFile(std::string chkpath);
-	bool readMPT(int ln, std::string line);                                                         //Q 20160717
-	bool readRLIST(int ln, std::string line);                                                       //Q 20160718
-	bool readBPT(int ln, std::string line);                                                         //Q 20160721
-	void BrakeValveDecode(std::string s);                                                            //Q 20160719
-	void BrakeSubsystemDecode();                                                                    //Q 20160719
+    bool LoadFIZ_Doors( std::string const &line );
+    bool readMPT0( std::string const &line );
+    bool readMPT( std::string const &line );                                             //Q 20160717
+    bool readMPTElectricSeries( std::string const &line );
+    bool readMPTDieselElectric( std::string const &line );
+    bool readMPTDieselEngine( std::string const &line );
+	bool readRList(int const ln, std::string const &line);                                           //Q 20160718
+	bool readBPT(/*int const ln,*/ std::string const &line);                                             //Q 20160721
+    bool readDList( std::string const &line );
+    bool readFFList( std::string const &line );
+    bool readWWList( std::string const &line );
+    void BrakeValveDecode( std::string s );                                                            //Q 20160719
+	void BrakeSubsystemDecode();                                                                     //Q 20160719
 	void PowerParamDecode(std::string lines, std::string prefix, TPowerParameters &PowerParamDecode); //Q 20160719
 	TPowerSource PowerSourceDecode(std::string s);                                                   //Q 20160719
 	TPowerType PowerDecode(std::string s);                                                           //Q 20160719
@@ -1127,23 +1140,32 @@ public:
 extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
 
 template <typename _Type>
-bool getkeyval( _Type &Variable, std::string const &Key, std::string const &Input ) {
+bool getkeyval( _Type &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
 
+    std::string value;
 	auto lookup = Input.find( Key + "=" );
-	if( lookup == std::string::npos ) {
-		return false; }
-	std::string value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
-	lookup = value.find( ' ' );
 	if( lookup != std::string::npos ) {
-		// trim everything past the value
-		value.erase( lookup );
+        value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
+        lookup = value.find( ' ' );
+        if( lookup != std::string::npos ) {
+            // trim everything past the value
+            value.erase( lookup );
+        }
+    }
+    if( false == value.empty() ) {
+        // set the specified variable to retrieved value
+        std::stringstream converter;
+        converter << value;
+        converter >> Variable;
+        return true; // located the variable
+    }
+    else {
+        // set the variable to provided default value
+        if( false == Default.empty() ) {
+            std::stringstream converter;
+            converter << Default;
+            converter >> Variable;
+        }
+        return false; // supplied the default
 	}
-	if( true == value.empty() ) {
-		return false;
-	}
-	// set the specified variable to retrieved value
-	std::stringstream converter;
-	converter << value;
-	converter >> Variable;
-	return true; // all done
 }

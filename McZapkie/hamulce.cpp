@@ -193,7 +193,8 @@ double TBrakeCyl::P()
     static double const cD = 1;
     static double const pD = VD - cD;
 
-    double VtoC = Vol / Cap; // stosunek cisnienia do objetosci
+    double VtoC = ( Cap > 0.0 ) ? Vol / Cap : 0.0; // stosunek cisnienia do objetosci.
+                                                   // Added div/0 trap for vehicles with incomplete definitions (cars etc)
     //  P:=VtoC;
     if (VtoC < VS)
         return VtoC * pS / VS; // objetosc szkodliwa

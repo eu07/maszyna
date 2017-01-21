@@ -77,7 +77,7 @@ TGroundNode::TGroundNode()
     asName = "";
     // Color= TMaterialColor(1);
     // fAngle=0; //obrót dla modelu
-    // fLineThickness=1.0; //mm dla linii
+    fLineThickness=1.0; //mm dla linii
     for (int i = 0; i < 3; i++)
     {
         Ambient[i] = Global::whiteLight[i] * 255;
@@ -1307,6 +1307,9 @@ void TGround::MoveGroundNode(vector3 pPosition)
     */
 }
 
+TGroundVertex TempVerts[ 10000 ]; // tu wczytywane s¹ trójk¹ty
+BYTE TempConnectionType[ 200 ]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
+
 TGround::TGround()
 {
     // RootNode=NULL;
@@ -1324,6 +1327,8 @@ TGround::TGround()
         nRootOfType[i] = NULL; // zerowanie tablic wyszukiwania
     bDynamicRemove = false; // na razie nic do usuniêcia
     sTracks = new TNames(); // nazwy torów - na razie tak
+    ::SecureZeroMemory( TempVerts, sizeof( TempVerts ) );
+    ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
 }
 
 TGround::~TGround()
@@ -1413,9 +1418,6 @@ string asTrainName = "";
 int iTrainSetWehicleNumber = 0;
 TGroundNode *nTrainSetNode = NULL; // poprzedni pojazd do ³¹czenia
 TGroundNode *nTrainSetDriver = NULL; // pojazd, któremu zostanie wys³any rozk³ad
-
-TGroundVertex TempVerts[10000]; // tu wczytywane s¹ trójk¹ty
-BYTE TempConnectionType[200]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
 void TGround::RaTriangleDivider(TGroundNode *node)
 { // tworzy dodatkowe trójk¹ty i zmiejsza podany

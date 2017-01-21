@@ -79,6 +79,10 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
     for (i = 0; i < Count; ++i)
     {
         std::string string = readToken(ToLower, Break);
+        if( true == string.empty() ) {
+            // no more tokens
+            break;
+        }
         // collect parameters
         if (i == 0)
             this->str(string);
