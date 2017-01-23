@@ -112,7 +112,7 @@ bool iSetFlag(int &Flag, int Value)
         if ((Flag & Value) == 0)
         {
             Flag |= Value;
-            return true; // true, gdy by≥o wczeúniej 0 i zosta≥o ustawione
+            return true; // true, gdy by≈Ço wcze≈õniej 0 i zosta≈Ço ustawione
         }
     }
     else if (Value < 0)
@@ -121,7 +121,7 @@ bool iSetFlag(int &Flag, int Value)
         if ((Flag & Value) == Value)
         {
             Flag &= ~Value; // Value jest ujemne, czyli zerowanie flagi
-            return true; // true, gdy by≥o wczeúniej 1 i zosta≥o wyzerowane
+            return true; // true, gdy by≈Ço wcze≈õniej 1 i zosta≈Ço wyzerowane
         }
     }
 	return false;
@@ -342,7 +342,7 @@ std::vector<std::string> Split(const std::string &s, char delim)
 }
 
 std::vector<std::string> Split(const std::string &s)
-{ // dzieli tekst na wektor tekstow po bia≥ych znakach
+{ // dzieli tekst na wektor tekstow po bia≈Çych znakach
 	std::vector<std::string> elems;
 	std::stringstream ss(s);
 	std::string item;
@@ -556,7 +556,7 @@ long Vert(double Y)
 
 // NOTE: this now does nothing.
 void ClearPendingExceptions()
-// resetuje b≥Ídy FPU, wymagane dla Trunc()
+// resetuje b≈Çƒôdy FPU, wymagane dla Trunc()
 {
     ; /*?*/ /* ASM
        FNCLEX

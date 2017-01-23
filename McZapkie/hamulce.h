@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
     MaSzyna EU07 - SPKS
     Brakes.
     Copyright (C) 2007-2014 Maciej Cierniak
-*/                                                                                        
+*/
 
 
 /*
@@ -23,13 +23,13 @@ moze jeszcze jakis SW
 /*
 Zrobione:
 ESt3, ESt3AL2, ESt4R, LSt, FV4a, FD1, EP2, prosty westinghouse
-duzo wersji ¿eliwa
+duzo wersji Å¼eliwa
 KE
 Tarcze od 152A
 Magnetyki (implementacja w mover.pas)
 Matrosow 394
 H14K1 (zasadniczy), H1405 (pomocniczy), St113 (ep)
-Knorr/West EP - ¿eby by³
+Knorr/West EP - Å¼eby byÅ‚
 */
 
 #pragma once
@@ -77,7 +77,7 @@ static int const s_fv4a_t = 4; //wyplyw z czasowego
 
 /*pary cierne*/
 static int const bp_P10 = 0;
-static int const bp_P10Bg = 2; //¿eliwo fosforowe P10
+static int const bp_P10Bg = 2; //Å¼eliwo fosforowe P10
 static int const bp_P10Bgu = 1;
 static int const bp_LLBg = 4; //komp. b.n.t.
 static int const bp_LLBgu = 3;
@@ -87,12 +87,12 @@ static int const bp_KBg = 8; //komp. w.t.
 static int const bp_KBgu = 7;
 static int const bp_D1 = 9; //tarcze
 static int const bp_D2 = 10;
-static int const bp_FR513 = 11; //Frenoplast FR513
-static int const bp_Cosid = 12; //jakistam kompozyt :D
-static int const bp_PKPBg = 13; //¿eliwo PKP
+static int const bp_FR513 = 11; // Frenoplast FR513
+static int const bp_Cosid = 12; // jakistam kompozyt :D
+static int const bp_PKPBg = 13; //Å¼eliwo PKP
 static int const bp_PKPBgu = 14;
-static int const bp_MHS = 128; //magnetyczny hamulec szynowy
-static int const bp_P10yBg = 15; //¿eliwo fosforowe P10
+static int const bp_MHS = 128; // magnetyczny hamulec szynowy
+static int const bp_P10yBg = 15; //Å¼eliwo fosforowe P10
 static int const bp_P10yBgu = 16;
 static int const bp_FR510 = 17; //Frenoplast FR510
 
@@ -103,17 +103,17 @@ static int const sf_CylU = 8;  //cylinder - oproznianie
 static int const sf_rel = 16; //odluzniacz
 static int const sf_ep = 32; //zawory ep
 
-static int const bh_MIN = 0;  //minimalna pozycja
-static int const bh_MAX = 1;  //maksymalna pozycja
-static int const bh_FS = 2;  //napelnianie uderzeniowe //jesli nie ma, to jazda
-static int const bh_RP = 3;  //jazda
-static int const bh_NP = 4;  //odciecie - podwojna trakcja
-static int const bh_MB = 5;  //odciecie - utrzymanie stopnia hamowania/pierwszy 1 stopien hamowania
-static int const bh_FB = 6;  //pelne
-static int const bh_EB = 7;  //nagle
-static int const bh_EPR = 8;  //ep - luzowanie  //pelny luz dla ep k¹towego
-static int const bh_EPN = 9;  //ep - utrzymanie //jesli rowne luzowaniu, wtedy sterowanie przyciskiem
-static int const bh_EPB = 10;  //ep - hamowanie  //pelne hamowanie dla ep k¹towego
+static int const bh_MIN = 0; // minimalna pozycja
+static int const bh_MAX = 1; // maksymalna pozycja
+static int const bh_FS = 2; // napelnianie uderzeniowe //jesli nie ma, to jazda
+static int const bh_RP = 3; // jazda
+static int const bh_NP = 4; // odciecie - podwojna trakcja
+static int const bh_MB = 5; // odciecie - utrzymanie stopnia hamowania/pierwszy 1 stopien hamowania
+static int const bh_FB = 6; // pelne
+static int const bh_EB = 7; // nagle
+static int const bh_EPR = 8; // ep - luzowanie  //pelny luz dla ep kÄ…towego
+static int const bh_EPN = 9; // ep - utrzymanie //jesli rowne luzowaniu, wtedy sterowanie przyciskiem
+static int const bh_EPB = 10; // ep - hamowanie  //pelne hamowanie dla ep kÄ…towego
 
 
 static double const SpgD = 0.7917;
@@ -137,28 +137,28 @@ static int const i_bcpno = 6;
 //klasa obejmujaca pojedyncze zbiorniki
 class TReservoir {
 
-	protected:
+  protected:
 		double Cap = 1.0;
 		double Vol = 0.0;
 		double dVol = 0.0;
 
-	public:
-		void CreateCap(double Capacity);
-		void CreatePress(double Press);
-		virtual double pa();
-		virtual double P();
-		void Flow(double dv);
-		void Act();
+  public:
+    void CreateCap(double Capacity);
+    void CreatePress(double Press);
+    virtual double pa();
+    virtual double P();
+    void Flow(double dv);
+    void Act();
 
 		TReservoir() = default;
 };
 
-	typedef TReservoir *PReservoir;
+typedef TReservoir *PReservoir;
 
 
 class TBrakeCyl : public TReservoir {
 
-	public:
+  public:
 		virtual double pa()/*override*/;
 		virtual double P()/*override*/;
 		TBrakeCyl() : TReservoir() {};
@@ -167,7 +167,7 @@ class TBrakeCyl : public TReservoir {
 //klasa obejmujaca uklad hamulca zespolonego pojazdu
 class TBrake {
 
-	protected:
+  protected:
 		std::shared_ptr<TReservoir> BrakeCyl;      //silownik
 		std::shared_ptr<TReservoir> BrakeRes;      //ZP
 		std::shared_ptr<TReservoir> ValveRes;      //komora wstepna
@@ -188,7 +188,7 @@ class TBrake {
 		int BrakeStatus = 0; //flaga stanu
 		int SoundFlag = 0;
 
-	public:
+  public:
 		TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa);
 		//maksymalne cisnienie, promien, skok roboczy, pojemnosc ZP, ilosc cylindrow, opoznienia hamulca, material klockow, osie hamowane, klocki na os;
 		virtual void Init(double PP, double HPP, double LPP, double BP, int BDF);  //inicjalizacja hamulca
@@ -212,14 +212,14 @@ class TBrake {
 		void ASB(int state); //hamulec przeciwposlizgowy
 		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
 		void SetASBP(double Press); //ustalenie cisnienia pp
-		virtual void ForceEmptiness();
-		int GetSoundFlag();
+    virtual void ForceEmptiness();
+    int GetSoundFlag();
 		virtual void SetED(double EDstate) {}; //stan hamulca ED do luzowania
 };
 
 class TWest : public TBrake {
 
-	private:
+  private:
 		double LBP = 0.0;     //cisnienie hamulca pomocniczego
 		double dVP = 0.0;     //pobor powietrza wysokiego cisnienia
 		double EPS = 0.0;     //stan elektropneumatyka
@@ -228,7 +228,7 @@ class TWest : public TBrake {
 		double TareBP = 0.0;  //cisnienie dla proznego
 		double LoadC = 0.0;   //wspolczynnik przystawki wazacej
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
@@ -244,13 +244,13 @@ class TWest : public TBrake {
 
 class TESt : public TBrake {
 
-	private:
+  private:
 
-	protected:
-		std::shared_ptr<TReservoir> CntrlRes;      //zbiornik steruj¹cy
-		double BVM = 0.0;                 //przelozenie PG-CH
+  protected:
+		std::shared_ptr<TReservoir> CntrlRes;      // zbiornik sterujÄ…cy
+		double BVM = 0.0;                 // przelozenie PG-CH
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void EStParams(double i_crc);                 //parametry charakterystyczne dla ESt
@@ -262,17 +262,17 @@ class TESt : public TBrake {
 
 		inline TESt(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
-		{
+    {
 			CntrlRes = std::make_shared<TReservoir>();
-		}
+    }
 };
 
 class TESt3 : public TESt {
 
-	private:
+  private:
 		//double CylFlowSpeed[2][2]; //zmienna nie uzywana
 
-	public:
+  public:
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 
 		inline TESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
@@ -282,14 +282,14 @@ class TESt3 : public TESt {
 
 class TESt3AL2 : public TESt3 {
 
-	private:
+  private:
 		std::shared_ptr<TReservoir> ImplsRes;      //komora impulsowa
 		double TareM = 0.0; //masa proznego
 		double LoadM = 0.0; //i pelnego
 		double TareBP = 0.0;  //cisnienie dla proznego
 		double LoadC = 0.0;
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
@@ -297,42 +297,42 @@ class TESt3AL2 : public TESt3 {
 
 		inline TESt3AL2(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                   TESt3(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
-		{
+    {
 			ImplsRes = std::make_shared<TReservoir>();
-		}
+    }
 };
 
 class TESt4R : public TESt {
 
-	private:
+  private:
 		bool RapidStatus = false;
 
-	protected:
+  protected:
 		std::shared_ptr<TReservoir> ImplsRes;      //komora impulsowa
 		double RapidTemp = 0.0;           //aktualne, zmienne przelozenie
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 
 		inline TESt4R(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TESt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
-		{
+    {
 			ImplsRes = std::make_shared<TReservoir>();
-		}
+    }
 };
 
 class TLSt : public TESt4R {
 
-	private:
-		// double CylFlowSpeed[2][2]; // zmienna nie u¿ywana
+  private:
+    // double CylFlowSpeed[2][2]; // zmienna nie uÅ¼ywana
 
-	protected:
+  protected:
 		double LBP = 0.0;       //cisnienie hamulca pomocniczego
 		double RM = 0.0;        //przelozenie rapida
 		double EDFlag = 0.0; //luzowanie hamulca z powodu zalaczonego ED
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
 		void SetRM(double RMR);   //ustalenie przelozenia rapida
@@ -348,7 +348,7 @@ class TLSt : public TESt4R {
 
 class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem, kontrola rapidu i takie tam
 
-	private:
+  private:
 		std::shared_ptr<TReservoir> Miedzypoj;     //pojemnosc posrednia (urojona) do napelniania ZP i ZS
 		double Nozzles[ 11 ]; //dysze
 		bool Zamykajacy = false;       //pamiec zaworka zamykajacego
@@ -359,7 +359,7 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 		double LoadC = 0.0;
 
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
@@ -368,14 +368,14 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TLSt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
-		{
+    {
 			Miedzypoj = std::make_shared<TReservoir>();
-		}
+    }
 };
 
 class TEStEP2 : public TLSt {
 
-	private:
+  private:
 		double TareM = 0.0;  //masa proznego
 		double LoadM = 0.0;  //masa pelnego
 		double TareBP = 0.0;  //cisnienie dla proznego
@@ -383,7 +383,7 @@ class TEStEP2 : public TLSt {
 		double EPS = 0.0;
 
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;   //inicjalizacja
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
@@ -397,51 +397,51 @@ class TEStEP2 : public TLSt {
 
 class TCV1 : public TBrake {
 
-	private:
+  private:
 		double BVM = 0.0; //przelozenie PG-CH
 
-	protected:
-		std::shared_ptr<TReservoir> CntrlRes; //zbiornik steruj¹cy
+  protected:
+		std::shared_ptr<TReservoir> CntrlRes; // zbiornik sterujÄ…cy
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1);
-		double CVs(double BP);
-		double BVs(double BCP);
+    double CVs(double BP);
+    double BVs(double BCP);
 
 		inline TCV1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
-		{
+    {
 			CntrlRes = std::make_shared<TReservoir>();
-		}
+    }
 };
 
 	//class TCV1R : public TCV1
 
-	//{
+//{
 	//private:
-	//	TReservoir *ImplsRes;      //komora impulsowa
-	//	bool RapidStatus;
+//	TReservoir *ImplsRes;      //komora impulsowa
+//	bool RapidStatus;
 
 	//public:
 	//	//        function GetPF(PP, dt, Vel: real): real; override;     //przeplyw miedzy komora wstepna i PG
-	//	//        procedure Init(PP, HPP, LPP, BP: real; BDF: int); override;
+//	//        procedure Init(PP, HPP, LPP, BP: real; BDF: int); override;
 
-	//	inline TCV1R(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-	//		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
+//	inline TCV1R(double i_mbp, double i_bcr, double i_bcd, double i_brc,
+//		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa,
 	//		double PP, double HPP, double LPP, double BP, int BDF) : TCV1(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-	//			, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF) { }
-	//};
+//			, i_BD, i_mat, i_ba, i_nbpa, PP, HPP, LPP, BP, BDF) { }
+//};
 
 class TCV1L_TR : public TCV1 {
 
-	private:
+  private:
 		std::shared_ptr<TReservoir> ImplsRes;      //komora impulsowa
 		double LBP = 0.0;     //cisnienie hamulca pomocniczego
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
@@ -449,16 +449,16 @@ class TCV1L_TR : public TCV1 {
 
 		inline TCV1L_TR(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                    TCV1(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
-		{
+    {
 			ImplsRes = std::make_shared<TReservoir>();
-		}
+    }
 };
 
-class TKE : public TBrake { //Knorr Einheitsbauart — jeden do wszystkiego
+class TKE : public TBrake { //Knorr Einheitsbauart â€” jeden do wszystkiego
 
-	private:
+  private:
 		std::shared_ptr<TReservoir> ImplsRes;      //komora impulsowa
-		std::shared_ptr<TReservoir> CntrlRes;      //zbiornik steruj¹cy
+		std::shared_ptr<TReservoir> CntrlRes;      // zbiornik sterujÄ…cy
 		std::shared_ptr<TReservoir> Brak2Res;      //zbiornik pomocniczy 2        
 		bool RapidStatus = false;
 		double BVM = 0.0; //przelozenie PG-CH
@@ -469,7 +469,7 @@ class TKE : public TBrake { //Knorr Einheitsbauart — jeden do wszystkiego
 		double RM = 0.0; //przelozenie rapida
 		double LBP = 0.0; //cisnienie hamulca pomocniczego
 
-	public:
+  public:
 		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
 		void SetRM(double RMR);   //ustalenie przelozenia rapida
 		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
@@ -485,41 +485,41 @@ class TKE : public TBrake { //Knorr Einheitsbauart — jeden do wszystkiego
 
 		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
             TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
-		{
+    {
 			ImplsRes = std::make_shared<TReservoir>();
 			CntrlRes = std::make_shared<TReservoir>();
 			Brak2Res = std::make_shared<TReservoir>();
-		}
+    }
 };
 
 //klasa obejmujaca krany
 class TDriverHandle {
 
-	private:
-		//        BCP: integer;
+  private:
+    //        BCP: integer;
 
-	public:
+  public:
 		bool Time = false;
 		bool TimeEP = false;
 		double Sounds[ 5 ]; //wielkosci przeplywow dla dzwiekow              
 
-		virtual double GetPF(double i_bcp, double PP, double HP, double dt, double ep);
-		virtual void Init(double Press);
-		virtual double GetCP();
-		virtual void SetReductor(double nAdj);
-		virtual double GetSound(int i);
-		virtual double GetPos(int i);
-		virtual double GetEP(double pos);
+    virtual double GetPF(double i_bcp, double PP, double HP, double dt, double ep);
+    virtual void Init(double Press);
+    virtual double GetCP();
+    virtual void SetReductor(double nAdj);
+    virtual double GetSound(int i);
+    virtual double GetPos(int i);
+    virtual double GetEP(double pos);
 };
 
 class TFV4a : public TDriverHandle {
 
-	private:
-		double CP = 0.0; //zbiornik steruj¹cy
+  private:
+		double CP = 0.0; //zbiornik sterujÄ…cy
 		double TP = 0.0; //zbiornik czasowy
 		double RP = 0.0; //zbiornik redukcyjny
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 
@@ -530,20 +530,20 @@ class TFV4a : public TDriverHandle {
 
 class TFV4aM : public TDriverHandle {
 
-	private:
-		double CP = 0.0; //zbiornik steruj¹cy
+  private:
+		double CP = 0.0; //zbiornik sterujÄ…cy
 		double TP = 0.0; //zbiornik czasowy
 		double RP = 0.0; //zbiornik redukcyjny
-		double XP = 0.0; //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
+		double XP = 0.0; //komora powietrzna w reduktorze â€” jest potrzebna do odwzorowania fali
 		double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
-//        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
+    //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
 		bool Fala = false;
 		static double const pos_table[11]; // = { -2, 6, -1, 0, -2, 1, 4, 6, 0, 0, 0 };
 
-		double LPP_RP(double pos);
-		bool EQ(double pos, double i_pos);
+    double LPP_RP(double pos);
+    bool EQ(double pos, double i_pos);
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
@@ -557,69 +557,69 @@ class TFV4aM : public TDriverHandle {
 
 class TMHZ_EN57 : public TDriverHandle {
 
-	private:
-		double CP = 0.0; //zbiornik steruj¹cy
+  private:
+		double CP = 0.0; //zbiornik sterujÄ…cy
 		double TP = 0.0; //zbiornik czasowy
 		double RP = 0.0; //zbiornik redukcyjny
 		double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 		bool Fala = false;
 		static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
-		double LPP_RP(double pos);
-		bool EQ(double pos, double i_pos);
+    double LPP_RP(double pos);
+    bool EQ(double pos, double i_pos);
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
 		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
-		double GetEP(double pos);
+    double GetEP(double pos);
 
 		inline TMHZ_EN57(void) :
 			TDriverHandle()
 		{}
 };
 
-	/*    FBS2= class(TTDriverHandle)
-		  private
-			CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
-			XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
-			RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
-	//        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
-			Fala: boolean;
-		  public
-			function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
-			procedure Init(press: real); override;
-			procedure SetReductor(nAdj: real); override;
-			function GetSound(i: int): real; override;
-			function GetPos(i: int): real; override;
-		  end;                    */
+/*    FBS2= class(TTDriverHandle)
+          private
+			CP, TP, RP: real;      //zbiornik sterujÄ…cy, czasowy, redukcyjny
+			XP: real;              //komora powietrzna w reduktorze â€” jest potrzebna do odwzorowania fali
+                RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+//        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
+                Fala: boolean;
+          public
+                function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+                procedure Init(press: real); override;
+                procedure SetReductor(nAdj: real); override;
+                function GetSound(i: int): real; override;
+                function GetPos(i: int): real; override;
+          end;                    */
 
-		  /*    TD2= class(TTDriverHandle)
-				private
-				  CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
-				  XP: real;              //komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
-				  RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
-		  //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
-				  Fala: boolean;
-				public
-				  function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
-				  procedure Init(press: real); override;
-				  procedure SetReductor(nAdj: real); override;
-				  function GetSound(i: int): real; override;
-				  function GetPos(i: int): real; override;
-				end;*/
+/*    TD2= class(TTDriverHandle)
+              private
+				  CP, TP, RP: real;      //zbiornik sterujÄ…cy, czasowy, redukcyjny
+				  XP: real;              //komora powietrzna w reduktorze â€” jest potrzebna do odwzorowania fali
+                RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
+//        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
+                Fala: boolean;
+              public
+                function GetPF(i_bcp:real; pp, hp, dt, ep: real): real; override;
+                procedure Init(press: real); override;
+                procedure SetReductor(nAdj: real); override;
+                function GetSound(i: int): real; override;
+                function GetPos(i: int): real; override;
+              end;*/
 
 class TM394 : public TDriverHandle {
 
-	private:
-		double CP = 0.0; //zbiornik steruj¹cy, czasowy, redukcyjny
+  private:
+		double CP = 0.0; //zbiornik sterujÄ…cy, czasowy, redukcyjny
 		double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 		static double const pos_table[11]; // = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
@@ -633,15 +633,15 @@ class TM394 : public TDriverHandle {
 
 class TH14K1 : public TDriverHandle {
 
-	private:
+  private:
 		static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2];
 		static double const pos_table[11]; // = {-1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0};
 
-	protected:
-		double CP = 0.0; //zbiornik steruj¹cy, czasowy, redukcyjny
+  protected:
+		double CP = 0.0; //zbiornik sterujÄ…cy, czasowy, redukcyjny
 		double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
@@ -655,13 +655,13 @@ class TH14K1 : public TDriverHandle {
 
 class TSt113 : public TH14K1 {
 
-	private:
+  private:
 		double EPS = 0.0;
 		static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2];
 		static double const BEP_K[/*?*/ /*-1..5*/ (5) - (-1) + 1];
 		static double const pos_table[11]; // = {-1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1};
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
 		double GetPos(int i)/*override*/;
@@ -674,10 +674,10 @@ class TSt113 : public TH14K1 {
 
 class Ttest : public TDriverHandle {
 
-	private:
+  private:
 		double CP = 0.0;
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 
@@ -688,18 +688,18 @@ class Ttest : public TDriverHandle {
 
 class TFD1 : public TDriverHandle {
 
-	private:
+  private:
 		double MaxBP = 0.0; //najwyzsze cisnienie
 		double BP = 0.0; //aktualne cisnienie
 
-	public:
+  public:
 		double Speed = 0.0;  //szybkosc dzialania
 
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		double GetCP()/*override*/;
-		void SetSpeed(double nSpeed);
-		//        procedure Init(press: real; MaxBP: real); overload;
+    void SetSpeed(double nSpeed);
+    //        procedure Init(press: real; MaxBP: real); overload;
 
 		inline TFD1(void) :
 			TDriverHandle()
@@ -708,15 +708,15 @@ class TFD1 : public TDriverHandle {
 
 class TH1405 : public TDriverHandle {
 
-	private:
+  private:
 		double MaxBP = 0.0; //najwyzsze cisnienie
 		double BP = 0.0; //aktualne cisnienie
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		void Init(double Press)/*override*/;
 		double GetCP()/*override*/;
-		//        procedure Init(press: real; MaxBP: real); overload;
+    //        procedure Init(press: real; MaxBP: real); overload;
 
 		inline TH1405(void) :
 			TDriverHandle()
@@ -725,11 +725,11 @@ class TH1405 : public TDriverHandle {
 
 class TFVel6 : public TDriverHandle {
 
-	private:
+  private:
 		double EPS = 0.0;
 		static double const pos_table[ 11 ]; // = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
 
-	public:
+  public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
 		double GetPos(int i)/*override*/;

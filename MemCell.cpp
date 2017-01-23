@@ -28,11 +28,11 @@ http://mozilla.org/MPL/2.0/.
 TMemCell::TMemCell(vector3 *p)
 {
     fValue1 = fValue2 = 0;
-    szText = new char[256]; // musi byæ dla automatycznie tworzonych komórek dla odcinków
+    szText = new char[256]; // musi byÄ‡ dla automatycznie tworzonych komÃ³rek dla odcinkÃ³w
     // izolowanych
     vPosition =
-        p ? *p : vector3(0, 0, 0); // ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
-    bCommand = false; // komenda wys³ana
+        p ? *p : vector3(0, 0, 0); // ustawienie wspÃ³Å‚rzÄ™dnych, bo do TGroundNode nie ma dostÄ™pu
+    bCommand = false; // komenda wysÅ‚ana
     OnSent = NULL;
 }
 
@@ -48,7 +48,7 @@ void TMemCell::Init()
 void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
 {
     if (CheckMask & update_memadd)
-    { // dodawanie wartoœci
+    { // dodawanie wartoÅ›ci
         if (TestFlag(CheckMask, update_memstring))
             strcat(szText, szNewText);
         if (TestFlag(CheckMask, update_memval1))
@@ -66,7 +66,7 @@ void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue
             fValue2 = fNewValue2;
     }
     if (TestFlag(CheckMask, update_memstring))
-        CommandCheck(); // jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
+        CommandCheck(); // jeÅ›li zmieniony tekst, prÃ³bujemy rozpoznaÄ‡ komendÄ™
 }
 
 TCommandType TMemCell::CommandCheck()
@@ -74,37 +74,37 @@ TCommandType TMemCell::CommandCheck()
     if (strcmp(szText, "SetVelocity") == 0) // najpopularniejsze
     {
         eCommand = cm_SetVelocity;
-        bCommand = false; // ta komenda nie jest wysy³ana
+        bCommand = false; // ta komenda nie jest wysyÅ‚ana
     }
     else if (strcmp(szText, "ShuntVelocity") == 0) // w tarczach manewrowych
     {
         eCommand = cm_ShuntVelocity;
-        bCommand = false; // ta komenda nie jest wysy³ana
+        bCommand = false; // ta komenda nie jest wysyÅ‚ana
     }
-    else if (strcmp(szText, "Change_direction") == 0) // zdarza siê
+    else if (strcmp(szText, "Change_direction") == 0) // zdarza siÄ™
     {
         eCommand = cm_ChangeDirection;
-        bCommand = true; // do wys³ania
+        bCommand = true; // do wysÅ‚ania
     }
-    else if (strcmp(szText, "OutsideStation") == 0) // zdarza siê
+    else if (strcmp(szText, "OutsideStation") == 0) // zdarza siÄ™
     {
         eCommand = cm_OutsideStation;
-        bCommand = false; // tego nie powinno byæ w komórce
+        bCommand = false; // tego nie powinno byÄ‡ w komÃ³rce
     }
-    else if (strncmp(szText, "PassengerStopPoint:", 19) == 0) // porównanie pocz¹tków
+    else if (strncmp(szText, "PassengerStopPoint:", 19) == 0) // porÃ³wnanie poczÄ…tkÃ³w
     {
         eCommand = cm_PassengerStopPoint;
-        bCommand = false; // tego nie powinno byæ w komórce
+        bCommand = false; // tego nie powinno byÄ‡ w komÃ³rce
     }
-    else if (strcmp(szText, "SetProximityVelocity") == 0) // nie powinno tego byæ
+    else if (strcmp(szText, "SetProximityVelocity") == 0) // nie powinno tego byÄ‡
     {
         eCommand = cm_SetProximityVelocity;
-        bCommand = false; // ta komenda nie jest wysy³ana
+        bCommand = false; // ta komenda nie jest wysyÅ‚ana
     }
     else
     {
-        eCommand = cm_Unknown; // ci¹g nierozpoznany (nie jest komend¹)
-        bCommand = true; // do wys³ania
+        eCommand = cm_Unknown; // ciÄ…g nierozpoznany (nie jest komendÄ…)
+        bCommand = true; // do wysÅ‚ania
     }
     return eCommand;
 }
@@ -115,7 +115,7 @@ bool TMemCell::Load(cParser *parser)
     parser->getTokens(1, false); // case sensitive
     *parser >> token;
     SafeDeleteArray(szText);
-    szText = new char[256]; // musi byæ bufor do ³¹czenia tekstów
+    szText = new char[256]; // musi byÄ‡ bufor do Å‚Ä…czenia tekstÃ³w
     strcpy(szText, token.c_str());
     parser->getTokens();
     *parser >> fValue1;
@@ -123,7 +123,7 @@ bool TMemCell::Load(cParser *parser)
     *parser >> fValue2;
     parser->getTokens();
     *parser >> token;
-    if (token.compare("none") != 0) // gdy ró¿ne od "none"
+    if (token.compare("none") != 0) // gdy rÃ³Å¼ne od "none"
         asTrackName = token; // sprawdzane przez IsEmpty()
     parser->getTokens();
     *parser >> token;
@@ -134,26 +134,26 @@ bool TMemCell::Load(cParser *parser)
 }
 
 void TMemCell::PutCommand(TController *Mech, vector3 *Loc)
-{ // wys³anie zawartoœci komórki do AI
+{ // wysÅ‚anie zawartoÅ›ci komÃ³rki do AI
     if (Mech)
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
 }
 
 bool TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask)
-{ // porównanie zawartoœci komórki pamiêci z podanymi wartoœciami
+{ // porÃ³wnanie zawartoÅ›ci komÃ³rki pamiÄ™ci z podanymi wartoÅ›ciami
     if (TestFlag(CheckMask, conditional_memstring))
-    { // porównaæ teksty
-/*      char *pos = std::strstr(szTestText, "*"); // zwraca wskaŸnik na pozycjê albo NULL
-		if( nullptr != pos ) { // porównanie fragmentu ³añcucha
-			int i = pos - szTestText; // iloœæ porównywanych znaków
-			if( i ) { // jeœli nie jest pierwszym znakiem
+    { // porÃ³wnaÄ‡ teksty
+/*      char *pos = std::strstr(szTestText, "*"); // zwraca wskaÅºnik na pozycjÄ™ albo NULL
+		if( nullptr != pos ) { // porÃ³wnanie fragmentu Å‚aÅ„cucha
+			int i = pos - szTestText; // iloÅ›Ä‡ porÃ³wnywanych znakÃ³w
+			if( i ) { // jeÅ›li nie jest pierwszym znakiem
 				if( std::string( szTestText ).substr( 0, i ) != std::string( szText ).substr( 0, i ) ) {
-					return false; // pocz¹tki o d³ugoœci (i) s¹ ró¿ne
+					return false; // poczÄ…tki o dÅ‚ugoÅ›ci (i) sÄ… rÃ³Å¼ne
 				}
 			}
         }
 		else if( std::string( szTestText ) != std::string( szText ) ) {
-			return false; //³¹ñcuchy s¹ ró¿ne
+			return false; //Å‚Ä…Å„cuchy sÄ… rÃ³Å¼ne
 		}
 */		std::string
 			source( szText ),
@@ -172,7 +172,7 @@ bool TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2,
 			}
 		}
 	}
-    // tekst zgodny, porównaæ resztê
+    // tekst zgodny, porÃ³wnaÄ‡ resztÄ™
     return ((!TestFlag(CheckMask, conditional_memval1) || (fValue1 == fTestValue1)) &&
             (!TestFlag(CheckMask, conditional_memval2) || (fValue2 == fTestValue2)));
 };
@@ -183,7 +183,7 @@ bool TMemCell::Render()
 }
 
 bool TMemCell::IsVelocity()
-{ // sprawdzenie, czy event odczytu tej komórki ma byæ do skanowania, czy do kolejkowania
+{ // sprawdzenie, czy event odczytu tej komÃ³rki ma byÄ‡ do skanowania, czy do kolejkowania
     if (eCommand == cm_SetVelocity)
         return true;
     if (eCommand == cm_ShuntVelocity)
@@ -196,11 +196,11 @@ void TMemCell::StopCommandSent()
     if (!bCommand)
         return;
     bCommand = false;
-    if (OnSent) // jeœli jest event
+    if (OnSent) // jeÅ›li jest event
         Global::AddToQuery(OnSent, NULL);
 };
 
 void TMemCell::AssignEvents(TEvent *e)
-{ // powi¹zanie eventu
+{ // powiÄ…zanie eventu
     OnSent = e;
 };

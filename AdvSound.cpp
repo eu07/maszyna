@@ -22,7 +22,7 @@ TAdvancedSound::TAdvancedSound()
 }
 
 TAdvancedSound::~TAdvancedSound()
-{ // Ra: stopowanie siÍ sypie
+{ // Ra: stopowanie siƒô sypie
     // SoundStart.Stop();
     // SoundCommencing.Stop();
     // SoundShut.Stop();
@@ -172,9 +172,9 @@ void TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside, vector3 N
 }
 
 void TAdvancedSound::CopyIfEmpty(TAdvancedSound &s)
-{ // skopiowanie, gdyby by≥ potrzebny, a nie zosta≥ wczytany
+{ // skopiowanie, gdyby by≈Ç potrzebny, a nie zosta≈Ç wczytany
     if ((fStartLength > 0.0) || (fShutLength > 0.0))
-        return; // coú jest
+        return; // co≈õ jest
     SoundStart = s.SoundStart;
     SoundCommencing = s.SoundCommencing;
     SoundShut = s.SoundShut;

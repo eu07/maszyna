@@ -28,7 +28,7 @@ TTrackFollower::TTrackFollower()
     fCurrentDistance = 0;
     pPosition = vAngles = vector3(0, 0, 0);
     fDirection = 1; // jest przodem do Point2
-    fOffsetH = 0.0; // na starcie stoi na œrodku
+    fOffsetH = 0.0; // na starcie stoi na Å›rodku
 }
 
 TTrackFollower::~TTrackFollower()
@@ -40,7 +40,7 @@ bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
     fDirection = fDir;
     Owner = NewOwner;
     SetCurrentTrack(pTrack, 0);
-    iEventFlag = 3; // na torze startowym równie¿ wykonaæ eventy 1/2
+    iEventFlag = 3; // na torze startowym rÃ³wnieÅ¼ wykonaÄ‡ eventy 1/2
     iEventallFlag = 3;
     if ((pCurrentSegment)) // && (pCurrentSegment->GetLength()<fFirstDistance))
         return false;
@@ -52,52 +52,52 @@ TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
     if (pTrack)
         switch (pTrack->eType)
         {
-        case tt_Switch: // jeœli zwrotnica, to przek³adamy j¹, aby uzyskaæ dobry segment
+        case tt_Switch: // jeÅ›li zwrotnica, to przekÅ‚adamy jÄ…, aby uzyskaÄ‡ dobry segment
         {
             int i = (end ? pCurrentTrack->iNextDirection : pCurrentTrack->iPrevDirection);
-            if (i > 0) // je¿eli wjazd z ostrza
-                pTrack->SwitchForced(i >> 1, Owner); // to prze³o¿enie zwrotnicy - rozprucie!
+            if (i > 0) // jeÅ¼eli wjazd z ostrza
+                pTrack->SwitchForced(i >> 1, Owner); // to przeÅ‚oÅ¼enie zwrotnicy - rozprucie!
         }
         break;
-        case tt_Cross: // skrzy¿owanie trzeba tymczasowo prze³¹czyæ, aby wjechaæ na w³aœciwy tor
+        case tt_Cross: // skrzyÅ¼owanie trzeba tymczasowo przeÅ‚Ä…czyÄ‡, aby wjechaÄ‡ na wÅ‚aÅ›ciwy tor
         {
-            iSegment = Owner->RouteWish(pTrack); // nr segmentu zosta³ ustalony podczas skanowania
-            // Ra 2014-08: aby ustaliæ dalsz¹ trasê, nale¿y zapytaæ AI - trasa jest ustalana podczas
+            iSegment = Owner->RouteWish(pTrack); // nr segmentu zostaÅ‚ ustalony podczas skanowania
+            // Ra 2014-08: aby ustaliÄ‡ dalszÄ… trasÄ™, naleÅ¼y zapytaÄ‡ AI - trasa jest ustalana podczas
             // skanowania
-            // Ra 15-01: zapytanie AI nie wybiera segmentu - kolejny skanuj¹cy mo¿e przestawiæ
+            // Ra 15-01: zapytanie AI nie wybiera segmentu - kolejny skanujÄ…cy moÅ¼e przestawiÄ‡
             // pTrack->CrossSegment(end?pCurrentTrack->iNextDirection:pCurrentTrack->iPrevDirection,i);
-            // //ustawienie w³aœciwego wskaŸnika
-            // powinno zwracaæ kierunek do zapamiêtania, bo segmenty mog¹ mieæ ró¿ny kierunek
+            // //ustawienie wÅ‚aÅ›ciwego wskaÅºnika
+            // powinno zwracaÄ‡ kierunek do zapamiÄ™tania, bo segmenty mogÄ… mieÄ‡ rÃ³Å¼ny kierunek
             // if fDirection=(iSegment>0)?1.0:-1.0; //kierunek na tym segmencie jest ustalany
-            // bezpoœrednio
+            // bezpoÅ›rednio
             if (iSegment == 0)
-            { // to jest b³êdna sytuacja - generuje pêtle zawracaj¹ce za skrzy¿owaniem - ustaliæ,
+            { // to jest bÅ‚Ä™dna sytuacja - generuje pÄ™tle zawracajÄ…ce za skrzyÅ¼owaniem - ustaliÄ‡,
                 // kiedy powstaje!
-                iSegment = 1; // doraŸna poprawka
+                iSegment = 1; // doraÅºna poprawka
             }
             if ((end ? iSegment : -iSegment) < 0)
-                fDirection = -fDirection; // wtórna zmiana
-            pTrack->SwitchForced(abs(iSegment) - 1, NULL); // wybór zapamiêtanego segmentu
+                fDirection = -fDirection; // wtÃ³rna zmiana
+            pTrack->SwitchForced(abs(iSegment) - 1, NULL); // wybÃ³r zapamiÄ™tanego segmentu
         }
         break;
         }
     if (!pTrack)
     { // gdy nie ma toru w kierunku jazdy
         pTrack = pCurrentTrack->NullCreate(
-            end); // tworzenie toru wykolej¹cego na przed³u¿eniu pCurrentTrack
-        if (!end) // jeœli dodana od strony zero, to zmiana kierunku
-            fDirection = -fDirection; // wtórna zmiana
+            end); // tworzenie toru wykolejÄ…cego na przedÅ‚uÅ¼eniu pCurrentTrack
+        if (!end) // jeÅ›li dodana od strony zero, to zmiana kierunku
+            fDirection = -fDirection; // wtÃ³rna zmiana
         // if (pTrack->iCategoryFlag&2)
-        //{//jeœli samochód, zepsuæ na miejscu
-        // Owner->MoverParameters->V=0; //zatrzymaæ
-        // Owner->MoverParameters->Power=0; //ukraœæ silnik
-        // Owner->MoverParameters->AccS=0; //wch³on¹æ moc
+        //{//jeÅ›li samochÃ³d, zepsuÄ‡ na miejscu
+        // Owner->MoverParameters->V=0; //zatrzymaÄ‡
+        // Owner->MoverParameters->Power=0; //ukraÅ›Ä‡ silnik
+        // Owner->MoverParameters->AccS=0; //wchÅ‚onÄ…Ä‡ moc
         // Global::iPause|=1; //zapauzowanie symulacji
         //}
     }
     else
-    { // najpierw +1, póŸniej -1, aby odcinek izolowany wspólny dla tych torów nie wykry³ zera
-        pTrack->AxleCounter(+1, Owner); // zajêcie nowego toru
+    { // najpierw +1, pÃ³Åºniej -1, aby odcinek izolowany wspÃ³lny dla tych torÃ³w nie wykryÅ‚ zera
+        pTrack->AxleCounter(+1, Owner); // zajÄ™cie nowego toru
         if (pCurrentTrack)
             pCurrentTrack->AxleCounter(-1, Owner); // opuszczenie tamtego toru
     }
@@ -109,31 +109,31 @@ TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
 };
 
 bool TTrackFollower::Move(double fDistance, bool bPrimary)
-{ // przesuwanie wózka po torach o odleg³oœæ (fDistance), z wyzwoleniem eventów
-    // bPrimary=true - jest pierwsz¹ osi¹ w pojeŸdzie, czyli generuje eventy i przepisuje pojazd
-    // Ra: zwraca false, jeœli pojazd ma byæ usuniêty
-    fDistance *= fDirection; // dystans mno¿nony przez kierunek
+{ // przesuwanie wÃ³zka po torach o odlegÅ‚oÅ›Ä‡ (fDistance), z wyzwoleniem eventÃ³w
+    // bPrimary=true - jest pierwszÄ… osiÄ… w pojeÅºdzie, czyli generuje eventy i przepisuje pojazd
+    // Ra: zwraca false, jeÅ›li pojazd ma byÄ‡ usuniÄ™ty
+    fDistance *= fDirection; // dystans mnoÅ¼nony przez kierunek
     double s; // roboczy dystans
-    double dir; // zapamiêtany kierunek do sprawdzenia, czy siê zmieni³
-    bool bCanSkip; // czy przemieœciæ pojazd na inny tor
-    while (true) // pêtla wychodzi, gdy przesuniêcie wyjdzie zerowe
-    { // pêtla przesuwaj¹ca wózek przez kolejne tory, a¿ do trafienia w jakiœ
+    double dir; // zapamiÄ™tany kierunek do sprawdzenia, czy siÄ™ zmieniÅ‚
+    bool bCanSkip; // czy przemieÅ›ciÄ‡ pojazd na inny tor
+    while (true) // pÄ™tla wychodzi, gdy przesuniÄ™cie wyjdzie zerowe
+    { // pÄ™tla przesuwajÄ…ca wÃ³zek przez kolejne tory, aÅ¼ do trafienia w jakiÅ›
         if (!pCurrentTrack)
             return false; // nie ma toru, to nie ma przesuwania
         if (pCurrentTrack->iEvents) // sumaryczna informacja o eventach
-        { // omijamy ca³y ten blok, gdy tor nie ma on ¿adnych eventów (wiêkszoœæ nie ma)
+        { // omijamy caÅ‚y ten blok, gdy tor nie ma on Å¼adnych eventÃ³w (wiÄ™kszoÅ›Ä‡ nie ma)
             if (fDistance < 0)
             {
-                if (iSetFlag(iEventFlag, -1)) // zawsze zeruje flagê sprawdzenia, jak mechanik
-                    // dosi¹dzie, to siê nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego cz³onu
+                if (iSetFlag(iEventFlag, -1)) // zawsze zeruje flagÄ™ sprawdzenia, jak mechanik
+                    // dosiÄ…dzie, to siÄ™ nie wykona
+                    if (Owner->Mechanik->Primary()) // tylko dla jednego czÅ‚onu
                         // if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla
                         // pojazdow z obsada
                         if (bPrimary && pCurrentTrack->evEvent1 &&
                             (!pCurrentTrack->evEvent1->iQueued))
                             Global::AddToQuery(pCurrentTrack->evEvent1, Owner); // dodanie do
                 // kolejki
-                // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaæ do
+                // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodaÄ‡ do
                 // kolejki
                 // if (TestFlag(iEventallFlag,1))
                 if (iSetFlag(iEventallFlag,
@@ -141,79 +141,79 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                     if (bPrimary && pCurrentTrack->evEventall1 &&
                         (!pCurrentTrack->evEventall1->iQueued))
                         Global::AddToQuery(pCurrentTrack->evEventall1, Owner); // dodanie do kolejki
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodaæ
+                // Owner->RaAxleEvent(pCurrentTrack->Eventall1); //Ra: dynamic zdecyduje, czy dodaÄ‡
                 // do kolejki
             }
             else if (fDistance > 0)
             {
-                if (iSetFlag(iEventFlag, -2)) // zawsze ustawia flagê sprawdzenia, jak mechanik
-                    // dosi¹dzie, to siê nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego cz³onu
+                if (iSetFlag(iEventFlag, -2)) // zawsze ustawia flagÄ™ sprawdzenia, jak mechanik
+                    // dosiÄ…dzie, to siÄ™ nie wykona
+                    if (Owner->Mechanik->Primary()) // tylko dla jednego czÅ‚onu
                         // if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym
                         // warunku
                         if (bPrimary && pCurrentTrack->evEvent2 &&
                             (!pCurrentTrack->evEvent2->iQueued))
                             Global::AddToQuery(pCurrentTrack->evEvent2, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodaæ do
+                // Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodaÄ‡ do
                 // kolejki
                 // if (TestFlag(iEventallFlag,2))
                 if (iSetFlag(iEventallFlag,
-                             -2)) // sprawdza i zeruje na przysz³oœæ, true jeœli zmieni z 2 na 0
+                             -2)) // sprawdza i zeruje na przyszÅ‚oÅ›Ä‡, true jeÅ›li zmieni z 2 na 0
                     if (bPrimary && pCurrentTrack->evEventall2 &&
                         (!pCurrentTrack->evEventall2->iQueued))
                         Global::AddToQuery(pCurrentTrack->evEventall2, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodaæ
+                // Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodaÄ‡
                 // do kolejki
             }
             else // if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
             {
-                if (Owner->Mechanik->Primary()) // tylko dla jednego cz³onu
+                if (Owner->Mechanik->Primary()) // tylko dla jednego czÅ‚onu
                     if (pCurrentTrack->evEvent0)
                         if (!pCurrentTrack->evEvent0->iQueued)
                             Global::AddToQuery(pCurrentTrack->evEvent0, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaæ do
+                // Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodaÄ‡ do
                 // kolejki
                 if (pCurrentTrack->evEventall0)
                     if (!pCurrentTrack->evEventall0->iQueued)
                         Global::AddToQuery(pCurrentTrack->evEventall0, Owner);
-                // Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaæ
+                // Owner->RaAxleEvent(pCurrentTrack->Eventall0); //Ra: dynamic zdecyduje, czy dodaÄ‡
                 // do kolejki
             }
         }
-        if (!pCurrentSegment) // je¿eli nie ma powi¹zanego segmentu toru?
+        if (!pCurrentSegment) // jeÅ¼eli nie ma powiÄ…zanego segmentu toru?
             return false;
-        // if (fDistance==0.0) return true; //Ra: jak stoi, to chyba dalej nie ma co kombinowaæ?
-        s = fCurrentDistance + fDistance; // doliczenie przesuniêcia
-        // Ra: W Point2 toru mo¿e znajdowaæ siê "dziura", która zamieni energiê kinetyczn¹
-        // ruchu wzd³u¿nego na energiê potencjaln¹, zamieniaj¹c¹ siê potem na energiê
-        // sprê¿ystoœci na amortyzatorach. Nale¿a³oby we wpisie toru umieœciæ wspó³czynnik
-        // podzia³u energii kinetycznej.
-        // Wspó³czynnik normalnie 1, z dziur¹ np. 0.99, a -1 bêdzie oznacza³o 100% odbicia (kozio³).
-        // Albo w postaci k¹ta: normalnie 0°, a 180° oznacza 100% odbicia (cosinus powy¿szego).
+        // if (fDistance==0.0) return true; //Ra: jak stoi, to chyba dalej nie ma co kombinowaÄ‡?
+        s = fCurrentDistance + fDistance; // doliczenie przesuniÄ™cia
+        // Ra: W Point2 toru moÅ¼e znajdowaÄ‡ siÄ™ "dziura", ktÃ³ra zamieni energiÄ™ kinetycznÄ…
+        // ruchu wzdÅ‚uÅ¼nego na energiÄ™ potencjalnÄ…, zamieniajÄ…cÄ… siÄ™ potem na energiÄ™
+        // sprÄ™Å¼ystoÅ›ci na amortyzatorach. NaleÅ¼aÅ‚oby we wpisie toru umieÅ›ciÄ‡ wspÃ³Å‚czynnik
+        // podziaÅ‚u energii kinetycznej.
+        // WspÃ³Å‚czynnik normalnie 1, z dziurÄ… np. 0.99, a -1 bÄ™dzie oznaczaÅ‚o 100% odbicia (kozioÅ‚).
+        // Albo w postaci kÄ…ta: normalnie 0Â°, a 180Â° oznacza 100% odbicia (cosinus powyÅ¼szego).
         /*
           if (pCurrentTrack->eType==tt_Cross)
-          {//zjazdu ze skrzy¿owania nie da siê okreœliæ przez (iPrevDirection) i (iNextDirection)
-           //int segment=Owner->RouteWish(pCurrentTrack); //numer segmentu dla skrzy¿owañ
+          {//zjazdu ze skrzyÅ¼owania nie da siÄ™ okreÅ›liÄ‡ przez (iPrevDirection) i (iNextDirection)
+           //int segment=Owner->RouteWish(pCurrentTrack); //numer segmentu dla skrzyÅ¼owaÅ„
            //pCurrentTrack->SwitchForced(abs(segment)-1,NULL); //tymczasowo ustawienie tego segmentu
-           //pCurrentSegment=pCurrentTrack->CurrentSegment(); //odœwie¿yæ sobie wskaŸnik segmentu
+           //pCurrentSegment=pCurrentTrack->CurrentSegment(); //odÅ›wieÅ¼yÄ‡ sobie wskaÅºnik segmentu
           (?)
           }
         */
         if (s < 0)
-        { // jeœli przekroczenie toru od strony Point1
+        { // jeÅ›li przekroczenie toru od strony Point1
             bCanSkip = bPrimary ? pCurrentTrack->CheckDynamicObject(Owner) : false;
-            if (bCanSkip) // tylko g³ówna oœ przenosi pojazd do innego toru
+            if (bCanSkip) // tylko gÅ‚Ã³wna oÅ› przenosi pojazd do innego toru
                 Owner->MyTrack->RemoveDynamicObject(
                     Owner); // zdejmujemy pojazd z dotychczasowego toru
             dir = fDirection;
             if (pCurrentTrack->eType == tt_Cross)
             {
                 if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 0))
-                    return false; // wyjœcie z b³êdem
+                    return false; // wyjÅ›cie z bÅ‚Ä™dem
             }
             else if (!SetCurrentTrack(pCurrentTrack->Neightbour(-1, fDirection),
                                       0)) // ustawia fDirection
-                return false; // wyjœcie z b³êdem
+                return false; // wyjÅ›cie z bÅ‚Ä™dem
             if (dir == fDirection) //(pCurrentTrack->iPrevDirection)
             { // gdy kierunek bez zmiany (Point1->Point2)
                 fCurrentDistance = pCurrentSegment->GetLength();
@@ -225,7 +225,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 fDistance = -s;
             }
             if (bCanSkip)
-            { // jak g³ówna oœ, to dodanie pojazdu do nowego toru
+            { // jak gÅ‚Ã³wna oÅ›, to dodanie pojazdu do nowego toru
                 pCurrentTrack->AddDynamicObject(Owner);
                 iEventFlag =
                     3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
@@ -236,9 +236,9 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             continue;
         }
         else if (s > pCurrentSegment->GetLength())
-        { // jeœli przekroczenie toru od strony Point2
+        { // jeÅ›li przekroczenie toru od strony Point2
             bCanSkip = bPrimary ? pCurrentTrack->CheckDynamicObject(Owner) : false;
-            if (bCanSkip) // tylko g³ówna oœ przenosi pojazd do innego toru
+            if (bCanSkip) // tylko gÅ‚Ã³wna oÅ› przenosi pojazd do innego toru
                 Owner->MyTrack->RemoveDynamicObject(
                     Owner); // zdejmujemy pojazd z dotychczasowego toru
             fDistance = s - pCurrentSegment->GetLength();
@@ -246,11 +246,11 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             if (pCurrentTrack->eType == tt_Cross)
             {
                 if (!SetCurrentTrack(pCurrentTrack->Neightbour(iSegment, fDirection), 1))
-                    return false; // wyjœcie z b³êdem
+                    return false; // wyjÅ›cie z bÅ‚Ä™dem
             }
             else if (!SetCurrentTrack(pCurrentTrack->Neightbour(1, fDirection),
                                       1)) // ustawia fDirection
-                return false; // wyjœcie z b³êdem
+                return false; // wyjÅ›cie z bÅ‚Ä™dem
             if (dir != fDirection) //(pCurrentTrack->iNextDirection)
             { // gdy zmiana kierunku toru (Point2->Point2)
                 fDistance = -fDistance; //(s-pCurrentSegment->GetLength());
@@ -259,7 +259,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             else // gdy kierunek bez zmiany (Point2->Point1)
                 fCurrentDistance = 0;
             if (bCanSkip)
-            { // jak g³ówna oœ, to dodanie pojazdu do nowego toru
+            { // jak gÅ‚Ã³wna oÅ›, to dodanie pojazdu do nowego toru
                 pCurrentTrack->AddDynamicObject(Owner);
                 iEventFlag =
                     3; // McZapkie-020602: umozliwienie uruchamiania event1,2 po zmianie toru
@@ -270,9 +270,9 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             continue;
         }
         else
-        { // gdy zostaje na tym samym torze (przesuwanie ju¿ nie zmienia toru)
+        { // gdy zostaje na tym samym torze (przesuwanie juÅ¼ nie zmienia toru)
             if (bPrimary)
-            { // tylko gdy pocz¹tkowe ustawienie, dodajemy eventy stania do kolejki
+            { // tylko gdy poczÄ…tkowe ustawienie, dodajemy eventy stania do kolejki
                 if (Owner->MoverParameters->ActiveCab != 0)
                 // if (Owner->MoverParameters->CabNo!=0)
                 {
@@ -288,25 +288,25 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             }
             fCurrentDistance = s;
             // fDistance=0;
-            return ComputatePosition(); // przeliczenie XYZ, true o ile nie wyjecha³ na NULL
+            return ComputatePosition(); // przeliczenie XYZ, true o ile nie wyjechaÅ‚ na NULL
         }
     }
 };
 
 bool TTrackFollower::ComputatePosition()
-{ // ustalenie wspó³rzêdnych XYZ
+{ // ustalenie wspÃ³Å‚rzÄ™dnych XYZ
     if (pCurrentSegment) // o ile jest tor
     {
         pCurrentSegment->RaPositionGet(fCurrentDistance, pPosition, vAngles);
-        if (fDirection < 0) // k¹ty zale¿¹ jeszcze od zwrotu na torze
-        { // k¹ty s¹ w przedziale <-M_PI;M_PI>
-            vAngles.x = -vAngles.x; // przechy³ka jest w przecinw¹ stronê
-            vAngles.y = -vAngles.y; // pochylenie jest w przecinw¹ stronê
+        if (fDirection < 0) // kÄ…ty zaleÅ¼Ä… jeszcze od zwrotu na torze
+        { // kÄ…ty sÄ… w przedziale <-M_PI;M_PI>
+            vAngles.x = -vAngles.x; // przechyÅ‚ka jest w przecinwÄ… stronÄ™
+            vAngles.y = -vAngles.y; // pochylenie jest w przecinwÄ… stronÄ™
             vAngles.z +=
-                (vAngles.z >= M_PI) ? -M_PI : M_PI; // ale kierunek w planie jest obrócony o 180°
+                (vAngles.z >= M_PI) ? -M_PI : M_PI; // ale kierunek w planie jest obrÃ³cony o 180Â°
         }
         if (fOffsetH != 0.0)
-        { // jeœli przesuniêcie wzglêdem osi toru, to je doliczyæ
+        { // jeÅ›li przesuniÄ™cie wzglÄ™dem osi toru, to je doliczyÄ‡
         }
         return true;
     }
@@ -316,15 +316,15 @@ bool TTrackFollower::ComputatePosition()
 #include "opengl/glew.h"
 #include "opengl/glut.h"
 void TTrackFollower::Render(float fNr)
-{ // funkcja rysuj¹ca sto¿ek w miejscu osi
+{ // funkcja rysujÄ…ca stoÅ¼ek w miejscu osi
     glPushMatrix(); // matryca kamery
     glTranslatef(pPosition.x, pPosition.y + 6, pPosition.z); // 6m ponad
-    glRotated(RadToDeg(-vAngles.z), 0, 1, 0); // obrót wzglêdem osi OY
-    // glRotated(RadToDeg(vAngles.z),0,1,0); //obrót wzglêdem osi OY
+    glRotated(RadToDeg(-vAngles.z), 0, 1, 0); // obrÃ³t wzglÄ™dem osi OY
+    // glRotated(RadToDeg(vAngles.z),0,1,0); //obrÃ³t wzglÄ™dem osi OY
     glDisable(GL_LIGHTING);
-    glColor3f(1.0, 1.0 - fNr, 1.0 - fNr); // bia³y dla 0, czerwony dla 1
-    // glutWireCone(promieñ podstawy,wysokoœæ,k¹tnoœæ podstawy,iloœæ segmentów na wysokoœæ)
-    glutWireCone(0.5, 2, 4, 1); // rysowanie sto¿ka (ostros³upa o podstawie wieloboka)
+    glColor3f(1.0, 1.0 - fNr, 1.0 - fNr); // biaÅ‚y dla 0, czerwony dla 1
+    // glutWireCone(promieÅ„ podstawy,wysokoÅ›Ä‡,kÄ…tnoÅ›Ä‡ podstawy,iloÅ›Ä‡ segmentÃ³w na wysokoÅ›Ä‡)
+    glutWireCone(0.5, 2, 4, 1); // rysowanie stoÅ¼ka (ostrosÅ‚upa o podstawie wieloboka)
     glEnable(GL_LIGHTING);
     glPopMatrix();
 }

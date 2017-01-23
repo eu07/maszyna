@@ -19,12 +19,12 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include <sstream>
 
-/*Ra: te sta³e nie s¹ u¿ywane...
+/*Ra: te staÅ‚e nie sÄ… uÅ¼ywane...
         _FileName = ['a'..'z','A'..'Z',':','\','.','*','?','0'..'9','_','-'];
         _RealNum  = ['0'..'9','-','+','.','E','e'];
-        _Integer  = ['0'..'9','-']; //Ra: to siê gryzie z STLport w Builder 6
+        _Integer  = ['0'..'9','-']; //Ra: to siÄ™ gryzie z STLport w Builder 6
         _Plus_Int = ['0'..'9'];
-        _All      = [' '..'þ'];
+        _All      = [' '..'Å£'];
         _Delimiter= [',',';']+_EOL;
         _Delimiter_Space=_Delimiter+[' '];
 */

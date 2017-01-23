@@ -31,13 +31,13 @@ using namespace Mtable;
 //---------------------------------------------------------------------------
 
 TEventLauncher::TEventLauncher()
-{ // ustawienie pocz¹tkowych wartoœci dla wszystkich zmiennych
+{ // ustawienie poczÄ…tkowych wartoÅ›ci dla wszystkich zmiennych
     iKey = 0;
     DeltaTime = -1;
     UpdatedTime = 0;
     fVal1 = fVal2 = 0;
     szText = NULL;
-    iHour = iMinute = -1; // takiego czasu nigdy nie bêdzie
+    iHour = iMinute = -1; // takiego czasu nigdy nie bÄ™dzie
     dRadius = 0;
     Event1 = Event2 = NULL;
     MemCell = NULL;
@@ -54,32 +54,32 @@ void TEventLauncher::Init()
 }
 
 bool TEventLauncher::Load(cParser *parser)
-{ // wczytanie wyzwalacza zdarzeñ
+{ // wczytanie wyzwalacza zdarzeÅ„
     std::string token;
     parser->getTokens();
-    *parser >> dRadius; // promieñ dzia³ania
+    *parser >> dRadius; // promieÅ„ dziaÅ‚ania
     if (dRadius > 0.0)
-        dRadius *= dRadius; // do kwadratu, pod warunkiem, ¿e nie jest ujemne
-    parser->getTokens(); // klawisz steruj¹cy
+        dRadius *= dRadius; // do kwadratu, pod warunkiem, Å¼e nie jest ujemne
+    parser->getTokens(); // klawisz sterujÄ…cy
     *parser >> token;
     if (token != "none")
     {
         if (token.length() == 1)
             iKey = VkKeyScan(token[1]); // jeden znak jest konwertowany na kod klawisza
         else
-            iKey = stol_def(token,0); // a jak wiêcej, to jakby numer klawisza jest
+            iKey = stol_def(token,0); // a jak wiÄ™cej, to jakby numer klawisza jest
     }
     parser->getTokens();
     *parser >> DeltaTime;
     if (DeltaTime < 0)
         DeltaTime = -DeltaTime; // dla ujemnego zmieniamy na dodatni
     else if (DeltaTime > 0)
-    { // wartoœæ dodatnia oznacza wyzwalanie o okreœlonej godzinie
-        iMinute = int(DeltaTime) % 100; // minuty s¹ najm³odszymi cyframi dziesietnymi
+    { // wartoÅ›Ä‡ dodatnia oznacza wyzwalanie o okreÅ›lonej godzinie
+        iMinute = int(DeltaTime) % 100; // minuty sÄ… najmÅ‚odszymi cyframi dziesietnymi
         iHour = int(DeltaTime - iMinute) / 100; // godzina to setki
-        DeltaTime = 0; // bez powtórzeñ
+        DeltaTime = 0; // bez powtÃ³rzeÅ„
         WriteLog("EventLauncher at " + std::to_string(iHour) + ":" +
-                 std::to_string(iMinute)); // wyœwietlenie czasu
+                 std::to_string(iMinute)); // wyÅ›wietlenie czasu
     }
     parser->getTokens();
     *parser >> token;
@@ -88,18 +88,18 @@ bool TEventLauncher::Load(cParser *parser)
     *parser >> token;
     asEvent2Name = token; // drugi event
     if ((asEvent2Name == "end") || (asEvent2Name == "condition"))
-    { // drugiego eventu mo¿e nie byæ, bo s¹ z tym problemy, ale ciii...
-		token = asEvent2Name; // rozpoznane s³owo idzie do dalszego przetwarzania
+    { // drugiego eventu moÅ¼e nie byÄ‡, bo sÄ… z tym problemy, ale ciii...
+		token = asEvent2Name; // rozpoznane sÅ‚owo idzie do dalszego przetwarzania
         asEvent2Name = "none"; // a drugiego eventu nie ma
     }
     else
-    { // gdy s¹ dwa eventy
+    { // gdy sÄ… dwa eventy
         parser->getTokens();
         *parser >> token;
         //str = AnsiString(token.c_str());
     }
     if (token == "condition")
-    { // obs³uga wyzwalania warunkowego
+    { // obsÅ‚uga wyzwalania warunkowego
         parser->getTokens();
         *parser >> token;
 		asMemCellName = token;
@@ -108,11 +108,11 @@ bool TEventLauncher::Load(cParser *parser)
         SafeDeleteArray(szText);
         szText = new char[256];
         strcpy(szText, token.c_str());
-        if (token.compare("*") != 0) //*=nie braæ command pod uwagê
+        if (token.compare("*") != 0) //*=nie braÄ‡ command pod uwagÄ™
             iCheckMask |= conditional_memstring;
         parser->getTokens();
         *parser >> token;
-        if (token.compare("*") != 0) //*=nie braæ wartoœci 1. pod uwagê
+        if (token.compare("*") != 0) //*=nie braÄ‡ wartoÅ›ci 1. pod uwagÄ™
         {
             iCheckMask |= conditional_memval1;
             //str = AnsiString(token.c_str());
@@ -122,7 +122,7 @@ bool TEventLauncher::Load(cParser *parser)
             fVal1 = 0;
         parser->getTokens();
         *parser >> token;
-        if (token.compare("*") != 0) //*=nie braæ wartoœci 2. pod uwagê
+        if (token.compare("*") != 0) //*=nie braÄ‡ wartoÅ›ci 2. pod uwagÄ™
         {
             iCheckMask |= conditional_memval2;
             //str = AnsiString(token.c_str());
@@ -130,7 +130,7 @@ bool TEventLauncher::Load(cParser *parser)
         }
         else
             fVal2 = 0;
-        parser->getTokens(); // s³owo zamykaj¹ce
+        parser->getTokens(); // sÅ‚owo zamykajÄ…ce
         *parser >> token;
     }
     return true;
@@ -141,8 +141,8 @@ bool TEventLauncher::Render()
     bool bCond = false;
     if (iKey != 0)
     {
-        if (Global::bActive) // tylko jeœli okno jest aktywne
-            bCond = (Console::Pressed(iKey)); // czy klawisz wciœniêty
+        if (Global::bActive) // tylko jeÅ›li okno jest aktywne
+            bCond = (Console::Pressed(iKey)); // czy klawisz wciÅ›niÄ™ty
     }
     if (DeltaTime > 0)
     {
@@ -155,11 +155,11 @@ bool TEventLauncher::Render()
             UpdatedTime += Timer::GetDeltaTime(); // aktualizacja naliczania czasu
     }
     else
-    { // jeœli nie cykliczny, to sprawdziæ czas
+    { // jeÅ›li nie cykliczny, to sprawdziÄ‡ czas
         if (GlobalTime->hh == iHour)
         {
             if (GlobalTime->mm == iMinute)
-            { // zgodnoœæ czasu uruchomienia
+            { // zgodnoÅ›Ä‡ czasu uruchomienia
                 if (UpdatedTime < 10)
                 {
                     UpdatedTime = 20; // czas do kolejnego wyzwolenia?
@@ -170,9 +170,9 @@ bool TEventLauncher::Render()
         else
             UpdatedTime = 1;
     }
-    if (bCond) // jeœli spe³niony zosta³ warunek
+    if (bCond) // jeÅ›li speÅ‚niony zostaÅ‚ warunek
     {
-        if ((iCheckMask != 0) && MemCell) // sprawdzanie warunku na komórce pamiêci
+        if ((iCheckMask != 0) && MemCell) // sprawdzanie warunku na komÃ³rce pamiÄ™ci
             bCond = MemCell->Compare(szText, fVal1, fVal2, iCheckMask);
     }
     return bCond; // sprawdzanie dRadius w Ground.cpp
@@ -183,7 +183,7 @@ bool TEventLauncher::IsGlobal()
     if (DeltaTime == 0)
         if (iHour >= 0)
             if (iMinute >= 0)
-                if (dRadius < 0.0) // bez ograniczenia zasiêgu
+                if (dRadius < 0.0) // bez ograniczenia zasiÄ™gu
                     return true;
     return false;
 };

@@ -29,13 +29,13 @@ void TButton::Clear(int i)
     bOn = false;
     if (i >= 0)
         FeedbackBitSet(i);
-    Update(); // kasowanie bitu Feedback, o ile jakiœ ustawiony
+    Update(); // kasowanie bitu Feedback, o ile jakiÅ› ustawiony
 };
 
 void TButton::Init(std::string const &asName, TModel3d *pModel, bool bNewOn)
 {
     if (!pModel)
-        return; // nie ma w czym szukaæ
+        return; // nie ma w czym szukaÄ‡
     pModelOn = pModel->GetFromName( (asName + "_on").c_str() );
     pModelOff = pModel->GetFromName( (asName + "_off").c_str() );
     bOn = bNewOn;
@@ -50,8 +50,8 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2)
         Init(token, pModel1, false);
         if (pModel2)
             if (!pModelOn && !pModelOff)
-                Init(token, pModel2, false); // mo¿e w drugim bêdzie (jak nie w kabinie,
-        // to w zewnêtrznym)
+                Init(token, pModel2, false); // moÅ¼e w drugim bÄ™dzie (jak nie w kabinie,
+        // to w zewnÄ™trznym)
     }
     else
     {
@@ -68,7 +68,7 @@ void TButton::Update()
         pModelOn->iVisible = bOn;
     if (pModelOff)
         pModelOff->iVisible = !bOn;
-    if (iFeedbackBit) // je¿eli generuje informacjê zwrotn¹
+    if (iFeedbackBit) // jeÅ¼eli generuje informacjÄ™ zwrotnÄ…
     {
         if (bOn) // zapalenie
             Console::BitsSet(iFeedbackBit);

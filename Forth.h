@@ -12,6 +12,6 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 
 class Forth
-{ // klasa obs³ugi jêzyka
+{ // klasa obsÅ‚ugi jÄ™zyka
 };
 #endif

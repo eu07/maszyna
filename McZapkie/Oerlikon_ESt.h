@@ -113,14 +113,14 @@ class TPrzeciwposlizg : public TRura // przy napelnianiu - rura, przy poslizgu -
 // przekladnik dwustopniowy
 class TRapid : public TPrzekladnik { 
 
-private:
+  private:
     bool RapidStatus = false; // status rapidu
     double RapidMult = 0.0; // przelozenie (w dol)
     //        Komora2: real;
     double DN = 0.0;
     double DL = 0.0; // srednice dysz napelniania i luzowania
 
-public:
+  public:
     void SetRapidParams(double mult, double size);
     void SetRapidStatus(bool rs);
     void Update(double dt) /*override*/;
@@ -132,7 +132,7 @@ public:
 // AL2
 class TPrzekCiagly : public TPrzekladnik {
 
-private:
+  private:
     double mult = 0.0;
 
   public:
@@ -146,10 +146,10 @@ private:
 // podwojny zawor zwrotny
 class TPrzek_PZZ : public TPrzekladnik {
 
-private:
+  private:
     double LBP = 0.0;
 
-public:
+  public:
     void SetLBP(double P);
     void Update(double dt) /*override*/;
 	inline TPrzek_PZZ() :
@@ -170,10 +170,10 @@ class TPrzekZalamany : public TPrzekladnik // Knicksventil
 // przy napelnianiu - rura, przy hamowaniu - upust
 class TPrzekED : public TRura  {
 
-private:
+  private:
     double MaxP = 0.0;
 
-public:
+  public:
     void SetP(double P);
     void Update(double dt) /*override*/;
 	inline TPrzekED() :
@@ -183,8 +183,8 @@ public:
 
 class TNESt3 : public TBrake {
 
-private:
-	std::shared_ptr<TReservoir> CntrlRes; // zbiornik steruj¹cy
+  private:
+	std::shared_ptr<TReservoir> CntrlRes; // zbiornik sterujacy
 	std::shared_ptr<TReservoir> Miedzypoj; // pojemnosc posrednia (urojona) do napelniania ZP i ZS
 	std::shared_ptr<TPrzekladnik> Przekladniki[ 4 ];
 	double Nozzles[ dMAX ]; // dysze
@@ -205,7 +205,7 @@ private:
     bool autom = false; // odluzniacz samoczynny
     double LBP = 0.0; // cisnienie hamulca pomocniczego
 
-public:
+  public:
 	inline TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
            TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
 	{}

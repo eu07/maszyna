@@ -20,7 +20,7 @@ TAirCoupler::~TAirCoupler()
 }
 
 int TAirCoupler::GetStatus()
-{ // zwraca 1, jeœli istnieje model prosty, 2 gdy skoœny
+{ // zwraca 1, jeÅ›li istnieje model prosty, 2 gdy skoÅ›ny
     int x = 0;
     if (pModelOn)
         x = 1;
@@ -30,7 +30,7 @@ int TAirCoupler::GetStatus()
 }
 
 void TAirCoupler::Clear()
-{ // zerowanie wskaŸników
+{ // zerowanie wskaÅºnikÃ³w
     pModelOn = NULL;
     pModelOff = NULL;
     pModelxOn = NULL;
@@ -41,10 +41,10 @@ void TAirCoupler::Clear()
 void TAirCoupler::Init(std::string const &asName, TModel3d *pModel)
 { // wyszukanie submodeli
     if (!pModel)
-        return; // nie ma w czym szukaæ
-    pModelOn = pModel->GetFromName( (asName + "_on").c_str() ); // po³¹czony na wprost
+        return; // nie ma w czym szukaÄ‡
+    pModelOn = pModel->GetFromName( (asName + "_on").c_str() ); // poÅ‚Ä…czony na wprost
     pModelOff = pModel->GetFromName( (asName + "_off").c_str() ); // odwieszony
-    pModelxOn = pModel->GetFromName( (asName + "_xon").c_str() ); // po³¹czony na skos
+    pModelxOn = pModel->GetFromName( (asName + "_xon").c_str() ); // poÅ‚Ä…czony na skos
 }
 
 void TAirCoupler::Load(cParser *Parser, TModel3d *pModel)

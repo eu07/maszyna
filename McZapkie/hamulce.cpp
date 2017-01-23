@@ -172,7 +172,7 @@ double TBrakeCyl::pa()
     return P() * 0.1;
 }
 
-/* NOWSZA WERSJA - maksymalne ciœnienie to ok. 4,75 bar, co powoduje
+/* NOWSZA WERSJA - maksymalne ciÅ›nienie to ok. 4,75 bar, co powoduje
 //                 problemy przy rapidzie w lokomotywach, gdyz jest3
 //                 osiagany wierzcholek paraboli
 function TBrakeCyl.P:real;
@@ -321,7 +321,7 @@ double TBrake::GetBCP()
     return BrakeCyl->P();
 }
 
-// ciœnienie steruj¹ce hamowaniem elektro-dynamicznym
+// ciÅ›nienie sterujÄ…ce hamowaniem elektro-dynamicznym
 double TBrake::GetEDBCP()
 {
     return 0;
@@ -1273,7 +1273,7 @@ double TLSt::GetPF(double PP, double dt, double Vel)
     if (EDFlag > 0.2)
         temp = 10000;
 
-    // powtarzacz — podwojny zawor zwrotny
+    // powtarzacz â€” podwojny zawor zwrotny
     temp = Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb) == b_asb)) / temp, LBP);
     // luzowanie CH
     if ((BrakeCyl->P() > temp + 0.005) || (temp < 0.28))
@@ -1454,7 +1454,7 @@ double TEStED::GetPF(double PP, double dt, double Vel)
     //  if EDFlag then temp:=1000;
     //  temp:=temp/(1-);
 
-    // powtarzacz — podwojny zawor zwrotny
+    // powtarzacz â€” podwojny zawor zwrotny
     temp = Max0R(LoadC * BCP / temp * Min0R(Max0R(1 - EDFlag, 0), 1), LBP);
 
     if ((BrakeCyl->P() > temp))

@@ -33,7 +33,7 @@ void TSky::Init()
 void TSky::Render()
 {
     if (mdCloud)
-    { // jeúli jest model nieba
+    { // je≈õli jest model nieba
         glPushMatrix();
         // glDisable(GL_DEPTH_TEST);
         glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y,

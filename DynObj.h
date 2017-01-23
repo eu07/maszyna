@@ -22,17 +22,17 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
-int const ANIM_TYPES = 7; // Ra: iloœæ typów animacji
-int const ANIM_WHEELS = 0; // ko³a
+int const ANIM_TYPES = 7; // Ra: iloÅ›Ä‡ typÃ³w animacji
+int const ANIM_WHEELS = 0; // koÅ‚a
 int const ANIM_DOORS = 1; // drzwi
-int const ANIM_LEVERS = 2; // elementy obracane (wycieraczki, ko³a skrêtne, przestawiacze, klocki ham.)
+int const ANIM_LEVERS = 2; // elementy obracane (wycieraczki, koÅ‚a skrÄ™tne, przestawiacze, klocki ham.)
 int const ANIM_BUFFERS = 3; // elementy przesuwane (zderzaki)
-int const ANIM_BOOGIES = 4; // wózki (s¹ skrêcane w dwóch osiach)
+int const ANIM_BOOGIES = 4; // wÃ³zki (sÄ… skrÄ™cane w dwÃ³ch osiach)
 int const ANIM_PANTS = 5; // pantografy
-int const ANIM_STEAMS = 6; // napêd parowozu
+int const ANIM_STEAMS = 6; // napÄ™d parowozu
 
 class TAnim;
-//typedef void(__closure *TUpdate)(TAnim *pAnim); // typ funkcji aktualizuj¹cej po³o¿enie submodeli
+//typedef void(__closure *TUpdate)(TAnim *pAnim); // typ funkcji aktualizujÄ…cej poÅ‚oÅ¼enie submodeli
 typedef std::function<void(TAnim *)> TUpdate; // __closure is Borland-specific extension
 
 // McZapkie-250202
@@ -40,100 +40,100 @@ int const MaxAxles = 16; // ABu 280105: zmienione z 8 na 16
 // const MaxAnimatedAxles=16; //i to tez.
 // const MaxAnimatedDoors=16;  //NBMX  wrzesien 2003
 /*
-Ra: Utworzyæ klasê wyposa¿enia opcjonalnego, z której bêd¹ dziedziczyæ klasy drzwi,
-pantografów, napêdu parowozu i innych ruchomych czêœci pojazdów. Klasy powinny byæ
-pseudo-wirtualne, bo wirtualne mog¹ obni¿aæ wydajnosœæ.
-Przy wczytywaniu MMD utworzyæ tabelê wskaŸnikow na te dodatki. Przy wyœwietlaniu
-pojazdu wykonywaæ Update() na kolejnych obiektach wyposa¿enia.
-Rozwa¿yæ u¿ycie oddzielnych modeli dla niektórych pojazdów (np. lokomotywy), co
-zaoszczêdzi³o by czas ustawiania animacji na modelu wspólnym dla kilku pojazdów,
-szczególnie dla pojazdów w danej chwili nieruchomych (przy du¿ym zagêszczeniu
-modeli na stacjach na ogó³ przewaga jest tych nieruchomych).
+Ra: UtworzyÄ‡ klasÄ™ wyposaÅ¼enia opcjonalnego, z ktÃ³rej bÄ™dÄ… dziedziczyÄ‡ klasy drzwi,
+pantografÃ³w, napÄ™du parowozu i innych ruchomych czÄ™Å›ci pojazdÃ³w. Klasy powinny byÄ‡
+pseudo-wirtualne, bo wirtualne mogÄ… obniÅ¼aÄ‡ wydajnosÅ›Ä‡.
+Przy wczytywaniu MMD utworzyÄ‡ tabelÄ™ wskaÅºnikow na te dodatki. Przy wyÅ›wietlaniu
+pojazdu wykonywaÄ‡ Update() na kolejnych obiektach wyposaÅ¼enia.
+RozwaÅ¼yÄ‡ uÅ¼ycie oddzielnych modeli dla niektÃ³rych pojazdÃ³w (np. lokomotywy), co
+zaoszczÄ™dziÅ‚o by czas ustawiania animacji na modelu wspÃ³lnym dla kilku pojazdÃ³w,
+szczegÃ³lnie dla pojazdÃ³w w danej chwili nieruchomych (przy duÅ¼ym zagÄ™szczeniu
+modeli na stacjach na ogÃ³Å‚ przewaga jest tych nieruchomych).
 */
 class TAnimValveGear
-{ // wspó³czynniki do animacji parowozu (wartoœci przyk³adowe dla Pt47)
-    int iValues; // iloœæ liczb (wersja):
-    float fKorbowodR; // d³ugoœæ korby (pó³ skoku t³oka) [m]: 0.35
-    float fKorbowodL; // d³ugoœæ korbowodu [m]: 3.8
-    float fDrazekR; // promieñ mimoœrodu (dr¹¿ka) [m]: 0.18
-    float fDrazekL; // d³. dr¹¿ka mimoœrodowego [m]: 2.55889
-    float fJarzmoV; // wysokoœæ w pionie osi jarzma od osi ko³a [m]: 0.751
-    float fJarzmoH; // odleg³oœæ w poziomie osi jarzma od osi ko³a [m]: 2.550
-    float fJarzmoR; // promieñ jarzma do styku z dr¹¿kiem [m]: 0.450
-    float fJarzmoA; // k¹t mimoœrodu wzglêdem k¹ta ko³a [°]: -96.77416667
-    float fWdzidloL; // d³ugoœæ wodzid³a [m]: 2.0
-    float fWahaczH; // d³ugoœæ wahacza (góra) [m]: 0.14
-    float fSuwakH; // wysokoœæ osi suwaka ponad osi¹ ko³a [m]: 0.62
-    float fWahaczL; // d³ugoœæ wahacza (dó³) [m]: 0.84
-    float fLacznikL; // d³ugoœæ ³¹cznika wahacza [m]: 0.75072
-    float fRamieL; // odleg³oœæ ramienia krzy¿ulca od osi ko³a [m]: 0.192
-    float fSuwakL; // odleg³oœæ œrodka t³oka/suwaka od osi ko³a [m]: 5.650
-    // do³o¿yæ parametry dr¹¿ka nastawnicy
-    // albo nawet zrobiæ dynamiczn¹ tablicê float[] i w ni¹ pakowaæ wszelkie wspó³czynniki, potem
-    // u¿ywaæ indeksów
-    // wspó³czynniki mog¹ byæ wspólne dla 2-4 t³oków, albo ka¿dy t³ok mo¿e mieæ odrêbne
+{ // wspÃ³Å‚czynniki do animacji parowozu (wartoÅ›ci przykÅ‚adowe dla Pt47)
+    int iValues; // iloÅ›Ä‡ liczb (wersja):
+    float fKorbowodR; // dÅ‚ugoÅ›Ä‡ korby (pÃ³Å‚ skoku tÅ‚oka) [m]: 0.35
+    float fKorbowodL; // dÅ‚ugoÅ›Ä‡ korbowodu [m]: 3.8
+    float fDrazekR; // promieÅ„ mimoÅ›rodu (drÄ…Å¼ka) [m]: 0.18
+    float fDrazekL; // dÅ‚. drÄ…Å¼ka mimoÅ›rodowego [m]: 2.55889
+    float fJarzmoV; // wysokoÅ›Ä‡ w pionie osi jarzma od osi koÅ‚a [m]: 0.751
+    float fJarzmoH; // odlegÅ‚oÅ›Ä‡ w poziomie osi jarzma od osi koÅ‚a [m]: 2.550
+    float fJarzmoR; // promieÅ„ jarzma do styku z drÄ…Å¼kiem [m]: 0.450
+    float fJarzmoA; // kÄ…t mimoÅ›rodu wzglÄ™dem kÄ…ta koÅ‚a [Â°]: -96.77416667
+    float fWdzidloL; // dÅ‚ugoÅ›Ä‡ wodzidÅ‚a [m]: 2.0
+    float fWahaczH; // dÅ‚ugoÅ›Ä‡ wahacza (gÃ³ra) [m]: 0.14
+    float fSuwakH; // wysokoÅ›Ä‡ osi suwaka ponad osiÄ… koÅ‚a [m]: 0.62
+    float fWahaczL; // dÅ‚ugoÅ›Ä‡ wahacza (dÃ³Å‚) [m]: 0.84
+    float fLacznikL; // dÅ‚ugoÅ›Ä‡ Å‚Ä…cznika wahacza [m]: 0.75072
+    float fRamieL; // odlegÅ‚oÅ›Ä‡ ramienia krzyÅ¼ulca od osi koÅ‚a [m]: 0.192
+    float fSuwakL; // odlegÅ‚oÅ›Ä‡ Å›rodka tÅ‚oka/suwaka od osi koÅ‚a [m]: 5.650
+    // doÅ‚oÅ¼yÄ‡ parametry drÄ…Å¼ka nastawnicy
+    // albo nawet zrobiÄ‡ dynamicznÄ… tablicÄ™ float[] i w niÄ… pakowaÄ‡ wszelkie wspÃ³Å‚czynniki, potem
+    // uÅ¼ywaÄ‡ indeksÃ³w
+    // wspÃ³Å‚czynniki mogÄ… byÄ‡ wspÃ³lne dla 2-4 tÅ‚okÃ³w, albo kaÅ¼dy tÅ‚ok moÅ¼e mieÄ‡ odrÄ™bne
 };
 
 class TAnimPant
-{ // wspó³czynniki do animacji pantografu
+{ // wspÃ³Å‚czynniki do animacji pantografu
   public:
-    vector3 vPos; // Ra: wspó³rzêdne punktu zerowego pantografu (X dodatnie dla przedniego)
-    double fLenL1; // d³ugoœæ dolnego ramienia 1, odczytana z modelu
-    double fLenU1; // d³ugoœæ górnego ramienia 1, odczytana z modelu
-    double fLenL2; // d³ugoœæ dolnego ramienia 2, odczytana z modelu
-    double fLenU2; // d³ugoœæ górnego ramienia 2, odczytana z modelu
-    double fHoriz; // przesuniêcie œlizgu w d³ugoœci pojazdu wzglêdem osi obrotu dolnego ramienia
-    double fHeight; // wysokoœæ œlizgu ponad oœ obrotu, odejmowana od wysokoœci drutu
-    double fWidth; // po³owa szerokoœci roboczej œlizgu, do wykrycia zeœlizgniêcia siê drutu
-    double fAngleL0; // Ra: pocz¹tkowy k¹t dolnego ramienia (odejmowany przy animacji)
-    double fAngleU0; // Ra: pocz¹tkowy k¹t górnego ramienia (odejmowany przy animacji)
-    double PantTraction; // Winger 170204: wysokoœæ drutu ponad punktem na wysokoœci vPos.y p.g.s.
-    double PantWys; // Ra: aktualna wysokoœæ uniesienia œlizgu do porównania z wysokoœci¹ drutu
-    double fAngleL; // Winger 160204: aktualny k¹t ramienia dolnego
-    double fAngleU; // Ra: aktualny k¹t ramienia górnego
+    vector3 vPos; // Ra: wspÃ³Å‚rzÄ™dne punktu zerowego pantografu (X dodatnie dla przedniego)
+    double fLenL1; // dÅ‚ugoÅ›Ä‡ dolnego ramienia 1, odczytana z modelu
+    double fLenU1; // dÅ‚ugoÅ›Ä‡ gÃ³rnego ramienia 1, odczytana z modelu
+    double fLenL2; // dÅ‚ugoÅ›Ä‡ dolnego ramienia 2, odczytana z modelu
+    double fLenU2; // dÅ‚ugoÅ›Ä‡ gÃ³rnego ramienia 2, odczytana z modelu
+    double fHoriz; // przesuniÄ™cie Å›lizgu w dÅ‚ugoÅ›ci pojazdu wzglÄ™dem osi obrotu dolnego ramienia
+    double fHeight; // wysokoÅ›Ä‡ Å›lizgu ponad oÅ› obrotu, odejmowana od wysokoÅ›ci drutu
+    double fWidth; // poÅ‚owa szerokoÅ›ci roboczej Å›lizgu, do wykrycia zeÅ›lizgniÄ™cia siÄ™ drutu
+    double fAngleL0; // Ra: poczÄ…tkowy kÄ…t dolnego ramienia (odejmowany przy animacji)
+    double fAngleU0; // Ra: poczÄ…tkowy kÄ…t gÃ³rnego ramienia (odejmowany przy animacji)
+    double PantTraction; // Winger 170204: wysokoÅ›Ä‡ drutu ponad punktem na wysokoÅ›ci vPos.y p.g.s.
+    double PantWys; // Ra: aktualna wysokoÅ›Ä‡ uniesienia Å›lizgu do porÃ³wnania z wysokoÅ›ciÄ… drutu
+    double fAngleL; // Winger 160204: aktualny kÄ…t ramienia dolnego
+    double fAngleU; // Ra: aktualny kÄ…t ramienia gÃ³rnego
     double NoVoltTime; // czas od utraty kontaktu z drutem
     TTraction *hvPowerWire; // aktualnie podczepione druty, na razie tu
-    float fWidthExtra; // dodatkowy rozmiar poziomy poza czêœæ robocz¹ (fWidth)
-    float fHeightExtra[5]; //³amana symuluj¹ca kszta³t nabie¿nika
-    // double fHorizontal; //Ra 2015-01: po³o¿enie drutu wzglêdem osi pantografu
+    float fWidthExtra; // dodatkowy rozmiar poziomy poza czÄ™Å›Ä‡ roboczÄ… (fWidth)
+    float fHeightExtra[5]; //Å‚amana symulujÄ…ca ksztaÅ‚t nabieÅ¼nika
+    // double fHorizontal; //Ra 2015-01: poÅ‚oÅ¼enie drutu wzglÄ™dem osi pantografu
     void AKP_4E();
 };
 
 class TAnim
-{ // klasa animowanej czêœci pojazdu (ko³a, drzwi, pantografy, burty, napêd parowozu, si³owniki
+{ // klasa animowanej czÄ™Å›ci pojazdu (koÅ‚a, drzwi, pantografy, burty, napÄ™d parowozu, siÅ‚owniki
     // itd.)
   public:
     union
     {
-        TSubModel *smAnimated; // animowany submodel (jeœli tylko jeden, np. oœ)
-        TSubModel **smElement; // jeœli animowanych elementów jest wiêcej (pantograf, napêd
+        TSubModel *smAnimated; // animowany submodel (jeÅ›li tylko jeden, np. oÅ›)
+        TSubModel **smElement; // jeÅ›li animowanych elementÃ³w jest wiÄ™cej (pantograf, napÄ™d
         // parowozu)
-        int iShift; // przesuniêcie przed przydzieleniem wskaŸnika
+        int iShift; // przesuniÄ™cie przed przydzieleniem wskaÅºnika
     };
     union
     { // parametry animacji
-        TAnimValveGear *pValveGear; // wspó³czynniki do animacji parowozu
-        double *dWheelAngle; // wskaŸnik na k¹t obrotu osi
-        float *fParam; // ró¿ne parametry dla animacji
-        TAnimPant *fParamPants; // ró¿ne parametry dla animacji
+        TAnimValveGear *pValveGear; // wspÃ³Å‚czynniki do animacji parowozu
+        double *dWheelAngle; // wskaÅºnik na kÄ…t obrotu osi
+        float *fParam; // rÃ³Å¼ne parametry dla animacji
+        TAnimPant *fParamPants; // rÃ³Å¼ne parametry dla animacji
     };
     union
-    { // wskaŸnik na obiekt odniesienia
-        double *fDoubleBase; // jakiœ double w fizyce
-        float *fFloatBase; // jakiœ float w fizyce
-        int *iIntBase; // jakiœ int w fizyce
+    { // wskaÅºnik na obiekt odniesienia
+        double *fDoubleBase; // jakiÅ› double w fizyce
+        float *fFloatBase; // jakiÅ› float w fizyce
+        int *iIntBase; // jakiÅ› int w fizyce
     };
-    // void _fastcall Update(); //wskaŸnik do funkcji aktualizacji animacji
+    // void _fastcall Update(); //wskaÅºnik do funkcji aktualizacji animacji
     int iFlags; // flagi animacji
-    float fMaxDist; // do jakiej odleg³oœci wykonywana jest animacja
-    float fSpeed; // parametr szybkoœci animacji
+    float fMaxDist; // do jakiej odlegÅ‚oÅ›ci wykonywana jest animacja
+    float fSpeed; // parametr szybkoÅ›ci animacji
     int iNumber; // numer kolejny obiektu
   public:
     TAnim();
     ~TAnim();
-    TUpdate yUpdate; // metoda TDynamicObject aktualizuj¹ca animacjê
+    TUpdate yUpdate; // metoda TDynamicObject aktualizujÄ…ca animacjÄ™
     int TypeSet(int i, int fl = 0); // ustawienie typu
-    void Parovoz(); // wykonanie obliczeñ animacji
+    void Parovoz(); // wykonanie obliczeÅ„ animacji
 };
 
 //---------------------------------------------------------------------------
@@ -142,73 +142,73 @@ class TAnim
 
 class TDynamicObject
 { // klasa pojazdu
-  private: // po³o¿enie pojazdu w œwiecie oraz parametry ruchu
-    vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesuniêciu
-    vector3 vCoulpler[2]; // wspó³rzêdne sprzêgów do liczenia zderzeñ czo³owych
+  private: // poÅ‚oÅ¼enie pojazdu w Å›wiecie oraz parametry ruchu
+    vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesuniÄ™ciu
+    vector3 vCoulpler[2]; // wspÃ³Å‚rzÄ™dne sprzÄ™gÃ³w do liczenia zderzeÅ„ czoÅ‚owych
     vector3 vUp, vFront, vLeft; // wektory jednostkowe ustawienia pojazdu
-    int iDirection; // kierunek pojazdu wzglêdem czo³a sk³adu (1=zgodny,0=przeciwny)
+    int iDirection; // kierunek pojazdu wzglÄ™dem czoÅ‚a skÅ‚adu (1=zgodny,0=przeciwny)
     TTrackShape ts; // parametry toru przekazywane do fizyki
     TTrackParam tp; // parametry toru przekazywane do fizyki
-    TTrackFollower Axle0; // oœ z przodu (od sprzêgu 0)
-    TTrackFollower Axle1; // oœ z ty³u (od sprzêgu 1)
-    int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oœ wi¹¿¹ca pojazd z torem i wyzwalaj¹ca
+    TTrackFollower Axle0; // oÅ› z przodu (od sprzÄ™gu 0)
+    TTrackFollower Axle1; // oÅ› z tyÅ‚u (od sprzÄ™gu 1)
+    int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oÅ› wiÄ…Å¼Ä…ca pojazd z torem i wyzwalajÄ…ca
     // eventy)
-    float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
-    vector3 modelRot; // obrot pud³a wzglêdem œwiata - do przeanalizowania, czy potrzebne!!!
-    // bool bCameraNear; //blisko kamer s¹ potrzebne dodatkowe obliczenia szczegó³ów
+    float fAxleDist; // rozstaw wÃ³zkÃ³w albo osi do liczenia proporcji zacienienia
+    vector3 modelRot; // obrot pudÅ‚a wzglÄ™dem Å›wiata - do przeanalizowania, czy potrzebne!!!
+    // bool bCameraNear; //blisko kamer sÄ… potrzebne dodatkowe obliczenia szczegÃ³Å‚Ã³w
     TDynamicObject * ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer,
                                                     int &CouplNr);
 
-  public: // parametry po³o¿enia pojazdu dostêpne publicznie
-    std::string asTrack; // nazwa toru pocz¹tkowego; wywaliæ?
-    std::string asDestination; // dok¹d pojazd ma byæ kierowany "(stacja):(tor)"
-    matrix4x4 mMatrix; // macierz przekszta³cenia do renderowania modeli
+  public: // parametry poÅ‚oÅ¼enia pojazdu dostÄ™pne publicznie
+    std::string asTrack; // nazwa toru poczÄ…tkowego; wywaliÄ‡?
+    std::string asDestination; // dokÄ…d pojazd ma byÄ‡ kierowany "(stacja):(tor)"
+    matrix4x4 mMatrix; // macierz przeksztaÅ‚cenia do renderowania modeli
     TMoverParameters *MoverParameters; // parametry fizyki ruchu oraz przeliczanie
-    // TMoverParameters *pControlled; //wskaŸnik do sterowanego cz³onu silnikowego
-    TDynamicObject *NextConnected; // pojazd pod³¹czony od strony sprzêgu 1 (kabina -1)
-    TDynamicObject *PrevConnected; // pojazd pod³¹czony od strony sprzêgu 0 (kabina 1)
-    int NextConnectedNo; // numer sprzêgu pod³¹czonego z ty³u
-    int PrevConnectedNo; // numer sprzêgu pod³¹czonego z przodu
-    double fScanDist; // odleg³oœæ skanowania torów na obecnoœæ innych pojazdów
+    // TMoverParameters *pControlled; //wskaÅºnik do sterowanego czÅ‚onu silnikowego
+    TDynamicObject *NextConnected; // pojazd podÅ‚Ä…czony od strony sprzÄ™gu 1 (kabina -1)
+    TDynamicObject *PrevConnected; // pojazd podÅ‚Ä…czony od strony sprzÄ™gu 0 (kabina 1)
+    int NextConnectedNo; // numer sprzÄ™gu podÅ‚Ä…czonego z tyÅ‚u
+    int PrevConnectedNo; // numer sprzÄ™gu podÅ‚Ä…czonego z przodu
+    double fScanDist; // odlegÅ‚oÅ›Ä‡ skanowania torÃ³w na obecnoÅ›Ä‡ innych pojazdÃ³w
 
-  public: // modele sk³adowe pojazdu
-    TModel3d *mdModel; // model pud³a
-    TModel3d *mdLoad; // model zmiennego ³adunku
-    TModel3d *mdPrzedsionek; // model przedsionków dla EZT - mo¿e u¿yæ mdLoad zamiast?
-    TModel3d *mdKabina; // model kabiny dla u¿ytkownika; McZapkie-030303: to z train.h
+  public: // modele skÅ‚adowe pojazdu
+    TModel3d *mdModel; // model pudÅ‚a
+    TModel3d *mdLoad; // model zmiennego Å‚adunku
+    TModel3d *mdPrzedsionek; // model przedsionkÃ³w dla EZT - moÅ¼e uÅ¼yÄ‡ mdLoad zamiast?
+    TModel3d *mdKabina; // model kabiny dla uÅ¼ytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
-    float fShade; // zacienienie: 0:normalnie, -1:w ciemnoœci, +1:dodatkowe œwiat³o (brak koloru?)
+    float fShade; // zacienienie: 0:normalnie, -1:w ciemnoÅ›ci, +1:dodatkowe Å›wiatÅ‚o (brak koloru?)
 
-  private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeŸdzie
-  public: // tymczasowo udostêpnione do wyszukiwania drutu
-    int iAnimType[ANIM_TYPES]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-t³oki
+  private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeÅºdzie
+  public: // tymczasowo udostÄ™pnione do wyszukiwania drutu
+    int iAnimType[ANIM_TYPES]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wÃ³zki,5-pantografy,6-tÅ‚oki
   private:
-    int iAnimations; // liczba obiektów animuj¹cych
-    TAnim *pAnimations; // obiekty animuj¹ce (zawieraj¹ wskaŸnik do funkcji wykonuj¹cej animacjê)
+    int iAnimations; // liczba obiektÃ³w animujÄ…cych
+    TAnim *pAnimations; // obiekty animujÄ…ce (zawierajÄ… wskaÅºnik do funkcji wykonujÄ…cej animacjÄ™)
     TSubModel **
-        pAnimated; // lista animowanych submodeli (mo¿e byæ ich wiêcej ni¿ obiektów animuj¹cych)
-    double dWheelAngle[3]; // k¹ty obrotu kó³: 0=przednie toczne, 1=napêdzaj¹ce i wi¹zary, 2=tylne
+        pAnimated; // lista animowanych submodeli (moÅ¼e byÄ‡ ich wiÄ™cej niÅ¼ obiektÃ³w animujÄ…cych)
+    double dWheelAngle[3]; // kÄ…ty obrotu kÃ³Å‚: 0=przednie toczne, 1=napÄ™dzajÄ…ce i wiÄ…zary, 2=tylne
     // toczne
     void
     UpdateNone(TAnim *pAnim){}; // animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
     void UpdateAxle(TAnim *pAnim); // animacja osi
-    void UpdateBoogie(TAnim *pAnim); // animacja wózka
+    void UpdateBoogie(TAnim *pAnim); // animacja wÃ³zka
     void UpdateDoorTranslate(TAnim *pAnim); // animacja drzwi - przesuw
-    void UpdateDoorRotate(TAnim *pAnim); // animacja drzwi - obrót
-    void UpdateDoorFold(TAnim *pAnim); // animacja drzwi - sk³adanie
+    void UpdateDoorRotate(TAnim *pAnim); // animacja drzwi - obrÃ³t
+    void UpdateDoorFold(TAnim *pAnim); // animacja drzwi - skÅ‚adanie
 	void UpdateDoorPlug(TAnim *pAnim);      // animacja drzwi - odskokowo-przesuwne
 	void UpdatePant(TAnim *pAnim); // animacja pantografu
-    void UpdateLeverDouble(TAnim *pAnim); // animacja ga³ki zale¿na od double
-    void UpdateLeverFloat(TAnim *pAnim); // animacja ga³ki zale¿na od float
-    void UpdateLeverInt(TAnim *pAnim); // animacja ga³ki zale¿na od int (wartoœæ)
-    void UpdateLeverEnum(TAnim *pAnim); // animacja ga³ki zale¿na od int (lista k¹tów)
-  private: // Ra: ci¹g dalszy animacji, dopiero do ogarniêcia
+    void UpdateLeverDouble(TAnim *pAnim); // animacja gaÅ‚ki zaleÅ¼na od double
+    void UpdateLeverFloat(TAnim *pAnim); // animacja gaÅ‚ki zaleÅ¼na od float
+    void UpdateLeverInt(TAnim *pAnim); // animacja gaÅ‚ki zaleÅ¼na od int (wartoÅ›Ä‡)
+    void UpdateLeverEnum(TAnim *pAnim); // animacja gaÅ‚ki zaleÅ¼na od int (lista kÄ…tÃ³w)
+  private: // Ra: ciÄ…g dalszy animacji, dopiero do ogarniÄ™cia
     // ABuWozki 060504
     vector3 bogieRot[2]; // Obroty wozkow w/m korpusu
     TSubModel *smBogie[2]; // Wyszukiwanie max 2 wozkow
-    TSubModel *smWahacze[4]; // wahacze (np. nogi, dŸwignia w drezynie)
-    TSubModel *smBrakeMode; // Ra 15-01: nastawa hamulca te¿
-    TSubModel *smLoadMode; // Ra 15-01: nastawa pró¿ny/³adowny
+    TSubModel *smWahacze[4]; // wahacze (np. nogi, dÅºwignia w drezynie)
+    TSubModel *smBrakeMode; // Ra 15-01: nastawa hamulca teÅ¼
+    TSubModel *smLoadMode; // Ra 15-01: nastawa prÃ³Å¼ny/Å‚adowny
     double fWahaczeAmp;
     // Winger 160204 - pantografy
     double pantspeedfactor;
@@ -216,16 +216,16 @@ class TDynamicObject
     TSubModel *smBuforLewy[2];
     TSubModel *smBuforPrawy[2];
     TAnimValveGear *pValveGear;
-    vector3 vFloor; // pod³oga dla ³adunku
+    vector3 vFloor; // podÅ‚oga dla Å‚adunku
   public:
-    TAnim *pants; // indeks obiektu animuj¹cego dla pantografu 0
+    TAnim *pants; // indeks obiektu animujÄ…cego dla pantografu 0
     double NoVoltTime; // czas od utraty zasilania
     double dDoorMoveL; // NBMX
     double dDoorMoveR; // NBMX
     TSubModel *smBrakeSet; // nastawa hamulca (wajcha)
-    TSubModel *smLoadSet; // nastawa ³adunku (wajcha)
-    TSubModel *smWiper; // wycieraczka (poniek¹d te¿ wajcha)
-    // Ra: koneic animacji do ogarniêcia
+    TSubModel *smLoadSet; // nastawa Å‚adunku (wajcha)
+    TSubModel *smWiper; // wycieraczka (poniekÄ…d teÅ¼ wajcha)
+    // Ra: koneic animacji do ogarniÄ™cia
 
   private:
     void ABuLittleUpdate(double ObjSqrDist);
@@ -249,7 +249,7 @@ class TDynamicObject
     TButton btCCtrl2;
     TButton btCPass1; // mostki przejsciowe
     TButton btCPass2;
-    char cp1, sp1, cp2, sp2; // ustawienia wê¿y
+    char cp1, sp1, cp2, sp2; // ustawienia wÄ™Å¼y
 
     TButton btEndSignals11; // sygnalu konca pociagu
     TButton btEndSignals13;
@@ -268,7 +268,7 @@ class TDynamicObject
 	TButton btMechanik1;
 	TButton btMechanik2;
     //TSubModel *smMechanik0; // Ra: mechanik wbudowany w model jako submodel?
-    //TSubModel *smMechanik1; // mechanik od strony sprzêgu 1
+    //TSubModel *smMechanik1; // mechanik od strony sprzÄ™gu 1
     double enginevolume; // MC: pomocnicze zeby gladziej silnik buczal
 
     int iAxles; // McZapkie: to potem mozna skasowac i zastapic iNumAxles
@@ -307,21 +307,21 @@ class TDynamicObject
     vector3 modelShake;
 
     bool renderme; // yB - czy renderowac
-    // TRealSound sBrakeAcc; //dŸwiêk przyspieszacza
+    // TRealSound sBrakeAcc; //dÅºwiÄ™k przyspieszacza
     PSound sBrakeAcc;
     bool bBrakeAcc;
     TRealSound rsUnbrake; // yB - odglos luzowania
     float ModCamRot;
-    int iInventory; // flagi bitowe posiadanych submodeli (np. œwiate³)
+    int iInventory; // flagi bitowe posiadanych submodeli (np. Å›wiateÅ‚)
     void TurnOff();
 
   public:
-    int iHornWarning; // numer syreny do u¿ycia po otrzymaniu sygna³u do jazdy
-    bool bEnabled; // Ra: wyjecha³ na portal i ma byæ usuniêty
+    int iHornWarning; // numer syreny do uÅ¼ycia po otrzymaniu sygnaÅ‚u do jazdy
+    bool bEnabled; // Ra: wyjechaÅ‚ na portal i ma byÄ‡ usuniÄ™ty
   protected:
-    // TTrackFollower Axle2; //dwie osie z czterech (te s¹ protected)
-    // TTrackFollower Axle3; //Ra: wy³¹czy³em, bo k¹ty s¹ liczone w Segment.cpp
-    int iNumAxles; // iloœæ osi
+    // TTrackFollower Axle2; //dwie osie z czterech (te sÄ… protected)
+    // TTrackFollower Axle3; //Ra: wyÅ‚Ä…czyÅ‚em, bo kÄ…ty sÄ… liczone w Segment.cpp
+    int iNumAxles; // iloÅ›Ä‡ osi
     int CouplCounter;
     std::string asModel;
 
@@ -334,8 +334,8 @@ class TDynamicObject
     void ABuCheckMyTrack();
 
   public:
-    int *iLights; // wskaŸnik na bity zapalonych œwiate³ (w³asne albo innego cz³onu)
-    double fTrackBlock; // odleg³oœæ do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
+    int *iLights; // wskaÅºnik na bity zapalonych Å›wiateÅ‚ (wÅ‚asne albo innego czÅ‚onu)
+    double fTrackBlock; // odlegÅ‚oÅ›Ä‡ do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
     // pojazdem)
     TDynamicObject * PrevAny();
     TDynamicObject * Prev();
@@ -380,7 +380,7 @@ class TDynamicObject
 
     // McZapkie-010302
     TController *Mechanik;
-    TController *ctOwner; // wska¿nik na obiekt zarz¹dzaj¹cy sk³adem
+    TController *ctOwner; // wskaÅ¼nik na obiekt zarzÄ…dzajÄ…cy skÅ‚adem
     bool MechInside;
     // McZapkie-270202
     bool Controller;
@@ -389,16 +389,16 @@ class TDynamicObject
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
     std::string asBaseDir;
     GLuint ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
-    int iAlpha; // maska przezroczystoœci tekstur
+    int iAlpha; // maska przezroczystoÅ›ci tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
-    int iOverheadMask; // maska przydzielana przez AI pojazdom posiadaj¹cym pantograf, aby wymusza³y
-    // jazdê bezpr¹dow¹
+    int iOverheadMask; // maska przydzielana przez AI pojazdom posiadajÄ…cym pantograf, aby wymuszaÅ‚y
+    // jazdÄ™ bezprÄ…dowÄ…
     TTractionParam tmpTraction;
-    double fAdjustment; // korekcja - docelowo przenieœæ do TrkFoll.cpp wraz z odleg³oœci¹ od
+    double fAdjustment; // korekcja - docelowo przenieÅ›Ä‡ do TrkFoll.cpp wraz z odlegÅ‚oÅ›ciÄ… od
     // poprzedniego
     TDynamicObject();
     ~TDynamicObject();
-    double TDynamicObject::Init( // zwraca d³ugoœæ pojazdu albo 0, jeœli b³¹d
+    double TDynamicObject::Init( // zwraca dÅ‚ugoÅ›Ä‡ pojazdu albo 0, jeÅ›li bÅ‚Ä…d
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);
@@ -419,11 +419,11 @@ class TDynamicObject
     inline vector3 HeadPosition()
     {
         return vCoulpler[iDirection ^ 1];
-    }; // pobranie wspó³rzêdnych czo³a
+    }; // pobranie wspÃ³Å‚rzÄ™dnych czoÅ‚a
     inline vector3 RearPosition()
     {
         return vCoulpler[iDirection];
-    }; // pobranie wspó³rzêdnych ty³u
+    }; // pobranie wspÃ³Å‚rzÄ™dnych tyÅ‚u
     inline vector3 AxlePositionGet()
     {
         return iAxleFirst ? Axle1.pPosition : Axle0.pPosition;
@@ -470,19 +470,19 @@ class TDynamicObject
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection());
     };
     // inline double ABuGetTranslation() //ABu.
-    // {//zwraca przesuniêcie wózka wzglêdem Point1 toru
+    // {//zwraca przesuniÄ™cie wÃ³zka wzglÄ™dem Point1 toru
     //  return (Axle1.GetTrack()==MyTrack?Axle1.GetTranslation():Axle0.GetTranslation());
     // };
     inline double RaDirectionGet()
-    { // zwraca kierunek pojazdu na torze z aktywn¹ os¹
+    { // zwraca kierunek pojazdu na torze z aktywnÄ… osÄ…
         return iAxleFirst ? Axle1.GetDirection() : Axle0.GetDirection();
     };
     inline double RaTranslationGet()
-    { // zwraca przesuniêcie wózka wzglêdem Point1 toru z aktywn¹ osi¹
+    { // zwraca przesuniÄ™cie wÃ³zka wzglÄ™dem Point1 toru z aktywnÄ… osiÄ…
         return iAxleFirst ? Axle1.GetTranslation() : Axle0.GetTranslation();
     };
     inline TTrack * RaTrackGet()
-    { // zwraca tor z aktywn¹ osi¹
+    { // zwraca tor z aktywnÄ… osiÄ…
         return iAxleFirst ? Axle1.GetTrack() : Axle0.GetTrack();
     };
     void CouplersDettach(double MinDist, int MyScanDir);
@@ -492,19 +492,19 @@ class TDynamicObject
     // void RaAxleEvent(TEvent *e);
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
-    int DirectionSet(int d); // ustawienie kierunku w sk³adzie
+    int DirectionSet(int d); // ustawienie kierunku w skÅ‚adzie
     int DirectionGet()
     {
         return iDirection + iDirection - 1;
-    }; // odczyt kierunku w sk³adzie
+    }; // odczyt kierunku w skÅ‚adzie
     int DettachStatus(int dir);
     int Dettach(int dir);
     TDynamicObject * Neightbour(int &dir);
     void CoupleDist();
     TDynamicObject * ControlledFind();
     void ParamSet(int what, int into);
-    int RouteWish(TTrack *tr); // zapytanie do AI, po którym segmencie skrzy¿owania
-    // jechaæ
+    int RouteWish(TTrack *tr); // zapytanie do AI, po ktÃ³rym segmencie skrzyÅ¼owania
+    // jechaÄ‡
     void DestinationSet(std::string to, std::string numer);
     std::string TextureTest(std::string const &name);
     void OverheadTrack(float o);

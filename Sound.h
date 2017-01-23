@@ -27,8 +27,8 @@ class TSoundContainer
     int Oldest;
     char Name[80];
     LPDIRECTSOUNDBUFFER DSBuffer;
-    float fSamplingRate; // czêstotliwoœæ odczytana z pliku
-    int iBitsPerSample; // ile bitów na próbkê
+    float fSamplingRate; // czÄ™stotliwoÅ›Ä‡ odczytana z pliku
+    int iBitsPerSample; // ile bitÃ³w na prÃ³bkÄ™
     TSoundContainer *Next;
     std::stack<LPDIRECTSOUNDBUFFER> DSBuffers;
     LPDIRECTSOUNDBUFFER GetUnique(LPDIRECTSOUND pDS);

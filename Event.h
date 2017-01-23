@@ -43,21 +43,21 @@ typedef enum
     tp_Friction
 } TEventType;
 
-const int update_memstring = 0x0000001; // zmodyfikowaæ tekst (UpdateValues)
-const int update_memval1 = 0x0000002; // zmodyfikowaæ pierwsz¹ wartosæ
-const int update_memval2 = 0x0000004; // zmodyfikowaæ drug¹ wartosæ
-const int update_memadd = 0x0000008; // dodaæ do poprzedniej zawartoœci
-const int update_load = 0x0000010; // odczytaæ ³adunek
-const int update_only = 0x00000FF; // wartoœæ graniczna
-const int conditional_memstring = 0x0000100; // porównanie tekstu
-const int conditional_memval1 = 0x0000200; // porównanie pierwszej wartoœci liczbowej
-const int conditional_memval2 = 0x0000400; // porównanie drugiej wartoœci
-const int conditional_else = 0x0010000; // flaga odwrócenia warunku (przesuwana bitowo)
-const int conditional_anyelse = 0x0FF0000; // do sprawdzania, czy s¹ odwrócone warunki
-const int conditional_trackoccupied = 0x1000000; // jeœli tor zajêty
-const int conditional_trackfree = 0x2000000; // jeœli tor wolny
-const int conditional_propability = 0x4000000; // zale¿nie od generatora lizcb losowych
-const int conditional_memcompare = 0x8000000; // porównanie zawartoœci
+const int update_memstring = 0x0000001; // zmodyfikowaÄ‡ tekst (UpdateValues)
+const int update_memval1 = 0x0000002; // zmodyfikowaÄ‡ pierwszÄ… wartosÄ‡
+const int update_memval2 = 0x0000004; // zmodyfikowaÄ‡ drugÄ… wartosÄ‡
+const int update_memadd = 0x0000008; // dodaÄ‡ do poprzedniej zawartoÅ›ci
+const int update_load = 0x0000010; // odczytaÄ‡ Å‚adunek
+const int update_only = 0x00000FF; // wartoÅ›Ä‡ graniczna
+const int conditional_memstring = 0x0000100; // porÃ³wnanie tekstu
+const int conditional_memval1 = 0x0000200; // porÃ³wnanie pierwszej wartoÅ›ci liczbowej
+const int conditional_memval2 = 0x0000400; // porÃ³wnanie drugiej wartoÅ›ci
+const int conditional_else = 0x0010000; // flaga odwrÃ³cenia warunku (przesuwana bitowo)
+const int conditional_anyelse = 0x0FF0000; // do sprawdzania, czy sÄ… odwrÃ³cone warunki
+const int conditional_trackoccupied = 0x1000000; // jeÅ›li tor zajÄ™ty
+const int conditional_trackfree = 0x2000000; // jeÅ›li tor wolny
+const int conditional_propability = 0x4000000; // zaleÅ¼nie od generatora lizcb losowych
+const int conditional_memcompare = 0x8000000; // porÃ³wnanie zawartoÅ›ci
 
 union TParam
 {
@@ -86,20 +86,20 @@ class TEvent // zmienne: ev*
 
   public:
     std::string asName;
-    bool bEnabled; // false gdy ma nie byæ dodawany do kolejki (skanowanie sygna³ów)
+    bool bEnabled; // false gdy ma nie byÄ‡ dodawany do kolejki (skanowanie sygnaÅ‚Ã³w)
     int iQueued; // ile razy dodany do kolejki
     // bool bIsHistory;
-    TEvent *evNext; // nastêpny w kolejce
+    TEvent *evNext; // nastÄ™pny w kolejce
     TEvent *evNext2;
     TEventType Type;
     double fStartTime;
     double fDelay;
     TDynamicObject *Activator;
-    TParam Params[13]; // McZapkie-070502 //Ra: zamieniæ to na union/struct
+    TParam Params[13]; // McZapkie-070502 //Ra: zamieniÄ‡ to na union/struct
     unsigned int iFlags; // zamiast Params[8] z flagami warunku
     std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
-    TEvent *evJoined; // kolejny event z t¹ sam¹ nazw¹ - od wersji 378
-    double fRandomDelay; // zakres dodatkowego opóŸnienia
+    TEvent *evJoined; // kolejny event z tÄ… samÄ… nazwÄ… - od wersji 378
+    double fRandomDelay; // zakres dodatkowego opÃ³Åºnienia
   public: // metody
     TEvent(std::string m = "");
     ~TEvent();

@@ -16,47 +16,46 @@ http://mozilla.org/MPL/2.0/.
 #include "PoKeys55.h"
 #include "mczapkie/mctools.h"
 
-
 //---------------------------------------------------------------------------
-// Ra: klasa statyczna gromadz�ca sygna�y steruj�ce oraz informacje zwrotne
-// Ra: stan wej�cia zmieniany klawiatur� albo dedykowanym urz�dzeniem
-// Ra: stan wyj�cia zmieniany przez symulacj� (mierniki, kontrolki)
+// Ra: klasa statyczna gromadząca sygnały sterujące oraz informacje zwrotne
+// Ra: stan wejścia zmieniany klawiaturą albo dedykowanym urządzeniem
+// Ra: stan wyjścia zmieniany przez symulację (mierniki, kontrolki)
 
 /*******************************
-Do klawisza klawiatury przypisana jest maska bitowa oraz numer wej�cia.
-Naci�ni�cie klawisza powoduje wywo�anie procedury ustawienia bitu o podanej
-masce na podanym wej�ciu. Zwonienie klawisza analogicznie wywo�uje zerowanie
+Do klawisza klawiatury przypisana jest maska bitowa oraz numer wejścia.
+Naciśnięcie klawisza powoduje wywołanie procedury ustawienia bitu o podanej
+masce na podanym wejściu. Zwonienie klawisza analogicznie wywołuje zerowanie
 bitu wg maski. Zasadniczo w masce ustawiony jest jeden bit, ale w razie
-potrzeby mo�e by� ich wi�cej.
+potrzeby może być ich więcej.
 
-Oddzielne wej�cia s� wprowadzone po to, by mo�na by�o u�ywa� wi�cej ni� 32
-bity do sterowania. Podzia� na wej�cia jest r�wnie� ze wzgl�d�w organizacyjnych,
-np. sterowanie �wiat�ami mo�e mie� oddzielny numer wej�cia ni� prze��czanie
-radia, poniewa� nie ma potrzeby ich uzale�nia� (tzn. bada� wsp�ln� mask� bitow�).
+Oddzielne wejścia są wprowadzone po to, by można było używać więcej niż 32
+bity do sterowania. Podział na wejścia jest również ze względów organizacyjnych,
+np. sterowanie światłami może mieć oddzielny numer wejścia niż przełączanie
+radia, ponieważ nie ma potrzeby ich uzależniać (tzn. badać wspólną maskę bitową).
 
-Do ka�dego wej�cia podpi�ty jest skrypt binarny, charakterystyczny dla danej
-konstrukcji pojazdu. Sprawdza on zale�no�ci (w tym uszkodzenia) za pomoc�
-operacji logicznych na maskach bitowych. Do ka�dego wej�cia jest przypisana
-jedna, oddzielna maska 32 bit, ale w razie potrzeby istnieje te� mo�liwo��
-korzystania z masek innych wej��. Skrypt mo�e te� wysy�a� maski na inne wej�cia,
-ale nale�y unika� rekurencji.
+Do każdego wejścia podpięty jest skrypt binarny, charakterystyczny dla danej
+konstrukcji pojazdu. Sprawdza on zależności (w tym uszkodzenia) za pomocą
+operacji logicznych na maskach bitowych. Do każdego wejścia jest przypisana
+jedna, oddzielna maska 32 bit, ale w razie potrzeby istnieje też możliwość
+korzystania z masek innych wejść. Skrypt może też wysyłać maski na inne wejścia,
+ale należy unikać rekurencji.
 
-Definiowanie wej�� oraz przeznaczenia ich masek jest w gestii konstruktora
-skryptu. Ka�dy pojazd mo�e mie� inny schemat wej�� i masek, ale w miar� mo�liwo�ci
-nale�y d��y� do unifikacji. Skrypty mog� r�wnie� u�ywa� dodatkowych masek bitowych.
-Maski bitowe odpowiadaj� stanom prze��cznik�w, czujnik�w, stycznik�w itd.
+Definiowanie wejść oraz przeznaczenia ich masek jest w gestii konstruktora
+skryptu. Każdy pojazd może mieć inny schemat wejść i masek, ale w miarę możliwości
+należy dążyć do unifikacji. Skrypty mogą również używać dodatkowych masek bitowych.
+Maski bitowe odpowiadają stanom przełączników, czujników, styczników itd.
 
-Dzia�anie jest nast�puj�ce:
+Działanie jest następujące:
 - na klawiaturze konsoli naciskany jest przycisk
-- naci�ni�cie przycisku zamieniane jest na mask� bitow� oraz numer wej�cia
-- wywo�ywany jest skrypt danego wej�cia z ow� mask�
-- skrypt sprawdza zale�no�ci i np. modyfikuje w�asno�ci fizyki albo inne maski
-- ewentualnie do wyzwalacza czasowego dodana jest maska i numer wej�cia
+- naciśnięcie przycisku zamieniane jest na maskę bitową oraz numer wejścia
+- wywoływany jest skrypt danego wejścia z ową maską
+- skrypt sprawdza zależności i np. modyfikuje własności fizyki albo inne maski
+- ewentualnie do wyzwalacza czasowego dodana jest maska i numer wejścia
 
 /*******************************/
 
 /* //kod do przetrawienia:
-//aby si� nie w��czacz wygaszacz ekranu, co jaki� czas naciska si� wirtualnie ScrollLock
+//aby się nie włączacz wygaszacz ekranu, co jakiś czas naciska się wirtualnie ScrollLock
 
 [DllImport("user32.dll")]
 static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
@@ -110,20 +109,20 @@ void SetLedState(char Code, bool bOn){
 
 //---------------------------------------------------------------------------
 
-int Console::iBits = 0; // zmienna statyczna - obiekt Console jest jednen wsp�lny
+int Console::iBits = 0; // zmienna statyczna - obiekt Console jest jednen wspólny
 int Console::iMode = 0;
 int Console::iConfig = 0;
 TPoKeys55 *Console::PoKeys55[2] = {NULL, NULL};
 TLPT *Console::LPT = NULL;
 MWDComm *Console::MWD = NULL; // maciek001: obiekt dla MWD
-int Console::iSwitch[8]; // bistabilne w kabinie, za��czane z [Shift], wy��czane bez
-int Console::iButton[8]; // monostabilne w kabinie, za��czane podczas trzymania klawisza
+int Console::iSwitch[8]; // bistabilne w kabinie, załączane z [Shift], wyłączane bez
+int Console::iButton[8]; // monostabilne w kabinie, załączane podczas trzymania klawisza
 
 Console::Console()
 {
     PoKeys55[0] = PoKeys55[1] = NULL;
     for (int i = 0; i < 8; ++i)
-    { // zerowanie prze��cznik�w
+    { // zerowanie przełączników
         iSwitch[i] = 0; // bity 0..127 - bez [Ctrl], 128..255 - z [Ctrl]
         iButton[i] = 0; // bity 0..127 - bez [Shift], 128..255 - z [Shift]
     }
@@ -143,24 +142,24 @@ void Console::ModeSet(int m, int h)
 };
 
 int Console::On()
-{ // za��czenie konsoli (np. nawi�zanie komunikacji)
+{ // załączenie konsoli (np. nawiązanie komunikacji)
     iSwitch[0] = iSwitch[1] = iSwitch[2] = iSwitch[3] = 0; // bity 0..127 - bez [Ctrl]
     iSwitch[4] = iSwitch[5] = iSwitch[6] = iSwitch[7] = 0; // bity 128..255 - z [Ctrl]
     switch (iMode)
     {
     case 1: // kontrolki klawiatury
     case 2: // kontrolki klawiatury
-        iConfig = 0; // licznik u�ycia Scroll Lock
+        iConfig = 0; // licznik użycia Scroll Lock
         break;
     case 3: // LPT
         LPT = new TLPT(); // otwarcie inpout32.dll
         if (LPT ? LPT->Connect(iConfig) : false)
-        { // wys�a� 0?
-            BitsUpdate(-1); // aktualizacjia stan�w, bo przy wczytywaniu mog�o by� nieaktywne
+        { // wysłać 0?
+            BitsUpdate(-1); // aktualizacjia stanów, bo przy wczytywaniu mogło być nieaktywne
             WriteLog("Feedback Mode 3: InpOut32.dll OK");
         }
         else
-        { // po��czenie nie wysz�o, ma by� NULL
+        { // połączenie nie wyszło, ma być NULL
             delete LPT;
             LPT = NULL;
         }
@@ -170,10 +169,10 @@ int Console::On()
         if (PoKeys55[0] ? PoKeys55[0]->Connect() : false)
         {
             WriteLog("Found " + PoKeys55[0]->Version());
-            BitsUpdate(-1); // aktualizacjia stan�w, bo przy wczytywaniu mog�o by� nieaktywne
+            BitsUpdate(-1); // aktualizacjia stanów, bo przy wczytywaniu mogło być nieaktywne
         }
         else
-        { // po��czenie nie wysz�o, ma by� NULL
+        { // połączenie nie wyszło, ma być NULL
             delete PoKeys55[0];
             PoKeys55[0] = NULL;
         }
@@ -193,12 +192,12 @@ int Console::On()
 };
 
 void Console::Off()
-{ // wy��czenie informacji zwrotnych (reset pulpitu)
+{ // wyłączenie informacji zwrotnych (reset pulpitu)
     BitsClear(-1);
     if ((iMode == 1) || (iMode == 2))
-        if (iConfig & 1) // licznik u�ycia Scroll Lock
-        { // bez sensu to jest, ale mi si� samo w��cza
-            SetLedState(VK_SCROLL, true); // przyci�ni�ty
+        if (iConfig & 1) // licznik użycia Scroll Lock
+        { // bez sensu to jest, ale mi się samo włącza
+            SetLedState(VK_SCROLL, true); // przyciśnięty
             SetLedState(VK_SCROLL, false); // zwolniony
         }
     delete PoKeys55[0];
@@ -212,12 +211,12 @@ void Console::Off()
 };
 
 void Console::BitsSet(int mask, int entry)
-{ // ustawienie bit�w o podanej masce (mask) na wej�ciu (entry)
-    if ((iBits & mask) != mask) // je�eli zmiana
+{ // ustawienie bitów o podanej masce (mask) na wejściu (entry)
+    if ((iBits & mask) != mask) // jeżeli zmiana
     {
         int old = iBits; // poprzednie stany
         iBits |= mask;
-        BitsUpdate(old ^ iBits); // 1 dla bit�w zmienionych
+        BitsUpdate(old ^ iBits); // 1 dla bitów zmienionych
         if (iMode == 4)
             WriteLog("PoKeys::BitsSet: mask: " + std::to_string(mask) +
                      " iBits: " + std::to_string(iBits));
@@ -225,87 +224,87 @@ void Console::BitsSet(int mask, int entry)
 };
 
 void Console::BitsClear(int mask, int entry)
-{ // zerowanie bit�w o podanej masce (mask) na wej�ciu (entry)
-    if (iBits & mask) // je�eli zmiana
+{ // zerowanie bitów o podanej masce (mask) na wejściu (entry)
+    if (iBits & mask) // jeżeli zmiana
     {
         int old = iBits; // poprzednie stany
         iBits &= ~mask;
-        BitsUpdate(old ^ iBits); // 1 dla bit�w zmienionych
+        BitsUpdate(old ^ iBits); // 1 dla bitów zmienionych
     }
 };
 
 void Console::BitsUpdate(int mask)
-{ // aktualizacja stanu interfejsu informacji zwrotnej; (mask) - zakres zmienianych bit�w
+{ // aktualizacja stanu interfejsu informacji zwrotnej; (mask) - zakres zmienianych bitów
     switch (iMode)
     {
-    case 1: // sterowanie �wiate�kami klawiatury: CA/SHP+opory
+    case 1: // sterowanie światełkami klawiatury: CA/SHP+opory
         if (mask & 3) // gdy SHP albo CA
             SetLedState(VK_CAPITAL, iBits & 3);
         if (mask & 4) // gdy jazda na oporach
-        { // Scroll Lock ma jako� dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_SCROLL, true); // przyci�ni�ty
+        { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
+            SetLedState(VK_SCROLL, true); // przyciśnięty
             SetLedState(VK_SCROLL, false); // zwolniony
-            ++iConfig; // licznik u�ycia Scroll Lock
+            ++iConfig; // licznik użycia Scroll Lock
         }
         break;
-    case 2: // sterowanie �wiate�kami klawiatury: CA+SHP
+    case 2: // sterowanie światełkami klawiatury: CA+SHP
         if (mask & 2) // gdy CA
             SetLedState(VK_CAPITAL, iBits & 2);
         if (mask & 1) // gdy SHP
-        { // Scroll Lock ma jako� dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_SCROLL, true); // przyci�ni�ty
+        { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
+            SetLedState(VK_SCROLL, true); // przyciśnięty
             SetLedState(VK_SCROLL, false); // zwolniony
-            ++iConfig; // licznik u�ycia Scroll Lock
+            ++iConfig; // licznik użycia Scroll Lock
         }
         break;
-    case 3: // LPT Marcela z modyfikacj� (jazda na oporach zamiast brz�czyka)
+    case 3: // LPT Marcela z modyfikacją (jazda na oporach zamiast brzęczyka)
         if (LPT)
             LPT->Out(iBits);
         break;
-    case 4: // PoKeys55 wg Marcela - wersja druga z ko�ca 2012
+    case 4: // PoKeys55 wg Marcela - wersja druga z końca 2012
         if (PoKeys55[0])
-        { // pewnie trzeba b�dzie to dodatkowo buforowa� i oczekiwa� na potwierdzenie
+        { // pewnie trzeba będzie to dodatkowo buforować i oczekiwać na potwierdzenie
             if (mask & 0x0001) // b0 gdy SHP
                 PoKeys55[0]->Write(0x40, 23 - 1, (iBits & 0x0001) ? 1 : 0);
             if (mask & 0x0002) // b1 gdy zmieniony CA
                 PoKeys55[0]->Write(0x40, 24 - 1, (iBits & 0x0002) ? 1 : 0);
             if (mask & 0x0004) // b2 gdy jazda na oporach
                 PoKeys55[0]->Write(0x40, 32 - 1, (iBits & 0x0004) ? 1 : 0);
-            if (mask & 0x0008) // b3 Lampka WS (wy��cznika szybkiego)
+            if (mask & 0x0008) // b3 Lampka WS (wyłącznika szybkiego)
                 PoKeys55[0]->Write(0x40, 25 - 1, (iBits & 0x0008) ? 1 : 0);
-            if (mask & 0x0010) // b4 Lampka przeka�nika nadmiarowego silnik�w trakcyjnych
+            if (mask & 0x0010) // b4 Lampka przekaźnika nadmiarowego silników trakcyjnych
                 PoKeys55[0]->Write(0x40, 27 - 1, (iBits & 0x0010) ? 1 : 0);
-            if (mask & 0x0020) // b5 Lampka stycznik�w liniowych
+            if (mask & 0x0020) // b5 Lampka styczników liniowych
                 PoKeys55[0]->Write(0x40, 29 - 1, (iBits & 0x0020) ? 1 : 0);
-            if (mask & 0x0040) // b6 Lampka po�lizgu
+            if (mask & 0x0040) // b6 Lampka poślizgu
                 PoKeys55[0]->Write(0x40, 30 - 1, (iBits & 0x0040) ? 1 : 0);
             if (mask & 0x0080) // b7 Lampka "przetwornicy"
                 PoKeys55[0]->Write(0x40, 28 - 1, (iBits & 0x0080) ? 1 : 0);
-            if (mask & 0x0100) // b8 Kontrolka przeka�nika nadmiarowego spr��arki
+            if (mask & 0x0100) // b8 Kontrolka przekaźnika nadmiarowego sprężarki
                 PoKeys55[0]->Write(0x40, 33 - 1, (iBits & 0x0100) ? 1 : 0);
-            if (mask & 0x0200) // b9 Kontrolka sygnalizacji wentylator�w i opor�w
+            if (mask & 0x0200) // b9 Kontrolka sygnalizacji wentylatorów i oporów
                 PoKeys55[0]->Write(0x40, 26 - 1, (iBits & 0x0200) ? 1 : 0);
             if (mask & 0x0400) // b10 Kontrolka wysokiego rozruchu
                 PoKeys55[0]->Write(0x40, 31 - 1, (iBits & 0x0400) ? 1 : 0);
-            if (mask & 0x0800) // b11 Kontrolka ogrzewania poci�gu
+            if (mask & 0x0800) // b11 Kontrolka ogrzewania pociągu
                 PoKeys55[0]->Write(0x40, 34 - 1, (iBits & 0x0800) ? 1 : 0);
-            if (mask & 0x1000) // b12 Ci�nienie w cylindrach do odbijania w haslerze
+            if (mask & 0x1000) // b12 Ciśnienie w cylindrach do odbijania w haslerze
                 PoKeys55[0]->Write(0x40, 52 - 1, (iBits & 0x1000) ? 1 : 0);
-            if (mask & 0x2000) // b13 Pr�d na silnikach do odbijania w haslerze
+            if (mask & 0x2000) // b13 Prąd na silnikach do odbijania w haslerze
                 PoKeys55[0]->Write(0x40, 53 - 1, (iBits & 0x2000) ? 1 : 0);
-            if (mask & 0x4000) // b14 Brz�czyk SHP lub CA
+            if (mask & 0x4000) // b14 Brzęczyk SHP lub CA
                 PoKeys55[0]->Write(0x40, 16 - 1, (iBits & 0x4000) ? 1 : 0);
         }
         break;
     case 5: // maciek001: MWD lampki i kontrolki
         /* out3: ogrzewanie sk?adu, opory rozruchowe, poslizg, zaluzjewent, -, -, czuwak, shp
-           out4: stycz.liniowe, pezekaznikr??nicobwpomoc, nadmiarprzetw, roznicowy obw. g?,
-           nadmiarsilniki, wylszybki, zanikpr?duprzyje?dzienaoporach, nadmiarsprezarki
+           out4: stycz.liniowe, pezekaznikróżnicobwpomoc, nadmiarprzetw, roznicowy obw. gł,
+           nadmiarsilniki, wylszybki, zanikprąduprzyjeździenaoporach, nadmiarsprezarki
            out5: HASLER */
         if (mask & 0x0001)
             if (iBits & 1)
             {
-                MWD->WriteDataBuff[4] |= 1 << 7; // SHP	HASLER te�
+                MWD->WriteDataBuff[4] |= 1 << 7; // SHP	HASLER też
                 if (!MWD->bSHPstate)
                 {
                     MWD->bSHPstate = true;
@@ -332,12 +331,12 @@ void Console::BitsUpdate(int mask)
                 MWD->WriteDataBuff[4] &= ~(1 << 1);
         if (mask & 0x0008)
             if (iBits & 8)
-                MWD->WriteDataBuff[5] |= 1 << 5; // wy??cznik szybki
+                MWD->WriteDataBuff[5] |= 1 << 5; // wyłącznik szybki
             else
                 MWD->WriteDataBuff[5] &= ~(1 << 5);
         if (mask & 0x0010)
             if (iBits & 0x10)
-                MWD->WriteDataBuff[5] |= 1 << 4; // nadmiarowy silnik?w trakcyjnych
+                MWD->WriteDataBuff[5] |= 1 << 4; // nadmiarowy silników trakcyjnych
             else
                 MWD->WriteDataBuff[5] &= ~(1 << 4);
         if (mask & 0x0020)
@@ -347,7 +346,7 @@ void Console::BitsUpdate(int mask)
                 MWD->WriteDataBuff[5] &= ~(1 << 0);
         if (mask & 0x0040)
             if (iBits & 0x40)
-                MWD->WriteDataBuff[4] |= 1 << 2; // po?lizg
+                MWD->WriteDataBuff[4] |= 1 << 2; // poślizg
             else
                 MWD->WriteDataBuff[4] &= ~(1 << 2);
         if (mask & 0x0080)
@@ -357,7 +356,7 @@ void Console::BitsUpdate(int mask)
                 MWD->WriteDataBuff[5] &= ~(1 << 2);
         if (mask & 0x0100)
             if (iBits & 0x100)
-                MWD->WriteDataBuff[5] |= 1 << 7; // nadmiarowy spr??arki
+                MWD->WriteDataBuff[5] |= 1 << 7; // nadmiarowy sprężarki
             else
                 MWD->WriteDataBuff[5] &= ~(1 << 7);
         if (mask & 0x0200)
@@ -372,23 +371,23 @@ void Console::BitsUpdate(int mask)
                 MWD->WriteDataBuff[2] &= ~(1 << 2);
         if (mask & 0x0800)
             if (iBits & 0x800)
-                MWD->WriteDataBuff[4] |= 1 << 0; // ogrzewanie poci?gu
+                MWD->WriteDataBuff[4] |= 1 << 0; // ogrzewanie pociągu
             else
                 MWD->WriteDataBuff[4] &= ~(1 << 0);
         if (mask & 0x1000)
             if (iBits & 0x1000)
-                MWD->bHamowanie = true; // hasler: ci?nienie w hamulcach 	HASLER rysik 2
+                MWD->bHamowanie = true; // hasler: ciśnienie w hamulcach 	HASLER rysik 2
             else
                 MWD->bHamowanie = false;
         if (mask & 0x2000)
             if (iBits & 0x2000)
                 MWD->WriteDataBuff[6] |=
-                    1 << 4; // hasler: pr?d "na" silnikach 		HASLER rysik 3
+                    1 << 4; // hasler: prąd "na" silnikach 		HASLER rysik 3
             else
                 MWD->WriteDataBuff[6] &= ~(1 << 4);
         if (mask & 0x4000)
             if (iBits & 0x4000)
-                MWD->WriteDataBuff[6] |= 1 << 7; // brz?czyk SHP/CA
+                MWD->WriteDataBuff[6] |= 1 << 7; // brzęczyk SHP/CA
             else
                 MWD->WriteDataBuff[6] &= ~(1 << 7);
         // if(mask & 0x8000) if(iBits & 0x8000) MWD->WriteDataBuff[1] |= 1<<7; (puste)
@@ -398,12 +397,12 @@ void Console::BitsUpdate(int mask)
 };
 
 bool Console::Pressed(int x)
-{ // na razie tak - czyta si� tylko klawiatura
+{ // na razie tak - czyta się tylko klawiatura
     return Global::bActive && (GetKeyState(x) < 0);
 };
 
 void Console::ValueSet(int x, double y)
-{ // ustawienie warto�ci (y) na kanale analogowym (x)
+{ // ustawienie wartości (y) na kanale analogowym (x)
     if (iMode == 4)
         if (PoKeys55[0])
         {
@@ -415,8 +414,8 @@ void Console::ValueSet(int x, double y)
                 y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
                 if (Global::iCalibrateOutDebugInfo == x)
                     WriteLog(" cutted=" + std::to_string(y), false);
-                y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> je�li podana
-                // maksymalna warto��
+                y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeśli podana
+                                                     // maksymalna wartość
                 if (Global::iCalibrateOutDebugInfo == x)
                     WriteLog(" fraction=" + std::to_string(y), false);
             }
@@ -432,20 +431,20 @@ void Console::ValueSet(int x, double y)
                 WriteLog(" calibrated=" + std::to_string(temp));
             PoKeys55[0]->PWM(x, temp);
         }
-    if (iMode == 5 && MWD) // pwm-y i pr�dko��
+    if (iMode == 5 && MWD) // pwm-y i prędkość
     {
         unsigned int iliczba;
         if (x == 0)
         {
             iliczba = (unsigned int)floor((y / (Global::fMWDzg[0] * 10) * Global::fMWDzg[1]) +
-                                          0.5); // zbiornik g??wny
+                                          0.5); // zbiornik główny
             MWD->WriteDataBuff[12] = (unsigned char)(iliczba >> 8);
             MWD->WriteDataBuff[11] = (unsigned char)iliczba;
         }
         else if (x == 1)
         {
             iliczba = (unsigned int)floor((y / (Global::fMWDpg[0] * 10) * Global::fMWDpg[1]) +
-                                          0.5); // przew?d g??wny
+                                          0.5); // przewód główny
             MWD->WriteDataBuff[10] = (unsigned char)(iliczba >> 8);
             MWD->WriteDataBuff[9] = (unsigned char)iliczba;
         }
@@ -485,24 +484,24 @@ void Console::ValueSet(int x, double y)
             MWD->WriteDataBuff[19] = (unsigned char)iliczba;
         }
         else if (x == 7)
-            MWD->WriteDataBuff[0] = (unsigned char)floor(y); // pr�dko��
+            MWD->WriteDataBuff[0] = (unsigned char)floor(y); // prędkość
     }
 };
 
 void Console::Update()
-{ // funkcja powinna by� wywo�ywana regularnie, np. raz w ka�dej ramce ekranowej
+{ // funkcja powinna być wywoływana regularnie, np. raz w każdej ramce ekranowej
     if (iMode == 4)
         if (PoKeys55[0])
             if (PoKeys55[0]->Update((Global::iPause & 8) > 0))
-            { // wykrycie przestawionych prze��cznik�w?
+            { // wykrycie przestawionych przełączników?
                 Global::iPause &= ~8;
             }
             else
-            { // b��d komunikacji - zapauzowa� symulacj�?
-                if (!(Global::iPause & 8)) // je�li jeszcze nie oflagowana
+            { // błąd komunikacji - zapauzować symulację?
+                if (!(Global::iPause & 8)) // jeśli jeszcze nie oflagowana
                     Global::iTextMode = VK_F1; // pokazanie czasu/pauzy
                 Global::iPause |= 8; // tak???
-                PoKeys55[0]->Connect(); // pr�ba ponownego pod��czenia
+                PoKeys55[0]->Connect(); // próba ponownego podłączenia
             }
     if (iMode == 5) // Obs?uga MWD OK
     {
@@ -511,7 +510,7 @@ void Console::Update()
 };
 
 float Console::AnalogGet(int x)
-{ // pobranie warto�ci analogowej
+{ // pobranie wartości analogowej
     if (iMode == 4)
         if (PoKeys55[0])
             return PoKeys55[0]->fAnalog[x];
@@ -519,7 +518,7 @@ float Console::AnalogGet(int x)
 };
 
 float Console::AnalogCalibrateGet(int x)
-{ // pobranie i kalibracja warto�ci analogowej, je�li nie ma PoKeys zwraca NULL
+{ // pobranie i kalibracja wartości analogowej, jeśli nie ma PoKeys zwraca NULL
     if (iMode == 4 && PoKeys55[0])
     {
         float b = PoKeys55[0]->fAnalog[x];
@@ -551,11 +550,11 @@ float Console::AnalogCalibrateGet(int x)
             return 0;
         }
     }
-    return -1.0; // odci�cie
+    return -1.0; // odcięcie
 };
 
 unsigned char Console::DigitalGet(int x)
-{ // pobranie warto�ci cyfrowej
+{ // pobranie wartości cyfrowej
     if (iMode == 4)
         if (PoKeys55[0])
             return PoKeys55[0]->iInputs[x];
@@ -563,35 +562,35 @@ unsigned char Console::DigitalGet(int x)
 };
 
 void Console::OnKeyDown(int k)
-{ // naci�ni�cie klawisza z powoduje wy��czenie, a
-    if (k & 0x10000) // je�li [Shift]
-    { // ustawienie bitu w tabeli prze��cznik�w bistabilnych
-        if (k & 0x20000) // je�li [Ctrl], to zestaw dodatkowy
-            iSwitch[4 + (char(k) >> 5)] |= 1 << (k & 31); // za��cz bistabliny dodatkowy
+{ // naciśnięcie klawisza z powoduje wyłączenie, a
+    if (k & 0x10000) // jeśli [Shift]
+    { // ustawienie bitu w tabeli przełączników bistabilnych
+        if (k & 0x20000) // jeśli [Ctrl], to zestaw dodatkowy
+            iSwitch[4 + (char(k) >> 5)] |= 1 << (k & 31); // załącz bistabliny dodatkowy
         else
-        { // z [Shift] w��czenie bitu bistabilnego i dodatkowego monostabilnego
-            iSwitch[char(k) >> 5] |= 1 << (k & 31); // za��cz bistabliny podstawowy
-            iButton[4 + (char(k) >> 5)] |= (1 << (k & 31)); // za��cz monostabilny dodatkowy
+        { // z [Shift] włączenie bitu bistabilnego i dodatkowego monostabilnego
+            iSwitch[char(k) >> 5] |= 1 << (k & 31); // załącz bistabliny podstawowy
+            iButton[4 + (char(k) >> 5)] |= (1 << (k & 31)); // załącz monostabilny dodatkowy
         }
     }
     else
-    { // zerowanie bitu w tabeli prze��cznik�w bistabilnych
-        if (k & 0x20000) // je�li [Ctrl], to zestaw dodatkowy
-            iSwitch[4 + (char(k) >> 5)] &= ~(1 << (k & 31)); // wy��cz bistabilny dodatkowy
+    { // zerowanie bitu w tabeli przełączników bistabilnych
+        if (k & 0x20000) // jeśli [Ctrl], to zestaw dodatkowy
+            iSwitch[4 + (char(k) >> 5)] &= ~(1 << (k & 31)); // wyłącz bistabilny dodatkowy
         else
         {
-            iSwitch[char(k) >> 5] &= ~(1 << (k & 31)); // wy��cz bistabilny podstawowy
-            iButton[char(k) >> 5] |= 1 << (k & 31); // za��cz monostabilny podstawowy
+            iSwitch[char(k) >> 5] &= ~(1 << (k & 31)); // wyłącz bistabilny podstawowy
+            iButton[char(k) >> 5] |= 1 << (k & 31); // załącz monostabilny podstawowy
         }
     }
 };
 void Console::OnKeyUp(int k)
 { // puszczenie klawisza w zasadzie nie ma znaczenia dla iSwitch, ale zeruje iButton
     if ((k & 0x20000) == 0) // monostabilne tylko bez [Ctrl]
-        if (k & 0x10000) // je�li [Shift]
-            iButton[4 + (char(k) >> 5)] &= ~(1 << (k & 31)); // wy��cz monostabilny dodatkowy
+        if (k & 0x10000) // jeśli [Shift]
+            iButton[4 + (char(k) >> 5)] &= ~(1 << (k & 31)); // wyłącz monostabilny dodatkowy
         else
-            iButton[char(k) >> 5] &= ~(1 << (k & 31)); // wy��cz monostabilny podstawowy
+            iButton[char(k) >> 5] &= ~(1 << (k & 31)); // wyłącz monostabilny podstawowy
 };
 int Console::KeyDownConvert(int k)
 {
