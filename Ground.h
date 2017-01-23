@@ -187,7 +187,7 @@ class TSubRect : public Resource, public CMesh
   protected:
     TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
     TGroundNode *nRootMesh = nullptr; // obiekty renderujące wg tekstury (wtórne, lista po nNext2)
-    TGroundNode *nMeshed = nullptr; / lista obiektów dla których istnieją obiekty renderujące grupowo
+    TGroundNode *nMeshed = nullptr; // lista obiektów dla których istnieją obiekty renderujące grupowo
   public:
     TGroundNode *
         nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
