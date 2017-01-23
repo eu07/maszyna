@@ -8,11 +8,11 @@ http://mozilla.org/MPL/2.0/.
 */
 
 /*
-    Program obs³ugi portu COM i innych na potrzeby sterownika MWDevice
-        (oraz innych wykorzystuj¹cych komunikacjê przez port COM)
-    dla Symulatora Pojazdów Szynowych MaSzyna
+    Program obsÅ‚ugi portu COM i innych na potrzeby sterownika MWDevice
+        (oraz innych wykorzystujÄ…cych komunikacjÄ™ przez port COM)
+    dla Symulatora PojazdÃ³w Szynowych MaSzyna
     author: Maciej Witek 2016
-        Autor nie ponosi odpowiedzialnoœci za niew³aciwe u¿ywanie lub dzia³anie programu!
+        Autor nie ponosi odpowiedzialnoÅ›ci za niewÅ‚aciwe uÅ¼ywanie lub dziaÅ‚anie programu!
 */
 #include "stdafx.h"
 #include "MWD.h"
@@ -22,8 +22,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include <windows.h>
 
-#define BYTETOWRITE 31 /* iloœæ bajtów przesy³anych z MaSzyny*/
-#define BYTETOREAD 16 /* iloœæ bajtów przesy³anych do MaSzyny*/
+#define BYTETOWRITE 31 /* iloÅ›Ä‡ bajtÃ³w przesyÅ‚anych z MaSzyny*/
+#define BYTETOREAD 16 /* iloÅ›Ä‡ bajtÃ³w przesyÅ‚anych do MaSzyny*/
 
 HANDLE hComm;
 
@@ -32,7 +32,7 @@ MWDComm::MWDComm() // konstruktor
     MWDTime = 0;
     bSHPstate = false;
     bPrzejazdSHP = false;
-    bKabina1 = true; // pasuje wyci¹gn¹æ dane na temat kabiny i ustawiaæ te dwa parametry!
+    bKabina1 = true; // pasuje wyciÄ…gnÄ…Ä‡ dane na temat kabiny i ustawiaÄ‡ te dwa parametry!
     bKabina2 = false;
     bHamowanie = false;
     bCzuwak = false;
@@ -134,7 +134,7 @@ bool MWDComm::Close() // zamykanie portu COM
         i++;
     }
     Sleep(100);
-    SendData(); // wysy³anie do pulpitu: zatrzymanie haslera i zgaszenie lampek
+    SendData(); // wysyÅ‚anie do pulpitu: zatrzymanie haslera i zgaszenie lampek
     Sleep(700);
     CloseHandle(hComm);
     WriteLog("COM is close!");
@@ -156,7 +156,7 @@ bool MWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i zap
 
     fAnalog[0] =
         (float)((ReadDataBuff[9] << 8) + ReadDataBuff[8]) /
-        Global::fMWDAnalogCalib[0][3]; // 4095.0f; //max wartosc wynikaj¹ca z rozdzielczoœci
+        Global::fMWDAnalogCalib[0][3]; // 4095.0f; //max wartosc wynikajÄ…ca z rozdzielczoÅ›ci
     fAnalog[1] =
         (float)((ReadDataBuff[11] << 8) + ReadDataBuff[10]) / Global::fMWDAnalogCalib[1][3];
     fAnalog[2] =
@@ -168,7 +168,7 @@ bool MWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i zap
     return TRUE;
 }
 
-bool MWDComm::SendData() // wysy³anie danych
+bool MWDComm::SendData() // wysyÅ‚anie danych
 {
     DWORD bytes_write;
     DWORD fdwEvtMask;
@@ -178,7 +178,7 @@ bool MWDComm::SendData() // wysy³anie danych
     return TRUE;
 }
 
-bool MWDComm::Run() // wywo³ywanie obs³ugi MWD + generacja wiêkszego opóŸnienia
+bool MWDComm::Run() // wywoÅ‚ywanie obsÅ‚ugi MWD + generacja wiÄ™kszego opÃ³Åºnienia
 {
     MWDTime++;
     if (!(MWDTime % 5))
@@ -193,14 +193,14 @@ bool MWDComm::Run() // wywo³ywanie obs³ugi MWD + generacja wiêkszego opóŸnienia
         else
         {
             WriteLog("Port COM: connection ERROR!");
-            // mo¿e spróbowaæ siê po³¹czyæ znowu?
+            // moÅ¼e sprÃ³bowaÄ‡ siÄ™ poÅ‚Ä…czyÄ‡ znowu?
             return 0;
         }
         MWDTime = 0;
     }
 }
 
-void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowanie maszyn¹
+void MWDComm::CheckData() // sprawdzanie wejÅ›Ä‡ cyfrowych i odpowiednie sterowanie maszynÄ…
 {
     int i = 0;
     while (i < 6)
@@ -210,23 +210,23 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
         i++;
     }
     /*
-                Rozpiska portów!
-                Port0: 	0 	NC			odblok. przek. sprê¿arki i wentyl. oporów
-                                1 	M			wy³¹cznik wy³. szybkiego
-                                2 	Shift+M		impuls za³¹czaj¹cy wy³. szybki
-                                3 	N			odblok. przekaŸników nadmiarowych
-       i ró¿nicowego obwodu g³ównego
+                Rozpiska portÃ³w!
+                Port0: 	0 	NC			odblok. przek. sprÄ™Å¼arki i wentyl. oporÃ³w
+                                1 	M			wyÅ‚Ä…cznik wyÅ‚. szybkiego
+                                2 	Shift+M		impuls zaÅ‚Ä…czajÄ…cy wyÅ‚. szybki
+                                3 	N			odblok. przekaÅºnikÃ³w nadmiarowych
+       i rÃ³Å¼nicowego obwodu gÅ‚Ã³wnego
                                 4 	NC			rezerwa
                                 5 	Ctrl+N		odblok. przek. nadmiarowych
-       przetwornicy, ogrzewania poci¹gu i ró¿nicowych obw. pomocniczych
-                                6 	L			wy³. styczników liniowych
+       przetwornicy, ogrzewania pociÄ…gu i rÃ³Å¼nicowych obw. pomocniczych
+                                6 	L			wyÅ‚. stycznikÃ³w liniowych
                                 7 	SPACE		kasowanie czuwaka
 
                 Port1: 	0 	NC
                                 1 	(Shift)	X	przetwornica
-                                2 	(Shift)	C	sprê¿arka
+                                2 	(Shift)	C	sprÄ™Å¼arka
                                 3 	S			piasecznice
-                                4 	(Shift)	H	ogrzewanie sk³adu
+                                4 	(Shift)	H	ogrzewanie skÅ‚adu
                                 5 				przel. hamowania	Shift+B
        pspbpwy Ctrl+B pospieszny B towarowy
                                 6 				przel. hamowania
@@ -234,10 +234,10 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
 
                 Port2: 	0 	(Shift) P	pantograf przedni
                                 1 	(Shift)	O	pantograf tylni
-                                2 	ENTER		przyhamowanie przy poœlizgu
-                                3 	()		przyciemnienie œwiate³
-                                4 	()		przyciemnienie œwiate³
-                                5 	NUM6		odluŸniacz
+                                2 	ENTER		przyhamowanie przy poÅ›lizgu
+                                3 	()		przyciemnienie Å›wiateÅ‚
+                                4 	()		przyciemnienie Å›wiateÅ‚
+                                5 	NUM6		odluÅºniacz
                                 6 	a			syrena lok W
                                 7	A			syrena lok N
 
@@ -251,18 +251,18 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
                                 7
         */
 
-    /*	po prze³¹czeniu bistabilnego najpierw wciskamy klawisz i przy nastêpnym
-                wejœciu w pêtlê MWD puszczamy bo inaczej nie dzia³a
+    /*	po przeÅ‚Ä…czeniu bistabilnego najpierw wciskamy klawisz i przy nastÄ™pnym
+                wejÅ›ciu w pÄ™tlÄ™ MWD puszczamy bo inaczej nie dziaÅ‚a
        */
 
-    // wciskanie przycisków klawiatury
+    // wciskanie przyciskÃ³w klawiatury
     /*PORT0*/
     if (maskData[0] & 0x02 && lastStateData[0] & 0x02)
-        KeyBoard('M', 1); // wy³¹czenie wy³¹cznika szybkiego
+        KeyBoard('M', 1); // wyÅ‚Ä…czenie wyÅ‚Ä…cznika szybkiego
     else
         KeyBoard('M', 0); // monostabilny
     if (maskData[0] & 0x04 && lastStateData[0] & 0x04)
-    { // impuls za³¹czaj¹cy wy³¹cznik szybki
+    { // impuls zaÅ‚Ä…czajÄ…cy wyÅ‚Ä…cznik szybki
         KeyBoard(0x10, 1); // monostabilny
         KeyBoard('M', 1);
     }
@@ -272,12 +272,12 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
         KeyBoard(0x10, 0);
     }
     if (maskData[0] & 0x08 && lastStateData[0] & 0x08)
-        KeyBoard('N', 1); // odblok nadmiarowego silników trakcyjnych
+        KeyBoard('N', 1); // odblok nadmiarowego silnikÃ³w trakcyjnych
     else
         KeyBoard('N', 0); // monostabilny
     if (maskData[0] & 0x20 && lastStateData[0] & 0x20)
     { // odblok nadmiarowego przetwornicy, ogrzewania poc.
-        KeyBoard(0x11, 1); // ró¿nicowego obwodów pomocniczych
+        KeyBoard(0x11, 1); // rÃ³Å¼nicowego obwodÃ³w pomocniczych
         KeyBoard('N', 1); // monostabilny
     }
     else
@@ -286,7 +286,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
         KeyBoard(0x11, 0);
     }
     if (maskData[0] & 0x40 && lastStateData[0] & 0x40)
-        KeyBoard('L', 1); // wy³. styczników liniowych
+        KeyBoard('L', 1); // wyÅ‚. stycznikÃ³w liniowych
     else
         KeyBoard('L', 0); // monostabilny
     if (maskData[0] & 0x80 && lastStateData[0] & 0x80)
@@ -365,7 +365,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
         KeyBoard('X', 1);
     }
     if (maskData[1] & 0x04 && lastStateData[1] & 0x04)
-    { // sprê¿arka
+    { // sprÄ™Å¼arka
         KeyBoard(0x10, 1); // bistabilny
         KeyBoard('C', 1);
         maskSwitch[1] |= 0x04;
@@ -382,7 +382,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
     else
         KeyBoard('S', 0); // monostabilny
     if (maskData[1] & 0x10 && lastStateData[1] & 0x10)
-    { // ogrzewanie sk³adu
+    { // ogrzewanie skÅ‚adu
         KeyBoard(0x11, 1); // bistabilny
         KeyBoard('H', 1);
         maskSwitch[1] |= 0x10;
@@ -395,7 +395,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
         KeyBoard('H', 1);
     }
     if (maskData[1] & 0x20 || maskData[1] & 0x40)
-    { // prze³¹cznik hamowania
+    { // przeÅ‚Ä…cznik hamowania
         if (lastStateData[1] & 0x20)
         { // Shift+B
             KeyBoard(0x10, 1);
@@ -475,7 +475,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
         KeyBoard('O', 1);
     }
     if (maskData[2] & 0x04 && lastStateData[2] & 0x04)
-    { // przyhamowanie przy poœlizgu
+    { // przyhamowanie przy poÅ›lizgu
         KeyBoard(0x10, 1); // monostabilny
         KeyBoard(0x0D, 1);
     }
@@ -485,7 +485,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
         KeyBoard(0x0D, 0);
         KeyBoard(0x10, 0);
     }
-    /*if(maskData[2] & 0x08 && lastStateData[2] & 0x08){           // przyciemnienie œwiate³
+    /*if(maskData[2] & 0x08 && lastStateData[2] & 0x08){           // przyciemnienie Å›wiateÅ‚
             KeyBoard(' ',0);	// bistabilny
             KeyBoard(0x10,1);
             KeyBoard(' ',1);
@@ -494,7 +494,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
             KeyBoard(0x10,0);
             KeyBoard(' ',1);
         }
-        if(maskData[2] & 0x10 && lastStateData[2] & 0x10)  {       // przyciemnienie œwiate³
+        if(maskData[2] & 0x10 && lastStateData[2] & 0x10)  {       // przyciemnienie Å›wiateÅ‚
             KeyBoard(' ',0);	// bistabilny
             KeyBoard(0x11,1);
             KeyBoard(' ',1);
@@ -504,7 +504,7 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
             KeyBoard(' ',1);
         }*/
     if (maskData[2] & 0x20 && lastStateData[2] & 0x20)
-        KeyBoard(0x66, 1); // odluŸniacz
+        KeyBoard(0x66, 1); // odluÅºniacz
     else
         KeyBoard(0x66, 0); // monostabilny
     if (maskData[2] & 0x40 && lastStateData[2] & 0x40)
@@ -713,28 +713,28 @@ void MWDComm::CheckData() // sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
     {
         bnkMask |= 1;
         nastawnik++;
-        KeyBoard(0x6B, 1); // wciœnij + i dodaj 1 do nastawnika
+        KeyBoard(0x6B, 1); // wciÅ›nij + i dodaj 1 do nastawnika
     }
     if (nastawnik > ReadDataBuff[6])
     {
         bnkMask |= 2;
         nastawnik--;
-        KeyBoard(0x6D, 1); // wciœnij - i odejmij 1 do nastawnika
+        KeyBoard(0x6D, 1); // wciÅ›nij - i odejmij 1 do nastawnika
     }
     if (bocznik < ReadDataBuff[7])
     {
         bnkMask |= 4;
         bocznik++;
-        KeyBoard(0x6F, 1); // wciœnij / i dodaj 1 do bocznika
+        KeyBoard(0x6F, 1); // wciÅ›nij / i dodaj 1 do bocznika
     }
     if (bocznik > ReadDataBuff[7])
     {
         bnkMask |= 8;
         bocznik--;
-        KeyBoard(0x6A, 1); // wciœnij * i odejmij 1 do bocznika
+        KeyBoard(0x6A, 1); // wciÅ›nij * i odejmij 1 do bocznika
     }
 
-    /* Obs³uga HASLERA */
+    /* ObsÅ‚uga HASLERA */
     if (ReadDataBuff[0] & 0x80)
         bCzuwak = true;
 
