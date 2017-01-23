@@ -129,7 +129,7 @@ void TRapid::Update(double dt)
         BrakeRes->Flow(-dV);
 }
 
-// ------ PRZEK£ADNIK CI¥G£Y ------
+// ------ PRZEKÅADNIK CIÄ„GÅY ------
 
 void TPrzekCiagly::SetMult(double m)
 {
@@ -157,7 +157,7 @@ void TPrzekCiagly::Update(double dt)
         BrakeRes->Flow(-dV);
 }
 
-// ------ PRZEK£ADNIK CI¥G£Y ------
+// ------ PRZEKÅADNIK CIÄ„GÅY ------
 
 void TPrzek_PZZ::SetLBP(double P)
 {
@@ -514,7 +514,7 @@ void TNESt3::SetSize(int size, std::string params) // ustawianie dysz (rozmiaru 
         Przekladniki[3] = new TPrzeciwposlizg();
         if (params.find("-ED") != std::string::npos)
         {
-            delete Przekladniki[3]; // tutaj ma byæ destruktor
+            delete Przekladniki[3]; // tutaj ma byÄ‡ destruktor
             Przekladniki[1]->SetRapidParams(2, 18);
             Przekladniki[3] = new TPrzekED();
         }

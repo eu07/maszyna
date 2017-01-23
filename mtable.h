@@ -14,11 +14,11 @@ http://mozilla.org/MPL/2.0/.
 namespace Mtable
 {
 
-static int const MaxTTableSize = 100; // mo¿na by to robiæ dynamicznie
+static int const MaxTTableSize = 100; // moÅ¼na by to robiÄ‡ dynamicznie
 static char const *hrsd = ".";
 
-// Ra: pozycja zerowa rozk³adu chyba nie ma sensu
-// Ra: numeracja przystanków jest 1..StationCount
+// Ra: pozycja zerowa rozkÅ‚adu chyba nie ma sensu
+// Ra: numeracja przystankÃ³w jest 1..StationCount
 
 struct TMTableLine
 {
@@ -61,8 +61,8 @@ class TTrainParameters
     std::string LocSeries; // seria (typ) pojazdu
     double LocLoad;
     TMTable TimeTable;
-    int StationCount; // iloœæ przystanków (0-techniczny)
-    int StationIndex; // numer najbli¿szego (aktualnego) przystanku
+    int StationCount; // iloÅ›Ä‡ przystankÃ³w (0-techniczny)
+    int StationIndex; // numer najbliÅ¼szego (aktualnego) przystanku
     std::string NextStationName;
     double LastStationLatency;
     int Direction; /*kierunek jazdy w/g kilometrazu*/

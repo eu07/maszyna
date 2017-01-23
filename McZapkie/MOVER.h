@@ -130,15 +130,15 @@ static int const dtrain_out = 128;         /*wykolejenie*/
 #define p_slippdmg  (1.000000E-03)
 
 										   /*typ sprzegu*/
-static int const ctrain_virtual = 0;        //gdy pojazdy na tym samym torze siê widz¹ wzajemnie
+static int const ctrain_virtual = 0;        //gdy pojazdy na tym samym torze siÄ™ widzÄ… wzajemnie
 static int const ctrain_coupler = 1;        //sprzeg fizyczny
 static int const ctrain_pneumatic = 2;      //przewody hamulcowe
-static int const ctrain_controll = 4;       //przewody steruj¹ce (ukrotnienie)
-static int const ctrain_power = 8;          //przewody zasilaj¹ce (WN)
-static int const ctrain_passenger = 16;     //mostek przejœciowy
-static int const ctrain_scndpneumatic = 32; //przewody 8 atm (¿ó³te; zasilanie powietrzem)
+static int const ctrain_controll = 4;       //przewody sterujÄ…ce (ukrotnienie)
+static int const ctrain_power = 8;          //przewody zasilajÄ…ce (WN)
+static int const ctrain_passenger = 16;     //mostek przejÅ›ciowy
+static int const ctrain_scndpneumatic = 32; //przewody 8 atm (Å¼Ã³Å‚te; zasilanie powietrzem)
 static int const ctrain_heating = 64;       //przewody ogrzewania WN
-static int const ctrain_depot = 128;        //nie roz³¹czalny podczas zwyk³ych manewrów (miêdzycz³onowy), we wpisie wartoœæ ujemna
+static int const ctrain_depot = 128;        //nie rozÅ‚Ä…czalny podczas zwykÅ‚ych manewrÃ³w (miÄ™dzyczÅ‚onowy), we wpisie wartoÅ›Ä‡ ujemna
 
 											/*typ hamulca elektrodynamicznego*/
 static int const dbrake_none = 0;
@@ -149,9 +149,9 @@ static int const dbrake_automatic = 8;
 
 /*status czuwaka/SHP*/
 //hunter-091012: rozdzielenie alarmow, dodanie testu czuwaka
-static int const s_waiting = 1; //dzia³a
+static int const s_waiting = 1; //dziaÅ‚a
 static int const s_aware = 2;   //czuwak miga
-static int const s_active = 4;  //SHP œwieci
+static int const s_active = 4;  //SHP Å›wieci
 static int const s_CAalarm = 8;    //buczy
 static int const s_SHPalarm = 16;  //buczy
 static int const s_CAebrake = 32;  //hamuje
@@ -170,20 +170,20 @@ static int const sound_brakeacc = 64;
 
 static bool  PhysicActivationFlag = false;
 
-//szczególne typy pojazdów (inna obs³uga) dla zmiennej TrainType
-//zamienione na flagi bitowe, aby szybko wybieraæ grupê (np. EZT+SZT)
+//szczegÃ³lne typy pojazdÃ³w (inna obsÅ‚uga) dla zmiennej TrainType
+//zamienione na flagi bitowe, aby szybko wybieraÄ‡ grupÄ™ (np. EZT+SZT)
 static int const dt_Default = 0;
 static int const dt_EZT = 1;
 static int const dt_ET41 = 2;
 static int const dt_ET42 = 4;
 static int const dt_PseudoDiesel = 8;
-static int const dt_ET22 = 0x10; //u¿ywane od Megapacka
-static int const dt_SN61 = 0x20; //nie u¿ywane w warunkach, ale ustawiane z CHK
+static int const dt_ET22 = 0x10; //uÅ¼ywane od Megapacka
+static int const dt_SN61 = 0x20; //nie uÅ¼ywane w warunkach, ale ustawiane z CHK
 static int const dt_EP05 = 0x40;
 static int const dt_ET40 = 0x80;
 static int const dt_181 = 0x100;
 
-//sta³e dla asynchronów
+//staÅ‚e dla asynchronÃ³w
 static int const eimc_s_dfic = 0;
 static int const eimc_s_dfmax = 1;
 static int const eimc_s_p = 2;
@@ -206,7 +206,7 @@ static int const eimc_p_Imax = 20;
 static int const eimc_p_abed = 21;
 static int const eimc_p_eped = 22;
 
-//zmienne dla asynchronów
+//zmienne dla asynchronÃ³w
 static int const eimv_FMAXMAX = 0;
 static int const eimv_Fmax = 1;
 static int const eimv_ks = 2;
@@ -234,10 +234,10 @@ static int const bom_PN = 2;
 static int const bom_EP = 4;
 static int const bom_MED = 8;
 
-enum TProblem // lista problemów taboru, które uniemo¿liwiaj¹ jazdê
+enum TProblem // lista problemÃ³w taboru, ktÃ³re uniemoÅ¼liwiajÄ… jazdÄ™
 { // flagi bitowe
-	pr_Hamuje = 1, // pojazd ma za³¹czony hamulec lub zatarte osie
-	pr_Pantografy = 2, // pojazd wymaga napompowania pantografów
+	pr_Hamuje = 1, // pojazd ma zaÅ‚Ä…czony hamulec lub zatarte osie
+	pr_Pantografy = 2, // pojazd wymaga napompowania pantografÃ³w
 	pr_Ostatni = 0x80000000 // ostatnia flaga bitowa
 };
 
@@ -373,21 +373,21 @@ struct TBoilerType {
 };
 /*rodzaj odbieraka pradu*/
 struct TCurrentCollector {
-	long CollectorsNo; //musi byæ tu, bo inaczej siê kopie
-	double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie u¿ywany
-	double CSW;       //szerokoœæ czêœci roboczej (styku) œlizgacza
-	double MinV; double MaxV; //minimalne i maksymalne akceptowane napiêcie
+	long CollectorsNo; //musi byÄ‡ tu, bo inaczej siÄ™ kopie
+	double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie uÅ¼ywany
+	double CSW;       //szerokoÅ›Ä‡ czÄ™Å›ci roboczej (styku) Å›lizgacza
+	double MinV; double MaxV; //minimalne i maksymalne akceptowane napiÄ™cie
 	double OVP;       //czy jest przekaznik nadnapieciowy
-	double InsetV;    //minimalne napiêcie wymagane do za³¹czenia
-	double MinPress;  //minimalne ciœnienie do za³¹czenia WS
-	double MaxPress;  //maksymalne ciœnienie za reduktorem
+	double InsetV;    //minimalne napiÄ™cie wymagane do zaÅ‚Ä…czenia
+	double MinPress;  //minimalne ciÅ›nienie do zaÅ‚Ä…czenia WS
+	double MaxPress;  //maksymalne ciÅ›nienie za reduktorem
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;
     //    OVP, InsetV, MinPress, MaxPress = 0.0;
     //}
 };
-/*typy Ÿróde³ mocy*/
+/*typy ÅºrÃ³deÅ‚ mocy*/
 enum TPowerSource { NotDefined, InternalSource, Transducer, Generator, Accumulator, CurrentCollector, PowerCable, Heater };
 
 
@@ -417,7 +417,7 @@ struct _mover__3
 	TBoilerType Boiler;
 };
 
-/*parametry Ÿróde³ mocy*/
+/*parametry ÅºrÃ³deÅ‚ mocy*/
 struct TPowerParameters
 {
 	double MaxVoltage;
@@ -541,7 +541,7 @@ struct TSecuritySystem
 {
 	int SystemType; /*0: brak, 1: czuwak aktywny, 2: SHP/sygnalizacja kabinowa*/
 	double AwareDelay; // czas powtarzania czuwaka
-	double AwareMinSpeed; // minimalna prêdkoœæ za³¹czenia czuwaka, normalnie 10% Vmax
+	double AwareMinSpeed; // minimalna prÄ™dkoÅ›Ä‡ zaÅ‚Ä…czenia czuwaka, normalnie 10% Vmax
 	double SoundSignalDelay;
 	double EmergencyBrakeDelay;
 	int Status; /*0: wylaczony, 1: wlaczony, 2: czuwak, 4: shp, 8: alarm, 16: hamowanie awaryjne*/
@@ -578,18 +578,18 @@ struct TCoupling {
 	TCouplerType CouplerType;     /*typ sprzegu*/
 								  /*zmienne*/
 	int CouplingFlag; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
-	int AllowedFlag;       //Ra: znaczenie jak wy¿ej, maska dostêpnych
+	int AllowedFlag;       //Ra: znaczenie jak wyÅ¼ej, maska dostÄ™pnych
 	bool Render;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
-	double CoupleDist;            /*ABu: optymalizacja - liczenie odleglosci raz na klatkê, bez iteracji*/
+	double CoupleDist;            /*ABu: optymalizacja - liczenie odleglosci raz na klatkÄ™, bez iteracji*/
 	TMoverParameters* Connected; /*co jest podlaczone*/
-	int ConnectedNr;           //Ra: od której strony pod³¹czony do (Connected): 0=przód, 1=ty³
+	int ConnectedNr;           //Ra: od ktÃ³rej strony podÅ‚Ä…czony do (Connected): 0=przÃ³d, 1=tyÅ‚
 	double CForce;                /*sila z jaka dzialal*/
-	double Dist;                  /*strzalka ugiecia zderzaków*/
+	double Dist;                  /*strzalka ugiecia zderzakÃ³w*/
 	bool CheckCollision;     /*czy sprawdzac sile czy pedy*/
 };
 
 class TMoverParameters
-{ // Ra: wrapper na kod pascalowy, przejmuj¹cy jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
+{ // Ra: wrapper na kod pascalowy, przejmujÄ…cy jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
 public:
 
 	double dMoveLen;
@@ -600,7 +600,7 @@ public:
 							/*--sekcja stalych typowych parametrow*/
 	std::string TypeName;         /*nazwa serii/typu*/
 								  //TrainType: string;       {typ: EZT/elektrowoz - Winger 040304}
-	int TrainType; /*Ra: powinno byæ szybciej ni¿ string*/
+	int TrainType; /*Ra: powinno byÄ‡ szybciej niÅ¼ string*/
 	TEngineTypes EngineType;               /*typ napedu*/
 	TPowerParameters EnginePowerSource;    /*zrodlo mocy dla silnikow*/
 	TPowerParameters SystemPowerSource;    /*zrodlo mocy dla systemow sterowania/przetwornic/sprezarek*/
@@ -609,7 +609,7 @@ public:
 	TPowerParameters LightPowerSource;     /*zrodlo mocy dla oswietlenia*/
 	TPowerParameters AlterLightPowerSource;/*alternatywne mocy dla oswietlenia*/
 	double Vmax; double Mass; double Power;    /*max. predkosc kontrukcyjna, masa wlasna, moc*/
-	double Mred;    /*Ra: zredukowane masy wiruj¹ce; potrzebne do obliczeñ hamowania*/
+	double Mred;    /*Ra: zredukowane masy wirujÄ…ce; potrzebne do obliczeÅ„ hamowania*/
 	double TotalMass; /*wyliczane przez ComputeMass*/
 	double HeatingPower; double LightPower; /*moc pobierana na ogrzewanie/oswietlenie*/
 	double BatteryVoltage;        /*Winger - baterie w elektrykach*/
@@ -621,7 +621,7 @@ public:
 	double NominalBatteryVoltage;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
 	double Cx;                 /*wsp. op. aerodyn.*/
-	double Floor;              //poziom pod³ogi dla ³adunków
+	double Floor;              //poziom podÅ‚ogi dla Å‚adunkÃ³w
 	double WheelDiameter;     /*srednica kol napednych*/
 	double WheelDiameterL;    //Ra: srednica kol tocznych przednich
 	double WheelDiameterT;    //Ra: srednica kol tocznych tylnych
@@ -649,7 +649,7 @@ public:
 
 	TLocalBrake LocalBrake;  /*rodzaj hamulca indywidualnego*/
 	TBrakePressureTable BrakePressureTable; /*wyszczegolnienie cisnien w rurze*/
-	TBrakePressure BrakePressureActual; //wartoœci wa¿one dla aktualnej pozycji kranu
+	TBrakePressure BrakePressureActual; //wartoÅ›ci waÅ¼one dla aktualnej pozycji kranu
 	int ASBType;            /*0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat*/
 	int TurboTest;
 	double MaxBrakeForce;      /*maksymalna sila nacisku hamulca*/
@@ -660,7 +660,7 @@ public:
 							/*max. cisnienie w cyl. ham., stala proporcjonalnosci p-K*/
 	double HighPipePress; double LowPipePress; double DeltaPipePress;
 	/*max. i min. robocze cisnienie w przewodzie glownym oraz roznica miedzy nimi*/
-	double CntrlPipePress; //ciœnienie z zbiorniku steruj¹cym
+	double CntrlPipePress; //ciÅ›nienie z zbiorniku sterujÄ…cym
 	double BrakeVolume; double BrakeVVolume; double VeselVolume;
 	/*pojemnosc powietrza w ukladzie hamulcowym, w ukladzie glownej sprezarki [m^3] */
 	int BrakeCylNo; /*ilosc cylindrow ham.*/
@@ -684,7 +684,7 @@ public:
 	int ScndCtrlPosNo;
 	int LightsPosNo; int LightsDefPos;
 	bool LightsWrap;
-	int Lights[2][17]; // pozycje œwiate³, przód - ty³, 1 .. 16
+	int Lights[2][17]; // pozycje Å›wiateÅ‚, przÃ³d - tyÅ‚, 1 .. 16
 	bool ScndInMain;     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc;
@@ -721,7 +721,7 @@ public:
 	double RVentCutOff;      /*rezystancja wylaczania wentylatorow dla RVentType=2*/
 	int CompressorPower; /*0: bezp. z obwodow silnika, 1: z przetwornicy, reczne, 2: w przetwornicy, stale, 5: z silnikowego*/
 	int SmallCompressorPower; /*Winger ZROBIC*/
-	bool Trafo;      /*pojazd wyposa¿ony w transformator*/
+	bool Trafo;      /*pojazd wyposaÅ¼ony w transformator*/
 
 					 /*-sekcja parametrow dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	double dizel_Mmax; double dizel_nMmax; double dizel_Mnmax; double dizel_nmax; double dizel_nominalfill;
@@ -767,7 +767,7 @@ public:
 	bool DoorClosureWarning;      /*czy jest ostrzeganie przed zamknieciem*/
 	double DoorOpenSpeed; double DoorCloseSpeed;      /*predkosc otwierania i zamykania w j.u. */
 	double DoorMaxShiftL; double DoorMaxShiftR; double DoorMaxPlugShift;/*szerokosc otwarcia lub kat*/
-	int DoorOpenMethod;             /*sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trójelementowe*/
+	int DoorOpenMethod;             /*sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trÃ³jelementowe*/
 	double PlatformSpeed;   /*szybkosc stopnia*/
 	double PlatformMaxShift; /*wysuniecie stopnia*/
 	int PlatformOpenMethod; /*sposob animacji stopnia*/
@@ -775,7 +775,7 @@ public:
 
 				/*--sekcja zmiennych*/
 				/*--opis konkretnego egzemplarza taboru*/
-	TLocation Loc; //pozycja pojazdów do wyznaczenia odleg³oœci pomiêdzy sprzêgami
+	TLocation Loc; //pozycja pojazdÃ³w do wyznaczenia odlegÅ‚oÅ›ci pomiÄ™dzy sprzÄ™gami
 	TRotation Rot;
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
@@ -784,9 +784,9 @@ public:
 	bool EventFlag;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag;                    /*!o patrz stale sound_ */
 	double DistCounter;                  /*! licznik kilometrow */
-	double V;    //predkosc w [m/s] wzglêdem sprzêgów (dodania gdy jedzie w stronê 0)
-	double Vel;  //modu³ prêdkoœci w [km/h], u¿ywany przez AI
-	double AccS; //efektywne przyspieszenie styczne w [m/s^2] (wszystkie si³y)
+	double V;    //predkosc w [m/s] wzglÄ™dem sprzÄ™gÃ³w (dodania gdy jedzie w stronÄ™ 0)
+	double Vel;  //moduÅ‚ prÄ™dkoÅ›ci w [km/h], uÅ¼ywany przez AI
+	double AccS; //efektywne przyspieszenie styczne w [m/s^2] (wszystkie siÅ‚y)
 	double AccN; //przyspieszenie normalne w [m/s^2]
 	double AccV;
 	double nrot;
@@ -795,8 +795,8 @@ public:
 	double dL; double Fb; double Ff;                  /*przesuniecie, sila hamowania i tarcia*/
 	double FTrain; double FStand;                /*! sila pociagowa i oporow ruchu*/
 	double FTotal;                       /*! calkowita sila dzialajaca na pojazd*/
-	double UnitBrakeForce;               /*!s si³a hamowania przypadaj¹ca na jeden element*/
-	double Ntotal;               /*!s si³a nacisku klockow*/
+	double UnitBrakeForce;               /*!s siÅ‚a hamowania przypadajÄ…ca na jeden element*/
+	double Ntotal;               /*!s siÅ‚a nacisku klockow*/
 	bool SlippingWheels; bool SandDose;   /*! poslizg kol, sypanie piasku*/
 	double Sand;                         /*ilosc piasku*/
 	double BrakeSlippingTimer;            /*pomocnicza zmienna do wylaczania przeciwposlizgu*/
@@ -845,8 +845,8 @@ public:
 	/*komenda przekazywana przez PutCommand*/
 	/*i wykonywana przez RunInternalCommand*/
 	std::string CommandOut;        /*komenda przekazywana przez ExternalCommand*/
-	std::string CommandLast; //Ra: ostatnio wykonana komenda do podgl¹du
-	double ValueOut;            /*argument komendy która ma byc przekazana na zewnatrz*/
+	std::string CommandLast; //Ra: ostatnio wykonana komenda do podglÄ…du
+	double ValueOut;            /*argument komendy ktÃ³ra ma byc przekazana na zewnatrz*/
 
 	TTrackShape RunningShape;/*geometria toru po ktorym jedzie pojazd*/
 	TTrackParam RunningTrack;/*parametry toru po ktorym jedzie pojazd*/
@@ -858,10 +858,10 @@ public:
 	int ScndCtrlPos; /*polozenie dodatkowego nastawnika*/
 	int LightsPos;
 	int ActiveDir; //czy lok. jest wlaczona i w ktorym kierunku:
-				   //wzglêdem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
-	int CabNo; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
-	int DirAbsolute; //zadany kierunek jazdy wzglêdem sprzêgów (1=w strone 0,-1=w stronê 1)
-	int ActiveCab; //numer kabiny, w ktorej jest obsada (zwykle jedna na sk³ad)
+				   //wzglÄ™dem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
+	int CabNo; //numer kabiny, z ktÃ³rej jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
+	int DirAbsolute; //zadany kierunek jazdy wzglÄ™dem sprzÄ™gÃ³w (1=w strone 0,-1=w stronÄ™ 1)
+	int ActiveCab; //numer kabiny, w ktorej jest obsada (zwykle jedna na skÅ‚ad)
 	double LastSwitchingTime; /*czas ostatniego przelaczania czegos*/
 							  //WarningSignal: byte;     {0: nie trabi, 1,2: trabi}
 	bool DepartureSignal; /*sygnal odjazdu*/
@@ -870,14 +870,14 @@ public:
 	TTractionParam RunningTraction;/*parametry sieci trakcyjnej najblizej lokomotywy*/
 	double enrot; double Im; double Itot; double IHeating; double ITraction; double TotalCurrent; double Mm; double Mw; double Fw; double Ft;
 	/*ilosc obrotow, prad silnika i calkowity, momenty, sily napedne*/
-	//Ra: Im jest ujemny, jeœli lok jedzie w stronê sprzêgu 1
-	//a ujemne powinien byæ przy odwróconej polaryzacji sieci...
-	//w wielu miejscach jest u¿ywane abs(Im)
+	//Ra: Im jest ujemny, jeÅ›li lok jedzie w stronÄ™ sprzÄ™gu 1
+	//a ujemne powinien byÄ‡ przy odwrÃ³conej polaryzacji sieci...
+	//w wielu miejscach jest uÅ¼ywane abs(Im)
 	int Imin; int Imax;      /*prad przelaczania automatycznego rozruchu, prad bezpiecznika*/
 	double Voltage;           /*aktualne napiecie sieci zasilajacej*/
 	int MainCtrlActualPos; /*wskaznik RList*/
 	int ScndCtrlActualPos; /*wskaznik MotorParam*/
-	bool DelayCtrlFlag;  //czy czekanie na 1. pozycji na za³¹czenie?
+	bool DelayCtrlFlag;  //czy czekanie na 1. pozycji na zaÅ‚Ä…czenie?
 	double LastRelayTime;     /*czas ostatniego przelaczania stycznikow*/
 	bool AutoRelayFlag;  /*mozna zmieniac jesli AutoRelayType=2*/
 	bool FuseFlag;       /*!o bezpiecznik nadmiarowy*/
@@ -912,8 +912,8 @@ public:
 	/*-dla wagonow*/
 	long Load;      /*masa w T lub ilosc w sztukach - zaladowane*/
 	std::string LoadType;   /*co jest zaladowane*/
-	int LoadStatus; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoñczono,0=zaktualizowany model
-	double LastLoadChangeTime; //raz (roz)³adowania
+	int LoadStatus; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakoÅ„czono,0=zaktualizowany model
+	double LastLoadChangeTime; //raz (roz)Å‚adowania
 
 	bool DoorBlocked;    //Czy jest blokada drzwi
 	bool DoorLeftOpened;  //stan drzwi
@@ -940,20 +940,20 @@ public:
 	double FrictConst2d;
 	double TotalMassxg; /*TotalMass*g*/
 
-	vector3 vCoulpler[2]; // powtórzenie wspó³rzêdnych sprzêgów z DynObj :/
-	vector3 DimHalf; // po³owy rozmiarów do obliczeñ geometrycznych
-					 // int WarningSignal; //0: nie trabi, 1,2: trabi syren¹ o podanym numerze
-	int WarningSignal; // tymczasowo 8bit, ze wzglêdu na funkcje w MTools
-	double fBrakeCtrlPos; // p³ynna nastawa hamulca zespolonego
-	bool bPantKurek3; // kurek trójdrogowy (pantografu): true=po³¹czenie z ZG, false=po³¹czenie z ma³¹ sprê¿ark¹
-	int iProblem; // flagi problemów z taborem, aby AI nie musia³o porównywaæ; 0=mo¿e jechaæ
-	int iLights[2]; // bity zapalonych œwiate³ tutaj, ¿eby da³o siê liczyæ pobór pr¹du
+	vector3 vCoulpler[2]; // powtÃ³rzenie wspÃ³Å‚rzÄ™dnych sprzÄ™gÃ³w z DynObj :/
+	vector3 DimHalf; // poÅ‚owy rozmiarÃ³w do obliczeÅ„ geometrycznych
+					 // int WarningSignal; //0: nie trabi, 1,2: trabi syrenÄ… o podanym numerze
+	int WarningSignal; // tymczasowo 8bit, ze wzglÄ™du na funkcje w MTools
+	double fBrakeCtrlPos; // pÅ‚ynna nastawa hamulca zespolonego
+	bool bPantKurek3; // kurek trÃ³jdrogowy (pantografu): true=poÅ‚Ä…czenie z ZG, false=poÅ‚Ä…czenie z maÅ‚Ä… sprÄ™Å¼arkÄ…
+	int iProblem; // flagi problemÃ³w z taborem, aby AI nie musiaÅ‚o porÃ³wnywaÄ‡; 0=moÅ¼e jechaÄ‡
+	int iLights[2]; // bity zapalonych Å›wiateÅ‚ tutaj, Å¼eby daÅ‚o siÄ™ liczyÄ‡ pobÃ³r prÄ…du
 private:
 	double CouplerDist(int Coupler);
 
 public:
 	TMoverParameters(double VelInitial, std::string TypeNameInit, std::string NameInit, int LoadInitial, std::string LoadTypeInitial, int Cab);
-	// obs³uga sprzêgów
+	// obsÅ‚uga sprzÄ™gÃ³w
 	double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1, const TDimension &Dim2);
 /*	double Distance(const vector3 &Loc1, const vector3 &Loc2, const vector3 &Dim1, const vector3 &Dim2);
 */	//bool AttachA(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false);
@@ -964,7 +964,7 @@ public:
 	bool DirectionForward();
 	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
-	bool IncBrakeLevel(); // wersja na u¿ytek AI
+	bool IncBrakeLevel(); // wersja na uÅ¼ytek AI
 	bool DecBrakeLevel();
 	bool ChangeCab(int direction);
 	bool CurrentSwitch(int direction);

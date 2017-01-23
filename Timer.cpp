@@ -33,7 +33,7 @@ double GetDeltaTime()
 }
 
 double GetDeltaRenderTime()
-{ // czas renderowania (do poruszania siê)
+{ // czas renderowania (do poruszania siÄ™)
     return DeltaRenderTime;
 }
 
@@ -58,7 +58,7 @@ void SetSimulationTime(double t)
 }
 
 bool GetSoundTimer()
-{ // Ra: byæ mo¿e, by dŸwiêki nie modyfikowa³y siê zbyt czêsto, po 0.1s zeruje siê ten licznik
+{ // Ra: byÄ‡ moÅ¼e, by dÅºwiÄ™ki nie modyfikowaÅ‚y siÄ™ zbyt czÄ™sto, po 0.1s zeruje siÄ™ ten licznik
     return (fSoundTimer == 0.0f);
 }
 
@@ -98,7 +98,7 @@ void UpdateTimers(bool pause)
             DeltaTime = 1;
     }
     else
-        DeltaTime = 0; // wszystko stoi, bo czas nie p³ynie
+        DeltaTime = 0; // wszystko stoi, bo czas nie pÅ‚ynie
     oldCount = count;
 
     // Keep track of the time lapse and frame count

@@ -12,9 +12,9 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 
-std::ofstream output; // standardowy "log.txt", mo¿na go wy³¹czyæ
-std::ofstream errors; // lista b³êdów "errors.txt", zawsze dzia³a
-std::ofstream comms; // lista komunikatow "comms.txt", mo¿na go wy³¹czyæ
+std::ofstream output; // standardowy "log.txt", moÅ¼na go wyÅ‚Ä…czyÄ‡
+std::ofstream errors; // lista bÅ‚Ä™dÃ³w "errors.txt", zawsze dziaÅ‚a
+std::ofstream comms; // lista komunikatow "comms.txt", moÅ¼na go wyÅ‚Ä…czyÄ‡
 
 char endstring[10] = "\n";
 
@@ -71,7 +71,7 @@ void WriteLog(const char *str, bool newline)
 };
 
 void ErrorLog(const char *str)
-{ // Ra: bezwarunkowa rejestracja powa¿nych b³êdów
+{ // Ra: bezwarunkowa rejestracja powaÅ¼nych bÅ‚Ä™dÃ³w
     if (!errors.is_open())
     {
         errors.open("errors.txt", std::ios::trunc);
@@ -110,7 +110,7 @@ void WriteLog(const std::string &str, bool newline)
 };
 
 void CommLog(const char *str)
-{ // Ra: warunkowa rejestracja komunikatów
+{ // Ra: warunkowa rejestracja komunikatÃ³w
     WriteLog(str);
     /*    if (Global::iWriteLogEnabled & 4)
     {

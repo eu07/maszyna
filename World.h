@@ -47,17 +47,17 @@ class TWorld
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
     bool Paused;
-    GLuint base; // numer DL dla znaków w napisach
+    GLuint base; // numer DL dla znakÃ³w w napisach
     GLuint light; // numer tekstury dla smugi
     TSky Clouds;
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury
-    TMoverParameters *mvControlled; // wskaŸnik na cz³on silnikowy, do wyœwietlania jego parametrów
-    int iCheckFPS; // kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
+    TMoverParameters *mvControlled; // wskaÅºnik na czÅ‚on silnikowy, do wyÅ›wietlania jego parametrÃ³w
+    int iCheckFPS; // kiedy znÃ³w sprawdziÄ‡ FPS, Å¼eby wyÅ‚Ä…czaÄ‡ optymalizacji od razu do zera
     double fTime50Hz; // bufor czasu dla komunikacji z PoKeys
-    double fTimeBuffer; // bufor czasu aktualizacji dla sta³ego kroku fizyki
-    double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
+    double fTimeBuffer; // bufor czasu aktualizacji dla staÅ‚ego kroku fizyki
+    double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunkÃ³w)
     int iPause; // wykrywanie zmian w zapauzowaniu
-    double VelPrev; // poprzednia prêdkoœæ
+    double VelPrev; // poprzednia prÄ™dkoÅ›Ä‡
     int tprev; // poprzedni czas
     double Acc; // przyspieszenie styczne
   public:

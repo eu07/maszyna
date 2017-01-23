@@ -25,13 +25,13 @@ moze jeszcze jakis SW
 /*
 Zrobione:
 ESt3, ESt3AL2, ESt4R, LSt, FV4a, FD1, EP2, prosty westinghouse
-duzo wersji ¿eliwa
+duzo wersji Å¼eliwa
 KE
 Tarcze od 152A
 Magnetyki (implementacja w mover.pas)
 Matrosow 394
 H14K1 (zasadniczy), H1405 (pomocniczy), St113 (ep)
-Knorr/West EP - ¿eby by³
+Knorr/West EP - Å¼eby byÅ‚
 */
 
 #include "friction.h" // Pascal unit
@@ -77,7 +77,7 @@ static int const s_fv4a_t = 4; // wyplyw z czasowego
 
 /*pary cierne*/
 static int const bp_P10 = 0;
-static int const bp_P10Bg = 2; //¿eliwo fosforowe P10
+static int const bp_P10Bg = 2; //Å¼eliwo fosforowe P10
 static int const bp_P10Bgu = 1;
 static int const bp_LLBg = 4; // komp. b.n.t.
 static int const bp_LLBgu = 3;
@@ -89,10 +89,10 @@ static int const bp_D1 = 9; // tarcze
 static int const bp_D2 = 10;
 static int const bp_FR513 = 11; // Frenoplast FR513
 static int const bp_Cosid = 12; // jakistam kompozyt :D
-static int const bp_PKPBg = 13; //¿eliwo PKP
+static int const bp_PKPBg = 13; //Å¼eliwo PKP
 static int const bp_PKPBgu = 14;
 static int const bp_MHS = 128; // magnetyczny hamulec szynowy
-static int const bp_P10yBg = 15; //¿eliwo fosforowe P10
+static int const bp_P10yBg = 15; //Å¼eliwo fosforowe P10
 static int const bp_P10yBgu = 16;
 static int const bp_FR510 = 17; // Frenoplast FR510
 
@@ -111,10 +111,10 @@ static int const bh_NP = 4; // odciecie - podwojna trakcja
 static int const bh_MB = 5; // odciecie - utrzymanie stopnia hamowania/pierwszy 1 stopien hamowania
 static int const bh_FB = 6; // pelne
 static int const bh_EB = 7; // nagle
-static int const bh_EPR = 8; // ep - luzowanie  //pelny luz dla ep k¹towego
+static int const bh_EPR = 8; // ep - luzowanie  //pelny luz dla ep kÄ…towego
 static int const bh_EPN = 9; // ep - utrzymanie //jesli rowne luzowaniu, wtedy sterowanie
 // przyciskiem
-static int const bh_EPB = 10; // ep - hamowanie  //pelne hamowanie dla ep k¹towego
+static int const bh_EPB = 10; // ep - hamowanie  //pelne hamowanie dla ep kÄ…towego
 
 static double const SpgD = 0.7917;
 static double const SpO = 0.5067; // przekroj przewodu 1" w l/m
@@ -265,7 +265,7 @@ class TESt : public TBrake
 {
   private:
   protected:
-    TReservoir *CntrlRes; // zbiornik steruj¹cy
+    TReservoir *CntrlRes; // zbiornik sterujÄ…cy
     double BVM; // przelozenie PG-CH
 
   public:
@@ -357,7 +357,7 @@ class TLSt : public TESt4R
 
 {
   private:
-    // double CylFlowSpeed[2][2]; // zmienna nie u¿ywana
+    // double CylFlowSpeed[2][2]; // zmienna nie uÅ¼ywana
 
   protected:
     double LBP; // cisnienie hamulca pomocniczego
@@ -447,7 +447,7 @@ class TCV1 : public TBrake
     double BVM; // przelozenie PG-CH
 
   protected:
-    TReservoir *CntrlRes; // zbiornik steruj¹cy
+    TReservoir *CntrlRes; // zbiornik sterujÄ…cy
 
   public:
     void Init(double PP, double HPP, double LPP, double BP, int BDF) /*override*/;
@@ -508,13 +508,13 @@ class TCV1L_TR : public TCV1
     }
 };
 
-class TKE : public TBrake // Knorr Einheitsbauart — jeden do wszystkiego
+class TKE : public TBrake // Knorr Einheitsbauart â€” jeden do wszystkiego
 
 {
   private:
     bool RapidStatus;
     TReservoir *ImplsRes; // komora impulsowa
-    TReservoir *CntrlRes; // zbiornik steruj¹cy
+    TReservoir *CntrlRes; // zbiornik sterujÄ…cy
     TReservoir *Brak2Res; // zbiornik pomocniczy 2
     double BVM; // przelozenie PG-CH
     double TareM;
@@ -577,7 +577,7 @@ class TFV4a : public TDriverHandle
   private:
     double CP;
     double TP;
-    double RP; // zbiornik steruj¹cy, czasowy, redukcyjny
+    double RP; // zbiornik sterujÄ…cy, czasowy, redukcyjny
 
   public:
     double GetPF(double i_bcp, double PP, double HP, double dt, double ep) /*override*/;
@@ -594,8 +594,8 @@ class TFV4aM : public TDriverHandle
   private:
     double CP;
     double TP;
-    double RP; // zbiornik steruj¹cy, czasowy, redukcyjny
-    double XP; // komora powietrzna w reduktorze — jest potrzebna do odwzorowania fali
+    double RP; // zbiornik sterujÄ…cy, czasowy, redukcyjny
+    double XP; // komora powietrzna w reduktorze â€” jest potrzebna do odwzorowania fali
     double RedAdj; // dostosowanie reduktora cisnienia (krecenie kapturkiem)
     //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
     bool Fala;
@@ -623,7 +623,7 @@ class TMHZ_EN57 : public TDriverHandle
   private:
     double CP;
     double TP;
-    double RP; // zbiornik steruj¹cy, czasowy, redukcyjny
+    double RP; // zbiornik sterujÄ…cy, czasowy, redukcyjny
     double RedAdj; // dostosowanie reduktora cisnienia (krecenie kapturkiem)
     bool Fala;
     // const double pos_table[11] = { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
@@ -647,8 +647,8 @@ class TMHZ_EN57 : public TDriverHandle
 
 /*    FBS2= class(TTDriverHandle)
           private
-                CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
-                XP: real;              //komora powietrzna w reduktorze — jest potrzebna do
+                CP, TP, RP: real;      //zbiornik sterujÄ…cy, czasowy, redukcyjny
+                XP: real;              //komora powietrzna w reduktorze â€” jest potrzebna do
 odwzorowania fali
                 RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
@@ -663,8 +663,8 @@ odwzorowania fali
 
 /*    TD2= class(TTDriverHandle)
               private
-                CP, TP, RP: real;      //zbiornik steruj¹cy, czasowy, redukcyjny
-                XP: real;              //komora powietrzna w reduktorze — jest potrzebna do
+                CP, TP, RP: real;      //zbiornik sterujÄ…cy, czasowy, redukcyjny
+                XP: real;              //komora powietrzna w reduktorze â€” jest potrzebna do
 odwzorowania fali
                 RedAdj: real;          //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 //        Sounds: array[0..4] of real;       //wielkosci przeplywow dla dzwiekow
@@ -681,7 +681,7 @@ class TM394 : public TDriverHandle
 
 {
   private:
-    double CP; // zbiornik steruj¹cy, czasowy, redukcyjny
+    double CP; // zbiornik sterujÄ…cy, czasowy, redukcyjny
     double RedAdj; // dostosowanie reduktora cisnienia (krecenie kapturkiem)
     //		double const pos_table[11] = { -1, 5, -1, 0, 1, 2, 4, 5, 0, 0, 0 };
     static double pos_table[11]; // = { 0, 6, 0, 1, 2, 3, 5, 6, 1, 1, 1 };
@@ -706,7 +706,7 @@ class TH14K1 : public TDriverHandle
     //		double const table[11] = { -1, 4, -1, 0, 1, 2, 3, 4, 0, 0, 0 };
     double static pos_table[11]; // = { 0, 5, 0, 1, 2, 3, 4, 5, 1, 1, 1 };
   protected:
-    double CP; // zbiornik steruj¹cy, czasowy, redukcyjny
+    double CP; // zbiornik sterujÄ…cy, czasowy, redukcyjny
     double RedAdj; // dostosowanie reduktora cisnienia (krecenie kapturkiem)
 
   public:

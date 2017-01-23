@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 //---------------------------------------------------------------------------
 
 class float3
-{ // wapó³rzêdne wiercho³ka 3D o pojedynczej precyzji
+{ // wapÃ³Å‚rzÄ™dne wierchoÅ‚ka 3D o pojedynczej precyzji
   public:
     float x, y, z;
     float3(void){};
@@ -58,7 +58,7 @@ inline float3 operator/(const float3 &v, double k)
     return float3(v.x / k, v.y / k, v.z / k);
 };
 inline float3 SafeNormalize(const float3 &v)
-{ // bezpieczna normalizacja (wektor d³ugoœci 1.0)
+{ // bezpieczna normalizacja (wektor dÅ‚ugoÅ›ci 1.0)
     double l = v.Length();
     float3 retVal;
     if (l == 0)
@@ -98,14 +98,14 @@ class float4
     };
 };
 inline float4 operator*(const float4 &q1, const float4 &q2)
-{ // mno¿enie to prawie jak mno¿enie macierzy
+{ // mnoÅ¼enie to prawie jak mnoÅ¼enie macierzy
     return float4(q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,
                   q1.w * q2.y + q1.y * q2.w + q1.z * q2.x - q1.x * q2.z,
                   q1.w * q2.z + q1.z * q2.w + q1.x * q2.y - q1.y * q2.x,
                   q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z);
 }
 inline float4 operator-(const float4 &q)
-{ // sprzê¿ony; odwrotny tylko dla znormalizowanych!
+{ // sprzÄ™Å¼ony; odwrotny tylko dla znormalizowanych!
     return float4(-q.x, -q.y, -q.z, q.w);
 };
 inline float4 operator-(const float4 &q1, const float4 &q2)
@@ -121,14 +121,14 @@ inline float4 operator/(const float4 &v, double k)
     return float4(v.x / k, v.y / k, v.z / k, v.w / k);
 };
 inline float4 Normalize(const float4 &v)
-{ // bezpieczna normalizacja (wektor d³ugoœci 1.0)
+{ // bezpieczna normalizacja (wektor dÅ‚ugoÅ›ci 1.0)
     double l = v.LengthSquared();
     if (l == 1.0)
         return v;
     if (l == 0.0)
         return float4(); // wektor zerowy, w=1
     else
-        return v / sqrt(l); // pierwiastek liczony tylko jeœli trzeba wykonaæ dzielenia
+        return v / sqrt(l); // pierwiastek liczony tylko jeÅ›li trzeba wykonaÄ‡ dzielenia
 };
 inline
 float Dot(const float4 &q1, const float4 &q2)
@@ -136,7 +136,7 @@ float Dot(const float4 &q1, const float4 &q2)
     return q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
 }
 inline float4 &operator*=(float4 &v1, double d)
-{ // mno¿enie przez skalar, jaki ma sens?
+{ // mnoÅ¼enie przez skalar, jaki ma sens?
     v1.x *= d;
     v1.y *= d;
     v1.z *= d;
@@ -149,7 +149,7 @@ inline float4 Slerp(const float4 &q0, const float4 &q1, float t)
     float cosOmega = Dot(q0, q1);
     float4 new_q1(q1);
     if (cosOmega < 0.0f)
-    { // je¿eli s¹ niezgodne kierunki, jeden z nich trzeba zanegowaæ
+    { // jeÅ¼eli sÄ… niezgodne kierunki, jeden z nich trzeba zanegowaÄ‡
         new_q1.x = -new_q1.x;
         new_q1.y = -new_q1.y;
         new_q1.z = -new_q1.z;
@@ -158,15 +158,15 @@ inline float4 Slerp(const float4 &q0, const float4 &q1, float t)
     }
     double k0, k1;
     if (cosOmega > 0.9999f)
-    { // jeœli jesteœmy z (t) na maksimum kosinusa, to tam prawie liniowo jest
+    { // jeÅ›li jesteÅ›my z (t) na maksimum kosinusa, to tam prawie liniowo jest
         k0 = 1.0f - t;
         k1 = t;
     }
     else
-    { // a w ogólnym przypadku trzeba liczyæ na trygonometriê
+    { // a w ogÃ³lnym przypadku trzeba liczyÄ‡ na trygonometriÄ™
         double sinOmega = sqrt(1.0f - cosOmega * cosOmega); // sinus z jedynki tryg.
-        double omega = atan2(sinOmega, cosOmega); // wyznaczenie k¹ta
-        double oneOverSinOmega = 1.0f / sinOmega; // odwrotnoœæ sinusa, bo sinus w mianowniku
+        double omega = atan2(sinOmega, cosOmega); // wyznaczenie kÄ…ta
+        double oneOverSinOmega = 1.0f / sinOmega; // odwrotnoÅ›Ä‡ sinusa, bo sinus w mianowniku
         k0 = sin((1.0f - t) * omega) * oneOverSinOmega;
         k1 = sin(t * omega) * oneOverSinOmega;
     }
@@ -175,7 +175,7 @@ inline float4 Slerp(const float4 &q0, const float4 &q1, float t)
 }
 
 struct float8
-{ // wiercho³ek 3D z wektorem normalnym i mapowaniem, pojedyncza precyzja
+{ // wierchoÅ‚ek 3D z wektorem normalnym i mapowaniem, pojedyncza precyzja
   public:
     float3 Point;
     float3 Normal;
@@ -212,7 +212,7 @@ class float4x4
         return &e[i << 2];
     };
     void InitialRotate()
-    { // taka specjalna rotacja, nie ma co ci¹gaæ trygonometrii
+    { // taka specjalna rotacja, nie ma co ciÄ…gaÄ‡ trygonometrii
         float f;
         for (int i = 0; i < 16; i += 4)
         {
@@ -224,7 +224,7 @@ class float4x4
     };
     inline float4x4 &Rotation(double angle, float3 axis);
     inline bool IdentityIs()
-    { // sprawdzenie jednostkowoœci
+    { // sprawdzenie jednostkowoÅ›ci
         for (int i = 0; i < 16; ++i)
             if (e[i] != ((i % 5) ? 0.0 : 1.0)) // jedynki tylko na 0, 5, 10 i 15
                 return false;
@@ -238,7 +238,7 @@ class float4x4
 };
 
 inline float3 operator*(const float4x4 &m, const float3 &v)
-{ // mno¿enie wektora przez macierz
+{ // mnoÅ¼enie wektora przez macierz
     return float3(v.x * m[0][0] + v.y * m[1][0] + v.z * m[2][0] + m[3][0],
                   v.x * m[0][1] + v.y * m[1][1] + v.z * m[2][1] + m[3][1],
                   v.x * m[0][2] + v.y * m[1][2] + v.z * m[2][2] + m[3][2]);
@@ -295,19 +295,19 @@ inline float4x4 operator*(const float4x4 &m1, const float4x4 &m2)
 
 // From code in Graphics Gems; p. 766
 inline float Det2x2(float a, float b, float c, float d)
-{ // obliczenie wyznacznika macierzy 2×2
+{ // obliczenie wyznacznika macierzy 2Ã—2
     return a * d - b * c;
 };
 
 inline float Det3x3(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2,
                     float c3)
-{ // obliczenie wyznacznika macierzy 3×3
+{ // obliczenie wyznacznika macierzy 3Ã—3
     return +a1 * Det2x2(b2, b3, c2, c3) - b1 * Det2x2(a2, a3, c2, c3) + c1 * Det2x2(a2, a3, b2, b3);
 };
 
 inline
 float Det(const float4x4 &m)
-{ // obliczenie wyznacznika macierzy 4×4
+{ // obliczenie wyznacznika macierzy 4Ã—4
     float a1 = m[0][0], a2 = m[1][0], a3 = m[2][0], a4 = m[3][0];
     float b1 = m[0][1], b2 = m[1][1], b3 = m[2][1], b4 = m[3][1];
     float c1 = m[0][2], c2 = m[1][2], c3 = m[2][2], c4 = m[3][2];

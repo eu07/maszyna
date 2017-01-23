@@ -11,15 +11,15 @@ http://mozilla.org/MPL/2.0/.
 #define NamesH
 //---------------------------------------------------------------------------
 class ItemRecord
-{ // rekord opisujπcy obiekt; raz utworzony nie przemieszcza siÍ
-    // rozmiar rekordu moøna zmieniÊ w razie potrzeby
+{ // rekord opisujƒÖcy obiekt; raz utworzony nie przemieszcza siƒô
+    // rozmiar rekordu mo≈ºna zmieniƒá w razie potrzeby
   public:
-    char *cName; // wskaünik do nazwy umieszczonej w buforze
+    char *cName; // wska≈∫nik do nazwy umieszczonej w buforze
     int iFlags; // flagi bitowe
     ItemRecord *rPrev, *rNext; // posortowane drzewo (przebudowywane w razie potrzeby)
     union
     {
-        void *pData; // wskaünik do obiektu
+        void *pData; // wska≈∫nik do obiektu
         int iData; // albo numer obiektu (tekstury)
         unsigned int uData;
     };
@@ -42,17 +42,17 @@ class TNames
 {
   public:
     int iSize; // rozmiar bufora
-    char *cBuffer; // bufor dla rekordÛw (na poczπtku) i nazw (na koÒcu)
-    ItemRecord *rRecords; // rekordy na poczπtku bufora
-    char *cLast; // ostatni uøyty bajt na nazwy
-    ItemRecord *rTypes[20]; // roøne typy obiektÛw (poczπtek drzewa)
-    int iLast; // ostatnio uøyty rekord
+    char *cBuffer; // bufor dla rekord√≥w (na poczƒÖtku) i nazw (na ko≈Ñcu)
+    ItemRecord *rRecords; // rekordy na poczƒÖtku bufora
+    char *cLast; // ostatni u≈ºyty bajt na nazwy
+    ItemRecord *rTypes[20]; // ro≈ºne typy obiekt√≥w (poczƒÖtek drzewa)
+    int iLast; // ostatnio u≈ºyty rekord
   public:
     TNames();
     int Add(int t, const char *n); // dodanie obiektu typu (t)
-    int Add(int t, const char *n, void *d); // dodanie obiektu z wskaünikiem
+    int Add(int t, const char *n, void *d); // dodanie obiektu z wska≈∫nikiem
     int Add(int t, const char *n, int d); // dodanie obiektu z numerem
-    bool Update(int t, const char *n, void *d); // dodanie jeúli nie ma, wymiana (d), gdy jest
+    bool Update(int t, const char *n, void *d); // dodanie je≈õli nie ma, wymiana (d), gdy jest
     void TreeSet();
     ItemRecord * TreeSet(int *n, int d, int u);
     void Sort(int t); // przebudowa drzewa typu (t)

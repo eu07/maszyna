@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #ifndef ClassesH
 #define ClassesH
 //---------------------------------------------------------------------------
-// Ra: zestaw klas do robienia wskaŸników, aby uporz¹dkowaæ nag³ówki
+// Ra: zestaw klas do robienia wskaÅºnikÃ³w, aby uporzÄ…dkowaÄ‡ nagÅ‚Ã³wki
 //---------------------------------------------------------------------------
 class TTrack; // odcinek trajektorii
 class TEvent;
@@ -19,39 +19,39 @@ class TDynamicObject; // pojazd w scenerii
 class TGroundNode; // statyczny obiekt scenerii
 class TAnimModel; // opakowanie egzemplarz modelu
 class TAnimContainer; // fragment opakowania egzemplarza modelu
-class TModel3d; //siatka modelu wspólna dla egzemplarzy
-class TSubModel; // fragment modelu (tu do wyœwietlania terenu)
-class TMemCell; // komórka pamiêci
+class TModel3d; //siatka modelu wspÃ³lna dla egzemplarzy
+class TSubModel; // fragment modelu (tu do wyÅ›wietlania terenu)
+class TMemCell; // komÃ³rka pamiÄ™ci
 class cParser;
-class TRealSound; // dŸwiêk ze wspó³rzêdnymi XYZ
-class TTextSound; // dŸwiêk ze stenogramem
+class TRealSound; // dÅºwiÄ™k ze wspÃ³Å‚rzÄ™dnymi XYZ
+class TTextSound; // dÅºwiÄ™k ze stenogramem
 class TEventLauncher;
 class TTraction; // drut
-class TTractionPowerSource; // zasilanie drutów
+class TTractionPowerSource; // zasilanie drutÃ³w
 
 namespace Mtable
 {
-class TTrainParameters; // rozk³ad jazdy
+class TTrainParameters; // rozkÅ‚ad jazdy
 class TMtableTime; // czas dla danego posterunku
 };
 
-class TController; // obiekt steruj¹cy poci¹giem (AI)
-class TNames; // obiekt sortuj¹cy nazwy
+class TController; // obiekt sterujÄ…cy pociÄ…giem (AI)
+class TNames; // obiekt sortujÄ…cy nazwy
 
 typedef enum
-{ // binarne odpowiedniki komend w komórce pamiêci
-    cm_Unknown, // ci¹g nierozpoznany (nie jest komend¹)
-    cm_Ready, // W4 zezwala na odjazd, ale semafor mo¿e zatrzymaæ
-    cm_SetVelocity, // prêdkoœæ poci¹gowa zadawana na semaforze
-    cm_RoadVelocity, // prêdkoœæ drogowa
-    cm_SectionVelocity, //ograniczenie prêdkoœci na odcinku
-    cm_ShuntVelocity, // prêdkoœæ manewrowa na semaforze
-    cm_SetProximityVelocity, // informacja wstêpna o ograniczeniu
+{ // binarne odpowiedniki komend w komÃ³rce pamiÄ™ci
+    cm_Unknown, // ciÄ…g nierozpoznany (nie jest komendÄ…)
+    cm_Ready, // W4 zezwala na odjazd, ale semafor moÅ¼e zatrzymaÄ‡
+    cm_SetVelocity, // prÄ™dkoÅ›Ä‡ pociÄ…gowa zadawana na semaforze
+    cm_RoadVelocity, // prÄ™dkoÅ›Ä‡ drogowa
+    cm_SectionVelocity, //ograniczenie prÄ™dkoÅ›ci na odcinku
+    cm_ShuntVelocity, // prÄ™dkoÅ›Ä‡ manewrowa na semaforze
+    cm_SetProximityVelocity, // informacja wstÄ™pna o ograniczeniu
     cm_ChangeDirection,
     cm_PassengerStopPoint,
     cm_OutsideStation,
     cm_Shunt,
-    cm_Command // komenda pobierana z komórki
+    cm_Command // komenda pobierana z komÃ³rki
 } TCommandType;
 
 #endif

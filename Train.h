@@ -58,10 +58,10 @@ class TCab
         intlitlow_b; // McZapkie-120503: przyciemnione oswietlenie kabiny
   private:
     // bool bChangePossible;
-    TGauge *ggList; // Ra 2014-08: lista animacji macierzowych (ga≥ek) w kabinie
-    int iGaugesMax, iGauges; // ile miejsca w tablicy i ile jest w uøyciu
+    TGauge *ggList; // Ra 2014-08: lista animacji macierzowych (ga≈Çek) w kabinie
+    int iGaugesMax, iGauges; // ile miejsca w tablicy i ile jest w u≈ºyciu
     TButton *btList; // Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
-    int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w uøyciu
+    int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w u≈ºyciu
   public:
     TGauge *Gauge(int n = -1); // pobranie adresu obiektu
     TButton *Button(int n = -1); // pobranie adresu obiektu
@@ -112,18 +112,18 @@ class TTrain
     // otherwise
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
 
-  private: //øeby go nic z zewnπtrz nie przestawia≥o
+  private: //≈ºeby go nic z zewnƒÖtrz nie przestawia≈Ço
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
-  private: //øeby go nic z zewnπtrz nie przestawia≥o
-    TMoverParameters *mvControlled; // cz≥on, w ktÛrym sterujemy silnikiem
-    TMoverParameters *mvOccupied; // cz≥on, w ktÛrym sterujemy hamulcem
-    TMoverParameters *mvSecond; // drugi cz≥on (ET40, ET41, ET42, ukrotnienia)
-    TMoverParameters *mvThird; // trzeci cz≥on (SN61)
-  public: // reszta moøe by?publiczna
+  private: //≈ºeby go nic z zewnƒÖtrz nie przestawia≈Ço
+    TMoverParameters *mvControlled; // cz≈Çon, w kt√≥rym sterujemy silnikiem
+    TMoverParameters *mvOccupied; // cz≈Çon, w kt√≥rym sterujemy hamulcem
+    TMoverParameters *mvSecond; // drugi cz≈Çon (ET40, ET41, ET42, ukrotnienia)
+    TMoverParameters *mvThird; // trzeci cz≈Çon (SN61)
+  public: // reszta mo≈ºe by?publiczna
     // AnsiString asMessage;
 
-    // McZapkie: definicje wskaünikÛw
-    // Ra 2014-08: czÍsciowo przeniesione do tablicy w TCab
+    // McZapkie: definicje wska≈∫nik√≥w
+    // Ra 2014-08: czƒôsciowo przeniesione do tablicy w TCab
     TGauge ggZbS;
     TGauge ggClockSInd;
     TGauge ggClockMInd;
@@ -137,7 +137,7 @@ class TTrain
     TGauge ggMainGearStatus;
 
     TGauge ggEngineVoltage;
-    TGauge ggI1B; // drugi cz≥on w postaci jawnej
+    TGauge ggI1B; // drugi cz≈Çon w postaci jawnej
     TGauge ggI2B;
     TGauge ggI3B;
     TGauge ggItotalB;
@@ -218,8 +218,8 @@ class TTrain
     TGauge ggSignallingButton;
     TGauge ggDoorSignallingButton;
     //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
-    // TGauge ggDistCounter; //Ra 2014-07: licznik kilometrÛw
-    // TGauge ggVelocityDgt; //i od razu prÍdkoúciomierz
+    // TGauge ggDistCounter; //Ra 2014-07: licznik kilometr√≥w
+    // TGauge ggVelocityDgt; //i od razu prƒôdko≈õciomierz
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
@@ -268,7 +268,7 @@ class TTrain
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
     TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
-    TButton btLampkaJazda; // Ra: nie uøywane
+    TButton btLampkaJazda; // Ra: nie u≈ºywane
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -280,13 +280,13 @@ class TTrain
     TButton btLampkaDepartureSignal;
     TButton btLampkaBlokadaDrzwi;
     TButton btLampkaHamulecReczny;
-    TButton btLampkaForward; // Ra: lampki w przÛd i w ty?dla komputerowych kabin
+    TButton btLampkaForward; // Ra: lampki w prz√≥d i w ty?dla komputerowych kabin
     TButton btLampkaBackward;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
-    TButton btHaslerBrakes; // ciúnienie w cylindrach
-    TButton btHaslerCurrent; // prπd na silnikach
+    TButton btHaslerBrakes; // ci≈õnienie w cylindrach
+    TButton btHaslerCurrent; // prƒÖd na silnikach
 
     vector3 pPosition;
     vector3 pMechOffset; // driverNpos
@@ -395,8 +395,8 @@ class TTrain
     float fHVoltage; // napi?cie dla dynamicznych ga?ek
     float fHCurrent[4]; // pr?dy: suma i amperomierze 1,2,3
     float fEngine[4]; // obroty te? trzeba pobra?
-    int iCarNo, iPowerNo, iUnitNo; // liczba pojazdow, czlonow napednych i jednostek spiÍtych ze
-                                   // sobπ
+    int iCarNo, iPowerNo, iUnitNo; // liczba pojazdow, czlonow napednych i jednostek spiƒôtych ze
+                                   // sobƒÖ
     bool bDoors[20][3]; // drzwi dla wszystkich czlonow
     int iUnits[20]; // numer jednostki
     int iDoorNo[20]; // liczba drzwi

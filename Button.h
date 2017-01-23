@@ -15,10 +15,10 @@ http://mozilla.org/MPL/2.0/.
 #include "parser.h"
 
 class TButton
-{ // animacja dwustanowa, w³¹cza jeden z dwóch submodeli (jednego
-    // z nich mo¿e nie byæ)
+{ // animacja dwustanowa, wÅ‚Ä…cza jeden z dwÃ³ch submodeli (jednego
+    // z nich moÅ¼e nie byÄ‡)
   private:
-    TSubModel *pModelOn, *pModelOff; // submodel dla stanu za³¹czonego i wy³¹czonego
+    TSubModel *pModelOn, *pModelOff; // submodel dla stanu zaÅ‚Ä…czonego i wyÅ‚Ä…czonego
     bool bOn;
     bool *bData;
     int iFeedbackBit; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit

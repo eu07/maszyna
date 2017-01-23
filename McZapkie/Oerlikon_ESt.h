@@ -189,7 +189,7 @@ class TNESt3 : public TBrake
 {
   private:
     double Nozzles[dMAX]; // dysze
-    TReservoir *CntrlRes; // zbiornik steruj¹cy
+    TReservoir *CntrlRes; // zbiornik sterujÄ…cy
     double BVM; // przelozenie PG-CH
     //        ValveFlag: byte;           //polozenie roznych zaworkow
     bool Zamykajacy; // pamiec zaworka zamykajacego

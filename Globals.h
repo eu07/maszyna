@@ -110,7 +110,7 @@ const int k_Battery = 72;
 const int k_WalkMode = 73;
 const int MaxKeys = 74;
 
-// klasy dla wska�nik�w globalnych
+// klasy dla wskaźników globalnych
 class TGround;
 class TWorld;
 class TCamera;
@@ -121,21 +121,21 @@ class TEvent;
 class TTextSound;
 
 class TTranscript
-{ // klasa obs�uguj�ca linijk� napisu do d�wi�ku
+{ // klasa obsługująca linijkę napisu do dźwięku
   public:
     float fShow; // czas pokazania
-    float fHide; // czas ukrycia/usuni�cia
-    std::string asText; // tekst gotowy do wy�wietlenia (usuni�te znaczniki czasu)
-    bool bItalic; // czy kursywa (d�wi�k nieistotny dla prowadz�cego)
-    int iNext; // nast�pna u�ywana linijka, �eby nie przestawia� fizycznie tabeli
+    float fHide; // czas ukrycia/usunięcia
+    std::string asText; // tekst gotowy do wyświetlenia (usunięte znaczniki czasu)
+    bool bItalic; // czy kursywa (dźwięk nieistotny dla prowadzącego)
+    int iNext; // następna używana linijka, żeby nie przestawiać fizycznie tabeli
 };
 
 #define MAX_TRANSCRIPTS 30
 class TTranscripts
-{ // klasa obs�uguj�ca napisy do d�wi�k�w
-    TTranscript aLines[MAX_TRANSCRIPTS]; // pozycje na napisy do wy�wietlenia
-    int iCount; // liczba zaj�tych pozycji
-    int iStart; // pierwsza istotna pozycja w tabeli, �eby sortowa� przestawiaj�c numerki
+{ // klasa obsługująca napisy do dźwięków
+    TTranscript aLines[MAX_TRANSCRIPTS]; // pozycje na napisy do wyświetlenia
+    int iCount; // liczba zajętych pozycji
+    int iStart; // pierwsza istotna pozycja w tabeli, żeby sortować przestawiając numerki
     float fRefreshTime;
 
   public:
@@ -143,23 +143,23 @@ class TTranscripts
     ~TTranscripts();
     void AddLine(char const *txt, float show, float hide, bool it);
     void Add(char const *txt, float len,
-             bool backgorund = false); // dodanie tekst�w, d�ugo�� d�wi�ku, czy istotne
-    void Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekund�)
+             bool backgorund = false); // dodanie tekstów, długość dźwięku, czy istotne
+    void Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekundę)
 };
 
 class Global
 {
   private:
-    static GLuint iTextureId; // ostatnio u�yta tekstura 2D
+    static GLuint iTextureId; // ostatnio użyta tekstura 2D
   public:
     // double Global::tSinceStart;
     static int Keys[MaxKeys];
-    static Math3D::vector3 pCameraPosition; // pozycja kamery w �wiecie
+    static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
     static double
-        pCameraRotation; // kierunek bezwzgl�dny kamery w �wiecie: 0=p��noc, 90�=zach�d (-azymut)
+        pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard
-	static Math3D::vector3 pFreeCameraInit[ 10 ]; // pozycje kamery
-	static Math3D::vector3 pFreeCameraInitAngle[ 10 ];
+    static Math3D::vector3 pFreeCameraInit[10]; // pozycje kamery
+    static Math3D::vector3 pFreeCameraInitAngle[10];
     static int iWindowWidth;
     static int iWindowHeight;
     static float fDistanceFactor;
@@ -227,81 +227,81 @@ class Global
     static std::string asSky;
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
-    static int iDefaultFiltering; // domy�lne rozmywanie tekstur TGA
-    static int iBallastFiltering; // domy�lne rozmywanie tekstury podsypki
-    static int iRailProFiltering; // domy�lne rozmywanie tekstury szyn
-    static int iDynamicFiltering; // domy�lne rozmywanie tekstur pojazd�w
-    static int iReCompile; // zwi�kszany, gdy trzeba od�wie�y� siatki
+    static int iDefaultFiltering; // domyślne rozmywanie tekstur TGA
+    static int iBallastFiltering; // domyślne rozmywanie tekstury podsypki
+    static int iRailProFiltering; // domyślne rozmywanie tekstury szyn
+    static int iDynamicFiltering; // domyślne rozmywanie tekstur pojazdów
+    static int iReCompile; // zwiększany, gdy trzeba odświeżyć siatki
     static bool bUseVBO; // czy jest VBO w karcie graficznej
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
-    static double fOpenGL; // wersja OpenGL - przyda si�
-    static bool bOpenGL_1_5; // czy s� dost�pne funkcje OpenGL 1.5
-    static double fLuminance; // jasno�� �wiat�a do automatycznego zapalania
-    static int iMultiplayer; // blokada dzia�ania niekt�rych event�w na rzecz kominikacji
+    static double fOpenGL; // wersja OpenGL - przyda się
+    static bool bOpenGL_1_5; // czy są dostępne funkcje OpenGL 1.5
+    static double fLuminance; // jasność światła do automatycznego zapalania
+    static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
     static HWND hWnd; // uchwyt okna
     static int iCameraLast;
     static std::string asRelease; // numer
     static std::string asVersion; // z opisem
     static int
-        iViewMode; // co aktualnie wida�: 0-kabina, 1-latanie, 2-sprz�gi, 3-dokumenty, 4-obwody
+        iViewMode; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty, 4-obwody
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
-    static int iTextMode; // tryb pracy wy�wietlacza tekstowego
-    static int iScreenMode[12]; // numer ekranu wy�wietlacza tekstowego
-    static bool bDoubleAmbient; // podw�jna jasno�� ambient
+    static int iTextMode; // tryb pracy wyświetlacza tekstowego
+    static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego
+    static bool bDoubleAmbient; // podwójna jasność ambient
     static double fMoveLight; // numer dnia w roku albo -1
-    static bool bSmoothTraction; // wyg�adzanie drut�w
-    static double fSunDeclination; // deklinacja S�o�ca
-    static double fTimeSpeed; // przyspieszenie czasu, zmienna do test�w
-    static double fTimeAngleDeg; // godzina w postaci k�ta
-    static float fClockAngleDeg[6]; // k�ty obrotu cylindr�w dla zegara cyfrowego
-    static double fLatitudeDeg; // szeroko�� geograficzna
+    static bool bSmoothTraction; // wygładzanie drutów
+    static double fSunDeclination; // deklinacja Słońca
+    static double fTimeSpeed; // przyspieszenie czasu, zmienna do testów
+    static double fTimeAngleDeg; // godzina w postaci kąta
+    static float fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
+    static double fLatitudeDeg; // szerokość geograficzna
     static char *szTexturesTGA[4]; // lista tekstur od TGA
     static char *szTexturesDDS[4]; // lista tekstur od DDS
     static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     static bool bGlutFont; // tekst generowany przez GLUT
-    static int iKeyLast; // ostatnio naci�ni�ty klawisz w celu logowania
-    static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=t�o,b3=lagi,b4=wczytywanie
+    static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania
+    static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
     static bool bActive; // czy jest aktywnym oknem
     static void BindTexture(GLuint t);
-    static int iConvertModels; // tworzenie plik�w binarnych
-    static int iErorrCounter; // licznik sprawdza� do �ledzenia b��d�w OpenGL
+    static int iConvertModels; // tworzenie plików binarnych
+    static int iErorrCounter; // licznik sprawdzań do śledzenia błędów OpenGL
     static bool bInactivePause; // automatyczna pauza, gdy okno nieaktywne
-    static int iTextures; // licznik u�ytych tekstur
-    static int iSlowMotionMask; // maska wy��czanych w�a�ciwo�ci
-    static int iModifyTGA; // czy korygowa� pliki TGA dla szybszego wczytywania
+    static int iTextures; // licznik użytych tekstur
+    static int iSlowMotionMask; // maska wyłączanych właściwości
+    static int iModifyTGA; // czy korygować pliki TGA dla szybszego wczytywania
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
-	static bool bOldSmudge; // U�ywanie starej smugi
+	static bool bOldSmudge; // Używanie starej smugi
 	
-    static TWorld *pWorld; // wska�nik na �wiat do usuwania pojazd�w
+    static TWorld *pWorld; // wskaźnik na świat do usuwania pojazdów
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
     static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
-    static bool bRollFix; // czy wykona� przeliczanie przechy�ki
+    static bool bRollFix; // czy wykonać przeliczanie przechyłki
     static cParser *pParser;
-    static int iSegmentsRendered; // ilo�� segment�w do regulacji wydajno�ci
-    static double fFpsAverage; // oczekiwana wartos� FPS
+    static int iSegmentsRendered; // ilość segmentów do regulacji wydajności
+    static double fFpsAverage; // oczekiwana wartosć FPS
     static double fFpsDeviation; // odchylenie standardowe FPS
-    static double fFpsMin; // dolna granica FPS, przy kt�rej promie� scenerii b�dzie zmniejszany
-    static double fFpsMax; // g�rna granica FPS, przy kt�rej promie� scenerii b�dzie zwi�kszany
-    static double fFpsRadiusMax; // maksymalny promie� renderowania
-    static int iFpsRadiusMax; // maksymalny promie� renderowania w rozmiarze tabeli sektor�w
-    static double fRadiusFactor; // wsp��czynnik zmiany promienia
+    static double fFpsMin; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
+    static double fFpsMax; // górna granica FPS, przy której promień scenerii będzie zwiększany
+    static double fFpsRadiusMax; // maksymalny promień renderowania
+    static int iFpsRadiusMax; // maksymalny promień renderowania w rozmiarze tabeli sektorów
+    static double fRadiusFactor; // współczynnik zmiany promienia
     static TCamera *pCamera; // parametry kamery
-    static TDynamicObject *pUserDynamic; // pojazd u�ytkownika, renderowany bez trz�sienia
-    static double fCalibrateIn[6][6]; // parametry kalibracyjne wej�� z pulpitu
-    static double fCalibrateOut[7][6]; // parametry kalibracyjne wyj�� dla pulpitu
-	static double fCalibrateOutMax[7]; // warto�ci maksymalne wyj�� dla pulpitu
-	static int iCalibrateOutDebugInfo; // numer wyj�cia kalibrowanego dla kt�rego wy�wietla�
+    static TDynamicObject *pUserDynamic; // pojazd użytkownika, renderowany bez trzęsienia
+    static double fCalibrateIn[6][6]; // parametry kalibracyjne wejść z pulpitu
+    static double fCalibrateOut[7][6]; // parametry kalibracyjne wyjść dla pulpitu
+	static double fCalibrateOutMax[7]; // wartości maksymalne wyjść dla pulpitu
+	static int iCalibrateOutDebugInfo; // numer wyjścia kalibrowanego dla którego wyświetlać
 									   // informacje podczas kalibracji
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-    static bool bJoinEvents; // czy grupowa� eventy o tych samych nazwach
-    static bool bSmudge; // czy wy�wietla� smug�, a pojazd u�ytkownika na ko�cu
+    static bool bJoinEvents; // czy grupować eventy o tych samych nazwach
+    static bool bSmudge; // czy wyświetlać smugę, a pojazd użytkownika na końcu
     static std::string asTranscript[5]; // napisy na ekranie (widoczne)
-    static TTranscripts tranTexts; // obiekt obs�uguj�cy stenogramy d�wi�k�w na ekranie
-    static std::string asLang; // domy�lny j�zyk - http://tools.ietf.org/html/bcp47
-    static int iHiddenEvents; // czy ��czy� eventy z torami poprzez nazw� toru
-    static TTextSound *tsRadioBusy[10]; // zaj�to�� kana��w radiowych (wska�nik na odgrywany d�wi�k)
-	static int iPoKeysPWM[7]; // numery wej�� dla PWM
+    static TTranscripts tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
+    static std::string asLang; // domyślny język - http://tools.ietf.org/html/bcp47
+    static int iHiddenEvents; // czy łączyć eventy z torami poprzez nazwę toru
+    static TTextSound *tsRadioBusy[10]; // zajętość kanałów radiowych (wskaźnik na odgrywany dźwięk)
+	static int iPoKeysPWM[7]; // numery wejść dla PWM
 
 	// metody
     static void TrainDelete(TDynamicObject *d);

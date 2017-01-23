@@ -30,35 +30,35 @@ double TSubModel::fSquareDist = 0;
 int TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 GLuint *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
-TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaŸnik na model widoczny z submodelu
+TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaÅºnik na model widoczny z submodelu
 std::string *TSubModel::pasText;
-// przyk³ady dla TSubModel::iAlpha:
-// 0x30300030 - wszystkie bez kana³u alfa
-// 0x31310031 - tekstura -1 u¿ywana w danym cyklu, pozosta³e nie
-// 0x32320032 - tekstura -2 u¿ywana w danym cyklu, pozosta³e nie
-// 0x34340034 - tekstura -3 u¿ywana w danym cyklu, pozosta³e nie
-// 0x38380038 - tekstura -4 u¿ywana w danym cyklu, pozosta³e nie
-// 0x3F3F003F - wszystkie wymienne tekstury u¿ywane w danym cyklu
-// Ale w TModel3d okerœla przezroczystoœæ tekstur wymiennych!
+// przykÅ‚ady dla TSubModel::iAlpha:
+// 0x30300030 - wszystkie bez kanaÅ‚u alfa
+// 0x31310031 - tekstura -1 uÅ¼ywana w danym cyklu, pozostaÅ‚e nie
+// 0x32320032 - tekstura -2 uÅ¼ywana w danym cyklu, pozostaÅ‚e nie
+// 0x34340034 - tekstura -3 uÅ¼ywana w danym cyklu, pozostaÅ‚e nie
+// 0x38380038 - tekstura -4 uÅ¼ywana w danym cyklu, pozostaÅ‚e nie
+// 0x3F3F003F - wszystkie wymienne tekstury uÅ¼ywane w danym cyklu
+// Ale w TModel3d okerÅ›la przezroczystoÅ›Ä‡ tekstur wymiennych!
 
-int TSubModelInfo::iTotalTransforms = 0; // iloœæ transformów
-int TSubModelInfo::iTotalNames = 0; // d³ugoœæ obszaru nazw
-int TSubModelInfo::iTotalTextures = 0; // d³ugoœæ obszaru tekstur
+int TSubModelInfo::iTotalTransforms = 0; // iloÅ›Ä‡ transformÃ³w
+int TSubModelInfo::iTotalNames = 0; // dÅ‚ugoÅ›Ä‡ obszaru nazw
+int TSubModelInfo::iTotalTextures = 0; // dÅ‚ugoÅ›Ä‡ obszaru tekstur
 int TSubModelInfo::iCurrent = 0; // aktualny obiekt
-TSubModelInfo *TSubModelInfo::pTable = NULL; // tabele obiektów pomocniczych
+TSubModelInfo *TSubModelInfo::pTable = NULL; // tabele obiektÃ³w pomocniczych
 
 char *TStringPack::String(int n)
-{ // zwraca wskaŸnik do ³añcucha o podanym numerze
+{ // zwraca wskaÅºnik do Å‚aÅ„cucha o podanym numerze
     if (index ? n < (index[1] >> 2) - 2 : false)
-        return data + 8 + index[n + 2]; // indeks upraszcza kwestiê wyszukiwania
-    // jak nie ma indeksu, to trzeba szukaæ
-    int max = *((int *)(data + 4)); // d³ugoœæ obszaru ³añcuchów
-    char *ptr = data + 8; // pocz¹ek obszaru ³añcuchów
+        return data + 8 + index[n + 2]; // indeks upraszcza kwestiÄ™ wyszukiwania
+    // jak nie ma indeksu, to trzeba szukaÄ‡
+    int max = *((int *)(data + 4)); // dÅ‚ugoÅ›Ä‡ obszaru Å‚aÅ„cuchÃ³w
+    char *ptr = data + 8; // poczÄ…ek obszaru Å‚aÅ„cuchÃ³w
     for (int i = 0; i < n; ++i)
-    { // wyszukiwanie ³añcuchów nie jest zbyt optymalne, ale nie musi byæ
+    { // wyszukiwanie Å‚aÅ„cuchÃ³w nie jest zbyt optymalne, ale nie musi byÄ‡
         while (*ptr)
             ++ptr; // wyszukiwanie zera
-        ++ptr; // pominiêcie zera
+        ++ptr; // pominiÄ™cie zera
         if (ptr > data + max)
             return NULL; // zbyt wysoki numer
     }
@@ -78,7 +78,7 @@ void TSubModel::FirstInit()
     uiDisplayList = 0;
     iNumVerts = -1; // do sprawdzenia
     iVboPtr = -1;
-    fLight = -1.0; //œwietcenie wy³¹czone
+    fLight = -1.0; //Å›wietcenie wyÅ‚Ä…czone
     v_RotateAxis = float3(0, 0, 0);
     v_TransVector = float3(0, 0, 0);
     f_Angle = 0;
@@ -91,13 +91,13 @@ void TSubModel::FirstInit()
     Child = NULL;
     TextureID = 0;
     // TexAlpha=false;
-    iFlags = 0x0200; // bit 9=1: submodel zosta³ utworzony a nie ustawiony na
+    iFlags = 0x0200; // bit 9=1: submodel zostaÅ‚ utworzony a nie ustawiony na
     // wczytany plik
     // TexHash=false;
     // Hits=NULL;
     // CollisionPts=NULL;
     // CollisionPtsCount=0;
-    Opacity = 1.0; // przy wczytywaniu modeli by³o dzielone przez 100...
+    Opacity = 1.0; // przy wczytywaniu modeli byÅ‚o dzielone przez 100...
     bWire = false;
     fWireSize = 0;
     fNearAttenStart = 40;
@@ -105,8 +105,8 @@ void TSubModel::FirstInit()
     bUseNearAtten = false;
     iFarAttenDecay = 0;
     fFarDecayRadius = 100;
-    fCosFalloffAngle = 0.5; // 120°?
-    fCosHotspotAngle = 0.3; // 145°?
+    fCosFalloffAngle = 0.5; // 120Â°?
+    fCosHotspotAngle = 0.3; // 145Â°?
     fCosViewAngle = 0;
     fSquareMaxDist = 10000 * 10000; // 10km
     fSquareMinDist = 0;
@@ -120,7 +120,7 @@ void TSubModel::FirstInit()
     f4Specular[0] = f4Specular[1] = f4Specular[2] = 0.0;
     f4Specular[3] = 1.0; //{0,0,0,1};
     f4Emision[0] = f4Emision[1] = f4Emision[2] = f4Emision[3] = 1.0;
-    smLetter = NULL; // u¿ywany tylko roboczo dla TP_TEXT, do przyspieszenia wyœwietlania
+    smLetter = NULL; // uÅ¼ywany tylko roboczo dla TP_TEXT, do przyspieszenia wyÅ›wietlania
 };
 
 TSubModel::~TSubModel()
@@ -128,30 +128,30 @@ TSubModel::~TSubModel()
     if (uiDisplayList)
         glDeleteLists(uiDisplayList, 1);
     if (iFlags & 0x0200)
-    { // wczytany z pliku tekstowego musi sam posprz¹taæ
+    { // wczytany z pliku tekstowego musi sam posprzÄ…taÄ‡
         // SafeDeleteArray(Indices);
         SafeDelete(Next);
         SafeDelete(Child);
-        delete fMatrix; // w³asny transform trzeba usun¹æ (zawsze jeden)
+        delete fMatrix; // wÅ‚asny transform trzeba usunÄ…Ä‡ (zawsze jeden)
         delete[] Vertices;
         delete[] pTexture;
         delete[] pName;
     }
     /*
          else
-         {//wczytano z pliku binarnego (nie jest w³aœcicielem tablic)
+         {//wczytano z pliku binarnego (nie jest wÅ‚aÅ›cicielem tablic)
          }
     */
-    delete[] smLetter; // u¿ywany tylko roboczo dla TP_TEXT, do przyspieszenia
-    // wyœwietlania
+    delete[] smLetter; // uÅ¼ywany tylko roboczo dla TP_TEXT, do przyspieszenia
+    // wyÅ›wietlania
 };
 
 void TSubModel::TextureNameSet(const char *n)
 { // ustawienie nazwy submodelu, o
     // ile nie jest wczytany z E3D
     if (iFlags & 0x0200)
-    { // tylko je¿eli submodel zosta utworzony przez new
-        delete[] pTexture; // usuniêcie poprzedniej
+    { // tylko jeÅ¼eli submodel zosta utworzony przez new
+        delete[] pTexture; // usuniÄ™cie poprzedniej
         int i = strlen(n);
         if (i)
         { // utworzenie nowej
@@ -167,8 +167,8 @@ void TSubModel::NameSet(const char *n)
 { // ustawienie nazwy submodelu, o ile
     // nie jest wczytany z E3D
     if (iFlags & 0x0200)
-    { // tylko je¿eli submodel zosta utworzony przez new
-        delete[] pName; // usuniêcie poprzedniej
+    { // tylko jeÅ¼eli submodel zosta utworzony przez new
+        delete[] pName; // usuniÄ™cie poprzedniej
         int i = strlen(n);
         if (i)
         { // utworzenie nowej
@@ -186,12 +186,12 @@ void TSubModel::NameSet(const char *n)
 int TSubModel::SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, float3 *pt, float8 *Vertices)
 { // szukanie punktu stycznego
     // do (pt), zwraca numer
-    // wierzcho³ka, a nie trójk¹ta
-    int iNumFaces = iNumVerts / 3; // bo maska powierzchni jest jedna na trójk¹t
-    // GLVERTEX *p; //roboczy wskaŸnik
-    float8 *p; // roboczy wskaŸnik
-    for (int i = f; i < iNumFaces; ++i) // pêtla po trójk¹tach, od trójk¹ta (f)
-        if (Masks[i] & dwMask) // jeœli wspólna maska powierzchni
+    // wierzchoÅ‚ka, a nie trÃ³jkÄ…ta
+    int iNumFaces = iNumVerts / 3; // bo maska powierzchni jest jedna na trÃ³jkÄ…t
+    // GLVERTEX *p; //roboczy wskaÅºnik
+    float8 *p; // roboczy wskaÅºnik
+    for (int i = f; i < iNumFaces; ++i) // pÄ™tla po trÃ³jkÄ…tach, od trÃ³jkÄ…ta (f)
+        if (Masks[i] & dwMask) // jeÅ›li wspÃ³lna maska powierzchni
         {
             p = Vertices + 3 * i;
             if (p->Point == *pt)
@@ -201,7 +201,7 @@ int TSubModel::SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, f
             if ((++p)->Point == *pt)
                 return 3 * i + 2;
         }
-    return -1; // nie znaleziono stycznego wierzcho³ka
+    return -1; // nie znaleziono stycznego wierzchoÅ‚ka
 }
 
 float emm1[] = {1, 1, 1, 0};
@@ -263,40 +263,40 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     {
         std::string type = parser.getToken<std::string>();
         if (type == "mesh")
-            eType = GL_TRIANGLES; // submodel - trójkaty
+            eType = GL_TRIANGLES; // submodel - trÃ³jkaty
         else if (type == "point")
             eType = GL_POINTS; // co to niby jest?
         else if (type == "freespotlight")
-            eType = TP_FREESPOTLIGHT; //œwiate³ko
+            eType = TP_FREESPOTLIGHT; //Å›wiateÅ‚ko
         else if (type == "text")
-            eType = TP_TEXT; // wyœwietlacz tekstowy (generator napisów)
+            eType = TP_TEXT; // wyÅ›wietlacz tekstowy (generator napisÃ³w)
         else if (type == "stars")
-            eType = TP_STARS; // wiele punktów œwietlnych
+            eType = TP_STARS; // wiele punktÃ³w Å›wietlnych
     };
     parser.ignoreToken();
     std::string token;
-    // parser.getToken(token1); //ze zmian¹ na ma³e!
-    parser.getTokens(1, false); // nazwa submodelu bez zmieny na ma³e
+    // parser.getToken(token1); //ze zmianÄ… na maÅ‚e!
+    parser.getTokens(1, false); // nazwa submodelu bez zmieny na maÅ‚e
     parser >> token;
     NameSet(token.c_str());
     if (dynamic)
-    { // dla pojazdu, blokujemy za³¹czone submodele, które mog¹ byæ
-        // nieobs³ugiwane
-        if (token.find("_on") + 3 == token.length()) // jeœli nazwa koñczy siê na "_on"
-            iVisible = 0; // to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem "_off"
+    { // dla pojazdu, blokujemy zaÅ‚Ä…czone submodele, ktÃ³re mogÄ… byÄ‡
+        // nieobsÅ‚ugiwane
+        if (token.find("_on") + 3 == token.length()) // jeÅ›li nazwa koÅ„czy siÄ™ na "_on"
+            iVisible = 0; // to domyÅ›lnie wyÅ‚Ä…czyÄ‡, Å¼eby siÄ™ nie nakÅ‚adaÅ‚o z obiektem "_off"
     }
-    else // dla pozosta³ych modeli blokujemy zapalone œwiat³a, które mog¹ byæ
-        // nieobs³ugiwane
-        if (token.compare(0, 8, "Light_On") == 0) // jeœli nazwa zaczyna siê od "Light_On"
-        iVisible = 0; // to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z obiektem
+    else // dla pozostaÅ‚ych modeli blokujemy zapalone Å›wiatÅ‚a, ktÃ³re mogÄ… byÄ‡
+        // nieobsÅ‚ugiwane
+        if (token.compare(0, 8, "Light_On") == 0) // jeÅ›li nazwa zaczyna siÄ™ od "Light_On"
+        iVisible = 0; // to domyÅ›lnie wyÅ‚Ä…czyÄ‡, Å¼eby siÄ™ nie nakÅ‚adaÅ‚o z obiektem
     // "Light_Off"
 
-    if (parser.expectToken("anim:")) // Ra: ta informacja by siê przyda³a!
+    if (parser.expectToken("anim:")) // Ra: ta informacja by siÄ™ przydaÅ‚a!
     { // rodzaj animacji
         std::string type = parser.getToken<std::string>();
         if (type != "false")
         {
-            iFlags |= 0x4000; // jak animacja, to trzeba przechowywaæ macierz zawsze
+            iFlags |= 0x4000; // jak animacja, to trzeba przechowywaÄ‡ macierz zawsze
             if (type == "seconds_jump")
                 b_Anim = b_aAnim = at_SecondsJump; // sekundy z przeskokiem
             else if (type == "minutes_jump")
@@ -306,21 +306,21 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             else if (type == "hours24_jump")
                 b_Anim = b_aAnim = at_Hours24Jump; // godziny z przeskokiem
             else if (type == "seconds")
-                b_Anim = b_aAnim = at_Seconds; // minuty p³ynnie
+                b_Anim = b_aAnim = at_Seconds; // minuty pÅ‚ynnie
             else if (type == "minutes")
-                b_Anim = b_aAnim = at_Minutes; // minuty p³ynnie
+                b_Anim = b_aAnim = at_Minutes; // minuty pÅ‚ynnie
             else if (type == "hours")
-                b_Anim = b_aAnim = at_Hours; // godziny p³ynnie
+                b_Anim = b_aAnim = at_Hours; // godziny pÅ‚ynnie
             else if (type == "hours24")
-                b_Anim = b_aAnim = at_Hours24; // godziny p³ynnie
+                b_Anim = b_aAnim = at_Hours24; // godziny pÅ‚ynnie
             else if (type == "billboard")
-                b_Anim = b_aAnim = at_Billboard; // obrót w pionie do kamery
+                b_Anim = b_aAnim = at_Billboard; // obrÃ³t w pionie do kamery
             else if (type == "wind")
-                b_Anim = b_aAnim = at_Wind; // ruch pod wp³ywem wiatru
+                b_Anim = b_aAnim = at_Wind; // ruch pod wpÅ‚ywem wiatru
             else if (type == "sky")
                 b_Anim = b_aAnim = at_Sky; // aniamacja nieba
             else if (type == "ik")
-                b_Anim = b_aAnim = at_IK; // IK: zadaj¹cy
+                b_Anim = b_aAnim = at_IK; // IK: zadajÄ…cy
             else if (type == "ik11")
                 b_Anim = b_aAnim = at_IK11; // IK: kierunkowany
             else if (type == "ik21")
@@ -344,7 +344,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     {
 		std::string light = parser.getToken<std::string>();
         if (light == "true")
-            fLight = 2.0; // zawsze œwieci
+            fLight = 2.0; // zawsze Å›wieci
         else if (light == "false")
             fLight = -1.0; // zawsze ciemy
         else
@@ -366,14 +366,14 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 			>> discard
 			>> fFarDecayRadius
 			>> discard
-			>> fCosFalloffAngle // k¹t liczony dla œrednicy, a nie promienia
+			>> fCosFalloffAngle // kÄ…t liczony dla Å›rednicy, a nie promienia
 			>> discard
-			>> fCosHotspotAngle; // k¹t liczony dla œrednicy, a nie promienia
+			>> fCosHotspotAngle; // kÄ…t liczony dla Å›rednicy, a nie promienia
 		fCosFalloffAngle = cos( DegToRad( 0.5 * fCosFalloffAngle ) );
 		fCosHotspotAngle = cos( DegToRad( 0.5 * fCosHotspotAngle ) );
         iNumVerts = 1;
         iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi
-        // zostaæ bez zmiany
+        // zostaÄ‡ bez zmiany
     }
     else if (eType < TP_ROTATOR)
     {
@@ -387,9 +387,9 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 			>> discard;
         Opacity = readIntAsDouble(parser, 100.0f); // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
         if (Opacity > 1.0)
-            Opacity *= 0.01; // w 2013 by³ b³¹d i aby go obejœæ, trzeba by³o wpisaæ 10000.0
-        if ((Global::iConvertModels & 1) == 0) // dla zgodnoœci wstecz
-            Opacity = 0.0; // wszystko idzie w przezroczyste albo zale¿nie od tekstury
+            Opacity *= 0.01; // w 2013 byÅ‚ bÅ‚Ä…d i aby go obejÅ›Ä‡, trzeba byÅ‚o wpisaÄ‡ 10000.0
+        if ((Global::iConvertModels & 1) == 0) // dla zgodnoÅ›ci wstecz
+            Opacity = 0.0; // wszystko idzie w przezroczyste albo zaleÅ¼nie od tekstury
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
         std::string texture = parser.getToken<std::string>();
@@ -424,8 +424,8 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             iFlags |= (Opacity < 1.0) ? 8 : 0x10; // zmienna tekstura 4
         }
         else
-        { // jeœli tylko nazwa pliku, to dawaæ bie¿¹c¹ œcie¿kê do tekstur
-            // asTexture=AnsiString(texture.c_str()); //zapamiêtanie nazwy tekstury
+        { // jeÅ›li tylko nazwa pliku, to dawaÄ‡ bieÅ¼Ä…cÄ… Å›cieÅ¼kÄ™ do tekstur
+            // asTexture=AnsiString(texture.c_str()); //zapamiÄ™tanie nazwy tekstury
             TextureNameSet(texture.c_str());
             if (texture.find_first_of("/\\") == texture.npos)
                 texture.insert(0, Global::asCurrentTexturePath.c_str());
@@ -433,16 +433,16 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                 szTexturePath, const_cast<char*>(Global::asCurrentTexturePath.c_str()), texture);
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
-            if (Opacity < 1.0) // przezroczystoœæ z tekstury brana tylko dla Opacity
+            if (Opacity < 1.0) // przezroczystoÅ›Ä‡ z tekstury brana tylko dla Opacity
                 // 0!
                 iFlags |= TTexturesManager::GetAlpha(TextureID) ?
                               0x20 :
                               0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
             else
                 iFlags |= 0x10; // normalnie nieprzezroczyste
-            // renderowanie w cyklu przezroczystych tylko jeœli:
-            // 1. Opacity=0 (przejœciowo <1, czy tam <100) oraz
-            // 2. tekstura ma przezroczystoœæ
+            // renderowanie w cyklu przezroczystych tylko jeÅ›li:
+            // 1. Opacity=0 (przejÅ›ciowo <1, czy tam <100) oraz
+            // 2. tekstura ma przezroczystoÅ›Ä‡
         };
     }
     else
@@ -458,34 +458,34 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 		>> discard;
 
 	if( fSquareMaxDist >= 0.0 ) { fSquareMaxDist *= fSquareMaxDist; }
-	else                        { fSquareMaxDist = 15000 * 15000; }// 15km to wiêcej, ni¿ siê obecnie wyœwietla
+	else                        { fSquareMaxDist = 15000 * 15000; }// 15km to wiÄ™cej, niÅ¼ siÄ™ obecnie wyÅ›wietla
     fSquareMinDist *= fSquareMinDist;
     fMatrix = new float4x4();
     readMatrix(parser, *fMatrix); // wczytanie transform
     if (!fMatrix->IdentityIs())
-        iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechowaæ
-    int iNumFaces; // iloœæ trójk¹tów
-    unsigned int *sg; // maski przynale¿noœci trójk¹tów do powierzchni
+        iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechowaÄ‡
+    int iNumFaces; // iloÅ›Ä‡ trÃ³jkÄ…tÃ³w
+    unsigned int *sg; // maski przynaleÅ¼noÅ›ci trÃ³jkÄ…tÃ³w do powierzchni
     if (eType < TP_ROTATOR)
-    { // wczytywanie wierzcho³ków
+    { // wczytywanie wierzchoÅ‚kÃ³w
 		parser.getTokens( 2, false );
 		parser
 			>> discard
 			>> token;
-        // Ra 15-01: to wczytaæ jako tekst - jeœli pierwszy znak zawiera "*", to
-        // dalej bêdzie nazwa wczeœniejszego submodelu, z którego nale¿y wzi¹æ
-        // wierzcho³ki
-        // zapewni to jak¹œ zgodnoœæ wstecz, bo zamiast liczby bêdzie ci¹g, którego
-        // wartoœæ powinna byæ uznana jako zerowa
+        // Ra 15-01: to wczytaÄ‡ jako tekst - jeÅ›li pierwszy znak zawiera "*", to
+        // dalej bÄ™dzie nazwa wczeÅ›niejszego submodelu, z ktÃ³rego naleÅ¼y wziÄ…Ä‡
+        // wierzchoÅ‚ki
+        // zapewni to jakÄ…Å› zgodnoÅ›Ä‡ wstecz, bo zamiast liczby bÄ™dzie ciÄ…g, ktÃ³rego
+        // wartoÅ›Ä‡ powinna byÄ‡ uznana jako zerowa
         // parser.getToken(iNumVerts);
         if (token[0] == '*')
-        { // jeœli pierwszy znak jest gwiazdk¹, poszukaæ
-            // submodelu o nazwie bez tej gwiazdki i wzi¹æ z
-            // niego wierzcho³ki
+        { // jeÅ›li pierwszy znak jest gwiazdkÄ…, poszukaÄ‡
+            // submodelu o nazwie bez tej gwiazdki i wziÄ…Ä‡ z
+            // niego wierzchoÅ‚ki
             Error("Verticles reference not yet supported!");
         }
         else
-        { // normalna lista wierzcho³ków
+        { // normalna lista wierzchoÅ‚kÃ³w
             iNumVerts = atoi(token.c_str());
             if (iNumVerts % 3)
             {
@@ -499,22 +499,22 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                 Vertices = new float8[iNumVerts];
                 iNumFaces = iNumVerts / 3;
                 sg = new unsigned int[iNumFaces]; // maski powierzchni: 0 oznacza brak
-                // u¿redniania wektorów normalnych
-                int *wsp = new int[iNumVerts]; // z którego wierzcho³ka kopiowaæ wektor
+                // uÅ¼redniania wektorÃ³w normalnych
+                int *wsp = new int[iNumVerts]; // z ktÃ³rego wierzchoÅ‚ka kopiowaÄ‡ wektor
                 // normalny
                 int maska = 0;
                 for (int i = 0; i < iNumVerts; i++)
-                { // Ra: z konwersj¹ na uk³ad scenerii - bêdzie wydajniejsze
-                    // wyœwietlanie
-                    wsp[i] = -1; // wektory normalne nie s¹ policzone dla tego wierzcho³ka
+                { // Ra: z konwersjÄ… na ukÅ‚ad scenerii - bÄ™dzie wydajniejsze
+                    // wyÅ›wietlanie
+                    wsp[i] = -1; // wektory normalne nie sÄ… policzone dla tego wierzchoÅ‚ka
                     if ((i % 3) == 0)
-                    { // jeœli bêdzie maska -1, to dalej bêd¹
-                        // wierzcho³ki z wektorami normalnymi, podanymi
+                    { // jeÅ›li bÄ™dzie maska -1, to dalej bÄ™dÄ…
+                        // wierzchoÅ‚ki z wektorami normalnymi, podanymi
                         // jawnie
-                        maska = parser.getToken<int>(false); // maska powierzchni trójk¹ta
-                        sg[i / 3] = (maska == -1) ? 0 : maska; // dla maski -1 bêdzie 0,
-                        // czyli nie ma wspólnych
-                        // wektorów normalnych
+                        maska = parser.getToken<int>(false); // maska powierzchni trÃ³jkÄ…ta
+                        sg[i / 3] = (maska == -1) ? 0 : maska; // dla maski -1 bÄ™dzie 0,
+                        // czyli nie ma wspÃ³lnych
+                        // wektorÃ³w normalnych
                     }
 					parser.getTokens( 3, false );
 					parser
@@ -522,95 +522,95 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 						>> Vertices[i].Point.y
 						>> Vertices[i].Point.z;
                     if (maska == -1)
-                    { // jeœli wektory normalne podane jawnie
+                    { // jeÅ›li wektory normalne podane jawnie
 						parser.getTokens( 3, false );
 						parser
 							>> Vertices[i].Normal.x
 							>> Vertices[i].Normal.y
 							>> Vertices[i].Normal.z;
-                        wsp[i] = i; // wektory normalne "s¹ ju¿ policzone"
+                        wsp[i] = i; // wektory normalne "sÄ… juÅ¼ policzone"
                     }
 					parser.getTokens( 2, false );
 					parser
 						>> Vertices[i].tu
 						>> Vertices[i].tv;
-                    if (i % 3 == 2) // je¿eli wczytano 3 punkty
+                    if (i % 3 == 2) // jeÅ¼eli wczytano 3 punkty
                     {
                         if (Vertices[i].Point == Vertices[i - 1].Point ||
                             Vertices[i - 1].Point == Vertices[i - 2].Point ||
                             Vertices[i - 2].Point == Vertices[i].Point)
-                        { // je¿eli punkty siê nak³adaj¹ na siebie
-                            --iNumFaces; // o jeden trójk¹t mniej
-                            iNumVerts -= 3; // czyli o 3 wierzcho³ki
+                        { // jeÅ¼eli punkty siÄ™ nakÅ‚adajÄ… na siebie
+                            --iNumFaces; // o jeden trÃ³jkÄ…t mniej
+                            iNumVerts -= 3; // czyli o 3 wierzchoÅ‚ki
                             i -= 3; // wczytanie kolejnego w to miejsce
                             WriteLog(std::string("Degenerated triangle ignored in: \"") + pName + "\", verticle " + std::to_string(i));
                         }
-                        if (i > 0) // jeœli pierwszy trójk¹t bêdzie zdegenerowany, to
-                            // zostanie usuniêty i nie ma co sprawdzaæ
+                        if (i > 0) // jeÅ›li pierwszy trÃ³jkÄ…t bÄ™dzie zdegenerowany, to
+                            // zostanie usuniÄ™ty i nie ma co sprawdzaÄ‡
                             if (((Vertices[i].Point - Vertices[i - 1].Point).Length() > 1000.0) ||
                                 ((Vertices[i - 1].Point - Vertices[i - 2].Point).Length() >
                                  1000.0) ||
                                 ((Vertices[i - 2].Point - Vertices[i].Point).Length() > 1000.0))
-                            { // je¿eli s¹ dalej ni¿ 2km od siebie //Ra 15-01:
-                                // obiekt wstawiany nie powinien byæ wiêkszy ni¿
-                                // 300m (trójk¹ty terenu w E3D mog¹ mieæ 1.5km)
-                                --iNumFaces; // o jeden trójk¹t mniej
-                                iNumVerts -= 3; // czyli o 3 wierzcho³ki
+                            { // jeÅ¼eli sÄ… dalej niÅ¼ 2km od siebie //Ra 15-01:
+                                // obiekt wstawiany nie powinien byÄ‡ wiÄ™kszy niÅ¼
+                                // 300m (trÃ³jkÄ…ty terenu w E3D mogÄ… mieÄ‡ 1.5km)
+                                --iNumFaces; // o jeden trÃ³jkÄ…t mniej
+                                iNumVerts -= 3; // czyli o 3 wierzchoÅ‚ki
                                 i -= 3; // wczytanie kolejnego w to miejsce
                                 WriteLog( std::string("Too large triangle ignored in: \"") + pName + "\"");
                             }
                     }
                 }
-                int i; // indeks dla trójk¹tów
-                float3 *n = new float3[iNumFaces]; // tablica wektorów normalnych dla trójk¹tów
-                for (i = 0; i < iNumFaces; i++) // pêtla po trójk¹tach - bêdzie
-                    // szybciej, jak wstêpnie przeliczymy
-                    // normalne trójk¹tów
+                int i; // indeks dla trÃ³jkÄ…tÃ³w
+                float3 *n = new float3[iNumFaces]; // tablica wektorÃ³w normalnych dla trÃ³jkÄ…tÃ³w
+                for (i = 0; i < iNumFaces; i++) // pÄ™tla po trÃ³jkÄ…tach - bÄ™dzie
+                    // szybciej, jak wstÄ™pnie przeliczymy
+                    // normalne trÃ³jkÄ…tÃ³w
                     n[i] = SafeNormalize(
                         CrossProduct(Vertices[i * 3].Point - Vertices[i * 3 + 1].Point,
                                      Vertices[i * 3].Point - Vertices[i * 3 + 2].Point));
-                int v; // indeks dla wierzcho³ków
-                int f; // numer trójk¹ta stycznego
+                int v; // indeks dla wierzchoÅ‚kÃ³w
+                int f; // numer trÃ³jkÄ…ta stycznego
                 float3 norm; // roboczy wektor normalny
                 for (v = 0; v < iNumVerts; v++)
-                { // pêtla po wierzcho³kach trójk¹tów
-                    if (wsp[v] >= 0) // jeœli ju¿ by³ liczony wektor normalny z u¿yciem
-                        // tego wierzcho³ka
+                { // pÄ™tla po wierzchoÅ‚kach trÃ³jkÄ…tÃ³w
+                    if (wsp[v] >= 0) // jeÅ›li juÅ¼ byÅ‚ liczony wektor normalny z uÅ¼yciem
+                        // tego wierzchoÅ‚ka
                         Vertices[v].Normal =
-                            Vertices[wsp[v]].Normal; // to wystarczy skopiowaæ policzony wczeœniej
+                            Vertices[wsp[v]].Normal; // to wystarczy skopiowaÄ‡ policzony wczeÅ›niej
                     else
-                    { // inaczej musimy dopiero policzyæ
-                        i = v / 3; // numer trójk¹ta
+                    { // inaczej musimy dopiero policzyÄ‡
+                        i = v / 3; // numer trÃ³jkÄ…ta
                         norm = float3(0, 0, 0); // liczenie zaczynamy od zera
-                        f = v; // zaczynamy dodawanie wektorów normalnych od w³asnego
+                        f = v; // zaczynamy dodawanie wektorÃ³w normalnych od wÅ‚asnego
                         while (f >= 0)
-                        { // sumowanie z wektorem normalnym s¹siada (w³¹cznie
-                            // ze sob¹)
-                            wsp[f] = v; // informacja, ¿e w tym wierzcho³ku jest ju¿ policzony
+                        { // sumowanie z wektorem normalnym sÄ…siada (wÅ‚Ä…cznie
+                            // ze sobÄ…)
+                            wsp[f] = v; // informacja, Å¼e w tym wierzchoÅ‚ku jest juÅ¼ policzony
                             // wektor normalny
                             norm += n[f / 3];
                             f = SeekFaceNormal(sg, f / 3 + 1, sg[i], &Vertices[v].Point,
-                                               Vertices); // i szukanie od kolejnego trójk¹ta
+                                               Vertices); // i szukanie od kolejnego trÃ³jkÄ…ta
                         }
-                        // Ra 15-01: nale¿a³o by jeszcze uwzglêdniæ skalowanie wprowadzane
-                        // przez transformy, aby normalne po przeskalowaniu by³y jednostkowe
+                        // Ra 15-01: naleÅ¼aÅ‚o by jeszcze uwzglÄ™dniÄ‡ skalowanie wprowadzane
+                        // przez transformy, aby normalne po przeskalowaniu byÅ‚y jednostkowe
                         Vertices[v].Normal =
-                            SafeNormalize(norm); // przepisanie do wierzcho³ka trójk¹ta
+                            SafeNormalize(norm); // przepisanie do wierzchoÅ‚ka trÃ³jkÄ…ta
                     }
                 }
                 delete[] wsp;
                 delete[] n;
                 delete[] sg;
             }
-            else // gdy brak wierzcho³ków
+            else // gdy brak wierzchoÅ‚kÃ³w
             {
-                eType = TP_ROTATOR; // submodel pomocniczy, ma tylko macierz przekszta³cenia
-                iVboPtr = iNumVerts = 0; // dla formalnoœci
+                eType = TP_ROTATOR; // submodel pomocniczy, ma tylko macierz przeksztaÅ‚cenia
+                iVboPtr = iNumVerts = 0; // dla formalnoÅ›ci
             }
-        } // obs³uga submodelu z w³asn¹ list¹ wierzcho³ków
+        } // obsÅ‚uga submodelu z wÅ‚asnÄ… listÄ… wierzchoÅ‚kÃ³w
     }
     else if (eType == TP_STARS)
-    { // punkty œwiec¹ce dookólnie - sk³adnia jak
+    { // punkty Å›wiecÄ…ce dookÃ³lnie - skÅ‚adnia jak
         // dla smt_Mesh
 		std::string discard;
 		parser.getTokens( 2, false );
@@ -623,7 +623,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         for (i = 0; i < iNumVerts; i++)
         {
 			if( i % 3 == 0 ) {
-				parser.ignoreToken(); // maska powierzchni trójk¹ta
+				parser.ignoreToken(); // maska powierzchni trÃ³jkÄ…ta
 			}
 			parser.getTokens( 5, false );
 			parser
@@ -637,15 +637,15 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             Vertices[i].Normal.z = ((j >> 16) & 0xFF) / 255.0; // B
         }
     }
-    // Visible=true; //siê potem wy³¹czy w razie potrzeby
-    // iFlags|=0x0200; //wczytano z pliku tekstowego (jest w³aœcicielem tablic)
+    // Visible=true; //siÄ™ potem wyÅ‚Ä…czy w razie potrzeby
+    // iFlags|=0x0200; //wczytano z pliku tekstowego (jest wÅ‚aÅ›cicielem tablic)
     if (iNumVerts < 1)
-        iFlags &= ~0x3F; // cykl renderowania uzale¿niony od potomnych
-    return iNumVerts; // do okreœlenia wielkoœci VBO
+        iFlags &= ~0x3F; // cykl renderowania uzaleÅ¼niony od potomnych
+    return iNumVerts; // do okreÅ›lenia wielkoÅ›ci VBO
 };
 
 int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
-{ // dodanie trójk¹tów do submodelu, u¿ywane
+{ // dodanie trÃ³jkÄ…tÃ³w do submodelu, uÅ¼ywane
     // przy tworzeniu E3D terenu
     TSubModel *s = this;
     while (s ? (s->TextureID != tex) : false)
@@ -658,7 +658,7 @@ int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
     if (!s)
     {
         if (TextureID <= 0)
-            s = this; // u¿ycie g³ównego
+            s = this; // uÅ¼ycie gÅ‚Ã³wnego
         else
         { // dodanie nowego submodelu do listy potomnych
             s = new TSubModel();
@@ -668,17 +668,17 @@ int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
         s->TextureNameSet(TTexturesManager::GetName(tex).c_str());
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
-        // iAnimOwner=0; //roboczy wskaŸnik na wierzcho³ek
+        // iAnimOwner=0; //roboczy wskaÅºnik na wierzchoÅ‚ek
     }
     if (s->iNumVerts < 0)
-        s->iNumVerts = tri; // bo na pocz¹tku jest -1, czyli ¿e nie wiadomo
+        s->iNumVerts = tri; // bo na poczÄ…tku jest -1, czyli Å¼e nie wiadomo
     else
-        s->iNumVerts += tri; // aktualizacja iloœci wierzcho³ków
-    return s->iNumVerts - tri; // zwraca pozycjê tych trójk¹tów w submodelu
+        s->iNumVerts += tri; // aktualizacja iloÅ›ci wierzchoÅ‚kÃ³w
+    return s->iNumVerts - tri; // zwraca pozycjÄ™ tych trÃ³jkÄ…tÃ³w w submodelu
 };
 
 float8 * TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
-{ // zwraca wskaŸnik do wype³nienia tabeli wierzcho³ków, u¿ywane
+{ // zwraca wskaÅºnik do wypeÅ‚nienia tabeli wierzchoÅ‚kÃ³w, uÅ¼ywane
     // przy tworzeniu E3D terenu
     TSubModel *s = this;
     while (s ? s->TextureID != tex : false)
@@ -689,25 +689,25 @@ float8 * TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
             s = s->Next;
     }
     if (!s)
-        return NULL; // coœ nie tak posz³o
+        return NULL; // coÅ› nie tak poszÅ‚o
     if (!s->Vertices)
-    { // utworznie tabeli trójk¹tów
+    { // utworznie tabeli trÃ³jkÄ…tÃ³w
         s->Vertices = new float8[s->iNumVerts];
-        // iVboPtr=pos; //pozycja submodelu w tabeli wierzcho³ków
+        // iVboPtr=pos; //pozycja submodelu w tabeli wierzchoÅ‚kÃ³w
         // pos+=iNumVerts; //rezerwacja miejsca w tabeli
-        s->iVboPtr = iInstance; // pozycja submodelu w tabeli wierzcho³ków
-        iInstance += s->iNumVerts; // pozycja dla nastêpnego
+        s->iVboPtr = iInstance; // pozycja submodelu w tabeli wierzchoÅ‚kÃ³w
+        iInstance += s->iNumVerts; // pozycja dla nastÄ™pnego
     }
-    s->ColorsSet(la, ld, ls); // ustawienie kolorów œwiate³
-    return s->Vertices + pos; // wskaŸnik na wolne miejsce w tabeli wierzcho³ków
+    s->ColorsSet(la, ld, ls); // ustawienie kolorÃ³w Å›wiateÅ‚
+    return s->Vertices + pos; // wskaÅºnik na wolne miejsce w tabeli wierzchoÅ‚kÃ³w
 };
 
 void TSubModel::DisplayLists()
-{ // utworznie po jednej skompilowanej liœcie dla
-    // ka¿dego submodelu
+{ // utworznie po jednej skompilowanej liÅ›cie dla
+    // kaÅ¼dego submodelu
     if (Global::bUseVBO)
-        return; // Ra: przy VBO to siê nie przyda
-    // iFlags|=0x4000; //wy³¹czenie przeliczania wierzcho³ków, bo nie s¹ zachowane
+        return; // Ra: przy VBO to siÄ™ nie przyda
+    // iFlags|=0x4000; //wyÅ‚Ä…czenie przeliczania wierzchoÅ‚kÃ³w, bo nie sÄ… zachowane
     if (eType < TP_ROTATOR)
     {
         if (iNumVerts > 0)
@@ -763,7 +763,7 @@ void TSubModel::DisplayLists()
         glEndList();
     }
     else if (eType == TP_STARS)
-    { // punkty œwiec¹ce dookólnie
+    { // punkty Å›wiecÄ…ce dookÃ³lnie
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
         glBindTexture(GL_TEXTURE_2D, 0); // tekstury nie ma
@@ -782,7 +782,7 @@ void TSubModel::DisplayLists()
         glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
         glEndList();
     }
-    // SafeDeleteArray(Vertices); //przy VBO musz¹ zostaæ do za³adowania ca³ego
+    // SafeDeleteArray(Vertices); //przy VBO muszÄ… zostaÄ‡ do zaÅ‚adowania caÅ‚ego
     // modelu
     if (Child)
         Child->DisplayLists();
@@ -791,27 +791,27 @@ void TSubModel::DisplayLists()
 };
 
 void TSubModel::InitialRotate(bool doit)
-{ // konwersja uk³adu wspó³rzêdnych na zgodny ze sceneri¹
-    if (iFlags & 0xC000) // jeœli jest animacja albo niejednostkowy transform
-    { // niejednostkowy transform jest mno¿ony i wystarczy zabawy
+{ // konwersja ukÅ‚adu wspÃ³Å‚rzÄ™dnych na zgodny ze sceneriÄ…
+    if (iFlags & 0xC000) // jeÅ›li jest animacja albo niejednostkowy transform
+    { // niejednostkowy transform jest mnoÅ¼ony i wystarczy zabawy
         if (doit)
-        { // obrót lewostronny
-            if (!fMatrix) // macierzy mo¿e nie byæ w dodanym "bananie"
+        { // obrÃ³t lewostronny
+            if (!fMatrix) // macierzy moÅ¼e nie byÄ‡ w dodanym "bananie"
             {
-                fMatrix = new float4x4(); // tworzy macierz o przypadkowej zawartoœci
+                fMatrix = new float4x4(); // tworzy macierz o przypadkowej zawartoÅ›ci
                 fMatrix->Identity(); // a zaczynamy obracanie od jednostkowej
             }
-            iFlags |= 0x8000; // po obróceniu bêdzie raczej niejedynkowy matrix
+            iFlags |= 0x8000; // po obrÃ³ceniu bÄ™dzie raczej niejedynkowy matrix
             fMatrix->InitialRotate(); // zmiana znaku X oraz zamiana Y i Z
             if (fMatrix->IdentityIs())
-                iFlags &= ~0x8000; // jednak jednostkowa po obróceniu
+                iFlags &= ~0x8000; // jednak jednostkowa po obrÃ³ceniu
         }
         if (Child)
-            Child->InitialRotate(false); // potomnych nie obracamy ju¿, tylko
+            Child->InitialRotate(false); // potomnych nie obracamy juÅ¼, tylko
         // ewentualnie optymalizujemy
         else if (Global::iConvertModels & 2) // optymalizacja jest opcjonalna
             if ((iFlags & 0xC000) == 0x8000) // o ile nie ma animacji
-            { // jak nie ma potomnych, mo¿na wymno¿yæ przez transform i wyjedynkowaæ
+            { // jak nie ma potomnych, moÅ¼na wymnoÅ¼yÄ‡ przez transform i wyjedynkowaÄ‡
                 // go
                 float4x4 *mat = GetMatrix(); // transform submodelu
                 if (Vertices)
@@ -819,20 +819,20 @@ void TSubModel::InitialRotate(bool doit)
                     for (int i = 0; i < iNumVerts; ++i)
                         Vertices[i].Point = (*mat) * Vertices[i].Point;
                     (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] =
-                        0.0; // zerujemy przesuniêcie przed obracaniem normalnych
-                    if (eType != TP_STARS) // gwiazdki maj¹ kolory zamiast normalnych, to
+                        0.0; // zerujemy przesuniÄ™cie przed obracaniem normalnych
+                    if (eType != TP_STARS) // gwiazdki majÄ… kolory zamiast normalnych, to
                         // ich wtedy nie ruszamy
                         for (int i = 0; i < iNumVerts; ++i)
                             Vertices[i].Normal = SafeNormalize((*mat) * Vertices[i].Normal);
                 }
-                mat->Identity(); // jedynkowanie transformu po przeliczeniu wierzcho³ków
+                mat->Identity(); // jedynkowanie transformu po przeliczeniu wierzchoÅ‚kÃ³w
                 iFlags &= ~0x8000; // transform jedynkowy
             }
     }
     else // jak jest jednostkowy i nie ma animacji
         if (doit)
-    { // jeœli jest jednostkowy transform, to przeliczamy
-        // wierzcho³ki, a mno¿enie podajemy dalej
+    { // jeÅ›li jest jednostkowy transform, to przeliczamy
+        // wierzchoÅ‚ki, a mnoÅ¼enie podajemy dalej
         double t;
         if (Vertices)
             for (int i = 0; i < iNumVerts; ++i)
@@ -841,30 +841,30 @@ void TSubModel::InitialRotate(bool doit)
                 t = Vertices[i].Point.y; // zamiana Y i Z
                 Vertices[i].Point.y = Vertices[i].Point.z;
                 Vertices[i].Point.z = t;
-                // wektory normalne równie¿ trzeba przekszta³ciæ, bo siê Ÿle oœwietlaj¹
+                // wektory normalne rÃ³wnieÅ¼ trzeba przeksztaÅ‚ciÄ‡, bo siÄ™ Åºle oÅ›wietlajÄ…
                 Vertices[i].Normal.x = -Vertices[i].Normal.x; // zmiana znaku X
                 t = Vertices[i].Normal.y; // zamiana Y i Z
                 Vertices[i].Normal.y = Vertices[i].Normal.z;
                 Vertices[i].Normal.z = t;
             }
         if (Child)
-            Child->InitialRotate(doit); // potomne ewentualnie obrócimy
+            Child->InitialRotate(doit); // potomne ewentualnie obrÃ³cimy
     }
     if (Next)
         Next->InitialRotate(doit);
 };
 
 void TSubModel::ChildAdd(TSubModel *SubModel)
-{ // dodanie submodelu potemnego (uzale¿nionego)
-    // Ra: zmiana kolejnoœci, ¿eby kolejne móc renderowaæ po aktualnym (by³o
+{ // dodanie submodelu potemnego (uzaleÅ¼nionego)
+    // Ra: zmiana kolejnoÅ›ci, Å¼eby kolejne mÃ³c renderowaÄ‡ po aktualnym (byÅ‚o
     // przed)
     if (SubModel)
-        SubModel->NextAdd(Child); // Ra: zmiana kolejnoœci renderowania
+        SubModel->NextAdd(Child); // Ra: zmiana kolejnoÅ›ci renderowania
     Child = SubModel;
 };
 
 void TSubModel::NextAdd(TSubModel *SubModel)
-{ // dodanie submodelu kolejnego (wspólny przodek)
+{ // dodanie submodelu kolejnego (wspÃ³lny przodek)
     if (Next)
         Next->NextAdd(SubModel);
     else
@@ -872,21 +872,21 @@ void TSubModel::NextAdd(TSubModel *SubModel)
 };
 
 int TSubModel::FlagsCheck()
-{ // analiza koniecznych zmian pomiêdzy submodelami
-    // samo pomijanie glBindTexture() nie poprawi wydajnoœci
-    // ale mo¿na sprawdziæ, czy mo¿na w ogóle pomin¹æ kod do tekstur (sprawdzanie
+{ // analiza koniecznych zmian pomiÄ™dzy submodelami
+    // samo pomijanie glBindTexture() nie poprawi wydajnoÅ›ci
+    // ale moÅ¼na sprawdziÄ‡, czy moÅ¼na w ogÃ³le pominÄ…Ä‡ kod do tekstur (sprawdzanie
     // replaceskin)
 	int i = 0;
     if (Child)
     { // Child jest renderowany po danym submodelu
-        if (Child->TextureID) // o ile ma teksturê
-            if (Child->TextureID != TextureID) // i jest ona inna ni¿ rodzica
-                Child->iFlags |= 0x80; // to trzeba sprawdzaæ, jak z teksturami jest
+        if (Child->TextureID) // o ile ma teksturÄ™
+            if (Child->TextureID != TextureID) // i jest ona inna niÅ¼ rodzica
+                Child->iFlags |= 0x80; // to trzeba sprawdzaÄ‡, jak z teksturami jest
         i = Child->FlagsCheck();
-        iFlags |= 0x00FF0000 & ((i << 16) | (i) | (i >> 8)); // potomny, rodzeñstwo i dzieci
+        iFlags |= 0x00FF0000 & ((i << 16) | (i) | (i >> 8)); // potomny, rodzeÅ„stwo i dzieci
         if (eType == TP_TEXT)
-        { // wy³¹czenie renderowania Next dla znaków
-            // wyœwietlacza tekstowego
+        { // wyÅ‚Ä…czenie renderowania Next dla znakÃ³w
+            // wyÅ›wietlacza tekstowego
             TSubModel *p = Child;
             while (p)
             {
@@ -896,23 +896,23 @@ int TSubModel::FlagsCheck()
         }
     }
     if (Next)
-    { // Next jest renderowany po danym submodelu (kolejnoœæ odwrócona
+    { // Next jest renderowany po danym submodelu (kolejnoÅ›Ä‡ odwrÃ³cona
         // po wczytaniu T3D)
-        if (TextureID) // o ile dany ma teksturê
+        if (TextureID) // o ile dany ma teksturÄ™
             if ((TextureID != Next->TextureID) ||
-                (i & 0x00800000)) // a ma inn¹ albo dzieci zmieniaj¹
-                iFlags |= 0x80; // to dany submodel musi sobie j¹ ustawiaæ
+                (i & 0x00800000)) // a ma innÄ… albo dzieci zmieniajÄ…
+                iFlags |= 0x80; // to dany submodel musi sobie jÄ… ustawiaÄ‡
         i = Next->FlagsCheck();
-        iFlags |= 0xFF000000 & ((i << 24) | (i << 8) | (i)); // nastêpny, kolejne i ich dzieci
+        iFlags |= 0xFF000000 & ((i << 24) | (i << 8) | (i)); // nastÄ™pny, kolejne i ich dzieci
         // tekstury nie ustawiamy tylko wtedy, gdy jest taka sama jak Next i jego
-        // dzieci nie zmieniaj¹
+        // dzieci nie zmieniajÄ…
     }
     return iFlags;
 };
 
 void TSubModel::SetRotate(float3 vNewRotateAxis, float fNewAngle)
-{ // obrócenie submodelu wg podanej
-    // osi (np. wskazówki w kabinie)
+{ // obrÃ³cenie submodelu wg podanej
+    // osi (np. wskazÃ³wki w kabinie)
     v_RotateAxis = vNewRotateAxis;
     f_Angle = fNewAngle;
     if (fNewAngle != 0.0)
@@ -920,55 +920,55 @@ void TSubModel::SetRotate(float3 vNewRotateAxis, float fNewAngle)
         b_Anim = at_Rotate;
         b_aAnim = at_Rotate;
     }
-    iAnimOwner = iInstance; // zapamiêtanie czyja jest animacja
+    iAnimOwner = iInstance; // zapamiÄ™tanie czyja jest animacja
 }
 
 void TSubModel::SetRotateXYZ(float3 vNewAngles)
-{ // obrócenie submodelu o
-    // podane k¹ty wokó³ osi
-    // lokalnego uk³adu
+{ // obrÃ³cenie submodelu o
+    // podane kÄ…ty wokÃ³Å‚ osi
+    // lokalnego ukÅ‚adu
     v_Angles = vNewAngles;
     b_Anim = at_RotateXYZ;
     b_aAnim = at_RotateXYZ;
-    iAnimOwner = iInstance; // zapamiêtanie czyja jest animacja
+    iAnimOwner = iInstance; // zapamiÄ™tanie czyja jest animacja
 }
 
 void TSubModel::SetRotateXYZ(vector3 vNewAngles)
-{ // obrócenie submodelu o
-    // podane k¹ty wokó³ osi
-    // lokalnego uk³adu
+{ // obrÃ³cenie submodelu o
+    // podane kÄ…ty wokÃ³Å‚ osi
+    // lokalnego ukÅ‚adu
     v_Angles.x = vNewAngles.x;
     v_Angles.y = vNewAngles.y;
     v_Angles.z = vNewAngles.z;
     b_Anim = at_RotateXYZ;
     b_aAnim = at_RotateXYZ;
-    iAnimOwner = iInstance; // zapamiêtanie czyja jest animacja
+    iAnimOwner = iInstance; // zapamiÄ™tanie czyja jest animacja
 }
 
 void TSubModel::SetTranslate(float3 vNewTransVector)
-{ // przesuniêcie submodelu (np. w kabinie)
+{ // przesuniÄ™cie submodelu (np. w kabinie)
     v_TransVector = vNewTransVector;
     b_Anim = at_Translate;
     b_aAnim = at_Translate;
-    iAnimOwner = iInstance; // zapamiêtanie czyja jest animacja
+    iAnimOwner = iInstance; // zapamiÄ™tanie czyja jest animacja
 }
 
 void TSubModel::SetTranslate(vector3 vNewTransVector)
-{ // przesuniêcie submodelu (np. w kabinie)
+{ // przesuniÄ™cie submodelu (np. w kabinie)
     v_TransVector.x = vNewTransVector.x;
     v_TransVector.y = vNewTransVector.y;
     v_TransVector.z = vNewTransVector.z;
     b_Anim = at_Translate;
     b_aAnim = at_Translate;
-    iAnimOwner = iInstance; // zapamiêtanie czyja jest animacja
+    iAnimOwner = iInstance; // zapamiÄ™tanie czyja jest animacja
 }
 
 void TSubModel::SetRotateIK1(float3 vNewAngles)
-{ // obrócenie submodelu o
-    // podane k¹ty wokó³ osi
-    // lokalnego uk³adu
+{ // obrÃ³cenie submodelu o
+    // podane kÄ…ty wokÃ³Å‚ osi
+    // lokalnego ukÅ‚adu
     v_Angles = vNewAngles;
-    iAnimOwner = iInstance; // zapamiêtanie czyja jest animacja
+    iAnimOwner = iInstance; // zapamiÄ™tanie czyja jest animacja
 }
 
 struct ToLower
@@ -1013,15 +1013,15 @@ TSubModel * TSubModel::GetFromName(char const *search, bool i)
 // WORD hbIndices[18]={3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void TSubModel::RaAnimation(TAnimType a)
-{ // wykonanie animacji niezale¿nie od renderowania
+{ // wykonanie animacji niezaleÅ¼nie od renderowania
     switch (a)
-    { // korekcja po³o¿enia, jeœli submodel jest animowany
-    case at_Translate: // Ra: by³o "true"
+    { // korekcja poÅ‚oÅ¼enia, jeÅ›li submodel jest animowany
+    case at_Translate: // Ra: byÅ‚o "true"
         if (iAnimOwner != iInstance)
             break; // cudza animacja
         glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
         break;
-    case at_Rotate: // Ra: by³o "true"
+    case at_Rotate: // Ra: byÅ‚o "true"
         if (iAnimOwner != iInstance)
             break; // cudza animacja
         glRotatef(f_Angle, v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z);
@@ -1040,60 +1040,60 @@ void TSubModel::RaAnimation(TAnimType a)
     case at_MinutesJump: // minuty z przeskokiem
         glRotatef(GlobalTime->mm * 6.0, 0.0, 1.0, 0.0);
         break;
-    case at_HoursJump: // godziny skokowo 12h/360°
+    case at_HoursJump: // godziny skokowo 12h/360Â°
         glRotatef(GlobalTime->hh * 30.0 * 0.5, 0.0, 1.0, 0.0);
         break;
-    case at_Hours24Jump: // godziny skokowo 24h/360°
+    case at_Hours24Jump: // godziny skokowo 24h/360Â°
         glRotatef(GlobalTime->hh * 15.0 * 0.25, 0.0, 1.0, 0.0);
         break;
-    case at_Seconds: // sekundy p³ynnie
+    case at_Seconds: // sekundy pÅ‚ynnie
         glRotatef(GlobalTime->mr * 6.0, 0.0, 1.0, 0.0);
         break;
-    case at_Minutes: // minuty p³ynnie
+    case at_Minutes: // minuty pÅ‚ynnie
         glRotatef(GlobalTime->mm * 6.0 + GlobalTime->mr * 0.1, 0.0, 1.0, 0.0);
         break;
-    case at_Hours: // godziny p³ynnie 12h/360°
+    case at_Hours: // godziny pÅ‚ynnie 12h/360Â°
         // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
         glRotatef(2.0 * Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
         break;
-    case at_Hours24: // godziny p³ynnie 24h/360°
+    case at_Hours24: // godziny pÅ‚ynnie 24h/360Â°
         // glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
         glRotatef(Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
         break;
-    case at_Billboard: // obrót w pionie do kamery
+    case at_Billboard: // obrÃ³t w pionie do kamery
     {
-        matrix4x4 mat; // potrzebujemy wspó³rzêdne przesuniêcia œrodka uk³adu
-        // wspó³rzêdnych submodelu
+        matrix4x4 mat; // potrzebujemy wspÃ³Å‚rzÄ™dne przesuniÄ™cia Å›rodka ukÅ‚adu
+        // wspÃ³Å‚rzÄ™dnych submodelu
         glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray()); // pobranie aktualnej matrycy
         float3 gdzie = float3(mat[3][0], mat[3][1],
-                              mat[3][2]); // pocz¹tek uk³adu wspó³rzêdnych submodelu wzglêdem kamery
+                              mat[3][2]); // poczÄ…tek ukÅ‚adu wspÃ³Å‚rzÄ™dnych submodelu wzglÄ™dem kamery
         glLoadIdentity(); // macierz jedynkowa
-        glTranslatef(gdzie.x, gdzie.y, gdzie.z); // pocz¹tek uk³adu zostaje bez
+        glTranslatef(gdzie.x, gdzie.y, gdzie.z); // poczÄ…tek ukÅ‚adu zostaje bez
         // zmian
         glRotated(atan2(gdzie.x, gdzie.z) * 180.0 / M_PI, 0.0, 1.0,
-                  0.0); // jedynie obracamy w pionie o k¹t
+                  0.0); // jedynie obracamy w pionie o kÄ…t
     }
     break;
-    case at_Wind: // ruch pod wp³ywem wiatru (wiatr bêdziemy liczyæ potem...)
+    case at_Wind: // ruch pod wpÅ‚ywem wiatru (wiatr bÄ™dziemy liczyÄ‡ potem...)
         glRotated(1.5 * sin(M_PI * GlobalTime->mr / 6.0), 0.0, 1.0, 0.0);
         break;
     case at_Sky: // animacja nieba
-        glRotated(Global::fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na pó³noc
-        // glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
-        glRotated(-fmod(Global::fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrót dobowy osi OX
+        glRotated(Global::fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na pÃ³Å‚noc
+        // glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrÃ³t dobowy osi OX
+        glRotated(-fmod(Global::fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrÃ³t dobowy osi OX
         break;
     case at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
-        glRotatef(v_Angles.z, 0.0, 1.0, 0.0); // obrót wzglêdem osi pionowej
+        glRotatef(v_Angles.z, 0.0, 1.0, 0.0); // obrÃ³t wzglÄ™dem osi pionowej
         // (azymut)
-        glRotatef(v_Angles.x, 1.0, 0.0, 0.0); // obrót wzglêdem poziomu (deklinacja)
+        glRotatef(v_Angles.x, 1.0, 0.0, 0.0); // obrÃ³t wzglÄ™dem poziomu (deklinacja)
         break;
     case at_DigiClk: // animacja zegara cyfrowego
     { // ustawienie animacji w submodelach potomnych
         TSubModel *sm = ChildGet();
         do
-        { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od czasu
+        { // pÄ™tla po submodelach potomnych i obracanie ich o kÄ…t zaleÅ¼y od czasu
             if (sm->pName)
-            { // musi mieæ niepust¹ nazwê
+            { // musi mieÄ‡ niepustÄ… nazwÄ™
                 if ((sm->pName[0]) >= '0')
                     if ((sm->pName[0]) <= '5') // zegarek ma 6 cyfr maksymalnie
                         sm->SetRotate(float3(0, 1, 0),
@@ -1104,15 +1104,15 @@ void TSubModel::RaAnimation(TAnimType a)
     }
     break;
     }
-    if (mAnimMatrix) // mo¿na by to daæ np. do at_Translate
+    if (mAnimMatrix) // moÅ¼na by to daÄ‡ np. do at_Translate
     {
         glMultMatrixf(mAnimMatrix->readArray());
-        mAnimMatrix = NULL; // jak animator bêdzie potrzebowa³, to ustawi ponownie
+        mAnimMatrix = NULL; // jak animator bÄ™dzie potrzebowaÅ‚, to ustawi ponownie
     }
 };
 
 void TSubModel::RenderDL()
-{ // g³ówna procedura renderowania przez DL
+{ // gÅ‚Ã³wna procedura renderowania przez DL
     if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
     {
         if (iFlags & 0xC000)
@@ -1124,16 +1124,16 @@ void TSubModel::RenderDL()
                 RaAnimation(b_Anim);
         }
         if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
+        { // renderowanie obiektÃ³w OpenGL
             if (iAlpha & iFlags & 0x1F) // rysuj gdy element nieprzezroczysty
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
-                { // zmienialne skóry
+                { // zmienialne skÃ³ry
                     glBindTexture(GL_TEXTURE_2D, ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // równie¿ 0
+                    glBindTexture(GL_TEXTURE_2D, TextureID); // rÃ³wnieÅ¼ 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1146,16 +1146,16 @@ void TSubModel::RenderDL()
         }
         else if (eType == TP_FREESPOTLIGHT)
         { // wersja DL
-            matrix4x4 mat; // macierz opisuje uk³ad renderowania wzglêdem kamery
+            matrix4x4 mat; // macierz opisuje ukÅ‚ad renderowania wzglÄ™dem kamery
             glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray());
-            // k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-            vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu œwiec¹cego wzglêdem kamery
+            // kÄ…t miÄ™dzy kierunkiem Å›wiatÅ‚a a wspÃ³Å‚rzÄ™dnymi kamery
+            vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu Å›wiecÄ…cego wzglÄ™dem kamery
             fCosViewAngle = DotProduct(Normalize(mat * vector3(0, 0, 1) - gdzie), Normalize(gdzie));
-            if (fCosViewAngle > fCosFalloffAngle) // k¹t wiêkszy ni¿ maksymalny sto¿ek swiat³a
+            if (fCosViewAngle > fCosFalloffAngle) // kÄ…t wiÄ™kszy niÅ¼ maksymalny stoÅ¼ek swiatÅ‚a
             {
                 double Distdimm = 1.0;
                 if (fCosViewAngle <
-                    fCosHotspotAngle) // zmniejszona jasnoœæ miêdzy Hotspot a Falloff
+                    fCosHotspotAngle) // zmniejszona jasnoÅ›Ä‡ miÄ™dzy Hotspot a Falloff
                     if (fCosFalloffAngle < fCosHotspotAngle)
                         Distdimm = 1.0 -
                                    (fCosHotspotAngle - fCosViewAngle) /
@@ -1181,7 +1181,7 @@ void TSubModel::RenderDL()
                 */
                 //           glPopMatrix();
                 //        return;
-                glCallList(uiDisplayList); // wyœwietlenie warunkowe
+                glCallList(uiDisplayList); // wyÅ›wietlenie warunkowe
             }
         }
         else if (eType == TP_STARS)
@@ -1202,7 +1202,7 @@ void TSubModel::RenderDL()
             glPopMatrix();
     }
     if (b_Anim < at_SecondsJump)
-        b_Anim = at_None; // wy³¹czenie animacji dla kolejnego u¿ycia subm
+        b_Anim = at_None; // wyÅ‚Ä…czenie animacji dla kolejnego uÅ¼ycia subm
     if (Next)
         if (iAlpha & iFlags & 0x1F000000)
             Next->RenderDL(); // dalsze rekurencyjnie
@@ -1221,16 +1221,16 @@ void TSubModel::RenderAlphaDL()
                 RaAnimation(b_aAnim);
         }
         if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
+        { // renderowanie obiektÃ³w OpenGL
             if (iAlpha & iFlags & 0x2F) // rysuj gdy element przezroczysty
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
-                { // zmienialne skóry
+                { // zmienialne skÃ³ry
                     glBindTexture(GL_TEXTURE_2D, ReplacableSkinId[-TextureID]);
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // równie¿ 0
+                    glBindTexture(GL_TEXTURE_2D, TextureID); // rÃ³wnieÅ¼ 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1243,22 +1243,22 @@ void TSubModel::RenderAlphaDL()
         }
         else if (eType == TP_FREESPOTLIGHT)
         {
-            // dorobiæ aureolê!
+            // dorobiÄ‡ aureolÄ™!
         }
         if (Child != NULL)
             if (eType == TP_TEXT)
-            { // tekst renderujemy w specjalny sposób, zamiast
-                // submodeli z ³añcucha Child
+            { // tekst renderujemy w specjalny sposÃ³b, zamiast
+                // submodeli z Å‚aÅ„cucha Child
                 int i, j = pasText->size();
                 TSubModel *p;
                 char c;
                 if (!smLetter)
-                { // jeœli nie ma tablicy, to j¹ stworzyæ; miejsce
+                { // jeÅ›li nie ma tablicy, to jÄ… stworzyÄ‡; miejsce
                     // nieodpowiednie, ale tymczasowo
-                    // mo¿e byæ
-                    smLetter = new TSubModel *[256]; // tablica wskaŸników submodeli dla
-                    // wyœwietlania tekstu
-                    ZeroMemory(smLetter, 256 * sizeof(TSubModel *)); // wype³nianie zerami
+                    // moÅ¼e byÄ‡
+                    smLetter = new TSubModel *[256]; // tablica wskaÅºnikÃ³w submodeli dla
+                    // wyÅ›wietlania tekstu
+                    ZeroMemory(smLetter, 256 * sizeof(TSubModel *)); // wypeÅ‚nianie zerami
                     p = Child;
                     while (p)
                     {
@@ -1268,7 +1268,7 @@ void TSubModel::RenderAlphaDL()
                 }
                 for (i = 1; i <= j; ++i)
                 {
-                    p = smLetter[(*pasText)[i]]; // znak do wyœwietlenia
+                    p = smLetter[(*pasText)[i]]; // znak do wyÅ›wietlenia
                     if (p)
                     { // na razie tylko jako przezroczyste
                         p->RenderAlphaDL();
@@ -1283,14 +1283,14 @@ void TSubModel::RenderAlphaDL()
             glPopMatrix();
     }
     if (b_aAnim < at_SecondsJump)
-        b_aAnim = at_None; // wy³¹czenie animacji dla kolejnego u¿ycia submodelu
+        b_aAnim = at_None; // wyÅ‚Ä…czenie animacji dla kolejnego uÅ¼ycia submodelu
     if (Next != NULL)
         if (iAlpha & iFlags & 0x2F000000)
             Next->RenderAlphaDL();
 }; // RenderAlpha
 
 void TSubModel::RenderVBO()
-{ // g³ówna procedura renderowania przez VBO
+{ // gÅ‚Ã³wna procedura renderowania przez VBO
     if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
     {
         if (iFlags & 0xC000)
@@ -1302,16 +1302,16 @@ void TSubModel::RenderVBO()
                 RaAnimation(b_Anim);
         }
         if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
+        { // renderowanie obiektÃ³w OpenGL
             if (iAlpha & iFlags & 0x1F) // rysuj gdy element nieprzezroczysty
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
-                { // zmienialne skóry
+                { // zmienialne skÃ³ry
                     glBindTexture(GL_TEXTURE_2D, ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // równie¿ 0
+                    glBindTexture(GL_TEXTURE_2D, TextureID); // rÃ³wnieÅ¼ 0
                 glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
                 // glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo,
                 // co glColor
@@ -1319,26 +1319,26 @@ void TSubModel::RenderVBO()
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
                     glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójk¹ty z VBO
+                                 iNumVerts); // narysuj naraz wszystkie trÃ³jkÄ…ty z VBO
                     glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
                 }
                 else
                     glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójk¹ty z VBO
+                                 iNumVerts); // narysuj naraz wszystkie trÃ³jkÄ…ty z VBO
             }
         }
         else if (eType == TP_FREESPOTLIGHT)
         { // wersja VBO
-            matrix4x4 mat; // macierz opisuje uk³ad renderowania wzglêdem kamery
+            matrix4x4 mat; // macierz opisuje ukÅ‚ad renderowania wzglÄ™dem kamery
             glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray());
-            // k¹t miêdzy kierunkiem œwiat³a a wspó³rzêdnymi kamery
-            vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu œwiec¹cego wzglêdem kamery
+            // kÄ…t miÄ™dzy kierunkiem Å›wiatÅ‚a a wspÃ³Å‚rzÄ™dnymi kamery
+            vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu Å›wiecÄ…cego wzglÄ™dem kamery
             fCosViewAngle = DotProduct(Normalize(mat * vector3(0, 0, 1) - gdzie), Normalize(gdzie));
-            if (fCosViewAngle > fCosFalloffAngle) // k¹t wiêkszy ni¿ maksymalny sto¿ek swiat³a
+            if (fCosViewAngle > fCosFalloffAngle) // kÄ…t wiÄ™kszy niÅ¼ maksymalny stoÅ¼ek swiatÅ‚a
             {
                 double Distdimm = 1.0;
                 if (fCosViewAngle <
-                    fCosHotspotAngle) // zmniejszona jasnoœæ miêdzy Hotspot a Falloff
+                    fCosHotspotAngle) // zmniejszona jasnoÅ›Ä‡ miÄ™dzy Hotspot a Falloff
                     if (fCosFalloffAngle < fCosHotspotAngle)
                         Distdimm = 1.0 -
                                    (fCosHotspotAngle - fCosViewAngle) /
@@ -1378,7 +1378,7 @@ void TSubModel::RenderVBO()
                                               Distdimm=1;
 
                 */
-                glBindTexture(GL_TEXTURE_2D, 0); // nie teksturowaæ
+                glBindTexture(GL_TEXTURE_2D, 0); // nie teksturowaÄ‡
                 // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
                 // glColorMaterial(GL_FRONT,GL_EMISSION);
                 float color[4] = {f4Diffuse[0] * Distdimm, f4Diffuse[1] * Distdimm,
@@ -1387,13 +1387,13 @@ void TSubModel::RenderVBO()
                 glColorMaterial(GL_FRONT, GL_EMISSION);
                 glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
                 // blendowaly
-                glColor3fv(color); // inaczej s¹ bia³e
+                glColor3fv(color); // inaczej sÄ… biaÅ‚e
                 glMaterialfv(GL_FRONT, GL_EMISSION, color);
-                glDrawArrays(GL_POINTS, iVboPtr, iNumVerts); // narysuj wierzcho³ek z
+                glDrawArrays(GL_POINTS, iVboPtr, iNumVerts); // narysuj wierzchoÅ‚ek z
                 // VBO
                 glEnable(GL_LIGHTING);
-                glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); // co ma ustawiaæ glColor
-                glMaterialfv(GL_FRONT, GL_EMISSION, emm2); // bez tego s³upy siê œwiec¹
+                glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); // co ma ustawiaÄ‡ glColor
+                glMaterialfv(GL_FRONT, GL_EMISSION, emm2); // bez tego sÅ‚upy siÄ™ Å›wiecÄ…
             }
         }
         else if (eType == TP_STARS)
@@ -1401,12 +1401,12 @@ void TSubModel::RenderVBO()
             // glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie
             // blendowaly
             if (Global::fLuminance < fLight)
-            { // Ra: pewnie mo¿na by to zrobiæ
+            { // Ra: pewnie moÅ¼na by to zrobiÄ‡
                 // lepiej, bez powtarzania StartVBO()
-                pRoot->EndVBO(); // Ra: to te¿ nie jest zbyt ³adne
+                pRoot->EndVBO(); // Ra: to teÅ¼ nie jest zbyt Å‚adne
                 if (pRoot->StartColorVBO())
-                { // wyœwietlanie kolorowych punktów zamiast
-                    // trójk¹tów
+                { // wyÅ›wietlanie kolorowych punktÃ³w zamiast
+                    // trÃ³jkÄ…tÃ³w
                     glBindTexture(GL_TEXTURE_2D, 0); // tekstury nie ma
                     glColorMaterial(GL_FRONT, GL_EMISSION);
                     glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
@@ -1423,7 +1423,7 @@ void TSubModel::RenderVBO()
                 }
             }
         }
-        /*Ra: tu coœ jest bez sensu...
+        /*Ra: tu coÅ› jest bez sensu...
                     else
                     {
                      glBindTexture(GL_TEXTURE_2D, 0);
@@ -1440,7 +1440,7 @@ void TSubModel::RenderVBO()
         swiecace sie blendowaly
                      //glBegin(GL_POINTS);
                      glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj
-        wierzcho³ek z VBO
+        wierzchoÅ‚ek z VBO
                      //       glVertex3f(0,0,0);
                      //glEnd();
                      glEnable(GL_LIGHTING);
@@ -1456,7 +1456,7 @@ void TSubModel::RenderVBO()
             glPopMatrix();
     }
     if (b_Anim < at_SecondsJump)
-        b_Anim = at_None; // wy³¹czenie animacji dla kolejnego u¿ycia submodelu
+        b_Anim = at_None; // wyÅ‚Ä…czenie animacji dla kolejnego uÅ¼ycia submodelu
     if (Next)
         if (iAlpha & iFlags & 0x1F000000)
             Next->RenderVBO(); // dalsze rekurencyjnie
@@ -1468,7 +1468,7 @@ void TSubModel::RenderAlphaVBO()
     {
         if (iFlags & 0xC000)
         {
-            glPushMatrix(); // zapamiêtanie matrycy
+            glPushMatrix(); // zapamiÄ™tanie matrycy
             if (fMatrix)
                 glMultMatrixf(fMatrix->readArray());
             if (b_aAnim)
@@ -1476,7 +1476,7 @@ void TSubModel::RenderAlphaVBO()
         }
         glColor3fv(f4Diffuse);
         if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
+        { // renderowanie obiektÃ³w OpenGL
             if (iAlpha & iFlags & 0x2F) // rysuj gdy element przezroczysty
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
@@ -1485,22 +1485,22 @@ void TSubModel::RenderAlphaVBO()
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // równie¿ 0
+                    glBindTexture(GL_TEXTURE_2D, TextureID); // rÃ³wnieÅ¼ 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
                     glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójk¹ty z VBO
+                                 iNumVerts); // narysuj naraz wszystkie trÃ³jkÄ…ty z VBO
                     glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
                 }
                 else
                     glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójk¹ty z VBO
+                                 iNumVerts); // narysuj naraz wszystkie trÃ³jkÄ…ty z VBO
             }
         }
         else if (eType == TP_FREESPOTLIGHT)
         {
-            // dorobiæ aureolê!
+            // dorobiÄ‡ aureolÄ™!
         }
         if (Child)
             if (iAlpha & iFlags & 0x002F0000)
@@ -1509,7 +1509,7 @@ void TSubModel::RenderAlphaVBO()
             glPopMatrix();
     }
     if (b_aAnim < at_SecondsJump)
-        b_aAnim = at_None; // wy³¹czenie animacji dla kolejnego u¿ycia submodelu
+        b_aAnim = at_None; // wyÅ‚Ä…czenie animacji dla kolejnego uÅ¼ycia submodelu
     if (Next)
         if (iAlpha & iFlags & 0x2F000000)
             Next->RenderAlphaVBO();
@@ -1518,7 +1518,7 @@ void TSubModel::RenderAlphaVBO()
 //---------------------------------------------------------------------------
 
 void TSubModel::RaArrayFill(CVertNormTex *Vert)
-{ // wype³nianie tablic VBO
+{ // wypeÅ‚nianie tablic VBO
     if (Child)
         Child->RaArrayFill(Vert);
     if ((eType < TP_ROTATOR) || (eType == TP_STARS))
@@ -1544,17 +1544,17 @@ void TSubModel::Info()
     // pomocniczego
     TSubModelInfo *info = TSubModelInfo::pTable + TSubModelInfo::iCurrent;
     info->pSubModel = this;
-    if (fMatrix && (iFlags & 0x8000)) // ma matrycê i jest ona niejednostkowa
+    if (fMatrix && (iFlags & 0x8000)) // ma matrycÄ™ i jest ona niejednostkowa
         info->iTransform = info->iTotalTransforms++;
     if (TextureID > 0)
-    { // jeœli ma teksturê niewymienn¹
+    { // jeÅ›li ma teksturÄ™ niewymiennÄ…
         for (int i = 0; i < info->iCurrent; ++i)
-            if (TextureID == info->pTable[i].pSubModel->TextureID) // porównanie z wczeœniejszym
+            if (TextureID == info->pTable[i].pSubModel->TextureID) // porÃ³wnanie z wczeÅ›niejszym
             {
-                info->iTexture = info->pTable[i].iTexture; // taki jaki ju¿ by³
+                info->iTexture = info->pTable[i].iTexture; // taki jaki juÅ¼ byÅ‚
                 break; // koniec sprawdzania
             }
-        if (info->iTexture < 0) // jeœli nie znaleziono we wczeœniejszych
+        if (info->iTexture < 0) // jeÅ›li nie znaleziono we wczeÅ›niejszych
         {
             info->iTexture = ++info->iTotalTextures; // przydzielenie numeru tekstury
             // w pliku (od 1)
@@ -1563,11 +1563,11 @@ void TSubModel::Info()
 			     if( t.substr( t.rfind( '.' ) ) == ".tga" ) { t.erase( t.rfind( '.' ) ); }
 			else if( t.substr( t.rfind( '.' ) ) == ".dds" ) { t.erase( t.rfind( '.' ) ); }
             if (t != std::string(pTexture))
-            { // jeœli siê zmieni³o
-                // pName=new char[token.length()+1]; //nie ma sensu skracaæ tabeli
+            { // jeÅ›li siÄ™ zmieniÅ‚o
+                // pName=new char[token.length()+1]; //nie ma sensu skracaÄ‡ tabeli
                 strcpy(pTexture, t.c_str());
             }
-            info->iTextureLen = t.size() + 1; // przygotowanie do zapisania, z zerem na koñcu
+            info->iTextureLen = t.size() + 1; // przygotowanie do zapisania, z zerem na koÅ„cu
         }
     }
     else
@@ -1576,9 +1576,9 @@ void TSubModel::Info()
     if (pName)
     {
         info->iName = info->iTotalNames++; // przydzielenie numeru nazwy w pliku (od 0)
-        info->iNameLen = strlen(pName) + 1; // z zerem na koñcu
+        info->iNameLen = strlen(pName) + 1; // z zerem na koÅ„cu
     }
-    ++info->iCurrent; // przejœcie do kolejnego obiektu pomocniczego
+    ++info->iCurrent; // przejÅ›cie do kolejnego obiektu pomocniczego
     if (Child)
     {
         info->iChild = info->iCurrent;
@@ -1595,14 +1595,14 @@ void TSubModel::InfoSet(TSubModelInfo *info)
 { // ustawienie danych wg obiektu
     // pomocniczego do zapisania w
     // pliku
-    int ile = (char *)&uiDisplayList - (char *)&eType; // iloœæ bajtów pomiêdzy tymi zmiennymi
-    ZeroMemory(this, sizeof(TSubModel)); // zerowaie ca³oœci
-    CopyMemory(this, info->pSubModel, ile); // skopiowanie pamiêci 1:1
+    int ile = (char *)&uiDisplayList - (char *)&eType; // iloÅ›Ä‡ bajtÃ³w pomiÄ™dzy tymi zmiennymi
+    ZeroMemory(this, sizeof(TSubModel)); // zerowaie caÅ‚oÅ›ci
+    CopyMemory(this, info->pSubModel, ile); // skopiowanie pamiÄ™ci 1:1
     iTexture = info->iTexture; // numer nazwy tekstury, a nie numer w OpenGL
     TextureID = info->iTexture; // numer tekstury w OpenGL
     iName = info->iName; // numer nazwy w obszarze nazw
     iMatrix = info->iTransform; // numer macierzy
-    Next = (TSubModel *)info->iNext; // numer nastêpnego
+    Next = (TSubModel *)info->iNext; // numer nastÄ™pnego
     Child = (TSubModel *)info->iChild; // numer potomnego
     iFlags &= ~0x200; // nie jest wczytany z tekstowego
     // asTexture=asName="";
@@ -1611,10 +1611,10 @@ void TSubModel::InfoSet(TSubModelInfo *info)
 
 void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TStringPack *n,
                         bool dynamic)
-{ // ustawienie wskaŸników w submodelu
-    iVisible = 1; // tymczasowo u¿ywane
-    Child = ((int)Child > 0) ? s + (int)Child : NULL; // zerowy nie mo¿e byæ potomnym
-    Next = ((int)Next > 0) ? s + (int)Next : NULL; // zerowy nie mo¿e byæ nastêpnym
+{ // ustawienie wskaÅºnikÃ³w w submodelu
+    iVisible = 1; // tymczasowo uÅ¼ywane
+    Child = ((int)Child > 0) ? s + (int)Child : NULL; // zerowy nie moÅ¼e byÄ‡ potomnym
+    Next = ((int)Next > 0) ? s + (int)Next : NULL; // zerowy nie moÅ¼e byÄ‡ nastÄ™pnym
     fMatrix = ((iMatrix >= 0) && m) ? m + iMatrix : NULL;
     // if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
     if (n && (iName >= 0))
@@ -1622,15 +1622,15 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
         pName = n->String(iName);
         std::string name(pName);
         if( false == name.empty() )
-        { // jeœli dany submodel jest zgaszonym œwiat³em, to
-            // domyœlnie go ukrywamy
-			if( (name.size() >= 8) && (name.substr( 0, 8 ) == "Light_On") ) {// jeœli jest œwiat³em numerowanym
-				iVisible = 0; // to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z
+        { // jeÅ›li dany submodel jest zgaszonym Å›wiatÅ‚em, to
+            // domyÅ›lnie go ukrywamy
+			if( (name.size() >= 8) && (name.substr( 0, 8 ) == "Light_On") ) {// jeÅ›li jest Å›wiatÅ‚em numerowanym
+				iVisible = 0; // to domyÅ›lnie wyÅ‚Ä…czyÄ‡, Å¼eby siÄ™ nie nakÅ‚adaÅ‚o z
 			}
             // obiektem "Light_Off"
-			else if( dynamic ) {// inaczej wy³¹cza³o smugê w latarniach
-				if( (name.size() >= 3) && (name.substr( name.size() - 3, 3 ) == "_on") ) {// jeœli jest kontrolk¹ w stanie zapalonym
-					iVisible = 0; // to domyœlnie wy³¹czyæ, ¿eby siê nie nak³ada³o z
+			else if( dynamic ) {// inaczej wyÅ‚Ä…czaÅ‚o smugÄ™ w latarniach
+				if( (name.size() >= 3) && (name.substr( name.size() - 3, 3 ) == "_on") ) {// jeÅ›li jest kontrolkÄ… w stanie zapalonym
+					iVisible = 0; // to domyÅ›lnie wyÅ‚Ä…czyÄ‡, Å¼eby siÄ™ nie nakÅ‚adaÅ‚o z
 				}
 			}
             // obiektem "_off"
@@ -1639,7 +1639,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
     else
         pName = NULL;
     if (iTexture > 0)
-    { // obs³uga sta³ej tekstury
+    { // obsÅ‚uga staÅ‚ej tekstury
         // TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
         // asTexture=AnsiString(t->String(iTexture));
         pTexture = t->String(iTexture);
@@ -1649,11 +1649,11 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
         TextureID = TTexturesManager::GetTextureID(
             szTexturePath, const_cast<char*>(Global::asCurrentTexturePath.c_str()), tex);
         // TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
-        // ustawienie cyklu przezroczyste/nieprzezroczyste zale¿nie od w³asnoœci
-        // sta³ej tekstury
+        // ustawienie cyklu przezroczyste/nieprzezroczyste zaleÅ¼nie od wÅ‚asnoÅ›ci
+        // staÅ‚ej tekstury
         // iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
         // //0x10-nieprzezroczysta, 0x20-przezroczysta
-        if (Opacity < 1.0) // przezroczystoœæ z tekstury brana tylko dla Opacity 0!
+        if (Opacity < 1.0) // przezroczystoÅ›Ä‡ z tekstury brana tylko dla Opacity 0!
             iFlags |= TTexturesManager::GetAlpha(TextureID) ?
                           0x20 :
                           0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
@@ -1661,15 +1661,15 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
             iFlags |= 0x10; // normalnie nieprzezroczyste
     }
     b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
-    iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest w³aœcicielem
+    iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest wÅ‚aÅ›cicielem
     // tablic)
     Vertices = v + iVboPtr;
-    // if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, ¿eby siê nie
-    // renderowa³o na si³ê
+    // if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, Å¼eby siÄ™ nie
+    // renderowaÅ‚o na siÅ‚Ä™
 };
 void TSubModel::AdjustDist()
-{ // aktualizacja odleg³oœci faz LoD, zale¿na od
-    // rozdzielczoœci pionowej oraz multisamplingu
+{ // aktualizacja odlegÅ‚oÅ›ci faz LoD, zaleÅ¼na od
+    // rozdzielczoÅ›ci pionowej oraz multisamplingu
     if (fSquareMaxDist > 0.0)
         fSquareMaxDist *= Global::fDistanceFactor;
     if (fSquareMinDist > 0.0)
@@ -1683,7 +1683,7 @@ void TSubModel::AdjustDist()
 };
 
 void TSubModel::ColorsSet(int *a, int *d, int *s)
-{ // ustawienie kolorów dla modelu terenu
+{ // ustawienie kolorÃ³w dla modelu terenu
     int i;
     if (a)
         for (i = 0; i < 4; ++i)
@@ -1696,27 +1696,27 @@ void TSubModel::ColorsSet(int *a, int *d, int *s)
             f4Specular[i] = s[i] / 255.0;
 };
 void TSubModel::ParentMatrix(float4x4 *m)
-{ // pobranie transformacji wzglêdem wstawienia modelu
-    // jeœli nie zosta³o wykonane Init() (tzn. zaraz po wczytaniu T3D), to
-    // dodatkowy obrót
-    // obrót T3D jest wymagany np. do policzenia wysokoœci pantografów
-    *m = float4x4(*fMatrix); // skopiowanie, bo bêdziemy mno¿yæ
-    // m(3)[1]=m[3][1]+0.054; //w górê o wysokoœæ œlizgu (na razie tak)
+{ // pobranie transformacji wzglÄ™dem wstawienia modelu
+    // jeÅ›li nie zostaÅ‚o wykonane Init() (tzn. zaraz po wczytaniu T3D), to
+    // dodatkowy obrÃ³t
+    // obrÃ³t T3D jest wymagany np. do policzenia wysokoÅ›ci pantografÃ³w
+    *m = float4x4(*fMatrix); // skopiowanie, bo bÄ™dziemy mnoÅ¼yÄ‡
+    // m(3)[1]=m[3][1]+0.054; //w gÃ³rÄ™ o wysokoÅ›Ä‡ Å›lizgu (na razie tak)
     TSubModel *sm = this;
     while (sm->Parent)
-    { // przenieœæ tê funkcjê do modelu
+    { // przenieÅ›Ä‡ tÄ™ funkcjÄ™ do modelu
         if (sm->Parent->GetMatrix())
             *m = *sm->Parent->GetMatrix() * *m;
         sm = sm->Parent;
     }
-    // dla ostatniego mo¿e byæ potrzebny dodatkowy obrót, jeœli wczytano z T3D, a
-    // nie obrócono jeszcze
+    // dla ostatniego moÅ¼e byÄ‡ potrzebny dodatkowy obrÃ³t, jeÅ›li wczytano z T3D, a
+    // nie obrÃ³cono jeszcze
 };
 float TSubModel::MaxY(const float4x4 &m)
-{ // obliczenie maksymalnej wysokoœci,
-    // na pocz¹tek œlizgu w pantografie
+{ // obliczenie maksymalnej wysokoÅ›ci,
+    // na poczÄ…tek Å›lizgu w pantografie
     if (eType != 4)
-        return 0; // tylko dla trójk¹tów liczymy
+        return 0; // tylko dla trÃ³jkÄ…tÃ³w liczymy
     if (iNumVerts < 1)
         return 0;
     if (!Vertices)
@@ -1742,7 +1742,7 @@ TModel3d::TModel3d()
     iFlags = 0;
     iSubModelsCount = 0;
     iModel = NULL; // tylko jak wczytany model binarny
-    iNumVerts = 0; // nie ma jeszcze wierzcho³ków
+    iNumVerts = 0; // nie ma jeszcze wierzchoÅ‚kÃ³w
 };
 /*
  TModel3d::TModel3d(char *FileName)
@@ -1760,41 +1760,41 @@ TModel3d::~TModel3d()
 {
     // SafeDeleteArray(Materials);
     if (iFlags & 0x0200)
-    { // wczytany z pliku tekstowego, submodele sprz¹taj¹
+    { // wczytany z pliku tekstowego, submodele sprzÄ…tajÄ…
         // same
-        SafeDelete(Root); // submodele siê usun¹ rekurencyjnie
+        SafeDelete(Root); // submodele siÄ™ usunÄ… rekurencyjnie
     }
     else
-    { // wczytano z pliku binarnego (jest w³aœcicielem tablic)
-        m_pVNT = NULL; // nie usuwaæ tego, bo wskazuje na iModel
+    { // wczytano z pliku binarnego (jest wÅ‚aÅ›cicielem tablic)
+        m_pVNT = NULL; // nie usuwaÄ‡ tego, bo wskazuje na iModel
         Root = NULL;
-        delete[] iModel; // usuwamy ca³y wczytany plik i to wystarczy
+        delete[] iModel; // usuwamy caÅ‚y wczytany plik i to wystarczy
     }
-    // póŸniej siê jeszcze usuwa obiekt z którego dziedziczymy tabelê VBO
+    // pÃ³Åºniej siÄ™ jeszcze usuwa obiekt z ktÃ³rego dziedziczymy tabelÄ™ VBO
 };
 
 TSubModel * TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
 {
     TSubModel *sm = Name ? GetFromName(Name) : NULL;
-    AddTo(sm, SubModel); // szukanie nadrzêdnego
-    return sm; // zwracamy wskaŸnik do nadrzêdnego submodelu
+    AddTo(sm, SubModel); // szukanie nadrzÄ™dnego
+    return sm; // zwracamy wskaÅºnik do nadrzÄ™dnego submodelu
 };
 
 void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel)
-{ // jedyny poprawny sposób dodawania
-    // submodeli, inaczej mog¹ zgin¹æ
+{ // jedyny poprawny sposÃ³b dodawania
+    // submodeli, inaczej mogÄ… zginÄ…Ä‡
     // przy zapisie E3D
     if (tmp)
-    { // jeœli znaleziony, pod³¹czamy mu jako potomny
+    { // jeÅ›li znaleziony, podÅ‚Ä…czamy mu jako potomny
         tmp->ChildAdd(SubModel);
     }
     else
-    { // jeœli nie znaleziony, podczepiamy do ³añcucha g³ównego
-        SubModel->NextAdd(Root); // Ra: zmiana kolejnoœci renderowania wymusza zmianê tu
+    { // jeÅ›li nie znaleziony, podczepiamy do Å‚aÅ„cucha gÅ‚Ã³wnego
+        SubModel->NextAdd(Root); // Ra: zmiana kolejnoÅ›ci renderowania wymusza zmianÄ™ tu
         Root = SubModel;
     }
-    ++iSubModelsCount; // teraz jest o 1 submodel wiêcej
-    iFlags |= 0x0200; // submodele s¹ oddzielne
+    ++iSubModelsCount; // teraz jest o 1 submodel wiÄ™cej
+    iFlags |= 0x0200; // submodele sÄ… oddzielne
 };
 
 TSubModel * TModel3d::GetFromName(const char *sName)
@@ -1803,7 +1803,7 @@ TSubModel * TModel3d::GetFromName(const char *sName)
         return Root; // potrzebne do terenu z E3D
     if (iFlags & 0x0200) // wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
         return Root ? Root->GetFromName(sName) : NULL;
-    else // wczytano z pliku binarnego, mo¿na wyszukaæ iteracyjnie
+    else // wczytano z pliku binarnego, moÅ¼na wyszukaÄ‡ iteracyjnie
     {
         // for (int i=0;i<iSubModelsCount;++i)
         return Root ? Root->GetFromName(sName) : NULL;
@@ -1832,7 +1832,7 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic) {
     if (FileExists(asBinary))
     {
         LoadFromBinFile(asBinary, dynamic);
-        asBinary = ""; // wy³¹czenie zapisu
+        asBinary = ""; // wyÅ‚Ä…czenie zapisu
         Init();
     }
     else
@@ -1854,93 +1854,93 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 
 /*    TFileStream *fs = new TFileStream(AnsiString(FileName), fmOpenRead);
     size = fs->Size >> 2;
-    iModel = new int[size]; // ten wskaŸnik musi byæ w modelu, aby zwolniæ pamiêæ
+    iModel = new int[size]; // ten wskaÅºnik musi byÄ‡ w modelu, aby zwolniÄ‡ pamiÄ™Ä‡
     fs->Read(iModel, fs->Size); // wczytanie pliku
     delete fs;
 */	{
 		std::ifstream file( FileName, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
 		size = file.tellg();   // ios::ate already positioned us at the end of the file
-		iModel = new int[ size >> 2 ]; // ten wskaŸnik musi byæ w modelu, aby zwolniæ pamiêæ
+		iModel = new int[ size >> 2 ]; // ten wskaÅºnik musi byÄ‡ w modelu, aby zwolniÄ‡ pamiÄ™Ä‡
 		file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
 		file.read( reinterpret_cast<char*>(iModel), size );
 	}
     float4x4 *m = NULL; // transformy
     // zestaw kromek:
-    while ((i << 2) < size) // w pliku mo¿e byæ kilka modeli
+    while ((i << 2) < size) // w pliku moÅ¼e byÄ‡ kilka modeli
     {
         ch = iModel[i]; // nazwa kromki
-        j = i + (iModel[i + 1] >> 2); // pocz¹tek nastêpnej kromki
-		if( ch == MAKE_ID4('E','3','D','0')) // g³ówna: 'E3D0',len,pod-kromki
-        { // tylko tê kromkê znamy, mo¿e kiedyœ jeszcze DOF siê zrobi
+        j = i + (iModel[i + 1] >> 2); // poczÄ…tek nastÄ™pnej kromki
+		if( ch == MAKE_ID4('E','3','D','0')) // gÅ‚Ã³wna: 'E3D0',len,pod-kromki
+        { // tylko tÄ™ kromkÄ™ znamy, moÅ¼e kiedyÅ› jeszcze DOF siÄ™ zrobi
             i += 2;
             while (i < j)
-            { // przetwarzanie kromek wewnêtrznych
+            { // przetwarzanie kromek wewnÄ™trznych
 				ch = iModel[ i ]; // nazwa kromki
-                k = (iModel[i + 1] >> 2); // d³ugoœæ aktualnej kromki
+                k = (iModel[i + 1] >> 2); // dÅ‚ugoÅ›Ä‡ aktualnej kromki
                 switch (ch)
                 {
                 case MAKE_ID4('M','D','L','0'): // zmienne modelu: 'E3D0',len,(informacje o modelu)
                     break;
-                case MAKE_ID4('V','N','T','0'): // wierzcho³ki: 'VNT0',len,(32 bajty na wierzcho³ek)
+                case MAKE_ID4('V','N','T','0'): // wierzchoÅ‚ki: 'VNT0',len,(32 bajty na wierzchoÅ‚ek)
                     iNumVerts = (k - 2) >> 3;
                     m_nVertexCount = iNumVerts;
                     m_pVNT = (CVertNormTex *)(iModel + i + 2);
                     break;
-                case MAKE_ID4('S','U','B','0'): // submodele: 'SUB0',len,(256 bajtów na submodel)
+                case MAKE_ID4('S','U','B','0'): // submodele: 'SUB0',len,(256 bajtÃ³w na submodel)
                     iSubModelsCount = (k - 2) / 64;
                     Root =
-                        (TSubModel *)(iModel + i + 2); // numery na wskaŸniki przetworzymy póŸniej
+                        (TSubModel *)(iModel + i + 2); // numery na wskaÅºniki przetworzymy pÃ³Åºniej
                     break;
-                case MAKE_ID4('S','U','B','1'): // submodele: 'SUB1',len,(320 bajtów na submodel)
+                case MAKE_ID4('S','U','B','1'): // submodele: 'SUB1',len,(320 bajtÃ³w na submodel)
                     iSubModelsCount = (k - 2) / 80;
                     Root =
-                        (TSubModel *)(iModel + i + 2); // numery na wskaŸniki przetworzymy póŸniej
+                        (TSubModel *)(iModel + i + 2); // numery na wskaÅºniki przetworzymy pÃ³Åºniej
                     for (ch = 1; ch < iSubModelsCount;
-                         ++ch) // trzeba przesun¹æ bli¿ej, bo 256 wystarczy
+                         ++ch) // trzeba przesunÄ…Ä‡ bliÅ¼ej, bo 256 wystarczy
                         MoveMemory(((char *)Root) + 256 * ch, ((char *)Root) + 320 * ch, 256);
                     break;
                 case MAKE_ID4('T','R','A','0'): // transformy: 'TRA0',len,(64 bajty na transform)
-                    m = (float4x4 *)(iModel + i + 2); // tabela transformów
+                    m = (float4x4 *)(iModel + i + 2); // tabela transformÃ³w
                     break;
-                case MAKE_ID4('T','R','A','1'): // transformy: 'TRA1',len,(128 bajtów na transform)
-                    m = (float4x4 *)(iModel + i + 2); // tabela transformów
+                case MAKE_ID4('T','R','A','1'): // transformy: 'TRA1',len,(128 bajtÃ³w na transform)
+                    m = (float4x4 *)(iModel + i + 2); // tabela transformÃ³w
                     for (ch = 0; ch < ((k - 2) >> 1); ++ch)
                         *(((float *)m) + ch) = *(((double *)m) + ch); // przepisanie double do float
                     break;
-                case MAKE_ID4('I','D','X','1'): // indeksy 1B: 'IDX2',len,(po bajcie na numer wierzcho³ka)
+                case MAKE_ID4('I','D','X','1'): // indeksy 1B: 'IDX2',len,(po bajcie na numer wierzchoÅ‚ka)
                     break;
-                case MAKE_ID4('I','D','X','2'): // indeksy 2B: 'IDX2',len,(po 2 bajty na numer wierzcho³ka)
+                case MAKE_ID4('I','D','X','2'): // indeksy 2B: 'IDX2',len,(po 2 bajty na numer wierzchoÅ‚ka)
                     break;
-                case MAKE_ID4('I','D','X','4'): // indeksy 4B: 'IDX4',len,(po 4 bajty na numer wierzcho³ka)
+                case MAKE_ID4('I','D','X','4'): // indeksy 4B: 'IDX4',len,(po 4 bajty na numer wierzchoÅ‚ka)
                     break;
-                case MAKE_ID4('T','E','X','0'): // tekstury: 'TEX0',len,(³añcuchy zakoñczone zerem - pliki
+                case MAKE_ID4('T','E','X','0'): // tekstury: 'TEX0',len,(Å‚aÅ„cuchy zakoÅ„czone zerem - pliki
                     // tekstur)
-                    Textures.Init((char *)(iModel + i)); //³¹cznie z nag³ówkiem
+                    Textures.Init((char *)(iModel + i)); //Å‚Ä…cznie z nagÅ‚Ã³wkiem
                     break;
                 case MAKE_ID4('T','I','X','0'): // indeks nazw tekstur
-                    Textures.InitIndex((int *)(iModel + i)); //³¹cznie z nag³ówkiem
+                    Textures.InitIndex((int *)(iModel + i)); //Å‚Ä…cznie z nagÅ‚Ã³wkiem
                     break;
-                case MAKE_ID4('N','A','M','0'): // nazwy: 'NAM0',len,(³añcuchy zakoñczone zerem - nazwy
+                case MAKE_ID4('N','A','M','0'): // nazwy: 'NAM0',len,(Å‚aÅ„cuchy zakoÅ„czone zerem - nazwy
                     // submodeli)
-                    Names.Init((char *)(iModel + i)); //³¹cznie z nag³ówkiem
+                    Names.Init((char *)(iModel + i)); //Å‚Ä…cznie z nagÅ‚Ã³wkiem
                     break;
                 case MAKE_ID4('N','I','X','0'): // indeks nazw submodeli
-                    Names.InitIndex((int *)(iModel + i)); //³¹cznie z nag³ówkiem
+                    Names.InitIndex((int *)(iModel + i)); //Å‚Ä…cznie z nagÅ‚Ã³wkiem
                     break;
                 }
-                i += k; // przejœcie do kolejnej kromki
+                i += k; // przejÅ›cie do kolejnej kromki
             }
         }
         i = j;
     }
     for (i = 0; i < iSubModelsCount; ++i)
-    { // aktualizacja wskaŸników w submodelach
+    { // aktualizacja wskaÅºnikÃ³w w submodelach
         Root[i].BinInit(Root, m, (float8 *)m_pVNT, &Textures, &Names, dynamic);
         if (Root[i].ChildGet())
-            Root[i].ChildGet()->Parent = Root + i; // wpisanie wskaŸnika nadrzêdnego do potmnego
+            Root[i].ChildGet()->Parent = Root + i; // wpisanie wskaÅºnika nadrzÄ™dnego do potmnego
         if (Root[i].NextGet())
             Root[i].NextGet()->Parent =
-                Root[i].Parent; // skopiowanie wskaŸnika nadrzêdnego do kolejnego
+                Root[i].Parent; // skopiowanie wskaÅºnika nadrzÄ™dnego do kolejnego
     }
     iFlags &= ~0x0200;
     return;
@@ -1949,8 +1949,8 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 { // wczytanie submodelu z pliku tekstowego
     WriteLog("Loading - text model: " + FileName);
-    iFlags |= 0x0200; // wczytano z pliku tekstowego (w³aœcicielami tablic s¹ submodle)
-    cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno byæ "models\\"...
+    iFlags |= 0x0200; // wczytano z pliku tekstowego (wÅ‚aÅ›cicielami tablic sÄ… submodle)
+    cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno byÄ‡ "models\\"...
     TSubModel *SubModel;
     std::string token =  parser.getToken<std::string>();
     iNumVerts = 0; // w konstruktorze to jest
@@ -1958,89 +1958,89 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
     {
         std::string parent;
         // parser.getToken(parent);
-        parser.getTokens(1, false); // nazwa submodelu nadrzêdnego bez zmieny na ma³e
+        parser.getTokens(1, false); // nazwa submodelu nadrzÄ™dnego bez zmieny na maÅ‚e
         parser >> parent;
         if (parent == "")
             break;
         SubModel = new TSubModel();
         iNumVerts += SubModel->Load(parser, this, iNumVerts, dynamic);
         SubModel->Parent =
-            AddToNamed(parent.c_str(), SubModel); // bêdzie potrzebne do wyliczenia pozycji, np. pantografu
+            AddToNamed(parent.c_str(), SubModel); // bÄ™dzie potrzebne do wyliczenia pozycji, np. pantografu
         // iSubModelsCount++;
 		parser.getTokens(); parser >> token;
     }
-    // Ra: od wersji 334 przechylany jest ca³y model, a nie tylko pierwszy
+    // Ra: od wersji 334 przechylany jest caÅ‚y model, a nie tylko pierwszy
     // submodel
-    // ale bujanie kabiny nadal u¿ywa bananów :( od 393 przywrócone, ale z
+    // ale bujanie kabiny nadal uÅ¼ywa bananÃ³w :( od 393 przywrÃ³cone, ale z
     // dodatkowym warunkiem
     if (Global::iConvertModels & 4)
-    { // automatyczne banany czasem psu³y przechylanie kabin...
+    { // automatyczne banany czasem psuÅ‚y przechylanie kabin...
         if (dynamic && Root)
         {
-            if (Root->NextGet()) // jeœli ma jakiekolwiek kolejne
-            { // dynamic musi mieæ "banana", bo tylko pierwszy obiekt jest animowany,
-                // a nastêpne nie
+            if (Root->NextGet()) // jeÅ›li ma jakiekolwiek kolejne
+            { // dynamic musi mieÄ‡ "banana", bo tylko pierwszy obiekt jest animowany,
+                // a nastÄ™pne nie
                 SubModel = new TSubModel(); // utworzenie pustego
                 SubModel->ChildAdd(Root);
                 Root = SubModel;
                 ++iSubModelsCount;
             }
-            Root->WillBeAnimated(); // bo z tym jest du¿o problemów
+            Root->WillBeAnimated(); // bo z tym jest duÅ¼o problemÃ³w
         }
     }
 }
 
 void TModel3d::Init()
-{ // obrócenie pocz¹tkowe uk³adu wspó³rzêdnych, dla
-    // pojazdów wykonywane po analizie animacji
+{ // obrÃ³cenie poczÄ…tkowe ukÅ‚adu wspÃ³Å‚rzÄ™dnych, dla
+    // pojazdÃ³w wykonywane po analizie animacji
     if (iFlags & 0x8000)
-        return; // operacje zosta³y ju¿ wykonane
+        return; // operacje zostaÅ‚y juÅ¼ wykonane
     if (Root)
     {
-        if (iFlags & 0x0200) // jeœli wczytano z pliku tekstowego
-        { // jest jakiœ dziwny b³¹d, ¿e obkrêcany ma byæ tylko ostatni submodel
-            // g³ównego ³añcucha
+        if (iFlags & 0x0200) // jeÅ›li wczytano z pliku tekstowego
+        { // jest jakiÅ› dziwny bÅ‚Ä…d, Å¼e obkrÄ™cany ma byÄ‡ tylko ostatni submodel
+            // gÅ‚Ã³wnego Å‚aÅ„cucha
             // TSubModel *p=Root;
             // do
-            //{p->InitialRotate(true); //ostatniemu nale¿y siê konwersja uk³adu
-            // wspó³rzêdnych
+            //{p->InitialRotate(true); //ostatniemu naleÅ¼y siÄ™ konwersja ukÅ‚adu
+            // wspÃ³Å‚rzÄ™dnych
             // p=p->NextGet();
             //}
             // while (p->NextGet())
             // Root->InitialRotate(false); //a poprzednim tylko optymalizacja
-            Root->InitialRotate(true); // argumet okreœla, czy wykonaæ pierwotny obrót
+            Root->InitialRotate(true); // argumet okreÅ›la, czy wykonaÄ‡ pierwotny obrÃ³t
         }
-        iFlags |= Root->FlagsCheck() | 0x8000; // flagi ca³ego modelu
-        if (false == asBinary.empty()) // jeœli jest podana nazwa
+        iFlags |= Root->FlagsCheck() | 0x8000; // flagi caÅ‚ego modelu
+        if (false == asBinary.empty()) // jeÅ›li jest podana nazwa
         {
-            if (Global::iConvertModels) // i w³¹czony zapis
-                SaveToBinFile(asBinary.c_str()); // utworzy tablicê (m_pVNT)
-            asBinary = ""; // zablokowanie powtórnego zapisu
+            if (Global::iConvertModels) // i wÅ‚Ä…czony zapis
+                SaveToBinFile(asBinary.c_str()); // utworzy tablicÄ™ (m_pVNT)
+            asBinary = ""; // zablokowanie powtÃ³rnego zapisu
         }
         if (iNumVerts)
         {
             if (Global::fDistanceFactor !=
-                1.0) // trochê zaoszczêdzi czasu na modelach z wieloma submocelami
-                Root->AdjustDist(); // aktualizacja odleg³oœci faz LoD, zale¿nie od
-            // rozdzielczoœci pionowej oraz multisamplingu
+                1.0) // trochÄ™ zaoszczÄ™dzi czasu na modelach z wieloma submocelami
+                Root->AdjustDist(); // aktualizacja odlegÅ‚oÅ›ci faz LoD, zaleÅ¼nie od
+            // rozdzielczoÅ›ci pionowej oraz multisamplingu
             if (Global::bUseVBO)
             {
-                if (!m_pVNT) // jeœli nie ma jeszcze tablicy (wczytano z pliku
+                if (!m_pVNT) // jeÅ›li nie ma jeszcze tablicy (wczytano z pliku
                 // tekstowego)
-                { // tworzenie tymczasowej tablicy z wierzcho³kami ca³ego modelu
+                { // tworzenie tymczasowej tablicy z wierzchoÅ‚kami caÅ‚ego modelu
                     MakeArray(iNumVerts); // tworzenie tablic dla VBO
-                    Root->RaArrayFill(m_pVNT); // wype³nianie tablicy
-                    BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamiêci
+                    Root->RaArrayFill(m_pVNT); // wypeÅ‚nianie tablicy
+                    BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamiÄ™ci
                 }
                 else
-                    BuildVBOs(false); // tworzenie VBO bez usuwania tablicy z pamiêci
+                    BuildVBOs(false); // tworzenie VBO bez usuwania tablicy z pamiÄ™ci
             }
             else
             { // przygotowanie skompilowanych siatek dla DisplayLists
                 Root->DisplayLists(); // tworzenie skompilowanej listy dla submodelu
             }
-            // if (Root->TextureID) //o ile ma teksturê
-            // Root->iFlags|=0x80; //koniecznoœæ ustawienia tekstury
+            // if (Root->TextureID) //o ile ma teksturÄ™
+            // Root->iFlags|=0x80; //koniecznoÅ›Ä‡ ustawienia tekstury
         }
     }
 };
@@ -2052,12 +2052,12 @@ void TModel3d::SaveToBinFile(char const *FileName)
     TSubModelInfo *info = new TSubModelInfo[iSubModelsCount];
     info->Reset();
     Root->Info(); // zebranie informacji o submodelach
-    int len; //³¹czna d³ugoœæ pliku
-    int sub; // iloœæ submodeli (w bajtach)
-    int tra; // wielkoœæ obszaru transformów
-    int vnt; // wielkoœæ obszaru wierzcho³ków
-    int tex = 0; // wielkoœæ obszaru nazw tekstur
-    int nam = 0; // wielkoœæ obszaru nazw submodeli
+    int len; //Å‚Ä…czna dÅ‚ugoÅ›Ä‡ pliku
+    int sub; // iloÅ›Ä‡ submodeli (w bajtach)
+    int tra; // wielkoÅ›Ä‡ obszaru transformÃ³w
+    int vnt; // wielkoÅ›Ä‡ obszaru wierzchoÅ‚kÃ³w
+    int tex = 0; // wielkoÅ›Ä‡ obszaru nazw tekstur
+    int nam = 0; // wielkoÅ›Ä‡ obszaru nazw submodeli
     sub = 8 + sizeof(TSubModel) * iSubModelsCount;
     tra = info->iTotalTransforms ? 8 + 64 * info->iTotalTransforms : 0;
     vnt = 8 + 32 * iNumVerts;
@@ -2067,17 +2067,17 @@ void TModel3d::SaveToBinFile(char const *FileName)
         nam += info[i].iNameLen;
     }
     if (tex)
-        tex += 9; // 8 na nag³ówek i jeden ci¹g pusty (tylko znacznik koñca)
+        tex += 9; // 8 na nagÅ‚Ã³wek i jeden ciÄ…g pusty (tylko znacznik koÅ„ca)
     if (nam)
         nam += 8;
     len = 8 + sub + tra + vnt + tex + ((-tex) & 3) + nam + ((-nam) & 3);
-	TSubModel *roboczy = new TSubModel(); // bufor u¿ywany do zapisywania
+	TSubModel *roboczy = new TSubModel(); // bufor uÅ¼ywany do zapisywania
 	// AnsiString *asN=&roboczy->asName,*asT=&roboczy->asTexture;
-	// roboczy->FirstInit(); //¿eby delete nie usuwa³o czego nie powinno
+	// roboczy->FirstInit(); //Å¼eby delete nie usuwaÅ‚o czego nie powinno
 	/*	TFileStream *fs = new TFileStream(AnsiString(FileName), fmCreate);
 */	{
 		std::ofstream file( FileName, std::ios::binary ); file.unsetf( std::ios::skipws );
-		file.write( "E3D0", 4 ); // kromka g³ówna
+		file.write( "E3D0", 4 ); // kromka gÅ‚Ã³wna
 		file.write( reinterpret_cast<char *>( &len ), 4 );
 
 		file.write( "SUB0", 4 ); // dane submodeli
@@ -2086,46 +2086,46 @@ void TModel3d::SaveToBinFile(char const *FileName)
 			roboczy->InfoSet( info + i );
 			file.write( reinterpret_cast<char *>( roboczy ), sizeof( TSubModel ) ); // zapis jednego submodelu
 		}
-		if( tra ) { // zapis transformów
+		if( tra ) { // zapis transformÃ³w
 			file.write( "TRA0", 4 ); // transformy
 			file.write( reinterpret_cast<char *>( &tra ), 4 );
 			for( i = 0; i < iSubModelsCount; ++i )
 				if( info[ i ].iTransform >= 0 )
 					file.write( reinterpret_cast<char *>( info[ i ].pSubModel->GetMatrix() ), 16 * 4 );
 		}
-		{ // zapis wierzcho³ków
+		{ // zapis wierzchoÅ‚kÃ³w
 			MakeArray( iNumVerts ); // tworzenie tablic dla VBO
-			Root->RaArrayFill( m_pVNT ); // wype³nianie tablicy
-			file.write( "VNT0", 4 ); // wierzcho³ki
+			Root->RaArrayFill( m_pVNT ); // wypeÅ‚nianie tablicy
+			file.write( "VNT0", 4 ); // wierzchoÅ‚ki
 			file.write( reinterpret_cast<char *>( &vnt ), 4 );
 			file.write( reinterpret_cast<char *>( m_pVNT ), 32 * iNumVerts );
 		}
-		if( tex ) // mo¿e byæ jeden submodel ze zmienn¹ tekstur¹ i nazwy nie bêdzie
+		if( tex ) // moÅ¼e byÄ‡ jeden submodel ze zmiennÄ… teksturÄ… i nazwy nie bÄ™dzie
 		{ // zapis nazw tekstur
 			file.write( "TEX0", 4 ); // nazwy tekstur
-			i = ( tex + 3 ) & ~3; // zaokr¹glenie w górê
+			i = ( tex + 3 ) & ~3; // zaokrÄ…glenie w gÃ³rÄ™
 			file.write( reinterpret_cast<char *>( &i ), 4 );
-			file.write( reinterpret_cast<char *>( &zero ), 1 ); // ci¹g o numerze zero nie jest u¿ywany, ma tylko znacznik koñca
+			file.write( reinterpret_cast<char *>( &zero ), 1 ); // ciÄ…g o numerze zero nie jest uÅ¼ywany, ma tylko znacznik koÅ„ca
 			for( i = 0; i < iSubModelsCount; ++i )
 				if( info[ i ].iTextureLen )
 					file.write( info[ i ].pSubModel->pTexture, info[ i ].iTextureLen );
 			if( ( -tex ) & 3 )
-				file.write( reinterpret_cast<char *>( &zero ), ( ( -tex ) & 3 ) ); // wyrównanie do wielokrotnoœci 4 bajtów
+				file.write( reinterpret_cast<char *>( &zero ), ( ( -tex ) & 3 ) ); // wyrÃ³wnanie do wielokrotnoÅ›ci 4 bajtÃ³w
 		}
-		if( nam ) // mo¿e byæ jeden anonimowy submodel w modelu
+		if( nam ) // moÅ¼e byÄ‡ jeden anonimowy submodel w modelu
 		{ // zapis nazw submodeli
 			file.write( "NAM0", 4 ); // nazwy submodeli
-			i = ( nam + 3 ) & ~3; // zaokr¹glenie w górê
+			i = ( nam + 3 ) & ~3; // zaokrÄ…glenie w gÃ³rÄ™
 			file.write( reinterpret_cast<char *>( &i ), 4 );
 			for( i = 0; i < iSubModelsCount; ++i )
 				if( info[ i ].iNameLen )
 					file.write( info[ i ].pSubModel->pName, info[ i ].iNameLen );
 			if( ( -nam ) & 3 )
-				file.write( reinterpret_cast<char *>( &zero ), ( ( -nam ) & 3 ) ); // wyrównanie do wielokrotnoœci 4 bajtów
+				file.write( reinterpret_cast<char *>( &zero ), ( ( -nam ) & 3 ) ); // wyrÃ³wnanie do wielokrotnoÅ›ci 4 bajtÃ³w
 		}
 	} // file autocloses on getting out of scope
-    // roboczy->FirstInit(); //¿eby delete nie usuwa³o czego nie powinno
-    // roboczy->iFlags=0; //¿eby delete nie usuwa³o czego nie powinno
+    // roboczy->FirstInit(); //Å¼eby delete nie usuwaÅ‚o czego nie powinno
+    // roboczy->iFlags=0; //Å¼eby delete nie usuwaÅ‚o czego nie powinno
     // roboczy->asName)=asN;
     //&roboczy->asTexture=asT;
     delete roboczy;
@@ -2172,8 +2172,8 @@ ReplacableSkinId,int iAlpha)
 
 void TModel3d::Render(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
 {
-    iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wy³apaæ nieprzezroczyste
-    if (iAlpha & iFlags & 0x1F1F001F) // czy w ogóle jest co robiæ w tym cyklu?
+    iAlpha ^= 0x0F0F000F; // odwrÃ³cenie flag tekstur, aby wyÅ‚apaÄ‡ nieprzezroczyste
+    if (iAlpha & iFlags & 0x1F1F001F) // czy w ogÃ³le jest co robiÄ‡ w tym cyklu?
     {
         TSubModel::fSquareDist = fSquareDistance; // zmienna globalna!
         Root->ReplacableSet(ReplacableSkinId, iAlpha);
@@ -2198,7 +2198,7 @@ iAlpha)
 {
 //    glColor3f(1.0f,1.0f,1.0f);
 //    glColor3f(0.0f,0.0f,0.0f);
- glPushMatrix(); //zapamiêtanie matrycy przekszta³cenia
+ glPushMatrix(); //zapamiÄ™tanie matrycy przeksztaÅ‚cenia
  glTranslated(pPosition.x,pPosition.y,pPosition.z);
  if (fAngle!=0)
   glRotatef(fAngle,0,1,0);
@@ -2216,23 +2216,23 @@ iAlpha)
  fSquareDist=SquareMagnitude(pPosition-Global::GetCameraPosition()); //zmienna
 globalna!
  if (StartVBO())
- {//odwrócenie flag, aby wy³apaæ nieprzezroczyste
+ {//odwrÃ³cenie flag, aby wyÅ‚apaÄ‡ nieprzezroczyste
   Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
   Root->RaRender();
   EndVBO();
  }
- glPopMatrix(); //przywrócenie ustawieñ przekszta³cenia
+ glPopMatrix(); //przywrÃ³cenie ustawieÅ„ przeksztaÅ‚cenia
 };
 */
 
 void TModel3d::RaRender(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
-    iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wy³apaæ nieprzezroczyste
-    if (iAlpha & iFlags & 0x1F1F001F) // czy w ogóle jest co robiæ w tym cyklu?
+    iAlpha ^= 0x0F0F000F; // odwrÃ³cenie flag tekstur, aby wyÅ‚apaÄ‡ nieprzezroczyste
+    if (iAlpha & iFlags & 0x1F1F001F) // czy w ogÃ³le jest co robiÄ‡ w tym cyklu?
     {
         TSubModel::fSquareDist = fSquareDistance; // zmienna globalna!
         if (StartVBO())
-        { // odwrócenie flag, aby wy³apaæ nieprzezroczyste
+        { // odwrÃ³cenie flag, aby wyÅ‚apaÄ‡ nieprzezroczyste
             Root->ReplacableSet(ReplacableSkinId, iAlpha);
             Root->pRoot = this;
             Root->RenderVBO();
@@ -2243,7 +2243,7 @@ void TModel3d::RaRender(double fSquareDistance, GLuint *ReplacableSkinId, int iA
 
 void TModel3d::RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
-    if (iAlpha & iFlags & 0x2F2F002F) // czy w ogóle jest co robiæ w tym cyklu?
+    if (iAlpha & iFlags & 0x2F2F002F) // czy w ogÃ³le jest co robiÄ‡ w tym cyklu?
     {
         TSubModel::fSquareDist = fSquareDistance; // zmienna globalna!
         if (StartVBO())
@@ -2276,7 +2276,7 @@ globalna!
 */
 
 //-----------------------------------------------------------------------------
-// 2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
+// 2011-03-16 cztery nowe funkcje renderowania z moÅ¼liwoÅ›ciÄ… pochylania obiektÃ³w
 //-----------------------------------------------------------------------------
 
 void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId, int iAlpha)
@@ -2291,7 +2291,7 @@ void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSki
         glRotated(vAngle->z, 0.0, 0.0, 1.0);
     TSubModel::fSquareDist =
         SquareMagnitude(*vPosition - Global::GetCameraPosition()); // zmienna globalna!
-    // odwrócenie flag, aby wy³apaæ nieprzezroczyste
+    // odwrÃ³cenie flag, aby wyÅ‚apaÄ‡ nieprzezroczyste
     Root->ReplacableSet(ReplacableSkinId, iAlpha ^ 0x0F0F000F);
     Root->RenderDL();
     glPopMatrix();
@@ -2326,7 +2326,7 @@ void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableS
     TSubModel::fSquareDist =
         SquareMagnitude(*vPosition - Global::GetCameraPosition()); // zmienna globalna!
     if (StartVBO())
-    { // odwrócenie flag, aby wy³apaæ nieprzezroczyste
+    { // odwrÃ³cenie flag, aby wyÅ‚apaÄ‡ nieprzezroczyste
         Root->ReplacableSet(ReplacableSkinId, iAlpha ^ 0x0F0F000F);
         Root->RenderVBO();
         EndVBO();
@@ -2360,7 +2360,7 @@ void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *Replac
 //-----------------------------------------------------------------------------
 
 int TModel3d::TerrainCount()
-{ // zliczanie kwadratów kilometrowych (g³ówna
+{ // zliczanie kwadratÃ³w kilometrowych (gÅ‚Ã³wna
     // linia po Next) do tworznia tablicy
     int i = 0;
     TSubModel *r = Root;
@@ -2372,7 +2372,7 @@ int TModel3d::TerrainCount()
     return i;
 };
 TSubModel * TModel3d::TerrainSquare(int n)
-{ // pobieranie wskaŸnika do submodelu (n)
+{ // pobieranie wskaÅºnika do submodelu (n)
     int i = 0;
     TSubModel *r = Root;
     while (i < n)
@@ -2380,7 +2380,7 @@ TSubModel * TModel3d::TerrainSquare(int n)
         r = r->NextGet();
         ++i;
     }
-    r->UnFlagNext(); // blokowanie wyœwietlania po Next g³ównej listy
+    r->UnFlagNext(); // blokowanie wyÅ›wietlania po Next gÅ‚Ã³wnej listy
     return r;
 };
 void TModel3d::TerrainRenderVBO(int n)
@@ -2393,14 +2393,14 @@ void TModel3d::TerrainRenderVBO(int n)
     // TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
     // //zmienna globalna!
     if (StartVBO())
-    { // odwrócenie flag, aby wy³apaæ nieprzezroczyste
+    { // odwrÃ³cenie flag, aby wyÅ‚apaÄ‡ nieprzezroczyste
         // Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
         TSubModel *r = Root;
         while (r)
         {
             if (r->iVisible ==
-                n) // tylko jeœli ma byæ widoczny w danej ramce (problem dla 0==false)
-                r->RenderVBO(); // sub kolejne (Next) siê nie wyrenderuj¹
+                n) // tylko jeÅ›li ma byÄ‡ widoczny w danej ramce (problem dla 0==false)
+                r->RenderVBO(); // sub kolejne (Next) siÄ™ nie wyrenderujÄ…
             r = r->NextGet();
         }
         EndVBO();

@@ -18,20 +18,20 @@ enum TCameraType
 { // tryby pracy kamery
     tp_Follow, // jazda z pojazdem
     tp_Free, // stoi na scenerii
-    tp_Satelite // widok z góry (nie u¿ywany)
+    tp_Satelite // widok z gÃ³ry (nie uÅ¼ywany)
 };
 
 class TCamera
 {
   private:
-    vector3 pOffset; // nie u¿ywane (zerowe)
+    vector3 pOffset; // nie uÅ¼ywane (zerowe)
   public: // McZapkie: potrzebuje do kiwania na boki
     double Pitch;
-    double Yaw; // w œrodku: 0=do przodu; na zewn¹trz: 0=na po³udnie
+    double Yaw; // w Å›rodku: 0=do przodu; na zewnÄ…trz: 0=na poÅ‚udnie
     double Roll;
     TCameraType Type;
-    vector3 Pos; // wspó³rzêdne obserwatora
-    vector3 LookAt; // wspó³rzêdne punktu, na który ma patrzeæ
+    vector3 Pos; // wspÃ³Å‚rzÄ™dne obserwatora
+    vector3 LookAt; // wspÃ³Å‚rzÄ™dne punktu, na ktÃ³ry ma patrzeÄ‡
     vector3 vUp;
     vector3 Velocity;
     vector3 OldVelocity; // lepiej usredniac zeby nie bylo rozbiezne przy malym FPS

@@ -33,12 +33,12 @@ class TTractionPowerSource
     bool SlowFuse;
     double FuseTimer;
     int FuseCounter;
-    TGroundNode *gMyNode; // wskaŸnik na wêze³ rodzica
+    TGroundNode *gMyNode; // wskaÅºnik na wÄ™zeÅ‚ rodzica
 
   protected:
   public: // zmienne publiczne
-    TTractionPowerSource *psNode[2]; // zasilanie na koñcach dla sekcji
-    bool bSection; // czy jest sekcj¹
+    TTractionPowerSource *psNode[2]; // zasilanie na koÅ„cach dla sekcji
+    bool bSection; // czy jest sekcjÄ…
   public:
     // AnsiString asName;
     TTractionPowerSource(TGroundNode *node);

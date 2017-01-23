@@ -23,7 +23,7 @@ typedef enum
 } TSoundState;
 
 class TAdvancedSound
-{ // klasa dŸwiêków maj¹cych pocz¹tek, dowolnie d³ugi œrodek oraz zakoñczenie (np. Rp1)
+{ // klasa dÅºwiÄ™kÃ³w majÄ…cych poczÄ…tek, dowolnie dÅ‚ugi Å›rodek oraz zakoÅ„czenie (np. Rp1)
     TRealSound SoundStart;
     TRealSound SoundCommencing;
     TRealSound SoundShut;

@@ -14,22 +14,22 @@ http://mozilla.org/MPL/2.0/.
 #include "McZapkie\MOVER.h"
 
 class TTrackFollower
-{ // oœ poruszaj¹ca siê po torze
+{ // oÅ› poruszajÄ…ca siÄ™ po torze
   private:
-    TTrack *pCurrentTrack; // na którym torze siê znajduje
-    TSegment *pCurrentSegment; // zwrotnice mog¹ mieæ dwa segmenty
-    double fCurrentDistance; // przesuniêcie wzglêdem Point1 w stronê Point2
-    double fDirection; // ustawienie wzglêdem toru: -1.0 albo 1.0, mno¿one przez dystans
+    TTrack *pCurrentTrack; // na ktÃ³rym torze siÄ™ znajduje
+    TSegment *pCurrentSegment; // zwrotnice mogÄ… mieÄ‡ dwa segmenty
+    double fCurrentDistance; // przesuniÄ™cie wzglÄ™dem Point1 w stronÄ™ Point2
+    double fDirection; // ustawienie wzglÄ™dem toru: -1.0 albo 1.0, mnoÅ¼one przez dystans
     bool ComputatePosition(); // przeliczenie pozycji na torze
-    TDynamicObject *Owner; // pojazd posiadaj¹cy
+    TDynamicObject *Owner; // pojazd posiadajÄ…cy
     int iEventFlag; // McZapkie-020602: informacja o tym czy wyzwalac zdarzenie: 0,1,2,3
     int iEventallFlag;
-    int iSegment; // który segment toru jest u¿ywany (¿eby nie przeskakiwa³o po przestawieniu
+    int iSegment; // ktÃ³ry segment toru jest uÅ¼ywany (Å¼eby nie przeskakiwaÅ‚o po przestawieniu
     // zwrotnicy pod taborem)
   public:
-    double fOffsetH; // Ra: odleg³oœæ œrodka osi od osi toru (dla samochodów) - u¿yæ do wê¿ykowania
-    vector3 pPosition; // wspó³rzêdne XYZ w uk³adzie scenerii
-    vector3 vAngles; // x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
+    double fOffsetH; // Ra: odlegÅ‚oÅ›Ä‡ Å›rodka osi od osi toru (dla samochodÃ³w) - uÅ¼yÄ‡ do wÄ™Å¼ykowania
+    vector3 pPosition; // wspÃ³Å‚rzÄ™dne XYZ w ukÅ‚adzie scenerii
+    vector3 vAngles; // x:przechyÅ‚ka, y:pochylenie, z:kierunek w planie (w radianach)
     TTrackFollower();
     ~TTrackFollower();
     TTrack * SetCurrentTrack(TTrack *pTrack, int end);
@@ -41,8 +41,8 @@ class TTrackFollower
     inline double GetRoll()
     {
         return vAngles.x;
-    }; // przechy³ka policzona przy ustalaniu pozycji
-    //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyæ mo¿na pobraæ
+    }; // przechyÅ‚ka policzona przy ustalaniu pozycji
+    //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyÄ‡ moÅ¼na pobraÄ‡
     inline double GetDirection()
     {
         return fDirection;

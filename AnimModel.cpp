@@ -29,36 +29,36 @@ TAnimContainer *TAnimModel::acAnimList = NULL;
 TAnimAdvanced::TAnimAdvanced(){};
 
 TAnimAdvanced::~TAnimAdvanced(){
-    // delete[] pVocaloidMotionData; //plik zosta³ zmodyfikowany
+    // delete[] pVocaloidMotionData; //plik zostaÅ‚ zmodyfikowany
 };
 
 int TAnimAdvanced::SortByBone()
 { // sortowanie pliku animacji w celu optymalniejszego wykonania
-    // rekordy zostaj¹ u³o¿one wg kolejnych ramek dla ka¿dej koœci
-    // u³o¿enie koœci alfabetycznie nie jest niezbêdne, ale upraszcza sortowanie b¹belkowe
-    TAnimVocaloidFrame buf; // bufor roboczy (przyda³o by siê pascalowe Swap()
+    // rekordy zostajÄ… uÅ‚oÅ¼one wg kolejnych ramek dla kaÅ¼dej koÅ›ci
+    // uÅ‚oÅ¼enie koÅ›ci alfabetycznie nie jest niezbÄ™dne, ale upraszcza sortowanie bÄ…belkowe
+    TAnimVocaloidFrame buf; // bufor roboczy (przydaÅ‚o by siÄ™ pascalowe Swap()
     int i, j, k, swaps = 0, last = iMovements - 1, e;
     for (i = 0; i < iMovements; ++i)
         for (j = 0; j < 15; ++j)
-            if (pMovementData[i].cBone[j] == '\0') // jeœli znacznik koñca
+            if (pMovementData[i].cBone[j] == '\0') // jeÅ›li znacznik koÅ„ca
                 for (++j; j < 15; ++j)
-                    pMovementData[i].cBone[j] = '\0'; // zerowanie bajtów za znacznikiem koñca
+                    pMovementData[i].cBone[j] = '\0'; // zerowanie bajtÃ³w za znacznikiem koÅ„ca
     for (i = 0; i < last; ++i) // do przedostatniego
-    { // dopóki nie posortowane
-        j = i; // z którym porównywaæ
-        k = i; // z którym zamieniæ (nie trzeba zamieniaæ, jeœli ==i)
+    { // dopÃ³ki nie posortowane
+        j = i; // z ktÃ³rym porÃ³wnywaÄ‡
+        k = i; // z ktÃ³rym zamieniÄ‡ (nie trzeba zamieniaÄ‡, jeÅ›li ==i)
         while (++j < iMovements)
         {
             e = strcmp(pMovementData[k].cBone,
-                       pMovementData[j].cBone); // numery trzeba porównywaæ inaczej
+                       pMovementData[j].cBone); // numery trzeba porÃ³wnywaÄ‡ inaczej
             if (e > 0)
-                k = j; // trzeba zamieniæ - ten pod j jest mniejszy
+                k = j; // trzeba zamieniÄ‡ - ten pod j jest mniejszy
             else if (!e)
                 if (pMovementData[k].iFrame > pMovementData[j].iFrame)
                     k = j; // numer klatki pod j jest mniejszy
         }
         if (k > i)
-        { // jeœli trzeba przestawiæ
+        { // jeÅ›li trzeba przestawiÄ‡
             // buf=pMovementData[i];
             // pMovementData[i]=pMovementData[k];
             // pMovementData[k]=buf;
@@ -74,25 +74,25 @@ int TAnimAdvanced::SortByBone()
 TAnimContainer::TAnimContainer()
 {
     pNext = NULL;
-    vRotateAngles = vector3(0.0f, 0.0f, 0.0f); // aktualne k¹ty obrotu
-    vDesiredAngles = vector3(0.0f, 0.0f, 0.0f); // docelowe k¹ty obrotu
+    vRotateAngles = vector3(0.0f, 0.0f, 0.0f); // aktualne kÄ…ty obrotu
+    vDesiredAngles = vector3(0.0f, 0.0f, 0.0f); // docelowe kÄ…ty obrotu
     fRotateSpeed = 0.0;
-    vTranslation = vector3(0.0f, 0.0f, 0.0f); // aktualne przesuniêcie
-    vTranslateTo = vector3(0.0f, 0.0f, 0.0f); // docelowe przesuniêcie
+    vTranslation = vector3(0.0f, 0.0f, 0.0f); // aktualne przesuniÄ™cie
+    vTranslateTo = vector3(0.0f, 0.0f, 0.0f); // docelowe przesuniÄ™cie
     fTranslateSpeed = 0.0;
     fAngleSpeed = 0.0;
     pSubModel = NULL;
-    iAnim = 0; // po³o¿enie pocz¹tkowe
+    iAnim = 0; // poÅ‚oÅ¼enie poczÄ…tkowe
     pMovementData = NULL; // nie ma zaawansowanej animacji
     mAnim = NULL; // nie ma macierzy obrotu dla submodelu
-    evDone = NULL; // powiadamianie o zakoñczeniu animacji
-    acAnimNext = NULL; // na razie jest poza list¹
+    evDone = NULL; // powiadamianie o zakoÅ„czeniu animacji
+    acAnimNext = NULL; // na razie jest poza listÄ…
 }
 
 TAnimContainer::~TAnimContainer()
 {
     SafeDelete(pNext);
-    delete mAnim; // AnimContainer jest w³aœcicielem takich macierzy
+    delete mAnim; // AnimContainer jest wÅ‚aÅ›cicielem takich macierzy
 }
 
 bool TAnimContainer::Init(TSubModel *pNewSubModel)
@@ -105,21 +105,21 @@ bool TAnimContainer::Init(TSubModel *pNewSubModel)
 void TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSpeed)
 {
     if (!this)
-        return; // wywo³ywane z eventu, gdy brak modelu
+        return; // wywoÅ‚ywane z eventu, gdy brak modelu
     vDesiredAngles = vNewRotateAngles;
     fRotateSpeed = fNewRotateSpeed;
     iAnim |= 1;
-    /* //Ra 2014-07: jeœli model nie jest renderowany, to obliczyæ czas animacji i dodaæ event
-     wewnêtrzny
-     //mo¿na by te¿ ustawiæ czas pocz¹tku animacji zamiast pobieraæ czas ramki i liczyæ ró¿nicê
+    /* //Ra 2014-07: jeÅ›li model nie jest renderowany, to obliczyÄ‡ czas animacji i dodaÄ‡ event
+     wewnÄ™trzny
+     //moÅ¼na by teÅ¼ ustawiÄ‡ czas poczÄ…tku animacji zamiast pobieraÄ‡ czas ramki i liczyÄ‡ rÃ³Å¼nicÄ™
     */
     if (evDone)
-    { // do³¹czyæ model do listy aniomowania, ¿eby animacje by³y przeliczane równie¿ bez
-        // wyœwietlania
+    { // doÅ‚Ä…czyÄ‡ model do listy aniomowania, Å¼eby animacje byÅ‚y przeliczane rÃ³wnieÅ¼ bez
+        // wyÅ›wietlania
         if (iAnim >= 0)
-        { // jeœli nie jest jeszcze na liœcie animacyjnej
-            acAnimNext = TAnimModel::acAnimList; // pozosta³e dokliæ sobie jako ogon
-            TAnimModel::acAnimList = this; // a wstawiæ siê na pocz¹tek
+        { // jeÅ›li nie jest jeszcze na liÅ›cie animacyjnej
+            acAnimNext = TAnimModel::acAnimList; // pozostaÅ‚e dokliÄ‡ sobie jako ogon
+            TAnimModel::acAnimList = this; // a wstawiÄ‡ siÄ™ na poczÄ…tek
             iAnim |= 0x80000000; // dodany do listy
         }
     }
@@ -128,21 +128,21 @@ void TAnimContainer::SetRotateAnim(vector3 vNewRotateAngles, double fNewRotateSp
 void TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
 {
     if (!this)
-        return; // wywo³ywane z eventu, gdy brak modelu
+        return; // wywoÅ‚ywane z eventu, gdy brak modelu
     vTranslateTo = vNewTranslate;
     fTranslateSpeed = fNewSpeed;
     iAnim |= 2;
-    /* //Ra 2014-07: jeœli model nie jest renderowany, to obliczyæ czas animacji i dodaæ event
-     wewnêtrzny
-     //mo¿na by te¿ ustawiæ czas pocz¹tku animacji zamiast pobieraæ czas ramki i liczyæ ró¿nicê
+    /* //Ra 2014-07: jeÅ›li model nie jest renderowany, to obliczyÄ‡ czas animacji i dodaÄ‡ event
+     wewnÄ™trzny
+     //moÅ¼na by teÅ¼ ustawiÄ‡ czas poczÄ…tku animacji zamiast pobieraÄ‡ czas ramki i liczyÄ‡ rÃ³Å¼nicÄ™
     */
     if (evDone)
-    { // do³¹czyæ model do listy aniomowania, ¿eby animacje by³y przeliczane równie¿ bez
-        // wyœwietlania
+    { // doÅ‚Ä…czyÄ‡ model do listy aniomowania, Å¼eby animacje byÅ‚y przeliczane rÃ³wnieÅ¼ bez
+        // wyÅ›wietlania
         if (iAnim >= 0)
-        { // jeœli nie jest jeszcze na liœcie animacyjnej
-            acAnimNext = TAnimModel::acAnimList; // pozosta³e dokliæ sobie jako ogon
-            TAnimModel::acAnimList = this; // a wstawiæ siê na pocz¹tek
+        { // jeÅ›li nie jest jeszcze na liÅ›cie animacyjnej
+            acAnimNext = TAnimModel::acAnimList; // pozostaÅ‚e dokliÄ‡ sobie jako ogon
+            TAnimModel::acAnimList = this; // a wstawiÄ‡ siÄ™ na poczÄ…tek
             iAnim |= 0x80000000; // dodany do listy
         }
     }
@@ -151,89 +151,89 @@ void TAnimContainer::SetTranslateAnim(vector3 vNewTranslate, double fNewSpeed)
 void TAnimContainer::AnimSetVMD(double fNewSpeed)
 {
     if (!this)
-        return; // wywo³ywane z eventu, gdy brak modelu
-    // skala do ustalenia, "cal" japoñski (sun) to nieco ponad 3cm
-    // X-w lewo, Y-w górê, Z-do ty³u
-    // minimalna wysokoœæ to -7.66, a nadal musi byæ ponad pod³og¹
+        return; // wywoÅ‚ywane z eventu, gdy brak modelu
+    // skala do ustalenia, "cal" japoÅ„ski (sun) to nieco ponad 3cm
+    // X-w lewo, Y-w gÃ³rÄ™, Z-do tyÅ‚u
+    // minimalna wysokoÅ›Ä‡ to -7.66, a nadal musi byÄ‡ ponad podÅ‚ogÄ…
     // if (pMovementData->iFrame>0) return; //tylko pierwsza ramka
     vTranslateTo = vector3(0.1 * pMovementData->f3Vector.x, 0.1 * pMovementData->f3Vector.z,
                            0.1 * pMovementData->f3Vector.y);
     if (LengthSquared3(vTranslateTo) > 0.0 ? true : LengthSquared3(vTranslation) > 0.0)
-    { // jeœli ma byæ przesuniête albo jest przesuniêcie
-        iAnim |= 2; // wy³¹czy siê samo
+    { // jeÅ›li ma byÄ‡ przesuniÄ™te albo jest przesuniÄ™cie
+        iAnim |= 2; // wyÅ‚Ä…czy siÄ™ samo
         if (fNewSpeed > 0.0)
-            fTranslateSpeed = fNewSpeed; // prêdkoœæ jest mno¿nikiem, nie podlega skalowaniu
-        else // za póŸno na animacje, trzeba przestawiæ
+            fTranslateSpeed = fNewSpeed; // prÄ™dkoÅ›Ä‡ jest mnoÅ¼nikiem, nie podlega skalowaniu
+        else // za pÃ³Åºno na animacje, trzeba przestawiÄ‡
             vTranslation = vTranslateTo;
     }
     // if ((qCurrent.w<1.0)||(pMovementData->qAngle.w<1.0))
-    { // jeœli jest jakiœ obrót
+    { // jeÅ›li jest jakiÅ› obrÃ³t
         if (!mAnim)
         {
-            mAnim = new float4x4(); // bêdzie potrzebna macierz animacji
-            mAnim->Identity(); // jedynkowanie na pocz¹tek
+            mAnim = new float4x4(); // bÄ™dzie potrzebna macierz animacji
+            mAnim->Identity(); // jedynkowanie na poczÄ…tek
         }
         iAnim |= 4; // animacja kwaternionowa
-        qStart = qCurrent; // potrzebna pocz¹tkowa do interpolacji
-        //---+ - te¿ niby dobrze, ale nie tak tr¹ca w³osy na pocz¹tku (macha w dó³)
-        //-+-+ - d³oñ ma w górze zamiast na pasie w pozycji pocz¹tkowej
-        //+--+ - g³owa do ty³u (broda w górê) w pozycji pocz¹tkowej
-        //--++ - pozycja pocz¹tkowa dobra, tr¹ca u góry, ale z rêkami jakoœ nie tak, kó³ko w
-        // przeciwn¹ stronê
-        //++++ - k³adzie siê brzuchem do góry
-        //-+++ - rêce w górze na pocz¹tku, zamiast w dó³, ³okieæ jakby w przeciwn¹ stronê
-        //+-++ - nie podnosi rêki do g³owy
-        //++-+ - d³oñ ma w górze zamiast na pasie
+        qStart = qCurrent; // potrzebna poczÄ…tkowa do interpolacji
+        //---+ - teÅ¼ niby dobrze, ale nie tak trÄ…ca wÅ‚osy na poczÄ…tku (macha w dÃ³Å‚)
+        //-+-+ - dÅ‚oÅ„ ma w gÃ³rze zamiast na pasie w pozycji poczÄ…tkowej
+        //+--+ - gÅ‚owa do tyÅ‚u (broda w gÃ³rÄ™) w pozycji poczÄ…tkowej
+        //--++ - pozycja poczÄ…tkowa dobra, trÄ…ca u gÃ³ry, ale z rÄ™kami jakoÅ› nie tak, kÃ³Å‚ko w
+        // przeciwnÄ… stronÄ™
+        //++++ - kÅ‚adzie siÄ™ brzuchem do gÃ³ry
+        //-+++ - rÄ™ce w gÃ³rze na poczÄ…tku, zamiast w dÃ³Å‚, Å‚okieÄ‡ jakby w przeciwnÄ… stronÄ™
+        //+-++ - nie podnosi rÄ™ki do gÅ‚owy
+        //++-+ - dÅ‚oÅ„ ma w gÃ³rze zamiast na pasie
         qDesired = Normalize(float4(-pMovementData->qAngle.x, -pMovementData->qAngle.z,
                                     -pMovementData->qAngle.y,
-                                    pMovementData->qAngle.w)); // tu trzeba bêdzie osie zamieniæ
+                                    pMovementData->qAngle.w)); // tu trzeba bÄ™dzie osie zamieniÄ‡
         if (fNewSpeed > 0.0)
         {
-            fAngleSpeed = fNewSpeed; // wtedy animowaæ za pomoc¹ interpolacji
-            fAngleCurrent = 0.0; // pocz¹tek interpolacji
+            fAngleSpeed = fNewSpeed; // wtedy animowaÄ‡ za pomocÄ… interpolacji
+            fAngleCurrent = 0.0; // poczÄ…tek interpolacji
         }
         else
-        { // za póŸno na animacjê, mo¿na tylko przestawiæ w docelowe miejsce
+        { // za pÃ³Åºno na animacjÄ™, moÅ¼na tylko przestawiÄ‡ w docelowe miejsce
             fAngleSpeed = 0.0;
-            fAngleCurrent = 1.0; // interpolacja zakoñczona
+            fAngleCurrent = 1.0; // interpolacja zakoÅ„czona
             qCurrent = qDesired;
         }
     }
-    // if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
-    // if (!strcmp(pSubModel->pName,"¶‚Â‚Ü?æ‚h‚j")) //IK lewej stopy
+    // if (!strcmp(pSubModel->pName,"?Z?â€œ?^?[")) //jak gÅ‚Ã³wna koÅ›Ä‡
+    // if (!strcmp(pSubModel->pName,"Å¤Â¶â€šÃ‚â€šÃœ?Ä‡â€šhâ€šj")) //IK lewej stopy
     // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(pMovementData->f3Vector.x)+"
     // "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
 void TAnimContainer::UpdateModel()
-{ // przeliczanie animacji wykonaæ tylko raz na model
-    if (pSubModel) // pozbyæ siê tego - sprawdzaæ wczeœniej
+{ // przeliczanie animacji wykonaÄ‡ tylko raz na model
+    if (pSubModel) // pozbyÄ‡ siÄ™ tego - sprawdzaÄ‡ wczeÅ›niej
     {
         if (fTranslateSpeed != 0.0)
         {
             vector3 dif = vTranslateTo - vTranslation; // wektor w kierunku docelowym
-            double l = LengthSquared3(dif); // d³ugoœæ wektora potrzebnego przemieszczenia
+            double l = LengthSquared3(dif); // dÅ‚ugoÅ›Ä‡ wektora potrzebnego przemieszczenia
             if (l >= 0.0001)
-            { // jeœli do przemieszczenia jest ponad 1cm
+            { // jeÅ›li do przemieszczenia jest ponad 1cm
                 vector3 s = SafeNormalize(dif); // jednostkowy wektor kierunku
                 s = s *
                     (fTranslateSpeed *
-                     Timer::GetDeltaTime()); // przemieszczenie w podanym czasie z dan¹ prêdkoœci¹
-                if (LengthSquared3(s) < l) //¿eby nie jecha³o na drug¹ stronê
+                     Timer::GetDeltaTime()); // przemieszczenie w podanym czasie z danÄ… prÄ™dkoÅ›ciÄ…
+                if (LengthSquared3(s) < l) //Å¼eby nie jechaÅ‚o na drugÄ… stronÄ™
                     vTranslation += s;
                 else
                     vTranslation = vTranslateTo; // koniec animacji, "koniec animowania" uruchomi
-                // siê w nastêpnej klatce
+                // siÄ™ w nastÄ™pnej klatce
             }
             else
             { // koniec animowania
                 vTranslation = vTranslateTo;
-                fTranslateSpeed = 0.0; // wy³¹czenie przeliczania wektora
-                if (LengthSquared3(vTranslation) <= 0.0001) // jeœli jest w punkcie pocz¹tkowym
-                    iAnim &= ~2; // wy³¹czyæ zmianê pozycji submodelu
+                fTranslateSpeed = 0.0; // wyÅ‚Ä…czenie przeliczania wektora
+                if (LengthSquared3(vTranslation) <= 0.0001) // jeÅ›li jest w punkcie poczÄ…tkowym
+                    iAnim &= ~2; // wyÅ‚Ä…czyÄ‡ zmianÄ™ pozycji submodelu
                 if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informuj¹cego o
-                // zakoñczeniu
+                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informujÄ…cego o
+                // zakoÅ„czeniu
             }
         }
         if (fRotateSpeed != 0)
@@ -294,67 +294,67 @@ void TAnimContainer::UpdateModel()
             if (vRotateAngles.x == 0.0)
                 if (vRotateAngles.y == 0.0)
                     if (vRotateAngles.z == 0.0)
-                        iAnim &= ~1; // k¹ty s¹ zerowe
+                        iAnim &= ~1; // kÄ…ty sÄ… zerowe
             if (!anim)
-            { // nie potrzeba przeliczaæ ju¿
+            { // nie potrzeba przeliczaÄ‡ juÅ¼
                 fRotateSpeed = 0.0;
                 if (evDone)
-                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informuj¹cego o
-                // zakoñczeniu
+                    Global::AddToQuery(evDone, NULL); // wykonanie eventu informujÄ…cego o
+                // zakoÅ„czeniu
             }
         }
         if (fAngleSpeed != 0.0)
-        { // obrót kwaternionu (interpolacja)
+        { // obrÃ³t kwaternionu (interpolacja)
         }
     }
 };
 
 void TAnimContainer::PrepareModel()
-{ // tutaj zostawiæ tylko ustawienie submodelu, przeliczanie ma byæ w UpdateModel()
-    if (pSubModel) // pozbyæ siê tego - sprawdzaæ wczeœniej
+{ // tutaj zostawiÄ‡ tylko ustawienie submodelu, przeliczanie ma byÄ‡ w UpdateModel()
+    if (pSubModel) // pozbyÄ‡ siÄ™ tego - sprawdzaÄ‡ wczeÅ›niej
     {
         // nanoszenie animacji na wzorzec
-        if (iAnim & 1) // zmieniona pozycja wzglêdem pocz¹tkowej
+        if (iAnim & 1) // zmieniona pozycja wzglÄ™dem poczÄ…tkowej
             pSubModel->SetRotateXYZ(vRotateAngles); // ustawia typ animacji
-        if (iAnim & 2) // zmieniona pozycja wzglêdem pocz¹tkowej
+        if (iAnim & 2) // zmieniona pozycja wzglÄ™dem poczÄ…tkowej
             pSubModel->SetTranslate(vTranslation);
-        if (iAnim & 4) // zmieniona pozycja wzglêdem pocz¹tkowej
+        if (iAnim & 4) // zmieniona pozycja wzglÄ™dem poczÄ…tkowej
         {
             if (fAngleSpeed > 0.0f)
             {
                 fAngleCurrent +=
                     fAngleSpeed * Timer::GetDeltaTime(); // aktualny parametr interpolacji
                 if (fAngleCurrent >= 1.0f)
-                { // interpolacja zakoñczona, ustawienie na pozycjê koñcow¹
+                { // interpolacja zakoÅ„czona, ustawienie na pozycjÄ™ koÅ„cowÄ…
                     qCurrent = qDesired;
-                    fAngleSpeed = 0.0; // wy³¹czenie przeliczania wektora
+                    fAngleSpeed = 0.0; // wyÅ‚Ä…czenie przeliczania wektora
                     if (evDone)
                         Global::AddToQuery(evDone,
-                                           NULL); // wykonanie eventu informuj¹cego o zakoñczeniu
+                                           NULL); // wykonanie eventu informujÄ…cego o zakoÅ„czeniu
                 }
                 else
-                { // obliczanie pozycji poœredniej
-                    // normalizacja jest wymagana do interpolacji w nastêpnej animacji
+                { // obliczanie pozycji poÅ›redniej
+                    // normalizacja jest wymagana do interpolacji w nastÄ™pnej animacji
                     qCurrent = Normalize(
-                        Slerp(qStart, qDesired, fAngleCurrent)); // interpolacja sferyczna k¹ta
-                    // qCurrent=Slerp(qStart,qDesired,fAngleCurrent); //interpolacja sferyczna k¹ta
+                        Slerp(qStart, qDesired, fAngleCurrent)); // interpolacja sferyczna kÄ…ta
+                    // qCurrent=Slerp(qStart,qDesired,fAngleCurrent); //interpolacja sferyczna kÄ…ta
                     if (qCurrent.w ==
-                        1.0) // rozpoznaæ brak obrotu i wy³¹czyæ w iAnim w takim przypadku
-                        iAnim &= ~4; // k¹ty s¹ zerowe
+                        1.0) // rozpoznaÄ‡ brak obrotu i wyÅ‚Ä…czyÄ‡ w iAnim w takim przypadku
+                        iAnim &= ~4; // kÄ…ty sÄ… zerowe
                 }
             }
-            mAnim->Quaternion(&qCurrent); // wype³nienie macierzy (wymaga normalizacji?)
-            pSubModel->mAnimMatrix = mAnim; // u¿yczenie do submodelu (na czas renderowania!)
+            mAnim->Quaternion(&qCurrent); // wypeÅ‚nienie macierzy (wymaga normalizacji?)
+            pSubModel->mAnimMatrix = mAnim; // uÅ¼yczenie do submodelu (na czas renderowania!)
         }
     }
-    // if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
+    // if (!strcmp(pSubModel->pName,"?Z?â€œ?^?[")) //jak gÅ‚Ã³wna koÅ›Ä‡
     // WriteLog(AnsiString(pMovementData->iFrame)+": "+AnsiString(iAnim)+"
     // "+AnsiString(vTranslation.x)+" "+AnsiString(vTranslation.y)+" "+AnsiString(vTranslation.z));
 }
 
 void TAnimContainer::UpdateModelIK()
 { // odwrotna kinematyka wyliczana dopiero po ustawieniu macierzy w submodelach
-    if (pSubModel) // pozbyæ siê tego - sprawdzaæ wczeœniej
+    if (pSubModel) // pozbyÄ‡ siÄ™ tego - sprawdzaÄ‡ wczeÅ›niej
     {
         if (pSubModel->b_Anim & at_IK)
         { // odwrotna kinematyka
@@ -362,25 +362,25 @@ void TAnimContainer::UpdateModelIK()
             TSubModel *ch = pSubModel->ChildGet();
             switch (pSubModel->b_Anim)
             {
-            case at_IK11: // stopa: ustawiæ w kierunku czubka (pierwszy potomny)
-                d = ch->Translation1Get(); // wektor wzglêdem aktualnego uk³adu (nie uwzglêdnia
+            case at_IK11: // stopa: ustawiÄ‡ w kierunku czubka (pierwszy potomny)
+                d = ch->Translation1Get(); // wektor wzglÄ™dem aktualnego ukÅ‚adu (nie uwzglÄ™dnia
                 // obrotu)
                 k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
                            -RadToDeg(atan2(d.y, d.x))); // proste skierowanie na punkt
                 pSubModel->SetRotateIK1(k);
-                // if (!strcmp(pSubModel->pName,"?Z?“?^?[")) //jak g³ówna koœæ
+                // if (!strcmp(pSubModel->pName,"?Z?â€œ?^?[")) //jak gÅ‚Ã³wna koÅ›Ä‡
                 // WriteLog("--> "+AnsiString(k.x)+" "+AnsiString(k.y)+" "+AnsiString(k.z));
-                // Ra: to ju¿ jest dobrze, mo¿e byæ inna æwiartka i znak
+                // Ra: to juÅ¼ jest dobrze, moÅ¼e byÄ‡ inna Ä‡wiartka i znak
                 break;
-            case at_IK22: // udo: ustawiæ w kierunku pierwszej potomnej pierwszej potomnej (kostki)
-                // pozycjê kostki nale¿y okreœliæ wzglêdem koœci centralnej (+biodro mo¿e byæ
+            case at_IK22: // udo: ustawiÄ‡ w kierunku pierwszej potomnej pierwszej potomnej (kostki)
+                // pozycjÄ™ kostki naleÅ¼y okreÅ›liÄ‡ wzglÄ™dem koÅ›ci centralnej (+biodro moÅ¼e byÄ‡
                 // pochylone)
-                // potem wyliczyæ ewentualne odchylenie w tej i nastêpnej
-                // w sumie to proste, jak wyznaczenie k¹tów w trójk¹cie o znanej d³ugoœci boków...
-                d = ch->Translation2Get(); // wektor wzglêdem aktualnego uk³adu (nie uwzglêdnia
+                // potem wyliczyÄ‡ ewentualne odchylenie w tej i nastÄ™pnej
+                // w sumie to proste, jak wyznaczenie kÄ…tÃ³w w trÃ³jkÄ…cie o znanej dÅ‚ugoÅ›ci bokÃ³w...
+                d = ch->Translation2Get(); // wektor wzglÄ™dem aktualnego ukÅ‚adu (nie uwzglÄ™dnia
                 // obrotu)
                 // if ()
-                { // koœæ IK jest dalej ni¿ pozycja spoczynkowa
+                { // koÅ›Ä‡ IK jest dalej niÅ¼ pozycja spoczynkowa
                     k = float3(RadToDeg(atan2(d.z, hypot(d.x, d.y))), 0.0,
                                -RadToDeg(atan2(d.y, d.x))); // proste skierowanie na punkt
                     pSubModel->SetRotateIK1(k);
@@ -397,7 +397,7 @@ bool TAnimContainer::InMovement()
 }
 
 void TAnimContainer::EventAssign(TEvent *ev)
-{ // przypisanie eventu wykonywanego po zakoñczeniu animacji
+{ // przypisanie eventu wykonywanego po zakoÅ„czeniu animacji
     evDone = ev;
 };
 
@@ -419,11 +419,11 @@ TAnimModel::TAnimModel()
     for (int i = 0; i < iMaxNumLights; i++)
     {
         LightsOn[i] = LightsOff[i] = NULL; // normalnie nie ma
-        lsLights[i] = ls_Off; // a jeœli s¹, to wy³¹czone
+        lsLights[i] = ls_Off; // a jeÅ›li sÄ…, to wyÅ‚Ä…czone
     }
-    vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotów egzemplarza
+    vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotÃ³w egzemplarza
     pAdvanced = NULL; // nie ma zaawansowanej animacji
-    fDark = 0.25; // standardowy próg zaplania
+    fDark = 0.25; // standardowy prÃ³g zaplania
     fOnTime = 0.66;
     fOffTime = fOnTime + 0.66;
 }
@@ -445,29 +445,29 @@ bool TAnimModel::Init(TModel3d *pNewModel)
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
     if (asReplacableTexture.substr(0, 1) ==
-        "*") // od gwiazdki zaczynaj¹ siê teksty na wyœwietlaczach
-        asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiêtanie tekstu
+        "*") // od gwiazdki zaczynajÄ… siÄ™ teksty na wyÅ›wietlaczach
+        asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiÄ™tanie tekstu
     else if (asReplacableTexture != "none")
         ReplacableSkinId[1] =
             TTexturesManager::GetTextureID(NULL, NULL, asReplacableTexture.c_str());
     if (TTexturesManager::GetAlpha(ReplacableSkinId[1]))
         iTexAlpha =
-            0x31310031; // tekstura z kana³em alfa - nie renderowaæ w cyklu nieprzezroczystych
+            0x31310031; // tekstura z kanaÅ‚em alfa - nie renderowaÄ‡ w cyklu nieprzezroczystych
     else
-        iTexAlpha = 0x30300030; // tekstura nieprzezroczysta - nie renderowaæ w cyklu
+        iTexAlpha = 0x30300030; // tekstura nieprzezroczysta - nie renderowaÄ‡ w cyklu
     // przezroczystych
     return (Init(TModelsManager::GetModel(asName.c_str())));
 }
 
 bool TAnimModel::Load(cParser *parser, bool ter)
-{ // rozpoznanie wpisu modelu i ustawienie œwiate³
+{ // rozpoznanie wpisu modelu i ustawienie Å›wiateÅ‚
 	std::string name = parser->getToken<std::string>();
-    std::string texture = parser->getToken<std::string>(false); // tekstura (zmienia na ma³e)
+    std::string texture = parser->getToken<std::string>(false); // tekstura (zmienia na maÅ‚e)
     if (!Init( name, texture ))
     {
         if (name != "notload")
         { // gdy brak modelu
-            if (ter) // jeœli teren
+            if (ter) // jeÅ›li teren
             {
 				if( name.substr( name.rfind( '.' ) ) == ".t3d" ) {
 					name[ name.length() - 2 ] = 'e';
@@ -480,7 +480,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         }
     }
     else
-    { // wi¹zanie œwiate³, o ile model wczytany
+    { // wiÄ…zanie Å›wiateÅ‚, o ile model wczytany
         LightsOn[0] = pModel->GetFromName("Light_On00");
         LightsOn[1] = pModel->GetFromName("Light_On01");
         LightsOn[2] = pModel->GetFromName("Light_On02");
@@ -499,7 +499,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         LightsOff[7] = pModel->GetFromName("Light_Off07");
     }
     for (int i = 0; i < iMaxNumLights; ++i)
-        if (LightsOn[i] || LightsOff[i]) // Ra: zlikwidowa³em wymóg istnienia obu
+        if (LightsOn[i] || LightsOff[i]) // Ra: zlikwidowaÅ‚em wymÃ³g istnienia obu
             iNumLights = i + 1;
 
     if ( parser->getToken<std::string>() == "lights" )
@@ -509,7 +509,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
 		while( ( token != "" )
 			&& ( token != "endmodel" ) ) {
 
-			LightSet( i, std::stod( token ) ); // stan œwiat³a jest liczb¹ z u³amkiem
+			LightSet( i, std::stod( token ) ); // stan Å›wiatÅ‚a jest liczbÄ… z uÅ‚amkiem
             ++i;
 
 			token = "";
@@ -548,23 +548,23 @@ TAnimContainer * TAnimModel::GetContainer(char *pName)
 }
 
 void TAnimModel::RaAnimate()
-{ // przeliczenie animacji - jednorazowo na klatkê
-    // Ra 2F1I: to by mo¿na pomijaæ dla modeli bez animacji, których jest wiêkszoœæ
+{ // przeliczenie animacji - jednorazowo na klatkÄ™
+    // Ra 2F1I: to by moÅ¼na pomijaÄ‡ dla modeli bez animacji, ktÃ³rych jest wiÄ™kszoÅ›Ä‡
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-        if (!pCurrent->evDone) // jeœli jest bez eventu
-            pCurrent->UpdateModel(); // przeliczenie animacji ka¿dego submodelu
+        if (!pCurrent->evDone) // jeÅ›li jest bez eventu
+            pCurrent->UpdateModel(); // przeliczenie animacji kaÅ¼dego submodelu
     // if () //tylko dla modeli z IK !!!!
-    for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext) // albo osobny ³añcuch
+    for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext) // albo osobny Å‚aÅ„cuch
         pCurrent->UpdateModelIK(); // przeliczenie odwrotnej kinematyki
 };
 
 void TAnimModel::RaPrepare()
-{ // ustawia œwiat³a i animacje we wzorcu modelu przed renderowaniem egzemplarza
+{ // ustawia Å›wiatÅ‚a i animacje we wzorcu modelu przed renderowaniem egzemplarza
     fBlinkTimer -= Timer::GetDeltaTime();
     if (fBlinkTimer <= 0)
         fBlinkTimer = fOffTime;
-    bool state; // stan œwiat³a
+    bool state; // stan Å›wiatÅ‚a
     for (int i = 0; i < iNumLights; i++)
     {
         switch (lsLights[i])
@@ -583,20 +583,20 @@ void TAnimModel::RaPrepare()
         if (LightsOff[i])
             LightsOff[i]->iVisible = !state;
     }
-    TSubModel::iInstance = (int)this; //¿eby nie robiæ cudzych animacji
-    TSubModel::pasText = &asText; // przekazanie tekstu do wyœwietlacza (!!!! do przemyœlenia)
-    if (pAdvanced) // jeœli jest zaawansowana animacja
-        Advanced(); // wykonaæ co tam trzeba
+    TSubModel::iInstance = (int)this; //Å¼eby nie robiÄ‡ cudzych animacji
+    TSubModel::pasText = &asText; // przekazanie tekstu do wyÅ›wietlacza (!!!! do przemyÅ›lenia)
+    if (pAdvanced) // jeÅ›li jest zaawansowana animacja
+        Advanced(); // wykonaÄ‡ co tam trzeba
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-        pCurrent->PrepareModel(); // ustawienie animacji egzemplarza dla ka¿dego submodelu
+        pCurrent->PrepareModel(); // ustawienie animacji egzemplarza dla kaÅ¼dego submodelu
     // if () //tylko dla modeli z IK !!!!
-    // for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny ³añcuch
+    // for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny Å‚aÅ„cuch
     //  pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
 }
 /*
 void TAnimModel::RenderVBO(vector3 pPosition, double fAngle)
-{ // sprawdza œwiat³a i rekurencyjnie renderuje TModel3d
+{ // sprawdza Å›wiatÅ‚a i rekurencyjnie renderuje TModel3d
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
@@ -626,21 +626,21 @@ void TAnimModel::RenderAlphaDL(vector3 pPosition, double fAngle)
 };
 */
 int TAnimModel::Flags()
-{ // informacja dla TGround, czy ma byæ w Render, RenderAlpha, czy RenderMixed
-    int i = pModel ? pModel->Flags() : 0; // pobranie flag ca³ego modelu
-    if (ReplacableSkinId[1] > 0) // jeœli ma wymienn¹ teksturê 0
+{ // informacja dla TGround, czy ma byÄ‡ w Render, RenderAlpha, czy RenderMixed
+    int i = pModel ? pModel->Flags() : 0; // pobranie flag caÅ‚ego modelu
+    if (ReplacableSkinId[1] > 0) // jeÅ›li ma wymiennÄ… teksturÄ™ 0
         i |= (i & 0x01010001) * ((iTexAlpha & 1) ? 0x20 : 0x10);
-    // if (ReplacableSkinId[2]>0) //jeœli ma wymienn¹ teksturê 1
+    // if (ReplacableSkinId[2]>0) //jeÅ›li ma wymiennÄ… teksturÄ™ 1
     // i|=(i&0x02020002)*((iTexAlpha&1)?0x10:0x08);
-    // if (ReplacableSkinId[3]>0) //jeœli ma wymienn¹ teksturê 2
+    // if (ReplacableSkinId[3]>0) //jeÅ›li ma wymiennÄ… teksturÄ™ 2
     // i|=(i&0x04040004)*((iTexAlpha&1)?0x08:0x04);
-    // if (ReplacableSkinId[4]>0) //jeœli ma wymienn¹ teksturê 3
+    // if (ReplacableSkinId[4]>0) //jeÅ›li ma wymiennÄ… teksturÄ™ 3
     // i|=(i&0x08080008)*((iTexAlpha&1)?0x04:0x02);
     return i;
 };
 
 //-----------------------------------------------------------------------------
-// 2011-03-16 cztery nowe funkcje renderowania z mo¿liwoœci¹ pochylania obiektów
+// 2011-03-16 cztery nowe funkcje renderowania z moÅ¼liwoÅ›ciÄ… pochylania obiektÃ³w
 //-----------------------------------------------------------------------------
 
 void TAnimModel::RenderDL(vector3 *vPosition)
@@ -672,15 +672,15 @@ void TAnimModel::RenderAlphaVBO(vector3 *vPosition)
 
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()
-{ // zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
+{ // zliczanie kwadratÃ³w kilometrowych (gÅ‚Ã³wna linia po Next) do tworznia tablicy
     return (this ? pModel != NULL : false);
 };
 int TAnimModel::TerrainCount()
-{ // zliczanie kwadratów kilometrowych (g³ówna linia po Next) do tworznia tablicy
+{ // zliczanie kwadratÃ³w kilometrowych (gÅ‚Ã³wna linia po Next) do tworznia tablicy
     return pModel ? pModel->TerrainCount() : 0;
 };
 TSubModel * TAnimModel::TerrainSquare(int n)
-{ // pobieranie wskaŸników do pierwszego submodelu
+{ // pobieranie wskaÅºnikÃ³w do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
 };
 void TAnimModel::TerrainRenderVBO(int n)
@@ -697,21 +697,21 @@ void TAnimModel::Advanced()
     int frame = floor(pAdvanced->fCurrent); // numer klatki jako int
     TAnimContainer *pCurrent;
     if (pAdvanced->fCurrent >= pAdvanced->fLast)
-    { // animacja zosta³a zakoñczona
+    { // animacja zostaÅ‚a zakoÅ„czona
         delete pAdvanced;
-        pAdvanced = NULL; // dalej ju¿ nic
+        pAdvanced = NULL; // dalej juÅ¼ nic
         for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-            if (pCurrent->pMovementData) // jeœli obs³ugiwany tabelk¹ animacji
-                pCurrent->pMovementData = NULL; // usuwanie wskaŸników
+            if (pCurrent->pMovementData) // jeÅ›li obsÅ‚ugiwany tabelkÄ… animacji
+                pCurrent->pMovementData = NULL; // usuwanie wskaÅºnikÃ³w
     }
     else
-    { // coœ trzeba poanimowaæ - wszystkie animowane submodele s¹ w tym ³añcuchu
+    { // coÅ› trzeba poanimowaÄ‡ - wszystkie animowane submodele sÄ… w tym Å‚aÅ„cuchu
         for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
-            if (pCurrent->pMovementData) // jeœli obs³ugiwany tabelk¹ animacji
+            if (pCurrent->pMovementData) // jeÅ›li obsÅ‚ugiwany tabelkÄ… animacji
                 if (frame >= pCurrent->pMovementData->iFrame) // koniec czekania
                     if (!strcmp(pCurrent->pMovementData->cBone,
                                 (pCurrent->pMovementData + 1)->cBone))
-                    { // jak kolejna ramka dotyczy tego samego submodelu, ustawiæ animacjê do
+                    { // jak kolejna ramka dotyczy tego samego submodelu, ustawiÄ‡ animacjÄ™ do
                         // kolejnej ramki
                         ++pCurrent->pMovementData; // kolejna klatka
                         pCurrent->AnimSetVMD(
@@ -720,18 +720,18 @@ void TAnimModel::Advanced()
                     }
                     else
                         pCurrent->pMovementData =
-                            NULL; // inna nazwa, animowanie zakoñczone w aktualnym po³o¿eniu
+                            NULL; // inna nazwa, animowanie zakoÅ„czone w aktualnym poÅ‚oÅ¼eniu
     }
 };
 
 void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double d)
-{ // rozpoczêcie wykonywania animacji z podanego pliku
-    // tabela w pliku musi byæ posortowana wg klatek dla kolejnych koœci!
-    // skrócone nagranie ma 3:42 = 222 sekundy, animacja koñczy siê na klatce 6518
-    // daje to 29.36 (~=30) klatek na sekundê
+{ // rozpoczÄ™cie wykonywania animacji z podanego pliku
+    // tabela w pliku musi byÄ‡ posortowana wg klatek dla kolejnych koÅ›ci!
+    // skrÃ³cone nagranie ma 3:42 = 222 sekundy, animacja koÅ„czy siÄ™ na klatce 6518
+    // daje to 29.36 (~=30) klatek na sekundÄ™
     // w opisach jest podawane 24 albo 36 jako standard => powiedzmy, parametr (d) to FPS animacji
-    delete pAdvanced; // usuniêcie ewentualnego poprzedniego
-    pAdvanced = NULL; // gdyby siê nie uda³o rozpoznaæ pliku
+    delete pAdvanced; // usuniÄ™cie ewentualnego poprzedniego
+    pAdvanced = NULL; // gdyby siÄ™ nie udaÅ‚o rozpoznaÄ‡ pliku
     if (std::string(static_cast<char *>(pData)) == "Vocaloid Motion Data 0002")
     {
         pAdvanced = new TAnimAdvanced();
@@ -743,9 +743,9 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
         pAdvanced->fCurrent = 0.0; // aktualna ramka
         pAdvanced->fLast = 0.0; // ostatnia ramka
         /*
-          if (0) //jeœli w³¹czone sortowanie plików VMD (trochê siê przeci¹ga)
-           if (pAdvanced->SortByBone()) //próba posortowania
-           {//zapisaæ posortowany plik, jeœli dokonano zmian
+          if (0) //jeÅ›li wÅ‚Ä…czone sortowanie plikÃ³w VMD (trochÄ™ siÄ™ przeciÄ…ga)
+           if (pAdvanced->SortByBone()) //prÃ³ba posortowania
+           {//zapisaÄ‡ posortowany plik, jeÅ›li dokonano zmian
             TFileStream *fs=new TFileStream("models\\1.vmd",fmCreate);
             fs->Write(pData,2198342); //2948728);
             delete fs;
@@ -758,13 +758,13 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
         for (int i = 0; i < pAdvanced->iMovements; ++i)
         {
             if (strcmp(pAdvanced->pMovementData[i].cBone, name.c_str()))
-            { // jeœli pozycja w tabelce nie by³a wyszukiwana w submodelach
+            { // jeÅ›li pozycja w tabelce nie byÅ‚a wyszukiwana w submodelach
                 pSub = GetContainer(pAdvanced->pMovementData[i].cBone); // szukanie
                 if (pSub) // znaleziony
                 {
-                    pSub->pMovementData = pAdvanced->pMovementData + i; // gotów do animowania
-                    pSub->AnimSetVMD(0.0); // usuawienie pozycji pocz¹tkowej (powinna byæ zerowa,
-                    // inaczej bêdzie skok)
+                    pSub->pMovementData = pAdvanced->pMovementData + i; // gotÃ³w do animowania
+                    pSub->AnimSetVMD(0.0); // usuawienie pozycji poczÄ…tkowej (powinna byÄ‡ zerowa,
+                    // inaczej bÄ™dzie skok)
                 }
                 name = std::string(pAdvanced->pMovementData[i].cBone); // nowa nazwa do pomijania
             }
@@ -775,7 +775,7 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
           for (i=0;i<pAdvanced->iMovements;++i)
           if
           (AnsiString(pAdvanced->pMovementData[i+1].cBone)!=AnsiString(pAdvanced->pMovementData[i].cBone))
-          {//generowane dla ostatniej klatki danej koœci
+          {//generowane dla ostatniej klatki danej koÅ›ci
            name="";
            for (j=0;j<15;j++)
             name+=IntToHex((unsigned char)pAdvanced->pMovementData[i].cBone[j],2);
@@ -795,7 +795,7 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
 
             );
            idx=i+1;
-           k=pAdvanced->pMovementData[i+1].iFrame; //pierwsza klatka nastêpnego
+           k=pAdvanced->pMovementData[i+1].iFrame; //pierwsza klatka nastÄ™pnego
           }
           else
            if (pAdvanced->pMovementData[i].iFrame>0)
@@ -819,39 +819,39 @@ void TAnimModel::AnimationVND(void *pData, double a, double b, double c, double 
 
 //---------------------------------------------------------------------------
 void TAnimModel::LightSet(int n, float v)
-{ // ustawienie œwiat³a (n) na wartoœæ (v)
+{ // ustawienie Å›wiatÅ‚a (n) na wartoÅ›Ä‡ (v)
     if (n >= iMaxNumLights)
         return; // przekroczony zakres
     lsLights[n] = TLightState(int(v));
     switch (lsLights[n])
-    { // interpretacja u³amka zale¿nie od typu
+    { // interpretacja uÅ‚amka zaleÅ¼nie od typu
     case 0: // ustalenie czasu migotania, t<1s (f>1Hz), np. 0.1 => t=0.1 (f=10Hz)
         break;
-    case 1: // ustalenie wype³nienia u³amkiem, np. 1.25 => zapalony przez 1/4 okresu
+    case 1: // ustalenie wypeÅ‚nienia uÅ‚amkiem, np. 1.25 => zapalony przez 1/4 okresu
         break;
-    case 2: // ustalenie czêstotliwoœci migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
+    case 2: // ustalenie czÄ™stotliwoÅ›ci migotania, f<1Hz (t>1s), np. 2.2 => f=0.2Hz (t=5s)
         break;
-    case 3: // zapalenie œwiate³ zale¿ne od oœwietlenia scenerii
+    case 3: // zapalenie Å›wiateÅ‚ zaleÅ¼ne od oÅ›wietlenia scenerii
         if (v > 3.0)
             fDark = v - 3.0; // ustawienie indywidualnego progu zapalania
         else
-            fDark = 0.25; // standardowy próg zaplania
+            fDark = 0.25; // standardowy prÃ³g zaplania
         break;
     }
 };
 //---------------------------------------------------------------------------
 void TAnimModel::AnimUpdate(double dt)
-{ // wykonanie zakolejkowanych animacji, nawet gdy modele nie s¹ aktualnie wyœwietlane
+{ // wykonanie zakolejkowanych animacji, nawet gdy modele nie sÄ… aktualnie wyÅ›wietlane
     TAnimContainer *p = TAnimModel::acAnimList;
     while (p)
-    { // jeœli w ogóle jest co animowaæ
+    { // jeÅ›li w ogÃ³le jest co animowaÄ‡
         // if ((*p)->fTranslateSpeed==0.0)
         // if ((*p)->fRotateSpeed==0.0)
-        // {//jak siê naanimowa³, to usun¹æ z listy
-        //  *p=(*p)->ListRemove(); //zwraca wskaŸnik do kolejnego z listy
+        // {//jak siÄ™ naanimowaÅ‚, to usunÄ…Ä‡ z listy
+        //  *p=(*p)->ListRemove(); //zwraca wskaÅºnik do kolejnego z listy
         // }
         p->UpdateModel();
-        p = p->acAnimNext; // na razie bez usuwania z listy, bo g³ównie obrotnica na ni¹ wchodzi
+        p = p->acAnimNext; // na razie bez usuwania z listy, bo gÅ‚Ã³wnie obrotnica na niÄ… wchodzi
     }
 };
 //---------------------------------------------------------------------------
