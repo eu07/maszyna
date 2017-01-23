@@ -572,7 +572,7 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                    LPSTR lpCmdLine, // command line parameters
                    int nCmdShow) // window show state
 {
-#ifdef _MSC_VER & _DEBUG
+#if defined(_MSC_VER) && defined (_DEBUG)
     // memory leaks
 	_CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
     // floating point operation errors

@@ -182,28 +182,28 @@ class TGroundNode : public Resource
 class TSubRect : public Resource, public CMesh
 { // sektor sk³adowy kwadratu kilometrowego
   public:
-    int iTracks; // iloœæ torów w (tTracks)
-    TTrack **tTracks; // tory do renderowania pojazdów
+    int iTracks = 0; // iloœæ torów w (tTracks)
+    TTrack **tTracks = nullptr; // tory do renderowania pojazdów
   protected:
-    TTrack *tTrackAnim; // obiekty do przeliczenia animacji
-    TGroundNode *nRootMesh; // obiekty renderuj¹ce wg tekstury (wtórne, lista po nNext2)
-    TGroundNode *nMeshed; // lista obiektów dla których istniej¹ obiekty renderuj¹ce grupowo
+    TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
+    TGroundNode *nRootMesh = nullptr; // obiekty renderuj¹ce wg tekstury (wtórne, lista po nNext2)
+    TGroundNode *nMeshed = nullptr; // lista obiektów dla których istniej¹ obiekty renderuj¹ce grupowo
   public:
     TGroundNode *
-        nRootNode; // wszystkie obiekty w sektorze, z wyj¹tkiem renderuj¹cych i pojazdów (nNext2)
+        nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyj¹tkiem renderuj¹cych i pojazdów (nNext2)
     TGroundNode *
-        nRenderHidden; // lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u (nNext3)
-    TGroundNode *nRenderRect; // z poziomu sektora - nieprzezroczyste (nNext3)
-    TGroundNode *nRenderRectAlpha; // z poziomu sektora - przezroczyste (nNext3)
-    TGroundNode *nRenderWires; // z poziomu sektora - druty i inne linie (nNext3)
-    TGroundNode *nRender; // indywidualnie - nieprzezroczyste (nNext3)
-    TGroundNode *nRenderMixed; // indywidualnie - nieprzezroczyste i przezroczyste (nNext3)
-    TGroundNode *nRenderAlpha; // indywidualnie - przezroczyste (nNext3)
-    int iNodeCount; // licznik obiektów, do pomijania pustych sektorów
+        nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u (nNext3)
+    TGroundNode *nRenderRect = nullptr; // z poziomu sektora - nieprzezroczyste (nNext3)
+    TGroundNode *nRenderRectAlpha = nullptr; // z poziomu sektora - przezroczyste (nNext3)
+    TGroundNode *nRenderWires = nullptr; // z poziomu sektora - druty i inne linie (nNext3)
+    TGroundNode *nRender = nullptr; // indywidualnie - nieprzezroczyste (nNext3)
+    TGroundNode *nRenderMixed = nullptr; // indywidualnie - nieprzezroczyste i przezroczyste (nNext3)
+    TGroundNode *nRenderAlpha = nullptr; // indywidualnie - przezroczyste (nNext3)
+    int iNodeCount = 0; // licznik obiektów, do pomijania pustych sektorów
   public:
     void LoadNodes(); // utworzenie VBO sektora
   public:
-    TSubRect();
+//    TSubRect() = default;
     virtual ~TSubRect();
     virtual void Release(); // zwalnianie VBO sektora
     void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory

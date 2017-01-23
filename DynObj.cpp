@@ -2847,7 +2847,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 i = 0;
                 przek = przek / (np - nPrzekrF);
                 for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                     (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                     (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
                 {
                     if (!PrzekrF[i])
                     {
@@ -2858,7 +2858,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             }
             i = 0;
             for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                 (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                 (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
             {
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
@@ -4252,10 +4252,10 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             iMultiTex = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
 			parser >> asModel;
-            if (asModel.find('#') == asModel.length()) // Ra 2015-01: nie podoba mi siê to
+            if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
             { // model wymaga wielu tekstur wymiennych
                 iMultiTex = 1;
-                asModel = asModel.substr(0, asModel.length() - 1);
+                asModel.erase( asModel.length() - 1 );
             }
             if ((i = asModel.find(',')) != std::string::npos)
             { // Ra 2015-01: mo¿e szukaæ przecinka w
@@ -4273,6 +4273,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             // modele w dynamics/basedir
             Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
+            assert( mdModel != nullptr ); // TODO: handle this more gracefully than all going to shit
             if (ReplacableSkin != "none")
             { // tekstura wymienna jest raczej jedynie w "dynamic\"
                 ReplacableSkin =

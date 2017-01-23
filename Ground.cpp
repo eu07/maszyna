@@ -42,7 +42,6 @@ http://mozilla.org/MPL/2.0/.
 
 #define _PROBLEND 1
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 
 bool bCondition; // McZapkie: do testowania warunku na event multiple
 string LogComment;
@@ -684,17 +683,6 @@ void TGroundNode::RenderAlphaDL()
 //------------------------------------------------------------------------------
 //------------------ Podstawowy pojemnik terenu - sektor -----------------------
 //------------------------------------------------------------------------------
-TSubRect::TSubRect()
-{
-    nRootNode = NULL; // lista wszystkich obiektów jest pusta
-    nRenderHidden = nRenderRect = nRenderRectAlpha = nRender = nRenderMixed = nRenderAlpha =
-        nRenderWires = NULL;
-    tTrackAnim = NULL; // nic nie animujemy
-    tTracks = NULL; // nie ma jeszcze torów
-    nRootMesh = nMeshed = NULL; // te listy te¿ s¹ puste
-    iNodeCount = 0; // licznik obiektów
-    iTracks = 0; // licznik torów
-}
 TSubRect::~TSubRect()
 {
     if (Global::bManageNodes) // Ra: tu siê coœ sypie
@@ -2278,8 +2266,9 @@ void TGround::FirstInit()
                     for (j = 1; j < Current->iCount; ++j)
                     { // od 1 do koñca s¹ zestawy trójk¹tów
                         std::string xxxzzz = Current->nNode[j].smTerrain->pName; // pobranie nazwy
-                        gr = GetRect(1000 * (stol_def(xxxzzz.substr(0, 3),0) - 500),
-                                     1000 * (stol_def(xxxzzz.substr(3, 3),0) - 500));
+                        gr = GetRect(
+                            ( std::stoi( xxxzzz.substr( 0, 3 )) - 500 ) * 1000,
+                            ( std::stoi( xxxzzz.substr( 3, 3 )) - 500 ) * 1000 );
                         if (Global::bUseVBO)
                             gr->nTerrain = Current->nNode + j; // zapamiêtanie
                         else

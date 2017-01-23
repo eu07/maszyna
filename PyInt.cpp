@@ -572,7 +572,7 @@ void TPythonScreens::run()
 
 void TPythonScreens::finish()
 {
-    _thread == NULL;
+    _thread = NULL;
 }
 
 DWORD WINAPI ScreenRendererThread(LPVOID lpParam)

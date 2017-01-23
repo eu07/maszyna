@@ -330,5 +330,3 @@ void TTrackFollower::Render(float fNr)
 }
 #endif
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

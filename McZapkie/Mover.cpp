@@ -352,6 +352,10 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
         Couplers[b].DmaxC = 0.1;
         Couplers[b].FmaxC = 1000.0;
     }
+    for( b = 0; b < 2; ++b ) {
+        HVCouplers[ b ][ 0 ] = 0.0;
+        HVCouplers[ b ][ 1 ] = 0.0;
+    }
     Power = 0.0;
     MaxLoad = 0;
     LoadAccepted = "";
@@ -549,7 +553,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     ResistorsFlag = false;
     RventRot = 0.0;
     RVentType = 0;
-    RVentnmax = 0.0;
+    RVentnmax = 1.0;
     RVentCutOff = 0.0;
 
     enrot = 0.0;
@@ -7791,7 +7795,14 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		WriteLog("XBT EStED");
 		Hamulec = std::make_shared<TEStED>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
-		break;
+        if( MBPM < 2 ) {
+            //jesli przystawka wazaca
+            Hamulec->SetLP( 0, MaxBrakePress[ 3 ], 0 );
+        }
+        else {
+            Hamulec->SetLP( Mass, MBPM, MaxBrakePress[ 1 ] );
+        }
+        break;
 	}
 	case EP2:
 	{

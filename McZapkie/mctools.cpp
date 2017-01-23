@@ -279,7 +279,7 @@ std::string Tab2Sp(std::string const &s) /*Tab to Space sign*/
 {
 	std::string s2 = "";
 	char tmp = (char)9;
-	for (int b = 0; b < s.length(); ++b)
+	for (std::size_t b = 0; b < s.length(); ++b)
 	//{
 	//	if (s[b] == tmp[0])
 	//		s[b] = tmp[1];
@@ -415,6 +415,9 @@ std::string to_hex_str( int const Value, int const Width )
 
 int stol_def(const std::string &str, const int &DefaultValue)
 {
+    // NOTE: there's good chance this function is bugged, it produced wrong result on at least one occasion
+    // TODO: rewrite into something more reliable
+
 	// this function was developed iteratively on Codereview.stackexchange
 	// with the assistance of @Corbin
 	std::size_t len = str.size();

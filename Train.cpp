@@ -908,7 +908,7 @@ void TTrain::OnKeyDown(int cKey)
         else if (cKey == Global::Keys[k_LeftSign]) // lewe swiatlo - w��czenie
 		// ABu 060205: dzielo Wingera po malutkim liftingu:
 		{
-			if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
 			{
 				if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
 					(ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
@@ -1083,7 +1083,7 @@ void TTrain::OnKeyDown(int cKey)
 		// tylne (koncowki) -
 		// wlaczenie
 		{
-			if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
 			{
 				if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
 					(ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
@@ -2115,7 +2115,7 @@ if
 		else if (cKey == Global::Keys[k_LeftSign]) // ABu 060205: lewe swiatlo -
 		// wylaczenie
 		{
-			if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
 			{
 				if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
 					(ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
@@ -2288,7 +2288,7 @@ if
 		if (cKey == Global::Keys[k_RightSign]) // Winger 070304: swiatla tylne
 		// (koncowki) - wlaczenie
 		{
-			if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
 			{
 				if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
 					(ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
@@ -3239,7 +3239,7 @@ bool TTrain::Update()
                             rsRunningNoise.AM = am;
                         rsRunningNoise.AA = 0.7;
                         rsRunningNoise.FA = fa;
-                        rsRunningNoise.FM - fm;
+                        rsRunningNoise.FM = fm;
                     }
                     mvOccupied->EventFlag = false;
                 }

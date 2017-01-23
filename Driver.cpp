@@ -1881,7 +1881,7 @@ bool TController::CheckVehicles(TOrders user)
             { // je�li pojazd posiada pantograf, to przydzielamy mu mask�, kt�r� b�dzie informowa� o
                 // je�dzie bezpr�dowej
                 p->iOverheadMask = pantmask;
-                pantmask << 1; // przesuni�cie bit�w, max. 32 pojazdy z pantografami w sk�adzie
+                pantmask = pantmask << 1; // przesuni�cie bit�w, max. 32 pojazdy z pantografami w sk�adzie
             }
             d = p->DirectionSet(d ? 1 : -1); // zwraca po�o�enie nast�pnego (1=zgodny,0=odwr�cony -
             // wzgl�dem czo�a sk�adu)
@@ -2310,7 +2310,7 @@ bool TController::PrepareEngine()
     if (OK)
     {
         if (eStopReason == stopSleep) // je�li dotychczas spa�
-            eStopReason == stopNone; // teraz nie ma powodu do stania
+            eStopReason = stopNone; // teraz nie ma powodu do stania
         iEngineActive = 1;
         return true;
     }

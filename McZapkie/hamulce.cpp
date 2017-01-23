@@ -96,9 +96,9 @@ double PFVa(double PH, double PL, double S, double LIM,
             FM = FM * (LIM - PL) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
         if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
             if ((PH - PL) < DPL) // niewielka roznica cisnien
-                return (PH - PL) / DPL * FM * 2 * sqrt((sg) * (1 - sg));
+                return (PH - PL) / DPL * FM * 2 * sqrt((sg) * (1 - sg)); // BUG: (1-sg) can be < 0, leading to sqrt(-x)
             else
-                return FM * 2 * sqrt((sg) * (1 - sg));
+                return FM * 2 * sqrt( (sg) * ( 1 - sg ) ); // BUG: (1-sg) can be < 0, leading to sqrt(-x)
         else // powyzej stosunku krytycznego
             return FM;
     }
@@ -1835,7 +1835,7 @@ void TKE::CheckReleaser(double dt)
     CVP = CntrlRes->P();
 
     // odluzniacz
-    if ((BrakeStatus && b_rls) == b_rls)
+    if ( true == ((BrakeStatus & b_rls) == b_rls))
         if ((CVP - VVP < 0))
             BrakeStatus &= 247;
         else
@@ -2591,32 +2591,23 @@ double TM394::GetPos(int i)
 
 double TH14K1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
-    static int const LBDelay = 100; // szybkosc + zasilanie sterujacego
+    int const LBDelay = 100; // szybkosc + zasilanie sterujacego
     //   static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2] =
     //{ (10, 0), (4, 1), (0, 1), (4, 0), (4, -1), (15, -1) };
-    static double const NomPress = 5.0;
+    double const NomPress = 5.0;
 
-    double LimPP;
-    double dpPipe;
-    double dpMainValve;
-    double ActFlowSpeed;
-    int BCP;
+    int BCP = std::lround(i_bcp);
+    if( i_bcp < -1 ) { BCP = 1; }
 
-    BCP = lround(i_bcp);
-    if (i_bcp < -1)
-        BCP = 1;
-    LimPP = BPT_K[BCP + 1][1];
-    if (LimPP < 0)
-        LimPP = 0.5 * PP;
-    else if (LimPP > 0)
-        LimPP = PP;
-    else
-        LimPP = CP;
-    ActFlowSpeed = BPT_K[BCP + 1][0];
+    double LimPP = BPT_K[BCP + 1][1];
+         if( LimPP < 0.0 ) { LimPP = 0.5 * PP; }
+    else if( LimPP > 0.0 ) { LimPP = PP; }
+    else                   { LimPP = CP; }
+    double ActFlowSpeed = BPT_K[BCP + 1][0];
 
-    CP = CP + 6 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
+    CP = CP + 6 * std::min( std::abs(LimPP - CP), 0.05 ) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
-    dpMainValve = 0;
+    double dpMainValve = 0.0;
 
     if (BCP == -1)
         dpMainValve = PF(HP, PP, ActFlowSpeed / LBDelay) * dt;

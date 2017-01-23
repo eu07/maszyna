@@ -1844,7 +1844,11 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic) {
                 Init(); // generowanie siatek i zapis E3D
         }
     }
-    return Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
+    bool const result = Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
+    if( false == result ) {
+        ErrorLog( "Failed to load 3d model \"" + FileName + "\"" );
+    }
+    return result;
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
