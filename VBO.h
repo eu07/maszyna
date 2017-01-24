@@ -13,14 +13,14 @@ http://mozilla.org/MPL/2.0/.
 class CVertNormTex
 {
   public:
-    float x; // X wierzchołka
-    float y; // Y wierzchołka
-    float z; // Z wierzchołka
-    float nx; // X wektora normalnego
-    float ny; // Y wektora normalnego
-    float nz; // Z wektora normalnego
-    float u; // U mapowania
-    float v; // V mapowania
+    float x = 0.0; // X wierzchołka
+    float y = 0.0; // Y wierzchołka
+    float z = 0.0; // Z wierzchołka
+    float nx = 0.0; // X wektora normalnego
+    float ny = 0.0; // Y wektora normalnego
+    float nz = 0.0; // Z wektora normalnego
+    float u = 0.0; // U mapowania
+    float v = 0.0; // V mapowania
 };
 
 class CMesh
