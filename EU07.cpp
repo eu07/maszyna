@@ -26,8 +26,9 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "opengl/ARB_Multisample.h"
 
 #include "Globals.h"
-#include "Console.h"
 #include "Logs.h"
+#include "Console.h"
+#include "PyInt.h"
 #include "World.h"
 #include "Mover.h"
 
@@ -58,8 +59,8 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM); // Declaration For WndProc
 
 int InitGL(GLvoid) // All Setup For OpenGL Goes Here
 {
-    _clear87();
-    _control87(MCW_EM, MCW_EM);
+//    _clear87();
+//    _control87(MCW_EM, MCW_EM);
     glewInit();
     // hunter-271211: przeniesione
     // AllocConsole();
@@ -571,8 +572,14 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                    LPSTR lpCmdLine, // command line parameters
                    int nCmdShow) // window show state
 {
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && defined (_DEBUG)
+    // memory leaks
 	_CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
+    // floating point operation errors
+    auto state = _clearfp();
+    state = _control87( 0, 0 );
+    // this will turn on FPE for #IND and zerodiv
+    state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
 #endif
 
     MSG msg; // windows message structure
@@ -582,7 +589,7 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     Global::LoadIniFile("eu07.ini"); // teraz dopiero można przejrzeć plik z ustawieniami
     Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na stałe
 
-    // hunter-271211: ukrywanie konsoli
+	// hunter-271211: ukrywanie konsoli
     if (Global::iWriteLogEnabled & 2)
     {
         AllocConsole();
@@ -701,6 +708,8 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     SystemParametersInfo(SPI_SETKEYBOARDSPEED, iOldSpeed, NULL, 0);
     SystemParametersInfo(SPI_SETKEYBOARDDELAY, iOldDelay, NULL, 0);
     delete pConsole; // deaktywania sterownika
+	TPythonInterpreter::killInstance();
+
     // shutdown
     KillGLWindow(); // kill the window
     return (msg.wParam); // exit the program

@@ -86,20 +86,29 @@ class TMTableTime
 
 {
   public:
-    double GameTime;
-    int dd;
-    int hh;
-    int mm;
-    int srh;
-    int srm; /*wschod slonca*/
-    int ssh;
-    int ssm; /*zachod slonca*/
-    double mr;
+	  double GameTime = 0.0;
+    int dd = 0;
+    int hh = 0;
+    int mm = 0;
+    int srh = 0;
+    int srm = 0; /*wschod slonca*/
+    int ssh = 0;
+    int ssm = 0; /*zachod slonca*/
+    double mr = 0.0;
     void UpdateMTableTime(double deltaT);
-    TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int InitSSH, int InitSSM);
+    TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int InitSSH, int InitSSM) :
+		hh( InitH ),
+		mm( InitM ),
+		srh( InitSRH ),
+		srm( InitSRM ),
+		ssh( InitSSH ),
+		ssm( InitSSM )
+	{}
+
+	TMTableTime() = default;
 };
 
-extern TMTableTime *GlobalTime;
+extern std::shared_ptr<TMTableTime> GlobalTime;
 }
 
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)

@@ -187,7 +187,7 @@ int Global::iBpp = 32; // chyba już nie używa się kart, na których 16bpp co�
 // maciek001: konfiguracja wstępna portu COM
 bool Global::bMWDdebugEnable = false;
 bool Global::bMWDInputDataEnable = false;
-unsigned long int Global::iMWDBaudrate = 500000;
+unsigned int Global::iMWDBaudrate = 500000;
 std::string Global::sMWDPortId = "COM1";		// nazwa portu z którego korzystamy - na razie nie działa
 bool Global::bMWDBreakEnable = false;		// zmienić na FALSE!!! jak już będzie działać wczytywanie z *.ini
 double Global::fMWDAnalogCalib[4][3] = {{1023, 0, 1023},{1023, 0, 1023},{1023, 0, 1023},{1023, 0, 1023}};	// wartość max potencjometru, wartość min potencjometru, rozdzielczość (max. wartość jaka może być -1)
@@ -1247,7 +1247,7 @@ char bezogonkowo[] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
 
 std::string Global::Bezogonkow(std::string str, bool _)
 { // wycięcie liter z ogonkami, bo OpenGL nie umie wyświetlić
-    for (unsigned int i = 1; i <= str.length(); ++i)
+    for (unsigned int i = 1; i < str.length(); ++i)
         if (str[i] & 0x80)
             str[i] = bezogonkowo[str[i] & 0x7F];
         else if (str[i] < ' ') // znaki sterujące nie są obsługiwane

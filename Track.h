@@ -48,13 +48,13 @@ class TSwitchExtension
   public:
     TSwitchExtension(TTrack *owner, int what);
     ~TSwitchExtension();
-    TSegment *Segments[6]; // dwa tory od punktu 1, pozostałe dwa od 2? Ra 140101: 6 połączeń dla
-    // skrzyżowań
-    // TTrack *trNear[4]; //tory dołączone do punktów 1, 2, 3 i 4
-    // dotychczasowe [2]+[2] wskaźniki zamienić na nowe [4]
-    TTrack *pNexts[2]; // tory dołączone do punktów 2 i 4
-    TTrack *pPrevs[2]; // tory dołączone do punktów 1 i 3
-    int iNextDirection[2]; // to też z [2]+[2] przerobić na [4]
+    std::shared_ptr<TSegment> Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla
+    // skrzy¿owañ
+    // TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
+    // dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
+    TTrack *pNexts[2]; // tory do³¹czone do punktów 2 i 4
+    TTrack *pPrevs[2]; // tory do³¹czone do punktów 1 i 3
+    int iNextDirection[2]; // to te¿ z [2]+[2] przerobiæ na [4]
     int iPrevDirection[2];
     int CurrentIndex; // dla zwrotnicy
     double fOffset, fDesiredOffset; // aktualne i docelowe położenie napędu iglic
@@ -126,8 +126,8 @@ class TIsolated
 class TTrack : public Resource
 { // trajektoria ruchu - opakowanie
   private:
-    TSwitchExtension *SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
-    TSegment *Segment;
+	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
+    std::shared_ptr<TSegment> Segment;
     TTrack *trNext; // odcinek od strony punktu 2 - to powinno być w segmencie
     TTrack *trPrev; // odcinek od strony punktu 1
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
@@ -204,7 +204,7 @@ class TTrack : public Resource
     {
         return Segment->GetLength();
     };
-    inline TSegment * CurrentSegment()
+	inline std::shared_ptr<TSegment> CurrentSegment()
     {
         return Segment;
     };

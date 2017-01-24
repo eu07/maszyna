@@ -57,7 +57,7 @@ class cParser : public std::stringstream
         for (int i = 0; i < count; i++)
             readToken();
     };
-    inline bool expectToken(std::string value)
+    inline bool expectToken(std::string const &value)
     {
         return readToken() == value;
     };
@@ -77,7 +77,7 @@ class cParser : public std::stringstream
   protected:
     // methods:
     std::string readToken(bool ToLower = true, const char *Break = "\n\t ;");
-    std::string readComment(const std::string Break = "\n\t ;");
+    std::string readComment(std::string const &Break = "\n\t ;");
     std::string trtest;
     bool trimComments(std::string &String);
     // members:

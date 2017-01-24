@@ -79,6 +79,10 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
     for (i = 0; i < Count; ++i)
     {
         std::string string = readToken(ToLower, Break);
+        if( true == string.empty() ) {
+            // no more tokens
+            break;
+        }
         // collect parameters
         if (i == 0)
             this->str(string);
@@ -191,7 +195,7 @@ bool cParser::trimComments(std::string &String)
     return false;
 }
 
-std::string cParser::readComment(const std::string Break)
+std::string cParser::readComment(std::string const &Break)
 { // pobieranie znaków aż do znalezienia znacznika końca
     std::string token = "";
     while (mStream->peek() != EOF)

@@ -11,18 +11,19 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 */
+
 #include "stdafx.h"
 
 #include "Train.h"
 
-#include "Console.h"
-#include "Driver.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "McZapkie\MOVER.h"
-#include "McZapkie\hamulce.h"
 #include "MdlMngr.h"
 #include "Timer.h"
+#include "Driver.h"
+#include "Console.h"
+#include "McZapkie\hamulce.h"
+#include "McZapkie\MOVER.h"
 //---------------------------------------------------------------------------
 
 using namespace Timer;
@@ -68,15 +69,27 @@ void TCab::Load(cParser &Parser)
     Parser >> token;
     if (token == "cablight")
     {
-        Parser.getTokens(9, false);
-        Parser >> dimm_r >> dimm_g >> dimm_b >> intlit_r >> intlit_g >> intlit_b >> intlitlow_r >>
-            intlitlow_g >> intlitlow_b;
-        Parser.getTokens();
-        Parser >> token;
+		Parser.getTokens( 9, false );
+		Parser
+			>> dimm_r
+			>> dimm_g
+			>> dimm_b
+			>> intlit_r
+			>> intlit_g
+			>> intlit_b
+			>> intlitlow_r
+			>> intlitlow_g
+			>> intlitlow_b;
+		Parser.getTokens(); Parser >> token;
     }
-    CabPos1.x = std::stod(token);
-    Parser.getTokens(5, false);
-    Parser >> CabPos1.y >> CabPos1.z >> CabPos2.x >> CabPos2.y >> CabPos2.z;
+	CabPos1.x = std::stod( token );
+	Parser.getTokens( 5, false );
+	Parser
+		>> CabPos1.y
+		>> CabPos1.z
+		>> CabPos2.x
+		>> CabPos2.y
+		>> CabPos2.z;
 
     bEnabled = true;
     bOccupied = true;
@@ -216,9 +229,9 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     fMechPitch = 0.1;
     fMainRelayTimer = 0; // Hunter, do k...y nędzy, ustawiaj wartości początkowe zmiennych!
 
-    if (!LoadMMediaFile(DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName +
-                        ".mmd"))
+	if( false == LoadMMediaFile( DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) ) {
         return false;
+	}
 
     // McZapkie: w razie wykolejenia
     //    dsbDerailment=TSoundsManager::GetFromName("derail.wav");
@@ -339,14 +352,13 @@ PyObject *TTrain::GetTrainState()
                 PyGetFloatS(fPress[i][j]));
     }
     bool bEP, bPN;
-    bEP = (mvControlled->LocHandle->GetCP() > 0.2) || (fEIMParams[0][2] > 0.01);
+	bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[0][2] > 0.01 );
     PyDict_SetItemString(dict, "dir_brake", PyGetBool(bEP));
     if (typeid(mvControlled->Hamulec) == typeid(TLSt) ||
         typeid(mvControlled->Hamulec) == typeid(TEStED))
     {
-        TBrake *temp_ham = mvControlled->Hamulec;
         //        TLSt* temp_ham2 = temp_ham;
-        bPN = (static_cast<TLSt *>(temp_ham)->GetEDBCP() > 0.2);
+		bPN = ( static_cast<TLSt *>( mvControlled->Hamulec.get() )->GetEDBCP() > 0.2 );
     }
     else
         bPN = false;
@@ -736,8 +748,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
         else if (cKey == Global::Keys[k_OpenLeft]) // NBMX 17-09-2003: otwieranie drzwi
         {
             if (mvOccupied->DoorOpenCtrl == 1)
-                if (mvOccupied->CabNo < 0 ? mvOccupied->DoorRight(true) :
-                                            mvOccupied->DoorLeft(true))
+				if (mvOccupied->CabNo < 0 ?	mvOccupied->DoorRight(true) : mvOccupied->DoorLeft(true))
                 {
                     dsbSwitch->SetVolume(DSBVOLUME_MAX);
                     dsbSwitch->Play(0, 0, 0);
@@ -750,9 +761,8 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
         }
         else if (cKey == Global::Keys[k_OpenRight]) // NBMX 17-09-2003: otwieranie drzwi
         {
-            if (mvOccupied->DoorCloseCtrl == 1)
-                if (mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft(true) :
-                                            mvOccupied->DoorRight(true))
+			if (mvOccupied->DoorOpenCtrl == 1)
+				if (mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft(true) : mvOccupied->DoorRight(true))
                 {
                     dsbSwitch->SetVolume(DSBVOLUME_MAX);
                     dsbSwitch->Play(0, 0, 0);
@@ -898,7 +908,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
 		else if (cKey == Global::Keys[k_LeftSign]) // lewe swiatlo - włączenie
         // ABu 060205: dzielo Wingera po malutkim liftingu:
         {
-            if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
             {
                 if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
                     (ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
@@ -1073,7 +1083,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
         // tylne (koncowki) -
         // wlaczenie
         {
-            if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
             {
                 if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
                     (ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
@@ -1968,27 +1978,27 @@ if
         }
         else if (cKey == Global::Keys[k_CloseLeft]) // NBMX 17-09-2003: zamykanie drzwi
         {
-            if (mvOccupied->CabNo < 0 ? mvOccupied->DoorRight(false) : mvOccupied->DoorLeft(false))
-            {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
-                if (dsbDoorClose)
-                {
-                    dsbDoorClose->SetCurrentPosition(0);
-                    dsbDoorClose->Play(0, 0, 0);
+			if( mvOccupied->DoorCloseCtrl == 1 ) {
+				if( mvOccupied->CabNo < 0 ? mvOccupied->DoorRight( false ) : mvOccupied->DoorLeft( false ) ) {
+					dsbSwitch->SetVolume( DSBVOLUME_MAX );
+					dsbSwitch->Play( 0, 0, 0 );
+					if( dsbDoorClose ) {
+						dsbDoorClose->SetCurrentPosition( 0 );
+						dsbDoorClose->Play( 0, 0, 0 );
+					}
                 }
             }
         }
         else if (cKey == Global::Keys[k_CloseRight]) // NBMX 17-09-2003: zamykanie drzwi
         {
-            if (mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft(false) : mvOccupied->DoorRight(false))
-            {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
-                if (dsbDoorClose)
-                {
-                    dsbDoorClose->SetCurrentPosition(0);
-                    dsbDoorClose->Play(0, 0, 0);
+			if( mvOccupied->DoorCloseCtrl == 1 ) {
+				if( mvOccupied->CabNo < 0 ? mvOccupied->DoorLeft( false ) : mvOccupied->DoorRight( false ) ) {
+					dsbSwitch->SetVolume( DSBVOLUME_MAX );
+					dsbSwitch->Play( 0, 0, 0 );
+					if( dsbDoorClose ) {
+						dsbDoorClose->SetCurrentPosition( 0 );
+						dsbDoorClose->Play( 0, 0, 0 );
+					}
                 }
             }
         }
@@ -2105,7 +2115,7 @@ if
         else if (cKey == Global::Keys[k_LeftSign]) // ABu 060205: lewe swiatlo -
         // wylaczenie
         {
-            if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
             {
                 if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
                     (ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
@@ -2278,7 +2288,7 @@ if
         if (cKey == Global::Keys[k_RightSign]) // Winger 070304: swiatla tylne
         // (koncowki) - wlaczenie
         {
-            if (!mvOccupied->LightsPosNo > 0)
+			if (false == (mvOccupied->LightsPosNo > 0))
             {
                 if ((GetAsyncKeyState(VK_CONTROL) < 0) &&
                     (ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
@@ -3220,7 +3230,7 @@ bool TTrain::Update()
                             rsRunningNoise.AM = am;
                         rsRunningNoise.AA = 0.7;
                         rsRunningNoise.FA = fa;
-                        rsRunningNoise.FM - fm;
+                        rsRunningNoise.FM = fm;
                     }
                     mvOccupied->EventFlag = false;
                 }
@@ -5063,6 +5073,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     dsbCouplerDetach = TSoundsManager::GetFromName("couplerdetach.wav", true);
     dsbCouplerStretch = TSoundsManager::GetFromName("en57_couplerstretch.wav", true);
     dsbCouplerAttach = TSoundsManager::GetFromName("couplerattach.wav", true);
+
     std::string token;
     do
     {

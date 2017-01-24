@@ -35,7 +35,6 @@ http://mozilla.org/MPL/2.0/.
 #define TEXTURE_FILTER_CONTROL_EXT 0x8500
 #define TEXTURE_LOD_BIAS_EXT 0x8501
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 
 typedef void(APIENTRY *FglutBitmapCharacter)(void *font, int character); // typ funkcji
 FglutBitmapCharacter glutBitmapCharacterDLL = NULL; // deklaracja zmiennej

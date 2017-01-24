@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 
 // using namespace Mtable;
-TMTableTime *Mtable::GlobalTime;
+std::shared_ptr<TMTableTime> Mtable::GlobalTime;
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
 // zwraca różnicę czasu
@@ -527,19 +527,6 @@ void TMTableTime::UpdateMTableTime(double deltaT)
         ++dd; // zwiększenie numeru dnia
     }
     GameTime = GameTime + deltaT;
-}
-
-TMTableTime::TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int InitSSH, int InitSSM)
-{
-    GameTime = 0.0;
-    dd = 0;
-    hh = InitH;
-    mm = InitM;
-    srh = InitSRH;
-    srm = InitSRM;
-    ssh = InitSSH;
-    ssm = InitSSM;
-    mr = 0.0;
 }
 
 bool TTrainParameters::DirectionChange()

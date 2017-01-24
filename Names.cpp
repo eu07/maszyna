@@ -108,6 +108,11 @@ TNames::TNames()
     ZeroMemory(rTypes, 20 * sizeof(ItemRecord *));
 };
 
+TNames::~TNames() {
+
+	delete[] cBuffer;
+}
+
 int TNames::Add(int t, const char *n)
 { // dodanie obiektu typu (t) o nazwie (n)
     int len = strlen(n) + 1; // ze znacznikiem końca

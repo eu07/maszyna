@@ -37,7 +37,7 @@ TRealSound::TRealSound()
     bLoopPlay = false; // dźwięk wyłączony
 }
 
-TRealSound::TRealSound(const char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+TRealSound::TRealSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
 	bool freqmod, double rmin)
 {
 	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
@@ -250,7 +250,7 @@ void TRealSound::ResetPosition()
         pSound->SetCurrentPosition(0);
 }
 
-TTextSound::TTextSound(const char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+TTextSound::TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
 	bool Dynamic, bool freqmod, double rmin)
 	: TRealSound(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin)
 {

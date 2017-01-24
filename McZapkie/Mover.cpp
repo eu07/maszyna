@@ -1,4 +1,4 @@
-/*
+﻿/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "../globals.h"
 #include "../logs.h"
 #include "Oerlikon_ESt.h"
+#include "../parser.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.
@@ -38,15 +39,15 @@ inline double sqr(double val) // SQR() zle liczylo w current() ...
 
 double ComputeCollision(double &v1, double &v2, double m1, double m2, double beta, bool vc)
 { // oblicza zmiane predkosci i przyrost pedu wskutek kolizji
-	if (v1 < v2 && vc)
+    if( ( v1 < v2 ) && ( vc == true ) )
 		return 0;
 	else
 	{
 		double sum = m1 + m2;
-		double w1 = ((m1 - m2) * v1 + 2 * m2 * v2) / sum;
-		double w2 = ((m2 - m1) * v2 + 2 * m1 * v1) / sum;
-		v1 = w1 * sqrt(1 - beta); // niejawna zmiana predkosci wskutek zderzenia
-		v2 = w2 * sqrt(1 - beta);
+        double w1 = ( m2 * v2 * 2.0 + v1 * ( m1 - m2 ) ) / sum;
+        double w2 = ( m1 * v1 * 2.0 + v2 * ( m2 - m1 ) ) / sum;
+		v1 = w1 * std::sqrt(1.0 - beta); // niejawna zmiana predkosci wskutek zderzenia
+		v2 = w2 * std::sqrt(1.0 - beta);
 		return m1 * (w2 - w1) * (1 - beta);
 	}
 }
@@ -351,6 +352,10 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
         Couplers[b].DmaxC = 0.1;
         Couplers[b].FmaxC = 1000.0;
     }
+    for( b = 0; b < 2; ++b ) {
+        HVCouplers[ b ][ 0 ] = 0.0;
+        HVCouplers[ b ][ 1 ] = 0.0;
+    }
     Power = 0.0;
     MaxLoad = 0;
     LoadAccepted = "";
@@ -548,7 +553,7 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     ResistorsFlag = false;
     RventRot = 0.0;
     RVentType = 0;
-    RVentnmax = 0.0;
+    RVentnmax = 1.0;
     RVentCutOff = 0.0;
 
     enrot = 0.0;
@@ -1497,9 +1502,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
                 Mains = false;
                 DerailReason = 4; // Ra: powód wykolejenia: nieodpowiednia trajektoria
             }
-
         V += (3.0 * AccS - AccSprev) * dt / 2.0; // przyrost predkosci
-
         if (TestFlag(DamageFlag, dtrain_out))
             if (Vel < 1)
             {
@@ -1598,7 +1601,6 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
                                              TTrackParam &Track, const TLocation &NewLoc,
                                              TRotation &NewRot)
 {
-
     double Vprev, AccSprev, d;
     int b;
     // T_MoverParameters::FastComputeMovement(dt, Shape, Track, NewLoc, NewRot);
@@ -1796,63 +1798,96 @@ int TMoverParameters::ShowCurrent(int AmpN)
 
 bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 {
+	// basic fail conditions:
+	if( ( CabNo == 0 )
+	 || ( MainCtrlPosNo <= 0 ) ) {
+		// nie ma sterowania
+		return false;
+	}
+	if( ( TrainType == dt_ET22 ) && ( ScndCtrlPos != 0 ) ) {
+        // w ET22 nie da się kręcić nastawnikiem przy włączonym boczniku
+		return false;
+	}
+	if( ( TrainType == dt_EZT ) && ( ActiveDir == 0 ) ) {
+        // w EZT nie da się załączyć pozycji bez ustawienia kierunku
+		return false;
+	}
+
     bool OK = false;
-    if ((MainCtrlPosNo > 0) && (CabNo != 0))
-    {
         if (MainCtrlPos < MainCtrlPosNo)
         {
-            if ((TrainType != dt_ET22) ||
-                ((TrainType == dt_ET22) &&
-                 (ScndCtrlPos ==
-                  0))) // w ET22 nie da się kręcić nastawnikiem przy włączonym boczniku
-                switch (EngineType)
-                {
+		switch( EngineType ) {
                 case None:
                 case Dumb:
                 case DieselElectric:
                 case ElectricInductionMotor:
                 {
-                    if (((CtrlSpeed == 1) && (TrainType != dt_EZT)) ||
-                        ((CtrlSpeed == 1) && (TrainType == dt_EZT) && (ActiveDir != 0)))
-                    { // w EZT nie da się załączyć pozycji bez ustawienia kierunku
-                        MainCtrlPos++;
+				if( CtrlSpeed > 1 ) {
+					OK = ( IncMainCtrl( 1 )
+						&& IncMainCtrl( CtrlSpeed - 1 ) ); // a fail will propagate up the recursion chain. should this be || instead?
+				}
+				else {
+					++MainCtrlPos;
                         OK = true;
                     }
-                    else if (((CtrlSpeed > 1) && (TrainType != dt_EZT)) ||
-                             ((CtrlSpeed > 1) && (TrainType == dt_EZT) && (ActiveDir != 0)))
-                        OK = (IncMainCtrl(1) && IncMainCtrl(CtrlSpeed - 1));
                     break;
                 }
 
                 case ElectricSeriesMotor:
                 {
-                    if ((CtrlSpeed == 1) && (ActiveDir != 0))
-                    {
-                        MainCtrlPos++;
-                        OK = true;
-                        if (Imax == ImaxHi)
-                            if (RList[MainCtrlPos].Bn > 1)
-                            {
-                                if (TrainType == dt_ET42)
-                                {
-                                    MainCtrlPos--;
-                                    OK = false;
+				if( ActiveDir == 0 ) { return false; }
+
+				if( CtrlSpeed > 1 ) {
+					// szybkie przejœcie na bezoporow¹
+					if( TrainType == dt_ET40 ) {
+						break; // this means ET40 won't react at all to fast acceleration command. should it issue just IncMainCtrl(1) instead?
                                 }
-                                if (MaxCurrentSwitch(false))
-                                    SetFlag(
-                                        SoundFlag,
-                                        sound_relay); // wylaczanie wysokiego rozruchu    // Q TODO:
+					while( ( RList[ MainCtrlPos ].R > 0.0 )
+						&& IncMainCtrl( 1 ) ) {
+						// all work is done in the loop header
+						;
+					}
+					// OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto mia³ to
+					// poprawiæ i po co?
+					if( ActiveDir == -1 ) {
+						while( ( RList[ MainCtrlPos ].Bn > 1 )
+							&& IncMainCtrl( 1 ) ) {
+							--MainCtrlPos;
+						}
+					}
+					OK = false; // shouldn't this be part of the loop above?
+					// if (TrainType=dt_ET40)  then
+					// while Abs (Im)>IminHi do
+					//   dec(MainCtrlPos);
+					//  OK:=false ;
+				}
+				else { // CtrlSpeed == 1
+					++MainCtrlPos;
+					OK = true;
+					if( Imax == ImaxHi ) {
+						if( RList[ MainCtrlPos ].Bn > 1 ) {
+							if( true == MaxCurrentSwitch( false )) {
+								// wylaczanie wysokiego rozruchu
+								SetFlag( SoundFlag, sound_relay );
+							} // Q TODO:
                                 //         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1)
                                 //         then
                                 //           MainCtrlActualPos:=1;
                                 //
+							if( TrainType == dt_ET42 ) {
+								--MainCtrlPos;
+								OK = false;
                             }
-                        if ((CtrlSpeed == 1) && (ActiveDir == -1) && (RList[MainCtrlPos].Bn > 1) &&
-                            (TrainType != dt_PseudoDiesel))
-                        { // blokada wejścia na równoległą podczas jazdy do tyłu
-                            MainCtrlPos--;
+						}
+					}
+					if( ActiveDir == -1 ) {
+						if( ( TrainType != dt_PseudoDiesel )
+						 && ( RList[ MainCtrlPos ].Bn > 1 )	) {
+                            // blokada wejścia na równoległą podczas jazdy do tyłu
+							--MainCtrlPos;
                             OK = false;
                         }
+					}
                         //
                         // if (TrainType == "et40")
                         //  if (Abs(Im) > IminHi)
@@ -1861,89 +1896,59 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
                         //    OK = false;
                         //   }
                         //}
-                        if (DynamicBrakeFlag)
-                            if (TrainType == dt_ET42)
-                                if (MainCtrlPos > 20)
-                                {
-                                    MainCtrlPos--;
-                                    OK = false;
                                 }
-                    }
-                    else if ((CtrlSpeed > 1) && (ActiveDir != 0) && (TrainType != dt_ET40))
-                    { // szybkie przejście na bezoporową
 
-                        while ((RList[MainCtrlPos].R > 0) && IncMainCtrl(1))
-                            ; // tutaj ma być pętla na "pusto"
-                        // OK:=true ; {takie chamskie, potem poprawie} <-Ra: kto miał to
-                        // poprawić i po co?
-                        if (ActiveDir == -1)
-                            while ((RList[MainCtrlPos].Bn > 1) && IncMainCtrl(1))
-                                MainCtrlPos--;
-                        OK = false;
-                        // if (TrainType=dt_ET40)  then
-                        // while Abs (Im)>IminHi do
-                        //   dec(MainCtrlPos);
-                        //  OK:=false ;
-                        //
-                        if (DynamicBrakeFlag)
-                            if (TrainType == dt_ET42)
-                                while (MainCtrlPos > 20)
-                                    MainCtrlPos--;
+				if( ( TrainType == dt_ET42 ) && ( true == DynamicBrakeFlag ) ) {
+					if( MainCtrlPos > 20 ) {
+						MainCtrlPos = 20;
                         OK = false;
                     }
+				}
                     // return OK;
-
                     break;
                 }
 
                 case DieselEngine:
                 {
-                    if (CtrlSpeed == 1)
-                    {
-                        MainCtrlPos++;
-                        OK = true;
-                        if (MainCtrlPos > 0)
-                            CompressorAllow = true;
-                        else
-                            CompressorAllow = false;
+				if( CtrlSpeed > 1 ) {
+					while( MainCtrlPos < MainCtrlPosNo ) {
+						IncMainCtrl( 1 );
                     }
-                    else if (CtrlSpeed > 1)
-                    {
-                        while (MainCtrlPos < MainCtrlPosNo)
-                            IncMainCtrl(1);
-                        OK = true;
                     }
+				else {
+					++MainCtrlPos;
+					if( MainCtrlPos > 0 ) { CompressorAllow = true; }
+					else                  { CompressorAllow = false; }
+				}
+				OK = true;
                     break;
                 }
 
                 case WheelsDriven:
                 {
-                    OK = AddPulseForce(CtrlSpeed);
+				OK = AddPulseForce( CtrlSpeed );
                     break;
                 }
-
                 } // switch EngineType of
         }
-        else // MainCtrlPos>=MainCtrlPosNo
-            if (CoupledCtrl) // wspólny wał nastawnika jazdy i bocznikowania
-        {
-            if (ScndCtrlPos < ScndCtrlPosNo) // 3<3 -> false
-            {
-                ScndCtrlPos++;
+    else {// MainCtrlPos>=MainCtrlPosNo
+		if( true == CoupledCtrl ) {
+            // wspólny wał nastawnika jazdy i bocznikowania
+			if( ScndCtrlPos < ScndCtrlPosNo ) { // 3<3 -> false
+				++ScndCtrlPos;
                 OK = true;
             }
-            else
+			else {
                 OK = false;
         }
-        if (OK)
+		}
+    }
+
+    if( true == OK )
         {
             SendCtrlToNext("MainCtrl", MainCtrlPos, CabNo); //???
             SendCtrlToNext("ScndCtrl", ScndCtrlPos, CabNo);
         }
-    }
-    else // nie ma sterowania
-        OK = false;
-    // if OK then LastRelayTime:=0;
 
     // hunter-101012: poprawka
     // poprzedni warunek byl niezbyt dobry, bo przez to przy trzymaniu +
@@ -4240,7 +4245,7 @@ double TMoverParameters::TractionForce(double dt)
             EnginePower = dmoment * enrot;
             if (MainCtrlPos > 1)
                 dmoment -=
-                    dizel_Mstand * (0.2 * enrot / nmax); // dodatkowe opory z powodu sprezarki}
+                    dizel_Mstand * (0.2 * enrot / dizel_nmax); // dodatkowe opory z powodu sprezarki}
             Mm = dizel_engage * dmoment;
             Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
             Fw = Mw * 2.0 / WheelDiameter;
@@ -4264,13 +4269,16 @@ double TMoverParameters::TractionForce(double dt)
             else // jazda ciapongowa
             {
 
-                tmp = Min0R(DElist[MainCtrlPos].GenPower, Power - HeatingPower * double(Heating));
+                auto power = Power;
+                if( true == Heating ) { power -= HeatingPower; }
+                if( power < 0.0 ) { power = 0.0; }
+                tmp = std::min( DElist[ MainCtrlPos ].GenPower, power );// Power - HeatingPower * double( Heating ));
 
                 PosRatio = DElist[MainCtrlPos].GenPower / DElist[MainCtrlPosNo].GenPower;
                 // stosunek mocy teraz do mocy max
                 if ((MainCtrlPos > 0) && (ConverterFlag))
                     if (tmpV <
-                        (Vhyp * (Power - HeatingPower * double(Heating)) /
+                        (Vhyp * power /
                          DElist[MainCtrlPosNo].GenPower)) // czy na czesci prostej, czy na hiperboli
                         Ft = (Ftmax -
                               ((Ftmax - 1000.0 * DElist[MainCtrlPosNo].GenPower / (Vhyp + Vadd)) *
@@ -5711,9 +5719,11 @@ std::string TMoverParameters::EngineDescription(int what)
             if (outstr == "")
                 outstr = "OK!";
         }
-    };
+        break;
+    }
     default:
         outstr = "Invalid qualifier";
+        break;
     }
     return outstr;
 }
@@ -5752,9 +5762,10 @@ std::string vS;
 int vI;
 double vD;
 bool startBPT;
-bool startMPT;
+bool startMPT, startMPT0;
 bool startRLIST;
-int MPTLINE, RLISTLINE, BPTLINE;
+bool startDLIST, startFFLIST, startWWLIST;
+int MPTLINE, RLISTLINE, BPTLINE, DLISTLINE, FFLISTLINE, WWLISTLINE;
 std::vector<std::string> x;
 
 std::string aCategory, aType;
@@ -5793,8 +5804,10 @@ double jMaxVoltage, jMaxCurrent, jIntR, jMinH, jMaxH, jCSW, jMinV, jMaxV, jMinPr
 int jCollectorsNo;
 
 std::string kEngineType, kTrans;
-double kWindingRes, knmax, kVolt;
+double kVolt, kWindingRes, kNMin, kNMax, kNMaxCutoff, kAIM, kshuntmode;
 // int kVolt;
+// motorparamtable
+double kMinVelFullEngage, kEngageDia, kEngageMaxForce, kEngageFriction;
 
 double lCircuitRes;
 int lImaxLo, lImaxHi, lIminLo, lIminHi;
@@ -5871,16 +5884,16 @@ std::string getkeyval(int rettype, std::string key)
         int klen = key.length();
         int kpos = Pos(key, xline) - 1;
         temp.erase(0, kpos + klen);
-        if (temp.find(" ") != std::string::npos)
-            to = temp.find(" ");
+        if (temp.find(' ') != std::string::npos)
+            to = temp.find(' ');
         else
             to = 255;
         kval = temp.substr(0, to);
         if (kval != "")
             kval = TrimSpace(kval); // wyciagnieta wartosc
 
-        sectionname = ExchangeCharInString(sectionname, (char)":", (char)"");
-        sectionname = ExchangeCharInString(sectionname, (char)".", (char)"");
+        sectionname = ExchangeCharInString(sectionname, ':', NULL);
+        sectionname = ExchangeCharInString(sectionname, '.', NULL);
         //--WriteLog(sectionname + "." + keyname + " val= [" + kval + "]");
 
         //    if (rettype == 1) vS = kval;
@@ -5930,80 +5943,146 @@ int s2NNW(std::string s)
 // Q: 20160717
 // *************************************************************************************************
 // parsowanie Motor Param Table
-bool TMoverParameters::readMPT(int ln, std::string line)
-{
-    // bl, mfi, mIsat, mfi0, fi, Isat, fi0
-    bool as;
-    int bl;
-    startMPT = true;
+bool TMoverParameters::readMPT0( std::string const &line ) {
 
-    if (ln > 0) // 0 to nazwa sekcji - MotorParamTable0:
-    {
-        //--WriteLog("MPT: " + xline);
-        x = Split(line);
-
-        int s = x.size();
-		if ( (s < 7)
-	      || (s > 8) )
-		{
-			WriteLog( "Read MPT: wrong number of arguments (" + std::to_string( s ) + ") in line " + std::to_string( ln - 1 ) );
-            MPTLINE++;
-			return false;
-		}
-
-        for(int i = 0; i < s; i++)
-            x[i] = TrimSpace(x[i]);
-
-        bl = atoi(x[0].c_str()); // numer pozycji
-
-        MotorParam[bl].mfi = atof(x[1].c_str());
-        MotorParam[bl].mIsat = atof(x[2].c_str());
-        MotorParam[bl].mfi0 = atof(x[3].c_str());
-        MotorParam[bl].fi = atof(x[4].c_str());
-        MotorParam[bl].Isat = atof(x[5].c_str());
-        MotorParam[bl].fi0 = atof(x[6].c_str());
-        MotorParam[bl].AutoSwitch = s == 8 ? atoi(x[7].c_str()): false;
-
-        //--WriteLog(":::: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4 + "," + p5 + "," +
-        //p6);
+    cParser parser( line );
+    if( false == parser.getTokens( 7, false ) ) {
+        WriteLog( "Read MPT0: arguments missing in line " + std::to_string( MPTLINE ) );
+        return false;
     }
-    MPTLINE++;
+    int idx = 0; // numer pozycji
+    parser >> idx;
+    parser
+        >> MotorParam[ idx ].mfi
+        >> MotorParam[ idx ].mIsat
+        >> MotorParam[ idx ].mfi0
+        >> MotorParam[ idx ].fi
+        >> MotorParam[ idx ].Isat
+        >> MotorParam[ idx ].fi0;
+    if( true == parser.getTokens( 1, false ) ) {
+        int autoswitch;
+        parser >> autoswitch;
+        MotorParam[ idx ].AutoSwitch = ( autoswitch == 1 );
+    }
+    else {
+        MotorParam[ idx ].AutoSwitch = false;
+    }
     return true;
 }
+
+bool TMoverParameters::readMPT( std::string const &line ) {
+    ++MPTLINE;
+
+    switch( EngineDecode( kEngineType ) ) {
+
+        case ElectricSeriesMotor: { return readMPTElectricSeries( line ); }
+        case DieselElectric:      { return readMPTDieselElectric( line ); }
+        case DieselEngine:        { return readMPTDieselEngine( line ); }
+        default:                  { return false; }
+    }
+}
+
+bool TMoverParameters::readMPTElectricSeries(std::string const &line) {
+
+    cParser parser( line );
+    if( false == parser.getTokens( 5, false ) ) {
+        WriteLog( "Read MPT: arguments missing in line " + std::to_string( MPTLINE ) );
+			return false;
+		}
+    int idx = 0; // numer pozycji
+    parser >> idx;
+    parser
+        >> MotorParam[ idx ].mfi
+        >> MotorParam[ idx ].mIsat
+        >> MotorParam[ idx ].fi
+        >> MotorParam[ idx ].Isat;
+    if( true == parser.getTokens( 1, false ) ) {
+        int autoswitch;
+        parser >> autoswitch;
+        MotorParam[ idx ].AutoSwitch = (autoswitch == 1); }
+    else{
+        MotorParam[ idx ].AutoSwitch = false;
+    }
+    return true;
+}
+
+bool TMoverParameters::readMPTDieselElectric( std::string const &line ) {
+
+    cParser parser( line );
+    if( false == parser.getTokens( 7, false ) ) {
+        WriteLog( "Read MPT: arguments missing in line " + std::to_string( MPTLINE ) );
+        return false;
+    }
+    int idx = 0; // numer pozycji
+    parser >> idx;
+    parser
+        >> MotorParam[ idx ].mfi
+        >> MotorParam[ idx ].mIsat
+        >> MotorParam[ idx ].fi
+        >> MotorParam[ idx ].Isat
+        >> MPTRelay[ idx ].Iup
+        >> MPTRelay[ idx ].Idown;
+
+    return true;
+}
+
+bool TMoverParameters::readMPTDieselEngine( std::string const &line ) {
+
+    cParser parser( line );
+    if( false == parser.getTokens( 4, false ) ) {
+        WriteLog( "Read MPT: arguments missing in line " + std::to_string( MPTLINE ) );
+        return false;
+    }
+    int idx = 0; // numer pozycji
+    parser >> idx;
+    parser
+        >> MotorParam[ idx ].mIsat
+        >> MotorParam[ idx ].fi
+        >> MotorParam[ idx ].mfi;
+    if( true == parser.getTokens( 1, false ) ) {
+        int autoswitch;
+        parser >> autoswitch;
+        MotorParam[ idx ].AutoSwitch = ( autoswitch == 1 );
+    }
+    else {
+        MotorParam[ idx ].AutoSwitch = false;
+    }
+    return true;
+}
+
 
 // *************************************************************************************************
 // Q: 20160718
 // *************************************************************************************************
 // parsowanie RList
-bool TMoverParameters::readRLIST(int ln, std::string line)
+bool TMoverParameters::readRList(int const ln, std::string const &line)
 {
-	char *xxx = nullptr;
     startRLIST = true;
 
     if (ln > 0) // 0 to nazwa sekcji - RList:
     {
         // WriteLog("RLIST: " + xline);
+/*
         line = Tab2Sp(line); // zamieniamy taby na spacje  (ile tabow tyle spacji bedzie)
 
         xxx = TrimAndReduceSpaces(line.c_str()); // konwertujemy na *char i
                                                                    // ograniczamy spacje pomiedzy
                                                                    // parametrami do jednej
-
-        x = Split(xxx); // split je wskaznik na char jak i std::string
+*/
+        x = Split(line); // split je wskaznik na char jak i std::string
 
         int s = x.size();
         if ( ( s < 5 )
 	      || ( s > 6 ))
         {
 			WriteLog("Read RLIST: wrong number of arguments (" + std::to_string(s) + ") in line " + std::to_string(ln - 1));
-            delete[] xxx;
             RLISTLINE++;
             return false;
         }
-
+/*
         for (int i = 0; i < s; i++)
             x[i] = TrimSpace(x[i]);
-
+*/
         int k = ln - 1;
 
         RlistSize = (mSize);
@@ -6018,7 +6097,6 @@ bool TMoverParameters::readRLIST(int ln, std::string line)
         RList[k].ScndAct = s == 6 ? atoi(x[5].c_str()) : 0; //jeśli ma boczniki w nastawniku
         //--WriteLog("RLIST: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
     }
-	delete[] xxx;
     RLISTLINE++;
     return true;
 }
@@ -6027,31 +6105,27 @@ bool TMoverParameters::readRLIST(int ln, std::string line)
 // Q: 20160721
 // *************************************************************************************************
 // parsowanie Brake Param Table
-bool TMoverParameters::readBPT(int ln, std::string line)
-{
-	char *xxx = nullptr;
-    startBPT = true;
-    int k;
-
-    if (ln > 0) // 0 to nazwa sekcji - Cntrl. - po niej jest tablica hamulcow
+bool TMoverParameters::readBPT(/*int const ln,*/ std::string const &line)
     {
-        // WriteLog("BPT: " + xline);
-        line = Tab2Sp(line);
-        xxx = TrimAndReduceSpaces(line.c_str());
-        x = Split(xxx);
-
-        int s = x.size();
-        if (s != 5)
+    cParser parser( line );
+    if( false == parser.getTokens( 5, false ) )
         {
-			WriteLog( "Read BPT: wrong number of arguments (" + std::to_string( s ) + ") in line " + std::to_string( ln - 1 ) );
-            delete[] xxx;
+		WriteLog( "Read BPT: arguments missing in line " + std::to_string( BPTLINE + 1 ) );
             return false;
         }
-
-        for (int i = 0; i < s; i++)
-            x[i] = TrimSpace(x[i]);
-
-        k = atoi(x[0].c_str());
+    ++BPTLINE;
+    std::string braketype; int idx = 0;
+    parser >> idx;
+    parser
+        >> BrakePressureTable[ idx ].PipePressureVal
+        >> BrakePressureTable[ idx ].BrakePressureVal
+        >> BrakePressureTable[ idx ].FlowSpeedVal
+        >> braketype;
+              if( braketype == "Pneumatic" )        { BrakePressureTable[ idx ].BrakeType = Pneumatic; } 
+         else if( braketype == "ElectroPneumatic" ) { BrakePressureTable[ idx ].BrakeType = ElectroPneumatic; }
+         else                                       { BrakePressureTable[ idx ].BrakeType = Individual; }
+/*
+    int k = atoi( x[ 0 ].c_str() );
         BrakePressureTable[k].PipePressureVal = atof(x[1].c_str());
         BrakePressureTable[k].BrakePressureVal = atof(x[2].c_str());
         BrakePressureTable[k].FlowSpeedVal = atof(x[3].c_str());
@@ -6061,17 +6135,89 @@ bool TMoverParameters::readBPT(int ln, std::string line)
             BrakePressureTable[k].BrakeType = ElectroPneumatic;
         else
             BrakePressureTable[k].BrakeType = Individual;
-
+*/
         // WriteLog("BPTx: " + p0 + "," + p1 + "," + p2 + "," + p3 + "," + p4);
         //WriteLog("BPTk: " + to_string(k) + "," + to_string(BrakePressureTable[k].PipePressureVal) +
         //         "," + to_string(BrakePressureTable[k].BrakePressureVal) + "," +
         //         to_string(BrakePressureTable[k].FlowSpeedVal) + "," + p4);
 
-        if (k == gBCPN)
-            startBPT = false;
+    return true;
+}
+
+bool TMoverParameters::readDList( std::string const &line ) {
+
+    cParser parser( line );
+    parser.getTokens( 4, false );
+/*  warning disabled until i know what to expect ._.
+    if( false == parser.getTokens( 4, false ) ) {
+    WriteLog( "Read DList: arguments missing in line " + std::to_string( DLISTLINE + 1 ) );
+    return false;
     }
-    delete[] xxx;
-    BPTLINE++;
+*/
+    ++DLISTLINE;
+    int idx = 0;
+    parser >> idx;
+    if( idx >= sizeof( DElist ) ) {
+        WriteLog( "Read DList: number of entries exceeded capacity of the data table" );
+        return false;
+    }
+    parser
+        >> RList[ idx ].Relay
+        >> RList[ idx ].R
+        >> RList[ idx ].Mn;
+
+    return true;
+}
+
+bool TMoverParameters::readFFList( std::string const &line ) {
+
+    cParser parser( line );
+    if( false == parser.getTokens( 2, false ) ) {
+    WriteLog( "Read FList: arguments missing in line " + std::to_string( FFLISTLINE + 1 ) );
+    return false;
+    }
+    int idx = FFLISTLINE++;
+    if( idx >= sizeof( DElist ) ) {
+        WriteLog( "Read FList: number of entries exceeded capacity of the data table" );
+        return false;
+    }
+    parser
+        >> DElist[ idx ].RPM
+        >> DElist[ idx ].GenPower;
+
+    return true;
+}
+
+// parsowanie WWList
+bool TMoverParameters::readWWList( std::string const &line ) {
+
+    cParser parser( line );
+    if( false == parser.getTokens( 4, false ) ) {
+        WriteLog( "Read WWList: arguments missing in line " + std::to_string( WWLISTLINE + 1 ) );
+        return false;
+    }
+    int idx = WWLISTLINE++;
+    if( idx >= sizeof( DElist ) ) {
+        WriteLog( "Read WWList: number of entries exceeded capacity of the data table" );
+        return false;
+    }
+    parser
+        >> DElist[ idx ].RPM
+        >> DElist[ idx ].GenPower
+        >> DElist[ idx ].Umax
+        >> DElist[ idx ].Imax;
+
+    if( true == parser.getTokens( 3, false ) ) {
+        // optional parameters for shunt mode
+        parser
+            >> SST[ idx ].Umin
+            >> SST[ idx ].Umax
+            >> SST[ idx ].Pmax;
+
+        SST[ idx ].Pmin = std::sqrt( std::pow( SST[ idx ].Umin, 2 ) / 47.6 );
+        SST[ idx ].Pmax = std::min( SST[ idx ].Pmax, std::pow( SST[ idx ].Umax, 2 ) / 47.6 );
+    }
+
     return true;
 }
 
@@ -6330,9 +6476,19 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     OKFlag = 0;
     LineCount = 0;
     ConversionError = 666;
+    startBPT = false;
     BPTLINE = 0;
+    startMPT = false;
+    startMPT0 = false;
     MPTLINE = 0;
+    startRLIST = false;
     RLISTLINE = 0;
+    startDLIST = false;
+    startFFLIST = false;
+    startWWLIST = false;
+    WWLISTLINE = 0;
+    DLISTLINE = 0;
+    FFLISTLINE = 0;
     Mass = 0;
     file = chkpath + TypeName + ".fiz";
 
@@ -6343,14 +6499,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     // appdir = ExtractFilePath(ParamStr(0));
 
-    std::ifstream in(file.c_str());
+    std::ifstream in(file);
 	if (!in.is_open())
 	{
 		WriteLog("E8 - FIZ FILE NOT EXIST.");
 		return false;
 	}
 
-    bool secBPT = false, secMotorParamTable0 = false, secPower = false, secEngine = false,
+    bool secBPT = false, secMotorParamTable = false, secPower = false, secEngine = false,
 		secParam = false, secLoad = false, secDimensions = false,
         secWheels = false, secBrake = false, secBuffCoupl = false, secCntrl = false,
 		secSecurity = false, secLight = false, secCircuit = false, secRList = false,
@@ -6373,9 +6529,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 				startBPT = false;
 				continue;
 			}
+            // checking if table parsing should be switched off goes first...
 			if( issection( "END-MPT" ) ) {
 				startBPT = false;
 				startMPT = false;
+                startMPT0 = false;
 				continue;
 			}
 			if( issection( "END-RL" ) ) {
@@ -6383,12 +6541,38 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 				startRLIST = false;
 				continue;
 			}
-
+            if( issection( "END-DL" ) ) {
+                startBPT = false;
+                startDLIST = false;
+                continue;
+            }
+            if( issection( "endff" ) ) {
+                startBPT = false;
+                startFFLIST = false;
+                continue;
+            }
+            if( issection( "END-WWL" ) ) {
+                startBPT = false;
+                startWWLIST = false;
+                continue;
+            }
+            // ...then all recognized sections...
             if (issection("Param."))
             {
 				startBPT = false;
 				secParam = true;
                 SetFlag(OKFlag, param_ok);
+				getkeyval( aCategory, "Category", xline, "none" );
+				getkeyval( aType, "Type", xline, "none" ); aType = ToUpper( aType );
+				getkeyval( aMass, "M", xline, "0" );
+				getkeyval( aMred, "Mred", xline, "0" );
+				getkeyval( aVmax, "Vmax", xline, "0" );
+				getkeyval( aPWR, "PWR", xline, "0" );
+				getkeyval( aSandCap, "SandCap", xline, "0" );
+				getkeyval( aHeatingP, "HeatingP", xline, "0" );
+				getkeyval( aLightP, "LightP", xline, "0" );
+				// TODO: switch other sections to the new getkeyval() code
+/*
                 aCategory = getkeyval(1, "Category");
                 aType = ToUpper(getkeyval(1, "Type"));
                 aMass = atof(getkeyval(3, "M").c_str());
@@ -6398,6 +6582,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 aSandCap = atoi(getkeyval(2, "SandCap").c_str());
                 aHeatingP = atof(getkeyval(3, "HeatingP").c_str());
                 aLightP = atof(getkeyval(3, "LightP").c_str());
+*/
 				continue;
             }
 
@@ -6412,6 +6597,12 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 bUnLoadSpeed = atof(getkeyval(3, "UnLoadSpeed").c_str());
                 bOverLoadFactor = atof(getkeyval(3, "OverLoadFactor").c_str());
 				continue;
+            }
+
+            if( issection( "Doors:" ) ) {
+
+                LoadFIZ_Doors( xline );
+                continue;
             }
 
             if (issection("Dimensions:"))
@@ -6547,7 +6738,47 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 kTrans = (getkeyval(1, "Trans"));
                 kVolt = atof(getkeyval(3, "Volt").c_str());
                 kWindingRes = atof(getkeyval(3, "WindingRes").c_str());
-                knmax = atof(getkeyval(3, "nmax").c_str());
+                kNMax = atof(getkeyval(3, "nmax").c_str());
+                // new (diesel) engine parameters follow
+                // TODO: check if the entries are correct.
+                // TODO, TBD: possibly read the values into module variables first, instead of injecting them directly into the engine?
+                getkeyval( kshuntmode, "ShuntMode", xline, "0.0" );
+                int flat;
+                getkeyval( flat, "Flat", xline, "0" ); Flat = ( flat == 1 );
+                // diesel-electric
+                getkeyval( Ftmax, "Ftmax", xline, "" );
+                getkeyval( Vhyp, "Vhyp", xline, "" );
+                getkeyval( Vadd, "Vadd", xline, "" );
+                getkeyval( PowerCorRatio, "Cr", xline, "" );
+                getkeyval( AutoRelayType, "RelayType", xline, "" );
+                // diesel
+                getkeyval( dizel_nmin, "nmin", xline, "" );
+                getkeyval( dizel_nmax, "nmax", xline, "" );
+                getkeyval( dizel_nmax_cutoff, "nmax_cutoff", xline, "0.0" );
+                getkeyval( dizel_AIM, "AIM", xline, "1.0" );
+                // electric induction
+                getkeyval( eimc[ eimc_s_dfic ], "dfic", xline, "" );
+                getkeyval( eimc[ eimc_s_dfmax ], "dfmax", xline, "" );
+                getkeyval( eimc[ eimc_s_p ], "p", xline, "" );
+                getkeyval( eimc[ eimc_s_cfu ], "cfu", xline, "" );
+                getkeyval( eimc[ eimc_s_cim ], "cim", xline, "" );
+                getkeyval( eimc[ eimc_s_icif ], "icif", xline, "" );
+                getkeyval( eimc[ eimc_f_Uzmax ], "Uzmax", xline, "" );
+                getkeyval( eimc[ eimc_f_Uzh ], "Uzh", xline, "" );
+                getkeyval( eimc[ eimc_f_DU ], "DU", xline, "" );
+                getkeyval( eimc[ eimc_f_I0 ], "I0", xline, "" );
+                getkeyval( eimc[ eimc_f_cfu ], "fcfu", xline, "" );
+                getkeyval( eimc[ eimc_p_F0 ], "F0", xline, "" );
+                getkeyval( eimc[ eimc_p_a1 ], "a1", xline, "" );
+                getkeyval( eimc[ eimc_p_Pmax ], "Pmax", xline, "" );
+                getkeyval( eimc[ eimc_p_Fh ], "Fh", xline, "" );
+                getkeyval( eimc[ eimc_p_Ph ], "Ph", xline, "" );
+                getkeyval( eimc[ eimc_p_Vh0 ], "Vh0", xline, "" );
+                getkeyval( eimc[ eimc_p_Vh1 ], "Vh1", xline, "" );
+                getkeyval( eimc[ eimc_p_Imax ], "Imax", xline, "" );
+                getkeyval( eimc[ eimc_p_abed ], "abed", xline, "" );
+                getkeyval( eimc[ eimc_p_eped ], "edep", xline, "" );
+                
 				continue;
             }
 
@@ -6577,7 +6808,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			if( issection( "RList:" ) || startRLIST ) {
 				startBPT = false;
 				secRList = true;
-				readRLIST( RLISTLINE, xline );
+				readRList( RLISTLINE, xline );
 				continue;
 			}
 
@@ -6585,6 +6816,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             {
 				startBPT = false;
 				secDList = true;
+                startDLIST = true; DLISTLINE = 0;
                 nMmax = atof(getkeyval(3, "Mmax").c_str());
                 nnMmax = atof(getkeyval(3, "nMmax").c_str());
                 nMnmax = atof(getkeyval(3, "Mnmax").c_str());
@@ -6592,22 +6824,32 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 nnominalfill = atof(getkeyval(3, "nominalfill").c_str());
                 nMstand = atof(getkeyval(3, "Mstand").c_str());
                 nSize = atoi(getkeyval(2, "Size").c_str());
+
+                if( kEngineType == "DieselEngine" ) {
+                    // TODO: does the diesel really need duplicate of common variables :x
+                    // TODO, TBD: pass the values through module variables instead of injecting them directly?
+                    getkeyval( dizel_Mmax, "Mmax", xline, "" );
+                    getkeyval( dizel_nMmax, "nMmax", xline, "" );
+                    getkeyval( dizel_Mnmax, "Mnmax", xline, "" );
+                    getkeyval( dizel_nmax, "nmax", xline, "" );
+                    getkeyval( dizel_nominalfill, "nominalfill", xline, "" );
+                    getkeyval( dizel_Mstand, "Mstand", xline, "" );
+                }
 				continue;
             }
 
-            if (issection("WWList:"))
-            {
+            if( issection( "ffList:" ) ) {
 				startBPT = false;
-				secWWList = true;
-                getkeyval(2, "Size");
+                secffList = true;
+                startFFLIST = true; FFLISTLINE = 0;
 				continue;
             }
 
-            if (issection("ffList:"))
+            if( issection( "WWList:" ) )
             {
 				startBPT = false;
-				secffList = true;
-                getkeyval(2, "Size");
+                secWWList = true;
+                startWWLIST = true; WWLISTLINE = 0;
 				continue;
             }
 
@@ -6615,20 +6857,35 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             {
 				startBPT = false;
 				secTurboPos = true;
-                getkeyval(2, "TurboPos");
+                getkeyval( TurboTest, "TurboPos", xline, "" );
 				continue;
             }
 
-            if (issection("MotorParamTable0:") || startMPT)
+            if (issection("MotorParamTable0:") )
             {
 				startBPT = false;
-				secMotorParamTable0 = true;
-                readMPT(MPTLINE, xline);
+                startMPT0 = true; MPTLINE = 0;
+                secMotorParamTable = true;
 				continue;
+            }
+
+            if( issection( "MotorParamTable:" ) ) {
+                // diesel engine variant
+				startBPT = false;
+                startMPT = true; MPTLINE = 0;
+                secMotorParamTable = true;
+                // variables
+                if( kEngineType == "DieselEngine" ) {
+                    getkeyval( dizel_minVelfullengage, "minVelfullengage", xline, "" );
+                    getkeyval( dizel_engageDia, "engageDia", xline, "" );
+                    getkeyval( dizel_engageMaxForce, "engageMaxForce", xline, "" );
+                    getkeyval( dizel_engagefriction, "engagefriction", xline, "" );
+                }
+                continue;
             }
 
 			if( issection( "Cntrl." ) ) {
-				startBPT = false;
+                startBPT = true; BPTLINE = 0;
 				secCntrl = true;
 				gBrakeSystem = ( getkeyval( 1, "BrakeSystem" ) );
 				gBCPN = atoi( getkeyval( 2, "BCPN" ).c_str() );
@@ -6654,13 +6911,32 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 				gBrakeHandle = ( getkeyval( 1, "BrakeHandle" ) );
 				gLocBrakeHandle = ( getkeyval( 1, "LocBrakeHandle" ) );
 				gMaxBPMass = atof( getkeyval( 3, "MaxBPMass" ).c_str() );
-				// don't break yet, init (optional) data table
+                continue;
 			}
-
-			if( issection( "Cntrl." ) || startBPT ) {
-				secBPT = true;
-				if( gBCPN > 0 )
-					readBPT( BPTLINE, xline ); // np wagony nie maja BPT
+            // ...and finally, table parsers.
+            // NOTE: once table parsing is enabled it lasts until switched off, when another section is recognized
+            if( true == startBPT ) {
+                readBPT( xline );
+                continue;
+            }
+            if( true == startMPT ) {
+                readMPT( xline );
+                continue;
+            }
+            if( true == startMPT0 ) {
+                readMPT0( xline );
+                continue;
+            }
+            if( true == startDLIST ) {
+                readDList( xline );
+                continue;
+            }
+            if( true == startFFLIST ) {
+                readFFList( xline );
+                continue;
+			}
+            if( true == startWWLIST ) {
+                readWWList( xline );
 				continue;
 			}
 		} // is hash
@@ -6771,11 +7047,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     ADist = dAd;
     BDist = dBd;
 
-    if (WheelDiameterL == -1) // gdyby nie było parametru...
+    if (WheelDiameterL == 0.0) // gdyby nie było parametru...
         WheelDiameterL = WheelDiameter; //... lepsze to niż zero
     else
         WheelDiameterL = dDl;
-    if (WheelDiameterT == -1) // gdyby nie było parametru...
+    if (WheelDiameterT == 0.0) // gdyby nie było parametru...
         WheelDiameterT = WheelDiameter; //... lepsze to niż zero
     else
         WheelDiameterT = dDt;
@@ -7207,26 +7483,19 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         {
             EngineType = EngineDecode(kEngineType);
 
-            switch (EngineType)
-            {
+            if( false == kTrans.empty() ) {
+                // transmission type. moved here because more than one engine type has this entry
+                x = Split( kTrans, ':' ); // 18:79
 
-            case ElectricSeriesMotor:
-            {
-                NominalVoltage = kVolt;
-
-                x = Split(kTrans, ':'); // 18:79
-
-                if (x.size() != 2)
-                {
-                    WriteLog("Wrong transmition definition: " + kTrans);
-                    break;
+                if( x.size() != 2 ) {
+                    ErrorLog( "Wrong transmition definition: " + kTrans );
                 }
 
-                p0 = TrimSpace(x[0]);
-                p1 = TrimSpace(x[1]);
+                p0 = TrimSpace( x[ 0 ] );
+                p1 = TrimSpace( x[ 1 ] );
 
-                Transmision.NToothW = atoi(p1.c_str());
-                Transmision.NToothM = atoi(p0.c_str());
+                Transmision.NToothW = atoi( p1.c_str() );
+                Transmision.NToothM = atoi( p0.c_str() );
 
                 // ToothW to drugi parametr czyli 79
                 // ToothM to pierwszy czyli 18
@@ -7234,24 +7503,64 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
                 // WriteLog("trans " + IntToStr(Transmision.NToothW ) + "/" +
                 // IntToStr(Transmision.NToothM ));
                 // if (kTrans != "")
-                if (Transmision.NToothM > 0)
-                    Transmision.Ratio = double(Transmision.NToothW) / Transmision.NToothM;
+                if( Transmision.NToothM > 0 )
+                    Transmision.Ratio = double( Transmision.NToothW ) / Transmision.NToothM;
                 else
                     Transmision.Ratio = 1;
+            }
 
-                WindingRes = kWindingRes;
-                if (WindingRes == 0)
-                    WindingRes = 0.01;
+            // engine type specific parameters
+            switch (EngineType)
+            {
+
+            case ElectricSeriesMotor:
+            {
+                NominalVoltage = kVolt;
+
+                if( kWindingRes != 0.0 ) { WindingRes = kWindingRes; }
+                else                     { WindingRes = 0.01; }
                 // WriteLog("WindingRes " + FloatToStr(WindingRes));
 
-                nmax = knmax / 60.0;
+                nmax = kNMax / 60.0;
                 // WriteLog("nmax " + FloatToStr(nmax ));
+
+                if( kshuntmode == 1.0 ) {
+                    // shuntmode
+                    ShuntModeAllow = true;
+                    ShuntMode = false;
+                    AnPos = 0.0;
+                    ImaxHi = 2;
+                    ImaxLo = 1;
+                }
+                break;
+            }
+
+            case DieselEngine: {
+
+                dizel_nmin /= 60.0;
+                dizel_nmax /= 60.0;
+                dizel_nmax_cutoff /= 60;
+                // NOTE: dizel_nmax seems to be duplicate of nmax.
+                // keep an eye on nmax being used in equations associated with DieselEngine
+                // as temporary work-around for potential errors the 'regular' nmax is also given the matching value here
+                nmax = dizel_nmax;
+
+                if( kshuntmode > 0.0 ) {
+                    // shuntmode
+                    ShuntModeAllow = true;
+                    ShuntMode = false;
+                    AnPos = kshuntmode; //dodatkowe przełożenie
+                    if( AnPos < 1.0 ) {
+                        //"rozruch wysoki" ma dawać większą siłę; im większa liczba, tym wolniej jedzie
+                        AnPos = 1.0 / AnPos;
+                    }
             }
 
             break;
+            }
+
             } // switch
         }
-        kTrans = "";
     }
 
     // Circuit
@@ -7311,6 +7620,47 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     //WriteLog("");
     return OK;
 } // LoadFIZ()
+
+bool TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
+
+    DoorOpenCtrl = 0;
+    std::string openctrl; getkeyval( openctrl, "OpenCtrl", line, "" );
+    if( openctrl == "DriverCtrl" ) { DoorOpenCtrl = 1; }
+
+    DoorCloseCtrl = 0;
+    std::string closectrl; getkeyval( closectrl, "CloseCtrl", line, "" );
+         if( closectrl == "DriverCtrl" )    { DoorCloseCtrl = 1; }
+    else if( closectrl == "AutomaticCtrl" ) { DoorCloseCtrl = 2; }
+
+    if( DoorCloseCtrl == 2 ) { getkeyval( DoorStayOpen, "DoorStayOpen", line, "" ); }
+
+    getkeyval( DoorOpenSpeed, "OpenSpeed", line, "" );
+    getkeyval( DoorCloseSpeed, "CloseSpeed", line, "" );
+    getkeyval( DoorMaxShiftL, "DoorMaxShiftL", line, "" );
+    getkeyval( DoorMaxShiftR, "DoorMaxShiftR", line, "" );
+
+    DoorOpenMethod = 2; //obrót, default
+    std::string openmethod; getkeyval( openmethod, "DoorOpenMethod", line, "" );
+         if( openmethod == "Shift" ) { DoorOpenMethod = 1; } //przesuw
+    else if( openmethod == "Fold" )  { DoorOpenMethod = 3; } //3 submodele się obracają
+    else if( openmethod == "Plug" )  { DoorOpenMethod = 4; } //odskokowo-przesuwne
+
+    std::string closurewarning; getkeyval( closurewarning, "DoorClosureWarning", line, "" );
+    DoorClosureWarning = ( closurewarning == "Yes" );
+
+    std::string doorblocked; getkeyval( doorblocked, "DoorBlocked", line, "" );
+    DoorBlocked = ( doorblocked == "Yes" );
+
+    getkeyval( DoorMaxPlugShift, "DoorMaxShiftPlug", line, "" );
+    getkeyval( PlatformSpeed, "PlatformSpeed", line, "" );
+    getkeyval( PlatformMaxShift, "PlatformMaxSpeed", line, "" );
+
+    PlatformOpenMethod = 2; // obrót, default
+    std::string platformopenmethod; getkeyval( platformopenmethod, "PlatformOpenMethod", line, "" );
+    if( platformopenmethod == "Shift" ) { PlatformOpenMethod = 1; } // przesuw
+
+    return true;
+}
 
 // *************************************************************************************************
 // Q: 20160717
@@ -7400,8 +7750,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case K:
 	{
 		WriteLog("XBT W, K");
-		Hamulec = new TWest(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TWest>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
 		else
@@ -7411,8 +7760,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case KE:
 	{
 		WriteLog("XBT WKE");
-		Hamulec = new TKE(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TKE>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
@@ -7426,9 +7774,8 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case ESt4:
 	{
 		WriteLog("XBT NESt3, ESt3, ESt3AL2, ESt4");
-		Hamulec = new TNESt3(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
-		(static_cast<TNESt3 *>(Hamulec))->SetSize(BrakeValveSize, BrakeValveParams);
+		Hamulec = std::make_shared<TNESt3>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		static_cast<TNESt3 *>(Hamulec.get())->SetSize(BrakeValveSize, BrakeValveParams);
 		if (MBPM < 2) // jesli przystawka wazaca
 			Hamulec->SetLP(0, MaxBrakePress[3], 0);
 		else
@@ -7439,24 +7786,28 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case LSt:
 	{
 		WriteLog("XBT LSt");
-		Hamulec = new TLSt(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TLSt>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
 		break;
 	}
 	case EStED:
 	{
 		WriteLog("XBT EStED");
-		Hamulec = new TEStED(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TEStED>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetRM(RapidMult);
+        if( MBPM < 2 ) {
+            //jesli przystawka wazaca
+            Hamulec->SetLP( 0, MaxBrakePress[ 3 ], 0 );
+        }
+        else {
+            Hamulec->SetLP( Mass, MBPM, MaxBrakePress[ 1 ] );
+        }
 		break;
 	}
 	case EP2:
 	{
 		WriteLog("XBT EP2");
-		Hamulec = new TEStEP2(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TEStEP2>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
 		break;
 	}
@@ -7464,21 +7815,18 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	case CV1:
 	{
 		WriteLog("XBT CV1");
-		Hamulec = new TCV1(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo,
-			BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TCV1>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		break;
 	}
 	case CV1_L_TR:
 	{
 		WriteLog("XBT CV1_L_T");
-		Hamulec = new TCV1L_TR(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TCV1L_TR>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 		break;
 	}
 
 	default:
-		Hamulec = new TBrake(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume,
-			BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
+		Hamulec = std::make_shared<TBrake>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 	}
 
 	Hamulec->SetASBP(MaxBrakePress[4]);
@@ -7486,50 +7834,49 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 	switch (BrakeHandle)
 	{
 	case FV4a:
-		Handle = new TFV4aM();
+		Handle = std::make_shared<TFV4aM>();
 		break;
 	case FVel6:
-		Handle = new TFVel6();
+		Handle = std::make_shared<TFVel6>();
 		break;
 	case testH:
-		Handle = new Ttest();
+		Handle = std::make_shared<Ttest>();
 		break;
 	case M394:
-		Handle = new TM394();
+		Handle = std::make_shared<TM394>();
 		break;
 	case Knorr:
-		Handle = new TH14K1();
+		Handle = std::make_shared<TH14K1>();
 		break;
 	case St113:
-		Handle = new TSt113();
+		Handle = std::make_shared<TSt113>();
 		break;
 	default:
-		Handle = new TDriverHandle();
+		Handle = std::make_shared<TDriverHandle>();
 	}
 
 	switch (BrakeLocHandle)
 	{
 	case FD1:
 	{
-		LocHandle = new TFD1();
+		LocHandle = std::make_shared<TFD1>();
 		LocHandle->Init(MaxBrakePress[0]);
 		break;
 	}
 	case Knorr:
 	{
-		LocHandle = new TH1405();
+		LocHandle = std::make_shared<TH1405>();
 		LocHandle->Init(MaxBrakePress[0]);
 		break;
 	}
 	default:
-		LocHandle = new TDriverHandle();
+		LocHandle = std::make_shared<TDriverHandle>();
 	}
 
-	Pipe = new TReservoir();
-	Pipe2 = new TReservoir(); // zabezpieczenie, bo sie PG wywala... :(
-	Pipe->CreateCap((Max0R(Dim.L, 14) + 0.5) * Spg * 1); // dlugosc x przekroj x odejscia i takie
-														 // tam
-	Pipe2->CreateCap((Max0R(Dim.L, 14) + 0.5) * Spg * 1);
+	Pipe = std::make_shared<TReservoir>();
+	Pipe->CreateCap( ( Max0R( Dim.L, 14 ) + 0.5 ) * Spg * 1 ); // dlugosc x przekroj x odejscia i takie tam
+	Pipe2 = std::make_shared<TReservoir>(); // zabezpieczenie, bo sie PG wywala... :(
+	Pipe2->CreateCap( (Max0R(Dim.L, 14) + 0.5) * Spg * 1 );
 
 	if (LightsPosNo > 0)
 		LightsPos = LightsDefPos;

@@ -102,7 +102,7 @@ TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
             pCurrentTrack->AxleCounter(-1, Owner); // opuszczenie tamtego toru
     }
     pCurrentTrack = pTrack;
-    pCurrentSegment = (pCurrentTrack ? pCurrentTrack->CurrentSegment() : NULL);
+    pCurrentSegment = ( pCurrentTrack != nullptr ? pCurrentTrack->CurrentSegment() : nullptr );
     if (!pCurrentTrack)
         Error(Owner->MoverParameters->Name + " at NULL track");
     return pCurrentTrack;
@@ -330,5 +330,3 @@ void TTrackFollower::Render(float fNr)
 }
 #endif
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

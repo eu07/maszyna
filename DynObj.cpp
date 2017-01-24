@@ -1,4 +1,4 @@
-/*
+﻿/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -1886,11 +1886,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             {
             }
         } // koniec hamulce
-        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
+/*        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
         {
             // jakies inne prefiksy
         }
-
+*/
     } // koniec while kropka
 
     if (MoverParameters->CategoryFlag & 2) // jeśli samochód
@@ -2522,17 +2522,23 @@ bool TDynamicObject::Update(double dt, double dt1)
     //    ts.R=MyTrack->fRadius; //ujemne promienie są już zamienione przy
     //    wczytywaniu
     if (Axle0.vAngles.z != Axle1.vAngles.z)
-    { // wyliczenie promienia z obrotów
-        // osi - modyfikację zgłosił youBy
+    { // wyliczenie promienia z obrotów osi - modyfikację zgłosił youBy
         ts.R = Axle0.vAngles.z - Axle1.vAngles.z; // różnica może dawać stałą ±M_2PI
-        if (ts.R > M_PI)
-            ts.R -= M_2PI else if (ts.R < -M_PI) ts.R += M_2PI; // normalizacja
+        if( ( ts.R > 15000.0 ) || ( ts.R < -15000.0 ) ) {
+            // szkoda czasu na zbyt duże promienie, 4km to promień nie wymagający przechyłki
+            ts.R = 0.0;
+        }
+        else {
+            // normalizacja
+                 if( ts.R >  M_PI ) { ts.R -= M_2PI; }
+            else if( ts.R < -M_PI ) { ts.R += M_2PI; }
+
+            if( ts.R != 0.0 ) {
+                // sin(0) results in division by zero
         //     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
-        ts.R = -0.5 * MoverParameters->BDist / sin(ts.R * 0.5);
-        if ((ts.R > 15000.0) || (ts.R < -15000.0))
-            ts.R = 0.0; // szkoda czasu na zbyt duże promienie, 4km to promień nie
-        // wymagający
-        // przechyłki
+                ts.R = -0.5 * MoverParameters->BDist / sin( ts.R * 0.5 );
+    }
+        }
     }
     else
         ts.R = 0.0;
@@ -2840,7 +2846,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 i = 0;
                 przek = przek / (np - nPrzekrF);
                 for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                     (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                     (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
                 {
                     if (!PrzekrF[i])
                     {
@@ -2851,7 +2857,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             }
             i = 0;
             for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                 (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                 (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
             {
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
@@ -3389,24 +3395,24 @@ bool TDynamicObject::Update(double dt, double dt1)
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if ((dDoorMoveL < MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
 	{
-		rsDoorOpen.Play(1, 0, MechInside, vPosition);
+		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
         dDoorMoveL += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveL > 0) && (!MoverParameters->DoorLeftOpened))
     {
-		rsDoorClose.Play(1, 0, MechInside, vPosition);
+		rsDoorClose.Play(vol, 0, MechInside, vPosition);
         dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveL < 0)
             dDoorMoveL = 0;
     }
     if ((dDoorMoveR < MoverParameters->DoorMaxShiftR) && (MoverParameters->DoorRightOpened))
 	{
-		rsDoorOpen.Play(1, 0, MechInside, vPosition);
+		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
         dDoorMoveR += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveR > 0) && (!MoverParameters->DoorRightOpened))
     {
-		rsDoorClose.Play(1, 0, MechInside, vPosition);
+		rsDoorClose.Play(vol, 0, MechInside, vPosition);
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveR < 0)
             dDoorMoveR = 0;
@@ -3769,7 +3775,7 @@ void TDynamicObject::RenderSounds()
                             vol = rsSilnik.AM * MoverParameters->dizel_fill + rsSilnik.AA;
                         else
                             vol =
-                                rsSilnik.AM * fabs(MoverParameters->enrot / MoverParameters->nmax) +
+                                rsSilnik.AM * fabs(MoverParameters->enrot / MoverParameters->dizel_nmax) +
                                 rsSilnik.AA * 0.9;
                     }
                     else
@@ -4245,10 +4251,10 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             iMultiTex = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
 			parser >> asModel;
-            if (asModel.find('#') == asModel.length()) // Ra 2015-01: nie podoba mi się to
+            if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
             { // model wymaga wielu tekstur wymiennych
                 iMultiTex = 1;
-                asModel = asModel.substr(0, asModel.length() - 1);
+                asModel.erase( asModel.length() - 1 );
             }
             if ((i = asModel.find(',')) != std::string::npos)
             { // Ra 2015-01: może szukać przecinka w
@@ -4266,6 +4272,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             // modele w dynamics/basedir
             Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
+            assert( mdModel != nullptr ); // TODO: handle this more gracefully than all going to shit
             if (ReplacableSkin != "none")
             { // tekstura wymienna jest raczej jedynie w "dynamic\"
                 ReplacableSkin =
@@ -4451,7 +4458,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         iAnimations = 0;
                         do
                         { // kolejne liczby to ilość animacj, -1 to znacznik końca
-                            parser.getTokens( 1, false ); 
+							parser.getTokens( 1, false );
                             parser >> ile; // ilość danego typu
                             // animacji
                             // if (co==ANIM_PANTS)
@@ -4527,7 +4534,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 }
 
 				if( token == "brakemode:" ) {
-                // Ra 15-01: gaďż˝ka nastawy hamulca
+                // Ra 15-01: gałka nastawy hamulca
 					parser.getTokens();
 					parser >> asAnimName;
                     smBrakeMode = mdModel->GetFromName(asAnimName.c_str());
@@ -4589,22 +4596,17 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                             // układy
                             if ((k >= 'A') && (k <= 'J')) // 10 chyba maksimum?
                             {
-                                pAnimations[i++].dWheelAngle =
-                                    dWheelAngle + 1; // obrót osi napędzających
-                                --k; // następna będzie albo taka sama, albo bierzemy kolejny
-                                // znak
+                                pAnimations[i++].dWheelAngle = dWheelAngle + 1; // obrót osi napędzających
+                                --k; // następna będzie albo taka sama, albo bierzemy kolejny znak
                                 m = 2; // następujące toczne będą miały inną średnicę
                             }
                             else if ((k >= '1') && (k <= '9'))
                             {
-                                pAnimations[i++].dWheelAngle = dWheelAngle + m; // obrót osi
-                                // tocznych
-                                --k; // następna będzie albo taka sama, albo bierzemy kolejny
-                                // znak
+                                pAnimations[i++].dWheelAngle = dWheelAngle + m; // obrót osi tocznych
+                                --k; // następna będzie albo taka sama, albo bierzemy kolejny znak
                             }
                             else
-                                k = MoverParameters->AxleArangement[j++]; // pobranie kolejnego
-                            // znaku
+                                k = MoverParameters->AxleArangement[j++]; // pobranie kolejnego znaku
                         }
                     }
                 }
@@ -4773,9 +4775,8 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                     m = float4x4(
                                         *sm->GetMatrix()); // skopiowanie, bo będziemy mnożyć
 									m( 3 )[ 1 ] =
-                                        m[3][1] + 0.054; // w górę o wysokość ślizgu (na razie tak)
-                                    while (sm->Parent)
-                                    {
+										m[ 3 ][ 1 ] + 0.054; // w górę o wysokość ślizgu (na razie tak)
+									while( sm->Parent ) {
 										if( sm->Parent->GetMatrix() )
                                             m = *sm->Parent->GetMatrix() * m;
                                         sm = sm->Parent;
@@ -5749,19 +5750,10 @@ int TDynamicObject::RouteWish(TTrack *tr)
 
 std::string TDynamicObject::TextureTest(std::string const &name)
 { // Ra 2015-01: sprawdzenie dostępności tekstury o podanej nazwie
-    std::string x = name + ".dds"; // na razie prymitywnie
-    if (FileExists(x.c_str()))
-        return x;
-    else
-    {
-        x = name + ".tga"; // w zasadzie to należałoby uwzględnić deklarowaną kolejność
-        if (FileExists(x.c_str()))
-            return x;
-        else
-        {
-            x = name + ".bmp";
-            if (FileExists(x.c_str()))
-                return x;
+	std::vector<std::string> extensions = { ".dds", ".tga", ".bmp" };
+	for( auto const &extension : extensions ) {
+		if( true == FileExists( name + extension ) ) {
+			return name + extension;
         }
     }
     return ""; // nie znaleziona

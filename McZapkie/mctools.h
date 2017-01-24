@@ -122,7 +122,7 @@ std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
 std::string Ld2Sp(std::string const &s); /*Low dash to Space sign*/
 std::string Tab2Sp(std::string const &s); /*Tab to Space sign*/
-std::string ExchangeCharInString(std::string s,  const char &aim, const char &target); // zamienia jeden znak na drugi
+std::string ExchangeCharInString(std::string const &s,  const char &aim, const char &target); // zamienia jeden znak na drugi
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
 std::vector<std::string> Split(const std::string &s);
@@ -134,7 +134,7 @@ std::string to_string(int _Val, int precision, int width);
 std::string to_string(double _Val);
 std::string to_string(double _Val, int precision);
 std::string to_string(double _Val, int precision, int width);
-std::string to_hex_str(double _Val, int precision = 0, int width = 0);
+std::string to_hex_str( int const _Val, int const width = 4 );
 inline std::string to_string(bool _Val)
 {
 	return _Val == true ? "true" : "false";

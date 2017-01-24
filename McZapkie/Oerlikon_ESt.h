@@ -17,10 +17,10 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2007-2014 Maciej Cierniak
 */
 
+#include <memory>
 #include "hamulce.h" // Pascal unit
 #include "friction.h" // Pascal unit
 #include "mctools.h" // Pascal unit
-#include <string>
 
 /*
 (C) youBy
@@ -72,8 +72,8 @@ class TPrzekladnik : public TReservoir // przekladnik (powtarzacz)
 {
   private:
   public:
-    TReservoir *BrakeRes;
-    TReservoir *Next;
+    std::shared_ptr<TReservoir> BrakeRes;
+    std::shared_ptr<TReservoir> Next;
 
 	TPrzekladnik() : TReservoir() {};
     virtual void Update(double dt);
@@ -110,55 +110,51 @@ class TPrzeciwposlizg : public TRura // przy napelnianiu - rura, przy poslizgu -
 	}
 };
 
-class TRapid : public TPrzekladnik // przekladnik dwustopniowy
+// przekladnik dwustopniowy
+class TRapid : public TPrzekladnik { 
 
-{
   private:
-    bool RapidStatus; // status rapidu
-    double RapidMult; // przelozenie (w dol)
+    bool RapidStatus = false; // status rapidu
+    double RapidMult = 0.0; // przelozenie (w dol)
     //        Komora2: real;
-    double DN;
-    double DL; // srednice dysz napelniania i luzowania
+    double DN = 0.0;
+    double DL = 0.0; // srednice dysz napelniania i luzowania
 
   public:
     void SetRapidParams(double mult, double size);
     void SetRapidStatus(bool rs);
     void Update(double dt) /*override*/;
-	inline TRapid() : TPrzekladnik()
-	{
-		RapidStatus = false;
-		RapidMult, DN, DL = 0.0;
-	}
+	inline TRapid() :
+		TPrzekladnik()
+	{}
 };
 
-class TPrzekCiagly : public TPrzekladnik // AL2
+// AL2
+class TPrzekCiagly : public TPrzekladnik {
 
-{
   private:
-    double mult;
+    double mult = 0.0;
 
   public:
     void SetMult(double m);
     void Update(double dt) /*override*/;
-	inline TPrzekCiagly() : TPrzekladnik()
-	{
-		mult = 0.0;
-	}
+	inline TPrzekCiagly() :
+		TPrzekladnik()
+	{}
 };
 
-class TPrzek_PZZ : public TPrzekladnik // podwojny zawor zwrotny
+// podwojny zawor zwrotny
+class TPrzek_PZZ : public TPrzekladnik {
 
-{
   private:
-    double LBP;
+    double LBP = 0.0;
 
   public:
     void SetLBP(double P);
     void Update(double dt) /*override*/;
-	inline TPrzek_PZZ() : TPrzekladnik()
-	{
-		LBP = 0.0;
-	}
+	inline TPrzek_PZZ() :
+		TPrzekladnik()
+	{}
 };
 
 class TPrzekZalamany : public TPrzekladnik // Knicksventil
@@ -166,59 +162,55 @@ class TPrzekZalamany : public TPrzekladnik // Knicksventil
 {
   private:
   public:
-	  TPrzekZalamany() : TPrzekladnik() {};
+	  TPrzekZalamany() :
+		  TPrzekladnik()
+	  {}
 };
 
-class TPrzekED : public TRura // przy napelnianiu - rura, przy hamowaniu - upust
+// przy napelnianiu - rura, przy hamowaniu - upust
+class TPrzekED : public TRura  {
 
-{
   private:
-    double MaxP;
+    double MaxP = 0.0;
 
   public:
     void SetP(double P);
     void Update(double dt) /*override*/;
-	inline TPrzekED() : TRura()
-	{
-		MaxP = 0.0;
-	}
+	inline TPrzekED() :
+		TRura()
+	{}
 };
 
-class TNESt3 : public TBrake
+class TNESt3 : public TBrake {
 
-{
   private:
-    double Nozzles[dMAX]; // dysze
-    TReservoir *CntrlRes; // zbiornik sterujący
-    double BVM; // przelozenie PG-CH
+	std::shared_ptr<TReservoir> CntrlRes; // zbiornik sterujacy
+	std::shared_ptr<TReservoir> Miedzypoj; // pojemnosc posrednia (urojona) do napelniania ZP i ZS
+	std::shared_ptr<TPrzekladnik> Przekladniki[ 4 ];
+	double Nozzles[ dMAX ]; // dysze
+    double BVM = 0.0; // przelozenie PG-CH
     //        ValveFlag: byte;           //polozenie roznych zaworkow
-    bool Zamykajacy; // pamiec zaworka zamykajacego
+    bool Zamykajacy = false; // pamiec zaworka zamykajacego
     //        Przys_wlot: boolean;       //wlot do komory przyspieszacza
-    bool Przys_blok; // blokada przyspieszacza
-    TReservoir *Miedzypoj; // pojemnosc posrednia (urojona) do napelniania ZP i ZS
-    TPrzekladnik *Przekladniki[4];
-    bool RapidStatus;
-    bool RapidStaly;
-    double LoadC;
-    double TareM;
-    double LoadM; // masa proznego i pelnego
-    double TareBP; // cisnienie dla proznego
-    double HBG300; // zawor ograniczajacy cisnienie
-    double Podskok; // podskok preznosci poczatkowej
+    bool Przys_blok = false; // blokada przyspieszacza
+    bool RapidStatus = false;
+    bool RapidStaly = false;
+    double LoadC = 0.0;
+	double TareM = 0.0; // masa proznego
+    double LoadM = 0.0; // masa pelnego
+    double TareBP = 0.0; // cisnienie dla proznego
+    double HBG300 = 0.0; // zawor ograniczajacy cisnienie
+    double Podskok = 0.0; // podskok preznosci poczatkowej
     //        HPBR: real;               //zasilanie ZP z wysokiego cisnienia
-    bool autom; // odluzniacz samoczynny
-    double LBP; // cisnienie hamulca pomocniczego
-
+    bool autom = false; // odluzniacz samoczynny
+    double LBP = 0.0; // cisnienie hamulca pomocniczego
 
   public:
-	inline TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc,
-		int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) : TBrake(i_mbp, i_bcr, i_bcd, i_brc, i_bcn
-			, i_BD, i_mat, i_ba, i_nbpa)
-	{
-	}
+	inline TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
+           TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
+	{}
     void Init(double PP, double HPP, double LPP, double BP, int BDF) /*override*/;
-    virtual double GetPF(double PP, double dt,
-                 double Vel) /*override*/; // przeplyw miedzy komora wstepna i PG
+    virtual double GetPF(double PP, double dt, double Vel) /*override*/; // przeplyw miedzy komora wstepna i PG
     void EStParams(double i_crc); // parametry charakterystyczne dla ESt
     virtual double GetCRP() /*override*/;
     void CheckState(double BCP, double &dV1); // glowny przyrzad rozrzadczy

@@ -10,7 +10,6 @@ http://mozilla.org/MPL/2.0/.
 #ifndef AdvSoundH
 #define AdvSoundH
 
-#include "Sound.h"
 #include "RealSound.h"
 #include "parser.h"
 
