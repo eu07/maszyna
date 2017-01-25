@@ -34,7 +34,7 @@ class TPythonInterpreter
     static TPythonInterpreter *_instance;
     int _screenRendererPriority;
 //    std::set<const char *, ltstr> _classes;
-	std::set<std::string const> _classes;
+	std::set<std::string> _classes;
 	PyObject *_main;
     PyObject *_stdErr;
 //    FILE *_getFile(const char *lookupPath, const char *className);

@@ -303,6 +303,9 @@ class Global
     static TTextSound *tsRadioBusy[10]; // zajętość kanałów radiowych (wskaźnik na odgrywany dźwięk)
 	static int iPoKeysPWM[7]; // numery wejść dla PWM
 
+    //randomizacja
+    static std::mt19937 random_engine;
+
 	// metody
     static void TrainDelete(TDynamicObject *d);
     static void ConfigParse(cParser &parser);

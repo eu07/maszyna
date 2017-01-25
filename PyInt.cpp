@@ -53,7 +53,7 @@ TPythonInterpreter::killInstance() {
 
 bool TPythonInterpreter::loadClassFile( std::string const &lookupPath, std::string const &className )
 {
-    std::set<std::string const>::const_iterator it = _classes.find(className);
+    std::set<std::string>::const_iterator it = _classes.find(className);
     if (it == _classes.end())
     {
         FILE *sourceFile = _getFile(lookupPath, className);
