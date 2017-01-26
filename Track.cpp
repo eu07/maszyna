@@ -45,20 +45,14 @@ const int iEnds3[13] = {3, 0, 2, 1, 2, 0, -1,
                         1, 0, 2, 0, 3, 1}; // numer sąsiedniego toru na końcu segmentu "-1"
 TIsolated *TIsolated::pRoot = NULL;
 
-TSwitchExtension::TSwitchExtension(TTrack *owner, int what)
+TSwitchExtension::TSwitchExtension(TTrack *owner, int const what)
 { // na początku wszystko puste
-    CurrentIndex = 0;
-    pNexts[0] = NULL; // wskaźniki do kolejnych odcinków ruchu
-    pNexts[1] = NULL;
-    pPrevs[0] = NULL;
-    pPrevs[1] = NULL;
-    fOffsetSpeed = 0.1; // prędkość liniowa iglic
-    fOffsetDelay = 0.05; // dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
+    pNexts[0] = nullptr; // wskaźniki do kolejnych odcinków ruchu
+    pNexts[1] = nullptr;
+    pPrevs[0] = nullptr;
+    pPrevs[1] = nullptr;
     fOffset1 = fOffset = fDesiredOffset = -fOffsetDelay; // położenie zasadnicze
     fOffset2 = 0.0; // w zasadniczym wewnętrzna iglica dolega
-    pOwner = NULL;
-    pNextAnim = NULL;
-    bMovement = false; // nie potrzeba przeliczać fOffset1
     Segments[0] = std::make_shared<TSegment>(owner); // z punktu 1 do 2
     Segments[1] = std::make_shared<TSegment>(owner); // z punktu 3 do 4 (1=3 dla zwrotnic; odwrócony dla skrzyżowań, ewentualnie 1=4)
     Segments[2] = (what >= 3) ?
@@ -73,9 +67,6 @@ TSwitchExtension::TSwitchExtension(TTrack *owner, int what)
     Segments[5] = (what >= 6) ?
                       std::make_shared<TSegment>(owner) :
                       nullptr; // z punktu 3 do 2              2       2            1       1
-    evPlus = evMinus = NULL;
-    fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
-    vTrans = vector3(0, 0, 0); // docelowa translacja przesuwnicy
 }
 TSwitchExtension::~TSwitchExtension()
 { // nie ma nic do usuwania
@@ -153,56 +144,15 @@ void TIsolated::Modify(int i, TDynamicObject *o)
     }
 };
 
-TTrack::TTrack(TGroundNode *g)
-{ // tworzenie nowego odcinka ruchu
-    trNext = trPrev = NULL; // sąsiednie
-    Segment = NULL; // dane odcinka
-    SwitchExtension = NULL; // dodatkowe parametry zwrotnicy i obrotnicy
-    TextureID1 = 0; // tekstura szyny
-    fTexLength = 4.0; // powtarzanie tekstury
-    TextureID2 = 0; // tekstura podsypki albo drugiego toru zwrotnicy
-    fTexHeight1 = 0.6; // nowy profil podsypki ;)
-    fTexWidth = 0.9;
-    fTexSlope = 0.9;
-    eType = tt_Normal; // domyślnie zwykły
-    iCategoryFlag = 1; // 1-tor, 2-droga, 4-rzeka, 8-samolot?
-    fTrackWidth = 1.435; // rozstaw toru, szerokość nawierzchni
-    fFriction = 0.15; // współczynnik tarcia
-    fSoundDistance = -1;
-    iQualityFlag = 20;
-    iDamageFlag = 0;
-    eEnvironment = e_flat;
-    bVisible = true;
-    iEvents = 0; // Ra: flaga informująca o obecności eventów
-    evEvent0 = NULL;
-    evEvent1 = NULL;
-    evEvent2 = NULL;
-    evEventall0 = NULL;
-    evEventall1 = NULL;
-    evEventall2 = NULL;
-    fVelocity = -1; // ograniczenie prędkości
-    fTrackLength = 100.0;
-    fRadius = 0; // promień wybranego toru zwrotnicy
-    fRadiusTable[0] = 0; // dwa promienie nawet dla prostego
-    fRadiusTable[1] = 0;
-    iNumDynamics = 0;
-    ScannedFlag = false;
-    DisplayListID = 0;
-    iTrapezoid = 0; // parametry kształtu: 0-standard, 1-przechyłka, 2-trapez, 3-oba
-    hvOverhead = NULL; // drut zasilający, najbliższy Point1 toru
-    fTexRatio1 =
-        1.0; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
-    fTexRatio2 =
-        1.0; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
-    iPrevDirection = 0; // domyślnie wirtualne odcinki dołączamy stroną od Point1
-    iNextDirection = 0;
-    pIsolated = NULL;
-    pMyNode = g; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
-    iAction = 0; // normalnie może być pomijany podczas skanowania
-    fOverhead = -1.0; // można normalnie pobierać prąd (0 dla jazdy bezprądowej po danym odcinku
-    nFouling[0] = NULL; // ukres albo kozioł od strony Point1
-    nFouling[1] = NULL; // ukres albo kozioł od strony Point2
-    trColides = NULL; // tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
+// tworzenie nowego odcinka ruchu
+TTrack::TTrack(TGroundNode *g) :
+    pMyNode( g ) // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
+{
+    ::SecureZeroMemory( Dynamics, sizeof( Dynamics ) );
+    fRadiusTable[ 0 ] = 0.0;
+    fRadiusTable[ 1 ] = 0.0;
+    nFouling[ 0 ] = nullptr;
+    nFouling[ 1 ] = nullptr;
 }
 
 TTrack::~TTrack()

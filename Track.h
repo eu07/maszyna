@@ -46,25 +46,26 @@ class TTraction;
 class TSwitchExtension
 { // dodatkowe dane do toru, który jest zwrotnicą
   public:
-    TSwitchExtension(TTrack *owner, int what);
+    TSwitchExtension(TTrack *owner, int const what);
     ~TSwitchExtension();
-    std::shared_ptr<TSegment> Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla
-    // skrzy¿owañ
+    std::shared_ptr<TSegment> Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla skrzy¿owañ
     // TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
     // dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
     TTrack *pNexts[2]; // tory do³¹czone do punktów 2 i 4
     TTrack *pPrevs[2]; // tory do³¹czone do punktów 1 i 3
     int iNextDirection[2]; // to te¿ z [2]+[2] przerobiæ na [4]
     int iPrevDirection[2];
-    int CurrentIndex; // dla zwrotnicy
-    double fOffset, fDesiredOffset; // aktualne i docelowe położenie napędu iglic
-    double fOffsetSpeed; // prędkość liniowa ruchu iglic
-    double fOffsetDelay; // opóźnienie ruchu drugiej iglicy względem pierwszej
+    int CurrentIndex = 0; // dla zwrotnicy
+    double fOffset = 0.0,
+           fDesiredOffset = 0.0; // aktualne i docelowe położenie napędu iglic
+    double fOffsetSpeed = 0.1; // prędkość liniowa ruchu iglic
+    double fOffsetDelay = 0.05; // opóźnienie ruchu drugiej iglicy względem pierwszej // dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
     union
     {
         struct
         { // zmienne potrzebne tylko dla zwrotnicy
-            double fOffset1, fOffset2; // przesunięcia iglic - 0=na wprost
+            double fOffset1,
+                   fOffset2; // przesunięcia iglic - 0=na wprost
             bool RightSwitch; // czy zwrotnica w prawo
         };
         struct
@@ -81,12 +82,14 @@ class TSwitchExtension
             int iRoads; // ile dróg się spotyka?
         };
     };
-    bool bMovement; // czy w trakcie animacji
-    int iLeftVBO, iRightVBO; // indeksy iglic w VBO
-    TSubRect *pOwner; // sektor, któremu trzeba zgłosić animację
-    TTrack *pNextAnim; // następny tor do animowania
-    TEvent *evPlus, *evMinus; // zdarzenia sygnalizacji rozprucia
-    float fVelocity; // maksymalne ograniczenie prędkości (ustawianej eventem)
+    bool bMovement = false; // czy w trakcie animacji
+    int iLeftVBO = 0,
+        iRightVBO = 0; // indeksy iglic w VBO
+    TSubRect *pOwner = nullptr; // sektor, któremu trzeba zgłosić animację
+    TTrack *pNextAnim = nullptr; // następny tor do animowania
+    TEvent *evPlus = nullptr,
+           *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
+    float fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
     vector3 vTrans; // docelowa translacja przesuwnicy
   private:
 };
@@ -128,64 +131,63 @@ class TTrack : public Resource
   private:
 	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
     std::shared_ptr<TSegment> Segment;
-    TTrack *trNext; // odcinek od strony punktu 2 - to powinno być w segmencie
-    TTrack *trPrev; // odcinek od strony punktu 1
+    TTrack *trNext = nullptr; // odcinek od strony punktu 2 - to powinno być w segmencie
+    TTrack *trPrev = nullptr; // odcinek od strony punktu 1
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
-    GLuint TextureID1; // tekstura szyn albo nawierzchni
-    GLuint TextureID2; // tekstura automatycznej podsypki albo pobocza
-    float fTexLength; // długość powtarzania tekstury w metrach
-    float fTexRatio1; // proporcja rozmiarów tekstury dla nawierzchni drogi
-    float fTexRatio2; // proporcja rozmiarów tekstury dla chodnika
-    float fTexHeight1; // wysokość brzegu względem trajektorii
-    float fTexWidth; // szerokość boku
-    float fTexSlope;
-    double fRadiusTable[2]; // dwa promienie, drugi dla zwrotnicy
-    int iTrapezoid; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
-    GLuint DisplayListID;
-    TIsolated *pIsolated; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
+    GLuint TextureID1 = 0; // tekstura szyn albo nawierzchni
+    GLuint TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
+    float fTexLength = 4.0; // długość powtarzania tekstury w metrach
+    float fTexRatio1 = 1.0; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
+    float fTexRatio2 = 1.0; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
+    float fTexHeight1 = 0.6; // wysokość brzegu względem trajektorii
+    float fTexWidth = 0.9; // szerokość boku
+    float fTexSlope = 0.9;
+    double fRadiusTable[ 2 ]; // dwa promienie, drugi dla zwrotnicy
+    int iTrapezoid = 0; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
+    GLuint DisplayListID = 0;
+    TIsolated *pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
     TGroundNode *
-        pMyNode; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
+        pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
   public:
-    int iNumDynamics;
+    int iNumDynamics = 0;
     TDynamicObject *Dynamics[iMaxNumDynamics];
-    int iEvents; // Ra: flaga informująca o obecności eventów
-    TEvent *evEventall0; // McZapkie-140302: wyzwalany gdy pojazd stoi
-    TEvent *evEventall1;
-    TEvent *evEventall2;
-    TEvent *evEvent0; // McZapkie-280503: wyzwalany tylko gdy headdriver
-    TEvent *evEvent1;
-    TEvent *evEvent2;
+    int iEvents = 0; // Ra: flaga informująca o obecności eventów
+    TEvent *evEventall0 = nullptr; // McZapkie-140302: wyzwalany gdy pojazd stoi
+    TEvent *evEventall1 = nullptr;
+    TEvent *evEventall2 = nullptr;
+    TEvent *evEvent0 = nullptr; // McZapkie-280503: wyzwalany tylko gdy headdriver
+    TEvent *evEvent1 = nullptr;
+    TEvent *evEvent2 = nullptr;
     std::string asEventall0Name; // nazwy eventów
 	std::string asEventall1Name;
 	std::string asEventall2Name;
 	std::string asEvent0Name;
 	std::string asEvent1Name;
 	std::string asEvent2Name;
-    int iNextDirection; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
-    int iPrevDirection;
-    TTrackType eType;
-    int iCategoryFlag; // 0x100 - usuwanie pojazów
-    float fTrackWidth; // szerokość w punkcie 1
-    float fTrackWidth2; // szerokość w punkcie 2 (głównie drogi i rzeki)
-    float fFriction; // współczynnik tarcia
-    float fSoundDistance;
-    int iQualityFlag;
-    int iDamageFlag;
-    TEnvironmentType eEnvironment; // dźwięk i oświetlenie
-    bool bVisible; // czy rysowany
-    int iAction; // czy modyfikowany eventami (specjalna obsługa przy skanowaniu)
-    float fOverhead; // informacja o stanie sieci: 0-jazda bezprądowa, >0-z opuszczonym i
-    // ograniczeniem prędkości
+    int iNextDirection = 0; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
+    int iPrevDirection = 0; // domyślnie wirtualne odcinki dołączamy stroną od Point1
+    TTrackType eType = tt_Normal; // domyślnie zwykły
+    int iCategoryFlag = 1; // 0x100 - usuwanie pojazów // 1-tor, 2-droga, 4-rzeka, 8-samolot?
+    float fTrackWidth = 1.435; // szerokość w punkcie 1 // rozstaw toru, szerokość nawierzchni
+    float fTrackWidth2 = 0.0; // szerokość w punkcie 2 (głównie drogi i rzeki)
+    float fFriction = 0.15; // współczynnik tarcia
+    float fSoundDistance = -1.0;
+    int iQualityFlag = 20;
+    int iDamageFlag = 0;
+    TEnvironmentType eEnvironment = e_flat; // dźwięk i oświetlenie
+    bool bVisible = true; // czy rysowany
+    int iAction = 0; // czy modyfikowany eventami (specjalna obsługa przy skanowaniu)
+    float fOverhead = -1.0; // można normalnie pobierać prąd (0 dla jazdy bezprądowej po danym odcinku, >0-z opuszczonym i ograniczeniem prędkości)
   private:
-    double fVelocity; // prędkość dla AI (powyżej rośnie prawdopowobieństwo wykolejenia)
+    double fVelocity = -1.0; // ograniczenie prędkości // prędkość dla AI (powyżej rośnie prawdopowobieństwo wykolejenia)
   public:
     // McZapkie-100502:
-    double fTrackLength; // długość z wpisu, nigdzie nie używana
-    double fRadius; // promień, dla zwrotnicy kopiowany z tabeli
-    bool ScannedFlag; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
-    TTraction *hvOverhead; // drut zasilający do szybkiego znalezienia (nie używany)
-    TGroundNode *nFouling[2]; // współrzędne ukresu albo oporu kozła
-    TTrack *trColides; // tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
+    double fTrackLength = 100.0; // długość z wpisu, nigdzie nie używana
+    double fRadius = 0.0; // promień, dla zwrotnicy kopiowany z tabeli
+    bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
+    TTraction *hvOverhead = nullptr; // drut zasilający do szybkiego znalezienia (nie używany)
+    TGroundNode *nFouling[ 2 ]; // współrzędne ukresu albo oporu kozła
+    TTrack *trColides = nullptr; // tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
 
     TTrack(TGroundNode *g);
     ~TTrack();
