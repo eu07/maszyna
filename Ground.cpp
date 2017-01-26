@@ -2234,8 +2234,7 @@ TEvent * TGround::FindEventScan(const string &asEventName)
     TEvent *e = (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie eventów
     if (e)
         return e; // jak istnieje, to w porządku
-    if (asEventName.substr(asEventName.length() - 4, 5) ==
-        ":scan") // jeszcze może być event niejawny
+    if (asEventName.rfind(":scan") != std::string::npos) // jeszcze może być event niejawny
     { // no to szukamy komórki pamięci o nazwie zawartej w evencie
         string n = asEventName.substr(0, asEventName.length() - 5); // do dwukropka
         if (sTracks->Find(TP_MEMCELL, n.c_str())) // jeśli jest takowa komórka pamięci
