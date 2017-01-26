@@ -186,6 +186,8 @@ bool Global::bDoubleAmbient = false; // podwójna jasność ambient
 double Global::fTimeSpeed = 1.0; // przyspieszenie czasu, zmienna do testów
 bool Global::bHideConsole = false; // hunter-271211: ukrywanie konsoli
 int Global::iBpp = 32; // chyba już nie używa się kart, na których 16bpp coś poprawi
+//randomizacja
+std::mt19937 Global::random_engine = std::mt19937(std::time(NULL));
 // maciek001: konfiguracja wstępna portu COM
 bool Global::bMWDdebugEnable = false;
 bool Global::bMWDInputDataEnable = false;

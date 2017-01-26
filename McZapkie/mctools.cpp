@@ -13,6 +13,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 */
 #include "stdafx.h"
 #include "mctools.h"
+#include "Globals.h"
 
 /*================================================*/
 
@@ -131,6 +132,12 @@ bool UnSetFlag(int &Flag, int Value)
 {
 	Flag &= ~Value;
 	return true;
+}
+
+inline double Random(double a, double b)
+{
+    std::uniform_real_distribution<> dis(a, b);
+    return dis(Global::random_engine);
 }
 
 bool FuzzyLogic(double Test, double Threshold, double Probability)
@@ -458,7 +465,7 @@ void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, 
 {
     double dX;
     double dY;
-    double Xc;
+    double Xc; 
     double Yc;
     double gamma;
     double alfa;

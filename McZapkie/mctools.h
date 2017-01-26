@@ -68,16 +68,11 @@ inline long Round(float f)
 	//return lround(f);
 }
 
-inline int Random()
-{
-	std::srand(std::time(NULL));
-	return std::rand();
-}
+extern double Random(double a, double b);
 
-inline double Random(double a, double b)
+inline double Random()
 {
-	std::srand(std::time(NULL));
-	return a + std::rand() / (float)RAND_MAX * (b - a);
+	return Random(0.0,1.0);
 }
 
 inline double Random(double b)

@@ -67,3 +67,4 @@ Debug/
 tmp/
 bin/
 ipch/
+*.aps
