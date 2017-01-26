@@ -7011,6 +7011,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     else if (aType == "182")
         TrainType = dt_181; // na razie tak
 
+    LoadAccepted = ToLower( bLoadAccepted );
     MaxLoad = bMaxLoad;
     LoadQuantity = bLoadQ;
     OverLoadFactor = bOverLoadFactor;
@@ -8019,25 +8020,30 @@ bool TMoverParameters::SetInternalCommand(std::string NewCommand, double NewValu
 // Q: 20160714
 // wysyłanie komendy w kierunku dir (1=przód, -1=tył) do kolejnego pojazdu (jednego)
 // *************************************************************************************************
-bool TMoverParameters::SendCtrlToNext(std::string CtrlCommand, double ctrlvalue, double dir)
-{
+bool TMoverParameters::SendCtrlToNext( std::string CtrlCommand, double ctrlvalue, double dir ) {
     bool OK;
     int d; // numer sprzęgu w kierunku którego wysyłamy
 
     // Ra: był problem z propagacją, jeśli w składzie jest pojazd wstawiony odwrotnie
     // Ra: problem jest również, jeśli AI będzie na końcu składu
-    OK = (dir != 0); // and Mains;
-    d = (1 + Sign(dir)) / 2; // dir=-1=>d=0, dir=1=>d=1 - wysyłanie tylko w tył
-    if (OK) // musi być wybrana niezerowa kabina
-        if (TestFlag(Couplers[d].CouplingFlag, ctrain_controll))
-            if (Couplers[d].ConnectedNr != d) // jeśli ten nastpęny jest zgodny z aktualnym
-            {
-                if (Couplers[d].Connected->SetInternalCommand(CtrlCommand, ctrlvalue, dir))
-                    OK = (Couplers[d].Connected->RunInternalCommand() && OK); // tu jest rekurencja
+    OK = ( dir != 0 ); // and Mains;
+    d = ( 1 + Sign( dir ) ) / 2; // dir=-1=>d=0, dir=1=>d=1 - wysyłanie tylko w tył
+    if( OK ) {
+        // musi być wybrana niezerowa kabina
+        if( ( Couplers[ d ].Connected != nullptr )
+         && ( TestFlag( Couplers[ d ].CouplingFlag, ctrain_controll ) ) ) {
+            if( Couplers[ d ].ConnectedNr != d ) {
+                // jeśli ten nastpęny jest zgodny z aktualnym
+                if( Couplers[ d ].Connected->SetInternalCommand( CtrlCommand, ctrlvalue, dir ) )
+                    OK = ( Couplers[ d ].Connected->RunInternalCommand() && OK ); // tu jest rekurencja
             }
-            else // jeśli następny jest ustawiony przeciwnie, zmieniamy kierunek
-                if (Couplers[d].Connected->SetInternalCommand(CtrlCommand, ctrlvalue, -dir))
-					OK = (Couplers[d].Connected->RunInternalCommand() && OK); // tu jest rekurencja
+            else {
+                // jeśli następny jest ustawiony przeciwnie, zmieniamy kierunek
+                if( Couplers[ d ].Connected->SetInternalCommand( CtrlCommand, ctrlvalue, -dir ) )
+                    OK = ( Couplers[ d ].Connected->RunInternalCommand() && OK ); // tu jest rekurencja
+            }
+        }
+    }
     return OK;
 }
 

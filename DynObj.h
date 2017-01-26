@@ -184,7 +184,10 @@ class TDynamicObject
     int iAnimType[ANIM_TYPES]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
   private:
     int iAnimations; // liczba obiektów animujących
+/*
     TAnim *pAnimations; // obiekty animujące (zawierają wskaźnik do funkcji wykonującej animację)
+*/
+    std::vector<TAnim> pAnimations;
     TSubModel **
         pAnimated; // lista animowanych submodeli (może być ich więcej niż obiektów animujących)
     double dWheelAngle[3]; // kąty obrotu kół: 0=przednie toczne, 1=napędzające i wiązary, 2=tylne

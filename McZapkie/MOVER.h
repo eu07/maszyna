@@ -477,21 +477,12 @@ struct TPowerParameters
 /*dla lokomotyw elektrycznych:*/
 struct TScheme
 {
-	int Relay; /*numer pozycji rozruchu samoczynnego*/
-	double R; /*opornik rozruchowy*/ /*dla dizla napelnienie*/
-	int Bn;
-	int Mn; /*ilosc galezi i silnikow w galezi*/ /*dla dizla Mn: czy luz czy nie*/
-	bool AutoSwitch; /*czy dana pozycja nastawniana jest recznie czy autom.*/
-	int ScndAct; /*jesli ma bocznik w nastawniku, to ktory bocznik na ktorej pozycji*/
-    inline TScheme()
-    {
-        Relay = 0;
-        R = 0.0;
-        Bn = 0.0;
-        Mn = 0.0;
-        AutoSwitch = false;
-        ScndAct = 0;
-    }
+	int Relay = 0; /*numer pozycji rozruchu samoczynnego*/
+	double R = 0.0; /*opornik rozruchowy*/ /*dla dizla napelnienie*/
+	int Bn = 0;
+	int Mn = 0; /*ilosc galezi i silnikow w galezi*/ /*dla dizla Mn: czy luz czy nie*/
+	bool AutoSwitch = false; /*czy dana pozycja nastawniana jest recznie czy autom.*/
+	int ScndAct = 0; /*jesli ma bocznik w nastawniku, to ktory bocznik na ktorej pozycji*/
 };
 typedef TScheme TSchemeTable[ResArraySize + 1]; /*tablica rezystorow rozr.*/
 struct TDEScheme

@@ -2861,7 +2861,7 @@ TTrack * TTrack::RaAnimate()
         }
         if (Global::bUseVBO)
         { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
-            if (Global::bOpenGL_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
+            if (true == GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
                 if (TextureID1) // Ra: !!!! tu jest do poprawienia
                 { // iglice liczone tylko dla zwrotnic
                     vector6 rpts3[24], rpts4[24];
@@ -2965,7 +2965,7 @@ TTrack * TTrack::RaAnimate()
                     if (Global::bUseVBO)
                     { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
                         // aktualizacja pojazdów na torze
-                        if (Global::bOpenGL_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
+                        if (true == GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
                         {
                             int size =
                                 RaArrayPrepare(); // wielkość tabeli potrzebna dla tej obrotnicy

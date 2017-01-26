@@ -378,7 +378,7 @@ bool TBrake::SetBDF(int nBDF)
 
 void TBrake::Releaser(int state)
 {
-    BrakeStatus = (BrakeStatus & 247) || state * b_rls;
+    BrakeStatus = (BrakeStatus & ~b_rls) | ( state * b_rls );
 }
 
 void TBrake::SetEPS(double nEPS)
@@ -387,7 +387,7 @@ void TBrake::SetEPS(double nEPS)
 
 void TBrake::ASB(int state)
 { // 255-b_asb(32)
-    BrakeStatus = (BrakeStatus & 223) || state * b_asb;
+    BrakeStatus = (BrakeStatus & ~b_asb) | ( state * b_asb );
 }
 
 int TBrake::GetStatus()
@@ -441,17 +441,17 @@ double TWest::GetPF(double PP, double dt, double Vel)
     CVP = BrakeCyl->P();
     BCP = BrakeCyl->P();
 
-    if ((BrakeStatus & 1) == 1)
+    if ((BrakeStatus & b_hld) == b_hld)
         if ((VVP + 0.03 < BVP))
-            BrakeStatus |= 2;
+            BrakeStatus |= b_on;
         else if ((VVP > BVP + 0.1))
-            BrakeStatus &= 252;
+            BrakeStatus &= ~(b_on | b_hld);
         else if ((VVP > BVP))
-            BrakeStatus &= 253;
+            BrakeStatus &= ~b_on;
         else
             ;
     else if ((VVP + 0.25 < BVP))
-        BrakeStatus |= 3;
+        BrakeStatus |= (b_on | b_hld);
 
     if (((BrakeStatus & b_hld) == b_off) && (!DCV))
         dv = PF(0, CVP, 0.0068 * SizeBC) * dt;
@@ -562,17 +562,13 @@ void TWest::SetLP(double TM, double LM, double TBP)
 //---OERLIKON EST4---
 void TESt::CheckReleaser(double dt)
 {
-    double VVP;
-    double BVP;
-    double CVP;
-
-    VVP = Min0R(ValveRes->P(), BrakeRes->P() + 0.05);
-    CVP = CntrlRes->P() - 0.0;
+    double VVP = std::min(ValveRes->P(), BrakeRes->P() + 0.05);
+    double CVP = CntrlRes->P() - 0.0;
 
     // odluzniacz
     if ((BrakeStatus & b_rls) == b_rls)
         if ((CVP - VVP < 0))
-            BrakeStatus &= 247;
+            BrakeStatus &= ~b_rls;
         else
         {
             CntrlRes->Flow(+PF(CVP, 0, 0.1) * dt);
@@ -592,33 +588,33 @@ void TESt::CheckState(double BCP, double &dV1)
     CVP = CntrlRes->P() - 0.0;
 
     // sprawdzanie stanu
-    if (((BrakeStatus & 1) == 1) && (BCP > 0.25))
+    if (((BrakeStatus & b_hld) == b_hld) && (BCP > 0.25))
         if ((VVP + 0.003 + BCP / BVM < CVP))
-            BrakeStatus |= 2; // hamowanie stopniowe
+            BrakeStatus |= b_on; // hamowanie stopniowe
         else if ((VVP - 0.003 + (BCP - 0.1) / BVM > CVP))
-            BrakeStatus &= 252; // luzowanie
+            BrakeStatus &= ~( b_on | b_hld ); // luzowanie
         else if ((VVP + BCP / BVM > CVP))
-            BrakeStatus &= 253; // zatrzymanie napelaniania
+            BrakeStatus &= ~b_on; // zatrzymanie napelaniania
         else
             ;
     else if ((VVP + 0.10 < CVP) && (BCP < 0.25)) // poczatek hamowania
     {
-        if ((BrakeStatus & 1) == 0)
+        if ((BrakeStatus & b_hld) == b_off)
         {
             ValveRes->CreatePress(0.02 * VVP);
             SoundFlag |= sf_Acc;
             ValveRes->Act();
         }
-        BrakeStatus |= 3;
+        BrakeStatus |= (b_on | b_hld);
 
         //     ValveRes.CreatePress(0);
         //     dV1:=1;
     }
     else if ((VVP + (BCP - 0.1) / BVM < CVP) && ((CVP - VVP) * BVM > 0.25) &&
              (BCP > 0.25)) // zatrzymanie luzowanie
-        BrakeStatus |= 1;
+        BrakeStatus |= b_hld;
 
-    if ((BrakeStatus & 1) == 0)
+    if ((BrakeStatus & b_hld) == b_off)
         SoundFlag |= sf_CylU;
 }
 
@@ -743,7 +739,7 @@ void TESt::Init(double PP, double HPP, double LPP, double BP, int BDF)
     BrakeRes->CreatePress(PP);
     CntrlRes->CreateCap(15);
     CntrlRes->CreatePress(HPP);
-    BrakeStatus = 0;
+    BrakeStatus = b_off;
 
     BVM = 1.0 / (HPP - LPP) * MaxBP;
 
@@ -796,13 +792,13 @@ double TEStEP2::GetPF(double PP, double dt, double Vel)
     CheckReleaser(dt);
 
     // sprawdzanie stanu
-    if (((BrakeStatus & 1) == 1) && (BCP > 0.25))
+    if (((BrakeStatus & b_hld) == b_hld) && (BCP > 0.25))
         if ((VVP + 0.003 + BCP / BVM < CVP - 0.12))
-            BrakeStatus |= 2; // hamowanie stopniowe;
+            BrakeStatus |= b_on; // hamowanie stopniowe;
         else if ((VVP - 0.003 + BCP / BVM > CVP - 0.12))
-            BrakeStatus &= 252; // luzowanie;
+            BrakeStatus &= ~(b_on | b_hld); // luzowanie;
         else if ((VVP + BCP / BVM > CVP - 0.12))
-            BrakeStatus &= 253; // zatrzymanie napelaniania;
+            BrakeStatus &= ~b_on; // zatrzymanie napelaniania;
         else
             ;
     else if ((VVP + 0.10 < CVP - 0.12) && (BCP < 0.25)) // poczatek hamowania
@@ -813,13 +809,13 @@ double TEStEP2::GetPF(double PP, double dt, double Vel)
         //    //       SoundFlag:=SoundFlag or sf_Acc;
         //    //       ValveRes.Act;
         //}
-        BrakeStatus |= 3;
+        BrakeStatus |= (b_on | b_hld);
     }
     else if ((VVP + BCP / BVM < CVP - 0.12) && (BCP > 0.25)) // zatrzymanie luzowanie
-        BrakeStatus |= 1;
+        BrakeStatus |= b_hld;
 
     // przeplyw ZS <-> PG
-    if ((BVP < CVP - 0.2) || (BrakeStatus > 0) || (BCP > 0.25))
+    if ((BVP < CVP - 0.2) || (BrakeStatus != b_off) || (BCP > 0.25))
         temp = 0;
     else if ((VVP > CVP + 0.4))
         temp = 0.1;
@@ -1113,7 +1109,7 @@ double TESt3AL2::GetPF(double PP, double dt, double Vel)
     dV1 = dV1 - 0.96 * dv;
 
     // luzowanie KI
-    if ((BrakeStatus && b_hld) == b_off)
+    if ((BrakeStatus & b_hld) == b_off)
         dv = PF(0, BCP, 0.00017 * (1.37 - int(BrakeDelayFlag == bdelay_G))) * dt;
     else
         dv = 0;
@@ -1213,7 +1209,7 @@ double TLSt::GetPF(double PP, double dt, double Vel)
     // sprawdzanie stanu
     if ((BrakeStatus & b_rls) == b_rls)
         if ((CVP < 0))
-            BrakeStatus &= 247;
+            BrakeStatus &= ~b_rls;
         else
         { // 008
             dv = PF1(CVP, BCP, 0.024) * dt;
@@ -1363,7 +1359,6 @@ double TEStED::GetPF(double PP, double dt, double Vel)
     double CVP;
     double MPP;
     double nastG;
-    int i;
 
     BVP = BrakeRes->P();
     VVP = ValveRes->P();
@@ -1380,13 +1375,13 @@ double TEStED::GetPF(double PP, double dt, double Vel)
 
     // sprawdzanie stanu
     if ((VVP + 0.002 + BCP / BVM < CVP - 0.05) && (Przys_blok))
-        BrakeStatus |= 3; // hamowanie stopniowe;
+        BrakeStatus |= (b_on | b_hld); // hamowanie stopniowe;
     else if ((VVP - 0.002 + (BCP - 0.1) / BVM > CVP - 0.05))
-        BrakeStatus &= 252; // luzowanie;
+        BrakeStatus &= ~(b_on | b_hld); // luzowanie;
     else if ((VVP + BCP / BVM > CVP - 0.05))
-        BrakeStatus &= 253; // zatrzymanie napelaniania;
+        BrakeStatus &= ~b_on; // zatrzymanie napelaniania;
     else if ((VVP + (BCP - 0.1) / BVM < CVP - 0.05) && (BCP > 0.25)) // zatrzymanie luzowania
-        BrakeStatus |= 1;
+        BrakeStatus |= b_hld;
 
     if ((VVP + 0.10 < CVP) && (BCP < 0.25)) // poczatek hamowania
         if ((!Przys_blok))
@@ -1513,7 +1508,7 @@ void TEStED::Init(double PP, double HPP, double LPP, double BP, int BDF)
     //  CntrlRes.CreateCap(15);
     //  CntrlRes.CreatePress(1*HPP);
 
-    BrakeStatus = int(BP > 1);
+    BrakeStatus = (BP > 1.0) ? 1 : 0;
     Miedzypoj->CreateCap(5);
     Miedzypoj->CreatePress(PP);
 
@@ -1579,25 +1574,25 @@ void TCV1::CheckState(double BCP, double &dV1)
 
     // odluzniacz
     if (((BrakeStatus & b_rls) == b_rls) && (CVP - VVP < 0))
-        BrakeStatus &= 247;
+        BrakeStatus &= ~b_rls;
 
     // sprawdzanie stanu
     if ((BrakeStatus & b_hld) == b_hld)
         if ((VVP + 0.003 + BCP / BVM < CVP))
-            BrakeStatus |= 2; // hamowanie stopniowe;
+            BrakeStatus |= b_on; // hamowanie stopniowe;
         else if ((VVP - 0.003 + BCP * 1.0 / BVM > CVP))
-            BrakeStatus &= 252; // luzowanie;
+            BrakeStatus &= ~( b_on | b_hld ); // luzowanie;
         else if ((VVP + BCP * 1.0 / BVM > CVP))
-            BrakeStatus &= 253; // zatrzymanie napelaniania;
+            BrakeStatus &= ~b_on; // zatrzymanie napelaniania;
         else
             ;
     else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
     {
-        BrakeStatus |= 3;
+        BrakeStatus |= ( b_on | b_hld );
         dV1 = 1.25;
     }
     else if ((VVP + BCP / BVM < CVP) && (BCP > 0.25)) // zatrzymanie luzowanie
-        BrakeStatus |= 1;
+        BrakeStatus |= b_hld;
 }
 
 double TCV1::CVs(double BP)
@@ -1703,7 +1698,7 @@ void TCV1::Init(double PP, double HPP, double LPP, double BP, int BDF)
     BrakeRes->CreatePress(PP);
     CntrlRes->CreateCap(15);
     CntrlRes->CreatePress(HPP);
-    BrakeStatus = 0;
+    BrakeStatus = b_off;
 
     BVM = 1.0 / (HPP - LPP) * MaxBP;
 
@@ -1837,7 +1832,7 @@ void TKE::CheckReleaser(double dt)
     // odluzniacz
     if ( true == ((BrakeStatus & b_rls) == b_rls))
         if ((CVP - VVP < 0))
-            BrakeStatus &= 247;
+            BrakeStatus &= ~b_rls;
         else
             CntrlRes->Flow(+PF(CVP, 0, 0.1) * dt);
 }
@@ -1853,22 +1848,22 @@ void TKE::CheckState(double BCP, double &dV1)
     CVP = CntrlRes->P();
 
     // sprawdzanie stanu
-    if ((BrakeStatus && 1) == 1)
+    if ((BrakeStatus & b_hld) == b_hld)
         if ((VVP + 0.003 + BCP / BVM < CVP))
-            BrakeStatus |= 2; // hamowanie stopniowe;
+            BrakeStatus |= b_on; // hamowanie stopniowe;
         else if ((VVP - 0.003 + BCP / BVM > CVP))
-            BrakeStatus &= 252; // luzowanie;
+            BrakeStatus &= ~( b_on | b_hld ); // luzowanie;
         else if ((VVP + BCP / BVM > CVP))
-            BrakeStatus &= 253; // zatrzymanie napelaniania;
+            BrakeStatus &= ~b_on; // zatrzymanie napelaniania;
         else
             ;
     else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
     {
-        BrakeStatus |= 3;
+        BrakeStatus |= (b_on | b_hld);
         ValveRes->CreatePress(0.8 * VVP); // przyspieszacz
     }
     else if ((VVP + BCP / BVM < CVP) && ((CVP - VVP) * BVM > 0.25)) // zatrzymanie luzowanie
-        BrakeStatus |= 1;
+        BrakeStatus |= b_hld;
 }
 
 double TKE::CVs(double BP)
@@ -2038,7 +2033,7 @@ void TKE::Init(double PP, double HPP, double LPP, double BP, int BDF)
     ImplsRes->CreateCap(1);
     ImplsRes->CreatePress(BP);
 
-    BrakeStatus = 0;
+    BrakeStatus = b_off;
 
     BVM = 1.0 / (HPP - LPP) * MaxBP;
 
@@ -2651,7 +2646,6 @@ double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     static double const NomPress = 5.0;
 
     double LimPP;
-    double dpPipe;
     double dpMainValve;
     double ActFlowSpeed;
     int BCP;
@@ -2710,7 +2704,6 @@ void TSt113::Init(double Press)
 
 double Ttest::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
-    double result;
     static int const LBDelay = 100;
 
     double LimPP;
@@ -2822,7 +2815,6 @@ double TFVel6::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     static int const LBDelay = 100;
 
     double LimPP;
-    double dpPipe;
     double dpMainValve;
     double ActFlowSpeed;
 
