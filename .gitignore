@@ -54,9 +54,9 @@ install_manifest.txt
 *.~pas
 *.opensdf
 *.sdf
-#*.sln
-#*.vcxproj
-#*.filters
+*.sln
+*.vcxproj
+*.filters
 format_all_files.py
 *.suo
 EU07.tds
