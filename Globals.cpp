@@ -43,7 +43,9 @@ bool Global::detonatoryOK; // info o nowych detonatorach
 double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
 double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecności rozszerzeń
+/*
 bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
+*/
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
 HWND Global::hWnd = NULL; // uchwyt okna

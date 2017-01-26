@@ -34,10 +34,9 @@ void CMesh::MakeArray(int n)
 void CMesh::BuildVBOs(bool del)
 { // tworzenie VBO i kasowanie już niepotrzebnych tablic
     // pobierz numer VBO oraz ustaw go jako aktywny
-    glGenBuffersARB(1, &m_nVBOVertices); // pobierz numer
-    glBindBufferARB(GL_ARRAY_BUFFER_ARB, m_nVBOVertices); // ustaw bufor jako aktualny
-    glBufferDataARB(GL_ARRAY_BUFFER_ARB, m_nVertexCount * sizeof(CVertNormTex), m_pVNT,
-                    GL_STATIC_DRAW_ARB);
+    glGenBuffers(1, &m_nVBOVertices); // pobierz numer
+    glBindBuffer(GL_ARRAY_BUFFER, m_nVBOVertices); // ustaw bufor jako aktualny
+    glBufferData(GL_ARRAY_BUFFER, m_nVertexCount * sizeof(CVertNormTex), m_pVNT, GL_STATIC_DRAW);
     // WriteLog("Assigned VBO number "+AnsiString(m_nVBOVertices)+", vertices:
     // "+AnsiString(m_nVertexCount));
     if (del)
@@ -49,7 +48,7 @@ void CMesh::Clear()
     // inna nazwa, żeby nie mieszało się z funkcją wirtualną sprzątacza
     if (m_nVBOVertices) // jeśli było coś rezerwowane
     {
-        glDeleteBuffersARB(1, &m_nVBOVertices); // Free The Memory
+        glDeleteBuffers(1, &m_nVBOVertices); // Free The Memory
         // WriteLog("Released VBO number "+AnsiString(m_nVBOVertices));
     }
     m_nVBOVertices = 0;
@@ -66,7 +65,7 @@ bool CMesh::StartVBO()
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     if (m_nVBOVertices)
     {
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
+        glBindBuffer(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
         glVertexPointer( 3, GL_FLOAT, sizeof(CVertNormTex), static_cast<char *>(nullptr) ); // pozycje
 		glNormalPointer( GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // normalne
 		glTexCoordPointer( 2, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 24 ); // wierzchołki
@@ -82,7 +81,7 @@ bool CMesh::StartColorVBO()
     glEnableClientState(GL_COLOR_ARRAY);
     if (m_nVBOVertices)
     {
-        glBindBufferARB(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
+        glBindBuffer(GL_ARRAY_BUFFER, m_nVBOVertices);
 		glVertexPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) ); // pozycje
         // glColorPointer(3,GL_UNSIGNED_BYTE,sizeof(CVertNormTex),((char*)NULL)+12); //kolory
 		glColorPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // kolory
@@ -97,6 +96,6 @@ void CMesh::EndVBO()
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
     // glBindBuffer(GL_ARRAY_BUFFER,0); //takie coś psuje, mimo iż polecali użyć
-    glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
-    glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0); // Ra: to na przyszłość
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); // Ra: to na przyszłość
 };

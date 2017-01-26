@@ -1005,8 +1005,8 @@ void TSubRect::RaAnimate()
         return; // nie ma nic do animowania
     if (Global::bUseVBO)
     { // odświeżenie VBO sektora
-        if (Global::bOpenGL_1_5) // modyfikacje VBO są dostępne od OpenGL 1.5
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
+        if (true == GLEW_VERSION_1_5) // modyfikacje VBO są dostępne od OpenGL 1.5
+            glBindBuffer(GL_ARRAY_BUFFER, m_nVBOVertices);
         else // dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odświeżenie całego sektora
             Release(); // opróżnienie VBO sektora, aby się odświeżył z nowymi ustawieniami
     }
@@ -1295,7 +1295,10 @@ void TGround::MoveGroundNode(vector3 pPosition)
     */
 }
 
+std::vector<TGroundVertex> TempVerts;
+/*
 TGroundVertex TempVerts[ 10000 ]; // tu wczytywane s¹ trójk¹ty
+*/
 BYTE TempConnectionType[ 200 ]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
 TGround::TGround()
@@ -1315,7 +1318,9 @@ TGround::TGround()
         nRootOfType[i] = NULL; // zerowanie tablic wyszukiwania
     bDynamicRemove = false; // na razie nic do usunięcia
     sTracks = new TNames(); // nazwy torów - na razie tak
+/*
     ::SecureZeroMemory( TempVerts, sizeof( TempVerts ) );
+*/
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
 }
 
@@ -2071,17 +2076,35 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
         else
         {
+/*
             i = 0;
+*/
+            TempVerts.clear();
+            TGroundVertex vertex;
             do
             {
+/*
                 if (i < 9999) // 3333 trójkąty
                 { // liczba wierzchołków nie jest nieograniczona
+*/
+/*
                     parser->getTokens(3);
                     *parser >> TempVerts[i].Point.x >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
                     parser->getTokens(3);
                     *parser >> TempVerts[i].Normal.x >> TempVerts[i].Normal.y >>
                         TempVerts[i].Normal.z;
-                    /*
+*/
+                parser->getTokens( 8, false );
+                *parser
+                    >> vertex.Point.x
+                    >> vertex.Point.y
+                    >> vertex.Point.z
+                    >> vertex.Normal.x
+                    >> vertex.Normal.y
+                    >> vertex.Normal.z
+                    >> vertex.tu
+                    >> vertex.tv;
+                /*
                          str=Parser->GetNextSymbol().LowerCase();
                          if (str==AnsiString("x"))
                              TempVerts[i].tu=(TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
@@ -2106,14 +2129,15 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                          else
                              TempVerts[i].tv=str.ToDouble();;
                     */
+/*
                     parser->getTokens(2);
                     *parser >> TempVerts[i].tu >> TempVerts[i].tv;
-
+*/
                     //    tf=Parser->GetNextSymbol().ToDouble();
                     //          TempVerts[i].tu=tf;
                     //        tf=Parser->GetNextSymbol().ToDouble();
                     //      TempVerts[i].tv=tf;
-
+/*
                     TempVerts[i].Point.RotateZ(aRotate.z / 180 * M_PI);
                     TempVerts[i].Point.RotateX(aRotate.x / 180 * M_PI);
                     TempVerts[i].Point.RotateY(aRotate.y / 180 * M_PI);
@@ -2122,17 +2146,33 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                     TempVerts[i].Normal.RotateY(aRotate.y / 180 * M_PI);
                     TempVerts[i].Point += pOrigin;
                     tmp->pCenter += TempVerts[i].Point;
+*/
+                vertex.Point.RotateZ( aRotate.z / 180 * M_PI );
+                vertex.Point.RotateX( aRotate.x / 180 * M_PI );
+                vertex.Point.RotateY( aRotate.y / 180 * M_PI );
+                vertex.Normal.RotateZ( aRotate.z / 180 * M_PI );
+                vertex.Normal.RotateX( aRotate.x / 180 * M_PI );
+                vertex.Normal.RotateY( aRotate.y / 180 * M_PI );
+                vertex.Point += pOrigin;
+                tmp->pCenter += vertex.Point;
+
+                TempVerts.emplace_back( vertex );
+/*
                 }
                 else if (i == 9999)
                     ErrorLog("Bad triangles: too many verices");
                 i++;
+*/
                 parser->getTokens();
                 *parser >> token;
 
                 //   }
 
             } while (token.compare("endtri") != 0);
+/*
             nv = i;
+*/
+            nv = TempVerts.size();
             tmp->Init(nv); // utworzenie tablicy wierzchołków
             tmp->pCenter /= (nv > 0 ? nv : 1);
 
@@ -2154,40 +2194,56 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         break;
     case GL_LINES:
     case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-        parser->getTokens(3);
-        *parser >> tmp->Diffuse[0] >> tmp->Diffuse[1] >> tmp->Diffuse[2];
-        //   tmp->Diffuse[0]=Parser->GetNextSymbol().ToDouble()/255;
-        //   tmp->Diffuse[1]=Parser->GetNextSymbol().ToDouble()/255;
-        //   tmp->Diffuse[2]=Parser->GetNextSymbol().ToDouble()/255;
-        parser->getTokens();
-        *parser >> tmp->fLineThickness;
-        i = 0;
-        parser->getTokens();
-        *parser >> token;
-        do
-        {
-            str = token;
-            TempVerts[i].Point.x = atof(str.c_str());
-            parser->getTokens(2);
-            *parser >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
-            TempVerts[i].Point.RotateZ(aRotate.z / 180 * M_PI);
-            TempVerts[i].Point.RotateX(aRotate.x / 180 * M_PI);
-            TempVerts[i].Point.RotateY(aRotate.y / 180 * M_PI);
-            TempVerts[i].Point += pOrigin;
-            tmp->pCenter += TempVerts[i].Point;
-            i++;
+    case GL_LINE_LOOP: {
+            parser->getTokens( 3 );
+            *parser >> tmp->Diffuse[ 0 ] >> tmp->Diffuse[ 1 ] >> tmp->Diffuse[ 2 ];
+            //   tmp->Diffuse[0]=Parser->GetNextSymbol().ToDouble()/255;
+            //   tmp->Diffuse[1]=Parser->GetNextSymbol().ToDouble()/255;
+            //   tmp->Diffuse[2]=Parser->GetNextSymbol().ToDouble()/255;
+            parser->getTokens();
+            *parser >> tmp->fLineThickness;
+            TempVerts.clear();
+            TGroundVertex vertex;
+            i = 0;
             parser->getTokens();
             *parser >> token;
-        } while (token.compare("endline") != 0);
-        nv = i;
-        //   tmp->Init(nv);
-        tmp->Points = new vector3[nv];
-        tmp->iNumPts = nv;
-        tmp->pCenter /= (nv > 0 ? nv : 1);
-        for (int i = 0; i < nv; i++)
-            tmp->Points[i] = TempVerts[i].Point;
-        break;
+            do {
+                str = token;
+/*
+                TempVerts[ i ].Point.x = atof( str.c_str() );
+                parser->getTokens( 2 );
+                *parser >> TempVerts[ i ].Point.y >> TempVerts[ i ].Point.z;
+                TempVerts[ i ].Point.RotateZ( aRotate.z / 180 * M_PI );
+                TempVerts[ i ].Point.RotateX( aRotate.x / 180 * M_PI );
+                TempVerts[ i ].Point.RotateY( aRotate.y / 180 * M_PI );
+                TempVerts[ i ].Point += pOrigin;
+                tmp->pCenter += TempVerts[ i ].Point;
+*/
+                vertex.Point.x = std::atof( str.c_str() );
+                parser->getTokens( 2 );
+                *parser
+                    >> vertex.Point.y
+                    >> vertex.Point.z;
+                vertex.Point.RotateZ( aRotate.z / 180 * M_PI );
+                vertex.Point.RotateX( aRotate.x / 180 * M_PI );
+                vertex.Point.RotateY( aRotate.y / 180 * M_PI );
+                vertex.Point += pOrigin;
+                tmp->pCenter += vertex.Point;
+                TempVerts.emplace_back( vertex );
+
+                ++i;
+                parser->getTokens();
+                *parser >> token;
+            } while( token.compare( "endline" ) != 0 );
+            nv = i;
+            //   tmp->Init(nv);
+            tmp->Points = new vector3[ nv ];
+            tmp->iNumPts = nv;
+            tmp->pCenter /= ( nv > 0 ? nv : 1 );
+            for( int i = 0; i < nv; i++ )
+                tmp->Points[ i ] = TempVerts[ i ].Point;
+            break;
+        }
     }
     return tmp;
 }
@@ -2314,7 +2370,7 @@ void TGround::FirstInit()
     WriteLog("InitLaunchers OK");
     WriteLog("InitGlobalTime");
     // ABu 160205: juz nie TODO :)
-    GlobalTime = std::make_shared<TMTableTime>( hh, mm, srh, srm, ssh, ssm ); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
+    Mtable::GlobalTime = std::make_shared<TMTableTime>( hh, mm, srh, srm, ssh, ssm ); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
     WriteLog("InitGlobalTime OK");
     // jeszcze ustawienie pogody, gdyby nie było w scenerii wpisów
     glClearColor(Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2],

@@ -215,13 +215,14 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
             if (ogl < Global::fOpenGL) // a karta oferuje niższą wersję niż wpisana
                 Global::fOpenGL = ogl; // to przyjąc to z karty
     }
-    else if (ogl < 1.3) // sprzętowa deompresja DDS zwykle wymaga 1.3
+    else if (false == GLEW_VERSION_1_3) // sprzętowa deompresja DDS zwykle wymaga 1.3
         Error("Missed OpenGL 1.3+ drivers!"); // błąd np. gdy wersja 1.1, a nie ma wpisu w EU07.INI
+/*
     Global::bOpenGL_1_5 = (Global::fOpenGL >= 1.5); // są fragmentaryczne animacje VBO
-
+*/
     WriteLog("Supported extensions:");
     WriteLog((char *)glGetString(GL_EXTENSIONS));
-    if (GL_ARB_vertex_buffer_object) // czy jest VBO w karcie graficznej
+    if (GLEW_ARB_vertex_buffer_object) // czy jest VBO w karcie graficznej
     {
         if( std::string( (char *)glGetString(GL_VENDOR) ).find("Intel") != std::string::npos ) // wymuszenie tylko dla kart Intel
         { // karty Intel nie nadają się do grafiki 3D, ale robimy wyjątek, bo to w końcu symulator
@@ -247,7 +248,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     else
     {
         Global::bDecompressDDS =
-            !(GL_EXT_texture_compression_s3tc); // czy obsługiwane?
+            !(true == GLEW_EXT_texture_compression_s3tc); // czy obsługiwane?
         if (Global::bDecompressDDS) // czy jest obsługa DDS w karcie graficznej
             WriteLog("DDS textures are not supported.");
         else // brak obsługi DDS - trzeba włączyć programową dekompresję

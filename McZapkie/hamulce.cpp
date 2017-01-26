@@ -378,7 +378,7 @@ bool TBrake::SetBDF(int nBDF)
 
 void TBrake::Releaser(int state)
 {
-    BrakeStatus = (BrakeStatus & 247) || state * b_rls;
+    BrakeStatus = (BrakeStatus & 247) | ( state * b_rls );
 }
 
 void TBrake::SetEPS(double nEPS)
@@ -387,7 +387,7 @@ void TBrake::SetEPS(double nEPS)
 
 void TBrake::ASB(int state)
 { // 255-b_asb(32)
-    BrakeStatus = (BrakeStatus & 223) || state * b_asb;
+    BrakeStatus = (BrakeStatus & 223) | ( state * b_asb );
 }
 
 int TBrake::GetStatus()
