@@ -70,7 +70,7 @@ double GetFPS()
 void ResetTimers()
 {
     // double CurrentTime=
-    GetTickCount();
+    ::GetTickCount64();
     DeltaTime = 0.1;
     DeltaRenderTime = 0;
     fSoundTimer = 0;
@@ -102,7 +102,7 @@ void UpdateTimers(bool pause)
     oldCount = count;
 
     // Keep track of the time lapse and frame count
-    double fTime = GetTickCount() * 0.001f; // Get current time in seconds
+    double fTime = ::GetTickCount64() * 0.001f; // Get current time in seconds
     ++dwFrames; // licznik ramek
     // update the frame rate once per second
     if (fTime - fLastTime > 1.0f)

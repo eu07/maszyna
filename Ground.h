@@ -273,29 +273,37 @@ class TGroundRect : public TSubRect
 class TGround
 {
     vector3 CameraDirection; // zmienna robocza przy renderowaniu
-    int const *iRange; // tabela widoczności
+    int const *iRange = nullptr; // tabela widoczności
     // TGroundNode *nRootNode; //lista wszystkich węzłów
-    TGroundNode *nRootDynamic; // lista pojazdów
+    TGroundNode *nRootDynamic = nullptr; // lista pojazdów
     TGroundRect Rects[iNumRects][iNumRects]; // mapa kwadratów kilometrowych
-    TEvent *RootEvent; // lista zdarzeń
-    TEvent *QueryRootEvent, *tmpEvent, *tmp2Event, *OldQRE;
+    TEvent *RootEvent = nullptr; // lista zdarzeń
+    TEvent *QueryRootEvent = nullptr,
+           *tmpEvent = nullptr,
+           *tmp2Event = nullptr,
+           *OldQRE = nullptr;
     TSubRect *pRendered[1500]; // lista renderowanych sektorów
-    int iNumNodes;
+    int iNumNodes = 0;
     vector3 pOrigin;
     vector3 aRotate;
-    bool bInitDone;
+    bool bInitDone = false;
     TGroundNode *nRootOfType[TP_LAST]; // tablica grupująca obiekty, przyspiesza szukanie
     // TGroundNode *nLastOfType[TP_LAST]; //ostatnia
     TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
-    int hh, mm, srh, srm, ssh, ssm; // ustawienia czasu
+    int hh = 0,
+        mm = 0,
+        srh = 0,
+        srm = 0,
+        ssh = 0,
+        ssm = 0; // ustawienia czasu
     // int tracks,tracksfar; //liczniki torów
-    TNames *sTracks; // posortowane nazwy torów i eventów
+    TNames *sTracks = nullptr; // posortowane nazwy torów i eventów
   private: // metody prywatne
     bool EventConditon(TEvent *e);
 
   public:
-    bool bDynamicRemove; // czy uruchomić procedurę usuwania pojazdów
-    TDynamicObject *LastDyn; // ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
+    bool bDynamicRemove = false; // czy uruchomić procedurę usuwania pojazdów
+    TDynamicObject *LastDyn = nullptr; // ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
     // TTrain *pTrain;
     // double fVDozwolona;
     // bool bTrabil;

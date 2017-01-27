@@ -166,138 +166,133 @@ extern bool WriteLogFlag; // logowanie parametrów fizycznych
 class TController
 {
   private: // obsługa tabelki prędkości (musi mieć możliwość odhaczania stacji w rozkładzie)
-    TSpeedPos *sSpeedTable; // najbliższe zmiany prędkości
-    int iSpeedTableSize; // wielkość tabelki
-    int iFirst; // aktualna pozycja w tabeli (modulo iSpeedTableSize)
-    int iLast; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
-    int iTableDirection; // kierunek zapełnienia tabelki względem pojazdu z AI
-    double fLastVel; // prędkość na poprzednio sprawdzonym torze
-    TTrack *tLast; // ostatni analizowany tor
-    TEvent *eSignSkip; // można pominąć ten SBL po zatrzymaniu
-    TSpeedPos *sSemNext; // następny semafor na drodze zależny od trybu jazdy
-    TSpeedPos *sSemNextStop; // następny semafor na drodze zależny od trybu jazdy i na stój
+    TSpeedPos *sSpeedTable = nullptr; // najbliższe zmiany prędkości
+    int iSpeedTableSize = 16; // wielkość tabelki
+    int iFirst = 0; // aktualna pozycja w tabeli (modulo iSpeedTableSize)
+    int iLast = 0; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
+    int iTableDirection = 0; // kierunek zapełnienia tabelki względem pojazdu z AI
+    double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze
+    TTrack *tLast = nullptr; // ostatni analizowany tor
+    TEvent *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
+    TSpeedPos *sSemNext = nullptr; // następny semafor na drodze zależny od trybu jazdy
+    TSpeedPos *sSemNextStop = nullptr; // następny semafor na drodze zależny od trybu jazdy i na stój
   private: // parametry aktualnego składu
-    double fLength; // długość składu (do wyciągania z ograniczeń)
-    double fMass; // całkowita masa do liczenia stycznej składowej grawitacji
-    double fAccGravity; // przyspieszenie składowej stycznej grawitacji
+    double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
+    double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
+    double fAccGravity = 0.0; // przyspieszenie składowej stycznej grawitacji
   public:
-    TEvent *eSignNext; // sygnał zmieniający prędkość, do pokazania na [F2]
+    TEvent *eSignNext = nullptr; // sygnał zmieniający prędkość, do pokazania na [F2]
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
-    int iStationStart; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
+    int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
   private: // parametry sterowania pojazdem (stan, hamowanie)
-    double fShuntVelocity; // maksymalna prędkość manewrowania, zależy m.in. od składu
-    int iVehicles; // ilość pojazdów w składzie
-    int iEngineActive; // ABu: Czy silnik byl juz zalaczony; Ra: postęp w załączaniu
+    double fShuntVelocity = 40.0; // maksymalna prędkość manewrowania, zależy m.in. od składu // domyślna prędkość manewrowa
+    int iVehicles = 0; // ilość pojazdów w składzie
+    int iEngineActive = 0; // ABu: Czy silnik byl juz zalaczony; Ra: postęp w załączaniu
     // vector3 vMechLoc; //pozycja pojazdu do liczenia odległości od semafora (?)
-    bool Psyche;
-    int iDrivigFlags; // flagi bitowe ruchu
-    double fDriverBraking; // po pomnożeniu przez v^2 [km/h] daje ~drogę hamowania [m]
-    double fDriverDist; // dopuszczalna odległość podjechania do przeszkody
-    double fVelMax; // maksymalna prędkość składu (sprawdzany każdy pojazd)
-    double fBrakeDist; // przybliżona droga hamowania
-    double fAccThreshold; // próg opóźnienia dla zadziałania hamulca
+    bool Psyche = false;
+    int iDrivigFlags = // flagi bitowe ruchu
+        moveStopPoint | // podjedź do W4 możliwie blisko
+        moveStopHere | // nie podjeżdżaj do semafora, jeśli droga nie jest wolna
+        moveStartHorn; // podaj sygnał po podaniu wolnej drogi
+    double fDriverBraking = 0.0; // po pomnożeniu przez v^2 [km/h] daje ~drogę hamowania [m]
+    double fDriverDist = 0.0; // dopuszczalna odległość podjechania do przeszkody
+    double fVelMax = -1.0; // maksymalna prędkość składu (sprawdzany każdy pojazd)
+    double fBrakeDist = 0.0; // przybliżona droga hamowania
+    double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
   public:
-    double fLastStopExpDist; // odległość wygasania ostateniego przystanku
-    double ReactionTime; // czas reakcji Ra: czego i na co? świadomości AI
-    double fBrakeTime; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę
+    double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
+    double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
+    double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę
     // hamulca
   private:
-    double fReady; // poziom odhamowania wagonów
-    bool Ready; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
-    double LastUpdatedTime; // czas od ostatniego logu
-    double ElapsedTime; // czas od poczatku logu
-    double deltalog; // przyrost czasu
-    double LastReactionTime;
-    double fActionTime; // czas używany przy regulacji prędkości i zamykaniu drzwi
-    TAction eAction; // aktualny stan
-    bool HelpMeFlag; // wystawiane True jesli cos niedobrego sie dzieje
+    double fReady = 0.0; // poziom odhamowania wagonów
+    bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
+    double LastUpdatedTime = 0.0; // czas od ostatniego logu
+    double ElapsedTime = 0.0; // czas od poczatku logu
+    double deltalog = 0.05; // przyrost czasu
+    double LastReactionTime = 0.0;
+    double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
+    TAction eAction = actSleep; // aktualny stan
+    bool HelpMeFlag = false; // wystawiane True jesli cos niedobrego sie dzieje
   public:
     inline TAction GetAction()
     {
         return eAction;
     }
-    bool AIControllFlag; // rzeczywisty/wirtualny maszynista
-    int iRouteWanted; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
+    bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
+    int iRouteWanted = 3; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
     // migacz lub czeka na stan zwrotnicy
   private:
-    TDynamicObject *pVehicle; // pojazd w którym siedzi sterujący
+    TDynamicObject *pVehicle = nullptr; // pojazd w którym siedzi sterujący
     TDynamicObject
         *pVehicles[2]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
-    TMoverParameters *mvControlling; // jakim pojazdem steruje (może silnikowym w EZT)
-    TMoverParameters *mvOccupied; // jakim pojazdem hamuje
-    TTrainParameters *TrainParams; // rozkład jazdy zawsze jest, nawet jeśli pusty
+    TMoverParameters *mvControlling = nullptr; // jakim pojazdem steruje (może silnikowym w EZT)
+    TMoverParameters *mvOccupied = nullptr; // jakim pojazdem hamuje
+    TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
     // int TrainNumber; //numer rozkladowy tego pociagu
     // AnsiString OrderCommand; //komenda pobierana z pojazdu
     // double OrderValue; //argument komendy
-    int iRadioChannel; // numer aktualnego kanału radiowego
-    TTextSound *tsGuardSignal; // komunikat od kierownika
-    int iGuardRadio; // numer kanału radiowego kierownika (0, gdy nie używa radia)
+    int iRadioChannel = 1; // numer aktualnego kanału radiowego
+    TTextSound *tsGuardSignal = nullptr; // komunikat od kierownika
+    int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
   public:
-    double AccPreferred; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy
-    // wykryciu kolizji)
-    double AccDesired; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
-    double VelDesired; // predkość, z jaką ma jechać, wynikająca z analizy tableki; <=VelSignal
-    double fAccDesiredAv; // uśrednione przyspieszenie z kolejnych przebłysków świadomości, żeby
+    double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
+    double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
+    double VelDesired = 0.0; // predkość, z jaką ma jechać, wynikająca z analizy tableki; <=VelSignal
+    double fAccDesiredAv = 0.0; // uśrednione przyspieszenie z kolejnych przebłysków świadomości, żeby
     // ograniczyć migotanie
   public:
-    double VelforDriver; // prędkość, używana przy zmianie kierunku (ograniczenie przy nieznajmości
-    // szlaku?)
-    double VelSignal; // ograniczenie prędkości z kompilacji znaków i sygnałów
-    double VelLimit; // predkość zadawana przez event jednokierunkowego ograniczenia prędkości
+    double VelforDriver = -1.0; // prędkość, używana przy zmianie kierunku (ograniczenie przy nieznajmości szlaku?)
+    double VelSignal = 0.0; // ograniczenie prędkości z kompilacji znaków i sygnałów // normalnie na początku ma stać, no chyba że jedzie
+    double VelLimit = -1.0; // predkość zadawana przez event jednokierunkowego ograniczenia prędkości // -1: brak ograniczenia prędkości
   public:
-    double VelSignalLast; // prędkość zadana na ostatnim semaforze
-    double VelSignalNext; // prędkość zadana na następnym semaforze
-    double VelLimitLast; // prędkość zadana przez ograniczenie
-    double VelRoad; // aktualna prędkość drogowa (ze znaku W27)
-    // (PutValues albo komendą)
+    double VelSignalLast = -1.0; // prędkość zadana na ostatnim semaforze // ostatni semafor też bez ograniczenia
+    double VelSignalNext = 0.0; // prędkość zadana na następnym semaforze
+    double VelLimitLast = -1.0; // prędkość zadana przez ograniczenie // ostatnie ograniczenie bez ograniczenia
+    double VelRoad = -1.0; // aktualna prędkość drogowa (ze znaku W27) (PutValues albo komendą) // prędkość drogowa bez ograniczenia
   public:
-    double VelNext; // prędkość, jaka ma być po przejechaniu długości ProximityDist
+    double VelNext = 120.0; // prędkość, jaka ma być po przejechaniu długości ProximityDist
   private:
-    double fProximityDist; // odleglosc podawana w SetProximityVelocity(); >0:przeliczać do
-    // punktu, <0:podana wartość
-    double FirstSemaphorDist; // odległość do pierwszego znalezionego semafora
+    double fProximityDist = 0.0; // odleglosc podawana w SetProximityVelocity(); >0:przeliczać do punktu, <0:podana wartość
+    double FirstSemaphorDist = 10000.0; // odległość do pierwszego znalezionego semafora
   public:
     double
-        ActualProximityDist; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia
+        ActualProximityDist = 1.0; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia
   private:
     vector3 vCommandLocation; // polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego
     // odnosi sie komenda
     TOrders OrderList[maxorders]; // lista rozkazów
-    int OrderPos, OrderTop; // rozkaz aktualny oraz wolne miejsce do wstawiania nowych
+    int OrderPos = 0,
+        OrderTop = 0; // rozkaz aktualny oraz wolne miejsce do wstawiania nowych
     std::ofstream LogFile; // zapis parametrow fizycznych
     std::ofstream AILogFile; // log AI
-    bool MaxVelFlag;
-    bool MinVelFlag;
-    int iDirection; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
-    int iDirectionOrder; //żadany kierunek jazdy (służy do zmiany kierunku)
-    int iVehicleCount; // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)
-    int iCoupler; // maska sprzęgu, jaką należy użyć przy łączeniu (po osiągnięciu trybu Connect), 0
-    // gdy jazda bez łączenia
-    int iDriverFailCount; // licznik błędów AI
-    bool Need_TryAgain; // true, jeśli druga pozycja w elektryku nie załapała
-    bool Need_BrakeRelease;
+    bool MaxVelFlag = false;
+    bool MinVelFlag = false; // Ra: to nie jest używane
+    int iDirection = 0; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
+    int iDirectionOrder = 0; //żadany kierunek jazdy (służy do zmiany kierunku)
+    int iVehicleCount = -2; // wartość neutralna // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)
+    int iCoupler = 0; // maska sprzęgu, jaką należy użyć przy łączeniu (po osiągnięciu trybu Connect), 0 gdy jazda bez łączenia
+    int iDriverFailCount = 0; // licznik błędów AI
+    bool Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
+    bool Need_BrakeRelease = true;
 
   public:
-    double fMinProximityDist; // minimalna oległość do przeszkody, jaką należy zachować
-    double fOverhead1; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
-    double fOverhead2; // informacja o sposobie jazdy (-1=normalnie, 0=bez prądu, >0=z opuszczonym i
-    // ograniczeniem prędkości)
-    int iOverheadZero; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z
-    // podniesionymi pantografami
-    int iOverheadDown; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z
-    // podniesionymi pantografami
-    double fVoltage; // uśrednione napięcie sieci: przy spadku poniżej wartości minimalnej opóźnić
-    // rozruch o losowy czas
+    double fMinProximityDist = 30.0; // stawanie między 30 a 60 m przed przeszkodą // minimalna oległość do przeszkody, jaką należy zachować
+    double fOverhead1 = 3000.0; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
+    double fOverhead2 = -1.0; // informacja o sposobie jazdy (-1=normalnie, 0=bez prądu, >0=z opuszczonym i ograniczeniem prędkości)
+    int iOverheadZero = 0; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z podniesionymi pantografami
+    int iOverheadDown = 0; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
+    double fVoltage = 0.0; // uśrednione napięcie sieci: przy spadku poniżej wartości minimalnej opóźnić rozruch o losowy czas
   private:
-    double fMaxProximityDist; // akceptowalna odległość stanięcia przed przeszkodą
-    TStopReason eStopReason; // powód zatrzymania przy ustawieniu zerowej prędkości
+    double fMaxProximityDist = 50.0; // stawanie między 30 a 60 m przed przeszkodą // akceptowalna odległość stanięcia przed przeszkodą
+    TStopReason eStopReason = stopSleep; // powód zatrzymania przy ustawieniu zerowej prędkości // na początku śpi
     std::string VehicleName;
-    double fVelPlus; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
-    double fVelMinus; // margines obniżenia prędkości, powodujący załączenie napędu
-    double fWarningDuration; // ile czasu jeszcze trąbić
-    double fStopTime; // czas postoju przed dalszą jazdą (np. na przystanku)
-    double WaitingTime; // zliczany czas oczekiwania do samoistnego ruszenia
-    double WaitingExpireTime; // maksymlany czas oczekiwania do samoistnego ruszenia
+    double fVelPlus = 0.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
+    double fVelMinus = 0.0; // margines obniżenia prędkości, powodujący załączenie napędu
+    double fWarningDuration = 0.0; // ile czasu jeszcze trąbić
+    double fStopTime = 0.0; // czas postoju przed dalszą jazdą (np. na przystanku)
+    double WaitingTime = 0.0; // zliczany czas oczekiwania do samoistnego ruszenia
+    double WaitingExpireTime = 31.0; // tyle ma czekać, zanim się ruszy // maksymlany czas oczekiwania do samoistnego ruszenia
     // TEvent* eSignLast; //ostatnio znaleziony sygnał, o ile nie minięty
   private: //---//---//---//---// koniec zmiennych, poniżej metody //---//---//---//---//
     void SetDriverPsyche();

@@ -21,16 +21,6 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 #include "Event.h"
 
-TTrackFollower::TTrackFollower()
-{
-    pCurrentTrack = NULL;
-    pCurrentSegment = NULL;
-    fCurrentDistance = 0;
-    pPosition = vAngles = vector3(0, 0, 0);
-    fDirection = 1; // jest przodem do Point2
-    fOffsetH = 0.0; // na starcie stoi na środku
-}
-
 TTrackFollower::~TTrackFollower()
 {
 }

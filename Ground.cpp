@@ -1303,25 +1303,15 @@ BYTE TempConnectionType[ 200 ]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotn
 
 TGround::TGround()
 {
-    // RootNode=NULL;
-    nRootDynamic = NULL;
-    QueryRootEvent = NULL;
-    tmpEvent = NULL;
-    tmp2Event = NULL;
-    OldQRE = NULL;
-    RootEvent = NULL;
-    iNumNodes = 0;
-    // pTrain=NULL;
     Global::pGround = this;
-    bInitDone = false; // Ra: żeby nie robiło dwa razy FirstInit
-    for (int i = 0; i < TP_LAST; i++)
-        nRootOfType[i] = NULL; // zerowanie tablic wyszukiwania
-    bDynamicRemove = false; // na razie nic do usunięcia
+
+    for( int i = 0; i < TP_LAST; ++i ) {
+        nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
+    }
     sTracks = new TNames(); // nazwy torów - na razie tak
-/*
-    ::SecureZeroMemory( TempVerts, sizeof( TempVerts ) );
-*/
+
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
+    ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
 }
 
 TGround::~TGround()

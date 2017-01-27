@@ -20,23 +20,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "mczapkie/mctools.h"
 
-TRealSound::TRealSound()
-{
-    pSound = NULL;
-    dSoundAtt = -1;
-    AM = 0.0;
-    AA = 0.0;
-    FM = 0.0;
-    FA = 0.0;
-    vSoundPosition.x = 0;
-    vSoundPosition.y = 0;
-    vSoundPosition.z = 0;
-    fDistance = fPreviousDistance = 0.0;
-    fFrequency = 22050.0; // częstotliwość samplowania pliku
-    iDoppler = 0; // normlanie jest załączony; !=0 - modyfikacje
-    bLoopPlay = false; // dźwięk wyłączony
-}
-
 TRealSound::TRealSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
 	bool freqmod, double rmin)
 {

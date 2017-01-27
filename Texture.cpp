@@ -581,7 +581,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int
         GLubyte *imgData = new GLubyte[width * height * bytesPerPixel]; // nowy rozmiar
         gluScaleImage(bytesPerPixel == 3 ? GL_RGB : GL_RGBA, w, h, GL_UNSIGNED_BYTE, imageData,
                       width, height, GL_UNSIGNED_BYTE, imgData);
-        delete imageData; // usunięcie starego
+        delete[] imageData; // usunięcie starego
         imageData = imgData;
     }
     GLuint id = CreateTexture(imageData, (alpha ? GL_BGRA : GL_BGR), width, height, alpha, hash,

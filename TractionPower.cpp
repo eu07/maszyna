@@ -20,33 +20,16 @@ http://mozilla.org/MPL/2.0/.
 
 //---------------------------------------------------------------------------
 
-TTractionPowerSource::TTractionPowerSource(TGroundNode *node)
+TTractionPowerSource::TTractionPowerSource(TGroundNode const *node) :
+                                               gMyNode( node )
 {
-    NominalVoltage = 0;
-    VoltageFrequency = 0;
-    InternalRes = 0.2;
-    MaxOutputCurrent = 0;
-    FastFuseTimeOut = 1;
-    FastFuseRepetition = 3;
-    SlowFuseTimeOut = 60;
-    Recuperation = false;
-
-    TotalAdmitance = 1e-10; // 10Mom - jakaś tam upływność
-    TotalPreviousAdmitance = 1e-10; // zero jest szkodliwe
-    OutputVoltage = 0;
-    FastFuse = false;
-    SlowFuse = false;
-    FuseTimer = 0;
-    FuseCounter = 0;
-    psNode[0] = NULL; // sekcje zostaną podłączone do zasilaczy
-    psNode[1] = NULL;
-    bSection = false; // sekcja nie jest źródłem zasilania, tylko grupuje przęsła
-	gMyNode = node;
+    psNode[0] = nullptr; // sekcje zostaną podłączone do zasilaczy
+    psNode[1] = nullptr;
 };
 
 TTractionPowerSource::~TTractionPowerSource(){};
 
-void TTractionPowerSource::Init(double u, double i)
+void TTractionPowerSource::Init(double const u, double const i)
 { // ustawianie zasilacza przy braku w scenerii
     NominalVoltage = u;
     VoltageFrequency = 0;

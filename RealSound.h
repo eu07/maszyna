@@ -17,20 +17,21 @@ http://mozilla.org/MPL/2.0/.
 class TRealSound
 {
   protected:
-    PSound pSound;
+    PSound pSound = nullptr;
 //  char *Nazwa; // dla celow odwszawiania NOTE: currently not used anywhere
-    double fDistance, fPreviousDistance; // dla liczenia Dopplera
-    float fFrequency; // częstotliwość samplowania pliku
-    int iDoppler; // Ra 2014-07: możliwość wyłączenia efektu Dopplera np. dla śpiewu ptaków
+    double fDistance = 0.0,
+           fPreviousDistance = 0.0; // dla liczenia Dopplera
+    float fFrequency = 22050.0; // częstotliwość samplowania pliku
+    int iDoppler = 0; // Ra 2014-07: możliwość wyłączenia efektu Dopplera np. dla śpiewu ptaków
   public:
     vector3 vSoundPosition; // polozenie zrodla dzwieku
-    double dSoundAtt; // odleglosc polowicznego zaniku dzwieku
-    double AM; // mnoznik amplitudy
-    double AA; // offset amplitudy
-    double FM; // mnoznik czestotliwosci
-    double FA; // offset czestotliwosci
-    bool bLoopPlay; // czy zapętlony dźwięk jest odtwarzany
-	TRealSound();
+    double dSoundAtt = -1.0; // odleglosc polowicznego zaniku dzwieku
+    double AM = 0.0; // mnoznik amplitudy
+    double AA = 0.0; // offset amplitudy
+    double FM = 0.0; // mnoznik czestotliwosci
+    double FA = 0.0; // offset czestotliwosci
+    bool bLoopPlay = false; // czy zapętlony dźwięk jest odtwarzany
+    TRealSound() = default;
 	TRealSound( std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
 		bool freqmod = false, double rmin = 0.0);
     ~TRealSound();

@@ -168,7 +168,7 @@ LPDIRECTSOUNDBUFFER TSoundContainer::GetUnique(LPDIRECTSOUND pDS)
     if (!DSBuffer)
         return NULL;
     // jeśli się dobrze zainicjowało
-    LPDIRECTSOUNDBUFFER buff;
+    LPDIRECTSOUNDBUFFER buff = nullptr;
     pDS->DuplicateSoundBuffer(DSBuffer, &buff);
     if (buff)
         DSBuffers.push(buff);
@@ -273,7 +273,7 @@ void TSoundsManager::RestoreAll()
 
     HRESULT hr;
 
-    DWORD dwStatus;
+    DWORD dwStatus = 0;
 
     for (int i = 0; i < Count; i++)
     {

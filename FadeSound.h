@@ -15,10 +15,11 @@ http://mozilla.org/MPL/2.0/.
 
 class TFadeSound
 {
-    PSound Sound;
-    float fFade;
-    float dt, fTime;
-    TSoundState State;
+    PSound Sound = nullptr;
+    float fFade = 0.0f;
+    float dt = 0.0f,
+          fTime = 0.0f;
+    TSoundState State = ss_Off;
 
   public:
     TFadeSound();

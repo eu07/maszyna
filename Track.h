@@ -98,14 +98,14 @@ const int iMaxNumDynamics = 40; // McZapkie-100303
 
 class TIsolated
 { // obiekt zbierający zajętości z kilku odcinków
-    int iAxles; // ilość osi na odcinkach obsługiwanych przez obiekt
-    TIsolated *pNext; // odcinki izolowane są trzymane w postaci listy jednikierunkowej
+    int iAxles = 0; // ilość osi na odcinkach obsługiwanych przez obiekt
+    TIsolated *pNext = nullptr; // odcinki izolowane są trzymane w postaci listy jednikierunkowej
     static TIsolated *pRoot; // początek listy
   public:
     std::string asName; // nazwa obiektu, baza do nazw eventów
-    TEvent *evBusy; // zdarzenie wyzwalane po zajęciu grupy
-    TEvent *evFree; // zdarzenie wyzwalane po całkowitym zwolnieniu zajętości grupy
-    TMemCell *pMemCell; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
+    TEvent *evBusy = nullptr; // zdarzenie wyzwalane po zajęciu grupy
+    TEvent *evFree = nullptr; // zdarzenie wyzwalane po całkowitym zwolnieniu zajętości grupy
+    TMemCell *pMemCell = nullptr; // automatyczna komórka pamięci, która współpracuje z odcinkiem izolowanym
     TIsolated();
     TIsolated(const std::string &n, TIsolated *i);
     ~TIsolated();

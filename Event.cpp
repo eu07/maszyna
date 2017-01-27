@@ -24,29 +24,16 @@ http://mozilla.org/MPL/2.0/.
 #include "Ground.h"
 #include "McZapkie\mctools.h"
 
-TEvent::TEvent(string m)
+TEvent::TEvent( std::string const &m ) :
+                       asNodeName( m )
 {
-    // asName=""; //czy nazwa eventu jest niezbędna w tym przypadku? chyba nie
-    evNext = evNext2 = NULL;
-    bEnabled = false; // false dla eventów używanych do skanowania sygnałów (nie dodawane do
-    // kolejki)
-    asNodeName = m; // nazwa obiektu powiązanego
-    iQueued = 0; // nie został dodany do kolejki
-    // bIsHistory=false;
-    fDelay = 0;
-    fStartTime = 0; // 0 nie ma sensu
-    Type = m.empty() ? tp_Unknown :
-                         tp_GetValues; // utworzenie niejawnego odczytu komórki pamięci w torze
-    for (int i = 0; i < 13; i++)
-        Params[i].asPointer = NULL;
-    evJoined = NULL; // nie ma kolejnego z tą samą nazwą, usuwane są wg listy Next2
-    Activator = NULL;
-    iFlags = 0;
-    // event niejawny jest tworzony przed fazą InitEvents, która podmienia nazwę komórki pamięci na
-    // wskaźnik
-    // Current->Params[8].asGroundNode=m; //to się ustawi w InitEvents
-    // Current->Params[9].asMemCell=m->MemCell;
-    fRandomDelay = 0.0; // standardowo nie będzie dodatkowego losowego opóźnienia
+    if( false == m.empty() ) {
+        // utworzenie niejawnego odczytu komórki pamięci w torze
+        Type = tp_GetValues;
+    }
+    for( int i = 0; i < 13; ++i ) {
+        Params[ i ].asPointer = nullptr;
+    }
 };
 
 TEvent::~TEvent()
@@ -328,8 +315,8 @@ void TEvent::Load(cParser *parser, vector3 *org)
         // str = AnsiString(token.c_str());
         if (token.substr(0, 19) == "PassengerStopPoint:")
         {
-            if (token.find("#"))
-				token = token.substr(0, token.find("#") - 1); // obcięcie unikatowości
+            if (token.find('#') != std::string::npos)
+				token = token.substr(0, token.find('#') - 1); // obcięcie unikatowości
             bEnabled = false; // nie do kolejki (dla SetVelocity też, ale jak jest do toru
             // dowiązany)
             Params[6].asCommand = cm_PassengerStopPoint;

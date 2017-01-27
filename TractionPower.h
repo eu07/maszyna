@@ -16,39 +16,39 @@ class TGroundNode;
 class TTractionPowerSource
 {
   private:
-    double NominalVoltage;
-    double VoltageFrequency;
-    double InternalRes;
-    double MaxOutputCurrent;
-    double FastFuseTimeOut;
-    int FastFuseRepetition;
-    double SlowFuseTimeOut;
-    bool Recuperation;
+    double NominalVoltage = 0.0;
+    double VoltageFrequency = 0.0;
+    double InternalRes = 0.2;
+    double MaxOutputCurrent = 0.0;
+    double FastFuseTimeOut = 1.0;
+    int FastFuseRepetition = 3;
+    double SlowFuseTimeOut = 60.0;
+    bool Recuperation = false;
 
-    double TotalCurrent;
-    double TotalAdmitance;
-    double TotalPreviousAdmitance;
-    double OutputVoltage;
-    bool FastFuse;
-    bool SlowFuse;
-    double FuseTimer;
-    int FuseCounter;
-    TGroundNode *gMyNode; // wskaźnik na węzeł rodzica
+    double TotalCurrent = 0.0;
+    double TotalAdmitance = 1e-10; // 10Mom - jakaś tam upływność
+    double TotalPreviousAdmitance = 1e-10; // zero jest szkodliwe
+    double OutputVoltage = 0.0;
+    bool FastFuse = false;
+    bool SlowFuse = false;
+    double FuseTimer = 0.0;
+    int FuseCounter = 0;
+    TGroundNode const *gMyNode = nullptr; // wskaźnik na węzeł rodzica
 
   protected:
   public: // zmienne publiczne
     TTractionPowerSource *psNode[2]; // zasilanie na końcach dla sekcji
-    bool bSection; // czy jest sekcją
+    bool bSection = false; // czy jest sekcją
   public:
     // AnsiString asName;
-    TTractionPowerSource(TGroundNode *node);
+    TTractionPowerSource(TGroundNode const *node);
     ~TTractionPowerSource();
-    void Init(double u, double i);
+    void Init(double const u, double const i);
     bool Load(cParser *parser);
     bool Render();
     bool Update(double dt);
     double CurrentGet(double res);
-    void VoltageSet(double v)
+    void VoltageSet(double const v)
     {
         NominalVoltage = v;
     };

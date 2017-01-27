@@ -77,13 +77,10 @@ TIsolated::TIsolated()
     TIsolated("none", NULL);
 };
 
-TIsolated::TIsolated(const string &n, TIsolated *i)
-{ // utworznie obwodu izolowanego
-    asName = n;
-    pNext = i;
-    iAxles = 0;
-    evBusy = evFree = NULL;
-    pMemCell = NULL; // podpiąć istniejącą albo utworzyć pustą
+TIsolated::TIsolated(const string &n, TIsolated *i) :
+                           asName( n ),   pNext( i )
+{
+    // utworznie obwodu izolowanego. nothing to do here.
 };
 
 TIsolated::~TIsolated(){

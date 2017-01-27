@@ -156,13 +156,13 @@ bool MWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i zap
 
     fAnalog[0] =
         (float)((ReadDataBuff[9] << 8) + ReadDataBuff[8]) /
-        Global::fMWDAnalogCalib[0][3]; // 4095.0f; //max wartosc wynikająca z rozdzielczości
+        Global::fMWDAnalogCalib[0][2]; // 4095.0f; //max wartosc wynikająca z rozdzielczości
     fAnalog[1] =
-        (float)((ReadDataBuff[11] << 8) + ReadDataBuff[10]) / Global::fMWDAnalogCalib[1][3];
+        (float)((ReadDataBuff[11] << 8) + ReadDataBuff[10]) / Global::fMWDAnalogCalib[1][2];
     fAnalog[2] =
-        (float)((ReadDataBuff[13] << 8) + ReadDataBuff[12]) / Global::fMWDAnalogCalib[2][3];
+        (float)((ReadDataBuff[13] << 8) + ReadDataBuff[12]) / Global::fMWDAnalogCalib[2][2];
     fAnalog[3] =
-        (float)((ReadDataBuff[15] << 8) + ReadDataBuff[14]) / Global::fMWDAnalogCalib[3][3];
+        (float)((ReadDataBuff[15] << 8) + ReadDataBuff[14]) / Global::fMWDAnalogCalib[3][2];
     CheckData();
 
     return TRUE;
