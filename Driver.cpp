@@ -241,6 +241,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     fVelNext = 30.0; // uzależnić prędkość od promienia; albo niech będzie
                 // ograniczona w skrzyżowaniu (velocity z ujemną wartością)
                 if ((iFlags & spElapsed) == 0) // jeśli nie wjechał
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
 					if (trTrack->iNumDynamics > 0) // a skrzyżowanie zawiera pojazd
                     {
                         if (Global::iWriteLogEnabled & 8)
@@ -248,6 +249,14 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                         fVelNext =
 							0.0; // to zabronić wjazdu (chyba że ten z przodu też jedzie prosto)
                     }
+#else
+                    if( false == trTrack->Dynamics.empty() ) {
+                        if( Global::iWriteLogEnabled & 8 ) {
+                            WriteLog( "Tor " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + std::to_string( trTrack->Dynamics.size() ) + "Dist= " + std::to_string( fDist ) );
+                            fVelNext = 0.0; // to zabronić wjazdu (chyba że ten z przodu też jedzie prosto)
+                        }
+                    }
+#endif
             }
             if (iFlags & spSwitch) // jeśli odcinek zmienny
             {
@@ -262,6 +271,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     // na Mydelniczce potrafi skanować na wprost mimo pojechania na bok
                 }
                 // poniższe nie dotyczy trybu łączenia?
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
 				if ((iFlags & spElapsed) ? false :
                         trTrack->iNumDynamics >
 					0) // jeśli jeszcze nie wjechano na tor, a coś na nim jest
@@ -273,6 +283,16 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
 				// else if (fVelNext==0.0) //jeśli została wyzerowana
 				// fVelNext=trTrack->VelocityGet(); //odczyt prędkości
                 }
+#else
+                if( ( ( iFlags & spElapsed ) == 0 )
+                 && ( false == trTrack->Dynamics.empty() ) ) {
+                    // jeśli jeszcze nie wjechano na tor, a coś na nim jest
+                    if( Global::iWriteLogEnabled & 8 ) {
+                        WriteLog( "Rozjazd " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + std::to_string( trTrack->Dynamics.size() ) + "Dist= " + std::to_string( fDist ) );
+                    }
+                    fVelNext = 0.0; // to niech stanie w zwiększonej odległości
+                }
+#endif
             }
         }
     }
@@ -4927,6 +4947,7 @@ double TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 
 bool TController::BackwardTrackBusy(TTrack *Track)
 { // najpierw sprawdzamy, czy na danym torze są pojazdy z innego składu
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     if (Track->iNumDynamics)
     { // jeśli tylko z własnego składu, to tor jest wolny
         for (int i = 0; i < Track->iNumDynamics; ++i)
@@ -4934,6 +4955,17 @@ bool TController::BackwardTrackBusy(TTrack *Track)
                 return true; // to tor jest zajęty i skanowanie nie obowiązuje
     }
     return false; // wolny
+#else
+    if( false == Track->Dynamics.empty() ) {
+        for( auto dynamic : Track->Dynamics ) {
+            if( dynamic->ctOwner != this ) {
+                // jeśli jest jakiś cudzy to tor jest zajęty i skanowanie nie obowiązuje
+                return true;
+            }
+        }
+    }
+    return false; // wolny
+#endif
 };
 
 TEvent * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)

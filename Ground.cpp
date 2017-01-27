@@ -3814,10 +3814,18 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                     if (Event->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
                         for (int i = 0; i < Event->Params[6].asTrack->iNumDynamics; ++i)
                             Event->Params[5].asMemCell->PutCommand(
                                 Event->Params[6].asTrack->Dynamics[i]->Mechanik,
                                 &Event->Params[4].nGroundNode->pCenter);
+#else
+                        for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
+                            Event->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                &Event->Params[ 4 ].nGroundNode->pCenter );
+                        }
+#endif
                         //if (DebugModeFlag)
                             WriteLog("EVENT EXECUTED: AddValues & Track command - " +
                                      std::string(Event->Params[0].asText) + " " +
@@ -4006,10 +4014,18 @@ bool TGround::CheckQuery()
                     if (tmpEvent->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
                         for (int i = 0; i < tmpEvent->Params[6].asTrack->iNumDynamics; ++i)
                             tmpEvent->Params[5].asMemCell->PutCommand(
                                 tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,
                                 &tmpEvent->Params[4].nGroundNode->pCenter);
+#else
+                        for( auto dynamic : tmpEvent->Params[ 6 ].asTrack->Dynamics ) {
+                            tmpEvent->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                &tmpEvent->Params[ 4 ].nGroundNode->pCenter );
+                        }
+#endif
                         //if (DebugModeFlag)
                             WriteLog("Type: UpdateValues & Track command - " +
                                      std::string(tmpEvent->Params[0].asText) + " " +
@@ -5038,7 +5054,8 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
             if ((tmp = FastGetSubRect(i, j)) != NULL)
                 for (node = tmp->nRootNode; node; node = node->nNext2) // następny z sektora
                     if (node->iType == TP_TRACK) // Ra: przebudować na użycie tabeli torów?
-                        for (k = 0; k < node->pTrack->iNumDynamics; k++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+                        for( k = 0; k < node->pTrack->iNumDynamics; k++ )
                             if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
                                        true) // czy ma mieć obsadę
                                 if ((sqd = SquareMagnitude(
@@ -5048,6 +5065,17 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
                                     sqm = sqd; // nowa odległość
                                     dyn = node->pTrack->Dynamics[k]; // nowy lider
                                 }
+#else
+                        for( auto dynamic : node->pTrack->Dynamics ) {
+                            if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
+                                // czy ma mieć obsadę
+                                if( ( sqd = SquareMagnitude( dynamic->GetPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odległość
+                                    dyn = dynamic; // nowy lider
+                                }
+                            }
+                        }
+#endif
     return dyn;
 };
 TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, bool mech)
@@ -5064,7 +5092,8 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
             if ((tmp = FastGetSubRect(i, j)) != NULL)
                 for (node = tmp->nRootNode; node; node = node->nNext2) // następny z sektora
                     if (node->iType == TP_TRACK) // Ra: przebudować na użycie tabeli torów?
-                        for (k = 0; k < node->pTrack->iNumDynamics; k++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+                        for( k = 0; k < node->pTrack->iNumDynamics; k++ )
                             if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
                                        true) // czy ma mieć obsadę
                             {
@@ -5083,6 +5112,21 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
                                     dyn = node->pTrack->Dynamics[k]; // nowy lider
                                 }
                             }
+#else
+                        for( auto dynamic : node->pTrack->Dynamics ) {
+                            if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
+                                // czy ma mieć obsadę
+                                if( ( sqd = SquareMagnitude( dynamic->HeadPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odległość
+                                    dyn = dynamic; // nowy lider
+                                }
+                                if( ( sqd = SquareMagnitude( dynamic->RearPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odległość
+                                    dyn = dynamic; // nowy lider
+                                }
+                            }
+                        }
+#endif
     return dyn;
 };
 //---------------------------------------------------------------------------
@@ -5221,7 +5265,11 @@ void TGround::TrackBusyList()
     TTrack *Track;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
         if (!Current->asName.empty()) // musi być nazwa
-            if (Current->pTrack->iNumDynamics) // osi to chyba nie ma jak policzyć
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+            if( Current->pTrack->iNumDynamics ) // osi to chyba nie ma jak policzyć
+#else
+            if( false == Current->pTrack->Dynamics.empty() )
+#endif
                 WyslijString(Current->asName, 8); // zajęty
 };
 //---------------------------------------------------------------------------

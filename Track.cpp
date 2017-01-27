@@ -145,7 +145,9 @@ void TIsolated::Modify(int i, TDynamicObject *o)
 TTrack::TTrack(TGroundNode *g) :
     pMyNode( g ) // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
 {
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     ::SecureZeroMemory( Dynamics, sizeof( Dynamics ) );
+#endif
     fRadiusTable[ 0 ] = 0.0;
     fRadiusTable[ 1 ] = 0.0;
     nFouling[ 0 ] = nullptr;
@@ -997,6 +999,7 @@ bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         Dynamic->MyTrack = NULL; // trzeba by to uzależnić od kierunku ruchu...
         return true;
     }
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     if (Global::iMultiplayer) // jeśli multiplayer
         if (!iNumDynamics) // pierwszy zajmujący
             if (pMyNode->asName != "none")
@@ -1016,6 +1019,25 @@ bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         Error("Too many dynamics on track " + pMyNode->asName);
         return false;
     }
+#else
+    if( Global::iMultiplayer ) {
+        // jeśli multiplayer
+        if( true == Dynamics.empty() ) {
+            // pierwszy zajmujący
+            if( pMyNode->asName != "none" ) {
+                // przekazanie informacji o zajętości toru
+                Global::pGround->WyslijString( pMyNode->asName, 8 );
+            }
+        }
+    }
+    Dynamics.emplace_back( Dynamic );
+    Dynamic->MyTrack = this; // ABu: na ktorym torze jesteśmy
+    if( Dynamic->iOverheadMask ) {
+        // jeśli ma pantografy
+        Dynamic->OverheadTrack( fOverhead ); // przekazanie informacji o jeździe bezprądowej na tym odcinku toru
+    }
+    return true;
+#endif
 };
 
 void TTrack::MoveMe(vector3 pPosition)
@@ -1833,14 +1855,24 @@ void TTrack::Render()
 
 bool TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
 { // sprawdzenie, czy pojazd jest przypisany do toru
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     for (int i = 0; i < iNumDynamics; i++)
         if (Dynamic == Dynamics[i])
             return true;
     return false;
+#else
+    for( auto dynamic : Dynamics ) {
+        if( dynamic == Dynamic ) {
+            return true;
+        }
+    }
+    return false;
+#endif
 };
 
 bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
 { // usunięcie pojazdu z listy przypisanych do toru
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     for (int i = 0; i < iNumDynamics; i++)
     { // sprawdzanie wszystkich po kolei
         if (Dynamic == Dynamics[i])
@@ -1858,6 +1890,41 @@ bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
     }
     Error("Cannot remove dynamic from track");
     return false;
+#else
+    bool result = false;
+    if( *Dynamics.begin() == Dynamic ) {
+        // most likely the object getting removed it's at the front...
+        Dynamics.pop_front();
+        result = true;
+    }
+    else if( *( --Dynamics.end() ) == Dynamic ) {
+        // ...or the back of the queue...
+        Dynamics.pop_back();
+        result = true;
+    }
+    else {
+        // ... if these fail, check all objects one by one, just in case
+        // TODO: check if this is ever needed, remove if it isn't.
+        for( auto idx = Dynamics.begin(); idx != Dynamics.end(); ++idx ) {
+            if( *idx == Dynamic ) {
+                Dynamics.erase( idx );
+                result = true;
+            }
+        }
+    }
+    if( Global::iMultiplayer ) {
+        // jeśli multiplayer
+        if( true == Dynamics.empty() ) {
+            // jeśli już nie ma żadnego
+            if( pMyNode->asName != "none" ) {
+                // przekazanie informacji o zwolnieniu toru
+                Global::pGround->WyslijString( pMyNode->asName, 9 ); 
+            }
+        }
+    }
+    
+    return result;
+#endif
 }
 
 bool TTrack::InMovement()
@@ -2551,28 +2618,48 @@ void TTrack::EnvironmentReset()
 
 void TTrack::RenderDyn()
 { // renderowanie nieprzezroczystych fragmentów pojazdów
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     if (!iNumDynamics)
         return; // po co kombinować, jeśli nie ma pojazdów?
     // EnvironmentSet(); //Ra: pojazdy sobie same teraz liczą cienie
     for (int i = 0; i < iNumDynamics; i++)
         Dynamics[i]->Render(); // sam sprawdza, czy VBO; zmienia kontekst VBO!
     // EnvironmentReset();
+#else
+    for( auto dynamic : Dynamics ) {
+        // sam sprawdza, czy VBO; zmienia kontekst VBO!
+        dynamic->Render();
+    }
+#endif
 };
 
 void TTrack::RenderDynAlpha()
 { // renderowanie przezroczystych fragmentów pojazdów
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     if (!iNumDynamics)
         return; // po co kombinować, jeśli nie ma pojazdów?
     // EnvironmentSet(); //Ra: pojazdy sobie same teraz liczą cienie
     for (int i = 0; i < iNumDynamics; i++)
         Dynamics[i]->RenderAlpha(); // sam sprawdza, czy VBO; zmienia kontekst VBO!
     // EnvironmentReset();
+#else
+    for( auto dynamic : Dynamics ) {
+        // sam sprawdza, czy VBO; zmienia kontekst VBO!
+        dynamic->RenderAlpha();
+    }
+#endif
 };
 
 void TTrack::RenderDynSounds()
 { // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
-    for (int i = 0; i < iNumDynamics; i++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+    for( int i = 0; i < iNumDynamics; i++ )
         Dynamics[i]->RenderSounds();
+#else
+    for( auto dynamic : Dynamics ) {
+        dynamic->RenderSounds();
+    }
+#endif
 };
 //---------------------------------------------------------------------------
 bool TTrack::SetConnections(int i)
@@ -2906,8 +2993,15 @@ TTrack * TTrack::RaAnimate()
                         SwitchExtension->vTrans; // SwitchExtension->Segments[0]->FastGetPoint(0.5);
                     Segment->Init(middle + vector3(sina, 0.0, cosa),
                                   middle - vector3(sina, 0.0, cosa), 5.0); // nowy odcinek
-                    for (int i = 0; i < iNumDynamics; i++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+                    for( int i = 0; i < iNumDynamics; i++ )
                         Dynamics[i]->Move(0.000001); // minimalny ruch, aby przeliczyć pozycję i
+#else
+                    for( auto dynamic : Dynamics ) {
+                        // minimalny ruch, aby przeliczyć pozycję
+                        dynamic->Move( 0.000001 );
+                    }
+#endif
                     // kąty
                     if (Global::bUseVBO)
                     { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
@@ -2939,8 +3033,15 @@ TTrack * TTrack::RaAnimate()
 //---------------------------------------------------------------------------
 void TTrack::RadioStop()
 { // przekazanie pojazdom rozkazu zatrzymania
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     for (int i = 0; i < iNumDynamics; i++)
         Dynamics[i]->RadioStop();
+#else
+    for( auto dynamic : Dynamics ) {
+        dynamic->RadioStop();
+    }
+#endif
+
 };
 
 double TTrack::WidthTotal()

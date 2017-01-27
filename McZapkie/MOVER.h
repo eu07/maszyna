@@ -672,7 +672,7 @@ public:
 							/*nastawniki:*/
 	int MainCtrlPosNo = 0;     /*ilosc pozycji nastawnika*/
 	int ScndCtrlPosNo = 0;
-	int LightsPosNo = 1;
+	int LightsPosNo = 0; // NOTE: values higher than 0 seem to break the current code for light switches
     int LightsDefPos = 0;
 	bool LightsWrap = false;
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16

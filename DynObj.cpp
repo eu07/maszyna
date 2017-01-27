@@ -965,6 +965,7 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track,
 
     // Uwaga! Jesli CouplNr==-2 to szukamy njblizszego obiektu, a nie sprzegu!!!
 
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     if ((Track->iNumDynamics) > 0)
     { // o ile w ogóle jest co przeglądać na tym torze
         // vector3 poz; //pozycja pojazdu XYZ w scenerii
@@ -1013,7 +1014,33 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track,
         }
         return NULL;
     }
-    return NULL;
+#else
+    for( auto dynamic : Track->Dynamics ) {
+
+        if( CouplNr == -2 ) {
+            // wektor [kamera-obiekt] - poszukiwanie obiektu
+            if( LengthSquared3( Global::GetCameraPosition() - dynamic->vPosition ) < 100.0 ) {
+                // 10 metrów
+                return dynamic;
+            }
+        }
+        else {
+            // jeśli (CouplNr) inne niz -2, szukamy sprzęgu
+            if( LengthSquared3( Global::GetCameraPosition() - dynamic->vCoulpler[ 0 ] ) < 25.0 ) {
+                // 5 metrów
+                CouplNr = 0;
+                return dynamic;
+            }
+            if( LengthSquared3( Global::GetCameraPosition() - dynamic->vCoulpler[ 1 ] ) < 25.0 ) {
+                // 5 metrów
+                CouplNr = 1;
+                return dynamic;
+            }
+        }
+    }
+    // empty track or nothing found
+    return nullptr;
+#endif
 }
 
 TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir,
@@ -1135,14 +1162,22 @@ TDynamicObject * TDynamicObject::ABuFindObject(TTrack *Track, int ScanDir,
 
     // WY: wskaznik do znalezionego obiektu.
     //    CouplFound - nr sprzegu znalezionego obiektu
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     if (Track->iNumDynamics > 0)
+#else
+    if( false == Track->Dynamics.empty() )
+#endif
     { // sens szukania na tym torze jest tylko, gdy są na nim pojazdy
         double ObjTranslation; // pozycja najblizszego obiektu na torze
         double MyTranslation; // pozycja szukającego na torze
         double MinDist = Track->Length(); // najmniejsza znaleziona odleglość
         // (zaczynamy od długości toru)
         double TestDist; // robocza odległość od kolejnych pojazdów na danym odcinku
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
         int iMinDist = -1; // indeks wykrytego obiektu
+#else
+        TDynamicObject *collider = nullptr;
+#endif
         // if (Track->iNumDynamics>1)
         // iMinDist+=0; //tymczasowo pułapka
         if (MyTrack == Track) // gdy szukanie na tym samym torze
@@ -1154,7 +1189,8 @@ TDynamicObject * TDynamicObject::ABuFindObject(TTrack *Track, int ScanDir,
             MyTranslation = MinDist; // szukanie w kierunku Point1 (do zera) - jesteśmy w Point2
         if (ScanDir >= 0)
         { // jeśli szukanie w kierunku Point2
-            for (int i = 0; i < Track->iNumDynamics; i++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+            for( int i = 0; i < Track->iNumDynamics; i++ )
             { // pętla po pojazdach
                 if (Track->Dynamics[i] != this) // szukający się nie liczy
                 {
@@ -1200,10 +1236,56 @@ TDynamicObject * TDynamicObject::ABuFindObject(TTrack *Track, int ScanDir,
                     }
                 }
             }
+#else
+            for( auto dynamic : Track->Dynamics ) {
+                // pętla po pojazdach
+                if( dynamic == this ) {
+                    // szukający się nie liczy
+                    continue;
+                }
+                
+                TestDist = ( dynamic->RaTranslationGet() ) - MyTranslation; // odległogłość tamtego od szukającego
+                if( ( TestDist > 0 ) && ( TestDist <= MinDist ) ) { // gdy jest po właściwej stronie i bliżej
+                    // niż jakiś wcześniejszy
+                    CouplFound = ( dynamic->RaDirectionGet() > 0 ) ? 1 : 0; // to, bo (ScanDir>=0)
+                    if( Track->iCategoryFlag & 254 ) {
+                        // trajektoria innego typu niż tor kolejowy
+                        // dla torów nie ma sensu tego sprawdzać, rzadko co jedzie po jednej szynie i się mija
+                        // Ra: mijanie samochodów wcale nie jest proste
+                        // Przesuniecie wzgledne pojazdow. Wyznaczane, zeby sprawdzic,
+                        // czy pojazdy faktycznie sie zderzaja (moga byc przesuniete
+                        // w/m siebie tak, ze nie zachodza na siebie i wtedy sie mijaja).
+                        double RelOffsetH; // wzajemna odległość poprzeczna
+                        if( CouplFound ) {
+                            // my na tym torze byśmy byli w kierunku Point2
+                            // dla CouplFound=1 są zwroty zgodne - istotna różnica przesunięć
+                            RelOffsetH = ( MoverParameters->OffsetTrackH - dynamic->MoverParameters->OffsetTrackH );
+                        }
+                        else {
+                            // dla CouplFound=0 są zwroty przeciwne - przesunięcia sumują się
+                            RelOffsetH = ( MoverParameters->OffsetTrackH + dynamic->MoverParameters->OffsetTrackH );
+                        }
+                        if( RelOffsetH < 0 ) {
+                            RelOffsetH = -RelOffsetH;
+                        }
+                        if( RelOffsetH + RelOffsetH > MoverParameters->Dim.W + dynamic->MoverParameters->Dim.W ) {
+                            // odległość większa od połowy sumy szerokości - kolizji nie będzie
+                            continue;
+                        }
+                        // jeśli zahaczenie jest niewielkie, a jest miejsce na poboczu, to
+                        // zjechać na pobocze
+                    }
+                    collider = dynamic; // potencjalna kolizja
+                    MinDist = TestDist; // odleglość pomiędzy aktywnymi osiami pojazdów
+                }
+                
+            }
+#endif
         }
         else //(ScanDir<0)
         {
-            for (int i = 0; i < Track->iNumDynamics; i++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+            for( int i = 0; i < Track->iNumDynamics; i++ )
             {
                 if (Track->Dynamics[i] != this)
                 {
@@ -1247,15 +1329,54 @@ TDynamicObject * TDynamicObject::ABuFindObject(TTrack *Track, int ScanDir,
                     }
                 }
             }
+#else
+            for( auto dynamic : Track->Dynamics ) {
+
+                if( dynamic == this ) { continue; }
+
+                TestDist = MyTranslation - ( dynamic->RaTranslationGet() ); //???-przesunięcie wózka względem Point1 toru
+                if( ( TestDist > 0 ) && ( TestDist < MinDist ) ) {
+                    CouplFound = ( dynamic->RaDirectionGet() > 0 ) ? 0 : 1; // odwrotnie, bo (ScanDir<0)
+                    if( Track->iCategoryFlag & 254 ) // trajektoria innego typu niż tor kolejowy
+                    { // dla torów nie ma sensu tego sprawdzać, rzadko co jedzie po jednej szynie i się mija
+                        // Ra: mijanie samochodów wcale nie jest proste
+                        // Przesunięcie względne pojazdów. Wyznaczane, żeby sprawdzić,
+                        // czy pojazdy faktycznie się zderzają (mogą być przesunięte
+                        // w/m siebie tak, że nie zachodzą na siebie i wtedy sie mijają).
+                        double RelOffsetH; // wzajemna odległość poprzeczna
+                        if( CouplFound ) {
+                            // my na tym torze byśmy byli w kierunku Point1
+                            // dla CouplFound=1 są zwroty zgodne - istotna różnica przesunięć
+                            RelOffsetH = ( MoverParameters->OffsetTrackH - dynamic->MoverParameters->OffsetTrackH );
+                        }
+                        else {
+                            // dla CouplFound=0 są zwroty przeciwne - przesunięcia sumują się
+                            RelOffsetH = ( MoverParameters->OffsetTrackH + dynamic->MoverParameters->OffsetTrackH );
+                        }
+                        if( RelOffsetH < 0 ) {
+                            RelOffsetH = -RelOffsetH;
+                        }
+                        if( RelOffsetH + RelOffsetH > MoverParameters->Dim.W + dynamic->MoverParameters->Dim.W ) {
+                            // odległość większa od połowy sumy szerokości - kolizji nie będzie
+                            continue;
+                        }
+                    }
+                    collider = dynamic; // potencjalna kolizja
+                    MinDist = TestDist; // odleglość pomiędzy aktywnymi osiami pojazdów
+                }
+            }
+#endif
         }
-        dist += MinDist; // doliczenie odległości przeszkody albo długości odcinka
-        // do przeskanowanej
-        // odległości
-        return (iMinDist >= 0) ? Track->Dynamics[iMinDist] : NULL;
+        dist += MinDist; // doliczenie odległości przeszkody albo długości odcinka do przeskanowanej odległości
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+        return ( iMinDist >= 0 ) ? Track->Dynamics[ iMinDist ] : NULL;
+#else
+        return collider;
+#endif
     }
     dist += Track->Length(); // doliczenie długości odcinka do przeskanowanej
     // odległości
-    return NULL; // nie ma pojazdów na torze, to jest NULL
+    return nullptr; // nie ma pojazdów na torze, to jest NULL
 }
 
 int TDynamicObject::DettachStatus(int dir)

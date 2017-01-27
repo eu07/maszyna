@@ -298,7 +298,7 @@ Name( NameInit )
     }
 
     for (int b = 0; b < 2; ++b)
-        for (int k = 1; k <= 17; ++k)
+        for (int k = 0; k < 17; ++k)
             Lights[b][k] = 0;
 
     for (int b = -1; b <= MainBrakeMaxPos; ++b)
