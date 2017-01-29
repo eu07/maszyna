@@ -5836,7 +5836,7 @@ bool TMoverParameters::readDList( std::string const &line ) {
     ++DLISTLINE;
     int idx = 0;
     parser >> idx;
-    if( idx >= sizeof( DElist ) ) {
+    if( idx >= sizeof( RList ) ) {
         WriteLog( "Read DList: number of entries exceeded capacity of the data table" );
         return false;
     }

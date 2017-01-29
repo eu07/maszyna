@@ -319,7 +319,7 @@ std::string TSpeedPos::TableText()
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
 		return "Flags=" + to_hex_str(iFlags, 6) + ", Dist=" + to_string(fDist, 1, 7) +
-               ", Vel=" + to_string(fVelNext, 1, 5) + ", Name=" + GetName();
+               ", Vel=" + (fVelNext == -1.0 ? "   * " : to_string(fVelNext, 1, 5)) + ", Name=" + GetName();
         //if (iFlags & spTrack) // jeśli tor
         //    return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
         //           ", Vel=" + AnsiString(fVelNext) + ", Track=" + trTrack->NameGet();

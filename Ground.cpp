@@ -3998,7 +3998,8 @@ bool TGround::CheckQuery()
             {
             case tp_CopyValues: // skopiowanie wartości z innej komórki
                 tmpEvent->Params[5].asMemCell->UpdateValues(
-                    tmpEvent->Params[9].asMemCell->Text(), tmpEvent->Params[9].asMemCell->Value1(),
+                    tmpEvent->Params[9].asMemCell->Text(),
+                    tmpEvent->Params[9].asMemCell->Value1(),
                     tmpEvent->Params[9].asMemCell->Value2(),
                     tmpEvent->iFlags // flagi określają, co ma być skopiowane
                     );
@@ -4009,8 +4010,10 @@ bool TGround::CheckQuery()
                 { // teraz mogą być warunki do tych eventów
                     if (tmpEvent->Type != tp_CopyValues) // dla CopyValues zrobiło się wcześniej
                         tmpEvent->Params[5].asMemCell->UpdateValues(
-                            tmpEvent->Params[0].asText, tmpEvent->Params[1].asdouble,
-                            tmpEvent->Params[2].asdouble, tmpEvent->iFlags);
+                            tmpEvent->Params[0].asText,
+                            tmpEvent->Params[1].asdouble,
+                            tmpEvent->Params[2].asdouble,
+                            tmpEvent->iFlags);
                     if (tmpEvent->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
@@ -4198,14 +4201,24 @@ bool TGround::CheckQuery()
                 if (tmpEvent->iFlags & update_load)
                 { // jeśli pytanie o ładunek
                     if (tmpEvent->iFlags & update_memadd) // jeśli typ pojazdu
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             strdup(tmpEvent->Activator->MoverParameters->TypeName.c_str()), // typ pojazdu
                             0, // na razie nic
                             0, // na razie nic
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
+#else
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                            tmpEvent->Activator->MoverParameters->TypeName, // typ pojazdu
+                            0, // na razie nic
+                            0, // na razie nic
+                            tmpEvent->iFlags &
+                                (update_memstring | update_memval1 | update_memval2));
+#endif
                     else // jeśli parametry ładunku
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->LoadType != "" ?
                                 strdup(tmpEvent->Activator->MoverParameters->LoadType.c_str()) :
                                 (char*)"none", // nazwa ładunku
@@ -4213,21 +4226,38 @@ bool TGround::CheckQuery()
                             tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
+#else
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                            tmpEvent->Activator->MoverParameters->LoadType, // nazwa ładunku
+                            tmpEvent->Activator->MoverParameters->Load, // aktualna ilość
+                            tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
+                            tmpEvent->iFlags &
+                                (update_memstring | update_memval1 | update_memval2));
+#endif
                 }
                 else if (tmpEvent->iFlags & update_memadd)
                 { // jeśli miejsce docelowe pojazdu
-                    tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                    tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                         strdup(tmpEvent->Activator->asDestination.c_str()), // adres docelowy
                         tmpEvent->Activator->DirectionGet(), // kierunek pojazdu względem czoła
                         // składu (1=zgodny,-1=przeciwny)
                         tmpEvent->Activator->MoverParameters
                             ->Power, // moc pojazdu silnikowego: 0 dla wagonu
                         tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
+#else
+                    tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                        tmpEvent->Activator->asDestination, // adres docelowy
+                        tmpEvent->Activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
+                        tmpEvent->Activator->MoverParameters ->Power, // moc pojazdu silnikowego: 0 dla wagonu
+                        tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
+#endif
                 }
                 else if (tmpEvent->Activator->Mechanik)
                     if (tmpEvent->Activator->Mechanik->Primary())
                     { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
 							const_cast<char *>(tmpEvent->Activator->Mechanik->TrainName().c_str()),
                             tmpEvent->Activator->Mechanik->StationCount() -
                                 tmpEvent->Activator->Mechanik
@@ -4235,6 +4265,16 @@ bool TGround::CheckQuery()
                             tmpEvent->Activator->Mechanik->IsStop() ? 1 :
                                                                       0, // 1, gdy ma tu zatrzymanie
                             tmpEvent->iFlags);
+#else
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+							tmpEvent->Activator->Mechanik->TrainName(),
+                            tmpEvent->Activator->Mechanik->StationCount() -
+                                tmpEvent->Activator->Mechanik
+                                    ->StationIndex(), // ile przystanków do końca
+                            tmpEvent->Activator->Mechanik->IsStop() ? 1 :
+                                                                      0, // 1, gdy ma tu zatrzymanie
+                            tmpEvent->iFlags);
+#endif
                         WriteLog("Train detected: " + tmpEvent->Activator->Mechanik->TrainName());
                     }
                 break;

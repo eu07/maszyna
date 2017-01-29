@@ -82,16 +82,13 @@ inline double Random(double b)
 
 inline double BorlandTime()
 {
-	std::tm epoch;
-	epoch.tm_sec = 0;
-	epoch.tm_min = 0;
-	epoch.tm_hour = 0;
-	epoch.tm_mday = 1;
-	epoch.tm_mon = 0;
-	epoch.tm_year = 0;
-	time_t basetime = mktime(&epoch);
-	time_t raw_t = time(NULL);
-	return (difftime(raw_t, basetime) / 24) + 2;
+    auto timesinceepoch = std::time( nullptr );
+    return timesinceepoch / (24.0 * 60 * 60);
+/*
+    // std alternative
+    auto timesinceepoch = std::chrono::system_clock::now().time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::seconds>( timesinceepoch ).count() / (24.0 * 60 * 60);
+*/
 }
 
 std::string Now();
@@ -110,13 +107,11 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*operacje na stringach*/
 std::string ReadWord( std::ifstream& infile); /*czyta slowo z wiersza pliku tekstowego*/
 //std::string Ups(std::string s);
-std::string TrimSpace(std::string &s,  int Just = CutBoth);
+std::string TrimSpace(std::string &s);
 char* TrimAndReduceSpaces(const char* s);
 std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
-std::string Ld2Sp(std::string const &s); /*Low dash to Space sign*/
-std::string Tab2Sp(std::string const &s); /*Tab to Space sign*/
 std::string ExchangeCharInString(std::string const &s,  const char &aim, const char &target); // zamienia jeden znak na drugi
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);

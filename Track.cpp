@@ -121,8 +121,13 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (Global::iMultiplayer) // jeśli multiplayer
                 Global::pGround->WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
-                pMemCell->UpdateValues(NULL, 0, int(pMemCell->Value2()) & ~0xFF,
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                pMemCell->UpdateValues( NULL, 0, int( pMemCell->Value2() ) & ~0xFF,
                                        update_memval2); //"zerujemy" ostatnią wartość
+#else
+                pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) & ~0xFF,
+                update_memval2 ); //"zerujemy" ostatnią wartość
+#endif
         }
     }
     else
@@ -135,8 +140,12 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (Global::iMultiplayer) // jeśli multiplayer
                 Global::pGround->WyslijString(asName, 11); // wysłanie pakietu o zajęciu
             if (pMemCell) // w powiązanej komórce
-                pMemCell->UpdateValues(NULL, 0, int(pMemCell->Value2()) | 1,
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                pMemCell->UpdateValues( NULL, 0, int( pMemCell->Value2() ) | 1,
                                        update_memval2); // zmieniamy ostatnią wartość na nieparzystą
+#else
+                pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, update_memval2 ); // zmieniamy ostatnią wartość na nieparzystą
+#endif
         }
     }
 };
@@ -1893,7 +1902,7 @@ bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
 #else
     bool result = false;
     if( *Dynamics.begin() == Dynamic ) {
-        // most likely the object getting removed it's at the front...
+        // most likely the object getting removed is at the front...
         Dynamics.pop_front();
         result = true;
     }
@@ -1903,12 +1912,15 @@ bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
         result = true;
     }
     else {
-        // ... if these fail, check all objects one by one, just in case
-        // TODO: check if this is ever needed, remove if it isn't.
-        for( auto idx = Dynamics.begin(); idx != Dynamics.end(); ++idx ) {
+        // ... if these fail, check all objects one by one
+        for( auto idx = Dynamics.begin(); idx != Dynamics.end(); /*iterator advancement is inside the loop*/ ) {
             if( *idx == Dynamic ) {
-                Dynamics.erase( idx );
+                idx = Dynamics.erase( idx );
                 result = true;
+                break; // object are unique, so we can bail out here.
+            }
+            else {
+                ++idx;
             }
         }
     }
