@@ -5826,16 +5826,8 @@ bool TMoverParameters::readBPT(/*int const ln,*/ std::string const &line)
 bool TMoverParameters::readDList( std::string const &line ) {
 
     cParser parser( line );
-    parser.getTokens( 4, false );
-/*  warning disabled until i know what to expect ._.
-    if( false == parser.getTokens( 4, false ) ) {
-    WriteLog( "Read DList: arguments missing in line " + std::to_string( DLISTLINE + 1 ) );
-    return false;
-    }
-*/
-    ++DLISTLINE;
-    int idx = 0;
-    parser >> idx;
+    parser.getTokens( 3, false );
+    auto idx = DLISTLINE++;
     if( idx >= sizeof( RList ) ) {
         WriteLog( "Read DList: number of entries exceeded capacity of the data table" );
         return false;

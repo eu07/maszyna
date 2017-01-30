@@ -43,7 +43,7 @@ class TTexturesManager
 
     static Names::iterator LoadFromFile(std::string name, int filter = -1);
 
-    static AlphaValue LoadBMP(std::string fileName);
+    static AlphaValue LoadBMP(std::string const &fileName);
     static AlphaValue LoadTEX(std::string fileName);
     static AlphaValue LoadTGA(std::string fileName, int filter = -1);
     static AlphaValue LoadDDS(std::string fileName, int filter = -1);

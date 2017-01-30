@@ -70,7 +70,11 @@ double GetFPS()
 void ResetTimers()
 {
     // double CurrentTime=
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
     ::GetTickCount64();
+#else
+    ::GetTickCount();
+#endif
     DeltaTime = 0.1;
     DeltaRenderTime = 0;
     fSoundTimer = 0;
@@ -102,7 +106,11 @@ void UpdateTimers(bool pause)
     oldCount = count;
 
     // Keep track of the time lapse and frame count
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
     double fTime = ::GetTickCount64() * 0.001f; // Get current time in seconds
+#else
+    double fTime = ::GetTickCount() * 0.001f; // Get current time in seconds
+#endif
     ++dwFrames; // licznik ramek
     // update the frame rate once per second
     if (fTime - fLastTime > 1.0f)

@@ -54,14 +54,14 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
 
     AlphaValue texinfo;
 
-    if (ext == "tga")
+    if( ext == "dds" )
+        texinfo = LoadDDS( realFileName, filter );
+    else if( ext == "tga" )
         texinfo = LoadTGA(realFileName, filter);
     else if (ext == "tex")
         texinfo = LoadTEX(realFileName);
     else if (ext == "bmp")
         texinfo = LoadBMP(realFileName);
-    else if (ext == "dds")
-        texinfo = LoadDDS(realFileName, filter);
 
     _alphas.insert(
         texinfo); // zapamiętanie stanu przezroczystości tekstury - można by tylko przezroczyste
@@ -242,11 +242,11 @@ bool TTexturesManager::GetAlpha(GLuint id)
     return (iter != _alphas.end() ? iter->second : false);
 }
 
-TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
+TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string const &fileName)
 {
 
     AlphaValue fail(0, false);
-    std::ifstream file(fileName.c_str(), std::ios::binary);
+    std::ifstream file(fileName, std::ios::binary);
 
     if (!file.is_open())
     {
@@ -259,42 +259,44 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     file.read((char *)&header, sizeof(BITMAPFILEHEADER));
     if (file.eof())
     {
-        file.close();
         return fail;
     }
 
     // Read in bitmap information structure
     BITMAPINFO info;
-    long infoSize = header.bfOffBits - sizeof(BITMAPFILEHEADER);
-    file.read((char *)&info, infoSize);
+    unsigned int infoSize = header.bfOffBits - sizeof(BITMAPFILEHEADER);
+    if( infoSize > sizeof( info ) ) {
+        WriteLog( "Warning - BMP header is larger than expected, possible format difference." );
+    }
+    file.read((char *)&info, std::min(infoSize, sizeof(info)));
 
     if (file.eof())
     {
-        file.close();
         return fail;
     };
 
     GLuint width = info.bmiHeader.biWidth;
     GLuint height = info.bmiHeader.biHeight;
+    bool hasalpha = ( info.bmiHeader.biBitCount == 32 );
+
+    if( info.bmiHeader.biCompression != BI_RGB ) {
+        ErrorLog( "Compressed BMP textures aren't supported." );
+        return fail;
+    }
 
     unsigned long bitSize = info.bmiHeader.biSizeImage;
     if (!bitSize)
         bitSize = (width * info.bmiHeader.biBitCount + 7) / 8 * height;
 
-    GLubyte *data = new GLubyte[bitSize];
-    file.read((char *)data, bitSize);
+    std::shared_ptr<GLubyte> data( new GLubyte[ bitSize ], std::default_delete<GLubyte[]>() );
+    file.read((char *)data.get(), bitSize);
 
     if (file.eof())
     {
-        delete[] data;
-        file.close();
         return fail;
     };
 
-    file.close();
-
     GLuint id;
-
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -308,10 +310,19 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string fileName)
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, data);
+//    glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_BGR_EXT, GL_UNSIGNED_BYTE, data.get());
+    glTexImage2D(
+        GL_TEXTURE_2D, 
+        0,
+        hasalpha ? GL_RGBA : GL_RGB,
+        width,
+        height,
+        0,
+        hasalpha ? GL_BGRA : GL_BGR,
+        GL_UNSIGNED_BYTE,
+        data.get() );
 
-    delete[] data;
-    return std::make_pair(id, false);
+    return std::make_pair(id, hasalpha);
 };
 
 TTexturesManager::AlphaValue TTexturesManager::LoadTGA(std::string fileName, int filter)

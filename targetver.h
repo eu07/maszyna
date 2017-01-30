@@ -7,7 +7,8 @@
 
 #include <winsdkver.h>
 #ifndef _WIN32_WINNT
-#define _WIN32_WINNT  0x0600     // _WIN32_WINNT_VISTA
+//#define _WIN32_WINNT  0x0600     // _WIN32_WINNT_VISTA
+#define _WIN32_WINNT  0x0501     // _WIN32_WINNT_WINXP
 #endif
 
 #include <SDKDDKVer.h>
