@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // cParser -- generic class for parsing text data, either from file or provided string
 
-class cParser : public std::stringstream
+class cParser //: public std::stringstream
 {
   public:
     // parameters:
@@ -33,6 +33,15 @@ class cParser : public std::stringstream
     // destructor:
     virtual ~cParser();
     // methods:
+    template <typename _Type>
+    cParser&
+        operator>>( _Type &Right );
+    template <>
+    cParser&
+        operator>>( std::string &Right );
+    template <>
+    cParser&
+        operator>>( bool &Right );
     template <typename _Output>
 	_Output
 		getToken( bool const ToLower = true )
@@ -74,12 +83,14 @@ class cParser : public std::stringstream
     // load traction?
     bool LoadTraction;
 
-  protected:
+  private:
     // methods:
     std::string readToken(bool ToLower = true, const char *Break = "\n\t ;");
-    std::string readComment(std::string const &Break = "\n\t ;");
-    std::string trtest;
-    bool trimComments(std::string &String);
+    std::string readQuotes( char const Quote = '\"' );
+    std::string readComment( std::string const &Break = "\n\t ;" );
+//    std::string trtest;
+    bool findQuotes( std::string &String );
+    bool trimComments( std::string &String );
     // members:
     std::istream *mStream; // relevant kind of buffer is attached on creation.
     std::string mPath; // path to open stream, for relative path lookups.
@@ -88,19 +99,42 @@ class cParser : public std::stringstream
     commentmap mComments;
     cParser *mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
+    std::deque<std::string> tokens;
 };
 
-inline
+template<typename _Type>
 cParser&
-operator>>( cParser &Parser, bool &Right ) {
+cParser::operator>>( _Type &Right ) {
 
-	std::istream::sentry const streamokay( Parser );
-	if( streamokay ) {
+    if( true == this->tokens.empty() ) { return *this; }
 
-		std::string value;
-		Parser >> value;
-		Right = ( value == "true" );
-	}
+    std::stringstream converter( this->tokens.front() );
+    converter >> Right;
+    this->tokens.pop_front();
 
-	return Parser;
+    return *this;
+}
+
+template<>
+cParser&
+cParser::operator>>( std::string &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = this->tokens.front();
+    this->tokens.pop_front();
+
+    return *this;
+}
+
+template<>
+cParser&
+cParser::operator>>( bool &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = ( this->tokens.front() == "true" );
+    this->tokens.pop_front();
+
+    return *this;
 }

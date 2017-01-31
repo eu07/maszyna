@@ -158,7 +158,7 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability)
         return false;
 }
 
-std::string ReadWord(std::ifstream& infile)
+std::string ReadWord(std::ifstream &infile)
 {
     std::string s = "";
     char c;
@@ -176,7 +176,7 @@ std::string ReadWord(std::ifstream& infile)
     return s;
 }
 
-std::string TrimSpace(std::string &s, int Just)
+std::string TrimSpace(std::string &s)
 {
     /*int ii;
 
@@ -266,41 +266,6 @@ std::string DWE(std::string s) /*Delete After Equal sign*/
         return s;
 }
 
-std::string Ld2Sp(std::string const &s) /*Low dash to Space sign*/
-{
-    std::string s2( s );
-	char tmp[] = { '_', ' ' };
-	for (int b = 0; b < s2.length(); ++b)
-		if (s2[b] == tmp[0])
-			s2[b] = tmp[1];
-	//{
-	//	if (s[b] == tmp[0])
-	//		s2 = s2 + " ";
-	//	else
-	//		s2 = s2 + s[b];
-	//}
-	return s2;
-}
-
-std::string Tab2Sp(std::string const &s) /*Tab to Space sign*/
-{
-	std::string s2 = "";
-	char tmp = (char)9;
-	for (std::size_t b = 0; b < s.length(); ++b)
-	//{
-	//	if (s[b] == tmp[0])
-	//		s[b] = tmp[1];
-	//}
-	//return s;
-	{
-		if (s[b] == tmp)
-			s2 = s2 + " ";
-		else
-			s2 = s2 + s[b];
-	}
-	return s2;
-}
-
 std::string ExchangeCharInString( std::string const &Source, char const &From, char const &To )
 {
 	std::string replacement; replacement.reserve( Source.size() );
@@ -311,22 +276,6 @@ std::string ExchangeCharInString( std::string const &Source, char const &From, c
 	} );
 
 	return replacement;
-/*
-	int const length = Source.size();
-	std::string replacement; replacement.reserve( length );
-	for( int idx = 0; idx < length; ++idx ) {
-		if( Source[ idx ] != From ) {
-			replacement += Source[ idx ];
-		}
-		else {
-			if( To != NULL ) {
-				replacement += To;
-			}
-		}
-	}
-
-	return replacement;
-*/
 }
 
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems)
@@ -422,9 +371,12 @@ std::string to_hex_str( int const Value, int const Width )
 
 int stol_def(const std::string &str, const int &DefaultValue)
 {
-    // NOTE: there's good chance this function is bugged, it produced wrong result on at least one occasion
-    // TODO: rewrite into something more reliable
-
+    int result { DefaultValue };
+    std::stringstream converter;
+    converter << str;
+    converter >> result;
+    return result;
+/*
 	// this function was developed iteratively on Codereview.stackexchange
 	// with the assistance of @Corbin
 	std::size_t len = str.size();
@@ -443,6 +395,7 @@ int stol_def(const std::string &str, const int &DefaultValue)
 		return DefaultValue;
 	}
 	return result;
+*/
 }
 
 std::string ToLower(std::string const &text)

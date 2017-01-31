@@ -86,7 +86,7 @@ double TMoverParameters::current(double n, double U)
     double Rz, Delta, Isf;
     double Mn; // przujmuje int, ale dla poprawnosci obliczeń
     double Bn;
-    int SP;
+    int SP = 0;
     double U1; // napiecie z korekta
 
     MotorCurrent = 0;
@@ -266,10 +266,14 @@ double TMoverParameters::current(double n, double U)
 TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
                                    std::string NameInit, int LoadInitial,
                                    std::string LoadTypeInitial,
-                                   int Cab) //: T_MoverParameters(VelInitial, TypeNameInit,
+                                   int Cab) ://: T_MoverParameters(VelInitial, TypeNameInit,
                                             //NameInit, LoadInitial, LoadTypeInitial, Cab)
+TypeName( TypeNameInit ),
+ActiveCab( Cab ),
+LoadType( LoadTypeInitial ),
+Load( LoadInitial ),
+Name( NameInit )
 {
-    int b, k;
     WriteLog(
         "------------------------------------------------------");
     WriteLog("init default physic values for " + NameInit + ", [" + TypeNameInit + "], [" +
@@ -278,71 +282,42 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     DimHalf.x = 0.5 * Dim.W; // połowa szerokości, OX jest w bok?
     DimHalf.y = 0.5 * Dim.L; // połowa długości, OY jest do przodu?
     DimHalf.z = 0.5 * Dim.H; // połowa wysokości, OZ jest w górę?
-    Cx = 0.0;
-    Floor = 0.960; // standardowa wysokość podłogi
 
-    // BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odcięcie (CHK jest jeszcze nie
-    // wczytane!)
-    bPantKurek3 = true; // domyślnie zbiornik pantografu połączony jest ze zbiornikiem głównym
-    iProblem = 0; // pojazd w pełni gotowy do ruchu
-    iLights[0] = iLights[1] = 0; //światła zgaszone
+    // BrakeLevelSet(-2); //Pascal ustawia na 0, przestawimy na odcięcie (CHK jest jeszcze nie wczytane!)
+    iLights[ 0 ] = 0;
+    iLights[ 1 ] = 0; //światła zgaszone
 
     // inicjalizacja stalych
-    dMoveLen = 0.0;
-    CategoryFlag = 1;
-    TrainType = 0;
-    EngineType = None;
-    EnginePowerSource = TPowerParameters();
-    SystemPowerSource = TPowerParameters();
-    for (b = 0; b < ResArraySize + 1; ++b)
+    for (int b = 0; b < ResArraySize + 1; ++b)
     {
         RList[b] = TScheme();
     }
     RlistSize = 0;
-    for (b = 0; b < MotorParametersArraySize + 1; ++b)
-        MotorParam[b] = TMotorParameters();
-
-    WheelDiameter = 1.0;
-    WheelDiameterL = 0.9;
-    WheelDiameterT = 0.9;
-    TrackW = 1.435;
-    AxleInertialMoment = 0.0;
-    AxleArangement = "";
-    NPoweredAxles = 0;
-    NAxles = 0;
-    BearingType = 1;
-    ADist = 0.0;
-    BDist = 0.0;
-    SandCapacity = 0.0;
-
-    BrakeCtrlPosNo = 0;
-    LightsPosNo = 0;
-    LightsDefPos = 1;
-    LightsWrap = false;
-    for (b = 0; b < 2; b++)
-        for (k = 1; k <= 17; k++)
-            Lights[b][k] = 0;
-
-    for (k = -1; k <= MainBrakeMaxPos; k++)
-    {
-        BrakePressureTable[k].PipePressureVal = 0.0;
-        BrakePressureTable[k].BrakePressureVal = 0.0;
-        BrakePressureTable[k].FlowSpeedVal = 0.0;
+    for(int b = 0; b < MotorParametersArraySize + 1; ++b) {
+        MotorParam[ b ] = TMotorParameters();
     }
 
+    for (int b = 0; b < 2; ++b)
+        for (int k = 0; k < 17; ++k)
+            Lights[b][k] = 0;
+
+    for (int b = -1; b <= MainBrakeMaxPos; ++b)
+    {
+        BrakePressureTable[b].PipePressureVal = 0.0;
+        BrakePressureTable[b].BrakePressureVal = 0.0;
+        BrakePressureTable[b].FlowSpeedVal = 0.0;
+    }
     // with BrakePressureTable[-2] do  {pozycja odciecia}
     {
         BrakePressureTable[-2].PipePressureVal = -1.0;
         BrakePressureTable[-2].BrakePressureVal = -1.0;
         BrakePressureTable[-2].FlowSpeedVal = 0.0;
     }
-    Transmision = TTransmision();
+    for( int b = 0; b < 4; ++b ) {
+        BrakeDelay[ b ] = 0.0;
+    }
 
-    NBpA = 0;
-    DynamicBrakeType = 0;
-    ASBType = 0;
-    AutoRelayType = 0;
-    for (b = 0; b < 2; b++) // Ra: kto tu zrobił "for b:=1 to 2 do" ???
+    for (int b = 0; b < 2; ++b) // Ra: kto tu zrobił "for b:=1 to 2 do" ???
     {
         Couplers[b].CouplerType = NoCoupler;
         Couplers[b].SpringKB = 1.0;
@@ -352,158 +327,25 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
         Couplers[b].DmaxC = 0.1;
         Couplers[b].FmaxC = 1000.0;
     }
-    for( b = 0; b < 2; ++b ) {
+    for(int b = 0; b < 2; ++b ) {
         HVCouplers[ b ][ 0 ] = 0.0;
         HVCouplers[ b ][ 1 ] = 0.0;
     }
-    Power = 0.0;
-    MaxLoad = 0;
-    LoadAccepted = "";
-    LoadSpeed = 0.0;
-    UnLoadSpeed = 0.0;
-    HeatingPower = 0.0;
-    LightPower = 0.0;
-    BatteryVoltage = 0.0;
-    NominalBatteryVoltage = 0.0;
-    NominalVoltage = 0.0;
-    WindingRes = 0.0;
-    u = 0.0;
-    CircuitRes = 0.0;
-    IminLo, IminHi, ImaxLo, ImaxHi, Imin, Imax = 0.0;
-    nmax = 0.0;
-    Voltage = 0.0;
 
+    for( int b = 0; b < 3; ++b ) {
+        BrakeCylMult[ b ] = 0.0;
+    }
 
-    HeatingPowerSource = TPowerParameters();
-    //HeatingPowerSource.MaxVoltage = 0.0;
-    //HeatingPowerSource.MaxCurrent = 0.0;
-    //HeatingPowerSource.IntR = 0.001;
-    //HeatingPowerSource.SourceType = NotDefined;
-    //HeatingPowerSource.PowerType = NoPower;
-    //HeatingPowerSource.RPowerCable.PowerTrans = NoPower;
-
-    AlterHeatPowerSource = TPowerParameters();
-    //AlterHeatPowerSource.MaxVoltage = 0.0;
-    //AlterHeatPowerSource.MaxCurrent = 0.0;
-    //AlterHeatPowerSource.IntR = 0.001;
-    //AlterHeatPowerSource.SourceType = NotDefined;
-    //AlterHeatPowerSource.PowerType = NoPower;
-    //AlterHeatPowerSource.RPowerCable.PowerTrans = NoPower;
-
-    LightPowerSource = TPowerParameters();
-    //LightPowerSource.MaxVoltage = 0.0;
-    //LightPowerSource.MaxCurrent = 0.0;
-    //LightPowerSource.IntR = 0.001;
-    //LightPowerSource.SourceType = NotDefined;
-    //LightPowerSource.PowerType = NoPower;
-    //LightPowerSource.RPowerCable.PowerTrans = NoPower;
-
-    AlterLightPowerSource = TPowerParameters();
-    //AlterLightPowerSource.MaxVoltage = 0.0;
-    //AlterLightPowerSource.MaxCurrent = 0.0;
-    //AlterLightPowerSource.IntR = 0.001;
-    //AlterLightPowerSource.SourceType = NotDefined;
-    //AlterLightPowerSource.PowerType = NoPower;
-    //AlterLightPowerSource.RPowerCable.PowerTrans = NoPower;
-
-    TypeName = TypeNameInit;
-    HighPipePress = 0.0;
-    LowPipePress = 0.0;
-    DeltaPipePress = 0.0;
-	EqvtPipePress = 0.0;
-    CntrlPipePress = 0.0;
-    BrakeCylNo = 0;
-    BrakeCylRadius = 0.0;
-    BrakeCylDist = 0.0;
-    for (b = 0; b < 3; b++)
-        BrakeCylMult[b] = 0.0;
-    VeselVolume = 0.0;
-    BrakeVolume = 0.0;
-    BrakeVVolume = 0.0;
-    RapidMult = 1.0;
-    BrakeCylSpring = 0.0;
-    BrakeSlckAdj = 0.0;
-    BrakeRigEff = 0.0;
-    BrakeValveSize = 0.0;
-    BrakeValveParams = "";
-    AnPos = 0.0;
-    AnalogCtrl, AnMainCtrl = false;
-    Spg = 0.0;
-    MinCompressor = 0.0;
-    MaxCompressor = 0.0;
-    CompressorSpeed = 0.0;
-    ScndPipePress = 0.0;
-    BrakePress = 0.0;
-    LocBrakePress = 0.0;
-    PipeBrakePress = 0.0;
-    EqvtPipePress = 0.0;
-    Volume = 0.0;
-    CompressedVolume = 0.0;
-    Compressor = 0.0;
-    CompressorFlag = false;
-    PantCompFlag = false;
-    ConverterAllow = false;
-    LimPipePress = 0.0;
-    ActFlowSpeed = 0.0;
-
-    dizel_Mmax = 1.0;
-    dizel_nMmax = 1.0;
-    dizel_Mnmax = 2.0;
-    dizel_nmax = 2.0;
-    dizel_nominalfill = 0.0;
-    dizel_Mstand = 0.0;
-    dizel_nmax_cutoff = 0.0;
-    dizel_nmin = 0.0;
-    dizel_minVelfullengage = 0.0;
-    dizel_AIM = 1.0;
-    dizel_engageDia = 0.5;
-    dizel_engageMaxForce = 6000.0;
-    dizel_engagefriction = 0.5;
-    TurboTest = 0;
-    
-    DoorOpenCtrl = 0;
-    DoorCloseCtrl = 0;
-    DoorStayOpen = 0.0;
-    DoorClosureWarning = false;
-    DoorOpenSpeed = 1.0;
-    DoorCloseSpeed = 1.0;
-    DoorMaxShiftL = 0.5;
-    DoorMaxShiftR = 0.5;
-    DoorMaxPlugShift = 0.5;
-    DoorOpenMethod = 2;
-    DoorBlocked = false;
-
-    PlatformSpeed = 0.25;
-    PlatformMaxShift = 0.5;
-    PlatformOpenMethod = 1;
-
-    DepartureSignal = false;
-    InsideConsist = false;
-    CompressorPower = 1.0;
-    SmallCompressorPower = 0.0;
-
-	for (b = 0; b < 26; b++)
-		eimc[b] = 0.0;
+    for( int b = 0; b < 26; ++b ) {
+        eimc[ b ] = 0.0;
+    }
 	eimc[eimc_p_eped] = 1.5;
-	StopBrakeDecc = 0.0;
 
-    ScndInMain = false;
-
-    Vhyp = 1.0;
-    Vadd = 1.0;
-    Vmax = -1.0;
-    Mass = 0.0;
-    Power = 0.0;
-    Mred = 0.0;
-    TotalMass = 0.0;
-    PowerCorRatio = 1.0;
-    Ftmax = 0.0;
-    ScndS = false;
     // inicjalizacja zmiennych}
     // Loc:=LocInitial; //Ra: to i tak trzeba potem przesunąć, po ustaleniu pozycji na torze
     // (potrzebna długość)
     // Rot:=RotInitial;
-    for (b = 0; b < 2; b++)
+    for (int b = 0; b < 2; ++b)
     {
         Couplers[b].AllowedFlag = 3; // domyślnie hak i hamulec, inne trzeba włączyć jawnie w FIZ
         Couplers[b].CouplingFlag = 0;
@@ -514,155 +356,20 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
         Couplers[b].Dist = 0.0;
         Couplers[b].CheckCollision = false;
     }
-    ScanCounter = 0;
-    BrakeCtrlPos = -2; // to nie ma znaczenia, konstruktor w Mover.cpp zmienia na -2
-    fBrakeCtrlPos = BrakeCtrlPos;
-    BrakeCtrlPosR = 0.0;
-    BrakeCtrlPos2 = 0.0;
-    LocalBrakePos = 0;
-    LocalBrakePosA = 0.0;
-    ManualBrakePos = 0;
-    BrakeDelays = 0;
-    BrakeOpModeFlag = 0;
-    BrakeOpModes = 0;
 
-    BrakeDelayFlag = 0;
-    BrakeStatus = b_off;
-    EmergencyBrakeFlag = false;
-    MainCtrlPos = 0;
-    ScndCtrlPos = 0;
-    MainCtrlActualPos = 0;
-    ScndCtrlActualPos = 0;
-    CoupledCtrl = false;
-    IsCoupled = false;
-    DelayCtrlFlag = false;
-    AutoRelayFlag = false;
-
-	LightsPos = 0;
-    Heating = false;
-    Mains = false;
-    ActiveDir = 0; // kierunek nie ustawiony
-    CabNo = 0; // sterowania nie ma, ustawiana przez CabActivization()
-    ActiveCab = Cab; // obsada w podanej kabinie
-    DirAbsolute = 0;
-    SlippingWheels = false;
-    SandDose = false;
-    FuseFlag = false;
-    ConvOvldFlag = false; // hunter-251211
-    StLinFlag = false;
-    ResistorsFlag = false;
-    RventRot = 0.0;
-    RVentType = 0;
-    RVentnmax = 1.0;
-    RVentCutOff = 0.0;
-
-    enrot = 0.0;
-    nrot = 0.0;
-    Im = 0.0;
-    Itot = 0.0;
-    IHeating = 0.0;
-    ITraction = 0.0;
-    EnginePower = 0.0;
-    BrakePress = 0.0;
-    Compressor = 0.0;
-    ConverterFlag = false;
-    Trafo = false;
-    CompressorAllow = false;
-    DoorLeftOpened = false;
-    DoorRightOpened = false;
-    Battery = false;
-    EpFuse = true;
-    Signalling = false;
-    Radio = true;
-    DoorSignalling = false;
-    UnBrake = false;
-    // Winger 160204
-    PantVolume =
-        0.48; // aby podniesione pantografy opadły w krótkim czasie przy wyłączonej sprężarce
-    PantFrontUp = false;
-    PantRearUp = false;
-    PantFrontStart = 0;
-    PantRearStart = 0;
-    PantFrontSP = true;
-    PantRearSP = true;
-    PantPress = 0.0;
-    PantFrontVolt = 0.0;
-    PantRearVolt = 0.0;
-    PantSwitchType = "";
-    ConvSwitchType = "";
-    DoubleTr = 1;
-    BrakeSlippingTimer = 0.0;
-    dpBrake = 0.0;
-    dpPipe = 0.0;
-    dpMainValve = 0.0;
-    dpLocalValve = 0.0;
-    MBPM = 1.0;
-    DynamicBrakeFlag = false;
-    BrakeSystem = Individual;
-    BrakeSubsystem = ss_None;
-    BrakeValve = NoValve;
-    BrakeHandle = NoHandle;
-    BrakeLocHandle = NoHandle;
-    Hamulec = NULL;
-    Handle = NULL;
-    LocHandle = NULL;
-    Pipe = NULL;
-    Pipe2 = NULL;
-    LocalBrake = NoBrake;
-    MaxBrakeForce = 0.0;
-    MBrake = false;
-
-    for (b = 0; b < 5; b++)
+    for (int b = 0; b < 5; ++b)
     {
         MaxBrakePress[b] = 0.0;
     }
-    P2FTrans = 0.0;
-    TrackBrakeForce = 0.0;
-    BrakeMethod = 0;
 
-    Ft = 0.0;
-    Ff = 0.0;
-    Fb = 0.0;
-	dL = 0.0;
-    FTotal = 0.0;
-    FStand = 0.0;
-    FTrain = 0.0;
-	UnitBrakeForce = 0.0;
-	Ntotal = 0.0;
-    AccS = 0.0;
-    AccN = 0.0;
-    AccV = 0.0;
-    EventFlag = false;
-    SoundFlag = 0;
     Vel = abs(VelInitial);
     V = VelInitial / 3.6;
-    LastSwitchingTime = 0.0;
-    LastRelayTime = 0.0;
-    DistCounter = 0.0;
-    PulseForce = 0.0;
-    PulseForceTimer = 0.0;
-    PulseForceCount = 0.0;
-    MainCtrlPosNo = 0;
-    ScndCtrlPosNo = 0;
-    InitialCtrlDelay, CtrlDelay, CtrlDownDelay = 0.0;
-    FastSerialCircuit = 0;
 
-    eAngle = 1.5;
-    dizel_fill = 0.0;
-    dizel_engagestate = 0.0;
-    dizel_engage = 0.0;
-    dizel_automaticgearstatus = 0.0;
-    dizel_enginestart = false;
-    dizel_engagedeltaomega = 0.0;
-    PhysicActivation = true;
+    for( int b = 0; b < 21; b++ ) {
+        eimv[ b ] = 0.0;
+    }
 
-	for (b = 0; b < 21; b++)
-		eimv[b] = 0.0;
-
-    RunningShape.R = 0.0;
     RunningShape.Len = 1.0;
-    RunningShape.dHtrack = 0.0;
-    RunningShape.dHrail = 0.0;
 
     RunningTrack.CategoryFlag = CategoryFlag;
     RunningTrack.Width = TrackW;
@@ -675,20 +382,6 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     RunningTraction.TractionFreq = 0.0;
     RunningTraction.TractionMaxCurrent = 0.0;
     RunningTraction.TractionResistivity = 1.0;
-
-    OffsetTrackH = 0.0;
-    OffsetTrackV = 0.0;
-
-    CommandIn = TCommand();
-    //CommandIn.Command = "";
-    //CommandIn.Value1 = 0.0;
-    //CommandIn.Value2 = 0.0;
-    //CommandIn.Location.X = 0.0;
-    //CommandIn.Location.Y = 0.0;
-    //CommandIn.Location.Z = 0.0;
-    CommandLast, CommandOut = "";
-    ValueOut = 0.0;
-    // czesciowo stale, czesciowo zmienne}
 
     SecuritySystem.SystemType = 0;
     SecuritySystem.AwareDelay = -1.0;
@@ -712,29 +405,11 @@ TMoverParameters::TMoverParameters(double VelInitial, std::string TypeNameInit,
     //  if Pos(LoadTypeInitial,LoadAccepted)>0 then
     //   begin
     //}
-    LoadType = LoadTypeInitial;
-    Load = LoadInitial;
-    LoadStatus = 0;
-    LastLoadChangeTime = 0.0;
-    LoadFlag = 0;
-    LoadQuantity = "";
-    OverLoadFactor = 0.0;
 
     //{
     //   end
     //  else Load:=0;
     // }
-
-    Name = NameInit;
-    DerailReason = 0; // Ra: powód wykolejenia
-    TotalCurrent = 0.0;
-    ShuntModeAllow = false;
-    ShuntMode = false;
-    Flat = false;
-    DamageFlag = 0;
-    EngDmgFlag = 0;
-    DerailReason = 0;
-    WarningSignal = 0;
 };
 
 double TMoverParameters::Distance(const TLocation &Loc1, const TLocation &Loc2,
@@ -1066,7 +741,11 @@ void TMoverParameters::UpdatePantVolume(double dt)
 
 void TMoverParameters::UpdateBatteryVoltage(double dt)
 { // przeliczenie obciążenia baterii
-    double sn1, sn2, sn3, sn4, sn5; // Ra: zrobić z tego amperomierz NN
+    double sn1 = 0.0,
+           sn2 = 0.0,
+           sn3 = 0.0,
+           sn4 = 0.0,
+           sn5 = 0.0; // Ra: zrobić z tego amperomierz NN
     if ((BatteryVoltage > 0) && (EngineType != DieselEngine) && (EngineType != WheelsDriven) &&
         (NominalBatteryVoltage > 0))
     {
@@ -6147,17 +5826,9 @@ bool TMoverParameters::readBPT(/*int const ln,*/ std::string const &line)
 bool TMoverParameters::readDList( std::string const &line ) {
 
     cParser parser( line );
-    parser.getTokens( 4, false );
-/*  warning disabled until i know what to expect ._.
-    if( false == parser.getTokens( 4, false ) ) {
-    WriteLog( "Read DList: arguments missing in line " + std::to_string( DLISTLINE + 1 ) );
-    return false;
-    }
-*/
-    ++DLISTLINE;
-    int idx = 0;
-    parser >> idx;
-    if( idx >= sizeof( DElist ) ) {
+    parser.getTokens( 3, false );
+    auto idx = DLISTLINE++;
+    if( idx >= sizeof( RList ) ) {
         WriteLog( "Read DList: number of entries exceeded capacity of the data table" );
         return false;
     }

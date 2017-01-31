@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 // cParser -- generic class for parsing text data.
 
 // constructors
-cParser::cParser(std::string Stream, buffertype Type, std::string Path, bool tr)
+cParser::cParser(std::string const Stream, buffertype Type, std::string Path, bool tr)
 {
     LoadTraction = tr;
     // build comments map
@@ -73,28 +73,33 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
      else
       trtest="x"; //nie wczytywać
     */
+/*
     int i;
     this->str("");
     this->clear();
-    for (i = 0; i < Count; ++i)
+*/
+    for (int i = 0; i < Count; ++i)
     {
-        std::string string = readToken(ToLower, Break);
-        if( true == string.empty() ) {
+        std::string token = readToken(ToLower, Break);
+        if( true == token.empty() ) {
             // no more tokens
             break;
         }
         // collect parameters
+        tokens.emplace_back( token );
+/*
         if (i == 0)
-            this->str(string);
+            this->str(token);
         else
         {
             std::string temp = this->str();
             temp.append("\n");
-            temp.append(string);
+            temp.append(token);
             this->str(temp);
         }
+*/
     }
-    if (i < Count)
+    if (tokens.size() < Count)
         return false;
     else
         return true;
@@ -146,6 +151,8 @@ std::string cParser::readToken(bool ToLower, const char *Break)
             if (ToLower)
                 c = tolower(c);
             token += c;
+            if (findQuotes(token)) // do glue together words enclosed in quotes
+                break;
             if (trimComments(token)) // don't glue together words separated with comment
                 break;
         }
@@ -181,30 +188,48 @@ std::string cParser::readToken(bool ToLower, const char *Break)
     return token;
 }
 
-bool cParser::trimComments(std::string &String)
-{
-    for (commentmap::iterator cmIt = mComments.begin(); cmIt != mComments.end(); ++cmIt)
-    {
-        if (String.find((*cmIt).first) != std::string::npos)
-        {
-            readComment((*cmIt).second);
-            String.resize(String.find((*cmIt).first));
-            return true;
-        }
+std::string cParser::readQuotes(char const Quote) { // read the stream until specified char or stream end
+    std::string token = "";
+    char c;
+    while( mStream->peek() != EOF && Quote != (c = mStream->get()) ) { // get all chars until the quote mark
+        token += c;
+    }
+    return token;
+}
+
+std::string cParser::readComment( std::string const &Break ) { // pobieranie znaków aż do znalezienia znacznika końca
+    std::string token = "";
+    while( mStream->peek() != EOF ) { // o ile nie koniec pliku
+        token += mStream->get(); // pobranie znaku
+        if( token.rfind( Break ) != std::string::npos ) // szukanie znacznika końca
+            break;
+    }
+    return token;
+}
+
+bool cParser::findQuotes( std::string &String ) {
+
+    if( String.rfind( '\"' ) != std::string::npos ) {
+
+        String.erase( String.rfind( '\"' ), 1 );
+        String += readQuotes();
+        return true;
     }
     return false;
 }
 
-std::string cParser::readComment(std::string const &Break)
-{ // pobieranie znaków aż do znalezienia znacznika końca
-    std::string token = "";
-    while (mStream->peek() != EOF)
-    { // o ile nie koniec pliku
-        token += mStream->get(); // pobranie znaku
-        if (token.find(Break) != std::string::npos) // szukanie znacznika końca
-            break;
+bool cParser::trimComments(std::string &String)
+{
+    for (commentmap::iterator cmIt = mComments.begin(); cmIt != mComments.end(); ++cmIt)
+    {
+        if (String.rfind((*cmIt).first) != std::string::npos)
+        {
+            readComment((*cmIt).second);
+            String.resize(String.rfind((*cmIt).first));
+            return true;
+        }
     }
-    return token;
+    return false;
 }
 
 int cParser::getProgress() const

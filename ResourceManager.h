@@ -26,13 +26,13 @@ class Resource
     }
 
   protected:
-    void SetLastUsage(double lastUsage)
+    void SetLastUsage(double const lastUsage)
     {
         _lastUsage = lastUsage;
     }
 
   private:
-    double _lastUsage;
+      double _lastUsage = 0.0;
 };
 
 class ResourceManager

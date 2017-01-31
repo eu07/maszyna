@@ -92,27 +92,14 @@ sekcji z sąsiedniego przęsła).
 
 TTraction::TTraction()
 {
-    pPoint1 = pPoint2 = pPoint3 = pPoint4 = vector3(0, 0, 0);
-    // vFront=vector3(0,0,1);
-    // vUp=vector3(0,1,0);
-    // vLeft=vector3(1,0,0);
-    fHeightDifference = 0;
-    iNumSections = 0;
-    iLines = 0;
-    //    dwFlags= 0;
-    Wires = 2;
-    //    fU=fR= 0;
-    uiDisplayList = 0;
-    asPowerSupplyName = "";
-    //    mdPole= NULL;
-    //    ReplacableSkinID= 0;
-    hvNext[0] = hvNext[1] = NULL;
-    iLast = 1; //że niby ostatni drut
-    psPowered = psPower[0] = psPower[1] = NULL; // na początku zasilanie nie podłączone
-    psSection = NULL; // na początku nie podłączone
-    hvParallel = NULL; // normalnie brak bieżni wspólnej
-    fResistance[0] = fResistance[1] = -1.0; // trzeba dopiero policzyć
-    iTries = 0; // ile razy próbować podłączyć, ustawiane później
+    hvNext[ 0 ] = nullptr;
+    hvNext[ 1 ] = nullptr;
+    psPower[ 0 ] = nullptr;
+    psPower[ 1 ] = nullptr; // na początku zasilanie nie podłączone
+    iNext[ 0 ] = 0;
+    iNext[ 1 ] = 0;
+    fResistance[ 0 ] = -1.0;
+    fResistance[ 1 ] = -1.0; // trzeba dopiero policzyć
 }
 
 TTraction::~TTraction()
@@ -149,7 +136,7 @@ void TTraction::Optimize()
                    pPoint2.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
         glEnd();
         // Nie wiem co 'Marcin
-        vector3 pt1, pt2, pt3, pt4, v1, v2;
+        Math3D::vector3 pt1, pt2, pt3, pt4, v1, v2;
         v1 = pPoint4 - pPoint3;
         v2 = pPoint2 - pPoint1;
         float step = 0;
@@ -390,7 +377,7 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
     Vert->z = pPoint2.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
     ++Vert;
     // Nie wiem co 'Marcin
-    vector3 pt1, pt2, pt3, pt4, v1, v2;
+    Math3D::vector3 pt1, pt2, pt3, pt4, v1, v2;
     v1 = pPoint4 - pPoint3;
     v2 = pPoint2 - pPoint1;
     float step = 0;
@@ -552,7 +539,7 @@ void TTraction::RenderVBO(float mgn, int iPtr)
     }
 };
 
-int TTraction::TestPoint(vector3 *Point)
+int TTraction::TestPoint(Math3D::vector3 *Point)
 { // sprawdzanie, czy przęsła można połączyć
     if (!hvNext[0])
         if (pPoint1.Equal(Point))

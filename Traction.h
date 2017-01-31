@@ -14,8 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "VBO.h"
 #include "dumb3d.h"
 
-using namespace Math3D;
-
 class TTractionPowerSource;
 
 class TTraction
@@ -29,35 +27,33 @@ class TTraction
     // - z: wysokość bezwzględna drutu w danym miejsu
   public: // na razie
     TTractionPowerSource *psPower[2]; // najbliższe zasilacze z obu kierunków
-    TTractionPowerSource *psPowered; // ustawione tylko dla bezpośrednio zasilanego przęsła
+    TTractionPowerSource *psPowered = nullptr; // ustawione tylko dla bezpośrednio zasilanego przęsła
     TTraction *hvNext[2]; //łączenie drutów w sieć
     int iNext[2]; // do którego końca się łączy
-    int iLast; // ustawiony bit 0, jeśli jest ostatnim drutem w sekcji; bit1 - przedostatni
+    int iLast = 1; //że niby ostatni drut // ustawiony bit 0, jeśli jest ostatnim drutem w sekcji; bit1 - przedostatni
   public:
-    GLuint uiDisplayList;
-    vector3 pPoint1, pPoint2, pPoint3, pPoint4;
-    vector3 vParametric; // współczynniki równania parametrycznego odcinka
-    double fHeightDifference; //,fMiddleHeight;
+    GLuint uiDisplayList = 0;
+    Math3D::vector3 pPoint1, pPoint2, pPoint3, pPoint4;
+    Math3D::vector3 vParametric; // współczynniki równania parametrycznego odcinka
+    double fHeightDifference = 0.0; //,fMiddleHeight;
     // int iCategory,iMaterial,iDamageFlag;
     // float fU,fR,fMaxI,fWireThickness;
-    int iNumSections;
-    int iLines; // ilosc linii dla VBO
-    float NominalVoltage;
-    float MaxCurrent;
-    float fResistivity; //[om/m], przeliczone z [om/km]
-    DWORD Material; // 1: Cu, 2: Al
-    float WireThickness;
-    DWORD DamageFlag; // 1: zasniedziale, 128: zerwana
-    int Wires;
-    float WireOffset;
+    int iNumSections = 0;
+    int iLines = 0; // ilosc linii dla VBO
+    float NominalVoltage = 0.0;
+    float MaxCurrent = 0.0;
+    float fResistivity = 0.0; //[om/m], przeliczone z [om/km]
+    DWORD Material = 0; // 1: Cu, 2: Al
+    float WireThickness = 0.0;
+    DWORD DamageFlag = 0; // 1: zasniedziale, 128: zerwana
+    int Wires = 2;
+    float WireOffset = 0.0;
     std::string asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
-    TTractionPowerSource *
-        psSection; // zasilacz (opcjonalnie może to być pulpit sterujący EL2 w hali!)
+    TTractionPowerSource *psSection = nullptr; // zasilacz (opcjonalnie może to być pulpit sterujący EL2 w hali!)
     std::string asParallel; // nazwa przęsła, z którym może być bieżnia wspólna
-    TTraction *hvParallel; // jednokierunkowa i zapętlona lista przęseł ewentualnej bieżni wspólnej
-    float fResistance[2]; // rezystancja zastępcza do punktu zasilania (0: przęsło zasilane, <0: do
-    // policzenia)
-    int iTries;
+    TTraction *hvParallel = nullptr; // jednokierunkowa i zapętlona lista przęseł ewentualnej bieżni wspólnej
+    float fResistance[2]; // rezystancja zastępcza do punktu zasilania (0: przęsło zasilane, <0: do policzenia)
+    int iTries = 0;
     // bool bVisible;
     // DWORD dwFlags;
 
@@ -75,7 +71,7 @@ class TTraction
     int RaArrayPrepare();
     void RaArrayFill(CVertNormTex *Vert);
     void RenderVBO(float mgn, int iPtr);
-    int TestPoint(vector3 *Point);
+    int TestPoint(Math3D::vector3 *Point);
     void Connect(int my, TTraction *with, int to);
     void Init();
     bool WhereIs();

@@ -52,18 +52,20 @@ class TSegment
 { // aproksymacja toru (zwrotnica ma dwa takie, jeden z nich jest aktywny)
   private:
     vector3 Point1, CPointOut, CPointIn, Point2;
-    double fRoll1, fRoll2; // przechyłka na końcach
-    double fLength; // długość policzona
-    double *fTsBuffer; // wartości parametru krzywej dla równych odcinków
-    double fStep;
-    int iSegCount; // ilość odcinków do rysowania krzywej
-    double fDirection; // Ra: kąt prostego w planie; dla łuku kąt od Point1
-    double fStoop; // Ra: kąt wzniesienia; dla łuku od Point1
+    double fRoll1 = 0.0,
+           fRoll2 = 0.0; // przechyłka na końcach
+    double fLength = 0.0; // długość policzona
+    double *fTsBuffer = nullptr; // wartości parametru krzywej dla równych odcinków
+    double fStep = 0.0;
+    int iSegCount = 0; // ilość odcinków do rysowania krzywej
+    double fDirection = 0.0; // Ra: kąt prostego w planie; dla łuku kąt od Point1
+    double fStoop = 0.0; // Ra: kąt wzniesienia; dla łuku od Point1
     vector3 vA, vB, vC; // współczynniki wielomianów trzeciego stopnia vD==Point1
     // TSegment *pPrev; //odcinek od strony punktu 1 - w segmencie, żeby nie skakać na zwrotnicach
     // TSegment *pNext; //odcinek od strony punktu 2
-    TTrack *pOwner; // wskaźnik na właściciela
+    TTrack *pOwner = nullptr; // wskaźnik na właściciela
     double fAngle[2]; // kąty zakończenia drogi na przejazdach
+
     vector3 GetFirstDerivative(double fTime);
     double RombergIntegral(double fA, double fB);
     double GetTFromS(double s);
@@ -72,7 +74,7 @@ class TSegment
     // TSegment *segNeightbour[2]; //sąsiednie odcinki - musi być przeniesione z Track
     // int iNeightbour[2]; //do którego końca doczepiony
   public:
-    bool bCurve;
+    bool bCurve = false;
     // int iShape; //Ra: flagi kształtu dadzą więcej możliwości optymalizacji
     // (0-Bezier,1-prosty,2/3-łuk w lewo/prawo,6/7-przejściowa w lewo/prawo)
     TSegment(TTrack *owner);

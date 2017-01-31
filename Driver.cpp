@@ -241,6 +241,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     fVelNext = 30.0; // uzależnić prędkość od promienia; albo niech będzie
                 // ograniczona w skrzyżowaniu (velocity z ujemną wartością)
                 if ((iFlags & spElapsed) == 0) // jeśli nie wjechał
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
 					if (trTrack->iNumDynamics > 0) // a skrzyżowanie zawiera pojazd
                     {
                         if (Global::iWriteLogEnabled & 8)
@@ -248,6 +249,14 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                         fVelNext =
 							0.0; // to zabronić wjazdu (chyba że ten z przodu też jedzie prosto)
                     }
+#else
+                    if( false == trTrack->Dynamics.empty() ) {
+                        if( Global::iWriteLogEnabled & 8 ) {
+                            WriteLog( "Tor " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + std::to_string( trTrack->Dynamics.size() ) + "Dist= " + std::to_string( fDist ) );
+                            fVelNext = 0.0; // to zabronić wjazdu (chyba że ten z przodu też jedzie prosto)
+                        }
+                    }
+#endif
             }
             if (iFlags & spSwitch) // jeśli odcinek zmienny
             {
@@ -262,6 +271,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     // na Mydelniczce potrafi skanować na wprost mimo pojechania na bok
                 }
                 // poniższe nie dotyczy trybu łączenia?
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
 				if ((iFlags & spElapsed) ? false :
                         trTrack->iNumDynamics >
 					0) // jeśli jeszcze nie wjechano na tor, a coś na nim jest
@@ -273,6 +283,16 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
 				// else if (fVelNext==0.0) //jeśli została wyzerowana
 				// fVelNext=trTrack->VelocityGet(); //odczyt prędkości
                 }
+#else
+                if( ( ( iFlags & spElapsed ) == 0 )
+                 && ( false == trTrack->Dynamics.empty() ) ) {
+                    // jeśli jeszcze nie wjechano na tor, a coś na nim jest
+                    if( Global::iWriteLogEnabled & 8 ) {
+                        WriteLog( "Rozjazd " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + std::to_string( trTrack->Dynamics.size() ) + "Dist= " + std::to_string( fDist ) );
+                    }
+                    fVelNext = 0.0; // to niech stanie w zwiększonej odległości
+                }
+#endif
             }
         }
     }
@@ -299,7 +319,7 @@ std::string TSpeedPos::TableText()
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
 		return "Flags=" + to_hex_str(iFlags, 6) + ", Dist=" + to_string(fDist, 1, 7) +
-               ", Vel=" + to_string(fVelNext, 1, 5) + ", Name=" + GetName();
+               ", Vel=" + (fVelNext == -1.0 ? "   * " : to_string(fVelNext, 1, 5)) + ", Name=" + GetName();
         //if (iFlags & spTrack) // jeśli tor
         //    return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
         //           ", Vel=" + AnsiString(fVelNext) + ", Track=" + trTrack->NameGet();
@@ -1428,47 +1448,40 @@ void TController::TablePurger()
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
-                         bool primary // czy ma aktywnie prowadzić?
-                         )
+TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, bool primary) :// czy ma aktywnie prowadzić?
+              AIControllFlag( AI ),     pVehicle( NewControll )
 {
-    iEngineActive = 0;
-    LastUpdatedTime = 0.0;
-    ElapsedTime = 0.0;
-    // inicjalizacja zmiennych
-    Psyche = InitPsyche;
-    VelDesired = 0.0; // prędkosć początkowa
-    VelforDriver = -1;
-    LastReactionTime = 0.0;
-    HelpMeFlag = false;
-    // fProximityDist=1; //nie używane
-    ActualProximityDist = 1;
-    FirstSemaphorDist = 10000.0;
-    vCommandLocation.x = 0;
-    vCommandLocation.y = 0;
-    vCommandLocation.z = 0;
-    VelSignal = 0.0; // normalnie na początku ma stać, no chyba że jedzie
-    VelLimit = -1.0; // brak ograniczenia prędkości
-    VelNext = 120.0;
-    VelLimitLast = -1.0; // ostatnie ograniczenie bez ograniczenia
-    VelSignalLast = -1.0; // ostatni semafor też bez ograniczenia
-    VelRoad = -1.0; // prędkość drogowa bez ograniczenia
-    AIControllFlag = AI;
-    pVehicle = NewControll;
     ControllingSet(); // utworzenie połączenia do sterowanego pojazdu
-    pVehicles[0] = pVehicle->GetFirstDynamic(0); // pierwszy w kierunku jazdy (Np. Pc1)
-    pVehicles[1] = pVehicle->GetFirstDynamic(1); // ostatni w kierunku jazdy (końcówki)
-    /*
-     switch (mvOccupied->CabNo)
-     {
-      case -1: SendCtrlBroadcast("CabActivisation",1); break;
-      case  1: SendCtrlBroadcast("CabActivisation",2); break;
-      default: AIControllFlag:=False; //na wszelki wypadek
-     }
-    */
-    iDirection = 0;
-    iDirectionOrder = mvOccupied->CabNo; // 1=do przodu (w kierunku sprzęgu 0)
-    VehicleName = mvOccupied->Name;
+    if( pVehicle != nullptr ) {
+        pVehicles[ 0 ] = pVehicle->GetFirstDynamic( 0 ); // pierwszy w kierunku jazdy (Np. Pc1)
+        pVehicles[ 1 ] = pVehicle->GetFirstDynamic( 1 ); // ostatni w kierunku jazdy (końcówki)
+    }
+    else {
+        pVehicles[ 0 ] = nullptr;
+        pVehicles[ 1 ] = nullptr;
+    }
+    if( mvOccupied != nullptr ) {
+        iDirectionOrder = mvOccupied->CabNo; // 1=do przodu (w kierunku sprzęgu 0)
+        VehicleName = mvOccupied->Name;
+
+        if( mvOccupied->CategoryFlag & 2 ) { // samochody: na podst. http://www.prawko-kwartnik.info/hamowanie.html
+            // fDriverBraking=0.0065; //mnożone przez (v^2+40*v) [km/h] daje prawie drogę hamowania [m]
+            fDriverBraking = 0.03; // coś nie hamują te samochody zbyt dobrze
+            fDriverDist = 5.0; // 5m - zachowywany odstęp przed kolizją
+            fVelPlus = 10.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
+            fVelMinus = 2.0; // margines prędkości powodujący załączenie napędu
+        }
+        else { // pociągi i statki
+            fDriverBraking = 0.06; // mnożone przez (v^2+40*v) [km/h] daje prawie drogę hamowania [m]
+            fDriverDist = 50.0; // 50m - zachowywany odstęp przed kolizją
+            fVelPlus = 5.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
+            fVelMinus = 5.0; // margines prędkości powodujący załączenie napędu
+        }
+
+        // fAccThreshold może podlegać uczeniu się - hamowanie powinno być rejestrowane, a potem analizowane
+        fAccThreshold =
+            ( mvOccupied->TrainType & dt_EZT ) ? -0.6 : -0.2; // próg opóźnienia dla zadziałania hamulca
+    }
     // TrainParams=NewTrainParams;
     // if (TrainParams)
     // asNextStop=TrainParams->NextStop();
@@ -1477,111 +1490,32 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
     // OrderCommand="";
     // OrderValue=0;
     OrdersClear();
-    MaxVelFlag = false;
-    MinVelFlag = false; // Ra: to nie jest używane
-    iDriverFailCount = 0;
-    Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
-    Need_BrakeRelease = true;
-    deltalog = 0.05; // 1.0;
 
-    if (WriteLogFlag)
-    {
-        mkdir("physicslog\\");
-        LogFile.open(string("physicslog\\" + VehicleName + ".dat").c_str(),
-                     std::ios::in | std::ios::out | std::ios::trunc);
+    if( true == primary ) {
+        iDrivigFlags |= movePrimary; // aktywnie prowadzące pojazd
+    }
+
+    SetDriverPsyche(); // na końcu, bo wymaga ustawienia zmiennych
+    sSpeedTable = new TSpeedPos[iSpeedTableSize];
+    TableClear();
+
+    if( WriteLogFlag ) {
+        mkdir( "physicslog\\" );
+        LogFile.open( string( "physicslog\\" + VehicleName + ".dat" ).c_str(),
+            std::ios::in | std::ios::out | std::ios::trunc );
 #if LOGPRESS == 0
-        LogFile << string(" Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "
-                          "Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   "
-                          "BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   "
-                          "MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2")
-                       .c_str()
-                << "\r\n";
+        LogFile << string( " Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "
+            "Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   "
+            "BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   "
+            "MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2" )
+            .c_str()
+            << "\r\n";
 #endif
 #if LOGPRESS == 1
-        LogFile << string("t\tVel\tAcc\tPP\tVVP\tBP\tBVP\tCVP").c_str() << "\n";
+        LogFile << string( "t\tVel\tAcc\tPP\tVVP\tBP\tBVP\tCVP" ).c_str() << "\n";
 #endif
         LogFile.flush();
     }
-    /*
-      if (WriteLogFlag)
-      {
-       assignfile(AILogFile,VehicleName+".txt");
-       rewrite(AILogFile);
-       writeln(AILogFile,"AI driver log: started OK");
-       close(AILogFile);
-      }
-    */
-
-    // VelMargin=2; //Controlling->Vmax*0.015;
-    fWarningDuration = 0.0; // nic do wytrąbienia
-    WaitingExpireTime = 31.0; // tyle ma czekać, zanim się ruszy
-    WaitingTime = 0.0;
-    fMinProximityDist = 30.0; // stawanie między 30 a 60 m przed przeszkodą
-    fMaxProximityDist = 50.0;
-    iVehicleCount = -2; // wartość neutralna
-    // Prepare2press=false; //bez dociskania
-    eStopReason = stopSleep; // na początku śpi
-    fLength = 0.0;
-    fMass = 0.0; //[kg]
-    eSignNext = NULL; // sygnał zmieniający prędkość, do pokazania na [F2]
-    sSemNext = NULL; // pierwszy semafor w przebiegu
-	sSemNextStop = NULL; // pierwszy semafor z sygnałem stój
-    fShuntVelocity = 40; // domyślna prędkość manewrowa
-    fStopTime = 0.0; // czas postoju przed dalszą jazdą (np. na przystanku)
-    iDrivigFlags = moveStopPoint; // podjedź do W4 możliwie blisko
-    iDrivigFlags |= moveStopHere; // nie podjeżdżaj do semafora, jeśli droga nie jest wolna
-    iDrivigFlags |= moveStartHorn; // podaj sygnał po podaniu wolnej drogi
-    if (primary)
-        iDrivigFlags |= movePrimary; // aktywnie prowadzące pojazd
-    Ready = false;
-    if (mvOccupied->CategoryFlag & 2)
-    { // samochody: na podst. http://www.prawko-kwartnik.info/hamowanie.html
-        // fDriverBraking=0.0065; //mnożone przez (v^2+40*v) [km/h] daje prawie drogę hamowania [m]
-        fDriverBraking = 0.03; // coś nie hamują te samochody zbyt dobrze
-        fDriverDist = 5.0; // 5m - zachowywany odstęp przed kolizją
-        fVelPlus = 10.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
-        fVelMinus = 2.0; // margines prędkości powodujący załączenie napędu
-    }
-    else
-    { // pociągi i statki
-        fDriverBraking = 0.06; // mnożone przez (v^2+40*v) [km/h] daje prawie drogę hamowania [m]
-        fDriverDist = 50.0; // 50m - zachowywany odstęp przed kolizją
-        fVelPlus = 5.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
-        fVelMinus = 5.0; // margines prędkości powodujący załączenie napędu
-    }
-    SetDriverPsyche(); // na końcu, bo wymaga ustawienia zmiennych
-    AccDesired = AccPreferred;
-    fVelMax = -1; // ustalenie prędkości dla składu
-    fBrakeTime = 0.0; // po jakim czasie przekręcić hamulec
-    iVehicles = 0; // na wszelki wypadek
-    iSpeedTableSize = 16;
-    sSpeedTable = new TSpeedPos[iSpeedTableSize];
-    TableClear();
-    iRadioChannel = 1; // numer aktualnego kanału radiowego
-    fActionTime = 0.0;
-    eAction = actSleep;
-    tsGuardSignal = NULL; // komunikat od kierownika
-    iGuardRadio = 0; // nie przez radio
-    iStationStart = 0; // nic?
-    // fAccThreshold może podlegać uczeniu się - hamowanie powinno być rejestrowane, a potem
-    // analizowane
-    fAccThreshold =
-        (mvOccupied->TrainType & dt_EZT) ? -0.6 : -0.2; // próg opóźnienia dla zadziałania hamulca
-    fLastStopExpDist = -1.0f;
-    iRouteWanted = 3; // powiedzmy, że ma jechać prosto (1=w lewo)
-    iCoupler = 0; // sprzęg; niezerowy gdy ma być podłączanie; samo podłączanie w trybie Connect
-    // (wcześniej może być np. Prepare_engine)
-    fOverhead1 = 3000.0; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
-    fOverhead2 = -1.0; // informacja o sposobie jazdy (-1=normalnie, 0=bez prądu, >0=z opuszczonym i
-    // ograniczeniem prędkości)
-    iOverheadZero = 0; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z
-    // podniesionymi pantografami
-    iOverheadDown = 0; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z
-    // podniesionymi pantografami
-    fAccDesiredAv = 0.0; // uśrednione przyspieszenie z kolejnych przebłysków świadomości, żeby
-    // ograniczyć migotanie
-    fVoltage = 0.0; // uśrednione napięcie sieci: przy spadku poniżej wartości minimalnej opóźnić
-    // rozruch o losowy czas
 };
 
 void TController::CloseLog()
@@ -2594,7 +2528,6 @@ bool TController::IncSpeed()
                 OK = mvControlling->IncMainCtrl(1);
             }
         break;
-		break;
     case WheelsDriven:
         if (!mvControlling->CabNo)
             mvControlling->CabActivisation();
@@ -2748,12 +2681,15 @@ void TController::SpeedSet()
         }
         break;
     case ElectricSeriesMotor:
-        if ((!mvControlling->StLinFlag) && (!mvControlling->DelayCtrlFlag) &&
-            (!iDrivigFlags & moveIncSpeed)) // styczniki liniowe rozłączone    yBARC
+        if( ( false == mvControlling->StLinFlag )
+         && ( false == mvControlling->DelayCtrlFlag )
+         && ( 0 == ( iDrivigFlags & moveIncSpeed ) ) ) // styczniki liniowe rozłączone    yBARC
+        {
             //    if (iDrivigFlags&moveIncSpeed) {} //jeśli czeka na załączenie liniowych
             //    else
-            while (DecSpeed())
+            while( DecSpeed() )
                 ; // zerowanie napędu
+        }
         else if (Ready || (iDrivigFlags & movePress)) // o ile może jechać
             if (fAccGravity < -0.10) // i jedzie pod górę większą niż 10 promil
             { // procedura wjeżdżania na ekstremalne wzniesienia
@@ -2961,7 +2897,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                 NewCommand = Global::asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
                 if (FileExists(NewCommand))
                 { //  wczytanie dźwięku odjazdu podawanego bezpośrenido
-                    tsGuardSignal = new TTextSound(NewCommand.c_str(), 30, pVehicle->GetPosition().x,
+                    tsGuardSignal = new TTextSound(NewCommand, 30, pVehicle->GetPosition().x,
                                         pVehicle->GetPosition().y, pVehicle->GetPosition().z,
                                         false);
                     // rsGuardSignal->Stop();
@@ -2972,7 +2908,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                     NewCommand = NewCommand.insert(NewCommand.find_last_of("."),"radio"); // wstawienie przed kropkč
                     if (FileExists(NewCommand))
                     { //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = new TTextSound(NewCommand.c_str(), -1, pVehicle->GetPosition().x,
+                        tsGuardSignal = new TTextSound(NewCommand, -1, pVehicle->GetPosition().x,
                                             pVehicle->GetPosition().y, pVehicle->GetPosition().z,
                                             false);
                         iGuardRadio = iRadioChannel;
@@ -5011,6 +4947,7 @@ double TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 
 bool TController::BackwardTrackBusy(TTrack *Track)
 { // najpierw sprawdzamy, czy na danym torze są pojazdy z innego składu
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
     if (Track->iNumDynamics)
     { // jeśli tylko z własnego składu, to tor jest wolny
         for (int i = 0; i < Track->iNumDynamics; ++i)
@@ -5018,6 +4955,17 @@ bool TController::BackwardTrackBusy(TTrack *Track)
                 return true; // to tor jest zajęty i skanowanie nie obowiązuje
     }
     return false; // wolny
+#else
+    if( false == Track->Dynamics.empty() ) {
+        for( auto dynamic : Track->Dynamics ) {
+            if( dynamic->ctOwner != this ) {
+                // jeśli jest jakiś cudzy to tor jest zajęty i skanowanie nie obowiązuje
+                return true;
+            }
+        }
+    }
+    return false; // wolny
+#endif
 };
 
 TEvent * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)

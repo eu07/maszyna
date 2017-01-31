@@ -835,7 +835,7 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> token;
             int i = stol_def(token, -1); // numer wejďż˝cia
-            if ((i >= 0) || (i <= 1))
+            if ((i >= 0) && (i <= 3))
             {
                 Parser.getTokens(3, false);
                 Parser >> fMWDAnalogCalib[i][0] // max -> 2^16 -1

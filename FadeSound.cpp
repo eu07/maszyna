@@ -16,14 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "FadeSound.h"
 #include "Timer.h"
 
-TFadeSound::TFadeSound()
-{
-    Sound = NULL;
-    fFade = 0;
-    dt = 0;
-    fTime = 0;
-}
-
 TFadeSound::~TFadeSound()
 {
     Free();

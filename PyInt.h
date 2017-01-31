@@ -1,13 +1,17 @@
 #ifndef PyIntH
 #define PyIntH
 
-#undef _DEBUG // bez tego macra Py_DECREF powoduja problemy przy linkowaniu
-
 #include <vector>
 #include <set>
 #include <string>
 
+#ifdef _DEBUG
+#undef _DEBUG // bez tego macra Py_DECREF powoduja problemy przy linkowaniu
 #include "Python.h"
+#define _DEBUG
+#else
+#include "Python.h"
+#endif
 #include "parser.h"
 #include "Model3d.h"
 

@@ -42,7 +42,8 @@ inline scalar_t SQRT_FUNCTION(scalar_t x)
 class vector2
 {
   public:
-    vector2(void)
+    vector2(void) :
+        x(0.0), y(0.0)
     {
     }
     vector2(scalar_t a, scalar_t b)
@@ -61,7 +62,8 @@ class vector2
 class vector3
 {
   public:
-    vector3(void)
+    vector3(void) :
+        x(0.0), y(0.0), z(0.0)
     {
     }
     vector3(scalar_t a, scalar_t b, scalar_t c)
@@ -129,6 +131,7 @@ class matrix4x4
   public:
     matrix4x4(void)
     {
+        ::SecureZeroMemory( e, sizeof( e ) );
     }
 
     // When defining matrices in C arrays, it is easiest to define them with

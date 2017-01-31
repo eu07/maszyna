@@ -86,22 +86,22 @@ class TEvent // zmienne: ev*
 
   public:
     std::string asName;
-    bool bEnabled; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
-    int iQueued; // ile razy dodany do kolejki
+    bool bEnabled = false; // false gdy ma nie być dodawany do kolejki (skanowanie sygnałów)
+    int iQueued = 0; // ile razy dodany do kolejki
     // bool bIsHistory;
-    TEvent *evNext; // następny w kolejce
-    TEvent *evNext2;
-    TEventType Type;
-    double fStartTime;
-    double fDelay;
-    TDynamicObject *Activator;
+    TEvent *evNext = nullptr; // następny w kolejce
+    TEvent *evNext2 = nullptr;
+    TEventType Type = tp_Unknown;
+    double fStartTime = 0.0;
+    double fDelay = 0.0;
+    TDynamicObject *Activator = nullptr;
     TParam Params[13]; // McZapkie-070502 //Ra: zamienić to na union/struct
-    unsigned int iFlags; // zamiast Params[8] z flagami warunku
+    unsigned int iFlags = 0; // zamiast Params[8] z flagami warunku
     std::string asNodeName; // McZapkie-100302 - dodalem zeby zapamietac nazwe toru
-    TEvent *evJoined; // kolejny event z tą samą nazwą - od wersji 378
-    double fRandomDelay; // zakres dodatkowego opóźnienia
+    TEvent *evJoined = nullptr; // kolejny event z tą samą nazwą - od wersji 378
+    double fRandomDelay = 0.0; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
   public: // metody
-    TEvent(std::string m = "");
+    TEvent(std::string const &m = "");
     ~TEvent();
     void Init();
     void Load(cParser *parser, vector3 *org);

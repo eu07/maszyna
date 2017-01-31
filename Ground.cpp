@@ -1303,25 +1303,15 @@ BYTE TempConnectionType[ 200 ]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotn
 
 TGround::TGround()
 {
-    // RootNode=NULL;
-    nRootDynamic = NULL;
-    QueryRootEvent = NULL;
-    tmpEvent = NULL;
-    tmp2Event = NULL;
-    OldQRE = NULL;
-    RootEvent = NULL;
-    iNumNodes = 0;
-    // pTrain=NULL;
     Global::pGround = this;
-    bInitDone = false; // Ra: żeby nie robiło dwa razy FirstInit
-    for (int i = 0; i < TP_LAST; i++)
-        nRootOfType[i] = NULL; // zerowanie tablic wyszukiwania
-    bDynamicRemove = false; // na razie nic do usunięcia
+
+    for( int i = 0; i < TP_LAST; ++i ) {
+        nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
+    }
     sTracks = new TNames(); // nazwy torów - na razie tak
-/*
-    ::SecureZeroMemory( TempVerts, sizeof( TempVerts ) );
-*/
+
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
+    ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
 }
 
 TGround::~TGround()
@@ -3824,10 +3814,18 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                     if (Event->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
                         for (int i = 0; i < Event->Params[6].asTrack->iNumDynamics; ++i)
                             Event->Params[5].asMemCell->PutCommand(
                                 Event->Params[6].asTrack->Dynamics[i]->Mechanik,
                                 &Event->Params[4].nGroundNode->pCenter);
+#else
+                        for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
+                            Event->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                &Event->Params[ 4 ].nGroundNode->pCenter );
+                        }
+#endif
                         //if (DebugModeFlag)
                             WriteLog("EVENT EXECUTED: AddValues & Track command - " +
                                      std::string(Event->Params[0].asText) + " " +
@@ -4000,7 +3998,8 @@ bool TGround::CheckQuery()
             {
             case tp_CopyValues: // skopiowanie wartości z innej komórki
                 tmpEvent->Params[5].asMemCell->UpdateValues(
-                    tmpEvent->Params[9].asMemCell->Text(), tmpEvent->Params[9].asMemCell->Value1(),
+                    tmpEvent->Params[9].asMemCell->Text(),
+                    tmpEvent->Params[9].asMemCell->Value1(),
                     tmpEvent->Params[9].asMemCell->Value2(),
                     tmpEvent->iFlags // flagi określają, co ma być skopiowane
                     );
@@ -4011,15 +4010,25 @@ bool TGround::CheckQuery()
                 { // teraz mogą być warunki do tych eventów
                     if (tmpEvent->Type != tp_CopyValues) // dla CopyValues zrobiło się wcześniej
                         tmpEvent->Params[5].asMemCell->UpdateValues(
-                            tmpEvent->Params[0].asText, tmpEvent->Params[1].asdouble,
-                            tmpEvent->Params[2].asdouble, tmpEvent->iFlags);
+                            tmpEvent->Params[0].asText,
+                            tmpEvent->Params[1].asdouble,
+                            tmpEvent->Params[2].asdouble,
+                            tmpEvent->iFlags);
                     if (tmpEvent->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
                         for (int i = 0; i < tmpEvent->Params[6].asTrack->iNumDynamics; ++i)
                             tmpEvent->Params[5].asMemCell->PutCommand(
                                 tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,
                                 &tmpEvent->Params[4].nGroundNode->pCenter);
+#else
+                        for( auto dynamic : tmpEvent->Params[ 6 ].asTrack->Dynamics ) {
+                            tmpEvent->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                &tmpEvent->Params[ 4 ].nGroundNode->pCenter );
+                        }
+#endif
                         //if (DebugModeFlag)
                             WriteLog("Type: UpdateValues & Track command - " +
                                      std::string(tmpEvent->Params[0].asText) + " " +
@@ -4192,14 +4201,24 @@ bool TGround::CheckQuery()
                 if (tmpEvent->iFlags & update_load)
                 { // jeśli pytanie o ładunek
                     if (tmpEvent->iFlags & update_memadd) // jeśli typ pojazdu
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             strdup(tmpEvent->Activator->MoverParameters->TypeName.c_str()), // typ pojazdu
                             0, // na razie nic
                             0, // na razie nic
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
+#else
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                            tmpEvent->Activator->MoverParameters->TypeName, // typ pojazdu
+                            0, // na razie nic
+                            0, // na razie nic
+                            tmpEvent->iFlags &
+                                (update_memstring | update_memval1 | update_memval2));
+#endif
                     else // jeśli parametry ładunku
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->LoadType != "" ?
                                 strdup(tmpEvent->Activator->MoverParameters->LoadType.c_str()) :
                                 (char*)"none", // nazwa ładunku
@@ -4207,21 +4226,38 @@ bool TGround::CheckQuery()
                             tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
+#else
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                            tmpEvent->Activator->MoverParameters->LoadType, // nazwa ładunku
+                            tmpEvent->Activator->MoverParameters->Load, // aktualna ilość
+                            tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
+                            tmpEvent->iFlags &
+                                (update_memstring | update_memval1 | update_memval2));
+#endif
                 }
                 else if (tmpEvent->iFlags & update_memadd)
                 { // jeśli miejsce docelowe pojazdu
-                    tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                    tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                         strdup(tmpEvent->Activator->asDestination.c_str()), // adres docelowy
                         tmpEvent->Activator->DirectionGet(), // kierunek pojazdu względem czoła
                         // składu (1=zgodny,-1=przeciwny)
                         tmpEvent->Activator->MoverParameters
                             ->Power, // moc pojazdu silnikowego: 0 dla wagonu
                         tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
+#else
+                    tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                        tmpEvent->Activator->asDestination, // adres docelowy
+                        tmpEvent->Activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
+                        tmpEvent->Activator->MoverParameters ->Power, // moc pojazdu silnikowego: 0 dla wagonu
+                        tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
+#endif
                 }
                 else if (tmpEvent->Activator->Mechanik)
                     if (tmpEvent->Activator->Mechanik->Primary())
                     { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
 							const_cast<char *>(tmpEvent->Activator->Mechanik->TrainName().c_str()),
                             tmpEvent->Activator->Mechanik->StationCount() -
                                 tmpEvent->Activator->Mechanik
@@ -4229,6 +4265,16 @@ bool TGround::CheckQuery()
                             tmpEvent->Activator->Mechanik->IsStop() ? 1 :
                                                                       0, // 1, gdy ma tu zatrzymanie
                             tmpEvent->iFlags);
+#else
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+							tmpEvent->Activator->Mechanik->TrainName(),
+                            tmpEvent->Activator->Mechanik->StationCount() -
+                                tmpEvent->Activator->Mechanik
+                                    ->StationIndex(), // ile przystanków do końca
+                            tmpEvent->Activator->Mechanik->IsStop() ? 1 :
+                                                                      0, // 1, gdy ma tu zatrzymanie
+                            tmpEvent->iFlags);
+#endif
                         WriteLog("Train detected: " + tmpEvent->Activator->Mechanik->TrainName());
                     }
                 break;
@@ -5048,7 +5094,8 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
             if ((tmp = FastGetSubRect(i, j)) != NULL)
                 for (node = tmp->nRootNode; node; node = node->nNext2) // następny z sektora
                     if (node->iType == TP_TRACK) // Ra: przebudować na użycie tabeli torów?
-                        for (k = 0; k < node->pTrack->iNumDynamics; k++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+                        for( k = 0; k < node->pTrack->iNumDynamics; k++ )
                             if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
                                        true) // czy ma mieć obsadę
                                 if ((sqd = SquareMagnitude(
@@ -5058,6 +5105,17 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
                                     sqm = sqd; // nowa odległość
                                     dyn = node->pTrack->Dynamics[k]; // nowy lider
                                 }
+#else
+                        for( auto dynamic : node->pTrack->Dynamics ) {
+                            if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
+                                // czy ma mieć obsadę
+                                if( ( sqd = SquareMagnitude( dynamic->GetPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odległość
+                                    dyn = dynamic; // nowy lider
+                                }
+                            }
+                        }
+#endif
     return dyn;
 };
 TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, bool mech)
@@ -5074,7 +5132,8 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
             if ((tmp = FastGetSubRect(i, j)) != NULL)
                 for (node = tmp->nRootNode; node; node = node->nNext2) // następny z sektora
                     if (node->iType == TP_TRACK) // Ra: przebudować na użycie tabeli torów?
-                        for (k = 0; k < node->pTrack->iNumDynamics; k++)
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+                        for( k = 0; k < node->pTrack->iNumDynamics; k++ )
                             if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
                                        true) // czy ma mieć obsadę
                             {
@@ -5093,6 +5152,21 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
                                     dyn = node->pTrack->Dynamics[k]; // nowy lider
                                 }
                             }
+#else
+                        for( auto dynamic : node->pTrack->Dynamics ) {
+                            if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
+                                // czy ma mieć obsadę
+                                if( ( sqd = SquareMagnitude( dynamic->HeadPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odległość
+                                    dyn = dynamic; // nowy lider
+                                }
+                                if( ( sqd = SquareMagnitude( dynamic->RearPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odległość
+                                    dyn = dynamic; // nowy lider
+                                }
+                            }
+                        }
+#endif
     return dyn;
 };
 //---------------------------------------------------------------------------
@@ -5231,7 +5305,11 @@ void TGround::TrackBusyList()
     TTrack *Track;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
         if (!Current->asName.empty()) // musi być nazwa
-            if (Current->pTrack->iNumDynamics) // osi to chyba nie ma jak policzyć
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+            if( Current->pTrack->iNumDynamics ) // osi to chyba nie ma jak policzyć
+#else
+            if( false == Current->pTrack->Dynamics.empty() )
+#endif
                 WyslijString(Current->asName, 8); // zajęty
 };
 //---------------------------------------------------------------------------

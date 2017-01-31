@@ -12,15 +12,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 //---------------------------------------------------------------------------
 
-TAdvancedSound::TAdvancedSound()
-{
-    //    SoundStart=SoundCommencing=SoundShut= NULL;
-    State = ss_Off;
-    fTime = 0;
-    fStartLength = 0;
-    fShutLength = 0;
-}
-
 TAdvancedSound::~TAdvancedSound()
 { // Ra: stopowanie się sypie
     // SoundStart.Stop();

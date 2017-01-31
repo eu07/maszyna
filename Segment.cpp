@@ -26,15 +26,11 @@ std::string Where(vector3 p)
     return std::to_string(p.x) + " " + std::to_string(p.y) + " " + std::to_string(p.z);
 };
 
-TSegment::TSegment(TTrack *owner)
+TSegment::TSegment(TTrack *owner) :
+    pOwner( owner )
 {
-    Point1 = CPointOut = CPointIn = Point2 = vector3(0.0f, 0.0f, 0.0f);
-    fLength = 0;
-    fRoll1 = 0;
-    fRoll2 = 0;
-    fTsBuffer = NULL;
-    fStep = 0;
-    pOwner = owner;
+    fAngle[ 0 ] = 0.0;
+    fAngle[ 1 ] = 0.0;
 };
 
 TSegment::~TSegment()

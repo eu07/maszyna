@@ -26,15 +26,15 @@ class TAdvancedSound
     TRealSound SoundStart;
     TRealSound SoundCommencing;
     TRealSound SoundShut;
-    TSoundState State;
-    double fTime;
-    double fStartLength;
-    double fShutLength;
-    double defAM;
-    double defFM;
+    TSoundState State = ss_Off;
+    double fTime = 0.0;
+    double fStartLength = 0.0;
+    double fShutLength = 0.0;
+    double defAM = 0.0;
+    double defFM = 0.0;
 
   public:
-    TAdvancedSound();
+    TAdvancedSound() = default;
     ~TAdvancedSound();
 	void Init( std::string const &NameOn, std::string const &Name, std::string const &NameOff, double DistanceAttenuation, vector3 const &pPosition);
     void Load(cParser &Parser, vector3 const &pPosition);
