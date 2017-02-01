@@ -39,6 +39,8 @@ inline double sqr(double val) // SQR() zle liczylo w current() ...
 
 double ComputeCollision(double &v1, double &v2, double m1, double m2, double beta, bool vc)
 { // oblicza zmiane predkosci i przyrost pedu wskutek kolizji
+    assert( beta < 1.0 );
+
     if( ( v1 < v2 ) && ( vc == true ) )
 		return 0;
 	else
@@ -969,55 +971,56 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
 
     CCF = 0;
     //   with Couplers[CouplerN] do
-    if (Couplers[CouplerN].Connected != NULL)
+    auto &coupler = Couplers[ CouplerN ];
+
+    if (coupler.Connected != nullptr)
     {
-        VirtualCoupling = (Couplers[CouplerN].CouplingFlag == ctrain_virtual);
+        VirtualCoupling = (coupler.CouplingFlag == ctrain_virtual);
         Vprev = V;
-        VprevC = Couplers[CouplerN].Connected->V;
+        VprevC = coupler.Connected->V;
         switch (CouplerN)
         {
         case 0:
             CCF =
                 ComputeCollision(
-                    V, Couplers[CouplerN].Connected->V, TotalMass,
-                    Couplers[CouplerN].Connected->TotalMass,
-                    (Couplers[CouplerN].beta +
-                     Couplers[CouplerN].Connected->Couplers[Couplers[CouplerN].ConnectedNr].beta) /
-                        2.0,
-                    VirtualCoupling) /
-                (dt);
+                    V,
+                    coupler.Connected->V,
+                    TotalMass,
+                    coupler.Connected->TotalMass,
+                    (coupler.beta + coupler.Connected->Couplers[coupler.ConnectedNr].beta) / 2.0,
+                    VirtualCoupling)
+                / (dt);
             break; // yB: ej ej ej, a po
         case 1:
             CCF =
                 ComputeCollision(
-                    Couplers[CouplerN].Connected->V, V, Couplers[CouplerN].Connected->TotalMass,
+                    coupler.Connected->V,
+                    V, coupler.Connected->TotalMass,
                     TotalMass,
-                    (Couplers[CouplerN].beta +
-                     Couplers[CouplerN].Connected->Couplers[Couplers[CouplerN].ConnectedNr].beta) /
-                        2.0,
-                    VirtualCoupling) /
-                (dt);
+                    (coupler.beta + coupler.Connected->Couplers[coupler.ConnectedNr].beta) / 2.0,
+                    VirtualCoupling)
+                / (dt);
             break; // czemu tu jest +0.01??
         }
         AccS = AccS + (V - Vprev) / dt; // korekta przyspieszenia o siły wynikające ze zderzeń?
-        Couplers[CouplerN].Connected->AccS += (Couplers[CouplerN].Connected->V - VprevC) / dt;
-        if ((Couplers[CouplerN].Dist > 0) && (!VirtualCoupling))
-            if (FuzzyLogic(abs(CCF), 5.0 * (Couplers[CouplerN].FmaxC + 1.0), p_coupldmg))
+        coupler.Connected->AccS += (coupler.Connected->V - VprevC) / dt;
+        if ((coupler.Dist > 0) && (!VirtualCoupling))
+            if (FuzzyLogic(abs(CCF), 5.0 * (coupler.FmaxC + 1.0), p_coupldmg))
             { //! zerwanie sprzegu
                 if (SetFlag(DamageFlag, dtrain_coupling))
                     EventFlag = true;
 
-                if ((Couplers[CouplerN].CouplingFlag && ctrain_pneumatic > 0))
+                if ((coupler.CouplingFlag & ctrain_pneumatic > 0))
                     EmergencyBrakeFlag = true; // hamowanie nagle - zerwanie przewodow hamulcowych
-                Couplers[CouplerN].CouplingFlag = 0;
+                coupler.CouplingFlag = 0;
 
                 switch (CouplerN) // wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone
                 {
                 case 0:
-                    Couplers[CouplerN].Connected->Couplers[1].CouplingFlag = 0;
+                    coupler.Connected->Couplers[1].CouplingFlag = 0;
                     break;
                 case 1:
-                    Couplers[CouplerN].Connected->Couplers[0].CouplingFlag = 0;
+                    coupler.Connected->Couplers[0].CouplingFlag = 0;
                     break;
                 }
             }
@@ -1478,8 +1481,8 @@ int TMoverParameters::ShowCurrent(int AmpN)
 bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 {
 	// basic fail conditions:
-	if( ( CabNo == 0 )
-	 || ( MainCtrlPosNo <= 0 ) ) {
+    if( ( MainCtrlPosNo <= 0 )
+     || ( CabNo == 0 ) ) {
 		// nie ma sterowania
 		return false;
 	}
@@ -1654,7 +1657,13 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
 {
     bool OK = false;
-    if ((MainCtrlPosNo > 0) && (CabNo != 0))
+    // basic fail conditions:
+    if( ( MainCtrlPosNo <= 0 )
+     || ( CabNo == 0 ) ) {
+		// nie ma sterowania
+        OK = false;
+    }
+    else
     {
         if (MainCtrlPos > 0)
         {
@@ -1739,8 +1748,6 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
             /*OK:=*/SendCtrlToNext("ScndCtrl", ScndCtrlPos, CabNo);
         }
     }
-    else
-        OK = false;
     // if OK then LastRelayTime:=0;
     // hunter-101012: poprawka
     if (OK)
@@ -3388,7 +3395,7 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
         }
         //  else SlippingWheels:=false;
         //  FStand:=0;
-        for (b = 0; b < 2; b++)
+        for (b = 0; b < 2; ++b)
             if (Couplers[b].Connected != NULL) /*and (Couplers[b].CouplerType<>Bare) and
                                                   (Couplers[b].CouplerType<>Articulated)*/
             { // doliczenie sił z innych pojazdów
@@ -6232,28 +6239,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             {
 				startBPT = false;
 				secParam = true;
-                SetFlag(OKFlag, param_ok);
-				getkeyval( aCategory, "Category", xline, "none" );
-				getkeyval( aType, "Type", xline, "none" ); aType = ToUpper( aType );
-				getkeyval( aMass, "M", xline, "0" );
-				getkeyval( aMred, "Mred", xline, "0" );
-				getkeyval( aVmax, "Vmax", xline, "0" );
-				getkeyval( aPWR, "PWR", xline, "0" );
-				getkeyval( aSandCap, "SandCap", xline, "0" );
-				getkeyval( aHeatingP, "HeatingP", xline, "0" );
-				getkeyval( aLightP, "LightP", xline, "0" );
-				// TODO: switch other sections to the new getkeyval() code
-/*
-                aCategory = getkeyval(1, "Category");
-                aType = ToUpper(getkeyval(1, "Type"));
-                aMass = atof(getkeyval(3, "M").c_str());
-                aMred = atof(getkeyval(3, "Mred").c_str());
-                aVmax = atof(getkeyval(3, "Vmax").c_str());
-                aPWR = atof(getkeyval(3, "PWR").c_str());
-                aSandCap = atoi(getkeyval(2, "SandCap").c_str());
-                aHeatingP = atof(getkeyval(3, "HeatingP").c_str());
-                aLightP = atof(getkeyval(3, "LightP").c_str());
-*/
+                SetFlag( OKFlag, param_ok );
+                LoadFIZ_Param( xline );
 				continue;
             }
 
@@ -6272,6 +6259,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
             if( issection( "Doors:" ) ) {
 
+                startBPT = false;
                 LoadFIZ_Doors( xline );
                 continue;
             }
@@ -6342,20 +6330,28 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 				continue;
             }
 
-            if (issection("BuffCoupl.") || issection("BuffCoupl1."))
-            {
-				startBPT = false;
-				secBuffCoupl = true;
-                fCType = (getkeyval(1, "CType"));
-                fkB = atof(getkeyval(3, "kB").c_str());
-                fDmaxB = atof(getkeyval(3, "DmaxB").c_str());
-                fFmaxB = atof(getkeyval(3, "FmaxB").c_str());
-                fkC = atof(getkeyval(3, "kC").c_str());
-                fDmaxC = atof(getkeyval(3, "DmaxC").c_str());
-                fFmaxC = atof(getkeyval(3, "FmaxC").c_str());
-                fbeta = atof(getkeyval(3, "beta").c_str());
-                fAllowedFlag = atoi(getkeyval(2, "AllowedFlag").c_str());
-				continue;
+            if( issection( "BuffCoupl." ) ) {
+
+                startBPT = false;
+                secBuffCoupl = true;
+                LoadFIZ_BuffCoupl( xline, 0 );
+                continue;
+            }
+
+            else if( issection( "BuffCoupl1." ) ) {
+
+                startBPT = false;
+                secBuffCoupl = true;
+                LoadFIZ_BuffCoupl( xline, 1 );
+                continue;
+            }
+            
+            else if( issection( "BuffCoupl2." ) ) {
+
+                startBPT = false;
+                secBuffCoupl = true;
+                LoadFIZ_BuffCoupl( xline, 2 );
+                continue;
             }
 
             if (issection("Security:"))
@@ -6631,57 +6627,6 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     // Operacje na zebranych parametrach - przypisywanie do wlasciwych zmiennych i ustawianie
     // zaleznosci
 
-    if (aCategory == "train")
-        CategoryFlag = 1;
-    else if (aCategory == "road")
-        CategoryFlag = 2;
-    else if (aCategory == "ship")
-        CategoryFlag = 4;
-    else if (aCategory == "airplane")
-        CategoryFlag = 8;
-    else if (aCategory == "unimog")
-        CategoryFlag = 3;
-    else
-        ConversionError = MARKERROR(-7, "1", "Improper vechicle category");
-
-    Mass = aMass;
-    Mred = aMred;
-    Vmax = aVmax;
-    Power = aPWR;
-    HeatingPower = aHeatingP;
-    LightPower = aLightP;
-    SandCapacity = aSandCap;
-    TrainType = dt_Default;
-    if (aType == "PSEUDODIESEL")
-        aType = "PDIS";
-
-    if (aType == "EZT")
-    {
-        TrainType = dt_EZT;
-        IminLo = 1;
-        IminHi = 2;
-        Imin = 1;
-    }
-    else // wirtualne wartości dla rozrządczego
-        if (aType == "ET41")
-        TrainType = dt_ET41;
-    else if (aType == "ET42")
-        TrainType = dt_ET42;
-    else if (aType == "ET22")
-        TrainType = dt_ET22;
-    else if (aType == "ET40")
-        TrainType = dt_ET40;
-    else if (aType == "EP05")
-        TrainType = dt_EP05;
-    else if (aType == "SN61")
-        TrainType = dt_SN61;
-    else if (aType == "PDIS")
-        TrainType = dt_PseudoDiesel;
-    else if (aType == "181")
-        TrainType = dt_181;
-    else if (aType == "182")
-        TrainType = dt_181; // na razie tak
-
     LoadAccepted = ToLower( bLoadAccepted );
     MaxLoad = bMaxLoad;
     LoadQuantity = bLoadQ;
@@ -6874,68 +6819,6 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         // WriteLog("MaxBrakePress[3] " + FloatToStr(MaxBrakePress[3]));
         // WriteLog("BrakeCylNo " + IntToStr(BrakeCylNo));
     }
-
-    // Couplers
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    if (fCType == "Automatic")
-        Couplers[0].CouplerType = Automatic;
-    else if (fCType == "Screw")
-        Couplers[0].CouplerType = Screw;
-    else if (fCType == "Chain")
-        Couplers[0].CouplerType = Chain;
-    else if (fCType == "Bare")
-        Couplers[0].CouplerType = Bare;
-    else if (fCType == "Articulated")
-        Couplers[0].CouplerType = Articulated;
-    else
-        Couplers[0].CouplerType = NoCoupler;
-
-    if (fAllowedFlag > 0)
-        Couplers[0].AllowedFlag = fAllowedFlag;
-    if (Couplers[0].AllowedFlag < 0)
-        Couplers[0].AllowedFlag = ((-Couplers[0].AllowedFlag) || ctrain_depot);
-    if ((Couplers[0].CouplerType != NoCoupler) && (Couplers[0].CouplerType != Bare) &&
-        (Couplers[0].CouplerType != Articulated))
-    {
-
-        Couplers[0].SpringKC = fkC * 1000;
-        Couplers[0].DmaxC = fDmaxC;
-        Couplers[0].FmaxC = fFmaxC * 1000;
-        Couplers[0].SpringKB = fkB * 1000;
-        Couplers[0].DmaxB = fDmaxB;
-        Couplers[0].FmaxB = fFmaxB * 1000;
-        Couplers[0].beta = fbeta;
-    }
-    else if (Couplers[0].CouplerType == Bare)
-    {
-        Couplers[0].SpringKC = 50.0 * Mass + Ftmax / 0.05;
-        Couplers[0].DmaxC = 0.05;
-        Couplers[0].FmaxC = 100.0 * Mass + 2 * Ftmax;
-        Couplers[0].SpringKB = 60.0 * Mass + Ftmax / 0.05;
-        Couplers[0].DmaxB = 0.05;
-        Couplers[0].FmaxB = 50.0 * Mass + 2.0 * Ftmax;
-        Couplers[0].beta = 0.3;
-    }
-    else if (Couplers[0].CouplerType == Articulated)
-    {
-        Couplers[0].SpringKC = 60.0 * Mass + 1000;
-        Couplers[0].DmaxC = 0.05;
-        Couplers[0].FmaxC = 20000000.0 + 2.0 * Ftmax;
-        Couplers[0].SpringKB = 70.0 * Mass + 1000;
-        Couplers[0].DmaxB = 0.05;
-        Couplers[0].FmaxB = 4000000.0 + 2.0 * Ftmax;
-        Couplers[0].beta = 0.55;
-    }
-    Couplers[1].SpringKC = Couplers[0].SpringKC;
-    Couplers[1].DmaxC = Couplers[0].DmaxC;
-    Couplers[1].FmaxC = Couplers[0].FmaxC;
-    Couplers[1].SpringKB = Couplers[0].SpringKB;
-    Couplers[1].DmaxB = Couplers[0].DmaxB;
-    Couplers[1].FmaxB = Couplers[0].FmaxB;
-    Couplers[1].beta = Couplers[0].beta;
-    Couplers[1].CouplerType = Couplers[0].CouplerType;
-    Couplers[1].AllowedFlag = Couplers[0].AllowedFlag;
 
     // Controllers
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -7332,6 +7215,145 @@ bool TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     if( platformopenmethod == "Shift" ) { PlatformOpenMethod = 1; } // przesuw
 
     return true;
+}
+
+void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
+
+    getkeyval( Mass, "M", xline, "0" );
+    getkeyval( Mred, "Mred", xline, "0" );
+    getkeyval( Vmax, "Vmax", xline, "0" );
+    getkeyval( Power, "PWR", xline, "0" );
+    getkeyval( SandCapacity, "SandCap", xline, "0" );
+    getkeyval( HeatingPower, "HeatingP", xline, "0" );
+    getkeyval( LightPower, "LightP", xline, "0" );
+
+    {
+        std::map<std::string, int> categories{
+            { "train", 1 },
+            { "road", 2 },
+            { "unimog", 3 },
+            { "ship", 4 },
+            { "airplane,", 8 }
+        };
+        std::string category; getkeyval( category, "Category", xline, "none" );
+        auto lookup = categories.find( category );
+        CategoryFlag = (
+            lookup != categories.end() ?
+            lookup->second :
+            0 );
+        if( CategoryFlag == 0 ) {
+            ErrorLog( "Unknown vehicle category: \"" + category + "\"." );
+        }
+    }
+
+    {
+        std::map<std::string, int> types{
+            { "pseudodiesel", dt_PseudoDiesel },
+            { "ezt", dt_EZT },
+            { "sn61", dt_SN61 },
+            { "et22", dt_ET22 },
+            { "et40", dt_ET40 },
+            { "et41", dt_ET41 },
+            { "et42", dt_ET42 },
+            { "ep05", dt_EP05 },
+            { "181", dt_181 },
+            { "182", dt_181 } // na razie tak
+        };
+        std::string type; getkeyval( type, "Type", xline, "none" );
+        auto lookup = types.find( ToLower(type) );
+        TrainType = (
+            lookup != types.end() ?
+            lookup->second :
+             dt_Default );
+    }
+
+    if( TrainType == dt_EZT ) { 
+
+        IminLo = 1;
+        IminHi = 2;
+        Imin = 1;
+    }
+}
+
+void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Index ) {
+
+    TCoupling *coupler;
+    if( Index == 2 ) { coupler = &Couplers[ 1 ]; }
+    else             { coupler = &Couplers[ 0 ]; }
+
+    std::map<std::string, TCouplerType> couplertypes {
+        { "Automatic", Automatic },
+        { "Screw", Screw },
+        { "Chain", Chain },
+        { "Bare", Bare },
+        { "Articulated", Articulated },
+    };
+    std::string type; getkeyval( type, "CType", line, "" );
+    auto lookup = couplertypes.find( type );
+    coupler->CouplerType = (
+        lookup != couplertypes.end() ?
+        lookup->second :
+        NoCoupler );
+
+    getkeyval( coupler->SpringKC, "kC", line, "" );
+    getkeyval( coupler->DmaxC, "DmaxC", line, "" );
+    getkeyval( coupler->FmaxC, "FmaxC", line, "" );
+    getkeyval( coupler->SpringKB, "kB", line, "" );
+    getkeyval( coupler->DmaxB, "DmaxB", line, "" );
+    getkeyval( coupler->FmaxB, "FmaxB", line, "" );
+    getkeyval( coupler->beta, "beta", line, "" );
+    getkeyval( coupler->AllowedFlag, "AllowedFlag", line, "" );
+
+    if( coupler->AllowedFlag < 0 ) {
+
+        coupler->AllowedFlag = ( ( -coupler->AllowedFlag ) | ctrain_depot );
+    }
+
+    if( ( coupler->CouplerType != NoCoupler )
+     && ( coupler->CouplerType != Bare )
+     && ( coupler->CouplerType != Articulated ) ) {
+
+        coupler->SpringKC *= 1000;
+        coupler->FmaxC *= 1000;
+        coupler->SpringKB *= 1000;
+        coupler->FmaxB *= 1000;
+    }
+    else if( coupler->CouplerType == Bare ) {
+
+        coupler->SpringKC = 50.0 * Mass + Ftmax / 0.05;
+        coupler->DmaxC = 0.05;
+        coupler->FmaxC = 100.0 * Mass + 2 * Ftmax;
+        coupler->SpringKB = 60.0 * Mass + Ftmax / 0.05;
+        coupler->DmaxB = 0.05;
+        coupler->FmaxB = 50.0 * Mass + 2.0 * Ftmax;
+        coupler->beta = 0.3;
+    }
+    else if( coupler->CouplerType == Articulated ) {
+
+        coupler->SpringKC = 60.0 * Mass + 1000;
+        coupler->DmaxC = 0.05;
+        coupler->FmaxC = 20000000.0 + 2.0 * Ftmax;
+        coupler->SpringKB = 70.0 * Mass + 1000;
+        coupler->DmaxB = 0.05;
+        coupler->FmaxB = 4000000.0 + 2.0 * Ftmax;
+        coupler->beta = 0.55;
+    }
+
+    if( Index == 0 ) {
+        // 0 indicates single entry for both couplers
+        Couplers[ 1 ] = Couplers[ 0 ];
+/*
+        Couplers[ 1 ].SpringKC = coupler->SpringKC;
+        Couplers[ 1 ].DmaxC = coupler->DmaxC;
+        Couplers[ 1 ].FmaxC = coupler->FmaxC;
+        Couplers[ 1 ].SpringKB = coupler->SpringKB;
+        Couplers[ 1 ].DmaxB = coupler->DmaxB;
+        Couplers[ 1 ].FmaxB = coupler->FmaxB;
+        Couplers[ 1 ].beta = coupler->beta;
+        Couplers[ 1 ].CouplerType = coupler->CouplerType;
+        Couplers[ 1 ].AllowedFlag = coupler->AllowedFlag;
+*/
+    }
 }
 
 // *************************************************************************************************
@@ -7798,12 +7820,18 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 		//  OK:=Power>0.01;
 		switch (static_cast<int>(CValue1 * CValue2))
 		{ // CValue2 ma zmieniany znak przy niezgodności sprzęgów
-		case 1:
-			CabNo = 1;
-		case -1:
-			CabNo = -1;
-		default:
-			CabNo = 0; // gdy CValue1==0
+            case 1: {
+                CabNo = 1;
+                break;
+            }
+            case -1: {
+                CabNo = -1;
+                break;
+            }
+            default:{
+                CabNo = 0; // gdy CValue1==0
+                break;
+            }
 		}
 		DirAbsolute = ActiveDir * CabNo;
 		OK = SendCtrlToNext(Command, CValue1, CValue2);

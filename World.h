@@ -40,8 +40,11 @@ class TWorld
     std::string OutText2;
     std::string OutText3;
     std::string OutText4;
-    void ShowHints();
+    void Update_Lights();
+    void Update_Camera( const double Deltatime );
     bool Render();
+    void Render_Cab();
+    void Render_UI();
     TCamera Camera;
     TGround Ground;
     TTrain *Train;

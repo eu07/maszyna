@@ -1878,12 +1878,16 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 fTrainSetDist -=
                     tf3; // przesunięcie dla kolejnego, minus bo idziemy w stronę punktu 1
                 tmp->pCenter = tmp->DynamicObject->GetPosition();
+/* // NOTE: the ctrain_depot flag is used to mark merged together parts of modular trains
+   //       clearing it here breaks this connection, so i'm disabling this piece of code.
+   //       if it has some actual purpose and disabling it breaks that, a different solution has to be found
+   //       either for modular trains, or whatever it is this code does.
                 if (TempConnectionType[iTrainSetWehicleNumber]) // jeśli jest sprzęg
                     if (tmp->DynamicObject->MoverParameters->Couplers[tf1 == -1.0 ? 0 : 1]
                             .AllowedFlag &
                         ctrain_depot) // jesli zablokowany
-                        TempConnectionType[iTrainSetWehicleNumber] |= ctrain_depot; // będzie
-                // blokada
+                        TempConnectionType[iTrainSetWehicleNumber] |= ctrain_depot; // będzie blokada
+*/
                 iTrainSetWehicleNumber++;
             }
             else
@@ -2380,8 +2384,10 @@ void TGround::FirstInit()
     glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight); // kolor padający
     glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight); // kolor odbity
     // musi być tutaj, bo wcześniej nie mieliśmy wartości światła
+/*
     if (Global::fMoveLight >= 0.0) // albo tak, albo niech ustala minimum ciemności w nocy
     {
+*/
         Global::fLuminance = // obliczenie luminacji "światła w ciemności"
             +0.150 * Global::ambientDayLight[0] // R
             + 0.295 * Global::ambientDayLight[1] // G
@@ -2391,9 +2397,11 @@ void TGround::FirstInit()
                 Global::ambientDayLight[i] *=
                     0.1 / Global::fLuminance; // ograniczenie jasności w nocy
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
+/*
     }
     else if (Global::bDoubleAmbient) // Ra: wcześniej było ambient dawane na obydwa światła
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
+*/
     glEnable(GL_LIGHTING);
     WriteLog("FirstInit is done");
 };

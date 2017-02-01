@@ -171,6 +171,10 @@ class TDynamicObject
     int PrevConnectedNo; // numer sprzęgu podłączonego z przodu
     double fScanDist; // odległość skanowania torów na obecność innych pojazdów
 
+    TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
+
+private:
+    // returns type of the nearest functional power source present in the trainset
   public: // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku

@@ -5897,3 +5897,38 @@ void TDynamicObject::OverheadTrack(float o)
         }
     }
 };
+
+// returns type of the nearest functional power source present in the trainset
+TPowerSource
+TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const {
+
+    // if there's engine in the current vehicle, that's good enough...
+    if( MoverParameters->EnginePowerSource.SourceType != TPowerSource::NotDefined ) {
+        return MoverParameters->EnginePowerSource.SourceType;
+    }
+    // ...otherwise check rear first...
+    // NOTE: the order should be reversed in flipped vehicles, but we ignore this out of laziness
+    if( ( nullptr != NextConnected )
+     && ( NextConnected != Caller )
+     && ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+
+        auto source = NextConnected->ConnectedEnginePowerSource( this );
+        if( source != TPowerSource::NotDefined ) {
+
+            return source;
+            }
+        }
+    // ...then rear...
+    if( ( nullptr != PrevConnected )
+        && ( PrevConnected != Caller )
+        && ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+
+        auto source = PrevConnected->ConnectedEnginePowerSource( this );
+        if( source != TPowerSource::NotDefined ) {
+
+            return source;
+        }
+    }
+    // ...if we're still here, report lack of power source
+    return MoverParameters->EnginePowerSource.SourceType;
+}
