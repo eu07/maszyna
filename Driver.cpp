@@ -318,8 +318,8 @@ std::string TSpeedPos::TableText()
 { // pozycja tabelki pr?dko?ci
     if (iFlags & spEnabled)
     { // o ile pozycja istotna
-		return "Flags=" + to_hex_str(iFlags, 6) + ", Dist=" + to_string(fDist, 1, 7) +
-               ", Vel=" + (fVelNext == -1.0 ? "   * " : to_string(fVelNext, 1, 5)) + ", Name=" + GetName();
+		return "Flags:" + to_hex_str(iFlags, 6) + ", Dist:" + to_string(fDist, 1, 6) +
+               ", Vel:" + (fVelNext == -1.0 ? " * " : to_string(static_cast<int>(fVelNext), 0, 3)) + ", Name:" + GetName();
         //if (iFlags & spTrack) // jeśli tor
         //    return "Flags=#" + IntToHex(iFlags, 8) + ", Dist=" + FloatToStrF(fDist, ffFixed, 7, 1) +
         //           ", Vel=" + AnsiString(fVelNext) + ", Track=" + trTrack->NameGet();
@@ -2107,15 +2107,14 @@ bool TController::PrepareEngine()
     ReactionTime = PrepareTime;
     iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
     // with Controlling do
-    if (((mvControlling->EnginePowerSource.SourceType ==
-          CurrentCollector) /*||(mvOccupied->TrainType==dt_EZT)*/))
+    if ( mvControlling->EnginePowerSource.SourceType == CurrentCollector )
+/*
+      || ( (mvOccupied->TrainType==dt_EZT)
+        && (mvControlling->GetTrainsetVoltage() > 0.0 ) ) ) // sprawdzanie, czy zasilanie jest może w innym członie
+*/
     {
-        if (mvControlling
-                ->GetTrainsetVoltage()) // sprawdzanie, czy zasilanie jest może w innym członie
-        {
-            voltfront = true;
-            voltrear = true;
-        }
+        voltfront = true;
+        voltrear = true;
     }
     //   begin
     //     if Couplers[0].Connected<>nil)
@@ -5266,10 +5265,15 @@ void TController::TakeControl(bool yes)
         pVehicle->Controller = AIdriver;
         iDirection = 0; // kierunek jazdy trzeba dopiero zgadnąć
         // gdy zgaszone światła, flaga podjeżdżania pod semafory pozostaje bez zmiany
+        // conditional below disabled to get around the situation where the AI train does nothing ever
+        // because it is waiting for orders which don't come until the engine is engaged, i.e. effectively never
+/*
         if (OrderCurrentGet()) // jeśli coś robi
-            PrepareEngine(); // niech sprawdzi stan silnika
+*/            PrepareEngine(); // niech sprawdzi stan silnika
+/*
         else // jeśli nic nie robi
-            if (pVehicle->iLights[mvOccupied->CabNo < 0 ? 1 : 0] &
+*/
+        if (pVehicle->iLights[mvOccupied->CabNo < 0 ? 1 : 0] &
                 21) // któreś ze świateł zapalone?
         { // od wersji 357 oczekujemy podania komend dla AI przez scenerię
             OrderNext(Prepare_engine);

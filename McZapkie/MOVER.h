@@ -1108,6 +1108,8 @@ public:
 	/*funkcje ladujace pliki opisujace pojazd*/
 	bool LoadFIZ(std::string chkpath);                                                               //Q 20160717    bool LoadChkFile(std::string chkpath);
     bool LoadFIZ_Doors( std::string const &line );
+    void LoadFIZ_BuffCoupl( std::string const &line, int const Index );
+    void LoadFIZ_Param( std::string const &line );
     bool readMPT0( std::string const &line );
     bool readMPT( std::string const &line );                                             //Q 20160717
     bool readMPTElectricSeries( std::string const &line );

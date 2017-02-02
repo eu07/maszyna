@@ -94,7 +94,7 @@ class TTrain
         return DynamicObject->VectorUp();
     };
     void UpdateMechPosition(double dt);
-    bool Update();
+    bool Update( double const Deltatime );
     void MechStop();
     void SetLights();
     //    virtual bool RenderAlpha();

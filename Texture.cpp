@@ -299,11 +299,13 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string const &fileNa
     GLuint id;
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+    if( true == GLEW_VERSION_1_4 ) {
+        glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+    }
     // This is specific to the binary format of the data read in.
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -314,7 +316,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string const &fileNa
     glTexImage2D(
         GL_TEXTURE_2D, 
         0,
-        hasalpha ? GL_RGBA : GL_RGB,
+        GL_RGBA8,
         width,
         height,
         0,
@@ -769,7 +771,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName, int
                 GLuint decomp_size = data.width * data.height * 4;
                 GLubyte *output = new GLubyte[decomp_size];
                 DecompressDXT(data, data.pixels + offset, output);
-                glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, data.width, data.height, 0, GL_RGBA,
+                glTexImage2D( GL_TEXTURE_2D, i, GL_RGBA8, data.width, data.height, 0, GL_RGBA,
                              GL_UNSIGNED_BYTE, output);
                 delete[] output;
             }
@@ -838,14 +840,22 @@ void TTexturesManager::SetFiltering(bool alpha, bool hash)
         }
         else // filtruj ale bez dalekich mipmap - robi artefakty
         {
+/*
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+*/
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
         }
     }
     else // $: filtruj wszystko - brzydko się zlewa
     {
+/*
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+*/
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
     }
 };
 
@@ -863,15 +873,18 @@ GLuint TTexturesManager::CreateTexture(GLubyte *buff, GLint bpp, int width, int 
         SetFiltering(filter); // cyfra po % w nazwie
     else
         SetFiltering(bHasAlpha && bDollar, bHash); // znaki #, $ i kanał alfa w nazwie
+    if( true == GLEW_VERSION_1_4 ) {
+        glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+    }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-    if (bHasAlpha || bHash || (filter == 0))
-        glTexImage2D(GL_TEXTURE_2D, 0, (bHasAlpha ? GL_RGBA : GL_RGB), width, height, 0, bpp,
+/*    if (bHasAlpha || bHash || (filter == 0))
+*/        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, bpp,
                      GL_UNSIGNED_BYTE, buff);
-    else
-        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, height, bpp, GL_UNSIGNED_BYTE, buff);
+//    else
+//        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, height, bpp, GL_UNSIGNED_BYTE, buff);
     return ID;
 }
 

@@ -2643,10 +2643,10 @@ void TTrain::UpdateMechPosition(double dt)
     pMechPosition += DynamicObject->GetPosition();
 };
 
-bool TTrain::Update()
+bool TTrain::Update( double const Deltatime )
 {
     DWORD stat;
-    double dt = Timer::GetDeltaTime();
+    double dt = Deltatime; // Timer::GetDeltaTime();
     if (DynamicObject->mdKabina)
     { // Ra: TODO: odczyty klawiatury/pulpitu nie
         // powinny być uzależnione od istnienia modelu
