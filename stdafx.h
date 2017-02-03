@@ -23,6 +23,7 @@
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
+#include <dbghelp.h>
 // stl
 #include <cstdlib>
 #include <cassert>

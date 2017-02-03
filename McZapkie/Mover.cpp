@@ -5902,7 +5902,7 @@ bool TMoverParameters::readWWList( std::string const &line ) {
 // *************************************************************************************************
 // Q: 20160719
 // *************************************************************************************************
-void TMoverParameters::BrakeValveDecode(std::string s)
+void TMoverParameters::BrakeValveDecode(std::string const &s)
 {
     if (s == "W")
         BrakeValve = W;
@@ -6298,35 +6298,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             {
 				startBPT = false;
 				secBrake = true;
-                eBrakeValve = getkeyval(1, "BrakeValve");
-                eNBpA = atoi(getkeyval(2, "NBpA").c_str());
-                eMBF = atof(getkeyval(3, "MBF").c_str());
-                eTBF = atof(getkeyval(3, "TBF").c_str());
-                eSize = atoi(getkeyval(3, "Size").c_str());
-                eMaxBP = atof(getkeyval(3, "MaxBP").c_str());
-                eMedMaxBP = atof(getkeyval(3, "MedMaxBP").c_str());
-                eTareMaxBP = atof(getkeyval(3, "TareMaxBP").c_str());
-                eMaxLBP = atof(getkeyval(3, "MaxLBP").c_str());
-                eMaxASBP = atof(getkeyval(3, "MaxASBP").c_str());
-                eRM = atof(getkeyval(3, "RM").c_str());
-                eBCN = atoi(getkeyval(2, "BCN").c_str());
-                eBCR = atof(getkeyval(3, "BCR").c_str());
-                eBCD = atof(getkeyval(3, "BCD").c_str());
-                eBCM = atof(getkeyval(3, "BCM").c_str());
-                eBCMlo = atof(getkeyval(3, "BCMlo").c_str());
-                eBCMhi = atof(getkeyval(3, "BCMhi").c_str());
-                eVv = atof(getkeyval(3, "Vv").c_str());
-                eMinCP = atof(getkeyval(3, "MinCP").c_str());
-                eMaxCP = atof(getkeyval(3, "MaxCP").c_str());
-                eBCS = atof(getkeyval(3, "BCS").c_str());
-                eBSA = atof(getkeyval(3, "BSA").c_str());
-                eBM = (getkeyval(1, "BM"));
-                eBVV = atoi(getkeyval(2, "BVV").c_str());
-                eBRE = atof(getkeyval(3, "BRE").c_str());
-                eHiPP = atof(getkeyval(3, "HiPP").c_str());
-                eLoPP = atof(getkeyval(3, "LoPP").c_str());
-                eCompressorSpeed = atof(getkeyval(3, "CompressorSpeed").c_str());
-                eCompressorPower = atof(getkeyval(1, "CompressorPower").c_str());
+                LoadFIZ_Brake( xline );
 				continue;
             }
 
@@ -6700,126 +6672,6 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
      WriteLog("BrakeLocHandle " + gLocBrakeHandle);
     */
 
-    // Brakes
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    if (secBrake)
-    {
-        BrakeValveParams = eBrakeValve;
-        BrakeValveDecode(BrakeValveParams);
-        BrakeSubsystemDecode();
-        NBpA = eNBpA;
-        MaxBrakeForce = eMBF;
-        BrakeValveSize = eSize;
-        TrackBrakeForce = eTBF * 1000;
-        MaxBrakePress[3] = eMaxBP;
-        if (MaxBrakePress[3] > 0)
-        {
-            BrakeCylNo = eBCN;
-            if (BrakeCylNo > 0)
-            {
-                MaxBrakePress[0] = eMaxLBP;
-                if (MaxBrakePress[0] < 0.01)
-                    MaxBrakePress[0] = MaxBrakePress[3];
-                MaxBrakePress[1] = eTareMaxBP;
-                MaxBrakePress[2] = eMedMaxBP;
-                MaxBrakePress[4] = eMaxASBP;
-                if (MaxBrakePress[4] < 0.01)
-                    MaxBrakePress[4] = 0;
-                BrakeCylRadius = eBCR;
-                BrakeCylDist = eBCD;
-                BrakeCylSpring = eBCS;
-                BrakeSlckAdj = eBSA;
-                if (eBRE != 0)
-                    BrakeRigEff = eBRE;
-                else
-                    BrakeRigEff = 1;
-                BrakeCylMult[0] = eBCM;
-                BrakeCylMult[1] = eBCMlo;
-                BrakeCylMult[2] = eBCMhi;
-                P2FTrans = 100.0 * PI * sqr(BrakeCylRadius); // w kN/bar    Q: zamieniam SQR() na
-                                                           // sqr()
-                if ((BrakeCylMult[1] > 0) || (MaxBrakePress[1] > 0))
-                    LoadFlag = 1;
-                else
-                    LoadFlag = 0; //            Q: zamieniam SQR() na sqr()
-                BrakeVolume = PI * sqr(BrakeCylRadius) * BrakeCylDist * BrakeCylNo;
-                BrakeVVolume = eBVV;
-                if (eBM == "P10-Bg")
-                    BrakeMethod = bp_P10Bg;
-                else if (eBM == "P10-Bgu")
-                    BrakeMethod = bp_P10Bgu;
-                else if (eBM == "FR513")
-                    BrakeMethod = bp_FR513;
-                else if (eBM == "Cosid")
-                    BrakeMethod = bp_Cosid;
-                else if (eBM == "P10yBg")
-                    BrakeMethod = bp_P10yBg;
-                else if (eBM == "P10yBgu")
-                    BrakeMethod = bp_P10yBgu;
-                else if (eBM == "Disk1")
-                    BrakeMethod = bp_D1;
-                else if (eBM == "Disk1+Mg")
-                    BrakeMethod = bp_D1 + bp_MHS;
-                else if (eBM == "Disk2")
-                    BrakeMethod = bp_D2;
-                else
-                    BrakeMethod = 0;
-                if (eRM != 0)
-                    RapidMult = eRM;
-                else
-                    RapidMult = 1;
-            }
-            else
-                ConversionError = MARKERROR(-5, "1", "0 brake cylinder units");
-        }
-        else
-            P2FTrans = 0;
-
-        // WriteLog("eBM=" + eBM + ", " + IntToStr(0));
-
-        if (eHiPP != 0)
-            CntrlPipePress = eHiPP;
-        else
-            CntrlPipePress =
-                5.0 + 0.001 * (Random(10) - Random(10)); // Ra 2014-07: trochę niedokładności
-        HighPipePress = CntrlPipePress;
-
-        if (eHiPP != 0)
-            LowPipePress = eLoPP;
-        else
-            LowPipePress = Min0R(HighPipePress, 3.5);
-
-        DeltaPipePress = HighPipePress - LowPipePress;
-
-        VeselVolume = eVv;
-        if (VeselVolume == 0)
-            VeselVolume = 0.01;
-
-        MinCompressor = eMinCP;
-        MaxCompressor = eMaxCP;
-        CompressorSpeed = eCompressorSpeed;
-
-        if (eCompressorPower == "Converter")
-            CompressorPower = 2;
-        else if (eCompressorPower == "Engine")
-            CompressorPower = 3;
-        else if (eCompressorPower == "Coupler1")
-            CompressorPower = 4;
-        else // włączana w silnikowym EZT z przodu
-            if (eCompressorPower == "Coupler2")
-            CompressorPower = 5;
-        else // włączana w silnikowym EZT z tyłu
-            if (eCompressorPower == "Main")
-            CompressorPower = 0;
-
-        // WriteLog("params " + BrakeValveParams);
-        // WriteLog("NBpA " + IntToStr(NBpA));
-        // WriteLog("MaxBrakeForce " + FloatToStr(MaxBrakeForce));
-        // WriteLog("TrackBrakeForce " + FloatToStr(TrackBrakeForce));
-        // WriteLog("MaxBrakePress[3] " + FloatToStr(MaxBrakePress[3]));
-        // WriteLog("BrakeCylNo " + IntToStr(BrakeCylNo));
-    }
-
     // Controllers
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     if (secCntrl)
@@ -7176,7 +7028,111 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     return OK;
 } // LoadFIZ()
 
-bool TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
+void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
+
+    std::string brakevalve;
+    getkeyval( brakevalve, "BrakeValve", line, "" );
+    BrakeValveDecode( brakevalve );
+    BrakeSubsystemDecode();
+
+    getkeyval( NBpA, "NBpA", line, "" );
+    getkeyval( MaxBrakeForce, "MBF", line, "" );
+    getkeyval( BrakeValveSize, "Size", line, "" );
+    getkeyval( TrackBrakeForce, "TBF", line, "" ); TrackBrakeForce *= 1000.0;
+
+    getkeyval( MaxBrakePress[ 3 ], "MaxBP", line, "" );
+    if( MaxBrakePress[ 3 ] > 0.0 ) {
+
+        getkeyval( BrakeCylNo, "BCN", line, "" );
+        if( BrakeCylNo > 0 ) {
+
+            getkeyval( MaxBrakePress[ 0 ], "MaxLBP", line, "" );
+            if( MaxBrakePress[ 0 ] < 0.01 ) { MaxBrakePress[ 0 ] = MaxBrakePress[ 3 ]; }
+            getkeyval( MaxBrakePress[ 1 ], "TareMaxBP", line, "" );
+            getkeyval( MaxBrakePress[ 2 ], "MedMaxBP", line, "" );
+            getkeyval( MaxBrakePress[ 4 ], "MaxASBP", line, "" );
+            if( MaxBrakePress[ 4 ] < 0.01 ) { MaxBrakePress[ 4 ] = 0.0; }
+
+            getkeyval( BrakeCylRadius, "BCR", line, "" );
+            getkeyval( BrakeCylDist, "BCD", line, "" );
+            getkeyval( BrakeCylSpring, "BCS", line, "" );
+            getkeyval( BrakeSlckAdj, "BSA", line, "" );
+            getkeyval( BrakeRigEff, "BRE", line, "1" );
+
+            getkeyval( BrakeCylMult[ 0 ], "BCM", line, "" );
+            getkeyval( BrakeCylMult[ 1 ], "BCMlo", line, "" );
+            getkeyval( BrakeCylMult[ 2 ], "BCMHi", line, "" );
+
+            P2FTrans = 100 * M_PI * std::pow( BrakeCylRadius, 2 ); // w kN/bar
+
+            if( ( BrakeCylMult[ 1 ] > 0.0 ) || ( MaxBrakePress[ 1 ] > 0.0 ) ) { LoadFlag = 1; }
+            else { LoadFlag = 0; }
+
+            BrakeVolume = M_PI * std::pow( BrakeCylRadius, 2 ) * BrakeCylDist * BrakeCylNo;
+            getkeyval( BrakeVVolume, "BVV", line, "" );
+
+            {
+                std::map<std::string, int> brakemethods{
+                    { "P10-Bg", bp_P10Bg },
+                    { "P10-Bgu", bp_P10Bgu },
+                    { "FR513", bp_FR513 },
+                    { "FR510", bp_FR510 },
+                    { "Cosid", bp_Cosid },
+                    { "P10yBg", bp_P10yBg },
+                    { "P10yBgu", bp_P10yBgu },
+                    { "Disk1", bp_D1 },
+                    { "Disk1+Mg", bp_D1 + bp_MHS },
+                    { "Disk2", bp_D2 }
+                };
+                std::string brakemethod;
+                getkeyval( brakemethod, "BM", line, "" );
+                auto lookup = brakemethods.find( brakemethod );
+                BrakeMethod =
+                    lookup != brakemethods.end() ?
+                    lookup->second :
+                    0;
+            }
+
+            getkeyval( RapidMult, "RM", line, "1" );
+        }
+    }
+    else {
+        // maxbrakepress[3] == 0 or less
+        P2FTrans = 0;
+    }
+
+    CntrlPipePress = 5 + 0.001 * ( Random( 10 ) - Random( 10 ) ); //Ra 2014-07: trochę niedokładności
+    getkeyval( CntrlPipePress, "HiPP", line, "" );
+    HighPipePress = CntrlPipePress;
+    LowPipePress = std::min( HighPipePress, 3.5 );
+    getkeyval( LowPipePress, "LoPP", line, "" );
+    DeltaPipePress = HighPipePress - LowPipePress;
+
+    getkeyval( VeselVolume, "Vv", line, "" );
+    if( VeselVolume == 0.0 ) { VeselVolume = 0.01; }
+
+    getkeyval( MinCompressor, "MinCP", line, "" );
+    getkeyval( MaxCompressor, "MaxCP", line, "" );
+    getkeyval( CompressorSpeed, "CompressorSpeed", line, "" );
+    {
+        std::map<std::string, int> compressorpowers{
+            { "Converter", 2 },
+            { "Engine", 3 },
+            { "Coupler1", 4 },//włączana w silnikowym EZT z przodu
+            { "Coupler2", 5 },//włączana w silnikowym EZT z tyłu
+            { "Main", 0 }
+        };
+        std::string compressorpower;
+        getkeyval( compressorpower, "CompressorPower", line, "" );
+        auto lookup = compressorpowers.find( compressorpower );
+        CompressorPower =
+            lookup != compressorpowers.end() ?
+            lookup->second :
+            0;
+    }
+}
+
+void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
 
     DoorOpenCtrl = 0;
     std::string openctrl; getkeyval( openctrl, "OpenCtrl", line, "" );
@@ -7213,8 +7169,6 @@ bool TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     PlatformOpenMethod = 2; // obrót, default
     std::string platformopenmethod; getkeyval( platformopenmethod, "PlatformOpenMethod", line, "" );
     if( platformopenmethod == "Shift" ) { PlatformOpenMethod = 1; } // przesuw
-
-    return true;
 }
 
 void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
