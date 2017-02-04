@@ -114,7 +114,6 @@
     <ClCompile Include="MemCell.cpp" />
     <ClCompile Include="Model3d.cpp" />
     <ClCompile Include="mtable.cpp" />
-    <ClCompile Include="Names.cpp" />
     <ClCompile Include="opengl\ARB_Multisample.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PyInt.cpp" />

@@ -217,13 +217,13 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
            }
          }
     */
-    MechSpring.Init(0, 500);
+    MechSpring.Init(0.015, 250);
     vMechVelocity = vector3(0, 0, 0);
     pMechOffset = vector3(-0.4, 3.3, 5.5);
     fMechCroach = 0.5;
     fMechSpringX = 1;
-    fMechSpringY = 0.1;
-    fMechSpringZ = 0.1;
+    fMechSpringY = 0.5;
+    fMechSpringZ = 0.5;
     fMechMaxSpring = 0.15;
     fMechRoll = 0.05;
     fMechPitch = 0.1;
@@ -2545,36 +2545,41 @@ void TTrain::UpdateMechPosition(double dt)
     // - przy szybkiej jeździe kabina prosto, horyzont pochylony
 
     vector3 pNewMechPosition;
+    Math3D::vector3 shake;
     // McZapkie: najpierw policzę pozycję w/m kabiny
 
     // ABu: rzucamy kabina tylko przy duzym FPS!
     // Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
     // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
-    double r1, r2, r3;
-    int iVel = DynamicObject->GetVelocity();
-    if (iVel > 150)
-        iVel = 150;
+    double iVel = DynamicObject->GetVelocity();
+    if (iVel > 150.0)
+        iVel = 150.0;
     if (!Global::iSlowMotion // musi być pełna prędkość
         && (pMechOffset.y < 4.0)) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
     {
-        if (!(Random((GetFPS() + 1) / 15) > 0))
-        {
-            if ((iVel > 0) && (Random(155 - iVel) < 16))
-            {
-                r1 = (double(Random(iVel * 2) - iVel) / ((iVel * 2) * 4)) * fMechSpringX;
-                r2 = (double(Random(iVel * 2) - iVel) / ((iVel * 2) * 4)) * fMechSpringY;
-                r3 = (double(Random(iVel * 2) - iVel) / ((iVel * 2) * 4)) * fMechSpringZ;
-                MechSpring.ComputateForces(vector3(r1, r2, r3), pMechShake);
-                //      MechSpring.ComputateForces(vector3(double(random(200)-100)/200,double(random(200)-100)/200,double(random(200)-100)/500),pMechShake);
+        if( iVel > 0.0 ) {
+            // acceleration-driven base shake
+            shake += 1.5 * MechSpring.ComputateForces(
+                vector3(
+                     -mvControlled->AccN * dt * 7.5, // highlight side sway
+                      mvControlled->AccV * dt * 15,
+                     -mvControlled->AccS * dt ),
+                pMechShake );
+
+            if( Random( iVel ) > 30.0 ) {
+                // extra shake at increased velocity
+                shake += MechSpring.ComputateForces(
+                    vector3(
+                        ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
+                        ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
+                        ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ ),
+                    pMechShake );
+//                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
             }
-            else
-                MechSpring.ComputateForces(vector3(-mvControlled->AccN * dt,
-                                                   mvControlled->AccV * dt * 10,
-                                                   -mvControlled->AccS * dt),
-                                           pMechShake);
+            shake *= 1.35;
         }
-        vMechVelocity -= (MechSpring.vForce2 + vMechVelocity * 100) *
-                         (fMechSpringX + fMechSpringY + fMechSpringZ) / (200);
+        vMechVelocity -= (shake + vMechVelocity * 100) * (fMechSpringX + fMechSpringY + fMechSpringZ) / (200);
+//        shake *= 0.95 * dt; // shake damping
 
         // McZapkie:
         pMechShake += vMechVelocity * dt;
@@ -2583,14 +2588,12 @@ void TTrain::UpdateMechPosition(double dt)
         if ((pMechShake.y > fMechMaxSpring) || (pMechShake.y < -fMechMaxSpring))
             vMechVelocity.y = -vMechVelocity.y;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
-        pNewMechPosition = pMechOffset + vector3(pMechShake.x, 5 * pMechShake.y, pMechShake.z);
+        pNewMechPosition = pMechOffset + vector3(1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z);
         vMechMovement = 0.5 * vMechMovement;
     }
     else
     { // hamowanie rzucania przy spadku FPS
-        pMechShake -= pMechShake * Min0R(dt, 1); // po tym chyba potrafią zostać
-        // jakieś ułamki, które powodują
-        // zjazd
+        pMechShake -= pMechShake * std::min(dt, 1.0); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
         pMechOffset += vMechMovement * dt;
         vMechVelocity.y = 0.5 * vMechVelocity.y;
         pNewMechPosition = pMechOffset + vector3(pMechShake.x, 5 * pMechShake.y, pMechShake.z);
@@ -5067,6 +5070,8 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 {
     double dSDist;
     cParser parser(asFileName, cParser::buffer_FILE);
+    // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
+    // parser.addCommentStyle( "#", "\n" );
     //Wartości domyślne by nie wysypywało przy wybrakowanych mmd @240816 Stele
     dsbPneumaticSwitch = TSoundsManager::GetFromName("silence1.wav", true);
     dsbBufferClamp = TSoundsManager::GetFromName("en57_bufferclamp.wav", true);
@@ -5312,7 +5317,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 double ks, kd;
                 parser.getTokens(2, false);
                 parser >> ks >> kd;
-                MechSpring.Init(0, ks, kd);
+                MechSpring.Init(MechSpring.restLen, ks, kd);
                 parser.getTokens(6, false);
                 parser >> fMechSpringX >> fMechSpringY >> fMechSpringZ >> fMechMaxSpring >>
                     fMechRoll >> fMechPitch;
@@ -5388,6 +5393,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
     std::shared_ptr<cParser> parser = std::make_shared<cParser>(asFileName, cParser::buffer_FILE);
+    // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
+    // parser.addCommentStyle( "#", "\n" );
     std::string token;
     do
     {
@@ -5404,6 +5411,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         cabstr = "cab1definition:";
         // crude way to start parsing from beginning
         parser = std::make_shared<cParser>(asFileName, cParser::buffer_FILE);
+        // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
+        // parser.addCommentStyle( "#", "\n" );
         do
         {
             token = "";
