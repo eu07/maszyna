@@ -5910,7 +5910,7 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     // NOTE: the order should be reversed in flipped vehicles, but we ignore this out of laziness
     if( ( nullptr != NextConnected )
      && ( NextConnected != Caller )
-     && ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+     && ( ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
 
         auto source = NextConnected->ConnectedEnginePowerSource( this );
         if( source != TPowerSource::NotDefined ) {
@@ -5921,7 +5921,7 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     // ...then rear...
     if( ( nullptr != PrevConnected )
         && ( PrevConnected != Caller )
-        && ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+        && ( ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
 
         auto source = PrevConnected->ConnectedEnginePowerSource( this );
         if( source != TPowerSource::NotDefined ) {

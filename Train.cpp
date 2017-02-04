@@ -2551,9 +2551,8 @@ void TTrain::UpdateMechPosition(double dt)
     // ABu: rzucamy kabina tylko przy duzym FPS!
     // Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
     // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
-    double iVel = DynamicObject->GetVelocity();
-    if (iVel > 150.0)
-        iVel = 150.0;
+    double const iVel = std::min(DynamicObject->GetVelocity(), 150.0);
+
     if (!Global::iSlowMotion // musi być pełna prędkość
         && (pMechOffset.y < 4.0)) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
     {
@@ -2561,12 +2560,12 @@ void TTrain::UpdateMechPosition(double dt)
             // acceleration-driven base shake
             shake += 1.5 * MechSpring.ComputateForces(
                 vector3(
-                     -mvControlled->AccN * dt * 7.5, // highlight side sway
-                      mvControlled->AccV * dt * 15,
-                     -mvControlled->AccS * dt ),
+                     -mvControlled->AccN * dt * 5.0, // highlight side sway
+                      mvControlled->AccV * dt,
+                     -mvControlled->AccS * dt * 2.5 ), // accent acceleration/deceleration
                 pMechShake );
 
-            if( Random( iVel ) > 30.0 ) {
+            if( Random( iVel ) > 25.0 ) {
                 // extra shake at increased velocity
                 shake += MechSpring.ComputateForces(
                     vector3(
@@ -2576,7 +2575,7 @@ void TTrain::UpdateMechPosition(double dt)
                     pMechShake );
 //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
             }
-            shake *= 1.35;
+            shake *= 1.25;
         }
         vMechVelocity -= (shake + vMechVelocity * 100) * (fMechSpringX + fMechSpringY + fMechSpringZ) / (200);
 //        shake *= 0.95 * dt; // shake damping

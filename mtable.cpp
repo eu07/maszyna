@@ -59,7 +59,7 @@ double TTrainParameters::WatchMTable(double DistCounter)
 std::string TTrainParameters::NextStop()
 { // pobranie nazwy następnego miejsca zatrzymania
     if (StationIndex <= StationCount)
-        return "PassengerStopPoint:" + NextStationName; // nazwa następnego przystanku;
+        return NextStationName; // nazwa następnego przystanku;
     else
         return "[End of route]"; //że niby koniec
 }
