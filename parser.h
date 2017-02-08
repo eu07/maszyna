@@ -134,7 +134,9 @@ cParser::operator>>( bool &Right ) {
 
     if( true == this->tokens.empty() ) { return *this; }
 
-    Right = ( this->tokens.front() == "true" );
+    Right = ( ( this->tokens.front() == "true" )
+           || ( this->tokens.front() == "yes" )
+           || ( this->tokens.front() == "1" ) );
     this->tokens.pop_front();
 
     return *this;

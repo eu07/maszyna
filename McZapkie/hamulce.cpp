@@ -51,16 +51,16 @@ double PF_old(double P1, double P2, double S)
 
 double PF(double P1, double P2, double S, double DP)
 {
-    double PH = Max0R(P1, P2) + 1; // wyzsze cisnienie absolutne
+    double PH = std::max(P1, P2) + 1; // wyzsze cisnienie absolutne
     double PL = P1 + P2 - PH + 2; // nizsze cisnienie absolutne
     double sg = PL / PH; // bezwymiarowy stosunek cisnien
     double FM = PH * 197 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
     if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
         if ((PH - PL) < DP) // niewielka roznica cisnien
-            return (1 - sg) / DPL * FM * 2 * sqrt((DP) * (PH - DP));
+            return (1 - sg) / DPL * FM * 2 * std::sqrt((DP) * (PH - DP));
         //      return 1/DPL*(PH-PL)*fm*2*SQRT((sg)*(1-sg));
         else
-            return FM * 2 * sqrt((sg) * (1 - sg));
+            return FM * 2 * std::sqrt((sg) * (1 - sg));
     else // powyzej stosunku krytycznego
         return FM;
 }
@@ -69,15 +69,15 @@ double PF1(double P1, double P2, double S)
 {
     static double const DPS = 0.001;
 
-    double PH = Max0R(P1, P2) + 1; // wyzsze cisnienie absolutne
+    double PH = std::max(P1, P2) + 1; // wyzsze cisnienie absolutne
     double PL = P1 + P2 - PH + 2; // nizsze cisnienie absolutne
     double sg = PL / PH; // bezwymiarowy stosunek cisnien
     double FM = PH * 197 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
     if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
         if ((sg < DPS)) // niewielka roznica cisnien
-            return (1 - sg) / DPS * FM * 2 * sqrt((DPS) * (1 - DPS));
+            return (1 - sg) / DPS * FM * 2 * std::sqrt((DPS) * (1 - DPS));
         else
-            return FM * 2 * sqrt((sg) * (1 - sg));
+            return FM * 2 * std::sqrt((sg) * (1 - sg));
     else // powyzej stosunku krytycznego
         return FM;
 }
@@ -96,9 +96,9 @@ double PFVa(double PH, double PL, double S, double LIM,
             FM = FM * (LIM - PL) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
         if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
             if ((PH - PL) < DPL) // niewielka roznica cisnien
-                return (PH - PL) / DPL * FM * 2 * sqrt((sg) * (1 - sg)); // BUG: (1-sg) can be < 0, leading to sqrt(-x)
+                return (PH - PL) / DPL * FM * 2 * std::sqrt((sg) * (1 - sg)); // BUG: (1-sg) can be < 0, leading to sqrt(-x)
             else
-                return FM * 2 * sqrt( (sg) * ( 1 - sg ) ); // BUG: (1-sg) can be < 0, leading to sqrt(-x)
+                return FM * 2 * std::sqrt( (sg) * ( 1 - sg ) ); // BUG: (1-sg) can be < 0, leading to sqrt(-x)
         else // powyzej stosunku krytycznego
             return FM;
     }
@@ -120,9 +120,9 @@ double PFVd(double PH, double PL, double S, double LIM,
             FM = FM * (PH - LIM) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
         if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
             if ((PH - PL) < DPL) // niewielka roznica cisnien
-                return (PH - PL) / DPL * FM * 2 * sqrt((sg) * (1 - sg));
+                return (PH - PL) / DPL * FM * 2 * std::sqrt((sg) * (1 - sg));
             else
-                return FM * 2 * sqrt((sg) * (1 - sg));
+                return FM * 2 * std::sqrt((sg) * (1 - sg));
         else // powyzej stosunku krytycznego
             return FM;
     }
@@ -2749,8 +2749,8 @@ double TFD1::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
     //  MaxBP:=4;
     //  temp:=Min0R(i_bcp*MaxBP,Min0R(5.0,HP));
-    temp = Min0R(i_bcp * MaxBP, HP); // 0011
-    DP = 10 * Min0R(abs(temp - BP), 0.1) * PF(temp, BP, 0.0006 * (2 + int(temp > BP))) * dt * Speed;
+    temp = std::min(i_bcp * MaxBP, HP); // 0011
+    DP = 10.0 * std::min(std::abs(temp - BP), 0.1) * PF(temp, BP, 0.0006 * (temp > BP ? 3.0 : 2.0) ) * dt * Speed;
     BP = BP - DP;
     return -DP;
 }

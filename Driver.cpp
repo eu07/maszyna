@@ -1276,8 +1276,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 VelSignal = -1.0; // aby stojący ruszył
                             if (sSpeedTable[i].fDist < 0.0) // jeśli przejechany
                                 {
-                                    if (v != 0 ? VelSignal = -1.0 : VelSignal = 0.0)
-                                    ; // ustawienie, gdy przejechany jest lepsze niż
+                                    VelSignal = (v != 0 ? -1.0 : 0.0);
+                                    // ustawienie, gdy przejechany jest lepsze niż
                                     // wcale, ale to jeszcze nie to
                                 if (sSpeedTable[i].iFlags & spEvent) // jeśli event
                                         if ((sSpeedTable[i].evEvent != eSignSkip) ?
@@ -2322,15 +2322,15 @@ bool TController::IncBrake()
     {
     case Individual:
         if (mvOccupied->LocalBrake == ManualBrake)
-            OK = mvOccupied->IncManualBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
+            OK = mvOccupied->IncManualBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) );
         else
-            OK = mvOccupied->IncLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
+            OK = mvOccupied->IncLocalBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) );
         break;
     case Pneumatic:
         if ((mvOccupied->Couplers[0].Connected == NULL) &&
             (mvOccupied->Couplers[1].Connected == NULL))
             OK = mvOccupied->IncLocalBrakeLevel(
-                1 + floor(0.5 + fabs(AccDesired))); // hamowanie lokalnym bo luzem jedzie
+                1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) ); // hamowanie lokalnym bo luzem jedzie
         else
         {
             if (mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo)

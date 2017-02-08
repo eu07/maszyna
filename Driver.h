@@ -387,7 +387,7 @@ class TController
     bool IsStop();
     bool Primary()
     {
-        return this ? bool(iDrivigFlags & movePrimary) : false;
+        return this ? ((iDrivigFlags & movePrimary) != 0) : false;
     };
     int inline DrivigFlags()
     {

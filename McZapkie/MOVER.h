@@ -543,8 +543,6 @@ struct TTransmision
 
 enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
 
-//class TMoverParameters;                          // wyforwardowanie klasy coby  typ byl widoczny w ponizszej strukturze
-
 struct TCoupling {
 	/*parametry*/
     double SpringKB = 1.0;   /*stala sprezystosci zderzaka/sprzegu, %tlumiennosci */
@@ -673,7 +671,7 @@ public:
 	int MainCtrlPosNo = 0;     /*ilosc pozycji nastawnika*/
 	int ScndCtrlPosNo = 0;
 	int LightsPosNo = 0; // NOTE: values higher than 0 seem to break the current code for light switches
-    int LightsDefPos = 0;
+    int LightsDefPos = 1;
 	bool LightsWrap = false;
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
 	bool ScndInMain = false;     /*zaleznosc bocznika od nastawnika*/
@@ -748,7 +746,7 @@ public:
 	/*- dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimc[26];
 	/*-dla wagonow*/
-	long MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
+    double MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
 	std::string LoadAccepted; std::string LoadQuantity; /*co moze byc zaladowane, jednostki miary*/
 	double OverLoadFactor = 0.0;       /*ile razy moze byc przekroczona ladownosc*/
 	double LoadSpeed = 0.0; double UnLoadSpeed = 0.0;/*szybkosc na- i rozladunku jednostki/s*/
@@ -907,7 +905,7 @@ public:
 	double eAngle = 1.5;
 
 	/*-dla wagonow*/
-	long Load = 0.0;      /*masa w T lub ilosc w sztukach - zaladowane*/
+    double Load = 0.0;      /*masa w T lub ilosc w sztukach - zaladowane*/
 	std::string LoadType;   /*co jest zaladowane*/
 	int LoadStatus = 0; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakończono,0=zaktualizowany model
 	double LastLoadChangeTime = 0.0; //raz (roz)ładowania
@@ -1066,8 +1064,8 @@ public:
 	bool FuseOn(void); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void); // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego
-	int ShowCurrent(int AmpN); //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
-	int ShowCurrentP(int AmpN);  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
+    double ShowCurrent( int AmpN ); //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
+	double ShowCurrentP(int AmpN);  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
 
 								 /*!o pokazuje bezwgl. wartosc obrotow na obrotomierzu jednego z 3 pojazdow*/
 								 /*function ShowEngineRotation(VehN:int): integer; //Ra 2014-06: przeniesione do C++*/
@@ -1107,28 +1105,46 @@ public:
 
 	/*funkcje ladujace pliki opisujace pojazd*/
 	bool LoadFIZ(std::string chkpath);                                                               //Q 20160717    bool LoadChkFile(std::string chkpath);
+    bool CheckLocomotiveParameters( bool ReadyFlag, int Dir );
+    std::string EngineDescription( int what );
+private:
     void LoadFIZ_Param( std::string const &line );
+    void LoadFIZ_Load( std::string const &line );
+    void LoadFIZ_Dimensions( std::string const &line );
+    void LoadFIZ_Wheels( std::string const &line );
     void LoadFIZ_Brake( std::string const &line );
-    void LoadFIZ_BuffCoupl( std::string const &line, int const Index );
     void LoadFIZ_Doors( std::string const &line );
+    void LoadFIZ_BuffCoupl( std::string const &line, int const Index );
+    void LoadFIZ_TurboPos( std::string const &line );
+    void LoadFIZ_Cntrl( std::string const &line );
+    void LoadFIZ_Light( std::string const &line );
+    void LoadFIZ_Security( std::string const &line );
+    void LoadFIZ_Clima( std::string const &line );
+    void LoadFIZ_Power( std::string const &Line );
+    void LoadFIZ_Engine( std::string const &Input );
+    void LoadFIZ_Switches( std::string const &Input );
+    void LoadFIZ_MotorParamTable( std::string const &Input );
+    void LoadFIZ_Circuit( std::string const &Input );
+    void LoadFIZ_RList( std::string const &Input );
+    void LoadFIZ_DList( std::string const &Input );
+    void LoadFIZ_LightsList( std::string const &Input );
+    void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
+    TPowerType LoadFIZ_PowerDecode( std::string const &Power );
+    TPowerSource LoadFIZ_SourceDecode( std::string const &Source );
+    TEngineTypes LoadFIZ_EngineDecode( std::string const &Engine );
     bool readMPT0( std::string const &line );
     bool readMPT( std::string const &line );                                             //Q 20160717
     bool readMPTElectricSeries( std::string const &line );
     bool readMPTDieselElectric( std::string const &line );
     bool readMPTDieselEngine( std::string const &line );
-	bool readRList(int const ln, std::string const &line);                                           //Q 20160718
 	bool readBPT(/*int const ln,*/ std::string const &line);                                             //Q 20160721
+    bool readRList( std::string const &Input );
     bool readDList( std::string const &line );
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
+    bool readLightsList( std::string const &Input );
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719
 	void BrakeSubsystemDecode();                                                                     //Q 20160719
-	void PowerParamDecode(std::string lines, std::string prefix, TPowerParameters &PowerParamDecode); //Q 20160719
-	TPowerSource PowerSourceDecode(std::string s);                                                   //Q 20160719
-	TPowerType PowerDecode(std::string s);                                                           //Q 20160719
-	TEngineTypes EngineDecode(std::string s);                                                        //Q 20160721
-	bool CheckLocomotiveParameters(bool ReadyFlag, int Dir);
-	std::string EngineDescription(int what);
 };
 
 extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
@@ -1136,16 +1152,7 @@ extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimensi
 template <typename _Type>
 bool getkeyval( _Type &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
 
-    std::string value;
-	auto lookup = Input.find( Key + "=" );
-	if( lookup != std::string::npos ) {
-        value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
-        lookup = value.find( ' ' );
-        if( lookup != std::string::npos ) {
-            // trim everything past the value
-            value.erase( lookup );
-        }
-    }
+    auto value = extract_value( Key, Input );
     if( false == value.empty() ) {
         // set the specified variable to retrieved value
         std::stringstream converter;
@@ -1162,4 +1169,21 @@ bool getkeyval( _Type &Variable, std::string const &Key, std::string const &Inpu
         }
         return false; // supplied the default
 	}
+}
+
+inline
+std::string
+extract_value( std::string const &Key, std::string const &Input ) {
+
+    std::string value;
+    auto lookup = Input.find( Key + "=" );
+    if( lookup != std::string::npos ) {
+        value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
+        lookup = value.find( ' ' );
+        if( lookup != std::string::npos ) {
+            // trim everything past the value
+            value.erase( lookup );
+        }
+    }
+    return value;
 }

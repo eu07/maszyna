@@ -2558,11 +2558,11 @@ void TTrain::UpdateMechPosition(double dt)
     {
         if( iVel > 0.0 ) {
             // acceleration-driven base shake
-            shake += 1.5 * MechSpring.ComputateForces(
+            shake += 1.25 * MechSpring.ComputateForces(
                 vector3(
                      -mvControlled->AccN * dt * 5.0, // highlight side sway
                       mvControlled->AccV * dt,
-                     -mvControlled->AccS * dt * 2.5 ), // accent acceleration/deceleration
+                     -mvControlled->AccS * dt * 1.25 ), // accent acceleration/deceleration
                 pMechShake );
 
             if( Random( iVel ) > 25.0 ) {
@@ -2575,7 +2575,7 @@ void TTrain::UpdateMechPosition(double dt)
                     pMechShake );
 //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
             }
-            shake *= 1.25;
+//            shake *= 1.25;
         }
         vMechVelocity -= (shake + vMechVelocity * 100) * (fMechSpringX + fMechSpringY + fMechSpringZ) / (200);
 //        shake *= 0.95 * dt; // shake damping
