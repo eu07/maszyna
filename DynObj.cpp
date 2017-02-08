@@ -1873,13 +1873,13 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     {
         if (Cab == 0)
             MoverParameters->BrakeCtrlPos =
-                floor(MoverParameters->Handle->GetPos(bh_NP));
+                static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_NP)) );
         else
-            MoverParameters->BrakeCtrlPos = floor(MoverParameters->Handle->GetPos(bh_RP));
+            MoverParameters->BrakeCtrlPos = static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_RP)) );
     }
     else
         MoverParameters->BrakeCtrlPos =
-            floor(MoverParameters->Handle->GetPos(bh_NP));
+            static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_NP)) );
 
     MoverParameters->BrakeLevelSet(
         MoverParameters->BrakeCtrlPos); // poprawienie hamulca po ewentualnym
@@ -2920,7 +2920,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             // 1. najpierw daj kazdemu tyle samo
             int i = 0;
 			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-				(kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+				p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
 			{
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
@@ -2948,7 +2948,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 i = 0;
                 float przek = 0;
                 for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                     (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                     p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
                 {
                     if ((FzEP[i] > 0.01) &&
                         (FzEP[i] >
@@ -3302,13 +3302,16 @@ bool TDynamicObject::Update(double dt, double dt1)
             switch (i) // numer pantografu
             { // trzeba usunąć to rozróżnienie
             case 0:
-                if (Global::bLiveTraction ? false :
-                                            !p->hvPowerWire) // jeśli nie ma drutu, może pooszukiwać
+                if( ( Global::bLiveTraction == false )
+                    && ( p->hvPowerWire == nullptr ) ) {
+                    // jeśli nie ma drutu, może pooszukiwać
                     MoverParameters->PantFrontVolt =
-                        (p->PantWys >= 1.2) ? 0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
-                                              0.0;
-                else if (MoverParameters->PantFrontUp ? (PantDiff < 0.01) :
-                                                        false) // tolerancja niedolegania
+                        ( p->PantWys >= 1.2 ) ?
+                            0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
+                            0.0;
+                }
+                else if( ( true == MoverParameters->PantFrontUp )
+                      && ( PantDiff < 0.01 ) ) // tolerancja niedolegania
                 {
                     if ((MoverParameters->PantFrontVolt == 0.0) &&
                         (MoverParameters->PantRearVolt == 0.0))
@@ -3328,12 +3331,16 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantFrontVolt = 0.0;
                 break;
             case 1:
-                if (Global::bLiveTraction ? false :
-                                            !p->hvPowerWire) // jeśli nie ma drutu, może pooszukiwać
+                if( ( false == Global::bLiveTraction )
+                 && ( nullptr == p->hvPowerWire ) ) {
+                    // jeśli nie ma drutu, może pooszukiwać
                     MoverParameters->PantRearVolt =
-                        (p->PantWys >= 1.2) ? 0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
-                                              0.0;
-                else if (MoverParameters->PantRearUp ? (PantDiff < 0.01) : false)
+                        ( p->PantWys >= 1.2 ) ?
+                            0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
+                            0.0;
+                }
+                else if ( ( true == MoverParameters->PantRearUp )
+                       && ( PantDiff < 0.01 ) )
                 {
                     if ((MoverParameters->PantRearVolt == 0.0) &&
                         (MoverParameters->PantFrontVolt == 0.0))
@@ -4372,7 +4379,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
 	cParser parser( TypeName + ".mmd", cParser::buffer_FILE, BaseDir );
 	std::string token;
-    int i;
     do {
 		token = "";
 		parser.getTokens(); parser >> token;
@@ -4387,7 +4393,8 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 iMultiTex = 1;
                 asModel.erase( asModel.length() - 1 );
             }
-            if ((i = asModel.find(',')) != std::string::npos)
+            std::size_t i = asModel.find( ',' );
+            if ( i != std::string::npos )
             { // Ra 2015-01: może szukać przecinka w
                 // nazwie modelu, a po przecinku była by
                 // liczba
@@ -5910,7 +5917,7 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     // NOTE: the order should be reversed in flipped vehicles, but we ignore this out of laziness
     if( ( nullptr != NextConnected )
      && ( NextConnected != Caller )
-     && ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+     && ( ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
 
         auto source = NextConnected->ConnectedEnginePowerSource( this );
         if( source != TPowerSource::NotDefined ) {
@@ -5921,7 +5928,7 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     // ...then rear...
     if( ( nullptr != PrevConnected )
         && ( PrevConnected != Caller )
-        && ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+        && ( ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
 
         auto source = PrevConnected->ConnectedEnginePowerSource( this );
         if( source != TPowerSource::NotDefined ) {

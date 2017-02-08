@@ -1930,16 +1930,11 @@ TWorld::Render_UI() {
     if( Global::iTextMode == VK_F1 ) { // tekst pokazywany po wciśnięciu [F1]
         // Global::iViewMode=VK_F1;
         glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
-        OutText1 = "Time: " + to_string( (int)GlobalTime->hh ) + ":";
-        int i = GlobalTime->mm; // bo inaczej potrafi zrobić "hh:010"
-        if( i < 10 )
-            OutText1 += "0";
-        OutText1 += to_string( i ); // minuty
-        OutText1 += ":";
-        i = floor( GlobalTime->mr ); // bo inaczej potrafi zrobić "hh:mm:010"
-        if( i < 10 )
-            OutText1 += "0";
-        OutText1 += to_string( i );
+        OutText1 =
+            "Time: "
+            + to_string( (int)GlobalTime->hh ) + ":"
+            + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
+            + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
         if( Global::iPause )
             OutText1 += " - paused";
         if( Controlled )

@@ -316,7 +316,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         if (token.substr(0, 19) == "PassengerStopPoint:")
         {
             if (token.find('#') != std::string::npos)
-				token = token.substr(0, token.find('#') - 1); // obcięcie unikatowości
+				token.erase(token.find('#')); // obcięcie unikatowości
             bEnabled = false; // nie do kolejki (dla SetVelocity też, ale jak jest do toru
             // dowiązany)
             Params[6].asCommand = cm_PassengerStopPoint;

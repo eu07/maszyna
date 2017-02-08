@@ -99,9 +99,6 @@
     <ClCompile Include="mtable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Names.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

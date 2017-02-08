@@ -59,7 +59,7 @@ double TTrainParameters::WatchMTable(double DistCounter)
 std::string TTrainParameters::NextStop()
 { // pobranie nazwy następnego miejsca zatrzymania
     if (StationIndex <= StationCount)
-        return "PassengerStopPoint:" + NextStationName; // nazwa następnego przystanku;
+        return NextStationName; // nazwa następnego przystanku;
     else
         return "[End of route]"; //że niby koniec
 }
@@ -401,11 +401,14 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                             }
                             while (s.find("|") == std::string::npos)
                                 fin >> s;
-                            fin >> record->StationWare;
-                            do
-                            {
+                            // stationware. added fix for empty entry
+                            fin >> s;
+                            while( false == ( ( s == "1" )
+                                           || ( s == "2" )
+                                           || fin.bad() ) ) {
+                                record->StationWare += s;
                                 fin >> s;
-                            } while (!((s == "1") || (s == "2") || fin.bad()));
+                            }
                             record->TrackNo = atoi(s.c_str());
                             fin >> s;
                             if (s != "|")
