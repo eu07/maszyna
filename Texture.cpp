@@ -303,7 +303,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string const &fileNa
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-    if( true == GLEW_VERSION_1_4 ) {
+    if( GLEW_VERSION_1_4 ) {
         glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
     }
     // This is specific to the binary format of the data read in.
@@ -784,6 +784,15 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName, int
         data.width /= 2;
         data.height /= 2;
     };
+
+    if( ( data.numMipMaps == 1 )
+     && ( GLEW_VERSION_1_4 ) ) {
+        // generate missing mipmaps for the updated render path
+        // TODO, TBD: skip this for UI images
+        glGenerateMipmap( GL_TEXTURE_2D );
+        WriteLog( "Warning - generating missing mipmaps for " + fileName );
+    }
+
     delete[] data.pixels;
     return std::make_pair(id, data.components == 4);
 };
@@ -823,39 +832,46 @@ void TTexturesManager::SetFiltering(int filter)
 void TTexturesManager::SetFiltering(bool alpha, bool hash)
 {
 
-    if (alpha || hash)
-    {
-        if (alpha) // przezroczystosc: nie wlaczac mipmapingu
-        {
-            if (hash) // #: calkowity brak filtracji - pikseloza
-            {
-                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            }
-            else
-            {
-                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            }
-        }
-        else // filtruj ale bez dalekich mipmap - robi artefakty
-        {
-/*
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-*/
-            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-        }
-    }
-    else // $: filtruj wszystko - brzydko się zlewa
-    {
-/*
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-*/
+    if( GLEW_VERSION_1_4 ) {
+
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+
+        if( true == hash ) {
+            // #: sharpen more
+            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
+        }
+        else {
+            // regular texture sharpening
+            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+        }
+    }
+    else {
+        // legacy version, for ancient systems
+        if( alpha || hash ) {
+            if( alpha ) // przezroczystosc: nie wlaczac mipmapingu
+            {
+                if( hash ) // #: calkowity brak filtracji - pikseloza
+                {
+                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+                }
+                else {
+                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+                }
+            }
+            else // filtruj ale bez dalekich mipmap - robi artefakty
+            {
+                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            }
+        }
+        else // $: filtruj wszystko - brzydko się zlewa
+        {
+            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+        }
     }
 };
 
@@ -873,18 +889,25 @@ GLuint TTexturesManager::CreateTexture(GLubyte *buff, GLint bpp, int width, int 
         SetFiltering(filter); // cyfra po % w nazwie
     else
         SetFiltering(bHasAlpha && bDollar, bHash); // znaki #, $ i kanał alfa w nazwie
-    if( true == GLEW_VERSION_1_4 ) {
-        glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-    }
+
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-/*    if (bHasAlpha || bHash || (filter == 0))
-*/        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, bpp,
-                     GL_UNSIGNED_BYTE, buff);
-//    else
-//        gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, width, height, bpp, GL_UNSIGNED_BYTE, buff);
+
+    if( GLEW_VERSION_1_4 ) {
+
+        glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, bpp, GL_UNSIGNED_BYTE, buff );
+    }
+    else {
+        // legacy version, for ancient systems
+        if( bHasAlpha || bHash || ( filter == 0 ) )
+            glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, bpp, GL_UNSIGNED_BYTE, buff );
+        else
+            gluBuild2DMipmaps( GL_TEXTURE_2D, GL_RGB, width, height, bpp, GL_UNSIGNED_BYTE, buff );
+    }
+
     return ID;
 }
 

@@ -114,6 +114,7 @@
     <ClCompile Include="MemCell.cpp" />
     <ClCompile Include="Model3d.cpp" />
     <ClCompile Include="mtable.cpp" />
+    <ClCompile Include="Names.cpp" />
     <ClCompile Include="opengl\ARB_Multisample.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PyInt.cpp" />
@@ -204,6 +205,10 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="eu07.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
