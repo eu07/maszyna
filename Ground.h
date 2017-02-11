@@ -320,7 +320,7 @@ class TGround
     TGround();
     ~TGround();
     void Free();
-    bool Init(std::string asFile, HDC hDC);
+    bool Init(std::string asFile);
     void FirstInit();
     void InitTracks();
     void InitTraction();

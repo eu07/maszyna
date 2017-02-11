@@ -17,7 +17,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Ground.h"
 
 #include "opengl/glew.h"
-#include "opengl/glut.h"
 
 #include "Globals.h"
 #include "Logs.h"
@@ -312,7 +311,7 @@ void TGroundNode::RenderVBO()
         if (EvLaunch->Render())
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
             {
-                if (Console::Pressed(VK_SHIFT) && EvLaunch->Event2 != NULL)
+                if (Global::shiftState && EvLaunch->Event2 != NULL)
                     Global::AddToQuery(EvLaunch->Event2, NULL);
                 else if (EvLaunch->Event1 != NULL)
                     Global::AddToQuery(EvLaunch->Event1, NULL);
@@ -537,7 +536,7 @@ void TGroundNode::RenderHidden()
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
             {
                 WriteLog("Eventlauncher " + asName);
-                if (Console::Pressed(VK_SHIFT) && (EvLaunch->Event2))
+                if (Global::shiftState && (EvLaunch->Event2))
                     Global::AddToQuery(EvLaunch->Event2, NULL);
                 else if (EvLaunch->Event1)
                     Global::AddToQuery(EvLaunch->Event1, NULL);
@@ -2481,7 +2480,7 @@ void TGround::FirstInit()
     WriteLog("FirstInit is done");
 };
 
-bool TGround::Init(std::string asFile, HDC hDC)
+bool TGround::Init(std::string asFile)
 { // główne wczytywanie scenerii
     if (ToLower(asFile).substr(0, 7) == "scenery")
         asFile = asFile.erase(0, 8); // Ra: usunięcie niepotrzebnych znaków - zgodność wstecz z 2003
@@ -4974,7 +4973,8 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
     cData.dwData = 'EU07'; // sygnatura
     cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera kończące
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	//m7todo
+    //Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
 };
 //---------------------------------------------------------------------------
@@ -4991,7 +4991,8 @@ void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 	cData.dwData = 'EU07'; // sygnatura
 	cData.cbData = 11 + i; // 8+licznik i zero kończące
 	cData.lpData = &r;
-	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	//m7todo
+	//Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
@@ -5007,7 +5008,8 @@ void TGround::WyslijString(const std::string &t, int n)
     cData.dwData = 'EU07'; // sygnatura
     cData.cbData = 10 + i; // 8+licznik i zero kończące
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	//m7todo
+    //Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
@@ -5086,7 +5088,8 @@ void TGround::WyslijNamiary(TGroundNode *t)
     cData.cbData = 10 + i + j; // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	//m7todo
+    //Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
 };
@@ -5129,7 +5132,8 @@ void TGround::WyslijObsadzone()
 	cData.cbData = 8 + 1984; // 8+licznik i zero kończące
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
-	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	//m7todo
+	//Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
 	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
 }
 
@@ -5153,7 +5157,8 @@ void TGround::WyslijParam(int nr, int fl)
     cData.dwData = 'EU07'; // sygnatura
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+	//m7todo
+    //Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
 };
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------

@@ -61,8 +61,8 @@ void TCamera::OnCursorMove(double x, double y)
 void TCamera::Update()
 {
     // ABu: zmiana i uniezaleznienie predkosci od FPS
-    double a = (Console::Pressed(VK_SHIFT) ? 5.00 : 1.00);
-    if (Console::Pressed(VK_CONTROL))
+    double a = (Global::shiftState ? 5.00 : 1.00);
+    if (Global::ctrlState)
         a = a * 100;
     //    OldVelocity=Velocity;
     if (FreeFlyModeFlag == true)
@@ -86,27 +86,27 @@ void TCamera::Update()
                 if (Console::Pressed(VkKeyScan('s')))
                     Velocity.z+= a*Timer::GetDeltaTime();
 
-                if (Console::Pressed(VK_NUMPAD4) || Console::Pressed(VK_NUMPAD7) ||
-           Console::Pressed(VK_NUMPAD1))
+                if (Console::Pressed(GLFW_KEY_KP_4) || Console::Pressed(GLFW_KEY_KP_7) ||
+           Console::Pressed(GLFW_KEY_KP_1))
                     Yaw+= +1*M_PI*Timer::GetDeltaTime();
 
-                if (Console::Pressed(VK_NUMPAD6) || Console::Pressed(VK_NUMPAD9) ||
-           Console::Pressed(VK_NUMPAD3))
+                if (Console::Pressed(GLFW_KEY_KP_6) || Console::Pressed(GLFW_KEY_KP_9) ||
+           Console::Pressed(GLFW_KEY_KP_3))
                     Yaw+= -1*M_PI*Timer::GetDeltaTime();
 
-                if (Pressed(VK_NUMPAD2) || Console::Pressed(VK_NUMPAD1) ||
-           Console::Pressed(VK_NUMPAD3))
+                if (Pressed(GLFW_KEY_KP_2) || Console::Pressed(GLFW_KEY_KP_1) ||
+           Console::Pressed(GLFW_KEY_KP_3))
                     Pitch+= -1*M_PI*Timer::GetDeltaTime();
 
-                if (Console::Pressed(VK_NUMPAD8) || Console::Pressed(VK_NUMPAD7) ||
-           Console::Pressed(VK_NUMPAD9))
+                if (Console::Pressed(GLFW_KEY_KP_8) || Console::Pressed(GLFW_KEY_KP_7) ||
+           Console::Pressed(GLFW_KEY_KP_9))
                     Pitch+= +1*M_PI*Timer::GetDeltaTime();
                 if (Console::Pressed(VkKeyScan('.')))
                     Roll+= -1*M_PI*Timer::GetDeltaTime();
                 if (Console::Pressed(VkKeyScan(',')))
                     Roll+= +1*M_PI*Timer::GetDeltaTime();
 
-                if (Console::Pressed(VK_NUMPAD5))
+                if (Console::Pressed(GLFW_KEY_KP_5))
                     Pitch=Roll= 0.0f;
         */
 
@@ -120,8 +120,8 @@ void TCamera::Update()
         if (Console::Pressed(Global::Keys[k_MechBackward]))
             Velocity.z += a;
         // gora-dol
-        // if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
-        // if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
+        // if (Console::Pressed(GLFW_KEY_KP_9)) Pos.y+=0.1;
+        // if (Console::Pressed(GLFW_KEY_KP_3)) Pos.y-=0.1;
 
         // McZapkie: zeby nie hustalo przy malym FPS:
         //        Velocity= (Velocity+OldVelocity)/2;

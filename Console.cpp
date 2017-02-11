@@ -252,8 +252,8 @@ void Console::BitsUpdate(int mask)
             SetLedState(VK_CAPITAL, iBits & 2);
         if (mask & 1) // gdy SHP
         { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_SCROLL, true); // przyciśnięty
-            SetLedState(VK_SCROLL, false); // zwolniony
+            SetLedState(VK_CAPITAL, true); // przyciśnięty
+            SetLedState(VK_CAPITAL, false); // zwolniony
             ++iConfig; // licznik użycia Scroll Lock
         }
         break;
@@ -398,7 +398,13 @@ void Console::BitsUpdate(int mask)
 
 bool Console::Pressed(int x)
 { // na razie tak - czyta się tylko klawiatura
-    return Global::bActive && (GetKeyState(x) < 0);
+	if (!Global::bActive)
+		return false;
+
+	if (glfwGetKey(Global::window, x) == GLFW_TRUE)
+		return true;
+	else
+		return false;
 };
 
 void Console::ValueSet(int x, double y)
@@ -499,7 +505,7 @@ void Console::Update()
             else
             { // błąd komunikacji - zapauzować symulację?
                 if (!(Global::iPause & 8)) // jeśli jeszcze nie oflagowana
-                    Global::iTextMode = VK_F1; // pokazanie czasu/pauzy
+                    Global::iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
                 Global::iPause |= 8; // tak???
                 PoKeys55[0]->Connect(); // próba ponownego podłączenia
             }

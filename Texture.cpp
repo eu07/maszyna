@@ -268,7 +268,7 @@ TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string const &fileNa
     if( infoSize > sizeof( info ) ) {
         WriteLog( "Warning - BMP header is larger than expected, possible format difference." );
     }
-    file.read((char *)&info, std::min(infoSize, sizeof(info)));
+    file.read((char *)&info, std::min((size_t)infoSize, sizeof(info)));
 
     if (file.eof())
     {

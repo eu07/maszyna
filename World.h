@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include <GLFW/glfw3.h>
 #include <string>
 #include "Camera.h"
 #include "Ground.h"
@@ -22,8 +23,8 @@ class TWorld
     void DistantView();
 
   public:
-    bool Init(HWND NhWnd, HDC hDC);
-    HWND hWnd;
+    bool Init(GLFWwindow *w);
+    GLFWwindow *window;
     GLvoid glPrint(const char *fmt);
     void OnKeyDown(int cKey);
     void OnKeyUp(int cKey);

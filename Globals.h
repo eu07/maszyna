@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include <Windows.h>
+#include <GLFW/glfw3.h>
 #include "opengl/glew.h"
 #include "dumb3d.h"
 
@@ -241,7 +242,9 @@ class Global
 */
     static double fLuminance; // jasność światła do automatycznego zapalania
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
-    static HWND hWnd; // uchwyt okna
+	static GLFWwindow *window;
+	static bool shiftState; //m7todo: brzydko
+	static bool ctrlState;
     static int iCameraLast;
     static std::string asRelease; // numer
     static std::string asVersion; // z opisem
