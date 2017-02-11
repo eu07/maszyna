@@ -411,13 +411,12 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             TextureNameSet(texture.c_str());
             if (texture.find_first_of("/\\") == texture.npos)
                 texture.insert(0, Global::asCurrentTexturePath.c_str());
-            TextureID = TTexturesManager::GetTextureID(
-                szTexturePath, const_cast<char *>(Global::asCurrentTexturePath.c_str()), texture);
+            TextureID = TTexturesManager.GetTextureId( texture, szTexturePath );
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
             if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity
                 // 0!
-                iFlags |= TTexturesManager::GetAlpha(TextureID) ?
+                iFlags |= TTexturesManager.Texture(TextureID).has_alpha ?
                               0x20 :
                               0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
             else
@@ -616,7 +615,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     return iNumVerts; // do określenia wielkości VBO
 };
 
-int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
+int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
 { // dodanie trójkątów do submodelu, używane
     // przy tworzeniu E3D terenu
     TSubModel *s = this;
@@ -637,7 +636,7 @@ int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
             m->AddTo(this, s);
         }
         // s->asTexture=AnsiString(TTexturesManager::GetName(tex).c_str());
-        s->TextureNameSet(TTexturesManager::GetName(tex).c_str());
+        s->TextureNameSet(TTexturesManager.Texture(tex).name.c_str());
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
         // iAnimOwner=0; //roboczy wskaźnik na wierzchołek
@@ -1625,15 +1624,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
         std::string tex = pTexture;
         if (tex.find_last_of("/\\") == std::string::npos)
             tex.insert(0, Global::asCurrentTexturePath);
-        TextureID = TTexturesManager::GetTextureID(
-            szTexturePath, const_cast<char *>(Global::asCurrentTexturePath.c_str()), tex);
+        TextureID = TTexturesManager.GetTextureId( tex, szTexturePath );
         // TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
         // ustawienie cyklu przezroczyste/nieprzezroczyste zależnie od własności
         // stałej tekstury
         // iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
         // //0x10-nieprzezroczysta, 0x20-przezroczysta
         if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity 0!
-            iFlags |= TTexturesManager::GetAlpha(TextureID) ?
+            iFlags |= TTexturesManager.Texture(TextureID).has_alpha ?
                           0x20 :
                           0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
         else

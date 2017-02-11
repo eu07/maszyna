@@ -184,7 +184,7 @@ class Global
     static double fFogStart;
     static double fFogEnd;
     static TGround *pGround;
-    static char **szDefaultExt;
+    static std::string szDefaultExt;
     static std::string SceneryFile;
     static char CreatorName1[20];
     static char CreatorName2[20];
@@ -258,8 +258,8 @@ class Global
     static double fTimeAngleDeg; // godzina w postaci kąta
     static float fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
     static double fLatitudeDeg; // szerokość geograficzna
-    static char *szTexturesTGA[4]; // lista tekstur od TGA
-    static char *szTexturesDDS[4]; // lista tekstur od DDS
+    static std::string szTexturesTGA; // lista tekstur od TGA
+    static std::string szTexturesDDS; // lista tekstur od DDS
     static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     static bool bGlutFont; // tekst generowany przez GLUT
     static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania

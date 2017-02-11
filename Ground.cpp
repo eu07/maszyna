@@ -2103,14 +2103,14 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         // PROBLEND Q: 13122011 - Szociu: 27012012
         PROBLEND = true; // domyslnie uruchomione nowe wyświetlanie
         tmp->PROBLEND = true; // odwolanie do tgroundnode, bo rendering jest w tej klasie
-        if (str.find("@") != string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
+        if (str.find('@') != string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
         {
             PROBLEND = false; // jeśli jest, wyswietla po staremu
             tmp->PROBLEND = false;
         }
 #endif
-        tmp->TextureID = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, str.c_str());
-        tmp->iFlags = TTexturesManager::GetAlpha(tmp->TextureID) ? 0x220 : 0x210; // z usuwaniem
+        tmp->TextureID = TTexturesManager.GetTextureId( str, szTexturePath );
+        tmp->iFlags = TTexturesManager.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
         if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
                 Global::pTerrainCompact->TerrainLoaded() :
                 false)

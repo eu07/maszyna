@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "VBO.h"
+#include "Texture.h"
 
 using namespace Math3D;
 
@@ -215,7 +216,7 @@ class TSubModel
     // światła
     float fCosViewAngle; // cos kata pod jakim sie teraz patrzy
     // Ra: dalej są zmienne robocze, można je przestawiać z zachowaniem rozmiaru klasy
-    int TextureID; // numer tekstury, -1 wymienna, 0 brak
+    texture_manager::size_type TextureID; // numer tekstury, -1 wymienna, 0 brak
     bool bWire; // nie używane, ale wczytywane
     // short TexAlpha;  //Ra: nie używane już
     GLuint uiDisplayList; // roboczy numer listy wyświetlania
@@ -271,7 +272,7 @@ class TSubModel
     {
         return Child;
     };
-    int TriangleAdd(TModel3d *m, int tex, int tri);
+    int TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri);
     float8 * TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
     // float8* TrianglePtr(const char *tex,int tri);
     // void SetRotate(vector3 vNewRotateAxis,float fNewAngle);

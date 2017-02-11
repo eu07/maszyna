@@ -71,7 +71,7 @@ TWorld::~TWorld()
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
     TSoundsManager::Free();
     TModelsManager::Free();
-    TTexturesManager::Free();
+//    TTexturesManager.Free();
     glDeleteLists(base, 96);
     if (hinstGLUT32)
         FreeLibrary(hinstGLUT32);
@@ -479,8 +479,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glDisable(GL_DEPTH_TEST); // Disables depth testing
     glColor3f(3.0f, 3.0f, 3.0f);
 
-    GLuint logo;
-    logo = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "logo", 6);
+    auto logo = TTexturesManager.GetTextureId( "logo", szTexturePath, 6 );
     glBindTexture(GL_TEXTURE_2D, logo); // Select our texture
 
     glBegin(GL_QUADS); // Drawing using triangles
@@ -527,8 +526,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
         glPrint("Tekstury / Textures...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
-
-    TTexturesManager::Init();
+/*
+    TTexturesManager.Init();
+*/
     WriteLog("Textures init OK");
     if (Global::detonatoryOK)
     {
@@ -663,9 +663,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
 	if (Global::bOldSmudge == true)
-	light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga.tga");
+        light = TTexturesManager.GetTextureId( "smuga.tga", szTexturePath );
 	else
-    light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga2.tga");
+        light = TTexturesManager.GetTextureId( "smuga2.tga", szTexturePath );
     // Camera.Reset();
     Timer::ResetTimers();
 	WriteLog( "Load time: " +

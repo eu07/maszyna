@@ -26,11 +26,20 @@ http://mozilla.org/MPL/2.0/.
 #include "Usefull.h"
 #include "TextureDDS.h"
 
+texture_manager TTexturesManager;
+
+/*
 TTexturesManager::Alphas TTexturesManager::_alphas;
 TTexturesManager::Names TTexturesManager::_names;
+*/
+void
+texture_manager::Init() {
 
-void TTexturesManager::Init(){};
+    // since index 0 is used to indicate no texture, we put a blank entry in the first texture slot
+    m_textures.emplace_back( opengl_texture() );
+}
 
+/*
 TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fileName, int filter)
 {
 
@@ -81,7 +90,8 @@ TTexturesManager::Names::iterator TTexturesManager::LoadFromFile(std::string fil
     // WriteLog("OK"); //Ra: "OK" nie potrzeba, samo "Failed" wystarczy
     return ret.first;
 };
-
+*/
+/*
 struct ReplaceSlash
 {
     const char operator()(const char input)
@@ -89,159 +99,137 @@ struct ReplaceSlash
         return input == '/' ? '\\' : input;
     }
 };
+*/
+// ustalenie numeru tekstury, wczytanie jeśli nie jeszcze takiej nie było
+texture_manager::size_type
+texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int const Filter ) {
 
-GLuint TTexturesManager::GetTextureID(char *dir, char *where, std::string fileName, int filter)
-{ // ustalenie numeru tekstury, wczytanie jeśli nie jeszcze takiej nie było
-    /*
-    // Ra: niby tak jest lepiej, ale działa gorzej, więc przywrócone jest oryginalne
-     //najpierw szukamy w katalogu, z którego wywoływana jest tekstura, potem z wyższego
-     //Ra: przerobić na wyszukiwanie w drzewie nazw, do którego zapisywać np. rozmiary,
-    przezroczystość
-     //Ra: ustalać, które tekstury można wczytać już w trakcie symulacji
-     size_t pos=fileName.find(':'); //szukamy dwukropka
-     if (pos!=std::string::npos) //po dwukropku mogą być podane dodatkowe informacje
-      fileName=fileName.substr(0,pos); //niebędące nazwą tekstury
-     std::transform(fileName.begin(),fileName.end(),fileName.begin(),ReplaceSlash()); //zamiana "/"
-    na "\"
-     //jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
-     //if (fileName.find('\\')==std::string::npos) //bz sensu
-     // fileName.insert(0,szDefaultTexturePath);
-     //najpierw szukamy w podanym katalogu, potem w domyślnym
-     Names::iterator iter;
-     std::ifstream file;
-     if ((fileName.find('.')==fileName.npos)?true:(fileName.rfind('.')<fileName.rfind('\\')))
-    //pierwsza kropka od prawej jest wcześniej niż "\"
-     {//Ra: jeśli nie ma kropki w nazwie pliku, wypróbowanie rozszerzeń po kolei, zaczynając od
-    domyślnego
-      fileName.append("."); //kropkę trzeba dodać na pewno, resztę trzeba próbować
-      std::string test; //zmienna robocza
-      for (int i=0;i<4;++i)
-      {//najpierw szukamy w magazynie
-       test=fileName;
-       if (where) test.insert(0,where); //ścieżka obiektu wywołującego
-       test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeń
-       iter=_names.find(test); //czy mamy już w magazynie?
-       if (iter!=_names.end())
-        return iter->second; //znalezione!
-       if (dir)
-       {//może we wskazanym katalogu?
-        test=fileName;
-        test.insert(0,dir); //jeszcze próba z dodatkową ścieżką
-        test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeń
-        iter=_names.find(test); //czy mamy już w magazynie?
-        if (iter!=_names.end())
-         return iter->second; //znalezione!
-       }
-      //}
-      //for (int i=0;i<4;++i)
-      //{//w magazynie nie ma, to sprawdzamy na dysku
-       test=fileName;
-       if (where) test.insert(0,where); //ścieżka obiektu wywołującego
-       test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeń
-       file.open(test.c_str());
-       if (!file.is_open())
-       {test=fileName;
-        if (dir) test.insert(0,dir); //próba z dodatkową ścieżką
-        test.append(Global::szDefaultExt[i]); //dodanie jednego z kilku rozszerzeń
-        file.open(test.c_str());
-       }
-       if (file.is_open())
-       {//jak znaleziony, to plik zostaje otwarty
-        fileName=test; //zapamiętanie znalezionego rozszerzenia
-        break; //wyjście z pętli na etapie danego rozszerzenia
-       }
-      }
-     }
-     else
-     {//gdy jest kropka, to rozszerzenie jest jawne
-      std::string test; //zmienna robocza
-      //najpierw szukamy w magazynie
-      test=fileName;
-      if (where) test.insert(0,where); //ścieżka obiektu wywołującego
-      iter=_names.find(test); //czy mamy już w magazynie?
-      if (iter!=_names.end())
-       return iter->second; //znalezione!
-      test=fileName;
-      if (dir) test.insert(0,dir); //jeszcze próba z dodatkową ścieżką
-      iter=_names.find(test); //czy mamy już w magazynie?
-      if (iter!=_names.end())
-       return iter->second; //znalezione!
-      //w magazynie nie ma, to sprawdzamy na dysku
-      test=fileName;
-      if (where) test.insert(0,where); //ścieżka obiektu wywołującego
-      file.open(test.c_str());
-      if (!file.is_open())
-      {//jak znaleziony, to plik zostaje otwarty
-       test=fileName;
-       if (dir) test.insert(0,dir); //próba z dodatkową ścieżką
-       file.open(test.c_str());
-       if (file.is_open())
-        fileName=test; //ustalenie nowej nazwy
-      }
-     }
-     if (file.is_open())
-     {//plik pozostaje otwarty, gdy znaleziono na dysku
-      file.close(); //można już zamknąć
-      iter=LoadFromFile(fileName,filter); //doda się do magazynu i zwróci swoją pozycję
-     }
-    */
-    size_t pos = fileName.find(':'); // szukamy dwukropka
-    if (pos != std::string::npos) // po dwukropku mogą być podane dodatkowe informacje
-        fileName = fileName.substr(0, pos); // niebędące nazwą tekstury
-    pos = fileName.find('|'); // szukamy separatora tekstur
-    if (pos != std::string::npos) // po | może być nazwa kolejnej tekstury
-        fileName = fileName.substr(0, pos); // i trzeba to obciąć
-    std::transform(fileName.begin(), fileName.end(), fileName.begin(), ReplaceSlash());
-    // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
-    if (fileName.find('\\') == std::string::npos)
-        fileName.insert(0, szTexturePath);
-    Names::iterator iter;
-    if (fileName.find('.') == std::string::npos)
-    { // Ra: wypróbowanie rozszerzeń po kolei, zaczynając od domyślnego
-        fileName.append("."); // kropka będze na pewno, resztę trzeba próbować
-        std::string test; // zmienna robocza
-        for (int i = 0; i < 4; ++i)
-        { // najpierw szukamy w magazynie
-            test = fileName;
-            test.append(Global::szDefaultExt[i]);
-            iter = _names.find(fileName); // czy mamy już w magazynie?
-            if (iter != _names.end())
-                return iter->second; // znalezione!
-            test.insert(0, szTexturePath); // jeszcze próba z dodatkową ścieżką
-            iter = _names.find(fileName); // czy mamy już w magazynie?
-            if (iter != _names.end())
-                return iter->second; // znalezione!
-        }
-        for (int i = 0; i < 4; ++i)
-        { // w magazynie nie ma, to sprawdzamy na dysku
-            test = fileName;
-            test.append(Global::szDefaultExt[i]);
-            std::ifstream file(test.c_str());
-            if (!file.is_open())
-            {
-                test.insert(0, szTexturePath);
-                file.open(test.c_str());
+    if( Filename.find( ':' ) != std::string::npos )
+        Filename.erase( Filename.find( ':' ) ); // po dwukropku mogą być podane dodatkowe informacje niebędące nazwą tekstury
+    if( Filename.find( '|' ) != std::string::npos )
+    Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
+    for( char &c : Filename ) {
+        // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
+        c = ( c == '/' ? '\\' : c );
+    }
+/*
+    std::transform(
+        Filename.begin(), Filename.end(),
+        Filename.begin(),
+        []( char Char ){ return Char == '/' ? '\\' : Char; } );
+*/
+    if( Filename.find( '\\' ) == std::string::npos ) {
+        // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
+        Filename = szTexturePath + Filename;
+    }
+
+    std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
+
+    // try to locate requested texture in the databank
+    auto lookup = find_in_databank( Filename + Global::szDefaultExt );
+    if( lookup != npos ) {
+        // start with the default extension...
+        return lookup;
+    }
+    else {
+        // ...then try recognized file extensions other than default
+        for( auto const &extension : extensions ) {
+
+            if( extension == Global::szDefaultExt ) {
+                // we already tried this one
+                continue;
             }
-            if (file.is_open())
-            {
-                fileName.append(Global::szDefaultExt[i]); // dopisanie znalezionego
-                file.close();
-                break; // wyjście z pętli na etapie danego rozszerzenia
+            lookup = find_in_databank( Filename + extension );
+            if( lookup != npos ) {
+
+                return lookup;
             }
         }
     }
-    iter = _names.find(fileName); // czy mamy już w magazynie
-    if (iter == _names.end())
-        iter = LoadFromFile(fileName, filter);
-    return (iter != _names.end() ? iter->second : 0);
+    // if we don't have the texture in the databank, check if it's on disk
+    std::string filename = find_on_disk( Filename + Global::szDefaultExt );
+    if( true == filename.empty() ) {
+        // if the default lookup fails, try other known extensions
+        for( auto const &extension : extensions ) {
+
+            if( extension == Global::szDefaultExt ) {
+                // we already tried this one
+                continue;
+            }
+            filename = find_on_disk( Filename + extension );
+            if( false == filename.empty() ) {
+                // we found something, don't bother with others
+                break;
+            }
+        }
+    }
+
+    if( true == filename.empty() ) {
+        // there's nothing matching in the databank nor on the disk, report failure
+        return npos;
+    }
+
+    opengl_texture texture;
+    texture.name = filename;
+    m_textures.emplace_back( texture );
+    auto const textureindex = m_textures.size() - 1;
+    m_texturemappings.emplace( filename, textureindex );
+
+    WriteLog( "Created texture object for file \"" + filename + "\"" );
+
+    return textureindex;
 };
 
+// checks whether specified texture is in the texture bank. returns texture id, or npos.
+texture_manager::size_type
+texture_manager::find_in_databank( std::string const &Texturename ) {
+
+    auto lookup = m_texturemappings.find( Texturename );
+    if( lookup != m_texturemappings.end() ) {
+        return lookup->second;
+    }
+    // jeszcze próba z dodatkową ścieżką
+    lookup = m_texturemappings.find( szTexturePath + Texturename );
+
+    return (
+        lookup != m_texturemappings.end() ?
+            lookup->second :
+            npos );
+}
+
+// checks whether specified file exists.
+std::string
+texture_manager::find_on_disk( std::string const &Texturename ) {
+
+    {
+        std::ifstream file( Texturename );
+        if( true == file.is_open() ) {
+            // success
+            return Texturename;
+        }
+
+    }
+    // if we fail make a last ditch attempt in the default textures directory
+    {
+        std::ifstream file( szTexturePath + Texturename );
+        if( true == file.is_open() ) {
+            // success
+            return szTexturePath + Texturename;
+        }
+
+    }
+    // no results either way, report failure
+    return "";
+}
+
+/*
 bool TTexturesManager::GetAlpha(GLuint id)
 { // atrybut przezroczystości dla tekstury o podanym numerze (id)
     Alphas::iterator iter = _alphas.find(id);
     return (iter != _alphas.end() ? iter->second : false);
 }
-
+*/
+/*
 TTexturesManager::AlphaValue TTexturesManager::LoadBMP(std::string const &fileName)
 {
 
@@ -797,6 +785,8 @@ TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName, int
     return std::make_pair(id, data.components == 4);
 };
 
+*/
+/*
 void TTexturesManager::SetFiltering(int filter)
 {
     if (filter < 4) // rozmycie przy powiększeniu
@@ -910,17 +900,16 @@ GLuint TTexturesManager::CreateTexture(GLubyte *buff, GLint bpp, int width, int 
 
     return ID;
 }
-
-void TTexturesManager::Free()
-{ // usunięcie wszyskich tekstur (bez usuwania struktury)
-	//    for (Names::iterator iter = _names.begin(); iter != _names.end(); iter++)
-	if( false == _names.empty() ) {
-		for( auto const &texture : _names ) {
-			glDeleteTextures( 1, &texture.second );
-		}
-	}
+*/
+void
+texture_manager::Free()
+{ 
+    for( auto const &texture : m_textures ) {
+        // usunięcie wszyskich tekstur (bez usuwania struktury)
+        glDeleteTextures( 1, &texture.id );
+    }
 }
-
+/*
 std::string TTexturesManager::GetName(GLuint id)
 { // pobranie nazwy tekstury
 	for( auto const &pair : _names ) {
@@ -928,3 +917,4 @@ std::string TTexturesManager::GetName(GLuint id)
 	}
     return "";
 };
+*/

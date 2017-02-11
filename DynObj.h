@@ -395,7 +395,7 @@ private:
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
     std::string asBaseDir;
-    GLuint ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
+    texture_manager::size_type ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
     int iAlpha; // maska przezroczystości tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
     int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały

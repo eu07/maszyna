@@ -508,8 +508,8 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         parser->getTokens();
         *parser >> token;
         str = token; // railtex
-        TextureID1 = (str == "none" ? 0 : TTexturesManager::GetTextureID(
-                                              szTexturePath, szSceneryPath, str,
+        TextureID1 = (str == "none" ? 0 : TTexturesManager.GetTextureId(
+                                              str, szTexturePath,
                                               (iCategoryFlag & 1) ? Global::iRailProFiltering :
                                                                     Global::iBallastFiltering));
         parser->getTokens();
@@ -519,8 +519,8 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         parser->getTokens();
         *parser >> token;
         str = token; // sub || railtex
-        TextureID2 = (str == "none" ? 0 : TTexturesManager::GetTextureID(
-                                              szTexturePath, szSceneryPath, str,
+        TextureID2 = (str == "none" ? 0 : TTexturesManager.GetTextureId(
+                                              str, szTexturePath,
                                               (eType == tt_Normal) ? Global::iBallastFiltering :
                                                                      Global::iRailProFiltering));
         parser->getTokens(3);
