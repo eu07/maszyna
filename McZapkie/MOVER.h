@@ -1150,7 +1150,8 @@ private:
 extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
 
 template <typename _Type>
-bool getkeyval( _Type &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
+bool
+extract_value( _Type &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
 
     auto value = extract_value( Key, Input );
     if( false == value.empty() ) {

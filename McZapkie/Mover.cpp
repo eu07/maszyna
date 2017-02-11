@@ -2737,7 +2737,7 @@ bool TMoverParameters::BrakeDelaySwitch(int BDS)
     {
         BrakeDelayFlag = BDS;
         rBDS = true;
-        BrakeStatus = (BrakeStatus & 191);
+        BrakeStatus &= 191;
         // kopowanie nastawy hamulca do kolejnego czlonu - do przemyślenia
         if (CabNo != 0)
             SendCtrlToNext("BrakeDelay", BrakeDelayFlag, CabNo);
@@ -3350,8 +3350,10 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
         Vel = abs(V) * 3.6; // prędkość w km/h
         nrot = v2n(); // przeliczenie prędkości liniowej na obrotową
 
-        if (TestFlag(BrakeMethod, bp_MHS) && (PipePress < 3.0) && (Vel > 45) &&
-            TestFlag(BrakeDelayFlag, bdelay_M)) // ustawione na sztywno na 3 bar
+        if( (true == TestFlag(BrakeMethod, bp_MHS))
+         && (PipePress < 3.0)
+         && (Vel > 45)
+         && (true == TestFlag(BrakeDelayFlag, bdelay_M))) // ustawione na sztywno na 3 bar
             FStand += TrackBrakeForce; // doliczenie hamowania hamulcem szynowym
         // w charakterystykach jest wartość siły hamowania zamiast nacisku
         //    if(FullVer=true) then
@@ -3496,7 +3498,7 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
     {
         if (Ntotal > 0) // nie luz
             K += Ntotal; // w kN
-        K *= BrakeCylNo / (NBrakeAxles * NBpA); // w kN na os
+        K *= static_cast<double>(BrakeCylNo) / (NBrakeAxles * static_cast<double>(NBpA)); // w kN na os
     }
     if ((BrakeSystem == Pneumatic) || (BrakeSystem == ElectroPneumatic))
     {
@@ -6197,13 +6199,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
 void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
 
-    getkeyval( Mass, "M", line, "0" );
-    getkeyval( Mred, "Mred", line, "0" );
-    getkeyval( Vmax, "Vmax", line, "0" );
-    getkeyval( Power, "PWR", line, "0" );
-    getkeyval( SandCapacity, "SandCap", line, "0" );
-    getkeyval( HeatingPower, "HeatingP", line, "0" );
-    getkeyval( LightPower, "LightP", line, "0" );
+    extract_value( Mass, "M", line, "0" );
+    extract_value( Mred, "Mred", line, "0" );
+    extract_value( Vmax, "Vmax", line, "0" );
+    extract_value( Power, "PWR", line, "0" );
+    extract_value( SandCapacity, "SandCap", line, "0" );
+    extract_value( HeatingPower, "HeatingP", line, "0" );
+    extract_value( LightPower, "LightP", line, "0" );
 
     {
         std::map<std::string, int> categories{
@@ -6213,7 +6215,7 @@ void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
             { "ship", 4 },
             { "airplane,", 8 }
         };
-        std::string category; getkeyval( category, "Category", line, "none" );
+        std::string category; extract_value( category, "Category", line, "none" );
         auto lookup = categories.find( category );
         CategoryFlag = (
             lookup != categories.end() ?
@@ -6237,7 +6239,7 @@ void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
             { "181", dt_181 },
             { "182", dt_181 } // na razie tak
         };
-        std::string type; getkeyval( type, "Type", line, "none" );
+        std::string type; extract_value( type, "Type", line, "none" );
         auto lookup = types.find( ToLower( type ) );
         TrainType = (
             lookup != types.end() ?
@@ -6255,24 +6257,25 @@ void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
 
 void TMoverParameters::LoadFIZ_Load( std::string const &line ) {
 
-    getkeyval( LoadAccepted, "LoadAccepted", line, "" );
+    extract_value( LoadAccepted, "LoadAccepted", line, "" );
     if( true == LoadAccepted.empty() ) {
         return;
     }
+    LoadAccepted = ToLower( LoadAccepted );
 
-    getkeyval( MaxLoad, "MaxLoad", line, "" );
-    getkeyval( LoadQuantity, "LoadQ", line, "" );
-    getkeyval( OverLoadFactor, "OverLoadFactor", line, "" );
-    getkeyval( LoadSpeed, "LoadSpeed", line, "" );
-    getkeyval( UnLoadSpeed, "UnLoadSpeed", line, "" );
+    extract_value( MaxLoad, "MaxLoad", line, "" );
+    extract_value( LoadQuantity, "LoadQ", line, "" );
+    extract_value( OverLoadFactor, "OverLoadFactor", line, "" );
+    extract_value( LoadSpeed, "LoadSpeed", line, "" );
+    extract_value( UnLoadSpeed, "UnLoadSpeed", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Dimensions( std::string const &line ) {
 
-    getkeyval( Dim.L, "L", line, "" );
-    getkeyval( Dim.H, "H", line, "" );
-    getkeyval( Dim.W, "W", line, "" );
-    getkeyval( Cx, "Cx", line, "0.3" );
+    extract_value( Dim.L, "L", line, "" );
+    extract_value( Dim.H, "H", line, "" );
+    extract_value( Dim.W, "W", line, "" );
+    extract_value( Cx, "Cx", line, "0.3" );
     if( Dim.H <= 2.0 ) {
         //gdyby nie było parametru, lepsze to niż zero
         Floor = Dim.H;
@@ -6281,22 +6284,22 @@ void TMoverParameters::LoadFIZ_Dimensions( std::string const &line ) {
         //zgodność wsteczna
         Floor = 0.0;
     }
-    getkeyval( Floor, "Floor", line, "" );
+    extract_value( Floor, "Floor", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Wheels( std::string const &line ) {
 
-    getkeyval( WheelDiameter, "D", line, "" );
+    extract_value( WheelDiameter, "D", line, "" );
     WheelDiameterL = WheelDiameter; //gdyby nie było parametru, lepsze to niż zero
-    getkeyval( WheelDiameterL, "Dl", line, "" );
+    extract_value( WheelDiameterL, "Dl", line, "" );
     WheelDiameterT = WheelDiameter; //gdyby nie było parametru, lepsze to niż zero
-    getkeyval( WheelDiameterT, "Dt", line, "" );
+    extract_value( WheelDiameterT, "Dt", line, "" );
 
-    getkeyval( TrackW, "Tw", line, "" );
-    getkeyval( AxleInertialMoment, "AIM", line, "" );
+    extract_value( TrackW, "Tw", line, "" );
+    extract_value( AxleInertialMoment, "AIM", line, "" );
     if( AxleInertialMoment <= 0.0 ) { AxleInertialMoment = 1.0; }
 
-    getkeyval( AxleArangement, "Axle", line, "" );
+    extract_value( AxleArangement, "Axle", line, "" );
     NPoweredAxles = s2NPW( AxleArangement );
     NAxles = NPoweredAxles + s2NNW( AxleArangement );
 
@@ -6305,8 +6308,8 @@ void TMoverParameters::LoadFIZ_Wheels( std::string const &line ) {
         1 :
         0;
 
-    getkeyval( ADist, "Ad", line, "" );
-    getkeyval( BDist, "Bd", line, "" );
+    extract_value( ADist, "Ad", line, "" );
+    extract_value( BDist, "Bd", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
@@ -6314,33 +6317,33 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     BrakeValveDecode( extract_value( "BrakeValve", line ) );
     BrakeSubsystemDecode();
 
-    getkeyval( NBpA, "NBpA", line, "" );
-    getkeyval( MaxBrakeForce, "MBF", line, "" );
-    getkeyval( BrakeValveSize, "Size", line, "" );
-    getkeyval( TrackBrakeForce, "TBF", line, "" ); TrackBrakeForce *= 1000.0;
+    extract_value( NBpA, "NBpA", line, "" );
+    extract_value( MaxBrakeForce, "MBF", line, "" );
+    extract_value( BrakeValveSize, "Size", line, "" );
+    extract_value( TrackBrakeForce, "TBF", line, "" ); TrackBrakeForce *= 1000.0;
 
-    getkeyval( MaxBrakePress[ 3 ], "MaxBP", line, "" );
+    extract_value( MaxBrakePress[ 3 ], "MaxBP", line, "" );
     if( MaxBrakePress[ 3 ] > 0.0 ) {
 
-        getkeyval( BrakeCylNo, "BCN", line, "" );
+        extract_value( BrakeCylNo, "BCN", line, "" );
         if( BrakeCylNo > 0 ) {
 
-            getkeyval( MaxBrakePress[ 0 ], "MaxLBP", line, "" );
+            extract_value( MaxBrakePress[ 0 ], "MaxLBP", line, "" );
             if( MaxBrakePress[ 0 ] < 0.01 ) { MaxBrakePress[ 0 ] = MaxBrakePress[ 3 ]; }
-            getkeyval( MaxBrakePress[ 1 ], "TareMaxBP", line, "" );
-            getkeyval( MaxBrakePress[ 2 ], "MedMaxBP", line, "" );
-            getkeyval( MaxBrakePress[ 4 ], "MaxASBP", line, "" );
+            extract_value( MaxBrakePress[ 1 ], "TareMaxBP", line, "" );
+            extract_value( MaxBrakePress[ 2 ], "MedMaxBP", line, "" );
+            extract_value( MaxBrakePress[ 4 ], "MaxASBP", line, "" );
             if( MaxBrakePress[ 4 ] < 0.01 ) { MaxBrakePress[ 4 ] = 0.0; }
 
-            getkeyval( BrakeCylRadius, "BCR", line, "" );
-            getkeyval( BrakeCylDist, "BCD", line, "" );
-            getkeyval( BrakeCylSpring, "BCS", line, "" );
-            getkeyval( BrakeSlckAdj, "BSA", line, "" );
-            getkeyval( BrakeRigEff, "BRE", line, "1" );
+            extract_value( BrakeCylRadius, "BCR", line, "" );
+            extract_value( BrakeCylDist, "BCD", line, "" );
+            extract_value( BrakeCylSpring, "BCS", line, "" );
+            extract_value( BrakeSlckAdj, "BSA", line, "" );
+            extract_value( BrakeRigEff, "BRE", line, "1" );
 
-            getkeyval( BrakeCylMult[ 0 ], "BCM", line, "" );
-            getkeyval( BrakeCylMult[ 1 ], "BCMlo", line, "" );
-            getkeyval( BrakeCylMult[ 2 ], "BCMHi", line, "" );
+            extract_value( BrakeCylMult[ 0 ], "BCM", line, "" );
+            extract_value( BrakeCylMult[ 1 ], "BCMlo", line, "" );
+            extract_value( BrakeCylMult[ 2 ], "BCMHi", line, "" );
 
             P2FTrans = 100 * M_PI * std::pow( BrakeCylRadius, 2 ); // w kN/bar
 
@@ -6348,7 +6351,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
             else { LoadFlag = 0; }
 
             BrakeVolume = M_PI * std::pow( BrakeCylRadius, 2 ) * BrakeCylDist * BrakeCylNo;
-            getkeyval( BrakeVVolume, "BVV", line, "" );
+            extract_value( BrakeVVolume, "BVV", line, "" );
 
             {
                 std::map<std::string, int> brakemethods{
@@ -6370,7 +6373,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
                     0;
             }
 
-            getkeyval( RapidMult, "RM", line, "1" );
+            extract_value( RapidMult, "RM", line, "1" );
         }
     }
     else {
@@ -6379,18 +6382,18 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     }
 
     CntrlPipePress = 5 + 0.001 * ( Random( 10 ) - Random( 10 ) ); //Ra 2014-07: trochę niedokładności
-    getkeyval( CntrlPipePress, "HiPP", line, "" );
+    extract_value( CntrlPipePress, "HiPP", line, "" );
     HighPipePress = CntrlPipePress;
     LowPipePress = std::min( HighPipePress, 3.5 );
-    getkeyval( LowPipePress, "LoPP", line, "" );
+    extract_value( LowPipePress, "LoPP", line, "" );
     DeltaPipePress = HighPipePress - LowPipePress;
 
-    getkeyval( VeselVolume, "Vv", line, "" );
+    extract_value( VeselVolume, "Vv", line, "" );
     if( VeselVolume == 0.0 ) { VeselVolume = 0.01; }
 
-    getkeyval( MinCompressor, "MinCP", line, "" );
-    getkeyval( MaxCompressor, "MaxCP", line, "" );
-    getkeyval( CompressorSpeed, "CompressorSpeed", line, "" );
+    extract_value( MinCompressor, "MinCP", line, "" );
+    extract_value( MaxCompressor, "MaxCP", line, "" );
+    extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
     {
         std::map<std::string, int> compressorpowers{
             { "Converter", 2 },
@@ -6410,39 +6413,39 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
 
     DoorOpenCtrl = 0;
-    std::string openctrl; getkeyval( openctrl, "OpenCtrl", line, "" );
+    std::string openctrl; extract_value( openctrl, "OpenCtrl", line, "" );
     if( openctrl == "DriverCtrl" ) { DoorOpenCtrl = 1; }
 
     DoorCloseCtrl = 0;
-    std::string closectrl; getkeyval( closectrl, "CloseCtrl", line, "" );
+    std::string closectrl; extract_value( closectrl, "CloseCtrl", line, "" );
     if( closectrl == "DriverCtrl" ) { DoorCloseCtrl = 1; }
     else if( closectrl == "AutomaticCtrl" ) { DoorCloseCtrl = 2; }
 
-    if( DoorCloseCtrl == 2 ) { getkeyval( DoorStayOpen, "DoorStayOpen", line, "" ); }
+    if( DoorCloseCtrl == 2 ) { extract_value( DoorStayOpen, "DoorStayOpen", line, "" ); }
 
-    getkeyval( DoorOpenSpeed, "OpenSpeed", line, "" );
-    getkeyval( DoorCloseSpeed, "CloseSpeed", line, "" );
-    getkeyval( DoorMaxShiftL, "DoorMaxShiftL", line, "" );
-    getkeyval( DoorMaxShiftR, "DoorMaxShiftR", line, "" );
+    extract_value( DoorOpenSpeed, "OpenSpeed", line, "" );
+    extract_value( DoorCloseSpeed, "CloseSpeed", line, "" );
+    extract_value( DoorMaxShiftL, "DoorMaxShiftL", line, "" );
+    extract_value( DoorMaxShiftR, "DoorMaxShiftR", line, "" );
 
     DoorOpenMethod = 2; //obrót, default
-    std::string openmethod; getkeyval( openmethod, "DoorOpenMethod", line, "" );
+    std::string openmethod; extract_value( openmethod, "DoorOpenMethod", line, "" );
     if( openmethod == "Shift" ) { DoorOpenMethod = 1; } //przesuw
     else if( openmethod == "Fold" ) { DoorOpenMethod = 3; } //3 submodele się obracają
     else if( openmethod == "Plug" ) { DoorOpenMethod = 4; } //odskokowo-przesuwne
 
-    std::string closurewarning; getkeyval( closurewarning, "DoorClosureWarning", line, "" );
+    std::string closurewarning; extract_value( closurewarning, "DoorClosureWarning", line, "" );
     DoorClosureWarning = ( closurewarning == "Yes" );
 
-    std::string doorblocked; getkeyval( doorblocked, "DoorBlocked", line, "" );
+    std::string doorblocked; extract_value( doorblocked, "DoorBlocked", line, "" );
     DoorBlocked = ( doorblocked == "Yes" );
 
-    getkeyval( DoorMaxPlugShift, "DoorMaxShiftPlug", line, "" );
-    getkeyval( PlatformSpeed, "PlatformSpeed", line, "" );
-    getkeyval( PlatformMaxShift, "PlatformMaxSpeed", line, "" );
+    extract_value( DoorMaxPlugShift, "DoorMaxShiftPlug", line, "" );
+    extract_value( PlatformSpeed, "PlatformSpeed", line, "" );
+    extract_value( PlatformMaxShift, "PlatformMaxSpeed", line, "" );
 
     PlatformOpenMethod = 2; // obrót, default
-    std::string platformopenmethod; getkeyval( platformopenmethod, "PlatformOpenMethod", line, "" );
+    std::string platformopenmethod; extract_value( platformopenmethod, "PlatformOpenMethod", line, "" );
     if( platformopenmethod == "Shift" ) { PlatformOpenMethod = 1; } // przesuw
 }
 
@@ -6465,14 +6468,14 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
         lookup->second :
         NoCoupler );
 
-    getkeyval( coupler->SpringKC, "kC", line, "" );
-    getkeyval( coupler->DmaxC, "DmaxC", line, "" );
-    getkeyval( coupler->FmaxC, "FmaxC", line, "" );
-    getkeyval( coupler->SpringKB, "kB", line, "" );
-    getkeyval( coupler->DmaxB, "DmaxB", line, "" );
-    getkeyval( coupler->FmaxB, "FmaxB", line, "" );
-    getkeyval( coupler->beta, "beta", line, "" );
-    getkeyval( coupler->AllowedFlag, "AllowedFlag", line, "" );
+    extract_value( coupler->SpringKC, "kC", line, "" );
+    extract_value( coupler->DmaxC, "DmaxC", line, "" );
+    extract_value( coupler->FmaxC, "FmaxC", line, "" );
+    extract_value( coupler->SpringKB, "kB", line, "" );
+    extract_value( coupler->DmaxB, "DmaxB", line, "" );
+    extract_value( coupler->FmaxB, "FmaxB", line, "" );
+    extract_value( coupler->beta, "beta", line, "" );
+    extract_value( coupler->AllowedFlag, "AllowedFlag", line, "" );
 
     if( coupler->AllowedFlag < 0 ) {
 
@@ -6517,7 +6520,7 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
 
 void TMoverParameters::LoadFIZ_TurboPos( std::string const &Input ) {
 
-    getkeyval( TurboTest, "TurboPos", Input, "" );
+    extract_value( TurboTest, "TurboPos", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
@@ -6535,10 +6538,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     }
     if( BrakeSystem != Individual ) {
 
-        getkeyval( BrakeCtrlPosNo, "BCPN", line, "" );
+        extract_value( BrakeCtrlPosNo, "BCPN", line, "" );
         for( int idx = 0; idx < 4; ++idx ) {
 
-            getkeyval( BrakeDelay[ idx ], "BDelay" + std::to_string( idx + 1 ), line, "" );
+            extract_value( BrakeDelay[ idx ], "BDelay" + std::to_string( idx + 1 ), line, "" );
         }
         // brakedelays, brakedelayflag
         {
@@ -6558,7 +6561,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 { "G", bdelay_G }
             };
             std::string brakedelay;
-            getkeyval( brakedelay, "BrakeDelays", line, "" );
+            extract_value( brakedelay, "BrakeDelays", line, "" );
             auto lookup = brakedelays.find( brakedelay );
             BrakeDelays =
                 lookup != brakedelays.end() ?
@@ -6573,7 +6576,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         // brakeopmode
         {
             std::map<std::string, int> brakeopmodes{
-                { "PM", bom_PS + bom_PN },
+                { "PN", bom_PS + bom_PN },
                 { "PNEPMED", bom_PS + bom_PN + bom_EP + bom_MED }
             };
             auto lookup = brakeopmodes.find( extract_value( "BrakeOpModes", line ) );
@@ -6616,12 +6619,12 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         }
 
         // mbpm
-        getkeyval( MBPM, "MaxBPMass", line, "" );
-        MBPM *= 1000;
+        extract_value( MBPM, "MaxBPMass", line, "" );
+//        MBPM *= 1000;
 
         // asbtype
         std::string asb;
-        getkeyval( asb, "ASB", line, "" );
+        extract_value( asb, "ASB", line, "" );
         if( BrakeCtrlPosNo > 0 ) {
 
             if( asb == "Manual" ) { ASBType = 1; }
@@ -6663,12 +6666,12 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
             dbrake_none;
     }
 
-    getkeyval( MainCtrlPosNo, "MCPN", line, "" );
-    getkeyval( ScndCtrlPosNo, "SCPN", line, "" );
-    getkeyval( ScndInMain, "SCIM", line, "" );
+    extract_value( MainCtrlPosNo, "MCPN", line, "" );
+    extract_value( ScndCtrlPosNo, "SCPN", line, "" );
+    extract_value( ScndInMain, "SCIM", line, "" );
 
     std::string autorelay;
-    getkeyval( autorelay, "AutoRelay", line, "" );
+    extract_value( autorelay, "AutoRelay", line, "" );
     if( autorelay == "Optional" ) { AutoRelayType = 2; }
     else if( autorelay == "Yes" ) { AutoRelayType = 1; }
     else { AutoRelayType = 0; }
@@ -6677,10 +6680,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     ScndS = ( extract_value( "ScndS", line ) == "Yes" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
-    getkeyval( InitialCtrlDelay, "IniCDelay", line, "" );
-    getkeyval( CtrlDelay, "SCDelay", line, "" );
+    extract_value( InitialCtrlDelay, "IniCDelay", line, "" );
+    extract_value( CtrlDelay, "SCDelay", line, "" );
     CtrlDownDelay = CtrlDelay; //hunter-101012: jesli nie ma SCDDelay;
-    getkeyval( CtrlDownDelay, "SCDDelay", line, "" );
+    extract_value( CtrlDownDelay, "SCDDelay", line, "" );
 
     //hunter-111012: dla siodemek 303E
     FastSerialCircuit =
@@ -6688,7 +6691,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         1 :
         0;
 
-    getkeyval( StopBrakeDecc, "SBD", line, "" );
+    extract_value( StopBrakeDecc, "SBD", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
@@ -6699,8 +6702,8 @@ void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
     AlterLightPowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "AlterLight", line ) );
     LoadFIZ_PowerParamsDecode( AlterLightPowerSource, "AlterL", line );
 
-    getkeyval( NominalVoltage, "Volt", line, "" );
-    getkeyval( BatteryVoltage, "LMaxVoltage", line, "" );
+    extract_value( NominalVoltage, "Volt", line, "" );
+    extract_value( BatteryVoltage, "LMaxVoltage", line, "" );
     NominalBatteryVoltage = BatteryVoltage;
 }
 
@@ -6714,11 +6717,11 @@ void TMoverParameters::LoadFIZ_Security( std::string const &line ) {
         SetFlag( SecuritySystem.SystemType, 2 );
     }
 
-    getkeyval( SecuritySystem.AwareDelay, "AwareDelay", line, "" );
+    extract_value( SecuritySystem.AwareDelay, "AwareDelay", line, "" );
     SecuritySystem.AwareMinSpeed = 0.1 * Vmax; //domyślnie 10% Vmax
-    getkeyval( SecuritySystem.AwareMinSpeed, "AwareMinSpeed", line, "" );
-    getkeyval( SecuritySystem.SoundSignalDelay, "SoundSignalDelay", line, "" );
-    getkeyval( SecuritySystem.EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
+    extract_value( SecuritySystem.AwareMinSpeed, "AwareMinSpeed", line, "" );
+    extract_value( SecuritySystem.SoundSignalDelay, "SoundSignalDelay", line, "" );
+    extract_value( SecuritySystem.EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
     SecuritySystem.RadioStop = ( extract_value( "RadioStop", line ).find( "Yes" ) != std::string::npos );
 }
 
@@ -6775,34 +6778,34 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 
         case ElectricSeriesMotor: {
 
-            getkeyval( NominalVoltage, "Volt", Input, "" );
-            getkeyval( WindingRes, "WindingRes", Input, "" );
+            extract_value( NominalVoltage, "Volt", Input, "" );
+            extract_value( WindingRes, "WindingRes", Input, "" );
             if( WindingRes == 0.0 ) {
 
                 WindingRes = 0.01;
             }
-            getkeyval( nmax, "nmax", Input, "" );
+            extract_value( nmax, "nmax", Input, "" );
             nmax /= 60.0;
             break;
         }
         case WheelsDriven:
         case Dumb: {
 
-            getkeyval( Ftmax, "Ftmax", Input, "" );
+            extract_value( Ftmax, "Ftmax", Input, "" );
             break;
         }
         case DieselEngine: {
 
-            getkeyval( dizel_nmin, "nmin", Input, "" );
+            extract_value( dizel_nmin, "nmin", Input, "" );
             dizel_nmin /= 60.0;
-            getkeyval( dizel_nmax, "nmax", Input, "" );
+            extract_value( dizel_nmax, "nmax", Input, "" );
             dizel_nmax /= 60.0; 
             nmax = dizel_nmax; // not sure if this is needed, but just in case
-            getkeyval( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
+            extract_value( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
             dizel_nmax_cutoff /= 60.0;
-            getkeyval( dizel_AIM, "AIM", Input, "1.0" );
+            extract_value( dizel_AIM, "AIM", Input, "1.0" );
 
-            if( true == getkeyval( AnPos, "ShuntMode", Input, "" ) ) {
+            if( true == extract_value( AnPos, "ShuntMode", Input, "" ) ) {
                 //dodatkowa przekładnia dla SM03 (2Ls150)
                 ShuntModeAllow = true;
                 ShuntMode = false;
@@ -6815,14 +6818,14 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
         }
         case DieselElectric: { //youBy
 
-            getkeyval( Ftmax, "Ftmax", Input, "" );
+            extract_value( Ftmax, "Ftmax", Input, "" );
             Flat = ( extract_value( "Flat", Input ) == "1" );
-            getkeyval( Vhyp, "Vhyp", Input, "" );
+            extract_value( Vhyp, "Vhyp", Input, "" );
             Vhyp /= 3.6;
-            getkeyval( Vadd, "Vadd", Input, "" );
+            extract_value( Vadd, "Vadd", Input, "" );
             Vadd /= 3.6;
-            getkeyval( PowerCorRatio, "Cr", Input, "" );
-            getkeyval( RelayType, "RelayType", Input, "" );
+            extract_value( PowerCorRatio, "Cr", Input, "" );
+            extract_value( RelayType, "RelayType", Input, "" );
             if( extract_value( "ShuntMode", Input ) == "1" ) {
 
                 ShuntModeAllow = true;
@@ -6836,29 +6839,29 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
         case ElectricInductionMotor: {
 
             RVentnmax = 1.0;
-            getkeyval( NominalVoltage, "Volt", Input, "" );
+            extract_value( NominalVoltage, "Volt", Input, "" );
 
-            getkeyval( eimc[ eimc_s_dfic ], "dfic", Input, "" );
-            getkeyval( eimc[ eimc_s_dfmax ], "dfmax", Input, "" );
-            getkeyval( eimc[ eimc_s_p ], "p", Input, "" );
-            getkeyval( eimc[ eimc_s_cfu ], "cfu", Input, "" );
-            getkeyval( eimc[ eimc_s_cim ], "cim", Input, "" );
-            getkeyval( eimc[ eimc_s_icif ], "icif", Input, "" );
-            getkeyval( eimc[ eimc_f_Uzmax ], "Uzmax", Input, "" );
-            getkeyval( eimc[ eimc_f_Uzh ], "Uzh", Input, "" );
-            getkeyval( eimc[ eimc_f_DU ], "DU", Input, "" );
-            getkeyval( eimc[ eimc_f_I0 ], "I0", Input, "" );
-            getkeyval( eimc[ eimc_f_cfu ], "fcfu", Input, "" );
-            getkeyval( eimc[ eimc_p_F0 ], "F0", Input, "" );
-            getkeyval( eimc[ eimc_p_a1 ], "a1", Input, "" );
-            getkeyval( eimc[ eimc_p_Pmax ], "Pmax", Input, "" );
-            getkeyval( eimc[ eimc_p_Fh ], "Fh", Input, "" );
-            getkeyval( eimc[ eimc_p_Ph ], "Ph", Input, "" );
-            getkeyval( eimc[ eimc_p_Vh0 ], "Vh0", Input, "" );
-            getkeyval( eimc[ eimc_p_Vh1 ], "Vh1", Input, "" );
-            getkeyval( eimc[ eimc_p_Imax ], "Imax", Input, "" );
-            getkeyval( eimc[ eimc_p_abed ], "abed", Input, "" );
-            getkeyval( eimc[ eimc_p_eped ], "edep", Input, "" );
+            extract_value( eimc[ eimc_s_dfic ], "dfic", Input, "" );
+            extract_value( eimc[ eimc_s_dfmax ], "dfmax", Input, "" );
+            extract_value( eimc[ eimc_s_p ], "p", Input, "" );
+            extract_value( eimc[ eimc_s_cfu ], "cfu", Input, "" );
+            extract_value( eimc[ eimc_s_cim ], "cim", Input, "" );
+            extract_value( eimc[ eimc_s_icif ], "icif", Input, "" );
+            extract_value( eimc[ eimc_f_Uzmax ], "Uzmax", Input, "" );
+            extract_value( eimc[ eimc_f_Uzh ], "Uzh", Input, "" );
+            extract_value( eimc[ eimc_f_DU ], "DU", Input, "" );
+            extract_value( eimc[ eimc_f_I0 ], "I0", Input, "" );
+            extract_value( eimc[ eimc_f_cfu ], "fcfu", Input, "" );
+            extract_value( eimc[ eimc_p_F0 ], "F0", Input, "" );
+            extract_value( eimc[ eimc_p_a1 ], "a1", Input, "" );
+            extract_value( eimc[ eimc_p_Pmax ], "Pmax", Input, "" );
+            extract_value( eimc[ eimc_p_Fh ], "Fh", Input, "" );
+            extract_value( eimc[ eimc_p_Ph ], "Ph", Input, "" );
+            extract_value( eimc[ eimc_p_Vh0 ], "Vh0", Input, "" );
+            extract_value( eimc[ eimc_p_Vh1 ], "Vh1", Input, "" );
+            extract_value( eimc[ eimc_p_Imax ], "Imax", Input, "" );
+            extract_value( eimc[ eimc_p_abed ], "abed", Input, "" );
+            extract_value( eimc[ eimc_p_eped ], "edep", Input, "" );
 
             Flat = ( extract_value( "Flat", Input ) == "1" );
 
@@ -6872,8 +6875,8 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 
 void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
 
-    getkeyval( PantSwitchType, "Pantograph", Input, "" );
-    getkeyval( ConvSwitchType, "Converter", Input, "" );
+    extract_value( PantSwitchType, "Pantograph", Input, "" );
+    extract_value( ConvSwitchType, "Converter", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {
@@ -6882,10 +6885,10 @@ void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {
 
         case DieselEngine: {
             
-            getkeyval( dizel_minVelfullengage, "minVelfullengage", Input, "" );
-            getkeyval( dizel_engageDia, "engageDia", Input, "" );
-            getkeyval( dizel_engageMaxForce, "engageMaxForce", Input, "" );
-            getkeyval( dizel_engagefriction, "engagefriction", Input, "" );
+            extract_value( dizel_minVelfullengage, "minVelfullengage", Input, "" );
+            extract_value( dizel_engageDia, "engageDia", Input, "" );
+            extract_value( dizel_engageMaxForce, "engageMaxForce", Input, "" );
+            extract_value( dizel_engagefriction, "engagefriction", Input, "" );
             break;
         }
         default: {
@@ -6896,11 +6899,11 @@ void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {
 
 void TMoverParameters::LoadFIZ_Circuit( std::string const &Input ) {
 
-    getkeyval( CircuitRes, "CircuitRes", Input, "" );
-    getkeyval( IminLo, "IminLo", Input, "" );
-    getkeyval( IminHi, "IminHi", Input, "" );
-    getkeyval( ImaxLo, "ImaxLo", Input, "" );
-    getkeyval( ImaxHi, "ImaxHi", Input, "" );
+    extract_value( CircuitRes, "CircuitRes", Input, "" );
+    extract_value( IminLo, "IminLo", Input, "" );
+    extract_value( IminHi, "IminHi", Input, "" );
+    extract_value( ImaxLo, "ImaxLo", Input, "" );
+    extract_value( ImaxHi, "ImaxHi", Input, "" );
     Imin = IminLo;
     Imax = ImaxLo;
 }
@@ -6922,27 +6925,27 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
 
     if( RVentType > 0 ) {
 
-        getkeyval( RVentnmax, "RVentmax", Input, "" );
+        extract_value( RVentnmax, "RVentmax", Input, "" );
         RVentnmax /= 60.0;
-        getkeyval( RVentCutOff, "RVentCutOff", Input, "" );
+        extract_value( RVentCutOff, "RVentCutOff", Input, "" );
     }
 }
 
 void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
 
-    getkeyval( dizel_Mmax, "Mmax", Input, "" );
-    getkeyval( dizel_nMmax, "nMmax", Input, "" );
-    getkeyval( dizel_Mnmax, "Mnmax", Input, "" );
-    getkeyval( dizel_nmax, "nmax", Input, "" );
-    getkeyval( dizel_nominalfill, "nominalfill", Input, "" );
-    getkeyval( dizel_Mstand, "Mstand", Input, "" );
+    extract_value( dizel_Mmax, "Mmax", Input, "" );
+    extract_value( dizel_nMmax, "nMmax", Input, "" );
+    extract_value( dizel_Mnmax, "Mnmax", Input, "" );
+    extract_value( dizel_nmax, "nmax", Input, "" );
+    extract_value( dizel_nominalfill, "nominalfill", Input, "" );
+    extract_value( dizel_Mstand, "Mstand", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {
 
-    getkeyval( LightsPosNo, "Size", Input, "" );
-    getkeyval( LightsWrap, "Wrap", Input, "" );
-    getkeyval( LightsDefPos, "Default", Input, "" );
+    extract_value( LightsPosNo, "Size", Input, "" );
+    extract_value( LightsWrap, "Wrap", Input, "" );
+    extract_value( LightsDefPos, "Default", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Line ) {
@@ -6957,7 +6960,7 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
         }
         case Transducer: {
             
-            getkeyval( Powerparameters.InputVoltage, Prefix + "TransducerInputV", Line, "" );
+            extract_value( Powerparameters.InputVoltage, Prefix + "TransducerInputV", Line, "" );
             break;
         }
         case Generator: {
@@ -6967,7 +6970,7 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
         }
         case Accumulator: {
 
-            getkeyval( Powerparameters.RAccumulator.MaxCapacity, Prefix + "Cap", Line, "" );
+            extract_value( Powerparameters.RAccumulator.MaxCapacity, Prefix + "Cap", Line, "" );
             Powerparameters.RAccumulator.RechargeSource = LoadFIZ_SourceDecode( extract_value( Prefix + "RS", Line ) );
             break;
         }
@@ -6975,26 +6978,26 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
 
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
-            getkeyval( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
-            getkeyval( collectorparameters.MinH, "MinH", Line, "" );
-            getkeyval( collectorparameters.MaxH, "MaxH", Line, "" );
-            getkeyval( collectorparameters.CSW, "CSW", Line, "" ); //szerokość części roboczej
-            getkeyval( collectorparameters.MaxV, "MaxVoltage", Line, "" );
+            extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
+            extract_value( collectorparameters.MinH, "MinH", Line, "" );
+            extract_value( collectorparameters.MaxH, "MaxH", Line, "" );
+            extract_value( collectorparameters.CSW, "CSW", Line, "" ); //szerokość części roboczej
+            extract_value( collectorparameters.MaxV, "MaxVoltage", Line, "" );
             collectorparameters.OVP = //przekaźnik nadnapięciowy
                 extract_value( "OverVoltProt", Line ) == "Yes" ?
                 1 :
                 0;
             //napięcie rozłączające WS
             collectorparameters.MinV = 0.5 * collectorparameters.MaxV; //gdyby parametr nie podany
-            getkeyval( collectorparameters.MinV, "MinV", Line, "" );
+            extract_value( collectorparameters.MinV, "MinV", Line, "" );
             //napięcie wymagane do załączenia WS
             collectorparameters.InsetV = 0.6 * collectorparameters.MaxV; //gdyby parametr nie podany
-            getkeyval( collectorparameters.InsetV, "InsetV", Line, "" );
+            extract_value( collectorparameters.InsetV, "InsetV", Line, "" );
             //ciśnienie rozłączające WS
-            getkeyval( collectorparameters.MinPress, "MinPress", Line, "2.0" ); //domyślnie 2 bary do załączenia WS
+            extract_value( collectorparameters.MinPress, "MinPress", Line, "2.0" ); //domyślnie 2 bary do załączenia WS
             //maksymalne ciśnienie za reduktorem
             collectorparameters.MaxPress = 5.0 + 0.001 * ( Random( 50 ) - Random( 50 ) );
-            getkeyval( collectorparameters.MaxPress, "MaxPress", Line, "" );
+            extract_value( collectorparameters.MaxPress, "MaxPress", Line, "" );
             break;
         }
         case PowerCable: {
@@ -7002,7 +7005,7 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             Powerparameters.RPowerCable.PowerTrans = LoadFIZ_PowerDecode( extract_value( Prefix + "PowerTrans", Line ) );
             if( Powerparameters.RPowerCable.PowerTrans == SteamPower ) {
 
-                getkeyval( Powerparameters.RPowerCable.SteamPressure, Prefix + "SteamPress", Line, "" );
+                extract_value( Powerparameters.RPowerCable.SteamPressure, Prefix + "SteamPress", Line, "" );
             }
             break;
         }
@@ -7018,9 +7021,9 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
      && ( Powerparameters.SourceType != InternalSource ) ) {
 
 
-        getkeyval( Powerparameters.MaxVoltage, Prefix + "MaxVoltage", Line, "" );
-        getkeyval( Powerparameters.MaxCurrent, Prefix + "MaxCurrent", Line, "" );
-        getkeyval( Powerparameters.IntR, Prefix + "IntR", Line, "" );
+        extract_value( Powerparameters.MaxVoltage, Prefix + "MaxVoltage", Line, "" );
+        extract_value( Powerparameters.MaxCurrent, Prefix + "MaxCurrent", Line, "" );
+        extract_value( Powerparameters.IntR, Prefix + "IntR", Line, "" );
     }
 }
 
@@ -7273,7 +7276,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         ScndPipePress = CompressedVolume / VeselVolume;
         PipePress = CntrlPipePress;
         BrakePress = 0.0;
-        LocalBrakePos = 0.0;
+        LocalBrakePos = 0;
         if( CabNo == 0 )
             BrakeCtrlPos = static_cast<int>( Handle->GetPos( bh_NP ) );
         else

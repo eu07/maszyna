@@ -35,6 +35,8 @@ Obiekty sortowane wg nazw, można dodawać i usuwać komórki scenerii:
 
 */
 
+#ifdef EU07_USE_OLD_TNAMES_CLASS
+
 void ItemRecord::TreeAdd(ItemRecord *r, int c)
 { // dodanie rekordu do drzewa - ustalenie w której gałęzi
     // zapisać w (iFlags) ile znaków jest zgodnych z nadrzędnym, żeby nie sprawdzać wszystkich od
@@ -183,3 +185,5 @@ ItemRecord * TNames::FindRecord(const int t, const char *n)
 { // poszukiwanie rekordu w celu np. zmiany wskaźnika
     return rTypes[t] ? rTypes[t]->TreeFindRecord(n) : NULL;
 };
+
+#endif

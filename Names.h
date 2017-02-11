@@ -11,6 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #include <unordered_map>
 #include <string>
 
+#ifndef EU07_USE_OLD_TNAMES_CLASS
+
 template <typename _Pointer>
 class TNames {
 
@@ -65,7 +67,8 @@ private:
     pointermap_map                          m_maps;             // list of pointer maps of types specified so far
 };
 
-#ifdef EU07_USE_OLD_TNAMES_CLASS
+#else
+
 //---------------------------------------------------------------------------
 class ItemRecord
 { // rekord opisujący obiekt; raz utworzony nie przemieszcza się
