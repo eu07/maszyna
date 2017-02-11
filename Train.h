@@ -95,6 +95,7 @@ class TTrain
     };
     void UpdateMechPosition(double dt);
     bool Update( double const Deltatime );
+    bool m_updated = false;
     void MechStop();
     void SetLights();
     //    virtual bool RenderAlpha();

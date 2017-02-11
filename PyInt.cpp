@@ -289,10 +289,22 @@ void TPythonScreenRenderer::updateTexture()
 #endif // _PY_INT_MORE_LOG
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
             glBindTexture(GL_TEXTURE_2D, _textureId);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
-                         textureData);
+            // setup texture parameters
+            if( GLEW_VERSION_1_4 ) {
+
+                glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+                glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+            }
+            else {
+
+                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            }
+            // build texture
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
+
 #ifdef _PY_INT_MORE_LOG
             GLenum status = glGetError();
             switch (status)
@@ -407,7 +419,7 @@ void TPythonScreens::reset(void *train)
     _terminationFlag = true;
     if (_thread != NULL)
     {
-        WriteLog("Awaiting python thread to end");
+//        WriteLog("Awaiting python thread to end");
         WaitForSingleObject(_thread, INFINITE);
         _thread = NULL;
     }
@@ -428,61 +440,43 @@ void TPythonScreens::reset(void *train)
 
 void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &name, int const cab)
 {
-    char buff[255];
 	std::string asSubModelName, asPyClassName;
 	parser.getTokens( 2, false );
 	parser
 		>> asSubModelName
 		>> asPyClassName;
-    char *subModelName = (char *)calloc(asSubModelName.length() + 1, sizeof(char));
-    strcpy(subModelName, ToLower( asSubModelName).c_str());
-    char *pyClassName = (char *)calloc(asPyClassName.length() + 1, sizeof(char));
-    strcpy(pyClassName, ToLower( asPyClassName ).c_str());
-    TSubModel *subModel = model->GetFromName(subModelName);
+    std::string subModelName = ToLower( asSubModelName );
+    std::string pyClassName = ToLower( asPyClassName );
+    TSubModel *subModel = model->GetFromName(subModelName.c_str());
     if (subModel == NULL)
     {
-        sprintf(buff, "Python Screen: submodel %s not found - Ignoring screen", subModelName);
-        WriteLog(buff);
-        free(subModelName);
-        free(pyClassName);
+        WriteLog( "Python Screen: submodel " + subModelName + " not found - Ignoring screen" );
         return; // nie ma takiego sub modelu w danej kabinie pomijamy
     }
     int textureId = subModel->GetTextureId();
     if (textureId <= 0)
     {
-        sprintf(buff, "Python Screen: invalid texture id %d - Ignoring screen", textureId);
-        WriteLog(buff);
-        free(subModelName);
-        free(pyClassName);
+        WriteLog( "Python Screen: invalid texture id " + std::to_string(textureId) + " - Ignoring screen" );
         return; // sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
     }
     TPythonInterpreter *python = TPythonInterpreter::getInstance();
     python->loadClassFile(_lookupPath, pyClassName);
-    PyObject *args = Py_BuildValue("(ssi)", _lookupPath, name.c_str(), cab);
+    PyObject *args = Py_BuildValue("(ssi)", _lookupPath.c_str(), name.c_str(), cab);
     if (args == NULL)
     {
         WriteLog("Python Screen: cannot create __init__ arguments");
-        free(subModelName);
-        free(pyClassName);
         return;
     }
     PyObject *pyRenderer = python->newClass(pyClassName, args);
     Py_CLEAR(args);
     if (pyRenderer == NULL)
     {
-        sprintf(buff, "Python Screen: null renderer for %s - Ignoring screen", pyClassName);
-        WriteLog(buff);
-        free(subModelName);
-        free(pyClassName);
+        WriteLog( "Python Screen: null renderer for " + pyClassName + " - Ignoring screen" );
         return; // nie mozna utworzyc obiektu Pythonowego
     }
     TPythonScreenRenderer *renderer = new TPythonScreenRenderer(textureId, pyRenderer);
     _screens.push_back(renderer);
-    sprintf(buff, "Created python screen %s on submodel %s (%d)", pyClassName, subModelName,
-            textureId);
-    WriteLog(buff);
-    free(subModelName);
-    free(pyClassName);
+    WriteLog( "Created python screen " + pyClassName + " on submodel " + subModelName + " (" + std::to_string(textureId) + ")" );
 }
 
 void TPythonScreens::update()
