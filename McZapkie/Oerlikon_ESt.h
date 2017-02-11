@@ -190,11 +190,11 @@ class TNESt3 : public TBrake {
 	double Nozzles[ dMAX ]; // dysze
     double BVM = 0.0; // przelozenie PG-CH
     //        ValveFlag: byte;           //polozenie roznych zaworkow
-    bool Zamykajacy = false; // pamiec zaworka zamykajacego
+    bool Zamykajacy = true; // pamiec zaworka zamykajacego
     //        Przys_wlot: boolean;       //wlot do komory przyspieszacza
-    bool Przys_blok = false; // blokada przyspieszacza
-    bool RapidStatus = false;
-    bool RapidStaly = false;
+    bool Przys_blok = true; // blokada przyspieszacza
+    bool RapidStatus = true;
+    bool RapidStaly = true;
     double LoadC = 0.0;
 	double TareM = 0.0; // masa proznego
     double LoadM = 0.0; // masa pelnego
@@ -202,29 +202,29 @@ class TNESt3 : public TBrake {
     double HBG300 = 0.0; // zawor ograniczajacy cisnienie
     double Podskok = 0.0; // podskok preznosci poczatkowej
     //        HPBR: real;               //zasilanie ZP z wysokiego cisnienia
-    bool autom = false; // odluzniacz samoczynny
+    bool autom = true; // odluzniacz samoczynny
     double LBP = 0.0; // cisnienie hamulca pomocniczego
 
   public:
 	inline TNESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
            TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
 	{}
-    void Init(double PP, double HPP, double LPP, double BP, int BDF) /*override*/;
-    virtual double GetPF(double PP, double dt, double Vel) /*override*/; // przeplyw miedzy komora wstepna i PG
+    void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF ) /*override*/;
+    virtual double GetPF( double const PP, double const dt, double const Vel ) /*override*/; // przeplyw miedzy komora wstepna i PG
     void EStParams(double i_crc); // parametry charakterystyczne dla ESt
     virtual double GetCRP() /*override*/;
-    void CheckState(double BCP, double &dV1); // glowny przyrzad rozrzadczy
-    void CheckReleaser(double dt); // odluzniacz
-    double CVs(double BP); // napelniacz sterujacego
-    double BVs(double BCP); // napelniacz pomocniczego
-    void SetSize(int size, std::string params); // ustawianie dysz (rozmiaru ZR), przekladniki
-    void PLC(double mass); // wspolczynnik cisnienia przystawki wazacej
-    void SetLP(double TM, double LM, double TBP); // parametry przystawki wazacej
+    void CheckState(double const BCP, double &dV1); // glowny przyrzad rozrzadczy
+    void CheckReleaser(double const dt); // odluzniacz
+    double CVs(double const BP); // napelniacz sterujacego
+    double BVs(double const BCP); // napelniacz pomocniczego
+    void SetSize( int const size, std::string const &params ); // ustawianie dysz (rozmiaru ZR), przekladniki
+    void PLC(double const mass); // wspolczynnik cisnienia przystawki wazacej
+    void SetLP(double const TM, double const LM, double const TBP); // parametry przystawki wazacej
     virtual void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
-    void SetLBP(double P); // cisnienie z hamulca pomocniczego
+    void SetLBP(double const P); // cisnienie z hamulca pomocniczego
 };
 
-extern double d2A(double d);
+extern double d2A( double const d );
 
 #endif // INCLUDED_OERLIKON_EST_H
 // END

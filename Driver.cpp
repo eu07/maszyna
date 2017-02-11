@@ -28,7 +28,7 @@ http://mozilla.org/MPL/2.0/.
 #include "McZapkie/MOVER.h"
 
 #define LOGVELOCITY 0
-#define LOGORDERS 0
+#define LOGORDERS 1
 #define LOGSTOPS 1
 #define LOGBACKSCAN 0
 #define LOGPRESS 0
@@ -2354,7 +2354,7 @@ bool TController::IncBrake()
                 */
                 // dodane dla towarowego
                 if (mvOccupied->BrakeDelayFlag == bdelay_G ?
-                        -AccDesired * 6.6 > Min0R(2, mvOccupied->BrakeCtrlPos) :
+                        -AccDesired * 6.6 > std::min(2, mvOccupied->BrakeCtrlPos) :
                         true)
                 {
                     OK = mvOccupied->IncBrakeLevel();
@@ -3254,6 +3254,7 @@ bool TController::UpdateSituation(double dt)
 { // uruchamiać przynajmniej raz na sekundę
     if ((iDrivigFlags & movePrimary) == 0)
         return true; // pasywny nic nie robi
+
     double AbsAccS;
     // double VelReduced; //o ile km/h może przekroczyć dozwoloną prędkość bez hamowania
     bool UpdateOK = false;
@@ -3593,8 +3594,7 @@ bool TController::UpdateSituation(double dt)
                         if ((mvControlling->MainCtrlPos > 0) ||
                             (mvOccupied->BrakeSystem == ElectroPneumatic)) // jeśli jazda
                         {
-                            // WriteLog("Odczepianie w kierunku
-                            // "+AnsiString(mvOccupied->DirAbsolute));
+                            WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
                             TDynamicObject *p =
                                 pVehicle; // pojazd do odczepienia, w (pVehicle) siedzi AI
                             int d; // numer sprzęgu, który sprawdzamy albo odczepiamy
@@ -3629,14 +3629,14 @@ bool TController::UpdateSituation(double dt)
                             else if (!p->Dettach(d)) // zwraca maskę bitową połączenia; usuwa
                             // własność pojazdów
                             { // tylko jeśli odepnie
-                                // WriteLog("Odczepiony od strony ");
+                                WriteLog( mvOccupied->Name + " odczepiony." );
                                 iVehicleCount = -2;
                             } // a jak nie, to dociskać dalej
                         }
                         if (iVehicleCount >= 0) // zmieni się po odczepieniu
                             if (!mvOccupied->DecLocalBrakeLevel(1))
                             { // dociśnij sklad
-                                // WriteLog("Dociskanie");
+                                WriteLog( mvOccupied->Name + " dociskanie..." );
                                 // mvOccupied->BrakeReleaser(); //wyluzuj lokomotywę
                                 // Ready=true; //zamiast sprawdzenia odhamowania całego składu
                                 IncSpeed(); // dla (Ready)==false nie ruszy
@@ -3665,7 +3665,7 @@ bool TController::UpdateSituation(double dt)
                                 mvOccupied->BrakeLevelSet(0); // wyłączenie EP, gdy wystarczy (może
                             // nie być potrzebne, bo na początku
                             // jest)
-                            // WriteLog("Luzowanie lokomotywy i zmiana kierunku");
+                            WriteLog("Luzowanie lokomotywy i zmiana kierunku");
                             mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę; a ST45?
                             mvOccupied->DecLocalBrakeLevel(10); // zwolnienie hamulca
                             iDrivigFlags |= movePress; // następnie będzie dociskanie
@@ -3683,7 +3683,7 @@ bool TController::UpdateSituation(double dt)
                     SetVelocity(0, 0, stopJoin); // wyłączyć przyspieszanie
                     if (!DecSpeed()) // jeśli już bardziej wyłączyć się nie da
                     { // ponowna zmiana kierunku
-                        // WriteLog("Ponowna zmiana kierunku");
+                        WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
                         DirectionForward(mvOccupied->ActiveDir <
                                          0); // zmiana kierunku jazdy na właściwy
                         iDrivigFlags &= ~movePress; // koniec dociskania
@@ -3752,6 +3752,7 @@ bool TController::UpdateSituation(double dt)
             fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
             fVelMinus = 5.0; // margines prędkości powodujący załączenie napędu
         } // switch
+
         switch (OrderList[OrderPos])
         { // co robi maszynista
         case Prepare_engine: // odpala silnik
@@ -3771,7 +3772,7 @@ bool TController::UpdateSituation(double dt)
             }
             break;
         case Release_engine:
-            if (ReleaseEngine()) // zdana maszyna?
+            if( ReleaseEngine() ) // zdana maszyna?
                 JumpToNextOrder();
             break;
         case Jump_to_first_order:
@@ -5273,12 +5274,9 @@ void TController::TakeControl(bool yes)
         // gdy zgaszone światła, flaga podjeżdżania pod semafory pozostaje bez zmiany
         // conditional below disabled to get around the situation where the AI train does nothing ever
         // because it is waiting for orders which don't come until the engine is engaged, i.e. effectively never
-/*
         if (OrderCurrentGet()) // jeśli coś robi
-*/            PrepareEngine(); // niech sprawdzi stan silnika
-/*
+            PrepareEngine(); // niech sprawdzi stan silnika
         else // jeśli nic nie robi
-*/
         if (pVehicle->iLights[mvOccupied->CabNo < 0 ? 1 : 0] &
                 21) // któreś ze świateł zapalone?
         { // od wersji 357 oczekujemy podania komend dla AI przez scenerię

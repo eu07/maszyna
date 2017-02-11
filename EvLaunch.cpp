@@ -66,8 +66,8 @@ bool TEventLauncher::Load(cParser *parser)
     *parser >> token;
     if (token != "none")
     {
-        if (token.length() == 1)
-            iKey = VkKeyScan(token[1]); // jeden znak jest konwertowany na kod klawisza
+        if (token.size() == 1)
+            iKey = VkKeyScan(token[0]); // jeden znak jest konwertowany na kod klawisza
         else
             iKey = stol_def(token,0); // a jak więcej, to jakby numer klawisza jest
     }

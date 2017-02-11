@@ -2652,26 +2652,29 @@ bool TGround::Init(std::string asFile)
                 TEvent *found = FindEvent(tmp->asName);
                 if (found)
                 { // jeśli znaleziony duplikat
-                    int i = tmp->asName.length();
-                    if (tmp->asName[1] == '#') // zawsze jeden znak co najmniej jest
+                    auto const size = tmp->asName.size();
+                    if( tmp->asName[0] == '#' ) // zawsze jeden znak co najmniej jest
                     {
                         delete tmp;
-                        tmp = NULL;
+                        tmp = nullptr;
                     } // utylizacja duplikatu z krzyżykiem
-                    else if (i > 8 ? tmp->asName.substr(0, 9) == "lineinfo:" :
-                                     false) // tymczasowo wyjątki
+                    else if( ( size > 8 )
+                          && ( tmp->asName.substr( 0, 9 ) == "lineinfo:" ))
+                        // tymczasowo wyjątki
                     {
                         delete tmp;
-                        tmp = NULL;
+                        tmp = nullptr;
                     } // tymczasowa utylizacja duplikatów W5
-                    else if (i > 8 ? tmp->asName.substr(i - 7, 8) == "_warning" :
-                                     false) // tymczasowo wyjątki
+                    else if( ( size > 8 )
+                          && ( tmp->asName.substr( size - 8 ) == "_warning"))
+                        // tymczasowo wyjątki
                     {
                         delete tmp;
-                        tmp = NULL;
+                        tmp = nullptr;
                     } // tymczasowa utylizacja duplikatu z trąbieniem
-                    else if (i > 4 ? tmp->asName.substr(i - 3, 4) == "_shp" :
-                                     false) // nie podlegają logowaniu
+                    else if( ( size > 4 )
+                          && ( tmp->asName.substr( size - 4 ) == "_shp" ))
+                          // nie podlegają logowaniu
                     {
                         delete tmp;
                         tmp = NULL;
@@ -2689,7 +2692,7 @@ bool TGround::Init(std::string asFile)
                             // zaśmiecać drzewka
                         }
                 }
-                if (tmp)
+                if ( nullptr != tmp )
                 { // jeśli nie duplikat
                     tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
                     RootEvent = tmp;

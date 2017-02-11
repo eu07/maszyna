@@ -180,6 +180,9 @@
     <ClCompile Include="Console\MWD.cpp">
       <Filter>Source Files\console</Filter>
     </ClCompile>
+    <ClCompile Include="Names.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl\glew.h">
@@ -363,5 +366,9 @@
     <Image Include="eu07.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
 </Project>
