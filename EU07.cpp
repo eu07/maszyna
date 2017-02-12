@@ -36,8 +36,6 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "glfw3.lib") //static
 
-#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
-
 TWorld World;
 
 #ifdef _WINDOWS
@@ -116,7 +114,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 	Global::shiftState = (mods & GLFW_MOD_SHIFT) ? true : false;
 	Global::ctrlState = (mods & GLFW_MOD_CONTROL) ? true : false;
 
-	if (action == GLFW_PRESS)
+	if (action == GLFW_PRESS || action == GLFW_REPEAT)
 	{
 		World.OnKeyDown(key);
 
@@ -154,7 +152,7 @@ void focus_callback(GLFWwindow *window, int focus)
 			Global::iPause |= 4; // włączenie pauzy, gdy nieaktywy
 }
 
-int main(int argc, char argv[])
+int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 {
 #ifdef _WINDOWS
 	::SetUnhandledExceptionFilter(unhandled_handler);
@@ -174,7 +172,7 @@ int main(int argc, char argv[])
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
     }
 
-    std::string commandline(argv);
+    std::string commandline(lpCmdLine);
     if (!commandline.empty())
     {
 		cParser parser(commandline);
