@@ -212,7 +212,7 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 		while (!token.empty());
     }
 
-	glfwWindowHint(GL_SAMPLES, Global::iMultisampling);
+	glfwWindowHint(GLFW_SAMPLES, Global::iMultisampling);
 
 	// match requested video mode to current to allow for
 	// fullwindow creation when resolution is the same
