@@ -479,8 +479,8 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glDisable(GL_DEPTH_TEST); // Disables depth testing
     glColor3f(3.0f, 3.0f, 3.0f);
 
-    auto logo = TTexturesManager.GetTextureId( "logo", szTexturePath, 6 );
-    glBindTexture(GL_TEXTURE_2D, logo); // Select our texture
+    auto logo = TextureManager.GetTextureId( "logo", szTexturePath, 6 );
+    TextureManager.Bind(logo); // Select our texture
 
     glBegin(GL_QUADS); // Drawing using triangles
     glTexCoord2f(0.0f, 0.0f);
@@ -663,9 +663,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
 	if (Global::bOldSmudge == true)
-        light = TTexturesManager.GetTextureId( "smuga.tga", szTexturePath );
+        light = TextureManager.GetTextureId( "smuga.tga", szTexturePath );
 	else
-        light = TTexturesManager.GetTextureId( "smuga2.tga", szTexturePath );
+        light = TextureManager.GetTextureId( "smuga2.tga", szTexturePath );
     // Camera.Reset();
     Timer::ResetTimers();
 	WriteLog( "Load time: " +
@@ -1584,7 +1584,7 @@ TWorld::Render_Cab() {
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
                 glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-                glBindTexture( GL_TEXTURE_2D, light ); // Select our texture
+                TextureManager.Bind( light ); // Select our texture
                 glBegin( GL_QUADS );
                 float fSmudge =
                     dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
@@ -1623,7 +1623,7 @@ TWorld::Render_Cab() {
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
                 //glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
-                glBindTexture( GL_TEXTURE_2D, light ); // Select our texture
+                TextureManager.Bind( light ); // Select our texture
                 //float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
                 glBegin( GL_QUADS );
                 float fSmudge = dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
@@ -1922,7 +1922,7 @@ TWorld::Render_UI() {
         SetWindowText( hWnd, Controlled->MoverParameters->Name.c_str() );
     else
         SetWindowText( hWnd, Global::SceneryFile.c_str() ); // nazwa scenerii
-    glBindTexture( GL_TEXTURE_2D, 0 );
+    TextureManager.Bind( 0 );
     glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
     glLoadIdentity();
     glTranslatef( 0.0f, 0.0f, -0.50f );

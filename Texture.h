@@ -12,15 +12,40 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include "opengl/glew.h"
 
+enum resource_state {
+    none,
+    loading,
+    good,
+    failed
+};
+
 struct opengl_texture {
 
     GLuint id{ -1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
+    std::string attributes; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
     std::vector<char> data; // texture data
-    /*std::atomic<bool>*/ bool is_loaded{ false }; // indicates the texture data was loaded and can be processed
-    /*std::atomic<bool>*/ bool is_good{ false }; // indicates the texture data was retrieved without errors
+    resource_state data_state{ none }; // current state of texture data
+    int data_width{ 0 },
+        data_height{ 0 },
+        data_mapcount{ 0 };
+    GLuint data_format{ 0 },
+        data_components{ 0 };
+/*
+    std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed
+    std::atomic<bool> is_good{ false }; // indicates the texture data was retrieved without errors
+*/
+    void load();
+    void create();
+
+private:
+//    void load_BMP();
+    void load_DDS();
+//    void load_TEX();
+//    void load_TGA();
+    void set_filtering();
 };
 
 class texture_manager {
@@ -29,11 +54,14 @@ private:
     typedef std::vector<opengl_texture> opengltexture_array;
 
 public:
-    typedef opengltexture_array::size_type size_type;
+//    typedef opengltexture_array::size_type size_type;
+    typedef int size_type;
 
+    texture_manager();
     ~texture_manager() { Free(); }
 
-    size_type GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1 );
+    size_type GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
+    void Bind( size_type const Id );
     opengl_texture &Texture( size_type const Id ) { return m_textures.at( Id ); }
     void Init();
     void Free();
@@ -64,4 +92,4 @@ private:
     index_map m_texturemappings;
 };
 
-extern texture_manager TTexturesManager;
+extern texture_manager TextureManager;

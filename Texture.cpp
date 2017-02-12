@@ -26,17 +26,246 @@ http://mozilla.org/MPL/2.0/.
 #include "Usefull.h"
 #include "TextureDDS.h"
 
-texture_manager TTexturesManager;
+texture_manager TextureManager;
 
-/*
-TTexturesManager::Alphas TTexturesManager::_alphas;
-TTexturesManager::Names TTexturesManager::_names;
-*/
-void
-texture_manager::Init() {
+texture_manager::texture_manager() {
 
     // since index 0 is used to indicate no texture, we put a blank entry in the first texture slot
     m_textures.emplace_back( opengl_texture() );
+}
+
+// loads texture data from specified file
+// TODO: wrap it in a workitem class, for the job system deferred loading
+void
+opengl_texture::load() {
+
+    if( name.size() < 3 ) { goto fail; }
+
+    WriteLog( "Loading texture data from \"" + name + "\"" );
+
+    data_state = resource_state::loading;
+    {
+        std::string const extension = name.substr( name.size() - 3, 3 );
+
+             if( extension == "dds" ) { load_DDS(); }
+/*
+        else if( extension == "tga" ) { load_TGA(); }
+        else if( extension == "tex" ) { load_TEX(); }
+        else if( extension == "bmp" ) { load_BMP(); }
+*/
+        else { goto fail; }
+    }
+
+    // data state will be set by called loader, so we're all done here
+    if( data_state == resource_state::good ) {
+
+        return;
+    }
+
+fail:
+    data_state = resource_state::failed;
+    ErrorLog( "Failed to load texture \"" + name + "\"" );
+    return;
+}
+
+void
+opengl_texture::load_DDS() {
+
+    std::ifstream file( name, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
+    std::size_t filesize = static_cast<size_t>(file.tellg());   // ios::ate already positioned us at the end of the file
+    file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
+
+    char filecode[5];
+    file.read(filecode, 4);
+    filesize -= 4;
+    filecode[4] = 0;
+
+    if( filecode != std::string( "DDS " ) )
+    {
+        data_state = resource_state::failed;
+        return;
+    }
+
+    DDSURFACEDESC2 ddsd;
+    file.read((char *)&ddsd, sizeof(ddsd));
+    filesize -= sizeof( ddsd );
+
+    //
+    // This .dds loader supports the loading of compressed formats DXT1, DXT3
+    // and DXT5.
+    //
+
+    switch (ddsd.ddpfPixelFormat.dwFourCC)
+    {
+    case FOURCC_DXT1:
+        // DXT1's compression ratio is 8:1
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+        break;
+
+    case FOURCC_DXT3:
+        // DXT3's compression ratio is 4:1
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+        break;
+
+    case FOURCC_DXT5:
+        // DXT5's compression ratio is 4:1
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+        break;
+
+    default:
+        data_state = resource_state::failed;
+        return;
+    }
+
+    data_width = ddsd.dwWidth;
+    data_height = ddsd.dwHeight;
+    data_mapcount = 1;// ddsd.dwMipMapCount;
+
+    int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
+    int offset = 0;
+
+    while( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+        // pomijanie zbyt dużych mipmap, jeśli wymagane jest ograniczenie rozmiaru
+        offset += ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
+        data_width /= 2;
+        data_height /= 2;
+        --data_mapcount;
+    };
+
+    if( data_mapcount <= 0 ) {
+        // there's a chance we've discarded the provided mipmap(s) as too large
+        WriteLog( "Texture \"" + name + "\" has no mipmaps which can fit currently set texture size limits." );
+        data_state = resource_state::failed;
+        return;
+    }
+
+    int datasize = filesize - offset;
+//    int datasize = ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
+/*
+    // calculate size of accepted data
+    // NOTE: this is a fallback, as we should be able to just move the file caret by calculated offset and read the rest
+    int datasize = 0;
+    int mapcount = data_mapcount,
+        width = data_width,
+        height = data_height;
+    while( mapcount ) {
+
+        datasize += ( ( width + 3 ) / 4 ) * ( ( height + 3 ) / 4 ) * blockSize;
+        width = std::max( width / 2, 4 );
+        height = std::max( height / 2, 4 );
+        --mapcount;
+    }
+*/
+    // reserve space and load texture data
+    data.resize( datasize );
+    if( offset != 0 ) {
+        // skip data for mipmaps we don't need
+        file.seekg( offset, std::ios_base::cur );
+        filesize -= offset;
+    }
+    file.read((char *)&data[0], datasize);
+    filesize -= datasize;
+
+    data_components =
+        ( ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1 ?
+            GL_RGB :
+            GL_RGBA );
+
+    data_state = resource_state::good;
+
+    return;
+}
+
+void
+opengl_texture::create() {
+
+    if( data_state != resource_state::good ) {
+        // don't bother until we have useful texture data
+        return;
+    }
+
+    glGenTextures( 1, &id );
+    glBindTexture( GL_TEXTURE_2D, id );
+
+    // TODO: set wrapping according to supplied parameters
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+
+    set_filtering();
+
+    if( GLEW_VERSION_1_4 ) {
+
+        if( data_mapcount == 1 ) {
+            // fill missing mipmaps if needed
+            glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+        }
+        // upload texture data
+        // TBD, TODO: handle mipmaps other than base manually, or let the card take care of it?
+        int dataoffset = 0,
+            datasize = 0,
+            datawidth = data_width,
+            dataheight = data_height;
+        for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
+
+            if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
+             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
+             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
+                // compressed dds formats
+                if( false == Global::bDecompressDDS ) {
+                    // let the openGL handle this
+                    int const datablocksize =
+                        ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
+                        8 :
+                        16 );
+
+                    datasize = ( ( std::max(datawidth, 4) + 3 ) / 4 ) * ( ( std::max(dataheight, 4) + 3 ) / 4 ) * datablocksize;
+
+                    glCompressedTexImage2D(
+                        GL_TEXTURE_2D, maplevel,
+                        data_format, datawidth, dataheight, 0, datasize,
+                        (GLubyte *)&data[0] + dataoffset );
+
+                    dataoffset += datasize;
+                    datawidth = std::max( datawidth / 2, 1 );
+                    dataheight = std::max( dataheight / 2, 1 );
+                }
+            }
+        }
+    }
+
+    is_ready = true;
+    has_alpha = (
+        data_components == GL_RGBA ?
+        true :
+        false );
+
+    data.resize( 0 ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
+    data_state = resource_state::none;
+}
+
+void
+opengl_texture::set_filtering() {
+
+    bool hash = ( name.find( '#' ) != std::string::npos );
+
+    if( GLEW_VERSION_1_4 ) {
+
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+
+        if( true == hash ) {
+            // #: sharpen more
+            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
+        }
+        else {
+            // regular texture sharpening
+            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+        }
+    }
+}
+
+void
+texture_manager::Init() {
 }
 
 /*
@@ -100,9 +329,9 @@ struct ReplaceSlash
     }
 };
 */
-// ustalenie numeru tekstury, wczytanie jeśli nie jeszcze takiej nie było
+// ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
 texture_manager::size_type
-texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int const Filter ) {
+texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
 
     if( Filename.find( ':' ) != std::string::npos )
         Filename.erase( Filename.find( ':' ) ); // po dwukropku mogą być podane dodatkowe informacje niebędące nazwą tekstury
@@ -112,6 +341,8 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
         // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
         c = ( c == '/' ? '\\' : c );
     }
+    if( Filename.rfind('.')!= std::string::npos )
+        Filename.erase( Filename.find( '.' ) ); // trim extension if there's one
 /*
     std::transform(
         Filename.begin(), Filename.end(),
@@ -171,15 +402,38 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 
     opengl_texture texture;
     texture.name = filename;
+    texture.attributes = std::to_string( Filter ); // temporary. TODO, TBD: check how it's used and possibly get rid of it
+    auto const textureindex = m_textures.size();
     m_textures.emplace_back( texture );
-    auto const textureindex = m_textures.size() - 1;
     m_texturemappings.emplace( filename, textureindex );
 
-    WriteLog( "Created texture object for file \"" + filename + "\"" );
+    WriteLog( "Created texture object for \"" + filename + "\"" );
+
+    if( true == Loadnow ) {
+
+        Texture( textureindex ).load();
+        Texture( textureindex ).create();
+    }
 
     return textureindex;
 };
 
+void
+texture_manager::Bind( texture_manager::size_type const Id ) {
+
+    // TODO: keep track of what's currently bound and don't do it twice
+    // TODO: do binding in texture object, add support for other types
+    if( Id != 0 ) {
+
+        auto const &texture = Texture( Id );
+        if( true == texture.is_ready ) {
+            glBindTexture( GL_TEXTURE_2D, texture.id );
+            return;
+        }
+    }
+
+    glBindTexture( GL_TEXTURE_2D, 0 );
+}
 // checks whether specified texture is in the texture bank. returns texture id, or npos.
 texture_manager::size_type
 texture_manager::find_in_databank( std::string const &Texturename ) {

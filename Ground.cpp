@@ -276,7 +276,7 @@ void TGroundNode::RaRenderVBO()
 { // renderowanie z domyslnego bufora VBO
     glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
     if (TextureID)
-        glBindTexture(GL_TEXTURE_2D, TextureID); // Ustaw aktywną teksturę
+        TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
@@ -445,7 +445,7 @@ void TGroundNode::Compile(bool many)
 #ifdef USE_VERTEX_ARRAYS
         glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
 #endif
-        glBindTexture(GL_TEXTURE_2D, 0);
+        TextureManager.Bind(0);
 #ifdef USE_VERTEX_ARRAYS
         glDrawArrays(iType, 0, iNumPts);
 #else
@@ -466,7 +466,7 @@ void TGroundNode::Compile(bool many)
             glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
 #endif
             glColor3ub(tri->Diffuse[0], tri->Diffuse[1], tri->Diffuse[2]);
-            glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : tri->TextureID);
+            TextureManager.Bind(Global::bWireFrame ? 0 : tri->TextureID);
 #ifdef USE_VERTEX_ARRAYS
             glDrawArrays(Global::bWireFrame ? GL_LINE_LOOP : tri->iType, 0, tri->iNumVerts);
 #else
@@ -494,7 +494,7 @@ void TGroundNode::Compile(bool many)
     else if (iType == TP_MESH)
     { // grupa ze wspólną teksturą - wrzucanie do wspólnego Display List
         if (TextureID)
-            glBindTexture(GL_TEXTURE_2D, TextureID); // Ustaw aktywną teksturę
+            TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
         TGroundNode *n = nNode;
         while (n ? n->TextureID == TextureID : false)
         { // wszystkie obiekty o tej samej testurze
@@ -2109,8 +2109,8 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->PROBLEND = false;
         }
 #endif
-        tmp->TextureID = TTexturesManager.GetTextureId( str, szTexturePath );
-        tmp->iFlags = TTexturesManager.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
+        tmp->TextureID = TextureManager.GetTextureId( str, szTexturePath );
+        tmp->iFlags = TextureManager.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
         if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
                 Global::pTerrainCompact->TerrainLoaded() :
                 false)
