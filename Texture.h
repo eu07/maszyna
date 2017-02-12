@@ -21,11 +21,25 @@ enum resource_state {
 
 struct opengl_texture {
 
+    // methods
+    void load();
+    void create();
+    // members
     GLuint id{ -1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
     std::string attributes; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
+
+private:
+    // methods
+    void load_BMP();
+    void load_DDS();
+    void load_TEX();
+    void load_TGA();
+    void set_filtering();
+
+    // members
     std::vector<char> data; // texture data
     resource_state data_state{ none }; // current state of texture data
     int data_width{ 0 },
@@ -37,15 +51,6 @@ struct opengl_texture {
     std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed
     std::atomic<bool> is_good{ false }; // indicates the texture data was retrieved without errors
 */
-    void load();
-    void create();
-
-private:
-    void load_BMP();
-    void load_DDS();
-    void load_TEX();
-    void load_TGA();
-    void set_filtering();
 };
 
 class texture_manager {

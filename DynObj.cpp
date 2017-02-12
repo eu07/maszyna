@@ -3986,25 +3986,32 @@ void TDynamicObject::RenderSounds()
             else
                 rsSilnik.Stop();
         }
-        enginevolume = (enginevolume + vol) / 2;
-        if (enginevolume < 0.01)
+        enginevolume = (enginevolume + vol) * 0.5;
+        if( enginevolume < 0.01 ) {
             rsSilnik.Stop();
-        if ((MoverParameters->EngineType == ElectricSeriesMotor) ||
-            (MoverParameters->EngineType == ElectricInductionMotor) && rsWentylator.AM != 0)
+        }
+        if ( ( MoverParameters->EngineType == ElectricSeriesMotor )
+          || ( MoverParameters->EngineType == ElectricInductionMotor )
+          && ( rsWentylator.AM != 0 ) )
         {
-            if (MoverParameters->RventRot > 0.1)
-            {
+            if (MoverParameters->RventRot > 0.1) {
+                // play ventilator sound if the ventilators are rotating fast enough...
                 freq = rsWentylator.FM * MoverParameters->RventRot + rsWentylator.FA;
                 rsWentylator.AdjFreq(freq, dt);
-                if (MoverParameters->EngineType == ElectricInductionMotor)
-                    vol =
-                        rsWentylator.AM * sqrt(fabs(MoverParameters->dizel_fill)) + rsWentylator.AA;
-                else
+                if( MoverParameters->EngineType == ElectricInductionMotor ) {
+                 
+                    vol = rsWentylator.AM * std::sqrt( std::fabs( MoverParameters->dizel_fill ) ) + rsWentylator.AA;
+                }
+                else {
+
                     vol = rsWentylator.AM * MoverParameters->RventRot + rsWentylator.AA;
+                }
                 rsWentylator.Play(vol, DSBPLAY_LOOPING, MechInside, GetPosition());
             }
-            else
+            else {
+                // ...otherwise shut down the sound
                 rsWentylator.Stop();
+            }
         }
         if (MoverParameters->TrainType == dt_ET40)
         {
