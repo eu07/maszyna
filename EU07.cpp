@@ -216,7 +216,25 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
     int width = Global::iWindowWidth;
     int height = Global::iWindowHeight;
 
-	GLFWwindow *window = glfwCreateWindow(width, height, "EU07++", nullptr, nullptr);
+	GLFWwindow *window;
+	if (fullscreen)
+	{
+		// match requested video mode to current to allow for
+		// fullwindow creation when resolution is the same
+
+		GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode *vmode = glfwGetVideoMode(monitor);
+
+		glfwWindowHint(GLFW_RED_BITS, vmode->redBits);
+		glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
+		glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
+		glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
+
+		window = glfwCreateWindow(width, height, "EU07++", monitor, nullptr);
+	}
+	else
+		window = glfwCreateWindow(width, height, "EU07++", nullptr, nullptr);
+
 	if (!window)
 		return -1;
 	glfwMakeContextCurrent(window);
