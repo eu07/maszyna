@@ -212,28 +212,21 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 		while (!token.empty());
     }
 
-    bool fullscreen = Global::bFullScreen;
-    int width = Global::iWindowWidth;
-    int height = Global::iWindowHeight;
+	glfwWindowHint(GL_SAMPLES, Global::iMultisampling);
 
-	GLFWwindow *window;
-	if (fullscreen)
-	{
-		// match requested video mode to current to allow for
-		// fullwindow creation when resolution is the same
+	// match requested video mode to current to allow for
+	// fullwindow creation when resolution is the same
+	GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+	const GLFWvidmode *vmode = glfwGetVideoMode(monitor);
 
-		GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-		const GLFWvidmode *vmode = glfwGetVideoMode(monitor);
+	glfwWindowHint(GLFW_RED_BITS, vmode->redBits);
+	glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
+	glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
+	glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
-		glfwWindowHint(GLFW_RED_BITS, vmode->redBits);
-		glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
-		glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
-		glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
-
-		window = glfwCreateWindow(width, height, "EU07++", monitor, nullptr);
-	}
-	else
-		window = glfwCreateWindow(width, height, "EU07++", nullptr, nullptr);
+	GLFWwindow *window =
+		glfwCreateWindow(Global::iWindowWidth, Global::iWindowHeight,
+		"EU07++", Global::bFullScreen ? monitor : nullptr, nullptr);
 
 	if (!window)
 		return -1;
