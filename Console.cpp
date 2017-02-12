@@ -252,8 +252,8 @@ void Console::BitsUpdate(int mask)
             SetLedState(VK_CAPITAL, iBits & 2);
         if (mask & 1) // gdy SHP
         { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_CAPITAL, true); // przyciśnięty
-            SetLedState(VK_CAPITAL, false); // zwolniony
+            SetLedState(VK_SCROLL, true); // przyciśnięty
+            SetLedState(VK_SCROLL, false); // zwolniony
             ++iConfig; // licznik użycia Scroll Lock
         }
         break;
