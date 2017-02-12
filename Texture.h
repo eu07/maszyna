@@ -41,10 +41,10 @@ struct opengl_texture {
     void create();
 
 private:
-//    void load_BMP();
+    void load_BMP();
     void load_DDS();
-//    void load_TEX();
-//    void load_TGA();
+    void load_TEX();
+    void load_TGA();
     void set_filtering();
 };
 
