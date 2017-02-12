@@ -238,8 +238,11 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 	glfwSetCursorPosCallback(window, cursor_pos_callback);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetWindowFocusCallback(window, focus_callback);
-	glfwGetFramebufferSize(window, &width, &height);
-	window_resize_callback(window, width, height);
+	{
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+		window_resize_callback(window, width, height);
+	}
 
 	if (glewInit() != GLEW_OK)
 		return -1;
