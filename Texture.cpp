@@ -267,12 +267,12 @@ opengl_texture::load_TEX() {
     // fill remaining data info
     if( true == hasalpha ) {
 
-        data_format = GL_BGRA;
+        data_format = GL_RGBA;
         data_components = GL_RGBA;
     }
     else {
 
-        data_format = GL_BGR;
+        data_format = GL_RGB;
         data_components = GL_RGB;
     }
     data_mapcount = 1;
@@ -425,8 +425,8 @@ opengl_texture::create() {
         return;
     }
 
-    glGenTextures( 1, &id );
-    glBindTexture( GL_TEXTURE_2D, id );
+    ::glGenTextures( 1, &id );
+    ::glBindTexture( GL_TEXTURE_2D, id );
 
     // analyze specified texture traits
     bool wraps{ true };
@@ -440,52 +440,48 @@ opengl_texture::create() {
         }
     }
 
-    // TODO: set wrapping according to supplied parameters
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
+    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
+    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
 
     set_filtering();
 
-    if( GLEW_VERSION_1_4 ) {
+    if( data_mapcount == 1 ) {
+        // fill missing mipmaps if needed
+        ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+    }
+    // upload texture data
+    int dataoffset = 0,
+        datasize = 0,
+        datawidth = data_width,
+        dataheight = data_height;
+    for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
-        if( data_mapcount == 1 ) {
-            // fill missing mipmaps if needed
-            glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+        if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
+            || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
+            || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
+            // compressed dds formats
+            int const datablocksize =
+                ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
+                    8 :
+                    16 );
+
+            datasize = ( ( std::max(datawidth, 4) + 3 ) / 4 ) * ( ( std::max(dataheight, 4) + 3 ) / 4 ) * datablocksize;
+
+            ::glCompressedTexImage2D(
+                GL_TEXTURE_2D, maplevel, data_format,
+                datawidth, dataheight, 0,
+                datasize, (GLubyte *)&data[0] + dataoffset );
+
+            dataoffset += datasize;
+            datawidth = std::max( datawidth / 2, 4 );
+            dataheight = std::max( dataheight / 2, 4 );
         }
-        // upload texture data
-        int dataoffset = 0,
-            datasize = 0,
-            datawidth = data_width,
-            dataheight = data_height;
-        for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
-
-            if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
-             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
-             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
-                // compressed dds formats
-                int const datablocksize =
-                    ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
-                        8 :
-                        16 );
-
-                datasize = ( ( std::max(datawidth, 4) + 3 ) / 4 ) * ( ( std::max(dataheight, 4) + 3 ) / 4 ) * datablocksize;
-
-                glCompressedTexImage2D(
-                    GL_TEXTURE_2D, maplevel, data_format,
-                    datawidth, dataheight, 0,
-                    datasize, (GLubyte *)&data[0] + dataoffset );
-
-                dataoffset += datasize;
-                datawidth = std::max( datawidth / 2, 4 );
-                dataheight = std::max( dataheight / 2, 4 );
-            }
-            else{
-                // uncompressed texture data
-                glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_RGBA8,
-                    data_width, data_height, 0,
-                    data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[0] );
-            }
+        else{
+            // uncompressed texture data
+            ::glTexImage2D(
+                GL_TEXTURE_2D, 0, GL_RGBA8,
+                data_width, data_height, 0,
+                data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[0] );
         }
     }
 
@@ -502,28 +498,60 @@ opengl_texture::create() {
 void
 opengl_texture::set_filtering() {
 
+    // default texture mode
+    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+
     bool sharpen{ false };
     for( auto const &trait : traits ) {
 
         switch( trait ) {
 
             case '#': { sharpen = true; break; }
+/*
+            // legacy filter modes. TODO, TBD: get rid of them?
+            // let's just turn them off and see if anyone notices.
+            case '4': {
+                // najbliższy z tekstury
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+                break;
+            }
+            case '5': {
+                //średnia z tekstury
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+                break;
+            }
+            case '6': {
+                // najbliższy z mipmapy
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST );
+                break;
+            }
+            case '7': {
+                //średnia z mipmapy
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST );
+                break;
+            }
+            case '8': {
+                // najbliższy z dwóch mipmap
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+                break;
+            }
+            case '9': {
+                //średnia z dwóch mipmap
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+                break;
+            }
+*/
         }
     }
 
-    if( GLEW_VERSION_1_4 ) {
-
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-
-        if( true == sharpen ) {
-            // #: sharpen more
-            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
-        }
-        else {
-            // regular texture sharpening
-            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
-        }
+    if( true == sharpen ) {
+        // #: sharpen more
+        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
+    }
+    else {
+        // regular texture sharpening
+        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
     }
 }
 
@@ -615,7 +643,7 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
     texture.name = filename;
     if( ( Filter > 0 ) && ( Filter < 10 ) ) {
         // temporary. TODO, TBD: check how it's used and possibly get rid of it
-        traits += std::to_string( Filter );
+        traits += std::to_string( ( Filter  < 4 ? Filter + 4 : Filter ) );
     }
     if( Filename.find('#') !=std::string::npos ) {
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
@@ -639,23 +667,28 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 
 void
 texture_manager::Bind( texture_manager::size_type const Id ) {
-
+/*
+    // NOTE: this optimization disabled for the time being, until the render code is reviewed
+    //       having it active would lead to some terrain and spline chunks receiving wrong
+    //       (the most recent?) texture, instead of the proper one. It'd also affect negatively
+    //       light point rendering.
     if( Id == m_activetexture ) {
         // don't bind again what's already active
         return;
     }
+*/
     // TODO: do binding in texture object, add support for other types
     if( Id != 0 ) {
 
         auto const &texture = Texture( Id );
         if( true == texture.is_ready ) {
-            glBindTexture( GL_TEXTURE_2D, texture.id );
+            ::glBindTexture( GL_TEXTURE_2D, texture.id );
             m_activetexture = Id;
             return;
         }
     }
 
-    glBindTexture( GL_TEXTURE_2D, 0 );
+    ::glBindTexture( GL_TEXTURE_2D, 0 );
     m_activetexture = 0;
 
     return;
@@ -700,272 +733,11 @@ texture_manager::find_on_disk( std::string const &Texturename ) {
     return "";
 }
 
-/*
-TTexturesManager::AlphaValue TTexturesManager::LoadDDS(std::string fileName, int filter)
-{
-
-    AlphaValue fail(0, false);
-
-    std::ifstream file(fileName.c_str(), std::ios::binary);
-
-    char filecode[5];
-    file.read(filecode, 4);
-    filecode[4] = 0;
-
-    if (std::string("DDS ") != filecode)
-    {
-        file.close();
-        return fail;
-    };
-
-    DDSURFACEDESC2 ddsd;
-    file.read((char *)&ddsd, sizeof(ddsd));
-
-    DDS_IMAGE_DATA data;
-
-    //
-    // This .dds loader supports the loading of compressed formats DXT1, DXT3
-    // and DXT5.
-    //
-
-    GLuint factor;
-
-    switch (ddsd.ddpfPixelFormat.dwFourCC)
-    {
-    case FOURCC_DXT1:
-        // DXT1's compression ratio is 8:1
-        data.format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-        factor = 2;
-        break;
-
-    case FOURCC_DXT3:
-        // DXT3's compression ratio is 4:1
-        data.format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-        factor = 4;
-        break;
-
-    case FOURCC_DXT5:
-        // DXT5's compression ratio is 4:1
-        data.format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-        factor = 4;
-        break;
-
-    default:
-        file.close();
-        return fail;
-    }
-
-    GLuint bufferSize = (ddsd.dwMipMapCount > 1 ? ddsd.dwLinearSize * factor : ddsd.dwLinearSize);
-
-    data.pixels = new GLubyte[bufferSize];
-    file.read((char *)data.pixels, bufferSize);
-
-    file.close();
-
-    data.width = ddsd.dwWidth;
-    data.height = ddsd.dwHeight;
-    data.numMipMaps = ddsd.dwMipMapCount;
-    { // sprawdzenie prawidłowości rozmiarów
-        int i, j;
-        for (i = data.width, j = 0; i; i >>= 1)
-            if (i & 1)
-                ++j;
-        if (j == 1)
-            for (i = data.height, j = 0; i; i >>= 1)
-                if (i & 1)
-                    ++j;
-        if (j != 1)
-            WriteLog( "Bad texture: " + fileName + " is " + std::to_string(data.width) + "×" + std::to_string(data.height) );
-    }
-
-    if (ddsd.ddpfPixelFormat.dwFourCC == FOURCC_DXT1)
-        data.components = 3;
-    else
-        data.components = 4;
-
-    data.blockSize = (data.format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16);
-
-    GLuint id;
-    glGenTextures(1, &id);
-    glBindTexture(GL_TEXTURE_2D, id);
-    if (filter >= 0)
-        SetFiltering(filter); // cyfra po % w nazwie
-    else
-        // SetFiltering(bHasAlpha&&bDollar,bHash); //znaki #, $ i kanał alfa w nazwie
-        SetFiltering(data.components == 4, fileName.find('#') != std::string::npos);
-
-    GLuint offset = 0;
-    int firstMipMap = 0;
-
-    while ((data.width > Global::iMaxTextureSize) || (data.height > Global::iMaxTextureSize))
-    { // pomijanie zbyt dużych mipmap, jeśli wymagane jest ograniczenie rozmiaru
-        offset += ((data.width + 3) / 4) * ((data.height + 3) / 4) * data.blockSize;
-        data.width /= 2;
-        data.height /= 2;
-        firstMipMap++;
-    };
-
-    for (int i = 0; i < data.numMipMaps - firstMipMap; i++)
-    { // wczytanie kolejnych poziomów mipmap
-        if (!data.width)
-            data.width = 1;
-        if (!data.height)
-            data.height = 1;
-        GLuint size = ((data.width + 3) / 4) * ((data.height + 3) / 4) * data.blockSize;
-        if (Global::bDecompressDDS)
-        { // programowa dekompresja DDS
-            // if (i==1) //should be i==0 but then problem with "glBindTexture()"
-            {
-                GLuint decomp_size = data.width * data.height * 4;
-                GLubyte *output = new GLubyte[decomp_size];
-                DecompressDXT(data, data.pixels + offset, output);
-                glTexImage2D( GL_TEXTURE_2D, i, GL_RGBA8, data.width, data.height, 0, GL_RGBA,
-                             GL_UNSIGNED_BYTE, output);
-                delete[] output;
-            }
-        }
-        else // przetwarzanie DDS przez OpenGL (istnieje odpowiednie rozszerzenie)
-            glCompressedTexImage2D(GL_TEXTURE_2D, i, data.format, data.width, data.height, 0, size,
-                                   data.pixels + offset);
-        offset += size;
-        // Half the image size for the next mip-map level...
-        data.width /= 2;
-        data.height /= 2;
-    };
-
-    if( ( data.numMipMaps == 1 )
-     && ( GLEW_VERSION_1_4 ) ) {
-        // generate missing mipmaps for the updated render path
-        // TODO, TBD: skip this for UI images
-        glGenerateMipmap( GL_TEXTURE_2D );
-        WriteLog( "Warning - generating missing mipmaps for " + fileName );
-    }
-
-    delete[] data.pixels;
-    return std::make_pair(id, data.components == 4);
-};
-
-*/
-/*
-void TTexturesManager::SetFiltering(int filter)
-{
-    if (filter < 4) // rozmycie przy powiększeniu
-    { // brak rozmycia z bliska - tych jest 4: 0..3, aby nie było przeskoku
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        filter += 4;
-    }
-    else
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    switch (filter) // rozmycie przy oddaleniu
-    {
-    case 4: // najbliższy z tekstury
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        break;
-    case 5: //średnia z tekstury
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        break;
-    case 6: // najbliższy z mipmapy
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-        break;
-    case 7: //średnia z mipmapy
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-        break;
-    case 8: // najbliższy z dwóch mipmap
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-        break;
-    case 9: //średnia z dwóch mipmap
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        break;
-    }
-};
-
-void TTexturesManager::SetFiltering(bool alpha, bool hash)
-{
-
-    if( GLEW_VERSION_1_4 ) {
-
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-
-        if( true == hash ) {
-            // #: sharpen more
-            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
-        }
-        else {
-            // regular texture sharpening
-            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
-        }
-    }
-    else {
-        // legacy version, for ancient systems
-        if( alpha || hash ) {
-            if( alpha ) // przezroczystosc: nie wlaczac mipmapingu
-            {
-                if( hash ) // #: calkowity brak filtracji - pikseloza
-                {
-                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-                }
-                else {
-                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-                    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-                }
-            }
-            else // filtruj ale bez dalekich mipmap - robi artefakty
-            {
-                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-            }
-        }
-        else // $: filtruj wszystko - brzydko się zlewa
-        {
-            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-        }
-    }
-};
-
-///////////////////////////////////////////////////////////////////////////////
-GLuint TTexturesManager::CreateTexture(GLubyte *buff, GLint bpp, int width, int height, bool bHasAlpha,
-                                       bool bHash, bool bDollar, int filter)
-{ // Ra: używane tylko dla TGA i TEX
-    // Ra: dodana obsługa GL_BGR oraz GL_BGRA dla TGA - szybciej się wczytuje
-    GLuint ID;
-    glGenTextures(1, &ID);
-    glBindTexture(GL_TEXTURE_2D, ID);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    if (filter >= 0)
-        SetFiltering(filter); // cyfra po % w nazwie
-    else
-        SetFiltering(bHasAlpha && bDollar, bHash); // znaki #, $ i kanał alfa w nazwie
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-
-    if( GLEW_VERSION_1_4 ) {
-
-        glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-        glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, bpp, GL_UNSIGNED_BYTE, buff );
-    }
-    else {
-        // legacy version, for ancient systems
-        if( bHasAlpha || bHash || ( filter == 0 ) )
-            glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, bpp, GL_UNSIGNED_BYTE, buff );
-        else
-            gluBuild2DMipmaps( GL_TEXTURE_2D, GL_RGB, width, height, bpp, GL_UNSIGNED_BYTE, buff );
-    }
-
-    return ID;
-}
-*/
 void
 texture_manager::Free()
 { 
     for( auto const &texture : m_textures ) {
         // usunięcie wszyskich tekstur (bez usuwania struktury)
-        glDeleteTextures( 1, &texture.id );
+        ::glDeleteTextures( 1, &texture.id );
     }
 }

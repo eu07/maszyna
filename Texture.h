@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include "opengl/glew.h"
 
-enum resource_state {
+enum class resource_state {
     none,
     loading,
     good,
@@ -41,7 +41,7 @@ private:
 
     // members
     std::vector<char> data; // texture data
-    resource_state data_state{ none }; // current state of texture data
+    resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },
         data_height{ 0 },
         data_mapcount{ 0 };
