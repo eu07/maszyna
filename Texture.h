@@ -28,7 +28,7 @@ struct opengl_texture {
     GLuint id{ -1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
-    std::string attributes; // requested texture attributes: wrapping modes etc
+    std::string traits; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
 
 private:
@@ -95,6 +95,7 @@ private:
     static const size_type npos{ 0 }; // should be -1, but the rest of the code uses -1 for something else
     opengltexture_array m_textures;
     index_map m_texturemappings;
+    size_type m_activetexture{ 0 }; // last i.e. currently bound texture
 };
 
 extern texture_manager TextureManager;

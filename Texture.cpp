@@ -359,13 +359,9 @@ opengl_texture::load_TGA() {
 
             file.read( (char *)&chunkheader, sizeof( unsigned char ) );
 
-            if( chunkheader < 128 ) {
-                // if the header is < 128, it means it is the number of RAW color packets minus 1
-                // that follow the header
-                // add 1 to get number of following color values
-                ++chunkheader;
-                // read RAW color values
-                for( int i = 0; i < (int)chunkheader; ++i ) {
+            if( (chunkheader & 0x80 ) == 0 ) {
+                // if the high bit is not set, it means it is the number of RAW color packets, plus 1
+                for( int i = 0; i <= chunkheader; ++i ) {
 
                     file.read( (char *)&buffer[ 0 ], bytesperpixel );
 
@@ -382,8 +378,8 @@ opengl_texture::load_TGA() {
                 }
             }
             else {
-                // chunkheader > 128 RLE data, next color reapeated (chunkheader - 127) times
-                chunkheader -= 127;	// Subteact 127 to get rid of the ID bit
+                // rle chunk, the color supplied afterwards is reapeated header + 1 times (not including the highest bit)
+                chunkheader &= ~0x80;
                 // read the current color
                 file.read( (char *)&buffer[ 0 ], bytesperpixel );
 
@@ -393,9 +389,9 @@ opengl_texture::load_TGA() {
                     buffer[ 2 ] = buffer[ 0 ];
                 }
                 // copy the color into the image data as many times as dictated 
-                for( int i = 0; i < (int)chunkheader; ++i ) {
+                for( int i = 0; i <= chunkheader; ++i ) {
 
-                    ( *datapointer ) = ( *buffer );
+                    ( *datapointer ) = ( *bufferpointer );
                     ++datapointer;
                     ++currentpixel;
                 }
@@ -432,9 +428,21 @@ opengl_texture::create() {
     glGenTextures( 1, &id );
     glBindTexture( GL_TEXTURE_2D, id );
 
+    // analyze specified texture traits
+    bool wraps{ true };
+    bool wrapt{ true };
+    for( auto const &trait : traits ) {
+
+        switch( trait ) {
+
+            case 's': { wraps = false; break; }
+            case 't': { wrapt = false; break; }
+        }
+    }
+
     // TODO: set wrapping according to supplied parameters
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-    glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
 
     set_filtering();
 
@@ -457,8 +465,8 @@ opengl_texture::create() {
                 // compressed dds formats
                 int const datablocksize =
                     ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
-                    8 :
-                    16 );
+                        8 :
+                        16 );
 
                 datasize = ( ( std::max(datawidth, 4) + 3 ) / 4 ) * ( ( std::max(dataheight, 4) + 3 ) / 4 ) * datablocksize;
 
@@ -484,8 +492,8 @@ opengl_texture::create() {
     is_ready = true;
     has_alpha = (
         data_components == GL_RGBA ?
-        true :
-        false );
+            true :
+            false );
 
     data.resize( 0 ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
     data_state = resource_state::none;
@@ -494,14 +502,21 @@ opengl_texture::create() {
 void
 opengl_texture::set_filtering() {
 
-    bool hash = ( name.find( '#' ) != std::string::npos );
+    bool sharpen{ false };
+    for( auto const &trait : traits ) {
+
+        switch( trait ) {
+
+            case '#': { sharpen = true; break; }
+        }
+    }
 
     if( GLEW_VERSION_1_4 ) {
 
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 
-        if( true == hash ) {
+        if( true == sharpen ) {
             // #: sharpen more
             glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
         }
@@ -520,12 +535,21 @@ texture_manager::Init() {
 texture_manager::size_type
 texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
 
-    if( Filename.find( ':' ) != std::string::npos )
-        Filename.erase( Filename.find( ':' ) ); // po dwukropku mogą być podane dodatkowe informacje niebędące nazwą tekstury
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
+
+    std::string traits;
+    auto const traitpos = Filename.find( ':' );
+    if( traitpos != std::string::npos ) {
+        // po dwukropku mogą być podane dodatkowe informacje niebędące nazwą tekstury
+        if( Filename.size() > traitpos + 1 )
+            traits = Filename.substr( traitpos + 1 );
+        Filename.erase( traitpos );
+    }
+
     if( Filename.rfind( '.' ) != std::string::npos )
         Filename.erase( Filename.rfind( '.' ) ); // trim extension if there's one
+
     for( char &c : Filename ) {
         // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
         c = ( c == '/' ? '\\' : c );
@@ -589,7 +613,15 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 
     opengl_texture texture;
     texture.name = filename;
-    texture.attributes = std::to_string( Filter ); // temporary. TODO, TBD: check how it's used and possibly get rid of it
+    if( ( Filter > 0 ) && ( Filter < 10 ) ) {
+        // temporary. TODO, TBD: check how it's used and possibly get rid of it
+        traits += std::to_string( Filter );
+    }
+    if( Filename.find('#') !=std::string::npos ) {
+        // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
+        traits += '#';
+    }
+    texture.traits = traits;
     auto const textureindex = m_textures.size();
     m_textures.emplace_back( texture );
     m_texturemappings.emplace( filename, textureindex );
@@ -608,18 +640,25 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 void
 texture_manager::Bind( texture_manager::size_type const Id ) {
 
-    // TODO: keep track of what's currently bound and don't do it twice
+    if( Id == m_activetexture ) {
+        // don't bind again what's already active
+        return;
+    }
     // TODO: do binding in texture object, add support for other types
     if( Id != 0 ) {
 
         auto const &texture = Texture( Id );
         if( true == texture.is_ready ) {
             glBindTexture( GL_TEXTURE_2D, texture.id );
+            m_activetexture = Id;
             return;
         }
     }
 
     glBindTexture( GL_TEXTURE_2D, 0 );
+    m_activetexture = 0;
+
+    return;
 }
 // checks whether specified texture is in the texture bank. returns texture id, or npos.
 texture_manager::size_type
