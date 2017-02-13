@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #define AnimModelH
 
 #include "Model3d.h"
+#include "Texture.h"
 
 const int iMaxNumLights = 8;
 
@@ -148,7 +149,7 @@ class TAnimModel
     void RaAnimate(); // przeliczenie animacji egzemplarza
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
   public:
-    GLuint ReplacableSkinId[5]; // McZapkie-020802: zmienialne skory
+    texture_manager::size_type ReplacableSkinId[5]; // McZapkie-020802: zmienialne skory
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane
     // również bez wyświetlania
     TAnimModel();
