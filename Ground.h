@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
+#include "Texture.h"
 #include "dumb3d.h"
 #include "Names.h"
 
@@ -141,7 +142,7 @@ class TGroundNode : public Resource
     GLuint DisplayListID; // numer siatki DisplayLists
     bool PROBLEND;
     int iVboPtr; // indeks w buforze VBO
-    GLuint TextureID; // główna (jedna) tekstura obiektu
+    texture_manager::size_type TextureID; // główna (jedna) tekstura obiektu
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     int Ambient[4], Diffuse[4], Specular[4]; // oświetlenie
     bool bVisible;

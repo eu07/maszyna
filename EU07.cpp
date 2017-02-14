@@ -63,6 +63,13 @@ int InitGL(GLvoid) // All Setup For OpenGL Goes Here
 //    _clear87();
 //    _control87(MCW_EM, MCW_EM);
     glewInit();
+
+    if( !GLEW_VERSION_1_4 ) {
+        // experimental: require at least openGL 1.4
+        Error( "This application requires openGL version 1.4 (or better)" );
+        return 0;
+    }
+
     // hunter-271211: przeniesione
     // AllocConsole();
     // SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);

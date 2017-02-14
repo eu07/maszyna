@@ -28,7 +28,7 @@ using namespace Mtable;
 
 double TSubModel::fSquareDist = 0;
 int TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
-GLuint *TSubModel::ReplacableSkinId = NULL;
+texture_manager::size_type *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
 std::string *TSubModel::pasText;
@@ -411,13 +411,12 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             TextureNameSet(texture.c_str());
             if (texture.find_first_of("/\\") == texture.npos)
                 texture.insert(0, Global::asCurrentTexturePath.c_str());
-            TextureID = TTexturesManager::GetTextureID(
-                szTexturePath, const_cast<char *>(Global::asCurrentTexturePath.c_str()), texture);
+            TextureID = TextureManager.GetTextureId( texture, szTexturePath );
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
             if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity
                 // 0!
-                iFlags |= TTexturesManager::GetAlpha(TextureID) ?
+                iFlags |= TextureManager.Texture(TextureID).has_alpha ?
                               0x20 :
                               0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
             else
@@ -616,7 +615,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     return iNumVerts; // do określenia wielkości VBO
 };
 
-int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
+int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
 { // dodanie trójkątów do submodelu, używane
     // przy tworzeniu E3D terenu
     TSubModel *s = this;
@@ -637,7 +636,7 @@ int TSubModel::TriangleAdd(TModel3d *m, int tex, int tri)
             m->AddTo(this, s);
         }
         // s->asTexture=AnsiString(TTexturesManager::GetName(tex).c_str());
-        s->TextureNameSet(TTexturesManager::GetName(tex).c_str());
+        s->TextureNameSet(TextureManager.Texture(tex).name.c_str());
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
         // iAnimOwner=0; //roboczy wskaźnik na wierzchołek
@@ -715,7 +714,7 @@ void TSubModel::DisplayLists()
     {
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        TextureManager.Bind(0);
         //     if (eType==smt_FreeSpotLight)
         //      {
         //       if (iFarAttenDecay==0)
@@ -738,7 +737,7 @@ void TSubModel::DisplayLists()
     { // punkty świecące dookólnie
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        glBindTexture(GL_TEXTURE_2D, 0); // tekstury nie ma
+        TextureManager.Bind(0); // tekstury nie ma
         glColorMaterial(GL_FRONT, GL_EMISSION);
         glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
@@ -1101,11 +1100,11 @@ void TSubModel::RenderDL()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    glBindTexture(GL_TEXTURE_2D, ReplacableSkinId[-TextureID]);
+                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // również 0
+                    TextureManager.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1198,11 +1197,11 @@ void TSubModel::RenderAlphaDL()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    glBindTexture(GL_TEXTURE_2D, ReplacableSkinId[-TextureID]);
+                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // również 0
+                    TextureManager.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1279,11 +1278,11 @@ void TSubModel::RenderVBO()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    glBindTexture(GL_TEXTURE_2D, ReplacableSkinId[-TextureID]);
+                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // również 0
+                    TextureManager.Bind(TextureID); // również 0
                 glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
                 // glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo,
                 // co glColor
@@ -1350,7 +1349,7 @@ void TSubModel::RenderVBO()
                                               Distdimm=1;
 
                 */
-                glBindTexture(GL_TEXTURE_2D, 0); // nie teksturować
+                TextureManager.Bind(0); // nie teksturować
                 // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
                 // glColorMaterial(GL_FRONT,GL_EMISSION);
                 float color[4] = {f4Diffuse[0] * Distdimm, f4Diffuse[1] * Distdimm,
@@ -1379,7 +1378,7 @@ void TSubModel::RenderVBO()
                 if (pRoot->StartColorVBO())
                 { // wyświetlanie kolorowych punktów zamiast
                     // trójkątów
-                    glBindTexture(GL_TEXTURE_2D, 0); // tekstury nie ma
+                    TextureManager.Bind(0); // tekstury nie ma
                     glColorMaterial(GL_FRONT, GL_EMISSION);
                     glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
                     // blendowaly
@@ -1453,11 +1452,11 @@ void TSubModel::RenderAlphaVBO()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skory
-                    glBindTexture(GL_TEXTURE_2D, ReplacableSkinId[-TextureID]);
+                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    glBindTexture(GL_TEXTURE_2D, TextureID); // również 0
+                    TextureManager.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1625,15 +1624,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
         std::string tex = pTexture;
         if (tex.find_last_of("/\\") == std::string::npos)
             tex.insert(0, Global::asCurrentTexturePath);
-        TextureID = TTexturesManager::GetTextureID(
-            szTexturePath, const_cast<char *>(Global::asCurrentTexturePath.c_str()), tex);
+        TextureID = TextureManager.GetTextureId( tex, szTexturePath );
         // TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
         // ustawienie cyklu przezroczyste/nieprzezroczyste zależnie od własności
         // stałej tekstury
         // iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
         // //0x10-nieprzezroczysta, 0x20-przezroczysta
         if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity 0!
-            iFlags |= TTexturesManager::GetAlpha(TextureID) ?
+            iFlags |= TextureManager.Texture(TextureID).has_alpha ?
                           0x20 :
                           0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
         else
@@ -2177,7 +2175,7 @@ ReplacableSkinId,int iAlpha)
 };
 */
 
-void TModel3d::Render(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
+void TModel3d::Render(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 {
     iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
     if (iAlpha & iFlags & 0x1F1F001F) // czy w ogóle jest co robić w tym cyklu?
@@ -2188,7 +2186,7 @@ void TModel3d::Render(double fSquareDistance, GLuint *ReplacableSkinId, int iAlp
     }
 };
 
-void TModel3d::RenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
+void TModel3d::RenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 {
     if (iAlpha & iFlags & 0x2F2F002F)
     {
@@ -2232,7 +2230,7 @@ globalna!
 };
 */
 
-void TModel3d::RaRender(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
+void TModel3d::RaRender( double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha )
 { // renderowanie specjalne, np. kabiny
     iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
     if (iAlpha & iFlags & 0x1F1F001F) // czy w ogóle jest co robić w tym cyklu?
@@ -2248,7 +2246,7 @@ void TModel3d::RaRender(double fSquareDistance, GLuint *ReplacableSkinId, int iA
     }
 };
 
-void TModel3d::RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId, int iAlpha)
+void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
     if (iAlpha & iFlags & 0x2F2F002F) // czy w ogóle jest co robić w tym cyklu?
     {
@@ -2286,7 +2284,7 @@ globalna!
 // 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
 
-void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId, int iAlpha)
+void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, Display List
     glPushMatrix();
     glTranslated(vPosition->x, vPosition->y, vPosition->z);
@@ -2303,7 +2301,7 @@ void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSki
     Root->RenderDL();
     glPopMatrix();
 };
-void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId,
+void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId,
                            int iAlpha)
 { // przezroczyste, Display List
     glPushMatrix();
@@ -2320,7 +2318,7 @@ void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *Replacab
     Root->RenderAlphaDL();
     glPopMatrix();
 };
-void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId, int iAlpha)
+void TModel3d::RaRender( vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId, int iAlpha )
 { // nieprzezroczyste, VBO
     glPushMatrix();
     glTranslated(vPosition->x, vPosition->y, vPosition->z);
@@ -2340,7 +2338,7 @@ void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableS
     }
     glPopMatrix();
 };
-void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId,
+void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId,
                              int iAlpha)
 { // przezroczyste, VBO
     glPushMatrix();
