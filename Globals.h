@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <Windows.h>
 #include <GLFW/glfw3.h>
-#include "opengl/glew.h"
+#include "GL/glew.h"
 #include "dumb3d.h"
 
 // definicje klawiszy
@@ -198,7 +198,7 @@ class Global
     // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
     static std::string asHumanCtrlVehicle;
     static void LoadIniFile(std::string asFileName);
-    static void InitKeys(std::string asFileName);
+    static void InitKeys();
     inline static Math3D::vector3 GetCameraPosition()
     {
         return pCameraPosition;
@@ -267,7 +267,6 @@ class Global
     static bool bGlutFont; // tekst generowany przez GLUT
     static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
-    static bool bActive; // czy jest aktywnym oknem
     static void BindTexture(GLuint t);
     static int iConvertModels; // tworzenie plików binarnych
     static int iErorrCounter; // licznik sprawdzań do śledzenia błędów OpenGL

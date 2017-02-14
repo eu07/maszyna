@@ -23,7 +23,6 @@
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
-#include <dbghelp.h>
 // stl
 #include <cstdlib>
 #include <cassert>
@@ -58,8 +57,8 @@
 #include <condition_variable>
 #include <typeinfo>
 
-#include "opengl/glew.h"
-#include "opengl/wglew.h"
+#include "GL/glew.h"
+#include "GL/wglew.h"
 
 //m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
 #include <GLFW/glfw3.h>

@@ -142,7 +142,6 @@ void TEvent::Load(cParser *parser, vector3 *org)
 {
     int i;
     int ti;
-    double tf;
     std::string token;
     //string str;
     char *ptr;

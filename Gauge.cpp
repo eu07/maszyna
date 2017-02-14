@@ -98,7 +98,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul)
         Init(sm, gt_Digital, val3, val4, val5);
     else
         Init(sm, gt_Rotate, val3, val4, val5);
-    return (md2); // true, gdy podany model zewnętrzny, a w kabinie nie było
+    return md2 != nullptr; // true, gdy podany model zewnętrzny, a w kabinie nie było
 };
 
 void TGauge::PermIncValue(double fNewDesired)

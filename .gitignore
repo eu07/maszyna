@@ -68,3 +68,5 @@ tmp/
 bin/
 ipch/
 *.aps
+
+builds/

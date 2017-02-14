@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include <ddraw.h>
 #include <io.h>
 #include <fcntl.h>
-#include "opengl/glew.h"
+#include "GL/glew.h"
 
 #include "Globals.h"
 #include "logs.h"

@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Segment.h"
-#include "opengl/glew.h"
+#include "GL/glew.h"
 
 #include "Globals.h"
 #include "Logs.h"
@@ -505,7 +505,7 @@ void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *Shap
                                 double fOffsetX)
 { // tworzenie siatki trójkątów dla iglicy
     vector3 pos1, pos2, dir, parallel1, parallel2, pt;
-    double a1, a2, s, step, offset, tv1, tv2, t, t2, t2step, oldt2, sp, oldsp;
+    double a1, a2, s, step, offset, tv1, tv2, t, t2step, oldt2;
     int i, j;
     if (bCurve)
     { // dla toru odchylonego
@@ -642,7 +642,6 @@ void TSegment::Render()
 {
     vector3 pt;
     glBindTexture(GL_TEXTURE_2D, 0);
-    int i;
     if (bCurve)
     {
         glColor3f(0, 0, 1.0f);

@@ -196,7 +196,7 @@ void DecompressDXT3(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Da
 
 void DecompressDXT5(DDS_IMAGE_DATA lImage, const GLubyte *lCompData, GLubyte *Data)
 {
-    GLint x, y, z, i, j, k;
+    GLint x, y, i, j, k;
     GLuint Select;
     const GLubyte *Temp; //, r0, g0, b0, r1, g1, b1;
     Color8888 colours[4], *col;

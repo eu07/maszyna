@@ -428,7 +428,7 @@ void TTrain::OnKeyDown(int cKey)
         else if (cKey == Global::Keys[k_DirectionBackward])
         {
             if (mvOccupied->Radio == false)
-                if (Global::ctrlState >= 0)
+                if (Global::ctrlState)
                 {
                     dsbSwitch->SetVolume(DSBVOLUME_MAX);
                     dsbSwitch->Play(0, 0, 0);
@@ -1864,9 +1864,8 @@ if
                                             ctrain_pneumatic))
                                 {
                                     rsHiss.Play(1, DSBPLAY_LOOPING, true, tmp->GetPosition());
-                                    DynamicObject->SetPneumatic(CouplNr,
-                                                                1); // Ra: to mi się nie podoba !!!!
-                                    tmp->SetPneumatic(CouplNr, 1);
+                                    DynamicObject->SetPneumatic(CouplNr != 0, true); // Ra: to mi się nie podoba !!!!
+                                    tmp->SetPneumatic(CouplNr != 0, true);
                                 }
                         }
                         else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
@@ -1886,9 +1885,8 @@ if
                                     //              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                                     dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
                                     dsbCouplerDetach->Play(0, 0, 0);
-                                    DynamicObject->SetPneumatic(CouplNr,
-                                                                0); // Ra: to mi się nie podoba !!!!
-                                    tmp->SetPneumatic(CouplNr, 0);
+                                    DynamicObject->SetPneumatic(CouplNr != 0, false); // Ra: to mi się nie podoba !!!!
+                                    tmp->SetPneumatic(CouplNr != 0, false);
                                 }
                         }
                         else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
@@ -1926,8 +1924,8 @@ if
                                     //                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                                     dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
                                     dsbCouplerDetach->Play(0, 0, 0);
-                                    DynamicObject->SetPneumatic(CouplNr, 0);
-                                    tmp->SetPneumatic(CouplNr, 0);
+                                    DynamicObject->SetPneumatic(CouplNr != 0, false);
+                                    tmp->SetPneumatic(CouplNr != 0, false);
                                 }
                         }
                     }
@@ -5067,7 +5065,6 @@ bool TTrain::CabChange(int iDirection)
 // wczytywanie pliku z danymi multimedialnymi (dzwieki, kontrolki, kabiny)
 bool TTrain::LoadMMediaFile(std::string const &asFileName)
 {
-    double dSDist;
     cParser parser(asFileName, cParser::buffer_FILE);
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
@@ -5374,7 +5371,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     pyScreens.reset(this);
     pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
-    double dSDist;
     int cabindex = 0;
     DynamicObject->mdKabina = NULL; // likwidacja wskaźnika na dotychczasową kabinę
     switch (NewCabNo)

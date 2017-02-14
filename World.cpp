@@ -12,14 +12,12 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include <GLFW/glfw3.h>
-
 #include "stdafx.h"
 
 #include "World.h"
 
-#include "opengl/glew.h"
-#include "opengl/glut.h"
+#include "GL/glew.h"
+#include "GL/glut.h"
 
 #include "Globals.h"
 #include "Logs.h"
@@ -39,10 +37,6 @@ http://mozilla.org/MPL/2.0/.
 #define TEXTURE_LOD_BIAS_EXT 0x8501
 //---------------------------------------------------------------------------
 
-typedef void(APIENTRY *FglutBitmapCharacter)(void *font, int character); // typ funkcji
-FglutBitmapCharacter glutBitmapCharacterDLL = NULL; // deklaracja zmiennej
-HINSTANCE hinstGLUT32 = NULL; // wskaźnik do GLUT32.DLL
-// GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
 
 const double fTimeMax = 1.00; //[s] maksymalny czas aktualizacji w jednek klatce
@@ -81,8 +75,6 @@ TWorld::~TWorld()
     TModelsManager::Free();
     TTexturesManager::Free();
     glDeleteLists(base, 96);
-    if (hinstGLUT32)
-        FreeLibrary(hinstGLUT32);
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -101,20 +93,19 @@ void TWorld::TrainDelete(TDynamicObject *d)
 GLvoid TWorld::glPrint(const char *txt) // custom GL "Print" routine
 { // wypisywanie tekstu 2D na ekranie
 	//m7todo
-	return;
     if (!txt)
         return;
     if (Global::bGlutFont)
     { // tekst generowany przez GLUT
-        int i, len = strlen(txt);
+        size_t i, len = strlen(txt);
         for (i = 0; i < len; i++)
-            glutBitmapCharacterDLL(GLUT_BITMAP_8_BY_13, txt[i]); // funkcja linkowana dynamicznie
+            glutBitmapCharacter(GLUT_BITMAP_8_BY_13, txt[i]);
     }
     else
     { // generowanie przez Display Lists
         glPushAttrib(GL_LIST_BIT); // pushes the display list bits
         glListBase(base - 32); // sets the base character to 32
-        glCallLists(strlen(txt), GL_UNSIGNED_BYTE, txt); // draws the display list text
+        glCallLists((GLsizei)strlen(txt), GL_UNSIGNED_BYTE, txt); // draws the display list text
         glPopAttrib(); // pops the display list bits
     }
 }
@@ -185,8 +176,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Starting MaSzyna rail vehicle simulator.");
     WriteLog(Global::asVersion);
 	if( sizeof( TSubModel ) != 256 ) {
-		Error( "Wrong sizeof(TSubModel) is " + std::to_string(sizeof( TSubModel )) );
-		return false;
+		std::cout << "sizeof(TSubModel) != 256: E3D file support unavailable" << std::endl;
 	}
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
@@ -260,7 +250,7 @@ bool TWorld::Init(GLFWwindow *w)
     else
     {
         Global::bDecompressDDS =
-            !(true == GLEW_EXT_texture_compression_s3tc); // czy obsługiwane?
+            !(GLEW_EXT_texture_compression_s3tc); // czy obsługiwane?
         if (Global::bDecompressDDS) // czy jest obsługa DDS w karcie graficznej
             WriteLog("DDS textures are not supported.");
         else // brak obsługi DDS - trzeba włączyć programową dekompresję
@@ -313,7 +303,7 @@ bool TWorld::Init(GLFWwindow *w)
         WriteLog("glEnable(GL_ALPHA_TEST);");
         glEnable(GL_ALPHA_TEST);
         WriteLog("glAlphaFunc(GL_GREATER,0.04);");
-        glAlphaFunc(GL_GREATER, 0.04);
+        glAlphaFunc(GL_GREATER, 0.04f);
         WriteLog("glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);");
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         WriteLog("glDepthFunc(GL_LEQUAL);");
@@ -431,24 +421,16 @@ bool TWorld::Init(GLFWwindow *w)
 
     /*--------------------Render Initialization End---------------------*/
 
-	//m7todo: font
-	/*
+	//m7todo
+	
     WriteLog("Font init"); // początek inicjacji fontów 2D
-    if (Global::bGlutFont) // jeśli wybrano GLUT font, próbujemy zlinkować GLUT32.DLL
+    if (Global::bGlutFont)
     {
-        UINT mode = SetErrorMode(SEM_NOOPENFILEERRORBOX); // aby nie wrzeszczał, że znaleźć nie może
-        hinstGLUT32 = LoadLibrary(TEXT("GLUT32.DLL")); // get a handle to the DLL module
-        SetErrorMode(mode);
-        // If the handle is valid, try to get the function address.
-        if (hinstGLUT32)
-            glutBitmapCharacterDLL =
-                (FglutBitmapCharacter)GetProcAddress(hinstGLUT32, "glutBitmapCharacter");
-        else
-            WriteLog("Missed GLUT32.DLL.");
-        if (glutBitmapCharacterDLL)
-            WriteLog("Used font from GLUT32.DLL.");
-        else
-            Global::bGlutFont = false; // nie udało się, trzeba spróbować na Display List
+		int zi = 0;
+		char zc = 0;
+		char *zcp = &zc;
+		glutInit(&zi, &zcp);
+		WriteLog("Used font from GLUT.");
     }
     if (!Global::bGlutFont)
     { // jeśli bezGLUTowy font
@@ -468,12 +450,13 @@ bool TWorld::Init(GLFWwindow *w)
                           ANTIALIASED_QUALITY, // output quality
                           FF_DONTCARE | DEFAULT_PITCH, // family and pitch
                           "Courier New"); // font name
+		HDC hDC = GetDC(glfwGetWin32Window(window));
         SelectObject(hDC, font); // selects the font we want
         wglUseFontBitmapsA(hDC, 32, 96, base); // builds 96 characters starting at character 32
         WriteLog("Display Lists font used."); //+AnsiString(glGetError())
     }
     WriteLog("Font init OK"); //+AnsiString(glGetError())
-	*/
+	
     Timer::ResetTimers();
 
     glColor4f(1.0f, 3.0f, 3.0f, 0.0f);
@@ -532,8 +515,6 @@ bool TWorld::Init(GLFWwindow *w)
     }
     
 	glfwSwapBuffers(window);
-
-    int i;
 
     Paused = true;
     WriteLog("Textures init");
@@ -1128,7 +1109,7 @@ bool TWorld::Update()
         */
         iCheckFPS = 0.25 * Timer::GetFPS(); // tak za 0.25 sekundy sprawdzić ponownie (jeszcze przycina?)
     }
-    Timer::UpdateTimers(Global::iPause);
+    Timer::UpdateTimers(Global::iPause != 0);
     if (!Global::iPause)
     { // jak pauza, to nie ma po co tego przeliczać
         GlobalTime->UpdateMTableTime(Timer::GetDeltaTime()); // McZapkie-300302: czas rozkladowy
@@ -1199,15 +1180,13 @@ bool TWorld::Update()
     // blablabla
     // Ground.UpdatePhys(dt,n); //na razie tu //2014-12: yB przeniósł do Ground.Update() :(
     Ground.Update(dt, n); // tu zrobić tylko coklatkową aktualizację przesunięć
-    if (DebugModeFlag)
-        if (Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
-            if (Console::Pressed(GLFW_KEY_ESCAPE))
-            { // yB dodał przyspieszacz fizyki
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n); // 5 razy
-            }
+    if (DebugModeFlag && Console::Pressed(GLFW_KEY_ESCAPE))
+    { // yB dodał przyspieszacz fizyki
+        Ground.Update(dt, n);
+        Ground.Update(dt, n);
+        Ground.Update(dt, n);
+        Ground.Update(dt, n); // 5 razy
+    }
 
     dt = Timer::GetDeltaTime(); // czas niekwantowany
 
@@ -1216,7 +1195,7 @@ bool TWorld::Update()
     Ground.CheckQuery();
 
     if( Train != nullptr ) {
-        TSubModel::iInstance = reinterpret_cast<int>( Train->Dynamic() );
+        TSubModel::iInstance = reinterpret_cast<size_t>( Train->Dynamic() );
         Train->Update( dt );
     }
     else {
@@ -1237,46 +1216,44 @@ bool TWorld::Update()
 };
 
 void
-TWorld::Update_Camera( double const Deltatime ) {
-
+TWorld::Update_Camera( double const Deltatime )
+{
     // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
-    if( Global::bActive ) { // obsługa ruchu kamery tylko gdy okno jest aktywne
-        if( glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS ) {
-            Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
-            // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
-            // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-            if( Controlled ? LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < 2250000 :
-                false ) // gdy bliżej niż 1.5km
-                Camera.LookAt = Controlled->GetPosition();
-            else {
-                TDynamicObject *d =
-                    Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
-                if( !d )
-                    d = Ground.DynamicNearest( Camera.Pos,
-                    1000 ); // dalej szukanie, jesli bliżej nie ma
-                if( d && pDynamicNearest ) // jeśli jakiś jest znaleziony wcześniej
-                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
-                        LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
-                        d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
-                // poprzedni najbliższy, zostaje poprzedni
-                if( d )
-                    pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
-                if( pDynamicNearest )
-                    Camera.LookAt = pDynamicNearest->GetPosition();
-            }
-            if( FreeFlyModeFlag )
-                Camera.RaLook(); // jednorazowe przestawienie kamery
+    if( glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS ) {
+        Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
+        // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
+        // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
+        if( Controlled ? LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < 2250000 :
+            false ) // gdy bliżej niż 1.5km
+            Camera.LookAt = Controlled->GetPosition();
+        else {
+            TDynamicObject *d =
+                Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
+            if( !d )
+                d = Ground.DynamicNearest( Camera.Pos,
+                1000 ); // dalej szukanie, jesli bliżej nie ma
+            if( d && pDynamicNearest ) // jeśli jakiś jest znaleziony wcześniej
+                if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
+                    LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
+                    d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
+            // poprzedni najbliższy, zostaje poprzedni
+            if( d )
+                pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
+            if( pDynamicNearest )
+                Camera.LookAt = pDynamicNearest->GetPosition();
         }
-        else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ) //||Console::Pressed(GLFW_KEY_F4))
-            FollowView( false ); // bez wyciszania dźwięków
+        if( FreeFlyModeFlag )
+            Camera.RaLook(); // jednorazowe przestawienie kamery
+    }
+    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ) //||Console::Pressed(GLFW_KEY_F4))
+        FollowView( false ); // bez wyciszania dźwięków
 /*
-        else if( Global::iTextMode == -1 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-            WriteLog( "Number of textures used: " + std::to_string( Global::iTextures ) );
-            return false;
-        }
+    else if( Global::iTextMode == -1 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
+        WriteLog( "Number of textures used: " + std::to_string( Global::iTextures ) );
+        return false;
+    }
 */
-        Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
-    } // koniec bloku pomijanego przy nieaktywnym oknie
+    Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
 
     if( Camera.Type == tp_Follow ) {
         if( Train ) { // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
@@ -1466,7 +1443,7 @@ void TWorld::Update_Lights() {
 
 bool TWorld::Render()
 {
-    glColor3b(255, 255, 255);
+    glColor3ub(255, 255, 255);
     // glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
@@ -1521,7 +1498,7 @@ TWorld::Render_Cab() {
     }
 
     TDynamicObject *dynamic = Train->Dynamic();
-    TSubModel::iInstance = reinterpret_cast<int>( dynamic );
+    TSubModel::iInstance = reinterpret_cast<size_t>( dynamic );
 
     if( ( true == FreeFlyModeFlag )
      || ( false == dynamic->bDisplayCab )
@@ -1591,7 +1568,7 @@ TWorld::Render_Cab() {
             else {
                 glBlendFunc( GL_DST_COLOR, GL_ONE );
                 glDepthFunc( GL_GEQUAL );
-                glAlphaFunc( GL_GREATER, 0.004 );
+                glAlphaFunc( GL_GREATER, 0.004f );
                 // glDisable(GL_DEPTH_TEST);
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
@@ -1627,7 +1604,7 @@ TWorld::Render_Cab() {
 
                 glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
                 // glEnable(GL_DEPTH_TEST);
-                glAlphaFunc( GL_GREATER, 0.04 );
+                glAlphaFunc( GL_GREATER, 0.04f );
                 glDepthFunc( GL_LEQUAL );
                 glEnable( GL_LIGHTING ); //i tak się włączy potem
                 glEnable( GL_FOG );
@@ -1656,17 +1633,17 @@ TWorld::Render_Cab() {
             case e_canyon:
             {
                 for( int li = 0; li < 3; li++ ) {
-                    diffuseCabLight[ li ] *= 0.6;
-                    specularCabLight[ li ] *= 0.7;
+                    diffuseCabLight[ li ] *= 0.6f;
+                    specularCabLight[ li ] *= 0.7f;
                 }
             }
             break;
             case e_tunnel:
             {
                 for( int li = 0; li < 3; li++ ) {
-                    ambientCabLight[ li ] *= 0.3;
-                    diffuseCabLight[ li ] *= 0.1;
-                    specularCabLight[ li ] *= 0.2;
+                    ambientCabLight[ li ] *= 0.3f;
+                    diffuseCabLight[ li ] *= 0.1f;
+                    specularCabLight[ li ] *= 0.2f;
                 }
             }
             break;
@@ -1891,13 +1868,10 @@ TWorld::Render_UI() {
     }
 
     glDisable( GL_LIGHTING );
-	//m7todo: title
-	/*
-    if( Controlled )
-        SetWindowText( hWnd, Controlled->MoverParameters->Name.c_str() );
-    else
-        SetWindowText( hWnd, Global::SceneryFile.c_str() ); // nazwa scenerii
-	*/
+
+	glfwSetWindowTitle(window, ("EU07++NG: " + Controlled->MoverParameters->Name).c_str());
+	glfwSetWindowTitle(window, ("EU07++NG: " + Global::SceneryFile).c_str());
+
     glBindTexture( GL_TEXTURE_2D, 0 );
     glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
     glLoadIdentity();
@@ -2605,7 +2579,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
                 if (e)
                     if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
-                        bool(e->evJoined)) // tylko jawne albo niejawne Multiple
+                        (e->evJoined != 0)) // tylko jawne albo niejawne Multiple
                         Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywołujący - tu
                 // brak
             }

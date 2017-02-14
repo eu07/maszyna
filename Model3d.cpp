@@ -27,7 +27,7 @@ http://mozilla.org/MPL/2.0/.
 using namespace Mtable;
 
 double TSubModel::fSquareDist = 0;
-int TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
+size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 GLuint *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
@@ -106,7 +106,7 @@ void TSubModel::FirstInit()
     iFarAttenDecay = 0;
     fFarDecayRadius = 100;
     fCosFalloffAngle = 0.5; // 120°?
-    fCosHotspotAngle = 0.3; // 145°?
+    fCosHotspotAngle = 0.3f; // 145°?
     fCosViewAngle = 0;
     fSquareMaxDist = 10000 * 10000; // 10km
     fSquareMinDist = 0;
@@ -152,7 +152,7 @@ void TSubModel::TextureNameSet(const char *n)
     if (iFlags & 0x0200)
     { // tylko jeżeli submodel zosta utworzony przez new
         delete[] pTexture; // usunięcie poprzedniej
-        int i = strlen(n);
+        size_t i = strlen(n);
         if (i)
         { // utworzenie nowej
             pTexture = new char[i + 1];
@@ -169,7 +169,7 @@ void TSubModel::NameSet(const char *n)
     if (iFlags & 0x0200)
     { // tylko jeżeli submodel zosta utworzony przez new
         delete[] pName; // usunięcie poprzedniej
-        int i = strlen(n);
+        size_t i = strlen(n);
         if (i)
         { // utworzenie nowej
             pName = new char[i + 1];
@@ -368,8 +368,8 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         parser >> discard >> bWire >> discard >> fWireSize >> discard;
         Opacity = readIntAsDouble(parser,
                                   100.0f); // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
-        if (Opacity > 1.0)
-            Opacity *= 0.01; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
+        if (Opacity > 1.0f)
+            Opacity *= 0.01f; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
         if ((Global::iConvertModels & 1) == 0) // dla zgodności wstecz
             Opacity = 0.0; // wszystko idzie w przezroczyste albo zależnie od tekstury
         if (!parser.expectToken("map:"))
@@ -1221,9 +1221,8 @@ void TSubModel::RenderAlphaDL()
             if (eType == TP_TEXT)
             { // tekst renderujemy w specjalny sposób, zamiast
                 // submodeli z łańcucha Child
-                int i, j = pasText->size();
+                size_t i, j = pasText->size();
                 TSubModel *p;
-                char c;
                 if (!smLetter)
                 { // jeśli nie ma tablicy, to ją stworzyć; miejsce
                     // nieodpowiednie, ale tymczasowo
@@ -1290,12 +1289,12 @@ void TSubModel::RenderVBO()
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-                    glDrawArrays(eType, iVboPtr,
+                    glDrawArrays(eType, (GLint)iVboPtr,
                                  iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
                     glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
                 }
                 else
-                    glDrawArrays(eType, iVboPtr,
+                    glDrawArrays(eType, (GLint)iVboPtr,
                                  iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
             }
         }
@@ -1353,15 +1352,15 @@ void TSubModel::RenderVBO()
                 glBindTexture(GL_TEXTURE_2D, 0); // nie teksturować
                 // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
                 // glColorMaterial(GL_FRONT,GL_EMISSION);
-                float color[4] = {f4Diffuse[0] * Distdimm, f4Diffuse[1] * Distdimm,
-                                  f4Diffuse[2] * Distdimm, 0};
+                float color[4] = {(float)(f4Diffuse[0] * Distdimm), (float)(f4Diffuse[1] * Distdimm),
+                                  (float)(f4Diffuse[2] * Distdimm, 0)};
                 // glColor3f(f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm);
                 glColorMaterial(GL_FRONT, GL_EMISSION);
                 glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
                 // blendowaly
                 glColor3fv(color); // inaczej są białe
                 glMaterialfv(GL_FRONT, GL_EMISSION, color);
-                glDrawArrays(GL_POINTS, iVboPtr, iNumVerts); // narysuj wierzchołek z
+                glDrawArrays(GL_POINTS, (GLint)iVboPtr, iNumVerts); // narysuj wierzchołek z
                 // VBO
                 glEnable(GL_LIGHTING);
                 glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); // co ma ustawiać glColor
@@ -1385,7 +1384,7 @@ void TSubModel::RenderVBO()
                     // blendowaly
                     // glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na
                     // kolorowo
-                    glDrawArrays(GL_POINTS, iVboPtr,
+                    glDrawArrays(GL_POINTS, (GLint)iVboPtr,
                                  iNumVerts); // narysuj naraz wszystkie punkty z VBO
                     glEnable(GL_LIGHTING);
                     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
@@ -1461,12 +1460,12 @@ void TSubModel::RenderAlphaVBO()
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-                    glDrawArrays(eType, iVboPtr,
+                    glDrawArrays(eType, (GLint)iVboPtr,
                                  iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
                     glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
                 }
                 else
-                    glDrawArrays(eType, iVboPtr,
+                    glDrawArrays(eType, (GLint)iVboPtr,
                                  iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
             }
         }
@@ -1543,7 +1542,7 @@ void TSubModel::Info()
                 // pName=new char[token.length()+1]; //nie ma sensu skracać tabeli
                 strcpy(pTexture, t.c_str());
             }
-            info->iTextureLen = t.size() + 1; // przygotowanie do zapisania, z zerem na końcu
+            info->iTextureLen = (int)(t.size() + 1); // przygotowanie do zapisania, z zerem na końcu
         }
     }
     else
@@ -1552,7 +1551,7 @@ void TSubModel::Info()
     if (pName)
     {
         info->iName = info->iTotalNames++; // przydzielenie numeru nazwy w pliku (od 0)
-        info->iNameLen = strlen(pName) + 1; // z zerem na końcu
+        info->iNameLen = (int)(strlen(pName) + 1); // z zerem na końcu
     }
     ++info->iCurrent; // przejście do kolejnego obiektu pomocniczego
     if (Child)
@@ -1589,8 +1588,8 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
                         bool dynamic)
 { // ustawienie wskaźników w submodelu
     iVisible = 1; // tymczasowo używane
-    Child = ((int)Child > 0) ? s + (int)Child : NULL; // zerowy nie może być potomnym
-    Next = ((int)Next > 0) ? s + (int)Next : NULL; // zerowy nie może być następnym
+    Child = ((size_t)Child > 0) ? s + (size_t)Child : NULL; // zerowy nie może być potomnym
+    Next = ((size_t)Next > 0) ? s + (size_t)Next : NULL; // zerowy nie może być następnym
     fMatrix = ((iMatrix >= 0) && m) ? m + iMatrix : NULL;
     // if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
     if (n && (iName >= 0))
@@ -1839,6 +1838,12 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
+	if (sizeof(TSubModel) != 256)
+	{
+		std::cout << "E3D files unsupported in current build" << std::endl;
+		exit(-1);
+	}
+
     WriteLog("Loading - binary model: " + FileName);
     int i = 0, j, k, ch, size;
 
@@ -2047,6 +2052,12 @@ void TModel3d::Init()
 
 void TModel3d::SaveToBinFile(char const *FileName)
 { // zapis modelu binarnego
+	if (sizeof(TSubModel) != 256)
+	{
+		std::cout << "E3D files unsupported in current build" << std::endl;
+		exit(-1);
+	}
+
     WriteLog("Saving E3D binary model.");
     int i, zero = 0;
     TSubModelInfo *info = new TSubModelInfo[iSubModelsCount];

@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Ground.h"
 
-#include "opengl/glew.h"
+#include "GL/glew.h"
 
 #include "Globals.h"
 #include "Logs.h"
@@ -286,7 +286,6 @@ void TGroundNode::RenderVBO()
         (iType != TP_EVLAUNCH)) // McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj
         // wyzwalacz zdarzen
         return;
-    int i, a;
     switch (iType)
     {
     case TP_TRACTION:
@@ -350,12 +349,11 @@ void TGroundNode::RenderAlphaVBO()
         return;
     if (mgn > fSquareRadius)
         return;
-    int i, a;
 #ifdef _PROBLEND
     if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
     {
         glDisable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+        glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     };
 #endif
     switch (iType)
@@ -365,7 +363,7 @@ void TGroundNode::RenderAlphaVBO()
         {
 #ifdef _PROBLEND
             glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04);
+            glAlphaFunc(GL_GREATER, 0.04f);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
             hvTraction->RenderVBO(mgn, iVboPtr);
@@ -374,7 +372,7 @@ void TGroundNode::RenderAlphaVBO()
     case TP_MODEL:
 #ifdef _PROBLEND
         glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04);
+        glAlphaFunc(GL_GREATER, 0.04f);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
         Model->RenderAlphaVBO(&pCenter);
@@ -396,13 +394,13 @@ void TGroundNode::RenderAlphaVBO()
 // glEnable(GL_LIGHTING);
 #ifdef _PROBLEND
             glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04);
+            glAlphaFunc(GL_GREATER, 0.04f);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
         }
 #ifdef _PROBLEND
         glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04);
+        glAlphaFunc(GL_GREATER, 0.04f);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
         return;
@@ -412,7 +410,7 @@ void TGroundNode::RenderAlphaVBO()
             RaRenderVBO();
 #ifdef _PROBLEND
             glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04);
+            glAlphaFunc(GL_GREATER, 0.04f);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
             return;
@@ -420,7 +418,7 @@ void TGroundNode::RenderAlphaVBO()
     }
 #ifdef _PROBLEND
     glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04);
+    glAlphaFunc(GL_GREATER, 0.04f);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
     return;
@@ -559,7 +557,6 @@ void TGroundNode::RenderDL()
         // obiektow ale sprawdzaj wyzwalacz
         // zdarzen
         return;
-    int i, a;
     switch (iType)
     {
     case TP_TRACK:
@@ -620,7 +617,6 @@ void TGroundNode::RenderAlphaDL()
         return;
     if (mgn > fSquareRadius)
         return;
-    int i, a;
     switch (iType)
     {
     case TP_TRACTION:
@@ -642,7 +638,7 @@ void TGroundNode::RenderAlphaDL()
         if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
         {
             glDisable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+            glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
         };
 #endif
         if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
@@ -673,7 +669,7 @@ void TGroundNode::RenderAlphaDL()
     if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
     {
         glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04);
+        glAlphaFunc(GL_GREATER, 0.04f);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     };
 #endif
@@ -967,7 +963,6 @@ void TSubRect::Sort()
 
 TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
 { // szukanie toru, którego koniec jest najbliższy (*Point)
-    TTrack *Track;
     for (int i = 0; i < iTracks; ++i)
         if (tTracks[i] != Exclude) // można użyć tabelę torów, bo jest mniejsza
         {
@@ -1004,7 +999,7 @@ void TSubRect::RaAnimate()
         return; // nie ma nic do animowania
     if (Global::bUseVBO)
     { // odświeżenie VBO sektora
-        if (true == GLEW_VERSION_1_5) // modyfikacje VBO są dostępne od OpenGL 1.5
+        if (GLEW_VERSION_1_5) // modyfikacje VBO są dostępne od OpenGL 1.5
             glBindBuffer(GL_ARRAY_BUFFER, m_nVBOVertices);
         else // dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odświeżenie całego sektora
             Release(); // opróżnienie VBO sektora, aby się odświeżył z nowymi ustawieniami
@@ -1565,16 +1560,15 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 { // wczytanie wpisu typu "node"
     // parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzać
 	string str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
-    int nv, ti, i, n;
-    double tf, r, rmin, tf1, tf2, tf3, tf4, l, dist, mgn;
-    int int1, int2;
-    bool bError = false, curve;
+	int nv, i;
+	double tf, r, rmin, tf1, tf3;
+	int int1;
+	size_t int2;
+	bool bError = false;
     vector3 pt, front, up, left, pos, tv;
     matrix4x4 mat2, mat1, mat;
-    GLuint TexID;
     TGroundNode *tmp1;
     TTrack *Track;
-    TTextSound *tmpsound;
     std::string token;
     parser->getTokens(2);
     *parser >> r >> rmin;
@@ -1585,7 +1579,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     *parser >> token;
 	str = token;
     //str = AnsiString(token.c_str());
-    TGroundNode *tmp, *tmp2;
+	TGroundNode *tmp;
     tmp = new TGroundNode();
     tmp->asName = (asNodeName == "none" ? string("") : asNodeName);
     if (r >= 0)
@@ -1647,10 +1641,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         parser->getTokens(3);
         *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >>
             tmp->hvTraction->fResistivity;
-        if (tmp->hvTraction->fResistivity == 0.01) // tyle jest w sceneriach [om/km]
-            tmp->hvTraction->fResistivity = 0.075; // taka sensowniejsza wartość za
+        if (tmp->hvTraction->fResistivity == 0.01f) // tyle jest w sceneriach [om/km]
+            tmp->hvTraction->fResistivity = 0.075f; // taka sensowniejsza wartość za
         // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
-        tmp->hvTraction->fResistivity *= 0.001; // teraz [om/m]
+        tmp->hvTraction->fResistivity *= 0.001f; // teraz [om/m]
         parser->getTokens();
         *parser >> token;
         // Ra 2014-02: a tutaj damy symbol sieci i jej budowę, np.:
@@ -1803,7 +1797,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         *parser >> token;
 		str = token;
 		//str = AnsiString(token.c_str());
-        tmp->tsStaticSound = new TTextSound(str, sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z, false, rmin);
+        tmp->tsStaticSound = new TTextSound(str, sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z, false, false, rmin);
         if (rmin < 0.0)
             rmin =
                 0.0; // przywrócenie poprawnej wartości, jeśli służyła do wyłączenia efektu Dopplera
@@ -1842,7 +1836,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             int2 = str4.find("."); // yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
             if (int2 != string::npos) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
             {
-                int dlugosc = str4.length();
+                size_t dlugosc = str4.length();
                 int1 = atoi(str4.substr(0, int2).c_str()); // niech sprzegiem bedzie do kropki cos
                 str4 = str4.substr(int2 + 1, dlugosc - int2);
             }
@@ -2220,7 +2214,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 /*
             nv = i;
 */
-            nv = TempVerts.size();
+            nv = (int)TempVerts.size();
             tmp->Init(nv); // utworzenie tablicy wierzchołków
             tmp->pCenter /= (nv > 0 ? nv : 1);
 
@@ -2514,9 +2508,6 @@ bool TGround::Init(std::string asFile)
     const int OriginStackMaxDepth = 100; // rozmiar stosu dla zagnieżdżenia origin
     int OriginStackTop = 0;
     vector3 OriginStack[OriginStackMaxDepth]; // stos zagnieżdżenia origin
-
-    double tf;
-    int ParamCount, ParamPos;
 
     // ABu: Jezeli nie ma definicji w scenerii to ustawiane ponizsze wartosci:
     hh = 10; // godzina startu
@@ -3303,7 +3294,7 @@ void TGround::InitTracks()
     TGroundNode *Current, *Model;
     TTrack *tmp; // znaleziony tor
     TTrack *Track;
-    int iConnection, state;
+	int iConnection;
     string name;
     // tracks=tracksfar=0;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
@@ -3722,7 +3713,7 @@ bool TGround::InitLaunchers()
 {
     TGroundNode *Current, *tmp;
     TEventLauncher *EventLauncher;
-    int i;
+
     for (Current = nRootOfType[TP_EVLAUNCH]; Current; Current = Current->nNext)
     {
         EventLauncher = Current->EvLaunch;
@@ -3749,8 +3740,6 @@ bool TGround::InitLaunchers()
 
 TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude)
 { // wyszukiwanie innego toru kończącego się w (Point)
-    TTrack *Track;
-    TGroundNode *Current;
     TTrack *tmp;
     iConnection = -1;
     TSubRect *sr;
@@ -3797,8 +3786,6 @@ TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclud
 
 TTraction * TGround::FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude)
 { // wyszukiwanie innego przęsła kończącego się w (Point)
-    TTraction *Traction;
-    TGroundNode *Current;
     TTraction *tmp;
     iConnection = -1;
     TSubRect *sr;
@@ -4260,7 +4247,7 @@ bool TGround::CheckQuery()
                     for (i = 0; i < 8; ++i)
                     { // dodawane do kolejki w kolejności zapisania
                         if (tmpEvent->Params[i].asEvent)
-                            if (bCondition != bool(tmpEvent->iFlags & (conditional_else << i)))
+                            if (bCondition != (((tmpEvent->iFlags & (conditional_else << i)) != 0)))
                             {
                                 if (tmpEvent->Params[i].asEvent != tmpEvent)
                                     AddToQuery(tmpEvent->Params[i].asEvent,
@@ -4762,11 +4749,10 @@ bool TGround::GetTraction(TDynamicObject *model)
 bool TGround::RenderDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza nieprzezroczystych
     glDisable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
     CameraDirection.x = sin(Global::pCameraRotation); // wektor kierunkowy
     CameraDirection.z = cos(Global::pCameraRotation);
-    int tr, tc;
     TGroundNode *node;
     glColor3f(1.0f, 1.0f, 1.0f);
     glEnable(GL_LIGHTING);
@@ -4823,7 +4809,7 @@ bool TGround::RenderDL(vector3 pPosition)
 bool TGround::RenderAlphaDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza przezroczystych
     glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.04f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     TGroundNode *node;
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     TSubRect *tmp;
@@ -4852,11 +4838,10 @@ bool TGround::RenderAlphaDL(vector3 pPosition)
 bool TGround::RenderVBO(vector3 pPosition)
 { // renderowanie scenerii z VBO - faza nieprzezroczystych
     glDisable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek
     CameraDirection.x = sin(Global::pCameraRotation); // wektor kierunkowy
     CameraDirection.z = cos(Global::pCameraRotation);
-    int tr, tc;
     TGroundNode *node;
     glColor3f(1.0f, 1.0f, 1.0f);
     glEnable(GL_LIGHTING);
@@ -4920,7 +4905,7 @@ bool TGround::RenderVBO(vector3 pPosition)
 bool TGround::RenderAlphaVBO(vector3 pPosition)
 { // renderowanie scenerii z VBO - faza przezroczystych
     glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.04f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     TGroundNode *node;
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     TSubRect *tmp;
@@ -4967,14 +4952,14 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
     DaneRozkaz r;
     r.iSygn = 'EU07';
     r.iComm = 2; // 2 - event
-    int i = e.length(), j = d.length();
+    size_t i = e.length(), j = d.length();
     r.cString[0] = char(i);
     strcpy(r.cString + 1, e.c_str()); // zakończony zerem
     r.cString[i + 2] = char(j); // licznik po zerze kończącym
     strcpy(r.cString + 3 + i, d.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
     cData.dwData = 'EU07'; // sygnatura
-    cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera kończące
+    cData.cbData = (DWORD)(12 + i + j); // 8+dwa liczniki i dwa zera kończące
     cData.lpData = &r;
 	//m7todo
     //Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
@@ -4986,13 +4971,13 @@ void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 	DaneRozkaz r;
 	r.iSygn = 'EU07';
 	r.iComm = 13; // numer komunikatu
-	int i = t.length();
+	size_t i = t.length();
 	r.cString[0] = char(fl);
 	r.cString[1] = char(i);
 	strcpy(r.cString + 2, t.c_str()); // z zerem kończącym
 	COPYDATASTRUCT cData;
 	cData.dwData = 'EU07'; // sygnatura
-	cData.cbData = 11 + i; // 8+licznik i zero kończące
+	cData.cbData = (DWORD)(11 + i); // 8+licznik i zero kończące
 	cData.lpData = &r;
 	//m7todo
 	//Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
@@ -5004,12 +4989,12 @@ void TGround::WyslijString(const std::string &t, int n)
     DaneRozkaz r;
     r.iSygn = 'EU07';
     r.iComm = n; // numer komunikatu
-    int i = t.length();
+    size_t i = t.length();
     r.cString[0] = char(i);
     strcpy(r.cString + 1, t.c_str()); // z zerem kończącym
     COPYDATASTRUCT cData;
     cData.dwData = 'EU07'; // sygnatura
-    cData.cbData = 10 + i; // 8+licznik i zero kończące
+    cData.cbData = (DWORD)(10 + i); // 8+licznik i zero kończące
     cData.lpData = &r;
 	//m7todo
     //Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
@@ -5027,7 +5012,8 @@ void TGround::WyslijNamiary(TGroundNode *t)
     DaneRozkaz r;
     r.iSygn = 'EU07';
     r.iComm = 7; // 7 - dane pojazdu
-    int i = 32, j = t->asName.length();
+	int i = 32;
+	size_t j = t->asName.length();
     r.iPar[0] = i; // ilość danych liczbowych
     r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
     r.fPar[2] = t->DynamicObject->MoverParameters->Loc.X; // pozycja X
@@ -5088,7 +5074,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     strcpy(r.cString + i + 1, t->asName.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
     cData.dwData = 'EU07'; // sygnatura
-    cData.cbData = 10 + i + j; // 8+licznik i zero kończące
+    cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");
 	//m7todo
@@ -5189,7 +5175,7 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
     TDynamicObject *dyn = NULL;
     int c = GetColFromX(pPosition.x);
     int r = GetRowFromZ(pPosition.z);
-    int i, j, k;
+	int i, j;
     double sqm = distance * distance, sqd; // maksymalny promien poszukiwań do kwadratu
     for (j = r - 1; j <= r + 1; j++) // plus dwa zewnętrzne sektory, łącznie 9
         for (i = c - 1; i <= c + 1; i++)
@@ -5227,7 +5213,7 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
     TDynamicObject *dyn = NULL;
     int c = GetColFromX(pPosition.x);
     int r = GetRowFromZ(pPosition.z);
-    int i, j, k;
+	int i, j;
     double sqm = distance * distance, sqd; // maksymalny promien poszukiwań do kwadratu
     for (j = r - 1; j <= r + 1; j++) // plus dwa zewnętrzne sektory, łącznie 9
         for (i = c - 1; i <= c + 1; i++)
@@ -5325,7 +5311,6 @@ void TGround::TerrainWrite()
     // chyba że dla danej tekstury wychodzi tylko jeden submodel.
     TModel3d *m = new TModel3d(); // wirtualny model roboczy z oddzielnymi submodelami
     TSubModel *sk; // wskaźnik roboczy na submodel kwadratu
-    TSubModel *st; // wskaźnik roboczy na submodel tekstury
     // Zliczamy kwadraty z trójkątami, ilość tekstur oraz wierzchołków.
     // Ilość kwadratów i ilość tekstur określi ilość submodeli.
     // int sub=0; //całkowita ilość submodeli
@@ -5404,7 +5389,6 @@ void TGround::TerrainWrite()
 void TGround::TrackBusyList()
 { // wysłanie informacji o wszystkich zajętych odcinkach
     TGroundNode *Current;
-    TTrack *Track;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
         if (!Current->asName.empty()) // musi być nazwa
 #ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
@@ -5445,13 +5429,12 @@ void TGround::IsolatedBusy(const std::string t)
 
 void TGround::Silence(vector3 gdzie)
 { // wyciszenie wszystkiego w sektorach przed przeniesieniem kamery z (gdzie)
-    int tr, tc;
     TGroundNode *node;
     int n = 2 * iNumSubRects; //(2*==2km) promień wyświetlanej mapy w sektorach
     int c = GetColFromX(gdzie.x); // sektory wg dotychczasowej pozycji kamery
     int r = GetRowFromZ(gdzie.z);
     TSubRect *tmp;
-    int i, j, k;
+	int i, j;
     // renderowanie czołgowe dla obiektów aktywnych a niewidocznych
     for (j = r - n; j <= r + n; j++)
         for (i = c - n; i <= c + n; i++)

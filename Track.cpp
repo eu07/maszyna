@@ -412,10 +412,9 @@ vector3 LoadPoint(cParser *parser)
 void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
 { // pobranie obiektu trajektorii ruchu
     vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
-    double a1, a2, r1, r2, r3, r4, d1, d2, a;
+	double a1, a2, r1, r2, r3, r4;
     string str;
-    bool bCurve;
-    int i; //,state; //Ra: teraz już nie ma początkowego stanu zwrotnicy we wpisie
+    size_t i; //,state; //Ra: teraz już nie ma początkowego stanu zwrotnicy we wpisie
     std::string token;
 
     parser->getTokens();
@@ -1557,7 +1556,7 @@ void TTrack::Compile(GLuint tex)
             // 2014-07: na początek rysować brzegi jak dla łuków
             // punkty brzegu nawierzchni uzyskujemy podczas renderowania boków (bez sensu, ale
             // najszybciej było zrobić)
-            int i, j; // ile punktów (może byc różna ilość punktów między drogami)
+			int i; // ile punktów (może byc różna ilość punktów między drogami)
             if (!SwitchExtension->vPoints)
             { // jeśli tablica punktów nie jest jeszcze utworzona, zliczamy punkty i tworzymy ją
                 if (SwitchExtension->iRoads == 3) // mogą być tylko 3 drogi zamiast 4
@@ -1735,7 +1734,7 @@ void TTrack::Compile(GLuint tex)
             if (!SwitchExtension->bPoints) // jeśli tablica nie wypełniona
                 if (b) // ale jest wskaźnik do tablicy - może nie być?
                 { // coś się gubi w obliczeniach na wskaźnikach
-                    i = (int((void *)(b)) - int((void *)(SwitchExtension->vPoints))) /
+                    i = (int)(((size_t)(b)) - ((size_t)(SwitchExtension->vPoints))) /
                         sizeof(vector3); // ustalenie liczby punktów, bo mogło wyjść inaczej niż
                     // policzone z góry
                     if (i > 0)
@@ -2907,7 +2906,7 @@ TTrack * TTrack::RaAnimate()
         }
         if (Global::bUseVBO)
         { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
-            if (true == GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
+            if (GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
                 if (TextureID1) // Ra: !!!! tu jest do poprawienia
                 { // iglice liczone tylko dla zwrotnic
                     vector6 rpts3[24], rpts4[24];
@@ -3018,7 +3017,7 @@ TTrack * TTrack::RaAnimate()
                     if (Global::bUseVBO)
                     { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
                         // aktualizacja pojazdów na torze
-                        if (true == GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
+                        if (GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
                         {
                             int size =
                                 RaArrayPrepare(); // wielkość tabeli potrzebna dla tej obrotnicy

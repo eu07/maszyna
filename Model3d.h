@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #ifndef Model3dH
 #define Model3dH
 
-#include "opengl/glew.h"
+#include "GL/glew.h"
 #include "Parser.h"
 #include "dumb3d.h"
 #include "Float3d.h"
@@ -193,7 +193,7 @@ class TSubModel
         int iMatrix; // w pliku binarnym jest numer matrycy
     };
     int iNumVerts; // ilość wierzchołków (1 dla FreeSpotLight)
-    int iVboPtr; // początek na liście wierzchołków albo indeksów
+    size_t iVboPtr; // początek na liście wierzchołków albo indeksów
     int iTexture; // numer nazwy tekstury, -1 wymienna, 0 brak
     float fVisible; // próg jasności światła do załączenia submodelu
     float fLight; // próg jasności światła do zadziałania selfillum
@@ -226,15 +226,17 @@ class TSubModel
     float f_Angle;
     float3 v_RotateAxis;
     float3 v_Angles;
-
+	
   public: // chwilowo
     float3 v_TransVector;
     float8 *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
-    int iAnimOwner; // roboczy numer egzemplarza, który ustawił animację
+    size_t iAnimOwner; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim; // kody animacji oddzielnie, bo zerowane
   public:
     float4x4 *mAnimMatrix; // macierz do animacji kwaternionowych (należy do AnimContainer)
-    char space[8]; // wolne miejsce na przyszłe zmienne (zmniejszyć w miarę potrzeby)
+
+    char space[8];
+
   public:
     TSubModel **
         smLetter; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
@@ -251,7 +253,7 @@ class TSubModel
     void RaAnimation(TAnimType a);
 
   public:
-    static int iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
+    static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
     static GLuint *ReplacableSkinId;
     static int iAlpha; // maska bitowa dla danego przebiegu
     static double fSquareDist;
@@ -354,7 +356,7 @@ class TSubModelInfo
     int iTexture; // numer tekstury
     int iNameLen; // długość nazwy
     int iTextureLen; // długość tekstury
-    int iNext, iChild; // numer następnego i potomnego
+    size_t iNext, iChild; // numer następnego i potomnego
     static int iTotalTransforms; // ilość transformów
     static int iTotalNames; // ilość nazw
     static int iTotalTextures; // ilość tekstur
@@ -363,7 +365,8 @@ class TSubModelInfo
     TSubModelInfo()
     {
         pSubModel = NULL;
-        iTransform = iName = iTexture = iNext = iChild = -1; // nie ma
+		iTransform = iName = iTexture = -1;
+		iNext = iChild = -1; // nie ma
         iNameLen = iTextureLen = 0;
     }
     void Reset()

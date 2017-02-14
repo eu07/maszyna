@@ -77,7 +77,7 @@ class cParser //: public std::stringstream
     {
         return !mStream->fail();
     };
-    bool getTokens(int Count = 1, bool ToLower = true, const char *Break = "\n\t ;");
+    bool getTokens(unsigned int Count = 1, bool ToLower = true, const char *Break = "\n\t ;");
     // returns percentage of file processed so far
     int getProgress() const;
     // add custom definition of text which should be ignored when retrieving tokens

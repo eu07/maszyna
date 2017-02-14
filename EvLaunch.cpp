@@ -145,8 +145,7 @@ bool TEventLauncher::Render()
     bool bCond = false;
     if (iKey != 0)
     {
-        if (Global::bActive) // tylko jeśli okno jest aktywne
-            bCond = (Console::Pressed(iKey)); // czy klawisz wciśnięty
+		bCond = (Console::Pressed(iKey)); // czy klawisz wciśnięty
     }
     if (DeltaTime > 0)
     {

@@ -171,7 +171,6 @@ bool MWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i zap
 bool MWDComm::SendData() // wysyłanie danych
 {
     DWORD bytes_write;
-    DWORD fdwEvtMask;
 
     WriteFile(hComm, &WriteDataBuff[0], BYTETOWRITE, &bytes_write, NULL);
 
@@ -188,16 +187,17 @@ bool MWDComm::Run() // wywoływanie obsługi MWD + generacja większego opóźni
             SendData();
             if (Global::bMWDInputDataEnable)
                 ReadData();
-            return 1;
+            return true;
         }
         else
         {
             WriteLog("Port COM: connection ERROR!");
             // może spróbować się połączyć znowu?
-            return 0;
+            return false;
         }
         MWDTime = 0;
     }
+	return false;
 }
 
 void MWDComm::CheckData() // sprawdzanie wejść cyfrowych i odpowiednie sterowanie maszyną

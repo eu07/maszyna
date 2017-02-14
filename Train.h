@@ -32,10 +32,10 @@ const int maxcab = 2;
 
 // const double fCzuwakTime= 90.0f;
 const double fCzuwakBlink = 0.15;
-const float fConverterPrzekaznik = 1.5; // hunter-261211: do przekaznika nadmiarowego przetwornicy
+const float fConverterPrzekaznik = 1.5f; // hunter-261211: do przekaznika nadmiarowego przetwornicy
 // 0.33f
 // const double fBuzzerTime= 5.0f;
-const float fHaslerTime = 1.2;
+const float fHaslerTime = 1.2f;
 
 // const double fStycznTime= 0.5f;
 // const double fDblClickTime= 0.2f;

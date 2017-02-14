@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "opengl/glew.h"
+#include "GL/glew.h"
 
 /*
 //Ra: miejsce umieszczenia tego jest deczko bezsensowne

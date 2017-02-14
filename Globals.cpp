@@ -53,9 +53,9 @@ GLFWwindow *Global::window;
 bool Global::shiftState;
 bool Global::ctrlState;
 int Global::iCameraLast = -1;
-std::string Global::asRelease = "16.0.1172.482";
+std::string Global::asRelease = "NG";
 std::string Global::asVersion =
-    "Compilation 2017-01-10, release " + Global::asRelease + "."; // tutaj, bo wysyłany
+    "EU07++NG"; // tutaj, bo wysyłany
 int Global::iViewMode = 0; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -68,7 +68,6 @@ char *Global::szTexturesDDS[4] = {"dds", "tga", "tex", "bmp"}; // lista tekstur 
 int Global::iKeyLast = 0; // ostatnio naciśnięty klawisz w celu logowania
 GLuint Global::iTextureId = 0; // ostatnio użyta tekstura 2D
 int Global::iPause = 0x10; // globalna pauza ruchu
-bool Global::bActive = true; // czy jest aktywnym oknem
 int Global::iErorrCounter = 0; // licznik sprawdzań do śledzenia błędów OpenGL
 int Global::iTextures = 0; // licznik użytych tekstur
 TWorld *Global::pWorld = NULL;
@@ -88,7 +87,7 @@ vector3 Global::pFreeCameraInit[10];
 vector3 Global::pFreeCameraInitAngle[10];
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
-float Global::Background[3] = {0.2, 0.4, 0.33};
+float Global::Background[3] = {0.2f, 0.4f, 0.33f};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
@@ -115,8 +114,8 @@ int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
-float Global::fMouseXScale = 1.5;
-float Global::fMouseYScale = 0.2;
+float Global::fMouseXScale = 1.5f;
+float Global::fMouseYScale = 0.2f;
 std::string Global::SceneryFile = "td.scn";
 std::string Global::asHumanCtrlVehicle = "EU07-424";
 int Global::iMultiplayer = 0; // blokada działania niektórych funkcji na rzecz komunikacji
@@ -935,7 +934,7 @@ void Global::ConfigParse(cParser &Parser)
     */
 }
 
-void Global::InitKeys(std::string asFileName)
+void Global::InitKeys()
 {
     Keys[k_IncMainCtrl] = GLFW_KEY_KP_ADD;
     Keys[k_IncMainCtrlFAST] = GLFW_KEY_KP_ADD;
@@ -1105,7 +1104,8 @@ void TTranscripts::AddLine(char const *txt, float show, float hide, bool it)
         return; // komentarz jest ignorowany
     show = Global::fTimeAngleDeg + show / 240.0; // jeśli doba to 360, to 1s będzie równe 1/240
     hide = Global::fTimeAngleDeg + hide / 240.0;
-    int i = iStart, j, k; // od czegoś trzeba zacząć
+	int i = iStart, j;
+	size_t k; // od czegoś trzeba zacząć
     while ((aLines[i].iNext >= 0) ? (aLines[aLines[i].iNext].fShow <= show) :
                                     false) // póki nie koniec i wcześniej puszczane
         i = aLines[i].iNext; // przejście do kolejnej linijki

@@ -26,66 +26,13 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "World.h"
 #include "Mover.h"
 
-#pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "glu32.lib")
-#pragma comment (lib, "opengl32.lib")
 #pragma comment (lib, "dsound.lib")
 #pragma comment (lib, "winmm.lib")
 #pragma comment (lib, "setupapi.lib")
-#pragma comment (lib, "python27.lib")
 #pragma comment (lib, "dbghelp.lib")
-#pragma comment (lib, "glfw3.lib") //static
 
 TWorld World;
-
-#ifdef _WINDOWS
-void make_minidump( ::EXCEPTION_POINTERS* e ) {
-
-    auto hDbgHelp = ::LoadLibraryA( "dbghelp" );
-    if( hDbgHelp == nullptr )
-        return;
-    auto pMiniDumpWriteDump = (decltype( &MiniDumpWriteDump ))::GetProcAddress( hDbgHelp, "MiniDumpWriteDump" );
-    if( pMiniDumpWriteDump == nullptr )
-        return;
-
-    char name[ MAX_PATH ];
-    {
-        auto nameEnd = name + ::GetModuleFileNameA( ::GetModuleHandleA( 0 ), name, MAX_PATH );
-        ::SYSTEMTIME t;
-        ::GetSystemTime( &t );
-        wsprintfA( nameEnd - strlen( ".exe" ),
-            "_crashdump_%4d%02d%02d_%02d%02d%02d.dmp",
-            t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond );
-    }
-
-    auto hFile = ::CreateFileA( name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
-    if( hFile == INVALID_HANDLE_VALUE )
-        return;
-
-    ::MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
-    exceptionInfo.ThreadId = ::GetCurrentThreadId();
-    exceptionInfo.ExceptionPointers = e;
-    exceptionInfo.ClientPointers = FALSE;
-
-    auto dumped = pMiniDumpWriteDump(
-        ::GetCurrentProcess(),
-        ::GetCurrentProcessId(),
-        hFile,
-        ::MINIDUMP_TYPE( ::MiniDumpWithIndirectlyReferencedMemory | ::MiniDumpScanMemory ),
-        e ? &exceptionInfo : nullptr,
-        nullptr,
-        nullptr );
-
-    ::CloseHandle( hFile );
-
-    return;
-}
-
-LONG CALLBACK unhandled_handler( ::EXCEPTION_POINTERS* e ) {
-    make_minidump( e );
-    return EXCEPTION_CONTINUE_SEARCH;
-}
-#endif
 
 void window_resize_callback(GLFWwindow *window, int w, int h)
 {
@@ -100,17 +47,12 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
-	if (Global::bActive)
-		World.OnMouseMove(x * 0.005, y * 0.01);
+	World.OnMouseMove(x * 0.005, y * 0.01);
 	glfwSetCursorPos(window, 0.0, 0.0);
 }
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-	//m7todo: bActive teraz pewnie nie potrzebne
-	if (!Global::bActive)
-		return;
-
 	Global::shiftState = (mods & GLFW_MOD_SHIFT) ? true : false;
 	Global::ctrlState = (mods & GLFW_MOD_CONTROL) ? true : false;
 
@@ -144,15 +86,18 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 
 void focus_callback(GLFWwindow *window, int focus)
 {
-	Global::bActive = (focus == GLFW_TRUE ? 1 : 0);
 	if (Global::bInactivePause) // jeśli ma być pauzowanie okna w tle
-		if (Global::bActive)
+		if (focus)
 			Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
 		else
 			Global::iPause |= 4; // włączenie pauzy, gdy nieaktywy
 }
 
-int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
+#ifdef _WINDOWS
+LONG CALLBACK unhandled_handler(::EXCEPTION_POINTERS* e);
+#endif
+
+int main(int argc, char *argv[])
 {
 #ifdef _WINDOWS
 	::SetUnhandledExceptionFilter(unhandled_handler);
@@ -161,9 +106,9 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 	if (!glfwInit())
 		return -1;
 
-    DeleteFile("errors.txt"); // usunięcie starego
-    Global::LoadIniFile("eu07.ini"); // teraz dopiero można przejrzeć plik z ustawieniami
-    Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na stałe
+    DeleteFile("errors.txt");
+    Global::LoadIniFile("eu07.ini");
+    Global::InitKeys();
 
 	// hunter-271211: ukrywanie konsoli
     if (Global::iWriteLogEnabled & 2)
@@ -172,45 +117,32 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
     }
 
-    std::string commandline(lpCmdLine);
-    if (!commandline.empty())
-    {
-		cParser parser(commandline);
-		std::string token;
-		do
-		{
-			parser.getTokens();
-			token.clear();
-			parser >> token;
+	for (int i = 1; i < argc; i++)
+	{
+		std::string token(argv[i]);
 
-            if (token == "-s")
-            { // nazwa scenerii
-				parser.getTokens();
-				parser >> Global::SceneryFile;
-            }
-            else if (token == "-v")
-            { // nazwa wybranego pojazdu
-				parser.getTokens();
-				parser >> Global::asHumanCtrlVehicle;
-            }
-            else if (token == "-modifytga")
-            { // wykonanie modyfikacji wszystkich plików TGA
-                Global::iModifyTGA = -1; // specjalny tryb wykonania totalnej modyfikacji
-            }
-            else if (token == "-e3d")
-            { // wygenerowanie wszystkich plików E3D
-                if (Global::iConvertModels > 0)
-                    Global::iConvertModels = -Global::iConvertModels; // specjalny tryb
-                else
-                    Global::iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
-            }
-            else
-                Error(
-                    "Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",
-                    !Global::iWriteLogEnabled);
+		if (token == "-modifytga")
+			Global::iModifyTGA = -1;
+		else if (token == "-e3d")
+		{
+			if (Global::iConvertModels > 0)
+				Global::iConvertModels = -Global::iConvertModels;
+			else
+				Global::iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
 		}
-		while (!token.empty());
-    }
+		else if (argc <= i + 1)
+			continue;
+		else if (token == "-s")
+			Global::SceneryFile = std::string(argv[++i]);
+		else if (token == "-v")
+			Global::asHumanCtrlVehicle = std::string(argv[++i]);
+		else
+		{
+			std::cout << "usage: " << std::string(argv[0]) << " [-s sceneryfilepath] "
+				      << "[-v vehiclename] [-modifytga] [-e3d]" << std::endl;
+			return -1;
+		}
+	}
 
 	glfwWindowHint(GLFW_SAMPLES, Global::iMultisampling);
 
@@ -226,10 +158,13 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 
 	GLFWwindow *window =
 		glfwCreateWindow(Global::iWindowWidth, Global::iWindowHeight,
-		"EU07++", Global::bFullScreen ? monitor : nullptr, nullptr);
+		"EU07++NG", Global::bFullScreen ? monitor : nullptr, nullptr);
 
 	if (!window)
+	{
+		std::cout << "failed to create window" << std::endl;
 		return -1;
+	}
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(1); //vsync
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
@@ -245,7 +180,10 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 	}
 
 	if (glewInit() != GLEW_OK)
+	{
+		std::cout << "failed to init GLEW" << std::endl;
 		return -1;
+	}
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
@@ -253,7 +191,10 @@ int CALLBACK WinMain(HINSTANCE, HINSTANCE, LPSTR lpCmdLine, int)
 
 	Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
 	if (!World.Init(window))
+	{
+		std::cout << "failed to init TWorld" << std::endl;
 		return -1;
+	}
 
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
 

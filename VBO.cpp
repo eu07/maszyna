@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "VBO.h"
-#include "opengl/glew.h"
+#include "GL/glew.h"
 #include "usefull.h"
 //---------------------------------------------------------------------------
 

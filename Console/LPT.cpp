@@ -45,7 +45,7 @@ bool TLPT::Connect(int port)
     case 0xBD00:
         OutPort(address + 0x006, 0); // 0xBC06? czysta improwizacja
     }
-    return bool(OutPort);
+    return OutPort != 0;
 };
 
 void TLPT::Out(int x)

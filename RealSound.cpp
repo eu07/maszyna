@@ -176,7 +176,7 @@ void TRealSound::Stop()
 void TRealSound::AdjFreq(double Freq, double dt) // McZapkie TODO: dorobic tu efekt Dopplera
 // Freq moze byc liczba dodatnia mniejsza od 1 lub wieksza od 1
 {
-    float df, Vlist, Vsrc;
+	float df, Vlist;
     if ((Global::bSoundEnabled) && (AM != 0))
     {
         if (dt > 0)
@@ -247,7 +247,7 @@ void TTextSound::Init(std::string const &SoundName, double SoundAttenuation, dou
     fTime = GetWaveTime();
     std::string txt(SoundName);
 	txt.erase( txt.rfind( '.' ) ); // obcięcie rozszerzenia
-    for (int i = txt.length(); i > 0; --i)
+    for (size_t i = txt.length(); i > 0; --i)
         if (txt[i] == '/')
             txt[i] = '\\'; // bo nie rozumi
     txt += "-" + Global::asLang + ".txt"; // już może być w różnych językach
