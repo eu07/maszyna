@@ -175,7 +175,7 @@ opengl_texture::load_DDS() {
 
     data_width = ddsd.dwWidth;
     data_height = ddsd.dwHeight;
-    data_mapcount = 1;// ddsd.dwMipMapCount;
+    data_mapcount = ddsd.dwMipMapCount;
 
     int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
@@ -194,11 +194,13 @@ opengl_texture::load_DDS() {
         data_state = resource_state::failed;
         return;
     }
+
+    int datasize = filesize - offset;
 /*
     // this approach loads only the first mipmap and relies on graphics card to fill the rest
+    data_mapcount = 1;
     int datasize = ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
 */
-    int datasize = filesize - offset;
 /*
     // calculate size of accepted data
     // NOTE: this is a fallback, as we should be able to just move the file caret by calculated offset and read the rest
@@ -331,7 +333,8 @@ opengl_texture::load_TGA() {
             int const pixelcount = data_width * data_height;
 
             for( int i = 0; i < pixelcount; ++i ) {
-                file.read( (char *)buffer, sizeof( unsigned char ) );
+
+                file.read( (char *)&buffer[ 0 ], sizeof( unsigned char ) * bytesperpixel );
                 if( bytesperpixel == 1 ) {
                     // expand greyscale data
                     buffer[ 1 ] = buffer[ 0 ];
@@ -473,8 +476,8 @@ opengl_texture::create() {
                 datasize, (GLubyte *)&data[0] + dataoffset );
 
             dataoffset += datasize;
-            datawidth = std::max( datawidth / 2, 4 );
-            dataheight = std::max( dataheight / 2, 4 );
+            datawidth = std::max( datawidth / 2, 1 );
+            dataheight = std::max( dataheight / 2, 1 );
         }
         else{
             // uncompressed texture data

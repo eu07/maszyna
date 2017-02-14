@@ -317,6 +317,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         {
             if (token.find('#') != std::string::npos)
 				token.erase(token.find('#')); // obcięcie unikatowości
+            win1250_to_ascii( token ); // get rid of non-ascii chars
             bEnabled = false; // nie do kolejki (dla SetVelocity też, ale jak jest do toru
             // dowiązany)
             Params[6].asCommand = cm_PassengerStopPoint;

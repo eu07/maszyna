@@ -2611,6 +2611,7 @@ TWorld::Render_UI() {
         }
         // if ((Global::iTextMode!=VK_F3))
         { // stenogramy dźwięków (ukryć, gdy tabelka skanowania lub rozkład?)
+/*
             glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
             for( int i = 0; i < 5; ++i ) { // kilka linijek
                 if( Global::asTranscript[ i ].empty() )
@@ -2618,6 +2619,23 @@ TWorld::Render_UI() {
                 else {
                     glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
                     glPrint( Global::Bezogonkow( Global::asTranscript[ i ] ).c_str() );
+                }
+            }
+*/
+            int i = 0;
+            for( auto const &transcript : Global::tranTexts.aLines ) {
+
+                if( Global::fTimeAngleDeg >= transcript.fShow ) {
+
+                    cParser parser( transcript.asText );
+                    while( true == parser.getTokens(1, false, "|") ) {
+
+                        std::string transcriptline; parser >> transcriptline;
+                        ::glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
+                        ::glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
+                        glPrint( transcriptline.c_str() );
+                        ++i;
+                    }
                 }
             }
         }

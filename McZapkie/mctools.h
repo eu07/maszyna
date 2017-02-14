@@ -107,15 +107,15 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*operacje na stringach*/
 std::string ReadWord( std::ifstream& infile); /*czyta slowo z wiersza pliku tekstowego*/
 //std::string Ups(std::string s);
-std::string TrimSpace(std::string &s);
-char* TrimAndReduceSpaces(const char* s);
-std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
+//std::string TrimSpace(std::string &s);
+//char* TrimAndReduceSpaces(const char* s);
+//std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
 std::string ExchangeCharInString(std::string const &s,  const char &aim, const char &target); // zamienia jeden znak na drugi
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
-std::vector<std::string> Split(const std::string &s);
+//std::vector<std::string> Split(const std::string &s);
 
 std::string to_string(int _Val);
 std::string to_string(unsigned int _Val);
@@ -125,6 +125,7 @@ std::string to_string(double _Val);
 std::string to_string(double _Val, int precision);
 std::string to_string(double _Val, int precision, int width);
 std::string to_hex_str( int const _Val, int const width = 4 );
+
 inline std::string to_string(bool _Val)
 {
 	return _Val == true ? "true" : "false";
@@ -134,6 +135,9 @@ int stol_def(const std::string & str, const int & DefaultValue);
 
 std::string ToLower(std::string const &text);
 std::string ToUpper(std::string const &text);
+
+// replaces polish letters with basic ascii
+void win1250_to_ascii( std::string &Input );
 
 /*procedury, zmienne i funkcje graficzne*/
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,   double & phi, double & Xout, double & Yout);
