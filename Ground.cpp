@@ -938,7 +938,7 @@ void TSubRect::Sort()
     */
     //...
     // przeglądanie listy i tworzenie obiektów renderujących dla danej tekstury
-    GLuint t = 0; // pomocniczy kod tekstury
+    int t = 0; // pomocniczy kod tekstury
     n1 = nMeshed; // lista obiektów przetwarzanych na statyczne siatki
     while (n1)
     { // dla każdej tekstury powinny istnieć co najmniej dwa obiekty, ale dla DL nie ma to znaczenia

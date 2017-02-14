@@ -25,7 +25,7 @@ struct opengl_texture {
     void load();
     void create();
     // members
-    GLuint id{ -1 }; // associated GL resource
+    GLuint id{ (GLuint)-1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
     std::string traits; // requested texture attributes: wrapping modes etc
