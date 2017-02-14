@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "mctools.h"
 #include "TractionPower.h"
+#include "Texture.h"
 
 //---------------------------------------------------------------------------
 /*
@@ -115,7 +116,7 @@ void TTraction::Optimize()
     uiDisplayList = glGenLists(1);
     glNewList(uiDisplayList, GL_COMPILE);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    TextureManager.Bind(0);
     //    glColor3ub(0,0,0); McZapkie: to do render
 
     //    glPushMatrix();
@@ -462,7 +463,7 @@ void TTraction::RenderVBO(float mgn, int iPtr)
 { // renderowanie z użyciem VBO
     if (Wires != 0 && !TestFlag(DamageFlag, 128)) // rysuj jesli sa druty i nie zerwana
     {
-        glBindTexture(GL_TEXTURE_2D, 0);
+        TextureManager.Bind(0);
         glDisable(GL_LIGHTING); // aby nie używało wektorów normalnych do kolorowania
         glColor4f(0, 0, 0, 1); // jak nieznany kolor to czarne nieprzezroczyste
         if (!Global::bSmoothTraction)

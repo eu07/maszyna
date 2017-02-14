@@ -73,7 +73,6 @@ TWorld::~TWorld()
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
     TSoundsManager::Free();
     TModelsManager::Free();
-    TTexturesManager::Free();
     glDeleteLists(base, 96);
 }
 
@@ -474,9 +473,8 @@ bool TWorld::Init(GLFWwindow *w)
     glDisable(GL_DEPTH_TEST); // Disables depth testing
     glColor3f(3.0f, 3.0f, 3.0f);
 
-    GLuint logo;
-    logo = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "logo", 6);
-    glBindTexture(GL_TEXTURE_2D, logo); // Select our texture
+    auto logo = TextureManager.GetTextureId( "logo", szTexturePath, 6 );
+    TextureManager.Bind(logo); // Select our texture
 
     glBegin(GL_QUADS); // Drawing using triangles
     glTexCoord2f(0.0f, 0.0f);
@@ -525,7 +523,6 @@ bool TWorld::Init(GLFWwindow *w)
     }
 	glfwSwapBuffers(window);
 
-    TTexturesManager::Init();
     WriteLog("Textures init OK");
     if (Global::detonatoryOK)
     {
@@ -660,9 +657,9 @@ bool TWorld::Init(GLFWwindow *w)
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
 	if (Global::bOldSmudge == true)
-	light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga.tga");
+        light = TextureManager.GetTextureId( "smuga.tga", szTexturePath );
 	else
-    light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga2.tga");
+        light = TextureManager.GetTextureId( "smuga2.tga", szTexturePath );
     // Camera.Reset();
     Timer::ResetTimers();
 	WriteLog( "Load time: " +
@@ -1204,11 +1201,15 @@ bool TWorld::Update()
 
     // przy 0.25 smuga gaśnie o 6:37 w Quarku, a mogłaby już 5:40
     // Ra 2014-12: przy 0.15 się skarżyli, że nie widać smug => zmieniłem na 0.25
+    // changed light activation threshold to 0.5, paired with strength reduction in daylight
     if (Train) // jeśli nie usunięty
         Global::bSmudge =
-            FreeFlyModeFlag ? false : ((Train->Dynamic()->fShade <= 0.0) ?
-                                           (Global::fLuminance <= 0.25) :
-                                           (Train->Dynamic()->fShade * Global::fLuminance <= 0.25));
+            ( FreeFlyModeFlag ?
+                false :
+                ( Train->Dynamic()->fShade <= 0.0 ?
+                    (Global::fLuminance <= 0.5) :
+                    (Train->Dynamic()->fShade * Global::fLuminance <= 0.5) ) );
+
     if (!Render())
         return false;
 
@@ -1446,6 +1447,7 @@ bool TWorld::Render()
     glColor3ub(255, 255, 255);
     // glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDepthFunc( GL_LEQUAL );
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();
     Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
@@ -1525,20 +1527,36 @@ TWorld::Render_Cab() {
         // 1. warunek na smugę wyznaczyc wcześniej
         // 2. jeśli smuga włączona, nie renderować pojazdu użytkownika w DynObj
         // 3. jeśli smuga właczona, wyrenderować pojazd użytkownia po dodaniu smugi do sceny
-        if( Train->Controlled()->Battery ) { // trochę na skróty z tą baterią
+        auto const &frontlights = Train->Controlled()->iLights[ 0 ];
+        float frontlightstrength = 0.f +
+            ( ( frontlights & 1 ) ? 0.3f : 0.f ) +
+            ( ( frontlights & 4 ) ? 0.3f : 0.f ) +
+            ( ( frontlights & 16 ) ? 0.3f : 0.f );
+        frontlightstrength = std::max( frontlightstrength - Global::fLuminance, 0.0 );
+        auto const &rearlights = Train->Controlled()->iLights[ 1 ];
+        float rearlightstrength = 0.f +
+            ( ( rearlights & 1 ) ? 0.3f : 0.f ) +
+            ( ( rearlights & 4 ) ? 0.3f : 0.f ) +
+            ( ( rearlights & 16 ) ? 0.3f : 0.f );
+        rearlightstrength = std::max( rearlightstrength - Global::fLuminance, 0.0 );
+
+        if( ( Train->Controlled()->Battery )  // trochę na skróty z tą baterią
+         && ( ( frontlightstrength > 0.f )
+           || ( rearlightstrength > 0.f ) ) ) {
+
             if( Global::bOldSmudge == true ) {
-                glBlendFunc( GL_ONE_MINUS_SRC_ALPHA, GL_ONE );
+                glBlendFunc( GL_SRC_ALPHA, GL_ONE );
                 //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
                 //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
                 glDisable( GL_DEPTH_TEST );
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
-                glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-                glBindTexture( GL_TEXTURE_2D, light ); // Select our texture
+                TextureManager.Bind( light ); // Select our texture
                 glBegin( GL_QUADS );
                 float fSmudge =
                     dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
-                if( Train->Controlled()->iLights[ 0 ] & 21 ) { // wystarczy jeden zapalony z przodu
+                if( frontlightstrength > 0.f ) { // wystarczy jeden zapalony z przodu
+                    glColor4f( 1.0f, 1.0f, 1.0f, 0.5f * frontlightstrength );
                     glTexCoord2f( 0, 0 );
                     glVertex3f( 15.0, 0.0, +fSmudge ); // rysowanie względem położenia modelu
                     glTexCoord2f( 1, 0 );
@@ -1548,7 +1566,8 @@ TWorld::Render_Cab() {
                     glTexCoord2f( 0, 1 );
                     glVertex3f( 15.0, 2.5, 250.0 );
                 }
-                if( Train->Controlled()->iLights[ 1 ] & 21 ) { // wystarczy jeden zapalony z tyłu
+                if( rearlightstrength > 0.f ) { // wystarczy jeden zapalony z tyłu
+                    glColor4f( 1.0f, 1.0f, 1.0f, 0.5f * rearlightstrength );
                     glTexCoord2f( 0, 0 );
                     glVertex3f( -15.0, 0.0, -fSmudge );
                     glTexCoord2f( 1, 0 );
@@ -1566,6 +1585,7 @@ TWorld::Render_Cab() {
                 glEnable( GL_FOG );
             }
             else {
+
                 glBlendFunc( GL_DST_COLOR, GL_ONE );
                 glDepthFunc( GL_GEQUAL );
                 glAlphaFunc( GL_GREATER, 0.004f );
@@ -1573,27 +1593,28 @@ TWorld::Render_Cab() {
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
                 //glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
-                glBindTexture( GL_TEXTURE_2D, light ); // Select our texture
+                TextureManager.Bind( light ); // Select our texture
                 //float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
                 glBegin( GL_QUADS );
                 float fSmudge = dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
-                if( Train->Controlled()->iLights[ 0 ] & 21 ) { // wystarczy jeden zapalony z przodu
+                if( frontlightstrength > 0.f ) { // wystarczy jeden zapalony z przodu
+
                     for( int i = 15; i <= 35; i++ ) {
                         float z = i * i * i * 0.01f;//25/4;
                         //float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
-                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 );
-                        glColor4f( C, C, C, 0.25f );
+                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * frontlightstrength;
+                        glColor4f( C, C, C, 0.35f );// *frontlightstrength );
                         glTexCoord2f( 0, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
                         glTexCoord2f( 1, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
                         glTexCoord2f( 1, 1 );  glVertex3f( 10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
                         glTexCoord2f( 0, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
                     }
                 }
-                if( Train->Controlled()->iLights[ 1 ] & 21 ) { // wystarczy jeden zapalony z tyłu
+                if( rearlightstrength > 0.f ) { // wystarczy jeden zapalony z tyłu
                     for( int i = 15; i <= 35; i++ ) {
                         float z = i * i * i * 0.01f;//25/4;
-                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 );
-                        glColor4f( C, C, C, 0.25f );
+                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * rearlightstrength;
+                        glColor4f( C, C, C, 0.35f );// *rearlightstrength );
                         glTexCoord2f( 0, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
                         glTexCoord2f( 1, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
                         glTexCoord2f( 1, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3 );
@@ -1867,12 +1888,13 @@ TWorld::Render_UI() {
         Global::changeDynObj = NULL;
     }
 
+    glDepthFunc( GL_ALWAYS );
     glDisable( GL_LIGHTING );
 
 	glfwSetWindowTitle(window, ("EU07++NG: " + Controlled->MoverParameters->Name).c_str());
 	glfwSetWindowTitle(window, ("EU07++NG: " + Global::SceneryFile).c_str());
 
-    glBindTexture( GL_TEXTURE_2D, 0 );
+	TextureManager.Bind(0);
     glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
     glLoadIdentity();
     glTranslatef( 0.0f, 0.0f, -0.50f );

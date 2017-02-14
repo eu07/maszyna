@@ -52,7 +52,7 @@ class TWorld
     TDynamicObject *pDynamicNearest;
     bool Paused;
     GLuint base; // numer DL dla znaków w napisach
-    GLuint light; // numer tekstury dla smugi
+    texture_manager::size_type light; // numer tekstury dla smugi
     TSky Clouds;
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury
     TMoverParameters *mvControlled; // wskaźnik na człon silnikowy, do wyświetlania jego parametrów

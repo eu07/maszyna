@@ -36,7 +36,7 @@ class TPythonInterpreter
     TPythonInterpreter();
 	~TPythonInterpreter() {}
     static TPythonInterpreter *_instance;
-    int _screenRendererPriority;
+    int _screenRendererPriority = 0;
 //    std::set<const char *, ltstr> _classes;
 	std::set<std::string> _classes;
 	PyObject *_main;

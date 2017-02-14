@@ -3984,25 +3984,32 @@ void TDynamicObject::RenderSounds()
             else
                 rsSilnik.Stop();
         }
-        enginevolume = (enginevolume + vol) / 2;
-        if (enginevolume < 0.01)
+        enginevolume = (enginevolume + vol) * 0.5;
+        if( enginevolume < 0.01 ) {
             rsSilnik.Stop();
-        if ((MoverParameters->EngineType == ElectricSeriesMotor) ||
-            (MoverParameters->EngineType == ElectricInductionMotor) && rsWentylator.AM != 0)
+        }
+        if ( ( MoverParameters->EngineType == ElectricSeriesMotor )
+          || ( MoverParameters->EngineType == ElectricInductionMotor )
+          && ( rsWentylator.AM != 0 ) )
         {
-            if (MoverParameters->RventRot > 0.1)
-            {
+            if (MoverParameters->RventRot > 0.1) {
+                // play ventilator sound if the ventilators are rotating fast enough...
                 freq = rsWentylator.FM * MoverParameters->RventRot + rsWentylator.FA;
                 rsWentylator.AdjFreq(freq, dt);
-                if (MoverParameters->EngineType == ElectricInductionMotor)
-                    vol =
-                        rsWentylator.AM * sqrt(fabs(MoverParameters->dizel_fill)) + rsWentylator.AA;
-                else
+                if( MoverParameters->EngineType == ElectricInductionMotor ) {
+                 
+                    vol = rsWentylator.AM * std::sqrt( std::fabs( MoverParameters->dizel_fill ) ) + rsWentylator.AA;
+                }
+                else {
+
                     vol = rsWentylator.AM * MoverParameters->RventRot + rsWentylator.AA;
+                }
                 rsWentylator.Play(vol, DSBPLAY_LOOPING, MechInside, GetPosition());
             }
-            else
+            else {
+                // ...otherwise shut down the sound
                 rsWentylator.Stop();
+            }
         }
         if (MoverParameters->TrainType == dt_ET40)
         {
@@ -4415,7 +4422,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
 					std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
 					if (!x.empty())
-						ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, Global::asCurrentTexturePath + "nowhere", 9);
+						ReplacableSkinID[4] = TextureManager.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9);
 					/*
                 if ((i = ReplacableSkin.Pos("|")) > 0) // replacable dzielone
                 {
@@ -4478,24 +4485,22 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 				*/
                 if (iMultiTex > 0)
                 { // jeśli model ma 4 tekstury
-                    ReplacableSkinID[1] = TTexturesManager::GetTextureID(
-                        NULL, NULL, ReplacableSkin + ",1", Global::iDynamicFiltering);
+                    ReplacableSkinID[1] = TextureManager.GetTextureId(
+                        ReplacableSkin + ",1", "", Global::iDynamicFiltering);
                     if (ReplacableSkinID[1])
                     { // pierwsza z zestawu znaleziona
-                        ReplacableSkinID[2] = TTexturesManager::GetTextureID(
-                            NULL, NULL, ReplacableSkin + ",2", Global::iDynamicFiltering);
+                        ReplacableSkinID[2] = TextureManager.GetTextureId(
+                            ReplacableSkin + ",2", "", Global::iDynamicFiltering);
                         if (ReplacableSkinID[2])
                         {
                             iMultiTex = 2; // już są dwie
-                            ReplacableSkinID[3] = TTexturesManager::GetTextureID(
-                                NULL, NULL, ReplacableSkin + ",3",
-                                Global::iDynamicFiltering);
+                            ReplacableSkinID[3] = TextureManager.GetTextureId(
+                                ReplacableSkin + ",3", "", Global::iDynamicFiltering);
                             if (ReplacableSkinID[3])
                             {
                                 iMultiTex = 3; // a teraz nawet trzy
-                                ReplacableSkinID[4] = TTexturesManager::GetTextureID(
-                                    NULL, NULL, ReplacableSkin + ",4",
-                                    Global::iDynamicFiltering);
+                                ReplacableSkinID[4] = TextureManager.GetTextureId(
+                                    ReplacableSkin + ",4", "", Global::iDynamicFiltering);
                                 if (ReplacableSkinID[4])
                                     iMultiTex = 4; // jak są cztery, to blokujemy podmianę tekstury
                                 // rozkładem
@@ -4505,14 +4510,14 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     else
                     { // zestaw nie zadziałał, próbujemy normanie
                         iMultiTex = 0;
-                        ReplacableSkinID[1] = TTexturesManager::GetTextureID(
-                            NULL, NULL, ReplacableSkin, Global::iDynamicFiltering);
+                        ReplacableSkinID[1] = TextureManager.GetTextureId(
+                            ReplacableSkin, "", Global::iDynamicFiltering);
                     }
                 }
                 else
-                    ReplacableSkinID[1] = TTexturesManager::GetTextureID(
-                        NULL, NULL, ReplacableSkin, Global::iDynamicFiltering);
-                if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
+                    ReplacableSkinID[1] = TextureManager.GetTextureId(
+                        ReplacableSkin, "", Global::iDynamicFiltering);
+                if (TextureManager.Texture(ReplacableSkinID[1]).has_alpha)
                     iAlpha = 0x31310031; // tekstura -1 z kanałem alfa - nie renderować w cyklu
                 // nieprzezroczystych
                 else
@@ -4520,21 +4525,22 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // renderować w
                 // cyklu przezroczystych
                 if (ReplacableSkinID[2])
-                    if (TTexturesManager::GetAlpha(ReplacableSkinID[2]))
+                    if (TextureManager.Texture(ReplacableSkinID[2]).has_alpha)
                         iAlpha |= 0x02020002; // tekstura -2 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[3])
-                    if (TTexturesManager::GetAlpha(ReplacableSkinID[3]))
+                    if (TextureManager.Texture(ReplacableSkinID[3]).has_alpha)
                         iAlpha |= 0x04040004; // tekstura -3 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[4])
-                    if (TTexturesManager::GetAlpha(ReplacableSkinID[4]))
+                    if (TextureManager.Texture(ReplacableSkinID[4]).has_alpha)
                         iAlpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
             }
+/*
             // Winger 040304 - ladowanie przedsionkow dla EZT
             if (MoverParameters->TrainType == dt_EZT)
             {
@@ -4542,6 +4548,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 asModel = BaseDir + asModel;
                 mdPrzedsionek = TModelsManager::GetModel(asModel, true);
             }
+*/
             if (!MoverParameters->LoadAccepted.empty())
                 // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
                 // MoverParameters->LoadType!=AnsiString("passengers"))
@@ -5848,13 +5855,13 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     std::string x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
 	if (!x.empty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
 	x = TextureTest(asBaseDir + numer );
 	if (!x.empty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     if (to.empty())
@@ -5862,17 +5869,17 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejności z nazwą FIZ/MMD
     if (!x.empty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     x = TextureTest(asBaseDir + to); // na razie prymitywnie
     if (!x.empty())
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
     else
 		{
         x = TextureTest(asBaseDir + "nowhere"); // jak nie znalazł dedykowanej, to niech daje nowhere
 		if (!x.empty())
-			ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, x, 9);
+			ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9);
 		}
     // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa
     // tekstury nr 4

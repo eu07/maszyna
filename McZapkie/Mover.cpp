@@ -3819,7 +3819,7 @@ double TMoverParameters::TractionForce(double dt)
         {
         case 1:
         {
-            if (ActiveDir != 0 && RList[MainCtrlActualPos].R > RVentCutOff)
+            if ((ActiveDir != 0) && (RList[MainCtrlActualPos].R > RVentCutOff))
                 RventRot += (RVentnmax - RventRot) * RVentSpeed * dt;
             else
                 RventRot *= (1.0 - RVentSpeed * dt);
@@ -3835,7 +3835,7 @@ double TMoverParameters::TractionForce(double dt)
                 RventRot += (RVentnmax * Im / ImaxLo - RventRot) * RVentSpeed * dt;
             else
             {
-                RventRot = RventRot * (1.0 - RVentSpeed * dt);
+                RventRot *= (1.0 - RVentSpeed * dt);
                 if (RventRot < 0.1)
                     RventRot = 0;
             }
@@ -4213,7 +4213,7 @@ double TMoverParameters::TractionForce(double dt)
                 }
                 else
                 {
-                    PosRatio = (MainCtrlPos / MainCtrlPosNo);
+                    PosRatio = static_cast<double>( MainCtrlPos ) / static_cast<double>( MainCtrlPosNo );
                     eimv[eimv_Fzad] = PosRatio;
                     if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))
                         PosRatio = Min0R(PosRatio * eimc[eimc_p_F0] / eimv[eimv_Fful], 1);
@@ -4288,12 +4288,12 @@ double TMoverParameters::TractionForce(double dt)
                     Transmision.Ratio * NPoweredAxles * 2.0 / WheelDiameter;
                 if ((dizel_fill < 0))
                 {
-                    eimv[eimv_Fful] = Min0R(eimc[eimc_p_Ph] * 3.6 / Vel,
-                                            Min0R(eimc[eimc_p_Fh], eimv[eimv_FMAXMAX]));
+                    eimv[eimv_Fful] = std::min(eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
+                                               std::min(eimc[eimc_p_Fh], eimv[eimv_FMAXMAX]));
                     eimv[eimv_Fmax] =
-                        -Sign(V) * (DirAbsolute)*Min0R(
-                                       eimc[eimc_p_Ph] * 3.6 / Vel,
-                                       Min0R(-eimc[eimc_p_Fh] * dizel_fill, eimv[eimv_FMAXMAX]));
+                        -Sign(V) * (DirAbsolute)*std::min(
+                                       eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
+                                       std::min(-eimc[eimc_p_Fh] * dizel_fill, eimv[eimv_FMAXMAX]));
                     //*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
                 }
                 else
@@ -6406,7 +6406,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
         CompressorPower =
             lookup != compressorpowers.end() ?
             lookup->second :
-            0;
+            1;
     }
 }
 
@@ -6925,7 +6925,7 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
 
     if( RVentType > 0 ) {
 
-        extract_value( RVentnmax, "RVentmax", Input, "" );
+        extract_value( RVentnmax, "RVentnmax", Input, "" );
         RVentnmax /= 60.0;
         extract_value( RVentCutOff, "RVentCutOff", Input, "" );
     }

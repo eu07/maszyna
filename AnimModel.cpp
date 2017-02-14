@@ -449,12 +449,16 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
     else if (asReplacableTexture != "none")
         ReplacableSkinId[1] =
-            TTexturesManager::GetTextureID(NULL, NULL, asReplacableTexture.c_str());
-    if (TTexturesManager::GetAlpha(ReplacableSkinId[1]))
-        iTexAlpha =
-            0x31310031; // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-    else
-        iTexAlpha = 0x30300030; // tekstura nieprzezroczysta - nie renderować w cyklu
+            TextureManager.GetTextureId( asReplacableTexture, "" );
+    if( ( ReplacableSkinId[ 1 ] != 0 )
+     && ( TextureManager.Texture( ReplacableSkinId[ 1 ] ).has_alpha ) ) {
+        // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+        iTexAlpha = 0x31310031; 
+    }
+    else{
+        // tekstura nieprzezroczysta - nie renderować w cyklu
+        iTexAlpha = 0x30300030;
+    }
     // przezroczystych
     return (Init(TModelsManager::GetModel(asName.c_str())));
 }

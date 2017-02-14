@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "VBO.h"
+#include "Texture.h"
 
 using namespace Math3D;
 
@@ -215,7 +216,7 @@ class TSubModel
     // światła
     float fCosViewAngle; // cos kata pod jakim sie teraz patrzy
     // Ra: dalej są zmienne robocze, można je przestawiać z zachowaniem rozmiaru klasy
-    int TextureID; // numer tekstury, -1 wymienna, 0 brak
+    texture_manager::size_type TextureID; // numer tekstury, -1 wymienna, 0 brak
     bool bWire; // nie używane, ale wczytywane
     // short TexAlpha;  //Ra: nie używane już
     GLuint uiDisplayList; // roboczy numer listy wyświetlania
@@ -254,7 +255,7 @@ class TSubModel
 
   public:
     static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
-    static GLuint *ReplacableSkinId;
+    static texture_manager::size_type *ReplacableSkinId;
     static int iAlpha; // maska bitowa dla danego przebiegu
     static double fSquareDist;
     static TModel3d *pRoot;
@@ -273,7 +274,7 @@ class TSubModel
     {
         return Child;
     };
-    int TriangleAdd(TModel3d *m, int tex, int tri);
+    int TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri);
     float8 * TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
     // float8* TrianglePtr(const char *tex,int tri);
     // void SetRotate(vector3 vNewRotateAxis,float fNewAngle);
@@ -313,7 +314,7 @@ class TSubModel
     void InfoSet(TSubModelInfo *info);
     void BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TStringPack *n = NULL,
                  bool dynamic = false);
-    void ReplacableSet(GLuint *r, int a)
+    void ReplacableSet(texture_manager::size_type *r, int a)
     {
         ReplacableSkinId = r;
         iAlpha = a;
@@ -412,29 +413,29 @@ class TModel3d : public CMesh
     void SaveToBinFile(char const *FileName);
     void BreakHierarhy();
     // renderowanie specjalne
-    void Render(double fSquareDistance, GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-    void RenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
+    void Render(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+    void RenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL,
                      int iAlpha = 0x30300030);
-    void RaRender(double fSquareDistance, GLuint *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-    void RaRenderAlpha(double fSquareDistance, GLuint *ReplacableSkinId = NULL,
+    void RaRender(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+    void RaRenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL,
                        int iAlpha = 0x30300030);
     // jeden kąt obrotu
-    void Render(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+    void Render(vector3 pPosition, double fAngle = 0, texture_manager::size_type *ReplacableSkinId = NULL,
                 int iAlpha = 0x30300030);
-    void RenderAlpha(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+    void RenderAlpha(vector3 pPosition, double fAngle = 0, texture_manager::size_type *ReplacableSkinId = NULL,
                      int iAlpha = 0x30300030);
-    void RaRender(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+    void RaRender(vector3 pPosition, double fAngle = 0, texture_manager::size_type *ReplacableSkinId = NULL,
                   int iAlpha = 0x30300030);
-    void RaRenderAlpha(vector3 pPosition, double fAngle = 0, GLuint *ReplacableSkinId = NULL,
+    void RaRenderAlpha(vector3 pPosition, double fAngle = 0, texture_manager::size_type *ReplacableSkinId = NULL,
                        int iAlpha = 0x30300030);
     // trzy kąty obrotu
-    void Render(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+    void Render( vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL,
                 int iAlpha = 0x30300030);
-    void RenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+    void RenderAlpha( vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL,
                      int iAlpha = 0x30300030);
-    void RaRender(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+    void RaRender( vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL,
                   int iAlpha = 0x30300030);
-    void RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, GLuint *ReplacableSkinId = NULL,
+    void RaRenderAlpha( vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL,
                        int iAlpha = 0x30300030);
     // inline int GetSubModelsCount() { return (SubModelsCount); };
     int Flags()
