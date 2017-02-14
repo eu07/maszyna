@@ -23,6 +23,7 @@
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
+#include <dbghelp.h>
 // stl
 #include <cstdlib>
 #include <cassert>
@@ -53,6 +54,7 @@
 #include <limits>
 #include <memory>
 #include <thread>
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <typeinfo>

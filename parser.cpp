@@ -21,9 +21,9 @@ http://mozilla.org/MPL/2.0/.
 // cParser -- generic class for parsing text data.
 
 // constructors
-cParser::cParser(std::string const Stream, buffertype Type, std::string Path, bool tr)
+cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction )
 {
-    LoadTraction = tr;
+    LoadTraction = Loadtraction;
     // build comments map
     mComments.insert(commentmap::value_type("/*", "*/"));
     mComments.insert(commentmap::value_type("//", "\n"));
@@ -235,4 +235,9 @@ bool cParser::trimComments(std::string &String)
 int cParser::getProgress() const
 {
     return static_cast<int>( mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize );
+}
+
+void cParser::addCommentStyle( std::string const &Commentstart, std::string const &Commentend ) {
+
+    mComments.insert( commentmap::value_type(Commentstart, Commentend) );
 }

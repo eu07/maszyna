@@ -14,7 +14,9 @@ http://mozilla.org/MPL/2.0/.
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
+#include "Texture.h"
 #include "dumb3d.h"
+#include "Names.h"
 
 using namespace Math3D;
 
@@ -140,7 +142,7 @@ class TGroundNode : public Resource
     GLuint DisplayListID; // numer siatki DisplayLists
     bool PROBLEND;
     int iVboPtr; // indeks w buforze VBO
-    GLuint TextureID; // główna (jedna) tekstura obiektu
+    texture_manager::size_type TextureID; // główna (jedna) tekstura obiektu
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     int Ambient[4], Diffuse[4], Specular[4]; // oświetlenie
     bool bVisible;
@@ -297,7 +299,15 @@ class TGround
         ssh = 0,
         ssm = 0; // ustawienia czasu
     // int tracks,tracksfar; //liczniki torów
+#ifdef EU07_USE_OLD_TNAMES_CLASS
     TNames *sTracks = nullptr; // posortowane nazwy torów i eventów
+#else
+    typedef std::unordered_map<std::string, TEvent *> event_map;
+//    typedef std::unordered_map<std::string, TGroundNode *> groundnode_map;
+    event_map m_eventmap;
+//    groundnode_map m_memcellmap, m_modelmap, m_trackmap;
+    TNames<TGroundNode *> m_trackmap;
+#endif
   private: // metody prywatne
     bool EventConditon(TEvent *e);
 

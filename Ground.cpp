@@ -276,7 +276,7 @@ void TGroundNode::RaRenderVBO()
 { // renderowanie z domyslnego bufora VBO
     glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
     if (TextureID)
-        glBindTexture(GL_TEXTURE_2D, TextureID); // Ustaw aktywną teksturę
+        TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
@@ -445,7 +445,7 @@ void TGroundNode::Compile(bool many)
 #ifdef USE_VERTEX_ARRAYS
         glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
 #endif
-        glBindTexture(GL_TEXTURE_2D, 0);
+        TextureManager.Bind(0);
 #ifdef USE_VERTEX_ARRAYS
         glDrawArrays(iType, 0, iNumPts);
 #else
@@ -466,7 +466,7 @@ void TGroundNode::Compile(bool many)
             glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
 #endif
             glColor3ub(tri->Diffuse[0], tri->Diffuse[1], tri->Diffuse[2]);
-            glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : tri->TextureID);
+            TextureManager.Bind(Global::bWireFrame ? 0 : tri->TextureID);
 #ifdef USE_VERTEX_ARRAYS
             glDrawArrays(Global::bWireFrame ? GL_LINE_LOOP : tri->iType, 0, tri->iNumVerts);
 #else
@@ -494,7 +494,7 @@ void TGroundNode::Compile(bool many)
     else if (iType == TP_MESH)
     { // grupa ze wspólną teksturą - wrzucanie do wspólnego Display List
         if (TextureID)
-            glBindTexture(GL_TEXTURE_2D, TextureID); // Ustaw aktywną teksturę
+            TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
         TGroundNode *n = nNode;
         while (n ? n->TextureID == TextureID : false)
         { // wszystkie obiekty o tej samej testurze
@@ -1308,8 +1308,9 @@ TGround::TGround()
     for( int i = 0; i < TP_LAST; ++i ) {
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
+#ifdef EU07_USE_OLD_TNAMES_CLASS
     sTracks = new TNames(); // nazwy torów - na razie tak
-
+#endif
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
     ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
 }
@@ -1348,7 +1349,9 @@ void TGround::Free()
     iNumNodes = 0;
     // RootNode=NULL;
     nRootDynamic = NULL;
+#ifdef EU07_USE_OLD_TNAMES_CLASS
     delete sTracks;
+#endif
 }
 
 TGroundNode * TGround::DynamicFindAny(std::string asNameToFind)
@@ -1381,7 +1384,38 @@ TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType 
 { // wyszukiwanie obiektu o podanej nazwie i konkretnym typie
     if ((iNodeType == TP_TRACK) || (iNodeType == TP_MEMCELL) || (iNodeType == TP_MODEL))
     { // wyszukiwanie w drzewie binarnym
+#ifdef EU07_USE_OLD_TNAMES_CLASS
         return (TGroundNode *)sTracks->Find(iNodeType, asNameToFind.c_str());
+#else
+/*
+        switch( iNodeType ) {
+
+            case TP_TRACK: {
+                auto const lookup = m_trackmap.find( asNameToFind );
+                return
+                    lookup != m_trackmap.end() ?
+                    lookup->second :
+                    nullptr;
+            }
+            case TP_MODEL: {
+                auto const lookup = m_modelmap.find( asNameToFind );
+                return
+                    lookup != m_modelmap.end() ?
+                    lookup->second :
+                    nullptr;
+            }
+            case TP_MEMCELL: {
+                auto const lookup = m_memcellmap.find( asNameToFind );
+                return
+                    lookup != m_memcellmap.end() ?
+                    lookup->second :
+                    nullptr;
+            }
+        }
+        return nullptr;
+*/
+        return m_trackmap.Find( iNodeType, asNameToFind );
+#endif
     }
     // standardowe wyszukiwanie liniowe
     TGroundNode *Current;
@@ -1705,6 +1739,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->MemCell->Load(parser);
         if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
+#ifdef EU07_USE_OLD_TNAMES_CLASS
             if (sTracks->Update(TP_MEMCELL, tmp->asName.c_str(),
                                 tmp)) // najpierw sprawdzić, czy już jest
             { // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność
@@ -1713,6 +1748,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             }
             else
                 sTracks->Add(TP_MEMCELL, tmp->asName.c_str(), tmp); // nazwa jest unikalna
+#else
+            if( false == m_trackmap.Add( TP_MEMCELL, tmp->asName, tmp ) ) {
+                // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
+                ErrorLog( "Duplicated memcell: " + tmp->asName ); // to zgłaszać duplikat
+            }
+#endif
         }
         break;
     case TP_EVLAUNCH:
@@ -1732,6 +1773,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                           tmp->asName); // w nazwie może być nazwa odcinka izolowanego
         if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
+#ifdef EU07_USE_OLD_TNAMES_CLASS
             if (sTracks->Update(TP_TRACK, tmp->asName.c_str(),
                                 tmp)) // najpierw sprawdzić, czy już jest
             { // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność
@@ -1741,6 +1783,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             }
             else
                 sTracks->Add(TP_TRACK, tmp->asName.c_str(), tmp); // nazwa jest unikalna
+#else
+            if( false == m_trackmap.Add( TP_TRACK, tmp->asName, tmp ) ) {
+                // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
+                ErrorLog( "Duplicated track: " + tmp->asName ); // to zgłaszać duplikat
+            }
+#endif
         }
         tmp->pCenter = (tmp->pTrack->CurrentSegment()->FastGetPoint_0() +
                         tmp->pTrack->CurrentSegment()->FastGetPoint(0.5) +
@@ -1981,6 +2029,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
         else if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
+#ifdef EU07_USE_OLD_TNAMES_CLASS
             if (sTracks->Update(TP_MODEL, tmp->asName.c_str(),
                                 tmp)) // najpierw sprawdzić, czy już jest
             { // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność
@@ -1989,6 +2038,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             }
             else
                 sTracks->Add(TP_MODEL, tmp->asName.c_str(), tmp); // nazwa jest unikalna
+#else
+            if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
+                // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
+                ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
+            }
+#endif
         }
         // str=Parser->GetNextSymbol().LowerCase();
         break;
@@ -2048,14 +2103,14 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         // PROBLEND Q: 13122011 - Szociu: 27012012
         PROBLEND = true; // domyslnie uruchomione nowe wyświetlanie
         tmp->PROBLEND = true; // odwolanie do tgroundnode, bo rendering jest w tej klasie
-        if (str.find("@") != string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
+        if (str.find('@') != string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
         {
             PROBLEND = false; // jeśli jest, wyswietla po staremu
             tmp->PROBLEND = false;
         }
 #endif
-        tmp->TextureID = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, str.c_str());
-        tmp->iFlags = TTexturesManager::GetAlpha(tmp->TextureID) ? 0x220 : 0x210; // z usuwaniem
+        tmp->TextureID = TextureManager.GetTextureId( str, szTexturePath );
+        tmp->iFlags = TextureManager.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
         if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
                 Global::pTerrainCompact->TerrainLoaded() :
                 false)
@@ -2268,7 +2323,15 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
 
 TEvent * TGround::FindEvent(const string &asEventName)
 {
+#ifdef EU07_USE_OLD_TNAMES_CLASS
     return (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie
+#else
+    auto const lookup = m_eventmap.find( asEventName );
+    return
+        lookup != m_eventmap.end() ?
+        lookup->second :
+        nullptr;
+#endif
     /* //powolna wyszukiwarka
      for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
      {
@@ -2281,13 +2344,25 @@ TEvent * TGround::FindEvent(const string &asEventName)
 
 TEvent * TGround::FindEventScan(const string &asEventName)
 { // wyszukanie eventu z opcją utworzenia niejawnego dla komórek skanowanych
-    TEvent *e = (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie eventów
+#ifdef EU07_USE_OLD_TNAMES_CLASS
+    TEvent *e = (TEvent *)sTracks->Find( 0, asEventName.c_str() ); // wyszukiwanie w drzewie eventów
+#else
+    auto const lookup = m_eventmap.find( asEventName );
+    auto e =
+        lookup != m_eventmap.end() ?
+        lookup->second :
+        nullptr;
+#endif
     if (e)
         return e; // jak istnieje, to w porządku
     if (asEventName.rfind(":scan") != std::string::npos) // jeszcze może być event niejawny
     { // no to szukamy komórki pamięci o nazwie zawartej w evencie
         string n = asEventName.substr(0, asEventName.length() - 5); // do dwukropka
-        if (sTracks->Find(TP_MEMCELL, n.c_str())) // jeśli jest takowa komórka pamięci
+#ifdef EU07_USE_OLD_TNAMES_CLASS
+        if( sTracks->Find( TP_MEMCELL, n.c_str() ) ) // jeśli jest takowa komórka pamięci
+#else
+        if( m_trackmap.Find( TP_MEMCELL, n ) != nullptr ) // jeśli jest takowa komórka pamięci
+#endif
             e = new TEvent(n); // utworzenie niejawnego eventu jej odczytu
     }
     return e; // utworzony albo się nie udało
@@ -2578,26 +2653,29 @@ bool TGround::Init(std::string asFile, HDC hDC)
                 TEvent *found = FindEvent(tmp->asName);
                 if (found)
                 { // jeśli znaleziony duplikat
-                    int i = tmp->asName.length();
-                    if (tmp->asName[1] == '#') // zawsze jeden znak co najmniej jest
+                    auto const size = tmp->asName.size();
+                    if( tmp->asName[0] == '#' ) // zawsze jeden znak co najmniej jest
                     {
                         delete tmp;
-                        tmp = NULL;
+                        tmp = nullptr;
                     } // utylizacja duplikatu z krzyżykiem
-                    else if (i > 8 ? tmp->asName.substr(0, 9) == "lineinfo:" :
-                                     false) // tymczasowo wyjątki
+                    else if( ( size > 8 )
+                          && ( tmp->asName.substr( 0, 9 ) == "lineinfo:" ))
+                        // tymczasowo wyjątki
                     {
                         delete tmp;
-                        tmp = NULL;
+                        tmp = nullptr;
                     } // tymczasowa utylizacja duplikatów W5
-                    else if (i > 8 ? tmp->asName.substr(i - 7, 8) == "_warning" :
-                                     false) // tymczasowo wyjątki
+                    else if( ( size > 8 )
+                          && ( tmp->asName.substr( size - 8 ) == "_warning"))
+                        // tymczasowo wyjątki
                     {
                         delete tmp;
-                        tmp = NULL;
+                        tmp = nullptr;
                     } // tymczasowa utylizacja duplikatu z trąbieniem
-                    else if (i > 4 ? tmp->asName.substr(i - 3, 4) == "_shp" :
-                                     false) // nie podlegają logowaniu
+                    else if( ( size > 4 )
+                          && ( tmp->asName.substr( size - 4 ) == "_shp" ))
+                          // nie podlegają logowaniu
                     {
                         delete tmp;
                         tmp = NULL;
@@ -2615,7 +2693,7 @@ bool TGround::Init(std::string asFile, HDC hDC)
                             // zaśmiecać drzewka
                         }
                 }
-                if (tmp)
+                if ( nullptr != tmp )
                 { // jeśli nie duplikat
                     tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
                     RootEvent = tmp;
@@ -2626,7 +2704,11 @@ bool TGround::Init(std::string asFile, HDC hDC)
                             if (RootEvent->asName.find(
                                     "onstart") != string::npos) // event uruchamiany automatycznie po starcie
                                 AddToQuery(RootEvent, NULL); // dodanie do kolejki
+#ifdef EU07_USE_OLD_TNAMES_CLASS
                         sTracks->Add(0, tmp->asName.c_str(), tmp); // dodanie do wyszukiwarki
+#else
+                        m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
+#endif
                     }
                 }
             }
@@ -2905,10 +2987,12 @@ bool TGround::Init(std::string asFile, HDC hDC)
         parser >> token;
     }
 
+#ifdef EU07_USE_OLD_TNAMES_CLASS
     sTracks->Sort(TP_TRACK); // finalne sortowanie drzewa torów
     sTracks->Sort(TP_MEMCELL); // finalne sortowanie drzewa komórek pamięci
     sTracks->Sort(TP_MODEL); // finalne sortowanie drzewa modeli
     sTracks->Sort(0); // finalne sortowanie drzewa eventów
+#endif
     if (!bInitDone)
         FirstInit(); // jeśli nie było w scenerii
     if (Global::pTerrainCompact)
@@ -3375,7 +3459,11 @@ void TGround::InitTracks()
             Current = new TGroundNode(); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
             // Current->asName=p->asName; //mazwa identyczna, jak nazwa odcinka izolowanego
             Current->MemCell = new TMemCell(NULL); // nowa komórka
+#ifdef EU07_USE_OLD_TNAMES_CLASS
             sTracks->Add(TP_MEMCELL, p->asName.c_str(), Current); // dodanie do wyszukiwarki
+#else
+            m_trackmap.Add( TP_MEMCELL, p->asName, Current );
+#endif
             Current->nNext =
                 nRootOfType[TP_MEMCELL]; // to nie powinno tutaj być, bo robi się śmietnik
             nRootOfType[TP_MEMCELL] = Current;
@@ -4038,15 +4126,16 @@ bool TGround::CheckQuery()
                         }
 #endif
                         //if (DebugModeFlag)
-                            WriteLog("Type: UpdateValues & Track command - " +
-                                     std::string(tmpEvent->Params[0].asText) + " " +
-                                     std::to_string(tmpEvent->Params[1].asdouble) + " " +
-                                     std::to_string(tmpEvent->Params[2].asdouble));
+                        WriteLog("Type: UpdateValues & Track command - " +
+                            tmpEvent->Params[5].asMemCell->Text() + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value1() ) + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value2() ) );
                     }
-                    else //if (DebugModeFlag)
-                        WriteLog("Type: UpdateValues - " + std::string( tmpEvent->Params[0].asText ) +
-                                 " " + std::to_string(tmpEvent->Params[1].asdouble) + " " +
-                                 std::to_string(tmpEvent->Params[2].asdouble));
+                    else //if (DebugModeFlag) 
+                        WriteLog("Type: UpdateValues - " +
+                            tmpEvent->Params[5].asMemCell->Text() + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value1() ) + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value2() ) );
                 }
                 break;
             case tp_GetValues:

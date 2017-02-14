@@ -36,7 +36,9 @@ class TMtableTime; // czas dla danego posterunku
 };
 
 class TController; // obiekt sterujący pociągiem (AI)
+#ifdef EU07_USE_OLD_TNAMES_CLASS
 class TNames; // obiekt sortujący nazwy
+#endif
 
 typedef enum
 { // binarne odpowiedniki komend w komórce pamięci

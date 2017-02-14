@@ -1873,13 +1873,13 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     {
         if (Cab == 0)
             MoverParameters->BrakeCtrlPos =
-                floor(MoverParameters->Handle->GetPos(bh_NP));
+                static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_NP)) );
         else
-            MoverParameters->BrakeCtrlPos = floor(MoverParameters->Handle->GetPos(bh_RP));
+            MoverParameters->BrakeCtrlPos = static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_RP)) );
     }
     else
         MoverParameters->BrakeCtrlPos =
-            floor(MoverParameters->Handle->GetPos(bh_NP));
+            static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_NP)) );
 
     MoverParameters->BrakeLevelSet(
         MoverParameters->BrakeCtrlPos); // poprawienie hamulca po ewentualnym
@@ -2920,7 +2920,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             // 1. najpierw daj kazdemu tyle samo
             int i = 0;
 			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-				(kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+				p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
 			{
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
@@ -2948,7 +2948,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 i = 0;
                 float przek = 0;
                 for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
-                     (kier > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
+                     p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
                 {
                     if ((FzEP[i] > 0.01) &&
                         (FzEP[i] >
@@ -3302,13 +3302,16 @@ bool TDynamicObject::Update(double dt, double dt1)
             switch (i) // numer pantografu
             { // trzeba usunąć to rozróżnienie
             case 0:
-                if (Global::bLiveTraction ? false :
-                                            !p->hvPowerWire) // jeśli nie ma drutu, może pooszukiwać
+                if( ( Global::bLiveTraction == false )
+                    && ( p->hvPowerWire == nullptr ) ) {
+                    // jeśli nie ma drutu, może pooszukiwać
                     MoverParameters->PantFrontVolt =
-                        (p->PantWys >= 1.2) ? 0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
-                                              0.0;
-                else if (MoverParameters->PantFrontUp ? (PantDiff < 0.01) :
-                                                        false) // tolerancja niedolegania
+                        ( p->PantWys >= 1.2 ) ?
+                            0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
+                            0.0;
+                }
+                else if( ( true == MoverParameters->PantFrontUp )
+                      && ( PantDiff < 0.01 ) ) // tolerancja niedolegania
                 {
                     if ((MoverParameters->PantFrontVolt == 0.0) &&
                         (MoverParameters->PantRearVolt == 0.0))
@@ -3328,12 +3331,16 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantFrontVolt = 0.0;
                 break;
             case 1:
-                if (Global::bLiveTraction ? false :
-                                            !p->hvPowerWire) // jeśli nie ma drutu, może pooszukiwać
+                if( ( false == Global::bLiveTraction )
+                 && ( nullptr == p->hvPowerWire ) ) {
+                    // jeśli nie ma drutu, może pooszukiwać
                     MoverParameters->PantRearVolt =
-                        (p->PantWys >= 1.2) ? 0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
-                                              0.0;
-                else if (MoverParameters->PantRearUp ? (PantDiff < 0.01) : false)
+                        ( p->PantWys >= 1.2 ) ?
+                            0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
+                            0.0;
+                }
+                else if ( ( true == MoverParameters->PantRearUp )
+                       && ( PantDiff < 0.01 ) )
                 {
                     if ((MoverParameters->PantRearVolt == 0.0) &&
                         (MoverParameters->PantFrontVolt == 0.0))
@@ -3979,25 +3986,32 @@ void TDynamicObject::RenderSounds()
             else
                 rsSilnik.Stop();
         }
-        enginevolume = (enginevolume + vol) / 2;
-        if (enginevolume < 0.01)
+        enginevolume = (enginevolume + vol) * 0.5;
+        if( enginevolume < 0.01 ) {
             rsSilnik.Stop();
-        if ((MoverParameters->EngineType == ElectricSeriesMotor) ||
-            (MoverParameters->EngineType == ElectricInductionMotor) && rsWentylator.AM != 0)
+        }
+        if ( ( MoverParameters->EngineType == ElectricSeriesMotor )
+          || ( MoverParameters->EngineType == ElectricInductionMotor )
+          && ( rsWentylator.AM != 0 ) )
         {
-            if (MoverParameters->RventRot > 0.1)
-            {
+            if (MoverParameters->RventRot > 0.1) {
+                // play ventilator sound if the ventilators are rotating fast enough...
                 freq = rsWentylator.FM * MoverParameters->RventRot + rsWentylator.FA;
                 rsWentylator.AdjFreq(freq, dt);
-                if (MoverParameters->EngineType == ElectricInductionMotor)
-                    vol =
-                        rsWentylator.AM * sqrt(fabs(MoverParameters->dizel_fill)) + rsWentylator.AA;
-                else
+                if( MoverParameters->EngineType == ElectricInductionMotor ) {
+                 
+                    vol = rsWentylator.AM * std::sqrt( std::fabs( MoverParameters->dizel_fill ) ) + rsWentylator.AA;
+                }
+                else {
+
                     vol = rsWentylator.AM * MoverParameters->RventRot + rsWentylator.AA;
+                }
                 rsWentylator.Play(vol, DSBPLAY_LOOPING, MechInside, GetPosition());
             }
-            else
+            else {
+                // ...otherwise shut down the sound
                 rsWentylator.Stop();
+            }
         }
         if (MoverParameters->TrainType == dt_ET40)
         {
@@ -4372,7 +4386,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
 	cParser parser( TypeName + ".mmd", cParser::buffer_FILE, BaseDir );
 	std::string token;
-    int i;
     do {
 		token = "";
 		parser.getTokens(); parser >> token;
@@ -4387,7 +4400,8 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 iMultiTex = 1;
                 asModel.erase( asModel.length() - 1 );
             }
-            if ((i = asModel.find(',')) != std::string::npos)
+            std::size_t i = asModel.find( ',' );
+            if ( i != std::string::npos )
             { // Ra 2015-01: może szukać przecinka w
                 // nazwie modelu, a po przecinku była by
                 // liczba
@@ -4410,7 +4424,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
 					std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
 					if (!x.empty())
-						ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, Global::asCurrentTexturePath + "nowhere", 9);
+						ReplacableSkinID[4] = TextureManager.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9);
 					/*
                 if ((i = ReplacableSkin.Pos("|")) > 0) // replacable dzielone
                 {
@@ -4473,24 +4487,22 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 				*/
                 if (iMultiTex > 0)
                 { // jeśli model ma 4 tekstury
-                    ReplacableSkinID[1] = TTexturesManager::GetTextureID(
-                        NULL, NULL, ReplacableSkin + ",1", Global::iDynamicFiltering);
+                    ReplacableSkinID[1] = TextureManager.GetTextureId(
+                        ReplacableSkin + ",1", "", Global::iDynamicFiltering);
                     if (ReplacableSkinID[1])
                     { // pierwsza z zestawu znaleziona
-                        ReplacableSkinID[2] = TTexturesManager::GetTextureID(
-                            NULL, NULL, ReplacableSkin + ",2", Global::iDynamicFiltering);
+                        ReplacableSkinID[2] = TextureManager.GetTextureId(
+                            ReplacableSkin + ",2", "", Global::iDynamicFiltering);
                         if (ReplacableSkinID[2])
                         {
                             iMultiTex = 2; // już są dwie
-                            ReplacableSkinID[3] = TTexturesManager::GetTextureID(
-                                NULL, NULL, ReplacableSkin + ",3",
-                                Global::iDynamicFiltering);
+                            ReplacableSkinID[3] = TextureManager.GetTextureId(
+                                ReplacableSkin + ",3", "", Global::iDynamicFiltering);
                             if (ReplacableSkinID[3])
                             {
                                 iMultiTex = 3; // a teraz nawet trzy
-                                ReplacableSkinID[4] = TTexturesManager::GetTextureID(
-                                    NULL, NULL, ReplacableSkin + ",4",
-                                    Global::iDynamicFiltering);
+                                ReplacableSkinID[4] = TextureManager.GetTextureId(
+                                    ReplacableSkin + ",4", "", Global::iDynamicFiltering);
                                 if (ReplacableSkinID[4])
                                     iMultiTex = 4; // jak są cztery, to blokujemy podmianę tekstury
                                 // rozkładem
@@ -4500,14 +4512,14 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     else
                     { // zestaw nie zadziałał, próbujemy normanie
                         iMultiTex = 0;
-                        ReplacableSkinID[1] = TTexturesManager::GetTextureID(
-                            NULL, NULL, ReplacableSkin, Global::iDynamicFiltering);
+                        ReplacableSkinID[1] = TextureManager.GetTextureId(
+                            ReplacableSkin, "", Global::iDynamicFiltering);
                     }
                 }
                 else
-                    ReplacableSkinID[1] = TTexturesManager::GetTextureID(
-                        NULL, NULL, ReplacableSkin, Global::iDynamicFiltering);
-                if (TTexturesManager::GetAlpha(ReplacableSkinID[1]))
+                    ReplacableSkinID[1] = TextureManager.GetTextureId(
+                        ReplacableSkin, "", Global::iDynamicFiltering);
+                if (TextureManager.Texture(ReplacableSkinID[1]).has_alpha)
                     iAlpha = 0x31310031; // tekstura -1 z kanałem alfa - nie renderować w cyklu
                 // nieprzezroczystych
                 else
@@ -4515,21 +4527,22 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // renderować w
                 // cyklu przezroczystych
                 if (ReplacableSkinID[2])
-                    if (TTexturesManager::GetAlpha(ReplacableSkinID[2]))
+                    if (TextureManager.Texture(ReplacableSkinID[2]).has_alpha)
                         iAlpha |= 0x02020002; // tekstura -2 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[3])
-                    if (TTexturesManager::GetAlpha(ReplacableSkinID[3]))
+                    if (TextureManager.Texture(ReplacableSkinID[3]).has_alpha)
                         iAlpha |= 0x04040004; // tekstura -3 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[4])
-                    if (TTexturesManager::GetAlpha(ReplacableSkinID[4]))
+                    if (TextureManager.Texture(ReplacableSkinID[4]).has_alpha)
                         iAlpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
             }
+/*
             // Winger 040304 - ladowanie przedsionkow dla EZT
             if (MoverParameters->TrainType == dt_EZT)
             {
@@ -4537,6 +4550,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 asModel = BaseDir + asModel;
                 mdPrzedsionek = TModelsManager::GetModel(asModel, true);
             }
+*/
             if (!MoverParameters->LoadAccepted.empty())
                 // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
                 // MoverParameters->LoadType!=AnsiString("passengers"))
@@ -5842,13 +5856,13 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     std::string x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
 	if (!x.empty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
 	x = TextureTest(asBaseDir + numer );
 	if (!x.empty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     if (to.empty())
@@ -5856,17 +5870,17 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejności z nazwą FIZ/MMD
     if (!x.empty())
     {
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     x = TextureTest(asBaseDir + to); // na razie prymitywnie
     if (!x.empty())
-        ReplacableSkinID[4] = TTexturesManager::GetTextureID( NULL, NULL, x, 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
     else
 		{
         x = TextureTest(asBaseDir + "nowhere"); // jak nie znalazł dedykowanej, to niech daje nowhere
 		if (!x.empty())
-			ReplacableSkinID[4] = TTexturesManager::GetTextureID(NULL, NULL, x, 9);
+			ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9);
 		}
     // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa
     // tekstury nr 4
@@ -5910,7 +5924,7 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     // NOTE: the order should be reversed in flipped vehicles, but we ignore this out of laziness
     if( ( nullptr != NextConnected )
      && ( NextConnected != Caller )
-     && ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+     && ( ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
 
         auto source = NextConnected->ConnectedEnginePowerSource( this );
         if( source != TPowerSource::NotDefined ) {
@@ -5921,7 +5935,7 @@ TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const
     // ...then rear...
     if( ( nullptr != PrevConnected )
         && ( PrevConnected != Caller )
-        && ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll == ctrain_controll ) ) {
+        && ( ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
 
         auto source = PrevConnected->ConnectedEnginePowerSource( this );
         if( source != TPowerSource::NotDefined ) {

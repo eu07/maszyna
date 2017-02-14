@@ -60,8 +60,8 @@ int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
 double Global::fSunDeclination = 0.0; // deklinacja Słońca
 double Global::fTimeAngleDeg = 0.0; // godzina w postaci kąta
 float Global::fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
-char *Global::szTexturesTGA[4] = {"tga", "dds", "tex", "bmp"}; // lista tekstur od TGA
-char *Global::szTexturesDDS[4] = {"dds", "tga", "tex", "bmp"}; // lista tekstur od DDS
+std::string Global::szTexturesTGA = ".tga"; // lista tekstur od TGA
+std::string Global::szTexturesDDS = ".dds"; // lista tekstur od DDS
 int Global::iKeyLast = 0; // ostatnio naciśnięty klawisz w celu logowania
 GLuint Global::iTextureId = 0; // ostatnio użyta tekstura 2D
 int Global::iPause = 0x10; // globalna pauza ruchu
@@ -135,7 +135,7 @@ int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
 bool Global::bUseVBO = false; // czy jest VBO w karcie graficznej (czy użyć)
 GLint Global::iMaxTextureSize = 16384; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
-char **Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
+std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont = false; // czy tekst generowany przez GLUT32.DLL
 int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
@@ -421,6 +421,12 @@ void Global::ConfigParse(cParser &Parser)
             {
                 // domyślnie od TGA
                 Global::szDefaultExt = Global::szTexturesTGA;
+            }
+            else {
+                Global::szDefaultExt =
+                    ( token[ 0 ] == '.' ?
+                        token :
+                        "." + token );
             }
         }
         else if (token == "newaircouplers")

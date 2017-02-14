@@ -39,6 +39,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment( lib, "winmm.lib" )
 #pragma comment( lib, "setupapi.lib" )
 #pragma comment( lib, "python27.lib" )
+#pragma comment (lib, "dbghelp.lib")
 
 HDC hDC = NULL; // Private GDI Device Context
 HGLRC hRC = NULL; // Permanent Rendering Context
@@ -62,6 +63,13 @@ int InitGL(GLvoid) // All Setup For OpenGL Goes Here
 //    _clear87();
 //    _control87(MCW_EM, MCW_EM);
     glewInit();
+
+    if( !GLEW_VERSION_1_4 ) {
+        // experimental: require at least openGL 1.4
+        Error( "This application requires openGL version 1.4 (or better)" );
+        return 0;
+    }
+
     // hunter-271211: przeniesione
     // AllocConsole();
     // SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
@@ -567,6 +575,55 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 };
 
+#ifdef _WINDOWS
+void make_minidump( ::EXCEPTION_POINTERS* e ) {
+
+    auto hDbgHelp = ::LoadLibraryA( "dbghelp" );
+    if( hDbgHelp == nullptr )
+        return;
+    auto pMiniDumpWriteDump = (decltype( &MiniDumpWriteDump ))::GetProcAddress( hDbgHelp, "MiniDumpWriteDump" );
+    if( pMiniDumpWriteDump == nullptr )
+        return;
+
+    char name[ MAX_PATH ];
+    {
+        auto nameEnd = name + ::GetModuleFileNameA( ::GetModuleHandleA( 0 ), name, MAX_PATH );
+        ::SYSTEMTIME t;
+        ::GetSystemTime( &t );
+        wsprintfA( nameEnd - strlen( ".exe" ),
+            "_crashdump_%4d%02d%02d_%02d%02d%02d.dmp",
+            t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond );
+    }
+
+    auto hFile = ::CreateFileA( name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
+    if( hFile == INVALID_HANDLE_VALUE )
+        return;
+
+    ::MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
+    exceptionInfo.ThreadId = ::GetCurrentThreadId();
+    exceptionInfo.ExceptionPointers = e;
+    exceptionInfo.ClientPointers = FALSE;
+
+    auto dumped = pMiniDumpWriteDump(
+        ::GetCurrentProcess(),
+        ::GetCurrentProcessId(),
+        hFile,
+        ::MINIDUMP_TYPE( ::MiniDumpWithIndirectlyReferencedMemory | ::MiniDumpScanMemory ),
+        e ? &exceptionInfo : nullptr,
+        nullptr,
+        nullptr );
+
+    ::CloseHandle( hFile );
+
+    return;
+}
+
+LONG CALLBACK unhandled_handler( ::EXCEPTION_POINTERS* e ) {
+    make_minidump( e );
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+#endif
+
 int WINAPI WinMain(HINSTANCE hInstance, // instance
                    HINSTANCE hPrevInstance, // previous instance
                    LPSTR lpCmdLine, // command line parameters
@@ -580,6 +637,9 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     state = _control87( 0, 0 );
     // this will turn on FPE for #IND and zerodiv
     state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
+#endif
+#ifdef _WINDOWS
+    ::SetUnhandledExceptionFilter( unhandled_handler );
 #endif
 
     MSG msg; // windows message structure

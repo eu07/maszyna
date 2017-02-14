@@ -191,30 +191,30 @@ class TBrake {
   public:
 		TBrake(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa);
 		//maksymalne cisnienie, promien, skok roboczy, pojemnosc ZP, ilosc cylindrow, opoznienia hamulca, material klockow, osie hamowane, klocki na os;
-		virtual void Init(double PP, double HPP, double LPP, double BP, int BDF);  //inicjalizacja hamulca
+        virtual void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF );  //inicjalizacja hamulca
 
-		double GetFC(double Vel, double N);         //wspolczynnik tarcia - hamulec wie lepiej
-		virtual double GetPF(double PP, double dt, double Vel);      //przeplyw miedzy komora wstepna i PG
+        double GetFC( double const Vel, double const N );         //wspolczynnik tarcia - hamulec wie lepiej
+        virtual double GetPF( double const PP, double const dt, double const Vel );      //przeplyw miedzy komora wstepna i PG
 		double GetBCF();                           //sila tlokowa z tloka
-		virtual double GetHPFlow(double HP, double dt);  //przeplyw - 8 bar
+        virtual double GetHPFlow( double const HP, double const dt );  //przeplyw - 8 bar
 		double GetBCP();  //cisnienie cylindrow hamulcowych
 		virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
 		double GetBRP(); //cisnienie zbiornika pomocniczego
 		double GetVRP(); //cisnienie komory wstepnej rozdzielacza
 		virtual double GetCRP();  //cisnienie zbiornika sterujacego
-		bool SetBDF(int nBDF); //nastawiacz GPRM
-		void Releaser(int state); //odluzniacz
-		virtual void SetEPS(double nEPS); //hamulec EP
-		virtual void SetRM(double RMR) {};   //ustalenie przelozenia rapida
-		virtual void SetLP(double TM, double LM, double TBP) {};  //parametry przystawki wazacej
-		virtual void SetLBP(double P) {};   //cisnienie z hamulca pomocniczego
-		virtual void PLC(double mass) {};  //wspolczynnik cisnienia przystawki wazacej
+        bool SetBDF( int const nBDF ); //nastawiacz GPRM
+        void Releaser( int const state ); //odluzniacz
+        virtual void SetEPS( double const nEPS ); //hamulec EP
+        virtual void SetRM( double const RMR ) {};   //ustalenie przelozenia rapida
+		virtual void SetLP(double const TM, double const LM, double const TBP) {};  //parametry przystawki wazacej
+		virtual void SetLBP(double const P) {};   //cisnienie z hamulca pomocniczego
+		virtual void PLC(double const mass) {};  //wspolczynnik cisnienia przystawki wazacej
 		void ASB(int state); //hamulec przeciwposlizgowy
 		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
-		void SetASBP(double Press); //ustalenie cisnienia pp
+        void SetASBP( double const Press ); //ustalenie cisnienia pp
     virtual void ForceEmptiness();
     int GetSoundFlag();
-		virtual void SetED(double EDstate) {}; //stan hamulca ED do luzowania
+    virtual void SetED( double const EDstate ) {}; //stan hamulca ED do luzowania
 };
 
 class TWest : public TBrake {
@@ -229,13 +229,13 @@ class TWest : public TBrake {
 		double LoadC = 0.0;   //wspolczynnik przystawki wazacej
 
   public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		double GetHPFlow(double HP, double dt)/*override*/;
-		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
-		void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
-		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
+      void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+		void SetLBP(double const P);   //cisnienie z hamulca pomocniczego
+        double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+        double GetHPFlow( double const HP, double const dt )/*override*/;
+		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
+        void SetEPS( double const nEPS )/*override*/;  //stan hamulca EP
+		void SetLP(double const TM, double const LM, double const TBP);  //parametry przystawki wazacej
 
 		inline TWest(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
               TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -251,8 +251,8 @@ class TESt : public TBrake {
 		double BVM = 0.0;                 // przelozenie PG-CH
 
   public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
+      void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+        double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void EStParams(double i_crc);                 //parametry charakterystyczne dla ESt
 		double GetCRP()/*override*/;
 		void CheckState(double BCP, double & dV1); //glowny przyrzad rozrzadczy
@@ -273,7 +273,7 @@ class TESt3 : public TESt {
 		//double CylFlowSpeed[2][2]; //zmienna nie uzywana
 
   public:
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
+      double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
 
 		inline TESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                 TESt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -290,10 +290,10 @@ class TESt3AL2 : public TESt3 {
 		double LoadC = 0.0;
 
   public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
-		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
+      void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+      double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
+		void SetLP(double const TM, double const LM, double const TBP);  //parametry przystawki wazacej
 
 		inline TESt3AL2(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                   TESt3(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -312,8 +312,8 @@ class TESt4R : public TESt {
 		double RapidTemp = 0.0;           //aktualne, zmienne przelozenie
 
   public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
+      void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+      double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
 
 		inline TESt4R(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TESt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -333,13 +333,13 @@ class TLSt : public TESt4R {
 		double EDFlag = 0.0; //luzowanie hamulca z powodu zalaczonego ED
 
   public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
-		void SetRM(double RMR);   //ustalenie przelozenia rapida
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
+      void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+		void SetLBP(double const P);   //cisnienie z hamulca pomocniczego
+        void SetRM( double const RMR );   //ustalenie przelozenia rapida
+        double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+        double GetHPFlow( double const HP, double const dt )/*override*/;  //przeplyw - 8 bar
 		virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
-		virtual void SetED(double EDstate); //stan hamulca ED do luzowania
+        virtual void SetED( double const EDstate ); //stan hamulca ED do luzowania
 
 		inline TLSt(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TESt4R(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -360,11 +360,11 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 
 
   public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
+      void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+      double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
-		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
-		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej        
+		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
+        void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej        
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TLSt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -375,20 +375,19 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 
 class TEStEP2 : public TLSt {
 
-  private:
-		double TareM = 0.0;  //masa proznego
-		double LoadM = 0.0;  //masa pelnego
-		double TareBP = 0.0;  //cisnienie dla proznego
-		double LoadC = 0.0;
-		double EPS = 0.0;
+private:
+    double TareM = 0.0;  //masa proznego
+    double LoadM = 0.0;  //masa pelnego
+    double TareBP = 0.0;  //cisnienie dla proznego
+    double LoadC = 0.0;
+    double EPS = 0.0;
 
-
-  public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;   //inicjalizacja
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
-		void SetEPS(double nEPS)/*override*/;  //stan hamulca EP
-		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
+public:
+    void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;   //inicjalizacja
+    double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+    void PLC( double const mass );  //wspolczynnik cisnienia przystawki wazacej
+    void SetEPS( double const nEPS )/*override*/;  //stan hamulca EP
+    void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej
 
 		inline TEStEP2(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                TLSt(          i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -397,19 +396,19 @@ class TEStEP2 : public TLSt {
 
 class TCV1 : public TBrake {
 
-  private:
-		double BVM = 0.0; //przelozenie PG-CH
+private:
+    double BVM = 0.0; //przelozenie PG-CH
 
-  protected:
-		std::shared_ptr<TReservoir> CntrlRes; // zbiornik sterujący
+protected:
+    std::shared_ptr<TReservoir> CntrlRes; // zbiornik sterujący
 
-  public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		double GetCRP()/*override*/;
-		void CheckState(double BCP, double & dV1);
-    double CVs(double BP);
-    double BVs(double BCP);
+public:
+    void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+    double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+    double GetCRP()/*override*/;
+    void CheckState( double const BCP, double &dV1 );
+    double CVs( double const BP );
+    double BVs( double const BCP );
 
 		inline TCV1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -437,20 +436,20 @@ class TCV1 : public TBrake {
 
 class TCV1L_TR : public TCV1 {
 
-  private:
-		std::shared_ptr<TReservoir> ImplsRes;      //komora impulsowa
-		double LBP = 0.0;     //cisnienie hamulca pomocniczego
+private:
+    std::shared_ptr<TReservoir> ImplsRes;      //komora impulsowa
+    double LBP = 0.0;     //cisnienie hamulca pomocniczego
 
-  public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
-		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
+public:
+    void Init( double const PP, double const  HPP, double const LPP, double const BP, int const BDF )/*override*/;
+    double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+    void SetLBP( double const P );   //cisnienie z hamulca pomocniczego
+    double GetHPFlow( double const HP, double const dt )/*override*/;  //przeplyw - 8 bar
 
-		inline TCV1L_TR(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
-                   TCV1(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
+    inline TCV1L_TR(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
+               TCV1(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
     {
-			ImplsRes = std::make_shared<TReservoir>();
+        ImplsRes = std::make_shared<TReservoir>();
     }
 };
 
@@ -470,18 +469,18 @@ class TKE : public TBrake { //Knorr Einheitsbauart — jeden do wszystkiego
 		double LBP = 0.0; //cisnienie hamulca pomocniczego
 
   public:
-		void Init(double PP, double HPP, double LPP, double BP, int BDF)/*override*/;
-		void SetRM(double RMR);   //ustalenie przelozenia rapida
-		double GetPF(double PP, double dt, double Vel)/*override*/;      //przeplyw miedzy komora wstepna i PG
-		double GetHPFlow(double HP, double dt)/*override*/;  //przeplyw - 8 bar
+      void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
+      void SetRM( double const RMR );   //ustalenie przelozenia rapida
+      double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+        double GetHPFlow( double const HP, double const dt )/*override*/;  //przeplyw - 8 bar
 		double GetCRP()/*override*/;
-		void CheckState(double BCP, double & dV1);
-		void CheckReleaser(double dt); //odluzniacz
-		double CVs(double BP);      //napelniacz sterujacego
-		double BVs(double BCP);     //napelniacz pomocniczego
-		void PLC(double mass);  //wspolczynnik cisnienia przystawki wazacej
-		void SetLP(double TM, double LM, double TBP);  //parametry przystawki wazacej
-		void SetLBP(double P);   //cisnienie z hamulca pomocniczego
+        void CheckState( double const BCP, double &dV1 );
+        void CheckReleaser( double const dt ); //odluzniacz
+        double CVs( double const BP );      //napelniacz sterujacego
+        double BVs( double const BCP );     //napelniacz pomocniczego
+        void PLC( double const mass );  //wspolczynnik cisnienia przystawki wazacej
+        void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej
+        void SetLBP( double const P );   //cisnienie z hamulca pomocniczego
 
 		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
             TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -742,8 +741,8 @@ class TFVel6 : public TDriverHandle {
 };
 
 
-extern double PF(double P1, double P2, double S, double DP = 0.25);
-extern double PF1(double P1, double P2, double S);
+extern double PF( double const P1, double const P2, double const S, double const DP = 0.25 );
+extern double PF1( double const P1, double const P2, double const S );
 
-extern double PFVa(double PH, double PL, double S, double LIM, double DP = 0.1); //zawor napelniajacy z PH do PL, PL do LIM
-extern double PFVd(double PH, double PL, double S, double LIM, double DP = 0.1); //zawor wypuszczajacy z PH do PL, PH do LIM
+extern double PFVa( double PH, double PL, double const S, double LIM, double const DP = 0.1 ); //zawor napelniajacy z PH do PL, PL do LIM
+extern double PFVd( double PH, double PL, double const S, double LIM, double const DP = 0.1 ); //zawor wypuszczajacy z PH do PL, PH do LIM

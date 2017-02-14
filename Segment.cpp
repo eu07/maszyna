@@ -641,7 +641,7 @@ void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *Shap
 void TSegment::Render()
 {
     vector3 pt;
-    glBindTexture(GL_TEXTURE_2D, 0);
+    TextureManager.Bind(0);
     int i;
     if (bCurve)
     {
