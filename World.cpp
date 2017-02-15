@@ -347,7 +347,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     //	glLineWidth(2.0f);
     WriteLog("glPointSize(2.0f);");
     glPointSize(2.0f);
-
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
     // ----------- LIGHTING SETUP -----------
     // Light values and coordinates
 
@@ -359,7 +359,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     Global::lightPos[3] = 0.0f;
 
     // Ra: światła by sensowniej było ustawiać po wczytaniu scenerii
-
+    // TODO: re-implement this
     // Ra: szczątkowe światło rozproszone - żeby było cokolwiek widać w ciemności
     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::darkLight);
@@ -375,7 +375,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
     WriteLog("glEnable(GL_LIGHT0);");
     glEnable(GL_LIGHT0);
-
+#endif
     // glColor() ma zmieniać kolor wybrany w glColorMaterial()
     WriteLog("glEnable(GL_COLOR_MATERIAL);");
     glEnable(GL_COLOR_MATERIAL);
@@ -470,13 +470,22 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     SetForegroundWindow(hWnd);
     WriteLog("Sound Init");
 
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glDisable( GL_DEPTH_TEST ); // Disables depth testing
+#ifndef EU07_USE_OLD_LIGHTING_MODEL
+    glEnable( GL_LIGHTING );
+    glEnable( GL_LIGHT0 );
+#endif
+
     glLoadIdentity();
     //    glColor4f(0.3f,0.0f,0.0f,0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glTranslatef(0.0f, 0.0f, -0.50f);
     //    glRasterPos2f(-0.25f, -0.10f);
-    glDisable(GL_DEPTH_TEST); // Disables depth testing
-    glColor3f(3.0f, 3.0f, 3.0f);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    glColor3f( 3.0f, 3.0f, 3.0f );
+#else
+    glColor3f( 1.0f, 1.0f, 1.0f );
+#endif
 
     auto logo = TextureManager.GetTextureId( "logo", szTexturePath, 6 );
     TextureManager.Bind(logo); // Select our texture
@@ -492,7 +501,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glVertex3f(-0.28f, 0.22f, 0.0f); // top left of the texture and quad
     glEnd();
     //~logo; Ra: to jest bez sensu zapis
-    glColor3f(0.0f, 0.0f, 100.0f);
+    glColor3f(0.0f, 0.0f, 1.0f);
     if (Global::detonatoryOK)
     {
         glRasterPos2f(-0.25f, -0.09f);
@@ -502,7 +511,6 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
-    glEnable(GL_LIGHTING);
     /*-----------------------Sound Initialization-----------------------*/
     TSoundsManager::Init(hWnd);
     // TSoundsManager::LoadSounds( "" );
@@ -562,8 +570,26 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
+#ifndef EU07_USE_OLD_LIGHTING_MODEL
+    // setup lighting
+//    GLfloat ambient[] = { 0.65f, 0.65f, 0.65f, 0.5f };
+    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+
+    Global::DayLight.id = opengl_renderer::sunlight;
+    // directional light
+    // TODO, TBD: test omni-directional variant
+    Global::DayLight.position[ 3 ] = 1.0f;
+    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0 );
+    // rgb value for 5780 kelvin
+    Global::DayLight.diffuse[ 0 ] = 255.0 / 255.0;
+    Global::DayLight.diffuse[ 1 ] = 242.0 / 255.0;
+    Global::DayLight.diffuse[ 2 ] = 231.0 / 255.0;
+#endif
+
     Ground.Init(Global::SceneryFile, hDC);
     //    Global::tSinceStart= 0;
+    Sun.init();
     Clouds.Init();
     WriteLog("Ground init OK");
     if (Global::detonatoryOK)
@@ -1401,6 +1427,7 @@ void TWorld::Update_Lights() {
         return;
     }
 
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
     // double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //kąt godzinny w radianach
     double a = fmod( Global::fTimeAngleDeg, 360.0 ) / 180.0 * M_PI -
         M_PI; // kąt godzinny w radianach
@@ -1478,7 +1505,32 @@ void TWorld::Update_Lights() {
         +0.150 * ( Global::diffuseDayLight[ 0 ] + Global::ambientDayLight[ 0 ] ) // R
         + 0.295 * ( Global::diffuseDayLight[ 1 ] + Global::ambientDayLight[ 1 ] ) // G
         + 0.055 * ( Global::diffuseDayLight[ 2 ] + Global::ambientDayLight[ 2 ] ); // B
-    
+#else
+    Sun.update();
+    auto const position = Sun.getPosition();
+    Global::DayLight.position[0] = position.x;
+    Global::DayLight.position[1] = position.y;
+    Global::DayLight.position[2] = position.z;
+    auto const direction = -1.0 * Sun.getDirection();
+    Global::DayLight.direction = direction;
+    auto const intensity = std::min( 2.0f * Sun.getIntensity(), 1.0f );
+
+    Global::DayLight.diffuse[ 0 ] = 255.0 / 255.0 * intensity;
+    Global::DayLight.diffuse[ 1 ] = 242.0 / 255.0 * intensity;
+    Global::DayLight.diffuse[ 2 ] = 231.0 / 255.0 * intensity;
+//    Global::DayLight.diffuse[ 3 ] = 1.0f;// std::min( 0.15f + intensity, 1.0f );
+    Global::DayLight.ambient[ 0 ] = 205.0 / 255.0 * intensity * 0.75f;
+    Global::DayLight.ambient[ 1 ] = 217.0 / 255.0 * intensity * 0.75f;
+    Global::DayLight.ambient[ 2 ] = 231.0 / 255.0 * intensity * 0.75f;
+//    Global::DayLight.ambient[ 3 ] = 1.0f;
+    /*
+    //    Global::DayLight.ambient[ 3 ] = intensity;
+    GLfloat ambient[] = { 0.1f + 0.5f * intensity, 0.1f + 0.5f * intensity, 0.1f + 0.5f * intensity, 0.5f };
+    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+*/
+    Global::fLuminance = intensity;
+#endif
+
     vector3 sky = vector3( Global::AtmoColor[ 0 ], Global::AtmoColor[ 1 ], Global::AtmoColor[ 2 ] );
     if( Global::fLuminance < 0.25 ) { // przyspieszenie zachodu/wschodu
         sky *= 4.0 * Global::fLuminance; // nocny kolor nieba
@@ -1503,14 +1555,20 @@ bool TWorld::Render()
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();
     Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
 
-    if (!Global::bWireFrame)
-    { // bez nieba w trybie rysowania linii
-        glDisable(GL_FOG);
+    if( !Global::bWireFrame ) { // bez nieba w trybie rysowania linii
+        glDisable( GL_FOG );
         Clouds.Render();
-        glEnable(GL_FOG);
+        glEnable( GL_FOG );
     }
+
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
+#else
+    Sun.render( Camera.Pos );
+    Global::DayLight.apply_angle();
+    Global::DayLight.apply_intensity();
+#endif
     if (Global::bUseVBO)
     { // renderowanie przez VBO
         if (!Ground.RenderVBO(Camera.Pos))
@@ -1693,7 +1751,10 @@ TWorld::Render_Cab() {
         glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone
 
     if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
-    { // oswietlenie kabiny
+    {
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
+        // oswietlenie kabiny
         GLfloat ambientCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
         GLfloat diffuseCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
         GLfloat specularCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1773,6 +1834,7 @@ TWorld::Render_Cab() {
         glLightfv( GL_LIGHT0, GL_AMBIENT, ambientCabLight );
         glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseCabLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, specularCabLight );
+#endif
         if( Global::bUseVBO ) { // renderowanie z użyciem VBO
             dynamic->mdKabina->RaRender( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
             dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
@@ -1781,10 +1843,13 @@ TWorld::Render_Cab() {
             dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
             dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
         }
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         // przywrócenie standardowych, bo zawsze są zmieniane
         glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
         glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
+#endif
     }
     glPopMatrix();
 }

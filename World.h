@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h"
 #include "Ground.h"
 #include "sky.h"
+#include "sun.h"
 #include "mczapkie/mover.h"
 
 class TWorld
@@ -53,6 +54,7 @@ class TWorld
     GLuint base; // numer DL dla znaków w napisach
     texture_manager::size_type light; // numer tekstury dla smugi
     TSky Clouds;
+    cSun Sun;
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury
     TMoverParameters *mvControlled; // wskaźnik na człon silnikowy, do wyświetlania jego parametrów
     int iCheckFPS; // kiedy znów sprawdzić FPS, żeby wyłączać optymalizacji od razu do zera

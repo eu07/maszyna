@@ -323,9 +323,15 @@ void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
                 g *= 0.6;
                 b *= 0.6;
             }
-        r *= Global::ambientDayLight[0]; // w zaleźności od koloru swiatła
-        g *= Global::ambientDayLight[1];
-        b *= Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        r *= Global::ambientDayLight[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::ambientDayLight[ 1 ];
+        b *= Global::ambientDayLight[ 2 ];
+#else
+        r *= Global::DayLight.ambient[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::DayLight.ambient[ 1 ];
+        b *= Global::DayLight.ambient[2];
+#endif
         if (linealpha > 1.0)
             linealpha = 1.0; // trzeba ograniczyć do <=1
         glColor4f(r, g, b, linealpha);
@@ -527,9 +533,15 @@ void TTraction::RenderVBO(float mgn, int iPtr)
             b = 0.0;
             break; //żółte z podłączonym zasilaniem z obu stron
         }
-        r = r * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-        g = g * Global::ambientDayLight[1];
-        b = b * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        r *= Global::ambientDayLight[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::ambientDayLight[ 1 ];
+        b *= Global::ambientDayLight[ 2 ];
+#else
+        r *= Global::DayLight.ambient[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::DayLight.ambient[ 1 ];
+        b *= Global::DayLight.ambient[ 2 ];
+#endif
         if (linealpha > 1.0)
             linealpha = 1.0; // trzeba ograniczyć do <=1
         glColor4f(r, g, b, linealpha);

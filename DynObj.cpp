@@ -3771,6 +3771,8 @@ void TDynamicObject::Render()
             glTranslated(vPosition.x, vPosition.y,
                          vPosition.z); // standardowe przesunięcie względem początku scenerii
         glMultMatrixd(mMatrix.getArray());
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         if (fShade > 0.0)
         { // Ra: zmiana oswietlenia w tunelu, wykopie
             GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -3787,6 +3789,7 @@ void TDynamicObject::Render()
             glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
         }
+#endif
         if (Global::bUseVBO)
         { // wersja VBO
             if (mdLowPolyInt)
@@ -3819,6 +3822,8 @@ void TDynamicObject::Render()
                 // ma byc wyswietlana
                 // ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
                 // Ra: świetła są ustawione dla zewnętrza danego pojazdu
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+                // TODO: re-mplement this
                 // oswietlenie kabiny
                 GLfloat ambientCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
                 GLfloat diffuseCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -3854,20 +3859,25 @@ void TDynamicObject::Render()
                 glLightfv(GL_LIGHT0, GL_AMBIENT, ambientCabLight);
                 glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseCabLight);
                 glLightfv(GL_LIGHT0, GL_SPECULAR, specularCabLight);
+#endif
                 if (Global::bUseVBO)
                     mdKabina->RaRender(ObjSqrDist, 0);
                 else
                     mdKabina->Render(ObjSqrDist, 0);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
                 glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
                 glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
                 glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
+#endif
             }
-        if (fShade != 0.0) // tylko jeśli było zmieniane
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        if( fShade != 0.0 ) // tylko jeśli było zmieniane
         { // przywrócenie standardowego oświetlenia
             glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
         }
+#endif
         glPopMatrix();
         if (btnOn)
             TurnOff(); // przywrócenie domyślnych pozycji submodeli
@@ -4265,6 +4275,8 @@ void TDynamicObject::RenderAlpha()
             glTranslated(vPosition.x, vPosition.y,
                          vPosition.z); // standardowe przesunięcie względem początku scenerii
         glMultMatrixd(mMatrix.getArray());
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         if (fShade > 0.0)
         { // Ra: zmiana oswietlenia w tunelu, wykopie
             GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -4281,6 +4293,7 @@ void TDynamicObject::RenderAlpha()
             glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
         }
+#endif
         if (Global::bUseVBO)
         { // wersja VBO
             if (mdLowPolyInt)
@@ -4303,63 +4316,15 @@ void TDynamicObject::RenderAlpha()
             // if (mdPrzedsionek) //Ra: przedsionków tu wcześniej nie było - włączyć?
             // mdPrzedsionek->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
         }
-        /* skoro false to można wyciąc
-            //ABu: Tylko w trybie freefly
-            if (false)//((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
-            {
-        //oswietlenie kabiny
-              GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-              GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-              GLfloat  specularCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-              for (int li=0; li<3; li++)
-               {
-                 ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
-                 diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
-                 specularCabLight[li]= Global::specularDayLight[li]*0.5;
-               }
-              switch (MyTrack->eEnvironment)
-              {
-               case e_canyon:
-                {
-                  for (int li=0; li<3; li++)
-                   {
-                     diffuseCabLight[li]*= 0.6;
-                     specularCabLight[li]*= 0.8;
-                   }
-                }
-               break;
-               case e_tunnel:
-                {
-                  for (int li=0; li<3; li++)
-                   {
-                     ambientCabLight[li]*= 0.3;
-                     diffuseCabLight[li]*= 0.1;
-                     specularCabLight[li]*= 0.2;
-                   }
-                }
-               break;
-              }
-        // dorobic swiatlo od drugiej strony szyby
-
-              glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
-              glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
-              glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
-
-              mdKabina->RenderAlpha(ObjSqrDist,0);
-        //smierdzi
-        // mdModel->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
-
-              glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-              glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-              glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
-            }
-        */
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         if (fShade != 0.0) // tylko jeśli było zmieniane
         { // przywrócenie standardowego oświetlenia
             glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
         }
+#endif
         glPopMatrix();
         if (btnOn)
             TurnOff(); // przywrócenie domyślnych pozycji submodeli

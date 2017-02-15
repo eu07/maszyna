@@ -2583,6 +2583,8 @@ void TTrack::RaRenderVBO(int iPtr)
 void TTrack::EnvironmentSet()
 { // ustawienie zmienionego światła
     glColor3f(1.0f, 1.0f, 1.0f); // Ra: potrzebne to?
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    // TODO: re-implement this
     if (eEnvironment)
     { // McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
         GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -2614,10 +2616,13 @@ void TTrack::EnvironmentSet()
             break;
         }
     }
+#endif
 };
 
 void TTrack::EnvironmentReset()
 { // przywrócenie domyślnego światła
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    // TODO: re-implement this
     switch (eEnvironment)
     { // przywrócenie globalnych ustawień światła, o ile było zmienione
     case e_canyon: // wykop
@@ -2626,6 +2631,7 @@ void TTrack::EnvironmentReset()
         glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
         glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
     }
+#endif
 };
 
 void TTrack::RenderDyn()

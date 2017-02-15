@@ -120,6 +120,53 @@ class cParser; // nowy (powolny!) parser
 class TEvent;
 class TTextSound;
 
+// bare-bones render controller, in lack of anything better yet
+struct opengl_renderer {
+
+    GLenum static const sunlight{ GL_LIGHT0 };
+    GLenum static const ambientlight{ GL_LIGHT1 };
+
+    enum class rendermode {
+        color
+    };
+
+    rendermode renderpass{ rendermode::color };
+};
+
+struct opengl_light {
+
+    GLuint id{ -1 };
+    Math3D::vector3 direction;
+    GLfloat position[ 4 ]; // 4th parameter specifies directional(0) or omni-directional(1) light source
+    GLfloat ambient[ 4 ];
+    GLfloat diffuse[ 4 ];
+    GLfloat specular[ 4 ];
+
+    opengl_light() {
+        position[ 0 ] = position[ 1 ] = position[ 2 ] = 0.0f; position[ 3 ] = 1.0f;
+        ambient[ 0 ] = ambient[ 1 ] = ambient[ 2 ] = ambient[ 3 ] = 1.0f;
+        diffuse[ 0 ] = diffuse[ 1 ] = diffuse[ 2 ] = diffuse[ 3 ] = 1.0f;
+        specular[ 0 ] = specular[ 1 ] = specular[ 2 ] = specular[ 3 ] = 1.0f;
+    }
+
+    inline
+    void apply_intensity() {
+
+        glLightfv( id, GL_AMBIENT, ambient );
+        glLightfv( id, GL_DIFFUSE, diffuse );
+        glLightfv( id, GL_SPECULAR, specular );
+    }
+    inline
+    void apply_angle() {
+
+        glLightfv( id, GL_POSITION, position );
+        if( position[ 3 ] == 1.0f ) {
+            GLfloat directionarray[] = { direction.x, direction.y, direction.z };
+            glLightfv( id, GL_SPOT_DIRECTION, directionarray );
+        }
+    }
+};
+
 class TTranscript
 { // klasa obsługująca linijkę napisu do dźwięku
   public:
@@ -220,12 +267,18 @@ class Global
 	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
     // static bool bTimeChange;
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    static opengl_light AmbientLight;
+
     static GLfloat ambientDayLight[];
     static GLfloat diffuseDayLight[];
     static GLfloat specularDayLight[];
     static GLfloat ambientLight[];
     static GLfloat diffuseLight[];
     static GLfloat specularLight[];
+#else
+    static opengl_light DayLight;
+#endif
     static GLfloat whiteLight[];
     static GLfloat noLight[];
     static GLfloat darkLight[];

@@ -189,6 +189,9 @@
     <ClCompile Include="Names.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sun.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl\glew.h">
@@ -364,6 +367,9 @@
     </ClInclude>
     <ClInclude Include="Console\MWD.h">
       <Filter>Header Files\console</Filter>
+    </ClInclude>
+    <ClInclude Include="sun.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

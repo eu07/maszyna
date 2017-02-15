@@ -327,9 +327,15 @@ void TGroundNode::RenderVBO()
             if (linealpha > 255)
                 linealpha = 255;
             float r, g, b;
-            r = floor(Diffuse[0] * Global::ambientDayLight[0]); // w zaleznosci od koloru swiatla
-            g = floor(Diffuse[1] * Global::ambientDayLight[1]);
-            b = floor(Diffuse[2] * Global::ambientDayLight[2]);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = floor( Diffuse[ 0 ] * Global::ambientDayLight[ 0 ] ); // w zaleznosci od koloru swiatla
+            g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
+            b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
+#else
+            r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
+            g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
+            b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
+#endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             // glDisable(GL_LIGHTING); //nie powinny świecić
             glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
@@ -388,9 +394,15 @@ void TGroundNode::RenderAlphaVBO()
             float linealpha = 255000 * fLineThickness / (mgn + 1.0);
             if (linealpha > 255)
                 linealpha = 255;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+#else
+            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+#endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             // glDisable(GL_LIGHTING); //nie powinny świecić
             glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
@@ -583,9 +595,15 @@ void TGroundNode::RenderDL()
         // if (iNumPts)
         { // wszelkie linie są rysowane na samym końcu
             float r, g, b;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+#else
+            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+#endif
             glColor4ub(r, g, b, 1.0);
             glCallList(DisplayListID);
             // glColor4fv(Diffuse); //przywrócenie koloru
@@ -659,9 +677,15 @@ void TGroundNode::RenderAlphaDL()
             float linealpha = 255000 * fLineThickness / (mgn + 1.0);
             if (linealpha > 255)
                 linealpha = 255;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+#else
+            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+#endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             glCallList(DisplayListID);
         }
@@ -2454,15 +2478,20 @@ void TGround::FirstInit()
     else
         glDisable(GL_FOG);
     glDisable(GL_LIGHTING);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    // TODO, TBD: re-implement this
     glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos); // daylight position
     glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight); // kolor wszechobceny
     glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight); // kolor padający
     glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight); // kolor odbity
     // musi być tutaj, bo wcześniej nie mieliśmy wartości światła
+#endif
 /*
     if (Global::fMoveLight >= 0.0) // albo tak, albo niech ustala minimum ciemności w nocy
     {
 */
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO, TBD: re-implement this
         Global::fLuminance = // obliczenie luminacji "światła w ciemności"
             +0.150 * Global::ambientDayLight[0] // R
             + 0.295 * Global::ambientDayLight[1] // G
@@ -2472,6 +2501,7 @@ void TGround::FirstInit()
                 Global::ambientDayLight[i] *=
                     0.1 / Global::fLuminance; // ograniczenie jasności w nocy
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
+#endif
 /*
     }
     else if (Global::bDoubleAmbient) // Ra: wcześniej było ambient dawane na obydwa światła
@@ -2837,6 +2867,7 @@ bool TGround::Init(std::string asFile, HDC hDC)
         else if (str == "light")
         { // Ra: ustawianie światła przeniesione do FirstInit
             WriteLog("Scenery light definition");
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
             vector3 lp;
             parser.getTokens();
             parser >> lp.x;
@@ -2848,27 +2879,44 @@ bool TGround::Init(std::string asFile, HDC hDC)
             Global::lightPos[0] = lp.x; // daylight position
             Global::lightPos[1] = lp.y;
             Global::lightPos[2] = lp.z;
-            parser.getTokens();
-            parser >> Global::ambientDayLight[0]; // kolor wszechobceny
-            parser.getTokens();
-            parser >> Global::ambientDayLight[1];
-            parser.getTokens();
-            parser >> Global::ambientDayLight[2];
+#else
+            parser.getTokens(3, false);
+            parser
+                >> Global::DayLight.direction.x
+                >> Global::DayLight.direction.y
+                >> Global::DayLight.direction.z;;
+            Global::DayLight.direction.Normalize();
+#endif
+            parser.getTokens(9, false);
 
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[0]; // kolor padający
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[1];
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[2];
-
-            parser.getTokens();
-            parser >> Global::specularDayLight[0]; // kolor odbity
-            parser.getTokens();
-            parser >> Global::specularDayLight[1];
-            parser.getTokens();
-            parser >> Global::specularDayLight[2];
-
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            parser
+                >> Global::ambientDayLight[ 0 ]
+                >> Global::ambientDayLight[ 1 ]
+                >> Global::ambientDayLight[ 2 ]
+                >> Global::diffuseDayLight[ 0 ]
+                >> Global::diffuseDayLight[ 1 ]
+                >> Global::diffuseDayLight[ 2 ]
+                >> Global::specularDayLight[ 0 ]
+                >> Global::specularDayLight[ 1 ]
+                >> Global::specularDayLight[ 2 ];
+#else
+/*
+            parser
+                // kolor wszechobceny
+                >> Global::DayLight.ambient[0]
+                >> Global::DayLight.ambient[1]
+                >> Global::DayLight.ambient[2]
+                // kolor padający
+                >> Global::DayLight.diffuse[0]
+                >> Global::DayLight.diffuse[1]
+                >> Global::DayLight.diffuse[2]
+                // kolor odbity
+                >> Global::DayLight.specular[0]
+                >> Global::DayLight.specular[1]
+                >> Global::DayLight.specular[2];
+*/
+#endif
             do
             {
                 parser.getTokens();
