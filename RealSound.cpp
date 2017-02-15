@@ -271,22 +271,25 @@ void TTextSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
         pSound->GetStatus(&stat);
         if (!(stat & DSBSTATUS_PLAYING)) // jeśli nie jest aktualnie odgrywany
         {
+/*
             std::string t( asText );
 			size_t i;
             do
             { // na razie zrobione jakkolwiek, docelowo przenieść teksty do tablicy nazw
                 i = t.find('\r'); // znak nowej linii
 				if( i == std::string::npos ) {
-					Global::tranTexts.Add( t.c_str(), fTime, true );
+					Global::tranTexts.Add( t, fTime, true );
 				}
                 else
                 {
-                    Global::tranTexts.Add(t.substr(0, i).c_str(), fTime, true);
+                    Global::tranTexts.Add(t.substr(0, i), fTime, true);
                     t.erase(0, i + 1);
                     while (t.empty() ? false : (unsigned char)(t[1]) < 33)
                         t.erase(0, 1);
                 }
             } while (i != std::string::npos);
+*/
+            Global::tranTexts.Add( asText, fTime, true );
         }
     }
     TRealSound::Play(Volume, Looping, ListenerInside, NewPosition);

@@ -131,21 +131,31 @@ class TTranscript
     int iNext; // następna używana linijka, żeby nie przestawiać fizycznie tabeli
 };
 
+/*
 #define MAX_TRANSCRIPTS 30
+*/
 class TTranscripts
 { // klasa obsługująca napisy do dźwięków
+/*
     TTranscript aLines[MAX_TRANSCRIPTS]; // pozycje na napisy do wyświetlenia
+*/
+public:
+    std::deque<TTranscript> aLines;
+/*
     int iCount; // liczba zajętych pozycji
     int iStart; // pierwsza istotna pozycja w tabeli, żeby sortować przestawiając numerki
+*/
+private:
     float fRefreshTime;
 
   public:
     TTranscripts();
     ~TTranscripts();
-    void AddLine(char const *txt, float show, float hide, bool it);
-    void Add(char const *txt, float len,
-             bool backgorund = false); // dodanie tekstów, długość dźwięku, czy istotne
-    void Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekundę)
+    void AddLine(std::string const &txt, float show, float hide, bool it);
+    // dodanie tekstów, długość dźwięku, czy istotne
+    void Add(std::string const &txt, float len, bool background = false);
+    // usuwanie niepotrzebnych (ok. 10 razy na sekundę)
+    void Update(); 
 };
 
 class Global
@@ -300,7 +310,9 @@ class Global
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     static bool bJoinEvents; // czy grupować eventy o tych samych nazwach
     static bool bSmudge; // czy wyświetlać smugę, a pojazd użytkownika na końcu
+/*
     static std::string asTranscript[5]; // napisy na ekranie (widoczne)
+*/
     static TTranscripts tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
     static std::string asLang; // domyślny język - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy łączyć eventy z torami poprzez nazwę toru

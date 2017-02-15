@@ -4631,8 +4631,13 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 */
                 if( true == pAnimations.empty() )
                 { // Ra: tworzenie tabeli animacji, jeśli jeszcze nie było
-                    if (!iAnimations) // jeśli nie podano jawnie, ile ma być animacji
+/*
+                    // disabled as default animation amounts are no longer supported
+                    if( !iAnimations ) {
+                        // jeśli nie podano jawnie, ile ma być animacji
                         iAnimations = 28; // tyle było kiedyś w każdym pojeździe (2 wiązary wypadły)
+                    }
+*/
                     /* //pojazd może mieć pantograf do innych celów niż napęd
                     if (MoverParameters->EnginePowerSource.SourceType!=CurrentCollector)
                     {//nie będzie pantografów, to się trochę uprości
@@ -5461,6 +5466,11 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 
 	} while( ( token != "" ) 
 	      && ( false == Stop_InternalData ) );
+
+    if( !iAnimations ) {
+        // if the animations weren't defined the model is likely to be non-functional. warrants a warning.
+        ErrorLog( "Animations tag is missing from the .mmd file \"" + asFileName + "\"" );
+    }
 
     if (mdModel)
         mdModel->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie

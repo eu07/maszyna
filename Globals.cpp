@@ -76,7 +76,9 @@ int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajnoś
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
 bool Global::bSmudge = false; // czy wyświetlać smugę, a pojazd użytkownika na końcu
+/*
 std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
+*/
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
 
 // parametry scenerii
@@ -1094,6 +1096,7 @@ bool Global::DoEvents()
 
 TTranscripts::TTranscripts()
 {
+/*
     iCount = 0; // brak linijek do wyświetlenia
     iStart = 0; // wypełniać od linijki 0
     for (int i = 0; i < MAX_TRANSCRIPTS; ++i)
@@ -1101,20 +1104,35 @@ TTranscripts::TTranscripts()
         aLines[i].fHide = -1.0; // wolna pozycja (czas symulacji, 360.0 to doba)
         aLines[i].iNext = -1; // nie ma kolejnej
     }
+*/
     fRefreshTime = 360.0; // wartośc zaporowa
 };
 TTranscripts::~TTranscripts(){};
-void TTranscripts::AddLine(char const *txt, float show, float hide, bool it)
+
+void TTranscripts::AddLine(std::string const &txt, float show, float hide, bool it)
 { // dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
     if (show == hide)
         return; // komentarz jest ignorowany
     show = Global::fTimeAngleDeg + show / 240.0; // jeśli doba to 360, to 1s będzie równe 1/240
     hide = Global::fTimeAngleDeg + hide / 240.0;
-	int i = iStart, j;
-	size_t k; // od czegoś trzeba zacząć
+
+    TTranscript transcript;
+    transcript.asText = txt;
+    transcript.fShow = show;
+    transcript.fHide = hide;
+    transcript.bItalic = it;
+    aLines.emplace_back( transcript );
+    // set the next refresh time while at it
+    // TODO, TBD: sort the transcript lines? in theory, they should be coming arranged in the right order anyway
+    // short of cases with multiple sounds overleaping
+    fRefreshTime = aLines.front().fHide;
+/*
+    int i = iStart, j, k; // od czegoś trzeba zacząć
     while ((aLines[i].iNext >= 0) ? (aLines[aLines[i].iNext].fShow <= show) :
                                     false) // póki nie koniec i wcześniej puszczane
         i = aLines[i].iNext; // przejście do kolejnej linijki
+*/
+/*
     //(i) wskazuje na linię, po której należy wstawić dany tekst, chyba że
     while (txt ? *txt : false)
         for (j = 0; j < MAX_TRANSCRIPTS; ++j)
@@ -1141,11 +1159,13 @@ void TTranscripts::AddLine(char const *txt, float show, float hide, bool it)
                     fRefreshTime = show; // to odświeżyć wcześniej
                 break; // więcej już nic
             }
+*/
 };
-void TTranscripts::Add(char const *txt, float len, bool backgorund)
+void TTranscripts::Add(std::string const &txt, float len, bool backgorund)
 { // dodanie tekstów, długość dźwięku, czy istotne
-    if (!txt)
+    if (true == txt.empty())
         return; // pusty tekst
+/*
     int i = 0, j = int(0.5 + 10.0 * len); //[0.1s]
     if (*txt == '[')
     { // powinny być dwa nawiasy
@@ -1162,14 +1182,44 @@ void TTranscripts::Add(char const *txt, float len, bool backgorund)
                 ++txt; // pominięcie drugiego ]
         }
     }
-    AddLine(txt, 0.1 * i, 0.1 * j, false);
+*/
+    std::string asciitext{ txt }; win1250_to_ascii( asciitext ); // TODO: launch relevant conversion table based on language
+    cParser parser( asciitext );
+    while( true == parser.getTokens( 3, false, "[]\n" ) ) {
+
+        float begin, end;
+        std::string transcript;
+        parser
+            >> begin
+            >> end
+            >> transcript;
+        AddLine( transcript, 0.10 * begin, 0.12 * end, false );
+    }
+    // try to handle malformed(?) cases with no show/hide times
+    std::string transcript; parser >> transcript;
+    while( false == transcript.empty() ) {
+
+        WriteLog( "Transcript text with no display/hide times: \"" + transcript + "\"" );
+        AddLine( transcript, 0.0, 0.12 * transcript.size(), false );
+        transcript = ""; parser >> transcript;
+    }
 };
 void TTranscripts::Update()
 { // usuwanie niepotrzebnych (nie częściej niż 10 razy na sekundę)
-    if (fRefreshTime > Global::fTimeAngleDeg)
+    if( Global::fTimeAngleDeg < fRefreshTime )
         return; // nie czas jeszcze na zmiany
     // czas odświeżenia można ustalić wg tabelki, kiedy coś się w niej zmienia
-    fRefreshTime = Global::fTimeAngleDeg + 360.0; // wartość zaporowa
+ //   fRefreshTime = Global::fTimeAngleDeg + 360.0; // wartość zaporowa
+
+    while( ( false == aLines.empty() )
+        && ( Global::fTimeAngleDeg >= aLines.front().fHide ) ) {
+        // remove expired lines
+        aLines.pop_front();
+    }
+    // update next refresh time
+    if( false == aLines.empty() ) { fRefreshTime = aLines.front().fHide; }
+    else                          { fRefreshTime = 360.0f; }
+/*
     int i = iStart, j = -1; // od czegoś trzeba zacząć
     bool change = false; // czy zmieniać napisy?
     do
@@ -1212,6 +1262,7 @@ void TTranscripts::Update()
         for (++j; j < 5; ++j)
             Global::asTranscript[j] = ""; // i czyszczenie nieużywanych linijek
     }
+*/
 };
 
 // Ra: tymczasowe rozwiązanie kwestii zagranicznych (czeskich) napisów
