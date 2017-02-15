@@ -188,15 +188,12 @@ bool TWorld::Init(GLFWwindow *w)
     std::string glver = ((char *)glGetString(GL_VERSION));
     WriteLog("OpenGL Version:");
     WriteLog(glver);
-    if ((glver == "1.5.1") || (glver == "1.5.2"))
-    {
-        Error("Niekompatybilna wersja openGL - dwuwymiarowy tekst nie bedzie wyswietlany!");
-        WriteLog("WARNING! This OpenGL version is not fully compatible with simulator!");
-        WriteLog("UWAGA! Ta wersja OpenGL nie jest w pelni kompatybilna z symulatorem!");
-        Global::detonatoryOK = false;
-    }
-    else
-        Global::detonatoryOK = true;
+	if (!GLEW_VERSION_1_4)
+	{
+		std::cout << "required opengl >=1.4" << std::endl;
+		return false;
+	}
+    
     // Ra: umieszczone w EU07.cpp jakoś nie chce działać
 	while( glver.rfind( '.' ) > glver.find( '.' ) ) {
 		glver = glver.substr( 0, glver.rfind( '.' ) - 1 ); // obcięcie od drugiej kropki
@@ -225,15 +222,6 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog((char *)glGetString(GL_EXTENSIONS));
     if (GLEW_ARB_vertex_buffer_object) // czy jest VBO w karcie graficznej
     {
-        if( std::string( (char *)glGetString(GL_VENDOR) ).find("Intel") != std::string::npos ) // wymuszenie tylko dla kart Intel
-        { // karty Intel nie nadają się do grafiki 3D, ale robimy wyjątek, bo to w końcu symulator
-            Global::iMultisampling =
-                0; // to robi problemy na "Intel(R) HD Graphics Family" - czarny ekran
-            if (Global::fOpenGL >=
-                1.4) // 1.4 miało obsługę VBO, ale bez opcji modyfikacji fragmentu bufora
-                Global::bUseVBO = true; // VBO włączane tylko, jeśli jest obsługa oraz nie ustawiono
-            // niższego numeru
-        }
         if (Global::bUseVBO)
             WriteLog("Ra: The VBO is found and will be used.");
         else
