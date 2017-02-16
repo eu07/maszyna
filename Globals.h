@@ -333,16 +333,19 @@ class Global
 	static double CutValueToRange(double min, double value, double max);
 
     // maciek001: zmienne dla MWD
-    static bool bMWDdebugEnable;
-    static unsigned int iMWDBaudrate;
-    static std::string sMWDPortId;
-    static bool bMWDBreakEnable;
-    static bool bMWDInputDataEnable;
-    static double fMWDAnalogCalib[4][3];
-    static double fMWDzg[2];
-    static double fMWDpg[2];
-    static double fMWDph[2];
-    static double fMWDvolt[2];
-    static double fMWDamp[2];
+	static bool bMWDmasterEnable;           // główne włączenie portu COM
+	static bool bMWDdebugEnable;            // logowanie pracy
+	static int iMWDDebugMode;
+	static std::string sMWDPortId;           // nazwa portu COM
+	static unsigned long int iMWDBaudrate;  // prędkość transmisji
+	static bool bMWDInputEnable;            // włącz wejścia
+	static bool bMWDBreakEnable;            // włącz wejścia analogowe (hamulce)
+	static double fMWDAnalogInCalib[4][2];  // ustawienia kranów hamulca zespolonego i dodatkowego - min i max
+	static double fMWDzg[2];                // max wartość wskazywana i max wartość generowana (rozdzielczość)
+	static double fMWDpg[2];
+	static double fMWDph[2];
+	static double fMWDvolt[2];
+	static double fMWDamp[2];
+	static int iMWDdivider;
 };
 //---------------------------------------------------------------------------
