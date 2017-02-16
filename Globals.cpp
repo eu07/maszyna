@@ -896,6 +896,12 @@ void Global::ConfigParse(cParser &Parser)
 		else if (token == "mwddivider") {
 			Parser.getTokens(1, false);
 			Parser >> iMWDdivider;
+			if (iMWDdivider == 0)
+			{
+				WriteLog("Dzielnik nie może być równy ZERO! Ustawiam na 1!");
+				iMWDdivider = 1;
+			}
+			if (bMWDdebugEnable) WriteLog("Divider = " + to_string(iMWDdivider));
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
