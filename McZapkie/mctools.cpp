@@ -412,6 +412,21 @@ std::string ToUpper(std::string const &text)
 	return uppercase;
 }
 
+// replaces polish letters with basic ascii
+void
+win1250_to_ascii( std::string &Input ) {
+
+    std::unordered_map<char, char> charmap{
+        { 165, 'A' }, { 198, 'C' }, { 202, 'E' }, { 163, 'L' }, { 209, 'N' }, { 211, 'O' }, { 140, 'S' }, { 143, 'Z' }, { 175, 'Z' },
+        { 185, 'a' }, { 230, 'c' }, { 234, 'e' }, { 179, 'l' }, { 241, 'n' }, { 243, 'o' }, { 156, 's' }, { 159, 'z' }, { 191, 'z' }
+    };
+    std::unordered_map<char, char>::const_iterator lookup;
+    for( auto &input : Input ) {
+        if( ( lookup = charmap.find( input ) ) != charmap.end() )
+            input = lookup->second;
+    }
+}
+
 void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,
                 double &phi, double &Xout, double &Yout)
 /*wylicza polozenie Xout Yout i orientacje phi punktu na elemencie dL luku*/

@@ -74,7 +74,9 @@ int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajnoś
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
 bool Global::bSmudge = false; // czy wyświetlać smugę, a pojazd użytkownika na końcu
+/*
 std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
+*/
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
 
 // parametry scenerii
@@ -189,17 +191,20 @@ int Global::iBpp = 32; // chyba już nie używa się kart, na których 16bpp co�
 //randomizacja
 std::mt19937 Global::random_engine = std::mt19937(std::time(NULL));
 // maciek001: konfiguracja wstępna portu COM
-bool Global::bMWDdebugEnable = false;
-bool Global::bMWDInputDataEnable = false;
-unsigned int Global::iMWDBaudrate = 500000;
-std::string Global::sMWDPortId = "COM1";		// nazwa portu z którego korzystamy - na razie nie działa
-bool Global::bMWDBreakEnable = false;		// zmienić na FALSE!!! jak już będzie działać wczytywanie z *.ini
-double Global::fMWDAnalogCalib[4][3] = {{1023, 0, 1023},{1023, 0, 1023},{1023, 0, 1023},{1023, 0, 1023}};	// wartość max potencjometru, wartość min potencjometru, rozdzielczość (max. wartość jaka może być -1)
-double Global::fMWDzg[2] = {0.9, 1023};
-double Global::fMWDpg[2] = {0.8, 1023};
-double Global::fMWDph[2] = {0.6, 1023};
-double Global::fMWDvolt[2] = {4000, 1023};
-double Global::fMWDamp[2] = {800, 1023};
+bool Global::bMWDmasterEnable = false;              // główne włączenie portu!
+bool Global::bMWDdebugEnable = false;               // włącz dodawanie do logu
+int Global::iMWDDebugMode = 0;                      // co ma wyświetlać w logu
+std::string Global::sMWDPortId = "COM1";             // nazwa portu z którego korzystamy
+unsigned long int Global::iMWDBaudrate = 9600;      // prędkość transmisji danych
+bool Global::bMWDInputEnable = false;               // włącz wejścia
+bool Global::bMWDBreakEnable = false;               // włącz wejścia analogowe
+double Global::fMWDAnalogInCalib[4][2] = { { 0, 1023 },{ 0, 1023 },{ 0, 1023 },{ 0, 1023 } };	// wartość max potencjometru, wartość min potencjometru, rozdzielczość (max. wartość jaka może być)
+double Global::fMWDzg[2] = { 0.9, 1023 };
+double Global::fMWDpg[2] = { 0.8, 1023 };
+double Global::fMWDph[2] = { 0.6, 1023 };
+double Global::fMWDvolt[2] = { 4000, 1023 };
+double Global::fMWDamp[2] = { 800, 1023 };
+int Global::iMWDdivider = 5;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -804,93 +809,94 @@ void Global::ConfigParse(cParser &Parser)
                 >> Global::Background[2]; // b
         }
         // maciek001: ustawienia MWD
-        else if (token == "mwddebug")
-        { // czy włączyć obslugę hamulców
-            Parser.getTokens();
-            Parser >> token;
-            bMWDdebugEnable = (token == "yes");
-        }
-        else if (token == "comportname")
-        {
-            Parser.getTokens();
-            Parser >> sMWDPortId;
-            if (bMWDdebugEnable)
-                WriteLog("PortName " + sMWDPortId);
-        }
-        else if (token == "mwdbaudrate")
-        { // pobierz prędkość transmisji danych
-            Parser.getTokens(1, false);
-            Parser >> iMWDBaudrate;
-            if (bMWDdebugEnable)
-                WriteLog("PortName " + to_string(iMWDBaudrate));
-        }
-        else if (token == "mwdbreakenable")
-        { // czy włączyć obsługę hamulców
-            Parser.getTokens();
-            Parser >> token;
-            bMWDBreakEnable = (token == "yes");
-        }
-        else if (token == "mwdinputenable")
-        {
-            Parser.getTokens();
-            Parser >> token;
-            bMWDInputDataEnable = (token == "yes");
-        }
-        else if (token == "mwdbreak") // wartość max dla potencjometru hamulca zasadniczego
-        {
-            Parser.getTokens();
-            Parser >> token;
-            int i = stol_def(token, -1); // numer wejďż˝cia
-            if ((i >= 0) && (i <= 3))
-            {
-                Parser.getTokens(3, false);
-                Parser >> fMWDAnalogCalib[i][0] // max -> 2^16 -1
-                    >> fMWDAnalogCalib[i][1] // min -> 0
-                    >>
-                    fMWDAnalogCalib[i][2]; // rozdzielczość -> 255 maksymalna możliwa wartość z ADC
-                if (bMWDdebugEnable)
-                    WriteLog("Break settings " + to_string(i) + ": " +
-                             to_string(fMWDAnalogCalib[i][0]) + " " +
-                             to_string(fMWDAnalogCalib[i][1]) + " " +
-                             to_string(fMWDAnalogCalib[i][2]));
-            }
-        }
-        else if (token == "mwdzbiornikglowny")
-        {
-            Parser.getTokens(2, false);
-            Parser >> fMWDzg[0] >> fMWDzg[1];
-            if (bMWDdebugEnable)
-                WriteLog("AirTank settings: " + to_string(fMWDzg[0]) + " " + to_string(fMWDzg[1]));
-        }
-        else if (token == "mwdprzewodglowny")
-        {
-            Parser.getTokens(2, false);
-            Parser >> fMWDpg[0] >> fMWDpg[1];
-            if (bMWDdebugEnable)
-                WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + " " +
-                         to_string(fMWDpg[1]));
-        }
-        else if (token == "mwdcylinderhamulcowy")
-        {
-            Parser.getTokens(2, false);
-            Parser >> fMWDph[0] >> fMWDph[1];
-            if (bMWDdebugEnable)
-                WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + " " + to_string(fMWDph[1]));
-        }
-        else if (token == "mwdwoltomierzwn")
-        {
-            Parser.getTokens(2, false);
-            Parser >> fMWDvolt[0] >> fMWDvolt[1];
-            if (bMWDdebugEnable)
-                WriteLog("Volt settings: " + to_string(fMWDvolt[0]) + " " + to_string(fMWDvolt[1]));
-        }
-        else if (token == "mwdamperomierzwn")
-        {
-            Parser.getTokens(2, false);
-            Parser >> fMWDamp[0] >> fMWDamp[1];
-            if (bMWDdebugEnable)
-                WriteLog("Amp settings: " + to_string(fMWDamp[0]) + " " + to_string(fMWDamp[1]));
-        }
+		else if (token == "mwdmasterenable") {         // główne włączenie maszyny!
+			Parser.getTokens();
+			Parser >> token;
+			bMWDmasterEnable = (token == "yes");
+			if (bMWDdebugEnable) WriteLog("SerialPort Master Enable");
+		}
+		else if (token == "mwddebugenable") {         // logowanie pracy
+			Parser.getTokens();
+			Parser >> token;
+			bMWDdebugEnable = (token == "yes");
+			if (bMWDdebugEnable) WriteLog("MWD Debug Mode On");
+		}
+		else if (token == "mwddebugmode") {           // co ma być debugowane?
+			Parser.getTokens(1, false);
+			Parser >> iMWDDebugMode;
+			if (bMWDdebugEnable) WriteLog("Debug Mode = " + to_string(iMWDDebugMode));
+		}
+		else if (token == "mwdcomportname") {         // nazwa portu COM
+			Parser.getTokens();
+			Parser >> sMWDPortId;
+			if (bMWDdebugEnable) WriteLog("PortName " + sMWDPortId);
+		}
+		else if (token == "mwdbaudrate") {            // prędkość transmisji danych
+			Parser.getTokens(1, false);
+			Parser >> iMWDBaudrate;
+			if (bMWDdebugEnable) WriteLog("Baud rate = " + to_string((int)(iMWDBaudrate / 1000)) + (" kbps"));
+		}
+		else if (token == "mwdinputenable") {         // włącz wejścia
+			Parser.getTokens();
+			Parser >> token;
+			bMWDInputEnable = (token == "yes");
+			if (bMWDdebugEnable && bMWDInputEnable) WriteLog("MWD Input Enable");
+		}
+		else if (token == "mwdbreakenable") {         // włącz obsługę hamulców
+			Parser.getTokens();
+			Parser >> token;
+			bMWDBreakEnable = (token == "yes");
+			if (bMWDdebugEnable && bMWDBreakEnable) WriteLog("MWD Break Enable");
+		}
+		else if (token == "mwdmainbreakconfig") {      // ustawienia hamulca zespolonego
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[0][0] >> fMWDAnalogInCalib[0][1];
+			if (bMWDdebugEnable) WriteLog("Main break settings: " + to_string(fMWDAnalogInCalib[0][0]) + (" ") + to_string(fMWDAnalogInCalib[0][1]));
+		}
+		else if (token == "mwdlocbreakconfig") {	// ustawienia hamulca lokomotywy
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[1][0] >> fMWDAnalogInCalib[1][1];
+			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[1][1]));
+		}
+		else if (token == "mwdanalogin1config") {      // ustawienia hamulca zespolonego
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[2][0] >> fMWDAnalogInCalib[2][1];
+			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[2][1]));
+		}
+		else if (token == "mwdanalogin2config") {	// ustawienia hamulca lokomotywy
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[3][0] >> fMWDAnalogInCalib[3][1];
+			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[3][1]));
+		}
+		else if (token == "mwdmaintankpress") {        // max ciśnienie w zbiorniku głownym i rozdzielczość
+			Parser.getTokens(2, false);
+			Parser >> fMWDzg[0] >> fMWDzg[1];
+			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + to_string(" ") + to_string(fMWDzg[1]));
+		}
+		else if (token == "mwdmainpipepress") {        // max ciśnienie w przewodzie głownym i rozdzielczość
+			Parser.getTokens(2, false);
+			Parser >> fMWDpg[0] >> fMWDpg[1];
+			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + to_string(" ") + to_string(fMWDpg[1]));
+		}
+		else if (token == "mwdbreakpress") {           // max ciśnienie w hamulcach i rozdzielczość
+			Parser.getTokens(2, false);
+			Parser >> fMWDph[0] >> fMWDph[1];
+			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + to_string(" ") + to_string(fMWDph[1]));
+		}
+		else if (token == "mwdhivoltmeter") {          // max napięcie na woltomierzu WN
+			Parser.getTokens(2, false);
+			Parser >> fMWDvolt[0] >> fMWDvolt[1];
+			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + to_string(" ") + to_string(fMWDvolt[1]));
+		}
+		else if (token == "mwdhiampmeter") {
+			Parser.getTokens(2, false);
+			Parser >> fMWDamp[0] >> fMWDamp[1];
+			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + to_string(" ") + to_string(fMWDamp[1]));
+		}
+		else if (token == "mwddivider") {
+			Parser.getTokens(1, false);
+			Parser >> iMWDdivider;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
@@ -1130,6 +1136,7 @@ bool Global::DoEvents()
 
 TTranscripts::TTranscripts()
 {
+/*
     iCount = 0; // brak linijek do wyświetlenia
     iStart = 0; // wypełniać od linijki 0
     for (int i = 0; i < MAX_TRANSCRIPTS; ++i)
@@ -1137,19 +1144,35 @@ TTranscripts::TTranscripts()
         aLines[i].fHide = -1.0; // wolna pozycja (czas symulacji, 360.0 to doba)
         aLines[i].iNext = -1; // nie ma kolejnej
     }
+*/
     fRefreshTime = 360.0; // wartośc zaporowa
 };
 TTranscripts::~TTranscripts(){};
-void TTranscripts::AddLine(char const *txt, float show, float hide, bool it)
+
+void TTranscripts::AddLine(std::string const &txt, float show, float hide, bool it)
 { // dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
     if (show == hide)
         return; // komentarz jest ignorowany
     show = Global::fTimeAngleDeg + show / 240.0; // jeśli doba to 360, to 1s będzie równe 1/240
     hide = Global::fTimeAngleDeg + hide / 240.0;
+
+    TTranscript transcript;
+    transcript.asText = txt;
+    transcript.fShow = show;
+    transcript.fHide = hide;
+    transcript.bItalic = it;
+    aLines.emplace_back( transcript );
+    // set the next refresh time while at it
+    // TODO, TBD: sort the transcript lines? in theory, they should be coming arranged in the right order anyway
+    // short of cases with multiple sounds overleaping
+    fRefreshTime = aLines.front().fHide;
+/*
     int i = iStart, j, k; // od czegoś trzeba zacząć
     while ((aLines[i].iNext >= 0) ? (aLines[aLines[i].iNext].fShow <= show) :
                                     false) // póki nie koniec i wcześniej puszczane
         i = aLines[i].iNext; // przejście do kolejnej linijki
+*/
+/*
     //(i) wskazuje na linię, po której należy wstawić dany tekst, chyba że
     while (txt ? *txt : false)
         for (j = 0; j < MAX_TRANSCRIPTS; ++j)
@@ -1176,11 +1199,13 @@ void TTranscripts::AddLine(char const *txt, float show, float hide, bool it)
                     fRefreshTime = show; // to odświeżyć wcześniej
                 break; // więcej już nic
             }
+*/
 };
-void TTranscripts::Add(char const *txt, float len, bool backgorund)
+void TTranscripts::Add(std::string const &txt, float len, bool backgorund)
 { // dodanie tekstów, długość dźwięku, czy istotne
-    if (!txt)
+    if (true == txt.empty())
         return; // pusty tekst
+/*
     int i = 0, j = int(0.5 + 10.0 * len); //[0.1s]
     if (*txt == '[')
     { // powinny być dwa nawiasy
@@ -1197,14 +1222,44 @@ void TTranscripts::Add(char const *txt, float len, bool backgorund)
                 ++txt; // pominięcie drugiego ]
         }
     }
-    AddLine(txt, 0.1 * i, 0.1 * j, false);
+*/
+    std::string asciitext{ txt }; win1250_to_ascii( asciitext ); // TODO: launch relevant conversion table based on language
+    cParser parser( asciitext );
+    while( true == parser.getTokens( 3, false, "[]\n" ) ) {
+
+        float begin, end;
+        std::string transcript;
+        parser
+            >> begin
+            >> end
+            >> transcript;
+        AddLine( transcript, 0.10 * begin, 0.12 * end, false );
+    }
+    // try to handle malformed(?) cases with no show/hide times
+    std::string transcript; parser >> transcript;
+    while( false == transcript.empty() ) {
+
+        WriteLog( "Transcript text with no display/hide times: \"" + transcript + "\"" );
+        AddLine( transcript, 0.0, 0.12 * transcript.size(), false );
+        transcript = ""; parser >> transcript;
+    }
 };
 void TTranscripts::Update()
 { // usuwanie niepotrzebnych (nie częściej niż 10 razy na sekundę)
-    if (fRefreshTime > Global::fTimeAngleDeg)
+    if( Global::fTimeAngleDeg < fRefreshTime )
         return; // nie czas jeszcze na zmiany
     // czas odświeżenia można ustalić wg tabelki, kiedy coś się w niej zmienia
-    fRefreshTime = Global::fTimeAngleDeg + 360.0; // wartość zaporowa
+ //   fRefreshTime = Global::fTimeAngleDeg + 360.0; // wartość zaporowa
+
+    while( ( false == aLines.empty() )
+        && ( Global::fTimeAngleDeg >= aLines.front().fHide ) ) {
+        // remove expired lines
+        aLines.pop_front();
+    }
+    // update next refresh time
+    if( false == aLines.empty() ) { fRefreshTime = aLines.front().fHide; }
+    else                          { fRefreshTime = 360.0f; }
+/*
     int i = iStart, j = -1; // od czegoś trzeba zacząć
     bool change = false; // czy zmieniać napisy?
     do
@@ -1247,6 +1302,7 @@ void TTranscripts::Update()
         for (++j; j < 5; ++j)
             Global::asTranscript[j] = ""; // i czyszczenie nieużywanych linijek
     }
+*/
 };
 
 // Ra: tymczasowe rozwiązanie kwestii zagranicznych (czeskich) napisów

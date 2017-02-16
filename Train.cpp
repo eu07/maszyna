@@ -3758,7 +3758,7 @@ bool TTrain::Update( double const Deltatime )
         {
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : 
-						Global::iFeedbackMode == 4 ) : 
+						(Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
@@ -3782,7 +3782,7 @@ bool TTrain::Update( double const Deltatime )
         if (ggLocalBrake.SubModel)
         {
             if (DynamicObject->Mechanik ?
-                    (DynamicObject->Mechanik->AIControllFlag ? false : Global::iFeedbackMode == 4) :
+                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || Global::bMWDmasterEnable)) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 			  // Firleju: dlatego kasujemy i zastepujemy funkcją w Console

@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mtable.h"
+#include "mczapkie/mctools.h"
 
 // using namespace Mtable;
 std::shared_ptr<TMTableTime> Mtable::GlobalTime;
@@ -278,8 +279,10 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                         if (s != "|")
                             break;
                     } // while (!(() || fin.eof()));
-                    if (s != "|")
+                    if( s != "|" ) {
                         Relation1 = s;
+                        win1250_to_ascii( Relation1 );
+                    }
                     else
                         ConversionError = -5;
                     while (fin >> s || !fin.bad())
@@ -294,6 +297,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                             break;
                     } // while (!( || (fin.eof())));
                     fin >> Relation2;
+                    win1250_to_ascii( Relation2 );
                     while (fin >> s || !fin.bad())
                     {
                         if (s == "Wymagany")
@@ -352,6 +356,8 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                             while (s.find("|") == std::string::npos)
                                 fin >> s;
                             fin >> record->StationName;
+                            // get rid of non-ascii chars. TODO: run correct version based on locale
+                            win1250_to_ascii( record->StationName ); 
                             do
                             {
                                 fin >> s;

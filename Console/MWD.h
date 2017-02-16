@@ -19,48 +19,53 @@ http://mozilla.org/MPL/2.0/.
 #define MWDH
 //---------------------------------------------------------------------------
 
+#define BYTETOWRITE 31  		// ilość bajtów przesyłanych z MaSzyny
+#define BYTETOREAD  16  		// ilość bajtów przesyłanych do MaSzyny
+
 typedef unsigned char BYTE;
 typedef unsigned long DWORD;
 
-class MWDComm
+class TMWDComm
 {
-  private:
-    int MWDTime; //
-    char lastStateData[6], maskData[6], maskSwitch[6], bitSwitch[6];
-    int bocznik, nastawnik, kierunek;
-    char bnkMask;
+private:
+	int MWDTime;	//
+	char lastStateData[6], maskData[6], maskSwitch[6], bitSwitch[6];
+	int bocznik, nastawnik, kierunek;
+	char bnkMask;
 
-    bool ReadData(); // BYTE *pReadDataBuff);
-    bool SendData(); // BYTE *pWriteDataBuff);
-    void CheckData(); // sprawdzanie zmian wejść i kontrola mazaków HASLERA
-    void KeyBoard(int key, bool s);
+	bool ReadData();	//BYTE *pReadDataBuff);
+	bool SendData();	//BYTE *pWriteDataBuff);
+	void CheckData();	//sprawdzanie zmian wejść i kontrola mazaków HASLERA
+	void KeyBoard(int key, bool s);
 
-    bool bRysik1H;
-    bool bRysik1L;
-    bool bRysik2H;
-    bool bRysik2L;
+	//void CheckData2();
 
-  public:
-    bool Open(); // Otwarcie portu
-    bool Close(); // Zamknięcie portu
-    bool Run(); // Obsługa portu
-    bool GetMWDState(); // sprawdź czy port jest otwarty, 0 zamknięty, 1 otwarty
+	bool bRysik1H;
+	bool bRysik1L;
+	bool bRysik2H;
+	bool bRysik2L;
 
-    // zmienne do rysików HASLERA
-    bool bSHPstate;
-    bool bPrzejazdSHP;
-    bool bKabina1;
-    bool bKabina2;
-    bool bHamowanie;
-    bool bCzuwak;
+public:
+	bool Open();		// Otwarcie portu
+	bool Close();		// Zamknięcie portu
+	bool Run();			// Obsługa portu
+	bool GetMWDState(); // sprawdź czy port jest otwarty, 0 zamknięty, 1 otwarty
 
-    float fAnalog[4]; // trzymanie danych z wejść analogowych
+	// zmienne do rysików HASLERA
+	bool bSHPstate;
+	bool bPrzejazdSHP;
+	bool bKabina1;
+	bool bKabina2;
+	bool bHamowanie;
+	bool bCzuwak;
+	
+	unsigned int uiAnalog[4]; 		// trzymanie danych z wejść analogowych
 
-    BYTE ReadDataBuff[17]; // bufory danych
-    BYTE WriteDataBuff[31];
+	BYTE ReadDataBuff[BYTETOREAD]; //17]; // bufory danych
+	BYTE WriteDataBuff[BYTETOWRITE]; //31];
 
-    MWDComm(); // konstruktor
-    ~MWDComm(); // destruktor
+    TMWDComm(); // konstruktor
+    ~TMWDComm(); // destruktor
 };
 #endif
 

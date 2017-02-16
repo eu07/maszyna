@@ -185,7 +185,7 @@ private:
 
   private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
   public: // tymczasowo udostępnione do wyszukiwania drutu
-    int iAnimType[ANIM_TYPES]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
+      int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
   private:
     int iAnimations; // liczba obiektów animujących
 /*
