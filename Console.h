@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 class TConsoleDevice; // urządzenie podłączalne za pomocą DLL
 class TPoKeys55;
 class TLPT;
-class MWDComm;        // maciek001: dodana obsluga portu COM
+class TMWDComm;        // maciek001: dodana obsluga portu COM
 
 // klasy konwersji znaków wprowadzanych z klawiatury
 class TKeyTrans
@@ -32,7 +32,7 @@ class Console
     static int iBits; // podstawowy zestaw lampek
     static TPoKeys55 *PoKeys55[2]; // może ich być kilka
     static TLPT *LPT;
-    static MWDComm *MWD; // maciek001: na potrzeby MWD
+    static TMWDComm *MWDComm; // maciek001: na potrzeby MWD
     static void BitsUpdate(int mask);
     // zmienne dla trybu "jednokabinowego", potrzebne do współpracy z pulpitem (PoKeys)
     // używając klawiatury, każdy pojazd powinien mieć własny stan przełączników
