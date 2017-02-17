@@ -12,19 +12,19 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
+#include "stdafx.h"
+#include "World.h"
 
 #include "opengl/glew.h"
 #include "opengl/glut.h"
-#pragma hdrstop
 
-#include "Timer.h"
-#include "mtable.hpp"
-#include "Sound.h"
-#include "World.h"
-#include "Logs.h"
 #include "Globals.h"
+#include "Logs.h"
+#include "MdlMngr.h"
+#include "Texture.h"
+#include "Timer.h"
+#include "mtable.h"
+#include "Sound.h"
 #include "Camera.h"
 #include "ResourceManager.h"
 #include "Event.h"
@@ -35,15 +35,12 @@ http://mozilla.org/MPL/2.0/.
 #define TEXTURE_FILTER_CONTROL_EXT 0x8500
 #define TEXTURE_LOD_BIAS_EXT 0x8501
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 
 typedef void(APIENTRY *FglutBitmapCharacter)(void *font, int character); // typ funkcji
 FglutBitmapCharacter glutBitmapCharacterDLL = NULL; // deklaracja zmiennej
-HINSTANCE hinstGLUT32 = NULL; // wskaŸnik do GLUT32.DLL
+HINSTANCE hinstGLUT32 = NULL; // wskaÅºnik do GLUT32.DLL
 // GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
-TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
-
-using namespace Timer;
+TDynamicObject *Controlled = NULL; // pojazd, ktÃ³ry prowadzimy
 
 const double fTimeMax = 1.00; //[s] maksymalny czas aktualizacji w jednek klatce
 
@@ -57,40 +54,39 @@ TWorld::TWorld()
         KeyEvents[i] = NULL; // eventy wyzwalane klawiszami cyfrowymi
     Global::iSlowMotion = 0;
     // Global::changeDynObj=NULL;
-    OutText1 = ""; // teksty wyœwietlane na ekranie
+    OutText1 = ""; // teksty wyÅ›wietlane na ekranie
     OutText2 = "";
     OutText3 = "";
-    iCheckFPS = 0; // kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
+    iCheckFPS = 0; // kiedy znÃ³w sprawdziÄ‡ FPS, Å¼eby wyÅ‚Ä…czaÄ‡ optymalizacji od razu do zera
     pDynamicNearest = NULL;
-    fTimeBuffer = 0.0; // bufor czasu aktualizacji dla sta³ego kroku fizyki
-    fMaxDt = 0.01; //[s] pocz¹tkowy krok czasowy fizyki
+    fTimeBuffer = 0.0; // bufor czasu aktualizacji dla staÅ‚ego kroku fizyki
+    fMaxDt = 0.01; //[s] poczÄ…tkowy krok czasowy fizyki
     fTime50Hz = 0.0; // bufor czasu dla komunikacji z PoKeys
 }
 
 TWorld::~TWorld()
 {
-    Global::bManageNodes = false; // Ra: wy³¹czenie wyrejestrowania, bo siê sypie
+    Global::bManageNodes = false; // Ra: wyÅ‚Ä…czenie wyrejestrowania, bo siÄ™ sypie
     TrainDelete();
-    // Ground.Free(); //Ra: usuniêcie obiektów przed usuniêciem dŸwiêków - sypie siê
+    // Ground.Free(); //Ra: usuniÄ™cie obiektÃ³w przed usuniÄ™ciem dÅºwiÄ™kÃ³w - sypie siÄ™
     TSoundsManager::Free();
     TModelsManager::Free();
-    TTexturesManager::Free();
     glDeleteLists(base, 96);
     if (hinstGLUT32)
         FreeLibrary(hinstGLUT32);
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
-{ // usuniêcie pojazdu prowadzonego przez u¿ytkownika
+{ // usuniÄ™cie pojazdu prowadzonego przez uÅ¼ytkownika
     if (d)
         if (Train)
             if (Train->Dynamic() != d)
-                return; // nie tego usuwaæ
-    delete Train; // i nie ma czym sterowaæ
+                return; // nie tego usuwaÄ‡
+    delete Train; // i nie ma czym sterowaÄ‡
     Train = NULL;
-    Controlled = NULL; // tego te¿ ju¿ nie ma
+    Controlled = NULL; // tego teÅ¼ juÅ¼ nie ma
     mvControlled = NULL;
-    Global::pUserDynamic = NULL; // tego te¿ nie ma
+    Global::pUserDynamic = NULL; // tego teÅ¼ nie ma
 };
 
 GLvoid TWorld::glPrint(const char *txt) // custom GL "Print" routine
@@ -112,7 +108,7 @@ GLvoid TWorld::glPrint(const char *txt) // custom GL "Print" routine
     }
 }
 
-/* Ra: do opracowania: wybor karty graficznej ~Intel gdy s¹ dwie...
+/* Ra: do opracowania: wybor karty graficznej ~Intel gdy sÄ… dwie...
 BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
 {
     FARPROC EnumDisplayDevices;
@@ -169,16 +165,16 @@ BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
 
 bool TWorld::Init(HWND NhWnd, HDC hDC)
 {
-    double time = (double)Now();
+	auto timestart = std::chrono::system_clock::now();
     Global::hWnd = NhWnd; // do WM_COPYDATA
-    Global::pCamera = &Camera; // Ra: wskaŸnik potrzebny do likwidacji drgañ
+    Global::pCamera = &Camera; // Ra: wskaÅºnik potrzebny do likwidacji drgaÅ„
     Global::detonatoryOK = true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
     WriteLog(Global::asVersion);
-#if sizeof(TSubModel) != 256
-    Error("Wrong sizeof(TSubModel) is " + AnsiString(sizeof(TSubModel)));
-    return false;
-#endif
+	if( sizeof( TSubModel ) != 256 ) {
+		Error( "Wrong sizeof(TSubModel) is " + std::to_string(sizeof( TSubModel )) );
+		return false;
+	}
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
              "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others");
@@ -187,7 +183,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Vendor:");
     // Winger030405: sprawdzanie sterownikow
     WriteLog((char *)glGetString(GL_VENDOR));
-    AnsiString glver = ((char *)glGetString(GL_VERSION));
+    std::string glver = ((char *)glGetString(GL_VERSION));
     WriteLog("OpenGL Version:");
     WriteLog(glver);
     if ((glver == "1.5.1") || (glver == "1.5.2"))
@@ -199,41 +195,42 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     else
         Global::detonatoryOK = true;
-    // Ra: umieszczone w EU07.cpp jakoœ nie chce dzia³aæ
-    while (glver.LastDelimiter(".") > glver.Pos("."))
-        glver = glver.SubString(1, glver.LastDelimiter(".") - 1); // obciêcie od drugiej kropki
+    // Ra: umieszczone w EU07.cpp jakoÅ› nie chce dziaÅ‚aÄ‡
+	while( glver.rfind( '.' ) > glver.find( '.' ) ) {
+		glver = glver.substr( 0, glver.rfind( '.' ) - 1 ); // obciÄ™cie od drugiej kropki
+	}
     double ogl;
     try
     {
-        ogl = glver.ToDouble();
+        ogl = std::stod( glver );
     }
     catch (...)
     {
         ogl = 0.0;
     }
-    if (Global::fOpenGL > 0.0) // jeœli by³a wpisane maksymalna wersja w EU07.INI
+    if (Global::fOpenGL > 0.0) // jeÅ›li byÅ‚a wpisane maksymalna wersja w EU07.INI
     {
-        if (ogl > 0.0) // zak³adaj¹c, ¿e siê odczyta³o dobrze
-            if (ogl < Global::fOpenGL) // a karta oferuje ni¿sz¹ wersjê ni¿ wpisana
-                Global::fOpenGL = ogl; // to przyj¹c to z karty
+        if (ogl > 0.0) // zakÅ‚adajÄ…c, Å¼e siÄ™ odczytaÅ‚o dobrze
+            if (ogl < Global::fOpenGL) // a karta oferuje niÅ¼szÄ… wersjÄ™ niÅ¼ wpisana
+                Global::fOpenGL = ogl; // to przyjÄ…c to z karty
     }
-    else if (ogl < 1.3) // sprzêtowa deompresja DDS zwykle wymaga 1.3
-        Error("Missed OpenGL 1.3+ drivers!"); // b³¹d np. gdy wersja 1.1, a nie ma wpisu w EU07.INI
-    Global::bOpenGL_1_5 = (Global::fOpenGL >= 1.5); // s¹ fragmentaryczne animacje VBO
-
+    else if (false == GLEW_VERSION_1_3) // sprzÄ™towa deompresja DDS zwykle wymaga 1.3
+        Error("Missed OpenGL 1.3+ drivers!"); // bÅ‚Ä…d np. gdy wersja 1.1, a nie ma wpisu w EU07.INI
+/*
+    Global::bOpenGL_1_5 = (Global::fOpenGL >= 1.5); // sÄ… fragmentaryczne animacje VBO
+*/
     WriteLog("Supported extensions:");
     WriteLog((char *)glGetString(GL_EXTENSIONS));
-    if (glewGetExtension("GL_ARB_vertex_buffer_object")) // czy jest VBO w karcie graficznej
+    if (GLEW_ARB_vertex_buffer_object) // czy jest VBO w karcie graficznej
     {
-        if (AnsiString((char *)glGetString(GL_VENDOR))
-                .Pos("Intel")) // wymuszenie tylko dla kart Intel
-        { // karty Intel nie nadaj¹ siê do grafiki 3D, ale robimy wyj¹tek, bo to w koñcu symulator
+        if( std::string( (char *)glGetString(GL_VENDOR) ).find("Intel") != std::string::npos ) // wymuszenie tylko dla kart Intel
+        { // karty Intel nie nadajÄ… siÄ™ do grafiki 3D, ale robimy wyjÄ…tek, bo to w koÅ„cu symulator
             Global::iMultisampling =
                 0; // to robi problemy na "Intel(R) HD Graphics Family" - czarny ekran
             if (Global::fOpenGL >=
-                1.4) // 1.4 mia³o obs³ugê VBO, ale bez opcji modyfikacji fragmentu bufora
-                Global::bUseVBO = true; // VBO w³¹czane tylko, jeœli jest obs³uga oraz nie ustawiono
-            // ni¿szego numeru
+                1.4) // 1.4 miaÅ‚o obsÅ‚ugÄ™ VBO, ale bez opcji modyfikacji fragmentu bufora
+                Global::bUseVBO = true; // VBO wÅ‚Ä…czane tylko, jeÅ›li jest obsÅ‚uga oraz nie ustawiono
+            // niÅ¼szego numeru
         }
         if (Global::bUseVBO)
             WriteLog("Ra: The VBO is found and will be used.");
@@ -243,30 +240,30 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     else
     {
         WriteLog("Ra: No VBO found - Display Lists used. Graphics card too old?");
-        Global::bUseVBO = false; // mo¿e byæ w³¹czone parametrem w INI
+        Global::bUseVBO = false; // moÅ¼e byÄ‡ wÅ‚Ä…czone parametrem w INI
     }
-    if (Global::bDecompressDDS) // jeœli sprzêtowa (domyœlnie jest false)
+    if (Global::bDecompressDDS) // jeÅ›li sprzÄ™towa (domyÅ›lnie jest false)
         WriteLog("DDS textures support at OpenGL level is disabled in INI file.");
     else
     {
         Global::bDecompressDDS =
-            !glewGetExtension("GL_EXT_texture_compression_s3tc"); // czy obs³ugiwane?
-        if (Global::bDecompressDDS) // czy jest obs³uga DDS w karcie graficznej
+            !(true == GLEW_EXT_texture_compression_s3tc); // czy obsÅ‚ugiwane?
+        if (Global::bDecompressDDS) // czy jest obsÅ‚uga DDS w karcie graficznej
             WriteLog("DDS textures are not supported.");
-        else // brak obs³ugi DDS - trzeba w³¹czyæ programow¹ dekompresjê
+        else // brak obsÅ‚ugi DDS - trzeba wÅ‚Ä…czyÄ‡ programowÄ… dekompresjÄ™
             WriteLog("DDS textures are supported.");
     }
     if (Global::iMultisampling)
-        WriteLog("Used multisampling of " + AnsiString(Global::iMultisampling) + " samples.");
+        WriteLog("Used multisampling of " + std::to_string(Global::iMultisampling) + " samples.");
     { // ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
         GLint i;
         glGetIntegerv(GL_MAX_TEXTURE_SIZE, &i);
         if (i < Global::iMaxTextureSize)
             Global::iMaxTextureSize = i;
-        WriteLog("Max texture size: " + AnsiString(Global::iMaxTextureSize));
+        WriteLog("Max texture size: " + std::to_string(Global::iMaxTextureSize));
     }
     /*-----------------------Render Initialization----------------------*/
-    if (Global::fOpenGL >= 1.2) // poni¿sze nie dzia³a w 1.1
+    if (Global::fOpenGL >= 1.2) // poniÅ¼sze nie dziaÅ‚a w 1.1
         glTexEnvf(TEXTURE_FILTER_CONTROL_EXT, TEXTURE_LOD_BIAS_EXT, -1);
     GLfloat FogColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
@@ -296,7 +293,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glEnable(GL_DEPTH_TEST);
 
     // McZapkie:261102-uruchomienie polprzezroczystosci (na razie linie) pod kierunkiem Marcina
-    // if (Global::bRenderAlpha) //Ra: wywalam tê flagê
+    // if (Global::bRenderAlpha) //Ra: wywalam tÄ™ flagÄ™
     {
         WriteLog("glEnable(GL_BLEND);");
         glEnable(GL_BLEND);
@@ -361,13 +358,13 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     Global::lightPos[2] = lp.z;
     Global::lightPos[3] = 0.0f;
 
-    // Ra: œwiat³a by sensowniej by³o ustawiaæ po wczytaniu scenerii
+    // Ra: Å›wiatÅ‚a by sensowniej byÅ‚o ustawiaÄ‡ po wczytaniu scenerii
 
-    // Ra: szcz¹tkowe œwiat³o rozproszone - ¿eby by³o cokolwiek widaæ w ciemnoœci
+    // Ra: szczÄ…tkowe Å›wiatÅ‚o rozproszone - Å¼eby byÅ‚o cokolwiek widaÄ‡ w ciemnoÅ›ci
     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::darkLight);
 
-    // Ra: œwiat³o 0 - g³ówne œwiat³o zewnêtrzne (S³oñce, Ksiê¿yc)
+    // Ra: Å›wiatÅ‚o 0 - gÅ‚Ã³wne Å›wiatÅ‚o zewnÄ™trzne (SÅ‚oÅ„ce, KsiÄ™Å¼yc)
     WriteLog("glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);");
     glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
     WriteLog("glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);");
@@ -379,7 +376,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("glEnable(GL_LIGHT0);");
     glEnable(GL_LIGHT0);
 
-    // glColor() ma zmieniaæ kolor wybrany w glColorMaterial()
+    // glColor() ma zmieniaÄ‡ kolor wybrany w glColorMaterial()
     WriteLog("glEnable(GL_COLOR_MATERIAL);");
     glEnable(GL_COLOR_MATERIAL);
 
@@ -421,10 +418,10 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
 
     /*--------------------Render Initialization End---------------------*/
 
-    WriteLog("Font init"); // pocz¹tek inicjacji fontów 2D
-    if (Global::bGlutFont) // jeœli wybrano GLUT font, próbujemy zlinkowaæ GLUT32.DLL
+    WriteLog("Font init"); // poczÄ…tek inicjacji fontÃ³w 2D
+    if (Global::bGlutFont) // jeÅ›li wybrano GLUT font, prÃ³bujemy zlinkowaÄ‡ GLUT32.DLL
     {
-        UINT mode = SetErrorMode(SEM_NOOPENFILEERRORBOX); // aby nie wrzeszcza³, ¿e znaleŸæ nie mo¿e
+        UINT mode = SetErrorMode(SEM_NOOPENFILEERRORBOX); // aby nie wrzeszczaÅ‚, Å¼e znaleÅºÄ‡ nie moÅ¼e
         hinstGLUT32 = LoadLibrary(TEXT("GLUT32.DLL")); // get a handle to the DLL module
         SetErrorMode(mode);
         // If the handle is valid, try to get the function address.
@@ -436,10 +433,10 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
         if (glutBitmapCharacterDLL)
             WriteLog("Used font from GLUT32.DLL.");
         else
-            Global::bGlutFont = false; // nie uda³o siê, trzeba spróbowaæ na Display List
+            Global::bGlutFont = false; // nie udaÅ‚o siÄ™, trzeba sprÃ³bowaÄ‡ na Display List
     }
     if (!Global::bGlutFont)
-    { // jeœli bezGLUTowy font
+    { // jeÅ›li bezGLUTowy font
         HFONT font; // Windows Font ID
         base = glGenLists(96); // storage for 96 characters
         font = CreateFont(-15, // height of font
@@ -481,9 +478,8 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glDisable(GL_DEPTH_TEST); // Disables depth testing
     glColor3f(3.0f, 3.0f, 3.0f);
 
-    GLuint logo;
-    logo = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "logo", 6);
-    glBindTexture(GL_TEXTURE_2D, logo); // Select our texture
+    auto logo = TextureManager.GetTextureId( "logo", szTexturePath, 6 );
+    TextureManager.Bind(logo); // Select our texture
 
     glBegin(GL_QUADS); // Drawing using triangles
     glTexCoord2f(0.0f, 0.0f);
@@ -529,8 +525,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
         glPrint("Tekstury / Textures...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
-
-    TTexturesManager::Init();
+/*
+    TTexturesManager.Init();
+*/
     WriteLog("Textures init OK");
     if (Global::detonatoryOK)
     {
@@ -565,7 +562,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
-    Ground.Init(Global::szSceneryFile, hDC);
+    Ground.Init(Global::SceneryFile, hDC);
     //    Global::tSinceStart= 0;
     Clouds.Init();
     WriteLog("Ground init OK");
@@ -597,7 +594,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog(buff);
     TGroundNode *nPlayerTrain = NULL;
     if (Global::asHumanCtrlVehicle != "ghostview")
-        nPlayerTrain = Ground.DynamicFind(Global::asHumanCtrlVehicle); // szukanie w tych z obsad¹
+        nPlayerTrain = Ground.DynamicFind(Global::asHumanCtrlVehicle); // szukanie w tych z obsadÄ…
     if (nPlayerTrain)
     {
         Train = new TTrain();
@@ -605,7 +602,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
         {
             Controlled = Train->Dynamic();
             mvControlled = Controlled->ControlledFind()->MoverParameters;
-            Global::pUserDynamic = Controlled; // renerowanie pojazdu wzglêdem kabiny
+            Global::pUserDynamic = Controlled; // renerowanie pojazdu wzglÄ™dem kabiny
             WriteLog("Player train init OK");
             if (Global::detonatoryOK)
             {
@@ -618,7 +615,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
         else
         {
             Error("Player train init failed!");
-            FreeFlyModeFlag = true; // Ra: automatycznie w³¹czone latanie
+            FreeFlyModeFlag = true; // Ra: automatycznie wÅ‚Ä…czone latanie
             if (Global::detonatoryOK)
             {
                 glRasterPos2f(-0.25f, -0.20f);
@@ -641,7 +638,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
                 glPrint("Wybrany pojazd nie istnieje w scenerii!");
             }
         }
-        FreeFlyModeFlag = true; // Ra: automatycznie w³¹czone latanie
+        FreeFlyModeFlag = true; // Ra: automatycznie wÅ‚Ä…czone latanie
         SwapBuffers(hDC); // swap buffers (double buffering)
         Controlled = NULL;
         mvControlled = NULL;
@@ -649,8 +646,8 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     }
     glEnable(GL_DEPTH_TEST);
     // Ground.pTrain=Train;
-    // if (!Global::bMultiplayer) //na razie w³¹czone
-    { // eventy aktywowane z klawiatury tylko dla jednego u¿ytkownika
+    // if (!Global::bMultiplayer) //na razie wÅ‚Ä…czone
+    { // eventy aktywowane z klawiatury tylko dla jednego uÅ¼ytkownika
         KeyEvents[0] = Ground.FindEvent("keyctrl00");
         KeyEvents[1] = Ground.FindEvent("keyctrl01");
         KeyEvents[2] = Ground.FindEvent("keyctrl02");
@@ -665,14 +662,15 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
 	if (Global::bOldSmudge == true)
-	light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga.tga");
+        light = TextureManager.GetTextureId( "smuga.tga", szTexturePath );
 	else
-    light = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, "smuga2.tga");
+        light = TextureManager.GetTextureId( "smuga2.tga", szTexturePath );
     // Camera.Reset();
-    ResetTimers();
-    WriteLog("Load time: " + FloatToStrF((86400.0 * ((double)Now() - time)), ffFixed, 7, 1) +
-             " seconds");
-    if (DebugModeFlag) // w Debugmode automatyczne w³¹czenie AI
+    Timer::ResetTimers();
+	WriteLog( "Load time: " +
+		std::to_string( std::chrono::duration_cast<std::chrono::seconds>(( std::chrono::system_clock::now() - timestart )).count() )
+		+ " seconds");
+    if (DebugModeFlag) // w Debugmode automatyczne wÅ‚Ä…czenie AI
         if (Train)
             if (Train->Dynamic()->Mechanik)
                 Train->Dynamic()->Mechanik->TakeControl(true);
@@ -680,35 +678,35 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
 };
 
 void TWorld::OnKeyDown(int cKey)
-{ //(cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
-    // Ra 2014-09: tu by mo¿na dodaæ tabelê konwersji: 256 wirtualnych kodów w kontekœcie dwóch
-    // prze³¹czników [Shift] i [Ctrl]
-    // na ka¿dy kod wirtualny niech przypadaj¹ 4 bajty: 2 dla naciœniêcia i 2 dla zwolnienia
-    // powtórzone 256 razy da 1kB na ka¿dy stan prze³¹czników, ³¹cznie bêdzie 4kB pierwszej tabeli
+{ //(cKey) to kod klawisza, cyfrowe i literowe siÄ™ zgadzajÄ…
+    // Ra 2014-09: tu by moÅ¼na dodaÄ‡ tabelÄ™ konwersji: 256 wirtualnych kodÃ³w w kontekÅ›cie dwÃ³ch
+    // przeÅ‚Ä…cznikÃ³w [Shift] i [Ctrl]
+    // na kaÅ¼dy kod wirtualny niech przypadajÄ… 4 bajty: 2 dla naciÅ›niÄ™cia i 2 dla zwolnienia
+    // powtÃ³rzone 256 razy da 1kB na kaÅ¼dy stan przeÅ‚Ä…cznikÃ³w, Å‚Ä…cznie bÄ™dzie 4kB pierwszej tabeli
     // przekodowania
     if (!Global::iPause)
-    { // podczas pauzy klawisze nie dzia³aj¹
-        AnsiString info = "Key pressed: [";
+    { // podczas pauzy klawisze nie dziaÅ‚ajÄ…
+        std::string info = "Key pressed: [";
         if (Console::Pressed(VK_SHIFT))
             info += "Shift]+[";
         if (Console::Pressed(VK_CONTROL))
             info += "Ctrl]+[";
-        if (cKey > 192) // coœ tam jeszcze ciekawego jest?
+        if (cKey > 192) // coÅ› tam jeszcze ciekawego jest?
         {
             if (cKey < 255) // 255 to [Fn] w laptopach
-                WriteLog(info + AnsiString(char(cKey - 128)) + "]");
+                WriteLog(info + (char)(cKey - 128) + "]");
         }
         else if (cKey >= 186)
-            WriteLog(info + AnsiString(";=,-./~").SubString(cKey - 185, 1) + "]");
-        else if (cKey > 123) // coœ tam jeszcze ciekawego jest?
-            WriteLog(info + AnsiString(cKey) + "]"); // numer klawisza
+            WriteLog(info + std::string(";=,-./~").substr(cKey - 186, 1) + "]");
+        else if (cKey > 123) // coÅ› tam jeszcze ciekawego jest?
+            WriteLog(info + std::to_string(cKey) + "]"); // numer klawisza
         else if (cKey >= 112) // funkcyjne
-            WriteLog(info + "F" + AnsiString(cKey - 111) + "]");
+            WriteLog(info + "F" + std::to_string(cKey - 111) + "]");
         else if (cKey >= 96)
-            WriteLog(info + "Num" + AnsiString("0123456789*+?-./").SubString(cKey - 95, 1) + "]");
+            WriteLog(info + "Num" + std::string("0123456789*+?-./").substr(cKey - 96, 1) + "]");
         else if (((cKey >= '0') && (cKey <= '9')) || ((cKey >= 'A') && (cKey <= 'Z')) ||
                  (cKey == ' '))
-            WriteLog(info + AnsiString(char(cKey)) + "]");
+            WriteLog(info + (char)(cKey) + "]");
         else if (cKey == '-')
             WriteLog(info + "Insert]");
         else if (cKey == '.')
@@ -717,52 +715,52 @@ void TWorld::OnKeyDown(int cKey)
             WriteLog(info + "Home]");
         else if (cKey == '#')
             WriteLog(info + "End]");
-        else if (cKey > 'Z') //¿eby nie logowaæ kursorów
-            WriteLog(info + AnsiString(cKey) + "]"); // numer klawisza
+        else if (cKey > 'Z') //Å¼eby nie logowaÄ‡ kursorÃ³w
+            WriteLog(info + std::to_string(cKey) + "]"); // numer klawisza
     }
     if ((cKey <= '9') ? (cKey >= '0') : false) // klawisze cyfrowe
     {
         int i = cKey - '0'; // numer klawisza
         if (Console::Pressed(VK_SHIFT))
         { // z [Shift] uruchomienie eventu
-            if (!Global::iPause) // podczas pauzy klawisze nie dzia³aj¹
+            if (!Global::iPause) // podczas pauzy klawisze nie dziaÅ‚ajÄ…
                 if (KeyEvents[i])
                     Ground.AddToQuery(KeyEvents[i], NULL);
         }
-        else // zapamiêtywanie kamery mo¿e dzia³aæ podczas pauzy
-            if (FreeFlyModeFlag) // w trybie latania mo¿na przeskakiwaæ do ustawionych kamer
+        else // zapamiÄ™tywanie kamery moÅ¼e dziaÅ‚aÄ‡ podczas pauzy
+            if (FreeFlyModeFlag) // w trybie latania moÅ¼na przeskakiwaÄ‡ do ustawionych kamer
             if ((Global::iTextMode != VK_F12) &&
-                (Global::iTextMode != VK_F3)) // ograniczamy u¿ycie kamer
+                (Global::iTextMode != VK_F3)) // ograniczamy uÅ¼ycie kamer
             {
                 if ((!Global::pFreeCameraInit[i].x && !Global::pFreeCameraInit[i].y &&
                      !Global::pFreeCameraInit[i].z))
-                { // jeœli kamera jest w punkcie zerowym, zapamiêtanie wspó³rzêdnych i k¹tów
+                { // jeÅ›li kamera jest w punkcie zerowym, zapamiÄ™tanie wspÃ³Å‚rzÄ™dnych i kÄ…tÃ³w
                     Global::pFreeCameraInit[i] = Camera.Pos;
                     Global::pFreeCameraInitAngle[i].x = Camera.Pitch;
                     Global::pFreeCameraInitAngle[i].y = Camera.Yaw;
                     Global::pFreeCameraInitAngle[i].z = Camera.Roll;
-                    // logowanie, ¿eby mo¿na by³o do scenerii przepisaæ
+                    // logowanie, Å¼eby moÅ¼na byÅ‚o do scenerii przepisaÄ‡
                     WriteLog(
-                        "camera " + FloatToStrF(Global::pFreeCameraInit[i].x, ffFixed, 7, 3) + " " +
-                        FloatToStrF(Global::pFreeCameraInit[i].y, ffFixed, 7, 3) + " " +
-                        FloatToStrF(Global::pFreeCameraInit[i].z, ffFixed, 7, 3) + " " +
-                        FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].x), ffFixed, 7, 3) +
+                        "camera " + std::to_string( Global::pFreeCameraInit[i].x ) + " " +
+                        std::to_string(Global::pFreeCameraInit[i].y ) + " " +
+                        std::to_string(Global::pFreeCameraInit[i].z ) + " " +
+                        std::to_string(RadToDeg(Global::pFreeCameraInitAngle[i].x)) +
                         " " +
-                        FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].y), ffFixed, 7, 3) +
+                        std::to_string(RadToDeg(Global::pFreeCameraInitAngle[i].y)) +
                         " " +
-                        FloatToStrF(RadToDeg(Global::pFreeCameraInitAngle[i].z), ffFixed, 7, 3) +
-                        " " + AnsiString(i) + " endcamera");
+                        std::to_string(RadToDeg(Global::pFreeCameraInitAngle[i].z)) +
+                        " " + std::to_string(i) + " endcamera");
                 }
-                else // równie¿ przeskakiwanie
-                { // Ra: to z t¹ kamer¹ (Camera.Pos i Global::pCameraPosition) jest trochê bez sensu
+                else // rÃ³wnieÅ¼ przeskakiwanie
+                { // Ra: to z tÄ… kamerÄ… (Camera.Pos i Global::pCameraPosition) jest trochÄ™ bez sensu
                     Global::SetCameraPosition(
-                        Global::pFreeCameraInit[i]); // nowa pozycja dla generowania obiektów
+                        Global::pFreeCameraInit[i]); // nowa pozycja dla generowania obiektÃ³w
                     Ground.Silence(Camera.Pos); // wyciszenie wszystkiego z poprzedniej pozycji
                     Camera.Init(Global::pFreeCameraInit[i],
                                 Global::pFreeCameraInitAngle[i]); // przestawienie
                 }
             }
-        // bêdzie jeszcze za³¹czanie sprzêgów z [Ctrl]
+        // bÄ™dzie jeszcze zaÅ‚Ä…czanie sprzÄ™gÃ³w z [Ctrl]
     }
     else if ((cKey >= VK_F1) ? (cKey <= VK_F12) : false)
     {
@@ -772,31 +770,31 @@ void TWorld::OnKeyDown(int cKey)
         case VK_F3:
         case VK_F5: // przesiadka do innego pojazdu
         case VK_F8: // FPS
-        case VK_F9: // wersja, typ wyœwietlania, b³êdy OpenGL
+        case VK_F9: // wersja, typ wyÅ›wietlania, bÅ‚Ä™dy OpenGL
         case VK_F10:
             if (Global::iTextMode == cKey)
                 Global::iTextMode =
                     (Global::iPause && (cKey != VK_F1) ? VK_F1 :
-                                                         0); // wy³¹czenie napisów, chyba ¿e pauza
+                                                         0); // wyÅ‚Ä…czenie napisÃ³w, chyba Å¼e pauza
             else
                 Global::iTextMode = cKey;
             break;
         case VK_F2: // parametry pojazdu
-            if (Global::iTextMode == cKey) // jeœli kolejne naciœniêcie
+            if (Global::iTextMode == cKey) // jeÅ›li kolejne naciÅ›niÄ™cie
                 ++Global::iScreenMode[cKey - VK_F1]; // kolejny ekran
             else
-            { // pierwsze naciœniêcie daje pierwszy (tzn. zerowy) ekran
+            { // pierwsze naciÅ›niÄ™cie daje pierwszy (tzn. zerowy) ekran
                 Global::iTextMode = cKey;
                 Global::iScreenMode[cKey - VK_F1] = 0;
             }
             break;
-        case VK_F12: // coœ tam jeszcze
+        case VK_F12: // coÅ› tam jeszcze
             if (Console::Pressed(VK_CONTROL) && Console::Pressed(VK_SHIFT))
-                DebugModeFlag = !DebugModeFlag; // taka opcjonalna funkcja, mo¿e siê czasem przydaæ
-            /* //Ra 2F1P: teraz w³¹czanie i wy³¹czanie klawiszami cyfrowymi po u¿yciu [F12]
+                DebugModeFlag = !DebugModeFlag; // taka opcjonalna funkcja, moÅ¼e siÄ™ czasem przydaÄ‡
+            /* //Ra 2F1P: teraz wÅ‚Ä…czanie i wyÅ‚Ä…czanie klawiszami cyfrowymi po uÅ¼yciu [F12]
                 else if (Console::Pressed(VK_SHIFT))
                 {//odpalenie logu w razie "W"
-                 if ((Global::iWriteLogEnabled&2)==0) //nie by³o okienka
+                 if ((Global::iWriteLogEnabled&2)==0) //nie byÅ‚o okienka
                  {//otwarcie okna
                   AllocConsole();
                   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
@@ -821,46 +819,50 @@ void TWorld::OnKeyDown(int cKey)
             break;
         }
         // if (cKey!=VK_F4)
-        return; // nie s¹ przekazywane do pojazdu wcale
+        return; // nie sÄ… przekazywane do pojazdu wcale
     }
-    if (Global::iTextMode == VK_F10) // wyœwietlone napisy klawiszem F10
+    if (Global::iTextMode == VK_F10) // wyÅ›wietlone napisy klawiszem F10
     { // i potwierdzenie
-        Global::iTextMode = (cKey == 'Y') ? -1 : 0; // flaga wyjœcia z programu
-        return; // nie przekazujemy do poci¹gu
+        if( cKey == 'Y' ) {
+            // flaga wyjÅ›cia z programu
+            ::PostQuitMessage( 0 );
+//            Global::iTextMode = -1;
+        }
+        return; // nie przekazujemy do pociÄ…gu
     }
     else if ((Global::iTextMode == VK_F12) ? (cKey >= '0') && (cKey <= '9') : false)
-    { // tryb konfiguracji debugmode (przestawianie kamery ju¿ wy³¹czone
+    { // tryb konfiguracji debugmode (przestawianie kamery juÅ¼ wyÅ‚Ä…czone
         if (!Console::Pressed(VK_SHIFT)) // bez [Shift]
         {
             if (cKey == '1')
-                Global::iWriteLogEnabled ^= 1; // w³¹cz/wy³¹cz logowanie do pliku
+                Global::iWriteLogEnabled ^= 1; // wÅ‚Ä…cz/wyÅ‚Ä…cz logowanie do pliku
             else if (cKey == '2')
-            { // w³¹cz/wy³¹cz okno konsoli
+            { // wÅ‚Ä…cz/wyÅ‚Ä…cz okno konsoli
                 Global::iWriteLogEnabled ^= 2;
-                if ((Global::iWriteLogEnabled & 2) == 0) // nie by³o okienka
+                if ((Global::iWriteLogEnabled & 2) == 0) // nie byÅ‚o okienka
                 { // otwarcie okna
-                    AllocConsole(); // jeœli konsola ju¿ jest, to zwróci b³¹d; uwalniaæ nie ma po
-                    // co, bo siê od³¹czy
+                    AllocConsole(); // jeÅ›li konsola juÅ¼ jest, to zwrÃ³ci bÅ‚Ä…d; uwalniaÄ‡ nie ma po
+                    // co, bo siÄ™ odÅ‚Ä…czy
                     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
                 }
             }
-            // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
+            // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torÃ³w
         }
     }
     else if (cKey == 3) //[Ctrl]+[Break]
-    { // hamowanie wszystkich pojazdów w okolicy
+    { // hamowanie wszystkich pojazdÃ³w w okolicy
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
 	}
-    else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie dzia³a, F4 tak
+    else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie dziaÅ‚a, F4 tak
         if (Train)
             if (Controlled)
                 if ((Controlled->Controller == Humandriver) ? true : DebugModeFlag || (cKey == 'Q'))
                     Train->OnKeyDown(cKey); // przekazanie klawisza do kabiny
-    if (FreeFlyModeFlag) // aby nie odluŸnia³o wagonu za lokomotyw¹
-    { // operacje wykonywane na dowolnym pojeŸdzie, przeniesione tu z kabiny
-        if (cKey == Global::Keys[k_Releaser]) // odluŸniacz
-        { // dzia³a globalnie, sprawdziæ zasiêg
+    if (FreeFlyModeFlag) // aby nie odluÅºniaÅ‚o wagonu za lokomotywÄ…
+    { // operacje wykonywane na dowolnym pojeÅºdzie, przeniesione tu z kabiny
+        if (cKey == Global::Keys[k_Releaser]) // odluÅºniacz
+        { // dziaÅ‚a globalnie, sprawdziÄ‡ zasiÄ™g
             TDynamicObject *temp = Global::DynamicNearest();
             if (temp)
             {
@@ -876,15 +878,15 @@ void TWorld::OnKeyDown(int cKey)
                 }
             }
         }
-        else if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczêœliwszy
-        { // zmiana pró¿ny/³adowny; Ra: zabrane z kabiny
+        else if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczÄ™Å›liwszy
+        { // zmiana prÃ³Å¼ny/Å‚adowny; Ra: zabrane z kabiny
             TDynamicObject *temp = Global::DynamicNearest();
             if (temp)
             {
                 if (Console::Pressed(VK_SHIFT) ? temp->MoverParameters->IncBrakeMult() :
                                                  temp->MoverParameters->DecBrakeMult())
                     if (Train)
-                    { // dŸwiêk oczywiœcie jest w kabinie
+                    { // dÅºwiÄ™k oczywiÅ›cie jest w kabinie
                         Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
                         Train->dsbSwitch->Play(0, 0, 0);
                     }
@@ -892,7 +894,7 @@ void TWorld::OnKeyDown(int cKey)
         }
         else if (cKey == Global::Keys[k_EndSign])
         { // Ra 2014-07: zabrane z kabiny
-            TDynamicObject *tmp = Global::CouplerNearest(); // domyœlnie wyszukuje do 20m
+            TDynamicObject *tmp = Global::CouplerNearest(); // domyÅ›lnie wyszukuje do 20m
             if (tmp)
             {
                 int CouplNr = (LengthSquared3(tmp->HeadPosition() - Camera.Pos) >
@@ -901,20 +903,20 @@ void TWorld::OnKeyDown(int cKey)
                                    -1) *
                               tmp->DirectionGet();
                 if (CouplNr < 0)
-                    CouplNr = 0; // z [-1,1] zrobiæ [0,1]
-                int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jak¹œ idiotyczn¹ zmianê
+                    CouplNr = 0; // z [-1,1] zrobiÄ‡ [0,1]
+                int mask, set = 0; // Ra: [Shift]+[Ctrl]+[T] odpala mi jakÄ…Å› idiotycznÄ… zmianÄ™
                 // tapety pulpitu :/
                 if (GetAsyncKeyState(VK_SHIFT) < 0) // z [Shift] zapalanie
-                    set = mask = 64; // bez [Ctrl] za³o¿yæ tabliczki
+                    set = mask = 64; // bez [Ctrl] zaÅ‚oÅ¼yÄ‡ tabliczki
                 else if (GetAsyncKeyState(VK_CONTROL) < 0)
-                    set = mask = 2 + 32; // z [Ctrl] zapaliæ œwiat³a czerwone
+                    set = mask = 2 + 32; // z [Ctrl] zapaliÄ‡ Å›wiatÅ‚a czerwone
                 else
-                    mask = 2 + 32 + 64; // wy³¹czanie œci¹ga wszystko
+                    mask = 2 + 32 + 64; // wyÅ‚Ä…czanie Å›ciÄ…ga wszystko
                 if (((tmp->iLights[CouplNr]) & mask) != set)
                 {
                     tmp->iLights[CouplNr] = (tmp->iLights[CouplNr] & ~mask) | set;
                     if (Train)
-                    { // Ra: ten dŸwiêk z kabiny to przegiêcie, ale na razie zostawiam
+                    { // Ra: ten dÅºwiÄ™k z kabiny to przegiÄ™cie, ale na razie zostawiam
                         Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
                         Train->dsbSwitch->Play(0, 0, 0);
                     }
@@ -935,7 +937,7 @@ void TWorld::OnKeyDown(int cKey)
                 else if (temp->MoverParameters->LocalBrake != ManualBrake)
                     if (temp->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
-                        { // dŸwiêk oczywiœcie jest w kabinie
+                        { // dÅºwiÄ™k oczywiÅ›cie jest w kabinie
                             Train->dsbPneumaticRelay->SetVolume(-80);
                             Train->dsbPneumaticRelay->Play(0, 0, 0);
                         }
@@ -955,7 +957,7 @@ void TWorld::OnKeyDown(int cKey)
                 else if (temp->MoverParameters->LocalBrake != ManualBrake)
                     if (temp->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
-                        { // dŸwiêk oczywiœcie jest w kabinie
+                        { // dÅºwiÄ™k oczywiÅ›cie jest w kabinie
                             Train->dsbPneumaticRelay->SetVolume(-80);
                             Train->dsbPneumaticRelay->Play(0, 0, 0);
                         }
@@ -970,8 +972,8 @@ void TWorld::OnKeyDown(int cKey)
 }
 
 void TWorld::OnKeyUp(int cKey)
-{ // zwolnienie klawisza; (cKey) to kod klawisza, cyfrowe i literowe siê zgadzaj¹
-    if (!Global::iPause) // podczas pauzy sterownaie nie dzia³a
+{ // zwolnienie klawisza; (cKey) to kod klawisza, cyfrowe i literowe siÄ™ zgadzajÄ…
+    if (!Global::iPause) // podczas pauzy sterownaie nie dziaÅ‚a
         if (Train)
             if (Controlled)
                 if ((Controlled->Controller == Humandriver) ? true : DebugModeFlag || (cKey == 'Q'))
@@ -984,14 +986,14 @@ void TWorld::OnMouseMove(double x, double y)
 }
 
 void TWorld::InOutKey()
-{ // prze³¹czenie widoku z kabiny na zewnêtrzny i odwrotnie
+{ // przeÅ‚Ä…czenie widoku z kabiny na zewnÄ™trzny i odwrotnie
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
     if (FreeFlyModeFlag)
-    { // je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
-        Global::pUserDynamic = NULL; // bez renderowania wzglêdem kamery
+    { // jeÅ¼eli poza kabinÄ…, przestawiamy w jej okolicÄ™ - OK
+        Global::pUserDynamic = NULL; // bez renderowania wzglÄ™dem kamery
         if (Train)
         { // Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
-            Train->Silence(); // wy³¹czenie dŸwiêków kabiny
+            Train->Silence(); // wyÅ‚Ä…czenie dÅºwiÄ™kÃ³w kabiny
             Train->Dynamic()->bDisplayCab = false;
             DistantView();
         }
@@ -1000,21 +1002,21 @@ void TWorld::InOutKey()
     { // jazda w kabinie
         if (Train)
         {
-            Global::pUserDynamic = Controlled; // renerowanie wzglêdem kamery
+            Global::pUserDynamic = Controlled; // renerowanie wzglÄ™dem kamery
             Train->Dynamic()->bDisplayCab = true;
             Train->Dynamic()->ABuSetModelShake(
-                vector3(0, 0, 0)); // zerowanie przesuniêcia przed powrotem?
+                vector3(0, 0, 0)); // zerowanie przesuniÄ™cia przed powrotem?
             // Camera.Stop(); //zatrzymanie ruchu
             Train->MechStop();
-            FollowView(); // na pozycjê mecha
+            FollowView(); // na pozycjÄ™ mecha
         }
         else
-            FreeFlyModeFlag = true; // nadal poza kabin¹
+            FreeFlyModeFlag = true; // nadal poza kabinÄ…
     }
 };
 
 void TWorld::DistantView()
-{ // ustawienie widoku pojazdu z zewn¹trz
+{ // ustawienie widoku pojazdu z zewnÄ…trz
     if (Controlled) // jest pojazd do prowadzenia?
     { // na prowadzony
         Camera.Pos =
@@ -1024,8 +1026,8 @@ void TWorld::DistantView()
         Camera.LookAt = Controlled->GetPosition();
         Camera.RaLook(); // jednorazowe przestawienie kamery
     }
-    else if (pDynamicNearest) // jeœli jest pojazd wykryty blisko
-    { // patrzenie na najbli¿szy pojazd
+    else if (pDynamicNearest) // jeÅ›li jest pojazd wykryty blisko
+    { // patrzenie na najbliÅ¼szy pojazd
         Camera.Pos = pDynamicNearest->GetPosition() +
                      (pDynamicNearest->MoverParameters->ActiveCab >= 0 ? 30 : -30) *
                          pDynamicNearest->VectorFront() +
@@ -1036,33 +1038,33 @@ void TWorld::DistantView()
 };
 
 void TWorld::FollowView(bool wycisz)
-{ // ustawienie œledzenia pojazdu
-    // ABu 180404 powrot mechanika na siedzenie albo w okolicê pojazdu
+{ // ustawienie Å›ledzenia pojazdu
+    // ABu 180404 powrot mechanika na siedzenie albo w okolicÄ™ pojazdu
     // if (Console::Pressed(VK_F4)) Global::iViewMode=VK_F4;
-    // Ra: na zewn¹trz wychodzimy w Train.cpp
-    Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na po³udnie
+    // Ra: na zewnÄ…trz wychodzimy w Train.cpp
+    Camera.Reset(); // likwidacja obrotÃ³w - patrzy horyzontalnie na poÅ‚udnie
     if (Controlled) // jest pojazd do prowadzenia?
     {
         vector3 camStara =
             Camera.Pos; // przestawianie kamery jest bez sensu: do przerobienia na potem
         // Controlled->ABuSetModelShake(vector3(0,0,0));
         if (FreeFlyModeFlag)
-        { // je¿eli poza kabin¹, przestawiamy w jej okolicê - OK
+        { // jeÅ¼eli poza kabinÄ…, przestawiamy w jej okolicÄ™ - OK
             if (Train)
                 Train->Dynamic()->ABuSetModelShake(
-                    vector3(0, 0, 0)); // wy³¹czenie trzêsienia na si³ê?
+                    vector3(0, 0, 0)); // wyÅ‚Ä…czenie trzÄ™sienia na siÅ‚Ä™?
             // Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
             DistantView(); // przestawienie kamery
-            //¿eby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pud³a
+            //Å¼eby nie bylo numerÃ³w z 'fruwajacym' lokiem - konsekwencja bujania pudÅ‚a
             Global::SetCameraPosition(
-                Camera.Pos); // tu ustawiæ now¹, bo od niej licz¹ siê odleg³oœci
-            Ground.Silence(camStara); // wyciszenie dŸwiêków z poprzedniej pozycji
+                Camera.Pos); // tu ustawiÄ‡ nowÄ…, bo od niej liczÄ… siÄ™ odlegÅ‚oÅ›ci
+            Ground.Silence(camStara); // wyciszenie dÅºwiÄ™kÃ³w z poprzedniej pozycji
         }
         else if (Train)
         { // korekcja ustawienia w kabinie - OK
             vector3 camStara =
                 Camera.Pos; // przestawianie kamery jest bez sensu: do przerobienia na potem
-            // Ra: czy to tu jest potrzebne, bo przelicza siê kawa³ek dalej?
+            // Ra: czy to tu jest potrzebne, bo przelicza siÄ™ kawaÅ‚ek dalej?
             Camera.Pos = Train->pMechPosition; // Train.GetPosition1();
             Camera.Roll = atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
             Camera.Pitch -=
@@ -1078,9 +1080,9 @@ void TWorld::FollowView(bool wycisz)
             Train->pMechOffset.z = Train->pMechSittingPosition.z;
             Global::SetCameraPosition(
                 Train->Dynamic()
-                    ->GetPosition()); // tu ustawiæ now¹, bo od niej licz¹ siê odleg³oœci
+                    ->GetPosition()); // tu ustawiÄ‡ nowÄ…, bo od niej liczÄ… siÄ™ odlegÅ‚oÅ›ci
             if (wycisz) // trzymanie prawego w kabinie daje marny efekt
-                Ground.Silence(camStara); // wyciszenie dŸwiêków z poprzedniej pozycji
+                Ground.Silence(camStara); // wyciszenie dÅºwiÄ™kÃ³w z poprzedniej pozycji
         }
     }
     else
@@ -1104,233 +1106,97 @@ bool TWorld::Update()
     if (iCheckFPS)
         --iCheckFPS;
     else
-    { // jak dosz³o do zera, to sprawdzamy wydajnoœæ
-        if (GetFPS() < Global::fFpsMin)
+    { // jak doszÅ‚o do zera, to sprawdzamy wydajnoÅ›Ä‡
+        if (Timer::GetFPS() < Global::fFpsMin)
         {
             Global::iSegmentsRendered -=
-                random(10); // floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
-            if (Global::iSegmentsRendered < 10) // jeœli jest co zmniejszaæ
-                Global::iSegmentsRendered = 10; // 10=minimalny promieñ to 600m
+                Random(10); // floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
+            if (Global::iSegmentsRendered < 10) // jeÅ›li jest co zmniejszaÄ‡
+                Global::iSegmentsRendered = 10; // 10=minimalny promieÅ„ to 600m
         }
-        else if (GetFPS() > Global::fFpsMax) // jeœli jest du¿o FPS
-            if (Global::iSegmentsRendered < Global::iFpsRadiusMax) // jeœli jest co zwiêkszaæ
+        else if (Timer::GetFPS() > Global::fFpsMax) // jeÅ›li jest duÅ¼o FPS
+            if (Global::iSegmentsRendered < Global::iFpsRadiusMax) // jeÅ›li jest co zwiÄ™kszaÄ‡
             {
                 Global::iSegmentsRendered +=
-                    random(5); // floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
+                    Random(5); // floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
                 if (Global::iSegmentsRendered > Global::iFpsRadiusMax) // 5.6km (22*22*M_PI)
                     Global::iSegmentsRendered = Global::iFpsRadiusMax;
             }
-        if ((GetFPS() < 12) && (Global::iSlowMotion < 7))
+        if ((Timer::GetFPS() < 12) && (Global::iSlowMotion < 7))
         {
             Global::iSlowMotion = (Global::iSlowMotion << 1) + 1; // zapalenie kolejnego bitu
             if (Global::iSlowMotionMask & 1)
-                if (Global::iMultisampling) // a multisampling jest w³¹czony
-                    glDisable(GL_MULTISAMPLE); // wy³¹czenie multisamplingu powinno poprawiæ FPS
+                if (Global::iMultisampling) // a multisampling jest wÅ‚Ä…czony
+                    glDisable(GL_MULTISAMPLE); // wyÅ‚Ä…czenie multisamplingu powinno poprawiÄ‡ FPS
         }
-        else if ((GetFPS() > 20) && Global::iSlowMotion)
-        { // FPS siê zwiêkszy³, mo¿na w³¹czyæ bajery
+        else if ((Timer::GetFPS() > 20) && Global::iSlowMotion)
+        { // FPS siÄ™ zwiÄ™kszyÅ‚, moÅ¼na wÅ‚Ä…czyÄ‡ bajery
             Global::iSlowMotion = (Global::iSlowMotion >> 1); // zgaszenie bitu
-            if (Global::iSlowMotion == 0) // jeœli jest pe³na prêdkoœæ
-                if (Global::iMultisampling) // a multisampling jest w³¹czony
+            if (Global::iSlowMotion == 0) // jeÅ›li jest peÅ‚na prÄ™dkoÅ›Ä‡
+                if (Global::iMultisampling) // a multisampling jest wÅ‚Ä…czony
                     glEnable(GL_MULTISAMPLE);
         }
         /*
           if (!Global::bPause)
            if (GetFPS()<=5)
-           {//zwiêkszenie kroku fizyki przy s³abym FPS
+           {//zwiÄ™kszenie kroku fizyki przy sÅ‚abym FPS
             if (fMaxDt<0.05)
-            {fMaxDt=0.05; //Ra: tak nie mo¿e byæ, bo s¹ problemy na sprzêgach
+            {fMaxDt=0.05; //Ra: tak nie moÅ¼e byÄ‡, bo sÄ… problemy na sprzÄ™gach
              WriteLog("Phisics step switched to 0.05s!");
             }
            }
            else if (GetFPS()>12)
             if (fMaxDt>0.01)
-            {//powrót do podstawowego kroku fizyki
+            {//powrÃ³t do podstawowego kroku fizyki
              fMaxDt=0.01;
              WriteLog("Phisics step switched to 0.01s!");
             }
         */
-        iCheckFPS = 0.25 * GetFPS(); // tak za 0.25 sekundy sprawdziæ ponownie (jeszcze przycina?)
+        iCheckFPS = 0.25 * Timer::GetFPS(); // tak za 0.25 sekundy sprawdziÄ‡ ponownie (jeszcze przycina?)
     }
-    UpdateTimers(Global::iPause);
+    Timer::UpdateTimers(Global::iPause);
     if (!Global::iPause)
-    { // jak pauza, to nie ma po co tego przeliczaæ
-        GlobalTime->UpdateMTableTime(GetDeltaTime()); // McZapkie-300302: czas rozkladowy
-        // Ra 2014-07: przeliczenie k¹ta czasu (do animacji zale¿nych od czasu)
+    { // jak pauza, to nie ma po co tego przeliczaÄ‡
+        GlobalTime->UpdateMTableTime(Timer::GetDeltaTime()); // McZapkie-300302: czas rozkladowy
+        // Ra 2014-07: przeliczenie kÄ…ta czasu (do animacji zaleÅ¼nych od czasu)
         Global::fTimeAngleDeg =
             GlobalTime->hh * 15.0 + GlobalTime->mm * 0.25 + GlobalTime->mr / 240.0;
         Global::fClockAngleDeg[0] = 36.0 * (int(GlobalTime->mr) % 10); // jednostki sekund
-        Global::fClockAngleDeg[1] = 36.0 * (int(GlobalTime->mr) / 10); // dziesi¹tki sekund
+        Global::fClockAngleDeg[1] = 36.0 * (int(GlobalTime->mr) / 10); // dziesiÄ…tki sekund
         Global::fClockAngleDeg[2] = 36.0 * (GlobalTime->mm % 10); // jednostki minut
-        Global::fClockAngleDeg[3] = 36.0 * (GlobalTime->mm / 10); // dziesi¹tki minut
+        Global::fClockAngleDeg[3] = 36.0 * (GlobalTime->mm / 10); // dziesiÄ…tki minut
         Global::fClockAngleDeg[4] = 36.0 * (GlobalTime->hh % 10); // jednostki godzin
-        Global::fClockAngleDeg[5] = 36.0 * (GlobalTime->hh / 10); // dziesi¹tki godzin
-        if (Global::fMoveLight >= 0.0)
-        { // testowo ruch œwiat³a
-            // double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //k¹t godzinny w radianach
-            double a = fmod(Global::fTimeAngleDeg, 360.0) / 180.0 * M_PI -
-                       M_PI; // k¹t godzinny w radianach
-            //(a) jest traktowane jako czas miejscowy, nie uwzglêdniaj¹cy stref czasowych ani czasu
-            // letniego
-            // aby wyznaczyæ strefê czasow¹, trzeba uwzglêdniæ po³udnik miejscowy
-            // aby uwzglêdniæ czas letni, trzeba sprawdziæ dzieñ roku
-            double L = Global::fLatitudeDeg / 180.0 * M_PI; // szerokoœæ geograficzna
-            double H = asin(cos(L) * cos(Global::fSunDeclination) * cos(a) +
-                            sin(L) * sin(Global::fSunDeclination)); // k¹t ponad horyzontem
-            // double A=asin(cos(d)*sin(M_PI-a)/cos(H));
-            // Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
-            // Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
-            // Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
-            // double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
-            // dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude -
-            // dSin_Latitude*dCos_HourAngle );
-            double A = atan2(sin(a), tan(Global::fSunDeclination) * cos(L) - sin(L) * cos(a));
-            vector3 lp = vector3(sin(A), tan(H), cos(A));
-            lp = Normalize(lp); // przeliczenie na wektor d³ugoœci 1.0
-            Global::lightPos[0] = (float)lp.x;
-            Global::lightPos[1] = (float)lp.y;
-            Global::lightPos[2] = (float)lp.z;
-            glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos); // daylight position
-            if (H > 0)
-            { // s³oñce ponad horyzontem
-                Global::ambientDayLight[0] = Global::ambientLight[0];
-                Global::ambientDayLight[1] = Global::ambientLight[1];
-                Global::ambientDayLight[2] = Global::ambientLight[2];
-                if (H > 0.02) // ponad 1.146° zaczynaj¹ siê cienie
-                {
-                    Global::diffuseDayLight[0] =
-                        Global::diffuseLight[0]; // od wschodu do zachodu maksimum ???
-                    Global::diffuseDayLight[1] = Global::diffuseLight[1];
-                    Global::diffuseDayLight[2] = Global::diffuseLight[2];
-                    Global::specularDayLight[0] = Global::specularLight[0]; // podobnie specular
-                    Global::specularDayLight[1] = Global::specularLight[1];
-                    Global::specularDayLight[2] = Global::specularLight[2];
-                }
-                else
-                {
-                    Global::diffuseDayLight[0] =
-                        50 * H * Global::diffuseLight[0]; // wschód albo zachód
-                    Global::diffuseDayLight[1] = 50 * H * Global::diffuseLight[1];
-                    Global::diffuseDayLight[2] = 50 * H * Global::diffuseLight[2];
-                    Global::specularDayLight[0] =
-                        50 * H * Global::specularLight[0]; // podobnie specular
-                    Global::specularDayLight[1] = 50 * H * Global::specularLight[1];
-                    Global::specularDayLight[2] = 50 * H * Global::specularLight[2];
-                }
-            }
-            else
-            { // s³oñce pod horyzontem
-                GLfloat lum = 3.1831 * (H > -0.314159 ? 0.314159 + H :
-                                                        0.0); // po zachodzie ambient siê œciemnia
-                Global::ambientDayLight[0] = lum * Global::ambientLight[0];
-                Global::ambientDayLight[1] = lum * Global::ambientLight[1];
-                Global::ambientDayLight[2] = lum * Global::ambientLight[2];
-                Global::diffuseDayLight[0] =
-                    Global::noLight[0]; // od zachodu do wschodu nie ma diffuse
-                Global::diffuseDayLight[1] = Global::noLight[1];
-                Global::diffuseDayLight[2] = Global::noLight[2];
-                Global::specularDayLight[0] = Global::noLight[0]; // ani specular
-                Global::specularDayLight[1] = Global::noLight[1];
-                Global::specularDayLight[2] = Global::noLight[2];
-            }
-            // Calculate sky colour according to time of day.
-            // GLfloat sin_t = sin(PI * time_of_day / 12.0);
-            // back_red = 0.3 * (1.0 - sin_t);
-            // back_green = 0.9 * sin_t;
-            // back_blue = sin_t + 0.4, 1.0;
-            // aktualizacja œwiate³
-            glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
-        }
-        Global::fLuminance = // to pos³u¿y równie¿ do zapalania latarñ
-            +0.150 * (Global::diffuseDayLight[0] + Global::ambientDayLight[0]) // R
-            + 0.295 * (Global::diffuseDayLight[1] + Global::ambientDayLight[1]) // G
-            + 0.055 * (Global::diffuseDayLight[2] + Global::ambientDayLight[2]); // B
-        if (Global::fMoveLight >= 0.0)
-        { // przeliczenie koloru nieba
-            vector3 sky = vector3(Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2]);
-            if (Global::fLuminance < 0.25)
-            { // przyspieszenie zachodu/wschodu
-                sky *= 4.0 * Global::fLuminance; // nocny kolor nieba
-                GLfloat fog[3];
-                fog[0] = Global::FogColor[0] * 4.0 * Global::fLuminance;
-                fog[1] = Global::FogColor[1] * 4.0 * Global::fLuminance;
-                fog[2] = Global::FogColor[2] * 4.0 * Global::fLuminance;
-                glFogfv(GL_FOG_COLOR, fog); // nocny kolor mg³y
-            }
-            else
-                glFogfv(GL_FOG_COLOR, Global::FogColor); // kolor mg³y
-            glClearColor(sky.x, sky.y, sky.z, 0.0); // kolor nieba
-        }
-    } // koniec dzia³añ niewykonywanych podczas pauzy
-    // Console::Update(); //tu jest zale¿ne od FPS, co nie jest korzystne
-    if (Global::bActive)
-    { // obs³uga ruchu kamery tylko gdy okno jest aktywne
-        if (Console::Pressed(VK_LBUTTON))
-        {
-            Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na po³udnie
-            // if (!FreeFlyModeFlag) //jeœli wewn¹trz - patrzymy do ty³u
-            // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-            if (Controlled ? LengthSquared3(Controlled->GetPosition() - Camera.Pos) < 2250000 :
-                             false) // gdy bli¿ej ni¿ 1.5km
-                Camera.LookAt = Controlled->GetPosition();
-            else
-            {
-                TDynamicObject *d =
-                    Ground.DynamicNearest(Camera.Pos, 300); // szukaj w promieniu 300m
-                if (!d)
-                    d = Ground.DynamicNearest(Camera.Pos,
-                                              1000); // dalej szukanie, jesli bli¿ej nie ma
-                if (d && pDynamicNearest) // jeœli jakiœ jest znaleziony wczeœniej
-                    if (100.0 * LengthSquared3(d->GetPosition() - Camera.Pos) >
-                        LengthSquared3(pDynamicNearest->GetPosition() - Camera.Pos))
-                        d = pDynamicNearest; // jeœli najbli¿szy nie jest 10 razy bli¿ej ni¿
-                // poprzedni najbli¿szy, zostaje poprzedni
-                if (d)
-                    pDynamicNearest = d; // zmiana na nowy, jeœli coœ znaleziony niepusty
-                if (pDynamicNearest)
-                    Camera.LookAt = pDynamicNearest->GetPosition();
-            }
-            if (FreeFlyModeFlag)
-                Camera.RaLook(); // jednorazowe przestawienie kamery
-        }
-        else if (Console::Pressed(VK_RBUTTON)) //||Console::Pressed(VK_F4))
-            FollowView(false); // bez wyciszania dŸwiêków
-        else if (Global::iTextMode == -1)
-        { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-            WriteLog("Number of textures used: " + AnsiString(Global::iTextures));
-            return false;
-        }
-        Camera.Update(); // uwzglêdnienie ruchu wywo³anego klawiszami
-    } // koniec bloku pomijanego przy nieaktywnym oknie
-    // poprzednie jakoœ tam dzia³a³o
-    double dt = GetDeltaRenderTime(); // nie uwzglêdnia pauzowania ani mno¿enia czasu
+        Global::fClockAngleDeg[5] = 36.0 * (GlobalTime->hh / 10); // dziesiÄ…tki godzin
+
+        Update_Lights();
+    } // koniec dziaÅ‚aÅ„ niewykonywanych podczas pauzy
+    // poprzednie jakoÅ› tam dziaÅ‚aÅ‚o
+    double dt = Timer::GetDeltaRenderTime(); // nie uwzglÄ™dnia pauzowania ani mnoÅ¼enia czasu
     fTime50Hz +=
-        dt; // w pauzie te¿ trzeba zliczaæ czas, bo przy du¿ym FPS bêdzie problem z odczytem ramek
+        dt; // w pauzie teÅ¼ trzeba zliczaÄ‡ czas, bo przy duÅ¼ym FPS bÄ™dzie problem z odczytem ramek
     if (fTime50Hz >= 0.2)
-        Console::Update(); // to i tak trzeba wywo³ywaæ
-    dt = GetDeltaTime(); // 0.0 gdy pauza
+        Console::Update(); // to i tak trzeba wywoÅ‚ywaÄ‡
+    dt = Timer::GetDeltaTime(); // 0.0 gdy pauza
     fTimeBuffer += dt; //[s] dodanie czasu od poprzedniej ramki
     if (fTimeBuffer >= fMaxDt) // jest co najmniej jeden krok; normalnie 0.01s
-    { // Ra: czas dla fizyki jest skwantowany - fizykê lepiej przeliczaæ sta³ym krokiem
-        // tak mo¿na np. moc silników itp., ale ruch musi byæ przeliczany w ka¿dej klatce, bo
+    { // Ra: czas dla fizyki jest skwantowany - fizykÄ™ lepiej przeliczaÄ‡ staÅ‚ym krokiem
+        // tak moÅ¼na np. moc silnikÃ³w itp., ale ruch musi byÄ‡ przeliczany w kaÅ¼dej klatce, bo
         // inaczej skacze
-        Global::tranTexts.Update(); // obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
-        Console::Update(); // obs³uga cykli PoKeys (np. aktualizacja wyjœæ analogowych)
+        Global::tranTexts.Update(); // obiekt obsÅ‚ugujÄ…cy stenogramy dÅºwiÄ™kÃ³w na ekranie
+        Console::Update(); // obsÅ‚uga cykli PoKeys (np. aktualizacja wyjÅ›Ä‡ analogowych)
         double iter =
-            ceil(fTimeBuffer / fMaxDt); // ile kroków siê zmieœci³o od ostatniego sprawdzania?
-        int n = int(iter); // ile kroków jako int
+            ceil(fTimeBuffer / fMaxDt); // ile krokÃ³w siÄ™ zmieÅ›ciÅ‚o od ostatniego sprawdzania?
+        int n = int(iter); // ile krokÃ³w jako int
         fTimeBuffer -= iter * fMaxDt; // reszta czasu na potem (do bufora)
         if (n > 20)
-            n = 20; // Ra: je¿eli FPS jest zatrwa¿aj¹co niski, to fizyka nie mo¿e zaj¹æ ca³kowicie
+            n = 20; // Ra: jeÅ¼eli FPS jest zatrwaÅ¼ajÄ…co niski, to fizyka nie moÅ¼e zajÄ…Ä‡ caÅ‚kowicie
 // procesora
 #if 0
-  Ground.UpdatePhys(fMaxDt,n); //Ra: teraz czas kroku jest (wzglêdnie) sta³y
+  Ground.UpdatePhys(fMaxDt,n); //Ra: teraz czas kroku jest (wzglÄ™dnie) staÅ‚y
   if (DebugModeFlag)
-   if (Global::bActive) //nie przyspieszaæ, gdy jedzie w tle :)
+   if (Global::bActive) //nie przyspieszaÄ‡, gdy jedzie w tle :)
     if (GetAsyncKeyState(VK_ESCAPE)<0)
-    {//yB doda³ przyspieszacz fizyki
+    {//yB dodaÅ‚ przyspieszacz fizyki
      Ground.UpdatePhys(fMaxDt,n);
      Ground.UpdatePhys(fMaxDt,n);
      Ground.UpdatePhys(fMaxDt,n);
@@ -1338,10 +1204,10 @@ bool TWorld::Update()
     }
 #endif
     }
-    // awaria PoKeys mog³a w³¹czyæ pauzê - przekazaæ informacjê
-    if (Global::iMultiplayer) // dajemy znaæ do serwera o wykonaniu
+    // awaria PoKeys mogÅ‚a wÅ‚Ä…czyÄ‡ pauzÄ™ - przekazaÄ‡ informacjÄ™
+    if (Global::iMultiplayer) // dajemy znaÄ‡ do serwera o wykonaniu
         if (iPause != Global::iPause)
-        { // przes³anie informacji o pauzie do programu nadzoruj¹cego
+        { // przesÅ‚anie informacji o pauzie do programu nadzorujÄ…cego
             Ground.WyslijParam(5, 3); // ramka 5 z czasem i stanem zapauzowania
             iPause = Global::iPause;
         }
@@ -1351,392 +1217,606 @@ bool TWorld::Update()
     {
         iter = ceil(dt / fMaxDt);
         n = iter;
-        dt = dt / iter; // Ra: fizykê lepiej by by³o przeliczaæ ze sta³ym krokiem
+        dt = dt / iter; // Ra: fizykÄ™ lepiej by byÅ‚o przeliczaÄ‡ ze staÅ‚ym krokiem
         if (n > 20)
             n = 20; // McZapkie-081103: przesuniecie granicy FPS z 10 na 5
     }
     // else n=1;
     // blablabla
-    // Ground.UpdatePhys(dt,n); //na razie tu //2014-12: yB przeniós³ do Ground.Update() :(
-    Ground.Update(dt, n); // tu zrobiæ tylko coklatkow¹ aktualizacjê przesuniêæ
+    // Ground.UpdatePhys(dt,n); //na razie tu //2014-12: yB przeniÃ³sÅ‚ do Ground.Update() :(
+    Ground.Update(dt, n); // tu zrobiÄ‡ tylko coklatkowÄ… aktualizacjÄ™ przesuniÄ™Ä‡
     if (DebugModeFlag)
-        if (Global::bActive) // nie przyspieszaæ, gdy jedzie w tle :)
+        if (Global::bActive) // nie przyspieszaÄ‡, gdy jedzie w tle :)
             if (GetAsyncKeyState(VK_ESCAPE) < 0)
-            { // yB doda³ przyspieszacz fizyki
+            { // yB dodaÅ‚ przyspieszacz fizyki
                 Ground.Update(dt, n);
                 Ground.Update(dt, n);
                 Ground.Update(dt, n);
                 Ground.Update(dt, n); // 5 razy
             }
-    dt = GetDeltaTime(); // czas niekwantowany
-    if (Camera.Type == tp_Follow)
-    {
-        if (Train)
-        { // jeœli jazda w kabinie, przeliczyæ trzeba parametry kamery
-            Train->UpdateMechPosition(dt /
-                                      Global::fTimeSpeed); // ograniczyæ telepanie po przyspieszeniu
-            vector3 tempangle;
-            double modelrotate;
-            tempangle =
-                Controlled->VectorFront() * (Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1);
-            modelrotate = atan2(-tempangle.x, tempangle.z);
-            if (Console::Pressed(VK_CONTROL) ? (Console::Pressed(Global::Keys[k_MechLeft]) ||
-                                                Console::Pressed(Global::Keys[k_MechRight])) :
-                                               false)
-            { // jeœli lusterko lewe albo prawe (bez rzucania na razie)
-                bool lr = Console::Pressed(Global::Keys[k_MechLeft]);
-#if 0
-    Camera.Pos=Train->MirrorPosition(lr); //robocza wartoœæ
-    if (Controlled->MoverParameters->ActiveCab<0) lr=!lr; //w drugiej kabinie odwrotnie jest œrodek
-    Camera.LookAt=Controlled->GetPosition()+vector3(lr?2.0:-2.0,Camera.Pos.y,0); //trochê na zewn¹trz, u¿yæ szerokoœci pojazdu
-    //Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab;
-    Camera.Pos+=Controlled->GetPosition();
-    //Camera.RaLook(); //jednorazowe przestawienie kamery
-    Camera.Yaw=0; //odchylenie na bok od Camera.LookAt
-#else
-                // Camera.Yaw powinno byæ wyzerowane, aby po powrocie patrzeæ do przodu
-                Camera.Pos =
-                    Controlled->GetPosition() + Train->MirrorPosition(lr); // pozycja lusterka
-                Camera.Yaw = 0; // odchylenie na bok od Camera.LookAt
-                if (Train->Dynamic()->MoverParameters->ActiveCab == 0)
-                    Camera.LookAt = Camera.Pos - Train->GetDirection(); // gdy w korytarzu
-                else if (Console::Pressed(VK_SHIFT))
-                { // patrzenie w bok przez szybê
-                    Camera.LookAt = Camera.Pos -
-                                    (lr ? -1 : 1) * Train->Dynamic()->VectorLeft() *
-                                        Train->Dynamic()->MoverParameters->ActiveCab;
-                    Global::SetCameraRotation(-modelrotate);
-                }
-                else
-                { // patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny - jakby z lusterka,
-                    // ale bez odbicia
-                    Camera.LookAt = Camera.Pos -
-                                    Train->GetDirection() *
-                                        Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
-                    Global::SetCameraRotation(M_PI -
-                                              modelrotate); // tu ju¿ trzeba uwzglêdniæ lusterka
-                }
-#endif
-                Camera.Roll =
-                    atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
-                Camera.Pitch =
-                    atan(Train->vMechVelocity.z * Train->fMechPitch); // hustanie kamery przod tyl
-                Camera.vUp = Controlled->VectorUp();
-            }
-            else
-            { // patrzenie standardowe
-                Camera.Pos = Train->pMechPosition; // Train.GetPosition1();
-                if (!Global::iPause)
-                { // podczas pauzy nie przeliczaæ k¹tów przypadkowymi wartoœciami
-                    Camera.Roll =
-                        atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
-                    Camera.Pitch -= atan(Train->vMechVelocity.z *
-                                         Train->fMechPitch); // hustanie kamery przod tyl //Ra: tu
-                    // jest uciekanie kamery w górê!!!
-                }
-                // ABu011104: rzucanie pudlem
-                vector3 temp;
-                if (abs(Train->pMechShake.y) < 0.25)
-                    temp = vector3(0, 0, 6 * Train->pMechShake.y);
-                else if ((Train->pMechShake.y) > 0)
-                    temp = vector3(0, 0, 6 * 0.25);
-                else
-                    temp = vector3(0, 0, -6 * 0.25);
-                if (Controlled)
-                    Controlled->ABuSetModelShake(temp);
-                // ABu: koniec rzucania
 
-                if (Train->Dynamic()->MoverParameters->ActiveCab == 0)
-                    Camera.LookAt = Train->pMechPosition + Train->GetDirection(); // gdy w korytarzu
-                else // patrzenie w kierunku osi pojazdu, z uwzglêdnieniem kabiny
-                    Camera.LookAt = Train->pMechPosition +
-                                    Train->GetDirection() *
-                                        Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
-                Camera.vUp = Train->GetUp();
-                Global::SetCameraRotation(Camera.Yaw -
-                                          modelrotate); // tu ju¿ trzeba uwzglêdniæ lusterka
-            }
-        }
-    }
-    else
-    { // kamera nieruchoma
-        Global::SetCameraRotation(Camera.Yaw - M_PI);
-    }
+    dt = Timer::GetDeltaTime(); // czas niekwantowany
+
+    Update_Camera( dt );
+
     Ground.CheckQuery();
-    // przy 0.25 smuga gaœnie o 6:37 w Quarku, a mog³aby ju¿ 5:40
-    // Ra 2014-12: przy 0.15 siê skar¿yli, ¿e nie widaæ smug => zmieni³em na 0.25
-    if (Train) // jeœli nie usuniêty
+
+    if( Train != nullptr ) {
+        TSubModel::iInstance = reinterpret_cast<int>( Train->Dynamic() );
+        Train->Update( dt );
+    }
+    else {
+        TSubModel::iInstance = 0;
+    }
+
+    // przy 0.25 smuga gaÅ›nie o 6:37 w Quarku, a mogÅ‚aby juÅ¼ 5:40
+    // Ra 2014-12: przy 0.15 siÄ™ skarÅ¼yli, Å¼e nie widaÄ‡ smug => zmieniÅ‚em na 0.25
+    // changed light activation threshold to 0.5, paired with strength reduction in daylight
+    if (Train) // jeÅ›li nie usuniÄ™ty
         Global::bSmudge =
-            FreeFlyModeFlag ? false : ((Train->Dynamic()->fShade <= 0.0) ?
-                                           (Global::fLuminance <= 0.25) :
-                                           (Train->Dynamic()->fShade * Global::fLuminance <= 0.25));
+            ( FreeFlyModeFlag ?
+                false :
+                ( Train->Dynamic()->fShade <= 0.0 ?
+                    (Global::fLuminance <= 0.5) :
+                    (Train->Dynamic()->fShade * Global::fLuminance <= 0.5) ) );
 
     if (!Render())
         return false;
 
-    //**********************************************************************************************************
+    return (true);
+};
 
-    if (Train)
-    { // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-        glPushMatrix();
-        // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze
-        // srodka
-        if ((Train->Dynamic()->mdKabina != Train->Dynamic()->mdModel) &&
-            Train->Dynamic()->bDisplayCab && !FreeFlyModeFlag)
-        {
-            vector3 pos = Train->Dynamic()->GetPosition(); // wszpó³rzêdne pojazdu z kabin¹
-            // glTranslatef(pos.x,pos.y,pos.z); //przesuniêcie o wektor (tak by³o i trzês³o)
-            // aby pozbyæ siê choæ trochê trzêsienia, trzeba by nie przeliczaæ kabiny do punktu
-            // zerowego scenerii
-            glLoadIdentity(); // zacz¹æ od macierzy jedynkowej
-            Camera.SetCabMatrix(pos); // widok z kamery po przesuniêciu
-            glMultMatrixd(Train->Dynamic()->mMatrix.getArray()); // ta macierz nie ma przesuniêcia
+void
+TWorld::Update_Camera( double const Deltatime ) {
 
-            //*yB: moje smuuugi 1
-            if (Global::bSmudge)
-            { // Ra: uwzglêdni³em zacienienie pojazdu przy zapalaniu smug
-                // 1. warunek na smugê wyznaczyc wczeœniej
-                // 2. jeœli smuga w³¹czona, nie renderowaæ pojazdu u¿ytkownika w DynObj
-                // 3. jeœli smuga w³aczona, wyrenderowaæ pojazd u¿ytkownia po dodaniu smugi do sceny
-                if (Train->Controlled()->Battery)
-                { // trochê na skróty z t¹ bateri¹
-					if (Global::bOldSmudge == true)
-					{
-					glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ONE);
-                    //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
-                    //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
-                    glDisable(GL_DEPTH_TEST);
-                    glDisable(GL_LIGHTING);
-                    glDisable(GL_FOG);
-                    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-                    glBindTexture(GL_TEXTURE_2D, light); // Select our texture
-                    glBegin(GL_QUADS);
-                    float fSmudge =
-                        Train->Dynamic()->MoverParameters->DimHalf.y + 7; // gdzie zaczynaæ smugê
-                    if (Train->Controlled()->iLights[0] & 21)
-                    { // wystarczy jeden zapalony z przodu
-                        glTexCoord2f(0, 0);
-                        glVertex3f(15.0, 0.0, +fSmudge); // rysowanie wzglêdem po³o¿enia modelu
-                        glTexCoord2f(1, 0);
-                        glVertex3f(-15.0, 0.0, +fSmudge);
-                        glTexCoord2f(1, 1);
-                        glVertex3f(-15.0, 2.5, 250.0);
-                        glTexCoord2f(0, 1);
-                        glVertex3f(15.0, 2.5, 250.0);
-                    }
-                    if (Train->Controlled()->iLights[1] & 21)
-                    { // wystarczy jeden zapalony z ty³u
-                        glTexCoord2f(0, 0);
-                        glVertex3f(-15.0, 0.0, -fSmudge);
-                        glTexCoord2f(1, 0);
-                        glVertex3f(15.0, 0.0, -fSmudge);
-                        glTexCoord2f(1, 1);
-                        glVertex3f(15.0, 2.5, -250.0);
-                        glTexCoord2f(0, 1);
-                        glVertex3f(-15.0, 2.5, -250.0);
-                    }
-                    glEnd();
-
-                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    glEnable(GL_DEPTH_TEST);
-                    // glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
-                    glEnable(GL_FOG);
-					}
-					else
-					{
-						glBlendFunc(GL_DST_COLOR, GL_ONE);
-						glDepthFunc(GL_GEQUAL);
-						glAlphaFunc(GL_GREATER, 0.004);
-						// glDisable(GL_DEPTH_TEST);
-						glDisable(GL_LIGHTING);
-						glDisable(GL_FOG);
-						//glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
-						glBindTexture(GL_TEXTURE_2D, light); // Select our texture
-						//float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
-						glBegin(GL_QUADS);
-						float fSmudge = Train->Dynamic()->MoverParameters->DimHalf.y + 7; // gdzie zaczynaæ smugê
-						if (Train->Controlled()->iLights[0] & 21)
-						{ // wystarczy jeden zapalony z przodu
-							for (int i = 15; i <= 35; i++)
-							{
-								float z = i * i * i * 0.01f;//25/4;
-								//float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
-								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(Global::fLuminance+0.015))-1);
-								glColor4f(C, C, C, 0.25f);
-								glTexCoord2f(0, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
-								glTexCoord2f(1, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3);
-								glTexCoord2f(1, 1);  glVertex3f(10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
-								glTexCoord2f(0, 1);  glVertex3f(-10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3);
-							}
-						}
-						if (Train->Controlled()->iLights[1] & 21)
-						{ // wystarczy jeden zapalony z ty³u
-							for (int i = 15; i <= 35; i++)
-							{
-								float z = i * i * i * 0.01f;//25/4;
-								float C = (36 - i*0.5)*0.005*sqrt((1/sqrt(Global::fLuminance+0.015))-1);
-								glColor4f(C, C, C, 0.25f);
-								glTexCoord2f(0, 0);  glVertex3f(10 / 2 + 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
-								glTexCoord2f(1, 0);  glVertex3f(-10 / 2 - 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3);
-								glTexCoord2f(1, 1);  glVertex3f(-10 / 2 - 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
-								glTexCoord2f(0, 1);  glVertex3f(10 / 2 + 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3);
-							}
-						}
-						glEnd();
-
-						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-						// glEnable(GL_DEPTH_TEST);
-						glAlphaFunc(GL_GREATER, 0.04);
-						glDepthFunc(GL_LEQUAL);
-						glEnable(GL_LIGHTING); //i tak siê w³¹czy potem
-						glEnable(GL_FOG);
-					}
-                }
-                glEnable(GL_LIGHTING); // po renderowaniu smugi jest to wy³¹czone
-                // Ra: pojazd u¿ytkownika nale¿a³o by renderowaæ po smudze, aby go nie rozœwietla³a
-                Global::bSmudge = false; // aby model u¿ytkownika siê teraz wyrenderowa³
-                Train->Dynamic()->Render();
-                Train->Dynamic()->RenderAlpha(); // przezroczyste fragmenty pojazdów na torach
-            } // yB: moje smuuugi 1 - koniec*/
-            else
-                glEnable(GL_LIGHTING); // po renderowaniu drutów mo¿e byæ to wy³¹czone
-
-            if (Train->Dynamic()->mdKabina) // bo mog³a znikn¹æ przy przechodzeniu do innego pojazdu
-            { // oswietlenie kabiny
-                GLfloat ambientCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-                GLfloat diffuseCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-                GLfloat specularCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-                for (int li = 0; li < 3; li++)
-                { // przyciemnienie standardowe
-                    ambientCabLight[li] = Global::ambientDayLight[li] * 0.9;
-                    diffuseCabLight[li] = Global::diffuseDayLight[li] * 0.5;
-                    specularCabLight[li] = Global::specularDayLight[li] * 0.5;
-                }
-                switch (Train->Dynamic()->MyTrack->eEnvironment)
-                { // wp³yw œwiet³a zewnêtrznego
-                case e_canyon:
-                {
-                    for (int li = 0; li < 3; li++)
-                    {
-                        diffuseCabLight[li] *= 0.6;
-                        specularCabLight[li] *= 0.7;
-                    }
-                }
-                break;
-                case e_tunnel:
-                {
-                    for (int li = 0; li < 3; li++)
-                    {
-                        ambientCabLight[li] *= 0.3;
-                        diffuseCabLight[li] *= 0.1;
-                        specularCabLight[li] *= 0.2;
-                    }
-                }
-                break;
-                }
-                switch (Train->iCabLightFlag) // Ra: uzele¿nic od napiêcia w obwodzie sterowania
-                { // hunter-091012: uzaleznienie jasnosci od przetwornicy
-                case 0: //œwiat³o wewnêtrzne zgaszone
-                    break;
-                case 1: //œwiat³o wewnêtrzne przygaszone (255 216 176)
-                    if (Train->Dynamic()->MoverParameters->ConverterFlag ==
-                        true) // jasnosc dla zalaczonej przetwornicy
-                    {
-                        ambientCabLight[0] = Max0R(0.700, ambientCabLight[0]) * 0.75; // R
-                        ambientCabLight[1] = Max0R(0.593, ambientCabLight[1]) * 0.75; // G
-                        ambientCabLight[2] = Max0R(0.483, ambientCabLight[2]) * 0.75; // B
-
-                        for (int i = 0; i < 3; i++)
-                            if (ambientCabLight[i] <= (Global::ambientDayLight[i] * 0.9))
-                                ambientCabLight[i] = Global::ambientDayLight[i] * 0.9;
-                    }
-                    else
-                    {
-                        ambientCabLight[0] = Max0R(0.700, ambientCabLight[0]) * 0.375; // R
-                        ambientCabLight[1] = Max0R(0.593, ambientCabLight[1]) * 0.375; // G
-                        ambientCabLight[2] = Max0R(0.483, ambientCabLight[2]) * 0.375; // B
-
-                        for (int i = 0; i < 3; i++)
-                            if (ambientCabLight[i] <= (Global::ambientDayLight[i] * 0.9))
-                                ambientCabLight[i] = Global::ambientDayLight[i] * 0.9;
-                    }
-                    break;
-                case 2: //œwiat³o wewnêtrzne zapalone (255 216 176)
-                    if (Train->Dynamic()->MoverParameters->ConverterFlag ==
-                        true) // jasnosc dla zalaczonej przetwornicy
-                    {
-                        ambientCabLight[0] = Max0R(1.000, ambientCabLight[0]); // R
-                        ambientCabLight[1] = Max0R(0.847, ambientCabLight[1]); // G
-                        ambientCabLight[2] = Max0R(0.690, ambientCabLight[2]); // B
-
-                        for (int i = 0; i < 3; i++)
-                            if (ambientCabLight[i] <= (Global::ambientDayLight[i] * 0.9))
-                                ambientCabLight[i] = Global::ambientDayLight[i] * 0.9;
-                    }
-                    else
-                    {
-                        ambientCabLight[0] = Max0R(1.000, ambientCabLight[0]) * 0.5; // R
-                        ambientCabLight[1] = Max0R(0.847, ambientCabLight[1]) * 0.5; // G
-                        ambientCabLight[2] = Max0R(0.690, ambientCabLight[2]) * 0.5; // B
-
-                        for (int i = 0; i < 3; i++)
-                            if (ambientCabLight[i] <= (Global::ambientDayLight[i] * 0.9))
-                                ambientCabLight[i] = Global::ambientDayLight[i] * 0.9;
-                    }
-                    break;
-                }
-                glLightfv(GL_LIGHT0, GL_AMBIENT, ambientCabLight);
-                glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseCabLight);
-                glLightfv(GL_LIGHT0, GL_SPECULAR, specularCabLight);
-                if (Global::bUseVBO)
-                { // renderowanie z u¿yciem VBO
-                    Train->Dynamic()->mdKabina->RaRender(0.0, Train->Dynamic()->ReplacableSkinID,
-                                                         Train->Dynamic()->iAlpha);
-                    Train->Dynamic()->mdKabina->RaRenderAlpha(
-                        0.0, Train->Dynamic()->ReplacableSkinID, Train->Dynamic()->iAlpha);
-                }
-                else
-                { // renderowanie z Display List
-                    Train->Dynamic()->mdKabina->Render(0.0, Train->Dynamic()->ReplacableSkinID,
-                                                       Train->Dynamic()->iAlpha);
-                    Train->Dynamic()->mdKabina->RenderAlpha(0.0, Train->Dynamic()->ReplacableSkinID,
-                                                            Train->Dynamic()->iAlpha);
-                }
-                // przywrócenie standardowych, bo zawsze s¹ zmieniane
-                glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-                glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-                glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
+    // Console::Update(); //tu jest zaleÅ¼ne od FPS, co nie jest korzystne
+    if( Global::bActive ) { // obsÅ‚uga ruchu kamery tylko gdy okno jest aktywne
+        if( Console::Pressed( VK_LBUTTON ) ) {
+            Camera.Reset(); // likwidacja obrotÃ³w - patrzy horyzontalnie na poÅ‚udnie
+            // if (!FreeFlyModeFlag) //jeÅ›li wewnÄ…trz - patrzymy do tyÅ‚u
+            // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
+            if( Controlled ? LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < 2250000 :
+                false ) // gdy bliÅ¼ej niÅ¼ 1.5km
+                Camera.LookAt = Controlled->GetPosition();
+            else {
+                TDynamicObject *d =
+                    Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
+                if( !d )
+                    d = Ground.DynamicNearest( Camera.Pos,
+                    1000 ); // dalej szukanie, jesli bliÅ¼ej nie ma
+                if( d && pDynamicNearest ) // jeÅ›li jakiÅ› jest znaleziony wczeÅ›niej
+                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
+                        LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
+                        d = pDynamicNearest; // jeÅ›li najbliÅ¼szy nie jest 10 razy bliÅ¼ej niÅ¼
+                // poprzedni najbliÅ¼szy, zostaje poprzedni
+                if( d )
+                    pDynamicNearest = d; // zmiana na nowy, jeÅ›li coÅ› znaleziony niepusty
+                if( pDynamicNearest )
+                    Camera.LookAt = pDynamicNearest->GetPosition();
             }
-        } // koniec: if (Train->Dynamic()->mdKabina)
-        glPopMatrix();
-        //**********************************************************************************************************
-    } // koniec: if (Train)
-    if (DebugModeFlag && !Global::iTextMode)
-    {
+            if( FreeFlyModeFlag )
+                Camera.RaLook(); // jednorazowe przestawienie kamery
+        }
+        else if( Console::Pressed( VK_RBUTTON ) ) //||Console::Pressed(VK_F4))
+            FollowView( false ); // bez wyciszania dÅºwiÄ™kÃ³w
+/*
+        else if( Global::iTextMode == -1 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
+            WriteLog( "Number of textures used: " + std::to_string( Global::iTextures ) );
+            return false;
+        }
+*/
+        Camera.Update(); // uwzglÄ™dnienie ruchu wywoÅ‚anego klawiszami
+    } // koniec bloku pomijanego przy nieaktywnym oknie
+
+    if( Camera.Type == tp_Follow ) {
+        if( Train ) { // jeÅ›li jazda w kabinie, przeliczyÄ‡ trzeba parametry kamery
+            Train->UpdateMechPosition( Deltatime /
+                Global::fTimeSpeed ); // ograniczyÄ‡ telepanie po przyspieszeniu
+            vector3 tempangle;
+            double modelrotate;
+            tempangle =
+                Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
+            modelrotate = atan2( -tempangle.x, tempangle.z );
+            if( Console::Pressed( VK_CONTROL ) ? ( Console::Pressed( Global::Keys[ k_MechLeft ] ) ||
+                Console::Pressed( Global::Keys[ k_MechRight ] ) ) :
+                false ) { // jeÅ›li lusterko lewe albo prawe (bez rzucania na razie)
+                bool lr = Console::Pressed( Global::Keys[ k_MechLeft ] );
+#if 0
+                Camera.Pos = Train->MirrorPosition( lr ); //robocza wartoÅ›Ä‡
+                if( Controlled->MoverParameters->ActiveCab<0 ) lr = !lr; //w drugiej kabinie odwrotnie jest Å›rodek
+                Camera.LookAt = Controlled->GetPosition() + vector3( lr ? 2.0 : -2.0, Camera.Pos.y, 0 ); //trochÄ™ na zewnÄ…trz, uÅ¼yÄ‡ szerokoÅ›ci pojazdu
+                //Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab;
+                Camera.Pos += Controlled->GetPosition();
+                //Camera.RaLook(); //jednorazowe przestawienie kamery
+                Camera.Yaw = 0; //odchylenie na bok od Camera.LookAt
+#else
+                // Camera.Yaw powinno byÄ‡ wyzerowane, aby po powrocie patrzeÄ‡ do przodu
+                Camera.Pos =
+                    Controlled->GetPosition() + Train->MirrorPosition( lr ); // pozycja lusterka
+                Camera.Yaw = 0; // odchylenie na bok od Camera.LookAt
+                if( Train->Dynamic()->MoverParameters->ActiveCab == 0 )
+                    Camera.LookAt = Camera.Pos - Train->GetDirection(); // gdy w korytarzu
+                else if( Console::Pressed( VK_SHIFT ) ) { // patrzenie w bok przez szybÄ™
+                    Camera.LookAt = Camera.Pos -
+                        ( lr ? -1 : 1 ) * Train->Dynamic()->VectorLeft() *
+                        Train->Dynamic()->MoverParameters->ActiveCab;
+                    Global::SetCameraRotation( -modelrotate );
+                }
+                else { // patrzenie w kierunku osi pojazdu, z uwzglÄ™dnieniem kabiny - jakby z lusterka,
+                    // ale bez odbicia
+                    Camera.LookAt = Camera.Pos -
+                        Train->GetDirection() *
+                        Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
+                    Global::SetCameraRotation( M_PI -
+                        modelrotate ); // tu juÅ¼ trzeba uwzglÄ™dniÄ‡ lusterka
+                }
+#endif
+                Camera.Roll =
+                    atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
+                Camera.Pitch =
+                    atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl
+                Camera.vUp = Controlled->VectorUp();
+            }
+            else { // patrzenie standardowe
+                Camera.Pos = Train->pMechPosition; // Train.GetPosition1();
+                if( !Global::iPause ) { // podczas pauzy nie przeliczaÄ‡ kÄ…tÃ³w przypadkowymi wartoÅ›ciami
+                    Camera.Roll =
+                        atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
+                    Camera.Pitch -= atan( Train->vMechVelocity.z *
+                        Train->fMechPitch ); // hustanie kamery przod tyl //Ra: tu
+                    // jest uciekanie kamery w gÃ³rÄ™!!!
+                }
+                // ABu011104: rzucanie pudlem
+                vector3 temp;
+                if( abs( Train->pMechShake.y ) < 0.25 )
+                    temp = vector3( 0, 0, 6 * Train->pMechShake.y );
+                else if( ( Train->pMechShake.y ) > 0 )
+                    temp = vector3( 0, 0, 6 * 0.25 );
+                else
+                    temp = vector3( 0, 0, -6 * 0.25 );
+                if( Controlled )
+                    Controlled->ABuSetModelShake( temp );
+                // ABu: koniec rzucania
+
+                if( Train->Dynamic()->MoverParameters->ActiveCab == 0 )
+                    Camera.LookAt = Train->pMechPosition + Train->GetDirection(); // gdy w korytarzu
+                else // patrzenie w kierunku osi pojazdu, z uwzglÄ™dnieniem kabiny
+                    Camera.LookAt = Train->pMechPosition +
+                    Train->GetDirection() *
+                    Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
+                Camera.vUp = Train->GetUp();
+                Global::SetCameraRotation( Camera.Yaw -
+                    modelrotate ); // tu juÅ¼ trzeba uwzglÄ™dniÄ‡ lusterka
+            }
+        }
+    }
+    else { // kamera nieruchoma
+        Global::SetCameraRotation( Camera.Yaw - M_PI );
+    }
+}
+
+void TWorld::Update_Lights() {
+
+    if( Global::fMoveLight < 0.0 ) {
+        return;
+    }
+
+    // double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //kÄ…t godzinny w radianach
+    double a = fmod( Global::fTimeAngleDeg, 360.0 ) / 180.0 * M_PI -
+        M_PI; // kÄ…t godzinny w radianach
+    //(a) jest traktowane jako czas miejscowy, nie uwzglÄ™dniajÄ…cy stref czasowych ani czasu
+    // letniego
+    // aby wyznaczyÄ‡ strefÄ™ czasowÄ…, trzeba uwzglÄ™dniÄ‡ poÅ‚udnik miejscowy
+    // aby uwzglÄ™dniÄ‡ czas letni, trzeba sprawdziÄ‡ dzieÅ„ roku
+    double L = Global::fLatitudeDeg / 180.0 * M_PI; // szerokoÅ›Ä‡ geograficzna
+    double H = asin( cos( L ) * cos( Global::fSunDeclination ) * cos( a ) +
+        sin( L ) * sin( Global::fSunDeclination ) ); // kÄ…t ponad horyzontem
+    // double A=asin(cos(d)*sin(M_PI-a)/cos(H));
+    // Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
+    // Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
+    // Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
+    // double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
+    // dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude -
+    // dSin_Latitude*dCos_HourAngle );
+    double A = atan2( sin( a ), tan( Global::fSunDeclination ) * cos( L ) - sin( L ) * cos( a ) );
+    vector3 lp = vector3( sin( A ), tan( H ), cos( A ) );
+    lp = Normalize( lp ); // przeliczenie na wektor dÅ‚ugoÅ›ci 1.0
+    Global::lightPos[ 0 ] = (float)lp.x;
+    Global::lightPos[ 1 ] = (float)lp.y;
+    Global::lightPos[ 2 ] = (float)lp.z;
+    glLightfv( GL_LIGHT0, GL_POSITION, Global::lightPos ); // daylight position
+    if( H > 0 ) { // sÅ‚oÅ„ce ponad horyzontem
+        Global::ambientDayLight[ 0 ] = Global::ambientLight[ 0 ];
+        Global::ambientDayLight[ 1 ] = Global::ambientLight[ 1 ];
+        Global::ambientDayLight[ 2 ] = Global::ambientLight[ 2 ];
+        if( H > 0.02 ) // ponad 1.146Â° zaczynajÄ… siÄ™ cienie
+        {
+            Global::diffuseDayLight[ 0 ] =
+                Global::diffuseLight[ 0 ]; // od wschodu do zachodu maksimum ???
+            Global::diffuseDayLight[ 1 ] = Global::diffuseLight[ 1 ];
+            Global::diffuseDayLight[ 2 ] = Global::diffuseLight[ 2 ];
+            Global::specularDayLight[ 0 ] = Global::specularLight[ 0 ]; // podobnie specular
+            Global::specularDayLight[ 1 ] = Global::specularLight[ 1 ];
+            Global::specularDayLight[ 2 ] = Global::specularLight[ 2 ];
+        }
+        else {
+            Global::diffuseDayLight[ 0 ] =
+                50 * H * Global::diffuseLight[ 0 ]; // wschÃ³d albo zachÃ³d
+            Global::diffuseDayLight[ 1 ] = 50 * H * Global::diffuseLight[ 1 ];
+            Global::diffuseDayLight[ 2 ] = 50 * H * Global::diffuseLight[ 2 ];
+            Global::specularDayLight[ 0 ] =
+                50 * H * Global::specularLight[ 0 ]; // podobnie specular
+            Global::specularDayLight[ 1 ] = 50 * H * Global::specularLight[ 1 ];
+            Global::specularDayLight[ 2 ] = 50 * H * Global::specularLight[ 2 ];
+        }
+    }
+    else { // sÅ‚oÅ„ce pod horyzontem
+        GLfloat lum = 3.1831 * ( H > -0.314159 ? 0.314159 + H :
+            0.0 ); // po zachodzie ambient siÄ™ Å›ciemnia
+        Global::ambientDayLight[ 0 ] = lum * Global::ambientLight[ 0 ];
+        Global::ambientDayLight[ 1 ] = lum * Global::ambientLight[ 1 ];
+        Global::ambientDayLight[ 2 ] = lum * Global::ambientLight[ 2 ];
+        Global::diffuseDayLight[ 0 ] =
+            Global::noLight[ 0 ]; // od zachodu do wschodu nie ma diffuse
+        Global::diffuseDayLight[ 1 ] = Global::noLight[ 1 ];
+        Global::diffuseDayLight[ 2 ] = Global::noLight[ 2 ];
+        Global::specularDayLight[ 0 ] = Global::noLight[ 0 ]; // ani specular
+        Global::specularDayLight[ 1 ] = Global::noLight[ 1 ];
+        Global::specularDayLight[ 2 ] = Global::noLight[ 2 ];
+    }
+    // Calculate sky colour according to time of day.
+    // GLfloat sin_t = sin(PI * time_of_day / 12.0);
+    // back_red = 0.3 * (1.0 - sin_t);
+    // back_green = 0.9 * sin_t;
+    // back_blue = sin_t + 0.4, 1.0;
+    // aktualizacja Å›wiateÅ‚
+    glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
+    glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
+    glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
+
+    Global::fLuminance = // to posÅ‚uÅ¼y rÃ³wnieÅ¼ do zapalania latarÅ„
+        +0.150 * ( Global::diffuseDayLight[ 0 ] + Global::ambientDayLight[ 0 ] ) // R
+        + 0.295 * ( Global::diffuseDayLight[ 1 ] + Global::ambientDayLight[ 1 ] ) // G
+        + 0.055 * ( Global::diffuseDayLight[ 2 ] + Global::ambientDayLight[ 2 ] ); // B
+    
+    vector3 sky = vector3( Global::AtmoColor[ 0 ], Global::AtmoColor[ 1 ], Global::AtmoColor[ 2 ] );
+    if( Global::fLuminance < 0.25 ) { // przyspieszenie zachodu/wschodu
+        sky *= 4.0 * Global::fLuminance; // nocny kolor nieba
+        GLfloat fog[ 3 ];
+        fog[ 0 ] = Global::FogColor[ 0 ] * 4.0 * Global::fLuminance;
+        fog[ 1 ] = Global::FogColor[ 1 ] * 4.0 * Global::fLuminance;
+        fog[ 2 ] = Global::FogColor[ 2 ] * 4.0 * Global::fLuminance;
+        glFogfv( GL_FOG_COLOR, fog ); // nocny kolor mgÅ‚y
+    }
+    else {
+        glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgÅ‚y
+    }
+    glClearColor( sky.x, sky.y, sky.z, 0.0 ); // kolor nieba
+}
+
+bool TWorld::Render()
+{
+    glColor3b(255, 255, 255);
+    // glColor3b(255, 0, 255);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDepthFunc( GL_LEQUAL );
+    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
+    glLoadIdentity();
+    Camera.SetMatrix(); // ustawienie macierzy kamery wzglÄ™dem poczÄ…tku scenerii
+    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
+
+    if (!Global::bWireFrame)
+    { // bez nieba w trybie rysowania linii
+        glDisable(GL_FOG);
+        Clouds.Render();
+        glEnable(GL_FOG);
+    }
+    if (Global::bUseVBO)
+    { // renderowanie przez VBO
+        if (!Ground.RenderVBO(Camera.Pos))
+            return false;
+        if (!Ground.RenderAlphaVBO(Camera.Pos))
+            return false;
+    }
+    else
+    { // renderowanie przez Display List
+        if (!Ground.RenderDL(Camera.Pos))
+            return false;
+        if (!Ground.RenderAlphaDL(Camera.Pos))
+            return false;
+    }
+/*
+    TSubModel::iInstance = (int)(Train ? Train->Dynamic() : 0); //Å¼eby nie robiÄ‡ cudzych animacji
+    // if (Camera.Type==tp_Follow)
+    if (Train)
+        Train->Update();
+*/
+    Render_Cab();
+    Render_UI();
+
+//  glFlush();
+    // Global::bReCompile=false; //Ra: juÅ¼ zrobiona rekompilacja
+    ResourceManager::Sweep( Timer::GetSimulationTime() );
+
+    return true;
+};
+
+// rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
+void
+TWorld::Render_Cab() {
+
+    if( Train == nullptr ) {
+
+        TSubModel::iInstance = 0;
+        return;
+    }
+
+    TDynamicObject *dynamic = Train->Dynamic();
+    TSubModel::iInstance = reinterpret_cast<int>( dynamic );
+
+    if( ( true == FreeFlyModeFlag )
+     || ( false == dynamic->bDisplayCab )
+     || ( dynamic->mdKabina == dynamic->mdModel ) ) {
+        // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
+        return;
+    }
+/*
+    // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
+    if( ( Train->Dynamic()->mdKabina != Train->Dynamic()->mdModel ) &&
+        Train->Dynamic()->bDisplayCab && !FreeFlyModeFlag ) {
+*/
+    glPushMatrix();
+    vector3 pos = dynamic->GetPosition(); // wszpÃ³Å‚rzÄ™dne pojazdu z kabinÄ…
+    // glTranslatef(pos.x,pos.y,pos.z); //przesuniÄ™cie o wektor (tak byÅ‚o i trzÄ™sÅ‚o)
+    // aby pozbyÄ‡ siÄ™ choÄ‡ trochÄ™ trzÄ™sienia, trzeba by nie przeliczaÄ‡ kabiny do punktu
+    // zerowego scenerii
+    glLoadIdentity(); // zaczÄ…Ä‡ od macierzy jedynkowej
+    Camera.SetCabMatrix( pos ); // widok z kamery po przesuniÄ™ciu
+    glMultMatrixd( dynamic->mMatrix.getArray() ); // ta macierz nie ma przesuniÄ™cia
+
+    //*yB: moje smuuugi 1
+    if( Global::bSmudge ) { // Ra: uwzglÄ™dniÅ‚em zacienienie pojazdu przy zapalaniu smug
+        // 1. warunek na smugÄ™ wyznaczyc wczeÅ›niej
+        // 2. jeÅ›li smuga wÅ‚Ä…czona, nie renderowaÄ‡ pojazdu uÅ¼ytkownika w DynObj
+        // 3. jeÅ›li smuga wÅ‚aczona, wyrenderowaÄ‡ pojazd uÅ¼ytkownia po dodaniu smugi do sceny
+        auto const &frontlights = Train->Controlled()->iLights[ 0 ];
+        float frontlightstrength = 0.f +
+            ( ( frontlights & 1 ) ? 0.3f : 0.f ) +
+            ( ( frontlights & 4 ) ? 0.3f : 0.f ) +
+            ( ( frontlights & 16 ) ? 0.3f : 0.f );
+        frontlightstrength = std::max( frontlightstrength - Global::fLuminance, 0.0 );
+        auto const &rearlights = Train->Controlled()->iLights[ 1 ];
+        float rearlightstrength = 0.f +
+            ( ( rearlights & 1 ) ? 0.3f : 0.f ) +
+            ( ( rearlights & 4 ) ? 0.3f : 0.f ) +
+            ( ( rearlights & 16 ) ? 0.3f : 0.f );
+        rearlightstrength = std::max( rearlightstrength - Global::fLuminance, 0.0 );
+
+        if( ( Train->Controlled()->Battery )  // trochÄ™ na skrÃ³ty z tÄ… bateriÄ…
+         && ( ( frontlightstrength > 0.f )
+           || ( rearlightstrength > 0.f ) ) ) {
+
+            if( Global::bOldSmudge == true ) {
+                glBlendFunc( GL_SRC_ALPHA, GL_ONE );
+                //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
+                //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
+                glDisable( GL_DEPTH_TEST );
+                glDisable( GL_LIGHTING );
+                glDisable( GL_FOG );
+                TextureManager.Bind( light ); // Select our texture
+                glBegin( GL_QUADS );
+                float fSmudge =
+                    dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynaÄ‡ smugÄ™
+                if( frontlightstrength > 0.f ) { // wystarczy jeden zapalony z przodu
+                    glColor4f( 1.0f, 1.0f, 1.0f, 0.5f * frontlightstrength );
+                    glTexCoord2f( 0, 0 );
+                    glVertex3f( 15.0, 0.0, +fSmudge ); // rysowanie wzglÄ™dem poÅ‚oÅ¼enia modelu
+                    glTexCoord2f( 1, 0 );
+                    glVertex3f( -15.0, 0.0, +fSmudge );
+                    glTexCoord2f( 1, 1 );
+                    glVertex3f( -15.0, 2.5, 250.0 );
+                    glTexCoord2f( 0, 1 );
+                    glVertex3f( 15.0, 2.5, 250.0 );
+                }
+                if( rearlightstrength > 0.f ) { // wystarczy jeden zapalony z tyÅ‚u
+                    glColor4f( 1.0f, 1.0f, 1.0f, 0.5f * rearlightstrength );
+                    glTexCoord2f( 0, 0 );
+                    glVertex3f( -15.0, 0.0, -fSmudge );
+                    glTexCoord2f( 1, 0 );
+                    glVertex3f( 15.0, 0.0, -fSmudge );
+                    glTexCoord2f( 1, 1 );
+                    glVertex3f( 15.0, 2.5, -250.0 );
+                    glTexCoord2f( 0, 1 );
+                    glVertex3f( -15.0, 2.5, -250.0 );
+                }
+                glEnd();
+
+                glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+                glEnable( GL_DEPTH_TEST );
+                // glEnable(GL_LIGHTING); //i tak siÄ™ wÅ‚Ä…czy potem
+                glEnable( GL_FOG );
+            }
+            else {
+
+                glBlendFunc( GL_DST_COLOR, GL_ONE );
+                glDepthFunc( GL_GEQUAL );
+                glAlphaFunc( GL_GREATER, 0.004 );
+                // glDisable(GL_DEPTH_TEST);
+                glDisable( GL_LIGHTING );
+                glDisable( GL_FOG );
+                //glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
+                TextureManager.Bind( light ); // Select our texture
+                //float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
+                glBegin( GL_QUADS );
+                float fSmudge = dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynaÄ‡ smugÄ™
+                if( frontlightstrength > 0.f ) { // wystarczy jeden zapalony z przodu
+
+                    for( int i = 15; i <= 35; i++ ) {
+                        float z = i * i * i * 0.01f;//25/4;
+                        //float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
+                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * frontlightstrength;
+                        glColor4f( C, C, C, 0.35f );// *frontlightstrength );
+                        glTexCoord2f( 0, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
+                        glTexCoord2f( 1, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
+                        glTexCoord2f( 1, 1 );  glVertex3f( 10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
+                        glTexCoord2f( 0, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
+                    }
+                }
+                if( rearlightstrength > 0.f ) { // wystarczy jeden zapalony z tyÅ‚u
+                    for( int i = 15; i <= 35; i++ ) {
+                        float z = i * i * i * 0.01f;//25/4;
+                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * rearlightstrength;
+                        glColor4f( C, C, C, 0.35f );// *rearlightstrength );
+                        glTexCoord2f( 0, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
+                        glTexCoord2f( 1, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
+                        glTexCoord2f( 1, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3 );
+                        glTexCoord2f( 0, 1 );  glVertex3f( 10 / 2 + 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3 );
+                    }
+                }
+                glEnd();
+
+                glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+                // glEnable(GL_DEPTH_TEST);
+                glAlphaFunc( GL_GREATER, 0.04 );
+                glDepthFunc( GL_LEQUAL );
+                glEnable( GL_LIGHTING ); //i tak siÄ™ wÅ‚Ä…czy potem
+                glEnable( GL_FOG );
+            }
+        }
+        glEnable( GL_LIGHTING ); // po renderowaniu smugi jest to wyÅ‚Ä…czone
+        // Ra: pojazd uÅ¼ytkownika naleÅ¼aÅ‚o by renderowaÄ‡ po smudze, aby go nie rozÅ›wietlaÅ‚a
+        Global::bSmudge = false; // aby model uÅ¼ytkownika siÄ™ teraz wyrenderowaÅ‚
+        dynamic->Render();
+        dynamic->RenderAlpha(); // przezroczyste fragmenty pojazdÃ³w na torach
+    } // yB: moje smuuugi 1 - koniec*/
+    else
+        glEnable( GL_LIGHTING ); // po renderowaniu drutÃ³w moÅ¼e byÄ‡ to wyÅ‚Ä…czone
+
+    if( dynamic->mdKabina ) // bo mogÅ‚a zniknÄ…Ä‡ przy przechodzeniu do innego pojazdu
+    { // oswietlenie kabiny
+        GLfloat ambientCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
+        GLfloat diffuseCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
+        GLfloat specularCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
+        for( int li = 0; li < 3; li++ ) { // przyciemnienie standardowe
+            ambientCabLight[ li ] = Global::ambientDayLight[ li ] * 0.9;
+            diffuseCabLight[ li ] = Global::diffuseDayLight[ li ] * 0.5;
+            specularCabLight[ li ] = Global::specularDayLight[ li ] * 0.5;
+        }
+        switch( dynamic->MyTrack->eEnvironment ) { // wpÅ‚yw Å›wietÅ‚a zewnÄ™trznego
+            case e_canyon:
+            {
+                for( int li = 0; li < 3; li++ ) {
+                    diffuseCabLight[ li ] *= 0.6;
+                    specularCabLight[ li ] *= 0.7;
+                }
+            }
+            break;
+            case e_tunnel:
+            {
+                for( int li = 0; li < 3; li++ ) {
+                    ambientCabLight[ li ] *= 0.3;
+                    diffuseCabLight[ li ] *= 0.1;
+                    specularCabLight[ li ] *= 0.2;
+                }
+            }
+            break;
+        }
+        switch( Train->iCabLightFlag ) // Ra: uzeleÅ¼nic od napiÄ™cia w obwodzie sterowania
+        { // hunter-091012: uzaleznienie jasnosci od przetwornicy
+            case 0: //Å›wiatÅ‚o wewnÄ™trzne zgaszone
+                break;
+            case 1: //Å›wiatÅ‚o wewnÄ™trzne przygaszone (255 216 176)
+                if( dynamic->MoverParameters->ConverterFlag ==
+                    true ) // jasnosc dla zalaczonej przetwornicy
+                {
+                    ambientCabLight[ 0 ] = Max0R( 0.700, ambientCabLight[ 0 ] ) * 0.75; // R
+                    ambientCabLight[ 1 ] = Max0R( 0.593, ambientCabLight[ 1 ] ) * 0.75; // G
+                    ambientCabLight[ 2 ] = Max0R( 0.483, ambientCabLight[ 2 ] ) * 0.75; // B
+
+                    for( int i = 0; i < 3; i++ )
+                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
+                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
+                }
+                else {
+                    ambientCabLight[ 0 ] = Max0R( 0.700, ambientCabLight[ 0 ] ) * 0.375; // R
+                    ambientCabLight[ 1 ] = Max0R( 0.593, ambientCabLight[ 1 ] ) * 0.375; // G
+                    ambientCabLight[ 2 ] = Max0R( 0.483, ambientCabLight[ 2 ] ) * 0.375; // B
+
+                    for( int i = 0; i < 3; i++ )
+                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
+                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
+                }
+                break;
+            case 2: //Å›wiatÅ‚o wewnÄ™trzne zapalone (255 216 176)
+                if( dynamic->MoverParameters->ConverterFlag ==
+                    true ) // jasnosc dla zalaczonej przetwornicy
+                {
+                    ambientCabLight[ 0 ] = Max0R( 1.000, ambientCabLight[ 0 ] ); // R
+                    ambientCabLight[ 1 ] = Max0R( 0.847, ambientCabLight[ 1 ] ); // G
+                    ambientCabLight[ 2 ] = Max0R( 0.690, ambientCabLight[ 2 ] ); // B
+
+                    for( int i = 0; i < 3; i++ )
+                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
+                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
+                }
+                else {
+                    ambientCabLight[ 0 ] = Max0R( 1.000, ambientCabLight[ 0 ] ) * 0.5; // R
+                    ambientCabLight[ 1 ] = Max0R( 0.847, ambientCabLight[ 1 ] ) * 0.5; // G
+                    ambientCabLight[ 2 ] = Max0R( 0.690, ambientCabLight[ 2 ] ) * 0.5; // B
+
+                    for( int i = 0; i < 3; i++ )
+                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
+                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
+                }
+                break;
+        }
+        glLightfv( GL_LIGHT0, GL_AMBIENT, ambientCabLight );
+        glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseCabLight );
+        glLightfv( GL_LIGHT0, GL_SPECULAR, specularCabLight );
+        if( Global::bUseVBO ) { // renderowanie z uÅ¼yciem VBO
+            dynamic->mdKabina->RaRender( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+            dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+        }
+        else { // renderowanie z Display List
+            dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+            dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+        }
+        // przywrÃ³cenie standardowych, bo zawsze sÄ… zmieniane
+        glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
+        glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
+        glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
+    }
+    glPopMatrix();
+}
+
+void
+TWorld::Render_UI() {
+
+    if( DebugModeFlag && !Global::iTextMode ) {
         OutText1 = "  FPS: ";
-        OutText1 += FloatToStrF(GetFPS(), ffFixed, 6, 2);
+        OutText1 += to_string( Timer::GetFPS(), 2 );
         OutText1 += Global::iSlowMotion ? "s" : "n";
 
-        OutText1 += (GetDeltaTime() >= 0.2) ? "!" : " ";
+        OutText1 += ( Timer::GetDeltaTime() >= 0.2 ) ? "!" : " ";
         // if (GetDeltaTime()>=0.2) //Ra: to za bardzo miota tekstem!
         // {
         //     OutText1+= " Slowing Down !!! ";
         // }
     }
     /*if (Console::Pressed(VK_F5))
-       {Global::slowmotion=true;};
+    {Global::slowmotion=true;};
     if (Console::Pressed(VK_F6))
-       {Global::slowmotion=false;};*/
+    {Global::slowmotion=false;};*/
 
-    if (Global::iTextMode == VK_F8)
-    {
+    if( Global::iTextMode == VK_F8 ) {
         Global::iViewMode = VK_F8;
         OutText1 = "  FPS: ";
-        OutText1 += FloatToStrF(GetFPS(), ffFixed, 6, 2);
-        if (Global::iSlowMotion)
-            OutText1 += " (slowmotion " + AnsiString(Global::iSlowMotion) + ")";
+        OutText1 += to_string( Timer::GetFPS(), 2 );
+        //OutText1 += sprintf();
+        if( Global::iSlowMotion )
+            OutText1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
         OutText1 += ", sectors: ";
-        OutText1 += AnsiString(Ground.iRendered);
+        OutText1 += to_string( Ground.iRendered );
     }
 
     // if (Console::Pressed(VK_F7))
@@ -1748,91 +1828,90 @@ bool TWorld::Update()
 
     /*
     if (Console::Pressed(VK_F5))
-       {
-          int line=2;
-          OutText1="Time: "+FloatToStrF(GlobalTime->hh,ffFixed,2,0)+":"
-                  +FloatToStrF(GlobalTime->mm,ffFixed,2,0)+", ";
-          OutText1+="distance: ";
-          OutText1+="34.94";
-          OutText2="Next station: ";
-          OutText2+=FloatToStrF(Controlled->TrainParams->TimeTable[line].km,ffFixed,2,2)+" km, ";
-          OutText2+=AnsiString(Controlled->TrainParams->TimeTable[line].StationName)+", ";
-          OutText2+=AnsiString(Controlled->TrainParams->TimeTable[line].StationWare);
-          OutText3="Arrival: ";
-          if(Controlled->TrainParams->TimeTable[line].Ah==-1)
-          {
-             OutText3+="--:--";
-          }
-          else
-          {
-             OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Ah,ffFixed,2,0)+":";
-             OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Am,ffFixed,2,0)+" ";
-          }
-          OutText3+=" Departure: ";
-          OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Dh,ffFixed,2,0)+":";
-          OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Dm,ffFixed,2,0)+" ";
-       };
-//    */
+    {
+    int line=2;
+    OutText1="Time: "+FloatToStrF(GlobalTime->hh,ffFixed,2,0)+":"
+    +FloatToStrF(GlobalTime->mm,ffFixed,2,0)+", ";
+    OutText1+="distance: ";
+    OutText1+="34.94";
+    OutText2="Next station: ";
+    OutText2+=FloatToStrF(Controlled->TrainParams->TimeTable[line].km,ffFixed,2,2)+" km, ";
+    OutText2+=AnsiString(Controlled->TrainParams->TimeTable[line].StationName)+", ";
+    OutText2+=AnsiString(Controlled->TrainParams->TimeTable[line].StationWare);
+    OutText3="Arrival: ";
+    if(Controlled->TrainParams->TimeTable[line].Ah==-1)
+    {
+    OutText3+="--:--";
+    }
+    else
+    {
+    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Ah,ffFixed,2,0)+":";
+    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Am,ffFixed,2,0)+" ";
+    }
+    OutText3+=" Departure: ";
+    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Dh,ffFixed,2,0)+":";
+    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Dm,ffFixed,2,0)+" ";
+    };
+    //    */
     /*
     if (Console::Pressed(VK_F6))
     {
-       //GlobalTime->UpdateMTableTime(100);
-       //OutText1=FloatToStrF(SquareMagnitude(Global::pCameraPosition-Controlled->GetPosition()),ffFixed,10,0);
-       //OutText1=FloatToStrF(Global::TnijSzczegoly,ffFixed,7,0)+", ";
-       //OutText1+=FloatToStrF(dta,ffFixed,2,4)+", ";
-       OutText1+= FloatToStrF(GetFPS(),ffFixed,6,2);
-       OutText1+= FloatToStrF(Global::ABuDebug,ffFixed,6,15);
+    //GlobalTime->UpdateMTableTime(100);
+    //OutText1=FloatToStrF(SquareMagnitude(Global::pCameraPosition-Controlled->GetPosition()),ffFixed,10,0);
+    //OutText1=FloatToStrF(Global::TnijSzczegoly,ffFixed,7,0)+", ";
+    //OutText1+=FloatToStrF(dta,ffFixed,2,4)+", ";
+    OutText1+= FloatToStrF(GetFPS(),ffFixed,6,2);
+    OutText1+= FloatToStrF(Global::ABuDebug,ffFixed,6,15);
     };
     */
-    if (Global::changeDynObj)
-    { // ABu zmiana pojazdu - przejœcie do innego
-        // Ra: to nie mo¿e byæ tak robione, to zbytnia proteza jest
-        Train->Silence(); // wy³¹czenie dŸwiêków opuszczanej kabiny
-        if (Train->Dynamic()->Mechanik) // AI mo¿e sobie samo pójœæ
-            if (!Train->Dynamic()->Mechanik->AIControllFlag) // tylko jeœli rêcznie prowadzony
-            { // jeœli prowadzi AI, to mu nie robimy dywersji!
+    if( Global::changeDynObj ) { // ABu zmiana pojazdu - przejÅ›cie do innego
+        // Ra: to nie moÅ¼e byÄ‡ tak robione, to zbytnia proteza jest
+        Train->Silence(); // wyÅ‚Ä…czenie dÅºwiÄ™kÃ³w opuszczanej kabiny
+        if( Train->Dynamic()->Mechanik ) // AI moÅ¼e sobie samo pÃ³jÅ›Ä‡
+            if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeÅ›li rÄ™cznie prowadzony
+            { // jeÅ›li prowadzi AI, to mu nie robimy dywersji!
                 Train->Dynamic()->MoverParameters->CabDeactivisation();
                 Train->Dynamic()->Controller = AIdriver;
                 // Train->Dynamic()->MoverParameters->SecuritySystem.Status=0; //rozwala CA w EZT
                 Train->Dynamic()->MoverParameters->ActiveCab = 0;
                 Train->Dynamic()->MoverParameters->BrakeLevelSet(
-					Train->Dynamic()->MoverParameters->Handle->GetPos(
-						bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
+                    Train->Dynamic()->MoverParameters->Handle->GetPos(
+                    bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
                 Train->Dynamic()->MechInside = false;
             }
         // int CabNr;
         TDynamicObject *temp = Global::changeDynObj;
         // CabNr=temp->MoverParameters->ActiveCab;
         /*
-             if (Train->Dynamic()->MoverParameters->ActiveCab==-1)
-             {
-              temp=Train->Dynamic()->NextConnected; //pojazd od strony sprzêgu 1
-              CabNr=(Train->Dynamic()->NextConnectedNo==0)?1:-1;
-             }
-             else
-             {
-              temp=Train->Dynamic()->PrevConnected; //pojazd od strony sprzêgu 0
-              CabNr=(Train->Dynamic()->PrevConnectedNo==0)?1:-1;
-             }
+        if (Train->Dynamic()->MoverParameters->ActiveCab==-1)
+        {
+        temp=Train->Dynamic()->NextConnected; //pojazd od strony sprzÄ™gu 1
+        CabNr=(Train->Dynamic()->NextConnectedNo==0)?1:-1;
+        }
+        else
+        {
+        temp=Train->Dynamic()->PrevConnected; //pojazd od strony sprzÄ™gu 0
+        CabNr=(Train->Dynamic()->PrevConnectedNo==0)?1:-1;
+        }
         */
         Train->Dynamic()->bDisplayCab = false;
-        Train->Dynamic()->ABuSetModelShake(vector3(0, 0, 0));
+        Train->Dynamic()->ABuSetModelShake( vector3( 0, 0, 0 ) );
         /// Train->Dynamic()->MoverParameters->LimPipePress=-1;
         /// Train->Dynamic()->MoverParameters->ActFlowSpeed=0;
         /// Train->Dynamic()->Mechanik->CloseLog();
         /// SafeDelete(Train->Dynamic()->Mechanik);
 
         // Train->Dynamic()->mdKabina=NULL;
-        if (Train->Dynamic()->Mechanik) // AI mo¿e sobie samo pójœæ
-            if (!Train->Dynamic()->Mechanik->AIControllFlag) // tylko jeœli rêcznie prowadzony
-                Train->Dynamic()->Mechanik->MoveTo(temp); // przsuniêcie obiektu zarz¹dzaj¹cego
+        if( Train->Dynamic()->Mechanik ) // AI moÅ¼e sobie samo pÃ³jÅ›Ä‡
+            if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeÅ›li rÄ™cznie prowadzony
+                Train->Dynamic()->Mechanik->MoveTo( temp ); // przsuniÄ™cie obiektu zarzÄ…dzajÄ…cego
         // Train->DynamicObject=NULL;
-        Train->DynamicSet(temp);
+        Train->DynamicSet( temp );
         Controlled = temp;
         mvControlled = Controlled->ControlledFind()->MoverParameters;
         Global::asHumanCtrlVehicle = Train->Dynamic()->GetName();
-        if (Train->Dynamic()->Mechanik) // AI mo¿e sobie samo pójœæ
-            if (!Train->Dynamic()->Mechanik->AIControllFlag) // tylko jeœli rêcznie prowadzony
+        if( Train->Dynamic()->Mechanik ) // AI moÅ¼e sobie samo pÃ³jÅ›Ä‡
+            if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeÅ›li rÄ™cznie prowadzony
             {
                 Train->Dynamic()->MoverParameters->LimPipePress =
                     Controlled->MoverParameters->PipePress;
@@ -1840,141 +1919,130 @@ bool TWorld::Update()
                 // Train->Dynamic()->MoverParameters->SecuritySystem.Status=1;
                 // Train->Dynamic()->MoverParameters->ActiveCab=CabNr;
                 Train->Dynamic()
-                    ->MoverParameters->CabActivisation(); // za³¹czenie rozrz¹du (wirtualne kabiny)
+                    ->MoverParameters->CabActivisation(); // zaÅ‚Ä…czenie rozrzÄ…du (wirtualne kabiny)
                 Train->Dynamic()->Controller = Humandriver;
                 Train->Dynamic()->MechInside = true;
                 // Train->Dynamic()->Mechanik=new
                 // TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
                 // Train->InitializeCab(CabNr,Train->Dynamic()->asBaseDir+Train->Dynamic()->MoverParameters->TypeName+".mmd");
             }
-        Train->InitializeCab(Train->Dynamic()->MoverParameters->CabNo,
-                             Train->Dynamic()->asBaseDir +
-                                 Train->Dynamic()->MoverParameters->TypeName + ".mmd");
-        if (!FreeFlyModeFlag)
-        {
-            Global::pUserDynamic = Controlled; // renerowanie wzglêdem kamery
+        Train->InitializeCab( Train->Dynamic()->MoverParameters->CabNo,
+            Train->Dynamic()->asBaseDir +
+            Train->Dynamic()->MoverParameters->TypeName + ".mmd" );
+        if( !FreeFlyModeFlag ) {
+            Global::pUserDynamic = Controlled; // renerowanie wzglÄ™dem kamery
             Train->Dynamic()->bDisplayCab = true;
             Train->Dynamic()->ABuSetModelShake(
-                vector3(0, 0, 0)); // zerowanie przesuniêcia przed powrotem?
+                vector3( 0, 0, 0 ) ); // zerowanie przesuniÄ™cia przed powrotem?
             Train->MechStop();
-            FollowView(); // na pozycjê mecha
+            FollowView(); // na pozycjÄ™ mecha
         }
         Global::changeDynObj = NULL;
     }
 
-    glDisable(GL_LIGHTING);
-    if (Controlled)
-        SetWindowText(hWnd, AnsiString(Controlled->MoverParameters->Name).c_str());
+    glDepthFunc( GL_ALWAYS );
+    glDisable( GL_LIGHTING );
+    if( Controlled )
+        SetWindowText( hWnd, Controlled->MoverParameters->Name.c_str() );
     else
-        SetWindowText(hWnd, Global::szSceneryFile); // nazwa scenerii
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+        SetWindowText( hWnd, Global::SceneryFile.c_str() ); // nazwa scenerii
+    TextureManager.Bind( 0 );
+    glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
     glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, -0.50f);
+    glTranslatef( 0.0f, 0.0f, -0.50f );
 
-    if (Global::iTextMode == VK_F1)
-    { // tekst pokazywany po wciœniêciu [F1]
+    if( Global::iTextMode == VK_F1 ) { // tekst pokazywany po wciÅ›niÄ™ciu [F1]
         // Global::iViewMode=VK_F1;
-        glColor3f(1.0f, 1.0f, 1.0f); // a, damy bia³ym
-        OutText1 = "Time: " + AnsiString((int)GlobalTime->hh) + ":";
-        int i = GlobalTime->mm; // bo inaczej potrafi zrobiæ "hh:010"
-        if (i < 10)
-            OutText1 += "0";
-        OutText1 += AnsiString(i); // minuty
-        OutText1 += ":";
-        i = floor(GlobalTime->mr); // bo inaczej potrafi zrobiæ "hh:mm:010"
-        if (i < 10)
-            OutText1 += "0";
-        OutText1 += AnsiString(i);
-        if (Global::iPause)
+        glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy biaÅ‚ym
+        OutText1 =
+            "Time: "
+            + to_string( (int)GlobalTime->hh ) + ":"
+            + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
+            + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
+        if( Global::iPause )
             OutText1 += " - paused";
-        if (Controlled)
-            if (Controlled->Mechanik)
-            {
+        if( Controlled )
+            if( Controlled->Mechanik ) {
                 OutText2 = Controlled->Mechanik->Relation();
-                if (!OutText2.IsEmpty()) // jeœli jest podana relacja, to dodajemy punkt nastêpnego
+                if( !OutText2.empty() ) // jeÅ›li jest podana relacja, to dodajemy punkt nastÄ™pnego
                     // zatrzymania
                     OutText2 =
-                        Global::Bezogonkow(OutText2 + ": -> " + Controlled->Mechanik->NextStop(),
-                                           true); // dopisanie punktu zatrzymania
+                    Global::Bezogonkow( OutText2 + ": -> " + Controlled->Mechanik->NextStop(),
+                    true ); // dopisanie punktu zatrzymania
             }
         // double CtrlPos=mvControlled->MainCtrlPos;
         // double CtrlPosNo=mvControlled->MainCtrlPosNo;
         // OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
         OutText3 = ""; // Pomoc w sterowaniu - [F9]";
-        // OutText3=AnsiString(Global::pCameraRotationDeg); //k¹t kamery wzglêdem pó³nocy
+        // OutText3=AnsiString(Global::pCameraRotationDeg); //kÄ…t kamery wzglÄ™dem pÃ³Å‚nocy
     }
-    else if (Global::iTextMode == VK_F12)
-    { // opcje w³¹czenia i wy³¹czenia logowania
-        OutText1 = "[0] Debugmode " + AnsiString(DebugModeFlag ? "(on)" : "(off)");
-        OutText2 = "[1] log.txt " + AnsiString((Global::iWriteLogEnabled & 1) ? "(on)" : "(off)");
-        OutText3 = "[2] Console " + AnsiString((Global::iWriteLogEnabled & 2) ? "(on)" : "(off)");
+    else if( Global::iTextMode == VK_F12 ) { // opcje wÅ‚Ä…czenia i wyÅ‚Ä…czenia logowania
+        OutText1 = "[0] Debugmode " + std::string( DebugModeFlag ? "(on)" : "(off)" );
+        OutText2 = "[1] log.txt " + std::string( ( Global::iWriteLogEnabled & 1 ) ? "(on)" : "(off)" );
+        OutText3 = "[2] Console " + std::string( ( Global::iWriteLogEnabled & 2 ) ? "(on)" : "(off)" );
     }
-    else if (Global::iTextMode == VK_F2)
-    { // ABu: info dla najblizszego pojazdu!
-        TDynamicObject *tmp = FreeFlyModeFlag ? Ground.DynamicNearest(Camera.Pos) :
-                                                Controlled; // w trybie latania lokalizujemy wg mapy
-        if (tmp)
-        {
-            if (Global::iScreenMode[Global::iTextMode - VK_F1] == 0)
-            { // jeœli domyœlny ekran po pierwszym naciœniêciu
+    else if( Global::iTextMode == VK_F2 ) { // ABu: info dla najblizszego pojazdu!
+        TDynamicObject *tmp = FreeFlyModeFlag ? Ground.DynamicNearest( Camera.Pos ) :
+            Controlled; // w trybie latania lokalizujemy wg mapy
+        if( tmp ) {
+            if( Global::iScreenMode[ Global::iTextMode - VK_F1 ] == 0 ) { // jeÅ›li domyÅ›lny ekran po pierwszym naciÅ›niÄ™ciu
                 OutText3 = "";
-                OutText1 = "Vehicle name: " + AnsiString(tmp->MoverParameters->Name);
+                OutText1 = "Vehicle name: " + tmp->MoverParameters->Name;
                 // yB       OutText1+="; d:  "+FloatToStrF(tmp->ABuGetDirection(),ffFixed,2,0);
                 // OutText1=FloatToStrF(tmp->MoverParameters->Couplers[0].CouplingFlag,ffFixed,3,2)+",
                 // ";
                 // OutText1+=FloatToStrF(tmp->MoverParameters->Couplers[1].CouplingFlag,ffFixed,3,2);
-                if (tmp->Mechanik) // jeœli jest prowadz¹cy
+                if( tmp->Mechanik ) // jeÅ›li jest prowadzÄ…cy
                 { // ostatnia komenda dla AI
                     OutText1 += ", command: " + tmp->Mechanik->OrderCurrent();
                 }
-                else if (tmp->ctOwner)
-                    OutText1 += ", owned by " + AnsiString(tmp->ctOwner->OwnerName());
-                if (!tmp->MoverParameters->CommandLast.IsEmpty())
-                    OutText1 += AnsiString(", put: ") + tmp->MoverParameters->CommandLast;
+                else if( tmp->ctOwner )
+                    OutText1 += ", owned by " + tmp->ctOwner->OwnerName();
+                if( !tmp->MoverParameters->CommandLast.empty() )
+                    OutText1 += ", put: " + tmp->MoverParameters->CommandLast;
                 // OutText1+="; Cab="+AnsiString(tmp->MoverParameters->CabNo);
                 OutText2 = "Damage status: " +
-                           tmp->MoverParameters->EngineDescription(0); //+" Engine status: ";
+                    tmp->MoverParameters->EngineDescription( 0 ); //+" Engine status: ";
                 OutText2 += "; Brake delay: ";
-                if ((tmp->MoverParameters->BrakeDelayFlag & bdelay_G) == bdelay_G)
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
                     OutText2 += "G";
-                if ((tmp->MoverParameters->BrakeDelayFlag & bdelay_P) == bdelay_P)
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
                     OutText2 += "P";
-                if ((tmp->MoverParameters->BrakeDelayFlag & bdelay_R) == bdelay_R)
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
                     OutText2 += "R";
-                if ((tmp->MoverParameters->BrakeDelayFlag & bdelay_M) == bdelay_M)
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     OutText2 += "+Mg";
-                OutText2 += AnsiString(", BTP:") +
-                            FloatToStrF(tmp->MoverParameters->LoadFlag, ffFixed, 5, 0);
+                OutText2 += ", BTP:" +
+                    to_string( tmp->MoverParameters->LoadFlag, 0 );
                 // if ((tmp->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) ||
                 // (tmp->MoverParameters->TrainType==dt_EZT))
                 {
-                    OutText2 += AnsiString("; pant. ") +
-                                FloatToStrF(tmp->MoverParameters->PantPress, ffFixed, 8, 2);
-                    OutText2 += (tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG");
+                    OutText2 += "; pant. " +
+                        to_string( tmp->MoverParameters->PantPress, 2 );
+                    OutText2 += ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
                 }
 
                 //          OutText2+=AnsiString(",
                 //          u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
                 //          OutText2+=AnsiString(",
                 //          N:")+FloatToStrF(tmp->MoverParameters->Ntotal,ffFixed,4,0);
-				OutText2 += AnsiString(", MED:") +
-					FloatToStrF(tmp->MoverParameters->LocalBrakePosA, ffFixed, 6, 2);
-				OutText2 += AnsiString("+") + 
-					FloatToStrF(tmp->MoverParameters->AnPos, ffFixed, 6, 2);
-				OutText2 += AnsiString(", Ft:") +
-					FloatToStrF(tmp->MoverParameters->Ft * 0.001f, ffFixed, 4, 0);
-				OutText2 += AnsiString(", HV0:") +
-					FloatToStrF(tmp->MoverParameters->HVCouplers[0][1], ffFixed, 4, 0);
-				OutText2 += AnsiString("@") +
-					FloatToStrF(tmp->MoverParameters->HVCouplers[0][0], ffFixed, 4, 0);
-				OutText2 += AnsiString("+HV1:") +
-					FloatToStrF(tmp->MoverParameters->HVCouplers[1][1], ffFixed, 4, 0);
-				OutText2 += AnsiString("@") +
-					FloatToStrF(tmp->MoverParameters->HVCouplers[1][0], ffFixed, 4, 0);
-				OutText2 += AnsiString(" TC:") +
-					FloatToStrF(tmp->MoverParameters->TotalCurrent, ffFixed, 4, 0);
-				//          OutText3= AnsiString("BP:
+                OutText2 += ", MED:" +
+                    to_string( tmp->MoverParameters->LocalBrakePosA, 2 );
+                OutText2 += "+" +
+                    to_string( tmp->MoverParameters->AnPos, 2 );
+                OutText2 += ", Ft:" +
+                    to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
+                OutText2 += ", HV0:" +
+                    to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 );
+                OutText2 += "@" +
+                    to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
+                OutText2 += "+HV1:" +
+                    to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 );
+                OutText2 += "@" +
+                    to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
+                OutText2 += " TC:" +
+                    to_string( tmp->MoverParameters->TotalCurrent, 0 );
+                //          OutText3= AnsiString("BP:
                 //          ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(",
                 //          ");
                 //          OutText3+= AnsiString("PP:
@@ -2001,34 +2069,34 @@ bool TWorld::Update()
                 // yB      if(tmp->MoverParameters->BrakeSubsystem==Knorr) OutText2+=" Knorr";
                 // yB      if(tmp->MoverParameters->BrakeSubsystem==Oerlikon) OutText2+=" Oerlikon";
                 // yB      if(tmp->MoverParameters->BrakeSubsystem==Hik) OutText2+=" Hik";
-                // yB      if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" £estingha³s";
+                // yB      if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" ÅestinghaÅ‚s";
                 // OutText2= " GetFirst:
                 // "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage
                 // status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
                 // OutText2+= " GetLast:
                 // "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage
                 // status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-                OutText3 = AnsiString("BP: ") +
-                           FloatToStrF(tmp->MoverParameters->BrakePress, ffFixed, 5, 2) +
-                           AnsiString(", ");
-                OutText3 += FloatToStrF(tmp->MoverParameters->BrakeStatus, ffFixed, 5, 0) +
-                            AnsiString(", ");
-                OutText3 += AnsiString("PP: ") +
-                            FloatToStrF(tmp->MoverParameters->PipePress, ffFixed, 5, 2) +
-                            AnsiString("/");
-                OutText3 += FloatToStrF(tmp->MoverParameters->ScndPipePress, ffFixed, 5, 2) +
-                            AnsiString("/");
-                OutText3 += FloatToStrF(tmp->MoverParameters->EqvtPipePress, ffFixed, 5, 2) +
-                            AnsiString(", ");
-                OutText3 += AnsiString("BVP: ") +
-                            FloatToStrF(tmp->MoverParameters->Volume, ffFixed, 5, 3) +
-                            AnsiString(", ");
-                OutText3 += FloatToStrF(tmp->MoverParameters->CntrlPipePress, ffFixed, 5, 3) +
-                            AnsiString(", ");
-                OutText3 += FloatToStrF(tmp->MoverParameters->Hamulec->GetCRP(), ffFixed, 5, 3) +
-                            AnsiString(", ");
-                OutText3 += FloatToStrF(tmp->MoverParameters->BrakeStatus, ffFixed, 5, 0) +
-                            AnsiString(", ");
+                OutText3 = ( "BP: " ) +
+                    to_string( tmp->MoverParameters->BrakePress, 2 ) +
+                    ( ", " );
+                OutText3 += to_string( tmp->MoverParameters->BrakeStatus, 0 ) +
+                    ( ", " );
+                OutText3 += ( "PP: " ) +
+                    to_string( tmp->MoverParameters->PipePress, 2 ) +
+                    ( "/" );
+                OutText3 += to_string( tmp->MoverParameters->ScndPipePress, 2 ) +
+                    ( "/" );
+                OutText3 += to_string( tmp->MoverParameters->EqvtPipePress, 2 ) +
+                    ( ", " );
+                OutText3 += ( "BVP: " ) +
+                    to_string( tmp->MoverParameters->Volume, 3 ) +
+                    ( ", " );
+                OutText3 += to_string( tmp->MoverParameters->CntrlPipePress, 3 ) +
+                    ( ", " );
+                OutText3 += to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 ) +
+                    ( ", " );
+                OutText3 += to_string( tmp->MoverParameters->BrakeStatus, 0 ) +
+                    ( ", " );
                 //      OutText3+=AnsiString("BVP:
                 //      ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(",
                 //      ");
@@ -2040,187 +2108,175 @@ bool TWorld::Update()
                 //      OutText3+=FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(",
                 //      ");
 
-                if (tmp->MoverParameters->ManualBrakePos > 0)
-                    OutText3 += AnsiString("manual brake active. ");
-                else if (tmp->MoverParameters->LocalBrakePos > 0)
-                    OutText3 += AnsiString("local brake active. ");
+                if( tmp->MoverParameters->ManualBrakePos > 0 )
+                    OutText3 += ( "manual brake active. " );
+                else if( tmp->MoverParameters->LocalBrakePos > 0 )
+                    OutText3 += ( "local brake active. " );
                 else
-                    OutText3 += AnsiString("local brake inactive. ");
+                    OutText3 += ( "local brake inactive. " );
                 /*
-                       //OutText3+=AnsiString("LSwTim:
-                   ")+FloatToStrF(tmp->MoverParameters->LastSwitchingTime,ffFixed,5,2);
-                       //OutText3+=AnsiString(" Physic:
-                   ")+FloatToStrF(tmp->MoverParameters->PhysicActivation,ffFixed,5,2);
-                       //OutText3+=AnsiString(" ESF:
-                   ")+FloatToStrF(tmp->MoverParameters->EndSignalsFlag,ffFixed,5,0);
-                       OutText3+=AnsiString(" dPAngF: ")+FloatToStrF(tmp->dPantAngleF,ffFixed,5,0);
-                       OutText3+=AnsiString(" dPAngFT:
-                   ")+FloatToStrF(-(tmp->PantTraction1*28.9-136.938),ffFixed,5,0);
-                       if (tmp->lastcabf==1)
-                       {
-                        OutText3+=AnsiString(" pcabc1:
-                   ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
-                        OutText3+=AnsiString(" pcabc2:
-                   ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
-                       }
-                       if (tmp->lastcabf==-1)
-                       {
-                        OutText3+=AnsiString(" pcabc1:
-                   ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
-                        OutText3+=AnsiString(" pcabc2:
-                   ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
-                       }
+                //OutText3+=AnsiString("LSwTim:
+                ")+FloatToStrF(tmp->MoverParameters->LastSwitchingTime,ffFixed,5,2);
+                //OutText3+=AnsiString(" Physic:
+                ")+FloatToStrF(tmp->MoverParameters->PhysicActivation,ffFixed,5,2);
+                //OutText3+=AnsiString(" ESF:
+                ")+FloatToStrF(tmp->MoverParameters->EndSignalsFlag,ffFixed,5,0);
+                OutText3+=AnsiString(" dPAngF: ")+FloatToStrF(tmp->dPantAngleF,ffFixed,5,0);
+                OutText3+=AnsiString(" dPAngFT:
+                ")+FloatToStrF(-(tmp->PantTraction1*28.9-136.938),ffFixed,5,0);
+                if (tmp->lastcabf==1)
+                {
+                OutText3+=AnsiString(" pcabc1:
+                ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
+                OutText3+=AnsiString(" pcabc2:
+                ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
+                }
+                if (tmp->lastcabf==-1)
+                {
+                OutText3+=AnsiString(" pcabc1:
+                ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
+                OutText3+=AnsiString(" pcabc2:
+                ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
+                }
                 */
                 OutText4 = "";
-                if (tmp->Mechanik)
-                { // o ile jest ktoœ w œrodku
+                if( tmp->Mechanik ) { // o ile jest ktoÅ› w Å›rodku
                     // OutText4=tmp->Mechanik->StopReasonText();
-                    // if (!OutText4.IsEmpty()) OutText4+="; "; //aby ³adniejszy odstêp by³
+                    // if (!OutText4.IsEmpty()) OutText4+="; "; //aby Å‚adniejszy odstÄ™p byÅ‚
                     // if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
-                    AnsiString flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
-                    for (int i = 0, j = 1; i < 19; ++i, j <<= 1)
-                        if (tmp->Mechanik->DrivigFlags() & j) // jak bit ustawiony
-                            flags[i + 1] ^= 0x20; // to zmiana na wielk¹ literê
+                    std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
+                    for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
+                        if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
+                            flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielkÄ… literÄ™
                     OutText4 = flags;
-					OutText4 +=
-						AnsiString("Driver: Vd=") +
-						FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
-						FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
-						FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
-						AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0) +
-						AnsiString(" VSm=") + FloatToStrF(tmp->Mechanik->VelSignalLast, ffFixed, 4, 0) +
-						AnsiString(" VLm=") + FloatToStrF(tmp->Mechanik->VelLimitLast, ffFixed, 4, 0) +
-						AnsiString(" VRd=") + FloatToStrF(tmp->Mechanik->VelRoad, ffFixed, 4, 0);
-                    if (tmp->Mechanik->VelNext == 0.0)
-                        if (tmp->Mechanik->eSignNext)
-                        { // jeœli ma zapamiêtany event semafora
-                            // if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
+                    OutText4 +=
+                        ( "Driver: Vd=" ) +
+                        to_string( tmp->Mechanik->VelDesired, 0 ) + ( " ad=" ) +
+                        to_string( tmp->Mechanik->AccDesired, 2 ) + ( " Pd=" ) +
+                        to_string( tmp->Mechanik->ActualProximityDist, 0 ) +
+                        ( " Vn=" ) + to_string( tmp->Mechanik->VelNext, 0 ) +
+                        ( " VSm=" ) + to_string( tmp->Mechanik->VelSignalLast, 0 ) +
+                        ( " VLm=" ) + to_string( tmp->Mechanik->VelLimitLast, 0 ) +
+                        ( " VRd=" ) + to_string( tmp->Mechanik->VelRoad, 0 );
+                    if( tmp->Mechanik->VelNext == 0.0 )
+                        if( tmp->Mechanik->eSignNext ) { // jeÅ›li ma zapamiÄ™tany event semafora
+                            // if (!OutText4.IsEmpty()) OutText4+=", "; //aby Å‚adniejszy odstÄ™p byÅ‚
                             OutText4 += " (" +
-                                        Global::Bezogonkow(tmp->Mechanik->eSignNext->asName) +
-                                        ")"; // nazwa eventu semafora
+                                Global::Bezogonkow( tmp->Mechanik->eSignNext->asName ) +
+                                ")"; // nazwa eventu semafora
                         }
                 }
-                if (!OutText4.IsEmpty())
-                    OutText4 += "; "; // aby ³adniejszy odstêp by³
-                // informacja o sprzêgach nawet bez mechanika
+                if( !OutText4.empty() )
+                    OutText4 += "; "; // aby Å‚adniejszy odstÄ™p byÅ‚
+                // informacja o sprzÄ™gach nawet bez mechanika
                 OutText4 +=
-                    "C0=" + (tmp->PrevConnected ?
-                                 tmp->PrevConnected->GetName() + ":" +
-                                     AnsiString(tmp->MoverParameters->Couplers[0].CouplingFlag) :
-                                 AnsiString("NULL"));
+                    "C0=" + ( tmp->PrevConnected ?
+                    tmp->PrevConnected->GetName() + ":" +
+                    to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
+                    std::string( "NULL" ) );
                 OutText4 +=
-                    " C1=" + (tmp->NextConnected ?
-                                  tmp->NextConnected->GetName() + ":" +
-                                      AnsiString(tmp->MoverParameters->Couplers[1].CouplingFlag) :
-                                  AnsiString("NULL"));
-                if (Console::Pressed(VK_F2))
-                {
-                    WriteLog(OutText1);
-                    WriteLog(OutText2);
-                    WriteLog(OutText3);
-                    WriteLog(OutText4);
+                    " C1=" + ( tmp->NextConnected ?
+                    tmp->NextConnected->GetName() + ":" +
+                    to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
+                    std::string( "NULL" ) );
+                if( Console::Pressed( VK_F2 ) ) {
+                    WriteLog( OutText1 );
+                    WriteLog( OutText2 );
+                    WriteLog( OutText3 );
+                    WriteLog( OutText4 );
                 }
-            } // koniec treœci podstawowego ekranu FK_V2
-            else
-            { // ekran drugi, czyli tabelka skanowania AI
-                if (tmp->Mechanik) //¿eby by³a tabelka, musi byæ AI
-                { // tabelka jest na u¿ytek testuj¹cych scenerie, wiêc nie musi byæ "³adna"
-                    glColor3f(1.0f, 1.0f, 1.0f); // a, damy zielony. GF: jednak bia³y
+            } // koniec treÅ›ci podstawowego ekranu FK_V2
+            else { // ekran drugi, czyli tabelka skanowania AI
+                if( tmp->Mechanik ) //Å¼eby byÅ‚a tabelka, musi byÄ‡ AI
+                { // tabelka jest na uÅ¼ytek testujÄ…cych scenerie, wiÄ™c nie musi byÄ‡ "Å‚adna"
+                    glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy zielony. GF: jednak biaÅ‚y
                     // glTranslatef(0.0f,0.0f,-0.50f);
-                    glRasterPos2f(-0.25f, 0.20f);
+                    glRasterPos2f( -0.25f, 0.20f );
                     // OutText1="Scan distance: "+AnsiString(tmp->Mechanik->scanmax)+", back:
                     // "+AnsiString(tmp->Mechanik->scanback);
-                    OutText1 = "Time: " + AnsiString((int)GlobalTime->hh) + ":";
-                    int i = GlobalTime->mm; // bo inaczej potrafi zrobiæ "hh:010"
-                    if (i < 10)
+                    OutText1 = "Time: " + to_string( (int)GlobalTime->hh ) + ":";
+                    int i = GlobalTime->mm; // bo inaczej potrafi zrobiÄ‡ "hh:010"
+                    if( i < 10 )
                         OutText1 += "0";
-                    OutText1 += AnsiString(i); // minuty
+                    OutText1 += to_string( i ); // minuty
                     OutText1 += ":";
-                    i = floor(GlobalTime->mr); // bo inaczej potrafi zrobiæ "hh:mm:010"
-                    if (i < 10)
+                    i = floor( GlobalTime->mr ); // bo inaczej potrafi zrobiÄ‡ "hh:mm:010"
+                    if( i < 10 )
                         OutText1 += "0";
-                    OutText1 += AnsiString(i);
+                    OutText1 += to_string( i );
                     OutText1 +=
-                        AnsiString(". Vel: ") + FloatToStrF(tmp->GetVelocity(), ffFixed, 6, 1);
+                        ( ". Vel: " ) + to_string( tmp->GetVelocity(), 1 );
                     OutText1 += ". Scan table:";
-                    glPrint(Global::Bezogonkow(OutText1).c_str());
+                    glPrint( Global::Bezogonkow( OutText1 ).c_str() );
                     i = -1;
-                    while ((OutText1 = tmp->Mechanik->TableText(++i)) != "")
-                    { // wyœwietlenie pozycji z tabelki
-                        glRasterPos2f(-0.25f, 0.19f - 0.01f * i);
-                        glPrint(Global::Bezogonkow(OutText1).c_str());
+                    while( ( OutText1 = tmp->Mechanik->TableText( ++i ) ) != "" ) { // wyÅ›wietlenie pozycji z tabelki
+                        glRasterPos2f( -0.25f, 0.19f - 0.01f * i );
+                        glPrint( Global::Bezogonkow( OutText1 ).c_str() );
                     }
                     // podsumowanie sensu tabelki
                     OutText4 =
-                        AnsiString("Driver: Vd=") +
-                        FloatToStrF(tmp->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
-                        FloatToStrF(tmp->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
-                        FloatToStrF(tmp->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
-                        AnsiString(" Vn=") + FloatToStrF(tmp->Mechanik->VelNext, ffFixed, 4, 0) +
-						AnsiString("\n VSm=") + FloatToStrF(tmp->Mechanik->VelSignalLast, ffFixed, 4, 0) +
-						AnsiString(" VLm=") + FloatToStrF(tmp->Mechanik->VelLimitLast, ffFixed, 4, 0) +
-						AnsiString(" VRd=") + FloatToStrF(tmp->Mechanik->VelRoad, ffFixed, 4, 0) +
-						AnsiString(" VSig=") + FloatToStrF(tmp->Mechanik->VelSignal, ffFixed, 4, 0);
-                    if (tmp->Mechanik->VelNext == 0.0)
-                        if (tmp->Mechanik->eSignNext)
-                        { // jeœli ma zapamiêtany event semafora
-                            // if (!OutText4.IsEmpty()) OutText4+=", "; //aby ³adniejszy odstêp by³
+                        ( "Driver: Vd=" ) +
+                        to_string( tmp->Mechanik->VelDesired, 0 ) + ( " ad=" ) +
+                        to_string( tmp->Mechanik->AccDesired, 2 ) + ( " Pd=" ) +
+                        to_string( tmp->Mechanik->ActualProximityDist, 0 ) +
+                        ( " Vn=" ) + to_string( tmp->Mechanik->VelNext, 0 ) +
+                        ( "\n VSm=" ) + to_string( tmp->Mechanik->VelSignalLast, 0 ) +
+                        ( " VLm=" ) + to_string( tmp->Mechanik->VelLimitLast, 0 ) +
+                        ( " VRd=" ) + to_string( tmp->Mechanik->VelRoad, 0 ) +
+                        ( " VSig=" ) + to_string( tmp->Mechanik->VelSignal, 0 );
+                    if( tmp->Mechanik->VelNext == 0.0 )
+                        if( tmp->Mechanik->eSignNext ) { // jeÅ›li ma zapamiÄ™tany event semafora
+                            // if (!OutText4.IsEmpty()) OutText4+=", "; //aby Å‚adniejszy odstÄ™p byÅ‚
                             OutText4 += " (" +
-                                        Global::Bezogonkow(tmp->Mechanik->eSignNext->asName) +
-                                        ")"; // nazwa eventu semafora
+                                Global::Bezogonkow( tmp->Mechanik->eSignNext->asName ) +
+                                ")"; // nazwa eventu semafora
                         }
-                    glRasterPos2f(-0.25f, 0.19f - 0.01f * i);
-                    glPrint(Global::Bezogonkow(OutText4).c_str());
+                    glRasterPos2f( -0.25f, 0.19f - 0.01f * i );
+                    glPrint( Global::Bezogonkow( OutText4 ).c_str() );
                 }
             } // koniec ekanu skanowania
-        } // koniec obs³ugi, gdy mamy wskaŸnik do pojazdu
-        else
-        { // wyœwietlenie wspó³rzêdnych w scenerii oraz k¹ta kamery, gdy nie mamy wskaŸnika
-            OutText1 = "Camera position: " + FloatToStrF(Camera.Pos.x, ffFixed, 6, 2) + " " +
-                       FloatToStrF(Camera.Pos.y, ffFixed, 6, 2) + " " +
-                       FloatToStrF(Camera.Pos.z, ffFixed, 6, 2);
+        } // koniec obsÅ‚ugi, gdy mamy wskaÅºnik do pojazdu
+        else { // wyÅ›wietlenie wspÃ³Å‚rzÄ™dnych w scenerii oraz kÄ…ta kamery, gdy nie mamy wskaÅºnika
+            OutText1 = "Camera position: " + to_string( Camera.Pos.x, 2 ) + " " +
+                to_string( Camera.Pos.y, 2 ) + " " +
+                to_string( Camera.Pos.z, 2 );
             OutText1 += ", azimuth: " +
-                        FloatToStrF(180.0 - RadToDeg(Camera.Yaw), ffFixed, 3,
-                                    0); // ma byæ azymut, czyli 0 na pó³nocy i roœnie na wschód
+                to_string( 180.0 - RadToDeg( Camera.Yaw ), 0 ); // ma byÄ‡ azymut, czyli 0 na pÃ³Å‚nocy i roÅ›nie na wschÃ³d
             OutText1 +=
                 " " +
-                AnsiString("S SEE NEN NWW SW")
-                    .SubString(1 + 2 * floor(fmod(8 + (Camera.Yaw + 0.5 * M_PI_4) / M_PI_4, 8)), 2);
+                std::string( "S SEE NEN NWW SW" )
+                .substr( 1 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
         }
         // OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ):
         // http://www.eu07.pl");
         // OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
         // OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
-    } // koniec treœci podstawowego ekranu FK_V2
-    else if (Global::iTextMode == VK_F5)
-    { // przesiadka do innego pojazdu
-        if (FreeFlyModeFlag) // jeœli tryb latania
+    } // koniec treÅ›ci podstawowego ekranu FK_V2
+    else if( Global::iTextMode == VK_F5 ) { // przesiadka do innego pojazdu
+        if( FreeFlyModeFlag ) // jeÅ›li tryb latania
         {
-            TDynamicObject *tmp = Ground.DynamicNearest(Camera.Pos, 50, true); //³apiemy z obsad¹
-            if (tmp)
-                if (tmp != Controlled)
-                {
-                    if (Controlled) // jeœli mielismy pojazd
-                        if (Controlled->Mechanik) // na skutek jakiegoœ b³êdu mo¿e czasem znikn¹æ
-                            Controlled->Mechanik->TakeControl(true); // oddajemy dotychczasowy AI
-                    if (DebugModeFlag ? true : tmp->MoverParameters->Vel <= 5.0)
-                    {
+            TDynamicObject *tmp = Ground.DynamicNearest( Camera.Pos, 50, true ); //Å‚apiemy z obsadÄ…
+            if( tmp )
+                if( tmp != Controlled ) {
+                    if( Controlled ) // jeÅ›li mielismy pojazd
+                        if( Controlled->Mechanik ) // na skutek jakiegoÅ› bÅ‚Ä™du moÅ¼e czasem zniknÄ…Ä‡
+                            Controlled->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
+                    if( DebugModeFlag ? true : tmp->MoverParameters->Vel <= 5.0 ) {
                         Controlled = tmp; // przejmujemy nowy
                         mvControlled = Controlled->ControlledFind()->MoverParameters;
-                        if (Train)
-                            Train->Silence(); // wyciszenie dŸwiêków opuszczanego pojazdu
+                        if( Train )
+                            Train->Silence(); // wyciszenie dÅºwiÄ™kÃ³w opuszczanego pojazdu
                         else
-                            Train = new TTrain(); // jeœli niczym jeszcze nie jeŸdzilismy
-                        if (Train->Init(Controlled))
-                        { // przejmujemy sterowanie
-                            if (!DebugModeFlag) // w DebugMode nadal prowadzi AI
-                                Controlled->Mechanik->TakeControl(false);
+                            Train = new TTrain(); // jeÅ›li niczym jeszcze nie jeÅºdzilismy
+                        if( Train->Init( Controlled ) ) { // przejmujemy sterowanie
+                            if( !DebugModeFlag ) // w DebugMode nadal prowadzi AI
+                                Controlled->Mechanik->TakeControl( false );
                         }
                         else
-                            SafeDelete(Train); // i nie ma czym sterowaæ
-                        // Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglêdem kabiny
+                            SafeDelete( Train ); // i nie ma czym sterowaÄ‡
+                        // Global::pUserDynamic=Controlled; //renerowanie pojazdu wzglÄ™dem kabiny
                         // Global::iTextMode=VK_F4;
-                        if (Train)
+                        if( Train )
                             InOutKey(); // do kabiny
                     }
                 }
@@ -2228,146 +2284,131 @@ bool TWorld::Update()
         }
         /*
 
-             OutText1=OutText2=OutText3=OutText4="";
-             AnsiString flag[10]={"vmax", "tory", "smfr", "pjzd", "mnwr", "pstk", "brak", "brak",
-           "brak", "brak"};
-             if(tmp)
-             if(tmp->Mechanik)
-             {
-              for(int i=0;i<15;i++)
-              {
-               int tmppar=floor(tmp->Mechanik->ProximityTable[i].Vel);
-               OutText2+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):"
-           "):"")+IntToStr(tmppar)+" ";
-               tmppar=floor(tmp->Mechanik->ProximityTable[i].Dist);
-               OutText3+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):"
-           "):"")+IntToStr(tmppar)+" ";
-               OutText1+=flag[tmp->Mechanik->ProximityTable[i].Flag]+" ";
-              }
-              for(int i=0;i<6;i++)
-              {
-               int tmppar=floor(tmp->Mechanik->ReducedTable[i]);
-               OutText4+=flag[i]+":"+(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"
-           "):" "):"")+IntToStr(tmppar)+" ";
-              }
-             }
+        OutText1=OutText2=OutText3=OutText4="";
+        AnsiString flag[10]={"vmax", "tory", "smfr", "pjzd", "mnwr", "pstk", "brak", "brak",
+        "brak", "brak"};
+        if(tmp)
+        if(tmp->Mechanik)
+        {
+        for(int i=0;i<15;i++)
+        {
+        int tmppar=floor(tmp->Mechanik->ProximityTable[i].Vel);
+        OutText2+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):"
+        "):"")+IntToStr(tmppar)+" ";
+        tmppar=floor(tmp->Mechanik->ProximityTable[i].Dist);
+        OutText3+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):"
+        "):"")+IntToStr(tmppar)+" ";
+        OutText1+=flag[tmp->Mechanik->ProximityTable[i].Flag]+" ";
+        }
+        for(int i=0;i<6;i++)
+        {
+        int tmppar=floor(tmp->Mechanik->ReducedTable[i]);
+        OutText4+=flag[i]+":"+(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"
+        "):" "):"")+IntToStr(tmppar)+" ";
+        }
+        }
         */
     }
-    else if (Global::iTextMode == VK_F10)
-    { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
+    else if( Global::iTextMode == VK_F10 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
         // Global::iViewMode=VK_F10;
         // return false;
-        OutText1 = AnsiString("To quit press [Y] key.");
-        OutText3 = AnsiString("Aby zakonczyc program, przycisnij klawisz [Y].");
+        OutText1 = ( "To quit press [Y] key." );
+        OutText3 = ( "Aby zakonczyc program, przycisnij klawisz [Y]." );
     }
-    else if (Controlled && DebugModeFlag && !Global::iTextMode)
-    {
-        OutText1 += AnsiString(";  vel ") + FloatToStrF(Controlled->GetVelocity(), ffFixed, 6, 2);
-        OutText1 += AnsiString(";  pos ") + FloatToStrF(Controlled->GetPosition().x, ffFixed, 6, 2);
-        OutText1 += AnsiString(" ; ") + FloatToStrF(Controlled->GetPosition().y, ffFixed, 6, 2);
-        OutText1 += AnsiString(" ; ") + FloatToStrF(Controlled->GetPosition().z, ffFixed, 6, 2);
-        OutText1 += AnsiString("; dist=") +
-                    FloatToStrF(Controlled->MoverParameters->DistCounter, ffFixed, 8, 4);
+    else if( Controlled && DebugModeFlag && !Global::iTextMode ) {
+        OutText1 += ( ";  vel " ) + to_string( Controlled->GetVelocity(), 2 );
+        OutText1 += ( ";  pos " ) + to_string( Controlled->GetPosition().x, 2 );
+        OutText1 += ( " ; " ) + to_string( Controlled->GetPosition().y, 2 );
+        OutText1 += ( " ; " ) + to_string( Controlled->GetPosition().z, 2 );
+        OutText1 += ( "; dist=" ) + to_string( Controlled->MoverParameters->DistCounter, 4 );
 
         // double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
         //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
-        OutText1 += AnsiString("; d_omega ") +
-                    FloatToStrF(Controlled->MoverParameters->dizel_engagedeltaomega, ffFixed, 6, 3);
-        OutText2 = AnsiString("HamZ=") +
-                   FloatToStrF(Controlled->MoverParameters->fBrakeCtrlPos, ffFixed, 6, 1);
-		OutText2 += AnsiString("; HamP=") + AnsiString(mvControlled->LocalBrakePos);
-		OutText2 += AnsiString("/") +
-			FloatToStrF(Controlled->MoverParameters->LocalBrakePosA, ffFixed, 6, 2);
-		// mvControlled->MainCtrlPos;
+        OutText1 +=
+            ( "; d_omega " ) + to_string( Controlled->MoverParameters->dizel_engagedeltaomega, 3 );
+        OutText2 = ( "HamZ=" ) + to_string( Controlled->MoverParameters->fBrakeCtrlPos, 1 );
+        OutText2 += ( "; HamP=" ) + to_string( mvControlled->LocalBrakePos );
+        OutText2 += ( "/" ) + to_string( Controlled->MoverParameters->LocalBrakePosA, 2 );
+        // mvControlled->MainCtrlPos;
         // if (mvControlled->MainCtrlPos<0)
         //    OutText2+= AnsiString("; nastawnik 0");
         //      if (mvControlled->MainCtrlPos>iPozSzereg)
-        OutText2 += AnsiString("; NasJ=") + AnsiString(mvControlled->MainCtrlPos);
+        OutText2 += ( "; NasJ=" ) + to_string( mvControlled->MainCtrlPos );
         //      else
         //          OutText2+= AnsiString("; nastawnik S") + mvControlled->MainCtrlPos;
-        OutText2 += AnsiString("(") + AnsiString(mvControlled->MainCtrlActualPos);
+        OutText2 += ( "(" ) + to_string( mvControlled->MainCtrlActualPos );
 
-        OutText2 += AnsiString("); NasB=") + AnsiString(mvControlled->ScndCtrlPos);
-        OutText2 += AnsiString("(") + AnsiString(mvControlled->ScndCtrlActualPos);
-        if (mvControlled->TrainType == dt_EZT)
-            OutText2 += AnsiString("); I=") + AnsiString(int(mvControlled->ShowCurrent(0)));
+        OutText2 += ( "); NasB=" ) + to_string( mvControlled->ScndCtrlPos );
+        OutText2 += ( "(" ) + to_string( mvControlled->ScndCtrlActualPos );
+        if( mvControlled->TrainType == dt_EZT )
+            OutText2 += ( "); I=" ) + to_string( int( mvControlled->ShowCurrent( 0 ) ) );
         else
-            OutText2 += AnsiString("); I=") + AnsiString(int(mvControlled->Im));
+            OutText2 += ( "); I=" ) + to_string( int( mvControlled->Im ) );
         // OutText2+=AnsiString(";
         // I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
-        OutText2 += AnsiString("; U=") +
-                    AnsiString(int(mvControlled->RunningTraction.TractionVoltage + 0.5));
+        OutText2 += ( "; U=" ) +
+            to_string( int( mvControlled->RunningTraction.TractionVoltage + 0.5 ) );
         // OutText2+=AnsiString("; rvent=")+FloatToStrF(mvControlled->RventRot,ffFixed,6,2);
-        OutText2 += AnsiString("; R=") +
-                    FloatToStrF(Controlled->MoverParameters->RunningShape.R, ffFixed, 4, 1);
-        OutText2 += AnsiString(" An=") + FloatToStrF(Controlled->MoverParameters->AccN, ffFixed, 4,
-                                                     2); // przyspieszenie poprzeczne
-		if (tprev != int(GlobalTime->mr))
-		{
-			tprev = GlobalTime->mr;
-			Acc = (Controlled->MoverParameters->Vel - VelPrev) / 3.6;
-			VelPrev = Controlled->MoverParameters->Vel;
-		}
-		OutText2 += AnsiString("; As=") + FloatToStrF(Acc/*Controlled->MoverParameters->AccS*/, ffFixed, 4,
-			2); // przyspieszenie wzd³u¿ne
+        OutText2 += ( "; R=" ) +
+            to_string( Controlled->MoverParameters->RunningShape.R, 1 );
+        OutText2 += ( " An=" ) + to_string( Controlled->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
+        if( tprev != int( GlobalTime->mr ) ) {
+            tprev = GlobalTime->mr;
+            Acc = ( Controlled->MoverParameters->Vel - VelPrev ) / 3.6;
+            VelPrev = Controlled->MoverParameters->Vel;
+        }
+        OutText2 += ( "; As=" ) + to_string( Acc/*Controlled->MoverParameters->AccS*/, 2 ); // przyspieszenie wzdÅ‚uÅ¼ne
         // OutText2+=AnsiString("; P=")+FloatToStrF(mvControlled->EnginePower,ffFixed,6,1);
-        OutText3 += AnsiString("cyl.ham. ") +
-                    FloatToStrF(Controlled->MoverParameters->BrakePress, ffFixed, 5, 2);
-        OutText3 += AnsiString("; prz.gl. ") +
-                    FloatToStrF(Controlled->MoverParameters->PipePress, ffFixed, 5, 2);
-        OutText3 += AnsiString("; zb.gl. ") +
-                    FloatToStrF(Controlled->MoverParameters->CompressedVolume, ffFixed, 6, 2);
+        OutText3 += ( "cyl.ham. " ) +
+            to_string( Controlled->MoverParameters->BrakePress, 2 );
+        OutText3 += ( "; prz.gl. " ) +
+            to_string( Controlled->MoverParameters->PipePress, 2 );
+        OutText3 += ( "; zb.gl. " ) +
+            to_string( Controlled->MoverParameters->CompressedVolume, 2 );
         // youBy - drugi wezyk
-        OutText3 += AnsiString("; p.zas. ") +
-                    FloatToStrF(Controlled->MoverParameters->ScndPipePress, ffFixed, 6, 2);
+        OutText3 += ( "; p.zas. " ) +
+            to_string( Controlled->MoverParameters->ScndPipePress, 2 );
 
-		if (Controlled->MoverParameters->EngineType == ElectricInductionMotor)
-		{
-			// glTranslatef(0.0f,0.0f,-0.50f);
-			glColor3f(1.0f, 1.0f, 1.0f); // a, damy bia³ym
-			for (int i = 0; i <= 20; i++)
-			{
-				glRasterPos2f(-0.25f, 0.16f - 0.01f * i);
-				if (Controlled->MoverParameters->eimc[i] < 10)
-					OutText4 = FloatToStrF(Controlled->MoverParameters->eimc[i], ffFixed, 6, 3);
-				else
-					OutText4 = FloatToStrF(Controlled->MoverParameters->eimc[i], ffGeneral, 5, 3);
-				glPrint(OutText4.c_str());
-			}
-			for (int i = 0; i <= 20; i++)
-			{
-				glRasterPos2f(-0.2f, 0.16f - 0.01f * i);
-				if (Controlled->MoverParameters->eimv[i] < 10)
-					OutText4 = FloatToStrF(Controlled->MoverParameters->eimv[i], ffFixed, 6, 3);
-				else
-					OutText4 = FloatToStrF(Controlled->MoverParameters->eimv[i], ffGeneral, 5, 3);
-				glPrint(OutText4.c_str());
-			}
-			for (int i = 0; i <= 10; i++)
-			{
-				glRasterPos2f(-0.15f, 0.16f - 0.01f * i);
-				OutText4 = FloatToStrF(Train->fPress[i][0], ffFixed, 6, 3);
-				glPrint(OutText4.c_str());
-			}
-			for (int i = 0; i <= 8; i++)
-			{
-				glRasterPos2f(-0.15f, 0.04f - 0.01f * i);
-				OutText4 = FloatToStrF(Controlled->MED[0][i], ffFixed, 6, 3);
-				glPrint(OutText4.c_str());
-			}
-			for (int i = 0; i <= 8; i++)
-			{
-				for (int j = 0; j <= 9; j++)
-				{
-					glRasterPos2f(0.05f + 0.03f * i, 0.16f - 0.01f * j);
-					OutText4 = FloatToStrF(Train->fEIMParams[i][j], ffGeneral, 4, 2);
-					glPrint(OutText4.c_str());
-				}
-			}
-			OutText4 = "";
-			// glTranslatef(0.0f,0.0f,+0.50f);
-			glColor3f(1.0f, 0.0f, 0.0f); // a, damy czerwonym
-		}
+        if( Controlled->MoverParameters->EngineType == ElectricInductionMotor ) {
+            // glTranslatef(0.0f,0.0f,-0.50f);
+            glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy biaÅ‚ym
+            for( int i = 0; i <= 20; i++ ) {
+                glRasterPos2f( -0.25f, 0.16f - 0.01f * i );
+                if( Controlled->MoverParameters->eimc[ i ] < 10 )
+                    OutText4 = to_string( Controlled->MoverParameters->eimc[ i ], 3 );
+                else
+                    OutText4 = to_string( Controlled->MoverParameters->eimc[ i ], 3 );
+                glPrint( OutText4.c_str() );
+            }
+            for( int i = 0; i <= 20; i++ ) {
+                glRasterPos2f( -0.2f, 0.16f - 0.01f * i );
+                if( Controlled->MoverParameters->eimv[ i ] < 10 )
+                    OutText4 = to_string( Controlled->MoverParameters->eimv[ i ], 3 );
+                else
+                    OutText4 = to_string( Controlled->MoverParameters->eimv[ i ], 3 );
+                glPrint( OutText4.c_str() );
+            }
+            for( int i = 0; i <= 10; i++ ) {
+                glRasterPos2f( -0.15f, 0.16f - 0.01f * i );
+                OutText4 = to_string( Train->fPress[ i ][ 0 ], 3 );
+                glPrint( OutText4.c_str() );
+            }
+            for( int i = 0; i <= 8; i++ ) {
+                glRasterPos2f( -0.15f, 0.04f - 0.01f * i );
+                OutText4 = to_string( Controlled->MED[ 0 ][ i ], 3 );
+                glPrint( OutText4.c_str() );
+            }
+            for( int i = 0; i <= 8; i++ ) {
+                for( int j = 0; j <= 9; j++ ) {
+                    glRasterPos2f( 0.05f + 0.03f * i, 0.16f - 0.01f * j );
+                    OutText4 = to_string( Train->fEIMParams[ i ][ j ], 2 );
+                    glPrint( OutText4.c_str() );
+                }
+            }
+            OutText4 = "";
+            // glTranslatef(0.0f,0.0f,+0.50f);
+            glColor3f( 1.0f, 0.0f, 0.0f ); // a, damy czerwonym
+        }
 
         // ABu: testy sprzegow-> (potem przeniesc te zmienne z public do protected!)
         // OutText3+=AnsiString("; EnginePwr=")+FloatToStrF(mvControlled->EnginePower,ffFixed,1,5);
@@ -2392,208 +2433,209 @@ bool TWorld::Update()
         // Controlled->mdModel->GetSMRoot()->SetTranslate(vector3(0,1,0));
 
         // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-        if (mvControlled->ConvOvldFlag)
+        if( mvControlled->ConvOvldFlag )
             OutText3 += " C! ";
-        else if (mvControlled->FuseFlag)
+        else if( mvControlled->FuseFlag )
             OutText3 += " F! ";
-        else if (!mvControlled->Mains)
+        else if( !mvControlled->Mains )
             OutText3 += " () ";
         else
-            switch (mvControlled->ActiveDir * (mvControlled->Imin == mvControlled->IminLo ? 1 : 2))
-            {
-            case 2:
-            {
-                OutText3 += " >> ";
-                break;
-            }
-            case 1:
-            {
-                OutText3 += " -> ";
-                break;
-            }
-            case 0:
-            {
-                OutText3 += " -- ";
-                break;
-            }
-            case -1:
-            {
-                OutText3 += " <- ";
-                break;
-            }
-            case -2:
-            {
-                OutText3 += " << ";
-                break;
-            }
-            }
+            switch( mvControlled->ActiveDir * ( mvControlled->Imin == mvControlled->IminLo ? 1 : 2 ) ) {
+                case 2:
+                {
+                    OutText3 += " >> ";
+                    break;
+                }
+                case 1:
+                {
+                    OutText3 += " -> ";
+                    break;
+                }
+                case 0:
+                {
+                    OutText3 += " -- ";
+                    break;
+                }
+                case -1:
+                {
+                    OutText3 += " <- ";
+                    break;
+                }
+                case -2:
+                {
+                    OutText3 += " << ";
+                    break;
+                }
+        }
         // OutText3+=AnsiString("; dpLocal
         // ")+FloatToStrF(Controlled->MoverParameters->dpLocalValve,ffFixed,10,8);
         // OutText3+=AnsiString("; dpMain
         // ")+FloatToStrF(Controlled->MoverParameters->dpMainValve,ffFixed,10,8);
         // McZapkie: predkosc szlakowa
-        if (Controlled->MoverParameters->RunningTrack.Velmax == -1)
-        {
-            OutText3 += AnsiString(" Vtrack=Vmax");
+        if( Controlled->MoverParameters->RunningTrack.Velmax == -1 ) {
+            OutText3 += ( " Vtrack=Vmax" );
         }
-        else
-        {
+        else {
             OutText3 +=
-                AnsiString(" Vtrack ") +
-                FloatToStrF(Controlled->MoverParameters->RunningTrack.Velmax, ffFixed, 8, 2);
+                ( " Vtrack " ) +
+                to_string( Controlled->MoverParameters->RunningTrack.Velmax, 2 );
         }
         //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
-        if ((mvControlled->EnginePowerSource.SourceType == CurrentCollector) ||
-            (mvControlled->TrainType == dt_EZT))
-        {
+        if( ( mvControlled->EnginePowerSource.SourceType == CurrentCollector ) ||
+            ( mvControlled->TrainType == dt_EZT ) ) {
             OutText3 +=
-                AnsiString("; pant. ") + FloatToStrF(mvControlled->PantPress, ffFixed, 8, 2);
-            OutText3 += (mvControlled->bPantKurek3 ? "=ZG" : "|ZG");
+                ( "; pant. " ) + to_string( mvControlled->PantPress, 2 );
+            OutText3 += ( mvControlled->bPantKurek3 ? "=ZG" : "|ZG" );
         }
         // McZapkie: komenda i jej parametry
-        if (Controlled->MoverParameters->CommandIn.Command != AnsiString(""))
-            OutText4 = AnsiString("C:") +
-                       AnsiString(Controlled->MoverParameters->CommandIn.Command) +
-                       AnsiString(" V1=") +
-                       FloatToStrF(Controlled->MoverParameters->CommandIn.Value1, ffFixed, 5, 0) +
-                       AnsiString(" V2=") +
-                       FloatToStrF(Controlled->MoverParameters->CommandIn.Value2, ffFixed, 5, 0);
-        if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag == AIdriver))
+        if( Controlled->MoverParameters->CommandIn.Command != ( "" ) )
+            OutText4 = ( "C:" ) +
+            ( Controlled->MoverParameters->CommandIn.Command ) +
+            ( " V1=" ) +
+            to_string( Controlled->MoverParameters->CommandIn.Value1, 0 ) +
+            ( " V2=" ) +
+            to_string( Controlled->MoverParameters->CommandIn.Value2, 0 );
+        if( Controlled->Mechanik && ( Controlled->Mechanik->AIControllFlag == AIdriver ) )
             OutText4 +=
-                AnsiString("AI: Vd=") +
-                FloatToStrF(Controlled->Mechanik->VelDesired, ffFixed, 4, 0) + AnsiString(" ad=") +
-                FloatToStrF(Controlled->Mechanik->AccDesired, ffFixed, 5, 2) + AnsiString(" Pd=") +
-                FloatToStrF(Controlled->Mechanik->ActualProximityDist, ffFixed, 4, 0) +
-                AnsiString(" Vn=") + FloatToStrF(Controlled->Mechanik->VelNext, ffFixed, 4, 0);
+            ( "AI: Vd=" ) +
+            to_string( Controlled->Mechanik->VelDesired, 0 ) + ( " ad=" ) +
+            to_string( Controlled->Mechanik->AccDesired, 2 ) + ( " Pd=" ) +
+            to_string( Controlled->Mechanik->ActualProximityDist, 0 ) +
+            ( " Vn=" ) + to_string( Controlled->Mechanik->VelNext, 0 );
     }
 
     // ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
-    if (Global::detonatoryOK)
-    {
-        // if (Console::Pressed(VK_F9)) ShowHints(); //to nie dzia³a prawid³owo - prosili wy³¹czyæ
-        if (Global::iTextMode == VK_F9)
-        { // informacja o wersji, sposobie wyœwietlania i b³êdach OpenGL
+    if( Global::detonatoryOK ) {
+        // if (Console::Pressed(VK_F9)) ShowHints(); //to nie dziaÅ‚a prawidÅ‚owo - prosili wyÅ‚Ä…czyÄ‡
+        if( Global::iTextMode == VK_F9 ) { // informacja o wersji, sposobie wyÅ›wietlania i bÅ‚Ä™dach OpenGL
             // Global::iViewMode=VK_F9;
             OutText1 = Global::asVersion; // informacja o wersji
-            OutText2 = AnsiString("Rendering mode: ") + (Global::bUseVBO ? "VBO" : "Display Lists");
-            if (Global::iMultiplayer)
+            OutText2 = std::string( "Rendering mode: " ) + ( Global::bUseVBO ? "VBO" : "Display Lists" );
+            if( Global::iMultiplayer )
                 OutText2 += ". Multiplayer is active";
             OutText2 += ".";
             GLenum err = glGetError();
-            if (err != GL_NO_ERROR)
-            {
-                OutText3 = "OpenGL error " + AnsiString(err) + ": " +
-                           Global::Bezogonkow(AnsiString((char *)gluErrorString(err)));
+            if( err != GL_NO_ERROR ) {
+                OutText3 = "OpenGL error " + to_string( err ) + ": " +
+                    Global::Bezogonkow( ( (char *)gluErrorString( err ) ) );
             }
         }
-        if (Global::iTextMode == VK_F3)
-        { // wyœwietlenie rozk³adu jazdy, na razie jakkolwiek
+        if( Global::iTextMode == VK_F3 ) { // wyÅ›wietlenie rozkÅ‚adu jazdy, na razie jakkolwiek
             TDynamicObject *tmp = FreeFlyModeFlag ?
-                                      Ground.DynamicNearest(Camera.Pos) :
-                                      Controlled; // w trybie latania lokalizujemy wg mapy
+                Ground.DynamicNearest( Camera.Pos ) :
+                Controlled; // w trybie latania lokalizujemy wg mapy
             Mtable::TTrainParameters *tt = NULL;
-            if (tmp)
-                if (tmp->Mechanik)
-                {
+            if( tmp )
+                if( tmp->Mechanik ) {
                     tt = tmp->Mechanik->Timetable();
-                    if (tt) // musi byæ rozk³ad
-                    { // wyœwietlanie rozk³adu
-                        glColor3f(1.0f, 1.0f, 1.0f); // a, damy bia³ym
+                    if( tt ) // musi byÄ‡ rozkÅ‚ad
+                    { // wyÅ›wietlanie rozkÅ‚adu
+                        glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy biaÅ‚ym
                         // glTranslatef(0.0f,0.0f,-0.50f);
-                        glRasterPos2f(-0.25f, 0.20f);
+                        glRasterPos2f( -0.25f, 0.20f );
                         OutText1 = tmp->Mechanik->Relation() + " (" +
-                                   tmp->Mechanik->Timetable()->TrainName + ")";
-                        glPrint(Global::Bezogonkow(OutText1, true).c_str());
-                        glRasterPos2f(-0.25f, 0.19f);
+                            tmp->Mechanik->Timetable()->TrainName + ")";
+                        glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
+                        glRasterPos2f( -0.25f, 0.19f );
                         // glPrint("|============================|=======|=======|=====|");
                         // glPrint("| Posterunek                 | Przyj.| Odjazd| Vmax|");
                         // glPrint("|============================|=======|=======|=====|");
-                        glPrint("|----------------------------|-------|-------|-----|");
+                        glPrint( "|----------------------------|-------|-------|-----|" );
                         TMTableLine *t;
-                        for (int i = tmp->Mechanik->iStationStart; i <= tt->StationCount; ++i)
-                        { // wyœwietlenie pozycji z rozk³adu
-                            t = tt->TimeTable + i; // linijka rozk³adu
-                            OutText1 = AnsiString(AnsiString(t->StationName) +
-                                                  "                          ").SubString(1, 26);
-                            OutText2 = (t->Ah >= 0) ?
-                                           AnsiString(int(100 + t->Ah)).SubString(2, 2) + ":" +
-                                               AnsiString(int(100 + t->Am)).SubString(2, 2) :
-                                           AnsiString("     ");
-                            OutText3 = (t->Dh >= 0) ?
-                                           AnsiString(int(100 + t->Dh)).SubString(2, 2) + ":" +
-                                               AnsiString(int(100 + t->Dm)).SubString(2, 2) :
-                                           AnsiString("     ");
-                            OutText4 = "   " + FloatToStrF(t->vmax, ffFixed, 3, 0);
-                            OutText4 = OutText4.SubString(OutText4.Length() - 2,
-                                                          3); // z wyrównaniem do prawej
+                        for( int i = tmp->Mechanik->iStationStart; i <= tt->StationCount; ++i ) { // wyÅ›wietlenie pozycji z rozkÅ‚adu
+                            t = tt->TimeTable + i; // linijka rozkÅ‚adu
+                            OutText1 = ( t->StationName +
+                                "                          " ).substr( 0, 26 );
+                            OutText2 = ( t->Ah >= 0 ) ?
+                                to_string( int( 100 + t->Ah ) ).substr( 1, 2 ) + ":" +
+                                to_string( int( 100 + t->Am ) ).substr( 1, 2 ) :
+                                std::string( "     " );
+                            OutText3 = ( t->Dh >= 0 ) ?
+                                to_string( int( 100 + t->Dh ) ).substr( 1, 2 ) + ":" +
+                                to_string( int( 100 + t->Dm ) ).substr( 1, 2 ) :
+                                std::string( "     " );
+                            OutText4 = "   " + to_string( t->vmax, 0 );
+                            OutText4 = OutText4.substr( OutText4.length() - 3,
+                                3 ); // z wyrÃ³wnaniem do prawej
                             // if (AnsiString(t->StationWare).Pos("@"))
                             OutText1 = "| " + OutText1 + " | " + OutText2 + " | " + OutText3 +
-                                       " | " + OutText4 + " | " + AnsiString(t->StationWare);
-                            glRasterPos2f(-0.25f,
-                                          0.18f - 0.02f * (i - tmp->Mechanik->iStationStart));
-                            if ((tmp->Mechanik->iStationStart < tt->StationIndex) ?
-                                    (i < tt->StationIndex) :
-                                    false)
-                            { // czas min¹³ i odjazd by³, to nazwa stacji bêdzie na zielono
-                                glColor3f(0.0f, 1.0f, 0.0f); // zielone
+                                " | " + OutText4 + " | " + t->StationWare;
+                            glRasterPos2f( -0.25f,
+                                0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
+                            if( ( tmp->Mechanik->iStationStart < tt->StationIndex ) ?
+                                ( i < tt->StationIndex ) :
+                                false ) { // czas minÄ…Å‚ i odjazd byÅ‚, to nazwa stacji bÄ™dzie na zielono
+                                glColor3f( 0.0f, 1.0f, 0.0f ); // zielone
                                 glRasterPos2f(
                                     -0.25f,
-                                    0.18f - 0.02f * (i - tmp->Mechanik->iStationStart)); // dopiero
+                                    0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) ); // dopiero
                                 // ustawienie
                                 // pozycji
                                 // ustala
                                 // kolor,
                                 // dziwne...
-                                glPrint(Global::Bezogonkow(OutText1, true).c_str());
-                                glColor3f(1.0f, 1.0f, 1.0f); // a reszta bia³ym
+                                glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
+                                glColor3f( 1.0f, 1.0f, 1.0f ); // a reszta biaÅ‚ym
                             }
-                            else // normalne wyœwietlanie, bez zmiany kolorów
-                                glPrint(Global::Bezogonkow(OutText1, true).c_str());
-                            glRasterPos2f(-0.25f,
-                                          0.17f - 0.02f * (i - tmp->Mechanik->iStationStart));
-                            glPrint("|----------------------------|-------|-------|-----|");
+                            else // normalne wyÅ›wietlanie, bez zmiany kolorÃ³w
+                                glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
+                            glRasterPos2f( -0.25f,
+                                0.17f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
+                            glPrint( "|----------------------------|-------|-------|-----|" );
                         }
                     }
                 }
             OutText1 = OutText2 = OutText3 = OutText4 = "";
         }
-        else if (OutText1 != "")
-        { // ABu: i od razu czyszczenie tego, co bylo napisane
+        else if( OutText1 != "" ) { // ABu: i od razu czyszczenie tego, co bylo napisane
             // glTranslatef(0.0f,0.0f,-0.50f);
-            glRasterPos2f(-0.25f, 0.20f);
-            glPrint(OutText1.c_str());
+            glRasterPos2f( -0.25f, 0.20f );
+            glPrint( OutText1.c_str() );
             OutText1 = "";
-            if (OutText2 != "")
-            {
-                glRasterPos2f(-0.25f, 0.19f);
-                glPrint(OutText2.c_str());
+            if( OutText2 != "" ) {
+                glRasterPos2f( -0.25f, 0.19f );
+                glPrint( OutText2.c_str() );
                 OutText2 = "";
             }
-            if (OutText3 != "")
-            {
-                glRasterPos2f(-0.25f, 0.18f);
-                glPrint(OutText3.c_str());
+            if( OutText3 != "" ) {
+                glRasterPos2f( -0.25f, 0.18f );
+                glPrint( OutText3.c_str() );
                 OutText3 = "";
-                if (OutText4 != "")
-                {
-                    glRasterPos2f(-0.25f, 0.17f);
-                    glPrint(OutText4.c_str());
+                if( OutText4 != "" ) {
+                    glRasterPos2f( -0.25f, 0.17f );
+                    glPrint( OutText4.c_str() );
                     OutText4 = "";
                 }
             }
         }
         // if ((Global::iTextMode!=VK_F3))
-        { // stenogramy dŸwiêków (ukryæ, gdy tabelka skanowania lub rozk³ad?)
-            glColor3f(1.0f, 1.0f, 0.0f); //¿ó³te
-            for (int i = 0; i < 5; ++i)
-            { // kilka linijek
-                if (Global::asTranscript[i].IsEmpty())
+        { // stenogramy dÅºwiÄ™kÃ³w (ukryÄ‡, gdy tabelka skanowania lub rozkÅ‚ad?)
+/*
+            glColor3f( 1.0f, 1.0f, 0.0f ); //Å¼Ã³Å‚te
+            for( int i = 0; i < 5; ++i ) { // kilka linijek
+                if( Global::asTranscript[ i ].empty() )
                     break; // dalej nie trzeba
-                else
-                {
-                    glRasterPos2f(-0.20f, -0.05f - 0.01f * i);
-                    glPrint(Global::Bezogonkow(Global::asTranscript[i]).c_str());
+                else {
+                    glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
+                    glPrint( Global::Bezogonkow( Global::asTranscript[ i ] ).c_str() );
+                }
+            }
+*/
+            int i = 0;
+            for( auto const &transcript : Global::tranTexts.aLines ) {
+
+                if( Global::fTimeAngleDeg >= transcript.fShow ) {
+
+                    cParser parser( transcript.asText );
+                    while( true == parser.getTokens(1, false, "|") ) {
+
+                        std::string transcriptline; parser >> transcriptline;
+                        ::glColor3f( 1.0f, 1.0f, 0.0f ); //Å¼Ã³Å‚te
+                        ::glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
+                        glPrint( transcriptline.c_str() );
+                        ++i;
+                    }
                 }
             }
         }
@@ -2603,188 +2645,8 @@ bool TWorld::Update()
     // WriteLog("Pressed function key F"+AnsiString(Global::iViewMode-111));
     // Global::iTextMode=Global::iViewMode;
     //}
-    glEnable(GL_LIGHTING);
-    return (true);
-};
-
-bool TWorld::Render()
-{
-    glColor3b(255, 255, 255);
-    // glColor3b(255, 0, 255);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-    glLoadIdentity();
-    Camera.SetMatrix(); // ustawienie macierzy kamery wzglêdem pocz¹tku scenerii
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
-
-    if (!Global::bWireFrame)
-    { // bez nieba w trybie rysowania linii
-        glDisable(GL_FOG);
-        Clouds.Render();
-        glEnable(GL_FOG);
-    }
-    if (Global::bUseVBO)
-    { // renderowanie przez VBO
-        if (!Ground.RenderVBO(Camera.Pos))
-            return false;
-        if (!Ground.RenderAlphaVBO(Camera.Pos))
-            return false;
-    }
-    else
-    { // renderowanie przez Display List
-        if (!Ground.RenderDL(Camera.Pos))
-            return false;
-        if (!Ground.RenderAlphaDL(Camera.Pos))
-            return false;
-    }
-    TSubModel::iInstance = (int)(Train ? Train->Dynamic() : 0); //¿eby nie robiæ cudzych animacji
-    // if (Camera.Type==tp_Follow)
-    if (Train)
-        Train->Update();
-    // if (Global::bRenderAlpha)
-    // if (Controlled)
-    //  Train->RenderAlpha();
-    glFlush();
-    // Global::bReCompile=false; //Ra: ju¿ zrobiona rekompilacja
-    ResourceManager::Sweep(Timer::GetSimulationTime());
-    return true;
-};
-
-void TWorld::ShowHints(void)
-{ // Ra: nie u¿ywaæ tego, bo Ÿle dzia³a
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glColor4f(0.3f, 1.0f, 0.3f, 1.0f);
-    glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, -0.50f);
-    // glRasterPos2f(-0.25f, 0.20f);
-    // OutText1="Uruchamianie lokomotywy - pomoc dla niezaawansowanych";
-    // glPrint(OutText1.c_str());
-
-    // if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_ebrake))
-    // hunter-091012
-    if (TestFlag(Controlled->MoverParameters->SecuritySystem.Status, s_SHPebrake) ||
-        TestFlag(Controlled->MoverParameters->SecuritySystem.Status, s_CAebrake))
-    {
-        OutText1 = "Gosciu, ale refleks to ty masz szachisty. Teraz zaczekaj.";
-        OutText2 = "W tej sytuacji czuwak mozesz zbic dopiero po zatrzymaniu pociagu. ";
-        if (Controlled->MoverParameters->Vel == 0)
-            OutText3 = "   (mozesz juz nacisnac spacje)";
-    }
-    else
-        // if(TestFlag(Controlled->MoverParameters->SecuritySystem.Status,s_alarm))
-        if (TestFlag(Controlled->MoverParameters->SecuritySystem.Status, s_CAalarm) ||
-            TestFlag(Controlled->MoverParameters->SecuritySystem.Status, s_SHPalarm))
-    {
-        OutText1 = "Natychmiast zbij czuwak, bo pociag sie zatrzyma!";
-        OutText2 = "   (szybko nacisnij spacje!)";
-    }
-    else if (TestFlag(Controlled->MoverParameters->SecuritySystem.Status, s_aware))
-    {
-        OutText1 = "Zbij czuwak, zeby udowodnic, ze nie spisz :) ";
-        OutText2 = "   (nacisnij spacje)";
-    }
-    else if (mvControlled->FuseFlag)
-    {
-        OutText1 = "Czlowieku, delikatniej troche! Gdzie sie spieszysz?";
-        OutText2 = "Wybilo Ci bezpiecznik nadmiarowy, teraz musisz wlaczyc go ponownie.";
-        OutText3 = "   ('N', wczesniej nastawnik i boczniki na zero -> '-' oraz '*' do oporu)";
-    }
-    else if (mvControlled->V == 0)
-    {
-        if ((mvControlled->PantFrontVolt == 0.0) || (mvControlled->PantRearVolt == 0.0))
-        {
-            OutText1 = "Jezdziles juz kiedys lokomotywa? Pierwszy raz? Dobra, to zaczynamy.";
-            OutText2 = "No to co, trzebaby chyba podniesc pantograf?";
-            OutText3 = "   (wcisnij 'shift+P' - przedni, 'shift+O' - tylny)";
-        }
-        else if (!mvControlled->Mains)
-        {
-            OutText1 = "Dobra, mozemy zalaczyc wylacznik szybki lokomotywy.";
-            OutText2 = "   (wcisnij 'shift+M')";
-        }
-        else if (!mvControlled->ConverterAllow)
-        {
-            OutText1 = "Teraz wlacz przetwornice.";
-            OutText2 = "   (wcisnij 'shift+X')";
-        }
-        else if (!mvControlled->CompressorAllow)
-        {
-            OutText1 = "Teraz wlacz sprezarke.";
-            OutText2 = "   (wcisnij 'shift+C')";
-        }
-        else if (mvControlled->ActiveDir == 0)
-        {
-            OutText1 = "Ustaw nastawnik kierunkowy na kierunek, w ktorym chcesz jechac.";
-            OutText2 = "   ('d' - do przodu, 'r' - do tylu)";
-        }
-        else if (Controlled->GetFirstDynamic(1)->MoverParameters->BrakePress > 0)
-        {
-            OutText1 = "Odhamuj sklad i zaczekaj az Ci powiem - to moze troche potrwac.";
-            OutText2 = "   ('.' na klawiaturze numerycznej)";
-        }
-        else if (Controlled->MoverParameters->BrakeCtrlPos != 0)
-        {
-            OutText1 = "Przelacz kran hamulca w pozycje 'jazda'.";
-            OutText2 = "   ('4' na klawiaturze numerycznej)";
-        }
-        else if (mvControlled->MainCtrlPos == 0)
-        {
-            OutText1 = "Teraz juz mozesz ruszyc ustawiajac pierwsza pozycje na nastawniku jazdy.";
-            OutText2 = "   (jeden raz '+' na klawiaturze numerycznej)";
-        }
-        else if ((mvControlled->MainCtrlPos > 0) && (mvControlled->ShowCurrent(1) != 0))
-        {
-            OutText1 = "Dobrze, mozesz teraz wlaczac kolejne pozycje nastawnika.";
-            OutText2 = "   ('+' na klawiaturze numerycznej, tylko z wyczuciem)";
-        }
-        if ((mvControlled->MainCtrlPos > 1) && (mvControlled->ShowCurrent(1) == 0))
-        {
-            OutText1 = "Spieszysz sie gdzies? Zejdz nastawnikiem na zero i probuj jeszcze raz!";
-            OutText2 = "   (teraz do oporu '-' na klawiaturze numerycznej)";
-        }
-    }
-    else
-    {
-        OutText1 = "Aby przyspieszyc mozesz wrzucac kolejne pozycje nastawnika.";
-        if (mvControlled->MainCtrlPos == 28)
-        {
-            OutText1 = "Przy tym ustawienu mozesz bocznikowac silniki - sprobuj: '/' i '*' ";
-        }
-        if (mvControlled->MainCtrlPos == 43)
-        {
-            OutText1 = "Przy tym ustawienu mozesz bocznikowac silniki - sprobuj: '/' i '*' ";
-        }
-
-        OutText2 = "Aby zahamowac zejdz nastawnikiem do 0 ('-' do oporu) i ustaw kran hamulca";
-        OutText3 =
-            "w zaleznosci od sily hamowania, jakiej potrzebujesz ('2', '5' lub '8' na kl. num.)";
-
-        // else
-        // if() OutText1="teraz mozesz ruszyc naciskajac jeden raz '+' na klawiaturze numerycznej";
-        // else
-        // if() OutText1="teraz mozesz ruszyc naciskajac jeden raz '+' na klawiaturze numerycznej";
-    }
-    // OutText3=FloatToStrF(Controlled->MoverParameters->SecuritySystem.Status,ffFixed,3,0);
-
-    if (OutText1 != "")
-    {
-        glRasterPos2f(-0.25f, 0.19f);
-        glPrint(OutText1.c_str());
-        OutText1 = "";
-    }
-    if (OutText2 != "")
-    {
-        glRasterPos2f(-0.25f, 0.18f);
-        glPrint(OutText2.c_str());
-        OutText2 = "";
-    }
-    if (OutText3 != "")
-    {
-        glRasterPos2f(-0.25f, 0.17f);
-        glPrint(OutText3.c_str());
-        OutText3 = "";
-    }
-};
+    glEnable( GL_LIGHTING );
+}
 
 //---------------------------------------------------------------------------
 void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
@@ -2792,25 +2654,25 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
     if (pRozkaz->iSygn == 'EU07')
         switch (pRozkaz->iComm)
         {
-        case 0: // odes³anie identyfikatora wersji
-			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " version" + " rcvd");
-			Ground.WyslijString(Global::asVersion, 0); // przedsatwienie siê
+        case 0: // odesÅ‚anie identyfikatora wersji
+			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " version" + " rcvd");
+			Ground.WyslijString(Global::asVersion, 0); // przedsatwienie siÄ™
             break;
-        case 1: // odes³anie identyfikatora wersji
-			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " scenery" + " rcvd");
-			Ground.WyslijString(Global::szSceneryFile, 1); // nazwa scenerii
+        case 1: // odesÅ‚anie identyfikatora wersji
+			CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " scenery" + " rcvd");
+			Ground.WyslijString(Global::SceneryFile, 1); // nazwa scenerii
             break;
         case 2: // event
-            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
-                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
+            CommLog( Now() + " " + std::to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
             if (Global::iMultiplayer)
             { // WriteLog("Komunikat: "+AnsiString(pRozkaz->Name1));
                 TEvent *e = Ground.FindEvent(
-                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
                 if (e)
                     if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
                         bool(e->evJoined)) // tylko jawne albo niejawne Multiple
-                        Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywo³uj¹cy - tu
+                        Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywoÅ‚ujÄ…cy - tu
                 // brak
             }
             break;
@@ -2818,46 +2680,46 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             if (Global::iMultiplayer)
             {
                 int i =
-                    int(pRozkaz->cString[8]); // d³ugoœæ pierwszego ³añcucha (z przodu dwa floaty)
+                    int(pRozkaz->cString[8]); // dÅ‚ugoÅ›Ä‡ pierwszego Å‚aÅ„cucha (z przodu dwa floaty)
                 CommLog(
-                    AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
-                    AnsiString(pRozkaz->cString + 11 + i, (unsigned)(pRozkaz->cString[10 + i])) +
+                    to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 11 + i, (unsigned)(pRozkaz->cString[10 + i])) +
                     " rcvd");
                 TGroundNode *t = Ground.DynamicFind(
-                    AnsiString(pRozkaz->cString + 11 + i,
+                    std::string(pRozkaz->cString + 11 + i,
                                (unsigned)pRozkaz->cString[10 + i])); // nazwa pojazdu jest druga
                 if (t)
                     if (t->DynamicObject->Mechanik)
                     {
-                        t->DynamicObject->Mechanik->PutCommand(AnsiString(pRozkaz->cString + 9, i),
+                        t->DynamicObject->Mechanik->PutCommand(std::string(pRozkaz->cString + 9, i),
                                                                pRozkaz->fPar[0], pRozkaz->fPar[1],
-                                                               NULL, stopExt); // floaty s¹ z przodu
-                        WriteLog("AI command: " + AnsiString(pRozkaz->cString + 9, i));
+                                                               NULL, stopExt); // floaty sÄ… z przodu
+                        WriteLog("AI command: " + std::string(pRozkaz->cString + 9, i));
                     }
             }
             break;
-        case 4: // badanie zajêtoœci toru
+        case 4: // badanie zajÄ™toÅ›ci toru
         {
-            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
-                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
+            CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
             TGroundNode *t = Ground.FindGroundNode(
-                AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])), TP_TRACK);
+                std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])), TP_TRACK);
             if (t)
                 if (t->pTrack->IsEmpty())
                     Ground.WyslijWolny(t->asName);
         }
         break;
-        case 5: // ustawienie parametrów
+        case 5: // ustawienie parametrÃ³w
         {
-            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " params " +
-                    IntToStr(*pRozkaz->iPar) + " rcvd");
+            CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " params " +
+                    to_string(*pRozkaz->iPar) + " rcvd");
             if (*pRozkaz->iPar == 0) // sprawdzenie czasu
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
                 {
                     double t = pRozkaz->fPar[1];
-                    GlobalTime->dd = floor(t); // niby nie powinno byæ dnia, ale...
+                    GlobalTime->dd = floor(t); // niby nie powinno byÄ‡ dnia, ale...
                     if (Global::fMoveLight >= 0)
-                        Global::fMoveLight = t; // trzeba by deklinacjê S³oñca przeliczyæ
+                        Global::fMoveLight = t; // trzeba by deklinacjÄ™ SÅ‚oÅ„ca przeliczyÄ‡
                     GlobalTime->hh = floor(24 * t) - 24.0 * GlobalTime->dd;
                     GlobalTime->mm =
                         floor(60 * 24 * t) - 60.0 * (24.0 * GlobalTime->dd + GlobalTime->hh);
@@ -2867,71 +2729,71 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                 }
             if (*pRozkaz->iPar & 2)
             { // ustawienie flag zapauzowania
-                Global::iPause = pRozkaz->fPar[2]; // zak³adamy, ¿e wysy³aj¹cy wie, co robi
+                Global::iPause = pRozkaz->fPar[2]; // zakÅ‚adamy, Å¼e wysyÅ‚ajÄ…cy wie, co robi
             }
         }
         break;
-        case 6: // pobranie parametrów ruchu pojazdu
+        case 6: // pobranie parametrÃ³w ruchu pojazdu
             if (Global::iMultiplayer)
-            { // Ra 2014-12: to ma dzia³aæ równie¿ dla pojazdów bez obsady
-                CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
-                        AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
+            { // Ra 2014-12: to ma dziaÅ‚aÄ‡ rÃ³wnieÅ¼ dla pojazdÃ³w bez obsady
+                CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                        std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
                         " rcvd");
-                if (pRozkaz->cString[0]) // jeœli d³ugoœæ nazwy jest niezerowa
-                { // szukamy pierwszego pojazdu o takiej nazwie i odsy³amy parametry ramk¹ #7
+                if (pRozkaz->cString[0]) // jeÅ›li dÅ‚ugoÅ›Ä‡ nazwy jest niezerowa
+                { // szukamy pierwszego pojazdu o takiej nazwie i odsyÅ‚amy parametry ramkÄ… #7
                     TGroundNode *t;
                     if (pRozkaz->cString[1] == '*')
                         t = Ground.DynamicFind(
-                            Global::asHumanCtrlVehicle); // nazwa pojazdu u¿ytkownika
+                            Global::asHumanCtrlVehicle); // nazwa pojazdu uÅ¼ytkownika
                     else
-                        t = Ground.DynamicFindAny(AnsiString(
+                        t = Ground.DynamicFindAny(std::string(
                             pRozkaz->cString + 1, (unsigned)pRozkaz->cString[0])); // nazwa pojazdu
                     if (t)
-                        Ground.WyslijNamiary(t); // wys³anie informacji o pojeŸdzie
+                        Ground.WyslijNamiary(t); // wysÅ‚anie informacji o pojeÅºdzie
                 }
                 else
-                { // dla pustego wysy³amy ramki 6 z nazwami pojazdów AI (jeœli potrzebne wszystkie,
-                    // to rozpoznaæ np. "*")
+                { // dla pustego wysyÅ‚amy ramki 6 z nazwami pojazdÃ³w AI (jeÅ›li potrzebne wszystkie,
+                    // to rozpoznaÄ‡ np. "*")
                     Ground.DynamicList();
                 }
             }
             break;
-        case 8: // ponowne wys³anie informacji o zajêtych odcinkach toru
-			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " all busy track" + " rcvd");
+        case 8: // ponowne wysÅ‚anie informacji o zajÄ™tych odcinkach toru
+			CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " all busy track" + " rcvd");
 			Ground.TrackBusyList();
             break;
-        case 9: // ponowne wys³anie informacji o zajêtych odcinkach izolowanych
-			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " all busy isolated" + " rcvd");
+        case 9: // ponowne wysÅ‚anie informacji o zajÄ™tych odcinkach izolowanych
+			CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " all busy isolated" + " rcvd");
 			Ground.IsolatedBusyList();
             break;
-        case 10: // badanie zajêtoœci jednego odcinka izolowanego
-            CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
-                    AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
-            Ground.IsolatedBusy(AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
+        case 10: // badanie zajÄ™toÅ›ci jednego odcinka izolowanego
+            CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                    std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
+            Ground.IsolatedBusy(std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
             break;
-        case 11: // ustawienie parametrów ruchu pojazdu
+        case 11: // ustawienie parametrÃ³w ruchu pojazdu
             //    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
             break;
 		case 12: // skrocona ramka parametrow pojazdow AI (wszystkich!!)
-			CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " obsadzone" + " rcvd");
+			CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " obsadzone" + " rcvd");
 			Ground.WyslijObsadzone();
 			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
 			break;
 		case 13: // ramka uszkodzenia i innych stanow pojazdu, np. wylaczenie CA, wlaczenie recznego itd.
 				 //            WriteLog("Przyszlo 13!");
 				 //            WriteLog(pRozkaz->cString);
-                    CommLog(AnsiString(Now()) + " " + IntToStr(pRozkaz->iComm) + " " +
-                            AnsiString(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
+                    CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                            std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
                             " rcvd");
-                    if (pRozkaz->cString[1]) // jeœli d³ugoœæ nazwy jest niezerowa
-                        { // szukamy pierwszego pojazdu o takiej nazwie i odsy³amy parametry ramk¹ #13
+                    if (pRozkaz->cString[1]) // jeÅ›li dÅ‚ugoÅ›Ä‡ nazwy jest niezerowa
+                        { // szukamy pierwszego pojazdu o takiej nazwie i odsyÅ‚amy parametry ramkÄ… #13
 				TGroundNode *t;
 				if (pRozkaz->cString[2] == '*')
 					t = Ground.DynamicFind(
-						Global::asHumanCtrlVehicle); // nazwa pojazdu u¿ytkownika
+						Global::asHumanCtrlVehicle); // nazwa pojazdu uÅ¼ytkownika
 				else
 					t = Ground.DynamicFindAny(
-						AnsiString(pRozkaz->cString + 2,
+						std::string(pRozkaz->cString + 2,
 							(unsigned)pRozkaz->cString[1])); // nazwa pojazdu
 				if (t)
 				{
@@ -2939,15 +2801,15 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 					while (d)
 					{
 						d->Damage(pRozkaz->cString[0]);
-						d = d->Next(); // pozosta³e te¿
+						d = d->Next(); // pozostaÅ‚e teÅ¼
 					}
 					d = t->DynamicObject->Prev();
 					while (d)
 					{
 						d->Damage(pRozkaz->cString[0]);
-						d = d->Prev(); // w drug¹ stronê te¿
+						d = d->Prev(); // w drugÄ… stronÄ™ teÅ¼
 					}
-					Ground.WyslijUszkodzenia(t->asName, t->DynamicObject->MoverParameters->EngDmgFlag); // zwrot informacji o pojeŸdzie
+					Ground.WyslijUszkodzenia(t->asName, t->DynamicObject->MoverParameters->EngDmgFlag); // zwrot informacji o pojeÅºdzie
 				}
 			}
 			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
@@ -2956,27 +2818,31 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 };
 
 //---------------------------------------------------------------------------
-void TWorld::ModifyTGA(const AnsiString &dir)
-{ // rekurencyjna modyfikacje plików TGA
-    TSearchRec sr;
+void TWorld::ModifyTGA(const std::string &dir)
+{ // rekurencyjna modyfikacje plikÃ³w TGA
+/*  TODO: implement version without Borland stuff
+	TSearchRec sr;
     if (FindFirst(dir + "*.*", faDirectory | faArchive, sr) == 0)
     {
         do
         {
             if (sr.Name[1] != '.')
-                if ((sr.Attr & faDirectory)) // jeœli katalog, to rekurencja
+                if ((sr.Attr & faDirectory)) // jeÅ›li katalog, to rekurencja
                     ModifyTGA(dir + sr.Name + "/");
                 else if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".tga")
                     TTexturesManager::GetTextureID(NULL, NULL, AnsiString(dir + sr.Name).c_str());
         } while (FindNext(sr) == 0);
         FindClose(sr);
     }
+*/
 };
 //---------------------------------------------------------------------------
-AnsiString last; // zmienne u¿ywane w rekurencji
+std::string last; // zmienne uÅ¼ywane w rekurencji
 double shift = 0;
-void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
-{ // rekurencyjna generowanie plików E3D
+void TWorld::CreateE3D(std::string const &dir, bool dyn)
+{ // rekurencyjna generowanie plikÃ³w E3D
+
+/* TODO: remove Borland file access stuff
     TTrack *trk;
     double at;
     TSearchRec sr;
@@ -2985,56 +2851,56 @@ void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
         do
         {
             if (sr.Name[1] != '.')
-                if ((sr.Attr & faDirectory)) // jeœli katalog, to rekurencja
+                if ((sr.Attr & faDirectory)) // jeÅ›li katalog, to rekurencja
                     CreateE3D(dir + sr.Name + "\\", dyn);
                 else if (dyn)
                 {
                     if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".mmd")
                     {
-                        // konwersja pojazdów bêdzie u³omna, bo nie poustawiaj¹ siê animacje na
-                        // submodelach okreœlonych w MMD
+                        // konwersja pojazdÃ³w bÄ™dzie uÅ‚omna, bo nie poustawiajÄ… siÄ™ animacje na
+                        // submodelach okreÅ›lonych w MMD
                         // TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),true);
                         if (last != dir)
                         { // utworzenie toru dla danego pojazdu
                             last = dir;
                             trk = TTrack::Create400m(1, shift);
-                            shift += 10.0; // nastêpny tor bêdzie deczko dalej, aby nie zabiæ FPS
+                            shift += 10.0; // nastÄ™pny tor bÄ™dzie deczko dalej, aby nie zabiÄ‡ FPS
                             at = 400.0;
                             // if (shift>1000) break; //bezpiecznik
                         }
                         TGroundNode *tmp = new TGroundNode();
                         tmp->DynamicObject = new TDynamicObject();
-                        // Global::asCurrentTexturePath=dir; //pojazdy maj¹ tekstury we w³asnych
+                        // Global::asCurrentTexturePath=dir; //pojazdy majÄ… tekstury we wÅ‚asnych
                         // katalogach
                         at -= tmp->DynamicObject->Init(
-                            "", dir.SubString(9, dir.Length() - 9), "none",
-                            sr.Name.SubString(1, sr.Name.Length() - 4), trk, at, "nobody", 0.0,
+                            "", string((dir.SubString(9, dir.Length() - 9)).c_str()), "none",
+                            string(sr.Name.SubString(1, sr.Name.Length() - 4).c_str()), trk, at, "nobody", 0.0,
                             "none", 0.0, "", false, "");
-                        // po wczytaniu CHK zrobiæ pêtlê po ³adunkach, aby ka¿dy z nich skonwertowaæ
+                        // po wczytaniu CHK zrobiÄ‡ pÄ™tlÄ™ po Å‚adunkach, aby kaÅ¼dy z nich skonwertowaÄ‡
                         AnsiString loads, load;
-                        loads = tmp->DynamicObject->MoverParameters->LoadAccepted; // typy ³adunków
+                        loads = AnsiString(tmp->DynamicObject->MoverParameters->LoadAccepted.c_str()); // typy Å‚adunkÃ³w
                         if (!loads.IsEmpty())
                         {
-                            loads += ","; // przecinek na koñcu
+                            loads += ","; // przecinek na koÅ„cu
                             int i = loads.Pos(",");
                             while (i > 1)
-                            { // wypada³o by sprawdziæ, czy T3D ³adunku jest
+                            { // wypadaÅ‚o by sprawdziÄ‡, czy T3D Å‚adunku jest
                                 load = loads.SubString(1, i - 1);
-                                if (FileExists(dir + load + ".t3d")) // o ile jest plik ³adunku, bo
+                                if (FileExists(dir + load + ".t3d")) // o ile jest plik Å‚adunku, bo
                                     // inaczej nie ma to sensu
                                     if (!FileExists(
                                             dir + load +
                                             ".e3d")) // a nie ma jeszcze odpowiednika binarnego
                                         at -= tmp->DynamicObject->Init(
-                                            "", dir.SubString(9, dir.Length() - 9), "none",
-                                            sr.Name.SubString(1, sr.Name.Length() - 4), trk, at,
-                                            "nobody", 0.0, "none", 1.0, load, false, "");
-                                loads.Delete(1, i); // usuniêcie z nastêpuj¹cym przecinkiem
+                                            "", dir.SubString(9, dir.Length() - 9).c_str(), "none",
+                                            sr.Name.SubString(1, sr.Name.Length() - 4).c_str(), trk, at,
+                                            "nobody", 0.0, "none", 1.0, load.c_str(), false, "");
+                                loads.Delete(1, i); // usuniÄ™cie z nastÄ™pujÄ…cym przecinkiem
                                 i = loads.Pos(",");
                             }
                         }
                         if (tmp->DynamicObject->iCabs)
-                        { // jeœli ma jak¹kolwiek kabinê
+                        { // jeÅ›li ma jakÄ…kolwiek kabinÄ™
                             delete Train;
                             Train = new TTrain();
                             if (tmp->DynamicObject->iCabs & 1)
@@ -3054,21 +2920,22 @@ void TWorld::CreateE3D(const AnsiString &dir, bool dyn)
                             }
                         }
                         Global::asCurrentTexturePath =
-                            AnsiString(szTexturePath); // z powrotem defaultowa sciezka do tekstur
+                            (szTexturePath); // z powrotem defaultowa sciezka do tekstur
                     }
                 }
                 else if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".t3d")
-                { // z modelami jest proœciej
-                    Global::asCurrentTexturePath = dir;
+                { // z modelami jest proÅ›ciej
+                    Global::asCurrentTexturePath = dir.c_str();
                     TModelsManager::GetModel(AnsiString(dir + sr.Name).c_str(), false);
                 }
         } while (FindNext(sr) == 0);
         FindClose(sr);
     }
+*/
 };
 //---------------------------------------------------------------------------
 void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
-{ // ewentualna zmiana kabiny u¿ytkownikowi
+{ // ewentualna zmiana kabiny uÅ¼ytkownikowi
     if (Train)
         if (Train->Dynamic() == old)
             Global::changeDynObj = now; // uruchomienie protezy

@@ -7,18 +7,13 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef WorldH
-#define WorldH
+#pragma once
 
-#include "Usefull.h"
-#include "Classes.h"
-#include "Texture.h"
+#include <string>
 #include "Camera.h"
 #include "Ground.h"
-#include "MdlMngr.h"
-#include "Globals.h"
 #include "sky.h"
-//#include <winuser.h>
+#include "mczapkie/mover.h"
 
 class TWorld
 {
@@ -41,34 +36,37 @@ class TWorld
     ~TWorld();
     // double Aspect;
   private:
-    AnsiString OutText1; // teksty na ekranie
-    AnsiString OutText2;
-    AnsiString OutText3;
-    AnsiString OutText4;
-    void ShowHints();
+    std::string OutText1; // teksty na ekranie
+    std::string OutText2;
+    std::string OutText3;
+    std::string OutText4;
+    void Update_Lights();
+    void Update_Camera( const double Deltatime );
     bool Render();
+    void Render_Cab();
+    void Render_UI();
     TCamera Camera;
     TGround Ground;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
     bool Paused;
-    GLuint base; // numer DL dla znaków w napisach
-    GLuint light; // numer tekstury dla smugi
+    GLuint base; // numer DL dla znakÃ³w w napisach
+    texture_manager::size_type light; // numer tekstury dla smugi
     TSky Clouds;
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury
-    TMoverParameters *mvControlled; // wskaŸnik na cz³on silnikowy, do wyœwietlania jego parametrów
-    int iCheckFPS; // kiedy znów sprawdziæ FPS, ¿eby wy³¹czaæ optymalizacji od razu do zera
+    TMoverParameters *mvControlled; // wskaÅºnik na czÅ‚on silnikowy, do wyÅ›wietlania jego parametrÃ³w
+    int iCheckFPS; // kiedy znÃ³w sprawdziÄ‡ FPS, Å¼eby wyÅ‚Ä…czaÄ‡ optymalizacji od razu do zera
     double fTime50Hz; // bufor czasu dla komunikacji z PoKeys
-    double fTimeBuffer; // bufor czasu aktualizacji dla sta³ego kroku fizyki
-    double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
+    double fTimeBuffer; // bufor czasu aktualizacji dla staÅ‚ego kroku fizyki
+    double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunkÃ³w)
     int iPause; // wykrywanie zmian w zapauzowaniu
-    double VelPrev; // poprzednia prêdkoœæ
+    double VelPrev; // poprzednia prÄ™dkoÅ›Ä‡
     int tprev; // poprzedni czas
     double Acc; // przyspieszenie styczne
   public:
-    void ModifyTGA(const AnsiString &dir = "");
-    void CreateE3D(const AnsiString &dir = "", bool dyn = false);
+    void ModifyTGA(std::string const &dir = "");
+    void CreateE3D(std::string const &dir = "", bool dyn = false);
     void CabChange(TDynamicObject *old, TDynamicObject *now);
 };
 //---------------------------------------------------------------------------
-#endif
+

@@ -3,18 +3,18 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.05.03"/>
-    <PROJECT value="EU07.exe"/>
-    <OBJFILES value="QueryParserComp.obj McZapkie\mtable.obj McZapkie\_mover.obj 
-      McZapkie\hamulce.obj McZapkie\Oerlikon_ESt.obj EU07.obj dumb3d.obj 
-      Camera.obj Texture.obj World.obj Model3d.obj MdlMngr.obj Train.obj 
-      wavread.obj Timer.obj Event.obj MemCell.obj Logs.obj Spring.obj Button.obj 
-      Globals.obj Gauge.obj AnimModel.obj Ground.obj TrkFoll.obj Segment.obj 
-      Sound.obj AdvSound.obj Track.obj DynObj.obj RealSound.obj EvLaunch.obj 
-      FadeSound.obj Traction.obj TractionPower.obj parser.obj sky.obj 
-      AirCoupler.obj opengl\glew.obj ResourceManager.obj VBO.obj TextureDDS.obj 
+    <PROJECT value="E:\Gry\MaSzyna_15_04\EU07.exe"/>
+    <OBJFILES value="QueryParserComp.obj EU07.obj dumb3d.obj Camera.obj Texture.obj World.obj 
+      Model3d.obj MdlMngr.obj Train.obj wavread.obj Timer.obj Event.obj 
+      MemCell.obj Logs.obj Spring.obj Button.obj Globals.obj Gauge.obj 
+      AnimModel.obj Ground.obj TrkFoll.obj Segment.obj Sound.obj AdvSound.obj 
+      Track.obj DynObj.obj RealSound.obj EvLaunch.obj FadeSound.obj Traction.obj 
+      TractionPower.obj parser.obj sky.obj AirCoupler.obj opengl\glew.obj 
+      ResourceManager.obj VBO.obj mtable.obj TextureDDS.obj 
       opengl\ARB_Multisample.obj Float3d.obj Classes.obj Driver.obj Names.obj 
-      Console.obj Mover.obj Console\PoKeys55.obj Forth.obj Console\LPT.obj 
-      PyInt.obj"/>
+      Console.obj McZapkie\Mover.obj McZapkie\hamulce.obj 
+      McZapkie\Oerlikon_ESt.obj McZapkie\friction.obj McZapkie\mctools.obj 
+      Console\PoKeys55.obj Forth.obj Console\LPT.obj PyInt.obj"/>
     <RESFILES value="EU07.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -24,8 +24,8 @@
     <LIBRARIES value="dclocx50.bpi bcbsmp50.bpi VCLX50.lib bcbsmp50.lib Vcl50.lib"/>
     <SPARELIBS value="Vcl50.lib bcbsmp50.lib VCLX50.lib bcbsmp50.bpi dclocx50.bpi"/>
     <PACKAGES value="Vcl50.bpi Vclx50.bpi"/>
-    <PATHCPP value=".;opengl;Console"/>
-    <PATHPAS value=".;McZapkie"/>
+    <PATHCPP value=".;opengl;McZapkie;Console"/>
+    <PATHPAS value=".;"/>
     <PATHRC value=".;"/>
     <PATHASM value=".;"/>
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
@@ -41,8 +41,7 @@
   <OPTIONS>
     <IDLCFLAGS value="-src_suffix cpp -DGLEW_STATIC -D_DEBUG -IConsole -Iopengl -IMcZapkie 
       -I$(BCB)\include -I$(BCB)\include\vcl -Ipython\include -boa"/>
-    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl50.csm -Hc -w- -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v 
-      -vi- -c -tW -tWM"/>
+    <CFLAG1 value="-Od -w- -Vx -Ve -X- -r- -a1 -6 -b- -k -y -v -vi- -c -tW -tWM"/>
     <PFLAGS value="-$Y+ -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zi"/>
@@ -58,9 +57,9 @@
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=16
-MinorVer=0
-Release=1173
-Build=482
+MinorVer=1
+Release=1174
+Build=483
 Debug=1
 PreRelease=0
 Special=0
@@ -72,14 +71,21 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=EU07 Team
 FileDescription=MaSzyna EU07-424
-FileVersion=16.0.1173.482
+FileVersion=16.1.1174.483
 InternalName=DP+SPKS+asynch+python
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=eu07.exe
 ProductName=MaSzyna EU07-424
-ProductVersion=16.0
+ProductVersion=16.1
 Comments=
+
+[Excluded Packages]
+$(BCB)\Bin\bcbsmp50.bpl=Borland C++ Sample Components
+$(BCB)\Bin\dclqrt50.bpl=QuickReport Components
+C:\Windows\system32\ibsmp50.bpl=Borland C++ InterBase Alerter Component
+$(BCB)\Bin\dcltee50.bpl=TeeChart 5.0 Components
+$(BCB)\Bin\applet50.bpl=Borland Control Panel Applet Package
 
 [HistoryLists\hlIncludePath]
 Count=2
@@ -109,8 +115,8 @@ Item7=_DEBUG
 
 [HistoryLists\hlFinalOutputDir]
 Count=5
-Item0=D:\Maszyna
-Item1=E:\Gry\MaSzyna_15_04\
+Item0=E:\Gry\MaSzyna_15_04\
+Item1=D:\Maszyna
 Item2=E:\Gry\MaSzyna_15_04
 Item3=D:\EU07\
 Item4=E:\EU07\
@@ -119,7 +125,7 @@ Item4=E:\EU07\
 DebugSourceDirs=McZapkie\
 
 [Parameters]
-RunParams=-s $.scn -v EN57AKL-1ra
+RunParams=-s td.scn -v EP07-424
 HostApplication=
 RemoteHost=
 RemotePath=

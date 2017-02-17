@@ -7,135 +7,139 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef DriverH
-#define DriverH
+#pragma once
 
+//#include <fstream>
 #include "Classes.h"
 #include "dumb3d.h"
-#include <fstream>
+#include "mczapkie/mover.h"
+#include <string>
 using namespace Math3D;
+using namespace Mtable;
 
 enum TOrders
 { // rozkazy dla AI
-    Wait_for_orders = 0, // czekanie na dostarczenie nastêpnych rozkazów
+    Wait_for_orders = 0, // czekanie na dostarczenie nastÄ™pnych rozkazÃ³w
     // operacje tymczasowe
-    Prepare_engine = 1, // w³¹czenie silnika
-    Release_engine = 2, // wy³¹czenie silnika
+    Prepare_engine = 1, // wÅ‚Ä…czenie silnika
+    Release_engine = 2, // wyÅ‚Ä…czenie silnika
     Change_direction = 4, // zmiana kierunku (bez skanowania sygnalizacji)
-    Connect = 8, // pod³¹czanie wagonów (z czêœciowym skanowaniem sygnalizacji)
-    Disconnect = 0x10, // od³¹czanie wagonów (bez skanowania sygnalizacji)
+    Connect = 8, // podÅ‚Ä…czanie wagonÃ³w (z czÄ™Å›ciowym skanowaniem sygnalizacji)
+    Disconnect = 0x10, // odÅ‚Ä…czanie wagonÃ³w (bez skanowania sygnalizacji)
     // jazda
     Shunt = 0x20, // tryb manewrowy
-    Obey_train = 0x40, // tryb poci¹gowy
-    Jump_to_first_order = 0x60 // zapêlenie do pierwszej pozycji (po co?)
+    Obey_train = 0x40, // tryb pociÄ…gowy
+    Jump_to_first_order = 0x60 // zapÄ™lenie do pierwszej pozycji (po co?)
 };
 
 enum TMovementStatus
 { // flagi bitowe ruchu (iDrivigFlags)
-    moveStopCloser = 1, // podjechaæ blisko W4 (nie podje¿d¿aæ na pocz¹tku ani po zmianie czo³a)
-    moveStopPoint = 2, // stawaæ na W4 (wy³¹czone podczas zmiany czo³a)
-    moveActive = 4, // pojazd jest za³¹czony i skanuje
-    movePress = 8, // dociskanie przy od³¹czeniu (zamiast zmiennej Prepare2press)
-    moveConnect = 0x10, // jest blisko innego pojazdu i mo¿na próbowaæ pod³¹czyæ
-    movePrimary = 0x20, // ma priorytet w sk³adzie (master)
-    moveLate = 0x40, // flaga spóŸnienia, w³¹czy bardziej
-    moveStopHere = 0x80, // nie podje¿d¿aæ do semafora, jeœli droga nie jest wolna
-    moveStartHorn = 0x100, // podawaj sygna³ po podaniu wolnej drogi
-    moveStartHornNow = 0x200, // podaj sygna³ po odhamowaniu
-    moveStartHornDone = 0x400, // podano sygna³ po podaniu wolnej drogi
-    moveOerlikons = 0x800, // sk³ad wy³¹cznie z zaworami? Oerlikona
-    moveIncSpeed = 0x1000, // za³¹czenie jazdy (np. dla EZT)
+    moveStopCloser = 1, // podjechaÄ‡ blisko W4 (nie podjeÅ¼dÅ¼aÄ‡ na poczÄ…tku ani po zmianie czoÅ‚a)
+    moveStopPoint = 2, // stawaÄ‡ na W4 (wyÅ‚Ä…czone podczas zmiany czoÅ‚a)
+    moveActive = 4, // pojazd jest zaÅ‚Ä…czony i skanuje
+    movePress = 8, // dociskanie przy odÅ‚Ä…czeniu (zamiast zmiennej Prepare2press)
+    moveConnect = 0x10, // jest blisko innego pojazdu i moÅ¼na prÃ³bowaÄ‡ podÅ‚Ä…czyÄ‡
+    movePrimary = 0x20, // ma priorytet w skÅ‚adzie (master)
+    moveLate = 0x40, // flaga spÃ³Åºnienia, wÅ‚Ä…czy bardziej
+    moveStopHere = 0x80, // nie podjeÅ¼dÅ¼aÄ‡ do semafora, jeÅ›li droga nie jest wolna
+    moveStartHorn = 0x100, // podawaj sygnaÅ‚ po podaniu wolnej drogi
+    moveStartHornNow = 0x200, // podaj sygnaÅ‚ po odhamowaniu
+    moveStartHornDone = 0x400, // podano sygnaÅ‚ po podaniu wolnej drogi
+    moveOerlikons = 0x800, // skÅ‚ad wyÅ‚Ä…cznie z zaworami? Oerlikona
+    moveIncSpeed = 0x1000, // zaÅ‚Ä…czenie jazdy (np. dla EZT)
     moveTrackEnd = 0x2000, // dalsza jazda do przodu trwale ograniczona (W5, koniec toru)
     moveSwitchFound = 0x4000, // na drodze skanowania do przodu jest rozjazd
-    moveGuardSignal = 0x8000, // sygna³ od kierownika (min¹³ czas postoju)
-    moveVisibility = 0x10000, // jazda na widocznoœæ po przejechaniu S1 na SBL
-    moveDoorOpened = 0x20000, // drzwi zosta³y otwarte - doliczyæ czas na zamkniêcie
-    movePushPull = 0x40000, // zmiana czo³a przez zmianê kabiny - nie odczepiaæ przy zmianie kierunku
-    moveSemaphorFound = 0x80000, // na drodze skanowania zosta³ znaleziony semafor
-    moveSemaphorWasElapsed = 0x100000, // miniêty zosta³ semafor
-    moveTrainInsideStation = 0x200000, // poci¹g miêdzy semaforem a rozjazdami lub nastêpnym semaforem
-    moveSpeedLimitFound = 0x400000 // poci¹g w ograniczeniu z podan¹ jego d³ugoœci¹
+    moveGuardSignal = 0x8000, // sygnaÅ‚ od kierownika (minÄ…Å‚ czas postoju)
+    moveVisibility = 0x10000, // jazda na widocznoÅ›Ä‡ po przejechaniu S1 na SBL
+    moveDoorOpened = 0x20000, // drzwi zostaÅ‚y otwarte - doliczyÄ‡ czas na zamkniÄ™cie
+    movePushPull =
+        0x40000, // zmiana czoÅ‚a przez zmianÄ™ kabiny - nie odczepiaÄ‡ przy zmianie kierunku
+    moveSemaphorFound = 0x80000, // na drodze skanowania zostaÅ‚ znaleziony semafor
+    moveSemaphorWasElapsed = 0x100000, // miniÄ™ty zostaÅ‚ semafor
+    moveTrainInsideStation =
+        0x200000, // pociÄ…g miÄ™dzy semaforem a rozjazdami lub nastÄ™pnym semaforem
+    moveSpeedLimitFound = 0x400000 // pociÄ…g w ograniczeniu z podanÄ… jego dÅ‚ugoÅ›ciÄ…
 };
 
 enum TStopReason
-{ // powód zatrzymania, dodawany do SetVelocity 0 - w zasadzie do usuniêcia
-    stopNone, // nie ma powodu - powinien jechaæ
-    stopSleep, // nie zosta³ odpalony, to nie pojedzie
-    stopSem, // semafor zamkniêty
-    stopTime, // czekanie na godzinê odjazdu
-    stopEnd, // brak dalszej czêœci toru
-    stopDir, // trzeba stan¹æ, by zmieniæ kierunek jazdy
-    stopJoin, // stoi w celu po³¹czenia wagonów
+{ // powÃ³d zatrzymania, dodawany do SetVelocity 0 - w zasadzie do usuniÄ™cia
+    stopNone, // nie ma powodu - powinien jechaÄ‡
+    stopSleep, // nie zostaÅ‚ odpalony, to nie pojedzie
+    stopSem, // semafor zamkniÄ™ty
+    stopTime, // czekanie na godzinÄ™ odjazdu
+    stopEnd, // brak dalszej czÄ™Å›ci toru
+    stopDir, // trzeba stanÄ…Ä‡, by zmieniÄ‡ kierunek jazdy
+    stopJoin, // stoi w celu poÅ‚Ä…czenia wagonÃ³w
     stopBlock, // przeszkoda na drodze ruchu
-    stopComm, // otrzymano tak¹ komendê (niewiadomego pochodzenia)
-    stopOut, // komenda wyjazdu poza stacjê (raczej nie powinna zatrzymywaæ!)
+    stopComm, // otrzymano takÄ… komendÄ™ (niewiadomego pochodzenia)
+    stopOut, // komenda wyjazdu poza stacjÄ™ (raczej nie powinna zatrzymywaÄ‡!)
     stopRadio, // komunikat przekazany radiem (Radiostop)
-    stopExt, // komenda z zewn¹trz
-    stopError // z powodu b³êdu w obliczeniu drogi hamowania
+    stopExt, // komenda z zewnÄ…trz
+    stopError // z powodu bÅ‚Ä™du w obliczeniu drogi hamowania
 };
 
 enum TAction
-{ // przechowanie aktualnego stanu AI od poprzedniego przeb³ysku œwiadomoœci
-    actUnknown, // stan nieznany (domyœlny na pocz¹tku)
-    actPantUp, // podnieœ pantograf (info dla u¿ytkownika)
-    actConv, // za³¹cz przetwornicê (info dla u¿ytkownika)
-    actCompr, // za³¹cz sprê¿arkê (info dla u¿ytkownika)
-    actSleep, //œpi (wygaszony)
+{ // przechowanie aktualnego stanu AI od poprzedniego przebÅ‚ysku Å›wiadomoÅ›ci
+    actUnknown, // stan nieznany (domyÅ›lny na poczÄ…tku)
+    actPantUp, // podnieÅ› pantograf (info dla uÅ¼ytkownika)
+    actConv, // zaÅ‚Ä…cz przetwornicÄ™ (info dla uÅ¼ytkownika)
+    actCompr, // zaÅ‚Ä…cz sprÄ™Å¼arkÄ™ (info dla uÅ¼ytkownika)
+    actSleep, //Å›pi (wygaszony)
     actDrive, // jazda
     actGo, // ruszanie z miejsca
     actSlow, // przyhamowanie przed ograniczeniem
     sctStop, // hamowanie w celu precyzyjnego zatrzymania
-    actIdle, // luzowanie sk³adu przed odjazdem
-    actRelease, // luzowanie sk³adu po zmniejszeniu prêdkoœci
+    actIdle, // luzowanie skÅ‚adu przed odjazdem
+    actRelease, // luzowanie skÅ‚adu po zmniejszeniu prÄ™dkoÅ›ci
     actConnect, // dojazd w celu podczepienia
     actWait, // czekanie na przystanku
-    actReady, // zg³oszona gotowoœæ do odjazdu od kierownika
+    actReady, // zgÅ‚oszona gotowoÅ›Ä‡ do odjazdu od kierownika
     actEmergency, // hamowanie awaryjne
-    actGoUphill, // ruszanie pod górê
+    actGoUphill, // ruszanie pod gÃ³rÄ™
     actTest, // hamowanie kontrolne (podczas jazdy)
-    actTrial // próba hamulca (na postoju)
+    actTrial // prÃ³ba hamulca (na postoju)
 };
 
 enum TSpeedPosFlag
-{ // wartoœci dla iFlag w TSpeedPos
-    spEnabled = 0x1, // pozycja brana pod uwagê
+{ // wartoÅ›ci dla iFlag w TSpeedPos
+    spEnabled = 0x1, // pozycja brana pod uwagÄ™
     spTrack = 0x2, // to jest tor
     spReverse = 0x4, // odwrotnie
     spSwitch = 0x8, // to zwrotnica
     spSwitchStatus = 0x10, // stan zwrotnicy
-    spElapsed = 0x20, // pozycja miniêta przez pojazd
+    spElapsed = 0x20, // pozycja miniÄ™ta przez pojazd
     spEnd = 0x40, // koniec
-    spCurve = 0x80, // ³uk
+    spCurve = 0x80, // Å‚uk
     spEvent = 0x100, // event
     spShuntSemaphor = 0x200, // tarcza manewrowa
-    spPassengerStopPoint = 0x400, // przystanek osobowy (wskaŸnik W4)
+    spPassengerStopPoint = 0x400, // przystanek osobowy (wskaÅºnik W4)
     spStopOnSBL = 0x800, // zatrzymanie na SBL
-    spCommandSent = 0x1000, // komenda wys³ana
-    spOutsideStation = 0x2000, // wskaŸnik koñca manewrów
-    spSemaphor = 0x4000, // semafor poci¹gowy
-    spRoadVel = 0x8000, // zadanie prêdkoœci drogowej
+    spCommandSent = 0x1000, // komenda wysÅ‚ana
+    spOutsideStation = 0x2000, // wskaÅºnik koÅ„ca manewrÃ³w
+    spSemaphor = 0x4000, // semafor pociÄ…gowy
+    spRoadVel = 0x8000, // zadanie prÄ™dkoÅ›ci drogowej
     spSectionVel = 0x20000, // odcinek z ograniczeniem
-    spProximityVelocity = 0x40000, // odcinek z ograniczeniem i podan¹ jego d³ugoœcia
+    spProximityVelocity = 0x40000, // odcinek z ograniczeniem i podanÄ… jego dÅ‚ugoÅ›cia
     spEndOfTable = 0x10000 // zatkanie tabelki
 };
 
 class TSpeedPos
-{ // pozycja tabeli prêdkoœci dla AI
+{ // pozycja tabeli prÄ™dkoÅ›ci dla AI
   public:
-    double fDist; // aktualna odleg³oœæ (ujemna gdy miniête)
-    double fVelNext; // prêdkoœæ obowi¹zuj¹ca od tego miejsca
-    double fSectionVelocityDist; //d³ugoœæ ograniczenia prêdkoœci
+    double fDist; // aktualna odlegÅ‚oÅ›Ä‡ (ujemna gdy miniÄ™te)
+    double fVelNext; // prÄ™dkoÅ›Ä‡ obowiÄ…zujÄ…ca od tego miejsca
+    double fSectionVelocityDist; // dÅ‚ugoÅ›Ä‡ ograniczenia prÄ™dkoÅ›ci
     // double fAcc;
-    int iFlags; //flagi typu wpisu do tabelki
-    // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (mo¿e siê zmieniæ),16-stan
-    // zwrotnicy,32-miniêty,64=koniec,128=³uk
-    // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wys³ana komenda,0x2000=W5
+    int iFlags; // flagi typu wpisu do tabelki
+    // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (moÅ¼e siÄ™ zmieniÄ‡),16-stan
+    // zwrotnicy,32-miniÄ™ty,64=koniec,128=Å‚uk
+    // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wysÅ‚ana komenda,0x2000=W5
     // 0x4000=semafor,0x10000=zatkanie
-    vector3 vPos; // wspó³rzêdne XYZ do liczenia odleg³oœci
+    vector3 vPos; // wspÃ³Å‚rzÄ™dne XYZ do liczenia odlegÅ‚oÅ›ci
     struct
     {
-        TTrack *trTrack; // wskaŸnik na tor o zmiennej prêdkoœci (zwrotnica, obrotnica)
-        TEvent *evEvent; // po³¹czenie z eventem albo komórk¹ pamiêci
+        TTrack *trTrack; // wskaÅºnik na tor o zmiennej prÄ™dkoÅ›ci (zwrotnica, obrotnica)
+        TEvent *evEvent; // poÅ‚Ä…czenie z eventem albo komÃ³rkÄ… pamiÄ™ci
     };
     void CommandCheck();
 
@@ -144,9 +148,9 @@ class TSpeedPos
     bool Update(vector3 *p, vector3 *dir, double &len);
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
-    AnsiString TableText();
-	AnsiString GetName();
-	bool IsProperSemaphor(TOrders order = Wait_for_orders);
+    std::string TableText();
+    std::string GetName();
+    bool IsProperSemaphor(TOrders order = Wait_for_orders);
 };
 
 //----------------------------------------------------------------------------
@@ -154,148 +158,143 @@ static const bool Aggressive = true;
 static const bool Easyman = false;
 static const bool AIdriver = true;
 static const bool Humandriver = false;
-static const int maxorders = 32; // iloœæ rozkazów w tabelce
-static const int maxdriverfails = 4; // ile b³êdów mo¿e zrobiæ AI zanim zmieni nastawienie
-extern bool WriteLogFlag; // logowanie parametrów fizycznych
+static const int maxorders = 32; // iloÅ›Ä‡ rozkazÃ³w w tabelce
+static const int maxdriverfails = 4; // ile bÅ‚Ä™dÃ³w moÅ¼e zrobiÄ‡ AI zanim zmieni nastawienie
+extern bool WriteLogFlag; // logowanie parametrÃ³w fizycznych
 //----------------------------------------------------------------------------
 
 class TController
 {
-  private: // obs³uga tabelki prêdkoœci (musi mieæ mo¿liwoœæ odhaczania stacji w rozk³adzie)
-    TSpeedPos *sSpeedTable; // najbli¿sze zmiany prêdkoœci
-    int iSpeedTableSize; // wielkoœæ tabelki
-    int iFirst; // aktualna pozycja w tabeli (modulo iSpeedTableSize)
-    int iLast; // ostatnia wype³niona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
-    int iTableDirection; // kierunek zape³nienia tabelki wzglêdem pojazdu z AI
-    double fLastVel; // prêdkoœæ na poprzednio sprawdzonym torze
-    TTrack *tLast; // ostatni analizowany tor
-    TEvent *eSignSkip; // mo¿na pomin¹æ ten SBL po zatrzymaniu
-	TSpeedPos *sSemNext; // nastêpny semafor na drodze zale¿ny od trybu jazdy
-	TSpeedPos *sSemNextStop; // nastêpny semafor na drodze zale¿ny od trybu jazdy i na stój
-  private: // parametry aktualnego sk³adu
-    double fLength; // d³ugoœæ sk³adu (do wyci¹gania z ograniczeñ)
-    double fMass; // ca³kowita masa do liczenia stycznej sk³adowej grawitacji
-    double fAccGravity; // przyspieszenie sk³adowej stycznej grawitacji
+  private: // obsÅ‚uga tabelki prÄ™dkoÅ›ci (musi mieÄ‡ moÅ¼liwoÅ›Ä‡ odhaczania stacji w rozkÅ‚adzie)
+    TSpeedPos *sSpeedTable = nullptr; // najbliÅ¼sze zmiany prÄ™dkoÅ›ci
+    int iSpeedTableSize = 16; // wielkoÅ›Ä‡ tabelki
+    int iFirst = 0; // aktualna pozycja w tabeli (modulo iSpeedTableSize)
+    int iLast = 0; // ostatnia wypeÅ‚niona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
+    int iTableDirection = 0; // kierunek zapeÅ‚nienia tabelki wzglÄ™dem pojazdu z AI
+    double fLastVel = 0.0; // prÄ™dkoÅ›Ä‡ na poprzednio sprawdzonym torze
+    TTrack *tLast = nullptr; // ostatni analizowany tor
+    TEvent *eSignSkip = nullptr; // moÅ¼na pominÄ…Ä‡ ten SBL po zatrzymaniu
+    TSpeedPos *sSemNext = nullptr; // nastÄ™pny semafor na drodze zaleÅ¼ny od trybu jazdy
+    TSpeedPos *sSemNextStop = nullptr; // nastÄ™pny semafor na drodze zaleÅ¼ny od trybu jazdy i na stÃ³j
+  private: // parametry aktualnego skÅ‚adu
+    double fLength = 0.0; // dÅ‚ugoÅ›Ä‡ skÅ‚adu (do wyciÄ…gania z ograniczeÅ„)
+    double fMass = 0.0; // caÅ‚kowita masa do liczenia stycznej skÅ‚adowej grawitacji
+    double fAccGravity = 0.0; // przyspieszenie skÅ‚adowej stycznej grawitacji
   public:
-    TEvent *eSignNext; // sygna³ zmieniaj¹cy prêdkoœæ, do pokazania na [F2]
-    AnsiString asNextStop; // nazwa nastêpnego punktu zatrzymania wg rozk³adu
-    int iStationStart; // numer pierwszej stacji pokazywanej na podgl¹dzie rozk³adu
+    TEvent *eSignNext = nullptr; // sygnaÅ‚ zmieniajÄ…cy prÄ™dkoÅ›Ä‡, do pokazania na [F2]
+    std::string asNextStop; // nazwa nastÄ™pnego punktu zatrzymania wg rozkÅ‚adu
+    int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglÄ…dzie rozkÅ‚adu
   private: // parametry sterowania pojazdem (stan, hamowanie)
-    double fShuntVelocity; // maksymalna prêdkoœæ manewrowania, zale¿y m.in. od sk³adu
-    int iVehicles; // iloœæ pojazdów w sk³adzie
-    int iEngineActive; // ABu: Czy silnik byl juz zalaczony; Ra: postêp w za³¹czaniu
-    // vector3 vMechLoc; //pozycja pojazdu do liczenia odleg³oœci od semafora (?)
-    bool Psyche;
-    int iDrivigFlags; // flagi bitowe ruchu
-    double fDriverBraking; // po pomno¿eniu przez v^2 [km/h] daje ~drogê hamowania [m]
-    double fDriverDist; // dopuszczalna odleg³oœæ podjechania do przeszkody
-    double fVelMax; // maksymalna prêdkoœæ sk³adu (sprawdzany ka¿dy pojazd)
-    double fBrakeDist; // przybli¿ona droga hamowania
-    double fAccThreshold; // próg opóŸnienia dla zadzia³ania hamulca
+    double fShuntVelocity = 40.0; // maksymalna prÄ™dkoÅ›Ä‡ manewrowania, zaleÅ¼y m.in. od skÅ‚adu // domyÅ›lna prÄ™dkoÅ›Ä‡ manewrowa
+    int iVehicles = 0; // iloÅ›Ä‡ pojazdÃ³w w skÅ‚adzie
+    int iEngineActive = 0; // ABu: Czy silnik byl juz zalaczony; Ra: postÄ™p w zaÅ‚Ä…czaniu
+    // vector3 vMechLoc; //pozycja pojazdu do liczenia odlegÅ‚oÅ›ci od semafora (?)
+    bool Psyche = false;
+    int iDrivigFlags = // flagi bitowe ruchu
+        moveStopPoint | // podjedÅº do W4 moÅ¼liwie blisko
+        moveStopHere | // nie podjeÅ¼dÅ¼aj do semafora, jeÅ›li droga nie jest wolna
+        moveStartHorn; // podaj sygnaÅ‚ po podaniu wolnej drogi
+    double fDriverBraking = 0.0; // po pomnoÅ¼eniu przez v^2 [km/h] daje ~drogÄ™ hamowania [m]
+    double fDriverDist = 0.0; // dopuszczalna odlegÅ‚oÅ›Ä‡ podjechania do przeszkody
+    double fVelMax = -1.0; // maksymalna prÄ™dkoÅ›Ä‡ skÅ‚adu (sprawdzany kaÅ¼dy pojazd)
+    double fBrakeDist = 0.0; // przybliÅ¼ona droga hamowania
+    double fAccThreshold = 0.0; // prÃ³g opÃ³Åºnienia dla zadziaÅ‚ania hamulca
   public:
-    double fLastStopExpDist; // odleg³oœæ wygasania ostateniego przystanku
-    double ReactionTime; // czas reakcji Ra: czego i na co? œwiadomoœci AI
-    double fBrakeTime; // wpisana wartoœæ jest zmniejszana do 0, gdy ujemna nale¿y zmieniæ nastawê
+    double fLastStopExpDist = -1.0; // odlegÅ‚oÅ›Ä‡ wygasania ostateniego przystanku
+    double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? Å›wiadomoÅ›ci AI
+    double fBrakeTime = 0.0; // wpisana wartoÅ›Ä‡ jest zmniejszana do 0, gdy ujemna naleÅ¼y zmieniÄ‡ nastawÄ™
     // hamulca
   private:
-    double fReady; // poziom odhamowania wagonów
-    bool Ready; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
-    double LastUpdatedTime; // czas od ostatniego logu
-    double ElapsedTime; // czas od poczatku logu
-    double deltalog; // przyrost czasu
-    double LastReactionTime;
-    double fActionTime; // czas u¿ywany przy regulacji prêdkoœci i zamykaniu drzwi
-    TAction eAction; // aktualny stan
-    bool HelpMeFlag; // wystawiane True jesli cos niedobrego sie dzieje
+    double fReady = 0.0; // poziom odhamowania wagonÃ³w
+    bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
+    double LastUpdatedTime = 0.0; // czas od ostatniego logu
+    double ElapsedTime = 0.0; // czas od poczatku logu
+    double deltalog = 0.05; // przyrost czasu
+    double LastReactionTime = 0.0;
+    double fActionTime = 0.0; // czas uÅ¼ywany przy regulacji prÄ™dkoÅ›ci i zamykaniu drzwi
+    TAction eAction = actSleep; // aktualny stan
+    bool HelpMeFlag = false; // wystawiane True jesli cos niedobrego sie dzieje
   public:
     inline TAction GetAction()
     {
         return eAction;
     }
-    bool AIControllFlag; // rzeczywisty/wirtualny maszynista
-    int iRouteWanted; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
+    bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
+    int iRouteWanted = 3; // oczekiwany kierunek jazdy (0-stop,1-lewo,2-prawo,3-prosto) np. odpala
     // migacz lub czeka na stan zwrotnicy
   private:
-    TDynamicObject *pVehicle; // pojazd w którym siedzi steruj¹cy
-    TDynamicObject *
-        pVehicles[2]; // skrajne pojazdy w sk³adzie (niekoniecznie bezpoœrednio sterowane)
-    TMoverParameters *mvControlling; // jakim pojazdem steruje (mo¿e silnikowym w EZT)
-    TMoverParameters *mvOccupied; // jakim pojazdem hamuje
-    Mtable::TTrainParameters *TrainParams; // rozk³ad jazdy zawsze jest, nawet jeœli pusty
+    TDynamicObject *pVehicle = nullptr; // pojazd w ktÃ³rym siedzi sterujÄ…cy
+    TDynamicObject
+        *pVehicles[2]; // skrajne pojazdy w skÅ‚adzie (niekoniecznie bezpoÅ›rednio sterowane)
+    TMoverParameters *mvControlling = nullptr; // jakim pojazdem steruje (moÅ¼e silnikowym w EZT)
+    TMoverParameters *mvOccupied = nullptr; // jakim pojazdem hamuje
+    TTrainParameters *TrainParams = nullptr; // rozkÅ‚ad jazdy zawsze jest, nawet jeÅ›li pusty
     // int TrainNumber; //numer rozkladowy tego pociagu
     // AnsiString OrderCommand; //komenda pobierana z pojazdu
     // double OrderValue; //argument komendy
-    int iRadioChannel; // numer aktualnego kana³u radiowego
-    TTextSound *tsGuardSignal; // komunikat od kierownika
-    int iGuardRadio; // numer kana³u radiowego kierownika (0, gdy nie u¿ywa radia)
+    int iRadioChannel = 1; // numer aktualnego kanaÅ‚u radiowego
+    TTextSound *tsGuardSignal = nullptr; // komunikat od kierownika
+    int iGuardRadio = 0; // numer kanaÅ‚u radiowego kierownika (0, gdy nie uÅ¼ywa radia)
   public:
-    double AccPreferred; // preferowane przyspieszenie (wg psychiki kieruj¹cego, zmniejszana przy
-    // wykryciu kolizji)
-    double AccDesired; // przyspieszenie, jakie ma utrzymywaæ (<0:nie przyspieszaj,<-0.1:hamuj)
-    double VelDesired; // predkoœæ, z jak¹ ma jechaæ, wynikaj¹ca z analizy tableki; <=VelSignal
-    double fAccDesiredAv; // uœrednione przyspieszenie z kolejnych przeb³ysków œwiadomoœci, ¿eby
-    // ograniczyæ migotanie
+    double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierujÄ…cego, zmniejszana przy wykryciu kolizji)
+    double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywaÄ‡ (<0:nie przyspieszaj,<-0.1:hamuj)
+    double VelDesired = 0.0; // predkoÅ›Ä‡, z jakÄ… ma jechaÄ‡, wynikajÄ…ca z analizy tableki; <=VelSignal
+    double fAccDesiredAv = 0.0; // uÅ›rednione przyspieszenie z kolejnych przebÅ‚yskÃ³w Å›wiadomoÅ›ci, Å¼eby
+    // ograniczyÄ‡ migotanie
   public:
-    double VelforDriver; // prêdkoœæ, u¿ywana przy zmianie kierunku (ograniczenie przy nieznajmoœci
-    // szlaku?)
-    double VelSignal; // ograniczenie prêdkoœci z kompilacji znaków i sygna³ów
-    double VelLimit; // predkoœæ zadawana przez event jednokierunkowego ograniczenia prêdkoœci
+    double VelforDriver = -1.0; // prÄ™dkoÅ›Ä‡, uÅ¼ywana przy zmianie kierunku (ograniczenie przy nieznajmoÅ›ci szlaku?)
+    double VelSignal = 0.0; // ograniczenie prÄ™dkoÅ›ci z kompilacji znakÃ³w i sygnaÅ‚Ã³w // normalnie na poczÄ…tku ma staÄ‡, no chyba Å¼e jedzie
+    double VelLimit = -1.0; // predkoÅ›Ä‡ zadawana przez event jednokierunkowego ograniczenia prÄ™dkoÅ›ci // -1: brak ograniczenia prÄ™dkoÅ›ci
   public:
-    double VelSignalLast; // prêdkoœæ zadana na ostatnim semaforze
-	double VelSignalNext; // prêdkoœæ zadana na nastêpnym semaforze
-    double VelLimitLast; // prêdkoœæ zadana przez ograniczenie
-    double VelRoad; // aktualna prêdkoœæ drogowa (ze znaku W27)
-    // (PutValues albo komend¹)
+    double VelSignalLast = -1.0; // prÄ™dkoÅ›Ä‡ zadana na ostatnim semaforze // ostatni semafor teÅ¼ bez ograniczenia
+    double VelSignalNext = 0.0; // prÄ™dkoÅ›Ä‡ zadana na nastÄ™pnym semaforze
+    double VelLimitLast = -1.0; // prÄ™dkoÅ›Ä‡ zadana przez ograniczenie // ostatnie ograniczenie bez ograniczenia
+    double VelRoad = -1.0; // aktualna prÄ™dkoÅ›Ä‡ drogowa (ze znaku W27) (PutValues albo komendÄ…) // prÄ™dkoÅ›Ä‡ drogowa bez ograniczenia
   public:
-    double VelNext; // prêdkoœæ, jaka ma byæ po przejechaniu d³ugoœci ProximityDist
+    double VelNext = 120.0; // prÄ™dkoÅ›Ä‡, jaka ma byÄ‡ po przejechaniu dÅ‚ugoÅ›ci ProximityDist
   private:
-     double fProximityDist; //odleglosc podawana w SetProximityVelocity(); >0:przeliczaæ do
-    // punktu, <0:podana wartoœæ
-	 double FirstSemaphorDist; // odleg³oœæ do pierwszego znalezionego semafora
+    double fProximityDist = 0.0; // odleglosc podawana w SetProximityVelocity(); >0:przeliczaÄ‡ do punktu, <0:podana wartoÅ›Ä‡
+    double FirstSemaphorDist = 10000.0; // odlegÅ‚oÅ›Ä‡ do pierwszego znalezionego semafora
   public:
     double
-        ActualProximityDist; // odleg³oœæ brana pod uwagê przy wyliczaniu prêdkoœci i przyspieszenia
+        ActualProximityDist = 1.0; // odlegÅ‚oÅ›Ä‡ brana pod uwagÄ™ przy wyliczaniu prÄ™dkoÅ›ci i przyspieszenia
   private:
     vector3 vCommandLocation; // polozenie wskaznika, sygnalizatora lub innego obiektu do ktorego
     // odnosi sie komenda
-    TOrders OrderList[maxorders]; // lista rozkazów
-    int OrderPos, OrderTop; // rozkaz aktualny oraz wolne miejsce do wstawiania nowych
+    TOrders OrderList[maxorders]; // lista rozkazÃ³w
+    int OrderPos = 0,
+        OrderTop = 0; // rozkaz aktualny oraz wolne miejsce do wstawiania nowych
     std::ofstream LogFile; // zapis parametrow fizycznych
     std::ofstream AILogFile; // log AI
-    bool MaxVelFlag;
-    bool MinVelFlag;
-    int iDirection; // kierunek jazdy wzglêdem sprzêgów pojazdu, w którym siedzi AI (1=przód,-1=ty³)
-    int iDirectionOrder; //¿adany kierunek jazdy (s³u¿y do zmiany kierunku)
-    int iVehicleCount; // iloœæ pojazdów do od³¹czenia albo zabrania ze sk³adu (-1=wszystkie)
-    int iCoupler; // maska sprzêgu, jak¹ nale¿y u¿yæ przy ³¹czeniu (po osi¹gniêciu trybu Connect), 0
-    // gdy jazda bez ³¹czenia
-    int iDriverFailCount; // licznik b³êdów AI
-    bool Need_TryAgain; // true, jeœli druga pozycja w elektryku nie za³apa³a
-    bool Need_BrakeRelease;
+    bool MaxVelFlag = false;
+    bool MinVelFlag = false; // Ra: to nie jest uÅ¼ywane
+    int iDirection = 0; // kierunek jazdy wzglÄ™dem sprzÄ™gÃ³w pojazdu, w ktÃ³rym siedzi AI (1=przÃ³d,-1=tyÅ‚)
+    int iDirectionOrder = 0; //Å¼adany kierunek jazdy (sÅ‚uÅ¼y do zmiany kierunku)
+    int iVehicleCount = -2; // wartoÅ›Ä‡ neutralna // iloÅ›Ä‡ pojazdÃ³w do odÅ‚Ä…czenia albo zabrania ze skÅ‚adu (-1=wszystkie)
+    int iCoupler = 0; // maska sprzÄ™gu, jakÄ… naleÅ¼y uÅ¼yÄ‡ przy Å‚Ä…czeniu (po osiÄ…gniÄ™ciu trybu Connect), 0 gdy jazda bez Å‚Ä…czenia
+    int iDriverFailCount = 0; // licznik bÅ‚Ä™dÃ³w AI
+    bool Need_TryAgain = false; // true, jeÅ›li druga pozycja w elektryku nie zaÅ‚apaÅ‚a
+    bool Need_BrakeRelease = true;
 
   public:
-    double fMinProximityDist; // minimalna oleg³oœæ do przeszkody, jak¹ nale¿y zachowaæ
-    double fOverhead1; // informacja o napiêciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
-    double fOverhead2; // informacja o sposobie jazdy (-1=normalnie, 0=bez pr¹du, >0=z opuszczonym i
-    // ograniczeniem prêdkoœci)
-    int iOverheadZero; // suma bitowa jezdy bezpr¹dowej, bity ustawiane przez pojazdy z
-    // podniesionymi pantografami
-    int iOverheadDown; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z
-    // podniesionymi pantografami
-    double fVoltage; // uœrednione napiêcie sieci: przy spadku poni¿ej wartoœci minimalnej opóŸniæ
-    // rozruch o losowy czas
+    double fMinProximityDist = 30.0; // stawanie miÄ™dzy 30 a 60 m przed przeszkodÄ… // minimalna olegÅ‚oÅ›Ä‡ do przeszkody, jakÄ… naleÅ¼y zachowaÄ‡
+    double fOverhead1 = 3000.0; // informacja o napiÄ™ciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
+    double fOverhead2 = -1.0; // informacja o sposobie jazdy (-1=normalnie, 0=bez prÄ…du, >0=z opuszczonym i ograniczeniem prÄ™dkoÅ›ci)
+    int iOverheadZero = 0; // suma bitowa jezdy bezprÄ…dowej, bity ustawiane przez pojazdy z podniesionymi pantografami
+    int iOverheadDown = 0; // suma bitowa opuszczenia pantografÃ³w, bity ustawiane przez pojazdy z podniesionymi pantografami
+    double fVoltage = 0.0; // uÅ›rednione napiÄ™cie sieci: przy spadku poniÅ¼ej wartoÅ›ci minimalnej opÃ³ÅºniÄ‡ rozruch o losowy czas
   private:
-    double fMaxProximityDist; // akceptowalna odleg³oœæ staniêcia przed przeszkod¹
-    TStopReason eStopReason; // powód zatrzymania przy ustawieniu zerowej prêdkoœci
-    AnsiString VehicleName;
-    double fVelPlus; // dopuszczalne przekroczenie prêdkoœci na ograniczeniu bez hamowania
-    double fVelMinus; // margines obni¿enia prêdkoœci, powoduj¹cy za³¹czenie napêdu
-    double fWarningDuration; // ile czasu jeszcze tr¹biæ
-    double fStopTime; // czas postoju przed dalsz¹ jazd¹ (np. na przystanku)
-    double WaitingTime; // zliczany czas oczekiwania do samoistnego ruszenia
-    double WaitingExpireTime; // maksymlany czas oczekiwania do samoistnego ruszenia
-    // TEvent* eSignLast; //ostatnio znaleziony sygna³, o ile nie miniêty
-  private: //---//---//---//---// koniec zmiennych, poni¿ej metody //---//---//---//---//
+    double fMaxProximityDist = 50.0; // stawanie miÄ™dzy 30 a 60 m przed przeszkodÄ… // akceptowalna odlegÅ‚oÅ›Ä‡ staniÄ™cia przed przeszkodÄ…
+    TStopReason eStopReason = stopSleep; // powÃ³d zatrzymania przy ustawieniu zerowej prÄ™dkoÅ›ci // na poczÄ…tku Å›pi
+    std::string VehicleName;
+    double fVelPlus = 0.0; // dopuszczalne przekroczenie prÄ™dkoÅ›ci na ograniczeniu bez hamowania
+    double fVelMinus = 0.0; // margines obniÅ¼enia prÄ™dkoÅ›ci, powodujÄ…cy zaÅ‚Ä…czenie napÄ™du
+    double fWarningDuration = 0.0; // ile czasu jeszcze trÄ…biÄ‡
+    double fStopTime = 0.0; // czas postoju przed dalszÄ… jazdÄ… (np. na przystanku)
+    double WaitingTime = 0.0; // zliczany czas oczekiwania do samoistnego ruszenia
+    double WaitingExpireTime = 31.0; // tyle ma czekaÄ‡, zanim siÄ™ ruszy // maksymlany czas oczekiwania do samoistnego ruszenia
+    // TEvent* eSignLast; //ostatnio znaleziony sygnaÅ‚, o ile nie miniÄ™ty
+  private: //---//---//---//---// koniec zmiennych, poniÅ¼ej metody //---//---//---//---//
     void SetDriverPsyche();
     bool PrepareEngine();
     bool ReleaseEngine();
@@ -306,25 +305,25 @@ class TController
     void SpeedSet();
     void Doors(bool what);
     void RecognizeCommand(); // odczytuje komende przekazana lokomotywie
-    void Activation(); // umieszczenie obsady w odpowiednim cz³onie
-    void ControllingSet(); // znajduje cz³on do sterowania
-    void AutoRewident(); // ustawia hamulce w sk³adzie
+    void Activation(); // umieszczenie obsady w odpowiednim czÅ‚onie
+    void ControllingSet(); // znajduje czÅ‚on do sterowania
+    void AutoRewident(); // ustawia hamulce w skÅ‚adzie
   public:
-    Mtable::TTrainParameters * Timetable()
+    Mtable::TTrainParameters *Timetable()
     {
         return TrainParams;
     };
-    void PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
-                    const _mover::TLocation &NewLocation, TStopReason reason = stopComm);
-    bool PutCommand(AnsiString NewCommand, double NewValue1, double NewValue2,
+    void PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
+                    const TLocation &NewLocation, TStopReason reason = stopComm);
+    bool PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
                     const vector3 *NewLocation, TStopReason reason = stopComm);
-    bool UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundê
+    bool UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundÄ™
     // procedury dotyczace rozkazow dla maszynisty
     void SetVelocity(double NewVel, double NewVelNext,
-                     TStopReason r = stopNone); // uaktualnia informacje o prêdkoœci
+                     TStopReason r = stopNone); // uaktualnia informacje o prÄ™dkoÅ›ci
     bool SetProximityVelocity(
         double NewDist,
-        double NewVelNext); // uaktualnia informacje o prêdkoœci przy nastepnym semaforze
+        double NewVelNext); // uaktualnia informacje o prÄ™dkoÅ›ci przy nastepnym semaforze
   public:
     void JumpToNextOrder();
     void JumpToFirstOrder();
@@ -343,52 +342,52 @@ class TController
     void OrdersClear();
     void OrdersDump();
     TController(bool AI, TDynamicObject *NewControll, bool InitPsyche,
-                bool primary = true // czy ma aktywnie prowadziæ?
+                bool primary = true // czy ma aktywnie prowadziÄ‡?
                 );
-    AnsiString OrderCurrent();
+    std::string OrderCurrent();
     void WaitingSet(double Seconds);
 
   private:
-    AnsiString Order2Str(TOrders Order);
+    std::string Order2Str(TOrders Order);
     void DirectionForward(bool forward);
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
     double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
-  private: // Ra: metody obs³uguj¹ce skanowanie toru
-    TEvent * CheckTrackEvent(double fDirection, TTrack *Track);
+  private: // Ra: metody obsÅ‚ugujÄ…ce skanowanie toru
+    TEvent *CheckTrackEvent(double fDirection, TTrack *Track);
     bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
     bool TableNotFound(TEvent *e);
     void TableClear();
-    TEvent * TableCheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     void TablePurger();
 
-  private: // Ra: stare funkcje skanuj¹ce, u¿ywane do szukania sygnalizatora z ty³u
+  private: // Ra: stare funkcje skanujÄ…ce, uÅ¼ywane do szukania sygnalizatora z tyÅ‚u
     bool BackwardTrackBusy(TTrack *Track);
-    TEvent * CheckTrackEventBackward(double fDirection, TTrack *Track);
-    TTrack * BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
-                                          TEvent *&Event);
+    TEvent *CheckTrackEventBackward(double fDirection, TTrack *Track);
+    TTrack *BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track,
+                               TEvent *&Event);
     void SetProximityVelocity(double dist, double vel, const vector3 *pos);
     TCommandType BackwardScan();
 
   public:
     void PhysicsLog();
-    AnsiString StopReasonText();
+    std::string StopReasonText();
     ~TController();
-    AnsiString NextStop();
+    std::string NextStop();
     void TakeControl(bool yes);
-    AnsiString Relation();
-    AnsiString TrainName();
+    std::string Relation();
+    std::string TrainName();
     int StationCount();
     int StationIndex();
     bool IsStop();
     bool Primary()
     {
-        return this ? bool(iDrivigFlags & movePrimary) : false;
+        return this ? ((iDrivigFlags & movePrimary) != 0) : false;
     };
     int inline DrivigFlags()
     {
@@ -396,10 +395,8 @@ class TController
     };
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
-    AnsiString TableText(int i);
+    std::string TableText(int i);
     int CrossRoute(TTrack *tr);
     void RouteSwitch(int d);
-    AnsiString OwnerName();
+    std::string OwnerName();
 };
-
-#endif

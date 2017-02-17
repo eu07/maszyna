@@ -8,98 +8,99 @@ http://mozilla.org/MPL/2.0/.
 */
 
 /*
-    Program obs³ugi portu COM i innych na potrzeby sterownika MWDevice
-	(oraz innych wykorzystuj¹cych komunikacjê przez port COM)
-    dla Symulatora Pojazdów Szynowych MaSzyna
+    Program obsÅ‚ugi portu COM i innych na potrzeby sterownika MWDevice
+        (oraz innych wykorzystujÄ…cych komunikacjÄ™ przez port COM)
+    dla Symulatora PojazdÃ³w Szynowych MaSzyna
     author: Maciej Witek 2016
-	Autor nie ponosi odpowiedzialnoœci za niew³aciwe u¿ywanie lub dzia³anie programu!
+        Autor nie ponosi odpowiedzialnoÅ›ci za niewÅ‚aciwe uÅ¼ywanie lub dziaÅ‚anie programu!
 */
-
 
 #ifndef MWDH
 #define MWDH
 //---------------------------------------------------------------------------
 
+#define BYTETOWRITE 31  		// iloÅ›Ä‡ bajtÃ³w przesyÅ‚anych z MaSzyny
+#define BYTETOREAD  16  		// iloÅ›Ä‡ bajtÃ³w przesyÅ‚anych do MaSzyny
+
 typedef unsigned char BYTE;
 typedef unsigned long DWORD;
 
-class MWDComm
+class TMWDComm
 {
 private:
-    int MWDTime;	//
-    char lastStateData[6], maskData[6],maskSwitch[6], bitSwitch[6];
-    int bocznik, nastawnik, kierunek;
-    char bnkMask;
-    
-    bool ReadData();	//BYTE *pReadDataBuff);
-    bool SendData();	//BYTE *pWriteDataBuff);
-    bool CheckData();	//sprawdzanie zmian wejœæ i kontrola mazaków HASLERA
-    void KeyBoard(int key, bool s);
+	int MWDTime;	//
+	char lastStateData[6], maskData[6], maskSwitch[6], bitSwitch[6];
+	int bocznik, nastawnik, kierunek;
+	char bnkMask;
 
-    bool bRysik1H;
-    bool bRysik1L;
-    bool bRysik2H;
-    bool bRysik2L;
+	bool ReadData();	//BYTE *pReadDataBuff);
+	bool SendData();	//BYTE *pWriteDataBuff);
+	void CheckData();	//sprawdzanie zmian wejÅ›Ä‡ i kontrola mazakÃ³w HASLERA
+	void KeyBoard(int key, bool s);
+
+	//void CheckData2();
+
+	bool bRysik1H;
+	bool bRysik1L;
+	bool bRysik2H;
+	bool bRysik2L;
 
 public:
-    bool Open();		// Otwarcie portu
-    bool Close();		// Zamkniêcie portu
-    bool Run();			// Obs³uga portu
-    bool GetMWDState(); // sprawdŸ czy port jest otwarty, 0 zamkniêty, 1 otwarty
+	bool Open();		// Otwarcie portu
+	bool Close();		// ZamkniÄ™cie portu
+	bool Run();			// ObsÅ‚uga portu
+	bool GetMWDState(); // sprawdÅº czy port jest otwarty, 0 zamkniÄ™ty, 1 otwarty
 
-    // zmienne do rysików HASLERA
-    bool bSHPstate;
-    bool bPrzejazdSHP;
-    bool bKabina1;
-    bool bKabina2;
-    bool bHamowanie;
-    bool bCzuwak;
+	// zmienne do rysikÃ³w HASLERA
+	bool bSHPstate;
+	bool bPrzejazdSHP;
+	bool bKabina1;
+	bool bKabina2;
+	bool bHamowanie;
+	bool bCzuwak;
+	
+	unsigned int uiAnalog[4]; 		// trzymanie danych z wejÅ›Ä‡ analogowych
 
+	BYTE ReadDataBuff[BYTETOREAD]; //17]; // bufory danych
+	BYTE WriteDataBuff[BYTETOWRITE]; //31];
 
-
-    float fAnalog[4]; 		// trzymanie danych z wejœæ analogowych
-
-    BYTE ReadDataBuff[17];	// bufory danych
-    BYTE WriteDataBuff[31];
-
-    MWDComm();	//konstruktor
-    ~MWDComm();	//destruktor
+    TMWDComm(); // konstruktor
+    ~TMWDComm(); // destruktor
 };
 #endif
 
-
 /*
-        INFO - zmiany dokonane w innych plikach niezbêdne do prawid³owego dzia³ania:
+        INFO - zmiany dokonane w innych plikach niezbÄ™dne do prawidÅ‚owego dziaÅ‚ania:
 
         Console.cpp:
-         Console::AnalogCalibrateGet	- obs³uga kranów hamulców
-         Console::Update		- wywo³ywanie obs³ugi MWD
-         Console::ValueSet		- obs³uga manometrów, mierników WN (PWM-y)
+         Console::AnalogCalibrateGet	- obsÅ‚uga kranÃ³w hamulcÃ³w
+         Console::Update		- wywoÅ‚ywanie obsÅ‚ugi MWD
+         Console::ValueSet		- obsÅ‚uga manometrÃ³w, miernikÃ³w WN (PWM-y)
          Console::BitsUpdate		- ustawiania lampek
          Console::Off			- zamykanie portu COM
          Console::On			- otwieranie portu COM
-         Console::~Console		- usuwanie MWD (jest te¿ w Console OFF)
+         Console::~Console		- usuwanie MWD (jest teÅ¼ w Console OFF)
 
-         MWDComm * Console::MWD = NULL; - luzem, obiekt i wskaŸnik(?)
-         dodatkowo zmieni³em int na long int dla BitSet i BitClear oraz iBits
+         MWDComm * Console::MWD = NULL; - luzem, obiekt i wskaÅºnik(?)
+         dodatkowo zmieniÅ‚em int na long int dla BitSet i BitClear oraz iBits
 
         Train.cpp:
-         if (Global::iFeedbackMode == 5) - pobieranie prêdkoœci, manometrów i mierników WN
-         if (ggBrakeCtrl.SubModel)       - mo¿liwoœæ sterowania hamulcem zespolonym
-         if (ggLocalBrake.SubModel) 	 - mo¿liwoœæ sterowania hamulcem lokomotywy
+         if (Global::iFeedbackMode == 5) - pobieranie prÄ™dkoÅ›ci, manometrÃ³w i miernikÃ³w WN
+         if (ggBrakeCtrl.SubModel)       - moÅ¼liwoÅ›Ä‡ sterowania hamulcem zespolonym
+         if (ggLocalBrake.SubModel) 	 - moÅ¼liwoÅ›Ä‡ sterowania hamulcem lokomotywy
 
         Globals.h:
          dodano zmienne dla MWD
         Globals.cpp:
-         dodano inicjalizajê zmiennych i odczyt z ini ustawieñ
+         dodano inicjalizajÄ™ zmiennych i odczyt z ini ustawieÅ„
 
         Wpisy do pliku eu07.ini
 
                 //maciek001 MWD
-                comportname COM3	// wybór portu COM
+                comportname COM3	// wybÃ³r portu COM
                 mwdbaudrate 500000
 
-                mwdbreakenable yes	// czy za³¹czyæ sterowanie hamulcami? blokuje klawiature
+                mwdbreakenable yes	// czy zaÅ‚Ä…czyÄ‡ sterowanie hamulcami? blokuje klawiature
                 mwdbreak 1 255 0 255	// hamulec zespolony
                 mwdbreak 2 255 0 255	// hamulec lokomotywy
 

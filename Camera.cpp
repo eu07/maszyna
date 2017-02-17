@@ -7,22 +7,15 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Camera.h"
-#include "Usefull.h"
+
 #include "Globals.h"
+#include "Usefull.h"
+#include "Console.h"
 #include "Timer.h"
 #include "mover.h"
-#include "Console.h"
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
 
 // TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
@@ -58,9 +51,9 @@ void TCamera::OnCursorMove(double x, double y)
         Yaw -= 2 * M_PI;
     else if (Yaw < -M_PI)
         Yaw += 2 * M_PI;
-    if (Type == tp_Follow) // je¿eli jazda z pojazdem
+    if (Type == tp_Follow) // jeÅ¼eli jazda z pojazdem
     {
-        Fix(Pitch, -M_PI_4, M_PI_4); // ograniczenie k¹ta spogl¹dania w dó³ i w górê
+        Fix(Pitch, -M_PI_4, M_PI_4); // ograniczenie kÄ…ta spoglÄ…dania w dÃ³Å‚ i w gÃ³rÄ™
         // Fix(Yaw,-M_PI,M_PI);
     }
 }
@@ -136,7 +129,7 @@ void TCamera::Update()
         vector3 Vec = Velocity;
         Vec.RotateY(Yaw);
         Pos = Pos + Vec * Timer::GetDeltaRenderTime(); // czas bez pauzy
-        Velocity = Velocity / 2; // p³ynne hamowanie ruchu
+        Velocity = Velocity / 2; // pÅ‚ynne hamowanie ruchu
         //    double tmp= 10*DeltaTime;
         //        Velocity+= -Velocity*10 * Timer::GetDeltaTime();//( tmp<1 ? tmp : 1 );
         //        Type= tp_Free;
@@ -156,10 +149,10 @@ vector3 TCamera::GetDirection()
 // bool TCamera::GetMatrix(matrix4x4 &Matrix)
 bool TCamera::SetMatrix()
 {
-    glRotated(-Roll * 180.0f / M_PI, 0, 0, 1); // po wy³¹czeniu tego krêci siê pojazd, a sceneria
+    glRotated(-Roll * 180.0f / M_PI, 0, 0, 1); // po wyÅ‚Ä…czeniu tego krÄ™ci siÄ™ pojazd, a sceneria
     // nie
     glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
-    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnêtrznym widoku: kierunek patrzenia
+    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnÄ™trznym widoku: kierunek patrzenia
 
     if (Type == tp_Follow)
     {
@@ -181,15 +174,15 @@ bool TCamera::SetMatrix()
         glTranslated(-Pos.x, -Pos.y, -Pos.z); // nie zmienia kierunku patrzenia
     }
 
-    Global::SetCameraPosition(Pos); // by³o +pOffset
+    Global::SetCameraPosition(Pos); // byÅ‚o +pOffset
     return true;
 }
 
 void TCamera::SetCabMatrix(vector3 &p)
-{ // ustawienie widoku z kamery bez przesuniêcia robionego przez OpenGL - nie powinno tak trz¹œæ
+{ // ustawienie widoku z kamery bez przesuniÄ™cia robionego przez OpenGL - nie powinno tak trzÄ…Å›Ä‡
     glRotated(-Roll * 180.0f / M_PI, 0, 0, 1);
     glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
-    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnêtrznym widoku: kierunek patrzenia
+    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnÄ™trznym widoku: kierunek patrzenia
     if (Type == tp_Follow)
         gluLookAt(Pos.x - p.x, Pos.y - p.y, Pos.z - p.z, LookAt.x - p.x, LookAt.y - p.y,
                   LookAt.z - p.z, vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero
@@ -197,16 +190,16 @@ void TCamera::SetCabMatrix(vector3 &p)
 
 void TCamera::RaLook()
 { // zmiana kierunku patrzenia - przelicza Yaw
-    vector3 where = LookAt - Pos + vector3(0, 3, 0); // trochê w górê od szyn
+    vector3 where = LookAt - Pos + vector3(0, 3, 0); // trochÄ™ w gÃ³rÄ™ od szyn
     if ((where.x != 0.0) || (where.z != 0.0))
-        Yaw = atan2(-where.x, -where.z); // k¹t horyzontalny
+        Yaw = atan2(-where.x, -where.z); // kÄ…t horyzontalny
     double l = Length3(where);
     if (l > 0.0)
-        Pitch = asin(where.y / l); // k¹t w pionie
+        Pitch = asin(where.y / l); // kÄ…t w pionie
 };
 
 void TCamera::Stop()
-{ // wy³¹cznie bezw³adnego ruchu po powrocie do kabiny
+{ // wyÅ‚Ä…cznie bezwÅ‚adnego ruchu po powrocie do kabiny
     Type = tp_Follow;
     Velocity = vector3(0, 0, 0);
 };

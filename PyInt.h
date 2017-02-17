@@ -1,13 +1,19 @@
 #ifndef PyIntH
 #define PyIntH
 
-#undef _DEBUG // bez tego macra Py_DECREF powoduja problemy przy linkowaniu
-
-#include "Python.h"
-#include "QueryParserComp.hpp"
-#include "Model3d.h"
 #include <vector>
 #include <set>
+#include <string>
+
+#ifdef _DEBUG
+#undef _DEBUG // bez tego macra Py_DECREF powoduja problemy przy linkowaniu
+#include "Python.h"
+#define _DEBUG
+#else
+#include "Python.h"
+#endif
+#include "parser.h"
+#include "Model3d.h"
 
 #define PyGetFloat(param) PyFloat_FromDouble(param >= 0 ? param : -param)
 #define PyGetFloatS(param) PyFloat_FromDouble(param)
@@ -28,22 +34,26 @@ class TPythonInterpreter
 {
   protected:
     TPythonInterpreter();
-    ~TPythonInterpreter()
-    {
-    }
+	~TPythonInterpreter() {}
     static TPythonInterpreter *_instance;
-    int _screenRendererPriority;
-    std::set<const char *, ltstr> _classes;
-    PyObject *_main;
+    int _screenRendererPriority = 0;
+//    std::set<const char *, ltstr> _classes;
+	std::set<std::string> _classes;
+	PyObject *_main;
     PyObject *_stdErr;
-    FILE *_getFile(const char *lookupPath, const char *className);
+//    FILE *_getFile(const char *lookupPath, const char *className);
+	FILE *_getFile( std::string const &lookupPath, std::string const &className );
 
   public:
     static TPythonInterpreter *getInstance();
-    bool loadClassFile(const char *lookupPath, const char *className);
+	static void killInstance();
+/*  bool loadClassFile(const char *lookupPath, const char *className);
     PyObject *newClass(const char *className);
     PyObject *newClass(const char *className, PyObject *argsTuple);
-    int getScreenRendererPriotity()
+*/	bool loadClassFile( std::string const &lookupPath, std::string const &className );
+	PyObject *newClass( std::string const &className );
+	PyObject *newClass( std::string const &className, PyObject *argsTuple );
+	int getScreenRendererPriotity()
     {
         return _screenRendererPriority;
     };
@@ -74,10 +84,10 @@ class TPythonScreens
     bool _cleanupReadyFlag;
     bool _renderReadyFlag;
     bool _terminationFlag;
-    HANDLE _thread;
-    DWORD _threadId;
+    void *_thread;
+    unsigned int _threadId;
     std::vector<TPythonScreenRenderer *> _screens;
-    char *_lookupPath;
+    std::string _lookupPath;
     void *_train;
     void _cleanup();
     void _freeTrainState();
@@ -85,8 +95,8 @@ class TPythonScreens
 
   public:
     void reset(void *train);
-    void setLookupPath(AnsiString path);
-    void init(TQueryParserComp *parser, TModel3d *model, AnsiString name, int cab);
+    void setLookupPath(std::string const &path);
+    void init(cParser &parser, TModel3d *model, std::string const &name, int const cab);
     void update();
     TPythonScreens();
     ~TPythonScreens();

@@ -10,14 +10,15 @@ http://mozilla.org/MPL/2.0/.
 #ifndef ButtonH
 #define ButtonH
 
+#include <string>
 #include "Model3d.h"
-#include "QueryParserComp.hpp"
+#include "parser.h"
 
 class TButton
-{ // animacja dwustanowa, w³¹cza jeden z dwóch submodeli (jednego
-    // z nich mo¿e nie byæ)
+{ // animacja dwustanowa, wÅ‚Ä…cza jeden z dwÃ³ch submodeli (jednego
+    // z nich moÅ¼e nie byÄ‡)
   private:
-    TSubModel *pModelOn, *pModelOff; // submodel dla stanu za³¹czonego i wy³¹czonego
+    TSubModel *pModelOn, *pModelOff; // submodel dla stanu zaÅ‚Ä…czonego i wyÅ‚Ä…czonego
     bool bOn;
     bool *bData;
     int iFeedbackBit; // Ra: bit informacji zwrotnej, do wyprowadzenia na pulpit
@@ -55,8 +56,8 @@ class TButton
         return (pModelOn) || (pModelOff);
     };
     void Update();
-    void Init(AnsiString asName, TModel3d *pModel, bool bNewOn = false);
-    void Load(TQueryParserComp *Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);
+    void Init(std::string const &asName, TModel3d *pModel, bool bNewOn = false);
+    void Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2 = NULL);
     void AssignBool(bool *bValue);
 };
 

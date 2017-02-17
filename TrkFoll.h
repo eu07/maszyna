@@ -11,27 +11,26 @@ http://mozilla.org/MPL/2.0/.
 #define TrkFollH
 
 #include "Track.h"
-
-class TDynamicObject;
+#include "McZapkie\MOVER.h"
 
 class TTrackFollower
-{ // oœ poruszaj¹ca siê po torze
+{ // oÅ› poruszajÄ…ca siÄ™ po torze
   private:
-    TTrack *pCurrentTrack; // na którym torze siê znajduje
-    TSegment *pCurrentSegment; // zwrotnice mog¹ mieæ dwa segmenty
-    double fCurrentDistance; // przesuniêcie wzglêdem Point1 w stronê Point2
-    double fDirection; // ustawienie wzglêdem toru: -1.0 albo 1.0, mno¿one przez dystans
+    TTrack *pCurrentTrack = nullptr; // na ktÃ³rym torze siÃª znajduje
+	std::shared_ptr<TSegment> pCurrentSegment; // zwrotnice mogÂ¹ mieÃ¦ dwa segmenty
+	double fCurrentDistance = 0.0; // przesuniÃªcie wzglÃªdem Point1 w stronÃª Point2
+    double fDirection = 1.0; // ustawienie wzglÃªdem toru: -1.0 albo 1.0, mnoÂ¿one przez dystans // jest przodem do Point2
     bool ComputatePosition(); // przeliczenie pozycji na torze
-    TDynamicObject *Owner; // pojazd posiadaj¹cy
-    int iEventFlag; // McZapkie-020602: informacja o tym czy wyzwalac zdarzenie: 0,1,2,3
-    int iEventallFlag;
-    int iSegment; // który segment toru jest u¿ywany (¿eby nie przeskakiwa³o po przestawieniu
+    TDynamicObject *Owner = nullptr; // pojazd posiadajÄ…cy
+    int iEventFlag = 0; // McZapkie-020602: informacja o tym czy wyzwalac zdarzenie: 0,1,2,3
+    int iEventallFlag = 0;
+    int iSegment = 0; // ktÃ³ry segment toru jest uÅ¼ywany (Å¼eby nie przeskakiwaÅ‚o po przestawieniu
     // zwrotnicy pod taborem)
   public:
-    double fOffsetH; // Ra: odleg³oœæ œrodka osi od osi toru (dla samochodów) - u¿yæ do wê¿ykowania
-    vector3 pPosition; // wspó³rzêdne XYZ w uk³adzie scenerii
-    vector3 vAngles; // x:przechy³ka, y:pochylenie, z:kierunek w planie (w radianach)
-    TTrackFollower();
+    double fOffsetH = 0.0; // Ra: odlegÅ‚oÅ›Ä‡ Å›rodka osi od osi toru (dla samochodÃ³w) - uÅ¼yÄ‡ do wÄ™Å¼ykowania
+    vector3 pPosition; // wspÃ³Å‚rzÄ™dne XYZ w ukÅ‚adzie scenerii
+    vector3 vAngles; // x:przechyÅ‚ka, y:pochylenie, z:kierunek w planie (w radianach)
+    TTrackFollower() = default;
     ~TTrackFollower();
     TTrack * SetCurrentTrack(TTrack *pTrack, int end);
     bool Move(double fDistance, bool bPrimary);
@@ -42,8 +41,8 @@ class TTrackFollower
     inline double GetRoll()
     {
         return vAngles.x;
-    }; // przechy³ka policzona przy ustalaniu pozycji
-    //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyæ mo¿na pobraæ
+    }; // przechyÅ‚ka policzona przy ustalaniu pozycji
+    //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyÄ‡ moÅ¼na pobraÄ‡
     inline double GetDirection()
     {
         return fDirection;

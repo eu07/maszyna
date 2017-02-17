@@ -13,27 +13,27 @@ http://mozilla.org/MPL/2.0/.
 class CVertNormTex
 {
   public:
-    float x; // X wierzcho≥ka
-    float y; // Y wierzcho≥ka
-    float z; // Z wierzcho≥ka
-    float nx; // X wektora normalnego
-    float ny; // Y wektora normalnego
-    float nz; // Z wektora normalnego
-    float u; // U mapowania
-    float v; // V mapowania
+    float x = 0.0; // X wierzcho≈Çka
+    float y = 0.0; // Y wierzcho≈Çka
+    float z = 0.0; // Z wierzcho≈Çka
+    float nx = 0.0; // X wektora normalnego
+    float ny = 0.0; // Y wektora normalnego
+    float nz = 0.0; // Z wektora normalnego
+    float u = 0.0; // U mapowania
+    float v = 0.0; // V mapowania
 };
 
 class CMesh
 { // wsparcie dla VBO
   public:
-    int m_nVertexCount; // liczba wierzcho≥kÛw
+    int m_nVertexCount; // liczba wierzcho≈Çk√≥w
     CVertNormTex *m_pVNT;
-    unsigned int m_nVBOVertices; // numer VBO z wierzcho≥kami
+    unsigned int m_nVBOVertices; // numer VBO z wierzcho≈Çkami
     CMesh();
     ~CMesh();
     void MakeArray(int n); // tworzenie tablicy z elementami VNT
     void BuildVBOs(bool del = true); // zamiana tablic na VBO
-    void Clear(); // zwolnienie zasobÛw
+    void Clear(); // zwolnienie zasob√≥w
     bool StartVBO();
     void EndVBO();
     bool StartColorVBO();

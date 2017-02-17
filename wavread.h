@@ -18,7 +18,6 @@ http://mozilla.org/MPL/2.0/.
 #ifndef WAVE_READ_H
 #define WAVE_READ_H
 
-#include <mmreg.h>
 #include <mmsystem.h>
 
 HRESULT WaveOpenFile(CHAR *strFileName, HMMIO *phmmioIn, WAVEFORMATEX **ppwfxInfo,

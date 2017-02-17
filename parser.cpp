@@ -7,8 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#define _USE_OLD_RW_STL
-
+#include "stdafx.h"
 #include "parser.h"
 #include "logs.h"
 
@@ -22,13 +21,13 @@ http://mozilla.org/MPL/2.0/.
 // cParser -- generic class for parsing text data.
 
 // constructors
-cParser::cParser(std::string Stream, buffertype Type, std::string Path, bool tr)
+cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction )
 {
-    LoadTraction = tr;
+    LoadTraction = Loadtraction;
     // build comments map
     mComments.insert(commentmap::value_type("/*", "*/"));
     mComments.insert(commentmap::value_type("//", "\n"));
-    // mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie u¿ywane
+    // mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie uÅ¼ywane
     // store to calculate sub-sequent includes from relative path
     mPath = Path;
     // reset pointers and attach proper type of buffer
@@ -70,28 +69,37 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
 {
     /*
      if (LoadTraction==true)
-      trtest="niemaproblema"; //wczytywaæ
+      trtest="niemaproblema"; //wczytywaÄ‡
      else
-      trtest="x"; //nie wczytywaæ
+      trtest="x"; //nie wczytywaÄ‡
     */
+/*
     int i;
     this->str("");
     this->clear();
-    for (i = 0; i < Count; ++i)
+*/
+    for (int i = 0; i < Count; ++i)
     {
-        std::string string = readToken(ToLower, Break);
+        std::string token = readToken(ToLower, Break);
+        if( true == token.empty() ) {
+            // no more tokens
+            break;
+        }
         // collect parameters
+        tokens.emplace_back( token );
+/*
         if (i == 0)
-            this->str(string);
+            this->str(token);
         else
         {
             std::string temp = this->str();
             temp.append("\n");
-            temp.append(string);
+            temp.append(token);
             this->str(temp);
         }
+*/
     }
-    if (i < Count)
+    if (tokens.size() < Count)
         return false;
     else
         return true;
@@ -100,7 +108,7 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
 std::string cParser::readToken(bool ToLower, const char *Break)
 {
     std::string token = "";
-    size_t pos; // pocz¹tek podmienianego ci¹gu
+    size_t pos; // poczÄ…tek podmienianego ciÄ…gu
     // see if there's include parsing going on. clean up when it's done.
     if (mIncludeParser)
     {
@@ -113,11 +121,11 @@ std::string cParser::readToken(bool ToLower, const char *Break)
             {
                 std::string parameter =
                     token.substr(pos + 2, token.find(")", pos) - pos + 2); // numer parametru
-                token.erase(pos, token.find(")", pos) - pos + 1); // najpierw usuniêcie "(pN)"
+                token.erase(pos, token.find(")", pos) - pos + 1); // najpierw usuniÄ™cie "(pN)"
                 size_t nr = atoi(parameter.c_str()) - 1;
                 if (nr < parameters.size())
                 {
-                    token.insert(pos, parameters.at(nr)); // wklejenie wartoœci parametru
+                    token.insert(pos, parameters.at(nr)); // wklejenie wartoÅ›ci parametru
                     if (ToLower)
                         for (; pos < token.length(); ++pos)
                             token[pos] = tolower(token[pos]);
@@ -143,6 +151,8 @@ std::string cParser::readToken(bool ToLower, const char *Break)
             if (ToLower)
                 c = tolower(c);
             token += c;
+            if (findQuotes(token)) // do glue together words enclosed in quotes
+                break;
             if (trimComments(token)) // don't glue together words separated with comment
                 break;
         }
@@ -150,16 +160,17 @@ std::string cParser::readToken(bool ToLower, const char *Break)
     // launch child parser if include directive found.
     // NOTE: parameter collecting uses default set of token separators.
     if (token.compare("include") == 0)
-    { // obs³uga include
+    { // obsÅ‚uga include
         std::string includefile = readToken(ToLower); // nazwa pliku
         if (LoadTraction ? true : ((includefile.find("tr/") == std::string::npos) &&
                                    (includefile.find("tra/") == std::string::npos)))
         {
             // std::string trtest2="niemaproblema"; //nazwa odporna na znalezienie "tr/"
-            // if (trtest=="x") //jeœli nie wczytywaæ drutów
-            // trtest2=includefile; //kopiowanie œcie¿ki do pliku
+            // if (trtest=="x") //jeÅ›li nie wczytywaÄ‡ drutÃ³w
+            // trtest2=includefile; //kopiowanie Å›cieÅ¼ki do pliku
             std::string parameter = readToken(false); // w parametrach nie zmniejszamy
-            while (parameter.compare("end") != 0)
+            while( (parameter.empty() == false)
+				&& (parameter.compare("end") != 0) )
             {
                 parameters.push_back(parameter);
                 parameter = readToken(ToLower);
@@ -167,7 +178,7 @@ std::string cParser::readToken(bool ToLower, const char *Break)
             // if (trtest2.find("tr/")!=0)
             mIncludeParser = new cParser(includefile, buffer_FILE, mPath, LoadTraction);
             if (mIncludeParser->mSize <= 0)
-                ErrorLog("Missed include: " + AnsiString(includefile.c_str()));
+                ErrorLog("Missed include: " + includefile);
         }
         else
             while (token.compare("end") != 0)
@@ -177,33 +188,56 @@ std::string cParser::readToken(bool ToLower, const char *Break)
     return token;
 }
 
+std::string cParser::readQuotes(char const Quote) { // read the stream until specified char or stream end
+    std::string token = "";
+    char c;
+    while( mStream->peek() != EOF && Quote != (c = mStream->get()) ) { // get all chars until the quote mark
+        token += c;
+    }
+    return token;
+}
+
+std::string cParser::readComment( std::string const &Break ) { // pobieranie znakÃ³w aÅ¼ do znalezienia znacznika koÅ„ca
+    std::string token = "";
+    while( mStream->peek() != EOF ) { // o ile nie koniec pliku
+        token += mStream->get(); // pobranie znaku
+        if( token.rfind( Break ) != std::string::npos ) // szukanie znacznika koÅ„ca
+            break;
+    }
+    return token;
+}
+
+bool cParser::findQuotes( std::string &String ) {
+
+    if( String.rfind( '\"' ) != std::string::npos ) {
+
+        String.erase( String.rfind( '\"' ), 1 );
+        String += readQuotes();
+        return true;
+    }
+    return false;
+}
+
 bool cParser::trimComments(std::string &String)
 {
     for (commentmap::iterator cmIt = mComments.begin(); cmIt != mComments.end(); ++cmIt)
     {
-        if (String.find((*cmIt).first) != std::string::npos)
+        if (String.rfind((*cmIt).first) != std::string::npos)
         {
             readComment((*cmIt).second);
-            String.resize(String.find((*cmIt).first));
+            String.resize(String.rfind((*cmIt).first));
             return true;
         }
     }
     return false;
 }
 
-std::string cParser::readComment(const std::string Break)
-{ // pobieranie znaków a¿ do znalezienia znacznika koñca
-    std::string token = "";
-    while (mStream->peek() != EOF)
-    { // o ile nie koniec pliku
-        token += mStream->get(); // pobranie znaku
-        if (token.find(Break) != std::string::npos) // szukanie znacznika koñca
-            break;
-    }
-    return token;
-}
-
 int cParser::getProgress() const
 {
-    return mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize;
+    return static_cast<int>( mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize );
+}
+
+void cParser::addCommentStyle( std::string const &Commentstart, std::string const &Commentend ) {
+
+    mComments.insert( commentmap::value_type(Commentstart, Commentend) );
 }

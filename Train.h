@@ -10,20 +10,21 @@ http://mozilla.org/MPL/2.0/.
 #ifndef TrainH
 #define TrainH
 
-#include "Track.h"
-#include "TrkFoll.h"
-#include "Model3d.h"
-#include "Spring.h"
-#include "Gauge.h"
+//#include "Track.h"
+//#include "TrkFoll.h"
 #include "Button.h"
 #include "DynObj.h"
-#include "mtable.hpp"
+#include "Gauge.h"
+#include "Model3d.h"
+#include "Spring.h"
+#include "mtable.h"
 
-#include "Sound.h"
 #include "AdvSound.h"
-#include "RealSound.h"
 #include "FadeSound.h"
 #include "PyInt.h"
+#include "RealSound.h"
+#include "Sound.h"
+#include <string>
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -46,7 +47,7 @@ class TCab
     ~TCab();
     void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
               double Initz2, bool InitEnabled, bool InitOccupied);
-    void Load(TQueryParserComp *Parser);
+    void Load(cParser &Parser);
     vector3 CabPos1;
     vector3 CabPos2;
     bool bEnabled;
@@ -57,13 +58,13 @@ class TCab
         intlitlow_b; // McZapkie-120503: przyciemnione oswietlenie kabiny
   private:
     // bool bChangePossible;
-    TGauge *ggList; // Ra 2014-08: lista animacji macierzowych (ga≥ek) w kabinie
-    int iGaugesMax, iGauges; // ile miejsca w tablicy i ile jest w uøyciu
+    TGauge *ggList; // Ra 2014-08: lista animacji macierzowych (ga≈Çek) w kabinie
+    int iGaugesMax, iGauges; // ile miejsca w tablicy i ile jest w u≈ºyciu
     TButton *btList; // Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
-    int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w uøyciu
+    int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w u≈ºyciu
   public:
-    TGauge * Gauge(int n = -1); // pobranie adresu obiektu
-    TButton * Button(int n = -1); // pobranie adresu obiektu
+    TGauge *Gauge(int n = -1); // pobranie adresu obiektu
+    TButton *Button(int n = -1); // pobranie adresu obiektu
     void Update();
 };
 
@@ -73,7 +74,7 @@ class TTrain
     bool CabChange(int iDirection);
     bool ActiveUniversal4;
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
-    bool InitializeCab(int NewCabNo, AnsiString asFileName);
+    bool InitializeCab(int NewCabNo, std::string const &asFileName);
     TTrain();
     ~TTrain();
     //    bool Init(TTrack *Track);
@@ -93,26 +94,37 @@ class TTrain
         return DynamicObject->VectorUp();
     };
     void UpdateMechPosition(double dt);
-    bool Update();
+    bool Update( double const Deltatime );
+    bool m_updated = false;
     void MechStop();
-	void SetLights();
-	//    virtual bool RenderAlpha();
+    void SetLights();
+    //    virtual bool RenderAlpha();
     // McZapkie-310302: ladowanie parametrow z pliku
-    bool LoadMMediaFile(AnsiString asFileName);
+    bool LoadMMediaFile(std::string const &asFileName);
     PyObject *GetTrainState();
 
-  private: //øeby go nic z zewnπtrz nie przestawia≥o
+  private:
+    // clears state of all cabin controls
+    void clear_cab_controls();
+    // initializes a gauge matching provided label. returns: true if the label was found, false
+    // otherwise
+    bool initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex);
+    // initializes a button matching provided label. returns: true if the label was found, false
+    // otherwise
+    bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
+
+  private: //≈ºeby go nic z zewnƒÖtrz nie przestawia≈Ço
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
-  private: //øeby go nic z zewnπtrz nie przestawia≥o
-    TMoverParameters *mvControlled; // cz≥on, w ktÛrym sterujemy silnikiem
-    TMoverParameters *mvOccupied; // cz≥on, w ktÛrym sterujemy hamulcem
-    TMoverParameters *mvSecond; // drugi cz≥on (ET40, ET41, ET42, ukrotnienia)
-    TMoverParameters *mvThird; // trzeci cz≥on (SN61)
-  public: // reszta moøe by?publiczna
+  private: //≈ºeby go nic z zewnƒÖtrz nie przestawia≈Ço
+    TMoverParameters *mvControlled; // cz≈Çon, w kt√≥rym sterujemy silnikiem
+    TMoverParameters *mvOccupied; // cz≈Çon, w kt√≥rym sterujemy hamulcem
+    TMoverParameters *mvSecond; // drugi cz≈Çon (ET40, ET41, ET42, ukrotnienia)
+    TMoverParameters *mvThird; // trzeci cz≈Çon (SN61)
+  public: // reszta mo≈ºe by?publiczna
     // AnsiString asMessage;
 
-    // McZapkie: definicje wskaünikÛw
-    // Ra 2014-08: czÍsciowo przeniesione do tablicy w TCab
+    // McZapkie: definicje wska≈∫nik√≥w
+    // Ra 2014-08: czƒôsciowo przeniesione do tablicy w TCab
     TGauge ggZbS;
     TGauge ggClockSInd;
     TGauge ggClockMInd;
@@ -126,7 +138,7 @@ class TTrain
     TGauge ggMainGearStatus;
 
     TGauge ggEngineVoltage;
-    TGauge ggI1B; // drugi cz≥on w postaci jawnej
+    TGauge ggI1B; // drugi cz≈Çon w postaci jawnej
     TGauge ggI2B;
     TGauge ggI3B;
     TGauge ggItotalB;
@@ -151,7 +163,7 @@ class TTrain
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
-	TGauge ggSandButton; //guzik piasecznicy
+    TGauge ggSandButton; // guzik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania
@@ -163,7 +175,7 @@ class TTrain
     TGauge ggRightLightButton;
     TGauge ggLeftEndLightButton;
     TGauge ggRightEndLightButton;
-	TGauge ggLightsButton;  //przelacznik reflektorow (wszystkich)    
+    TGauge ggLightsButton; // przelacznik reflektorow (wszystkich)
 
     // hunter-230112: przelacznik swiatel tylnich
     TGauge ggRearUpperLightButton;
@@ -189,7 +201,7 @@ class TTrain
 
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
-	TGauge ggBatteryButton; // Stele 161228 hebelek baterii
+    TGauge ggBatteryButton; // Stele 161228 hebelek baterii
     // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
@@ -207,8 +219,8 @@ class TTrain
     TGauge ggSignallingButton;
     TGauge ggDoorSignallingButton;
     //    TModel3d *mdKabina; McZapkie-030303: to do dynobj
-    // TGauge ggDistCounter; //Ra 2014-07: licznik kilometrÛw
-    // TGauge ggVelocityDgt; //i od razu prÍdkoúciomierz
+    // TGauge ggDistCounter; //Ra 2014-07: licznik kilometr√≥w
+    // TGauge ggVelocityDgt; //i od razu prƒôdko≈õciomierz
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
@@ -256,8 +268,8 @@ class TTrain
     TButton btLampkaBocznik4;
     TButton btLampkaRadiotelefon;
     TButton btLampkaHamienie;
-	TButton btLampkaED; //Stele 161228 hamowanie elektrodynamiczne
-    TButton btLampkaJazda; // Ra: nie uøywane
+    TButton btLampkaED; // Stele 161228 hamowanie elektrodynamiczne
+    TButton btLampkaJazda; // Ra: nie u≈ºywane
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -269,13 +281,13 @@ class TTrain
     TButton btLampkaDepartureSignal;
     TButton btLampkaBlokadaDrzwi;
     TButton btLampkaHamulecReczny;
-    TButton btLampkaForward; // Ra: lampki w przÛd i w ty?dla komputerowych kabin
+    TButton btLampkaForward; // Ra: lampki w prz√≥d i w ty?dla komputerowych kabin
     TButton btLampkaBackward;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
-    TButton btHaslerBrakes; // ciúnienie w cylindrach
-    TButton btHaslerCurrent; // prπd na silnikach
+    TButton btHaslerBrakes; // ci≈õnienie w cylindrach
+    TButton btHaslerCurrent; // prƒÖd na silnikach
 
     vector3 pPosition;
     vector3 pMechOffset; // driverNpos
@@ -364,7 +376,7 @@ class TTrain
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
-	float fLightsTimer; // yB 150617: timer do swiatel    
+    float fLightsTimer; // yB 150617: timer do swiatel
 
     int CAflag; // hunter-131211: dla osobnego zbijania CA i SHP
 
@@ -384,21 +396,22 @@ class TTrain
     float fHVoltage; // napi?cie dla dynamicznych ga?ek
     float fHCurrent[4]; // pr?dy: suma i amperomierze 1,2,3
     float fEngine[4]; // obroty te? trzeba pobra?
-	int iCarNo, iPowerNo, iUnitNo; //liczba pojazdow, czlonow napednych i jednostek spiÍtych ze sobπ
-	bool bDoors[20][3];     // drzwi dla wszystkich czlonow
-	int iUnits[20];     // numer jednostki
-	int iDoorNo[20];     // liczba drzwi
-	char cCode[20];     //kod pojazdu
-	AnsiString asCarName[20]; //nazwa czlonu
-	bool bMains[8]; //WSy
-	float fCntVol[8]; //napiecie NN
-	bool bPants[8][2]; //podniesienie pantografow
-	bool bFuse[8]; //nadmiarowe
-	bool bBatt[8]; //baterie
-	bool bConv[8]; //przetwornice
-	bool bComp[8][2]; //sprezarki
-	bool bHeat[8]; //grzanie
-	// McZapkie: do syczenia
+    int iCarNo, iPowerNo, iUnitNo; // liczba pojazdow, czlonow napednych i jednostek spiƒôtych ze
+                                   // sobƒÖ
+    bool bDoors[20][3]; // drzwi dla wszystkich czlonow
+    int iUnits[20]; // numer jednostki
+    int iDoorNo[20]; // liczba drzwi
+    char cCode[20]; // kod pojazdu
+    std::string asCarName[20]; // nazwa czlonu
+    bool bMains[8]; // WSy
+    float fCntVol[8]; // napiecie NN
+    bool bPants[8][2]; // podniesienie pantografow
+    bool bFuse[8]; // nadmiarowe
+    bool bBatt[8]; // baterie
+    bool bConv[8]; // przetwornice
+    bool bComp[8][2]; // sprezarki
+    bool bHeat[8]; // grzanie
+    // McZapkie: do syczenia
     float fPPress, fNPress;
     float fSPPress, fSNPress;
     int iSekunda; // Ra: sekunda aktualizacji pr?dko?ci
@@ -406,17 +419,17 @@ class TTrain
     TPythonScreens pyScreens;
 
   public:
-	float fPress[20][3]; // cisnienia dla wszystkich czlonow  
-	float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
+    float fPress[20][3]; // cisnienia dla wszystkich czlonow
+    float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel()
     {
         return iRadioChannel;
     };
-    inline TDynamicObject * Dynamic()
+    inline TDynamicObject *Dynamic()
     {
         return DynamicObject;
     };
-    inline TMoverParameters * Controlled()
+    inline TMoverParameters *Controlled()
     {
         return mvControlled;
     };

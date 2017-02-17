@@ -7,57 +7,53 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TractionH
-#define TractionH
+#pragma once
 
+#include <string>
 #include "opengl/glew.h"
-#include "dumb3d.h"
 #include "VBO.h"
-
-using namespace Math3D;
+#include "dumb3d.h"
 
 class TTractionPowerSource;
 
 class TTraction
-{ // drut zasilaj¹cy, dla wskaŸników u¿ywaæ przedrostka "hv"
+{ // drut zasilajÄ…cy, dla wskaÅºnikÃ³w uÅ¼ywaÄ‡ przedrostka "hv"
   private:
     // vector3 vUp,vFront,vLeft;
     // matrix4x4 mMatrix;
-    // matryca do wyliczania pozycji drutu w zale¿noœci od [X,Y,k¹t] w scenerii:
-    // - x: odleg³oœæ w bok (czy odbierak siê nie zsun¹³)
-    // - y: przyjmuje wartoœæ <0,1>, jeœli pod drutem (wzd³u¿)
-    // - z: wysokoœæ bezwzglêdna drutu w danym miejsu
+    // matryca do wyliczania pozycji drutu w zaleÅ¼noÅ›ci od [X,Y,kÄ…t] w scenerii:
+    // - x: odlegÅ‚oÅ›Ä‡ w bok (czy odbierak siÄ™ nie zsunÄ…Å‚)
+    // - y: przyjmuje wartoÅ›Ä‡ <0,1>, jeÅ›li pod drutem (wzdÅ‚uÅ¼)
+    // - z: wysokoÅ›Ä‡ bezwzglÄ™dna drutu w danym miejsu
   public: // na razie
-    TTractionPowerSource *psPower[2]; // najbli¿sze zasilacze z obu kierunków
-    TTractionPowerSource *psPowered; // ustawione tylko dla bezpoœrednio zasilanego przês³a
-    TTraction *hvNext[2]; //³¹czenie drutów w sieæ
-    int iNext[2]; // do którego koñca siê ³¹czy
-    int iLast; // ustawiony bit 0, jeœli jest ostatnim drutem w sekcji; bit1 - przedostatni
+    TTractionPowerSource *psPower[2]; // najbliÅ¼sze zasilacze z obu kierunkÃ³w
+    TTractionPowerSource *psPowered = nullptr; // ustawione tylko dla bezpoÅ›rednio zasilanego przÄ™sÅ‚a
+    TTraction *hvNext[2]; //Å‚Ä…czenie drutÃ³w w sieÄ‡
+    int iNext[2]; // do ktÃ³rego koÅ„ca siÄ™ Å‚Ä…czy
+    int iLast = 1; //Å¼e niby ostatni drut // ustawiony bit 0, jeÅ›li jest ostatnim drutem w sekcji; bit1 - przedostatni
   public:
-    GLuint uiDisplayList;
-    vector3 pPoint1, pPoint2, pPoint3, pPoint4;
-    vector3 vParametric; // wspó³czynniki równania parametrycznego odcinka
-    double fHeightDifference; //,fMiddleHeight;
+    GLuint uiDisplayList = 0;
+    Math3D::vector3 pPoint1, pPoint2, pPoint3, pPoint4;
+    Math3D::vector3 vParametric; // wspÃ³Å‚czynniki rÃ³wnania parametrycznego odcinka
+    double fHeightDifference = 0.0; //,fMiddleHeight;
     // int iCategory,iMaterial,iDamageFlag;
     // float fU,fR,fMaxI,fWireThickness;
-    int iNumSections;
-    int iLines; // ilosc linii dla VBO
-    float NominalVoltage;
-    float MaxCurrent;
-    float fResistivity; //[om/m], przeliczone z [om/km]
-    DWORD Material; // 1: Cu, 2: Al
-    float WireThickness;
-    DWORD DamageFlag; // 1: zasniedziale, 128: zerwana
-    int Wires;
-    float WireOffset;
-    AnsiString asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
-    TTractionPowerSource *
-        psSection; // zasilacz (opcjonalnie mo¿e to byæ pulpit steruj¹cy EL2 w hali!)
-    AnsiString asParallel; // nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
-    TTraction *hvParallel; // jednokierunkowa i zapêtlona lista przêse³ ewentualnej bie¿ni wspólnej
-    float fResistance[2]; // rezystancja zastêpcza do punktu zasilania (0: przês³o zasilane, <0: do
-    // policzenia)
-    int iTries;
+    int iNumSections = 0;
+    int iLines = 0; // ilosc linii dla VBO
+    float NominalVoltage = 0.0;
+    float MaxCurrent = 0.0;
+    float fResistivity = 0.0; //[om/m], przeliczone z [om/km]
+    DWORD Material = 0; // 1: Cu, 2: Al
+    float WireThickness = 0.0;
+    DWORD DamageFlag = 0; // 1: zasniedziale, 128: zerwana
+    int Wires = 2;
+    float WireOffset = 0.0;
+    std::string asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
+    TTractionPowerSource *psSection = nullptr; // zasilacz (opcjonalnie moÅ¼e to byÄ‡ pulpit sterujÄ…cy EL2 w hali!)
+    std::string asParallel; // nazwa przÄ™sÅ‚a, z ktÃ³rym moÅ¼e byÄ‡ bieÅ¼nia wspÃ³lna
+    TTraction *hvParallel = nullptr; // jednokierunkowa i zapÄ™tlona lista przÄ™seÅ‚ ewentualnej bieÅ¼ni wspÃ³lnej
+    float fResistance[2]; // rezystancja zastÄ™pcza do punktu zasilania (0: przÄ™sÅ‚o zasilane, <0: do policzenia)
+    int iTries = 0;
     // bool bVisible;
     // DWORD dwFlags;
 
@@ -75,7 +71,7 @@ class TTraction
     int RaArrayPrepare();
     void RaArrayFill(CVertNormTex *Vert);
     void RenderVBO(float mgn, int iPtr);
-    int TestPoint(vector3 *Point);
+    int TestPoint(Math3D::vector3 *Point);
     void Connect(int my, TTraction *with, int to);
     void Init();
     bool WhereIs();
@@ -84,4 +80,3 @@ class TTraction
     double VoltageGet(double u, double i);
 };
 //---------------------------------------------------------------------------
-#endif

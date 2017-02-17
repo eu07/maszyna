@@ -13,32 +13,50 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "dumb3d.h"
 using namespace Math3D;
+using namespace std;
 
 class TMemCell
 {
   private:
     vector3 vPosition;
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
     char *szText;
+#else
+    std::string szText;
+#endif
     double fValue1;
     double fValue2;
     TCommandType eCommand;
-    bool bCommand; // czy zawiera komendê dla zatrzymanego AI
-    TEvent *OnSent; // event dodawany do kolejki po wys³aniu komendy zatrzymuj¹cej sk³ad
+    bool bCommand; // czy zawiera komendÄ™ dla zatrzymanego AI
+    TEvent *OnSent; // event dodawany do kolejki po wysÅ‚aniu komendy zatrzymujÄ…cej skÅ‚ad
   public:
-    AnsiString
+    string
         asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
     TMemCell(vector3 *p);
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
     ~TMemCell();
+#endif
     void Init();
-    void UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask);
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+    void UpdateValues( char const *szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask );
+#else
+    void UpdateValues( std::string const &szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask );
+#endif
     bool Load(cParser *parser);
     void PutCommand(TController *Mech, vector3 *Loc);
-    bool Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask);
+    bool Compare( char const *szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask );
+#ifndef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
+    bool Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask );
+#endif
     bool Render();
+#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
     inline char * Text()
     {
         return szText;
     };
+#else
+    inline std::string const &Text() { return szText; }
+#endif
     inline double Value1()
     {
         return fValue1;

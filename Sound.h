@@ -11,14 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #define SoundH
 
 #include <stack>
-#undef EOF
-#include <objbase.h>
-//#include <initguid.h>
-//#include <commdlg.h>
-#include <mmreg.h>
 #include <dsound.h>
-//#include "resource.h"
-#include "WavRead.h"
 
 typedef LPDIRECTSOUNDBUFFER PSound;
 
@@ -34,12 +27,12 @@ class TSoundContainer
     int Oldest;
     char Name[80];
     LPDIRECTSOUNDBUFFER DSBuffer;
-    float fSamplingRate; // czêstotliwoœæ odczytana z pliku
-    int iBitsPerSample; // ile bitów na próbkê
+    float fSamplingRate; // czÄ™stotliwoÅ›Ä‡ odczytana z pliku
+    int iBitsPerSample; // ile bitÃ³w na prÃ³bkÄ™
     TSoundContainer *Next;
     std::stack<LPDIRECTSOUNDBUFFER> DSBuffers;
     LPDIRECTSOUNDBUFFER GetUnique(LPDIRECTSOUND pDS);
-    TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName, int NConcurrent);
+    TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const char *strFileName, int NConcurrent);
     ~TSoundContainer();
 };
 
@@ -51,7 +44,7 @@ class TSoundsManager
     // static char Directory[80];
     static int Count;
     static TSoundContainer *First;
-    static TSoundContainer * LoadFromFile(char *Dir, char *Name, int Concurrent);
+    static TSoundContainer * LoadFromFile(const char *Dir, const char *Name, int Concurrent);
 
   public:
     // TSoundsManager(HWND hWnd);
@@ -61,7 +54,7 @@ class TSoundsManager
     static void Free();
     static void Init(char *Name, int Concurrent);
     static void LoadSounds(char *Directory);
-    static LPDIRECTSOUNDBUFFER GetFromName(char *Name, bool Dynamic, float *fSamplingRate = NULL);
+    static LPDIRECTSOUNDBUFFER GetFromName(const char *Name, bool Dynamic, float *fSamplingRate = NULL);
     static void RestoreAll();
 };
 

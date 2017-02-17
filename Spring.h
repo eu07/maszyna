@@ -31,7 +31,7 @@ class TSpring
     //    void Init(TParticnp1, TParticle *np2, double nKs= 0.5f, double nKd= 0.002f,
     //    double nrestLen= -1.0f);
     void Init(double nrestLen, double nKs = 0.5f, double nKd = 0.002f);
-    bool ComputateForces(vector3 pPosition1, vector3 pPosition2);
+    Math3D::vector3 ComputateForces(vector3 const &pPosition1, vector3 const &pPosition2);
     void Render();
     vector3 vForce1, vForce2;
     double restLen; // LENGTH OF SPRING AT REST

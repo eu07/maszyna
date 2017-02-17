@@ -7,77 +7,76 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
+#include"stdafx.h"
 #include "Names.h"
 
 //---------------------------------------------------------------------------
 
-#pragma package(smart_init)
 /*
-Modu³ zarz¹dzaj¹cy plikami oraz wyszukiwaniem obiektów wg nazw.
-1. Ma przydzielony z góry (EU07.INI) obszar pamiêci (rzêdu 16MB).
-2. W przypadku przepe³nienia dostêpnej pamiêci wyst¹pi b³¹d wczytywania.
-3. Obszar ten bêdzie zu¿ywany na rekordy obiektów oraz ci¹gi tekstowe z nazwami.
-4. Rekordy bêd¹ sortowane w ramach typu (tekstury, dŸwiêki, modele, node, eventy).
-5. Pierwszy etap wyszukiwania to 5 bitów z pierwszego bajtu i 3 z drugiego (256).
-6. Dla plików istnieje mo¿liwoœæ wczytania ich w innym terminie.
-7. Mo¿liwoœæ wczytania plików w oddzielnym watku (np. tekstur).
+ModuÅ‚ zarzÄ…dzajÄ…cy plikami oraz wyszukiwaniem obiektÃ³w wg nazw.
+1. Ma przydzielony z gÃ³ry (EU07.INI) obszar pamiÄ™ci (rzÄ™du 16MB).
+2. W przypadku przepeÅ‚nienia dostÄ™pnej pamiÄ™ci wystÄ…pi bÅ‚Ä…d wczytywania.
+3. Obszar ten bÄ™dzie zuÅ¼ywany na rekordy obiektÃ³w oraz ciÄ…gi tekstowe z nazwami.
+4. Rekordy bÄ™dÄ… sortowane w ramach typu (tekstury, dÅºwiÄ™ki, modele, node, eventy).
+5. Pierwszy etap wyszukiwania to 5 bitÃ³w z pierwszego bajtu i 3 z drugiego (256).
+6. Dla plikÃ³w istnieje moÅ¼liwoÅ›Ä‡ wczytania ich w innym terminie.
+7. MoÅ¼liwoÅ›Ä‡ wczytania plikÃ³w w oddzielnym watku (np. tekstur).
 
-Obs³ugiwane pliki:
-1. Tekstury, mo¿na wczytywaæ póŸniej, rekord przechowuje numer podany przez kartê graficzn¹.
-2. DŸwiêki, mo¿na wczytaæ póŸniej.
-3. Modele, mo¿na wczytaæ póŸniej o ile nie maj¹ animacji eventami i nie dotycz¹ pojazdów.
+ObsÅ‚ugiwane pliki:
+1. Tekstury, moÅ¼na wczytywaÄ‡ pÃ³Åºniej, rekord przechowuje numer podany przez kartÄ™ graficznÄ….
+2. DÅºwiÄ™ki, moÅ¼na wczytaÄ‡ pÃ³Åºniej.
+3. Modele, moÅ¼na wczytaÄ‡ pÃ³Åºniej o ile nie majÄ… animacji eventami i nie dotyczÄ… pojazdÃ³w.
 
-Obiekty sortowane wg nazw, mo¿na dodawaæ i usuwaæ komórki scenerii:
-4. Tory, drogi, rzeki - wyszukiwanie w celu sprawdzenia zajetoœci.
-5. Eventy - wyszukiwane przy zewnêtrznym wywo³aniu oraz podczas wczytywania.
-6. Pojazdy - wyszukiwane w celu wysy³ania komend.
-7. Egzemplarze modeli animowanych - wyszukiwanie w celu po³¹czenia z animacjami.
+Obiekty sortowane wg nazw, moÅ¼na dodawaÄ‡ i usuwaÄ‡ komÃ³rki scenerii:
+4. Tory, drogi, rzeki - wyszukiwanie w celu sprawdzenia zajetoÅ›ci.
+5. Eventy - wyszukiwane przy zewnÄ™trznym wywoÅ‚aniu oraz podczas wczytywania.
+6. Pojazdy - wyszukiwane w celu wysyÅ‚ania komend.
+7. Egzemplarze modeli animowanych - wyszukiwanie w celu poÅ‚Ä…czenia z animacjami.
 
 */
 
+#ifdef EU07_USE_OLD_TNAMES_CLASS
+
 void ItemRecord::TreeAdd(ItemRecord *r, int c)
-{ // dodanie rekordu do drzewa - ustalenie w której ga³êzi
-    // zapisaæ w (iFlags) ile znaków jest zgodnych z nadrzêdnym, ¿eby nie sprawdzaæ wszystkich od
+{ // dodanie rekordu do drzewa - ustalenie w ktÃ³rej gaÅ‚Ä™zi
+    // zapisaÄ‡ w (iFlags) ile znakÃ³w jest zgodnych z nadrzÄ™dnym, Å¼eby nie sprawdzaÄ‡ wszystkich od
     // zera
     if ((cName[c] && r->cName[c]) ? cName[c] == r->cName[c] : false)
-        TreeAdd(r, c + 1); // ustawiæ wg kolejnego znaku, chyba ¿e zero
+        TreeAdd(r, c + 1); // ustawiÄ‡ wg kolejnego znaku, chyba Å¼e zero
     else if ((unsigned char)(cName[c]) < (unsigned char)(r->cName[c]))
     { // zero jest najmniejsze - doczepiamy jako (rNext)
         if (!rNext)
             rNext = r;
         else
-            rNext->TreeAdd(r, 0); // doczepiæ do tej ga³êzi
+            rNext->TreeAdd(r, 0); // doczepiÄ‡ do tej gaÅ‚Ä™zi
     }
     else
     {
         if (!rPrev)
             rPrev = r;
         else
-            rPrev->TreeAdd(r, 0); // doczepiæ do tej ga³êzi
+            rPrev->TreeAdd(r, 0); // doczepiÄ‡ do tej gaÅ‚Ä™zi
     }
 };
 
 void ItemRecord::ListGet(ItemRecord *r, int *&n)
-{ // rekurencyjne wype³nianie posortowanej listy na podstawie drzewa
+{ // rekurencyjne wypeÅ‚nianie posortowanej listy na podstawie drzewa
     if (rPrev)
-        rPrev->ListGet(r, n); // dodanie wszystkich wczeœniejszych
+        rPrev->ListGet(r, n); // dodanie wszystkich wczeÅ›niejszych
     *n++ = this - r; // dodanie swojego indeksu do tabeli
     if (rNext)
-        rNext->ListGet(r, n); // dodanie wszystkich póŸniejszych
+        rNext->ListGet(r, n); // dodanie wszystkich pÃ³Åºniejszych
 };
 
 void * ItemRecord::TreeFind(const char *n)
-{ // wyszukanie ci¹gu (n)
+{ // wyszukanie ciÄ…gu (n)
     ItemRecord *r = TreeFindRecord(n);
     return r ? r->pData : NULL;
 };
 
 ItemRecord * ItemRecord::TreeFindRecord(const char *n)
-{ // wyszukanie ci¹gu (n)
-    ItemRecord *r = this; //¿eby nie robiæ rekurencji
+{ // wyszukanie ciÄ…gu (n)
+    ItemRecord *r = this; //Å¼eby nie robiÄ‡ rekurencji
     int i = 0;
     do
     {
@@ -85,16 +84,16 @@ ItemRecord * ItemRecord::TreeFindRecord(const char *n)
             if (!r->cName[i])
                 return r; // znaleziony
         if (n[i] == r->cName[i])
-            ++i; // porównaæ kolejny znak
+            ++i; // porÃ³wnaÄ‡ kolejny znak
         else if ((unsigned char)(n[i]) < (unsigned char)(r->cName[i]))
         {
-            i = 0; // porównywaæ od nowa
-            r = r->rPrev; // wczeœniejsza ga³¹Ÿ drzewa
+            i = 0; // porÃ³wnywaÄ‡ od nowa
+            r = r->rPrev; // wczeÅ›niejsza gaÅ‚Ä…Åº drzewa
         }
         else
         {
-            i = 0; // porównywaæ od nowa
-            r = r->rNext; // póŸniejsza ga³¹Ÿ drzewa
+            i = 0; // porÃ³wnywaÄ‡ od nowa
+            r = r->rNext; // pÃ³Åºniejsza gaÅ‚Ä…Åº drzewa
         }
     } while (r);
     return NULL;
@@ -104,28 +103,33 @@ TNames::TNames()
 { // tworzenie bufora
     iSize = 16 * 1024 * 1024; // rozmiar bufora w bajtach
     cBuffer = new char[iSize];
-    ZeroMemory(cBuffer, iSize); // nie trzymaæ jakiœ starych œmieci
+    ZeroMemory(cBuffer, iSize); // nie trzymaÄ‡ jakiÅ› starych Å›mieci
     rRecords = (ItemRecord *)cBuffer;
     cLast = cBuffer + iSize; // bajt za buforem
     iLast = -1;
     ZeroMemory(rTypes, 20 * sizeof(ItemRecord *));
 };
 
+TNames::~TNames() {
+
+	delete[] cBuffer;
+}
+
 int TNames::Add(int t, const char *n)
 { // dodanie obiektu typu (t) o nazwie (n)
-    int len = strlen(n) + 1; // ze znacznikiem koñca
+    int len = strlen(n) + 1; // ze znacznikiem koÅ„ca
     cLast -= len; // rezerwacja miejsca
     memcpy(cLast, n, len); // przekopiowanie tekstu do bufora
     // cLast[len-1]='\0';
-    rRecords[++iLast].cName = cLast; // po³¹czenie nazwy z rekordem
+    rRecords[++iLast].cName = cLast; // poÅ‚Ä…czenie nazwy z rekordem
     rRecords[iLast].iFlags = t;
     if (!rTypes[t])
-        rTypes[t] = rRecords + iLast; // korzeñ drzewa, bo nie by³o wczeœniej
+        rTypes[t] = rRecords + iLast; // korzeÅ„ drzewa, bo nie byÅ‚o wczeÅ›niej
     else
-        rTypes[t]->TreeAdd(rRecords + iLast, 0); // doczepienie jako ga³¹Ÿ
-    // rTypes[t]=Sort(t); //sortowanie uruchamiaæ rêcznie
-    if ((iLast & 0x3F) == 0) // nie za czêsto, bo sortowania zajm¹ wiêcej czasu ni¿ wyszukiwania
-        Sort(t); // optymalizacja drzewa co jakiœ czas
+        rTypes[t]->TreeAdd(rRecords + iLast, 0); // doczepienie jako gaÅ‚Ä…Åº
+    // rTypes[t]=Sort(t); //sortowanie uruchamiaÄ‡ rÄ™cznie
+    if ((iLast & 0x3F) == 0) // nie za czÄ™sto, bo sortowania zajmÄ… wiÄ™cej czasu niÅ¼ wyszukiwania
+        Sort(t); // optymalizacja drzewa co jakiÅ› czas
     return iLast;
 }
 int TNames::Add(int t, const char *n, void *d)
@@ -136,41 +140,41 @@ int TNames::Add(int t, const char *n, void *d)
 };
 
 bool TNames::Update(int t, const char *n, void *d)
-{ // dodanie jeœli nie ma, wymiana (d), gdy jest
-    ItemRecord *r = FindRecord(t, n); // najpierw sprawdziæ, czy ju¿ jest
+{ // dodanie jeÅ›li nie ma, wymiana (d), gdy jest
+    ItemRecord *r = FindRecord(t, n); // najpierw sprawdziÄ‡, czy juÅ¼ jest
     if (r)
-    { // przy zdublowaniu nazwy podmieniaæ w drzewku na póŸniejszy
+    { // przy zdublowaniu nazwy podmieniaÄ‡ w drzewku na pÃ³Åºniejszy
         r->pData = d;
         return true; // duplikat
     }
     // Add(t,n,d); //nazwa unikalna
-    return false; // zosta³ dodany nowy
+    return false; // zostaÅ‚ dodany nowy
 };
 
 ItemRecord * TNames::TreeSet(int *n, int d, int u)
-{ // rekurencyjne wype³nianie drzewa pozycjami od (d) do (u)
+{ // rekurencyjne wypeÅ‚nianie drzewa pozycjami od (d) do (u)
     if (d == u)
     {
         rRecords[n[d]].rPrev = rRecords[n[d]].rNext = NULL;
-        return rRecords + n[d]; // tej ga³êzi nie ma
+        return rRecords + n[d]; // tej gaÅ‚Ä™zi nie ma
     }
     else if (d > u)
         return NULL;
-    int p = (u + d) >> 1; // po³owa
-    rRecords[n[p]].rPrev = TreeSet(n, d, p - 1); // zapisanie wczeœniejszych ga³êzi
-    rRecords[n[p]].rNext = TreeSet(n, p + 1, u); // zapisanie póŸniejszych ga³êzi
+    int p = (u + d) >> 1; // poÅ‚owa
+    rRecords[n[p]].rPrev = TreeSet(n, d, p - 1); // zapisanie wczeÅ›niejszych gaÅ‚Ä™zi
+    rRecords[n[p]].rNext = TreeSet(n, p + 1, u); // zapisanie pÃ³Åºniejszych gaÅ‚Ä™zi
     return rRecords + n[p];
 };
 
 void TNames::Sort(int t)
-{ // przebudowa drzewa typu (t), zwraca wierzcho³ek drzewa
+{ // przebudowa drzewa typu (t), zwraca wierzchoÅ‚ek drzewa
     if (iLast < 3)
-        return; // jak jest ma³o, to nie ma sensu sortowaæ
-    if (rTypes[t]) // jeœli jest jakiœ rekord danego typu
+        return; // jak jest maÅ‚o, to nie ma sensu sortowaÄ‡
+    if (rTypes[t]) // jeÅ›li jest jakiÅ› rekord danego typu
     {
-        int *r = new int[iLast + 1]; // robocza tablica indeksów - numery posortowanych rekordów
-        int *q = r; // wskaŸnik roboczy, przekazywany przez referencjê
-        rTypes[t]->ListGet(rRecords, q); // drzewo jest ju¿ posortowane - zamieniæ je na listê
+        int *r = new int[iLast + 1]; // robocza tablica indeksÃ³w - numery posortowanych rekordÃ³w
+        int *q = r; // wskaÅºnik roboczy, przekazywany przez referencjÄ™
+        rTypes[t]->ListGet(rRecords, q); // drzewo jest juÅ¼ posortowane - zamieniÄ‡ je na listÄ™
         rTypes[t] = TreeSet(r, 0, (q - r) - 1);
         delete[] r;
     }
@@ -178,6 +182,8 @@ void TNames::Sort(int t)
 };
 
 ItemRecord * TNames::FindRecord(const int t, const char *n)
-{ // poszukiwanie rekordu w celu np. zmiany wskaŸnika
+{ // poszukiwanie rekordu w celu np. zmiany wskaÅºnika
     return rTypes[t] ? rTypes[t]->TreeFindRecord(n) : NULL;
 };
+
+#endif

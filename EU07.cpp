@@ -16,80 +16,30 @@ Authors:
 MarcinW, McZapkie, Shaxbee, ABu, nbmx, youBy, Ra, winger, mamut, Q424,
 Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-#include "opengl/ARB_Multisample.h"
 
-#include "system.hpp"
-#include "classes.hpp"
-#include "Globals.h"
-#include "Console.h"
-#include "QueryParserComp.hpp"
-#include "Mover.h"
-#include "Logs.h"
-#pragma hdrstop
+#include "stdafx.h"
 
 #include <dsound.h> //_clear87() itp.
 
-USERES("EU07.res");
-USEUNIT("dumb3d.cpp");
-USEUNIT("Camera.cpp");
-USEUNIT("Texture.cpp");
-USEUNIT("World.cpp");
-USELIB("opengl\glut32.lib");
-USELIB("omf_python27.lib");
-USEUNIT("Model3d.cpp");
-USEUNIT("MdlMngr.cpp");
-USEUNIT("Train.cpp");
-USEUNIT("wavread.cpp");
-USEUNIT("Timer.cpp");
-USEUNIT("Event.cpp");
-USEUNIT("MemCell.cpp");
-USEUNIT("Logs.cpp");
-USELIB("DirectX\Dsound.lib");
-USEUNIT("Spring.cpp");
-USEUNIT("Button.cpp");
-USEUNIT("Globals.cpp");
-USEUNIT("Gauge.cpp");
-USEUNIT("AnimModel.cpp");
-USEUNIT("Ground.cpp");
-USEUNIT("TrkFoll.cpp");
-USEUNIT("Segment.cpp");
-USEUNIT("Sound.cpp");
-USEUNIT("AdvSound.cpp");
-USEUNIT("Track.cpp");
-USEUNIT("DynObj.cpp");
-USEUNIT("RealSound.cpp");
-USEUNIT("EvLaunch.cpp");
-USEUNIT("QueryParserComp.pas");
-USEUNIT("FadeSound.cpp");
-USEUNIT("Traction.cpp");
-USEUNIT("TractionPower.cpp");
-USEUNIT("parser.cpp");
-USEUNIT("sky.cpp");
-USEUNIT("AirCoupler.cpp");
-USEUNIT("opengl\glew.c");
-USEUNIT("ResourceManager.cpp");
-USEUNIT("VBO.cpp");
-USEUNIT("McZapkie\mtable.pas");
-USEUNIT("TextureDDS.cpp");
-USEUNIT("opengl\ARB_Multisample.cpp");
-USEUNIT("Float3d.cpp");
-USEUNIT("Classes.cpp");
-USEUNIT("Driver.cpp");
-USEUNIT("Names.cpp");
-USEUNIT("Console.cpp");
-USEUNIT("Mover.cpp");
-USEUNIT("McZapkie\_mover.pas");
-USEUNIT("McZapkie\hamulce.pas");
-USEUNIT("McZapkie\Oerlikon_ESt.pas");
-USEUNIT("Console\PoKeys55.cpp");
-USEUNIT("Forth.cpp");
-USEUNIT("Console\LPT.cpp");
-USEUNIT("Console\MWD.cpp");
-USEUNIT("PyInt.cpp");
-//---------------------------------------------------------------------------
+#include "opengl/glew.h"
+#include "opengl/wglew.h"
+#include "opengl/ARB_Multisample.h"
+
+#include "Globals.h"
+#include "Logs.h"
+#include "Console.h"
+#include "PyInt.h"
 #include "World.h"
+#include "Mover.h"
+
+#pragma comment( lib, "glew32.lib" )
+#pragma comment( lib, "glu32.lib" )
+#pragma comment( lib, "opengl32.lib" )
+#pragma comment( lib, "dsound.lib" )
+#pragma comment( lib, "winmm.lib" )
+#pragma comment( lib, "setupapi.lib" )
+#pragma comment( lib, "python27.lib" )
+#pragma comment (lib, "dbghelp.lib")
 
 HDC hDC = NULL; // Private GDI Device Context
 HGLRC hRC = NULL; // Permanent Rendering Context
@@ -110,9 +60,16 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM); // Declaration For WndProc
 
 int InitGL(GLvoid) // All Setup For OpenGL Goes Here
 {
-    _clear87();
-    _control87(MCW_EM, MCW_EM);
+//    _clear87();
+//    _control87(MCW_EM, MCW_EM);
     glewInit();
+
+    if( !GLEW_VERSION_1_4 ) {
+        // experimental: require at least openGL 1.4
+        Error( "This application requires openGL version 1.4 (or better)" );
+        return 0;
+    }
+
     // hunter-271211: przeniesione
     // AllocConsole();
     // SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
@@ -121,8 +78,8 @@ int InitGL(GLvoid) // All Setup For OpenGL Goes Here
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    Global::pWorld = &World; // Ra: wskaŸnik potrzebny do usuwania pojazdów
-    return World.Init(hWnd, hDC); // true jeœli wszystko pójdzie dobrze
+    Global::pWorld = &World; // Ra: wskaÅºnik potrzebny do usuwania pojazdÃ³w
+    return World.Init(hWnd, hDC); // true jeÅ›li wszystko pÃ³jdzie dobrze
 }
 //---------------------------------------------------------------------------
 
@@ -452,25 +409,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
                          WPARAM wParam, // additional message information
                          LPARAM lParam) // additional message information
 {
-    TRect rect;
+    RECT rect;
     switch (uMsg) // check for windows messages
     {
-    case WM_PASTE: //[Ctrl]+[V] potrzebujemy do innych celów
+    case WM_PASTE: //[Ctrl]+[V] potrzebujemy do innych celÃ³w
         return 0;
-    case WM_COPYDATA: // obs³uga danych przes³anych przez program steruj¹cy
+    case WM_COPYDATA: // obsÅ‚uga danych przesÅ‚anych przez program sterujÄ…cy
         pDane = (PCOPYDATASTRUCT)lParam;
         if (pDane->dwData == 'EU07') // sygnatura danych
             World.OnCommandGet((DaneRozkaz *)(pDane->lpData));
         break;
     case WM_ACTIVATE: // watch for window activate message
         // case WM_ACTIVATEAPP:
-        { // Ra: uzale¿nienie aktywnoœci od bycia na wierzchu
+        { // Ra: uzaleÅ¼nienie aktywnoÅ›ci od bycia na wierzchu
             Global::bActive = (LOWORD(wParam) != WA_INACTIVE);
-            if (Global::bInactivePause) // jeœli ma byæ pauzowanie okna w tle
+            if (Global::bInactivePause) // jeÅ›li ma byÄ‡ pauzowanie okna w tle
                 if (Global::bActive)
                     Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
                 else
-                    Global::iPause |= 4; // w³¹czenie pauzy, gdy nieaktywy
+                    Global::iPause |= 4; // wÅ‚Ä…czenie pauzy, gdy nieaktywy
             if (Global::bActive)
                 SetCursorPos(mx, my);
             ShowCursor(!Global::bActive);
@@ -524,8 +481,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
     case WM_KEYDOWN:
         if (Global::bActive)
         {
-            if (wParam != 17) // bo naciœniêcia [Ctrl] nie ma po co przekazywaæ
-                if (wParam != 145) //[Scroll Lock] te¿ nie
+            if (wParam != 17) // bo naciÅ›niÄ™cia [Ctrl] nie ma po co przekazywaÄ‡
+                if (wParam != 145) //[Scroll Lock] teÅ¼ nie
                     World.OnKeyDown(wParam);
             switch (wParam)
             {
@@ -533,27 +490,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
                 if (DebugModeFlag)
                     break;
             case 19: //[Pause]
-                if (Global::iPause & 1) // jeœli pauza startowa
-                    Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu mia³o nie startowaæ
+                if (Global::iPause & 1) // jeÅ›li pauza startowa
+                    Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miaÅ‚o nie startowaÄ‡
                 else if (!(Global::iMultiplayer & 2)) // w multiplayerze pauza nie ma sensu
                     if (!Console::Pressed(VK_CONTROL)) // z [Ctrl] to radiostop jest
-                        // Ra: poni¿sze nie ma sensu, bo brak komunikacji natychmiast zapauzuje
+                        // Ra: poniÅ¼sze nie ma sensu, bo brak komunikacji natychmiast zapauzuje
                         // ponownie
-                        // if (Global::iPause&8) //jeœli pauza zwi¹zana z brakiem komunikacji z
+                        // if (Global::iPause&8) //jeÅ›li pauza zwiÄ…zana z brakiem komunikacji z
                         // PoKeys
                         // Global::iPause&=~10; //odpauzowanie pauzy PoKeys (chyba nic nie da) i
-                        // ewentualnie klawiszowej równie¿
+                        // ewentualnie klawiszowej rÃ³wnieÅ¼
                         // else
                         Global::iPause ^= 2; // zmiana stanu zapauzowania
                 if (Global::iPause) // jak pauza
-                    Global::iTextMode = VK_F1; // to wyœwietliæ zegar i informacjê
+                    Global::iTextMode = VK_F1; // to wyÅ›wietliÄ‡ zegar i informacjÄ™
                 break;
             case VK_F7:
                 if (DebugModeFlag)
-                { // siatki wyœwietlane tyko w trybie testowym
+                { // siatki wyÅ›wietlane tyko w trybie testowym
                     Global::bWireFrame = !Global::bWireFrame;
-                    ++Global::iReCompile; // odœwie¿yæ siatki
-                    // Ra: jeszcze usun¹æ siatki ze skompilowanych obiektów!
+                    ++Global::iReCompile; // odÅ›wieÅ¼yÄ‡ siatki
+                    // Ra: jeszcze usunÄ…Ä‡ siatki ze skompilowanych obiektÃ³w!
                 }
                 break;
             }
@@ -618,70 +575,123 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 };
 
+#ifdef _WINDOWS
+void make_minidump( ::EXCEPTION_POINTERS* e ) {
+
+    auto hDbgHelp = ::LoadLibraryA( "dbghelp" );
+    if( hDbgHelp == nullptr )
+        return;
+    auto pMiniDumpWriteDump = (decltype( &MiniDumpWriteDump ))::GetProcAddress( hDbgHelp, "MiniDumpWriteDump" );
+    if( pMiniDumpWriteDump == nullptr )
+        return;
+
+    char name[ MAX_PATH ];
+    {
+        auto nameEnd = name + ::GetModuleFileNameA( ::GetModuleHandleA( 0 ), name, MAX_PATH );
+        ::SYSTEMTIME t;
+        ::GetSystemTime( &t );
+        wsprintfA( nameEnd - strlen( ".exe" ),
+            "_crashdump_%4d%02d%02d_%02d%02d%02d.dmp",
+            t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond );
+    }
+
+    auto hFile = ::CreateFileA( name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
+    if( hFile == INVALID_HANDLE_VALUE )
+        return;
+
+    ::MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
+    exceptionInfo.ThreadId = ::GetCurrentThreadId();
+    exceptionInfo.ExceptionPointers = e;
+    exceptionInfo.ClientPointers = FALSE;
+
+    auto dumped = pMiniDumpWriteDump(
+        ::GetCurrentProcess(),
+        ::GetCurrentProcessId(),
+        hFile,
+        ::MINIDUMP_TYPE( ::MiniDumpWithIndirectlyReferencedMemory | ::MiniDumpScanMemory ),
+        e ? &exceptionInfo : nullptr,
+        nullptr,
+        nullptr );
+
+    ::CloseHandle( hFile );
+
+    return;
+}
+
+LONG CALLBACK unhandled_handler( ::EXCEPTION_POINTERS* e ) {
+    make_minidump( e );
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+#endif
+
 int WINAPI WinMain(HINSTANCE hInstance, // instance
                    HINSTANCE hPrevInstance, // previous instance
                    LPSTR lpCmdLine, // command line parameters
                    int nCmdShow) // window show state
 {
+#if defined(_MSC_VER) && defined (_DEBUG)
+    // memory leaks
+	_CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
+    // floating point operation errors
+    auto state = _clearfp();
+    state = _control87( 0, 0 );
+    // this will turn on FPE for #IND and zerodiv
+    state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
+#endif
+#ifdef _WINDOWS
+    ::SetUnhandledExceptionFilter( unhandled_handler );
+#endif
+
     MSG msg; // windows message structure
     BOOL done = FALSE; // bool variable to exit loop
     fullscreen = true;
-    DecimalSeparator = '.';
-    /* //Ra: tutaj to nie dzia³a - zwraca NULL
-     //najpierw ustalmy wersjê OpenGL
-     AnsiString glver=((char*)glGetString(GL_VERSION));
-     while (glver.LastDelimiter(".")>glver.Pos("."))
-      glver=glver.SubString(1,glver.LastDelimiter(".")-1); //obciêcie od drugiej kropki
-     try {Global::fOpenGL=glver.ToDouble();} catch (...) {Global::fOpenGL=0.0;}
-     Global::bOpenGL_1_5=(Global::fOpenGL>=1.5);
-    */
-    DeleteFile("errors.txt"); // usuniêcie starego
-    Global::LoadIniFile("eu07.ini"); // teraz dopiero mo¿na przejrzeæ plik z ustawieniami
-    Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na sta³e
+    DeleteFile("errors.txt"); // usuniÄ™cie starego
+    Global::LoadIniFile("eu07.ini"); // teraz dopiero moÅ¼na przejrzeÄ‡ plik z ustawieniami
+    Global::InitKeys("keys.ini"); // wczytanie mapowania klawiszy - jest na staÅ‚e
 
-    // hunter-271211: ukrywanie konsoli
+	// hunter-271211: ukrywanie konsoli
     if (Global::iWriteLogEnabled & 2)
     {
         AllocConsole();
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
     }
-    AnsiString str = lpCmdLine; // parametry uruchomienia
-    if (!str.IsEmpty())
-    { // analizowanie parametrów
-        TQueryParserComp *Parser;
-        Parser = new TQueryParserComp(NULL);
-        Parser->TextToParse = lpCmdLine;
-        Parser->First();
-        while (!Parser->EndOfFile)
-        {
-            str = Parser->GetNextSymbol().LowerCase();
-            if (str == AnsiString("-s"))
+    std::string commandline( lpCmdLine ); // parametry uruchomienia
+    if( false == commandline.empty() )
+    { // analizowanie parametrÄÅ¼Ëw
+		cParser parser( commandline );
+		std::string token;
+		do {
+			parser.getTokens();
+			token.clear();
+			parser >> token;
+
+            if( token == "-s" )
             { // nazwa scenerii
-                str = Parser->GetNextSymbol().LowerCase();
-                strcpy(Global::szSceneryFile, str.c_str());
+				parser.getTokens();
+				parser >> Global::SceneryFile;
             }
-            else if (str == AnsiString("-v"))
+            else if( token == "-v")
             { // nazwa wybranego pojazdu
-                str = Parser->GetNextSymbol().LowerCase();
-                Global::asHumanCtrlVehicle = str;
+				parser.getTokens();
+				parser >> Global::asHumanCtrlVehicle;
             }
-            else if (str == AnsiString("-modifytga"))
-            { // wykonanie modyfikacji wszystkich plików TGA
+            else if( token == "-modifytga" )
+            { // wykonanie modyfikacji wszystkich plikÃ³w TGA
                 Global::iModifyTGA = -1; // specjalny tryb wykonania totalnej modyfikacji
             }
-            else if (str == AnsiString("-e3d"))
-            { // wygenerowanie wszystkich plików E3D
+            else if( token == "-e3d" )
+            { // wygenerowanie wszystkich plikÃ³w E3D
                 if (Global::iConvertModels > 0)
                     Global::iConvertModels = -Global::iConvertModels; // specjalny tryb
                 else
-                    Global::iConvertModels = -7; // z optymalizacj¹, bananami i prawid³owym Opacity
+                    Global::iConvertModels = -7; // z optymalizacjÄ…, bananami i prawidÅ‚owym Opacity
             }
             else
                 Error(
                     "Program usage: EU07 [-s sceneryfilepath] [-v vehiclename] [-modifytga] [-e3d]",
                     !Global::iWriteLogEnabled);
-        }
-        delete Parser; // ABu 050205: tego wczesniej nie bylo
+		}
+		while( false == token.empty() );
     }
     /* MC: usunalem tymczasowo bo sie gryzlo z nowym parserem - 8.6.2003
         AnsiString csp=AnsiString(Global::szSceneryFile);
@@ -696,14 +706,14 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
     if (Bpp != 32)
         Bpp = 16;
     // create our OpenGL window
-    if (!CreateGLWindow(Global::asHumanCtrlVehicle.c_str(), WindowWidth, WindowHeight, Bpp,
+    if (!CreateGLWindow(const_cast<char*>(Global::asHumanCtrlVehicle.c_str()), WindowWidth, WindowHeight, Bpp,
                         fullscreen))
         return 0; // quit if window was not created
     SetForegroundWindow(hWnd);
     // McZapkie: proba przeplukania klawiatury
-    Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoœ zainicjowac trzeba
+    Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoÅ› zainicjowac trzeba
     while (Console::Pressed(VK_F10))
-        Error("Keyboard buffer problem - press F10"); // na Windows 98 lubi siê to pojawiaæ
+        Error("Keyboard buffer problem - press F10"); // na Windows 98 lubi siÄ™ to pojawiaÄ‡
     int iOldSpeed, iOldDelay;
     SystemParametersInfo(SPI_GETKEYBOARDSPEED, 0, &iOldSpeed, 0);
     SystemParametersInfo(SPI_GETKEYBOARDDELAY, 0, &iOldDelay, 0);
@@ -713,20 +723,20 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
         WriteLog("No joystick");
     if (Global::iModifyTGA < 0)
     { // tylko modyfikacja TGA, bez uruchamiania symulacji
-        Global::iMaxTextureSize = 64; //¿eby nie zamulaæ pamiêci
-        World.ModifyTGA(); // rekurencyjne przegl¹danie katalogów
+        Global::iMaxTextureSize = 64; //Å¼eby nie zamulaÄ‡ pamiÄ™ci
+        World.ModifyTGA(); // rekurencyjne przeglÄ…danie katalogÃ³w
     }
     else
     {
         if (Global::iConvertModels < 0)
         {
             Global::iConvertModels = -Global::iConvertModels;
-            World.CreateE3D("models\\"); // rekurencyjne przegl¹danie katalogów
+            World.CreateE3D("models\\"); // rekurencyjne przeglÄ…danie katalogÃ³w
             World.CreateE3D("dynamic\\", true);
-        } // po zrobieniu E3D odpalamy normalnie sceneriê, by j¹ zobaczyæ
+        } // po zrobieniu E3D odpalamy normalnie sceneriÄ™, by jÄ… zobaczyÄ‡
         // else
-        //{//g³ówna pêtla programu
-        Console::On(); // w³¹czenie konsoli
+        //{//gÅ‚Ã³wna pÄ™tla programu
+        Console::On(); // wÅ‚Ä…czenie konsoli
         while (!done) // loop that runs while done=FALSE
         {
             if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) // is there a message waiting?
@@ -746,18 +756,20 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                 // draw the scene, watch for quit messages
                 // DrawGLScene()
                 // if (!pause)
-                // if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z góry
+                // if (Global::bInactivePause?Global::bActive:true) //tak nie, bo spada z gÃ³ry
                 if (World.Update()) // Was There A Quit Received?
                     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
                 else
                     done = true; //[F10] or DrawGLScene signalled a quit
             }
         }
-        Console::Off(); // wy³¹czenie konsoli (komunikacji zwrotnej)
+        Console::Off(); // wyÅ‚Ä…czenie konsoli (komunikacji zwrotnej)
     }
     SystemParametersInfo(SPI_SETKEYBOARDSPEED, iOldSpeed, NULL, 0);
     SystemParametersInfo(SPI_SETKEYBOARDDELAY, iOldDelay, NULL, 0);
     delete pConsole; // deaktywania sterownika
+	TPythonInterpreter::killInstance();
+
     // shutdown
     KillGLWindow(); // kill the window
     return (msg.wParam); // exit the program

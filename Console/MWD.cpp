@@ -8,78 +8,90 @@ http://mozilla.org/MPL/2.0/.
 */
 
 /*
-    Program obs³ugi portu COM i innych na potrzeby sterownika MWDevice
-	(oraz innych wykorzystuj¹cych komunikacjê przez port COM)
-    dla Symulatora Pojazdów Szynowych MaSzyna
+    Program obsÅ‚ugi portu COM i innych na potrzeby sterownika MWDevice
+        (oraz innych wykorzystujÄ…cych komunikacjÄ™ przez port COM)
+    dla Symulatora PojazdÃ³w Szynowych MaSzyna
     author: Maciej Witek 2016
-	Autor nie ponosi odpowiedzialnoœci za niew³aciwe u¿ywanie lub dzia³anie programu!
+        Autor nie ponosi odpowiedzialnoÅ›ci za niewÅ‚aciwe uÅ¼ywanie lub dziaÅ‚anie programu!
 */
-
+#include "stdafx.h"
 #include "MWD.h"
-#include "Logs.h"
 #include "Globals.h"
+#include "Logs.h"
 #include "World.h"
 
 #include <windows.h>
 
-#define BYTETOWRITE 31  		/* iloœæ bajtów przesy³anych z MaSzyny*/
-#define BYTETOREAD  16  		/* iloœæ bajtów przesy³anych do MaSzyny*/
-
 HANDLE hComm;
 
-MWDComm::MWDComm()		// konstruktor
+TMWDComm::TMWDComm() // konstruktor
 {
-    MWDTime = 0;
-    bSHPstate = false;
-    bPrzejazdSHP = false;
-    bKabina1 = true;	// pasuje wyci¹gn¹æ dane na temat kabiny i ustawiaæ te dwa parametry!
-    bKabina2 = false;
-    bHamowanie = false;
-    bCzuwak = false;
+	MWDTime = 0;
+	bSHPstate = false;
+	bPrzejazdSHP = false;
+	bKabina1 = true;	// pasuje wyciÄ…gnÄ…Ä‡ dane na temat kabiny i ustawiaÄ‡ te dwa parametry!
+	bKabina2 = false;
+	bHamowanie = false;
+	bCzuwak = false;
 
-    bRysik1H = false;
-    bRysik1L = false;
-    bRysik2H = false;
-    bRysik2L = false;
+	bRysik1H = false;
+	bRysik1L = false;
+	bRysik2H = false;
+	bRysik2L = false;
 
-    bocznik = 0;
-    nastawnik = 0;
-    kierunek = 0;
-    bnkMask = 0;
+	bocznik = 0;
+	nastawnik = 0;
+	kierunek = 0;
+	bnkMask = 0;
 
-    int i=0;
-    while(i<BYTETOWRITE)
-    {
-        if(i<BYTETOREAD)ReadDataBuff[i] = 0;
-        WriteDataBuff[i] = 0;
-        i++;
-    }
-    i=0;
-    while(i<6)
-    {
-        lastStateData[i] = 0;
-        maskSwitch[i] = 0;
-        bitSwitch[i] = 0;
-        i++;
-    }
+	int i = 6;
+
+	while (i)
+	{
+		i--;
+		lastStateData[i] = 0;
+		maskData[i] = 0;
+		maskSwitch[i] = 0;
+		bitSwitch[i] = 0;
+	}
+
+	i = 0;
+	while (i<BYTETOWRITE)
+	{
+		if (i<BYTETOREAD)ReadDataBuff[i] = 0;
+		WriteDataBuff[i] = 0;
+		i++;
+	}
+	i = 0;
+	while (i<6)
+	{
+		lastStateData[i] = 0;
+		maskSwitch[i] = 0;
+		bitSwitch[i] = 0;
+		i++;
+	}
 }
 
-MWDComm::~MWDComm()		// destruktor
+TMWDComm::~TMWDComm() // destruktor
 {
     Close();
 }
 
-bool MWDComm::Open()		// otwieranie portu COM
+bool TMWDComm::Open() // otwieranie portu COM
 {
     LPCSTR portId = Global::sMWDPortId.c_str();
-    hComm = CreateFile(portId, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    hComm = CreateFile(portId, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+                       FILE_ATTRIBUTE_NORMAL, NULL);
 
-    if (hComm == INVALID_HANDLE_VALUE){
-        if(GetLastError()==ERROR_FILE_NOT_FOUND){
-            WriteLog("PortCOM ERROR: serial port does not exist");	//serial port does not exist.  Inform user.
+    if (hComm == INVALID_HANDLE_VALUE)
+    {
+        if (GetLastError() == ERROR_FILE_NOT_FOUND)
+        {
+            WriteLog("PortCOM ERROR: serial port does not exist"); // serial port does not exist.
+                                                                   // Inform user.
         }
         WriteLog("PortCOM ERROR! not open!");
-        //some other error occurred. Inform user.
+        // some other error occurred. Inform user.
         return FALSE;
     }
 
@@ -90,16 +102,16 @@ bool MWDComm::Open()		// otwieranie portu COM
     CommDCB.BaudRate = Global::iMWDBaudrate;
     CommDCB.fBinary = TRUE;
     CommDCB.fParity = FALSE;
-    CommDCB.fOutxCtsFlow = FALSE;         // No CTS output flow control
-    CommDCB.fOutxDsrFlow = FALSE;         // No DSR output flow control
-    CommDCB.fDtrControl = FALSE;          // DTR flow control type
+    CommDCB.fOutxCtsFlow = FALSE; // No CTS output flow control
+    CommDCB.fOutxDsrFlow = FALSE; // No DSR output flow control
+    CommDCB.fDtrControl = FALSE; // DTR flow control type
 
-    CommDCB.fDsrSensitivity = FALSE;      // DSR sensitivity
-    CommDCB.fTXContinueOnXoff = FALSE;     // XOFF continues Tx
-    CommDCB.fOutX = FALSE;                // No XON/XOFF out flow control
-    CommDCB.fInX = FALSE;                 // No XON/XOFF in flow control
-    CommDCB.fErrorChar = FALSE;           // Disable error replacement
-    CommDCB.fNull = FALSE;                // Disable null stripping
+    CommDCB.fDsrSensitivity = FALSE; // DSR sensitivity
+    CommDCB.fTXContinueOnXoff = FALSE; // XOFF continues Tx
+    CommDCB.fOutX = FALSE; // No XON/XOFF out flow control
+    CommDCB.fInX = FALSE; // No XON/XOFF in flow control
+    CommDCB.fErrorChar = FALSE; // Disable error replacement
+    CommDCB.fNull = FALSE; // Disable null stripping
     CommDCB.fRtsControl = RTS_CONTROL_DISABLE;
 
     CommDCB.fAbortOnError = FALSE;
@@ -108,10 +120,10 @@ bool MWDComm::Open()		// otwieranie portu COM
     CommDCB.Parity = NOPARITY;
     CommDCB.StopBits = ONESTOPBIT;
 
-    //konfiguracja portu
-    if (!SetCommState (hComm, &CommDCB))
+    // konfiguracja portu
+    if (!SetCommState(hComm, &CommDCB))
     {
-        //dwError = GetLastError ();
+        // dwError = GetLastError ();
         WriteLog("Unable to configure the serial port!");
         return FALSE;
     }
@@ -119,44 +131,62 @@ bool MWDComm::Open()		// otwieranie portu COM
     return TRUE;
 }
 
-bool MWDComm::Close()			// zamykanie portu COM
+bool TMWDComm::Close() // zamykanie portu COM
 {
+	Global::bMWDmasterEnable = false;              // gÅ‚Ã³wne wÅ‚Ä…czenie portu!
+	Global::bMWDInputEnable = false;               // wÅ‚Ä…cz wejÅ›cia
+	Global::bMWDBreakEnable = false;               // wÅ‚Ä…cz wejÅ›cia analogowe
+
     WriteLog("COM Port is closing...");
     int i = 0;
-    while(i<BYTETOWRITE)		// zerowanie danych...
+    while (i < BYTETOWRITE) // zerowanie danych...
     {
         WriteDataBuff[i] = 0;
         i++;
     }
     Sleep(100);
-    SendData();					// wysy³anie do pulpitu: zatrzymanie haslera i zgaszenie lampek
+    SendData(); // wysyÅ‚anie do pulpitu: zatrzymanie haslera i zgaszenie lampek
     Sleep(700);
     CloseHandle(hComm);
     WriteLog("COM is close!");
     return TRUE;
 }
 
-inline bool MWDComm::GetMWDState()	// sprawdzanie otwarcia portu COM
+inline bool TMWDComm::GetMWDState() // sprawdzanie otwarcia portu COM
 {
-    if(hComm > 0) return 1;
-    else return 0;
+    if (hComm > 0)
+        return 1;
+    else
+        return 0;
 }
 
-bool MWDComm::ReadData()	// odbieranie danych + odczyta danych analogowych i zapis do zmiennych
+bool TMWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i zapis do zmiennych
 {
-    DWORD bytes_read;
-    ReadFile(hComm, &ReadDataBuff[0], BYTETOREAD, &bytes_read, NULL);
+	DWORD bytes_read;
+	ReadFile(hComm, &ReadDataBuff[0], BYTETOREAD, &bytes_read, NULL);
 
-    fAnalog[0] = (float)((ReadDataBuff[9]<<8)+ReadDataBuff[8]) / Global::fMWDAnalogCalib[0][3]; //4095.0f; //max wartosc wynikaj¹ca z rozdzielczoœci
-    fAnalog[1] = (float)((ReadDataBuff[11]<<8)+ReadDataBuff[10]) / Global::fMWDAnalogCalib[1][3];
-    fAnalog[2] = (float)((ReadDataBuff[13]<<8)+ReadDataBuff[12]) / Global::fMWDAnalogCalib[2][3];
-    fAnalog[3] = (float)((ReadDataBuff[15]<<8)+ReadDataBuff[14]) / Global::fMWDAnalogCalib[3][3];
-    CheckData();
-
-    return TRUE;
+	if (Global::bMWDBreakEnable)
+	{
+		uiAnalog[0] = (ReadDataBuff[9] << 8) + ReadDataBuff[8];
+		uiAnalog[1] = (ReadDataBuff[11] << 8) + ReadDataBuff[10];
+		uiAnalog[2] = (ReadDataBuff[13] << 8) + ReadDataBuff[12];
+		uiAnalog[3] = (ReadDataBuff[15] << 8) + ReadDataBuff[14];
+		if (Global::bMWDdebugEnable && (Global::iMWDDebugMode & 1))
+		{
+			WriteLog("Main Break = " + to_string(uiAnalog[0]));
+			WriteLog("Locomotiv Break = " + to_string(uiAnalog[1]));
+		}
+		if (Global::bMWDdebugEnable && (Global::iMWDDebugMode & 2))
+		{
+			WriteLog("Analog input 1 = " + to_string(uiAnalog[2]));
+			WriteLog("Analog imput 2 = " + to_string(uiAnalog[3]));
+		}
+	}
+	if (Global::bMWDInputEnable) CheckData();
+	return TRUE;
 }
 
-bool MWDComm::SendData()	// wysy³anie danych
+bool TMWDComm::SendData() // wysyÅ‚anie danych
 {
     DWORD bytes_write;
     DWORD fdwEvtMask;
@@ -166,61 +196,67 @@ bool MWDComm::SendData()	// wysy³anie danych
     return TRUE;
 }
 
-bool MWDComm::Run()		// wywo³ywanie obs³ugi MWD + generacja wiêkszego opóŸnienia
+bool TMWDComm::Run() // wywoÅ‚ywanie obsÅ‚ugi MWD + generacja wiÄ™kszego opÃ³Åºnienia
 {
-    MWDTime++;
-    if(!(MWDTime%5))
-    {
-        if(GetMWDState())
-        {
-            SendData();
-            if (Global::bMWDInputDataEnable) ReadData();
-            return 1;
-        }else
-        {
-            WriteLog("Port COM: connection ERROR!");
-            // mo¿e spróbowaæ siê po³¹czyæ znowu?
-            return 0;
-        }
-        MWDTime = 0;
-    }
+	if (GetMWDState())
+	{
+		MWDTime++;
+		if (!(MWDTime % Global::iMWDdivider))
+		{
+			MWDTime = 0;
+			SendData();
+			ReadData();
+			return 1;
+		}
+	}
+	else
+	{
+		WriteLog("Port COM: connection ERROR!");
+		Close();
+		// moÅ¼e sprÃ³bowaÄ‡ siÄ™ poÅ‚Ä…czyÄ‡ znowu?
+		return 0;
+	}
+	return 1;
 }
 
-bool MWDComm::CheckData()	// sprawdzanie wejœæ cyfrowych i odpowiednie sterowanie maszyn¹
+void TMWDComm::CheckData() // sprawdzanie wejÅ›Ä‡ cyfrowych i odpowiednie sterowanie maszynÄ…
 {
-    int i=0;
-    while(i<6)
+    int i = 0;
+    while (i < 6)
     {
-        maskData[i] = ReadDataBuff[i]^lastStateData[i];
+        maskData[i] = ReadDataBuff[i] ^ lastStateData[i];
         lastStateData[i] = ReadDataBuff[i];
         i++;
     }
     /*
-                Rozpiska portów!
-                Port0: 	0 	NC			odblok. przek. sprê¿arki i wentyl. oporów
-                                1 	M			wy³¹cznik wy³. szybkiego
-                                2 	Shift+M		impuls za³¹czaj¹cy wy³. szybki
-                                3 	N			odblok. przekaŸników nadmiarowych i ró¿nicowego obwodu g³ównego
+                Rozpiska portÃ³w!
+                Port0: 	0 	NC			odblok. przek. sprÄ™Å¼arki i wentyl. oporÃ³w
+                                1 	M			wyÅ‚Ä…cznik wyÅ‚. szybkiego
+                                2 	Shift+M		impuls zaÅ‚Ä…czajÄ…cy wyÅ‚. szybki
+                                3 	N			odblok. przekaÅºnikÃ³w nadmiarowych
+       i rÃ³Å¼nicowego obwodu gÅ‚Ã³wnego
                                 4 	NC			rezerwa
-                                5 	Ctrl+N		odblok. przek. nadmiarowych przetwornicy, ogrzewania poci¹gu i ró¿nicowych obw. pomocniczych
-                                6 	L			wy³. styczników liniowych
+                                5 	Ctrl+N		odblok. przek. nadmiarowych
+       przetwornicy, ogrzewania pociÄ…gu i rÃ³Å¼nicowych obw. pomocniczych
+                                6 	L			wyÅ‚. stycznikÃ³w liniowych
                                 7 	SPACE		kasowanie czuwaka
 
                 Port1: 	0 	NC
                                 1 	(Shift)	X	przetwornica
-                                2 	(Shift)	C	sprê¿arka
+                                2 	(Shift)	C	sprÄ™Å¼arka
                                 3 	S			piasecznice
-                                4 	(Shift)	H	ogrzewanie sk³adu
-                                5 				przel. hamowania	Shift+B pspbpwy Ctrl+B pospieszny B towarowy
+                                4 	(Shift)	H	ogrzewanie skÅ‚adu
+                                5 				przel. hamowania	Shift+B
+       pspbpwy Ctrl+B pospieszny B towarowy
                                 6 				przel. hamowania
                                 7 	(Shift)	F	rozruch w/n
 
                 Port2: 	0 	(Shift) P	pantograf przedni
                                 1 	(Shift)	O	pantograf tylni
-                                2 	ENTER		przyhamowanie przy poœlizgu
-                                3 	()		przyciemnienie œwiate³
-                                4 	()		przyciemnienie œwiate³
-                                5 	NUM6		odluŸniacz
+                                2 	ENTER		przyhamowanie przy poÅ›lizgu
+                                3 	()		przyciemnienie Å›wiateÅ‚
+                                4 	()		przyciemnienie Å›wiateÅ‚
+                                5 	NUM6		odluÅºniacz
                                 6 	a			syrena lok W
                                 7	A			syrena lok N
 
@@ -234,225 +270,244 @@ bool MWDComm::CheckData()	// sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
                                 7
         */
 
-    /*	po prze³¹czeniu bistabilnego najpierw wciskamy klawisz i przy nastêpnym
-                wejœciu w pêtlê MWD puszczamy bo inaczej nie dzia³a							*/
+    /*	po przeÅ‚Ä…czeniu bistabilnego najpierw wciskamy klawisz i przy nastÄ™pnym
+                wejÅ›ciu w pÄ™tlÄ™ MWD puszczamy bo inaczej nie dziaÅ‚a
+       */
 
-    // wciskanie przycisków klawiatury
+    // wciskanie przyciskÃ³w klawiatury
     /*PORT0*/
-    if(maskData[0] & 0x02 && lastStateData[0] & 0x02) 	KeyBoard('M',1);	// wy³¹czenie wy³¹cznika szybkiego
-    else 						KeyBoard('M',0);	// monostabilny
-    if(maskData[0] & 0x04 && lastStateData[0] & 0x04) 	{               	// impuls za³¹czaj¹cy wy³¹cznik szybki
-        KeyBoard(0x10,1);	// monostabilny
-        KeyBoard('M',1);
-    }else{
-        KeyBoard('M',0);
-        KeyBoard(0x10,0);
-    }
-    if(maskData[0] & 0x08 && lastStateData[0] & 0x08) 	KeyBoard('N',1);	// odblok nadmiarowego silników trakcyjnych
-    else						KeyBoard('N',0);	// monostabilny
-    if(maskData[0] & 0x20 && lastStateData[0] & 0x20) 	{			// odblok nadmiarowego przetwornicy, ogrzewania poc.
-        KeyBoard(0x11,1);                                                       // ró¿nicowego obwodów pomocniczych
-        KeyBoard('N',1);          // monostabilny
-    }else{
-        KeyBoard('N',0);
-        KeyBoard(0x11,0);
-    }
-    if(maskData[0] & 0x40 && lastStateData[0] & 0x40) 	KeyBoard('L',1);	// wy³. styczników liniowych
-    else						KeyBoard('L',0);	// monostabilny
-    if(maskData[0] & 0x80 && lastStateData[0] & 0x80) 	KeyBoard(0x20,1);	// kasowanie czuwaka/SHP
-    else 						KeyBoard(0x20,0);	// kasowanie czuwaka/SHP
+	if (maskData[0] & 0x02) if (lastStateData[0] & 0x02) KeyBoard('M', 1);	// wyÅ‚Ä…czenie wyÅ‚Ä…cznika szybkiego
+	else 						KeyBoard('M', 0);	// monostabilny
+	if (maskData[0] & 0x04) if (lastStateData[0] & 0x04) {               	// impuls zaÅ‚Ä…czajÄ…cy wyÅ‚Ä…cznik szybki
+		KeyBoard(0x10, 1);	// monostabilny
+		KeyBoard('M', 1);
+	}
+	else {
+		KeyBoard('M', 0);
+		KeyBoard(0x10, 0);
+	}
+	if (maskData[0] & 0x08) if (lastStateData[0] & 0x08) KeyBoard('N', 1);	// odblok nadmiarowego silnikÃ³w trakcyjnych
+	else						KeyBoard('N', 0);	// monostabilny
+	if (maskData[0] & 0x20) if (lastStateData[0] & 0x20) {			// odblok nadmiarowego przetwornicy, ogrzewania poc.
+		KeyBoard(0x11, 1);                                                       // rÃ³Å¼nicowego obwodÃ³w pomocniczych
+		KeyBoard('N', 1);          // monostabilny
+	}
+	else {
+		KeyBoard('N', 0);
+		KeyBoard(0x11, 0);
+	}
+	if (maskData[0] & 0x40) if (lastStateData[0] & 0x40) KeyBoard('L', 1);	// wyÅ‚. stycznikÃ³w liniowych
+	else						KeyBoard('L', 0);	// monostabilny
+	if (maskData[0] & 0x80) if (lastStateData[0] & 0x80) KeyBoard(0x20, 1);	// kasowanie czuwaka/SHP
+	else 						KeyBoard(0x20, 0);	// kasowanie czuwaka/SHP
 
     /*PORT1*/
 
     // puszczanie przycisku bistabilnego klawiatury
-    if(maskSwitch[1]&0x02){
-        if(bitSwitch[1] &0x02){
-            KeyBoard('X',0);
-            KeyBoard(0x10,0);
-        }else KeyBoard('X',0);
-        maskSwitch[1] &= ~0x02;
-    }
-    if(maskSwitch[1]&0x04){
-        if(bitSwitch[1] &0x04){
-            KeyBoard('C',0);
-            KeyBoard(0x10,0);
-        }else KeyBoard('C',0);
-        maskSwitch[1] &= ~0x04;
-    }
-    if(maskSwitch[1]&0x10){
-        if(bitSwitch[1] &0x10){
-            KeyBoard('H',0);
-            KeyBoard(0x10,0);
-        }else KeyBoard('H',0);
-        maskSwitch[1] &= ~0x10;
-    }
-    if(maskSwitch[1] & 0x20 || maskSwitch[1] & 0x40){
-        if(maskSwitch[1] & 0x20) KeyBoard(0x10,0);
-        if(maskSwitch[1] & 0x40) KeyBoard(0x11,0);
-        KeyBoard('B',0);
-        maskSwitch[1] &= ~0x60;
-    }
-    if(maskSwitch[1]&0x80){
-        if(bitSwitch[1] &0x80){
-            KeyBoard('F',0);
-            KeyBoard(0x10,0);
-        }else KeyBoard('F',0);
-        maskSwitch[1] &= ~0x80;
-    }
+	if (maskSwitch[1] & 0x02) {
+		if (bitSwitch[1] & 0x02) {
+			KeyBoard('X', 0);
+			KeyBoard(0x10, 0);
+		}
+		else KeyBoard('X', 0);
+		maskSwitch[1] &= ~0x02;
+	}
+	if (maskSwitch[1] & 0x04) {
+		if (bitSwitch[1] & 0x04) {
+			KeyBoard('C', 0);
+			KeyBoard(0x10, 0);
+		}
+		else KeyBoard('C', 0);
+		maskSwitch[1] &= ~0x04;
+	}
+	if (maskSwitch[1] & 0x10) {
+		if (bitSwitch[1] & 0x10) {
+			KeyBoard('H', 0);
+			KeyBoard(0x10, 0);
+		}
+		else KeyBoard('H', 0);
+		maskSwitch[1] &= ~0x10;
+	}
+	if (maskSwitch[1] & 0x20 || maskSwitch[1] & 0x40) {
+		if (maskSwitch[1] & 0x20) KeyBoard(0x10, 0);
+		if (maskSwitch[1] & 0x40) KeyBoard(0x11, 0);
+		KeyBoard('B', 0);
+		maskSwitch[1] &= ~0x60;
+	}
+	if (maskSwitch[1] & 0x80) {
+		if (bitSwitch[1] & 0x80) {
+			KeyBoard('F', 0);
+			KeyBoard(0x10, 0);
+		}
+		else KeyBoard('F', 0);
+		maskSwitch[1] &= ~0x80;
+	}
 
 
-    if(maskData[1] & 0x02 && lastStateData[1] & 0x02) 	{                     // przetwornica
-        KeyBoard(0x10,1);	// bistabilny
-        KeyBoard('X',1);
-        maskSwitch[1] |= 0x02;
-        bitSwitch[1] |= 0x02;
-    }else{
-        maskSwitch[1] |= 0x02;
-        bitSwitch[1] &= ~0x02;
-        KeyBoard('X',1);
-    }
-    if(maskData[1] & 0x04 && lastStateData[1] & 0x04) 	{                      // sprê¿arka
-        KeyBoard(0x10,1);	// bistabilny
-        KeyBoard('C',1);
-        maskSwitch[1] |= 0x04;
-        bitSwitch[1] |= 0x04;
-    }else{
-        maskSwitch[1] |= 0x04;
-        bitSwitch[1] &= ~0x04;
-        KeyBoard('C',1);
-    }
-    if(maskData[1] & 0x08 && lastStateData[1] & 0x08)	KeyBoard('S',1);	// piasecznica
-    else                                            	KeyBoard('S',0);	// monostabilny
-    if(maskData[1] & 0x10 && lastStateData[1] & 0x10)  {			// ogrzewanie sk³adu
-        KeyBoard(0x11,1);	// bistabilny
-        KeyBoard('H',1);
-        maskSwitch[1] |= 0x10;
-        bitSwitch[1] |= 0x10;
-    }else{
-        maskSwitch[1] |= 0x10;
-        bitSwitch[1] &= ~0x10;
-        KeyBoard('H',1);
-    }
-    if(maskData[1] & 0x20 || maskData[1] & 0x40){				// prze³¹cznik hamowania
-        if(lastStateData[1] & 0x20){		// Shift+B
-            KeyBoard(0x10,1);
-            maskSwitch[1] |= 0x20;
-        }else if(lastStateData[1] & 0x40){	// Ctrl+B
-            KeyBoard(0x11,1);
-            maskSwitch[1] |= 0x40;
-        }
-        KeyBoard('B',1);
-    }
+	if (maskData[1] & 0x02) if (lastStateData[1] & 0x02) {                     // przetwornica
+		KeyBoard(0x10, 1);	// bistabilny
+		KeyBoard('X', 1);
+		maskSwitch[1] |= 0x02;
+		bitSwitch[1] |= 0x02;
+	}
+	else {
+		maskSwitch[1] |= 0x02;
+		bitSwitch[1] &= ~0x02;
+		KeyBoard('X', 1);
+	}
+	if (maskData[1] & 0x04) if (lastStateData[1] & 0x04) {                      // sprÄ™Å¼arka
+		KeyBoard(0x10, 1);	// bistabilny
+		KeyBoard('C', 1);
+		maskSwitch[1] |= 0x04;
+		bitSwitch[1] |= 0x04;
+	}
+	else {
+		maskSwitch[1] |= 0x04;
+		bitSwitch[1] &= ~0x04;
+		KeyBoard('C', 1);
+	}
+	if (maskData[1] & 0x08) if (lastStateData[1] & 0x08)	KeyBoard('S', 1);	// piasecznica
+	else                                            	KeyBoard('S', 0);	// monostabilny
+	if (maskData[1] & 0x10) if (lastStateData[1] & 0x10) {			// ogrzewanie skÅ‚adu
+		KeyBoard(0x11, 1);	// bistabilny
+		KeyBoard('H', 1);
+		maskSwitch[1] |= 0x10;
+		bitSwitch[1] |= 0x10;
+	}
+	else {
+		maskSwitch[1] |= 0x10;
+		bitSwitch[1] &= ~0x10;
+		KeyBoard('H', 1);
+	}
+	if (maskData[1] & 0x20 || maskData[1] & 0x40) {				// przeÅ‚Ä…cznik hamowania
+		if (lastStateData[1] & 0x20) {		// Shift+B
+			KeyBoard(0x10, 1);
+			maskSwitch[1] |= 0x20;
+		}
+		else if (lastStateData[1] & 0x40) {	// Ctrl+B
+			KeyBoard(0x11, 1);
+			maskSwitch[1] |= 0x40;
+		}
+		KeyBoard('B', 1);
+	}
 
-    if(maskData[1] & 0x80 && lastStateData[1] & 0x80) 	{			// rozruch wysoki/niski
-        KeyBoard(0x10,1);	// bistabilny
-        KeyBoard('F',1);
-        maskSwitch[1] |= 0x80;
-        bitSwitch[1] |= 0x80;
-    }else{
-        maskSwitch[1] |= 0x80;
-        bitSwitch[1] &= ~0x80;
-        KeyBoard('F',1);
-    }
-
-
-    /*PORT2*/
-
-    if(maskSwitch[2]&0x01){
-        if(bitSwitch[2] &0x01){
-            KeyBoard('P',0);
-            KeyBoard(0x10,0);
-        }else KeyBoard('P',0);
-        maskSwitch[2] &= ~0x01;
-    }
-    if(maskSwitch[2]&0x02){
-        if(bitSwitch[2] &0x02){
-            KeyBoard('O',0);
-            KeyBoard(0x10,0);
-        }else KeyBoard('O',0);
-        maskSwitch[2] &= ~0x02;
-    }
+	if (maskData[1] & 0x80) if (lastStateData[1] & 0x80) {			// rozruch wysoki/niski
+		KeyBoard(0x10, 1);	// bistabilny
+		KeyBoard('F', 1);
+		maskSwitch[1] |= 0x80;
+		bitSwitch[1] |= 0x80;
+	}
+	else {
+		maskSwitch[1] |= 0x80;
+		bitSwitch[1] &= ~0x80;
+		KeyBoard('F', 1);
+	}
 
 
-    if(maskData[2] & 0x01 && lastStateData[2] & 0x01) 	{		// pantograf przedni
-        KeyBoard(0x10,1);	// bistabilny
-        KeyBoard('P',1);
-        maskSwitch[2] |= 0x01;
-        bitSwitch[2] |= 0x01;
-    }else{
-        maskSwitch[2] |= 0x01;
-        bitSwitch[2] &= ~0x01;
-        KeyBoard('P',1);
-    }
-    if(maskData[2] & 0x02 && lastStateData[2] & 0x02) 	{		// pantograf tylni
-        KeyBoard(0x10,1);	// bistabilny
-        KeyBoard('O',1);
-        maskSwitch[2] |= 0x02;
-        bitSwitch[2] |= 0x02;
-    }else{
-        maskSwitch[2] |= 0x02;
-        bitSwitch[2] &= ~0x02;
-        KeyBoard('O',1);
-    }
-    if(maskData[2] & 0x04 && lastStateData[2] & 0x04) 	{		// przyhamowanie przy poœlizgu
-        KeyBoard(0x10,1);	// monostabilny
-        KeyBoard(0x0D,1);
-    }else{
-
-        KeyBoard(0x0D,0);
-        KeyBoard(0x10,0);
-    }
-    /*if(maskData[2] & 0x08 && lastStateData[2] & 0x08){           // przyciemnienie œwiate³
-            KeyBoard(' ',0);	// bistabilny
-            KeyBoard(0x10,1);
-            KeyBoard(' ',1);
-        }else{
-            KeyBoard(' ',0);
-            KeyBoard(0x10,0);
-            KeyBoard(' ',1);
-        }
-        if(maskData[2] & 0x10 && lastStateData[2] & 0x10)  {       // przyciemnienie œwiate³
-            KeyBoard(' ',0);	// bistabilny
-            KeyBoard(0x11,1);
-            KeyBoard(' ',1);
-        }else{
-            KeyBoard(' ',0);
-            KeyBoard(0x11,0);
-            KeyBoard(' ',1);
-        }*/
-    if(maskData[2] & 0x20 && lastStateData[2] & 0x20)	KeyBoard(0x66,1);	// odluŸniacz
-    else						KeyBoard(0x66,0);	// monostabilny
-    if(maskData[2] & 0x40 && lastStateData[2] & 0x40) 	{			// syrena wysoka
-        KeyBoard(0x10,1);	// monostabilny
-        KeyBoard('A',1);
-    }else{
-        KeyBoard('A',0);
-        KeyBoard(0x10,0);
-    }
-    if(maskData[2] & 0x80 && lastStateData[2] & 0x80)	KeyBoard('A',1);	// syrena niska
-    else						KeyBoard('A',0);	// monostabilny
+	//PORT2
+	if (maskSwitch[2] & 0x01) {
+		if (bitSwitch[2] & 0x01) {
+			KeyBoard('P', 0);
+			KeyBoard(0x10, 0);
+		}
+		else KeyBoard('P', 0);
+		maskSwitch[2] &= ~0x01;
+	}
+	if (maskSwitch[2] & 0x02) {
+		if (bitSwitch[2] & 0x02) {
+			KeyBoard('O', 0);
+			KeyBoard(0x10, 0);
+		}
+		else KeyBoard('O', 0);
+		maskSwitch[2] &= ~0x02;
+	}
 
 
-    /*PORT3*/
+	if (maskData[2] & 0x01) if (lastStateData[2] & 0x01) {		// pantograf przedni
+		KeyBoard(0x10, 1);	// bistabilny
+		KeyBoard('P', 1);
+		maskSwitch[2] |= 0x01;
+		bitSwitch[2] |= 0x01;
+	}
+	else {
+		maskSwitch[2] |= 0x01;
+		bitSwitch[2] &= ~0x01;
+		KeyBoard('P', 1);
+	}
+	if (maskData[2] & 0x02) if (lastStateData[2] & 0x02) {		// pantograf tylni
+		KeyBoard(0x10, 1);	// bistabilny
+		KeyBoard('O', 1);
+		maskSwitch[2] |= 0x02;
+		bitSwitch[2] |= 0x02;
+	}
+	else {
+		maskSwitch[2] |= 0x02;
+		bitSwitch[2] &= ~0x02;
+		KeyBoard('O', 1);
+	}
+	if (maskData[2] & 0x04) if (lastStateData[2] & 0x04) {		// przyhamowanie przy poÅ›lizgu
+		KeyBoard(0x10, 1);	// monostabilny
+		KeyBoard(0x0D, 1);
+	}
+	else {
 
-    if(maskSwitch[3]&0x01){
-        if(bitSwitch[3] &0x01){
-            KeyBoard('J',0);
-            KeyBoard(0x10,0);
-        }else KeyBoard('J',0);
-        maskSwitch[3] &= ~0x01;
-    }
+		KeyBoard(0x0D, 0);
+		KeyBoard(0x10, 0);
+	}
+	/*if(maskData[2] & 0x08) if (lastStateData[2] & 0x08){           // przyciemnienie Å›wiateÅ‚
+	KeyBoard(' ',0);	// bistabilny
+	KeyBoard(0x10,1);
+	KeyBoard(' ',1);
+	}else{
+	KeyBoard(' ',0);
+	KeyBoard(0x10,0);
+	KeyBoard(' ',1);
+	}
+	if(maskData[2] & 0x10) if (lastStateData[2] & 0x10)  {       // przyciemnienie Å›wiateÅ‚
+	KeyBoard(' ',0);	// bistabilny
+	KeyBoard(0x11,1);
+	KeyBoard(' ',1);
+	}else{
+	KeyBoard(' ',0);
+	KeyBoard(0x11,0);
+	KeyBoard(' ',1);
+	}*/
+	if (maskData[2] & 0x20) if (lastStateData[2] & 0x20)	KeyBoard(0x66, 1);	// odluÅºniacz
+	else						KeyBoard(0x66, 0);	// monostabilny
+	if (maskData[2] & 0x40) if (lastStateData[2] & 0x40) {			// syrena wysoka
+		KeyBoard(0x10, 1);	// monostabilny
+		KeyBoard('A', 1);
+	}
+	else {
+		KeyBoard('A', 0);
+		KeyBoard(0x10, 0);
+	}
+	if (maskData[2] & 0x80) if (lastStateData[2] & 0x80)	KeyBoard('A', 1);	// syrena niska
+	else						KeyBoard('A', 0);	// monostabilny
 
-    if(maskData[3] & 0x01 && lastStateData[3] & 0x01) 	{			// bateria
-        KeyBoard(0x10,1);	// bistabilny
-        KeyBoard('J',1);
-        maskSwitch[3] |= 0x01;
-        bitSwitch[3] |= 0x01;
-    }else{
-        maskSwitch[3] |= 0x01;
-        bitSwitch[3] &= ~0x01;
-        KeyBoard('J',1);
-    }
+
+													//PORT3
+
+	if (maskSwitch[3] & 0x01) {
+		if (bitSwitch[3] & 0x01) {
+			KeyBoard('J', 0);
+			KeyBoard(0x10, 0);
+		}
+		else KeyBoard('J', 0);
+		maskSwitch[3] &= ~0x01;
+	}
+
+	if (maskData[3] & 0x01) if (lastStateData[3] & 0x01) {			// bateria
+		KeyBoard(0x10, 1);	// bistabilny
+		KeyBoard('J', 1);
+		maskSwitch[3] |= 0x01;
+		bitSwitch[3] |= 0x01;
+	}
+	else {
+		maskSwitch[3] |= 0x01;
+		bitSwitch[3] &= ~0x01;
+		KeyBoard('J', 1);
+	}
 
     /*
         if(maskData[3] & 0x04 && lastStateData[1] & 0x04) 	{                                                                                                                KeyBoard(0x10,1);
@@ -491,7 +546,7 @@ bool MWDComm::CheckData()	// sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
                                                                                                                 KeyBoard(0x10,0);
         }
 
-        /*PORT4*//*
+        /*PORT4*/ /*
         if(maskData[4] & 0x02 && lastStateData[1] & 0x02) 	{
                                                                                                                 KeyBoard(0x10,1);
                                                                                                                 KeyBoard('X',1);	//
@@ -537,132 +592,164 @@ bool MWDComm::CheckData()	// sprawdzanie wejœæ cyfrowych i odpowiednie sterowani
                                                                                                                 KeyBoard(0x10,0);
         }
 
-        /*PORT5*//*
-        if(maskData[5] & 0x02 && lastStateData[1] & 0x02) 	{
-                                                                                                                KeyBoard(0x10,1);
-                                                                                                                KeyBoard('X',1);	//
-                                                                                                                KeyBoard('X',0);
-                                                                                                                KeyBoard(0x10,0);
-        }else{ 												KeyBoard('X',1);	//
-                                                                                                                KeyBoard('X',0);
-        }
-        if(maskData[5] & 0x04 && lastStateData[1] & 0x04) 	{
-                                                                                                                KeyBoard(0x10,1);
-                                                                                                                KeyBoard('C',1);	//
-                                                                                                                KeyBoard('C',0);
-                                                                                                                KeyBoard(0x10,0);
-        }else{												KeyBoard('C',1);	//
-                                                                                                                KeyBoard('C',0);
-        }
-        if(maskData[5] & 0x08 && lastStateData[1] & 0x08)	KeyBoard('S',1);	//
-        else												KeyBoard('S',0);
+        /*PORT5*/ /*
+         if(maskData[5] & 0x02 && lastStateData[1] & 0x02) 	{
+                                                                                                                 KeyBoard(0x10,1);
+                                                                                                                 KeyBoard('X',1);	//
+                                                                                                                 KeyBoard('X',0);
+                                                                                                                 KeyBoard(0x10,0);
+         }else{
+         KeyBoard('X',1);	//
+                                                                                                                 KeyBoard('X',0);
+         }
+         if(maskData[5] & 0x04 && lastStateData[1] & 0x04) 	{
+                                                                                                                 KeyBoard(0x10,1);
+                                                                                                                 KeyBoard('C',1);	//
+                                                                                                                 KeyBoard('C',0);
+                                                                                                                 KeyBoard(0x10,0);
+         }else{
+         KeyBoard('C',1);	//
+                                                                                                                 KeyBoard('C',0);
+         }
+         if(maskData[5] & 0x08 && lastStateData[1] & 0x08)	KeyBoard('S',1);	//
+         else
+         KeyBoard('S',0);
 
 
-        if(maskData[5] & 0x10 && lastStateData[1] & 0x10)  {
-                                                                                                                KeyBoard(0x11,1);
-                                                                                                                KeyBoard('H',1);
-        }else{												KeyBoard('H',0);
-                                                                                                                KeyBoard(0x11,0);
-        }
-        if(maskData[5] & 0x20 && lastStateData[1] & 0x20) {
-                                                                                                                KeyBoard(0x11,1);
-                                                                                                                KeyBoard(' ',1);
-        }else{												KeyBoard(' ',0);
-                                                                                                                KeyBoard(0x11,0);
-        }
-        if(maskData[5] & 0x40 && lastStateData[1] & 0x40) 	{
-                                                                                                                KeyBoard(0x10,1);
-                                                                                                                KeyBoard(' ',1);
-        }else{												KeyBoard(' ',0);
-                                                                                                                KeyBoard(0x10,0);
-        }
-        if(maskData[5] & 0x80 && lastStateData[1] & 0x80) 	{
-                                                                                                                KeyBoard(0x10,1);
-                                                                                                                KeyBoard('F',1);
-        }else{												KeyBoard('F',0);
-                                                                                                                KeyBoard(0x10,0);
-        }//*/
+         if(maskData[5] & 0x10 && lastStateData[1] & 0x10)  {
+                                                                                                                 KeyBoard(0x11,1);
+                                                                                                                 KeyBoard('H',1);
+         }else{
+         KeyBoard('H',0);
+                                                                                                                 KeyBoard(0x11,0);
+         }
+         if(maskData[5] & 0x20 && lastStateData[1] & 0x20) {
+                                                                                                                 KeyBoard(0x11,1);
+                                                                                                                 KeyBoard(' ',1);
+         }else{
+         KeyBoard(' ',0);
+                                                                                                                 KeyBoard(0x11,0);
+         }
+         if(maskData[5] & 0x40 && lastStateData[1] & 0x40) 	{
+                                                                                                                 KeyBoard(0x10,1);
+                                                                                                                 KeyBoard(' ',1);
+         }else{
+         KeyBoard(' ',0);
+                                                                                                                 KeyBoard(0x10,0);
+         }
+         if(maskData[5] & 0x80 && lastStateData[1] & 0x80) 	{
+                                                                                                                 KeyBoard(0x10,1);
+                                                                                                                 KeyBoard('F',1);
+         }else{
+         KeyBoard('F',0);
+                                                                                                                 KeyBoard(0x10,0);
+         }//*/
 
     /* NASTAWNIK, BOCZNIK i KIERUNEK */
 
-    if(bnkMask & 1){    //puszczanie klawiszy
-        KeyBoard(0x6B,0);
+    if (bnkMask & 1)
+    { // puszczanie klawiszy
+        KeyBoard(0x6B, 0);
         bnkMask &= ~1;
     }
-    if(bnkMask & 2){
-        KeyBoard(0x6D,0);
+    if (bnkMask & 2)
+    {
+        KeyBoard(0x6D, 0);
         bnkMask &= ~2;
     }
-    if(bnkMask & 4){
-        KeyBoard(0x6F,0);
+    if (bnkMask & 4)
+    {
+        KeyBoard(0x6F, 0);
         bnkMask &= ~4;
     }
-    if(bnkMask & 8){
-        KeyBoard(0x6A,0);
+    if (bnkMask & 8)
+    {
+        KeyBoard(0x6A, 0);
         bnkMask &= ~8;
     }
 
-    if(nastawnik < ReadDataBuff[6])
+    if (nastawnik < ReadDataBuff[6])
     {
         bnkMask |= 1;
         nastawnik++;
-        KeyBoard(0x6B,1); //wciœnij + i dodaj 1 do nastawnika
+        KeyBoard(0x6B, 1); // wciÅ›nij + i dodaj 1 do nastawnika
     }
-    if(nastawnik > ReadDataBuff[6])
+    if (nastawnik > ReadDataBuff[6])
     {
         bnkMask |= 2;
         nastawnik--;
-        KeyBoard(0x6D,1); //wciœnij - i odejmij 1 do nastawnika
+        KeyBoard(0x6D, 1); // wciÅ›nij - i odejmij 1 do nastawnika
     }
-    if(bocznik < ReadDataBuff[7])
+    if (bocznik < ReadDataBuff[7])
     {
         bnkMask |= 4;
         bocznik++;
-        KeyBoard(0x6F,1); //wciœnij / i dodaj 1 do bocznika
+        KeyBoard(0x6F, 1); // wciÅ›nij / i dodaj 1 do bocznika
     }
-    if(bocznik > ReadDataBuff[7])
+    if (bocznik > ReadDataBuff[7])
     {
         bnkMask |= 8;
         bocznik--;
-        KeyBoard(0x6A,1); //wciœnij * i odejmij 1 do bocznika
+        KeyBoard(0x6A, 1); // wciÅ›nij * i odejmij 1 do bocznika
     }
 
-    /* Obs³uga HASLERA */
-    if(ReadDataBuff[0] & 0x80) bCzuwak = true;
+    /* ObsÅ‚uga HASLERA */
+    if (ReadDataBuff[0] & 0x80)
+        bCzuwak = true;
 
-    if(bKabina1){			// logika rysika 1
+    if (bKabina1)
+    { // logika rysika 1
         bRysik1H = true;
         bRysik1L = false;
-        if(bPrzejazdSHP) bRysik1H = false;
-    }else if(bKabina2){
+        if (bPrzejazdSHP)
+            bRysik1H = false;
+    }
+    else if (bKabina2)
+    {
         bRysik1L = true;
         bRysik1H = false;
-        if(bPrzejazdSHP) bRysik1L = false;
-    }else{
+        if (bPrzejazdSHP)
+            bRysik1L = false;
+    }
+    else
+    {
         bRysik1H = false;
         bRysik1L = false;
     }
 
-    if(bHamowanie){			// logika rysika 2
+    if (bHamowanie)
+    { // logika rysika 2
         bRysik2H = false;
         bRysik2L = true;
-    }else{
-        if(bCzuwak) bRysik2H = true;
-        else bRysik2H = false;
+    }
+    else
+    {
+        if (bCzuwak)
+            bRysik2H = true;
+        else
+            bRysik2H = false;
         bRysik2L = false;
     }
     bCzuwak = false;
-    if(bRysik1H)WriteDataBuff[6] |= 1<<0;
-    else 	WriteDataBuff[6] &= ~(1<<0);
-    if(bRysik1L)WriteDataBuff[6] |= 1<<1;
-    else 	WriteDataBuff[6] &= ~(1<<1);
-    if(bRysik2H)WriteDataBuff[6] |= 1<<2;
-    else 	WriteDataBuff[6] &= ~(1<<2);
-    if(bRysik2L)WriteDataBuff[6] |= 1<<3;
-    else 	WriteDataBuff[6] &= ~(1<<3);
+    if (bRysik1H)
+        WriteDataBuff[6] |= 1 << 0;
+    else
+        WriteDataBuff[6] &= ~(1 << 0);
+    if (bRysik1L)
+        WriteDataBuff[6] |= 1 << 1;
+    else
+        WriteDataBuff[6] &= ~(1 << 1);
+    if (bRysik2H)
+        WriteDataBuff[6] |= 1 << 2;
+    else
+        WriteDataBuff[6] &= ~(1 << 2);
+    if (bRysik2L)
+        WriteDataBuff[6] |= 1 << 3;
+    else
+        WriteDataBuff[6] &= ~(1 << 3);
 }
 
-void MWDComm::KeyBoard(int key, bool s)	// emulacja klawiatury
+void TMWDComm::KeyBoard(int key, bool s) // emulacja klawiatury
 {
     INPUT ip;
     // Set up a generic keyboard event.
@@ -672,16 +759,17 @@ void MWDComm::KeyBoard(int key, bool s)	// emulacja klawiatury
     ip.ki.dwExtraInfo = 0;
 
     ip.ki.wVk = key; // virtual-key code for the "a" key
-    
-    if(s){// Press the "A" key
+
+    if (s)
+    { // Press the "A" key
         ip.ki.dwFlags = 0; // 0 for key press
         SendInput(1, &ip, sizeof(INPUT));
-    }else{
+    }
+    else
+    {
         ip.ki.dwFlags = KEYEVENTF_KEYUP; // KEYEVENTF_KEYUP for key release
         SendInput(1, &ip, sizeof(INPUT));
     }
 
-    //return 1;
+    // return 1;
 }
-
-

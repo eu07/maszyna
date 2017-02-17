@@ -7,38 +7,33 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef GaugeH
-#define GaugeH
+#pragma once
 
-//#include "Classes.h"
-#include "QueryParserComp.hpp"
-// class Queryparsercomp::TQueryParserComp;
-class TSubModel;
-class TModel3d;
+#include "Classes.h"
 
 typedef enum
 { // typ ruchu
     gt_Unknown, // na razie nie znany
-    gt_Rotate, // obrót
-    gt_Move, // przesuniêcie równoleg³e
-    gt_Wiper, // obrót trzech kolejnych submodeli o ten sam k¹t (np. wycieraczka, drzwi
+    gt_Rotate, // obrÃ³t
+    gt_Move, // przesuniÄ™cie rÃ³wnolegÅ‚e
+    gt_Wiper, // obrÃ³t trzech kolejnych submodeli o ten sam kÄ…t (np. wycieraczka, drzwi
     // harmonijkowe)
-    gt_Digital // licznik cyfrowy, np. kilometrów
+    gt_Digital // licznik cyfrowy, np. kilometrÃ³w
 } TGaugeType;
 
 class TGauge // zmienne "gg"
-{ // animowany wskaŸnik, mog¹cy przyjmowaæ wiele stanów poœrednich
+{ // animowany wskaÅºnik, mogÄ…cy przyjmowaÄ‡ wiele stanÃ³w poÅ›rednich
   private:
     TGaugeType eType; // typ ruchu
-    double fFriction; // hamowanie przy zli¿aniu siê do zadanej wartoœci
-    double fDesiredValue; // wartoœæ docelowa
-    double fValue; // wartoœæ obecna
-    double fOffset; // wartoœæ pocz¹tkowa ("0")
-    double fScale; // wartoœæ koñcowa ("1")
-    double fStepSize; // nie u¿ywane
+    double fFriction; // hamowanie przy zliÅ¼aniu siÄ™ do zadanej wartoÅ›ci
+    double fDesiredValue; // wartoÅ›Ä‡ docelowa
+    double fValue; // wartoÅ›Ä‡ obecna
+    double fOffset; // wartoÅ›Ä‡ poczÄ…tkowa ("0")
+    double fScale; // wartoÅ›Ä‡ koÅ„cowa ("1")
+    double fStepSize; // nie uÅ¼ywane
     char cDataType; // typ zmiennej parametru: f-float, d-double, i-int
     union
-    { // wskaŸnik na parametr pokazywany przez animacjê
+    { // wskaÅºnik na parametr pokazywany przez animacjÄ™
         float *fData;
         double *dData;
         int *iData;
@@ -50,7 +45,7 @@ class TGauge // zmienne "gg"
     void Clear();
     void Init(TSubModel *NewSubModel, TGaugeType eNewTyp, double fNewScale = 1,
               double fNewOffset = 0, double fNewFriction = 0, double fNewValue = 0);
-    bool Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2 = NULL, double mul = 1.0);
+    bool Load(cParser &Parser, TModel3d *md1, TModel3d *md2 = NULL, double mul = 1.0);
     void PermIncValue(double fNewDesired);
     void IncValue(double fNewDesired);
     void DecValue(double fNewDesired);
@@ -70,4 +65,3 @@ class TGauge // zmienne "gg"
 };
 
 //---------------------------------------------------------------------------
-#endif

@@ -7,22 +7,18 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#if !defined(rainKERNELTEXTPARSER_H_INCLUDED)
-#define rainKERNELTEXTPARSER_H_INCLUDED
-
-#pragma warning(disable : 4786) // 'containers too long for debug' warning
+#pragma once
 
 #include <string>
 #include <sstream>
-#include <map>
-#include <vector>
 #include <fstream>
-#include <ctype.h>
+#include <vector>
+#include <map>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // cParser -- generic class for parsing text data, either from file or provided string
 
-class cParser : public std::stringstream
+class cParser //: public std::stringstream
 {
   public:
     // parameters:
@@ -32,16 +28,34 @@ class cParser : public std::stringstream
         buffer_TEXT
     };
     // constructors:
-    cParser(std::string Stream, buffertype Type = buffer_TEXT, std::string Path = "",
-            bool tr = true);
+    cParser(std::string const &Stream, buffertype const Type = buffer_TEXT, std::string Path = "", bool const Loadtraction = true );
     // destructor:
     virtual ~cParser();
     // methods:
-    template <typename OutputT> inline void getToken(OutputT &output)
+    template <typename _Type>
+    cParser&
+        operator>>( _Type &Right );
+    template <>
+    cParser&
+        operator>>( std::string &Right );
+    template <>
+    cParser&
+        operator>>( bool &Right );
+    template <typename _Output>
+	_Output
+		getToken( bool const ToLower = true )
     {
-        getTokens();
+        getTokens( 1, ToLower );
+		_Output output;
         *this >> output;
+		return output;
     };
+	template <>
+	bool
+		getToken<bool>( bool const ToLower ) {
+
+		return ( getToken<std::string>() == "true" );
+	}
     inline void ignoreToken()
     {
         readToken();
@@ -51,7 +65,7 @@ class cParser : public std::stringstream
         for (int i = 0; i < count; i++)
             readToken();
     };
-    inline bool expectToken(std::string value)
+    inline bool expectToken(std::string const &value)
     {
         return readToken() == value;
     };
@@ -63,25 +77,67 @@ class cParser : public std::stringstream
     {
         return !mStream->fail();
     };
-    bool getTokens(int Count = 1, bool ToLower = true, const char *Break = "\n\t ;");
-    int getProgress() const; // percentage of file processed.
-    // load traction?
-    bool LoadTraction;
+    bool getTokens(int Count = 1, bool ToLower = true, const char *Break = "\n\r\t ;");
+    // returns percentage of file processed so far
+    int getProgress() const;
+    // add custom definition of text which should be ignored when retrieving tokens
+    void addCommentStyle( std::string const &Commentstart, std::string const &Commentend );
 
-  protected:
+  private:
     // methods:
-    std::string readToken(bool ToLower = true, const char *Break = "\n\t ;");
-    std::string readComment(const std::string Break = "\n\t ;");
-    std::string trtest;
-    bool trimComments(std::string &String);
+    std::string readToken(bool ToLower = true, const char *Break = "\n\r\t ;");
+    std::string readQuotes( char const Quote = '\"' );
+    std::string readComment( std::string const &Break = "\n\r\t ;" );
+//    std::string trtest;
+    bool findQuotes( std::string &String );
+    bool trimComments( std::string &String );
     // members:
+    bool LoadTraction; // load traction?
     std::istream *mStream; // relevant kind of buffer is attached on creation.
     std::string mPath; // path to open stream, for relative path lookups.
-    int mSize; // size of open stream, for progress report.
+    std::streamoff mSize; // size of open stream, for progress report.
     typedef std::map<std::string, std::string> commentmap;
     commentmap mComments;
     cParser *mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
+    std::deque<std::string> tokens;
 };
 
-#endif // ..!defined(rainKERNELTEXTPARSER_H_INCLUDED)
+template<typename _Type>
+cParser&
+cParser::operator>>( _Type &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    std::stringstream converter( this->tokens.front() );
+    converter >> Right;
+    this->tokens.pop_front();
+
+    return *this;
+}
+
+template<>
+cParser&
+cParser::operator>>( std::string &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = this->tokens.front();
+    this->tokens.pop_front();
+
+    return *this;
+}
+
+template<>
+cParser&
+cParser::operator>>( bool &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = ( ( this->tokens.front() == "true" )
+           || ( this->tokens.front() == "yes" )
+           || ( this->tokens.front() == "1" ) );
+    this->tokens.pop_front();
+
+    return *this;
+}

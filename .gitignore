@@ -40,7 +40,7 @@ install_manifest.txt
 *.lai
 *.la
 *.a
-*.lib
+#*.lib
 
 # Executables
 *.exe
@@ -58,9 +58,13 @@ install_manifest.txt
 *.vcxproj
 *.filters
 format_all_files.py
-MaSzyna.opensdf
-MaSzyna.sdf
-MaSzyna.sln
-MaSzyna.vcxproj
-MaSzyna.vcxproj.filters
 *.suo
+EU07.tds
+*.opendb
+*.db
+.vs/
+Debug/
+tmp/
+bin/
+ipch/
+*.aps

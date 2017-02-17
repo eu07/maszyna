@@ -7,14 +7,13 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TrackH
-#define TrackH
+#pragma once
 
-#include "Segment.h"
-#include "ResourceManager.h"
+#include <string>
 #include "opengl/glew.h"
-#include <system.hpp>
-#include "Classes.h"
+#include "ResourceManager.h"
+#include "Segment.h"
+#include "Texture.h"
 
 class TEvent;
 
@@ -38,7 +37,7 @@ typedef enum
     e_bridge,
     e_bank
 } TEnvironmentType;
-// Ra: opracowaæ alternatywny system cieni/œwiate³ z definiowaniem koloru oœwietlenia w halach
+// Ra: opracowaÄ‡ alternatywny system cieni/Å›wiateÅ‚ z definiowaniem koloru oÅ›wietlenia w halach
 
 class TTrack;
 class TGroundNode;
@@ -46,71 +45,76 @@ class TSubRect;
 class TTraction;
 
 class TSwitchExtension
-{ // dodatkowe dane do toru, który jest zwrotnic¹
+{ // dodatkowe dane do toru, ktÃ³ry jest zwrotnicÄ…
   public:
-    TSwitchExtension(TTrack *owner, int what);
+    TSwitchExtension(TTrack *owner, int const what);
     ~TSwitchExtension();
-    TSegment *Segments[6]; // dwa tory od punktu 1, pozosta³e dwa od 2? Ra 140101: 6 po³¹czeñ dla
-    // skrzy¿owañ
-    // TTrack *trNear[4]; //tory do³¹czone do punktów 1, 2, 3 i 4
-    // dotychczasowe [2]+[2] wskaŸniki zamieniæ na nowe [4]
-    TTrack *pNexts[2]; // tory do³¹czone do punktów 2 i 4
-    TTrack *pPrevs[2]; // tory do³¹czone do punktów 1 i 3
-    int iNextDirection[2]; // to te¿ z [2]+[2] przerobiæ na [4]
+    std::shared_ptr<TSegment> Segments[6]; // dwa tory od punktu 1, pozostaÂ³e dwa od 2? Ra 140101: 6 poÂ³Â¹czeÃ± dla skrzyÂ¿owaÃ±
+    // TTrack *trNear[4]; //tory doÂ³Â¹czone do punktÃ³w 1, 2, 3 i 4
+    // dotychczasowe [2]+[2] wskaÅ¸niki zamieniÃ¦ na nowe [4]
+    TTrack *pNexts[2]; // tory doÂ³Â¹czone do punktÃ³w 2 i 4
+    TTrack *pPrevs[2]; // tory doÂ³Â¹czone do punktÃ³w 1 i 3
+    int iNextDirection[2]; // to teÂ¿ z [2]+[2] przerobiÃ¦ na [4]
     int iPrevDirection[2];
-    int CurrentIndex; // dla zwrotnicy
-    double fOffset, fDesiredOffset; // aktualne i docelowe po³o¿enie napêdu iglic
-    double fOffsetSpeed; // prêdkoœæ liniowa ruchu iglic
-    double fOffsetDelay; // opóŸnienie ruchu drugiej iglicy wzglêdem pierwszej
+    int CurrentIndex = 0; // dla zwrotnicy
+    double fOffset = 0.0,
+           fDesiredOffset = 0.0; // aktualne i docelowe poÅ‚oÅ¼enie napÄ™du iglic
+    double fOffsetSpeed = 0.1; // prÄ™dkoÅ›Ä‡ liniowa ruchu iglic
+    double fOffsetDelay = 0.05; // opÃ³Åºnienie ruchu drugiej iglicy wzglÄ™dem pierwszej // dodatkowy ruch drugiej iglicy po zablokowaniu pierwszej na opornicy
     union
     {
         struct
         { // zmienne potrzebne tylko dla zwrotnicy
-            double fOffset1, fOffset2; // przesuniêcia iglic - 0=na wprost
+            double fOffset1,
+                   fOffset2; // przesuniÄ™cia iglic - 0=na wprost
             bool RightSwitch; // czy zwrotnica w prawo
         };
         struct
         { // zmienne potrzebne tylko dla obrotnicy/przesuwnicy
-            TGroundNode *pMyNode; // dla obrotnicy do wtórnego pod³¹czania torów
+            TGroundNode *pMyNode; // dla obrotnicy do wtÃ³rnego podÅ‚Ä…czania torÃ³w
             // TAnimContainer *pAnim; //animator modelu dla obrotnicy
             TAnimModel *pModel; // na razie model
         };
         struct
-        { // zmienne dla skrzy¿owania
-            vector3 *vPoints; // tablica wierzcho³ków nawierzchni, generowana przez pobocze
-            int iPoints; // liczba faktycznie u¿ytych wierzcho³ków nawierzchni
+        { // zmienne dla skrzyÅ¼owania
+            vector3 *vPoints; // tablica wierzchoÅ‚kÃ³w nawierzchni, generowana przez pobocze
+            int iPoints; // liczba faktycznie uÅ¼ytych wierzchoÅ‚kÃ³w nawierzchni
             bool bPoints; // czy utworzone?
-            int iRoads; // ile dróg siê spotyka?
+            int iRoads; // ile drÃ³g siÄ™ spotyka?
         };
     };
-    bool bMovement; // czy w trakcie animacji
-    int iLeftVBO, iRightVBO; // indeksy iglic w VBO
-    TSubRect *pOwner; // sektor, któremu trzeba zg³osiæ animacjê
-    TTrack *pNextAnim; // nastêpny tor do animowania
-    TEvent *evPlus, *evMinus; // zdarzenia sygnalizacji rozprucia
-    float fVelocity; // maksymalne ograniczenie prêdkoœci (ustawianej eventem)
+    bool bMovement = false; // czy w trakcie animacji
+    int iLeftVBO = 0,
+        iRightVBO = 0; // indeksy iglic w VBO
+    TSubRect *pOwner = nullptr; // sektor, ktÃ³remu trzeba zgÅ‚osiÄ‡ animacjÄ™
+    TTrack *pNextAnim = nullptr; // nastÄ™pny tor do animowania
+    TEvent *evPlus = nullptr,
+           *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
+    float fVelocity = -1.0; // maksymalne ograniczenie prÄ™dkoÅ›ci (ustawianej eventem)
     vector3 vTrans; // docelowa translacja przesuwnicy
   private:
 };
 
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
 const int iMaxNumDynamics = 40; // McZapkie-100303
+#endif
 
 class TIsolated
-{ // obiekt zbieraj¹cy zajêtoœci z kilku odcinków
-    int iAxles; // iloœæ osi na odcinkach obs³ugiwanych przez obiekt
-    TIsolated *pNext; // odcinki izolowane s¹ trzymane w postaci listy jednikierunkowej
-    static TIsolated *pRoot; // pocz¹tek listy
+{ // obiekt zbierajÄ…cy zajÄ™toÅ›ci z kilku odcinkÃ³w
+    int iAxles = 0; // iloÅ›Ä‡ osi na odcinkach obsÅ‚ugiwanych przez obiekt
+    TIsolated *pNext = nullptr; // odcinki izolowane sÄ… trzymane w postaci listy jednikierunkowej
+    static TIsolated *pRoot; // poczÄ…tek listy
   public:
-    AnsiString asName; // nazwa obiektu, baza do nazw eventów
-    TEvent *evBusy; // zdarzenie wyzwalane po zajêciu grupy
-    TEvent *evFree; // zdarzenie wyzwalane po ca³kowitym zwolnieniu zajêtoœci grupy
-    TMemCell *pMemCell; // automatyczna komórka pamiêci, która wspó³pracuje z odcinkiem izolowanym
+    std::string asName; // nazwa obiektu, baza do nazw eventÃ³w
+    TEvent *evBusy = nullptr; // zdarzenie wyzwalane po zajÄ™ciu grupy
+    TEvent *evFree = nullptr; // zdarzenie wyzwalane po caÅ‚kowitym zwolnieniu zajÄ™toÅ›ci grupy
+    TMemCell *pMemCell = nullptr; // automatyczna komÃ³rka pamiÄ™ci, ktÃ³ra wspÃ³Å‚pracuje z odcinkiem izolowanym
     TIsolated();
-    TIsolated(const AnsiString &n, TIsolated *i);
+    TIsolated(const std::string &n, TIsolated *i);
     ~TIsolated();
     static TIsolated * Find(
-        const AnsiString &n); // znalezienie obiektu albo utworzenie nowego
-    void Modify(int i, TDynamicObject *o); // dodanie lub odjêcie osi
+        const std::string &n); // znalezienie obiektu albo utworzenie nowego
+    void Modify(int i, TDynamicObject *o); // dodanie lub odjÄ™cie osi
     bool Busy()
     {
         return (iAxles > 0);
@@ -128,66 +132,70 @@ class TIsolated
 class TTrack : public Resource
 { // trajektoria ruchu - opakowanie
   private:
-    TSwitchExtension *SwitchExtension; // dodatkowe dane do toru, który jest zwrotnic¹
-    TSegment *Segment;
-    TTrack *trNext; // odcinek od strony punktu 2 - to powinno byæ w segmencie
-    TTrack *trPrev; // odcinek od strony punktu 1
+	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, ktÃ³ry jest zwrotnicÄ…
+    std::shared_ptr<TSegment> Segment;
+    TTrack *trNext = nullptr; // odcinek od strony punktu 2 - to powinno byÄ‡ w segmencie
+    TTrack *trPrev = nullptr; // odcinek od strony punktu 1
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
-    GLuint TextureID1; // tekstura szyn albo nawierzchni
-    GLuint TextureID2; // tekstura automatycznej podsypki albo pobocza
-    float fTexLength; // d³ugoœæ powtarzania tekstury w metrach
-    float fTexRatio1; // proporcja rozmiarów tekstury dla nawierzchni drogi
-    float fTexRatio2; // proporcja rozmiarów tekstury dla chodnika
-    float fTexHeight1; // wysokoœæ brzegu wzglêdem trajektorii
-    float fTexWidth; // szerokoœæ boku
-    float fTexSlope;
-    double fRadiusTable[2]; // dwa promienie, drugi dla zwrotnicy
-    int iTrapezoid; // 0-standard, 1-przechy³ka, 2-trapez, 3-oba
-    GLuint DisplayListID;
-    TIsolated *pIsolated; // obwód izolowany obs³uguj¹cy zajêcia/zwolnienia grupy torów
+    texture_manager::size_type TextureID1 = 0; // tekstura szyn albo nawierzchni
+    texture_manager::size_type TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
+    float fTexLength = 4.0; // dÅ‚ugoÅ›Ä‡ powtarzania tekstury w metrach
+    float fTexRatio1 = 1.0; // proporcja bokÃ³w tekstury nawierzchni (Å¼eby zaoszczÄ™dziÄ‡ na rozmiarach tekstur...)
+    float fTexRatio2 = 1.0; // proporcja bokÃ³w tekstury chodnika (Å¼eby zaoszczÄ™dziÄ‡ na rozmiarach tekstur...)
+    float fTexHeight1 = 0.6; // wysokoÅ›Ä‡ brzegu wzglÄ™dem trajektorii
+    float fTexWidth = 0.9; // szerokoÅ›Ä‡ boku
+    float fTexSlope = 0.9;
+    double fRadiusTable[ 2 ]; // dwa promienie, drugi dla zwrotnicy
+    int iTrapezoid = 0; // 0-standard, 1-przechyÅ‚ka, 2-trapez, 3-oba
+    GLuint DisplayListID = 0;
+    TIsolated *pIsolated = nullptr; // obwÃ³d izolowany obsÅ‚ugujÄ…cy zajÄ™cia/zwolnienia grupy torÃ³w
     TGroundNode *
-        pMyNode; // Ra: proteza, ¿eby tor zna³ swoj¹ nazwê TODO: odziedziczyæ TTrack z TGroundNode
+        pMyNode = nullptr; // Ra: proteza, Å¼eby tor znaÅ‚ swojÄ… nazwÄ™ TODO: odziedziczyÄ‡ TTrack z TGroundNode
   public:
-    int iNumDynamics;
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
+    int iNumDynamics = 0;
     TDynamicObject *Dynamics[iMaxNumDynamics];
-    int iEvents; // Ra: flaga informuj¹ca o obecnoœci eventów
-    TEvent *evEventall0; // McZapkie-140302: wyzwalany gdy pojazd stoi
-    TEvent *evEventall1;
-    TEvent *evEventall2;
-    TEvent *evEvent0; // McZapkie-280503: wyzwalany tylko gdy headdriver
-    TEvent *evEvent1;
-    TEvent *evEvent2;
-    AnsiString asEventall0Name; // nazwy eventów
-    AnsiString asEventall1Name;
-    AnsiString asEventall2Name;
-    AnsiString asEvent0Name;
-    AnsiString asEvent1Name;
-    AnsiString asEvent2Name;
-    int iNextDirection; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
-    int iPrevDirection;
-    TTrackType eType;
-    int iCategoryFlag; // 0x100 - usuwanie pojazów
-    float fTrackWidth; // szerokoœæ w punkcie 1
-    float fTrackWidth2; // szerokoœæ w punkcie 2 (g³ównie drogi i rzeki)
-    float fFriction; // wspó³czynnik tarcia
-    float fSoundDistance;
-    int iQualityFlag;
-    int iDamageFlag;
-    TEnvironmentType eEnvironment; // dŸwiêk i oœwietlenie
-    bool bVisible; // czy rysowany
-    int iAction; // czy modyfikowany eventami (specjalna obs³uga przy skanowaniu)
-    float fOverhead; // informacja o stanie sieci: 0-jazda bezpr¹dowa, >0-z opuszczonym i
-    // ograniczeniem prêdkoœci
+#else
+    typedef std::deque<TDynamicObject *> dynamics_sequence;
+    dynamics_sequence Dynamics;
+#endif
+    int iEvents = 0; // Ra: flaga informujÄ…ca o obecnoÅ›ci eventÃ³w
+    TEvent *evEventall0 = nullptr; // McZapkie-140302: wyzwalany gdy pojazd stoi
+    TEvent *evEventall1 = nullptr;
+    TEvent *evEventall2 = nullptr;
+    TEvent *evEvent0 = nullptr; // McZapkie-280503: wyzwalany tylko gdy headdriver
+    TEvent *evEvent1 = nullptr;
+    TEvent *evEvent2 = nullptr;
+    std::string asEventall0Name; // nazwy eventÃ³w
+	std::string asEventall1Name;
+	std::string asEventall2Name;
+	std::string asEvent0Name;
+	std::string asEvent1Name;
+	std::string asEvent2Name;
+    int iNextDirection = 0; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
+    int iPrevDirection = 0; // domyÅ›lnie wirtualne odcinki doÅ‚Ä…czamy stronÄ… od Point1
+    TTrackType eType = tt_Normal; // domyÅ›lnie zwykÅ‚y
+    int iCategoryFlag = 1; // 0x100 - usuwanie pojazÃ³w // 1-tor, 2-droga, 4-rzeka, 8-samolot?
+    float fTrackWidth = 1.435; // szerokoÅ›Ä‡ w punkcie 1 // rozstaw toru, szerokoÅ›Ä‡ nawierzchni
+    float fTrackWidth2 = 0.0; // szerokoÅ›Ä‡ w punkcie 2 (gÅ‚Ã³wnie drogi i rzeki)
+    float fFriction = 0.15; // wspÃ³Å‚czynnik tarcia
+    float fSoundDistance = -1.0;
+    int iQualityFlag = 20;
+    int iDamageFlag = 0;
+    TEnvironmentType eEnvironment = e_flat; // dÅºwiÄ™k i oÅ›wietlenie
+    bool bVisible = true; // czy rysowany
+    int iAction = 0; // czy modyfikowany eventami (specjalna obsÅ‚uga przy skanowaniu)
+    float fOverhead = -1.0; // moÅ¼na normalnie pobieraÄ‡ prÄ…d (0 dla jazdy bezprÄ…dowej po danym odcinku, >0-z opuszczonym i ograniczeniem prÄ™dkoÅ›ci)
   private:
-    double fVelocity; // prêdkoœæ dla AI (powy¿ej roœnie prawdopowobieñstwo wykolejenia)
+    double fVelocity = -1.0; // ograniczenie prÄ™dkoÅ›ci // prÄ™dkoÅ›Ä‡ dla AI (powyÅ¼ej roÅ›nie prawdopowobieÅ„stwo wykolejenia)
   public:
     // McZapkie-100502:
-    double fTrackLength; // d³ugoœæ z wpisu, nigdzie nie u¿ywana
-    double fRadius; // promieñ, dla zwrotnicy kopiowany z tabeli
-    bool ScannedFlag; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
-    TTraction *hvOverhead; // drut zasilaj¹cy do szybkiego znalezienia (nie u¿ywany)
-    TGroundNode *nFouling[2]; // wspó³rzêdne ukresu albo oporu koz³a
-    TTrack *trColides; // tor kolizyjny, na którym trzeba sprawdzaæ pojazdy pod k¹tem zderzenia
+    double fTrackLength = 100.0; // dÅ‚ugoÅ›Ä‡ z wpisu, nigdzie nie uÅ¼ywana
+    double fRadius = 0.0; // promieÅ„, dla zwrotnicy kopiowany z tabeli
+    bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torÃ³w skanowanych przez AI
+    TTraction *hvOverhead = nullptr; // drut zasilajÄ…cy do szybkiego znalezienia (nie uÅ¼ywany)
+    TGroundNode *nFouling[ 2 ]; // wspÃ³Å‚rzÄ™dne ukresu albo oporu kozÅ‚a
+    TTrack *trColides = nullptr; // tor kolizyjny, na ktÃ³rym trzeba sprawdzaÄ‡ pojazdy pod kÄ…tem zderzenia
 
     TTrack(TGroundNode *g);
     ~TTrack();
@@ -196,7 +204,11 @@ class TTrack : public Resource
     TTrack * NullCreate(int dir);
     inline bool IsEmpty()
     {
+#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
         return (iNumDynamics <= 0);
+#else
+        return Dynamics.empty();
+#endif
     };
     void ConnectPrevPrev(TTrack *pNewPrev, int typ);
     void ConnectPrevNext(TTrack *pNewPrev, int typ);
@@ -206,7 +218,7 @@ class TTrack : public Resource
     {
         return Segment->GetLength();
     };
-    inline TSegment * CurrentSegment()
+	inline std::shared_ptr<TSegment> CurrentSegment()
     {
         return Segment;
     };
@@ -227,7 +239,7 @@ class TTrack : public Resource
     {
         return (SwitchExtension ? SwitchExtension->CurrentIndex : -1);
     };
-    void Load(cParser *parser, vector3 pOrigin, AnsiString name);
+    void Load(cParser *parser, vector3 pOrigin, std::string name);
     bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
@@ -241,12 +253,12 @@ class TTrack : public Resource
 
     void Render(); // renderowanie z Display Lists
     int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
-    void RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start); // wype³nianie VBO
+    void RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start); // wypeÅ‚nianie VBO
     void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
-    void RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
-    void RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)
-    void RenderDynSounds(); // odtwarzanie dŸwiêków pojazdów jest niezale¿ne od ich
-    // wyœwietlania
+    void RenderDyn(); // renderowanie nieprzezroczystych pojazdÃ³w (oba tryby)
+    void RenderDynAlpha(); // renderowanie przezroczystych pojazdÃ³w (oba tryby)
+    void RenderDynSounds(); // odtwarzanie dÅºwiÄ™kÃ³w pojazdÃ³w jest niezaleÅ¼ne od ich
+    // wyÅ›wietlania
 
     void RaOwnerSet(TSubRect *o)
     {
@@ -264,8 +276,8 @@ class TTrack : public Resource
     {
         if (pIsolated)
             pIsolated->Modify(i, o);
-    }; // dodanie lub odjêcie osi
-    AnsiString IsolatedName();
+    }; // dodanie lub odjÄ™cie osi
+    std::string IsolatedName();
     bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
     GLuint TextureGet(int i)
@@ -275,7 +287,7 @@ class TTrack : public Resource
     bool IsGroupable();
     int TestPoint(vector3 *Point);
     void MovedUp1(double dh);
-    AnsiString NameGet();
+    std::string NameGet();
     void VelocitySet(float v);
     float VelocityGet();
     void ConnectionsLog();
@@ -286,4 +298,3 @@ class TTrack : public Resource
 };
 
 //---------------------------------------------------------------------------
-#endif

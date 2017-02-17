@@ -7,12 +7,11 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "sky.h"
+#include "Logs.h"
 #include "Globals.h"
+#include "MdlMngr.h"
 
 //---------------------------------------------------------------------------
 GLfloat lightPos[4] = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -25,18 +24,16 @@ void TSky::Init()
 {
     WriteLog(Global::asSky.c_str());
     WriteLog("init");
-    AnsiString asModel;
-    asModel = Global::asSky;
-    if ((asModel != "1") && (asModel != "0"))
+    if ((Global::asSky != "1") && (Global::asSky != "0"))
         //   {
-        mdCloud = TModelsManager::GetModel(asModel.c_str());
+        mdCloud = TModelsManager::GetModel(Global::asSky.c_str());
     //   }
 };
 
 void TSky::Render()
 {
     if (mdCloud)
-    { // jeúli jest model nieba
+    { // je≈õli jest model nieba
         glPushMatrix();
         // glDisable(GL_DEPTH_TEST);
         glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y,
@@ -61,5 +58,3 @@ void TSky::Render()
 };
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

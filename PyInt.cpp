@@ -1,9 +1,10 @@
+#include "stdafx.h"
 #include "PyInt.h"
 #include "Train.h"
 #include "Logs.h"
-#include <process.h>
-#include <windows.h>
-#include <stdlib.h>
+//#include <process.h>
+//#include <windows.h>
+//#include <stdlib.h>
 
 TPythonInterpreter *TPythonInterpreter::_instance = NULL;
 
@@ -44,13 +45,19 @@ TPythonInterpreter *TPythonInterpreter::getInstance()
     return _instance;
 }
 
-bool TPythonInterpreter::loadClassFile(const char *lookupPath, const char *className)
+void
+TPythonInterpreter::killInstance() {
+
+	delete _instance;
+}
+
+bool TPythonInterpreter::loadClassFile( std::string const &lookupPath, std::string const &className )
 {
-    std::set<const char *, ltstr>::const_iterator it = _classes.find(className);
+    std::set<std::string>::const_iterator it = _classes.find(className);
     if (it == _classes.end())
     {
         FILE *sourceFile = _getFile(lookupPath, className);
-        if (sourceFile != NULL)
+        if (sourceFile != nullptr)
         {
             fseek(sourceFile, 0, SEEK_END);
             long fsize = ftell(sourceFile);
@@ -71,10 +78,13 @@ bool TPythonInterpreter::loadClassFile(const char *lookupPath, const char *class
                 handleError();
                 return false;
             }
+			_classes.insert( className );
+/*
             char *classNameToRemember = (char *)calloc(strlen(className) + 1, sizeof(char));
             strcpy(classNameToRemember, className);
             _classes.insert(classNameToRemember);
-            free(buffer);
+*/
+			free(buffer);
             return true;
         }
         return false;
@@ -82,13 +92,28 @@ bool TPythonInterpreter::loadClassFile(const char *lookupPath, const char *class
     return true;
 }
 
-PyObject *TPythonInterpreter::newClass(const char *className)
+PyObject *TPythonInterpreter::newClass( std::string const &className )
 {
     return newClass(className, NULL);
 }
 
-FILE *TPythonInterpreter::_getFile(const char *lookupPath, const char *className)
+FILE *TPythonInterpreter::_getFile( std::string const &lookupPath, std::string const &className )
 {
+	if( false == lookupPath.empty() ) {
+		std::string const sourcefilepath = lookupPath + className + ".py";
+		FILE *file = fopen( sourcefilepath.c_str(), "r" );
+#ifdef _PY_INT_MORE_LOG
+		WriteLog( sourceFilePath );
+#endif // _PY_INT_MORE_LOG
+		if( nullptr != file ) { return file; }
+	}
+	std::string  sourcefilepath = "python\\local\\" + className + ".py";
+	FILE *file = fopen( sourcefilepath.c_str(), "r" );
+#ifdef _PY_INT_MORE_LOG
+	WriteLog( sourceFilePath );
+#endif // _PY_INT_MORE_LOG
+	return file; // either the file, or a nullptr on fail
+/*
     char *sourceFilePath;
     if (lookupPath != NULL)
     {
@@ -123,6 +148,7 @@ FILE *TPythonInterpreter::_getFile(const char *lookupPath, const char *className
         return file;
     }
     return NULL;
+*/
 }
 
 void TPythonInterpreter::handleError()
@@ -176,14 +202,14 @@ void TPythonInterpreter::handleError()
         }
     }
 }
-PyObject *TPythonInterpreter::newClass(const char *className, PyObject *argsTuple)
+PyObject *TPythonInterpreter::newClass(std::string const &className, PyObject *argsTuple)
 {
     if (_main == NULL)
     {
         WriteLog("main turned into null");
         return NULL;
     }
-    PyObject *classNameObj = PyObject_GetAttrString(_main, className);
+    PyObject *classNameObj = PyObject_GetAttrString(_main, className.c_str());
     if (classNameObj == NULL)
     {
 #ifdef _PY_INT_MORE_LOG
@@ -263,10 +289,22 @@ void TPythonScreenRenderer::updateTexture()
 #endif // _PY_INT_MORE_LOG
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
             glBindTexture(GL_TEXTURE_2D, _textureId);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
-                         textureData);
+            // setup texture parameters
+            if( GLEW_VERSION_1_4 ) {
+
+                glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+                glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+            }
+            else {
+
+                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            }
+            // build texture
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
+
 #ifdef _PY_INT_MORE_LOG
             GLenum status = glGetError();
             switch (status)
@@ -381,7 +419,7 @@ void TPythonScreens::reset(void *train)
     _terminationFlag = true;
     if (_thread != NULL)
     {
-        WriteLog("Awaiting python thread to end");
+//        WriteLog("Awaiting python thread to end");
         WaitForSingleObject(_thread, INFINITE);
         _thread = NULL;
     }
@@ -400,60 +438,45 @@ void TPythonScreens::reset(void *train)
     _train = train;
 }
 
-void TPythonScreens::init(TQueryParserComp *parser, TModel3d *model, AnsiString name, int cab)
+void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &name, int const cab)
 {
-    char buff[255];
-    AnsiString asSubModelName = parser->GetNextSymbol();
-    AnsiString asPyClassName = parser->GetNextSymbol();
-    char *subModelName = (char *)calloc(asSubModelName.Length() + 1, sizeof(char));
-    strcpy(subModelName, asSubModelName.LowerCase().c_str());
-    char *pyClassName = (char *)calloc(asPyClassName.Length() + 1, sizeof(char));
-    strcpy(pyClassName, asPyClassName.LowerCase().c_str());
-    TSubModel *subModel = model->GetFromName(subModelName);
+	std::string asSubModelName, asPyClassName;
+	parser.getTokens( 2, false );
+	parser
+		>> asSubModelName
+		>> asPyClassName;
+    std::string subModelName = ToLower( asSubModelName );
+    std::string pyClassName = ToLower( asPyClassName );
+    TSubModel *subModel = model->GetFromName(subModelName.c_str());
     if (subModel == NULL)
     {
-        sprintf(buff, "Python Screen: submodel %s not found - Ignoring screen", subModelName);
-        WriteLog(buff);
-        free(subModelName);
-        free(pyClassName);
+        WriteLog( "Python Screen: submodel " + subModelName + " not found - Ignoring screen" );
         return; // nie ma takiego sub modelu w danej kabinie pomijamy
     }
-    int textureId = subModel->GetTextureId();
+    int textureId = TextureManager.Texture(subModel->GetTextureId()).id;
     if (textureId <= 0)
     {
-        sprintf(buff, "Python Screen: invalid texture id %d - Ignoring screen", textureId);
-        WriteLog(buff);
-        free(subModelName);
-        free(pyClassName);
+        WriteLog( "Python Screen: invalid texture id " + std::to_string(textureId) + " - Ignoring screen" );
         return; // sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
     }
     TPythonInterpreter *python = TPythonInterpreter::getInstance();
     python->loadClassFile(_lookupPath, pyClassName);
-    PyObject *args = Py_BuildValue("(ssi)", _lookupPath, name.c_str(), cab);
+    PyObject *args = Py_BuildValue("(ssi)", _lookupPath.c_str(), name.c_str(), cab);
     if (args == NULL)
     {
         WriteLog("Python Screen: cannot create __init__ arguments");
-        free(subModelName);
-        free(pyClassName);
         return;
     }
     PyObject *pyRenderer = python->newClass(pyClassName, args);
     Py_CLEAR(args);
     if (pyRenderer == NULL)
     {
-        sprintf(buff, "Python Screen: null renderer for %s - Ignoring screen", pyClassName);
-        WriteLog(buff);
-        free(subModelName);
-        free(pyClassName);
+        WriteLog( "Python Screen: null renderer for " + pyClassName + " - Ignoring screen" );
         return; // nie mozna utworzyc obiektu Pythonowego
     }
     TPythonScreenRenderer *renderer = new TPythonScreenRenderer(textureId, pyRenderer);
     _screens.push_back(renderer);
-    sprintf(buff, "Created python screen %s on submodel %s (%d)", pyClassName, subModelName,
-            textureId);
-    WriteLog(buff);
-    free(subModelName);
-    free(pyClassName);
+    WriteLog( "Created python screen " + pyClassName + " on submodel " + subModelName + " (" + std::to_string(textureId) + ")" );
 }
 
 void TPythonScreens::update()
@@ -471,20 +494,14 @@ void TPythonScreens::update()
     _cleanupReadyFlag = true;
 }
 
-void TPythonScreens::setLookupPath(AnsiString path)
+void TPythonScreens::setLookupPath(std::string const &path)
 {
-    if (_lookupPath != NULL)
-    {
-        free(_lookupPath);
-    }
-    _lookupPath = (char *)calloc(path.Length() + 1, sizeof(char));
-    strcpy(_lookupPath, path.c_str());
+	_lookupPath = path;
 }
 
 TPythonScreens::TPythonScreens()
 {
-    _lookupPath = NULL;
-    TPythonInterpreter::getInstance()->loadClassFile(NULL, "abstractscreenrenderer");
+    TPythonInterpreter::getInstance()->loadClassFile("", "abstractscreenrenderer");
     _terminationFlag = false;
     _renderReadyFlag = false;
     _cleanupReadyFlag = false;
@@ -497,6 +514,7 @@ TPythonScreens::~TPythonScreens()
     WriteLog("Called python sceeens destructor");
 #endif // _PY_INT_MORE_LOG
     reset(NULL);
+/*
     if (_lookupPath != NULL)
     {
 #ifdef _PY_INT_MORE_LOG
@@ -504,6 +522,7 @@ TPythonScreens::~TPythonScreens()
 #endif // _PY_INT_MORE_LOG
         free(_lookupPath);
     }
+*/
 }
 
 void TPythonScreens::run()
@@ -547,7 +566,7 @@ void TPythonScreens::run()
 
 void TPythonScreens::finish()
 {
-    _thread == NULL;
+    _thread = NULL;
 }
 
 DWORD WINAPI ScreenRendererThread(LPVOID lpParam)
@@ -566,7 +585,7 @@ void TPythonScreens::start()
     if (_screens.size() > 0)
     {
         _thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ScreenRendererThread, this,
-                               CREATE_SUSPENDED, &_threadId);
+                               CREATE_SUSPENDED, reinterpret_cast<LPDWORD>(&_threadId));
         if (_thread != NULL)
         {
             SetThreadPriority(_thread,
