@@ -477,7 +477,8 @@ float Console::AnalogCalibrateGet(int x)
 		b = (b - Global::fMWDAnalogInCalib[x][0]) / (Global::fMWDAnalogInCalib[x][1] - Global::fMWDAnalogInCalib[x][0]);
 		switch (x)
 		{
-		case 0: return (b * 8 - 2);
+		case 0: if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b * 8 - 2));
+			return (b * 8 - 2);
 			break;
 		case 1: return (b * 10);
 			break;

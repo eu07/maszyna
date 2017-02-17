@@ -856,46 +856,52 @@ void Global::ConfigParse(cParser &Parser)
 		else if (token == "mwdlocbreakconfig") {	// ustawienia hamulca lokomotywy
 			Parser.getTokens(2, false);
 			Parser >> fMWDAnalogInCalib[1][0] >> fMWDAnalogInCalib[1][1];
-			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[1][1]));
+			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + (" ") + to_string(fMWDAnalogInCalib[1][1]));
 		}
 		else if (token == "mwdanalogin1config") {      // ustawienia hamulca zespolonego
 			Parser.getTokens(2, false);
 			Parser >> fMWDAnalogInCalib[2][0] >> fMWDAnalogInCalib[2][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[2][1]));
+			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + (" ") + to_string(fMWDAnalogInCalib[2][1]));
 		}
 		else if (token == "mwdanalogin2config") {	// ustawienia hamulca lokomotywy
 			Parser.getTokens(2, false);
 			Parser >> fMWDAnalogInCalib[3][0] >> fMWDAnalogInCalib[3][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[3][1]));
+			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + (" ") + to_string(fMWDAnalogInCalib[3][1]));
 		}
 		else if (token == "mwdmaintankpress") {        // max ciśnienie w zbiorniku głownym i rozdzielczość
 			Parser.getTokens(2, false);
 			Parser >> fMWDzg[0] >> fMWDzg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + to_string(" ") + to_string(fMWDzg[1]));
+			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + (" ") + to_string(fMWDzg[1]));
 		}
 		else if (token == "mwdmainpipepress") {        // max ciśnienie w przewodzie głownym i rozdzielczość
 			Parser.getTokens(2, false);
 			Parser >> fMWDpg[0] >> fMWDpg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + to_string(" ") + to_string(fMWDpg[1]));
+			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + (" ") + to_string(fMWDpg[1]));
 		}
 		else if (token == "mwdbreakpress") {           // max ciśnienie w hamulcach i rozdzielczość
 			Parser.getTokens(2, false);
 			Parser >> fMWDph[0] >> fMWDph[1];
-			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + to_string(" ") + to_string(fMWDph[1]));
+			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + (" ") + to_string(fMWDph[1]));
 		}
 		else if (token == "mwdhivoltmeter") {          // max napięcie na woltomierzu WN
 			Parser.getTokens(2, false);
 			Parser >> fMWDvolt[0] >> fMWDvolt[1];
-			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + to_string(" ") + to_string(fMWDvolt[1]));
+			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + (" ") + to_string(fMWDvolt[1]));
 		}
 		else if (token == "mwdhiampmeter") {
 			Parser.getTokens(2, false);
 			Parser >> fMWDamp[0] >> fMWDamp[1];
-			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + to_string(" ") + to_string(fMWDamp[1]));
+			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + (" ") + to_string(fMWDamp[1]));
 		}
 		else if (token == "mwddivider") {
 			Parser.getTokens(1, false);
 			Parser >> iMWDdivider;
+			if (iMWDdivider == 0)
+			{
+				WriteLog("Dzielnik nie może być równy ZERO! Ustawiam na 1!");
+				iMWDdivider = 1;
+			}
+			if (bMWDdebugEnable) WriteLog("Divider = " + to_string(iMWDdivider));
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
