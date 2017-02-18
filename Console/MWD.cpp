@@ -152,7 +152,7 @@ bool TMWDComm::Close() // zamykanie portu COM
     return TRUE;
 }
 
-inline bool TMWDComm::GetMWDState() // sprawdzanie otwarcia portu COM
+bool TMWDComm::GetMWDState() // sprawdzanie otwarcia portu COM
 {
     if (hComm > 0)
         return 1;
