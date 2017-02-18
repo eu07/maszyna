@@ -345,8 +345,10 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("glLineWidth(1.0f);");
     glLineWidth(1.0f);
     //	glLineWidth(2.0f);
-    WriteLog("glPointSize(2.0f);");
-    glPointSize(2.0f);
+    WriteLog("glPointSize(3.0f);");
+    glPointSize(3.0f);
+//    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST ); // Really Nice Perspective Calculations
+//    glEnable( GL_POINT_SMOOTH );
 
     // ----------- LIGHTING SETUP -----------
     // Light values and coordinates

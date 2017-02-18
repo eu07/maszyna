@@ -29,8 +29,8 @@ TMWDComm::TMWDComm() // konstruktor
 	MWDTime = 0;
 	bSHPstate = false;
 	bPrzejazdSHP = false;
-	bKabina1 = true;	// pasuje wyciągnąć dane na temat kabiny i ustawiać te dwa parametry!
-	bKabina2 = false;
+	bKabina1 = true;	// pasuje wyciągnąć dane na temat kabiny 
+	bKabina2 = false;	// i ustawiać te dwa parametry!
 	bHamowanie = false;
 	bCzuwak = false;
 

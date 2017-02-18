@@ -3100,7 +3100,11 @@ bool TDynamicObject::Update(double dt, double dt1)
     dDOMoveLen =
         GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
     // yB: zeby zawsze wrzucalo w jedna strone zakretu
+/*
+    // this seemed to have opposite effect, if anything -- the sway direction would be affected
+    // by the 'direction' of the track, making the sway go sometimes inward, sometimes outward
     MoverParameters->AccN *= -ABuGetDirection();
+*/
     // if (dDOMoveLen!=0.0) //Ra: nie może być, bo blokuje Event0
     Move(dDOMoveLen);
     if (!bEnabled) // usuwane pojazdy nie mają toru
@@ -3530,24 +3534,24 @@ bool TDynamicObject::Update(double dt, double dt1)
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if ((dDoorMoveL < MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
 	{
-		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
+		rsDoorOpen.Play(1, 0, MechInside, vPosition);
         dDoorMoveL += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveL > 0) && (!MoverParameters->DoorLeftOpened))
     {
-		rsDoorClose.Play(vol, 0, MechInside, vPosition);
+		rsDoorClose.Play(1, 0, MechInside, vPosition);
         dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveL < 0)
             dDoorMoveL = 0;
     }
     if ((dDoorMoveR < MoverParameters->DoorMaxShiftR) && (MoverParameters->DoorRightOpened))
 	{
-		rsDoorOpen.Play(vol, 0, MechInside, vPosition);
+		rsDoorOpen.Play(1, 0, MechInside, vPosition);
         dDoorMoveR += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveR > 0) && (!MoverParameters->DoorRightOpened))
     {
-		rsDoorClose.Play(vol, 0, MechInside, vPosition);
+		rsDoorClose.Play(1, 0, MechInside, vPosition);
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveR < 0)
             dDoorMoveR = 0;
@@ -5357,10 +5361,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						token, 50,
 						GetPosition().x, GetPosition().y, GetPosition().z,
 						true );
-                    sPantUp.AM = 50000;
-					sPantUp.AA = -1 * ( 105 - Random( 10 ) ) / 100;
-                    sPantUp.FM = 1.0;
-                    sPantUp.FA = 0.0;
                 }
 
 				else if( token == "pantographdown:" ) {
@@ -5370,10 +5370,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						token, 50,
 						GetPosition().x, GetPosition().y, GetPosition().z,
 						true );
-                    sPantDown.AM = 50000;
-					sPantDown.AA = -1 * ( 105 - Random( 10 ) ) / 100;
-                    sPantDown.FM = 1.0;
-                    sPantDown.FA = 0.0;
                 }
 
 				else if( token == "compressor:" ) {
@@ -5404,10 +5400,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						token, 50,
 						GetPosition().x, GetPosition().y, GetPosition().z,
 						true );
-                    rsDoorOpen.AM = 50000;
-					rsDoorOpen.AA = -1 * ( 105 - Random( 10 ) ) / 100;
-                    rsDoorOpen.FM = 1.0;
-                    rsDoorOpen.FA = 0.0;
                 }
 
 				else if( token == "doorclose:" ) {
@@ -5417,10 +5409,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						token, 50,
 						GetPosition().x, GetPosition().y, GetPosition().z,
 						true );
-                    rsDoorClose.AM = 50000;
-					rsDoorClose.AA = -1 * ( 105 - Random( 10 ) ) / 100;
-                    rsDoorClose.FM = 1.0;
-                    rsDoorClose.FA = 0.0;
                 }
 
 				else if( token == "sand:" ) {
