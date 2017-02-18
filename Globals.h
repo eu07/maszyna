@@ -237,6 +237,7 @@ class Global
     static std::string asSky;
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
+    static float AnisotropicFiltering; // requested level of anisotropic filtering. TODO: move it to renderer object
     static int iDefaultFiltering; // domyślne rozmywanie tekstur TGA
     static int iBallastFiltering; // domyślne rozmywanie tekstury podsypki
     static int iRailProFiltering; // domyślne rozmywanie tekstury szyn

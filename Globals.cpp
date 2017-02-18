@@ -130,6 +130,7 @@ bool Global::bAdjustScreenFreq = true;
 bool Global::bEnableTraction = true;
 bool Global::bLoadTraction = true;
 bool Global::bLiveTraction = true;
+float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic filtering. TODO: move it to renderer object
 int Global::iDefaultFiltering = 9; // domyślne rozmywanie tekstur TGA bez alfa
 int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
 int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
@@ -465,7 +466,12 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             Parser >> Global::iDynamicFiltering;
         }
-        else if (token == "usevbo")
+        else if( token == "anisotropicfiltering" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::AnisotropicFiltering;
+        }
+        else if( token == "usevbo" )
         {
 
             Parser.getTokens();
