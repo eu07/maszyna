@@ -285,13 +285,33 @@ int cSun::yearday( int Day, const int Month, const int Year ) {
 	return Day;
 }
 
+void cSun::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday ) {
+
+    WORD daytab[ 2 ][ 13 ] = {
+        { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
+        { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
+    };
+
+    int leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
+    WORD idx = 1;
+    while( (idx < 13) && ( Yearday <= daytab[ leap ][ idx ] )) {
+
+        ++idx;
+    }
+    Month = idx + 1;
+    Day = Yearday - daytab[ leap ][ idx ];
+}
+
 // obtains current time for calculations
 void
 cSun::time( SYSTEMTIME *Time ) {
 
     ::GetLocalTime( Time );
     // NOTE: we're currently using local time to determine day/month/year
-    // TODO: enter scenario-defined day/month/year instead.
+    if( Global::fMoveLight > 0.0 ) {
+        // TODO: enter scenario-defined day/month/year instead.
+        daymonth( Time->wDay, Time->wMonth, Time->wYear, static_cast<WORD>(Global::fMoveLight) );
+    }
     Time->wHour = GlobalTime->hh;
     Time->wMinute = GlobalTime->mm;
     Time->wSecond = std::floor( GlobalTime->mr );

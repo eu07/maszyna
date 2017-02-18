@@ -552,18 +552,7 @@ void Global::ConfigParse(cParser &Parser)
                 std::tm *localtime = std::localtime(&timenow);
                 Global::fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
-            if (fMoveLight > 0.f) // tu jest nadal zwiększone o 1
-            { // obliczenie deklinacji wg:
-                // http://naturalfrequency.com/Tregenza_Sharples/Daylight_Algorithms/algorithm_1_11.htm
-                // Spencer J W Fourier series representation of the position of the sun Search 2 (5)
-                // 172 (1971)
-                Global::fMoveLight =
-                    M_PI / 182.5 * (Global::fMoveLight - 1.0); // numer dnia w postaci kąta
-                fSunDeclination =
-                    0.006918 - 0.3999120 * std::cos(fMoveLight) + 0.0702570 * std::sin(fMoveLight) -
-                    0.0067580 * std::cos(2 * fMoveLight) + 0.0009070 * std::sin(2 * fMoveLight) -
-                    0.0026970 * std::cos(3 * fMoveLight) + 0.0014800 * std::sin(3 * fMoveLight);
-            }
+            // TODO: calculate lights single time here for static setup. or get rid of static setup
         }
         else if (token == "smoothtraction")
         {

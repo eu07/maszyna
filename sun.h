@@ -54,6 +54,8 @@ protected:
 	void irradiance();
 	// calculates day of year from given date
 	int yearday( int Day, int const Month, int const Year );
+    // calculates day and month from given day of year
+    void daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday );
     // obtains current time for calculations
     void time( SYSTEMTIME *Time );
 

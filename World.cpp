@@ -1513,14 +1513,14 @@ void TWorld::Update_Lights() {
     Global::DayLight.position[2] = position.z;
     auto const direction = -1.0 * Sun.getDirection();
     Global::DayLight.direction = direction;
-    auto const intensity = std::min( 2.0f * Sun.getIntensity(), 1.0f );
+    auto const intensity = std::min( 2.0f * Sun.getIntensity(), 1.25f );
 
     Global::DayLight.diffuse[ 0 ] = 255.0 / 255.0 * intensity;
     Global::DayLight.diffuse[ 1 ] = 242.0 / 255.0 * intensity;
     Global::DayLight.diffuse[ 2 ] = 231.0 / 255.0 * intensity;
 //    Global::DayLight.diffuse[ 3 ] = 1.0f;// std::min( 0.15f + intensity, 1.0f );
-    Global::DayLight.ambient[ 0 ] = 205.0 / 255.0 * intensity * 0.75f;
-    Global::DayLight.ambient[ 1 ] = 217.0 / 255.0 * intensity * 0.75f;
+    Global::DayLight.ambient[ 0 ] = 155.0 / 255.0 * intensity * 0.75f;
+    Global::DayLight.ambient[ 1 ] = 192.0 / 255.0 * intensity * 0.75f;
     Global::DayLight.ambient[ 2 ] = 231.0 / 255.0 * intensity * 0.75f;
 //    Global::DayLight.ambient[ 3 ] = 1.0f;
     /*
