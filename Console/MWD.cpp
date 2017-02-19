@@ -204,8 +204,11 @@ bool TMWDComm::Run() // wywoływanie obsługi MWD + generacja większego opóźn
 		if (!(MWDTime % Global::iMWDdivider))
 		{
 			MWDTime = 0;
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Sending data...");
 			SendData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!\nReceiving data...");
 			ReadData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!");
 			return 1;
 		}
 	}
