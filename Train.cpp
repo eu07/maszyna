@@ -3767,7 +3767,7 @@ bool TTrain::Update( double const Deltatime )
 					double b = Console::AnalogCalibrateGet(0);
 					b = b * 8 - 2;
 					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
-
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b));
 					ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
 					mvOccupied->BrakeLevelSet(b);
 				}
@@ -3776,7 +3776,7 @@ bool TTrain::Update( double const Deltatime )
                     double b = Console::AnalogCalibrateGet(0);
 					b = b * 7 - 1;
 					b = Global::CutValueToRange(-1.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
-
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b));
                     ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                     mvOccupied->BrakeLevelSet(b);
                 }
