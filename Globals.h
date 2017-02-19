@@ -253,6 +253,9 @@ class Global
     static double fLuminance; // jasność światła do automatycznego zapalania
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
     static HWND hWnd; // uchwyt okna
+    static int ScreenWidth; // current window dimensions. TODO: move it to renderer
+    static int ScreenHeight;
+    static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
     static int iCameraLast;
     static std::string asRelease; // numer
     static std::string asVersion; // z opisem

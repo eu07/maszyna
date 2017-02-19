@@ -3710,7 +3710,7 @@ void TDynamicObject::Render()
     // zmienne
     renderme = false;
     // przeklejka
-    double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition);
+    double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition) / Global::ZoomFactor;
     // koniec przeklejki
     if (ObjSqrDist < 500) // jak jest blisko - do 70m
         modelrotate = 0.01; // mały kąt, żeby nie znikało
@@ -3737,7 +3737,7 @@ void TDynamicObject::Render()
     {
         TSubModel::iInstance = (int)this; //żeby nie robić cudzych animacji
         // AnsiString asLoadName="";
-        double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition);
+        double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition) / Global::ZoomFactor;
         ABuLittleUpdate(ObjSqrDist); // ustawianie zmiennych submodeli dla wspólnego modelu
 
 // Cone(vCoulpler[0],modelRot.z,0);
