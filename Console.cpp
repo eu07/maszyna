@@ -421,7 +421,8 @@ void Console::ValueSet(int x, double y)
 			MWDComm->WriteDataBuff[20] = (unsigned int)(iliczba >> 8);
 			MWDComm->WriteDataBuff[19] = (unsigned char)iliczba;
 			break;
-		case 7: MWDComm->WriteDataBuff[0] = (unsigned char)floor(y);	// prędkość
+		case 7: if (Global::iPause) MWDComm->WriteDataBuff[0] = 0; //skoro pauza to hasler stoi i nie nabija kilometrów
+				else MWDComm->WriteDataBuff[0] = (unsigned char)floor(y); 	// prędkość dla np haslera
 			break;
 		}
 	}
