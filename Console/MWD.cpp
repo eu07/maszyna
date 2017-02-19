@@ -133,9 +133,11 @@ bool TMWDComm::Open() // otwieranie portu COM
 
 bool TMWDComm::Close() // zamykanie portu COM
 {
-	Global::bMWDmasterEnable = false;              // główne włączenie portu!
-	Global::bMWDInputEnable = false;               // włącz wejścia
-	Global::bMWDBreakEnable = false;               // włącz wejścia analogowe
+	Global::bMWDmasterEnable = false;	// wyłącz SerialPort
+	Global::bMWDInputEnable = false;	// wyłącz wejścia
+	Global::bMWDBreakEnable = false;	// wyłącz wejścia analogowe
+	Global::bMWDdebugEnable = false;	// wyłącz debugowanie
+	Global::iMWDDebugMode = 0;			// wyłącz debugMode!
 
     WriteLog("COM Port is closing...");
     int i = 0;
@@ -164,7 +166,7 @@ bool TMWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i za
 {
 	DWORD bytes_read;
 	ReadFile(hComm, &ReadDataBuff[0], BYTETOREAD, &bytes_read, NULL);
-
+	if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Data receive. Checking data...");
 	if (Global::bMWDBreakEnable)
 	{
 		uiAnalog[0] = (ReadDataBuff[9] << 8) + ReadDataBuff[8];
@@ -204,8 +206,11 @@ bool TMWDComm::Run() // wywoływanie obsługi MWD + generacja większego opóźn
 		if (!(MWDTime % Global::iMWDdivider))
 		{
 			MWDTime = 0;
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Sending data...");
 			SendData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!\nReceiving data...");
 			ReadData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!");
 			return 1;
 		}
 	}
