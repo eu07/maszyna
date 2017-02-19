@@ -3791,7 +3791,7 @@ bool TTrain::Update( double const Deltatime )
         if (ggLocalBrake.SubModel)
         {
             if (DynamicObject->Mechanik ?
-                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || Global::bMWDmasterEnable)) :
+                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 			  // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
@@ -4691,7 +4691,7 @@ bool TTrain::Update( double const Deltatime )
         if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel])) &&
             (!Console::Pressed(Global::Keys[k_WaveBrake])) && (mvOccupied->BrakeCtrlPos == -1) &&
             (mvOccupied->BrakeHandle == FVel6) && (DynamicObject->Controller != AIdriver) &&
-            (Global::iFeedbackMode != 4))
+            (Global::iFeedbackMode != 4 || !(Global::bMWDmasterEnable && Global::bMWDBreakEnable)))
         {
             // mvOccupied->BrakeCtrlPos=(mvOccupied->BrakeCtrlPos)+1;
             // mvOccupied->IncBrakeLevel();
