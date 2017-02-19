@@ -133,9 +133,11 @@ bool TMWDComm::Open() // otwieranie portu COM
 
 bool TMWDComm::Close() // zamykanie portu COM
 {
-	Global::bMWDmasterEnable = false;              // główne włączenie portu!
-	Global::bMWDInputEnable = false;               // włącz wejścia
-	Global::bMWDBreakEnable = false;               // włącz wejścia analogowe
+	Global::bMWDmasterEnable = false;   // główne włączenie portu!
+	Global::bMWDInputEnable = false;    // włącz wejścia
+	Global::bMWDBreakEnable = false;    // włącz wejścia analogowe
+	Global::bMWDdebugEnable = false;	// wyłącz debugowanie
+	Global::iMWDDebugMode = 0;			// wyłącz debugMode!
 
     WriteLog("COM Port is closing...");
     int i = 0;
