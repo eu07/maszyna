@@ -1540,6 +1540,7 @@ void TSubModel::InfoSet(TSubModelInfo *info)
 	int ile = (char *)&uiDisplayList - (char *)&eType; // ilość bajtów pomiędzy tymi zmiennymi
 	ZeroMemory(this, sizeof(TSubModel)); // zerowaie całości
 	CopyMemory(this, info->pSubModel, ile); // skopiowanie pamięci 1:1
+	tVboPtr = (int)info->pSubModel->iVboPtr;
 	iTexture = info->iTexture; // numer nazwy tekstury, a nie numer w OpenGL
 	TextureID = info->iTexture; // numer tekstury w OpenGL
 	iName = info->iName; // numer nazwy w obszarze nazw
