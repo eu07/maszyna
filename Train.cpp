@@ -3762,12 +3762,21 @@ bool TTrain::Update( double const Deltatime )
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
-                if (((mvOccupied->BrakeHandle == FV4a) ||
-                                   (mvOccupied->BrakeHandle == FVel6))) // może można usunąć ograniczenie do FV4a i FVel6?
+				if (mvOccupied->BrakeHandle == FV4a)
+				{
+					double b = Console::AnalogCalibrateGet(0);
+					b = b * 8 - 2;
+					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b));
+					ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
+					mvOccupied->BrakeLevelSet(b);
+				}
+                if (mvOccupied->BrakeHandle == FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
                 {
                     double b = Console::AnalogCalibrateGet(0);
-					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
-
+					b = b * 7 - 1;
+					b = Global::CutValueToRange(-1.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b));
                     ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                     mvOccupied->BrakeLevelSet(b);
                 }
@@ -3782,13 +3791,14 @@ bool TTrain::Update( double const Deltatime )
         if (ggLocalBrake.SubModel)
         {
             if (DynamicObject->Mechanik ?
-                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || Global::bMWDmasterEnable)) :
+                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 			  // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
                 if ((mvOccupied->BrakeLocHandle == FD1))
                 {
                     double b = Console::AnalogCalibrateGet(1);
+					b *= 10;
 					b = Global::CutValueToRange(0.0, b, LocalBrakePosNo); // przycięcie zmiennej do granic
                     ggLocalBrake.UpdateValue(b); // przesów bez zaokrąglenia
                     mvOccupied->LocalBrakePos =
@@ -4681,7 +4691,7 @@ bool TTrain::Update( double const Deltatime )
         if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel])) &&
             (!Console::Pressed(Global::Keys[k_WaveBrake])) && (mvOccupied->BrakeCtrlPos == -1) &&
             (mvOccupied->BrakeHandle == FVel6) && (DynamicObject->Controller != AIdriver) &&
-			(Global::iFeedbackMode != 4) && (!(Global::bMWDmasterEnable && Global::bMWDBreakEnable)))
+            (Global::iFeedbackMode != 4) && (!(Global::bMWDmasterEnable && Global::bMWDBreakEnable)))
         {
             // mvOccupied->BrakeCtrlPos=(mvOccupied->BrakeCtrlPos)+1;
             // mvOccupied->IncBrakeLevel();

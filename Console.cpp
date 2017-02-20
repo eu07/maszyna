@@ -421,7 +421,8 @@ void Console::ValueSet(int x, double y)
 			MWDComm->WriteDataBuff[20] = (unsigned int)(iliczba >> 8);
 			MWDComm->WriteDataBuff[19] = (unsigned char)iliczba;
 			break;
-		case 7: MWDComm->WriteDataBuff[0] = (unsigned char)floor(y);	// prędkość
+		case 7: if (Global::iPause) MWDComm->WriteDataBuff[0] = 0; //skoro pauza to hasler stoi i nie nabija kilometrów
+				else MWDComm->WriteDataBuff[0] = (unsigned char)floor(y); 	// prędkość dla np haslera
 			break;
 		}
 	}
@@ -462,28 +463,28 @@ float Console::AnalogCalibrateGet(int x)
     if (iMode == 4 && PoKeys55[0])
     {
         float b = PoKeys55[0]->fAnalog[x];
-        return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+        /*return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
                   Global::fCalibrateIn[x][3]) *
                      b +
                  Global::fCalibrateIn[x][2]) *
                     b +
                 Global::fCalibrateIn[x][1]) *
                    b +
-               Global::fCalibrateIn[x][0];
+               Global::fCalibrateIn[x][0];*/
+		b = (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+			Global::fCalibrateIn[x][3]) *
+			b +
+			Global::fCalibrateIn[x][2]) *
+			b +
+			Global::fCalibrateIn[x][1]) *
+			b +
+			Global::fCalibrateIn[x][0];
+		return (b + 2) / 8;
     }
 	if (Global::bMWDmasterEnable && Global::bMWDBreakEnable)
 	{
 		float b = (float)MWDComm->uiAnalog[x];
-		b = (b - Global::fMWDAnalogInCalib[x][0]) / (Global::fMWDAnalogInCalib[x][1] - Global::fMWDAnalogInCalib[x][0]);
-		switch (x)
-		{
-		case 0: if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b * 8 - 2));
-			return (b * 8 - 2);
-			break;
-		case 1: return (b * 10);
-			break;
-		default: return 0;
-		}
+		return (b - Global::fMWDAnalogInCalib[x][0]) / (Global::fMWDAnalogInCalib[x][1] - Global::fMWDAnalogInCalib[x][0]);
 	}
     return -1.0; // odcięcie
 };
