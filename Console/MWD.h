@@ -61,8 +61,8 @@ public:
 	
 	unsigned int uiAnalog[4]; 		// trzymanie danych z wejść analogowych
 
-	BYTE ReadDataBuff[BYTETOREAD]; //17]; // bufory danych
-	BYTE WriteDataBuff[BYTETOWRITE]; //31];
+	BYTE ReadDataBuff[BYTETOREAD+2]; //17]; // bufory danych
+	BYTE WriteDataBuff[BYTETOWRITE+2]; //31];
 
     TMWDComm(); // konstruktor
     ~TMWDComm(); // destruktor
