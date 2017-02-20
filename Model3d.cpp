@@ -671,58 +671,58 @@ void TSubModel::DisplayLists()
 			};
 			glEnd();
 #endif
-			glEndList();
-		}
-	}
-	else if (eType == TP_FREESPOTLIGHT)
-	{
-		uiDisplayList = glGenLists(1);
-		glNewList(uiDisplayList, GL_COMPILE);
-		TextureManager.Bind(0);
-		//     if (eType==smt_FreeSpotLight)
-		//      {
-		//       if (iFarAttenDecay==0)
-		//         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
-		//      }
-		//      else
-		// TODO: poprawic zeby dzialalo
-		// glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-		glColorMaterial(GL_FRONT, GL_EMISSION);
-		glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
-		glBegin(GL_POINTS);
-		glVertex3f(0, 0, 0);
-		glEnd();
-		glEnable(GL_LIGHTING);
-		glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-		glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-		glEndList();
-	}
-	else if (eType == TP_STARS)
-	{ // punkty świecące dookólnie
-		uiDisplayList = glGenLists(1);
-		glNewList(uiDisplayList, GL_COMPILE);
-		TextureManager.Bind(0); // tekstury nie ma
-		glColorMaterial(GL_FRONT, GL_EMISSION);
-		glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
-		glBegin(GL_POINTS);
-		for (int i = 0; i < iNumVerts; i++)
-		{
-			glColor3f(Vertices[i].Normal.x, Vertices[i].Normal.y, Vertices[i].Normal.z);
-			// glVertex3dv(&Vertices[i].Point.x);
-			glVertex3fv(&Vertices[i].Point.x);
-		};
-		glEnd();
-		glEnable(GL_LIGHTING);
-		glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-		glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-		glEndList();
-	}
-	// SafeDeleteArray(Vertices); //przy VBO muszą zostać do załadowania całego
-	// modelu
-	if (Child)
-		Child->DisplayLists();
-	if (Next)
-		Next->DisplayLists();
+            glEndList();
+        }
+    }
+    else if (eType == TP_FREESPOTLIGHT)
+    {
+        uiDisplayList = glGenLists(1);
+        glNewList(uiDisplayList, GL_COMPILE);
+        TextureManager.Bind(0);
+        //     if (eType==smt_FreeSpotLight)
+        //      {
+        //       if (iFarAttenDecay==0)
+        //         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
+        //      }
+        //      else
+        // TODO: poprawic zeby dzialalo
+        // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
+        glColorMaterial(GL_FRONT, GL_EMISSION);
+        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
+        glBegin(GL_POINTS);
+        glVertex3f( 0.0f, 0.0f, -0.025f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
+        glEnd();
+        glEnable(GL_LIGHTING);
+        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+        glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
+        glEndList();
+    }
+    else if (eType == TP_STARS)
+    { // punkty świecące dookólnie
+        uiDisplayList = glGenLists(1);
+        glNewList(uiDisplayList, GL_COMPILE);
+        TextureManager.Bind(0); // tekstury nie ma
+        glColorMaterial(GL_FRONT, GL_EMISSION);
+        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
+        glBegin(GL_POINTS);
+        for (int i = 0; i < iNumVerts; i++)
+        {
+            glColor3f(Vertices[i].Normal.x, Vertices[i].Normal.y, Vertices[i].Normal.z);
+            // glVertex3dv(&Vertices[i].Point.x);
+            glVertex3fv(&Vertices[i].Point.x);
+        };
+        glEnd();
+        glEnable(GL_LIGHTING);
+        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+        glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
+        glEndList();
+    }
+    // SafeDeleteArray(Vertices); //przy VBO muszą zostać do załadowania całego
+    // modelu
+    if (Child)
+        Child->DisplayLists();
+    if (Next)
+        Next->DisplayLists();
 };
 
 void TSubModel::InitialRotate(bool doit)

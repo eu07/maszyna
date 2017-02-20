@@ -36,6 +36,8 @@ TWorld World;
 
 void window_resize_callback(GLFWwindow *window, int w, int h)
 {
+	Global::ScreenWidth = w;
+	Global::ScreenHeight = h;
 	glViewport(0, 0, w, h); // Reset The Current Viewport
 	glMatrixMode(GL_PROJECTION); // select the Projection Matrix
 	glLoadIdentity(); // reset the Projection Matrix

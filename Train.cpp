@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "McZapkie\hamulce.h"
 #include "McZapkie\MOVER.h"
+#include "Camera.h"
 //---------------------------------------------------------------------------
 
 using namespace Timer;
@@ -891,56 +892,56 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
 			if (false == (mvOccupied->LightsPosNo > 0))
             {
                 if ((Global::ctrlState) &&
-                    (ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
+                    (ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu.
+                    // 17.02.17 changed rear to opposite side, so the same key actually controls both lights on the left side, from the driver's point of view
+                    // TODO: do it a more elegant way. preferably along with the rest of the controlling code
                 {
-                    //------------------------------
                     if (mvOccupied->ActiveCab == 1)
                     { // kabina 1
-                        if (((DynamicObject->iLights[1]) & 3) == 0)
+                        if (((DynamicObject->iLights[1]) & 48) == 0)
                         {
-                            DynamicObject->iLights[1] |= 1;
+                            DynamicObject->iLights[1] |= 16;
                             dsbSwitch->SetVolume(DSBVOLUME_MAX);
                             dsbSwitch->Play(0, 0, 0);
-                            ggRearLeftLightButton.PutValue(1);
+                            ggRearRightLightButton.PutValue(1);
                         }
-                        if (((DynamicObject->iLights[1]) & 3) == 2)
+                        if (((DynamicObject->iLights[1]) & 48) == 32)
                         {
-                            DynamicObject->iLights[1] &= (255 - 2);
+                            DynamicObject->iLights[1] &= (255 - 32);
                             dsbSwitch->SetVolume(DSBVOLUME_MAX);
                             dsbSwitch->Play(0, 0, 0);
-                            if (ggRearLeftEndLightButton.SubModel)
+                            if (ggRearRightEndLightButton.SubModel)
                             {
-                                ggRearLeftEndLightButton.PutValue(0);
-                                ggRearLeftLightButton.PutValue(0);
+                                ggRearRightEndLightButton.PutValue(0);
+                                ggRearRightLightButton.PutValue(0);
                             }
                             else
-                                ggRearLeftLightButton.PutValue(0);
+                                ggRearRightLightButton.PutValue(0);
                         }
                     }
                     else
                     { // kabina -1
-                        if (((DynamicObject->iLights[0]) & 3) == 0)
+                        if (((DynamicObject->iLights[0]) & 48) == 0)
                         {
-                            DynamicObject->iLights[0] |= 1;
+                            DynamicObject->iLights[0] |= 16;
                             dsbSwitch->SetVolume(DSBVOLUME_MAX);
                             dsbSwitch->Play(0, 0, 0);
-                            ggRearLeftLightButton.PutValue(1);
+                            ggRearRightLightButton.PutValue(1);
                         }
-                        if (((DynamicObject->iLights[0]) & 3) == 2)
+                        if (((DynamicObject->iLights[0]) & 48) == 32)
                         {
-                            DynamicObject->iLights[0] &= (255 - 2);
+                            DynamicObject->iLights[0] &= (255 - 32);
                             dsbSwitch->SetVolume(DSBVOLUME_MAX);
                             dsbSwitch->Play(0, 0, 0);
-                            if (ggRearLeftEndLightButton.SubModel)
+                            if (ggRearRightEndLightButton.SubModel)
                             {
-                                ggRearLeftEndLightButton.PutValue(0);
-                                ggRearLeftLightButton.PutValue(0);
+                                ggRearRightEndLightButton.PutValue(0);
+                                ggRearRightLightButton.PutValue(0);
                             }
                             else
-                                ggRearLeftLightButton.PutValue(0);
+                                ggRearRightLightButton.PutValue(0);
                         }
                     }
-                    //----------------------
                 }
                 else
                 {
@@ -1066,53 +1067,46 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
 			if (false == (mvOccupied->LightsPosNo > 0))
             {
                 if ((Global::ctrlState) &&
-                    (ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
+                    (ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
+                    // 17.02.17 changed rear to opposite side, so the same key actually controls both lights on the left side, from the driver's point of view
+                    // TODO: do it a more elegant way. preferably along with the rest of the controlling code
                 {
-                    //------------------------------
-                    if (mvOccupied->ActiveCab == 1)
-                    { // kabina 1
-                        if (((DynamicObject->iLights[1]) & 48) == 0)
-                        {
-                            DynamicObject->iLights[1] |= 16;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            ggRearRightLightButton.PutValue(1);
+                    if( mvOccupied->ActiveCab == 1 ) { // kabina 1
+                        if( ( ( DynamicObject->iLights[ 1 ] ) & 3 ) == 0 ) {
+                            DynamicObject->iLights[ 1 ] |= 1;
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            ggRearLeftLightButton.PutValue( 1 );
                         }
-                        if (((DynamicObject->iLights[1]) & 48) == 32)
-                        {
-                            DynamicObject->iLights[1] &= (255 - 32);
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            if (ggRearRightEndLightButton.SubModel)
-                            {
-                                ggRearRightEndLightButton.PutValue(0);
-                                ggRearRightLightButton.PutValue(0);
+                        if( ( ( DynamicObject->iLights[ 1 ] ) & 3 ) == 2 ) {
+                            DynamicObject->iLights[ 1 ] &= ( 255 - 2 );
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            if( ggRearLeftEndLightButton.SubModel ) {
+                                ggRearLeftEndLightButton.PutValue( 0 );
+                                ggRearLeftLightButton.PutValue( 0 );
                             }
                             else
-                                ggRearRightLightButton.PutValue(0);
+                                ggRearLeftLightButton.PutValue( 0 );
                         }
                     }
-                    else
-                    { // kabina -1
-                        if (((DynamicObject->iLights[0]) & 48) == 0)
-                        {
-                            DynamicObject->iLights[0] |= 16;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            ggRearRightLightButton.PutValue(1);
+                    else { // kabina -1
+                        if( ( ( DynamicObject->iLights[ 0 ] ) & 3 ) == 0 ) {
+                            DynamicObject->iLights[ 0 ] |= 1;
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            ggRearLeftLightButton.PutValue( 1 );
                         }
-                        if (((DynamicObject->iLights[0]) & 48) == 32)
-                        {
-                            DynamicObject->iLights[0] &= (255 - 32);
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            if (ggRearRightEndLightButton.SubModel)
-                            {
-                                ggRearRightEndLightButton.PutValue(0);
-                                ggRearRightLightButton.PutValue(0);
+                        if( ( ( DynamicObject->iLights[ 0 ] ) & 3 ) == 2 ) {
+                            DynamicObject->iLights[ 0 ] &= ( 255 - 2 );
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            if( ggRearLeftEndLightButton.SubModel ) {
+                                ggRearLeftEndLightButton.PutValue( 0 );
+                                ggRearLeftLightButton.PutValue( 0 );
                             }
                             else
-                                ggRearRightLightButton.PutValue(0);
+                                ggRearLeftLightButton.PutValue( 0 );
                         }
                     }
                 } //------------------------------
@@ -2097,52 +2091,46 @@ if
             {
                 if ((Global::ctrlState) &&
                     (ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
+                    // 17.02.17 changed rear to opposite side, so the same key actually controls both lights on the left side, from the driver's point of view
+                    // TODO: do it a more elegant way. preferably along with the rest of the controlling code
                 {
                     //------------------------------
-                    if (mvOccupied->ActiveCab == 1)
-                    { // kabina 1
-                        if (((DynamicObject->iLights[1]) & 3) == 0)
-                        {
-                            DynamicObject->iLights[1] |= 2;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            if (ggRearLeftEndLightButton.SubModel)
-                            {
-                                ggRearLeftEndLightButton.PutValue(1);
-                                ggRearLeftLightButton.PutValue(0);
+                    if( mvOccupied->ActiveCab == 1 ) { // kabina 1 (od strony 0)
+                        if( ( ( DynamicObject->iLights[ 1 ] ) & 48 ) == 0 ) {
+                            DynamicObject->iLights[ 1 ] |= 32;
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            if( ggRearRightEndLightButton.SubModel ) {
+                                ggRearRightEndLightButton.PutValue( 1 );
+                                ggRearRightLightButton.PutValue( 0 );
                             }
                             else
-                                ggRearLeftLightButton.PutValue(-1);
+                                ggRearRightLightButton.PutValue( -1 );
                         }
-                        if (((DynamicObject->iLights[1]) & 3) == 1)
-                        {
-                            DynamicObject->iLights[1] &= (255 - 1);
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            ggRearLeftLightButton.PutValue(0);
+                        if( ( ( DynamicObject->iLights[ 1 ] ) & 48 ) == 16 ) {
+                            DynamicObject->iLights[ 1 ] &= ( 255 - 16 );
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            ggRearRightLightButton.PutValue( 0 );
                         }
                     }
-                    else
-                    { // kabina -1
-                        if (((DynamicObject->iLights[0]) & 3) == 0)
-                        {
-                            DynamicObject->iLights[0] |= 2;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            if (ggRearLeftEndLightButton.SubModel)
-                            {
-                                ggRearLeftEndLightButton.PutValue(1);
-                                ggRearLeftLightButton.PutValue(0);
+                    else { // kabina -1
+                        if( ( ( DynamicObject->iLights[ 0 ] ) & 48 ) == 0 ) {
+                            DynamicObject->iLights[ 0 ] |= 32;
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            if( ggRearRightEndLightButton.SubModel ) {
+                                ggRearRightEndLightButton.PutValue( 1 );
+                                ggRearRightLightButton.PutValue( 0 );
                             }
                             else
-                                ggRearLeftLightButton.PutValue(-1);
+                                ggRearRightLightButton.PutValue( -1 );
                         }
-                        if (((DynamicObject->iLights[1]) & 3) == 1)
-                        {
-                            DynamicObject->iLights[1] &= (255 - 1);
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            ggLeftLightButton.PutValue(0);
+                        if( ( ( DynamicObject->iLights[ 0 ] ) & 48 ) == 16 ) {
+                            DynamicObject->iLights[ 0 ] &= ( 255 - 16 );
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            ggRearRightLightButton.PutValue( 0 );
                         }
                     }
                 } //------------------------------
@@ -2270,52 +2258,46 @@ if
             {
                 if ((Global::ctrlState) &&
                     (ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
+                    // 17.02.17 changed rear to opposite side, so the same key actually controls both lights on the left side, from the driver's point of view
+                    // TODO: do it a more elegant way. preferably along with the rest of the controlling code
                 {
                     //------------------------------
-                    if (mvOccupied->ActiveCab == 1)
-                    { // kabina 1 (od strony 0)
-                        if (((DynamicObject->iLights[1]) & 48) == 0)
-                        {
-                            DynamicObject->iLights[1] |= 32;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            if (ggRearRightEndLightButton.SubModel)
-                            {
-                                ggRearRightEndLightButton.PutValue(1);
-                                ggRearRightLightButton.PutValue(0);
+                    if( mvOccupied->ActiveCab == 1 ) { // kabina 1
+                        if( ( ( DynamicObject->iLights[ 1 ] ) & 3 ) == 0 ) {
+                            DynamicObject->iLights[ 1 ] |= 2;
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            if( ggRearLeftEndLightButton.SubModel ) {
+                                ggRearLeftEndLightButton.PutValue( 1 );
+                                ggRearLeftLightButton.PutValue( 0 );
                             }
                             else
-                                ggRearRightLightButton.PutValue(-1);
+                                ggRearLeftLightButton.PutValue( -1 );
                         }
-                        if (((DynamicObject->iLights[1]) & 48) == 16)
-                        {
-                            DynamicObject->iLights[1] &= (255 - 16);
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            ggRearRightLightButton.PutValue(0);
+                        if( ( ( DynamicObject->iLights[ 1 ] ) & 3 ) == 1 ) {
+                            DynamicObject->iLights[ 1 ] &= ( 255 - 1 );
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            ggRearLeftLightButton.PutValue( 0 );
                         }
                     }
-                    else
-                    { // kabina -1
-                        if (((DynamicObject->iLights[0]) & 48) == 0)
-                        {
-                            DynamicObject->iLights[0] |= 32;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            if (ggRearRightEndLightButton.SubModel)
-                            {
-                                ggRearRightEndLightButton.PutValue(1);
-                                ggRearRightLightButton.PutValue(0);
+                    else { // kabina -1
+                        if( ( ( DynamicObject->iLights[ 0 ] ) & 3 ) == 0 ) {
+                            DynamicObject->iLights[ 0 ] |= 2;
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            if( ggRearLeftEndLightButton.SubModel ) {
+                                ggRearLeftEndLightButton.PutValue( 1 );
+                                ggRearLeftLightButton.PutValue( 0 );
                             }
                             else
-                                ggRearRightLightButton.PutValue(-1);
+                                ggRearLeftLightButton.PutValue( -1 );
                         }
-                        if (((DynamicObject->iLights[0]) & 48) == 16)
-                        {
-                            DynamicObject->iLights[0] &= (255 - 16);
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0);
-                            ggRearRightLightButton.PutValue(0);
+                        if( ( ( DynamicObject->iLights[ 1 ] ) & 3 ) == 1 ) {
+                            DynamicObject->iLights[ 1 ] &= ( 255 - 1 );
+                            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+                            dsbSwitch->Play( 0, 0, 0 );
+                            ggLeftLightButton.PutValue( 0 );
                         }
                     }
                 } //------------------------------
@@ -2400,17 +2382,25 @@ if
         {
             // McZapkie: poruszanie sie po kabinie, w updatemechpos zawarte sa wiezy
 
-            // double dt=Timer::GetDeltaTime();
-            if (mvOccupied->ActiveCab < 0)
-                fMechCroach = -0.5;
-            else
-                fMechCroach = 0.5;
-            //        if (!Global::shiftState<0)         // bez shifta
-            if (!Global::ctrlState) // gdy [Ctrl] zwolniony (dodatkowe widoki)
+            auto step = 60.0f *  Timer::GetDeltaTime();
+            auto const camerayaw = Global::pCamera->Yaw;
+            Math3D::vector3 direction( 0.0f, 0.0f, step );
+            direction.RotateY( camerayaw );
+            Math3D::vector3 right( -step, 0.0f, 0.0f );
+            right.RotateY( camerayaw );
+            // auto right = Math3D::CrossProduct( direction, Math3D::vector3( 0.0f, 1.0f, 0.0f ) );
+
+            if( mvOccupied->ActiveCab < 0 ) {
+
+                direction *= -1.0f;
+                right *= -1.0f;
+            }
+            //        if (!GetAsyncKeyState(VK_SHIFT)<0)         // bez shifta
+            if (!(Global::ctrlState)) // gdy [Ctrl] zwolniony (dodatkowe widoki)
             {
                 if (cKey == Global::Keys[k_MechLeft])
                 {
-                    vMechMovement.x += fMechCroach;
+                    vMechMovement -= right;
                     if (DynamicObject->Mechanik)
                         if (!FreeFlyModeFlag) //żeby nie mieszać obserwując z zewnątrz
                             DynamicObject->Mechanik->RouteSwitch(
@@ -2418,7 +2408,7 @@ if
                 }
                 else if (cKey == Global::Keys[k_MechRight])
                 {
-                    vMechMovement.x -= fMechCroach;
+                    vMechMovement += right;
                     if (DynamicObject->Mechanik)
                         if (!FreeFlyModeFlag) //żeby nie mieszać obserwując z zewnątrz
                             DynamicObject->Mechanik->RouteSwitch(
@@ -2426,7 +2416,7 @@ if
                 }
                 else if (cKey == Global::Keys[k_MechBackward])
                 {
-                    vMechMovement.z -= fMechCroach;
+                    vMechMovement -= direction;
                     // if (DynamicObject->Mechanik)
                     // if (!FreeFlyModeFlag) //żeby nie mieszać obserwując z zewnątrz
                     //  DynamicObject->Mechanik->RouteSwitch(0);  //na skrzyżowaniu stanie
@@ -2434,16 +2424,16 @@ if
                 }
                 else if (cKey == Global::Keys[k_MechForward])
                 {
-                    vMechMovement.z += fMechCroach;
+                    vMechMovement += direction;
                     if (DynamicObject->Mechanik)
                         if (!FreeFlyModeFlag) //żeby nie mieszać obserwując z zewnątrz
                             DynamicObject->Mechanik->RouteSwitch(
                                 3); // na skrzyżowaniu pojedzie prosto
                 }
                 else if (cKey == Global::Keys[k_MechUp])
-                    pMechOffset.y += 0.2; // McZapkie-120302 - wstawanie
+                    pMechOffset.y += 0.25; // McZapkie-120302 - wstawanie
                 else if (cKey == Global::Keys[k_MechDown])
-                    pMechOffset.y -= 0.2; // McZapkie-120302 - siadanie
+                    pMechOffset.y -= 0.25; // McZapkie-120302 - siadanie
             }
         }
 
@@ -3756,7 +3746,7 @@ bool TTrain::Update( double const Deltatime )
         {
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : 
-						Global::iFeedbackMode == 4 ) : 
+						(Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
@@ -3780,7 +3770,7 @@ bool TTrain::Update( double const Deltatime )
         if (ggLocalBrake.SubModel)
         {
             if (DynamicObject->Mechanik ?
-                    (DynamicObject->Mechanik->AIControllFlag ? false : Global::iFeedbackMode == 4) :
+                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || Global::bMWDmasterEnable)) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 			  // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
@@ -5990,6 +5980,10 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     {
         btLampkaHamienie.Load(Parser, DynamicObject->mdKabina);
     }
+    else if( Label == "i-dynamicbrake:" ) {
+
+        btLampkaED.Load( Parser, DynamicObject->mdKabina );
+    }
     else if (Label == "i-braking-ezt:")
     {
         btLampkaHamowanie1zes.Load(Parser, DynamicObject->mdKabina);
@@ -6329,6 +6323,10 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     {
         // hunter-091012: przyciemnienie swiatla w kabinie
         ggCabLightDimButton.Load(Parser, DynamicObject->mdKabina);
+    }
+    else if( Label == "battery_sw:" ) {
+
+        ggBatteryButton.Load( Parser, DynamicObject->mdKabina );
     }
     // ABu 090305: uniwersalne przyciski lub inne rzeczy
     else if (Label == "universal1:")

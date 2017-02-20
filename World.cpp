@@ -335,8 +335,10 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("glLineWidth(1.0f);");
     glLineWidth(1.0f);
     //	glLineWidth(2.0f);
-    WriteLog("glPointSize(2.0f);");
-    glPointSize(2.0f);
+    WriteLog("glPointSize(3.0f);");
+    glPointSize(3.0f);
+//    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST ); // Really Nice Perspective Calculations
+//    glEnable( GL_POINT_SMOOTH );
 
     // ----------- LIGHTING SETUP -----------
     // Light values and coordinates
@@ -462,21 +464,21 @@ bool TWorld::Init(GLFWwindow *w)
 
     glBegin(GL_QUADS); // Drawing using triangles
     glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(-0.28f, -0.22f, 0.0f); // bottom left of the texture and quad
+    glVertex3f(-1.0f, -1.0f, 0.0f); // bottom left of the texture and quad
     glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(0.28f, -0.22f, 0.0f); // bottom right of the texture and quad
+    glVertex3f(1.0f, -1.0f, 0.0f); // bottom right of the texture and quad
     glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(0.28f, 0.22f, 0.0f); // top right of the texture and quad
+    glVertex3f(1.0f, 1.0f, 0.0f); // top right of the texture and quad
     glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(-0.28f, 0.22f, 0.0f); // top left of the texture and quad
+    glVertex3f(-1.0f, 1.0f, 0.0f); // top left of the texture and quad
     glEnd();
     //~logo; Ra: to jest bez sensu zapis
     glColor3f(0.0f, 0.0f, 100.0f);
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.09f);
+        glRasterPos2f(-0.85f, -0.25f);
         glPrint("Uruchamianie / Initializing...");
-        glRasterPos2f(-0.25f, -0.10f);
+        glRasterPos2f(-0.85f, -0.30f);
         glPrint("Dzwiek / Sound...");
     }
 	
@@ -492,7 +494,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Sound Init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.11f);
+        glRasterPos2f(-0.25f, -0.30f);
         glPrint("OK.");
     }
     
@@ -502,7 +504,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Textures init");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.12f);
+        glRasterPos2f(-0.85f, -0.35f);
         glPrint("Tekstury / Textures...");
     }
 	glfwSwapBuffers(window);
@@ -510,7 +512,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Textures init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.13f);
+        glRasterPos2f(-0.25f, -0.35f);
         glPrint("OK.");
     }
 	glfwSwapBuffers(window);
@@ -518,7 +520,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Models init");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.14f);
+        glRasterPos2f(-0.85f, -0.40f);
         glPrint("Modele / Models...");
     }
 	glfwSwapBuffers(window);
@@ -528,7 +530,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Models init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.15f);
+        glRasterPos2f(-0.25f, -0.40f);
         glPrint("OK.");
     }
 	glfwSwapBuffers(window);
@@ -536,7 +538,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Ground init");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.16f);
+        glRasterPos2f(-0.85f, -0.45f);
         glPrint("Sceneria / Scenery (please wait)...");
     }
 	glfwSwapBuffers(window);
@@ -547,7 +549,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog("Ground init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.17f);
+        glRasterPos2f(-0.25f, -0.45f);
         glPrint("OK.");
     }
 	glfwSwapBuffers(window);
@@ -564,7 +566,7 @@ bool TWorld::Init(GLFWwindow *w)
     char buff[255] = "Player train init: ";
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.18f);
+        glRasterPos2f(-0.85f, -0.50f);
         glPrint("Przygotowanie kabiny do sterowania...");
     }
 	glfwSwapBuffers(window);
@@ -585,7 +587,7 @@ bool TWorld::Init(GLFWwindow *w)
             WriteLog("Player train init OK");
             if (Global::detonatoryOK)
             {
-                glRasterPos2f(-0.25f, -0.19f);
+                glRasterPos2f(-0.25f, -0.50f);
                 glPrint("OK.");
             }
             FollowView();
@@ -597,7 +599,7 @@ bool TWorld::Init(GLFWwindow *w)
             FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
             if (Global::detonatoryOK)
             {
-                glRasterPos2f(-0.25f, -0.20f);
+                glRasterPos2f(-0.85f, -0.50f);
                 glPrint("Blad inicjalizacji sterowanego pojazdu!");
             }
 			glfwSwapBuffers(window);
@@ -613,7 +615,7 @@ bool TWorld::Init(GLFWwindow *w)
             Error("Player train not exist!");
             if (Global::detonatoryOK)
             {
-                glRasterPos2f(-0.25f, -0.20f);
+                glRasterPos2f(-0.85f, -0.55f);
                 glPrint("Wybrany pojazd nie istnieje w scenerii!");
             }
         }
@@ -918,7 +920,7 @@ void TWorld::OnKeyUp(int cKey)
 
 void TWorld::OnMouseMove(double x, double y)
 { // McZapkie:060503-definicja obracania myszy
-    Camera.OnCursorMove(x * Global::fMouseXScale, -y * Global::fMouseYScale);
+    Camera.OnCursorMove(x * Global::fMouseXScale / Global::ZoomFactor, -y * Global::fMouseYScale / Global::ZoomFactor);
 }
 
 void TWorld::InOutKey()
@@ -1204,6 +1206,7 @@ void
 TWorld::Update_Camera( double const Deltatime )
 {
     // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
+
     if( glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS ) {
         Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
         // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
@@ -1230,8 +1233,19 @@ TWorld::Update_Camera( double const Deltatime )
         if( FreeFlyModeFlag )
             Camera.RaLook(); // jednorazowe przestawienie kamery
     }
-    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS ) //||Console::Pressed(GLFW_KEY_F4))
+    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) { //||Console::Pressed(VK_F4))
         FollowView( false ); // bez wyciszania dźwięków
+    }
+    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
+        // middle mouse button controls zoom.
+        Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>(Deltatime) );
+    }
+    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) != GLFW_PRESS) {
+        // reset zoom level if the button is no longer held down.
+        // NOTE: yes, this is terrible way to go about it. it'll do for now.
+        Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
+    }
+
 /*
     else if( Global::iTextMode == -1 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
         WriteLog( "Number of textures used: " + std::to_string( Global::iTextures ) );
@@ -1432,6 +1446,12 @@ bool TWorld::Render()
     // glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDepthFunc( GL_LEQUAL );
+
+    glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
+    glLoadIdentity(); // reset the Projection Matrix
+    // calculate the aspect ratio of the window
+    gluPerspective( 45.0f / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
+
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();
     Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
@@ -1723,6 +1743,14 @@ TWorld::Render_Cab() {
 
 void
 TWorld::Render_UI() {
+
+    // set the UI mode projection. TODO: rework it all into somethinig more elegant... eventually
+    glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
+    glLoadIdentity(); // reset the Projection Matrix
+    // calculate the aspect ratio of the window
+    gluPerspective( 45.0f, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.2f, 2500.0f );
+    glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
+    glLoadIdentity();
 
     if( DebugModeFlag && !Global::iTextMode ) {
         OutText1 = "  FPS: ";
