@@ -2842,6 +2842,18 @@ bool TTrain::Update( double const Deltatime )
             /// napędu
         }
 
+		if (Global::bMWDmasterEnable) // pobieranie danych dla pulpitu przez port szeregowy (COM)
+		{ 
+			Console::ValueSet(0, mvOccupied->Compressor); // zbiornik główny
+			Console::ValueSet(1, mvOccupied->PipePress); // przewód główny
+			Console::ValueSet(2, mvOccupied->BrakePress); // cylinder hamulcowy
+			Console::ValueSet(3, fHVoltage); // woltomierz wysokiego napięcia
+			Console::ValueSet(4, fHCurrent[3]); // drugi amperomierz 3
+			Console::ValueSet(4, fHCurrent[2]); // drugi amperomierz 2
+			Console::ValueSet(5, fHCurrent[(mvControlled->TrainType & dt_EZT) ? 0 : 1]); // pierwszy amperomierz; dla EZT prąd całkowity
+			Console::ValueSet(6, fTachoVelocity);
+		}
+
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia
         // przy dowolnym ustawieniu kierunkowego
         // Ra: to już jest w T_MoverParameters::TractionForce(), ale zależy od
@@ -3763,8 +3775,8 @@ bool TTrain::Update( double const Deltatime )
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
 				if (mvOccupied->BrakeHandle == FV4a)
-				{
-					double b = Console::AnalogCalibrateGet(0);
+                {
+                    double b = Console::AnalogCalibrateGet(0);
 					b = b * 8 - 2;
 					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
 					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b));
