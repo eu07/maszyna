@@ -4691,7 +4691,7 @@ bool TTrain::Update( double const Deltatime )
         if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel])) &&
             (!Console::Pressed(Global::Keys[k_WaveBrake])) && (mvOccupied->BrakeCtrlPos == -1) &&
             (mvOccupied->BrakeHandle == FVel6) && (DynamicObject->Controller != AIdriver) &&
-            (Global::iFeedbackMode != 4 || !(Global::bMWDmasterEnable && Global::bMWDBreakEnable)))
+            Global::iFeedbackMode != 4 && (!(Global::bMWDmasterEnable && Global::bMWDBreakEnable)))
         {
             // mvOccupied->BrakeCtrlPos=(mvOccupied->BrakeCtrlPos)+1;
             // mvOccupied->IncBrakeLevel();
