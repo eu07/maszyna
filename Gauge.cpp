@@ -60,7 +60,7 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
             do
             { // pętla po submodelach potomnych i obracanie ich o kąt zależy od
                 // cyfry w (fValue)
-                if (sm->pName)
+                if (sm->pName.size())
                 { // musi mieć niepustą nazwę
                     if (sm->pName[0] >= '0')
                         if (sm->pName[0] <= '9')
@@ -177,7 +177,7 @@ void TGauge::Update()
             do
             { // pętla po submodelach potomnych i obracanie ich o kąt zależy od
                 // cyfry w (fValue)
-                if (sm->pName)
+                if (sm->pName.size())
                 { // musi mieć niepustą nazwę
                     if (sm->pName[0] >= '0')
                         if (sm->pName[0] <= '9')

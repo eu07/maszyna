@@ -51,6 +51,7 @@ set(SOURCES
 "PyInt.cpp"
 "RealSound.cpp"
 "ResourceManager.cpp"
+"sn_utils.cpp"
 "Segment.cpp"
 "sky.cpp"
 "Sound.cpp"

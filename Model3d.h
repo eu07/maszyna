@@ -26,37 +26,6 @@ struct GLVERTEX
 	float tu, tv;
 };
 
-class TStringPack
-{
-	char *data;
-	//+0 - 4 bajty: typ kromki
-	//+4 - 4 bajty: długość łącznie z nagłówkiem
-	//+8 - obszar łańcuchów znakowych, każdy zakończony zerem
-	int *index;
-	//+0 - 4 bajty: typ kromki
-	//+4 - 4 bajty: długość łącznie z nagłówkiem
-	//+8 - tabela indeksów
-public:
-	char *String(int n);
-	char *StringAt(int n)
-	{
-		return data + 9 + n;
-	};
-	TStringPack()
-	{
-		data = NULL;
-		index = NULL;
-	};
-	void Init(char *d)
-	{
-		data = d;
-	};
-	void InitIndex(int *i)
-	{
-		index = i;
-	};
-};
-
 class TMaterialColor
 {
 public:
@@ -163,11 +132,10 @@ class TSubModelInfo;
 
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
-  // Ra: ta klasa ma mieć wielkość 256 bajtów, aby pokryła się z formatem binarnym
-  // Ra: nie przestawiać zmiennych, bo wczytują się z pliku binarnego!
+	//m7todo: zrobić normalną serializację
 private:
-	TSubModel *Next;
-	TSubModel *Child;
+	int iNext;
+	int iChild;
 	int eType; // Ra: modele binarne dają więcej możliwości niż mesh złożony z trójkątów
 	int iName; // numer łańcucha z nazwą submodelu, albo -1 gdy anonimowy
 public: // chwilowo
@@ -194,7 +162,7 @@ private:
 		int iMatrix; // w pliku binarnym jest numer matrycy
 	};
 	int iNumVerts; // ilość wierzchołków (1 dla FreeSpotLight)
-	int iVboPtr; // początek na liście wierzchołków albo indeksów
+	int tVboPtr; // początek na liście wierzchołków albo indeksów
 	int iTexture; // numer nazwy tekstury, -1 wymienna, 0 brak
 	float fVisible; // próg jasności światła do załączenia submodelu
 	float fLight; // próg jasności światła do zadziałania selfillum
@@ -215,7 +183,10 @@ private:
 	float fCosHotspotAngle; // cosinus kąta stożka pod którym widać aureolę i zwiększone natężenie
 							// światła
 	float fCosViewAngle; // cos kata pod jakim sie teraz patrzy
-						 // Ra: dalej są zmienne robocze, można je przestawiać z zachowaniem rozmiaru klasy
+
+	TSubModel *Next;
+	TSubModel *Child;
+	intptr_t iVboPtr;
 	texture_manager::size_type TextureID; // numer tekstury, -1 wymienna, 0 brak
 	bool bWire; // nie używane, ale wczytywane
 				// short TexAlpha;  //Ra: nie używane już
@@ -231,7 +202,7 @@ private:
 public: // chwilowo
 	float3 v_TransVector;
 	float8 *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
-	int iAnimOwner; // roboczy numer egzemplarza, który ustawił animację
+	size_t iAnimOwner; // roboczy numer egzemplarza, który ustawił animację
 	TAnimType b_aAnim; // kody animacji oddzielnie, bo zerowane
 public:
 	float4x4 *mAnimMatrix; // macierz do animacji kwaternionowych (należy do AnimContainer)
@@ -243,8 +214,8 @@ public:
 	int iVisible; // roboczy stan widoczności
 				  // AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
 				  // AnsiString asName; //robocza nazwa
-	char *pTexture; // robocza nazwa tekstury do zapisania w pliku binarnym
-	char *pName; // robocza nazwa
+	std::string pTexture; // robocza nazwa tekstury do zapisania w pliku binarnym
+	std::string pName; // robocza nazwa
 private:
 	// int SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX
 	// *Vertices);
@@ -252,7 +223,7 @@ private:
 	void RaAnimation(TAnimType a);
 
 public:
-	static int iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
+	static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
 	static texture_manager::size_type *ReplacableSkinId;
 	static int iAlpha; // maska bitowa dla danego przebiegu
 	static double fSquareDist;
@@ -310,8 +281,8 @@ public:
 	void DisplayLists();
 	void Info();
 	void InfoSet(TSubModelInfo *info);
-	void BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TStringPack *n = NULL,
-		bool dynamic = false);
+	void BinInit(TSubModel *s, float4x4 *m, float8 *v,
+		std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
 	void ReplacableSet(texture_manager::size_type *r, int a)
 	{
 		ReplacableSkinId = r;
@@ -344,6 +315,8 @@ public:
 	void ParentMatrix(float4x4 *m);
 	float MaxY(const float4x4 &m);
 	void AdjustDist();
+
+	void deserialize(std::istream &s);
 };
 
 class TSubModelInfo
@@ -386,8 +359,8 @@ private:
 public: // Ra: tymczasowo
 	int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
 private:
-	TStringPack Textures; // nazwy tekstur
-	TStringPack Names; // nazwy submodeli
+	std::vector<std::string> Textures; // nazwy tekstur
+	std::vector<std::string> Names; // nazwy submodeli
 	int *iModel; // zawartość pliku binarnego
 	int iSubModelsCount; // Ra: używane do tworzenia binarnych
 	std::string asBinary; // nazwa pod którą zapisać model binarny
@@ -440,13 +413,14 @@ public:
 		return iFlags;
 	};
 	void Init();
-	char * NameGet()
+	std::string NameGet()
 	{
 		return Root ? Root->pName : NULL;
 	};
 	int TerrainCount();
 	TSubModel * TerrainSquare(int n);
 	void TerrainRenderVBO(int n);
+	void deserialize(std::istream &s, size_t size, bool dynamic);
 };
 
 //---------------------------------------------------------------------------

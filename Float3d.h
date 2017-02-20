@@ -187,6 +187,8 @@ class float4x4
     float e[16];
 
   public:
+	void deserialize_float32(std::istream &s);
+	void deserialize_float64(std::istream &s);
     float4x4(void){};
     float4x4(float f[16])
     {

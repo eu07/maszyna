@@ -13,7 +13,10 @@ TPythonInterpreter *TPythonInterpreter::_instance = NULL;
 TPythonInterpreter::TPythonInterpreter()
 {
     WriteLog("Loading Python ...");
-    Py_SetPythonHome("python");
+	if (sizeof(void*) == 8)
+		Py_SetPythonHome("python64");
+	else
+		Py_SetPythonHome("python");
     Py_Initialize();
     _main = PyImport_ImportModule("__main__");
     if (_main == NULL)

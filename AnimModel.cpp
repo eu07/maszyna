@@ -546,7 +546,7 @@ TAnimContainer * TAnimModel::GetContainer(char *pName)
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
         // if (pCurrent->GetName()==pName)
-        if (stricmp(pCurrent->NameGet(), pName) == 0)
+		if (std::string(pName) == pCurrent->NameGet())
             return pCurrent;
     return AddContainer(pName);
 }

@@ -9,6 +9,8 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include <istream>
+#include <ddraw.h>
 #include <string>
 #include "GL/glew.h"
 
@@ -20,6 +22,10 @@ enum class resource_state {
 };
 
 struct opengl_texture {
+	static DDSURFACEDESC2 deserialize_ddsd(std::istream&);
+	static DDCOLORKEY deserialize_ddck(std::istream&);
+	static DDPIXELFORMAT deserialize_ddpf(std::istream&);
+	static DDSCAPS2 deserialize_ddscaps(std::istream&);
 
     // methods
     void load();

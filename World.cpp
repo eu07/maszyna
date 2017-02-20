@@ -391,10 +391,6 @@ bool TWorld::Init(GLFWwindow *w)
     glFogi(GL_FOG_MODE, GL_LINEAR); // Fog Mode
     WriteLog("glFogfv(GL_FOG_COLOR, FogColor);");
     glFogfv(GL_FOG_COLOR, FogColor); // Set Fog Color
-    //	glFogf(GL_FOG_DENSITY, 0.594f);						// How Dense Will The
-    //Fog
-    // Be
-    //	glHint(GL_FOG_HINT, GL_NICEST);					    // Fog Hint Value
     WriteLog("glFogf(GL_FOG_START, 1000.0f);");
     glFogf(GL_FOG_START, 10.0f); // Fog Start Depth
     WriteLog("glFogf(GL_FOG_END, 2000.0f);");
@@ -1879,8 +1875,10 @@ TWorld::Render_UI() {
     glDepthFunc( GL_ALWAYS );
     glDisable( GL_LIGHTING );
 
-	glfwSetWindowTitle(window, ("EU07++NG: " + Controlled->MoverParameters->Name).c_str());
-	glfwSetWindowTitle(window, ("EU07++NG: " + Global::SceneryFile).c_str());
+	if (Controlled)
+		glfwSetWindowTitle(window, ("EU07++NG: " + Controlled->MoverParameters->Name).c_str());
+	else
+		glfwSetWindowTitle(window, ("EU07++NG: " + Global::SceneryFile).c_str());
 
 	TextureManager.Bind(0);
     glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );

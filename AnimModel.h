@@ -81,9 +81,9 @@ class TAnimContainer
     // std::string(pSubModel?pSubModel->asName.c_str():""); };
     // std::string inline GetName() { return std::string(pSubModel?pSubModel->pName:"");
     // };
-    char * NameGet()
+    std::string NameGet()
     {
-        return (pSubModel ? pSubModel->pName : NULL);
+        return (pSubModel ? pSubModel->pName : "");
     };
     // void SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double
     // fNewRotateSpeed, bool bResetAngle=false);

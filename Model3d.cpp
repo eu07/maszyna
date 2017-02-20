@@ -22,12 +22,13 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "Texture.h"
 #include "Timer.h"
 #include "mtable.h"
+#include "sn_utils.h"
 //---------------------------------------------------------------------------
 
 using namespace Mtable;
 
 double TSubModel::fSquareDist = 0;
-int TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
+size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 texture_manager::size_type *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
@@ -46,24 +47,6 @@ int TSubModelInfo::iTotalNames = 0; // długość obszaru nazw
 int TSubModelInfo::iTotalTextures = 0; // długość obszaru tekstur
 int TSubModelInfo::iCurrent = 0; // aktualny obiekt
 TSubModelInfo *TSubModelInfo::pTable = NULL; // tabele obiektów pomocniczych
-
-char *TStringPack::String(int n)
-{ // zwraca wskaźnik do łańcucha o podanym numerze
-	if (index ? n < (index[1] >> 2) - 2 : false)
-		return data + 8 + index[n + 2]; // indeks upraszcza kwestię wyszukiwania
-										// jak nie ma indeksu, to trzeba szukać
-	int max = *((int *)(data + 4)); // długość obszaru łańcuchów
-	char *ptr = data + 8; // począek obszaru łańcuchów
-	for (int i = 0; i < n; ++i)
-	{ // wyszukiwanie łańcuchów nie jest zbyt optymalne, ale nie musi być
-		while (*ptr)
-			++ptr; // wyszukiwanie zera
-		++ptr; // pominięcie zera
-		if (ptr > data + max)
-			return NULL; // zbyt wysoki numer
-	}
-	return ptr;
-};
 
 TSubModel::TSubModel()
 {
@@ -114,7 +97,8 @@ void TSubModel::FirstInit()
 	iTexture = 0; // brak tekstury
 				  // asName="";
 				  // asTexture="";
-	pName = pTexture = NULL;
+	pName = "";
+	pTexture = "";
 	f4Ambient[0] = f4Ambient[1] = f4Ambient[2] = f4Ambient[3] = 1.0; //{1,1,1,1};
 	f4Diffuse[0] = f4Diffuse[1] = f4Diffuse[2] = f4Diffuse[3] = 1.0; //{1,1,1,1};
 	f4Specular[0] = f4Specular[1] = f4Specular[2] = 0.0;
@@ -134,8 +118,6 @@ TSubModel::~TSubModel()
 		SafeDelete(Child);
 		delete fMatrix; // własny transform trzeba usunąć (zawsze jeden)
 		delete[] Vertices;
-		delete[] pTexture;
-		delete[] pName;
 	}
 	/*
 	else
@@ -151,15 +133,7 @@ void TSubModel::TextureNameSet(const char *n)
   // ile nie jest wczytany z E3D
 	if (iFlags & 0x0200)
 	{ // tylko jeżeli submodel zosta utworzony przez new
-		delete[] pTexture; // usunięcie poprzedniej
-		int i = strlen(n);
-		if (i)
-		{ // utworzenie nowej
-			pTexture = new char[i + 1];
-			strcpy(pTexture, n);
-		}
-		else
-			pTexture = NULL;
+		pTexture = std::string(n);
 	}
 };
 
@@ -167,17 +141,7 @@ void TSubModel::NameSet(const char *n)
 { // ustawienie nazwy submodelu, o ile
   // nie jest wczytany z E3D
 	if (iFlags & 0x0200)
-	{ // tylko jeżeli submodel zosta utworzony przez new
-		delete[] pName; // usunięcie poprzedniej
-		int i = strlen(n);
-		if (i)
-		{ // utworzenie nowej
-			pName = new char[i + 1];
-			strcpy(pName, n);
-		}
-		else
-			pName = NULL;
-	}
+		pName = std::string(n);
 };
 
 // int TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3
@@ -368,8 +332,8 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 		parser >> discard >> bWire >> discard >> fWireSize >> discard;
 		Opacity = readIntAsDouble(parser,
 			100.0f); // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
-		if (Opacity > 1.0)
-			Opacity *= 0.01; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
+		if (Opacity > 1.0f)
+			Opacity *= 0.01f; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
 		if ((Global::iConvertModels & 1) == 0) // dla zgodności wstecz
 			Opacity = 0.0; // wszystko idzie w przezroczyste albo zależnie od tekstury
 		if (!parser.expectToken("map:"))
@@ -961,11 +925,15 @@ TSubModel *TSubModel::GetFromName(char const *search, bool i)
 	// std::transform(search.begin(),search.end(),search.begin(),ToLower());
 	// search=search.LowerCase();
 	// AnsiString name=AnsiString();
-	if (pName && search)
-		if ((i ? stricmp(pName, search) : strcmp(pName, search)) == 0)
+	std::string search_lc = std::string(search);
+	if (i)
+		std::transform(search_lc.begin(), search_lc.end(), search_lc.begin(), ::tolower);
+	std::string pName_lc = pName;
+	if (i)
+		std::transform(pName_lc.begin(), pName_lc.end(), pName_lc.begin(), ::tolower);
+	if (pName.size() && search)
+		if (pName_lc == search_lc)
 			return this;
-		else if (pName == search)
-			return this; // oba NULL
 	if (Next)
 	{
 		result = Next->GetFromName(search);
@@ -1063,7 +1031,7 @@ void TSubModel::RaAnimation(TAnimType a)
 		TSubModel *sm = ChildGet();
 		do
 		{ // pętla po submodelach potomnych i obracanie ich o kąt zależy od czasu
-			if (sm->pName)
+			if (sm->pName.size())
 			{ // musi mieć niepustą nazwę
 				if ((sm->pName[0]) >= '0')
 					if ((sm->pName[0]) <= '5') // zegarek ma 6 cyfr maksymalnie
@@ -1220,7 +1188,7 @@ void TSubModel::RenderAlphaDL()
 			if (eType == TP_TEXT)
 			{ // tekst renderujemy w specjalny sposób, zamiast
 			  // submodeli z łańcucha Child
-				int i, j = pasText->size();
+				size_t i, j = pasText->size();
 				TSubModel *p;
 				if (!smLetter)
 				{ // jeśli nie ma tablicy, to ją stworzyć; miejsce
@@ -1232,7 +1200,7 @@ void TSubModel::RenderAlphaDL()
 					p = Child;
 					while (p)
 					{
-						smLetter[*p->pName] = p;
+						smLetter[p->pName[0]] = p;
 						p = p->Next; // kolejny znak
 					}
 				}
@@ -1288,12 +1256,12 @@ void TSubModel::RenderVBO()
 				if (Global::fLuminance < fLight)
 				{
 					glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-					glDrawArrays(eType, iVboPtr,
+					glDrawArrays(eType, (GLint)iVboPtr,
 						iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
 					glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
 				}
 				else
-					glDrawArrays(eType, iVboPtr,
+					glDrawArrays(eType, (GLint)iVboPtr,
 						iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
 			}
 		}
@@ -1359,7 +1327,7 @@ void TSubModel::RenderVBO()
 										// blendowaly
 				glColor3fv(color); // inaczej są białe
 				glMaterialfv(GL_FRONT, GL_EMISSION, color);
-				glDrawArrays(GL_POINTS, iVboPtr, iNumVerts); // narysuj wierzchołek z
+				glDrawArrays(GL_POINTS, (GLint)iVboPtr, iNumVerts); // narysuj wierzchołek z
 															 // VBO
 				glEnable(GL_LIGHTING);
 				glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); // co ma ustawiać glColor
@@ -1383,7 +1351,7 @@ void TSubModel::RenderVBO()
 											// blendowaly
 											// glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na
 											// kolorowo
-					glDrawArrays(GL_POINTS, iVboPtr,
+					glDrawArrays(GL_POINTS, (GLint)iVboPtr,
 						iNumVerts); // narysuj naraz wszystkie punkty z VBO
 					glEnable(GL_LIGHTING);
 					glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
@@ -1459,12 +1427,12 @@ void TSubModel::RenderAlphaVBO()
 				if (Global::fLuminance < fLight)
 				{
 					glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-					glDrawArrays(eType, iVboPtr,
+					glDrawArrays(eType, (GLint)iVboPtr,
 						iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
 					glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
 				}
 				else
-					glDrawArrays(eType, iVboPtr,
+					glDrawArrays(eType, (GLint)iVboPtr,
 						iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
 			}
 		}
@@ -1539,18 +1507,18 @@ void TSubModel::Info()
 			if (t != std::string(pTexture))
 			{ // jeśli się zmieniło
 			  // pName=new char[token.length()+1]; //nie ma sensu skracać tabeli
-				strcpy(pTexture, t.c_str());
+				pTexture = t;
 			}
-			info->iTextureLen = t.size() + 1; // przygotowanie do zapisania, z zerem na końcu
+			info->iTextureLen = (int)t.size() + 1; // przygotowanie do zapisania, z zerem na końcu
 		}
 	}
 	else
 		info->iTexture = TextureID; // nie ma albo wymienna
 									// if (asName.Length())
-	if (pName)
+	if (pName.size())
 	{
 		info->iName = info->iTotalNames++; // przydzielenie numeru nazwy w pliku (od 0)
-		info->iNameLen = strlen(pName) + 1; // z zerem na końcu
+		info->iNameLen = (int)pName.size() + 1; // z zerem na końcu
 	}
 	++info->iCurrent; // przejście do kolejnego obiektu pomocniczego
 	if (Child)
@@ -1576,73 +1544,14 @@ void TSubModel::InfoSet(TSubModelInfo *info)
 	TextureID = info->iTexture; // numer tekstury w OpenGL
 	iName = info->iName; // numer nazwy w obszarze nazw
 	iMatrix = info->iTransform; // numer macierzy
-	Next = (TSubModel *)info->iNext; // numer następnego
-	Child = (TSubModel *)info->iChild; // numer potomnego
+	iNext = info->iNext; // numer następnego
+	iChild = info->iChild; // numer potomnego
 	iFlags &= ~0x200; // nie jest wczytany z tekstowego
 					  // asTexture=asName="";
-	pTexture = pName = NULL;
+	pTexture = "";
+	pName = "";
 };
 
-void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TStringPack *n,
-	bool dynamic)
-{ // ustawienie wskaźników w submodelu
-	iVisible = 1; // tymczasowo używane
-	Child = ((int)Child > 0) ? s + (int)Child : NULL; // zerowy nie może być potomnym
-	Next = ((int)Next > 0) ? s + (int)Next : NULL; // zerowy nie może być następnym
-	fMatrix = ((iMatrix >= 0) && m) ? m + iMatrix : NULL;
-	// if (n&&(iName>=0)) asName=AnsiString(n->String(iName)); else asName="";
-	if (n && (iName >= 0))
-	{
-		pName = n->String(iName);
-		std::string name(pName);
-		if (false == name.empty())
-		{ // jeśli dany submodel jest zgaszonym światłem, to
-		  // domyślnie go ukrywamy
-			if ((name.size() >= 8) && (name.substr(0, 8) == "Light_On"))
-			{ // jeśli jest światłem numerowanym
-				iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z
-			}
-			// obiektem "Light_Off"
-			else if (dynamic)
-			{ // inaczej wyłączało smugę w latarniach
-				if ((name.size() >= 3) && (name.substr(name.size() - 3, 3) == "_on"))
-				{ // jeśli jest kontrolką w stanie zapalonym
-					iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z
-				}
-			}
-			// obiektem "_off"
-		}
-	}
-	else
-		pName = NULL;
-	if (iTexture > 0)
-	{ // obsługa stałej tekstury
-	  // TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
-	  // asTexture=AnsiString(t->String(iTexture));
-		pTexture = t->String(iTexture);
-		std::string tex = pTexture;
-		if (tex.find_last_of("/\\") == std::string::npos)
-			tex.insert(0, Global::asCurrentTexturePath);
-		TextureID = TextureManager.GetTextureId(tex, szTexturePath);
-		// TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
-		// ustawienie cyklu przezroczyste/nieprzezroczyste zależnie od własności
-		// stałej tekstury
-		// iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
-		// //0x10-nieprzezroczysta, 0x20-przezroczysta
-		if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity 0!
-			iFlags |= TextureManager.Texture(TextureID).has_alpha ?
-			0x20 :
-			0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
-		else
-			iFlags |= 0x10; // normalnie nieprzezroczyste
-	}
-	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
-	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem
-					   // tablic)
-	Vertices = v + iVboPtr;
-	// if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, żeby się nie
-	// renderowało na siłę
-};
 void TSubModel::AdjustDist()
 { // aktualizacja odległości faz LoD, zależna od
   // rozdzielczości pionowej oraz multisamplingu
@@ -1834,112 +1743,227 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 	return result;
 };
 
+// E3D deserialization
+// http://rainsted.com/pl/Format_binarny_modeli_-_E3D
+
+void TSubModel::deserialize(std::istream &s)
+{
+	iNext = sn_utils::ld_int32(s);
+	iChild = sn_utils::ld_int32(s);
+
+	eType = sn_utils::ld_int32(s);
+	iName = sn_utils::ld_int32(s);
+
+	b_Anim = (TAnimType)sn_utils::ld_int32(s);
+
+	iFlags = sn_utils::ld_int32(s);
+	iMatrix = sn_utils::ld_int32(s);
+
+	iNumVerts = sn_utils::ld_int32(s);
+	tVboPtr = sn_utils::ld_int32(s);
+	iTexture = sn_utils::ld_int32(s);
+
+	fVisible = sn_utils::ld_float32(s);
+	fLight = sn_utils::ld_float32(s);
+
+	for (size_t i = 0; i < 4; i++)
+		f4Ambient[i] = sn_utils::ld_float32(s);
+
+	for (size_t i = 0; i < 4; i++)
+		f4Diffuse[i] = sn_utils::ld_float32(s);
+
+	for (size_t i = 0; i < 4; i++)
+		f4Specular[i] = sn_utils::ld_float32(s);
+
+	for (size_t i = 0; i < 4; i++)
+		f4Emision[i] = sn_utils::ld_float32(s);
+
+	fWireSize = sn_utils::ld_float32(s);
+	fSquareMaxDist = sn_utils::ld_float32(s);
+	fSquareMinDist = sn_utils::ld_float32(s);
+
+	fNearAttenStart = sn_utils::ld_float32(s);
+	fNearAttenEnd = sn_utils::ld_float32(s);
+	bUseNearAtten = sn_utils::ld_uint32(s) != 0;
+	iFarAttenDecay = sn_utils::ld_int32(s);
+	fFarDecayRadius = sn_utils::ld_float32(s);
+	fCosFalloffAngle = sn_utils::ld_float32(s);
+	fCosHotspotAngle = sn_utils::ld_float32(s);
+	fCosViewAngle = sn_utils::ld_float32(s);
+}
+
+void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
+{
+	m_pVNT = nullptr;
+	Root = nullptr;
+	float4x4 *tm = nullptr;
+
+	std::streampos end = s.tellg() + (std::streampos)size;
+
+	while (s.tellg() < end)
+	{
+		uint32_t type = sn_utils::ld_uint32(s);
+		uint32_t size = sn_utils::ld_uint32(s) - 8;
+		std::streampos end = s.tellg() + (std::streampos)size;
+
+		if (type == MAKE_ID4('V', 'N', 'T', '0'))
+		{
+			if (m_pVNT != nullptr)
+				throw std::runtime_error("e3d: duplicated VNT chunk");
+
+			size_t vt_cnt = size / 32;
+			iNumVerts = (int)vt_cnt;
+			m_nVertexCount = (int)vt_cnt;
+			m_pVNT = new CVertNormTex[vt_cnt];
+			for (size_t i = 0; i < vt_cnt; i++)
+				m_pVNT[i].deserialize(s);
+		}
+		else if ((type & 0x00FFFFFF) == MAKE_ID4('S', 'U', 'B', 0))
+		{
+			if (Root != nullptr)
+				throw std::runtime_error("e3d: duplicated SUB chunk");
+
+			size_t sm_size = 256 + 64 * (((type & 0xFF000000) >> 24) - '0');
+			size_t sm_cnt = size / sm_size;
+			iSubModelsCount = (int)sm_cnt;
+			Root = new TSubModel[sm_cnt];
+			size_t pos = s.tellg();
+			for (size_t i = 0; i < sm_cnt; i++)
+			{
+				s.seekg(pos + sm_size * i);
+				Root[i].deserialize(s);
+			}
+		}
+		else if (type == MAKE_ID4('T', 'R', 'A', '0'))
+		{
+			if (tm != nullptr)
+				throw std::runtime_error("e3d: duplicated TRA chunk");
+			size_t t_cnt = size / 64;
+
+			tm = new float4x4[t_cnt];
+			for (size_t i = 0; i < t_cnt; i++)
+				tm[i].deserialize_float32(s);
+		}
+		else if (type == MAKE_ID4('T', 'R', 'A', '1'))
+		{
+			if (tm != nullptr)
+				throw std::runtime_error("e3d: duplicated TRA chunk");
+			size_t t_cnt = size / 128;
+
+			tm = new float4x4[t_cnt];
+			for (size_t i = 0; i < t_cnt; i++)
+				tm[i].deserialize_float64(s);
+		}
+		else if (type == MAKE_ID4('T', 'E', 'X', '0'))
+		{
+			if (Textures.size())
+				throw std::runtime_error("e3d: duplicated TEX chunk");
+			while (s.tellg() < end)
+				Textures.push_back(sn_utils::d_str(s));
+		}
+		else if (type == MAKE_ID4('N', 'A', 'M', '0'))
+		{
+			if (Names.size())
+				throw std::runtime_error("e3d: duplicated NAM chunk");
+			while (s.tellg() < end)
+				Names.push_back(sn_utils::d_str(s));
+		}
+
+		s.seekg(end);
+	}
+
+	if (!Root)
+		throw std::runtime_error("e3d: no submodels");
+
+	if (!m_pVNT)
+		throw std::runtime_error("e3d: no vertices");
+
+	for (size_t i = 0; (int)i < iSubModelsCount; i++)
+	{
+		Root[i].BinInit(Root, tm, (float8*)m_pVNT, &Textures, &Names, dynamic);
+
+		if (Root[i].ChildGet())
+			Root[i].ChildGet()->Parent = &Root[i];
+		if (Root[i].NextGet())
+			Root[i].NextGet()->Parent = Root[i].Parent;
+	}
+}
+
+void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
+	std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic)
+{ // ustawienie wskaźników w submodelu
+	iVisible = 1; // tymczasowo używane
+	Child = (iChild > 0) ? s + iChild : nullptr; // zerowy nie może być potomnym
+	Next = (iNext > 0) ? s + iNext : nullptr; // zerowy nie może być następnym
+	fMatrix = ((iMatrix >= 0) && m) ? m + iMatrix : nullptr;
+	if (n->size() && (iName >= 0))
+	{
+		pName = n->at(iName);
+		if (!pName.empty())
+		{ // jeśli dany submodel jest zgaszonym światłem, to
+		  // domyślnie go ukrywamy
+			if ((pName.size() >= 8) && (pName.substr(0, 8) == "Light_On"))
+			{ // jeśli jest światłem numerowanym
+				iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z
+			}
+			// obiektem "Light_Off"
+			else if (dynamic)
+			{ // inaczej wyłączało smugę w latarniach
+				if ((pName.size() >= 3) && (pName.substr(pName.size() - 3, 3) == "_on"))
+				{ // jeśli jest kontrolką w stanie zapalonym
+					iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z
+				}
+			}
+			// obiektem "_off"
+		}
+	}
+	else
+		pName = "";
+	if (iTexture > 0)
+	{ // obsługa stałej tekstury
+	  // TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
+	  // asTexture=AnsiString(t->String(iTexture));
+		pTexture = t->at(iTexture);
+		if (pTexture.find_last_of("/\\") == std::string::npos)
+			pTexture.insert(0, Global::asCurrentTexturePath);
+		TextureID = TextureManager.GetTextureId(pTexture, szTexturePath);
+		// TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
+		// ustawienie cyklu przezroczyste/nieprzezroczyste zależnie od własności
+		// stałej tekstury
+		// iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
+		// //0x10-nieprzezroczysta, 0x20-przezroczysta
+		if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity 0!
+			iFlags |= TextureManager.Texture(TextureID).has_alpha ?
+			0x20 :
+			0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
+		else
+			iFlags |= 0x10; // normalnie nieprzezroczyste
+	}
+	else
+		TextureID = iTexture;
+	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
+	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem
+					   // tablic)
+	iVboPtr = tVboPtr;
+	Vertices = v + iVboPtr;
+	// if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, żeby się nie
+	// renderowało na siłę
+};
+
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
 	WriteLog("Loading - binary model: " + FileName);
-	int i = 0, j, k, ch, size;
+	
+	std::ifstream file(FileName, std::ios::binary);
 
-	/*    TFileStream *fs = new TFileStream(AnsiString(FileName), fmOpenRead);
-	size = fs->Size >> 2;
-	iModel = new int[size]; // ten wskaźnik musi być w modelu, aby zwolnić pamięć
-	fs->Read(iModel, fs->Size); // wczytanie pliku
-	delete fs;
-	*/ {
-		std::ifstream file(FileName, std::ios::binary | std::ios::ate);
-		file.unsetf(std::ios::skipws);
-		size = file.tellg(); // ios::ate already positioned us at the end of the file
-		iModel = new int[size >> 2]; // ten wskaźnik musi być w modelu, aby zwolnić pamięć
-		file.seekg(0, std::ios::beg); // rewind the caret afterwards
-		file.read(reinterpret_cast<char *>(iModel), size);
-	}
-	float4x4 *m = NULL; // transformy
-						// zestaw kromek:
-	while ((i << 2) < size) // w pliku może być kilka modeli
-	{
-		ch = iModel[i]; // nazwa kromki
-		j = i + (iModel[i + 1] >> 2); // początek następnej kromki
-		if (ch == MAKE_ID4('E', '3', 'D', '0')) // główna: 'E3D0',len,pod-kromki
-		{ // tylko tę kromkę znamy, może kiedyś jeszcze DOF się zrobi
-			i += 2;
-			while (i < j)
-			{ // przetwarzanie kromek wewnętrznych
-				ch = iModel[i]; // nazwa kromki
-				k = (iModel[i + 1] >> 2); // długość aktualnej kromki
-				switch (ch)
-				{
-					case MAKE_ID4('M', 'D', 'L',
-						'0'): // zmienne modelu: 'E3D0',len,(informacje o modelu)
-							break;
-							case MAKE_ID4('V', 'N', 'T',
-								'0'): // wierzchołki: 'VNT0',len,(32 bajty na wierzchołek)
-									iNumVerts = (k - 2) >> 3;
-									m_nVertexCount = iNumVerts;
-									m_pVNT = (CVertNormTex *)(iModel + i + 2);
-									break;
-							case MAKE_ID4('S', 'U', 'B', '0'): // submodele: 'SUB0',len,(256 bajtów na submodel)
-								iSubModelsCount = (k - 2) / 64;
-								Root =
-									(TSubModel *)(iModel + i + 2); // numery na wskaźniki przetworzymy później
-								break;
-							case MAKE_ID4('S', 'U', 'B', '1'): // submodele: 'SUB1',len,(320 bajtów na submodel)
-								iSubModelsCount = (k - 2) / 80;
-								Root =
-									(TSubModel *)(iModel + i + 2); // numery na wskaźniki przetworzymy później
-								for (ch = 1; ch < iSubModelsCount;
-									++ch) // trzeba przesunąć bliżej, bo 256 wystarczy
-									MoveMemory(((char *)Root) + 256 * ch, ((char *)Root) + 320 * ch, 256);
-								break;
-							case MAKE_ID4('T', 'R', 'A', '0'): // transformy: 'TRA0',len,(64 bajty na transform)
-								m = (float4x4 *)(iModel + i + 2); // tabela transformów
-								break;
-								case MAKE_ID4('T', 'R', 'A',
-									'1'): // transformy: 'TRA1',len,(128 bajtów na transform)
-										m = (float4x4 *)(iModel + i + 2); // tabela transformów
-										for (ch = 0; ch < ((k - 2) >> 1); ++ch)
-											*(((float *)m) + ch) = *(((double *)m) + ch); // przepisanie double do float
-										break;
-										case MAKE_ID4('I', 'D', 'X',
-											'1'): // indeksy 1B: 'IDX2',len,(po bajcie na numer wierzchołka)
-												break;
-												case MAKE_ID4('I', 'D', 'X',
-													'2'): // indeksy 2B: 'IDX2',len,(po 2 bajty na numer wierzchołka)
-														break;
-														case MAKE_ID4('I', 'D', 'X',
-															'4'): // indeksy 4B: 'IDX4',len,(po 4 bajty na numer wierzchołka)
-																break;
-																case MAKE_ID4('T', 'E', 'X',
-																	'0'): // tekstury: 'TEX0',len,(łańcuchy zakończone zerem - pliki
-																		  // tekstur)
-																		Textures.Init((char *)(iModel + i)); //łącznie z nagłówkiem
-																		break;
-																case MAKE_ID4('T', 'I', 'X', '0'): // indeks nazw tekstur
-																	Textures.InitIndex((int *)(iModel + i)); //łącznie z nagłówkiem
-																	break;
-																	case MAKE_ID4('N', 'A', 'M',
-																		'0'): // nazwy: 'NAM0',len,(łańcuchy zakończone zerem - nazwy
-																			  // submodeli)
-																			Names.Init((char *)(iModel + i)); //łącznie z nagłówkiem
-																			break;
-																	case MAKE_ID4('N', 'I', 'X', '0'): // indeks nazw submodeli
-																		Names.InitIndex((int *)(iModel + i)); //łącznie z nagłówkiem
-																		break;
-				}
-				i += k; // przejście do kolejnej kromki
-			}
-		}
-		i = j;
-	}
-	for (i = 0; i < iSubModelsCount; ++i)
-	{ // aktualizacja wskaźników w submodelach
-		Root[i].BinInit(Root, m, (float8 *)m_pVNT, &Textures, &Names, dynamic);
-		if (Root[i].ChildGet())
-			Root[i].ChildGet()->Parent = Root + i; // wpisanie wskaźnika nadrzędnego do potmnego
-		if (Root[i].NextGet())
-			Root[i].NextGet()->Parent =
-			Root[i].Parent; // skopiowanie wskaźnika nadrzędnego do kolejnego
-	}
-	iFlags &= ~0x0200;
-	return;
+	uint32_t type = sn_utils::ld_uint32(file);
+	uint32_t size = sn_utils::ld_uint32(file) - 8;
+
+	if (type != MAKE_ID4('E', '3', 'D', '0'))
+		throw std::runtime_error("e3d: unknown main chunk");
+
+	deserialize(file, size, dynamic);
+	file.close();
 };
 
 void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
@@ -2084,7 +2108,7 @@ void TModel3d::SaveToBinFile(char const *FileName)
 		{
 			roboczy->InfoSet(info + i);
 			file.write(reinterpret_cast<char *>(roboczy),
-				sizeof(TSubModel)); // zapis jednego submodelu
+				256); // zapis jednego submodelu
 		}
 		if (tra)
 		{ // zapis transformów
@@ -2110,7 +2134,7 @@ void TModel3d::SaveToBinFile(char const *FileName)
 				1); // ciąg o numerze zero nie jest używany, ma tylko znacznik końca
 			for (i = 0; i < iSubModelsCount; ++i)
 				if (info[i].iTextureLen)
-					file.write(info[i].pSubModel->pTexture, info[i].iTextureLen);
+					file.write(info[i].pSubModel->pTexture.c_str(), info[i].iTextureLen);
 			if ((-tex) & 3)
 				file.write(reinterpret_cast<char *>(&zero),
 				((-tex) & 3)); // wyrównanie do wielokrotności 4 bajtów
@@ -2122,7 +2146,7 @@ void TModel3d::SaveToBinFile(char const *FileName)
 			file.write(reinterpret_cast<char *>(&i), 4);
 			for (i = 0; i < iSubModelsCount; ++i)
 				if (info[i].iNameLen)
-					file.write(info[i].pSubModel->pName, info[i].iNameLen);
+					file.write(info[i].pSubModel->pName.c_str(), info[i].iNameLen);
 			if ((-nam) & 3)
 				file.write(reinterpret_cast<char *>(&zero),
 				((-nam) & 3)); // wyrównanie do wielokrotności 4 bajtów
