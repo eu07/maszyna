@@ -396,17 +396,17 @@ void Console::ValueSet(int x, double y)
 		case 0: iliczba = (unsigned int)floor((y / (Global::fMWDzg[0] * 10) * Global::fMWDzg[1]) + 0.5);	// zbiornik g??wny
 			MWDComm->WriteDataBuff[12] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[11] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main tank presure " + to_string(MWDComm->WriteDataBuff[12]) + " " + to_string(MWDComm->WriteDataBuff[11]));
+			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main tank press " + to_string(MWDComm->WriteDataBuff[12]) + " " + to_string(MWDComm->WriteDataBuff[11]));
 			break;
 		case 1: iliczba = (unsigned int)floor((y / (Global::fMWDpg[0] * 10) * Global::fMWDpg[1]) + 0.5);	// przew?d g??wny
 			MWDComm->WriteDataBuff[10] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[9] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main pipe presure " + to_string(MWDComm->WriteDataBuff[10]) + " " + to_string(MWDComm->WriteDataBuff[9]));
+			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Main pipe press " + to_string(MWDComm->WriteDataBuff[10]) + " " + to_string(MWDComm->WriteDataBuff[9]));
 			break;
 		case 2: iliczba = (unsigned int)floor((y / (Global::fMWDph[0] * 10) * Global::fMWDph[1]) + 0.5);	// cylinder hamulcowy
 			MWDComm->WriteDataBuff[8] = (unsigned char)(iliczba >> 8);
 			MWDComm->WriteDataBuff[7] = (unsigned char)iliczba;
-			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Break presure " + to_string(MWDComm->WriteDataBuff[8]) + " " + to_string(MWDComm->WriteDataBuff[7]));
+			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Break press " + to_string(MWDComm->WriteDataBuff[8]) + " " + to_string(MWDComm->WriteDataBuff[7]));
 			break;
 		case 3: iliczba = (unsigned int)floor((y / Global::fMWDvolt[0] * Global::fMWDvolt[1]) + 0.5);	// woltomierz WN
 			MWDComm->WriteDataBuff[14] = (unsigned char)(iliczba >> 8);
