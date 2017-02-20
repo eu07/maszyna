@@ -463,14 +463,23 @@ float Console::AnalogCalibrateGet(int x)
     if (iMode == 4 && PoKeys55[0])
     {
         float b = PoKeys55[0]->fAnalog[x];
-        return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+        /*return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
                   Global::fCalibrateIn[x][3]) *
                      b +
                  Global::fCalibrateIn[x][2]) *
                     b +
                 Global::fCalibrateIn[x][1]) *
                    b +
-               Global::fCalibrateIn[x][0];
+               Global::fCalibrateIn[x][0];*/
+		b = (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+			Global::fCalibrateIn[x][3]) *
+			b +
+			Global::fCalibrateIn[x][2]) *
+			b +
+			Global::fCalibrateIn[x][1]) *
+			b +
+			Global::fCalibrateIn[x][0];
+		return (b + 2) / 8;
     }
 	if (Global::bMWDmasterEnable && Global::bMWDBreakEnable)
 	{
