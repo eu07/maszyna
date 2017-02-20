@@ -1517,7 +1517,7 @@ bool TWorld::Render()
     glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
     glLoadIdentity(); // reset the Projection Matrix
     // calculate the aspect ratio of the window
-    gluPerspective( 45.0f / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
+    gluPerspective( Global::FieldOfView / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
 
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();

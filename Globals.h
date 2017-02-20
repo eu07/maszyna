@@ -256,6 +256,7 @@ class Global
     static int ScreenWidth; // current window dimensions. TODO: move it to renderer
     static int ScreenHeight;
     static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
+    static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
     static int iCameraLast;
     static std::string asRelease; // numer
     static std::string asVersion; // z opisem

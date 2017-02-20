@@ -52,6 +52,7 @@ HWND Global::hWnd = NULL; // uchwyt okna
 int Global::ScreenWidth = 1;
 int Global::ScreenHeight = 1;
 float Global::ZoomFactor = 1.0f;
+float Global::FieldOfView = 45.0f;
 int Global::iCameraLast = -1;
 std::string Global::asRelease = "16.0.1172.482";
 std::string Global::asVersion =
@@ -260,6 +261,14 @@ void Global::ConfigParse(cParser &Parser)
 
             Parser.getTokens();
             Parser >> Global::asHumanCtrlVehicle;
+        }
+        else if( token == "fieldofview" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::FieldOfView;
+            // guard against incorrect values
+            Global::FieldOfView = std::min( 75.0f, Global::FieldOfView );
+            Global::FieldOfView = std::max( 15.0f, Global::FieldOfView );
         }
         else if (token == "width")
         {

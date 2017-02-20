@@ -219,6 +219,9 @@ template <typename ColorT> inline void readColor(cParser &parser, ColorT *color)
     double discard;
     parser.getTokens(4, false);
     parser >> discard >> color[0] >> color[1] >> color[2];
+    color[ 0 ] /= 255.0;
+    color[ 1 ] /= 255.0;
+    color[ 2 ] /= 255.0;
 };
 
 inline void readColor(cParser &parser, int &color)
