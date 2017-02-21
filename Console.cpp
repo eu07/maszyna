@@ -324,7 +324,7 @@ void Console::BitsUpdate(int mask)
 		else MWDComm->WriteDataBuff[4] &= ~(1 << 6);
 		if (mask & 0x0004) if (iBits & 4) MWDComm->WriteDataBuff[4] |= 1 << 1; 		// jazda na oporach rozruchowych
 		else MWDComm->WriteDataBuff[4] &= ~(1 << 1);
-		if (mask & 0x0008) if (iBits & 8)	MWDComm->WriteDataBuff[5] |= 1 << 5; 		// wy??cznik szybki
+		if (mask & 0x0008) if (iBits & 8)	MWDComm->WriteDataBuff[5] |= 1 << 5; 	// wy??cznik szybki
 		else MWDComm->WriteDataBuff[5] &= ~(1 << 5);
 		if (mask & 0x0010) if (iBits & 0x10) MWDComm->WriteDataBuff[5] |= 1 << 4; 	// nadmiarowy silnik?w trakcyjnych
 		else MWDComm->WriteDataBuff[5] &= ~(1 << 4);
@@ -342,11 +342,11 @@ void Console::BitsUpdate(int mask)
 		else MWDComm->WriteDataBuff[2] &= ~(1 << 2);
 		if (mask & 0x0800) if (iBits & 0x800) MWDComm->WriteDataBuff[4] |= 1 << 0;	// ogrzewanie poci?gu
 		else MWDComm->WriteDataBuff[4] &= ~(1 << 0);
-		if (mask & 0x1000) if (iBits & 0x1000) MWDComm->bHamowanie = true;		// hasler: ci?nienie w hamulcach 	HASLER rysik 2
+		if (mask & 0x1000) if (iBits & 0x1000) MWDComm->bHamowanie = true;	// hasler: ci?nienie w hamulcach HASLER rysik 2
 		else MWDComm->bHamowanie = false;
-		if (mask & 0x2000) if (iBits & 0x2000) MWDComm->WriteDataBuff[6] |= 1 << 4; 	// hasler: pr?d "na" silnikach 		HASLER rysik 3
+		if (mask & 0x2000) if (iBits & 0x2000) MWDComm->WriteDataBuff[6] |= 1 << 4; // hasler: pr?d "na" silnikach 		HASLER rysik 3
 		else MWDComm->WriteDataBuff[6] &= ~(1 << 4);
-		if (mask & 0x4000) if (iBits & 0x4000) MWDComm->WriteDataBuff[6] |= 1 << 7; 	// brz?czyk SHP/CA
+		if (mask & 0x4000) if (iBits & 0x4000) MWDComm->WriteDataBuff[6] |= 1 << 7; // brz?czyk SHP/CA
 		else MWDComm->WriteDataBuff[6] &= ~(1 << 7);
 		//if(mask & 0x8000) if(iBits & 0x8000) MWDComm->WriteDataBuff[1] |= 1<<7; (puste)
 		//else MWDComm->WriteDataBuff[0] &= ~(1<<7);
@@ -432,6 +432,11 @@ void Console::ValueSet(int x, double y)
 				else MWDComm->WriteDataBuff[0] = (unsigned char)floor(y); 	// prędkość dla np haslera
 				if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Speed: " + to_string(MWDComm->WriteDataBuff[0]));
 			break;
+		/* case 8: iliczba = (unsigned int)floor((y / Global::fMWDamp[0] * Global::fMWDamp[1]) + 0.5);	// amp WN 3
+			MWDComm->WriteDataBuff[20] = (unsigned int)(iliczba >> 8);
+			MWDComm->WriteDataBuff[19] = (unsigned char)iliczba;
+			if (Global::bMWDmasterEnable && Global::iMWDDebugMode & 8) WriteLog("Apm meter3 " + to_string(MWDComm->WriteDataBuff[20]) + " " + to_string(MWDComm->WriteDataBuff[19]));
+			break; */ // na razie nie działa więc nie odkomentować!
 		}
 	}
 };
@@ -470,25 +475,27 @@ float Console::AnalogCalibrateGet(int x)
 { // pobranie i kalibracja wartości analogowej, jeśli nie ma PoKeys zwraca NULL
     if (iMode == 4 && PoKeys55[0])
     {
-        float b = PoKeys55[0]->fAnalog[x];
-        /*return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
-                  Global::fCalibrateIn[x][3]) *
-                     b +
-                 Global::fCalibrateIn[x][2]) *
-                    b +
-                Global::fCalibrateIn[x][1]) *
-                   b +
-               Global::fCalibrateIn[x][0];*/
-		b = (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
-			Global::fCalibrateIn[x][3]) *
-			b +
-			Global::fCalibrateIn[x][2]) *
-			b +
-			Global::fCalibrateIn[x][1]) *
-			b +
-			Global::fCalibrateIn[x][0];
-		return (b + 2) / 8;
-    }
+		float b = PoKeys55[0]->fAnalog[x];
+			/*return (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+					  Global::fCalibrateIn[x][3]) *
+						 b +
+					 Global::fCalibrateIn[x][2]) *
+						b +
+					Global::fCalibrateIn[x][1]) *
+					   b +
+				   Global::fCalibrateIn[x][0];*/
+			b = (((((Global::fCalibrateIn[x][5] * b) + Global::fCalibrateIn[x][4]) * b +
+				Global::fCalibrateIn[x][3]) *
+				b +
+				Global::fCalibrateIn[x][2]) *
+				b +
+				Global::fCalibrateIn[x][1]) *
+				b +
+				Global::fCalibrateIn[x][0];
+		if (x == 0) return (b + 2) / 8;
+		if (x == 1) return b/10;
+		else return b;
+	}
 	if (Global::bMWDmasterEnable && Global::bMWDBreakEnable)
 	{
 		float b = (float)MWDComm->uiAnalog[x];

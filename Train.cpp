@@ -2842,17 +2842,18 @@ bool TTrain::Update( double const Deltatime )
             /// napędu
         }
 
-		if (Global::bMWDmasterEnable) // pobieranie danych dla pulpitu przez port szeregowy (COM)
+		if (Global::bMWDmasterEnable) // pobieranie danych dla pulpitu port (COM)
 		{ 
 			Console::ValueSet(0, mvOccupied->Compressor); // zbiornik główny
 			Console::ValueSet(1, mvOccupied->PipePress); // przewód główny
 			Console::ValueSet(2, mvOccupied->BrakePress); // cylinder hamulcowy
 			Console::ValueSet(3, fHVoltage); // woltomierz wysokiego napięcia
-			Console::ValueSet(6, fHCurrent[3]); // drugi amperomierz 3
+			Console::ValueSet(4, fHCurrent[(mvControlled->TrainType & dt_EZT) ? 0 : 1]); 
+			// pierwszy amperomierz; dla EZT prąd całkowity
 			Console::ValueSet(5, fHCurrent[2]); // drugi amperomierz 2
-			Console::ValueSet(4, fHCurrent[(mvControlled->TrainType & dt_EZT) ? 0 : 1]); // pierwszy amperomierz; dla EZT prąd całkowity
+			Console::ValueSet(6, fHCurrent[3]); // drugi amperomierz 3
 			Console::ValueSet(7, fTachoVelocity);
-			//mvControlled->BatteryVoltage; przyda się w przyszłości
+			//Console::ValueSet(8, mvControlled->BatteryVoltage); // przyda się w przyszłości
 		}
 
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia
@@ -3800,6 +3801,8 @@ bool TTrain::Update( double const Deltatime )
             // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
             ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
             ggBrakeCtrl.Update();
+
+			
         }
         if (ggLocalBrake.SubModel)
         {
