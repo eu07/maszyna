@@ -219,6 +219,9 @@ template <typename ColorT> inline void readColor(cParser &parser, ColorT *color)
     double discard;
     parser.getTokens(4, false);
     parser >> discard >> color[0] >> color[1] >> color[2];
+    color[ 0 ] /= 255.0;
+    color[ 1 ] /= 255.0;
+    color[ 2 ] /= 255.0;
 };
 
 inline void readColor(cParser &parser, int &color)
@@ -726,7 +729,7 @@ void TSubModel::DisplayLists()
         glColorMaterial(GL_FRONT, GL_EMISSION);
         glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
-        glVertex3f(0, 0, 0);
+        glVertex3f( 0.0f, 0.0f, -0.025f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
         glEnd();
         glEnable(GL_LIGHTING);
         glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);

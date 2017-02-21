@@ -567,7 +567,7 @@ void TGroundNode::RenderDL()
         return smTerrain->RenderDL();
     }
     // if (pTriGroup) if (pTriGroup!=this) return; //wyświetla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
+    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
     if ((mgn > fSquareRadius) || (mgn < fSquareMinRadius)) // McZapkie-070602: nie rysuj odleglych
         // obiektow ale sprawdzaj wyzwalacz
         // zdarzen
@@ -633,7 +633,7 @@ void TGroundNode::RenderAlphaDL()
     // i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
 
     // if (pTriGroup) if (pTriGroup!=this) return; //wyświetla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
+    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
     float r, g, b;
     if (mgn < fSquareMinRadius)
         return;

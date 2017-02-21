@@ -502,7 +502,7 @@ opengl_texture::set_filtering() {
 
     if( GLEW_EXT_texture_filter_anisotropic ) {
         // anisotropic filtering
-        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f );
+        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global::AnisotropicFiltering );
     }
 
     bool sharpen{ false };
