@@ -2852,6 +2852,7 @@ bool TTrain::Update( double const Deltatime )
 			Console::ValueSet(5, fHCurrent[2]); // drugi amperomierz 2
 			Console::ValueSet(4, fHCurrent[(mvControlled->TrainType & dt_EZT) ? 0 : 1]); // pierwszy amperomierz; dla EZT prąd całkowity
 			Console::ValueSet(7, fTachoVelocity);
+			//mvControlled->BatteryVoltage; przyda się w przyszłości
 		}
 
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia
