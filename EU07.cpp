@@ -38,13 +38,7 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 {
 	Global::ScreenWidth = w;
 	Global::ScreenHeight = h;
-	glViewport(0, 0, w, h); // Reset The Current Viewport
-	glMatrixMode(GL_PROJECTION); // select the Projection Matrix
-	glLoadIdentity(); // reset the Projection Matrix
-					  // calculate the aspect ratio of the window
-	gluPerspective(45.0f, (GLdouble)w / (GLdouble)h, 0.2f, 2500.0f);
-	glMatrixMode(GL_MODELVIEW); // select the Modelview Matrix
-	glLoadIdentity(); // reset the Modelview Matrix
+	glViewport(0, 0, w, h);
 }
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
@@ -132,12 +126,14 @@ int main(int argc, char *argv[])
 			else
 				Global::iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
 		}
-		else if (argc <= i + 1)
-			continue;
-		else if (token == "-s")
+		else if (i + 1 < argc && token == "-s")
 			Global::SceneryFile = std::string(argv[++i]);
-		else if (token == "-v")
-			Global::asHumanCtrlVehicle = std::string(argv[++i]);
+		else if (i + 1 < argc && token == "-v")
+		{
+			std::string v(argv[++i]);
+			std::transform(v.begin(), v.end(), v.begin(), ::tolower);
+			Global::asHumanCtrlVehicle = v;
+		}
 		else
 		{
 			std::cout << "usage: " << std::string(argv[0]) << " [-s sceneryfilepath] "
@@ -145,8 +141,6 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 	}
-
-	glfwWindowHint(GLFW_SAMPLES, Global::iMultisampling);
 
 	// match requested video mode to current to allow for
 	// fullwindow creation when resolution is the same
@@ -157,6 +151,8 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
 	glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
 	glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
+
+	glfwWindowHint(GLFW_SAMPLES, Global::iMultisampling);
 
 	GLFWwindow *window =
 		glfwCreateWindow(Global::iWindowWidth, Global::iWindowHeight,

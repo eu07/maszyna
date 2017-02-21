@@ -174,9 +174,6 @@ bool TWorld::Init(GLFWwindow *w)
     Global::detonatoryOK = true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
     WriteLog(Global::asVersion);
-	if( sizeof( TSubModel ) != 256 ) {
-		std::cout << "sizeof(TSubModel) != 256: E3D file support unavailable" << std::endl;
-	}
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
              "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others");
