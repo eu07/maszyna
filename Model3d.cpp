@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "mczapkie/mctools.h"
 #include "Usefull.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
 //---------------------------------------------------------------------------
@@ -411,12 +411,12 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             TextureNameSet(texture.c_str());
             if (texture.find_first_of("/\\") == texture.npos)
                 texture.insert(0, Global::asCurrentTexturePath.c_str());
-            TextureID = TextureManager.GetTextureId( texture, szTexturePath );
+            TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
             if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity
                 // 0!
-                iFlags |= TextureManager.Texture(TextureID).has_alpha ?
+                iFlags |= GfxRenderer.Texture(TextureID).has_alpha ?
                               0x20 :
                               0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
             else
@@ -636,7 +636,7 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
             m->AddTo(this, s);
         }
         // s->asTexture=AnsiString(TTexturesManager::GetName(tex).c_str());
-        s->TextureNameSet(TextureManager.Texture(tex).name.c_str());
+        s->TextureNameSet(GfxRenderer.Texture(tex).name.c_str());
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
         // iAnimOwner=0; //roboczy wskaźnik na wierzchołek
@@ -714,7 +714,7 @@ void TSubModel::DisplayLists()
     {
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        TextureManager.Bind(0);
+        GfxRenderer.Bind(0);
         //     if (eType==smt_FreeSpotLight)
         //      {
         //       if (iFarAttenDecay==0)
@@ -737,7 +737,7 @@ void TSubModel::DisplayLists()
     { // punkty świecące dookólnie
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        TextureManager.Bind(0); // tekstury nie ma
+        GfxRenderer.Bind(0); // tekstury nie ma
         glColorMaterial(GL_FRONT, GL_EMISSION);
         glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
@@ -1100,11 +1100,11 @@ void TSubModel::RenderDL()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1197,11 +1197,11 @@ void TSubModel::RenderAlphaDL()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1278,11 +1278,11 @@ void TSubModel::RenderVBO()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
                 // glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo,
                 // co glColor
@@ -1349,7 +1349,7 @@ void TSubModel::RenderVBO()
                                               Distdimm=1;
 
                 */
-                TextureManager.Bind(0); // nie teksturować
+                GfxRenderer.Bind(0); // nie teksturować
                 // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
                 // glColorMaterial(GL_FRONT,GL_EMISSION);
                 float color[4] = {f4Diffuse[0] * Distdimm, f4Diffuse[1] * Distdimm,
@@ -1378,7 +1378,7 @@ void TSubModel::RenderVBO()
                 if (pRoot->StartColorVBO())
                 { // wyświetlanie kolorowych punktów zamiast
                     // trójkątów
-                    TextureManager.Bind(0); // tekstury nie ma
+                    GfxRenderer.Bind(0); // tekstury nie ma
                     glColorMaterial(GL_FRONT, GL_EMISSION);
                     glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
                     // blendowaly
@@ -1452,11 +1452,11 @@ void TSubModel::RenderAlphaVBO()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skory
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1624,14 +1624,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
         std::string tex = pTexture;
         if (tex.find_last_of("/\\") == std::string::npos)
             tex.insert(0, Global::asCurrentTexturePath);
-        TextureID = TextureManager.GetTextureId( tex, szTexturePath );
+        TextureID = GfxRenderer.GetTextureId( tex, szTexturePath );
         // TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
         // ustawienie cyklu przezroczyste/nieprzezroczyste zależnie od własności
         // stałej tekstury
         // iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
         // //0x10-nieprzezroczysta, 0x20-przezroczysta
         if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity 0!
-            iFlags |= TextureManager.Texture(TextureID).has_alpha ?
+            iFlags |= GfxRenderer.Texture(TextureID).has_alpha ?
                           0x20 :
                           0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
         else

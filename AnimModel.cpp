@@ -22,7 +22,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "MdlMngr.h"
 // McZapkie:
-#include "Texture.h"
+#include "renderer.h"
 //---------------------------------------------------------------------------
 TAnimContainer *TAnimModel::acAnimList = NULL;
 
@@ -449,9 +449,9 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
     else if (asReplacableTexture != "none")
         ReplacableSkinId[1] =
-            TextureManager.GetTextureId( asReplacableTexture, "" );
+            GfxRenderer.GetTextureId( asReplacableTexture, "" );
     if( ( ReplacableSkinId[ 1 ] != 0 )
-     && ( TextureManager.Texture( ReplacableSkinId[ 1 ] ).has_alpha ) ) {
+     && ( GfxRenderer.Texture( ReplacableSkinId[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         iTexAlpha = 0x31310031; 
     }

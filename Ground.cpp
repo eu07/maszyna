@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "usefull.h"
 #include "Timer.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "Event.h"
 #include "EvLaunch.h"
 #include "TractionPower.h"
@@ -276,7 +276,7 @@ void TGroundNode::RaRenderVBO()
 { // renderowanie z domyslnego bufora VBO
     glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
     if (TextureID)
-        TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
+        GfxRenderer.Bind(TextureID); // Ustaw aktywną teksturę
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
@@ -457,7 +457,7 @@ void TGroundNode::Compile(bool many)
 #ifdef USE_VERTEX_ARRAYS
         glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
 #endif
-        TextureManager.Bind(0);
+        GfxRenderer.Bind(0);
 #ifdef USE_VERTEX_ARRAYS
         glDrawArrays(iType, 0, iNumPts);
 #else
@@ -478,7 +478,7 @@ void TGroundNode::Compile(bool many)
             glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
 #endif
             glColor3ub(tri->Diffuse[0], tri->Diffuse[1], tri->Diffuse[2]);
-            TextureManager.Bind(Global::bWireFrame ? 0 : tri->TextureID);
+            GfxRenderer.Bind(Global::bWireFrame ? 0 : tri->TextureID);
 #ifdef USE_VERTEX_ARRAYS
             glDrawArrays(Global::bWireFrame ? GL_LINE_LOOP : tri->iType, 0, tri->iNumVerts);
 #else
@@ -506,7 +506,7 @@ void TGroundNode::Compile(bool many)
     else if (iType == TP_MESH)
     { // grupa ze wspólną teksturą - wrzucanie do wspólnego Display List
         if (TextureID)
-            TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
+            GfxRenderer.Bind(TextureID); // Ustaw aktywną teksturę
         TGroundNode *n = nNode;
         while (n ? n->TextureID == TextureID : false)
         { // wszystkie obiekty o tej samej testurze
@@ -2133,8 +2133,8 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->PROBLEND = false;
         }
 #endif
-        tmp->TextureID = TextureManager.GetTextureId( str, szTexturePath );
-        tmp->iFlags = TextureManager.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
+        tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
+        tmp->iFlags = GfxRenderer.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
         if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
                 Global::pTerrainCompact->TerrainLoaded() :
                 false)

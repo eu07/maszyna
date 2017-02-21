@@ -119,6 +119,7 @@
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PyInt.cpp" />
     <ClCompile Include="RealSound.cpp" />
+    <ClCompile Include="renderer.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Segment.cpp" />
     <ClCompile Include="sky.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="PyInt.h" />
     <ClInclude Include="python\include\Python.h" />
     <ClInclude Include="RealSound.h" />
+    <ClInclude Include="renderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Segment.h" />

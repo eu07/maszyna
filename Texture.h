@@ -97,5 +97,3 @@ private:
     index_map m_texturemappings;
     size_type m_activetexture{ 0 }; // last i.e. currently bound texture
 };
-
-extern texture_manager TextureManager;

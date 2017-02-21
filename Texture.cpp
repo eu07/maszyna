@@ -14,19 +14,14 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Texture.h"
+#include "texture.h"
 
 #include <ddraw.h>
-#include <io.h>
-#include <fcntl.h>
 #include "opengl/glew.h"
 
-#include "Globals.h"
+#include "usefull.h"
+#include "globals.h"
 #include "logs.h"
-#include "Usefull.h"
-#include "TextureDDS.h"
-
-texture_manager TextureManager;
 
 texture_manager::texture_manager() {
 
