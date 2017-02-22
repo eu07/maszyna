@@ -2853,7 +2853,7 @@ bool TTrain::Update( double const Deltatime )
 			Console::ValueSet(5, fHCurrent[2]); // drugi amperomierz 2
 			Console::ValueSet(6, fHCurrent[3]); // drugi amperomierz 3
 			Console::ValueSet(7, fTachoVelocity);
-			//Console::ValueSet(8, mvControlled->BatteryVoltage); // przyda się w przyszłości
+			//Console::ValueSet(8, mvControlled->BatteryVoltage); // jeszcze nie pora ;)
 		}
 
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia
@@ -3781,7 +3781,7 @@ bool TTrain::Update( double const Deltatime )
                     double b = Console::AnalogCalibrateGet(0);
 					b = b * 8 - 2;
 					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
-					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b));
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FV4a break position = " + to_string(b));
 					ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
 					mvOccupied->BrakeLevelSet(b);
 				}
@@ -3790,7 +3790,7 @@ bool TTrain::Update( double const Deltatime )
                     double b = Console::AnalogCalibrateGet(0);
 					b = b * 7 - 1;
 					b = Global::CutValueToRange(-1.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
-					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("Pozycja kranu = " + to_string(b));
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FVel6 break position = " + to_string(b));
                     ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                     mvOccupied->BrakeLevelSet(b);
                 }
@@ -3817,6 +3817,7 @@ bool TTrain::Update( double const Deltatime )
 					b *= 10;
 					b = Global::CutValueToRange(0.0, b, LocalBrakePosNo); // przycięcie zmiennej do granic
                     ggLocalBrake.UpdateValue(b); // przesów bez zaokrąglenia
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FD1 break position = " + to_string(b));
                     mvOccupied->LocalBrakePos =
                         int(1.09 * b); // sposób zaokrąglania jest do ustalenia
                 }
