@@ -329,7 +329,7 @@ void Console::BitsUpdate(int mask)
 		else MWDComm->WriteDataBuff[5] &= ~(1 << 5);
 		if (mask & 0x0010) if (iBits & 0x10) MWDComm->WriteDataBuff[5] |= 1 << 4; 	// nadmiarowy silników trakcyjnych
 		else MWDComm->WriteDataBuff[5] &= ~(1 << 4);
-		if (mask & 0x0020) if (iBits & 0x20) MWDComm->WriteDataBuff[4] |= 1 << 0; 	// styczniki liniowe
+		if (mask & 0x0020) if (iBits & 0x20) MWDComm->WriteDataBuff[5] |= 1 << 0; 	// styczniki liniowe
 		else MWDComm->WriteDataBuff[5] &= ~(1 << 0);
 		if (mask & 0x0040) if (iBits & 0x40) MWDComm->WriteDataBuff[4] |= 1 << 2; 	// poślizg
 		else MWDComm->WriteDataBuff[4] &= ~(1 << 2);
