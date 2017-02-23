@@ -123,6 +123,7 @@
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Segment.cpp" />
     <ClCompile Include="sky.cpp" />
+    <ClCompile Include="skydome.cpp" />
     <ClCompile Include="Sound.cpp" />
     <ClCompile Include="Spring.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -149,6 +150,7 @@
     <ClInclude Include="Button.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Classes.h" />
+    <ClInclude Include="color.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Console\LPT.h" />
     <ClInclude Include="Console\MWD.h" />
@@ -186,6 +188,7 @@
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Segment.h" />
     <ClInclude Include="sky.h" />
+    <ClInclude Include="skydome.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="Spring.h" />
     <ClInclude Include="stdafx.h" />

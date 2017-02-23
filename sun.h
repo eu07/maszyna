@@ -18,7 +18,7 @@ public:
 // methods:
     void init();
     void update();
-	void render( Math3D::vector3 const &Origin );
+	void render();
     // returns location of the sun in the 3d scene
     Math3D::vector3 getPosition() { return m_position; }
 	// returns vector pointing at the sun

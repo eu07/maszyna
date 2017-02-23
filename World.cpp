@@ -31,6 +31,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Train.h"
 #include "Driver.h"
 #include "Console.h"
+#include "color.h"
 
 #define TEXTURE_FILTER_CONTROL_EXT 0x8500
 #define TEXTURE_LOD_BIAS_EXT 0x8501
@@ -1434,11 +1435,12 @@ TWorld::Update_Camera( double const Deltatime ) {
 
 void TWorld::Update_Lights() {
 
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+
     if( Global::fMoveLight < 0.0 ) {
         return;
     }
 
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
     // double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //kąt godzinny w radianach
     double a = fmod( Global::fTimeAngleDeg, 360.0 ) / 180.0 * M_PI -
         M_PI; // kąt godzinny w radianach
@@ -1516,32 +1518,7 @@ void TWorld::Update_Lights() {
         +0.150 * ( Global::diffuseDayLight[ 0 ] + Global::ambientDayLight[ 0 ] ) // R
         + 0.295 * ( Global::diffuseDayLight[ 1 ] + Global::ambientDayLight[ 1 ] ) // G
         + 0.055 * ( Global::diffuseDayLight[ 2 ] + Global::ambientDayLight[ 2 ] ); // B
-#else
-    Sun.update();
-    auto const position = Sun.getPosition();
-    Global::DayLight.position[0] = position.x;
-    Global::DayLight.position[1] = position.y;
-    Global::DayLight.position[2] = position.z;
-    auto const direction = -1.0 * Sun.getDirection();
-    Global::DayLight.direction = direction;
-    auto const intensity = std::min( 2.0f * Sun.getIntensity(), 1.25f );
 
-    Global::DayLight.diffuse[ 0 ] = 255.0 / 255.0 * intensity;
-    Global::DayLight.diffuse[ 1 ] = 242.0 / 255.0 * intensity;
-    Global::DayLight.diffuse[ 2 ] = 231.0 / 255.0 * intensity;
-//    Global::DayLight.diffuse[ 3 ] = 1.0f;// std::min( 0.15f + intensity, 1.0f );
-    Global::DayLight.ambient[ 0 ] = 155.0 / 255.0 * intensity * 0.75f;
-    Global::DayLight.ambient[ 1 ] = 192.0 / 255.0 * intensity * 0.75f;
-    Global::DayLight.ambient[ 2 ] = 231.0 / 255.0 * intensity * 0.75f;
-//    Global::DayLight.ambient[ 3 ] = 1.0f;
-    /*
-    //    Global::DayLight.ambient[ 3 ] = intensity;
-    GLfloat ambient[] = { 0.1f + 0.5f * intensity, 0.1f + 0.5f * intensity, 0.1f + 0.5f * intensity, 0.5f };
-    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-*/
-    Global::fLuminance = intensity;
-#endif
-    
     vector3 sky = vector3( Global::AtmoColor[ 0 ], Global::AtmoColor[ 1 ], Global::AtmoColor[ 2 ] );
     if( Global::fLuminance < 0.25 ) { // przyspieszenie zachodu/wschodu
         sky *= 4.0 * Global::fLuminance; // nocny kolor nieba
@@ -1554,7 +1531,45 @@ void TWorld::Update_Lights() {
     else {
         glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
     }
-    glClearColor( sky.x, sky.y, sky.z, 0.0 ); // kolor nieba
+#else
+    Sun.update();
+    auto const position = Sun.getPosition();
+    // update skydome with current sun position
+    SkyDome.Update( position );
+    auto const skydomecolour = SkyDome.GetAverageColor();
+    auto const skydomehsv = RGBtoHSV( skydomecolour );
+    // update sunlight object
+    Global::DayLight.position[0] = position.x;
+    Global::DayLight.position[1] = position.y;
+    Global::DayLight.position[2] = position.z;
+
+    Global::DayLight.direction = -1.0 * Sun.getDirection();
+
+    auto const intensity = std::min( 0.05f + Sun.getIntensity() + skydomehsv.z, 1.25f );
+
+    Global::DayLight.diffuse[ 0 ] = intensity * 255.0f / 255.0f;
+    Global::DayLight.diffuse[ 1 ] = intensity * 242.0f / 255.0f;
+    Global::DayLight.diffuse[ 2 ] = intensity * 231.0f / 255.0f;
+//    Global::DayLight.diffuse[ 3 ] = 1.0f;// std::min( 0.15f + intensity, 1.0f );
+    Global::DayLight.ambient[ 0 ] = skydomecolour.x;
+    Global::DayLight.ambient[ 1 ] = skydomecolour.y;
+    Global::DayLight.ambient[ 2 ] = skydomecolour.z;
+/*
+    Global::DayLight.ambient[ 0 ] = 155.0 / 255.0 * intensity * 0.75f;
+    Global::DayLight.ambient[ 1 ] = 192.0 / 255.0 * intensity * 0.75f;
+    Global::DayLight.ambient[ 2 ] = 231.0 / 255.0 * intensity * 0.75f;
+*/
+//    Global::DayLight.ambient[ 3 ] = 1.0f;
+
+    Global::fLuminance = intensity;
+
+    Global::FogColor[ 0 ] = skydomecolour.x;
+    Global::FogColor[ 1 ] = skydomecolour.y;
+    Global::FogColor[ 2 ] = skydomecolour.z;
+    glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
+#endif
+    
+    glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f ); // kolor nieba
 }
 
 bool TWorld::Render()
@@ -1574,18 +1589,32 @@ bool TWorld::Render()
     Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
 
     if( !Global::bWireFrame ) { // bez nieba w trybie rysowania linii
+
+        glDisable( GL_LIGHTING );
         glDisable( GL_FOG );
-        Clouds.Render();
-        glEnable( GL_FOG );
-    }
+        glDisable( GL_DEPTH_TEST );
+        glDepthMask( GL_FALSE );
+        glPushMatrix();
+        glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
+
+        SkyDome.Render();
+//        Clouds.Render();
 
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
+        glLightfv( GL_LIGHT0, GL_POSITION, Global::lightPos );
 #else
-    Sun.render( Camera.Pos );
-    Global::DayLight.apply_angle();
-    Global::DayLight.apply_intensity();
+        Sun.render();
+        Global::DayLight.apply_angle();
+        Global::DayLight.apply_intensity();
 #endif
+
+        glPopMatrix();
+        glDepthMask( GL_TRUE );
+        glEnable( GL_DEPTH_TEST );
+        glEnable( GL_FOG );
+        glEnable( GL_LIGHTING );
+    }
+
     if (Global::bUseVBO)
     { // renderowanie przez VBO
         if (!Ground.RenderVBO(Camera.Pos))

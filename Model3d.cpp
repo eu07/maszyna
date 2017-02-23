@@ -1808,7 +1808,8 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
     // wczytanie modelu z pliku
     std::string name = ToLower(FileName);
     // trim extension if needed
-    if (name.substr(name.rfind('.')) == ".t3d")
+    if( ( name.rfind( '.' ) != std::string::npos )
+     && ( name.substr( name.rfind( '.' ) ) == ".t3d" ) )
     {
         name.erase(name.rfind('.'));
     }

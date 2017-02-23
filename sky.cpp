@@ -32,21 +32,11 @@ void TSky::Init()
 
 void TSky::Render()
 {
-#ifndef EU07_USE_OLD_LIGHTING_MODEL
-    return;
-#endif
     if (mdCloud)
     { // jeśli jest model nieba
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask( GL_FALSE );
-        glPushMatrix();
-        glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y,
-                     Global::pCameraPosition.z);
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         // TODO: re-implement this
         glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-#else
-        glDisable( GL_LIGHTING );
 #endif
         if (Global::bUseVBO)
         { // renderowanie z VBO
@@ -62,11 +52,7 @@ void TSky::Render()
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         // TODO: re-implement this
         glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
-#else
-        glEnable( GL_LIGHTING );
 #endif
-        glDepthMask( GL_TRUE );
-        glEnable( GL_DEPTH_TEST );
     }
 };
 

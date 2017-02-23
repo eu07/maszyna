@@ -39,7 +39,7 @@ cSun::update() {
 }
 
 void
-cSun::render( Math3D::vector3 const &Origin ) {
+cSun::render() {
 
 /*
 	glLightfv(GL_LIGHT0, GL_POSITION, position.getVector() );	// sun
@@ -51,7 +51,7 @@ cSun::render( Math3D::vector3 const &Origin ) {
 	glDisable(GL_FOG);
 	glColor4f( 255.0f/255.0f, 242.0f/255.0f, 231.0f/255.0f, 1.f );
 	// debug line to locate the sun easier
-	Math3D::vector3 position = m_position + Origin;
+	Math3D::vector3 position = m_position;
 	glBegin( GL_LINES );
 	glVertex3f( position.x, position.y, position.z );
 	glVertex3f( position.x, 0.0f, position.z );
