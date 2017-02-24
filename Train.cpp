@@ -5001,40 +5001,6 @@ bool TTrain::Update( double const Deltatime )
     btHaslerBrakes.Turn(DynamicObject->MoverParameters->BrakePress > 0.4); // ciśnienie w cylindrach
     btHaslerCurrent.Turn(DynamicObject->MoverParameters->Im != 0.0); // prąd na silnikach
 
-    // calculate current level of interior illumination
-    // TODO: organize it along with rest of train update in a more sensible arrangement
-    switch( iCabLightFlag ) // Ra: uzeleżnic od napięcia w obwodzie sterowania
-    { // hunter-091012: uzaleznienie jasnosci od przetwornicy
-        case 0: {
-            //światło wewnętrzne zgaszone
-            DynamicObject->InteriorLightLevel = 0.0f;
-            break;
-        }
-        case 1: {
-            //światło wewnętrzne przygaszone (255 216 176)
-            if( mvOccupied->ConverterFlag == true ) {
-                // jasnosc dla zalaczonej przetwornicy
-                DynamicObject->InteriorLightLevel = 0.75f;
-            }
-            else {
-                DynamicObject->InteriorLightLevel = 0.375f;
-            }
-            break;
-        }
-        case 2: {
-            //światło wewnętrzne zapalone (255 216 176)
-            if( mvOccupied->ConverterFlag ==
-                true ) // jasnosc dla zalaczonej przetwornicy
-            {
-                DynamicObject->InteriorLightLevel = 1.0f;
-            }
-            else {
-                DynamicObject->InteriorLightLevel = 0.5f;
-            }
-            break;
-        }
-    }
-
     m_updated = true;
     return true; //(DynamicObject->Update(dt));
 } // koniec update

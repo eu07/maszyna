@@ -47,7 +47,6 @@ double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecności rozsz
 bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
 */
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
-float Global::SunAngle = 0.0f;
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
 HWND Global::hWnd = NULL; // uchwyt okna
 int Global::ScreenWidth = 1;

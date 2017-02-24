@@ -742,7 +742,7 @@ void TSubModel::DisplayLists()
         glNewList(uiDisplayList, GL_COMPILE);
         GfxRenderer.Bind(0); // tekstury nie ma
         glColorMaterial(GL_FRONT, GL_EMISSION);
-//        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
+        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
         for (int i = 0; i < iNumVerts; i++)
         {
@@ -751,7 +751,7 @@ void TSubModel::DisplayLists()
             glVertex3fv(&Vertices[i].Point.x);
         };
         glEnd();
-//        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHTING);
         glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
         glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
         glEndList();
@@ -816,13 +816,10 @@ void TSubModel::InitialRotate(bool doit)
                 Vertices[i].Point.y = Vertices[i].Point.z;
                 Vertices[i].Point.z = t;
                 // wektory normalne również trzeba przekształcić, bo się źle oświetlają
-                if( eType != TP_STARS ) {
-                    // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
-                    Vertices[ i ].Normal.x = -Vertices[ i ].Normal.x; // zmiana znaku X
-                    t = Vertices[ i ].Normal.y; // zamiana Y i Z
-                    Vertices[ i ].Normal.y = Vertices[ i ].Normal.z;
-                    Vertices[ i ].Normal.z = t;
-                }
+                Vertices[i].Normal.x = -Vertices[i].Normal.x; // zmiana znaku X
+                t = Vertices[i].Normal.y; // zamiana Y i Z
+                Vertices[i].Normal.y = Vertices[i].Normal.z;
+                Vertices[i].Normal.z = t;
             }
         if (Child)
             Child->InitialRotate(doit); // potomne ewentualnie obrócimy

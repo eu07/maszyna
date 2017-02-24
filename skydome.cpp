@@ -316,7 +316,6 @@ void CSkyDome::RebuildColors() {
             color.z = 0.75f * std::max( color.z + m_sundirection.y, 0.075f );
             color.x = 0.20f * color.z; 
             color.y = 0.65f * color.z;
-            color = color * ( 1.15f - vertex.y ); // simple gradient, darkening towards the top
         }
 
 		// save

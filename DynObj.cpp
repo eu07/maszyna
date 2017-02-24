@@ -3807,26 +3807,9 @@ void TDynamicObject::Render()
         }
         else
         { // wersja Display Lists
-            if( mdLowPolyInt ) {
-                // low poly interior
-                if( FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab ) {
-                    // enable cab light if needed
-                    if( InteriorLightLevel > 0.0f ) {
-
-                        // crude way to light the cabin, until we have something more complete in place
-                        auto const cablight = InteriorLight * InteriorLightLevel;
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-                    }
-
-                    mdLowPolyInt->Render( ObjSqrDist, ReplacableSkinID, iAlpha );
-
-                    if( InteriorLightLevel > 0.0f ) {
-                        // reset the overall ambient
-                        GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-                    }
-                }
-            }
+            if (mdLowPolyInt)
+                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
+                    mdLowPolyInt->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
             mdModel->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
             if (mdLoad) // renderowanie nieprzezroczystego ładunku
                 mdLoad->Render(ObjSqrDist, ReplacableSkinID, iAlpha);

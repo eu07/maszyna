@@ -140,10 +140,11 @@ class TAnim
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-class TDynamicObject { // klasa pojazdu
-private: // położenie pojazdu w świecie oraz parametry ruchu
+class TDynamicObject
+{ // klasa pojazdu
+  private: // położenie pojazdu w świecie oraz parametry ruchu
     vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
-    vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
+    vector3 vCoulpler[2]; // współrzędne sprzęgów do liczenia zderzeń czołowych
     vector3 vUp, vFront, vLeft; // wektory jednostkowe ustawienia pojazdu
     int iDirection; // kierunek pojazdu względem czoła składu (1=zgodny,0=przeciwny)
     TTrackShape ts; // parametry toru przekazywane do fizyki
@@ -155,10 +156,10 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
     // bool bCameraNear; //blisko kamer są potrzebne dodatkowe obliczenia szczegółów
-    TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer,
-        int &CouplNr );
+    TDynamicObject * ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer,
+                                                    int &CouplNr);
 
-public: // parametry położenia pojazdu dostępne publicznie
+  public: // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
     std::string asDestination; // dokąd pojazd ma być kierowany "(stacja):(tor)"
     matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
@@ -174,14 +175,12 @@ public: // parametry położenia pojazdu dostępne publicznie
 
 private:
     // returns type of the nearest functional power source present in the trainset
-public: // modele składowe pojazdu
+  public: // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdPrzedsionek; // model przedsionków dla EZT - może użyć mdLoad zamiast?
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
-    float3 InteriorLight{ 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
-    float InteriorLightLevel{ 0.0f }; // current level of interior lighting
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
 
   private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
