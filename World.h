@@ -14,8 +14,24 @@ http://mozilla.org/MPL/2.0/.
 #include "Ground.h"
 #include "sky.h"
 #include "sun.h"
+#include "stars.h"
 #include "skydome.h"
 #include "mczapkie/mover.h"
+
+// wrapper for environment elements -- sky, sun, stars, clouds etc
+class world_environment {
+
+public:
+    void init();
+    void update();
+    void render();
+
+private:
+    CSkyDome m_skydome;
+    cStars m_stars;
+    cSun m_sun;
+    TSky m_clouds;
+};
 
 class TWorld
 {
@@ -42,21 +58,19 @@ class TWorld
     std::string OutText2;
     std::string OutText3;
     std::string OutText4;
-    void Update_Lights();
+    void Update_Environment();
     void Update_Camera( const double Deltatime );
     bool Render();
     void Render_Cab();
     void Render_UI();
     TCamera Camera;
     TGround Ground;
+    world_environment Environment;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
     bool Paused;
     GLuint base; // numer DL dla znaków w napisach
     texture_manager::size_type light; // numer tekstury dla smugi
-    TSky Clouds;
-    CSkyDome SkyDome;
-    cSun Sun;
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury
     TMoverParameters *mvControlled; // wskaźnik na człon silnikowy, do wyświetlania jego parametrów
     int iCheckFPS; // kiedy znów sprawdzić FPS, żeby wyłączać optymalizacji od razu do zera
@@ -72,5 +86,6 @@ class TWorld
     void CreateE3D(std::string const &dir = "", bool dyn = false);
     void CabChange(TDynamicObject *old, TDynamicObject *now);
 };
+
 //---------------------------------------------------------------------------
 
