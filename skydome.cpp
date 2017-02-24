@@ -1,16 +1,11 @@
-//******************************************************************************//
-//	NightShine Engine															//
-//	Sky : Gradient SkyDome Class												//
-//******************************************************************************//
-// sky gradient based on "A practical analytic model for daylight" 
-// by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
 
 #include "stdafx.h"
 #include "opengl/glew.h"
 #include "skydome.h"
 #include "color.h"
 
-//******************************************************************************//
+// sky gradient based on "A practical analytic model for daylight" 
+// by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
 
 float CSkyDome::m_distributionluminance[ 5 ][ 2 ] = {	// Perez distributions
 		{  0.17872f , -1.46303f },		// a = darkening or brightening of the horizon
@@ -316,6 +311,7 @@ void CSkyDome::RebuildColors() {
             color.z = 0.75f * std::max( color.z + m_sundirection.y, 0.075f );
             color.x = 0.20f * color.z; 
             color.y = 0.65f * color.z;
+            color = color * ( 1.15f - vertex.y ); // simple gradient, darkening towards the top
         }
 
 		// save

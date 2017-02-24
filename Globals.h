@@ -258,6 +258,7 @@ class Global
     static bool bOpenGL_1_5; // czy są dostępne funkcje OpenGL 1.5
 */
     static double fLuminance; // jasność światła do automatycznego zapalania
+    static float SunAngle; // angle of the sun relative to horizon
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
     static HWND hWnd; // uchwyt okna
     static int ScreenWidth; // current window dimensions. TODO: move it to renderer
