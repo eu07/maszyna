@@ -738,16 +738,8 @@ void TWorld::OnKeyDown(int cKey)
         switch (cKey) {
             
             case VK_F1: {
-                // czas i relacja
-                if( Global::iTextMode == cKey )
-                    Global::iTextMode =
-                        ( Global::iPause && ( cKey != VK_F1 ) ?
-                            VK_F1 :
-                            0 ); // wyłączenie napisów, chyba że pauza
-                else
-                    Global::iTextMode = cKey;
-                // advance world clock in debug mode
                 if( DebugModeFlag ) {
+                    // additional time speedup keys in debug mode
                     if( Console::Pressed( VK_CONTROL ) ) {
                         // ctrl-f3
                         GlobalTime->UpdateMTableTime( 20.0 * 60.0 );
@@ -756,6 +748,19 @@ void TWorld::OnKeyDown(int cKey)
                         // shift-f3
                         GlobalTime->UpdateMTableTime( 5.0 * 60.0 );
                     }
+                }
+                if( ( false == Console::Pressed( VK_CONTROL ) )
+                 && ( false == Console::Pressed( VK_SHIFT ) ) ) {
+                    // czas i relacja
+                    if( Global::iTextMode == cKey ) {
+                        // wyłączenie napisów, chyba że pauza
+                        Global::iTextMode =
+                            ( Global::iPause && ( cKey != VK_F1 ) ?
+                                VK_F1 :
+                                0 );
+                    }
+                    else
+                        Global::iTextMode = cKey;
                 }
                 break;
             }
@@ -3126,7 +3131,7 @@ world_environment::render() {
 
     m_skydome.Render();
     m_stars.render();
-//    m_clouds.Render();
+    m_clouds.Render( m_skydome.GetAverageColor() * 2.5f );
 
     if( DebugModeFlag == true ) {
         // mark sun position for easier debugging
