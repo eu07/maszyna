@@ -359,6 +359,7 @@ class Global
 	static double fMWDph[2];
 	static double fMWDvolt[2];
 	static double fMWDamp[2];
+	static double fMWDlowVolt[2];
 	static int iMWDdivider;
 };
 //---------------------------------------------------------------------------
