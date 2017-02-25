@@ -104,6 +104,8 @@ GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
 GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
 #else
 opengl_light Global::DayLight;
+opengl_light Global::VehicleLight;
+opengl_light Global::VehicleLightRear;
 #endif
 GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
 GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};

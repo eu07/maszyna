@@ -24,7 +24,7 @@ struct opengl_light {
 
     opengl_light() {
         position[ 0 ] = position[ 1 ] = position[ 2 ] = 0.0f; position[ 3 ] = 1.0f;
-        ambient[ 0 ] = ambient[ 1 ] = ambient[ 2 ] = ambient[ 3 ] = 1.0f;
+        ambient[ 0 ] = ambient[ 1 ] = ambient[ 2 ] = 0.0f; ambient[ 3 ] = 1.0f;
         diffuse[ 0 ] = diffuse[ 1 ] = diffuse[ 2 ] = diffuse[ 3 ] = 1.0f;
         specular[ 0 ] = specular[ 1 ] = specular[ 2 ] = specular[ 3 ] = 1.0f;
     }
@@ -44,6 +44,13 @@ struct opengl_light {
             GLfloat directionarray[] = { direction.x, direction.y, direction.z };
             glLightfv( id, GL_SPOT_DIRECTION, directionarray );
         }
+    }
+    inline
+    void set_position( Math3D::vector3 const &Position ) {
+
+        position[ 0 ] = Position.x;
+        position[ 1 ] = Position.y;
+        position[ 2 ] = Position.z;
     }
 };
 
@@ -66,7 +73,8 @@ class opengl_renderer {
 
 public:
     GLenum static const sunlight{ GL_LIGHT0 };
-//    GLenum static const ambientlight{ GL_LIGHT1 };
+    GLenum static const vehiclelight{ GL_LIGHT1 };
+    GLenum static const vehiclelightrear{ GL_LIGHT2 };
 
     texture_manager::size_type
         GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true ) {

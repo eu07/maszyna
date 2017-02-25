@@ -278,7 +278,8 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     if (dynamic)
     { // dla pojazdu, blokujemy załączone submodele, które mogą być
         // nieobsługiwane
-        if (token.find("_on") + 3 == token.length()) // jeśli nazwa kończy się na "_on"
+        if ( (token.size() >= 3)
+          && (token.find("_on") + 3 == token.length())) // jeśli nazwa kończy się na "_on"
             iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
     }
     else // dla pozostałych modeli blokujemy zapalone światła, które mogą być

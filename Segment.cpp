@@ -21,6 +21,11 @@ http://mozilla.org/MPL/2.0/.
 // 101206 Ra: trapezoidalne drogi
 // 110806 Ra: odwrócone mapowanie wzdłuż - Point1 == 1.0
 
+float Interpolate( float const First, float const Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
 std::string Where(vector3 p)
 { // zamiana współrzędnych na tekst, używana w błędach
     return std::to_string(p.x) + " " + std::to_string(p.y) + " " + std::to_string(p.z);
@@ -116,7 +121,11 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     fStoop = atan2((Point2.y - Point1.y),
                    fLength); // pochylenie toru prostego, żeby nie liczyć wielokrotnie
     SafeDeleteArray(fTsBuffer);
+/*
     if ((bCurve) && (fStep > 0))
+*/
+    // we're enforcing sub-division of even straight track, to have dense enough mesh for the spotlight to work with
+    if( fStep > 0 )
     { // Ra: prosty dostanie podział, jak ma różną przechyłkę na końcach
         double s = 0;
         int i = 0;
@@ -454,6 +463,7 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, doubl
         }
     }
     else
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
     { // gdy prosty, nie modyfikujemy wektora kierunkowego i poprzecznego
         pos1 = FastGetPoint((fStep * iSkip) / fLength);
         pos2 = FastGetPoint_1();
@@ -498,6 +508,91 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, doubl
             }
         glEnd();
     }
+#else
+{
+    Math3D::vector3 const pos0 = FastGetPoint( ( fStep * iSkip ) / fLength );
+    Math3D::vector3 const pos1 = FastGetPoint_1();
+    dir = GetDirection();
+    Math3D::vector3 const parallel = Normalize( vector3( -dir.z, 0.0, dir.x ) ); // wektor poprzeczny
+
+    Math3D::vector3 startnormal0, startnormal1, endnormal0, endnormal1;
+    Math3D::vector3 startvertex0, startvertex1, endvertex0, endvertex1;
+    float startuv0, startuv1, enduv0, enduv1;
+
+    for( j = 0; j < iNumShapePoints - 1; ++j ) {
+
+        startnormal0 = ShapePoints[ j ].n.x * parallel;
+        startnormal0.y += ShapePoints[ j ].n.y;
+        startvertex0 = parallel * ShapePoints[ j ].x + pos0;
+        startvertex0.y += ShapePoints[ j ].y;
+        startuv0 = ShapePoints[ j ].z;
+        startnormal1 = ShapePoints[ j + 1 ].n.x * parallel;
+        startnormal1.y += ShapePoints[ j + 1 ].n.y;
+        startvertex1 = parallel * ShapePoints[ j + 1 ].x + pos0;
+        startvertex1.y += ShapePoints[ j + 1 ].y;
+        startuv1 = ShapePoints[ j + 1 ].z;
+
+        if( trapez == false ) {
+            // single profile throughout
+            endnormal0 = startnormal0;
+            endvertex0 = startvertex0 + ( pos1 - pos0 );
+            enduv0 = startuv0;
+            endnormal1 = startnormal1;
+            endvertex1 = startvertex1 + ( pos1 - pos0 );
+            enduv1 = startuv1;
+        }
+        else {
+            // end profile is different
+            endnormal0 = ShapePoints[ j + iNumShapePoints ].n.x * parallel;
+            endnormal0.y += ShapePoints[ j + iNumShapePoints ].n.y;
+            endvertex0 = parallel * ShapePoints[ j + iNumShapePoints ].x + pos1; // odsunięcie
+            endvertex0.y += ShapePoints[ j + iNumShapePoints ].y; // wysokość
+            enduv0 = ShapePoints[ j + iNumShapePoints ].z;
+            endnormal1 = ShapePoints[ j + iNumShapePoints + 1 ].n.x * parallel;
+            endnormal1.y += ShapePoints[ j + iNumShapePoints + 1 ].n.y;
+            endvertex1 = parallel * ShapePoints[ j + iNumShapePoints + 1 ].x + pos1; // odsunięcie
+            endvertex1.y += ShapePoints[ j + iNumShapePoints + 1 ].y; // wysokość
+            enduv1 = ShapePoints[ j + iNumShapePoints + 1 ].z;
+        }
+        // now build strips, lerping from start to endpoint
+        step = 10.0; // arbitrary segment size for straights
+        float s = 0.0,
+              t = 0.0,
+             uv = 0.0;
+        glBegin( GL_TRIANGLE_STRIP );
+        while( s < fLength ) {
+
+            t = s / fLength;
+            uv = s / fTextureLength;
+
+            auto const normal1lerp = Interpolate( startnormal1, endnormal1, t );
+            glNormal3dv( &normal1lerp.x );
+            auto const uv1lerp = Interpolate( startuv1, enduv1, t );
+            glTexCoord2f( uv1lerp, uv );
+            auto const vertex1lerp = Interpolate( startvertex1, endvertex1, t );
+            glVertex3dv( &vertex1lerp.x );
+
+            auto const normal0lerp = Interpolate( startnormal0, endnormal0, t );
+            glNormal3dv( &normal0lerp.x );
+            auto const uv0lerp = Interpolate( startuv0, enduv0, t );
+            glTexCoord2f( uv0lerp, uv );
+            auto const vertex0lerp = Interpolate( startvertex0, endvertex0, t );
+            glVertex3dv( &vertex0lerp.x );
+
+            s += step;
+        }
+        // add ending vertex pair if needed
+        glNormal3dv( &endnormal1.x );
+        glTexCoord2f( enduv1, fLength / fTextureLength );
+        glVertex3dv( &endvertex1.x );
+        glNormal3dv( &endnormal0.x );
+        glTexCoord2f( enduv0, fLength / fTextureLength );
+        glVertex3dv( &endvertex0.x );
+
+        glEnd();
+    }
+}
+#endif
 };
 
 void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,

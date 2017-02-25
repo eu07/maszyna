@@ -511,6 +511,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
                 if (DebugModeFlag)
                 { // siatki wyświetlane tyko w trybie testowym
                     Global::bWireFrame = !Global::bWireFrame;
+                    if( true == Global::bWireFrame ) {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                    }
+                    else {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                    }
                     ++Global::iReCompile; // odświeżyć siatki
                     // Ra: jeszcze usunąć siatki ze skompilowanych obiektów!
                 }
