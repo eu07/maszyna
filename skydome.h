@@ -42,7 +42,7 @@ private:
 	// data
     int const m_tesselation;
     std::vector<float3> m_vertices;
-    std::vector<float3> m_normals;
+//    std::vector<float3> m_normals;
     std::vector<float3> m_colours;
 
 	static float m_distributionluminance[ 5 ][ 2 ];

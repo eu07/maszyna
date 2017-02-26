@@ -61,9 +61,9 @@ CSkyDome::CSkyDome (int const Tesselation) :
                m_tesselation( Tesselation ) {
 
 //	SetSunPosition( Math3D::vector3(75.0f, 0.0f, 0.0f) );
-	SetTurbidity( 3.5f );
-	SetExposure( true, 16.0f );
-	SetOvercastFactor( 0.08f );
+	SetTurbidity( 3.0f );
+	SetExposure( true, 20.0f );
+	SetOvercastFactor( 0.05f );
 	SetGammaCorrection( 2.2f );
     Generate();
 }
@@ -75,7 +75,8 @@ CSkyDome::~CSkyDome() {
 
 void CSkyDome::Generate() {
 	// radius of dome
-    float const radius = 1.0f; // 100.0f;
+    float const radius = 1.0f;
+    float const offset = 0.1f * radius; // horizontal offset, a cheap way to prevent a gap between ground and horizon
 
 	// create geometry chunk
     int const latitudes = m_tesselation / 2;
@@ -98,11 +99,11 @@ void CSkyDome::Generate() {
             float x = std::cos( longitude );
             float y = std::sin( longitude );
 
-            m_vertices.emplace_back( float3( x * zr0, y * zr0 - 0.1f, z0 ) * radius );
+            m_vertices.emplace_back( float3( x * zr0, y * zr0 - offset, z0 ) * radius );
 //            m_normals.emplace_back( float3( -x * zr0, -y * zr0, -z0 ) );
             m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) );
 
-            m_vertices.emplace_back( float3( x * zr1, y * zr1 - 0.1f, z1 ) * radius );
+            m_vertices.emplace_back( float3( x * zr1, y * zr1 - offset, z1 ) * radius );
 //            m_normals.emplace_back( float3( -x * zr1, -y * zr1, -z1 ) );
             m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) );
         }
@@ -156,7 +157,7 @@ bool CSkyDome::SetSunPosition( Math3D::vector3 const &Direction ) {
 
     m_sundirection = sundirection;
 	m_thetasun = std::acosf( m_sundirection.y );
-	m_phisun = std::atan2( m_sundirection.z , m_sundirection.x );
+	m_phisun = std::atan2( m_sundirection.z, m_sundirection.x );
 
     return true;
 }
@@ -249,7 +250,7 @@ void CSkyDome::RebuildColors() {
 
 	// trough all vertices
 	float3 vertex;
-	float3 color, colorconverter;
+	float3 color, colorconverter, shiftedcolor;
 
 	for ( unsigned int i = 0; i < m_vertices.size(); ++i ) {
 		// grab it
@@ -295,9 +296,24 @@ void CSkyDome::RebuildColors() {
             // exp scale
 			colorconverter.z = 1.0f - exp( -m_expfactor * colorconverter.z );  
 		}
+
+        // override the hue, based on sun height above the horizon. crude way to deal with model shortcomings
+        // correction begins when the sun is higher than 10 degrees above the horizon, and fully in effect at 10+15 degrees
+        auto const degreesabovehorizon = 90.0f - m_thetasun * ( 180.0f / M_PI );
+        auto const sunbasedphase = clamp( (1.0f / 15.0f) * ( degreesabovehorizon - 10.0f ), 0.0f, 1.0f );
+        // correction is applied in linear manner from the bottom, becomes fully in effect for vertices with y = 0.50
+        auto const heightbasedphase = clamp( vertex.y * 2.0f, 0.0f, 1.0f );
+        // this height-based factor is reduced the farther the sky is up in the sky
+        float const shiftfactor = clamp( interpolate(heightbasedphase, sunbasedphase, sunbasedphase), 0.0f, 1.0f );
+        // h = 210 makes for 'typical' sky tone
+        shiftedcolor = float3( 210.0f, colorconverter.y, colorconverter.z );
+        shiftedcolor = HSVtoRGB( shiftedcolor );
+
 		color = HSVtoRGB(colorconverter);
+
+        color = Interpolate( color, shiftedcolor, shiftfactor );
 /*
-		// gamma control		
+		// gamma control
 		color.x = std::pow( color.x, m_gammacorrection );
 		color.x = std::pow( color.y, m_gammacorrection );
 		color.x = std::pow( color.z, m_gammacorrection );

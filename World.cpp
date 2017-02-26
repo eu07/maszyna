@@ -1565,7 +1565,8 @@ bool TWorld::Render()
             ( ( frontlights & 4 ) ? 1 : 0 ) +
             ( ( frontlights & 16 ) ? 1 : 0 );
 
-        if( frontlightcount > 0 ) {
+        if( ( true == Train->Controlled()->Battery )
+         && ( frontlightcount > 0 ) ) {
             // halogen light. TODO: allow light type definition
             Global::VehicleLight.ambient[ 0 ] = 0.15f * 255.0 * frontlightcount / 255.0;
             Global::VehicleLight.ambient[ 1 ] = 0.15f * 241.0 * frontlightcount / 255.0;
@@ -1585,7 +1586,8 @@ bool TWorld::Render()
             ( ( rearlights & 4 ) ? 1 : 0 ) +
             ( ( rearlights & 16 ) ? 1 : 0 );
 
-        if( rearlightcount > 0 ) {
+        if( ( true == Train->Controlled()->Battery )
+         && ( rearlightcount > 0 ) ) {
             // halogen light. TODO: allow light type definition
             Global::VehicleLightRear.ambient[ 0 ] = 0.15f * 255.0 * rearlightcount / 255.0;
             Global::VehicleLightRear.ambient[ 1 ] = 0.15f * 241.0 * rearlightcount / 255.0;
@@ -3094,7 +3096,7 @@ world_environment::update() {
     // ...retrieve current sky colour and brightness...
     auto const skydomecolour = m_skydome.GetAverageColor();
     auto const skydomehsv = RGBtoHSV( skydomecolour );
-    auto const intensity = std::min( 0.05f + m_sun.getIntensity() + skydomehsv.z, 1.25f );
+    auto const intensity = std::min( 1.15f * (0.05f + m_sun.getIntensity() + skydomehsv.z), 1.25f );
     // ...update light colours and intensity.
     // NOTE: intensity combines intensity of the sun and the light reflected by the sky dome
     // it'd be more technically correct to have just the intensity of the sun here,

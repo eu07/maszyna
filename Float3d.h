@@ -79,6 +79,11 @@ inline float DotProduct( float3 const &v1, float3 const &v2 ) {
     return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
+inline float3 Interpolate( float3 const &First, float3 const &Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
 class float4
 { // kwaternion obrotu
   public:
