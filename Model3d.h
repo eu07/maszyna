@@ -128,7 +128,6 @@ enum TAnimType // rodzaj animacji
 };
 
 class TModel3d;
-class TSubModelInfo;
 
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
@@ -206,7 +205,6 @@ public: // chwilowo
 	TAnimType b_aAnim; // kody animacji oddzielnie, bo zerowane
 public:
 	float4x4 *mAnimMatrix; // macierz do animacji kwaternionowych (należy do AnimContainer)
-	char space[8]; // wolne miejsce na przyszłe zmienne (zmniejszyć w miarę potrzeby)
 public:
 	TSubModel **
 		smLetter; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
@@ -279,8 +277,6 @@ public:
 	};
 	void InitialRotate(bool doit);
 	void DisplayLists();
-	void Info();
-	void InfoSet(TSubModelInfo *info);
 	void BinInit(TSubModel *s, float4x4 *m, float8 *v,
 		std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
 	void ReplacableSet(texture_manager::size_type *r, int a)
@@ -316,36 +312,12 @@ public:
 	float MaxY(const float4x4 &m);
 	void AdjustDist();
 
-	void deserialize(std::istream &s);
-};
-
-class TSubModelInfo
-{ // klasa z informacjami o submodelach, do tworzenia pliku binarnego
-public:
-	TSubModel *pSubModel; // wskaźnik na submodel
-	int iTransform; // numer transformu (-1 gdy brak)
-	int iName; // numer nazwy
-	int iTexture; // numer tekstury
-	int iNameLen; // długość nazwy
-	int iTextureLen; // długość tekstury
-	int iNext, iChild; // numer następnego i potomnego
-	static int iTotalTransforms; // ilość transformów
-	static int iTotalNames; // ilość nazw
-	static int iTotalTextures; // ilość tekstur
-	static int iCurrent; // aktualny obiekt
-	static TSubModelInfo *pTable; // tabele obiektów pomocniczych
-	TSubModelInfo()
-	{
-		pSubModel = NULL;
-		iTransform = iName = iTexture = iNext = iChild = -1; // nie ma
-		iNameLen = iTextureLen = 0;
-	}
-	void Reset()
-	{
-		pTable = this; // ustawienie wskaźnika tabeli obiektów
-		iTotalTransforms = iTotalNames = iTotalTextures = iCurrent = 0; // zerowanie liczników
-	}
-	~TSubModelInfo() {};
+	void deserialize(std::istream&);
+	void TSubModel::serialize(std::ostream&,
+		std::vector<TSubModel*>&,
+		std::vector<std::string>&,
+		std::vector<std::string>&,
+		std::vector<float4x4>&);
 };
 
 class TModel3d : public CMesh

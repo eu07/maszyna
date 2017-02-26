@@ -70,3 +70,63 @@ std::string sn_utils::d_str(std::istream &s)
 	}
 	return r;
 }
+
+void sn_utils::ls_uint16(std::ostream &s, uint16_t v)
+{
+	uint8_t buf[2];
+	buf[0] = v;
+	buf[1] = v >> 8;
+	s.write((char*)buf, 2);
+}
+
+void sn_utils::ls_uint32(std::ostream &s, uint32_t v)
+{
+	uint8_t buf[4];
+	buf[0] = v;
+	buf[1] = v >> 8;
+	buf[2] = v >> 16;
+	buf[3] = v >> 24;
+	s.write((char*)buf, 4);
+}
+
+void sn_utils::ls_int32(std::ostream &s, int32_t v)
+{
+	uint8_t buf[4];
+	buf[0] = v;
+	buf[1] = v >> 8;
+	buf[2] = v >> 16;
+	buf[3] = v >> 24;
+	s.write((char*)buf, 4);
+}
+
+void sn_utils::ls_float32(std::ostream &s, float t)
+{
+	uint32_t v = reinterpret_cast<uint32_t&>(t);
+	uint8_t buf[4];
+	buf[0] = v;
+	buf[1] = v >> 8;
+	buf[2] = v >> 16;
+	buf[3] = v >> 24;
+	s.write((char*)buf, 4);
+}
+
+void sn_utils::ls_float64(std::ostream &s, double t)
+{
+	uint64_t v = reinterpret_cast<uint64_t&>(t);
+	uint8_t buf[8];
+	buf[0] = v;
+	buf[1] = v >> 8;
+	buf[2] = v >> 16;
+	buf[3] = v >> 24;
+	buf[4] = v >> 32;
+	buf[5] = v >> 40;
+	buf[6] = v >> 48;
+	buf[7] = v >> 56;
+	s.write((char*)buf, 8);
+}
+
+void sn_utils::s_str(std::ostream &s, std::string v)
+{
+	const char* buf = v.c_str();
+	s.write(buf, v.size() + 1);
+}

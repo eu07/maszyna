@@ -28,6 +28,20 @@ void CVertNormTex::deserialize(std::istream &s)
 	v = sn_utils::ld_float32(s);
 }
 
+void CVertNormTex::serialize(std::ostream &s)
+{
+	sn_utils::ls_float32(s, x);
+	sn_utils::ls_float32(s, y);
+	sn_utils::ls_float32(s, z);
+
+	sn_utils::ls_float32(s, nx);
+	sn_utils::ls_float32(s, ny);
+	sn_utils::ls_float32(s, nz);
+
+	sn_utils::ls_float32(s, u);
+	sn_utils::ls_float32(s, v);
+}
+
 CMesh::CMesh()
 { // utworzenie pustego obiektu
     m_pVNT = nullptr;

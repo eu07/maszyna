@@ -184,11 +184,12 @@ struct float8
 
 class float4x4
 { // macierz transformacji pojedynczej precyzji
+public:
     float e[16];
 
-  public:
-	void deserialize_float32(std::istream &s);
-	void deserialize_float64(std::istream &s);
+	void deserialize_float32(std::istream&);
+	void deserialize_float64(std::istream&);
+	void serialize_float32(std::ostream&);
     float4x4(void){};
     float4x4(float f[16])
     {
@@ -281,6 +282,16 @@ inline float4x4 &float4x4::Rotation(double angle, float3 axis)
     e[15] = 1;
     return *this;
 };
+
+inline bool operator==(const float4x4& v1, const float4x4& v2)
+{
+	for (size_t i = 0; i < 16; i++)
+	{
+		if (v1.e[i] != v2.e[i])
+			return false;
+	}
+	return true;
+}
 
 inline float4x4 operator*(const float4x4 &m1, const float4x4 &m2)
 { // iloczyn macierzy

@@ -22,7 +22,8 @@ class CVertNormTex
     float u = 0.0; // U mapowania
     float v = 0.0; // V mapowania
 
-	void deserialize(std::istream &s);
+	void deserialize(std::istream&);
+	void serialize(std::ostream&);
 };
 
 class CMesh

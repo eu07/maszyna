@@ -42,12 +42,6 @@ std::string *TSubModel::pasText;
 // 0x3F3F003F - wszystkie wymienne tekstury używane w danym cyklu
 // Ale w TModel3d okerśla przezroczystość tekstur wymiennych!
 
-int TSubModelInfo::iTotalTransforms = 0; // ilość transformów
-int TSubModelInfo::iTotalNames = 0; // długość obszaru nazw
-int TSubModelInfo::iTotalTextures = 0; // długość obszaru tekstur
-int TSubModelInfo::iCurrent = 0; // aktualny obiekt
-TSubModelInfo *TSubModelInfo::pTable = NULL; // tabele obiektów pomocniczych
-
 TSubModel::TSubModel()
 {
 	ZeroMemory(this, sizeof(TSubModel)); // istotne przy zapisywaniu wersji binarnej
@@ -1477,82 +1471,6 @@ void TSubModel::RaArrayFill(CVertNormTex *Vert)
 		Next->RaArrayFill(Vert);
 };
 
-void TSubModel::Info()
-{ // zapisanie informacji o submodelu do obiektu
-  // pomocniczego
-	TSubModelInfo *info = TSubModelInfo::pTable + TSubModelInfo::iCurrent;
-	info->pSubModel = this;
-	if (fMatrix && (iFlags & 0x8000)) // ma matrycę i jest ona niejednostkowa
-		info->iTransform = info->iTotalTransforms++;
-	if (TextureID > 0)
-	{ // jeśli ma teksturę niewymienną
-		for (int i = 0; i < info->iCurrent; ++i)
-			if (TextureID == info->pTable[i].pSubModel->TextureID) // porównanie z wcześniejszym
-			{
-				info->iTexture = info->pTable[i].iTexture; // taki jaki już był
-				break; // koniec sprawdzania
-			}
-		if (info->iTexture < 0) // jeśli nie znaleziono we wcześniejszych
-		{
-			info->iTexture = ++info->iTotalTextures; // przydzielenie numeru tekstury
-													 // w pliku (od 1)
-			std::string t(pTexture);
-			// trim extension
-			size_t kropka = t.rfind('.');
-			if (kropka != std::string::npos &&
-				(t.substr(kropka) == ".tga" || t.substr(kropka) == ".dds"))
-			{
-				t.erase(t.rfind('.'));
-			}
-			if (t != std::string(pTexture))
-			{ // jeśli się zmieniło
-			  // pName=new char[token.length()+1]; //nie ma sensu skracać tabeli
-				pTexture = t;
-			}
-			info->iTextureLen = (int)t.size() + 1; // przygotowanie do zapisania, z zerem na końcu
-		}
-	}
-	else
-		info->iTexture = TextureID; // nie ma albo wymienna
-									// if (asName.Length())
-	if (pName.size())
-	{
-		info->iName = info->iTotalNames++; // przydzielenie numeru nazwy w pliku (od 0)
-		info->iNameLen = (int)pName.size() + 1; // z zerem na końcu
-	}
-	++info->iCurrent; // przejście do kolejnego obiektu pomocniczego
-	if (Child)
-	{
-		info->iChild = info->iCurrent;
-		Child->Info();
-	}
-	if (Next)
-	{
-		info->iNext = info->iCurrent;
-		Next->Info();
-	}
-};
-
-void TSubModel::InfoSet(TSubModelInfo *info)
-{ // ustawienie danych wg obiektu
-  // pomocniczego do zapisania w
-  // pliku
-	int ile = (char *)&uiDisplayList - (char *)&eType; // ilość bajtów pomiędzy tymi zmiennymi
-	ZeroMemory(this, sizeof(TSubModel)); // zerowaie całości
-	CopyMemory(this, info->pSubModel, ile); // skopiowanie pamięci 1:1
-	tVboPtr = (int)info->pSubModel->iVboPtr;
-	iTexture = info->iTexture; // numer nazwy tekstury, a nie numer w OpenGL
-	TextureID = info->iTexture; // numer tekstury w OpenGL
-	iName = info->iName; // numer nazwy w obszarze nazw
-	iMatrix = info->iTransform; // numer macierzy
-	iNext = info->iNext; // numer następnego
-	iChild = info->iChild; // numer potomnego
-	iFlags &= ~0x200; // nie jest wczytany z tekstowego
-					  // asTexture=asName="";
-	pTexture = "";
-	pName = "";
-};
-
 void TSubModel::AdjustDist()
 { // aktualizacja odległości faz LoD, zależna od
   // rozdzielczości pionowej oraz multisamplingu
@@ -1744,8 +1662,172 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 	return result;
 };
 
-// E3D deserialization
+// E3D serialization
 // http://rainsted.com/pl/Format_binarny_modeli_-_E3D
+
+
+//m7todo: wymyślić lepszą nazwę
+template <typename L, typename T>
+size_t get_container_pos(L &list, T o)
+{
+	auto i = std::find(list.begin(), list.end(), o);
+	if (i == list.end())
+	{
+		list.push_back(o);
+		return list.size() - 1;
+	}
+	else
+	{
+		return std::distance(list.begin(), i);
+	}
+}
+
+//m7todo: za dużo argumentów, może przenieść do osobnej
+//klasy serializera mającej własny stan, albo zrobić
+//strukturę TModel3d::SerializerContext?
+void TSubModel::serialize(std::ostream &s,
+	std::vector<TSubModel*> &models,
+	std::vector<std::string> &names,
+	std::vector<std::string> &textures,
+	std::vector<float4x4> &transforms)
+{
+	size_t end = (size_t)s.tellp() + 256;
+
+	if (!Next)
+		sn_utils::ls_int32(s, -1);
+	else
+		sn_utils::ls_int32(s, (int32_t)get_container_pos(models, Next));
+	if (!Child)
+		sn_utils::ls_int32(s, -1);
+	else
+		sn_utils::ls_int32(s, (int32_t)get_container_pos(models, Child));
+
+	sn_utils::ls_int32(s, eType);
+	if (pName.size() == 0)
+		sn_utils::ls_int32(s, -1);
+	else
+		sn_utils::ls_int32(s, (int32_t)get_container_pos(names, pName));
+	sn_utils::ls_int32(s, (int)b_Anim);
+
+	sn_utils::ls_int32(s, iFlags);
+	sn_utils::ls_int32(s, (int32_t)get_container_pos(transforms, *fMatrix));
+
+	sn_utils::ls_int32(s, iNumVerts);
+	sn_utils::ls_int32(s, (int)iVboPtr);
+	if (TextureID <= 0)
+		sn_utils::ls_int32(s, TextureID);
+	else
+		sn_utils::ls_int32(s, (int32_t)get_container_pos(textures, pTexture));
+
+	sn_utils::ls_float32(s, fVisible);
+	sn_utils::ls_float32(s, fLight);
+
+	for (size_t i = 0; i < 4; i++)
+		sn_utils::ls_float32(s, f4Ambient[i]);
+	for (size_t i = 0; i < 4; i++)
+		sn_utils::ls_float32(s, f4Diffuse[i]);
+	for (size_t i = 0; i < 4; i++)
+		sn_utils::ls_float32(s, f4Specular[i]);
+	for (size_t i = 0; i < 4; i++)
+		sn_utils::ls_float32(s, f4Emision[i]);
+
+	sn_utils::ls_float32(s, fWireSize);
+	sn_utils::ls_float32(s, fSquareMaxDist);
+	sn_utils::ls_float32(s, fSquareMinDist);
+
+	sn_utils::ls_float32(s, fNearAttenStart);
+	sn_utils::ls_float32(s, fNearAttenEnd);
+	sn_utils::ls_uint32(s, bUseNearAtten ? 1 : 0);
+
+	sn_utils::ls_int32(s, iFarAttenDecay);
+	sn_utils::ls_float32(s, fFarDecayRadius);
+	sn_utils::ls_float32(s, fCosFalloffAngle);
+	sn_utils::ls_float32(s, fCosHotspotAngle);
+	sn_utils::ls_float32(s, fCosViewAngle);
+
+	size_t fill = end - s.tellp();
+	for (size_t i = 0; i < fill; i++)
+		s.put(0);
+}
+
+void TModel3d::SaveToBinFile(char const *FileName)
+{
+	WriteLog("saving e3d model..");
+
+	//m7todo: można by zoptymalizować robiąc unordered_map
+	//na wyszukiwanie numerów już dodanych stringów i osobno
+	//vector na wskaźniki do stringów w kolejności numeracji
+	//tylko czy potrzeba?
+	std::vector<TSubModel*> models;
+	models.push_back(Root);
+	std::vector<std::string> names;
+	std::vector<std::string> textures;
+	textures.push_back("");
+	std::vector<float4x4> transforms;
+
+	std::ofstream s(FileName, std::ios::binary);
+
+	sn_utils::ls_uint32(s, MAKE_ID4('E', '3', 'D', '0'));
+	size_t e3d_spos = s.tellp();
+	sn_utils::ls_uint32(s, 0);
+
+	{
+		sn_utils::ls_uint32(s, MAKE_ID4('S', 'U', 'B', '0'));
+		size_t sub_spos = s.tellp();
+		sn_utils::ls_uint32(s, 0);
+		for (size_t i = 0; i < models.size(); i++)
+			models[i]->serialize(s, models, names, textures, transforms);
+		size_t pos = s.tellp();
+		s.seekp(sub_spos);
+		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - sub_spos));
+		s.seekp(pos);
+	}
+
+	sn_utils::ls_uint32(s, MAKE_ID4('T', 'R', 'A', '0'));
+	sn_utils::ls_uint32(s, 8 + (uint32_t)transforms.size() * 64);
+	for (size_t i = 0; i < transforms.size(); i++)
+		transforms[i].serialize_float32(s);
+
+	MakeArray(iNumVerts);
+	Root->RaArrayFill(m_pVNT);
+	sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
+	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
+	for (size_t i = 0; i < iNumVerts; i++)
+		m_pVNT[i].serialize(s);
+
+	if (textures.size())
+	{
+		sn_utils::ls_uint32(s, MAKE_ID4('T', 'E', 'X', '0'));
+		size_t tex_spos = s.tellp();
+		sn_utils::ls_uint32(s, 0);
+		for (size_t i = 0; i < textures.size(); i++)
+			sn_utils::s_str(s, textures[i]);
+		size_t pos = s.tellp();
+		s.seekp(tex_spos);
+		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - tex_spos));
+		s.seekp(pos);
+	}
+
+	if (names.size())
+	{
+		sn_utils::ls_uint32(s, MAKE_ID4('N', 'A', 'M', '0'));
+		size_t nam_spos = s.tellp();
+		sn_utils::ls_uint32(s, 0);
+		for (size_t i = 0; i < names.size(); i++)
+			sn_utils::s_str(s, names[i]);
+		size_t pos = s.tellp();
+		s.seekp(nam_spos);
+		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - nam_spos));
+		s.seekp(pos);
+	}
+
+	size_t end = s.tellp();
+	s.seekp(e3d_spos);
+	sn_utils::ls_uint32(s, (uint32_t)(4 + end - e3d_spos));
+	s.close();
+
+	WriteLog("..done.");
+}
 
 void TSubModel::deserialize(std::istream &s)
 {
@@ -1769,13 +1851,10 @@ void TSubModel::deserialize(std::istream &s)
 
 	for (size_t i = 0; i < 4; i++)
 		f4Ambient[i] = sn_utils::ld_float32(s);
-
 	for (size_t i = 0; i < 4; i++)
 		f4Diffuse[i] = sn_utils::ld_float32(s);
-
 	for (size_t i = 0; i < 4; i++)
 		f4Specular[i] = sn_utils::ld_float32(s);
-
 	for (size_t i = 0; i < 4; i++)
 		f4Emision[i] = sn_utils::ld_float32(s);
 
@@ -1893,6 +1972,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 	std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic)
 { // ustawienie wskaźników w submodelu
+	//m7todo: brzydko
 	iVisible = 1; // tymczasowo używane
 	Child = (iChild > 0) ? s + iChild : nullptr; // zerowy nie może być potomnym
 	Next = (iNext > 0) ? s + iNext : nullptr; // zerowy nie może być następnym
@@ -1953,7 +2033,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
-	WriteLog("Loading - binary model: " + FileName);
+	WriteLog("loading e3d model " + FileName + " ..");
 	
 	std::ifstream file(FileName, std::ios::binary);
 
@@ -1965,6 +2045,8 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 
 	deserialize(file, size, dynamic);
 	file.close();
+
+	WriteLog("..done.");
 };
 
 void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
@@ -2065,100 +2147,6 @@ void TModel3d::Init()
 			// Root->iFlags|=0x80; //konieczność ustawienia tekstury
 		}
 	}
-};
-
-void TModel3d::SaveToBinFile(char const *FileName)
-{ // zapis modelu binarnego
-	WriteLog("Saving E3D binary model.");
-	int i, zero = 0;
-	TSubModelInfo *info = new TSubModelInfo[iSubModelsCount];
-	info->Reset();
-	Root->Info(); // zebranie informacji o submodelach
-	int len; //łączna długość pliku
-	int sub; // ilość submodeli (w bajtach)
-	int tra; // wielkość obszaru transformów
-	int vnt; // wielkość obszaru wierzchołków
-	int tex = 0; // wielkość obszaru nazw tekstur
-	int nam = 0; // wielkość obszaru nazw submodeli
-	sub = 8 + sizeof(TSubModel) * iSubModelsCount;
-	tra = info->iTotalTransforms ? 8 + 64 * info->iTotalTransforms : 0;
-	vnt = 8 + 32 * iNumVerts;
-	for (i = 0; i < iSubModelsCount; ++i)
-	{
-		tex += info[i].iTextureLen;
-		nam += info[i].iNameLen;
-	}
-	if (tex)
-		tex += 9; // 8 na nagłówek i jeden ciąg pusty (tylko znacznik końca)
-	if (nam)
-		nam += 8;
-	len = 8 + sub + tra + vnt + tex + ((-tex) & 3) + nam + ((-nam) & 3);
-	TSubModel *roboczy = new TSubModel(); // bufor używany do zapisywania
-										  // AnsiString *asN=&roboczy->asName,*asT=&roboczy->asTexture;
-										  // roboczy->FirstInit(); //żeby delete nie usuwało czego nie powinno
-										  /*	TFileStream *fs = new TFileStream(AnsiString(FileName), fmCreate);
-										  */ {
-		std::ofstream file(FileName, std::ios::binary);
-		file.unsetf(std::ios::skipws);
-		file.write("E3D0", 4); // kromka główna
-		file.write(reinterpret_cast<char *>(&len), 4);
-
-		file.write("SUB0", 4); // dane submodeli
-		file.write(reinterpret_cast<char *>(&sub), 4);
-		for (i = 0; i < iSubModelsCount; ++i)
-		{
-			roboczy->InfoSet(info + i);
-			file.write(reinterpret_cast<char *>(roboczy),
-				256); // zapis jednego submodelu
-		}
-		if (tra)
-		{ // zapis transformów
-			file.write("TRA0", 4); // transformy
-			file.write(reinterpret_cast<char *>(&tra), 4);
-			for (i = 0; i < iSubModelsCount; ++i)
-				if (info[i].iTransform >= 0)
-					file.write(reinterpret_cast<char *>(info[i].pSubModel->GetMatrix()), 16 * 4);
-		}
-		{ // zapis wierzchołków
-			MakeArray(iNumVerts); // tworzenie tablic dla VBO
-			Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
-			file.write("VNT0", 4); // wierzchołki
-			file.write(reinterpret_cast<char *>(&vnt), 4);
-			file.write(reinterpret_cast<char *>(m_pVNT), 32 * iNumVerts);
-		}
-		if (tex) // może być jeden submodel ze zmienną teksturą i nazwy nie będzie
-		{ // zapis nazw tekstur
-			file.write("TEX0", 4); // nazwy tekstur
-			i = (tex + 3) & ~3; // zaokrąglenie w górę
-			file.write(reinterpret_cast<char *>(&i), 4);
-			file.write(reinterpret_cast<char *>(&zero),
-				1); // ciąg o numerze zero nie jest używany, ma tylko znacznik końca
-			for (i = 0; i < iSubModelsCount; ++i)
-				if (info[i].iTextureLen)
-					file.write(info[i].pSubModel->pTexture.c_str(), info[i].iTextureLen);
-			if ((-tex) & 3)
-				file.write(reinterpret_cast<char *>(&zero),
-				((-tex) & 3)); // wyrównanie do wielokrotności 4 bajtów
-		}
-		if (nam) // może być jeden anonimowy submodel w modelu
-		{ // zapis nazw submodeli
-			file.write("NAM0", 4); // nazwy submodeli
-			i = (nam + 3) & ~3; // zaokrąglenie w górę
-			file.write(reinterpret_cast<char *>(&i), 4);
-			for (i = 0; i < iSubModelsCount; ++i)
-				if (info[i].iNameLen)
-					file.write(info[i].pSubModel->pName.c_str(), info[i].iNameLen);
-			if ((-nam) & 3)
-				file.write(reinterpret_cast<char *>(&zero),
-				((-nam) & 3)); // wyrównanie do wielokrotności 4 bajtów
-		}
-	} // file autocloses on getting out of scope
-	  // roboczy->FirstInit(); //żeby delete nie usuwało czego nie powinno
-	  // roboczy->iFlags=0; //żeby delete nie usuwało czego nie powinno
-	  // roboczy->asName)=asN;
-	  //&roboczy->asTexture=asT;
-	delete roboczy;
-	delete[] info;
 };
 
 void TModel3d::BreakHierarhy()
