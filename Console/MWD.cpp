@@ -164,7 +164,7 @@ bool TMWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i za
 {
 	DWORD bytes_read;
 	ReadFile(hComm, &ReadDataBuff[0], BYTETOREAD, &bytes_read, NULL);
-
+	if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Data receive. Checking data...");
 	if (Global::bMWDBreakEnable)
 	{
 		uiAnalog[0] = (ReadDataBuff[9] << 8) + ReadDataBuff[8];
@@ -203,8 +203,11 @@ bool TMWDComm::Run() // wywoływanie obsługi MWD + generacja większego opóźn
 		if (!(MWDTime % Global::iMWDdivider))
 		{
 			MWDTime = 0;
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Sending data...");
 			SendData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!\nReceiving data...");
 			ReadData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!");
 			return 1;
 		}
 	}

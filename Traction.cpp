@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "mctools.h"
 #include "TractionPower.h"
-#include "Texture.h"
+#include "renderer.h"
 
 //---------------------------------------------------------------------------
 /*
@@ -116,7 +116,7 @@ void TTraction::Optimize()
     uiDisplayList = glGenLists(1);
     glNewList(uiDisplayList, GL_COMPILE);
 
-    TextureManager.Bind(0);
+    GfxRenderer.Bind(0);
     //    glColor3ub(0,0,0); McZapkie: to do render
 
     //    glPushMatrix();
@@ -323,9 +323,15 @@ void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
                 g *= 0.6f;
                 b *= 0.6f;
             }
-        r *= Global::ambientDayLight[0]; // w zaleźności od koloru swiatła
-        g *= Global::ambientDayLight[1];
-        b *= Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        r *= Global::ambientDayLight[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::ambientDayLight[ 1 ];
+        b *= Global::ambientDayLight[ 2 ];
+#else
+        r *= Global::DayLight.ambient[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::DayLight.ambient[ 1 ];
+        b *= Global::DayLight.ambient[2];
+#endif
         if (linealpha > 1.0f)
             linealpha = 1.0f; // trzeba ograniczyć do <=1
         glColor4f(r, g, b, linealpha);
@@ -463,7 +469,7 @@ void TTraction::RenderVBO(float mgn, int iPtr)
 { // renderowanie z użyciem VBO
     if (Wires != 0 && !TestFlag(DamageFlag, 128)) // rysuj jesli sa druty i nie zerwana
     {
-        TextureManager.Bind(0);
+        GfxRenderer.Bind(0);
         glDisable(GL_LIGHTING); // aby nie używało wektorów normalnych do kolorowania
         glColor4f(0, 0, 0, 1); // jak nieznany kolor to czarne nieprzezroczyste
         if (!Global::bSmoothTraction)
@@ -527,9 +533,15 @@ void TTraction::RenderVBO(float mgn, int iPtr)
             b = 0.0f;
             break; //żółte z podłączonym zasilaniem z obu stron
         }
-        r = r * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-        g = g * Global::ambientDayLight[1];
-        b = b * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        r *= Global::ambientDayLight[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::ambientDayLight[ 1 ];
+        b *= Global::ambientDayLight[ 2 ];
+#else
+        r *= Global::DayLight.ambient[ 0 ]; // w zaleźności od koloru swiatła
+        g *= Global::DayLight.ambient[ 1 ];
+        b *= Global::DayLight.ambient[ 2 ];
+#endif
         if (linealpha > 1.0f)
             linealpha = 1.0f; // trzeba ograniczyć do <=1
         glColor4f(r, g, b, linealpha);

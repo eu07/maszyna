@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Usefull.h"
 // McZapkie-260202
 #include "Globals.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "AirCoupler.h"
 
 #include "TractionPower.h"
@@ -3773,6 +3773,8 @@ void TDynamicObject::Render()
             glTranslated(vPosition.x, vPosition.y,
                          vPosition.z); // standardowe przesunięcie względem początku scenerii
         glMultMatrixd(mMatrix.getArray());
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         if (fShade > 0.0)
         { // Ra: zmiana oswietlenia w tunelu, wykopie
             GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -3789,6 +3791,7 @@ void TDynamicObject::Render()
             glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
         }
+#endif
         if (Global::bUseVBO)
         { // wersja VBO
             if (mdLowPolyInt)
@@ -3802,9 +3805,26 @@ void TDynamicObject::Render()
         }
         else
         { // wersja Display Lists
-            if (mdLowPolyInt)
-                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
-                    mdLowPolyInt->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
+            if( mdLowPolyInt ) {
+                // low poly interior
+                if( FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab ) {
+                    // enable cab light if needed
+                    if( InteriorLightLevel > 0.0f ) {
+
+                        // crude way to light the cabin, until we have something more complete in place
+                        auto const cablight = InteriorLight * InteriorLightLevel;
+                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                    }
+
+                    mdLowPolyInt->Render( ObjSqrDist, ReplacableSkinID, iAlpha );
+
+                    if( InteriorLightLevel > 0.0f ) {
+                        // reset the overall ambient
+                        GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                    }
+                }
+            }
             mdModel->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
             if (mdLoad) // renderowanie nieprzezroczystego ładunku
                 mdLoad->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
@@ -3821,6 +3841,8 @@ void TDynamicObject::Render()
                 // ma byc wyswietlana
                 // ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
                 // Ra: świetła są ustawione dla zewnętrza danego pojazdu
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+                // TODO: re-mplement this
                 // oswietlenie kabiny
                 GLfloat ambientCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
                 GLfloat diffuseCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -3856,20 +3878,25 @@ void TDynamicObject::Render()
                 glLightfv(GL_LIGHT0, GL_AMBIENT, ambientCabLight);
                 glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseCabLight);
                 glLightfv(GL_LIGHT0, GL_SPECULAR, specularCabLight);
+#endif
                 if (Global::bUseVBO)
                     mdKabina->RaRender(ObjSqrDist, 0);
                 else
                     mdKabina->Render(ObjSqrDist, 0);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
                 glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
                 glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
                 glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
+#endif
             }
-        if (fShade != 0.0) // tylko jeśli było zmieniane
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        if( fShade != 0.0 ) // tylko jeśli było zmieniane
         { // przywrócenie standardowego oświetlenia
             glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
         }
+#endif
         glPopMatrix();
         if (btnOn)
             TurnOff(); // przywrócenie domyślnych pozycji submodeli
@@ -4267,6 +4294,8 @@ void TDynamicObject::RenderAlpha()
             glTranslated(vPosition.x, vPosition.y,
                          vPosition.z); // standardowe przesunięcie względem początku scenerii
         glMultMatrixd(mMatrix.getArray());
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         if (fShade > 0.0)
         { // Ra: zmiana oswietlenia w tunelu, wykopie
             GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -4283,6 +4312,7 @@ void TDynamicObject::RenderAlpha()
             glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
         }
+#endif
         if (Global::bUseVBO)
         { // wersja VBO
             if (mdLowPolyInt)
@@ -4305,63 +4335,15 @@ void TDynamicObject::RenderAlpha()
             // if (mdPrzedsionek) //Ra: przedsionków tu wcześniej nie było - włączyć?
             // mdPrzedsionek->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
         }
-        /* skoro false to można wyciąc
-            //ABu: Tylko w trybie freefly
-            if (false)//((mdKabina!=mdModel) && bDisplayCab && FreeFlyModeFlag)
-            {
-        //oswietlenie kabiny
-              GLfloat  ambientCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-              GLfloat  diffuseCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-              GLfloat  specularCabLight[4]= { 0.5f,  0.5f, 0.5f, 1.0f };
-              for (int li=0; li<3; li++)
-               {
-                 ambientCabLight[li]= Global::ambientDayLight[li]*0.9;
-                 diffuseCabLight[li]= Global::diffuseDayLight[li]*0.5;
-                 specularCabLight[li]= Global::specularDayLight[li]*0.5;
-               }
-              switch (MyTrack->eEnvironment)
-              {
-               case e_canyon:
-                {
-                  for (int li=0; li<3; li++)
-                   {
-                     diffuseCabLight[li]*= 0.6;
-                     specularCabLight[li]*= 0.8;
-                   }
-                }
-               break;
-               case e_tunnel:
-                {
-                  for (int li=0; li<3; li++)
-                   {
-                     ambientCabLight[li]*= 0.3;
-                     diffuseCabLight[li]*= 0.1;
-                     specularCabLight[li]*= 0.2;
-                   }
-                }
-               break;
-              }
-        // dorobic swiatlo od drugiej strony szyby
-
-              glLightfv(GL_LIGHT0,GL_AMBIENT,ambientCabLight);
-              glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseCabLight);
-              glLightfv(GL_LIGHT0,GL_SPECULAR,specularCabLight);
-
-              mdKabina->RenderAlpha(ObjSqrDist,0);
-        //smierdzi
-        // mdModel->RenderAlpha(SquareMagnitude(Global::pCameraPosition-pos),0);
-
-              glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-              glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-              glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
-            }
-        */
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         if (fShade != 0.0) // tylko jeśli było zmieniane
         { // przywrócenie standardowego oświetlenia
             glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
         }
+#endif
         glPopMatrix();
         if (btnOn)
             TurnOff(); // przywrócenie domyślnych pozycji submodeli
@@ -4426,7 +4408,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
 					std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
 					if (!x.empty())
-						ReplacableSkinID[4] = TextureManager.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9);
+						ReplacableSkinID[4] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9);
 					/*
                 if ((i = ReplacableSkin.Pos("|")) > 0) // replacable dzielone
                 {
@@ -4489,21 +4471,21 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 				*/
                 if (iMultiTex > 0)
                 { // jeśli model ma 4 tekstury
-                    ReplacableSkinID[1] = TextureManager.GetTextureId(
+                    ReplacableSkinID[1] = GfxRenderer.GetTextureId(
                         ReplacableSkin + ",1", "", Global::iDynamicFiltering);
                     if (ReplacableSkinID[1])
                     { // pierwsza z zestawu znaleziona
-                        ReplacableSkinID[2] = TextureManager.GetTextureId(
+                        ReplacableSkinID[2] = GfxRenderer.GetTextureId(
                             ReplacableSkin + ",2", "", Global::iDynamicFiltering);
                         if (ReplacableSkinID[2])
                         {
                             iMultiTex = 2; // już są dwie
-                            ReplacableSkinID[3] = TextureManager.GetTextureId(
+                            ReplacableSkinID[3] = GfxRenderer.GetTextureId(
                                 ReplacableSkin + ",3", "", Global::iDynamicFiltering);
                             if (ReplacableSkinID[3])
                             {
                                 iMultiTex = 3; // a teraz nawet trzy
-                                ReplacableSkinID[4] = TextureManager.GetTextureId(
+                                ReplacableSkinID[4] = GfxRenderer.GetTextureId(
                                     ReplacableSkin + ",4", "", Global::iDynamicFiltering);
                                 if (ReplacableSkinID[4])
                                     iMultiTex = 4; // jak są cztery, to blokujemy podmianę tekstury
@@ -4514,14 +4496,14 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     else
                     { // zestaw nie zadziałał, próbujemy normanie
                         iMultiTex = 0;
-                        ReplacableSkinID[1] = TextureManager.GetTextureId(
+                        ReplacableSkinID[1] = GfxRenderer.GetTextureId(
                             ReplacableSkin, "", Global::iDynamicFiltering);
                     }
                 }
                 else
-                    ReplacableSkinID[1] = TextureManager.GetTextureId(
+                    ReplacableSkinID[1] = GfxRenderer.GetTextureId(
                         ReplacableSkin, "", Global::iDynamicFiltering);
-                if (TextureManager.Texture(ReplacableSkinID[1]).has_alpha)
+                if (GfxRenderer.Texture(ReplacableSkinID[1]).has_alpha)
                     iAlpha = 0x31310031; // tekstura -1 z kanałem alfa - nie renderować w cyklu
                 // nieprzezroczystych
                 else
@@ -4529,17 +4511,17 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // renderować w
                 // cyklu przezroczystych
                 if (ReplacableSkinID[2])
-                    if (TextureManager.Texture(ReplacableSkinID[2]).has_alpha)
+                    if (GfxRenderer.Texture(ReplacableSkinID[2]).has_alpha)
                         iAlpha |= 0x02020002; // tekstura -2 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[3])
-                    if (TextureManager.Texture(ReplacableSkinID[3]).has_alpha)
+                    if (GfxRenderer.Texture(ReplacableSkinID[3]).has_alpha)
                         iAlpha |= 0x04040004; // tekstura -3 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
                 if (ReplacableSkinID[4])
-                    if (TextureManager.Texture(ReplacableSkinID[4]).has_alpha)
+                    if (GfxRenderer.Texture(ReplacableSkinID[4]).has_alpha)
                         iAlpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować
                 // w cyklu
                 // nieprzezroczystych
@@ -5853,13 +5835,13 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     std::string x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
 	if (!x.empty())
     {
-        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
 	x = TextureTest(asBaseDir + numer );
 	if (!x.empty())
     {
-        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     if (to.empty())
@@ -5867,17 +5849,17 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejności z nazwą FIZ/MMD
     if (!x.empty())
     {
-        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     x = TextureTest(asBaseDir + to); // na razie prymitywnie
     if (!x.empty())
-        ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
     else
 		{
         x = TextureTest(asBaseDir + "nowhere"); // jak nie znalazł dedykowanej, to niech daje nowhere
 		if (!x.empty())
-			ReplacableSkinID[4] = TextureManager.GetTextureId( x, "", 9);
+			ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9);
 		}
     // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa
     // tekstury nr 4

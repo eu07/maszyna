@@ -22,7 +22,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 #include "MdlMngr.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
 #include "Sound.h"
@@ -32,6 +32,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Train.h"
 #include "Driver.h"
 #include "Console.h"
+#include "color.h"
 
 #define TEXTURE_FILTER_CONTROL_EXT 0x8500
 #define TEXTURE_LOD_BIAS_EXT 0x8501
@@ -334,9 +335,7 @@ bool TWorld::Init(GLFWwindow *w)
     //	glLineWidth(2.0f);
     WriteLog("glPointSize(3.0f);");
     glPointSize(3.0f);
-//    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST ); // Really Nice Perspective Calculations
-//    glEnable( GL_POINT_SMOOTH );
-
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
     // ----------- LIGHTING SETUP -----------
     // Light values and coordinates
 
@@ -348,7 +347,7 @@ bool TWorld::Init(GLFWwindow *w)
     Global::lightPos[3] = 0.0f;
 
     // Ra: światła by sensowniej było ustawiać po wczytaniu scenerii
-
+    // TODO: re-implement this
     // Ra: szczątkowe światło rozproszone - żeby było cokolwiek widać w ciemności
     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::darkLight);
@@ -364,7 +363,7 @@ bool TWorld::Init(GLFWwindow *w)
     glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
     WriteLog("glEnable(GL_LIGHT0);");
     glEnable(GL_LIGHT0);
-
+#endif
     // glColor() ma zmieniać kolor wybrany w glColorMaterial()
     WriteLog("glEnable(GL_COLOR_MATERIAL);");
     glEnable(GL_COLOR_MATERIAL);
@@ -448,16 +447,25 @@ bool TWorld::Init(GLFWwindow *w)
 
     WriteLog("Sound Init");
 
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glDisable( GL_DEPTH_TEST ); // Disables depth testing
+#ifndef EU07_USE_OLD_LIGHTING_MODEL
+    glEnable( GL_LIGHTING );
+    glEnable( GL_LIGHT0 );
+#endif
+
     glLoadIdentity();
     //    glColor4f(0.3f,0.0f,0.0f,0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glTranslatef(0.0f, 0.0f, -0.50f);
     //    glRasterPos2f(-0.25f, -0.10f);
-    glDisable(GL_DEPTH_TEST); // Disables depth testing
-    glColor3f(3.0f, 3.0f, 3.0f);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    glColor3f( 3.0f, 3.0f, 3.0f );
+#else
+    glColor3f( 1.0f, 1.0f, 1.0f );
+#endif
 
-    auto logo = TextureManager.GetTextureId( "logo", szTexturePath, 6 );
-    TextureManager.Bind(logo); // Select our texture
+    auto logo = GfxRenderer.GetTextureId( "logo", szTexturePath, 6 );
+    GfxRenderer.Bind(logo); // Select our texture
 
     glBegin(GL_QUADS); // Drawing using triangles
     glTexCoord2f(0.0f, 0.0f);
@@ -470,7 +478,7 @@ bool TWorld::Init(GLFWwindow *w)
     glVertex3f(-1.0f, 1.0f, 0.0f); // top left of the texture and quad
     glEnd();
     //~logo; Ra: to jest bez sensu zapis
-    glColor3f(0.0f, 0.0f, 100.0f);
+    glColor3f(0.0f, 0.0f, 1.0f);
     if (Global::detonatoryOK)
     {
         glRasterPos2f(-0.85f, -0.25f);
@@ -478,10 +486,7 @@ bool TWorld::Init(GLFWwindow *w)
         glRasterPos2f(-0.85f, -0.30f);
         glPrint("Dzwiek / Sound...");
     }
-	
 	glfwSwapBuffers(window);
-
-    glEnable(GL_LIGHTING);
     /*-----------------------Sound Initialization-----------------------*/
 
     TSoundsManager::Init(glfwGetWin32Window(window));
@@ -540,9 +545,26 @@ bool TWorld::Init(GLFWwindow *w)
     }
 	glfwSwapBuffers(window);
 
+#ifndef EU07_USE_OLD_LIGHTING_MODEL
+    // setup lighting
+//    GLfloat ambient[] = { 0.65f, 0.65f, 0.65f, 0.5f };
+    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+
+    Global::DayLight.id = opengl_renderer::sunlight;
+    // directional light
+    // TODO, TBD: test omni-directional variant
+    Global::DayLight.position[ 3 ] = 1.0f;
+    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0 );
+    // rgb value for 5780 kelvin
+    Global::DayLight.diffuse[ 0 ] = 255.0f / 255.0f;
+    Global::DayLight.diffuse[ 1 ] = 242.0f / 255.0f;
+    Global::DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
+#endif
+
     Ground.Init(Global::SceneryFile);
     //    Global::tSinceStart= 0;
-    Clouds.Init();
+    Environment.init();
     WriteLog("Ground init OK");
     if (Global::detonatoryOK)
     {
@@ -640,9 +662,9 @@ bool TWorld::Init(GLFWwindow *w)
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
 	if (Global::bOldSmudge == true)
-        light = TextureManager.GetTextureId( "smuga.tga", szTexturePath );
+        light = GfxRenderer.GetTextureId( "smuga.tga", szTexturePath );
 	else
-        light = TextureManager.GetTextureId( "smuga2.tga", szTexturePath );
+        light = GfxRenderer.GetTextureId( "smuga2.tga", szTexturePath );
     // Camera.Reset();
     Timer::ResetTimers();
 	WriteLog( "Load time: " +
@@ -1103,7 +1125,7 @@ bool TWorld::Update()
         Global::fClockAngleDeg[4] = 36.0 * (GlobalTime->hh % 10); // jednostki godzin
         Global::fClockAngleDeg[5] = 36.0 * (GlobalTime->hh / 10); // dziesiątki godzin
 
-        Update_Lights();
+        Update_Environment();
     } // koniec działań niewykonywanych podczas pauzy
     // poprzednie jakoś tam działało
     double dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
@@ -1338,7 +1360,9 @@ TWorld::Update_Camera( double const Deltatime )
     }
 }
 
-void TWorld::Update_Lights() {
+void TWorld::Update_Environment() {
+
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
 
     if( Global::fMoveLight < 0.0 ) {
         return;
@@ -1421,7 +1445,7 @@ void TWorld::Update_Lights() {
         +0.150 * ( Global::diffuseDayLight[ 0 ] + Global::ambientDayLight[ 0 ] ) // R
         + 0.295 * ( Global::diffuseDayLight[ 1 ] + Global::ambientDayLight[ 1 ] ) // G
         + 0.055 * ( Global::diffuseDayLight[ 2 ] + Global::ambientDayLight[ 2 ] ); // B
-    
+
     vector3 sky = vector3( Global::AtmoColor[ 0 ], Global::AtmoColor[ 1 ], Global::AtmoColor[ 2 ] );
     if( Global::fLuminance < 0.25 ) { // przyspieszenie zachodu/wschodu
         sky *= 4.0 * Global::fLuminance; // nocny kolor nieba
@@ -1434,7 +1458,9 @@ void TWorld::Update_Lights() {
     else {
         glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
     }
-    glClearColor( sky.x, sky.y, sky.z, 0.0 ); // kolor nieba
+#else
+    Environment.update();
+#endif
 }
 
 bool TWorld::Render()
@@ -1447,19 +1473,17 @@ bool TWorld::Render()
     glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
     glLoadIdentity(); // reset the Projection Matrix
     // calculate the aspect ratio of the window
-    gluPerspective( 45.0f / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
+    gluPerspective( Global::FieldOfView / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
 
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();
     Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
 
-    if (!Global::bWireFrame)
-    { // bez nieba w trybie rysowania linii
-        glDisable(GL_FOG);
-        Clouds.Render();
-        glEnable(GL_FOG);
+    if( !Global::bWireFrame ) {
+        // bez nieba w trybie rysowania linii
+        Environment.render();
     }
+
     if (Global::bUseVBO)
     { // renderowanie przez VBO
         if (!Ground.RenderVBO(Camera.Pos))
@@ -1552,7 +1576,7 @@ TWorld::Render_Cab() {
                 glDisable( GL_DEPTH_TEST );
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
-                TextureManager.Bind( light ); // Select our texture
+                GfxRenderer.Bind( light ); // Select our texture
                 glBegin( GL_QUADS );
                 float fSmudge =
                     dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
@@ -1594,7 +1618,7 @@ TWorld::Render_Cab() {
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
                 //glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
-                TextureManager.Bind( light ); // Select our texture
+                GfxRenderer.Bind( light ); // Select our texture
                 //float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
                 glBegin( GL_QUADS );
                 float fSmudge = dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
@@ -1604,7 +1628,7 @@ TWorld::Render_Cab() {
                         float z = i * i * i * 0.01f;//25/4;
                         //float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
                         float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * frontlightstrength;
-                        glColor4f( C, C, C, 0.35f );// *frontlightstrength );
+                        glColor4f( C, C, C, 1.0f );// *frontlightstrength );
                         glTexCoord2f( 0, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
                         glTexCoord2f( 1, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
                         glTexCoord2f( 1, 1 );  glVertex3f( 10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
@@ -1642,7 +1666,10 @@ TWorld::Render_Cab() {
         glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone
 
     if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
-    { // oswietlenie kabiny
+    {
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
+        // oswietlenie kabiny
         GLfloat ambientCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
         GLfloat diffuseCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
         GLfloat specularCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1722,6 +1749,14 @@ TWorld::Render_Cab() {
         glLightfv( GL_LIGHT0, GL_AMBIENT, ambientCabLight );
         glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseCabLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, specularCabLight );
+#else
+        if( dynamic->InteriorLightLevel > 0.0f ) {
+
+            // crude way to light the cabin, until we have something more complete in place
+            auto const cablight = dynamic->InteriorLight * dynamic->InteriorLightLevel;
+            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+        }
+#endif
         if( Global::bUseVBO ) { // renderowanie z użyciem VBO
             dynamic->mdKabina->RaRender( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
             dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
@@ -1730,10 +1765,19 @@ TWorld::Render_Cab() {
             dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
             dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
         }
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         // przywrócenie standardowych, bo zawsze są zmieniane
         glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
         glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
+#else
+        if( dynamic->InteriorLightLevel > 0.0f ) {
+            // reset the overall ambient
+            GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+        }
+#endif
     }
     glPopMatrix();
 }
@@ -1905,7 +1949,7 @@ TWorld::Render_UI() {
 	else
 		glfwSetWindowTitle(window, ("EU07++NG: " + Global::SceneryFile).c_str());
 
-	TextureManager.Bind(0);
+	GfxRenderer.Bind(0);
     glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
     glLoadIdentity();
     glTranslatef( 0.0f, 0.0f, -0.50f );
@@ -2205,6 +2249,8 @@ TWorld::Render_UI() {
                 " " +
                 std::string( "S SEE NEN NWW SW" )
                 .substr( 1 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
+            // current luminance level
+            OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
         }
         // OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ):
         // http://www.eu07.pl");
@@ -2900,3 +2946,81 @@ void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
             Global::changeDynObj = now; // uruchomienie protezy
 };
 //---------------------------------------------------------------------------
+
+void
+world_environment::init() {
+
+    m_sun.init();
+    m_stars.init();
+    m_clouds.Init();
+}
+
+void
+world_environment::update() {
+
+    // move sun...
+    m_sun.update();
+    auto const position = m_sun.getPosition();
+    // ...update the global data to match new sun state...
+    Global::SunAngle = m_sun.getAngle();
+    Global::DayLight.position[ 0 ] = position.x;
+    Global::DayLight.position[ 1 ] = position.y;
+    Global::DayLight.position[ 2 ] = position.z;
+    Global::DayLight.direction = -1.0 * m_sun.getDirection();
+    // ...update skydome to match the current sun position as well...
+    m_skydome.Update( position );
+    // ...retrieve current sky colour and brightness...
+    auto const skydomecolour = m_skydome.GetAverageColor();
+    auto const skydomehsv = RGBtoHSV( skydomecolour );
+    auto const intensity = std::min( 0.05f + m_sun.getIntensity() + skydomehsv.z, 1.25f );
+    // ...update light colours and intensity.
+    // NOTE: intensity combines intensity of the sun and the light reflected by the sky dome
+    // it'd be more technically correct to have just the intensity of the sun here,
+    // but whether it'd _look_ better is something to be tested
+    Global::DayLight.diffuse[ 0 ] = intensity * 255.0f / 255.0f;
+    Global::DayLight.diffuse[ 1 ] = intensity * 242.0f / 255.0f;
+    Global::DayLight.diffuse[ 2 ] = intensity * 231.0f / 255.0f;
+
+    Global::DayLight.ambient[ 0 ] = skydomecolour.x;
+    Global::DayLight.ambient[ 1 ] = skydomecolour.y;
+    Global::DayLight.ambient[ 2 ] = skydomecolour.z;
+
+    Global::fLuminance = intensity;
+
+    // update the fog. setting it to match the average colour of the sky dome is cheap
+    // but quite effective way to make the distant items blend with background better
+    Global::FogColor[ 0 ] = skydomecolour.x;
+    Global::FogColor[ 1 ] = skydomecolour.y;
+    Global::FogColor[ 2 ] = skydomecolour.z;
+    ::glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
+
+    ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f ); // kolor nieba
+}
+
+void
+world_environment::render() {
+
+    ::glDisable( GL_LIGHTING );
+    ::glDisable( GL_FOG );
+    ::glDisable( GL_DEPTH_TEST );
+    ::glDepthMask( GL_FALSE );
+    ::glPushMatrix();
+    ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
+
+    m_skydome.Render();
+    m_stars.render();
+//    m_clouds.Render();
+
+    if( DebugModeFlag == true ) {
+        // mark sun position for easier debugging
+        m_sun.render();
+    }
+    Global::DayLight.apply_angle();
+    Global::DayLight.apply_intensity();
+
+    ::glPopMatrix();
+    ::glDepthMask( GL_TRUE );
+    ::glEnable( GL_DEPTH_TEST );
+    ::glEnable( GL_FOG );
+    ::glEnable( GL_LIGHTING );
+}

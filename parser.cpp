@@ -67,6 +67,7 @@ cParser::~cParser()
 // methods
 bool cParser::getTokens(unsigned int Count, bool ToLower, const char *Break)
 {
+    tokens.clear(); // emulates old parser behaviour. TODO, TBD: allow manual reset?
     /*
      if (LoadTraction==true)
       trtest="niemaproblema"; //wczytywać

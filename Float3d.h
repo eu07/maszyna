@@ -53,7 +53,10 @@ double inline float3::Length() const
 {
     return sqrt(x * x + y * y + z * z);
 };
-inline float3 operator/(const float3 &v, double k)
+inline float3 operator*( float3 const &v, float const  k ) {
+    return float3( v.x * k, v.y * k, v.z * k );
+};
+inline float3 operator/( float3 const &v, float const k )
 {
     return float3(v.x / k, v.y / k, v.z / k);
 };
@@ -67,9 +70,13 @@ inline float3 SafeNormalize(const float3 &v)
         retVal = v / l;
     return retVal;
 };
-inline float3 CrossProduct(const float3 &v1, const float3 &v2)
+inline float3 CrossProduct( float3 const &v1, float3 const &v2 )
 {
     return float3(v1.y * v2.z - v1.z * v2.y, v2.x * v1.z - v2.z * v1.x, v1.x * v2.y - v1.y * v2.x);
+}
+inline float DotProduct( float3 const &v1, float3 const &v2 ) {
+
+    return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
 class float4

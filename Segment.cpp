@@ -641,7 +641,8 @@ void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *Shap
 void TSegment::Render()
 {
     vector3 pt;
-    TextureManager.Bind(0);
+    GfxRenderer.Bind(0);
+
     if (bCurve)
     {
         glColor3f(0, 0, 1.0f);
