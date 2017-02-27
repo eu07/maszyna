@@ -675,8 +675,8 @@ void TWorld::OnKeyDown(int cKey)
                         GlobalTime->UpdateMTableTime( 5.0 * 60.0 );
                     }
                 }
-                if( (Global::ctrlState)
-                 && (Global::shiftState) ) {
+                if( (!Global::ctrlState)
+                 && (!Global::shiftState) ) {
                     // czas i relacja
                     if( Global::iTextMode == cKey ) {
                         // wyłączenie napisów, chyba że pauza
@@ -789,7 +789,7 @@ void TWorld::OnKeyDown(int cKey)
             // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
         }
     }
-    else if (cKey == 3) //[Ctrl]+[Break]
+    else if (Global::ctrlState && GLFW_KEY_PAUSE) //[Ctrl]+[Break]
     { // hamowanie wszystkich pojazdów w okolicy
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
