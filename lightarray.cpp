@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "lightarray.h"
 #include "dynobj.h"
+#include "driver.h"
 
 void
 light_array::insert( TDynamicObject const *Owner ) {
@@ -65,6 +66,16 @@ light_array::update() {
                 ( ( lightbits & 16 ) ? 1 : 0 );
 
             light.intensity = 0.15f * light.count; // TODO: intensity can be affected further by dim switch or other factors
+
+            // crude catch for unmanned modules which share the light state with the controlled unit.
+            // why don't they get their own light bits btw ._.
+            // TODO, TBD: have separate light bits for each vehicle, so this override isn't necessary
+            if( ( light.owner->Controller == AIdriver )
+             && ( light.owner->Mechanik == nullptr ) ) {
+                
+                light.intensity = 0.0f;
+                light.count = 0;
+            }
         }
         else {
             // with battery off the lights are off
