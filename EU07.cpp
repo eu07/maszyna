@@ -195,6 +195,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	GfxRenderer.Init();
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
 
     if (!joyGetNumDevs())
