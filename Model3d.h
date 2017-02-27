@@ -190,7 +190,7 @@ private:
 	bool bWire; // nie używane, ale wczytywane
 				// short TexAlpha;  //Ra: nie używane już
 	GLuint uiDisplayList; // roboczy numer listy wyświetlania
-	float Opacity; // nie używane, ale wczytywane
+	float Opacity; // nie używane, ale wczytywane //m7todo: wywalić to
 				   // ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
 				   // bo sie chrzanilo przemieszczanie obiektow.
 				   // Ra: już się nie chrzani

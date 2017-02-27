@@ -2015,17 +2015,6 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
 		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
-		// TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
-		// ustawienie cyklu przezroczyste/nieprzezroczyste zależnie od własności
-		// stałej tekstury
-		// iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
-		// //0x10-nieprzezroczysta, 0x20-przezroczysta
-		if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity 0!
-			iFlags |= GfxRenderer.Texture(TextureID).has_alpha ?
-			0x20 :
-			0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
-		else
-			iFlags |= 0x10; // normalnie nieprzezroczyste
 	}
 	else
 		TextureID = iTexture;

@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
 	glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
+	glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
 	glfwWindowHint(GLFW_SAMPLES, Global::iMultisampling);
 
 	GLFWwindow *window =
