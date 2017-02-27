@@ -36,7 +36,7 @@ void TSky::Render( float3 const &Tint )
         glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 #else
         ::glEnable( GL_LIGHTING );
-        ::glDisable( GL_LIGHT0 );
+        GfxRenderer.Disable_Lights();
         ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &Tint.x );
 #endif
         if (Global::bUseVBO)
@@ -56,7 +56,7 @@ void TSky::Render( float3 const &Tint )
 #else
         GLfloat noambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
         ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, noambient );
-        ::glEnable( GL_LIGHT0 );
+        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
         ::glDisable( GL_LIGHTING );
 #endif
     }

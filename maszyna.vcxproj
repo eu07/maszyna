@@ -104,6 +104,7 @@
     <ClCompile Include="Gauge.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="Ground.cpp" />
+    <ClCompile Include="lightarray.cpp" />
     <ClCompile Include="Logs.cpp" />
     <ClCompile Include="mczapkie\friction.cpp" />
     <ClCompile Include="mczapkie\hamulce.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="Gauge.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="Ground.h" />
+    <ClInclude Include="lightarray.h" />
     <ClInclude Include="Logs.h" />
     <ClInclude Include="McZapkie\friction.h" />
     <ClInclude Include="McZapkie\hamulce.h" />

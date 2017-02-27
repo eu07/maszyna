@@ -201,6 +201,9 @@
     <ClCompile Include="stars.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lightarray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl\glew.h">
@@ -390,6 +393,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stars.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lightarray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

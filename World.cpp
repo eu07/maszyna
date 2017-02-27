@@ -512,25 +512,6 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     Global::DayLight.diffuse[ 0 ] = 255.0 / 255.0;
     Global::DayLight.diffuse[ 1 ] = 242.0 / 255.0;
     Global::DayLight.diffuse[ 2 ] = 231.0 / 255.0;
-
-    Global::VehicleLight.id = opengl_renderer::vehiclelight;
-    // directional light
-    Global::VehicleLight.position[ 3 ] = 1.0f;
-    ::glLightf( opengl_renderer::vehiclelight, GL_SPOT_CUTOFF, 20.0f );
-    ::glLightf( opengl_renderer::vehiclelight, GL_SPOT_EXPONENT, 10.0f );
-    ::glLightf( opengl_renderer::vehiclelight, GL_CONSTANT_ATTENUATION, 0.0f );
-    ::glLightf( opengl_renderer::vehiclelight, GL_LINEAR_ATTENUATION, 0.035f );
-    // halogen light. TODO: allow light type definition
-    Global::VehicleLight.diffuse[ 0 ] = 255.0 / 255.0;
-    Global::VehicleLight.diffuse[ 1 ] = 241.0 / 255.0;
-    Global::VehicleLight.diffuse[ 2 ] = 224.0 / 255.0;
-    // rear light
-    Global::VehicleLightRear = Global::VehicleLight;
-    Global::VehicleLightRear.id = opengl_renderer::vehiclelightrear;
-    ::glLightf( opengl_renderer::vehiclelightrear, GL_SPOT_CUTOFF, 20.0f );
-    ::glLightf( opengl_renderer::vehiclelightrear, GL_SPOT_EXPONENT, 10.0f );
-    ::glLightf( opengl_renderer::vehiclelightrear, GL_CONSTANT_ATTENUATION, 0.0f );
-    ::glLightf( opengl_renderer::vehiclelightrear, GL_LINEAR_ATTENUATION, 0.035f );
 #endif
 
     Ground.Init(Global::SceneryFile, hDC);
@@ -1256,6 +1237,8 @@ bool TWorld::Update()
 
     Ground.CheckQuery();
 
+    Ground.Update_Lights();
+
     if( Train != nullptr ) {
         TSubModel::iInstance = reinterpret_cast<int>( Train->Dynamic() );
         Train->Update( dt );
@@ -1275,13 +1258,6 @@ bool TWorld::Update()
                 ( Train->Dynamic()->fShade <= 0.0 ?
                     ( Global::fLuminance <= 0.5 ) :
                     ( Train->Dynamic()->fShade * Global::fLuminance <= 0.5 ) ) );
-
-        // match the vehicle light position with new position of the vehicle
-        Global::VehicleLight.set_position( Train->Dynamic()->GetPosition() + ( Train->Dynamic()->VectorFront() * Train->Dynamic()->GetLength() * 0.45 ) );
-        Global::VehicleLight.direction = Train->Dynamic()->VectorFront();
-        Global::VehicleLightRear.set_position( Train->Dynamic()->GetPosition() - ( Train->Dynamic()->VectorFront() * Train->Dynamic()->GetLength() * 0.45 ) );
-        Global::VehicleLightRear.direction = Train->Dynamic()->VectorFront();
-        Global::VehicleLightRear.direction.RotateY( M_PI );
     }
 
     m_init = true;
@@ -1556,78 +1532,11 @@ bool TWorld::Render()
         Environment.render();
     }
 
-    // enable vehicle light, if it's present and on
-    if( nullptr != Train ) {
+    if( false == Ground.Render( Camera.Pos ) ) { return false; }
 
-        auto const &frontlights = Train->Controlled()->iLights[ 0 ];
-        int const frontlightcount = 0 +
-            ( ( frontlights & 1 ) ? 1 : 0 ) +
-            ( ( frontlights & 4 ) ? 1 : 0 ) +
-            ( ( frontlights & 16 ) ? 1 : 0 );
-
-        if( ( true == Train->Controlled()->Battery )
-         && ( frontlightcount > 0 ) ) {
-            // halogen light. TODO: allow light type definition
-            Global::VehicleLight.ambient[ 0 ] = 0.15f * 255.0 * frontlightcount / 255.0;
-            Global::VehicleLight.ambient[ 1 ] = 0.15f * 241.0 * frontlightcount / 255.0;
-            Global::VehicleLight.ambient[ 2 ] = 0.15f * 224.0 * frontlightcount / 255.0;
-
-            ::glLightf( opengl_renderer::vehiclelight, GL_LINEAR_ATTENUATION, 0.3f / pow(frontlightcount, 2) );
-            glEnable( GfxRenderer.vehiclelight );
-            Global::VehicleLight.apply_intensity();
-            Global::VehicleLight.apply_angle();
-        }
-        else {
-            glDisable( GfxRenderer.vehiclelight );
-        }
-        auto const &rearlights = Train->Controlled()->iLights[ 1 ];
-        int const rearlightcount = 0 +
-            ( ( rearlights & 1 ) ? 1 : 0 ) +
-            ( ( rearlights & 4 ) ? 1 : 0 ) +
-            ( ( rearlights & 16 ) ? 1 : 0 );
-
-        if( ( true == Train->Controlled()->Battery )
-         && ( rearlightcount > 0 ) ) {
-            // halogen light. TODO: allow light type definition
-            Global::VehicleLightRear.ambient[ 0 ] = 0.15f * 255.0 * rearlightcount / 255.0;
-            Global::VehicleLightRear.ambient[ 1 ] = 0.15f * 241.0 * rearlightcount / 255.0;
-            Global::VehicleLightRear.ambient[ 2 ] = 0.15f * 224.0 * rearlightcount / 255.0;
-
-            ::glLightf( opengl_renderer::vehiclelightrear, GL_LINEAR_ATTENUATION, 0.3f / pow( rearlightcount, 2 ) );
-            glEnable( GfxRenderer.vehiclelightrear );
-            Global::VehicleLightRear.apply_intensity();
-            Global::VehicleLightRear.apply_angle();
-        }
-        else {
-            glDisable( GfxRenderer.vehiclelightrear );
-        }
-    }
-
-    if (Global::bUseVBO)
-    { // renderowanie przez VBO
-        if (!Ground.RenderVBO(Camera.Pos))
-            return false;
-        if (!Ground.RenderAlphaVBO(Camera.Pos))
-            return false;
-    }
-    else
-    { // renderowanie przez Display List
-        if (!Ground.RenderDL(Camera.Pos))
-            return false;
-        if (!Ground.RenderAlphaDL(Camera.Pos))
-            return false;
-    }
-/*
-    TSubModel::iInstance = (int)(Train ? Train->Dynamic() : 0); //żeby nie robić cudzych animacji
-    // if (Camera.Type==tp_Follow)
-    if (Train)
-        Train->Update();
-*/
     Render_Cab();
     Render_UI();
 
-//  glFlush();
-    // Global::bReCompile=false; //Ra: już zrobiona rekompilacja
     ResourceManager::Sweep( Timer::GetSimulationTime() );
 
     return true;
@@ -1652,6 +1561,7 @@ TWorld::Render_Cab() {
         // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
         return;
     }
+
 /*
     // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
     if( ( Train->Dynamic()->mdKabina != Train->Dynamic()->mdModel ) &&
@@ -1777,18 +1687,18 @@ TWorld::Render_Cab() {
                 glEnable( GL_FOG );
             }
         }
-*/
+
         glEnable( GL_LIGHTING ); // po renderowaniu smugi jest to wyłączone
         // Ra: pojazd użytkownika należało by renderować po smudze, aby go nie rozświetlała
 
         Global::bSmudge = false; // aby model użytkownika się teraz wyrenderował
         dynamic->Render();
         dynamic->RenderAlpha(); // przezroczyste fragmenty pojazdów na torach
-/*
+
     } // yB: moje smuuugi 1 - koniec
     else
-        glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
-*/
+*/        glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
+
     if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
     {
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
@@ -1874,10 +1784,6 @@ TWorld::Render_Cab() {
         glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseCabLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, specularCabLight );
 #else
-        // cab shouldn't get affected by the vehicle light, so we disable it here
-        ::glDisable( GfxRenderer.vehiclelight );
-        ::glDisable( GfxRenderer.vehiclelightrear );
-
         if( dynamic->InteriorLightLevel > 0.0f ) {
 
             // crude way to light the cabin, until we have something more complete in place

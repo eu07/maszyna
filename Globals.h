@@ -233,9 +233,7 @@ class Global
 #else
     // TODO: put these things in the renderer
     static opengl_light DayLight;
-    // TODO: possibly create a pool of few lights which can be attached to nearby vehicles
-    static opengl_light VehicleLight;
-    static opengl_light VehicleLightRear;
+    static int DynamicLightCount;
 #endif
     static GLfloat whiteLight[];
     static GLfloat noLight[];

@@ -718,6 +718,9 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                         fullscreen))
         return 0; // quit if window was not created
     SetForegroundWindow(hWnd);
+
+    GfxRenderer.Init();
+
     // McZapkie: proba przeplukania klawiatury
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
     while (Console::Pressed(VK_F10))

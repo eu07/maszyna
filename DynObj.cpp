@@ -3760,12 +3760,14 @@ void TDynamicObject::Render()
         // double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
         if (this == Global::pUserDynamic)
         { // specjalne ustawienie, aby nie trzęsło
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
             if (Global::bSmudge)
             { // jak jest widoczna smuga, to pojazd renderować po
                 // wyrenderowaniu smugi
                 glPopMatrix(); // a to trzeba zebrać przed wyjściem
                 return;
             }
+#endif
             // if (Global::pWorld->) //tu trzeba by ustawić animacje na modelu
             // zewnętrznym
             glLoadIdentity(); // zacząć od macierzy jedynkowej

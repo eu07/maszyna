@@ -83,7 +83,8 @@ class vector3
 
     void inline Normalize();
     void inline SafeNormalize();
-    double inline Length();
+    double inline Length() const;
+    double inline LengthSquared() const;
     void inline Zero()
     {
         x = y = z = 0.0;
@@ -435,9 +436,14 @@ void inline vector3::Normalize()
     z *= il;
 }
 
-double inline vector3::Length()
+double inline vector3::Length() const
 {
     return SQRT_FUNCTION(x * x + y * y + z * z);
+}
+
+double inline vector3::LengthSquared() const {
+
+    return ( x * x + y * y + z * z );
 }
 
 inline bool operator==(const matrix4x4 &m1, const matrix4x4 &m2)
