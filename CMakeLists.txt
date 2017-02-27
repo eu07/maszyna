@@ -57,6 +57,7 @@ set(SOURCES
 "sky.cpp"
 "sun.cpp"
 "stars.cpp"
+"lightarray.cpp"
 "skydome.cpp"
 "Sound.cpp"
 "Spring.cpp"

@@ -207,43 +207,44 @@ inline void readMatrix(cParser &parser, float4x4 &matrix)
 
 int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 { // Ra: VBO tworzone na poziomie modelu, a nie submodeli
-	iNumVerts = 0;
-	iVboPtr = Pos; // pozycja w VBO
-				   // TMaterialColorf Ambient,Diffuse,Specular;
-				   // GLuint TextureID;
-				   // char *extName;
-	if (!parser.expectToken("type:"))
-		Error("Model type parse failure!");
-	{
-		std::string type = parser.getToken<std::string>();
-		if (type == "mesh")
-			eType = GL_TRIANGLES; // submodel - trójkaty
-		else if (type == "point")
-			eType = GL_POINTS; // co to niby jest?
-		else if (type == "freespotlight")
-			eType = TP_FREESPOTLIGHT; //światełko
-		else if (type == "text")
-			eType = TP_TEXT; // wyświetlacz tekstowy (generator napisów)
-		else if (type == "stars")
-			eType = TP_STARS; // wiele punktów świetlnych
-	};
-	parser.ignoreToken();
-	std::string token;
-	// parser.getToken(token1); //ze zmianą na małe!
-	parser.getTokens(1, false); // nazwa submodelu bez zmieny na małe
-	parser >> token;
-	NameSet(token.c_str());
-	if (dynamic)
-	{ // dla pojazdu, blokujemy załączone submodele, które mogą być
-	  // nieobsługiwane
-		if (token.find("_on") + 3 == token.length()) // jeśli nazwa kończy się na "_on"
-			iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
-	}
-	else // dla pozostałych modeli blokujemy zapalone światła, które mogą być
-		 // nieobsługiwane
-		if (token.compare(0, 8, "Light_On") == 0) // jeśli nazwa zaczyna się od "Light_On"
-			iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem
-						  // "Light_Off"
+    iNumVerts = 0;
+    iVboPtr = Pos; // pozycja w VBO
+    // TMaterialColorf Ambient,Diffuse,Specular;
+    // GLuint TextureID;
+    // char *extName;
+    if (!parser.expectToken("type:"))
+        Error("Model type parse failure!");
+    {
+        std::string type = parser.getToken<std::string>();
+        if (type == "mesh")
+            eType = GL_TRIANGLES; // submodel - trójkaty
+        else if (type == "point")
+            eType = GL_POINTS; // co to niby jest?
+        else if (type == "freespotlight")
+            eType = TP_FREESPOTLIGHT; //światełko
+        else if (type == "text")
+            eType = TP_TEXT; // wyświetlacz tekstowy (generator napisów)
+        else if (type == "stars")
+            eType = TP_STARS; // wiele punktów świetlnych
+    };
+    parser.ignoreToken();
+    std::string token;
+    // parser.getToken(token1); //ze zmianą na małe!
+    parser.getTokens(1, false); // nazwa submodelu bez zmieny na małe
+    parser >> token;
+    NameSet(token.c_str());
+    if (dynamic)
+    { // dla pojazdu, blokujemy załączone submodele, które mogą być
+        // nieobsługiwane
+        if ( (token.size() >= 3)
+          && (token.find("_on") + 3 == token.length())) // jeśli nazwa kończy się na "_on"
+            iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
+    }
+    else // dla pozostałych modeli blokujemy zapalone światła, które mogą być
+        // nieobsługiwane
+        if (token.compare(0, 8, "Light_On") == 0) // jeśli nazwa zaczyna się od "Light_On"
+        iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem
+    // "Light_Off"
 
     if (parser.expectToken("anim:")) // Ra: ta informacja by się przydała!
     { // rodzaj animacji

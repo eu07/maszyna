@@ -16,7 +16,9 @@ http://mozilla.org/MPL/2.0/.
 #include "ResourceManager.h"
 #include "Texture.h"
 #include "dumb3d.h"
+#include "Float3d.h"
 #include "Names.h"
+#include "lightarray.h"
 
 using namespace Math3D;
 
@@ -303,11 +305,11 @@ class TGround
     TNames *sTracks = nullptr; // posortowane nazwy torów i eventów
 #else
     typedef std::unordered_map<std::string, TEvent *> event_map;
-//    typedef std::unordered_map<std::string, TGroundNode *> groundnode_map;
     event_map m_eventmap;
-//    groundnode_map m_memcellmap, m_modelmap, m_trackmap;
     TNames<TGroundNode *> m_trackmap;
 #endif
+    light_array m_lights; // collection of dynamic light sources present in the scene
+
   private: // metody prywatne
     bool EventConditon(TEvent *e);
 
@@ -350,8 +352,10 @@ class TGround
     void MoveGroundNode(vector3 pPosition);
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki stałym krokiem
     bool Update(double dt, int iter); // aktualizacja przesunięć zgodna z FPS
+    void Update_Lights(); // updates scene lights array
     bool AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool GetTraction(TDynamicObject *model);
+    bool Render( Math3D::vector3 const &Camera );
     bool RenderDL(vector3 pPosition);
     bool RenderAlphaDL(vector3 pPosition);
     bool RenderVBO(vector3 pPosition);

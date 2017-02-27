@@ -1834,29 +1834,20 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     case TP_DYNAMIC:
         tmp->DynamicObject = new TDynamicObject();
         // tmp->DynamicObject->Load(Parser);
-        parser->getTokens();
-        *parser >> token;
-        str1 = token; // katalog
-        // McZapkie: doszedl parametr ze zmienialna skora
-        parser->getTokens();
-        *parser >> token;
-        Skin = token; // tekstura wymienna
-        parser->getTokens();
-        *parser >> token;
-        str3 = token; // McZapkie-131102: model w MMD
+        parser->getTokens(3);
+        *parser
+            >> str1 // katalog
+            >> Skin // tekstura wymienna
+            >> str3; // McZapkie-131102: model w MMD
         if (bTrainSet)
         { // jeśli pojazd jest umieszczony w składzie
             str = asTrainSetTrack;
-            parser->getTokens();
-            *parser >> tf1; // Ra: -1 oznacza odwrotne wstawienie, normalnie w składzie 0
-            parser->getTokens();
-            *parser >> token;
-            DriverType = token; // McZapkie:010303 - w przyszlosci rozne
-            // konfiguracje mechanik/pomocnik itp
+            parser->getTokens(3);
+            *parser
+                >> tf1 // Ra: -1 oznacza odwrotne wstawienie, normalnie w składzie 0
+                >> DriverType // McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
+                >> str4;
             tf3 = fTrainSetVel; // prędkość
-            parser->getTokens();
-            *parser >> token;
-            str4 = token;
             int2 = str4.find("."); // yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
             if (int2 != string::npos) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
             {
@@ -1885,17 +1876,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             fTrainSetDist = 0; // zerowanie dodatkowego przesunięcia
             asTrainName = ""; // puste oznacza jazdę pojedynczego bez rozkładu, "none" jest dla
             // składu (trainset)
-            parser->getTokens();
-            *parser >> token;
-            str = token; // track
-            parser->getTokens();
-            *parser >> tf1; // Ra: -1 oznacza odwrotne wstawienie
-            parser->getTokens();
-            *parser >> token;
-            DriverType = token; // McZapkie:010303: obsada
-            parser->getTokens();
-            *parser >>
-                tf3; // prędkość, niektórzy wpisują tu "3" jako sprzęg, żeby nie było tabliczki
+            parser->getTokens(4);
+            *parser
+                >> str // track
+                >> tf1 // Ra: -1 oznacza odwrotne wstawienie
+                >> DriverType // McZapkie:010303: obsada
+                >> tf3; // prędkość, niektórzy wpisują tu "3" jako sprzęg, żeby nie było tabliczki
             iTrainSetWehicleNumber = 0;
             TempConnectionType[iTrainSetWehicleNumber] = 3; // likwidacja tabliczki na końcu?
         }
@@ -1904,8 +1890,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         if (int2 > 0)
         { // jeżeli ładunku jest więcej niż 0, to rozpoznajemy jego typ
             parser->getTokens();
-            *parser >> token;
-            str2 = token; // LoadType
+            *parser >> str2; // LoadType
             if (str2 == "enddynamic") // idiotoodporność: ładunek bez podanego typu
             {
                 str2 = "";
@@ -1979,6 +1964,16 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
         if (token.compare("enddynamic") != 0)
             Error("enddynamic statement missing");
+/*
+        if( tmp->DynamicObject->MoverParameters->LightPowerSource.SourceType != TPowerSource::NotDefined ) {
+            // if the vehicle has defined light source, it can (potentially) emit light, so add it to the light array
+*/
+        if( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) {
+            // we check for presence of security system, as a way to determine whether the vehicle is a controllable engine
+            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights
+            m_lights.insert( tmp->DynamicObject );
+        }
+
         break;
     case TP_MODEL:
         if (rmin < 0)
@@ -4544,6 +4539,25 @@ bool TGround::Update(double dt, int iter)
     return true;
 };
 
+// updates scene lights array
+void
+TGround::Update_Lights() {
+
+    m_lights.update();
+    // arrange the light array from closest to farthest from current position of the camera
+    auto const camera = Global::pCameraPosition;
+    std::sort(
+        m_lights.data.begin(),
+        m_lights.data.end(),
+        [&]( light_array::light_record const &Left, light_array::light_record const &Right ) {
+            // move lights which are off at the end...
+            if( Left.intensity == 0.0f ) { return false; }
+            if( Right.intensity == 0.0f ) { return true; }
+            // ...otherwise prefer closer and/or brigher light sources
+            return ((camera - Left.position).LengthSquared() * (1.0f - Left.intensity)) < ((camera - Right.position).LengthSquared() * (1.0f - Right.intensity));
+        } );
+}
+
 // Winger 170204 - szukanie trakcji nad pantografami
 bool TGround::GetTraction(TDynamicObject *model)
 { // aktualizacja drutu zasilającego dla każdego pantografu, żeby odczytać napięcie
@@ -4793,6 +4807,27 @@ bool TGround::GetTraction(TDynamicObject *model)
     //}
     return true;
 };
+
+bool
+TGround::Render( Math3D::vector3 const &Camera ) {
+
+    GfxRenderer.Update_Lights( m_lights );
+
+    if( Global::bUseVBO ) { // renderowanie przez VBO
+        if( !RenderVBO( Camera ) )
+            return false;
+        if( !RenderAlphaVBO( Camera ) )
+            return false;
+    }
+    else { // renderowanie przez Display List
+        if( !RenderDL( Camera ) )
+            return false;
+        if( !RenderAlphaDL( Camera ) )
+            return false;
+    }
+
+    return true;
+}
 
 bool TGround::RenderDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza nieprzezroczystych
@@ -5330,6 +5365,8 @@ void TGround::DynamicRemove(TDynamicObject *dyn)
                 node = (*n); // zapamiętanie węzła, aby go usunąć
                 (*n) = node->nNext; // pominięcie na liście
                 Global::TrainDelete(d);
+                // remove potential entries in the light array
+                m_lights.remove( d );
                 d = d->Next(); // przejście do kolejnego pojazdu, póki jeszcze jest
                 delete node; // usuwanie fizyczne z pamięci
             }

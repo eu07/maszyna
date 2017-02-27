@@ -82,6 +82,7 @@ class TWorld
     double VelPrev; // poprzednia prędkość
     int tprev; // poprzedni czas
     double Acc; // przyspieszenie styczne
+    bool m_init{ false }; // indicates whether initial update of the world was performed
   public:
     void ModifyTGA(std::string const &dir = "");
     void CreateE3D(std::string const &dir = "", bool dyn = false);

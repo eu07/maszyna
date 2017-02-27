@@ -32,8 +32,8 @@ cSun::update() {
 
     move();
     Math3D::vector3 position( 0.0f, 0.0f, -2000.0f );
-    position.RotateX( (float)( m_body.elevref * ( M_PI / 180.0 ) ) );
-    position.RotateY( (float)( ( 90.0 - m_body.hrang ) * ( M_PI / 180.0 ) ) );
+    position.RotateX( (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
+    position.RotateY( (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
 
     m_position = position;
 }
@@ -69,8 +69,8 @@ Math3D::vector3
 cSun::getDirection() {
 
 	Math3D::vector3 position( 0.f, 0.f, -1.f );
-	position.RotateX( (float)(m_body.elevref * (M_PI/180.0)) );
-	position.RotateY( (float)((90.0 - m_body.hrang) * (M_PI/180.0)) );
+	position.RotateX( (float)(  m_body.elevref * (M_PI/180.0)) );
+	position.RotateY( (float)( -m_body.hrang *   (M_PI/180.0)) );
 	position.Normalize();
 	return position;
 }

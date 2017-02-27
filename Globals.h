@@ -232,7 +232,9 @@ class Global
     static GLfloat diffuseLight[];
     static GLfloat specularLight[];
 #else
+    // TODO: put these things in the renderer
     static opengl_light DayLight;
+    static int DynamicLightCount;
 #endif
     static GLfloat whiteLight[];
     static GLfloat noLight[];

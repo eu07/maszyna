@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "GL/glew.h"
 #include "texture.h"
+#include "lightarray.h"
 #include "dumb3d.h"
 
 struct opengl_light {
@@ -23,10 +24,10 @@ struct opengl_light {
     GLfloat specular[ 4 ];
 
     opengl_light() {
-        position[ 0 ] = position[ 1 ] = position[ 2 ] = 0.0f; position[ 3 ] = 1.0f;
-        ambient[ 0 ] = ambient[ 1 ] = ambient[ 2 ] = ambient[ 3 ] = 1.0f;
-        diffuse[ 0 ] = diffuse[ 1 ] = diffuse[ 2 ] = diffuse[ 3 ] = 1.0f;
-        specular[ 0 ] = specular[ 1 ] = specular[ 2 ] = specular[ 3 ] = 1.0f;
+        position[ 0 ] = position[ 1 ] = position[ 2 ] = 0.0f; position[ 3 ] = 1.0f; // 0,0,0,1
+        ambient[ 0 ] = ambient[ 1 ] = ambient[ 2 ] = 0.0f; ambient[ 3 ] = 1.0f; // 0,0,0,1
+        diffuse[ 0 ] = diffuse[ 1 ] = diffuse[ 2 ] = diffuse[ 3 ] = 1.0f; // 1,1,1,1
+        specular[ 0 ] = specular[ 1 ] = specular[ 2 ] = specular[ 3 ] = 1.0f; // 1,1,1,1
     }
 
     inline
@@ -44,6 +45,13 @@ struct opengl_light {
             GLfloat directionarray[] = { (GLfloat)direction.x, (GLfloat)direction.y, (GLfloat)direction.z };
             glLightfv( id, GL_SPOT_DIRECTION, directionarray );
         }
+    }
+    inline
+    void set_position( Math3D::vector3 const &Position ) {
+
+        position[ 0 ] = Position.x;
+        position[ 1 ] = Position.y;
+        position[ 2 ] = Position.z;
     }
 };
 
@@ -65,32 +73,50 @@ struct opengl_material {
 class opengl_renderer {
 
 public:
-    GLenum static const sunlight{ GL_LIGHT0 };
-//    GLenum static const ambientlight{ GL_LIGHT1 };
+// types
+
+// methods
+    void
+        Init();
+
+    void
+        Update_Lights( light_array const &Lights );
+
+    void
+        Disable_Lights();
 
     texture_manager::size_type
         GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true ) {
 
             return m_textures.GetTextureId( Filename, Dir, Filter, Loadnow );
         }
+
     void
         Bind( texture_manager::size_type const Id ) {
             // temporary until we separate the renderer
             m_textures.Bind( Id );
         }
+
     opengl_texture &
         Texture( texture_manager::size_type const Id ) {
         
             return m_textures.Texture( Id );
         }
 
+// members
+    GLenum static const sunlight{ GL_LIGHT0 };
+
 private:
+// types
     enum class rendermode {
         color
     };
 
+    typedef std::vector<opengl_light> opengllight_array;
+    
+// members
     rendermode renderpass{ rendermode::color };
-
+    opengllight_array m_lights;
     texture_manager m_textures;
 };
 

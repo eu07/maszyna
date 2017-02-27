@@ -104,6 +104,7 @@ GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
 GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
 #else
 opengl_light Global::DayLight;
+int Global::DynamicLightCount{ 3 };
 #endif
 GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
 GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
@@ -575,7 +576,14 @@ void Global::ConfigParse(cParser &Parser)
                 std::tm *localtime = std::localtime(&timenow);
                 Global::fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
-            // TODO: calculate lights single time here for static setup. or get rid of static setup
+        }
+        else if( token == "dynamiclights" ) {
+            // number of dynamic lights in the scene
+            Parser.getTokens( 1, false );
+            Parser >> Global::DynamicLightCount;
+            // clamp the light number
+            Global::DynamicLightCount = std::min( 7, Global::DynamicLightCount ); // max 8 lights per opengl specs, and one used for sun
+            Global::DynamicLightCount = std::max( 1, Global::DynamicLightCount ); // at least one light for controlled vehicle
         }
         else if (token == "smoothtraction")
         {

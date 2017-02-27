@@ -420,7 +420,7 @@ public: // modele składowe pojazdu
     void Render();
     void RenderAlpha();
     void RenderSounds();
-    inline vector3 GetPosition()
+    inline vector3 GetPosition() const
     {
         return vPosition;
     };
@@ -436,7 +436,7 @@ public: // modele składowe pojazdu
     {
         return iAxleFirst ? Axle1.pPosition : Axle0.pPosition;
     };
-    inline vector3 VectorFront()
+    inline vector3 VectorFront() const
     {
         return vFront;
     };
@@ -456,7 +456,7 @@ public: // modele składowe pojazdu
     {
         return MoverParameters->Vel;
     };
-    inline double GetLength()
+    inline double GetLength() const
     {
         return MoverParameters->Dim.L;
     };
