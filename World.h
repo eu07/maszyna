@@ -35,9 +35,9 @@ private:
 
 class TWorld
 {
-    void InOutKey();
+    void InOutKey( bool const Near = true );
     void FollowView(bool wycisz = true);
-    void DistantView();
+    void DistantView( bool const Near = false );
 
   public:
     bool Init(HWND NhWnd, HDC hDC);

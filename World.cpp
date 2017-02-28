@@ -763,7 +763,8 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case VK_F4: {
-                InOutKey();
+
+                InOutKey( !Console::Pressed( VK_SHIFT ) ); // distant view with Shift, short distance step out otherwise
                 break;
             }
             case VK_F5: {
@@ -980,7 +981,7 @@ void TWorld::OnMouseMove(double x, double y)
     Camera.OnCursorMove(x * Global::fMouseXScale / Global::ZoomFactor, -y * Global::fMouseYScale / Global::ZoomFactor);
 }
 
-void TWorld::InOutKey()
+void TWorld::InOutKey( bool const Near )
 { // przełączenie widoku z kabiny na zewnętrzny i odwrotnie
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
     if (FreeFlyModeFlag)
@@ -990,7 +991,7 @@ void TWorld::InOutKey()
         { // Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
             Train->Silence(); // wyłączenie dźwięków kabiny
             Train->Dynamic()->bDisplayCab = false;
-            DistantView();
+            DistantView( Near );
         }
     }
     else
@@ -1010,26 +1011,33 @@ void TWorld::InOutKey()
     }
 };
 
-void TWorld::DistantView()
+// places camera outside the controlled vehicle, or nearest if nothing is under control
+// depending on provided switch the view is placed right outside, or at medium distance
+void TWorld::DistantView( bool const Near )
 { // ustawienie widoku pojazdu z zewnątrz
-    if (Controlled) // jest pojazd do prowadzenia?
-    { // na prowadzony
+
+    TDynamicObject const *vehicle{ nullptr };
+         if( nullptr != Controlled )      { vehicle = Controlled; }
+    else if( nullptr != pDynamicNearest ) { vehicle = pDynamicNearest; }
+    else                                  { return; }
+
+    if( true == Near ) {
+
         Camera.Pos =
-            Controlled->GetPosition() +
-            (Controlled->MoverParameters->ActiveCab >= 0 ? 30 : -30) * Controlled->VectorFront() +
-            vector3(0, 5, 0);
-        Camera.LookAt = Controlled->GetPosition();
-        Camera.RaLook(); // jednorazowe przestawienie kamery
+            vector3( Camera.Pos.x, vehicle->GetPosition().y, Camera.Pos.z )
+            + vehicle->VectorLeft() * vehicle->MoverParameters->ActiveCab * vehicle->GetWidth()
+            + vector3( 1.25 * vehicle->MoverParameters->ActiveCab, 1.6, 0.0 );
     }
-    else if (pDynamicNearest) // jeśli jest pojazd wykryty blisko
-    { // patrzenie na najbliższy pojazd
-        Camera.Pos = pDynamicNearest->GetPosition() +
-                     (pDynamicNearest->MoverParameters->ActiveCab >= 0 ? 30 : -30) *
-                         pDynamicNearest->VectorFront() +
-                     vector3(0, 5, 0);
-        Camera.LookAt = pDynamicNearest->GetPosition();
-        Camera.RaLook(); // jednorazowe przestawienie kamery
+    else {
+
+        Camera.Pos =
+            vehicle->GetPosition()
+            + vehicle->VectorFront() * vehicle->MoverParameters->ActiveCab * 50.0
+            + vector3( -10.0, 1.6, 0.0 );
     }
+
+    Camera.LookAt = vehicle->GetPosition();
+    Camera.RaLook(); // jednorazowe przestawienie kamery
 };
 
 void TWorld::FollowView(bool wycisz)

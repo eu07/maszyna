@@ -444,7 +444,7 @@ public: // modele składowe pojazdu
     {
         return vUp;
     };
-    inline vector3 VectorLeft()
+    inline vector3 VectorLeft() const
     {
         return vLeft;
     };
@@ -460,7 +460,7 @@ public: // modele składowe pojazdu
     {
         return MoverParameters->Dim.L;
     };
-    inline double GetWidth()
+    inline double GetWidth() const
     {
         return MoverParameters->Dim.W;
     };
