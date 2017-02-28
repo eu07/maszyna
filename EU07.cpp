@@ -85,17 +85,19 @@ int InitGL(GLvoid) // All Setup For OpenGL Goes Here
 
 GLvoid ReSizeGLScene(GLsizei width, GLsizei height) // resize and initialize the GL Window
 {
-    WindowWidth = width;
-    WindowHeight = height;
+    Global::ScreenWidth = WindowWidth = width;
+    Global::ScreenHeight = WindowHeight = height;
     if (height == 0) // prevent a divide by zero by
         height = 1; // making height equal one
     glViewport(0, 0, width, height); // Reset The Current Viewport
+/*
     glMatrixMode(GL_PROJECTION); // select the Projection Matrix
     glLoadIdentity(); // reset the Projection Matrix
     // calculate the aspect ratio of the window
     gluPerspective(45.0f, (GLdouble)width / (GLdouble)height, 0.2f, 2500.0f);
     glMatrixMode(GL_MODELVIEW); // select the Modelview Matrix
     glLoadIdentity(); // reset the Modelview Matrix
+*/
 }
 
 //---------------------------------------------------------------------------
@@ -509,6 +511,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, // handle for this window
                 if (DebugModeFlag)
                 { // siatki wyświetlane tyko w trybie testowym
                     Global::bWireFrame = !Global::bWireFrame;
+                    if( true == Global::bWireFrame ) {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                    }
+                    else {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                    }
                     ++Global::iReCompile; // odświeżyć siatki
                     // Ra: jeszcze usunąć siatki ze skompilowanych obiektów!
                 }
@@ -710,6 +718,9 @@ int WINAPI WinMain(HINSTANCE hInstance, // instance
                         fullscreen))
         return 0; // quit if window was not created
     SetForegroundWindow(hWnd);
+
+    GfxRenderer.Init();
+
     // McZapkie: proba przeplukania klawiatury
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
     while (Console::Pressed(VK_F10))

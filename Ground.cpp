@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "usefull.h"
 #include "Timer.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "Event.h"
 #include "EvLaunch.h"
 #include "TractionPower.h"
@@ -276,7 +276,7 @@ void TGroundNode::RaRenderVBO()
 { // renderowanie z domyslnego bufora VBO
     glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
     if (TextureID)
-        TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
+        GfxRenderer.Bind(TextureID); // Ustaw aktywną teksturę
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
@@ -327,9 +327,15 @@ void TGroundNode::RenderVBO()
             if (linealpha > 255)
                 linealpha = 255;
             float r, g, b;
-            r = floor(Diffuse[0] * Global::ambientDayLight[0]); // w zaleznosci od koloru swiatla
-            g = floor(Diffuse[1] * Global::ambientDayLight[1]);
-            b = floor(Diffuse[2] * Global::ambientDayLight[2]);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = floor( Diffuse[ 0 ] * Global::ambientDayLight[ 0 ] ); // w zaleznosci od koloru swiatla
+            g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
+            b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
+#else
+            r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
+            g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
+            b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
+#endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             // glDisable(GL_LIGHTING); //nie powinny świecić
             glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
@@ -388,9 +394,15 @@ void TGroundNode::RenderAlphaVBO()
             float linealpha = 255000 * fLineThickness / (mgn + 1.0);
             if (linealpha > 255)
                 linealpha = 255;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+#else
+            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+#endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             // glDisable(GL_LIGHTING); //nie powinny świecić
             glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
@@ -445,7 +457,7 @@ void TGroundNode::Compile(bool many)
 #ifdef USE_VERTEX_ARRAYS
         glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
 #endif
-        TextureManager.Bind(0);
+        GfxRenderer.Bind(0);
 #ifdef USE_VERTEX_ARRAYS
         glDrawArrays(iType, 0, iNumPts);
 #else
@@ -466,7 +478,7 @@ void TGroundNode::Compile(bool many)
             glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
 #endif
             glColor3ub(tri->Diffuse[0], tri->Diffuse[1], tri->Diffuse[2]);
-            TextureManager.Bind(Global::bWireFrame ? 0 : tri->TextureID);
+            GfxRenderer.Bind(Global::bWireFrame ? 0 : tri->TextureID);
 #ifdef USE_VERTEX_ARRAYS
             glDrawArrays(Global::bWireFrame ? GL_LINE_LOOP : tri->iType, 0, tri->iNumVerts);
 #else
@@ -494,7 +506,7 @@ void TGroundNode::Compile(bool many)
     else if (iType == TP_MESH)
     { // grupa ze wspólną teksturą - wrzucanie do wspólnego Display List
         if (TextureID)
-            TextureManager.Bind(TextureID); // Ustaw aktywną teksturę
+            GfxRenderer.Bind(TextureID); // Ustaw aktywną teksturę
         TGroundNode *n = nNode;
         while (n ? n->TextureID == TextureID : false)
         { // wszystkie obiekty o tej samej testurze
@@ -555,7 +567,7 @@ void TGroundNode::RenderDL()
         return smTerrain->RenderDL();
     }
     // if (pTriGroup) if (pTriGroup!=this) return; //wyświetla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
+    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
     if ((mgn > fSquareRadius) || (mgn < fSquareMinRadius)) // McZapkie-070602: nie rysuj odleglych
         // obiektow ale sprawdzaj wyzwalacz
         // zdarzen
@@ -583,9 +595,15 @@ void TGroundNode::RenderDL()
         // if (iNumPts)
         { // wszelkie linie są rysowane na samym końcu
             float r, g, b;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+#else
+            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+#endif
             glColor4ub(r, g, b, 1.0);
             glCallList(DisplayListID);
             // glColor4fv(Diffuse); //przywrócenie koloru
@@ -615,7 +633,7 @@ void TGroundNode::RenderAlphaDL()
     // i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
 
     // if (pTriGroup) if (pTriGroup!=this) return; //wyświetla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
+    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
     float r, g, b;
     if (mgn < fSquareMinRadius)
         return;
@@ -659,9 +677,15 @@ void TGroundNode::RenderAlphaDL()
             float linealpha = 255000 * fLineThickness / (mgn + 1.0);
             if (linealpha > 255)
                 linealpha = 255;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+#else
+            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+#endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             glCallList(DisplayListID);
         }
@@ -1817,29 +1841,20 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     case TP_DYNAMIC:
         tmp->DynamicObject = new TDynamicObject();
         // tmp->DynamicObject->Load(Parser);
-        parser->getTokens();
-        *parser >> token;
-        str1 = token; // katalog
-        // McZapkie: doszedl parametr ze zmienialna skora
-        parser->getTokens();
-        *parser >> token;
-        Skin = token; // tekstura wymienna
-        parser->getTokens();
-        *parser >> token;
-        str3 = token; // McZapkie-131102: model w MMD
+        parser->getTokens(3);
+        *parser
+            >> str1 // katalog
+            >> Skin // tekstura wymienna
+            >> str3; // McZapkie-131102: model w MMD
         if (bTrainSet)
         { // jeśli pojazd jest umieszczony w składzie
             str = asTrainSetTrack;
-            parser->getTokens();
-            *parser >> tf1; // Ra: -1 oznacza odwrotne wstawienie, normalnie w składzie 0
-            parser->getTokens();
-            *parser >> token;
-            DriverType = token; // McZapkie:010303 - w przyszlosci rozne
-            // konfiguracje mechanik/pomocnik itp
+            parser->getTokens(3);
+            *parser
+                >> tf1 // Ra: -1 oznacza odwrotne wstawienie, normalnie w składzie 0
+                >> DriverType // McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
+                >> str4;
             tf3 = fTrainSetVel; // prędkość
-            parser->getTokens();
-            *parser >> token;
-            str4 = token;
             int2 = str4.find("."); // yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
             if (int2 != string::npos) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
             {
@@ -1868,17 +1883,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             fTrainSetDist = 0; // zerowanie dodatkowego przesunięcia
             asTrainName = ""; // puste oznacza jazdę pojedynczego bez rozkładu, "none" jest dla
             // składu (trainset)
-            parser->getTokens();
-            *parser >> token;
-            str = token; // track
-            parser->getTokens();
-            *parser >> tf1; // Ra: -1 oznacza odwrotne wstawienie
-            parser->getTokens();
-            *parser >> token;
-            DriverType = token; // McZapkie:010303: obsada
-            parser->getTokens();
-            *parser >>
-                tf3; // prędkość, niektórzy wpisują tu "3" jako sprzęg, żeby nie było tabliczki
+            parser->getTokens(4);
+            *parser
+                >> str // track
+                >> tf1 // Ra: -1 oznacza odwrotne wstawienie
+                >> DriverType // McZapkie:010303: obsada
+                >> tf3; // prędkość, niektórzy wpisują tu "3" jako sprzęg, żeby nie było tabliczki
             iTrainSetWehicleNumber = 0;
             TempConnectionType[iTrainSetWehicleNumber] = 3; // likwidacja tabliczki na końcu?
         }
@@ -1887,8 +1897,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         if (int2 > 0)
         { // jeżeli ładunku jest więcej niż 0, to rozpoznajemy jego typ
             parser->getTokens();
-            *parser >> token;
-            str2 = token; // LoadType
+            *parser >> str2; // LoadType
             if (str2 == "enddynamic") // idiotoodporność: ładunek bez podanego typu
             {
                 str2 = "";
@@ -1962,6 +1971,16 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
         if (token.compare("enddynamic") != 0)
             Error("enddynamic statement missing");
+/*
+        if( tmp->DynamicObject->MoverParameters->LightPowerSource.SourceType != TPowerSource::NotDefined ) {
+            // if the vehicle has defined light source, it can (potentially) emit light, so add it to the light array
+*/
+        if( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) {
+            // we check for presence of security system, as a way to determine whether the vehicle is a controllable engine
+            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights
+            m_lights.insert( tmp->DynamicObject );
+        }
+
         break;
     case TP_MODEL:
         if (rmin < 0)
@@ -2109,8 +2128,8 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->PROBLEND = false;
         }
 #endif
-        tmp->TextureID = TextureManager.GetTextureId( str, szTexturePath );
-        tmp->iFlags = TextureManager.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
+        tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
+        tmp->iFlags = GfxRenderer.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
         if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
                 Global::pTerrainCompact->TerrainLoaded() :
                 false)
@@ -2454,15 +2473,20 @@ void TGround::FirstInit()
     else
         glDisable(GL_FOG);
     glDisable(GL_LIGHTING);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    // TODO, TBD: re-implement this
     glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos); // daylight position
     glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight); // kolor wszechobceny
     glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight); // kolor padający
     glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight); // kolor odbity
     // musi być tutaj, bo wcześniej nie mieliśmy wartości światła
+#endif
 /*
     if (Global::fMoveLight >= 0.0) // albo tak, albo niech ustala minimum ciemności w nocy
     {
 */
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO, TBD: re-implement this
         Global::fLuminance = // obliczenie luminacji "światła w ciemności"
             +0.150 * Global::ambientDayLight[0] // R
             + 0.295 * Global::ambientDayLight[1] // G
@@ -2472,6 +2496,7 @@ void TGround::FirstInit()
                 Global::ambientDayLight[i] *=
                     0.1 / Global::fLuminance; // ograniczenie jasności w nocy
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
+#endif
 /*
     }
     else if (Global::bDoubleAmbient) // Ra: wcześniej było ambient dawane na obydwa światła
@@ -2837,6 +2862,7 @@ bool TGround::Init(std::string asFile, HDC hDC)
         else if (str == "light")
         { // Ra: ustawianie światła przeniesione do FirstInit
             WriteLog("Scenery light definition");
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
             vector3 lp;
             parser.getTokens();
             parser >> lp.x;
@@ -2848,27 +2874,44 @@ bool TGround::Init(std::string asFile, HDC hDC)
             Global::lightPos[0] = lp.x; // daylight position
             Global::lightPos[1] = lp.y;
             Global::lightPos[2] = lp.z;
-            parser.getTokens();
-            parser >> Global::ambientDayLight[0]; // kolor wszechobceny
-            parser.getTokens();
-            parser >> Global::ambientDayLight[1];
-            parser.getTokens();
-            parser >> Global::ambientDayLight[2];
+#else
+            parser.getTokens(3, false);
+            parser
+                >> Global::DayLight.direction.x
+                >> Global::DayLight.direction.y
+                >> Global::DayLight.direction.z;;
+            Global::DayLight.direction.Normalize();
+#endif
+            parser.getTokens(9, false);
 
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[0]; // kolor padający
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[1];
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[2];
-
-            parser.getTokens();
-            parser >> Global::specularDayLight[0]; // kolor odbity
-            parser.getTokens();
-            parser >> Global::specularDayLight[1];
-            parser.getTokens();
-            parser >> Global::specularDayLight[2];
-
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+            parser
+                >> Global::ambientDayLight[ 0 ]
+                >> Global::ambientDayLight[ 1 ]
+                >> Global::ambientDayLight[ 2 ]
+                >> Global::diffuseDayLight[ 0 ]
+                >> Global::diffuseDayLight[ 1 ]
+                >> Global::diffuseDayLight[ 2 ]
+                >> Global::specularDayLight[ 0 ]
+                >> Global::specularDayLight[ 1 ]
+                >> Global::specularDayLight[ 2 ];
+#else
+/*
+            parser
+                // kolor wszechobceny
+                >> Global::DayLight.ambient[0]
+                >> Global::DayLight.ambient[1]
+                >> Global::DayLight.ambient[2]
+                // kolor padający
+                >> Global::DayLight.diffuse[0]
+                >> Global::DayLight.diffuse[1]
+                >> Global::DayLight.diffuse[2]
+                // kolor odbity
+                >> Global::DayLight.specular[0]
+                >> Global::DayLight.specular[1]
+                >> Global::DayLight.specular[2];
+*/
+#endif
             do
             {
                 parser.getTokens();
@@ -4510,6 +4553,25 @@ bool TGround::Update(double dt, int iter)
     return true;
 };
 
+// updates scene lights array
+void
+TGround::Update_Lights() {
+
+    m_lights.update();
+    // arrange the light array from closest to farthest from current position of the camera
+    auto const camera = Global::pCameraPosition;
+    std::sort(
+        m_lights.data.begin(),
+        m_lights.data.end(),
+        [&]( light_array::light_record const &Left, light_array::light_record const &Right ) {
+            // move lights which are off at the end...
+            if( Left.intensity == 0.0f ) { return false; }
+            if( Right.intensity == 0.0f ) { return true; }
+            // ...otherwise prefer closer and/or brigher light sources
+            return ((camera - Left.position).LengthSquared() * (1.0f - Left.intensity)) < ((camera - Right.position).LengthSquared() * (1.0f - Right.intensity));
+        } );
+}
+
 // Winger 170204 - szukanie trakcji nad pantografami
 bool TGround::GetTraction(TDynamicObject *model)
 { // aktualizacja drutu zasilającego dla każdego pantografu, żeby odczytać napięcie
@@ -4759,6 +4821,27 @@ bool TGround::GetTraction(TDynamicObject *model)
     //}
     return true;
 };
+
+bool
+TGround::Render( Math3D::vector3 const &Camera ) {
+
+    GfxRenderer.Update_Lights( m_lights );
+
+    if( Global::bUseVBO ) { // renderowanie przez VBO
+        if( !RenderVBO( Camera ) )
+            return false;
+        if( !RenderAlphaVBO( Camera ) )
+            return false;
+    }
+    else { // renderowanie przez Display List
+        if( !RenderDL( Camera ) )
+            return false;
+        if( !RenderAlphaDL( Camera ) )
+            return false;
+    }
+
+    return true;
+}
 
 bool TGround::RenderDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza nieprzezroczystych
@@ -5291,6 +5374,8 @@ void TGround::DynamicRemove(TDynamicObject *dyn)
                 node = (*n); // zapamiętanie węzła, aby go usunąć
                 (*n) = node->nNext; // pominięcie na liście
                 Global::TrainDelete(d);
+                // remove potential entries in the light array
+                m_lights.remove( d );
                 d = d->Next(); // przejście do kolejnego pojazdu, póki jeszcze jest
                 delete node; // usuwanie fizyczne z pamięci
             }

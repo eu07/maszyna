@@ -14,19 +14,14 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Texture.h"
+#include "texture.h"
 
 #include <ddraw.h>
-#include <io.h>
-#include <fcntl.h>
 #include "opengl/glew.h"
 
-#include "Globals.h"
+#include "usefull.h"
+#include "globals.h"
 #include "logs.h"
-#include "Usefull.h"
-#include "TextureDDS.h"
-
-texture_manager TextureManager;
 
 texture_manager::texture_manager() {
 
@@ -504,6 +499,11 @@ opengl_texture::set_filtering() {
     // default texture mode
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+
+    if( GLEW_EXT_texture_filter_anisotropic ) {
+        // anisotropic filtering
+        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global::AnisotropicFiltering );
+    }
 
     bool sharpen{ false };
     for( auto const &trait : traits ) {

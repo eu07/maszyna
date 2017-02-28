@@ -47,8 +47,13 @@ double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecności rozsz
 bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
 */
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
+float Global::SunAngle = 0.0f;
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
 HWND Global::hWnd = NULL; // uchwyt okna
+int Global::ScreenWidth = 1;
+int Global::ScreenHeight = 1;
+float Global::ZoomFactor = 1.0f;
+float Global::FieldOfView = 45.0f;
 int Global::iCameraLast = -1;
 std::string Global::asRelease = "16.0.1172.482";
 std::string Global::asVersion =
@@ -90,12 +95,17 @@ double Global::fFogEnd = 2000;
 float Global::Background[3] = {0.2, 0.4, 0.33};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
 GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};
 GLfloat Global::specularDayLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
 GLfloat Global::ambientLight[] = {0.80f, 0.80f, 0.85f, 1.0f}; // stałe
 GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
 GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
+#else
+opengl_light Global::DayLight;
+int Global::DynamicLightCount{ 3 };
+#endif
 GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
 GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
 GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //śladowe
@@ -130,6 +140,7 @@ bool Global::bAdjustScreenFreq = true;
 bool Global::bEnableTraction = true;
 bool Global::bLoadTraction = true;
 bool Global::bLiveTraction = true;
+float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic filtering. TODO: move it to renderer object
 int Global::iDefaultFiltering = 9; // domyślne rozmywanie tekstur TGA bez alfa
 int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
 int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
@@ -204,6 +215,7 @@ double Global::fMWDpg[2] = { 0.8, 1023 };
 double Global::fMWDph[2] = { 0.6, 1023 };
 double Global::fMWDvolt[2] = { 4000, 1023 };
 double Global::fMWDamp[2] = { 800, 1023 };
+double Global::fMWDlowVolt[2] = { 150, 1023 };
 int Global::iMWDdivider = 5;
 
 //---------------------------------------------------------------------------
@@ -256,6 +268,14 @@ void Global::ConfigParse(cParser &Parser)
 
             Parser.getTokens();
             Parser >> Global::asHumanCtrlVehicle;
+        }
+        else if( token == "fieldofview" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::FieldOfView;
+            // guard against incorrect values
+            Global::FieldOfView = std::min( 75.0f, Global::FieldOfView );
+            Global::FieldOfView = std::max( 15.0f, Global::FieldOfView );
         }
         else if (token == "width")
         {
@@ -465,7 +485,12 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             Parser >> Global::iDynamicFiltering;
         }
-        else if (token == "usevbo")
+        else if( token == "anisotropicfiltering" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::AnisotropicFiltering;
+        }
+        else if( token == "usevbo" )
         {
 
             Parser.getTokens();
@@ -551,18 +576,14 @@ void Global::ConfigParse(cParser &Parser)
                 std::tm *localtime = std::localtime(&timenow);
                 Global::fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
-            if (fMoveLight > 0.f) // tu jest nadal zwiększone o 1
-            { // obliczenie deklinacji wg:
-                // http://naturalfrequency.com/Tregenza_Sharples/Daylight_Algorithms/algorithm_1_11.htm
-                // Spencer J W Fourier series representation of the position of the sun Search 2 (5)
-                // 172 (1971)
-                Global::fMoveLight =
-                    M_PI / 182.5 * (Global::fMoveLight - 1.0); // numer dnia w postaci kąta
-                fSunDeclination =
-                    0.006918 - 0.3999120 * std::cos(fMoveLight) + 0.0702570 * std::sin(fMoveLight) -
-                    0.0067580 * std::cos(2 * fMoveLight) + 0.0009070 * std::sin(2 * fMoveLight) -
-                    0.0026970 * std::cos(3 * fMoveLight) + 0.0014800 * std::sin(3 * fMoveLight);
-            }
+        }
+        else if( token == "dynamiclights" ) {
+            // number of dynamic lights in the scene
+            Parser.getTokens( 1, false );
+            Parser >> Global::DynamicLightCount;
+            // clamp the light number
+            Global::DynamicLightCount = std::min( 7, Global::DynamicLightCount ); // max 8 lights per opengl specs, and one used for sun
+            Global::DynamicLightCount = std::max( 1, Global::DynamicLightCount ); // at least one light for controlled vehicle
         }
         else if (token == "smoothtraction")
         {
@@ -893,6 +914,11 @@ void Global::ConfigParse(cParser &Parser)
 			Parser >> fMWDamp[0] >> fMWDamp[1];
 			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + (" ") + to_string(fMWDamp[1]));
 		}
+		else if (token == "mwdlowvoltmeter") {
+			Parser.getTokens(2, false);
+			Parser >> fMWDlowVolt[0] >> fMWDlowVolt[1];
+			if (bMWDdebugEnable) WriteLog("Low VoltMeter settings: " + to_string(fMWDlowVolt[0]) + (" ") + to_string(fMWDlowVolt[1]));
+		}
 		else if (token == "mwddivider") {
 			Parser.getTokens(1, false);
 			Parser >> iMWDdivider;
@@ -931,9 +957,9 @@ void Global::ConfigParse(cParser &Parser)
     /*  this won't execute anymore with the old parser removed
             // TBD: remove, or launch depending on passed flag?
         if (qp)
-    { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini
-            Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
-            iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
+    { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
+    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+            /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
                         fFpsRadiusMax; // maksymalny promień renderowania 3000.0 -> 225
             if (iFpsRadiusMax > 400)
                 iFpsRadiusMax = 400;

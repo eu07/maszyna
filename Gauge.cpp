@@ -175,14 +175,16 @@ void TGauge::Update()
 */			std::string n( "000000000" + std::to_string( static_cast<int>( std::floor( fValue ) ) ) );
 			if( n.length() > 10 ) { n.erase( 0, n.length() - 10 ); } // also dumb but should work for now
             do
-            { // pętla po submodelach potomnych i obracanie ich o kąt zależy od
-                // cyfry w (fValue)
-                if (sm->pName)
-                { // musi mieć niepustą nazwę
-                    if (sm->pName[0] >= '0')
-                        if (sm->pName[0] <= '9')
-                            sm->SetRotate(float3(0, 1, 0),
-                                          -36.0 * (n['0' + 10 - sm->pName[0]] - '0'));
+            { // pętla po submodelach potomnych i obracanie ich o kąt zależy od cyfry w (fValue)
+                if( sm->pName ) {
+                    // musi mieć niepustą nazwę
+                    if( ( sm->pName[ 0 ] >= '0' )
+                     && ( sm->pName[ 0 ] <= '9' ) ) {
+
+                        sm->SetRotate(
+                            float3( 0, 1, 0 ),
+                            -36.0 * ( n[ '0' + 9 - sm->pName[ 0 ] ] - '0' ) );
+                    }
                 }
                 sm = sm->NextGet();
             } while (sm);

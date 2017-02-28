@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include <Windows.h>
+#include "renderer.h"
 #include "opengl/glew.h"
 #include "dumb3d.h"
 
@@ -220,12 +221,20 @@ class Global
 	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
     // static bool bTimeChange;
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    static opengl_light AmbientLight;
+
     static GLfloat ambientDayLight[];
     static GLfloat diffuseDayLight[];
     static GLfloat specularDayLight[];
     static GLfloat ambientLight[];
     static GLfloat diffuseLight[];
     static GLfloat specularLight[];
+#else
+    // TODO: put these things in the renderer
+    static opengl_light DayLight;
+    static int DynamicLightCount;
+#endif
     static GLfloat whiteLight[];
     static GLfloat noLight[];
     static GLfloat darkLight[];
@@ -237,6 +246,7 @@ class Global
     static std::string asSky;
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
+    static float AnisotropicFiltering; // requested level of anisotropic filtering. TODO: move it to renderer object
     static int iDefaultFiltering; // domyślne rozmywanie tekstur TGA
     static int iBallastFiltering; // domyślne rozmywanie tekstury podsypki
     static int iRailProFiltering; // domyślne rozmywanie tekstury szyn
@@ -250,8 +260,13 @@ class Global
     static bool bOpenGL_1_5; // czy są dostępne funkcje OpenGL 1.5
 */
     static double fLuminance; // jasność światła do automatycznego zapalania
+    static float SunAngle; // angle of the sun relative to horizon
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
     static HWND hWnd; // uchwyt okna
+    static int ScreenWidth; // current window dimensions. TODO: move it to renderer
+    static int ScreenHeight;
+    static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
+    static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
     static int iCameraLast;
     static std::string asRelease; // numer
     static std::string asVersion; // z opisem
@@ -346,6 +361,7 @@ class Global
 	static double fMWDph[2];
 	static double fMWDvolt[2];
 	static double fMWDamp[2];
+	static double fMWDlowVolt[2];
 	static int iMWDdivider;
 };
 //---------------------------------------------------------------------------

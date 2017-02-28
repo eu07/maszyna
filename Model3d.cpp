@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "mczapkie/mctools.h"
 #include "Usefull.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
 //---------------------------------------------------------------------------
@@ -219,6 +219,9 @@ template <typename ColorT> inline void readColor(cParser &parser, ColorT *color)
     double discard;
     parser.getTokens(4, false);
     parser >> discard >> color[0] >> color[1] >> color[2];
+    color[ 0 ] /= 255.0;
+    color[ 1 ] /= 255.0;
+    color[ 2 ] /= 255.0;
 };
 
 inline void readColor(cParser &parser, int &color)
@@ -275,7 +278,8 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     if (dynamic)
     { // dla pojazdu, blokujemy załączone submodele, które mogą być
         // nieobsługiwane
-        if (token.find("_on") + 3 == token.length()) // jeśli nazwa kończy się na "_on"
+        if ( (token.size() >= 3)
+          && (token.find("_on") + 3 == token.length())) // jeśli nazwa kończy się na "_on"
             iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
     }
     else // dla pozostałych modeli blokujemy zapalone światła, które mogą być
@@ -411,12 +415,12 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             TextureNameSet(texture.c_str());
             if (texture.find_first_of("/\\") == texture.npos)
                 texture.insert(0, Global::asCurrentTexturePath.c_str());
-            TextureID = TextureManager.GetTextureId( texture, szTexturePath );
+            TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
             if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity
                 // 0!
-                iFlags |= TextureManager.Texture(TextureID).has_alpha ?
+                iFlags |= GfxRenderer.Texture(TextureID).has_alpha ?
                               0x20 :
                               0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
             else
@@ -636,7 +640,7 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
             m->AddTo(this, s);
         }
         // s->asTexture=AnsiString(TTexturesManager::GetName(tex).c_str());
-        s->TextureNameSet(TextureManager.Texture(tex).name.c_str());
+        s->TextureNameSet(GfxRenderer.Texture(tex).name.c_str());
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
         // iAnimOwner=0; //roboczy wskaźnik na wierzchołek
@@ -714,7 +718,7 @@ void TSubModel::DisplayLists()
     {
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        TextureManager.Bind(0);
+        GfxRenderer.Bind(0);
         //     if (eType==smt_FreeSpotLight)
         //      {
         //       if (iFarAttenDecay==0)
@@ -737,9 +741,9 @@ void TSubModel::DisplayLists()
     { // punkty świecące dookólnie
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        TextureManager.Bind(0); // tekstury nie ma
+        GfxRenderer.Bind(0); // tekstury nie ma
         glColorMaterial(GL_FRONT, GL_EMISSION);
-        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
+//        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
         for (int i = 0; i < iNumVerts; i++)
         {
@@ -748,7 +752,7 @@ void TSubModel::DisplayLists()
             glVertex3fv(&Vertices[i].Point.x);
         };
         glEnd();
-        glEnable(GL_LIGHTING);
+//        glEnable(GL_LIGHTING);
         glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
         glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
         glEndList();
@@ -813,10 +817,13 @@ void TSubModel::InitialRotate(bool doit)
                 Vertices[i].Point.y = Vertices[i].Point.z;
                 Vertices[i].Point.z = t;
                 // wektory normalne również trzeba przekształcić, bo się źle oświetlają
-                Vertices[i].Normal.x = -Vertices[i].Normal.x; // zmiana znaku X
-                t = Vertices[i].Normal.y; // zamiana Y i Z
-                Vertices[i].Normal.y = Vertices[i].Normal.z;
-                Vertices[i].Normal.z = t;
+                if( eType != TP_STARS ) {
+                    // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
+                    Vertices[ i ].Normal.x = -Vertices[ i ].Normal.x; // zmiana znaku X
+                    t = Vertices[ i ].Normal.y; // zamiana Y i Z
+                    Vertices[ i ].Normal.y = Vertices[ i ].Normal.z;
+                    Vertices[ i ].Normal.z = t;
+                }
             }
         if (Child)
             Child->InitialRotate(doit); // potomne ewentualnie obrócimy
@@ -1100,11 +1107,11 @@ void TSubModel::RenderDL()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1197,11 +1204,11 @@ void TSubModel::RenderAlphaDL()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1278,11 +1285,11 @@ void TSubModel::RenderVBO()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
                 // glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo,
                 // co glColor
@@ -1349,7 +1356,7 @@ void TSubModel::RenderVBO()
                                               Distdimm=1;
 
                 */
-                TextureManager.Bind(0); // nie teksturować
+                GfxRenderer.Bind(0); // nie teksturować
                 // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
                 // glColorMaterial(GL_FRONT,GL_EMISSION);
                 float color[4] = {f4Diffuse[0] * Distdimm, f4Diffuse[1] * Distdimm,
@@ -1378,7 +1385,7 @@ void TSubModel::RenderVBO()
                 if (pRoot->StartColorVBO())
                 { // wyświetlanie kolorowych punktów zamiast
                     // trójkątów
-                    TextureManager.Bind(0); // tekstury nie ma
+                    GfxRenderer.Bind(0); // tekstury nie ma
                     glColorMaterial(GL_FRONT, GL_EMISSION);
                     glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
                     // blendowaly
@@ -1452,11 +1459,11 @@ void TSubModel::RenderAlphaVBO()
             {
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skory
-                    TextureManager.Bind(ReplacableSkinId[-TextureID]);
+                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
                     // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
-                    TextureManager.Bind(TextureID); // również 0
+                    GfxRenderer.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
                     glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
@@ -1624,14 +1631,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v, TStringPack *t, TS
         std::string tex = pTexture;
         if (tex.find_last_of("/\\") == std::string::npos)
             tex.insert(0, Global::asCurrentTexturePath);
-        TextureID = TextureManager.GetTextureId( tex, szTexturePath );
+        TextureID = GfxRenderer.GetTextureId( tex, szTexturePath );
         // TexAlpha=TTexturesManager::GetAlpha(TextureID); //zmienna robocza
         // ustawienie cyklu przezroczyste/nieprzezroczyste zależnie od własności
         // stałej tekstury
         // iFlags=(iFlags&~0x30)|(TTexturesManager::GetAlpha(TextureID)?0x20:0x10);
         // //0x10-nieprzezroczysta, 0x20-przezroczysta
         if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity 0!
-            iFlags |= TextureManager.Texture(TextureID).has_alpha ?
+            iFlags |= GfxRenderer.Texture(TextureID).has_alpha ?
                           0x20 :
                           0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
         else
@@ -1805,7 +1812,8 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
     // wczytanie modelu z pliku
     std::string name = ToLower(FileName);
     // trim extension if needed
-    if (name.substr(name.rfind('.')) == ".t3d")
+    if( ( name.rfind( '.' ) != std::string::npos )
+     && ( name.substr( name.rfind( '.' ) ) == ".t3d" ) )
     {
         name.erase(name.rfind('.'));
     }

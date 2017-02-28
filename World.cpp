@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 #include "MdlMngr.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
 #include "Sound.h"
@@ -31,6 +31,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Train.h"
 #include "Driver.h"
 #include "Console.h"
+#include "color.h"
 
 #define TEXTURE_FILTER_CONTROL_EXT 0x8500
 #define TEXTURE_LOD_BIAS_EXT 0x8501
@@ -263,93 +264,36 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
         WriteLog("Max texture size: " + std::to_string(Global::iMaxTextureSize));
     }
     /*-----------------------Render Initialization----------------------*/
-    if (Global::fOpenGL >= 1.2) // poniższe nie działa w 1.1
-        glTexEnvf(TEXTURE_FILTER_CONTROL_EXT, TEXTURE_LOD_BIAS_EXT, -1);
-    GLfloat FogColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear screen and depth buffer
+    glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    // WriteLog("glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0); ");
-    // glClearColor (1.0, 0.0, 0.0, 0.0);                  // Background Color
-    // glClearColor (FogColor[0], FogColor[1], FogColor[2], 0.0);
-	// Background    // Color
-	glClearColor(Global::Background[0], Global::Background[1], Global::Background[2], 1.0); // Background Color
+    glMatrixMode( GL_MODELVIEW );
+    glLoadIdentity();
 
-    WriteLog("glFogfv(GL_FOG_COLOR, FogColor);");
-    glFogfv(GL_FOG_COLOR, FogColor); // Set Fog Color
+    glClearDepth( 1.0f ); // ZBuffer Value
+    glClearColor( 51.0f / 255.0f, 106.0f / 255.0f, 85.0f / 255.0f, 1.0f ); // Background Color
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); // Clear screen and depth buffer
 
-    WriteLog("glClearDepth(1.0f);  ");
-    glClearDepth(1.0f); // ZBuffer Value
-
-    //  glEnable(GL_NORMALIZE);
-    //    glEnable(GL_RESCALE_NORMAL);
-
-    //    glEnable(GL_CULL_FACE);
-    WriteLog("glEnable(GL_TEXTURE_2D);");
     glEnable(GL_TEXTURE_2D); // Enable Texture Mapping
-    WriteLog("glShadeModel(GL_SMOOTH);");
     glShadeModel(GL_SMOOTH); // Enable Smooth Shading
-    WriteLog("glEnable(GL_DEPTH_TEST);");
     glEnable(GL_DEPTH_TEST);
 
     // McZapkie:261102-uruchomienie polprzezroczystosci (na razie linie) pod kierunkiem Marcina
     // if (Global::bRenderAlpha) //Ra: wywalam tę flagę
     {
-        WriteLog("glEnable(GL_BLEND);");
         glEnable(GL_BLEND);
-        WriteLog("glEnable(GL_ALPHA_TEST);");
         glEnable(GL_ALPHA_TEST);
-        WriteLog("glAlphaFunc(GL_GREATER,0.04);");
         glAlphaFunc(GL_GREATER, 0.04);
-        WriteLog("glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);");
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        WriteLog("glDepthFunc(GL_LEQUAL);");
         glDepthFunc(GL_LEQUAL);
     }
-    /*
-        else
-        {
-          WriteLog("glEnable(GL_ALPHA_TEST);");
-          glEnable(GL_ALPHA_TEST);
-          WriteLog("glAlphaFunc(GL_GREATER,0.5);");
-          glAlphaFunc(GL_GREATER,0.5);
-          WriteLog("glDepthFunc(GL_LEQUAL);");
-          glDepthFunc(GL_LEQUAL);
-          WriteLog("glDisable(GL_BLEND);");
-          glDisable(GL_BLEND);
-        }
-    */
-    /* zakomentowanie to co bylo kiedys mieszane
-        WriteLog("glEnable(GL_ALPHA_TEST);");
-        glEnable(GL_ALPHA_TEST);//glGetIntegerv()
-        WriteLog("glAlphaFunc(GL_GREATER,0.5);");
-    //    glAlphaFunc(GL_LESS,0.5);
-        glAlphaFunc(GL_GREATER,0.5);
-    //    glBlendFunc(GL_SRC_ALPHA,GL_ONE);
-        WriteLog("glDepthFunc(GL_LEQUAL);");
-        glDepthFunc(GL_LEQUAL);//EQUAL);
-    // The Type Of Depth Testing To Do
-      //  glEnable(GL_BLEND);
-    //    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    */
 
-    WriteLog("glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);");
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // Really Nice Perspective Calculations
-
-    WriteLog("glPolygonMode(GL_FRONT, GL_FILL);");
     glPolygonMode(GL_FRONT, GL_FILL);
-    WriteLog("glFrontFace(GL_CCW);");
     glFrontFace(GL_CCW); // Counter clock-wise polygons face out
-    WriteLog("glEnable(GL_CULL_FACE);	");
     glEnable(GL_CULL_FACE); // Cull back-facing triangles
-    WriteLog("glLineWidth(1.0f);");
     glLineWidth(1.0f);
-    //	glLineWidth(2.0f);
-    WriteLog("glPointSize(3.0f);");
     glPointSize(3.0f);
-//    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST ); // Really Nice Perspective Calculations
-//    glEnable( GL_POINT_SMOOTH );
-
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
     // ----------- LIGHTING SETUP -----------
     // Light values and coordinates
 
@@ -361,7 +305,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     Global::lightPos[3] = 0.0f;
 
     // Ra: światła by sensowniej było ustawiać po wczytaniu scenerii
-
+    // TODO: re-implement this
     // Ra: szczątkowe światło rozproszone - żeby było cokolwiek widać w ciemności
     WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::darkLight);
@@ -377,41 +321,20 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
     WriteLog("glEnable(GL_LIGHT0);");
     glEnable(GL_LIGHT0);
-
+#endif
     // glColor() ma zmieniać kolor wybrany w glColorMaterial()
-    WriteLog("glEnable(GL_COLOR_MATERIAL);");
     glEnable(GL_COLOR_MATERIAL);
 
-    WriteLog("glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);");
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glColor4fv(Global::whiteLight);
 
-    //    WriteLog("glMaterialfv( GL_FRONT, GL_AMBIENT, whiteLight );");
-    //	glMaterialfv( GL_FRONT, GL_AMBIENT, Global::whiteLight );
-
-    WriteLog("glMaterialfv( GL_FRONT, GL_AMBIENT_AND_DIFFUSE, whiteLight );");
-    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, Global::whiteLight);
-
-    /*
-        WriteLog("glMaterialfv( GL_FRONT, GL_SPECULAR, noLight );");
-            glMaterialfv( GL_FRONT, GL_SPECULAR, Global::noLight );
-    */
-
-    WriteLog("glEnable(GL_LIGHTING);");
     glEnable(GL_LIGHTING);
 
-    WriteLog("glFogi(GL_FOG_MODE, GL_LINEAR);");
     glFogi(GL_FOG_MODE, GL_LINEAR); // Fog Mode
-    WriteLog("glFogfv(GL_FOG_COLOR, FogColor);");
+    GLfloat FogColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glFogfv(GL_FOG_COLOR, FogColor); // Set Fog Color
-    //	glFogf(GL_FOG_DENSITY, 0.594f);						// How Dense Will The
-    //Fog
-    // Be
-    //	glHint(GL_FOG_HINT, GL_NICEST);					    // Fog Hint Value
-    WriteLog("glFogf(GL_FOG_START, 1000.0f);");
     glFogf(GL_FOG_START, 10.0f); // Fog Start Depth
-    WriteLog("glFogf(GL_FOG_END, 2000.0f);");
     glFogf(GL_FOG_END, 200.0f); // Fog End Depth
-    WriteLog("glEnable(GL_FOG);");
     glEnable(GL_FOG); // Enables GL_FOG
 
     // Ra: ustawienia testowe
@@ -472,39 +395,49 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     SetForegroundWindow(hWnd);
     WriteLog("Sound Init");
 
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glDisable( GL_DEPTH_TEST ); // Disables depth testing
+#ifndef EU07_USE_OLD_LIGHTING_MODEL
+    glEnable( GL_LIGHTING );
+    glEnable( GL_LIGHT0 );
+#endif
+
     glLoadIdentity();
     //    glColor4f(0.3f,0.0f,0.0f,0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glTranslatef(0.0f, 0.0f, -0.50f);
+//    glTranslatef(0.0f, 0.0f, -0.50f);
     //    glRasterPos2f(-0.25f, -0.10f);
-    glDisable(GL_DEPTH_TEST); // Disables depth testing
-    glColor3f(3.0f, 3.0f, 3.0f);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    glColor3f( 3.0f, 3.0f, 3.0f );
+#else
+    glColor3f( 1.0f, 1.0f, 1.0f );
+#endif
 
-    auto logo = TextureManager.GetTextureId( "logo", szTexturePath, 6 );
-    TextureManager.Bind(logo); // Select our texture
+    auto logo = GfxRenderer.GetTextureId( "logo", szTexturePath, 6 );
+    GfxRenderer.Bind(logo); // Select our texture
+
+    float const widthratio = ( 4.0f / 3.0f ) / ( (float)Global::iWindowWidth / Global::iWindowHeight );
 
     glBegin(GL_QUADS); // Drawing using triangles
     glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(-0.28f, -0.22f, 0.0f); // bottom left of the texture and quad
+    glVertex2f( -widthratio, -1.0f ); // bottom left of the texture and quad
     glTexCoord2f(1.0f, 0.0f);
-    glVertex3f(0.28f, -0.22f, 0.0f); // bottom right of the texture and quad
+    glVertex2f(widthratio, -1.0f); // bottom right of the texture and quad
     glTexCoord2f(1.0f, 1.0f);
-    glVertex3f(0.28f, 0.22f, 0.0f); // top right of the texture and quad
+    glVertex2f(widthratio, 1.0f); // top right of the texture and quad
     glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(-0.28f, 0.22f, 0.0f); // top left of the texture and quad
+    glVertex2f( -widthratio, 1.0f ); // top left of the texture and quad
     glEnd();
     //~logo; Ra: to jest bez sensu zapis
-    glColor3f(0.0f, 0.0f, 100.0f);
+    glColor3f(0.0f, 0.0f, 1.0f);
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.09f);
+        glRasterPos2f(-0.85f * widthratio, -0.25f);
         glPrint("Uruchamianie / Initializing...");
-        glRasterPos2f(-0.25f, -0.10f);
+        glRasterPos2f(-0.85f * widthratio, -0.30f);
         glPrint("Dzwiek / Sound...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
-    glEnable(GL_LIGHTING);
     /*-----------------------Sound Initialization-----------------------*/
     TSoundsManager::Init(hWnd);
     // TSoundsManager::LoadSounds( "" );
@@ -512,7 +445,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Sound Init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.11f);
+        glRasterPos2f(-0.25f * widthratio, -0.30f);
         glPrint("OK.");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -523,7 +456,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Textures init");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.12f);
+        glRasterPos2f(-0.85f * widthratio, -0.35f);
         glPrint("Tekstury / Textures...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -533,7 +466,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Textures init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.13f);
+        glRasterPos2f( -0.25f * widthratio, -0.35f );
         glPrint("OK.");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -541,7 +474,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Models init");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.14f);
+        glRasterPos2f( -0.85f * widthratio, -0.40f );
         glPrint("Modele / Models...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -551,7 +484,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Models init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.15f);
+        glRasterPos2f( -0.25f * widthratio, -0.40f );
         glPrint("OK.");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -559,18 +492,35 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     WriteLog("Ground init");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.16f);
+        glRasterPos2f( -0.85f * widthratio, -0.45f );
         glPrint("Sceneria / Scenery (please wait)...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
 
+#ifndef EU07_USE_OLD_LIGHTING_MODEL
+    // setup lighting
+//    GLfloat ambient[] = { 0.65f, 0.65f, 0.65f, 0.5f };
+    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+
+    Global::DayLight.id = opengl_renderer::sunlight;
+    // directional light
+    // TODO, TBD: test omni-directional variant
+    Global::DayLight.position[ 3 ] = 1.0f;
+    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0 );
+    // rgb value for 5780 kelvin
+    Global::DayLight.diffuse[ 0 ] = 255.0 / 255.0;
+    Global::DayLight.diffuse[ 1 ] = 242.0 / 255.0;
+    Global::DayLight.diffuse[ 2 ] = 231.0 / 255.0;
+#endif
+
     Ground.Init(Global::SceneryFile, hDC);
     //    Global::tSinceStart= 0;
-    Clouds.Init();
+    Environment.init();
     WriteLog("Ground init OK");
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.17f);
+        glRasterPos2f( -0.25f * widthratio, -0.45f );
         glPrint("OK.");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -587,7 +537,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     char buff[255] = "Player train init: ";
     if (Global::detonatoryOK)
     {
-        glRasterPos2f(-0.25f, -0.18f);
+        glRasterPos2f( -0.85f * widthratio, -0.50f );
         glPrint("Przygotowanie kabiny do sterowania...");
     }
     SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -608,7 +558,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
             WriteLog("Player train init OK");
             if (Global::detonatoryOK)
             {
-                glRasterPos2f(-0.25f, -0.19f);
+                glRasterPos2f( -0.25f * widthratio, -0.50f );
                 glPrint("OK.");
             }
             FollowView();
@@ -620,7 +570,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
             FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
             if (Global::detonatoryOK)
             {
-                glRasterPos2f(-0.25f, -0.20f);
+                glRasterPos2f( -0.85f * widthratio, -0.50f );
                 glPrint("Blad inicjalizacji sterowanego pojazdu!");
             }
             SwapBuffers(hDC); // Swap Buffers (Double Buffering)
@@ -636,7 +586,7 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
             Error("Player train not exist!");
             if (Global::detonatoryOK)
             {
-                glRasterPos2f(-0.25f, -0.20f);
+                glRasterPos2f( -0.85f * widthratio, -0.55f );
                 glPrint("Wybrany pojazd nie istnieje w scenerii!");
             }
         }
@@ -664,9 +614,9 @@ bool TWorld::Init(HWND NhWnd, HDC hDC)
     // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
     // background}
 	if (Global::bOldSmudge == true)
-        light = TextureManager.GetTextureId( "smuga.tga", szTexturePath );
+        light = GfxRenderer.GetTextureId( "smuga.tga", szTexturePath );
 	else
-        light = TextureManager.GetTextureId( "smuga2.tga", szTexturePath );
+        light = GfxRenderer.GetTextureId( "smuga2.tga", szTexturePath );
     // Camera.Reset();
     Timer::ResetTimers();
 	WriteLog( "Load time: " +
@@ -766,59 +716,102 @@ void TWorld::OnKeyDown(int cKey)
     }
     else if ((cKey >= VK_F1) ? (cKey <= VK_F12) : false)
     {
-        switch (cKey)
-        {
-        case VK_F1: // czas i relacja
-        case VK_F3:
-        case VK_F5: // przesiadka do innego pojazdu
-        case VK_F8: // FPS
-        case VK_F9: // wersja, typ wyświetlania, błędy OpenGL
-        case VK_F10:
-            if (Global::iTextMode == cKey)
-                Global::iTextMode =
-                    (Global::iPause && (cKey != VK_F1) ? VK_F1 :
-                                                         0); // wyłączenie napisów, chyba że pauza
-            else
-                Global::iTextMode = cKey;
-            break;
-        case VK_F2: // parametry pojazdu
-            if (Global::iTextMode == cKey) // jeśli kolejne naciśnięcie
-                ++Global::iScreenMode[cKey - VK_F1]; // kolejny ekran
-            else
-            { // pierwsze naciśnięcie daje pierwszy (tzn. zerowy) ekran
-                Global::iTextMode = cKey;
-                Global::iScreenMode[cKey - VK_F1] = 0;
+        switch (cKey) {
+            
+            case VK_F1: {
+                if( DebugModeFlag ) {
+                    // additional time speedup keys in debug mode
+                    if( Console::Pressed( VK_CONTROL ) ) {
+                        // ctrl-f3
+                        GlobalTime->UpdateMTableTime( 20.0 * 60.0 );
+                    }
+                    else if( Console::Pressed( VK_SHIFT ) ) {
+                        // shift-f3
+                        GlobalTime->UpdateMTableTime( 5.0 * 60.0 );
+                    }
+                }
+                if( ( false == Console::Pressed( VK_CONTROL ) )
+                 && ( false == Console::Pressed( VK_SHIFT ) ) ) {
+                    // czas i relacja
+                    if( Global::iTextMode == cKey ) {
+                        // wyłączenie napisów, chyba że pauza
+                        Global::iTextMode =
+                            ( Global::iPause && ( cKey != VK_F1 ) ?
+                                VK_F1 :
+                                0 );
+                    }
+                    else
+                        Global::iTextMode = cKey;
+                }
+                break;
             }
-            break;
-        case VK_F12: // coś tam jeszcze
-            if (Console::Pressed(VK_CONTROL) && Console::Pressed(VK_SHIFT))
-                DebugModeFlag = !DebugModeFlag; // taka opcjonalna funkcja, może się czasem przydać
-            /* //Ra 2F1P: teraz włączanie i wyłączanie klawiszami cyfrowymi po użyciu [F12]
-                else if (Console::Pressed(VK_SHIFT))
-                {//odpalenie logu w razie "W"
-                 if ((Global::iWriteLogEnabled&2)==0) //nie było okienka
-                 {//otwarcie okna
-                  AllocConsole();
-                  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),FOREGROUND_GREEN);
-                 }
-                 Global::iWriteLogEnabled|=3;
-                } */
-            else
+            case VK_F2: {
+                // parametry pojazdu
+                if( Global::iTextMode == cKey ) {
+                    // jeśli kolejne naciśnięcie
+                    ++Global::iScreenMode[ cKey - VK_F1 ]; // kolejny ekran
+                }
+                else {
+                    // pierwsze naciśnięcie daje pierwszy (tzn. zerowy) ekran
+                    Global::iTextMode = cKey;
+                    Global::iScreenMode[ cKey - VK_F1 ] = 0;
+                }
+                break;
+            }
+            case VK_F3: {
                 Global::iTextMode = cKey;
-            break;
-        case VK_F4:
-            InOutKey();
-            break;
-        case VK_F6:
-            if (DebugModeFlag)
-            { // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
-                // Global::iViewMode=VK_F6;
-                if (Console::Pressed(VK_CONTROL))
-                    Global::fTimeSpeed = (Console::Pressed(VK_SHIFT) ? 10.0 : 5.0);
+                break;
+            }
+            case VK_F4: {
+                InOutKey();
+                break;
+            }
+            case VK_F5: {
+                // przesiadka do innego pojazdu
+                Global::iTextMode = cKey;
+                break;
+            }
+            case VK_F6: {
+                Global::iTextMode = cKey;
+                // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
+                if( DebugModeFlag ) { 
+
+                    if( Console::Pressed( VK_CONTROL ) ) { Global::fTimeSpeed = ( Console::Pressed( VK_SHIFT ) ? 60.0 : 20.0 ); }
+                    else                                 { Global::fTimeSpeed = ( Console::Pressed( VK_SHIFT ) ? 5.0 : 1.0 ); }
+                }
+                break;
+            }
+            case VK_F8: {
+                Global::iTextMode = cKey;
+                // FPS
+                break;
+            }
+            case VK_F9: {
+                Global::iTextMode = cKey;
+                // wersja, typ wyświetlania, błędy OpenGL
+                break;
+            }
+            case VK_F10: {
+                if( Global::iTextMode == cKey ) {
+                    Global::iTextMode =
+                        ( Global::iPause && ( cKey != VK_F1 ) ?
+                            VK_F1 :
+                            0 ); // wyłączenie napisów, chyba że pauza
+                }
+                else {
+                    Global::iTextMode = cKey;
+                }
+                break;
+            }
+            case VK_F12: {
+                // coś tam jeszcze
+                if( Console::Pressed( VK_CONTROL )
+                 && Console::Pressed( VK_SHIFT ) )
+                    DebugModeFlag = !DebugModeFlag; // taka opcjonalna funkcja, może się czasem przydać
                 else
-                    Global::fTimeSpeed = (Console::Pressed(VK_SHIFT) ? 2.0 : 1.0);
+                    Global::iTextMode = cKey;
+                break;
             }
-            break;
         }
         // if (cKey!=VK_F4)
         return; // nie są przekazywane do pojazdu wcale
@@ -984,7 +977,7 @@ void TWorld::OnKeyUp(int cKey)
 
 void TWorld::OnMouseMove(double x, double y)
 { // McZapkie:060503-definicja obracania myszy
-    Camera.OnCursorMove(x * Global::fMouseXScale, -y * Global::fMouseYScale);
+    Camera.OnCursorMove(x * Global::fMouseXScale / Global::ZoomFactor, -y * Global::fMouseYScale / Global::ZoomFactor);
 }
 
 void TWorld::InOutKey()
@@ -1157,7 +1150,8 @@ bool TWorld::Update()
         iCheckFPS = 0.25 * Timer::GetFPS(); // tak za 0.25 sekundy sprawdzić ponownie (jeszcze przycina?)
     }
     Timer::UpdateTimers(Global::iPause);
-    if (!Global::iPause)
+    if( (Global::iPause == false)
+     || (m_init == false) )
     { // jak pauza, to nie ma po co tego przeliczać
         GlobalTime->UpdateMTableTime(Timer::GetDeltaTime()); // McZapkie-300302: czas rozkladowy
         // Ra 2014-07: przeliczenie kąta czasu (do animacji zależnych od czasu)
@@ -1170,7 +1164,7 @@ bool TWorld::Update()
         Global::fClockAngleDeg[4] = 36.0 * (GlobalTime->hh % 10); // jednostki godzin
         Global::fClockAngleDeg[5] = 36.0 * (GlobalTime->hh / 10); // dziesiątki godzin
 
-        Update_Lights();
+        Update_Environment();
     } // koniec działań niewykonywanych podczas pauzy
     // poprzednie jakoś tam działało
     double dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
@@ -1243,6 +1237,8 @@ bool TWorld::Update()
 
     Ground.CheckQuery();
 
+    Ground.Update_Lights();
+
     if( Train != nullptr ) {
         TSubModel::iInstance = reinterpret_cast<int>( Train->Dynamic() );
         Train->Update( dt );
@@ -1254,13 +1250,17 @@ bool TWorld::Update()
     // przy 0.25 smuga gaśnie o 6:37 w Quarku, a mogłaby już 5:40
     // Ra 2014-12: przy 0.15 się skarżyli, że nie widać smug => zmieniłem na 0.25
     // changed light activation threshold to 0.5, paired with strength reduction in daylight
-    if (Train) // jeśli nie usunięty
+    if( Train ) {
+        // jeśli nie usunięty
         Global::bSmudge =
             ( FreeFlyModeFlag ?
                 false :
                 ( Train->Dynamic()->fShade <= 0.0 ?
-                    (Global::fLuminance <= 0.5) :
-                    (Train->Dynamic()->fShade * Global::fLuminance <= 0.5) ) );
+                    ( Global::fLuminance <= 0.5 ) :
+                    ( Train->Dynamic()->fShade * Global::fLuminance <= 0.5 ) ) );
+    }
+
+    m_init = true;
 
     if (!Render())
         return false;
@@ -1299,8 +1299,19 @@ TWorld::Update_Camera( double const Deltatime ) {
             if( FreeFlyModeFlag )
                 Camera.RaLook(); // jednorazowe przestawienie kamery
         }
-        else if( Console::Pressed( VK_RBUTTON ) ) //||Console::Pressed(VK_F4))
+        else if( Console::Pressed( VK_RBUTTON ) ) { //||Console::Pressed(VK_F4))
             FollowView( false ); // bez wyciszania dźwięków
+        }
+        else if( true == Console::Pressed( VK_MBUTTON ) ) {
+            // middle mouse button controls zoom.
+            Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>(Deltatime) );
+        }
+        else if( false == Console::Pressed( VK_MBUTTON ) ) {
+            // reset zoom level if the button is no longer held down.
+            // NOTE: yes, this is terrible way to go about it. it'll do for now.
+            Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
+        }
+
 /*
         else if( Global::iTextMode == -1 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
             WriteLog( "Number of textures used: " + std::to_string( Global::iTextures ) );
@@ -1397,7 +1408,9 @@ TWorld::Update_Camera( double const Deltatime ) {
     }
 }
 
-void TWorld::Update_Lights() {
+void TWorld::Update_Environment() {
+
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
 
     if( Global::fMoveLight < 0.0 ) {
         return;
@@ -1480,7 +1493,7 @@ void TWorld::Update_Lights() {
         +0.150 * ( Global::diffuseDayLight[ 0 ] + Global::ambientDayLight[ 0 ] ) // R
         + 0.295 * ( Global::diffuseDayLight[ 1 ] + Global::ambientDayLight[ 1 ] ) // G
         + 0.055 * ( Global::diffuseDayLight[ 2 ] + Global::ambientDayLight[ 2 ] ); // B
-    
+
     vector3 sky = vector3( Global::AtmoColor[ 0 ], Global::AtmoColor[ 1 ], Global::AtmoColor[ 2 ] );
     if( Global::fLuminance < 0.25 ) { // przyspieszenie zachodu/wschodu
         sky *= 4.0 * Global::fLuminance; // nocny kolor nieba
@@ -1493,7 +1506,9 @@ void TWorld::Update_Lights() {
     else {
         glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
     }
-    glClearColor( sky.x, sky.y, sky.z, 0.0 ); // kolor nieba
+#else
+    Environment.update();
+#endif
 }
 
 bool TWorld::Render()
@@ -1502,42 +1517,26 @@ bool TWorld::Render()
     // glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDepthFunc( GL_LEQUAL );
+
+    glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
+    glLoadIdentity(); // reset the Projection Matrix
+    // calculate the aspect ratio of the window
+    gluPerspective( Global::FieldOfView / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
+
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();
     Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
 
-    if (!Global::bWireFrame)
-    { // bez nieba w trybie rysowania linii
-        glDisable(GL_FOG);
-        Clouds.Render();
-        glEnable(GL_FOG);
+    if( !Global::bWireFrame ) {
+        // bez nieba w trybie rysowania linii
+        Environment.render();
     }
-    if (Global::bUseVBO)
-    { // renderowanie przez VBO
-        if (!Ground.RenderVBO(Camera.Pos))
-            return false;
-        if (!Ground.RenderAlphaVBO(Camera.Pos))
-            return false;
-    }
-    else
-    { // renderowanie przez Display List
-        if (!Ground.RenderDL(Camera.Pos))
-            return false;
-        if (!Ground.RenderAlphaDL(Camera.Pos))
-            return false;
-    }
-/*
-    TSubModel::iInstance = (int)(Train ? Train->Dynamic() : 0); //żeby nie robić cudzych animacji
-    // if (Camera.Type==tp_Follow)
-    if (Train)
-        Train->Update();
-*/
+
+    if( false == Ground.Render( Camera.Pos ) ) { return false; }
+
     Render_Cab();
     Render_UI();
 
-//  glFlush();
-    // Global::bReCompile=false; //Ra: już zrobiona rekompilacja
     ResourceManager::Sweep( Timer::GetSimulationTime() );
 
     return true;
@@ -1562,6 +1561,7 @@ TWorld::Render_Cab() {
         // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
         return;
     }
+
 /*
     // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
     if( ( Train->Dynamic()->mdKabina != Train->Dynamic()->mdModel ) &&
@@ -1575,10 +1575,11 @@ TWorld::Render_Cab() {
     glLoadIdentity(); // zacząć od macierzy jedynkowej
     Camera.SetCabMatrix( pos ); // widok z kamery po przesunięciu
     glMultMatrixd( dynamic->mMatrix.getArray() ); // ta macierz nie ma przesunięcia
-
+/*
     //*yB: moje smuuugi 1
     if( Global::bSmudge ) { // Ra: uwzględniłem zacienienie pojazdu przy zapalaniu smug
-        // 1. warunek na smugę wyznaczyc wcześniej
+ 
+       // 1. warunek na smugę wyznaczyc wcześniej
         // 2. jeśli smuga włączona, nie renderować pojazdu użytkownika w DynObj
         // 3. jeśli smuga właczona, wyrenderować pojazd użytkownia po dodaniu smugi do sceny
         auto const &frontlights = Train->Controlled()->iLights[ 0 ];
@@ -1605,7 +1606,7 @@ TWorld::Render_Cab() {
                 glDisable( GL_DEPTH_TEST );
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
-                TextureManager.Bind( light ); // Select our texture
+                GfxRenderer.Bind( light ); // Select our texture
                 glBegin( GL_QUADS );
                 float fSmudge =
                     dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
@@ -1647,28 +1648,29 @@ TWorld::Render_Cab() {
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
                 //glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
-                TextureManager.Bind( light ); // Select our texture
+                GfxRenderer.Bind( light ); // Select our texture
                 //float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
                 glBegin( GL_QUADS );
                 float fSmudge = dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
-                if( frontlightstrength > 0.f ) { // wystarczy jeden zapalony z przodu
-
+                if( frontlightstrength > 0.f ) {
+                    // wystarczy jeden zapalony z przodu
                     for( int i = 15; i <= 35; i++ ) {
                         float z = i * i * i * 0.01f;//25/4;
                         //float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
                         float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * frontlightstrength;
-                        glColor4f( C, C, C, 0.35f );// *frontlightstrength );
-                        glTexCoord2f( 0, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
-                        glTexCoord2f( 1, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, 13 + 1.7*z / 3 );
-                        glTexCoord2f( 1, 1 );  glVertex3f( 10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
+                        glColor4f( C, C, C, 1.0f );// *frontlightstrength );
+                        glTexCoord2f( 0, 0 );  glVertex3f( -10 / 2 - 2 * i / 4,  6.0 + 0.3*z, 13 + 1.7*z / 3 );
+                        glTexCoord2f( 1, 0 );  glVertex3f(  10 / 2 + 2 * i / 4,  6.0 + 0.3*z, 13 + 1.7*z / 3 );
+                        glTexCoord2f( 1, 1 );  glVertex3f(  10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
                         glTexCoord2f( 0, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
                     }
                 }
-                if( rearlightstrength > 0.f ) { // wystarczy jeden zapalony z tyłu
+                if( rearlightstrength > 0.f ) {
+                    // wystarczy jeden zapalony z tyłu
                     for( int i = 15; i <= 35; i++ ) {
                         float z = i * i * i * 0.01f;//25/4;
                         float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * rearlightstrength;
-                        glColor4f( C, C, C, 0.35f );// *rearlightstrength );
+                        glColor4f( C, C, C, 1.0f );// *rearlightstrength );
                         glTexCoord2f( 0, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
                         glTexCoord2f( 1, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
                         glTexCoord2f( 1, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3 );
@@ -1685,17 +1687,23 @@ TWorld::Render_Cab() {
                 glEnable( GL_FOG );
             }
         }
+
         glEnable( GL_LIGHTING ); // po renderowaniu smugi jest to wyłączone
         // Ra: pojazd użytkownika należało by renderować po smudze, aby go nie rozświetlała
+
         Global::bSmudge = false; // aby model użytkownika się teraz wyrenderował
         dynamic->Render();
         dynamic->RenderAlpha(); // przezroczyste fragmenty pojazdów na torach
-    } // yB: moje smuuugi 1 - koniec*/
+
+    } // yB: moje smuuugi 1 - koniec
     else
-        glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone
+*/        glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
 
     if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
-    { // oswietlenie kabiny
+    {
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
+        // oswietlenie kabiny
         GLfloat ambientCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
         GLfloat diffuseCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
         GLfloat specularCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1775,6 +1783,14 @@ TWorld::Render_Cab() {
         glLightfv( GL_LIGHT0, GL_AMBIENT, ambientCabLight );
         glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseCabLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, specularCabLight );
+#else
+        if( dynamic->InteriorLightLevel > 0.0f ) {
+
+            // crude way to light the cabin, until we have something more complete in place
+            auto const cablight = dynamic->InteriorLight * dynamic->InteriorLightLevel;
+            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+        }
+#endif
         if( Global::bUseVBO ) { // renderowanie z użyciem VBO
             dynamic->mdKabina->RaRender( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
             dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
@@ -1783,10 +1799,19 @@ TWorld::Render_Cab() {
             dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
             dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
         }
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         // przywrócenie standardowych, bo zawsze są zmieniane
         glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
         glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
+#else
+        if( dynamic->InteriorLightLevel > 0.0f ) {
+            // reset the overall ambient
+            GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+        }
+#endif
     }
     glPopMatrix();
 }
@@ -1794,10 +1819,18 @@ TWorld::Render_Cab() {
 void
 TWorld::Render_UI() {
 
+    // set the UI mode projection. TODO: rework it all into somethinig more elegant... eventually
+    glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
+    glLoadIdentity(); // reset the Projection Matrix
+    // calculate the aspect ratio of the window
+    gluPerspective( 45.0f, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.2f, 2500.0f );
+    glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
+    glLoadIdentity();
+
     if( DebugModeFlag && !Global::iTextMode ) {
-        OutText1 = "  FPS: ";
+        OutText1 = "FPS: ";
         OutText1 += to_string( Timer::GetFPS(), 2 );
-        OutText1 += Global::iSlowMotion ? "s" : "n";
+        OutText1 += Global::iSlowMotion ? "(s)" : "(n)";
 
         OutText1 += ( Timer::GetDeltaTime() >= 0.2 ) ? "!" : " ";
         // if (GetDeltaTime()>=0.2) //Ra: to za bardzo miota tekstem!
@@ -1812,7 +1845,7 @@ TWorld::Render_UI() {
 
     if( Global::iTextMode == VK_F8 ) {
         Global::iViewMode = VK_F8;
-        OutText1 = "  FPS: ";
+        OutText1 = "FPS: ";
         OutText1 += to_string( Timer::GetFPS(), 2 );
         //OutText1 += sprintf();
         if( Global::iSlowMotion )
@@ -1948,7 +1981,7 @@ TWorld::Render_UI() {
         SetWindowText( hWnd, Controlled->MoverParameters->Name.c_str() );
     else
         SetWindowText( hWnd, Global::SceneryFile.c_str() ); // nazwa scenerii
-    TextureManager.Bind( 0 );
+    GfxRenderer.Bind( 0 );
     glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
     glLoadIdentity();
     glTranslatef( 0.0f, 0.0f, -0.50f );
@@ -2247,7 +2280,9 @@ TWorld::Render_UI() {
             OutText1 +=
                 " " +
                 std::string( "S SEE NEN NWW SW" )
-                .substr( 1 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
+                .substr( 0 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
+            // current luminance level
+            OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
         }
         // OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ):
         // http://www.eu07.pl");
@@ -2943,3 +2978,79 @@ void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
             Global::changeDynObj = now; // uruchomienie protezy
 };
 //---------------------------------------------------------------------------
+
+void
+world_environment::init() {
+
+    m_sun.init();
+    m_stars.init();
+    m_clouds.Init();
+}
+
+void
+world_environment::update() {
+
+    // move sun...
+    m_sun.update();
+    auto const position = m_sun.getPosition();
+    // ...update the global data to match new sun state...
+    Global::SunAngle = m_sun.getAngle();
+    Global::DayLight.set_position( position );
+    Global::DayLight.direction = -1.0 * m_sun.getDirection();
+    // ...update skydome to match the current sun position as well...
+    m_skydome.Update( position );
+    // ...retrieve current sky colour and brightness...
+    auto const skydomecolour = m_skydome.GetAverageColor();
+    auto const skydomehsv = RGBtoHSV( skydomecolour );
+    auto const intensity = std::min( 1.15f * (0.05f + m_sun.getIntensity() + skydomehsv.z), 1.25f );
+    // ...update light colours and intensity.
+    // NOTE: intensity combines intensity of the sun and the light reflected by the sky dome
+    // it'd be more technically correct to have just the intensity of the sun here,
+    // but whether it'd _look_ better is something to be tested
+    Global::DayLight.diffuse[ 0 ] = intensity * 255.0f / 255.0f;
+    Global::DayLight.diffuse[ 1 ] = intensity * 242.0f / 255.0f;
+    Global::DayLight.diffuse[ 2 ] = intensity * 231.0f / 255.0f;
+
+    Global::DayLight.ambient[ 0 ] = skydomecolour.x;
+    Global::DayLight.ambient[ 1 ] = skydomecolour.y;
+    Global::DayLight.ambient[ 2 ] = skydomecolour.z;
+
+    Global::fLuminance = intensity;
+
+    // update the fog. setting it to match the average colour of the sky dome is cheap
+    // but quite effective way to make the distant items blend with background better
+    Global::FogColor[ 0 ] = skydomecolour.x;
+    Global::FogColor[ 1 ] = skydomecolour.y;
+    Global::FogColor[ 2 ] = skydomecolour.z;
+    ::glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
+
+    ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f ); // kolor nieba
+}
+
+void
+world_environment::render() {
+
+    ::glDisable( GL_LIGHTING );
+    ::glDisable( GL_FOG );
+    ::glDisable( GL_DEPTH_TEST );
+    ::glDepthMask( GL_FALSE );
+    ::glPushMatrix();
+    ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
+
+    m_skydome.Render();
+    m_stars.render();
+    m_clouds.Render( m_skydome.GetAverageColor() * 2.5f );
+
+    if( DebugModeFlag == true ) {
+        // mark sun position for easier debugging
+        m_sun.render();
+    }
+    Global::DayLight.apply_angle();
+    Global::DayLight.apply_intensity();
+
+    ::glPopMatrix();
+    ::glDepthMask( GL_TRUE );
+    ::glEnable( GL_DEPTH_TEST );
+    ::glEnable( GL_FOG );
+    ::glEnable( GL_LIGHTING );
+}

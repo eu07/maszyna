@@ -152,7 +152,7 @@ bool TMWDComm::Close() // zamykanie portu COM
     return TRUE;
 }
 
-inline bool TMWDComm::GetMWDState() // sprawdzanie otwarcia portu COM
+bool TMWDComm::GetMWDState() // sprawdzanie otwarcia portu COM
 {
     if (hComm > 0)
         return 1;
@@ -164,7 +164,7 @@ bool TMWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i za
 {
 	DWORD bytes_read;
 	ReadFile(hComm, &ReadDataBuff[0], BYTETOREAD, &bytes_read, NULL);
-
+	if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Data receive. Checking data...");
 	if (Global::bMWDBreakEnable)
 	{
 		uiAnalog[0] = (ReadDataBuff[9] << 8) + ReadDataBuff[8];
@@ -204,8 +204,11 @@ bool TMWDComm::Run() // wywoływanie obsługi MWD + generacja większego opóźn
 		if (!(MWDTime % Global::iMWDdivider))
 		{
 			MWDTime = 0;
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog("Sending data...");
 			SendData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!\nReceiving data...");
 			ReadData();
+			if (Global::bMWDdebugEnable && Global::iMWDDebugMode == 128) WriteLog(" complet!");
 			return 1;
 		}
 	}
@@ -231,43 +234,43 @@ void TMWDComm::CheckData() // sprawdzanie wejść cyfrowych i odpowiednie sterow
     /*
                 Rozpiska portów!
                 Port0: 	0 	NC			odblok. przek. sprężarki i wentyl. oporów
-                                1 	M			wyłącznik wył. szybkiego
-                                2 	Shift+M		impuls załączający wył. szybki
-                                3 	N			odblok. przekaźników nadmiarowych
+                        1 	M			wyłącznik wył. szybkiego
+                        2 	Shift+M		impuls załączający wył. szybki
+                        3 	N			odblok. przekaźników nadmiarowych
        i różnicowego obwodu głównego
-                                4 	NC			rezerwa
-                                5 	Ctrl+N		odblok. przek. nadmiarowych
+                        4 	NC			rezerwa
+                        5 	Ctrl+N		odblok. przek. nadmiarowych
        przetwornicy, ogrzewania pociągu i różnicowych obw. pomocniczych
-                                6 	L			wył. styczników liniowych
-                                7 	SPACE		kasowanie czuwaka
+                        6 	L			wył. styczników liniowych
+                        7 	SPACE		kasowanie czuwaka
 
                 Port1: 	0 	NC
-                                1 	(Shift)	X	przetwornica
-                                2 	(Shift)	C	sprężarka
-                                3 	S			piasecznice
-                                4 	(Shift)	H	ogrzewanie składu
-                                5 				przel. hamowania	Shift+B
+                        1 	(Shift)	X	przetwornica
+                        2 	(Shift)	C	sprężarka
+                        3 	S			piasecznice
+                        4 	(Shift)	H	ogrzewanie składu
+                        5 				przel. hamowania	Shift+B
        pspbpwy Ctrl+B pospieszny B towarowy
-                                6 				przel. hamowania
-                                7 	(Shift)	F	rozruch w/n
+                        6 				przel. hamowania
+                        7 	(Shift)	F	rozruch w/n
 
                 Port2: 	0 	(Shift) P	pantograf przedni
-                                1 	(Shift)	O	pantograf tylni
-                                2 	ENTER		przyhamowanie przy poślizgu
-                                3 	()		przyciemnienie świateł
-                                4 	()		przyciemnienie świateł
-                                5 	NUM6		odluźniacz
-                                6 	a			syrena lok W
-                                7	A			syrena lok N
+                        1 	(Shift)	O	pantograf tylni
+                        2 	ENTER		przyhamowanie przy poślizgu
+                        3 	()		przyciemnienie świateł
+                        4 	()		przyciemnienie świateł
+                        5 	NUM6		odluźniacz
+                        6 	a			syrena lok W
+                        7	A			syrena lok N
 
                 Port3: 	0 	Shift+J		bateria
-                                1
-                                2
-                                3
-                                4
-                                5
-                                6
-                                7
+                        1
+                        2
+                        3
+                        4
+                        5
+                        6
+                        7
         */
 
     /*	po przełączeniu bistabilnego najpierw wciskamy klawisz i przy następnym
