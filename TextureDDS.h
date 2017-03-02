@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #ifndef TEXTURE_DDS_H
 #define TEXTURE_DDS_H 1
 
-#include "opengl/glew.h"
+#include "gl/glew.h"
 
 #pragma hdrstop
 

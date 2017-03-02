@@ -10,8 +10,8 @@
 
 #include "stdafx.h"
 #include "arb_multisample.h"
-#include "glew.h"
-#include "wglew.h"
+#include "gl/glew.h"
+#include "gl/wglew.h"
 
 // Declairations We'll Use
 #define WGL_SAMPLE_BUFFERS_ARB		 0x2041

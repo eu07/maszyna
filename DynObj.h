@@ -473,7 +473,7 @@ public: // modele składowe pojazdu
     // McZapkie-260202
     void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
 
-    inline double ABuGetDirection() // ABu.
+    inline double ABuGetDirection() const // ABu.
     {
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection());
     };

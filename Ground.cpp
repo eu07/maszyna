@@ -16,9 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Ground.h"
 
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
 #include "Globals.h"
 #include "Logs.h"
 #include "usefull.h"
@@ -42,6 +39,11 @@ http://mozilla.org/MPL/2.0/.
 
 #define _PROBLEND 1
 //---------------------------------------------------------------------------
+
+extern "C"
+{
+    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+}
 
 bool bCondition; // McZapkie: do testowania warunku na event multiple
 string LogComment;
@@ -312,7 +314,7 @@ void TGroundNode::RenderVBO()
         if (EvLaunch->Render())
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
             {
-                if (Console::Pressed(VK_SHIFT) && EvLaunch->Event2 != NULL)
+                if (Global::shiftState && EvLaunch->Event2 != NULL)
                     Global::AddToQuery(EvLaunch->Event2, NULL);
                 else if (EvLaunch->Event1 != NULL)
                     Global::AddToQuery(EvLaunch->Event1, NULL);
@@ -549,7 +551,7 @@ void TGroundNode::RenderHidden()
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
             {
                 WriteLog("Eventlauncher " + asName);
-                if (Console::Pressed(VK_SHIFT) && (EvLaunch->Event2))
+                if (Global::shiftState && (EvLaunch->Event2))
                     Global::AddToQuery(EvLaunch->Event2, NULL);
                 else if (EvLaunch->Event1)
                     Global::AddToQuery(EvLaunch->Event1, NULL);
@@ -2506,11 +2508,11 @@ void TGround::FirstInit()
     WriteLog("FirstInit is done");
 };
 
-bool TGround::Init(std::string asFile, HDC hDC)
+bool TGround::Init(std::string File)
 { // główne wczytywanie scenerii
-    if (ToLower(asFile).substr(0, 7) == "scenery")
-        asFile = asFile.erase(0, 8); // Ra: usunięcie niepotrzebnych znaków - zgodność wstecz z 2003
-    WriteLog("Loading scenery from " + asFile);
+    if (ToLower(File).substr(0, 7) == "scenery")
+        File = File.erase(0, 8); // Ra: usunięcie niepotrzebnych znaków - zgodność wstecz z 2003
+    WriteLog("Loading scenery from " + File);
     Global::pGround = this;
     // pTrain=NULL;
     pOrigin = aRotate = vector3(0, 0, 0); // zerowanie przesunięcia i obrotu
@@ -2518,7 +2520,7 @@ bool TGround::Init(std::string asFile, HDC hDC)
     // TFileStream *fs;
     // int size;
     std::string subpath = Global::asCurrentSceneryPath; //   "scenery/";
-    cParser parser(asFile, cParser::buffer_FILE, subpath, Global::bLoadTraction);
+    cParser parser(File, cParser::buffer_FILE, subpath, Global::bLoadTraction);
     std::string token;
 
     /*
@@ -5037,6 +5039,7 @@ bool TGround::RenderAlphaVBO(vector3 pPosition)
     return true;
 };
 
+#ifdef _WINDOWS
 //---------------------------------------------------------------------------
 void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
 { // wysłanie komunikatu do sterującego
@@ -5060,7 +5063,7 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
     cData.dwData = 'EU07'; // sygnatura
     cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera kończące
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
 };
 //---------------------------------------------------------------------------
@@ -5077,7 +5080,7 @@ void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 	cData.dwData = 'EU07'; // sygnatura
 	cData.cbData = 11 + i; // 8+licznik i zero kończące
 	cData.lpData = &r;
-	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
@@ -5093,7 +5096,7 @@ void TGround::WyslijString(const std::string &t, int n)
     cData.dwData = 'EU07'; // sygnatura
     cData.cbData = 10 + i; // 8+licznik i zero kończące
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
@@ -5172,7 +5175,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     cData.cbData = 10 + i + j; // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
 };
@@ -5215,7 +5218,7 @@ void TGround::WyslijObsadzone()
 	cData.cbData = 8 + 1984; // 8+licznik i zero kończące
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
-	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
 }
 
@@ -5239,8 +5242,10 @@ void TGround::WyslijParam(int nr, int fl)
     cData.dwData = 'EU07'; // sygnatura
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 };
+#endif
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------

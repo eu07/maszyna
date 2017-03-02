@@ -65,7 +65,14 @@ light_array::update() {
                 ( ( lightbits & 4 ) ? 1 : 0 ) +
                 ( ( lightbits & 16 ) ? 1 : 0 );
 
-            light.intensity = 0.15f * light.count; // TODO: intensity can be affected further by dim switch or other factors
+            if( light.count > 0 ) {
+                // TODO: intensity can be affected further by dim switch or other factors
+                light.intensity = std::max( 0.0f, std::log( (float)light.count + 1.0f ) );
+//                light.intensity = std::max( 0.0f, std::log( (float)light.count + 3.0f ) );
+            }
+            else {
+                light.intensity = 0.0f;
+            }
 
             // crude catch for unmanned modules which share the light state with the controlled unit.
             // why don't they get their own light bits btw ._.

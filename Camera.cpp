@@ -61,8 +61,8 @@ void TCamera::OnCursorMove(double x, double y)
 void TCamera::Update()
 {
     // ABu: zmiana i uniezaleznienie predkosci od FPS
-    double a = (Console::Pressed(VK_SHIFT) ? 5.00 : 1.00);
-    if (Console::Pressed(VK_CONTROL))
+    double a = ( Global::shiftState ? 5.00 : 1.00);
+    if (Global::ctrlState)
         a = a * 100;
     //    OldVelocity=Velocity;
     if (FreeFlyModeFlag == true)
@@ -75,40 +75,6 @@ void TCamera::Update()
             Velocity.y += a;
         if (Console::Pressed(Global::Keys[k_MechDown]))
             Velocity.y -= a;
-        // McZapkie-170402: zeby nie bylo konfliktow
-        /*
-                if (Console::Pressed(VkKeyScan('d')))
-                    Velocity.x+= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('a')))
-                    Velocity.x-= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('w')))
-                    Velocity.z-= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('s')))
-                    Velocity.z+= a*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD4) || Console::Pressed(VK_NUMPAD7) ||
-           Console::Pressed(VK_NUMPAD1))
-                    Yaw+= +1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD6) || Console::Pressed(VK_NUMPAD9) ||
-           Console::Pressed(VK_NUMPAD3))
-                    Yaw+= -1*M_PI*Timer::GetDeltaTime();
-
-                if (Pressed(VK_NUMPAD2) || Console::Pressed(VK_NUMPAD1) ||
-           Console::Pressed(VK_NUMPAD3))
-                    Pitch+= -1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD8) || Console::Pressed(VK_NUMPAD7) ||
-           Console::Pressed(VK_NUMPAD9))
-                    Pitch+= +1*M_PI*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('.')))
-                    Roll+= -1*M_PI*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan(',')))
-                    Roll+= +1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD5))
-                    Pitch=Roll= 0.0f;
-        */
 
         // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
         if (Console::Pressed(Global::Keys[k_MechRight]))

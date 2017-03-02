@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stars.h"
 #include "skydome.h"
 #include "mczapkie/mover.h"
+#include "glfw/glfw3.h"
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
@@ -40,9 +41,10 @@ class TWorld
     void DistantView( bool const Near = false );
 
   public:
-    bool Init(HWND NhWnd, HDC hDC);
-    HWND hWnd;
-    GLvoid glPrint(const char *fmt);
+    bool Init( GLFWwindow *w );
+    bool InitPerformed() { return m_init; }
+    GLFWwindow *window;
+    GLvoid glPrint(std::string const &Text);
     void OnKeyDown(int cKey);
     void OnKeyUp(int cKey);
     // void UpdateWindow();
@@ -68,7 +70,7 @@ class TWorld
     world_environment Environment;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
-    bool Paused;
+    bool Paused{ true };
     GLuint base; // numer DL dla znaków w napisach
     texture_manager::size_type light; // numer tekstury dla smugi
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury

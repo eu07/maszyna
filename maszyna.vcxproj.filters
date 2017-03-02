@@ -13,17 +13,11 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
-    <Filter Include="Source Files\opengl">
-      <UniqueIdentifier>{d91dfdb6-7d84-4b52-a16a-bad302b45e3c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\mczapkie">
       <UniqueIdentifier>{fafd38ab-4c2a-48c8-8e66-ad0d928573b3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\console">
       <UniqueIdentifier>{2d73d7b2-5252-499c-963a-88fa3cb1af53}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\opengl">
-      <UniqueIdentifier>{aec51dd3-af67-4f08-9dcb-889f673ad7c9}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\mczapkie">
       <UniqueIdentifier>{36684428-8a48-435f-bca4-a24d9bfe2587}</UniqueIdentifier>
@@ -156,9 +150,6 @@
     <ClCompile Include="World.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="opengl\ARB_Multisample.cpp">
-      <Filter>Source Files\opengl</Filter>
-    </ClCompile>
     <ClCompile Include="mczapkie\friction.cpp">
       <Filter>Source Files\mczapkie</Filter>
     </ClCompile>
@@ -206,12 +197,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="opengl\glew.h">
-      <Filter>Header Files\opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="opengl\arb_multisample.h">
-      <Filter>Header Files\opengl</Filter>
-    </ClInclude>
     <ClInclude Include="Globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -264,9 +249,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Float3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="python\include\Python.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
@@ -341,9 +323,6 @@
     <ClInclude Include="AnimModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="opengl\wglew.h">
-      <Filter>Header Files\opengl</Filter>
-    </ClInclude>
     <ClInclude Include="wavread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -408,9 +387,5 @@
     <Image Include="eu07.ico">
       <Filter>Resource Files</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
-    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
 </Project>

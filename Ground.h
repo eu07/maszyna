@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "opengl/glew.h"
+#include "gl/glew.h"
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
@@ -323,7 +323,7 @@ class TGround
     TGround();
     ~TGround();
     void Free();
-    bool Init(std::string asFile, HDC hDC);
+    bool Init( std::string File );
     void FirstInit();
     void InitTracks();
     void InitTraction();

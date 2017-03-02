@@ -49,7 +49,9 @@ bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
 float Global::SunAngle = 0.0f;
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
-HWND Global::hWnd = NULL; // uchwyt okna
+GLFWwindow *Global::window;
+bool Global::shiftState;
+bool Global::ctrlState; 
 int Global::ScreenWidth = 1;
 int Global::ScreenHeight = 1;
 float Global::ZoomFactor = 1.0f;
@@ -956,7 +958,7 @@ void Global::ConfigParse(cParser &Parser)
     fFpsMax = fFpsAverage +
               fFpsDeviation; // górna granica FPS, przy której promień scenerii będzie zwiększany
     if (iPause)
-        iTextMode = VK_F1; // jak pauza, to pokazać zegar
+        iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
     /*  this won't execute anymore with the old parser removed
             // TBD: remove, or launch depending on passed flag?
         if (qp)
@@ -979,131 +981,93 @@ void Global::ConfigParse(cParser &Parser)
     */
 }
 
-void Global::InitKeys(std::string asFileName)
-{
-    //    if (FileExists(asFileName))
-    //    {
-    //       Error("Chwilowo plik keys.ini nie jest obsługiwany. Ładuję standardowe
-    //       ustawienia.\nKeys.ini file is temporarily not functional, loading default keymap...");
-    /*        TQueryParserComp *Parser;
-            Parser=new TQueryParserComp(NULL);
-            Parser->LoadStringToParse(asFileName);
+void Global::InitKeys() {
+    Keys[ k_IncMainCtrl ] = GLFW_KEY_KP_ADD;
+    Keys[ k_IncMainCtrlFAST ] = GLFW_KEY_KP_ADD;
+    Keys[ k_DecMainCtrl ] = GLFW_KEY_KP_SUBTRACT;
+    Keys[ k_DecMainCtrlFAST ] = GLFW_KEY_KP_SUBTRACT;
+    Keys[ k_IncScndCtrl ] = GLFW_KEY_KP_DIVIDE;
+    Keys[ k_IncScndCtrlFAST ] = GLFW_KEY_KP_DIVIDE;
+    Keys[ k_DecScndCtrl ] = GLFW_KEY_KP_MULTIPLY;
+    Keys[ k_DecScndCtrlFAST ] = GLFW_KEY_KP_MULTIPLY;
 
-            for (int keycount=0; keycount<MaxKeys; keycount++)
-             {
-              Keys[keycount]=Parser->GetNextSymbol().ToInt();
-             }
+    Keys[ k_IncLocalBrakeLevel ] = GLFW_KEY_KP_1;
+    Keys[ k_DecLocalBrakeLevel ] = GLFW_KEY_KP_7;
+    Keys[ k_IncBrakeLevel ] = GLFW_KEY_KP_3;
+    Keys[ k_DecBrakeLevel ] = GLFW_KEY_KP_9;
+    Keys[ k_Releaser ] = GLFW_KEY_KP_6;
+    Keys[ k_EmergencyBrake ] = GLFW_KEY_KP_0;
+    Keys[ k_Brake3 ] = GLFW_KEY_KP_8;
+    Keys[ k_Brake2 ] = GLFW_KEY_KP_5;
+    Keys[ k_Brake1 ] = GLFW_KEY_KP_2;
+    Keys[ k_Brake0 ] = GLFW_KEY_KP_4;
+    Keys[ k_WaveBrake ] = GLFW_KEY_KP_DECIMAL;
 
-            delete Parser;
-    */
-    //    }
-    //    else
-    {
-        Keys[k_IncMainCtrl] = VK_ADD;
-        Keys[k_IncMainCtrlFAST] = VK_ADD;
-        Keys[k_DecMainCtrl] = VK_SUBTRACT;
-        Keys[k_DecMainCtrlFAST] = VK_SUBTRACT;
-        Keys[k_IncScndCtrl] = VK_DIVIDE;
-        Keys[k_IncScndCtrlFAST] = VK_DIVIDE;
-        Keys[k_DecScndCtrl] = VK_MULTIPLY;
-        Keys[k_DecScndCtrlFAST] = VK_MULTIPLY;
-        ///*NORMALNE
-        Keys[k_IncLocalBrakeLevel] = VK_NUMPAD1; // VK_NUMPAD7;
-        // Keys[k_IncLocalBrakeLevelFAST]=VK_END;  //VK_HOME;
-        Keys[k_DecLocalBrakeLevel] = VK_NUMPAD7; // VK_NUMPAD1;
-        // Keys[k_DecLocalBrakeLevelFAST]=VK_HOME; //VK_END;
-        Keys[k_IncBrakeLevel] = VK_NUMPAD3; // VK_NUMPAD9;
-        Keys[k_DecBrakeLevel] = VK_NUMPAD9; // VK_NUMPAD3;
-        Keys[k_Releaser] = VK_NUMPAD6;
-        Keys[k_EmergencyBrake] = VK_NUMPAD0;
-        Keys[k_Brake3] = VK_NUMPAD8;
-        Keys[k_Brake2] = VK_NUMPAD5;
-        Keys[k_Brake1] = VK_NUMPAD2;
-        Keys[k_Brake0] = VK_NUMPAD4;
-        Keys[k_WaveBrake] = VK_DECIMAL;
-        //*/
-        /*MOJE
-                Keys[k_IncLocalBrakeLevel]=VK_NUMPAD3;  //VK_NUMPAD7;
-                Keys[k_IncLocalBrakeLevelFAST]=VK_NUMPAD3;  //VK_HOME;
-                Keys[k_DecLocalBrakeLevel]=VK_DECIMAL;  //VK_NUMPAD1;
-                Keys[k_DecLocalBrakeLevelFAST]=VK_DECIMAL; //VK_END;
-                Keys[k_IncBrakeLevel]=VK_NUMPAD6;  //VK_NUMPAD9;
-                Keys[k_DecBrakeLevel]=VK_NUMPAD9;   //VK_NUMPAD3;
-                Keys[k_Releaser]=VK_NUMPAD5;
-                Keys[k_EmergencyBrake]=VK_NUMPAD0;
-                Keys[k_Brake3]=VK_NUMPAD2;
-                Keys[k_Brake2]=VK_NUMPAD1;
-                Keys[k_Brake1]=VK_NUMPAD4;
-                Keys[k_Brake0]=VK_NUMPAD7;
-                Keys[k_WaveBrake]=VK_NUMPAD8;
-        */
-        Keys[k_AntiSlipping] = VK_RETURN;
-        Keys[k_Sand] = VkKeyScan('s');
-        Keys[k_Main] = VkKeyScan('m');
-        Keys[k_Active] = VkKeyScan('w');
-        Keys[k_Battery] = VkKeyScan('j');
-        Keys[k_DirectionForward] = VkKeyScan('d');
-        Keys[k_DirectionBackward] = VkKeyScan('r');
-        Keys[k_Fuse] = VkKeyScan('n');
-        Keys[k_Compressor] = VkKeyScan('c');
-        Keys[k_Converter] = VkKeyScan('x');
-        Keys[k_MaxCurrent] = VkKeyScan('f');
-        Keys[k_CurrentAutoRelay] = VkKeyScan('g');
-        Keys[k_BrakeProfile] = VkKeyScan('b');
-        Keys[k_CurrentNext] = VkKeyScan('z');
+    Keys[ k_AntiSlipping ] = GLFW_KEY_KP_ENTER;
+    Keys[ k_Sand ] = 'S';
+    Keys[ k_Main ] = 'M';
+    Keys[ k_Active ] = 'W';
+    Keys[ k_Battery ] = 'J';
+    Keys[ k_DirectionForward ] = 'D';
+    Keys[ k_DirectionBackward ] = 'R';
+    Keys[ k_Fuse ] = 'N';
+    Keys[ k_Compressor ] = 'C';
+    Keys[ k_Converter ] = 'X';
+    Keys[ k_MaxCurrent ] = 'F';
+    Keys[ k_CurrentAutoRelay ] = 'G';
+    Keys[ k_BrakeProfile ] = 'B';
+    Keys[ k_CurrentNext ] = 'Z';
 
-        Keys[k_Czuwak] = VkKeyScan(' ');
-        Keys[k_Horn] = VkKeyScan('a');
-        Keys[k_Horn2] = VkKeyScan('a');
+    Keys[ k_Czuwak ] = ' ';
+    Keys[ k_Horn ] = 'A';
+    Keys[ k_Horn2 ] = 'A';
 
-        Keys[k_FailedEngineCutOff] = VkKeyScan('e');
+    Keys[ k_FailedEngineCutOff ] = 'E';
 
-        Keys[k_MechUp] = VK_PRIOR;
-        Keys[k_MechDown] = VK_NEXT;
-        Keys[k_MechLeft] = VK_LEFT;
-        Keys[k_MechRight] = VK_RIGHT;
-        Keys[k_MechForward] = VK_UP;
-        Keys[k_MechBackward] = VK_DOWN;
+    Keys[ k_MechUp ] = GLFW_KEY_PAGE_UP;
+    Keys[ k_MechDown ] = GLFW_KEY_PAGE_DOWN;
+    Keys[ k_MechLeft ] = GLFW_KEY_LEFT;
+    Keys[ k_MechRight ] = GLFW_KEY_RIGHT;
+    Keys[ k_MechForward ] = GLFW_KEY_UP;
+    Keys[ k_MechBackward ] = GLFW_KEY_DOWN;
 
-        Keys[k_CabForward] = VK_HOME;
-        Keys[k_CabBackward] = VK_END;
+    Keys[ k_CabForward ] = GLFW_KEY_HOME;
+    Keys[ k_CabBackward ] = GLFW_KEY_END;
 
-        Keys[k_Couple] = VK_INSERT;
-        Keys[k_DeCouple] = VK_DELETE;
+    Keys[ k_Couple ] = GLFW_KEY_INSERT;
+    Keys[ k_DeCouple ] = GLFW_KEY_DELETE;
 
-        Keys[k_ProgramQuit] = VK_F10;
-        // Keys[k_ProgramPause]=VK_F3;
-        Keys[k_ProgramHelp] = VK_F1;
-        // Keys[k_FreeFlyMode]=VK_F4;
-        Keys[k_WalkMode] = VK_F5;
+    Keys[ k_ProgramQuit ] = GLFW_KEY_F10;
+    Keys[ k_ProgramHelp ] = GLFW_KEY_F1;
+    Keys[ k_WalkMode ] = GLFW_KEY_F5;
 
-        Keys[k_OpenLeft] = VkKeyScan(',');
-        Keys[k_OpenRight] = VkKeyScan('.');
-        Keys[k_CloseLeft] = VkKeyScan(',');
-        Keys[k_CloseRight] = VkKeyScan('.');
-        Keys[k_DepartureSignal] = VkKeyScan('/');
+    Keys[ k_OpenLeft ] = ',';
+    Keys[ k_OpenRight ] = '.';
+    Keys[ k_CloseLeft ] = ',';
+    Keys[ k_CloseRight ] = '.';
+    Keys[ k_DepartureSignal ] = '/';
 
-        // Winger 160204 - obsluga pantografow
-        Keys[k_PantFrontUp] = VkKeyScan('p'); // Ra: zamieniony przedni z tylnym
-        Keys[k_PantFrontDown] = VkKeyScan('p');
-        Keys[k_PantRearUp] = VkKeyScan('o');
-        Keys[k_PantRearDown] = VkKeyScan('o');
-        // Winger 020304 - ogrzewanie
-        Keys[k_Heating] = VkKeyScan('h');
-        Keys[k_LeftSign] = VkKeyScan('y');
-        Keys[k_UpperSign] = VkKeyScan('u');
-        Keys[k_RightSign] = VkKeyScan('i');
-        Keys[k_EndSign] = VkKeyScan('t');
+    // Winger 160204 - obsluga pantografow
+    Keys[ k_PantFrontUp ] = 'P'; // Ra: zamieniony przedni z tylnym
+    Keys[ k_PantFrontDown ] = 'P';
+    Keys[ k_PantRearUp ] = 'O';
+    Keys[ k_PantRearDown ] = 'O';
+    // Winger 020304 - ogrzewanie
+    Keys[ k_Heating ] = 'H';
+    Keys[ k_LeftSign ] = 'Y';
+    Keys[ k_UpperSign ] = 'U';
+    Keys[ k_RightSign ] = 'I';
+    Keys[ k_EndSign ] = 'T';
 
-        Keys[k_SmallCompressor] = VkKeyScan('v');
-        Keys[k_StLinOff] = VkKeyScan('l');
-        // ABu 090305 - przyciski uniwersalne, do roznych bajerow :)
-        Keys[k_Univ1] = VkKeyScan('[');
-        Keys[k_Univ2] = VkKeyScan(']');
-        Keys[k_Univ3] = VkKeyScan(';');
-        Keys[k_Univ4] = VkKeyScan('\'');
-    }
+    Keys[ k_SmallCompressor ] = 'V';
+    Keys[ k_StLinOff ] = 'L';
+    // ABu 090305 - przyciski uniwersalne, do roznych bajerow :)
+    Keys[ k_Univ1 ] = '[';
+    Keys[ k_Univ2 ] = ']';
+    Keys[ k_Univ3 ] = ';';
+    Keys[ k_Univ4 ] = '\'';
 }
+
 /*
 vector3 Global::GetCameraPosition()
 {

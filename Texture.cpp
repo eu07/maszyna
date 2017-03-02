@@ -17,7 +17,6 @@ http://mozilla.org/MPL/2.0/.
 #include "texture.h"
 
 #include <ddraw.h>
-#include "opengl/glew.h"
 
 #include "usefull.h"
 #include "globals.h"
@@ -639,6 +638,7 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 
     if( true == filename.empty() ) {
         // there's nothing matching in the databank nor on the disk, report failure
+        ErrorLog( "Texture file missing: \"" + Filename + "\"" );
         return npos;
     }
 

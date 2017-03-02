@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "opengl/glew.h"
+#include "gl/glew.h"
 
 enum class resource_state {
     none,

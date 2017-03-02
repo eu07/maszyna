@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "opengl/glew.h"
+#include "gl/glew.h"
 #include "texture.h"
 #include "lightarray.h"
 #include "dumb3d.h"

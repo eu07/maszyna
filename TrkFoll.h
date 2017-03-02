@@ -34,7 +34,7 @@ class TTrackFollower
     ~TTrackFollower();
     TTrack * SetCurrentTrack(TTrack *pTrack, int end);
     bool Move(double fDistance, bool bPrimary);
-    inline TTrack * GetTrack()
+    inline TTrack * GetTrack() const
     {
         return pCurrentTrack;
     };
@@ -43,7 +43,7 @@ class TTrackFollower
         return vAngles.x;
     }; // przechyłka policzona przy ustalaniu pozycji
     //{return pCurrentSegment->GetRoll(fCurrentDistance)*fDirection;}; //zamiast liczyć można pobrać
-    inline double GetDirection()
+    inline double GetDirection() const
     {
         return fDirection;
     }; // zwrot na torze

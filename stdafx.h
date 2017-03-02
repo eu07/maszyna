@@ -58,3 +58,11 @@
 #include <mutex>
 #include <condition_variable>
 #include <typeinfo>
+
+#include "GL/glew.h"
+#ifdef _WINDOWS
+#include "GL/wglew.h"
+#define GLFW_DLL
+#endif
+#define GLFW_INCLUDE_GLU
+#include <GLFW/glfw3.h>

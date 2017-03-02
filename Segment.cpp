@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Segment.h"
-#include "opengl/glew.h"
 
 #include "Globals.h"
 #include "Logs.h"

@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #ifndef Model3dH
 #define Model3dH
 
-#include "opengl/glew.h"
+#include "gl/glew.h"
 #include "Parser.h"
 #include "dumb3d.h"
 #include "Float3d.h"

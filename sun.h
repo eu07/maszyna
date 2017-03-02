@@ -1,8 +1,8 @@
 #pragma once
 
 #include "windows.h"
-#include "opengl/glew.h"
-#include "opengl/wglew.h"
+#include "gl/glew.h"
+#include "gl/wglew.h"
 #include "dumb3d.h"
 
 

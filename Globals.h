@@ -12,7 +12,8 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <Windows.h>
 #include "renderer.h"
-#include "opengl/glew.h"
+#include "gl/glew.h"
+#include "glfw/glfw3.h"
 #include "dumb3d.h"
 
 // definicje klawiszy
@@ -208,7 +209,7 @@ class Global
     // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
     static std::string asHumanCtrlVehicle;
     static void LoadIniFile(std::string asFileName);
-    static void InitKeys(std::string asFileName);
+    static void InitKeys();
     inline static Math3D::vector3 GetCameraPosition()
     {
         return pCameraPosition;
@@ -262,7 +263,9 @@ class Global
     static double fLuminance; // jasność światła do automatycznego zapalania
     static float SunAngle; // angle of the sun relative to horizon
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
-    static HWND hWnd; // uchwyt okna
+    static GLFWwindow *window;
+    static bool shiftState; //m7todo: brzydko 
+    static bool ctrlState; 
     static int ScreenWidth; // current window dimensions. TODO: move it to renderer
     static int ScreenHeight;
     static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer

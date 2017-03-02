@@ -23,8 +23,8 @@ opengl_renderer::Init() {
         light.id = GL_LIGHT1 + idx;
 
         light.position[ 3 ] = 1.0f;
-        ::glLightf( light.id, GL_SPOT_CUTOFF, 20.0f );
-        ::glLightf( light.id, GL_SPOT_EXPONENT, 10.0f );
+        ::glLightf( light.id, GL_SPOT_CUTOFF, 7.5f );
+        ::glLightf( light.id, GL_SPOT_EXPONENT, 7.5f );
         ::glLightf( light.id, GL_CONSTANT_ATTENUATION, 0.0f );
         ::glLightf( light.id, GL_LINEAR_ATTENUATION, 0.035f );
 
@@ -66,7 +66,7 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
         renderlight->ambient[ 1 ] = scenelight.color.y * scenelight.intensity;
         renderlight->ambient[ 2 ] = scenelight.color.z * scenelight.intensity;
 
-        ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, 0.3f / std::pow( scenelight.count, 2 ) );
+        ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, (0.25f * scenelight.count) / std::pow( scenelight.count, 2 ) );
         ::glEnable( renderlight->id );
 
         renderlight->apply_intensity();
