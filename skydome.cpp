@@ -353,10 +353,11 @@ void CSkyDome::RebuildColors() {
 
 		// save
         m_colours[ i ] = color;
-        averagecolor += color;
+        averagecolor += color * 8.0f; // save for edge cases each vertex goes in 8 triangles
 	}
-
-    m_averagecolour = averagecolor / m_vertices.size();
+    // NOTE: average reduced to 25% makes nice tint value for clouds lit from behind
+    // down the road we could interpolate between it and full strength average, to improve accuracy of cloud appearance
+    m_averagecolour = averagecolor / m_indices.size();
     m_averagecolour.x = std::max( m_averagecolour.x, 0.0f );
     m_averagecolour.y = std::max( m_averagecolour.y, 0.0f );
     m_averagecolour.z = std::max( m_averagecolour.z, 0.0f );
