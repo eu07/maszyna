@@ -2616,9 +2616,17 @@ void TTrain::UpdateMechPosition(double dt)
     pMechPosition += DynamicObject->GetPosition();
 
     // framerate-independent speed reduction that doesn't break at high framerates...
-    vMechMovement -= vMechMovement * 50.0 * dt;
-    if( vMechMovement.LengthSquared() < 0.01 ) {
-        vMechMovement = Math3D::vector3();
+    Math3D::vector3 movementslowdown = vMechMovement * 35 * dt;
+    if( movementslowdown.LengthSquared() >= vMechMovement.LengthSquared() ) {
+        // if the reduction vector exceeds speed movement we're running at low fps,
+        // fallback on the old behaviour
+        vMechMovement *= 0.5;
+    }
+    else {
+        vMechMovement -= movementslowdown;
+        if( vMechMovement.LengthSquared() < 0.01 ) {
+            vMechMovement = Math3D::vector3();
+        }
     }
 
 };

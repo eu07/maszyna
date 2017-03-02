@@ -350,7 +350,6 @@ void CSkyDome::RebuildColors() {
             color.y = 0.65f * color.z;
             color = color * ( 1.15f - vertex.y ); // simple gradient, darkening towards the top
         }
-
 		// save
         m_colours[ i ] = color;
         averagecolor += color * 8.0f; // save for edge cases each vertex goes in 8 triangles
