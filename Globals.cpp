@@ -125,6 +125,7 @@ int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
+bool Global::VSync{ true };
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
 float Global::fMouseXScale = 1.5;
 float Global::fMouseYScale = 0.2;
@@ -308,15 +309,18 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bFullScreen = (token == "yes");
+            Parser >> Global::bFullScreen;
+        }
+        else if( token == "vsync" ) {
+
+            Parser.getTokens();
+            Parser >> Global::VSync;
         }
         else if (token == "freefly")
         { // Mczapkie-130302
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bFreeFly = (token == "yes");
+            Parser >> Global::bFreeFly;
             Parser.getTokens(3, false);
             Parser >> Global::pFreeCameraInit[0].x, Global::pFreeCameraInit[0].y,
                 Global::pFreeCameraInit[0].z;
@@ -325,23 +329,20 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bWireFrame = (token == "yes");
+            Parser >> Global::bWireFrame;
         }
         else if (token == "debugmode")
         { // McZapkie! - DebugModeFlag uzywana w mover.pas,
             // warto tez blokowac cheaty gdy false
             Parser.getTokens();
-            Parser >> token;
-            DebugModeFlag = (token == "yes");
+            Parser >> DebugModeFlag;
         }
         else if (token == "soundenabled")
         { // McZapkie-040302 - blokada dzwieku - przyda
             // sie do debugowania oraz na komp. bez karty
             // dzw.
             Parser.getTokens();
-            Parser >> token;
-            Global::bSoundEnabled = (token == "yes");
+            Parser >> Global::bSoundEnabled;
         }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
@@ -349,15 +350,13 @@ void Global::ConfigParse(cParser &Parser)
         { // McZapkie-030402 - logowanie parametrow
             // fizycznych dla kazdego pojazdu z maszynista
             Parser.getTokens();
-            Parser >> token;
-            WriteLogFlag = (token == "yes");
+            Parser >> WriteLogFlag;
         }
         else if (token == "physicsdeactivation")
         { // McZapkie-291103 - usypianie fizyki
 
             Parser.getTokens();
-            Parser >> token;
-            PhysicActivationFlag = (token == "yes");
+            Parser >> PhysicActivationFlag;
         }
         else if (token == "debuglog")
         {
@@ -381,8 +380,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // McZapkie-240403 - czestotliwosc odswiezania ekranu
             Parser.getTokens();
-            Parser >> token;
-            Global::bAdjustScreenFreq = (token == "yes");
+            Parser >> Global::bAdjustScreenFreq;
         }
         else if (token == "mousescale")
         {
@@ -394,15 +392,13 @@ void Global::ConfigParse(cParser &Parser)
         {
             // Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz łamanie
             Parser.getTokens();
-            Parser >> token;
-            Global::bEnableTraction = (token == "yes");
+            Parser >> Global::bEnableTraction;
         }
         else if (token == "loadtraction")
         {
             // Winger 140404 - ladowanie sie trakcji
             Parser.getTokens();
-            Parser >> token;
-            Global::bLoadTraction = (token == "yes");
+            Parser >> Global::bLoadTraction;
         }
         else if (token == "friction")
         { // mnożnik tarcia - KURS90
@@ -415,8 +411,7 @@ void Global::ConfigParse(cParser &Parser)
             // Winger 160404 - zaleznosc napiecia loka od trakcji;
             // Ra 2014-03: teraz prąd przy braku sieci
             Parser.getTokens();
-            Parser >> token;
-            Global::bLiveTraction = (token == "yes");
+            Parser >> Global::bLiveTraction;
         }
         else if (token == "skyenabled")
         {
@@ -429,15 +424,13 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bManageNodes = (token == "yes");
+            Parser >> Global::bManageNodes;
         }
         else if (token == "decompressdds")
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bDecompressDDS = (token == "yes");
+            Parser >> Global::bDecompressDDS;
         }
         else if (token == "defaultext")
         {
@@ -460,8 +453,7 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bnewAirCouplers = (token == "yes");
+            Parser >> Global::bnewAirCouplers;
         }
         else if (token == "defaultfiltering")
         {
@@ -567,8 +559,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // podwójna jasność ambient
             Parser.getTokens();
-            Parser >> token;
-            Global::bDoubleAmbient = (token == "yes");
+            Parser >> Global::bDoubleAmbient;
         }
         else if (token == "movelight")
         {
@@ -594,8 +585,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // podwójna jasność ambient
             Parser.getTokens();
-            Parser >> token;
-            Global::bSmoothTraction = (token == "yes");
+            Parser >> Global::bSmoothTraction;
         }
         else if (token == "timespeed")
         {
@@ -613,8 +603,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // tekst generowany przez GLUT
             Parser.getTokens();
-            Parser >> token;
-            Global::bGlutFont = (token == "yes");
+            Parser >> Global::bGlutFont;
         }
         else if (token == "latitude")
         {
@@ -632,8 +621,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // automatyczna pauza, gdy okno nieaktywne
             Parser.getTokens();
-            Parser >> token;
-            Global::bInactivePause = (token == "yes");
+            Parser >> Global::bInactivePause;
         }
         else if (token == "slowmotion")
         {
@@ -651,22 +639,19 @@ void Global::ConfigParse(cParser &Parser)
         {
             // hunter-271211: ukrywanie konsoli
             Parser.getTokens();
-            Parser >> token;
-            Global::bHideConsole = (token == "yes");
+            Parser >> Global::bHideConsole;
         }
         else if (token == "oldsmudge")
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bOldSmudge = (token == "yes");
+            Parser >> Global::bOldSmudge;
         }
         else if (token == "rollfix")
         {
             // Ra: poprawianie przechyłki, aby wewnętrzna szyna była "pozioma"
             Parser.getTokens();
-            Parser >> token;
-            Global::bRollFix = (token == "yes");
+            Parser >> Global::bRollFix;
         }
         else if (token == "fpsaverage")
         {
@@ -791,8 +776,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // czy grupować eventy o tych samych nazwach
             Parser.getTokens();
-            Parser >> token;
-            Global::bJoinEvents = (token == "yes");
+            Parser >> Global::bJoinEvents;
         }
         else if (token == "hiddenevents")
         {
@@ -837,14 +821,12 @@ void Global::ConfigParse(cParser &Parser)
         // maciek001: ustawienia MWD
 		else if (token == "mwdmasterenable") {         // główne włączenie maszyny!
 			Parser.getTokens();
-			Parser >> token;
-			bMWDmasterEnable = (token == "yes");
+			Parser >> bMWDmasterEnable;
 			if (bMWDdebugEnable) WriteLog("SerialPort Master Enable");
 		}
 		else if (token == "mwddebugenable") {         // logowanie pracy
 			Parser.getTokens();
-			Parser >> token;
-			bMWDdebugEnable = (token == "yes");
+			Parser >> bMWDdebugEnable;
 			if (bMWDdebugEnable) WriteLog("MWD Debug Mode On");
 		}
 		else if (token == "mwddebugmode") {           // co ma być debugowane?
@@ -864,14 +846,12 @@ void Global::ConfigParse(cParser &Parser)
 		}
 		else if (token == "mwdinputenable") {         // włącz wejścia
 			Parser.getTokens();
-			Parser >> token;
-			bMWDInputEnable = (token == "yes");
+			Parser >> bMWDInputEnable;
 			if (bMWDdebugEnable && bMWDInputEnable) WriteLog("MWD Input Enable");
 		}
 		else if (token == "mwdbreakenable") {         // włącz obsługę hamulców
 			Parser.getTokens();
-			Parser >> token;
-			bMWDBreakEnable = (token == "yes");
+			Parser >> bMWDBreakEnable;
 			if (bMWDdebugEnable && bMWDBreakEnable) WriteLog("MWD Break Enable");
 		}
 		else if (token == "mwdmainbreakconfig") {      // ustawienia hamulca zespolonego

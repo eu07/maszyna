@@ -281,7 +281,7 @@ int main( int argc, char *argv[] ) {
         return -1;
     }
     glfwMakeContextCurrent( window );
-    glfwSwapInterval( 0 ); //vsync // NOTE: disabled, as slight drop below refresh rate seems to cause drastic drop in framerate
+    glfwSwapInterval( (Global::VSync ? 1 : 0) ); //vsync
     glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED ); //capture cursor
     glfwSetCursorPos( window, 0.0, 0.0 );
     glfwSetFramebufferSizeCallback( window, window_resize_callback );

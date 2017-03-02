@@ -177,6 +177,7 @@ class Global
     static float fDistanceFactor;
     static int iBpp;
     static bool bFullScreen;
+    static bool VSync;
     static bool bFreeFly;
     // float RunningTime;
     static bool bWireFrame;

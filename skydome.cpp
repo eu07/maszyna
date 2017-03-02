@@ -78,49 +78,44 @@ void CSkyDome::Generate() {
     float const offset = 0.1f * radius; // horizontal offset, a cheap way to prevent a gap between ground and horizon
 
 	// create geometry chunk
-    int const latitudes = m_tesselation / 2;
+    int const latitudes = m_tesselation / 2 / 2; // half-sphere only
     int const longitudes = m_tesselation;
 
     std::uint16_t index = 0;
 
-    for( int i = 0; i < latitudes; ++i ) {
+    for( int i = 0; i <= latitudes; ++i ) {
 
-        float lat0 = M_PI * ( -0.5f + (float)( i ) / latitudes );
-        float z0 = std::sin( lat0 );
-        float zr0 = std::cos( lat0 );
+        float const latitude = M_PI * ( -0.5f + (float)( i ) / latitudes / 2 );  // half-sphere only
+        float const z = std::sin( latitude );
+        float const zr = std::cos( latitude );
 
-        float lat1 = M_PI * ( -0.5f + (float)( i + 1 ) / latitudes );
-        float z1 = std::sin( lat1 );
-        float zr1 = std::cos( lat1 );
+        for( int j = 0; j <= longitudes; ++j ) {
 
-        // quad strip
-        for( int j = 0; j <= longitudes / 2; ++j ) {
+            float const longitude = 2.0 * M_PI * (float)( j ) / longitudes;
+            float const x = std::cos( longitude );
+            float const y = std::sin( longitude );
+/*
+            m_vertices.emplace_back( float3( x * zr, y * zr - offset, z ) * radius );
+            // we aren't using normals, but the code is left here in case it's ever needed
+//            m_normals.emplace_back( float3( x * zr, -y * zr, -z ) );
+*/
+            // cartesian to opengl swap: -x, -z, -y
+            m_vertices.emplace_back( float3( -x * zr, -z - offset, -y * zr ) * radius );
+            m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) ); // placeholder
 
-            float longitude = 2.0 * M_PI * (float)( j ) / longitudes;
-            float x = std::cos( longitude );
-            float y = std::sin( longitude );
-
-            m_vertices.emplace_back( float3( x * zr0, y * zr0 - offset, z0 ) * radius );
-//            m_normals.emplace_back( float3( -x * zr0, -y * zr0, -z0 ) );
-            m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) );
-
-            m_vertices.emplace_back( float3( x * zr1, y * zr1 - offset, z1 ) * radius );
-//            m_normals.emplace_back( float3( -x * zr1, -y * zr1, -z1 ) );
-            m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) );
-
-            if( j == 0 ) {
-                // beginning of the strip, don't start indices yet
-                index += 2;
+            if( (i == 0) || (j == 0) ) {
+                // initial edge of the dome, don't start indices yet
+                ++index;
             }
             else {
-                // indices for two triangles
-                m_indices.emplace_back( index - 2 );
+                // indices for two triangles, formed between current and previous latitude
+                m_indices.emplace_back( index - 1 - (longitudes + 1) );
                 m_indices.emplace_back( index - 1 );
                 m_indices.emplace_back( index );
                 m_indices.emplace_back( index );
-                m_indices.emplace_back( index - 1 );
-                m_indices.emplace_back( index + 1 );
-                index += 2;
+                m_indices.emplace_back( index - ( longitudes + 1 ) );
+                m_indices.emplace_back( index - 1 - ( longitudes + 1 ) );
+                ++index;
             }
         }
     }
@@ -152,6 +147,7 @@ void CSkyDome::Render() {
         ::glGenBuffers( 1, &m_indexbuffer );
         ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
         ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
+        // NOTE: vertex and index source data is superfluous past this point, but, eh
     }
     // begin
     ::glEnableClientState( GL_VERTEX_ARRAY );
