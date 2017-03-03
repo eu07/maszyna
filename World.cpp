@@ -90,22 +90,22 @@ void TWorld::TrainDelete(TDynamicObject *d)
     Global::pUserDynamic = NULL; // tego też nie ma
 };
 
-GLvoid TWorld::glPrint(const char *txt) // custom GL "Print" routine
+GLvoid TWorld::glPrint( std::string const &Text ) // custom GL "Print" routine
 { // wypisywanie tekstu 2D na ekranie
-	//m7todo
-    if (!txt)
+    if (Text.empty())
         return;
+
     if (Global::bGlutFont)
     { // tekst generowany przez GLUT
-        size_t i, len = strlen(txt);
-        for (i = 0; i < len; i++)
-            glutBitmapCharacter(GLUT_BITMAP_8_BY_13, txt[i]);
+        for (size_t i = 0; i < Text.size(); i++)
+            glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Text[i]);
     }
     else
+
     { // generowanie przez Display Lists
         glPushAttrib(GL_LIST_BIT); // pushes the display list bits
         glListBase(base - 32); // sets the base character to 32
-        glCallLists((GLsizei)strlen(txt), GL_UNSIGNED_BYTE, txt); // draws the display list text
+        glCallLists((GLsizei)Text.size(), GL_UNSIGNED_BYTE, Text.c_str()); // draws the display list text
         glPopAttrib(); // pops the display list bits
     }
 }
@@ -257,7 +257,7 @@ bool TWorld::Init(GLFWwindow *w)
     glLoadIdentity();
 
     glClearDepth( 1.0f ); // ZBuffer Value
-    glClearColor( 51.0f / 255.0f, 106.0f / 255.0f, 85.0f / 255.0f, 1.0f ); // Background Color
+    glClearColor( 51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f ); // Background Color
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); // Clear screen and depth buffer
 
     glEnable(GL_TEXTURE_2D); // Enable Texture Mapping
@@ -407,73 +407,46 @@ bool TWorld::Init(GLFWwindow *w)
     glTexCoord2f(0.0f, 1.0f);
     glVertex2f( -widthratio, 1.0f ); // top left of the texture and quad
     glEnd();
-    //~logo; Ra: to jest bez sensu zapis
-    glColor3f(0.0f, 0.0f, 1.0f);
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f(-0.85f * widthratio, -0.25f);
-        glPrint("Uruchamianie / Initializing...");
-        glRasterPos2f(-0.85f * widthratio, -0.30f);
-        glPrint("Dzwiek / Sound...");
-    }
-	glfwSwapBuffers(window);
+
+    glColor3f(0.0f, 0.0f, 0.0f);
+    glRasterPos2f(-0.85f * widthratio, -0.25f);
+    glPrint("Uruchamianie / Initializing...");
+    glfwSwapBuffers( window );
+
     /*-----------------------Sound Initialization-----------------------*/
+    glRasterPos2f( -0.85f * widthratio, -0.30f );
+    glPrint( "Dzwiek / Sound..." );
 
-    TSoundsManager::Init(glfwGetWin32Window(window));
-
-    // TSoundsManager::LoadSounds( "" );
-    /*---------------------Sound Initialization End---------------------*/
+    TSoundsManager::Init( glfwGetWin32Window( window ) );
     WriteLog("Sound Init OK");
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f(-0.25f * widthratio, -0.30f);
-        glPrint("OK.");
-    }
-    
-	glfwSwapBuffers(window);
+    glRasterPos2f(-0.25f * widthratio, -0.30f);
+    glPrint("OK.");
+    glfwSwapBuffers( window );
+    /*---------------------Sound Initialization End---------------------*/
 
-    Paused = true;
     WriteLog("Textures init");
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f(-0.85f * widthratio, -0.35f);
-        glPrint("Tekstury / Textures...");
-    }
-	glfwSwapBuffers(window);
-
+    glRasterPos2f(-0.85f * widthratio, -0.35f);
+    glPrint("Tekstury / Textures...");
+    glfwSwapBuffers( window );
     WriteLog("Textures init OK");
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f( -0.25f * widthratio, -0.35f );
-        glPrint("OK.");
-    }
-	glfwSwapBuffers(window);
+    glRasterPos2f( -0.25f * widthratio, -0.35f );
+    glPrint("OK.");
+    glfwSwapBuffers( window );
 
     WriteLog("Models init");
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f( -0.85f * widthratio, -0.40f );
-        glPrint("Modele / Models...");
-    }
-	glfwSwapBuffers(window);
-    // McZapkie: dodalem sciezke zeby mozna bylo definiowac skad brac modele ale to malo eleganckie
-    //    TModelsManager::LoadModels(asModelsPatch);
+    glRasterPos2f( -0.85f * widthratio, -0.40f );
+    glPrint("Modele / Models...");
+    glfwSwapBuffers( window );
     TModelsManager::Init();
     WriteLog("Models init OK");
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f( -0.25f * widthratio, -0.40f );
-        glPrint("OK.");
-    }
-	glfwSwapBuffers(window);
+    glRasterPos2f( -0.25f * widthratio, -0.40f );
+    glPrint("OK.");
+    glfwSwapBuffers( window );
 
     WriteLog("Ground init");
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f( -0.85f * widthratio, -0.45f );
-        glPrint("Sceneria / Scenery (please wait)...");
-    }
-	glfwSwapBuffers(window);
+    glRasterPos2f( -0.85f * widthratio, -0.45f );
+    glPrint("Sceneria / Scenery (please wait)...");
+    glfwSwapBuffers( window );
 
 #ifndef EU07_USE_OLD_LIGHTING_MODEL
     // setup lighting
@@ -496,12 +469,10 @@ bool TWorld::Init(GLFWwindow *w)
     //    Global::tSinceStart= 0;
     Environment.init();
     WriteLog("Ground init OK");
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f( -0.25f * widthratio, -0.45f );
-        glPrint("OK.");
-    }
-	glfwSwapBuffers(window);
+    glRasterPos2f( -0.25f * widthratio, -0.45f );
+    glColor3f( 0.0f, 0.0f, 0.0f );
+    glPrint( "OK." );
+    glfwSwapBuffers( window );
 
     //    TTrack *Track=Ground.FindGroundNode("train_start",TP_TRACK)->pTrack;
 
@@ -513,12 +484,10 @@ bool TWorld::Init(GLFWwindow *w)
     Camera.Init(Global::pFreeCameraInit[0], Global::pFreeCameraInitAngle[0]);
 
     char buff[255] = "Player train init: ";
-    if (Global::detonatoryOK)
-    {
-        glRasterPos2f( -0.85f * widthratio, -0.50f );
-        glPrint("Przygotowanie kabiny do sterowania...");
-    }
-	glfwSwapBuffers(window);
+    glRasterPos2f( -0.85f * widthratio, -0.50f );
+    glColor3f( 0.0f, 0.0f, 0.0f );
+    glPrint( "Przygotowanie kabiny do sterowania..." );
+    glfwSwapBuffers( window );
 
     strcat(buff, Global::asHumanCtrlVehicle.c_str());
     WriteLog(buff);
@@ -534,11 +503,9 @@ bool TWorld::Init(GLFWwindow *w)
             mvControlled = Controlled->ControlledFind()->MoverParameters;
             Global::pUserDynamic = Controlled; // renerowanie pojazdu względem kabiny
             WriteLog("Player train init OK");
-            if (Global::detonatoryOK)
-            {
-                glRasterPos2f( -0.25f * widthratio, -0.50f );
-                glPrint("OK.");
-            }
+            glRasterPos2f( -0.25f * widthratio, -0.50f );
+            glColor3f( 0.0f, 0.0f, 0.0f );
+            glPrint( "OK." );
             FollowView();
 			glfwSwapBuffers(window);
         }
@@ -546,12 +513,10 @@ bool TWorld::Init(GLFWwindow *w)
         {
             Error("Player train init failed!");
             FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-            if (Global::detonatoryOK)
-            {
-                glRasterPos2f( -0.85f * widthratio, -0.50f );
-                glPrint("Blad inicjalizacji sterowanego pojazdu!");
-            }
-			glfwSwapBuffers(window);
+            glRasterPos2f( -0.85f * widthratio, -0.50f );
+            glColor3f( 0.0f, 0.0f, 0.0f );
+            glPrint( "Blad inicjalizacji sterowanego pojazdu!" );
+            glfwSwapBuffers( window );
             Controlled = NULL;
             mvControlled = NULL;
             Camera.Type = tp_Free;
@@ -562,11 +527,9 @@ bool TWorld::Init(GLFWwindow *w)
         if (Global::asHumanCtrlVehicle != "ghostview")
         {
             Error("Player train not exist!");
-            if (Global::detonatoryOK)
-            {
-                glRasterPos2f( -0.85f * widthratio, -0.55f );
-                glPrint("Wybrany pojazd nie istnieje w scenerii!");
-            }
+            glRasterPos2f( -0.85f * widthratio, -0.55f );
+            glColor3f( 0.0f, 0.0f, 0.0f );
+            glPrint( "Wybrany pojazd nie istnieje w scenerii!" );
         }
         FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
 		glfwSwapBuffers(window);
@@ -666,11 +629,11 @@ void TWorld::OnKeyDown(int cKey)
             case GLFW_KEY_F1: {
                 if( DebugModeFlag ) {
                     // additional time speedup keys in debug mode
-                    if(Global::ctrlState) {
+                    if (Global::ctrlState) {
                         // ctrl-f3
                         GlobalTime->UpdateMTableTime( 20.0 * 60.0 );
                     }
-                    else if(Global::shiftState) {
+                    else if (Global::shiftState) {
                         // shift-f3
                         GlobalTime->UpdateMTableTime( 5.0 * 60.0 );
                     }
@@ -708,7 +671,8 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case GLFW_KEY_F4: {
-                InOutKey();
+
+                InOutKey( !Global::shiftState ); // distant view with Shift, short distance step out otherwise
                 break;
             }
             case GLFW_KEY_F5: {
@@ -721,7 +685,7 @@ void TWorld::OnKeyDown(int cKey)
                 // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
                 if( DebugModeFlag ) { 
 
-                    if( Global::ctrlState ) { Global::fTimeSpeed = (Global::shiftState ? 60.0 : 20.0 ); }
+                    if( Global::ctrlState ) { Global::fTimeSpeed = ( Global::shiftState ? 60.0 : 20.0 ); }
                     else                                 { Global::fTimeSpeed = ( Global::shiftState ? 5.0 : 1.0 ); }
                 }
                 break;
@@ -740,7 +704,7 @@ void TWorld::OnKeyDown(int cKey)
                 if( Global::iTextMode == cKey ) {
                     Global::iTextMode =
                         ( Global::iPause && ( cKey != GLFW_KEY_F1 ) ?
-							GLFW_KEY_F1 :
+                            GLFW_KEY_F1 :
                             0 ); // wyłączenie napisów, chyba że pauza
                 }
                 else {
@@ -824,7 +788,7 @@ void TWorld::OnKeyDown(int cKey)
             if (temp)
             {
                 if (Global::shiftState ? temp->MoverParameters->IncBrakeMult() :
-                                                 temp->MoverParameters->DecBrakeMult())
+                                         temp->MoverParameters->DecBrakeMult())
                     if (Train)
                     { // dźwięk oczywiście jest w kabinie
                         Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
@@ -925,7 +889,7 @@ void TWorld::OnMouseMove(double x, double y)
     Camera.OnCursorMove(x * Global::fMouseXScale / Global::ZoomFactor, -y * Global::fMouseYScale / Global::ZoomFactor);
 }
 
-void TWorld::InOutKey()
+void TWorld::InOutKey( bool const Near )
 { // przełączenie widoku z kabiny na zewnętrzny i odwrotnie
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
     if (FreeFlyModeFlag)
@@ -935,7 +899,7 @@ void TWorld::InOutKey()
         { // Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
             Train->Silence(); // wyłączenie dźwięków kabiny
             Train->Dynamic()->bDisplayCab = false;
-            DistantView();
+            DistantView( Near );
         }
     }
     else
@@ -955,26 +919,39 @@ void TWorld::InOutKey()
     }
 };
 
-void TWorld::DistantView()
+// places camera outside the controlled vehicle, or nearest if nothing is under control
+// depending on provided switch the view is placed right outside, or at medium distance
+void TWorld::DistantView( bool const Near )
 { // ustawienie widoku pojazdu z zewnątrz
-    if (Controlled) // jest pojazd do prowadzenia?
-    { // na prowadzony
+
+    TDynamicObject const *vehicle{ nullptr };
+         if( nullptr != Controlled )      { vehicle = Controlled; }
+    else if( nullptr != pDynamicNearest ) { vehicle = pDynamicNearest; }
+    else                                  { return; }
+
+    auto const cab =
+        ( vehicle->MoverParameters->ActiveCab == 0 ?
+            1 :
+            vehicle->MoverParameters->ActiveCab );
+    auto const left = vehicle->VectorLeft() * cab;
+
+    if( true == Near ) {
+
         Camera.Pos =
-            Controlled->GetPosition() +
-            (Controlled->MoverParameters->ActiveCab >= 0 ? 30 : -30) * Controlled->VectorFront() +
-            vector3(0, 5, 0);
-        Camera.LookAt = Controlled->GetPosition();
-        Camera.RaLook(); // jednorazowe przestawienie kamery
+            vector3( Camera.Pos.x, vehicle->GetPosition().y, Camera.Pos.z )
+            + left * vehicle->GetWidth()
+            + vector3( 1.25 * left.x, 1.6, 1.25 * left.z );
     }
-    else if (pDynamicNearest) // jeśli jest pojazd wykryty blisko
-    { // patrzenie na najbliższy pojazd
-        Camera.Pos = pDynamicNearest->GetPosition() +
-                     (pDynamicNearest->MoverParameters->ActiveCab >= 0 ? 30 : -30) *
-                         pDynamicNearest->VectorFront() +
-                     vector3(0, 5, 0);
-        Camera.LookAt = pDynamicNearest->GetPosition();
-        Camera.RaLook(); // jednorazowe przestawienie kamery
+    else {
+
+        Camera.Pos =
+            vehicle->GetPosition()
+            + vehicle->VectorFront() * vehicle->MoverParameters->ActiveCab * 50.0
+            + vector3( -10.0 * left.x, 1.6, -10.0 * left.z );
     }
+
+    Camera.LookAt = vehicle->GetPosition();
+    Camera.RaLook(); // jednorazowe przestawienie kamery
 };
 
 void TWorld::FollowView(bool wycisz)
@@ -1130,20 +1107,7 @@ bool TWorld::Update()
         int n = int(iter); // ile kroków jako int
         fTimeBuffer -= iter * fMaxDt; // reszta czasu na potem (do bufora)
         if (n > 20)
-            n = 20; // Ra: jeżeli FPS jest zatrważająco niski, to fizyka nie może zająć całkowicie
-// procesora
-#if 0
-  Ground.UpdatePhys(fMaxDt,n); //Ra: teraz czas kroku jest (względnie) stały
-  if (DebugModeFlag)
-   if (Global::bActive) //nie przyspieszać, gdy jedzie w tle :)
-    if (GetAsyncKeyState(GLFW_KEY_ESCAPE)<0)
-    {//yB dodał przyspieszacz fizyki
-     Ground.UpdatePhys(fMaxDt,n);
-     Ground.UpdatePhys(fMaxDt,n);
-     Ground.UpdatePhys(fMaxDt,n);
-     Ground.UpdatePhys(fMaxDt,n); //w sumie 5 razy
-    }
-#endif
+            n = 20; // Ra: jeżeli FPS jest zatrważająco niski, to fizyka nie może zająć całkowicie procesora
     }
     // awaria PoKeys mogła włączyć pauzę - przekazać informację
     if (Global::iMultiplayer) // dajemy znać do serwera o wykonaniu
@@ -1216,7 +1180,7 @@ TWorld::Update_Camera( double const Deltatime )
 {
     // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
 
-    if( glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS ) {
+    if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
         Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
         // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
         // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
@@ -1242,14 +1206,14 @@ TWorld::Update_Camera( double const Deltatime )
         if( FreeFlyModeFlag )
             Camera.RaLook(); // jednorazowe przestawienie kamery
     }
-    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) { //||Console::Pressed(VK_F4))
+    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) { //||Console::Pressed(VK_F4))
         FollowView( false ); // bez wyciszania dźwięków
     }
-    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
+    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) == GLFW_PRESS ) {
         // middle mouse button controls zoom.
-        Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>(Deltatime) );
+        Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>( Deltatime ) );
     }
-    else if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) != GLFW_PRESS) {
+    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) != GLFW_PRESS ) {
         // reset zoom level if the button is no longer held down.
         // NOTE: yes, this is terrible way to go about it. it'll do for now.
         Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
@@ -1276,15 +1240,6 @@ TWorld::Update_Camera( double const Deltatime )
                 Console::Pressed( Global::Keys[ k_MechRight ] ) ) :
                 false ) { // jeśli lusterko lewe albo prawe (bez rzucania na razie)
                 bool lr = Console::Pressed( Global::Keys[ k_MechLeft ] );
-#if 0
-                Camera.Pos = Train->MirrorPosition( lr ); //robocza wartość
-                if( Controlled->MoverParameters->ActiveCab<0 ) lr = !lr; //w drugiej kabinie odwrotnie jest środek
-                Camera.LookAt = Controlled->GetPosition() + vector3( lr ? 2.0 : -2.0, Camera.Pos.y, 0 ); //trochę na zewnątrz, użyć szerokości pojazdu
-                //Camera.LookAt=Train->pMechPosition+Train->GetDirection()*Train->Dynamic()->MoverParameters->ActiveCab;
-                Camera.Pos += Controlled->GetPosition();
-                //Camera.RaLook(); //jednorazowe przestawienie kamery
-                Camera.Yaw = 0; //odchylenie na bok od Camera.LookAt
-#else
                 // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
                 Camera.Pos =
                     Controlled->GetPosition() + Train->MirrorPosition( lr ); // pozycja lusterka
@@ -1305,7 +1260,6 @@ TWorld::Update_Camera( double const Deltatime )
                     Global::SetCameraRotation( M_PI -
                         modelrotate ); // tu już trzeba uwzględnić lusterka
                 }
-#endif
                 Camera.Roll =
                     atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
                 Camera.Pitch =
@@ -1463,7 +1417,7 @@ bool TWorld::Render()
     glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
     glLoadIdentity(); // reset the Projection Matrix
     // calculate the aspect ratio of the window
-    gluPerspective( Global::FieldOfView / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
+    gluPerspective( Global::FieldOfView / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / std::max((GLdouble)Global::ScreenHeight, 1.0), 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
 
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();
@@ -1765,7 +1719,7 @@ TWorld::Render_UI() {
     glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
     glLoadIdentity(); // reset the Projection Matrix
     // calculate the aspect ratio of the window
-    gluPerspective( 45.0f, (GLdouble)Global::ScreenWidth / (GLdouble)Global::ScreenHeight, 0.2f, 2500.0f );
+    gluPerspective( 45.0f, (GLdouble)Global::ScreenWidth / std::max((GLdouble)Global::ScreenHeight, 1.0), 0.2f, 2500.0f );
     glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
     glLoadIdentity();
 
@@ -1931,7 +1885,7 @@ TWorld::Render_UI() {
     glTranslatef( 0.0f, 0.0f, -0.50f );
 
     if( Global::iTextMode == GLFW_KEY_F1 ) { // tekst pokazywany po wciśnięciu [F1]
-        // Global::iViewMode=GLFW_KEY_F1;
+        // Global::iViewMode=VK_F1;
         glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
         OutText1 =
             "Time: "
@@ -2291,7 +2245,7 @@ TWorld::Render_UI() {
         */
     }
     else if( Global::iTextMode == GLFW_KEY_F10 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-        // Global::iViewMode=GLFW_KEY_F10;
+        // Global::iViewMode=VK_F10;
         // return false;
         OutText1 = ( "To quit press [Y] key." );
         OutText3 = ( "Aby zakonczyc program, przycisnij klawisz [Y]." );
@@ -2488,9 +2442,9 @@ TWorld::Render_UI() {
     // ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
     if( Global::detonatoryOK ) {
-        // if (Console::Pressed(GLFW_KEY_F9)) ShowHints(); //to nie działa prawidłowo - prosili wyłączyć
+        // if (Console::Pressed(VK_F9)) ShowHints(); //to nie działa prawidłowo - prosili wyłączyć
         if( Global::iTextMode == GLFW_KEY_F9 ) { // informacja o wersji, sposobie wyświetlania i błędach OpenGL
-            // Global::iViewMode=GLFW_KEY_F9;
+            // Global::iViewMode=VK_F9;
             OutText1 = Global::asVersion; // informacja o wersji
             OutText2 = std::string( "Rendering mode: " ) + ( Global::bUseVBO ? "VBO" : "Display Lists" );
             if( Global::iMultiplayer )
@@ -2973,6 +2927,8 @@ world_environment::update() {
 
 void
 world_environment::render() {
+
+    GfxRenderer.Bind( 0 );
 
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_FOG );

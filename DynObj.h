@@ -444,7 +444,7 @@ public: // modele składowe pojazdu
     {
         return vUp;
     };
-    inline vector3 VectorLeft()
+    inline vector3 VectorLeft() const
     {
         return vLeft;
     };
@@ -460,7 +460,7 @@ public: // modele składowe pojazdu
     {
         return MoverParameters->Dim.L;
     };
-    inline double GetWidth()
+    inline double GetWidth() const
     {
         return MoverParameters->Dim.W;
     };
@@ -473,7 +473,7 @@ public: // modele składowe pojazdu
     // McZapkie-260202
     void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
 
-    inline double ABuGetDirection() // ABu.
+    inline double ABuGetDirection() const // ABu.
     {
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection());
     };

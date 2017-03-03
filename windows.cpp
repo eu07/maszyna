@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "World.h"
 
 #pragma warning (disable: 4091)
 #include <dbghelp.h>
@@ -44,3 +45,27 @@ LONG CALLBACK unhandled_handler(::EXCEPTION_POINTERS* e)
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
+
+HWND Hwnd;
+WNDPROC BaseWindowProc;
+PCOPYDATASTRUCT pDane;
+extern TWorld World;
+
+LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
+                         UINT uMsg, // message for this window
+                         WPARAM wParam, // additional message information
+                         LPARAM lParam) // additional message information
+{
+    switch( uMsg ) // check for windows messages
+    {
+        case WM_COPYDATA: {
+            // obsługa danych przesłanych przez program sterujący
+            pDane = (PCOPYDATASTRUCT)lParam;
+            if( pDane->dwData == 'EU07' ) // sygnatura danych
+                World.OnCommandGet( (DaneRozkaz *)( pDane->lpData ) );
+            break;
+        }
+    }
+    // pass all unhandled messages to DefWindowProc
+    return CallWindowProc( BaseWindowProc, Hwnd, uMsg, wParam, lParam );
+};

@@ -323,7 +323,7 @@ class TGround
     TGround();
     ~TGround();
     void Free();
-    bool Init(std::string asFile);
+    bool Init( std::string File );
     void FirstInit();
     void InitTracks();
     void InitTraction();

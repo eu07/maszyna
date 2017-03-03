@@ -671,7 +671,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
 							dsbSwitch->Play(0, 0, 0); // dźwięk tylko po naciśnięciu klawisza
                         }
         }
-		else if (cKey == VkKeyScan('q')) // ze Shiftem - włączenie AI
+		else if (cKey == GLFW_KEY_Q) // ze Shiftem - włączenie AI
         { // McZapkie-240302 - wlaczanie automatycznego pilota (zadziala tylko w
             // trybie debugmode)
             if (DynamicObject->Mechanik)
@@ -1661,7 +1661,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
         }
         // McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode
         // mozna tylko raz)
-        else if (cKey == VkKeyScan('q')) // bez Shift
+        else if (cKey == GLFW_KEY_Q) // bez Shift
         {
             if (DynamicObject->Mechanik)
                 DynamicObject->Mechanik->TakeControl(false);
@@ -2382,7 +2382,7 @@ if
         {
             // McZapkie: poruszanie sie po kabinie, w updatemechpos zawarte sa wiezy
 
-            auto step = 60.0f *  Timer::GetDeltaTime();
+            auto step = 1.5f;
             auto const camerayaw = Global::pCamera->Yaw;
             Math3D::vector3 direction( 0.0f, 0.0f, step );
             direction.RotateY( camerayaw );
@@ -2396,7 +2396,7 @@ if
                 right *= -1.0f;
             }
             //        if (!GetAsyncKeyState(VK_SHIFT)<0)         // bez shifta
-            if (!(Global::ctrlState)) // gdy [Ctrl] zwolniony (dodatkowe widoki)
+            if (!Global::ctrlState) // gdy [Ctrl] zwolniony (dodatkowe widoki)
             {
                 if (cKey == Global::Keys[k_MechLeft])
                 {
@@ -2441,7 +2441,7 @@ if
         if (DebugModeFlag)
         { // przesuwanie składu o 100m
             TDynamicObject *d = DynamicObject;
-            if (cKey == VkKeyScan('['))
+            if (cKey == GLFW_KEY_LEFT_BRACKET)
             {
                 while (d)
                 {
@@ -2455,7 +2455,7 @@ if
                     d = d->Prev(); // w drugą stronę też
                 }
             }
-            else if (cKey == VkKeyScan(']'))
+            else if (cKey == GLFW_KEY_RIGHT_BRACKET)
             {
                 while (d)
                 {
@@ -2470,12 +2470,12 @@ if
                 }
             }
         }
-        if (cKey == VkKeyScan('-'))
+        if (cKey == GLFW_KEY_MINUS)
         { // zmniejszenie numeru kanału radiowego
             if (iRadioChannel > 0)
                 --iRadioChannel; // 0=wyłączony
         }
-        else if (cKey == VkKeyScan('='))
+        else if (cKey == GLFW_KEY_EQUAL)
         { // zmniejszenie numeru kanału radiowego
             if (iRadioChannel < 8)
                 ++iRadioChannel; // 0=wyłączony
@@ -2546,6 +2546,7 @@ void TTrain::UpdateMechPosition(double dt)
 //            shake *= 1.25;
         }
         vMechVelocity -= (shake + vMechVelocity * 100) * (fMechSpringX + fMechSpringY + fMechSpringZ) / (200);
+//        vMechVelocity -= vMechVelocity * iVel * dt;
 //        shake *= 0.95 * dt; // shake damping
 
         // McZapkie:
@@ -2556,15 +2557,15 @@ void TTrain::UpdateMechPosition(double dt)
             vMechVelocity.y = -vMechVelocity.y;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
         pNewMechPosition = pMechOffset + vector3(1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z);
-        vMechMovement = 0.5 * vMechMovement;
+//        vMechMovement = 0.5 * vMechMovement;
     }
     else
     { // hamowanie rzucania przy spadku FPS
         pMechShake -= pMechShake * std::min(dt, 1.0); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
         pMechOffset += vMechMovement * dt;
-        vMechVelocity.y = 0.5 * vMechVelocity.y;
+        vMechVelocity.y -= vMechVelocity.y * 50.0 * dt;
         pNewMechPosition = pMechOffset + vector3(pMechShake.x, 5 * pMechShake.y, pMechShake.z);
-        vMechMovement = 0.5 * vMechMovement;
+//        vMechMovement = 0.5 * vMechMovement;
     }
     // numer kabiny (-1: kabina B)
     if (DynamicObject->Mechanik) // może nie być?
@@ -2611,6 +2612,21 @@ void TTrain::UpdateMechPosition(double dt)
     pMechPosition = DynamicObject->mMatrix *
                     pNewMechPosition; // położenie względem środka pojazdu w układzie scenerii
     pMechPosition += DynamicObject->GetPosition();
+
+    // framerate-independent speed reduction that doesn't break at high framerates...
+    Math3D::vector3 movementslowdown = vMechMovement * 35 * dt;
+    if( movementslowdown.LengthSquared() >= vMechMovement.LengthSquared() ) {
+        // if the reduction vector exceeds speed movement we're running at low fps,
+        // fallback on the old behaviour
+        vMechMovement *= 0.5;
+    }
+    else {
+        vMechMovement -= movementslowdown;
+        if( vMechMovement.LengthSquared() < 0.01 ) {
+            vMechMovement = Math3D::vector3();
+        }
+    }
+
 };
 
 bool TTrain::Update( double const Deltatime )
@@ -5039,10 +5055,10 @@ bool TTrain::Update( double const Deltatime )
             //światło wewnętrzne przygaszone (255 216 176)
             if( mvOccupied->ConverterFlag == true ) {
                 // jasnosc dla zalaczonej przetwornicy
-                DynamicObject->InteriorLightLevel = 0.75f;
+                DynamicObject->InteriorLightLevel = 0.4f;
             }
             else {
-                DynamicObject->InteriorLightLevel = 0.375f;
+                DynamicObject->InteriorLightLevel = 0.2f;
             }
             break;
         }

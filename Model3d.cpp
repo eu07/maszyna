@@ -1800,7 +1800,7 @@ void TModel3d::SaveToBinFile(char const *FileName)
 	Root->RaArrayFill(m_pVNT);
 	sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
 	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
-	for (size_t i = 0; i < iNumVerts; i++)
+	for (size_t i = 0; i < (size_t)iNumVerts; i++)
 		m_pVNT[i].serialize(s);
 
 	if (textures.size())

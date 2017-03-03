@@ -67,6 +67,7 @@ Debug/
 tmp/
 bin/
 ipch/
+ref/
 *.aps
 
 builds/

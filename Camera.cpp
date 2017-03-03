@@ -61,7 +61,7 @@ void TCamera::OnCursorMove(double x, double y)
 void TCamera::Update()
 {
     // ABu: zmiana i uniezaleznienie predkosci od FPS
-    double a = (Global::shiftState ? 5.00 : 1.00);
+    double a = ( Global::shiftState ? 5.00 : 1.00);
     if (Global::ctrlState)
         a = a * 100;
     //    OldVelocity=Velocity;
@@ -75,40 +75,6 @@ void TCamera::Update()
             Velocity.y += a;
         if (Console::Pressed(Global::Keys[k_MechDown]))
             Velocity.y -= a;
-        // McZapkie-170402: zeby nie bylo konfliktow
-        /*
-                if (Console::Pressed(VkKeyScan('d')))
-                    Velocity.x+= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('a')))
-                    Velocity.x-= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('w')))
-                    Velocity.z-= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('s')))
-                    Velocity.z+= a*Timer::GetDeltaTime();
-
-                if (Console::Pressed(GLFW_KEY_KP_4) || Console::Pressed(GLFW_KEY_KP_7) ||
-           Console::Pressed(GLFW_KEY_KP_1))
-                    Yaw+= +1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(GLFW_KEY_KP_6) || Console::Pressed(GLFW_KEY_KP_9) ||
-           Console::Pressed(GLFW_KEY_KP_3))
-                    Yaw+= -1*M_PI*Timer::GetDeltaTime();
-
-                if (Pressed(GLFW_KEY_KP_2) || Console::Pressed(GLFW_KEY_KP_1) ||
-           Console::Pressed(GLFW_KEY_KP_3))
-                    Pitch+= -1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(GLFW_KEY_KP_8) || Console::Pressed(GLFW_KEY_KP_7) ||
-           Console::Pressed(GLFW_KEY_KP_9))
-                    Pitch+= +1*M_PI*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('.')))
-                    Roll+= -1*M_PI*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan(',')))
-                    Roll+= +1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(GLFW_KEY_KP_5))
-                    Pitch=Roll= 0.0f;
-        */
 
         // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
         if (Console::Pressed(Global::Keys[k_MechRight]))

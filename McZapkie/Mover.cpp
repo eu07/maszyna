@@ -3005,98 +3005,105 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     //      if (Hamulec is typeid(TWest)) return 0;
 
-    switch (BrakeValve)
-    {
-    case W:
-    {
-        if (BrakeLocHandle != NoHandle)
+    switch (BrakeValve) {
+
+        case K:
+        case W: {
+
+            if( BrakeLocHandle != NoHandle ) {
+                LocBrakePress = LocHandle->GetCP();
+
+                //(Hamulec as TWest).SetLBP(LocBrakePress);
+                Hamulec->SetLBP( LocBrakePress );
+            }
+            if( MBPM < 2 )
+                //(Hamulec as TWest).PLC(MaxBrakePress[LoadFlag])
+                Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+            else
+                //(Hamulec as TWest).PLC(TotalMass);
+                Hamulec->PLC( TotalMass );
+            break;
+        }
+
+        case LSt:
+        case EStED: {
+
+            LocBrakePress = LocHandle->GetCP();
+            for( int b = 0; b < 2; b++ )
+                if( ( ( TrainType & ( dt_ET41 | dt_ET42 ) ) != 0 ) &&
+                    ( Couplers[ b ].Connected != NULL ) ) // nie podoba mi się to rozwiązanie, chyba trzeba
+                    // dodać jakiś wpis do fizyki na to
+                    if( ( ( Couplers[ b ].Connected->TrainType & ( dt_ET41 | dt_ET42 ) ) != 0 ) &&
+                        ( ( Couplers[ b ].CouplingFlag & 36 ) == 36 ) )
+                        LocBrakePress = Max0R( Couplers[ b ].Connected->LocHandle->GetCP(), LocBrakePress );
+
+            //if ((DynamicBrakeFlag) && (EngineType == ElectricInductionMotor))
+            //{
+            //    //if (Vel > 10)
+            //    //    LocBrakePress = 0;
+            //    //else if (Vel > 5)
+            //    //    LocBrakePress = (10 - Vel) / 5 * LocBrakePress;
+            //}
+
+            //(Hamulec as TLSt).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            if( ( BrakeValve == EStED ) )
+                if( MBPM < 2 )
+                    Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+                else
+                    Hamulec->PLC( TotalMass );
+            break;
+        }
+
+        case CV1_L_TR:
         {
             LocBrakePress = LocHandle->GetCP();
-
-            //(Hamulec as TWest).SetLBP(LocBrakePress);
-            Hamulec->SetLBP(LocBrakePress);
+            //(Hamulec as TCV1L_TR).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            break;
         }
-        if (MBPM < 2)
-            //(Hamulec as TWest).PLC(MaxBrakePress[LoadFlag])
-            Hamulec->PLC(MaxBrakePress[LoadFlag]);
-        else
-            //(Hamulec as TWest).PLC(TotalMass);
-            Hamulec->PLC(TotalMass);
-        break;
-    }
 
-    case LSt:
-    case EStED:
-    {
-        LocBrakePress = LocHandle->GetCP();
-        for (int b = 0; b < 2; b++)
-            if (((TrainType & (dt_ET41 | dt_ET42)) != 0) &&
-                (Couplers[b].Connected != NULL)) // nie podoba mi się to rozwiązanie, chyba trzeba
-                                                 // dodać jakiś wpis do fizyki na to
-                if (((Couplers[b].Connected->TrainType & (dt_ET41 | dt_ET42)) != 0) &&
-                    ((Couplers[b].CouplingFlag & 36) == 36))
-                    LocBrakePress = Max0R(Couplers[b].Connected->LocHandle->GetCP(), LocBrakePress);
-
-        //if ((DynamicBrakeFlag) && (EngineType == ElectricInductionMotor))
-        //{
-        //    //if (Vel > 10)
-        //    //    LocBrakePress = 0;
-        //    //else if (Vel > 5)
-        //    //    LocBrakePress = (10 - Vel) / 5 * LocBrakePress;
-        //}
-
-        //(Hamulec as TLSt).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-		if ((BrakeValve == EStED))
-			if (MBPM < 2)
-				Hamulec->PLC(MaxBrakePress[LoadFlag]);
-			else
-				Hamulec->PLC(TotalMass);
-		break;
-    }
-
-    case CV1_L_TR:
-    {
-        LocBrakePress = LocHandle->GetCP();
-        //(Hamulec as TCV1L_TR).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-        break;
-    }
-
-    case EP2:
-	{
-		Hamulec->PLC(TotalMass);
-		break;
-	}
-    case ESt3AL2:
-    case NESt3:
-    case ESt4:
-    case ESt3:
-    {
-        if (MBPM < 2)
-            //(Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
-            Hamulec->PLC(MaxBrakePress[LoadFlag]);
-        else
-            //(Hamulec as TNESt3).PLC(TotalMass);
-            Hamulec->PLC(TotalMass);
-        LocBrakePress = LocHandle->GetCP();
-        //(Hamulec as TNESt3).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-        break;
-    }
-    case KE:
-    {
-        LocBrakePress = LocHandle->GetCP();
-        //(Hamulec as TKE).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-        if (MBPM < 2)
-            //(Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
-            Hamulec->PLC(MaxBrakePress[LoadFlag]);
-        else
-            //(Hamulec as TKE).PLC(TotalMass);
-            Hamulec->PLC(TotalMass);
-        break;
-    }
+        case EP2:
+        {
+            Hamulec->PLC( TotalMass );
+            break;
+        }
+        case ESt3AL2:
+        case NESt3:
+        case ESt4:
+        case ESt3:
+        {
+            if( MBPM < 2 )
+                //(Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
+                Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+            else
+                //(Hamulec as TNESt3).PLC(TotalMass);
+                Hamulec->PLC( TotalMass );
+            LocBrakePress = LocHandle->GetCP();
+            //(Hamulec as TNESt3).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            break;
+        }
+        case KE:
+        {
+            LocBrakePress = LocHandle->GetCP();
+            //(Hamulec as TKE).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            if( MBPM < 2 )
+                //(Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
+                Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+            else
+                //(Hamulec as TKE).PLC(TotalMass);
+                Hamulec->PLC( TotalMass );
+            break;
+        }
+        default:
+        {
+            // unsupported brake valve type, we should never land here
+//            ErrorLog( "Unsupported brake valve type (" + std::to_string( BrakeValve ) + ") in " + TypeName );
+//            ::PostQuitMessage( 0 );
+            break;
+        }
     } // switch
 
     if ((BrakeHandle == FVel6) && (ActiveCab != 0))
@@ -7252,8 +7259,8 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     }
 
 	if ( ( true == TestFlag( BrakeDelays, bdelay_G ) )
-      && ( false == TestFlag(BrakeDelays, bdelay_R) )
-      || ( Power > 1.0 ) ) // ustalanie srednicy przewodu glownego (lokomotywa lub napędowy
+      && ( ( false == TestFlag(BrakeDelays, bdelay_R ) )
+        || ( Power > 1.0 ) ) ) // ustalanie srednicy przewodu glownego (lokomotywa lub napędowy
 		Spg = 0.792;
 	else
 		Spg = 0.507;

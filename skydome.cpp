@@ -1,6 +1,5 @@
 
 #include "stdafx.h"
-#include "GL/glew.h"
 #include "skydome.h"
 #include "color.h"
 
@@ -79,33 +78,45 @@ void CSkyDome::Generate() {
     float const offset = 0.1f * radius; // horizontal offset, a cheap way to prevent a gap between ground and horizon
 
 	// create geometry chunk
-    int const latitudes = m_tesselation / 2;
+    int const latitudes = m_tesselation / 2 / 2; // half-sphere only
     int const longitudes = m_tesselation;
 
-    for( int i = 0; i < latitudes; ++i ) {
+    std::uint16_t index = 0;
 
-        float lat0 = M_PI * ( -0.5f + (float)( i ) / latitudes );
-        float z0 = std::sin( lat0 );
-        float zr0 = std::cos( lat0 );
+    for( int i = 0; i <= latitudes; ++i ) {
 
-        float lat1 = M_PI * ( -0.5f + (float)( i + 1 ) / latitudes );
-        float z1 = std::sin( lat1 );
-        float zr1 = std::cos( lat1 );
+        float const latitude = M_PI * ( -0.5f + (float)( i ) / latitudes / 2 );  // half-sphere only
+        float const z = std::sin( latitude );
+        float const zr = std::cos( latitude );
 
-        // quad strip
-        for( int j = 0; j <= longitudes / 2; ++j ) {
+        for( int j = 0; j <= longitudes; ++j ) {
 
-            float longitude = 2.0 * M_PI * (float)( j ) / longitudes;
-            float x = std::cos( longitude );
-            float y = std::sin( longitude );
+            float const longitude = 2.0 * M_PI * (float)( j ) / longitudes;
+            float const x = std::cos( longitude );
+            float const y = std::sin( longitude );
+/*
+            m_vertices.emplace_back( float3( x * zr, y * zr - offset, z ) * radius );
+            // we aren't using normals, but the code is left here in case it's ever needed
+//            m_normals.emplace_back( float3( x * zr, -y * zr, -z ) );
+*/
+            // cartesian to opengl swap: -x, -z, -y
+            m_vertices.emplace_back( float3( -x * zr, -z - offset, -y * zr ) * radius );
+            m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) ); // placeholder
 
-            m_vertices.emplace_back( float3( x * zr0, y * zr0 - offset, z0 ) * radius );
-//            m_normals.emplace_back( float3( -x * zr0, -y * zr0, -z0 ) );
-            m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) );
-
-            m_vertices.emplace_back( float3( x * zr1, y * zr1 - offset, z1 ) * radius );
-//            m_normals.emplace_back( float3( -x * zr1, -y * zr1, -z1 ) );
-            m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) );
+            if( (i == 0) || (j == 0) ) {
+                // initial edge of the dome, don't start indices yet
+                ++index;
+            }
+            else {
+                // indices for two triangles, formed between current and previous latitude
+                m_indices.emplace_back( index - 1 - (longitudes + 1) );
+                m_indices.emplace_back( index - 1 );
+                m_indices.emplace_back( index );
+                m_indices.emplace_back( index );
+                m_indices.emplace_back( index - ( longitudes + 1 ) );
+                m_indices.emplace_back( index - 1 - ( longitudes + 1 ) );
+                ++index;
+            }
         }
     }
 }
@@ -123,26 +134,36 @@ void CSkyDome::Update( Math3D::vector3 const &Sun ) {
 // render skydome to screen
 void CSkyDome::Render() {
 
-    int const latitudes = m_tesselation / 2;
-    int const longitudes = m_tesselation;
-    int idx = 0;
+    if( m_vertexbuffer == -1 ) {
+        // build the buffers
+        ::glGenBuffers( 1, &m_vertexbuffer );
+        ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
+        ::glBufferData( GL_ARRAY_BUFFER, m_vertices.size() * sizeof( float3 ), m_vertices.data(), GL_STATIC_DRAW );
 
-    for( int i = 0; i < latitudes; ++i ) {
+        ::glGenBuffers( 1, &m_coloursbuffer );
+        ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
+        ::glBufferData( GL_ARRAY_BUFFER, m_colours.size() * sizeof( float3 ), m_colours.data(), GL_DYNAMIC_DRAW );
 
-        ::glBegin( GL_QUAD_STRIP );
-        for( int j = 0; j <= longitudes / 2; ++j ) {
-
-            ::glColor3f( m_colours[ idx ].x, m_colours[ idx ].y, m_colours[ idx ].z );
-//            ::glNormal3f( m_normals[ idx ].x, m_normals[ idx ].y, m_normals[ idx ].z );
-            ::glVertex3f( m_vertices[ idx ].x, m_vertices[ idx ].y, m_vertices[ idx ].z );
-            ++idx;
-            ::glColor3f( m_colours[ idx ].x, m_colours[ idx ].y, m_colours[ idx ].z );
-//            ::glNormal3f( m_normals[ idx ].x, m_normals[ idx ].y, m_normals[ idx ].z );
-            ::glVertex3f( m_vertices[ idx ].x, m_vertices[ idx ].y, m_vertices[ idx ].z );
-            ++idx;
-        }
-        glEnd();
+        ::glGenBuffers( 1, &m_indexbuffer );
+        ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
+        ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
+        // NOTE: vertex and index source data is superfluous past this point, but, eh
     }
+    // begin
+    ::glEnableClientState( GL_VERTEX_ARRAY );
+    ::glEnableClientState( GL_COLOR_ARRAY );
+    // positions
+    ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
+    ::glVertexPointer( 3, GL_FLOAT, sizeof( float3 ), reinterpret_cast<void const*>( 0 ) );
+    // colours
+    ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
+    ::glColorPointer( 3, GL_FLOAT, sizeof( float3 ), reinterpret_cast<void const*>( 0 ) );
+    // indices
+    ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
+    ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
+    // cleanup
+    ::glDisableClientState( GL_COLOR_ARRAY );
+    ::glDisableClientState( GL_VERTEX_ARRAY );
 }
 
 //******************************************************************************//
@@ -329,16 +350,23 @@ void CSkyDome::RebuildColors() {
             color.y = 0.65f * color.z;
             color = color * ( 1.15f - vertex.y ); // simple gradient, darkening towards the top
         }
-
 		// save
         m_colours[ i ] = color;
-        averagecolor += color;
+        averagecolor += color * 8.0f; // save for edge cases each vertex goes in 8 triangles
 	}
-
-    m_averagecolour = averagecolor / m_vertices.size();
+    // NOTE: average reduced to 25% makes nice tint value for clouds lit from behind
+    // down the road we could interpolate between it and full strength average, to improve accuracy of cloud appearance
+    m_averagecolour = averagecolor / m_indices.size();
     m_averagecolour.x = std::max( m_averagecolour.x, 0.0f );
     m_averagecolour.y = std::max( m_averagecolour.y, 0.0f );
     m_averagecolour.z = std::max( m_averagecolour.z, 0.0f );
+
+    if( m_coloursbuffer != -1 ) {
+        // the colour buffer was already initialized, so on this run we update its content
+        ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
+        ::glBufferSubData( GL_ARRAY_BUFFER, 0, m_colours.size() * sizeof( float3 ), m_colours.data() );
+    }
+
 }
 
 //******************************************************************************//

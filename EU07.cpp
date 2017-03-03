@@ -47,50 +47,81 @@ void cursor_pos_callback(GLFWwindow *window, double x, double y)
 	glfwSetCursorPos(window, 0.0, 0.0);
 }
 
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
 {
-	Global::shiftState = (mods & GLFW_MOD_SHIFT) ? true : false;
-	Global::ctrlState = (mods & GLFW_MOD_CONTROL) ? true : false;
+    Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
+    Global::ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
 
-	if (action == GLFW_PRESS || action == GLFW_REPEAT)
-	{
-		World.OnKeyDown(key);
+    if( ( key == GLFW_KEY_LEFT_SHIFT )
+     || ( key == GLFW_KEY_LEFT_CONTROL )
+     || ( key == GLFW_KEY_LEFT_ALT )
+     || ( key == GLFW_KEY_RIGHT_SHIFT )
+     || ( key == GLFW_KEY_RIGHT_CONTROL )
+     || ( key == GLFW_KEY_RIGHT_ALT ) ) {
+        // don't bother passing these
+        return;
+    }
 
-		switch (key)
-		{
-		case GLFW_KEY_PAUSE:
-			if (Global::iPause & 1)
-				Global::iPause &= ~1;
-			else if (!(Global::iMultiplayer & 2) &&
-				     (mods & GLFW_MOD_CONTROL))
-				Global::iPause ^= 2;
-			if (Global::iPause)
-				Global::iTextMode = GLFW_KEY_F1;
-			break;
+    if( action == GLFW_PRESS || action == GLFW_REPEAT )
+    {
+        World.OnKeyDown( key );
 
-		case GLFW_KEY_F7:
-			Global::bWireFrame = !Global::bWireFrame;
-			++Global::iReCompile;
-			break;
-		}
-	}
-	else if (action == GLFW_RELEASE)
-	{
-		World.OnKeyUp(key);
-	}
+        switch( key )
+        {
+            case GLFW_KEY_ESCAPE: {
+                //[Esc] pauzuje tylko bez Debugmode
+                if( DebugModeFlag )
+                    break;
+
+                if( Global::iPause & 1 ) // jeśli pauza startowa
+                    Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
+                else if( !( Global::iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
+                    if( !Global::ctrlState ) // z [Ctrl] to radiostop jest
+                        Global::iPause ^= 2; // zmiana stanu zapauzowania
+                if( Global::iPause ) // jak pauza
+                    Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
+                break;
+            }
+            case GLFW_KEY_F7:
+                if( DebugModeFlag ) { // siatki wyświetlane tyko w trybie testowym
+                    Global::bWireFrame = !Global::bWireFrame;
+                    if( true == Global::bWireFrame ) {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                    }
+                    else {
+                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                    }
+                    ++Global::iReCompile; // odświeżyć siatki
+                    // Ra: jeszcze usunąć siatki ze skompilowanych obiektów!
+                }
+                break;
+        }
+    }
+    else if( action == GLFW_RELEASE )
+    {
+        World.OnKeyUp( key );
+    }
 }
 
-void focus_callback(GLFWwindow *window, int focus)
+void focus_callback( GLFWwindow *window, int focus )
 {
-	if (Global::bInactivePause) // jeśli ma być pauzowanie okna w tle
-		if (focus)
-			Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
-		else
-			Global::iPause |= 4; // włączenie pauzy, gdy nieaktywy
+    if( Global::bInactivePause ) // jeśli ma być pauzowanie okna w tle
+        if( focus )
+            Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
+        else
+            Global::iPause |= 4; // włączenie pauzy, gdy nieaktywy
 }
 
 #ifdef _WINDOWS
+extern "C"
+{
+    GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
+}
+
 LONG CALLBACK unhandled_handler(::EXCEPTION_POINTERS* e);
+LRESULT APIENTRY WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+extern HWND Hwnd;
+extern WNDPROC BaseWindowProc;
 #endif
 
 int main(int argc, char *argv[])
@@ -106,11 +137,11 @@ int main(int argc, char *argv[])
     Global::LoadIniFile("eu07.ini");
     Global::InitKeys();
 
-	// hunter-271211: ukrywanie konsoli
-    if (Global::iWriteLogEnabled & 2)
-    {
+    // hunter-271211: ukrywanie konsoli
+    if( Global::iWriteLogEnabled & 2 )
+	{
         AllocConsole();
-        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
+        SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
 
 	for (int i = 1; i < argc; i++)
@@ -142,75 +173,85 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	// match requested video mode to current to allow for
-	// fullwindow creation when resolution is the same
-	GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode *vmode = glfwGetVideoMode(monitor);
+    // match requested video mode to current to allow for
+    // fullwindow creation when resolution is the same
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode *vmode = glfwGetVideoMode(monitor);
 
-	glfwWindowHint(GLFW_RED_BITS, vmode->redBits);
-	glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
-	glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
-	glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
+    glfwWindowHint(GLFW_RED_BITS, vmode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
+    glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
-	glfwWindowHint(GLFW_SAMPLES, Global::iMultisampling);
+    glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
+    glfwWindowHint(GLFW_SAMPLES, 1 << Global::iMultisampling);
 
-	GLFWwindow *window =
-		glfwCreateWindow(Global::iWindowWidth, Global::iWindowHeight,
-		"EU07++NG", Global::bFullScreen ? monitor : nullptr, nullptr);
-
-	if (!window)
+    if (Global::bFullScreen)
 	{
-		std::cout << "failed to create window" << std::endl;
-		return -1;
-	}
-	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1); //vsync
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
-	glfwSetCursorPos(window, 0.0, 0.0);
-	glfwSetFramebufferSizeCallback(window, window_resize_callback);
-	glfwSetCursorPosCallback(window, cursor_pos_callback);
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetWindowFocusCallback(window, focus_callback);
+        // match screen dimensions with selected monitor, for 'borderless window' in fullscreen mode
+        Global::iWindowWidth = vmode->width;
+        Global::iWindowHeight = vmode->height;
+    }
+
+    GLFWwindow *window =
+        glfwCreateWindow( Global::iWindowWidth, Global::iWindowHeight,
+        "EU07++NG", Global::bFullScreen ? monitor : nullptr, nullptr );
+
+    if (!window)
 	{
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-		window_resize_callback(window, width, height);
-	}
+        std::cout << "failed to create window" << std::endl;
+        return -1;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(Global::VSync ? 1 : 0); //vsync
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
+    glfwSetCursorPos(window, 0.0, 0.0);
+    glfwSetFramebufferSizeCallback(window, window_resize_callback);
+    glfwSetCursorPosCallback(window, cursor_pos_callback);
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetWindowFocusCallback(window, focus_callback);
+    {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        window_resize_callback(window, width, height);
+    }
 
-	if (glewInit() != GLEW_OK)
+    if (glewInit() != GLEW_OK)
 	{
-		std::cout << "failed to init GLEW" << std::endl;
-		return -1;
-	}
+        std::cout << "failed to init GLEW" << std::endl;
+        return -1;
+    }
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+#ifdef _WINDOWS
+    // setup wrapper for base glfw window proc, to handle copydata messages
+    Hwnd = glfwGetWin32Window( window );
+    BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
+    // switch off the topmost flag
+    ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
+#endif
 
-	Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-	if (!World.Init(window))
+    GfxRenderer.Init();
+
+    Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
+    if (!World.Init(window))
 	{
-		std::cout << "failed to init TWorld" << std::endl;
-		return -1;
-	}
+        std::cout << "failed to init TWorld" << std::endl;
+        return -1;
+    }
 
-	GfxRenderer.Init();
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
 
-    if (!joyGetNumDevs())
-        WriteLog("No joystick");
-    if (Global::iModifyTGA < 0)
-    { // tylko modyfikacja TGA, bez uruchamiania symulacji
+    if( !joyGetNumDevs() )
+        WriteLog( "No joystick" );
+    if( Global::iModifyTGA < 0 ) { // tylko modyfikacja TGA, bez uruchamiania symulacji
         Global::iMaxTextureSize = 64; //żeby nie zamulać pamięci
         World.ModifyTGA(); // rekurencyjne przeglądanie katalogów
     }
-    else
-    {
-        if (Global::iConvertModels < 0)
-        {
+    else {
+        if( Global::iConvertModels < 0 ) {
             Global::iConvertModels = -Global::iConvertModels;
-            World.CreateE3D("models\\"); // rekurencyjne przeglądanie katalogów
-            World.CreateE3D("dynamic\\", true);
+            World.CreateE3D( "models\\" ); // rekurencyjne przeglądanie katalogów
+            World.CreateE3D( "dynamic\\", true );
         } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
         Console::On(); // włączenie konsoli
@@ -222,8 +263,8 @@ int main(int argc, char *argv[])
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     }
 
-    delete pConsole;
 	TPythonInterpreter::killInstance();
+	delete pConsole;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
