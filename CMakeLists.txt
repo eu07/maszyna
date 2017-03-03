@@ -61,6 +61,7 @@ set(SOURCES
 "skydome.cpp"
 "Sound.cpp"
 "Spring.cpp"
+"shader.cpp"
 )
 
 if (WIN32)
@@ -100,3 +101,7 @@ target_link_libraries(${PROJECT_NAME} ${GLUT_LIBRARIES})
 find_package(PythonLibs 2 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
+
+find_package(PNG REQUIRED)
+include_directories(${PNG_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})

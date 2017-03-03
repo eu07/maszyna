@@ -18,6 +18,8 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
 
 #include "stdafx.h"
+#include <png.h>
+#include <thread>
 
 #include "Globals.h"
 #include "Logs.h"
@@ -33,6 +35,45 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment (lib, "dbghelp.lib")
 
 TWorld World;
+
+void screenshot_save_thread(char *img)
+{
+	png_image png;
+	memset(&png, 0, sizeof(png_image));
+	png.version = PNG_IMAGE_VERSION;
+	png.width = Global::ScreenWidth;
+	png.height = Global::ScreenHeight;
+	png.format = PNG_FORMAT_RGB;
+
+	char datetime[64];
+	time_t timer;
+	struct tm* tm_info;
+	time(&timer);
+	tm_info = localtime(&timer);
+	strftime(datetime, 64, "%Y-%m-%d_%H-%M-%S", tm_info);
+
+	uint64_t perf;
+	QueryPerformanceCounter((LARGE_INTEGER*)&perf);
+
+	std::string filename = "screenshots/" + std::string(datetime) +
+	                       "_" + std::to_string(perf) + ".png";
+
+	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::ScreenWidth * 3, nullptr) == 1)
+		WriteLog("saved " + filename + ".");
+	else
+		WriteLog("failed to save screenshot.");
+
+	delete[] img;
+}
+
+void make_screenshot()
+{
+	char *img = new char[Global::ScreenWidth * Global::ScreenHeight * 3];
+	glReadPixels(0, 0, Global::ScreenWidth, Global::ScreenHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+
+	std::thread t(screenshot_save_thread, img);
+	t.detach();
+}
 
 void window_resize_callback(GLFWwindow *window, int w, int h)
 {
@@ -68,6 +109,9 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
         switch( key )
         {
+			case GLFW_KEY_F11:
+				make_screenshot();
+				break;
             case GLFW_KEY_ESCAPE: {
                 //[Esc] pauzuje tylko bez Debugmode
                 if( DebugModeFlag )
