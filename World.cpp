@@ -753,7 +753,7 @@ void TWorld::OnKeyDown(int cKey)
             // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
         }
     }
-    else if (Global::ctrlState && GLFW_KEY_PAUSE) //[Ctrl]+[Break]
+    else if (Global::ctrlState && cKey == GLFW_KEY_PAUSE) //[Ctrl]+[Break]
     { // hamowanie wszystkich pojazdów w okolicy
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
