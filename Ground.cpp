@@ -5052,7 +5052,7 @@ void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LP
 void TGround::WyslijEvent(const std::string &e, const std::string &d)
 { // Ra: jeszcze do wyczyszczenia
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 2; // 2 - event
     int i = e.length(), j = d.length();
     r.cString[0] = char(i);
@@ -5060,7 +5060,7 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
     r.cString[i + 2] = char(j); // licznik po zerze kończącym
     strcpy(r.cString + 3 + i, d.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera kończące
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
@@ -5070,14 +5070,14 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
 void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 { // wysłanie informacji w postaci pojedynczego tekstu
 	DaneRozkaz r;
-	r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 13; // numer komunikatu
 	int i = t.length();
 	r.cString[0] = char(fl);
 	r.cString[1] = char(i);
 	strcpy(r.cString + 2, t.c_str()); // z zerem kończącym
 	COPYDATASTRUCT cData;
-	cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
 	cData.cbData = 11 + i; // 8+licznik i zero kończące
 	cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
@@ -5087,13 +5087,13 @@ void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 void TGround::WyslijString(const std::string &t, int n)
 { // wysłanie informacji w postaci pojedynczego tekstu
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = n; // numer komunikatu
     int i = t.length();
     r.cString[0] = char(i);
     strcpy(r.cString + 1, t.c_str()); // z zerem kończącym
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = 10 + i; // 8+licznik i zero kończące
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
@@ -5109,7 +5109,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
 { // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
     // WriteLog("Wysylam pojazd");
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 7; // 7 - dane pojazdu
     int i = 32, j = t->asName.length();
     r.iPar[0] = i; // ilość danych liczbowych
@@ -5171,7 +5171,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować
     strcpy(r.cString + i + 1, t->asName.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = 10 + i + j; // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");
@@ -5183,7 +5183,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
 void TGround::WyslijObsadzone()
 {   // wysłanie informacji o pojeździe
 	DaneRozkaz2 r;
-	r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 12;   // kod 12
 	for (int i=0; i<1984; ++i) r.cString[i] = 0;
 
@@ -5214,7 +5214,7 @@ void TGround::WyslijObsadzone()
 	}
 
 	COPYDATASTRUCT cData;
-	cData.dwData = 'EU07';     // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' );     // sygnatura
 	cData.cbData = 8 + 1984; // 8+licznik i zero kończące
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
@@ -5226,7 +5226,7 @@ void TGround::WyslijObsadzone()
 void TGround::WyslijParam(int nr, int fl)
 { // wysłanie parametrów symulacji w ramce (nr) z flagami (fl)
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = nr; // zwykle 5
     r.iPar[0] = fl; // flagi istotności kolejnych parametrów
     int i = 0; // domyślnie brak danych
@@ -5239,7 +5239,7 @@ void TGround::WyslijParam(int nr, int fl)
         break;
     }
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
