@@ -27,6 +27,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "PyInt.h"
 #include "World.h"
 #include "Mover.h"
+#include "usefull.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "World.h"
+#include "usefull.h"
 
 #pragma warning (disable: 4091)
 #include <dbghelp.h>
@@ -61,7 +62,7 @@ LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
         case WM_COPYDATA: {
             // obsługa danych przesłanych przez program sterujący
             pDane = (PCOPYDATASTRUCT)lParam;
-            if( pDane->dwData == 'EU07' ) // sygnatura danych
+            if( pDane->dwData == MAKE_ID4('E', 'U', '0', '7')) // sygnatura danych
                 World.OnCommandGet( (DaneRozkaz *)( pDane->lpData ) );
             break;
         }

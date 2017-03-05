@@ -1089,13 +1089,15 @@ bool TWorld::Update()
         Update_Environment();
     } // koniec działań niewykonywanych podczas pauzy
     // poprzednie jakoś tam działało
-    double dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
-    fTime50Hz +=
-        dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
-    if (fTime50Hz >= 0.2)
-        Console::Update(); // to i tak trzeba wywoływać
-    dt = Timer::GetDeltaTime(); // 0.0 gdy pauza
+
+    // fixed step, simulation time based updates
+    double dt = Timer::GetDeltaTime(); // 0.0 gdy pauza
+/*
     fTimeBuffer += dt; //[s] dodanie czasu od poprzedniej ramki
+*/
+    m_primaryupdateaccumulator += dt;
+    m_secondaryupdateaccumulator += dt;
+/*
     if (fTimeBuffer >= fMaxDt) // jest co najmniej jeden krok; normalnie 0.01s
     { // Ra: czas dla fizyki jest skwantowany - fizykę lepiej przeliczać stałym krokiem
         // tak można np. moc silników itp., ale ruch musi być przeliczany w każdej klatce, bo
@@ -1109,43 +1111,59 @@ bool TWorld::Update()
         if (n > 20)
             n = 20; // Ra: jeżeli FPS jest zatrważająco niski, to fizyka nie może zająć całkowicie procesora
     }
-    // awaria PoKeys mogła włączyć pauzę - przekazać informację
-    if (Global::iMultiplayer) // dajemy znać do serwera o wykonaniu
-        if (iPause != Global::iPause)
-        { // przesłanie informacji o pauzie do programu nadzorującego
-            Ground.WyslijParam(5, 3); // ramka 5 z czasem i stanem zapauzowania
-            iPause = Global::iPause;
-        }
-    double iter;
-    int n = 1;
-    if (dt > fMaxDt) // normalnie 0.01s
+*/
+/*
+    // NOTE: until we have no physics state interpolation during render, we need to rely on the old code
+    // doing fixed step calculations but flexible step render results in ugly mini jitter
+    // core routines (physics)
+    int updatecount = 0;
+    while( ( m_primaryupdateaccumulator >= m_primaryupdaterate )
+         &&( updatecount < 20 ) ) {
+        // no more than 20 updates per single pass, to keep physics from hogging up all run time
+        Ground.Update( m_primaryupdaterate, 1 );
+        ++updatecount;
+        m_primaryupdateaccumulator -= m_primaryupdaterate;
+    }
+*/
+    int updatecount = 1;
+    if( dt > m_primaryupdaterate ) // normalnie 0.01s
     {
-        iter = ceil(dt / fMaxDt);
-        n = iter;
-        dt = dt / iter; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
-        if (n > 20)
-            n = 20; // McZapkie-081103: przesuniecie granicy FPS z 10 na 5
+        auto const iterations = std::ceil(dt / m_primaryupdaterate);
+        updatecount = std::min( 20, static_cast<int>( iterations ) );
+        dt = dt / iterations; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
     }
-    // else n=1;
-    // blablabla
-    // Ground.UpdatePhys(dt,n); //na razie tu //2014-12: yB przeniósł do Ground.Update() :(
-    Ground.Update(dt, n); // tu zrobić tylko coklatkową aktualizację przesunięć
-    if (DebugModeFlag && Console::Pressed(GLFW_KEY_ESCAPE))
-    { // yB dodał przyspieszacz fizyki
-        Ground.Update(dt, n);
-        Ground.Update(dt, n);
-        Ground.Update(dt, n);
-        Ground.Update(dt, n); // 5 razy
+    // NOTE: updates are limited to 20, but dt is distributed over potentially many more iterations
+    // this means at count > 20 simulation and render are going to desync. is that right?
+    Ground.Update(dt, updatecount); // tu zrobić tylko coklatkową aktualizację przesunięć
+/*
+    if (DebugModeFlag)
+        if (Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
+            if( Console::Pressed( GLFW_KEY_ESCAPE ) ) {
+                // yB dodał przyspieszacz fizyki
+                Ground.Update(dt, n);
+                Ground.Update(dt, n);
+                Ground.Update(dt, n);
+                Ground.Update(dt, n); // 5 razy
+            }
+*/
+    // secondary fixed step simulation time routines
+    while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
+
+        Global::tranTexts.Update(); // obiekt obsługujący stenogramy dźwięków na ekranie
+
+        // awaria PoKeys mogła włączyć pauzę - przekazać informację
+        if( Global::iMultiplayer ) // dajemy znać do serwera o wykonaniu
+            if( iPause != Global::iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
+                Ground.WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
+                iPause = Global::iPause;
+            }
+
+        // TODO: add fixed step part of the camera update here
+
+        m_secondaryupdateaccumulator -= m_secondaryupdaterate; // these should be inexpensive enough we have no cap
     }
 
-    dt = Timer::GetDeltaTime(); // czas niekwantowany
-
-    Update_Camera( dt );
-
-    Ground.CheckQuery();
-
-    Ground.Update_Lights();
-
+    // variable step simulation time routines
     if( Train != nullptr ) {
         TSubModel::iInstance = reinterpret_cast<size_t>( Train->Dynamic() );
         Train->Update( dt );
@@ -1153,6 +1171,23 @@ bool TWorld::Update()
     else {
         TSubModel::iInstance = 0;
     }
+
+    Ground.CheckQuery();
+
+    Ground.Update_Lights();
+
+    // render time routines follow:
+    dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
+
+    // fixed step render time routines
+    fTime50Hz += dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
+    if( fTime50Hz >= 0.2 ) {
+        Console::Update(); // to i tak trzeba wywoływać
+        fTime50Hz -= 0.2;
+    }
+
+    // variable step render time routines
+    Update_Camera( dt ); // TODO: move the fixed step cab camera updates to fixed step secondary routines section
 
     // przy 0.25 smuga gaśnie o 6:37 w Quarku, a mogłaby już 5:40
     // Ra 2014-12: przy 0.15 się skarżyli, że nie widać smug => zmieniłem na 0.25
@@ -1169,6 +1204,7 @@ bool TWorld::Update()
 
     m_init = true;
 
+    // visualize state changes
     if (!Render())
         return false;
 
@@ -2586,7 +2622,7 @@ TWorld::Render_UI() {
 //---------------------------------------------------------------------------
 void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 { // odebranie komunikatu z serwera
-    if (pRozkaz->iSygn == 'EU07')
+    if (pRozkaz->iSygn == MAKE_ID4('E','U','0','7') )
         switch (pRozkaz->iComm)
         {
         case 0: // odesłanie identyfikatora wersji
@@ -2617,7 +2653,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                 int i =
                     int(pRozkaz->cString[8]); // długość pierwszego łańcucha (z przodu dwa floaty)
                 CommLog(
-                    to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                    Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 11 + i, (unsigned)(pRozkaz->cString[10 + i])) +
                     " rcvd");
                 TGroundNode *t = Ground.DynamicFind(
@@ -2635,7 +2671,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             break;
         case 4: // badanie zajętości toru
         {
-            CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
             TGroundNode *t = Ground.FindGroundNode(
                 std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])), TP_TRACK);
@@ -2646,7 +2682,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         break;
         case 5: // ustawienie parametrów
         {
-            CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " params " +
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " params " +
                     to_string(*pRozkaz->iPar) + " rcvd");
             if (*pRozkaz->iPar == 0) // sprawdzenie czasu
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
@@ -2671,7 +2707,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
         case 6: // pobranie parametrów ruchu pojazdu
             if (Global::iMultiplayer)
             { // Ra 2014-12: to ma działać również dla pojazdów bez obsady
-                CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                         std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
                         " rcvd");
                 if (pRozkaz->cString[0]) // jeśli długość nazwy jest niezerowa
@@ -2694,15 +2730,15 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             }
             break;
         case 8: // ponowne wysłanie informacji o zajętych odcinkach toru
-			CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " all busy track" + " rcvd");
+			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy track" + " rcvd");
 			Ground.TrackBusyList();
             break;
         case 9: // ponowne wysłanie informacji o zajętych odcinkach izolowanych
-			CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " all busy isolated" + " rcvd");
+			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " all busy isolated" + " rcvd");
 			Ground.IsolatedBusyList();
             break;
         case 10: // badanie zajętości jednego odcinka izolowanego
-            CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+            CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) + " rcvd");
             Ground.IsolatedBusy(std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
             break;
@@ -2710,14 +2746,14 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
             //    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
             break;
 		case 12: // skrocona ramka parametrow pojazdow AI (wszystkich!!)
-			CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " obsadzone" + " rcvd");
+			CommLog(Now() + " " + to_string(pRozkaz->iComm) + " obsadzone" + " rcvd");
 			Ground.WyslijObsadzone();
 			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
 			break;
 		case 13: // ramka uszkodzenia i innych stanow pojazdu, np. wylaczenie CA, wlaczenie recznego itd.
 				 //            WriteLog("Przyszlo 13!");
 				 //            WriteLog(pRozkaz->cString);
-                    CommLog(to_string(BorlandTime()) + " " + to_string(pRozkaz->iComm) + " " +
+                    CommLog(Now() + " " + to_string(pRozkaz->iComm) + " " +
                             std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])) +
                             " rcvd");
                     if (pRozkaz->cString[1]) // jeśli długość nazwy jest niezerowa
