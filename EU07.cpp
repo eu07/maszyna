@@ -81,9 +81,12 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
         switch( key )
         {
             case GLFW_KEY_ESCAPE: {
-                //[Esc] pauzuje tylko bez Debugmode
-                if( DebugModeFlag )
+                
+                if( ( DebugModeFlag ) //[Esc] pauzuje tylko bez Debugmode
+                 && ( Global::iPause == 0 ) ) { // but unpausing should work always
+                    
                     break;
+                }
 
                 if( Global::iPause & 1 ) // jeśli pauza startowa
                     Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować

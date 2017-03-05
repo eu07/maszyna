@@ -94,6 +94,7 @@ class TTrain
         return DynamicObject->VectorUp();
     };
     void UpdateMechPosition(double dt);
+    vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
     bool m_updated = false;
     void MechStop();

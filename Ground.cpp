@@ -1977,7 +1977,8 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         if( tmp->DynamicObject->MoverParameters->LightPowerSource.SourceType != TPowerSource::NotDefined ) {
             // if the vehicle has defined light source, it can (potentially) emit light, so add it to the light array
 */
-        if( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) {
+        if( ( tmp != nullptr )
+         && ( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) ) {
             // we check for presence of security system, as a way to determine whether the vehicle is a controllable engine
             // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights
             m_lights.insert( tmp->DynamicObject );
@@ -4009,6 +4010,7 @@ bool TGround::EventConditon(TEvent *e)
 { // sprawdzenie spelnienia warunków dla eventu
     if (e->iFlags <= update_only)
         return true; // bezwarunkowo
+
     if (e->iFlags & conditional_trackoccupied)
         return (!e->Params[9].asTrack->IsEmpty());
     else if (e->iFlags & conditional_trackfree)
@@ -4022,6 +4024,11 @@ bool TGround::EventConditon(TEvent *e)
     }
     else if (e->iFlags & conditional_memcompare)
     { // porównanie wartości
+        if( nullptr == e->Params[9].asMemCell ) {
+
+            ErrorLog( "Event " + e->asName + " trying conditional_memcompare with nonexistent memcell" );
+            return true; // though this is technically error, we report success to maintain backward compatibility
+        }
         if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText, e->Params[11].asdouble,
                                                    e->Params[12].asdouble, e->iFlags))
 			{ //logowanie spełnionych warunków

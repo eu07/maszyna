@@ -2441,8 +2441,8 @@ bool TController::IncSpeed()
         if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeśli gada, to nie jedziemy
             return false;
     bool OK = true;
-    if ((iDrivigFlags & moveDoorOpened)
-      &&(mvOccupied->Vel > 0.1)) // added velocity threshold to prevent door shuffle on stop
+    if ( ( iDrivigFlags & moveDoorOpened )
+      && ( VelDesired > 0.0 ) ) // to prevent door shuffle on stop
         Doors(false); // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
     if (fActionTime < 0.0) // gdy jest nakaz poczekać z jazdą, to nie ruszać
         return false;
