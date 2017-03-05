@@ -206,8 +206,14 @@ void TGroundNode::InitNormals()
         }
         if (Vertices[i].Normal == vector3(0, 0, 0))
             Vertices[i].Normal = (n1 + n2) / 2;
-        if (Vertices[i + 1].Normal == vector3(0, 0, 0))
-            Vertices[i + 1].Normal = n2;
+		if (i + 1 < iNumVerts)
+		{
+			if (Vertices[i + 1].Normal == vector3(0, 0, 0))
+				Vertices[i + 1].Normal = n2;
+		}
+		else
+			WriteLog("odd number of vertices, normals may be wrong!");
+
         break;
     case GL_TRIANGLE_FAN:
 
