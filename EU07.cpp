@@ -16,7 +16,6 @@ Authors:
 MarcinW, McZapkie, Shaxbee, ABu, nbmx, youBy, Ra, winger, mamut, Q424,
 Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
-
 #include "stdafx.h"
 #ifdef CAN_I_HAS_LIBPNG
 #include <png.h>
@@ -39,6 +38,9 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment( lib, "setupapi.lib" )
 #pragma comment( lib, "python27.lib" )
 #pragma comment (lib, "dbghelp.lib")
+#ifdef CAN_I_HAS_LIBPNG
+#pragma comment (lib, "libpng16.lib")
+#endif
 
 #ifdef _MSC_VER
 #pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
@@ -122,9 +124,10 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
         switch( key )
         {
 #ifdef CAN_I_HAS_LIBPNG
-			case GLFW_KEY_F11:
-				make_screenshot();
-				break;
+            case GLFW_KEY_F11: {
+                make_screenshot();
+                break;
+            }
 #endif
             case GLFW_KEY_ESCAPE: {
                 

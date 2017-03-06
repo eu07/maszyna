@@ -178,10 +178,12 @@ bool TWorld::Init( GLFWwindow *w ) {
     Global::detonatoryOK = true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
     WriteLog(Global::asVersion);
+/*
 	if( sizeof( TSubModel ) != 256 ) {
 		Error( "Wrong sizeof(TSubModel) is " + std::to_string(sizeof( TSubModel )) );
 		return false;
 	}
+*/
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
              "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others");
