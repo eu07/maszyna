@@ -18,8 +18,9 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
 
 #include "stdafx.h"
+#ifdef CAN_I_HAS_LIBPNG
 #include <png.h>
-#include <thread>
+#endif
 
 #include "Globals.h"
 #include "Logs.h"
@@ -45,7 +46,8 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 
 TWorld World;
 
-void screenshot_save_thread(char *img)
+#ifdef CAN_I_HAS_LIBPNG
+void screenshot_save_thread( char *img )
 {
 	png_image png;
 	memset(&png, 0, sizeof(png_image));
@@ -83,6 +85,7 @@ void make_screenshot()
 	std::thread t(screenshot_save_thread, img);
 	t.detach();
 }
+#endif
 
 void window_resize_callback(GLFWwindow *window, int w, int h)
 {
@@ -118,9 +121,11 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
         switch( key )
         {
+#ifdef CAN_I_HAS_LIBPNG
 			case GLFW_KEY_F11:
 				make_screenshot();
 				break;
+#endif
             case GLFW_KEY_ESCAPE: {
                 
                 if( ( DebugModeFlag ) //[Esc] pauzuje tylko bez Debugmode

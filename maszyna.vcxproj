@@ -156,6 +156,7 @@
     <ClInclude Include="Console\LPT.h" />
     <ClInclude Include="Console\MWD.h" />
     <ClInclude Include="Console\PoKeys55.h" />
+    <ClInclude Include="Data.h" />
     <ClInclude Include="Driver.h" />
     <ClInclude Include="dumb3d.h" />
     <ClInclude Include="DynObj.h" />
