@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include <GLFW/glfw3.h>
 #include <string>
 #include "Camera.h"
 #include "Ground.h"

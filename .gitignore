@@ -69,3 +69,5 @@ bin/
 ipch/
 ref/
 *.aps
+
+builds/

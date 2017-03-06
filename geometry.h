@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 #ifndef GeometryH
 #define GeometryH
 
-#include "gl/glew.h"
+#include "GL/glew.h"
 #include "dumb3d.h"
 using namespace Math3D;
 //---------------------------------------------------------------------------

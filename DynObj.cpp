@@ -43,7 +43,7 @@ http://mozilla.org/MPL/2.0/.
 // vector3 vWorldLeft=CrossProduct(vWorldUp,vWorldFront);
 
 #define M_2PI 6.283185307179586476925286766559;
-const float maxrot = (M_PI / 3.0); // 60°
+const float maxrot = (float)(M_PI / 3.0); // 60°
 
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
@@ -65,13 +65,13 @@ void TAnimPant::AKP_4E()
     PantWys = fLenL1 * sin(fAngleL) + fLenU1 * sin(fAngleU) + fHeight; // wysokość początkowa
     PantTraction = PantWys;
     hvPowerWire = NULL;
-    fWidthExtra = 0.381; //(2.032m-1.027)/2
+    fWidthExtra = 0.381f; //(2.032m-1.027)/2
     // poza obszarem roboczym jest aproksymacja łamaną o 5 odcinkach
-    fHeightExtra[0] = 0.0; //+0.0762
-    fHeightExtra[1] = -0.01; //+0.1524
-    fHeightExtra[2] = -0.03; //+0.2286
-    fHeightExtra[3] = -0.07; //+0.3048
-    fHeightExtra[4] = -0.15; //+0.3810
+    fHeightExtra[0] = 0.0f; //+0.0762
+    fHeightExtra[1] = -0.01f; //+0.1524
+    fHeightExtra[2] = -0.03f; //+0.2286
+    fHeightExtra[3] = -0.07f; //+0.3048
+    fHeightExtra[4] = -0.15f; //+0.3810
 };
 //---------------------------------------------------------------------------
 int TAnim::TypeSet(int i, int fl)
@@ -1168,7 +1168,6 @@ TDynamicObject * TDynamicObject::ABuFindObject(TTrack *Track, int ScanDir,
     if( false == Track->Dynamics.empty() )
 #endif
     { // sens szukania na tym torze jest tylko, gdy są na nim pojazdy
-        double ObjTranslation; // pozycja najblizszego obiektu na torze
         double MyTranslation; // pozycja szukającego na torze
         double MinDist = Track->Length(); // najmniejsza znaleziona odleglość
         // (zaczynamy od długości toru)
@@ -1888,11 +1887,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     // dodatkowe parametry yB
     MoreParams += "."; // wykonuje o jedną iterację za mało, więc trzeba mu dodać
     // kropkę na koniec
-    int kropka = MoreParams.find("."); // znajdź kropke
+    size_t kropka = MoreParams.find("."); // znajdź kropke
     std::string ActPar; // na parametry
     while (kropka != std::string::npos) // jesli sa kropki jeszcze
     {
-        int dlugosc = MoreParams.length();
+        size_t dlugosc = MoreParams.length();
         ActPar = ToUpper(MoreParams.substr(0, kropka)); // pierwszy parametr;
         MoreParams = MoreParams.substr(kropka + 1, dlugosc - kropka); // reszta do dalszej
         // obrobki
@@ -2153,8 +2152,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iNumAxles = 2;
     // McZapkie-090402: odleglosc miedzy czopami skretu lub osiami
     fAxleDist = Max0R(MoverParameters->BDist, MoverParameters->ADist);
-    if (fAxleDist < 0.2)
-        fAxleDist = 0.2; //żeby się dało wektory policzyć
+    if (fAxleDist < 0.2f)
+        fAxleDist = 0.2f; //żeby się dało wektory policzyć
     if (fAxleDist > MoverParameters->Dim.L - 0.2) // nie mogą być za daleko
         fAxleDist = MoverParameters->Dim.L - 0.2; // bo będzie "walenie w mur"
     double fAxleDistHalf = fAxleDist * 0.5;
@@ -2264,18 +2263,18 @@ void TDynamicObject::Move(double fDistance)
     }
     if (fDistance > 0.0)
     { // gdy ruch w stronę sprzęgu 0, doliczyć korektę do osi 1
-        bEnabled &= Axle0.Move(fDistance, !iAxleFirst); // oś z przodu pojazdu
-        bEnabled &= Axle1.Move(fDistance /*-fAdjustment*/, iAxleFirst); // oś z tyłu pojazdu
+        bEnabled &= Axle0.Move(fDistance, iAxleFirst == 0); // oś z przodu pojazdu
+        bEnabled &= Axle1.Move(fDistance /*-fAdjustment*/, iAxleFirst != 0); // oś z tyłu pojazdu
     }
     else if (fDistance < 0.0)
     { // gdy ruch w stronę sprzęgu 1, doliczyć korektę do osi 0
-        bEnabled &= Axle1.Move(fDistance, iAxleFirst); // oś z tyłu pojazdu prusza się pierwsza
-        bEnabled &= Axle0.Move(fDistance /*-fAdjustment*/, !iAxleFirst); // oś z przodu pojazdu
+        bEnabled &= Axle1.Move(fDistance, iAxleFirst != 0); // oś z tyłu pojazdu prusza się pierwsza
+        bEnabled &= Axle0.Move(fDistance /*-fAdjustment*/, iAxleFirst == 0); // oś z przodu pojazdu
     }
     else // gf: bez wywolania Move na postoju nie ma event0
     {
-        bEnabled &= Axle1.Move(fDistance, iAxleFirst); // oś z tyłu pojazdu prusza się pierwsza
-        bEnabled &= Axle0.Move(fDistance, !iAxleFirst); // oś z przodu pojazdu
+        bEnabled &= Axle1.Move(fDistance, iAxleFirst != 0); // oś z tyłu pojazdu prusza się pierwsza
+        bEnabled &= Axle0.Move(fDistance, iAxleFirst == 0); // oś z przodu pojazdu
     }
     if (fDistance != 0.0) // nie liczyć ponownie, jeśli stoi
     { // liczenie pozycji pojazdu tutaj, bo jest używane w wielu miejscach
@@ -2353,10 +2352,10 @@ void TDynamicObject::Move(double fDistance)
                     switch (t0->eEnvironment)
                     { // typ zmiany oświetlenia
                     case e_canyon:
-                        fShade = 0.65;
+                        fShade = 0.65f;
                         break; // zacienienie w kanionie
                     case e_tunnel:
-                        fShade = 0.20;
+                        fShade = 0.20f;
                         break; // zacienienie w tunelu
                     }
                 }
@@ -3116,7 +3115,6 @@ bool TDynamicObject::Update(double dt, double dt1)
     ResetdMoveLen();
     // McZapkie-260202
     // tupot mew, tfu, stukot kol:
-    DWORD stat;
     // taka prowizorka zeby sciszyc stukot dalekiej lokomotywy
     double ObjectDist;
     double vol = 0;
@@ -3735,7 +3733,7 @@ void TDynamicObject::Render()
 
     if (renderme)
     {
-        TSubModel::iInstance = (int)this; //żeby nie robić cudzych animacji
+        TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
         // AnsiString asLoadName="";
         double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition) / Global::ZoomFactor;
         ABuLittleUpdate(ObjSqrDist); // ustawianie zmiennych submodeli dla wspólnego modelu
@@ -3863,8 +3861,8 @@ void TDynamicObject::Render()
                 {
                     for (int li = 0; li < 3; li++)
                     {
-                        diffuseCabLight[li] *= 0.6;
-                        specularCabLight[li] *= 0.7;
+                        diffuseCabLight[li] *= 0.6f;
+                        specularCabLight[li] *= 0.7f;
                     }
                 }
                 break;
@@ -3872,9 +3870,9 @@ void TDynamicObject::Render()
                 {
                     for (int li = 0; li < 3; li++)
                     {
-                        ambientCabLight[li] *= 0.3;
-                        diffuseCabLight[li] *= 0.1;
-                        specularCabLight[li] *= 0.2;
+                        ambientCabLight[li] *= 0.3f;
+                        diffuseCabLight[li] *= 0.1f;
+                        specularCabLight[li] *= 0.2f;
                     }
                 }
                 break;
@@ -4280,7 +4278,7 @@ void TDynamicObject::RenderAlpha()
 { // rysowanie elementów półprzezroczystych
     if (renderme)
     {
-        TSubModel::iInstance = (int)this; //żeby nie robić cudzych animacji
+        TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
         double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition);
         ABuLittleUpdate(ObjSqrDist); // ustawianie zmiennych submodeli dla wspólnego modelu
         glPushMatrix();
@@ -4689,7 +4687,8 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 
                 else if (token == "animwheelprefix:") {
 					// prefiks kręcących się kół
-                    int i, j, k, m;
+                    int i, k, m;
+					unsigned int j;
 					parser.getTokens( 1, false ); parser >> token;
                     for (i = 0; i < iAnimType[ANIM_WHEELS]; ++i) // liczba osi
                     { // McZapkie-050402: wyszukiwanie kol o nazwie str*
@@ -5073,7 +5072,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 
 				else if( token == "animdoorprefix:" ) {
                  // nazwa animowanych drzwi
-                    int i, j, k, m;
+					int i, j;
 					parser.getTokens(1, false); parser >> token;
                     for (i = 0, j = 0; i < ANIM_DOORS; ++i)
                         j += iAnimType[i]; // zliczanie wcześniejszych animacji

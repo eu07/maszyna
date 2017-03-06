@@ -49,17 +49,17 @@ bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
 float Global::SunAngle = 0.0f;
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
-GLFWwindow *Global::window;
-bool Global::shiftState;
-bool Global::ctrlState; 
 int Global::ScreenWidth = 1;
 int Global::ScreenHeight = 1;
 float Global::ZoomFactor = 1.0f;
 float Global::FieldOfView = 45.0f;
+GLFWwindow *Global::window;
+bool Global::shiftState;
+bool Global::ctrlState;
 int Global::iCameraLast = -1;
 std::string Global::asRelease = "16.0.1172.482";
 std::string Global::asVersion =
-    "Compilation 2017-01-10, release " + Global::asRelease + "."; // tutaj, bo wysyłany
+"Compilation 2017-01-10, release " + Global::asRelease + "."; // tutaj, bo wysyłany
 int Global::iViewMode = 0; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
@@ -94,7 +94,7 @@ std::vector<vector3> Global::FreeCameraInit;
 std::vector<vector3> Global::FreeCameraInitAngle;
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
-float Global::Background[3] = {0.2, 0.4, 0.33};
+float Global::Background[3] = {0.2f, 0.4f, 0.33f};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
@@ -127,8 +127,8 @@ bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
 bool Global::VSync{ true };
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
-float Global::fMouseXScale = 1.5;
-float Global::fMouseYScale = 0.2;
+float Global::fMouseXScale = 1.5f;
+float Global::fMouseYScale = 0.2f;
 std::string Global::SceneryFile = "td.scn";
 std::string Global::asHumanCtrlVehicle = "EU07-424";
 int Global::iMultiplayer = 0; // blokada działania niektórych funkcji na rzecz komunikacji
@@ -495,10 +495,8 @@ void Global::ConfigParse(cParser &Parser)
 
             Parser.getTokens();
             Parser >> token;
-/*
+
             Global::bUseVBO = (token == "yes");
-*/
-            Global::bUseVBO = false; // temporarily disabled until render paths are sorted out
         }
         else if (token == "feedbackmode")
         {
@@ -967,91 +965,92 @@ void Global::ConfigParse(cParser &Parser)
     */
 }
 
-void Global::InitKeys() {
-    Keys[ k_IncMainCtrl ] = GLFW_KEY_KP_ADD;
-    Keys[ k_IncMainCtrlFAST ] = GLFW_KEY_KP_ADD;
-    Keys[ k_DecMainCtrl ] = GLFW_KEY_KP_SUBTRACT;
-    Keys[ k_DecMainCtrlFAST ] = GLFW_KEY_KP_SUBTRACT;
-    Keys[ k_IncScndCtrl ] = GLFW_KEY_KP_DIVIDE;
-    Keys[ k_IncScndCtrlFAST ] = GLFW_KEY_KP_DIVIDE;
-    Keys[ k_DecScndCtrl ] = GLFW_KEY_KP_MULTIPLY;
-    Keys[ k_DecScndCtrlFAST ] = GLFW_KEY_KP_MULTIPLY;
+void Global::InitKeys()
+{
+    Keys[k_IncMainCtrl] = GLFW_KEY_KP_ADD;
+    Keys[k_IncMainCtrlFAST] = GLFW_KEY_KP_ADD;
+    Keys[k_DecMainCtrl] = GLFW_KEY_KP_SUBTRACT;
+    Keys[k_DecMainCtrlFAST] = GLFW_KEY_KP_SUBTRACT;
+    Keys[k_IncScndCtrl] = GLFW_KEY_KP_DIVIDE;
+    Keys[k_IncScndCtrlFAST] = GLFW_KEY_KP_DIVIDE;
+    Keys[k_DecScndCtrl] = GLFW_KEY_KP_MULTIPLY;
+    Keys[k_DecScndCtrlFAST] = GLFW_KEY_KP_MULTIPLY;
 
-    Keys[ k_IncLocalBrakeLevel ] = GLFW_KEY_KP_1;
-    Keys[ k_DecLocalBrakeLevel ] = GLFW_KEY_KP_7;
-    Keys[ k_IncBrakeLevel ] = GLFW_KEY_KP_3;
-    Keys[ k_DecBrakeLevel ] = GLFW_KEY_KP_9;
-    Keys[ k_Releaser ] = GLFW_KEY_KP_6;
-    Keys[ k_EmergencyBrake ] = GLFW_KEY_KP_0;
-    Keys[ k_Brake3 ] = GLFW_KEY_KP_8;
-    Keys[ k_Brake2 ] = GLFW_KEY_KP_5;
-    Keys[ k_Brake1 ] = GLFW_KEY_KP_2;
-    Keys[ k_Brake0 ] = GLFW_KEY_KP_4;
-    Keys[ k_WaveBrake ] = GLFW_KEY_KP_DECIMAL;
+    Keys[k_IncLocalBrakeLevel] = GLFW_KEY_KP_1;
+    Keys[k_DecLocalBrakeLevel] = GLFW_KEY_KP_7;
+    Keys[k_IncBrakeLevel] = GLFW_KEY_KP_3;
+    Keys[k_DecBrakeLevel] = GLFW_KEY_KP_9;
+    Keys[k_Releaser] = GLFW_KEY_KP_6;
+    Keys[k_EmergencyBrake] = GLFW_KEY_KP_0;
+    Keys[k_Brake3] = GLFW_KEY_KP_8;
+    Keys[k_Brake2] = GLFW_KEY_KP_5;
+    Keys[k_Brake1] = GLFW_KEY_KP_2;
+    Keys[k_Brake0] = GLFW_KEY_KP_4;
+    Keys[k_WaveBrake] = GLFW_KEY_KP_DECIMAL;
 
-    Keys[ k_AntiSlipping ] = GLFW_KEY_KP_ENTER;
-    Keys[ k_Sand ] = 'S';
-    Keys[ k_Main ] = 'M';
-    Keys[ k_Active ] = 'W';
-    Keys[ k_Battery ] = 'J';
-    Keys[ k_DirectionForward ] = 'D';
-    Keys[ k_DirectionBackward ] = 'R';
-    Keys[ k_Fuse ] = 'N';
-    Keys[ k_Compressor ] = 'C';
-    Keys[ k_Converter ] = 'X';
-    Keys[ k_MaxCurrent ] = 'F';
-    Keys[ k_CurrentAutoRelay ] = 'G';
-    Keys[ k_BrakeProfile ] = 'B';
-    Keys[ k_CurrentNext ] = 'Z';
+    Keys[k_AntiSlipping] = GLFW_KEY_KP_ENTER;
+    Keys[k_Sand] = 'S';
+    Keys[k_Main] = 'M';
+    Keys[k_Active] = 'W';
+    Keys[k_Battery] = 'J';
+    Keys[k_DirectionForward] = 'D';
+    Keys[k_DirectionBackward] = 'R';
+    Keys[k_Fuse] = 'N';
+    Keys[k_Compressor] = 'C';
+    Keys[k_Converter] = 'X';
+    Keys[k_MaxCurrent] = 'F';
+    Keys[k_CurrentAutoRelay] = 'G';
+    Keys[k_BrakeProfile] = 'B';
+    Keys[k_CurrentNext] = 'Z';
 
-    Keys[ k_Czuwak ] = ' ';
-    Keys[ k_Horn ] = 'A';
-    Keys[ k_Horn2 ] = 'A';
+    Keys[k_Czuwak] = ' ';
+    Keys[k_Horn] = 'A';
+    Keys[k_Horn2] = 'A';
 
-    Keys[ k_FailedEngineCutOff ] = 'E';
+    Keys[k_FailedEngineCutOff] = 'E';
 
-    Keys[ k_MechUp ] = GLFW_KEY_PAGE_UP;
-    Keys[ k_MechDown ] = GLFW_KEY_PAGE_DOWN;
-    Keys[ k_MechLeft ] = GLFW_KEY_LEFT;
-    Keys[ k_MechRight ] = GLFW_KEY_RIGHT;
-    Keys[ k_MechForward ] = GLFW_KEY_UP;
-    Keys[ k_MechBackward ] = GLFW_KEY_DOWN;
+    Keys[k_MechUp] = GLFW_KEY_PAGE_UP;
+    Keys[k_MechDown] = GLFW_KEY_PAGE_DOWN;
+    Keys[k_MechLeft] = GLFW_KEY_LEFT;
+    Keys[k_MechRight] = GLFW_KEY_RIGHT;
+    Keys[k_MechForward] = GLFW_KEY_UP;
+    Keys[k_MechBackward] = GLFW_KEY_DOWN;
 
-    Keys[ k_CabForward ] = GLFW_KEY_HOME;
-    Keys[ k_CabBackward ] = GLFW_KEY_END;
+    Keys[k_CabForward] = GLFW_KEY_HOME;
+    Keys[k_CabBackward] = GLFW_KEY_END;
 
-    Keys[ k_Couple ] = GLFW_KEY_INSERT;
-    Keys[ k_DeCouple ] = GLFW_KEY_DELETE;
+    Keys[k_Couple] = GLFW_KEY_INSERT;
+    Keys[k_DeCouple] = GLFW_KEY_DELETE;
 
-    Keys[ k_ProgramQuit ] = GLFW_KEY_F10;
-    Keys[ k_ProgramHelp ] = GLFW_KEY_F1;
-    Keys[ k_WalkMode ] = GLFW_KEY_F5;
+    Keys[k_ProgramQuit] = GLFW_KEY_F10;
+    Keys[k_ProgramHelp] = GLFW_KEY_F1;
+    Keys[k_WalkMode] = GLFW_KEY_F5;
 
-    Keys[ k_OpenLeft ] = ',';
-    Keys[ k_OpenRight ] = '.';
-    Keys[ k_CloseLeft ] = ',';
-    Keys[ k_CloseRight ] = '.';
-    Keys[ k_DepartureSignal ] = '/';
+    Keys[k_OpenLeft] = ',';
+    Keys[k_OpenRight] = '.';
+    Keys[k_CloseLeft] = ',';
+    Keys[k_CloseRight] = '.';
+    Keys[k_DepartureSignal] = '/';
 
     // Winger 160204 - obsluga pantografow
-    Keys[ k_PantFrontUp ] = 'P'; // Ra: zamieniony przedni z tylnym
-    Keys[ k_PantFrontDown ] = 'P';
-    Keys[ k_PantRearUp ] = 'O';
-    Keys[ k_PantRearDown ] = 'O';
+    Keys[k_PantFrontUp] = 'P'; // Ra: zamieniony przedni z tylnym
+    Keys[k_PantFrontDown] = 'P';
+    Keys[k_PantRearUp] = 'O';
+    Keys[k_PantRearDown] = 'O';
     // Winger 020304 - ogrzewanie
-    Keys[ k_Heating ] = 'H';
-    Keys[ k_LeftSign ] = 'Y';
-    Keys[ k_UpperSign ] = 'U';
-    Keys[ k_RightSign ] = 'I';
-    Keys[ k_EndSign ] = 'T';
+	Keys[k_Heating] = 'H';
+	Keys[k_LeftSign] = 'Y';
+    Keys[k_UpperSign] = 'U';
+    Keys[k_RightSign] = 'I';
+    Keys[k_EndSign] = 'T';
 
-    Keys[ k_SmallCompressor ] = 'V';
-    Keys[ k_StLinOff ] = 'L';
+    Keys[k_SmallCompressor] = 'V';
+    Keys[k_StLinOff] = 'L';
     // ABu 090305 - przyciski uniwersalne, do roznych bajerow :)
-    Keys[ k_Univ1 ] = '[';
-    Keys[ k_Univ2 ] = ']';
-    Keys[ k_Univ3 ] = ';';
-    Keys[ k_Univ4 ] = '\'';
+    Keys[k_Univ1] = '[';
+    Keys[k_Univ2] = ']';
+    Keys[k_Univ3] = ';';
+    Keys[k_Univ4] = '\'';
 }
 
 /*

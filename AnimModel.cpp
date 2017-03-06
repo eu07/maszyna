@@ -423,9 +423,9 @@ TAnimModel::TAnimModel()
     }
     vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotów egzemplarza
     pAdvanced = NULL; // nie ma zaawansowanej animacji
-    fDark = 0.25; // standardowy próg zaplania
-    fOnTime = 0.66;
-    fOffTime = fOnTime + 0.66;
+    fDark = 0.25f; // standardowy próg zaplania
+    fOnTime = 0.66f;
+    fOffTime = fOnTime + 0.66f;
 }
 
 TAnimModel::~TAnimModel()
@@ -546,7 +546,7 @@ TAnimContainer * TAnimModel::GetContainer(char *pName)
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
         // if (pCurrent->GetName()==pName)
-        if (stricmp(pCurrent->NameGet(), pName) == 0)
+		if (std::string(pName) == pCurrent->NameGet())
             return pCurrent;
     return AddContainer(pName);
 }
@@ -587,7 +587,7 @@ void TAnimModel::RaPrepare()
         if (LightsOff[i])
             LightsOff[i]->iVisible = !state;
     }
-    TSubModel::iInstance = (int)this; //żeby nie robić cudzych animacji
+    TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
     TSubModel::pasText = &asText; // przekazanie tekstu do wyświetlacza (!!!! do przemyślenia)
     if (pAdvanced) // jeśli jest zaawansowana animacja
         Advanced(); // wykonać co tam trzeba

@@ -776,7 +776,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                     dsbSwitch->Play(0, 0, 0);
                 }
                 /*
-                 if (Console::Pressed(VK_CONTROL))
+                 if (Global::ctrlState)
 				  {//z [Ctrl] zapalamy albo gasimy światełko w kabinie
                    if (iCabLightFlag<2) ++iCabLightFlag; //zapalenie
                   }
@@ -1369,7 +1369,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
         }
         else if (cKey == Global::Keys[k_Brake0])
         {
-            if( Global::ctrlState )
+            if (Global::ctrlState)
             {
                 mvOccupied->BrakeCtrlPos2 = 0; // wyrownaj kapturek
             }
@@ -1431,7 +1431,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
         else if (cKey == Global::Keys[k_Fuse])
         //---------------
         {
-            if( Global::ctrlState ) // z controlem
+            if (Global::ctrlState) // z controlem
             {
                 ggConverterFuseButton.PutValue(1); // hunter-261211
                 if ((mvControlled->Mains == false) && (ggConverterButton.GetValue() == 0) &&
@@ -1472,7 +1472,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
         }
         else if (cKey == Global::Keys[k_DirectionBackward]) // r
         {
-            if( Global::ctrlState )
+            if (Global::ctrlState)
             { // wciśnięty [Ctrl]
                 if (mvOccupied->Radio == true)
                 {
@@ -1554,7 +1554,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             int CouplNr = -2;
             if (!FreeFlyModeFlag)
             {
-                if( Global::ctrlState )
+                if (Global::ctrlState)
                     if (mvOccupied->BrakeDelaySwitch(bdelay_R))
                     {
                         dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
@@ -1581,7 +1581,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                 }
                 if (temp)
                 {
-                    if( Global::ctrlState )
+                    if (Global::ctrlState)
                         if (temp->MoverParameters->BrakeDelaySwitch(bdelay_R))
                         {
                             dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
@@ -1838,9 +1838,8 @@ if
                                             ctrain_pneumatic))
                                 {
                                     rsHiss.Play(1, DSBPLAY_LOOPING, true, tmp->GetPosition());
-                                    DynamicObject->SetPneumatic(CouplNr,
-                                                                1); // Ra: to mi się nie podoba !!!!
-                                    tmp->SetPneumatic(CouplNr, 1);
+                                    DynamicObject->SetPneumatic(CouplNr != 0, true); // Ra: to mi się nie podoba !!!!
+                                    tmp->SetPneumatic(CouplNr != 0, true);
                                 }
                         }
                         else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
@@ -1860,9 +1859,8 @@ if
                                     //              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                                     dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
                                     dsbCouplerDetach->Play(0, 0, 0);
-                                    DynamicObject->SetPneumatic(CouplNr,
-                                                                0); // Ra: to mi się nie podoba !!!!
-                                    tmp->SetPneumatic(CouplNr, 0);
+                                    DynamicObject->SetPneumatic(CouplNr != 0, false); // Ra: to mi się nie podoba !!!!
+                                    tmp->SetPneumatic(CouplNr != 0, false);
                                 }
                         }
                         else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
@@ -1900,8 +1898,8 @@ if
                                     //                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                                     dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
                                     dsbCouplerDetach->Play(0, 0, 0);
-                                    DynamicObject->SetPneumatic(CouplNr, 0);
-                                    tmp->SetPneumatic(CouplNr, 0);
+                                    DynamicObject->SetPneumatic(CouplNr != 0, false);
+                                    tmp->SetPneumatic(CouplNr != 0, false);
                                 }
                         }
                     }
@@ -1983,7 +1981,7 @@ if
         // przyciemnienia pod Univ4)
         else if (cKey == Global::Keys[k_Univ3])
         {
-            if( Global::ctrlState )
+            if (Global::ctrlState)
             {
                 if (bCabLight == true) //(ggCabLightButton.GetValue()!=0)
                 {
@@ -1999,7 +1997,7 @@ if
                     dsbSwitch->Play(0, 0, 0);
                 }
                 /*
-                 if (Console::Pressed(VK_CONTROL))
+                 if (Global::ctrlState)
                   {//z [Ctrl] zapalamy albo gasimy światełko w kabinie
                    if (iCabLightFlag) --iCabLightFlag; //gaszenie
                   } */
@@ -2010,7 +2008,7 @@ if
         // hunter-091012: dzwiek dla przyciemnienia swiatelka w kabinie
         else if (cKey == Global::Keys[k_Univ4])
         {
-            if( Global::ctrlState )
+            if (Global::ctrlState)
             {
                 if (bCabLightDim == true) //(ggCabLightDimButton.GetValue()!=0)
                 {
@@ -2091,7 +2089,7 @@ if
         {
 			if (false == (mvOccupied->LightsPosNo > 0))
             {
-                if( ( Global::ctrlState ) &&
+                if ((Global::ctrlState) &&
                     (ggRearLeftLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
                     // 17.02.17 changed rear to opposite side, so the same key actually controls both lights on the left side, from the driver's point of view
                     // TODO: do it a more elegant way. preferably along with the rest of the controlling code
@@ -2204,7 +2202,7 @@ if
                     SetLights();
                 }
             }
-            else if( ( Global::ctrlState ) &&
+            else if ((Global::ctrlState) &&
                      (ggRearUpperLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
             {
                 //------------------------------
@@ -2258,7 +2256,7 @@ if
         {
 			if (false == (mvOccupied->LightsPosNo > 0))
             {
-                if( ( Global::ctrlState ) &&
+                if ((Global::ctrlState) &&
                     (ggRearRightLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
                     // 17.02.17 changed rear to opposite side, so the same key actually controls both lights on the left side, from the driver's point of view
                     // TODO: do it a more elegant way. preferably along with the rest of the controlling code
@@ -2398,7 +2396,7 @@ if
                 right *= -1.0f;
             }
             //        if (!GetAsyncKeyState(VK_SHIFT)<0)         // bez shifta
-            if( !Global::ctrlState ) // gdy [Ctrl] zwolniony (dodatkowe widoki)
+            if (!Global::ctrlState) // gdy [Ctrl] zwolniony (dodatkowe widoki)
             {
                 if (cKey == Global::Keys[k_MechLeft])
                 {
@@ -4428,7 +4426,7 @@ bool TTrain::Update( double const Deltatime )
         }
 
         //     if (
-        //     Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->TrainType==dt_EZT))
+        //     Global::shiftState&&Console::Pressed(Global::Keys[k_Compressor])&&((mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->TrainType==dt_EZT))
         //     )   //NBMX 14-09-2003: sprezarka wl
         if (Global::shiftState && Console::Pressed(Global::Keys[k_Compressor]) &&
             (mvControlled->CompressorPower < 2)) // hunter-091012: tak jest poprawnie
@@ -4448,7 +4446,7 @@ bool TTrain::Update( double const Deltatime )
         }
 
         //     if (
-        //     !Console::Pressed(VK_SHIFT)&&Console::Pressed(Global::Keys[k_Compressor])&&((mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->TrainType==dt_EZT))
+        //     !Global::shiftState&&Console::Pressed(Global::Keys[k_Compressor])&&((mvControlled->EngineType==ElectricSeriesMotor)||(mvControlled->TrainType==dt_EZT))
         //     )   //NBMX 14-09-2003: sprezarka wl
         if (!Global::shiftState && Console::Pressed(Global::Keys[k_Compressor]) &&
             (mvControlled->CompressorPower < 2)) // hunter-091012: tak jest poprawnie
@@ -4509,7 +4507,7 @@ bool TTrain::Update( double const Deltatime )
             if (!DebugModeFlag)
             {
                 if (ggUniversal1Button.SubModel)
-                    if( Global::shiftState )
+                    if (Global::shiftState)
                         ggUniversal1Button.IncValue(dt / 2);
                     else
                         ggUniversal1Button.DecValue(dt / 2);
@@ -4525,7 +4523,7 @@ bool TTrain::Update( double const Deltatime )
             if (!DebugModeFlag)
             {
                 if (ggUniversal2Button.SubModel)
-                    if( Global::shiftState )
+                    if (Global::shiftState)
                         ggUniversal2Button.IncValue(dt / 2);
                     else
                         ggUniversal2Button.DecValue(dt / 2);
@@ -4535,7 +4533,7 @@ bool TTrain::Update( double const Deltatime )
         // hunter-091012: zrobione z uwzglednieniem przelacznika swiatla
         if (Console::Pressed(Global::Keys[k_Univ3]))
         {
-            if( Global::shiftState )
+            if (Global::shiftState)
             {
                 if (Global::ctrlState)
                 {
@@ -4591,10 +4589,10 @@ bool TTrain::Update( double const Deltatime )
           if (ggUniversal3Button.SubModel)
 
 
-           if (Console::Pressed(VK_CONTROL))
+           if (Global::ctrlState)
            {//z [Ctrl] zapalamy albo gasimy światełko w kabinie
      //tutaj jest bez sensu, trzeba reagować na wciskanie klawisza!
-            if (Console::Pressed(VK_SHIFT))
+            if (Global::shiftState)
             {//zapalenie
              if (iCabLightFlag<2) ++iCabLightFlag;
             }
@@ -4606,7 +4604,7 @@ bool TTrain::Update( double const Deltatime )
            }
            else
            {//bez [Ctrl] przełączamy cośtem
-            if (Console::Pressed(VK_SHIFT))
+            if (Global::shiftState)
             {
           ggUniversal3Button.PutValue(1);  //hunter-131211: z UpdateValue na
      PutValue - by zachowywal sie jak pozostale przelaczniki
@@ -4647,7 +4645,7 @@ bool TTrain::Update( double const Deltatime )
         if (Console::Pressed(Global::Keys[k_Univ4]))
         {
            if (ggUniversal4Button.SubModel)
-           if (Console::Pressed(VK_SHIFT))
+           if (Global::shiftState)
            {
               ActiveUniversal4=true;
               //ggUniversal4Button.UpdateValue(1);
@@ -4664,7 +4662,7 @@ bool TTrain::Update( double const Deltatime )
         // swiatla
         if (Console::Pressed(Global::Keys[k_Univ4]))
         {
-            if( Global::shiftState )
+            if (Global::shiftState)
             {
                 if (Global::ctrlState)
                 {
@@ -4737,7 +4735,7 @@ bool TTrain::Update( double const Deltatime )
         // ((mvOccupied->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_DecBrakeLevel])))
         if ((Console::Pressed(Global::Keys[k_DecBrakeLevel])))
         {
-            if( Global::ctrlState )
+            if (Global::ctrlState)
             {
                 // mvOccupied->BrakeCtrlPos2+=(mvOccupied->BrakeCtrlPos2>2?0:dt/20.0);
                 // if (mvOccupied->BrakeCtrlPos2<-3) mvOccupied->BrakeCtrlPos2=-3;
@@ -4753,7 +4751,7 @@ bool TTrain::Update( double const Deltatime )
 
         if ((mvOccupied->BrakeHandle == FV4a) && (Console::Pressed(Global::Keys[k_IncBrakeLevel])))
         {
-            if( Global::ctrlState )
+            if (Global::ctrlState)
             {
                 mvOccupied->BrakeCtrlPos2 -= dt / 20.0;
                 if (mvOccupied->BrakeCtrlPos2 < -1.5)
@@ -4770,7 +4768,7 @@ bool TTrain::Update( double const Deltatime )
 
         if ((mvOccupied->BrakeHandle == FV4a) && (Console::Pressed(Global::Keys[k_DecBrakeLevel])))
         {
-            if( Global::ctrlState )
+            if (Global::ctrlState)
             {
                 mvOccupied->BrakeCtrlPos2 += (mvOccupied->BrakeCtrlPos2 > 2 ? 0 : dt / 20.0);
                 if (mvOccupied->BrakeCtrlPos2 < -3)
@@ -4851,7 +4849,7 @@ bool TTrain::Update( double const Deltatime )
                 if (Global::shiftState)
                 {
                     //     if (Console::Pressed(k_CurrentNext))
-                    { // Ra: było pod VK_F3
+                    { // Ra: było pod GLFW_KEY_F3
                         if ((mvOccupied->EpFuseSwitch(true)))
                         {
                             dsbPneumaticSwitch->SetVolume(-10);
@@ -4862,7 +4860,7 @@ bool TTrain::Update( double const Deltatime )
                 else
                 {
                     //     if (Console::Pressed(k_CurrentNext))
-                    { // Ra: było pod VK_F3
+                    { // Ra: było pod GLFW_KEY_F3
                         if (Global::ctrlState)
                         {
                             if ((mvOccupied->EpFuseSwitch(false)))
@@ -4905,7 +4903,7 @@ bool TTrain::Update( double const Deltatime )
 
         if (Console::Pressed(Global::Keys[k_PantRearUp]))
         {
-            if( Global::shiftState )
+            if (Global::shiftState)
                 ggPantRearButton.PutValue(1);
             else
                 ggPantFrontButtonOff.PutValue(1);
@@ -5105,7 +5103,6 @@ bool TTrain::CabChange(int iDirection)
 // wczytywanie pliku z danymi multimedialnymi (dzwieki, kontrolki, kabiny)
 bool TTrain::LoadMMediaFile(std::string const &asFileName)
 {
-    double dSDist;
     cParser parser(asFileName, cParser::buffer_FILE);
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
@@ -5412,7 +5409,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     pyScreens.reset(this);
     pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
-    double dSDist;
     int cabindex = 0;
     DynamicObject->mdKabina = NULL; // likwidacja wskaźnika na dotychczasową kabinę
     switch (NewCabNo)

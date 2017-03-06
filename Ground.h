@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "gl/glew.h"
+#include "GL/glew.h"
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
@@ -398,11 +398,11 @@ class TGround
     TSubRect * FastGetSubRect(int iCol, int iRow);
     int GetRowFromZ(double z)
     {
-        return (z / fSubRectSize + fHalfTotalNumSubRects);
+        return (int)(z / fSubRectSize + fHalfTotalNumSubRects);
     };
     int GetColFromX(double x)
     {
-        return (x / fSubRectSize + fHalfTotalNumSubRects);
+        return (int)(x / fSubRectSize + fHalfTotalNumSubRects);
     };
     TEvent * FindEvent(const std::string &asEventName);
     TEvent * FindEventScan(const std::string &asEventName);

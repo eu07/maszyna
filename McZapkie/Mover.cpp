@@ -5488,7 +5488,7 @@ std::vector<std::string> x;
 // *************************************************************************************************
 // Q: 20160717
 // *************************************************************************************************
-int Pos(std::string str_find, std::string in)
+size_t Pos(std::string str_find, std::string in)
 {
     size_t pos = in.find(str_find);
     return (pos != std::string::npos ? pos+1 : 0);

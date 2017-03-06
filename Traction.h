@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "gl/glew.h"
+#include "GL/glew.h"
 #include "VBO.h"
 #include "dumb3d.h"
 

@@ -9,14 +9,14 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "gl/glew.h"
+#include "GL/glew.h"
 #include "texture.h"
 #include "lightarray.h"
 #include "dumb3d.h"
 
 struct opengl_light {
 
-    GLuint id{ -1 };
+    GLuint id{ (GLuint)-1 };
     Math3D::vector3 direction;
     GLfloat position[ 4 ]; // 4th parameter specifies directional(0) or omni-directional(1) light source
     GLfloat ambient[ 4 ];
@@ -42,7 +42,7 @@ struct opengl_light {
 
         glLightfv( id, GL_POSITION, position );
         if( position[ 3 ] == 1.0f ) {
-            GLfloat directionarray[] = { direction.x, direction.y, direction.z };
+            GLfloat directionarray[] = { (GLfloat)direction.x, (GLfloat)direction.y, (GLfloat)direction.z };
             glLightfv( id, GL_SPOT_DIRECTION, directionarray );
         }
     }

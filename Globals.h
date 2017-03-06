@@ -12,8 +12,8 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <Windows.h>
 #include "renderer.h"
-#include "gl/glew.h"
 #include "glfw/glfw3.h"
+#include "gl/glew.h"
 #include "dumb3d.h"
 
 // definicje klawiszy
@@ -264,9 +264,9 @@ class Global
     static double fLuminance; // jasność światła do automatycznego zapalania
     static float SunAngle; // angle of the sun relative to horizon
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
-    static GLFWwindow *window;
-    static bool shiftState; //m7todo: brzydko 
-    static bool ctrlState; 
+	static GLFWwindow *window;
+	static bool shiftState; //m7todo: brzydko
+	static bool ctrlState;
     static int ScreenWidth; // current window dimensions. TODO: move it to renderer
     static int ScreenHeight;
     static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer

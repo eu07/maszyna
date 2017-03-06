@@ -256,11 +256,11 @@ void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
         if (!Global::bSmoothTraction)
             glDisable(GL_LINE_SMOOTH); // na liniach kiepsko wygląda - robi gradient
         float linealpha = 5000 * WireThickness / (mgn + 1.0); //*WireThickness
-        if (linealpha > 1.2)
-            linealpha = 1.2; // zbyt grube nie są dobre
+        if (linealpha > 1.2f)
+            linealpha = 1.2f; // zbyt grube nie są dobre
         glLineWidth(linealpha);
-        if (linealpha > 1.0)
-            linealpha = 1.0;
+        if (linealpha > 1.0f)
+            linealpha = 1.0f;
         // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
         float r, g, b;
         switch (Material)
@@ -269,59 +269,59 @@ void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
         case 1:
             if (TestFlag(DamageFlag, 1))
             {
-                r = 0.00000;
-                g = 0.32549;
-                b = 0.2882353; // zielona miedź
+                r = 0.00000f;
+                g = 0.32549f;
+                b = 0.2882353f; // zielona miedź
             }
             else
             {
-                r = 0.35098;
-                g = 0.22549;
-                b = 0.1; // czerwona miedź
+                r = 0.35098f;
+                g = 0.22549f;
+                b = 0.1f; // czerwona miedź
             }
             break;
         case 2:
             if (TestFlag(DamageFlag, 1))
             {
-                r = 0.10;
-                g = 0.10;
-                b = 0.10; // czarne Al
+                r = 0.10f;
+                g = 0.10f;
+                b = 0.10f; // czarne Al
             }
             else
             {
-                r = 0.25;
-                g = 0.25;
-                b = 0.25; // srebrne Al
+                r = 0.25f;
+                g = 0.25f;
+                b = 0.25f; // srebrne Al
             }
             break;
         // tymczasowo pokazanie zasilanych odcinków
         case 4:
-            r = 0.5;
-            g = 0.5;
-            b = 1.0;
+            r = 0.5f;
+            g = 0.5f;
+            b = 1.0f;
             break; // niebieskie z podłączonym zasilaniem
         case 5:
-            r = 1.0;
-            g = 0.0;
-            b = 0.0;
+            r = 1.0f;
+            g = 0.0f;
+            b = 0.0f;
             break; // czerwone z podłączonym zasilaniem 1
         case 6:
-            r = 0.0;
-            g = 1.0;
-            b = 0.0;
+            r = 0.0f;
+            g = 1.0f;
+            b = 0.0f;
             break; // zielone z podłączonym zasilaniem 2
         case 7:
-            r = 1.0;
-            g = 1.0;
-            b = 0.0;
+            r = 1.0f;
+            g = 1.0f;
+            b = 0.0f;
             break; //żółte z podłączonym zasilaniem z obu stron
         }
         if (DebugModeFlag)
             if (hvParallel)
             { // jeśli z bieżnią wspólną, to dodatkowo przyciemniamy
-                r *= 0.6;
-                g *= 0.6;
-                b *= 0.6;
+                r *= 0.6f;
+                g *= 0.6f;
+                b *= 0.6f;
             }
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         r *= Global::ambientDayLight[ 0 ]; // w zaleźności od koloru swiatła
@@ -332,8 +332,8 @@ void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
         g *= Global::DayLight.ambient[ 1 ];
         b *= Global::DayLight.ambient[2];
 #endif
-        if (linealpha > 1.0)
-            linealpha = 1.0; // trzeba ograniczyć do <=1
+        if (linealpha > 1.0f)
+            linealpha = 1.0f; // trzeba ograniczyć do <=1
         glColor4f(r, g, b, linealpha);
         if (!uiDisplayList)
             Optimize(); // generowanie DL w miarę potrzeby
@@ -475,8 +475,8 @@ void TTraction::RenderVBO(float mgn, int iPtr)
         if (!Global::bSmoothTraction)
             glDisable(GL_LINE_SMOOTH); // na liniach kiepsko wygląda - robi gradient
         float linealpha = 5000 * WireThickness / (mgn + 1.0); //*WireThickness
-        if (linealpha > 1.2)
-            linealpha = 1.2; // zbyt grube nie są dobre
+        if (linealpha > 1.2f)
+            linealpha = 1.2f; // zbyt grube nie są dobre
         glLineWidth(linealpha);
         // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
         float r, g, b;
@@ -486,51 +486,51 @@ void TTraction::RenderVBO(float mgn, int iPtr)
         case 1:
             if (TestFlag(DamageFlag, 1))
             {
-                r = 0.00000;
-                g = 0.32549;
-                b = 0.2882353; // zielona miedź
+                r = 0.00000f;
+                g = 0.32549f;
+                b = 0.2882353f; // zielona miedź
             }
             else
             {
-                r = 0.35098;
-                g = 0.22549;
-                b = 0.1; // czerwona miedź
+                r = 0.35098f;
+                g = 0.22549f;
+                b = 0.1f; // czerwona miedź
             }
             break;
         case 2:
             if (TestFlag(DamageFlag, 1))
             {
-                r = 0.10;
-                g = 0.10;
-                b = 0.10; // czarne Al
+                r = 0.10f;
+                g = 0.10f;
+                b = 0.10f; // czarne Al
             }
             else
             {
-                r = 0.25;
-                g = 0.25;
-                b = 0.25; // srebrne Al
+                r = 0.25f;
+                g = 0.25f;
+                b = 0.25f; // srebrne Al
             }
             break;
         // tymczasowo pokazanie zasilanych odcinków
         case 4:
-            r = 0.5;
-            g = 0.5;
-            b = 1.0;
+            r = 0.5f;
+            g = 0.5f;
+            b = 1.0f;
             break; // niebieskie z podłączonym zasilaniem
         case 5:
-            r = 1.0;
-            g = 0.0;
-            b = 0.0;
+            r = 1.0f;
+            g = 0.0f;
+            b = 0.0f;
             break; // czerwone z podłączonym zasilaniem 1
         case 6:
-            r = 0.0;
-            g = 1.0;
-            b = 0.0;
+            r = 0.0f;
+            g = 1.0f;
+            b = 0.0f;
             break; // zielone z podłączonym zasilaniem 2
         case 7:
-            r = 1.0;
-            g = 1.0;
-            b = 0.0;
+            r = 1.0f;
+            g = 1.0f;
+            b = 0.0f;
             break; //żółte z podłączonym zasilaniem z obu stron
         }
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
@@ -542,8 +542,8 @@ void TTraction::RenderVBO(float mgn, int iPtr)
         g *= Global::DayLight.ambient[ 1 ];
         b *= Global::DayLight.ambient[ 2 ];
 #endif
-        if (linealpha > 1.0)
-            linealpha = 1.0; // trzeba ograniczyć do <=1
+        if (linealpha > 1.0f)
+            linealpha = 1.0f; // trzeba ograniczyć do <=1
         glColor4f(r, g, b, linealpha);
         glDrawArrays(GL_LINES, iPtr, iLines);
         glLineWidth(1.0);
@@ -680,7 +680,7 @@ double TTraction::VoltageGet(double u, double i)
         return psPowered->CurrentGet(res) *
                res; // yB: dla zasilanego nie baw się w gwiazdy, tylko bierz bezpośrednio
     double r0t, r1t, r0g, r1g;
-    double u0, u1, i0, i1;
+    double i0, i1;
     r0t = fResistance[0]; //średni pomysł, ale lepsze niż nic
     r1t = fResistance[1]; // bo nie uwzględnia spadków z innych pojazdów
     if (psPower[0] && psPower[1])

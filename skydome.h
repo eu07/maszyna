@@ -45,9 +45,9 @@ private:
     std::vector<std::uint16_t> m_indices;
 //    std::vector<float3> m_normals;
     std::vector<float3> m_colours;
-    GLuint m_vertexbuffer{ -1 };
-    GLuint m_indexbuffer{ -1 };
-    GLuint m_coloursbuffer{ -1 };
+    GLuint m_vertexbuffer{ (GLuint)-1 };
+    GLuint m_indexbuffer{ (GLuint)-1 };
+    GLuint m_coloursbuffer{ (GLuint)-1 };
 
 	static float m_distributionluminance[ 5 ][ 2 ];
     static float m_distributionxcomp[ 5 ][ 2 ];

@@ -86,8 +86,8 @@ void TCamera::Update()
         if (Console::Pressed(Global::Keys[k_MechBackward]))
             Velocity.z += a;
         // gora-dol
-        // if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
-        // if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
+        // if (Console::Pressed(GLFW_KEY_KP_9)) Pos.y+=0.1;
+        // if (Console::Pressed(GLFW_KEY_KP_3)) Pos.y-=0.1;
 
         // McZapkie: zeby nie hustalo przy malym FPS:
         //        Velocity= (Velocity+OldVelocity)/2;

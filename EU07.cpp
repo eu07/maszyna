@@ -18,8 +18,8 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 */
 
 #include "stdafx.h"
-
-#include <dsound.h> //_clear87() itp.
+#include <png.h>
+#include <thread>
 
 #include "Globals.h"
 #include "Logs.h"
@@ -44,19 +44,57 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #endif
 
 TWorld World;
-PCOPYDATASTRUCT pDane;
 
-void window_resize_callback( GLFWwindow *window, int w, int h )
+void screenshot_save_thread(char *img)
 {
-    Global::ScreenWidth = w;
-    Global::ScreenHeight = h;
-    ::glViewport( 0, 0, w, h );
+	png_image png;
+	memset(&png, 0, sizeof(png_image));
+	png.version = PNG_IMAGE_VERSION;
+	png.width = Global::ScreenWidth;
+	png.height = Global::ScreenHeight;
+	png.format = PNG_FORMAT_RGB;
+
+	char datetime[64];
+	time_t timer;
+	struct tm* tm_info;
+	time(&timer);
+	tm_info = localtime(&timer);
+	strftime(datetime, 64, "%Y-%m-%d_%H-%M-%S", tm_info);
+
+	uint64_t perf;
+	QueryPerformanceCounter((LARGE_INTEGER*)&perf);
+
+	std::string filename = "screenshots/" + std::string(datetime) +
+	                       "_" + std::to_string(perf) + ".png";
+
+	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::ScreenWidth * 3, nullptr) == 1)
+		WriteLog("saved " + filename + ".");
+	else
+		WriteLog("failed to save screenshot.");
+
+	delete[] img;
 }
 
-void cursor_pos_callback( GLFWwindow *window, double x, double y )
+void make_screenshot()
 {
-    World.OnMouseMove( x * 0.005, y * 0.01 );
-    ::glfwSetCursorPos( window, 0.0, 0.0 );
+	char *img = new char[Global::ScreenWidth * Global::ScreenHeight * 3];
+	glReadPixels(0, 0, Global::ScreenWidth, Global::ScreenHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+
+	std::thread t(screenshot_save_thread, img);
+	t.detach();
+}
+
+void window_resize_callback(GLFWwindow *window, int w, int h)
+{
+	Global::ScreenWidth = w;
+	Global::ScreenHeight = h;
+	glViewport(0, 0, w, h);
+}
+
+void cursor_pos_callback(GLFWwindow *window, double x, double y)
+{
+	World.OnMouseMove(x * 0.005, y * 0.01);
+	glfwSetCursorPos(window, 0.0, 0.0);
 }
 
 void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
@@ -80,6 +118,9 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
         switch( key )
         {
+			case GLFW_KEY_F11:
+				make_screenshot();
+				break;
             case GLFW_KEY_ESCAPE: {
                 
                 if( ( DebugModeFlag ) //[Esc] pauzuje tylko bez Debugmode
@@ -128,84 +169,19 @@ void focus_callback( GLFWwindow *window, int focus )
 }
 
 #ifdef _WINDOWS
-
 extern "C"
 {
-    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
+    GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window);
 }
 
-HWND Hwnd;
-WNDPROC BaseWindowProc;
-
-LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
-                         UINT uMsg, // message for this window
-                         WPARAM wParam, // additional message information
-                         LPARAM lParam) // additional message information
-{
-    switch( uMsg ) // check for windows messages
-    {
-        case WM_COPYDATA: {
-            // obsługa danych przesłanych przez program sterujący
-            pDane = (PCOPYDATASTRUCT)lParam;
-            if( pDane->dwData == MAKE_ID4( 'E', 'U', '0', '7' ) ) // sygnatura danych
-                World.OnCommandGet( (DaneRozkaz *)( pDane->lpData ) );
-            break;
-        }
-    }
-    // pass all unhandled messages to DefWindowProc
-    return CallWindowProc( BaseWindowProc, Hwnd, uMsg, wParam, lParam );
-};
-
-void make_minidump( ::EXCEPTION_POINTERS* e ) {
-
-    auto hDbgHelp = ::LoadLibraryA( "dbghelp" );
-    if( hDbgHelp == nullptr )
-        return;
-    auto pMiniDumpWriteDump = (decltype( &MiniDumpWriteDump ))::GetProcAddress( hDbgHelp, "MiniDumpWriteDump" );
-    if( pMiniDumpWriteDump == nullptr )
-        return;
-
-    char name[ MAX_PATH ];
-    {
-        auto nameEnd = name + ::GetModuleFileNameA( ::GetModuleHandleA( 0 ), name, MAX_PATH );
-        ::SYSTEMTIME t;
-        ::GetSystemTime( &t );
-        wsprintfA( nameEnd - strlen( ".exe" ),
-            "_crashdump_%4d%02d%02d_%02d%02d%02d.dmp",
-            t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond );
-    }
-
-    auto hFile = ::CreateFileA( name, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
-    if( hFile == INVALID_HANDLE_VALUE )
-        return;
-
-    ::MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
-    exceptionInfo.ThreadId = ::GetCurrentThreadId();
-    exceptionInfo.ExceptionPointers = e;
-    exceptionInfo.ClientPointers = FALSE;
-
-    auto dumped = pMiniDumpWriteDump(
-        ::GetCurrentProcess(),
-        ::GetCurrentProcessId(),
-        hFile,
-        ::MINIDUMP_TYPE( ::MiniDumpWithIndirectlyReferencedMemory | ::MiniDumpScanMemory ),
-        e ? &exceptionInfo : nullptr,
-        nullptr,
-        nullptr );
-
-    ::CloseHandle( hFile );
-
-    return;
-}
-
-LONG CALLBACK unhandled_handler( ::EXCEPTION_POINTERS* e ) {
-    make_minidump( e );
-    return EXCEPTION_CONTINUE_SEARCH;
-}
+LONG CALLBACK unhandled_handler(::EXCEPTION_POINTERS* e);
+LRESULT APIENTRY WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+extern HWND Hwnd;
+extern WNDPROC BaseWindowProc;
 #endif
 
-int main( int argc, char *argv[] ) {
-
+int main(int argc, char *argv[])
+{
 #if defined(_MSC_VER) && defined (_DEBUG)
     // memory leaks
     _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
@@ -219,58 +195,64 @@ int main( int argc, char *argv[] ) {
     ::SetUnhandledExceptionFilter( unhandled_handler );
 #endif
 
-    if( !glfwInit() )
-        return -1;
+	if (!glfwInit())
+		return -1;
 
-    DeleteFile( "errors.txt" );
-    Global::LoadIniFile( "eu07.ini" );
+    DeleteFile("errors.txt");
+    Global::LoadIniFile("eu07.ini");
     Global::InitKeys();
 
     // hunter-271211: ukrywanie konsoli
-    if( Global::iWriteLogEnabled & 2 ) {
+    if( Global::iWriteLogEnabled & 2 )
+	{
         AllocConsole();
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
 
-    for( int i = 1; i < argc; i++ ) {
-        std::string token( argv[ i ] );
+	for (int i = 1; i < argc; ++i)
+	{
+		std::string token(argv[i]);
 
-        if( token == "-modifytga" )
-            Global::iModifyTGA = -1;
-        else if( token == "-e3d" ) {
-            if( Global::iConvertModels > 0 )
-                Global::iConvertModels = -Global::iConvertModels;
-            else
-                Global::iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
-        }
-        else if( i + 1 < argc && token == "-s" )
-            Global::SceneryFile = std::string( argv[ ++i ] );
-        else if( i + 1 < argc && token == "-v" ) {
-            std::string v( argv[ ++i ] );
-            std::transform( v.begin(), v.end(), v.begin(), ::tolower );
-            Global::asHumanCtrlVehicle = v;
-        }
-        else {
-            std::cout << "usage: " << std::string( argv[ 0 ] ) << " [-s sceneryfilepath] "
-                << "[-v vehiclename] [-modifytga] [-e3d]" << std::endl;
-            return -1;
-        }
-    }
+		if (token == "-modifytga")
+			Global::iModifyTGA = -1;
+		else if (token == "-e3d")
+		{
+			if (Global::iConvertModels > 0)
+				Global::iConvertModels = -Global::iConvertModels;
+			else
+				Global::iConvertModels = -7; // z optymalizacją, bananami i prawidłowym Opacity
+		}
+		else if (i + 1 < argc && token == "-s")
+			Global::SceneryFile = std::string(argv[++i]);
+		else if (i + 1 < argc && token == "-v")
+		{
+			std::string v(argv[++i]);
+			std::transform(v.begin(), v.end(), v.begin(), ::tolower);
+			Global::asHumanCtrlVehicle = v;
+		}
+		else
+		{
+			std::cout << "usage: " << std::string(argv[0]) << " [-s sceneryfilepath] "
+				      << "[-v vehiclename] [-modifytga] [-e3d]" << std::endl;
+			return -1;
+		}
+	}
 
     // match requested video mode to current to allow for
     // fullwindow creation when resolution is the same
     GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode *vmode = glfwGetVideoMode( monitor );
+    const GLFWvidmode *vmode = glfwGetVideoMode(monitor);
 
-    glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
-    glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
-    glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
-    glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
+    glfwWindowHint(GLFW_RED_BITS, vmode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS, vmode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS, vmode->blueBits);
+    glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
-    glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
-    glfwWindowHint( GLFW_SAMPLES, 1 << Global::iMultisampling );
+    glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
+    glfwWindowHint(GLFW_SAMPLES, 1 << Global::iMultisampling);
 
-    if( Global::bFullScreen ) {
+    if (Global::bFullScreen)
+	{
         // match screen dimensions with selected monitor, for 'borderless window' in fullscreen mode
         Global::iWindowWidth = vmode->width;
         Global::iWindowHeight = vmode->height;
@@ -280,25 +262,27 @@ int main( int argc, char *argv[] ) {
         glfwCreateWindow( Global::iWindowWidth, Global::iWindowHeight,
         "EU07", Global::bFullScreen ? monitor : nullptr, nullptr );
 
-    if( !window ) {
+    if (!window)
+	{
         std::cout << "failed to create window" << std::endl;
         return -1;
     }
-    glfwMakeContextCurrent( window );
-    glfwSwapInterval( (Global::VSync ? 1 : 0) ); //vsync
-    glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED ); //capture cursor
-    glfwSetCursorPos( window, 0.0, 0.0 );
-    glfwSetFramebufferSizeCallback( window, window_resize_callback );
-    glfwSetCursorPosCallback( window, cursor_pos_callback );
-    glfwSetKeyCallback( window, key_callback );
-    glfwSetWindowFocusCallback( window, focus_callback );
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(Global::VSync ? 1 : 0); //vsync
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //capture cursor
+    glfwSetCursorPos(window, 0.0, 0.0);
+    glfwSetFramebufferSizeCallback(window, window_resize_callback);
+    glfwSetCursorPosCallback(window, cursor_pos_callback);
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetWindowFocusCallback(window, focus_callback);
     {
         int width, height;
-        glfwGetFramebufferSize( window, &width, &height );
-        window_resize_callback( window, width, height );
+        glfwGetFramebufferSize(window, &width, &height);
+        window_resize_callback(window, width, height);
     }
 
-    if( glewInit() != GLEW_OK ) {
+    if (glewInit() != GLEW_OK)
+	{
         std::cout << "failed to init GLEW" << std::endl;
         return -1;
     }
@@ -306,7 +290,7 @@ int main( int argc, char *argv[] ) {
 #ifdef _WINDOWS
     // setup wrapper for base glfw window proc, to handle copydata messages
     Hwnd = glfwGetWin32Window( window );
-    BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG)WndProc );
+    BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 #endif
@@ -314,7 +298,8 @@ int main( int argc, char *argv[] ) {
     GfxRenderer.Init();
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-    if( !World.Init( window ) ) {
+    if (!World.Init(window))
+	{
         std::cout << "failed to init TWorld" << std::endl;
         return -1;
     }
@@ -335,17 +320,18 @@ int main( int argc, char *argv[] ) {
         } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
         Console::On(); // włączenie konsoli
-        while( !glfwWindowShouldClose( window ) && World.Update() ) {
-            glfwSwapBuffers( window );
-            glfwPollEvents();
+        while (!glfwWindowShouldClose(window) && World.Update())
+        {
+			glfwSwapBuffers(window);
+			glfwPollEvents();
         }
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     }
 
-    TPythonInterpreter::killInstance();
-    delete pConsole;
+	TPythonInterpreter::killInstance();
+	delete pConsole;
 
-    glfwDestroyWindow( window );
-    glfwTerminate();
-    return 0;
+	glfwDestroyWindow(window);
+	glfwTerminate();
+	return 0;
 }

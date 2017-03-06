@@ -35,7 +35,7 @@ opengl_renderer::Init() {
 void
 opengl_renderer::Update_Lights( light_array const &Lights ) {
 
-    int const count = std::min( m_lights.size(), Lights.data.size() );
+    size_t const count = std::min( m_lights.size(), Lights.data.size() );
     if( count == 0 ) { return; }
 
     auto renderlight = m_lights.begin();
@@ -86,9 +86,9 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
 void
 opengl_renderer::Disable_Lights() {
 
-    for( int idx = 0; idx < m_lights.size() + 1; ++idx ) {
+    for( size_t idx = 0; idx < m_lights.size() + 1; ++idx ) {
 
-        ::glDisable( GL_LIGHT0 + idx );
+        ::glDisable( GL_LIGHT0 + (int)idx );
     }
 }
 //---------------------------------------------------------------------------

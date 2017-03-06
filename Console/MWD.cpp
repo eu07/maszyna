@@ -189,7 +189,6 @@ bool TMWDComm::ReadData() // odbieranie danych + odczyta danych analogowych i za
 bool TMWDComm::SendData() // wysyłanie danych
 {
     DWORD bytes_write;
-    DWORD fdwEvtMask;
 
     WriteFile(hComm, &WriteDataBuff[0], BYTETOWRITE, &bytes_write, NULL);
 

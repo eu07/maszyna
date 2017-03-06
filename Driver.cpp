@@ -260,8 +260,8 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
             }
             if (iFlags & spSwitch) // jeśli odcinek zmienny
             {
-                if (bool(trTrack->GetSwitchState() & 1) !=
-                    bool(iFlags & spSwitchStatus)) // czy stan się zmienił?
+                if (((trTrack->GetSwitchState() & 1) != 0) !=
+                    ((iFlags & spSwitchStatus) != 0)) // czy stan się zmienił?
                 { // Ra: zakładam, że są tylko 2 możliwe stany
                     iFlags ^= spSwitchStatus;
                     // fVelNext=trTrack->VelocityGet(); //nowa prędkość
@@ -389,7 +389,7 @@ void TSpeedPos::Set(TTrack *track, double dist, int flag)
             fVelNext = (trTrack->iCategoryFlag & 1) ?
                            0.0 :
                            20.0; // jeśli koniec, to pociąg stój, a samochód zwolnij
-        vPos = (bool(iFlags & spReverse) != bool(iFlags & spEnd)) ?
+        vPos = (((iFlags & spReverse) != 0) != ((iFlags & spEnd) != 0)) ?
                    trTrack->CurrentSegment()->FastGetPoint_1() :
                    trTrack->CurrentSegment()->FastGetPoint_0();
     }

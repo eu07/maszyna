@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "classes.hpp"
 #include <gl/gl.h>
 #include <gl/glu.h>
-#include "opengl/glut.h"
+#include "GL/glut.h"
 #pragma hdrstop
 
 #include "Texture.h"
