@@ -2959,11 +2959,12 @@ bool TGround::Init(std::string File)
                 into = ++Global::iCameraLast;
             if ((into >= 0) && (into < 10))
             { // przepisanie do odpowiedniego miejsca w tabelce
-                Global::pFreeCameraInit[into] = xyz;
-                abc.x = DegToRad(abc.x);
-                abc.y = DegToRad(abc.y);
-                abc.z = DegToRad(abc.z);
-                Global::pFreeCameraInitAngle[into] = abc;
+                Global::FreeCameraInit[ into ] = xyz;
+                Global::FreeCameraInitAngle[ into ] =
+                    Math3D::vector3(
+                        DegToRad( abc.x ),
+                        DegToRad( abc.y ),
+                        DegToRad( abc.z ) );
                 Global::iCameraLast = into; // numer ostatniej
             }
         }
