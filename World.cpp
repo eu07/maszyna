@@ -34,9 +34,6 @@ http://mozilla.org/MPL/2.0/.
 #define TEXTURE_LOD_BIAS_EXT 0x8501
 //---------------------------------------------------------------------------
 
-typedef void(APIENTRY *FglutBitmapCharacter)(void *font, int character); // typ funkcji
-FglutBitmapCharacter glutBitmapCharacterDLL = NULL; // deklaracja zmiennej
-HINSTANCE hinstGLUT32 = NULL; // wskaźnik do GLUT32.DLL
 // GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
 
@@ -75,8 +72,6 @@ TWorld::~TWorld()
     TSoundsManager::Free();
     TModelsManager::Free();
     glDeleteLists(base, 96);
-    if (hinstGLUT32)
-        FreeLibrary(hinstGLUT32);
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -243,7 +238,7 @@ bool TWorld::Init( GLFWwindow *w ) {
     else
     {
         Global::bDecompressDDS =
-            !(true == GLEW_EXT_texture_compression_s3tc); // czy obsługiwane?
+            !(GLEW_EXT_texture_compression_s3tc); // czy obsługiwane?
         if (Global::bDecompressDDS) // czy jest obsługa DDS w karcie graficznej
             WriteLog("DDS textures are not supported.");
         else // brak obsługi DDS - trzeba włączyć programową dekompresję
@@ -277,7 +272,7 @@ bool TWorld::Init( GLFWwindow *w ) {
     {
         glEnable(GL_BLEND);
         glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, 0.04);
+        glAlphaFunc(GL_GREATER, 0.04f);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthFunc(GL_LEQUAL);
     }
@@ -451,11 +446,11 @@ bool TWorld::Init( GLFWwindow *w ) {
     // directional light
     // TODO, TBD: test omni-directional variant
     Global::DayLight.position[ 3 ] = 1.0f;
-    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0 );
+    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0f );
     // rgb value for 5780 kelvin
-    Global::DayLight.diffuse[ 0 ] = 255.0 / 255.0;
-    Global::DayLight.diffuse[ 1 ] = 242.0 / 255.0;
-    Global::DayLight.diffuse[ 2 ] = 231.0 / 255.0;
+    Global::DayLight.diffuse[ 0 ] = 255.0f / 255.0f;
+    Global::DayLight.diffuse[ 1 ] = 242.0f / 255.0f;
+    Global::DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
 #endif
 
     Ground.Init(Global::SceneryFile);
@@ -746,7 +741,7 @@ void TWorld::OnKeyDown(int cKey)
             // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
         }
     }
-    else if( cKey == GLFW_KEY_3 ) //[Ctrl]+[Break]
+    else if( Global::ctrlState && cKey == GLFW_KEY_PAUSE ) //[Ctrl]+[Break]
     { // hamowanie wszystkich pojazdów w okolicy
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
@@ -763,7 +758,7 @@ void TWorld::OnKeyDown(int cKey)
             TDynamicObject *temp = Global::DynamicNearest();
             if (temp)
             {
-                if (Global::ctrlState < 0) // z ctrl odcinanie
+                if (Global::ctrlState) // z ctrl odcinanie
                 {
                     temp->MoverParameters->BrakeStatus ^= 128;
                 }
@@ -825,7 +820,7 @@ void TWorld::OnKeyDown(int cKey)
             TDynamicObject *temp = Global::DynamicNearest();
             if (temp)
             {
-                if (Global::ctrlState < 0)
+                if (Global::ctrlState)
                     if ((temp->MoverParameters->LocalBrake == ManualBrake) ||
                         (temp->MoverParameters->MBrake == true))
                         temp->MoverParameters->IncManualBrakeLevel(1);
@@ -845,7 +840,7 @@ void TWorld::OnKeyDown(int cKey)
             TDynamicObject *temp = Global::DynamicNearest();
             if (temp)
             {
-                if (Global::ctrlState < 0)
+                if (Global::ctrlState)
                     if ((temp->MoverParameters->LocalBrake == ManualBrake) ||
                         (temp->MoverParameters->MBrake == true))
                         temp->MoverParameters->DecManualBrakeLevel(1);
@@ -1157,7 +1152,7 @@ bool TWorld::Update()
 
     // variable step simulation time routines
     if( Train != nullptr ) {
-        TSubModel::iInstance = reinterpret_cast<int>( Train->Dynamic() );
+        TSubModel::iInstance = reinterpret_cast<size_t>( Train->Dynamic() );
         Train->Update( dt );
     }
     else {
@@ -1429,7 +1424,7 @@ void TWorld::Update_Environment() {
 
 bool TWorld::Render()
 {
-    glColor3b(255, 255, 255);
+    glColor3ub(255, 255, 255);
     // glColor3b(255, 0, 255);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDepthFunc( GL_LEQUAL );
@@ -1469,7 +1464,7 @@ TWorld::Render_Cab() {
     }
 
     TDynamicObject *dynamic = Train->Dynamic();
-    TSubModel::iInstance = reinterpret_cast<int>( dynamic );
+    TSubModel::iInstance = reinterpret_cast<size_t>( dynamic );
 
     if( ( true == FreeFlyModeFlag )
      || ( false == dynamic->bDisplayCab )
@@ -2624,7 +2619,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                     std::string(pRozkaz->cString + 1, (unsigned)(pRozkaz->cString[0])));
                 if (e)
                     if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
-                        bool(e->evJoined)) // tylko jawne albo niejawne Multiple
+                        (e->evJoined != 0))  // tylko jawne albo niejawne Multiple
                         Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywołujący - tu
                 // brak
             }

@@ -5092,7 +5092,7 @@ void TGround::WyslijString(const std::string &t, int n)
     r.cString[0] = char(i);
     strcpy(r.cString + 1, t.c_str()); // z zerem kończącym
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = (DWORD)(10 + i); // 8+licznik i zero kończące
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
@@ -5171,7 +5171,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować
     strcpy(r.cString + i + 1, t->asName.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");

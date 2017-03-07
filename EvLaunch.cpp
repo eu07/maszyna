@@ -67,7 +67,7 @@ int vk_to_glfw_key( int const Keycode ) {
     if( (key >= 'A') && (key <= 'Z') ) {
         key = GLFW_KEY_A + key - 'A';
     }
-    else if( key >= '0' ) {
+    else if( ( key >= '0' ) && ( key <= '9' ) ) {
         key = GLFW_KEY_0 + key - '0';
     }
     return key + ( shiftstate << 8 );
