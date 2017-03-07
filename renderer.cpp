@@ -59,12 +59,13 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
         renderlight->set_position( scenelight.position );
         renderlight->direction = scenelight.direction;
 
-        renderlight->diffuse[ 0 ] = scenelight.color.x;
-        renderlight->diffuse[ 1 ] = scenelight.color.y;
-        renderlight->diffuse[ 2 ] = scenelight.color.z;
-        renderlight->ambient[ 0 ] = scenelight.color.x * scenelight.intensity;
-        renderlight->ambient[ 1 ] = scenelight.color.y * scenelight.intensity;
-        renderlight->ambient[ 2 ] = scenelight.color.z * scenelight.intensity;
+        auto const luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
+        renderlight->diffuse[ 0 ] = std::max( 0.0, scenelight.color.x - luminance );
+        renderlight->diffuse[ 1 ] = std::max( 0.0, scenelight.color.y - luminance );
+        renderlight->diffuse[ 2 ] = std::max( 0.0, scenelight.color.z - luminance );
+        renderlight->ambient[ 0 ] = std::max( 0.0, scenelight.color.x * scenelight.intensity - luminance);
+        renderlight->ambient[ 1 ] = std::max( 0.0, scenelight.color.y * scenelight.intensity - luminance );
+        renderlight->ambient[ 2 ] = std::max( 0.0, scenelight.color.z * scenelight.intensity - luminance );
 
         ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, (0.25f * scenelight.count) / std::pow( scenelight.count, 2 ) );
         ::glEnable( renderlight->id );

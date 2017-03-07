@@ -3814,10 +3814,13 @@ double TMoverParameters::TractionForce(double dt)
     }
 
     eAngle += enrot * dt;
+    if( eAngle > M_PI * 2.0 )
+        eAngle = std::fmod( eAngle, M_PI * 2.0 );
+/*
     while (eAngle > M_PI * 2.0)
         // eAngle = Pirazy2 - eAngle; <- ABu: a nie czasem tak, jak nizej?
         eAngle -= M_PI * 2.0;
-
+*/
     // hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala
     // predkosc wentylatorow)
     if (EngineType == ElectricSeriesMotor)

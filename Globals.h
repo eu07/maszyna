@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include <Windows.h>
 #include "renderer.h"
 #include <GLFW/glfw3.h>
-#include "GL/glew.h"
+#include <GL/glew.h>
 #include "dumb3d.h"
 
 // definicje klawiszy
@@ -170,8 +170,8 @@ class Global
     static double
         pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard
-    static Math3D::vector3 pFreeCameraInit[10]; // pozycje kamery
-    static Math3D::vector3 pFreeCameraInitAngle[10];
+    static std::vector<Math3D::vector3> FreeCameraInit; // pozycje kamery
+    static std::vector<Math3D::vector3> FreeCameraInitAngle;
     static int iWindowWidth;
     static int iWindowHeight;
     static float fDistanceFactor;

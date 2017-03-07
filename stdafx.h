@@ -18,11 +18,14 @@
 #endif  // _DEBUG
 #endif
 // operating system
+#ifdef _WINDOWS
 #include "targetver.h"
 #define NOMINMAX
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
+#include <dbghelp.h>
+#endif
 // stl
 #include <cstdlib>
 #include <cassert>

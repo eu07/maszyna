@@ -460,7 +460,7 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         iTexAlpha = 0x30300030;
     }
     // przezroczystych
-    return (Init(TModelsManager::GetModel(asName.c_str())));
+    return (Init(TModelsManager::GetModel(asName)));
 }
 
 bool TAnimModel::Load(cParser *parser, bool ter)

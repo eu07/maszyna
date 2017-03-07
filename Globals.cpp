@@ -88,8 +88,8 @@ TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków n
 vector3 Global::pCameraPosition;
 double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
-vector3 Global::pFreeCameraInit[10];
-vector3 Global::pFreeCameraInitAngle[10];
+std::vector<vector3> Global::FreeCameraInit;
+std::vector<vector3> Global::FreeCameraInitAngle;
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
 float Global::Background[3] = {0.2f, 0.4f, 0.33f};
@@ -238,11 +238,15 @@ std::string Global::GetNextSymbol()
 
 void Global::LoadIniFile(std::string asFileName)
 {
+/*
     for (int i = 0; i < 10; ++i)
     { // zerowanie pozycji kamer
         pFreeCameraInit[i] = vector3(0, 0, 0); // współrzędne w scenerii
         pFreeCameraInitAngle[i] = vector3(0, 0, 0); // kąty obrotu w radianach
     }
+*/
+    FreeCameraInit.resize( 10 );
+    FreeCameraInitAngle.resize( 10 );
     cParser parser(asFileName, cParser::buffer_FILE);
     ConfigParse(parser);
 };
@@ -320,8 +324,10 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> Global::bFreeFly;
             Parser.getTokens(3, false);
-            Parser >> Global::pFreeCameraInit[0].x, Global::pFreeCameraInit[0].y,
-                Global::pFreeCameraInit[0].z;
+            Parser >>
+                Global::FreeCameraInit[0].x,
+                Global::FreeCameraInit[0].y,
+                Global::FreeCameraInit[0].z;
         }
         else if (token == "wireframe")
         {

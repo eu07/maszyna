@@ -1977,7 +1977,8 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         if( tmp->DynamicObject->MoverParameters->LightPowerSource.SourceType != TPowerSource::NotDefined ) {
             // if the vehicle has defined light source, it can (potentially) emit light, so add it to the light array
 */
-        if( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) {
+        if( ( tmp != nullptr )
+         && ( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) ) {
             // we check for presence of security system, as a way to determine whether the vehicle is a controllable engine
             // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights
             m_lights.insert( tmp->DynamicObject );
@@ -2955,11 +2956,12 @@ bool TGround::Init(std::string File)
                 into = ++Global::iCameraLast;
             if ((into >= 0) && (into < 10))
             { // przepisanie do odpowiedniego miejsca w tabelce
-                Global::pFreeCameraInit[into] = xyz;
-                abc.x = DegToRad(abc.x);
-                abc.y = DegToRad(abc.y);
-                abc.z = DegToRad(abc.z);
-                Global::pFreeCameraInitAngle[into] = abc;
+                Global::FreeCameraInit[ into ] = xyz;
+                Global::FreeCameraInitAngle[ into ] =
+                    Math3D::vector3(
+                        DegToRad( abc.x ),
+                        DegToRad( abc.y ),
+                        DegToRad( abc.z ) );
                 Global::iCameraLast = into; // numer ostatniej
             }
         }
@@ -4002,6 +4004,7 @@ bool TGround::EventConditon(TEvent *e)
 { // sprawdzenie spelnienia warunków dla eventu
     if (e->iFlags <= update_only)
         return true; // bezwarunkowo
+
     if (e->iFlags & conditional_trackoccupied)
         return (!e->Params[9].asTrack->IsEmpty());
     else if (e->iFlags & conditional_trackfree)
@@ -4015,6 +4018,11 @@ bool TGround::EventConditon(TEvent *e)
     }
     else if (e->iFlags & conditional_memcompare)
     { // porównanie wartości
+        if( nullptr == e->Params[9].asMemCell ) {
+
+            ErrorLog( "Event " + e->asName + " trying conditional_memcompare with nonexistent memcell" );
+            return true; // though this is technically error, we report success to maintain backward compatibility
+        }
         if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText, e->Params[11].asdouble,
                                                    e->Params[12].asdouble, e->iFlags))
 			{ //logowanie spełnionych warunków
@@ -5084,7 +5092,7 @@ void TGround::WyslijString(const std::string &t, int n)
     r.cString[0] = char(i);
     strcpy(r.cString + 1, t.c_str()); // z zerem kończącym
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = (DWORD)(10 + i); // 8+licznik i zero kończące
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
@@ -5163,7 +5171,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
     r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować
     strcpy(r.cString + i + 1, t->asName.c_str()); // zakończony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero kończące
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");

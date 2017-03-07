@@ -2015,7 +2015,8 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
 		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
-	}
+		iFlags |= (GfxRenderer.Texture(TextureID).has_alpha ? 0x20 : 0x10); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+    }
 	else
 		TextureID = iTexture;
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
@@ -2029,7 +2030,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
-	WriteLog("loading e3d model " + FileName + " ..");
+	WriteLog("Loading binary format 3d model data from \"" + FileName + "\"...");
 	
 	std::ifstream file(FileName, std::ios::binary);
 
@@ -2042,12 +2043,12 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 	deserialize(file, size, dynamic);
 	file.close();
 
-	WriteLog("..done.");
+	WriteLog("Finished loading 3d model data from \"" + FileName + "\"");
 };
 
 void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 { // wczytanie submodelu z pliku tekstowego
-	WriteLog("Loading - text model: " + FileName);
+	WriteLog("Loading text format 3d model data from \"" + FileName + "\"...");
 	iFlags |= 0x0200; // wczytano z pliku tekstowego (właścicielami tablic są submodle)
 	cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno być "models\\"...
 	TSubModel *SubModel;
