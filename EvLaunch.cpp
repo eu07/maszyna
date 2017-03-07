@@ -164,19 +164,17 @@ bool TEventLauncher::Render()
     bool bCond = false;
     if (iKey != 0)
     {
-        if( Global::bActive ) {
-            // tylko jeśli okno jest aktywne
-            if( iKey > 255 ) {
-                // key and modifier
-                auto const modifier = ( iKey & 0xff00 ) >> 8;
-                bCond = ( Console::Pressed( iKey & 0xff ) )
-                     && ( modifier & 1 ? Global::shiftState : true )
-                     && ( modifier & 2 ? Global::ctrlState : true );
-            }
-            else {
-                // just key
-                bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
-            }
+        // tylko jeśli okno jest aktywne
+        if( iKey > 255 ) {
+            // key and modifier
+            auto const modifier = ( iKey & 0xff00 ) >> 8;
+            bCond = ( Console::Pressed( iKey & 0xff ) )
+                    && ( modifier & 1 ? Global::shiftState : true )
+                    && ( modifier & 2 ? Global::ctrlState : true );
+        }
+        else {
+            // just key
+            bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
         }
     }
     if (DeltaTime > 0)

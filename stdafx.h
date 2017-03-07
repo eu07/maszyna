@@ -24,7 +24,6 @@
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
-#include <dbghelp.h>
 #endif
 // stl
 #include <cstdlib>

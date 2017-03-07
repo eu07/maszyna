@@ -481,7 +481,7 @@ bool TWorld::Init(GLFWwindow *w)
     //    Camera.Init(vector3(1500,5,-4000),0,M_PI,0);
     // McZapkie-130302 - coby nie przekompilowywac:
     //      Camera.Init(Global::pFreeCameraInit,0,M_PI,0);
-    Camera.Init(Global::pFreeCameraInit[0], Global::pFreeCameraInitAngle[0]);
+    Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
 
     char buff[255] = "Player train init: ";
     glRasterPos2f( -0.85f * widthratio, -0.50f );
@@ -592,32 +592,32 @@ void TWorld::OnKeyDown(int cKey)
             if ((Global::iTextMode != GLFW_KEY_F12) &&
                 (Global::iTextMode != GLFW_KEY_F3)) // ograniczamy użycie kamer
             {
-                if ((!Global::pFreeCameraInit[i].x && !Global::pFreeCameraInit[i].y &&
-                     !Global::pFreeCameraInit[i].z))
+                if ((!Global::FreeCameraInit[i].x && !Global::FreeCameraInit[i].y &&
+                     !Global::FreeCameraInit[i].z))
                 { // jeśli kamera jest w punkcie zerowym, zapamiętanie współrzędnych i kątów
-                    Global::pFreeCameraInit[i] = Camera.Pos;
-                    Global::pFreeCameraInitAngle[i].x = Camera.Pitch;
-                    Global::pFreeCameraInitAngle[i].y = Camera.Yaw;
-                    Global::pFreeCameraInitAngle[i].z = Camera.Roll;
+                    Global::FreeCameraInit[i] = Camera.Pos;
+                    Global::FreeCameraInitAngle[i].x = Camera.Pitch;
+                    Global::FreeCameraInitAngle[i].y = Camera.Yaw;
+                    Global::FreeCameraInitAngle[i].z = Camera.Roll;
                     // logowanie, żeby można było do scenerii przepisać
                     WriteLog(
-                        "camera " + std::to_string( Global::pFreeCameraInit[i].x ) + " " +
-                        std::to_string(Global::pFreeCameraInit[i].y ) + " " +
-                        std::to_string(Global::pFreeCameraInit[i].z ) + " " +
-                        std::to_string(RadToDeg(Global::pFreeCameraInitAngle[i].x)) +
+                        "camera " + std::to_string( Global::FreeCameraInit[i].x ) + " " +
+                        std::to_string(Global::FreeCameraInit[i].y ) + " " +
+                        std::to_string(Global::FreeCameraInit[i].z ) + " " +
+                        std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].x)) +
                         " " +
-                        std::to_string(RadToDeg(Global::pFreeCameraInitAngle[i].y)) +
+                        std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].y)) +
                         " " +
-                        std::to_string(RadToDeg(Global::pFreeCameraInitAngle[i].z)) +
+                        std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].z)) +
                         " " + std::to_string(i) + " endcamera");
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global::pCameraPosition) jest trochę bez sensu
                     Global::SetCameraPosition(
-                        Global::pFreeCameraInit[i]); // nowa pozycja dla generowania obiektów
+                        Global::FreeCameraInit[i]); // nowa pozycja dla generowania obiektów
                     Ground.Silence(Camera.Pos); // wyciszenie wszystkiego z poprzedniej pozycji
-                    Camera.Init(Global::pFreeCameraInit[i],
-                                Global::pFreeCameraInitAngle[i]); // przestawienie
+                    Camera.Init(Global::FreeCameraInit[i],
+                                Global::FreeCameraInitAngle[i]); // przestawienie
                 }
             }
         // będzie jeszcze załączanie sprzęgów z [Ctrl]
