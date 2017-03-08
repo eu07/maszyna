@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "skydome.h"
 #include "color.h"
+#include "usefull.h"
 
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
@@ -38,21 +39,6 @@ float CSkyDome::m_zenithymatrix[ 3 ][ 4 ] = {
 		{ -0.04214f,  0.08970f, -0.04153f,  0.00516f },
 		{  0.15346f, -0.26756f,  0.06670f,  0.26688f }
 	};
-
-//******************************************************************************//
-
-float clamp( float const Value, float const Min, float const Max ) {
-
-    float value = Value;
-    if( value < Min ) { value = Min; }
-    if( value > Max ) { value = Max; }
-    return value;
-}
-
-float interpolate( float const First, float const Second, float const Factor ) {
-
-    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
-}
 
 //******************************************************************************//
 
@@ -121,8 +107,6 @@ void CSkyDome::Generate() {
     }
 }
 
-//******************************************************************************//
-
 void CSkyDome::Update( Math3D::vector3 const &Sun ) {
 
     if( true == SetSunPosition( Sun ) ) {
@@ -166,8 +150,6 @@ void CSkyDome::Render() {
     ::glDisableClientState( GL_VERTEX_ARRAY );
 }
 
-//******************************************************************************//
-
 bool CSkyDome::SetSunPosition( Math3D::vector3 const &Direction ) {
 
     auto sundirection = SafeNormalize( float3( Direction.x, Direction.y, Direction.z) );
@@ -205,8 +187,6 @@ void CSkyDome::SetOvercastFactor( float const Overcast ) {
 	m_overcast = clamp( Overcast, 0.0f, 1.0f );
 }
 
-//******************************************************************************//
-
 void CSkyDome::GetPerez( float *Perez, float Distribution[ 5 ][ 2 ], const float Turbidity ) {
 
 	Perez[ 0 ] = Distribution[ 0 ][ 0 ] * Turbidity + Distribution[ 0 ][ 1 ];
@@ -227,8 +207,6 @@ float CSkyDome::GetZenith( float Zenithmatrix[ 3 ][ 4 ], const float Theta, cons
 
 }
 
-//******************************************************************************//
-
 float CSkyDome::PerezFunctionO1( float Perezcoeffs[ 5 ], const float Thetasun, const float Zenithval ) {
 
 	const float val = ( 1.0f + Perezcoeffs[ 0 ] * std::exp( Perezcoeffs[ 1 ] ) ) *
@@ -244,7 +222,6 @@ float CSkyDome::PerezFunctionO2( float Perezcoeffs[ 5 ], const float Icostheta, 
 						( 1.0f + Perezcoeffs[ 2 ] * std::exp( Perezcoeffs[ 3 ] * Gamma ) + Perezcoeffs[ 4 ] * Cosgamma2 );
 }
 
-//******************************************************************************//
 void CSkyDome::RebuildColors() {
 
 	// get zenith luminance
@@ -320,7 +297,7 @@ void CSkyDome::RebuildColors() {
 
         // override the hue, based on sun height above the horizon. crude way to deal with model shortcomings
         // correction begins when the sun is higher than 10 degrees above the horizon, and fully in effect at 10+15 degrees
-        auto const degreesabovehorizon = 90.0f - m_thetasun * ( 180.0f / M_PI );
+        float const degreesabovehorizon = 90.0f - m_thetasun * ( 180.0f / M_PI );
         auto const sunbasedphase = clamp( (1.0f / 15.0f) * ( degreesabovehorizon - 10.0f ), 0.0f, 1.0f );
         // correction is applied in linear manner from the bottom, becomes fully in effect for vertices with y = 0.50
         auto const heightbasedphase = clamp( vertex.y * 2.0f, 0.0f, 1.0f );

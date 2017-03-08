@@ -53,7 +53,7 @@ void TCamera::OnCursorMove(double x, double y)
         Yaw += 2 * M_PI;
     if (Type == tp_Follow) // jeżeli jazda z pojazdem
     {
-        Fix(Pitch, -M_PI_4, M_PI_4); // ograniczenie kąta spoglądania w dół i w górę
+        clamp(Pitch, -M_PI_4, M_PI_4); // ograniczenie kąta spoglądania w dół i w górę
         // Fix(Yaw,-M_PI,M_PI);
     }
 }

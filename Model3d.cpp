@@ -74,7 +74,7 @@ void TSubModel::FirstInit()
 					 // Hits=NULL;
 					 // CollisionPts=NULL;
 					 // CollisionPtsCount=0;
-	Opacity = 1.0; // przy wczytywaniu modeli było dzielone przez 100...
+	Opacity = 0.0f; // przy wczytywaniu modeli było dzielone przez 100...
 	bWire = false;
 	fWireSize = 0;
 	fNearAttenStart = 40;
@@ -376,13 +376,10 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
-            if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity
-                // 0!
-                iFlags |= GfxRenderer.Texture(TextureID).has_alpha ?
-                              0x20 :
-                              0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
-            else
-                iFlags |= 0x10; // normalnie nieprzezroczyste
+            iFlags |=
+                ( GfxRenderer.Texture(TextureID).has_alpha ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
@@ -391,19 +388,19 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     else
         iFlags |= 0x10;
 
+    // visibility range
 	std::string discard;
 	parser.getTokens(5, false);
 	parser >> discard >> fSquareMaxDist >> discard >> fSquareMinDist >> discard;
 
-	if (fSquareMaxDist >= 0.0)
-	{
-		fSquareMaxDist *= fSquareMaxDist;
-	}
-	else
-	{
-		fSquareMaxDist = 15000 * 15000;
-	} // 15km to więcej, niż się obecnie wyświetla
+    if( fSquareMaxDist <= 0.0 ) {
+        // 15km to więcej, niż się obecnie wyświetla
+        fSquareMaxDist = 15000.0;
+    }
+	fSquareMaxDist *= fSquareMaxDist;
 	fSquareMinDist *= fSquareMinDist;
+
+    // transformation matrix
 	fMatrix = new float4x4();
 	readMatrix(parser, *fMatrix); // wczytanie transform
 	if (!fMatrix->IdentityIs())
@@ -688,7 +685,7 @@ void TSubModel::DisplayLists()
         glColorMaterial(GL_FRONT, GL_EMISSION);
         glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
-        glVertex3f( 0.0f, 0.0f, -0.025f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
+        glVertex3f( 0.0f, 0.0f, -0.05f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
         glEnd();
         glEnable(GL_LIGHTING);
         glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
@@ -1484,7 +1481,7 @@ void TSubModel::AdjustDist()
 	if (fSquareMaxDist > 0.0)
 		fSquareMaxDist *= Global::fDistanceFactor;
 	if (fSquareMinDist > 0.0)
-		fSquareMinDist *= Global::fDistanceFactor;
+		fSquareMinDist /= Global::fDistanceFactor;
 	// if (fNearAttenStart>0.0) fNearAttenStart*=Global::fDistanceFactor;
 	// if (fNearAttenEnd>0.0) fNearAttenEnd*=Global::fDistanceFactor;
 	if (Child)
@@ -2015,12 +2012,10 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
 		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
-        if( Opacity < 1.0 ) // przezroczystość z tekstury brana tylko dla Opacity 0!
-            iFlags |= GfxRenderer.Texture( TextureID ).has_alpha ?
-            0x20 :
-            0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
-        else
-            iFlags |= 0x10; // normalnie nieprzezroczyste
+        iFlags |=
+            ( GfxRenderer.Texture( TextureID ).has_alpha ?
+                0x20 :
+                0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
     }
 	else
 		TextureID = iTexture;
