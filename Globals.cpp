@@ -495,9 +495,9 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-
-            Global::bUseVBO = (token == "yes");
+            Parser >> Global::bUseVBO;
+            // NOTE: temporary override until render paths are sorted out
+            Global::bUseVBO = false;
         }
         else if (token == "feedbackmode")
         {

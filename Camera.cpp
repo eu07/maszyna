@@ -169,3 +169,17 @@ void TCamera::Stop()
     Type = tp_Follow;
     Velocity = vector3(0, 0, 0);
 };
+
+// returns true if specified object is within camera frustum, false otherwise
+bool
+TCamera::IsVisible( TDynamicObject const *Dynamic ) const {
+
+    // sphere test is faster than AABB, so we'll use it here
+    float3 diagonal(
+        Dynamic->MoverParameters->Dim.L,
+        Dynamic->MoverParameters->Dim.H,
+        Dynamic->MoverParameters->Dim.W );
+    float const radius = static_cast<float>(diagonal.Length()) * 0.5f;
+
+    return ( m_frustum.sphere_inside( Dynamic->GetPosition(), radius ) > 0.0f );
+}

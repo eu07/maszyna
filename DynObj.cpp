@@ -3703,6 +3703,7 @@ void TDynamicObject::TurnOff()
 void TDynamicObject::Render()
 { // rysowanie elementów nieprzezroczystych
     // youBy - sprawdzamy, czy jest sens renderowac
+/*
     double modelrotate;
     vector3 tempangle;
     // zmienne
@@ -3713,8 +3714,7 @@ void TDynamicObject::Render()
     if (ObjSqrDist < 500) // jak jest blisko - do 70m
         modelrotate = 0.01; // mały kąt, żeby nie znikało
     else
-    { // Global::pCameraRotation to kąt bewzględny w świecie (zero - na
-        // północ)
+    { // Global::pCameraRotation to kąt bewzględny w świecie (zero - na północ)
         tempangle = (vPosition - Global::pCameraPosition); // wektor od kamery
         modelrotate = ABuAcos(tempangle); // określenie kąta
         // if (modelrotate>M_PI) modelrotate-=(2*M_PI);
@@ -3730,8 +3730,8 @@ void TDynamicObject::Render()
 
     if (modelrotate < maxrot)
         renderme = true;
-
-    if (renderme)
+*/
+    if (Global::pCamera->IsVisible(this))
     {
         TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
         // AnsiString asLoadName="";

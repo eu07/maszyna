@@ -1050,7 +1050,9 @@ void TSubModel::RaAnimation(TAnimType a)
 
 void TSubModel::RenderDL()
 { // główna procedura renderowania przez DL
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1147,7 +1149,9 @@ void TSubModel::RenderDL()
 
 void TSubModel::RenderAlphaDL()
 { // renderowanie przezroczystych przez DL
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1227,7 +1231,9 @@ void TSubModel::RenderAlphaDL()
 
 void TSubModel::RenderVBO()
 { // główna procedura renderowania przez VBO
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1400,7 +1406,9 @@ void TSubModel::RenderVBO()
 
 void TSubModel::RenderAlphaVBO()
 { // renderowanie przezroczystych przez VBO
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1475,6 +1483,8 @@ void TSubModel::RaArrayFill(CVertNormTex *Vert)
 		Next->RaArrayFill(Vert);
 };
 
+// NOTE: leftover from static distance factor adjustment.
+// TODO: get rid of it, once we have the dynamic adjustment code in place
 void TSubModel::AdjustDist()
 { // aktualizacja odległości faz LoD, zależna od
   // rozdzielczości pionowej oraz multisamplingu
@@ -2120,10 +2130,13 @@ void TModel3d::Init()
 		}
 		if (iNumVerts)
 		{
+/* // NOTE: we will be applying distance factor dynamically during render,
+   // so we're leaving the defined ranges intact
 			if (Global::fDistanceFactor !=
 				1.0) // trochę zaoszczędzi czasu na modelach z wieloma submocelami
 				Root->AdjustDist(); // aktualizacja odległości faz LoD, zależnie od
 									// rozdzielczości pionowej oraz multisamplingu
+*/
 			if (Global::bUseVBO)
 			{
 				if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku
