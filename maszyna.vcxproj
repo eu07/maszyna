@@ -42,9 +42,9 @@
     <OutDir>E:\Gry\EU07\eu07 exe\tmj-cpp</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <TargetName>mhEU07-201702relase</TargetName>
+    <TargetName>mkEU07-20170308</TargetName>
     <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
-    <OutDir>E:\Gry\EU07\eu07 exe\tmj-cpp-hamulec</OutDir>
+    <OutDir>E:\Gry\EU07\MaSzyna_16_08</OutDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
