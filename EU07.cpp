@@ -80,6 +80,7 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 {
 	Global::ScreenWidth = w;
 	Global::ScreenHeight = h;
+    Global::fDistanceFactor = std::max( 0.5f, h / 768.0f ); // not sure if this is really something we want to use
 	glViewport(0, 0, w, h);
 }
 

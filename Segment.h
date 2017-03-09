@@ -141,7 +141,9 @@ class TSegment
     }
     int RaSegCount()
     {
-        return fTsBuffer ? iSegCount : 1;
+		if (!fTsBuffer || !bCurve)
+			return 1;
+		return iSegCount;
     };
     void RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints, int iNumShapePoints,
                       double fTextureLength, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0);

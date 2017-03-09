@@ -74,7 +74,7 @@ void TSubModel::FirstInit()
 					 // Hits=NULL;
 					 // CollisionPts=NULL;
 					 // CollisionPtsCount=0;
-	Opacity = 1.0; // przy wczytywaniu modeli było dzielone przez 100...
+	Opacity = 0.0f; // przy wczytywaniu modeli było dzielone przez 100...
 	bWire = false;
 	fWireSize = 0;
 	fNearAttenStart = 40;
@@ -376,13 +376,10 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
             // TexAlpha=TTexturesManager::GetAlpha(TextureID);
             // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
-            if (Opacity < 1.0) // przezroczystość z tekstury brana tylko dla Opacity
-                // 0!
-                iFlags |= GfxRenderer.Texture(TextureID).has_alpha ?
-                              0x20 :
-                              0x10; // 0x10-nieprzezroczysta, 0x20-przezroczysta
-            else
-                iFlags |= 0x10; // normalnie nieprzezroczyste
+            iFlags |=
+                ( GfxRenderer.Texture(TextureID).has_alpha ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
@@ -391,19 +388,19 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     else
         iFlags |= 0x10;
 
+    // visibility range
 	std::string discard;
 	parser.getTokens(5, false);
 	parser >> discard >> fSquareMaxDist >> discard >> fSquareMinDist >> discard;
 
-	if (fSquareMaxDist >= 0.0)
-	{
-		fSquareMaxDist *= fSquareMaxDist;
-	}
-	else
-	{
-		fSquareMaxDist = 15000 * 15000;
-	} // 15km to więcej, niż się obecnie wyświetla
+    if( fSquareMaxDist <= 0.0 ) {
+        // 15km to więcej, niż się obecnie wyświetla
+        fSquareMaxDist = 15000.0;
+    }
+	fSquareMaxDist *= fSquareMaxDist;
 	fSquareMinDist *= fSquareMinDist;
+
+    // transformation matrix
 	fMatrix = new float4x4();
 	readMatrix(parser, *fMatrix); // wczytanie transform
 	if (!fMatrix->IdentityIs())
@@ -688,7 +685,7 @@ void TSubModel::DisplayLists()
         glColorMaterial(GL_FRONT, GL_EMISSION);
         glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
-        glVertex3f( 0.0f, 0.0f, -0.025f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
+        glVertex3f( 0.0f, 0.0f, -0.05f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
         glEnd();
         glEnable(GL_LIGHTING);
         glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
@@ -1053,7 +1050,9 @@ void TSubModel::RaAnimation(TAnimType a)
 
 void TSubModel::RenderDL()
 { // główna procedura renderowania przez DL
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1150,7 +1149,9 @@ void TSubModel::RenderDL()
 
 void TSubModel::RenderAlphaDL()
 { // renderowanie przezroczystych przez DL
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1230,7 +1231,9 @@ void TSubModel::RenderAlphaDL()
 
 void TSubModel::RenderVBO()
 { // główna procedura renderowania przez VBO
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1403,7 +1406,9 @@ void TSubModel::RenderVBO()
 
 void TSubModel::RenderAlphaVBO()
 { // renderowanie przezroczystych przez VBO
-    if (iVisible && (fSquareDist >= fSquareMinDist) && (fSquareDist < fSquareMaxDist))
+    if( ( iVisible )
+     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
+     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
         if (iFlags & 0xC000)
         {
@@ -1478,13 +1483,15 @@ void TSubModel::RaArrayFill(CVertNormTex *Vert)
 		Next->RaArrayFill(Vert);
 };
 
+// NOTE: leftover from static distance factor adjustment.
+// TODO: get rid of it, once we have the dynamic adjustment code in place
 void TSubModel::AdjustDist()
 { // aktualizacja odległości faz LoD, zależna od
   // rozdzielczości pionowej oraz multisamplingu
 	if (fSquareMaxDist > 0.0)
 		fSquareMaxDist *= Global::fDistanceFactor;
 	if (fSquareMinDist > 0.0)
-		fSquareMinDist *= Global::fDistanceFactor;
+		fSquareMinDist /= Global::fDistanceFactor;
 	// if (fNearAttenStart>0.0) fNearAttenStart*=Global::fDistanceFactor;
 	// if (fNearAttenEnd>0.0) fNearAttenEnd*=Global::fDistanceFactor;
 	if (Child)
@@ -2120,10 +2127,13 @@ void TModel3d::Init()
 		}
 		if (iNumVerts)
 		{
+/* // NOTE: we will be applying distance factor dynamically during render,
+   // so we're leaving the defined ranges intact
 			if (Global::fDistanceFactor !=
 				1.0) // trochę zaoszczędzi czasu na modelach z wieloma submocelami
 				Root->AdjustDist(); // aktualizacja odległości faz LoD, zależnie od
 									// rozdzielczości pionowej oraz multisamplingu
+*/
 			if (Global::bUseVBO)
 			{
 				if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku

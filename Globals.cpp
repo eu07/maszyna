@@ -118,7 +118,7 @@ int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę t
 int Global::Keys[MaxKeys];
 int Global::iWindowWidth = 800;
 int Global::iWindowHeight = 600;
-float Global::fDistanceFactor = 768.0; // baza do przeliczania odległości dla LoD
+float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD
 int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly = false;
@@ -152,7 +152,8 @@ bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::bGlutFont = false; // czy tekst generowany przez GLUT32.DLL
-int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
+//int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
+int Global::iConvertModels{ 0 }; // temporary override, to prevent generation of .e3d not compatible with old exe
 int Global::iSlowMotionMask = -1; // maska wyłączanych właściwości dla zwiększenia FPS
 int Global::iModifyTGA = 7; // czy korygować pliki TGA dla szybszego wczytywania
 // bool Global::bTerrainCompact=true; //czy zapisać teren w pliku
@@ -492,9 +493,7 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-
-            Global::bUseVBO = (token == "yes");
+            Parser >> Global::bUseVBO;
         }
         else if (token == "feedbackmode")
         {
@@ -618,6 +617,11 @@ void Global::ConfigParse(cParser &Parser)
             // tworzenie plików binarnych
             Parser.getTokens(1, false);
             Parser >> Global::iConvertModels;
+            // temporary override, to prevent generation of .e3d not compatible with old exe
+            Global::iConvertModels =
+                ( Global::iConvertModels > 128 ?
+                    Global::iConvertModels - 128 :
+                    0 );
         }
         else if (token == "inactivepause")
         {

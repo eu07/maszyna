@@ -62,6 +62,7 @@ set(SOURCES
 "Sound.cpp"
 "Spring.cpp"
 "shader.cpp"
+"frustum.cpp"
 )
 
 if (WIN32)

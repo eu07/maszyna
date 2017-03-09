@@ -2473,22 +2473,18 @@ void TTrack::RaRenderVBO(int iPtr)
                 if ((seg = SwitchExtension->Segments[0]->RaSegCount()) > 0)
                 {
                     GfxRenderer.Bind( TextureID1 ); // szyny +
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
+                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 24 * seg);
                     iPtr += 24 * seg; // pominięcie lewej szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
+					glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 24 * seg);
                     iPtr += 24 * seg; // pominięcie prawej szyny
                 }
             if (TextureID2)
                 if ((seg = SwitchExtension->Segments[1]->RaSegCount()) > 0)
                 {
                     GfxRenderer.Bind( TextureID2 ); // szyny -
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
+					glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 24 * seg);
                     iPtr += 24 * seg; // pominięcie lewej szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
+					glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 24 * seg);
                 }
         }
         else // dla toru podsypka plus szyny
@@ -2498,18 +2494,15 @@ void TTrack::RaRenderVBO(int iPtr)
                 if (TextureID2)
                 {
                     GfxRenderer.Bind( TextureID2 ); // podsypka
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 8 * i, 8);
+					glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 8 * seg);
                     iPtr += 8 * seg; // pominięcie podsypki
                 }
                 if (TextureID1)
                 {
                     GfxRenderer.Bind( TextureID1 ); // szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
+                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 24 * seg);
                     iPtr += 24 * seg; // pominięcie lewej szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
+                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 24 * seg);
                 }
             }
         }
@@ -2520,34 +2513,27 @@ void TTrack::RaRenderVBO(int iPtr)
             if (TextureID1)
             {
                 GfxRenderer.Bind( TextureID1 ); // nawierzchnia
-                for (i = 0; i < seg; ++i)
-                {
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4);
-                    iPtr += 4;
-                }
+				glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4 * seg);
+				iPtr += 4 * seg;
             }
             if (TextureID2)
             {
                 GfxRenderer.Bind( TextureID2 ); // pobocze
                 if (fTexHeight1 >= 0.0)
                 { // normalna droga z poboczem
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+					glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 6 * seg);
                     iPtr += 6 * seg; // pominięcie lewego pobocza
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+					glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 6 * seg);
                 }
                 else
                 { // z chodnikami o różnych szerokociach
                     if (fTexWidth != 0.0)
                     {
-                        for (i = 0; i < seg; ++i)
-                            glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+						glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 6 * seg);
                         iPtr += 6 * seg; // pominięcie lewego pobocza
                     }
                     if (fTexSlope != 0.0)
-                        for (i = 0; i < seg; ++i)
-                            glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+						glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 6 * seg);
                 }
             }
         }
@@ -2558,20 +2544,15 @@ void TTrack::RaRenderVBO(int iPtr)
             if (TextureID1)
             {
                 GfxRenderer.Bind( TextureID1 ); // nawierzchnia
-                for (i = 0; i < seg; ++i)
-                {
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4);
-                    iPtr += 4;
-                }
+				glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4 * seg);
+				iPtr += 4 * seg;
             }
             if (TextureID2)
             {
                 GfxRenderer.Bind( TextureID2 ); // pobocze
-                for (i = 0; i < seg; ++i)
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+				glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 6 * seg);
                 iPtr += 6 * seg; // pominięcie lewego pobocza
-                for (i = 0; i < seg; ++i)
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+				glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 6 * seg);
             }
         }
         break;

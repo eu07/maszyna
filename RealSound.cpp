@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 //#include "math.h"
 #include "Timer.h"
 #include "mczapkie/mctools.h"
+#include "usefull.h"
 
 TRealSound::TRealSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
 	bool freqmod, double rmin)
@@ -177,7 +178,7 @@ void TRealSound::AdjFreq(double Freq, double dt) // McZapkie TODO: dorobic tu ef
 // Freq moze byc liczba dodatnia mniejsza od 1 lub wieksza od 1
 {
 	float df, Vlist;
-    if ((Global::bSoundEnabled) && (AM != 0))
+    if ((Global::bSoundEnabled) && (AM != 0) && (pSound != nullptr))
     {
         if (dt > 0)
         // efekt Dopplera
@@ -190,9 +191,7 @@ void TRealSound::AdjFreq(double Freq, double dt) // McZapkie TODO: dorobic tu ef
         if (Timer::GetSoundTimer())
         {
             df = fFrequency * df; // TODO - brac czestotliwosc probkowania z wav
-            pSound->SetFrequency((df < DSBFREQUENCY_MIN ?
-                                      DSBFREQUENCY_MIN :
-                                      (df > DSBFREQUENCY_MAX ? DSBFREQUENCY_MAX : df)));
+            pSound->SetFrequency( clamp( df, static_cast<float>(DSBFREQUENCY_MIN), static_cast<float>(DSBFREQUENCY_MAX) ) );
         }
     }
 }

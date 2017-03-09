@@ -34,8 +34,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "color.h"
 
-#define TEXTURE_FILTER_CONTROL_EXT 0x8500
-#define TEXTURE_LOD_BIAS_EXT 0x8501
 //---------------------------------------------------------------------------
 
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
@@ -280,6 +278,7 @@ bool TWorld::Init(GLFWwindow *w)
     glEnable(GL_CULL_FACE); // Cull back-facing triangles
     glLineWidth(1.0f);
     glPointSize(3.0f);
+    glEnable( GL_POINT_SMOOTH );
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
     // ----------- LIGHTING SETUP -----------
     // Light values and coordinates
@@ -1128,13 +1127,22 @@ bool TWorld::Update()
     int updatecount = 1;
     if( dt > m_primaryupdaterate ) // normalnie 0.01s
     {
+/*
+        // NOTE: experimentally disabled physics update cap
         auto const iterations = std::ceil(dt / m_primaryupdaterate);
         updatecount = std::min( 20, static_cast<int>( iterations ) );
+*/
+        updatecount = std::ceil( dt / m_primaryupdaterate );
+/*
+        // NOTE: changing dt wrecks things further down the code. re-acquire proper value later or cleanup here
         dt = dt / iterations; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
+*/
     }
     // NOTE: updates are limited to 20, but dt is distributed over potentially many more iterations
     // this means at count > 20 simulation and render are going to desync. is that right?
-    Ground.Update(dt, updatecount); // tu zrobić tylko coklatkową aktualizację przesunięć
+    // NOTE: experimentally changing this to prevent the desync.
+    // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
+    Ground.Update(dt / updatecount, updatecount); // tu zrobić tylko coklatkową aktualizację przesunięć
 /*
     if (DebugModeFlag)
         if (Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
@@ -1458,6 +1466,7 @@ bool TWorld::Render()
     glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
     glLoadIdentity();
     Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
+    Camera.SetFrustum(); // update camera frustum to match current data
 
     if( !Global::bWireFrame ) {
         // bez nieba w trybie rysowania linii

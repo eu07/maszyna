@@ -275,6 +275,12 @@ opengl_texture::load_DDS() {
         --mapcount;
     }
 */
+    if( datasize == 0 ) {
+        // catch malformed .dds files
+        WriteLog( "File \"" + name + "\" is malformed and holds no texture data." );
+        data_state = resource_state::failed;
+        return;
+    }
     // reserve space and load texture data
     data.resize( datasize );
     if( offset != 0 ) {
