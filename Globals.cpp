@@ -1043,9 +1043,12 @@ void Global::InitKeys()
     Keys[k_PantRearDown] = 'O';
     // Winger 020304 - ogrzewanie
 	Keys[k_Heating] = 'H';
+    // headlights
 	Keys[k_LeftSign] = 'Y';
     Keys[k_UpperSign] = 'U';
     Keys[k_RightSign] = 'I';
+    Keys[k_DimHeadlights] = 'L';
+    // tail lights
     Keys[k_EndSign] = 'T';
 
     Keys[k_SmallCompressor] = 'V';

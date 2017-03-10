@@ -68,7 +68,7 @@ light_array::update() {
             if( light.count > 0 ) {
                 // TODO: intensity can be affected further by dim switch or other factors
                 light.intensity = std::max( 0.0f, std::log( (float)light.count + 1.0f ) );
-//                light.intensity = std::max( 0.0f, std::log( (float)light.count + 3.0f ) );
+                light.intensity *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
             }
             else {
                 light.intensity = 0.0f;

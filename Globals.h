@@ -110,7 +110,8 @@ const int k_Active = 71;
 // Winger 020304
 const int k_Battery = 72;
 const int k_WalkMode = 73;
-const int MaxKeys = 74;
+int const k_DimHeadlights = 74;
+const int MaxKeys = 75;
 
 // klasy dla wskaźników globalnych
 class TGround;

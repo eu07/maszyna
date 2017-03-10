@@ -557,8 +557,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 mdLoad->GetSMRoot()->SetTranslate(modelShake + vFloor);
             if (mdLowPolyInt)
                 mdLowPolyInt->GetSMRoot()->SetTranslate(modelShake);
-            if (mdPrzedsionek)
-                mdPrzedsionek->GetSMRoot()->SetTranslate(modelShake);
             // ABu: koniec rzucania
             // ABu011104: liczenie obrotow wozkow
             ABuBogies();
@@ -1707,7 +1705,6 @@ TDynamicObject::TDynamicObject()
     smLoadMode = NULL;
     mdLoad = NULL;
     mdLowPolyInt = NULL;
-    mdPrzedsionek = NULL;
     //smMechanik0 = smMechanik1 = NULL;
     smBuforLewy[0] = smBuforLewy[1] = NULL;
     smBuforPrawy[0] = smBuforPrawy[1] = NULL;
@@ -4503,15 +4500,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                 // w cyklu
                 // nieprzezroczystych
             }
-/*
-            // Winger 040304 - ladowanie przedsionkow dla EZT
-            if (MoverParameters->TrainType == dt_EZT)
-            {
-                asModel = "przedsionki.t3d";
-                asModel = BaseDir + asModel;
-                mdPrzedsionek = TModelsManager::GetModel(asModel, true);
-            }
-*/
             if (!MoverParameters->LoadAccepted.empty())
                 // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
                 // MoverParameters->LoadType!=AnsiString("passengers"))
@@ -5424,8 +5412,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
     // binarnego
     if (mdLoad)
         mdLoad->Init();
-    if (mdPrzedsionek)
-        mdPrzedsionek->Init();
     if (mdLowPolyInt)
         mdLowPolyInt->Init();
     // sHorn2.CopyIfEmpty(sHorn1); ///żeby jednak trąbił też drugim

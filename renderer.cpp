@@ -140,8 +140,6 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
     if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
         Render( Dynamic->mdLoad, Dynamic, squaredistance );
-    if( Dynamic->mdPrzedsionek )
-        Render( Dynamic->mdPrzedsionek, Dynamic, squaredistance );
 
     ::glPopMatrix();
 
@@ -246,8 +244,6 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
     if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
         Render_Alpha( Dynamic->mdLoad, Dynamic, squaredistance );
-    if( Dynamic->mdPrzedsionek )
-        Render_Alpha( Dynamic->mdPrzedsionek, Dynamic, squaredistance );
 
     ::glPopMatrix();
 
@@ -343,7 +339,7 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
         renderlight->ambient[ 1 ] = std::max( 0.0, scenelight.color.y * scenelight.intensity - luminance );
         renderlight->ambient[ 2 ] = std::max( 0.0, scenelight.color.z * scenelight.intensity - luminance );
 
-        ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, (0.25f * scenelight.count) / std::pow( scenelight.count, 2 ) );
+        ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, (0.25f * scenelight.count) / std::pow( scenelight.count, 2 ) * (scenelight.owner->DimHeadlights ? 1.25f : 1.0f) );
         ::glEnable( renderlight->id );
 
         renderlight->apply_intensity();

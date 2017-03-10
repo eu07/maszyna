@@ -180,7 +180,6 @@ private:
 public: // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
-    TModel3d *mdPrzedsionek; // model przedsionków dla EZT - może użyć mdLoad zamiast?
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
     float3 InteriorLight{ 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
@@ -346,6 +345,7 @@ public: // modele składowe pojazdu
 
   public:
     int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
+    bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
     double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
     // pojazdem)
     TDynamicObject * PrevAny();

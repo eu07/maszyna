@@ -508,7 +508,7 @@ void TTrain::OnKeyDown(int cKey)
                 }
             }
         }
-        else if (cKey == Global::Keys[k_StLinOff])
+        else if ((cKey == Global::Keys[k_StLinOff]) && (!Global::shiftState) && (!Global::ctrlState)) // shift&ctrl are used for light dimming
         {
             if (mvControlled->TrainType == dt_EZT)
             {
@@ -2339,7 +2339,7 @@ if
                 }
             }
         }
-        else if (cKey == Global::Keys[k_StLinOff]) // Winger 110904: wylacznik st.
+        else if ((cKey == Global::Keys[k_StLinOff]) && (!Global::shiftState) && (!Global::ctrlState)) // Winger 110904: wylacznik st.
         // liniowych
         {
             if ((mvControlled->TrainType != dt_EZT) && (mvControlled->TrainType != dt_EP05) &&
@@ -2468,6 +2468,29 @@ if
                 ++iRadioChannel; // 0=wyłączony
         }
     }
+
+    // TODO: break the mess above into individual command-based routines.
+    // TODO: test for modifiers inside the routines, instead of grouping by the modifier
+    // TODO: do away with the modifier tests, each command should be separate and issued by input processor(s) up the chain
+    if( cKey == Global::Keys[ k_DimHeadlights ] ) {
+        // headlight strength toggle
+        if( !Global::ctrlState ) {
+            // switch uses either ctrl, or ctrl+shift, so we can bail early here
+            return;
+        }
+        if( DynamicObject->DimHeadlights && (!Global::shiftState)) {
+            DynamicObject->DimHeadlights = false;
+            // switch sound
+            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+            dsbSwitch->Play( 0, 0, 0 );
+        }
+        else if( (!DynamicObject->DimHeadlights) && (Global::shiftState)) {
+            DynamicObject->DimHeadlights = true;
+            // switch sound
+            dsbSwitch->SetVolume( DSBVOLUME_MAX );
+            dsbSwitch->Play( 0, 0, 0 );
+        }
+    }
 }
 
 void TTrain::OnKeyUp(int cKey)
@@ -2477,7 +2500,7 @@ void TTrain::OnKeyUp(int cKey)
     }
     else
     {
-        if (cKey == Global::Keys[k_StLinOff]) // Winger 110904: wylacznik st. liniowych
+        if ((cKey == Global::Keys[k_StLinOff]) && (!Global::shiftState) && (!Global::ctrlState)) // Winger 110904: wylacznik st. liniowych
         { // zwolnienie klawisza daje powrót przycisku do zwykłego stanu
             if ((mvControlled->TrainType != dt_EZT) && (mvControlled->TrainType != dt_EP05) &&
                 (mvControlled->TrainType != dt_ET40))
@@ -3877,41 +3900,6 @@ bool TTrain::Update( double const Deltatime )
             ggLeftEndLightButton.PutValue(0);
         }
 
-        //---------
-        // hunter-101211: poprawka na zle obracajace sie przelaczniki
-        /*
-        if (((DynamicObject->iLights[0]&1)==1)
-         ||((DynamicObject->iLights[1]&1)==1))
-           ggLeftLightButton.PutValue(1);
-        if (((DynamicObject->iLights[0]&16)==16)
-         ||((DynamicObject->iLights[1]&16)==16))
-           ggRightLightButton.PutValue(1);
-        if (((DynamicObject->iLights[0]&4)==4)
-         ||((DynamicObject->iLights[1]&4)==4))
-           ggUpperLightButton.PutValue(1);
-
-        if (((DynamicObject->iLights[0]&2)==2)
-         ||((DynamicObject->iLights[1]&2)==2))
-           if (ggLeftEndLightButton.SubModel)
-           {
-              ggLeftEndLightButton.PutValue(1);
-              ggLeftLightButton.PutValue(0);
-           }
-           else
-              ggLeftLightButton.PutValue(-1);
-
-        if (((DynamicObject->iLights[0]&32)==32)
-         ||((DynamicObject->iLights[1]&32)==32))
-           if (ggRightEndLightButton.SubModel)
-           {
-              ggRightEndLightButton.PutValue(1);
-              ggRightLightButton.PutValue(0);
-           }
-           else
-              ggRightLightButton.PutValue(-1);
-         */
-
-        //--------------
         // hunter-230112
 
         // REFLEKTOR LEWY
@@ -4048,6 +4036,11 @@ bool TTrain::Update( double const Deltatime )
         {
             ggLightsButton.PutValue(mvOccupied->LightsPos - 1);
             ggLightsButton.Update();
+        }
+        if( ggDimHeadlightsButton.SubModel ) {
+        
+            ggDimHeadlightsButton.PutValue( DynamicObject->DimHeadlights ? 1.0 : 0.0 );
+            ggDimHeadlightsButton.Update();
         }
 
         //---------
@@ -5855,6 +5848,7 @@ void TTrain::clear_cab_controls()
     ggLeftLightButton.Clear();
     ggRightLightButton.Clear();
     ggUpperLightButton.Clear();
+    ggDimHeadlightsButton.Clear();
     ggLeftEndLightButton.Clear();
     ggRightEndLightButton.Clear();
     ggLightsButton.Clear();
@@ -6259,7 +6253,11 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         // swiatlo
         ggRightLightButton.Load(Parser, DynamicObject->mdKabina);
     }
-    else if (Label == "leftend_sw:")
+    else if( Label == "dimheadlights_sw:" ) {
+        // swiatlo
+        ggDimHeadlightsButton.Load( Parser, DynamicObject->mdKabina );
+    }
+    else if( Label == "leftend_sw:" )
     {
         // swiatlo
         ggLeftEndLightButton.Load(Parser, DynamicObject->mdKabina);

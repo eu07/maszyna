@@ -177,6 +177,7 @@ class TTrain
     TGauge ggLeftEndLightButton;
     TGauge ggRightEndLightButton;
     TGauge ggLightsButton; // przelacznik reflektorow (wszystkich)
+    TGauge ggDimHeadlightsButton; // headlights dimming switch
 
     // hunter-230112: przelacznik swiatel tylnich
     TGauge ggRearUpperLightButton;
