@@ -141,6 +141,9 @@ class TAnim
 //---------------------------------------------------------------------------
 
 class TDynamicObject { // klasa pojazdu
+
+    friend class opengl_renderer;
+
 private: // położenie pojazdu w świecie oraz parametry ruchu
     vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
     vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
@@ -417,8 +420,10 @@ public: // modele składowe pojazdu
     bool FastUpdate(double dt);
     void Move(double fDistance);
     void FastMove(double fDistance);
+/*
     void Render();
     void RenderAlpha();
+*/
     void RenderSounds();
     inline vector3 GetPosition() const
     {

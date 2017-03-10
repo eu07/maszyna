@@ -29,7 +29,7 @@ using namespace Mtable;
 
 double TSubModel::fSquareDist = 0;
 size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
-texture_manager::size_type *TSubModel::ReplacableSkinId = NULL;
+texture_manager::size_type const *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
 std::string *TSubModel::pasText;
@@ -2196,7 +2196,7 @@ Root->Render(ReplacableSkinId,iAlpha);
 glPopMatrix();
 };
 */
-
+/*
 void TModel3d::Render(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 {
 	iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
@@ -2217,7 +2217,7 @@ void TModel3d::RenderAlpha(double fSquareDistance, texture_manager::size_type *R
 		Root->RenderAlphaDL();
 	}
 };
-
+*/
 /*
 void TModel3d::RaRender(vector3 pPosition,double fAngle,GLuint
 *ReplacableSkinId,int

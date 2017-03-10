@@ -23,7 +23,7 @@ class float3
         y = b;
         z = c;
     };
-    double inline Length() const;
+    float inline Length() const;
 };
 
 inline bool operator==(const float3 &v1, const float3 &v2)
@@ -49,9 +49,9 @@ inline float3 operator+(const float3 &v1, const float3 &v2)
 {
     return float3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 };
-double inline float3::Length() const
+float inline float3::Length() const
 {
-    return sqrt(x * x + y * y + z * z);
+    return std::sqrt(x * x + y * y + z * z);
 };
 inline float3 operator*( float3 const &v, float const  k ) {
     return float3( v.x * k, v.y * k, v.z * k );

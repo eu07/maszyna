@@ -39,7 +39,6 @@ std::string Global::asCurrentDynamicPath = "";
 int Global::iSlowMotion =
     0; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
-bool Global::detonatoryOK; // info o nowych detonatorach
 double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
 double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecności rozszerzeń
@@ -80,7 +79,6 @@ cParser *Global::pParser = NULL;
 int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajności
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
-bool Global::bSmudge = false; // czy wyświetlać smugę, a pojazd użytkownika na końcu
 /*
 std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
 */
@@ -125,7 +123,7 @@ int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
-bool Global::VSync{ true };
+bool Global::VSync{ false };
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
 float Global::fMouseXScale = 1.5f;
 float Global::fMouseYScale = 0.2f;
@@ -133,6 +131,7 @@ std::string Global::SceneryFile = "td.scn";
 std::string Global::asHumanCtrlVehicle = "EU07-424";
 int Global::iMultiplayer = 0; // blokada działania niektórych funkcji na rzecz komunikacji
 double Global::fMoveLight = -1; // ruchome światło
+bool Global::FakeLight{ false }; // toggle between fixed and dynamic daylight
 double Global::fLatitudeDeg = 52.0; // szerokość geograficzna
 float Global::fFriction = 1.0; // mnożnik tarcia - KURS90
 double Global::fBrakeStep = 1.0; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
@@ -282,8 +281,7 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens( 1, false );
             Parser >> Global::FieldOfView;
             // guard against incorrect values
-            Global::FieldOfView = std::min( 75.0f, Global::FieldOfView );
-            Global::FieldOfView = std::max( 15.0f, Global::FieldOfView );
+            Global::FieldOfView = clamp( Global::FieldOfView, 15.0f, 75.0f );
         }
         else if (token == "width")
         {
@@ -583,8 +581,8 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens( 1, false );
             Parser >> Global::DynamicLightCount;
             // clamp the light number
-            Global::DynamicLightCount = std::min( 7, Global::DynamicLightCount ); // max 8 lights per opengl specs, and one used for sun
-            Global::DynamicLightCount = std::max( 1, Global::DynamicLightCount ); // at least one light for controlled vehicle
+            // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
+            Global::DynamicLightCount = clamp( Global::DynamicLightCount, 1, 7 ); 
         }
         else if (token == "smoothtraction")
         {

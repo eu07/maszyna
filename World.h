@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stars.h"
 #include "skydome.h"
 #include "mczapkie/mover.h"
-#include "glfw/glfw3.h"
+#include "renderer.h"
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
@@ -27,6 +27,7 @@ public:
     void init();
     void update();
     void render();
+    void time( int const Hour = -1, int const Minute = -1, int const Second = -1 );
 
 private:
     CSkyDome m_skydome;
@@ -37,6 +38,9 @@ private:
 
 class TWorld
 {
+    // NOTE: direct access is a shortcut, but world etc needs some restructuring regardless
+    friend opengl_renderer;
+
     void InOutKey( bool const Near = true );
     void FollowView(bool wycisz = true);
     void DistantView( bool const Near = false );
@@ -53,6 +57,8 @@ class TWorld
     void OnCommandGet(DaneRozkaz *pRozkaz);
     bool Update();
     void TrainDelete(TDynamicObject *d = NULL);
+    // switches between static and dynamic daylight calculation
+    void ToggleDaylight();
     TWorld();
     ~TWorld();
     // double Aspect;
@@ -63,7 +69,7 @@ class TWorld
     std::string OutText4;
     void Update_Environment();
     void Update_Camera( const double Deltatime );
-    bool Render();
+    void ResourceSweep();
     void Render_Cab();
     void Render_UI();
     TCamera Camera;

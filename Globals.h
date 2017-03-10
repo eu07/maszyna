@@ -244,7 +244,6 @@ class Global
     static int iSlowMotion;
     static TDynamicObject *changeDynObj;
     static double ABuDebug;
-    static bool detonatoryOK;
     static std::string asSky;
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
@@ -274,13 +273,13 @@ class Global
     static int iCameraLast;
     static std::string asRelease; // numer
     static std::string asVersion; // z opisem
-    static int
-        iViewMode; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty, 4-obwody
+    static int iViewMode; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty, 4-obwody
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego
     static bool bDoubleAmbient; // podwójna jasność ambient
     static double fMoveLight; // numer dnia w roku albo -1
+    static bool FakeLight; // toggle between fixed and dynamic daylight
     static bool bSmoothTraction; // wygładzanie drutów
     static double fSunDeclination; // deklinacja Słońca
     static double fTimeSpeed; // przyspieszenie czasu, zmienna do testów
@@ -326,7 +325,6 @@ class Global
 									   // informacje podczas kalibracji
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     static bool bJoinEvents; // czy grupować eventy o tych samych nazwach
-    static bool bSmudge; // czy wyświetlać smugę, a pojazd użytkownika na końcu
 /*
     static std::string asTranscript[5]; // napisy na ekranie (widoczne)
 */

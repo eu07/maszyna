@@ -46,8 +46,8 @@ void TSky::Render( float3 const &Tint )
         }
         else
         { // renderowanie z Display List
-            mdCloud->Render(100, 0);
-            mdCloud->RenderAlpha(100, 0);
+            GfxRenderer.Render( mdCloud, nullptr, 100.0 );
+            GfxRenderer.Render_Alpha( mdCloud, nullptr, 100.0 );
         }
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         glPopMatrix();

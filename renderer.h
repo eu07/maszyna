@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "texture.h"
 #include "lightarray.h"
 #include "dumb3d.h"
+#include "frustum.h"
 
 struct opengl_light {
 
@@ -69,6 +70,22 @@ struct opengl_material {
 
 };
 
+// simple camera object. paired with 'virtual camera' in the scene
+class opengl_camera {
+
+public:
+// methods:
+    inline
+    void
+        update_frustum() { m_frustum.calculate(); }
+    bool
+        visible( TDynamicObject const *Dynamic ) const;
+
+private:
+// members:
+    cFrustum m_frustum;
+};
+
 // bare-bones render controller, in lack of anything better yet
 class opengl_renderer {
 
@@ -78,6 +95,24 @@ public:
 // methods
     void
         Init();
+    // main draw call. returns false on error
+    bool
+        Render();
+    bool
+        Render( TDynamicObject *Dynamic );
+    bool
+        Render( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance );
+    bool
+        Render( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    bool
+        Render_Alpha( TDynamicObject *Dynamic );
+    bool
+        Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance );
+    bool
+        Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    // maintenance jobs
+    void
+        Update( double const Deltatime);
 
     void
         Update_Lights( light_array const &Lights );
@@ -118,6 +153,8 @@ private:
     rendermode renderpass{ rendermode::color };
     opengllight_array m_lights;
     texture_manager m_textures;
+    opengl_camera m_camera;
+    float m_drawrange{ 2500.0f }; // current drawing range
 };
 
 extern opengl_renderer GfxRenderer;

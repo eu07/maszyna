@@ -2645,7 +2645,7 @@ void TTrack::RenderDyn()
 #else
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
-        dynamic->Render();
+        GfxRenderer.Render( dynamic );
     }
 #endif
 };
@@ -2662,7 +2662,7 @@ void TTrack::RenderDynAlpha()
 #else
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
-        dynamic->RenderAlpha();
+        GfxRenderer.Render_Alpha( dynamic );
     }
 #endif
 };

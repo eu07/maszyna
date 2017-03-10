@@ -1792,21 +1792,18 @@ if
                 { // tryb freefly
                     int CouplNr = -1; // normalnie żaden ze sprzęgów
                     TDynamicObject *tmp;
-                    tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500,
-                                                              CouplNr);
-                    if (tmp == NULL)
-                        tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), -1,
-                                                                  1500, CouplNr);
-                    if (tmp && (CouplNr != -1))
+                    tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
+                    if (tmp == nullptr)
+                        tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), -1, 1500, CouplNr);
+                    if( ( CouplNr != -1 )
+                     && ( tmp != nullptr )
+                     && ( tmp->MoverParameters->Couplers[ CouplNr ].Connected != nullptr ) )
                     {
-                        if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag ==
-                            0) // najpierw hak
+                        if (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag == 0) // najpierw hak
                         {
-                            if ((tmp->MoverParameters->Couplers[CouplNr]
-                                     .Connected->Couplers[CouplNr]
-                                     .AllowedFlag &
-                                 tmp->MoverParameters->Couplers[CouplNr].AllowedFlag &
-                                 ctrain_coupler) == ctrain_coupler)
+                            if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag
+                                & tmp->MoverParameters->Couplers[CouplNr].AllowedFlag
+                                & ctrain_coupler) == ctrain_coupler)
                                 if (tmp->MoverParameters->Attach(
                                         CouplNr, 2,
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
@@ -1815,46 +1812,37 @@ if
                                     // tmp->MoverParameters->Couplers[CouplNr].Render=true;
                                     // //podłączony sprzęg będzie widoczny
                                     if (DynamicObject->Mechanik) // na wszelki wypadek
-                                        DynamicObject->Mechanik->CheckVehicles(
-                                            Connect); // aktualizacja flag kierunku w składzie
+                                        DynamicObject->Mechanik->CheckVehicles(Connect); // aktualizacja flag kierunku w składzie
                                     dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
                                     dsbCouplerAttach->Play(0, 0, 0);
                                 }
                                 else
                                     WriteLog("Mechanical coupling failed.");
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
-                                           ctrain_pneumatic)) // pneumatyka
+                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_pneumatic)) // pneumatyka
                         {
-                            if ((tmp->MoverParameters->Couplers[CouplNr]
-                                     .Connected->Couplers[CouplNr]
-                                     .AllowedFlag &
-                                 tmp->MoverParameters->Couplers[CouplNr].AllowedFlag &
-                                 ctrain_pneumatic) == ctrain_pneumatic)
+                            if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag
+                                & tmp->MoverParameters->Couplers[CouplNr].AllowedFlag
+                                & ctrain_pneumatic) == ctrain_pneumatic)
                                 if (tmp->MoverParameters->Attach(
                                         CouplNr, 2,
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
-                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag +
-                                            ctrain_pneumatic))
+                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag + ctrain_pneumatic))
                                 {
                                     rsHiss.Play(1, DSBPLAY_LOOPING, true, tmp->GetPosition());
                                     DynamicObject->SetPneumatic(CouplNr != 0, true); // Ra: to mi się nie podoba !!!!
                                     tmp->SetPneumatic(CouplNr != 0, true);
                                 }
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
-                                           ctrain_scndpneumatic)) // zasilajacy
+                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_scndpneumatic)) // zasilajacy
                         {
-                            if ((tmp->MoverParameters->Couplers[CouplNr]
-                                     .Connected->Couplers[CouplNr]
-                                     .AllowedFlag &
-                                 tmp->MoverParameters->Couplers[CouplNr].AllowedFlag &
-                                 ctrain_scndpneumatic) == ctrain_scndpneumatic)
+                            if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag
+                                & tmp->MoverParameters->Couplers[CouplNr].AllowedFlag
+                                & ctrain_scndpneumatic) == ctrain_scndpneumatic)
                                 if (tmp->MoverParameters->Attach(
                                         CouplNr, 2,
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
-                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag +
-                                            ctrain_scndpneumatic))
+                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag + ctrain_scndpneumatic))
                                 {
                                     //              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                                     dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
@@ -1863,8 +1851,7 @@ if
                                     tmp->SetPneumatic(CouplNr != 0, false);
                                 }
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
-                                           ctrain_controll)) // ukrotnionko
+                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_controll)) // ukrotnionko
                         {
                             if ((tmp->MoverParameters->Couplers[CouplNr]
                                      .Connected->Couplers[CouplNr]

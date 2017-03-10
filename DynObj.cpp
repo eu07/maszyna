@@ -523,7 +523,7 @@ void TDynamicObject::UpdateLeverEnum(TAnim *pAnim)
 };
 
 // ABu 29.01.05 przeklejone z render i renderalpha: *********************
-void __inline TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
+void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 { // ABu290105: pozbierane i uporzadkowane powtarzajace
     // sie rzeczy z Render i RenderAlpha
     // dodatkowy warunek, if (ObjSqrDist<...) zeby niepotrzebnie nie zmianiec w
@@ -3699,38 +3699,11 @@ void TDynamicObject::TurnOff()
 	btMechanik1.TurnOff();
 	btMechanik2.TurnOff();
 };
-
+/*
 void TDynamicObject::Render()
 { // rysowanie elementów nieprzezroczystych
     // youBy - sprawdzamy, czy jest sens renderowac
-/*
-    double modelrotate;
-    vector3 tempangle;
-    // zmienne
-    renderme = false;
-    // przeklejka
-    double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition) / Global::ZoomFactor;
-    // koniec przeklejki
-    if (ObjSqrDist < 500) // jak jest blisko - do 70m
-        modelrotate = 0.01; // mały kąt, żeby nie znikało
-    else
-    { // Global::pCameraRotation to kąt bewzględny w świecie (zero - na północ)
-        tempangle = (vPosition - Global::pCameraPosition); // wektor od kamery
-        modelrotate = ABuAcos(tempangle); // określenie kąta
-        // if (modelrotate>M_PI) modelrotate-=(2*M_PI);
-        modelrotate += Global::pCameraRotation;
-    }
-    if (modelrotate > M_PI)
-        modelrotate -= (2 * M_PI);
-    if (modelrotate < -M_PI)
-        modelrotate += (2 * M_PI);
-    ModCamRot = modelrotate;
 
-    modelrotate = abs(modelrotate);
-
-    if (modelrotate < maxrot)
-        renderme = true;
-*/
     if (Global::pCamera->IsVisible(this))
     {
         TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
@@ -3904,6 +3877,7 @@ void TDynamicObject::Render()
             TurnOff(); // przywrócenie domyślnych pozycji submodeli
     } // yB - koniec mieszania z grafika
 };
+*/
 
 void TDynamicObject::RenderSounds()
 { // przeliczanie dźwięków, bo będzie
@@ -4273,7 +4247,7 @@ void TDynamicObject::RenderSounds()
      }
     */
 };
-
+/*
 void TDynamicObject::RenderAlpha()
 { // rysowanie elementów półprzezroczystych
     if (renderme)
@@ -4352,6 +4326,7 @@ void TDynamicObject::RenderAlpha()
     }
     return;
 } // koniec renderalpha
+*/
 
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)

@@ -1,4 +1,4 @@
-/*
+﻿/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -10,8 +10,25 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "renderer.h"
 #include "globals.h"
+#include "world.h"
+#include "dynobj.h"
+
+// returns true if specified object is within camera frustum, false otherwise
+bool
+opengl_camera::visible( TDynamicObject const *Dynamic ) const {
+
+    // sphere test is faster than AABB, so we'll use it here
+    float3 diagonal(
+        Dynamic->MoverParameters->Dim.L,
+        Dynamic->MoverParameters->Dim.H,
+        Dynamic->MoverParameters->Dim.W );
+    float const radius = diagonal.Length() * 0.5f;
+
+    return ( m_frustum.sphere_inside( Dynamic->GetPosition(), radius ) > 0.0f );
+}
 
 opengl_renderer GfxRenderer;
+extern TWorld World;
 
 void
 opengl_renderer::Init() {
@@ -31,6 +48,265 @@ opengl_renderer::Init() {
         m_lights.emplace_back( light );
     }
 }
+
+bool
+opengl_renderer::Render() {
+
+    ::glColor3ub( 255, 255, 255 );
+    ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    ::glDepthFunc( GL_LEQUAL );
+
+    ::glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
+    ::glLoadIdentity(); // reset the Projection Matrix
+    // calculate the aspect ratio of the window
+    ::gluPerspective(
+        Global::FieldOfView / Global::ZoomFactor,
+        (GLdouble)Global::ScreenWidth / std::max( (GLdouble)Global::ScreenHeight, 1.0 ),
+        0.1f * Global::ZoomFactor,
+        m_drawrange );
+
+    ::glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
+    ::glLoadIdentity();
+    World.Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
+    m_camera.update_frustum();
+
+    if( !Global::bWireFrame ) {
+        // bez nieba w trybie rysowania linii
+        World.Environment.render();
+    }
+
+    if( false == World.Ground.Render( World.Camera.Pos ) ) { return false; }
+
+    World.Render_Cab();
+    World.Render_UI();
+
+    return true; // for now always succeed
+}
+
+bool
+opengl_renderer::Render( TDynamicObject *Dynamic ) {
+
+    if( false == m_camera.visible( Dynamic ) ) {
+
+        Dynamic->renderme = false;
+        return false;
+    }
+
+    Dynamic->renderme = true;
+
+    TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
+    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
+    Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
+
+    ::glPushMatrix();
+
+    if( Dynamic == Global::pUserDynamic ) {
+        //specjalne ustawienie, aby nie trzęsło
+        //tu trzeba by ustawić animacje na modelu zewnętrznym
+        ::glLoadIdentity(); // zacząć od macierzy jedynkowej
+        Global::pCamera->SetCabMatrix( Dynamic->vPosition ); // specjalne ustawienie kamery
+    }
+    else
+        ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
+
+    ::glMultMatrixd( Dynamic->mMatrix.getArray() );
+
+    // wersja Display Lists
+    // NOTE: VBO path is removed
+    // TODO: implement universal render path down the road
+    if( Dynamic->mdLowPolyInt ) {
+        // low poly interior
+        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+            // enable cab light if needed
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
+
+                // crude way to light the cabin, until we have something more complete in place
+                auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+            }
+
+            Render( Dynamic->mdLowPolyInt, Dynamic, squaredistance );
+
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
+                // reset the overall ambient
+                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+            }
+        }
+    }
+
+//    Dynamic->mdModel->Render( squaredistance, Dynamic->ReplacableSkinID, Dynamic->iAlpha );
+    Render( Dynamic->mdModel, Dynamic, squaredistance );
+
+    if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+        Render( Dynamic->mdLoad, Dynamic, squaredistance );
+    if( Dynamic->mdPrzedsionek )
+        Render( Dynamic->mdPrzedsionek, Dynamic, squaredistance );
+
+    ::glPopMatrix();
+
+    // TODO: check if this reset is needed. In theory each object should render all buttons based on its own instance data anyway?
+    if( Dynamic->btnOn )
+        Dynamic->TurnOff(); // przywrócenie domyślnych pozycji submodeli
+
+    return true;
+}
+
+bool
+opengl_renderer::Render( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance ) {
+
+    auto alpha =
+        ( Instance != nullptr ?
+            Instance->iAlpha :
+            0x30300030 );
+    alpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
+    if( 0 == ( alpha & Model->iFlags & 0x1F1F001F ) ) {
+        // czy w ogóle jest co robić w tym cyklu?
+        return false;
+    }
+
+    Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
+    
+    Model->Root->ReplacableSet(
+        ( Instance != nullptr ?
+            Instance->ReplacableSkinID :
+            nullptr ),
+        alpha );
+
+    Model->Root->RenderDL();
+
+    return true;
+}
+
+bool
+opengl_renderer::Render( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+
+    ::glPushMatrix();
+    ::glTranslated( Position.x, Position.y, Position.z );
+    if( Angle.y != 0.0 )
+        ::glRotated( Angle.y, 0.0, 1.0, 0.0 );
+    if( Angle.x != 0.0 )
+        ::glRotated( Angle.x, 1.0, 0.0, 0.0 );
+    if( Angle.z != 0.0 )
+        ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
+
+    auto const result = Render( Model, Instance, SquareMagnitude( Position - Global::GetCameraPosition() ) );
+
+    ::glPopMatrix();
+
+    return result;
+}
+
+bool
+opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
+
+    if( false == Dynamic->renderme ) {
+
+        return false;
+    }
+    
+    TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
+    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition );
+    Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
+
+    ::glPushMatrix();
+    if( Dynamic == Global::pUserDynamic ) { // specjalne ustawienie, aby nie trzęsło
+        ::glLoadIdentity(); // zacząć od macierzy jedynkowej
+        Global::pCamera->SetCabMatrix( Dynamic->vPosition ); // specjalne ustawienie kamery
+    }
+    else
+        ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
+
+    ::glMultMatrixd( Dynamic->mMatrix.getArray() );
+    // wersja Display Lists
+    // NOTE: VBO path is removed
+    // TODO: implement universal render path down the road
+    if( Dynamic->mdLowPolyInt ) {
+        // low poly interior
+        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+            // enable cab light if needed
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
+
+                // crude way to light the cabin, until we have something more complete in place
+                auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+            }
+
+            Render_Alpha( Dynamic->mdLowPolyInt, Dynamic, squaredistance );
+
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
+                // reset the overall ambient
+                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+            }
+        }
+    }
+
+    Render_Alpha( Dynamic->mdModel, Dynamic, squaredistance );
+
+    if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+        Render_Alpha( Dynamic->mdLoad, Dynamic, squaredistance );
+    if( Dynamic->mdPrzedsionek )
+        Render_Alpha( Dynamic->mdPrzedsionek, Dynamic, squaredistance );
+
+    ::glPopMatrix();
+
+    if( Dynamic->btnOn )
+        Dynamic->TurnOff(); // przywrócenie domyślnych pozycji submodeli
+
+    return true;
+}
+
+bool
+opengl_renderer::Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance ) {
+
+    auto alpha =
+        ( Instance != nullptr ?
+            Instance->iAlpha :
+            0x30300030 );
+
+    if( 0 == ( alpha & Model->iFlags & 0x2F2F002F ) ) {
+        // nothing to render
+        return false;
+    }
+
+    Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
+
+    Model->Root->ReplacableSet(
+        ( Instance != nullptr ?
+            Instance->ReplacableSkinID :
+            nullptr ),
+        alpha );
+
+    Model->Root->RenderAlphaDL();
+
+    return true;
+}
+
+bool
+opengl_renderer::Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+
+    ::glPushMatrix();
+    ::glTranslated( Position.x, Position.y, Position.z );
+    if( Angle.y != 0.0 )
+        ::glRotated( Angle.y, 0.0, 1.0, 0.0 );
+    if( Angle.x != 0.0 )
+        ::glRotated( Angle.x, 1.0, 0.0, 0.0 );
+    if( Angle.z != 0.0 )
+        ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
+
+    auto const result = Render_Alpha( Model, Instance, SquareMagnitude( Position - Global::GetCameraPosition() ) );
+
+    ::glPopMatrix();
+
+    return result;
+}
+
+void
+opengl_renderer::Update ( double const Deltatile ) {
+
+    // TODO: add garbage collection and other works here
+};
 
 void
 opengl_renderer::Update_Lights( light_array const &Lights ) {

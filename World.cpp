@@ -168,7 +168,6 @@ bool TWorld::Init( GLFWwindow *w ) {
     window = w;
     Global::window = w; // do WM_COPYDATA
     Global::pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
-    Global::detonatoryOK = true;
     WriteLog("Starting MaSzyna rail vehicle simulator.");
     WriteLog(Global::asVersion);
 /*
@@ -1184,26 +1183,12 @@ bool TWorld::Update()
     // variable step render time routines
     Update_Camera( dt ); // TODO: move the fixed step cab camera updates to fixed step secondary routines section
 
-    // przy 0.25 smuga gaśnie o 6:37 w Quarku, a mogłaby już 5:40
-    // Ra 2014-12: przy 0.15 się skarżyli, że nie widać smug => zmieniłem na 0.25
-    // changed light activation threshold to 0.5, paired with strength reduction in daylight
-    if( Train ) {
-        // jeśli nie usunięty
-        Global::bSmudge =
-            ( FreeFlyModeFlag ?
-                false :
-                ( Train->Dynamic()->fShade <= 0.0 ?
-                    ( Global::fLuminance <= 0.5 ) :
-                    ( Train->Dynamic()->fShade * Global::fLuminance <= 0.5 ) ) );
-    }
+    GfxRenderer.Update( dt );
+    ResourceSweep();
 
     m_init = true;
-
-    // visualize state changes
-    if (!Render())
-        return false;
-
-    return (true);
+  
+    return true;
 };
 
 void
@@ -1430,36 +1415,9 @@ void TWorld::Update_Environment() {
 #endif
 }
 
-bool TWorld::Render()
+void TWorld::ResourceSweep()
 {
-    glColor3ub(255, 255, 255);
-    // glColor3b(255, 0, 255);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDepthFunc( GL_LEQUAL );
-
-    glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
-    glLoadIdentity(); // reset the Projection Matrix
-    // calculate the aspect ratio of the window
-    gluPerspective( Global::FieldOfView / Global::ZoomFactor, (GLdouble)Global::ScreenWidth / std::max((GLdouble)Global::ScreenHeight, 1.0), 0.1f * Global::ZoomFactor, 2500.0f * Global::ZoomFactor );
-
-    glMatrixMode(GL_MODELVIEW); // Select The Modelview Matrix
-    glLoadIdentity();
-    Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
-    Camera.SetFrustum(); // update camera frustum to match current data
-
-    if( !Global::bWireFrame ) {
-        // bez nieba w trybie rysowania linii
-        Environment.render();
-    }
-
-    if( false == Ground.Render( Camera.Pos ) ) { return false; }
-
-    Render_Cab();
-    Render_UI();
-
     ResourceManager::Sweep( Timer::GetSimulationTime() );
-
-    return true;
 };
 
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
@@ -1716,8 +1674,8 @@ TWorld::Render_Cab() {
             dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
         }
         else { // renderowanie z Display List
-            dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
-            dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+            GfxRenderer.Render( dynamic->mdKabina, dynamic, 0.0 );
+            GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic, 0.0 );
         }
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         // TODO: re-implement this
@@ -1765,13 +1723,14 @@ TWorld::Render_UI() {
 
     if( Global::iTextMode == GLFW_KEY_F8 ) {
         Global::iViewMode = GLFW_KEY_F8;
-        OutText1 = "FPS: ";
-        OutText1 += to_string( Timer::GetFPS(), 2 );
+        OutText1 = "FPS: " + to_string( Timer::GetFPS(), 2 );
         //OutText1 += sprintf();
         if( Global::iSlowMotion )
             OutText1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
-        OutText1 += ", sectors: ";
-        OutText1 += to_string( Ground.iRendered );
+        OutText1 += ", sectors: " + to_string( Ground.iRendered );
+        if( DebugModeFlag ) {
+            OutText1 += " FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
+        }
     }
 
     // if (Console::Pressed(VK_F7))
@@ -2203,6 +2162,7 @@ TWorld::Render_UI() {
                 .substr( 0 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
             // current luminance level
             OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
+            if( Global::FakeLight ) { OutText2 += "(*)"; }
         }
         // OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ):
         // http://www.eu07.pl");
@@ -2463,136 +2423,134 @@ TWorld::Render_UI() {
 
     // ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
 
-    if( Global::detonatoryOK ) {
-        // if (Console::Pressed(VK_F9)) ShowHints(); //to nie działa prawidłowo - prosili wyłączyć
-        if( Global::iTextMode == GLFW_KEY_F9 ) { // informacja o wersji, sposobie wyświetlania i błędach OpenGL
-            // Global::iViewMode=VK_F9;
-            OutText1 = Global::asVersion; // informacja o wersji
-            OutText2 = std::string( "Rendering mode: " ) + ( Global::bUseVBO ? "VBO" : "Display Lists" );
-            if( Global::iMultiplayer )
-                OutText2 += ". Multiplayer is active";
-            OutText2 += ".";
-            GLenum err = glGetError();
-            if( err != GL_NO_ERROR ) {
-                OutText3 = "OpenGL error " + to_string( err ) + ": " +
-                    Global::Bezogonkow( ( (char *)gluErrorString( err ) ) );
-            }
+    // if (Console::Pressed(VK_F9)) ShowHints(); //to nie działa prawidłowo - prosili wyłączyć
+    if( Global::iTextMode == GLFW_KEY_F9 ) { // informacja o wersji, sposobie wyświetlania i błędach OpenGL
+        // Global::iViewMode=VK_F9;
+        OutText1 = Global::asVersion; // informacja o wersji
+        OutText2 = std::string( "Rendering mode: " ) + ( Global::bUseVBO ? "VBO" : "Display Lists" );
+        if( Global::iMultiplayer )
+            OutText2 += ". Multiplayer is active";
+        OutText2 += ".";
+        GLenum err = glGetError();
+        if( err != GL_NO_ERROR ) {
+            OutText3 = "OpenGL error " + to_string( err ) + ": " +
+                Global::Bezogonkow( ( (char *)gluErrorString( err ) ) );
         }
-        if( Global::iTextMode == GLFW_KEY_F3 ) { // wyświetlenie rozkładu jazdy, na razie jakkolwiek
-            TDynamicObject *tmp = FreeFlyModeFlag ?
-                Ground.DynamicNearest( Camera.Pos ) :
-                Controlled; // w trybie latania lokalizujemy wg mapy
-            Mtable::TTrainParameters *tt = NULL;
-            if( tmp )
-                if( tmp->Mechanik ) {
-                    tt = tmp->Mechanik->Timetable();
-                    if( tt ) // musi być rozkład
-                    { // wyświetlanie rozkładu
-                        glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
-                        // glTranslatef(0.0f,0.0f,-0.50f);
-                        glRasterPos2f( -0.25f, 0.20f );
-                        OutText1 = tmp->Mechanik->Relation() + " (" +
-                            tmp->Mechanik->Timetable()->TrainName + ")";
-                        glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
-                        glRasterPos2f( -0.25f, 0.19f );
-                        // glPrint("|============================|=======|=======|=====|");
-                        // glPrint("| Posterunek                 | Przyj.| Odjazd| Vmax|");
-                        // glPrint("|============================|=======|=======|=====|");
-                        glPrint( "|----------------------------|-------|-------|-----|" );
-                        TMTableLine *t;
-                        for( int i = tmp->Mechanik->iStationStart; i <= tt->StationCount; ++i ) { // wyświetlenie pozycji z rozkładu
-                            t = tt->TimeTable + i; // linijka rozkładu
-                            OutText1 = ( t->StationName +
-                                "                          " ).substr( 0, 26 );
-                            OutText2 = ( t->Ah >= 0 ) ?
-                                to_string( int( 100 + t->Ah ) ).substr( 1, 2 ) + ":" +
-                                to_string( int( 100 + t->Am ) ).substr( 1, 2 ) :
-                                std::string( "     " );
-                            OutText3 = ( t->Dh >= 0 ) ?
-                                to_string( int( 100 + t->Dh ) ).substr( 1, 2 ) + ":" +
-                                to_string( int( 100 + t->Dm ) ).substr( 1, 2 ) :
-                                std::string( "     " );
-                            OutText4 = "   " + to_string( t->vmax, 0 );
-                            OutText4 = OutText4.substr( OutText4.length() - 3,
-                                3 ); // z wyrównaniem do prawej
-                            // if (AnsiString(t->StationWare).Pos("@"))
-                            OutText1 = "| " + OutText1 + " | " + OutText2 + " | " + OutText3 +
-                                " | " + OutText4 + " | " + t->StationWare;
-                            glRasterPos2f( -0.25f,
-                                0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
-                            if( ( tmp->Mechanik->iStationStart < tt->StationIndex ) ?
-                                ( i < tt->StationIndex ) :
-                                false ) { // czas minął i odjazd był, to nazwa stacji będzie na zielono
-                                glColor3f( 0.0f, 1.0f, 0.0f ); // zielone
-                                glRasterPos2f(
-                                    -0.25f,
-                                    0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) ); // dopiero
-                                // ustawienie
-                                // pozycji
-                                // ustala
-                                // kolor,
-                                // dziwne...
-                                glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
-                                glColor3f( 1.0f, 1.0f, 1.0f ); // a reszta białym
-                            }
-                            else // normalne wyświetlanie, bez zmiany kolorów
-                                glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
-                            glRasterPos2f( -0.25f,
-                                0.17f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
-                            glPrint( "|----------------------------|-------|-------|-----|" );
+    }
+    if( Global::iTextMode == GLFW_KEY_F3 ) { // wyświetlenie rozkładu jazdy, na razie jakkolwiek
+        TDynamicObject *tmp = FreeFlyModeFlag ?
+            Ground.DynamicNearest( Camera.Pos ) :
+            Controlled; // w trybie latania lokalizujemy wg mapy
+        Mtable::TTrainParameters *tt = NULL;
+        if( tmp )
+            if( tmp->Mechanik ) {
+                tt = tmp->Mechanik->Timetable();
+                if( tt ) // musi być rozkład
+                { // wyświetlanie rozkładu
+                    glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
+                    // glTranslatef(0.0f,0.0f,-0.50f);
+                    glRasterPos2f( -0.25f, 0.20f );
+                    OutText1 = tmp->Mechanik->Relation() + " (" +
+                        tmp->Mechanik->Timetable()->TrainName + ")";
+                    glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
+                    glRasterPos2f( -0.25f, 0.19f );
+                    // glPrint("|============================|=======|=======|=====|");
+                    // glPrint("| Posterunek                 | Przyj.| Odjazd| Vmax|");
+                    // glPrint("|============================|=======|=======|=====|");
+                    glPrint( "|----------------------------|-------|-------|-----|" );
+                    TMTableLine *t;
+                    for( int i = tmp->Mechanik->iStationStart; i <= tt->StationCount; ++i ) { // wyświetlenie pozycji z rozkładu
+                        t = tt->TimeTable + i; // linijka rozkładu
+                        OutText1 = ( t->StationName +
+                            "                          " ).substr( 0, 26 );
+                        OutText2 = ( t->Ah >= 0 ) ?
+                            to_string( int( 100 + t->Ah ) ).substr( 1, 2 ) + ":" +
+                            to_string( int( 100 + t->Am ) ).substr( 1, 2 ) :
+                            std::string( "     " );
+                        OutText3 = ( t->Dh >= 0 ) ?
+                            to_string( int( 100 + t->Dh ) ).substr( 1, 2 ) + ":" +
+                            to_string( int( 100 + t->Dm ) ).substr( 1, 2 ) :
+                            std::string( "     " );
+                        OutText4 = "   " + to_string( t->vmax, 0 );
+                        OutText4 = OutText4.substr( OutText4.length() - 3,
+                            3 ); // z wyrównaniem do prawej
+                        // if (AnsiString(t->StationWare).Pos("@"))
+                        OutText1 = "| " + OutText1 + " | " + OutText2 + " | " + OutText3 +
+                            " | " + OutText4 + " | " + t->StationWare;
+                        glRasterPos2f( -0.25f,
+                            0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
+                        if( ( tmp->Mechanik->iStationStart < tt->StationIndex ) ?
+                            ( i < tt->StationIndex ) :
+                            false ) { // czas minął i odjazd był, to nazwa stacji będzie na zielono
+                            glColor3f( 0.0f, 1.0f, 0.0f ); // zielone
+                            glRasterPos2f(
+                                -0.25f,
+                                0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) ); // dopiero
+                            // ustawienie
+                            // pozycji
+                            // ustala
+                            // kolor,
+                            // dziwne...
+                            glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
+                            glColor3f( 1.0f, 1.0f, 1.0f ); // a reszta białym
                         }
+                        else // normalne wyświetlanie, bez zmiany kolorów
+                            glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
+                        glRasterPos2f( -0.25f,
+                            0.17f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
+                        glPrint( "|----------------------------|-------|-------|-----|" );
                     }
                 }
-            OutText1 = OutText2 = OutText3 = OutText4 = "";
-        }
-        else if( OutText1 != "" ) { // ABu: i od razu czyszczenie tego, co bylo napisane
-            // glTranslatef(0.0f,0.0f,-0.50f);
-            glRasterPos2f( -0.25f, 0.20f );
-            glPrint( OutText1.c_str() );
-            OutText1 = "";
-            if( OutText2 != "" ) {
-                glRasterPos2f( -0.25f, 0.19f );
-                glPrint( OutText2.c_str() );
-                OutText2 = "";
             }
-            if( OutText3 != "" ) {
-                glRasterPos2f( -0.25f, 0.18f );
-                glPrint( OutText3.c_str() );
-                OutText3 = "";
-                if( OutText4 != "" ) {
-                    glRasterPos2f( -0.25f, 0.17f );
-                    glPrint( OutText4.c_str() );
-                    OutText4 = "";
-                }
+        OutText1 = OutText2 = OutText3 = OutText4 = "";
+    }
+    else if( OutText1 != "" ) { // ABu: i od razu czyszczenie tego, co bylo napisane
+        // glTranslatef(0.0f,0.0f,-0.50f);
+        glRasterPos2f( -0.25f, 0.20f );
+        glPrint( OutText1.c_str() );
+        OutText1 = "";
+        if( OutText2 != "" ) {
+            glRasterPos2f( -0.25f, 0.19f );
+            glPrint( OutText2.c_str() );
+            OutText2 = "";
+        }
+        if( OutText3 != "" ) {
+            glRasterPos2f( -0.25f, 0.18f );
+            glPrint( OutText3.c_str() );
+            OutText3 = "";
+            if( OutText4 != "" ) {
+                glRasterPos2f( -0.25f, 0.17f );
+                glPrint( OutText4.c_str() );
+                OutText4 = "";
             }
         }
-        // if ((Global::iTextMode!=VK_F3))
-        { // stenogramy dźwięków (ukryć, gdy tabelka skanowania lub rozkład?)
+    }
+    // if ((Global::iTextMode!=VK_F3))
+    { // stenogramy dźwięków (ukryć, gdy tabelka skanowania lub rozkład?)
 /*
-            glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
-            for( int i = 0; i < 5; ++i ) { // kilka linijek
-                if( Global::asTranscript[ i ].empty() )
-                    break; // dalej nie trzeba
-                else {
-                    glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
-                    glPrint( Global::Bezogonkow( Global::asTranscript[ i ] ).c_str() );
-                }
+        glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
+        for( int i = 0; i < 5; ++i ) { // kilka linijek
+            if( Global::asTranscript[ i ].empty() )
+                break; // dalej nie trzeba
+            else {
+                glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
+                glPrint( Global::Bezogonkow( Global::asTranscript[ i ] ).c_str() );
             }
+        }
 */
-            int i = 0;
-            for( auto const &transcript : Global::tranTexts.aLines ) {
+        int i = 0;
+        for( auto const &transcript : Global::tranTexts.aLines ) {
 
-                if( Global::fTimeAngleDeg >= transcript.fShow ) {
+            if( Global::fTimeAngleDeg >= transcript.fShow ) {
 
-                    cParser parser( transcript.asText );
-                    while( true == parser.getTokens(1, false, "|") ) {
+                cParser parser( transcript.asText );
+                while( true == parser.getTokens(1, false, "|") ) {
 
-                        std::string transcriptline; parser >> transcriptline;
-                        ::glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
-                        ::glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
-                        glPrint( transcriptline.c_str() );
-                        ++i;
-                    }
+                    std::string transcriptline; parser >> transcriptline;
+                    ::glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
+                    ::glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
+                    glPrint( transcriptline.c_str() );
+                    ++i;
                 }
             }
         }
@@ -2900,6 +2858,21 @@ void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
 //---------------------------------------------------------------------------
 
 void
+TWorld::ToggleDaylight() {
+
+    Global::FakeLight = !Global::FakeLight;
+
+    if( Global::FakeLight ) {
+        // for fake daylight enter fixed hour
+        Environment.time( 10, 30, 0 );
+    }
+    else {
+        // local clock based calculation
+        Environment.time();
+    }
+}
+
+void
 world_environment::init() {
 
     m_sun.init();
@@ -2975,4 +2948,10 @@ world_environment::render() {
     ::glEnable( GL_DEPTH_TEST );
     ::glEnable( GL_FOG );
     ::glEnable( GL_LIGHTING );
+}
+
+void
+world_environment::time( int const Hour, int const Minute, int const Second ) {
+
+    m_sun.setTime( Hour, Minute, Second );
 }

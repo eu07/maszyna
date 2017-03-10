@@ -28,6 +28,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "World.h"
 #include "Mover.h"
 #include "usefull.h"
+#include "timer.h"
 
 #pragma comment( lib, "glfw3dll.lib" )
 #pragma comment( lib, "glew32.lib" )
@@ -148,7 +149,15 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
                 break;
             }
             case GLFW_KEY_F7:
-                if( DebugModeFlag ) { // siatki wyświetlane tyko w trybie testowym
+                if( DebugModeFlag ) {
+
+                    if( Global::ctrlState ) {
+                        // ctrl + f7 toggles static daylight
+                        World.ToggleDaylight();
+                        break;
+                    }
+                    // f7: wireframe toggle
+                    // siatki wyświetlane tyko w trybie testowym
                     Global::bWireFrame = !Global::bWireFrame;
                     if( true == Global::bWireFrame ) {
                         glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -175,6 +184,14 @@ void focus_callback( GLFWwindow *window, int focus )
             Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
         else
             Global::iPause |= 4; // włączenie pauzy, gdy nieaktywy
+}
+
+void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {
+
+    if( DebugModeFlag && Global::ctrlState ) {
+        // ctrl + scroll wheel adjusts fov in debug mode
+        Global::FieldOfView = clamp( static_cast<float>(Global::FieldOfView - yoffset * 20.0 / Global::fFpsAverage), 15.0f, 75.0f );
+    }
 }
 
 #ifdef _WINDOWS
@@ -283,6 +300,7 @@ int main(int argc, char *argv[])
     glfwSetFramebufferSizeCallback(window, window_resize_callback);
     glfwSetCursorPosCallback(window, cursor_pos_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetScrollCallback( window, scroll_callback );
     glfwSetWindowFocusCallback(window, focus_callback);
     {
         int width, height;
@@ -329,7 +347,9 @@ int main(int argc, char *argv[])
         } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
         Console::On(); // włączenie konsoli
-        while (!glfwWindowShouldClose(window) && World.Update())
+        while (!glfwWindowShouldClose(window)
+            && World.Update()
+            && GfxRenderer.Render())
         {
 			glfwSwapBuffers(window);
 			glfwPollEvents();
