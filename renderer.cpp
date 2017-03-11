@@ -125,7 +125,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                 ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
             }
 
-            Render( Dynamic->mdLowPolyInt, Dynamic, squaredistance );
+            Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
@@ -136,10 +136,10 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     }
 
 //    Dynamic->mdModel->Render( squaredistance, Dynamic->ReplacableSkinID, Dynamic->iAlpha );
-    Render( Dynamic->mdModel, Dynamic, squaredistance );
+    Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
 
     if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-        Render( Dynamic->mdLoad, Dynamic, squaredistance );
+        Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
 
     ::glPopMatrix();
 
@@ -151,11 +151,11 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 }
 
 bool
-opengl_renderer::Render( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance ) {
+opengl_renderer::Render( TModel3d *Model, material_data const *Material, double const Squaredistance ) {
 
     auto alpha =
-        ( Instance != nullptr ?
-            Instance->iAlpha :
+        ( Material != nullptr ?
+            Material->textures_alpha :
             0x30300030 );
     alpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
     if( 0 == ( alpha & Model->iFlags & 0x1F1F001F ) ) {
@@ -166,8 +166,8 @@ opengl_renderer::Render( TModel3d *Model, TDynamicObject const *Instance, double
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
     
     Model->Root->ReplacableSet(
-        ( Instance != nullptr ?
-            Instance->ReplacableSkinID :
+        ( Material != nullptr ?
+            Material->replacable_skins :
             nullptr ),
         alpha );
 
@@ -177,7 +177,7 @@ opengl_renderer::Render( TModel3d *Model, TDynamicObject const *Instance, double
 }
 
 bool
-opengl_renderer::Render( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
 
     ::glPushMatrix();
     ::glTranslated( Position.x, Position.y, Position.z );
@@ -188,7 +188,7 @@ opengl_renderer::Render( TModel3d *Model, TDynamicObject const *Instance, Math3D
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-    auto const result = Render( Model, Instance, SquareMagnitude( Position - Global::GetCameraPosition() ) );
+    auto const result = Render( Model, Material, SquareMagnitude( Position - Global::GetCameraPosition() ) );
 
     ::glPopMatrix();
 
@@ -230,7 +230,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
                 ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
             }
 
-            Render_Alpha( Dynamic->mdLowPolyInt, Dynamic, squaredistance );
+            Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
@@ -240,10 +240,10 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
         }
     }
 
-    Render_Alpha( Dynamic->mdModel, Dynamic, squaredistance );
+    Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
 
     if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-        Render_Alpha( Dynamic->mdLoad, Dynamic, squaredistance );
+        Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
 
     ::glPopMatrix();
 
@@ -254,11 +254,11 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 }
 
 bool
-opengl_renderer::Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance ) {
+opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance ) {
 
     auto alpha =
-        ( Instance != nullptr ?
-            Instance->iAlpha :
+        ( Material != nullptr ?
+            Material->textures_alpha :
             0x30300030 );
 
     if( 0 == ( alpha & Model->iFlags & 0x2F2F002F ) ) {
@@ -269,8 +269,8 @@ opengl_renderer::Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, 
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
 
     Model->Root->ReplacableSet(
-        ( Instance != nullptr ?
-            Instance->ReplacableSkinID :
+        ( Material != nullptr ?
+            Material->replacable_skins :
             nullptr ),
         alpha );
 
@@ -280,7 +280,7 @@ opengl_renderer::Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, 
 }
 
 bool
-opengl_renderer::Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
 
     ::glPushMatrix();
     ::glTranslated( Position.x, Position.y, Position.z );
@@ -291,7 +291,7 @@ opengl_renderer::Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, 
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-    auto const result = Render_Alpha( Model, Instance, SquareMagnitude( Position - Global::GetCameraPosition() ) );
+    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position - Global::GetCameraPosition() ) );
 
     ::glPopMatrix();
 

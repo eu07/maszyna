@@ -1,4 +1,4 @@
-/*
+﻿/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -101,15 +101,15 @@ public:
     bool
         Render( TDynamicObject *Dynamic );
     bool
-        Render( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance );
+        Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
     bool
-        Render( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+        Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool
-        Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, double const Squaredistance );
+        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
     bool
-        Render_Alpha( TModel3d *Model, TDynamicObject const *Instance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+        Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     // maintenance jobs
     void
         Update( double const Deltatime);

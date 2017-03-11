@@ -44,7 +44,7 @@ std::string *TSubModel::pasText;
 
 TSubModel::TSubModel()
 {
-	ZeroMemory(this, sizeof(TSubModel)); // istotne przy zapisywaniu wersji binarnej
+	::SecureZeroMemory(this, sizeof(TSubModel)); // istotne przy zapisywaniu wersji binarnej
 	FirstInit();
 };
 
@@ -2305,7 +2305,7 @@ glPopMatrix();
 //-----------------------------------------------------------------------------
 // 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
-
+/*
 void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, Display List
 	glPushMatrix();
@@ -2340,6 +2340,7 @@ void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager:
 	Root->RenderAlphaDL();
 	glPopMatrix();
 };
+*/
 void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, VBO
 	glPushMatrix();

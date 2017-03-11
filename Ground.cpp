@@ -279,7 +279,7 @@ void TGroundNode::MoveMe(vector3 pPosition)
         ResourceManager::Unregister(this);
     }
 }
-
+/*
 void TGroundNode::RaRenderVBO()
 { // renderowanie z domyslnego bufora VBO
     glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
@@ -444,7 +444,7 @@ void TGroundNode::RenderAlphaVBO()
 #endif
     return;
 }
-
+*/
 void TGroundNode::Compile(bool many)
 { // tworzenie skompilowanej listy w wyświetlaniu DL
     if (!many)
@@ -665,7 +665,7 @@ void TGroundNode::RenderAlphaDL()
         if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
         {
             glDisable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+            glAlphaFunc(GL_GREATER, 0.35f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
         };
 #endif
         if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
@@ -702,7 +702,7 @@ void TGroundNode::RenderAlphaDL()
     if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
     {
         glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04f);
+        glAlphaFunc(GL_GREATER, 0.02f);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     };
 #endif
@@ -1183,7 +1183,7 @@ void TSubRect::RenderAlphaDL()
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
 };
-
+/*
 void TSubRect::RenderVBO()
 { // renderowanie nieprzezroczystych (VBO)
     TGroundNode *node;
@@ -1217,7 +1217,7 @@ void TSubRect::RenderAlphaVBO()
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
 };
-
+*/
 void TSubRect::RenderSounds()
 { // aktualizacja dźwięków w pojazdach sektora (sektor może nie być wyświetlany)
     for (int j = 0; j < iTracks; ++j)
@@ -1264,7 +1264,7 @@ void TGroundRect::RenderDL()
         iLastDisplay = iFrameNumber; // drugi raz nie potrzeba
     }
 };
-
+/*
 void TGroundRect::RenderVBO()
 { // renderowanie kwadratu kilometrowego (VBO), jeśli jeszcze nie zrobione
     if (iLastDisplay != iFrameNumber)
@@ -1281,7 +1281,7 @@ void TGroundRect::RenderVBO()
             nTerrain->smTerrain->iVisible = iFrameNumber; // ma się wyświetlić w tej ramce
     }
 };
-
+*/
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -4829,27 +4829,30 @@ bool
 TGround::Render( Math3D::vector3 const &Camera ) {
 
     GfxRenderer.Update_Lights( m_lights );
-
+/*
     if( Global::bUseVBO ) { // renderowanie przez VBO
         if( !RenderVBO( Camera ) )
             return false;
         if( !RenderAlphaVBO( Camera ) )
             return false;
     }
-    else { // renderowanie przez Display List
+    else {
+*/
+    // renderowanie przez Display List
         if( !RenderDL( Camera ) )
             return false;
         if( !RenderAlphaDL( Camera ) )
             return false;
+/*
     }
-
+*/
     return true;
 }
 
 bool TGround::RenderDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza nieprzezroczystych
     glDisable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.35f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
     CameraDirection.x = sin(Global::pCameraRotation); // wektor kierunkowy
     CameraDirection.z = cos(Global::pCameraRotation);
@@ -4909,7 +4912,7 @@ bool TGround::RenderDL(vector3 pPosition)
 bool TGround::RenderAlphaDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza przezroczystych
     glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.02f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     TGroundNode *node;
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     TSubRect *tmp;
@@ -4934,7 +4937,7 @@ bool TGround::RenderAlphaDL(vector3 pPosition)
     }
     return true;
 }
-
+/*
 bool TGround::RenderVBO(vector3 pPosition)
 { // renderowanie scenerii z VBO - faza nieprzezroczystych
     glDisable(GL_BLEND);
@@ -5037,7 +5040,7 @@ bool TGround::RenderAlphaVBO(vector3 pPosition)
     }
     return true;
 };
-
+*/
 #ifdef _WINDOWS
 //---------------------------------------------------------------------------
 void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)

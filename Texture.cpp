@@ -473,6 +473,8 @@ opengl_texture::load_TGA() {
         return;
     }
 
+    // TODO: add horizontal/vertical data flip, based on the descriptor (18th) header byte
+
     // fill remaining data info
     data_mapcount = 1;
     data_format = GL_BGRA;

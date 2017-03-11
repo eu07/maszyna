@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
+#include "texture.h"
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -140,6 +141,18 @@ class TAnim
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
+// parameters for the material object, as currently used by various simulator models
+struct material_data {
+
+    int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
+    texture_manager::size_type replacable_skins[ 5 ]; // McZapkie:zmienialne nadwozie
+    int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+
+    material_data() {
+        ::SecureZeroMemory( replacable_skins, sizeof( replacable_skins ) );
+    }
+};
+
 class TDynamicObject { // klasa pojazdu
 
     friend class opengl_renderer;
@@ -175,8 +188,6 @@ public: // parametry położenia pojazdu dostępne publicznie
 
     TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
 
-private:
-    // returns type of the nearest functional power source present in the trainset
 public: // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
@@ -187,8 +198,13 @@ public: // modele składowe pojazdu
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
 
   private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
-  public: // tymczasowo udostępnione do wyszukiwania drutu
-      int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
+    material_data m_materialdata;
+
+  public:
+    inline
+    material_data const *Material() const { return &m_materialdata; }
+    // tymczasowo udostępnione do wyszukiwania drutu
+    int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
   private:
     int iAnimations; // liczba obiektów animujących
 /*
@@ -399,9 +415,11 @@ public: // modele składowe pojazdu
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
     std::string asBaseDir;
+/*
     texture_manager::size_type ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
     int iAlpha; // maska przezroczystości tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+*/
     int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały
     // jazdę bezprądową
     TTractionParam tmpTraction;

@@ -23,7 +23,8 @@ class float3
         y = b;
         z = c;
     };
-    float inline Length() const;
+    float Length() const;
+    float LengthSquared() const;
 };
 
 inline bool operator==(const float3 &v1, const float3 &v2)
@@ -49,10 +50,13 @@ inline float3 operator+(const float3 &v1, const float3 &v2)
 {
     return float3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 };
-float inline float3::Length() const
+inline float float3::Length() const
 {
-    return std::sqrt(x * x + y * y + z * z);
+    return std::sqrt(LengthSquared());
 };
+inline float float3::LengthSquared() const {
+    return ( x * x + y * y + z * z );
+}
 inline float3 operator*( float3 const &v, float const  k ) {
     return float3( v.x * k, v.y * k, v.z * k );
 };
