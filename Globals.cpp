@@ -162,8 +162,8 @@ TAnimModel *Global::pTerrainCompact = NULL; // do zapisania terenu w pliku
 std::string Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
 double Global::fFpsAverage = 20.0; // oczekiwana wartosć FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
-double Global::fFpsMin = 0.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
-double Global::fFpsMax = 0.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
+double Global::fFpsMin = 30.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
+double Global::fFpsMax = 65.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
 double Global::fFpsRadiusMax = 3000.0; // maksymalny promień renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promień renderowania
 double Global::fRadiusFactor = 1.1; // współczynnik jednorazowej zmiany promienia scenerii
@@ -941,10 +941,12 @@ void Global::ConfigParse(cParser &Parser)
         // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, więc iMultiplayer=1 da się zapauzować
         // (tryb instruktora)
     }
+/*
     fFpsMin = fFpsAverage -
               fFpsDeviation; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
     fFpsMax = fFpsAverage +
               fFpsDeviation; // górna granica FPS, przy której promień scenerii będzie zwiększany
+*/
     if (iPause)
         iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
     /*  this won't execute anymore with the old parser removed

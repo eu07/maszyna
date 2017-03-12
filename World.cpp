@@ -1004,51 +1004,37 @@ bool TWorld::Update()
         --iCheckFPS;
     else
     { // jak doszło do zera, to sprawdzamy wydajność
-        if (Timer::GetFPS() < Global::fFpsMin)
-        {
-            Global::iSegmentsRendered -=
-                Random(10); // floor(0.5+Global::iSegmentsRendered/Global::fRadiusFactor);
-            if (Global::iSegmentsRendered < 10) // jeśli jest co zmniejszać
-                Global::iSegmentsRendered = 10; // 10=minimalny promień to 600m
+        auto const framerate = Timer::GetFPS();
+        // NOTE: until we have quadtree in place we have to rely on the legacy rendering
+        // once this is resolved we should be able to simply adjust draw range
+        if( framerate > 65.0 ) {
+
+            Global::iSegmentsRendered = std::min( 400, Global::iSegmentsRendered + 5 );
+            Global::fDistanceFactor = std::min( 3.0f, Global::fDistanceFactor + 0.025f );
         }
-        else if (Timer::GetFPS() > Global::fFpsMax) // jeśli jest dużo FPS
-            if (Global::iSegmentsRendered < Global::iFpsRadiusMax) // jeśli jest co zwiększać
-            {
-                Global::iSegmentsRendered +=
-                    Random(5); // floor(0.5+Global::iSegmentsRendered*Global::fRadiusFactor);
-                if (Global::iSegmentsRendered > Global::iFpsRadiusMax) // 5.6km (22*22*M_PI)
-                    Global::iSegmentsRendered = Global::iFpsRadiusMax;
-            }
-        if ((Timer::GetFPS() < 12) && (Global::iSlowMotion < 7))
+        else if( framerate > 45.0 ) {
+
+            Global::iSegmentsRendered = std::min( 225, Global::iSegmentsRendered + 5 );
+        }
+        else if ( framerate < Global::fFpsMin) {
+            // 9=minimalny promień to 600m
+            Global::iSegmentsRendered = std::max( 9, Global::iSegmentsRendered - 3 );
+            Global::fDistanceFactor = std::max( Global::ScreenHeight / 768.0f * 0.75f, Global::fDistanceFactor - 0.1f );
+        }
+        if ((framerate < 15.0) && (Global::iSlowMotion < 7))
         {
             Global::iSlowMotion = (Global::iSlowMotion << 1) + 1; // zapalenie kolejnego bitu
             if (Global::iSlowMotionMask & 1)
                 if (Global::iMultisampling) // a multisampling jest włączony
                     glDisable(GL_MULTISAMPLE); // wyłączenie multisamplingu powinno poprawić FPS
         }
-        else if ((Timer::GetFPS() > 20) && Global::iSlowMotion)
+        else if ((framerate > 20.0) && Global::iSlowMotion)
         { // FPS się zwiększył, można włączyć bajery
             Global::iSlowMotion = (Global::iSlowMotion >> 1); // zgaszenie bitu
             if (Global::iSlowMotion == 0) // jeśli jest pełna prędkość
                 if (Global::iMultisampling) // a multisampling jest włączony
                     glEnable(GL_MULTISAMPLE);
         }
-        /*
-          if (!Global::bPause)
-           if (GetFPS()<=5)
-           {//zwiększenie kroku fizyki przy słabym FPS
-            if (fMaxDt<0.05)
-            {fMaxDt=0.05; //Ra: tak nie może być, bo są problemy na sprzęgach
-             WriteLog("Phisics step switched to 0.05s!");
-            }
-           }
-           else if (GetFPS()>12)
-            if (fMaxDt>0.01)
-            {//powrót do podstawowego kroku fizyki
-             fMaxDt=0.01;
-             WriteLog("Phisics step switched to 0.01s!");
-            }
-        */
         iCheckFPS = 0.25 * Timer::GetFPS(); // tak za 0.25 sekundy sprawdzić ponownie (jeszcze przycina?)
     }
     Timer::UpdateTimers(Global::iPause != 0);
@@ -1728,14 +1714,12 @@ TWorld::Render_UI() {
 
     if( Global::iTextMode == GLFW_KEY_F8 ) {
         Global::iViewMode = GLFW_KEY_F8;
-        OutText1 = "FPS: " + to_string( Timer::GetFPS(), 2 );
+        OutText1 = "Draw range x " + to_string( Global::fDistanceFactor, 1 ) + "; FPS: " + to_string( Timer::GetFPS(), 2 );
         //OutText1 += sprintf();
         if( Global::iSlowMotion )
             OutText1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
-        OutText1 += ", sectors: " + to_string( Ground.iRendered );
-        if( DebugModeFlag ) {
-            OutText1 += " FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
-        }
+        OutText1 += ", sectors: " + to_string( Ground.iRendered ) + "/" + to_string( Global::iSegmentsRendered );
+        OutText1 += "; FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
     }
 
     // if (Console::Pressed(VK_F7))

@@ -185,9 +185,16 @@ class TGroundNode : public Resource
 */
 };
 
+struct bounding_area {
+
+    float3 center; // mid point of the rectangle
+    float radius{ 0.0f }; // radius of the bounding sphere
+};
+
 class TSubRect : public Resource, public CMesh
 { // sektor składowy kwadratu kilometrowego
   public:
+    bounding_area m_area;
     int iTracks = 0; // ilość torów w (tTracks)
     TTrack **tTracks = nullptr; // tory do renderowania pojazdów
   protected:
@@ -209,7 +216,6 @@ class TSubRect : public Resource, public CMesh
   public:
     void LoadNodes(); // utworzenie VBO sektora
   public:
-//    TSubRect() = default;
     virtual ~TSubRect();
     virtual void Release(); // zwalnianie VBO sektora
     void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
@@ -246,16 +252,12 @@ class TGroundRect : public TSubRect
     // Ra: 2012-02 doszły submodele terenu
   private:
     int iLastDisplay; // numer klatki w której był ostatnio wyświetlany
-    TSubRect *pSubRects;
-    void Init()
-    {
-        pSubRects = new TSubRect[iNumSubRects * iNumSubRects];
-    };
+    TSubRect *pSubRects{ nullptr };
+    void Init();
 
   public:
     static int iFrameNumber; // numer kolejny wyświetlanej klatki
-    TGroundNode *nTerrain; // model terenu z E3D - użyć nRootMesh?
-    TGroundRect();
+    TGroundNode *nTerrain{ nullptr }; // model terenu z E3D - użyć nRootMesh?
     virtual ~TGroundRect();
 
     TSubRect * SafeGetRect(int iCol, int iRow)
@@ -282,6 +284,8 @@ class TGroundRect : public TSubRect
 
 class TGround
 {
+    friend class opengl_renderer;
+
     vector3 CameraDirection; // zmienna robocza przy renderowaniu
     int const *iRange = nullptr; // tabela widoczności
     // TGroundNode *nRootNode; //lista wszystkich węzłów
@@ -361,7 +365,7 @@ class TGround
     void Update_Lights(); // updates scene lights array
     bool AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool GetTraction(TDynamicObject *model);
-    bool Render( Math3D::vector3 const &Camera );
+    bool Render_Hidden( Math3D::vector3 const &Camera );
     bool RenderDL(vector3 pPosition);
     bool RenderAlphaDL(vector3 pPosition);
 /*

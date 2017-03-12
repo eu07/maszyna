@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
+#include "ground.h"
 
 struct opengl_light {
 
@@ -79,6 +80,8 @@ public:
     void
         update_frustum() { m_frustum.calculate(); }
     bool
+        visible( bounding_area const &Area ) const;
+    bool
         visible( TDynamicObject const *Dynamic ) const;
 
 private:
@@ -98,6 +101,8 @@ public:
     // main draw call. returns false on error
     bool
         Render();
+    bool
+        Render( TGround *Ground );
     bool
         Render( TDynamicObject *Dynamic );
     bool

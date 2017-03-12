@@ -15,6 +15,12 @@ http://mozilla.org/MPL/2.0/.
 
 // returns true if specified object is within camera frustum, false otherwise
 bool
+opengl_camera::visible( bounding_area const &Area ) const {
+
+    return ( m_frustum.sphere_inside( Area.center, Area.radius ) > 0.0f );
+}
+
+bool
 opengl_camera::visible( TDynamicObject const *Dynamic ) const {
 
     // sphere test is faster than AABB, so we'll use it here
@@ -63,7 +69,7 @@ opengl_renderer::Render() {
         Global::FieldOfView / Global::ZoomFactor,
         (GLdouble)Global::ScreenWidth / std::max( (GLdouble)Global::ScreenHeight, 1.0 ),
         0.1f * Global::ZoomFactor,
-        m_drawrange );
+        m_drawrange * Global::fDistanceFactor );
 
     ::glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
     ::glLoadIdentity();
@@ -75,12 +81,42 @@ opengl_renderer::Render() {
         World.Environment.render();
     }
 
-    if( false == World.Ground.Render( World.Camera.Pos ) ) { return false; }
+    World.Ground.Render_Hidden( World.Camera.Pos );
+    Render( &World.Ground );
+    World.Ground.RenderDL( World.Camera.Pos );
+    World.Ground.RenderAlphaDL( World.Camera.Pos );
 
     World.Render_Cab();
     World.Render_UI();
 
     return true; // for now always succeed
+}
+
+bool
+opengl_renderer::Render( TGround *Ground ) {
+
+    glDisable( GL_BLEND );
+    glAlphaFunc( GL_GREATER, 0.35f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glEnable( GL_LIGHTING );
+    glColor3f( 1.0f, 1.0f, 1.0f );
+
+    float3 const cameraposition = float3( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
+    int const camerax = std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2;
+    int const cameraz = std::floor( cameraposition.z / 1000.0f ) + iNumRects / 2;
+    int const segmentcount = 2 * static_cast<int>(std::ceil( m_drawrange * Global::fDistanceFactor / 1000.0f ));
+    int const originx = std::max( 0, camerax - segmentcount / 2 );
+    int const originz = std::max( 0, cameraz - segmentcount / 2 );
+
+    for( int column = originx; column <= originx + segmentcount; ++column ) {
+        for( int row = originz; row <= originz + segmentcount; ++row ) {
+
+            auto &rectangle = Ground->Rects[ column ][ row ];
+            if( m_camera.visible( rectangle.m_area ) ) {
+                rectangle.RenderDL();
+            }
+        }
+    }
+    return true;
 }
 
 bool

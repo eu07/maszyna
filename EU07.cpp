@@ -188,7 +188,7 @@ void focus_callback( GLFWwindow *window, int focus )
 
 void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {
 
-    if( DebugModeFlag && Global::ctrlState ) {
+    if( Global::ctrlState ) {
         // ctrl + scroll wheel adjusts fov in debug mode
         Global::FieldOfView = clamp( static_cast<float>(Global::FieldOfView - yoffset * 20.0 / Global::fFpsAverage), 15.0f, 75.0f );
     }

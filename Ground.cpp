@@ -1168,6 +1168,45 @@ void TSubRect::RenderDL()
         node->RenderDL(); // nieprzezroczyste z mieszanych modeli
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
+
+/*
+    float width = 100.0f;
+    float height = 25.0f;
+    float3 vTopLeftFront( m_area.center.x - width, m_area.center.y + height, m_area.center.z + width );
+    float3 vTopLeftBack( m_area.center.x - width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightBack( m_area.center.x + width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightFront( m_area.center.x + width, m_area.center.y + height, m_area.center.z + width );
+
+    float3 vBottom_LeftFront( m_area.center.x - width, m_area.center.y - height, m_area.center.z + width );
+    float3 vBottom_LeftBack( m_area.center.x - width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightBack( m_area.center.x + width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightFront( m_area.center.x + width, m_area.center.y - height, m_area.center.z + width );
+
+    glDisable( GL_LIGHTING );
+    glDisable( GL_TEXTURE_2D );
+    glColor3ub( 255, 255, (iTracks ? 0 : 255) );
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vTopLeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );
+    glVertex3fv( &vTopRightBack.x );
+    glVertex3fv( &vTopRightFront.x );
+    glEnd();
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glBegin( GL_LINES );
+    glVertex3fv( &vTopLeftFront.x );		glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );		glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vTopRightBack.x );		glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vTopRightFront.x );	glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glColor3ub( 255, 255, 255 );
+    glEnable( GL_TEXTURE_2D );
+    glEnable( GL_LIGHTING );
+*/
 };
 
 void TSubRect::RenderAlphaDL()
@@ -1228,15 +1267,29 @@ void TSubRect::RenderSounds()
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber = 0; // licznik wyświetlanych klatek
 
-TGroundRect::TGroundRect()
-{
-    pSubRects = NULL;
-    nTerrain = NULL;
-};
+//TGroundRect::TGroundRect( float3 const &Position, float const Radius = 1000.0f * M_SQRT2 ) :
 
 TGroundRect::~TGroundRect()
 {
     SafeDeleteArray(pSubRects);
+};
+
+void
+TGroundRect::Init() {
+
+    pSubRects = new TSubRect[ iNumSubRects * iNumSubRects ];
+    float const subrectsize = 1000.0f / iNumSubRects;
+    for( int column = 0; column < iNumSubRects; ++column ) {
+        for( int row = 0; row < iNumSubRects; ++row ) {
+            auto &area = FastGetRect(column, row)->m_area;
+            area.center =
+                m_area.center
+                - float3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
+                + float3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
+                + float3( subrectsize * column, 0.0f, subrectsize * row );
+            area.radius = subrectsize * M_SQRT2;
+        }
+    }
 };
 
 void TGroundRect::RenderDL()
@@ -1263,6 +1316,44 @@ void TGroundRect::RenderDL()
             nRootMesh->RenderDL();
         iLastDisplay = iFrameNumber; // drugi raz nie potrzeba
     }
+/*
+    float width = 500.0f;
+    float height = 50.0f;
+    float3 vTopLeftFront( m_area.center.x - width, m_area.center.y + height, m_area.center.z + width );
+    float3 vTopLeftBack( m_area.center.x - width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightBack( m_area.center.x + width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightFront( m_area.center.x + width, m_area.center.y + height, m_area.center.z + width );
+
+    float3 vBottom_LeftFront( m_area.center.x - width, m_area.center.y - height, m_area.center.z + width );
+    float3 vBottom_LeftBack( m_area.center.x - width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightBack( m_area.center.x + width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightFront( m_area.center.x + width, m_area.center.y - height, m_area.center.z + width );
+
+    glDisable( GL_LIGHTING );
+    glDisable( GL_TEXTURE_2D );
+    glColor3ub( 0, 255, 255 );
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vTopLeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );
+    glVertex3fv( &vTopRightBack.x );
+    glVertex3fv( &vTopRightFront.x );
+    glEnd();
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glBegin( GL_LINES );
+    glVertex3fv( &vTopLeftFront.x );		glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );		glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vTopRightBack.x );		glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vTopRightFront.x );	glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glColor3ub( 255, 255, 255 );
+    glEnable( GL_TEXTURE_2D );
+    glEnable( GL_LIGHTING );
+*/
 };
 /*
 void TGroundRect::RenderVBO()
@@ -1340,6 +1431,22 @@ TGround::TGround()
 #endif
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
     ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
+
+    // set bounding area information for ground rectangles
+    float const rectsize = 1000.0f;
+    float3 const worldcenter( 0.0f, 0.0f, 0.0f );
+    for( int column = 0; column < iNumRects; ++column ) {
+        for( int row = 0; row < iNumRects; ++row ) {
+            auto &area = Rects[ column ][ row ].m_area;
+            // NOTE: in current implementation triangles can stick out to ~200m from the area, so we add extra padding
+            area.radius = 200.0f + rectsize * 0.5f * M_SQRT2;
+            area.center =
+                worldcenter
+                - float3( (iNumRects / 2) * rectsize, 0.0f, (iNumRects / 2) * rectsize ) // 'upper left' corner of the world
+                + float3( rectsize * 0.5f, 0.0f, rectsize * 0.5f ) // center of the rectangle
+                + float3( rectsize * column, 0.0f, rectsize * row );
+        }
+    }
 }
 
 TGround::~TGround()
@@ -4826,26 +4933,31 @@ bool TGround::GetTraction(TDynamicObject *model)
 };
 
 bool
-TGround::Render( Math3D::vector3 const &Camera ) {
+TGround::Render_Hidden( Math3D::vector3 const &Camera ) {
 
     GfxRenderer.Update_Lights( m_lights );
-/*
-    if( Global::bUseVBO ) { // renderowanie przez VBO
-        if( !RenderVBO( Camera ) )
-            return false;
-        if( !RenderAlphaVBO( Camera ) )
-            return false;
-    }
-    else {
-*/
-    // renderowanie przez Display List
-        if( !RenderDL( Camera ) )
-            return false;
-        if( !RenderAlphaDL( Camera ) )
-            return false;
-/*
-    }
-*/
+
+    ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
+
+    TGroundNode *node;
+    int n = 2 * iNumSubRects; //(2*==2km) promień wyświetlanej mapy w sektorach
+    int c = GetColFromX( Camera.x );
+    int r = GetRowFromZ( Camera.z );
+    TSubRect *tmp;
+    for( node = srGlobal.nRenderHidden; node; node = node->nNext3 )
+        node->RenderHidden(); // rednerowanie globalnych (nie za często?)
+    int i, j, k;
+    // renderowanie czołgowe dla obiektów aktywnych a niewidocznych
+    for( j = r - n; j <= r + n; j++ )
+        for( i = c - n; i <= c + n; i++ )
+            if( ( tmp = FastGetSubRect( i, j ) ) != NULL ) {
+                tmp->LoadNodes(); // oznaczanie aktywnych sektorów
+                for( node = tmp->nRenderHidden; node; node = node->nNext3 )
+                    node->RenderHidden();
+                tmp->RenderSounds(); // jeszcze dźwięki pojazdów by się przydały, również
+                // niewidocznych
+            }
+
     return true;
 }
 
@@ -4897,8 +5009,11 @@ bool TGround::RenderDL(vector3 pPosition)
                 if (CameraDirection.x * direction.x + CameraDirection.z * direction.z < 0.55)
                     continue; // pomijanie sektorów poza kątem patrzenia
             }
+            // NOTE: terrain data is disabled, as it's moved to the renderer
+/*
             Rects[(i + c) / iNumSubRects][(j + r) / iNumSubRects]
                 .RenderDL(); // kwadrat kilometrowy nie zawsze, bo szkoda FPS
+*/
             if ((tmp = FastGetSubRect(i + c, j + r)) != NULL)
                 if (tmp->iNodeCount) // o ile są jakieś obiekty, bo po co puste sektory przelatywać
                     pRendered[iRendered++] = tmp; // tworzenie listy sektorów do renderowania
