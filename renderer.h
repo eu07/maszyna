@@ -153,6 +153,8 @@ private:
     };
 
     typedef std::vector<opengl_light> opengllight_array;
+
+// methods
     
 // members
     rendermode renderpass{ rendermode::color };
@@ -160,6 +162,8 @@ private:
     texture_manager m_textures;
     opengl_camera m_camera;
     float m_drawrange{ 2500.0f }; // current drawing range
+    float m_drawtime{ 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
+    double m_updateaccumulator{ 0.0 };
 };
 
 extern opengl_renderer GfxRenderer;

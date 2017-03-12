@@ -29,6 +29,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Mover.h"
 #include "usefull.h"
 #include "timer.h"
+#include "resource.h"
 
 #pragma comment( lib, "glfw3dll.lib" )
 #pragma comment( lib, "glew32.lib" )
@@ -320,6 +321,16 @@ int main(int argc, char *argv[])
     BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
+
+    const HANDLE icon = ::LoadImage(
+        ::GetModuleHandle( 0 ),
+        MAKEINTRESOURCE( IDI_ICON1 ),
+        IMAGE_ICON,
+        ::GetSystemMetrics( SM_CXSMICON ),
+        ::GetSystemMetrics( SM_CYSMICON ),
+        0 );
+    if( icon )
+        ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
 #endif
 
     GfxRenderer.Init();

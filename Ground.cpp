@@ -4933,31 +4933,26 @@ bool TGround::GetTraction(TDynamicObject *model)
 };
 
 bool
-TGround::Render_Hidden( Math3D::vector3 const &Camera ) {
+TGround::Render( Math3D::vector3 const &Camera ) {
 
     GfxRenderer.Update_Lights( m_lights );
-
-    ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
-
-    TGroundNode *node;
-    int n = 2 * iNumSubRects; //(2*==2km) promień wyświetlanej mapy w sektorach
-    int c = GetColFromX( Camera.x );
-    int r = GetRowFromZ( Camera.z );
-    TSubRect *tmp;
-    for( node = srGlobal.nRenderHidden; node; node = node->nNext3 )
-        node->RenderHidden(); // rednerowanie globalnych (nie za często?)
-    int i, j, k;
-    // renderowanie czołgowe dla obiektów aktywnych a niewidocznych
-    for( j = r - n; j <= r + n; j++ )
-        for( i = c - n; i <= c + n; i++ )
-            if( ( tmp = FastGetSubRect( i, j ) ) != NULL ) {
-                tmp->LoadNodes(); // oznaczanie aktywnych sektorów
-                for( node = tmp->nRenderHidden; node; node = node->nNext3 )
-                    node->RenderHidden();
-                tmp->RenderSounds(); // jeszcze dźwięki pojazdów by się przydały, również
-                // niewidocznych
-            }
-
+    /*
+    if( Global::bUseVBO ) { // renderowanie przez VBO
+    if( !RenderVBO( Camera ) )
+    return false;
+    if( !RenderAlphaVBO( Camera ) )
+    return false;
+    }
+    else {
+    */
+    // renderowanie przez Display List
+    if( !RenderDL( Camera ) )
+        return false;
+    if( !RenderAlphaDL( Camera ) )
+        return false;
+    /*
+    }
+    */
     return true;
 }
 
@@ -5010,10 +5005,8 @@ bool TGround::RenderDL(vector3 pPosition)
                     continue; // pomijanie sektorów poza kątem patrzenia
             }
             // NOTE: terrain data is disabled, as it's moved to the renderer
-/*
             Rects[(i + c) / iNumSubRects][(j + r) / iNumSubRects]
                 .RenderDL(); // kwadrat kilometrowy nie zawsze, bo szkoda FPS
-*/
             if ((tmp = FastGetSubRect(i + c, j + r)) != NULL)
                 if (tmp->iNodeCount) // o ile są jakieś obiekty, bo po co puste sektory przelatywać
                     pRendered[iRendered++] = tmp; // tworzenie listy sektorów do renderowania

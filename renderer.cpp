@@ -58,6 +58,8 @@ opengl_renderer::Init() {
 bool
 opengl_renderer::Render() {
 
+    auto timestart = std::chrono::steady_clock::now();
+
     ::glColor3ub( 255, 255, 255 );
     ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     ::glDepthFunc( GL_LEQUAL );
@@ -81,13 +83,13 @@ opengl_renderer::Render() {
         World.Environment.render();
     }
 
-    World.Ground.Render_Hidden( World.Camera.Pos );
-    Render( &World.Ground );
-    World.Ground.RenderDL( World.Camera.Pos );
-    World.Ground.RenderAlphaDL( World.Camera.Pos );
+    World.Ground.Render( World.Camera.Pos );
 
     World.Render_Cab();
     World.Render_UI();
+
+    // accumulate last 20 frames worth of render time
+    m_drawtime = 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count();
 
     return true; // for now always succeed
 }
@@ -116,6 +118,7 @@ opengl_renderer::Render( TGround *Ground ) {
             }
         }
     }
+
     return true;
 }
 
@@ -335,9 +338,61 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, M
 }
 
 void
-opengl_renderer::Update ( double const Deltatile ) {
+opengl_renderer::Update ( double const Deltatime ) {
 
-    // TODO: add garbage collection and other works here
+    m_updateaccumulator += Deltatime;
+
+    if( m_updateaccumulator < 1.0 ) {
+        // too early for any work
+        return;
+    }
+
+    m_updateaccumulator = 0.0;
+
+    // adjust draw ranges etc, based on recent performance
+    auto const framerate = 1000.0f / (m_drawtime * 0.05f);
+
+    // NOTE: until we have quadtree in place we have to rely on the legacy rendering
+    // once this is resolved we should be able to simply adjust draw range
+    int targetsegments;
+    float targetfactor;
+
+         if( framerate > 65.0 ) { targetsegments = 400; targetfactor = 3.0f; }
+    else if( framerate > 40.0 ) { targetsegments = 225; targetfactor = 1.5f; }
+    else if( framerate > 15.0 ) { targetsegments =  90; targetfactor = Global::ScreenHeight / 768.0f; }
+    else                        { targetsegments =   9; targetfactor = Global::ScreenHeight / 768.0f * 0.75f; }
+
+    if( targetsegments > Global::iSegmentsRendered ) {
+
+        Global::iSegmentsRendered = std::min( targetsegments, Global::iSegmentsRendered + 5 );
+    }
+    else if( targetsegments < Global::iSegmentsRendered ) {
+
+        Global::iSegmentsRendered = std::max( targetsegments, Global::iSegmentsRendered - 5 );
+    }
+    if( targetfactor > Global::fDistanceFactor ) {
+
+        Global::fDistanceFactor = std::min( targetfactor, Global::fDistanceFactor + 0.05f );
+    }
+    else if( targetfactor < Global::fDistanceFactor ) {
+
+        Global::fDistanceFactor = std::max( targetfactor, Global::fDistanceFactor - 0.05f );
+    }
+
+    if( ( framerate < 15.0 ) && ( Global::iSlowMotion < 7 ) ) {
+        Global::iSlowMotion = ( Global::iSlowMotion << 1 ) + 1; // zapalenie kolejnego bitu
+        if( Global::iSlowMotionMask & 1 )
+            if( Global::iMultisampling ) // a multisampling jest włączony
+                ::glDisable( GL_MULTISAMPLE ); // wyłączenie multisamplingu powinno poprawić FPS
+    }
+    else if( ( framerate > 20.0 ) && Global::iSlowMotion ) { // FPS się zwiększył, można włączyć bajery
+        Global::iSlowMotion = ( Global::iSlowMotion >> 1 ); // zgaszenie bitu
+        if( Global::iSlowMotion == 0 ) // jeśli jest pełna prędkość
+            if( Global::iMultisampling ) // a multisampling jest włączony
+                ::glEnable( GL_MULTISAMPLE );
+    }
+
+    // TODO: add garbage collection and other less frequent works here
 };
 
 void

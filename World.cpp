@@ -55,7 +55,6 @@ TWorld::TWorld()
     OutText1 = ""; // teksty wyświetlane na ekranie
     OutText2 = "";
     OutText3 = "";
-    iCheckFPS = 0; // kiedy znów sprawdzić FPS, żeby wyłączać optymalizacji od razu do zera
     pDynamicNearest = NULL;
     fTimeBuffer = 0.0; // bufor czasu aktualizacji dla stałego kroku fizyki
     fMaxDt = 0.01; //[s] początkowy krok czasowy fizyki
@@ -1000,43 +999,6 @@ bool TWorld::Update()
         WriteLog("Scenery moved");
     };
 #endif
-    if (iCheckFPS)
-        --iCheckFPS;
-    else
-    { // jak doszło do zera, to sprawdzamy wydajność
-        auto const framerate = Timer::GetFPS();
-        // NOTE: until we have quadtree in place we have to rely on the legacy rendering
-        // once this is resolved we should be able to simply adjust draw range
-        if( framerate > 65.0 ) {
-
-            Global::iSegmentsRendered = std::min( 400, Global::iSegmentsRendered + 5 );
-            Global::fDistanceFactor = std::min( 3.0f, Global::fDistanceFactor + 0.025f );
-        }
-        else if( framerate > 45.0 ) {
-
-            Global::iSegmentsRendered = std::min( 225, Global::iSegmentsRendered + 5 );
-        }
-        else if ( framerate < Global::fFpsMin) {
-            // 9=minimalny promień to 600m
-            Global::iSegmentsRendered = std::max( 9, Global::iSegmentsRendered - 3 );
-            Global::fDistanceFactor = std::max( Global::ScreenHeight / 768.0f * 0.75f, Global::fDistanceFactor - 0.1f );
-        }
-        if ((framerate < 15.0) && (Global::iSlowMotion < 7))
-        {
-            Global::iSlowMotion = (Global::iSlowMotion << 1) + 1; // zapalenie kolejnego bitu
-            if (Global::iSlowMotionMask & 1)
-                if (Global::iMultisampling) // a multisampling jest włączony
-                    glDisable(GL_MULTISAMPLE); // wyłączenie multisamplingu powinno poprawić FPS
-        }
-        else if ((framerate > 20.0) && Global::iSlowMotion)
-        { // FPS się zwiększył, można włączyć bajery
-            Global::iSlowMotion = (Global::iSlowMotion >> 1); // zgaszenie bitu
-            if (Global::iSlowMotion == 0) // jeśli jest pełna prędkość
-                if (Global::iMultisampling) // a multisampling jest włączony
-                    glEnable(GL_MULTISAMPLE);
-        }
-        iCheckFPS = 0.25 * Timer::GetFPS(); // tak za 0.25 sekundy sprawdzić ponownie (jeszcze przycina?)
-    }
     Timer::UpdateTimers(Global::iPause != 0);
     if( (Global::iPause == false)
      || (m_init == false) )

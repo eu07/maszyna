@@ -365,7 +365,7 @@ class TGround
     void Update_Lights(); // updates scene lights array
     bool AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool GetTraction(TDynamicObject *model);
-    bool Render_Hidden( Math3D::vector3 const &Camera );
+    bool Render( Math3D::vector3 const &Camera );
     bool RenderDL(vector3 pPosition);
     bool RenderAlphaDL(vector3 pPosition);
 /*

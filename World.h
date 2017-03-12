@@ -82,7 +82,6 @@ class TWorld
     texture_manager::size_type light; // numer tekstury dla smugi
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury
     TMoverParameters *mvControlled; // wskaźnik na człon silnikowy, do wyświetlania jego parametrów
-    int iCheckFPS; // kiedy znów sprawdzić FPS, żeby wyłączać optymalizacji od razu do zera
     double fTime50Hz; // bufor czasu dla komunikacji z PoKeys
     double fTimeBuffer; // bufor czasu aktualizacji dla stałego kroku fizyki
     double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
