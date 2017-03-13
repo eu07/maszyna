@@ -29,13 +29,15 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "color.h"
+#include "uilayer.h"
 
 //---------------------------------------------------------------------------
 
-// GLUTAPI void APIENTRY glutBitmapCharacterDLL(void *font, int character);
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
 
-const double fTimeMax = 1.00; //[s] maksymalny czas aktualizacji w jednek klatce
+std::shared_ptr<ui_panel> UIHeader = std::make_shared<ui_panel>( 20, 20 ); // header ui panel
+std::shared_ptr<ui_panel> UITable = std::make_shared<ui_panel>( 100, 50 ); // schedule or scan table
+std::shared_ptr<ui_panel> UITranscripts = std::make_shared<ui_panel>( 85, 600 ); // voice transcripts
 
 extern "C"
 {
@@ -68,7 +70,6 @@ TWorld::~TWorld()
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
     TSoundsManager::Free();
     TModelsManager::Free();
-    glDeleteLists(base, 96);
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -83,27 +84,6 @@ void TWorld::TrainDelete(TDynamicObject *d)
     mvControlled = NULL;
     Global::pUserDynamic = NULL; // tego też nie ma
 };
-
-GLvoid TWorld::glPrint( std::string const &Text ) // custom GL "Print" routine
-{ // wypisywanie tekstu 2D na ekranie
-    if (true == Text.empty())
-        return;
-/*
-    if (Global::bGlutFont)
-    { // tekst generowany przez GLUT
-        int i, len = strlen(txt);
-        for (i = 0; i < len; i++)
-            glutBitmapCharacterDLL(GLUT_BITMAP_8_BY_13, txt[i]); // funkcja linkowana dynamicznie
-    }
-    else
-*/
-    { // generowanie przez Display Lists
-        glPushAttrib(GL_LIST_BIT); // pushes the display list bits
-        glListBase(base - 32); // sets the base character to 32
-        glCallLists(Text.size(), GL_UNSIGNED_BYTE, Text.c_str()); // draws the display list text
-        glPopAttrib(); // pops the display list bits
-    }
-}
 
 /* Ra: do opracowania: wybor karty graficznej ~Intel gdy są dwie...
 BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
@@ -167,315 +147,39 @@ bool TWorld::Init( GLFWwindow *w ) {
     window = w;
     Global::window = w; // do WM_COPYDATA
     Global::pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
-    WriteLog("Starting MaSzyna rail vehicle simulator.");
+
+    WriteLog("\nStarting MaSzyna rail vehicle simulator.");
     WriteLog(Global::asVersion);
-/*
-	if( sizeof( TSubModel ) != 256 ) {
-		Error( "Wrong sizeof(TSubModel) is " + std::to_string(sizeof( TSubModel )) );
-		return false;
-	}
-*/
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others");
-    WriteLog("Renderer:");
-    WriteLog((char *)glGetString(GL_RENDERER));
-    WriteLog("Vendor:");
-    // Winger030405: sprawdzanie sterownikow
-    WriteLog((char *)glGetString(GL_VENDOR));
-    std::string glver = ((char *)glGetString(GL_VERSION));
-    WriteLog("OpenGL Version:");
-    WriteLog(glver);
-    if( !GLEW_VERSION_1_4 ) {
-        std::cout << "required opengl >= 1.4" << std::endl;
-        return false;
-    }
+             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n");
 
-    // Ra: umieszczone w EU07.cpp jakoś nie chce działać
-	while( glver.rfind( '.' ) > glver.find( '.' ) ) {
-		glver = glver.substr( 0, glver.rfind( '.' ) - 1 ); // obcięcie od drugiej kropki
-	}
-    double ogl;
-    try
-    {
-        ogl = std::stod( glver );
-    }
-    catch (...)
-    {
-        ogl = 0.0;
-    }
-    if (Global::fOpenGL > 0.0) // jeśli była wpisane maksymalna wersja w EU07.INI
-    {
-        if (ogl > 0.0) // zakładając, że się odczytało dobrze
-            if (ogl < Global::fOpenGL) // a karta oferuje niższą wersję niż wpisana
-                Global::fOpenGL = ogl; // to przyjąc to z karty
-    }
-    else if (false == GLEW_VERSION_1_3) // sprzętowa deompresja DDS zwykle wymaga 1.3
-        Error("Missed OpenGL 1.3+ drivers!"); // błąd np. gdy wersja 1.1, a nie ma wpisu w EU07.INI
-/*
-    Global::bOpenGL_1_5 = (Global::fOpenGL >= 1.5); // są fragmentaryczne animacje VBO
-*/
-    WriteLog("Supported extensions:");
-    WriteLog((char *)glGetString(GL_EXTENSIONS));
-    if (GLEW_ARB_vertex_buffer_object) // czy jest VBO w karcie graficznej
-    {
-        if (Global::bUseVBO)
-            WriteLog("Ra: The VBO is found and will be used.");
-        else
-            WriteLog("Ra: The VBO is found, but Display Lists are selected.");
-    }
-    else
-    {
-        WriteLog("Ra: No VBO found - Display Lists used. Graphics card too old?");
-        Global::bUseVBO = false; // może być włączone parametrem w INI
-    }
-    if (Global::bDecompressDDS) // jeśli sprzętowa (domyślnie jest false)
-        WriteLog("DDS textures support at OpenGL level is disabled in INI file.");
-    else
-    {
-        Global::bDecompressDDS =
-            !(GLEW_EXT_texture_compression_s3tc); // czy obsługiwane?
-        if (Global::bDecompressDDS) // czy jest obsługa DDS w karcie graficznej
-            WriteLog("DDS textures are not supported.");
-        else // brak obsługi DDS - trzeba włączyć programową dekompresję
-            WriteLog("DDS textures are supported.");
-    }
-    if (Global::iMultisampling)
-        WriteLog("Used multisampling of " + std::to_string(Global::iMultisampling) + " samples.");
-    { // ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
-        GLint i;
-        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &i);
-        if (i < Global::iMaxTextureSize)
-            Global::iMaxTextureSize = i;
-        WriteLog("Max texture size: " + std::to_string(Global::iMaxTextureSize));
-    }
-    /*-----------------------Render Initialization----------------------*/
-    glMatrixMode( GL_PROJECTION );
-    glLoadIdentity();
-    glMatrixMode( GL_MODELVIEW );
-    glLoadIdentity();
+    UILayer.set_background( "logo" );
 
-    glClearDepth( 1.0f ); // ZBuffer Value
-    glClearColor( 51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f ); // Background Color
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); // Clear screen and depth buffer
-
-    glEnable(GL_TEXTURE_2D); // Enable Texture Mapping
-    glShadeModel(GL_SMOOTH); // Enable Smooth Shading
-    glEnable(GL_DEPTH_TEST);
-
-    // McZapkie:261102-uruchomienie polprzezroczystosci (na razie linie) pod kierunkiem Marcina
-    // if (Global::bRenderAlpha) //Ra: wywalam tę flagę
-    {
-        glEnable(GL_BLEND);
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, 0.04f);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthFunc(GL_LEQUAL);
-    }
-
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // Really Nice Perspective Calculations
-    glPolygonMode(GL_FRONT, GL_FILL);
-    glFrontFace(GL_CCW); // Counter clock-wise polygons face out
-    glEnable(GL_CULL_FACE); // Cull back-facing triangles
-    glLineWidth(1.0f);
-    glPointSize(3.0f);
-    glEnable( GL_POINT_SMOOTH );
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    // ----------- LIGHTING SETUP -----------
-    // Light values and coordinates
-
-    vector3 lp = Normalize(vector3(-500, 500, 200));
-
-    Global::lightPos[0] = lp.x;
-    Global::lightPos[1] = lp.y;
-    Global::lightPos[2] = lp.z;
-    Global::lightPos[3] = 0.0f;
-
-    // Ra: światła by sensowniej było ustawiać po wczytaniu scenerii
-    // TODO: re-implement this
-    // Ra: szczątkowe światło rozproszone - żeby było cokolwiek widać w ciemności
-    WriteLog("glLightModelfv(GL_LIGHT_MODEL_AMBIENT,darkLight);");
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::darkLight);
-
-    // Ra: światło 0 - główne światło zewnętrzne (Słońce, Księżyc)
-    WriteLog("glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);");
-    glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-    WriteLog("glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);");
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-    WriteLog("glLightfv(GL_LIGHT0,GL_SPECULAR,specularLight);");
-    glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
-    WriteLog("glLightfv(GL_LIGHT0,GL_POSITION,lightPos);");
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
-    WriteLog("glEnable(GL_LIGHT0);");
-    glEnable(GL_LIGHT0);
-#endif
-    // glColor() ma zmieniać kolor wybrany w glColorMaterial()
-    glEnable(GL_COLOR_MATERIAL);
-
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-    glColor4fv(Global::whiteLight);
-
-    glEnable(GL_LIGHTING);
-
-    glFogi(GL_FOG_MODE, GL_LINEAR); // Fog Mode
-    GLfloat FogColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glFogfv(GL_FOG_COLOR, FogColor); // Set Fog Color
-    glFogf(GL_FOG_START, 10.0f); // Fog Start Depth
-    glFogf(GL_FOG_END, 200.0f); // Fog End Depth
-    glEnable(GL_FOG); // Enables GL_FOG
-
-    // Ra: ustawienia testowe
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-
-    /*--------------------Render Initialization End---------------------*/
-
-    WriteLog("Font init"); // początek inicjacji fontów 2D
-    HFONT font; // Windows Font ID
-    base = ::glGenLists(96); // storage for 96 characters
-    HDC hDC = ::GetDC( glfwGetWin32Window( window ) );
-    font = ::CreateFont( -MulDiv( 10, ::GetDeviceCaps( hDC, LOGPIXELSY ), 72 ), // height of font
-                        0, // width of font
-                        0, // angle of escapement
-                        0, // orientation angle
-                        (Global::bGlutFont ? FW_MEDIUM : FW_HEAVY), // font weight
-                        FALSE, // italic
-                        FALSE, // underline
-                        FALSE, // strikeout
-                        DEFAULT_CHARSET, // character set identifier
-                        OUT_DEFAULT_PRECIS, // output precision
-                        CLIP_DEFAULT_PRECIS, // clipping precision
-                        (Global::bGlutFont ? CLEARTYPE_QUALITY : PROOF_QUALITY), // output quality
-                        DEFAULT_PITCH | FF_DONTCARE, // family and pitch
-                        "Lucida Console"); // font name
-    ::SelectObject(hDC, font); // selects the font we want
-    ::wglUseFontBitmapsA(hDC, 32, 96, base); // builds 96 characters starting at character 32
-    WriteLog("Display Lists font used."); //+AnsiString(glGetError())
-    WriteLog("Font init OK"); //+AnsiString(glGetError())
-
-    glColor4f(1.0f, 3.0f, 3.0f, 0.0f);
-    //    SwapBuffers(hDC);					// Swap Buffers (Double Buffering)
-    //    glClear(GL_COLOR_BUFFER_BIT);
-    //    glFlush();
-
-    WriteLog("Sound Init");
-
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    glDisable( GL_DEPTH_TEST ); // Disables depth testing
-#ifndef EU07_USE_OLD_LIGHTING_MODEL
-    glEnable( GL_LIGHTING );
-    glEnable( GL_LIGHT0 );
-#endif
-
-    glLoadIdentity();
-    //    glColor4f(0.3f,0.0f,0.0f,0.0f);
-//    glTranslatef(0.0f, 0.0f, -0.50f);
-    //    glRasterPos2f(-0.25f, -0.10f);
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    glColor3f( 3.0f, 3.0f, 3.0f );
-#else
-    glColor3f( 1.0f, 1.0f, 1.0f );
-#endif
-
-    auto logo = GfxRenderer.GetTextureId( "logo", szTexturePath, 6 );
-    GfxRenderer.Bind(logo); // Select our texture
-
-    float const widthratio = ( 4.0f / 3.0f ) / ( (float)Global::iWindowWidth / Global::iWindowHeight );
-
-    glBegin(GL_QUADS); // Drawing using triangles
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex2f( -widthratio, -1.0f ); // bottom left of the texture and quad
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex2f(widthratio, -1.0f); // bottom right of the texture and quad
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex2f(widthratio, 1.0f); // top right of the texture and quad
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex2f( -widthratio, 1.0f ); // top left of the texture and quad
-    glEnd();
-
-    glColor3f(0.0f, 0.0f, 0.0f);
-    glRasterPos2f(-0.85f * widthratio, -0.25f);
-    glPrint("Uruchamianie / Initializing...");
-    glfwSwapBuffers( window );
-
-    /*-----------------------Sound Initialization-----------------------*/
-    glRasterPos2f( -0.85f * widthratio, -0.30f );
-    glPrint( "Dzwiek / Sound..." );
+    std::shared_ptr<ui_panel> initpanel = std::make_shared<ui_panel>(85, 600);
 
     TSoundsManager::Init( glfwGetWin32Window( window ) );
     WriteLog("Sound Init OK");
-    glRasterPos2f(-0.25f * widthratio, -0.30f);
-    glPrint("OK.");
-    glfwSwapBuffers( window );
-    /*---------------------Sound Initialization End---------------------*/
-
-    WriteLog("Textures init");
-    glRasterPos2f(-0.85f * widthratio, -0.35f);
-    glPrint("Tekstury / Textures...");
-    glfwSwapBuffers( window );
-    WriteLog("Textures init OK");
-    glRasterPos2f( -0.25f * widthratio, -0.35f );
-    glPrint("OK.");
-    glfwSwapBuffers( window );
-
-    WriteLog("Models init");
-    glRasterPos2f( -0.85f * widthratio, -0.40f );
-    glPrint("Modele / Models...");
-    glfwSwapBuffers( window );
     TModelsManager::Init();
     WriteLog("Models init OK");
-    glRasterPos2f( -0.25f * widthratio, -0.40f );
-    glPrint("OK.");
-    glfwSwapBuffers( window );
 
-    WriteLog("Ground init");
-    glRasterPos2f( -0.85f * widthratio, -0.45f );
-    glPrint("Sceneria / Scenery (please wait)...");
-    glfwSwapBuffers( window );
+    initpanel->text_lines.emplace_back( "Loading scenery / Wczytywanie scenerii:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+    initpanel->text_lines.emplace_back( Global::SceneryFile.substr(0, 40), float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+    UILayer.push_back( initpanel );
 
-#ifndef EU07_USE_OLD_LIGHTING_MODEL
-    // setup lighting
-//    GLfloat ambient[] = { 0.65f, 0.65f, 0.65f, 0.5f };
-    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-
-    Global::DayLight.id = opengl_renderer::sunlight;
-    // directional light
-    // TODO, TBD: test omni-directional variant
-    Global::DayLight.position[ 3 ] = 1.0f;
-    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0f );
-    // rgb value for 5780 kelvin
-    Global::DayLight.diffuse[ 0 ] = 255.0f / 255.0f;
-    Global::DayLight.diffuse[ 1 ] = 242.0f / 255.0f;
-    Global::DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
-#endif
-
+    WriteLog( "Ground init" );
     Ground.Init(Global::SceneryFile);
-    //    Global::tSinceStart= 0;
+    WriteLog( "Ground init OK" );
+
     Environment.init();
-    WriteLog("Ground init OK");
-    glRasterPos2f( -0.25f * widthratio, -0.45f );
-    glColor3f( 0.0f, 0.0f, 0.0f );
-    glPrint( "OK." );
-    glfwSwapBuffers( window );
-
-    //    TTrack *Track=Ground.FindGroundNode("train_start",TP_TRACK)->pTrack;
-
-    //    Camera.Init(vector3(2700,10,6500),0,M_PI,0);
-    //    Camera.Init(vector3(00,40,000),0,M_PI,0);
-    //    Camera.Init(vector3(1500,5,-4000),0,M_PI,0);
-    // McZapkie-130302 - coby nie przekompilowywac:
-    //      Camera.Init(Global::pFreeCameraInit,0,M_PI,0);
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
 
-    char buff[255] = "Player train init: ";
-    glRasterPos2f( -0.85f * widthratio, -0.50f );
-    glColor3f( 0.0f, 0.0f, 0.0f );
-    glPrint( "Przygotowanie kabiny do sterowania..." );
-    glfwSwapBuffers( window );
+    initpanel->text_lines.clear();
+    initpanel->text_lines.emplace_back( "Preparing train / Przygotowanie kabiny:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+    GfxRenderer.Render();
+    
+    WriteLog( "Player train init: " + Global::asHumanCtrlVehicle );
 
-    strcat(buff, Global::asHumanCtrlVehicle.c_str());
-    WriteLog(buff);
     TGroundNode *nPlayerTrain = NULL;
     if (Global::asHumanCtrlVehicle != "ghostview")
         nPlayerTrain = Ground.DynamicFind(Global::asHumanCtrlVehicle); // szukanie w tych z obsadą
@@ -488,20 +192,12 @@ bool TWorld::Init( GLFWwindow *w ) {
             mvControlled = Controlled->ControlledFind()->MoverParameters;
             Global::pUserDynamic = Controlled; // renerowanie pojazdu względem kabiny
             WriteLog("Player train init OK");
-            glRasterPos2f( -0.25f * widthratio, -0.50f );
-            glColor3f( 0.0f, 0.0f, 0.0f );
-            glPrint( "OK." );
             FollowView();
-            glfwSwapBuffers( window );
         }
         else
         {
             Error("Player train init failed!");
             FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-            glRasterPos2f( -0.85f * widthratio, -0.50f );
-            glColor3f( 0.0f, 0.0f, 0.0f );
-            glPrint( "Blad inicjalizacji sterowanego pojazdu!" );
-            glfwSwapBuffers( window );
             Controlled = NULL;
             mvControlled = NULL;
             Camera.Type = tp_Free;
@@ -511,10 +207,7 @@ bool TWorld::Init( GLFWwindow *w ) {
     {
         if (Global::asHumanCtrlVehicle != "ghostview")
         {
-            Error("Player train not exist!");
-            glRasterPos2f( -0.85f * widthratio, -0.55f );
-            glColor3f( 0.0f, 0.0f, 0.0f );
-            glPrint( "Wybrany pojazd nie istnieje w scenerii!" );
+            Error("Player train doesn't exist!");
         }
         FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
         glfwSwapBuffers( window );
@@ -522,8 +215,7 @@ bool TWorld::Init( GLFWwindow *w ) {
         mvControlled = NULL;
         Camera.Type = tp_Free;
     }
-    glEnable(GL_DEPTH_TEST);
-    // Ground.pTrain=Train;
+
     // if (!Global::bMultiplayer) //na razie włączone
     { // eventy aktywowane z klawiatury tylko dla jednego użytkownika
         KeyEvents[0] = Ground.FindEvent("keyctrl00");
@@ -537,14 +229,8 @@ bool TWorld::Init( GLFWwindow *w ) {
         KeyEvents[8] = Ground.FindEvent("keyctrl08");
         KeyEvents[9] = Ground.FindEvent("keyctrl09");
     }
-    // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);  //{Texture blends with object
-    // background}
-	if (Global::bOldSmudge == true)
-        light = GfxRenderer.GetTextureId( "smuga.tga", szTexturePath );
-	else
-        light = GfxRenderer.GetTextureId( "smuga2.tga", szTexturePath );
-    // Camera.Reset();
-	WriteLog( "Load time: " +
+
+    WriteLog( "Load time: " +
 		std::to_string( std::chrono::duration_cast<std::chrono::seconds>(( std::chrono::system_clock::now() - timestart )).count() )
 		+ " seconds");
     if (DebugModeFlag) // w Debugmode automatyczne włączenie AI
@@ -552,7 +238,21 @@ bool TWorld::Init( GLFWwindow *w ) {
             if (Train->Dynamic()->Mechanik)
                 Train->Dynamic()->Mechanik->TakeControl(true);
 
+    UILayer.set_progress();
+    UILayer.set_background( "" );
+    UILayer.clear_texts();
+
     Timer::ResetTimers();
+
+    // make 4 empty lines for the ui header, to cut down on work down the road
+    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
+    // bind the panels with ui object. maybe not the best place for this but, eh
+    UILayer.push_back( UIHeader );
+    UILayer.push_back( UITable );
+    UILayer.push_back( UITranscripts );
 
     return true;
 };
@@ -1649,7 +1349,7 @@ TWorld::Render_Cab() {
 
 void
 TWorld::Render_UI() {
-
+/*
     // set the UI mode projection. TODO: rework it all into somethinig more elegant... eventually
     glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
     glLoadIdentity(); // reset the Projection Matrix
@@ -1657,6 +1357,8 @@ TWorld::Render_UI() {
     gluPerspective( 45.0f, (GLdouble)Global::ScreenWidth / std::max((GLdouble)Global::ScreenHeight, 1.0), 0.2f, 2500.0f );
     glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
     glLoadIdentity();
+*/
+    OutText1 = OutText2 = OutText3 = OutText4 = "";
 
     if( DebugModeFlag && !Global::iTextMode ) {
         OutText1 = "FPS: ";
@@ -1664,16 +1366,7 @@ TWorld::Render_UI() {
         OutText1 += Global::iSlowMotion ? "(s)" : "(n)";
 
         OutText1 += ( Timer::GetDeltaTime() >= 0.2 ) ? "!" : " ";
-        // if (GetDeltaTime()>=0.2) //Ra: to za bardzo miota tekstem!
-        // {
-        //     OutText1+= " Slowing Down !!! ";
-        // }
     }
-    /*if (Console::Pressed(VK_F5))
-    {Global::slowmotion=true;};
-    if (Console::Pressed(VK_F6))
-    {Global::slowmotion=false;};*/
-
     if( Global::iTextMode == GLFW_KEY_F8 ) {
         Global::iViewMode = GLFW_KEY_F8;
         OutText1 = "Draw range x " + to_string( Global::fDistanceFactor, 1 ) + "; FPS: " + to_string( Timer::GetFPS(), 2 );
@@ -1683,52 +1376,6 @@ TWorld::Render_UI() {
         OutText1 += ", sectors: " + to_string( Ground.iRendered ) + "/" + to_string( Global::iSegmentsRendered );
         OutText1 += "; FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
     }
-
-    // if (Console::Pressed(VK_F7))
-    //{
-    //  OutText1=FloatToStrF(Controlled->MoverParameters->Couplers[0].CouplingFlag,ffFixed,2,0)+",
-    //  ";
-    //  OutText1+=FloatToStrF(Controlled->MoverParameters->Couplers[1].CouplingFlag,ffFixed,2,0);
-    //}
-
-    /*
-    if (Console::Pressed(VK_F5))
-    {
-    int line=2;
-    OutText1="Time: "+FloatToStrF(GlobalTime->hh,ffFixed,2,0)+":"
-    +FloatToStrF(GlobalTime->mm,ffFixed,2,0)+", ";
-    OutText1+="distance: ";
-    OutText1+="34.94";
-    OutText2="Next station: ";
-    OutText2+=FloatToStrF(Controlled->TrainParams->TimeTable[line].km,ffFixed,2,2)+" km, ";
-    OutText2+=AnsiString(Controlled->TrainParams->TimeTable[line].StationName)+", ";
-    OutText2+=AnsiString(Controlled->TrainParams->TimeTable[line].StationWare);
-    OutText3="Arrival: ";
-    if(Controlled->TrainParams->TimeTable[line].Ah==-1)
-    {
-    OutText3+="--:--";
-    }
-    else
-    {
-    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Ah,ffFixed,2,0)+":";
-    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Am,ffFixed,2,0)+" ";
-    }
-    OutText3+=" Departure: ";
-    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Dh,ffFixed,2,0)+":";
-    OutText3+=FloatToStrF(Controlled->TrainParams->TimeTable[line].Dm,ffFixed,2,0)+" ";
-    };
-    //    */
-    /*
-    if (Console::Pressed(VK_F6))
-    {
-    //GlobalTime->UpdateMTableTime(100);
-    //OutText1=FloatToStrF(SquareMagnitude(Global::pCameraPosition-Controlled->GetPosition()),ffFixed,10,0);
-    //OutText1=FloatToStrF(Global::TnijSzczegoly,ffFixed,7,0)+", ";
-    //OutText1+=FloatToStrF(dta,ffFixed,2,4)+", ";
-    OutText1+= FloatToStrF(GetFPS(),ffFixed,6,2);
-    OutText1+= FloatToStrF(Global::ABuDebug,ffFixed,6,15);
-    };
-    */
     if( Global::changeDynObj ) { // ABu zmiana pojazdu - przejście do innego
         // Ra: to nie może być tak robione, to zbytnia proteza jest
         Train->Silence(); // wyłączenie dźwięków opuszczanej kabiny
@@ -1744,27 +1391,9 @@ TWorld::Render_UI() {
                     bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
                 Train->Dynamic()->MechInside = false;
             }
-        // int CabNr;
         TDynamicObject *temp = Global::changeDynObj;
-        // CabNr=temp->MoverParameters->ActiveCab;
-        /*
-        if (Train->Dynamic()->MoverParameters->ActiveCab==-1)
-        {
-        temp=Train->Dynamic()->NextConnected; //pojazd od strony sprzęgu 1
-        CabNr=(Train->Dynamic()->NextConnectedNo==0)?1:-1;
-        }
-        else
-        {
-        temp=Train->Dynamic()->PrevConnected; //pojazd od strony sprzęgu 0
-        CabNr=(Train->Dynamic()->PrevConnectedNo==0)?1:-1;
-        }
-        */
         Train->Dynamic()->bDisplayCab = false;
         Train->Dynamic()->ABuSetModelShake( vector3( 0, 0, 0 ) );
-        /// Train->Dynamic()->MoverParameters->LimPipePress=-1;
-        /// Train->Dynamic()->MoverParameters->ActFlowSpeed=0;
-        /// Train->Dynamic()->Mechanik->CloseLog();
-        /// SafeDelete(Train->Dynamic()->Mechanik);
 
         // Train->Dynamic()->mdKabina=NULL;
         if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
@@ -1780,16 +1409,10 @@ TWorld::Render_UI() {
             {
                 Train->Dynamic()->MoverParameters->LimPipePress =
                     Controlled->MoverParameters->PipePress;
-                // Train->Dynamic()->MoverParameters->ActFlowSpeed=0;
-                // Train->Dynamic()->MoverParameters->SecuritySystem.Status=1;
-                // Train->Dynamic()->MoverParameters->ActiveCab=CabNr;
                 Train->Dynamic()
                     ->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
                 Train->Dynamic()->Controller = Humandriver;
                 Train->Dynamic()->MechInside = true;
-                // Train->Dynamic()->Mechanik=new
-                // TController(l,r,Controlled->Controller,&Controlled->MoverParameters,&Controlled->TrainParams,Aggressive);
-                // Train->InitializeCab(CabNr,Train->Dynamic()->asBaseDir+Train->Dynamic()->MoverParameters->TypeName+".mmd");
             }
         Train->InitializeCab( Train->Dynamic()->MoverParameters->CabNo,
             Train->Dynamic()->asBaseDir +
@@ -1835,11 +1458,7 @@ TWorld::Render_UI() {
                     Global::Bezogonkow( OutText2 + ": -> " + Controlled->Mechanik->NextStop(),
                     true ); // dopisanie punktu zatrzymania
             }
-        // double CtrlPos=mvControlled->MainCtrlPos;
-        // double CtrlPosNo=mvControlled->MainCtrlPosNo;
-        // OutText2="defrot="+FloatToStrF(1+0.4*(CtrlPos/CtrlPosNo),ffFixed,2,5);
         OutText3 = ""; // Pomoc w sterowaniu - [F9]";
-        // OutText3=AnsiString(Global::pCameraRotationDeg); //kąt kamery względem północy
     }
     else if( Global::iTextMode == GLFW_KEY_F12 ) { // opcje włączenia i wyłączenia logowania
         OutText1 = "[0] Debugmode " + std::string( DebugModeFlag ? "(on)" : "(off)" );
@@ -1853,10 +1472,6 @@ TWorld::Render_UI() {
             if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 0 ) { // jeśli domyślny ekran po pierwszym naciśnięciu
                 OutText3 = "";
                 OutText1 = "Vehicle name: " + tmp->MoverParameters->Name;
-                // yB       OutText1+="; d:  "+FloatToStrF(tmp->ABuGetDirection(),ffFixed,2,0);
-                // OutText1=FloatToStrF(tmp->MoverParameters->Couplers[0].CouplingFlag,ffFixed,3,2)+",
-                // ";
-                // OutText1+=FloatToStrF(tmp->MoverParameters->Couplers[1].CouplingFlag,ffFixed,3,2);
                 if( tmp->Mechanik ) // jeśli jest prowadzący
                 { // ostatnia komenda dla AI
                     OutText1 += ", command: " + tmp->Mechanik->OrderCurrent();
@@ -1865,7 +1480,6 @@ TWorld::Render_UI() {
                     OutText1 += ", owned by " + tmp->ctOwner->OwnerName();
                 if( !tmp->MoverParameters->CommandLast.empty() )
                     OutText1 += ", put: " + tmp->MoverParameters->CommandLast;
-                // OutText1+="; Cab="+AnsiString(tmp->MoverParameters->CabNo);
                 OutText2 = "Damage status: " +
                     tmp->MoverParameters->EngineDescription( 0 ); //+" Engine status: ";
                 OutText2 += "; Brake delay: ";
@@ -1879,18 +1493,11 @@ TWorld::Render_UI() {
                     OutText2 += "+Mg";
                 OutText2 += ", BTP:" +
                     to_string( tmp->MoverParameters->LoadFlag, 0 );
-                // if ((tmp->MoverParameters->EnginePowerSource.SourceType==CurrentCollector) ||
-                // (tmp->MoverParameters->TrainType==dt_EZT))
                 {
                     OutText2 += "; pant. " +
                         to_string( tmp->MoverParameters->PantPress, 2 );
                     OutText2 += ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
                 }
-
-                //          OutText2+=AnsiString(",
-                //          u:")+FloatToStrF(tmp->MoverParameters->u,ffFixed,3,3);
-                //          OutText2+=AnsiString(",
-                //          N:")+FloatToStrF(tmp->MoverParameters->Ntotal,ffFixed,4,0);
                 OutText2 += ", MED:" +
                     to_string( tmp->MoverParameters->LocalBrakePosA, 2 );
                 OutText2 += "+" +
@@ -1907,40 +1514,6 @@ TWorld::Render_UI() {
                     to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
                 OutText2 += " TC:" +
                     to_string( tmp->MoverParameters->TotalCurrent, 0 );
-                //          OutText3= AnsiString("BP:
-                //          ")+FloatToStrF(tmp->MoverParameters->BrakePress,ffFixed,5,2)+AnsiString(",
-                //          ");
-                //          OutText3+= AnsiString("PP:
-                //          ")+FloatToStrF(tmp->MoverParameters->PipePress,ffFixed,5,2)+AnsiString(",
-                //          ");
-                //          OutText3+= AnsiString("BVP:
-                //          ")+FloatToStrF(tmp->MoverParameters->Volume,ffFixed,5,3)+AnsiString(",
-                //          ");
-                //          OutText3+=
-                //          FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,3)+AnsiString(",
-                //          ");
-                //          OutText3+=
-                //          FloatToStrF(tmp->MoverParameters->Hamulec->GetCRP(),ffFixed,5,3)+AnsiString(",
-                //          ");
-                //          OutText3+=
-                //          FloatToStrF(tmp->MoverParameters->BrakeStatus,ffFixed,5,0)+AnsiString(",
-                //          ");
-                //          OutText3+= AnsiString("HP:
-                //          ")+FloatToStrF(tmp->MoverParameters->ScndPipePress,ffFixed,5,2)+AnsiString(".
-                //          ");
-                //      OutText2+=
-                //      FloatToStrF(tmp->MoverParameters->CompressorPower,ffFixed,5,0)+AnsiString(",
-                //      ");
-                // yB      if(tmp->MoverParameters->BrakeSubsystem==Knorr) OutText2+=" Knorr";
-                // yB      if(tmp->MoverParameters->BrakeSubsystem==Oerlikon) OutText2+=" Oerlikon";
-                // yB      if(tmp->MoverParameters->BrakeSubsystem==Hik) OutText2+=" Hik";
-                // yB      if(tmp->MoverParameters->BrakeSubsystem==WeLu) OutText2+=" Łestinghałs";
-                // OutText2= " GetFirst:
-                // "+AnsiString(tmp->GetFirstDynamic(1)->MoverParameters->Name)+" Damage
-                // status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
-                // OutText2+= " GetLast:
-                // "+AnsiString(tmp->GetLastDynamic(1)->MoverParameters->Name)+" Damage
-                // status="+tmp->MoverParameters->EngineDescription(0)+" Engine status: ";
                 OutText3 = ( "BP: " ) +
                     to_string( tmp->MoverParameters->BrakePress, 2 ) +
                     ( ", " );
@@ -1962,48 +1535,12 @@ TWorld::Render_UI() {
                     ( ", " );
                 OutText3 += to_string( tmp->MoverParameters->BrakeStatus, 0 ) +
                     ( ", " );
-                //      OutText3+=AnsiString("BVP:
-                //      ")+FloatToStrF(tmp->MoverParameters->BrakeVP(),ffFixed,5,2)+AnsiString(",
-                //      ");
-
-                //      OutText3+=FloatToStrF(tmp->MoverParameters->CntrlPipePress,ffFixed,5,2)+AnsiString(",
-                //      ");
-                //      OutText3+=FloatToStrF(tmp->MoverParameters->HighPipePress,ffFixed,5,2)+AnsiString(",
-                //      ");
-                //      OutText3+=FloatToStrF(tmp->MoverParameters->LowPipePress,ffFixed,5,2)+AnsiString(",
-                //      ");
-
                 if( tmp->MoverParameters->ManualBrakePos > 0 )
                     OutText3 += ( "manual brake active. " );
                 else if( tmp->MoverParameters->LocalBrakePos > 0 )
                     OutText3 += ( "local brake active. " );
                 else
                     OutText3 += ( "local brake inactive. " );
-                /*
-                //OutText3+=AnsiString("LSwTim:
-                ")+FloatToStrF(tmp->MoverParameters->LastSwitchingTime,ffFixed,5,2);
-                //OutText3+=AnsiString(" Physic:
-                ")+FloatToStrF(tmp->MoverParameters->PhysicActivation,ffFixed,5,2);
-                //OutText3+=AnsiString(" ESF:
-                ")+FloatToStrF(tmp->MoverParameters->EndSignalsFlag,ffFixed,5,0);
-                OutText3+=AnsiString(" dPAngF: ")+FloatToStrF(tmp->dPantAngleF,ffFixed,5,0);
-                OutText3+=AnsiString(" dPAngFT:
-                ")+FloatToStrF(-(tmp->PantTraction1*28.9-136.938),ffFixed,5,0);
-                if (tmp->lastcabf==1)
-                {
-                OutText3+=AnsiString(" pcabc1:
-                ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
-                OutText3+=AnsiString(" pcabc2:
-                ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
-                }
-                if (tmp->lastcabf==-1)
-                {
-                OutText3+=AnsiString(" pcabc1:
-                ")+FloatToStrF(tmp->MoverParameters->PantRearUp,ffFixed,5,0);
-                OutText3+=AnsiString(" pcabc2:
-                ")+FloatToStrF(tmp->MoverParameters->PantFrontUp,ffFixed,5,0);
-                }
-                */
                 OutText4 = "";
                 if( tmp->Mechanik ) { // o ile jest ktoś w środku
                     // OutText4=tmp->Mechanik->StopReasonText();
@@ -2052,6 +1589,7 @@ TWorld::Render_UI() {
                 }
             } // koniec treści podstawowego ekranu FK_V2
             else { // ekran drugi, czyli tabelka skanowania AI
+/*
                 if( tmp->Mechanik ) //żeby była tabelka, musi być AI
                 { // tabelka jest na użytek testujących scenerie, więc nie musi być "ładna"
                     glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy zielony. GF: jednak biały
@@ -2099,6 +1637,7 @@ TWorld::Render_UI() {
                     glRasterPos2f( -0.25f, 0.19f - 0.01f * i );
                     glPrint( Global::Bezogonkow( OutText4 ).c_str() );
                 }
+*/
             } // koniec ekanu skanowania
         } // koniec obsługi, gdy mamy wskaźnik do pojazdu
         else { // wyświetlenie współrzędnych w scenerii oraz kąta kamery, gdy nie mamy wskaźnika
@@ -2115,10 +1654,6 @@ TWorld::Render_UI() {
             OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
             if( Global::FakeLight ) { OutText2 += "(*)"; }
         }
-        // OutText3= AnsiString("  Online documentation (PL, ENG, DE, soon CZ):
-        // http://www.eu07.pl");
-        // OutText3="enrot="+FloatToStrF(Controlled->MoverParameters->enrot,ffFixed,6,2);
-        // OutText3="; n="+FloatToStrF(Controlled->MoverParameters->n,ffFixed,6,2);
     } // koniec treści podstawowego ekranu FK_V2
     else if( Global::iTextMode == GLFW_KEY_F5 ) { // przesiadka do innego pojazdu
         if( FreeFlyModeFlag ) // jeśli tryb latania
@@ -2150,32 +1685,6 @@ TWorld::Render_UI() {
                 }
             Global::iTextMode = 0; // tryb neutralny
         }
-        /*
-
-        OutText1=OutText2=OutText3=OutText4="";
-        AnsiString flag[10]={"vmax", "tory", "smfr", "pjzd", "mnwr", "pstk", "brak", "brak",
-        "brak", "brak"};
-        if(tmp)
-        if(tmp->Mechanik)
-        {
-        for(int i=0;i<15;i++)
-        {
-        int tmppar=floor(tmp->Mechanik->ProximityTable[i].Vel);
-        OutText2+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):"
-        "):"")+IntToStr(tmppar)+" ";
-        tmppar=floor(tmp->Mechanik->ProximityTable[i].Dist);
-        OutText3+=(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"  "):"
-        "):"")+IntToStr(tmppar)+" ";
-        OutText1+=flag[tmp->Mechanik->ProximityTable[i].Flag]+" ";
-        }
-        for(int i=0;i<6;i++)
-        {
-        int tmppar=floor(tmp->Mechanik->ReducedTable[i]);
-        OutText4+=flag[i]+":"+(tmppar<1000?(tmppar<100?((tmppar<10)&&(tmppar>=0)?"   ":"
-        "):" "):"")+IntToStr(tmppar)+" ";
-        }
-        }
-        */
     }
     else if( Global::iTextMode == GLFW_KEY_F10 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
         // Global::iViewMode=VK_F10;
@@ -2246,7 +1755,9 @@ TWorld::Render_UI() {
                     OutText4 = to_string( Controlled->MoverParameters->eimc[ i ], 3 );
                 else
                     OutText4 = to_string( Controlled->MoverParameters->eimc[ i ], 3 );
+/*
                 glPrint( OutText4.c_str() );
+*/
             }
             for( int i = 0; i <= 20; i++ ) {
                 glRasterPos2f( -0.2f, 0.16f - 0.01f * i );
@@ -2254,51 +1765,37 @@ TWorld::Render_UI() {
                     OutText4 = to_string( Controlled->MoverParameters->eimv[ i ], 3 );
                 else
                     OutText4 = to_string( Controlled->MoverParameters->eimv[ i ], 3 );
+/*
                 glPrint( OutText4.c_str() );
+*/
             }
             for( int i = 0; i <= 10; i++ ) {
                 glRasterPos2f( -0.15f, 0.16f - 0.01f * i );
                 OutText4 = to_string( Train->fPress[ i ][ 0 ], 3 );
+/*
                 glPrint( OutText4.c_str() );
+*/
             }
             for( int i = 0; i <= 8; i++ ) {
                 glRasterPos2f( -0.15f, 0.04f - 0.01f * i );
                 OutText4 = to_string( Controlled->MED[ 0 ][ i ], 3 );
+/*
                 glPrint( OutText4.c_str() );
+*/
             }
             for( int i = 0; i <= 8; i++ ) {
                 for( int j = 0; j <= 9; j++ ) {
                     glRasterPos2f( 0.05f + 0.03f * i, 0.16f - 0.01f * j );
                     OutText4 = to_string( Train->fEIMParams[ i ][ j ], 2 );
+/*
                     glPrint( OutText4.c_str() );
+*/
                 }
             }
             OutText4 = "";
             // glTranslatef(0.0f,0.0f,+0.50f);
             glColor3f( 1.0f, 0.0f, 0.0f ); // a, damy czerwonym
         }
-
-        // ABu: testy sprzegow-> (potem przeniesc te zmienne z public do protected!)
-        // OutText3+=AnsiString("; EnginePwr=")+FloatToStrF(mvControlled->EnginePower,ffFixed,1,5);
-        // OutText3+=AnsiString("; nn=")+FloatToStrF(Controlled->NextConnectedNo,ffFixed,1,0);
-        // OutText3+=AnsiString("; PR=")+FloatToStrF(Controlled->dPantAngleR,ffFixed,3,0);
-        // OutText3+=AnsiString("; PF=")+FloatToStrF(Controlled->dPantAngleF,ffFixed,3,0);
-        // if(Controlled->bDisplayCab==true)
-        // OutText3+=AnsiString("; Wysw. kab");//+Controlled->mdKabina->GetSMRoot()->Name;
-        // else
-        // OutText3+=AnsiString("; test:")+AnsiString(Controlled->MoverParameters->TrainType[1]);
-
-        // OutText3+=FloatToStrF(Train->Dynamic()->MoverParameters->EndSignalsFlag,ffFixed,3,0);;
-
-        // OutText3+=FloatToStrF(Train->Dynamic()->MoverParameters->EndSignalsFlag&byte(((((1+Train->Dynamic()->MoverParameters->CabNo)/2)*30)+2)),ffFixed,3,0);;
-
-        // OutText3+=AnsiString(";
-        // Ftmax=")+FloatToStrF(Controlled->MoverParameters->Ftmax,ffFixed,3,0);
-        // OutText3+=AnsiString(";
-        // FTotal=")+FloatToStrF(Controlled->MoverParameters->FTotal/1000.0f,ffFixed,3,2);
-        // OutText3+=AnsiString(";
-        // FTrain=")+FloatToStrF(Controlled->MoverParameters->FTrain/1000.0f,ffFixed,3,2);
-        // Controlled->mdModel->GetSMRoot()->SetTranslate(vector3(0,1,0));
 
         // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
         if( mvControlled->ConvOvldFlag )
@@ -2335,10 +1832,6 @@ TWorld::Render_UI() {
                     break;
                 }
         }
-        // OutText3+=AnsiString("; dpLocal
-        // ")+FloatToStrF(Controlled->MoverParameters->dpLocalValve,ffFixed,10,8);
-        // OutText3+=AnsiString("; dpMain
-        // ")+FloatToStrF(Controlled->MoverParameters->dpMainValve,ffFixed,10,8);
         // McZapkie: predkosc szlakowa
         if( Controlled->MoverParameters->RunningTrack.Velmax == -1 ) {
             OutText3 += ( " Vtrack=Vmax" );
@@ -2393,6 +1886,7 @@ TWorld::Render_UI() {
             Ground.DynamicNearest( Camera.Pos ) :
             Controlled; // w trybie latania lokalizujemy wg mapy
         Mtable::TTrainParameters *tt = NULL;
+/*
         if( tmp )
             if( tmp->Mechanik ) {
                 tt = tmp->Mechanik->Timetable();
@@ -2436,12 +1930,7 @@ TWorld::Render_UI() {
                             glColor3f( 0.0f, 1.0f, 0.0f ); // zielone
                             glRasterPos2f(
                                 -0.25f,
-                                0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) ); // dopiero
-                            // ustawienie
-                            // pozycji
-                            // ustala
-                            // kolor,
-                            // dziwne...
+                                0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
                             glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
                             glColor3f( 1.0f, 1.0f, 1.0f ); // a reszta białym
                         }
@@ -2453,8 +1942,9 @@ TWorld::Render_UI() {
                     }
                 }
             }
-        OutText1 = OutText2 = OutText3 = OutText4 = "";
+*/
     }
+/*
     else if( OutText1 != "" ) { // ABu: i od razu czyszczenie tego, co bylo napisane
         // glTranslatef(0.0f,0.0f,-0.50f);
         glRasterPos2f( -0.25f, 0.20f );
@@ -2476,20 +1966,18 @@ TWorld::Render_UI() {
             }
         }
     }
-    // if ((Global::iTextMode!=VK_F3))
-    { // stenogramy dźwięków (ukryć, gdy tabelka skanowania lub rozkład?)
-/*
-        glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
-        for( int i = 0; i < 5; ++i ) { // kilka linijek
-            if( Global::asTranscript[ i ].empty() )
-                break; // dalej nie trzeba
-            else {
-                glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
-                glPrint( Global::Bezogonkow( Global::asTranscript[ i ] ).c_str() );
-            }
-        }
 */
-        int i = 0;
+
+    // update the ui header texts
+    auto &headerdata = UIHeader->text_lines;
+    headerdata[ 0 ].data = OutText1;
+    headerdata[ 1 ].data = OutText2;
+    headerdata[ 2 ].data = OutText3;
+    headerdata[ 3 ].data = OutText4;
+
+    { // stenogramy dźwięków (ukryć, gdy tabelka skanowania lub rozkład?)
+        auto &transcripts = UITranscripts->text_lines;
+        transcripts.clear();
         for( auto const &transcript : Global::tranTexts.aLines ) {
 
             if( Global::fTimeAngleDeg >= transcript.fShow ) {
@@ -2498,20 +1986,14 @@ TWorld::Render_UI() {
                 while( true == parser.getTokens(1, false, "|") ) {
 
                     std::string transcriptline; parser >> transcriptline;
-                    ::glColor3f( 1.0f, 1.0f, 0.0f ); //żółte
-                    ::glRasterPos2f( -0.20f, -0.05f - 0.01f * i );
-                    glPrint( transcriptline.c_str() );
-                    ++i;
+                    transcripts.emplace_back( transcriptline, float4( 1.0f, 1.0f, 0.0f, 1.0f ) );
                 }
             }
         }
     }
-    // if (Global::iViewMode!=Global::iTextMode)
-    //{//Ra: taka maksymalna prowizorka na razie
-    // WriteLog("Pressed function key F"+AnsiString(Global::iViewMode-111));
-    // Global::iTextMode=Global::iViewMode;
-    //}
+/*
     glEnable( GL_LIGHTING );
+*/
 }
 
 //---------------------------------------------------------------------------

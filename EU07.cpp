@@ -30,6 +30,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "usefull.h"
 #include "timer.h"
 #include "resource.h"
+#include "uilayer.h"
 
 #pragma comment( lib, "glfw3dll.lib" )
 #pragma comment( lib, "glew32.lib" )
@@ -333,12 +334,16 @@ int main(int argc, char *argv[])
         ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
 #endif
 
-    GfxRenderer.Init();
+    if( ( false == GfxRenderer.Init( window ) )
+     || ( false == UILayer.init( window ) ) ) {
+
+        return -1;
+    }
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
     if (!World.Init(window))
 	{
-        std::cout << "failed to init TWorld" << std::endl;
+        ErrorLog( "Failed to init TWorld" );
         return -1;
     }
 
@@ -362,7 +367,6 @@ int main(int argc, char *argv[])
             && World.Update()
             && GfxRenderer.Render())
         {
-			glfwSwapBuffers(window);
 			glfwPollEvents();
         }
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)

@@ -36,6 +36,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "Names.h"
+#include "uilayer.h"
 
 #define _PROBLEND 1
 //---------------------------------------------------------------------------
@@ -703,7 +704,6 @@ void TGroundNode::RenderAlphaDL()
     {
         glEnable(GL_BLEND);
         glAlphaFunc(GL_GREATER, 0.02f);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     };
 #endif
 }
@@ -2553,66 +2553,17 @@ void TGround::FirstInit()
         for (j = 0; j < iNumRects; ++j)
             Rects[i][j].Optimize(); // optymalizacja obiektów w sektorach
     WriteLog("InitNormals OK");
-    WriteLog("InitTracks");
     InitTracks(); //łączenie odcinków ze sobą i przyklejanie eventów
     WriteLog("InitTracks OK");
-    WriteLog("InitTraction");
     InitTraction(); //łączenie drutów ze sobą
     WriteLog("InitTraction OK");
-    WriteLog("InitEvents");
     InitEvents();
     WriteLog("InitEvents OK");
-    WriteLog("InitLaunchers");
     InitLaunchers();
     WriteLog("InitLaunchers OK");
-    WriteLog("InitGlobalTime");
     // ABu 160205: juz nie TODO :)
     Mtable::GlobalTime = std::make_shared<TMTableTime>( hh, mm, srh, srm, ssh, ssm ); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
     WriteLog("InitGlobalTime OK");
-    // jeszcze ustawienie pogody, gdyby nie było w scenerii wpisów
-    glClearColor(Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2],
-                 0.0); // Background Color
-    if (Global::fFogEnd > 0)
-    {
-        glFogi(GL_FOG_MODE, GL_LINEAR);
-        glFogfv(GL_FOG_COLOR, Global::FogColor); // set fog color
-        glFogf(GL_FOG_START, Global::fFogStart); // fog start depth
-        glFogf(GL_FOG_END, Global::fFogEnd); // fog end depth
-        glEnable(GL_FOG);
-    }
-    else
-        glDisable(GL_FOG);
-    glDisable(GL_LIGHTING);
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    // TODO, TBD: re-implement this
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos); // daylight position
-    glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight); // kolor wszechobceny
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight); // kolor padający
-    glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight); // kolor odbity
-    // musi być tutaj, bo wcześniej nie mieliśmy wartości światła
-#endif
-/*
-    if (Global::fMoveLight >= 0.0) // albo tak, albo niech ustala minimum ciemności w nocy
-    {
-*/
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO, TBD: re-implement this
-        Global::fLuminance = // obliczenie luminacji "światła w ciemności"
-            +0.150 * Global::ambientDayLight[0] // R
-            + 0.295 * Global::ambientDayLight[1] // G
-            + 0.055 * Global::ambientDayLight[2]; // B
-        if (Global::fLuminance > 0.1) // jeśli miało by być za jasno
-            for (int i = 0; i < 3; i++)
-                Global::ambientDayLight[i] *=
-                    0.1 / Global::fLuminance; // ograniczenie jasności w nocy
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
-#endif
-/*
-    }
-    else if (Global::bDoubleAmbient) // Ra: wcześniej było ambient dawane na obydwa światła
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
-*/
-    glEnable(GL_LIGHTING);
     WriteLog("FirstInit is done");
 };
 
@@ -2628,6 +2579,7 @@ bool TGround::Init(std::string File)
     // TFileStream *fs;
     // int size;
     std::string subpath = Global::asCurrentSceneryPath; //   "scenery/";
+    auto const tokencount = cParser::countTokens( File, subpath );
     cParser parser(File, cParser::buffer_FILE, subpath, Global::bLoadTraction);
     std::string token;
 
@@ -2663,17 +2615,17 @@ bool TGround::Init(std::string File)
     token = "";
     parser.getTokens();
     parser >> token;
-    int refresh = 0;
+    std::size_t processed = 0;
 
     while (token != "") //(!Parser->EndOfFile)
     {
-        if (refresh == 50)
-        { // SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :( a u niektórych miga
-            refresh = 0;
-            Global::DoEvents();
+        ++processed;
+        if( processed % 50 == 0 )
+        {
+            UILayer.set_progress( parser.getProgress(), parser.getFullProgress() );
+            GfxRenderer.Render();
+            glfwPollEvents();
         }
-        else
-            ++refresh;
         str = token;
         if (str == "node")
         {

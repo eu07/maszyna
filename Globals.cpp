@@ -41,10 +41,6 @@ int Global::iSlowMotion =
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
 double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
-double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecności rozszerzeń
-/*
-bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
-*/
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
 float Global::SunAngle = 0.0f;
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
@@ -805,12 +801,6 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             Parser >> Global::asLang;
         }
-        else if (token == "opengl")
-        {
-            // deklarowana wersja OpenGL, żeby powstrzymać błędy
-            Parser.getTokens(1, false);
-            Parser >> Global::fOpenGL;
-        }
         else if (token == "pyscreenrendererpriority")
         {
             // priority of python screen renderer
@@ -929,8 +919,6 @@ void Global::ConfigParse(cParser &Parser)
         bEnableTraction = false; // false = pantograf się nie połamie
         bLiveTraction = false; // false = pantografy zawsze zbierają 95% MaxVoltage
     }
-    // if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno światło ruchome
-    // if (fOpenGL<1.3) iMultisampling=0; //można by z góry wyłączyć, ale nie mamy jeszcze fOpenGL
     if (iMultisampling)
     { // antyaliasing całoekranowy wyłącza rozmywanie drutów
         bSmoothTraction = false;

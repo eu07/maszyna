@@ -12,6 +12,11 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "world.h"
 #include "dynobj.h"
+#include "uilayer.h"
+#include "logs.h"
+
+opengl_renderer GfxRenderer;
+extern TWorld World;
 
 // returns true if specified object is within camera frustum, false otherwise
 bool
@@ -33,11 +38,67 @@ opengl_camera::visible( TDynamicObject const *Dynamic ) const {
     return ( m_frustum.sphere_inside( Dynamic->GetPosition(), radius ) > 0.0f );
 }
 
-opengl_renderer GfxRenderer;
-extern TWorld World;
+bool
+opengl_renderer::Init( GLFWwindow *Window ) {
 
-void
-opengl_renderer::Init() {
+    if( false == Init_caps() ) {
+
+        return false;
+    }
+
+    m_window = Window;
+
+    glClearDepth( 1.0f );
+    glClearColor( 51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f ); // initial background Color
+
+    glPolygonMode( GL_FRONT, GL_FILL );
+    glFrontFace( GL_CCW ); // Counter clock-wise polygons face out
+    glEnable( GL_CULL_FACE ); // Cull back-facing triangles
+    glShadeModel( GL_SMOOTH ); // Enable Smooth Shading
+
+    glEnable( GL_DEPTH_TEST );
+    glAlphaFunc( GL_GREATER, 0.04f );
+    glEnable( GL_ALPHA_TEST );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    glEnable( GL_BLEND );
+    glEnable( GL_TEXTURE_2D ); // Enable Texture Mapping
+
+    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST ); // Really Nice Perspective Calculations
+    glHint( GL_POLYGON_SMOOTH_HINT, GL_NICEST );
+    glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
+    glLineWidth( 1.0f );
+    glPointSize( 3.0f );
+    glEnable( GL_POINT_SMOOTH );
+
+    glEnable( GL_COLOR_MATERIAL );
+    glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
+
+    // setup lighting
+    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+    glEnable( GL_LIGHTING );
+    glEnable( GL_LIGHT0 );
+
+    Global::DayLight.id = opengl_renderer::sunlight;
+    // directional light
+    // TODO, TBD: test omni-directional variant
+    Global::DayLight.position[ 3 ] = 1.0f;
+    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0f );
+    // rgb value for 5780 kelvin
+    Global::DayLight.diffuse[ 0 ] = 255.0f / 255.0f;
+    Global::DayLight.diffuse[ 1 ] = 242.0f / 255.0f;
+    Global::DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
+
+    // setup fog
+    if( Global::fFogEnd > 0 ) {
+        // fog setup
+        ::glFogi( GL_FOG_MODE, GL_LINEAR );
+        ::glFogfv( GL_FOG_COLOR, Global::FogColor );
+        ::glFogf( GL_FOG_START, Global::fFogStart );
+        ::glFogf( GL_FOG_END, Global::fFogEnd );
+        ::glEnable( GL_FOG );
+    }
+    else { ::glDisable( GL_FOG ); }
 
     // create dynamic light pool
     for( int idx = 0; idx < Global::DynamicLightCount; ++idx ) {
@@ -53,6 +114,8 @@ opengl_renderer::Init() {
 
         m_lights.emplace_back( light );
     }
+
+    return true;
 }
 
 bool
@@ -60,7 +123,7 @@ opengl_renderer::Render() {
 
     auto timestart = std::chrono::steady_clock::now();
 
-    ::glColor3ub( 255, 255, 255 );
+//    ::glColor3ub( 255, 255, 255 );
     ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     ::glDepthFunc( GL_LEQUAL );
 
@@ -75,22 +138,29 @@ opengl_renderer::Render() {
 
     ::glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
     ::glLoadIdentity();
-    World.Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
-    m_camera.update_frustum();
 
-    if( !Global::bWireFrame ) {
-        // bez nieba w trybie rysowania linii
-        World.Environment.render();
+    if( World.InitPerformed() ) {
+
+        World.Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
+        m_camera.update_frustum();
+
+        if( !Global::bWireFrame ) {
+            // bez nieba w trybie rysowania linii
+            World.Environment.render();
+        }
+
+        World.Ground.Render( World.Camera.Pos );
+
+        World.Render_Cab();
+        World.Render_UI();
+
+        // accumulate last 20 frames worth of render time
+        m_drawtime = 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count();
     }
 
-    World.Ground.Render( World.Camera.Pos );
+    UILayer.render();
 
-    World.Render_Cab();
-    World.Render_UI();
-
-    // accumulate last 20 frames worth of render time
-    m_drawtime = 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count();
-
+    glfwSwapBuffers( m_window );
     return true; // for now always succeed
 }
 
@@ -452,6 +522,35 @@ opengl_renderer::Disable_Lights() {
     for( size_t idx = 0; idx < m_lights.size() + 1; ++idx ) {
 
         ::glDisable( GL_LIGHT0 + (int)idx );
+    }
+}
+
+bool
+opengl_renderer::Init_caps() {
+
+    std::string oglversion = ( (char *)glGetString( GL_VERSION ) );
+
+    WriteLog(
+        "Gfx Renderer: " + std::string( (char *)glGetString( GL_RENDERER ) )
+        + " Vendor: " + std::string( (char *)glGetString( GL_VENDOR ) )
+        + " OpenGL Version: " + oglversion );
+
+    if( !GLEW_VERSION_1_4 ) {
+        ErrorLog( "Requires openGL >= 1.4" );
+        return false;
+    }
+
+    WriteLog( "Supported extensions:" +  std::string((char *)glGetString( GL_EXTENSIONS )) );
+
+    if( Global::iMultisampling )
+        WriteLog( "Using multisampling x" + std::to_string( 1 << Global::iMultisampling ) );
+    { // ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
+        GLint i;
+        glGetIntegerv( GL_MAX_TEXTURE_SIZE, &i );
+        if( i < Global::iMaxTextureSize )
+            Global::iMaxTextureSize = i;
+        WriteLog( "Texture sizes capped at " + std::to_string( Global::iMaxTextureSize ) + " pixels" );
+
     }
 }
 //---------------------------------------------------------------------------

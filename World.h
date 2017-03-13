@@ -78,8 +78,6 @@ class TWorld
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
     bool Paused{ true };
-    GLuint base; // numer DL dla znaków w napisach
-    texture_manager::size_type light; // numer tekstury dla smugi
     TEvent *KeyEvents[10]; // eventy wyzwalane z klawiaury
     TMoverParameters *mvControlled; // wskaźnik na człon silnikowy, do wyświetlania jego parametrów
     double fTime50Hz; // bufor czasu dla komunikacji z PoKeys

@@ -257,10 +257,6 @@ class Global
     static bool bUseVBO; // czy jest VBO w karcie graficznej
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
-    static double fOpenGL; // wersja OpenGL - przyda się
-/*
-    static bool bOpenGL_1_5; // czy są dostępne funkcje OpenGL 1.5
-*/
     static double fLuminance; // jasność światła do automatycznego zapalania
     static float SunAngle; // angle of the sun relative to horizon
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji

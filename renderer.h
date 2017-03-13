@@ -96,8 +96,8 @@ public:
 // types
 
 // methods
-    void
-        Init();
+    bool
+        Init( GLFWwindow *Window );
     // main draw call. returns false on error
     bool
         Render();
@@ -155,6 +155,7 @@ private:
     typedef std::vector<opengl_light> opengllight_array;
 
 // methods
+    bool Init_caps();
     
 // members
     rendermode renderpass{ rendermode::color };
@@ -164,6 +165,7 @@ private:
     float m_drawrange{ 2500.0f }; // current drawing range
     float m_drawtime{ 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
     double m_updateaccumulator{ 0.0 };
+    GLFWwindow *m_window{ nullptr };
 };
 
 extern opengl_renderer GfxRenderer;
