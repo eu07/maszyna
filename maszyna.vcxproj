@@ -51,7 +51,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -70,7 +70,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>

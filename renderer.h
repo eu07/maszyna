@@ -78,7 +78,7 @@ public:
 // methods:
     inline
     void
-        update_frustum() { m_frustum.calculate(); }
+        update_frustum(glm::mat4 &Projection, glm::mat4 &Modelview) { m_frustum.calculate(Projection, Modelview); }
     bool
         visible( bounding_area const &Area ) const;
     bool
@@ -163,7 +163,7 @@ private:
     texture_manager m_textures;
     opengl_camera m_camera;
     float m_drawrange{ 2500.0f }; // current drawing range
-    float m_drawtime{ 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
+    float m_drawtime{ 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
     double m_updateaccumulator{ 0.0 };
     GLFWwindow *m_window{ nullptr };
 };

@@ -270,7 +270,6 @@ class Global
     static int iCameraLast;
     static std::string asRelease; // numer
     static std::string asVersion; // z opisem
-    static int iViewMode; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty, 4-obwody
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego

@@ -55,7 +55,6 @@ int Global::iCameraLast = -1;
 std::string Global::asRelease = "16.0.1172.482";
 std::string Global::asVersion =
 "Compilation 2017-01-10, release " + Global::asRelease + "."; // tutaj, bo wysyłany
-int Global::iViewMode = 0; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
                                0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego

@@ -7,8 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef CameraH
-#define CameraH
+#pragma once
 
 #include "dumb3d.h"
 #include "dynobj.h"
@@ -51,10 +50,10 @@ class TCamera
     // vector3 inline GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
 
     bool SetMatrix();
-    void SetCabMatrix(vector3 &p);
+    bool SetMatrix(glm::mat4 &Matrix);
+    void SetCabMatrix( vector3 &p );
     void RaLook();
     void Stop();
     // bool GetMatrix(matrix4x4 &Matrix);
     vector3 PtNext, PtPrev;
 };
-#endif

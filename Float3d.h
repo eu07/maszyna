@@ -216,7 +216,7 @@ public:
     {
         return &e[i << 2];
     }
-    const float * readArray(void)
+    const float * readArray(void) const
     {
         return e;
     }

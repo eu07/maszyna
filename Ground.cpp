@@ -2620,7 +2620,7 @@ bool TGround::Init(std::string File)
     while (token != "") //(!Parser->EndOfFile)
     {
         ++processed;
-        if( processed % 50 == 0 )
+        if( processed % 25 == 0 )
         {
             UILayer.set_progress( parser.getProgress(), parser.getFullProgress() );
             GfxRenderer.Render();

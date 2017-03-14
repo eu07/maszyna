@@ -8,6 +8,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
+
 #include "renderer.h"
 #include "globals.h"
 #include "world.h"
@@ -123,26 +124,31 @@ opengl_renderer::Render() {
 
     auto timestart = std::chrono::steady_clock::now();
 
-//    ::glColor3ub( 255, 255, 255 );
     ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     ::glDepthFunc( GL_LEQUAL );
 
     ::glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
-    ::glLoadIdentity(); // reset the Projection Matrix
-    // calculate the aspect ratio of the window
-    ::gluPerspective(
-        Global::FieldOfView / Global::ZoomFactor,
-        (GLdouble)Global::ScreenWidth / std::max( (GLdouble)Global::ScreenHeight, 1.0 ),
+    glm::mat4 projection = glm::perspective(
+        Global::FieldOfView / Global::ZoomFactor * 0.0174532925f,
+        (float)Global::ScreenWidth / std::max( (float)Global::ScreenHeight, 1.0f ),
         0.1f * Global::ZoomFactor,
         m_drawrange * Global::fDistanceFactor );
+    ::glLoadMatrixf( &projection[0][0] );
 
     ::glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
+    glm::mat4 modelview( 1.0f );
     ::glLoadIdentity();
 
     if( World.InitPerformed() ) {
 
+        World.Camera.SetMatrix( modelview );
         World.Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
-        m_camera.update_frustum();
+/*
+        // NOTE: something in the cab mode render interferes with straightforward opengl matrix setup here
+        // until it's sorted out, we're relying on direct matrix configuration through setmatrix() variant
+        ::glLoadMatrixf( &modelview[ 0 ][ 0 ] );
+*/
+        m_camera.update_frustum( projection, modelview );
 
         if( !Global::bWireFrame ) {
             // bez nieba w trybie rysowania linii
@@ -152,10 +158,9 @@ opengl_renderer::Render() {
         World.Ground.Render( World.Camera.Pos );
 
         World.Render_Cab();
-        World.Render_UI();
 
-        // accumulate last 20 frames worth of render time
-        m_drawtime = 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count();
+        // accumulate last 20 frames worth of render time (cap at 1000 fps to prevent calculations going awry)
+        m_drawtime = std::max( 20.0f, 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count());
     }
 
     UILayer.render();
@@ -420,7 +425,7 @@ opengl_renderer::Update ( double const Deltatime ) {
     m_updateaccumulator = 0.0;
 
     // adjust draw ranges etc, based on recent performance
-    auto const framerate = 1000.0f / (m_drawtime * 0.05f);
+    auto const framerate = 1000.0f / (m_drawtime / 20.0f);
 
     // NOTE: until we have quadtree in place we have to rely on the legacy rendering
     // once this is resolved we should be able to simply adjust draw range
@@ -552,5 +557,7 @@ opengl_renderer::Init_caps() {
         WriteLog( "Texture sizes capped at " + std::to_string( Global::iMaxTextureSize ) + " pixels" );
 
     }
+
+    return true;
 }
 //---------------------------------------------------------------------------

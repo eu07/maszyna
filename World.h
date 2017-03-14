@@ -69,9 +69,9 @@ class TWorld
     std::string OutText4;
     void Update_Environment();
     void Update_Camera( const double Deltatime );
+    void Update_UI();
     void ResourceSweep();
     void Render_Cab();
-    void Render_UI();
     TCamera Camera;
     TGround Ground;
     world_environment Environment;

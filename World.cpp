@@ -36,7 +36,7 @@ http://mozilla.org/MPL/2.0/.
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
 
 std::shared_ptr<ui_panel> UIHeader = std::make_shared<ui_panel>( 20, 20 ); // header ui panel
-std::shared_ptr<ui_panel> UITable = std::make_shared<ui_panel>( 100, 50 ); // schedule or scan table
+std::shared_ptr<ui_panel> UITable = std::make_shared<ui_panel>( 20, 100 ); // schedule or scan table
 std::shared_ptr<ui_panel> UITranscripts = std::make_shared<ui_panel>( 85, 600 ); // voice transcripts
 
 extern "C"
@@ -166,6 +166,9 @@ bool TWorld::Init( GLFWwindow *w ) {
     initpanel->text_lines.emplace_back( "Loading scenery / Wczytywanie scenerii:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
     initpanel->text_lines.emplace_back( Global::SceneryFile.substr(0, 40), float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
     UILayer.push_back( initpanel );
+    UILayer.set_progress(0.01);
+
+    GfxRenderer.Render();
 
     WriteLog( "Ground init" );
     Ground.Init(Global::SceneryFile);
@@ -245,10 +248,10 @@ bool TWorld::Init( GLFWwindow *w ) {
     Timer::ResetTimers();
 
     // make 4 empty lines for the ui header, to cut down on work down the road
-    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
-    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
-    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
-    UIHeader->text_lines.emplace_back( "", float4( 100.0 / 255.0f, 230.0f / 255.0f, 230.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
     // bind the panels with ui object. maybe not the best place for this but, eh
     UILayer.push_back( UIHeader );
     UILayer.push_back( UITable );
@@ -641,9 +644,6 @@ void TWorld::DistantView( bool const Near )
 
 void TWorld::FollowView(bool wycisz)
 { // ustawienie śledzenia pojazdu
-    // ABu 180404 powrot mechanika na siedzenie albo w okolicę pojazdu
-    // if (Console::Pressed(VK_F4)) Global::iViewMode=VK_F4;
-    // Ra: na zewnątrz wychodzimy w Train.cpp
     Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
     if (Controlled) // jest pojazd do prowadzenia?
     {
@@ -831,6 +831,8 @@ bool TWorld::Update()
     // variable step render time routines
     Update_Camera( dt ); // TODO: move the fixed step cab camera updates to fixed step secondary routines section
 
+    Update_UI();
+
     GfxRenderer.Update( dt );
     ResourceSweep();
 
@@ -882,12 +884,6 @@ TWorld::Update_Camera( double const Deltatime ) {
         Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
     }
 
-    /*
-    else if( Global::iTextMode == -1 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-    WriteLog( "Number of textures used: " + std::to_string( Global::iTextures ) );
-    return false;
-    }
-    */
     Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
 /*
     if( Camera.Type == tp_Follow ) {
@@ -1348,17 +1344,278 @@ TWorld::Render_Cab() {
 }
 
 void
-TWorld::Render_UI() {
-/*
-    // set the UI mode projection. TODO: rework it all into somethinig more elegant... eventually
-    glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
-    glLoadIdentity(); // reset the Projection Matrix
-    // calculate the aspect ratio of the window
-    gluPerspective( 45.0f, (GLdouble)Global::ScreenWidth / std::max((GLdouble)Global::ScreenHeight, 1.0), 0.2f, 2500.0f );
-    glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
-    glLoadIdentity();
-*/
+TWorld::Update_UI() {
+
     OutText1 = OutText2 = OutText3 = OutText4 = "";
+    UITable->text_lines.clear();
+
+    switch( Global::iTextMode ) {
+
+        case( GLFW_KEY_F1 ) : {
+            // f1, default mode: current time and timetable excerpt
+            OutText1 =
+                "Time: "
+                + to_string( (int)GlobalTime->hh ) + ":"
+                + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
+                + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
+            if( Global::iPause ) {
+                OutText1 += " (paused)";
+            }
+            if( Controlled
+             && Controlled->Mechanik ) {
+                    OutText2 = Controlled->Mechanik->Relation();
+                    if( !OutText2.empty() ) {
+                        // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
+                        OutText3 = " -> " + Global::Bezogonkow( Controlled->Mechanik->NextStop(), true );
+                    }
+                }
+            break;
+        }
+
+        case( GLFW_KEY_F2 ) : {
+
+            TDynamicObject *tmp =
+                ( FreeFlyModeFlag ?
+                Ground.DynamicNearest( Camera.Pos ) :
+                Controlled ); // w trybie latania lokalizujemy wg mapy
+
+            if( tmp == nullptr ) { break; }
+
+            // jeśli domyślny ekran po pierwszym naciśnięciu
+            OutText1 = "Vehicle name: " + tmp->MoverParameters->Name;
+
+            if( (tmp->Mechanik == nullptr) && (tmp->ctOwner) ) {
+                // for cars other than leading unit indicate the leader
+                OutText1 += ", owned by " + tmp->ctOwner->OwnerName();
+            }
+            // informacja o sprzęgach
+            OutText1 +=
+                " C0:" +
+                ( tmp->PrevConnected ?
+                    tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
+                    "none" );
+            OutText1 +=
+                " C1:" +
+                ( tmp->NextConnected ?
+                    tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
+                    "none" );
+
+            OutText2 = "Damage status: " + tmp->MoverParameters->EngineDescription( 0 );
+
+            OutText2 += "; Brake delay: ";
+            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
+                OutText2 += "G";
+            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
+                OutText2 += "P";
+            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
+                OutText2 += "R";
+            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
+                OutText2 += "+Mg";
+
+            OutText2 += ", BTP:" + to_string( tmp->MoverParameters->LoadFlag, 0 );
+            {
+                OutText2 +=
+                    "; pant. "
+                    + to_string( tmp->MoverParameters->PantPress, 2 )
+                    + ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
+            }
+
+            OutText2 +=
+                ", MED:"
+                + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
+                + "+"
+                + to_string( tmp->MoverParameters->AnPos, 2 );
+
+            OutText2 +=
+                ", Ft:"
+                + to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
+
+            OutText2 +=
+                "; TC:"
+                + to_string( tmp->MoverParameters->TotalCurrent, 0 );
+            OutText2 +=
+                ", HV0:"
+                + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 )
+                + "@"
+                + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
+            OutText2 +=
+                ", HV1:"
+                + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 )
+                + "@"
+                + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
+
+            OutText3 =
+                "BP: "
+                + to_string( tmp->MoverParameters->BrakePress, 2 )
+                + ", "
+                + to_string( tmp->MoverParameters->BrakeStatus, 0 )
+                + ", PP: "
+                + to_string( tmp->MoverParameters->PipePress, 2 )
+                + "/"
+                + to_string( tmp->MoverParameters->ScndPipePress, 2 )
+                + "/"
+                + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
+                + ", BVP: "
+                + to_string( tmp->MoverParameters->Volume, 3 )
+                + ", "
+                + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
+                + ", "
+                + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 )
+                + ", "
+                + to_string( tmp->MoverParameters->BrakeStatus, 0 );
+                
+            if( tmp->MoverParameters->ManualBrakePos > 0 ) {
+
+                OutText3 += ", manual brake on";
+            }
+                
+            if( tmp->MoverParameters->LocalBrakePos > 0 ) {
+
+                OutText3 += ", local brake on";
+            }
+            else {
+
+                OutText3 += ", local brake off";
+            }
+
+            if( tmp->Mechanik ) {
+                // o ile jest ktoś w środku
+                std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
+                for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
+                    if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
+                        flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
+
+                OutText4 = flags;
+
+                OutText4 +=
+                    "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
+                    + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                    + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
+                    + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
+                    + " VSm=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
+                    + " VLm=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
+                    + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
+
+                if( ( tmp->Mechanik->VelNext == 0.0 )
+                    && ( tmp->Mechanik->eSignNext ) ) {
+                    // jeśli ma zapamiętany event semafora, nazwa eventu semafora
+                    OutText4 +=
+                        " ("
+                        + Global::Bezogonkow( tmp->Mechanik->eSignNext->asName )
+                        + ")";
+                    }
+
+                // biezaca komenda dla AI
+                OutText4 += ", command: " + tmp->Mechanik->OrderCurrent();
+            }
+
+            if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] != 0 ) {
+                // f2 screen, track scan mode
+                if( tmp->Mechanik == nullptr ) {
+                    //żeby była tabelka, musi być AI
+                    break;
+                }
+
+                float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
+                int i = 0;
+                do {
+                    std::string scanline = tmp->Mechanik->TableText( i );
+                    if( scanline.empty() ) { break; }
+                    UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), linecolor );
+                    ++i;
+                } while( i < 16 ); // TController:iSpeedTableSize TODO: change when the table gets recoded
+            }
+
+            break;
+        }
+
+        case( GLFW_KEY_F3 ) : {
+            // timetable
+
+            TDynamicObject *tmp =
+                ( FreeFlyModeFlag ?
+                    Ground.DynamicNearest( Camera.Pos ) :
+                    Controlled ); // w trybie latania lokalizujemy wg mapy
+
+            if( tmp == nullptr ) { break; }
+            if( tmp->Mechanik == nullptr ) { break; }
+
+            auto const table = tmp->Mechanik->Timetable();
+            if( table == nullptr ) { break; }
+
+            OutText1 =
+                "Time: "
+                + to_string( (int)GlobalTime->hh ) + ":"
+                + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
+                + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
+            if( Global::iPause ) {
+                OutText1 += " (paused)";
+            }
+            
+            OutText2 = tmp->Mechanik->Relation() + " (" + tmp->Mechanik->Timetable()->TrainName + ")";
+
+            float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
+
+            if( 0 == table->StationCount ) {
+                // only bother if there's stations to list
+                UITable->text_lines.emplace_back( "(no timetable)", linecolor );
+            } 
+            else {
+                // header
+                UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", linecolor );
+
+                TMTableLine *tableline;
+                for( int i = tmp->Mechanik->iStationStart; i <= std::min(15, table->StationCount); ++i ) {
+                    // wyświetlenie pozycji z rozkładu
+                    tableline = table->TimeTable + i; // linijka rozkładu
+
+                    std::string station =
+                        ( tableline->StationName + "                          " ).substr( 0, 26 );
+                    std::string arrival = 
+                        ( tableline->Ah >= 0 ?
+                            to_string( int( 100 + tableline->Ah ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Am ) ).substr( 1, 2 ) :
+                            "     " );
+                    std::string departure = 
+                        ( tableline->Dh >= 0 ?
+                            to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Dm ) ).substr( 1, 2 ) :
+                            "     " );
+                    std::string vmax =
+                        "   "
+                        + to_string( tableline->vmax, 0 );
+                    vmax = vmax.substr( vmax.length() - 3, 3 ); // z wyrównaniem do prawej
+
+                    UITable->text_lines.emplace_back(
+                        Global::Bezogonkow( "| " + station + " | " + arrival + " | " + departure + " | " + vmax + " | " + tableline->StationWare, true ),
+                        ( ( tmp->Mechanik->iStationStart < table->StationIndex ) && ( i < table->StationIndex ) ?
+                            float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
+                            linecolor )
+                        );
+                    // divider/footer
+                    UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", linecolor );
+                }
+            }
+
+            break;
+        }
+
+        case( GLFW_KEY_F10 ) : {
+
+            OutText1 = ( "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y]." );
+            break;
+        }
+
+        default: {
+            // uncovered cases, nothing to do here
+            break;
+        }
+
+    }
+
+
+
+
+
+
 
     if( DebugModeFlag && !Global::iTextMode ) {
         OutText1 = "FPS: ";
@@ -1368,7 +1625,6 @@ TWorld::Render_UI() {
         OutText1 += ( Timer::GetDeltaTime() >= 0.2 ) ? "!" : " ";
     }
     if( Global::iTextMode == GLFW_KEY_F8 ) {
-        Global::iViewMode = GLFW_KEY_F8;
         OutText1 = "Draw range x " + to_string( Global::fDistanceFactor, 1 ) + "; FPS: " + to_string( Timer::GetFPS(), 2 );
         //OutText1 += sprintf();
         if( Global::iSlowMotion )
@@ -1440,6 +1696,7 @@ TWorld::Render_UI() {
     glTranslatef( 0.0f, 0.0f, -0.50f );
 
     if( Global::iTextMode == GLFW_KEY_F1 ) { // tekst pokazywany po wciśnięciu [F1]
+#ifdef EU07_OLD_UI_RENDERING
         // Global::iViewMode=VK_F1;
         glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
         OutText1 =
@@ -1459,6 +1716,7 @@ TWorld::Render_UI() {
                     true ); // dopisanie punktu zatrzymania
             }
         OutText3 = ""; // Pomoc w sterowaniu - [F9]";
+#endif
     }
     else if( Global::iTextMode == GLFW_KEY_F12 ) { // opcje włączenia i wyłączenia logowania
         OutText1 = "[0] Debugmode " + std::string( DebugModeFlag ? "(on)" : "(off)" );
@@ -1466,6 +1724,7 @@ TWorld::Render_UI() {
         OutText3 = "[2] Console " + std::string( ( Global::iWriteLogEnabled & 2 ) ? "(on)" : "(off)" );
     }
     else if( Global::iTextMode == GLFW_KEY_F2 ) { // ABu: info dla najblizszego pojazdu!
+#ifdef EU07_OLD_UI_RENDERING
         TDynamicObject *tmp = FreeFlyModeFlag ? Ground.DynamicNearest( Camera.Pos ) :
             Controlled; // w trybie latania lokalizujemy wg mapy
         if( tmp ) {
@@ -1589,7 +1848,6 @@ TWorld::Render_UI() {
                 }
             } // koniec treści podstawowego ekranu FK_V2
             else { // ekran drugi, czyli tabelka skanowania AI
-/*
                 if( tmp->Mechanik ) //żeby była tabelka, musi być AI
                 { // tabelka jest na użytek testujących scenerie, więc nie musi być "ładna"
                     glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy zielony. GF: jednak biały
@@ -1637,7 +1895,6 @@ TWorld::Render_UI() {
                     glRasterPos2f( -0.25f, 0.19f - 0.01f * i );
                     glPrint( Global::Bezogonkow( OutText4 ).c_str() );
                 }
-*/
             } // koniec ekanu skanowania
         } // koniec obsługi, gdy mamy wskaźnik do pojazdu
         else { // wyświetlenie współrzędnych w scenerii oraz kąta kamery, gdy nie mamy wskaźnika
@@ -1654,6 +1911,7 @@ TWorld::Render_UI() {
             OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
             if( Global::FakeLight ) { OutText2 += "(*)"; }
         }
+#endif
     } // koniec treści podstawowego ekranu FK_V2
     else if( Global::iTextMode == GLFW_KEY_F5 ) { // przesiadka do innego pojazdu
         if( FreeFlyModeFlag ) // jeśli tryb latania
@@ -1685,12 +1943,6 @@ TWorld::Render_UI() {
                 }
             Global::iTextMode = 0; // tryb neutralny
         }
-    }
-    else if( Global::iTextMode == GLFW_KEY_F10 ) { // tu mozna dodac dopisywanie do logu przebiegu lokomotywy
-        // Global::iViewMode=VK_F10;
-        // return false;
-        OutText1 = ( "To quit press [Y] key." );
-        OutText3 = ( "Aby zakonczyc program, przycisnij klawisz [Y]." );
     }
     else if( Controlled && DebugModeFlag && !Global::iTextMode ) {
         OutText1 += ( ";  vel " ) + to_string( Controlled->GetVelocity(), 2 );
@@ -1881,92 +2133,6 @@ TWorld::Render_UI() {
                 Global::Bezogonkow( ( (char *)gluErrorString( err ) ) );
         }
     }
-    if( Global::iTextMode == GLFW_KEY_F3 ) { // wyświetlenie rozkładu jazdy, na razie jakkolwiek
-        TDynamicObject *tmp = FreeFlyModeFlag ?
-            Ground.DynamicNearest( Camera.Pos ) :
-            Controlled; // w trybie latania lokalizujemy wg mapy
-        Mtable::TTrainParameters *tt = NULL;
-/*
-        if( tmp )
-            if( tmp->Mechanik ) {
-                tt = tmp->Mechanik->Timetable();
-                if( tt ) // musi być rozkład
-                { // wyświetlanie rozkładu
-                    glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
-                    // glTranslatef(0.0f,0.0f,-0.50f);
-                    glRasterPos2f( -0.25f, 0.20f );
-                    OutText1 = tmp->Mechanik->Relation() + " (" +
-                        tmp->Mechanik->Timetable()->TrainName + ")";
-                    glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
-                    glRasterPos2f( -0.25f, 0.19f );
-                    // glPrint("|============================|=======|=======|=====|");
-                    // glPrint("| Posterunek                 | Przyj.| Odjazd| Vmax|");
-                    // glPrint("|============================|=======|=======|=====|");
-                    glPrint( "|----------------------------|-------|-------|-----|" );
-                    TMTableLine *t;
-                    for( int i = tmp->Mechanik->iStationStart; i <= tt->StationCount; ++i ) { // wyświetlenie pozycji z rozkładu
-                        t = tt->TimeTable + i; // linijka rozkładu
-                        OutText1 = ( t->StationName +
-                            "                          " ).substr( 0, 26 );
-                        OutText2 = ( t->Ah >= 0 ) ?
-                            to_string( int( 100 + t->Ah ) ).substr( 1, 2 ) + ":" +
-                            to_string( int( 100 + t->Am ) ).substr( 1, 2 ) :
-                            std::string( "     " );
-                        OutText3 = ( t->Dh >= 0 ) ?
-                            to_string( int( 100 + t->Dh ) ).substr( 1, 2 ) + ":" +
-                            to_string( int( 100 + t->Dm ) ).substr( 1, 2 ) :
-                            std::string( "     " );
-                        OutText4 = "   " + to_string( t->vmax, 0 );
-                        OutText4 = OutText4.substr( OutText4.length() - 3,
-                            3 ); // z wyrównaniem do prawej
-                        // if (AnsiString(t->StationWare).Pos("@"))
-                        OutText1 = "| " + OutText1 + " | " + OutText2 + " | " + OutText3 +
-                            " | " + OutText4 + " | " + t->StationWare;
-                        glRasterPos2f( -0.25f,
-                            0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
-                        if( ( tmp->Mechanik->iStationStart < tt->StationIndex ) ?
-                            ( i < tt->StationIndex ) :
-                            false ) { // czas minął i odjazd był, to nazwa stacji będzie na zielono
-                            glColor3f( 0.0f, 1.0f, 0.0f ); // zielone
-                            glRasterPos2f(
-                                -0.25f,
-                                0.18f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
-                            glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
-                            glColor3f( 1.0f, 1.0f, 1.0f ); // a reszta białym
-                        }
-                        else // normalne wyświetlanie, bez zmiany kolorów
-                            glPrint( Global::Bezogonkow( OutText1, true ).c_str() );
-                        glRasterPos2f( -0.25f,
-                            0.17f - 0.02f * ( i - tmp->Mechanik->iStationStart ) );
-                        glPrint( "|----------------------------|-------|-------|-----|" );
-                    }
-                }
-            }
-*/
-    }
-/*
-    else if( OutText1 != "" ) { // ABu: i od razu czyszczenie tego, co bylo napisane
-        // glTranslatef(0.0f,0.0f,-0.50f);
-        glRasterPos2f( -0.25f, 0.20f );
-        glPrint( OutText1.c_str() );
-        OutText1 = "";
-        if( OutText2 != "" ) {
-            glRasterPos2f( -0.25f, 0.19f );
-            glPrint( OutText2.c_str() );
-            OutText2 = "";
-        }
-        if( OutText3 != "" ) {
-            glRasterPos2f( -0.25f, 0.18f );
-            glPrint( OutText3.c_str() );
-            OutText3 = "";
-            if( OutText4 != "" ) {
-                glRasterPos2f( -0.25f, 0.17f );
-                glPrint( OutText4.c_str() );
-                OutText4 = "";
-            }
-        }
-    }
-*/
 
     // update the ui header texts
     auto &headerdata = UIHeader->text_lines;
@@ -1991,9 +2157,6 @@ TWorld::Render_UI() {
             }
         }
     }
-/*
-    glEnable( GL_LIGHTING );
-*/
 }
 
 //---------------------------------------------------------------------------
