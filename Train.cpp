@@ -2842,6 +2842,20 @@ bool TTrain::Update( double const Deltatime )
             /// napędu
         }
 
+		if (Global::bMWDmasterEnable) // pobieranie danych dla pulpitu port (COM)
+		{ 
+			Console::ValueSet(0, mvOccupied->Compressor); // zbiornik główny
+			Console::ValueSet(1, mvOccupied->PipePress); // przewód główny
+			Console::ValueSet(2, mvOccupied->BrakePress); // cylinder hamulcowy
+			Console::ValueSet(3, fHVoltage); // woltomierz wysokiego napięcia
+			Console::ValueSet(4, fHCurrent[(mvControlled->TrainType & dt_EZT) ? 0 : 1]); 
+			// pierwszy amperomierz; dla EZT prąd całkowity
+			Console::ValueSet(5, fHCurrent[2]); // drugi amperomierz 2
+			Console::ValueSet(6, fHCurrent[3]); // drugi amperomierz 3
+			Console::ValueSet(7, fTachoVelocity);
+			//Console::ValueSet(8, mvControlled->BatteryVoltage); // jeszcze nie pora ;)
+		}
+
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia
         // przy dowolnym ustawieniu kierunkowego
         // Ra: to już jest w T_MoverParameters::TractionForce(), ale zależy od
@@ -3762,12 +3776,21 @@ bool TTrain::Update( double const Deltatime )
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 				// Firleju: dlatego kasujemy i zastepujemy funkcją w Console
-                if (((mvOccupied->BrakeHandle == FV4a) ||
-                                   (mvOccupied->BrakeHandle == FVel6))) // może można usunąć ograniczenie do FV4a i FVel6?
+				if (mvOccupied->BrakeHandle == FV4a)
                 {
                     double b = Console::AnalogCalibrateGet(0);
+					b = b * 8 - 2;
 					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
-
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FV4a break position = " + to_string(b));
+					ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
+					mvOccupied->BrakeLevelSet(b);
+				}
+                if (mvOccupied->BrakeHandle == FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
+                {
+                    double b = Console::AnalogCalibrateGet(0);
+					b = b * 7 - 1;
+					b = Global::CutValueToRange(-1.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FVel6 break position = " + to_string(b));
                     ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                     mvOccupied->BrakeLevelSet(b);
                 }
@@ -3778,19 +3801,23 @@ bool TTrain::Update( double const Deltatime )
             // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
             ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
             ggBrakeCtrl.Update();
+
+			
         }
         if (ggLocalBrake.SubModel)
         {
             if (DynamicObject->Mechanik ?
-                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || Global::bMWDmasterEnable)) :
+                    (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
                     false) // nie blokujemy AI
             { // Ra: nie najlepsze miejsce, ale na początek gdzieś to dać trzeba
 			  // Firleju: dlatego kasujemy i zastepujemy funkcją w Console
                 if ((mvOccupied->BrakeLocHandle == FD1))
                 {
                     double b = Console::AnalogCalibrateGet(1);
+					b *= 10;
 					b = Global::CutValueToRange(0.0, b, LocalBrakePosNo); // przycięcie zmiennej do granic
                     ggLocalBrake.UpdateValue(b); // przesów bez zaokrąglenia
+					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FD1 break position = " + to_string(b));
                     mvOccupied->LocalBrakePos =
                         int(1.09 * b); // sposób zaokrąglania jest do ustalenia
                 }
@@ -4681,7 +4708,7 @@ bool TTrain::Update( double const Deltatime )
         if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel])) &&
             (!Console::Pressed(Global::Keys[k_WaveBrake])) && (mvOccupied->BrakeCtrlPos == -1) &&
             (mvOccupied->BrakeHandle == FVel6) && (DynamicObject->Controller != AIdriver) &&
-            (Global::iFeedbackMode != 4))
+            (Global::iFeedbackMode != 4) && (!(Global::bMWDmasterEnable && Global::bMWDBreakEnable)))
         {
             // mvOccupied->BrakeCtrlPos=(mvOccupied->BrakeCtrlPos)+1;
             // mvOccupied->IncBrakeLevel();
