@@ -61,8 +61,8 @@ public:
 	
 	unsigned int uiAnalog[4]; 		// trzymanie danych z wejść analogowych
 
-	BYTE ReadDataBuff[BYTETOREAD+2]; //17]; // bufory danych
-	BYTE WriteDataBuff[BYTETOWRITE+2]; //31];
+	BYTE ReadDataBuff[BYTETOREAD]; //17]; // bufory danych
+	BYTE WriteDataBuff[BYTETOWRITE]; //31];
 
     TMWDComm(); // konstruktor
     ~TMWDComm(); // destruktor
@@ -70,29 +70,43 @@ public:
 #endif
 
 /*
-INFO - wpisy do eu07.ini:
+        INFO - zmiany dokonane w innych plikach niezbędne do prawidłowego działania:
 
-mwdmasterenable yes 		// włącz MWD (master MWD Enable)
-mwddebugenable yes 		// włącz logowanie 
-mwddebugmode 4 			// tryb debugowania (które logi)
+        Console.cpp:
+         Console::AnalogCalibrateGet	- obsługa kranów hamulców
+         Console::Update		- wywoływanie obsługi MWD
+         Console::ValueSet		- obsługa manometrów, mierników WN (PWM-y)
+         Console::BitsUpdate		- ustawiania lampek
+         Console::Off			- zamykanie portu COM
+         Console::On			- otwieranie portu COM
+         Console::~Console		- usuwanie MWD (jest też w Console OFF)
 
-mwdcomportname COM3 		// nazwa portu
-mwdbaudrate 500000 		// prędkość transmisji
+         MWDComm * Console::MWD = NULL; - luzem, obiekt i wskaźnik(?)
+         dodatkowo zmieniłem int na long int dla BitSet i BitClear oraz iBits
 
-mwdinputenable yes 		// włącz wejścia (przyciski, przełączniki)
-mwdbreakenable yes 		// włącz hamulce (wejścia analogowe)
+        Train.cpp:
+         if (Global::iFeedbackMode == 5) - pobieranie prędkości, manometrów i mierników WN
+         if (ggBrakeCtrl.SubModel)       - możliwość sterowania hamulcem zespolonym
+         if (ggLocalBrake.SubModel) 	 - możliwość sterowania hamulcem lokomotywy
 
-mwdmainbreakconfig 0 1023 	// konfiguracja kranu zespolonego -> min, max (położenie kranu - odczyt z ADC)
-mwdlocbreakconfig 0 1023 	// konfiguracja kranu maszynisty  -> min, max (położenie kranu - odczyt z ADC)
-mwdanalogin2config 0 1023
-mwdanalogin2config 0 1023
+        Globals.h:
+         dodano zmienne dla MWD
+        Globals.cpp:
+         dodano inicjalizaję zmiennych i odczyt z ini ustawień
 
-mwdmaintankpress 0.9 1023 	// max ciśnienie w zbiorniku głownym i rozdzielczość
-mwdmainpipepress 0.7 1023 	// max ciśnienie w przewodzie głównym i rozdzielczość
-mwdbreakpress 0.5 1023  	// max ciśnienie w cylindrach hamulcowych i rozdzielczość
+        Wpisy do pliku eu07.ini
 
-mwdhivoltmeter 4000 1023 	// max napięcie na woltomierzu WN
-mwdhiampmeter 800 1023  	// max prąd amperomierza WN
+                //maciek001 MWD
+                comportname COM3	// wybór portu COM
+                mwdbaudrate 500000
 
-mwddivider 5 			// dzielnik - czym większy tym rzadziej czyta diwajs
+                mwdbreakenable yes	// czy załączyć sterowanie hamulcami? blokuje klawiature
+                mwdbreak 1 255 0 255	// hamulec zespolony
+                mwdbreak 2 255 0 255	// hamulec lokomotywy
+
+                mwdzbiornikglowny 	0.82 255
+                mwdprzewodglowny 	0.7 255
+                mwdcylinderhamulcowy 	0.43 255
+                mwdwoltomierzwn 	4000 255
+                mwdamperomierzwn 	800 255
 */
