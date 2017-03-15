@@ -287,8 +287,14 @@ int main(int argc, char *argv[])
     }
 
     GLFWwindow *window =
-        glfwCreateWindow( Global::iWindowWidth, Global::iWindowHeight,
-        "EU07", Global::bFullScreen ? monitor : nullptr, nullptr );
+        glfwCreateWindow(
+            Global::iWindowWidth,
+            Global::iWindowHeight,
+            Global::AppName.c_str(),
+            ( Global::bFullScreen ?
+                monitor :
+                nullptr),
+            nullptr );
 
     if (!window)
 	{

@@ -174,6 +174,8 @@ bool TWorld::Init( GLFWwindow *Window ) {
     Ground.Init(Global::SceneryFile);
     WriteLog( "Ground init OK" );
 
+    glfwSetWindowTitle( window,  ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
+
     Environment.init();
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
 
@@ -195,6 +197,9 @@ bool TWorld::Init( GLFWwindow *Window ) {
             mvControlled = Controlled->ControlledFind()->MoverParameters;
             Global::pUserDynamic = Controlled; // renerowanie pojazdu względem kabiny
             WriteLog("Player train init OK");
+
+            glfwSetWindowTitle( window, ( Global::AppName + " (" + Controlled->MoverParameters->Name + " @ " + Global::SceneryFile + ")" ).c_str() );
+
             FollowView();
         }
         else
@@ -365,7 +370,41 @@ void TWorld::OnKeyDown(int cKey)
             }
             case GLFW_KEY_F5: {
                 // przesiadka do innego pojazdu
-                Global::iTextMode = cKey;
+                if( false == FreeFlyModeFlag ) {
+                    // only available in free fly mode
+                    break;
+                }
+
+                TDynamicObject *tmp = Ground.DynamicNearest( Camera.Pos, 50, true ); //łapiemy z obsadą
+                if( ( tmp != nullptr )
+                 && ( tmp != Controlled ) ) {
+
+                    if( Controlled ) // jeśli mielismy pojazd
+                        if( Controlled->Mechanik ) // na skutek jakiegoś błędu może czasem zniknąć
+                            Controlled->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
+
+                    if( DebugModeFlag
+                     || (tmp->MoverParameters->Vel <= 5.0) ) {
+                        // works always in debug mode, or for stopped/slow moving vehicles otherwise
+                        Controlled = tmp; // przejmujemy nowy
+                        mvControlled = Controlled->ControlledFind()->MoverParameters;
+                        if( Train )
+                            Train->Silence(); // wyciszenie dźwięków opuszczanego pojazdu
+                        else
+                            Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
+                        if( Train->Init( Controlled ) ) { // przejmujemy sterowanie
+                            if( !DebugModeFlag ) // w DebugMode nadal prowadzi AI
+                                Controlled->Mechanik->TakeControl( false );
+                        }
+                        else
+                            SafeDelete( Train ); // i nie ma czym sterować
+                        // Global::pUserDynamic=Controlled; //renerowanie pojazdu względem kabiny
+                        // Global::iTextMode=VK_F4;
+                        if( Train )
+                            InOutKey(); // do kabiny
+                    }
+                }
+//                Global::iTextMode = cKey;
                 break;
             }
             case GLFW_KEY_F6: {
@@ -605,6 +644,17 @@ void TWorld::InOutKey( bool const Near )
         else
             FreeFlyModeFlag = true; // nadal poza kabiną
     }
+    // update window title to reflect the situation
+    glfwSetWindowTitle(
+        window,
+        ( Global::AppName
+        + " ("
+        + ( Controlled != nullptr ?
+            Controlled->MoverParameters->Name :
+            "" )
+        + " @ "
+        + Global::SceneryFile
+        + ")" ).c_str() );
 };
 
 // places camera outside the controlled vehicle, or nearest if nothing is under control
@@ -806,6 +856,11 @@ bool TWorld::Update()
     }
 
     // variable step simulation time routines
+    if( Global::changeDynObj ) {
+        // ABu zmiana pojazdu - przejście do innego
+        ChangeDynamic();
+    }
+
     if( Train != nullptr ) {
         TSubModel::iInstance = reinterpret_cast<size_t>( Train->Dynamic() );
         Train->Update( dt );
@@ -1369,6 +1424,7 @@ TWorld::Update_UI() {
                         OutText3 = " -> " + Global::Bezogonkow( Controlled->Mechanik->NextStop(), true );
                     }
                 }
+
             break;
         }
 
@@ -1379,151 +1435,168 @@ TWorld::Update_UI() {
                 Ground.DynamicNearest( Camera.Pos ) :
                 Controlled ); // w trybie latania lokalizujemy wg mapy
 
-            if( tmp == nullptr ) { break; }
+            if( tmp != nullptr ) {
+                // 
+                // jeśli domyślny ekran po pierwszym naciśnięciu
+                OutText1 = "Vehicle name: " + tmp->MoverParameters->Name;
 
-            // jeśli domyślny ekran po pierwszym naciśnięciu
-            OutText1 = "Vehicle name: " + tmp->MoverParameters->Name;
-
-            if( (tmp->Mechanik == nullptr) && (tmp->ctOwner) ) {
-                // for cars other than leading unit indicate the leader
-                OutText1 += ", owned by " + tmp->ctOwner->OwnerName();
-            }
-            // informacja o sprzęgach
-            OutText1 +=
-                " C0:" +
-                ( tmp->PrevConnected ?
+                if( ( tmp->Mechanik == nullptr ) && ( tmp->ctOwner ) ) {
+                    // for cars other than leading unit indicate the leader
+                    OutText1 += ", owned by " + tmp->ctOwner->OwnerName();
+                }
+                // informacja o sprzęgach
+                OutText1 +=
+                    " C0:" +
+                    ( tmp->PrevConnected ?
                     tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
                     "none" );
-            OutText1 +=
-                " C1:" +
-                ( tmp->NextConnected ?
+                OutText1 +=
+                    " C1:" +
+                    ( tmp->NextConnected ?
                     tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
                     "none" );
 
-            OutText2 = "Damage status: " + tmp->MoverParameters->EngineDescription( 0 );
+                OutText2 = "Damage status: " + tmp->MoverParameters->EngineDescription( 0 );
 
-            OutText2 += "; Brake delay: ";
-            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
-                OutText2 += "G";
-            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
-                OutText2 += "P";
-            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
-                OutText2 += "R";
-            if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
-                OutText2 += "+Mg";
+                OutText2 += "; Brake delay: ";
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
+                    OutText2 += "G";
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
+                    OutText2 += "P";
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
+                    OutText2 += "R";
+                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
+                    OutText2 += "+Mg";
 
-            OutText2 += ", BTP:" + to_string( tmp->MoverParameters->LoadFlag, 0 );
-            {
-                OutText2 +=
-                    "; pant. "
-                    + to_string( tmp->MoverParameters->PantPress, 2 )
-                    + ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
-            }
-
-            OutText2 +=
-                ", MED:"
-                + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
-                + "+"
-                + to_string( tmp->MoverParameters->AnPos, 2 );
-
-            OutText2 +=
-                ", Ft:"
-                + to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
-
-            OutText2 +=
-                "; TC:"
-                + to_string( tmp->MoverParameters->TotalCurrent, 0 );
-            OutText2 +=
-                ", HV0:"
-                + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 )
-                + "@"
-                + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
-            OutText2 +=
-                ", HV1:"
-                + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 )
-                + "@"
-                + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
-
-            OutText3 =
-                "BP: "
-                + to_string( tmp->MoverParameters->BrakePress, 2 )
-                + ", "
-                + to_string( tmp->MoverParameters->BrakeStatus, 0 )
-                + ", PP: "
-                + to_string( tmp->MoverParameters->PipePress, 2 )
-                + "/"
-                + to_string( tmp->MoverParameters->ScndPipePress, 2 )
-                + "/"
-                + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
-                + ", BVP: "
-                + to_string( tmp->MoverParameters->Volume, 3 )
-                + ", "
-                + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
-                + ", "
-                + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 )
-                + ", "
-                + to_string( tmp->MoverParameters->BrakeStatus, 0 );
-                
-            if( tmp->MoverParameters->ManualBrakePos > 0 ) {
-
-                OutText3 += ", manual brake on";
-            }
-                
-            if( tmp->MoverParameters->LocalBrakePos > 0 ) {
-
-                OutText3 += ", local brake on";
-            }
-            else {
-
-                OutText3 += ", local brake off";
-            }
-
-            if( tmp->Mechanik ) {
-                // o ile jest ktoś w środku
-                std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
-                for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
-                    if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
-                        flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
-
-                OutText4 = flags;
-
-                OutText4 +=
-                    "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                    + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
-                    + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
-                    + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
-                    + " VSm=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
-                    + " VLm=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
-                    + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
-
-                if( ( tmp->Mechanik->VelNext == 0.0 )
-                    && ( tmp->Mechanik->eSignNext ) ) {
-                    // jeśli ma zapamiętany event semafora, nazwa eventu semafora
-                    OutText4 +=
-                        " ("
-                        + Global::Bezogonkow( tmp->Mechanik->eSignNext->asName )
-                        + ")";
-                    }
-
-                // biezaca komenda dla AI
-                OutText4 += ", command: " + tmp->Mechanik->OrderCurrent();
-            }
-
-            if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] != 0 ) {
-                // f2 screen, track scan mode
-                if( tmp->Mechanik == nullptr ) {
-                    //żeby była tabelka, musi być AI
-                    break;
+                OutText2 += ", BTP:" + to_string( tmp->MoverParameters->LoadFlag, 0 );
+                {
+                    OutText2 +=
+                        "; pant. "
+                        + to_string( tmp->MoverParameters->PantPress, 2 )
+                        + ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
                 }
 
-                float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
-                int i = 0;
-                do {
-                    std::string scanline = tmp->Mechanik->TableText( i );
-                    if( scanline.empty() ) { break; }
-                    UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), linecolor );
-                    ++i;
-                } while( i < 16 ); // TController:iSpeedTableSize TODO: change when the table gets recoded
+                OutText2 +=
+                    ", MED:"
+                    + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
+                    + "+"
+                    + to_string( tmp->MoverParameters->AnPos, 2 );
+
+                OutText2 +=
+                    ", Ft:"
+                    + to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
+
+                OutText2 +=
+                    "; TC:"
+                    + to_string( tmp->MoverParameters->TotalCurrent, 0 );
+                OutText2 +=
+                    ", HV0:"
+                    + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 )
+                    + "@"
+                    + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
+                OutText2 +=
+                    ", HV1:"
+                    + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 )
+                    + "@"
+                    + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
+
+                OutText3 =
+                    "BP: "
+                    + to_string( tmp->MoverParameters->BrakePress, 2 )
+                    + ", "
+                    + to_string( tmp->MoverParameters->BrakeStatus, 0 )
+                    + ", PP: "
+                    + to_string( tmp->MoverParameters->PipePress, 2 )
+                    + "/"
+                    + to_string( tmp->MoverParameters->ScndPipePress, 2 )
+                    + "/"
+                    + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
+                    + ", BVP: "
+                    + to_string( tmp->MoverParameters->Volume, 3 )
+                    + ", "
+                    + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
+                    + ", "
+                    + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 )
+                    + ", "
+                    + to_string( tmp->MoverParameters->BrakeStatus, 0 );
+
+                if( tmp->MoverParameters->ManualBrakePos > 0 ) {
+
+                    OutText3 += ", manual brake on";
+                }
+
+                if( tmp->MoverParameters->LocalBrakePos > 0 ) {
+
+                    OutText3 += ", local brake on";
+                }
+                else {
+
+                    OutText3 += ", local brake off";
+                }
+
+                if( tmp->Mechanik ) {
+                    // o ile jest ktoś w środku
+                    std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
+                    for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
+                        if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
+                            flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
+
+                    OutText4 = flags;
+
+                    OutText4 +=
+                        "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
+                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                        + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
+                        + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
+                        + " VSm=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
+                        + " VLm=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
+                        + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
+
+                    if( ( tmp->Mechanik->VelNext == 0.0 )
+                        && ( tmp->Mechanik->eSignNext ) ) {
+                        // jeśli ma zapamiętany event semafora, nazwa eventu semafora
+                        OutText4 +=
+                            " ("
+                            + Global::Bezogonkow( tmp->Mechanik->eSignNext->asName )
+                            + ")";
+                    }
+
+                    // biezaca komenda dla AI
+                    OutText4 += ", command: " + tmp->Mechanik->OrderCurrent();
+                }
+
+                if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] != 0 ) {
+                    // f2 screen, track scan mode
+                    if( tmp->Mechanik == nullptr ) {
+                        //żeby była tabelka, musi być AI
+                        break;
+                    }
+
+                    float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
+                    int i = 0;
+                    do {
+                        std::string scanline = tmp->Mechanik->TableText( i );
+                        if( scanline.empty() ) { break; }
+                        UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), linecolor );
+                        ++i;
+                    } while( i < 16 ); // TController:iSpeedTableSize TODO: change when the table gets recoded
+                }
+            }
+            else {
+                // wyświetlenie współrzędnych w scenerii oraz kąta kamery, gdy nie mamy wskaźnika
+                OutText1 =
+                    "Camera position: "
+                    + to_string( Camera.Pos.x, 2 ) + " "
+                    + to_string( Camera.Pos.y, 2 ) + " "
+                    + to_string( Camera.Pos.z, 2 )
+                    + ", azimuth: "
+                    + to_string( 180.0 - RadToDeg( Camera.Yaw ), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
+                    + " "
+                    + std::string( "S SEE NEN NWW SW" )
+                    .substr( 0 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
+                // current luminance level
+                OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
+                if( Global::FakeLight ) { OutText2 += "(*)"; }
             }
 
             break;
@@ -1626,14 +1699,15 @@ TWorld::Update_UI() {
                     "VBO" :
                     "Display Lists" );
 
+            // dump last opengl error, if any
             GLenum glerror = glGetError();
             if( glerror != GL_NO_ERROR ) {
-                // dump last opengl error, if any
+                Global::LastGLError = to_string( glerror ) + " (" + Global::Bezogonkow( (char *)gluErrorString( glerror ) ) + ")";
+            }
+            if( false == Global::LastGLError.empty() ) {
                 OutText3 =
-                    "OpenGL error "
-                    + to_string( glerror )
-                    + ": "
-                    + Global::Bezogonkow( ( (char *)gluErrorString( glerror ) ) );
+                    "Last openGL error: "
+                    + Global::LastGLError;
             }
 
             break;
@@ -1642,6 +1716,7 @@ TWorld::Update_UI() {
         case( GLFW_KEY_F10 ) : {
 
             OutText1 = ( "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y]." );
+
             break;
         }
 
@@ -1655,284 +1730,149 @@ TWorld::Update_UI() {
         }
 
         default: {
-            // uncovered cases, nothing to do here
+            // uncovered cases, nothing to do here...
+            // ... unless we're in debug mode
+            if( DebugModeFlag && Controlled ) {
+
+                OutText1 =
+                    "vel: " + to_string(Controlled->GetVelocity(), 2) + " km/h"
+                    + "; dist: " + to_string(Controlled->MoverParameters->DistCounter, 2) + " km"
+                    + "; pos: ("
+                    + to_string( Controlled->GetPosition().x, 2 ) + ", "
+                    + to_string( Controlled->GetPosition().y, 2 ) + ", "
+                    + to_string( Controlled->GetPosition().z, 2 )
+                    + ")";
+
+                OutText2 =
+                    "HamZ=" + to_string( Controlled->MoverParameters->fBrakeCtrlPos, 1 )
+                    + "; HamP=" + std::to_string( mvControlled->LocalBrakePos ) + "/" + to_string( Controlled->MoverParameters->LocalBrakePosA, 2 )
+                    + "; NasJ=" + std::to_string( mvControlled->MainCtrlPos ) + "(" + std::to_string( mvControlled->MainCtrlActualPos ) + ")"
+                    + "; NasB=" + std::to_string( mvControlled->ScndCtrlPos ) + "(" + std::to_string( mvControlled->ScndCtrlActualPos ) + ")"
+                    + "; I=" +
+                    ( mvControlled->TrainType == dt_EZT ?
+                        std::to_string( int( mvControlled->ShowCurrent( 0 ) ) ):
+                        std::to_string( int( mvControlled->Im ) ) )
+                    + "; U=" + to_string( int( mvControlled->RunningTraction.TractionVoltage + 0.5 ) )
+                    + "; R=" +
+                    ( Controlled->MoverParameters->RunningShape.R > 100000.0 ?
+                        "~0.0" :
+                        to_string( Controlled->MoverParameters->RunningShape.R, 1 ) )
+                    + " An=" + to_string( Controlled->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
+
+                if( tprev != int( GlobalTime->mr ) ) {
+                    tprev = GlobalTime->mr;
+                    Acc = ( Controlled->MoverParameters->Vel - VelPrev ) / 3.6;
+                    VelPrev = Controlled->MoverParameters->Vel;
+                }
+                OutText2 += ( "; As=" ) + to_string( Acc, 2 ); // przyspieszenie wzdłużne
+
+                OutText3 =
+                    "cyl.ham. " + to_string( Controlled->MoverParameters->BrakePress, 2 )
+                    + "; prz.gl. " + to_string( Controlled->MoverParameters->PipePress, 2 )
+                    + "; zb.gl. " + to_string( Controlled->MoverParameters->CompressedVolume, 2 )
+                    // youBy - drugi wezyk
+                    + "; p.zas. " + to_string( Controlled->MoverParameters->ScndPipePress, 2 );
+ 
+                // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
+                if( mvControlled->ConvOvldFlag )
+                    OutText3 += " C! ";
+                else if( mvControlled->FuseFlag )
+                    OutText3 += " F! ";
+                else if( !mvControlled->Mains )
+                    OutText3 += " () ";
+                else {
+                    switch(
+                        mvControlled->ActiveDir *
+                        ( mvControlled->Imin == mvControlled->IminLo ?
+                            1 :
+                            2 ) ) {
+                        case  2: { OutText3 += " >> "; break; }
+                        case  1: { OutText3 += " -> "; break; }
+                        case  0: { OutText3 += " -- "; break; }
+                        case -1: { OutText3 += " <- "; break; }
+                        case -2: { OutText3 += " << "; break; }
+                    }
+                }
+                // McZapkie: predkosc szlakowa
+                if( Controlled->MoverParameters->RunningTrack.Velmax == -1 ) {
+                    OutText3 += " Vtrack=Vmax";
+                }
+                else {
+                    OutText3 += " Vtrack " + to_string( Controlled->MoverParameters->RunningTrack.Velmax, 2 );
+                }
+
+                if( ( mvControlled->EnginePowerSource.SourceType == CurrentCollector )
+                 || ( mvControlled->TrainType == dt_EZT ) ) {
+                    OutText3 +=
+                        "; pant. " + to_string( mvControlled->PantPress, 2 )
+                        + ( mvControlled->bPantKurek3 ? "=" : "^" ) + "ZG";
+                }
+
+                // McZapkie: komenda i jej parametry
+                if( Controlled->MoverParameters->CommandIn.Command != ( "" ) ) {
+                    OutText4 =
+                        "C:" + Controlled->MoverParameters->CommandIn.Command
+                        + " V1=" + to_string( Controlled->MoverParameters->CommandIn.Value1, 0 )
+                        + " V2=" + to_string( Controlled->MoverParameters->CommandIn.Value2, 0 );
+                }
+                if( ( Controlled->Mechanik )
+                 && ( Controlled->Mechanik->AIControllFlag == AIdriver ) ) {
+                    OutText4 +=
+                        "AI: Vd=" + to_string( Controlled->Mechanik->VelDesired, 0 )
+                        + " ad=" + to_string( Controlled->Mechanik->AccDesired, 2 )
+                        + " Pd=" + to_string( Controlled->Mechanik->ActualProximityDist, 0 )
+                        + " Vn=" + to_string( Controlled->Mechanik->VelNext, 0 );
+                }
+
+                // induction motor data
+                if( Controlled->MoverParameters->EngineType == ElectricInductionMotor ) {
+
+                    float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
+
+                    UITable->text_lines.emplace_back( "   eimc:     eimv:    press:", linecolor );
+                    for( int i = 0; i <= 20; ++i ) {
+
+                        std::string parameters =
+                              to_string(Controlled->MoverParameters->eimc[i], 2, 9)
+                            + " " + to_string( Controlled->MoverParameters->eimv[ i ], 2, 9 );
+
+                        if( i <= 10 ) {
+                            parameters += " " + to_string( Train->fPress[ i ][ 0 ], 2, 9 );
+                        }
+                        else if( i == 12 ) {
+                            parameters += "    med:";
+                        }
+                        else if( i >= 13 ) {
+                            parameters += " " + to_string( Controlled->MED[ 0 ][ i - 13 ], 2, 9 );
+                        }
+
+                        UITable->text_lines.emplace_back( parameters, linecolor );
+                    }
+                }
+
+            } // if( DebugModeFlag && Controlled )
+
             break;
         }
     }
 
+#ifdef EU07_USE_OLD_UI_CODE
+    if( Controlled && DebugModeFlag && !Global::iTextMode ) {
 
-
-
-
-
-
-    if( DebugModeFlag && !Global::iTextMode ) {
-        OutText1 = "FPS: ";
-        OutText1 += to_string( Timer::GetFPS(), 2 );
-        OutText1 += Global::iSlowMotion ? "(s)" : "(n)";
-
-        OutText1 += ( Timer::GetDeltaTime() >= 0.2 ) ? "!" : " ";
-    }
-    if( Global::changeDynObj ) { // ABu zmiana pojazdu - przejście do innego
-        // Ra: to nie może być tak robione, to zbytnia proteza jest
-        Train->Silence(); // wyłączenie dźwięków opuszczanej kabiny
-        if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
-            if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-            { // jeśli prowadzi AI, to mu nie robimy dywersji!
-                Train->Dynamic()->MoverParameters->CabDeactivisation();
-                Train->Dynamic()->Controller = AIdriver;
-                // Train->Dynamic()->MoverParameters->SecuritySystem.Status=0; //rozwala CA w EZT
-                Train->Dynamic()->MoverParameters->ActiveCab = 0;
-                Train->Dynamic()->MoverParameters->BrakeLevelSet(
-                    Train->Dynamic()->MoverParameters->Handle->GetPos(
-                    bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
-                Train->Dynamic()->MechInside = false;
-            }
-        TDynamicObject *temp = Global::changeDynObj;
-        Train->Dynamic()->bDisplayCab = false;
-        Train->Dynamic()->ABuSetModelShake( vector3( 0, 0, 0 ) );
-
-        // Train->Dynamic()->mdKabina=NULL;
-        if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
-            if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-                Train->Dynamic()->Mechanik->MoveTo( temp ); // przsunięcie obiektu zarządzającego
-        // Train->DynamicObject=NULL;
-        Train->DynamicSet( temp );
-        Controlled = temp;
-        mvControlled = Controlled->ControlledFind()->MoverParameters;
-        Global::asHumanCtrlVehicle = Train->Dynamic()->GetName();
-        if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
-            if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-            {
-                Train->Dynamic()->MoverParameters->LimPipePress =
-                    Controlled->MoverParameters->PipePress;
-                Train->Dynamic()
-                    ->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
-                Train->Dynamic()->Controller = Humandriver;
-                Train->Dynamic()->MechInside = true;
-            }
-        Train->InitializeCab( Train->Dynamic()->MoverParameters->CabNo,
-            Train->Dynamic()->asBaseDir +
-            Train->Dynamic()->MoverParameters->TypeName + ".mmd" );
-        if( !FreeFlyModeFlag ) {
-            Global::pUserDynamic = Controlled; // renerowanie względem kamery
-            Train->Dynamic()->bDisplayCab = true;
-            Train->Dynamic()->ABuSetModelShake(
-                vector3( 0, 0, 0 ) ); // zerowanie przesunięcia przed powrotem?
-            Train->MechStop();
-            FollowView(); // na pozycję mecha
-        }
-        Global::changeDynObj = NULL;
-    }
-
-    if( Controlled )
-        glfwSetWindowTitle( window, Controlled->MoverParameters->Name.c_str() );
-    else
-        glfwSetWindowTitle( window, Global::SceneryFile.c_str() ); // nazwa scenerii
-
-    if( Global::iTextMode == GLFW_KEY_F5 ) { // przesiadka do innego pojazdu
-        if( FreeFlyModeFlag ) // jeśli tryb latania
-        {
-            TDynamicObject *tmp = Ground.DynamicNearest( Camera.Pos, 50, true ); //łapiemy z obsadą
-            if( tmp )
-                if( tmp != Controlled ) {
-                    if( Controlled ) // jeśli mielismy pojazd
-                        if( Controlled->Mechanik ) // na skutek jakiegoś błędu może czasem zniknąć
-                            Controlled->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
-                    if( DebugModeFlag ? true : tmp->MoverParameters->Vel <= 5.0 ) {
-                        Controlled = tmp; // przejmujemy nowy
-                        mvControlled = Controlled->ControlledFind()->MoverParameters;
-                        if( Train )
-                            Train->Silence(); // wyciszenie dźwięków opuszczanego pojazdu
-                        else
-                            Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
-                        if( Train->Init( Controlled ) ) { // przejmujemy sterowanie
-                            if( !DebugModeFlag ) // w DebugMode nadal prowadzi AI
-                                Controlled->Mechanik->TakeControl( false );
-                        }
-                        else
-                            SafeDelete( Train ); // i nie ma czym sterować
-                        // Global::pUserDynamic=Controlled; //renerowanie pojazdu względem kabiny
-                        // Global::iTextMode=VK_F4;
-                        if( Train )
-                            InOutKey(); // do kabiny
-                    }
-                }
-            Global::iTextMode = 0; // tryb neutralny
-        }
-    }
-    else if( Controlled && DebugModeFlag && !Global::iTextMode ) {
-        OutText1 += ( ";  vel " ) + to_string( Controlled->GetVelocity(), 2 );
-        OutText1 += ( ";  pos " ) + to_string( Controlled->GetPosition().x, 2 );
-        OutText1 += ( " ; " ) + to_string( Controlled->GetPosition().y, 2 );
-        OutText1 += ( " ; " ) + to_string( Controlled->GetPosition().z, 2 );
-        OutText1 += ( "; dist=" ) + to_string( Controlled->MoverParameters->DistCounter, 4 );
-
-        // double a= acos( DotProduct(Normalize(Controlled->GetDirection()),vWorldFront));
-        //      OutText+= AnsiString(";   angle ")+FloatToStrF(a/M_PI*180,ffFixed,6,2);
         OutText1 +=
             ( "; d_omega " ) + to_string( Controlled->MoverParameters->dizel_engagedeltaomega, 3 );
-        OutText2 = ( "HamZ=" ) + to_string( Controlled->MoverParameters->fBrakeCtrlPos, 1 );
-        OutText2 += ( "; HamP=" ) + to_string( mvControlled->LocalBrakePos );
-        OutText2 += ( "/" ) + to_string( Controlled->MoverParameters->LocalBrakePosA, 2 );
-        // mvControlled->MainCtrlPos;
-        // if (mvControlled->MainCtrlPos<0)
-        //    OutText2+= AnsiString("; nastawnik 0");
-        //      if (mvControlled->MainCtrlPos>iPozSzereg)
-        OutText2 += ( "; NasJ=" ) + to_string( mvControlled->MainCtrlPos );
-        //      else
-        //          OutText2+= AnsiString("; nastawnik S") + mvControlled->MainCtrlPos;
-        OutText2 += ( "(" ) + to_string( mvControlled->MainCtrlActualPos );
-
-        OutText2 += ( "); NasB=" ) + to_string( mvControlled->ScndCtrlPos );
-        OutText2 += ( "(" ) + to_string( mvControlled->ScndCtrlActualPos );
-        if( mvControlled->TrainType == dt_EZT )
-            OutText2 += ( "); I=" ) + to_string( int( mvControlled->ShowCurrent( 0 ) ) );
-        else
-            OutText2 += ( "); I=" ) + to_string( int( mvControlled->Im ) );
-        // OutText2+=AnsiString(";
-        // I2=")+FloatToStrF(Controlled->NextConnected->MoverParameters->Im,ffFixed,6,2);
-        OutText2 += ( "; U=" ) +
-            to_string( int( mvControlled->RunningTraction.TractionVoltage + 0.5 ) );
-        // OutText2+=AnsiString("; rvent=")+FloatToStrF(mvControlled->RventRot,ffFixed,6,2);
-        OutText2 += ( "; R=" ) +
-            to_string( Controlled->MoverParameters->RunningShape.R, 1 );
-        OutText2 += ( " An=" ) + to_string( Controlled->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
-        if( tprev != int( GlobalTime->mr ) ) {
-            tprev = GlobalTime->mr;
-            Acc = ( Controlled->MoverParameters->Vel - VelPrev ) / 3.6;
-            VelPrev = Controlled->MoverParameters->Vel;
-        }
-        OutText2 += ( "; As=" ) + to_string( Acc/*Controlled->MoverParameters->AccS*/, 2 ); // przyspieszenie wzdłużne
-        // OutText2+=AnsiString("; P=")+FloatToStrF(mvControlled->EnginePower,ffFixed,6,1);
-        OutText3 += ( "cyl.ham. " ) +
-            to_string( Controlled->MoverParameters->BrakePress, 2 );
-        OutText3 += ( "; prz.gl. " ) +
-            to_string( Controlled->MoverParameters->PipePress, 2 );
-        OutText3 += ( "; zb.gl. " ) +
-            to_string( Controlled->MoverParameters->CompressedVolume, 2 );
-        // youBy - drugi wezyk
-        OutText3 += ( "; p.zas. " ) +
-            to_string( Controlled->MoverParameters->ScndPipePress, 2 );
 
         if( Controlled->MoverParameters->EngineType == ElectricInductionMotor ) {
-            // glTranslatef(0.0f,0.0f,-0.50f);
-            glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
-            for( int i = 0; i <= 20; i++ ) {
-                glRasterPos2f( -0.25f, 0.16f - 0.01f * i );
-                if( Controlled->MoverParameters->eimc[ i ] < 10 )
-                    OutText4 = to_string( Controlled->MoverParameters->eimc[ i ], 3 );
-                else
-                    OutText4 = to_string( Controlled->MoverParameters->eimc[ i ], 3 );
-/*
-                glPrint( OutText4.c_str() );
-*/
-            }
-            for( int i = 0; i <= 20; i++ ) {
-                glRasterPos2f( -0.2f, 0.16f - 0.01f * i );
-                if( Controlled->MoverParameters->eimv[ i ] < 10 )
-                    OutText4 = to_string( Controlled->MoverParameters->eimv[ i ], 3 );
-                else
-                    OutText4 = to_string( Controlled->MoverParameters->eimv[ i ], 3 );
-/*
-                glPrint( OutText4.c_str() );
-*/
-            }
-            for( int i = 0; i <= 10; i++ ) {
-                glRasterPos2f( -0.15f, 0.16f - 0.01f * i );
-                OutText4 = to_string( Train->fPress[ i ][ 0 ], 3 );
-/*
-                glPrint( OutText4.c_str() );
-*/
-            }
-            for( int i = 0; i <= 8; i++ ) {
-                glRasterPos2f( -0.15f, 0.04f - 0.01f * i );
-                OutText4 = to_string( Controlled->MED[ 0 ][ i ], 3 );
-/*
-                glPrint( OutText4.c_str() );
-*/
-            }
+
             for( int i = 0; i <= 8; i++ ) {
                 for( int j = 0; j <= 9; j++ ) {
                     glRasterPos2f( 0.05f + 0.03f * i, 0.16f - 0.01f * j );
                     OutText4 = to_string( Train->fEIMParams[ i ][ j ], 2 );
-/*
-                    glPrint( OutText4.c_str() );
-*/
                 }
             }
-            OutText4 = "";
-            // glTranslatef(0.0f,0.0f,+0.50f);
-            glColor3f( 1.0f, 0.0f, 0.0f ); // a, damy czerwonym
         }
-
-        // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-        if( mvControlled->ConvOvldFlag )
-            OutText3 += " C! ";
-        else if( mvControlled->FuseFlag )
-            OutText3 += " F! ";
-        else if( !mvControlled->Mains )
-            OutText3 += " () ";
-        else
-            switch( mvControlled->ActiveDir * ( mvControlled->Imin == mvControlled->IminLo ? 1 : 2 ) ) {
-                case 2:
-                {
-                    OutText3 += " >> ";
-                    break;
-                }
-                case 1:
-                {
-                    OutText3 += " -> ";
-                    break;
-                }
-                case 0:
-                {
-                    OutText3 += " -- ";
-                    break;
-                }
-                case -1:
-                {
-                    OutText3 += " <- ";
-                    break;
-                }
-                case -2:
-                {
-                    OutText3 += " << ";
-                    break;
-                }
-        }
-        // McZapkie: predkosc szlakowa
-        if( Controlled->MoverParameters->RunningTrack.Velmax == -1 ) {
-            OutText3 += ( " Vtrack=Vmax" );
-        }
-        else {
-            OutText3 +=
-                ( " Vtrack " ) +
-                to_string( Controlled->MoverParameters->RunningTrack.Velmax, 2 );
-        }
-        //      WriteLog(Controlled->MoverParameters->TrainType.c_str());
-        if( ( mvControlled->EnginePowerSource.SourceType == CurrentCollector ) ||
-            ( mvControlled->TrainType == dt_EZT ) ) {
-            OutText3 +=
-                ( "; pant. " ) + to_string( mvControlled->PantPress, 2 );
-            OutText3 += ( mvControlled->bPantKurek3 ? "=ZG" : "|ZG" );
-        }
-        // McZapkie: komenda i jej parametry
-        if( Controlled->MoverParameters->CommandIn.Command != ( "" ) )
-            OutText4 = ( "C:" ) +
-            ( Controlled->MoverParameters->CommandIn.Command ) +
-            ( " V1=" ) +
-            to_string( Controlled->MoverParameters->CommandIn.Value1, 0 ) +
-            ( " V2=" ) +
-            to_string( Controlled->MoverParameters->CommandIn.Value2, 0 );
-        if( Controlled->Mechanik && ( Controlled->Mechanik->AIControllFlag == AIdriver ) )
-            OutText4 +=
-            ( "AI: Vd=" ) +
-            to_string( Controlled->Mechanik->VelDesired, 0 ) + ( " ad=" ) +
-            to_string( Controlled->Mechanik->AccDesired, 2 ) + ( " Pd=" ) +
-            to_string( Controlled->Mechanik->ActualProximityDist, 0 ) +
-            ( " Vn=" ) + to_string( Controlled->Mechanik->VelNext, 0 );
     }
+#endif
 
     // update the ui header texts
     auto &headerdata = UIHeader->text_lines;
@@ -2251,6 +2191,58 @@ void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
         if (Train->Dynamic() == old)
             Global::changeDynObj = now; // uruchomienie protezy
 };
+
+void TWorld::ChangeDynamic() {
+
+    // Ra: to nie może być tak robione, to zbytnia proteza jest
+    Train->Silence(); // wyłączenie dźwięków opuszczanej kabiny
+    if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
+        if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
+        { // jeśli prowadzi AI, to mu nie robimy dywersji!
+            Train->Dynamic()->MoverParameters->CabDeactivisation();
+            Train->Dynamic()->Controller = AIdriver;
+            // Train->Dynamic()->MoverParameters->SecuritySystem.Status=0; //rozwala CA w EZT
+            Train->Dynamic()->MoverParameters->ActiveCab = 0;
+            Train->Dynamic()->MoverParameters->BrakeLevelSet(
+                Train->Dynamic()->MoverParameters->Handle->GetPos(
+                bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
+            Train->Dynamic()->MechInside = false;
+        }
+    TDynamicObject *temp = Global::changeDynObj;
+    Train->Dynamic()->bDisplayCab = false;
+    Train->Dynamic()->ABuSetModelShake( vector3( 0, 0, 0 ) );
+
+    if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
+        if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
+            Train->Dynamic()->Mechanik->MoveTo( temp ); // przsunięcie obiektu zarządzającego
+
+    Train->DynamicSet( temp );
+    Controlled = temp;
+    mvControlled = Controlled->ControlledFind()->MoverParameters;
+    Global::asHumanCtrlVehicle = Train->Dynamic()->GetName();
+    if( Train->Dynamic()->Mechanik ) // AI może sobie samo pójść
+        if( !Train->Dynamic()->Mechanik->AIControllFlag ) // tylko jeśli ręcznie prowadzony
+        {
+            Train->Dynamic()->MoverParameters->LimPipePress =
+                Controlled->MoverParameters->PipePress;
+            Train->Dynamic()
+                ->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+            Train->Dynamic()->Controller = Humandriver;
+            Train->Dynamic()->MechInside = true;
+        }
+    Train->InitializeCab( Train->Dynamic()->MoverParameters->CabNo,
+        Train->Dynamic()->asBaseDir +
+        Train->Dynamic()->MoverParameters->TypeName + ".mmd" );
+    if( !FreeFlyModeFlag ) {
+        Global::pUserDynamic = Controlled; // renerowanie względem kamery
+        Train->Dynamic()->bDisplayCab = true;
+        Train->Dynamic()->ABuSetModelShake(
+            vector3( 0, 0, 0 ) ); // zerowanie przesunięcia przed powrotem?
+        Train->MechStop();
+        FollowView(); // na pozycję mecha
+    }
+    Global::changeDynObj = NULL;
+}
 //---------------------------------------------------------------------------
 
 void

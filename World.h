@@ -96,6 +96,8 @@ class TWorld
     void ModifyTGA(std::string const &dir = "");
     void CreateE3D(std::string const &dir = "", bool dyn = false);
     void CabChange(TDynamicObject *old, TDynamicObject *now);
+    // handles vehicle change flag
+    void ChangeDynamic();
 };
 
 //---------------------------------------------------------------------------

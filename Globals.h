@@ -200,11 +200,7 @@ class Global
     static TGround *pGround;
     static std::string szDefaultExt;
     static std::string SceneryFile;
-    static char CreatorName1[20];
-    static char CreatorName2[20];
-    static char CreatorName3[20];
-    static char CreatorName4[30];
-    static char CreatorName5[30];
+    static std::string AppName;
     static std::string asCurrentSceneryPath;
     static std::string asCurrentTexturePath;
     static std::string asCurrentDynamicPath;
@@ -255,6 +251,7 @@ class Global
     static int iDynamicFiltering; // domyślne rozmywanie tekstur pojazdów
     static int iReCompile; // zwiększany, gdy trzeba odświeżyć siatki
     static bool bUseVBO; // czy jest VBO w karcie graficznej
+    static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
     static double fLuminance; // jasność światła do automatycznego zapalania

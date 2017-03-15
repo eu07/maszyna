@@ -28,11 +28,7 @@ http://mozilla.org/MPL/2.0/.
 // parametry do użytku wewnętrznego
 // double Global::tSinceStart=0;
 TGround *Global::pGround = NULL;
-// char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz <McZapkie>";
-// char Global::CreatorName2[30]="2001-2003 Marcin Woźniak <Marcin_EU>";
-// char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
-// char Global::CreatorName4[30]="2004 Arkadiusz Ślusarczyk <Winger>";
-// char Global::CreatorName5[30]="2003-2009 Łukasz Kirchner <Nbmx>";
+std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
 std::string Global::asCurrentDynamicPath = "";
@@ -143,6 +139,7 @@ int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
 int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
 int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
 bool Global::bUseVBO = false; // czy jest VBO w karcie graficznej (czy użyć)
+std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 16384; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
