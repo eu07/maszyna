@@ -140,12 +140,12 @@ BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
 }
 */
 
-bool TWorld::Init( GLFWwindow *w ) {
+bool TWorld::Init( GLFWwindow *Window ) {
 
     auto timestart = std::chrono::system_clock::now();
 
-    window = w;
-    Global::window = w; // do WM_COPYDATA
+    window = Window;
+    Global::window = Window; // do WM_COPYDATA
     Global::pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
 
     WriteLog("\nStarting MaSzyna rail vehicle simulator.");
@@ -374,7 +374,7 @@ void TWorld::OnKeyDown(int cKey)
                 if( DebugModeFlag ) { 
 
                     if( Global::ctrlState ) { Global::fTimeSpeed = ( Global::shiftState ? 60.0 : 20.0 ); }
-                    else                                 { Global::fTimeSpeed = ( Global::shiftState ? 5.0 : 1.0 ); }
+                    else                    { Global::fTimeSpeed = ( Global::shiftState ? 5.0 : 1.0 ); }
                 }
                 break;
             }
@@ -1531,7 +1531,6 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F3 ) : {
             // timetable
-
             TDynamicObject *tmp =
                 ( FreeFlyModeFlag ?
                     Ground.DynamicNearest( Camera.Pos ) :
@@ -1565,7 +1564,7 @@ TWorld::Update_UI() {
                 UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", linecolor );
 
                 TMTableLine *tableline;
-                for( int i = tmp->Mechanik->iStationStart; i <= std::min(15, table->StationCount); ++i ) {
+                for( int i = tmp->Mechanik->iStationStart; i <= std::min( tmp->Mechanik->iStationStart + 15, table->StationCount ); ++i ) {
                     // wyświetlenie pozycji z rozkładu
                     tableline = table->TimeTable + i; // linijka rozkładu
 
@@ -1598,9 +1597,60 @@ TWorld::Update_UI() {
             break;
         }
 
+        case( GLFW_KEY_F8 ) : {
+
+            OutText1 =
+                "Draw range x " + to_string( Global::fDistanceFactor, 1 )
+                + "; FPS: " + to_string( Timer::GetFPS(), 2 );
+            if( Global::iSlowMotion ) {
+                OutText1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
+            }
+            OutText1 +=
+                ", sectors: " + to_string( Ground.iRendered )
+                + "/" + to_string( Global::iSegmentsRendered )
+                + "; FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
+
+            break;
+        }
+
+        case( GLFW_KEY_F9 ) : {
+            // informacja o wersji, sposobie wyświetlania i błędach OpenGL
+            OutText1 = Global::asVersion; // informacja o wersji
+            if( Global::iMultiplayer ) {
+                OutText1 += " (multiplayer mode is active)";
+            }
+
+            OutText2 =
+                std::string("Rendering mode: ")
+                + ( Global::bUseVBO ?
+                    "VBO" :
+                    "Display Lists" );
+
+            GLenum glerror = glGetError();
+            if( glerror != GL_NO_ERROR ) {
+                // dump last opengl error, if any
+                OutText3 =
+                    "OpenGL error "
+                    + to_string( glerror )
+                    + ": "
+                    + Global::Bezogonkow( ( (char *)gluErrorString( glerror ) ) );
+            }
+
+            break;
+        }
+
         case( GLFW_KEY_F10 ) : {
 
             OutText1 = ( "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y]." );
+            break;
+        }
+
+        case( GLFW_KEY_F12 ) : {
+            // opcje włączenia i wyłączenia logowania
+            OutText1 = "[0] Debugmode " + std::string( DebugModeFlag ? "(on)" : "(off)" );
+            OutText2 = "[1] log.txt " + std::string( ( Global::iWriteLogEnabled & 1 ) ? "(on)" : "(off)" );
+            OutText3 = "[2] Console " + std::string( ( Global::iWriteLogEnabled & 2 ) ? "(on)" : "(off)" );
+
             break;
         }
 
@@ -1608,7 +1658,6 @@ TWorld::Update_UI() {
             // uncovered cases, nothing to do here
             break;
         }
-
     }
 
 
@@ -1623,14 +1672,6 @@ TWorld::Update_UI() {
         OutText1 += Global::iSlowMotion ? "(s)" : "(n)";
 
         OutText1 += ( Timer::GetDeltaTime() >= 0.2 ) ? "!" : " ";
-    }
-    if( Global::iTextMode == GLFW_KEY_F8 ) {
-        OutText1 = "Draw range x " + to_string( Global::fDistanceFactor, 1 ) + "; FPS: " + to_string( Timer::GetFPS(), 2 );
-        //OutText1 += sprintf();
-        if( Global::iSlowMotion )
-            OutText1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
-        OutText1 += ", sectors: " + to_string( Ground.iRendered ) + "/" + to_string( Global::iSegmentsRendered );
-        OutText1 += "; FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
     }
     if( Global::changeDynObj ) { // ABu zmiana pojazdu - przejście do innego
         // Ra: to nie może być tak robione, to zbytnia proteza jest
@@ -1684,236 +1725,12 @@ TWorld::Update_UI() {
         Global::changeDynObj = NULL;
     }
 
-    glDepthFunc( GL_ALWAYS );
-    glDisable( GL_LIGHTING );
     if( Controlled )
         glfwSetWindowTitle( window, Controlled->MoverParameters->Name.c_str() );
     else
         glfwSetWindowTitle( window, Global::SceneryFile.c_str() ); // nazwa scenerii
-    GfxRenderer.Bind( 0 );
-    glColor4f( 1.0f, 0.0f, 0.0f, 1.0f );
-    glLoadIdentity();
-    glTranslatef( 0.0f, 0.0f, -0.50f );
 
-    if( Global::iTextMode == GLFW_KEY_F1 ) { // tekst pokazywany po wciśnięciu [F1]
-#ifdef EU07_OLD_UI_RENDERING
-        // Global::iViewMode=VK_F1;
-        glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy białym
-        OutText1 =
-            "Time: "
-            + to_string( (int)GlobalTime->hh ) + ":"
-            + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
-            + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
-        if( Global::iPause )
-            OutText1 += " - paused";
-        if( Controlled )
-            if( Controlled->Mechanik ) {
-                OutText2 = Controlled->Mechanik->Relation();
-                if( !OutText2.empty() ) // jeśli jest podana relacja, to dodajemy punkt następnego
-                    // zatrzymania
-                    OutText2 =
-                    Global::Bezogonkow( OutText2 + ": -> " + Controlled->Mechanik->NextStop(),
-                    true ); // dopisanie punktu zatrzymania
-            }
-        OutText3 = ""; // Pomoc w sterowaniu - [F9]";
-#endif
-    }
-    else if( Global::iTextMode == GLFW_KEY_F12 ) { // opcje włączenia i wyłączenia logowania
-        OutText1 = "[0] Debugmode " + std::string( DebugModeFlag ? "(on)" : "(off)" );
-        OutText2 = "[1] log.txt " + std::string( ( Global::iWriteLogEnabled & 1 ) ? "(on)" : "(off)" );
-        OutText3 = "[2] Console " + std::string( ( Global::iWriteLogEnabled & 2 ) ? "(on)" : "(off)" );
-    }
-    else if( Global::iTextMode == GLFW_KEY_F2 ) { // ABu: info dla najblizszego pojazdu!
-#ifdef EU07_OLD_UI_RENDERING
-        TDynamicObject *tmp = FreeFlyModeFlag ? Ground.DynamicNearest( Camera.Pos ) :
-            Controlled; // w trybie latania lokalizujemy wg mapy
-        if( tmp ) {
-            if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 0 ) { // jeśli domyślny ekran po pierwszym naciśnięciu
-                OutText3 = "";
-                OutText1 = "Vehicle name: " + tmp->MoverParameters->Name;
-                if( tmp->Mechanik ) // jeśli jest prowadzący
-                { // ostatnia komenda dla AI
-                    OutText1 += ", command: " + tmp->Mechanik->OrderCurrent();
-                }
-                else if( tmp->ctOwner )
-                    OutText1 += ", owned by " + tmp->ctOwner->OwnerName();
-                if( !tmp->MoverParameters->CommandLast.empty() )
-                    OutText1 += ", put: " + tmp->MoverParameters->CommandLast;
-                OutText2 = "Damage status: " +
-                    tmp->MoverParameters->EngineDescription( 0 ); //+" Engine status: ";
-                OutText2 += "; Brake delay: ";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
-                    OutText2 += "G";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
-                    OutText2 += "P";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
-                    OutText2 += "R";
-                if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
-                    OutText2 += "+Mg";
-                OutText2 += ", BTP:" +
-                    to_string( tmp->MoverParameters->LoadFlag, 0 );
-                {
-                    OutText2 += "; pant. " +
-                        to_string( tmp->MoverParameters->PantPress, 2 );
-                    OutText2 += ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
-                }
-                OutText2 += ", MED:" +
-                    to_string( tmp->MoverParameters->LocalBrakePosA, 2 );
-                OutText2 += "+" +
-                    to_string( tmp->MoverParameters->AnPos, 2 );
-                OutText2 += ", Ft:" +
-                    to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
-                OutText2 += ", HV0:" +
-                    to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 );
-                OutText2 += "@" +
-                    to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
-                OutText2 += "+HV1:" +
-                    to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 );
-                OutText2 += "@" +
-                    to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
-                OutText2 += " TC:" +
-                    to_string( tmp->MoverParameters->TotalCurrent, 0 );
-                OutText3 = ( "BP: " ) +
-                    to_string( tmp->MoverParameters->BrakePress, 2 ) +
-                    ( ", " );
-                OutText3 += to_string( tmp->MoverParameters->BrakeStatus, 0 ) +
-                    ( ", " );
-                OutText3 += ( "PP: " ) +
-                    to_string( tmp->MoverParameters->PipePress, 2 ) +
-                    ( "/" );
-                OutText3 += to_string( tmp->MoverParameters->ScndPipePress, 2 ) +
-                    ( "/" );
-                OutText3 += to_string( tmp->MoverParameters->EqvtPipePress, 2 ) +
-                    ( ", " );
-                OutText3 += ( "BVP: " ) +
-                    to_string( tmp->MoverParameters->Volume, 3 ) +
-                    ( ", " );
-                OutText3 += to_string( tmp->MoverParameters->CntrlPipePress, 3 ) +
-                    ( ", " );
-                OutText3 += to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 ) +
-                    ( ", " );
-                OutText3 += to_string( tmp->MoverParameters->BrakeStatus, 0 ) +
-                    ( ", " );
-                if( tmp->MoverParameters->ManualBrakePos > 0 )
-                    OutText3 += ( "manual brake active. " );
-                else if( tmp->MoverParameters->LocalBrakePos > 0 )
-                    OutText3 += ( "local brake active. " );
-                else
-                    OutText3 += ( "local brake inactive. " );
-                OutText4 = "";
-                if( tmp->Mechanik ) { // o ile jest ktoś w środku
-                    // OutText4=tmp->Mechanik->StopReasonText();
-                    // if (!OutText4.IsEmpty()) OutText4+="; "; //aby ładniejszy odstęp był
-                    // if (Controlled->Mechanik && (Controlled->Mechanik->AIControllFlag==AIdriver))
-                    std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
-                    for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
-                        if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
-                            flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
-                    OutText4 = flags;
-                    OutText4 +=
-                        ( "Driver: Vd=" ) +
-                        to_string( tmp->Mechanik->VelDesired, 0 ) + ( " ad=" ) +
-                        to_string( tmp->Mechanik->AccDesired, 2 ) + ( " Pd=" ) +
-                        to_string( tmp->Mechanik->ActualProximityDist, 0 ) +
-                        ( " Vn=" ) + to_string( tmp->Mechanik->VelNext, 0 ) +
-                        ( " VSm=" ) + to_string( tmp->Mechanik->VelSignalLast, 0 ) +
-                        ( " VLm=" ) + to_string( tmp->Mechanik->VelLimitLast, 0 ) +
-                        ( " VRd=" ) + to_string( tmp->Mechanik->VelRoad, 0 );
-                    if( tmp->Mechanik->VelNext == 0.0 )
-                        if( tmp->Mechanik->eSignNext ) { // jeśli ma zapamiętany event semafora
-                            // if (!OutText4.IsEmpty()) OutText4+=", "; //aby ładniejszy odstęp był
-                            OutText4 += " (" +
-                                Global::Bezogonkow( tmp->Mechanik->eSignNext->asName ) +
-                                ")"; // nazwa eventu semafora
-                        }
-                }
-                if( !OutText4.empty() )
-                    OutText4 += "; "; // aby ładniejszy odstęp był
-                // informacja o sprzęgach nawet bez mechanika
-                OutText4 +=
-                    "C0=" + ( tmp->PrevConnected ?
-                    tmp->PrevConnected->GetName() + ":" +
-                    to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
-                    std::string( "NULL" ) );
-                OutText4 +=
-                    " C1=" + ( tmp->NextConnected ?
-                    tmp->NextConnected->GetName() + ":" +
-                    to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
-                    std::string( "NULL" ) );
-                if( Console::Pressed( GLFW_KEY_F2 ) ) {
-                    WriteLog( OutText1 );
-                    WriteLog( OutText2 );
-                    WriteLog( OutText3 );
-                    WriteLog( OutText4 );
-                }
-            } // koniec treści podstawowego ekranu FK_V2
-            else { // ekran drugi, czyli tabelka skanowania AI
-                if( tmp->Mechanik ) //żeby była tabelka, musi być AI
-                { // tabelka jest na użytek testujących scenerie, więc nie musi być "ładna"
-                    glColor3f( 1.0f, 1.0f, 1.0f ); // a, damy zielony. GF: jednak biały
-                    // glTranslatef(0.0f,0.0f,-0.50f);
-                    glRasterPos2f( -0.25f, 0.20f );
-                    // OutText1="Scan distance: "+AnsiString(tmp->Mechanik->scanmax)+", back:
-                    // "+AnsiString(tmp->Mechanik->scanback);
-                    OutText1 = "Time: " + to_string( (int)GlobalTime->hh ) + ":";
-                    int i = GlobalTime->mm; // bo inaczej potrafi zrobić "hh:010"
-                    if( i < 10 )
-                        OutText1 += "0";
-                    OutText1 += to_string( i ); // minuty
-                    OutText1 += ":";
-                    i = floor( GlobalTime->mr ); // bo inaczej potrafi zrobić "hh:mm:010"
-                    if( i < 10 )
-                        OutText1 += "0";
-                    OutText1 += to_string( i );
-                    OutText1 +=
-                        ( ". Vel: " ) + to_string( tmp->GetVelocity(), 1 );
-                    OutText1 += ". Scan table:";
-                    glPrint( Global::Bezogonkow( OutText1 ).c_str() );
-                    i = -1;
-                    while( ( OutText1 = tmp->Mechanik->TableText( ++i ) ) != "" ) { // wyświetlenie pozycji z tabelki
-                        glRasterPos2f( -0.25f, 0.19f - 0.01f * i );
-                        glPrint( Global::Bezogonkow( OutText1 ).c_str() );
-                    }
-                    // podsumowanie sensu tabelki
-                    OutText4 =
-                        ( "Driver: Vd=" ) +
-                        to_string( tmp->Mechanik->VelDesired, 0 ) + ( " ad=" ) +
-                        to_string( tmp->Mechanik->AccDesired, 2 ) + ( " Pd=" ) +
-                        to_string( tmp->Mechanik->ActualProximityDist, 0 ) +
-                        ( " Vn=" ) + to_string( tmp->Mechanik->VelNext, 0 ) +
-                        ( "\n VSm=" ) + to_string( tmp->Mechanik->VelSignalLast, 0 ) +
-                        ( " VLm=" ) + to_string( tmp->Mechanik->VelLimitLast, 0 ) +
-                        ( " VRd=" ) + to_string( tmp->Mechanik->VelRoad, 0 ) +
-                        ( " VSig=" ) + to_string( tmp->Mechanik->VelSignal, 0 );
-                    if( tmp->Mechanik->VelNext == 0.0 )
-                        if( tmp->Mechanik->eSignNext ) { // jeśli ma zapamiętany event semafora
-                            // if (!OutText4.IsEmpty()) OutText4+=", "; //aby ładniejszy odstęp był
-                            OutText4 += " (" +
-                                Global::Bezogonkow( tmp->Mechanik->eSignNext->asName ) +
-                                ")"; // nazwa eventu semafora
-                        }
-                    glRasterPos2f( -0.25f, 0.19f - 0.01f * i );
-                    glPrint( Global::Bezogonkow( OutText4 ).c_str() );
-                }
-            } // koniec ekanu skanowania
-        } // koniec obsługi, gdy mamy wskaźnik do pojazdu
-        else { // wyświetlenie współrzędnych w scenerii oraz kąta kamery, gdy nie mamy wskaźnika
-            OutText1 = "Camera position: " + to_string( Camera.Pos.x, 2 ) + " " +
-                to_string( Camera.Pos.y, 2 ) + " " +
-                to_string( Camera.Pos.z, 2 );
-            OutText1 += ", azimuth: " +
-                to_string( 180.0 - RadToDeg( Camera.Yaw ), 0 ); // ma być azymut, czyli 0 na północy i rośnie na wschód
-            OutText1 +=
-                " " +
-                std::string( "S SEE NEN NWW SW" )
-                .substr( 0 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
-            // current luminance level
-            OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
-            if( Global::FakeLight ) { OutText2 += "(*)"; }
-        }
-#endif
-    } // koniec treści podstawowego ekranu FK_V2
-    else if( Global::iTextMode == GLFW_KEY_F5 ) { // przesiadka do innego pojazdu
+    if( Global::iTextMode == GLFW_KEY_F5 ) { // przesiadka do innego pojazdu
         if( FreeFlyModeFlag ) // jeśli tryb latania
         {
             TDynamicObject *tmp = Ground.DynamicNearest( Camera.Pos, 50, true ); //łapiemy z obsadą
@@ -2115,23 +1932,6 @@ TWorld::Update_UI() {
             to_string( Controlled->Mechanik->AccDesired, 2 ) + ( " Pd=" ) +
             to_string( Controlled->Mechanik->ActualProximityDist, 0 ) +
             ( " Vn=" ) + to_string( Controlled->Mechanik->VelNext, 0 );
-    }
-
-    // ABu 150205: prosty help, zeby sie na forum nikt nie pytal, jak ma ruszyc :)
-
-    // if (Console::Pressed(VK_F9)) ShowHints(); //to nie działa prawidłowo - prosili wyłączyć
-    if( Global::iTextMode == GLFW_KEY_F9 ) { // informacja o wersji, sposobie wyświetlania i błędach OpenGL
-        // Global::iViewMode=VK_F9;
-        OutText1 = Global::asVersion; // informacja o wersji
-        OutText2 = std::string( "Rendering mode: " ) + ( Global::bUseVBO ? "VBO" : "Display Lists" );
-        if( Global::iMultiplayer )
-            OutText2 += ". Multiplayer is active";
-        OutText2 += ".";
-        GLenum err = glGetError();
-        if( err != GL_NO_ERROR ) {
-            OutText3 = "OpenGL error " + to_string( err ) + ": " +
-                Global::Bezogonkow( ( (char *)gluErrorString( err ) ) );
-        }
     }
 
     // update the ui header texts

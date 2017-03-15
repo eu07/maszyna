@@ -111,8 +111,7 @@ vector3 TCamera::GetDirection()
 
     return (Normalize(Vec));
 }
-
-// bool TCamera::GetMatrix(matrix4x4 &Matrix)
+/*
 bool TCamera::SetMatrix()
 {
     glRotated( -Roll * 180.0f / M_PI, 0, 0, 1 ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
@@ -133,7 +132,7 @@ bool TCamera::SetMatrix()
     Global::SetCameraPosition(Pos); // było +pOffset
     return true;
 }
-
+*/
 bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
 
     Matrix = glm::rotate( Matrix, (float)-Roll, glm::vec3( 0.0f, 0.0f, 1.0f ) ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
@@ -142,7 +141,7 @@ bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
 
     if( Type == tp_Follow ) {
 
-        Matrix = glm::lookAt(
+        Matrix *= glm::lookAt(
             glm::vec3( Pos.x, Pos.y, Pos.z ),
             glm::vec3( LookAt.x, LookAt.y, LookAt.z ),
             glm::vec3( vUp.x, vUp.y, vUp.z ) );
@@ -151,6 +150,7 @@ bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
         Matrix = glm::translate( Matrix, glm::vec3( -Pos.x, -Pos.y, -Pos.z ) ); // nie zmienia kierunku patrzenia
     }
 
+    Global::SetCameraPosition( Pos ); // było +pOffset
     return true;
 }
 

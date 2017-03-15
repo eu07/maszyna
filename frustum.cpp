@@ -14,26 +14,15 @@ void
 cFrustum::calculate( glm::mat4 &Projection, glm::mat4 &Modelview ) {
 /*
     float proj[ 16 ];
-*/
     float modl[ 16 ];
-
-    float *proj = &Projection[ 0 ][ 0 ];
-/*
-    float *modl = &Modelview[ 0 ][ 0 ];
 */
+    float *proj = &Projection[ 0 ][ 0 ];
+    float *modl = &Modelview[ 0 ][ 0 ];
     float clip[ 16 ];
 /*
     glGetFloatv( GL_PROJECTION_MATRIX, proj );
-*/
     glGetFloatv( GL_MODELVIEW_MATRIX, modl );
-
-    glm::mat4 modelview = glm::make_mat4( modl );
-    for( int col = 0; col < 4; ++col )
-        for( int row = 0; row < 4; ++row ) {
-
-            auto difference = modelview[ col ][ row ] - Modelview[ col ][ row ];
-//            assert( difference <= 0.01f );
-        }
+*/
 
     // multiply the matrices to retrieve clipping planes
     clip[ 0 ] = modl[ 0 ] * proj[ 0 ] + modl[ 1 ] * proj[ 4 ] + modl[ 2 ] * proj[ 8 ] + modl[ 3 ] * proj[ 12 ];

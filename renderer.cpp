@@ -130,7 +130,7 @@ opengl_renderer::Render() {
     ::glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
     glm::mat4 projection = glm::perspective(
         Global::FieldOfView / Global::ZoomFactor * 0.0174532925f,
-        (float)Global::ScreenWidth / std::max( (float)Global::ScreenHeight, 1.0f ),
+        std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ),
         0.1f * Global::ZoomFactor,
         m_drawrange * Global::fDistanceFactor );
     ::glLoadMatrixf( &projection[0][0] );
@@ -142,12 +142,7 @@ opengl_renderer::Render() {
     if( World.InitPerformed() ) {
 
         World.Camera.SetMatrix( modelview );
-        World.Camera.SetMatrix(); // ustawienie macierzy kamery względem początku scenerii
-/*
-        // NOTE: something in the cab mode render interferes with straightforward opengl matrix setup here
-        // until it's sorted out, we're relying on direct matrix configuration through setmatrix() variant
         ::glLoadMatrixf( &modelview[ 0 ][ 0 ] );
-*/
         m_camera.update_frustum( projection, modelview );
 
         if( !Global::bWireFrame ) {

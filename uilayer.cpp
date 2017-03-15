@@ -43,11 +43,16 @@ ui_layer::init( GLFWwindow *Window ) {
                         DEFAULT_PITCH | FF_DONTCARE, // family and pitch
                         "Lucida Console"); // font name
     ::SelectObject(hDC, font); // selects the font we want
-    ::wglUseFontBitmapsA(hDC, 32, 96, m_fontbase); // builds 96 characters starting at character 32
-    WriteLog("Display Lists font used"); //+AnsiString(glGetError())
-    WriteLog("Font init OK"); //+AnsiString(glGetError())
-
-    return true;
+    if( true == ::wglUseFontBitmaps( hDC, 32, 96, m_fontbase ) ) {
+        // builds 96 characters starting at character 32
+        WriteLog( "Display Lists font used" ); //+AnsiString(glGetError())
+        WriteLog( "Font init OK" ); //+AnsiString(glGetError())
+        return true;
+    }
+    else {
+        ErrorLog( "Font init failed" );
+        return false;
+    }
 }
 
 void
@@ -136,7 +141,7 @@ ui_layer::render_panels() {
     glPushAttrib( GL_ENABLE_BIT );
     glDisable( GL_TEXTURE_2D );
 
-    float const width = ( 4.0f / 3.0f ) * Global::iWindowHeight;
+    float const width = std::min( 4.0f / 3.0f, static_cast<float>(Global::iWindowWidth) / Global::iWindowHeight ) * Global::iWindowHeight;
     float const height = Global::iWindowHeight / 768.0;
 
     for( auto const &panel : m_panels ) {
@@ -187,17 +192,25 @@ ui_layer::print( std::string const &Text )
 void
 ui_layer::quad( float4 const &Coordinates, float4 const &Color ) {
 
-    float const width = ( 4.0f / 3.0f ) * Global::iWindowHeight;
-    float const height = Global::iWindowHeight / 768.0;
+    float const screenratio = static_cast<float>( Global::iWindowWidth ) / Global::iWindowHeight;
+    float const width =
+        ( screenratio >= (4.0f/3.0f) ?
+            ( 4.0f / 3.0f ) * Global::iWindowHeight :
+            Global::iWindowWidth );
+    float const heightratio =
+        ( screenratio >= ( 4.0f / 3.0f ) ?
+            Global::iWindowHeight / 768.0 :
+            Global::iWindowHeight / 768.0 * screenratio / ( 4.0f / 3.0f ) );
+    float const height = 768.0f * heightratio;
 
     glColor4fv(&Color.x);
 
     glBegin( GL_TRIANGLE_STRIP );
 
-    glTexCoord2f( 0.0f, 1.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.x * height, Coordinates.y * height );
-    glTexCoord2f( 0.0f, 0.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.x * height, Coordinates.w * height );
-    glTexCoord2f( 1.0f, 1.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.z * height, Coordinates.y * height );
-    glTexCoord2f( 1.0f, 0.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.z * height, Coordinates.w * height );
+    glTexCoord2f( 0.0f, 1.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5 * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
+    glTexCoord2f( 0.0f, 0.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5 * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
+    glTexCoord2f( 1.0f, 1.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5 * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
+    glTexCoord2f( 1.0f, 0.0f ); glVertex2f( 0.5 * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5 * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
 
     glEnd();
 }
