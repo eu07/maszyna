@@ -70,7 +70,6 @@ bool TPoKeys55::Connect()
     PBYTE PropertyValueBuffer;
     bool MatchFound;
     DWORD ErrorStatus;
-    HDEVINFO hDevInfo;
     std::string DeviceIDFromRegistry;
     std::string DeviceIDToFind = "Vid_1dc3&Pid_1001&Rev_1000&MI_01";
     // First populate a list of plugged in devices (by specifying "DIGCF_PRESENT"), which are of the

@@ -303,8 +303,8 @@ bool TTrackFollower::ComputatePosition()
     return false;
 }
 #if RENDER_CONE
-#include "opengl/glew.h"
-#include "opengl/glut.h"
+#include "GL/glew.h"
+#include "GL/glut.h"
 void TTrackFollower::Render(float fNr)
 { // funkcja rysująca stożek w miejscu osi
     glPushMatrix(); // matryca kamery

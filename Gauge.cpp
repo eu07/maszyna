@@ -60,7 +60,7 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
             do
             { // pętla po submodelach potomnych i obracanie ich o kąt zależy od
                 // cyfry w (fValue)
-                if (sm->pName)
+                if (sm->pName.size())
                 { // musi mieć niepustą nazwę
                     if (sm->pName[0] >= '0')
                         if (sm->pName[0] <= '9')
@@ -98,7 +98,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul)
         Init(sm, gt_Digital, val3, val4, val5);
     else
         Init(sm, gt_Rotate, val3, val4, val5);
-    return (md2); // true, gdy podany model zewnętrzny, a w kabinie nie było
+    return md2 != nullptr; // true, gdy podany model zewnętrzny, a w kabinie nie było
 };
 
 void TGauge::PermIncValue(double fNewDesired)
@@ -175,14 +175,16 @@ void TGauge::Update()
 */			std::string n( "000000000" + std::to_string( static_cast<int>( std::floor( fValue ) ) ) );
 			if( n.length() > 10 ) { n.erase( 0, n.length() - 10 ); } // also dumb but should work for now
             do
-            { // pętla po submodelach potomnych i obracanie ich o kąt zależy od
-                // cyfry w (fValue)
-                if (sm->pName)
-                { // musi mieć niepustą nazwę
-                    if (sm->pName[0] >= '0')
-                        if (sm->pName[0] <= '9')
-                            sm->SetRotate(float3(0, 1, 0),
-                                          -36.0 * (n['0' + 10 - sm->pName[0]] - '0'));
+            { // pętla po submodelach potomnych i obracanie ich o kąt zależy od cyfry w (fValue)
+                if( sm->pName.size() ) {
+                    // musi mieć niepustą nazwę
+                    if( ( sm->pName[ 0 ] >= '0' )
+                     && ( sm->pName[ 0 ] <= '9' ) ) {
+
+                        sm->SetRotate(
+                            float3( 0, 1, 0 ),
+                            -36.0 * ( n[ '0' + 9 - sm->pName[ 0 ] ] - '0' ) );
+                    }
                 }
                 sm = sm->NextGet();
             } while (sm);

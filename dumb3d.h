@@ -83,7 +83,8 @@ class vector3
 
     void inline Normalize();
     void inline SafeNormalize();
-    double inline Length();
+    double inline Length() const;
+    double inline LengthSquared() const;
     void inline Zero()
     {
         x = y = z = 0.0;
@@ -415,6 +416,11 @@ inline vector3 CrossProduct(const vector3 &v1, const vector3 &v2)
     return vector3(v1.y * v2.z - v1.z * v2.y, v2.x * v1.z - v2.z * v1.x, v1.x * v2.y - v1.y * v2.x);
 }
 
+inline vector3 Interpolate( vector3 const &First, vector3 const &Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
 inline vector3 operator*(const matrix4x4 &m, const vector3 &v)
 {
     return vector3(v.x * m[0][0] + v.y * m[1][0] + v.z * m[2][0] + m[3][0],
@@ -430,9 +436,14 @@ void inline vector3::Normalize()
     z *= il;
 }
 
-double inline vector3::Length()
+double inline vector3::Length() const
 {
     return SQRT_FUNCTION(x * x + y * y + z * z);
+}
+
+double inline vector3::LengthSquared() const {
+
+    return ( x * x + y * y + z * z );
 }
 
 inline bool operator==(const matrix4x4 &m1, const matrix4x4 &m2)

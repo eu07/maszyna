@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "PyInt.h"
+#include "renderer.h"
 #include "Train.h"
 #include "Logs.h"
 //#include <process.h>
@@ -13,7 +14,10 @@ TPythonInterpreter *TPythonInterpreter::_instance = NULL;
 TPythonInterpreter::TPythonInterpreter()
 {
     WriteLog("Loading Python ...");
-    Py_SetPythonHome("python");
+	if (sizeof(void*) == 8)
+		Py_SetPythonHome("python64");
+	else
+		Py_SetPythonHome("python");
     Py_Initialize();
     _main = PyImport_ImportModule("__main__");
     if (_main == NULL)
@@ -63,7 +67,7 @@ bool TPythonInterpreter::loadClassFile( std::string const &lookupPath, std::stri
             long fsize = ftell(sourceFile);
             char *buffer = (char *)calloc(fsize + 1, sizeof(char));
             fseek(sourceFile, 0, SEEK_SET);
-            long freaded = fread(buffer, sizeof(char), fsize, sourceFile);
+            size_t freaded = fread(buffer, sizeof(char), fsize, sourceFile);
             buffer[freaded] = 0; // z jakiegos powodu czytamy troche mniej i trzczeba dodac konczace
 // zero do bufora (mimo ze calloc teoretycznie powiniene zwrocic
 // wyzerowana pamiec)
@@ -453,7 +457,7 @@ void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &n
         WriteLog( "Python Screen: submodel " + subModelName + " not found - Ignoring screen" );
         return; // nie ma takiego sub modelu w danej kabinie pomijamy
     }
-    int textureId = TextureManager.Texture(subModel->GetTextureId()).id;
+    int textureId = GfxRenderer.Texture(subModel->GetTextureId()).id;
     if (textureId <= 0)
     {
         WriteLog( "Python Screen: invalid texture id " + std::to_string(textureId) + " - Ignoring screen" );

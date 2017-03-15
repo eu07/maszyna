@@ -22,7 +22,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "MdlMngr.h"
 // McZapkie:
-#include "Texture.h"
+#include "renderer.h"
 //---------------------------------------------------------------------------
 TAnimContainer *TAnimModel::acAnimList = NULL;
 
@@ -411,11 +411,6 @@ TAnimModel::TAnimModel()
     pModel = NULL;
     iNumLights = 0;
     fBlinkTimer = 0;
-    ReplacableSkinId[0] = 0;
-    ReplacableSkinId[1] = 0;
-    ReplacableSkinId[2] = 0;
-    ReplacableSkinId[3] = 0;
-    ReplacableSkinId[4] = 0;
     for (int i = 0; i < iMaxNumLights; i++)
     {
         LightsOn[i] = LightsOff[i] = NULL; // normalnie nie ma
@@ -423,9 +418,9 @@ TAnimModel::TAnimModel()
     }
     vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotów egzemplarza
     pAdvanced = NULL; // nie ma zaawansowanej animacji
-    fDark = 0.25; // standardowy próg zaplania
-    fOnTime = 0.66;
-    fOffTime = fOnTime + 0.66;
+    fDark = 0.25f; // standardowy próg zaplania
+    fOnTime = 0.66f;
+    fOffTime = fOnTime + 0.66f;
 }
 
 TAnimModel::~TAnimModel()
@@ -448,19 +443,19 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         "*") // od gwiazdki zaczynają się teksty na wyświetlaczach
         asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
     else if (asReplacableTexture != "none")
-        ReplacableSkinId[1] =
-            TextureManager.GetTextureId( asReplacableTexture, "" );
-    if( ( ReplacableSkinId[ 1 ] != 0 )
-     && ( TextureManager.Texture( ReplacableSkinId[ 1 ] ).has_alpha ) ) {
+        m_materialdata.replacable_skins[1] =
+            GfxRenderer.GetTextureId( asReplacableTexture, "" );
+    if( ( m_materialdata.replacable_skins[ 1 ] != 0 )
+        && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-        iTexAlpha = 0x31310031; 
+        m_materialdata.textures_alpha = 0x31310031;
     }
     else{
         // tekstura nieprzezroczysta - nie renderować w cyklu
-        iTexAlpha = 0x30300030;
+        m_materialdata.textures_alpha = 0x30300030;
     }
     // przezroczystych
-    return (Init(TModelsManager::GetModel(asName.c_str())));
+    return (Init(TModelsManager::GetModel(asName)));
 }
 
 bool TAnimModel::Load(cParser *parser, bool ter)
@@ -546,7 +541,7 @@ TAnimContainer * TAnimModel::GetContainer(char *pName)
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
         // if (pCurrent->GetName()==pName)
-        if (stricmp(pCurrent->NameGet(), pName) == 0)
+		if (std::string(pName) == pCurrent->NameGet())
             return pCurrent;
     return AddContainer(pName);
 }
@@ -587,7 +582,7 @@ void TAnimModel::RaPrepare()
         if (LightsOff[i])
             LightsOff[i]->iVisible = !state;
     }
-    TSubModel::iInstance = (int)this; //żeby nie robić cudzych animacji
+    TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
     TSubModel::pasText = &asText; // przekazanie tekstu do wyświetlacza (!!!! do przemyślenia)
     if (pAdvanced) // jeśli jest zaawansowana animacja
         Advanced(); // wykonać co tam trzeba
@@ -632,8 +627,8 @@ void TAnimModel::RenderAlphaDL(vector3 pPosition, double fAngle)
 int TAnimModel::Flags()
 { // informacja dla TGround, czy ma być w Render, RenderAlpha, czy RenderMixed
     int i = pModel ? pModel->Flags() : 0; // pobranie flag całego modelu
-    if (ReplacableSkinId[1] > 0) // jeśli ma wymienną teksturę 0
-        i |= (i & 0x01010001) * ((iTexAlpha & 1) ? 0x20 : 0x10);
+    if( m_materialdata.replacable_skins[ 1 ] > 0 ) // jeśli ma wymienną teksturę 0
+        i |= (i & 0x01010001) * ((m_materialdata.textures_alpha & 1) ? 0x20 : 0x10);
     // if (ReplacableSkinId[2]>0) //jeśli ma wymienną teksturę 1
     // i|=(i&0x02020002)*((iTexAlpha&1)?0x10:0x08);
     // if (ReplacableSkinId[3]>0) //jeśli ma wymienną teksturę 2
@@ -651,15 +646,16 @@ void TAnimModel::RenderDL(vector3 *vPosition)
 {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
-    if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->Render(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
+    if( pModel ) // renderowanie rekurencyjne submodeli
+        GfxRenderer.Render( pModel, Material(), *vPosition, vAngle );
 };
 void TAnimModel::RenderAlphaDL(vector3 *vPosition)
 {
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RenderAlpha(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
+        GfxRenderer.Render_Alpha( pModel, Material(), *vPosition, vAngle );
 };
+/*
 void TAnimModel::RenderVBO(vector3 *vPosition)
 {
     RaAnimate(); // jednorazowe przeliczenie animacji
@@ -673,6 +669,7 @@ void TAnimModel::RenderAlphaVBO(vector3 *vPosition)
     if (pModel) // renderowanie rekurencyjne submodeli
         pModel->RaRenderAlpha(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
 };
+*/
 
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()

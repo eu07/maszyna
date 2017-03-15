@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
+#include "texture.h"
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -140,11 +141,25 @@ class TAnim
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-class TDynamicObject
-{ // klasa pojazdu
-  private: // położenie pojazdu w świecie oraz parametry ruchu
+// parameters for the material object, as currently used by various simulator models
+struct material_data {
+
+    int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
+    texture_manager::size_type replacable_skins[ 5 ]; // McZapkie:zmienialne nadwozie
+    int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+
+    material_data() {
+        ::SecureZeroMemory( replacable_skins, sizeof( replacable_skins ) );
+    }
+};
+
+class TDynamicObject { // klasa pojazdu
+
+    friend class opengl_renderer;
+
+private: // położenie pojazdu w świecie oraz parametry ruchu
     vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
-    vector3 vCoulpler[2]; // współrzędne sprzęgów do liczenia zderzeń czołowych
+    vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
     vector3 vUp, vFront, vLeft; // wektory jednostkowe ustawienia pojazdu
     int iDirection; // kierunek pojazdu względem czoła składu (1=zgodny,0=przeciwny)
     TTrackShape ts; // parametry toru przekazywane do fizyki
@@ -156,10 +171,10 @@ class TDynamicObject
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
     // bool bCameraNear; //blisko kamer są potrzebne dodatkowe obliczenia szczegółów
-    TDynamicObject * ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer,
-                                                    int &CouplNr);
+    TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer,
+        int &CouplNr );
 
-  public: // parametry położenia pojazdu dostępne publicznie
+public: // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
     std::string asDestination; // dokąd pojazd ma być kierowany "(stacja):(tor)"
     matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
@@ -173,19 +188,23 @@ class TDynamicObject
 
     TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
 
-private:
-    // returns type of the nearest functional power source present in the trainset
-  public: // modele składowe pojazdu
+public: // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
-    TModel3d *mdPrzedsionek; // model przedsionków dla EZT - może użyć mdLoad zamiast?
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
+    float3 InteriorLight{ 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
+    float InteriorLightLevel{ 0.0f }; // current level of interior lighting
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
 
   private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
-  public: // tymczasowo udostępnione do wyszukiwania drutu
-      int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
+    material_data m_materialdata;
+
+  public:
+    inline
+    material_data const *Material() const { return &m_materialdata; }
+    // tymczasowo udostępnione do wyszukiwania drutu
+    int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
   private:
     int iAnimations; // liczba obiektów animujących
 /*
@@ -342,6 +361,7 @@ private:
 
   public:
     int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
+    bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
     double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
     // pojazdem)
     TDynamicObject * PrevAny();
@@ -395,9 +415,11 @@ private:
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
     std::string asBaseDir;
+/*
     texture_manager::size_type ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
     int iAlpha; // maska przezroczystości tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+*/
     int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały
     // jazdę bezprądową
     TTractionParam tmpTraction;
@@ -416,10 +438,12 @@ private:
     bool FastUpdate(double dt);
     void Move(double fDistance);
     void FastMove(double fDistance);
+/*
     void Render();
     void RenderAlpha();
+*/
     void RenderSounds();
-    inline vector3 GetPosition()
+    inline vector3 GetPosition() const
     {
         return vPosition;
     };
@@ -435,7 +459,7 @@ private:
     {
         return iAxleFirst ? Axle1.pPosition : Axle0.pPosition;
     };
-    inline vector3 VectorFront()
+    inline vector3 VectorFront() const
     {
         return vFront;
     };
@@ -443,7 +467,7 @@ private:
     {
         return vUp;
     };
-    inline vector3 VectorLeft()
+    inline vector3 VectorLeft() const
     {
         return vLeft;
     };
@@ -455,11 +479,11 @@ private:
     {
         return MoverParameters->Vel;
     };
-    inline double GetLength()
+    inline double GetLength() const
     {
         return MoverParameters->Dim.L;
     };
-    inline double GetWidth()
+    inline double GetWidth() const
     {
         return MoverParameters->Dim.W;
     };
@@ -472,7 +496,7 @@ private:
     // McZapkie-260202
     void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
 
-    inline double ABuGetDirection() // ABu.
+    inline double ABuGetDirection() const // ABu.
     {
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection());
     };

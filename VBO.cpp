@@ -9,9 +9,38 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "VBO.h"
-#include "opengl/glew.h"
+#include "GL/glew.h"
 #include "usefull.h"
+#include "sn_utils.h"
 //---------------------------------------------------------------------------
+
+void CVertNormTex::deserialize(std::istream &s)
+{
+	x = sn_utils::ld_float32(s);
+	y = sn_utils::ld_float32(s);
+	z = sn_utils::ld_float32(s);
+
+	nx = sn_utils::ld_float32(s);
+	ny = sn_utils::ld_float32(s);
+	nz = sn_utils::ld_float32(s);
+
+	u = sn_utils::ld_float32(s);
+	v = sn_utils::ld_float32(s);
+}
+
+void CVertNormTex::serialize(std::ostream &s)
+{
+	sn_utils::ls_float32(s, x);
+	sn_utils::ls_float32(s, y);
+	sn_utils::ls_float32(s, z);
+
+	sn_utils::ls_float32(s, nx);
+	sn_utils::ls_float32(s, ny);
+	sn_utils::ls_float32(s, nz);
+
+	sn_utils::ls_float32(s, u);
+	sn_utils::ls_float32(s, v);
+}
 
 CMesh::CMesh()
 { // utworzenie pustego obiektu

@@ -11,6 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #define CameraH
 
 #include "dumb3d.h"
+#include "dynobj.h"
+
 using namespace Math3D;
 
 //---------------------------------------------------------------------------
@@ -25,6 +27,7 @@ class TCamera
 {
   private:
     vector3 pOffset; // nie używane (zerowe)
+
   public: // McZapkie: potrzebuje do kiwania na boki
     double Pitch;
     double Yaw; // w środku: 0=do przodu; na zewnątrz: 0=na południe

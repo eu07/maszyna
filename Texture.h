@@ -9,8 +9,10 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include <istream>
+#include <ddraw.h>
 #include <string>
-#include "opengl/glew.h"
+#include "GL/glew.h"
 
 enum class resource_state {
     none,
@@ -20,12 +22,16 @@ enum class resource_state {
 };
 
 struct opengl_texture {
+	static DDSURFACEDESC2 deserialize_ddsd(std::istream&);
+	static DDCOLORKEY deserialize_ddck(std::istream&);
+	static DDPIXELFORMAT deserialize_ddpf(std::istream&);
+	static DDSCAPS2 deserialize_ddscaps(std::istream&);
 
     // methods
     void load();
     void create();
     // members
-    GLuint id{ (GLuint) -1 }; // associated GL resource
+    GLuint id{ (GLuint)-1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
     std::string traits; // requested texture attributes: wrapping modes etc
@@ -97,5 +103,3 @@ private:
     index_map m_texturemappings;
     size_type m_activetexture{ 0 }; // last i.e. currently bound texture
 };
-
-extern texture_manager TextureManager;

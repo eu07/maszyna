@@ -83,7 +83,7 @@ public static Int32 GetScreenSaverTimeout()
 TKeyTrans Console::ktTable[4 * 256];
 
 // Ra: do poprawienia
-void SetLedState(char Code, bool bOn){
+void SetLedState(unsigned char Code, bool bOn){
     // Ra: bajer do migania LED-ami w klawiaturze
     // NOTE: disabled for the time being
     // TODO: find non Borland specific equivalent, or get rid of it
@@ -244,7 +244,7 @@ void Console::BitsUpdate(int mask)
     {
     case 1: // sterowanie światełkami klawiatury: CA/SHP+opory
         if (mask & 3) // gdy SHP albo CA
-            SetLedState(VK_CAPITAL, iBits & 3);
+            SetLedState(VK_CAPITAL, (iBits & 3) != 0);
         if (mask & 4) // gdy jazda na oporach
         { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
             SetLedState(VK_SCROLL, true); // przyciśnięty
@@ -254,7 +254,7 @@ void Console::BitsUpdate(int mask)
         break;
     case 2: // sterowanie światełkami klawiatury: CA+SHP
         if (mask & 2) // gdy CA
-            SetLedState(VK_CAPITAL, iBits & 2);
+            SetLedState(VK_CAPITAL, (iBits & 2) != 0);
         if (mask & 1) // gdy SHP
         { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
             SetLedState(VK_SCROLL, true); // przyciśnięty
@@ -356,7 +356,10 @@ void Console::BitsUpdate(int mask)
 
 bool Console::Pressed(int x)
 { // na razie tak - czyta się tylko klawiatura
-    return Global::bActive && (GetKeyState(x) < 0);
+	if (glfwGetKey(Global::window, x) == GLFW_TRUE)
+		return true;
+	else
+		return false;
 };
 
 void Console::ValueSet(int x, double y)
@@ -453,7 +456,7 @@ void Console::Update()
             else
             { // błąd komunikacji - zapauzować symulację?
                 if (!(Global::iPause & 8)) // jeśli jeszcze nie oflagowana
-                    Global::iTextMode = VK_F1; // pokazanie czasu/pauzy
+                    Global::iTextMode = GLFW_KEY_F1; // pokazanie czasu/pauzy
                 Global::iPause |= 8; // tak???
                 PoKeys55[0]->Connect(); // próba ponownego podłączenia
             }

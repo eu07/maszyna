@@ -65,8 +65,9 @@ cParser::~cParser()
 }
 
 // methods
-bool cParser::getTokens(int Count, bool ToLower, const char *Break)
+bool cParser::getTokens(unsigned int Count, bool ToLower, const char *Break)
 {
+    tokens.clear(); // emulates old parser behaviour. TODO, TBD: allow manual reset?
     /*
      if (LoadTraction==true)
       trtest="niemaproblema"; //wczytywać
@@ -78,7 +79,7 @@ bool cParser::getTokens(int Count, bool ToLower, const char *Break)
     this->str("");
     this->clear();
 */
-    for (int i = 0; i < Count; ++i)
+    for (unsigned int i = 0; i < Count; ++i)
     {
         std::string token = readToken(ToLower, Break);
         if( true == token.empty() ) {

@@ -8,7 +8,6 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#define STRICT
 #include "Sound.h"
 #include "Globals.h"
 #include "Logs.h"
@@ -219,7 +218,6 @@ LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(const char *Name, bool Dynamic, 
             Dynamic = false; // wczytanie z "sounds/"
     }
     TSoundContainer *Next = First;
-    DWORD dwStatus;
     for (int i = 0; i < Count; i++)
     {
         if (strcmp(Name, Next->Name) == 0)
@@ -277,11 +275,6 @@ void TSoundsManager::RestoreAll()
 
     for (int i = 0; i < Count; i++)
     {
-
-        if (FAILED(hr = Next->DSBuffer->GetStatus(&dwStatus)))
-            ;
-        //        return hr;
-
         if (dwStatus & DSBSTATUS_BUFFERLOST)
         {
             // Since the app could have just been activated, then
@@ -376,6 +369,3 @@ void TSoundsManager::Init(HWND hWnd)
 
     SAFE_RELEASE(pDSBPrimary);
 };
-
-//---------------------------------------------------------------------------
-#pragma package(smart_init)

@@ -24,7 +24,7 @@ void WriteConsoleOnly(const char *str, double value)
     sprintf(buf, "%s %f \n", str, value);
     // stdout=  GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD wr = 0;
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), buf, strlen(buf), &wr, NULL);
+    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), buf, (DWORD)strlen(buf), &wr, NULL);
     // WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
 }
 
@@ -34,9 +34,9 @@ void WriteConsoleOnly(const char *str, bool newline)
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
                             FOREGROUND_GREEN | FOREGROUND_INTENSITY);
     DWORD wr = 0;
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), str, strlen(str), &wr, NULL);
+    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), str, (DWORD)strlen(str), &wr, NULL);
     if (newline)
-        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, strlen(endstring), &wr, NULL);
+        WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
 }
 
 void WriteLog(const char *str, double value)

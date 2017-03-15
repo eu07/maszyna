@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Model3d.h"
 #include "Texture.h"
+#include "DynObj.h"
 
 const int iMaxNumLights = 8;
 
@@ -81,9 +82,9 @@ class TAnimContainer
     // std::string(pSubModel?pSubModel->asName.c_str():""); };
     // std::string inline GetName() { return std::string(pSubModel?pSubModel->pName:"");
     // };
-    char * NameGet()
+    std::string NameGet()
     {
-        return (pSubModel ? pSubModel->pName : NULL);
+        return (pSubModel ? pSubModel->pName : "");
     };
     // void SetRotateAnim(vector3 vNewRotateAxis, double fNewDesiredAngle, double
     // fNewRotateSpeed, bool bResetAngle=false);
@@ -138,7 +139,11 @@ class TAnimModel
     TSubModel *LightsOn[iMaxNumLights]; // Ra: te wskaźniki powinny być w ramach TModel3d
     TSubModel *LightsOff[iMaxNumLights];
     vector3 vAngle; // bazowe obroty egzemplarza względem osi
+/*
     int iTexAlpha; //żeby nie sprawdzać za każdym razem, dla 4 wymiennych tekstur
+*/
+    material_data m_materialdata;
+
     std::string asText; // tekst dla wyświetlacza znakowego
     TAnimAdvanced *pAdvanced;
     void Advanced();
@@ -149,9 +154,13 @@ class TAnimModel
     void RaAnimate(); // przeliczenie animacji egzemplarza
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
   public:
+/*
     texture_manager::size_type ReplacableSkinId[5]; // McZapkie-020802: zmienialne skory
-    static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane
-    // również bez wyświetlania
+*/
+    static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
+    inline
+        material_data const *Material() const { return &m_materialdata; }
+
     TAnimModel();
     ~TAnimModel();
     bool Init(TModel3d *pNewModel);
@@ -165,8 +174,10 @@ class TAnimModel
     void RenderAlphaVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
 */  void RenderDL(vector3 *vPosition);
     void RenderAlphaDL(vector3 *vPosition);
+/*
     void RenderVBO(vector3 *vPosition);
     void RenderAlphaVBO(vector3 *vPosition);
+*/
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {

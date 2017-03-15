@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 #include "Usefull.h"
-#include "Texture.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "Ground.h"
 #include "parser.h"
@@ -412,10 +412,9 @@ vector3 LoadPoint(cParser *parser)
 void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
 { // pobranie obiektu trajektorii ruchu
     vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
-    double a1, a2, r1, r2, r3, r4, d1, d2, a;
+	double a1, a2, r1, r2, r3, r4;
     string str;
-    bool bCurve;
-    int i; //,state; //Ra: teraz już nie ma początkowego stanu zwrotnicy we wpisie
+    size_t i; //,state; //Ra: teraz już nie ma początkowego stanu zwrotnicy we wpisie
     std::string token;
 
     parser->getTokens();
@@ -508,7 +507,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         parser->getTokens();
         *parser >> token;
         str = token; // railtex
-        TextureID1 = (str == "none" ? 0 : TextureManager.GetTextureId(
+        TextureID1 = (str == "none" ? 0 : GfxRenderer.GetTextureId(
                                               str, szTexturePath,
                                               (iCategoryFlag & 1) ? Global::iRailProFiltering :
                                                                     Global::iBallastFiltering));
@@ -519,7 +518,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         parser->getTokens();
         *parser >> token;
         str = token; // sub || railtex
-        TextureID2 = (str == "none" ? 0 : TextureManager.GetTextureId(
+        TextureID2 = (str == "none" ? 0 : GfxRenderer.GetTextureId(
                                               str, szTexturePath,
                                               (eType == tt_Normal) ? Global::iBallastFiltering :
                                                                      Global::iRailProFiltering));
@@ -579,12 +578,12 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             if (TextureID1 && fTexLength)
             { // dla drogi trzeba ustalić proporcje boków nawierzchni
                 float w, h;
-                TextureManager.Bind(TextureID1);
+                GfxRenderer.Bind(TextureID1);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
                 if (h != 0.0)
                     fTexRatio1 = w / h; // proporcja boków
-                TextureManager.Bind(TextureID2);
+                GfxRenderer.Bind(TextureID2);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
                 if (h != 0.0)
@@ -1299,14 +1298,14 @@ void TTrack::Compile(GLuint tex)
                         }
                     }
                     if (!tex)
-                        TextureManager.Bind( TextureID2 );
+                        GfxRenderer.Bind( TextureID2 );
                     Segment->RenderLoft(bpts1, iTrapezoid ? -4 : 4, fTexLength);
                 }
             if (TextureID1)
                 if (tex ? TextureID1 == tex : true) // jeśli pasuje do grupy (tex)
                 { // szyny
                     if (!tex)
-                        TextureManager.Bind( TextureID1 );
+                        GfxRenderer.Bind( TextureID1 );
                     Segment->RenderLoft(rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength);
                     Segment->RenderLoft(rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength);
                 }
@@ -1345,7 +1344,7 @@ void TTrack::Compile(GLuint tex)
                 // McZapkie-130302 - poprawione rysowanie szyn
                 if (SwitchExtension->RightSwitch)
                 { // zwrotnica prawa
-                    TextureManager.Bind( TextureID1 );
+                    GfxRenderer.Bind( TextureID1 );
                     SwitchExtension->Segments[0]->RenderLoft(rpts1, nnumPts, fTexLength,
                                                              2); // prawa szyna za iglicą
                     SwitchExtension->Segments[0]->RenderSwitchRail(
@@ -1354,7 +1353,7 @@ void TTrack::Compile(GLuint tex)
                     SwitchExtension->Segments[0]->RenderLoft(
                         rpts2, nnumPts, fTexLength); // lewa szyna normalnie cała
                     if (TextureID2 != TextureID1) // nie wiadomo, czy OpenGL to optymalizuje
-                        TextureManager.Bind( TextureID2 );
+                        GfxRenderer.Bind( TextureID2 );
                     SwitchExtension->Segments[1]->RenderLoft(
                         rpts1, nnumPts, fTexLength); // prawa szyna normalna cała
                     SwitchExtension->Segments[1]->RenderLoft(rpts2, nnumPts, fTexLength,
@@ -1365,7 +1364,7 @@ void TTrack::Compile(GLuint tex)
                 }
                 else
                 { // lewa kiedyś działała lepiej niż prawa
-                    TextureManager.Bind( TextureID1 );
+                    GfxRenderer.Bind( TextureID1 );
                     SwitchExtension->Segments[0]->RenderLoft(
                         rpts1, nnumPts, fTexLength); // prawa szyna normalna cała
                     SwitchExtension->Segments[0]->RenderLoft(rpts2, nnumPts, fTexLength,
@@ -1374,7 +1373,7 @@ void TTrack::Compile(GLuint tex)
                         rpts2, rpts4, nnumPts, fTexLength, 2,
                         -SwitchExtension->fOffset2); // lewa iglica
                     if (TextureID2 != TextureID1) // nie wiadomo, czy OpenGL to optymalizuje
-                        TextureManager.Bind( TextureID2 );
+                        GfxRenderer.Bind( TextureID2 );
                     SwitchExtension->Segments[1]->RenderLoft(rpts1, nnumPts, fTexLength,
                                                              2); // prawa szyna za iglicą
                     SwitchExtension->Segments[1]->RenderSwitchRail(
@@ -1422,7 +1421,7 @@ void TTrack::Compile(GLuint tex)
                 if (tex ? TextureID1 == tex : true) // jeśli pasuje do grupy (tex)
                 { // tworzenie trójkątów nawierzchni szosy
                     if (!tex)
-                        TextureManager.Bind( TextureID1 );
+                        GfxRenderer.Bind( TextureID1 );
                     Segment->RenderLoft(bpts1, iTrapezoid ? -2 : 2, fTexLength);
                 }
             if (TextureID2)
@@ -1430,7 +1429,7 @@ void TTrack::Compile(GLuint tex)
                 { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak
                     // w Midtown Madness 2?)
                     if (!tex)
-                        TextureManager.Bind( TextureID2 );
+                        GfxRenderer.Bind( TextureID2 );
                     vector6 rpts1[6],
                         rpts2[6]; // współrzędne przekroju i mapowania dla prawej i lewej strony
                     if (fTexHeight1 >= 0.0)
@@ -1557,7 +1556,7 @@ void TTrack::Compile(GLuint tex)
             // 2014-07: na początek rysować brzegi jak dla łuków
             // punkty brzegu nawierzchni uzyskujemy podczas renderowania boków (bez sensu, ale
             // najszybciej było zrobić)
-            int i, j; // ile punktów (może byc różna ilość punktów między drogami)
+			int i; // ile punktów (może byc różna ilość punktów między drogami)
             if (!SwitchExtension->vPoints)
             { // jeśli tablica punktów nie jest jeszcze utworzona, zliczamy punkty i tworzymy ją
                 if (SwitchExtension->iRoads == 3) // mogą być tylko 3 drogi zamiast 4
@@ -1610,7 +1609,7 @@ void TTrack::Compile(GLuint tex)
                 // Midtown Madness 2?)
                 if (TextureID2)
                     if (!tex)
-                        TextureManager.Bind( TextureID2 );
+                        GfxRenderer.Bind( TextureID2 );
                 vector6 rpts1[6],
                     rpts2[6]; // współrzędne przekroju i mapowania dla prawej i lewej strony
                 // Ra 2014-07: trzeba to przerobić na pętlę i pobierać profile (przynajmniej 2..4) z
@@ -1735,7 +1734,7 @@ void TTrack::Compile(GLuint tex)
             if (!SwitchExtension->bPoints) // jeśli tablica nie wypełniona
                 if (b) // ale jest wskaźnik do tablicy - może nie być?
                 { // coś się gubi w obliczeniach na wskaźnikach
-                    i = (int((void *)(b)) - int((void *)(SwitchExtension->vPoints))) /
+                    i = (int)(((size_t)(b)) - ((size_t)(SwitchExtension->vPoints))) /
                         sizeof(vector3); // ustalenie liczby punktów, bo mogło wyjść inaczej niż
                     // policzone z góry
                     if (i > 0)
@@ -1755,7 +1754,7 @@ void TTrack::Compile(GLuint tex)
                 if (tex ? TextureID1 == tex : true) // jeśli pasuje do grupy (tex)
                 {
                     if (!tex)
-                        TextureManager.Bind( TextureID1 );
+                        GfxRenderer.Bind( TextureID1 );
                     glBegin(GL_TRIANGLE_FAN); // takie kółeczko będzie
                     glNormal3f(0, 1, 0);
                     glTexCoord2f(0.5, 0.5); //środek tekstury na środku skrzyżowania
@@ -1787,7 +1786,7 @@ void TTrack::Compile(GLuint tex)
             if (tex ? TextureID1 == tex : true) // jeśli pasuje do grupy (tex)
             {
                 if (!tex)
-                    TextureManager.Bind( TextureID1 );
+                    GfxRenderer.Bind( TextureID1 );
                 Segment->RenderLoft(bpts1, numPts, fTexLength);
             }
         if (TextureID2)
@@ -1799,7 +1798,7 @@ void TTrack::Compile(GLuint tex)
                 vector6 rpts2[3] = {vector6(-fHTW, 0.0, 1.0), vector6(-fHTW - side, 0.0, 0.5),
                                     vector6(-rozp, -fTexHeight1, 0.0)}; // Ra: po kiego 0.1?
                 if (!tex)
-                    TextureManager.Bind( TextureID2 ); // brzeg rzeki
+                    GfxRenderer.Bind( TextureID2 ); // brzeg rzeki
                 Segment->RenderLoft(rpts1, 3, fTexLength);
                 Segment->RenderLoft(rpts2, 3, fTexLength);
             }
@@ -2473,7 +2472,7 @@ void TTrack::RaRenderVBO(int iPtr)
             if (TextureID1)
                 if ((seg = SwitchExtension->Segments[0]->RaSegCount()) > 0)
                 {
-                    TextureManager.Bind( TextureID1 ); // szyny +
+                    GfxRenderer.Bind( TextureID1 ); // szyny +
                     for (i = 0; i < seg; ++i)
                         glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
                     iPtr += 24 * seg; // pominięcie lewej szyny
@@ -2484,7 +2483,7 @@ void TTrack::RaRenderVBO(int iPtr)
             if (TextureID2)
                 if ((seg = SwitchExtension->Segments[1]->RaSegCount()) > 0)
                 {
-                    TextureManager.Bind( TextureID2 ); // szyny -
+                    GfxRenderer.Bind( TextureID2 ); // szyny -
                     for (i = 0; i < seg; ++i)
                         glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
                     iPtr += 24 * seg; // pominięcie lewej szyny
@@ -2498,14 +2497,14 @@ void TTrack::RaRenderVBO(int iPtr)
             {
                 if (TextureID2)
                 {
-                    TextureManager.Bind( TextureID2 ); // podsypka
+                    GfxRenderer.Bind( TextureID2 ); // podsypka
                     for (i = 0; i < seg; ++i)
                         glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 8 * i, 8);
                     iPtr += 8 * seg; // pominięcie podsypki
                 }
                 if (TextureID1)
                 {
-                    TextureManager.Bind( TextureID1 ); // szyny
+                    GfxRenderer.Bind( TextureID1 ); // szyny
                     for (i = 0; i < seg; ++i)
                         glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
                     iPtr += 24 * seg; // pominięcie lewej szyny
@@ -2520,7 +2519,7 @@ void TTrack::RaRenderVBO(int iPtr)
         {
             if (TextureID1)
             {
-                TextureManager.Bind( TextureID1 ); // nawierzchnia
+                GfxRenderer.Bind( TextureID1 ); // nawierzchnia
                 for (i = 0; i < seg; ++i)
                 {
                     glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4);
@@ -2529,7 +2528,7 @@ void TTrack::RaRenderVBO(int iPtr)
             }
             if (TextureID2)
             {
-                TextureManager.Bind( TextureID2 ); // pobocze
+                GfxRenderer.Bind( TextureID2 ); // pobocze
                 if (fTexHeight1 >= 0.0)
                 { // normalna droga z poboczem
                     for (i = 0; i < seg; ++i)
@@ -2558,7 +2557,7 @@ void TTrack::RaRenderVBO(int iPtr)
         {
             if (TextureID1)
             {
-                TextureManager.Bind( TextureID1 ); // nawierzchnia
+                GfxRenderer.Bind( TextureID1 ); // nawierzchnia
                 for (i = 0; i < seg; ++i)
                 {
                     glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4);
@@ -2567,7 +2566,7 @@ void TTrack::RaRenderVBO(int iPtr)
             }
             if (TextureID2)
             {
-                TextureManager.Bind( TextureID2 ); // pobocze
+                GfxRenderer.Bind( TextureID2 ); // pobocze
                 for (i = 0; i < seg; ++i)
                     glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
                 iPtr += 6 * seg; // pominięcie lewego pobocza
@@ -2583,6 +2582,8 @@ void TTrack::RaRenderVBO(int iPtr)
 void TTrack::EnvironmentSet()
 { // ustawienie zmienionego światła
     glColor3f(1.0f, 1.0f, 1.0f); // Ra: potrzebne to?
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    // TODO: re-implement this
     if (eEnvironment)
     { // McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
         GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -2614,10 +2615,13 @@ void TTrack::EnvironmentSet()
             break;
         }
     }
+#endif
 };
 
 void TTrack::EnvironmentReset()
 { // przywrócenie domyślnego światła
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+    // TODO: re-implement this
     switch (eEnvironment)
     { // przywrócenie globalnych ustawień światła, o ile było zmienione
     case e_canyon: // wykop
@@ -2626,6 +2630,7 @@ void TTrack::EnvironmentReset()
         glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
         glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
     }
+#endif
 };
 
 void TTrack::RenderDyn()
@@ -2640,7 +2645,7 @@ void TTrack::RenderDyn()
 #else
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
-        dynamic->Render();
+        GfxRenderer.Render( dynamic );
     }
 #endif
 };
@@ -2657,7 +2662,7 @@ void TTrack::RenderDynAlpha()
 #else
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
-        dynamic->RenderAlpha();
+        GfxRenderer.Render_Alpha( dynamic );
     }
 #endif
 };
@@ -2907,7 +2912,7 @@ TTrack * TTrack::RaAnimate()
         }
         if (Global::bUseVBO)
         { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
-            if (true == GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
+            if (GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
                 if (TextureID1) // Ra: !!!! tu jest do poprawienia
                 { // iglice liczone tylko dla zwrotnic
                     vector6 rpts3[24], rpts4[24];
@@ -3018,7 +3023,7 @@ TTrack * TTrack::RaAnimate()
                     if (Global::bUseVBO)
                     { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
                         // aktualizacja pojazdów na torze
-                        if (true == GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
+                        if (GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
                         {
                             int size =
                                 RaArrayPrepare(); // wielkość tabeli potrzebna dla tej obrotnicy

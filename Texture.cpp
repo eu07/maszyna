@@ -14,19 +14,15 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Texture.h"
+#include "texture.h"
 
 #include <ddraw.h>
-#include <io.h>
-#include <fcntl.h>
-#include "opengl/glew.h"
+#include "GL/glew.h"
 
-#include "Globals.h"
+#include "usefull.h"
+#include "globals.h"
 #include "logs.h"
-#include "Usefull.h"
-#include "TextureDDS.h"
-
-texture_manager TextureManager;
+#include "sn_utils.h"
 
 texture_manager::texture_manager() {
 
@@ -86,7 +82,7 @@ opengl_texture::load_BMP() {
     if( infosize > sizeof( info ) ) {
         WriteLog( "Warning - BMP header is larger than expected, possible format difference." );
     }
-    file.read( (char *)&info, std::min( infosize, sizeof( info ) ) );
+    file.read( (char *)&info, std::min( (size_t)infosize, sizeof( info ) ) );
 
     data_width = info.bmiHeader.biWidth;
     data_height = info.bmiHeader.biHeight;
@@ -124,6 +120,70 @@ opengl_texture::load_BMP() {
     return;
 }
 
+DDCOLORKEY opengl_texture::deserialize_ddck(std::istream &s)
+{
+	DDCOLORKEY ddck;
+
+	ddck.dwColorSpaceLowValue = sn_utils::ld_uint32(s);
+	ddck.dwColorSpaceHighValue = sn_utils::ld_uint32(s);
+
+	return ddck;
+}
+
+DDPIXELFORMAT opengl_texture::deserialize_ddpf(std::istream &s)
+{
+	DDPIXELFORMAT ddpf;
+
+	ddpf.dwSize = sn_utils::ld_uint32(s);
+	ddpf.dwFlags = sn_utils::ld_uint32(s);
+	ddpf.dwFourCC = sn_utils::ld_uint32(s);
+	ddpf.dwRGBBitCount = sn_utils::ld_uint32(s);
+	ddpf.dwRBitMask = sn_utils::ld_uint32(s);
+	ddpf.dwGBitMask = sn_utils::ld_uint32(s);
+	ddpf.dwBBitMask = sn_utils::ld_uint32(s);
+	ddpf.dwRGBAlphaBitMask = sn_utils::ld_uint32(s);
+
+	return ddpf;
+}
+
+DDSCAPS2 opengl_texture::deserialize_ddscaps(std::istream &s)
+{
+	DDSCAPS2 ddsc;
+
+	ddsc.dwCaps = sn_utils::ld_uint32(s);
+	ddsc.dwCaps2 = sn_utils::ld_uint32(s);
+	ddsc.dwCaps3 = sn_utils::ld_uint32(s);
+	ddsc.dwCaps4 = sn_utils::ld_uint32(s);
+
+	return ddsc;
+}
+
+DDSURFACEDESC2 opengl_texture::deserialize_ddsd(std::istream &s)
+{
+	DDSURFACEDESC2 ddsd;
+
+	ddsd.dwSize = sn_utils::ld_uint32(s);
+	ddsd.dwFlags = sn_utils::ld_uint32(s);
+	ddsd.dwHeight = sn_utils::ld_uint32(s);
+	ddsd.dwWidth = sn_utils::ld_uint32(s);
+	ddsd.lPitch = sn_utils::ld_uint32(s);
+	ddsd.dwBackBufferCount = sn_utils::ld_uint32(s);
+	ddsd.dwMipMapCount = sn_utils::ld_uint32(s);
+	ddsd.dwAlphaBitDepth = sn_utils::ld_uint32(s);
+	ddsd.dwReserved = sn_utils::ld_uint32(s);
+	sn_utils::ld_uint32(s);
+	ddsd.lpSurface = nullptr;
+	ddsd.ddckCKDestOverlay = deserialize_ddck(s);
+	ddsd.ddckCKDestBlt = deserialize_ddck(s);
+	ddsd.ddckCKSrcOverlay = deserialize_ddck(s);
+	ddsd.ddckCKSrcBlt = deserialize_ddck(s);
+	ddsd.ddpfPixelFormat = deserialize_ddpf(s);
+	ddsd.ddsCaps = deserialize_ddscaps(s);
+	ddsd.dwTextureStage = sn_utils::ld_uint32(s);
+
+	return ddsd;
+}
+
 void
 opengl_texture::load_DDS() {
 
@@ -142,9 +202,8 @@ opengl_texture::load_DDS() {
         return;
     }
 
-    DDSURFACEDESC2 ddsd;
-    file.read((char *)&ddsd, sizeof(ddsd));
-    filesize -= sizeof( ddsd );
+	DDSURFACEDESC2 ddsd = deserialize_ddsd(file);
+	filesize -= 124;
 
     //
     // This .dds loader supports the loading of compressed formats DXT1, DXT3
@@ -195,7 +254,7 @@ opengl_texture::load_DDS() {
         return;
     }
 
-    int datasize = filesize - offset;
+    size_t datasize = filesize - offset;
 /*
     // this approach loads only the first mipmap and relies on graphics card to fill the rest
     data_mapcount = 1;
@@ -216,6 +275,12 @@ opengl_texture::load_DDS() {
         --mapcount;
     }
 */
+    if( datasize == 0 ) {
+        // catch malformed .dds files
+        WriteLog( "File \"" + name + "\" is malformed and holds no texture data." );
+        data_state = resource_state::failed;
+        return;
+    }
     // reserve space and load texture data
     data.resize( datasize );
     if( offset != 0 ) {
@@ -408,6 +473,8 @@ opengl_texture::load_TGA() {
         return;
     }
 
+    // TODO: add horizontal/vertical data flip, based on the descriptor (18th) header byte
+
     // fill remaining data info
     data_mapcount = 1;
     data_format = GL_BGRA;
@@ -473,7 +540,7 @@ opengl_texture::create() {
             ::glCompressedTexImage2D(
                 GL_TEXTURE_2D, maplevel, data_format,
                 datawidth, dataheight, 0,
-                datasize, (GLubyte *)&data[0] + dataoffset );
+                datasize, (GLubyte *)&data[dataoffset] );
 
             dataoffset += datasize;
             datawidth = std::max( datawidth / 2, 1 );
@@ -504,6 +571,11 @@ opengl_texture::set_filtering() {
     // default texture mode
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+
+    if( GLEW_EXT_texture_filter_anisotropic ) {
+        // anisotropic filtering
+        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global::AnisotropicFiltering );
+    }
 
     bool sharpen{ false };
     for( auto const &trait : traits ) {
@@ -639,6 +711,7 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 
     if( true == filename.empty() ) {
         // there's nothing matching in the databank nor on the disk, report failure
+        ErrorLog( "Texture file missing: \"" + Filename + "\"" );
         return npos;
     }
 
@@ -653,7 +726,7 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
         traits += '#';
     }
     texture.traits = traits;
-    auto const textureindex = m_textures.size();
+    auto const textureindex = (texture_manager::size_type)m_textures.size();
     m_textures.emplace_back( texture );
     m_texturemappings.emplace( filename, textureindex );
 

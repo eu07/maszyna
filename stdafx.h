@@ -18,12 +18,14 @@
 #endif  // _DEBUG
 #endif
 // operating system
+#ifdef _WINDOWS
 #include "targetver.h"
 #define NOMINMAX
 #include <windows.h>
 #include <shlobj.h>
 #undef NOMINMAX
 #include <dbghelp.h>
+#endif
 // stl
 #include <cstdlib>
 #include <cassert>
@@ -58,3 +60,12 @@
 #include <mutex>
 #include <condition_variable>
 #include <typeinfo>
+
+#include "GL/glew.h"
+#ifdef _WINDOWS
+#include "GL/wglew.h"
+#define GLFW_DLL
+#endif
+#define GLFW_INCLUDE_GLU
+//m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
+#include <GLFW/glfw3.h>
