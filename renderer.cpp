@@ -164,6 +164,7 @@ opengl_renderer::Render() {
     return true; // for now always succeed
 }
 
+#ifndef EU07_USE_OLD_RENDERCODE
 bool
 opengl_renderer::Render( TGround *Ground ) {
 
@@ -406,6 +407,7 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, M
 
     return result;
 }
+#endif
 
 void
 opengl_renderer::Update ( double const Deltatime ) {

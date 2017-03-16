@@ -101,6 +101,7 @@ public:
     // main draw call. returns false on error
     bool
         Render();
+#ifndef EU07_USE_OLD_RENDERCODE
     bool
         Render( TGround *Ground );
     bool
@@ -115,15 +116,17 @@ public:
         Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
     bool
         Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+#endif
     // maintenance jobs
     void
         Update( double const Deltatime);
-
     void
         Update_Lights( light_array const &Lights );
-
     void
         Disable_Lights();
+    inline
+    bool
+        Visible( TDynamicObject const *Dynamic ) const { return m_camera.visible( Dynamic ); }
 
     texture_manager::size_type
         GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true ) {

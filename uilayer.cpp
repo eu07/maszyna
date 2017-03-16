@@ -108,14 +108,10 @@ ui_layer::render_progress() {
 
 	if( (m_progress == 0.0f) && (m_subtaskprogress == 0.0f) ) return;
 
-    float const width = ( 4.0f / 3.0f ) * Global::iWindowHeight;
-    float const height = Global::iWindowHeight / 768.0;
-
 	glPushAttrib( GL_ENABLE_BIT );
     glDisable( GL_TEXTURE_2D );
 
     quad( float4( 75.0f, 640.0f, 75.0f + 320.0f, 640.0f + 16.0f ), float4(0.0f, 0.0f, 0.0f, 0.25f) );
-	glBegin( GL_TRIANGLE_STRIP );
     // secondary bar
     if( m_subtaskprogress ) {
         quad(
@@ -128,7 +124,6 @@ ui_layer::render_progress() {
             float4( 75.0f, 640.0f, 75.0f + 320.0f * m_progress, 640.0f + 16.0f ),
             float4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
     }
-	glEnd();
 
 	glPopAttrib();
 }
@@ -166,10 +161,8 @@ ui_layer::render_background() {
 
 	if( m_background == 0 ) return;
 
-    auto const &texture = GfxRenderer.Texture( m_background );
     // NOTE: we limit/expect the background to come with 4:3 ratio.
     // TODO, TBD: if we expose texture width or ratio from texture object, this limitation could be lifted
-    float const width = ( 4.0f / 3.0f ) * Global::iWindowHeight;
 
     GfxRenderer.Bind( m_background );
     quad( float4( 0.0f, 0.0f, 1024.0f, 768.0f ), float4( 1.0f, 1.0f, 1.0f, 1.0f ) );

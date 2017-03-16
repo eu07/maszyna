@@ -12,17 +12,10 @@ http://mozilla.org/MPL/2.0/.
 
 void
 cFrustum::calculate( glm::mat4 &Projection, glm::mat4 &Modelview ) {
-/*
-    float proj[ 16 ];
-    float modl[ 16 ];
-*/
+
     float *proj = &Projection[ 0 ][ 0 ];
     float *modl = &Modelview[ 0 ][ 0 ];
     float clip[ 16 ];
-/*
-    glGetFloatv( GL_PROJECTION_MATRIX, proj );
-    glGetFloatv( GL_MODELVIEW_MATRIX, modl );
-*/
 
     // multiply the matrices to retrieve clipping planes
     clip[ 0 ] = modl[ 0 ] * proj[ 0 ] + modl[ 1 ] * proj[ 4 ] + modl[ 2 ] * proj[ 8 ] + modl[ 3 ] * proj[ 12 ];

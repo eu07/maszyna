@@ -1127,6 +1127,7 @@ private:
     void LoadFIZ_Circuit( std::string const &Input );
     void LoadFIZ_RList( std::string const &Input );
     void LoadFIZ_DList( std::string const &Input );
+    void LoadFIZ_FFList( std::string const &Input );
     void LoadFIZ_LightsList( std::string const &Input );
     void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
     TPowerType LoadFIZ_PowerDecode( std::string const &Power );

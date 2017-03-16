@@ -1692,6 +1692,14 @@ TDynamicObject::TDynamicObject()
     //}
     mdModel = NULL;
     mdKabina = NULL;
+#ifdef EU07_USE_OLD_RENDERCODE
+    ReplacableSkinID[ 0 ] = 0;
+    ReplacableSkinID[ 1 ] = 0;
+    ReplacableSkinID[ 2 ] = 0;
+    ReplacableSkinID[ 3 ] = 0;
+    ReplacableSkinID[ 4 ] = 0;
+    iAlpha = 0x30300030; // tak gdy tekstury wymienne nie mają przezroczystości
+#endif
     // smWiazary[0]=smWiazary[1]=NULL;
     smWahacze[0] = smWahacze[1] = smWahacze[2] = smWahacze[3] = NULL;
     fWahaczeAmp = 0;
@@ -3690,12 +3698,12 @@ void TDynamicObject::TurnOff()
 	btMechanik1.TurnOff();
 	btMechanik2.TurnOff();
 };
-/*
+#ifdef EU07_USE_OLD_RENDERCODE
 void TDynamicObject::Render()
 { // rysowanie elementów nieprzezroczystych
     // youBy - sprawdzamy, czy jest sens renderowac
 
-    if (Global::pCamera->IsVisible(this))
+    if (GfxRenderer.Visible(this))
     {
         TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
         // AnsiString asLoadName="";
@@ -3766,8 +3774,6 @@ void TDynamicObject::Render()
             mdModel->RaRender(ObjSqrDist, ReplacableSkinID, iAlpha);
             if (mdLoad) // renderowanie nieprzezroczystego ładunku
                 mdLoad->RaRender(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdPrzedsionek)
-                mdPrzedsionek->RaRender(ObjSqrDist, ReplacableSkinID, iAlpha);
         }
         else
         { // wersja Display Lists
@@ -3794,8 +3800,6 @@ void TDynamicObject::Render()
             mdModel->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
             if (mdLoad) // renderowanie nieprzezroczystego ładunku
                 mdLoad->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdPrzedsionek)
-                mdPrzedsionek->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
         }
 
         // Ra: czy ta kabina tu ma sens?
@@ -3868,12 +3872,84 @@ void TDynamicObject::Render()
             TurnOff(); // przywrócenie domyślnych pozycji submodeli
     } // yB - koniec mieszania z grafika
 };
-*/
+
+void TDynamicObject::RenderAlpha()
+{ // rysowanie elementów półprzezroczystych
+    if (renderme)
+    {
+        TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
+        double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition);
+        ABuLittleUpdate(ObjSqrDist); // ustawianie zmiennych submodeli dla wspólnego modelu
+        glPushMatrix();
+        if (this == Global::pUserDynamic)
+        { // specjalne ustawienie, aby nie trzęsło
+            glPopMatrix(); // to trzeba zebrać przed wyściem
+            return;
+            glLoadIdentity(); // zacząć od macierzy jedynkowej
+            Global::pCamera->SetCabMatrix(vPosition); // specjalne ustawienie kamery
+        }
+        else
+            glTranslated(vPosition.x, vPosition.y,
+                         vPosition.z); // standardowe przesunięcie względem początku scenerii
+        glMultMatrixd(mMatrix.getArray());
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
+        if (fShade > 0.0)
+        { // Ra: zmiana oswietlenia w tunelu, wykopie
+            GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+            GLfloat diffuseLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+            GLfloat specularLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+            // trochę problem z ambientem w wykopie...
+            for (int li = 0; li < 3; li++)
+            {
+                ambientLight[li] = Global::ambientDayLight[li] * fShade;
+                diffuseLight[li] = Global::diffuseDayLight[li] * fShade;
+                specularLight[li] = Global::specularDayLight[li] * fShade;
+            }
+            glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+            glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+        }
+#endif
+        if (Global::bUseVBO)
+        { // wersja VBO
+            if (mdLowPolyInt)
+                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
+                    mdLowPolyInt->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
+            mdModel->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
+            if (mdLoad)
+                mdLoad->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
+        }
+        else
+        { // wersja Display Lists
+            if (mdLowPolyInt)
+                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
+                    mdLowPolyInt->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
+            mdModel->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
+            if (mdLoad)
+                mdLoad->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
+        }
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
+        if (fShade != 0.0) // tylko jeśli było zmieniane
+        { // przywrócenie standardowego oświetlenia
+            glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
+            glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
+        }
+#endif
+        glPopMatrix();
+        if (btnOn)
+            TurnOff(); // przywrócenie domyślnych pozycji submodeli
+    }
+    return;
+} // koniec renderalpha
+#endif
 
 void TDynamicObject::RenderSounds()
-{ // przeliczanie dźwięków, bo będzie
-    // słychać bez wyświetlania sektora z
-    // pojazdem
+{ // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem
+//    if( Global::iPause > 0 ) { return; }
+
     // McZapkie-010302: ulepszony dzwiek silnika
     double freq;
     double vol = 0;
@@ -3884,11 +3960,10 @@ void TDynamicObject::RenderSounds()
 
     if (MoverParameters->Power > 0)
     {
-        if ((rsSilnik.AM != 0) && ((MoverParameters->Mains) || (MoverParameters->EngineType ==
-                                                                DieselEngine))) // McZapkie-280503:
-        // zeby dla dumb
-        // dzialal silnik na
-        // jalowych obrotach
+        if ((rsSilnik.AM != 0)
+         && ((MoverParameters->Mains)
+        // McZapkie-280503: zeby dla dumb dzialal silnik na jalowych obrotach
+          || (MoverParameters->EngineType == DieselEngine))) 
         {
             if ((fabs(MoverParameters->enrot) > 0.01) ||
                 (MoverParameters->EngineType == Dumb)) //&& (MoverParameters->EnginePower>0.1))
@@ -4093,9 +4168,8 @@ void TDynamicObject::RenderSounds()
     sSmallCompressor.Update(MechInside, GetPosition());
 
     // youBy - przenioslem, bo diesel tez moze miec turbo
-    if ((MoverParameters->MainCtrlPos) >=
-        (MoverParameters->TurboTest)) // hunter-250312: dlaczego zakomentowane?
-    // Ra: bo nie działało dobrze
+    if( (MoverParameters->TurboTest > 0)
+     && (MoverParameters->MainCtrlPos >= MoverParameters->TurboTest))
     {
         // udawanie turbo:  (6.66*(eng_vol-0.85))
         if (eng_turbo > 6.66 * (enginevolume - 0.8) + 0.2 * dt)
@@ -4238,86 +4312,6 @@ void TDynamicObject::RenderSounds()
      }
     */
 };
-/*
-void TDynamicObject::RenderAlpha()
-{ // rysowanie elementów półprzezroczystych
-    if (renderme)
-    {
-        TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
-        double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition);
-        ABuLittleUpdate(ObjSqrDist); // ustawianie zmiennych submodeli dla wspólnego modelu
-        glPushMatrix();
-        if (this == Global::pUserDynamic)
-        { // specjalne ustawienie, aby nie trzęsło
-            if (Global::bSmudge)
-            { // jak smuga, to rysować po smudze
-                glPopMatrix(); // to trzeba zebrać przed wyściem
-                return;
-            }
-            glLoadIdentity(); // zacząć od macierzy jedynkowej
-            Global::pCamera->SetCabMatrix(vPosition); // specjalne ustawienie kamery
-        }
-        else
-            glTranslated(vPosition.x, vPosition.y,
-                         vPosition.z); // standardowe przesunięcie względem początku scenerii
-        glMultMatrixd(mMatrix.getArray());
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO: re-implement this
-        if (fShade > 0.0)
-        { // Ra: zmiana oswietlenia w tunelu, wykopie
-            GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            GLfloat diffuseLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            GLfloat specularLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            // trochę problem z ambientem w wykopie...
-            for (int li = 0; li < 3; li++)
-            {
-                ambientLight[li] = Global::ambientDayLight[li] * fShade;
-                diffuseLight[li] = Global::diffuseDayLight[li] * fShade;
-                specularLight[li] = Global::specularDayLight[li] * fShade;
-            }
-            glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-        }
-#endif
-        if (Global::bUseVBO)
-        { // wersja VBO
-            if (mdLowPolyInt)
-                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
-                    mdLowPolyInt->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            mdModel->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdLoad)
-                mdLoad->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            // if (mdPrzedsionek) //Ra: przedsionków tu wcześniej nie było - włączyć?
-            // mdPrzedsionek->RaRenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-        }
-        else
-        { // wersja Display Lists
-            if (mdLowPolyInt)
-                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
-                    mdLowPolyInt->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            mdModel->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdLoad)
-                mdLoad->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            // if (mdPrzedsionek) //Ra: przedsionków tu wcześniej nie było - włączyć?
-            // mdPrzedsionek->RenderAlpha(ObjSqrDist,ReplacableSkinID,iAlpha);
-        }
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO: re-implement this
-        if (fShade != 0.0) // tylko jeśli było zmieniane
-        { // przywrócenie standardowego oświetlenia
-            glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
-        }
-#endif
-        glPopMatrix();
-        if (btnOn)
-            TurnOff(); // przywrócenie domyślnych pozycji submodeli
-    }
-    return;
-} // koniec renderalpha
-*/
 
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
@@ -4344,6 +4338,26 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 
 		if( token == "models:") {
 			// modele i podmodele
+#ifdef EU07_USE_OLD_RENDERCODE
+            iMultiTex = 0; // czy jest wiele tekstur wymiennych?
+			parser.getTokens();
+			parser >> asModel;
+            if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
+            { // model wymaga wielu tekstur wymiennych
+                iMultiTex = 1;
+                asModel.erase( asModel.length() - 1 );
+            }
+            std::size_t i = asModel.find( ',' );
+            if ( i != std::string::npos )
+            { // Ra 2015-01: może szukać przecinka w nazwie modelu, a po przecinku była by liczba tekstur?
+                if (i < asModel.length())
+                    iMultiTex = asModel[i + 1] - '0';
+                if (iMultiTex < 0)
+                    iMultiTex = 0;
+                else if (iMultiTex > 1)
+                    iMultiTex = 1; // na razie ustawiamy na 1
+            }
+#else
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
 			parser >> asModel;
@@ -4354,86 +4368,80 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             }
             std::size_t i = asModel.find( ',' );
             if ( i != std::string::npos )
-            { // Ra 2015-01: może szukać przecinka w
-                // nazwie modelu, a po przecinku była by
-                // liczba
-                // tekstur?
+            { // Ra 2015-01: może szukać przecinka w nazwie modelu, a po przecinku była by liczba tekstur?
                 if (i < asModel.length())
                     m_materialdata.multi_textures = asModel[i + 1] - '0';
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
+#endif
             asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje
             // modele w dynamics/basedir
             Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
             assert( mdModel != nullptr ); // TODO: handle this more gracefully than all going to shit
             if (ReplacableSkin != "none")
+#ifdef EU07_USE_OLD_RENDERCODE
             { // tekstura wymienna jest raczej jedynie w "dynamic\"
                 ReplacableSkin =
                     Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
-					std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
-					if (!x.empty())
-                        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9 );
-					/*
-                if ((i = ReplacableSkin.Pos("|")) > 0) // replacable dzielone
-                {
-                    iMultiTex = -1;
-                    ReplacableSkinID[-iMultiTex] = TTexturesManager::GetTextureID(
-                        NULL, NULL, ReplacableSkin.SubString(1, i - 1).c_str(),
-                        Global::iDynamicFiltering);
-                    ReplacableSkin.Delete(1, i); // usunięcie razem z pionową kreską
-                    ReplacableSkin = Global::asCurrentTexturePath +
-                                     ReplacableSkin; // odtworzenie początku ścieżki
-                    // sprawdzić, ile jest i ustawić iMultiTex na liczbę podanych tekstur
-                    if (!ReplacableSkin.IsEmpty())
-                    { // próba wycięcia drugiej nazwy
-                        iMultiTex = -2; // skoro zostało coś po kresce, to są co najmniej dwie
-                        if ((i = ReplacableSkin.Pos("|")) == 0) // gdy nie ma już kreski
-                            ReplacableSkinID[-iMultiTex] = TTexturesManager::GetTextureID(
-                                NULL, NULL, ReplacableSkin.SubString(1, i - 1).c_str(),
-                                Global::iDynamicFiltering);
-                        else
-                        { // jak jest kreska, to wczytać drugą i próbować trzecią
-                            ReplacableSkinID[-iMultiTex] = TTexturesManager::GetTextureID(
-                                NULL, NULL, ReplacableSkin.SubString(1, i - 1).c_str(),
-                                Global::iDynamicFiltering);
-                            ReplacableSkin.Delete(1, i); // usunięcie razem z pionową kreską
-                            ReplacableSkin = Global::asCurrentTexturePath +
-                                             ReplacableSkin; // odtworzenie początku ścieżki
-                            if (!ReplacableSkin.IsEmpty())
-                            { // próba wycięcia trzeciej nazwy
-                                iMultiTex =
-                                    -3; // skoro zostało coś po kresce, to są co najmniej trzy
-                                if ((i = ReplacableSkin.Pos("|")) == 0) // gdy nie ma już kreski
-                                    ReplacableSkinID[-iMultiTex] = TTexturesManager::GetTextureID(
-                                        NULL, NULL, ReplacableSkin.SubString(1, i - 1).c_str(),
-                                        Global::iDynamicFiltering);
-                                else
-                                { // jak jest kreska, to wczytać trzecią i próbować czwartą
-                                    ReplacableSkinID[-iMultiTex] = TTexturesManager::GetTextureID(
-                                        NULL, NULL, ReplacableSkin.SubString(1, i - 1).c_str(),
-                                        Global::iDynamicFiltering);
-                                    ReplacableSkin.Delete(1, i); // usunięcie razem z pionową kreską
-                                    ReplacableSkin = Global::asCurrentTexturePath +
-                                                     ReplacableSkin; // odtworzenie początku ścieżki
-                                    if (!ReplacableSkin.IsEmpty())
-                                    { // próba wycięcia trzeciej nazwy
-                                        iMultiTex = -4; // skoro zostało coś po kresce, to są co
-                                        // najmniej cztery
-                                        ReplacableSkinID[-iMultiTex] =
-                                            TTexturesManager::GetTextureID(
-                                                NULL, NULL,
-                                                ReplacableSkin.SubString(1, i - 1).c_str(),
-                                                Global::iDynamicFiltering);
-                                        // więcej na razie nie zadziała, a u tak trzeba to do modeli
-                                        // przenieść
-                                    }
-                                }
+				std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+				if (!x.empty())
+					ReplacableSkinID[4] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9);
+
+                if (iMultiTex > 0)
+                { // jeśli model ma 4 tekstury
+                    ReplacableSkinID[1] = GfxRenderer.GetTextureId(
+                        ReplacableSkin + ",1", "", Global::iDynamicFiltering);
+                    if (ReplacableSkinID[1])
+                    { // pierwsza z zestawu znaleziona
+                        ReplacableSkinID[2] = GfxRenderer.GetTextureId(
+                            ReplacableSkin + ",2", "", Global::iDynamicFiltering);
+                        if (ReplacableSkinID[2])
+                        {
+                            iMultiTex = 2; // już są dwie
+                            ReplacableSkinID[3] = GfxRenderer.GetTextureId(
+                                ReplacableSkin + ",3", "", Global::iDynamicFiltering);
+                            if (ReplacableSkinID[3])
+                            {
+                                iMultiTex = 3; // a teraz nawet trzy
+                                ReplacableSkinID[4] = GfxRenderer.GetTextureId(
+                                    ReplacableSkin + ",4", "", Global::iDynamicFiltering);
+                                if (ReplacableSkinID[4])
+                                    iMultiTex = 4; // jak są cztery, to blokujemy podmianę tekstury rozkładem
                             }
                         }
                     }
+                    else
+                    { // zestaw nie zadziałał, próbujemy normanie
+                        iMultiTex = 0;
+                        ReplacableSkinID[1] = GfxRenderer.GetTextureId(
+                            ReplacableSkin, "", Global::iDynamicFiltering);
+                    }
                 }
-				*/
+                else
+                    ReplacableSkinID[1] = GfxRenderer.GetTextureId(
+                        ReplacableSkin, "", Global::iDynamicFiltering);
+                if (GfxRenderer.Texture(ReplacableSkinID[1]).has_alpha)
+                    iAlpha = 0x31310031; // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                else
+                    iAlpha = 0x30300030; // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
+                if (ReplacableSkinID[2])
+                    if (GfxRenderer.Texture(ReplacableSkinID[2]).has_alpha)
+                        iAlpha |= 0x02020002; // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                if (ReplacableSkinID[3])
+                    if (GfxRenderer.Texture(ReplacableSkinID[3]).has_alpha)
+                        iAlpha |= 0x04040004; // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                if (ReplacableSkinID[4])
+                    if (GfxRenderer.Texture(ReplacableSkinID[4]).has_alpha)
+                        iAlpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+            }
+#else
+            { // tekstura wymienna jest raczej jedynie w "dynamic\"
+                ReplacableSkin = Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
+				std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+				if (!x.empty())
+                    m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9 );
+
                 if (m_materialdata.multi_textures > 0)
                 { // jeśli model ma 4 tekstury
                     m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId(
@@ -4482,6 +4490,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 4 ] ).has_alpha )
                         m_materialdata.textures_alpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
             }
+#endif
             if (!MoverParameters->LoadAccepted.empty())
                 // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
                 // MoverParameters->LoadType!=AnsiString("passengers"))
@@ -5763,6 +5772,54 @@ std::string TDynamicObject::TextureTest(std::string const &name)
     return ""; // nie znaleziona
 };
 
+#ifdef EU07_USE_OLD_RENDERCODE
+void TDynamicObject::DestinationSet(std::string to, std::string numer)
+{ // ustawienie stacji
+    // docelowej oraz wymiennej
+    // tekstury 4, jeśli
+    // istnieje plik
+    // w zasadzie, to każdy wagon mógłby mieć inną stację docelową
+    // zwłaszcza w towarowych, pod kątem zautomatyzowania maewrów albo pracy górki
+    // ale to jeszcze potrwa, zanim będzie możliwe, na razie można wpisać stację z
+    // rozkładu
+    if (abs(iMultiTex) >= 4)
+        return; // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
+	numer = Global::Bezogonkow(numer);
+    asDestination = to;
+    to = Global::Bezogonkow(to); // do szukania pliku obcinamy ogonki
+    std::string x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
+	if (!x.empty())
+    {
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+        return;
+    }
+	x = TextureTest(asBaseDir + numer );
+	if (!x.empty())
+    {
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+        return;
+    }
+    if (to.empty())
+        to = "nowhere";
+    x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejności z nazwą FIZ/MMD
+    if (!x.empty())
+    {
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+        return;
+    }
+    x = TextureTest(asBaseDir + to); // na razie prymitywnie
+    if (!x.empty())
+        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
+    else
+		{
+        x = TextureTest(asBaseDir + "nowhere"); // jak nie znalazł dedykowanej, to niech daje nowhere
+		if (!x.empty())
+			ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9);
+		}
+    // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa
+    // tekstury nr 4
+};
+#else
 void TDynamicObject::DestinationSet(std::string to, std::string numer)
 { // ustawienie stacji docelowej oraz wymiennej tekstury 4, jeśli istnieje plik
     // w zasadzie, to każdy wagon mógłby mieć inną stację docelową
@@ -5806,6 +5863,7 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa
     // tekstury nr 4
 };
+#endif
 
 void TDynamicObject::OverheadTrack(float o)
 { // ewentualne wymuszanie jazdy

@@ -2085,9 +2085,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             // if the vehicle has defined light source, it can (potentially) emit light, so add it to the light array
 */
         if( ( tmp != nullptr )
-         && ( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) ) {
-            // we check for presence of security system, as a way to determine whether the vehicle is a controllable engine
-            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights
+         && ( tmp->DynamicObject->MoverParameters->CategoryFlag == 1 ) // trains only
+         && ( ( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 )
+           || ( tmp->DynamicObject->MoverParameters->SandCapacity > 0.0 ) ) ) {
+            // we check for presence of security system or sand load, as a way to determine whether the vehicle is a controllable engine
+            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights, and some engines
+            //       don't have security systems fitted
             m_lights.insert( tmp->DynamicObject );
         }
 

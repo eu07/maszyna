@@ -2421,7 +2421,7 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 {
     bool IBL;
-    if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
+     if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
     {
         while ((LocalBrakePos < LocalBrakePosNo) && (CtrlSpeed > 0))
         {
@@ -6139,7 +6139,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         if( issection( "ffList:", inputline ) ) {
 			startBPT = false;
             startFFLIST = true; LISTLINE = 0;
-			continue;
+            LoadFIZ_FFList( inputline );
+            continue;
         }
 
         if( issection( "WWList:", inputline ) )
@@ -6324,7 +6325,8 @@ void TMoverParameters::LoadFIZ_Wheels( std::string const &line ) {
 
 void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 
-    BrakeValveDecode( extract_value( "BrakeValve", line ) );
+    extract_value( BrakeValveParams, "BrakeValve", line, "" );
+    BrakeValveDecode( BrakeValveParams );
     BrakeSubsystemDecode();
 
     extract_value( NBpA, "NBpA", line, "" );
@@ -6949,6 +6951,11 @@ void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
     extract_value( dizel_nmax, "nmax", Input, "" );
     extract_value( dizel_nominalfill, "nominalfill", Input, "" );
     extract_value( dizel_Mstand, "Mstand", Input, "" );
+}
+
+void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
+
+    extract_value( RlistSize, "Size", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {

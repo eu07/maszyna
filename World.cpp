@@ -769,6 +769,7 @@ bool TWorld::Update()
     // poprzednie jakoś tam działało
 
     // fixed step, simulation time based updates
+
     double dt = Timer::GetDeltaTime(); // 0.0 gdy pauza
 /*
     fTimeBuffer += dt; //[s] dodanie czasu od poprzedniej ramki
@@ -834,6 +835,7 @@ bool TWorld::Update()
             }
 */
     // secondary fixed step simulation time routines
+
     while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
 
         Global::tranTexts.Update(); // obiekt obsługujący stenogramy dźwięków na ekranie
@@ -856,6 +858,7 @@ bool TWorld::Update()
     }
 
     // variable step simulation time routines
+
     if( Global::changeDynObj ) {
         // ABu zmiana pojazdu - przejście do innego
         ChangeDynamic();
@@ -874,9 +877,11 @@ bool TWorld::Update()
     Ground.Update_Lights();
 
     // render time routines follow:
+
     dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
 
     // fixed step render time routines
+
     fTime50Hz += dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
     while( fTime50Hz >= 1.0 / 50.0 ) {
         Console::Update(); // to i tak trzeba wywoływać
@@ -884,9 +889,10 @@ bool TWorld::Update()
     }
 
     // variable step render time routines
-    Update_Camera( dt ); // TODO: move the fixed step cab camera updates to fixed step secondary routines section
 
-    Update_UI();
+    Update_Camera( dt );
+
+    Update_UI(); // TBD, TODO: move the ui updates to secondary fixed step routines, to reduce workload?
 
     GfxRenderer.Update( dt );
     ResourceSweep();
@@ -1376,8 +1382,13 @@ TWorld::Render_Cab() {
         else {
 */
         // renderowanie z Display List
+#ifdef EU07_USE_OLD_RENDERCODE
+            dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+            dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+#else
             GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
             GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic->Material(), 0.0 );
+#endif
 /*
         }
 */
@@ -1501,24 +1512,16 @@ TWorld::Update_UI() {
                     + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
 
                 OutText3 =
-                    "BP: "
-                    + to_string( tmp->MoverParameters->BrakePress, 2 )
-                    + ", "
-                    + to_string( tmp->MoverParameters->BrakeStatus, 0 )
-                    + ", PP: "
-                    + to_string( tmp->MoverParameters->PipePress, 2 )
-                    + "/"
-                    + to_string( tmp->MoverParameters->ScndPipePress, 2 )
-                    + "/"
-                    + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
-                    + ", BVP: "
-                    + to_string( tmp->MoverParameters->Volume, 3 )
-                    + ", "
-                    + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
-                    + ", "
-                    + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 )
-                    + ", "
-                    + to_string( tmp->MoverParameters->BrakeStatus, 0 );
+                    "BP: " + to_string( tmp->MoverParameters->BrakePress, 2 )
+                    + " (" + to_string( tmp->MoverParameters->BrakeStatus, 0 )
+                    + "), LBP: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
+                    + ", PP: " + to_string( tmp->MoverParameters->PipePress, 2 )
+                    + "/" + to_string( tmp->MoverParameters->ScndPipePress, 2 )
+                    + "/" + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
+                    + ", BVP: " + to_string( tmp->MoverParameters->Volume, 3 )
+                    + ", " + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
+                    + ", " + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 )
+                    + ", " + to_string( tmp->MoverParameters->BrakeStatus, 0 );
 
                 if( tmp->MoverParameters->ManualBrakePos > 0 ) {
 
@@ -1732,58 +1735,66 @@ TWorld::Update_UI() {
         default: {
             // uncovered cases, nothing to do here...
             // ... unless we're in debug mode
-            if( DebugModeFlag && Controlled ) {
+            if( DebugModeFlag ) {
+
+                TDynamicObject *tmp =
+                    ( FreeFlyModeFlag ?
+                        Ground.DynamicNearest( Camera.Pos ) :
+                        Controlled ); // w trybie latania lokalizujemy wg mapy
+                if( tmp == nullptr ) {
+                    break;
+                }
 
                 OutText1 =
-                    "vel: " + to_string(Controlled->GetVelocity(), 2) + " km/h"
-                    + "; dist: " + to_string(Controlled->MoverParameters->DistCounter, 2) + " km"
+                    "vel: " + to_string(tmp->GetVelocity(), 2) + " km/h"
+                    + "; dist: " + to_string(tmp->MoverParameters->DistCounter, 2) + " km"
                     + "; pos: ("
-                    + to_string( Controlled->GetPosition().x, 2 ) + ", "
-                    + to_string( Controlled->GetPosition().y, 2 ) + ", "
-                    + to_string( Controlled->GetPosition().z, 2 )
+                    + to_string( tmp->GetPosition().x, 2 ) + ", "
+                    + to_string( tmp->GetPosition().y, 2 ) + ", "
+                    + to_string( tmp->GetPosition().z, 2 )
                     + ")";
 
                 OutText2 =
-                    "HamZ=" + to_string( Controlled->MoverParameters->fBrakeCtrlPos, 1 )
-                    + "; HamP=" + std::to_string( mvControlled->LocalBrakePos ) + "/" + to_string( Controlled->MoverParameters->LocalBrakePosA, 2 )
-                    + "; NasJ=" + std::to_string( mvControlled->MainCtrlPos ) + "(" + std::to_string( mvControlled->MainCtrlActualPos ) + ")"
-                    + "; NasB=" + std::to_string( mvControlled->ScndCtrlPos ) + "(" + std::to_string( mvControlled->ScndCtrlActualPos ) + ")"
+                    "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 1 )
+                    + "; HamP=" + std::to_string( tmp->MoverParameters->LocalBrakePos ) + "/" + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
+                    + "; NasJ=" + std::to_string( tmp->MoverParameters->MainCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->MainCtrlActualPos ) + ")"
+                    + "; NasB=" + std::to_string( tmp->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->ScndCtrlActualPos ) + ")"
                     + "; I=" +
-                    ( mvControlled->TrainType == dt_EZT ?
-                        std::to_string( int( mvControlled->ShowCurrent( 0 ) ) ):
-                        std::to_string( int( mvControlled->Im ) ) )
-                    + "; U=" + to_string( int( mvControlled->RunningTraction.TractionVoltage + 0.5 ) )
+                    ( tmp->MoverParameters->TrainType == dt_EZT ?
+                        std::to_string( int( tmp->MoverParameters->ShowCurrent( 0 ) ) ) :
+                       std::to_string( int( tmp->MoverParameters->Im ) ) )
+                    + "; U=" + to_string( int( tmp->MoverParameters->RunningTraction.TractionVoltage + 0.5 ) )
                     + "; R=" +
-                    ( Controlled->MoverParameters->RunningShape.R > 100000.0 ?
+                    ( tmp->MoverParameters->RunningShape.R > 100000.0 ?
                         "~0.0" :
-                        to_string( Controlled->MoverParameters->RunningShape.R, 1 ) )
-                    + " An=" + to_string( Controlled->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
+                        to_string( tmp->MoverParameters->RunningShape.R, 1 ) )
+                    + " An=" + to_string( tmp->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
 
                 if( tprev != int( GlobalTime->mr ) ) {
                     tprev = GlobalTime->mr;
-                    Acc = ( Controlled->MoverParameters->Vel - VelPrev ) / 3.6;
-                    VelPrev = Controlled->MoverParameters->Vel;
+                    Acc = ( tmp->MoverParameters->Vel - VelPrev ) / 3.6;
+                    VelPrev = tmp->MoverParameters->Vel;
                 }
                 OutText2 += ( "; As=" ) + to_string( Acc, 2 ); // przyspieszenie wzdłużne
 
                 OutText3 =
-                    "cyl.ham. " + to_string( Controlled->MoverParameters->BrakePress, 2 )
-                    + "; prz.gl. " + to_string( Controlled->MoverParameters->PipePress, 2 )
-                    + "; zb.gl. " + to_string( Controlled->MoverParameters->CompressedVolume, 2 )
+                    "cyl.ham. " + to_string( tmp->MoverParameters->BrakePress, 2 )
+                    + "; prz.gl. " + to_string( tmp->MoverParameters->PipePress, 2 )
+                    + "; zb.gl. " + to_string( tmp->MoverParameters->CompressedVolume, 2 )
                     // youBy - drugi wezyk
-                    + "; p.zas. " + to_string( Controlled->MoverParameters->ScndPipePress, 2 );
+                    + "; p.zas. " + to_string( tmp->MoverParameters->ScndPipePress, 2 );
  
                 // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
-                if( mvControlled->ConvOvldFlag )
+                if( tmp->MoverParameters->ConvOvldFlag )
                     OutText3 += " C! ";
-                else if( mvControlled->FuseFlag )
+                else if( tmp->MoverParameters->FuseFlag )
                     OutText3 += " F! ";
-                else if( !mvControlled->Mains )
+                else if( !tmp->MoverParameters->Mains )
                     OutText3 += " () ";
                 else {
                     switch(
-                        mvControlled->ActiveDir *
-                        ( mvControlled->Imin == mvControlled->IminLo ?
+                        tmp->MoverParameters->ActiveDir *
+                        ( tmp->MoverParameters->Imin == tmp->MoverParameters->IminLo ?
                             1 :
                             2 ) ) {
                         case  2: { OutText3 += " >> "; break; }
@@ -1794,38 +1805,38 @@ TWorld::Update_UI() {
                     }
                 }
                 // McZapkie: predkosc szlakowa
-                if( Controlled->MoverParameters->RunningTrack.Velmax == -1 ) {
+                if( tmp->MoverParameters->RunningTrack.Velmax == -1 ) {
                     OutText3 += " Vtrack=Vmax";
                 }
                 else {
-                    OutText3 += " Vtrack " + to_string( Controlled->MoverParameters->RunningTrack.Velmax, 2 );
+                    OutText3 += " Vtrack " + to_string( tmp->MoverParameters->RunningTrack.Velmax, 2 );
                 }
 
-                if( ( mvControlled->EnginePowerSource.SourceType == CurrentCollector )
-                 || ( mvControlled->TrainType == dt_EZT ) ) {
+                if( ( tmp->MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
+                    || ( tmp->MoverParameters->TrainType == dt_EZT ) ) {
                     OutText3 +=
-                        "; pant. " + to_string( mvControlled->PantPress, 2 )
-                        + ( mvControlled->bPantKurek3 ? "=" : "^" ) + "ZG";
+                        "; pant. " + to_string( tmp->MoverParameters->PantPress, 2 )
+                        + ( tmp->MoverParameters->bPantKurek3 ? "=" : "^" ) + "ZG";
                 }
 
                 // McZapkie: komenda i jej parametry
-                if( Controlled->MoverParameters->CommandIn.Command != ( "" ) ) {
+                if( tmp->MoverParameters->CommandIn.Command != ( "" ) ) {
                     OutText4 =
-                        "C:" + Controlled->MoverParameters->CommandIn.Command
-                        + " V1=" + to_string( Controlled->MoverParameters->CommandIn.Value1, 0 )
-                        + " V2=" + to_string( Controlled->MoverParameters->CommandIn.Value2, 0 );
+                        "C:" + tmp->MoverParameters->CommandIn.Command
+                        + " V1=" + to_string( tmp->MoverParameters->CommandIn.Value1, 0 )
+                        + " V2=" + to_string( tmp->MoverParameters->CommandIn.Value2, 0 );
                 }
-                if( ( Controlled->Mechanik )
-                 && ( Controlled->Mechanik->AIControllFlag == AIdriver ) ) {
+                if( ( tmp->Mechanik )
+                 && ( tmp->Mechanik->AIControllFlag == AIdriver ) ) {
                     OutText4 +=
-                        "AI: Vd=" + to_string( Controlled->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string( Controlled->Mechanik->AccDesired, 2 )
-                        + " Pd=" + to_string( Controlled->Mechanik->ActualProximityDist, 0 )
-                        + " Vn=" + to_string( Controlled->Mechanik->VelNext, 0 );
+                        "AI: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
+                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                        + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
+                        + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 );
                 }
 
                 // induction motor data
-                if( Controlled->MoverParameters->EngineType == ElectricInductionMotor ) {
+                if( tmp->MoverParameters->EngineType == ElectricInductionMotor ) {
 
                     float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
@@ -1833,8 +1844,8 @@ TWorld::Update_UI() {
                     for( int i = 0; i <= 20; ++i ) {
 
                         std::string parameters =
-                              to_string(Controlled->MoverParameters->eimc[i], 2, 9)
-                            + " " + to_string( Controlled->MoverParameters->eimv[ i ], 2, 9 );
+                              to_string(tmp->MoverParameters->eimc[i], 2, 9)
+                            + " " + to_string( tmp->MoverParameters->eimv[ i ], 2, 9 );
 
                         if( i <= 10 ) {
                             parameters += " " + to_string( Train->fPress[ i ][ 0 ], 2, 9 );
@@ -1843,7 +1854,7 @@ TWorld::Update_UI() {
                             parameters += "    med:";
                         }
                         else if( i >= 13 ) {
-                            parameters += " " + to_string( Controlled->MED[ 0 ][ i - 13 ], 2, 9 );
+                            parameters += " " + to_string( tmp->MED[ 0 ][ i - 13 ], 2, 9 );
                         }
 
                         UITable->text_lines.emplace_back( parameters, linecolor );

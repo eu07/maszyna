@@ -141,6 +141,7 @@ class TAnim
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
+#ifndef EU07_USE_OLD_RENDERCODE
 // parameters for the material object, as currently used by various simulator models
 struct material_data {
 
@@ -152,6 +153,7 @@ struct material_data {
         ::SecureZeroMemory( replacable_skins, sizeof( replacable_skins ) );
     }
 };
+#endif
 
 class TDynamicObject { // klasa pojazdu
 
@@ -198,11 +200,15 @@ public: // modele składowe pojazdu
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
 
   private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
+#ifndef EU07_USE_OLD_RENDERCODE
     material_data m_materialdata;
+#endif
 
   public:
+#ifndef EU07_USE_OLD_RENDERCODE
     inline
     material_data const *Material() const { return &m_materialdata; }
+#endif
     // tymczasowo udostępnione do wyszukiwania drutu
     int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
   private:
@@ -415,11 +421,11 @@ public: // modele składowe pojazdu
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
     std::string asBaseDir;
-/*
+#ifdef EU07_USE_OLD_RENDERCODE
     texture_manager::size_type ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
     int iAlpha; // maska przezroczystości tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
-*/
+#endif
     int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały
     // jazdę bezprądową
     TTractionParam tmpTraction;
@@ -438,10 +444,10 @@ public: // modele składowe pojazdu
     bool FastUpdate(double dt);
     void Move(double fDistance);
     void FastMove(double fDistance);
-/*
+#ifdef EU07_USE_OLD_RENDERCODE
     void Render();
     void RenderAlpha();
-*/
+#endif
     void RenderSounds();
     inline vector3 GetPosition() const
     {

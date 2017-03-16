@@ -84,9 +84,9 @@ class TWorld
     double fTimeBuffer; // bufor czasu aktualizacji dla stałego kroku fizyki
     double fMaxDt; //[s] krok czasowy fizyki (0.01 dla normalnych warunków)
     double m_primaryupdaterate{ 1.0 / 100.0 };
-    double m_primaryupdateaccumulator{ 0.0 }; // keeps track of elapsed simulation time, for core fixed step routines
     double m_secondaryupdaterate{ 1.0 / 50.0 };
-    double m_secondaryupdateaccumulator{ 0.0 }; // keeps track of elapsed simulation time, for less important fixed step routines
+    double m_primaryupdateaccumulator{ m_secondaryupdaterate }; // keeps track of elapsed simulation time, for core fixed step routines
+    double m_secondaryupdateaccumulator{ m_secondaryupdaterate }; // keeps track of elapsed simulation time, for less important fixed step routines
     int iPause; // wykrywanie zmian w zapauzowaniu
     double VelPrev; // poprzednia prędkość
     int tprev; // poprzedni czas

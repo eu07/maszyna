@@ -134,13 +134,13 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
             }
 #endif
             case GLFW_KEY_ESCAPE: {
-                
+/*                
                 if( ( DebugModeFlag ) //[Esc] pauzuje tylko bez Debugmode
                  && ( Global::iPause == 0 ) ) { // but unpausing should work always
                     
                     break;
                 }
-
+*/
                 if( Global::iPause & 1 ) // jeśli pauza startowa
                     Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
                 else if( !( Global::iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
@@ -277,7 +277,9 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
     glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
-    glfwWindowHint(GLFW_SAMPLES, 1 << Global::iMultisampling);
+    if( Global::iMultisampling > 0 ) {
+        glfwWindowHint( GLFW_SAMPLES, 1 << Global::iMultisampling );
+    }
 
     if (Global::bFullScreen)
 	{

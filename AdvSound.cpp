@@ -128,6 +128,10 @@ void TAdvancedSound::Update(bool ListenerInside, vector3 NewPosition)
 
 void TAdvancedSound::UpdateAF(double A, double F, bool ListenerInside, vector3 NewPosition)
 { // update, ale z amplituda i czestotliwoscia
+    if( State == ss_Off ) {
+        return;
+    }
+
     if ((State == ss_Commencing) && (SoundCommencing.AM > 0))
     {
         SoundShut.Stop(); // hunter-311211

@@ -2685,10 +2685,9 @@ bool TTrain::Update( double const Deltatime )
            iSekunda=floor(GlobalTime->mr);
           }
         */
-        // Ra 2014-09: napięcia i prądy muszą być ustalone najpierw, bo wysyłane są
-        // ewentualnie na
-        // PoKeys
-		if ((mvControlled->EngineType != DieselElectric) && (mvControlled->EngineType != ElectricInductionMotor)) // Ra 2014-09: czy taki rozdzia? ma sens?
+        // Ra 2014-09: napięcia i prądy muszą być ustalone najpierw, bo wysyłane są ewentualnie na PoKeys
+		if ((mvControlled->EngineType != DieselElectric)
+         && (mvControlled->EngineType != ElectricInductionMotor)) // Ra 2014-09: czy taki rozdzia? ma sens?
 			fHVoltage = mvControlled->RunningTraction.TractionVoltage; // Winger czy to nie jest zle?
         // *mvControlled->Mains);
         else
