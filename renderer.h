@@ -33,11 +33,23 @@ struct opengl_light {
     }
 
     inline
-    void apply_intensity() {
+    void apply_intensity( float const Factor = 1.0f ) {
 
-        glLightfv( id, GL_AMBIENT, ambient );
-        glLightfv( id, GL_DIFFUSE, diffuse );
-        glLightfv( id, GL_SPECULAR, specular );
+        if( Factor == 1.0 ) {
+
+            glLightfv( id, GL_AMBIENT, ambient );
+            glLightfv( id, GL_DIFFUSE, diffuse );
+            glLightfv( id, GL_SPECULAR, specular );
+        }
+        else {
+            // temporary light scaling mechanics (ultimately this work will be left to the shaders
+            float4 scaledambient( ambient[ 0 ] * Factor, ambient[ 1 ] * Factor, ambient[ 2 ] * Factor, ambient[ 3 ] );
+            float4 scaleddiffuse( diffuse[ 0 ] * Factor, diffuse[ 1 ] * Factor, diffuse[ 2 ] * Factor, diffuse[ 3 ] );
+            float4 scaledspecular( specular[ 0 ] * Factor, specular[ 1 ] * Factor, specular[ 2 ] * Factor, specular[ 3 ] );
+            glLightfv( id, GL_AMBIENT, &scaledambient.x );
+            glLightfv( id, GL_DIFFUSE, &scaleddiffuse.x );
+            glLightfv( id, GL_SPECULAR, &scaledspecular.x );
+        }
     }
     inline
     void apply_angle() {
@@ -127,6 +139,9 @@ public:
     inline
     bool
         Visible( TDynamicObject const *Dynamic ) const { return m_camera.visible( Dynamic ); }
+    // debug performance string
+    std::string const &
+        Info() const;
 
     texture_manager::size_type
         GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true ) {
@@ -168,6 +183,7 @@ private:
     float m_drawrange{ 2500.0f }; // current drawing range
     float m_drawtime{ 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
     double m_updateaccumulator{ 0.0 };
+    std::string m_debuginfo;
     GLFWwindow *m_window{ nullptr };
 };
 

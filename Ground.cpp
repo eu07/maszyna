@@ -2582,7 +2582,6 @@ bool TGround::Init(std::string File)
     // TFileStream *fs;
     // int size;
     std::string subpath = Global::asCurrentSceneryPath; //   "scenery/";
-    auto const tokencount = cParser::countTokens( File, subpath );
     cParser parser(File, cParser::buffer_FILE, subpath, Global::bLoadTraction);
     std::string token;
 
@@ -2623,7 +2622,7 @@ bool TGround::Init(std::string File)
     while (token != "") //(!Parser->EndOfFile)
     {
         ++processed;
-        if( processed % 25 == 0 )
+        if( processed % 1000 == 0 )
         {
             UILayer.set_progress( parser.getProgress(), parser.getFullProgress() );
             GfxRenderer.Render();

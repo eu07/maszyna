@@ -2340,8 +2340,7 @@ void TDynamicObject::Move(double fDistance)
         { // przeliczenie cienia
             TTrack *t0 = Axle0.GetTrack(); // już po przesunięciu
             TTrack *t1 = Axle1.GetTrack();
-            if ((t0->eEnvironment == e_flat) && (t1->eEnvironment == e_flat)) // może być
-                // e_bridge...
+            if ((t0->eEnvironment == e_flat) && (t1->eEnvironment == e_flat)) // może być e_bridge...
                 fShade = 0.0; // standardowe oświetlenie
             else
             { // jeżeli te tory mają niestandardowy stopień zacienienia
@@ -2364,6 +2363,21 @@ void TDynamicObject::Move(double fDistance)
                     if (Axle0.GetDirection() < 0)
                         d = t0->fTrackLength - d; // od drugiej strony liczona długość
                     d /= fAxleDist; // rozsataw osi procentowe znajdowanie się na torze
+
+                    float shadefrom = 1.0f, shadeto = 1.0f;
+                    // NOTE, TODO: calculating brightness level is used enough times to warrant encapsulation into a function
+                    switch( t0->eEnvironment ) {
+                        case e_canyon: { shadeto = 0.65f; break; }
+                        case e_tunnel: { shadeto = 0.2f; break; }
+                        default: {break; }
+                    }
+                    switch( t1->eEnvironment ) {
+                        case e_canyon: { shadefrom = 0.65f; break; }
+                        case e_tunnel: { shadefrom = 0.2f; break; }
+                        default: {break; }
+                    }
+                    fShade = interpolate( shadefrom, shadeto, static_cast<float>( d ) );
+/*
                     switch (t0->eEnvironment)
                     { // typ zmiany oświetlenia - zakładam, że
                     // drugi tor ma e_flat
@@ -2384,6 +2398,7 @@ void TDynamicObject::Move(double fDistance)
                         fShade = d + (1.0 - d) * 0.20;
                         break; // zacienienie w tunelu
                     }
+*/
                 }
             }
         }
@@ -3748,7 +3763,6 @@ void TDynamicObject::Render()
                          vPosition.z); // standardowe przesunięcie względem początku scenerii
         glMultMatrixd(mMatrix.getArray());
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO: re-implement this
         if (fShade > 0.0)
         { // Ra: zmiana oswietlenia w tunelu, wykopie
             GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
@@ -3764,6 +3778,11 @@ void TDynamicObject::Render()
             glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+        }
+#else
+        if( fShade > 0.0f ) {
+            // change light level based on light level of the occupied track
+            Global::DayLight.apply_intensity( fShade );
         }
 #endif
         if (Global::bUseVBO)
@@ -3865,6 +3884,11 @@ void TDynamicObject::Render()
             glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
             glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
+        }
+#else
+        if( fShade > 0.0f ) {
+            // restore regular light level
+            Global::DayLight.apply_intensity();
         }
 #endif
         glPopMatrix();

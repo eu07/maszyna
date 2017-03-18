@@ -29,13 +29,15 @@ struct opengl_texture {
 
     // methods
     void load();
-    void create();
+    resource_state bind();
+    resource_state create();
     // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
     std::string traits; // requested texture attributes: wrapping modes etc
     std::string name; // name of the texture source file
+    std::size_t size{ 0 }; // size of the texture data, in kb
 
 private:
     // methods
@@ -71,11 +73,19 @@ public:
     texture_manager();
     ~texture_manager() { Free(); }
 
-    size_type GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
-    void Bind( size_type const Id );
-    opengl_texture &Texture( size_type const Id ) { return m_textures.at( Id ); }
-    void Init();
-    void Free();
+    size_type
+        GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
+    void
+        Bind( size_type const Id );
+    opengl_texture &
+        Texture( size_type const Id ) { return m_textures[ Id ]; }
+    void
+        Init();
+    void
+        Free();
+    // debug performance string
+    std::string
+        Info() const;
 
 private:
     typedef std::unordered_map<std::string, size_type> index_map;

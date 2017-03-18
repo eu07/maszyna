@@ -465,7 +465,16 @@ opengl_renderer::Update ( double const Deltatime ) {
     }
 
     // TODO: add garbage collection and other less frequent works here
+    if( DebugModeFlag )
+        m_debuginfo = m_textures.Info();
 };
+
+// debug performance string
+std::string const &
+opengl_renderer::Info() const {
+
+    return m_debuginfo;
+}
 
 void
 opengl_renderer::Update_Lights( light_array const &Lights ) {
@@ -494,14 +503,27 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
         renderlight->set_position( scenelight.position );
         renderlight->direction = scenelight.direction;
 
-        auto const luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
+        auto luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
+        auto const environment = scenelight.owner->fShade;
+        if( environment > 0.0f ) {
+            luminance *= environment;
+        }
         renderlight->diffuse[ 0 ] = std::max( 0.0, scenelight.color.x - luminance );
         renderlight->diffuse[ 1 ] = std::max( 0.0, scenelight.color.y - luminance );
         renderlight->diffuse[ 2 ] = std::max( 0.0, scenelight.color.z - luminance );
         renderlight->ambient[ 0 ] = std::max( 0.0, scenelight.color.x * scenelight.intensity - luminance);
         renderlight->ambient[ 1 ] = std::max( 0.0, scenelight.color.y * scenelight.intensity - luminance );
         renderlight->ambient[ 2 ] = std::max( 0.0, scenelight.color.z * scenelight.intensity - luminance );
-
+/*
+        // NOTE: we have no simple way to determine whether the lights are falling on objects located in darker environment
+        // until this issue is resolved we're disabling reduction of light strenght based on the global luminance
+        renderlight->diffuse[ 0 ] = std::max( 0.0f, scenelight.color.x );
+        renderlight->diffuse[ 1 ] = std::max( 0.0f, scenelight.color.y );
+        renderlight->diffuse[ 2 ] = std::max( 0.0f, scenelight.color.z );
+        renderlight->ambient[ 0 ] = std::max( 0.0f, scenelight.color.x * scenelight.intensity );
+        renderlight->ambient[ 1 ] = std::max( 0.0f, scenelight.color.y * scenelight.intensity );
+        renderlight->ambient[ 2 ] = std::max( 0.0f, scenelight.color.z * scenelight.intensity );
+*/
         ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, (0.25f * scenelight.count) / std::pow( scenelight.count, 2 ) * (scenelight.owner->DimHeadlights ? 1.25f : 1.0f) );
         ::glEnable( renderlight->id );
 

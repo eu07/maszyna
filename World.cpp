@@ -1285,7 +1285,6 @@ TWorld::Render_Cab() {
     if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
     {
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO: re-implement this
         // oswietlenie kabiny
         GLfloat ambientCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
         GLfloat diffuseCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
@@ -1367,6 +1366,10 @@ TWorld::Render_Cab() {
         glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseCabLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, specularCabLight );
 #else
+        if( dynamic->fShade > 0.0f ) {
+            // change light level based on light level of the occupied track
+            Global::DayLight.apply_intensity( dynamic->fShade );
+        }
         if( dynamic->InteriorLightLevel > 0.0f ) {
 
             // crude way to light the cabin, until we have something more complete in place
@@ -1393,12 +1396,15 @@ TWorld::Render_Cab() {
         }
 */
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO: re-implement this
         // przywrócenie standardowych, bo zawsze są zmieniane
         glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
         glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
         glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
 #else
+        if( dynamic->fShade > 0.0f ) {
+            // change light level based on light level of the occupied track
+            Global::DayLight.apply_intensity();
+        }
         if( dynamic->InteriorLightLevel > 0.0f ) {
             // reset the overall ambient
             GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -1429,7 +1435,7 @@ TWorld::Update_UI() {
             }
             if( Controlled
              && Controlled->Mechanik ) {
-                    OutText2 = Controlled->Mechanik->Relation();
+                    OutText2 = Global::Bezogonkow( Controlled->Mechanik->Relation(), true );
                     if( !OutText2.empty() ) {
                         // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
                         OutText3 = " -> " + Global::Bezogonkow( Controlled->Mechanik->NextStop(), true );
@@ -1700,7 +1706,9 @@ TWorld::Update_UI() {
                 std::string("Rendering mode: ")
                 + ( Global::bUseVBO ?
                     "VBO" :
-                    "Display Lists" );
+                    "Display Lists" )
+                + ". "
+                + GfxRenderer.Info();
 
             // dump last opengl error, if any
             GLenum glerror = glGetError();

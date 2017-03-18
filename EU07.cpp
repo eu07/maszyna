@@ -94,8 +94,10 @@ void make_screenshot()
 
 void window_resize_callback(GLFWwindow *window, int w, int h)
 {
-	Global::ScreenWidth = w;
-	Global::ScreenHeight = h;
+    // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
+    // TBD, TODO: merge them?
+	Global::ScreenWidth = Global::iWindowWidth = w;
+	Global::ScreenHeight = Global::iWindowHeight = h;
     Global::fDistanceFactor = std::max( 0.5f, h / 768.0f ); // not sure if this is really something we want to use
 	glViewport(0, 0, w, h);
 }
