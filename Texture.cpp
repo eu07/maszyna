@@ -480,6 +480,14 @@ opengl_texture::load_TGA() {
         return;
     }
 
+    downsize( GL_BGRA );
+    if( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+        // for non-square textures there's currently possibility the scaling routine will have to abort
+        // before it gets all work done
+        data_state = resource_state::failed;
+        return;
+    }
+
     // TODO: add horizontal/vertical data flip, based on the descriptor (18th) header byte
 
     // fill remaining data info
@@ -654,6 +662,31 @@ opengl_texture::set_filtering() {
         // regular texture sharpening
         ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
     }
+}
+
+void
+opengl_texture::downsize( GLuint const Format ) {
+
+    while( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+        // scale down the base texture, if it's larger than allowed maximum
+        // NOTE: scaling is uniform along both axes, meaning non-square textures can drop below the maximum
+        // TODO: replace with proper scaling function once we have image middleware in place
+        if( ( data_width < 2 ) || ( data_height < 2 ) ) {
+            // can't go any smaller
+            break;
+        }
+
+        switch( Format ) {
+
+            case GL_RGB:  { downsample< glm::tvec3<std::uint8_t> >( data_width, data_height, data.data() ); break; }
+            case GL_BGRA:
+            case GL_RGBA: { downsample< glm::tvec4<std::uint8_t> >( data_width, data_height, data.data() ); break; }
+            default:      { break; }
+        }
+        data_width /= 2;
+        data_height /= 2;
+        data.resize( data.size() / 4 ); // not strictly needed, but, eh
+    };
 }
 
 void

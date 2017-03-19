@@ -46,6 +46,7 @@ private:
     void load_TEX();
     void load_TGA();
     void set_filtering();
+    void downsize( GLuint const Format );
 
     // members
     std::vector<char> data; // texture data
@@ -113,3 +114,60 @@ private:
     index_map m_texturemappings;
     size_type m_activetexture{ 0 }; // last i.e. currently bound texture
 };
+
+// reduces provided data image to half of original size, using basic 2x2 average
+template <typename _Colortype>
+void
+downsample( std::size_t const Width, std::size_t const Height, char *Imagedata ) {
+
+    _Colortype *destination = reinterpret_cast<_Colortype*>( Imagedata );
+    _Colortype *sampler = reinterpret_cast<_Colortype*>( Imagedata );
+
+    _Colortype accumulator, color;
+/*
+    _Colortype color;
+    float component;
+*/
+    for( size_t row = 0; row < Height; row += 2, sampler += Width ) { // column movement advances us down another row
+        for( size_t column = 0; column < Width; column += 2, sampler += 2 ) {
+/*
+            // straightforward, but won't work with byte data
+            auto color = (
+                *sampler
+                + *( sampler + 1 )
+                + *( sampler + Width )
+                + *( sampler + Width + 1 ) );
+            color /= 4;
+*/
+            // manual version of the above, but drops colour resolution to 6 bits
+            accumulator = *sampler;
+            accumulator /= 4;
+            color = accumulator;
+            accumulator = *(sampler + 1);
+            accumulator /= 4;
+            color += accumulator;
+            accumulator = *(sampler + Width);
+            accumulator /= 4;
+            color += accumulator;
+            accumulator = *(sampler + Width + 1);
+            accumulator /= 4;
+            color += accumulator;
+
+            *destination++ = color;
+/*
+            // "full" 8bit resolution
+            color = _Colortype(); component = 0;
+            for( int idx = 0; idx < sizeof( _Colortype ); ++idx ) {
+
+                component = (
+                    (*sampler)[idx]
+                    + ( *( sampler + 1 ) )[idx]
+                    + ( *( sampler + Width ) )[idx]
+                    + (*( sampler + Width + 1 ))[idx] );
+                color[ idx ] = component /= 4;
+            }
+            *destination++ = color;
+*/
+        }
+    }
+}

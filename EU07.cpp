@@ -32,8 +32,17 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "resource.h"
 #include "uilayer.h"
 
+#ifdef EU07_BUILD_STATIC
+#pragma comment( lib, "glfw3.lib" )
+#pragma comment( lib, "glew32s.lib" )
+#else
+#ifdef _WINDOWS
 #pragma comment( lib, "glfw3dll.lib" )
+#else
+#pragma comment( lib, "glfw3.lib" )
+#endif
 #pragma comment( lib, "glew32.lib" )
+#endif // build_static
 #pragma comment( lib, "opengl32.lib" )
 #pragma comment( lib, "glu32.lib" )
 #pragma comment( lib, "dsound.lib" )

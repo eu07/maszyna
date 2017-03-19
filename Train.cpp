@@ -1827,7 +1827,7 @@ if
                                 if (tmp->MoverParameters->Attach(
                                         CouplNr, 2,
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
-                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag + ctrain_pneumatic))
+                                        (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_pneumatic)))
                                 {
                                     rsHiss.Play(1, DSBPLAY_LOOPING, true, tmp->GetPosition());
                                     DynamicObject->SetPneumatic(CouplNr != 0, true); // Ra: to mi się nie podoba !!!!
@@ -1842,7 +1842,7 @@ if
                                 if (tmp->MoverParameters->Attach(
                                         CouplNr, 2,
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
-                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag + ctrain_scndpneumatic))
+                                        (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_scndpneumatic)))
                                 {
                                     //              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                                     dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
@@ -1861,15 +1861,13 @@ if
                                 if (tmp->MoverParameters->Attach(
                                         CouplNr, 2,
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
-                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag +
-                                            ctrain_controll))
+                                        (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_controll)))
                                 {
                                     dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
                                     dsbCouplerAttach->Play(0, 0, 0);
                                 }
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag,
-                                           ctrain_passenger)) // mostek
+                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_passenger)) // mostek
                         {
                             if ((tmp->MoverParameters->Couplers[CouplNr]
                                      .Connected->Couplers[CouplNr]
@@ -1879,8 +1877,7 @@ if
                                 if (tmp->MoverParameters->Attach(
                                         CouplNr, 2,
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
-                                        tmp->MoverParameters->Couplers[CouplNr].CouplingFlag +
-                                            ctrain_passenger))
+                                        (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_passenger)))
                                 {
                                     //                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
                                     dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
@@ -1899,8 +1896,7 @@ if
             // odlegle wagony
             if (iCabn > 0)
             {
-                if (!FreeFlyModeFlag) // tryb 'kabinowy' (pozwala również rozłączyć
-                // sprzęgi zablokowane)
+                if (!FreeFlyModeFlag) // tryb 'kabinowy' (pozwala również rozłączyć sprzęgi zablokowane)
                 {
                     if (DynamicObject->DettachStatus(iCabn - 1) < 0) // jeśli jest co odczepić
                         if (DynamicObject->Dettach(iCabn - 1)) // iCab==1:przód,iCab==2:tył
@@ -1913,15 +1909,12 @@ if
                 { // tryb freefly
                     int CouplNr = -1;
                     TDynamicObject *tmp;
-                    tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500,
-                                                              CouplNr);
+                    tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), 1, 1500, CouplNr);
                     if (tmp == NULL)
-                        tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), -1,
-                                                                  1500, CouplNr);
+                        tmp = DynamicObject->ABuScanNearestObject(DynamicObject->GetTrack(), -1, 1500, CouplNr);
                     if (tmp && (CouplNr != -1))
                     {
-                        if ((tmp->MoverParameters->Couplers[CouplNr].CouplingFlag & ctrain_depot) ==
-                            0) // jeżeli sprzęg niezablokowany
+                        if ((tmp->MoverParameters->Couplers[CouplNr].CouplingFlag & ctrain_depot) == 0) // jeżeli sprzęg niezablokowany
                             if (tmp->DettachStatus(CouplNr) < 0) // jeśli jest co odczepić i się da
                                 if (!tmp->Dettach(CouplNr))
                                 { // dźwięk odczepiania
