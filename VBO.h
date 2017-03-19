@@ -7,6 +7,8 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
+#include "shader.h"
+
 #ifndef VBOH
 #define VBOH
 //---------------------------------------------------------------------------
@@ -28,6 +30,8 @@ class CVertNormTex
 
 class CMesh
 { // wsparcie dla VBO
+	GLuint vao;
+	gl_program shader;
   public:
     int m_nVertexCount; // liczba wierzchołków
     CVertNormTex *m_pVNT;

@@ -2463,7 +2463,6 @@ void TTrack::RaRenderVBO(int iPtr)
     // dla kolejnych tekstur!
     EnvironmentSet();
     int seg;
-    int i;
     switch (iCategoryFlag & 15)
     {
     case 1: // tor

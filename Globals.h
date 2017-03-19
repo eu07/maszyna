@@ -234,7 +234,6 @@ class Global
     static GLfloat specularLight[];
 #else
     // TODO: put these things in the renderer
-    static opengl_light DayLight;
     static int DynamicLightCount;
 #endif
     static GLfloat whiteLight[];
@@ -366,5 +365,15 @@ class Global
 	static double fMWDamp[2];
 	static double fMWDlowVolt[2];
 	static int iMWDdivider;
+
+	struct daylight_s
+	{
+		float3 position;
+		float3 direction;
+		float3 color;
+		float3 ambient;
+	};
+
+	static daylight_s daylight;
 };
 //---------------------------------------------------------------------------

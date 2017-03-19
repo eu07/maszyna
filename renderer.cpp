@@ -10,39 +10,27 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "renderer.h"
 #include "globals.h"
+#include "World.h"
 
 opengl_renderer GfxRenderer;
+extern TWorld World;
 
 void
 opengl_renderer::Init() {
 
-    // create dynamic light pool
-    for( int idx = 0; idx < Global::DynamicLightCount; ++idx ) {
-
-        opengl_light light;
-        light.id = GL_LIGHT1 + idx;
-
-        light.position[ 3 ] = 1.0f;
-        ::glLightf( light.id, GL_SPOT_CUTOFF, 7.5f );
-        ::glLightf( light.id, GL_SPOT_EXPONENT, 7.5f );
-        ::glLightf( light.id, GL_CONSTANT_ATTENUATION, 0.0f );
-        ::glLightf( light.id, GL_LINEAR_ATTENUATION, 0.035f );
-
-        m_lights.emplace_back( light );
-    }
 }
 
 void
 opengl_renderer::Update_Lights( light_array const &Lights ) {
 
-    size_t const count = std::min( m_lights.size(), Lights.data.size() );
+    size_t const count = std::min( (size_t)Global::DynamicLightCount, Lights.data.size() );
     if( count == 0 ) { return; }
 
-    auto renderlight = m_lights.begin();
+	size_t renderlight = 0;
 
     for( auto const &scenelight : Lights.data ) {
 
-        if( renderlight == m_lights.end() ) {
+        if( renderlight == Global::DynamicLightCount ) {
             // we ran out of lights to assign
             break;
         }
@@ -55,40 +43,27 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
             // but there could still be weaker lights which are closer, so keep looking
             continue;
         }
-        // if the light passed tests so far, it's good enough
-        renderlight->set_position( scenelight.position );
-        renderlight->direction = scenelight.direction;
 
-        auto const luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
-        renderlight->diffuse[ 0 ] = std::max( 0.0, scenelight.color.x - luminance );
-        renderlight->diffuse[ 1 ] = std::max( 0.0, scenelight.color.y - luminance );
-        renderlight->diffuse[ 2 ] = std::max( 0.0, scenelight.color.z - luminance );
-        renderlight->ambient[ 0 ] = std::max( 0.0, scenelight.color.x * scenelight.intensity - luminance);
-        renderlight->ambient[ 1 ] = std::max( 0.0, scenelight.color.y * scenelight.intensity - luminance );
-        renderlight->ambient[ 2 ] = std::max( 0.0, scenelight.color.z * scenelight.intensity - luminance );
+		// if the light passed tests so far, it's good enough
 
-        ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, (0.25f * scenelight.count) / std::pow( scenelight.count, 2 ) );
-        ::glEnable( renderlight->id );
+		auto const luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
+		float3 position(scenelight.position.x, scenelight.position.y, scenelight.position.z);
+		float3 direction(scenelight.direction.x, scenelight.direction.y, scenelight.direction.z);
+		float3 color(scenelight.color.x,
+		             scenelight.color.y,
+		             scenelight.color.z);
 
-        renderlight->apply_intensity();
-        renderlight->apply_angle();
+		World.shader.set_light((GLuint)renderlight + 1, gl_program_light::SPOT, position, direction, 0.906f, 0.866f, color, 0.007f, 0.0002f);
 
         ++renderlight;
     }
 
-    while( renderlight != m_lights.end() ) {
-        // if we went through all scene lights and there's still opengl lights remaining, kill these
-        ::glDisable( renderlight->id );
-        ++renderlight;
-    }
+	World.shader.set_light_count((GLuint)renderlight + 1);
 }
 
 void
 opengl_renderer::Disable_Lights() {
 
-    for( size_t idx = 0; idx < m_lights.size() + 1; ++idx ) {
-
-        ::glDisable( GL_LIGHT0 + (int)idx );
-    }
+	World.shader.set_light_count(0);
 }
 //---------------------------------------------------------------------------

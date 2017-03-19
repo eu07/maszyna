@@ -308,7 +308,8 @@ class TGround
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
 #endif
-    light_array m_lights; // collection of dynamic light sources present in the scene
+
+	light_array m_lights;
 
   private: // metody prywatne
     bool EventConditon(TEvent *e);

@@ -231,6 +231,8 @@ int main(int argc, char *argv[])
 
     glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
     glfwWindowHint(GLFW_SAMPLES, 1 << Global::iMultisampling);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
     if (Global::bFullScreen)
 	{
@@ -279,11 +281,19 @@ int main(int argc, char *argv[])
     GfxRenderer.Init();
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-    if (!World.Init(window))
+	try
 	{
-        std::cout << "failed to init TWorld" << std::endl;
-        return -1;
-    }
+		if (!World.Init(window))
+		{
+			std::cout << "failed to init TWorld" << std::endl;
+			return -1;
+		}
+	}
+	catch (std::runtime_error e)
+	{
+		WriteLog(e.what());
+		return -1;
+	}
 
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
 

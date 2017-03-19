@@ -14,47 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "dumb3d.h"
 
-struct opengl_light {
-
-    GLuint id{ (GLuint)-1 };
-    Math3D::vector3 direction;
-    GLfloat position[ 4 ]; // 4th parameter specifies directional(0) or omni-directional(1) light source
-    GLfloat ambient[ 4 ];
-    GLfloat diffuse[ 4 ];
-    GLfloat specular[ 4 ];
-
-    opengl_light() {
-        position[ 0 ] = position[ 1 ] = position[ 2 ] = 0.0f; position[ 3 ] = 1.0f; // 0,0,0,1
-        ambient[ 0 ] = ambient[ 1 ] = ambient[ 2 ] = 0.0f; ambient[ 3 ] = 1.0f; // 0,0,0,1
-        diffuse[ 0 ] = diffuse[ 1 ] = diffuse[ 2 ] = diffuse[ 3 ] = 1.0f; // 1,1,1,1
-        specular[ 0 ] = specular[ 1 ] = specular[ 2 ] = specular[ 3 ] = 1.0f; // 1,1,1,1
-    }
-
-    inline
-    void apply_intensity() {
-
-        glLightfv( id, GL_AMBIENT, ambient );
-        glLightfv( id, GL_DIFFUSE, diffuse );
-        glLightfv( id, GL_SPECULAR, specular );
-    }
-    inline
-    void apply_angle() {
-
-        glLightfv( id, GL_POSITION, position );
-        if( position[ 3 ] == 1.0f ) {
-            GLfloat directionarray[] = { (GLfloat)direction.x, (GLfloat)direction.y, (GLfloat)direction.z };
-            glLightfv( id, GL_SPOT_DIRECTION, directionarray );
-        }
-    }
-    inline
-    void set_position( Math3D::vector3 const &Position ) {
-
-        position[ 0 ] = Position.x;
-        position[ 1 ] = Position.y;
-        position[ 2 ] = Position.z;
-    }
-};
-
 // encapsulates basic rendering setup.
 // for modern opengl this translates to a specific collection of glsl shaders,
 // for legacy opengl this is combination of blending modes, active texture units etc
@@ -104,19 +63,16 @@ public:
         }
 
 // members
-    GLenum static const sunlight{ GL_LIGHT0 };
+    GLenum static const sunlight{ 0 };
 
 private:
 // types
     enum class rendermode {
         color
     };
-
-    typedef std::vector<opengl_light> opengllight_array;
     
 // members
     rendermode renderpass{ rendermode::color };
-    opengllight_array m_lights;
     texture_manager m_textures;
 };
 

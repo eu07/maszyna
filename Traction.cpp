@@ -328,9 +328,9 @@ void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
         g *= Global::ambientDayLight[ 1 ];
         b *= Global::ambientDayLight[ 2 ];
 #else
-        r *= Global::DayLight.ambient[ 0 ]; // w zaleźności od koloru swiatła
-        g *= Global::DayLight.ambient[ 1 ];
-        b *= Global::DayLight.ambient[2];
+        r *= Global::daylight.ambient.x; // w zaleźności od koloru swiatła
+        g *= Global::daylight.ambient.y;
+        b *= Global::daylight.ambient.z;
 #endif
         if (linealpha > 1.0f)
             linealpha = 1.0f; // trzeba ograniczyć do <=1
@@ -538,9 +538,9 @@ void TTraction::RenderVBO(float mgn, int iPtr)
         g *= Global::ambientDayLight[ 1 ];
         b *= Global::ambientDayLight[ 2 ];
 #else
-        r *= Global::DayLight.ambient[ 0 ]; // w zaleźności od koloru swiatła
-        g *= Global::DayLight.ambient[ 1 ];
-        b *= Global::DayLight.ambient[ 2 ];
+        r *= Global::daylight.ambient.x; // w zaleźności od koloru swiatła
+        g *= Global::daylight.ambient.y;
+        b *= Global::daylight.ambient.z;
 #endif
         if (linealpha > 1.0f)
             linealpha = 1.0f; // trzeba ograniczyć do <=1

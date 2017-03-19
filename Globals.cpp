@@ -103,8 +103,7 @@ GLfloat Global::ambientLight[] = {0.80f, 0.80f, 0.85f, 1.0f}; // stałe
 GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
 GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
 #else
-opengl_light Global::DayLight;
-int Global::DynamicLightCount{ 3 };
+int Global::DynamicLightCount = 7;
 #endif
 GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
 GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
@@ -219,6 +218,8 @@ double Global::fMWDvolt[2] = { 4000, 1023 };
 double Global::fMWDamp[2] = { 800, 1023 };
 double Global::fMWDlowVolt[2] = { 150, 1023 };
 int Global::iMWDdivider = 5;
+
+Global::daylight_s Global::daylight;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------

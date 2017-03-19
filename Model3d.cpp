@@ -23,6 +23,10 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "Timer.h"
 #include "mtable.h"
 #include "sn_utils.h"
+#include "World.h"
+
+extern TWorld World;
+
 //---------------------------------------------------------------------------
 
 using namespace Mtable;
@@ -1243,6 +1247,7 @@ void TSubModel::RenderVBO()
             if (b_Anim)
                 RaAnimation(b_Anim);
         }
+		World.shader.copy_gl_mvp();
         if (eType < TP_ROTATOR)
         { // renderowanie obiektów OpenGL
             if (iAlpha & iFlags & 0x1F) // rysuj gdy element nieprzezroczysty
@@ -1418,6 +1423,7 @@ void TSubModel::RenderAlphaVBO()
             if (b_aAnim)
                 RaAnimation(b_aAnim);
         }
+		World.shader.copy_gl_mvp();
         glColor3fv(f4Diffuse);
         if (eType < TP_ROTATOR)
         { // renderowanie obiektów OpenGL

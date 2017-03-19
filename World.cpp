@@ -186,7 +186,7 @@ bool TWorld::Init(GLFWwindow *w)
     WriteLog(glver);
 	if (!GLEW_VERSION_1_4)
 	{
-		std::cout << "required opengl >=1.4" << std::endl;
+		std::cout << "required opengl >=3.2" << std::endl;
 		return false;
 	}
     
@@ -249,6 +249,9 @@ bool TWorld::Init(GLFWwindow *w)
         WriteLog("Max texture size: " + std::to_string(Global::iMaxTextureSize));
     }
     /*-----------------------Render Initialization----------------------*/
+
+	shader = gl_program_light({gl_shader("lighting.vert"), gl_shader("blinnphong.frag")});
+
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
     glMatrixMode( GL_MODELVIEW );
@@ -453,15 +456,13 @@ bool TWorld::Init(GLFWwindow *w)
     GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
 
-    Global::DayLight.id = opengl_renderer::sunlight;
     // directional light
     // TODO, TBD: test omni-directional variant
-    Global::DayLight.position[ 3 ] = 1.0f;
-    ::glLightf( opengl_renderer::sunlight, GL_SPOT_CUTOFF, 90.0 );
+
     // rgb value for 5780 kelvin
-    Global::DayLight.diffuse[ 0 ] = 255.0f / 255.0f;
-    Global::DayLight.diffuse[ 1 ] = 242.0f / 255.0f;
-    Global::DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
+    Global::daylight.color.x = 255.0f / 255.0f;
+    Global::daylight.color.y = 242.0f / 255.0f;
+    Global::daylight.color.z = 231.0f / 255.0f;
 #endif
 
     Ground.Init(Global::SceneryFile);
@@ -2925,6 +2926,7 @@ void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
 void
 world_environment::init() {
 
+	m_skydome.init();
     m_sun.init();
     m_stars.init();
     m_clouds.Init();
@@ -2938,8 +2940,6 @@ world_environment::update() {
     auto const position = m_sun.getPosition();
     // ...update the global data to match new sun state...
     Global::SunAngle = m_sun.getAngle();
-    Global::DayLight.set_position( position );
-    Global::DayLight.direction = -1.0 * m_sun.getDirection();
     // ...update skydome to match the current sun position as well...
     m_skydome.Update( position );
     // ...retrieve current sky colour and brightness...
@@ -2950,15 +2950,14 @@ world_environment::update() {
     // NOTE: intensity combines intensity of the sun and the light reflected by the sky dome
     // it'd be more technically correct to have just the intensity of the sun here,
     // but whether it'd _look_ better is something to be tested
-    Global::DayLight.diffuse[ 0 ] = intensity * 255.0f / 255.0f;
-    Global::DayLight.diffuse[ 1 ] = intensity * 242.0f / 255.0f;
-    Global::DayLight.diffuse[ 2 ] = intensity * 231.0f / 255.0f;
 
-    Global::DayLight.ambient[ 0 ] = skydomecolour.x;
-    Global::DayLight.ambient[ 1 ] = skydomecolour.y;
-    Global::DayLight.ambient[ 2 ] = skydomecolour.z;
-
-    Global::fLuminance = intensity;
+	Global::daylight.position = float3(position.x, position.y, position.z);
+	vector3 sun = -1.0 * m_sun.getDirection();
+	Global::daylight.direction = float3(sun.x, sun.y, sun.z);
+	Global::daylight.color = float3(intensity * 255.0f / 255.0f,
+	                        intensity * 242.0f / 255.0f,
+	                        intensity * 231.0f / 255.0f);
+	Global::daylight.ambient = float3(skydomecolour.x, skydomecolour.y, skydomecolour.z);
 
     // update the fog. setting it to match the average colour of the sky dome is cheap
     // but quite effective way to make the distant items blend with background better
@@ -2969,6 +2968,8 @@ world_environment::update() {
 
     ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f ); // kolor nieba
 }
+
+extern TWorld World;
 
 void
 world_environment::render() {
@@ -2990,8 +2991,9 @@ world_environment::render() {
         // mark sun position for easier debugging
         m_sun.render();
     }
-    Global::DayLight.apply_angle();
-    Global::DayLight.apply_intensity();
+
+	World.shader.set_ambient(Global::daylight.ambient);
+	World.shader.set_light(0, gl_program_light::DIR, Global::daylight.position, Global::daylight.direction, 0.0f, 0.0f, Global::daylight.color, 0.0f, 0.0f);
 
     ::glPopMatrix();
     ::glDepthMask( GL_TRUE );

@@ -1,8 +1,9 @@
-
 #include "stdafx.h"
 #include "skydome.h"
 #include "color.h"
 #include "usefull.h"
+
+#include "Globals.h"
 
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
@@ -42,18 +43,32 @@ float CSkyDome::m_zenithymatrix[ 3 ][ 4 ] = {
 
 //******************************************************************************//
 
-CSkyDome::CSkyDome (int const Tesselation) :
-               m_tesselation( Tesselation ) {
+float clamp( float const Value, float const Min, float const Max ) {
 
-//	SetSunPosition( Math3D::vector3(75.0f, 0.0f, 0.0f) );
-	SetTurbidity( 3.0f );
-	SetExposure( true, 20.0f );
-	SetOvercastFactor( 0.05f );
-	SetGammaCorrection( 2.2f );
-    Generate();
+    float value = Value;
+    if( value < Min ) { value = Min; }
+    if( value > Max ) { value = Max; }
+    return value;
 }
 
-CSkyDome::~CSkyDome() {
+float interpolate( float const First, float const Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
+//******************************************************************************//
+
+void CSkyDome::init(int const Tesselation)
+{
+	m_tesselation = Tesselation;
+	//	SetSunPosition( Math3D::vector3(75.0f, 0.0f, 0.0f) );
+	SetTurbidity(3.0f);
+	SetExposure(true, 20.0f);
+	SetOvercastFactor(0.05f);
+	SetGammaCorrection(2.2f);
+	m_shader = gl_program_mvp({ gl_shader("color.frag"),
+	                            gl_shader("vbocolor.vert") });
+	Generate();
 }
 
 //******************************************************************************//
@@ -118,7 +133,7 @@ void CSkyDome::Update( Math3D::vector3 const &Sun ) {
 // render skydome to screen
 void CSkyDome::Render() {
 
-    if( m_vertexbuffer == -1 ) {
+    if( m_vao == -1 ) {
         // build the buffers
         ::glGenBuffers( 1, &m_vertexbuffer );
         ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
@@ -131,23 +146,30 @@ void CSkyDome::Render() {
         ::glGenBuffers( 1, &m_indexbuffer );
         ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
         ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
+
+		glGenVertexArrays(1, &m_vao);
+		glBindVertexArray(m_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, m_vertexbuffer);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float3), 0);
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, m_coloursbuffer);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float3), 0);
+		glEnableVertexAttribArray(1);
+		glBindVertexArray(0);
+
         // NOTE: vertex and index source data is superfluous past this point, but, eh
     }
     // begin
-    ::glEnableClientState( GL_VERTEX_ARRAY );
-    ::glEnableClientState( GL_COLOR_ARRAY );
-    // positions
-    ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-    ::glVertexPointer( 3, GL_FLOAT, sizeof( float3 ), reinterpret_cast<void const*>( 0 ) );
-    // colours
-    ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-    ::glColorPointer( 3, GL_FLOAT, sizeof( float3 ), reinterpret_cast<void const*>( 0 ) );
-    // indices
-    ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
-    ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
-    // cleanup
-    ::glDisableClientState( GL_COLOR_ARRAY );
-    ::glDisableClientState( GL_VERTEX_ARRAY );
+
+	glUseProgram(m_shader);
+	glBindVertexArray(m_vao);
+
+	m_shader.copy_gl_mvp();
+
+	glDrawElements(GL_TRIANGLES, (GLsizei)m_indices.size(), GL_UNSIGNED_SHORT, 0);
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 bool CSkyDome::SetSunPosition( Math3D::vector3 const &Direction ) {

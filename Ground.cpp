@@ -339,9 +339,9 @@ void TGroundNode::RenderVBO()
             g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
             b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
 #else
-            r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
-            g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
-            b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
+            r = floor( Diffuse[ 0 ] * Global::daylight.ambient.x ); // w zaleznosci od koloru swiatla
+            g = floor( Diffuse[ 1 ] * Global::daylight.ambient.y );
+            b = floor( Diffuse[ 2 ] * Global::daylight.ambient.z );
 #endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             // glDisable(GL_LIGHTING); //nie powinny świecić
@@ -405,9 +405,9 @@ void TGroundNode::RenderAlphaVBO()
             g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
             b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
 #else
-            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
-            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+            r = Diffuse[ 0 ] * Global::daylight.ambient.x; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::daylight.ambient.y;
+            b = Diffuse[ 2 ] * Global::daylight.ambient.z;
 #endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             // glDisable(GL_LIGHTING); //nie powinny świecić
@@ -605,9 +605,9 @@ void TGroundNode::RenderDL()
             g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
             b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
 #else
-            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
-            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+            r = Diffuse[ 0 ] * Global::daylight.ambient.x; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::daylight.ambient.y;
+            b = Diffuse[ 2 ] * Global::daylight.ambient.z;
 #endif
             glColor4ub(r, g, b, 1.0);
             glCallList(DisplayListID);
@@ -686,9 +686,9 @@ void TGroundNode::RenderAlphaDL()
             g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
             b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
 #else
-            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
-            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+            r = Diffuse[ 0 ] * Global::daylight.ambient.x; // w zaleznosci od koloru swiatla
+            g = Diffuse[ 1 ] * Global::daylight.ambient.y;
+            b = Diffuse[ 2 ] * Global::daylight.ambient.z;
 #endif
             glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
             glCallList(DisplayListID);
@@ -2877,10 +2877,9 @@ bool TGround::Init(std::string File)
 #else
             parser.getTokens(3, false);
             parser
-                >> Global::DayLight.direction.x
-                >> Global::DayLight.direction.y
-                >> Global::DayLight.direction.z;;
-            Global::DayLight.direction.Normalize();
+                >> Global::daylight.direction.x
+                >> Global::daylight.direction.y
+                >> Global::daylight.direction.z;
 #endif
             parser.getTokens(9, false);
 
@@ -2901,7 +2900,7 @@ bool TGround::Init(std::string File)
                 // kolor wszechobceny
                 >> Global::DayLight.ambient[0]
                 >> Global::DayLight.ambient[1]
-                >> Global::DayLight.ambient[2]
+                >> Global::daylight.ambient.z
                 // kolor padający
                 >> Global::DayLight.diffuse[0]
                 >> Global::DayLight.diffuse[1]
