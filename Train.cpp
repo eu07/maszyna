@@ -295,35 +295,58 @@ PyObject *TTrain::GetTrainState() {
         return NULL;
     }
 
-    PyDict_SetItemString( dict, "direction", PyGetInt( DynamicObject->MoverParameters->ActiveDir ) );
-    PyDict_SetItemString( dict, "cab", PyGetInt( DynamicObject->MoverParameters->ActiveCab ) );
-    PyDict_SetItemString( dict, "slipping_wheels",
-        PyGetBool( DynamicObject->MoverParameters->SlippingWheels ) );
-    PyDict_SetItemString( dict, "converter",
-        PyGetBool( DynamicObject->MoverParameters->ConverterFlag ) );
-    PyDict_SetItemString( dict, "main_ctrl_actual_pos",
-        PyGetInt( DynamicObject->MoverParameters->MainCtrlActualPos ) );
-    PyDict_SetItemString( dict, "scnd_ctrl_actual_pos",
-        PyGetInt( DynamicObject->MoverParameters->ScndCtrlActualPos ) );
-    PyDict_SetItemString( dict, "fuse", PyGetBool( DynamicObject->MoverParameters->FuseFlag ) );
-    PyDict_SetItemString( dict, "converter_overload",
-        PyGetBool( DynamicObject->MoverParameters->ConvOvldFlag ) );
-    PyDict_SetItemString( dict, "voltage", PyGetFloat( DynamicObject->MoverParameters->Voltage ) );
-    PyDict_SetItemString( dict, "velocity", PyGetFloat( DynamicObject->MoverParameters->Vel ) );
-    PyDict_SetItemString( dict, "im", PyGetFloat( DynamicObject->MoverParameters->Im ) );
-    PyDict_SetItemString( dict, "compress",
-        PyGetBool( DynamicObject->MoverParameters->CompressorFlag ) );
-    PyDict_SetItemString( dict, "hours", PyGetInt( GlobalTime->hh ) );
-    PyDict_SetItemString( dict, "minutes", PyGetInt( GlobalTime->mm ) );
-    PyDict_SetItemString( dict, "seconds", PyGetInt( GlobalTime->mr ) );
-    PyDict_SetItemString( dict, "velocity_desired", PyGetFloat( DynamicObject->Mechanik->VelDesired ) );
+    auto const &mover = DynamicObject->MoverParameters;
+
+    PyDict_SetItemString( dict, "cab", PyGetInt( mover->ActiveCab ) );
+    // basic systems state data
+    PyDict_SetItemString( dict, "battery", PyGetBool( mvControlled->Battery ) );
+    PyDict_SetItemString( dict, "linebreaker", PyGetBool( mvControlled->Mains ) );
+    PyDict_SetItemString( dict, "converter", PyGetBool( mover->ConverterFlag ) );
+    PyDict_SetItemString( dict, "converter_overload", PyGetBool( mover->ConvOvldFlag ) );
+    PyDict_SetItemString( dict, "compress", PyGetBool( mover->CompressorFlag ) );
+    // reverser
+    PyDict_SetItemString( dict, "direction", PyGetInt( mover->ActiveDir ) );
+    // throttle
+    PyDict_SetItemString( dict, "mainctrl_pos", PyGetInt( mover->MainCtrlPos ) );
+    PyDict_SetItemString( dict, "main_ctrl_actual_pos", PyGetInt( mover->MainCtrlActualPos ) );
+    PyDict_SetItemString( dict, "scndctrl_pos", PyGetInt( mover->ScndCtrlPos ) );
+    PyDict_SetItemString( dict, "scnd_ctrl_actual_pos", PyGetInt( mover->ScndCtrlActualPos ) );
+    // brakes
+    PyDict_SetItemString( dict, "manual_brake", PyGetBool( mvOccupied->ManualBrakePos > 0 ) );
+    bool const bEP = ( mvControlled->LocHandle->GetCP()>0.2 ) || ( fEIMParams[ 0 ][ 2 ]>0.01 );
+    PyDict_SetItemString( dict, "dir_brake", PyGetBool( bEP ) );
+    bool bPN;
+    if( ( typeid( *mvControlled->Hamulec ) == typeid( TLSt ) )
+     || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
+
+        TBrake* temp_ham = mvControlled->Hamulec.get();
+        bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP()>0.2 );
+    }
+    else
+        bPN = false;
+    PyDict_SetItemString( dict, "indir_brake", PyGetBool( bPN ) );
+    // other controls
+    PyDict_SetItemString( dict, "ca", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) ) );
+    PyDict_SetItemString( dict, "shp", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) ) );
+    PyDict_SetItemString( dict, "pantpress", PyGetFloat( mvControlled->PantPress ) );
+    PyDict_SetItemString( dict, "universal3", PyGetBool( LampkaUniversal3_st ) );
+    // movement data
+    PyDict_SetItemString( dict, "velocity", PyGetFloat( mover->Vel ) );
+    PyDict_SetItemString( dict, "tractionforce", PyGetFloat( mover->Ft ) );
+    PyDict_SetItemString( dict, "slipping_wheels", PyGetBool( mover->SlippingWheels ) );
+    // electric current data
+    PyDict_SetItemString( dict, "traction_voltage", PyGetFloat( mover->RunningTraction.TractionVoltage ) );
+    PyDict_SetItemString( dict, "voltage", PyGetFloat( mover->Voltage ) );
+    PyDict_SetItemString( dict, "im", PyGetFloat( mover->Im ) );
+    PyDict_SetItemString( dict, "fuse", PyGetBool( mover->FuseFlag ) );
+    // induction motor state data
     char* TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char* TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
     char* TXTP[ 3 ] = { "bc", "bp", "sp" };
-    for( int j = 0; j<10; j++ )
+    for( int j = 0; j < 10; ++j )
         PyDict_SetItemString( dict, ( std::string( "eimp_t_" ) + std::string( TXTT[ j ] ) ).c_str(), PyGetFloatS( fEIMParams[ 0 ][ j ] ) );
-    for( int i = 0; i<8; i++ ) {
-        for( int j = 0; j<10; j++ )
+    for( int i = 0; i < 8; ++i ) {
+        for( int j = 0; j < 10; ++j )
         PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_" ) + std::string( TXTC[ j ] ) ).c_str(), PyGetFloatS( fEIMParams[ i + 1 ][ j ] ) );
         PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_ms" ) ).c_str(), PyGetBool( bMains[ i ] ) );
         PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_cv" ) ).c_str(), PyGetFloatS( fCntVol[ i ] ) );
@@ -337,25 +360,17 @@ PyObject *TTrain::GetTrainState() {
         PyDict_SetItemString( dict, ( std::string( "eimp_c" ) + std::to_string( i + 1 ) + std::string( "_heat" ) ).c_str(), PyGetBool( bHeat[ i ] ) );
 
     }
-    for( int i = 0; i<20; i++ ) {
-        for( int j = 0; j<3; j++ )
+    for( int i = 0; i < 20; ++i ) {
+        for( int j = 0; j < 3; ++j )
             PyDict_SetItemString( dict, ( std::string( "eimp_pn" ) + std::to_string( i + 1 ) + std::string( "_" ) + std::string( TXTP[ j ] ) ).c_str(),
             PyGetFloatS( fPress[ i ][ j ] ) );
     }
-    bool bEP, bPN;
-    bEP = ( mvControlled->LocHandle->GetCP()>0.2 ) || ( fEIMParams[ 0 ][ 2 ]>0.01 );
-    PyDict_SetItemString( dict, "dir_brake", PyGetBool( bEP ) );
-    if( ( typeid( *mvControlled->Hamulec ) == typeid( TLSt ) )
-     || ( typeid( *mvControlled->Hamulec ) == typeid( TEStED ) ) ) {
+    // multi-unit state data
+    PyDict_SetItemString( dict, "car_no", PyGetInt( iCarNo ) );
+    PyDict_SetItemString( dict, "power_no", PyGetInt( iPowerNo ) );
+    PyDict_SetItemString( dict, "unit_no", PyGetInt( iUnitNo ) );
 
-        TBrake* temp_ham = mvControlled->Hamulec.get();
-        //        TLSt* temp_ham2 = temp_ham;
-        bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP()>0.2 );
-    }
-    else
-        bPN = false;
-    PyDict_SetItemString( dict, "indir_brake", PyGetBool( bPN ) );
-    for( int i = 0; i<20; i++ ) {
+    for( int i = 0; i < 20; i++ ) {
         PyDict_SetItemString( dict, ( std::string( "doors_" ) + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 0 ] ) );
         PyDict_SetItemString( dict, ( std::string( "doors_r_" ) + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 1 ] ) );
         PyDict_SetItemString( dict, ( std::string( "doors_l_" ) + std::to_string( i + 1 ) ).c_str(), PyGetFloatS( bDoors[ i ][ 2 ] ) );
@@ -364,23 +379,21 @@ PyObject *TTrain::GetTrainState() {
             cCode[ i ] ).c_str() ) );
         PyDict_SetItemString( dict, ( std::string( "car_name" ) + std::to_string( i + 1 ) ).c_str(), PyGetString( asCarName[ i ].c_str() ) );
     }
-    PyDict_SetItemString( dict, "car_no", PyGetInt( iCarNo ) );
-    PyDict_SetItemString( dict, "power_no", PyGetInt( iPowerNo ) );
-    PyDict_SetItemString( dict, "unit_no", PyGetInt( iUnitNo ) );
-    PyDict_SetItemString( dict, "universal3", PyGetBool( LampkaUniversal3_st ) );
-    PyDict_SetItemString( dict, "ca", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) ) );
-    PyDict_SetItemString( dict, "shp", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) ) );
-    PyDict_SetItemString( dict, "manual_brake", PyGetBool( mvOccupied->ManualBrakePos > 0 ) );
-    PyDict_SetItemString( dict, "pantpress", PyGetFloat( mvControlled->PantPress ) );
-    PyDict_SetItemString( dict, "trainnumber", PyGetString( DynamicObject->Mechanik->TrainName().c_str() ) );
-    PyDict_SetItemString( dict, "velnext", PyGetFloat( DynamicObject->Mechanik->VelNext ) );
-    PyDict_SetItemString( dict, "actualproximitydist", PyGetFloat( DynamicObject->Mechanik->ActualProximityDist ) );
-    PyDict_SetItemString( dict, "velsignallast", PyGetFloat( DynamicObject->Mechanik->VelSignalLast ) );
-    PyDict_SetItemString( dict, "vellimitlast", PyGetFloat( DynamicObject->Mechanik->VelLimitLast ) );
-    PyDict_SetItemString( dict, "velroad", PyGetFloat( DynamicObject->Mechanik->VelRoad ) );
-    PyDict_SetItemString( dict, "velsignalnext", PyGetFloat( DynamicObject->Mechanik->VelSignalNext ) );
-    PyDict_SetItemString( dict, "battery", PyGetBool( mvControlled->Battery ) );
-    PyDict_SetItemString( dict, "tractionforce", PyGetFloat( DynamicObject->MoverParameters->Ft ) );
+    // ai state data
+    auto const &driver = DynamicObject->Mechanik;
+
+    PyDict_SetItemString( dict, "velocity_desired", PyGetFloat( driver->VelDesired ) );
+    PyDict_SetItemString( dict, "velroad", PyGetFloat( driver->VelRoad ) );
+    PyDict_SetItemString( dict, "vellimitlast", PyGetFloat( driver->VelLimitLast ) );
+    PyDict_SetItemString( dict, "velsignallast", PyGetFloat( driver->VelSignalLast ) );
+    PyDict_SetItemString( dict, "velsignalnext", PyGetFloat( driver->VelSignalNext ) );
+    PyDict_SetItemString( dict, "velnext", PyGetFloat( driver->VelNext ) );
+    PyDict_SetItemString( dict, "actualproximitydist", PyGetFloat( driver->ActualProximityDist ) );
+    PyDict_SetItemString( dict, "trainnumber", PyGetString( driver->TrainName().c_str() ) );
+    // world state data
+    PyDict_SetItemString( dict, "hours", PyGetInt( GlobalTime->hh ) );
+    PyDict_SetItemString( dict, "minutes", PyGetInt( GlobalTime->mm ) );
+    PyDict_SetItemString( dict, "seconds", PyGetInt( GlobalTime->mr ) );
 
     return dict;
 }

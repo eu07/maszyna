@@ -252,8 +252,7 @@ class TTrain
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
     TButton btLampkaUniversal3;
-    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic,
-    // 1-obw.gl, 2-przetw.
+    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
     bool LampkaUniversal3_st;
     TButton btLampkaWentZaluzje; // ET22
     TButton btLampkaOgrzewanieSkladu;

@@ -47,11 +47,15 @@ ui_layer::init( GLFWwindow *Window ) {
         // builds 96 characters starting at character 32
         WriteLog( "Display Lists font used" ); //+AnsiString(glGetError())
         WriteLog( "Font init OK" ); //+AnsiString(glGetError())
+        Global::DLFont = true;
         return true;
     }
     else {
         ErrorLog( "Font init failed" );
-        return false;
+//        return false;
+        // NOTE: we report success anyway, given some cards can't produce fonts in this manner
+        Global::DLFont = false;
+        return true;
     }
 }
 
@@ -171,7 +175,8 @@ ui_layer::render_background() {
 void
 ui_layer::print( std::string const &Text )
 {
-    if( true == Text.empty() )
+    if( (false == Global::DLFont)
+     || (true == Text.empty()) )
         return;
     
     ::glPushAttrib( GL_LIST_BIT );

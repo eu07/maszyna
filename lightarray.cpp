@@ -46,12 +46,12 @@ light_array::update() {
         // update light parameters to match current data of the owner
         if( light.index == 0 ) {
             // front light set
-            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.45 );
+            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
             light.direction = light.owner->VectorFront();
         }
         else {
             // rear light set
-            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * light.owner->GetLength() * 0.45 );
+            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
             light.direction = light.owner->VectorFront();
             light.direction.x = -light.direction.x;
             light.direction.z = -light.direction.z;

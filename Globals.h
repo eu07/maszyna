@@ -163,7 +163,6 @@ private:
 class Global
 {
   private:
-    static GLuint iTextureId; // ostatnio użyta tekstura 2D
   public:
     // double Global::tSinceStart;
     static int Keys[MaxKeys];
@@ -282,6 +281,7 @@ class Global
     static std::string szTexturesTGA; // lista tekstur od TGA
     static std::string szTexturesDDS; // lista tekstur od DDS
     static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+    static bool DLFont; // switch indicating presence of basic font
     static bool bGlutFont; // tekst generowany przez GLUT
     static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
@@ -322,6 +322,7 @@ class Global
     static std::string asTranscript[5]; // napisy na ekranie (widoczne)
 */
     static TTranscripts tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
+    static float4 UITextColor; // base color of UI text
     static std::string asLang; // domyślny język - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy łączyć eventy z torami poprzez nazwę toru
     static TTextSound *tsRadioBusy[10]; // zajętość kanałów radiowych (wskaźnik na odgrywany dźwięk)

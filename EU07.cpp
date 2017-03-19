@@ -157,8 +157,9 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
                 else if( !( Global::iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
                     if( !Global::ctrlState ) // z [Ctrl] to radiostop jest
                         Global::iPause ^= 2; // zmiana stanu zapauzowania
-                if( Global::iPause ) // jak pauza
+                if( Global::iPause ) {// jak pauza
                     Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
+                }
                 break;
             }
             case GLFW_KEY_F7:

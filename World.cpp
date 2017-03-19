@@ -253,10 +253,10 @@ bool TWorld::Init( GLFWwindow *Window ) {
     Timer::ResetTimers();
 
     // make 4 empty lines for the ui header, to cut down on work down the road
-    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
-    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
-    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
-    UIHeader->text_lines.emplace_back( "", float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f ) );
+    UIHeader->text_lines.emplace_back( "", Global::UITextColor );
+    UIHeader->text_lines.emplace_back( "", Global::UITextColor );
+    UIHeader->text_lines.emplace_back( "", Global::UITextColor );
+    UIHeader->text_lines.emplace_back( "", Global::UITextColor );
     // bind the panels with ui object. maybe not the best place for this but, eh
     UILayer.push_back( UIHeader );
     UILayer.push_back( UITable );
@@ -334,33 +334,42 @@ void TWorld::OnKeyDown(int cKey)
                 if( ( false == Global::ctrlState )
                  && ( false == Global::shiftState ) ) {
                     // czas i relacja
-                    if( Global::iTextMode == cKey ) {
-                        // wyłączenie napisów, chyba że pauza
-                        Global::iTextMode =
-                            ( Global::iPause && ( cKey != GLFW_KEY_F1 ) ?
-                                GLFW_KEY_F1 :
-                                0 );
+                    if( Global::iTextMode == cKey ) { ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; }
+                    if( Global::iScreenMode[ cKey - GLFW_KEY_F1 ] > 1 ) {
+                        // wyłączenie napisów
+                        Global::iTextMode = 0;
+                        Global::iScreenMode[ cKey - GLFW_KEY_F1 ] = 0;
                     }
-                    else
+                    else {
                         Global::iTextMode = cKey;
+                    }
                 }
                 break;
             }
             case GLFW_KEY_F2: {
                 // parametry pojazdu
-                if( Global::iTextMode == cKey ) {
-                    // jeśli kolejne naciśnięcie
-                    ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; // kolejny ekran
+                if( Global::iTextMode == cKey ) { ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; }
+                if( Global::iScreenMode[ cKey - GLFW_KEY_F1 ] > 1 ) {
+                    // wyłączenie napisów
+                    Global::iTextMode = 0;
+                    Global::iScreenMode[ cKey - GLFW_KEY_F1 ] = 0;
                 }
                 else {
-                    // pierwsze naciśnięcie daje pierwszy (tzn. zerowy) ekran
                     Global::iTextMode = cKey;
-                    Global::iScreenMode[ cKey - GLFW_KEY_F1 ] = 0;
                 }
                 break;
             }
             case GLFW_KEY_F3: {
-                Global::iTextMode = cKey;
+                // timetable
+                if( Global::iTextMode == cKey ) { ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; }
+                if( Global::iScreenMode[ cKey - GLFW_KEY_F1 ] > 1 ) {
+                    // wyłączenie napisów
+                    Global::iTextMode = 0;
+                    Global::iScreenMode[ cKey - GLFW_KEY_F1 ] = 0;
+                }
+                else {
+                    Global::iTextMode = cKey;
+                }
                 break;
             }
             case GLFW_KEY_F4: {
@@ -408,7 +417,7 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case GLFW_KEY_F6: {
-                Global::iTextMode = cKey;
+//                Global::iTextMode = cKey;
                 // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
                 if( DebugModeFlag ) { 
 
@@ -851,7 +860,7 @@ bool TWorld::Update()
         if( (Train != nullptr)
          && (Camera.Type == tp_Follow )) {
             // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
-            Train->UpdateMechPosition( m_secondaryupdaterate / Global::fTimeSpeed ); // ograniczyć telepanie po przyspieszeniu
+            Train->UpdateMechPosition( m_secondaryupdaterate );
         }
 
         m_secondaryupdateaccumulator -= m_secondaryupdaterate; // these should be inexpensive enough we have no cap
@@ -1433,19 +1442,112 @@ TWorld::Update_UI() {
             if( Global::iPause ) {
                 OutText1 += " (paused)";
             }
+
+            if( Controlled && ( Controlled->Mechanik != nullptr ) ) {
+
+                auto const &mover = Controlled->MoverParameters;
+                auto const &driver = Controlled->Mechanik;
+
+                OutText2 = "Throttle: " + to_string( driver->Controlling()->MainCtrlPos, 0, 2 ) + "+" + std::to_string( driver->Controlling()->ScndCtrlPos );
+                     if( mover->ActiveDir > 0 ) { OutText2 += " D"; }
+                else if( mover->ActiveDir < 0 ) { OutText2 += " R"; }
+                else                            { OutText2 += " N"; }
+
+                OutText3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos );
+
+                if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
+                    // detail mode on second key press
+                    OutText2 +=
+                        " Speed: " + std::to_string( static_cast<int>( std::floor( mover->Vel ) ) ) + " km/h"
+                        + " (limit: " + std::to_string( static_cast<int>( std::floor( driver->VelDesired ) ) ) + " km/h"
+                        + ", next limit: " + std::to_string( static_cast<int>( std::floor( Controlled->Mechanik->VelNext ) ) ) + " km/h"
+                        + " in " + to_string( Controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km)";
+                    OutText3 +=
+                        "   Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
+                        + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
+                }
+            }
+
+            break;
+        }
+
+        case( GLFW_KEY_F2 ) : {
+            // timetable
+            TDynamicObject *tmp =
+                ( FreeFlyModeFlag ?
+                    Ground.DynamicNearest( Camera.Pos ) :
+                    Controlled ); // w trybie latania lokalizujemy wg mapy
+
+            if( tmp == nullptr ) { break; }
+            if( tmp->Mechanik == nullptr ) { break; }
+
+            auto const table = tmp->Mechanik->Timetable();
+            if( table == nullptr ) { break; }
+
+            OutText1 =
+                "Time: "
+                + to_string( (int)GlobalTime->hh ) + ":"
+                + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
+                + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
+            if( Global::iPause ) {
+                OutText1 += " (paused)";
+            }
+
             if( Controlled
              && Controlled->Mechanik ) {
-                    OutText2 = Global::Bezogonkow( Controlled->Mechanik->Relation(), true );
+                    OutText2 = Global::Bezogonkow( Controlled->Mechanik->Relation(), true )  + " (" + tmp->Mechanik->Timetable()->TrainName + ")";
                     if( !OutText2.empty() ) {
                         // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
                         OutText3 = " -> " + Global::Bezogonkow( Controlled->Mechanik->NextStop(), true );
                     }
                 }
 
+            if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
+
+                if( 0 == table->StationCount ) {
+                    // only bother if there's stations to list
+                    UITable->text_lines.emplace_back( "(no timetable)", Global::UITextColor );
+                } 
+                else {
+                    // header
+                    UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", Global::UITextColor );
+
+                    TMTableLine *tableline;
+                    for( int i = tmp->Mechanik->iStationStart; i <= std::min( tmp->Mechanik->iStationStart + 15, table->StationCount ); ++i ) {
+                        // wyświetlenie pozycji z rozkładu
+                        tableline = table->TimeTable + i; // linijka rozkładu
+
+                        std::string station =
+                            ( tableline->StationName + "                          " ).substr( 0, 26 );
+                        std::string arrival =
+                            ( tableline->Ah >= 0 ?
+                            to_string( int( 100 + tableline->Ah ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Am ) ).substr( 1, 2 ) :
+                            "     " );
+                        std::string departure =
+                            ( tableline->Dh >= 0 ?
+                            to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Dm ) ).substr( 1, 2 ) :
+                            "     " );
+                        std::string vmax =
+                            "   "
+                            + to_string( tableline->vmax, 0 );
+                        vmax = vmax.substr( vmax.length() - 3, 3 ); // z wyrównaniem do prawej
+
+                        UITable->text_lines.emplace_back(
+                            Global::Bezogonkow( "| " + station + " | " + arrival + " | " + departure + " | " + vmax + " | " + tableline->StationWare, true ),
+                            ( ( tmp->Mechanik->iStationStart < table->StationIndex ) && ( i < table->StationIndex ) ?
+                            float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
+                            Global::UITextColor )
+                            );
+                        // divider/footer
+                        UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", Global::UITextColor );
+                    }
+                }
+            }
+
             break;
         }
 
-        case( GLFW_KEY_F2 ) : {
+        case( GLFW_KEY_F3 ) : {
 
             TDynamicObject *tmp =
                 ( FreeFlyModeFlag ?
@@ -1574,19 +1676,18 @@ TWorld::Update_UI() {
                     OutText4 += ", command: " + tmp->Mechanik->OrderCurrent();
                 }
 
-                if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] != 0 ) {
+                if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // f2 screen, track scan mode
                     if( tmp->Mechanik == nullptr ) {
                         //żeby była tabelka, musi być AI
                         break;
                     }
 
-                    float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
                     int i = 0;
                     do {
                         std::string scanline = tmp->Mechanik->TableText( i );
                         if( scanline.empty() ) { break; }
-                        UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), linecolor );
+                        UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), Global::UITextColor );
                         ++i;
                     } while( i < 16 ); // TController:iSpeedTableSize TODO: change when the table gets recoded
                 }
@@ -1606,74 +1707,6 @@ TWorld::Update_UI() {
                 // current luminance level
                 OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
                 if( Global::FakeLight ) { OutText2 += "(*)"; }
-            }
-
-            break;
-        }
-
-        case( GLFW_KEY_F3 ) : {
-            // timetable
-            TDynamicObject *tmp =
-                ( FreeFlyModeFlag ?
-                    Ground.DynamicNearest( Camera.Pos ) :
-                    Controlled ); // w trybie latania lokalizujemy wg mapy
-
-            if( tmp == nullptr ) { break; }
-            if( tmp->Mechanik == nullptr ) { break; }
-
-            auto const table = tmp->Mechanik->Timetable();
-            if( table == nullptr ) { break; }
-
-            OutText1 =
-                "Time: "
-                + to_string( (int)GlobalTime->hh ) + ":"
-                + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
-                + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
-            if( Global::iPause ) {
-                OutText1 += " (paused)";
-            }
-            
-            OutText2 = tmp->Mechanik->Relation() + " (" + tmp->Mechanik->Timetable()->TrainName + ")";
-
-            float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
-
-            if( 0 == table->StationCount ) {
-                // only bother if there's stations to list
-                UITable->text_lines.emplace_back( "(no timetable)", linecolor );
-            } 
-            else {
-                // header
-                UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", linecolor );
-
-                TMTableLine *tableline;
-                for( int i = tmp->Mechanik->iStationStart; i <= std::min( tmp->Mechanik->iStationStart + 15, table->StationCount ); ++i ) {
-                    // wyświetlenie pozycji z rozkładu
-                    tableline = table->TimeTable + i; // linijka rozkładu
-
-                    std::string station =
-                        ( tableline->StationName + "                          " ).substr( 0, 26 );
-                    std::string arrival = 
-                        ( tableline->Ah >= 0 ?
-                            to_string( int( 100 + tableline->Ah ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Am ) ).substr( 1, 2 ) :
-                            "     " );
-                    std::string departure = 
-                        ( tableline->Dh >= 0 ?
-                            to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_string( int( 100 + tableline->Dm ) ).substr( 1, 2 ) :
-                            "     " );
-                    std::string vmax =
-                        "   "
-                        + to_string( tableline->vmax, 0 );
-                    vmax = vmax.substr( vmax.length() - 3, 3 ); // z wyrównaniem do prawej
-
-                    UITable->text_lines.emplace_back(
-                        Global::Bezogonkow( "| " + station + " | " + arrival + " | " + departure + " | " + vmax + " | " + tableline->StationWare, true ),
-                        ( ( tmp->Mechanik->iStationStart < table->StationIndex ) && ( i < table->StationIndex ) ?
-                            float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
-                            linecolor )
-                        );
-                    // divider/footer
-                    UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", linecolor );
-                }
             }
 
             break;
@@ -1846,9 +1879,7 @@ TWorld::Update_UI() {
                 // induction motor data
                 if( tmp->MoverParameters->EngineType == ElectricInductionMotor ) {
 
-                    float4 linecolor( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
-
-                    UITable->text_lines.emplace_back( "   eimc:     eimv:    press:", linecolor );
+                    UITable->text_lines.emplace_back( "   eimc:     eimv:    press:", Global::UITextColor );
                     for( int i = 0; i <= 20; ++i ) {
 
                         std::string parameters =
@@ -1865,7 +1896,7 @@ TWorld::Update_UI() {
                             parameters += " " + to_string( tmp->MED[ 0 ][ i - 13 ], 2, 9 );
                         }
 
-                        UITable->text_lines.emplace_back( parameters, linecolor );
+                        UITable->text_lines.emplace_back( parameters, Global::UITextColor );
                     }
                 }
 
