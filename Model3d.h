@@ -218,7 +218,7 @@ private:
 	// int SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX
 	// *Vertices);
 	int SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, float3 *pt, float8 *Vertices);
-	void RaAnimation(TAnimType a);
+	void RaAnimation(glm::mat4 &m, TAnimType a);
 
 public:
 	static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
@@ -255,8 +255,8 @@ public:
 	TSubModel * GetFromName(char const *search, bool i = true);
 	void RenderDL();
 	void RenderAlphaDL();
-	void RenderVBO();
-	void RenderAlphaVBO();
+	void RenderVBO(glm::mat4 m);
+	void RenderAlphaVBO(glm::mat4 m);
 	// inline matrix4x4* GetMatrix() {return dMatrix;};
 	inline float4x4 * GetMatrix()
 	{

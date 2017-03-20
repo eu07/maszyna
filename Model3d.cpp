@@ -953,56 +953,57 @@ TSubModel *TSubModel::GetFromName(char const *search, bool i)
 
 // WORD hbIndices[18]={3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
-void TSubModel::RaAnimation(TAnimType a)
+void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 { // wykonanie animacji niezależnie od renderowania
 	switch (a)
 	{ // korekcja położenia, jeśli submodel jest animowany
 	case at_Translate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
+		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
 		break;
 	case at_Rotate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glRotatef(f_Angle, v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z);
+		m = glm::rotate(m, glm::radians(f_Angle), glm::vec3(v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z));
 		break;
 	case at_RotateXYZ:
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
-		glRotatef(v_Angles.x, 1.0, 0.0, 0.0);
-		glRotatef(v_Angles.y, 0.0, 1.0, 0.0);
-		glRotatef(v_Angles.z, 0.0, 0.0, 1.0);
+		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
+		m = glm::rotate(m, glm::radians(v_Angles.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(v_Angles.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		break;
 	case at_SecondsJump: // sekundy z przeskokiem
-		glRotatef(floor(GlobalTime->mr) * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians((float)floor(GlobalTime->mr) * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_MinutesJump: // minuty z przeskokiem
-		glRotatef(GlobalTime->mm * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(GlobalTime->mm * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_HoursJump: // godziny skokowo 12h/360°
-		glRotatef(GlobalTime->hh * 30.0 * 0.5, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(GlobalTime->hh * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours24Jump: // godziny skokowo 24h/360°
-		glRotatef(GlobalTime->hh * 15.0 * 0.25, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(GlobalTime->hh * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Seconds: // sekundy płynnie
-		glRotatef(GlobalTime->mr * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians((float)GlobalTime->mr * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Minutes: // minuty płynnie
-		glRotatef(GlobalTime->mm * 6.0 + GlobalTime->mr * 0.1, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians((float)(GlobalTime->mm * 6.0 + GlobalTime->mr * 0.1)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours: // godziny płynnie 12h/360°
 				   // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
-		glRotatef(2.0 * Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(2.0f * (float)Global::fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours24: // godziny płynnie 24h/360°
 					 // glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
-		glRotatef(Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians((float)Global::fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Billboard: // obrót w pionie do kamery
 	{
+		/*
 		matrix4x4 mat; // potrzebujemy współrzędne przesunięcia środka układu
 					   // współrzędnych submodelu
 		glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray()); // pobranie aktualnej matrycy
@@ -1013,20 +1014,19 @@ void TSubModel::RaAnimation(TAnimType a)
 												 // zmian
 		glRotated(atan2(gdzie.x, gdzie.z) * 180.0 / M_PI, 0.0, 1.0,
 			0.0); // jedynie obracamy w pionie o kąt
+		*/ //m7todo: restore
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
-		glRotated(1.5 * sin(M_PI * GlobalTime->mr / 6.0), 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * GlobalTime->mr / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Sky: // animacja nieba
-		glRotated(Global::fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na północ
-														// glRotatef(Global::fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
-		glRotated(-fmod(Global::fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrót dobowy osi OX
+		m = glm::rotate(m, glm::radians((float)Global::fLatitudeDeg), glm::vec3(0.0f, 1.0f, 0.0f)); // ustawienie osi OY na północ
+		m = glm::rotate(m, glm::radians((float)-fmod(Global::fTimeAngleDeg, 360.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
-		glRotatef(v_Angles.z, 0.0, 1.0, 0.0); // obrót względem osi pionowej
-											  // (azymut)
-		glRotatef(v_Angles.x, 1.0, 0.0, 0.0); // obrót względem poziomu (deklinacja)
+		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 1.0f, 0.0f)); // obrót względem osi pionowej (azymut)
+		m = glm::rotate(m, glm::radians(v_Angles.x), glm::vec3(1.0f, 0.0f, 0.0f)); // obrót względem poziomu (deklinacja)
 		break;
 	case at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
@@ -1047,7 +1047,7 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 	if (mAnimMatrix) // można by to dać np. do at_Translate
 	{
-		glMultMatrixf(mAnimMatrix->readArray());
+		m *= glm::make_mat4(mAnimMatrix->e);
 		mAnimMatrix = NULL; // jak animator będzie potrzebował, to ustawi ponownie
 	}
 };
@@ -1063,8 +1063,8 @@ void TSubModel::RenderDL()
             glPushMatrix();
             if (fMatrix)
                 glMultMatrixf(fMatrix->readArray());
-            if (b_Anim)
-                RaAnimation(b_Anim);
+//            if (b_Anim)
+//                RaAnimation(b_Anim);
         }
         if (eType < TP_ROTATOR)
         { // renderowanie obiektów OpenGL
@@ -1162,8 +1162,8 @@ void TSubModel::RenderAlphaDL()
             glPushMatrix();
             if (fMatrix)
                 glMultMatrixf(fMatrix->readArray());
-            if (b_aAnim)
-                RaAnimation(b_aAnim);
+//            if (b_aAnim)
+//                RaAnimation(b_aAnim);
         }
         if (eType < TP_ROTATOR)
         { // renderowanie obiektów OpenGL
@@ -1233,21 +1233,21 @@ void TSubModel::RenderAlphaDL()
             Next->RenderAlphaDL();
 }; // RenderAlpha
 
-void TSubModel::RenderVBO()
+void TSubModel::RenderVBO(glm::mat4 m)
 { // główna procedura renderowania przez VBO
     if( ( iVisible )
      && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
      && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
+		glm::mat4 mm = m;
         if (iFlags & 0xC000)
         {
-            glPushMatrix();
-            if (fMatrix)
-                glMultMatrixf(fMatrix->readArray());
+			if (fMatrix)
+				mm *= glm::make_mat4(fMatrix->e);
             if (b_Anim)
-                RaAnimation(b_Anim);
+                RaAnimation(mm, b_Anim);
+			World.shader.set_mv(mm);
         }
-		World.shader.copy_gl_mvp();
         if (eType < TP_ROTATOR)
         { // renderowanie obiektów OpenGL
             if (iAlpha & iFlags & 0x1F) // rysuj gdy element nieprzezroczysty
@@ -1255,19 +1255,16 @@ void TSubModel::RenderVBO()
                 if (TextureID < 0) // && (ReplacableSkinId!=0))
                 { // zmienialne skóry
                     GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
-                    // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
                 }
                 else
                     GfxRenderer.Bind(TextureID); // również 0
-                glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
-                // glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,f4Diffuse); //to samo,
-                // co glColor
+                //glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
                 if (Global::fLuminance < fLight)
                 {
-                    glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
+                    //glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
                     glDrawArrays(eType, iVboPtr,
                                  iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
-                    glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
+                    //glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
                 }
                 else
                     glDrawArrays(eType, iVboPtr,
@@ -1291,62 +1288,23 @@ void TSubModel::RenderVBO()
                                    (fCosHotspotAngle - fCosViewAngle) /
                                        (fCosHotspotAngle - fCosFalloffAngle);
 
-				/*  TODO: poprawic to zeby dzialalo
-
-				2- Inverse (Applies inverse decay. The formula is luminance=R0/R, where
-				R0 is
-				the radial source of the light if no attenuation is
-				used, or the Near End
-				value of the light if Attenuation is used. R is the
-				radial distance of the
-				illuminated surface from R0.)
-
-				3- Inverse Square (Applies inverse-square decay. The formula for this is
-				(R0/R)^2.
-				This is actually the "real-world" decay of light, but
-				you might find it too dim
-				in the world of computer graphics.)
-
-				<light>.DecayRadius -- The distance over which the decay occurs.
-
-				if (iFarAttenDecay>0)
-				switch (iFarAttenDecay)
-				{
-				case 1:
-				Distdimm=fFarDecayRadius/(1+sqrt(fSquareDist));
-				//dorobic od kata
-				break;
-				case 2:
-				Distdimm=fFarDecayRadius/(1+fSquareDist);
-				//dorobic od kata
-				break;
-				}
-				if (Distdimm>1)
-				Distdimm=1;
-
-                */
                 GfxRenderer.Bind(0); // nie teksturować
-                // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-                // glColorMaterial(GL_FRONT,GL_EMISSION);
+
                 float color[4] = { (float)(f4Diffuse[0] * Distdimm), (float)(f4Diffuse[1] * Distdimm),
 				                   (float)(f4Diffuse[2] * Distdimm), 0 };
-                // glColor3f(f4Diffuse[0]*Distdimm,f4Diffuse[1]*Distdimm,f4Diffuse[2]*Distdimm);
-                glColorMaterial(GL_FRONT, GL_EMISSION);
-                glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
-                // blendowaly
-                glColor3fv(color); // inaczej są białe
-                glMaterialfv(GL_FRONT, GL_EMISSION, color);
-                glDrawArrays(GL_POINTS, iVboPtr, iNumVerts); // narysuj wierzchołek z
-                // VBO
-                glEnable(GL_LIGHTING);
-                glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); // co ma ustawiać glColor
-                glMaterialfv(GL_FRONT, GL_EMISSION, emm2); // bez tego słupy się świecą
+
+                //glColorMaterial(GL_FRONT, GL_EMISSION);
+                //glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
+                //glColor3fv(color); // inaczej są białe
+                //glMaterialfv(GL_FRONT, GL_EMISSION, color);
+                glDrawArrays(GL_POINTS, iVboPtr, iNumVerts); // narysuj wierzchołek z VBO
+                //glEnable(GL_LIGHTING);
+                //glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); // co ma ustawiać glColor
+                //glMaterialfv(GL_FRONT, GL_EMISSION, emm2); // bez tego słupy się świecą
             }
         }
         else if (eType == TP_STARS)
         {
-            // glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie
-            // blendowaly
             if (Global::fLuminance < fLight)
             { // Ra: pewnie można by to zrobić
                 // lepiej, bez powtarzania StartVBO()
@@ -1370,61 +1328,35 @@ void TSubModel::RenderVBO()
                 }
             }
         }
-        /*Ra: tu coś jest bez sensu...
-                    else
-                    {
-                     glBindTexture(GL_TEXTURE_2D, 0);
-        //        if (eType==smt_FreeSpotLight)
-        //         {
-        //          if (iFarAttenDecay==0)
-        //            glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
-        //         }
-        //         else
-        //TODO: poprawic zeby dzialalo
-                     glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-                     glColorMaterial(GL_FRONT,GL_EMISSION);
-                     glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty
-        swiecace sie blendowaly
-                     //glBegin(GL_POINTS);
-                     glDrawArrays(GL_POINTS,iVboPtr,iNumVerts);  //narysuj
-        wierzchołek z VBO
-                     //       glVertex3f(0,0,0);
-                     //glEnd();
-                     glEnable(GL_LIGHTING);
-                     glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
-                     glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-                     //glEndList();
-                    }
-        */
         if (Child != NULL)
             if (iAlpha & iFlags & 0x001F0000)
-                Child->RenderVBO();
-        if (iFlags & 0xC000)
-            glPopMatrix();
+                Child->RenderVBO(mm);
+		if (iFlags & 0xC000)
+			World.shader.set_mv(m);
     }
     if (b_Anim < at_SecondsJump)
         b_Anim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
     if (Next)
         if (iAlpha & iFlags & 0x1F000000)
-            Next->RenderVBO(); // dalsze rekurencyjnie
+            Next->RenderVBO(m); // dalsze rekurencyjnie
 }; // RaRender
 
-void TSubModel::RenderAlphaVBO()
+void TSubModel::RenderAlphaVBO(glm::mat4 m)
 { // renderowanie przezroczystych przez VBO
     if( ( iVisible )
      && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
      && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
     {
+		glm::mat4 mm = m;
         if (iFlags & 0xC000)
         {
-            glPushMatrix(); // zapamiętanie matrycy
-            if (fMatrix)
-                glMultMatrixf(fMatrix->readArray());
-            if (b_aAnim)
-                RaAnimation(b_aAnim);
+			if (fMatrix)
+				mm *= glm::make_mat4(fMatrix->e);
+			if (b_Anim)
+				RaAnimation(mm, b_Anim);
+			World.shader.set_mv(mm);
         }
-		World.shader.copy_gl_mvp();
-        glColor3fv(f4Diffuse);
+
         if (eType < TP_ROTATOR)
         { // renderowanie obiektów OpenGL
             if (iAlpha & iFlags & 0x2F) // rysuj gdy element przezroczysty
@@ -1438,10 +1370,10 @@ void TSubModel::RenderAlphaVBO()
                     GfxRenderer.Bind(TextureID); // również 0
                 if (Global::fLuminance < fLight)
                 {
-                    glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
+                    //glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
                     glDrawArrays(eType, iVboPtr,
                                  iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
-                    glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
+                    //glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
                 }
                 else
                     glDrawArrays(eType, iVboPtr,
@@ -1454,15 +1386,15 @@ void TSubModel::RenderAlphaVBO()
         }
         if (Child)
             if (iAlpha & iFlags & 0x002F0000)
-                Child->RenderAlphaVBO();
-        if (iFlags & 0xC000)
-            glPopMatrix();
+                Child->RenderAlphaVBO(mm);
+		if (iFlags & 0xC000)
+			World.shader.set_mv(m);
     }
     if (b_aAnim < at_SecondsJump)
         b_aAnim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
     if (Next)
         if (iAlpha & iFlags & 0x2F000000)
-            Next->RenderAlphaVBO();
+            Next->RenderAlphaVBO(m);
 }; // RaRenderAlpha
 
    //---------------------------------------------------------------------------
@@ -2265,7 +2197,14 @@ void TModel3d::RaRender(double fSquareDistance, texture_manager::size_type *Repl
 		{ // odwrócenie flag, aby wyłapać nieprzezroczyste
 			Root->ReplacableSet(ReplacableSkinId, iAlpha);
 			Root->pRoot = this;
-			Root->RenderVBO();
+			
+			float mv[16], p[16];
+			glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+			glGetFloatv(GL_PROJECTION_MATRIX, p);
+			World.shader.set_mv(glm::make_mat4(mv));
+			World.shader.set_p(glm::make_mat4(p));
+			Root->RenderVBO(glm::make_mat4(mv));
+
 			EndVBO();
 		}
 	}
@@ -2279,7 +2218,14 @@ void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type 
 		if (StartVBO())
 		{
 			Root->ReplacableSet(ReplacableSkinId, iAlpha);
-			Root->RenderAlphaVBO();
+
+			float mv[16], p[16];
+			glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+			glGetFloatv(GL_PROJECTION_MATRIX, p);
+			World.shader.set_mv(glm::make_mat4(mv));
+			World.shader.set_p(glm::make_mat4(p));
+			Root->RenderAlphaVBO(glm::make_mat4(mv));
+
 			EndVBO();
 		}
 	}
@@ -2358,7 +2304,14 @@ void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::si
 	if (StartVBO())
 	{ // odwrócenie flag, aby wyłapać nieprzezroczyste
 		Root->ReplacableSet(ReplacableSkinId, iAlpha ^ 0x0F0F000F);
-		Root->RenderVBO();
+
+		float mv[16], p[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+		glGetFloatv(GL_PROJECTION_MATRIX, p);
+		World.shader.set_mv(glm::make_mat4(mv));
+		World.shader.set_p(glm::make_mat4(p));
+		Root->RenderVBO(glm::make_mat4(mv));
+
 		EndVBO();
 	}
 	glPopMatrix();
@@ -2379,7 +2332,14 @@ void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manage
 	if (StartVBO())
 	{
 		Root->ReplacableSet(ReplacableSkinId, iAlpha);
-		Root->RenderAlphaVBO();
+
+		float mv[16], p[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+		glGetFloatv(GL_PROJECTION_MATRIX, p);
+		World.shader.set_mv(glm::make_mat4(mv));
+		World.shader.set_p(glm::make_mat4(p));
+		Root->RenderAlphaVBO(glm::make_mat4(mv));
+
 		EndVBO();
 	}
 	glPopMatrix();
@@ -2416,6 +2376,13 @@ TSubModel *TModel3d::TerrainSquare(int n)
 void TModel3d::TerrainRenderVBO(int n)
 { // renderowanie terenu z VBO
 	glPushMatrix();
+
+	float mv[16], p[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+	glGetFloatv(GL_PROJECTION_MATRIX, p);
+	World.shader.set_mv(glm::make_mat4(mv));
+	World.shader.set_p(glm::make_mat4(p));
+	
 	// glTranslated(vPosition->x,vPosition->y,vPosition->z);
 	// if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
 	// if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
@@ -2430,7 +2397,7 @@ void TModel3d::TerrainRenderVBO(int n)
 		{
 			if (r->iVisible ==
 				n) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
-				r->RenderVBO(); // sub kolejne (Next) się nie wyrenderują
+				r->RenderVBO(glm::make_mat4(mv)); // sub kolejne (Next) się nie wyrenderują
 			r = r->NextGet();
 		}
 		EndVBO();
