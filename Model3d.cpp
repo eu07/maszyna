@@ -2185,8 +2185,8 @@ void TModel3d::RenderAlpha(double fSquareDistance, texture_manager::size_type *R
 		Root->RenderAlphaDL();
 	}
 };
-
-void TModel3d::RaRender(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
+#endif
+void TModel3d::RaRender(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
 	iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
 	if (iAlpha & iFlags & 0x1F1F001F) // czy w ogóle jest co robić w tym cyklu?
@@ -2202,7 +2202,7 @@ void TModel3d::RaRender(double fSquareDistance, texture_manager::size_type *Repl
 	}
 };
 
-void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
+void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
 	if (iAlpha & iFlags & 0x2F2F002F) // czy w ogóle jest co robić w tym cyklu?
 	{
@@ -2219,7 +2219,7 @@ void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type 
 //-----------------------------------------------------------------------------
 // 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
-
+#ifdef EU07_USE_OLD_RENDERCODE
 void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, Display List
 	glPushMatrix();
@@ -2254,8 +2254,8 @@ void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager:
 	Root->RenderAlphaDL();
 	glPopMatrix();
 };
-
-void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId, int iAlpha)
+#endif
+void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, VBO
 	glPushMatrix();
 	glTranslated(vPosition->x, vPosition->y, vPosition->z);
@@ -2275,7 +2275,7 @@ void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::si
 	}
 	glPopMatrix();
 };
-void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId,
+void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId,
 	int iAlpha)
 { // przezroczyste, VBO
 	glPushMatrix();
@@ -2296,7 +2296,7 @@ void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manage
 	}
 	glPopMatrix();
 };
-#endif
+
 
 //-----------------------------------------------------------------------------
 // 2012-02 funkcje do tworzenia terenu z E3D

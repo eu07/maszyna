@@ -708,21 +708,21 @@ void TAnimModel::RenderAlphaDL(vector3 *vPosition)
         GfxRenderer.Render_Alpha( pModel, Material(), *vPosition, vAngle );
 #endif
 };
-/*
+
 void TAnimModel::RenderVBO(vector3 *vPosition)
 {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRender(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
+        pModel->RaRender(vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha);
 };
 void TAnimModel::RenderAlphaVBO(vector3 *vPosition)
 {
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRenderAlpha(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
+        pModel->RaRenderAlpha(vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha);
 };
-*/
+
 
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()

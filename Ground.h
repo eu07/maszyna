@@ -178,11 +178,10 @@ class TGroundNode : public Resource
     void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
     void RenderAlphaDL(); // renderowanie przezroczystych w Display Lists
     // (McZapkie-131202)
-/*
     void RaRenderVBO(); // renderowanie (nieprzezroczystych) ze wspólnego VBO
     void RenderVBO(); // renderowanie nieprzezroczystych z własnego VBO
     void RenderAlphaVBO(); // renderowanie przezroczystych z (własnego) VBO
-*/
+
 };
 
 struct bounding_area {
@@ -229,11 +228,9 @@ class TSubRect : public Resource, public CMesh
     void RaAnimate(); // przeliczenie animacji torów
     void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
     void RenderAlphaDL(); // renderowanie przezroczystych w Display Lists
-/*
     // (McZapkie-131202)
     void RenderVBO(); // renderowanie nieprzezroczystych z własnego VBO
     void RenderAlphaVBO(); // renderowanie przezroczystych z (własnego) VBO
-*/
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
 };
 
@@ -277,9 +274,7 @@ class TGroundRect : public TSubRect
                 pSubRects[i].Sort(); // optymalizacja obiektów w sektorach
     };
     void RenderDL();
-/*
     void RenderVBO();
-*/
 };
 
 class TGround
@@ -368,10 +363,8 @@ class TGround
     bool Render( Math3D::vector3 const &Camera );
     bool RenderDL(vector3 pPosition);
     bool RenderAlphaDL(vector3 pPosition);
-/*
     bool RenderVBO(vector3 pPosition);
     bool RenderAlphaVBO(vector3 pPosition);
-*/
     bool CheckQuery();
     //    GetRect(double x, double z) { return
     //    &(Rects[int(x/fSubRectSize+fHalfNumRects)][int(z/fSubRectSize+fHalfNumRects)]); };

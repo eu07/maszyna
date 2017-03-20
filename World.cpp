@@ -1386,13 +1386,13 @@ TWorld::Render_Cab() {
             ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
         }
 #endif
-/*
-        if( Global::bUseVBO ) { // renderowanie z użyciem VBO. NOTE: disabled for the time being
-            dynamic->mdKabina->RaRender( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
-            dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
+
+        if( Global::bUseVBO ) {
+            // renderowanie z użyciem VBO. NOTE: needs update, and eventual merge into single render path down the road
+            dynamic->mdKabina->RaRender( 0.0, dynamic->Material()->replacable_skins, dynamic->Material()->textures_alpha );
+            dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->Material()->replacable_skins, dynamic->Material()->textures_alpha );
         }
         else {
-*/
         // renderowanie z Display List
 #ifdef EU07_USE_OLD_RENDERCODE
             dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
@@ -1401,9 +1401,7 @@ TWorld::Render_Cab() {
             GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
             GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic->Material(), 0.0 );
 #endif
-/*
         }
-*/
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         // przywrócenie standardowych, bo zawsze są zmieniane
         glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );

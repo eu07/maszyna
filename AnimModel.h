@@ -177,10 +177,8 @@ class TAnimModel
     void RenderAlphaVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
 */  void RenderDL(vector3 *vPosition);
     void RenderAlphaDL(vector3 *vPosition);
-/*
     void RenderVBO(vector3 *vPosition);
     void RenderAlphaVBO(vector3 *vPosition);
-*/
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {

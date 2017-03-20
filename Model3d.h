@@ -363,14 +363,16 @@ public:
 #ifdef EU07_USE_OLD_RENDERCODE
 	void Render(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
 	void RenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RaRender(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RaRenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	// trzy kąty obrotu
-	void Render(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
 #endif
+    void RaRender(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+	void RaRenderAlpha(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+	// trzy kąty obrotu
+#ifdef EU07_USE_OLD_RENDERCODE
+    void Render( vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030 );
+	void RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+#endif
+	void RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
+	void RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
 	// inline int GetSubModelsCount() { return (SubModelsCount); };
 	int Flags() const
 	{

@@ -41,10 +41,8 @@ void TSky::Render( float3 const &Tint )
 #endif
         if (Global::bUseVBO)
         { // renderowanie z VBO
-#ifdef EU07_USE_OLD_RENDERCODE
             mdCloud->RaRender( 100, 0 );
             mdCloud->RaRenderAlpha(100, 0);
-#endif
         }
         else
         { // renderowanie z Display List

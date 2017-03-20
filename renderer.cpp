@@ -221,39 +221,76 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
-    // wersja Display Lists
-    // NOTE: VBO path is removed
-    // TODO: implement universal render path down the road
-    if( Dynamic->mdLowPolyInt ) {
-        // low poly interior
-        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
-            // enable cab light if needed
-            if( Dynamic->InteriorLightLevel > 0.0f ) {
-
-                // crude way to light the cabin, until we have something more complete in place
-                auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-            }
-
-            Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-
-            if( Dynamic->InteriorLightLevel > 0.0f ) {
-                // reset the overall ambient
-                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-            }
-        }
+    if( Dynamic->fShade > 0.0f ) {
+        // change light level based on light level of the occupied track
+        Global::DayLight.apply_intensity( Dynamic->fShade );
     }
 
-//    Dynamic->mdModel->Render( squaredistance, Dynamic->ReplacableSkinID, Dynamic->iAlpha );
-    Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+    // TODO: implement universal render path down the road
+    if( Global::bUseVBO ) {
+        // wersja VBO
+        if( Dynamic->mdLowPolyInt ) {
+            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+                // enable cab light if needed
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
 
-    if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-        Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+                    // crude way to light the cabin, until we have something more complete in place
+                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                }
+
+                Dynamic->mdLowPolyInt->RaRender( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
+
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
+                    // reset the overall ambient
+                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                }
+            }
+        }
+
+        Dynamic->mdModel->RaRender( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
+
+        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+            Dynamic->mdLoad->RaRender( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
+    }
+    else {
+        // wersja Display Lists
+        if( Dynamic->mdLowPolyInt ) {
+            // low poly interior
+            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+                // enable cab light if needed
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
+
+                    // crude way to light the cabin, until we have something more complete in place
+                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                }
+
+                Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
+                    // reset the overall ambient
+                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                }
+            }
+        }
+
+        Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+
+        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+            Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+    }
+
+    if( Dynamic->fShade > 0.0f ) {
+        // restore regular light level
+        Global::DayLight.apply_intensity();
+    }
 
     ::glPopMatrix();
 
-    // TODO: check if this reset is needed. In theory each object should render all buttons based on its own instance data anyway?
+    // TODO: check if this reset is needed. In theory each object should render all parts based on its own instance data anyway?
     if( Dynamic->btnOn )
         Dynamic->TurnOff(); // przywrócenie domyślnych pozycji submodeli
 
