@@ -21,11 +21,16 @@ cStars::render() {
     ::glRotatef( -std::fmod( Global::fTimeAngleDeg, 360.0f ), 0.0f, 1.0f, 0.0f ); // obrót dobowy osi OX
 
     ::glPointSize( 2.0f );
+    if( Global::bUseVBO ) {
+        m_stars.RaRender( 1.0, 0 );
+    }
+    else {
 #ifdef EU07_USE_OLD_RENDERCODE
-    m_stars.Render( 1.0 );
+        m_stars.Render( 1.0 );
 #else
-    GfxRenderer.Render( &m_stars, nullptr, 1.0 );
+        GfxRenderer.Render( &m_stars, nullptr, 1.0 );
 #endif
+    }
     ::glPointSize( 3.0f );
 
     ::glPopMatrix();

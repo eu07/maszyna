@@ -73,16 +73,18 @@ light_array::update() {
             else {
                 light.intensity = 0.0f;
             }
-
+/*
             // crude catch for unmanned modules which share the light state with the controlled unit.
             // why don't they get their own light bits btw ._.
             // TODO, TBD: have separate light bits for each vehicle, so this override isn't necessary
+            // NOTE: should be no longer needed, test and delete if there's no ill effects
             if( ( light.owner->Controller == AIdriver )
              && ( light.owner->Mechanik == nullptr ) ) {
                 
                 light.intensity = 0.0f;
                 light.count = 0;
             }
+*/
         }
         else {
             // with battery off the lights are off

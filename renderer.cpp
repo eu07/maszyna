@@ -363,34 +363,63 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
         ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
 
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
-    // wersja Display Lists
-    // NOTE: VBO path is removed
+
     // TODO: implement universal render path down the road
-    if( Dynamic->mdLowPolyInt ) {
-        // low poly interior
-        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
-            // enable cab light if needed
-            if( Dynamic->InteriorLightLevel > 0.0f ) {
+    if( Global::bUseVBO ) {
+        // wersja VBO
+        if( Dynamic->mdLowPolyInt ) {
+            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+                // enable cab light if needed
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
 
-                // crude way to light the cabin, until we have something more complete in place
-                auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-            }
+                    // crude way to light the cabin, until we have something more complete in place
+                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                }
 
-            Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+                Dynamic->mdLowPolyInt->RaRenderAlpha( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
 
-            if( Dynamic->InteriorLightLevel > 0.0f ) {
-                // reset the overall ambient
-                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
+                    // reset the overall ambient
+                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                }
             }
         }
+
+        Dynamic->mdModel->RaRenderAlpha( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
+
+        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+            Dynamic->mdLoad->RaRenderAlpha( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
     }
+    else {
+        // wersja Display Lists
+        if( Dynamic->mdLowPolyInt ) {
+            // low poly interior
+            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+                // enable cab light if needed
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
 
-    Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+                    // crude way to light the cabin, until we have something more complete in place
+                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                }
 
-    if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-        Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+                Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+
+                if( Dynamic->InteriorLightLevel > 0.0f ) {
+                    // reset the overall ambient
+                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                }
+            }
+        }
+
+        Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+
+        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+            Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+    }
 
     ::glPopMatrix();
 

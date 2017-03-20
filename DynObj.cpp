@@ -2451,19 +2451,18 @@ void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
         Object->NextConnected = this; // on ma nas z tyłu
         Object->NextConnectedNo = iDirection;
     }
+/*
+    // NOTE: this appears unnecessary and only messes things for the programmable lights function, which walks along
+    // whole trainset and expects each module to point to its own lights. Disabled, TBD, TODO: test for side-effects and delete if there's none
     if (MoverParameters->TrainType & dt_EZT) // w przypadku łączenia członów,
-        // światła w rozrządczym zależą od
-        // stanu w silnikowym
-        if (MoverParameters->Couplers[iDirection].AllowedFlag &
-            ctrain_depot) // gdy sprzęgi łączone warsztatowo (powiedzmy)
-            if ((MoverParameters->Power < 1.0) &&
-                (Object->MoverParameters->Power > 1.0)) // my nie mamy mocy, ale ten drugi ma
-                iLights = Object->MoverParameters->iLights; // to w tym z mocą będą światła
-            // załączane, a w tym bez tylko widoczne
+        // światła w rozrządczym zależą od stanu w silnikowym
+        if (MoverParameters->Couplers[iDirection].AllowedFlag & ctrain_depot) // gdy sprzęgi łączone warsztatowo (powiedzmy)
+            if ((MoverParameters->Power < 1.0) && (Object->MoverParameters->Power > 1.0)) // my nie mamy mocy, ale ten drugi ma
+                iLights = Object->MoverParameters->iLights; // to w tym z mocą będą światła załączane, a w tym bez tylko widoczne
             else if ((MoverParameters->Power > 1.0) &&
                      (Object->MoverParameters->Power < 1.0)) // my mamy moc, ale ten drugi nie ma
-                Object->iLights = MoverParameters->iLights; // to w tym z mocą będą światła
-    // załączane, a w tym bez tylko widoczne
+                Object->iLights = MoverParameters->iLights; // to w tym z mocą będą światła załączane, a w tym bez tylko widoczne
+*/
     return;
     // SetPneumatic(1,1); //Ra: to i tak się nie wykonywało po return
     // SetPneumatic(1,0);
