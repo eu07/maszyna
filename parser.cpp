@@ -238,6 +238,32 @@ int cParser::getProgress() const
     return static_cast<int>( mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize );
 }
 
+int cParser::getFullProgress() const {
+
+    int progress = getProgress();
+    if( mIncludeParser )	return progress + ( ( 100 - progress )*( mIncludeParser->getProgress() ) / 100 );
+    else					return progress;
+}
+
+std::size_t cParser::countTokens( std::string const &Stream, std::string Path ) {
+
+    return cParser( Stream, buffer_FILE, Path ).count();
+}
+
+std::size_t cParser::count() {
+
+    std::string token;
+    size_t count{ 0 };
+    do {
+        token = "";
+        token = readToken( false );
+        ++count;
+    } while( false == token.empty() );
+
+    return count - 1;
+}
+
+
 void cParser::addCommentStyle( std::string const &Commentstart, std::string const &Commentend ) {
 
     mComments.insert( commentmap::value_type(Commentstart, Commentend) );

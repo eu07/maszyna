@@ -80,6 +80,9 @@ class cParser //: public std::stringstream
     bool getTokens(unsigned int Count = 1, bool ToLower = true, const char *Break = "\n\r\t ;");
     // returns percentage of file processed so far
     int getProgress() const;
+    int getFullProgress() const;
+    //
+    static std::size_t countTokens( std::string const &Stream, std::string Path = "" );
     // add custom definition of text which should be ignored when retrieving tokens
     void addCommentStyle( std::string const &Commentstart, std::string const &Commentend );
 
@@ -91,6 +94,7 @@ class cParser //: public std::stringstream
 //    std::string trtest;
     bool findQuotes( std::string &String );
     bool trimComments( std::string &String );
+    std::size_t count();
     // members:
     bool LoadTraction; // load traction?
     std::istream *mStream; // relevant kind of buffer is attached on creation.

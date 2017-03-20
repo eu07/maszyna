@@ -111,41 +111,52 @@ vector3 TCamera::GetDirection()
 
     return (Normalize(Vec));
 }
-
-// bool TCamera::GetMatrix(matrix4x4 &Matrix)
+/*
 bool TCamera::SetMatrix()
 {
-    glRotated(-Roll * 180.0f / M_PI, 0, 0, 1); // po wyłączeniu tego kręci się pojazd, a sceneria
-    // nie
-    glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
-    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnętrznym widoku: kierunek patrzenia
+    glRotated( -Roll * 180.0f / M_PI, 0, 0, 1 ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
+    glRotated( -Pitch * 180.0f / M_PI, 1, 0, 0 );
+    glRotated( -Yaw * 180.0f / M_PI, 0, 1, 0 ); // w zewnętrznym widoku: kierunek patrzenia
 
-    if (Type == tp_Follow)
+    if( Type == tp_Follow )
     {
-        //        gluLookAt(Pos.x+pOffset.x,Pos.y+pOffset.y,Pos.z+pOffset.z,
-        //                LookAt.x+pOffset.x,LookAt.y+pOffset.y,LookAt.z+pOffset.z,vUp.x,vUp.y,vUp.z);
-        //        gluLookAt(Pos.x+pOffset.x,Pos.y+pOffset.y,Pos.z+pOffset.z,
-        //                LookAt.x+pOffset.x,LookAt.y+pOffset.y,LookAt.z+pOffset.z,vUp.x,vUp.y,vUp.z);
-        gluLookAt(Pos.x, Pos.y, Pos.z, LookAt.x, LookAt.y, LookAt.z, vUp.x, vUp.y,
-                  vUp.z); // Ra: pOffset is zero
-        //        gluLookAt(Pos.x,Pos.y,Pos.z,Pos.x+Velocity.x,Pos.y+Velocity.y,Pos.z+Velocity.z,0,1,0);
-        //        return true;
+        gluLookAt(
+            Pos.x, Pos.y, Pos.z,
+            LookAt.x, LookAt.y, LookAt.z,
+            vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero
     }
-
-    if (Type == tp_Satelite)
-        Pitch = M_PI * 0.5;
-
-    if (Type != tp_Follow)
-    {
-        glTranslated(-Pos.x, -Pos.y, -Pos.z); // nie zmienia kierunku patrzenia
+    else {
+        glTranslated( -Pos.x, -Pos.y, -Pos.z ); // nie zmienia kierunku patrzenia
     }
 
     Global::SetCameraPosition(Pos); // było +pOffset
     return true;
 }
+*/
+bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
+
+    Matrix = glm::rotate( Matrix, (float)-Roll, glm::vec3( 0.0f, 0.0f, 1.0f ) ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
+    Matrix = glm::rotate( Matrix, (float)-Pitch, glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    Matrix = glm::rotate( Matrix, (float)-Yaw, glm::vec3( 0.0f, 1.0f, 0.0f ) ); // w zewnętrznym widoku: kierunek patrzenia
+
+    if( Type == tp_Follow ) {
+
+        Matrix *= glm::lookAt(
+            glm::vec3( Pos.x, Pos.y, Pos.z ),
+            glm::vec3( LookAt.x, LookAt.y, LookAt.z ),
+            glm::vec3( vUp.x, vUp.y, vUp.z ) );
+    }
+    else {
+        Matrix = glm::translate( Matrix, glm::vec3( -Pos.x, -Pos.y, -Pos.z ) ); // nie zmienia kierunku patrzenia
+    }
+
+    Global::SetCameraPosition( Pos ); // było +pOffset
+    return true;
+}
 
 void TCamera::SetCabMatrix(vector3 &p)
 { // ustawienie widoku z kamery bez przesunięcia robionego przez OpenGL - nie powinno tak trząść
+
     glRotated(-Roll * 180.0f / M_PI, 0, 0, 1);
     glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
     glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnętrznym widoku: kierunek patrzenia
@@ -170,16 +181,3 @@ void TCamera::Stop()
     Velocity = vector3(0, 0, 0);
 };
 
-// returns true if specified object is within camera frustum, false otherwise
-bool
-TCamera::IsVisible( TDynamicObject const *Dynamic ) const {
-
-    // sphere test is faster than AABB, so we'll use it here
-    float3 diagonal(
-        Dynamic->MoverParameters->Dim.L,
-        Dynamic->MoverParameters->Dim.H,
-        Dynamic->MoverParameters->Dim.W );
-    float const radius = static_cast<float>(diagonal.Length()) * 0.5f;
-
-    return ( m_frustum.sphere_inside( Dynamic->GetPosition(), radius ) > 0.0f );
-}

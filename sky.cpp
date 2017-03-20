@@ -41,13 +41,18 @@ void TSky::Render( float3 const &Tint )
 #endif
         if (Global::bUseVBO)
         { // renderowanie z VBO
-            mdCloud->RaRender(100, 0);
+            mdCloud->RaRender( 100, 0 );
             mdCloud->RaRenderAlpha(100, 0);
         }
         else
         { // renderowanie z Display List
+#ifdef EU07_USE_OLD_RENDERCODE
             mdCloud->Render(100, 0);
             mdCloud->RenderAlpha(100, 0);
+#else
+            GfxRenderer.Render( mdCloud, nullptr, 100.0 );
+            GfxRenderer.Render_Alpha( mdCloud, nullptr, 100.0 );
+#endif
         }
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         glPopMatrix();

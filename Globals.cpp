@@ -28,24 +28,15 @@ http://mozilla.org/MPL/2.0/.
 // parametry do użytku wewnętrznego
 // double Global::tSinceStart=0;
 TGround *Global::pGround = NULL;
-// char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz <McZapkie>";
-// char Global::CreatorName2[30]="2001-2003 Marcin Woźniak <Marcin_EU>";
-// char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
-// char Global::CreatorName4[30]="2004 Arkadiusz Ślusarczyk <Winger>";
-// char Global::CreatorName5[30]="2003-2009 Łukasz Kirchner <Nbmx>";
+std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
 std::string Global::asCurrentDynamicPath = "";
 int Global::iSlowMotion =
     0; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
-bool Global::detonatoryOK; // info o nowych detonatorach
 double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
-double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecności rozszerzeń
-/*
-bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
-*/
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
 float Global::SunAngle = 0.0f;
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
@@ -59,18 +50,15 @@ bool Global::ctrlState;
 int Global::iCameraLast = -1;
 std::string Global::asRelease = "NG";
 std::string Global::asVersion = "EU07++NG";
-int Global::iViewMode = 0; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
-int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
-                               0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
+int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca
 double Global::fTimeAngleDeg = 0.0; // godzina w postaci kąta
 float Global::fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
 std::string Global::szTexturesTGA = ".tga"; // lista tekstur od TGA
 std::string Global::szTexturesDDS = ".dds"; // lista tekstur od DDS
 int Global::iKeyLast = 0; // ostatnio naciśnięty klawisz w celu logowania
-GLuint Global::iTextureId = 0; // ostatnio użyta tekstura 2D
-int Global::iPause = 0x10; // globalna pauza ruchu
+int Global::iPause = 0; // 0x10; // globalna pauza ruchu
 int Global::iErorrCounter = 0; // licznik sprawdzań do śledzenia błędów OpenGL
 int Global::iTextures = 0; // licznik użytych tekstur
 TWorld *Global::pWorld = NULL;
@@ -78,11 +66,11 @@ cParser *Global::pParser = NULL;
 int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajności
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
-bool Global::bSmudge = false; // czy wyświetlać smugę, a pojazd użytkownika na końcu
 /*
 std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
 */
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
+float4 Global::UITextColor = float4( 225.0f / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
 // parametry scenerii
 vector3 Global::pCameraPosition;
@@ -122,7 +110,7 @@ int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
-bool Global::VSync{ true };
+bool Global::VSync{ false };
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
 float Global::fMouseXScale = 1.5f;
 float Global::fMouseYScale = 0.2f;
@@ -130,6 +118,7 @@ std::string Global::SceneryFile = "td.scn";
 std::string Global::asHumanCtrlVehicle = "EU07-424";
 int Global::iMultiplayer = 0; // blokada działania niektórych funkcji na rzecz komunikacji
 double Global::fMoveLight = -1; // ruchome światło
+bool Global::FakeLight{ false }; // toggle between fixed and dynamic daylight
 double Global::fLatitudeDeg = 52.0; // szerokość geograficzna
 float Global::fFriction = 1.0; // mnożnik tarcia - KURS90
 double Global::fBrakeStep = 1.0; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
@@ -146,10 +135,12 @@ int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
 int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
 int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
 bool Global::bUseVBO = true; // czy jest VBO w karcie graficznej (czy użyć)
-GLint Global::iMaxTextureSize = 16384; // maksymalny rozmiar tekstury
+std::string Global::LastGLError;
+GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+bool Global::DLFont{ false }; // switch indicating presence of basic font
 bool Global::bGlutFont = false; // czy tekst generowany przez GLUT32.DLL
 //int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
 int Global::iConvertModels{ 0 }; // temporary override, to prevent generation of .e3d not compatible with old exe
@@ -160,8 +151,8 @@ TAnimModel *Global::pTerrainCompact = NULL; // do zapisania terenu w pliku
 std::string Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
 double Global::fFpsAverage = 20.0; // oczekiwana wartosć FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
-double Global::fFpsMin = 0.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
-double Global::fFpsMax = 0.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
+double Global::fFpsMin = 30.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
+double Global::fFpsMax = 65.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
 double Global::fFpsRadiusMax = 3000.0; // maksymalny promień renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promień renderowania
 double Global::fRadiusFactor = 1.1; // współczynnik jednorazowej zmiany promienia scenerii
@@ -281,8 +272,7 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens( 1, false );
             Parser >> Global::FieldOfView;
             // guard against incorrect values
-            Global::FieldOfView = std::min( 75.0f, Global::FieldOfView );
-            Global::FieldOfView = std::max( 15.0f, Global::FieldOfView );
+            Global::FieldOfView = clamp( Global::FieldOfView, 15.0f, 75.0f );
         }
         else if (token == "width")
         {
@@ -521,42 +511,15 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             int size;
             Parser >> size;
-            if (size <= 64)
-            {
-                Global::iMaxTextureSize = 64;
-            }
-            else if (size <= 128)
-            {
-                Global::iMaxTextureSize = 128;
-            }
-            else if (size <= 256)
-            {
-                Global::iMaxTextureSize = 256;
-            }
-            else if (size <= 512)
-            {
-                Global::iMaxTextureSize = 512;
-            }
-            else if (size <= 1024)
-            {
-                Global::iMaxTextureSize = 1024;
-            }
-            else if (size <= 2048)
-            {
-                Global::iMaxTextureSize = 2048;
-            }
-            else if (size <= 4096)
-            {
-                Global::iMaxTextureSize = 4096;
-            }
-            else if (size <= 8192)
-            {
-                Global::iMaxTextureSize = 8192;
-            }
-            else
-            {
-                Global::iMaxTextureSize = 16384;
-            }
+                 if (size <= 64)   { Global::iMaxTextureSize = 64; }
+            else if (size <= 128)  { Global::iMaxTextureSize = 128; }
+            else if (size <= 256)  { Global::iMaxTextureSize = 256; }
+            else if (size <= 512)  { Global::iMaxTextureSize = 512; }
+            else if (size <= 1024) { Global::iMaxTextureSize = 1024; }
+            else if (size <= 2048) { Global::iMaxTextureSize = 2048; }
+            else if (size <= 4096) { Global::iMaxTextureSize = 4096; }
+            else if (size <= 8192) { Global::iMaxTextureSize = 8192; }
+            else                   { Global::iMaxTextureSize = 16384; }
         }
         else if (token == "doubleambient")
         {
@@ -581,8 +544,8 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens( 1, false );
             Parser >> Global::DynamicLightCount;
             // clamp the light number
-            Global::DynamicLightCount = std::min( 7, Global::DynamicLightCount ); // max 8 lights per opengl specs, and one used for sun
-            Global::DynamicLightCount = std::max( 1, Global::DynamicLightCount ); // at least one light for controlled vehicle
+            // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
+            Global::DynamicLightCount = clamp( Global::DynamicLightCount, 1, 7 ); 
         }
         else if (token == "smoothtraction")
         {
@@ -690,7 +653,8 @@ void Global::ConfigParse(cParser &Parser)
                 in = 5; // na ostatni, bo i tak trzeba pominąć wartości
             }
             Parser.getTokens(4, false);
-            Parser >> Global::fCalibrateIn[in][0] // wyraz wolny
+            Parser
+                >> Global::fCalibrateIn[in][0] // wyraz wolny
                 >> Global::fCalibrateIn[in][1] // mnożnik
                 >> Global::fCalibrateIn[in][2] // mnożnik dla kwadratu
                 >> Global::fCalibrateIn[in][3]; // mnożnik dla sześcianu
@@ -805,11 +769,18 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             Parser >> Global::asLang;
         }
-        else if (token == "opengl")
-        {
-            // deklarowana wersja OpenGL, żeby powstrzymać błędy
-            Parser.getTokens(1, false);
-            Parser >> Global::fOpenGL;
+        else if( token == "uitextcolor" ) {
+            // color of the ui text. NOTE: will be obsolete once the real ui is in place
+            Parser.getTokens( 3, false );
+            Parser
+                >> Global::UITextColor.x
+                >> Global::UITextColor.y
+                >> Global::UITextColor.z;
+            Global::UITextColor.x = clamp( Global::UITextColor.x, 0.0f, 255.0f );
+            Global::UITextColor.y = clamp( Global::UITextColor.y, 0.0f, 255.0f );
+            Global::UITextColor.z = clamp( Global::UITextColor.z, 0.0f, 255.0f );
+            Global::UITextColor = Global::UITextColor / 255.0f;
+            Global::UITextColor.w = 1.0f;
         }
         else if (token == "pyscreenrendererpriority")
         {
@@ -929,8 +900,6 @@ void Global::ConfigParse(cParser &Parser)
         bEnableTraction = false; // false = pantograf się nie połamie
         bLiveTraction = false; // false = pantografy zawsze zbierają 95% MaxVoltage
     }
-    // if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno światło ruchome
-    // if (fOpenGL<1.3) iMultisampling=0; //można by z góry wyłączyć, ale nie mamy jeszcze fOpenGL
     if (iMultisampling)
     { // antyaliasing całoekranowy wyłącza rozmywanie drutów
         bSmoothTraction = false;
@@ -941,10 +910,12 @@ void Global::ConfigParse(cParser &Parser)
         // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, więc iMultiplayer=1 da się zapauzować
         // (tryb instruktora)
     }
+/*
     fFpsMin = fFpsAverage -
               fFpsDeviation; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
     fFpsMax = fFpsAverage +
               fFpsDeviation; // górna granica FPS, przy której promień scenerii będzie zwiększany
+*/
     if (iPause)
         iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
     /*  this won't execute anymore with the old parser removed
@@ -1043,9 +1014,12 @@ void Global::InitKeys()
     Keys[k_PantRearDown] = 'O';
     // Winger 020304 - ogrzewanie
 	Keys[k_Heating] = 'H';
+    // headlights
 	Keys[k_LeftSign] = 'Y';
     Keys[k_UpperSign] = 'U';
     Keys[k_RightSign] = 'I';
+    Keys[k_DimHeadlights] = 'L';
+    // tail lights
     Keys[k_EndSign] = 'T';
 
     Keys[k_SmallCompressor] = 'V';
@@ -1077,14 +1051,6 @@ void Global::SetCameraRotation(double Yaw)
         pCameraRotation -= 2 * M_PI;
     pCameraRotationDeg = pCameraRotation * 180.0 / M_PI;
 }
-
-void Global::BindTexture(GLuint t)
-{ // ustawienie aktualnej tekstury, tylko gdy się zmienia
-    if (t != iTextureId)
-    {
-        iTextureId = t;
-    }
-};
 
 void Global::TrainDelete(TDynamicObject *d)
 { // usunięcie pojazdu prowadzonego przez użytkownika

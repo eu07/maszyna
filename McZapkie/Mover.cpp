@@ -428,45 +428,47 @@ double TMoverParameters::Distance(const vector3 &s1, const vector3 &s2, const ve
 */
 double TMoverParameters::CouplerDist(int Coupler)
 { // obliczenie odległości pomiędzy sprzęgami (kula!)
-    return Couplers[Coupler].CoupleDist =
-               Distance(Loc, Couplers[Coupler].Connected->Loc, Dim,
-                        Couplers[Coupler].Connected->Dim); // odległość pomiędzy sprzęgami (kula!)
+    Couplers[Coupler].CoupleDist = 
+        Distance(
+            Loc, Couplers[Coupler].Connected->Loc,
+            Dim, Couplers[Coupler].Connected->Dim); // odległość pomiędzy sprzęgami (kula!)
+
+    return Couplers[ Coupler ].CoupleDist;
 };
 
-bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo,
-                               int CouplingType, bool Forced)
+bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced)
 { //łączenie do swojego sprzęgu (ConnectNo) pojazdu (ConnectTo) stroną (ConnectToNr)
     // Ra: zwykle wykonywane dwukrotnie, dla każdego pojazdu oddzielnie
     // Ra: trzeba by odróżnić wymóg dociśnięcia od uszkodzenia sprzęgu przy podczepianiu AI do
     // składu
     if (ConnectTo) // jeśli nie pusty
     {
+        auto &coupler = Couplers[ ConnectNo ];
         if (ConnectToNr != 2)
-            Couplers[ConnectNo].ConnectedNr = ConnectToNr; // 2=nic nie podłączone
-        TCouplerType ct = ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr]
-                              .CouplerType; // typ sprzęgu podłączanego pojazdu
-        Couplers[ConnectNo].Connected =
-            ConnectTo; // tak podpiąć (do siebie) zawsze można, najwyżej będzie wirtualny
-        CouplerDist(ConnectNo); // przeliczenie odległości pomiędzy sprzęgami
+            coupler.ConnectedNr = ConnectToNr; // 2=nic nie podłączone
+        coupler.Connected = ConnectTo; // tak podpiąć (do siebie) zawsze można, najwyżej będzie wirtualny
+        CouplerDist( ConnectNo ); // przeliczenie odległości pomiędzy sprzęgami
+
         if (CouplingType == ctrain_virtual)
             return false; // wirtualny więcej nic nie robi
-        if (Forced ? true : ((Couplers[ConnectNo].CoupleDist <= dEpsilon) &&
-                             (Couplers[ConnectNo].CouplerType != NoCoupler) &&
-                             (Couplers[ConnectNo].CouplerType == ct)))
+
+        auto &othercoupler = ConnectTo->Couplers[ coupler.ConnectedNr ];
+        if( ( Forced )
+         || ( ( coupler.CoupleDist <= dEpsilon )
+           && ( coupler.CouplerType != NoCoupler )
+           && ( coupler.CouplerType == othercoupler.CouplerType ) ) )
         { // stykaja sie zderzaki i kompatybilne typy sprzegow, chyba że łączenie na starcie
-            if (Couplers[ConnectNo].CouplingFlag ==
-                ctrain_virtual) // jeśli wcześniej nie było połączone
-            { // ustalenie z której strony rysować sprzęg
-                Couplers[ConnectNo].Render = true; // tego rysować
-                ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].Render = false; // a tego nie
+            if( coupler.CouplingFlag == ctrain_virtual ) {
+                // jeśli wcześniej nie było połączone, ustalenie z której strony rysować sprzęg
+                coupler.Render = true; // tego rysować
+                othercoupler.Render = false; // a tego nie
             };
-            Couplers[ConnectNo].CouplingFlag = CouplingType; // ustawienie typu sprzęgu
+            coupler.CouplingFlag = CouplingType; // ustawienie typu sprzęgu
             // if (CouplingType!=ctrain_virtual) //Ra: wirtualnego nie łączymy zwrotnie!
             //{//jeśli łączenie sprzęgiem niewirtualnym, ustawiamy połączenie zwrotne
-            ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag = CouplingType;
-            ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].Connected = this;
-            ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CoupleDist =
-                Couplers[ConnectNo].CoupleDist;
+            othercoupler.CouplingFlag = CouplingType;
+            othercoupler.Connected = this;
+            othercoupler.CoupleDist = coupler.CoupleDist;
             return true;
             //}
             // podłączenie nie udało się - jest wirtualne
@@ -2421,7 +2423,7 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 {
     bool IBL;
-    if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
+     if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
     {
         while ((LocalBrakePos < LocalBrakePosNo) && (CtrlSpeed > 0))
         {
@@ -6139,7 +6141,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         if( issection( "ffList:", inputline ) ) {
 			startBPT = false;
             startFFLIST = true; LISTLINE = 0;
-			continue;
+            LoadFIZ_FFList( inputline );
+            continue;
         }
 
         if( issection( "WWList:", inputline ) )
@@ -6324,7 +6327,8 @@ void TMoverParameters::LoadFIZ_Wheels( std::string const &line ) {
 
 void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 
-    BrakeValveDecode( extract_value( "BrakeValve", line ) );
+    extract_value( BrakeValveParams, "BrakeValve", line, "" );
+    BrakeValveDecode( BrakeValveParams );
     BrakeSubsystemDecode();
 
     extract_value( NBpA, "NBpA", line, "" );
@@ -6949,6 +6953,11 @@ void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
     extract_value( dizel_nmax, "nmax", Input, "" );
     extract_value( dizel_nominalfill, "nominalfill", Input, "" );
     extract_value( dizel_Mstand, "Mstand", Input, "" );
+}
+
+void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
+
+    extract_value( RlistSize, "Size", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {

@@ -399,4 +399,5 @@ class TController
     int CrossRoute(TTrack *tr);
     void RouteSwitch(int d);
     std::string OwnerName();
+    TMoverParameters const *Controlling() const { return mvControlling; }
 };

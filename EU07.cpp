@@ -28,6 +28,9 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "World.h"
 #include "Mover.h"
 #include "usefull.h"
+#include "timer.h"
+#include "resource.h"
+#include "uilayer.h"
 
 #pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")
@@ -78,8 +81,10 @@ void make_screenshot()
 
 void window_resize_callback(GLFWwindow *window, int w, int h)
 {
-	Global::ScreenWidth = w;
-	Global::ScreenHeight = h;
+    // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
+    // TBD, TODO: merge them?
+	Global::ScreenWidth = Global::iWindowWidth = w;
+	Global::ScreenHeight = Global::iWindowHeight = h;
     Global::fDistanceFactor = std::max( 0.5f, h / 768.0f ); // not sure if this is really something we want to use
 	glViewport(0, 0, w, h);
 }
@@ -115,21 +120,33 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 				make_screenshot();
 				break;
             case GLFW_KEY_ESCAPE: {
-                //[Esc] pauzuje tylko bez Debugmode
-                if( DebugModeFlag )
+/*                
+                if( ( DebugModeFlag ) //[Esc] pauzuje tylko bez Debugmode
+                 && ( Global::iPause == 0 ) ) { // but unpausing should work always
+                    
                     break;
-
+                }
+*/
                 if( Global::iPause & 1 ) // jeśli pauza startowa
                     Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
                 else if( !( Global::iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
                     if( !Global::ctrlState ) // z [Ctrl] to radiostop jest
                         Global::iPause ^= 2; // zmiana stanu zapauzowania
-                if( Global::iPause ) // jak pauza
+                if( Global::iPause ) {// jak pauza
                     Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
+                }
                 break;
             }
             case GLFW_KEY_F7:
-                if( DebugModeFlag ) { // siatki wyświetlane tyko w trybie testowym
+                if( DebugModeFlag ) {
+
+                    if( Global::ctrlState ) {
+                        // ctrl + f7 toggles static daylight
+                        World.ToggleDaylight();
+                        break;
+                    }
+                    // f7: wireframe toggle
+                    // siatki wyświetlane tyko w trybie testowym
                     Global::bWireFrame = !Global::bWireFrame;
                     if( true == Global::bWireFrame ) {
                         glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -156,6 +173,14 @@ void focus_callback( GLFWwindow *window, int focus )
             Global::iPause &= ~4; // odpauzowanie, gdy jest na pierwszym planie
         else
             Global::iPause |= 4; // włączenie pauzy, gdy nieaktywy
+}
+
+void scroll_callback( GLFWwindow* window, double xoffset, double yoffset ) {
+
+    if( Global::ctrlState ) {
+        // ctrl + scroll wheel adjusts fov in debug mode
+        Global::FieldOfView = clamp( static_cast<float>(Global::FieldOfView - yoffset * 20.0 / Global::fFpsAverage), 15.0f, 75.0f );
+    }
 }
 
 #ifdef _WINDOWS
@@ -230,9 +255,11 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_REFRESH_RATE, vmode->refreshRate);
 
     glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
-    glfwWindowHint(GLFW_SAMPLES, 1 << Global::iMultisampling);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    if( Global::iMultisampling > 0 ) {
+        glfwWindowHint( GLFW_SAMPLES, 1 << Global::iMultisampling );
+    }
 
     if (Global::bFullScreen)
 	{
@@ -243,7 +270,7 @@ int main(int argc, char *argv[])
 
     GLFWwindow *window =
         glfwCreateWindow( Global::iWindowWidth, Global::iWindowHeight,
-        "EU07++NG", Global::bFullScreen ? monitor : nullptr, nullptr );
+			Global::AppName.c_str(), Global::bFullScreen ? monitor : nullptr, nullptr );
 
     if (!window)
 	{
@@ -257,6 +284,7 @@ int main(int argc, char *argv[])
     glfwSetFramebufferSizeCallback(window, window_resize_callback);
     glfwSetCursorPosCallback(window, cursor_pos_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetScrollCallback( window, scroll_callback );
     glfwSetWindowFocusCallback(window, focus_callback);
     {
         int width, height;
@@ -276,9 +304,23 @@ int main(int argc, char *argv[])
     BaseWindowProc = (WNDPROC)::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
+
+    const HANDLE icon = ::LoadImage(
+        ::GetModuleHandle( 0 ),
+        MAKEINTRESOURCE( IDI_ICON1 ),
+        IMAGE_ICON,
+        ::GetSystemMetrics( SM_CXSMICON ),
+        ::GetSystemMetrics( SM_CYSMICON ),
+        0 );
+    if( icon )
+        ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
 #endif
 
-    GfxRenderer.Init();
+    if( ( false == GfxRenderer.Init( window ) )
+     || ( false == UILayer.init( window ) ) ) {
+
+        return -1;
+    }
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
 	try
@@ -311,9 +353,10 @@ int main(int argc, char *argv[])
         } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
         Console::On(); // włączenie konsoli
-        while (!glfwWindowShouldClose(window) && World.Update())
+        while (!glfwWindowShouldClose(window)
+            && World.Update()
+            && GfxRenderer.Render())
         {
-			glfwSwapBuffers(window);
 			glfwPollEvents();
         }
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)

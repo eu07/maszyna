@@ -27,6 +27,8 @@ public:
 	float getAngle();
 	// returns current intensity of the sun
 	float getIntensity();
+    // sets current time, overriding one acquired from the system clock
+    void setTime( int const Hour, int const Minute, int const Second );
 	// sets current geographic location
 	void setLocation( float const Longitude, float const Latitude );
 	// sets ambient temperature in degrees C.
@@ -87,7 +89,10 @@ protected:
 
 		double latitude;	// latitude, degrees north (south negative)
 		double longitude;	// longitude, degrees east (west negative)
-		double utime;		// universal (Greenwich) standard time
+        int    hour{ -1 };  // current time, used for calculation of utime. if set to -1, time for
+        int    minute{ -1 };// calculation will be obtained from the local clock
+        int    second{ -1 };
+        double utime;		// universal (Greenwich) standard time
 		double timezone;	// time zone, east (west negative). USA:  Mountain = -7, Central = -6, etc.
 		double gmst;		// Greenwich mean sidereal time, hours
 		double lmst;		// local mean sidereal time, degrees

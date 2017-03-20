@@ -46,12 +46,12 @@ light_array::update() {
         // update light parameters to match current data of the owner
         if( light.index == 0 ) {
             // front light set
-            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.45 );
+            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
             light.direction = light.owner->VectorFront();
         }
         else {
             // rear light set
-            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * light.owner->GetLength() * 0.45 );
+            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
             light.direction = light.owner->VectorFront();
             light.direction.x = -light.direction.x;
             light.direction.z = -light.direction.z;
@@ -67,8 +67,8 @@ light_array::update() {
 
             if( light.count > 0 ) {
                 // TODO: intensity can be affected further by dim switch or other factors
-                light.intensity = std::max( 0.0f, std::log( (float)light.count + 1.0f ) );
-//                light.intensity = std::max( 0.0f, std::log( (float)light.count + 3.0f ) );
+                light.intensity = std::max( 0.0f, std::log( (float)light.count  + 1.0f ) );
+                light.intensity *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
             }
             else {
                 light.intensity = 0.0f;

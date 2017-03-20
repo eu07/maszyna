@@ -63,6 +63,7 @@ set(SOURCES
 "Spring.cpp"
 "shader.cpp"
 "frustum.cpp"
+"uilayer.cpp"
 )
 
 if (WIN32)

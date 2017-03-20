@@ -36,6 +36,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "Names.h"
+#include "uilayer.h"
 
 #define _PROBLEND 1
 //---------------------------------------------------------------------------
@@ -702,8 +703,7 @@ void TGroundNode::RenderAlphaDL()
     if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
     {
         glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04f);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glAlphaFunc(GL_GREATER, 0.02f);
     };
 #endif
 }
@@ -1168,6 +1168,45 @@ void TSubRect::RenderDL()
         node->RenderDL(); // nieprzezroczyste z mieszanych modeli
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
+
+/*
+    float width = 100.0f;
+    float height = 25.0f;
+    float3 vTopLeftFront( m_area.center.x - width, m_area.center.y + height, m_area.center.z + width );
+    float3 vTopLeftBack( m_area.center.x - width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightBack( m_area.center.x + width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightFront( m_area.center.x + width, m_area.center.y + height, m_area.center.z + width );
+
+    float3 vBottom_LeftFront( m_area.center.x - width, m_area.center.y - height, m_area.center.z + width );
+    float3 vBottom_LeftBack( m_area.center.x - width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightBack( m_area.center.x + width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightFront( m_area.center.x + width, m_area.center.y - height, m_area.center.z + width );
+
+    glDisable( GL_LIGHTING );
+    glDisable( GL_TEXTURE_2D );
+    glColor3ub( 255, 255, (iTracks ? 0 : 255) );
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vTopLeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );
+    glVertex3fv( &vTopRightBack.x );
+    glVertex3fv( &vTopRightFront.x );
+    glEnd();
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glBegin( GL_LINES );
+    glVertex3fv( &vTopLeftFront.x );		glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );		glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vTopRightBack.x );		glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vTopRightFront.x );	glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glColor3ub( 255, 255, 255 );
+    glEnable( GL_TEXTURE_2D );
+    glEnable( GL_LIGHTING );
+*/
 };
 
 void TSubRect::RenderAlphaDL()
@@ -1228,15 +1267,29 @@ void TSubRect::RenderSounds()
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber = 0; // licznik wyświetlanych klatek
 
-TGroundRect::TGroundRect()
-{
-    pSubRects = NULL;
-    nTerrain = NULL;
-};
+//TGroundRect::TGroundRect( float3 const &Position, float const Radius = 1000.0f * M_SQRT2 ) :
 
 TGroundRect::~TGroundRect()
 {
     SafeDeleteArray(pSubRects);
+};
+
+void
+TGroundRect::Init() {
+
+    pSubRects = new TSubRect[ iNumSubRects * iNumSubRects ];
+    float const subrectsize = 1000.0f / iNumSubRects;
+    for( int column = 0; column < iNumSubRects; ++column ) {
+        for( int row = 0; row < iNumSubRects; ++row ) {
+            auto &area = FastGetRect(column, row)->m_area;
+            area.center =
+                m_area.center
+                - float3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
+                + float3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
+                + float3( subrectsize * column, 0.0f, subrectsize * row );
+            area.radius = subrectsize * (float)M_SQRT2;
+        }
+    }
 };
 
 void TGroundRect::RenderDL()
@@ -1263,6 +1316,44 @@ void TGroundRect::RenderDL()
             nRootMesh->RenderDL();
         iLastDisplay = iFrameNumber; // drugi raz nie potrzeba
     }
+/*
+    float width = 500.0f;
+    float height = 50.0f;
+    float3 vTopLeftFront( m_area.center.x - width, m_area.center.y + height, m_area.center.z + width );
+    float3 vTopLeftBack( m_area.center.x - width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightBack( m_area.center.x + width, m_area.center.y + height, m_area.center.z - width );
+    float3 vTopRightFront( m_area.center.x + width, m_area.center.y + height, m_area.center.z + width );
+
+    float3 vBottom_LeftFront( m_area.center.x - width, m_area.center.y - height, m_area.center.z + width );
+    float3 vBottom_LeftBack( m_area.center.x - width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightBack( m_area.center.x + width, m_area.center.y - height, m_area.center.z - width );
+    float3 vBottomRightFront( m_area.center.x + width, m_area.center.y - height, m_area.center.z + width );
+
+    glDisable( GL_LIGHTING );
+    glDisable( GL_TEXTURE_2D );
+    glColor3ub( 0, 255, 255 );
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vTopLeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );
+    glVertex3fv( &vTopRightBack.x );
+    glVertex3fv( &vTopRightFront.x );
+    glEnd();
+    glBegin( GL_LINE_LOOP );
+    glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glBegin( GL_LINES );
+    glVertex3fv( &vTopLeftFront.x );		glVertex3fv( &vBottom_LeftFront.x );
+    glVertex3fv( &vTopLeftBack.x );		glVertex3fv( &vBottom_LeftBack.x );
+    glVertex3fv( &vTopRightBack.x );		glVertex3fv( &vBottomRightBack.x );
+    glVertex3fv( &vTopRightFront.x );	glVertex3fv( &vBottomRightFront.x );
+    glEnd();
+    glColor3ub( 255, 255, 255 );
+    glEnable( GL_TEXTURE_2D );
+    glEnable( GL_LIGHTING );
+*/
 };
 
 void TGroundRect::RenderVBO()
@@ -1340,6 +1431,22 @@ TGround::TGround()
 #endif
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
     ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
+
+    // set bounding area information for ground rectangles
+    float const rectsize = 1000.0f;
+    float3 const worldcenter( 0.0f, 0.0f, 0.0f );
+    for( int column = 0; column < iNumRects; ++column ) {
+        for( int row = 0; row < iNumRects; ++row ) {
+            auto &area = Rects[ column ][ row ].m_area;
+            // NOTE: in current implementation triangles can stick out to ~200m from the area, so we add extra padding
+            area.radius = 200.0f + rectsize * 0.5f * (float)M_SQRT2;
+            area.center =
+                worldcenter
+                - float3( (iNumRects / 2) * rectsize, 0.0f, (iNumRects / 2) * rectsize ) // 'upper left' corner of the world
+                + float3( rectsize * 0.5f, 0.0f, rectsize * 0.5f ) // center of the rectangle
+                + float3( rectsize * column, 0.0f, rectsize * row );
+        }
+    }
 }
 
 TGround::~TGround()
@@ -1978,9 +2085,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             // if the vehicle has defined light source, it can (potentially) emit light, so add it to the light array
 */
         if( ( tmp != nullptr )
-         && ( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 ) ) {
-            // we check for presence of security system, as a way to determine whether the vehicle is a controllable engine
-            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights
+         && ( tmp->DynamicObject->MoverParameters->CategoryFlag == 1 ) // trains only
+         && ( ( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 )
+           || ( tmp->DynamicObject->MoverParameters->SandCapacity > 0.0 ) ) ) {
+            // we check for presence of security system or sand load, as a way to determine whether the vehicle is a controllable engine
+            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights, and some engines
+            //       don't have security systems fitted
             m_lights.insert( tmp->DynamicObject );
         }
 
@@ -2446,66 +2556,17 @@ void TGround::FirstInit()
         for (j = 0; j < iNumRects; ++j)
             Rects[i][j].Optimize(); // optymalizacja obiektów w sektorach
     WriteLog("InitNormals OK");
-    WriteLog("InitTracks");
     InitTracks(); //łączenie odcinków ze sobą i przyklejanie eventów
     WriteLog("InitTracks OK");
-    WriteLog("InitTraction");
     InitTraction(); //łączenie drutów ze sobą
     WriteLog("InitTraction OK");
-    WriteLog("InitEvents");
     InitEvents();
     WriteLog("InitEvents OK");
-    WriteLog("InitLaunchers");
     InitLaunchers();
     WriteLog("InitLaunchers OK");
-    WriteLog("InitGlobalTime");
     // ABu 160205: juz nie TODO :)
     Mtable::GlobalTime = std::make_shared<TMTableTime>( hh, mm, srh, srm, ssh, ssm ); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
     WriteLog("InitGlobalTime OK");
-    // jeszcze ustawienie pogody, gdyby nie było w scenerii wpisów
-    glClearColor(Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2],
-                 0.0); // Background Color
-    if (Global::fFogEnd > 0)
-    {
-        glFogi(GL_FOG_MODE, GL_LINEAR);
-        glFogfv(GL_FOG_COLOR, Global::FogColor); // set fog color
-        glFogf(GL_FOG_START, Global::fFogStart); // fog start depth
-        glFogf(GL_FOG_END, Global::fFogEnd); // fog end depth
-        glEnable(GL_FOG);
-    }
-    else
-        glDisable(GL_FOG);
-    glDisable(GL_LIGHTING);
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    // TODO, TBD: re-implement this
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos); // daylight position
-    glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight); // kolor wszechobceny
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight); // kolor padający
-    glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight); // kolor odbity
-    // musi być tutaj, bo wcześniej nie mieliśmy wartości światła
-#endif
-/*
-    if (Global::fMoveLight >= 0.0) // albo tak, albo niech ustala minimum ciemności w nocy
-    {
-*/
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO, TBD: re-implement this
-        Global::fLuminance = // obliczenie luminacji "światła w ciemności"
-            +0.150 * Global::ambientDayLight[0] // R
-            + 0.295 * Global::ambientDayLight[1] // G
-            + 0.055 * Global::ambientDayLight[2]; // B
-        if (Global::fLuminance > 0.1) // jeśli miało by być za jasno
-            for (int i = 0; i < 3; i++)
-                Global::ambientDayLight[i] *=
-                    0.1 / Global::fLuminance; // ograniczenie jasności w nocy
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
-#endif
-/*
-    }
-    else if (Global::bDoubleAmbient) // Ra: wcześniej było ambient dawane na obydwa światła
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
-*/
-    glEnable(GL_LIGHTING);
     WriteLog("FirstInit is done");
 };
 
@@ -2556,17 +2617,17 @@ bool TGround::Init(std::string File)
     token = "";
     parser.getTokens();
     parser >> token;
-    int refresh = 0;
+    std::size_t processed = 0;
 
     while (token != "") //(!Parser->EndOfFile)
     {
-        if (refresh == 50)
-        { // SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :( a u niektórych miga
-            refresh = 0;
-            Global::DoEvents();
+        ++processed;
+        if( processed % 1000 == 0 )
+        {
+            UILayer.set_progress( parser.getProgress(), parser.getFullProgress() );
+            GfxRenderer.Render();
+            glfwPollEvents();
         }
-        else
-            ++refresh;
         str = token;
         if (str == "node")
         {
@@ -4835,13 +4896,13 @@ TGround::Render( Math3D::vector3 const &Camera ) {
         if( !RenderAlphaVBO( Camera ) )
             return false;
     }
-    else { // renderowanie przez Display List
+    else {
+        // renderowanie przez Display List
         if( !RenderDL( Camera ) )
             return false;
         if( !RenderAlphaDL( Camera ) )
             return false;
     }
-
     return true;
 }
 
@@ -4893,6 +4954,7 @@ bool TGround::RenderDL(vector3 pPosition)
                 if (CameraDirection.x * direction.x + CameraDirection.z * direction.z < 0.55)
                     continue; // pomijanie sektorów poza kątem patrzenia
             }
+            // NOTE: terrain data is disabled, as it's moved to the renderer
             Rects[(i + c) / iNumSubRects][(j + r) / iNumSubRects]
                 .RenderDL(); // kwadrat kilometrowy nie zawsze, bo szkoda FPS
             if ((tmp = FastGetSubRect(i + c, j + r)) != NULL)
@@ -4908,7 +4970,7 @@ bool TGround::RenderDL(vector3 pPosition)
 bool TGround::RenderAlphaDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza przezroczystych
     glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.02f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     TGroundNode *node;
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     TSubRect *tmp;

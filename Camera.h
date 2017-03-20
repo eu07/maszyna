@@ -7,11 +7,9 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef CameraH
-#define CameraH
+#pragma once
 
 #include "dumb3d.h"
-#include "frustum.h"
 #include "dynobj.h"
 
 using namespace Math3D;
@@ -28,7 +26,6 @@ class TCamera
 {
   private:
     vector3 pOffset; // nie używane (zerowe)
-    cFrustum m_frustum;
 
   public: // McZapkie: potrzebuje do kiwania na boki
     double Pitch;
@@ -51,17 +48,13 @@ class TCamera
     void Update();
     vector3 GetDirection();
     // vector3 inline GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
-
+/*
     bool SetMatrix();
-    void SetCabMatrix(vector3 &p);
+*/
+    bool SetMatrix(glm::mat4 &Matrix);
+    void SetCabMatrix( vector3 &p );
     void RaLook();
     void Stop();
-    inline
-    void
-        SetFrustum() { m_frustum.calculate(); }
-    bool
-        IsVisible( TDynamicObject const *Dynamic ) const;
     // bool GetMatrix(matrix4x4 &Matrix);
     vector3 PtNext, PtPrev;
 };
-#endif
