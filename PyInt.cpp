@@ -307,7 +307,7 @@ void TPythonScreenRenderer::updateTexture()
                 glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
             }
             // build texture
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
+            glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData );
 
 #ifdef _PY_INT_MORE_LOG
             GLenum status = glGetError();

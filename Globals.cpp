@@ -48,9 +48,9 @@ GLFWwindow *Global::window;
 bool Global::shiftState;
 bool Global::ctrlState;
 int Global::iCameraLast = -1;
-std::string Global::asRelease = "16.0.1172.482++";
-std::string Global::asVersion =
-"Compilation 2017-03-19, release " + Global::asRelease + "."; // tutaj, bo wysyłany
+std::string Global::asRelease = "16.0.1172.482";
+std::string Global::asVersion = "Compilation 2017-03-19, release " + Global::asRelease; // tutaj, bo wysyłany
+std::string Global::ExecutableName;
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca

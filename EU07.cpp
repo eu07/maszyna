@@ -249,6 +249,12 @@ int main(int argc, char *argv[])
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
 
+    std::string executable( argv[ 0 ] ); auto const pathend = executable.rfind( '\\' );
+    Global::ExecutableName =
+        ( pathend != std::string::npos ?
+            executable.substr( executable.rfind( '\\' ) + 1 ) :
+            executable );
+
 	for (int i = 1; i < argc; ++i)
 	{
 		std::string token(argv[i]);

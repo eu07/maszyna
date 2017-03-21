@@ -149,7 +149,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
     Global::pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
 
     WriteLog("\nStarting MaSzyna rail vehicle simulator.");
-    WriteLog(Global::asVersion);
+    WriteLog( "Release " + Global::asRelease + " (executable: " + Global::ExecutableName + ")" );
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
              "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n");
