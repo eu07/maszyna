@@ -15,8 +15,11 @@ http://mozilla.org/MPL/2.0/.
 #include "dynobj.h"
 #include "uilayer.h"
 #include "logs.h"
+#include "usefull.h"
+#include "glwidgetlibrary.h"
 
 opengl_renderer GfxRenderer;
+opengl_matrices OpenGLMatrices;
 extern TWorld World;
 
 // returns true if specified object is within camera frustum, false otherwise
@@ -115,6 +118,8 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
         m_lights.emplace_back( light );
     }
+    // preload some common textures
+    m_glaretextureid = GetTextureId( "fx\\lightglare", szTexturePath );
 
     return true;
 }
@@ -128,22 +133,31 @@ opengl_renderer::Render() {
     ::glDepthFunc( GL_LEQUAL );
 
     ::glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
+    ::gluPerspective(
+        Global::FieldOfView / Global::ZoomFactor * 0.0174532925f,
+        std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ),
+        0.1f * Global::ZoomFactor,
+        m_drawrange * Global::fDistanceFactor );
+/*
     glm::mat4 projection = glm::perspective(
         Global::FieldOfView / Global::ZoomFactor * 0.0174532925f,
         std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ),
         0.1f * Global::ZoomFactor,
         m_drawrange * Global::fDistanceFactor );
     ::glLoadMatrixf( &projection[0][0] );
-
+*/
     ::glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
-    glm::mat4 modelview( 1.0f );
     ::glLoadIdentity();
 
     if( World.InitPerformed() ) {
-
+/*
+        glm::mat4 modelview( 1.0f );
         World.Camera.SetMatrix( modelview );
         ::glLoadMatrixf( &modelview[ 0 ][ 0 ] );
         m_camera.update_frustum( projection, modelview );
+*/
+        World.Camera.SetMatrix();
+        m_camera.update_frustum();
 
         if( !Global::bWireFrame ) {
             // bez nieba w trybie rysowania linii
@@ -318,7 +332,7 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
             nullptr ),
         alpha );
 
-    Model->Root->RenderDL();
+    Render( Model->Root );
 
     return true;
 }
@@ -341,6 +355,85 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
 
     return result;
 }
+
+void
+opengl_renderer::Render( TSubModel *Submodel ) {
+    // główna procedura renderowania przez DL
+    if( ( Submodel->iVisible )
+     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / Global::fDistanceFactor ) )
+     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) ) {
+
+        if( Submodel->iFlags & 0xC000 ) {
+            ::glPushMatrix();
+            if( Submodel->fMatrix )
+                ::glMultMatrixf( Submodel->fMatrix->readArray() );
+            if( Submodel->b_Anim )
+                Submodel->RaAnimation( Submodel->b_Anim );
+        }
+        if( Submodel->eType < TP_ROTATOR ) { // renderowanie obiektów OpenGL
+            if( Submodel->iAlpha & Submodel->iFlags & 0x1F ) // rysuj gdy element nieprzezroczysty
+            {
+                if( Submodel->TextureID < 0 ) // && (ReplacableSkinId!=0))
+                { // zmienialne skóry
+                    GfxRenderer.Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
+                    // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
+                }
+                else
+                    GfxRenderer.Bind( Submodel->TextureID ); // również 0
+                if( Global::fLuminance < Submodel->fLight ) {
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
+                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
+                    float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+                }
+                else
+                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
+            }
+        }
+        else if( Submodel->eType == TP_FREESPOTLIGHT ) {
+            // wersja DL
+/*
+            matrix4x4 modelview;
+            ::glGetDoublev( GL_MODELVIEW_MATRIX, modelview.getArray() );
+*/
+            matrix4x4 modelview; modelview.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
+            // kąt między kierunkiem światła a współrzędnymi kamery
+            auto const lightcenter = modelview * vector3( 0.0, 0.0, 0.0 ); // pozycja punktu świecącego względem kamery
+            Submodel->fCosViewAngle = DotProduct( Normalize( modelview * vector3( 0.0, 0.0, -1.0 ) - lightcenter ), Normalize( -lightcenter ) );
+            if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) // kąt większy niż maksymalny stożek swiatła
+            {
+                double Distdimm = 1.0;
+                if( Submodel->fCosViewAngle < Submodel->fCosHotspotAngle ) // zmniejszona jasność między Hotspot a Falloff
+                    if( Submodel->fCosFalloffAngle < Submodel->fCosHotspotAngle )
+                        Distdimm = 1.0 - ( Submodel->fCosHotspotAngle - Submodel->fCosViewAngle ) / ( Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle );
+                ::glColor3f( Submodel->f4Diffuse[ 0 ] * Distdimm, Submodel->f4Diffuse[ 1 ] * Distdimm, Submodel->f4Diffuse[ 2 ] * Distdimm );
+                ::glCallList( Submodel->uiDisplayList ); // wyświetlenie warunkowe
+            }
+        }
+        else if( Submodel->eType == TP_STARS ) {
+            // glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+            if( Global::fLuminance < Submodel->fLight ) {
+                ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
+                ::glCallList( Submodel->uiDisplayList ); // narysuj naraz wszystkie punkty z DL
+                float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
+                ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+            }
+        }
+        if( Submodel->Child != NULL )
+            if( Submodel->iAlpha & Submodel->iFlags & 0x001F0000 )
+                Render( Submodel->Child );
+
+        if( Submodel->iFlags & 0xC000 )
+            ::glPopMatrix();
+    }
+
+    if( Submodel->b_Anim < at_SecondsJump )
+        Submodel->b_Anim = at_None; // wyłączenie animacji dla kolejnego użycia subm
+
+    if( Submodel->Next )
+        if( Submodel->iAlpha & Submodel->iFlags & 0x1F000000 )
+            Render( Submodel->Next ); // dalsze rekurencyjnie
+};
 
 bool
 opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
@@ -450,7 +543,7 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
             nullptr ),
         alpha );
 
-    Model->Root->RenderAlphaDL();
+    Render_Alpha( Model->Root );
 
     return true;
 }
@@ -473,6 +566,141 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, M
 
     return result;
 }
+
+void
+opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
+    // renderowanie przezroczystych przez DL
+    if( ( Submodel->iVisible )
+     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / Global::fDistanceFactor ) )
+     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) ) {
+
+        if( Submodel->iFlags & 0xC000 ) {
+            ::glPushMatrix();
+            if( Submodel->fMatrix )
+                ::glMultMatrixf( Submodel->fMatrix->readArray() );
+            if( Submodel->b_aAnim )
+                Submodel->RaAnimation( Submodel->b_aAnim );
+        }
+
+        if( Submodel->eType < TP_ROTATOR ) { // renderowanie obiektów OpenGL
+            if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) // rysuj gdy element przezroczysty
+            {
+                if( Submodel->TextureID < 0 ) // && (ReplacableSkinId!=0))
+                { // zmienialne skóry
+                    GfxRenderer.Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
+                    // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
+                }
+                else
+                    GfxRenderer.Bind( Submodel->TextureID ); // również 0
+                if( Global::fLuminance < Submodel->fLight ) {
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
+                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
+                    float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+                }
+                else
+                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
+            }
+        }
+        else if( Submodel->eType == TP_FREESPOTLIGHT ) {
+            // dorobić aureolę!
+            if( Global::fLuminance < Submodel->fLight ) {
+                // NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
+                // TODO: separate instance data from reusable geometry
+/*
+                matrix4x4 modelview;
+                ::glGetDoublev( GL_MODELVIEW_MATRIX, modelview.getArray() );
+*/
+/*
+                matrix4x4 modelview; modelview.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
+                // kąt między kierunkiem światła a współrzędnymi kamery
+                auto const lightcenter = modelview * vector3( 0.0, 0.0, -0.05 ); // pozycja punktu świecącego względem kamery
+                Submodel->fCosViewAngle = DotProduct( Normalize( modelview * vector3( 0.0, 0.0, -1.0 ) - lightcenter ), Normalize( -lightcenter ) );
+*/
+                auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+                auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
+                Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
+
+                float fadelevel = 0.5f;
+                if( ( Submodel->fCosViewAngle > 0.0 ) && ( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) ) {
+
+                    fadelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0 - Submodel->fCosFalloffAngle );
+
+                    ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
+                    Bind( m_glaretextureid );
+                    ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], fadelevel );
+                    ::glDisable( GL_LIGHTING );
+                    ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
+
+                    ::glPushMatrix();
+                    ::glLoadIdentity(); // macierz jedynkowa
+                    ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
+                    ::glRotated( atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
+
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
+
+                    ::glBegin( GL_TRIANGLE_STRIP );
+                    float const size = 2.5f;
+                    ::glTexCoord2f( 1.0f, 1.0f ); ::glVertex3f( -size, size, 0.0f );
+                    ::glTexCoord2f( 0.0f, 1.0f ); ::glVertex3f( size, size, 0.0f );
+                    ::glTexCoord2f( 1.0f, 0.0f ); ::glVertex3f( -size, -size, 0.0f );
+                    ::glTexCoord2f( 0.0f, 0.0f ); ::glVertex3f( size, -size, 0.0f );
+/*
+                    // NOTE: we could do simply...
+                    vec3 vertexPosition_worldspace =
+                    particleCenter_wordspace
+                    + CameraRight_worldspace * squareVertices.x * BillboardSize.x
+                    + CameraUp_worldspace * squareVertices.y * BillboardSize.y;
+                    // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
+*/
+                    ::glEnd();
+
+                    float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+
+                    ::glPopMatrix();
+                    ::glPopAttrib();
+                }
+            }
+        }
+
+        if( Submodel->Child != NULL ) {
+            if( Submodel->eType == TP_TEXT ) { // tekst renderujemy w specjalny sposób, zamiast submodeli z łańcucha Child
+                int i, j = (int)Submodel->pasText->size();
+                TSubModel *p;
+                if( !Submodel->smLetter ) { // jeśli nie ma tablicy, to ją stworzyć; miejsce nieodpowiednie, ale tymczasowo może być
+                    Submodel->smLetter = new TSubModel *[ 256 ]; // tablica wskaźników submodeli dla wyświetlania tekstu
+                    ::ZeroMemory( Submodel->smLetter, 256 * sizeof( TSubModel * ) ); // wypełnianie zerami
+                    p = Submodel->Child;
+                    while( p ) {
+                        Submodel->smLetter[ p->pName[ 0 ] ] = p;
+                        p = p->Next; // kolejny znak
+                    }
+                }
+                for( i = 1; i <= j; ++i ) {
+                    p = Submodel->smLetter[ ( *( Submodel->pasText) )[ i ] ]; // znak do wyświetlenia
+                    if( p ) { // na razie tylko jako przezroczyste
+                        Render_Alpha( p );
+                        if( p->fMatrix )
+                            ::glMultMatrixf( p->fMatrix->readArray() ); // przesuwanie widoku
+                    }
+                }
+            }
+            else if( Submodel->iAlpha & Submodel->iFlags & 0x002F0000 )
+                Render_Alpha( Submodel->Child );
+        }
+
+        if( Submodel->iFlags & 0xC000 )
+            ::glPopMatrix();
+    }
+
+    if( Submodel->b_aAnim < at_SecondsJump )
+        Submodel->b_aAnim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
+
+    if( Submodel->Next != NULL )
+        if( Submodel->iAlpha & Submodel->iFlags & 0x2F000000 )
+            Render_Alpha( Submodel->Next );
+};
 #endif
 
 void

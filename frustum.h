@@ -21,8 +21,10 @@ public:
 
 // methods:
 	// update the frustum to match current view orientation
+    void
+        calculate();
 	void
-        calculate(glm::mat4 &Projection, glm::mat4 &Modelview);
+        calculate(glm::mat4 const &Projection, glm::mat4 const &Modelview);
 	// returns true if specified point is inside of the frustum
     inline
     bool

@@ -90,6 +90,9 @@ public:
 // methods:
     inline
     void
+        update_frustum() { m_frustum.calculate(); }
+    inline
+    void
         update_frustum(glm::mat4 &Projection, glm::mat4 &Modelview) { m_frustum.calculate(Projection, Modelview); }
     bool
         visible( bounding_area const &Area ) const;
@@ -122,12 +125,16 @@ public:
         Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
     bool
         Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    void
+        Render( TSubModel *Submodel );
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool
         Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
     bool
         Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    void
+        Render_Alpha( TSubModel *Submodel );
 #endif
     // maintenance jobs
     void
@@ -185,6 +192,7 @@ private:
     double m_updateaccumulator{ 0.0 };
     std::string m_debuginfo;
     GLFWwindow *m_window{ nullptr };
+    texture_manager::size_type m_glaretextureid{ -1 };
 };
 
 extern opengl_renderer GfxRenderer;

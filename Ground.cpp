@@ -571,7 +571,11 @@ void TGroundNode::RenderDL()
     { // obiekty renderowane niezależnie od odległości
     case TP_SUBMODEL:
         TSubModel::fSquareDist = 0;
+#ifdef EU07_USE_OLD_RENDERCODE
         return smTerrain->RenderDL();
+#else
+        GfxRenderer.Render( smTerrain );
+#endif
     }
     // if (pTriGroup) if (pTriGroup!=this) return; //wyświetla go inny obiekt
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;

@@ -320,8 +320,10 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         fCosFalloffAngle = cos(DegToRad(0.5 * fCosFalloffAngle));
         fCosHotspotAngle = cos(DegToRad(0.5 * fCosHotspotAngle));
         iNumVerts = 1;
-        iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi
-        // zostać bez zmiany
+/*
+        iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi zostać bez zmiany
+*/
+        iFlags |= 0x4030; // drawn both in solid (light point) and transparent (light glare) phases
     }
     else if (eType < TP_ROTATOR)
     {
@@ -967,9 +969,9 @@ void TSubModel::RaAnimation(TAnimType a)
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
 		glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
-		glRotatef(v_Angles.x, 1.0, 0.0, 0.0);
-		glRotatef(v_Angles.y, 0.0, 1.0, 0.0);
-		glRotatef(v_Angles.z, 0.0, 0.0, 1.0);
+		glRotatef(v_Angles.x, 1.0f, 0.0f, 0.0f);
+		glRotatef(v_Angles.y, 0.0f, 1.0f, 0.0f);
+		glRotatef(v_Angles.z, 0.0f, 0.0f, 1.0f);
 		break;
 	case at_SecondsJump: // sekundy z przeskokiem
 		glRotatef(floor(GlobalTime->mr) * 6.0, 0.0, 1.0, 0.0);
@@ -999,11 +1001,13 @@ void TSubModel::RaAnimation(TAnimType a)
 		break;
 	case at_Billboard: // obrót w pionie do kamery
 	{
+/*
 		matrix4x4 mat; // potrzebujemy współrzędne przesunięcia środka układu
 					   // współrzędnych submodelu
 		glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray()); // pobranie aktualnej matrycy
-		float3 gdzie = float3(mat[3][0], mat[3][1],
-			mat[3][2]); // początek układu współrzędnych submodelu względem kamery
+*/
+        matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
+		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
 		glLoadIdentity(); // macierz jedynkowa
 		glTranslatef(gdzie.x, gdzie.y, gdzie.z); // początek układu zostaje bez
 												 // zmian
@@ -1020,9 +1024,8 @@ void TSubModel::RaAnimation(TAnimType a)
 		glRotated(-fmod(Global::fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrót dobowy osi OX
 		break;
 	case at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
-		glRotatef(v_Angles.z, 0.0, 1.0, 0.0); // obrót względem osi pionowej
-											  // (azymut)
-		glRotatef(v_Angles.x, 1.0, 0.0, 0.0); // obrót względem poziomu (deklinacja)
+		glRotatef(v_Angles.z, 0.0f, 1.0f, 0.0f); // obrót względem osi pionowej (azymut)
+		glRotatef(v_Angles.x, 1.0f, 0.0f, 0.0f); // obrót względem poziomu (deklinacja)
 		break;
 	case at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
@@ -1048,6 +1051,7 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 };
 
+#ifdef EU07_USE_OLD_RENDERCODE
 void TSubModel::RenderDL()
 { // główna procedura renderowania przez DL
     if( ( iVisible )
@@ -1228,6 +1232,7 @@ void TSubModel::RenderAlphaDL()
         if (iAlpha & iFlags & 0x2F000000)
             Next->RenderAlphaDL();
 }; // RenderAlpha
+#endif
 
 void TSubModel::RenderVBO()
 { // główna procedura renderowania przez VBO
@@ -1271,8 +1276,11 @@ void TSubModel::RenderVBO()
         }
         else if (eType == TP_FREESPOTLIGHT)
         { // wersja VBO
+/*
             matrix4x4 mat; // macierz opisuje układ renderowania względem kamery
             glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray());
+*/
+            matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
             // kąt między kierunkiem światła a współrzędnymi kamery
             vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu świecącego względem kamery
             fCosViewAngle = DotProduct(Normalize(mat * vector3(0, 0, 1) - gdzie), Normalize(gdzie));
@@ -2016,8 +2024,6 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 		pName = "";
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
-	  // TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
-	  // asTexture=AnsiString(t->String(iTexture));
 		pTexture = t->at(iTexture);
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
@@ -2029,9 +2035,17 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
     }
 	else
 		TextureID = iTexture;
+
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
-	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem
-					   // tablic)
+
+    if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
+        // we've added light glare which needs to be rendered during transparent phase,
+        // but models converted to e3d before addition won't have the render flag set correctly for this
+        // so as a workaround we're doing it here manually
+        iFlags |= 0x20;
+    }
+	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
+
 	iVboPtr = tVboPtr;
 	Vertices = v + iVboPtr;
 	// if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, żeby się nie

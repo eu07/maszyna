@@ -48,9 +48,7 @@ class TCamera
     void Update();
     vector3 GetDirection();
     // vector3 inline GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
-/*
     bool SetMatrix();
-*/
     bool SetMatrix(glm::mat4 &Matrix);
     void SetCabMatrix( vector3 &p );
     void RaLook();

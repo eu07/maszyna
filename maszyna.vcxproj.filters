@@ -207,6 +207,9 @@
     <ClCompile Include="uilayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="glwidgetlibrary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -399,6 +402,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="uilayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="glwidgetlibrary.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="openglmatrixstack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

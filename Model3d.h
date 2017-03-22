@@ -182,8 +182,7 @@ private:
 	int iFarAttenDecay; // ta zmienna okresla typ zaniku natezenia swiatla (0:brak, 1,2: potega 1/R)
 	float fFarDecayRadius; // normalizacja j.w.
 	float fCosFalloffAngle; // cosinus kąta stożka pod którym widać światło
-	float fCosHotspotAngle; // cosinus kąta stożka pod którym widać aureolę i zwiększone natężenie
-							// światła
+	float fCosHotspotAngle; // cosinus kąta stożka pod którym widać aureolę i zwiększone natężenie światła
 	float fCosViewAngle; // cos kata pod jakim sie teraz patrzy
 
 	TSubModel *Next;
@@ -256,9 +255,11 @@ public:
 	void SetRotateIK1(float3 vNewAngles);
 	TSubModel * GetFromName(std::string const &search, bool i = true);
 	TSubModel * GetFromName(char const *search, bool i = true);
+#ifdef EU07_USE_OLD_RENDERCODE
 	void RenderDL();
 	void RenderAlphaDL();
-	void RenderVBO();
+#endif
+    void RenderVBO();
 	void RenderAlphaVBO();
 	// inline matrix4x4* GetMatrix() {return dMatrix;};
 	inline float4x4 * GetMatrix()

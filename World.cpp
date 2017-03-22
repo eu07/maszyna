@@ -1153,7 +1153,6 @@ TWorld::Render_Cab() {
         // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
         return;
     }
-
 /*
     // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
     if( ( Train->Dynamic()->mdKabina != Train->Dynamic()->mdModel ) &&
