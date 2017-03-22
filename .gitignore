@@ -70,4 +70,5 @@ ipch/
 ref/
 *.aps
 
-builds/
+builds/build_*
+builds/*.zip

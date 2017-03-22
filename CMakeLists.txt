@@ -105,8 +105,9 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
 
 find_package(PNG REQUIRED)
-include_directories(${PNG_INCLUDE_DIRS})
+include_directories(${PNG_INCLUDE_DIRS} ${PNG_PNG_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARY})
 
 find_package(GLM REQUIRED)
 include_directories(${GLM_INCLUDE_DIRS})
