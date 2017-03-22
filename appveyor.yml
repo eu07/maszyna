@@ -10,13 +10,19 @@ build_script:
     cd builds
     
     cmake_win32.bat
+    
     cd build_win32
+    
     cmake --build . --config Release
+    
     cd ..
     
     cmake_win64.bat
+    
     cd build_win64
+    
     cmake --build . --config Release
+    
     cd ..
 test: off
 deploy: off
@@ -26,4 +32,4 @@ artifacts:
 - path: builds/build_win64/Release/eu07++ng.exe
   name: release_win64
 cache:
-    - builds/deps_win -> build/download_windeps.bat
+    - builds/deps_win -> builds/download_windeps.bat
