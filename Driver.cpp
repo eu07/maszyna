@@ -87,7 +87,7 @@ const double HardAcceleration = 0.9;
 const double PrepareTime = 2.0; //[s] przebłyski świadomości przy odpalaniu
 bool WriteLogFlag = false;
 
-string StopReasonTable[] = {
+std::string StopReasonTable[] = {
     // przyczyny zatrzymania ruchu AI
     "", // stopNone, //nie ma powodu - powinien jechać
     "Off", // stopSleep, //nie został odpalony, to nie pojedzie
@@ -240,23 +240,15 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     // głównej drogi - chyba że jest równorzędne...
                     fVelNext = 30.0; // uzależnić prędkość od promienia; albo niech będzie
                 // ograniczona w skrzyżowaniu (velocity z ujemną wartością)
-                if ((iFlags & spElapsed) == 0) // jeśli nie wjechał
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-					if (trTrack->iNumDynamics > 0) // a skrzyżowanie zawiera pojazd
-                    {
-                        if (Global::iWriteLogEnabled & 8)
-						WriteLog("Tor " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + std::to_string(trTrack->iNumDynamics) + "Dist= " + std::to_string(fDist));
-                        fVelNext =
-							0.0; // to zabronić wjazdu (chyba że ten z przodu też jedzie prosto)
-                    }
-#else
+                if( ( iFlags & spElapsed ) == 0 ) {
+                    // jeśli nie wjechał
                     if( false == trTrack->Dynamics.empty() ) {
                         if( Global::iWriteLogEnabled & 8 ) {
                             WriteLog( "Tor " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + std::to_string( trTrack->Dynamics.size() ) + "Dist= " + std::to_string( fDist ) );
                             fVelNext = 0.0; // to zabronić wjazdu (chyba że ten z przodu też jedzie prosto)
                         }
                     }
-#endif
+                }
             }
             if (iFlags & spSwitch) // jeśli odcinek zmienny
             {
@@ -271,19 +263,6 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     // na Mydelniczce potrafi skanować na wprost mimo pojechania na bok
                 }
                 // poniższe nie dotyczy trybu łączenia?
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-				if ((iFlags & spElapsed) ? false :
-                        trTrack->iNumDynamics >
-					0) // jeśli jeszcze nie wjechano na tor, a coś na nim jest
-                {
-                    if (Global::iWriteLogEnabled & 8)
-					WriteLog("Rozjazd " + trTrack->NameGet() + " zajety przed pojazdem. Num=" + std::to_string(trTrack->iNumDynamics) + "Dist= "+std::to_string(fDist));
-					//fDist -= 30.0;
-					fVelNext = 0.0; // to niech stanie w zwiększonej odległości
-				// else if (fVelNext==0.0) //jeśli została wyzerowana
-				// fVelNext=trTrack->VelocityGet(); //odczyt prędkości
-                }
-#else
                 if( ( ( iFlags & spElapsed ) == 0 )
                  && ( false == trTrack->Dynamics.empty() ) ) {
                     // jeśli jeszcze nie wjechano na tor, a coś na nim jest
@@ -292,7 +271,6 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                     }
                     fVelNext = 0.0; // to niech stanie w zwiększonej odległości
                 }
-#endif
             }
         }
     }
@@ -1504,10 +1482,10 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
 
     if( WriteLogFlag ) {
         mkdir( "physicslog\\" );
-        LogFile.open( string( "physicslog\\" + VehicleName + ".dat" ).c_str(),
+        LogFile.open( std::string( "physicslog\\" + VehicleName + ".dat" ).c_str(),
             std::ios::in | std::ios::out | std::ios::trunc );
 #if LOGPRESS == 0
-        LogFile << string( " Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "
+        LogFile << std::string( " Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "
             "Coupler.Force[N]  TractionForce [kN]  FrictionForce [kN]   "
             "BrakeForce [kN]    BrakePress [MPa]   PipePress [MPa]   "
             "MotorCurrent [A]    MCP SCP BCP LBP DmgFlag Command CVal1 CVal2" )
@@ -1698,7 +1676,7 @@ void TController::AutoRewident()
         ustaw = 16 + bdelay_R; // lokomotywa luzem (może być wieloczłonowa)
     else
     { // jeśli są wagony
-        ustaw = (g < min(4, r + p) ? 16 : 0);
+        ustaw = (g < std::min(4, r + p) ? 16 : 0);
         if (ustaw) // jeśli towarowe < Min(4, pospieszne+osobowe)
         { // to skład pasażerski - nastawianie pasażerskiego
             ustaw += (g && (r < g + p)) ? bdelay_P : bdelay_R;
@@ -4927,7 +4905,7 @@ void TController::OrdersInit(double fVel)
     // Ale mozna by je zapodac ze scenerii
 };
 
-string TController::StopReasonText()
+std::string TController::StopReasonText()
 { // informacja tekstowa o przyczynie zatrzymania
     if (eStopReason != 7) // zawalidroga będzie inaczej
         return StopReasonTable[eStopReason];
@@ -4952,15 +4930,6 @@ double TController::Distance(vector3 &p1,vector3 &n,vector3 &p2)
 
 bool TController::BackwardTrackBusy(TTrack *Track)
 { // najpierw sprawdzamy, czy na danym torze są pojazdy z innego składu
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    if (Track->iNumDynamics)
-    { // jeśli tylko z własnego składu, to tor jest wolny
-        for (int i = 0; i < Track->iNumDynamics; ++i)
-            if (Track->Dynamics[i]->ctOwner != this) // jeśli jest jakiś cudzy
-                return true; // to tor jest zajęty i skanowanie nie obowiązuje
-    }
-    return false; // wolny
-#else
     if( false == Track->Dynamics.empty() ) {
         for( auto dynamic : Track->Dynamics ) {
             if( dynamic->ctOwner != this ) {
@@ -4970,7 +4939,6 @@ bool TController::BackwardTrackBusy(TTrack *Track)
         }
     }
     return false; // wolny
-#endif
 };
 
 TEvent * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
@@ -5435,5 +5403,5 @@ void TController::RouteSwitch(int d)
 };
 std::string TController::OwnerName()
 {
-    return pVehicle ? pVehicle->MoverParameters->Name : string("none");
+    return ( pVehicle ? pVehicle->MoverParameters->Name : "none" );
 };

@@ -47,7 +47,7 @@ extern "C"
 }
 
 bool bCondition; // McZapkie: do testowania warunku na event multiple
-string LogComment;
+std::string LogComment;
 
 //---------------------------------------------------------------------------
 // Obiekt renderujący siatkę jest sztucznie tworzonym obiektem pomocniczym,
@@ -707,7 +707,7 @@ void TGroundNode::RenderAlphaDL()
     if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
     {
         glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.02f);
+        glAlphaFunc(GL_GREATER, 0.04f);
     };
 #endif
 }
@@ -1430,9 +1430,6 @@ TGround::TGround()
     for( int i = 0; i < TP_LAST; ++i ) {
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-    sTracks = new TNames(); // nazwy torów - na razie tak
-#endif
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
     ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
 
@@ -1487,9 +1484,6 @@ void TGround::Free()
     iNumNodes = 0;
     // RootNode=NULL;
     nRootDynamic = NULL;
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-    delete sTracks;
-#endif
 }
 
 TGroundNode * TGround::DynamicFindAny(std::string asNameToFind)
@@ -1522,9 +1516,6 @@ TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType 
 { // wyszukiwanie obiektu o podanej nazwie i konkretnym typie
     if ((iNodeType == TP_TRACK) || (iNodeType == TP_MEMCELL) || (iNodeType == TP_MODEL))
     { // wyszukiwanie w drzewie binarnym
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-        return (TGroundNode *)sTracks->Find(iNodeType, asNameToFind.c_str());
-#else
 /*
         switch( iNodeType ) {
 
@@ -1553,7 +1544,6 @@ TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType 
         return nullptr;
 */
         return m_trackmap.Find( iNodeType, asNameToFind );
-#endif
     }
     // standardowe wyszukiwanie liniowe
     TGroundNode *Current;
@@ -1566,10 +1556,10 @@ TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType 
 double fTrainSetVel = 0;
 double fTrainSetDir = 0;
 double fTrainSetDist = 0; // odległość składu od punktu 1 w stronę punktu 2
-string asTrainSetTrack = "";
+std::string asTrainSetTrack = "";
 int iTrainSetConnection = 0;
 bool bTrainSet = false;
-string asTrainName = "";
+std::string asTrainName = "";
 int iTrainSetWehicleNumber = 0;
 TGroundNode *nTrainSetNode = NULL; // poprzedni pojazd do łączenia
 TGroundNode *nTrainSetDriver = NULL; // pojazd, któremu zostanie wysłany rozkład
@@ -1703,7 +1693,7 @@ void TGround::RaTriangleDivider(TGroundNode *node)
 TGroundNode * TGround::AddGroundNode(cParser *parser)
 { // wczytanie wpisu typu "node"
     // parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzać
-	string str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
+	std::string str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
 	int nv, i;
 	double tf, r, rmin, tf1, tf3;
 	int int1;
@@ -1725,7 +1715,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     //str = AnsiString(token.c_str());
 	TGroundNode *tmp;
     tmp = new TGroundNode();
-    tmp->asName = (asNodeName == "none" ? string("") : asNodeName);
+    tmp->asName = (asNodeName == "none" ? "" : asNodeName);
     if (r >= 0)
         tmp->fSquareRadius = r * r;
     tmp->fSquareMinRadius = rmin * rmin;
@@ -1876,21 +1866,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->MemCell->Load(parser);
         if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-            if (sTracks->Update(TP_MEMCELL, tmp->asName.c_str(),
-                                tmp)) // najpierw sprawdzić, czy już jest
-            { // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność
-                // wsteczna)
-                ErrorLog("Duplicated memcell: " + tmp->asName); // to zgłaszać duplikat
-            }
-            else
-                sTracks->Add(TP_MEMCELL, tmp->asName.c_str(), tmp); // nazwa jest unikalna
-#else
             if( false == m_trackmap.Add( TP_MEMCELL, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated memcell: " + tmp->asName ); // to zgłaszać duplikat
             }
-#endif
         }
         break;
     case TP_EVLAUNCH:
@@ -1910,22 +1889,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                           tmp->asName); // w nazwie może być nazwa odcinka izolowanego
         if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-            if (sTracks->Update(TP_TRACK, tmp->asName.c_str(),
-                                tmp)) // najpierw sprawdzić, czy już jest
-            { // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność
-                // wsteczna)
-                if (tmp->pTrack->iCategoryFlag & 1) // jeśli jest zdublowany tor kolejowy
-                    ErrorLog("Duplicated track: " + tmp->asName); // to zgłaszać duplikat
-            }
-            else
-                sTracks->Add(TP_TRACK, tmp->asName.c_str(), tmp); // nazwa jest unikalna
-#else
             if( false == m_trackmap.Add( TP_TRACK, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated track: " + tmp->asName ); // to zgłaszać duplikat
             }
-#endif
         }
         tmp->pCenter = (tmp->pTrack->CurrentSegment()->FastGetPoint_0() +
                         tmp->pTrack->CurrentSegment()->FastGetPoint(0.5) +
@@ -1969,7 +1936,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 >> str4;
             tf3 = fTrainSetVel; // prędkość
             int2 = str4.find("."); // yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
-            if (int2 != string::npos) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
+            if (int2 != std::string::npos) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
             {
                 size_t dlugosc = str4.length();
                 int1 = atoi(str4.substr(0, int2).c_str()); // niech sprzegiem bedzie do kropki cos
@@ -2165,21 +2132,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
         else if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-            if (sTracks->Update(TP_MODEL, tmp->asName.c_str(),
-                                tmp)) // najpierw sprawdzić, czy już jest
-            { // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność
-                // wsteczna)
-                ErrorLog("Duplicated model: " + tmp->asName); // to zgłaszać duplikat
-            }
-            else
-                sTracks->Add(TP_MODEL, tmp->asName.c_str(), tmp); // nazwa jest unikalna
-#else
             if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
             }
-#endif
         }
         // str=Parser->GetNextSymbol().LowerCase();
         break;
@@ -2239,7 +2195,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         // PROBLEND Q: 13122011 - Szociu: 27012012
         PROBLEND = true; // domyslnie uruchomione nowe wyświetlanie
         tmp->PROBLEND = true; // odwolanie do tgroundnode, bo rendering jest w tej klasie
-        if (str.find('@') != string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
+        if (str.find('@') != std::string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
         {
             PROBLEND = false; // jeśli jest, wyswietla po staremu
             tmp->PROBLEND = false;
@@ -2457,17 +2413,13 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
     return (Rects[br][bc].SafeGetRect(sc, sr)); // pobranie małego kwadratu
 }
 
-TEvent * TGround::FindEvent(const string &asEventName)
+TEvent * TGround::FindEvent(const std::string &asEventName)
 {
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-    return (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie
-#else
     auto const lookup = m_eventmap.find( asEventName );
     return
         lookup != m_eventmap.end() ?
         lookup->second :
         nullptr;
-#endif
     /* //powolna wyszukiwarka
      for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
      {
@@ -2478,27 +2430,19 @@ TEvent * TGround::FindEvent(const string &asEventName)
     */
 }
 
-TEvent * TGround::FindEventScan(const string &asEventName)
+TEvent * TGround::FindEventScan( std::string const &asEventName )
 { // wyszukanie eventu z opcją utworzenia niejawnego dla komórek skanowanych
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-    TEvent *e = (TEvent *)sTracks->Find( 0, asEventName.c_str() ); // wyszukiwanie w drzewie eventów
-#else
     auto const lookup = m_eventmap.find( asEventName );
     auto e =
         lookup != m_eventmap.end() ?
         lookup->second :
         nullptr;
-#endif
     if (e)
         return e; // jak istnieje, to w porządku
     if (asEventName.rfind(":scan") != std::string::npos) // jeszcze może być event niejawny
     { // no to szukamy komórki pamięci o nazwie zawartej w evencie
-        string n = asEventName.substr(0, asEventName.length() - 5); // do dwukropka
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-        if( sTracks->Find( TP_MEMCELL, n.c_str() ) ) // jeśli jest takowa komórka pamięci
-#else
+        std::string n = asEventName.substr(0, asEventName.length() - 5); // do dwukropka
         if( m_trackmap.Find( TP_MEMCELL, n ) != nullptr ) // jeśli jest takowa komórka pamięci
-#endif
             e = new TEvent(n); // utworzenie niejawnego eventu jej odczytu
     }
     return e; // utworzony albo się nie udało
@@ -2582,7 +2526,7 @@ bool TGround::Init(std::string File)
     Global::pGround = this;
     // pTrain=NULL;
     pOrigin = aRotate = vector3(0, 0, 0); // zerowanie przesunięcia i obrotu
-    string str = "";
+    std::string str;
     // TFileStream *fs;
     // int size;
     std::string subpath = Global::asCurrentSceneryPath; //   "scenery/";
@@ -2792,13 +2736,9 @@ bool TGround::Init(std::string File)
                         // pierwszy
                         if (RootEvent->Type != tp_Ignored)
                             if (RootEvent->asName.find(
-                                    "onstart") != string::npos) // event uruchamiany automatycznie po starcie
+                                    "onstart") != std::string::npos) // event uruchamiany automatycznie po starcie
                                 AddToQuery(RootEvent, NULL); // dodanie do kolejki
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-                        sTracks->Add(0, tmp->asName.c_str(), tmp); // dodanie do wyszukiwarki
-#else
                         m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
-#endif
                     }
                 }
             }
@@ -3035,7 +2975,7 @@ bool TGround::Init(std::string File)
             WriteLog("Scenery sky definition");
             parser.getTokens();
             parser >> token;
-            string SkyTemp = token;
+            std::string SkyTemp = token;
             if (Global::asSky == "1")
                 Global::asSky = SkyTemp;
             do
@@ -3096,12 +3036,6 @@ bool TGround::Init(std::string File)
         parser >> token;
     }
 
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-    sTracks->Sort(TP_TRACK); // finalne sortowanie drzewa torów
-    sTracks->Sort(TP_MEMCELL); // finalne sortowanie drzewa komórek pamięci
-    sTracks->Sort(TP_MODEL); // finalne sortowanie drzewa modeli
-    sTracks->Sort(0); // finalne sortowanie drzewa eventów
-#endif
     if (!bInitDone)
         FirstInit(); // jeśli nie było w scenerii
     if (Global::pTerrainCompact)
@@ -3345,24 +3279,19 @@ bool TGround::InitEvents()
                     Current->Params[9].asTrack = tmp->pTrack;
                 if (!Current->Params[9].asTrack)
                 {
-                    ErrorLog("Bad event: Track \"" + string(buff) +
-                             "\" does not exist in \"" + Current->asName + "\"");
-                    Current->iFlags &=
-                        ~(conditional_trackoccupied | conditional_trackfree); // zerowanie flag
+                    ErrorLog("Bad event: Track \"" + std::string(buff) + "\" does not exist in \"" + Current->asName + "\"");
+                    Current->iFlags &= ~(conditional_trackoccupied | conditional_trackfree); // zerowanie flag
                 }
             }
-            else if (Current->iFlags &
-                     (conditional_memstring | conditional_memval1 | conditional_memval2))
+            else if (Current->iFlags & (conditional_memstring | conditional_memval1 | conditional_memval2))
             { // jeśli chodzi o komorke pamieciową
                 tmp = FindGroundNode(buff, TP_MEMCELL);
                 if (tmp)
                     Current->Params[9].asMemCell = tmp->MemCell;
                 if (!Current->Params[9].asMemCell)
                 {
-                    ErrorLog("Bad event: MemCell \"" + string(buff) +
-                             "\" does not exist in \"" + Current->asName + "\"");
-                    Current->iFlags &=
-                        ~(conditional_memstring | conditional_memval1 | conditional_memval2);
+                    ErrorLog("Bad event: MemCell \"" + std::string(buff) + "\" does not exist in \"" + Current->asName + "\"");
+                    Current->iFlags &= ~(conditional_memstring | conditional_memval1 | conditional_memval2);
                 }
             }
             for (i = 0; i < 8; i++)
@@ -3375,8 +3304,8 @@ bool TGround::InitEvents()
 					if( !Current->Params[ i ].asEvent ) { // Ra: tylko w logu informacja o braku
 						if( ( Current->Params[ i ].asText == NULL )
 						 || ( std::string( Current->Params[ i ].asText ).substr( 0, 5 ) != "none_" ) ) {
-							WriteLog( "Event \"" + string( buff ) + "\" does not exist" );
-							ErrorLog( "Missed event: " + string( buff ) + " in multiple " + Current->asName );
+							WriteLog( "Event \"" + std::string( buff ) + "\" does not exist" );
+							ErrorLog( "Missed event: " + std::string( buff ) + " in multiple " + Current->asName );
 						}
                         }
                 }
@@ -3414,7 +3343,7 @@ void TGround::InitTracks()
     TTrack *tmp; // znaleziony tor
     TTrack *Track;
 	int iConnection;
-    string name;
+    std::string name;
     // tracks=tracksfar=0;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
     {
@@ -3568,11 +3497,7 @@ void TGround::InitTracks()
             Current = new TGroundNode(); // to nie musi mieć nazwy, nazwa w wyszukiwarce wystarczy
             // Current->asName=p->asName; //mazwa identyczna, jak nazwa odcinka izolowanego
             Current->MemCell = new TMemCell(NULL); // nowa komórka
-#ifdef EU07_USE_OLD_TNAMES_CLASS
-            sTracks->Add(TP_MEMCELL, p->asName.c_str(), Current); // dodanie do wyszukiwarki
-#else
             m_trackmap.Add( TP_MEMCELL, p->asName, Current );
-#endif
             Current->nNext =
                 nRootOfType[TP_MEMCELL]; // to nie powinno tutaj być, bo robi się śmietnik
             nRootOfType[TP_MEMCELL] = Current;
@@ -3592,7 +3517,7 @@ void TGround::InitTraction()
     TTraction *tmp; // znalezione przęsło
     TTraction *Traction;
     int iConnection;
-    string name;
+    std::string name;
     for (nCurrent = nRootOfType[TP_TRACTION]; nCurrent; nCurrent = nCurrent->nNext)
     { // podłączenie do zasilacza, żeby można było sumować prąd kilku pojazdów
         // a jednocześnie z jednego miejsca zmieniać napięcie eventem
@@ -4015,18 +3940,11 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                     if (Event->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-                        for (int i = 0; i < Event->Params[6].asTrack->iNumDynamics; ++i)
-                            Event->Params[5].asMemCell->PutCommand(
-                                Event->Params[6].asTrack->Dynamics[i]->Mechanik,
-                                &Event->Params[4].nGroundNode->pCenter);
-#else
                         for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
                             Event->Params[ 5 ].asMemCell->PutCommand(
                                 dynamic->Mechanik,
                                 &Event->Params[ 4 ].nGroundNode->pCenter );
                         }
-#endif
                         //if (DebugModeFlag)
                             WriteLog("EVENT EXECUTED: AddValues & Track command - " +
                                      std::string(Event->Params[0].asText) + " " +
@@ -4045,8 +3963,7 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
             }
             if (Event)
             { // standardowe dodanie do kolejki
-                WriteLog("EVENT ADDED TO QUEUE: " + Event->asName +
-                         (Node ? (" by " + Node->asName) : string("")));
+                WriteLog("EVENT ADDED TO QUEUE: " + Event->asName + (Node ? (" by " + Node->asName) : ""));
                 Event->fStartTime =
                     fabs(Event->fDelay) + Timer::GetTime(); // czas od uruchomienia scenerii
                 if (Event->fRandomDelay > 0.0)
@@ -4091,12 +4008,12 @@ bool TGround::EventConditon(TEvent *e)
         if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText, e->Params[11].asdouble,
                                                    e->Params[12].asdouble, e->iFlags))
 			{ //logowanie spełnionych warunków
-			LogComment = e->Params[9].asMemCell->Text() + string(" ") +
+			LogComment = e->Params[9].asMemCell->Text() + " " +
                          to_string(e->Params[9].asMemCell->Value1(), 2, 8) + " " +
                          to_string(tmpEvent->Params[9].asMemCell->Value2(), 2, 8) +
                          " = ";
             if (TestFlag(e->iFlags, conditional_memstring))
-                LogComment += string(tmpEvent->Params[10].asText);
+                LogComment += std::string(tmpEvent->Params[10].asText);
             else
                 LogComment += "*";
             if (TestFlag(tmpEvent->iFlags, conditional_memval1))
@@ -4113,7 +4030,7 @@ bool TGround::EventConditon(TEvent *e)
         //else if (Global::iWriteLogEnabled && DebugModeFlag) //zawsze bo to bardzo istotne w debugowaniu scenariuszy
 		else
         { // nie zgadza się, więc sprawdzmy, co
-            LogComment = e->Params[9].asMemCell->Text() + string(" ") +
+            LogComment = e->Params[9].asMemCell->Text() + " " +
                          to_string(e->Params[9].asMemCell->Value1(), 2, 8) + " " +
                          to_string(tmpEvent->Params[9].asMemCell->Value2(), 2, 8) +
                          " != ";
@@ -4199,8 +4116,9 @@ bool TGround::CheckQuery()
         if (tmpEvent->bEnabled)
         { // w zasadzie te wyłączone są skanowane i nie powinny się nigdy w kolejce znaleźć
             WriteLog("EVENT LAUNCHED: " + tmpEvent->asName +
-                     (tmpEvent->Activator ? string(" by " + tmpEvent->Activator->asName) :
-                                            string("")));
+                     (tmpEvent->Activator ?
+                        std::string(" by " + tmpEvent->Activator->asName) :
+                        "" ));
             switch (tmpEvent->Type)
             {
             case tp_CopyValues: // skopiowanie wartości z innej komórki
@@ -4224,18 +4142,11 @@ bool TGround::CheckQuery()
                     if (tmpEvent->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-                        for (int i = 0; i < tmpEvent->Params[6].asTrack->iNumDynamics; ++i)
-                            tmpEvent->Params[5].asMemCell->PutCommand(
-                                tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,
-                                &tmpEvent->Params[4].nGroundNode->pCenter);
-#else
                         for( auto dynamic : tmpEvent->Params[ 6 ].asTrack->Dynamics ) {
                             tmpEvent->Params[ 5 ].asMemCell->PutCommand(
                                 dynamic->Mechanik,
                                 &tmpEvent->Params[ 4 ].nGroundNode->pCenter );
                         }
-#endif
                         //if (DebugModeFlag)
                         WriteLog("Type: UpdateValues & Track command - " +
                             tmpEvent->Params[5].asMemCell->Text() + " " +
@@ -4409,71 +4320,31 @@ bool TGround::CheckQuery()
                 if (tmpEvent->iFlags & update_load)
                 { // jeśli pytanie o ładunek
                     if (tmpEvent->iFlags & update_memadd) // jeśli typ pojazdu
-#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
-                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
-                            strdup(tmpEvent->Activator->MoverParameters->TypeName.c_str()), // typ pojazdu
-                            0, // na razie nic
-                            0, // na razie nic
-                            tmpEvent->iFlags &
-                                (update_memstring | update_memval1 | update_memval2));
-#else
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->TypeName, // typ pojazdu
                             0, // na razie nic
                             0, // na razie nic
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
-#endif
                     else // jeśli parametry ładunku
-#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
-                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
-                            tmpEvent->Activator->MoverParameters->LoadType != "" ?
-                                strdup(tmpEvent->Activator->MoverParameters->LoadType.c_str()) :
-                                (char*)"none", // nazwa ładunku
-                            tmpEvent->Activator->MoverParameters->Load, // aktualna ilość
-                            tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
-                            tmpEvent->iFlags &
-                                (update_memstring | update_memval1 | update_memval2));
-#else
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->LoadType, // nazwa ładunku
                             tmpEvent->Activator->MoverParameters->Load, // aktualna ilość
                             tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
-#endif
                 }
                 else if (tmpEvent->iFlags & update_memadd)
                 { // jeśli miejsce docelowe pojazdu
-#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
-                    tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
-                        strdup(tmpEvent->Activator->asDestination.c_str()), // adres docelowy
-                        tmpEvent->Activator->DirectionGet(), // kierunek pojazdu względem czoła
-                        // składu (1=zgodny,-1=przeciwny)
-                        tmpEvent->Activator->MoverParameters
-                            ->Power, // moc pojazdu silnikowego: 0 dla wagonu
-                        tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
-#else
                     tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                         tmpEvent->Activator->asDestination, // adres docelowy
                         tmpEvent->Activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
                         tmpEvent->Activator->MoverParameters ->Power, // moc pojazdu silnikowego: 0 dla wagonu
                         tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
-#endif
                 }
                 else if (tmpEvent->Activator->Mechanik)
                     if (tmpEvent->Activator->Mechanik->Primary())
                     { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
-#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
-                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
-							const_cast<char *>(tmpEvent->Activator->Mechanik->TrainName().c_str()),
-                            tmpEvent->Activator->Mechanik->StationCount() -
-                                tmpEvent->Activator->Mechanik
-                                    ->StationIndex(), // ile przystanków do końca
-                            tmpEvent->Activator->Mechanik->IsStop() ? 1 :
-                                                                      0, // 1, gdy ma tu zatrzymanie
-                            tmpEvent->iFlags);
-#else
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
 							tmpEvent->Activator->Mechanik->TrainName(),
                             tmpEvent->Activator->Mechanik->StationCount() -
@@ -4482,7 +4353,6 @@ bool TGround::CheckQuery()
                             tmpEvent->Activator->Mechanik->IsStop() ? 1 :
                                                                       0, // 1, gdy ma tu zatrzymanie
                             tmpEvent->iFlags);
-#endif
                         WriteLog("Train detected: " + tmpEvent->Activator->Mechanik->TrainName());
                     }
                 break;
@@ -4975,7 +4845,7 @@ bool TGround::RenderDL(vector3 pPosition)
 bool TGround::RenderAlphaDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza przezroczystych
     glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.02f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.04f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     TGroundNode *node;
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     TSubRect *tmp;
@@ -5269,13 +5139,13 @@ void TGround::WyslijObsadzone()
 		}
 	while (i <= 30)
 	{
-		strcpy(r.cString + 64 * i, string("none").c_str());
+		strcpy(r.cString + 64 * i, "none");
 		r.fPar[16 * i + 4] = 1;
 		r.fPar[16 * i + 5] = 2;
 		r.fPar[16 * i + 6] = 3;
 		r.iPar[16 * i + 7] = 0;
-		strcpy(r.cString + 64 * i + 32, string("none").c_str());
-		strcpy(r.cString + 64 * i + 48, string("none").c_str());
+		strcpy(r.cString + 64 * i + 32, "none");
+		strcpy(r.cString + 64 * i + 48, "none");
 		i++;
 	}
 
@@ -5345,18 +5215,6 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
             if ((tmp = FastGetSubRect(i, j)) != NULL)
                 for (node = tmp->nRootNode; node; node = node->nNext2) // następny z sektora
                     if (node->iType == TP_TRACK) // Ra: przebudować na użycie tabeli torów?
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-                        for( k = 0; k < node->pTrack->iNumDynamics; k++ )
-                            if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
-                                       true) // czy ma mieć obsadę
-                                if ((sqd = SquareMagnitude(
-                                         node->pTrack->Dynamics[k]->GetPosition() - pPosition)) <
-                                    sqm)
-                                {
-                                    sqm = sqd; // nowa odległość
-                                    dyn = node->pTrack->Dynamics[k]; // nowy lider
-                                }
-#else
                         for( auto dynamic : node->pTrack->Dynamics ) {
                             if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
                                 // czy ma mieć obsadę
@@ -5366,7 +5224,6 @@ TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, boo
                                 }
                             }
                         }
-#endif
     return dyn;
 };
 TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, bool mech)
@@ -5383,27 +5240,6 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
             if ((tmp = FastGetSubRect(i, j)) != NULL)
                 for (node = tmp->nRootNode; node; node = node->nNext2) // następny z sektora
                     if (node->iType == TP_TRACK) // Ra: przebudować na użycie tabeli torów?
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-                        for( k = 0; k < node->pTrack->iNumDynamics; k++ )
-                            if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
-                                       true) // czy ma mieć obsadę
-                            {
-                                if ((sqd = SquareMagnitude(
-                                         node->pTrack->Dynamics[k]->HeadPosition() - pPosition)) <
-                                    sqm)
-                                {
-                                    sqm = sqd; // nowa odległość
-                                    dyn = node->pTrack->Dynamics[k]; // nowy lider
-                                }
-                                if ((sqd = SquareMagnitude(
-                                         node->pTrack->Dynamics[k]->RearPosition() - pPosition)) <
-                                    sqm)
-                                {
-                                    sqm = sqd; // nowa odległość
-                                    dyn = node->pTrack->Dynamics[k]; // nowy lider
-                                }
-                            }
-#else
                         for( auto dynamic : node->pTrack->Dynamics ) {
                             if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
                                 // czy ma mieć obsadę
@@ -5417,7 +5253,6 @@ TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, boo
                                 }
                             }
                         }
-#endif
     return dyn;
 };
 //---------------------------------------------------------------------------
@@ -5556,11 +5391,7 @@ void TGround::TrackBusyList()
     TGroundNode *Current;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
         if (!Current->asName.empty()) // musi być nazwa
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-            if( Current->pTrack->iNumDynamics ) // osi to chyba nie ma jak policzyć
-#else
             if( false == Current->pTrack->Dynamics.empty() )
-#endif
                 WyslijString(Current->asName, 8); // zajęty
 };
 //---------------------------------------------------------------------------

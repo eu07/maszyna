@@ -70,7 +70,7 @@ void TEvent::Init(){
 
 };
 
-void TEvent::Conditions(cParser *parser, string s)
+void TEvent::Conditions(cParser *parser, std::string s)
 { // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
     if (s == "condition")
     { // jesli nie "endevent"
@@ -623,14 +623,14 @@ void TEvent::AddToQuery(TEvent *e)
 
 //---------------------------------------------------------------------------
 
-string TEvent::CommandGet()
+std::string TEvent::CommandGet()
 { // odczytanie komendy z eventu
     switch (Type)
     { // to się wykonuje również składu jadącego bez obsługi
     case tp_GetValues:
-        return string(Params[9].asMemCell->Text());
+        return std::string(Params[9].asMemCell->Text());
     case tp_PutValues:
-        return string(Params[0].asText);
+        return std::string(Params[0].asText);
     }
     return ""; // inne eventy się nie liczą
 };

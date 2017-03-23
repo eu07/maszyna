@@ -135,7 +135,7 @@ public:
     void
         perspective( _Type const Fovy, _Type const Aspect, _Type const Znear, _Type const Zfar ) {
             m_stacks[ m_mode ].perspective(
-                static_cast<float>( Fovy ),
+                static_cast<float>(Fovy) * 0.0174532925f, // deg2rad
                 static_cast<float>( Aspect ),
                 static_cast<float>( Znear ),
                 static_cast<float>( Zfar ) ); }

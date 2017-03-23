@@ -36,21 +36,13 @@ TEventLauncher::TEventLauncher()
     DeltaTime = -1;
     UpdatedTime = 0;
     fVal1 = fVal2 = 0;
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-    szText = NULL;
-#endif
     iHour = iMinute = -1; // takiego czasu nigdy nie będzie
     dRadius = 0;
     Event1 = Event2 = NULL;
     MemCell = NULL;
     iCheckMask = 0;
 }
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-TEventLauncher::~TEventLauncher()
-{
-    SafeDeleteArray(szText);
-}
-#endif
+
 void TEventLauncher::Init()
 {
 }
@@ -126,13 +118,7 @@ bool TEventLauncher::Load(cParser *parser)
 		asMemCellName = token;
         parser->getTokens();
         *parser >> token;
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-        SafeDeleteArray(szText);
-        szText = new char[256];
-        strcpy(szText, token.c_str());
-#else
         szText = token;
-#endif
         if (token != "*") //*=nie brać command pod uwagę
             iCheckMask |= conditional_memstring;
         parser->getTokens();

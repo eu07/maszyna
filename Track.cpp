@@ -77,8 +77,8 @@ TIsolated::TIsolated()
     TIsolated("none", NULL);
 };
 
-TIsolated::TIsolated(const string &n, TIsolated *i) :
-                           asName( n ),   pNext( i )
+TIsolated::TIsolated(std::string const &n, TIsolated *i) :
+                                asName( n ),   pNext( i )
 {
     // utworznie obwodu izolowanego. nothing to do here.
 };
@@ -96,7 +96,7 @@ TIsolated::~TIsolated(){
     */
 };
 
-TIsolated * TIsolated::Find(const string &n)
+TIsolated * TIsolated::Find(std::string const &n)
 { // znalezienie obiektu albo utworzenie nowego
     TIsolated *p = pRoot;
     while (p)
@@ -121,13 +121,8 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (Global::iMultiplayer) // jeśli multiplayer
                 Global::pGround->WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
-#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
-                pMemCell->UpdateValues( NULL, 0, int( pMemCell->Value2() ) & ~0xFF,
-                                       update_memval2); //"zerujemy" ostatnią wartość
-#else
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) & ~0xFF,
                 update_memval2 ); //"zerujemy" ostatnią wartość
-#endif
         }
     }
     else
@@ -140,12 +135,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (Global::iMultiplayer) // jeśli multiplayer
                 Global::pGround->WyslijString(asName, 11); // wysłanie pakietu o zajęciu
             if (pMemCell) // w powiązanej komórce
-#ifdef EU07_USE_OLD_TMEMCELL_TEXT_ARRAY
-                pMemCell->UpdateValues( NULL, 0, int( pMemCell->Value2() ) | 1,
-                                       update_memval2); // zmieniamy ostatnią wartość na nieparzystą
-#else
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, update_memval2 ); // zmieniamy ostatnią wartość na nieparzystą
-#endif
         }
     }
 };
@@ -154,9 +144,6 @@ void TIsolated::Modify(int i, TDynamicObject *o)
 TTrack::TTrack(TGroundNode *g) :
     pMyNode( g ) // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
 {
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    ::SecureZeroMemory( Dynamics, sizeof( Dynamics ) );
-#endif
     fRadiusTable[ 0 ] = 0.0;
     fRadiusTable[ 1 ] = 0.0;
     nFouling[ 0 ] = nullptr;
@@ -199,7 +186,7 @@ void TTrack::Init()
         break;
     case tt_Table: // oba potrzebne
 		SwitchExtension = std::make_shared<TSwitchExtension>( this, 1 ); // kopia oryginalnego toru
-        Segment = make_shared<TSegment>(this);
+        Segment = std::make_shared<TSegment>(this);
         break;
     }
 }
@@ -413,7 +400,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
 { // pobranie obiektu trajektorii ruchu
     vector3 pt, vec, p1, p2, cp1, cp2, p3, p4, cp3, cp4; // dodatkowe punkty potrzebne do skrzyżowań
 	double a1, a2, r1, r2, r3, r4;
-    string str;
+    std::string str;
     size_t i; //,state; //Ra: teraz już nie ma początkowego stanu zwrotnicy we wpisie
     std::string token;
 
@@ -808,7 +795,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     }
     // alternatywny zapis nazwy odcinka izolowanego - po znaku "@" w nazwie toru
     if (!pIsolated)
-        if ((i = name.find("@")) != string::npos)
+        if ((i = name.find("@")) != std::string::npos)
             if (i < name.length()) // nie może być puste
             {
                 pIsolated = TIsolated::Find(name.substr(i + 1, name.length()));
@@ -976,7 +963,7 @@ bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
     return false;
 };
 
-string TTrack::IsolatedName()
+std::string TTrack::IsolatedName()
 { // podaje nazwę odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeń
     if (pIsolated)
         if (!pIsolated->evBusy && !pIsolated->evFree)
@@ -1007,27 +994,6 @@ bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         Dynamic->MyTrack = NULL; // trzeba by to uzależnić od kierunku ruchu...
         return true;
     }
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    if (Global::iMultiplayer) // jeśli multiplayer
-        if (!iNumDynamics) // pierwszy zajmujący
-            if (pMyNode->asName != "none")
-                Global::pGround->WyslijString(pMyNode->asName,
-                                              8); // przekazanie informacji o zajętości toru
-    if (iNumDynamics < iMaxNumDynamics)
-    { // jeśli jest miejsce, dajemy na koniec
-        Dynamics[iNumDynamics++] = Dynamic;
-        Dynamic->MyTrack = this; // ABu: na ktorym torze jesteśmy
-        if (Dynamic->iOverheadMask) // jeśli ma pantografy
-            Dynamic->OverheadTrack(
-                fOverhead); // przekazanie informacji o jeździe bezprądowej na tym odcinku toru
-        return true;
-    }
-    else
-    {
-        Error("Too many dynamics on track " + pMyNode->asName);
-        return false;
-    }
-#else
     if( Global::iMultiplayer ) {
         // jeśli multiplayer
         if( true == Dynamics.empty() ) {
@@ -1045,7 +1011,6 @@ bool TTrack::AddDynamicObject(TDynamicObject *Dynamic)
         Dynamic->OverheadTrack( fOverhead ); // przekazanie informacji o jeździe bezprądowej na tym odcinku toru
     }
     return true;
-#endif
 };
 
 void TTrack::MoveMe(vector3 pPosition)
@@ -1863,42 +1828,16 @@ void TTrack::Render()
 
 bool TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
 { // sprawdzenie, czy pojazd jest przypisany do toru
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    for (int i = 0; i < iNumDynamics; i++)
-        if (Dynamic == Dynamics[i])
-            return true;
-    return false;
-#else
     for( auto dynamic : Dynamics ) {
         if( dynamic == Dynamic ) {
             return true;
         }
     }
     return false;
-#endif
 };
 
 bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
 { // usunięcie pojazdu z listy przypisanych do toru
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    for (int i = 0; i < iNumDynamics; i++)
-    { // sprawdzanie wszystkich po kolei
-        if (Dynamic == Dynamics[i])
-        { // znaleziony, przepisanie następnych, żeby dziur nie było
-            --iNumDynamics;
-            for (i; i < iNumDynamics; i++)
-                Dynamics[i] = Dynamics[i + 1];
-            if (Global::iMultiplayer) // jeśli multiplayer
-                if (!iNumDynamics) // jeśli już nie ma żadnego
-                    if (pMyNode->asName != "none")
-                        Global::pGround->WyslijString(
-                            pMyNode->asName, 9); // przekazanie informacji o zwolnieniu toru
-            return true;
-        }
-    }
-    Error("Cannot remove dynamic from track");
-    return false;
-#else
     bool result = false;
     if( *Dynamics.begin() == Dynamic ) {
         // most likely the object getting removed is at the front...
@@ -1935,7 +1874,6 @@ bool TTrack::RemoveDynamicObject(TDynamicObject *Dynamic)
     }
     
     return result;
-#endif
 }
 
 bool TTrack::InMovement()
@@ -2660,14 +2598,6 @@ void TTrack::EnvironmentReset()
 
 void TTrack::RenderDyn()
 { // renderowanie nieprzezroczystych fragmentów pojazdów
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    if (!iNumDynamics)
-        return; // po co kombinować, jeśli nie ma pojazdów?
-    // EnvironmentSet(); //Ra: pojazdy sobie same teraz liczą cienie
-    for (int i = 0; i < iNumDynamics; i++)
-        Dynamics[i]->Render(); // sam sprawdza, czy VBO; zmienia kontekst VBO!
-    // EnvironmentReset();
-#else
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
 #ifdef EU07_USE_OLD_RENDERCODE
@@ -2676,19 +2606,10 @@ void TTrack::RenderDyn()
         GfxRenderer.Render( dynamic );
 #endif
     }
-#endif
 };
 
 void TTrack::RenderDynAlpha()
 { // renderowanie przezroczystych fragmentów pojazdów
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    if (!iNumDynamics)
-        return; // po co kombinować, jeśli nie ma pojazdów?
-    // EnvironmentSet(); //Ra: pojazdy sobie same teraz liczą cienie
-    for (int i = 0; i < iNumDynamics; i++)
-        Dynamics[i]->RenderAlpha(); // sam sprawdza, czy VBO; zmienia kontekst VBO!
-    // EnvironmentReset();
-#else
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
 #ifdef EU07_USE_OLD_RENDERCODE
@@ -2697,19 +2618,13 @@ void TTrack::RenderDynAlpha()
         GfxRenderer.Render_Alpha( dynamic );
 #endif
     }
-#endif
 };
 
 void TTrack::RenderDynSounds()
 { // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    for( int i = 0; i < iNumDynamics; i++ )
-        Dynamics[i]->RenderSounds();
-#else
     for( auto dynamic : Dynamics ) {
         dynamic->RenderSounds();
     }
-#endif
 };
 //---------------------------------------------------------------------------
 bool TTrack::SetConnections(int i)
@@ -3043,15 +2958,10 @@ TTrack * TTrack::RaAnimate()
                         SwitchExtension->vTrans; // SwitchExtension->Segments[0]->FastGetPoint(0.5);
                     Segment->Init(middle + vector3(sina, 0.0, cosa),
                                   middle - vector3(sina, 0.0, cosa), 5.0); // nowy odcinek
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-                    for( int i = 0; i < iNumDynamics; i++ )
-                        Dynamics[i]->Move(0.000001); // minimalny ruch, aby przeliczyć pozycję i
-#else
                     for( auto dynamic : Dynamics ) {
                         // minimalny ruch, aby przeliczyć pozycję
                         dynamic->Move( 0.000001 );
                     }
-#endif
                     // kąty
                     if (Global::bUseVBO)
                     { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
@@ -3083,15 +2993,9 @@ TTrack * TTrack::RaAnimate()
 //---------------------------------------------------------------------------
 void TTrack::RadioStop()
 { // przekazanie pojazdom rozkazu zatrzymania
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    for (int i = 0; i < iNumDynamics; i++)
-        Dynamics[i]->RadioStop();
-#else
     for( auto dynamic : Dynamics ) {
         dynamic->RadioStop();
     }
-#endif
-
 };
 
 double TTrack::WidthTotal()
@@ -3200,7 +3104,7 @@ void TTrack::MovedUp1(double dh)
     fTexHeight1 += dh;
 };
 
-string TTrack::NameGet()
+std::string TTrack::NameGet()
 { // ustalenie nazwy toru
     if (this)
         if (pMyNode)

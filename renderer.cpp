@@ -16,10 +16,8 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "logs.h"
 #include "usefull.h"
-#include "glwidgetlibrary.h"
 
 opengl_renderer GfxRenderer;
-opengl_matrices OpenGLMatrices;
 extern TWorld World;
 
 // returns true if specified object is within camera frustum, false otherwise
@@ -134,7 +132,7 @@ opengl_renderer::Render() {
 
     ::glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
     ::gluPerspective(
-        Global::FieldOfView / Global::ZoomFactor * 0.0174532925f,
+        Global::FieldOfView / Global::ZoomFactor,
         std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ),
         0.1f * Global::ZoomFactor,
         m_drawrange * Global::fDistanceFactor );
@@ -183,7 +181,7 @@ bool
 opengl_renderer::Render( TGround *Ground ) {
 
     glDisable( GL_BLEND );
-    glAlphaFunc( GL_GREATER, 0.35f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc( GL_GREATER, 0.45f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     glEnable( GL_LIGHTING );
     glColor3f( 1.0f, 1.0f, 1.0f );
 
@@ -444,7 +442,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     }
     
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition );
+    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
 
     ::glPushMatrix();
