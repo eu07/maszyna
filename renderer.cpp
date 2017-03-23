@@ -619,45 +619,50 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
                 Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
-                float fadelevel = 0.5f;
+                float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency is ~0.5 at full 'brightness'
                 if( ( Submodel->fCosViewAngle > 0.0 ) && ( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) ) {
 
-                    fadelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0 - Submodel->fCosFalloffAngle );
+                    glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0 - Submodel->fCosFalloffAngle );
+                    glarelevel = std::max( 0.0f, glarelevel - static_cast<float>(Global::fLuminance) );
 
-                    ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
-                    Bind( m_glaretextureid );
-                    ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], fadelevel );
-                    ::glDisable( GL_LIGHTING );
-                    ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
+                    if( glarelevel > 0.0f ) {
 
-                    ::glPushMatrix();
-                    ::glLoadIdentity(); // macierz jedynkowa
-                    ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
-                    ::glRotated( atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
+                        ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
+                        Bind( m_glaretextureid );
+                        ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );
+                        ::glDisable( GL_LIGHTING );
+                        ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
+                        ::glPushMatrix();
+                        ::glLoadIdentity(); // macierz jedynkowa
+                        ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
+                        ::glRotated( atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
 
-                    ::glBegin( GL_TRIANGLE_STRIP );
-                    float const size = 2.5f;
-                    ::glTexCoord2f( 1.0f, 1.0f ); ::glVertex3f( -size, size, 0.0f );
-                    ::glTexCoord2f( 0.0f, 1.0f ); ::glVertex3f( size, size, 0.0f );
-                    ::glTexCoord2f( 1.0f, 0.0f ); ::glVertex3f( -size, -size, 0.0f );
-                    ::glTexCoord2f( 0.0f, 0.0f ); ::glVertex3f( size, -size, 0.0f );
+                        ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
+
+                        // TODO: turn the drawing instructions into a compiled call / array
+                        ::glBegin( GL_TRIANGLE_STRIP );
+                        float const size = 2.5f;
+                        ::glTexCoord2f( 1.0f, 1.0f ); ::glVertex3f( -size, size, 0.0f );
+                        ::glTexCoord2f( 0.0f, 1.0f ); ::glVertex3f( size, size, 0.0f );
+                        ::glTexCoord2f( 1.0f, 0.0f ); ::glVertex3f( -size, -size, 0.0f );
+                        ::glTexCoord2f( 0.0f, 0.0f ); ::glVertex3f( size, -size, 0.0f );
 /*
-                    // NOTE: we could do simply...
-                    vec3 vertexPosition_worldspace =
-                    particleCenter_wordspace
-                    + CameraRight_worldspace * squareVertices.x * BillboardSize.x
-                    + CameraUp_worldspace * squareVertices.y * BillboardSize.y;
-                    // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
+                        // NOTE: we could do simply...
+                        vec3 vertexPosition_worldspace =
+                        particleCenter_wordspace
+                        + CameraRight_worldspace * squareVertices.x * BillboardSize.x
+                        + CameraUp_worldspace * squareVertices.y * BillboardSize.y;
+                        // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
-                    ::glEnd();
+                        ::glEnd();
 
-                    float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+                        float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
+                        ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
 
-                    ::glPopMatrix();
-                    ::glPopAttrib();
+                        ::glPopMatrix();
+                        ::glPopAttrib();
+                    }
                 }
             }
         }

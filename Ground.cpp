@@ -4005,9 +4005,8 @@ bool TGround::EventConditon(TEvent *e)
             ErrorLog( "Event " + e->asName + " trying conditional_memcompare with nonexistent memcell" );
             return true; // though this is technically error, we report success to maintain backward compatibility
         }
-        if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText, e->Params[11].asdouble,
-                                                   e->Params[12].asdouble, e->iFlags))
-			{ //logowanie spełnionych warunków
+        if (tmpEvent->Params[9].asMemCell->Compare( ( e->Params[ 10 ].asText != nullptr ? e->Params[10].asText : "" ), e->Params[11].asdouble, e->Params[12].asdouble, e->iFlags) ) {
+            //logowanie spełnionych warunków
 			LogComment = e->Params[9].asMemCell->Text() + " " +
                          to_string(e->Params[9].asMemCell->Value1(), 2, 8) + " " +
                          to_string(tmpEvent->Params[9].asMemCell->Value2(), 2, 8) +
