@@ -2361,11 +2361,21 @@ world_environment::render() {
     GfxRenderer.Bind( 0 );
 
     ::glDisable( GL_LIGHTING );
-    ::glDisable( GL_FOG );
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
     ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
+
+    // setup fog
+    if( Global::fFogEnd > 0 ) {
+        // fog setup
+        ::glFogi( GL_FOG_MODE, GL_LINEAR );
+        ::glFogfv( GL_FOG_COLOR, Global::FogColor );
+        ::glFogf( GL_FOG_START, Global::fFogStart );
+        ::glFogf( GL_FOG_END, Global::fFogEnd );
+        ::glEnable( GL_FOG );
+    }
+    else { ::glDisable( GL_FOG ); }
 
     m_skydome.Render();
     m_stars.render();
@@ -2381,7 +2391,6 @@ world_environment::render() {
     ::glPopMatrix();
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_DEPTH_TEST );
-    ::glEnable( GL_FOG );
     ::glEnable( GL_LIGHTING );
 }
 

@@ -91,17 +91,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     Global::DayLight.diffuse[ 1 ] = 242.0f / 255.0f;
     Global::DayLight.diffuse[ 2 ] = 231.0f / 255.0f;
 
-    // setup fog
-    if( Global::fFogEnd > 0 ) {
-        // fog setup
-        ::glFogi( GL_FOG_MODE, GL_LINEAR );
-        ::glFogfv( GL_FOG_COLOR, Global::FogColor );
-        ::glFogf( GL_FOG_START, Global::fFogStart );
-        ::glFogf( GL_FOG_END, Global::fFogEnd );
-        ::glEnable( GL_FOG );
-    }
-    else { ::glDisable( GL_FOG ); }
-
     // create dynamic light pool
     for( int idx = 0; idx < Global::DynamicLightCount; ++idx ) {
 
