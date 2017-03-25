@@ -180,7 +180,8 @@ private:
     typedef std::vector<opengl_light> opengllight_array;
 
 // methods
-    bool Init_caps();
+    bool
+        Init_caps();
     
 // members
     rendermode renderpass{ rendermode::color };

@@ -289,161 +289,145 @@ void TGroundNode::RaRenderVBO()
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
-void TGroundNode::RenderVBO()
-{ // renderowanie obiektu z VBO - faza nieprzezroczystych
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
-    if ((mgn > fSquareRadius || (mgn < fSquareMinRadius)) &&
-        (iType != TP_EVLAUNCH)) // McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj
-        // wyzwalacz zdarzen
-        return;
-    switch (iType)
-    {
-    case TP_TRACTION:
-        return;
-    case TP_TRACK:
-        if (iNumVerts)
-            pTrack->RaRenderVBO(iVboPtr);
-        return;
-    case TP_MODEL:
-        Model->RenderVBO(&pCenter);
-        return;
-    // case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-    // if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
-    // {
-    //  pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
-    //  pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
-    // }
-    // return; //Ra: TODO sprawdzić, czy dźwięki nie są tylko w RenderHidden
-    case TP_MEMCELL:
-        return;
-    case TP_EVLAUNCH:
-        if (EvLaunch->Render())
-            if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
-            {
-                if (Global::shiftState && EvLaunch->Event2 != NULL)
-                    Global::AddToQuery(EvLaunch->Event2, NULL);
-                else if (EvLaunch->Event1 != NULL)
-                    Global::AddToQuery(EvLaunch->Event1, NULL);
-            }
-        return;
-    case GL_LINES:
-    case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-        if (iNumPts)
-        {
-            float linealpha = 255000 * fLineThickness / (mgn + 1.0);
-            if (linealpha > 255)
-                linealpha = 255;
-            float r, g, b;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-            r = floor( Diffuse[ 0 ] * Global::ambientDayLight[ 0 ] ); // w zaleznosci od koloru swiatla
-            g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
-            b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
+void TGroundNode::RenderVBO() { // renderowanie obiektu z VBO - faza nieprzezroczystych
+    switch( iType ) { // obiekty renderowane niezależnie od odległości
+        case TP_SUBMODEL:
+            TSubModel::fSquareDist = 0;
+#ifdef EU07_USE_OLD_RENDERCODE
+            return smTerrain->RenderDL();
 #else
-            r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
-            g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
-            b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
+            GfxRenderer.Render( smTerrain );
 #endif
-            glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
-            // glDisable(GL_LIGHTING); //nie powinny świecić
-            glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
-            // glEnable(GL_LIGHTING);
-        }
+    }
+
+    double distancesquared = SquareMagnitude( pCenter - Global::pCameraPosition ) / Global::ZoomFactor;
+    if( ( distancesquared > ( fSquareRadius * Global::fDistanceFactor ) )
+        || ( distancesquared < ( fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return;
-    default:
-        if (iVboPtr >= 0)
-            RaRenderVBO();
-    };
-    return;
+    }
+
+    switch( iType ) {
+        case TP_TRACK: {
+            if( iNumVerts )
+                pTrack->RaRenderVBO( iVboPtr );
+            return;
+        }
+        case TP_MODEL: {
+            Model->Render( &pCenter );
+            return;
+        }
+    }
+
+    if( ( iFlags & 0x10 ) || ( fLineThickness < 0 ) ) {
+
+        if( ( iType == GL_LINES ) || ( iType == GL_LINE_STRIP ) || ( iType == GL_LINE_LOOP ) ) {
+
+            if( iNumPts ) {
+
+                float linealpha = 255000 * fLineThickness / ( distancesquared + 1.0 );
+                if( linealpha > 255 )
+                    linealpha = 255;
+                float r, g, b;
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+                r = floor( Diffuse[ 0 ] * Global::ambientDayLight[ 0 ] ); // w zaleznosci od koloru swiatla
+                g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
+                b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
+#else
+                r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
+                g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
+                b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
+#endif
+                glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
+                // glDisable(GL_LIGHTING); //nie powinny świecić
+                glDrawArrays( iType, iVboPtr, iNumPts ); // rysowanie linii
+                // glEnable(GL_LIGHTING);
+            }
+        }
+        // GL_TRIANGLE etc
+        else {
+            if( iVboPtr >= 0 ) {
+                RaRenderVBO();
+            }
+        }
+
+        SetLastUsage( Timer::GetSimulationTime() );
+    }
 };
 
 void TGroundNode::RenderAlphaVBO()
 { // renderowanie obiektu z VBO - faza przezroczystych
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
-    float r, g, b;
-    if (mgn < fSquareMinRadius)
+
+    double distancesquared = SquareMagnitude( pCenter - Global::pCameraPosition ) / Global::ZoomFactor;
+    if( ( distancesquared > ( fSquareRadius * Global::fDistanceFactor ) )
+     || ( distancesquared < ( fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return;
-    if (mgn > fSquareRadius)
-        return;
-#ifdef _PROBLEND
-    if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-    {
-        glDisable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
-    };
-#endif
-    switch (iType)
-    {
-    case TP_TRACTION:
-        if (bVisible)
-        {
-#ifdef _PROBLEND
-            glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04f);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-            hvTraction->RenderVBO(mgn, iVboPtr);
+    }
+
+
+    switch( iType ) {
+        case TP_TRACTION: {
+            if( bVisible ) {
+                hvTraction->RenderVBO( distancesquared, iVboPtr );
+            }
+            return;
         }
-        return;
-    case TP_MODEL:
-#ifdef _PROBLEND
-        glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04f);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-        Model->RenderAlphaVBO(&pCenter);
-        return;
-    case GL_LINES:
-    case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-        if (iNumPts)
-        {
-            float linealpha = 255000 * fLineThickness / (mgn + 1.0);
-            if (linealpha > 255)
-                linealpha = 255;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
-            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
-#else
-            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
-            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
-#endif
-            glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
-            // glDisable(GL_LIGHTING); //nie powinny świecić
-            glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
-// glEnable(GL_LIGHTING);
-#ifdef _PROBLEND
-            glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04f);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-        }
-#ifdef _PROBLEND
-        glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04f);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-        return;
-    default:
-        if (iVboPtr >= 0)
-        {
-            RaRenderVBO();
-#ifdef _PROBLEND
-            glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04f);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
+        case TP_MODEL: {
+            Model->RenderAlpha( &pCenter );
             return;
         }
     }
+
+    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
+    if( ( iNumVerts && ( iFlags & 0x20 ) )
+     || ( iNumPts && ( fLineThickness > 0 ) ) ) {
+
 #ifdef _PROBLEND
-    glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04f);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        if( ( PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+        {
+            glDisable( GL_BLEND );
+            glAlphaFunc( GL_GREATER, 0.45f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+        };
 #endif
-    return;
+
+        if( ( iType == GL_LINES )
+            || ( iType == GL_LINE_STRIP )
+            || ( iType == GL_LINE_LOOP ) ) {
+
+            if( iNumPts ) {
+
+                float linealpha = 255000 * fLineThickness / (distancesquared + 1.0);
+                if (linealpha > 255)
+                    linealpha = 255;
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+                r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+                g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+                b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+#else
+                float r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+                float g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+                float b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+#endif
+                glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
+
+                glDrawArrays( iType, iVboPtr, iNumPts ); // rysowanie linii
+            }
+        }
+        else {
+            if( iVboPtr >= 0 ) {
+                RaRenderVBO();
+            }
+        }
+
+        SetLastUsage( Timer::GetSimulationTime() );
+    }
+
+#ifdef _PROBLEND
+    if( ( PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
+    {
+        glEnable( GL_BLEND );
+        glAlphaFunc( GL_GREATER, 0.04f );
+    }
+#endif
 }
 
 void TGroundNode::Compile(bool many)
@@ -577,21 +561,26 @@ void TGroundNode::RenderDL()
         GfxRenderer.Render( smTerrain );
 #endif
     }
-    // if (pTriGroup) if (pTriGroup!=this) return; //wyświetla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
-    if ((mgn > fSquareRadius) || (mgn < fSquareMinRadius)) // McZapkie-070602: nie rysuj odleglych
-        // obiektow ale sprawdzaj wyzwalacz
-        // zdarzen
+
+    double distancesquared = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
+    if( ( distancesquared > ( fSquareRadius * Global::fDistanceFactor ) )
+     || ( distancesquared < ( fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return;
+    }
+
     switch (iType)
     {
-    case TP_TRACK:
-        return pTrack->Render();
-    case TP_MODEL:
-        return Model->RenderDL(&pCenter);
+        case TP_TRACK: {
+            pTrack->Render();
+            return;
+        }
+        case TP_MODEL: {
+            Model->Render( &pCenter );
+            return;
+        }
     }
+
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    // if ((iNumVerts&&(iFlags&0x10))||(iNumPts&&(fLineThickness<0)))
     if ((iFlags & 0x10) || (fLineThickness < 0))
     {
         if (!DisplayListID || (iVersion != Global::iReCompile)) // Ra: wymuszenie rekompilacji
@@ -602,26 +591,31 @@ void TGroundNode::RenderDL()
         };
 
         if ((iType == GL_LINES) || (iType == GL_LINE_STRIP) || (iType == GL_LINE_LOOP))
-        // if (iNumPts)
         { // wszelkie linie są rysowane na samym końcu
-            float r, g, b;
+            if( iNumPts ) {
+
+                float linealpha = 255000 * fLineThickness / ( distancesquared + 1.0 );
+                if( linealpha > 255 )
+                    linealpha = 255;
+                float r, g, b;
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
-            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
-            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+                r = floor( Diffuse[ 0 ] * Global::ambientDayLight[ 0 ] ); // w zaleznosci od koloru swiatla
+                g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
+                b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
 #else
-            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
-            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+                r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
+                g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
+                b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
 #endif
-            glColor4ub(r, g, b, 1.0);
-            glCallList(DisplayListID);
-            // glColor4fv(Diffuse); //przywrócenie koloru
-            // glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
+                glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
+
+                glCallList( DisplayListID );
+            }
         }
         // GL_TRIANGLE etc
         else
             glCallList(DisplayListID);
+
         SetLastUsage(Timer::GetSimulationTime());
     };
 };
@@ -642,30 +636,28 @@ void TGroundNode::RenderAlphaDL()
     // wlasciwie dla kazdego node'a
     // i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
 
-    // if (pTriGroup) if (pTriGroup!=this) return; //wyświetla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
-    float r, g, b;
-    if (mgn < fSquareMinRadius)
+    double distancesquared = SquareMagnitude( pCenter - Global::pCameraPosition ) / Global::ZoomFactor;
+    if( ( distancesquared > ( fSquareRadius * Global::fDistanceFactor ) )
+     || ( distancesquared < ( fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return;
-    if (mgn > fSquareRadius)
-        return;
-    switch (iType)
-    {
-    case TP_TRACTION:
-        if (bVisible)
-            hvTraction->RenderDL(mgn);
-        return;
-    case TP_MODEL:
-        Model->RenderAlphaDL(&pCenter);
-        return;
-    case TP_TRACK:
-        // pTrack->RenderAlpha();
-        return;
+    }
+
+    switch( iType ) {
+        case TP_TRACTION: {
+            if( bVisible )
+                hvTraction->RenderDL( distancesquared );
+            return;
+        }
+        case TP_MODEL: {
+            Model->RenderAlpha( &pCenter );
+            return;
+        }
     };
 
     // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if ((iNumVerts && (iFlags & 0x20)) || (iNumPts && (fLineThickness > 0)))
-    {
+    if( ( iNumVerts && ( iFlags & 0x20 ) )
+     || ( iNumPts && ( fLineThickness > 0 ) ) ) {
+
 #ifdef _PROBLEND
         if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
         {
@@ -680,35 +672,43 @@ void TGroundNode::RenderAlphaDL()
                 ResourceManager::Register(this);
         };
 
-        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if (iNumPts)
-        {
-            float linealpha = 255000 * fLineThickness / (mgn + 1.0);
-            if (linealpha > 255)
-                linealpha = 255;
+        if( ( iType == GL_LINES )
+         || ( iType == GL_LINE_STRIP )
+         || ( iType == GL_LINE_LOOP ) ) {
+
+            if( iNumPts ) {
+
+                float linealpha = 255000 * fLineThickness / ( distancesquared + 1.0 );
+                if (linealpha > 255)
+                    linealpha = 255;
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
-            r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
-            b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
+                r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
+                g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
+                b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
 #else
-            r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
-            g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
-            b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
+                float r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
+                float g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
+                float b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
 #endif
-            glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
-            glCallList(DisplayListID);
+                glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
+
+                glCallList( DisplayListID );
+            }
         }
         // GL_TRIANGLE etc
-        else
-            glCallList(DisplayListID);
+        else {
+            glCallList( DisplayListID );
+        }
+
         SetLastUsage(Timer::GetSimulationTime());
-    };
+    }
+
 #ifdef _PROBLEND
     if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
     {
         glEnable(GL_BLEND);
         glAlphaFunc(GL_GREATER, 0.04f);
-    };
+    }
 #endif
 }
 

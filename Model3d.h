@@ -258,9 +258,9 @@ public:
 #ifdef EU07_USE_OLD_RENDERCODE
 	void RenderDL();
 	void RenderAlphaDL();
-#endif
     void RenderVBO();
 	void RenderAlphaVBO();
+#endif
 	// inline matrix4x4* GetMatrix() {return dMatrix;};
 	inline float4x4 * GetMatrix()
 	{

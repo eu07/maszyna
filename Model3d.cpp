@@ -646,7 +646,6 @@ void TSubModel::DisplayLists()
 		{
 			uiDisplayList = glGenLists(1);
 			glNewList(uiDisplayList, GL_COMPILE);
-			glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
 #ifdef USE_VERTEX_ARRAYS
 								   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
 			glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
@@ -675,43 +674,22 @@ void TSubModel::DisplayLists()
     {
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        GfxRenderer.Bind(0);
-        //     if (eType==smt_FreeSpotLight)
-        //      {
-        //       if (iFarAttenDecay==0)
-        //         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
-        //      }
-        //      else
-        // TODO: poprawic zeby dzialalo
-        // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-        glColorMaterial(GL_FRONT, GL_EMISSION);
-        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
         glVertex3f( 0.0f, 0.0f, -0.05f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
         glEnd();
-        glEnable(GL_LIGHTING);
-        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-        glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
         glEndList();
     }
     else if (eType == TP_STARS)
     { // punkty świecące dookólnie
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
-        GfxRenderer.Bind(0); // tekstury nie ma
-        glColorMaterial(GL_FRONT, GL_EMISSION);
-//        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
         glBegin(GL_POINTS);
         for (int i = 0; i < iNumVerts; i++)
         {
             glColor3f(Vertices[i].Normal.x, Vertices[i].Normal.y, Vertices[i].Normal.z);
-            // glVertex3dv(&Vertices[i].Point.x);
             glVertex3fv(&Vertices[i].Point.x);
         };
         glEnd();
-//        glEnable(GL_LIGHTING);
-        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-        glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
         glEndList();
     }
     // SafeDeleteArray(Vertices); //przy VBO muszą zostać do załadowania całego
@@ -1232,7 +1210,6 @@ void TSubModel::RenderAlphaDL()
         if (iAlpha & iFlags & 0x2F000000)
             Next->RenderAlphaDL();
 }; // RenderAlpha
-#endif
 
 void TSubModel::RenderVBO()
 { // główna procedura renderowania przez VBO
@@ -1466,7 +1443,7 @@ void TSubModel::RenderAlphaVBO()
         if (iAlpha & iFlags & 0x2F000000)
             Next->RenderAlphaVBO();
 }; // RaRenderAlpha
-
+#endif
    //---------------------------------------------------------------------------
 
 void TSubModel::RaArrayFill(CVertNormTex *Vert)
@@ -2199,7 +2176,7 @@ void TModel3d::RenderAlpha(double fSquareDistance, texture_manager::size_type *R
 		Root->RenderAlphaDL();
 	}
 };
-#endif
+
 void TModel3d::RaRender(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
 	iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
@@ -2229,7 +2206,7 @@ void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type 
 		}
 	}
 };
-
+#endif
 //-----------------------------------------------------------------------------
 // 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
@@ -2268,7 +2245,7 @@ void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager:
 	Root->RenderAlphaDL();
 	glPopMatrix();
 };
-#endif
+
 void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, VBO
 	glPushMatrix();
@@ -2310,7 +2287,7 @@ void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manage
 	}
 	glPopMatrix();
 };
-
+#endif
 
 //-----------------------------------------------------------------------------
 // 2012-02 funkcje do tworzenia terenu z E3D
@@ -2355,9 +2332,8 @@ void TModel3d::TerrainRenderVBO(int n)
 		TSubModel *r = Root;
 		while (r)
 		{
-			if (r->iVisible ==
-				n) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
-				r->RenderVBO(); // sub kolejne (Next) się nie wyrenderują
+			if (r->iVisible == n) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
+				GfxRenderer.Render(r); // sub kolejne (Next) się nie wyrenderują
 			r = r->NextGet();
 		}
 		EndVBO();

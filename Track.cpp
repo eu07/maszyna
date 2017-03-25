@@ -541,8 +541,10 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             p2.y += 0.18;
             // na przechyłce doliczyć jeszcze pół przechyłki
         }
-        if (fRadius != 0) // gdy podany promień
-            segsize = Min0R(5.0, 0.2 + fabs(fRadius) * 0.02); // do 250m - 5, potem 1 co 50m
+        if( fRadius != 0 ) // gdy podany promień
+            segsize = Min0R( 5.0, 0.2 + fabs( fRadius ) * 0.02 ); // do 250m - 5, potem 1 co 50m
+        else
+            segsize = 10.0; // for straights, 10m per segment works good enough
 
         if ((((p1 + p1 + p2) / 3.0 - p1 - cp1).Length() < 0.02) ||
             (((p1 + p2 + p2) / 3.0 - p2 + cp1).Length() < 0.02))
@@ -550,11 +552,9 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
 
         if ((cp1 == vector3(0, 0, 0)) &&
             (cp2 == vector3(0, 0, 0))) // Ra: hm, czasem dla prostego są podane...
-            Segment->Init(p1, p2, segsize, r1,
-                          r2); // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
+            Segment->Init(p1, p2, segsize, r1, r2); // gdy prosty, kontrolne wyliczane przy zmiennej przechyłce
         else
-            Segment->Init(p1, cp1 + p1, cp2 + p2, p2, segsize, r1,
-                          r2); // gdy łuk (ustawia bCurve=true)
+            Segment->Init(p1, cp1 + p1, cp2 + p2, p2, segsize, r1, r2); // gdy łuk (ustawia bCurve=true)
         if ((r1 != 0) || (r2 != 0))
             iTrapezoid = 1; // są przechyłki do uwzględniania w rysowaniu
         if (eType == tt_Table) // obrotnica ma doklejkę
@@ -2395,124 +2395,89 @@ void TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start)
     }
 };
 
-void TTrack::RaRenderVBO(int iPtr)
-{ // renderowanie z użyciem VBO
+void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
     // Ra 2014-07: trzeba wymienić GL_TRIANGLE_STRIP na GL_TRIANGLES i renderować trójkąty sektora
     // dla kolejnych tekstur!
     EnvironmentSet();
     int seg;
     int i;
-    switch (iCategoryFlag & 15)
-    {
-    case 1: // tor
-        if (eType == tt_Switch) // dla zwrotnicy tylko szyny
-        {
-            if (TextureID1)
-                if ((seg = SwitchExtension->Segments[0]->RaSegCount()) > 0)
-                {
-                    GfxRenderer.Bind( TextureID1 ); // szyny +
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
-                    iPtr += 24 * seg; // pominięcie lewej szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
-                    iPtr += 24 * seg; // pominięcie prawej szyny
-                }
-            if (TextureID2)
-                if ((seg = SwitchExtension->Segments[1]->RaSegCount()) > 0)
-                {
-                    GfxRenderer.Bind( TextureID2 ); // szyny -
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
-                    iPtr += 24 * seg; // pominięcie lewej szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
-                }
-        }
-        else // dla toru podsypka plus szyny
-        {
-            if ((seg = Segment->RaSegCount()) > 0)
+    switch( iCategoryFlag & 15 ) {
+        case 1: // tor
+            if( eType == tt_Switch ) // dla zwrotnicy tylko szyny
             {
-                if (TextureID2)
-                {
-                    GfxRenderer.Bind( TextureID2 ); // podsypka
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 8 * i, 8);
-                    iPtr += 8 * seg; // pominięcie podsypki
-                }
-                if (TextureID1)
-                {
-                    GfxRenderer.Bind( TextureID1 ); // szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
-                    iPtr += 24 * seg; // pominięcie lewej szyny
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 24 * i, 24);
-                }
-            }
-        }
-        break;
-    case 2: // droga
-        if ((seg = Segment->RaSegCount()) > 0)
-        {
-            if (TextureID1)
-            {
-                GfxRenderer.Bind( TextureID1 ); // nawierzchnia
-                for (i = 0; i < seg; ++i)
-                {
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4);
-                    iPtr += 4;
-                }
-            }
-            if (TextureID2)
-            {
-                GfxRenderer.Bind( TextureID2 ); // pobocze
-                if (fTexHeight1 >= 0.0)
-                { // normalna droga z poboczem
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
-                    iPtr += 6 * seg; // pominięcie lewego pobocza
-                    for (i = 0; i < seg; ++i)
-                        glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
-                }
-                else
-                { // z chodnikami o różnych szerokociach
-                    if (fTexWidth != 0.0)
-                    {
-                        for (i = 0; i < seg; ++i)
-                            glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
-                        iPtr += 6 * seg; // pominięcie lewego pobocza
+                if( TextureID1 )
+                    if( ( seg = SwitchExtension->Segments[ 0 ]->RaSegCount() ) > 0 ) {
+                        GfxRenderer.Bind( TextureID1 ); // szyny +
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                        iPtr += 24 * seg; // pominięcie lewej szyny
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                        iPtr += 24 * seg; // pominięcie prawej szyny
                     }
-                    if (fTexSlope != 0.0)
-                        for (i = 0; i < seg; ++i)
-                            glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+                if( TextureID2 )
+                    if( ( seg = SwitchExtension->Segments[ 1 ]->RaSegCount() ) > 0 ) {
+                        GfxRenderer.Bind( TextureID2 ); // szyny -
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                        iPtr += 24 * seg; // pominięcie lewej szyny
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                    }
+            }
+            else // dla toru podsypka plus szyny
+            {
+                if( ( seg = Segment->RaSegCount() ) > 0 ) {
+                    if( TextureID2 ) {
+                        GfxRenderer.Bind( TextureID2 ); // podsypka
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 8 * seg );
+                        iPtr += 8 * seg; // pominięcie podsypki
+                    }
+                    if( TextureID1 ) {
+                        GfxRenderer.Bind( TextureID1 ); // szyny
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                        iPtr += 24 * seg; // pominięcie lewej szyny
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                    }
                 }
             }
-        }
-        break;
-    case 4: // rzeki - jeszcze do przemyślenia
-        if ((seg = Segment->RaSegCount()) > 0)
-        {
-            if (TextureID1)
-            {
-                GfxRenderer.Bind( TextureID1 ); // nawierzchnia
-                for (i = 0; i < seg; ++i)
-                {
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr, 4);
-                    iPtr += 4;
+            break;
+        case 2: // droga
+            if( ( seg = Segment->RaSegCount() ) > 0 ) {
+                if( TextureID1 ) {
+                    GfxRenderer.Bind( TextureID1 ); // nawierzchnia
+                    glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 4 * seg );
+                    iPtr += 4 * seg;
+                }
+                if( TextureID2 ) {
+                    GfxRenderer.Bind( TextureID2 ); // pobocze
+                    if( fTexHeight1 >= 0.0 ) { // normalna droga z poboczem
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 6 * seg );
+                        iPtr += 6 * seg; // pominięcie lewego pobocza
+                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 6 * seg );
+                    }
+                    else { // z chodnikami o różnych szerokociach
+                        if( fTexWidth != 0.0 ) {
+                            glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 6 * seg );
+                            iPtr += 6 * seg; // pominięcie lewego pobocza
+                        }
+                        if( fTexSlope != 0.0 )
+                            glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 6 * seg );
+                    }
                 }
             }
-            if (TextureID2)
-            {
-                GfxRenderer.Bind( TextureID2 ); // pobocze
-                for (i = 0; i < seg; ++i)
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
-                iPtr += 6 * seg; // pominięcie lewego pobocza
-                for (i = 0; i < seg; ++i)
-                    glDrawArrays(GL_TRIANGLE_STRIP, iPtr + 6 * i, 6);
+            break;
+        case 4: // rzeki - jeszcze do przemyślenia
+            if( ( seg = Segment->RaSegCount() ) > 0 ) {
+                if( TextureID1 ) {
+                    GfxRenderer.Bind( TextureID1 ); // nawierzchnia
+                    glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 4 * seg );
+                    iPtr += 4 * seg;
+                }
+                if( TextureID2 ) {
+                    GfxRenderer.Bind( TextureID2 ); // pobocze
+                    glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 6 * seg );
+                    iPtr += 6 * seg; // pominięcie lewego pobocza
+                    glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 6 * seg );
+                }
             }
-        }
-        break;
+            break;
     }
     EnvironmentReset();
 };

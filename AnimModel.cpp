@@ -686,27 +686,19 @@ int TAnimModel::Flags()
 //-----------------------------------------------------------------------------
 // 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
-
+#ifdef EU07_USE_OLD_RENDERCODE
 void TAnimModel::RenderDL(vector3 *vPosition)
 {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if( pModel ) // renderowanie rekurencyjne submodeli
-#ifdef EU07_USE_OLD_RENDERCODE
         pModel->Render(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
-#else
-        GfxRenderer.Render( pModel, Material(), *vPosition, vAngle );
-#endif
 };
 void TAnimModel::RenderAlphaDL(vector3 *vPosition)
 {
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
-#ifdef EU07_USE_OLD_RENDERCODE
         pModel->RenderAlpha(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
-#else
-        GfxRenderer.Render_Alpha( pModel, Material(), *vPosition, vAngle );
-#endif
 };
 
 void TAnimModel::RenderVBO(vector3 *vPosition)
@@ -714,15 +706,27 @@ void TAnimModel::RenderVBO(vector3 *vPosition)
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRender(vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha);
+        pModel->RaRender( vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha );
 };
 void TAnimModel::RenderAlphaVBO(vector3 *vPosition)
 {
     RaPrepare();
     if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRenderAlpha(vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha);
+        pModel->RaRenderAlpha( vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha );
 };
-
+#else
+void TAnimModel::Render( vector3 *vPosition ) {
+    RaAnimate(); // jednorazowe przeliczenie animacji
+    RaPrepare();
+    if( pModel ) // renderowanie rekurencyjne submodeli
+        GfxRenderer.Render( pModel, Material(), *vPosition, vAngle );
+};
+void TAnimModel::RenderAlpha( vector3 *vPosition ) {
+    RaPrepare();
+    if( pModel ) // renderowanie rekurencyjne submodeli
+        GfxRenderer.Render_Alpha( pModel, Material(), *vPosition, vAngle );
+};
+#endif
 
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()

@@ -205,6 +205,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
     Dynamic->renderme = true;
 
+    // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
     double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
@@ -227,63 +228,34 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
         Global::DayLight.apply_intensity( Dynamic->fShade );
     }
 
-    // TODO: implement universal render path down the road
-    if( Global::bUseVBO ) {
-        // wersja VBO
-        if( Dynamic->mdLowPolyInt ) {
-            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
-                // enable cab light if needed
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
+    // render
+    if( Dynamic->mdLowPolyInt ) {
+        // low poly interior
+        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+            // enable cab light if needed
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
 
-                    // crude way to light the cabin, until we have something more complete in place
-                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-                }
+                // crude way to light the cabin, until we have something more complete in place
+                auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+            }
 
-                Dynamic->mdLowPolyInt->RaRender( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
+            Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
-                    // reset the overall ambient
-                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-                }
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
+                // reset the overall ambient
+                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
             }
         }
-
-        Dynamic->mdModel->RaRender( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
-
-        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-            Dynamic->mdLoad->RaRender( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
-    }
-    else {
-        // wersja Display Lists
-        if( Dynamic->mdLowPolyInt ) {
-            // low poly interior
-            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
-                // enable cab light if needed
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
-
-                    // crude way to light the cabin, until we have something more complete in place
-                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-                }
-
-                Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
-                    // reset the overall ambient
-                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-                }
-            }
-        }
-
-        Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
-
-        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-            Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
     }
 
+    Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+
+    if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+        Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+
+    // post-render cleanup
     if( Dynamic->fShade > 0.0f ) {
         // restore regular light level
         Global::DayLight.apply_intensity();
@@ -312,14 +284,29 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
     }
 
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
-    
+
+    // TODO: unify the render code after generic buffers are in place
+    // setup
+    if( Global::bUseVBO ) {
+        if( false == Model->StartVBO() )
+            return false;
+    }
+
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
             Material->replacable_skins :
             nullptr ),
         alpha );
 
+    Model->Root->pRoot = Model;
+
+    // render
     Render( Model->Root );
+
+    // post-render cleanup
+    if( Global::bUseVBO ) {
+        Model->EndVBO();
+    }
 
     return true;
 }
@@ -345,7 +332,7 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
 
 void
 opengl_renderer::Render( TSubModel *Submodel ) {
-    // główna procedura renderowania przez DL
+
     if( ( Submodel->iVisible )
      && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / Global::fDistanceFactor ) )
      && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) ) {
@@ -357,53 +344,113 @@ opengl_renderer::Render( TSubModel *Submodel ) {
             if( Submodel->b_Anim )
                 Submodel->RaAnimation( Submodel->b_Anim );
         }
-        if( Submodel->eType < TP_ROTATOR ) { // renderowanie obiektów OpenGL
+
+        if( Submodel->eType < TP_ROTATOR ) {
+            // renderowanie obiektów OpenGL
             if( Submodel->iAlpha & Submodel->iFlags & 0x1F ) // rysuj gdy element nieprzezroczysty
             {
-                if( Submodel->TextureID < 0 ) // && (ReplacableSkinId!=0))
+                // material configuration:
+                // textures...
+                if( Submodel->TextureID < 0 )
                 { // zmienialne skóry
-                    GfxRenderer.Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
-                    // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
+                    Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
                 }
-                else
-                    GfxRenderer.Bind( Submodel->TextureID ); // również 0
+                else {
+                    // również 0
+                    Bind( Submodel->TextureID );
+                }
+                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
+                // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
-                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
-                    float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+                    // zeby swiecilo na kolorowo
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
                 }
-                else
-                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
+
+                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
+                if( Global::bUseVBO ) {
+                    ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
+                }
+                else {
+                    ::glCallList( Submodel->uiDisplayList );
+                }
+
+                // post-draw reset
+                if( Global::fLuminance < Submodel->fLight ) {
+                    // restore default (lack of) brightness
+                    glm::vec4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( noemission ) );
+                }
             }
         }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
-            // wersja DL
-/*
-            matrix4x4 modelview;
-            ::glGetDoublev( GL_MODELVIEW_MATRIX, modelview.getArray() );
-*/
-            matrix4x4 modelview; modelview.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
-            // kąt między kierunkiem światła a współrzędnymi kamery
-            auto const lightcenter = modelview * vector3( 0.0, 0.0, 0.0 ); // pozycja punktu świecącego względem kamery
-            Submodel->fCosViewAngle = DotProduct( Normalize( modelview * vector3( 0.0, 0.0, -1.0 ) - lightcenter ), Normalize( -lightcenter ) );
+
+            auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+            auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
+            Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
+
             if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) // kąt większy niż maksymalny stożek swiatła
             {
-                double Distdimm = 1.0;
-                if( Submodel->fCosViewAngle < Submodel->fCosHotspotAngle ) // zmniejszona jasność między Hotspot a Falloff
-                    if( Submodel->fCosFalloffAngle < Submodel->fCosHotspotAngle )
-                        Distdimm = 1.0 - ( Submodel->fCosHotspotAngle - Submodel->fCosViewAngle ) / ( Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle );
-                ::glColor3f( Submodel->f4Diffuse[ 0 ] * Distdimm, Submodel->f4Diffuse[ 1 ] * Distdimm, Submodel->f4Diffuse[ 2 ] * Distdimm );
-                ::glCallList( Submodel->uiDisplayList ); // wyświetlenie warunkowe
+                float lightlevel = 1.0f;
+                // view angle attenuation
+                float const anglefactor = ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
+                // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
+                // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
+                float const distancefactor = std::max( 0.5, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) );
+
+                if( lightlevel > 0.0f ) {
+                    // material configuration:
+                    ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
+
+                    Bind( 0 );
+                    ::glPointSize( std::max( 2.0f, 4.0f * distancefactor * anglefactor ) );
+                    ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], lightlevel * anglefactor );
+                    ::glDisable( GL_LIGHTING );
+                    ::glEnable( GL_BLEND );
+
+                    // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
+                    if( Global::bUseVBO ) {
+                        ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
+                    }
+                    else {
+                        ::glCallList( Submodel->uiDisplayList );
+                    }
+
+                    // post-draw reset
+                    ::glPopAttrib();
+                }
             }
         }
         else if( Submodel->eType == TP_STARS ) {
-            // glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie blendowaly
+
             if( Global::fLuminance < Submodel->fLight ) {
-                ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
-                ::glCallList( Submodel->uiDisplayList ); // narysuj naraz wszystkie punkty z DL
-                float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
-                ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+
+                // material configuration:
+                ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
+
+                Bind( 0 );
+                ::glDisable( GL_LIGHTING );
+
+                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
+                if( Global::bUseVBO ) {
+                    // NOTE: we're doing manual switch to color vbo setup, because there doesn't seem to be any convenient way available atm
+                    // TODO: implement easier way to go about it
+                    ::glDisableClientState( GL_NORMAL_ARRAY );
+                    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+                    ::glEnableClientState( GL_COLOR_ARRAY );
+                    ::glColorPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // kolory
+
+                    ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
+
+                    ::glDisableClientState( GL_COLOR_ARRAY );
+                    ::glEnableClientState( GL_NORMAL_ARRAY );
+                    ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+                }
+                else {
+                    ::glCallList( Submodel->uiDisplayList );
+                }
+
+                // post-draw reset
+                ::glPopAttrib();
             }
         }
         if( Submodel->Child != NULL )
@@ -429,7 +476,8 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
         return false;
     }
-    
+
+    // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
     double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
@@ -444,61 +492,42 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
-    // TODO: implement universal render path down the road
-    if( Global::bUseVBO ) {
-        // wersja VBO
-        if( Dynamic->mdLowPolyInt ) {
-            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
-                // enable cab light if needed
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
-
-                    // crude way to light the cabin, until we have something more complete in place
-                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-                }
-
-                Dynamic->mdLowPolyInt->RaRenderAlpha( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
-
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
-                    // reset the overall ambient
-                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-                }
-            }
-        }
-
-        Dynamic->mdModel->RaRenderAlpha( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
-
-        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-            Dynamic->mdLoad->RaRenderAlpha( squaredistance, Dynamic->Material()->replacable_skins, Dynamic->Material()->textures_alpha );
+    if( Dynamic->fShade > 0.0f ) {
+        // change light level based on light level of the occupied track
+        Global::DayLight.apply_intensity( Dynamic->fShade );
     }
-    else {
-        // wersja Display Lists
-        if( Dynamic->mdLowPolyInt ) {
-            // low poly interior
-            if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
-                // enable cab light if needed
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
 
-                    // crude way to light the cabin, until we have something more complete in place
-                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-                }
+    // render
+    if( Dynamic->mdLowPolyInt ) {
+        // low poly interior
+        if( FreeFlyModeFlag ? true : !Dynamic->mdKabina || !Dynamic->bDisplayCab ) {
+            // enable cab light if needed
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
 
-                Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+                // crude way to light the cabin, until we have something more complete in place
+                auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+            }
 
-                if( Dynamic->InteriorLightLevel > 0.0f ) {
-                    // reset the overall ambient
-                    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-                }
+            Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+
+            if( Dynamic->InteriorLightLevel > 0.0f ) {
+                // reset the overall ambient
+                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
             }
         }
+    }
 
-        Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+    Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
 
-        if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
-            Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+    if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+        Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
+
+    // post-render cleanup
+    if( Dynamic->fShade > 0.0f ) {
+        // restore regular light level
+        Global::DayLight.apply_intensity();
     }
 
     ::glPopMatrix();
@@ -524,13 +553,28 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
 
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
 
+    // TODO: unify the render code after generic buffers are in place
+    // setup
+    if( Global::bUseVBO ) {
+        if( false == Model->StartVBO() )
+            return false;
+    }
+
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
-            Material->replacable_skins :
-            nullptr ),
+        Material->replacable_skins :
+        nullptr ),
         alpha );
 
+    Model->Root->pRoot = Model;
+
+    // render
     Render_Alpha( Model->Root );
+
+    // post-render cleanup
+    if( Global::bUseVBO ) {
+        Model->EndVBO();
+    }
 
     return true;
 }
@@ -569,54 +613,60 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 Submodel->RaAnimation( Submodel->b_aAnim );
         }
 
-        if( Submodel->eType < TP_ROTATOR ) { // renderowanie obiektów OpenGL
+        if( Submodel->eType < TP_ROTATOR ) {
+            // renderowanie obiektów OpenGL
             if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) // rysuj gdy element przezroczysty
             {
-                if( Submodel->TextureID < 0 ) // && (ReplacableSkinId!=0))
-                { // zmienialne skóry
-                    GfxRenderer.Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
-                    // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
+                // textures...
+                if( Submodel->TextureID < 0 ) { // zmienialne skóry
+                    Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
                 }
-                else
-                    GfxRenderer.Bind( Submodel->TextureID ); // również 0
+                else {
+                    // również 0
+                    Bind( Submodel->TextureID );
+                }
+                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
+                // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
-                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
-                    float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
+                    // zeby swiecilo na kolorowo
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
                 }
-                else
-                    ::glCallList( Submodel->uiDisplayList ); // tylko dla siatki
+
+                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
+                if( Global::bUseVBO ) {
+                    ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
+                }
+                else {
+                    ::glCallList( Submodel->uiDisplayList );
+                }
+
+                // post-draw reset
+                if( Global::fLuminance < Submodel->fLight ) {
+                    // restore default (lack of) brightness
+                    glm::vec4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( noemission ) );
+                }
             }
         }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
-            // dorobić aureolę!
+
             if( Global::fLuminance < Submodel->fLight ) {
                 // NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
                 // TODO: separate instance data from reusable geometry
-/*
-                matrix4x4 modelview;
-                ::glGetDoublev( GL_MODELVIEW_MATRIX, modelview.getArray() );
-*/
-/*
-                matrix4x4 modelview; modelview.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
-                // kąt między kierunkiem światła a współrzędnymi kamery
-                auto const lightcenter = modelview * vector3( 0.0, 0.0, -0.05 ); // pozycja punktu świecącego względem kamery
-                Submodel->fCosViewAngle = DotProduct( Normalize( modelview * vector3( 0.0, 0.0, -1.0 ) - lightcenter ), Normalize( -lightcenter ) );
-*/
                 auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
                 auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
                 Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
                 float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency is ~0.5 at full 'brightness'
-                if( ( Submodel->fCosViewAngle > 0.0 ) && ( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) ) {
+                if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {
 
-                    glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0 - Submodel->fCosFalloffAngle );
+                    glarelevel *= ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
                     glarelevel = std::max( 0.0f, glarelevel - static_cast<float>(Global::fLuminance) );
 
                     if( glarelevel > 0.0f ) {
 
                         ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
+
                         Bind( m_glaretextureid );
                         ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );
                         ::glDisable( GL_LIGHTING );
@@ -626,8 +676,6 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         ::glLoadIdentity(); // macierz jedynkowa
                         ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
                         ::glRotated( atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
-
-                        ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse ); // zeby swiecilo na kolorowo
 
                         // TODO: turn the drawing instructions into a compiled call / array
                         ::glBegin( GL_TRIANGLE_STRIP );
@@ -645,9 +693,6 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
                         ::glEnd();
-
-                        float4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
-                        ::glMaterialfv( GL_FRONT, GL_EMISSION, &noemission.x );
 
                         ::glPopMatrix();
                         ::glPopAttrib();

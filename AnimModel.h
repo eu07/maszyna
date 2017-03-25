@@ -175,10 +175,16 @@ class TAnimModel
     void RenderAlphaDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
     void RenderVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
     void RenderAlphaVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-*/  void RenderDL(vector3 *vPosition);
+*/
+#ifdef EU07_USE_OLD_RENDERCODE
+    void RenderDL( vector3 *vPosition );
     void RenderAlphaDL(vector3 *vPosition);
     void RenderVBO(vector3 *vPosition);
     void RenderAlphaVBO(vector3 *vPosition);
+#else
+    void Render( vector3 *vPosition );
+    void RenderAlpha( vector3 *vPosition );
+#endif
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {
