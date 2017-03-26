@@ -106,7 +106,9 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         m_lights.emplace_back( light );
     }
     // preload some common textures
+    WriteLog( "Loading common gfx data..." );
     m_glaretextureid = GetTextureId( "fx\\lightglare", szTexturePath );
+    WriteLog( "...gfx data pre-loading done" );
 
     return true;
 }
@@ -897,6 +899,7 @@ opengl_renderer::Init_caps() {
 
     WriteLog( "Supported extensions:" +  std::string((char *)glGetString( GL_EXTENSIONS )) );
 
+    WriteLog( std::string("Render path: ") + ( Global::bUseVBO ? "VBO" : "Display lists" ) );
     if( Global::iMultisampling )
         WriteLog( "Using multisampling x" + std::to_string( 1 << Global::iMultisampling ) );
     { // ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur

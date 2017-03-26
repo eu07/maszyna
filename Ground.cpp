@@ -290,6 +290,7 @@ void TGroundNode::RaRenderVBO()
 }
 
 void TGroundNode::RenderVBO() { // renderowanie obiektu z VBO - faza nieprzezroczystych
+
     switch( iType ) { // obiekty renderowane niezależnie od odległości
         case TP_SUBMODEL:
             TSubModel::fSquareDist = 0;
@@ -362,7 +363,6 @@ void TGroundNode::RenderAlphaVBO()
      || ( distancesquared < ( fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return;
     }
-
 
     switch( iType ) {
         case TP_TRACTION: {

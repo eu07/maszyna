@@ -118,7 +118,7 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     fStep = fNewStep;
     if (fLength <= 0)
     {
-        ErrorLog("Bad geometry: Length <= 0 in TSegment::Init at " + Where(Point1));
+        ErrorLog( "Bad geometry (zero length) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
         // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
         return false; // zerowe nie mogą być
     }
@@ -220,7 +220,7 @@ double TSegment::GetTFromS(double s)
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
-	ErrorLog( "Bad geometry: Too many iterations at " + Where( Point1 ) );
+    ErrorLog( "Bad geometry (shape estimation failed) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
 	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
 	return fTime;
 };

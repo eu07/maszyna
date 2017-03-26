@@ -580,9 +580,9 @@ opengl_texture::create() {
                 dataheight = std::max( dataheight / 2, 1 );
             }
             else {
-                // uncompressed texture data
+                // uncompressed texture data. have the gfx card do the compression as it sees fit
                 ::glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_RGBA8,
+                    GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA,
                     data_width, data_height, 0,
                     data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
             }
