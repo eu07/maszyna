@@ -339,9 +339,9 @@ void TGroundNode::RenderVBO() { // renderowanie obiektu z VBO - faza nieprzezroc
                 b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
 #endif
                 glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
-                // glDisable(GL_LIGHTING); //nie powinny świecić
+                GfxRenderer.Bind( 0 );
+
                 glDrawArrays( iType, iVboPtr, iNumPts ); // rysowanie linii
-                // glEnable(GL_LIGHTING);
             }
         }
         // GL_TRIANGLE etc
@@ -408,6 +408,7 @@ void TGroundNode::RenderAlphaVBO()
                 float b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
 #endif
                 glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
+                GfxRenderer.Bind( 0 );
 
                 glDrawArrays( iType, iVboPtr, iNumPts ); // rysowanie linii
             }
@@ -447,9 +448,6 @@ void TGroundNode::Compile(bool many)
     {
 #ifdef USE_VERTEX_ARRAYS
         glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
-#endif
-        GfxRenderer.Bind(0);
-#ifdef USE_VERTEX_ARRAYS
         glDrawArrays(iType, 0, iNumPts);
 #else
         glBegin(iType);
@@ -608,6 +606,7 @@ void TGroundNode::RenderDL()
                 b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
 #endif
                 glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
+                GfxRenderer.Bind( 0 );
 
                 glCallList( DisplayListID );
             }
@@ -691,6 +690,7 @@ void TGroundNode::RenderAlphaDL()
                 float b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
 #endif
                 glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
+                GfxRenderer.Bind( 0 );
 
                 glCallList( DisplayListID );
             }
