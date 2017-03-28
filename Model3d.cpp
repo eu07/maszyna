@@ -956,29 +956,27 @@ void TSubModel::RaAnimation(TAnimType a)
 		glRotatef(v_Angles.z, 0.0f, 0.0f, 1.0f);
 		break;
 	case at_SecondsJump: // sekundy z przeskokiem
-		glRotatef(floor(GlobalTime->mr) * 6.0, 0.0, 1.0, 0.0);
+		glRotatef(Simulation::Time.data().wSecond * 6.0, 0.0, 1.0, 0.0);
 		break;
 	case at_MinutesJump: // minuty z przeskokiem
-		glRotatef(GlobalTime->mm * 6.0, 0.0, 1.0, 0.0);
+		glRotatef(Simulation::Time.data().wMinute * 6.0, 0.0, 1.0, 0.0);
 		break;
 	case at_HoursJump: // godziny skokowo 12h/360°
-		glRotatef(GlobalTime->hh * 30.0 * 0.5, 0.0, 1.0, 0.0);
+		glRotatef(Simulation::Time.data().wHour * 30.0 * 0.5, 0.0, 1.0, 0.0);
 		break;
 	case at_Hours24Jump: // godziny skokowo 24h/360°
-		glRotatef(GlobalTime->hh * 15.0 * 0.25, 0.0, 1.0, 0.0);
+		glRotatef(Simulation::Time.data().wHour * 15.0 * 0.25, 0.0, 1.0, 0.0);
 		break;
 	case at_Seconds: // sekundy płynnie
-		glRotatef(GlobalTime->mr * 6.0, 0.0, 1.0, 0.0);
+		glRotatef(Simulation::Time.second() * 6.0, 0.0, 1.0, 0.0);
 		break;
 	case at_Minutes: // minuty płynnie
-		glRotatef(GlobalTime->mm * 6.0 + GlobalTime->mr * 0.1, 0.0, 1.0, 0.0);
+		glRotatef(Simulation::Time.data().wMinute * 6.0 + Simulation::Time.second() * 0.1, 0.0, 1.0, 0.0);
 		break;
 	case at_Hours: // godziny płynnie 12h/360°
-				   // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
 		glRotatef(2.0 * Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
 		break;
 	case at_Hours24: // godziny płynnie 24h/360°
-					 // glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
 		glRotatef(Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
 		break;
 	case at_Billboard: // obrót w pionie do kamery
@@ -998,7 +996,7 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
-		glRotated(1.5 * sin(M_PI * GlobalTime->mr / 6.0), 0.0, 1.0, 0.0);
+		glRotated(1.5 * std::sin(M_PI * Simulation::Time.second() / 6.0), 0.0, 1.0, 0.0);
 		break;
 	case at_Sky: // animacja nieba
 		glRotated(Global::fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na północ

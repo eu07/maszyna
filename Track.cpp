@@ -2521,7 +2521,7 @@ void TTrack::EnvironmentSet()
 #else
     switch( eEnvironment ) {
         case e_canyon: {
-            Global::DayLight.apply_intensity( 0.5f );
+            Global::DayLight.apply_intensity( 0.4f );
             break;
         }
         case e_tunnel: {

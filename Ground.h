@@ -300,11 +300,7 @@ class TGround
     // TGroundNode *nLastOfType[TP_LAST]; //ostatnia
     TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
     int hh = 0,
-        mm = 0,
-        srh = 0,
-        srm = 0,
-        ssh = 0,
-        ssm = 0; // ustawienia czasu
+        mm = 0; // ustawienia czasu
     // int tracks,tracksfar; //liczniki torów
     typedef std::unordered_map<std::string, TEvent *> event_map;
     event_map m_eventmap;

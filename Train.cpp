@@ -391,9 +391,9 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "actualproximitydist", PyGetFloat( driver->ActualProximityDist ) );
     PyDict_SetItemString( dict, "trainnumber", PyGetString( driver->TrainName().c_str() ) );
     // world state data
-    PyDict_SetItemString( dict, "hours", PyGetInt( GlobalTime->hh ) );
-    PyDict_SetItemString( dict, "minutes", PyGetInt( GlobalTime->mm ) );
-    PyDict_SetItemString( dict, "seconds", PyGetInt( GlobalTime->mr ) );
+    PyDict_SetItemString( dict, "hours", PyGetInt( Simulation::Time.data().wHour ) );
+    PyDict_SetItemString( dict, "minutes", PyGetInt( Simulation::Time.data().wMinute ) );
+    PyDict_SetItemString( dict, "seconds", PyGetInt( Simulation::Time.second() ) );
 
     return dict;
 }
@@ -2648,7 +2648,7 @@ bool TTrain::Update( double const Deltatime )
         fTachoVelocity = Min0R(fabs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot),
                                mvControlled->Vmax * 1.05);
         { // skacze osobna zmienna
-            float ff = floor(GlobalTime->mr); // skacze co sekunde - pol sekundy
+            float ff = Simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
             // pomiar, pol sekundy ustawienie
             if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
             {
@@ -3326,11 +3326,11 @@ bool TTrain::Update( double const Deltatime )
         // McZapkie-300302: zegarek
         if (ggClockMInd.SubModel)
         {
-            ggClockSInd.UpdateValue(int(GlobalTime->mr));
+            ggClockSInd.UpdateValue(Simulation::Time.data().wSecond);
             ggClockSInd.Update();
-            ggClockMInd.UpdateValue(GlobalTime->mm);
+            ggClockMInd.UpdateValue(Simulation::Time.data().wMinute);
             ggClockMInd.Update();
-            ggClockHInd.UpdateValue(GlobalTime->hh + GlobalTime->mm / 60.0);
+            ggClockHInd.UpdateValue(Simulation::Time.data().wHour + Simulation::Time.data().wMinute / 60.0);
             ggClockHInd.Update();
         }
 

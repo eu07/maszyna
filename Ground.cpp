@@ -36,6 +36,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "Names.h"
+#include "world.h"
 #include "uilayer.h"
 
 #define _PROBLEND 1
@@ -2512,9 +2513,6 @@ void TGround::FirstInit()
     WriteLog("InitEvents OK");
     InitLaunchers();
     WriteLog("InitLaunchers OK");
-    // ABu 160205: juz nie TODO :)
-    Mtable::GlobalTime = std::make_shared<TMTableTime>( hh, mm, srh, srm, ssh, ssm ); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
-    WriteLog("InitGlobalTime OK");
     WriteLog("FirstInit is done");
 };
 
@@ -2553,13 +2551,6 @@ bool TGround::Init(std::string File)
     int OriginStackTop = 0;
     vector3 OriginStack[OriginStackMaxDepth]; // stos zagnieżdżenia origin
 
-    // ABu: Jezeli nie ma definicji w scenerii to ustawiane ponizsze wartosci:
-    hh = 10; // godzina startu
-    mm = 30; // minuty startu
-    srh = 6; // godzina wschodu slonca
-    srm = 0; // minuty wschodu slonca
-    ssh = 20; // godzina zachodu slonca
-    ssm = 0; // minuty zachodu slonca
     TGroundNode *LastNode = NULL; // do użycia w trainset
     iNumNodes = 0;
     token = "";
@@ -2830,47 +2821,18 @@ bool TGround::Init(std::string File)
         else if (str == "time")
         {
             WriteLog("Scenery time definition");
-            char temp_in[9];
-            char temp_out[9];
-            int i, j;
             parser.getTokens();
-            parser >> temp_in;
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (i = 0; temp_in[i] != ':'; i++)
-                temp_out[i] = temp_in[i];
-            hh = atoi(temp_out);
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (j = i + 1; j <= 8; j++)
-                temp_out[j - (i + 1)] = temp_in[j];
-            mm = atoi(temp_out);
+            parser >> token;
 
-            parser.getTokens();
-            parser >> temp_in;
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (i = 0; temp_in[i] != ':'; i++)
-                temp_out[i] = temp_in[i];
-            srh = atoi(temp_out);
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (j = i + 1; j <= 8; j++)
-                temp_out[j - (i + 1)] = temp_in[j];
-            srm = atoi(temp_out);
+            cParser timeparser( token );
+            timeparser.getTokens( 2, false, ":" );
+            auto &time = Simulation::Time.data();
+            timeparser
+                >> time.wHour
+                >> time.wMinute;
 
-            parser.getTokens();
-            parser >> temp_in;
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (i = 0; temp_in[i] != ':'; i++)
-                temp_out[i] = temp_in[i];
-            ssh = atoi(temp_out);
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (j = i + 1; j <= 8; j++)
-                temp_out[j - (i + 1)] = temp_in[j];
-            ssm = atoi(temp_out);
+            // NOTE: we ignore old sunrise and sunset definitions, as they're now calculated dynamically
+
             while (token.compare("endtime") != 0)
             {
                 parser.getTokens();

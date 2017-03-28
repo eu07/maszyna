@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "mtable.h"
 #include "usefull.h"
+#include "world.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
@@ -114,8 +115,7 @@ void cSun::move() {
     static double radtodeg = 57.295779513; // converts from radians to degrees
     static double degtorad = 0.0174532925; // converts from degrees to radians
 
-    SYSTEMTIME localtime; // time for the calculation
-    time( &localtime );
+    SYSTEMTIME localtime = Simulation::Time.data(); // time for the calculation
 
     if( m_observer.hour >= 0 ) { localtime.wHour = m_observer.hour; }
     if( m_observer.minute >= 0 ) { localtime.wMinute = m_observer.minute; }
@@ -142,15 +142,11 @@ void cSun::move() {
     // orbit eccentricity
     double const e = 0.016709 - 1.151e-9 * daynumber;
     // mean anomaly
-    m_body.mnanom = 356.0470 + 0.9856002585 * daynumber; // M
-    m_body.mnanom -= 360.0 * (int)( m_body.mnanom / 360.0 ); // clamp the range to 0-360
-    if( m_body.mnanom < 0.0 ) m_body.mnanom += 360.0;
+    m_body.mnanom = clamp_circular( 356.0470 + 0.9856002585 * daynumber ); // M
     // obliquity of the ecliptic
     m_body.oblecl = 23.4393 - 3.563e-7 * daynumber;
     // mean longitude
-    m_body.mnlong = m_body.phlong + m_body.mnanom; // L = w + M
-    m_body.mnlong -= 360.0 * (int)( m_body.mnlong / 360.0 ); // clamp the range to 0-360
-    if( m_body.mnlong < 0.0 ) m_body.mnlong += 360.0;
+    m_body.mnlong = clamp_circular( m_body.phlong + m_body.mnanom ); // L = w + M
     // eccentric anomaly
     double const E = m_body.mnanom + radtodeg * e * std::sin( degtorad * m_body.mnanom ) * ( 1.0 + e * std::cos( degtorad * m_body.mnanom ) );
     // ecliptic plane rectangular coordinates
@@ -161,9 +157,7 @@ void cSun::move() {
     // true anomaly
     m_body.tranom = radtodeg * std::atan2( yv, xv ); // v
     // ecliptic longitude
-    m_body.eclong = m_body.tranom + m_body.phlong; // lon = v + w
-    m_body.eclong -= 360.0 * (int)( m_body.eclong / 360.0 );
-    if( m_body.eclong < 0.0 ) m_body.eclong += 360.0; // clamp the range to 0-360
+    m_body.eclong = clamp_circular( m_body.tranom + m_body.phlong ); // lon = v + w
 /*
     // ecliptic rectangular coordinates
     double const x = m_body.distance * std::cos( degtorad * m_body.eclong );
@@ -185,8 +179,7 @@ void cSun::move() {
     double top = std::cos( degtorad * m_body.oblecl ) * std::sin( degtorad * m_body.eclong );
     double bottom = std::cos( degtorad * m_body.eclong );
 
-    m_body.rascen = radtodeg * std::atan2( top, bottom );
-    if( m_body.rascen < 0.0 ) m_body.rascen += 360.0; // (make it a positive angle)
+    m_body.rascen = clamp_circular( radtodeg * std::atan2( top, bottom ) );
 
     // Greenwich mean sidereal time
     m_observer.gmst = 6.697375 + 0.0657098242 * daynumber + m_observer.utime;
@@ -265,10 +258,9 @@ void cSun::irradiance() {
 	static double degrad = 57.295779513;					// converts from radians to degrees
 	static double raddeg = 0.0174532925;					// converts from degrees to radians
 
-    SYSTEMTIME localtime; // time for the calculation
-    time( &localtime );
+    auto const &localtime = Simulation::Time.data(); // time for the calculation
 
-	m_body.dayang = ( yearday( localtime.wDay, localtime.wMonth, localtime.wYear ) - 1 ) * 360.0 / 365.0;
+	m_body.dayang = ( Simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
 	double sd = sin( raddeg * m_body.dayang );				// sine of the day angle
 	double cd = cos( raddeg * m_body.dayang );				// cosine of the day angle or delination
 	m_body.erv = 1.000110 + 0.034221*cd + 0.001280*sd;
@@ -288,51 +280,4 @@ void cSun::irradiance() {
 		m_body.etrn = 0.0;
 		m_body.etr  = 0.0;
 	}
-}
-
-int cSun::yearday( int Day, const int Month, const int Year ) {
-
-	char daytab[ 2 ][ 13 ] = {
-		{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-		{ 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-	};
-	int i, leap;
-
-	leap = ( Year%4 == 0 ) && ( Year%100 != 0 ) || ( Year%400 == 0 );
-	for( i = 1; i < Month; ++i )
-		Day += daytab[ leap ][ i ];
-
-	return Day;
-}
-
-void cSun::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday ) {
-
-    WORD daytab[ 2 ][ 13 ] = {
-        { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
-        { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
-    };
-
-    int leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
-    WORD idx = 1;
-    while( (idx < 13) && ( Yearday <= daytab[ leap ][ idx ] )) {
-
-        ++idx;
-    }
-    Month = idx + 1;
-    Day = Yearday - daytab[ leap ][ idx ];
-}
-
-// obtains current time for calculations
-void
-cSun::time( SYSTEMTIME *Time ) {
-
-    ::GetLocalTime( Time );
-    // NOTE: we're currently using local time to determine day/month/year
-    if( Global::fMoveLight > 0.0 ) {
-        // TODO: enter scenario-defined day/month/year instead.
-        daymonth( Time->wDay, Time->wMonth, Time->wYear, static_cast<WORD>(Global::fMoveLight) );
-    }
-    Time->wHour = GlobalTime->hh;
-    Time->wMinute = GlobalTime->mm;
-    Time->wSecond = std::floor( GlobalTime->mr );
 }

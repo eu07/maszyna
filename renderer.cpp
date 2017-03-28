@@ -75,6 +75,11 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     glEnable( GL_COLOR_MATERIAL );
     glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
 
+    
+//    ::glFogi( GL_FOG_COORD_SRC, GL_FOG_COORD );
+//   ::glFogi( GL_FOG_COORD_SRC, GL_FRAGMENT_DEPTH );
+//    ::glFogi( GL_FOG_MODE, GL_LINEAR );
+
     // setup lighting
     GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
