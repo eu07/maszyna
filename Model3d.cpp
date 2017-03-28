@@ -313,12 +313,16 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         }
         std::string discard;
         parser.getTokens(13, false);
-        parser >> fNearAttenStart >> discard >> fNearAttenEnd >> discard >> bUseNearAtten >>
-            discard >> iFarAttenDecay >> discard >> fFarDecayRadius >> discard >>
-            fCosFalloffAngle // kąt liczony dla średnicy, a nie promienia
+        parser
+            >> fNearAttenStart
+            >> discard >> fNearAttenEnd
+            >> discard >> bUseNearAtten
+            >> discard >> iFarAttenDecay
+            >> discard >> fFarDecayRadius
+            >> discard >> fCosFalloffAngle // kąt liczony dla średnicy, a nie promienia
             >> discard >> fCosHotspotAngle; // kąt liczony dla średnicy, a nie promienia
-        fCosFalloffAngle = cos(DegToRad(0.5 * fCosFalloffAngle));
-        fCosHotspotAngle = cos(DegToRad(0.5 * fCosHotspotAngle));
+        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
         iNumVerts = 1;
 /*
         iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi zostać bez zmiany

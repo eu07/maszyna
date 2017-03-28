@@ -218,6 +218,7 @@ class Global
 	static float Background[3];
 	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
+    static float Overcast;
     // static bool bTimeChange;
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
     static opengl_light AmbientLight;

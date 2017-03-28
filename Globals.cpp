@@ -80,11 +80,12 @@ double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
 std::vector<vector3> Global::FreeCameraInitAngle;
-double Global::fFogStart = 1700;
-double Global::fFogEnd = 2000;
 float Global::Background[3] = {0.2f, 0.4f, 0.33f};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
+double Global::fFogStart = 1700;
+double Global::fFogEnd = 2000;
+float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
 GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};

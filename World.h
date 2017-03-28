@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Ground.h"
 #include "sky.h"
 #include "sun.h"
+#include "moon.h"
 #include "stars.h"
 #include "skydome.h"
 #include "mczapkie/mover.h"
@@ -33,6 +34,7 @@ private:
     CSkyDome m_skydome;
     cStars m_stars;
     cSun m_sun;
+    cMoon m_moon;
     TSky m_clouds;
 };
 

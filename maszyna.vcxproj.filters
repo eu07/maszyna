@@ -210,6 +210,9 @@
     <ClCompile Include="openglmatrixstack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="moon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -405,6 +408,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="openglmatrixstack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="moon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

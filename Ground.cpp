@@ -2798,16 +2798,29 @@ bool TGround::Init(std::string File)
         { // Ra: ustawienie parametrów OpenGL przeniesione do FirstInit
             WriteLog("Scenery atmo definition");
             parser.getTokens(3);
-            parser >> Global::AtmoColor[0] >> Global::AtmoColor[1] >> Global::AtmoColor[2];
+            parser
+                >> Global::AtmoColor[0]
+                >> Global::AtmoColor[1]
+                >> Global::AtmoColor[2];
             parser.getTokens(2);
-            parser >> Global::fFogStart >> Global::fFogEnd;
+            parser
+                >> Global::fFogStart
+                >> Global::fFogEnd;
             if (Global::fFogEnd > 0.0)
             { // ostatnie 3 parametry są opcjonalne
                 parser.getTokens(3);
-                parser >> Global::FogColor[0] >> Global::FogColor[1] >> Global::FogColor[2];
+                parser
+                    >> Global::FogColor[0]
+                    >> Global::FogColor[1]
+                    >> Global::FogColor[2];
             }
             parser.getTokens();
             parser >> token;
+            if( token != "endatmo" ) {
+                // optional overcast parameter
+                // NOTE: parameter system needs some decent replacement, but not worth the effort if we're moving to built-in editor
+                Global::Overcast = clamp( std::stof( token ), 0.0f, 1.0f );
+            }
             while (token.compare("endatmo") != 0)
             { // a kolejne parametry są pomijane
                 parser.getTokens();

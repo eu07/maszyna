@@ -66,23 +66,25 @@ protected:
 
 	struct celestialbody {	// main planet parameters
 
-		double dayang;		// day angle (daynum*360/year-length) degrees
-		double mnlong;		// mean longitude, degrees
-		double mnanom;		// mean anomaly, degrees
-		double eclong;		// ecliptic longitude, degrees.
-		double ecobli;		// obliquity of ecliptic.
-		double declin;		// declination--zenith angle of solar noon at equator, degrees NORTH.
-		double rascen;		// right ascension, degrees
-		double hrang;		// hour angle--hour of sun from solar noon, degrees WEST
-		double zenetr;		// solar zenith angle, no atmospheric correction (= ETR)
-		double zenref;		// solar zenith angle, deg. from zenith, refracted
-		double coszen;		// cosine of refraction corrected solar zenith angle
-		double elevetr;		// solar elevation, no atmospheric correction (= ETR)
-		double elevref;		// solar elevation angle, deg. from horizon, refracted.
-		double distance;	// distance from earth in AUs
-		double erv;			// earth radius vector (multiplied to solar constant)
-		double etr;			// extraterrestrial (top-of-atmosphere) W/sq m global horizontal solar irradiance
-		double etrn;		// extraterrestrial (top-of-atmosphere) W/sq m direct normal solar irradiance
+        double dayang;		// day angle (daynum*360/year-length) degrees
+        double phlong;      // longitude of perihelion
+        double mnlong;		// mean longitude, degrees
+        double mnanom;		// mean anomaly, degrees
+        double tranom;      // true anomaly, degrees
+        double eclong;		// ecliptic longitude, degrees.
+        double oblecl;		// obliquity of ecliptic.
+        double declin;		// declination--zenith angle of solar noon at equator, degrees NORTH.
+        double rascen;		// right ascension, degrees
+        double hrang;		// hour angle--hour of sun from solar noon, degrees WEST
+        double zenetr;		// solar zenith angle, no atmospheric correction (= ETR)
+        double zenref;		// solar zenith angle, deg. from zenith, refracted
+        double coszen;		// cosine of refraction corrected solar zenith angle
+        double elevetr;		// solar elevation, no atmospheric correction (= ETR)
+        double elevref;		// solar elevation angle, deg. from horizon, refracted.
+        double distance;	// distance from earth in AUs
+        double erv;			// earth radius vector (multiplied to solar constant)
+        double etr;			// extraterrestrial (top-of-atmosphere) W/sq m global horizontal solar irradiance
+        double etrn;		// extraterrestrial (top-of-atmosphere) W/sq m direct normal solar irradiance
     };
 
 	struct observer {		// weather, time and position data in observer's location

@@ -401,7 +401,9 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, doubl
                             jmm1 * ShapePoints[j].z + m1 * ShapePoints[j + iNumShapePoints].z, tv1);
                         glVertex3f(pt.x, pt.y, pt.z); // pt nie mamy gdzie zapamiętać?
                     }
-                    if (p) // jeśli jest wskaźnik do tablicy
+                    // BUG: things blow up badly in the following part in 64bit version on baltyk.scn
+                    // TODO: sort this mess out when the time comes to reorganize spline generation
+                    if( p ) // jeśli jest wskaźnik do tablicy
                         if (*p)
                             if (!j) // to dla pierwszego punktu
                             {

@@ -2311,37 +2311,75 @@ void
 world_environment::init() {
 
     m_sun.init();
+    m_moon.init();
     m_stars.init();
     m_clouds.Init();
 }
 
 void
 world_environment::update() {
-
-    // move sun...
+    // move celestial bodies...
     m_sun.update();
-    auto const position = m_sun.getPosition();
-    // ...update the global data to match new sun state...
-    Global::SunAngle = m_sun.getAngle();
-    Global::DayLight.set_position( position );
-    Global::DayLight.direction = -1.0 * m_sun.getDirection();
+    m_moon.update();
+    // ...determine source of key light and adjust global state accordingly...
+    auto const sunlightlevel = m_sun.getIntensity();
+    auto const moonlightlevel = m_moon.getIntensity();
+    float keylightintensity;
+    float twilightfactor;
+    float3 keylightcolor;
+    if( moonlightlevel > sunlightlevel ) {
+        // rare situations when the moon is brighter than the sun, typically at night
+        Global::SunAngle = m_moon.getAngle();
+        Global::DayLight.set_position( m_moon.getPosition() );
+        Global::DayLight.direction = -1.0 * m_moon.getDirection();
+        keylightintensity = moonlightlevel;
+        // if the moon is up, it overrides the twilight
+        twilightfactor = 0.0f;
+        keylightcolor = float3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
+    }
+    else {
+        // regular situation with sun as the key light
+        Global::SunAngle = m_sun.getAngle();
+        Global::DayLight.set_position( m_sun.getPosition() );
+        Global::DayLight.direction = -1.0 * m_sun.getDirection();
+        keylightintensity = sunlightlevel;
+        // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
+        twilightfactor = clamp( -Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
+        // TODO: crank orange up at dawn/dusk
+        keylightcolor = float3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
+        float const duskfactor = 1.0f - clamp( Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
+        keylightcolor = interpolate(
+            float3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
+            float3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
+            duskfactor );
+    }
     // ...update skydome to match the current sun position as well...
-    m_skydome.Update( position );
+    m_skydome.SetOvercastFactor( Global::Overcast );
+    m_skydome.Update( m_sun.getPosition() );
     // ...retrieve current sky colour and brightness...
     auto const skydomecolour = m_skydome.GetAverageColor();
     auto const skydomehsv = RGBtoHSV( skydomecolour );
-    auto const intensity = std::min( 1.15f * (0.05f + m_sun.getIntensity() + skydomehsv.z), 1.25f );
-    // ...update light colours and intensity.
-    // NOTE: intensity combines intensity of the sun and the light reflected by the sky dome
+    // sun strength is reduced by overcast level
+    keylightintensity *= ( 1.0f - Global::Overcast * 0.65f );
+
+    // intensity combines intensity of the sun and the light reflected by the sky dome
     // it'd be more technically correct to have just the intensity of the sun here,
     // but whether it'd _look_ better is something to be tested
-    Global::DayLight.diffuse[ 0 ] = intensity * 255.0f / 255.0f;
-    Global::DayLight.diffuse[ 1 ] = intensity * 242.0f / 255.0f;
-    Global::DayLight.diffuse[ 2 ] = intensity * 231.0f / 255.0f;
+    auto const intensity = std::min( 1.15f * ( 0.05f + keylightintensity + skydomehsv.z ), 1.25f );
+    // the impact of sun component is reduced proportionally to overcast level, as overcast increases role of ambient light
+    auto const diffuselevel = interpolate( keylightintensity, intensity * ( 1.0f - twilightfactor ), 1.0f - Global::Overcast * 0.75f );
+    // ...update light colours and intensity.
+    keylightcolor = keylightcolor * diffuselevel;
+    Global::DayLight.diffuse[ 0 ] = keylightcolor.x;
+    Global::DayLight.diffuse[ 1 ] = keylightcolor.y;
+    Global::DayLight.diffuse[ 2 ] = keylightcolor.z;
 
-    Global::DayLight.ambient[ 0 ] = skydomecolour.x;
-    Global::DayLight.ambient[ 1 ] = skydomecolour.y;
-    Global::DayLight.ambient[ 2 ] = skydomecolour.z;
+    // tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
+    // (this is pure conjecture, aimed more to 'look right' than be accurate)
+    float const ambienttone = clamp( 1.0f - ( Global::SunAngle / 90.0f ), 0.0f, 1.0f );
+    Global::DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.x, ambienttone );
+    Global::DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.y, ambienttone );
+    Global::DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.z, ambienttone );
 
     Global::fLuminance = intensity;
 
@@ -2379,11 +2417,22 @@ world_environment::render() {
 
     m_skydome.Render();
     m_stars.render();
-    m_clouds.Render( m_skydome.GetAverageColor() * 2.5f );
+    float const duskfactor = 1.0f - clamp( std::abs(m_sun.getAngle()), 0.0f, 12.0f ) / 12.0f;
+    float3 suncolor = interpolate(
+        m_skydome.GetAverageColor(),
+        float3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
+        duskfactor ) * m_skydome.GetAverageColor().z;
+
+    m_clouds.Render(
+        interpolate( m_skydome.GetAverageColor(), suncolor, duskfactor * 0.65f )
+//        m_skydome.GetAverageColor()
+        * ( 1.0f - Global::Overcast * 0.5f ) // overcast darkens the clouds
+        * 2.5f ); // arbitrary adjustment factor
 
     if( DebugModeFlag == true ) {
         // mark sun position for easier debugging
         m_sun.render();
+        m_moon.render();
     }
     Global::DayLight.apply_angle();
     Global::DayLight.apply_intensity();
