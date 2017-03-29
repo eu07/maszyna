@@ -158,6 +158,29 @@ simulation_time::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Y
     Day = Yearday - daytab[ leap ][ idx - 1 ];
 }
 
+int
+simulation_time::julian_day() const {
+
+    int yy = ( m_time.wYear < 0 ? m_time.wYear + 1 : m_time.wYear ) - std::floor( ( 12 - m_time.wMonth ) / 10.f );
+    int mm = m_time.wMonth + 9;
+    if( mm >= 12 ) { mm -= 12; }
+
+    int K1 = std::floor( 365.25 * ( yy + 4712 ) );
+    int K2 = std::floor( 30.6 * mm + 0.5 );
+
+    // for dates in Julian calendar
+    int JD = K1 + K2 + m_time.wDay + 59;
+    // for dates in Gregorian calendar; 2299160 is October 15th, 1582
+    const int gregorianswitchday = 2299160;
+    if( JD > gregorianswitchday ) {
+
+        int K3 = std::floor( std::floor( ( yy * 0.01 ) + 49 ) * 0.75 ) - 38;
+        JD -= K3;
+    }
+
+    return JD;
+}
+
 TWorld::TWorld()
 {
     // randomize();
@@ -2501,58 +2524,6 @@ world_environment::update() {
     ::glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
 
     ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f ); // kolor nieba
-}
-
-void
-world_environment::render() {
-
-    GfxRenderer.Bind( 0 );
-
-    ::glDisable( GL_LIGHTING );
-    ::glDisable( GL_DEPTH_TEST );
-    ::glDepthMask( GL_FALSE );
-    ::glPushMatrix();
-    ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
-
-    // setup fog
-    if( Global::fFogEnd > 0 ) {
-        // fog setup
-        ::glFogfv( GL_FOG_COLOR, Global::FogColor );
-/*
-        ::glFogf( GL_FOG_START, Global::fFogStart );
-        ::glFogf( GL_FOG_END, Global::fFogEnd );
-*/
-        ::glFogf( GL_FOG_DENSITY, 1.0f / Global::fFogEnd );
-        ::glEnable( GL_FOG );
-    }
-    else { ::glDisable( GL_FOG ); }
-
-    m_skydome.Render();
-    m_stars.render();
-    float const duskfactor = 1.0f - clamp( std::abs(m_sun.getAngle()), 0.0f, 12.0f ) / 12.0f;
-    float3 suncolor = interpolate(
-        m_skydome.GetAverageColor(),
-        float3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
-        duskfactor ) * m_skydome.GetAverageColor().z;
-
-    m_clouds.Render(
-        interpolate( m_skydome.GetAverageColor(), suncolor, duskfactor * 0.65f )
-//        m_skydome.GetAverageColor()
-        * ( 1.0f - Global::Overcast * 0.5f ) // overcast darkens the clouds
-        * 2.5f ); // arbitrary adjustment factor
-
-    if( DebugModeFlag == true ) {
-        // mark sun position for easier debugging
-        m_sun.render();
-        m_moon.render();
-    }
-    Global::DayLight.apply_angle();
-    Global::DayLight.apply_intensity();
-
-    ::glPopMatrix();
-    ::glDepthMask( GL_TRUE );
-    ::glEnable( GL_DEPTH_TEST );
-    ::glEnable( GL_LIGHTING );
 }
 
 void

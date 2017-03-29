@@ -19,7 +19,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stars.h"
 #include "skydome.h"
 #include "mczapkie/mover.h"
-#include "renderer.h"
 
 // wrapper for simulation time
 class simulation_time {
@@ -38,6 +37,8 @@ public:
         second() const { return ( m_time.wMilliseconds * 0.001 + m_time.wSecond ); }
     int
         year_day() const { return m_yearday; }
+    int
+        julian_day() const;
 
 private:
     // calculates day of year from given date
@@ -61,10 +62,11 @@ extern simulation_time Time;
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
 
+    friend opengl_renderer;
+
 public:
     void init();
     void update();
-    void render();
     void time( int const Hour = -1, int const Minute = -1, int const Second = -1 );
 
 private:

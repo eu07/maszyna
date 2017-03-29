@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
-#include "ground.h"
+#include "world.h"
 
 struct opengl_light {
 
@@ -116,7 +116,8 @@ public:
     // main draw call. returns false on error
     bool
         Render();
-#ifndef EU07_USE_OLD_RENDERCODE
+    bool
+        Render( world_environment *Environment );
     bool
         Render( TGround *Ground );
     bool
@@ -135,7 +136,6 @@ public:
         Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     void
         Render_Alpha( TSubModel *Submodel );
-#endif
     // maintenance jobs
     void
         Update( double const Deltatime);
@@ -194,6 +194,8 @@ private:
     std::string m_debuginfo;
     GLFWwindow *m_window{ nullptr };
     texture_manager::size_type m_glaretextureid{ -1 };
+    texture_manager::size_type m_suntextureid{ -1 };
+    texture_manager::size_type m_moontextureid{ -1 };
 };
 
 extern opengl_renderer GfxRenderer;
