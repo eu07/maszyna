@@ -7,8 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef EvLaunchH
-#define EvLaunchH
+#pragma once
 
 #include <string>
 #include "Classes.h"
@@ -21,11 +20,7 @@ class TEventLauncher
     double UpdatedTime;
     double fVal1;
     double fVal2;
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-    char * szText;
-#else
     std::string szText;
-#endif
     int iHour, iMinute; // minuta uruchomienia
   public:
     double dRadius;
@@ -37,9 +32,6 @@ class TEventLauncher
     TMemCell *MemCell;
     int iCheckMask;
     TEventLauncher();
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-    ~TEventLauncher();
-#endif
     void Init();
     bool Load(cParser *parser);
     bool Render();
@@ -47,4 +39,3 @@ class TEventLauncher
 };
 
 //---------------------------------------------------------------------------
-#endif

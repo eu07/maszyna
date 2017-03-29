@@ -139,14 +139,15 @@ class matrix4x4
     // the column increasing fastest.  However, some APIs (OpenGL in particular) do this
     // backwards, hence the "constructor" from C matrices, or from OpenGL matrices.
     // Note that matrices are stored internally in OpenGL format.
-    void C_Matrix(scalar_t *initArray)
+    void C_Matrix(scalar_t const *initArray)
     {
         int i = 0;
         for (int y = 0; y < 4; ++y)
             for (int x = 0; x < 4; ++x)
                 (*this)(x)[y] = initArray[i++];
     }
-    void OpenGL_Matrix(scalar_t *initArray)
+    template <typename _Type>
+    void OpenGL_Matrix(_Type const *initArray)
     {
         int i = 0;
         for (int x = 0; x < 4; ++x)

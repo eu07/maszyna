@@ -90,7 +90,7 @@ double PFVa( double PH, double PL, double const S, double LIM, double const DP )
         LIM = LIM + 1;
         PH = PH + 1; // wyzsze cisnienie absolutne
         PL = PL + 1; // nizsze cisnienie absolutne
-        double sg = PL / PH; // bezwymiarowy stosunek cisnien
+        double sg = std::min( 1.0, PL / PH ); // bezwymiarowy stosunek cisnien. NOTE: sg is capped at 1 to prevent calculations from going awry. TODO, TBD: log these as errors?
         double FM = PH * 197 * S; // najwyzszy mozliwy przeplyw, wraz z kierunkiem
         if ((LIM - PL) < DP)
             FM = FM * (LIM - PL) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
@@ -193,7 +193,7 @@ double TBrakeCyl::P()
     static double const cD = 1;
     static double const pD = VD - cD;
 
-    double VtoC = ( Cap > 0.0 ) ? Vol / Cap : 0.0; // stosunek cisnienia do objetosci.
+    double VtoC = ( Cap > 0.0 ? Vol / Cap : 0.0 ); // stosunek cisnienia do objetosci.
                                                    // Added div/0 trap for vehicles with incomplete definitions (cars etc)
     //  P:=VtoC;
     if (VtoC < VS)

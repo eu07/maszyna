@@ -133,7 +133,7 @@ class TRapid : public TPrzekladnik {
 class TPrzekCiagly : public TPrzekladnik {
 
   private:
-    double mult = 0.0;
+    double Mult = 0.0;
 
   public:
     void SetMult(double m);

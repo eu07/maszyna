@@ -23,7 +23,8 @@ class float3
         y = b;
         z = c;
     };
-    double inline Length() const;
+    float Length() const;
+    float LengthSquared() const;
 };
 
 inline bool operator==(const float3 &v1, const float3 &v2)
@@ -49,10 +50,13 @@ inline float3 operator+(const float3 &v1, const float3 &v2)
 {
     return float3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 };
-double inline float3::Length() const
+inline float float3::Length() const
 {
-    return sqrt(x * x + y * y + z * z);
+    return std::sqrt(LengthSquared());
 };
+inline float float3::LengthSquared() const {
+    return ( x * x + y * y + z * z );
+}
 inline float3 operator*( float3 const &v, float const  k ) {
     return float3( v.x * k, v.y * k, v.z * k );
 };
@@ -196,9 +200,12 @@ struct float8
 
 class float4x4
 { // macierz transformacji pojedynczej precyzji
+public:
     float e[16];
 
-  public:
+	void deserialize_float32(std::istream&);
+	void deserialize_float64(std::istream&);
+	void serialize_float32(std::ostream&);
     float4x4(void){};
     float4x4(float f[16])
     {
@@ -209,7 +216,7 @@ class float4x4
     {
         return &e[i << 2];
     }
-    const float * readArray(void)
+    const float * readArray(void) const
     {
         return e;
     }
@@ -291,6 +298,16 @@ inline float4x4 &float4x4::Rotation(double angle, float3 axis)
     e[15] = 1;
     return *this;
 };
+
+inline bool operator==(const float4x4& v1, const float4x4& v2)
+{
+	for (size_t i = 0; i < 16; i++)
+	{
+		if (v1.e[i] != v2.e[i])
+			return false;
+	}
+	return true;
+}
 
 inline float4x4 operator*(const float4x4 &m1, const float4x4 &m2)
 { // iloczyn macierzy

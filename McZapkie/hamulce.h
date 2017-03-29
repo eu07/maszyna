@@ -137,10 +137,10 @@ static int const i_bcpno = 6;
 //klasa obejmujaca pojedyncze zbiorniki
 class TReservoir {
 
-  protected:
-		double Cap = 1.0;
-		double Vol = 0.0;
-		double dVol = 0.0;
+protected:
+    double Cap{ 1.0 };
+    double Vol{ 0.0 };
+    double dVol{ 0.0 };
 
   public:
     void CreateCap(double Capacity);
@@ -500,7 +500,7 @@ class TDriverHandle {
   public:
 		bool Time = false;
 		bool TimeEP = false;
-		double Sounds[ 5 ]; //wielkosci przeplywow dla dzwiekow              
+        double Sounds[ 5 ]; //wielkosci przeplywow dla dzwiekow              
 
     virtual double GetPF(double i_bcp, double PP, double HP, double dt, double ep);
     virtual void Init(double Press);
@@ -509,6 +509,8 @@ class TDriverHandle {
     virtual double GetSound(int i);
     virtual double GetPos(int i);
     virtual double GetEP(double pos);
+
+    inline TDriverHandle() { ::SecureZeroMemory( Sounds, sizeof( Sounds ) ); }
 };
 
 class TFV4a : public TDriverHandle {

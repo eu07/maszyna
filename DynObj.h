@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
+#include "texture.h"
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -140,7 +141,24 @@ class TAnim
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
+#ifndef EU07_USE_OLD_RENDERCODE
+// parameters for the material object, as currently used by various simulator models
+struct material_data {
+
+    int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
+    texture_manager::size_type replacable_skins[ 5 ]; // McZapkie:zmienialne nadwozie
+    int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+
+    material_data() {
+        ::SecureZeroMemory( replacable_skins, sizeof( replacable_skins ) );
+    }
+};
+#endif
+
 class TDynamicObject { // klasa pojazdu
+
+    friend class opengl_renderer;
+
 private: // położenie pojazdu w świecie oraz parametry ruchu
     vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
     vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
@@ -172,12 +190,9 @@ public: // parametry położenia pojazdu dostępne publicznie
 
     TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
 
-private:
-    // returns type of the nearest functional power source present in the trainset
 public: // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
-    TModel3d *mdPrzedsionek; // model przedsionków dla EZT - może użyć mdLoad zamiast?
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
     float3 InteriorLight{ 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
@@ -185,8 +200,17 @@ public: // modele składowe pojazdu
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
 
   private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
-  public: // tymczasowo udostępnione do wyszukiwania drutu
-      int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
+#ifndef EU07_USE_OLD_RENDERCODE
+    material_data m_materialdata;
+#endif
+
+  public:
+#ifndef EU07_USE_OLD_RENDERCODE
+    inline
+    material_data const *Material() const { return &m_materialdata; }
+#endif
+    // tymczasowo udostępnione do wyszukiwania drutu
+    int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
   private:
     int iAnimations; // liczba obiektów animujących
 /*
@@ -343,6 +367,7 @@ public: // modele składowe pojazdu
 
   public:
     int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
+    bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
     double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
     // pojazdem)
     TDynamicObject * PrevAny();
@@ -396,9 +421,11 @@ public: // modele składowe pojazdu
     int iCabs; // maski bitowe modeli kabin
     TTrack *MyTrack; // McZapkie-030303: tor na ktorym stoi, ABu
     std::string asBaseDir;
+#ifdef EU07_USE_OLD_RENDERCODE
     texture_manager::size_type ReplacableSkinID[5]; // McZapkie:zmienialne nadwozie
     int iAlpha; // maska przezroczystości tekstur
     int iMultiTex; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+#endif
     int iOverheadMask; // maska przydzielana przez AI pojazdom posiadającym pantograf, aby wymuszały
     // jazdę bezprądową
     TTractionParam tmpTraction;
@@ -417,8 +444,10 @@ public: // modele składowe pojazdu
     bool FastUpdate(double dt);
     void Move(double fDistance);
     void FastMove(double fDistance);
+#ifdef EU07_USE_OLD_RENDERCODE
     void Render();
     void RenderAlpha();
+#endif
     void RenderSounds();
     inline vector3 GetPosition() const
     {
@@ -444,7 +473,7 @@ public: // modele składowe pojazdu
     {
         return vUp;
     };
-    inline vector3 VectorLeft()
+    inline vector3 VectorLeft() const
     {
         return vLeft;
     };
@@ -460,7 +489,7 @@ public: // modele składowe pojazdu
     {
         return MoverParameters->Dim.L;
     };
-    inline double GetWidth()
+    inline double GetWidth() const
     {
         return MoverParameters->Dim.W;
     };
@@ -473,7 +502,7 @@ public: // modele składowe pojazdu
     // McZapkie-260202
     void LoadMMediaFile(std::string BaseDir, std::string TypeName, std::string ReplacableSkin);
 
-    inline double ABuGetDirection() // ABu.
+    inline double ABuGetDirection() const // ABu.
     {
         return (Axle1.GetTrack() == MyTrack ? Axle1.GetDirection() : Axle0.GetDirection());
     };

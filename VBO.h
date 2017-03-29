@@ -21,6 +21,9 @@ class CVertNormTex
     float nz = 0.0; // Z wektora normalnego
     float u = 0.0; // U mapowania
     float v = 0.0; // V mapowania
+
+	void deserialize(std::istream&);
+	void serialize(std::ostream&);
 };
 
 class CMesh

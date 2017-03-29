@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Segment.h"
-#include "opengl/glew.h"
 
 #include "Globals.h"
 #include "Logs.h"
@@ -43,10 +42,12 @@ TSegment::~TSegment()
     SafeDeleteArray(fTsBuffer);
 };
 
-bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1,
-                    double fNewRoll2)
+bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2)
 { // wersja dla prostego - wyliczanie punktów kontrolnych
     vector3 dir;
+
+    // NOTE: we're enforcing division also for straight track, to ensure dense enough mesh for per-vertex lighting
+/*
     if (fNewRoll1 == fNewRoll2)
     { // faktyczny prosty
         dir = Normalize(NewPoint2 - NewPoint1); // wektor kierunku o długości 1
@@ -54,10 +55,13 @@ bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, doubl
                               false);
     }
     else
+*/
     { // prosty ze zmienną przechyłką musi być segmentowany jak krzywe
         dir = (NewPoint2 - NewPoint1) / 3.0; // punkty kontrolne prostego są w 1/3 długości
-        return TSegment::Init(NewPoint1, NewPoint1 + dir, NewPoint2 - dir, NewPoint2, fNewStep,
-                              fNewRoll1, fNewRoll2, true);
+        return TSegment::Init(
+            NewPoint1, NewPoint1 + dir,
+            NewPoint2 - dir, NewPoint2,
+            fNewStep, fNewRoll1, fNewRoll2, true);
     }
 };
 
@@ -114,39 +118,30 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     fStep = fNewStep;
     if (fLength <= 0)
     {
-        ErrorLog("Bad geometry: Length <= 0 in TSegment::Init at " + Where(Point1));
+        ErrorLog( "Bad geometry (zero length) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
         // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
         return false; // zerowe nie mogą być
     }
     fStoop = atan2((Point2.y - Point1.y),
                    fLength); // pochylenie toru prostego, żeby nie liczyć wielokrotnie
     SafeDeleteArray(fTsBuffer);
-/*
-    if ((bCurve) && (fStep > 0))
-*/
-    // we're enforcing sub-division of even straight track, to have dense enough mesh for the spotlight to work with
-    if( fStep > 0 )
-    { // Ra: prosty dostanie podział, jak ma różną przechyłkę na końcach
-        double s = 0;
-        int i = 0;
-        iSegCount = ceil(fLength / fStep); // potrzebne do VBO
-        // fStep=fLength/(double)(iSegCount-1); //wyrównanie podziału
-        fTsBuffer = new double[iSegCount + 1];
-        fTsBuffer[0] = 0; /* TODO : fix fTsBuffer */
-        while (s < fLength)
-        {
-            i++;
-            s += fStep;
-            if (s > fLength)
-                s = fLength;
-            fTsBuffer[i] = GetTFromS(s);
+
+    if( ( bCurve ) && ( fStep > 0 ) ) {
+        if( fStep > 0 ) { // Ra: prosty dostanie podział, jak ma różną przechyłkę na końcach
+            double s = 0;
+            int i = 0;
+            iSegCount = ceil( fLength / fStep ); // potrzebne do VBO
+            // fStep=fLength/(double)(iSegCount-1); //wyrównanie podziału
+            fTsBuffer = new double[ iSegCount + 1 ];
+            fTsBuffer[ 0 ] = 0; /* TODO : fix fTsBuffer */
+            while( s < fLength ) {
+                i++;
+                s += fStep;
+                if( s > fLength )
+                    s = fLength;
+                fTsBuffer[ i ] = GetTFromS( s );
+            }
         }
-    }
-    if (fLength > 500)
-    { // tor ma pojemność 40 pojazdów, więc nie może być za długi
-        ErrorLog("Bad geometry: Length > 500m at " + Where(Point1));
-        // MessageBox(0,"Length>500","TSegment::Init",MB_OK);
-        return false;
     }
     return true;
 }
@@ -225,7 +220,7 @@ double TSegment::GetTFromS(double s)
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
-	ErrorLog( "Bad geometry: Too many iterations at " + Where( Point1 ) );
+    ErrorLog( "Bad geometry (shape estimation failed) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
 	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
 	return fTime;
 };
@@ -600,7 +595,7 @@ void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *Shap
                                 double fOffsetX)
 { // tworzenie siatki trójkątów dla iglicy
     vector3 pos1, pos2, dir, parallel1, parallel2, pt;
-    double a1, a2, s, step, offset, tv1, tv2, t, t2, t2step, oldt2, sp, oldsp;
+    double a1, a2, s, step, offset, tv1, tv2, t, t2step, oldt2;
     int i, j;
     if (bCurve)
     { // dla toru odchylonego
@@ -737,7 +732,7 @@ void TSegment::Render()
 {
     vector3 pt;
     GfxRenderer.Bind(0);
-    int i;
+
     if (bCurve)
     {
         glColor3f(0, 0, 1.0f);

@@ -36,23 +36,34 @@ TEventLauncher::TEventLauncher()
     DeltaTime = -1;
     UpdatedTime = 0;
     fVal1 = fVal2 = 0;
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-    szText = NULL;
-#endif
     iHour = iMinute = -1; // takiego czasu nigdy nie będzie
     dRadius = 0;
     Event1 = Event2 = NULL;
     MemCell = NULL;
     iCheckMask = 0;
 }
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-TEventLauncher::~TEventLauncher()
-{
-    SafeDeleteArray(szText);
-}
-#endif
+
 void TEventLauncher::Init()
 {
+}
+
+// encodes expected key in a short, where low byte represents the actual key,
+// and the high byte holds modifiers: 0x1 = shift, 0x2 = ctrl, 0x4 = alt
+int vk_to_glfw_key( int const Keycode ) {
+
+#ifdef _WINDOWS
+    auto const code = VkKeyScan( Keycode );
+    char key = code & 0xff;
+    char shiftstate = ( code & 0xff00 ) >> 8;
+
+    if( (key >= 'A') && (key <= 'Z') ) {
+        key = GLFW_KEY_A + key - 'A';
+    }
+    else if( ( key >= '0' ) && ( key <= '9' ) ) {
+        key = GLFW_KEY_0 + key - '0';
+    }
+    return key + ( shiftstate << 8 );
+#endif
 }
 
 bool TEventLauncher::Load(cParser *parser)
@@ -66,10 +77,10 @@ bool TEventLauncher::Load(cParser *parser)
     *parser >> token;
     if (token != "none")
     {
-        if (token.size() == 1)
-            iKey = VkKeyScan(token[0]); // jeden znak jest konwertowany na kod klawisza
+        if( token.size() == 1 )
+            iKey = vk_to_glfw_key( token[ 0 ] );
         else
-            iKey = stol_def(token,0); // a jak więcej, to jakby numer klawisza jest
+            iKey = vk_to_glfw_key(stol_def( token, 0 )); // a jak więcej, to jakby numer klawisza jest
     }
     parser->getTokens();
     *parser >> DeltaTime;
@@ -107,13 +118,7 @@ bool TEventLauncher::Load(cParser *parser)
 		asMemCellName = token;
         parser->getTokens();
         *parser >> token;
-#ifdef EU07_USE_OLD_TEVENTLAUNCHER_TEXT_ARRAY
-        SafeDeleteArray(szText);
-        szText = new char[256];
-        strcpy(szText, token.c_str());
-#else
         szText = token;
-#endif
         if (token != "*") //*=nie brać command pod uwagę
             iCheckMask |= conditional_memstring;
         parser->getTokens();
@@ -145,8 +150,20 @@ bool TEventLauncher::Render()
     bool bCond = false;
     if (iKey != 0)
     {
-        if (Global::bActive) // tylko jeśli okno jest aktywne
-            bCond = (Console::Pressed(iKey)); // czy klawisz wciśnięty
+        if( Global::bActive ) {
+            // tylko jeśli okno jest aktywne
+            if( iKey > 255 ) {
+                // key and modifier
+                auto const modifier = ( iKey & 0xff00 ) >> 8;
+                bCond = ( Console::Pressed( iKey & 0xff ) )
+                     && ( modifier & 1 ? Global::shiftState : true )
+                     && ( modifier & 2 ? Global::ctrlState : true );
+            }
+            else {
+                // just key
+                bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
+            }
+        }
     }
     if (DeltaTime > 0)
     {
