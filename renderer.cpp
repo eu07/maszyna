@@ -116,8 +116,7 @@ bool
 opengl_renderer::Render() {
 
     auto timestart = std::chrono::steady_clock::now();
-	
-	glUseProgram(World.shader);
+
 
     ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     ::glDepthFunc( GL_LEQUAL );
@@ -133,11 +132,14 @@ opengl_renderer::Render() {
     ::glLoadIdentity();
 
     if( World.InitPerformed() ) {
-
         World.Camera.SetMatrix();
         m_camera.update_frustum();
 
+		glDisable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Environment );
+
+		glUseProgram(World.shader);
+		glEnable(GL_FRAMEBUFFER_SRGB);
         World.Ground.Render( World.Camera.Pos );
 
 		glDebug("rendering cab");
@@ -148,6 +150,7 @@ opengl_renderer::Render() {
     }
 
 	glUseProgram(0);
+	glEnable(GL_FRAMEBUFFER_SRGB);
     UILayer.render();
 
     glfwSwapBuffers( m_window );

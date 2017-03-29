@@ -223,17 +223,17 @@ opengl_texture::load_DDS() {
     {
     case FOURCC_DXT1:
         // DXT1's compression ratio is 8:1
-        data_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
         break;
 
     case FOURCC_DXT3:
         // DXT3's compression ratio is 4:1
-        data_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
         break;
 
     case FOURCC_DXT5:
         // DXT5's compression ratio is 4:1
-        data_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
         break;
 
     default:
@@ -562,12 +562,12 @@ opengl_texture::create() {
             dataheight = data_height;
         for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
-            if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
-                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
-                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
+            if( ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT )
+                || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT )
+                || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT ) ) {
                 // compressed dds formats
                 int const datablocksize =
-                    ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
+                    ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT ?
                     8 :
                     16 );
 
@@ -585,7 +585,7 @@ opengl_texture::create() {
             else {
                 // uncompressed texture data. have the gfx card do the compression as it sees fit
                 ::glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA,
+                    GL_TEXTURE_2D, 0, GL_COMPRESSED_SRGB_ALPHA,
                     data_width, data_height, 0,
                     data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
             }
