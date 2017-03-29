@@ -24,7 +24,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -39,7 +39,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>eu07++d</TargetName>
     <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
-    <OutDir>E:\Gry\MaSzyna_15_04</OutDir>
+    <OutDir>E:\Gry\MaSzyna_15_04\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>eu07++</TargetName>
@@ -118,6 +118,7 @@
     <ClCompile Include="Model3d.cpp" />
     <ClCompile Include="mtable.cpp" />
     <ClCompile Include="Names.cpp" />
+    <ClCompile Include="openglmatrixstack.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PyInt.cpp" />
     <ClCompile Include="RealSound.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="Model3d.h" />
     <ClInclude Include="mtable.h" />
     <ClInclude Include="Names.h" />
+    <ClInclude Include="openglmatrixstack.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="PyInt.h" />
     <ClInclude Include="RealSound.h" />
