@@ -71,7 +71,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;$(SolutionDir)ref/glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
