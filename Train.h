@@ -32,10 +32,10 @@ const int maxcab = 2;
 
 // const double fCzuwakTime= 90.0f;
 const double fCzuwakBlink = 0.15;
-const float fConverterPrzekaznik = 1.5; // hunter-261211: do przekaznika nadmiarowego przetwornicy
+const float fConverterPrzekaznik = 1.5f; // hunter-261211: do przekaznika nadmiarowego przetwornicy
 // 0.33f
 // const double fBuzzerTime= 5.0f;
-const float fHaslerTime = 1.2;
+const float fHaslerTime = 1.2f;
 
 // const double fStycznTime= 0.5f;
 // const double fDblClickTime= 0.2f;
@@ -94,6 +94,7 @@ class TTrain
         return DynamicObject->VectorUp();
     };
     void UpdateMechPosition(double dt);
+    vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
     bool m_updated = false;
     void MechStop();
@@ -176,6 +177,7 @@ class TTrain
     TGauge ggLeftEndLightButton;
     TGauge ggRightEndLightButton;
     TGauge ggLightsButton; // przelacznik reflektorow (wszystkich)
+    TGauge ggDimHeadlightsButton; // headlights dimming switch
 
     // hunter-230112: przelacznik swiatel tylnich
     TGauge ggRearUpperLightButton;
@@ -250,8 +252,7 @@ class TTrain
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
     TButton btLampkaUniversal3;
-    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic,
-    // 1-obw.gl, 2-przetw.
+    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
     bool LampkaUniversal3_st;
     TButton btLampkaWentZaluzje; // ET22
     TButton btLampkaOgrzewanieSkladu;

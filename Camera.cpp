@@ -53,7 +53,7 @@ void TCamera::OnCursorMove(double x, double y)
         Yaw += 2 * M_PI;
     if (Type == tp_Follow) // jeżeli jazda z pojazdem
     {
-        Fix(Pitch, -M_PI_4, M_PI_4); // ograniczenie kąta spoglądania w dół i w górę
+        clamp(Pitch, -M_PI_4, M_PI_4); // ograniczenie kąta spoglądania w dół i w górę
         // Fix(Yaw,-M_PI,M_PI);
     }
 }
@@ -61,8 +61,8 @@ void TCamera::OnCursorMove(double x, double y)
 void TCamera::Update()
 {
     // ABu: zmiana i uniezaleznienie predkosci od FPS
-    double a = (Console::Pressed(VK_SHIFT) ? 5.00 : 1.00);
-    if (Console::Pressed(VK_CONTROL))
+    double a = ( Global::shiftState ? 5.00 : 1.00);
+    if (Global::ctrlState)
         a = a * 100;
     //    OldVelocity=Velocity;
     if (FreeFlyModeFlag == true)
@@ -75,40 +75,6 @@ void TCamera::Update()
             Velocity.y += a;
         if (Console::Pressed(Global::Keys[k_MechDown]))
             Velocity.y -= a;
-        // McZapkie-170402: zeby nie bylo konfliktow
-        /*
-                if (Console::Pressed(VkKeyScan('d')))
-                    Velocity.x+= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('a')))
-                    Velocity.x-= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('w')))
-                    Velocity.z-= a*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('s')))
-                    Velocity.z+= a*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD4) || Console::Pressed(VK_NUMPAD7) ||
-           Console::Pressed(VK_NUMPAD1))
-                    Yaw+= +1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD6) || Console::Pressed(VK_NUMPAD9) ||
-           Console::Pressed(VK_NUMPAD3))
-                    Yaw+= -1*M_PI*Timer::GetDeltaTime();
-
-                if (Pressed(VK_NUMPAD2) || Console::Pressed(VK_NUMPAD1) ||
-           Console::Pressed(VK_NUMPAD3))
-                    Pitch+= -1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD8) || Console::Pressed(VK_NUMPAD7) ||
-           Console::Pressed(VK_NUMPAD9))
-                    Pitch+= +1*M_PI*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan('.')))
-                    Roll+= -1*M_PI*Timer::GetDeltaTime();
-                if (Console::Pressed(VkKeyScan(',')))
-                    Roll+= +1*M_PI*Timer::GetDeltaTime();
-
-                if (Console::Pressed(VK_NUMPAD5))
-                    Pitch=Roll= 0.0f;
-        */
 
         // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
         if (Console::Pressed(Global::Keys[k_MechRight]))
@@ -120,8 +86,8 @@ void TCamera::Update()
         if (Console::Pressed(Global::Keys[k_MechBackward]))
             Velocity.z += a;
         // gora-dol
-        // if (Console::Pressed(VK_NUMPAD9)) Pos.y+=0.1;
-        // if (Console::Pressed(VK_NUMPAD3)) Pos.y-=0.1;
+        // if (Console::Pressed(GLFW_KEY_KP_9)) Pos.y+=0.1;
+        // if (Console::Pressed(GLFW_KEY_KP_3)) Pos.y-=0.1;
 
         // McZapkie: zeby nie hustalo przy malym FPS:
         //        Velocity= (Velocity+OldVelocity)/2;
@@ -146,43 +112,54 @@ vector3 TCamera::GetDirection()
     return (Normalize(Vec));
 }
 
-// bool TCamera::GetMatrix(matrix4x4 &Matrix)
 bool TCamera::SetMatrix()
 {
-    glRotated(-Roll * 180.0f / M_PI, 0, 0, 1); // po wyłączeniu tego kręci się pojazd, a sceneria
-    // nie
-    glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
-    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnętrznym widoku: kierunek patrzenia
+    glRotated( -Roll * 180.0 / M_PI, 0.0, 0.0, 1.0 ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
+    glRotated( -Pitch * 180.0 / M_PI, 1.0, 0.0, 0.0 );
+    glRotated( -Yaw * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // w zewnętrznym widoku: kierunek patrzenia
 
-    if (Type == tp_Follow)
+    if( Type == tp_Follow )
     {
-        //        gluLookAt(Pos.x+pOffset.x,Pos.y+pOffset.y,Pos.z+pOffset.z,
-        //                LookAt.x+pOffset.x,LookAt.y+pOffset.y,LookAt.z+pOffset.z,vUp.x,vUp.y,vUp.z);
-        //        gluLookAt(Pos.x+pOffset.x,Pos.y+pOffset.y,Pos.z+pOffset.z,
-        //                LookAt.x+pOffset.x,LookAt.y+pOffset.y,LookAt.z+pOffset.z,vUp.x,vUp.y,vUp.z);
-        gluLookAt(Pos.x, Pos.y, Pos.z, LookAt.x, LookAt.y, LookAt.z, vUp.x, vUp.y,
-                  vUp.z); // Ra: pOffset is zero
-        //        gluLookAt(Pos.x,Pos.y,Pos.z,Pos.x+Velocity.x,Pos.y+Velocity.y,Pos.z+Velocity.z,0,1,0);
-        //        return true;
+        gluLookAt(
+            Pos.x, Pos.y, Pos.z,
+            LookAt.x, LookAt.y, LookAt.z,
+            vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero
     }
-
-    if (Type == tp_Satelite)
-        Pitch = M_PI * 0.5;
-
-    if (Type != tp_Follow)
-    {
-        glTranslated(-Pos.x, -Pos.y, -Pos.z); // nie zmienia kierunku patrzenia
+    else {
+        glTranslated( -Pos.x, -Pos.y, -Pos.z ); // nie zmienia kierunku patrzenia
     }
 
     Global::SetCameraPosition(Pos); // było +pOffset
     return true;
 }
 
+bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
+
+    Matrix = glm::rotate( Matrix, (float)-Roll, glm::vec3( 0.0f, 0.0f, 1.0f ) ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
+    Matrix = glm::rotate( Matrix, (float)-Pitch, glm::vec3( 1.0f, 0.0f, 0.0f ) );
+    Matrix = glm::rotate( Matrix, (float)-Yaw, glm::vec3( 0.0f, 1.0f, 0.0f ) ); // w zewnętrznym widoku: kierunek patrzenia
+
+    if( Type == tp_Follow ) {
+
+        Matrix *= glm::lookAt(
+            glm::vec3( Pos.x, Pos.y, Pos.z ),
+            glm::vec3( LookAt.x, LookAt.y, LookAt.z ),
+            glm::vec3( vUp.x, vUp.y, vUp.z ) );
+    }
+    else {
+        Matrix = glm::translate( Matrix, glm::vec3( -Pos.x, -Pos.y, -Pos.z ) ); // nie zmienia kierunku patrzenia
+    }
+
+    Global::SetCameraPosition( Pos ); // było +pOffset
+    return true;
+}
+
 void TCamera::SetCabMatrix(vector3 &p)
 { // ustawienie widoku z kamery bez przesunięcia robionego przez OpenGL - nie powinno tak trząść
-    glRotated(-Roll * 180.0f / M_PI, 0, 0, 1);
-    glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
-    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnętrznym widoku: kierunek patrzenia
+
+    glRotated(-Roll * 180.0 / M_PI, 0.0, 0.0, 1.0);
+    glRotated(-Pitch * 180.0 / M_PI, 1.0, 0.0, 0.0);
+    glRotated(-Yaw * 180.0 / M_PI, 0.0, 1.0, 0.0); // w zewnętrznym widoku: kierunek patrzenia
     if (Type == tp_Follow)
         gluLookAt(Pos.x - p.x, Pos.y - p.y, Pos.z - p.z, LookAt.x - p.x, LookAt.y - p.y,
                   LookAt.z - p.z, vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero
@@ -203,3 +180,4 @@ void TCamera::Stop()
     Type = tp_Follow;
     Velocity = vector3(0, 0, 0);
 };
+

@@ -14,19 +14,15 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Texture.h"
+#include "texture.h"
 
 #include <ddraw.h>
-#include <io.h>
-#include <fcntl.h>
-#include "opengl/glew.h"
+#include "GL/glew.h"
 
-#include "Globals.h"
+#include "usefull.h"
+#include "globals.h"
 #include "logs.h"
-#include "Usefull.h"
-#include "TextureDDS.h"
-
-texture_manager TextureManager;
+#include "sn_utils.h"
 
 texture_manager::texture_manager() {
 
@@ -57,12 +53,21 @@ opengl_texture::load() {
     // data state will be set by called loader, so we're all done here
     if( data_state == resource_state::good ) {
 
+        has_alpha = (
+            data_components == GL_RGBA ?
+                true :
+                false );
+
+        size = data.size() / 1024;
+
         return;
     }
 
 fail:
     data_state = resource_state::failed;
     ErrorLog( "Failed to load texture \"" + name + "\"" );
+    // NOTE: temporary workaround for texture assignment errors
+    id = 0;
     return;
 }
 
@@ -86,7 +91,7 @@ opengl_texture::load_BMP() {
     if( infosize > sizeof( info ) ) {
         WriteLog( "Warning - BMP header is larger than expected, possible format difference." );
     }
-    file.read( (char *)&info, std::min( infosize, sizeof( info ) ) );
+    file.read( (char *)&info, std::min( (size_t)infosize, sizeof( info ) ) );
 
     data_width = info.bmiHeader.biWidth;
     data_height = info.bmiHeader.biHeight;
@@ -124,6 +129,70 @@ opengl_texture::load_BMP() {
     return;
 }
 
+DDCOLORKEY opengl_texture::deserialize_ddck(std::istream &s)
+{
+	DDCOLORKEY ddck;
+
+	ddck.dwColorSpaceLowValue = sn_utils::ld_uint32(s);
+	ddck.dwColorSpaceHighValue = sn_utils::ld_uint32(s);
+
+	return ddck;
+}
+
+DDPIXELFORMAT opengl_texture::deserialize_ddpf(std::istream &s)
+{
+	DDPIXELFORMAT ddpf;
+
+	ddpf.dwSize = sn_utils::ld_uint32(s);
+	ddpf.dwFlags = sn_utils::ld_uint32(s);
+	ddpf.dwFourCC = sn_utils::ld_uint32(s);
+	ddpf.dwRGBBitCount = sn_utils::ld_uint32(s);
+	ddpf.dwRBitMask = sn_utils::ld_uint32(s);
+	ddpf.dwGBitMask = sn_utils::ld_uint32(s);
+	ddpf.dwBBitMask = sn_utils::ld_uint32(s);
+	ddpf.dwRGBAlphaBitMask = sn_utils::ld_uint32(s);
+
+	return ddpf;
+}
+
+DDSCAPS2 opengl_texture::deserialize_ddscaps(std::istream &s)
+{
+	DDSCAPS2 ddsc;
+
+	ddsc.dwCaps = sn_utils::ld_uint32(s);
+	ddsc.dwCaps2 = sn_utils::ld_uint32(s);
+	ddsc.dwCaps3 = sn_utils::ld_uint32(s);
+	ddsc.dwCaps4 = sn_utils::ld_uint32(s);
+
+	return ddsc;
+}
+
+DDSURFACEDESC2 opengl_texture::deserialize_ddsd(std::istream &s)
+{
+	DDSURFACEDESC2 ddsd;
+
+	ddsd.dwSize = sn_utils::ld_uint32(s);
+	ddsd.dwFlags = sn_utils::ld_uint32(s);
+	ddsd.dwHeight = sn_utils::ld_uint32(s);
+	ddsd.dwWidth = sn_utils::ld_uint32(s);
+	ddsd.lPitch = sn_utils::ld_uint32(s);
+	ddsd.dwBackBufferCount = sn_utils::ld_uint32(s);
+	ddsd.dwMipMapCount = sn_utils::ld_uint32(s);
+	ddsd.dwAlphaBitDepth = sn_utils::ld_uint32(s);
+	ddsd.dwReserved = sn_utils::ld_uint32(s);
+	sn_utils::ld_uint32(s);
+	ddsd.lpSurface = nullptr;
+	ddsd.ddckCKDestOverlay = deserialize_ddck(s);
+	ddsd.ddckCKDestBlt = deserialize_ddck(s);
+	ddsd.ddckCKSrcOverlay = deserialize_ddck(s);
+	ddsd.ddckCKSrcBlt = deserialize_ddck(s);
+	ddsd.ddpfPixelFormat = deserialize_ddpf(s);
+	ddsd.ddsCaps = deserialize_ddscaps(s);
+	ddsd.dwTextureStage = sn_utils::ld_uint32(s);
+
+	return ddsd;
+}
+
 void
 opengl_texture::load_DDS() {
 
@@ -142,9 +211,8 @@ opengl_texture::load_DDS() {
         return;
     }
 
-    DDSURFACEDESC2 ddsd;
-    file.read((char *)&ddsd, sizeof(ddsd));
-    filesize -= sizeof( ddsd );
+	DDSURFACEDESC2 ddsd = deserialize_ddsd(file);
+	filesize -= 124;
 
     //
     // This .dds loader supports the loading of compressed formats DXT1, DXT3
@@ -186,6 +254,7 @@ opengl_texture::load_DDS() {
         data_width /= 2;
         data_height /= 2;
         --data_mapcount;
+        WriteLog( "Texture size exceeds specified limits, skipping mipmap level" );
     };
 
     if( data_mapcount <= 0 ) {
@@ -195,7 +264,7 @@ opengl_texture::load_DDS() {
         return;
     }
 
-    int datasize = filesize - offset;
+    size_t datasize = filesize - offset;
 /*
     // this approach loads only the first mipmap and relies on graphics card to fill the rest
     data_mapcount = 1;
@@ -216,6 +285,12 @@ opengl_texture::load_DDS() {
         --mapcount;
     }
 */
+    if( datasize == 0 ) {
+        // catch malformed .dds files
+        WriteLog( "File \"" + name + "\" is malformed and holds no texture data." );
+        data_state = resource_state::failed;
+        return;
+    }
     // reserve space and load texture data
     data.resize( datasize );
     if( offset != 0 ) {
@@ -408,6 +483,16 @@ opengl_texture::load_TGA() {
         return;
     }
 
+    downsize( GL_BGRA );
+    if( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+        // for non-square textures there's currently possibility the scaling routine will have to abort
+        // before it gets all work done
+        data_state = resource_state::failed;
+        return;
+    }
+
+    // TODO: add horizontal/vertical data flip, based on the descriptor (18th) header byte
+
     // fill remaining data info
     data_mapcount = 1;
     data_format = GL_BGRA;
@@ -420,82 +505,101 @@ opengl_texture::load_TGA() {
     return;
 }
 
-void
+resource_state
+opengl_texture::bind() {
+
+    if( false == is_ready ) {
+
+        create();
+        if( data_state != resource_state::good ) {
+            return data_state;
+        }
+    }
+    ::glBindTexture( GL_TEXTURE_2D, id );
+    return data_state;
+}
+
+resource_state
 opengl_texture::create() {
 
     if( data_state != resource_state::good ) {
         // don't bother until we have useful texture data
-        return;
+        return data_state;
     }
 
-    ::glGenTextures( 1, &id );
-    ::glBindTexture( GL_TEXTURE_2D, id );
+    // TODO: consider creating and storing low-res version of the texture if it's ever unloaded from the gfx card,
+    // as a placeholder until it can be loaded again
+    if( id == -1 ) {
 
-    // analyze specified texture traits
-    bool wraps{ true };
-    bool wrapt{ true };
-    for( auto const &trait : traits ) {
+        ::glGenTextures( 1, &id );
+        ::glBindTexture( GL_TEXTURE_2D, id );
 
-        switch( trait ) {
+        // analyze specified texture traits
+        bool wraps{ true };
+        bool wrapt{ true };
+        for( auto const &trait : traits ) {
 
-            case 's': { wraps = false; break; }
-            case 't': { wrapt = false; break; }
+            switch( trait ) {
+
+                case 's': { wraps = false; break; }
+                case 't': { wrapt = false; break; }
+            }
         }
-    }
 
-    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
-    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
 
-    set_filtering();
+        set_filtering();
 
-    if( data_mapcount == 1 ) {
-        // fill missing mipmaps if needed
-        ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-    }
-    // upload texture data
-    int dataoffset = 0,
-        datasize = 0,
-        datawidth = data_width,
-        dataheight = data_height;
-    for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
+        if( data_mapcount == 1 ) {
+            // fill missing mipmaps if needed
+            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+        }
+        // upload texture data
+        int dataoffset = 0,
+            datasize = 0,
+            datawidth = data_width,
+            dataheight = data_height;
+        for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
-        if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
-            || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
-            || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
-            // compressed dds formats
-            int const datablocksize =
-                ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
+            if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
+                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
+                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
+                // compressed dds formats
+                int const datablocksize =
+                    ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
                     8 :
                     16 );
 
-            datasize = ( ( std::max(datawidth, 4) + 3 ) / 4 ) * ( ( std::max(dataheight, 4) + 3 ) / 4 ) * datablocksize;
+                datasize = ( ( std::max( datawidth, 4 ) + 3 ) / 4 ) * ( ( std::max( dataheight, 4 ) + 3 ) / 4 ) * datablocksize;
 
-            ::glCompressedTexImage2D(
-                GL_TEXTURE_2D, maplevel, data_format,
-                datawidth, dataheight, 0,
-                datasize, (GLubyte *)&data[0] + dataoffset );
+                ::glCompressedTexImage2D(
+                    GL_TEXTURE_2D, maplevel, data_format,
+                    datawidth, dataheight, 0,
+                    datasize, (GLubyte *)&data[ dataoffset ] );
 
-            dataoffset += datasize;
-            datawidth = std::max( datawidth / 2, 1 );
-            dataheight = std::max( dataheight / 2, 1 );
+                dataoffset += datasize;
+                datawidth = std::max( datawidth / 2, 1 );
+                dataheight = std::max( dataheight / 2, 1 );
+            }
+            else {
+                // uncompressed texture data. have the gfx card do the compression as it sees fit
+                ::glTexImage2D(
+                    GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA,
+                    data_width, data_height, 0,
+                    data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
+            }
         }
-        else{
-            // uncompressed texture data
-            ::glTexImage2D(
-                GL_TEXTURE_2D, 0, GL_RGBA8,
-                data_width, data_height, 0,
-                data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[0] );
-        }
+
+        data.resize( 0 ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
+/*
+    data_state = resource_state::none;
+*/
+        data_state = resource_state::good;
+        is_ready = true;
     }
 
-    is_ready = true;
-    has_alpha = (
-        data_components == GL_RGBA ?
-            true :
-            false );
-
-    data.resize( 0 ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
-    data_state = resource_state::none;
+    return data_state;
 }
 
 void
@@ -504,6 +608,11 @@ opengl_texture::set_filtering() {
     // default texture mode
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+
+    if( GLEW_EXT_texture_filter_anisotropic ) {
+        // anisotropic filtering
+        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global::AnisotropicFiltering );
+    }
 
     bool sharpen{ false };
     for( auto const &trait : traits ) {
@@ -556,6 +665,32 @@ opengl_texture::set_filtering() {
         // regular texture sharpening
         ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
     }
+}
+
+void
+opengl_texture::downsize( GLuint const Format ) {
+
+    while( ( data_width > Global::iMaxTextureSize ) || ( data_height > Global::iMaxTextureSize ) ) {
+        // scale down the base texture, if it's larger than allowed maximum
+        // NOTE: scaling is uniform along both axes, meaning non-square textures can drop below the maximum
+        // TODO: replace with proper scaling function once we have image middleware in place
+        if( ( data_width < 2 ) || ( data_height < 2 ) ) {
+            // can't go any smaller
+            break;
+        }
+
+        WriteLog( "Texture size exceeds specified limits, downsampling data" );
+        switch( Format ) {
+
+            case GL_RGB:  { downsample< glm::tvec3<std::uint8_t> >( data_width, data_height, data.data() ); break; }
+            case GL_BGRA:
+            case GL_RGBA: { downsample< glm::tvec4<std::uint8_t> >( data_width, data_height, data.data() ); break; }
+            default:      { break; }
+        }
+        data_width /= 2;
+        data_height /= 2;
+        data.resize( data.size() / 4 ); // not strictly needed, but, eh
+    };
 }
 
 void
@@ -639,6 +774,7 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 
     if( true == filename.empty() ) {
         // there's nothing matching in the databank nor on the disk, report failure
+        ErrorLog( "Texture file missing: \"" + Filename + "\"" );
         return npos;
     }
 
@@ -653,7 +789,7 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
         traits += '#';
     }
     texture.traits = traits;
-    auto const textureindex = m_textures.size();
+    auto const textureindex = (texture_manager::size_type)m_textures.size();
     m_textures.emplace_back( texture );
     m_texturemappings.emplace( filename, textureindex );
 
@@ -662,7 +798,9 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
     if( true == Loadnow ) {
 
         Texture( textureindex ).load();
+#ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         Texture( textureindex ).create();
+#endif
     }
 
     return textureindex;
@@ -682,20 +820,78 @@ texture_manager::Bind( texture_manager::size_type const Id ) {
 */
     // TODO: do binding in texture object, add support for other types
     if( Id != 0 ) {
-
-        auto const &texture = Texture( Id );
-        if( true == texture.is_ready ) {
-            ::glBindTexture( GL_TEXTURE_2D, texture.id );
+#ifndef EU07_DEFERRED_TEXTURE_UPLOAD
+        // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
+        ::glBindTexture( GL_TEXTURE_2D, Texture(Id).id );
+        m_activetexture = Texture(Id).id;
+#else
+        if( Texture( Id ).bind() == resource_state::good ) {
             m_activetexture = Id;
-            return;
         }
+        else {
+            // TODO: bind a special 'error' texture on failure
+        }
+#endif
     }
+    else {
 
-    ::glBindTexture( GL_TEXTURE_2D, 0 );
-    m_activetexture = 0;
-
+        ::glBindTexture( GL_TEXTURE_2D, 0 );
+        m_activetexture = 0;
+    }
+    // all done
     return;
 }
+
+void
+texture_manager::Free() {
+    for( auto const &texture : m_textures ) {
+        // usunięcie wszyskich tekstur (bez usuwania struktury)
+        if( ( texture.id > 0 )
+            && ( texture.id != -1 ) ) {
+            ::glDeleteTextures( 1, &texture.id );
+        }
+    }
+}
+
+// debug performance string
+std::string
+texture_manager::Info() const {
+
+    // TODO: cache this data and update only during resource sweep
+    std::size_t totaltexturecount{ m_textures.size() - 1 };
+    std::size_t totaltexturesize{ 0 };
+#ifdef EU07_DEFERRED_TEXTURE_UPLOAD
+    std::size_t readytexturecount{ 0 };
+    std::size_t readytexturesize{ 0 };
+#endif
+
+    for( auto const& texture : m_textures ) {
+
+        totaltexturesize += texture.size;
+#ifdef EU07_DEFERRED_TEXTURE_UPLOAD
+
+        if( texture.is_ready ) {
+
+            ++readytexturecount;
+            readytexturesize += texture.size;
+        }
+#endif
+    }
+
+    return
+        "Textures: "
+#ifdef EU07_DEFERRED_TEXTURE_UPLOAD
+        + std::to_string( readytexturecount )
+        + " ("
+        + to_string( readytexturesize / 1024.0f, 2 ) + " mb)"
+        + " in vram, ";
+#endif
+        + std::to_string( totaltexturecount )
+        + " ("
+        + to_string( totaltexturesize / 1024.0f, 2 ) + " mb)"
+        + " total";
+}
+
 // checks whether specified texture is in the texture bank. returns texture id, or npos.
 texture_manager::size_type
 texture_manager::find_in_databank( std::string const &Texturename ) {
@@ -734,13 +930,4 @@ texture_manager::find_on_disk( std::string const &Texturename ) {
     }
     // no results either way, report failure
     return "";
-}
-
-void
-texture_manager::Free()
-{ 
-    for( auto const &texture : m_textures ) {
-        // usunięcie wszyskich tekstur (bez usuwania struktury)
-        ::glDeleteTextures( 1, &texture.id );
-    }
 }

@@ -428,45 +428,47 @@ double TMoverParameters::Distance(const vector3 &s1, const vector3 &s2, const ve
 */
 double TMoverParameters::CouplerDist(int Coupler)
 { // obliczenie odległości pomiędzy sprzęgami (kula!)
-    return Couplers[Coupler].CoupleDist =
-               Distance(Loc, Couplers[Coupler].Connected->Loc, Dim,
-                        Couplers[Coupler].Connected->Dim); // odległość pomiędzy sprzęgami (kula!)
+    Couplers[Coupler].CoupleDist = 
+        Distance(
+            Loc, Couplers[Coupler].Connected->Loc,
+            Dim, Couplers[Coupler].Connected->Dim); // odległość pomiędzy sprzęgami (kula!)
+
+    return Couplers[ Coupler ].CoupleDist;
 };
 
-bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo,
-                               int CouplingType, bool Forced)
+bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced)
 { //łączenie do swojego sprzęgu (ConnectNo) pojazdu (ConnectTo) stroną (ConnectToNr)
     // Ra: zwykle wykonywane dwukrotnie, dla każdego pojazdu oddzielnie
     // Ra: trzeba by odróżnić wymóg dociśnięcia od uszkodzenia sprzęgu przy podczepianiu AI do
     // składu
     if (ConnectTo) // jeśli nie pusty
     {
+        auto &coupler = Couplers[ ConnectNo ];
         if (ConnectToNr != 2)
-            Couplers[ConnectNo].ConnectedNr = ConnectToNr; // 2=nic nie podłączone
-        TCouplerType ct = ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr]
-                              .CouplerType; // typ sprzęgu podłączanego pojazdu
-        Couplers[ConnectNo].Connected =
-            ConnectTo; // tak podpiąć (do siebie) zawsze można, najwyżej będzie wirtualny
-        CouplerDist(ConnectNo); // przeliczenie odległości pomiędzy sprzęgami
+            coupler.ConnectedNr = ConnectToNr; // 2=nic nie podłączone
+        coupler.Connected = ConnectTo; // tak podpiąć (do siebie) zawsze można, najwyżej będzie wirtualny
+        CouplerDist( ConnectNo ); // przeliczenie odległości pomiędzy sprzęgami
+
         if (CouplingType == ctrain_virtual)
             return false; // wirtualny więcej nic nie robi
-        if (Forced ? true : ((Couplers[ConnectNo].CoupleDist <= dEpsilon) &&
-                             (Couplers[ConnectNo].CouplerType != NoCoupler) &&
-                             (Couplers[ConnectNo].CouplerType == ct)))
+
+        auto &othercoupler = ConnectTo->Couplers[ coupler.ConnectedNr ];
+        if( ( Forced )
+         || ( ( coupler.CoupleDist <= dEpsilon )
+           && ( coupler.CouplerType != NoCoupler )
+           && ( coupler.CouplerType == othercoupler.CouplerType ) ) )
         { // stykaja sie zderzaki i kompatybilne typy sprzegow, chyba że łączenie na starcie
-            if (Couplers[ConnectNo].CouplingFlag ==
-                ctrain_virtual) // jeśli wcześniej nie było połączone
-            { // ustalenie z której strony rysować sprzęg
-                Couplers[ConnectNo].Render = true; // tego rysować
-                ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].Render = false; // a tego nie
+            if( coupler.CouplingFlag == ctrain_virtual ) {
+                // jeśli wcześniej nie było połączone, ustalenie z której strony rysować sprzęg
+                coupler.Render = true; // tego rysować
+                othercoupler.Render = false; // a tego nie
             };
-            Couplers[ConnectNo].CouplingFlag = CouplingType; // ustawienie typu sprzęgu
+            coupler.CouplingFlag = CouplingType; // ustawienie typu sprzęgu
             // if (CouplingType!=ctrain_virtual) //Ra: wirtualnego nie łączymy zwrotnie!
             //{//jeśli łączenie sprzęgiem niewirtualnym, ustawiamy połączenie zwrotne
-            ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CouplingFlag = CouplingType;
-            ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].Connected = this;
-            ConnectTo->Couplers[Couplers[ConnectNo].ConnectedNr].CoupleDist =
-                Couplers[ConnectNo].CoupleDist;
+            othercoupler.CouplingFlag = CouplingType;
+            othercoupler.Connected = this;
+            othercoupler.CoupleDist = coupler.CoupleDist;
             return true;
             //}
             // podłączenie nie udało się - jest wirtualne
@@ -2421,7 +2423,7 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 {
     bool IBL;
-    if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
+     if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
     {
         while ((LocalBrakePos < LocalBrakePosNo) && (CtrlSpeed > 0))
         {
@@ -3005,98 +3007,105 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     //      if (Hamulec is typeid(TWest)) return 0;
 
-    switch (BrakeValve)
-    {
-    case W:
-    {
-        if (BrakeLocHandle != NoHandle)
+    switch (BrakeValve) {
+
+        case K:
+        case W: {
+
+            if( BrakeLocHandle != NoHandle ) {
+                LocBrakePress = LocHandle->GetCP();
+
+                //(Hamulec as TWest).SetLBP(LocBrakePress);
+                Hamulec->SetLBP( LocBrakePress );
+            }
+            if( MBPM < 2 )
+                //(Hamulec as TWest).PLC(MaxBrakePress[LoadFlag])
+                Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+            else
+                //(Hamulec as TWest).PLC(TotalMass);
+                Hamulec->PLC( TotalMass );
+            break;
+        }
+
+        case LSt:
+        case EStED: {
+
+            LocBrakePress = LocHandle->GetCP();
+            for( int b = 0; b < 2; b++ )
+                if( ( ( TrainType & ( dt_ET41 | dt_ET42 ) ) != 0 ) &&
+                    ( Couplers[ b ].Connected != NULL ) ) // nie podoba mi się to rozwiązanie, chyba trzeba
+                    // dodać jakiś wpis do fizyki na to
+                    if( ( ( Couplers[ b ].Connected->TrainType & ( dt_ET41 | dt_ET42 ) ) != 0 ) &&
+                        ( ( Couplers[ b ].CouplingFlag & 36 ) == 36 ) )
+                        LocBrakePress = Max0R( Couplers[ b ].Connected->LocHandle->GetCP(), LocBrakePress );
+
+            //if ((DynamicBrakeFlag) && (EngineType == ElectricInductionMotor))
+            //{
+            //    //if (Vel > 10)
+            //    //    LocBrakePress = 0;
+            //    //else if (Vel > 5)
+            //    //    LocBrakePress = (10 - Vel) / 5 * LocBrakePress;
+            //}
+
+            //(Hamulec as TLSt).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            if( ( BrakeValve == EStED ) )
+                if( MBPM < 2 )
+                    Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+                else
+                    Hamulec->PLC( TotalMass );
+            break;
+        }
+
+        case CV1_L_TR:
         {
             LocBrakePress = LocHandle->GetCP();
-
-            //(Hamulec as TWest).SetLBP(LocBrakePress);
-            Hamulec->SetLBP(LocBrakePress);
+            //(Hamulec as TCV1L_TR).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            break;
         }
-        if (MBPM < 2)
-            //(Hamulec as TWest).PLC(MaxBrakePress[LoadFlag])
-            Hamulec->PLC(MaxBrakePress[LoadFlag]);
-        else
-            //(Hamulec as TWest).PLC(TotalMass);
-            Hamulec->PLC(TotalMass);
-        break;
-    }
 
-    case LSt:
-    case EStED:
-    {
-        LocBrakePress = LocHandle->GetCP();
-        for (int b = 0; b < 2; b++)
-            if (((TrainType & (dt_ET41 | dt_ET42)) != 0) &&
-                (Couplers[b].Connected != NULL)) // nie podoba mi się to rozwiązanie, chyba trzeba
-                                                 // dodać jakiś wpis do fizyki na to
-                if (((Couplers[b].Connected->TrainType & (dt_ET41 | dt_ET42)) != 0) &&
-                    ((Couplers[b].CouplingFlag & 36) == 36))
-                    LocBrakePress = Max0R(Couplers[b].Connected->LocHandle->GetCP(), LocBrakePress);
-
-        //if ((DynamicBrakeFlag) && (EngineType == ElectricInductionMotor))
-        //{
-        //    //if (Vel > 10)
-        //    //    LocBrakePress = 0;
-        //    //else if (Vel > 5)
-        //    //    LocBrakePress = (10 - Vel) / 5 * LocBrakePress;
-        //}
-
-        //(Hamulec as TLSt).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-		if ((BrakeValve == EStED))
-			if (MBPM < 2)
-				Hamulec->PLC(MaxBrakePress[LoadFlag]);
-			else
-				Hamulec->PLC(TotalMass);
-		break;
-    }
-
-    case CV1_L_TR:
-    {
-        LocBrakePress = LocHandle->GetCP();
-        //(Hamulec as TCV1L_TR).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-        break;
-    }
-
-    case EP2:
-	{
-		Hamulec->PLC(TotalMass);
-		break;
-	}
-    case ESt3AL2:
-    case NESt3:
-    case ESt4:
-    case ESt3:
-    {
-        if (MBPM < 2)
-            //(Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
-            Hamulec->PLC(MaxBrakePress[LoadFlag]);
-        else
-            //(Hamulec as TNESt3).PLC(TotalMass);
-            Hamulec->PLC(TotalMass);
-        LocBrakePress = LocHandle->GetCP();
-        //(Hamulec as TNESt3).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-        break;
-    }
-    case KE:
-    {
-        LocBrakePress = LocHandle->GetCP();
-        //(Hamulec as TKE).SetLBP(LocBrakePress);
-        Hamulec->SetLBP(LocBrakePress);
-        if (MBPM < 2)
-            //(Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
-            Hamulec->PLC(MaxBrakePress[LoadFlag]);
-        else
-            //(Hamulec as TKE).PLC(TotalMass);
-            Hamulec->PLC(TotalMass);
-        break;
-    }
+        case EP2:
+        {
+            Hamulec->PLC( TotalMass );
+            break;
+        }
+        case ESt3AL2:
+        case NESt3:
+        case ESt4:
+        case ESt3:
+        {
+            if( MBPM < 2 )
+                //(Hamulec as TNESt3).PLC(MaxBrakePress[LoadFlag])
+                Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+            else
+                //(Hamulec as TNESt3).PLC(TotalMass);
+                Hamulec->PLC( TotalMass );
+            LocBrakePress = LocHandle->GetCP();
+            //(Hamulec as TNESt3).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            break;
+        }
+        case KE:
+        {
+            LocBrakePress = LocHandle->GetCP();
+            //(Hamulec as TKE).SetLBP(LocBrakePress);
+            Hamulec->SetLBP( LocBrakePress );
+            if( MBPM < 2 )
+                //(Hamulec as TKE).PLC(MaxBrakePress[LoadFlag])
+                Hamulec->PLC( MaxBrakePress[ LoadFlag ] );
+            else
+                //(Hamulec as TKE).PLC(TotalMass);
+                Hamulec->PLC( TotalMass );
+            break;
+        }
+        default:
+        {
+            // unsupported brake valve type, we should never land here
+//            ErrorLog( "Unsupported brake valve type (" + std::to_string( BrakeValve ) + ") in " + TypeName );
+//            ::PostQuitMessage( 0 );
+            break;
+        }
     } // switch
 
     if ((BrakeHandle == FVel6) && (ActiveCab != 0))
@@ -3807,10 +3816,13 @@ double TMoverParameters::TractionForce(double dt)
     }
 
     eAngle += enrot * dt;
+    if( eAngle > M_PI * 2.0 )
+        eAngle = std::fmod( eAngle, M_PI * 2.0 );
+/*
     while (eAngle > M_PI * 2.0)
         // eAngle = Pirazy2 - eAngle; <- ABu: a nie czasem tak, jak nizej?
         eAngle -= M_PI * 2.0;
-
+*/
     // hunter-091012: przeniesione z if ActiveDir<>0 (zeby po zejsciu z kierunku dalej spadala
     // predkosc wentylatorow)
     if (EngineType == ElectricSeriesMotor)
@@ -5478,7 +5490,7 @@ std::vector<std::string> x;
 // *************************************************************************************************
 // Q: 20160717
 // *************************************************************************************************
-int Pos(std::string str_find, std::string in)
+size_t Pos(std::string str_find, std::string in)
 {
     size_t pos = in.find(str_find);
     return (pos != std::string::npos ? pos+1 : 0);
@@ -6129,7 +6141,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         if( issection( "ffList:", inputline ) ) {
 			startBPT = false;
             startFFLIST = true; LISTLINE = 0;
-			continue;
+            LoadFIZ_FFList( inputline );
+            continue;
         }
 
         if( issection( "WWList:", inputline ) )
@@ -6314,7 +6327,8 @@ void TMoverParameters::LoadFIZ_Wheels( std::string const &line ) {
 
 void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 
-    BrakeValveDecode( extract_value( "BrakeValve", line ) );
+    extract_value( BrakeValveParams, "BrakeValve", line, "" );
+    BrakeValveDecode( BrakeValveParams );
     BrakeSubsystemDecode();
 
     extract_value( NBpA, "NBpA", line, "" );
@@ -6941,6 +6955,11 @@ void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
     extract_value( dizel_Mstand, "Mstand", Input, "" );
 }
 
+void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
+
+    extract_value( RlistSize, "Size", Input, "" );
+}
+
 void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {
 
     extract_value( LightsPosNo, "Size", Input, "" );
@@ -7252,8 +7271,8 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     }
 
 	if ( ( true == TestFlag( BrakeDelays, bdelay_G ) )
-      && ( false == TestFlag(BrakeDelays, bdelay_R) )
-      || ( Power > 1.0 ) ) // ustalanie srednicy przewodu glownego (lokomotywa lub napędowy
+      && ( ( false == TestFlag(BrakeDelays, bdelay_R ) )
+        || ( Power > 1.0 ) ) ) // ustalanie srednicy przewodu glownego (lokomotywa lub napędowy
 		Spg = 0.792;
 	else
 		Spg = 0.507;

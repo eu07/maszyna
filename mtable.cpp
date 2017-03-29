@@ -513,7 +513,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
             }
         }
     }
-    return !(bool)ConversionError;
+    return ConversionError == 0;
 }
 
 void TMTableTime::UpdateMTableTime(double deltaT)

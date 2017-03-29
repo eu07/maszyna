@@ -75,10 +75,8 @@ std::string Now() {
 	std::time_t timenow = std::time( nullptr );
 	std::tm tm = *std::localtime( &timenow );
 	std::stringstream  converter;
-	std::string output;
 	converter << std::put_time( &tm, "%c" );
-	converter >> output;
-	return output;
+    return converter.str();
 
 /*	char buffer[ 256 ];
 	sprintf( buffer,

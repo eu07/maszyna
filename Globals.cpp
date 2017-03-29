@@ -28,43 +28,38 @@ http://mozilla.org/MPL/2.0/.
 // parametry do użytku wewnętrznego
 // double Global::tSinceStart=0;
 TGround *Global::pGround = NULL;
-// char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz <McZapkie>";
-// char Global::CreatorName2[30]="2001-2003 Marcin Woźniak <Marcin_EU>";
-// char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
-// char Global::CreatorName4[30]="2004 Arkadiusz Ślusarczyk <Winger>";
-// char Global::CreatorName5[30]="2003-2009 Łukasz Kirchner <Nbmx>";
+std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
 std::string Global::asCurrentDynamicPath = "";
 int Global::iSlowMotion =
     0; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
-bool Global::detonatoryOK; // info o nowych detonatorach
 double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
-double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecności rozszerzeń
-/*
-bool Global::bOpenGL_1_5 = false; // czy są dostępne funkcje OpenGL 1.5
-*/
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
+float Global::SunAngle = 0.0f;
 int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
-HWND Global::hWnd = NULL; // uchwyt okna
+int Global::ScreenWidth = 1;
+int Global::ScreenHeight = 1;
+float Global::ZoomFactor = 1.0f;
+float Global::FieldOfView = 45.0f;
+GLFWwindow *Global::window;
+bool Global::shiftState;
+bool Global::ctrlState;
 int Global::iCameraLast = -1;
 std::string Global::asRelease = "16.0.1172.482";
-std::string Global::asVersion =
-    "Compilation 2017-01-10, release " + Global::asRelease + "."; // tutaj, bo wysyłany
-int Global::iViewMode = 0; // co aktualnie widać: 0-kabina, 1-latanie, 2-sprzęgi, 3-dokumenty
+std::string Global::asVersion = "Compilation 2017-03-19, release " + Global::asRelease; // tutaj, bo wysyłany
+std::string Global::ExecutableName;
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
-int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
-                               0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
+int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca
 double Global::fTimeAngleDeg = 0.0; // godzina w postaci kąta
 float Global::fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
 std::string Global::szTexturesTGA = ".tga"; // lista tekstur od TGA
 std::string Global::szTexturesDDS = ".dds"; // lista tekstur od DDS
 int Global::iKeyLast = 0; // ostatnio naciśnięty klawisz w celu logowania
-GLuint Global::iTextureId = 0; // ostatnio użyta tekstura 2D
-int Global::iPause = 0x10; // globalna pauza ruchu
+int Global::iPause = 0; // 0x10; // globalna pauza ruchu
 bool Global::bActive = true; // czy jest aktywnym oknem
 int Global::iErorrCounter = 0; // licznik sprawdzań do śledzenia błędów OpenGL
 int Global::iTextures = 0; // licznik użytych tekstur
@@ -73,29 +68,34 @@ cParser *Global::pParser = NULL;
 int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajności
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
-bool Global::bSmudge = false; // czy wyświetlać smugę, a pojazd użytkownika na końcu
 /*
 std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
 */
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
+float4 Global::UITextColor = float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
 // parametry scenerii
 vector3 Global::pCameraPosition;
 double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
-vector3 Global::pFreeCameraInit[10];
-vector3 Global::pFreeCameraInitAngle[10];
+std::vector<vector3> Global::FreeCameraInit;
+std::vector<vector3> Global::FreeCameraInitAngle;
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
-float Global::Background[3] = {0.2, 0.4, 0.33};
+float Global::Background[3] = {0.2f, 0.4f, 0.33f};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
 GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};
 GLfloat Global::specularDayLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
 GLfloat Global::ambientLight[] = {0.80f, 0.80f, 0.85f, 1.0f}; // stałe
 GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
 GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
+#else
+opengl_light Global::DayLight;
+int Global::DynamicLightCount{ 3 };
+#endif
 GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
 GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
 GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //śladowe
@@ -108,18 +108,20 @@ int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę t
 int Global::Keys[MaxKeys];
 int Global::iWindowWidth = 800;
 int Global::iWindowHeight = 600;
-float Global::fDistanceFactor = 768.0; // baza do przeliczania odległości dla LoD
+float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD
 int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
+bool Global::VSync{ false };
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
-float Global::fMouseXScale = 1.5;
-float Global::fMouseYScale = 0.2;
+float Global::fMouseXScale = 1.5f;
+float Global::fMouseYScale = 0.2f;
 std::string Global::SceneryFile = "td.scn";
 std::string Global::asHumanCtrlVehicle = "EU07-424";
 int Global::iMultiplayer = 0; // blokada działania niektórych funkcji na rzecz komunikacji
 double Global::fMoveLight = -1; // ruchome światło
+bool Global::FakeLight{ false }; // toggle between fixed and dynamic daylight
 double Global::fLatitudeDeg = 52.0; // szerokość geograficzna
 float Global::fFriction = 1.0; // mnożnik tarcia - KURS90
 double Global::fBrakeStep = 1.0; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
@@ -130,17 +132,21 @@ bool Global::bAdjustScreenFreq = true;
 bool Global::bEnableTraction = true;
 bool Global::bLoadTraction = true;
 bool Global::bLiveTraction = true;
+float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic filtering. TODO: move it to renderer object
 int Global::iDefaultFiltering = 9; // domyślne rozmywanie tekstur TGA bez alfa
 int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
 int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
 int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
 bool Global::bUseVBO = false; // czy jest VBO w karcie graficznej (czy użyć)
-GLint Global::iMaxTextureSize = 16384; // maksymalny rozmiar tekstury
+std::string Global::LastGLError;
+GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+bool Global::DLFont{ false }; // switch indicating presence of basic font
 bool Global::bGlutFont = false; // czy tekst generowany przez GLUT32.DLL
-int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
+//int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
+int Global::iConvertModels{ 0 }; // temporary override, to prevent generation of .e3d not compatible with old exe
 int Global::iSlowMotionMask = -1; // maska wyłączanych właściwości dla zwiększenia FPS
 int Global::iModifyTGA = 7; // czy korygować pliki TGA dla szybszego wczytywania
 // bool Global::bTerrainCompact=true; //czy zapisać teren w pliku
@@ -148,8 +154,8 @@ TAnimModel *Global::pTerrainCompact = NULL; // do zapisania terenu w pliku
 std::string Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
 double Global::fFpsAverage = 20.0; // oczekiwana wartosć FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
-double Global::fFpsMin = 0.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
-double Global::fFpsMax = 0.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
+double Global::fFpsMin = 30.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
+double Global::fFpsMax = 65.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
 double Global::fFpsRadiusMax = 3000.0; // maksymalny promień renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promień renderowania
 double Global::fRadiusFactor = 1.1; // współczynnik jednorazowej zmiany promienia scenerii
@@ -204,6 +210,7 @@ double Global::fMWDpg[2] = { 0.8, 1023 };
 double Global::fMWDph[2] = { 0.6, 1023 };
 double Global::fMWDvolt[2] = { 4000, 1023 };
 double Global::fMWDamp[2] = { 800, 1023 };
+double Global::fMWDlowVolt[2] = { 150, 1023 };
 int Global::iMWDdivider = 5;
 
 //---------------------------------------------------------------------------
@@ -225,11 +232,15 @@ std::string Global::GetNextSymbol()
 
 void Global::LoadIniFile(std::string asFileName)
 {
+/*
     for (int i = 0; i < 10; ++i)
     { // zerowanie pozycji kamer
         pFreeCameraInit[i] = vector3(0, 0, 0); // współrzędne w scenerii
         pFreeCameraInitAngle[i] = vector3(0, 0, 0); // kąty obrotu w radianach
     }
+*/
+    FreeCameraInit.resize( 10 );
+    FreeCameraInitAngle.resize( 10 );
     cParser parser(asFileName, cParser::buffer_FILE);
     ConfigParse(parser);
 };
@@ -256,6 +267,13 @@ void Global::ConfigParse(cParser &Parser)
 
             Parser.getTokens();
             Parser >> Global::asHumanCtrlVehicle;
+        }
+        else if( token == "fieldofview" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::FieldOfView;
+            // guard against incorrect values
+            Global::FieldOfView = clamp( Global::FieldOfView, 15.0f, 75.0f );
         }
         else if (token == "width")
         {
@@ -286,40 +304,42 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bFullScreen = (token == "yes");
+            Parser >> Global::bFullScreen;
+        }
+        else if( token == "vsync" ) {
+
+            Parser.getTokens();
+            Parser >> Global::VSync;
         }
         else if (token == "freefly")
         { // Mczapkie-130302
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bFreeFly = (token == "yes");
+            Parser >> Global::bFreeFly;
             Parser.getTokens(3, false);
-            Parser >> Global::pFreeCameraInit[0].x, Global::pFreeCameraInit[0].y,
-                Global::pFreeCameraInit[0].z;
+            Parser >>
+                Global::FreeCameraInit[0].x,
+                Global::FreeCameraInit[0].y,
+                Global::FreeCameraInit[0].z;
         }
         else if (token == "wireframe")
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bWireFrame = (token == "yes");
+            Parser >> Global::bWireFrame;
         }
         else if (token == "debugmode")
         { // McZapkie! - DebugModeFlag uzywana w mover.pas,
             // warto tez blokowac cheaty gdy false
             Parser.getTokens();
-            Parser >> token;
-            DebugModeFlag = (token == "yes");
+            Parser >> DebugModeFlag;
         }
         else if (token == "soundenabled")
         { // McZapkie-040302 - blokada dzwieku - przyda
             // sie do debugowania oraz na komp. bez karty
             // dzw.
             Parser.getTokens();
-            Parser >> token;
-            Global::bSoundEnabled = (token == "yes");
+            Parser >> Global::bSoundEnabled;
         }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
@@ -327,15 +347,13 @@ void Global::ConfigParse(cParser &Parser)
         { // McZapkie-030402 - logowanie parametrow
             // fizycznych dla kazdego pojazdu z maszynista
             Parser.getTokens();
-            Parser >> token;
-            WriteLogFlag = (token == "yes");
+            Parser >> WriteLogFlag;
         }
         else if (token == "physicsdeactivation")
         { // McZapkie-291103 - usypianie fizyki
 
             Parser.getTokens();
-            Parser >> token;
-            PhysicActivationFlag = (token == "yes");
+            Parser >> PhysicActivationFlag;
         }
         else if (token == "debuglog")
         {
@@ -359,8 +377,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // McZapkie-240403 - czestotliwosc odswiezania ekranu
             Parser.getTokens();
-            Parser >> token;
-            Global::bAdjustScreenFreq = (token == "yes");
+            Parser >> Global::bAdjustScreenFreq;
         }
         else if (token == "mousescale")
         {
@@ -372,15 +389,13 @@ void Global::ConfigParse(cParser &Parser)
         {
             // Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz łamanie
             Parser.getTokens();
-            Parser >> token;
-            Global::bEnableTraction = (token == "yes");
+            Parser >> Global::bEnableTraction;
         }
         else if (token == "loadtraction")
         {
             // Winger 140404 - ladowanie sie trakcji
             Parser.getTokens();
-            Parser >> token;
-            Global::bLoadTraction = (token == "yes");
+            Parser >> Global::bLoadTraction;
         }
         else if (token == "friction")
         { // mnożnik tarcia - KURS90
@@ -393,8 +408,7 @@ void Global::ConfigParse(cParser &Parser)
             // Winger 160404 - zaleznosc napiecia loka od trakcji;
             // Ra 2014-03: teraz prąd przy braku sieci
             Parser.getTokens();
-            Parser >> token;
-            Global::bLiveTraction = (token == "yes");
+            Parser >> Global::bLiveTraction;
         }
         else if (token == "skyenabled")
         {
@@ -407,15 +421,13 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bManageNodes = (token == "yes");
+            Parser >> Global::bManageNodes;
         }
         else if (token == "decompressdds")
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bDecompressDDS = (token == "yes");
+            Parser >> Global::bDecompressDDS;
         }
         else if (token == "defaultext")
         {
@@ -438,8 +450,7 @@ void Global::ConfigParse(cParser &Parser)
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bnewAirCouplers = (token == "yes");
+            Parser >> Global::bnewAirCouplers;
         }
         else if (token == "defaultfiltering")
         {
@@ -465,12 +476,16 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             Parser >> Global::iDynamicFiltering;
         }
-        else if (token == "usevbo")
+        else if( token == "anisotropicfiltering" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::AnisotropicFiltering;
+        }
+        else if( token == "usevbo" )
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bUseVBO = (token == "yes");
+            Parser >> Global::bUseVBO;
         }
         else if (token == "feedbackmode")
         {
@@ -496,49 +511,21 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             int size;
             Parser >> size;
-            if (size <= 64)
-            {
-                Global::iMaxTextureSize = 64;
-            }
-            else if (size <= 128)
-            {
-                Global::iMaxTextureSize = 128;
-            }
-            else if (size <= 256)
-            {
-                Global::iMaxTextureSize = 256;
-            }
-            else if (size <= 512)
-            {
-                Global::iMaxTextureSize = 512;
-            }
-            else if (size <= 1024)
-            {
-                Global::iMaxTextureSize = 1024;
-            }
-            else if (size <= 2048)
-            {
-                Global::iMaxTextureSize = 2048;
-            }
-            else if (size <= 4096)
-            {
-                Global::iMaxTextureSize = 4096;
-            }
-            else if (size <= 8192)
-            {
-                Global::iMaxTextureSize = 8192;
-            }
-            else
-            {
-                Global::iMaxTextureSize = 16384;
-            }
+                 if (size <= 64)   { Global::iMaxTextureSize = 64; }
+            else if (size <= 128)  { Global::iMaxTextureSize = 128; }
+            else if (size <= 256)  { Global::iMaxTextureSize = 256; }
+            else if (size <= 512)  { Global::iMaxTextureSize = 512; }
+            else if (size <= 1024) { Global::iMaxTextureSize = 1024; }
+            else if (size <= 2048) { Global::iMaxTextureSize = 2048; }
+            else if (size <= 4096) { Global::iMaxTextureSize = 4096; }
+            else if (size <= 8192) { Global::iMaxTextureSize = 8192; }
+            else                   { Global::iMaxTextureSize = 16384; }
         }
         else if (token == "doubleambient")
         {
             // podwójna jasność ambient
             Parser.getTokens();
-            Parser >> token;
-            Global::bDoubleAmbient = (token == "yes");
+            Parser >> Global::bDoubleAmbient;
         }
         else if (token == "movelight")
         {
@@ -551,25 +538,20 @@ void Global::ConfigParse(cParser &Parser)
                 std::tm *localtime = std::localtime(&timenow);
                 Global::fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
-            if (fMoveLight > 0.f) // tu jest nadal zwiększone o 1
-            { // obliczenie deklinacji wg:
-                // http://naturalfrequency.com/Tregenza_Sharples/Daylight_Algorithms/algorithm_1_11.htm
-                // Spencer J W Fourier series representation of the position of the sun Search 2 (5)
-                // 172 (1971)
-                Global::fMoveLight =
-                    M_PI / 182.5 * (Global::fMoveLight - 1.0); // numer dnia w postaci kąta
-                fSunDeclination =
-                    0.006918 - 0.3999120 * std::cos(fMoveLight) + 0.0702570 * std::sin(fMoveLight) -
-                    0.0067580 * std::cos(2 * fMoveLight) + 0.0009070 * std::sin(2 * fMoveLight) -
-                    0.0026970 * std::cos(3 * fMoveLight) + 0.0014800 * std::sin(3 * fMoveLight);
-            }
+        }
+        else if( token == "dynamiclights" ) {
+            // number of dynamic lights in the scene
+            Parser.getTokens( 1, false );
+            Parser >> Global::DynamicLightCount;
+            // clamp the light number
+            // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
+            Global::DynamicLightCount = clamp( Global::DynamicLightCount, 1, 7 ); 
         }
         else if (token == "smoothtraction")
         {
             // podwójna jasność ambient
             Parser.getTokens();
-            Parser >> token;
-            Global::bSmoothTraction = (token == "yes");
+            Parser >> Global::bSmoothTraction;
         }
         else if (token == "timespeed")
         {
@@ -587,8 +569,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // tekst generowany przez GLUT
             Parser.getTokens();
-            Parser >> token;
-            Global::bGlutFont = (token == "yes");
+            Parser >> Global::bGlutFont;
         }
         else if (token == "latitude")
         {
@@ -601,13 +582,17 @@ void Global::ConfigParse(cParser &Parser)
             // tworzenie plików binarnych
             Parser.getTokens(1, false);
             Parser >> Global::iConvertModels;
+            // temporary override, to prevent generation of .e3d not compatible with old exe
+            Global::iConvertModels =
+                ( Global::iConvertModels > 128 ?
+                    Global::iConvertModels - 128 :
+                    0 );
         }
         else if (token == "inactivepause")
         {
             // automatyczna pauza, gdy okno nieaktywne
             Parser.getTokens();
-            Parser >> token;
-            Global::bInactivePause = (token == "yes");
+            Parser >> Global::bInactivePause;
         }
         else if (token == "slowmotion")
         {
@@ -625,22 +610,19 @@ void Global::ConfigParse(cParser &Parser)
         {
             // hunter-271211: ukrywanie konsoli
             Parser.getTokens();
-            Parser >> token;
-            Global::bHideConsole = (token == "yes");
+            Parser >> Global::bHideConsole;
         }
         else if (token == "oldsmudge")
         {
 
             Parser.getTokens();
-            Parser >> token;
-            Global::bOldSmudge = (token == "yes");
+            Parser >> Global::bOldSmudge;
         }
         else if (token == "rollfix")
         {
             // Ra: poprawianie przechyłki, aby wewnętrzna szyna była "pozioma"
             Parser.getTokens();
-            Parser >> token;
-            Global::bRollFix = (token == "yes");
+            Parser >> Global::bRollFix;
         }
         else if (token == "fpsaverage")
         {
@@ -671,7 +653,8 @@ void Global::ConfigParse(cParser &Parser)
                 in = 5; // na ostatni, bo i tak trzeba pominąć wartości
             }
             Parser.getTokens(4, false);
-            Parser >> Global::fCalibrateIn[in][0] // wyraz wolny
+            Parser
+                >> Global::fCalibrateIn[in][0] // wyraz wolny
                 >> Global::fCalibrateIn[in][1] // mnożnik
                 >> Global::fCalibrateIn[in][2] // mnożnik dla kwadratu
                 >> Global::fCalibrateIn[in][3]; // mnożnik dla sześcianu
@@ -765,8 +748,7 @@ void Global::ConfigParse(cParser &Parser)
         {
             // czy grupować eventy o tych samych nazwach
             Parser.getTokens();
-            Parser >> token;
-            Global::bJoinEvents = (token == "yes");
+            Parser >> Global::bJoinEvents;
         }
         else if (token == "hiddenevents")
         {
@@ -787,11 +769,18 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             Parser >> Global::asLang;
         }
-        else if (token == "opengl")
-        {
-            // deklarowana wersja OpenGL, żeby powstrzymać błędy
-            Parser.getTokens(1, false);
-            Parser >> Global::fOpenGL;
+        else if( token == "uitextcolor" ) {
+            // color of the ui text. NOTE: will be obsolete once the real ui is in place
+            Parser.getTokens( 3, false );
+            Parser
+                >> Global::UITextColor.x
+                >> Global::UITextColor.y
+                >> Global::UITextColor.z;
+            Global::UITextColor.x = clamp( Global::UITextColor.x, 0.0f, 255.0f );
+            Global::UITextColor.y = clamp( Global::UITextColor.y, 0.0f, 255.0f );
+            Global::UITextColor.z = clamp( Global::UITextColor.z, 0.0f, 255.0f );
+            Global::UITextColor = Global::UITextColor / 255.0f;
+            Global::UITextColor.w = 1.0f;
         }
         else if (token == "pyscreenrendererpriority")
         {
@@ -811,14 +800,12 @@ void Global::ConfigParse(cParser &Parser)
         // maciek001: ustawienia MWD
 		else if (token == "mwdmasterenable") {         // główne włączenie maszyny!
 			Parser.getTokens();
-			Parser >> token;
-			bMWDmasterEnable = (token == "yes");
+			Parser >> bMWDmasterEnable;
 			if (bMWDdebugEnable) WriteLog("SerialPort Master Enable");
 		}
 		else if (token == "mwddebugenable") {         // logowanie pracy
 			Parser.getTokens();
-			Parser >> token;
-			bMWDdebugEnable = (token == "yes");
+			Parser >> bMWDdebugEnable;
 			if (bMWDdebugEnable) WriteLog("MWD Debug Mode On");
 		}
 		else if (token == "mwddebugmode") {           // co ma być debugowane?
@@ -838,14 +825,12 @@ void Global::ConfigParse(cParser &Parser)
 		}
 		else if (token == "mwdinputenable") {         // włącz wejścia
 			Parser.getTokens();
-			Parser >> token;
-			bMWDInputEnable = (token == "yes");
+			Parser >> bMWDInputEnable;
 			if (bMWDdebugEnable && bMWDInputEnable) WriteLog("MWD Input Enable");
 		}
 		else if (token == "mwdbreakenable") {         // włącz obsługę hamulców
 			Parser.getTokens();
-			Parser >> token;
-			bMWDBreakEnable = (token == "yes");
+			Parser >> bMWDBreakEnable;
 			if (bMWDdebugEnable && bMWDBreakEnable) WriteLog("MWD Break Enable");
 		}
 		else if (token == "mwdmainbreakconfig") {      // ustawienia hamulca zespolonego
@@ -856,46 +841,57 @@ void Global::ConfigParse(cParser &Parser)
 		else if (token == "mwdlocbreakconfig") {	// ustawienia hamulca lokomotywy
 			Parser.getTokens(2, false);
 			Parser >> fMWDAnalogInCalib[1][0] >> fMWDAnalogInCalib[1][1];
-			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[1][1]));
+			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + (" ") + to_string(fMWDAnalogInCalib[1][1]));
 		}
 		else if (token == "mwdanalogin1config") {      // ustawienia hamulca zespolonego
 			Parser.getTokens(2, false);
 			Parser >> fMWDAnalogInCalib[2][0] >> fMWDAnalogInCalib[2][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[2][1]));
+			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + (" ") + to_string(fMWDAnalogInCalib[2][1]));
 		}
 		else if (token == "mwdanalogin2config") {	// ustawienia hamulca lokomotywy
 			Parser.getTokens(2, false);
 			Parser >> fMWDAnalogInCalib[3][0] >> fMWDAnalogInCalib[3][1];
-			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + to_string(" ") + to_string(fMWDAnalogInCalib[3][1]));
+			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + (" ") + to_string(fMWDAnalogInCalib[3][1]));
 		}
 		else if (token == "mwdmaintankpress") {        // max ciśnienie w zbiorniku głownym i rozdzielczość
 			Parser.getTokens(2, false);
 			Parser >> fMWDzg[0] >> fMWDzg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + to_string(" ") + to_string(fMWDzg[1]));
+			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + (" ") + to_string(fMWDzg[1]));
 		}
 		else if (token == "mwdmainpipepress") {        // max ciśnienie w przewodzie głownym i rozdzielczość
 			Parser.getTokens(2, false);
 			Parser >> fMWDpg[0] >> fMWDpg[1];
-			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + to_string(" ") + to_string(fMWDpg[1]));
+			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + (" ") + to_string(fMWDpg[1]));
 		}
 		else if (token == "mwdbreakpress") {           // max ciśnienie w hamulcach i rozdzielczość
 			Parser.getTokens(2, false);
 			Parser >> fMWDph[0] >> fMWDph[1];
-			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + to_string(" ") + to_string(fMWDph[1]));
+			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + (" ") + to_string(fMWDph[1]));
 		}
 		else if (token == "mwdhivoltmeter") {          // max napięcie na woltomierzu WN
 			Parser.getTokens(2, false);
 			Parser >> fMWDvolt[0] >> fMWDvolt[1];
-			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + to_string(" ") + to_string(fMWDvolt[1]));
+			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + (" ") + to_string(fMWDvolt[1]));
 		}
 		else if (token == "mwdhiampmeter") {
 			Parser.getTokens(2, false);
 			Parser >> fMWDamp[0] >> fMWDamp[1];
-			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + to_string(" ") + to_string(fMWDamp[1]));
+			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + (" ") + to_string(fMWDamp[1]));
+		}
+		else if (token == "mwdlowvoltmeter") {
+			Parser.getTokens(2, false);
+			Parser >> fMWDlowVolt[0] >> fMWDlowVolt[1];
+			if (bMWDdebugEnable) WriteLog("Low VoltMeter settings: " + to_string(fMWDlowVolt[0]) + (" ") + to_string(fMWDlowVolt[1]));
 		}
 		else if (token == "mwddivider") {
 			Parser.getTokens(1, false);
 			Parser >> iMWDdivider;
+			if (iMWDdivider == 0)
+			{
+				WriteLog("Dzielnik nie może być równy ZERO! Ustawiam na 1!");
+				iMWDdivider = 1;
+			}
+			if (bMWDdebugEnable) WriteLog("Divider = " + to_string(iMWDdivider));
 		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
@@ -904,8 +900,6 @@ void Global::ConfigParse(cParser &Parser)
         bEnableTraction = false; // false = pantograf się nie połamie
         bLiveTraction = false; // false = pantografy zawsze zbierają 95% MaxVoltage
     }
-    // if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno światło ruchome
-    // if (fOpenGL<1.3) iMultisampling=0; //można by z góry wyłączyć, ale nie mamy jeszcze fOpenGL
     if (iMultisampling)
     { // antyaliasing całoekranowy wyłącza rozmywanie drutów
         bSmoothTraction = false;
@@ -916,18 +910,20 @@ void Global::ConfigParse(cParser &Parser)
         // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, więc iMultiplayer=1 da się zapauzować
         // (tryb instruktora)
     }
+/*
     fFpsMin = fFpsAverage -
               fFpsDeviation; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
     fFpsMax = fFpsAverage +
               fFpsDeviation; // górna granica FPS, przy której promień scenerii będzie zwiększany
+*/
     if (iPause)
-        iTextMode = VK_F1; // jak pauza, to pokazać zegar
+        iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
     /*  this won't execute anymore with the old parser removed
             // TBD: remove, or launch depending on passed flag?
         if (qp)
-    { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini
-            Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
-            iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
+    { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
+    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+            /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
                         fFpsRadiusMax; // maksymalny promień renderowania 3000.0 -> 225
             if (iFpsRadiusMax > 400)
                 iFpsRadiusMax = 400;
@@ -944,131 +940,97 @@ void Global::ConfigParse(cParser &Parser)
     */
 }
 
-void Global::InitKeys(std::string asFileName)
+void Global::InitKeys()
 {
-    //    if (FileExists(asFileName))
-    //    {
-    //       Error("Chwilowo plik keys.ini nie jest obsługiwany. Ładuję standardowe
-    //       ustawienia.\nKeys.ini file is temporarily not functional, loading default keymap...");
-    /*        TQueryParserComp *Parser;
-            Parser=new TQueryParserComp(NULL);
-            Parser->LoadStringToParse(asFileName);
+    Keys[k_IncMainCtrl] = GLFW_KEY_KP_ADD;
+    Keys[k_IncMainCtrlFAST] = GLFW_KEY_KP_ADD;
+    Keys[k_DecMainCtrl] = GLFW_KEY_KP_SUBTRACT;
+    Keys[k_DecMainCtrlFAST] = GLFW_KEY_KP_SUBTRACT;
+    Keys[k_IncScndCtrl] = GLFW_KEY_KP_DIVIDE;
+    Keys[k_IncScndCtrlFAST] = GLFW_KEY_KP_DIVIDE;
+    Keys[k_DecScndCtrl] = GLFW_KEY_KP_MULTIPLY;
+    Keys[k_DecScndCtrlFAST] = GLFW_KEY_KP_MULTIPLY;
 
-            for (int keycount=0; keycount<MaxKeys; keycount++)
-             {
-              Keys[keycount]=Parser->GetNextSymbol().ToInt();
-             }
+    Keys[k_IncLocalBrakeLevel] = GLFW_KEY_KP_1;
+    Keys[k_DecLocalBrakeLevel] = GLFW_KEY_KP_7;
+    Keys[k_IncBrakeLevel] = GLFW_KEY_KP_3;
+    Keys[k_DecBrakeLevel] = GLFW_KEY_KP_9;
+    Keys[k_Releaser] = GLFW_KEY_KP_6;
+    Keys[k_EmergencyBrake] = GLFW_KEY_KP_0;
+    Keys[k_Brake3] = GLFW_KEY_KP_8;
+    Keys[k_Brake2] = GLFW_KEY_KP_5;
+    Keys[k_Brake1] = GLFW_KEY_KP_2;
+    Keys[k_Brake0] = GLFW_KEY_KP_4;
+    Keys[k_WaveBrake] = GLFW_KEY_KP_DECIMAL;
 
-            delete Parser;
-    */
-    //    }
-    //    else
-    {
-        Keys[k_IncMainCtrl] = VK_ADD;
-        Keys[k_IncMainCtrlFAST] = VK_ADD;
-        Keys[k_DecMainCtrl] = VK_SUBTRACT;
-        Keys[k_DecMainCtrlFAST] = VK_SUBTRACT;
-        Keys[k_IncScndCtrl] = VK_DIVIDE;
-        Keys[k_IncScndCtrlFAST] = VK_DIVIDE;
-        Keys[k_DecScndCtrl] = VK_MULTIPLY;
-        Keys[k_DecScndCtrlFAST] = VK_MULTIPLY;
-        ///*NORMALNE
-        Keys[k_IncLocalBrakeLevel] = VK_NUMPAD1; // VK_NUMPAD7;
-        // Keys[k_IncLocalBrakeLevelFAST]=VK_END;  //VK_HOME;
-        Keys[k_DecLocalBrakeLevel] = VK_NUMPAD7; // VK_NUMPAD1;
-        // Keys[k_DecLocalBrakeLevelFAST]=VK_HOME; //VK_END;
-        Keys[k_IncBrakeLevel] = VK_NUMPAD3; // VK_NUMPAD9;
-        Keys[k_DecBrakeLevel] = VK_NUMPAD9; // VK_NUMPAD3;
-        Keys[k_Releaser] = VK_NUMPAD6;
-        Keys[k_EmergencyBrake] = VK_NUMPAD0;
-        Keys[k_Brake3] = VK_NUMPAD8;
-        Keys[k_Brake2] = VK_NUMPAD5;
-        Keys[k_Brake1] = VK_NUMPAD2;
-        Keys[k_Brake0] = VK_NUMPAD4;
-        Keys[k_WaveBrake] = VK_DECIMAL;
-        //*/
-        /*MOJE
-                Keys[k_IncLocalBrakeLevel]=VK_NUMPAD3;  //VK_NUMPAD7;
-                Keys[k_IncLocalBrakeLevelFAST]=VK_NUMPAD3;  //VK_HOME;
-                Keys[k_DecLocalBrakeLevel]=VK_DECIMAL;  //VK_NUMPAD1;
-                Keys[k_DecLocalBrakeLevelFAST]=VK_DECIMAL; //VK_END;
-                Keys[k_IncBrakeLevel]=VK_NUMPAD6;  //VK_NUMPAD9;
-                Keys[k_DecBrakeLevel]=VK_NUMPAD9;   //VK_NUMPAD3;
-                Keys[k_Releaser]=VK_NUMPAD5;
-                Keys[k_EmergencyBrake]=VK_NUMPAD0;
-                Keys[k_Brake3]=VK_NUMPAD2;
-                Keys[k_Brake2]=VK_NUMPAD1;
-                Keys[k_Brake1]=VK_NUMPAD4;
-                Keys[k_Brake0]=VK_NUMPAD7;
-                Keys[k_WaveBrake]=VK_NUMPAD8;
-        */
-        Keys[k_AntiSlipping] = VK_RETURN;
-        Keys[k_Sand] = VkKeyScan('s');
-        Keys[k_Main] = VkKeyScan('m');
-        Keys[k_Active] = VkKeyScan('w');
-        Keys[k_Battery] = VkKeyScan('j');
-        Keys[k_DirectionForward] = VkKeyScan('d');
-        Keys[k_DirectionBackward] = VkKeyScan('r');
-        Keys[k_Fuse] = VkKeyScan('n');
-        Keys[k_Compressor] = VkKeyScan('c');
-        Keys[k_Converter] = VkKeyScan('x');
-        Keys[k_MaxCurrent] = VkKeyScan('f');
-        Keys[k_CurrentAutoRelay] = VkKeyScan('g');
-        Keys[k_BrakeProfile] = VkKeyScan('b');
-        Keys[k_CurrentNext] = VkKeyScan('z');
+    Keys[k_AntiSlipping] = GLFW_KEY_KP_ENTER;
+    Keys[k_Sand] = 'S';
+    Keys[k_Main] = 'M';
+    Keys[k_Active] = 'W';
+    Keys[k_Battery] = 'J';
+    Keys[k_DirectionForward] = 'D';
+    Keys[k_DirectionBackward] = 'R';
+    Keys[k_Fuse] = 'N';
+    Keys[k_Compressor] = 'C';
+    Keys[k_Converter] = 'X';
+    Keys[k_MaxCurrent] = 'F';
+    Keys[k_CurrentAutoRelay] = 'G';
+    Keys[k_BrakeProfile] = 'B';
+    Keys[k_CurrentNext] = 'Z';
 
-        Keys[k_Czuwak] = VkKeyScan(' ');
-        Keys[k_Horn] = VkKeyScan('a');
-        Keys[k_Horn2] = VkKeyScan('a');
+    Keys[k_Czuwak] = ' ';
+    Keys[k_Horn] = 'A';
+    Keys[k_Horn2] = 'A';
 
-        Keys[k_FailedEngineCutOff] = VkKeyScan('e');
+    Keys[k_FailedEngineCutOff] = 'E';
 
-        Keys[k_MechUp] = VK_PRIOR;
-        Keys[k_MechDown] = VK_NEXT;
-        Keys[k_MechLeft] = VK_LEFT;
-        Keys[k_MechRight] = VK_RIGHT;
-        Keys[k_MechForward] = VK_UP;
-        Keys[k_MechBackward] = VK_DOWN;
+    Keys[k_MechUp] = GLFW_KEY_PAGE_UP;
+    Keys[k_MechDown] = GLFW_KEY_PAGE_DOWN;
+    Keys[k_MechLeft] = GLFW_KEY_LEFT;
+    Keys[k_MechRight] = GLFW_KEY_RIGHT;
+    Keys[k_MechForward] = GLFW_KEY_UP;
+    Keys[k_MechBackward] = GLFW_KEY_DOWN;
 
-        Keys[k_CabForward] = VK_HOME;
-        Keys[k_CabBackward] = VK_END;
+    Keys[k_CabForward] = GLFW_KEY_HOME;
+    Keys[k_CabBackward] = GLFW_KEY_END;
 
-        Keys[k_Couple] = VK_INSERT;
-        Keys[k_DeCouple] = VK_DELETE;
+    Keys[k_Couple] = GLFW_KEY_INSERT;
+    Keys[k_DeCouple] = GLFW_KEY_DELETE;
 
-        Keys[k_ProgramQuit] = VK_F10;
-        // Keys[k_ProgramPause]=VK_F3;
-        Keys[k_ProgramHelp] = VK_F1;
-        // Keys[k_FreeFlyMode]=VK_F4;
-        Keys[k_WalkMode] = VK_F5;
+    Keys[k_ProgramQuit] = GLFW_KEY_F10;
+    Keys[k_ProgramHelp] = GLFW_KEY_F1;
+    Keys[k_WalkMode] = GLFW_KEY_F5;
 
-        Keys[k_OpenLeft] = VkKeyScan(',');
-        Keys[k_OpenRight] = VkKeyScan('.');
-        Keys[k_CloseLeft] = VkKeyScan(',');
-        Keys[k_CloseRight] = VkKeyScan('.');
-        Keys[k_DepartureSignal] = VkKeyScan('/');
+    Keys[k_OpenLeft] = ',';
+    Keys[k_OpenRight] = '.';
+    Keys[k_CloseLeft] = ',';
+    Keys[k_CloseRight] = '.';
+    Keys[k_DepartureSignal] = '/';
 
-        // Winger 160204 - obsluga pantografow
-        Keys[k_PantFrontUp] = VkKeyScan('p'); // Ra: zamieniony przedni z tylnym
-        Keys[k_PantFrontDown] = VkKeyScan('p');
-        Keys[k_PantRearUp] = VkKeyScan('o');
-        Keys[k_PantRearDown] = VkKeyScan('o');
-        // Winger 020304 - ogrzewanie
-        Keys[k_Heating] = VkKeyScan('h');
-        Keys[k_LeftSign] = VkKeyScan('y');
-        Keys[k_UpperSign] = VkKeyScan('u');
-        Keys[k_RightSign] = VkKeyScan('i');
-        Keys[k_EndSign] = VkKeyScan('t');
+    // Winger 160204 - obsluga pantografow
+    Keys[k_PantFrontUp] = 'P'; // Ra: zamieniony przedni z tylnym
+    Keys[k_PantFrontDown] = 'P';
+    Keys[k_PantRearUp] = 'O';
+    Keys[k_PantRearDown] = 'O';
+    // Winger 020304 - ogrzewanie
+	Keys[k_Heating] = 'H';
+    // headlights
+	Keys[k_LeftSign] = 'Y';
+    Keys[k_UpperSign] = 'U';
+    Keys[k_RightSign] = 'I';
+    Keys[k_DimHeadlights] = 'L';
+    // tail lights
+    Keys[k_EndSign] = 'T';
 
-        Keys[k_SmallCompressor] = VkKeyScan('v');
-        Keys[k_StLinOff] = VkKeyScan('l');
-        // ABu 090305 - przyciski uniwersalne, do roznych bajerow :)
-        Keys[k_Univ1] = VkKeyScan('[');
-        Keys[k_Univ2] = VkKeyScan(']');
-        Keys[k_Univ3] = VkKeyScan(';');
-        Keys[k_Univ4] = VkKeyScan('\'');
-    }
+    Keys[k_SmallCompressor] = 'V';
+    Keys[k_StLinOff] = 'L';
+    // ABu 090305 - przyciski uniwersalne, do roznych bajerow :)
+    Keys[k_Univ1] = '[';
+    Keys[k_Univ2] = ']';
+    Keys[k_Univ3] = ';';
+    Keys[k_Univ4] = '\'';
 }
+
 /*
 vector3 Global::GetCameraPosition()
 {
@@ -1089,14 +1051,6 @@ void Global::SetCameraRotation(double Yaw)
         pCameraRotation -= 2 * M_PI;
     pCameraRotationDeg = pCameraRotation * 180.0 / M_PI;
 }
-
-void Global::BindTexture(GLuint t)
-{ // ustawienie aktualnej tekstury, tylko gdy się zmienia
-    if (t != iTextureId)
-    {
-        iTextureId = t;
-    }
-};
 
 void Global::TrainDelete(TDynamicObject *d)
 { // usunięcie pojazdu prowadzonego przez użytkownika

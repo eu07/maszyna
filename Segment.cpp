@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Segment.h"
-#include "opengl/glew.h"
 
 #include "Globals.h"
 #include "Logs.h"
@@ -20,6 +19,11 @@ http://mozilla.org/MPL/2.0/.
 
 // 101206 Ra: trapezoidalne drogi
 // 110806 Ra: odwrócone mapowanie wzdłuż - Point1 == 1.0
+
+float Interpolate( float const First, float const Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
 
 std::string Where(vector3 p)
 { // zamiana współrzędnych na tekst, używana w błędach
@@ -38,10 +42,12 @@ TSegment::~TSegment()
     SafeDeleteArray(fTsBuffer);
 };
 
-bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1,
-                    double fNewRoll2)
+bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1, double fNewRoll2)
 { // wersja dla prostego - wyliczanie punktów kontrolnych
     vector3 dir;
+
+    // NOTE: we're enforcing division also for straight track, to ensure dense enough mesh for per-vertex lighting
+/*
     if (fNewRoll1 == fNewRoll2)
     { // faktyczny prosty
         dir = Normalize(NewPoint2 - NewPoint1); // wektor kierunku o długości 1
@@ -49,10 +55,13 @@ bool TSegment::Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, doubl
                               false);
     }
     else
+*/
     { // prosty ze zmienną przechyłką musi być segmentowany jak krzywe
         dir = (NewPoint2 - NewPoint1) / 3.0; // punkty kontrolne prostego są w 1/3 długości
-        return TSegment::Init(NewPoint1, NewPoint1 + dir, NewPoint2 - dir, NewPoint2, fNewStep,
-                              fNewRoll1, fNewRoll2, true);
+        return TSegment::Init(
+            NewPoint1, NewPoint1 + dir,
+            NewPoint2 - dir, NewPoint2,
+            fNewStep, fNewRoll1, fNewRoll2, true);
     }
 };
 
@@ -109,35 +118,30 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     fStep = fNewStep;
     if (fLength <= 0)
     {
-        ErrorLog("Bad geometry: Length <= 0 in TSegment::Init at " + Where(Point1));
+        ErrorLog( "Bad geometry (zero length) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
         // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
         return false; // zerowe nie mogą być
     }
     fStoop = atan2((Point2.y - Point1.y),
                    fLength); // pochylenie toru prostego, żeby nie liczyć wielokrotnie
     SafeDeleteArray(fTsBuffer);
-    if ((bCurve) && (fStep > 0))
-    { // Ra: prosty dostanie podział, jak ma różną przechyłkę na końcach
-        double s = 0;
-        int i = 0;
-        iSegCount = ceil(fLength / fStep); // potrzebne do VBO
-        // fStep=fLength/(double)(iSegCount-1); //wyrównanie podziału
-        fTsBuffer = new double[iSegCount + 1];
-        fTsBuffer[0] = 0; /* TODO : fix fTsBuffer */
-        while (s < fLength)
-        {
-            i++;
-            s += fStep;
-            if (s > fLength)
-                s = fLength;
-            fTsBuffer[i] = GetTFromS(s);
+
+    if( ( bCurve ) && ( fStep > 0 ) ) {
+        if( fStep > 0 ) { // Ra: prosty dostanie podział, jak ma różną przechyłkę na końcach
+            double s = 0;
+            int i = 0;
+            iSegCount = ceil( fLength / fStep ); // potrzebne do VBO
+            // fStep=fLength/(double)(iSegCount-1); //wyrównanie podziału
+            fTsBuffer = new double[ iSegCount + 1 ];
+            fTsBuffer[ 0 ] = 0; /* TODO : fix fTsBuffer */
+            while( s < fLength ) {
+                i++;
+                s += fStep;
+                if( s > fLength )
+                    s = fLength;
+                fTsBuffer[ i ] = GetTFromS( s );
+            }
         }
-    }
-    if (fLength > 500)
-    { // tor ma pojemność 40 pojazdów, więc nie może być za długi
-        ErrorLog("Bad geometry: Length > 500m at " + Where(Point1));
-        // MessageBox(0,"Length>500","TSegment::Init",MB_OK);
-        return false;
     }
     return true;
 }
@@ -216,7 +220,7 @@ double TSegment::GetTFromS(double s)
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
-	ErrorLog( "Bad geometry: Too many iterations at " + Where( Point1 ) );
+    ErrorLog( "Bad geometry (shape estimation failed) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
 	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
 	return fTime;
 };
@@ -454,6 +458,7 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, doubl
         }
     }
     else
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
     { // gdy prosty, nie modyfikujemy wektora kierunkowego i poprzecznego
         pos1 = FastGetPoint((fStep * iSkip) / fLength);
         pos2 = FastGetPoint_1();
@@ -498,6 +503,91 @@ void TSegment::RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, doubl
             }
         glEnd();
     }
+#else
+{
+    Math3D::vector3 const pos0 = FastGetPoint( ( fStep * iSkip ) / fLength );
+    Math3D::vector3 const pos1 = FastGetPoint_1();
+    dir = GetDirection();
+    Math3D::vector3 const parallel = Normalize( vector3( -dir.z, 0.0, dir.x ) ); // wektor poprzeczny
+
+    Math3D::vector3 startnormal0, startnormal1, endnormal0, endnormal1;
+    Math3D::vector3 startvertex0, startvertex1, endvertex0, endvertex1;
+    float startuv0, startuv1, enduv0, enduv1;
+
+    for( j = 0; j < iNumShapePoints - 1; ++j ) {
+
+        startnormal0 = ShapePoints[ j ].n.x * parallel;
+        startnormal0.y += ShapePoints[ j ].n.y;
+        startvertex0 = parallel * ShapePoints[ j ].x + pos0;
+        startvertex0.y += ShapePoints[ j ].y;
+        startuv0 = ShapePoints[ j ].z;
+        startnormal1 = ShapePoints[ j + 1 ].n.x * parallel;
+        startnormal1.y += ShapePoints[ j + 1 ].n.y;
+        startvertex1 = parallel * ShapePoints[ j + 1 ].x + pos0;
+        startvertex1.y += ShapePoints[ j + 1 ].y;
+        startuv1 = ShapePoints[ j + 1 ].z;
+
+        if( trapez == false ) {
+            // single profile throughout
+            endnormal0 = startnormal0;
+            endvertex0 = startvertex0 + ( pos1 - pos0 );
+            enduv0 = startuv0;
+            endnormal1 = startnormal1;
+            endvertex1 = startvertex1 + ( pos1 - pos0 );
+            enduv1 = startuv1;
+        }
+        else {
+            // end profile is different
+            endnormal0 = ShapePoints[ j + iNumShapePoints ].n.x * parallel;
+            endnormal0.y += ShapePoints[ j + iNumShapePoints ].n.y;
+            endvertex0 = parallel * ShapePoints[ j + iNumShapePoints ].x + pos1; // odsunięcie
+            endvertex0.y += ShapePoints[ j + iNumShapePoints ].y; // wysokość
+            enduv0 = ShapePoints[ j + iNumShapePoints ].z;
+            endnormal1 = ShapePoints[ j + iNumShapePoints + 1 ].n.x * parallel;
+            endnormal1.y += ShapePoints[ j + iNumShapePoints + 1 ].n.y;
+            endvertex1 = parallel * ShapePoints[ j + iNumShapePoints + 1 ].x + pos1; // odsunięcie
+            endvertex1.y += ShapePoints[ j + iNumShapePoints + 1 ].y; // wysokość
+            enduv1 = ShapePoints[ j + iNumShapePoints + 1 ].z;
+        }
+        // now build strips, lerping from start to endpoint
+        step = 10.0; // arbitrary segment size for straights
+        float s = 0.0,
+              t = 0.0,
+             uv = 0.0;
+        glBegin( GL_TRIANGLE_STRIP );
+        while( s < fLength ) {
+
+            t = s / fLength;
+            uv = s / fTextureLength;
+
+            auto const normal1lerp = Interpolate( startnormal1, endnormal1, t );
+            glNormal3dv( &normal1lerp.x );
+            auto const uv1lerp = Interpolate( startuv1, enduv1, t );
+            glTexCoord2f( uv1lerp, uv );
+            auto const vertex1lerp = Interpolate( startvertex1, endvertex1, t );
+            glVertex3dv( &vertex1lerp.x );
+
+            auto const normal0lerp = Interpolate( startnormal0, endnormal0, t );
+            glNormal3dv( &normal0lerp.x );
+            auto const uv0lerp = Interpolate( startuv0, enduv0, t );
+            glTexCoord2f( uv0lerp, uv );
+            auto const vertex0lerp = Interpolate( startvertex0, endvertex0, t );
+            glVertex3dv( &vertex0lerp.x );
+
+            s += step;
+        }
+        // add ending vertex pair if needed
+        glNormal3dv( &endnormal1.x );
+        glTexCoord2f( enduv1, fLength / fTextureLength );
+        glVertex3dv( &endvertex1.x );
+        glNormal3dv( &endnormal0.x );
+        glTexCoord2f( enduv0, fLength / fTextureLength );
+        glVertex3dv( &endvertex0.x );
+
+        glEnd();
+    }
+}
+#endif
 };
 
 void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
@@ -505,7 +595,7 @@ void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *Shap
                                 double fOffsetX)
 { // tworzenie siatki trójkątów dla iglicy
     vector3 pos1, pos2, dir, parallel1, parallel2, pt;
-    double a1, a2, s, step, offset, tv1, tv2, t, t2, t2step, oldt2, sp, oldsp;
+    double a1, a2, s, step, offset, tv1, tv2, t, t2step, oldt2;
     int i, j;
     if (bCurve)
     { // dla toru odchylonego
@@ -641,8 +731,8 @@ void TSegment::RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *Shap
 void TSegment::Render()
 {
     vector3 pt;
-    TextureManager.Bind(0);
-    int i;
+    GfxRenderer.Bind(0);
+
     if (bCurve)
     {
         glColor3f(0, 0, 1.0f);

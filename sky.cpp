@@ -22,26 +22,27 @@ TSky::TSky(){};
 
 void TSky::Init()
 {
-    WriteLog(Global::asSky.c_str());
-    WriteLog("init");
+    WriteLog( "Clouds init" );
     if ((Global::asSky != "1") && (Global::asSky != "0"))
-        //   {
-        mdCloud = TModelsManager::GetModel(Global::asSky.c_str());
-    //   }
+        mdCloud = TModelsManager::GetModel( Global::asSky );
 };
 
-void TSky::Render()
+void TSky::Render( float3 const &Tint )
 {
     if (mdCloud)
     { // jeśli jest model nieba
-        glPushMatrix();
-        // glDisable(GL_DEPTH_TEST);
-        glTranslatef(Global::pCameraPosition.x, Global::pCameraPosition.y,
-                     Global::pCameraPosition.z);
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
+        // TODO: re-implement this
         glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-        if (Global::bUseVBO)
+#else
+        ::glEnable( GL_LIGHTING );
+        GfxRenderer.Disable_Lights();
+        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &Tint.x );
+#endif
+#ifdef EU07_USE_OLD_RENDERCODE
+        if( Global::bUseVBO )
         { // renderowanie z VBO
-            mdCloud->RaRender(100, 0);
+            mdCloud->RaRender( 100, 0 );
             mdCloud->RaRenderAlpha(100, 0);
         }
         else
@@ -49,11 +50,20 @@ void TSky::Render()
             mdCloud->Render(100, 0);
             mdCloud->RenderAlpha(100, 0);
         }
-        // glEnable(GL_DEPTH_TEST);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        // glEnable(GL_LIGHTING);
+#else
+        GfxRenderer.Render( mdCloud, nullptr, 100.0 );
+        GfxRenderer.Render_Alpha( mdCloud, nullptr, 100.0 );
+#endif
+#ifdef EU07_USE_OLD_LIGHTING_MODEL
         glPopMatrix();
+        // TODO: re-implement this
         glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos);
+#else
+        GLfloat noambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, noambient );
+        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
+        ::glDisable( GL_LIGHTING );
+#endif
     }
 };
 

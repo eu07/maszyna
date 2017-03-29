@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include "opengl/glew.h"
+#include "GL/glew.h"
 #include "ResourceManager.h"
 #include "Segment.h"
 #include "Texture.h"
@@ -95,10 +95,6 @@ class TSwitchExtension
   private:
 };
 
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-const int iMaxNumDynamics = 40; // McZapkie-100303
-#endif
-
 class TIsolated
 { // obiekt zbierający zajętości z kilku odcinków
     int iAxles = 0; // ilość osi na odcinkach obsługiwanych przez obiekt
@@ -139,12 +135,12 @@ class TTrack : public Resource
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
     texture_manager::size_type TextureID1 = 0; // tekstura szyn albo nawierzchni
     texture_manager::size_type TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
-    float fTexLength = 4.0; // długość powtarzania tekstury w metrach
-    float fTexRatio1 = 1.0; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
-    float fTexRatio2 = 1.0; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
-    float fTexHeight1 = 0.6; // wysokość brzegu względem trajektorii
-    float fTexWidth = 0.9; // szerokość boku
-    float fTexSlope = 0.9;
+    float fTexLength = 4.0f; // długość powtarzania tekstury w metrach
+    float fTexRatio1 = 1.0f; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
+    float fTexRatio2 = 1.0f; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
+    float fTexHeight1 = 0.6f; // wysokość brzegu względem trajektorii
+    float fTexWidth = 0.9f; // szerokość boku
+    float fTexSlope = 0.9f;
     double fRadiusTable[ 2 ]; // dwa promienie, drugi dla zwrotnicy
     int iTrapezoid = 0; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
     GLuint DisplayListID = 0;
@@ -152,13 +148,8 @@ class TTrack : public Resource
     TGroundNode *
         pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
   public:
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    int iNumDynamics = 0;
-    TDynamicObject *Dynamics[iMaxNumDynamics];
-#else
     typedef std::deque<TDynamicObject *> dynamics_sequence;
     dynamics_sequence Dynamics;
-#endif
     int iEvents = 0; // Ra: flaga informująca o obecności eventów
     TEvent *evEventall0 = nullptr; // McZapkie-140302: wyzwalany gdy pojazd stoi
     TEvent *evEventall1 = nullptr;
@@ -176,10 +167,10 @@ class TTrack : public Resource
     int iPrevDirection = 0; // domyślnie wirtualne odcinki dołączamy stroną od Point1
     TTrackType eType = tt_Normal; // domyślnie zwykły
     int iCategoryFlag = 1; // 0x100 - usuwanie pojazów // 1-tor, 2-droga, 4-rzeka, 8-samolot?
-    float fTrackWidth = 1.435; // szerokość w punkcie 1 // rozstaw toru, szerokość nawierzchni
-    float fTrackWidth2 = 0.0; // szerokość w punkcie 2 (głównie drogi i rzeki)
-    float fFriction = 0.15; // współczynnik tarcia
-    float fSoundDistance = -1.0;
+    float fTrackWidth = 1.435f; // szerokość w punkcie 1 // rozstaw toru, szerokość nawierzchni
+    float fTrackWidth2 = 0.0f; // szerokość w punkcie 2 (głównie drogi i rzeki)
+    float fFriction = 0.15f; // współczynnik tarcia
+    float fSoundDistance = -1.0f;
     int iQualityFlag = 20;
     int iDamageFlag = 0;
     TEnvironmentType eEnvironment = e_flat; // dźwięk i oświetlenie
@@ -204,11 +195,7 @@ class TTrack : public Resource
     TTrack * NullCreate(int dir);
     inline bool IsEmpty()
     {
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-        return (iNumDynamics <= 0);
-#else
         return Dynamics.empty();
-#endif
     };
     void ConnectPrevPrev(TTrack *pNewPrev, int typ);
     void ConnectPrevNext(TTrack *pNewPrev, int typ);
