@@ -33,7 +33,7 @@ void
 cSun::update() {
 
     move();
-    Math3D::vector3 position( 0.0f, 0.0f, -2000.0f );
+    Math3D::vector3 position( 0.0f, 0.0f, -2000.0f * Global::fDistanceFactor );
     position.RotateX( (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
     position.RotateY( (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
 

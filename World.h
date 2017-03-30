@@ -24,7 +24,7 @@ http://mozilla.org/MPL/2.0/.
 class simulation_time {
 
 public:
-    simulation_time() { m_time.wHour = -1; m_time.wMinute = -1; }
+    simulation_time() { m_time.wHour = 10; m_time.wMinute = 30; }
     void
         init();
     void

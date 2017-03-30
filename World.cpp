@@ -59,8 +59,8 @@ simulation_time::init() {
     ::memcpy( m_monthdaycounts, monthdaycounts, sizeof( monthdaycounts ) );
 
     // cache requested elements, if any
-    auto const requestedhour = m_time.wHour;
-    auto const requestedminute = m_time.wMinute;
+    WORD const requestedhour = m_time.wHour;
+    WORD const requestedminute = m_time.wMinute;
 
     ::GetLocalTime( &m_time );
 
@@ -69,10 +69,10 @@ simulation_time::init() {
         daymonth( m_time.wDay, m_time.wMonth, m_time.wYear, static_cast<WORD>( Global::fMoveLight ) );
     }
 
-    if( requestedhour != -1 )   { m_time.wHour   = clamp( requestedhour,   static_cast<WORD>( 0 ), static_cast<WORD>( 23 ) ); }
-    if( requestedminute != -1 ) { m_time.wMinute = clamp( requestedminute, static_cast<WORD>( 0 ), static_cast<WORD>( 59 ) ); }
+    if( requestedhour != (WORD)-1 )   { m_time.wHour   = clamp( requestedhour,   static_cast<WORD>( 0 ), static_cast<WORD>( 23 ) ); }
+    if( requestedminute != (WORD)-1 ) { m_time.wMinute = clamp( requestedminute, static_cast<WORD>( 0 ), static_cast<WORD>( 59 ) ); }
     // if the time is taken from the local clock leave the seconds intact, otherwise set them to zero
-    if( ( requestedhour != -1 ) || ( requestedminute != -1 ) ) {
+    if( ( requestedhour != (WORD)-1 ) || ( requestedminute != (WORD)-1 ) ) {
         m_time.wSecond = 0;
     }
 
@@ -402,12 +402,54 @@ bool TWorld::Init( GLFWwindow *Window ) {
 };
 
 void TWorld::OnKeyDown(int cKey)
-{ //(cKey) to kod klawisza, cyfrowe i literowe się zgadzają
-    // Ra 2014-09: tu by można dodać tabelę konwersji: 256 wirtualnych kodów w kontekście dwóch
-    // przełączników [Shift] i [Ctrl]
-    // na każdy kod wirtualny niech przypadają 4 bajty: 2 dla naciśnięcia i 2 dla zwolnienia
-    // powtórzone 256 razy da 1kB na każdy stan przełączników, łącznie będzie 4kB pierwszej tabeli
-    // przekodowania
+{
+    // dump keypress info in the log
+    if( !Global::iPause ) {
+        // podczas pauzy klawisze nie działają
+        std::string keyinfo;
+        auto keyname = glfwGetKeyName( cKey, 0 );
+        if( keyname != nullptr ) {
+            keyinfo += std::string( keyname );
+        }
+        else {
+            switch( cKey ) {
+
+                case GLFW_KEY_SPACE: { keyinfo += "Space"; break; }
+                case GLFW_KEY_ENTER: { keyinfo += "Enter"; break; }
+                case GLFW_KEY_ESCAPE: { keyinfo += "Esc"; break; }
+                case GLFW_KEY_TAB: { keyinfo += "Tab"; break; }
+                case GLFW_KEY_INSERT: { keyinfo += "Insert"; break; }
+                case GLFW_KEY_DELETE: { keyinfo += "Delete"; break; }
+                case GLFW_KEY_HOME: { keyinfo += "Home"; break; }
+                case GLFW_KEY_END: { keyinfo += "End"; break; }
+                case GLFW_KEY_F1: { keyinfo += "F1"; break; }
+                case GLFW_KEY_F2: { keyinfo += "F2"; break; }
+                case GLFW_KEY_F3: { keyinfo += "F3"; break; }
+                case GLFW_KEY_F4: { keyinfo += "F4"; break; }
+                case GLFW_KEY_F5: { keyinfo += "F5"; break; }
+                case GLFW_KEY_F6: { keyinfo += "F6"; break; }
+                case GLFW_KEY_F7: { keyinfo += "F7"; break; }
+                case GLFW_KEY_F8: { keyinfo += "F8"; break; }
+                case GLFW_KEY_F9: { keyinfo += "F9"; break; }
+                case GLFW_KEY_F10: { keyinfo += "F10"; break; }
+                case GLFW_KEY_F11: { keyinfo += "F11"; break; }
+                case GLFW_KEY_F12: { keyinfo += "F12"; break; }
+            }
+        }
+        if( keyinfo.empty() == false ) {
+
+            std::string keymodifiers;
+            if( Global::shiftState )
+                keymodifiers += "[Shift]+";
+            if( Global::ctrlState )
+                keymodifiers += "[Ctrl]+";
+
+            WriteLog( "Key pressed: " + keymodifiers + "[" + keyinfo + "]" );
+        }
+    }
+
+    // actual key processing
+    // TODO: redo the input system
     if( ( cKey >= GLFW_KEY_0 ) && ( cKey <= GLFW_KEY_9 ) ) // klawisze cyfrowe
     {
         int i = cKey - GLFW_KEY_0; // numer klawisza
