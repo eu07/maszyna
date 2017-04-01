@@ -604,6 +604,32 @@ void TWorld::OnKeyDown(int cKey)
                 }
                 break;
             }
+            case GLFW_KEY_F7: {
+                // debug mode functions
+                if( DebugModeFlag ) {
+
+                    if( Global::ctrlState ) {
+                        // ctrl + f7 toggles static daylight
+                        ToggleDaylight();
+                        break;
+                    }
+                    else {
+                        // f7: wireframe toggle
+                        Global::bWireFrame = !Global::bWireFrame;
+                        if( true == Global::bWireFrame ) {
+                            glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                        }
+                        else {
+                            glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                        }
+/*
+                        ++Global::iReCompile; // odświeżyć siatki
+                        // Ra: jeszcze usunąć siatki ze skompilowanych obiektów!
+*/
+                    }
+                }
+                break;
+            }
             case GLFW_KEY_F8: {
                 Global::iTextMode = cKey;
                 // FPS
@@ -665,6 +691,16 @@ void TWorld::OnKeyDown(int cKey)
                 }
             }
             // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
+        }
+    }
+    else if( cKey == GLFW_KEY_ESCAPE ) {
+        // toggle pause
+        if( Global::iPause & 1 ) // jeśli pauza startowa
+            Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
+        else if( !( Global::iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
+            Global::iPause ^= 2; // zmiana stanu zapauzowania
+        if( Global::iPause ) {// jak pauza
+            Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
         }
     }
     else if( Global::ctrlState && cKey == GLFW_KEY_PAUSE ) //[Ctrl]+[Break]

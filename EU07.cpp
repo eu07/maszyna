@@ -144,45 +144,6 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
                 break;
             }
 #endif
-            case GLFW_KEY_ESCAPE: {
-/*                
-                if( ( DebugModeFlag ) //[Esc] pauzuje tylko bez Debugmode
-                 && ( Global::iPause == 0 ) ) { // but unpausing should work always
-                    
-                    break;
-                }
-*/
-                if( Global::iPause & 1 ) // jeśli pauza startowa
-                    Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
-                else if( !( Global::iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
-                    if( !Global::ctrlState ) // z [Ctrl] to radiostop jest
-                        Global::iPause ^= 2; // zmiana stanu zapauzowania
-                if( Global::iPause ) {// jak pauza
-                    Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
-                }
-                break;
-            }
-            case GLFW_KEY_F7:
-                if( DebugModeFlag ) {
-
-                    if( Global::ctrlState ) {
-                        // ctrl + f7 toggles static daylight
-                        World.ToggleDaylight();
-                        break;
-                    }
-                    // f7: wireframe toggle
-                    // siatki wyświetlane tyko w trybie testowym
-                    Global::bWireFrame = !Global::bWireFrame;
-                    if( true == Global::bWireFrame ) {
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-                    }
-                    else {
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-                    }
-                    ++Global::iReCompile; // odświeżyć siatki
-                    // Ra: jeszcze usunąć siatki ze skompilowanych obiektów!
-                }
-                break;
         }
     }
     else if( action == GLFW_RELEASE )

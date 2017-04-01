@@ -754,7 +754,7 @@ public:
 	double DoorStayOpen = 0.0;               /*jak dlugo otwarte w przypadku DoorCloseCtrl=2*/
 	bool DoorClosureWarning = false;      /*czy jest ostrzeganie przed zamknieciem*/
 	double DoorOpenSpeed = 1.0; double DoorCloseSpeed = 1.0;      /*predkosc otwierania i zamykania w j.u. */
-	double DoorMaxShiftL = 0.5; double DoorMaxShiftR = 0.5; double DoorMaxPlugShift = 0.5;/*szerokosc otwarcia lub kat*/
+	double DoorMaxShiftL = 0.5; double DoorMaxShiftR = 0.5; double DoorMaxPlugShift = 0.1;/*szerokosc otwarcia lub kat*/
 	int DoorOpenMethod = 2;             /*sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trójelementowe*/
 	double PlatformSpeed = 0.25;   /*szybkosc stopnia*/
 	double PlatformMaxShift = 0.5; /*wysuniecie stopnia*/
