@@ -7912,3 +7912,23 @@ double TMoverParameters::ShowCurrentP(int AmpN)
         return current;
     }
 }
+
+template <>
+bool
+extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
+
+    auto value = extract_value( Key, Input );
+    if( false == value.empty() ) {
+        // set the specified variable to retrieved value
+        Variable = ( value == "Yes" );
+        return true; // located the variable
+    }
+    else {
+        // set the variable to provided default value
+        if( false == Default.empty() ) {
+            // (provided there's one)
+            Variable = ( Default == "Yes" );
+        }
+        return false; // couldn't locate the variable in provided input
+    }
+}

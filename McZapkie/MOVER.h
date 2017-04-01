@@ -1150,6 +1150,23 @@ private:
 
 extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
 
+inline
+std::string
+extract_value( std::string const &Key, std::string const &Input ) {
+
+    std::string value;
+    auto lookup = Input.find( Key + "=" );
+    if( lookup != std::string::npos ) {
+        value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
+        lookup = value.find( ' ' );
+        if( lookup != std::string::npos ) {
+            // trim everything past the value
+            value.erase( lookup );
+        }
+    }
+    return value;
+}
+
 template <typename _Type>
 bool
 extract_value( _Type &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
@@ -1169,23 +1186,10 @@ extract_value( _Type &Variable, std::string const &Key, std::string const &Input
             converter << Default;
             converter >> Variable;
         }
-        return false; // supplied the default
-	}
-}
-
-inline
-std::string
-extract_value( std::string const &Key, std::string const &Input ) {
-
-    std::string value;
-    auto lookup = Input.find( Key + "=" );
-    if( lookup != std::string::npos ) {
-        value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
-        lookup = value.find( ' ' );
-        if( lookup != std::string::npos ) {
-            // trim everything past the value
-            value.erase( lookup );
-        }
+        return false; // couldn't locate the variable in provided input
     }
-    return value;
 }
+
+template <>
+bool
+extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default );
