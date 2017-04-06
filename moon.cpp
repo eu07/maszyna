@@ -116,7 +116,7 @@ void cMoon::move() {
 	static double radtodeg = 57.295779513; // converts from radians to degrees
 	static double degtorad = 0.0174532925; // converts from degrees to radians
 
-    SYSTEMTIME localtime = Simulation::Time.data(); // time for the calculation
+    SYSTEMTIME localtime = simulation::Time.data(); // time for the calculation
 
     if( m_observer.hour >= 0 ) { localtime.wHour = m_observer.hour; }
     if( m_observer.minute >= 0 ) { localtime.wMinute = m_observer.minute; }
@@ -284,7 +284,7 @@ void cMoon::irradiance() {
 	static double radtodeg = 57.295779513;					// converts from radians to degrees
 	static double degtorad = 0.0174532925;					// converts from degrees to radians
 
-	m_body.dayang = ( Simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
+	m_body.dayang = ( simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
 	double sd = sin( degtorad * m_body.dayang );				// sine of the day angle
 	double cd = cos( degtorad * m_body.dayang );				// cosine of the day angle or delination
 	m_body.erv = 1.000110 + 0.034221*cd + 0.001280*sd;
@@ -310,7 +310,7 @@ void
 cMoon::phase() {
 
     // calculate moon's age in days from new moon
-    float ip = normalize( ( Simulation::Time.julian_day() - 2451550.1f ) / 29.530588853f );
+    float ip = normalize( ( simulation::Time.julian_day() - 2451550.1f ) / 29.530588853f );
     m_phase = ip * 29.53f;
 }
 

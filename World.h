@@ -49,11 +49,12 @@ private:
         daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday );
 
     SYSTEMTIME m_time;
+    double m_milliseconds{ 0.0 };
     int m_yearday;
     char m_monthdaycounts[ 2 ][ 13 ];
 };
 
-namespace Simulation {
+namespace simulation {
 
 extern simulation_time Time;
 

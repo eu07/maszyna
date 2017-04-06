@@ -39,7 +39,7 @@ std::shared_ptr<ui_panel> UIHeader = std::make_shared<ui_panel>( 20, 20 ); // he
 std::shared_ptr<ui_panel> UITable = std::make_shared<ui_panel>( 20, 100 ); // schedule or scan table
 std::shared_ptr<ui_panel> UITranscripts = std::make_shared<ui_panel>( 85, 600 ); // voice transcripts
 
-namespace Simulation {
+namespace simulation {
 
 simulation_time Time;
 
@@ -82,14 +82,13 @@ simulation_time::init() {
 void
 simulation_time::update( double const Deltatime ) {
 
-    // use large enough buffer to hold long time skips
-    auto milliseconds = m_time.wMilliseconds + static_cast<size_t>(std::floor( 1000.0 * Deltatime ));
-    while( milliseconds >= 1000.0 ) {
+    m_milliseconds += ( 1000.0 * Deltatime );
+    while( m_milliseconds >= 1000.0 ) {
 
         ++m_time.wSecond;
-        milliseconds -= 1000;
+        m_milliseconds -= 1000.0;
     }
-    m_time.wMilliseconds = milliseconds;
+    m_time.wMilliseconds = std::floor( m_milliseconds );
     while( m_time.wSecond >= 60 ) {
 
         ++m_time.wMinute;
@@ -310,7 +309,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     glfwSetWindowTitle( window,  ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
 
-    Simulation::Time.init();
+    simulation::Time.init();
 
     Environment.init();
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
@@ -502,11 +501,11 @@ void TWorld::OnKeyDown(int cKey)
                     // additional time speedup keys in debug mode
                     if( Global::ctrlState ) {
                         // ctrl-f3
-                        Simulation::Time.update( 20.0 * 60.0 );
+                        simulation::Time.update( 20.0 * 60.0 );
                     }
                     else if( Global::shiftState ) {
                         // shift-f3
-                        Simulation::Time.update( 5.0 * 60.0 );
+                        simulation::Time.update( 5.0 * 60.0 );
                     }
                 }
                 if( ( false == Global::ctrlState )
@@ -972,13 +971,15 @@ bool TWorld::Update()
         WriteLog("Scenery moved");
     };
 #endif
+
     Timer::UpdateTimers(Global::iPause != 0);
+
     if( (Global::iPause == false)
-     || (m_init == false) )
-    { // jak pauza, to nie ma po co tego przeliczać
+     || (m_init == false) ) {
+        // jak pauza, to nie ma po co tego przeliczać
+        simulation::Time.update( Timer::GetDeltaTime() );
         // Ra 2014-07: przeliczenie kąta czasu (do animacji zależnych od czasu)
-        Simulation::Time.update( Timer::GetDeltaTime() );
-        auto const &time = Simulation::Time.data();
+        auto const &time = simulation::Time.data();
         Global::fTimeAngleDeg = time.wHour * 15.0 + time.wMinute * 0.25 + ( ( time.wSecond + 0.001 * time.wMilliseconds ) / 240.0 );
         Global::fClockAngleDeg[ 0 ] = 36.0 * ( time.wSecond % 10 ); // jednostki sekund
         Global::fClockAngleDeg[ 1 ] = 36.0 * ( time.wSecond / 10 ); // dziesiątki sekund
@@ -1107,14 +1108,19 @@ bool TWorld::Update()
     fTime50Hz += dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
     while( fTime50Hz >= 1.0 / 50.0 ) {
         Console::Update(); // to i tak trzeba wywoływać
+        Update_UI();
+
+        Camera.Velocity *= 0.65;
+        if( std::abs( Camera.Velocity.x ) < 0.01 ) { Camera.Velocity.x = 0.0; }
+        if( std::abs( Camera.Velocity.y ) < 0.01 ) { Camera.Velocity.y = 0.0; }
+        if( std::abs( Camera.Velocity.z ) < 0.01 ) { Camera.Velocity.z = 0.0; }
+
         fTime50Hz -= 1.0 / 50.0;
     }
 
     // variable step render time routines
 
     Update_Camera( dt );
-
-    Update_UI(); // TBD, TODO: move the ui updates to secondary fixed step routines, to reduce workload?
 
     GfxRenderer.Update( dt );
     ResourceSweep();
@@ -1644,7 +1650,7 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F1 ) : {
             // f1, default mode: current time and timetable excerpt
-            auto const &time = Simulation::Time.data();
+            auto const &time = simulation::Time.data();
             uitextline1 =
                 "Time: "
                 + to_string( time.wHour ) + ":"
@@ -1695,7 +1701,7 @@ TWorld::Update_UI() {
             auto const table = tmp->Mechanik->Timetable();
             if( table == nullptr ) { break; }
 
-            auto const &time = Simulation::Time.data();
+            auto const &time = simulation::Time.data();
             uitextline1 =
                 "Time: "
                 + to_string( time.wHour ) + ":"
@@ -2023,8 +2029,8 @@ TWorld::Update_UI() {
                         to_string( tmp->MoverParameters->RunningShape.R, 1 ) )
                     + " An=" + to_string( tmp->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
 
-                if( tprev != Simulation::Time.data().wSecond ) {
-                    tprev = Simulation::Time.data().wSecond;
+                if( tprev != simulation::Time.data().wSecond ) {
+                    tprev = simulation::Time.data().wSecond;
                     Acc = ( tmp->MoverParameters->Vel - VelPrev ) / 3.6;
                     VelPrev = tmp->MoverParameters->Vel;
                 }
@@ -2184,8 +2190,7 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                 if (e)
                     if ((e->Type == tp_Multiple) || (e->Type == tp_Lights) ||
                         (e->evJoined != 0))  // tylko jawne albo niejawne Multiple
-                        Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywołujący - tu
-                // brak
+                        Ground.AddToQuery(e, NULL); // drugi parametr to dynamic wywołujący - tu brak
             }
             break;
         case 3: // rozkaz dla AI
@@ -2229,12 +2234,12 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
                 {
                     double t = pRozkaz->fPar[1];
-                    Simulation::Time.data().wDay = std::floor(t); // niby nie powinno być dnia, ale...
+                    simulation::Time.data().wDay = std::floor(t); // niby nie powinno być dnia, ale...
                     if (Global::fMoveLight >= 0)
                         Global::fMoveLight = t; // trzeba by deklinację Słońca przeliczyć
-                    Simulation::Time.data().wHour = std::floor(24 * t) - 24.0 * Simulation::Time.data().wDay;
-                    Simulation::Time.data().wMinute = std::floor(60 * 24 * t) - 60.0 * (24.0 * Simulation::Time.data().wDay + Simulation::Time.data().wHour);
-                    Simulation::Time.data().wSecond = std::floor( 60 * 60 * 24 * t ) - 60.0 * ( 60.0 * ( 24.0 * Simulation::Time.data().wDay + Simulation::Time.data().wHour ) + Simulation::Time.data().wMinute );
+                    simulation::Time.data().wHour = std::floor(24 * t) - 24.0 * simulation::Time.data().wDay;
+                    simulation::Time.data().wMinute = std::floor(60 * 24 * t) - 60.0 * (24.0 * simulation::Time.data().wDay + simulation::Time.data().wHour);
+                    simulation::Time.data().wSecond = std::floor( 60 * 60 * 24 * t ) - 60.0 * ( 60.0 * ( 24.0 * simulation::Time.data().wDay + simulation::Time.data().wHour ) + simulation::Time.data().wMinute );
                 }
             if (*pRozkaz->iPar & 2)
             { // ustawienie flag zapauzowania

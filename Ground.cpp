@@ -2826,7 +2826,7 @@ bool TGround::Init(std::string File)
 
             cParser timeparser( token );
             timeparser.getTokens( 2, false, ":" );
-            auto &time = Simulation::Time.data();
+            auto &time = simulation::Time.data();
             timeparser
                 >> time.wHour
                 >> time.wMinute;

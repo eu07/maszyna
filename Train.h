@@ -7,24 +7,17 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TrainH
-#define TrainH
+#pragma once
 
-//#include "Track.h"
-//#include "TrkFoll.h"
-#include "Button.h"
+#include <string>
 #include "DynObj.h"
+#include "Button.h"
 #include "Gauge.h"
-#include "Model3d.h"
 #include "Spring.h"
-#include "mtable.h"
-
 #include "AdvSound.h"
 #include "FadeSound.h"
 #include "PyInt.h"
-#include "RealSound.h"
-#include "Sound.h"
-#include <string>
+#include "command.h"
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
@@ -82,6 +75,7 @@ class TTrain
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
     void OnKeyDown(int cKey);
     void OnKeyUp(int cKey);
+    void OnCommand( command_data const &Command );
 
     //    bool SHP() { fShpTimer= 0; };
 
@@ -113,6 +107,9 @@ class TTrain
     // initializes a button matching provided label. returns: true if the label was found, false
     // otherwise
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
+    // plays specified sound, or fallback sound if the primary sound isn't presend
+    // NOTE: temporary routine until sound system is sorted out and paired with switches
+    void play_sound( PSound Sound, PSound Fallbacksound = nullptr );
 
   private: //żeby go nic z zewnątrz nie przestawiało
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -438,4 +435,3 @@ class TTrain
     void Silence();
 };
 //---------------------------------------------------------------------------
-#endif

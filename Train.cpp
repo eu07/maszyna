@@ -13,7 +13,6 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-
 #include "Train.h"
 
 #include "Globals.h"
@@ -22,12 +21,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Driver.h"
 #include "Console.h"
-#include "McZapkie\hamulce.h"
-#include "McZapkie\MOVER.h"
-#include "Camera.h"
-//---------------------------------------------------------------------------
-
-using namespace Timer;
 
 TCab::TCab()
 {
@@ -391,11 +384,388 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "actualproximitydist", PyGetFloat( driver->ActualProximityDist ) );
     PyDict_SetItemString( dict, "trainnumber", PyGetString( driver->TrainName().c_str() ) );
     // world state data
-    PyDict_SetItemString( dict, "hours", PyGetInt( Simulation::Time.data().wHour ) );
-    PyDict_SetItemString( dict, "minutes", PyGetInt( Simulation::Time.data().wMinute ) );
-    PyDict_SetItemString( dict, "seconds", PyGetInt( Simulation::Time.second() ) );
+    PyDict_SetItemString( dict, "hours", PyGetInt( simulation::Time.data().wHour ) );
+    PyDict_SetItemString( dict, "minutes", PyGetInt( simulation::Time.data().wMinute ) );
+    PyDict_SetItemString( dict, "seconds", PyGetInt( simulation::Time.second() ) );
 
     return dict;
+}
+
+void
+TTrain::OnCommand( command_data const &Command ) {
+
+    bool const isEztOer =
+        ( ( mvControlled->TrainType == dt_EZT )
+       && ( mvOccupied->BrakeSubsystem == ss_ESt )
+       && ( mvControlled->Battery == true )
+       && ( mvControlled->EpFuse == true )
+       && ( mvControlled->ActiveDir != 0 ) ); // od yB
+
+    switch( Command.command ) {
+
+        case user_command::mastercontrollerincrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->IncMainCtrl( 1 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::mastercontrollerincreasefast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->IncMainCtrl( 2 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::mastercontrollerdecrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->DecMainCtrl( 1 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::mastercontrollerdecreasefast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->DecMainCtrl( 2 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::secondcontrollerincrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->ShuntMode ) {
+                    mvControlled->AnPos += ( Command.time_delta * 0.75f );
+                    if( mvControlled->AnPos > 1 )
+                        mvControlled->AnPos = 1;
+                }
+                else if( mvControlled->IncScndCtrl( 1 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::secondcontrollerincreasefast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->IncScndCtrl( 2 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::secondcontrollerdecrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->ShuntMode ) {
+                    mvControlled->AnPos -= ( Command.time_delta * 0.75f );
+                    if( mvControlled->AnPos > 1 )
+                        mvControlled->AnPos = 1;
+                }
+                else if( mvControlled->DecScndCtrl( 1 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::secondcontrollerdecreasefast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvControlled->DecScndCtrl( 2 ) ) {
+                    // sound feedback
+                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
+                }
+            }
+            break;
+        }
+
+        case user_command::independentbrakeincrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvOccupied->LocalBrake != ManualBrake ) {
+                    mvOccupied->IncLocalBrakeLevel( 1 );
+                }
+            }
+            break;
+        }
+
+        case user_command::independentbrakeincreasefast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvOccupied->LocalBrake != ManualBrake ) {
+                    mvOccupied->IncLocalBrakeLevel( 2 );
+                }
+            }
+            break;
+        }
+
+        case user_command::independentbrakedecrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( ( mvOccupied->LocalBrake != ManualBrake )
+                // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
+                // TODO: sort AI out so it doesn't do things it doesn't have equipment for
+                 || ( mvOccupied->LocalBrakePos != 0 ) ) {
+                    mvOccupied->DecLocalBrakeLevel( 1 );
+                }
+            }
+            break;
+        }
+
+        case user_command::independentbrakedecreasefast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( ( mvOccupied->LocalBrake != ManualBrake )
+                    // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
+                    // TODO: sort AI out so it doesn't do things it doesn't have equipment for
+                    || ( mvOccupied->LocalBrakePos != 0 ) ) {
+                    mvOccupied->DecLocalBrakeLevel( 2 );
+                }
+            }
+            break;
+        }
+
+        case user_command::independentbrakebailoff: {
+            // TODO: check if this set of conditions can be simplified.
+            // it'd be more flexible to have an attribute indicating whether bail off position is supported
+            if( ( mvControlled->TrainType != dt_EZT )
+             && ( ( mvControlled->EngineType == ElectricSeriesMotor )
+               || ( mvControlled->EngineType == DieselElectric )
+               || ( mvControlled->EngineType == ElectricInductionMotor ) )
+             && ( mvOccupied->BrakeCtrlPosNo > 0 ) ) {
+
+                if( Command.action != GLFW_RELEASE ) {
+                    // press or hold
+                    ggReleaserButton.UpdateValue( 1 );
+                    mvOccupied->BrakeReleaser( 1 );
+                }
+                else {
+                    // release
+                    ggReleaserButton.UpdateValue( 0 );
+                    mvOccupied->BrakeReleaser( 0 );
+                }
+            }
+            break;
+        }
+
+        case user_command::trainbrakeincrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvOccupied->BrakeHandle == FV4a ) {
+                    mvOccupied->BrakeLevelAdd( 0.1 /*15.0 * Command.time_delta*/ );
+                }
+                else {
+                    if( mvOccupied->BrakeLevelAdd( Global::fBrakeStep ) ) {
+                        // nieodpowiedni warunek; true, jeśli można dalej kręcić
+                        keybrakecount = 0;
+                        if( ( isEztOer ) && ( mvOccupied->BrakeCtrlPos < 3 ) ) {
+                            // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
+                            play_sound( dsbPneumaticSwitch );
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        case user_command::trainbrakedecrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvOccupied->BrakeHandle == FV4a ) {
+                    mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
+                }
+                else {
+                    // nową wersję dostarczył ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
+                    if( ( mvOccupied->BrakeCtrlPos > -1 )
+                     || ( keybrakecount > 1 ) ) {
+
+                        if( ( isEztOer )
+                         && ( mvControlled->Mains )
+                         && ( mvOccupied->BrakeCtrlPos != -1 ) ) {
+                            // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
+                            play_sound( dsbPneumaticSwitch );
+                        }
+                        mvOccupied->BrakeLevelAdd( -Global::fBrakeStep );
+                    }
+                    else
+                        keybrakecount += 1;
+                    // koniec wersji dostarczonej przez ZiomalCl
+                }
+            }
+            break;
+        }
+
+        case user_command::trainbrakecharging: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                // sound feedback
+                if( ( isEztOer )
+                 && ( mvControlled->Mains )
+                 && ( mvOccupied->BrakeCtrlPos != -1 ) ) {
+                    dsbPneumaticSwitch->Play( 0, 0, 0 );
+                }
+                mvOccupied->BrakeLevelSet( -1 );
+            }
+            break;
+        }
+
+        case user_command::trainbrakerelease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                // sound feedback
+                if( ( isEztOer )
+                 && ( ( mvOccupied->BrakeCtrlPos == 1 )
+                   || ( mvOccupied->BrakeCtrlPos == -1 ) ) ) {
+                    dsbPneumaticSwitch->Play( 0, 0, 0 );
+                }
+                mvOccupied->BrakeLevelSet( 0 );
+            }
+            break;
+        }
+
+        case user_command::trainbrakefirstservice: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                // sound feedback
+                if( ( isEztOer )
+                    && ( mvControlled->Mains )
+                    && ( mvOccupied->BrakeCtrlPos != 1 ) ) {
+                    dsbPneumaticSwitch->Play( 0, 0, 0 );
+                }
+                mvOccupied->BrakeLevelSet( 1 );
+            }
+            break;
+        }
+        
+        case user_command::trainbrakeservice: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                // sound feedback
+                if( ( isEztOer )
+                 && ( mvControlled->Mains )
+                 && ( ( mvOccupied->BrakeCtrlPos == 1 )
+                   || ( mvOccupied->BrakeCtrlPos == -1 ) ) ) {
+                    dsbPneumaticSwitch->Play( 0, 0, 0 );
+                }
+                mvOccupied->BrakeLevelSet(
+                    mvOccupied->BrakeCtrlPosNo / 2
+                    + ( mvOccupied->BrakeHandle == FV4a ?
+                        1 :
+                        0 ) );
+            }
+            break;
+        }
+
+        case user_command::trainbrakefullservice: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                // sound feedback
+                if( ( isEztOer )
+                 && ( mvControlled->Mains )
+                 && ( ( mvOccupied->BrakeCtrlPos == 1 )
+                   || ( mvOccupied->BrakeCtrlPos == -1 ) ) ) {
+                    dsbPneumaticSwitch->Play( 0, 0, 0 );
+                }
+                mvOccupied->BrakeLevelSet( mvOccupied->BrakeCtrlPosNo - 1 );
+            }
+            break;
+        }
+
+        case user_command::trainbrakeemergency: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EB ) );
+                if( mvOccupied->BrakeCtrlPosNo <= 0.1 ) {
+                    // hamulec bezpieczeństwa dla wagonów
+                    mvOccupied->EmergencyBrakeFlag = true;
+                }
+            }
+            break;
+        }
+
+        case user_command::reverserincrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvOccupied->DirectionForward() ) {
+                    // sound feedback
+                    play_sound( dsbReverserKey, dsbSwitch );
+                    // aktualizacja skrajnych pojazdów w składzie
+                    if( ( mvOccupied->ActiveDir )
+                     && ( DynamicObject->Mechanik ) ) {
+
+                        DynamicObject->Mechanik->CheckVehicles( Change_direction );
+                    }
+                }
+            }
+            break;
+        }
+
+        case user_command::reverserdecrease: {
+
+            if( Command.action != GLFW_RELEASE ) {
+
+                if( mvOccupied->DirectionBackward() ) {
+                    // sound feedback
+                    play_sound( dsbReverserKey, dsbSwitch );
+                    // aktualizacja skrajnych pojazdów w składzie
+                    if( ( mvOccupied->ActiveDir )
+                     && ( DynamicObject->Mechanik ) ) {
+
+                        DynamicObject->Mechanik->CheckVehicles( Change_direction );
+                    }
+                }
+            }
+            break;
+        }
+
+        default: {
+            
+            break;
+        }
+    }
 }
 
 void TTrain::OnKeyDown(int cKey)
@@ -409,6 +779,7 @@ void TTrain::OnKeyDown(int cKey)
 
     if (Global::shiftState)
 	{ // wciśnięty [Shift]
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if (cKey == Global::Keys[k_IncMainCtrlFAST]) // McZapkie-200702: szybkie
         // przelaczanie na poz.
         // bezoporowa
@@ -419,7 +790,8 @@ void TTrain::OnKeyDown(int cKey)
                 dsbNastawnikJazdy->Play(0, 0, 0);
             }
         }
-        else if (cKey == Global::Keys[k_DirectionBackward])
+#endif
+        if (cKey == Global::Keys[k_DirectionBackward])
         {
             if (mvOccupied->Radio == false)
                 if (Global::ctrlState)
@@ -429,6 +801,7 @@ void TTrain::OnKeyDown(int cKey)
                     mvOccupied->Radio = true;
                 }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if (cKey == Global::Keys[k_DecMainCtrlFAST])
             if (mvControlled->DecMainCtrl(2))
             {
@@ -469,7 +842,7 @@ void TTrain::OnKeyDown(int cKey)
             }
             else
                 ;
-        else if (cKey == Global::Keys[k_IncLocalBrakeLevelFAST])
+        else if( cKey == Global::Keys[ k_IncLocalBrakeLevelFAST ] )
             if (mvOccupied->IncLocalBrakeLevel(2))
                 ;
             else
@@ -479,6 +852,7 @@ void TTrain::OnKeyDown(int cKey)
                 ;
             else
                 ;
+#endif
         // McZapkie-240302 - wlaczanie glownego obwodu klawiszem M+shift
         //-----------
         // hunter-141211: wyl. szybki zalaczony przeniesiony do TTrain::Update()
@@ -1177,7 +1551,8 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
     }
     else // McZapkie-240302 - klawisze bez shifta
     {
-        if (cKey == Global::Keys[k_IncMainCtrl])
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        if( cKey == Global::Keys[ k_IncMainCtrl ] )
         {
             if (mvControlled->IncMainCtrl(1))
             {
@@ -1193,13 +1568,13 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             }
             else
                 ;
-        else if (cKey == Global::Keys[k_IncScndCtrl])
+        if (cKey == Global::Keys[k_IncScndCtrl])
             //        if (MoverParameters->ScndCtrlPos<MoverParameters->ScndCtrlPosNo)
             //         if
             //         (mvControlled->EnginePowerSource.SourceType==CurrentCollector)
             if (mvControlled->ShuntMode)
             {
-                mvControlled->AnPos += (GetDeltaTime() / 0.85f);
+                mvControlled->AnPos += (Timer::GetDeltaTime() / 0.85f);
                 if (mvControlled->AnPos > 1)
                     mvControlled->AnPos = 1;
             }
@@ -1218,11 +1593,11 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             }
             else
                 ;
-        else if (cKey == Global::Keys[k_DecScndCtrl])
+        else if( cKey == Global::Keys[ k_DecScndCtrl ] )
             //       if (mvControlled->EnginePowerSource.SourceType==CurrentCollector)
             if (mvControlled->ShuntMode)
             {
-                mvControlled->AnPos -= (GetDeltaTime() / 0.55f);
+                mvControlled->AnPos -= (Timer::GetDeltaTime() / 0.55f);
                 if (mvControlled->AnPos < 0)
                     mvControlled->AnPos = 0;
             }
@@ -1244,7 +1619,8 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             }
             else
                 ;
-        else if (cKey == Global::Keys[k_IncLocalBrakeLevel])
+#endif
+        if( cKey == Global::Keys[ k_IncLocalBrakeLevel ] )
         { // Ra 2014-09: w
             // trybie latania
             // obsługa jest w
@@ -1258,8 +1634,10 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                     }
                     else
                         ;
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
                 else if (mvOccupied->LocalBrake != ManualBrake)
                     mvOccupied->IncLocalBrakeLevel(1);
+#endif
             }
         }
         else if (cKey == Global::Keys[k_DecLocalBrakeLevel])
@@ -1274,12 +1652,15 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                         mvOccupied->DecManualBrakeLevel(1);
                     else
                         ;
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
                 else // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku -
                     // odhamować jakoś trzeba
                     if ((mvOccupied->LocalBrake != ManualBrake) || mvOccupied->LocalBrakePos)
                     mvOccupied->DecLocalBrakeLevel(1);
+#endif
             }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if ((cKey == Global::Keys[k_IncBrakeLevel]) && (mvOccupied->BrakeHandle != FV4a))
             // if (mvOccupied->IncBrakeLevel())
             if (mvOccupied->BrakeLevelAdd(Global::fBrakeStep)) // nieodpowiedni
@@ -1330,14 +1711,16 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                        else keybrakecount+=1;
             */
         }
-        else if (cKey == Global::Keys[k_EmergencyBrake])
+#endif
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if( cKey == Global::Keys[ k_EmergencyBrake ] )
         {
             // while (mvOccupied->IncBrakeLevel());
             mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EB));
             if (mvOccupied->BrakeCtrlPosNo <= 0.1) // hamulec bezpieczeństwa dla wagonów
                 mvOccupied->EmergencyBrakeFlag = true;
         }
-        else if (cKey == Global::Keys[k_Brake3])
+        else if( cKey == Global::Keys[ k_Brake3 ] )
         {
             if ((isEztOer) && ((mvOccupied->BrakeCtrlPos == 1) || (mvOccupied->BrakeCtrlPos == -1)))
             {
@@ -1350,9 +1733,11 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             // mvOccupied->IncBrakeLevel());
             mvOccupied->BrakeLevelSet(mvOccupied->BrakeCtrlPosNo - 1);
         }
+#endif
         else if (cKey == Global::Keys[k_Brake2])
         {
-            if ((isEztOer) && ((mvOccupied->BrakeCtrlPos == 1) || (mvOccupied->BrakeCtrlPos == -1)))
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+            if( ( isEztOer ) && ( ( mvOccupied->BrakeCtrlPos == 1 ) || ( mvOccupied->BrakeCtrlPos == -1 ) ) )
             {
                 dsbPneumaticSwitch->SetVolume(-10);
                 dsbPneumaticSwitch->Play(0, 0, 0);
@@ -1363,13 +1748,15 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             // mvOccupied->IncBrakeLevel());
             mvOccupied->BrakeLevelSet(mvOccupied->BrakeCtrlPosNo / 2 +
                                       (mvOccupied->BrakeHandle == FV4a ? 1 : 0));
+#endif
             if (Global::ctrlState)
                 mvOccupied->BrakeLevelSet(
                     mvOccupied->Handle->GetPos(bh_NP)); // yB: czy ten stos funkcji nie
             // powinien być jako oddzielna
             // funkcja movera?
         }
-        else if (cKey == Global::Keys[k_Brake1])
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if( cKey == Global::Keys[ k_Brake1 ] )
         {
             if ((isEztOer) && (mvOccupied->BrakeCtrlPos != 1))
             {
@@ -1380,12 +1767,14 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             // while (mvOccupied->BrakeCtrlPos<1 && mvOccupied->IncBrakeLevel());
             mvOccupied->BrakeLevelSet(1);
         }
+#endif
         else if (cKey == Global::Keys[k_Brake0])
         {
             if (Global::ctrlState)
             {
                 mvOccupied->BrakeCtrlPos2 = 0; // wyrownaj kapturek
             }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else
             {
                 if ((isEztOer) &&
@@ -1398,7 +1787,9 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                 // while (mvOccupied->BrakeCtrlPos<0 && mvOccupied->IncBrakeLevel());
                 mvOccupied->BrakeLevelSet(0);
             }
+#endif
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if (cKey == Global::Keys[k_WaveBrake]) //[Num.]
         {
             if ((isEztOer) && (mvControlled->Mains) && (mvOccupied->BrakeCtrlPos != -1))
@@ -1410,6 +1801,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             // while (mvOccupied->BrakeCtrlPos<-1 && mvOccupied->IncBrakeLevel());
             mvOccupied->BrakeLevelSet(-1);
         }
+#endif
         else if (cKey == Global::Keys[k_Czuwak])
         //---------------
         // hunter-131211: zbicie czuwaka przeniesione do TTrain::Update()
@@ -1457,6 +1849,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                 mvControlled->FuseOn();
             }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if (cKey == Global::Keys[k_DirectionForward])
         // McZapkie-240302 - zmiana kierunku: 'd' do przodu, 'r' do tylu
         {
@@ -1483,6 +1876,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                             Change_direction); // aktualizacja skrajnych pojazdów w składzie
             }
         }
+#endif
         else if (cKey == Global::Keys[k_DirectionBackward]) // r
         {
             if (Global::ctrlState)
@@ -1494,6 +1888,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                     mvOccupied->Radio = false;
                 }
             }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else if (mvOccupied->DirectionBackward())
             {
                 //------------
@@ -1516,6 +1911,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                         DynamicObject->Mechanik->CheckVehicles(
                             Change_direction); // aktualizacja skrajnych pojazdów w składzie
             }
+#endif
         }
         else if (cKey == Global::Keys[k_Main])
         // McZapkie-240302 - wylaczanie glownego obwodu
@@ -1634,7 +2030,8 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
             }
         }
         //-----------
-        else if (cKey == Global::Keys[k_Releaser]) // odluzniacz
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if( cKey == Global::Keys[ k_Releaser ] ) // odluzniacz
         {
             if (!FreeFlyModeFlag)
             {
@@ -1654,6 +2051,7 @@ if ((mvControlled->PantFrontVolt) || (mvControlled->PantRearVolt) ||
                         }
             }
         }
+#endif
         else if (cKey == Global::Keys[k_SmallCompressor]) // Winger 160404: mala
         // sprezarka wl
         { // Ra: bez [Shift] też dać dźwięk
@@ -2374,7 +2772,7 @@ if
         else
         {
             // McZapkie: poruszanie sie po kabinie, w updatemechpos zawarte sa wiezy
-
+/*
             auto step = 1.0f;
             auto const camerayaw = Global::pCamera->Yaw;
             Math3D::vector3 direction( 0.0f, 0.0f, step );
@@ -2428,6 +2826,7 @@ if
                 else if (cKey == Global::Keys[k_MechDown])
                     pMechOffset.y -= 0.25; // McZapkie-120302 - siadanie
             }
+*/
         }
 
         //    else
@@ -2573,14 +2972,14 @@ void TTrain::UpdateMechPosition(double dt)
             vMechVelocity.y = -vMechVelocity.y;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
         pMechPosition = pMechOffset + vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
-        vMechMovement = 0.5 * vMechMovement;
+//        vMechMovement = 0.5 * vMechMovement;
     }
     else { // hamowanie rzucania przy spadku FPS
         pMechShake -= pMechShake * std::min( dt, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
         pMechOffset += vMechMovement * dt;
         vMechVelocity.y = 0.5 * vMechVelocity.y;
         pMechPosition = pMechOffset + vector3( pMechShake.x, 5 * pMechShake.y, pMechShake.z );
-        vMechMovement = 0.5 * vMechMovement;
+//        vMechMovement = 0.5 * vMechMovement;
     }
     // numer kabiny (-1: kabina B)
     if( DynamicObject->Mechanik ) // może nie być?
@@ -2636,6 +3035,30 @@ TTrain::GetWorldMechPosition() {
 
 bool TTrain::Update( double const Deltatime )
 {
+    // check for sent user commands
+    // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
+    // eventually commands are going to be retrieved directly by the vehicle, filtered through active control stand
+    // and ultimately executed, provided the stand allows it.
+    command_data command;
+    // NOTE: currently we're only storing commands for local vehicle and there's no id system in place,
+    // so we're supplying 'default' vehicle id of 0
+    while( simulation::Commands.pop( command, static_cast<std::size_t>( command_target::vehicle ) | 0 ) ) {
+
+        OnCommand( command );
+    }
+
+    // update driver's position
+    {
+        vector3 Vec = Global::pCamera->Velocity * -2.0;// -7.5 * Timer::GetDeltaRenderTime();
+        Vec.y = -Vec.y;
+        if( mvOccupied->ActiveCab < 0 ) {
+            Vec *= -1.0f;
+            Vec.y = -Vec.y;
+        }
+        Vec.RotateY( Global::pCamera->Yaw );
+        vMechMovement = Vec;
+    }
+
     DWORD stat;
     double dt = Deltatime; // Timer::GetDeltaTime();
     if (DynamicObject->mdKabina)
@@ -2648,7 +3071,7 @@ bool TTrain::Update( double const Deltatime )
         fTachoVelocity = Min0R(fabs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot),
                                mvControlled->Vmax * 1.05);
         { // skacze osobna zmienna
-            float ff = Simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
+            float ff = simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
             // pomiar, pol sekundy ustawienie
             if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
             {
@@ -3326,11 +3749,11 @@ bool TTrain::Update( double const Deltatime )
         // McZapkie-300302: zegarek
         if (ggClockMInd.SubModel)
         {
-            ggClockSInd.UpdateValue(Simulation::Time.data().wSecond);
+            ggClockSInd.UpdateValue(simulation::Time.data().wSecond);
             ggClockSInd.Update();
-            ggClockMInd.UpdateValue(Simulation::Time.data().wMinute);
+            ggClockMInd.UpdateValue(simulation::Time.data().wMinute);
             ggClockMInd.Update();
-            ggClockHInd.UpdateValue(Simulation::Time.data().wHour + Simulation::Time.data().wMinute / 60.0);
+            ggClockHInd.UpdateValue(simulation::Time.data().wHour + simulation::Time.data().wMinute / 60.0);
             ggClockHInd.Update();
         }
 
@@ -4462,7 +4885,7 @@ bool TTrain::Update( double const Deltatime )
         else
         */
         //-----------------
-
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if ((!FreeFlyModeFlag) &&
             (!(DynamicObject->Mechanik ? DynamicObject->Mechanik->AIControllFlag : false)))
         {
@@ -4486,6 +4909,7 @@ bool TTrain::Update( double const Deltatime )
             else
                 mvOccupied->BrakeReleaser(0);
         } // FFMF
+#endif
 
         if (Console::Pressed(Global::Keys[k_Univ1]))
         {
@@ -4742,6 +5166,7 @@ bool TTrain::Update( double const Deltatime )
                 if (mvOccupied->BrakeCtrlPos2 < -1.5)
                     mvOccupied->BrakeCtrlPos2 = -1.5;
             }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else
             {
                 //        mvOccupied->BrakeCtrlPosR+=(mvOccupied->BrakeCtrlPosR>mvOccupied->BrakeCtrlPosNo?0:dt*2);
@@ -4749,6 +5174,7 @@ bool TTrain::Update( double const Deltatime )
                 //        mvOccupied->BrakeCtrlPos=
                 //        floor(mvOccupied->BrakeCtrlPosR+0.499);
             }
+#endif
         }
 
         if ((mvOccupied->BrakeHandle == FV4a) && (Console::Pressed(Global::Keys[k_DecBrakeLevel])))
@@ -4759,6 +5185,7 @@ bool TTrain::Update( double const Deltatime )
                 if (mvOccupied->BrakeCtrlPos2 < -3)
                     mvOccupied->BrakeCtrlPos2 = -3;
             }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else
             {
                 //        mvOccupied->BrakeCtrlPosR-=(mvOccupied->BrakeCtrlPosR<-1?0:dt*2);
@@ -4766,6 +5193,7 @@ bool TTrain::Update( double const Deltatime )
                 //        floor(mvOccupied->BrakeCtrlPosR+0.499);
                 mvOccupied->BrakeLevelAdd(-dt * 2);
             }
+#endif
         }
 
         //    bool kEP;
@@ -5003,7 +5431,9 @@ bool TTrain::Update( double const Deltatime )
         ggMainOffButton.UpdateValue(0);
         ggMainOnButton.UpdateValue(0);
         ggSecurityResetButton.UpdateValue(0);
+/*
         ggReleaserButton.UpdateValue(0);
+*/
         ggSandButton.UpdateValue(0);
         ggAntiSlipButton.UpdateValue(0);
         ggDepartureSignalButton.UpdateValue(0);
@@ -6609,3 +7039,23 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 
     return true;
 }
+
+void
+TTrain::play_sound( PSound Sound, PSound Fallbacksound ) {
+
+    if( Sound ) {
+
+        Sound->SetCurrentPosition( 0 );
+        Sound->SetVolume( DSBVOLUME_MAX );
+        Sound->Play( 0, 0, 0 );
+        return;
+    }
+    if( Fallbacksound ) {
+
+        Fallbacksound->SetCurrentPosition( 0 );
+        Fallbacksound->SetVolume( DSBVOLUME_MAX );
+        Fallbacksound->Play( 0, 0, 0 );
+        return;
+    }
+}
+

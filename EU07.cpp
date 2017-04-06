@@ -23,6 +23,8 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 
 #include "Globals.h"
 #include "Logs.h"
+#include "keyboardinput.h"
+#include "gamepadinput.h"
 #include "Console.h"
 #include "PyInt.h"
 #include "World.h"
@@ -59,6 +61,13 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #endif
 
 TWorld World;
+
+namespace input {
+
+keyboard_input Keyboard;
+gamepad_input Gamepad;
+
+}
 
 #ifdef CAN_I_HAS_LIBPNG
 void screenshot_save_thread( char *img )
@@ -113,12 +122,17 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
+    input::Keyboard.mouse( x, y );
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
 	World.OnMouseMove(x * 0.005, y * 0.01);
+#endif
 	glfwSetCursorPos(window, 0.0, 0.0);
 }
 
 void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
 {
+    input::Keyboard.key( key, action );
+
     Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
     Global::ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
 
@@ -144,6 +158,7 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
                 break;
             }
 #endif
+            default: { break; }
         }
     }
     else if( action == GLFW_RELEASE )
@@ -326,6 +341,7 @@ int main(int argc, char *argv[])
 
         return -1;
     }
+    input::Gamepad.init();
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
     if (!World.Init(window))
@@ -335,9 +351,10 @@ int main(int argc, char *argv[])
     }
 
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
-
+/*
     if( !joyGetNumDevs() )
         WriteLog( "No joystick" );
+*/
     if( Global::iModifyTGA < 0 ) { // tylko modyfikacja TGA, bez uruchamiania symulacji
         Global::iMaxTextureSize = 64; //żeby nie zamulać pamięci
         World.ModifyTGA(); // rekurencyjne przeglądanie katalogów
@@ -354,7 +371,8 @@ int main(int argc, char *argv[])
             && World.Update()
             && GfxRenderer.Render())
         {
-			glfwPollEvents();
+            glfwPollEvents();
+            input::Gamepad.poll();
         }
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     }
@@ -364,5 +382,6 @@ int main(int argc, char *argv[])
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
 	return 0;
 }
