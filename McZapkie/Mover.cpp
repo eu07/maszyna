@@ -6891,6 +6891,9 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
 
     extract_value( PantSwitchType, "Pantograph", Input, "" );
     extract_value( ConvSwitchType, "Converter", Input, "" );
+    // because people can't make up their minds whether it's "impulse" or "Impulse"...
+    PantSwitchType = ToLower( PantSwitchType );
+    ConvSwitchType = ToLower( ConvSwitchType );
 }
 
 void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {

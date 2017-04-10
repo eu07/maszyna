@@ -188,7 +188,7 @@ gamepad_input::on_button( gamepad_button const Button, int const Action ) {
 void
 gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, glm::vec2 const &Triggers ) {
 
-    // left stick, look around
+    // right stick, look around
     if( ( Rightstick.x != 0.0f ) || ( Rightstick.y != 0.0f ) ) {
         // TODO: make toggles for the axis flip
         auto const deltatime = Timer::GetDeltaRenderTime() * 60.0;
@@ -204,7 +204,7 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
             0 );
     }
 
-    // right stick, either movement or controls, depending on currently active mode
+    // left stick, either movement or controls, depending on currently active mode
     if( m_mode == control_mode::entity ) {
 
         if( (   Leftstick.x != 0.0 ||   Leftstick.y != 0.0 )
@@ -218,45 +218,6 @@ gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, g
                 GLFW_PRESS,
                 0 );
         }
-/*
-        Leftstick = circle_to_square( Leftstick );
-        if( Leftstick.y >= 0.0f ) {
-            // forward
-            process_axis(
-                Leftstick.y, m_leftstick.y,
-                1.0,
-                user_command::moveforward,
-                user_command::moveforwardfast,
-                0 );
-        }
-        if( Leftstick.y <= 0.0f ) {
-            // back
-            process_axis(
-                Leftstick.y, m_leftstick.y,
-                -1.0,
-                user_command::moveback,
-                user_command::movebackfast,
-                0 );
-        }
-        if( Leftstick.x >= 0.0f ) {
-            // right
-            process_axis(
-                Leftstick.x, m_leftstick.x,
-                1.0,
-                user_command::moveright,
-                user_command::moverightfast,
-                0 );
-        }
-        if( Leftstick.x <= 0.0f ) {
-            // left
-            process_axis(
-                Leftstick.x, m_leftstick.x,
-                -1.0,
-                user_command::moveleft,
-                user_command::moveleftfast,
-                0 );
-        }
-*/
     }
     else {
         // vehicle control modes
@@ -317,7 +278,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
             m_modeaccumulator = 0.0f;
         }
         if( Value > m_deadzone ) {
-            m_modeaccumulator += Value * deltatime;
+            m_modeaccumulator += ( Value - m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
             while( m_modeaccumulator >= 1.0f ) {
                 // send commands if the accumulator(s) was filled
                 m_relay.post(
@@ -335,7 +296,7 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
             m_modeaccumulator = 0.0f;
         }
         if( Value < m_deadzone ) {
-            m_modeaccumulator += Value * deltatime;
+            m_modeaccumulator += ( Value + m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
             while( m_modeaccumulator <= -1.0f ) {
                 // send commands if the accumulator(s) was filled
                 m_relay.post(

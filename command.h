@@ -38,14 +38,16 @@ enum class user_command {
 /*
 const int k_AntiSlipping = 21;
 const int k_Sand = 22;
-const int k_Main = 23;
 */
+    linebreakertoggle,
     reverserincrease,
     reverserdecrease,
 /*
 const int k_Fuse = 26;
-const int k_Compressor = 27;
-const int k_Converter = 28;
+*/
+    compressortoggle,
+    convertertoggle,
+/*
 const int k_MaxCurrent = 29;
 const int k_CurrentAutoRelay = 30;
 const int k_BrakeProfile = 31;
@@ -67,15 +69,7 @@ const int k_FailedEngineCutOff = 35;
     moveforwardfast,
     movebackfast,
     moveupfast,
-    movedownfast
-/*
-    moveleftfastest,
-    moverightfastest,
-    moveforwardfastest,
-    movebackfastest,
-    moveupfastest,
-    movedownfastest
-*/
+    movedownfast,
 /*
 const int k_CabForward = 42;
 const int k_CabBackward = 43;
@@ -89,10 +83,10 @@ const int k_OpenRight = 50;
 const int k_CloseLeft = 51;
 const int k_CloseRight = 52;
 const int k_DepartureSignal = 53;
-const int k_PantFrontUp = 54;
-const int k_PantRearUp = 55;
-const int k_PantFrontDown = 56;
-const int k_PantRearDown = 57;
+*/
+    pantographtogglefront,
+    pantographtogglerear,
+/*
 const int k_Heating = 58;
 // const int k_FreeFlyMode= 59;
 const int k_LeftSign = 60;
@@ -107,11 +101,12 @@ const int k_Univ3 = 68;
 const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
-const int k_Battery = 72;
+*/
+    batterytoggle
+/*
 const int k_WalkMode = 73;
 int const k_DimHeadlights = 74;
 */
-
 };
 
 enum class command_target {

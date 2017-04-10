@@ -295,97 +295,6 @@ TCamera::OnCommand( command_data const &Command ) {
             }
             break;
         }
-/*
-        case user_command::moveforwardfastest: {
-
-            if( Command.action != GLFW_RELEASE ) {
-                m_keys.forward = true;
-                m_moverate.z =
-                    ( Type == tp_Free ?
-                        8.0 :
-                        0.8 );
-            }
-            else {
-                m_keys.forward = false;
-            }
-            break;
-        }
-
-        case user_command::movebackfastest: {
-
-            if( Command.action != GLFW_RELEASE ) {
-                m_keys.back = true;
-                m_moverate.z =
-                    ( Type == tp_Free ?
-                        8.0 :
-                        0.8 );
-            }
-            else {
-                m_keys.back = false;
-            }
-            break;
-        }
-
-        case user_command::moveleftfastest: {
-
-            if( Command.action != GLFW_RELEASE ) {
-                m_keys.left = true;
-                m_moverate.x =
-                    ( Type == tp_Free ?
-                        8.0 :
-                        0.8 );
-            }
-            else {
-                m_keys.left = false;
-            }
-            break;
-        }
-
-        case user_command::moverightfastest: {
-
-            if( Command.action != GLFW_RELEASE ) {
-                m_keys.right = true;
-                m_moverate.x =
-                    ( Type == tp_Free ?
-                        8.0 :
-                        0.8 );
-            }
-            else {
-                m_keys.right = false;
-            }
-            break;
-        }
-
-        case user_command::moveupfastest: {
-
-            if( Command.action != GLFW_RELEASE ) {
-                m_keys.up = true;
-                m_moverate.y =
-                    ( Type == tp_Free ?
-                        8.0 :
-                        0.8 );
-            }
-            else {
-                m_keys.up = false;
-            }
-            break;
-        }
-
-        case user_command::movedownfastest: {
-
-            if( Command.action != GLFW_RELEASE ) {
-                m_keys.down = true;
-                m_moverate.y =
-                    ( Type == tp_Free ?
-                        8.0 :
-                        0.8 );
-            }
-            else {
-                m_keys.down = false;
-            }
-            break;
-        }
-*/
     }
 }
 
@@ -463,32 +372,11 @@ void TCamera::Update()
 #endif
 
     if( Type == tp_Free ) {
+        // free movement position update is handled here, movement while in vehicle is handled by train update
         vector3 Vec = Velocity;
         Vec.RotateY( Yaw );
         Pos += Vec * 5.0 * deltatime;
     }
-    else {
-
-    }
-/*
-    if( deltatime < 1.0 / 20.0 ) {
-        // płynne hamowanie ruchu
-        Velocity -= Velocity * 20.0 * deltatime;
-    }
-    else {
-        // instant stop
-        Velocity.Zero();
-    }
-    if( std::abs( Velocity.x ) < 0.01 ) { Velocity.x = 0.0; }
-    if( std::abs( Velocity.y ) < 0.01 ) { Velocity.y = 0.0; }
-    if( std::abs( Velocity.z ) < 0.01 ) { Velocity.z = 0.0; }
-*/
-/*
-    Velocity *= 0.5;
-    if( std::abs( Velocity.x ) < 0.01 ) { Velocity.x = 0.0; }
-    if( std::abs( Velocity.y ) < 0.01 ) { Velocity.y = 0.0; }
-    if( std::abs( Velocity.z ) < 0.01 ) { Velocity.z = 0.0; }
-*/
 }
 
 vector3 TCamera::GetDirection()

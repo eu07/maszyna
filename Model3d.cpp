@@ -321,8 +321,13 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             >> discard >> fFarDecayRadius
             >> discard >> fCosFalloffAngle // kąt liczony dla średnicy, a nie promienia
             >> discard >> fCosHotspotAngle; // kąt liczony dla średnicy, a nie promienia
-        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
-        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+        // convert conve parameters if specified in degrees
+        if( fCosFalloffAngle > 1.0 ) {
+            fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+        }
+        if( fCosHotspotAngle > 1.0 ) {
+            fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+        }
         iNumVerts = 1;
 /*
         iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi zostać bez zmiany
@@ -2023,6 +2028,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
         // so as a workaround we're doing it here manually
         iFlags |= 0x20;
     }
+    // intercept and fix hotspot values if specified in degrees and not directly
+    if( fCosFalloffAngle > 1.0 ) {
+        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+    }
+    if( fCosHotspotAngle > 1.0 ) {
+        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+    }
+
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
 
 	iVboPtr = tVboPtr;

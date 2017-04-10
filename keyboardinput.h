@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <unordered_map>
+#include <array>
 #include "command.h"
 
 class keyboard_input {
@@ -44,11 +45,23 @@ private:
     typedef std::vector<command_setup> commandsetup_sequence;
     typedef std::unordered_map<int, user_command> usercommand_map;
 
+    struct bindings_cache {
+
+        int forward{ -1 };
+        int back{ -1 };
+        int left{ -1 };
+        int right{ -1 };
+        int up{ -1 };
+        int down{ -1 };
+    };
+
 // methods
     void
         default_bindings();
     void
         bind();
+    bool
+        update_movement( int const Key, int const Action );
 
 // members
     commandsetup_sequence m_commands;
@@ -56,6 +69,8 @@ private:
     command_relay m_relay;
     bool m_shift{ false };
     bool m_ctrl{ false };
+    bindings_cache m_bindingscache;
+    std::array<char, GLFW_KEY_LAST> m_keys;
 };
 
 //---------------------------------------------------------------------------

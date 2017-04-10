@@ -111,6 +111,9 @@ class TTrain
     // NOTE: temporary routine until sound system is sorted out and paired with switches
     void play_sound( PSound Sound, PSound Fallbacksound = nullptr );
 
+    // helper variable, to prevent immediate switch between closing and opening line breaker circuit
+    bool m_linebreakerclosed{ false };
+
   private: //żeby go nic z zewnątrz nie przestawiało
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
   private: //żeby go nic z zewnątrz nie przestawiało

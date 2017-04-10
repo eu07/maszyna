@@ -3291,8 +3291,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             if (tmpTraction.TractionVoltage == 0)
             { // to coś wyłączało dźwięk silnika w ST43!
                 MoverParameters->ConverterFlag = false;
-                MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie
-                // sprężarki powinno być w jednym miejscu!
+                MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie sprężarki powinno być w jednym miejscu!
             }
         }
     }

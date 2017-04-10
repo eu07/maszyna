@@ -136,19 +136,22 @@ void TGauge::PutValue(double fNewDesired)
     fValue = fDesiredValue;
 };
 
+double TGauge::GetValue() const {
+    // we feed value in range 0-1 so we should be getting it reported in the same range
+    return ( fValue - fOffset ) / fScale;
+}
+
 void TGauge::Update()
 {
     float dt = Timer::GetDeltaTime();
-    if ((fFriction > 0) && (dt < 0.5 * fFriction)) // McZapkie-281102:
-        // zabezpieczenie przed
-        // oscylacjami dla dlugich
-        // czasow
-        fValue += dt * (fDesiredValue - fValue) / fFriction;
+    if( ( fFriction > 0 ) && ( dt < 0.5 * fFriction ) ) {
+        // McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
+        fValue += dt * ( fDesiredValue - fValue ) / fFriction;
+    }
     else
         fValue = fDesiredValue;
     if (SubModel)
-    { // warunek na wszelki wypadek, gdyby się submodel nie
-        // podłączył
+    { // warunek na wszelki wypadek, gdyby się submodel nie podłączył
         TSubModel *sm;
         switch (eType)
         {
