@@ -282,7 +282,7 @@ bool
 opengl_renderer::Render( TGround *Ground ) {
 
     glDisable( GL_BLEND );
-    glAlphaFunc( GL_GREATER, 0.45f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     glEnable( GL_LIGHTING );
     glColor3f( 1.0f, 1.0f, 1.0f );
 

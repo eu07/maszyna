@@ -51,6 +51,9 @@ const int k_Fuse = 26;
 const int k_MaxCurrent = 29;
 const int k_CurrentAutoRelay = 30;
 const int k_BrakeProfile = 31;
+*/
+    alerteracknowledge,
+/*
 const int k_Czuwak = 32;
 const int k_Horn = 33;
 const int k_Horn2 = 34;
@@ -78,10 +81,10 @@ const int k_DeCouple = 45;
 const int k_ProgramQuit = 46;
 // const int k_ProgramPause= 47;
 const int k_ProgramHelp = 48;
-const int k_OpenLeft = 49;
-const int k_OpenRight = 50;
-const int k_CloseLeft = 51;
-const int k_CloseRight = 52;
+*/
+    doortoggleleft,
+    doortoggleright,
+/*
 const int k_DepartureSignal = 53;
 */
     pantographtogglefront,
@@ -89,9 +92,18 @@ const int k_DepartureSignal = 53;
 /*
 const int k_Heating = 58;
 // const int k_FreeFlyMode= 59;
-const int k_LeftSign = 60;
-const int k_UpperSign = 61;
-const int k_RightSign = 62;
+*/
+    headlighttoggleleft,
+    headlighttoggleright,
+    headlighttoggleupper,
+    redmarkertoggleleft,
+    redmarkertoggleright,
+    headlighttogglerearleft,
+    headlighttogglerearright,
+    headlighttogglerearupper,
+    redmarkertogglerearleft,
+    redmarkertogglerearright,
+    /*
 const int k_SmallCompressor = 63;
 const int k_StLinOff = 64;
 const int k_CurrentNext = 65;

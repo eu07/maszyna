@@ -131,6 +131,54 @@ void TCab::Update()
     }
 };
 
+// NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
+// TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
+TTrain::commandhandler_map const TTrain::m_commandhandlers = {
+
+    { user_command::mastercontrollerincrease, &TTrain::OnCommand_mastercontrollerincrease },
+    { user_command::mastercontrollerincreasefast, &TTrain::OnCommand_mastercontrollerincreasefast },
+    { user_command::mastercontrollerdecrease, &TTrain::OnCommand_mastercontrollerdecrease },
+    { user_command::mastercontrollerdecreasefast, &TTrain::OnCommand_mastercontrollerdecreasefast },
+    { user_command::secondcontrollerincrease, &TTrain::OnCommand_secondcontrollerincrease },
+    { user_command::secondcontrollerincreasefast, &TTrain::OnCommand_secondcontrollerincreasefast },
+    { user_command::secondcontrollerdecrease, &TTrain::OnCommand_secondcontrollerdecrease },
+    { user_command::secondcontrollerdecreasefast, &TTrain::OnCommand_secondcontrollerdecreasefast },
+    { user_command::independentbrakeincrease, &TTrain::OnCommand_independentbrakeincrease },
+    { user_command::independentbrakeincreasefast, &TTrain::OnCommand_independentbrakeincreasefast },
+    { user_command::independentbrakedecrease, &TTrain::OnCommand_independentbrakedecrease },
+    { user_command::independentbrakedecreasefast, &TTrain::OnCommand_independentbrakedecreasefast },
+    { user_command::independentbrakebailoff, &TTrain::OnCommand_independentbrakebailoff },
+    { user_command::trainbrakeincrease, &TTrain::OnCommand_trainbrakeincrease },
+    { user_command::trainbrakedecrease, &TTrain::OnCommand_trainbrakedecrease },
+    { user_command::trainbrakecharging, &TTrain::OnCommand_trainbrakecharging },
+    { user_command::trainbrakerelease, &TTrain::OnCommand_trainbrakerelease },
+    { user_command::trainbrakefirstservice, &TTrain::OnCommand_trainbrakefirstservice },
+    { user_command::trainbrakeservice, &TTrain::OnCommand_trainbrakeservice },
+    { user_command::trainbrakefullservice, &TTrain::OnCommand_trainbrakefullservice },
+    { user_command::trainbrakeemergency, &TTrain::OnCommand_trainbrakeemergency },
+    { user_command::reverserincrease, &TTrain::OnCommand_reverserincrease },
+    { user_command::reverserdecrease, &TTrain::OnCommand_reverserdecrease },
+    { user_command::alerteracknowledge, &TTrain::OnCommand_alerteracknowledge },
+    { user_command::batterytoggle, &TTrain::OnCommand_batterytoggle },
+    { user_command::pantographtogglefront, &TTrain::OnCommand_pantographtogglefront },
+    { user_command::pantographtogglerear, &TTrain::OnCommand_pantographtogglerear },
+    { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
+    { user_command::convertertoggle, &TTrain::OnCommand_convertertoggle },
+    { user_command::compressortoggle, &TTrain::OnCommand_compressortoggle },
+    { user_command::headlighttoggleleft, &TTrain::OnCommand_headlighttoggleleft },
+    { user_command::headlighttoggleright, &TTrain::OnCommand_headlighttoggleright },
+    { user_command::headlighttoggleupper, &TTrain::OnCommand_headlighttoggleupper },
+    { user_command::redmarkertoggleleft, &TTrain::OnCommand_redmarkertoggleleft },
+    { user_command::redmarkertoggleright, &TTrain::OnCommand_redmarkertoggleright },
+    { user_command::headlighttogglerearleft, &TTrain::OnCommand_headlighttogglerearleft },
+    { user_command::headlighttogglerearright, &TTrain::OnCommand_headlighttogglerearright },
+    { user_command::headlighttogglerearupper, &TTrain::OnCommand_headlighttogglerearupper },
+    { user_command::redmarkertogglerearleft, &TTrain::OnCommand_redmarkertogglerearleft },
+    { user_command::redmarkertogglerearright, &TTrain::OnCommand_redmarkertogglerearright },
+    { user_command::doortoggleleft, &TTrain::OnCommand_doortoggleleft },
+    { user_command::doortoggleright, &TTrain::OnCommand_doortoggleright }
+};
+
 TTrain::TTrain()
 {
     ActiveUniversal4 = false;
@@ -391,898 +439,1389 @@ PyObject *TTrain::GetTrainState() {
     return dict;
 }
 
-void
-TTrain::OnCommand( command_data const &Command ) {
+bool TTrain::is_eztoer() const {
 
-    bool const isEztOer =
+    return
         ( ( mvControlled->TrainType == dt_EZT )
        && ( mvOccupied->BrakeSubsystem == ss_ESt )
        && ( mvControlled->Battery == true )
        && ( mvControlled->EpFuse == true )
        && ( mvControlled->ActiveDir != 0 ) ); // od yB
+}
 
-    switch( Command.command ) {
+// command handlers
+void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data const &Command ) {
 
-        case user_command::mastercontrollerincrease: {
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->IncMainCtrl( 1 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikJazdy );
+        }
+    }
+}
 
-            if( Command.action != GLFW_RELEASE ) {
+void TTrain::OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data const &Command ) {
 
-                if( mvControlled->IncMainCtrl( 1 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikJazdy );
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->IncMainCtrl( 2 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikJazdy );
+        }
+    }
+}
+
+void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->DecMainCtrl( 1 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikJazdy );
+        }
+    }
+}
+
+void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->DecMainCtrl( 2 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikJazdy );
+        }
+    }
+}
+
+void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->ShuntMode ) {
+            Train->mvControlled->AnPos += ( Command.time_delta * 0.75f );
+            if( Train->mvControlled->AnPos > 1 )
+                Train->mvControlled->AnPos = 1;
+        }
+        else if( Train->mvControlled->IncScndCtrl( 1 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_secondcontrollerincreasefast( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->IncScndCtrl( 2 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->ShuntMode ) {
+            Train->mvControlled->AnPos -= ( Command.time_delta * 0.75f );
+            if( Train->mvControlled->AnPos > 1 )
+                Train->mvControlled->AnPos = 1;
+        }
+        else if( Train->mvControlled->DecScndCtrl( 1 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        if( Train->mvControlled->DecScndCtrl( 2 ) ) {
+            // sound feedback
+            Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_independentbrakeincrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( Train->mvOccupied->LocalBrake != ManualBrake ) {
+            Train->mvOccupied->IncLocalBrakeLevel( 1 );
+        }
+    }
+}
+
+void TTrain::OnCommand_independentbrakeincreasefast( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( Train->mvOccupied->LocalBrake != ManualBrake ) {
+            Train->mvOccupied->IncLocalBrakeLevel( 2 );
+        }
+    }
+}
+
+void TTrain::OnCommand_independentbrakedecrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( ( Train->mvOccupied->LocalBrake != ManualBrake )
+            // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
+            // TODO: sort AI out so it doesn't do things it doesn't have equipment for
+         || ( Train->mvOccupied->LocalBrakePos != 0 ) ) {
+            Train->mvOccupied->DecLocalBrakeLevel( 1 );
+        }
+    }
+}
+
+void TTrain::OnCommand_independentbrakedecreasefast( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( ( Train->mvOccupied->LocalBrake != ManualBrake )
+            // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
+            // TODO: sort AI out so it doesn't do things it doesn't have equipment for
+         || ( Train->mvOccupied->LocalBrakePos != 0 ) ) {
+            Train->mvOccupied->DecLocalBrakeLevel( 2 );
+        }
+    }
+}
+
+void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command ) {
+    // TODO: check if this set of conditions can be simplified.
+    // it'd be more flexible to have an attribute indicating whether bail off position is supported
+    if( ( Train->mvControlled->TrainType != dt_EZT )
+     && ( ( Train->mvControlled->EngineType == ElectricSeriesMotor )
+       || ( Train->mvControlled->EngineType == DieselElectric )
+       || ( Train->mvControlled->EngineType == ElectricInductionMotor ) )
+     && ( Train->mvOccupied->BrakeCtrlPosNo > 0 ) ) {
+
+        if( Command.action != GLFW_RELEASE ) {
+            // press or hold
+            Train->ggReleaserButton.UpdateValue( 1 );
+            Train->mvOccupied->BrakeReleaser( 1 );
+        }
+        else {
+            // release
+            Train->ggReleaserButton.UpdateValue( 0 );
+            Train->mvOccupied->BrakeReleaser( 0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( Train->mvOccupied->BrakeHandle == FV4a ) {
+            Train->mvOccupied->BrakeLevelAdd( 0.1 /*15.0 * Command.time_delta*/ );
+        }
+        else {
+            if( Train->mvOccupied->BrakeLevelAdd( Global::fBrakeStep ) ) {
+                // nieodpowiedni warunek; true, jeśli można dalej kręcić
+                Train->keybrakecount = 0;
+                if( ( Train->is_eztoer() ) && ( Train->mvOccupied->BrakeCtrlPos < 3 ) ) {
+                    // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
+                    Train->play_sound( Train->dsbPneumaticSwitch );
                 }
             }
-            break;
+        }
+    }
+}
+
+void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( Train->mvOccupied->BrakeHandle == FV4a ) {
+            Train->mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
+        }
+        else {
+            // nową wersję dostarczył ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
+            if( ( Train->mvOccupied->BrakeCtrlPos > -1 )
+                || ( Train->keybrakecount > 1 ) ) {
+
+                if( ( Train->is_eztoer() )
+                 && ( Train->mvControlled->Mains )
+                 && ( Train->mvOccupied->BrakeCtrlPos != -1 ) ) {
+                    // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
+                    Train->play_sound( Train->dsbPneumaticSwitch );
+                }
+                Train->mvOccupied->BrakeLevelAdd( -Global::fBrakeStep );
+            }
+            else
+                Train->keybrakecount += 1;
+            // koniec wersji dostarczonej przez ZiomalCl
+        }
+    }
+}
+
+void TTrain::OnCommand_trainbrakecharging( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        // sound feedback
+        if( ( Train->is_eztoer() )
+         && ( Train->mvControlled->Mains )
+         && ( Train->mvOccupied->BrakeCtrlPos != -1 ) ) {
+            Train->play_sound( Train->dsbPneumaticSwitch );
         }
 
-        case user_command::mastercontrollerincreasefast: {
+        Train->mvOccupied->BrakeLevelSet( -1 );
+    }
+}
 
-            if( Command.action != GLFW_RELEASE ) {
+void TTrain::OnCommand_trainbrakerelease( TTrain *Train, command_data const &Command ) {
 
-                if( mvControlled->IncMainCtrl( 2 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikJazdy );
-                }
-            }
-            break;
+    if( Command.action != GLFW_RELEASE ) {
+
+        // sound feedback
+        if( ( Train->is_eztoer() )
+         && ( ( Train->mvOccupied->BrakeCtrlPos == 1 )
+           || ( Train->mvOccupied->BrakeCtrlPos == -1 ) ) ) {
+            Train->play_sound( Train->dsbPneumaticSwitch );
         }
 
-        case user_command::mastercontrollerdecrease: {
+        Train->mvOccupied->BrakeLevelSet( 0 );
+    }
+}
 
-            if( Command.action != GLFW_RELEASE ) {
+void TTrain::OnCommand_trainbrakefirstservice( TTrain *Train, command_data const &Command ) {
 
-                if( mvControlled->DecMainCtrl( 1 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikJazdy );
-                }
-            }
-            break;
+    if( Command.action != GLFW_RELEASE ) {
+
+        // sound feedback
+        if( ( Train->is_eztoer() )
+            && ( Train->mvControlled->Mains )
+            && ( Train->mvOccupied->BrakeCtrlPos != 1 ) ) {
+            Train->play_sound( Train->dsbPneumaticSwitch );
         }
 
-        case user_command::mastercontrollerdecreasefast: {
+        Train->mvOccupied->BrakeLevelSet( 1 );
+    }
+}
 
-            if( Command.action != GLFW_RELEASE ) {
+void TTrain::OnCommand_trainbrakeservice( TTrain *Train, command_data const &Command ) {
 
-                if( mvControlled->DecMainCtrl( 2 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikJazdy );
-                }
-            }
-            break;
+    if( Command.action != GLFW_RELEASE ) {
+
+        // sound feedback
+        if( ( Train->is_eztoer() )
+         && ( Train->mvControlled->Mains )
+         && ( ( Train->mvOccupied->BrakeCtrlPos == 1 )
+           || ( Train->mvOccupied->BrakeCtrlPos == -1 ) ) ) {
+            Train->play_sound( Train->dsbPneumaticSwitch );
         }
 
-        case user_command::secondcontrollerincrease: {
+        Train->mvOccupied->BrakeLevelSet(
+            Train->mvOccupied->BrakeCtrlPosNo / 2
+            + ( Train->mvOccupied->BrakeHandle == FV4a ?
+               1 :
+               0 ) );
+    }
+}
 
-            if( Command.action != GLFW_RELEASE ) {
+void TTrain::OnCommand_trainbrakefullservice( TTrain *Train, command_data const &Command ) {
 
-                if( mvControlled->ShuntMode ) {
-                    mvControlled->AnPos += ( Command.time_delta * 0.75f );
-                    if( mvControlled->AnPos > 1 )
-                        mvControlled->AnPos = 1;
-                }
-                else if( mvControlled->IncScndCtrl( 1 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
-                }
-            }
-            break;
+    if( Command.action != GLFW_RELEASE ) {
+
+        // sound feedback
+        if( ( Train->is_eztoer() )
+         && ( Train->mvControlled->Mains )
+         && ( ( Train->mvOccupied->BrakeCtrlPos == 1 )
+           || ( Train->mvOccupied->BrakeCtrlPos == -1 ) ) ) {
+            Train->play_sound( Train->dsbPneumaticSwitch );
         }
+        Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->BrakeCtrlPosNo - 1 );
+    }
+}
 
-        case user_command::secondcontrollerincreasefast: {
+void TTrain::OnCommand_trainbrakeemergency( TTrain *Train, command_data const &Command ) {
 
-            if( Command.action != GLFW_RELEASE ) {
+    if( Command.action != GLFW_RELEASE ) {
 
-                if( mvControlled->IncScndCtrl( 2 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
-                }
-            }
-            break;
+        Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->Handle->GetPos( bh_EB ) );
+        if( Train->mvOccupied->BrakeCtrlPosNo <= 0.1 ) {
+            // hamulec bezpieczeństwa dla wagonów
+            Train->mvOccupied->EmergencyBrakeFlag = true;
         }
+    }
+}
 
-        case user_command::secondcontrollerdecrease: {
+void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Command ) {
 
-            if( Command.action != GLFW_RELEASE ) {
+    if( Command.action != GLFW_RELEASE ) {
 
-                if( mvControlled->ShuntMode ) {
-                    mvControlled->AnPos -= ( Command.time_delta * 0.75f );
-                    if( mvControlled->AnPos > 1 )
-                        mvControlled->AnPos = 1;
-                }
-                else if( mvControlled->DecScndCtrl( 1 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
-                }
+        if( Train->mvOccupied->DirectionForward() ) {
+            // sound feedback
+            Train->play_sound( Train->dsbReverserKey, Train->dsbSwitch, DSBVOLUME_MAX, 0 );
+            // aktualizacja skrajnych pojazdów w składzie
+            if( ( Train->mvOccupied->ActiveDir )
+             && ( Train->DynamicObject->Mechanik ) ) {
+
+                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
             }
-            break;
         }
+    }
+}
 
-        case user_command::secondcontrollerdecreasefast: {
+void TTrain::OnCommand_reverserdecrease( TTrain *Train, command_data const &Command ) {
 
-            if( Command.action != GLFW_RELEASE ) {
+    if( Command.action != GLFW_RELEASE ) {
 
-                if( mvControlled->DecScndCtrl( 2 ) ) {
-                    // sound feedback
-                    play_sound( dsbNastawnikBocz, dsbNastawnikJazdy );
-                }
+        if( Train->mvOccupied->DirectionBackward() ) {
+            // sound feedback
+            Train->play_sound( Train->dsbReverserKey, Train->dsbSwitch, DSBVOLUME_MAX, 0 );
+            // aktualizacja skrajnych pojazdów w składzie
+            if( ( Train->mvOccupied->ActiveDir )
+             && ( Train->DynamicObject->Mechanik ) ) {
+
+                Train->DynamicObject->Mechanik->CheckVehicles( Change_direction );
             }
-            break;
         }
+    }
+}
 
-        case user_command::independentbrakeincrease: {
+void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Command ) {
 
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( mvOccupied->LocalBrake != ManualBrake ) {
-                    mvOccupied->IncLocalBrakeLevel( 1 );
-                }
-            }
-            break;
+    if( Command.action != GLFW_RELEASE ) {
+        // press or hold
+        Train->fCzuwakTestTimer += 0.035f;
+        if( Train->CAflag == false ) {
+            Train->CAflag = true;
+            Train->mvOccupied->SecuritySystemReset();
         }
-
-        case user_command::independentbrakeincreasefast: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( mvOccupied->LocalBrake != ManualBrake ) {
-                    mvOccupied->IncLocalBrakeLevel( 2 );
-                }
+        else {
+            if( Train->fCzuwakTestTimer > 1.0 ) {
+                SetFlag( Train->mvOccupied->SecuritySystem.Status, s_CAtest );
             }
-            break;
         }
-
-        case user_command::independentbrakedecrease: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( ( mvOccupied->LocalBrake != ManualBrake )
-                // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
-                // TODO: sort AI out so it doesn't do things it doesn't have equipment for
-                 || ( mvOccupied->LocalBrakePos != 0 ) ) {
-                    mvOccupied->DecLocalBrakeLevel( 1 );
-                }
-            }
-            break;
+        // visual feedback
+        Train->ggSecurityResetButton.UpdateValue( 1.0 );
+        // sound feedback
+        if( Train->ggSecurityResetButton.GetValue() < 0.05 ) {
+            Train->play_sound( Train->dsbSwitch );
         }
-
-        case user_command::independentbrakedecreasefast: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( ( mvOccupied->LocalBrake != ManualBrake )
-                    // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
-                    // TODO: sort AI out so it doesn't do things it doesn't have equipment for
-                    || ( mvOccupied->LocalBrakePos != 0 ) ) {
-                    mvOccupied->DecLocalBrakeLevel( 2 );
-                }
-            }
-            break;
+    }
+    else {
+        // release
+        Train->fCzuwakTestTimer = 0.0f;
+        if( TestFlag( Train->mvOccupied->SecuritySystem.Status, s_CAtest ) ) {
+            SetFlag( Train->mvOccupied->SecuritySystem.Status, -s_CAtest );
+            Train->mvOccupied->s_CAtestebrake = false;
+            Train->mvOccupied->SecuritySystem.SystemBrakeCATestTimer = 0.0;
         }
+        Train->CAflag = false;
+        // visual feedback
+        Train->ggSecurityResetButton.UpdateValue( 0.0 );
+    }
+}
 
-        case user_command::independentbrakebailoff: {
-            // TODO: check if this set of conditions can be simplified.
-            // it'd be more flexible to have an attribute indicating whether bail off position is supported
-            if( ( mvControlled->TrainType != dt_EZT )
-             && ( ( mvControlled->EngineType == ElectricSeriesMotor )
-               || ( mvControlled->EngineType == DieselElectric )
-               || ( mvControlled->EngineType == ElectricInductionMotor ) )
-             && ( mvOccupied->BrakeCtrlPosNo > 0 ) ) {
+void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command ) {
 
-                if( Command.action != GLFW_RELEASE ) {
-                    // press or hold
-                    ggReleaserButton.UpdateValue( 1 );
-                    mvOccupied->BrakeReleaser( 1 );
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvOccupied->Battery ) {
+            // turn on
+            // wyłącznik jest też w SN61, ewentualnie załączać prąd na stałe z poziomu FIZ
+            if( Train->mvOccupied->BatterySwitch( true ) ) {
+                // bateria potrzebna np. do zapalenia świateł
+                if( Train->ggBatteryButton.SubModel ) {
+                    Train->ggBatteryButton.UpdateValue( 1 );
                 }
-                else {
-                    // release
-                    ggReleaserButton.UpdateValue( 0 );
-                    mvOccupied->BrakeReleaser( 0 );
+                // audio feedback
+                Train->play_sound( Train->dsbSwitch );
+                // side-effects
+                if( Train->mvOccupied->LightsPosNo > 0 ) {
+                    Train->SetLights();
+                }
+                if( TestFlag( Train->mvOccupied->SecuritySystem.SystemType, 2 ) ) {
+                    // Ra: znowu w kabinie jest coś, co być nie powinno!
+                    SetFlag( Train->mvOccupied->SecuritySystem.Status, s_active );
+                    SetFlag( Train->mvOccupied->SecuritySystem.Status, s_SHPalarm );
                 }
             }
-            break;
         }
-
-        case user_command::trainbrakeincrease: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( mvOccupied->BrakeHandle == FV4a ) {
-                    mvOccupied->BrakeLevelAdd( 0.1 /*15.0 * Command.time_delta*/ );
+        else {
+            //turn off
+            if( Train->mvOccupied->BatterySwitch( false ) ) {
+                // ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
+                if( Train->ggBatteryButton.SubModel ) {
+                    Train->ggBatteryButton.UpdateValue( 0 );
                 }
-                else {
-                    if( mvOccupied->BrakeLevelAdd( Global::fBrakeStep ) ) {
-                        // nieodpowiedni warunek; true, jeśli można dalej kręcić
-                        keybrakecount = 0;
-                        if( ( isEztOer ) && ( mvOccupied->BrakeCtrlPos < 3 ) ) {
-                            // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
-                            play_sound( dsbPneumaticSwitch );
-                        }
-                    }
-                }
+                // audio feedback
+                Train->play_sound( Train->dsbSwitch );
+                // side-effects
+                Train->mvControlled->PantFront( false );
+                Train->mvControlled->PantRear( false );
             }
-            break;
         }
+    }
+}
 
-        case user_command::trainbrakedecrease: {
+void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command ) {
 
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( mvOccupied->BrakeHandle == FV4a ) {
-                    mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
-                }
-                else {
-                    // nową wersję dostarczył ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
-                    if( ( mvOccupied->BrakeCtrlPos > -1 )
-                     || ( keybrakecount > 1 ) ) {
-
-                        if( ( isEztOer )
-                         && ( mvControlled->Mains )
-                         && ( mvOccupied->BrakeCtrlPos != -1 ) ) {
-                            // Ra: uzależnić dźwięk od zmiany stanu EP, nie od klawisza
-                            play_sound( dsbPneumaticSwitch );
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == ( Train->mvOccupied->ActiveCab == 1 ? Train->mvControlled->PantFrontUp : Train->mvControlled->PantRearUp ) ) {
+            // turn on...
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                // przedni gdy w kabinie 1
+                Train->mvControlled->PantFrontSP = false;
+                if( Train->mvControlled->PantFront( true ) ) {
+                    if( Train->mvControlled->PantFrontStart != 1 ) {
+                        if( Train->ggPantFrontButton.SubModel ) {
+                            Train->ggPantFrontButton.UpdateValue( 1.0 );
                         }
-                        mvOccupied->BrakeLevelAdd( -Global::fBrakeStep );
-                    }
-                    else
-                        keybrakecount += 1;
-                    // koniec wersji dostarczonej przez ZiomalCl
-                }
-            }
-            break;
-        }
-
-        case user_command::trainbrakecharging: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                // sound feedback
-                if( ( isEztOer )
-                 && ( mvControlled->Mains )
-                 && ( mvOccupied->BrakeCtrlPos != -1 ) ) {
-                    dsbPneumaticSwitch->Play( 0, 0, 0 );
-                }
-                mvOccupied->BrakeLevelSet( -1 );
-            }
-            break;
-        }
-
-        case user_command::trainbrakerelease: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                // sound feedback
-                if( ( isEztOer )
-                 && ( ( mvOccupied->BrakeCtrlPos == 1 )
-                   || ( mvOccupied->BrakeCtrlPos == -1 ) ) ) {
-                    dsbPneumaticSwitch->Play( 0, 0, 0 );
-                }
-                mvOccupied->BrakeLevelSet( 0 );
-            }
-            break;
-        }
-
-        case user_command::trainbrakefirstservice: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                // sound feedback
-                if( ( isEztOer )
-                    && ( mvControlled->Mains )
-                    && ( mvOccupied->BrakeCtrlPos != 1 ) ) {
-                    dsbPneumaticSwitch->Play( 0, 0, 0 );
-                }
-                mvOccupied->BrakeLevelSet( 1 );
-            }
-            break;
-        }
-        
-        case user_command::trainbrakeservice: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                // sound feedback
-                if( ( isEztOer )
-                 && ( mvControlled->Mains )
-                 && ( ( mvOccupied->BrakeCtrlPos == 1 )
-                   || ( mvOccupied->BrakeCtrlPos == -1 ) ) ) {
-                    dsbPneumaticSwitch->Play( 0, 0, 0 );
-                }
-                mvOccupied->BrakeLevelSet(
-                    mvOccupied->BrakeCtrlPosNo / 2
-                    + ( mvOccupied->BrakeHandle == FV4a ?
-                        1 :
-                        0 ) );
-            }
-            break;
-        }
-
-        case user_command::trainbrakefullservice: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                // sound feedback
-                if( ( isEztOer )
-                 && ( mvControlled->Mains )
-                 && ( ( mvOccupied->BrakeCtrlPos == 1 )
-                   || ( mvOccupied->BrakeCtrlPos == -1 ) ) ) {
-                    dsbPneumaticSwitch->Play( 0, 0, 0 );
-                }
-                mvOccupied->BrakeLevelSet( mvOccupied->BrakeCtrlPosNo - 1 );
-            }
-            break;
-        }
-
-        case user_command::trainbrakeemergency: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EB ) );
-                if( mvOccupied->BrakeCtrlPosNo <= 0.1 ) {
-                    // hamulec bezpieczeństwa dla wagonów
-                    mvOccupied->EmergencyBrakeFlag = true;
-                }
-            }
-            break;
-        }
-
-        case user_command::reverserincrease: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( mvOccupied->DirectionForward() ) {
-                    // sound feedback
-                    play_sound( dsbReverserKey, dsbSwitch );
-                    // aktualizacja skrajnych pojazdów w składzie
-                    if( ( mvOccupied->ActiveDir )
-                     && ( DynamicObject->Mechanik ) ) {
-
-                        DynamicObject->Mechanik->CheckVehicles( Change_direction );
-                    }
-                }
-            }
-            break;
-        }
-
-        case user_command::reverserdecrease: {
-
-            if( Command.action != GLFW_RELEASE ) {
-
-                if( mvOccupied->DirectionBackward() ) {
-                    // sound feedback
-                    play_sound( dsbReverserKey, dsbSwitch );
-                    // aktualizacja skrajnych pojazdów w składzie
-                    if( ( mvOccupied->ActiveDir )
-                     && ( DynamicObject->Mechanik ) ) {
-
-                        DynamicObject->Mechanik->CheckVehicles( Change_direction );
-                    }
-                }
-            }
-            break;
-        }
-
-        case user_command::batterytoggle: {
-
-            if( Command.action == GLFW_PRESS ) {
-                // only reacting to press, so the switch doesn't flip back and forth if key is held down
-                if( false == mvOccupied->Battery ) {
-                    // turn on
-                    // wyłącznik jest też w SN61, ewentualnie załączać prąd na stałe z poziomu FIZ
-                    if( mvOccupied->BatterySwitch( true ) ) {
-                        // bateria potrzebna np. do zapalenia świateł
-                        if( ggBatteryButton.SubModel ) {
-                            ggBatteryButton.UpdateValue( 1 );
-                        }
-                        // audio feedback
-                        play_sound( dsbSwitch );
-                        // side-effects
-                        if( mvOccupied->LightsPosNo > 0 ) {
-                            SetLights();
-                        }
-                        if( TestFlag( mvOccupied->SecuritySystem.SystemType, 2 ) ) {
-                            // Ra: znowu w kabinie jest coś, co być nie powinno!
-                            SetFlag( mvOccupied->SecuritySystem.Status, s_active );
-                            SetFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm );
-                        }
-                    }
-                }
-                else {
-                    //turn off
-                    if( mvOccupied->BatterySwitch( false ) ) {
-                        // ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
-                        if( ggBatteryButton.SubModel ) {
-                            ggBatteryButton.UpdateValue( 0 );
-                        }
-                        // audio feedback
-                        play_sound( dsbSwitch );
-                        // side-effects
-                        mvControlled->PantFront( false );
-                        mvControlled->PantRear( false );
-                    }
-                }
-
-            }
-            break;
-        }
-
-        case user_command::pantographtogglefront: {
-
-            if( Command.action == GLFW_PRESS ) {
-                // only reacting to press, so the switch doesn't flip back and forth if key is held down
-                if( false == ( mvOccupied->ActiveCab == 1 ? mvControlled->PantFrontUp : mvControlled->PantRearUp ) ) {
-                    // turn on...
-                    if( mvOccupied->ActiveCab == 1 ) {
-                        // przedni gdy w kabinie 1
-                        mvControlled->PantFrontSP = false;
-                        if( mvControlled->PantFront( true ) ) {
-                            if( mvControlled->PantFrontStart != 1 ) {
-                                if( ggPantFrontButton.SubModel ) {
-                                    ggPantFrontButton.UpdateValue( 1.0 );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                    else {
-                        // rear otherwise
-                        mvControlled->PantRearSP = false;
-                        if( mvControlled->PantRear( true ) ) {
-                            if( mvControlled->PantRearStart != 1 ) {
-                                if( ggPantRearButton.SubModel ) {
-                                    ggPantRearButton.UpdateValue( 1.0 );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                }
-                else {
-                    // ...or turn off
-                    if( mvOccupied->ActiveCab == 1 ) {
-                        // przedni gdy w kabinie 1
-                        mvControlled->PantFrontSP = false;
-                        if( false == mvControlled->PantFront( false ) ) {
-                            if( mvControlled->PantFrontStart != 0 ) {
-                                if( ggPantFrontButton.SubModel ) {
-                                    ggPantFrontButton.UpdateValue(
-                                        ( mvOccupied->PantSwitchType != "impulse" ?
-                                            0.0 :
-                                            1.0 ) );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                    else {
-                        // rear otherwise
-                        mvControlled->PantRearSP = false;
-                        if( false == mvControlled->PantRear( false ) ) {
-                            if( mvControlled->PantRearStart != 0 ) {
-                                if( ggPantRearButton.SubModel ) {
-                                    ggPantRearButton.UpdateValue(
-                                        ( mvOccupied->PantSwitchType != "impulse" ?
-                                            0.0 :
-                                            1.0 ) );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                }
-            }
-            else if( Command.action == GLFW_RELEASE ) {
-                // impulse switches return automatically to neutral position
-                if( mvOccupied->PantSwitchType == "impulse" ) {
-                    if( mvOccupied->ActiveCab == 1 ) {
-                        // przedni gdy w kabinie 1
-                        if( ggPantFrontButton.GetValue() > 0.1 ) {
-                            play_sound( dsbSwitch );
-                        }
-                        if( ggPantFrontButton.SubModel ) {
-                            ggPantFrontButton.UpdateValue( 0.0 );
-                        }
-                    }
-                    else {
-                        // rear otherwise
-                        if( ggPantRearButton.GetValue() > 0.1 ) {
-                            play_sound( dsbSwitch );
-                        }
-                        if( ggPantRearButton.SubModel ) {
-                            ggPantRearButton.UpdateValue( 0.0 );
-                        }
-                    }
-                }
-            }
-            break;
-        }
-
-        case user_command::pantographtogglerear: {
-
-            if( Command.action == GLFW_PRESS ) {
-                // only reacting to press, so the switch doesn't flip back and forth if key is held down
-                if( false == ( mvOccupied->ActiveCab == 1 ? mvControlled->PantRearUp : mvControlled->PantFrontUp ) ) {
-                    // turn on...
-                    if( mvOccupied->ActiveCab == 1 ) {
-                        // rear if in front cab
-                        mvControlled->PantRearSP = false;
-                        if( mvControlled->PantRear( true ) ) {
-                            if( mvControlled->PantRearStart != 1 ) {
-                                if( ggPantRearButton.SubModel ) {
-                                    ggPantRearButton.UpdateValue( 1.0 );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                    else {
-                        // front otherwise
-                        mvControlled->PantFrontSP = false;
-                        if( mvControlled->PantFront( true ) ) {
-                            if( mvControlled->PantFrontStart != 1 ) {
-                                if( ggPantFrontButton.SubModel ) {
-                                    ggPantFrontButton.UpdateValue( 1.0 );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                }
-                else {
-                    // ...or turn off
-                    if( mvOccupied->ActiveCab == 1 ) {
-                        // rear if in front cab
-                        mvControlled->PantRearSP = false;
-                        if( false == mvControlled->PantRear( false ) ) {
-                            if( mvControlled->PantRearStart != 0 ) {
-                                if( ggPantRearButton.SubModel ) {
-                                    ggPantRearButton.UpdateValue(
-                                        ( mvOccupied->PantSwitchType != "impulse" ?
-                                            0.0 :
-                                            1.0 ) );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                    else {
-                        // front otherwise
-                        mvControlled->PantFrontSP = false;
-                        if( false == mvControlled->PantFront( false ) ) {
-                            if( mvControlled->PantFrontStart != 0 ) {
-                                if( ggPantFrontButton.SubModel ) {
-                                    ggPantFrontButton.UpdateValue(
-                                        ( mvOccupied->PantSwitchType != "impulse" ?
-                                            0.0 :
-                                            1.0 ) );
-                                }
-                                play_sound( dsbSwitch );
-                            }
-                        }
-                    }
-                }
-            }
-            else if( Command.action == GLFW_RELEASE ) {
-                // impulse switches return automatically to neutral position
-                if( mvOccupied->PantSwitchType == "impulse" ) {
-                    if( mvOccupied->ActiveCab == 1 ) {
-                        // tylny gdy w kabinie 1
-                        if( ggPantRearButton.GetValue() > 0.1 ) {
-                            play_sound( dsbSwitch );
-                        }
-                        if( ggPantRearButton.SubModel ) {
-                            ggPantRearButton.UpdateValue( 0.0 );
-                        }
-                    }
-                    else {
-                        // front otherwise
-                        if( ggPantFrontButton.GetValue() > 0.1 ) {
-                            play_sound( dsbSwitch );
-                        }
-                        if( ggPantFrontButton.SubModel ) {
-                            ggPantFrontButton.UpdateValue( 0.0 );
-                        }
-                        play_sound( dsbSwitch );
-                    }
-                }
-            }
-            break;
-        }
-
-        case user_command::linebreakertoggle: {
-
-            if( Command.action != GLFW_RELEASE ) {
-                // press or hold...
-                if( false == mvControlled->Mains ) {
-                    // ...to close the circuit
-                    if( false == m_linebreakerclosed ) {
-                        // safety check so we don't close the circuit right after opening
-                        if( ggMainOnButton.SubModel != nullptr ) {
-                            // two separate switches to close and break the circuit
-                            // audio feedback
-                            if( Command.action == GLFW_PRESS ) {
-                                play_sound( dsbSwitch );
-                            }
-                            // visual feedback
-                            ggMainOnButton.UpdateValue( 1.0 );
-                        }
-                        else if( ggMainButton.SubModel != nullptr ) {
-                            // single two-state switch
-                            // audio feedback
-                            if( Command.action == GLFW_PRESS ) {
-                                play_sound( dsbSwitch );
-                            }
-                            // visual feedback
-                            ggMainButton.UpdateValue( 1.0 );
-                        }
-                        // keep track of period the button is held down, to determine when/if circuit closes
-                        fMainRelayTimer += 0.33; // Command.time_delta * 5.0;
-                        // NOTE: this shouldn't be necessary, what exactly does it fix?
-                        if( mvControlled->Mains != true ) {
-                            // hunter-080812: poprawka
-                            // adjusted further to take into account state of the switch
-                            mvControlled->ConverterSwitch( ggConverterButton.GetValue() > 0.5 );
-                            mvControlled->CompressorSwitch( ggCompressorButton.GetValue() > 0.5 );
-                        }
-                        if( fMainRelayTimer > mvControlled->InitialCtrlDelay ) {
-                            // wlaczanie WSa z opoznieniem
-                            if( mvControlled->MainSwitch( true ) ) {
-                                // sound feedback, engine start for diesel vehicle
-                                if( mvControlled->EngineType == DieselEngine ) {
-                                    play_sound( dsbDieselIgnition );
-                                }
-                            }
-                        }
-                    }
-                }
-                else {
-                    // ...to open the circuit
-                    if( true == m_linebreakerclosed ) {
-                        // safety check so we don't open the circuit right after closing
-                        if( mvControlled->MainSwitch( false ) ) {
-
-                            if( ggMainOffButton.SubModel != nullptr ) {
-                                // two separate switches to close and break the circuit
-                                // audio feedback
-                                if( Command.action == GLFW_PRESS ) {
-                                    play_sound( dsbSwitch );
-                                }
-                                // visual feedback
-                                ggMainOffButton.UpdateValue( 1.0 );
-                            }
-                            else if( ggMainButton.SubModel != nullptr ) {
-                                // single two-state switch
-                                // NOTE: we don't have switch type definition for the line breaker switch
-                                // so for the time being we have hard coded "impulse" switches for all EMUs
-                                // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-                                if( mvControlled->TrainType == dt_EZT ) {
-                                    // audio feedback
-                                    if( Command.action == GLFW_PRESS ) {
-                                        play_sound( dsbSwitch );
-                                    }
-                                    // visual feedback
-                                    ggMainButton.UpdateValue( 1.0 );
-                                }
-                                else {
-                                    // audio feedback
-                                    if( Command.action == GLFW_PRESS ) {
-                                        play_sound( dsbSwitch );
-                                    }
-                                    // visual feedback
-                                    ggMainButton.UpdateValue( 0.0 );
-                                }
-                            }
-                            // side-effects
-                            mvControlled->ConverterSwitch( ggConverterButton.GetValue() > 0.5 );
-                            mvControlled->CompressorSwitch( ggCompressorButton.GetValue() > 0.5 );
-                        }
-                        // play sound immediately when the switch is hit, not after release
-                        if( fMainRelayTimer > 0.0f ) {
-                            play_sound( dsbRelay );
-                            fMainRelayTimer = 0.0f;
-                        }
+                        Train->play_sound( Train->dsbSwitch );
                     }
                 }
             }
             else {
-                // release...
-                if( false == mvControlled->Mains ) {
-                    // ...after opening circuit, or holding for too short time to close it
-/*
-                    if( mvControlled->ConverterAllow ) {
-                        // po puszczeniu przycisku od WSa odpalanie potwora
-                        mvControlled->ConverterSwitch( true );
+                // rear otherwise
+                Train->mvControlled->PantRearSP = false;
+                if( Train->mvControlled->PantRear( true ) ) {
+                    if( Train->mvControlled->PantRearStart != 1 ) {
+                        if( Train->ggPantRearButton.SubModel ) {
+                            Train->ggPantRearButton.UpdateValue( 1.0 );
+                        }
+                        Train->play_sound( Train->dsbSwitch );
                     }
-*/
-                    // hunter-091012: przeniesione z mover.pas, zeby dzwiek sie nie zapetlal,
-                    if( fMainRelayTimer > 0.0f ) {
-                        play_sound( dsbRelay );
-                        fMainRelayTimer = 0.0f;
+                }
+            }
+        }
+        else {
+            // ...or turn off
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                // przedni gdy w kabinie 1
+                Train->mvControlled->PantFrontSP = false;
+                if( false == Train->mvControlled->PantFront( false ) ) {
+                    if( Train->mvControlled->PantFrontStart != 0 ) {
+                        if( Train->ggPantFrontButton.SubModel ) {
+                            Train->ggPantFrontButton.UpdateValue(
+                                ( Train->mvOccupied->PantSwitchType != "impulse" ?
+                                    0.0 :
+                                    1.0 ) );
+                        }
+                        Train->play_sound( Train->dsbSwitch );
                     }
-                    // we don't exactly know which of the two buttons was used, so reset both
-                    if( ggMainOnButton.SubModel != nullptr ) {
-                        // setup with two separate swiches
-                        ggMainOnButton.UpdateValue( 0.0 );
+                }
+            }
+            else {
+                // rear otherwise
+                Train->mvControlled->PantRearSP = false;
+                if( false == Train->mvControlled->PantRear( false ) ) {
+                    if( Train->mvControlled->PantRearStart != 0 ) {
+                        if( Train->ggPantRearButton.SubModel ) {
+                            Train->ggPantRearButton.UpdateValue(
+                                ( Train->mvOccupied->PantSwitchType != "impulse" ?
+                                    0.0 :
+                                    1.0 ) );
+                        }
+                        Train->play_sound( Train->dsbSwitch );
                     }
-                    if( ggMainOffButton.SubModel != nullptr ) {
-                        // setup with two separate swiches
-                        ggMainOffButton.UpdateValue( 0.0 );
+                }
+            }
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // impulse switches return automatically to neutral position
+        if( Train->mvOccupied->PantSwitchType == "impulse" ) {
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                // przedni gdy w kabinie 1
+                if( Train->ggPantFrontButton.GetValue() > 0.1 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                if( Train->ggPantFrontButton.SubModel ) {
+                    Train->ggPantFrontButton.UpdateValue( 0.0 );
+                }
+            }
+            else {
+                // rear otherwise
+                if( Train->ggPantRearButton.GetValue() > 0.1 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                if( Train->ggPantRearButton.SubModel ) {
+                    Train->ggPantRearButton.UpdateValue( 0.0 );
+                }
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == ( Train->mvOccupied->ActiveCab == 1 ? Train->mvControlled->PantRearUp : Train->mvControlled->PantFrontUp ) ) {
+            // turn on...
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                // rear if in front cab
+                Train->mvControlled->PantRearSP = false;
+                if( Train->mvControlled->PantRear( true ) ) {
+                    if( Train->mvControlled->PantRearStart != 1 ) {
+                        if( Train->ggPantRearButton.SubModel ) {
+                            Train->ggPantRearButton.UpdateValue( 1.0 );
+                        }
+                        Train->play_sound( Train->dsbSwitch );
                     }
-                    // and the two-state switch too, for good measure
-                    if( ggMainButton.SubModel != nullptr ) {
-                        ggMainButton.UpdateValue( 0.0 );
+                }
+            }
+            else {
+                // front otherwise
+                Train->mvControlled->PantFrontSP = false;
+                if( Train->mvControlled->PantFront( true ) ) {
+                    if( Train->mvControlled->PantFrontStart != 1 ) {
+                        if( Train->ggPantFrontButton.SubModel ) {
+                            Train->ggPantFrontButton.UpdateValue( 1.0 );
+                        }
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                }
+            }
+        }
+        else {
+            // ...or turn off
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                // rear if in front cab
+                Train->mvControlled->PantRearSP = false;
+                if( false == Train->mvControlled->PantRear( false ) ) {
+                    if( Train->mvControlled->PantRearStart != 0 ) {
+                        if( Train->ggPantRearButton.SubModel ) {
+                            Train->ggPantRearButton.UpdateValue(
+                                ( Train->mvOccupied->PantSwitchType != "impulse" ?
+                                    0.0 :
+                                    1.0 ) );
+                        }
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                }
+            }
+            else {
+                // front otherwise
+                Train->mvControlled->PantFrontSP = false;
+                if( false == Train->mvControlled->PantFront( false ) ) {
+                    if( Train->mvControlled->PantFrontStart != 0 ) {
+                        if( Train->ggPantFrontButton.SubModel ) {
+                            Train->ggPantFrontButton.UpdateValue(
+                                ( Train->mvOccupied->PantSwitchType != "impulse" ?
+                                    0.0 :
+                                    1.0 ) );
+                        }
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                }
+            }
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // impulse switches return automatically to neutral position
+        if( Train->mvOccupied->PantSwitchType == "impulse" ) {
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                // tylny gdy w kabinie 1
+                if( Train->ggPantRearButton.GetValue() > 0.1 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                if( Train->ggPantRearButton.SubModel ) {
+                    Train->ggPantRearButton.UpdateValue( 0.0 );
+                }
+            }
+            else {
+                // front otherwise
+                if( Train->ggPantFrontButton.GetValue() > 0.1 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                if( Train->ggPantFrontButton.SubModel ) {
+                    Train->ggPantFrontButton.UpdateValue( 0.0 );
+                }
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command ) {
+    if( Command.action != GLFW_RELEASE ) {
+        // press or hold...
+        if( false == Train->mvControlled->Mains ) {
+            // ...to close the circuit
+            if( false == Train->m_linebreakerclosed ) {
+                // safety check so we don't close the circuit right after opening
+                if( Train->ggMainOnButton.SubModel != nullptr ) {
+                    // two separate switches to close and break the circuit
+                    // audio feedback
+                    if( Command.action == GLFW_PRESS ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    // visual feedback
+                    Train->ggMainOnButton.UpdateValue( 1.0 );
+                }
+                else if( Train->ggMainButton.SubModel != nullptr ) {
+                    // single two-state switch
+                    // audio feedback
+                    if( Command.action == GLFW_PRESS ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    // visual feedback
+                    Train->ggMainButton.UpdateValue( 1.0 );
+                }
+                // keep track of period the button is held down, to determine when/if circuit closes
+                Train->fMainRelayTimer += 0.33f; // Command.time_delta * 5.0;
+                // NOTE: this shouldn't be necessary, what exactly does it fix?
+                if( Train->mvControlled->Mains != true ) {
+                    // hunter-080812: poprawka
+                    // adjusted further to take into account state of the switch
+                    Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
+                    Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
+                }
+                if( Train->fMainRelayTimer > Train->mvControlled->InitialCtrlDelay ) {
+                    // wlaczanie WSa z opoznieniem
+                    if( Train->mvControlled->MainSwitch( true ) ) {
+                        // sound feedback, engine start for diesel vehicle
+                        if( Train->mvControlled->EngineType == DieselEngine ) {
+                            Train->play_sound( Train->dsbDieselIgnition );
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            // ...to open the circuit
+            if( true == Train->m_linebreakerclosed ) {
+                // safety check so we don't open the circuit right after closing
+                if( Train->mvControlled->MainSwitch( false ) ) {
+
+                    if( Train->ggMainOffButton.SubModel != nullptr ) {
+                        // two separate switches to close and break the circuit
+                        // audio feedback
+                        if( Command.action == GLFW_PRESS ) {
+                            Train->play_sound( Train->dsbSwitch );
+                        }
+                        // visual feedback
+                        Train->ggMainOffButton.UpdateValue( 1.0 );
+                    }
+                    else if( Train->ggMainButton.SubModel != nullptr ) {
+                        // single two-state switch
                         // NOTE: we don't have switch type definition for the line breaker switch
                         // so for the time being we have hard coded "impulse" switches for all EMUs
                         // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-                        if( mvControlled->TrainType == dt_EZT ) {
+                        if( Train->mvControlled->TrainType == dt_EZT ) {
                             // audio feedback
-                            play_sound( dsbSwitch );
+                            if( Command.action == GLFW_PRESS ) {
+                                Train->play_sound( Train->dsbSwitch );
+                            }
+                            // visual feedback
+                            Train->ggMainButton.UpdateValue( 1.0 );
+                        }
+                        else {
+                            // audio feedback
+                            if( Command.action == GLFW_PRESS ) {
+                                Train->play_sound( Train->dsbSwitch );
+                            }
+                            // visual feedback
+                            Train->ggMainButton.UpdateValue( 0.0 );
                         }
                     }
-                    m_linebreakerclosed = false;
+                    // side-effects
+                    Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
+                    Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
                 }
-                else {
-                    // ...after closing the circuit
-                    if( ggMainOnButton.SubModel != nullptr ) {
-                        // setup with two separate switches
-                        ggMainOnButton.UpdateValue( 0.0 );
-                    }
-                    // NOTE: we don't have switch type definition for the line breaker switch
-                    // so for the time being we have hard coded "impulse" switches for all EMUs
-                    // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-                    if( mvControlled->TrainType == dt_EZT ) {
-                        if( ggMainButton.SubModel != nullptr ) {
-                            ggMainButton.UpdateValue( 0.0 );
-                            // audio feedback
-                            play_sound( dsbSwitch );
-                        }
-                    }
-                    m_linebreakerclosed = true;
+                // play sound immediately when the switch is hit, not after release
+                if( Train->fMainRelayTimer > 0.0f ) {
+                    Train->play_sound( Train->dsbRelay );
+                    Train->fMainRelayTimer = 0.0f;
                 }
             }
-            break;
         }
-
-        case user_command::convertertoggle: {
-
-            if( Command.action == GLFW_PRESS ) {
-                // only reacting to press, so the switch doesn't flip back and forth if key is held down
-                if( false == mvControlled->ConverterAllow ) {
-                    // turn on
-                    if( ( mvControlled->EnginePowerSource.SourceType != CurrentCollector )
-                     || ( mvControlled->PantRearVolt != 0.0 )
-                     || ( mvControlled->PantFrontVolt != 0.0 ) ) {
-                        // visual feedback
-                        ggConverterButton.UpdateValue( 1.0 );
-                        // sound feedback
-                        if( ggConverterButton.GetValue() < 0.5 ) {
-                            play_sound( dsbSwitch );
-                        }
-                        // impulse type switch has no effect if there's no power
-                        // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
-                        if( ( mvOccupied->ConvSwitchType != "impulse" )
-                         || ( mvControlled->Mains ) ) {
-                            if( true == mvControlled->ConverterSwitch( true ) ) {
-                                // side effects
-                                // control the compressor, if it's paired with the converter
-                                if( mvControlled->CompressorPower == 2 ) {
-                                    // hunter-091012: tak jest poprawnie
-                                    mvControlled->CompressorSwitch( true );
-                                }
-                            }
-                        }
-                    }
+    }
+    else {
+        // release...
+        if( false == Train->mvControlled->Mains ) {
+            // ...after opening circuit, or holding for too short time to close it
+            /*
+            if( mvControlled->ConverterAllow ) {
+            // po puszczeniu przycisku od WSa odpalanie potwora
+            mvControlled->ConverterSwitch( true );
+            }
+            */
+            // hunter-091012: przeniesione z mover.pas, zeby dzwiek sie nie zapetlal,
+            if( Train->fMainRelayTimer > 0.0f ) {
+                Train->play_sound( Train->dsbRelay );
+                Train->fMainRelayTimer = 0.0f;
+            }
+            // we don't exactly know which of the two buttons was used, so reset both
+            if( Train->ggMainOnButton.SubModel != nullptr ) {
+                // setup with two separate swiches
+                Train->ggMainOnButton.UpdateValue( 0.0 );
+            }
+            if( Train->ggMainOffButton.SubModel != nullptr ) {
+                // setup with two separate swiches
+                Train->ggMainOffButton.UpdateValue( 0.0 );
+            }
+            // and the two-state switch too, for good measure
+            if( Train->ggMainButton.SubModel != nullptr ) {
+                Train->ggMainButton.UpdateValue( 0.0 );
+                // NOTE: we don't have switch type definition for the line breaker switch
+                // so for the time being we have hard coded "impulse" switches for all EMUs
+                // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
+                if( Train->mvControlled->TrainType == dt_EZT ) {
+                    // audio feedback
+                    Train->play_sound( Train->dsbSwitch );
                 }
-                else {
-                    //turn off
-                    if( true == mvControlled->ConverterSwitch( false ) ) {
-                        // sound feedback
-                        play_sound( dsbSwitch );
-                        // visual feedback
-                        ggConverterButton.UpdateValue( 0.0 );
-                        if( ggConverterOffButton.SubModel != nullptr ) {
-                            ggConverterOffButton.UpdateValue( 1.0 );
-                        }
+            }
+            Train->m_linebreakerclosed = false;
+        }
+        else {
+            // ...after closing the circuit
+            if( Train->ggMainOnButton.SubModel != nullptr ) {
+                // setup with two separate switches
+                Train->ggMainOnButton.UpdateValue( 0.0 );
+            }
+            // NOTE: we don't have switch type definition for the line breaker switch
+            // so for the time being we have hard coded "impulse" switches for all EMUs
+            // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
+            if( Train->mvControlled->TrainType == dt_EZT ) {
+                if( Train->ggMainButton.SubModel != nullptr ) {
+                    Train->ggMainButton.UpdateValue( 0.0 );
+                    // audio feedback
+                    Train->play_sound( Train->dsbSwitch );
+                }
+            }
+            Train->m_linebreakerclosed = true;
+        }
+    }
+}
+
+void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->ConverterAllow ) {
+            // turn on
+            if( ( Train->mvControlled->EnginePowerSource.SourceType != CurrentCollector )
+             || ( Train->mvControlled->PantRearVolt != 0.0 )
+             || ( Train->mvControlled->PantFrontVolt != 0.0 ) ) {
+                // visual feedback
+                Train->ggConverterButton.UpdateValue( 1.0 );
+                // sound feedback
+                if( Train->ggConverterButton.GetValue() < 0.5 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                // impulse type switch has no effect if there's no power
+                // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
+                if( ( Train->mvOccupied->ConvSwitchType != "impulse" )
+                 || ( Train->mvControlled->Mains ) ) {
+                    if( true == Train->mvControlled->ConverterSwitch( true ) ) {
                         // side effects
                         // control the compressor, if it's paired with the converter
-                        if( mvControlled->CompressorPower == 2 ) {
+                        if( Train->mvControlled->CompressorPower == 2 ) {
                             // hunter-091012: tak jest poprawnie
-                            mvControlled->CompressorSwitch( false );
-                        }
-                        if( ( mvControlled->TrainType == dt_EZT )
-                         && ( !TestFlag( mvControlled->EngDmgFlag, 4 ) ) ) {
-                            mvControlled->ConvOvldFlag = false;
+                            Train->mvControlled->CompressorSwitch( true );
                         }
                     }
                 }
             }
-            else if( Command.action == GLFW_RELEASE ){
-                // on button release...
-                if( mvOccupied->ConvSwitchType == "impulse" ) {
-                    // ...return switches to start position if applicable
-                    if( ( ggConverterButton.GetValue() > 0.0 )
-                     || (  ggConverterOffButton.GetValue() > 0.0 ) ) {
-                        // sound feedback
-                        play_sound( dsbSwitch );
-                    }
-                    ggConverterButton.UpdateValue( 0.0 );
-                    ggConverterOffButton.UpdateValue( 0.0 );
-                }
-            }
-            break;
         }
-
-        case user_command::compressortoggle: {
-
-            if( mvControlled->CompressorPower < 2 ) {
-
-                if( Command.action == GLFW_PRESS ) {
-                    // only reacting to press, so the switch doesn't flip back and forth if key is held down
-                    if( false == mvControlled->CompressorAllow ) {
-                        // turn on
-                        // visual feedback
-                        ggCompressorButton.UpdateValue( 1.0 );
-                        // sound feedback
-                        if( ggCompressorButton.GetValue() < 0.5 ) {
-                            play_sound( dsbSwitch );
-                        }
-                        // impulse type switch has no effect if there's no power
-                        // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
-                        // (we're presuming impulse type switch for all EMUs for the time being)
-/*
-                        if( ( mvControlled->TrainType != dt_EZT )
-                         || ( mvControlled->Mains ) ) {
-*/
-                            mvControlled->CompressorSwitch( true );
-/*
-                        }
-*/
-                    }
-                    else {
-                        //turn off
-                        if( true == mvControlled->CompressorSwitch( false ) ) {
-                            // sound feedback
-                            play_sound( dsbSwitch );
-                            // NOTE: we don't have switch type definition for the compresor switch
-                            // so for the time being we have hard coded "impulse" switches for all EMUs
-                            // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-/*
-                            if( mvControlled->TrainType == dt_EZT ) {
-                                // visual feedback
-                                ggCompressorButton.UpdateValue( 1.0 );
-                            }
-                            else {
-*/
-                                // visual feedback
-                                ggCompressorButton.UpdateValue( 0.0 );
-/*
-                            }
-*/
-                        }
-                    }
+        else {
+            //turn off
+            if( true == Train->mvControlled->ConverterSwitch( false ) ) {
+                // sound feedback
+                Train->play_sound( Train->dsbSwitch );
+                // visual feedback
+                Train->ggConverterButton.UpdateValue( 0.0 );
+                if( Train->ggConverterOffButton.SubModel != nullptr ) {
+                    Train->ggConverterOffButton.UpdateValue( 1.0 );
                 }
-                else if( Command.action == GLFW_RELEASE ) {
-                    // on button release...
-/*
-                    // TODO: check if compressor switch is two-state or impulse type
-                    // NOTE: we don't have switch type definition for the compresor switch
-                    // so for the time being we have hard coded "impulse" switches for all EMUs
-                    // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-                    if( mvControlled->TrainType == dt_EZT ) {
-                        if( ggCompressorButton.SubModel != nullptr ) {
-                            ggCompressorButton.UpdateValue( 0.0 );
-                            // audio feedback
-                            play_sound( dsbSwitch );
-                        }
-                    }
-*/
+                // side effects
+                // control the compressor, if it's paired with the converter
+                if( Train->mvControlled->CompressorPower == 2 ) {
+                    // hunter-091012: tak jest poprawnie
+                    Train->mvControlled->CompressorSwitch( false );
+                }
+                if( ( Train->mvControlled->TrainType == dt_EZT )
+                 && ( !TestFlag( Train->mvControlled->EngDmgFlag, 4 ) ) ) {
+                    Train->mvControlled->ConvOvldFlag = false;
                 }
             }
-            break;
         }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // on button release...
+        if( Train->mvOccupied->ConvSwitchType == "impulse" ) {
+            // ...return switches to start position if applicable
+            if( ( Train->ggConverterButton.GetValue() > 0.0 )
+             || ( Train->ggConverterOffButton.GetValue() > 0.0 ) ) {
+                // sound feedback
+                Train->play_sound( Train->dsbSwitch );
+            }
+            Train->ggConverterButton.UpdateValue( 0.0 );
+            Train->ggConverterOffButton.UpdateValue( 0.0 );
+        }
+    }
+}
 
-        default: {
-            
-            break;
+void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvControlled->CompressorPower >= 2 ) {
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvControlled->CompressorAllow ) {
+            // turn on
+            // visual feedback
+            Train->ggCompressorButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggCompressorButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // impulse type switch has no effect if there's no power
+            // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
+            // (we're presuming impulse type switch for all EMUs for the time being)
+//            if( ( mvControlled->TrainType != dt_EZT )
+//             || ( mvControlled->Mains ) ) {
+
+                Train->mvControlled->CompressorSwitch( true );
+//          }
+        }
+        else {
+            //turn off
+            if( true == Train->mvControlled->CompressorSwitch( false ) ) {
+                // sound feedback
+                Train->play_sound( Train->dsbSwitch );
+                // NOTE: we don't have switch type definition for the compresor switch
+                // so for the time being we have hard coded "impulse" switches for all EMUs
+                // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
+//                if( mvControlled->TrainType == dt_EZT ) {
+//                    // visual feedback
+//                    ggCompressorButton.UpdateValue( 1.0 );
+//                }
+//                else {
+                    // visual feedback
+                    Train->ggCompressorButton.UpdateValue( 0.0 );
+//                }
+            }
+        }
+    }
+/*
+    // disabled because EMUs have basic switches. left in case impulse switch code is needed, so we don't have to reinvent the wheel
+    else if( Command.action == GLFW_RELEASE ) {
+        // on button release...
+        // TODO: check if compressor switch is two-state or impulse type
+        // NOTE: we don't have switch type definition for the compresor switch
+        // so for the time being we have hard coded "impulse" switches for all EMUs
+        // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
+        if( mvControlled->TrainType == dt_EZT ) {
+            if( ggCompressorButton.SubModel != nullptr ) {
+                ggCompressorButton.UpdateValue( 0.0 );
+                // audio feedback
+                play_sound( dsbSwitch );
+            }
+        }
+    }
+*/
+}
+
+void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            0 :
+            1 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_left ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
+            // visual feedback
+            Train->ggLeftLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggLeftLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
+            // visual feedback
+            Train->ggLeftLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggLeftLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_headlighttoggleright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            0 :
+            1 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_right ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
+            // visual feedback
+            Train->ggRightLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggRightLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
+            // visual feedback
+            Train->ggRightLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggRightLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_headlighttoggleupper( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            0 :
+            1 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_upper ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
+            // visual feedback
+            Train->ggUpperLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggUpperLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
+            // visual feedback
+            Train->ggUpperLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggUpperLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            0 :
+            1 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_left ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
+            // visual feedback
+            Train->ggLeftEndLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggLeftEndLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
+            // visual feedback
+            Train->ggLeftEndLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggLeftEndLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkertoggleright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            0 :
+            1 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_right ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
+            // visual feedback
+            Train->ggRightEndLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggRightEndLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
+            // visual feedback
+            Train->ggRightEndLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggRightEndLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_headlighttogglerearleft( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            1 :
+            0 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_right ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
+            // visual feedback
+            Train->ggRearLeftLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggRearLeftLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
+            // visual feedback
+            Train->ggRearLeftLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggRearLeftLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_headlighttogglerearright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            1 :
+            0 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_left ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
+            // visual feedback
+            Train->ggRearRightLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggRearRightLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
+            // visual feedback
+            Train->ggRearRightLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggRearRightLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            1 :
+            0 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_upper ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
+            // visual feedback
+            Train->ggRearUpperLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggRearUpperLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
+            // visual feedback
+            Train->ggRearUpperLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggRearUpperLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            1 :
+            0 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_right ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
+            // visual feedback
+            Train->ggRearLeftEndLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggRearLeftEndLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
+            // visual feedback
+            Train->ggRearLeftEndLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggRearLeftEndLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkertogglerearright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    int const lightsindex =
+        ( Train->mvOccupied->ActiveCab == 1 ?
+            1 :
+            0 );
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_left ) == 0 ) {
+            // turn on
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
+            // visual feedback
+            Train->ggRearRightEndLightButton.UpdateValue( 1.0 );
+            // sound feedback
+            if( Train->ggRearRightEndLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+        else {
+            //turn off
+            Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
+            // visual feedback
+            Train->ggRearRightEndLightButton.UpdateValue( 0.0 );
+            // sound feedback
+            if( Train->ggRearRightEndLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->DoorOpenCtrl != 1 ) {
+        return;
+    }
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
+        if( false == (
+            Train->mvOccupied->ActiveCab == 1 ?
+                Train->mvOccupied->DoorLeftOpened :
+                Train->mvOccupied->DoorRightOpened ) ) {
+            // open
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                if( Train->mvOccupied->DoorLeft( true ) ) {
+                    Train->ggDoorLeftButton.UpdateValue( 1.0 );
+                    // sound feedback
+                    if( Train->ggDoorLeftButton.GetValue() < 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
+            else {
+                // in the rear cab sides are reversed
+                if( Train->mvOccupied->DoorRight( true ) ) {
+                    Train->ggDoorRightButton.UpdateValue( 1.0 );
+                    // sound feedback
+                    if( Train->ggDoorRightButton.GetValue() < 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
+        }
+        else {
+            // close
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                if( Train->mvOccupied->DoorLeft( false ) ) {
+                    Train->ggDoorLeftButton.UpdateValue( 0.0 );
+                    // sound feedback
+                    if( Train->ggDoorLeftButton.GetValue() > 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
+            else {
+                // in the rear cab sides are reversed
+                if( Train->mvOccupied->DoorRight( false ) ) {
+                    Train->ggDoorRightButton.UpdateValue( 0.0 );
+                    // sound feedback
+                    if( Train->ggDoorRightButton.GetValue() > 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
+        }
+    }
+}
+
+void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->DoorOpenCtrl != 1 ) {
+        return;
+    }
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
+        if( false == (
+            Train->mvOccupied->ActiveCab == 1 ?
+            Train->mvOccupied->DoorRightOpened :
+            Train->mvOccupied->DoorLeftOpened ) ) {
+            // open
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                if( Train->mvOccupied->DoorRight( true ) ) {
+                    Train->ggDoorRightButton.UpdateValue( 1.0 );
+                    // sound feedback
+                    if( Train->ggDoorRightButton.GetValue() < 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
+            else {
+                // in the rear cab sides are reversed
+                if( Train->mvOccupied->DoorLeft( true ) ) {
+                    Train->ggDoorLeftButton.UpdateValue( 1.0 );
+                    // sound feedback
+                    if( Train->ggDoorLeftButton.GetValue() < 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
+        }
+        else {
+            // close
+            if( Train->mvOccupied->ActiveCab == 1 ) {
+                if( Train->mvOccupied->DoorRight( false ) ) {
+                    Train->ggDoorRightButton.UpdateValue( 0.0 );
+                    // sound feedback
+                    if( Train->ggDoorRightButton.GetValue() > 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
+            else {
+                // in the rear cab sides are reversed
+                if( Train->mvOccupied->DoorLeft( false ) ) {
+                    Train->ggDoorLeftButton.UpdateValue( 0.0 );
+                    // sound feedback
+                    if( Train->ggDoorLeftButton.GetValue() > 0.5 ) {
+                        Train->play_sound( Train->dsbSwitch );
+                    }
+                    Train->play_sound( Train->dsbDoorOpen );
+                }
+            }
         }
     }
 }
@@ -1315,8 +1854,7 @@ void TTrain::OnKeyDown(int cKey)
             if (mvOccupied->Radio == false)
                 if (Global::ctrlState)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     mvOccupied->Radio = true;
                 }
         }
@@ -1405,7 +1943,7 @@ void TTrain::OnKeyDown(int cKey)
             {
                 if ((mvControlled->Signalling == false))
                 {
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     mvControlled->Signalling = true;
                 }
             }
@@ -1419,7 +1957,7 @@ void TTrain::OnKeyDown(int cKey)
                     if (!mvControlled->DoorSignalling)
                     {
                         mvOccupied->DoorBlocked = true;
-                        dsbSwitch->Play(0, 0, 0);
+                        play_sound( dsbSwitch );
                         mvControlled->DoorSignalling = true;
                     }
                 }
@@ -1457,15 +1995,13 @@ void TTrain::OnKeyDown(int cKey)
                 if (Global::ctrlState)
                     if (mvOccupied->BrakeDelaySwitch(bdelay_R + bdelay_M))
                     {
-                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                        dsbPneumaticRelay->Play(0, 0, 0);
+                        play_sound( dsbPneumaticRelay );
                     }
                     else
                         ;
                 else if (mvOccupied->BrakeDelaySwitch(bdelay_P))
                 {
-                    dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                    dsbPneumaticRelay->Play(0, 0, 0);
+                    play_sound( dsbPneumaticRelay );
                 }
             }
             else
@@ -1484,15 +2020,13 @@ void TTrain::OnKeyDown(int cKey)
                     if (Global::ctrlState)
                         if (temp->MoverParameters->BrakeDelaySwitch(bdelay_R + bdelay_M))
                         {
-                            dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                            dsbPneumaticRelay->Play(0, 0, 0);
+                            play_sound( dsbPneumaticRelay );
                         }
                         else
                             ;
                     else if (temp->MoverParameters->BrakeDelaySwitch(bdelay_P))
                     {
-                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                        dsbPneumaticRelay->Play(0, 0, 0);
+                        play_sound( dsbPneumaticRelay );
                     }
                 }
             }
@@ -1534,8 +2068,7 @@ void TTrain::OnKeyDown(int cKey)
 						if (mvControlled->PantPress < 4.8) // piszą, że to tak nie działa
                         {
                             mvControlled->PantCompFlag = true;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-							dsbSwitch->Play(0, 0, 0); // dźwięk tylko po naciśnięciu klawisza
+                            play_sound( dsbSwitch ); // dźwięk tylko po naciśnięciu klawisza
                         }
         }
 		else if (cKey == GLFW_KEY_Q) // ze Shiftem - włączenie AI
@@ -1561,8 +2094,7 @@ void TTrain::OnKeyDown(int cKey)
             }
             if (mvControlled->CurrentSwitch(true))
             {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
+                play_sound( dsbSwitch );
             }
             /* Ra: przeniesione do Mover.cpp
 				   if (mvControlled->TrainType!=dt_EZT) //to powinno być w fizyce, a
@@ -1579,8 +2111,7 @@ void TTrain::OnKeyDown(int cKey)
         {
             if (mvControlled->AutoRelaySwitch(true))
             {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
+                play_sound( dsbSwitch );
             }
         }
         else if (cKey == Global::Keys[k_FailedEngineCutOff]) // McZapkie-060103: E
@@ -1589,11 +2120,11 @@ void TTrain::OnKeyDown(int cKey)
         {
             if (mvControlled->CutOffEngine())
             {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
+                play_sound( dsbSwitch );
             }
         }
-        else if (cKey == Global::Keys[k_OpenLeft]) // NBMX 17-09-2003: otwieranie drzwi
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if( cKey == Global::Keys[ k_OpenLeft ] ) // NBMX 17-09-2003: otwieranie drzwi
         {
             if (mvOccupied->DoorOpenCtrl == 1)
 				if (mvOccupied->CabNo < 0 ?	mvOccupied->DoorRight(true) : mvOccupied->DoorLeft(true))
@@ -1621,6 +2152,7 @@ void TTrain::OnKeyDown(int cKey)
                     }
                 }
         }
+#endif
         //-----------
         // hunter-131211: dzwiek dla przelacznika universala podniesionego
         // hunter-091012: ubajerowanie swiatla w kabinie (wyrzucenie
@@ -1631,16 +2163,14 @@ void TTrain::OnKeyDown(int cKey)
             {
                 if (bCabLight == false) //(ggCabLightButton.GetValue()==0)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
             }
             else
             {
                 if (ggUniversal3Button.GetValue() == 0)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
                 /*
                  if (Global::ctrlState)
@@ -1659,8 +2189,7 @@ void TTrain::OnKeyDown(int cKey)
             {
                 if (bCabLightDim == false) //(ggCabLightDimButton.GetValue()==0)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
             }
         }
@@ -1749,12 +2278,12 @@ void TTrain::OnKeyDown(int cKey)
                      (mvControlled->ConverterFlag)))
                 {
                     mvControlled->Heating = true;
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
             }
         }
-		else if (cKey == Global::Keys[k_LeftSign]) // lewe swiatlo - włączenie
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if( cKey == Global::Keys[ k_LeftSign ] ) // lewe swiatlo - włączenie
         // ABu 060205: dzielo Wingera po malutkim liftingu:
         {
 			if (false == (mvOccupied->LightsPosNo > 0))
@@ -1862,6 +2391,7 @@ void TTrain::OnKeyDown(int cKey)
                 } //-----------
             }
         }
+#endif
 		else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: światło górne -
 		// włączenie
         {
@@ -1874,11 +2404,11 @@ void TTrain::OnKeyDown(int cKey)
                     {
                         mvOccupied->LightsPos = 1;
                     }
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     SetLights();
                 }
             }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else if ((Global::ctrlState) &&
                      (ggRearUpperLightButton.SubModel)) // hunter-230112 - z controlem zapala z tylu
             {
@@ -1927,8 +2457,10 @@ void TTrain::OnKeyDown(int cKey)
                     }
                 }
             }
+#endif
         }
-        else if (cKey == Global::Keys[k_RightSign]) // Winger 070304: swiatla
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if( cKey == Global::Keys[ k_RightSign ] ) // Winger 070304: swiatla
         // tylne (koncowki) -
         // wlaczenie
         {
@@ -2029,6 +2561,7 @@ void TTrain::OnKeyDown(int cKey)
                 }
             }
         }
+#endif
     }
     else // McZapkie-240302 - klawisze bez shifta
     {
@@ -2282,7 +2815,6 @@ void TTrain::OnKeyDown(int cKey)
             // while (mvOccupied->BrakeCtrlPos<-1 && mvOccupied->IncBrakeLevel());
             mvOccupied->BrakeLevelSet(-1);
         }
-#endif
         else if (cKey == Global::Keys[k_Czuwak])
         //---------------
         // hunter-131211: zbicie czuwaka przeniesione do TTrain::Update()
@@ -2296,7 +2828,8 @@ void TTrain::OnKeyDown(int cKey)
             }
             // ggSecurityResetButton.PutValue(1);
         }
-        else if (cKey == Global::Keys[k_AntiSlipping])
+#endif
+        else if( cKey == Global::Keys[ k_AntiSlipping ] )
         //---------------
         // hunter-221211: hamulec przeciwposlizgowy przeniesiony do
         // TTrain::Update()
@@ -2308,8 +2841,7 @@ void TTrain::OnKeyDown(int cKey)
                 {
                     // Dlaczego bylo '-50'???
                     // dsbSwitch->SetVolume(-50);
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
                 // ggAntiSlipButton.PutValue(1);
             }
@@ -2364,8 +2896,7 @@ void TTrain::OnKeyDown(int cKey)
             { // wciśnięty [Ctrl]
                 if (mvOccupied->Radio == true)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     mvOccupied->Radio = false;
                 }
             }
@@ -2448,15 +2979,13 @@ void TTrain::OnKeyDown(int cKey)
                 if (Global::ctrlState)
                     if (mvOccupied->BrakeDelaySwitch(bdelay_R))
                     {
-                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                        dsbPneumaticRelay->Play(0, 0, 0);
+                        play_sound( dsbPneumaticRelay );
                     }
                     else
                         ;
                 else if (mvOccupied->BrakeDelaySwitch(bdelay_G))
                 {
-                    dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                    dsbPneumaticRelay->Play(0, 0, 0);
+                    play_sound( dsbPneumaticRelay );
                 }
             }
             else
@@ -2475,15 +3004,13 @@ void TTrain::OnKeyDown(int cKey)
                     if (Global::ctrlState)
                         if (temp->MoverParameters->BrakeDelaySwitch(bdelay_R))
                         {
-                            dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                            dsbPneumaticRelay->Play(0, 0, 0);
+                            play_sound( dsbPneumaticRelay );
                         }
                         else
                             ;
                     else if (temp->MoverParameters->BrakeDelaySwitch(bdelay_G))
                     {
-                        dsbPneumaticRelay->SetVolume(DSBVOLUME_MAX);
-                        dsbPneumaticRelay->Play(0, 0, 0);
+                        play_sound( dsbPneumaticRelay );
                     }
                 }
             }
@@ -2547,8 +3074,7 @@ void TTrain::OnKeyDown(int cKey)
                         if (mvControlled->PantPress < 4.8) // piszą, że to tak nie działa
                         {
                             mvControlled->PantCompFlag = true;
-                            dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                            dsbSwitch->Play(0, 0, 0); // dźwięk tylko po naciśnięciu klawisza
+                            play_sound( dsbSwitch ); // dźwięk tylko po naciśnięciu klawisza
                         }
         }
         // McZapkie-240302 - wylaczanie automatycznego pilota (w trybie ~debugmode
@@ -2567,8 +3093,7 @@ void TTrain::OnKeyDown(int cKey)
             }
             if (mvControlled->CurrentSwitch(false))
             {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
+                play_sound( dsbSwitch );
             }
             /* Ra: przeniesione do Mover.cpp
                    if (mvControlled->TrainType!=dt_EZT)
@@ -2584,8 +3109,7 @@ void TTrain::OnKeyDown(int cKey)
         {
             if (mvControlled->AutoRelaySwitch(false))
             {
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
+                play_sound( dsbSwitch );
             }
         }
 
@@ -2611,7 +3135,7 @@ void TTrain::OnKeyDown(int cKey)
                     if (mvControlled->DoorSignalling)
                     {
                         mvOccupied->DoorBlocked = false;
-                        dsbSwitch->Play(0, 0, 0);
+                        play_sound( dsbSwitch );
                         mvControlled->DoorSignalling = false;
                     }
                 }
@@ -2703,8 +3227,7 @@ if
                                     // //podłączony sprzęg będzie widoczny
                                     if (DynamicObject->Mechanik) // na wszelki wypadek
                                         DynamicObject->Mechanik->CheckVehicles(Connect); // aktualizacja flag kierunku w składzie
-                                    dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                                    dsbCouplerAttach->Play(0, 0, 0);
+                                    play_sound( dsbCouplerAttach );
                                 }
                                 else
                                     WriteLog("Mechanical coupling failed.");
@@ -2735,8 +3258,7 @@ if
                                         (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_scndpneumatic)))
                                 {
                                     //              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                                    dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-                                    dsbCouplerDetach->Play(0, 0, 0);
+                                    play_sound( dsbCouplerDetach );
                                     DynamicObject->SetPneumatic(CouplNr != 0, false); // Ra: to mi się nie podoba !!!!
                                     tmp->SetPneumatic(CouplNr != 0, false);
                                 }
@@ -2753,8 +3275,7 @@ if
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
                                         (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_controll)))
                                 {
-                                    dsbCouplerAttach->SetVolume(DSBVOLUME_MAX);
-                                    dsbCouplerAttach->Play(0, 0, 0);
+                                    play_sound( dsbCouplerAttach );
                                 }
                         }
                         else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_passenger)) // mostek
@@ -2770,8 +3291,7 @@ if
                                         (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_passenger)))
                                 {
                                     //                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                                    dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-                                    dsbCouplerDetach->Play(0, 0, 0);
+                                    play_sound( dsbCouplerDetach );
                                     DynamicObject->SetPneumatic(CouplNr != 0, false);
                                     tmp->SetPneumatic(CouplNr != 0, false);
                                 }
@@ -2791,8 +3311,7 @@ if
                     if (DynamicObject->DettachStatus(iCabn - 1) < 0) // jeśli jest co odczepić
                         if (DynamicObject->Dettach(iCabn - 1)) // iCab==1:przód,iCab==2:tył
                         {
-                            dsbCouplerDetach->SetVolume(DSBVOLUME_MAX); // w kabinie ten dźwięk?
-                            dsbCouplerDetach->Play(0, 0, 0);
+                            play_sound( dsbCouplerDetach ); // w kabinie ten dźwięk?
                         }
                 }
                 else
@@ -2808,8 +3327,7 @@ if
                             if (tmp->DettachStatus(CouplNr) < 0) // jeśli jest co odczepić i się da
                                 if (!tmp->Dettach(CouplNr))
                                 { // dźwięk odczepiania
-                                    dsbCouplerDetach->SetVolume(DSBVOLUME_MAX);
-                                    dsbCouplerDetach->Play(0, 0, 0);
+                                    play_sound( dsbCouplerDetach );
                                 }
                     }
                 }
@@ -2818,6 +3336,7 @@ if
                         Disconnect); // aktualizacja skrajnych pojazdów w składzie
             }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if (cKey == Global::Keys[k_CloseLeft]) // NBMX 17-09-2003: zamykanie drzwi
         {
 			if( mvOccupied->DoorCloseCtrl == 1 ) {
@@ -2844,7 +3363,7 @@ if
                 }
             }
         }
-
+#endif
         //-----------
         // hunter-131211: dzwiek dla przelacznika universala
         // hunter-091012: ubajerowanie swiatla w kabinie (wyrzucenie
@@ -2855,16 +3374,14 @@ if
             {
                 if (bCabLight == true) //(ggCabLightButton.GetValue()!=0)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
             }
             else
             {
                 if (ggUniversal3Button.GetValue() != 0)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
                 /*
                  if (Global::ctrlState)
@@ -2882,8 +3399,7 @@ if
             {
                 if (bCabLightDim == true) //(ggCabLightDimButton.GetValue()!=0)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                 }
             }
         }
@@ -2950,12 +3466,12 @@ if
             {
                 if (mvControlled->Heating == true)
                 {
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     mvControlled->Heating = false;
                 }
             }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if (cKey == Global::Keys[k_LeftSign]) // ABu 060205: lewe swiatlo -
         // wylaczenie
         {
@@ -3057,6 +3573,7 @@ if
                 }
             }
         }
+#endif
         else if (cKey == Global::Keys[k_UpperSign]) // ABu 060205: światło górne -
         // wyłączenie
         {
@@ -3069,11 +3586,11 @@ if
                     {
                         mvOccupied->LightsPos = mvOccupied->LightsPosNo;
                     }
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     SetLights();
                 }
             }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
             else if ((Global::ctrlState) &&
                      (ggRearUpperLightButton.SubModel)) // hunter-230112 - z controlem gasi z tylu
             {
@@ -3122,7 +3639,9 @@ if
                     }
                 }
             }
+#endif
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if (cKey == Global::Keys[k_RightSign]) // Winger 070304: swiatla tylne
         // (koncowki) - wlaczenie
         {
@@ -3224,6 +3743,7 @@ if
                 }
             }
         }
+#endif
         else if ((cKey == Global::Keys[k_StLinOff]) && (!Global::shiftState) && (!Global::ctrlState)) // Winger 110904: wylacznik st.
         // liniowych
         {
@@ -3231,21 +3751,19 @@ if
                 (mvControlled->TrainType != dt_ET40))
             {
                 ggStLinOffButton.PutValue(1); // Ra: było Fuse...
-                dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                dsbSwitch->Play(0, 0, 0);
+                play_sound( dsbSwitch );
                 if (mvControlled->MainCtrlPosNo > 0)
                 {
                     mvControlled->StLinFlag =
                         false; // yBARC - zmienione na przeciwne, bo true to zalaczone
-                    dsbRelay->SetVolume(DSBVOLUME_MAX);
-                    dsbRelay->Play(0, 0, 0);
+                    play_sound( dsbRelay );
                 }
             }
             if (mvControlled->TrainType == dt_EZT)
             {
                 if (mvControlled->Signalling == true)
                 {
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     mvControlled->Signalling = false;
                 }
             }
@@ -3367,14 +3885,12 @@ if
         if( DynamicObject->DimHeadlights && (!Global::shiftState)) {
             DynamicObject->DimHeadlights = false;
             // switch sound
-            dsbSwitch->SetVolume( DSBVOLUME_MAX );
-            dsbSwitch->Play( 0, 0, 0 );
+            play_sound( dsbSwitch );
         }
         else if( (!DynamicObject->DimHeadlights) && (Global::shiftState)) {
             DynamicObject->DimHeadlights = true;
             // switch sound
-            dsbSwitch->SetVolume( DSBVOLUME_MAX );
-            dsbSwitch->Play( 0, 0, 0 );
+            play_sound( dsbSwitch );
         }
     }
 }
@@ -3520,12 +4036,16 @@ bool TTrain::Update( double const Deltatime )
     // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
     // eventually commands are going to be retrieved directly by the vehicle, filtered through active control stand
     // and ultimately executed, provided the stand allows it.
-    command_data command;
+    command_data commanddata;
     // NOTE: currently we're only storing commands for local vehicle and there's no id system in place,
     // so we're supplying 'default' vehicle id of 0
-    while( simulation::Commands.pop( command, static_cast<std::size_t>( command_target::vehicle ) | 0 ) ) {
+    while( simulation::Commands.pop( commanddata, static_cast<std::size_t>( command_target::vehicle ) | 0 ) ) {
 
-        OnCommand( command );
+        auto lookup = m_commandhandlers.find( commanddata.command );
+        if( lookup != m_commandhandlers.end() ) {
+            // pass the command to the assigned handler
+            lookup->second( this, commanddata );
+        }
     }
 
     // update driver's position
@@ -4089,30 +4609,32 @@ bool TTrain::Update( double const Deltatime )
             if (mvOccupied->EventFlag || TestFlag(mvOccupied->SoundFlag, sound_loud))
             {
                 mvOccupied->EventFlag = false; // Ra: w kabinie?
-                dsbRelay->SetVolume(DSBVOLUME_MAX);
+                if( dsbRelay != nullptr ) { dsbRelay->SetVolume( DSBVOLUME_MAX ); }
             }
             else
             {
-                dsbRelay->SetVolume(-40);
+                if( dsbRelay != nullptr ) { dsbRelay->SetVolume( -40 ); }
             }
             if (!TestFlag(mvOccupied->SoundFlag, sound_manyrelay))
-                dsbRelay->Play(0, 0, 0);
+                play_sound( dsbRelay );
             else
             {
                 if (TestFlag(mvOccupied->SoundFlag, sound_loud))
-                    dsbWejscie_na_bezoporow->Play(0, 0, 0);
+                    play_sound( dsbWejscie_na_bezoporow );
                 else
-                    dsbWejscie_na_drugi_uklad->Play(0, 0, 0);
+                    play_sound( dsbWejscie_na_drugi_uklad );
             }
         }
 
-        if (TestFlag(mvOccupied->SoundFlag, sound_bufferclamp)) // zderzaki uderzaja o siebie
-        {
-            if (TestFlag(mvOccupied->SoundFlag, sound_loud))
-                dsbBufferClamp->SetVolume(DSBVOLUME_MAX);
-            else
-                dsbBufferClamp->SetVolume(-20);
-            dsbBufferClamp->Play(0, 0, 0);
+        if( dsbBufferClamp != nullptr ) {
+            if( TestFlag( mvOccupied->SoundFlag, sound_bufferclamp ) ) // zderzaki uderzaja o siebie
+            {
+                if( TestFlag( mvOccupied->SoundFlag, sound_loud ) )
+                    dsbBufferClamp->SetVolume( DSBVOLUME_MAX );
+                else
+                    dsbBufferClamp->SetVolume( -20 );
+                play_sound( dsbBufferClamp );
+            }
         }
         if (dsbCouplerStretch)
             if (TestFlag(mvOccupied->SoundFlag, sound_couplerstretch)) // sprzegi sie rozciagaja
@@ -4121,7 +4643,7 @@ bool TTrain::Update( double const Deltatime )
                     dsbCouplerStretch->SetVolume(DSBVOLUME_MAX);
                 else
                     dsbCouplerStretch->SetVolume(-20);
-                dsbCouplerStretch->Play(0, 0, 0);
+                play_sound( dsbCouplerStretch );
             }
 
         if (mvOccupied->SoundFlag == 0)
@@ -4358,19 +4880,16 @@ bool TTrain::Update( double const Deltatime )
             {
                 if (fabs(mvControlled->Im) > 10.0)
                     btLampkaPoslizg.TurnOn();
-                rsSlippery.Play(-rsSlippery.AM * veldiff + rsSlippery.AA, DSBPLAY_LOOPING, true,
-                                DynamicObject->GetPosition());
-                if (mvControlled->TrainType ==
-                    dt_181) // alarm przy poslizgu dla 181/182 - BOMBARDIER
+                rsSlippery.Play(-rsSlippery.AM * veldiff + rsSlippery.AA, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
+                if (mvControlled->TrainType == dt_181) // alarm przy poslizgu dla 181/182 - BOMBARDIER
                     if (dsbSlipAlarm)
-                        dsbSlipAlarm->Play(0, 0, DSBPLAY_LOOPING);
+                        play_sound( dsbSlipAlarm, DSBPLAY_LOOPING );
             }
             else
             {
                 if ((mvOccupied->UnitBrakeForce > 100.0) && (DynamicObject->GetVelocity() > 1.0))
                 {
-                    rsSlippery.Play(rsSlippery.AM * veldiff + rsSlippery.AA, DSBPLAY_LOOPING, true,
-                                    DynamicObject->GetPosition());
+                    rsSlippery.Play(rsSlippery.AM * veldiff + rsSlippery.AA, DSBPLAY_LOOPING, true, DynamicObject->GetPosition());
                     if (mvControlled->TrainType == dt_181)
                         if (dsbSlipAlarm)
                             dsbSlipAlarm->Stop();
@@ -4446,8 +4965,7 @@ bool TTrain::Update( double const Deltatime )
             else
                 btLampkaBoczniki.TurnOff();
 
-            btLampkaNapNastHam.Turn(mvControlled->ActiveDir !=
-                                    0); // napiecie na nastawniku hamulcowym
+            btLampkaNapNastHam.Turn(mvControlled->ActiveDir != 0); // napiecie na nastawniku hamulcowym
             btLampkaSprezarka.Turn(mvControlled->CompressorFlag); // mutopsitka dziala
             // boczniki
             unsigned char scp; // Ra: dopisałem "unsigned"
@@ -4716,8 +5234,6 @@ bool TTrain::Update( double const Deltatime )
             // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
             ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
             ggBrakeCtrl.Update();
-
-			
         }
         if (ggLocalBrake.SubModel)
         {
@@ -4774,12 +5290,16 @@ bool TTrain::Update( double const Deltatime )
         // NBMX wrzesien 2003 - drzwi
         if (ggDoorLeftButton.SubModel)
         {
-            ggDoorLeftButton.PutValue(mvOccupied->DoorLeftOpened ? 1 : 0);
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+            ggDoorLeftButton.PutValue( mvOccupied->DoorLeftOpened ? 1 : 0 );
+#endif
             ggDoorLeftButton.Update();
         }
         if (ggDoorRightButton.SubModel)
         {
-            ggDoorRightButton.PutValue(mvOccupied->DoorRightOpened ? 1 : 0);
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+            ggDoorRightButton.PutValue( mvOccupied->DoorRightOpened ? 1 : 0 );
+#endif
             ggDoorRightButton.Update();
         }
         if (ggDepartureSignalButton.SubModel)
@@ -4803,7 +5323,8 @@ bool TTrain::Update( double const Deltatime )
         if (ggConverterOffButton.SubModel)
             ggConverterOffButton.Update();
 
-        if (((DynamicObject->iLights[0]) == 0) && ((DynamicObject->iLights[1]) == 0))
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        if( ( ( DynamicObject->iLights[ 0 ] ) == 0 ) && ( ( DynamicObject->iLights[ 1 ] ) == 0 ) )
         {
             ggRightLightButton.PutValue(0);
             ggLeftLightButton.PutValue(0);
@@ -4813,7 +5334,6 @@ bool TTrain::Update( double const Deltatime )
         }
 
         // hunter-230112
-
         // REFLEKTOR LEWY
         // glowne oswietlenie
         if ((DynamicObject->iLights[0] & 1) == 1)
@@ -4944,6 +5464,7 @@ bool TTrain::Update( double const Deltatime )
                 else
                     ggRearRightLightButton.PutValue(-1);
             }
+#endif
         if (ggLightsButton.SubModel)
         {
             ggLightsButton.PutValue(mvOccupied->LightsPos - 1);
@@ -4958,32 +5479,13 @@ bool TTrain::Update( double const Deltatime )
         //---------
         // Winger 010304 - pantografy
         // NOTE: shouldn't the pantograph updates check whether it's front or rear cabin?
-        if (ggPantFrontButton.SubModel )
-        {
-            if( mvOccupied->PantSwitchType != "impulse" ) {
-                ggPantFrontButton.UpdateValue(
-                    ( mvOccupied->ActiveCab == 1 ?
-                        mvControlled->PantFrontUp :
-                        mvControlled->PantRearUp ) ?
-                            1.0 :
-                            0.0 );
-            }
+        if (ggPantFrontButton.SubModel ) {
             ggPantFrontButton.Update();
         }
-        if (ggPantRearButton.SubModel)
-        {
-            if( mvOccupied->PantSwitchType != "impulse" ) {
-                ggPantRearButton.UpdateValue(
-                    ( mvOccupied->ActiveCab == 1 ?
-                        mvControlled->PantRearUp :
-                        mvControlled->PantFrontUp ) ?
-                            1.0 :
-                            0.0 );
-            }
+        if (ggPantRearButton.SubModel) {
             ggPantRearButton.Update();
         }
-        if (ggPantFrontButtonOff.SubModel)
-        {
+        if (ggPantFrontButtonOff.SubModel) {
             ggPantFrontButtonOff.Update();
         }
         // Winger 020304 - ogrzewanie
@@ -5063,7 +5565,7 @@ bool TTrain::Update( double const Deltatime )
                     dsbBuzzer->GetStatus(&stat);
                     if (!(stat & DSBSTATUS_PLAYING))
                     {
-                        dsbBuzzer->Play(0, 0, DSBPLAY_LOOPING);
+                        play_sound( dsbBuzzer, DSBVOLUME_MAX, DSBPLAY_LOOPING );
                         Console::BitsSet(1 << 14); // ustawienie bitu 16 na PoKeys
                     }
                 }
@@ -5200,7 +5702,7 @@ bool TTrain::Update( double const Deltatime )
              }
         }
         else */
-
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         //----------------
         // hunter-131211: czuwak przeniesiony z OnKeyPress
         // hunter-091012: zrobiony test czuwaka
@@ -5233,6 +5735,7 @@ bool TTrain::Update( double const Deltatime )
             }
             CAflag = false;
         }
+#endif
         /*
         if ( Console::Pressed(Global::Keys[k_Czuwak]) )
         {
@@ -5611,8 +6114,7 @@ bool TTrain::Update( double const Deltatime )
             if ((mvOccupied->TrainType == dt_EZT) && (mvControlled->Mains) &&
                 (mvControlled->ActiveDir != 0))
             {
-                dsbPneumaticSwitch->SetVolume(-10);
-                dsbPneumaticSwitch->Play(0, 0, 0);
+                play_sound( dsbPneumaticSwitch );
             }
         }
 
@@ -5697,16 +6199,14 @@ bool TTrain::Update( double const Deltatime )
                 ggAntiSlipButton.UpdateValue(1);
                 if (mvOccupied->SwitchEPBrake(1))
                 {
-                    dsbPneumaticSwitch->SetVolume(-10);
-                    dsbPneumaticSwitch->Play(0, 0, 0);
+                    play_sound( dsbPneumaticSwitch );
                 }
             }
             else
             {
                 if (mvOccupied->SwitchEPBrake(0))
                 {
-                    dsbPneumaticSwitch->SetVolume(-10);
-                    dsbPneumaticSwitch->Play(0, 0, 0);
+                    play_sound( dsbPneumaticSwitch );
                 }
             }
 
@@ -5743,8 +6243,7 @@ bool TTrain::Update( double const Deltatime )
                     if (ggNextCurrentButton.SubModel)
                     {
                         ggNextCurrentButton.UpdateValue(1);
-                        dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                        dsbSwitch->Play(0, 0, 0);
+                        play_sound( dsbSwitch );
                         ShowNextCurrent = true;
                     }
                 }
@@ -5757,8 +6256,7 @@ bool TTrain::Update( double const Deltatime )
                     { // Ra: było pod GLFW_KEY_F3
                         if ((mvOccupied->EpFuseSwitch(true)))
                         {
-                            dsbPneumaticSwitch->SetVolume(-10);
-                            dsbPneumaticSwitch->Play(0, 0, 0);
+                            play_sound( dsbPneumaticSwitch );
                         }
                     }
                 }
@@ -5770,8 +6268,7 @@ bool TTrain::Update( double const Deltatime )
                         {
                             if ((mvOccupied->EpFuseSwitch(false)))
                             {
-                                dsbPneumaticSwitch->SetVolume(-10);
-                                dsbPneumaticSwitch->Play(0, 0, 0);
+                                play_sound( dsbPneumaticSwitch );
                             }
                         }
                     }
@@ -5785,8 +6282,7 @@ bool TTrain::Update( double const Deltatime )
                 if (ggNextCurrentButton.SubModel)
                 {
                     ggNextCurrentButton.UpdateValue(0);
-                    dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                    dsbSwitch->Play(0, 0, 0);
+                    play_sound( dsbSwitch );
                     ShowNextCurrent = false;
                 }
             }
@@ -5854,19 +6350,18 @@ bool TTrain::Update( double const Deltatime )
         */
 
         //  if (fabs(DynamicObject->GetVelocity())>0.5)
-        if (FreeFlyModeFlag ? false : fTachoCount > maxtacho)
-        {
-            dsbHasler->GetStatus(&stat);
-            if (!(stat & DSBSTATUS_PLAYING))
-                dsbHasler->Play(0, 0, DSBPLAY_LOOPING);
-        }
-        else
-        {
-            if (FreeFlyModeFlag ? true : fTachoCount < 1)
-            {
-                dsbHasler->GetStatus(&stat);
-                if (stat & DSBSTATUS_PLAYING)
-                    dsbHasler->Stop();
+        if( dsbHasler != nullptr ) {
+            if( ( false == FreeFlyModeFlag ) && ( fTachoCount > maxtacho ) ) {
+                dsbHasler->GetStatus( &stat );
+                if( !( stat & DSBSTATUS_PLAYING ) )
+                    play_sound( dsbHasler, DSBVOLUME_MAX, DSBPLAY_LOOPING );
+            }
+            else {
+                if( ( true == FreeFlyModeFlag ) || ( fTachoCount < 1 ) ) {
+                    dsbHasler->GetStatus( &stat );
+                    if( stat & DSBSTATUS_PLAYING )
+                        dsbHasler->Stop();
+                }
             }
         }
 
@@ -5919,14 +6414,12 @@ bool TTrain::Update( double const Deltatime )
             ggUniversal4Button.PermIncValue(dt);
 
         ggUniversal4Button.Update();
-/*
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         ggMainOffButton.UpdateValue(0);
         ggMainOnButton.UpdateValue(0);
-*/
         ggSecurityResetButton.UpdateValue(0);
-/*
         ggReleaserButton.UpdateValue(0);
-*/
+#endif
         ggSandButton.UpdateValue(0);
         ggAntiSlipButton.UpdateValue(0);
         ggDepartureSignalButton.UpdateValue(0);
@@ -6473,8 +6966,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     pyScreens.start();
     if (DynamicObject->mdKabina)
     {
-        DynamicObject->mdKabina->Init(); // obrócenie modelu oraz optymalizacja,
-        // również zapisanie binarnego
+        DynamicObject->mdKabina->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie binarnego
+        set_cab_controls();
         return true;
     }
     return (token == "none");
@@ -6788,6 +7281,70 @@ void TTrain::clear_cab_controls()
     ggRearRightEndLightButton.Clear();
                 btHaslerBrakes.Clear(12); // ciśnienie w cylindrach do odbijania na haslerze
                 btHaslerCurrent.Clear(13); // prąd na silnikach do odbijania na haslerze
+}
+
+// NOTE: we can get rid of this function once we have per-cab persistent state
+void TTrain::set_cab_controls() {
+
+    // switches
+    // pantographs
+    if( mvOccupied->PantSwitchType != "impulse" ) {
+        ggPantFrontButton.PutValue(
+            ( mvOccupied->ActiveCab == 1 ?
+                mvControlled->PantFrontUp :
+                mvControlled->PantRearUp ) ?
+                    1.0 :
+                    0.0 );
+        }
+
+    if( mvOccupied->PantSwitchType != "impulse" ) {
+        ggPantRearButton.PutValue(
+            ( mvOccupied->ActiveCab == 1 ?
+                mvControlled->PantRearUp :
+                mvControlled->PantFrontUp ) ?
+                    1.0 :
+                    0.0 );
+        }
+
+    // converter
+    if( mvOccupied->ConvSwitchType != "impulse" ) {
+        ggConverterButton.PutValue(
+            mvControlled->ConverterAllow ?
+                1.0 :
+                0.0 );
+    }
+
+    // compressor
+    if( true == mvControlled->CompressorAllow ) {
+        ggCompressorButton.PutValue( 1.0 );
+    }
+
+    // lights
+    int const lightsindex =
+        ( mvOccupied->ActiveCab == 1 ?
+            0 :
+            1 );
+
+    if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_left ) != 0 ) {
+        ggLeftLightButton.PutValue( 1.0 );
+    }
+    if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_right ) != 0 ) {
+        ggRightLightButton.PutValue( 1.0 );
+    }
+    if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::headlight_upper ) != 0 ) {
+        ggUpperLightButton.PutValue( 1.0 );
+    }
+    if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_left ) != 0 ) {
+        ggLeftEndLightButton.PutValue( 1.0 );
+    }
+    if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_right ) != 0 ) {
+        ggRightEndLightButton.PutValue( 1.0 );
+    }
+
+    // doors
+    // NOTE: we're relying on the cab models to have switches reversed for the rear cab(?)
+    ggDoorLeftButton.PutValue( mvOccupied->DoorLeftOpened   ? 1.0 : 0.0 );
+    ggDoorRightButton.PutValue( mvOccupied->DoorRightOpened ? 1.0 : 0.0 );
 }
 
 // initializes a button matching provided label. returns: true if the label was found, false
@@ -7534,20 +8091,28 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 }
 
 void
-TTrain::play_sound( PSound Sound, PSound Fallbacksound ) {
+TTrain::play_sound( PSound Sound, int const Volume, DWORD const Flags ) {
 
     if( Sound ) {
 
         Sound->SetCurrentPosition( 0 );
-        Sound->SetVolume( DSBVOLUME_MAX );
-        Sound->Play( 0, 0, 0 );
+        Sound->SetVolume( Volume );
+        Sound->Play( 0, 0, Flags );
+        return;
+    }
+}
+
+void
+TTrain::play_sound( PSound Sound, PSound Fallbacksound, int const Volume, DWORD const Flags ) {
+
+    if( Sound ) {
+
+        play_sound( Sound, Volume, Flags );
         return;
     }
     if( Fallbacksound ) {
 
-        Fallbacksound->SetCurrentPosition( 0 );
-        Fallbacksound->SetVolume( DSBVOLUME_MAX );
-        Fallbacksound->Play( 0, 0, 0 );
+        play_sound( Fallbacksound, Volume, Flags );
         return;
     }
 }

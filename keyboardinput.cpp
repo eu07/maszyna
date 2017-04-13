@@ -130,7 +130,9 @@ const int k_Fuse = 26;
 const int k_MaxCurrent = 29;
 const int k_CurrentAutoRelay = 30;
 const int k_BrakeProfile = 31;
-const int k_Czuwak = 32;
+*/
+        { "alerteracknowledge", command_target::vehicle, GLFW_KEY_SPACE },
+/*
 const int k_Horn = 33;
 const int k_Horn2 = 34;
 const int k_FailedEngineCutOff = 35;
@@ -157,10 +159,10 @@ const int k_DeCouple = 45;
 const int k_ProgramQuit = 46;
 // const int k_ProgramPause= 47;
 const int k_ProgramHelp = 48;
-const int k_OpenLeft = 49;
-const int k_OpenRight = 50;
-const int k_CloseLeft = 51;
-const int k_CloseRight = 52;
+*/
+        { "doortoggleleft", command_target::vehicle, GLFW_KEY_COMMA },
+        { "doortoggleright", command_target::vehicle, GLFW_KEY_PERIOD },
+/*
 const int k_DepartureSignal = 53;
 */
         { "pantographtogglefront", command_target::vehicle, GLFW_KEY_P },
@@ -168,9 +170,18 @@ const int k_DepartureSignal = 53;
 /*
 const int k_Heating = 58;
 // const int k_FreeFlyMode= 59;
-const int k_LeftSign = 60;
-const int k_UpperSign = 61;
-const int k_RightSign = 62;
+*/
+        { "headlighttoggleleft", command_target::vehicle, GLFW_KEY_Y },
+        { "headlighttoggleright", command_target::vehicle, GLFW_KEY_I },
+        { "headlighttoggleupper", command_target::vehicle, GLFW_KEY_U },
+        { "redmarkertoggleleft", command_target::vehicle, GLFW_KEY_Y | keymodifier::shift },
+        { "redmarkertoggleright", command_target::vehicle, GLFW_KEY_I | keymodifier::shift },
+        { "headlighttogglerearleft", command_target::vehicle, GLFW_KEY_Y | keymodifier::control },
+        { "headlighttogglerearright", command_target::vehicle, GLFW_KEY_I | keymodifier::control },
+        { "headlighttogglerearupper", command_target::vehicle, GLFW_KEY_U | keymodifier::control },
+        { "redmarkertogglerearleft", command_target::vehicle, GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
+        { "redmarkertogglerearright", command_target::vehicle, GLFW_KEY_I | keymodifier::control | keymodifier::shift },
+/*
 const int k_SmallCompressor = 63;
 const int k_StLinOff = 64;
 const int k_CurrentNext = 65;

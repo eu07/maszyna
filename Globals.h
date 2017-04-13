@@ -214,6 +214,7 @@ class Global
     static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
     static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
+    static bool MultipleLogs;
     // McZapkie-221002: definicja swiatla dziennego
 	static float Background[3];
 	static GLfloat AtmoColor[];

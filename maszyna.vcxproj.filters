@@ -220,7 +220,7 @@
       <Filter>Source Files\input</Filter>
     </ClCompile>
     <ClCompile Include="gamepadinput.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -429,7 +429,7 @@
       <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="gamepadinput.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

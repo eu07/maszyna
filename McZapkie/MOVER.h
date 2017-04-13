@@ -416,37 +416,30 @@ struct TPowerParameters
 		struct
 		{
 			_mover__3 RHeater;
-
 		};
 		struct
 		{
 			_mover__2 RPowerCable;
-
 		};
 		struct
 		{
 			TCurrentCollector CollectorParameters;
-
 		};
 		struct
 		{
 			_mover__1 RAccumulator;
-
 		};
 		struct
 		{
 			TEngineTypes GeneratorEngine;
-
 		};
 		struct
 		{
 			double InputVoltage;
-
 		};
 		struct
 		{
 			TPowerType PowerType;
-
 		};
 
 	};
@@ -670,10 +663,18 @@ public:
 							/*nastawniki:*/
 	int MainCtrlPosNo = 0;     /*ilosc pozycji nastawnika*/
 	int ScndCtrlPosNo = 0;
-	int LightsPosNo = 0; // NOTE: values higher than 0 seem to break the current code for light switches
+	int LightsPosNo = 0;
     int LightsDefPos = 1;
 	bool LightsWrap = false;
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
+    enum light {
+
+        headlight_left  = 0x01,
+        redmarker_left  = 0x02,
+        headlight_upper = 0x04,
+        headlight_right = 0x10,
+        redmarker_right = 0x20,
+    };
 	bool ScndInMain = false;     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
@@ -1172,6 +1173,10 @@ extract_value( _Type &Variable, std::string const &Key, std::string const &Input
         return false; // supplied the default
 	}
 }
+
+template <>
+bool
+extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default );
 
 inline
 std::string

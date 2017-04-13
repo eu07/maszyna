@@ -62,7 +62,7 @@ inline double Sign(double x)
     return x >= 0 ? 1.0 : -1.0;
 }
 
-inline long Round(float f)
+inline long Round(double const f)
 {
 	return (long)(f + 0.5);
 	//return lround(f);

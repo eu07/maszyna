@@ -214,7 +214,11 @@ int main(int argc, char *argv[])
 	if (!glfwInit())
 		return -1;
 
-    DeleteFile("errors.txt");
+#ifdef _WINDOWS
+    DeleteFile( "log.txt" );
+    DeleteFile( "errors.txt" );
+    _mkdir("logs");
+#endif
     Global::LoadIniFile("eu07.ini");
     Global::InitKeys();
 

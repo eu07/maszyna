@@ -1814,8 +1814,9 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
             LastRelayTime = 0;
 
 	if ((OK) && (EngineType == ElectricInductionMotor))
+        // NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
-			ScndCtrlActualPos = Round(Vel + 0.5f);
+			ScndCtrlActualPos = Round(Vel + 0.5);
 		else
 			ScndCtrlActualPos = Round(Vel * 1.0 / 2 + 0.5);
 
@@ -2031,10 +2032,12 @@ void TMoverParameters::SecuritySystemCheck(double dt)
         (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
     {
         // CA
-        if (Vel >=
-            SecuritySystem
-                .AwareMinSpeed) // domyślnie predkość większa od 10% Vmax, albo podanej jawnie w FIZ
-        {
+        if( ( SecuritySystem.AwareMinSpeed > 0.0 ?
+                ( Vel >= SecuritySystem.AwareMinSpeed ) :
+                ( ActiveDir != 0 ) ) ) {
+            // domyślnie predkość większa od 10% Vmax, albo podanej jawnie w FIZ
+            // with defined minspeed of 0 the alerter will activate with reverser out of neutral position
+            // this emulates behaviour of engines like SM42
             SecuritySystem.SystemTimer += dt;
             if (TestFlag(SecuritySystem.SystemType, 1) &&
                 TestFlag(SecuritySystem.Status, s_aware)) // jeśli świeci albo miga
@@ -4087,106 +4090,152 @@ double TMoverParameters::TractionForce(double dt)
             if ((MainCtrlPos == 0) || (ShuntMode))
                 ScndCtrlPos = 0;
 
-            else if (AutoRelayFlag)
-                switch (RelayType)
-                {
-                case 0:
-                {
-                    if ((Im <= (MPTRelay[ScndCtrlPos].Iup * PosRatio)) &&
-                        (ScndCtrlPos < ScndCtrlPosNo))
-                        ++ScndCtrlPos;
-                    if ((Im >= (MPTRelay[ScndCtrlPos].Idown * PosRatio)) && (ScndCtrlPos > 0))
-                        --ScndCtrlPos;
-                    break;
-                }
-                case 1:
-                {
-                    if ((MPTRelay[ScndCtrlPos].Iup < Vel) && (ScndCtrlPos < ScndCtrlPosNo))
-                        ++ScndCtrlPos;
-                    if ((MPTRelay[ScndCtrlPos].Idown > Vel) && (ScndCtrlPos > 0))
-                        --ScndCtrlPos;
-                    break;
-                }
-                case 2:
-                {
-                    if ((MPTRelay[ScndCtrlPos].Iup < Vel) && (ScndCtrlPos < ScndCtrlPosNo) &&
-                        (EnginePower < (tmp * 0.99)))
-                        ++ScndCtrlPos;
-                    if ((MPTRelay[ScndCtrlPos].Idown < Im) && (ScndCtrlPos > 0))
-                        --ScndCtrlPos;
-                    break;
-                }
-                case 41:
-                {
-                    if ((MainCtrlPos == MainCtrlPosNo) &&
-                        (tmpV * 3.6 > MPTRelay[ScndCtrlPos].Iup) && (ScndCtrlPos < ScndCtrlPosNo))
-                    {
-                        ++ScndCtrlPos;
-                        enrot = enrot * 0.73;
-                    }
-                    if ((Im > MPTRelay[ScndCtrlPos].Idown) && (ScndCtrlPos > 0))
-                        --ScndCtrlPos;
-                    break;
-                }
-                case 45:
-                {
-                    if ((MainCtrlPos > 11) && (ScndCtrlPos < ScndCtrlPosNo))
-                        if ((ScndCtrlPos == 0))
-                            if ((MPTRelay[ScndCtrlPos].Iup > Im))
-                                ++ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos].Iup < Vel))
-                                ++ScndCtrlPos;
+            else {
+                if( AutoRelayFlag ) {
 
-                    // malenie
-                    if ((ScndCtrlPos > 0) && (MainCtrlPos < 12))
-                        if ((ScndCtrlPos == ScndCtrlPosNo))
-                            if ((MPTRelay[ScndCtrlPos].Idown < Im))
-                                --ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos].Idown > Vel))
-                                --ScndCtrlPos;
-                    if ((MainCtrlPos < 11) && (ScndCtrlPos > 2))
-                        ScndCtrlPos = 2;
-                    if ((MainCtrlPos < 9) && (ScndCtrlPos > 0))
-                        ScndCtrlPos = 0;
-                }
-                case 46:
-                {
-                    // wzrastanie
-                    if ((MainCtrlPos > 9) && (ScndCtrlPos < ScndCtrlPosNo))
-                        if ((ScndCtrlPos) % 2 == 0)
-                            if ((MPTRelay[ScndCtrlPos].Iup > Im))
-                                ++ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos - 1].Iup > Im) &&
-                                     (MPTRelay[ScndCtrlPos].Iup < Vel))
-                                ++ScndCtrlPos;
+                    switch( RelayType ) {
 
-                    // malenie
-                    if ((MainCtrlPos < 10) && (ScndCtrlPos > 0))
-                        if ((ScndCtrlPos) % 2 == 0)
-                            if ((MPTRelay[ScndCtrlPos].Idown < Im))
+                        case 0: {
+
+                            if( ( Im <= ( MPTRelay[ ScndCtrlPos ].Iup * PosRatio ) ) &&
+                                ( ScndCtrlPos < ScndCtrlPosNo ) )
+                                ++ScndCtrlPos;
+                            if( ( Im >= ( MPTRelay[ ScndCtrlPos ].Idown * PosRatio ) ) && ( ScndCtrlPos > 0 ) )
                                 --ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos + 1].Idown < Im) &&
-                                     (MPTRelay[ScndCtrlPos].Idown > Vel))
+                            break;
+                        }
+                        case 1: {
+
+                            if( ( MPTRelay[ ScndCtrlPos ].Iup < Vel ) && ( ScndCtrlPos < ScndCtrlPosNo ) )
+                                ++ScndCtrlPos;
+                            if( ( MPTRelay[ ScndCtrlPos ].Idown > Vel ) && ( ScndCtrlPos > 0 ) )
                                 --ScndCtrlPos;
-                    if ((MainCtrlPos < 9) && (ScndCtrlPos > 2))
-                        ScndCtrlPos = 2;
-                    if ((MainCtrlPos < 6) && (ScndCtrlPos > 0))
-                        ScndCtrlPos = 0;
+                            break;
+                        }
+                        case 2: {
+
+                            if( ( MPTRelay[ ScndCtrlPos ].Iup < Vel ) && ( ScndCtrlPos < ScndCtrlPosNo ) &&
+                                ( EnginePower < ( tmp * 0.99 ) ) )
+                                ++ScndCtrlPos;
+                            if( ( MPTRelay[ ScndCtrlPos ].Idown < Im ) && ( ScndCtrlPos > 0 ) )
+                                --ScndCtrlPos;
+                            break;
+                        }
+                        case 41:
+                        {
+                            if( ( MainCtrlPos == MainCtrlPosNo )
+                             && ( tmpV * 3.6 > MPTRelay[ ScndCtrlPos ].Iup )
+                             && ( ScndCtrlPos < ScndCtrlPosNo ) ) {
+                                ++ScndCtrlPos;
+                                enrot = enrot * 0.73;
+                            }
+                            if( ( Im > MPTRelay[ ScndCtrlPos ].Idown )
+                                && ( ScndCtrlPos > 0 ) ) {
+                                --ScndCtrlPos;
+                            }
+                            break;
+                        }
+                        case 45:
+                        {
+                            if( ( MainCtrlPos >= 10 ) && ( ScndCtrlPos < ScndCtrlPosNo ) ) {
+                                if( ScndCtrlPos == 0 ) {
+                                    if( Im < MPTRelay[ ScndCtrlPos ].Iup ) {
+                                        ++ScndCtrlPos;
+                                    }
+                                }
+                                else {
+                                    if( Vel > MPTRelay[ ScndCtrlPos ].Iup ) {
+                                        ++ScndCtrlPos;
+                                    }
+                                    // check for cases where the speed drops below threshold for level 2 or 3
+                                    if( ( ScndCtrlPos > 1 )
+                                     && ( Vel < MPTRelay[ ScndCtrlPos - 1 ].Idown ) ){
+                                        --ScndCtrlPos;
+                                    }
+                                }
+                            }
+                            // malenie
+                            if( ( ScndCtrlPos > 0 ) && ( MainCtrlPos < 10 ) ) {
+                                if( ScndCtrlPos == 1 ) {
+                                    if( Im > MPTRelay[ ScndCtrlPos - 1 ].Idown ) {
+                                        --ScndCtrlPos;
+                                    }
+                                }
+                                else {
+                                    if( Vel < MPTRelay[ ScndCtrlPos ].Idown ) {
+                                        --ScndCtrlPos;
+                                    }
+                                }
+                            }
+                            // 3rd level drops with master controller at position lower than 10...
+                            if( MainCtrlPos < 10 ) {
+                                ScndCtrlPos = std::min( 2, ScndCtrlPos );
+                            }
+                            // ...and below position 7 field shunt drops altogether
+                            if( MainCtrlPos < 7 ) {
+                                ScndCtrlPos = 0;
+                            }
+                            break;
+                        }
+                        case 46:
+                        {
+                            // wzrastanie
+                            if( ( MainCtrlPos >= 10 )
+                             && ( ScndCtrlPos < ScndCtrlPosNo ) ) {
+                                if( ( ScndCtrlPos ) % 2 == 0 ) {
+                                    if( ( MPTRelay[ ScndCtrlPos ].Iup > Im ) ) {
+                                        ++ScndCtrlPos;
+                                    }
+                                }
+                                else {
+                                    if( ( MPTRelay[ ScndCtrlPos - 1 ].Iup > Im )
+                                     && ( MPTRelay[ ScndCtrlPos ].Iup < Vel ) ) {
+                                        ++ScndCtrlPos;
+                                    }
+                                }
+                            }
+                            // malenie
+                            if( ( MainCtrlPos < 10 )
+                             && ( ScndCtrlPos > 0 ) ) {
+                                if( ( ScndCtrlPos ) % 2 == 0 ) {
+                                    if( ( MPTRelay[ ScndCtrlPos ].Idown < Im ) ) {
+                                        --ScndCtrlPos;
+                                    }
+                                }
+                                else {
+                                    if( ( MPTRelay[ ScndCtrlPos + 1 ].Idown < Im )
+                                     && ( MPTRelay[ ScndCtrlPos ].Idown > Vel ) ) {
+                                        --ScndCtrlPos;
+                                    }
+                                }
+                            }
+                            if( MainCtrlPos < 10 ) {
+                                ScndCtrlPos = std::min( 2, ScndCtrlPos );
+                            }
+                            if( MainCtrlPos < 7 ) {
+                                ScndCtrlPos = 0;
+                            }
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    } // switch RelayType
                 }
-                } // switch RelayType
+            }
 			break;
         } // DieselElectric
 
         case ElectricInductionMotor:
         {
-            if ((Mains)) // nie wchodzić w funkcję bez potrzeby
-                if ((abs(Voltage) < EnginePowerSource.CollectorParameters.MinV) ||
-                    (abs(Voltage) > EnginePowerSource.CollectorParameters.MaxV + 200))
-                {
-                    MainSwitch(false);
+            if( ( Mains ) ) {
+                // nie wchodzić w funkcję bez potrzeby
+                if( ( abs( Voltage ) < EnginePowerSource.CollectorParameters.MinV )
+                 || ( abs( Voltage ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
+                    MainSwitch( false );
                 }
-            tmpV = abs(nrot) * (PI * WheelDiameter) *
-                   3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
+            }
+            tmpV = abs(nrot) * (PI * WheelDiameter) * 3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
             if ((Mains))
             {
 
@@ -7913,5 +7962,24 @@ double TMoverParameters::ShowCurrentP(int AmpN)
                 if (Couplers[b].Connected->Power > 0.01)
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;
+    }
+}
+
+template <>
+bool
+extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
+
+    auto value = extract_value( Key, Input );
+    if( false == value.empty() ) {
+        // set the specified variable to retrieved value
+        Variable = ( ToLower( value ) == "yes" );
+        return true; // located the variable
+    }
+    else {
+        // set the variable to provided default value
+        if( false == Default.empty() ) {
+            Variable = ( ToLower( Default ) == "yes" );
+        }
+        return false; // supplied the default
     }
 }

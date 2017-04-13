@@ -166,6 +166,7 @@ bool Global::bOldSmudge = false; // Używanie starej smugi
 bool Global::bWireFrame = false;
 bool Global::bSoundEnabled = true;
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
+bool Global::MultipleLogs{ false };
 bool Global::bManageNodes = true;
 bool Global::bDecompressDDS = false; // czy programowa dekompresja DDS
 
@@ -374,7 +375,11 @@ void Global::ConfigParse(cParser &Parser)
                 Global::iWriteLogEnabled = stol_def(token,3);
             }
         }
-        else if (token == "adjustscreenfreq")
+        else if( token == "multiplelogs" ) {
+            Parser.getTokens();
+            Parser >> Global::MultipleLogs;
+        }
+        else if( token == "adjustscreenfreq" )
         {
             // McZapkie-240403 - czestotliwosc odswiezania ekranu
             Parser.getTokens();

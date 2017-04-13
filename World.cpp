@@ -1692,13 +1692,18 @@ TWorld::Update_UI() {
             // timetable
             TDynamicObject *tmp =
                 ( FreeFlyModeFlag ?
-                    Ground.DynamicNearest( Camera.Pos ) :
-                    Controlled ); // w trybie latania lokalizujemy wg mapy
+                Ground.DynamicNearest( Camera.Pos ) :
+                Controlled ); // w trybie latania lokalizujemy wg mapy
 
             if( tmp == nullptr ) { break; }
-            if( tmp->Mechanik == nullptr ) { break; }
+            // if the nearest located vehicle doesn't have a direct driver, try to query its owner
+            auto const owner = (
+                tmp->Mechanik != nullptr ?
+                    tmp->Mechanik :
+                    tmp->ctOwner );
+            if( owner == nullptr ){ break; }
 
-            auto const table = tmp->Mechanik->Timetable();
+            auto const table = owner->Timetable();
             if( table == nullptr ) { break; }
 
             auto const &time = simulation::Time.data();
@@ -1711,14 +1716,12 @@ TWorld::Update_UI() {
                 uitextline1 += " (paused)";
             }
 
-            if( Controlled
-             && Controlled->Mechanik ) {
-                    uitextline2 = Global::Bezogonkow( Controlled->Mechanik->Relation(), true )  + " (" + tmp->Mechanik->Timetable()->TrainName + ")";
-                    if( !uitextline2.empty() ) {
-                        // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
-                        uitextline3 = " -> " + Global::Bezogonkow( Controlled->Mechanik->NextStop(), true );
-                    }
-                }
+            uitextline2 = Global::Bezogonkow( owner->Relation(), true ) + " (" + owner->Timetable()->TrainName + ")";
+            auto const nextstation = Global::Bezogonkow( owner->NextStop(), true );
+            if( !nextstation.empty() ) {
+                // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
+                uitextline3 = " -> " + nextstation;
+            }
 
             if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
 
@@ -1731,7 +1734,7 @@ TWorld::Update_UI() {
                     UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", Global::UITextColor );
 
                     TMTableLine *tableline;
-                    for( int i = tmp->Mechanik->iStationStart; i <= std::min( tmp->Mechanik->iStationStart + 15, table->StationCount ); ++i ) {
+                    for( int i = owner->iStationStart; i <= std::min( owner->iStationStart + 15, table->StationCount ); ++i ) {
                         // wyświetlenie pozycji z rozkładu
                         tableline = table->TimeTable + i; // linijka rozkładu
 
@@ -1752,7 +1755,7 @@ TWorld::Update_UI() {
 
                         UITable->text_lines.emplace_back(
                             Global::Bezogonkow( "| " + station + " | " + arrival + " | " + departure + " | " + vmax + " | " + tableline->StationWare, true ),
-                            ( ( tmp->Mechanik->iStationStart < table->StationIndex ) && ( i < table->StationIndex ) ?
+                            ( ( owner->iStationStart < table->StationIndex ) && ( i < table->StationIndex ) ?
                             float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
                             Global::UITextColor )
                             );
