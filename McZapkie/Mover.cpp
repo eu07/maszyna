@@ -676,10 +676,23 @@ bool TMoverParameters::CurrentSwitch(int direction)
         if (TrainType != dt_EZT)
             return (MinCurrentSwitch(direction != 0));
     }
-    if (EngineType == DieselEngine) // dla 2Ls150
-        if (ShuntModeAllow)
-            if (ActiveDir == 0) // przed ustawieniem kierunku
-                ShuntMode = ( direction != 0 );
+    // TBD, TODO: split off shunt mode toggle into a separate command? It doesn't make much sense to have these two together like that
+    // dla 2Ls150
+    if( ( EngineType == DieselEngine )
+     && ( true == ShuntModeAllow )
+     && ( ActiveDir == 0 ) ) {
+        // przed ustawieniem kierunku
+        ShuntMode = ( direction != 0 );
+        return true;
+    }
+    // for SM42/SP42
+    if( ( EngineType == DieselElectric )
+     && ( true == ShuntModeAllow )
+     && ( MainCtrlPos == 0 ) ) {
+        ShuntMode = ( direction != 0 );
+        return true;
+    }
+
     return false;
 };
 

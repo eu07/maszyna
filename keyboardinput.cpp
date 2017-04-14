@@ -118,16 +118,16 @@ keyboard_input::default_bindings() {
 const int k_AntiSlipping = 21;
 const int k_Sand = 22;
 */
-        { "linebreakertoggle", command_target::vehicle, GLFW_KEY_M },
         { "reverserincrease", command_target::vehicle, GLFW_KEY_D },
         { "reverserdecrease", command_target::vehicle, GLFW_KEY_R },
+        { "linebreakertoggle", command_target::vehicle, GLFW_KEY_M },
 /*
 const int k_Fuse = 26;
 */
-        { "compressortoggle", command_target::vehicle, GLFW_KEY_C },
         { "convertertoggle", command_target::vehicle, GLFW_KEY_X },
+        { "compressortoggle", command_target::vehicle, GLFW_KEY_C },
+        { "motoroverloadrelaythresholdtoggle", command_target::vehicle, GLFW_KEY_F },
 /*
-const int k_MaxCurrent = 29;
 const int k_CurrentAutoRelay = 30;
 const int k_BrakeProfile = 31;
 */

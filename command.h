@@ -39,14 +39,15 @@ enum class user_command {
 const int k_AntiSlipping = 21;
 const int k_Sand = 22;
 */
-    linebreakertoggle,
     reverserincrease,
     reverserdecrease,
+    linebreakertoggle,
 /*
 const int k_Fuse = 26;
 */
-    compressortoggle,
     convertertoggle,
+    compressortoggle,
+    motoroverloadrelaythresholdtoggle,
 /*
 const int k_MaxCurrent = 29;
 const int k_CurrentAutoRelay = 30;
@@ -54,7 +55,6 @@ const int k_BrakeProfile = 31;
 */
     alerteracknowledge,
 /*
-const int k_Czuwak = 32;
 const int k_Horn = 33;
 const int k_Horn2 = 34;
 const int k_FailedEngineCutOff = 35;

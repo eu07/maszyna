@@ -165,6 +165,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
     { user_command::convertertoggle, &TTrain::OnCommand_convertertoggle },
     { user_command::compressortoggle, &TTrain::OnCommand_compressortoggle },
+    { user_command::motoroverloadrelaythresholdtoggle, &TTrain::OnCommand_motoroverloadrelaythresholdtoggle },
     { user_command::headlighttoggleleft, &TTrain::OnCommand_headlighttoggleleft },
     { user_command::headlighttoggleright, &TTrain::OnCommand_headlighttoggleright },
     { user_command::headlighttoggleupper, &TTrain::OnCommand_headlighttoggleupper },
@@ -639,14 +640,14 @@ void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Co
 void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action != GLFW_RELEASE ) {
-
+        // press or hold
         if( Train->mvOccupied->BrakeHandle == FV4a ) {
             Train->mvOccupied->BrakeLevelAdd( -0.1 /*-15.0 * Command.time_delta*/ );
         }
         else {
             // nową wersję dostarczył ZiomalCl ("fixed looped sound in ezt when using NUM_9 key")
             if( ( Train->mvOccupied->BrakeCtrlPos > -1 )
-                || ( Train->keybrakecount > 1 ) ) {
+             || ( Train->keybrakecount > 1 ) ) {
 
                 if( ( Train->is_eztoer() )
                  && ( Train->mvControlled->Mains )
@@ -661,12 +662,29 @@ void TTrain::OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Co
             // koniec wersji dostarczonej przez ZiomalCl
         }
     }
+    else {
+        // release
+        if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
+         && ( Train->mvOccupied->BrakeHandle == FVel6 )
+         && ( Train->DynamicObject->Controller != AIdriver )
+         && ( Global::iFeedbackMode != 4 )
+         && ( !( Global::bMWDmasterEnable && Global::bMWDBreakEnable ) ) ) {
+            // Odskakiwanie hamulce EP
+            Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->BrakeCtrlPos + 1 );
+            Train->keybrakecount = 0;
+            if( ( Train->mvOccupied->TrainType == dt_EZT )
+             && ( Train->mvControlled->Mains )
+             && ( Train->mvControlled->ActiveDir != 0 ) ) {
+                Train->play_sound( Train->dsbPneumaticSwitch );
+            }
+        }
+    }
 }
 
 void TTrain::OnCommand_trainbrakecharging( TTrain *Train, command_data const &Command ) {
 
     if( Command.action != GLFW_RELEASE ) {
-
+        // press or hold
         // sound feedback
         if( ( Train->is_eztoer() )
          && ( Train->mvControlled->Mains )
@@ -675,6 +693,23 @@ void TTrain::OnCommand_trainbrakecharging( TTrain *Train, command_data const &Co
         }
 
         Train->mvOccupied->BrakeLevelSet( -1 );
+    }
+    else {
+        // release
+        if( ( Train->mvOccupied->BrakeCtrlPos == -1 )
+         && ( Train->mvOccupied->BrakeHandle == FVel6 )
+         && ( Train->DynamicObject->Controller != AIdriver )
+         && ( Global::iFeedbackMode != 4 )
+         && ( !( Global::bMWDmasterEnable && Global::bMWDBreakEnable ) ) ) {
+            // Odskakiwanie hamulce EP
+            Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->BrakeCtrlPos + 1 );
+            Train->keybrakecount = 0;
+            if( ( Train->mvOccupied->TrainType == dt_EZT )
+             && ( Train->mvControlled->Mains )
+             && ( Train->mvControlled->ActiveDir != 0 ) ) {
+                Train->play_sound( Train->dsbPneumaticSwitch );
+            }
+        }
     }
 }
 
@@ -1328,6 +1363,35 @@ void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Comm
         }
     }
 */
+}
+
+void TTrain::OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( Train->mvControlled->Imax < Train->mvControlled->ImaxHi ) {
+            // turn on
+            if( true == Train->mvControlled->CurrentSwitch( true ) ) {
+                // visual feedback
+                Train->ggMaxCurrentCtrl.UpdateValue( 1.0 );
+                // sound feedback
+                if( Train->ggMaxCurrentCtrl.GetValue() < 0.5 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+            }
+        }
+        else {
+            //turn off
+            if( true == Train->mvControlled->CurrentSwitch( false ) ) {
+                // visual feedback
+                Train->ggMaxCurrentCtrl.UpdateValue( 0.0 );
+                // sound feedback
+                if( Train->ggMaxCurrentCtrl.GetValue() > 0.5 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+            }
+        }
+    }
 }
 
 void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command ) {
@@ -2084,9 +2148,9 @@ void TTrain::OnKeyDown(int cKey)
                 DynamicObject->Mechanik->TakeControl(true);
             }
         }
-        else if (cKey == Global::Keys[k_MaxCurrent]) // McZapkie-160502: F -
-        // wysoki rozruch
-        {
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if (cKey == Global::Keys[k_MaxCurrent]) {
+            // McZapkie-160502: F - wysoki rozruch
             if ((mvControlled->EngineType == DieselElectric) && (mvControlled->ShuntModeAllow) &&
                 (mvControlled->MainCtrlPos == 0))
             {
@@ -2096,28 +2160,17 @@ void TTrain::OnKeyDown(int cKey)
             {
                 play_sound( dsbSwitch );
             }
-            /* Ra: przeniesione do Mover.cpp
-				   if (mvControlled->TrainType!=dt_EZT) //to powinno być w fizyce, a
-               nie w kabinie!
-                            if (mvControlled->MinCurrentSwitch(true))
-                            {
-                             dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                             dsbSwitch->Play(0,0,0);
-                            }
-            */
         }
-        else if (cKey == Global::Keys[k_CurrentAutoRelay]) // McZapkie-241002: G -
-        // wlaczanie PSR
-        {
+#endif
+        else if (cKey == Global::Keys[k_CurrentAutoRelay]) {
+            // McZapkie-241002: G - wlaczanie PSR
             if (mvControlled->AutoRelaySwitch(true))
             {
                 play_sound( dsbSwitch );
             }
         }
-        else if (cKey == Global::Keys[k_FailedEngineCutOff]) // McZapkie-060103: E
-        // - wylaczanie
-        // sekcji silnikow
-        {
+        else if (cKey == Global::Keys[k_FailedEngineCutOff]) {
+            // McZapkie-060103: E - wylaczanie sekcji silnikow
             if (mvControlled->CutOffEngine())
             {
                 play_sound( dsbSwitch );
@@ -3084,7 +3137,8 @@ void TTrain::OnKeyDown(int cKey)
             if (DynamicObject->Mechanik)
                 DynamicObject->Mechanik->TakeControl(false);
         }
-        else if (cKey == Global::Keys[k_MaxCurrent]) // McZapkie-160502: f - niski rozruch
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+        else if( cKey == Global::Keys[ k_MaxCurrent ] ) // McZapkie-160502: f - niski rozruch
         {
             if ((mvControlled->EngineType == DieselElectric) && (mvControlled->ShuntModeAllow) &&
                 (mvControlled->MainCtrlPos == 0))
@@ -3095,15 +3149,8 @@ void TTrain::OnKeyDown(int cKey)
             {
                 play_sound( dsbSwitch );
             }
-            /* Ra: przeniesione do Mover.cpp
-                   if (mvControlled->TrainType!=dt_EZT)
-                    if (mvControlled->MinCurrentSwitch(false))
-                    {
-                     dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                     dsbSwitch->Play(0,0,0);
-                    }
-            */
         }
+#endif
         else if (cKey == Global::Keys[k_CurrentAutoRelay]) // McZapkie-241002: g -
         // wylaczanie PSR
         {
@@ -4351,7 +4398,7 @@ bool TTrain::Update( double const Deltatime )
                 fPPress = (1 * fPPress + mvOccupied->Handle->GetSound(s_fv4a_b)) / (2);
                 if (fPPress > 0)
                 {
-                    vol = 2 * rsHiss.AM * fPPress;
+                    vol = 2.0 * rsHiss.AM * fPPress;
                 }
                 if (vol > 0.001)
                 {
@@ -4402,7 +4449,7 @@ bool TTrain::Update( double const Deltatime )
                     rsHissX.Stop();
                 }
             }
-            if (rsHissT.AM != 0) // upuszczanie z czasowego
+            if (rsHissT.AM != 0) // upuszczanie z czasowego 
             {
                 vol = mvOccupied->Handle->GetSound(s_fv4a_t) * rsHissT.AM;
                 if (vol > 0.001)
@@ -4418,13 +4465,12 @@ bool TTrain::Update( double const Deltatime )
         } // koniec FV4a
         else // jesli nie FV4a
         {
-            if (rsHiss.AM != 0) // upuszczanie z PG
+            if (rsHiss.AM != 0.0) // upuszczanie z PG
             {
-                fPPress = (4 * fPPress + Max0R(mvOccupied->dpLocalValve, mvOccupied->dpMainValve)) /
-                          (4 + 1);
-                if (fPPress > 0)
+                fPPress = (4.0f * fPPress + std::max(mvOccupied->dpLocalValve, mvOccupied->dpMainValve)) / (4.0f + 1.0f);
+                if (fPPress > 0.0f)
                 {
-                    vol = 2 * rsHiss.AM * fPPress * 0.01;
+                    vol = 2.0 * rsHiss.AM * fPPress;
                 }
                 if (vol > 0.01)
                 {
@@ -4435,13 +4481,12 @@ bool TTrain::Update( double const Deltatime )
                     rsHiss.Stop();
                 }
             }
-            if (rsHissU.AM != 0) // napelnianie PG
+            if (rsHissU.AM != 0.0) // napelnianie PG
             {
-                fNPress = (4 * fNPress + Min0R(mvOccupied->dpLocalValve, mvOccupied->dpMainValve)) /
-                          (4 + 1);
-                if (fNPress < 0)
+                fNPress = (4.0f * fNPress + Min0R(mvOccupied->dpLocalValve, mvOccupied->dpMainValve)) / (4.0f + 1.0f);
+                if (fNPress < 0.0f)
                 {
-                    vol = -2 * rsHissU.AM * fNPress * 0.004;
+                    vol = -1.0 * rsHissU.AM * fNPress;
                 }
                 if (vol > 0.01)
                 {
@@ -4956,7 +5001,8 @@ bool TTrain::Update( double const Deltatime )
                                   mvControlled->ResistorsFlagCheck());
             //-------
 
-            btLampkaWysRozr.Turn(mvControlled->Imax == mvControlled->ImaxHi);
+            btLampkaWysRozr.Turn(!(mvControlled->Imax < mvControlled->ImaxHi));
+
             if (((mvControlled->ScndCtrlActualPos > 0) ||
                  ((mvControlled->RList[mvControlled->MainCtrlActualPos].ScndAct != 0) &&
                   (mvControlled->RList[mvControlled->MainCtrlActualPos].ScndAct != 255))) &&
@@ -5283,7 +5329,9 @@ bool TTrain::Update( double const Deltatime )
 
         if (ggMaxCurrentCtrl.SubModel)
         {
-            ggMaxCurrentCtrl.UpdateValue(double(mvControlled->Imax == mvControlled->ImaxHi));
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+            ggMaxCurrentCtrl.UpdateValue( double( mvControlled->Imax == mvControlled->ImaxHi ) );
+#endif
             ggMaxCurrentCtrl.Update();
         }
 
@@ -6101,6 +6149,7 @@ bool TTrain::Update( double const Deltatime )
                 }
             }
         }
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         // Odskakiwanie hamulce EP
         if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel])) &&
             (!Console::Pressed(Global::Keys[k_WaveBrake])) && (mvOccupied->BrakeCtrlPos == -1) &&
@@ -6117,7 +6166,10 @@ bool TTrain::Update( double const Deltatime )
                 play_sound( dsbPneumaticSwitch );
             }
         }
-
+#endif
+/*
+        // NOTE: disabled, as it doesn't seem to be used.
+        // TODO: get rid of it altogether when we're cleaninng
         // Ra: przeklejka z SPKS - płynne poruszanie hamulcem
         // if
         // ((mvOccupied->BrakeHandle==FV4a)&&(Console::Pressed(Global::Keys[k_IncBrakeLevel])))
@@ -6151,7 +6203,7 @@ bool TTrain::Update( double const Deltatime )
                 // mvOccupied->BrakeLevelAdd(mvOccupied->fBrakeCtrlPos<-1?0:-dt*2);
             }
         }
-
+*/
         if ((mvOccupied->BrakeHandle == FV4a) && (Console::Pressed(Global::Keys[k_IncBrakeLevel])))
         {
             if (Global::ctrlState)
@@ -7287,6 +7339,11 @@ void TTrain::clear_cab_controls()
 void TTrain::set_cab_controls() {
 
     // switches
+    // battery
+    if( true == mvOccupied->Battery ) {
+        ggBatteryButton.PutValue( 1.0 );
+    }
+
     // pantographs
     if( mvOccupied->PantSwitchType != "impulse" ) {
         ggPantFrontButton.PutValue(
@@ -7317,6 +7374,11 @@ void TTrain::set_cab_controls() {
     // compressor
     if( true == mvControlled->CompressorAllow ) {
         ggCompressorButton.PutValue( 1.0 );
+    }
+
+    // motor overload relay threshold / shunt mode
+    if( mvControlled->Imax == mvControlled->ImaxHi ) {
+        ggMaxCurrentCtrl.PutValue( 1.0 );
     }
 
     // lights

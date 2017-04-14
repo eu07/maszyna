@@ -87,6 +87,11 @@ gamepad_input::init() {
 void
 gamepad_input::poll() {
 
+    if( m_deviceid == -1 ) {
+        // if there's no gamepad we can skip the rest
+        return;
+    }
+
     int count; std::size_t idx = 0;
     // poll button state
     auto const buttons = glfwGetJoystickButtons( m_deviceid, &count );
@@ -98,8 +103,8 @@ gamepad_input::poll() {
                 on_button(
                     static_cast<gamepad_button>( idx ),
                     ( buttons[ idx ] == 1 ?
-                GLFW_PRESS :
-                           GLFW_RELEASE ) );
+                        GLFW_PRESS :
+                        GLFW_RELEASE ) );
             }
             else {
                 // otherwise we only pass info about button being held down
@@ -115,10 +120,6 @@ gamepad_input::poll() {
         }
     }
 
-    if( m_deviceid == -1 ) {
-        // if there's no gamepad we can skip the rest
-        return;
-    }
     // poll axes state
     idx = 0;
     glm::vec2 leftstick, rightstick, triggers;
@@ -167,7 +168,8 @@ gamepad_input::on_button( gamepad_button const Button, int const Action ) {
         case gamepad_button::y: {
 
             if( Action == GLFW_RELEASE ) {
-                // if the button was released the stick controls movement
+                // TODO: send GLFW_RELEASE for whatever command could be issued by the mode active until now
+                // if the button was released the stick switches to control the movement
                 m_mode = control_mode::entity;
                 // zero the stick and the accumulator so the input won't bleed between modes
                 m_leftstick = glm::vec2();
@@ -275,11 +277,20 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
     if( Value >= 0.0f ) {
         if( m_modeaccumulator < 0.0f ) {
             // reset accumulator if we're going in the other direction i.e. issuing opposite control
+            // this also means we should indicate the previous command no longer applies
+            // (normally it's handled when the stick enters dead zone, but it's possible there's no actual dead zone)
+            m_relay.post(
+                lookup.second,
+                0, 0,
+                GLFW_RELEASE,
+                Recipient );
             m_modeaccumulator = 0.0f;
         }
         if( Value > m_deadzone ) {
             m_modeaccumulator += ( Value - m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
-            while( m_modeaccumulator >= 1.0f ) {
+            // we're making sure there's always a positive charge left in the accumulator,
+            // to more reliably decect when the stick goes from active to dead zone, below
+            while( m_modeaccumulator > 1.0f ) {
                 // send commands if the accumulator(s) was filled
                 m_relay.post(
                     lookup.first,
@@ -289,15 +300,34 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                 m_modeaccumulator -= 1.0f;
             }
         }
+        else {
+            // if the accumulator isn't empty it's an indicator the stick moved from active to neutral zone
+            // indicate it with proper RELEASE command
+            m_relay.post(
+                lookup.first,
+                0, 0,
+                GLFW_RELEASE,
+                Recipient );
+            m_modeaccumulator = 0.0f;
+        }
     }
     else {
         if( m_modeaccumulator > 0.0f ) {
             // reset accumulator if we're going in the other direction i.e. issuing opposite control
+            // this also means we should indicate the previous command no longer applies
+            // (normally it's handled when the stick enters dead zone, but it's possible there's no actual dead zone)
+            m_relay.post(
+                lookup.first,
+                0, 0,
+                GLFW_RELEASE,
+                Recipient );
             m_modeaccumulator = 0.0f;
         }
         if( Value < m_deadzone ) {
             m_modeaccumulator += ( Value + m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
-            while( m_modeaccumulator <= -1.0f ) {
+            // we're making sure there's always a negative charge left in the accumulator,
+            // to more reliably decect when the stick goes from active to dead zone, below
+            while( m_modeaccumulator < -1.0f ) {
                 // send commands if the accumulator(s) was filled
                 m_relay.post(
                     lookup.second,
@@ -306,6 +336,16 @@ gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) 
                     Recipient );
                 m_modeaccumulator += 1.0f;
             }
+        }
+        else {
+            // if the accumulator isn't empty it's an indicator the stick moved from active to neutral zone
+            // indicate it with proper RELEASE command
+            m_relay.post(
+                lookup.second,
+                0, 0,
+                GLFW_RELEASE,
+                Recipient );
+            m_modeaccumulator = 0.0f;
         }
     }
 }

@@ -79,16 +79,16 @@ command_relay::command_relay() {
 const int k_AntiSlipping = 21;
 const int k_Sand = 22;
 */
-        { user_command::linebreakertoggle, command_target::vehicle },
         { user_command::reverserincrease, command_target::vehicle },
         { user_command::reverserdecrease, command_target::vehicle },
+        { user_command::linebreakertoggle, command_target::vehicle },
 /*
 const int k_Fuse = 26;
 */
-        { user_command::compressortoggle, command_target::vehicle },
         { user_command::convertertoggle, command_target::vehicle },
+        { user_command::compressortoggle, command_target::vehicle },
+        { user_command::motoroverloadrelaythresholdtoggle, command_target::vehicle },
 /*
-const int k_MaxCurrent = 29;
 const int k_CurrentAutoRelay = 30;
 const int k_BrakeProfile = 31;
 */
@@ -189,14 +189,15 @@ int const k_DimHeadlights = 74;
 const int k_AntiSlipping = 21;
 const int k_Sand = 22;
 */
-        "linebreakertoggle",
         "reverserincrease",
         "reverserdecrease",
+        "linebreakertoggle",
 /*
 const int k_Fuse = 26;
 */
-        "compressortoggle",
         "convertertoggle",
+        "compressortoggle",
+        "motoroverloadrelaythresholdtoggle",
 /*
 const int k_MaxCurrent = 29;
 const int k_CurrentAutoRelay = 30;

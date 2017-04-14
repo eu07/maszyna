@@ -141,6 +141,7 @@ class TTrain
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleupper( TTrain *Train, command_data const &Command );
