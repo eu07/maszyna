@@ -798,7 +798,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         // else btCPass2.TurnOff();
-        if (MoverParameters->Battery)
+        if( ( true == MoverParameters->Battery ) || ( true == MoverParameters->ConverterFlag ) )
         { // sygnaly konca pociagu
             if (btEndSignals1.Active())
             {
@@ -900,10 +900,9 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // Ra: przechyłkę załatwiamy na etapie przesuwania modelu
         // if (ObjSqrDist<80000) ABuModelRoll(); //przechyłki od 400m
     }
-    if (MoverParameters->Battery)
-    { // sygnały czoła pociagu //Ra: wyświetlamy bez
-        // ograniczeń odległości, by były widoczne z
-        // daleka
+    if( ( true == MoverParameters->Battery ) || ( true == MoverParameters->ConverterFlag ) ) {
+        // sygnały czoła pociagu
+        //Ra: wyświetlamy bez ograniczeń odległości, by były widoczne z daleka
         if (TestFlag(iLights[0], 1))
         {
             btHeadSignals11.TurnOn();
@@ -986,11 +985,8 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObj
     return nullptr;
 }
 
-TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir,
-                                                                double ScanDist, int &CouplNr)
-{ // skanowanie toru w poszukiwaniu obiektu najblizszego
-    // kamerze
-    // double MyScanDir=ScanDir;  //Moja orientacja na torze.  //Ra: nie używane
+TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr)
+{ // skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
     if (ABuGetDirection() < 0)
         ScanDir = -ScanDir;
     TDynamicObject *FoundedObj;
@@ -2914,11 +2910,12 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // fragment "z EXE Kursa"
     if (MoverParameters->Mains) // nie wchodzić w funkcję bez potrzeby
-        if ((!MoverParameters->Battery) && (Controller == Humandriver) &&
-            (MoverParameters->EngineType != DieselEngine) &&
-            (MoverParameters->EngineType != WheelsDriven))
-        { // jeśli bateria wyłączona, a nie diesel ani drezyna
-            // reczna
+        if ( ( false == MoverParameters->Battery)
+          && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
+          && ( Controller == Humandriver)
+          && ( MoverParameters->EngineType != DieselEngine )
+          && ( MoverParameters->EngineType != WheelsDriven ) )
+        { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
             if (MoverParameters->MainSwitch(false)) // wyłączyć zasilanie
                 MoverParameters->EventFlag = true;
         }

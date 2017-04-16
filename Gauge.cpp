@@ -15,9 +15,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Gauge.h"
-#include "Timer.h"
 #include "parser.h"
 #include "Model3d.h"
+#include "Timer.h"
+#include "logs.h"
 
 TGauge::TGauge()
 {
@@ -90,6 +91,10 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul)
         md2 = NULL; // informacja, że znaleziony
     else if (md2) // a jest podany drugi model (np. zewnętrzny)
         sm = md2->GetFromName(str1.c_str()); // to może tam będzie, co za różnica gdzie
+    if( sm == nullptr ) {
+        ErrorLog( "Failed to locate sub-model \"" + str1 + "\" in 3d model \"" + md1->NameGet() + "\"" );
+    }
+
     if (str2 == "mov")
         Init(sm, gt_Move, val3, val4, val5);
     else if (str2 == "wip")

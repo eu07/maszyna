@@ -37,8 +37,6 @@ private:
 
     struct command_setup {
 
-        std::string name;
-        command_target target;
         int binding;
     };
 

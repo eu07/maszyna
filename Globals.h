@@ -166,6 +166,7 @@ class Global
   public:
     // double Global::tSinceStart;
     static int Keys[MaxKeys];
+    static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
     static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
     static double
         pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
@@ -207,10 +208,7 @@ class Global
     static std::string asHumanCtrlVehicle;
     static void LoadIniFile(std::string asFileName);
     static void InitKeys();
-    inline static Math3D::vector3 GetCameraPosition()
-    {
-        return pCameraPosition;
-    };
+    inline static Math3D::vector3 GetCameraPosition() { return pCameraPosition; };
     static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
     static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko

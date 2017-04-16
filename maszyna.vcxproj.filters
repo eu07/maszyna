@@ -213,14 +213,14 @@
     <ClCompile Include="moon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="command.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="gamepadinput.cpp">
+      <Filter>Source Files\input</Filter>
     </ClCompile>
     <ClCompile Include="keyboardinput.cpp">
       <Filter>Source Files\input</Filter>
     </ClCompile>
-    <ClCompile Include="gamepadinput.cpp">
-      <Filter>Source Files\input</Filter>
+    <ClCompile Include="command.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

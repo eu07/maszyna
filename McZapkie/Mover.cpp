@@ -4956,48 +4956,37 @@ bool TMoverParameters::AutoRelayCheck(void)
 
 // *************************************************************************************************
 // Q: 20160713
-// Podnosi / opuszcza przedni pantograf
+// Podnosi / opuszcza przedni pantograf. Returns: state of the pantograph after the operation
 // *************************************************************************************************
 bool TMoverParameters::PantFront(bool State)
 {
-    double pf1 = 0;
-    bool PF = false;
+    if( ( true == Battery )
+     || ( true == ConverterFlag ) ) {
 
-    if ((Battery ==
-         true) /* and ((TrainType<>dt_ET40)or ((TrainType=dt_ET40) and (EnginePowerSource.CollectorsNo>1)))*/)
-    {
-        PF = true;
-        if (State == true)
-            pf1 = 1;
-        else
-            pf1 = 0;
-        if (PantFrontUp != State)
-        {
+        if( PantFrontUp != State ) {
             PantFrontUp = State;
-            if (State == true)
-            {
+            if( State == true ) {
                 PantFrontStart = 0;
-                SendCtrlToNext("PantFront", 1, CabNo);
+                SendCtrlToNext( "PantFront", 1, CabNo );
             }
-            else
-            {
-                PF = false;
+            else {
                 PantFrontStart = 1;
-                SendCtrlToNext("PantFront", 0, CabNo);
-                //{Ra: nie ma potrzeby opuszczać obydwu na raz, jak mozemy każdy osobno
-                //      if (TrainType == dt_EZT) && (ActiveCab == 1)
-                //       {
-                //        PantRearUp = false;
-                //        PantRearStart = 1;
-                //        SendCtrlToNext("PantRear", 0, CabNo);
-                //       }
-                //}
+                SendCtrlToNext( "PantFront", 0, CabNo );
             }
         }
-        else
-            SendCtrlToNext("PantFront", pf1, CabNo);
     }
-    return PF;
+    else {
+        // no power, drop the pantograph
+        // NOTE: this is a simplification as it should just drop on its own with loss of pressure without resupply from (dead) compressor
+        PantFrontStart = (
+            PantFrontUp ?
+                1 :
+                0 );
+        PantFrontUp = false;
+        SendCtrlToNext( "PantFront", 0, CabNo );
+    }
+
+    return PantFrontUp;
 }
 
 // *************************************************************************************************
@@ -5006,35 +4995,33 @@ bool TMoverParameters::PantFront(bool State)
 // *************************************************************************************************
 bool TMoverParameters::PantRear(bool State)
 {
-    double pf1;
-	bool PR = false;
+    if( ( true == Battery )
+     || ( true == ConverterFlag ) ) {
 
-    if (Battery == true)
-    {
-        PR = true;
-        if (State == true)
-            pf1 = 1;
-        else
-            pf1 = 0;
-        if (PantRearUp != State)
-        {
+        if( PantRearUp != State ) {
             PantRearUp = State;
-            if (State == true)
-            {
+            if( State == true ) {
                 PantRearStart = 0;
-                SendCtrlToNext("PantRear", 1, CabNo);
+                SendCtrlToNext( "PantRear", 1, CabNo );
             }
-            else
-            {
-                PR = false;
+            else {
                 PantRearStart = 1;
-                SendCtrlToNext("PantRear", 0, CabNo);
+                SendCtrlToNext( "PantRear", 0, CabNo );
             }
         }
-        else
-            SendCtrlToNext("PantRear", pf1, CabNo);
     }
-    return PR;
+    else {
+        // no power, drop the pantograph
+        // NOTE: this is a simplification as it should just drop on its own with loss of pressure without resupply from (dead) compressor
+        PantRearStart = (
+            PantRearUp ?
+                1 :
+                0 );
+        PantRearUp = false;
+        SendCtrlToNext( "PantRear", 0, CabNo );
+    }
+
+    return PantRearUp;
 }
 
 // *************************************************************************************************

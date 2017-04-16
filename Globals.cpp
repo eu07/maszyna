@@ -107,6 +107,7 @@ int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę t
 
 // parametry użytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
+bool Global::RealisticControlMode{ false };
 int Global::iWindowWidth = 800;
 int Global::iWindowHeight = 600;
 float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD

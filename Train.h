@@ -119,6 +119,7 @@ class TTrain
     static void OnCommand_secondcontrollerincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data const &Command );
+    static void OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakedecrease( TTrain *Train, command_data const &Command );
@@ -132,16 +133,21 @@ class TTrain
     static void OnCommand_trainbrakeservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakefullservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeemergency( TTrain *Train, command_data const &Command );
+    static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_reverserdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_alerteracknowledge( TTrain *Train, command_data const &Command );
     static void OnCommand_batterytoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglerear( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographlowerall( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_heatingtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleupper( TTrain *Train, command_data const &Command );
@@ -154,6 +160,8 @@ class TTrain
     static void OnCommand_redmarkertogglerearright( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
+    static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
+    static void OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command );
 
 // members
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -258,6 +266,7 @@ public: // reszta może by?publiczna
     TGauge ggPantFrontButton;
     TGauge ggPantRearButton;
     TGauge ggPantFrontButtonOff; // EZT
+    TGauge ggPantRearButtonOff;
     TGauge ggPantAllDownButton;
     // Winger 020304 - wlacznik ogrzewania
     TGauge ggTrainHeatingButton;

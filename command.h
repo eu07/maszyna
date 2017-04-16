@@ -48,11 +48,10 @@ const int k_Fuse = 26;
     convertertoggle,
     compressortoggle,
     motoroverloadrelaythresholdtoggle,
-/*
-const int k_MaxCurrent = 29;
-const int k_CurrentAutoRelay = 30;
-const int k_BrakeProfile = 31;
-*/
+    notchingrelaytoggle,
+    epbrakecontroltoggle,
+    brakeactingspeedincrease,
+    brakeactingspeeddecrease,
     alerteracknowledge,
 /*
 const int k_Horn = 33;
@@ -84,13 +83,13 @@ const int k_ProgramHelp = 48;
 */
     doortoggleleft,
     doortoggleright,
-/*
-const int k_DepartureSignal = 53;
-*/
+    departureannounce,
+    doorlocktoggle,
     pantographtogglefront,
     pantographtogglerear,
+    pantographlowerall,
+    heatingtoggle,
 /*
-const int k_Heating = 58;
 // const int k_FreeFlyMode= 59;
 */
     headlighttoggleleft,
@@ -103,7 +102,7 @@ const int k_Heating = 58;
     headlighttogglerearupper,
     redmarkertogglerearleft,
     redmarkertogglerearright,
-    /*
+/*
 const int k_SmallCompressor = 63;
 const int k_StLinOff = 64;
 const int k_CurrentNext = 65;
@@ -136,6 +135,14 @@ enum class command_target {
     signal  = 0x20000,
     entity  = 0x40000
 };
+
+struct command_description {
+
+    std::string name;
+    command_target target;
+};
+
+typedef std::vector<command_description> commanddescription_sequence;
 
 struct command_data {
 
@@ -175,6 +182,8 @@ private:
 namespace simulation {
 
 extern command_queue Commands;
+// TODO: add name to command map, and wrap these two into helper object
+extern commanddescription_sequence Commands_descriptions;
 
 }
 
@@ -184,7 +193,6 @@ class command_relay {
 
 public:
 // constructors
-    command_relay();
 // methods
     // posts specified command for the specified recipient
     // TODO: replace uint16_t with recipient handle, based on item id
@@ -192,12 +200,7 @@ public:
         post( user_command const Command, std::uint64_t const Param1, std::uint64_t const Param2, int const Action, std::uint16_t const Recipient ) const;
 private:
 // types
-    typedef std::unordered_map<user_command, command_target> commandtarget_map;
 // members
-    commandtarget_map m_targets;
-#ifdef _DEBUG
-    std::vector<std::string> m_commandnames;
-#endif
 };
 
 //---------------------------------------------------------------------------
