@@ -1716,7 +1716,7 @@ TWorld::Update_UI() {
                 uitextline1 += " (paused)";
             }
 
-            uitextline2 = Global::Bezogonkow( owner->Relation(), true ) + " (" + owner->Timetable()->TrainName + ")";
+            uitextline2 = Global::Bezogonkow( owner->Relation(), true ) + " (" + Global::Bezogonkow( owner->Timetable()->TrainName, true ) + ")";
             auto const nextstation = Global::Bezogonkow( owner->NextStop(), true );
             if( !nextstation.empty() ) {
                 // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
