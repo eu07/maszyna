@@ -104,8 +104,15 @@ const int k_ProgramHelp = 48;
     redmarkertogglerearright,
 /*
 const int k_SmallCompressor = 63;
-const int k_StLinOff = 64;
+*/
+    motorconnectorsopen,
+/*
 const int k_CurrentNext = 65;
+*/
+    interiorlighttoggle,
+    interiorlightdimtoggle,
+    instrumentlighttoggle,
+/*
 const int k_Univ1 = 66;
 const int k_Univ2 = 67;
 const int k_Univ3 = 68;

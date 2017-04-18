@@ -146,6 +146,7 @@ class TTrain
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_heatingtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command );
@@ -158,6 +159,9 @@ class TTrain
     static void OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkertogglerearright( TTrain *Train, command_data const &Command );
+    static void OnCommand_interiorlighttoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_interiorlightdimtoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_instrumentlighttoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleleft( TTrain *Train, command_data const &Command );
     static void OnCommand_doortoggleright( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );

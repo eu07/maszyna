@@ -129,11 +129,15 @@ double TMoverParameters::current(double n, double U)
 
     R = RList[MainCtrlActualPos].R * Bn + CircuitRes;
 
-    if ((TrainType != dt_EZT) || (Imin != IminLo) ||
-        (!ScndS)) // yBARC - boczniki na szeregu poprawnie
-        Mn = RList[MainCtrlActualPos].Mn; // to jest wykonywane dla EU07
-    else
-        Mn = RList[MainCtrlActualPos].Mn * RList[MainCtrlActualPos].Bn;
+    if( ( TrainType != dt_EZT )
+     || ( Imin != IminLo )
+     || ( false == ScndS ) ) {
+        // yBARC - boczniki na szeregu poprawnie
+        Mn = RList[ MainCtrlActualPos ].Mn; // to jest wykonywane dla EU07
+    }
+    else {
+        Mn = RList[ MainCtrlActualPos ].Mn * RList[ MainCtrlActualPos ].Bn;
+    }
 
     //  writepaslog("#",
     //  "C++-----------------------------------------------------------------------------");
@@ -154,21 +158,25 @@ double TMoverParameters::current(double n, double U)
     if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
         ConverterFlag && Mains) // hamowanie EP09   //TUHEX
     {
+        // TODO: zrobic bardziej uniwersalne nie tylko dla EP09
         MotorCurrent =
-            -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) *
-            n * 2.0 / ep09resED; // TODO: zrobic bardziej uniwersalne nie tylko dla EP09
+            -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) * n * 2.0 / ep09resED;
     }
-    else if ((RList[MainCtrlActualPos].Bn == 0) || (!StLinFlag))
-        MotorCurrent = 0; // wylaczone
+    else if( ( RList[ MainCtrlActualPos ].Bn == 0 )
+          || ( false == StLinFlag ) ) {
+        // wylaczone
+        MotorCurrent = 0;
+    }
     else
     { // wlaczone...
         SP = ScndCtrlActualPos;
 
         if (ScndCtrlActualPos < 255) // tak smiesznie bede wylaczal
         {
-            if (ScndInMain)
-                if (!(RList[MainCtrlActualPos].ScndAct == 255))
-                    SP = RList[MainCtrlActualPos].ScndAct;
+            if( ( ScndInMain )
+             && ( RList[ MainCtrlActualPos ].ScndAct != 255 ) ) {
+                SP = RList[ MainCtrlActualPos ].ScndAct;
+            }
 
             Rz = Mn * WindingRes + R;
 
@@ -212,10 +220,10 @@ double TMoverParameters::current(double n, double U)
                 {
                     if (U > 0)
                         MotorCurrent =
-                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n + sqrt(Delta)) / (2.0 * Rz);
+                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n + std::sqrt(Delta)) / (2.0 * Rz);
                     else
                         MotorCurrent =
-                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n - sqrt(Delta)) / (2.0 * Rz);
+                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n - std::sqrt(Delta)) / (2.0 * Rz);
                 }
                 else
                     MotorCurrent = 0;
@@ -1593,7 +1601,7 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
                         //    OK = false;
                         //   }
                         //}
-                                }
+                }
 
 				if( ( TrainType == dt_ET42 ) && ( true == DynamicBrakeFlag ) ) {
 					if( MainCtrlPos > 20 ) {
@@ -4895,7 +4903,8 @@ bool TMoverParameters::AutoRelayCheck(void)
                 (MainCtrlActualPos == 0) && (ActiveDir != 0))
             { //^^ TODO: sprawdzic BUG, prawdopodobnie w CreateBrakeSys()
                 DelayCtrlFlag = true;
-                if (LastRelayTime >= InitialCtrlDelay)
+                if( (LastRelayTime >= InitialCtrlDelay)
+                 && ( false == StLinSwitchOff ) )
                 {
                     StLinFlag = true; // ybARC - zalaczenie stycznikow liniowych
                     MainCtrlActualPos = 1;
@@ -5975,10 +5984,15 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
-		if( inputline.length() == 0 ) {
+        if( inputline[ 0 ] == ' ' ) {
+            // guard against malformed config files with leading spaces
+            inputline.erase( 0, inputline.find_first_not_of( ' ' ) );
+        }
+        if( inputline.length() == 0 ) {
 			startBPT = false;
 			continue;
 		}
+
         // checking if table parsing should be switched off goes first...
 		if( issection( "END-MPT", inputline ) ) {
 			startBPT = false;

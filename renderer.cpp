@@ -319,7 +319,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
+    double squaredistance = SquareMagnitude( ( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
 
     ::glPushMatrix();
@@ -591,7 +591,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
+    double squaredistance = SquareMagnitude( ( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
 
     ::glPushMatrix();

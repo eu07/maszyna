@@ -112,8 +112,15 @@ const int k_ProgramHelp = 48;
     { "redmarkertogglerearright", command_target::vehicle },
 /*
 const int k_SmallCompressor = 63;
-const int k_StLinOff = 64;
+*/
+    { "motorconnectorsopen", command_target::vehicle },
+/*
 const int k_CurrentNext = 65;
+*/
+    { "interiorlighttoggle", command_target::vehicle },
+    { "interiorlightdimtoggle", command_target::vehicle },
+    { "instrumentlighttoggle", command_target::vehicle },
+/*
 const int k_Univ1 = 66;
 const int k_Univ2 = 67;
 const int k_Univ3 = 68;

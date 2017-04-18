@@ -170,6 +170,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
     { user_command::convertertoggle, &TTrain::OnCommand_convertertoggle },
     { user_command::compressortoggle, &TTrain::OnCommand_compressortoggle },
+    { user_command::motorconnectorsopen, &TTrain::OnCommand_motorconnectorsopen },
     { user_command::motoroverloadrelaythresholdtoggle, &TTrain::OnCommand_motoroverloadrelaythresholdtoggle },
     { user_command::heatingtoggle, &TTrain::OnCommand_heatingtoggle },
     { user_command::headlighttoggleleft, &TTrain::OnCommand_headlighttoggleleft },
@@ -182,6 +183,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::headlighttogglerearupper, &TTrain::OnCommand_headlighttogglerearupper },
     { user_command::redmarkertogglerearleft, &TTrain::OnCommand_redmarkertogglerearleft },
     { user_command::redmarkertogglerearright, &TTrain::OnCommand_redmarkertogglerearright },
+    { user_command::interiorlighttoggle, &TTrain::OnCommand_interiorlighttoggle },
+    { user_command::interiorlightdimtoggle, &TTrain::OnCommand_interiorlightdimtoggle },
+    { user_command::instrumentlighttoggle, &TTrain::OnCommand_instrumentlighttoggle },
     { user_command::doortoggleleft, &TTrain::OnCommand_doortoggleleft },
     { user_command::doortoggleright, &TTrain::OnCommand_doortoggleright },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
@@ -866,7 +870,9 @@ void TTrain::OnCommand_brakeactingspeedincrease( TTrain *Train, command_data con
         if( true == Train->mvOccupied->BrakeDelaySwitch( fasterbrakesetting ) ) {
             // audio feedback
             Train->play_sound( Train->dsbSwitch );
+/*
             Train->play_sound( Train->dsbPneumaticRelay );
+*/
             // visual feedback
             if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
                 Train->ggBrakeProfileCtrl.UpdateValue(
@@ -904,7 +910,9 @@ void TTrain::OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data con
         if( true == Train->mvOccupied->BrakeDelaySwitch( slowerbrakesetting ) ) {
             // audio feedback
             Train->play_sound( Train->dsbSwitch );
+/*
             Train->play_sound( Train->dsbPneumaticRelay );
+*/
             // visual feedback
             if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
                 Train->ggBrakeProfileCtrl.UpdateValue(
@@ -1584,6 +1592,36 @@ void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Comm
 */
 }
 
+void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command ) {
+
+    // TODO: don't rely on presense of 3d model to determine presence of the switch
+    if( Train->ggStLinOffButton.SubModel == nullptr ) {
+        return;
+    }
+
+    if( Command.action != GLFW_RELEASE ) {
+        // button works while it's held down
+        if( true == Train->mvControlled->StLinFlag ) {
+            // yBARC - zmienione na przeciwne, bo true to zalaczone
+            Train->mvControlled->StLinFlag = false;
+            Train->play_sound( Train->dsbRelay );
+        }
+        Train->mvControlled->StLinSwitchOff = true;
+        // visual feedback
+        Train->ggStLinOffButton.UpdateValue( 1.0 );
+        // sound feedback
+        if( Train->ggStLinOffButton.GetValue() < 0.05 ) {
+            Train->play_sound( Train->dsbSwitch );
+        }
+    }
+    else {
+        // button released
+        Train->mvControlled->StLinSwitchOff = false;
+        // visual feedback
+        Train->ggStLinOffButton.UpdateValue( 0.0 );
+    }
+}
+
 void TTrain::OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
@@ -1983,6 +2021,107 @@ void TTrain::OnCommand_redmarkertogglerearright( TTrain *Train, command_data con
             if( Train->ggRearRightEndLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+        }
+    }
+}
+
+void TTrain::OnCommand_interiorlighttoggle( TTrain *Train, command_data const &Command ) {
+
+    // NOTE: the check is disabled, as we're presuming light control is present in every vehicle
+    // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
+    if( Train->ggCabLightButton.SubModel == nullptr ) {
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->bCabLight ) {
+            // turn on
+            Train->bCabLight = true;
+            Train->btCabLight.TurnOn();
+            // audio feedback
+            if( Train->ggCabLightButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggCabLightButton.UpdateValue( 1.0 );
+        }
+        else {
+            //turn off
+            Train->bCabLight = false;
+            Train->btCabLight.TurnOff();
+            // audio feedback
+            if( Train->ggCabLightButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggCabLightButton.UpdateValue( 0.0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_interiorlightdimtoggle( TTrain *Train, command_data const &Command ) {
+
+    // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
+    if( Train->ggCabLightDimButton.SubModel == nullptr ) {
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->bCabLightDim ) {
+            // turn on
+            Train->bCabLightDim = true;
+            // audio feedback
+            if( Train->ggCabLightDimButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggCabLightDimButton.UpdateValue( 1.0 );
+        }
+        else {
+            //turn off
+            Train->bCabLightDim = false;
+            // audio feedback
+            if( Train->ggCabLightDimButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggCabLightDimButton.UpdateValue( 0.0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_instrumentlighttoggle( TTrain *Train, command_data const &Command ) {
+
+    // NOTE: the check is disabled, as we're presuming light control is present in every vehicle
+    // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
+    if( Train->ggUniversal3Button.SubModel == nullptr ) {
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        // NOTE: instrument lighting isn't fully implemented, so we have to rely on the state of the 'button' i.e. light itself
+        if( false == Train->LampkaUniversal3_st ) {
+            // turn on
+            Train->LampkaUniversal3_st = true;
+            // audio feedback
+            if( Train->ggUniversal3Button.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggUniversal3Button.UpdateValue( 1.0 );
+        }
+        else {
+            //turn off
+            Train->LampkaUniversal3_st = false;
+            // audio feedback
+            if( Train->ggUniversal3Button.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggUniversal3Button.UpdateValue( 0.0 );
         }
     }
 }
@@ -2530,14 +2669,13 @@ void TTrain::OnKeyDown(int cKey)
                     }
                 }
         }
-#endif
         //-----------
         // hunter-131211: dzwiek dla przelacznika universala podniesionego
         // hunter-091012: ubajerowanie swiatla w kabinie (wyrzucenie
         // przyciemnienia pod Univ4)
         else if (cKey == Global::Keys[k_Univ3])
         {
-            if (Global::ctrlState)
+            if( Global::ctrlState )
             {
                 if (bCabLight == false) //(ggCabLightButton.GetValue()==0)
                 {
@@ -2571,7 +2709,6 @@ void TTrain::OnKeyDown(int cKey)
                 }
             }
         }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         //-----------
         else if (cKey == Global::Keys[k_PantFrontUp])
         { // Winger 160204: podn.
@@ -3736,7 +3873,6 @@ if
                 }
             }
         }
-#endif
         //-----------
         // hunter-131211: dzwiek dla przelacznika universala
         // hunter-091012: ubajerowanie swiatla w kabinie (wyrzucenie
@@ -3763,7 +3899,6 @@ if
                   } */
             }
         }
-
         //-----------
         // hunter-091012: dzwiek dla przyciemnienia swiatelka w kabinie
         else if (cKey == Global::Keys[k_Univ4])
@@ -3777,7 +3912,6 @@ if
             }
         }
         //-----------
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if (cKey == Global::Keys[k_PantFrontDown]) // Winger 160204:
         // opuszczanie prz. patyka
         {
@@ -4118,7 +4252,8 @@ if
         else if ((cKey == Global::Keys[k_StLinOff]) && (!Global::shiftState) && (!Global::ctrlState)) // Winger 110904: wylacznik st.
         // liniowych
         {
-            if ((mvControlled->TrainType != dt_EZT) && (mvControlled->TrainType != dt_EP05) &&
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+            if( ( mvControlled->TrainType != dt_EZT ) && ( mvControlled->TrainType != dt_EP05 ) &&
                 (mvControlled->TrainType != dt_ET40))
             {
                 ggStLinOffButton.PutValue(1); // Ra: było Fuse...
@@ -4130,6 +4265,7 @@ if
                     play_sound( dsbRelay );
                 }
             }
+#endif
             if (mvControlled->TrainType == dt_EZT)
             {
                 if (mvControlled->Signalling == true)
@@ -4268,7 +4404,8 @@ if
 
 void TTrain::OnKeyUp(int cKey)
 { // zwolnienie klawisza
-    if (Global::shiftState)
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+    if( Global::shiftState )
     { // wciśnięty [Shift]
     }
     else
@@ -4280,6 +4417,7 @@ void TTrain::OnKeyUp(int cKey)
                 ggStLinOffButton.PutValue(0);
         }
     }
+#endif
 };
 
 // cab movement update, fixed step part
@@ -5347,7 +5485,7 @@ bool TTrain::Update( double const Deltatime )
             // - pokićkał ktoś?
             scp = mvControlled->RList[mvControlled->MainCtrlPos].ScndAct;
             scp = (scp == 255 ? 0 : scp); // Ra: whatta hella is this?
-            if ((mvControlled->ScndCtrlPos > 0) || (mvControlled->ScndInMain) && (scp > 0))
+            if ((mvControlled->ScndCtrlPos > 0) || (mvControlled->ScndInMain != 0) && (scp > 0))
             { // boczniki pojedynczo
                 btLampkaBocznik1.TurnOn();
                 btLampkaBocznik2.Turn(mvControlled->ScndCtrlPos > 1);
@@ -6305,6 +6443,7 @@ bool TTrain::Update( double const Deltatime )
             if (DynamicObject->Mechanik ? !DynamicObject->Mechanik->AIControllFlag :
                                           false) // nie wyłączać, gdy AI
                 mvControlled->PantCompFlag = false; // wyłączona, gdy nie trzymamy klawisza
+
         if (Console::Pressed(Global::Keys[k_Univ2]))
         {
             if (!DebugModeFlag)
@@ -6317,6 +6456,7 @@ bool TTrain::Update( double const Deltatime )
             }
         }
 
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         // hunter-091012: zrobione z uwzglednieniem przelacznika swiatla
         if (Console::Pressed(Global::Keys[k_Univ3]))
         {
@@ -6367,47 +6507,7 @@ bool TTrain::Update( double const Deltatime )
                 }
             }
         }
-
-        // hunter-091012: to w ogole jest bez sensu i tak namodzone ze nie wiadomo o
-        // co chodzi - zakomentowalem i zrobilem po swojemu
-        /*
-        if ( Console::Pressed(Global::Keys[k_Univ3]) )
-        {
-          if (ggUniversal3Button.SubModel)
-
-
-           if (Global::ctrlState)
-           {//z [Ctrl] zapalamy albo gasimy światełko w kabinie
-     //tutaj jest bez sensu, trzeba reagować na wciskanie klawisza!
-            if (Global::shiftState)
-            {//zapalenie
-             if (iCabLightFlag<2) ++iCabLightFlag;
-            }
-            else
-            {//gaszenie
-             if (iCabLightFlag) --iCabLightFlag;
-            }
-
-           }
-           else
-           {//bez [Ctrl] przełączamy cośtem
-            if (Global::shiftState)
-            {
-          ggUniversal3Button.PutValue(1);  //hunter-131211: z UpdateValue na
-     PutValue - by zachowywal sie jak pozostale przelaczniki
-             if (btLampkaUniversal3.Active())
-              LampkaUniversal3_st=true;
-            }
-            else
-            {
-          ggUniversal3Button.PutValue(0);  //hunter-131211: z UpdateValue na
-     PutValue - by zachowywal sie jak pozostale przelaczniki
-             if (btLampkaUniversal3.Active())
-              LampkaUniversal3_st=false;
-            }
-           }
-        } */
-
+#endif
         // ABu030405 obsluga lampki uniwersalnej:
         if (btLampkaUniversal3.Active()) // w ogóle jest
             if (LampkaUniversal3_st) // załączona
@@ -6428,28 +6528,12 @@ bool TTrain::Update( double const Deltatime )
             else
                 btLampkaUniversal3.TurnOff();
 
-        /*
-        if (Console::Pressed(Global::Keys[k_Univ4]))
-        {
-           if (ggUniversal4Button.SubModel)
-           if (Global::shiftState)
-           {
-              ActiveUniversal4=true;
-              //ggUniversal4Button.UpdateValue(1);
-           }
-           else
-           {
-              ActiveUniversal4=false;
-              //ggUniversal4Button.UpdateValue(0);
-           }
-        }
-        */
-
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         // hunter-091012: przepisanie univ4 i zrobione z uwzglednieniem przelacznika
         // swiatla
         if (Console::Pressed(Global::Keys[k_Univ4]))
         {
-            if (Global::shiftState)
+            if( Global::shiftState )
             {
                 if (Global::ctrlState)
                 {
@@ -6484,7 +6568,6 @@ bool TTrain::Update( double const Deltatime )
                 }
             }
         }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         // Odskakiwanie hamulce EP
         if ((!Console::Pressed(Global::Keys[k_DecBrakeLevel])) &&
             (!Console::Pressed(Global::Keys[k_WaveBrake])) && (mvOccupied->BrakeCtrlPos == -1) &&
@@ -7752,6 +7835,17 @@ void TTrain::set_cab_controls() {
     }
     if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_right ) != 0 ) {
         ggRightEndLightButton.PutValue( 1.0 );
+    }
+
+    // cab lights
+    if( true == bCabLight ) {
+        ggCabLightButton.PutValue( 1.0 );
+    }
+    if( true == bCabLightDim ) {
+        ggCabLightDimButton.PutValue( 1.0 );
+    }
+    if( true == LampkaUniversal3_st ) {
+        ggUniversal3Button.PutValue( 1.0 );
     }
 
     // doors

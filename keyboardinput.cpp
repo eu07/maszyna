@@ -92,112 +92,112 @@ void
 keyboard_input::default_bindings() {
 
     m_commands = {
-        //"mastercontrollerincrease"
+        // mastercontrollerincrease
         { GLFW_KEY_KP_ADD },
-        //"mastercontrollerincreasefast"
+        // mastercontrollerincreasefast
         { GLFW_KEY_KP_ADD | keymodifier::shift },
-        // "mastercontrollerdecrease"
+        // mastercontrollerdecrease
         { GLFW_KEY_KP_SUBTRACT },
-        // "mastercontrollerdecreasefast"
+        // mastercontrollerdecreasefast
         { GLFW_KEY_KP_SUBTRACT | keymodifier::shift },
-        // "secondcontrollerincrease"
+        // secondcontrollerincrease
         { GLFW_KEY_KP_DIVIDE },
-        // "secondcontrollerincreasefast"
+        // secondcontrollerincreasefast
         { GLFW_KEY_KP_DIVIDE | keymodifier::shift },
-        // "secondcontrollerdecrease"
+        // secondcontrollerdecrease
         { GLFW_KEY_KP_MULTIPLY },
-        // "secondcontrollerdecreasefast"
+        // secondcontrollerdecreasefast
         { GLFW_KEY_KP_MULTIPLY | keymodifier::shift },
-        // "independentbrakeincrease"
+        // independentbrakeincrease
         { GLFW_KEY_KP_1 },
-        // "independentbrakeincreasefast"
+        // independentbrakeincreasefast
         { GLFW_KEY_KP_1 | keymodifier::shift },
-        // "independentbrakedecrease"
+        // independentbrakedecrease
         { GLFW_KEY_KP_7 },
-        // "independentbrakedecreasefast"
+        // independentbrakedecreasefast
         { GLFW_KEY_KP_7 | keymodifier::shift },
-        // "independentbrakebailoff"
+        // independentbrakebailoff
         { GLFW_KEY_KP_4 },
-        // "trainbrakeincrease"
+        // trainbrakeincrease
         { GLFW_KEY_KP_3 },
-        // "trainbrakedecrease"
+        // trainbrakedecrease
         { GLFW_KEY_KP_9 },
-        // "trainbrakecharging"
+        // trainbrakecharging
         { GLFW_KEY_KP_DECIMAL },
-        // "trainbrakerelease"
+        // trainbrakerelease
         { GLFW_KEY_KP_6 },
-        // "trainbrakefirstservice"
+        // trainbrakefirstservice
         { GLFW_KEY_KP_8 },
-        // "trainbrakeservice"
+        // trainbrakeservice
         { GLFW_KEY_KP_5 },
-        // "trainbrakefullservice"
+        // trainbrakefullservice
         { GLFW_KEY_KP_2 },
-        // "trainbrakeemergency"
+        // trainbrakeemergency
         { GLFW_KEY_KP_0 },
 /*
 const int k_AntiSlipping = 21;
 const int k_Sand = 22;
 */
-        // "reverserincrease"
+        // reverserincrease
         { GLFW_KEY_D },
-        // "reverserdecrease"
+        // reverserdecrease
         { GLFW_KEY_R },
-        // "linebreakertoggle"
+        // linebreakertoggle
         { GLFW_KEY_M },
 /*
 const int k_Fuse = 26;
 */
-        // "convertertoggle"
+        // convertertoggle
         { GLFW_KEY_X },
-        // "compressortoggle"
+        // compressortoggle
         { GLFW_KEY_C },
-        // "motoroverloadrelaythresholdtoggle"
+        // motoroverloadrelaythresholdtoggle
         { GLFW_KEY_F },
-        // "notchingrelaytoggle"
+        // notchingrelaytoggle
         { GLFW_KEY_G },
-        // "epbrakecontroltoggle"
+        // epbrakecontroltoggle
         { GLFW_KEY_Z | keymodifier::control },
-        // "brakeactingspeedincrease"
+        // brakeactingspeedincrease
         { GLFW_KEY_B | keymodifier::shift },
-        // "brakeactingspeeddecrease"
+        // brakeactingspeeddecrease
         { GLFW_KEY_B },
 /*
 const int k_BrakeProfile = 31;
 */
-        // "alerteracknowledge"
+        // alerteracknowledge
         { GLFW_KEY_SPACE },
 /*
 const int k_Horn = 33;
 const int k_Horn2 = 34;
 const int k_FailedEngineCutOff = 35;
 */
-        // "viewturn"
+        // viewturn
         { -1 },
-        // "movevector"
+        // movevector
         { -1 },
-        // "moveleft"
+        // moveleft
         { GLFW_KEY_LEFT },
-        // "moveright"
+        // moveright
         { GLFW_KEY_RIGHT },
-        // "moveforward"
+        // moveforward
         { GLFW_KEY_UP },
-        // "moveback"
+        // moveback
         { GLFW_KEY_DOWN },
-        // "moveup"
+        // moveup
         { GLFW_KEY_PAGE_UP },
-        // "movedown"
+        // movedown
         { GLFW_KEY_PAGE_DOWN },
-        // "moveleftfast"
+        // moveleftfast
         { -1 },
-        // "moverightfast"
+        // moverightfast
         { -1 },
-        // "moveforwardfast"
+        // moveforwardfast
         { -1 },
-        // "movebackfast"
+        // movebackfast
         { -1 },
-        // "moveupfast"
+        // moveupfast
         { -1 },
-        // "movedownfast"
+        // movedownfast
         { -1 },
 /*
 const int k_CabForward = 42;
@@ -208,49 +208,60 @@ const int k_ProgramQuit = 46;
 // const int k_ProgramPause= 47;
 const int k_ProgramHelp = 48;
 */
-        // "doortoggleleft"
+        // doortoggleleft
         { GLFW_KEY_COMMA },
-        // "doortoggleright"
+        // doortoggleright
         { GLFW_KEY_PERIOD },
-        // "departureannounce"
+        // departureannounce
         { GLFW_KEY_SLASH },
-        // "doorlocktoggle"
+        // doorlocktoggle
         { GLFW_KEY_S | keymodifier::shift },
-        // "pantographtogglefront"
+        // pantographtogglefront
         { GLFW_KEY_P },
-        // "pantographtogglerear"
+        // pantographtogglerear
         { GLFW_KEY_O },
-        // "pantographlowerall"
+        // pantographlowerall
         { GLFW_KEY_P | keymodifier::control },
-        // "heatingtoggle"
+        // heatingtoggle
         { GLFW_KEY_H },
 /*
 // const int k_FreeFlyMode= 59;
 */
-        // "headlighttoggleleft"
+        // headlighttoggleleft
         { GLFW_KEY_Y },
-        // "headlighttoggleright"
+        // headlighttoggleright
         { GLFW_KEY_I },
-        // "headlighttoggleupper"
+        // headlighttoggleupper
         { GLFW_KEY_U },
-        // "redmarkertoggleleft"
+        // redmarkertoggleleft
         { GLFW_KEY_Y | keymodifier::shift },
-        // "redmarkertoggleright"
+        // redmarkertoggleright
         { GLFW_KEY_I | keymodifier::shift },
-        // "headlighttogglerearleft"
+        // headlighttogglerearleft
         { GLFW_KEY_Y | keymodifier::control },
-        // "headlighttogglerearright"
+        // headlighttogglerearright
         { GLFW_KEY_I | keymodifier::control },
-        // "headlighttogglerearupper"
+        // headlighttogglerearupper
         { GLFW_KEY_U | keymodifier::control },
-        // "redmarkertogglerearleft"
+        // redmarkertogglerearleft
         { GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
-        // "redmarkertogglerearright"
+        // redmarkertogglerearright
         { GLFW_KEY_I | keymodifier::control | keymodifier::shift },
 /*
 const int k_SmallCompressor = 63;
-const int k_StLinOff = 64;
+*/
+        // motorconnectorsopen
+        { GLFW_KEY_L },
+/*
 const int k_CurrentNext = 65;
+*/
+        // interiorlighttoggle
+        { GLFW_KEY_APOSTROPHE },
+        // interiorlightdimtoggle
+        { GLFW_KEY_APOSTROPHE | keymodifier::control },
+        // instrumentlighttoggle
+        { GLFW_KEY_SEMICOLON },
+/*
 const int k_Univ1 = 66;
 const int k_Univ2 = 67;
 const int k_Univ3 = 68;

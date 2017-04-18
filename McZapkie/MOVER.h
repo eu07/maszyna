@@ -675,7 +675,7 @@ public:
         headlight_right = 0x10,
         redmarker_right = 0x20,
     };
-	bool ScndInMain = false;     /*zaleznosc bocznika od nastawnika*/
+    int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
 	TSecuritySystem SecuritySystem;
@@ -880,6 +880,7 @@ public:
 	bool FuseFlag = false;       /*!o bezpiecznik nadmiarowy*/
 	bool ConvOvldFlag = false;              /*!  nadmiarowy przetwornicy i ogrzewania*/
 	bool StLinFlag = false;       /*!o styczniki liniowe*/
+    bool StLinSwitchOff{ false }; // state of the button forcing motor connectors open
 	bool ResistorsFlag = false;  /*!o jazda rezystorowa*/
 	double RventRot = 0.0;          /*!s obroty wentylatorow rozruchowych*/
 	bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
