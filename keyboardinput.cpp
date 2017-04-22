@@ -108,6 +108,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_MULTIPLY },
         // secondcontrollerdecreasefast
         { GLFW_KEY_KP_MULTIPLY | keymodifier::shift },
+        // mucurrentindicatorsourcetoggle
+        { GLFW_KEY_Z | keymodifier::shift },
         // independentbrakeincrease
         { GLFW_KEY_KP_1 },
         // independentbrakeincreasefast
@@ -134,25 +136,26 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_2 },
         // trainbrakeemergency
         { GLFW_KEY_KP_0 },
-/*
-const int k_AntiSlipping = 21;
-const int k_Sand = 22;
-*/
+        // wheelspinbrakeactivate,
+        { GLFW_KEY_KP_ENTER },
+        // sandboxactivate,
+        { GLFW_KEY_S },
         // reverserincrease
         { GLFW_KEY_D },
         // reverserdecrease
         { GLFW_KEY_R },
         // linebreakertoggle
         { GLFW_KEY_M },
-/*
-const int k_Fuse = 26;
-*/
         // convertertoggle
         { GLFW_KEY_X },
+        // converteroverloadrelayreset
+        { GLFW_KEY_N | keymodifier::control },
         // compressortoggle
         { GLFW_KEY_C },
         // motoroverloadrelaythresholdtoggle
         { GLFW_KEY_F },
+        // motoroverloadrelayreset
+        { GLFW_KEY_N },
         // notchingrelaytoggle
         { GLFW_KEY_G },
         // epbrakecontroltoggle
@@ -161,14 +164,17 @@ const int k_Fuse = 26;
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease
         { GLFW_KEY_B },
-/*
-const int k_BrakeProfile = 31;
-*/
+        // brakingindicatortoggle
+        { GLFW_KEY_L | keymodifier::shift },
         // alerteracknowledge
         { GLFW_KEY_SPACE },
+        // hornlowactivate
+        { GLFW_KEY_A },
+        // hornhighactivate
+        { GLFW_KEY_A | keymodifier::shift },
+        // radiotoggle
+        { GLFW_KEY_R | keymodifier::control },
 /*
-const int k_Horn = 33;
-const int k_Horn2 = 34;
 const int k_FailedEngineCutOff = 35;
 */
         // viewturn
@@ -216,6 +222,10 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_SLASH },
         // doorlocktoggle
         { GLFW_KEY_S | keymodifier::shift },
+        // pantographcompressorvalvetoggle
+        { GLFW_KEY_V | keymodifier::control },
+        // pantographcompressoractivate
+        { GLFW_KEY_V | keymodifier::shift },
         // pantographtogglefront
         { GLFW_KEY_P },
         // pantographtogglerear
@@ -247,14 +257,10 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
         // redmarkertogglerearright
         { GLFW_KEY_I | keymodifier::control | keymodifier::shift },
-/*
-const int k_SmallCompressor = 63;
-*/
+        // headlightsdimtoggle
+        { GLFW_KEY_L | keymodifier::control },
         // motorconnectorsopen
         { GLFW_KEY_L },
-/*
-const int k_CurrentNext = 65;
-*/
         // interiorlighttoggle
         { GLFW_KEY_APOSTROPHE },
         // interiorlightdimtoggle
@@ -273,7 +279,6 @@ const int k_Active = 71;
         { GLFW_KEY_J }
 /*
 const int k_WalkMode = 73;
-int const k_DimHeadlights = 74;
 */
     };
 

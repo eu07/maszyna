@@ -2843,6 +2843,9 @@ void TMoverParameters::UpdateBrakePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::CompressorCheck(double dt)
 {
+    // TODO: expose leak rate as a parameter to the .fiz file
+    CompressedVolume = std::max( 0.0, CompressedVolume - dt * 0.001 ); // nieszczelności: 0.001=1l/s
+
     // if (CompressorSpeed>0.0) then //ten warunek został sprawdzony przy wywołaniu funkcji
     if (VeselVolume > 0)
     {
@@ -2965,6 +2968,9 @@ void TMoverParameters::CompressorCheck(double dt)
 // *************************************************************************************************
 void TMoverParameters::UpdatePipePressure(double dt)
 {
+    // TODO: expose leak rate as a parameter to the .fiz file
+    PipePress = std::max( 0.0, PipePress - dt * 0.001 ); // nieszczelności: 0.001=1l/s
+
     const double LBDelay = 100;
     const double kL = 0.5;
     //double dV;
@@ -3139,7 +3145,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
             // temp = (Handle as TFVel6).GetCP
             temp = Handle->GetCP();
         else
-            temp = 0;
+            temp = 0.0;
         Hamulec->SetEPS(temp);
         SendCtrlToNext("Brake", temp,
                        CabNo); // Ra 2014-11: na tym się wysypuje, ale nie wiem, w jakich warunkach
@@ -3148,9 +3154,9 @@ void TMoverParameters::UpdatePipePressure(double dt)
     Pipe->Act();
     PipePress = Pipe->P();
     if ((BrakeStatus & 128) == 128) // jesli hamulec wyłączony
-        temp = 0; // odetnij
+        temp = 0.0; // odetnij
     else
-        temp = 1; // połącz
+        temp = 1.0; // połącz
     Pipe->Flow(temp * Hamulec->GetPF(temp * PipePress, dt, Vel) + GetDVc(dt));
 
     if (ASBType == 128)
@@ -3162,17 +3168,17 @@ void TMoverParameters::UpdatePipePressure(double dt)
     Pipe->Act();
     PipePress = Pipe->P();
 
-    dpMainValve = dpMainValve / (100 * dt); // normalizacja po czasie do syczenia;
+    dpMainValve = dpMainValve / (100.0 * dt); // normalizacja po czasie do syczenia;
 
-    if (PipePress < -1)
+    if (PipePress < -1.0)
     {
-        PipePress = -1;
-        Pipe->CreatePress(-1);
+        PipePress = -1.0;
+        Pipe->CreatePress(-1.0);
         Pipe->Act();
     }
 
-    if (CompressedVolume < 0)
-        CompressedVolume = 0;
+    if (CompressedVolume < 0.0)
+        CompressedVolume = 0.0;
 }
 
 // *************************************************************************************************
@@ -3181,6 +3187,9 @@ void TMoverParameters::UpdatePipePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::UpdateScndPipePressure(double dt)
 {
+    // TODO: expose leak rate as a parameter to the .fiz file
+    ScndPipePress = std::max( 0.0, ScndPipePress - dt * 0.001 ); // nieszczelności: 0.001=0.1l/s
+
     const double Spz = 0.5067;
     TMoverParameters *c;
     double dv1, dv2, dV;

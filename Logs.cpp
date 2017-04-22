@@ -21,7 +21,7 @@ char endstring[10] = "\n";
 std::string filename_date() {
 
     ::SYSTEMTIME st;
-    ::GetSystemTime( &st );
+    ::GetLocalTime( &st );
     char buffer[ 256 ];
     sprintf( buffer,
         "%d%02d%02d_%02d%02d",

@@ -22,6 +22,7 @@ enum class user_command {
     secondcontrollerincreasefast,
     secondcontrollerdecrease,
     secondcontrollerdecreasefast,
+    mucurrentindicatorsourcetoggle,
     independentbrakeincrease,
     independentbrakeincreasefast,
     independentbrakedecrease,
@@ -35,27 +36,26 @@ enum class user_command {
     trainbrakeservice,
     trainbrakefullservice,
     trainbrakeemergency,
-/*
-const int k_AntiSlipping = 21;
-const int k_Sand = 22;
-*/
+    wheelspinbrakeactivate,
+    sandboxactivate,
     reverserincrease,
     reverserdecrease,
     linebreakertoggle,
-/*
-const int k_Fuse = 26;
-*/
     convertertoggle,
+    converteroverloadrelayreset,
     compressortoggle,
     motoroverloadrelaythresholdtoggle,
+    motoroverloadrelayreset,
     notchingrelaytoggle,
     epbrakecontroltoggle,
     brakeactingspeedincrease,
     brakeactingspeeddecrease,
+    mubrakingindicatortoggle,
     alerteracknowledge,
+    hornlowactivate,
+    hornhighactivate,
+    radiotoggle,
 /*
-const int k_Horn = 33;
-const int k_Horn2 = 34;
 const int k_FailedEngineCutOff = 35;
 */
     viewturn,
@@ -85,6 +85,8 @@ const int k_ProgramHelp = 48;
     doortoggleright,
     departureannounce,
     doorlocktoggle,
+    pantographcompressorvalvetoggle,
+    pantographcompressoractivate,
     pantographtogglefront,
     pantographtogglerear,
     pantographlowerall,
@@ -102,13 +104,8 @@ const int k_ProgramHelp = 48;
     headlighttogglerearupper,
     redmarkertogglerearleft,
     redmarkertogglerearright,
-/*
-const int k_SmallCompressor = 63;
-*/
+    headlightsdimtoggle,
     motorconnectorsopen,
-/*
-const int k_CurrentNext = 65;
-*/
     interiorlighttoggle,
     interiorlightdimtoggle,
     instrumentlighttoggle,
@@ -123,7 +120,6 @@ const int k_Active = 71;
     batterytoggle
 /*
 const int k_WalkMode = 73;
-int const k_DimHeadlights = 74;
 */
 };
 

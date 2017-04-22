@@ -87,6 +87,10 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul)
 		>> val5;
 	val3 *= mul;
 		TSubModel *sm = md1->GetFromName( str1.c_str() );
+    if( val3 == 0.0 ) {
+        ErrorLog( "Scale of 0.0 defined for sub-model \"" + str1 + "\" in 3d model \"" + md1->NameGet() + "\". Forcing scale of 1.0 to prevent division by 0" );
+        val3 = 1.0;
+    }
     if (sm) // jeśli nie znaleziony
         md2 = NULL; // informacja, że znaleziony
     else if (md2) // a jest podany drugi model (np. zewnętrzny)

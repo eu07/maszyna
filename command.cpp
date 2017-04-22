@@ -27,6 +27,7 @@ commanddescription_sequence Commands_descriptions = {
     { "secondcontrollerincreasefast", command_target::vehicle },
     { "secondcontrollerdecrease", command_target::vehicle },
     { "secondcontrollerdecreasefast", command_target::vehicle },
+    { "mucurrentindicatorsourcetoggle", command_target::vehicle },
     { "independentbrakeincrease", command_target::vehicle },
     { "independentbrakeincreasefast", command_target::vehicle },
     { "independentbrakedecrease", command_target::vehicle },
@@ -40,30 +41,26 @@ commanddescription_sequence Commands_descriptions = {
     { "trainbrakeservice", command_target::vehicle },
     { "trainbrakefullservice", command_target::vehicle },
     { "trainbrakeemergency", command_target::vehicle },
-/*
-const int k_AntiSlipping = 21;
-const int k_Sand = 22;
-*/
+    { "wheelspinbrakeactivate", command_target::vehicle },
+    { "sandboxactivate", command_target::vehicle },
     { "reverserincrease", command_target::vehicle },
     { "reverserdecrease", command_target::vehicle },
     { "linebreakertoggle", command_target::vehicle },
-/*
-const int k_Fuse = 26;
-*/
     { "convertertoggle", command_target::vehicle },
+    { "converteroverloadrelayreset", command_target::vehicle },
     { "compressortoggle", command_target::vehicle },
     { "motoroverloadrelaythresholdtoggle", command_target::vehicle },
+    { "motoroverloadrelayreset", command_target::vehicle },
     { "notchingrelaytoggle", command_target::vehicle },
     { "epbrakecontroltoggle", command_target::vehicle },
     { "brakeactingspeedincrease", command_target::vehicle },
     { "brakeactingspeeddecrease", command_target::vehicle },
-/*
-const int k_BrakeProfile = 31;
-*/
+    { "mubrakingindicatortoggle", command_target::vehicle },
     { "alerteracknowledge", command_target::vehicle },
+    { "hornlowactivate", command_target::vehicle },
+    { "hornhighctivate", command_target::vehicle },
+    { "radiotoggle", command_target::vehicle },
 /*
-const int k_Horn = 33;
-const int k_Horn2 = 34;
 const int k_FailedEngineCutOff = 35;
 */
     { "viewturn", command_target::entity },
@@ -93,6 +90,8 @@ const int k_ProgramHelp = 48;
     { "doortoggleright", command_target::vehicle },
     { "departureannounce", command_target::vehicle },
     { "doorlocktoggle", command_target::vehicle },
+    { "pantographcompressorvalvetoggle", command_target::vehicle },
+    { "pantographcompressoractivate", command_target::vehicle },
     { "pantographtogglefront", command_target::vehicle },
     { "pantographtogglerear", command_target::vehicle },
     { "pantographlowerall", command_target::vehicle },
@@ -110,13 +109,8 @@ const int k_ProgramHelp = 48;
     { "headlighttogglerearupper", command_target::vehicle },
     { "redmarkertogglerearleft", command_target::vehicle },
     { "redmarkertogglerearright", command_target::vehicle },
-/*
-const int k_SmallCompressor = 63;
-*/
+    { "headlightsdimtoggle", command_target::vehicle },
     { "motorconnectorsopen", command_target::vehicle },
-/*
-const int k_CurrentNext = 65;
-*/
     { "interiorlighttoggle", command_target::vehicle },
     { "interiorlightdimtoggle", command_target::vehicle },
     { "instrumentlighttoggle", command_target::vehicle },
@@ -131,7 +125,6 @@ const int k_Active = 71;
     { "batterytoggle", command_target::vehicle }
 /*
 const int k_WalkMode = 73;
-int const k_DimHeadlights = 74;
 */
 };
 
@@ -192,7 +185,23 @@ command_relay::post( user_command const Command, std::uint64_t const Param1, std
     if( Action != GLFW_RELEASE ) {
     // key was pressed or is still held
         if( false == command.name.empty() ) {
-            WriteLog( "Command issued: " + command.name );
+            if( false == (
+                ( Command == user_command::moveleft )
+             || ( Command == user_command::moveleftfast )
+             || ( Command == user_command::moveright )
+             || ( Command == user_command::moverightfast )
+             || ( Command == user_command::moveforward )
+             || ( Command == user_command::moveforwardfast )
+             || ( Command == user_command::moveback )
+             || ( Command == user_command::movebackfast )
+             || ( Command == user_command::moveup )
+             || ( Command == user_command::moveupfast )
+             || ( Command == user_command::movedown )
+             || ( Command == user_command::movedownfast )
+             || ( Command == user_command::movevector )
+             || ( Command == user_command::viewturn ) ) ) {
+                WriteLog( "Command issued: " + command.name );
+            }
         }
     }
 /*
