@@ -144,7 +144,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::secondcontrollerdecrease, &TTrain::OnCommand_secondcontrollerdecrease },
     { user_command::secondcontrollerdecreasefast, &TTrain::OnCommand_secondcontrollerdecreasefast },
     { user_command::notchingrelaytoggle, &TTrain::OnCommand_notchingrelaytoggle },
-    { user_command::mucurrentindicatorsourcetoggle, &TTrain::OnCommand_mucurrentindicatorsourcetoggle },
+    { user_command::mucurrentindicatorothersourceactivate, &TTrain::OnCommand_mucurrentindicatorothersourceactivate },
     { user_command::independentbrakeincrease, &TTrain::OnCommand_independentbrakeincrease },
     { user_command::independentbrakeincreasefast, &TTrain::OnCommand_independentbrakeincreasefast },
     { user_command::independentbrakedecrease, &TTrain::OnCommand_independentbrakedecrease },
@@ -178,6 +178,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::converteroverloadrelayreset, &TTrain::OnCommand_converteroverloadrelayreset },
     { user_command::compressortoggle, &TTrain::OnCommand_compressortoggle },
     { user_command::motorconnectorsopen, &TTrain::OnCommand_motorconnectorsopen },
+    { user_command::motordisconnect, &TTrain::OnCommand_motordisconnect },
     { user_command::motoroverloadrelaythresholdtoggle, &TTrain::OnCommand_motoroverloadrelaythresholdtoggle },
     { user_command::motoroverloadrelayreset, &TTrain::OnCommand_motoroverloadrelayreset },
     { user_command::heatingtoggle, &TTrain::OnCommand_heatingtoggle },
@@ -573,7 +574,7 @@ void TTrain::OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &C
     }
 }
 
-void TTrain::OnCommand_mucurrentindicatorsourcetoggle( TTrain *Train, command_data const &Command ) {
+void TTrain::OnCommand_mucurrentindicatorothersourceactivate( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggNextCurrentButton.SubModel == nullptr ) {
         if( Command.action == GLFW_PRESS ) {
@@ -583,27 +584,24 @@ void TTrain::OnCommand_mucurrentindicatorsourcetoggle( TTrain *Train, command_da
     }
 
     if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->ShowNextCurrent ) {
-            // turn on
-            Train->ShowNextCurrent = true;
-            // audio feedback
-            if( Train->ggNextCurrentButton.GetValue() < 0.5 ) {
-                Train->play_sound( Train->dsbSwitch );
-            }
-            // visual feedback
-            Train->ggNextCurrentButton.UpdateValue( 1.0 );
+        // turn on
+        Train->ShowNextCurrent = true;
+        // audio feedback
+        if( Train->ggNextCurrentButton.GetValue() < 0.5 ) {
+            Train->play_sound( Train->dsbSwitch );
         }
-        else {
-            //turn off
-            Train->ShowNextCurrent = false;
-            // audio feedback
-            if( Train->ggNextCurrentButton.GetValue() > 0.5 ) {
-                Train->play_sound( Train->dsbSwitch );
-            }
-            // visual feedback
-            Train->ggNextCurrentButton.UpdateValue( 0.0 );
+        // visual feedback
+        Train->ggNextCurrentButton.UpdateValue( 1.0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        //turn off
+        Train->ShowNextCurrent = false;
+        // audio feedback
+        if( Train->ggNextCurrentButton.GetValue() > 0.5 ) {
+            Train->play_sound( Train->dsbSwitch );
         }
+        // visual feedback
+        Train->ggNextCurrentButton.UpdateValue( 0.0 );
     }
 }
 
@@ -922,7 +920,7 @@ void TTrain::OnCommand_sandboxactivate( TTrain *Train, command_data const &Comma
     // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
     if( Train->ggSandButton.SubModel == nullptr ) {
         if( Command.action == GLFW_PRESS ) {
-            WriteLog( "Wheelspin Brake button is missing, or wasn't defined" );
+            WriteLog( "Sandbox activation button is missing, or wasn't defined" );
         }
         return;
     }
@@ -1200,14 +1198,11 @@ void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command
                 // audio feedback
                 Train->play_sound( Train->dsbSwitch );
                 // side-effects
-/*
-                // NOTE: on second thought, don't and let them drop when the pantograph tank pressure drops below threshold
                 if( false == Train->mvControlled->ConverterFlag ) {
                     // if there's no (low voltage) power source left, drop pantographs
                     Train->mvControlled->PantFront( false );
                     Train->mvControlled->PantRear( false );
                 }
-*/
             }
         }
     }
@@ -1518,117 +1513,123 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
 void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command ) {
 
     if( ( Command.action == GLFW_PRESS )
-     && ( true == Train->m_linebreakerclosed )
+     && ( Train->m_linebreakerstate == 1 )
      && ( false == Train->mvControlled->Mains )
      && ( Train->ggMainButton.GetValue() < 0.05 ) ) {
         // crude way to catch cases where the main was knocked out and the user is trying to restart it
         // because the state of the line breaker isn't changed to match, we need to do it here manually
-        Train->m_linebreakerclosed = false;
+        Train->m_linebreakerstate = 0;
     }
     // NOTE: we don't have switch type definition for the line breaker switch
     // so for the time being we have hard coded "impulse" switches for all EMUs
     // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-    if( ( true == Train->m_linebreakerclosed )
+    if( ( Train->m_linebreakerstate == 1 )
      && ( Train->mvControlled->TrainType == dt_EZT ) ) {
         // a single impulse switch can't open the circuit, only close it
         return;
     }
 
-
     if( Command.action != GLFW_RELEASE ) {
         // press or hold...
-        if( false == Train->mvControlled->Mains ) {
+        if( Train->m_linebreakerstate == 0 ) {
             // ...to close the circuit
-            if( false == Train->m_linebreakerclosed ) {
-                // safety check so we don't close the circuit right after opening
-                if( Train->ggMainOnButton.SubModel != nullptr ) {
+            if( Train->ggMainOnButton.SubModel != nullptr ) {
+                // two separate switches to close and break the circuit
+                // audio feedback
+                if( Command.action == GLFW_PRESS ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                // visual feedback
+                Train->ggMainOnButton.UpdateValue( 1.0 );
+            }
+            else if( Train->ggMainButton.SubModel != nullptr ) {
+                // single two-state switch
+                // audio feedback
+                if( Command.action == GLFW_PRESS ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                // visual feedback
+                Train->ggMainButton.UpdateValue( 1.0 );
+            }
+            // keep track of period the button is held down, to determine when/if circuit closes
+            if( ( false == ( Train->mvControlled->EnginePowerSource.PowerType == ElectricSeriesMotor ) || ( Train->mvControlled->EngineType == ElectricInductionMotor ) )
+             || ( Train->fHVoltage > 0.0f ) ) {
+                // prevent the switch from working if there's no power
+                // TODO: consider whether it makes sense for diesel engines and such
+                Train->fMainRelayTimer += 0.33f; // Command.time_delta * 5.0;
+            }
+            if( Train->mvControlled->Mains != true ) {
+                // hunter-080812: poprawka
+                Train->mvControlled->ConverterSwitch( false );
+                Train->mvControlled->CompressorSwitch( false );
+            }
+            if( Train->fMainRelayTimer > Train->mvControlled->InitialCtrlDelay ) {
+                // wlaczanie WSa z opoznieniem
+                Train->m_linebreakerstate = 2;
+                // for diesels, we complete the engine start here
+                // TODO: consider arranging a better way to start the diesel engines
+                if( Train->mvControlled->EngineType == DieselEngine ) {
+                    if( Train->mvControlled->MainSwitch( true ) ) {
+                        // sound feedback, engine start for diesel vehicle
+                        Train->play_sound( Train->dsbDieselIgnition );
+                        // side-effects
+                        Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
+                        Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
+                    }
+                }
+            }
+        }
+        else if( Train->m_linebreakerstate == 1 ) {
+            // ...to open the circuit
+            if( true == Train->mvControlled->MainSwitch( false ) ) {
+
+                Train->m_linebreakerstate = -1;
+
+                if( Train->ggMainOffButton.SubModel != nullptr ) {
                     // two separate switches to close and break the circuit
                     // audio feedback
                     if( Command.action == GLFW_PRESS ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
                     // visual feedback
-                    Train->ggMainOnButton.UpdateValue( 1.0 );
+                    Train->ggMainOffButton.UpdateValue( 1.0 );
                 }
                 else if( Train->ggMainButton.SubModel != nullptr ) {
                     // single two-state switch
-                    // audio feedback
-                    if( Command.action == GLFW_PRESS ) {
-                        Train->play_sound( Train->dsbSwitch );
-                    }
-                    // visual feedback
-                    Train->ggMainButton.UpdateValue( 1.0 );
-                }
-                // keep track of period the button is held down, to determine when/if circuit closes
-                Train->fMainRelayTimer += 0.33f; // Command.time_delta * 5.0;
-                if( Train->mvControlled->Mains != true ) {
-                    // hunter-080812: poprawka
-                    Train->mvControlled->ConverterSwitch( false );
-                    Train->mvControlled->CompressorSwitch( false );
-                }
-                if( Train->fMainRelayTimer > Train->mvControlled->InitialCtrlDelay ) {
-                    // wlaczanie WSa z opoznieniem
-                    if( Train->mvControlled->MainSwitch( true ) ) {
-                        // sound feedback, engine start for diesel vehicle
-                        if( Train->mvControlled->EngineType == DieselEngine ) {
-                            Train->play_sound( Train->dsbDieselIgnition );
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            // ...to open the circuit
-            if( true == Train->m_linebreakerclosed ) {
-                // safety check so we don't open the circuit right after closing
-                if( Train->mvControlled->MainSwitch( false ) ) {
-
-                    if( Train->ggMainOffButton.SubModel != nullptr ) {
-                        // two separate switches to close and break the circuit
+/*
+                    // NOTE: we don't have switch type definition for the line breaker switch
+                    // so for the time being we have hard coded "impulse" switches for all EMUs
+                    // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
+                    if( Train->mvControlled->TrainType == dt_EZT ) {
                         // audio feedback
                         if( Command.action == GLFW_PRESS ) {
                             Train->play_sound( Train->dsbSwitch );
                         }
                         // visual feedback
-                        Train->ggMainOffButton.UpdateValue( 1.0 );
+                        Train->ggMainButton.UpdateValue( 1.0 );
                     }
-                    else if( Train->ggMainButton.SubModel != nullptr ) {
-                        // single two-state switch
-/*
-                        // NOTE: we don't have switch type definition for the line breaker switch
-                        // so for the time being we have hard coded "impulse" switches for all EMUs
-                        // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-                        if( Train->mvControlled->TrainType == dt_EZT ) {
-                            // audio feedback
-                            if( Command.action == GLFW_PRESS ) {
-                                Train->play_sound( Train->dsbSwitch );
-                            }
-                            // visual feedback
-                            Train->ggMainButton.UpdateValue( 1.0 );
-                        }
-                        else
+                    else
 */
-                        {
-                            // audio feedback
-                            if( Command.action == GLFW_PRESS ) {
-                                Train->play_sound( Train->dsbSwitch );
-                            }
-                            // visual feedback
-                            Train->ggMainButton.UpdateValue( 0.0 );
+                    {
+                        // audio feedback
+                        if( Command.action == GLFW_PRESS ) {
+                            Train->play_sound( Train->dsbSwitch );
                         }
+                        // visual feedback
+                        Train->ggMainButton.UpdateValue( 0.0 );
                     }
                 }
-                // play sound immediately when the switch is hit, not after release
-                if( Train->fMainRelayTimer > 0.0f ) {
-                    Train->play_sound( Train->dsbRelay );
-                    Train->fMainRelayTimer = 0.0f;
-                }
+            }
+            // play sound immediately when the switch is hit, not after release
+            if( Train->fMainRelayTimer > 0.0f ) {
+                Train->play_sound( Train->dsbRelay );
+                Train->fMainRelayTimer = 0.0f;
             }
         }
     }
     else {
         // release...
-        if( false == Train->mvControlled->Mains ) {
+        if( Train->m_linebreakerstate <= 0 ) {
             // ...after opening circuit, or holding for too short time to close it
             // hunter-091012: przeniesione z mover.pas, zeby dzwiek sie nie zapetlal,
             if( Train->fMainRelayTimer > 0.0f ) {
@@ -1656,13 +1657,19 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                 // visual feedback
                 Train->ggMainButton.UpdateValue( 0.0 );
             }
-            Train->m_linebreakerclosed = false;
+            // finalize the state of the line breaker
+            Train->m_linebreakerstate = 0;
         }
         else {
             // ...after closing the circuit
-            // side-effects
-            Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
-            Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
+            // we don't need to start the diesel twice, but the other types still need to be launched
+            if( Train->mvControlled->EngineType != DieselEngine ) {
+                if( Train->mvControlled->MainSwitch( true ) ) {
+                    // side-effects
+                    Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
+                    Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
+                }
+            }
             // audio feedback
             if( Train->ggMainOnButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
@@ -1685,7 +1692,8 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                     Train->ggMainButton.UpdateValue( 0.0 );
                 }
             }
-            Train->m_linebreakerclosed = true;
+            // finalize the state of the line breaker
+            Train->m_linebreakerstate = 1;
         }
     }
 }
@@ -1710,8 +1718,8 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
                 // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
                 if( ( Train->mvOccupied->ConvSwitchType != "impulse" )
                  || ( Train->mvControlled->Mains ) ) {
-                    if( ( true == Train->m_linebreakerclosed ) // won't start if the line breaker button is still held
-                     && ( true == Train->mvControlled->ConverterSwitch( true ) ) ) {
+                    // won't start if the line breaker button is still held
+                    if( true == Train->mvControlled->ConverterSwitch( true ) ) {
                         // side effects
                         // control the compressor, if it's paired with the converter
                         if( Train->mvControlled->CompressorPower == 2 ) {
@@ -1752,13 +1760,10 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
                     Train->mvControlled->ConvOvldFlag = false;
                 }
                 // if there's no (low voltage) power source left, drop pantographs
-/*
-                // NOTE: on second thought, don't and let them drop when the pantograph tank pressure drops below threshold
                 if( false == Train->mvControlled->Battery ) {
                     Train->mvControlled->PantFront( false );
                     Train->mvControlled->PantRear( false );
                 }
-*/
             }
         }
     }
@@ -1908,6 +1913,23 @@ void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &C
         }
         // visual feedback
         Train->ggStLinOffButton.UpdateValue( 0.0 );
+    }
+}
+
+void TTrain::OnCommand_motordisconnect( TTrain *Train, command_data const &Command ) {
+
+    if( ( Train->mvControlled->TrainType == dt_EZT ?
+            ( Train->mvControlled != Train->mvOccupied ) :
+            ( Train->mvOccupied->ActiveCab != 0 ) ) ) {
+        // tylko w maszynowym
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        if( true == Train->mvControlled->CutOffEngine() ) {
+            // sound feedback
+            Train->play_sound( Train->dsbSwitch );
+        }
     }
 }
 
@@ -3106,7 +3128,6 @@ void TTrain::OnKeyDown(int cKey)
                 play_sound( dsbSwitch );
             }
         }
-#endif
         else if( cKey == Global::Keys[ k_FailedEngineCutOff ] ) {
             // McZapkie-060103: E - wylaczanie sekcji silnikow
             if (mvControlled->CutOffEngine())
@@ -3114,7 +3135,6 @@ void TTrain::OnKeyDown(int cKey)
                 play_sound( dsbSwitch );
             }
         }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         else if( cKey == Global::Keys[ k_OpenLeft ] ) // NBMX 17-09-2003: otwieranie drzwi
         {
             if (mvOccupied->DoorOpenCtrl == 1)
@@ -5014,6 +5034,10 @@ bool TTrain::Update( double const Deltatime )
 
         auto lookup = m_commandhandlers.find( commanddata.command );
         if( lookup != m_commandhandlers.end() ) {
+            // debug data
+            if( commanddata.action != GLFW_RELEASE ) {
+                WriteLog( mvOccupied->Name + " received command: [" + simulation::Commands_descriptions[ static_cast<std::size_t>( commanddata.command ) ].name + "]" );
+            }
             // pass the command to the assigned handler
             lookup->second( this, commanddata );
         }
@@ -5033,6 +5057,16 @@ bool TTrain::Update( double const Deltatime )
 
     DWORD stat;
     double dt = Deltatime; // Timer::GetDeltaTime();
+
+    // catch cases where the power goes out, and the linebreaker state is left as closed
+    if( ( m_linebreakerstate == 1 )
+     && ( false == mvControlled->Mains )
+     && ( ggMainButton.GetValue() < 0.05 ) ) {
+        // crude way to catch cases where the main was knocked out and the user is trying to restart it
+        // because the state of the line breaker isn't changed to match, we need to do it here manually
+        m_linebreakerstate = 0;
+    }
+
 /*
     // NOTE: disabled while switch state isn't preserved while moving between compartments
     // check whether we should raise the pantographs, based on volume in pantograph tank
@@ -5907,7 +5941,7 @@ bool TTrain::Update( double const Deltatime )
 
         if (mvControlled->Battery || mvControlled->ConverterFlag)
         {
-            btLampkaWylSzybki.Turn( mvControlled->Mains );
+            btLampkaWylSzybki.Turn( ( m_linebreakerstate > 0 ? true : false ) );
 
             // hunter-261211: jakis stary kod (i niezgodny z prawda),
             // zahaszowalem i poprawilem

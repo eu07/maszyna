@@ -10,13 +10,93 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "keyboardinput.h"
 #include "logs.h"
+#include "parser.h"
 
-void
+bool
 keyboard_input::recall_bindings() {
 
-    // TODO: implement
+    // build helper translation tables
+    std::unordered_map<std::string, user_command> nametocommandmap;
+    std::size_t commandid = 0;
+    for( auto const &description : simulation::Commands_descriptions ) {
+        nametocommandmap.emplace(
+            description.name,
+            static_cast<user_command>( commandid ) );
+        ++commandid;
+    }
+    std::unordered_map<std::string, int> nametokeymap = {
+        { "a", GLFW_KEY_A }, { "b", GLFW_KEY_B }, { "c", GLFW_KEY_C }, { "d", GLFW_KEY_D }, { "e", GLFW_KEY_E },
+        { "f", GLFW_KEY_F }, { "g", GLFW_KEY_G }, { "h", GLFW_KEY_H }, { "i", GLFW_KEY_I }, { "j", GLFW_KEY_J },
+        { "k", GLFW_KEY_K }, { "l", GLFW_KEY_L }, { "m", GLFW_KEY_M }, { "n", GLFW_KEY_N }, { "o", GLFW_KEY_O },
+        { "p", GLFW_KEY_P }, { "q", GLFW_KEY_Q }, { "r", GLFW_KEY_R }, { "s", GLFW_KEY_S }, { "t", GLFW_KEY_T },
+        { "u", GLFW_KEY_U }, { "v", GLFW_KEY_V }, { "w", GLFW_KEY_W }, { "x", GLFW_KEY_X }, { "y", GLFW_KEY_Y }, { "z", GLFW_KEY_Z },
+        { "-", GLFW_KEY_MINUS }, { "=", GLFW_KEY_EQUAL }, { "backspace", GLFW_KEY_BACKSPACE },
+        { "[", GLFW_KEY_LEFT_BRACKET }, { "]", GLFW_KEY_RIGHT_BRACKET }, { "\\", GLFW_KEY_BACKSLASH },
+        { ";", GLFW_KEY_SEMICOLON }, { "'", GLFW_KEY_APOSTROPHE }, { "enter", GLFW_KEY_ENTER },
+        { ",", GLFW_KEY_COMMA }, { ".", GLFW_KEY_PERIOD }, { "/", GLFW_KEY_SLASH },
+        { "space", GLFW_KEY_SPACE },
+        // numpad block
+        { "num_/", GLFW_KEY_KP_DIVIDE }, { "num_*", GLFW_KEY_KP_MULTIPLY }, { "num_-", GLFW_KEY_KP_SUBTRACT },
+        { "num_7", GLFW_KEY_KP_7 }, { "num_8", GLFW_KEY_KP_8 }, { "num_9", GLFW_KEY_KP_9 }, { "num_+", GLFW_KEY_KP_ADD },
+        { "num_4", GLFW_KEY_KP_4 }, { "num_5", GLFW_KEY_KP_5 }, { "num_6", GLFW_KEY_KP_6 },
+        { "num_1", GLFW_KEY_KP_1 }, { "num_2", GLFW_KEY_KP_2 }, { "num_3", GLFW_KEY_KP_3 }, { "num_enter", GLFW_KEY_KP_ENTER },
+        { "num_0", GLFW_KEY_KP_0 }, { "num_.", GLFW_KEY_KP_DECIMAL }
+    };
+
+    cParser bindingparser( "eu07_input-keyboard.ini", cParser::buffer_FILE );
+    if( false == bindingparser.ok() ) {
+        return false;
+    }
+
+    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+
+        std::string bindingentry;
+        bindingparser >> bindingentry;
+        cParser entryparser( bindingentry );
+        if( true == entryparser.getTokens( 1, true, "\n\r\t " ) ) {
+
+            std::string commandname;
+            entryparser >> commandname;
+
+            auto const lookup = nametocommandmap.find( commandname );
+            if( lookup == nametocommandmap.end() ) {
+
+                WriteLog( "Keyboard binding defined for unknown command, \"" + commandname + "\"" );
+            }
+            else {
+                int binding{ 0 };
+                while( entryparser.getTokens( 1, true, "\n\r\t " ) ) {
+
+                    std::string bindingkeyname;
+                    entryparser >> bindingkeyname;
+
+                         if( bindingkeyname == "shift" ) { binding |= keymodifier::shift; }
+                    else if( bindingkeyname == "ctrl" )  { binding |= keymodifier::control; }
+                    else {
+                        // regular key, convert it to glfw key code
+                        auto const keylookup = nametokeymap.find( bindingkeyname );
+                        if( keylookup == nametokeymap.end() ) {
+
+                            WriteLog( "Keyboard binding included unrecognized key, \"" + bindingkeyname + "\"" );
+                        }
+                        else {
+                            // replace any existing binding, preserve modifiers
+                            // (protection from cases where there's more than one key listed in the entry)
+                            binding = keylookup->second | ( binding & 0xffff0000 );
+                        }
+                    }
+
+                    if( ( binding & 0xffff ) != 0 ) {
+                        m_commands.at( static_cast<std::size_t>( lookup->second ) ).binding = binding;
+                    }
+                }
+            }
+        }
+    }
 
     bind();
+
+    return true;
 }
 
 bool
@@ -108,7 +188,7 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_MULTIPLY },
         // secondcontrollerdecreasefast
         { GLFW_KEY_KP_MULTIPLY | keymodifier::shift },
-        // mucurrentindicatorsourcetoggle
+        // mucurrentindicatorothersourceactivate
         { GLFW_KEY_Z | keymodifier::shift },
         // independentbrakeincrease
         { GLFW_KEY_KP_1 },
@@ -164,7 +244,7 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_B | keymodifier::shift },
         // brakeactingspeeddecrease
         { GLFW_KEY_B },
-        // brakingindicatortoggle
+        // mubrakingindicatortoggle
         { GLFW_KEY_L | keymodifier::shift },
         // alerteracknowledge
         { GLFW_KEY_SPACE },
@@ -174,9 +254,6 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_A | keymodifier::shift },
         // radiotoggle
         { GLFW_KEY_R | keymodifier::control },
-/*
-const int k_FailedEngineCutOff = 35;
-*/
         // viewturn
         { -1 },
         // movevector
@@ -261,6 +338,8 @@ const int k_ProgramHelp = 48;
         { GLFW_KEY_L | keymodifier::control },
         // motorconnectorsopen
         { GLFW_KEY_L },
+        // motordisconnect
+        { GLFW_KEY_E | keymodifier::shift },
         // interiorlighttoggle
         { GLFW_KEY_APOSTROPHE },
         // interiorlightdimtoggle
@@ -300,6 +379,7 @@ keyboard_input::bind() {
         }
         ++commandcode;
     }
+
     // cache movement key bindings, so we can test them faster in the input loop
     m_bindingscache.forward = m_commands[ static_cast<std::size_t>( user_command::moveforward ) ].binding;
     m_bindingscache.back = m_commands[ static_cast<std::size_t>( user_command::moveback ) ].binding;

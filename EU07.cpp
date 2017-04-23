@@ -345,6 +345,7 @@ int main(int argc, char *argv[])
 
         return -1;
     }
+    input::Keyboard.init();
     input::Gamepad.init();
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów

@@ -120,7 +120,7 @@ class TTrain
     static void OnCommand_secondcontrollerdecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &Command );
-    static void OnCommand_mucurrentindicatorsourcetoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_mucurrentindicatorothersourceactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeincreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakedecrease( TTrain *Train, command_data const &Command );
@@ -154,6 +154,7 @@ class TTrain
     static void OnCommand_converteroverloadrelayreset( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command );
+    static void OnCommand_motordisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelayreset( TTrain *Train, command_data const &Command );
     static void OnCommand_heatingtoggle( TTrain *Train, command_data const &Command );
@@ -186,7 +187,7 @@ class TTrain
     TMoverParameters *mvSecond; // drugi człon (ET40, ET41, ET42, ukrotnienia)
     TMoverParameters *mvThird; // trzeci człon (SN61)
     // helper variable, to prevent immediate switch between closing and opening line breaker circuit
-    bool m_linebreakerclosed{ false };
+    int m_linebreakerstate{ 0 }; // -1: freshly open, 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
     static const commandhandler_map m_commandhandlers;
 
 public: // reszta może by?publiczna

@@ -27,7 +27,7 @@ commanddescription_sequence Commands_descriptions = {
     { "secondcontrollerincreasefast", command_target::vehicle },
     { "secondcontrollerdecrease", command_target::vehicle },
     { "secondcontrollerdecreasefast", command_target::vehicle },
-    { "mucurrentindicatorsourcetoggle", command_target::vehicle },
+    { "mucurrentindicatorothersourceactivate", command_target::vehicle },
     { "independentbrakeincrease", command_target::vehicle },
     { "independentbrakeincreasefast", command_target::vehicle },
     { "independentbrakedecrease", command_target::vehicle },
@@ -58,7 +58,7 @@ commanddescription_sequence Commands_descriptions = {
     { "mubrakingindicatortoggle", command_target::vehicle },
     { "alerteracknowledge", command_target::vehicle },
     { "hornlowactivate", command_target::vehicle },
-    { "hornhighctivate", command_target::vehicle },
+    { "hornhighactivate", command_target::vehicle },
     { "radiotoggle", command_target::vehicle },
 /*
 const int k_FailedEngineCutOff = 35;
@@ -111,6 +111,7 @@ const int k_ProgramHelp = 48;
     { "redmarkertogglerearright", command_target::vehicle },
     { "headlightsdimtoggle", command_target::vehicle },
     { "motorconnectorsopen", command_target::vehicle },
+    { "motordisconnect", command_target::vehicle },
     { "interiorlighttoggle", command_target::vehicle },
     { "interiorlightdimtoggle", command_target::vehicle },
     { "instrumentlighttoggle", command_target::vehicle },
@@ -180,7 +181,7 @@ command_relay::post( user_command const Command, std::uint64_t const Param1, std
             Param2,
             Timer::GetDeltaTime() },
         static_cast<std::size_t>( command.target ) | Recipient );
-
+/*
 #ifdef _DEBUG
     if( Action != GLFW_RELEASE ) {
     // key was pressed or is still held
@@ -204,13 +205,12 @@ command_relay::post( user_command const Command, std::uint64_t const Param1, std
             }
         }
     }
-/*
     else {
     // key was released (but we don't log this)
-        WriteLog( "Key released: " + m_command.name );
+        WriteLog( "Key released: " + command.name );
     }
-*/
 #endif
+*/
 }
 
 //---------------------------------------------------------------------------

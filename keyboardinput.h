@@ -20,7 +20,9 @@ public:
     keyboard_input() { default_bindings(); }
 
 // methods
-    void
+    bool
+        init() { return recall_bindings(); }
+    bool
         recall_bindings();
     bool
         key( int const Key, int const Action );
