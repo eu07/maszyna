@@ -3313,6 +3313,7 @@ if
     }
 }
 
+// cab movement update, fixed step part
 void TTrain::UpdateMechPosition(double dt)
 { // Ra: mechanik powinien być
     // telepany niezależnie od pozycji
@@ -3326,122 +3327,110 @@ void TTrain::UpdateMechPosition(double dt)
     // - na postoju horyzont prosto, kabina skosem
     // - przy szybkiej jeździe kabina prosto, horyzont pochylony
 
-    vector3 pNewMechPosition;
     Math3D::vector3 shake;
     // McZapkie: najpierw policzę pozycję w/m kabiny
 
     // ABu: rzucamy kabina tylko przy duzym FPS!
     // Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
     // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
-    double const iVel = std::min(DynamicObject->GetVelocity(), 150.0);
+    double const iVel = std::min( DynamicObject->GetVelocity(), 150.0 );
 
-    if (!Global::iSlowMotion // musi być pełna prędkość
-        && (pMechOffset.y < 4.0)) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
+    if( !Global::iSlowMotion // musi być pełna prędkość
+        && ( pMechOffset.y < 4.0 ) ) // Ra 15-01: przy oglądaniu pantografu bujanie przeszkadza
     {
-        if( iVel > 0.0 ) {
+        if( iVel > 0.5 ) {
             // acceleration-driven base shake
             shake += 1.25 * MechSpring.ComputateForces(
                 vector3(
-                     -mvControlled->AccN * dt * 5.0, // highlight side sway
-                      mvControlled->AccV * dt,
-                     -mvControlled->AccS * dt * 1.25 ), // accent acceleration/deceleration
+                -mvControlled->AccN * dt * 5.0, // highlight side sway
+                mvControlled->AccV * dt,
+                -mvControlled->AccS * dt * 1.25 ), // accent acceleration/deceleration
                 pMechShake );
 
             if( Random( iVel ) > 25.0 ) {
                 // extra shake at increased velocity
                 shake += MechSpring.ComputateForces(
                     vector3(
-                        ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
-                        ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
-                        ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ ),
+                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringX,
+                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringY,
+                    ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * fMechSpringZ )
+                    * 1.25,
                     pMechShake );
-//                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
+                //                    * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ); // scale to 75-150% based on track quality
             }
-//            shake *= 1.25;
+//            shake *= 0.85;
         }
-        vMechVelocity -= (shake + vMechVelocity * 100) * (fMechSpringX + fMechSpringY + fMechSpringZ) / (200);
-//        vMechVelocity -= vMechVelocity * iVel * dt;
-//        shake *= 0.95 * dt; // shake damping
+        vMechVelocity -= ( shake + vMechVelocity * 100 ) * ( fMechSpringX + fMechSpringY + fMechSpringZ ) / ( 200 );
+        //        shake *= 0.95 * dt; // shake damping
 
         // McZapkie:
         pMechShake += vMechVelocity * dt;
         // Ra 2015-01: dotychczasowe rzucanie
         pMechOffset += vMechMovement * dt;
-        if ((pMechShake.y > fMechMaxSpring) || (pMechShake.y < -fMechMaxSpring))
+        if( ( pMechShake.y > fMechMaxSpring ) || ( pMechShake.y < -fMechMaxSpring ) )
             vMechVelocity.y = -vMechVelocity.y;
         // ABu011104: 5*pMechShake.y, zeby ladnie pudlem rzucalo :)
         pMechPosition = pMechOffset + vector3( 1.5 * pMechShake.x, 2.0 * pMechShake.y, 1.5 * pMechShake.z );
 //        vMechMovement = 0.5 * vMechMovement;
     }
-    else
-    { // hamowanie rzucania przy spadku FPS
-        pMechShake -= pMechShake * std::min(dt, 1.0); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
+    else { // hamowanie rzucania przy spadku FPS
+        pMechShake -= pMechShake * std::min( dt, 1.0 ); // po tym chyba potrafią zostać jakieś ułamki, które powodują zjazd
         pMechOffset += vMechMovement * dt;
         vMechVelocity.y = 0.5 * vMechVelocity.y;
         pMechPosition = pMechOffset + vector3( pMechShake.x, 5 * pMechShake.y, pMechShake.z );
 //        vMechMovement = 0.5 * vMechMovement;
     }
     // numer kabiny (-1: kabina B)
-    if (DynamicObject->Mechanik) // może nie być?
-        if (DynamicObject->Mechanik->AIControllFlag) // jeśli prowadzi AI
+    if( DynamicObject->Mechanik ) // może nie być?
+        if( DynamicObject->Mechanik->AIControllFlag ) // jeśli prowadzi AI
         { // Ra: przesiadka, jeśli AI zmieniło kabinę (a człon?)...
-            if (iCabn != (DynamicObject->MoverParameters->ActiveCab == -1 ?
-                              2 :
-                              DynamicObject->MoverParameters->ActiveCab))
-                InitializeCab(DynamicObject->MoverParameters->ActiveCab,
-                              DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName +
-                                  ".mmd");
+            if( iCabn != ( DynamicObject->MoverParameters->ActiveCab == -1 ?
+                2 :
+                DynamicObject->MoverParameters->ActiveCab ) )
+                InitializeCab( DynamicObject->MoverParameters->ActiveCab,
+                DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName +
+                ".mmd" );
         }
-    iCabn = (DynamicObject->MoverParameters->ActiveCab == -1 ?
-                 2 :
-                 DynamicObject->MoverParameters->ActiveCab);
-    if (!DebugModeFlag)
-    { // sprawdzaj więzy //Ra: nie tu!
-        if (pNewMechPosition.x < Cabine[iCabn].CabPos1.x)
-            pNewMechPosition.x = Cabine[iCabn].CabPos1.x;
-        if (pNewMechPosition.x > Cabine[iCabn].CabPos2.x)
-            pNewMechPosition.x = Cabine[iCabn].CabPos2.x;
-        if (pNewMechPosition.z < Cabine[iCabn].CabPos1.z)
-            pNewMechPosition.z = Cabine[iCabn].CabPos1.z;
-        if (pNewMechPosition.z > Cabine[iCabn].CabPos2.z)
-            pNewMechPosition.z = Cabine[iCabn].CabPos2.z;
-        if (pNewMechPosition.y > Cabine[iCabn].CabPos1.y + 1.8)
-            pNewMechPosition.y = Cabine[iCabn].CabPos1.y + 1.8;
-        if (pNewMechPosition.y < Cabine[iCabn].CabPos1.y + 0.5)
-            pNewMechPosition.y = Cabine[iCabn].CabPos2.y + 0.5;
+    iCabn = ( DynamicObject->MoverParameters->ActiveCab == -1 ?
+        2 :
+        DynamicObject->MoverParameters->ActiveCab );
+    if( !DebugModeFlag ) { // sprawdzaj więzy //Ra: nie tu!
+        if( pMechPosition.x < Cabine[ iCabn ].CabPos1.x )
+            pMechPosition.x = Cabine[ iCabn ].CabPos1.x;
+        if( pMechPosition.x > Cabine[ iCabn ].CabPos2.x )
+            pMechPosition.x = Cabine[ iCabn ].CabPos2.x;
+        if( pMechPosition.z < Cabine[ iCabn ].CabPos1.z )
+            pMechPosition.z = Cabine[ iCabn ].CabPos1.z;
+        if( pMechPosition.z > Cabine[ iCabn ].CabPos2.z )
+            pMechPosition.z = Cabine[ iCabn ].CabPos2.z;
+        if( pMechPosition.y > Cabine[ iCabn ].CabPos1.y + 1.8 )
+            pMechPosition.y = Cabine[ iCabn ].CabPos1.y + 1.8;
+        if( pMechPosition.y < Cabine[ iCabn ].CabPos1.y + 0.5 )
+            pMechPosition.y = Cabine[ iCabn ].CabPos2.y + 0.5;
 
-        if (pMechOffset.x < Cabine[iCabn].CabPos1.x)
-            pMechOffset.x = Cabine[iCabn].CabPos1.x;
-        if (pMechOffset.x > Cabine[iCabn].CabPos2.x)
-            pMechOffset.x = Cabine[iCabn].CabPos2.x;
-        if (pMechOffset.z < Cabine[iCabn].CabPos1.z)
-            pMechOffset.z = Cabine[iCabn].CabPos1.z;
-        if (pMechOffset.z > Cabine[iCabn].CabPos2.z)
-            pMechOffset.z = Cabine[iCabn].CabPos2.z;
-        if (pMechOffset.y > Cabine[iCabn].CabPos1.y + 1.8)
-            pMechOffset.y = Cabine[iCabn].CabPos1.y + 1.8;
-        if (pMechOffset.y < Cabine[iCabn].CabPos1.y + 0.5)
-            pMechOffset.y = Cabine[iCabn].CabPos2.y + 0.5;
+        if( pMechOffset.x < Cabine[ iCabn ].CabPos1.x )
+            pMechOffset.x = Cabine[ iCabn ].CabPos1.x;
+        if( pMechOffset.x > Cabine[ iCabn ].CabPos2.x )
+            pMechOffset.x = Cabine[ iCabn ].CabPos2.x;
+        if( pMechOffset.z < Cabine[ iCabn ].CabPos1.z )
+            pMechOffset.z = Cabine[ iCabn ].CabPos1.z;
+        if( pMechOffset.z > Cabine[ iCabn ].CabPos2.z )
+            pMechOffset.z = Cabine[ iCabn ].CabPos2.z;
+        if( pMechOffset.y > Cabine[ iCabn ].CabPos1.y + 1.8 )
+            pMechOffset.y = Cabine[ iCabn ].CabPos1.y + 1.8;
+        if( pMechOffset.y < Cabine[ iCabn ].CabPos1.y + 0.5 )
+            pMechOffset.y = Cabine[ iCabn ].CabPos2.y + 0.5;
     }
-    pMechPosition = DynamicObject->mMatrix *
-                    pNewMechPosition; // położenie względem środka pojazdu w układzie scenerii
-    pMechPosition += DynamicObject->GetPosition();
-
-    // framerate-independent speed reduction that doesn't break at high framerates...
-    Math3D::vector3 movementslowdown = vMechMovement * 35 * dt;
-    if( movementslowdown.LengthSquared() >= vMechMovement.LengthSquared() ) {
-        // if the reduction vector exceeds speed movement we're running at low fps,
-        // fallback on the old behaviour
-        vMechMovement *= 0.5;
-    }
-    else {
-        vMechMovement -= movementslowdown;
-        if( vMechMovement.LengthSquared() < 0.01 ) {
-            vMechMovement = Math3D::vector3();
-        }
-    }
-
 };
+
+// returns position of the mechanic in the scene coordinates
+vector3
+TTrain::GetWorldMechPosition() {
+
+    vector3 position = DynamicObject->mMatrix *pMechPosition; // położenie względem środka pojazdu w układzie scenerii
+    position += DynamicObject->GetPosition();
+    return position;
+}
 
 bool TTrain::Update( double const Deltatime )
 {

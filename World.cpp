@@ -13,11 +13,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-
 #include "World.h"
-
-#include "GL/glew.h"
-#include "GL/glut.h"
 
 #include "Globals.h"
 #include "Logs.h"
@@ -51,7 +47,7 @@ simulation_time Time;
 
 extern "C"
 {
-	GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window); //m7todo: potrzebne do directsound
+    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
 }
 
 void
@@ -356,7 +352,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
             Error("Player train doesn't exist!");
         }
         FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-		glfwSwapBuffers(window);
+        glfwSwapBuffers( window );
         Controlled = NULL;
         mvControlled = NULL;
         Camera.Type = tp_Free;
@@ -454,7 +450,7 @@ void TWorld::OnKeyDown(int cKey)
     // TODO: redo the input system
     if( ( cKey >= GLFW_KEY_0 ) && ( cKey <= GLFW_KEY_9 ) ) // klawisze cyfrowe
     {
-        int i = cKey - '0'; // numer klawisza
+        int i = cKey - GLFW_KEY_0; // numer klawisza
         if (Global::shiftState)
         { // z [Shift] uruchomienie eventu
             if (!Global::iPause) // podczas pauzy klawisze nie działają
@@ -463,11 +459,12 @@ void TWorld::OnKeyDown(int cKey)
         }
         else // zapamiętywanie kamery może działać podczas pauzy
             if (FreeFlyModeFlag) // w trybie latania można przeskakiwać do ustawionych kamer
-            if ((Global::iTextMode != GLFW_KEY_F12) &&
-                (Global::iTextMode != GLFW_KEY_F3)) // ograniczamy użycie kamer
+                if( ( Global::iTextMode != GLFW_KEY_F12 ) &&
+                    ( Global::iTextMode != GLFW_KEY_F3 ) ) // ograniczamy użycie kamer
             {
-                if ((!Global::FreeCameraInit[i].x && !Global::FreeCameraInit[i].y &&
-                     !Global::FreeCameraInit[i].z))
+                if ((!Global::FreeCameraInit[i].x)
+                 && (!Global::FreeCameraInit[i].y)
+                 && (!Global::FreeCameraInit[i].z))
                 { // jeśli kamera jest w punkcie zerowym, zapamiętanie współrzędnych i kątów
                     Global::FreeCameraInit[i] = Camera.Pos;
                     Global::FreeCameraInitAngle[i].x = Camera.Pitch;
@@ -475,15 +472,13 @@ void TWorld::OnKeyDown(int cKey)
                     Global::FreeCameraInitAngle[i].z = Camera.Roll;
                     // logowanie, żeby można było do scenerii przepisać
                     WriteLog(
-                        "camera " + std::to_string( Global::FreeCameraInit[i].x ) + " " +
-                        std::to_string(Global::FreeCameraInit[i].y ) + " " +
-                        std::to_string(Global::FreeCameraInit[i].z ) + " " +
-                        std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].x)) +
-                        " " +
-                        std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].y)) +
-                        " " +
-                        std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].z)) +
-                        " " + std::to_string(i) + " endcamera");
+                        "camera " + std::to_string( Global::FreeCameraInit[i].x ) + " "
+                        + std::to_string(Global::FreeCameraInit[i].y ) + " "
+                        + std::to_string(Global::FreeCameraInit[i].z ) + " "
+                        + std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].x)) + " "
+                        + std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].y)) + " "
+                        + std::to_string(RadToDeg(Global::FreeCameraInitAngle[i].z)) + " "
+                        + std::to_string(i) + " endcamera");
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global::pCameraPosition) jest trochę bez sensu
@@ -496,24 +491,24 @@ void TWorld::OnKeyDown(int cKey)
             }
         // będzie jeszcze załączanie sprzęgów z [Ctrl]
     }
-	else if (cKey >= GLFW_KEY_F1 && cKey <= GLFW_KEY_F12)
+    else if( ( cKey >= GLFW_KEY_F1 ) && ( cKey <= GLFW_KEY_F12 ) )
     {
         switch (cKey) {
             
             case GLFW_KEY_F1: {
                 if( DebugModeFlag ) {
                     // additional time speedup keys in debug mode
-                    if (Global::ctrlState) {
+                    if( Global::ctrlState ) {
                         // ctrl-f3
                         simulation::Time.update( 20.0 * 60.0 );
                     }
-                    else if (Global::shiftState) {
+                    else if( Global::shiftState ) {
                         // shift-f3
                         simulation::Time.update( 5.0 * 60.0 );
                     }
                 }
-                if( (!Global::ctrlState)
-                 && (!Global::shiftState) ) {
+                if( ( false == Global::ctrlState )
+                 && ( false == Global::shiftState ) ) {
                     // czas i relacja
                     if( Global::iTextMode == cKey ) { ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; }
                     if( Global::iScreenMode[ cKey - GLFW_KEY_F1 ] > 1 ) {
@@ -665,12 +660,12 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
         }
-        // if (cKey!=GLFW_KEY_F4)
+        // if (cKey!=VK_F4)
         return; // nie są przekazywane do pojazdu wcale
     }
-    if (Global::iTextMode == GLFW_KEY_F10) // wyświetlone napisy klawiszem F10
+    if( Global::iTextMode == GLFW_KEY_F10 ) // wyświetlone napisy klawiszem F10
     { // i potwierdzenie
-        if( cKey == 'Y' ) {
+        if( cKey == GLFW_KEY_Y ) {
             // flaga wyjścia z programu
             ::PostQuitMessage( 0 );
 //            Global::iTextMode = -1;
@@ -681,9 +676,9 @@ void TWorld::OnKeyDown(int cKey)
     { // tryb konfiguracji debugmode (przestawianie kamery już wyłączone
         if (!Global::shiftState) // bez [Shift]
         {
-            if (cKey == '1')
+            if (cKey == GLFW_KEY_1)
                 Global::iWriteLogEnabled ^= 1; // włącz/wyłącz logowanie do pliku
-            else if (cKey == '2')
+            else if (cKey == GLFW_KEY_2)
             { // włącz/wyłącz okno konsoli
                 Global::iWriteLogEnabled ^= 2;
                 if ((Global::iWriteLogEnabled & 2) == 0) // nie było okienka
@@ -711,10 +706,10 @@ void TWorld::OnKeyDown(int cKey)
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
 	}
-    else if (!Global::iPause) //||(cKey==GLFW_KEY_F4)) //podczas pauzy sterownaie nie działa, F4 tak
+    else if (!Global::iPause) //||(cKey==VK_F4)) //podczas pauzy sterownaie nie działa, F4 tak
         if (Train)
             if (Controlled)
-                if ((Controlled->Controller == Humandriver) ? true : DebugModeFlag || (cKey == 'Q'))
+                if ((Controlled->Controller == Humandriver) ? true : DebugModeFlag || (cKey == GLFW_KEY_Q))
                     Train->OnKeyDown(cKey); // przekazanie klawisza do kabiny
     if (FreeFlyModeFlag) // aby nie odluźniało wagonu za lokomotywą
     { // operacje wykonywane na dowolnym pojeździe, przeniesione tu z kabiny
@@ -931,25 +926,19 @@ void TWorld::FollowView(bool wycisz)
         }
         else if (Train)
         { // korekcja ustawienia w kabinie - OK
-            vector3 camStara =
-                Camera.Pos; // przestawianie kamery jest bez sensu: do przerobienia na potem
+            vector3 camStara = Camera.Pos; // przestawianie kamery jest bez sensu: do przerobienia na potem
             // Ra: czy to tu jest potrzebne, bo przelicza się kawałek dalej?
             Camera.Pos = Train->pMechPosition; // Train.GetPosition1();
-            Camera.Roll = atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
-            Camera.Pitch -=
-                atan(Train->vMechVelocity.z * Train->fMechPitch); // hustanie kamery przod tyl
+            Camera.Roll = std::atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
+            Camera.Pitch -= 0.5 * std::atan(Train->vMechVelocity.z * Train->fMechPitch); // hustanie kamery przod tyl
             if (Train->Dynamic()->MoverParameters->ActiveCab == 0)
-                Camera.LookAt = Train->pMechPosition + Train->GetDirection();
+                Camera.LookAt = Train->pMechPosition + Train->GetDirection() * 5.0;
             else // patrz w strone wlasciwej kabiny
-                Camera.LookAt =
-                    Train->pMechPosition +
-                    Train->GetDirection() * Train->Dynamic()->MoverParameters->ActiveCab;
+                Camera.LookAt = Train->pMechPosition + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab;
             Train->pMechOffset.x = Train->pMechSittingPosition.x;
             Train->pMechOffset.y = Train->pMechSittingPosition.y;
             Train->pMechOffset.z = Train->pMechSittingPosition.z;
-            Global::SetCameraPosition(
-                Train->Dynamic()
-                    ->GetPosition()); // tu ustawić nową, bo od niej liczą się odległości
+            Global::SetCameraPosition( Train->Dynamic() ->GetPosition()); // tu ustawić nową, bo od niej liczą się odległości
             if (wycisz) // trzymanie prawego w kabinie daje marny efekt
                 Ground.Silence(camStara); // wyciszenie dźwięków z poprzedniej pozycji
         }
@@ -1016,8 +1005,8 @@ bool TWorld::Update()
     }
 */
 /*
-    // NOTE: until we have no physics state interpolation during render, we need to rely on the old code
-    // doing fixed step calculations but flexible step render results in ugly mini jitter
+    // NOTE: until we have no physics state interpolation during render, we need to rely on the old code,
+    // as doing fixed step calculations but flexible step render results in ugly mini jitter
     // core routines (physics)
     int updatecount = 0;
     while( ( m_primaryupdateaccumulator >= m_primaryupdaterate )
@@ -1107,7 +1096,7 @@ bool TWorld::Update()
     // fixed step render time routines
 
     fTime50Hz += dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
-    if( fTime50Hz >= 0.2 ) {
+    while( fTime50Hz >= 1.0 / 50.0 ) {
         Console::Update(); // to i tak trzeba wywoływać
         Update_UI();
 
@@ -1132,8 +1121,7 @@ bool TWorld::Update()
 };
 
 void
-TWorld::Update_Camera( double const Deltatime )
-{
+TWorld::Update_Camera( double const Deltatime ) {
     // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
 
     if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
@@ -1176,77 +1164,70 @@ TWorld::Update_Camera( double const Deltatime )
     }
 
     Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
-
+/*
     if( Camera.Type == tp_Follow ) {
         if( Train ) { // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
             Train->UpdateMechPosition( Deltatime /
                 Global::fTimeSpeed ); // ograniczyć telepanie po przyspieszeniu
-            vector3 tempangle;
-            double modelrotate;
-            tempangle =
-                Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
-            modelrotate = atan2( -tempangle.x, tempangle.z );
-            if( Global::ctrlState ? ( Console::Pressed( Global::Keys[ k_MechLeft ] ) ||
-                Console::Pressed( Global::Keys[ k_MechRight ] ) ) :
-                false ) { // jeśli lusterko lewe albo prawe (bez rzucania na razie)
-                bool lr = Console::Pressed( Global::Keys[ k_MechLeft ] );
-                // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
-                Camera.Pos =
-                    Controlled->GetPosition() + Train->MirrorPosition( lr ); // pozycja lusterka
-                Camera.Yaw = 0; // odchylenie na bok od Camera.LookAt
-                if( Train->Dynamic()->MoverParameters->ActiveCab == 0 )
-                    Camera.LookAt = Camera.Pos - Train->GetDirection(); // gdy w korytarzu
-                else if( Global::shiftState ) { // patrzenie w bok przez szybę
-                    Camera.LookAt = Camera.Pos -
-                        ( lr ? -1 : 1 ) * Train->Dynamic()->VectorLeft() *
-                        Train->Dynamic()->MoverParameters->ActiveCab;
-                    Global::SetCameraRotation( -modelrotate );
-                }
-                else { // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny - jakby z lusterka,
-                    // ale bez odbicia
-                    Camera.LookAt = Camera.Pos -
-                        Train->GetDirection() *
-                        Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
-                    Global::SetCameraRotation( M_PI -
-                        modelrotate ); // tu już trzeba uwzględnić lusterka
-                }
-                Camera.Roll =
-                    atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
-                Camera.Pitch =
-                    atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl
-                Camera.vUp = Controlled->VectorUp();
-            }
-            else { // patrzenie standardowe
-                Camera.Pos = Train->pMechPosition; // Train.GetPosition1();
-                if( !Global::iPause ) { // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
-                    Camera.Roll =
-                        atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
-                    Camera.Pitch -= atan( Train->vMechVelocity.z *
-                        Train->fMechPitch ); // hustanie kamery przod tyl //Ra: tu
-                    // jest uciekanie kamery w górę!!!
-                }
-                // ABu011104: rzucanie pudlem
-                vector3 temp;
-                if( abs( Train->pMechShake.y ) < 0.25 )
-                    temp = vector3( 0, 0, 6 * Train->pMechShake.y );
-                else if( ( Train->pMechShake.y ) > 0 )
-                    temp = vector3( 0, 0, 6 * 0.25 );
-                else
-                    temp = vector3( 0, 0, -6 * 0.25 );
-                if( Controlled )
-                    Controlled->ABuSetModelShake( temp );
-                // ABu: koniec rzucania
+*/
+    if( (Train != nullptr)
+     && (Camera.Type == tp_Follow )) {
+        // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
+        vector3 tempangle = Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
+        double modelrotate = atan2( -tempangle.x, tempangle.z );
 
-                if( Train->Dynamic()->MoverParameters->ActiveCab == 0 )
-                    Camera.LookAt = Train->pMechPosition + Train->GetDirection(); // gdy w korytarzu
-                else // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny
-                    Camera.LookAt = Train->pMechPosition +
-                    Train->GetDirection() *
-                    Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
-                Camera.vUp = Train->GetUp();
-                Global::SetCameraRotation( Camera.Yaw -
-                    modelrotate ); // tu już trzeba uwzględnić lusterka
+        if( (Global::ctrlState)
+         && ( (Console::Pressed( Global::Keys[ k_MechLeft ])
+           || (Console::Pressed( Global::Keys[ k_MechRight ]))))) {
+            // jeśli lusterko lewe albo prawe (bez rzucania na razie)
+            bool lr = Console::Pressed( Global::Keys[ k_MechLeft ] );
+            // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
+            Camera.Pos = Controlled->GetPosition() + Train->MirrorPosition( lr ); // pozycja lusterka
+            Camera.Yaw = 0; // odchylenie na bok od Camera.LookAt
+            if( Train->Dynamic()->MoverParameters->ActiveCab == 0 )
+                Camera.LookAt = Camera.Pos - Train->GetDirection(); // gdy w korytarzu
+            else if( Global::shiftState ) {
+                // patrzenie w bok przez szybę
+                Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * Train->Dynamic()->VectorLeft() * Train->Dynamic()->MoverParameters->ActiveCab;
+                Global::SetCameraRotation( -modelrotate );
             }
+            else { // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny - jakby z lusterka,
+                // ale bez odbicia
+                Camera.LookAt = Camera.Pos - Train->GetDirection() * Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
+                Global::SetCameraRotation( M_PI - modelrotate ); // tu już trzeba uwzględnić lusterka
+            }
+            Camera.Roll = std::atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
+            Camera.Pitch = 0.5 * std::atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl
+            Camera.vUp = Controlled->VectorUp();
+        }
+        else {
+            // patrzenie standardowe
+            Camera.Pos = Train->GetWorldMechPosition(); // Train.GetPosition1();
+            if( !Global::iPause ) { // podczas pauzy nie przeliczać kątów przypadkowymi wartościami
+                Camera.Roll = atan( Train->pMechShake.x * Train->fMechRoll ); // hustanie kamery na boki
+                Camera.Pitch -= 0.5 * atan( Train->vMechVelocity.z * Train->fMechPitch ); // hustanie kamery przod tyl //Ra: tu
+                // jest uciekanie kamery w górę!!!
+            }
+            // ABu011104: rzucanie pudlem
+/*
+            vector3 temp;
+            if( abs( Train->pMechShake.y ) < 0.25 )
+                temp = vector3( 0, 0, 6 * Train->pMechShake.y );
+            else if( ( Train->pMechShake.y ) > 0 )
+                temp = vector3( 0, 0, 6 * 0.25 );
+            else
+                temp = vector3( 0, 0, -6 * 0.25 );
+            if( Controlled )
+                Controlled->ABuSetModelShake( temp );
+            // ABu: koniec rzucania
+*/
+
+            if( Train->Dynamic()->MoverParameters->ActiveCab == 0 )
+                Camera.LookAt = Train->GetWorldMechPosition() + Train->GetDirection() * 5.0; // gdy w korytarzu
+            else // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny
+                Camera.LookAt = Train->GetWorldMechPosition() + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab; //-1 albo 1
+            Camera.vUp = Train->GetUp();
+            Global::SetCameraRotation( Camera.Yaw - modelrotate ); // tu już trzeba uwzględnić lusterka
         }
     }
     else { // kamera nieruchoma
@@ -1462,7 +1443,7 @@ TWorld::Render_Cab() {
 
                 glBlendFunc( GL_DST_COLOR, GL_ONE );
                 glDepthFunc( GL_GEQUAL );
-                glAlphaFunc( GL_GREATER, 0.004f );
+                glAlphaFunc( GL_GREATER, 0.004 );
                 // glDisable(GL_DEPTH_TEST);
                 glDisable( GL_LIGHTING );
                 glDisable( GL_FOG );
@@ -1500,7 +1481,7 @@ TWorld::Render_Cab() {
 
                 glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
                 // glEnable(GL_DEPTH_TEST);
-                glAlphaFunc( GL_GREATER, 0.04f );
+                glAlphaFunc( GL_GREATER, 0.04 );
                 glDepthFunc( GL_LEQUAL );
                 glEnable( GL_LIGHTING ); //i tak się włączy potem
                 glEnable( GL_FOG );
@@ -1534,17 +1515,17 @@ TWorld::Render_Cab() {
             case e_canyon:
             {
                 for( int li = 0; li < 3; li++ ) {
-                    diffuseCabLight[ li ] *= 0.6f;
-                    specularCabLight[ li ] *= 0.7f;
+                    diffuseCabLight[ li ] *= 0.6;
+                    specularCabLight[ li ] *= 0.7;
                 }
             }
             break;
             case e_tunnel:
             {
                 for( int li = 0; li < 3; li++ ) {
-                    ambientCabLight[ li ] *= 0.3f;
-                    diffuseCabLight[ li ] *= 0.1f;
-                    specularCabLight[ li ] *= 0.2f;
+                    ambientCabLight[ li ] *= 0.3;
+                    diffuseCabLight[ li ] *= 0.1;
+                    specularCabLight[ li ] *= 0.2;
                 }
             }
             break;
@@ -2531,15 +2512,12 @@ TWorld::ToggleDaylight() {
 
 void
 world_environment::init() {
-
 	m_skydome.init();
     m_sun.init();
     m_moon.init();
     m_stars.init();
     m_clouds.Init();
 }
-
-extern TWorld World;
 
 void
 world_environment::update() {
