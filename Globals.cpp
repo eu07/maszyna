@@ -78,11 +78,12 @@ double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
 std::vector<vector3> Global::FreeCameraInitAngle;
-double Global::fFogStart = 1700;
-double Global::fFogEnd = 2000;
 float Global::Background[3] = {0.2f, 0.4f, 0.33f};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
+double Global::fFogStart = 1700;
+double Global::fFogEnd = 2000;
+float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
 GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};
@@ -134,7 +135,6 @@ int Global::iDefaultFiltering = 9; // domyślne rozmywanie tekstur TGA bez alfa
 int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
 int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
 int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
-bool Global::bUseVBO = true; // czy jest VBO w karcie graficznej (czy użyć)
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
@@ -479,13 +479,6 @@ void Global::ConfigParse(cParser &Parser)
 
             Parser.getTokens( 1, false );
             Parser >> Global::AnisotropicFiltering;
-        }
-        else if( token == "usevbo" )
-        {
-			/*
-            Parser.getTokens();
-            Parser >> Global::bUseVBO;
-			*/
         }
         else if (token == "feedbackmode")
         {

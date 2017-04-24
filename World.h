@@ -15,24 +15,65 @@ http://mozilla.org/MPL/2.0/.
 #include "Ground.h"
 #include "sky.h"
 #include "sun.h"
+#include "moon.h"
 #include "stars.h"
 #include "skydome.h"
 #include "mczapkie/mover.h"
-#include "renderer.h"
+
+// wrapper for simulation time
+class simulation_time {
+
+public:
+    simulation_time() { m_time.wHour = 10; m_time.wMinute = 30; }
+    void
+        init();
+    void
+        update( double const Deltatime );
+    SYSTEMTIME &
+        data() { return m_time; }
+    SYSTEMTIME const &
+        data() const { return m_time; }
+    double
+        second() const { return ( m_time.wMilliseconds * 0.001 + m_time.wSecond ); }
+    int
+        year_day() const { return m_yearday; }
+    int
+        julian_day() const;
+
+private:
+    // calculates day of year from given date
+    int
+        yearday( int Day, int const Month, int const Year );
+    // calculates day and month from given day of year
+    void
+        daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday );
+
+    SYSTEMTIME m_time;
+    int m_yearday;
+    char m_monthdaycounts[ 2 ][ 13 ];
+};
+
+namespace Simulation {
+
+extern simulation_time Time;
+
+}
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
 
+    friend opengl_renderer;
+
 public:
     void init();
     void update();
-    void render();
     void time( int const Hour = -1, int const Minute = -1, int const Second = -1 );
 
 private:
     CSkyDome m_skydome;
     cStars m_stars;
     cSun m_sun;
+    cMoon m_moon;
     TSky m_clouds;
 };
 
@@ -45,11 +86,19 @@ class TWorld
     void FollowView(bool wycisz = true);
     void DistantView( bool const Near = false );
 
-  public:
+public:
+// types
+
+// constructors
+TWorld();
+
+// destructor
+~TWorld();
+
+// methods
     bool Init( GLFWwindow *w );
     bool InitPerformed() { return m_init; }
     GLFWwindow *window;
-    GLvoid glPrint(std::string const &Text);
     void OnKeyDown(int cKey);
     void OnKeyUp(int cKey);
     // void UpdateWindow();
@@ -59,19 +108,14 @@ class TWorld
     void TrainDelete(TDynamicObject *d = NULL);
     // switches between static and dynamic daylight calculation
     void ToggleDaylight();
-    TWorld();
-    ~TWorld();
-    // double Aspect;
-  private:
-    std::string OutText1; // teksty na ekranie
-    std::string OutText2;
-    std::string OutText3;
-    std::string OutText4;
+
+private:
     void Update_Environment();
     void Update_Camera( const double Deltatime );
     void Update_UI();
     void ResourceSweep();
     void Render_Cab();
+
     TCamera Camera;
     TGround Ground;
     world_environment Environment;

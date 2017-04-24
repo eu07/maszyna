@@ -18,11 +18,16 @@ cStars::render() {
     ::glPushMatrix();
 
     ::glRotatef( m_latitude, 1.0f, 0.0f, 0.0f ); // ustawienie osi OY na północ
-    ::glRotatef( -std::fmod( Global::fTimeAngleDeg, 360.0f ), 0.0f, 1.0f, 0.0f ); // obrót dobowy osi OX
+    ::glRotatef( -std::fmod( (float)Global::fTimeAngleDeg, 360.0f ), 0.0f, 1.0f, 0.0f ); // obrót dobowy osi OX
 
     ::glPointSize( 2.0f );
 #ifdef EU07_USE_OLD_RENDERCODE
-    m_stars.Render( 1.0 );
+    if( Global::bUseVBO ) {
+        m_stars.RaRender( 1.0, 0 );
+    }
+    else {
+        m_stars.Render( 1.0 );
+    }
 #else
     GfxRenderer.Render( &m_stars, nullptr, 1.0 );
 #endif

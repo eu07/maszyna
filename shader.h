@@ -35,8 +35,8 @@ public:
 	gl_program_mvp() = default;
 	gl_program_mvp(std::vector<gl_shader>);
 
-	void set_mv(glm::mat4 &);
-	void set_p(glm::mat4 &);
+	void set_mv(const glm::mat4 &);
+	void set_p(const glm::mat4 &);
 	void copy_gl_mvp();
 };
 
@@ -55,16 +55,14 @@ public:
 	gl_program_light() = default;
 	gl_program_light(std::vector<gl_shader>);
 
-	void set_ambient(float3 &ambient);
+	void set_ambient(glm::vec3 &ambient);
 	void set_light_count(GLuint count);
-	void set_light(GLuint id, type t, float3 &pos, float3 &dir, float in_cutoff, float out_cutoff,
-	               float3 &color, float linear, float quadratic);
-	void set_object(float specular);
+	void set_light(GLuint id, type t, glm::vec3 &pos, glm::vec3 &dir, float in_cutoff, float out_cutoff,
+		glm::vec3 &color, float linear, float quadratic);
 
 private:
 	GLuint lcount_uniform;
 	GLuint ambient_uniform;
-	GLuint specular_uniform;
 	struct light_s
 	{
 		GLuint type;

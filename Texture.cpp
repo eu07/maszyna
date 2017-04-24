@@ -66,6 +66,8 @@ opengl_texture::load() {
 fail:
     data_state = resource_state::failed;
     ErrorLog( "Failed to load texture \"" + name + "\"" );
+    // NOTE: temporary workaround for texture assignment errors
+    id = 0;
     return;
 }
 
@@ -252,6 +254,7 @@ opengl_texture::load_DDS() {
         data_width /= 2;
         data_height /= 2;
         --data_mapcount;
+        WriteLog( "Texture size exceeds specified limits, skipping mipmap level" );
     };
 
     if( data_mapcount <= 0 ) {
@@ -580,9 +583,9 @@ opengl_texture::create() {
                 dataheight = std::max( dataheight / 2, 1 );
             }
             else {
-                // uncompressed texture data
+                // uncompressed texture data. have the gfx card do the compression as it sees fit
                 ::glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_RGBA8,
+                    GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA,
                     data_width, data_height, 0,
                     data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
             }
@@ -676,6 +679,7 @@ opengl_texture::downsize( GLuint const Format ) {
             break;
         }
 
+        WriteLog( "Texture size exceeds specified limits, downsampling data" );
         switch( Format ) {
 
             case GL_RGB:  { downsample< glm::tvec3<std::uint8_t> >( data_width, data_height, data.data() ); break; }
@@ -817,8 +821,9 @@ texture_manager::Bind( texture_manager::size_type const Id ) {
     // TODO: do binding in texture object, add support for other types
     if( Id != 0 ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
-        ::glBindTexture( GL_TEXTURE_2D, Id );
-        m_activetexture = 0;
+        // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
+        ::glBindTexture( GL_TEXTURE_2D, Texture(Id).id );
+        m_activetexture = Texture(Id).id;
 #else
         if( Texture( Id ).bind() == resource_state::good ) {
             m_activetexture = Id;

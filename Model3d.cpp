@@ -317,15 +317,21 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         }
         std::string discard;
         parser.getTokens(13, false);
-        parser >> fNearAttenStart >> discard >> fNearAttenEnd >> discard >> bUseNearAtten >>
-            discard >> iFarAttenDecay >> discard >> fFarDecayRadius >> discard >>
-            fCosFalloffAngle // kąt liczony dla średnicy, a nie promienia
+        parser
+            >> fNearAttenStart
+            >> discard >> fNearAttenEnd
+            >> discard >> bUseNearAtten
+            >> discard >> iFarAttenDecay
+            >> discard >> fFarDecayRadius
+            >> discard >> fCosFalloffAngle // kąt liczony dla średnicy, a nie promienia
             >> discard >> fCosHotspotAngle; // kąt liczony dla średnicy, a nie promienia
-        fCosFalloffAngle = cos(DegToRad(0.5 * fCosFalloffAngle));
-        fCosHotspotAngle = cos(DegToRad(0.5 * fCosHotspotAngle));
+        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
         iNumVerts = 1;
-        iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi
-        // zostać bez zmiany
+/*
+        iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi zostać bez zmiany
+*/
+        iFlags |= 0x4030; // drawn both in solid (light point) and transparent (light glare) phases
     }
     else if (eType < TP_ROTATOR)
     {
@@ -637,91 +643,8 @@ float8 *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
 };
 
 void TSubModel::DisplayLists()
-{ // utworznie po jednej skompilowanej liście dla
-  // każdego submodelu
-	if (Global::bUseVBO)
-		return; // Ra: przy VBO to się nie przyda
-				// iFlags|=0x4000; //wyłączenie przeliczania wierzchołków, bo nie są zachowane
-	if (eType < TP_ROTATOR)
-	{
-		if (iNumVerts > 0)
-		{
-			uiDisplayList = glGenLists(1);
-			glNewList(uiDisplayList, GL_COMPILE);
-			glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
-#ifdef USE_VERTEX_ARRAYS
-								   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
-			glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
-			glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
-			glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
-			glDrawArrays(eType, 0, iNumVerts);
-#else
-			glBegin(eType);
-			for (int i = 0; i < iNumVerts; i++)
-			{
-				/*
-				glNormal3dv(&Vertices[i].Normal.x);
-				glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-				glVertex3dv(&Vertices[i].Point.x);
-				*/
-				glNormal3fv(&Vertices[i].Normal.x);
-				glTexCoord2f(Vertices[i].tu, Vertices[i].tv);
-				glVertex3fv(&Vertices[i].Point.x);
-			};
-			glEnd();
-#endif
-            glEndList();
-        }
-    }
-    else if (eType == TP_FREESPOTLIGHT)
-    {
-        uiDisplayList = glGenLists(1);
-        glNewList(uiDisplayList, GL_COMPILE);
-        GfxRenderer.Bind(0);
-        //     if (eType==smt_FreeSpotLight)
-        //      {
-        //       if (iFarAttenDecay==0)
-        //         glColor3f(Diffuse[0],Diffuse[1],Diffuse[2]);
-        //      }
-        //      else
-        // TODO: poprawic zeby dzialalo
-        // glColor3f(f4Diffuse[0],f4Diffuse[1],f4Diffuse[2]);
-        glColorMaterial(GL_FRONT, GL_EMISSION);
-        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
-        glBegin(GL_POINTS);
-        glVertex3f( 0.0f, 0.0f, -0.05f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
-        glEnd();
-        glEnable(GL_LIGHTING);
-        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-        glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-        glEndList();
-    }
-    else if (eType == TP_STARS)
-    { // punkty świecące dookólnie
-        uiDisplayList = glGenLists(1);
-        glNewList(uiDisplayList, GL_COMPILE);
-        GfxRenderer.Bind(0); // tekstury nie ma
-        glColorMaterial(GL_FRONT, GL_EMISSION);
-//        glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
-        glBegin(GL_POINTS);
-        for (int i = 0; i < iNumVerts; i++)
-        {
-            glColor3f(Vertices[i].Normal.x, Vertices[i].Normal.y, Vertices[i].Normal.z);
-            // glVertex3dv(&Vertices[i].Point.x);
-            glVertex3fv(&Vertices[i].Point.x);
-        };
-        glEnd();
-//        glEnable(GL_LIGHTING);
-        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-        glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-        glEndList();
-    }
-    // SafeDeleteArray(Vertices); //przy VBO muszą zostać do załadowania całego
-    // modelu
-    if (Child)
-        Child->DisplayLists();
-    if (Next)
-        Next->DisplayLists();
+{
+	return;
 };
 
 void TSubModel::InitialRotate(bool doit)
@@ -976,22 +899,22 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		break;
 	case at_SecondsJump: // sekundy z przeskokiem
-		m = glm::rotate(m, glm::radians((float)floor(GlobalTime->mr) * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(Simulation::Time.data().wSecond * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_MinutesJump: // minuty z przeskokiem
-		m = glm::rotate(m, glm::radians(GlobalTime->mm * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(Simulation::Time.data().wMinute * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_HoursJump: // godziny skokowo 12h/360°
-		m = glm::rotate(m, glm::radians(GlobalTime->hh * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(Simulation::Time.data().wHour * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours24Jump: // godziny skokowo 24h/360°
-		m = glm::rotate(m, glm::radians(GlobalTime->hh * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(Simulation::Time.data().wHour * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Seconds: // sekundy płynnie
-		m = glm::rotate(m, glm::radians((float)GlobalTime->mr * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians((float)Simulation::Time.second() * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Minutes: // minuty płynnie
-		m = glm::rotate(m, glm::radians((float)(GlobalTime->mm * 6.0 + GlobalTime->mr * 0.1)), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(Simulation::Time.data().wMinute * 6.0f + (float)Simulation::Time.second() * 0.1f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours: // godziny płynnie 12h/360°
 				   // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
@@ -1007,18 +930,20 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		matrix4x4 mat; // potrzebujemy współrzędne przesunięcia środka układu
 					   // współrzędnych submodelu
 		glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray()); // pobranie aktualnej matrycy
-		float3 gdzie = float3(mat[3][0], mat[3][1],
-			mat[3][2]); // początek układu współrzędnych submodelu względem kamery
+
+        matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
+		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
 		glLoadIdentity(); // macierz jedynkowa
 		glTranslatef(gdzie.x, gdzie.y, gdzie.z); // początek układu zostaje bez
 												 // zmian
 		glRotated(atan2(gdzie.x, gdzie.z) * 180.0 / M_PI, 0.0, 1.0,
 			0.0); // jedynie obracamy w pionie o kąt
-		*/ //m7todo: restore
+		*/
+		//m7todo: restore
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
-		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * GlobalTime->mr / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * Simulation::Time.second() / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Sky: // animacja nieba
 		m = glm::rotate(m, glm::radians((float)Global::fLatitudeDeg), glm::vec3(0.0f, 1.0f, 0.0f)); // ustawienie osi OY na północ
@@ -1052,6 +977,7 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 	}
 };
 
+#ifdef EU07_USE_OLD_RENDERCODE
 void TSubModel::RenderDL()
 { // główna procedura renderowania przez DL
 	return;
@@ -1275,8 +1201,11 @@ void TSubModel::RenderVBO(glm::mat4 m)
         }
         else if (eType == TP_FREESPOTLIGHT)
         { // wersja VBO
+/*
             matrix4x4 mat; // macierz opisuje układ renderowania względem kamery
             glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray());
+*/
+            matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
             // kąt między kierunkiem światła a współrzędnymi kamery
             vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu świecącego względem kamery
             fCosViewAngle = DotProduct(Normalize(mat * vector3(0, 0, 1) - gdzie), Normalize(gdzie));
@@ -1398,7 +1327,7 @@ void TSubModel::RenderAlphaVBO(glm::mat4 m)
         if (iAlpha & iFlags & 0x2F000000)
             Next->RenderAlphaVBO(m);
 }; // RaRenderAlpha
-
+#endif
    //---------------------------------------------------------------------------
 
 void TSubModel::RaArrayFill(CVertNormTex *Vert)
@@ -1956,8 +1885,6 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 		pName = "";
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
-	  // TextureID=TTexturesManager::GetTextureID(t->String(TextureID));
-	  // asTexture=AnsiString(t->String(iTexture));
 		pTexture = t->at(iTexture);
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
@@ -1966,9 +1893,17 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
     }
 	else
 		TextureID = iTexture;
+
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
-	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem
-					   // tablic)
+
+    if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
+        // we've added light glare which needs to be rendered during transparent phase,
+        // but models converted to e3d before addition won't have the render flag set correctly for this
+        // so as a workaround we're doing it here manually
+        iFlags |= 0x20;
+    }
+	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
+
 	iVboPtr = tVboPtr;
 	Vertices = v + iVboPtr;
 	// if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, żeby się nie
@@ -2074,22 +2009,15 @@ void TModel3d::Init()
 				Root->AdjustDist(); // aktualizacja odległości faz LoD, zależnie od
 									// rozdzielczości pionowej oraz multisamplingu
 */
-			if (Global::bUseVBO)
-			{
-				if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku
-							 // tekstowego)
-				{ // tworzenie tymczasowej tablicy z wierzchołkami całego modelu
-					MakeArray(iNumVerts); // tworzenie tablic dla VBO
-					Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
-					BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamięci
-				}
-				else
-					BuildVBOs(false); // tworzenie VBO bez usuwania tablicy z pamięci
+			if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku
+							// tekstowego)
+			{ // tworzenie tymczasowej tablicy z wierzchołkami całego modelu
+				MakeArray(iNumVerts); // tworzenie tablic dla VBO
+				Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
+				BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamięci
 			}
 			else
-			{ // przygotowanie skompilowanych siatek dla DisplayLists
-				Root->DisplayLists(); // tworzenie skompilowanej listy dla submodelu
-			}
+				BuildVBOs(false); // tworzenie VBO bez usuwania tablicy z pamięci
 			// if (Root->TextureID) //o ile ma teksturę
 			// Root->iFlags|=0x80; //konieczność ustawienia tekstury
 		}
@@ -2122,7 +2050,7 @@ void TModel3d::RenderAlpha(double fSquareDistance, texture_manager::size_type *R
 		Root->RenderAlphaDL();
 	}
 };
-#endif
+
 void TModel3d::RaRender(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
 { // renderowanie specjalne, np. kabiny
 	iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
@@ -2166,7 +2094,7 @@ void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type 
 		}
 	}
 };
-
+#endif
 //-----------------------------------------------------------------------------
 // 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
@@ -2205,7 +2133,7 @@ void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager:
 	Root->RenderAlphaDL();
 	glPopMatrix();
 };
-#endif
+
 void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
 { // nieprzezroczyste, VBO
 	glPushMatrix();
@@ -2261,7 +2189,7 @@ void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manage
 	}
 	glPopMatrix();
 };
-
+#endif
 
 //-----------------------------------------------------------------------------
 // 2012-02 funkcje do tworzenia terenu z E3D
@@ -2313,9 +2241,8 @@ void TModel3d::TerrainRenderVBO(int n)
 		TSubModel *r = Root;
 		while (r)
 		{
-			if (r->iVisible ==
-				n) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
-				r->RenderVBO(glm::make_mat4(mv)); // sub kolejne (Next) się nie wyrenderują
+			if (r->iVisible == n) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
+				GfxRenderer.Render(r); // sub kolejne (Next) się nie wyrenderują
 			r = r->NextGet();
 		}
 		EndVBO();

@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "mtable.h"
 #include "usefull.h"
+#include "world.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
@@ -32,7 +33,7 @@ void
 cSun::update() {
 
     move();
-    Math3D::vector3 position( 0.0f, 0.0f, -2000.0f );
+    Math3D::vector3 position( 0.0f, 0.0f, -2000.0f * Global::fDistanceFactor );
     position.RotateX( (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
     position.RotateY( (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
 
@@ -48,8 +49,6 @@ cSun::render() {
 	GLfloat LightPosition[]= { 10.0f, 50.0f, -5.0f, 1.0f };		// ambient
 	glLightfv(GL_LIGHT1, GL_POSITION, LightPosition );
 */
-	glDisable(GL_LIGHTING);
-	glDisable(GL_FOG);
 	glColor4f( 255.0f/255.0f, 242.0f/255.0f, 231.0f/255.0f, 1.f );
 	// debug line to locate the sun easier
 	Math3D::vector3 position = m_position;
@@ -62,8 +61,6 @@ cSun::render() {
 	// radius is a result of scaling true distance down to 2km -- it's scaled by equal ratio
 	gluSphere( sunsphere, (float)(m_body.distance * 9.359157), 12, 12 );
 	glPopMatrix();
-	glEnable(GL_FOG);
-	glEnable(GL_LIGHTING);
 }
 
 Math3D::vector3
@@ -99,8 +96,8 @@ void cSun::setLocation( float const Longitude, float const Latitude ) {
 void cSun::setTime( int const Hour, int const Minute, int const Second ) {
 
     m_observer.hour = clamp( Hour, -1, 23 );
-    m_observer.minute = clamp( Minute, 0, 59 );
-    m_observer.second = clamp( Second, 0, 59 );
+    m_observer.minute = clamp( Minute, -1, 59 );
+    m_observer.second = clamp( Second, -1, 59 );
 }
 
 void cSun::setTemperature( float const Temperature ) {
@@ -115,106 +112,109 @@ void cSun::setPressure( float const Pressure ) {
 
 void cSun::move() {
 
-	static double degrad = 57.295779513;					// converts from radians to degrees
-	static double raddeg = 0.0174532925;					// converts from degrees to radians
+    static double radtodeg = 57.295779513; // converts from radians to degrees
+    static double degtorad = 0.0174532925; // converts from degrees to radians
 
-    SYSTEMTIME localtime; // time for the calculation
-    time( &localtime );
+    SYSTEMTIME localtime = Simulation::Time.data(); // time for the calculation
 
-    if( m_observer.hour >= 0 )   { localtime.wHour = m_observer.hour; }
+    if( m_observer.hour >= 0 ) { localtime.wHour = m_observer.hour; }
     if( m_observer.minute >= 0 ) { localtime.wMinute = m_observer.minute; }
     if( m_observer.second >= 0 ) { localtime.wSecond = m_observer.second; }
 
     double ut = localtime.wHour
-              + localtime.wMinute / 60.0 // too low resolution, noticeable skips
-              + localtime.wSecond / 3600.0; // good enough in normal circumstances
-/*
-			  + localtime.wMilliseconds / 3600000.0; // for really smooth movement
-*/
-	double daynumber = 367 * localtime.wYear
-					 - 7 * ( localtime.wYear + ( localtime.wMonth + 9 ) /12 ) / 4
-					 + 275 * localtime.wMonth / 9
-					 + localtime.wDay
-					 - 730530
-					 + (ut / 24.0);
+        + localtime.wMinute / 60.0 // too low resolution, noticeable skips
+        + localtime.wSecond / 3600.0; // good enough in normal circumstances
+    /*
+    + localtime.wMilliseconds / 3600000.0; // for really smooth movement
+    */
+    double daynumber = 367 * localtime.wYear
+        - 7 * ( localtime.wYear + ( localtime.wMonth + 9 ) / 12 ) / 4
+        + 275 * localtime.wMonth / 9
+        + localtime.wDay
+        - 730530
+        + ( ut / 24.0 );
 
-	// Universal Coordinated (Greenwich standard) time
+    // Universal Coordinated (Greenwich standard) time
     m_observer.utime = ut * 3600.0;
     m_observer.utime = m_observer.utime / 3600.0 - m_observer.timezone;
-
-	// mean longitude
-    m_body.mnlong  = 280.460 + 0.9856474 * daynumber;
-	m_body.mnlong -= 360.0 * (int) ( m_body.mnlong / 360.0 );	// clamp the range to 0-360
-	if( m_body.mnlong < 0.0 ) m_body.mnlong += 360.0;
-
-	// mean anomaly
-    m_body.mnanom  = 357.528 + 0.9856003 * daynumber;
-	m_body.mnanom -= 360.0 * (int) ( m_body.mnanom / 360.0 );	// clamp the range to 0-360
-	if( m_body.mnanom < 0.0 ) m_body.mnanom += 360.0;
-
-	// ecliptic longitude
-    m_body.eclong =	m_body.mnlong
-					+ 1.915 * sin( m_body.mnanom * raddeg )
-					+ 0.020 * sin ( 2.0 * m_body.mnanom * raddeg );
-	m_body.eclong -= 360.0 * (int)( m_body.eclong / 360.0 );
-    if( m_body.eclong < 0.0 ) m_body.eclong += 360.0;			// clamp the range to 0-360
-
+    // perihelion longitude
+    m_body.phlong = 282.9404 + 4.70935e-5 * daynumber; // w
+    // orbit eccentricity
+    double const e = 0.016709 - 1.151e-9 * daynumber;
+    // mean anomaly
+    m_body.mnanom = clamp_circular( 356.0470 + 0.9856002585 * daynumber ); // M
     // obliquity of the ecliptic
-    m_body.ecobli = 23.439 - 4.0e-07 * daynumber;
+    m_body.oblecl = 23.4393 - 3.563e-7 * daynumber;
+    // mean longitude
+    m_body.mnlong = clamp_circular( m_body.phlong + m_body.mnanom ); // L = w + M
+    // eccentric anomaly
+    double const E = m_body.mnanom + radtodeg * e * std::sin( degtorad * m_body.mnanom ) * ( 1.0 + e * std::cos( degtorad * m_body.mnanom ) );
+    // ecliptic plane rectangular coordinates
+    double const xv = std::cos( degtorad * E ) - e;
+    double const yv = std::sin( degtorad * E ) * std::sqrt( 1.0 - e*e );
+    // distance
+    m_body.distance = std::sqrt( xv*xv + yv*yv ); // r
+    // true anomaly
+    m_body.tranom = radtodeg * std::atan2( yv, xv ); // v
+    // ecliptic longitude
+    m_body.eclong = clamp_circular( m_body.tranom + m_body.phlong ); // lon = v + w
+/*
+    // ecliptic rectangular coordinates
+    double const x = m_body.distance * std::cos( degtorad * m_body.eclong );
+    double const y = m_body.distance * std::sin( degtorad * m_body.eclong );
+    double const z = 0.0;
+    // equatorial rectangular coordinates
+    double const xequat = x;
+    double const yequat = y * std::cos( degtorad * m_body.oblecl ) - 0.0 * std::sin( degtorad * m_body.oblecl );
+    double const zequat = y * std::sin( degtorad * m_body.oblecl ) + 0.0 * std::cos( degtorad * m_body.oblecl );
+    // declination
+    m_body.declin = radtodeg * std::atan2( zequat, std::sqrt( xequat*xequat + yequat*yequat ) );
+    // right ascension
+    m_body.rascen = radtodeg * std::atan2( yequat, xequat );
+*/
+    // declination
+    m_body.declin = radtodeg * std::asin( std::sin( m_body.oblecl * degtorad ) * std::sin( m_body.eclong * degtorad ) );
 
-	// declination
-	m_body.declin = degrad * asin( sin (m_body.ecobli * raddeg) * sin (m_body.eclong * raddeg) );
+    // right ascension
+    double top = std::cos( degtorad * m_body.oblecl ) * std::sin( degtorad * m_body.eclong );
+    double bottom = std::cos( degtorad * m_body.eclong );
 
-	// right ascension
-	double top = cos ( raddeg * m_body.ecobli ) * sin ( raddeg * m_body.eclong );
-	double bottom = cos ( raddeg * m_body.eclong );
+    m_body.rascen = clamp_circular( radtodeg * std::atan2( top, bottom ) );
 
-	m_body.rascen = degrad * atan2( top, bottom );
-    if( m_body.rascen < 0.0 ) m_body.rascen += 360.0;			// (make it a positive angle)
+    // Greenwich mean sidereal time
+    m_observer.gmst = 6.697375 + 0.0657098242 * daynumber + m_observer.utime;
 
-	// Greenwich mean sidereal time
-	m_observer.gmst = 6.697375 + 0.0657098242 * daynumber + m_observer.utime;
+    m_observer.gmst -= 24.0 * (int)( m_observer.gmst / 24.0 );
+    if( m_observer.gmst < 0.0 ) m_observer.gmst += 24.0;
 
-	m_observer.gmst -= 24.0 * (int)( m_observer.gmst / 24.0 );
-	if( m_observer.gmst < 0.0 ) m_observer.gmst += 24.0;
+    // local mean sidereal time
+    m_observer.lmst = m_observer.gmst * 15.0 + m_observer.longitude;
 
-	// local mean sidereal time
-	m_observer.lmst = m_observer.gmst * 15.0 + m_observer.longitude;
+    m_observer.lmst -= 360.0 * (int)( m_observer.lmst / 360.0 );
+    if( m_observer.lmst < 0.0 ) m_observer.lmst += 360.0;
 
-	m_observer.lmst -= 360.0 * (int)( m_observer.lmst / 360.0 );
-	if( m_observer.lmst < 0.0 ) m_observer.lmst += 360.0;
+    // hour angle
+    m_body.hrang = m_observer.lmst - m_body.rascen;
 
-	// hour angle
-	m_body.hrang = m_observer.lmst - m_body.rascen;
-
-		 if( m_body.hrang < -180.0 )	m_body.hrang += 360.0;	// (force it between -180 and 180 degrees)
+    if( m_body.hrang < -180.0 )	m_body.hrang += 360.0;	// (force it between -180 and 180 degrees)
     else if( m_body.hrang >  180.0 )	m_body.hrang -= 360.0;
 
-	double cz;	// cosine of the solar zenith angle
+    double cz;	// cosine of the solar zenith angle
 
-	double tdatcd = cos( raddeg * m_body.declin );
-	double tdatch = cos( raddeg * m_body.hrang );
-	double tdatcl = cos( raddeg * m_observer.latitude );
-	double tdatsd = sin( raddeg * m_body.declin );
-	double tdatsl = sin( raddeg * m_observer.latitude );
+    double tdatcd = std::cos( degtorad * m_body.declin );
+    double tdatch = std::cos( degtorad * m_body.hrang );
+    double tdatcl = std::cos( degtorad * m_observer.latitude );
+    double tdatsd = std::sin( degtorad * m_body.declin );
+    double tdatsl = std::sin( degtorad * m_observer.latitude );
 
-	cz = tdatsd * tdatsl + tdatcd * tdatcl * tdatch;
+    cz = tdatsd * tdatsl + tdatcd * tdatcl * tdatch;
 
     // (watch out for the roundoff errors)
-	if( fabs (cz) > 1.0 ) {	cz >= 0.0 ? cz = 1.0 : cz = -1.0; }
+    if( fabs( cz ) > 1.0 ) { cz >= 0.0 ? cz = 1.0 : cz = -1.0; }
 
-	m_body.zenetr = acos( cz ) * degrad;
-	m_body.elevetr = 90.0 - m_body.zenetr;
-	refract();
-
-	// additional calculations for proper object sizing.
-	// orbit eccentricity
-	double e = 0.016709 - 1.151e-9 * daynumber;
-	// eccentric anomaly
-	double E = m_body.mnanom + e * degrad * sin(m_body.mnanom) * ( 1.0 + e * cos(m_body.mnanom) );
-	double xv = cos(E) - e;
-    double yv = sqrt(1.0 - e*e) * sin(E);
-	m_body.distance = sqrt( xv*xv + yv*yv );
+    m_body.zenetr = std::acos( cz ) * radtodeg;
+    m_body.elevetr = 90.0 - m_body.zenetr;
+    refract();
 }
 
 void cSun::refract() {
@@ -258,10 +258,9 @@ void cSun::irradiance() {
 	static double degrad = 57.295779513;					// converts from radians to degrees
 	static double raddeg = 0.0174532925;					// converts from degrees to radians
 
-    SYSTEMTIME localtime; // time for the calculation
-    time( &localtime );
+    auto const &localtime = Simulation::Time.data(); // time for the calculation
 
-	m_body.dayang = ( yearday( localtime.wDay, localtime.wMonth, localtime.wYear ) - 1 ) * 360.0 / 365.0;
+	m_body.dayang = ( Simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
 	double sd = sin( raddeg * m_body.dayang );				// sine of the day angle
 	double cd = cos( raddeg * m_body.dayang );				// cosine of the day angle or delination
 	m_body.erv = 1.000110 + 0.034221*cd + 0.001280*sd;
@@ -281,51 +280,4 @@ void cSun::irradiance() {
 		m_body.etrn = 0.0;
 		m_body.etr  = 0.0;
 	}
-}
-
-int cSun::yearday( int Day, const int Month, const int Year ) {
-
-	char daytab[ 2 ][ 13 ] = {
-		{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-		{ 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-	};
-	int i, leap;
-
-	leap = ( Year%4 == 0 ) && ( Year%100 != 0 ) || ( Year%400 == 0 );
-	for( i = 1; i < Month; ++i )
-		Day += daytab[ leap ][ i ];
-
-	return Day;
-}
-
-void cSun::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday ) {
-
-    WORD daytab[ 2 ][ 13 ] = {
-        { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
-        { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
-    };
-
-    int leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
-    WORD idx = 1;
-    while( (idx < 13) && ( Yearday <= daytab[ leap ][ idx ] )) {
-
-        ++idx;
-    }
-    Month = idx + 1;
-    Day = Yearday - daytab[ leap ][ idx ];
-}
-
-// obtains current time for calculations
-void
-cSun::time( SYSTEMTIME *Time ) {
-
-    ::GetLocalTime( Time );
-    // NOTE: we're currently using local time to determine day/month/year
-    if( Global::fMoveLight > 0.0 ) {
-        // TODO: enter scenario-defined day/month/year instead.
-        daymonth( Time->wDay, Time->wMonth, Time->wYear, static_cast<WORD>(Global::fMoveLight) );
-    }
-    Time->wHour = GlobalTime->hh;
-    Time->wMinute = GlobalTime->mm;
-    Time->wSecond = std::floor( GlobalTime->mr );
 }

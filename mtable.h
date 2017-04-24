@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
+#include "world.h"
 
 namespace Mtable
 {
@@ -73,9 +74,10 @@ class TTrainParameters
     std::string NextStop();
     bool IsStop();
     bool IsTimeToGo(double hh, double mm);
-    bool UpdateMTable(double hh, double mm, std::string NewName);
-    TTrainParameters(std::string NewTrainName);
-    void NewName(std::string NewTrainName);
+    bool UpdateMTable(double hh, double mm, std::string const &NewName);
+    bool UpdateMTable( simulation_time const &Time, std::string const &NewName );
+    TTrainParameters( std::string const &NewTrainName );
+    void NewName(std::string const &NewTrainName);
     void UpdateVelocity(int StationCount, double vActual);
     bool LoadTTfile(std::string scnpath, int iPlus, double vmax);
     bool DirectionChange();
@@ -86,29 +88,19 @@ class TMTableTime
 
 {
   public:
-	  double GameTime = 0.0;
     int dd = 0;
     int hh = 0;
     int mm = 0;
-    int srh = 0;
-    int srm = 0; /*wschod slonca*/
-    int ssh = 0;
-    int ssm = 0; /*zachod slonca*/
     double mr = 0.0;
     void UpdateMTableTime(double deltaT);
-    TMTableTime(int InitH, int InitM, int InitSRH, int InitSRM, int InitSSH, int InitSSM) :
-		hh( InitH ),
-		mm( InitM ),
-		srh( InitSRH ),
-		srm( InitSRM ),
-		ssh( InitSSH ),
-		ssm( InitSSM )
+    TMTableTime(int InitH, int InitM ) :
+        hh( InitH ),
+        mm( InitM )
 	{}
 
 	TMTableTime() = default;
 };
 
-extern std::shared_ptr<TMTableTime> GlobalTime;
 }
 
 #if !defined(NO_IMPLICIT_NAMESPACE_USE)

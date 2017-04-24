@@ -43,9 +43,146 @@ std::shared_ptr<ui_panel> UIHeader = std::make_shared<ui_panel>( 20, 20 ); // he
 std::shared_ptr<ui_panel> UITable = std::make_shared<ui_panel>( 20, 100 ); // schedule or scan table
 std::shared_ptr<ui_panel> UITranscripts = std::make_shared<ui_panel>( 85, 600 ); // voice transcripts
 
+namespace Simulation {
+
+simulation_time Time;
+
+}
+
 extern "C"
 {
 	GLFWAPI HWND glfwGetWin32Window(GLFWwindow* window); //m7todo: potrzebne do directsound
+}
+
+void
+simulation_time::init() {
+
+    char monthdaycounts[ 2 ][ 13 ] = {
+        { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+        { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 } };
+    ::memcpy( m_monthdaycounts, monthdaycounts, sizeof( monthdaycounts ) );
+
+    // cache requested elements, if any
+    WORD const requestedhour = m_time.wHour;
+    WORD const requestedminute = m_time.wMinute;
+
+    ::GetLocalTime( &m_time );
+
+    if( Global::fMoveLight > 0.0 ) {
+        // day and month of the year can be overriden by scenario setup
+        daymonth( m_time.wDay, m_time.wMonth, m_time.wYear, static_cast<WORD>( Global::fMoveLight ) );
+    }
+
+    if( requestedhour != (WORD)-1 )   { m_time.wHour   = clamp( requestedhour,   static_cast<WORD>( 0 ), static_cast<WORD>( 23 ) ); }
+    if( requestedminute != (WORD)-1 ) { m_time.wMinute = clamp( requestedminute, static_cast<WORD>( 0 ), static_cast<WORD>( 59 ) ); }
+    // if the time is taken from the local clock leave the seconds intact, otherwise set them to zero
+    if( ( requestedhour != (WORD)-1 ) || ( requestedminute != (WORD)-1 ) ) {
+        m_time.wSecond = 0;
+    }
+
+    m_yearday = yearday( m_time.wDay, m_time.wMonth, m_time.wYear );
+}
+
+void
+simulation_time::update( double const Deltatime ) {
+
+    // use large enough buffer to hold long time skips
+    auto milliseconds = m_time.wMilliseconds + static_cast<size_t>(std::floor( 1000.0 * Deltatime ));
+    while( milliseconds >= 1000.0 ) {
+
+        ++m_time.wSecond;
+        milliseconds -= 1000;
+    }
+    m_time.wMilliseconds = (WORD)milliseconds;
+    while( m_time.wSecond >= 60 ) {
+
+        ++m_time.wMinute;
+        m_time.wSecond -= 60;
+    }
+    while( m_time.wMinute >= 60 ) {
+
+        ++m_time.wHour;
+        m_time.wMinute -= 60;
+    }
+    while( m_time.wHour >= 24 ) {
+
+        ++m_time.wDay;
+        ++m_time.wDayOfWeek;
+        if( m_time.wDayOfWeek >= 7 ) {
+            m_time.wDayOfWeek -= 7;
+        }
+        m_time.wHour -= 24;
+    }
+    int leap = ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 );
+    while( m_time.wDay > m_monthdaycounts[ leap ][ m_time.wMonth ] ) {
+
+        m_time.wDay -= m_monthdaycounts[ leap ][ m_time.wMonth ];
+        ++m_time.wMonth;
+        // unlikely but we might've entered a new year
+        if( m_time.wMonth > 12 ) {
+
+            ++m_time.wYear;
+            leap = ( m_time.wYear % 4 == 0 ) && ( m_time.wYear % 100 != 0 ) || ( m_time.wYear % 400 == 0 );
+            m_time.wMonth -= 12;
+        }
+    }
+}
+
+int
+simulation_time::yearday( int Day, const int Month, const int Year ) {
+
+    char daytab[ 2 ][ 13 ] = {
+        { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+        { 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+    };
+    int i, leap;
+
+    leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
+    for( i = 1; i < Month; ++i )
+        Day += daytab[ leap ][ i ];
+
+    return Day;
+}
+
+void
+simulation_time::daymonth( WORD &Day, WORD &Month, WORD const Year, WORD const Yearday ) {
+
+    WORD daytab[ 2 ][ 13 ] = {
+        { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
+        { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
+    };
+
+    int leap = ( Year % 4 == 0 ) && ( Year % 100 != 0 ) || ( Year % 400 == 0 );
+    WORD idx = 1;
+    while( ( idx < 13 ) && ( Yearday >= daytab[ leap ][ idx ] ) ) {
+
+        ++idx;
+    }
+    Month = idx;
+    Day = Yearday - daytab[ leap ][ idx - 1 ];
+}
+
+int
+simulation_time::julian_day() const {
+
+    int yy = ( m_time.wYear < 0 ? m_time.wYear + 1 : m_time.wYear ) - std::floor( ( 12 - m_time.wMonth ) / 10.f );
+    int mm = m_time.wMonth + 9;
+    if( mm >= 12 ) { mm -= 12; }
+
+    int K1 = std::floor( 365.25 * ( yy + 4712 ) );
+    int K2 = std::floor( 30.6 * mm + 0.5 );
+
+    // for dates in Julian calendar
+    int JD = K1 + K2 + m_time.wDay + 59;
+    // for dates in Gregorian calendar; 2299160 is October 15th, 1582
+    const int gregorianswitchday = 2299160;
+    if( JD > gregorianswitchday ) {
+
+        int K3 = std::floor( std::floor( ( yy * 0.01 ) + 49 ) * 0.75 ) - 38;
+        JD -= K3;
+    }
+
+    return JD;
 }
 
 TWorld::TWorld()
@@ -58,9 +195,6 @@ TWorld::TWorld()
         KeyEvents[i] = NULL; // eventy wyzwalane klawiszami cyfrowymi
     Global::iSlowMotion = 0;
     // Global::changeDynObj=NULL;
-    OutText1 = ""; // teksty wyświetlane na ekranie
-    OutText2 = "";
-    OutText3 = "";
     pDynamicNearest = NULL;
     fTimeBuffer = 0.0; // bufor czasu aktualizacji dla stałego kroku fizyki
     fMaxDt = 0.01; //[s] początkowy krok czasowy fizyki
@@ -153,7 +287,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
     Global::pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
 
     WriteLog("\nStarting MaSzyna rail vehicle simulator.");
-    WriteLog(Global::asVersion);
     WriteLog("Online documentation and additional files on http://eu07.pl");
     WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
              "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n");
@@ -179,6 +312,8 @@ bool TWorld::Init( GLFWwindow *Window ) {
     WriteLog( "Ground init OK" );
 
     glfwSetWindowTitle( window,  ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
+
+    Simulation::Time.init();
 
     Environment.init();
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
@@ -270,14 +405,55 @@ bool TWorld::Init( GLFWwindow *Window ) {
 };
 
 void TWorld::OnKeyDown(int cKey)
-{ //(cKey) to kod klawisza, cyfrowe i literowe się zgadzają
-    // Ra 2014-09: tu by można dodać tabelę konwersji: 256 wirtualnych kodów w kontekście dwóch
-    // przełączników [Shift] i [Ctrl]
-    // na każdy kod wirtualny niech przypadają 4 bajty: 2 dla naciśnięcia i 2 dla zwolnienia
-    // powtórzone 256 razy da 1kB na każdy stan przełączników, łącznie będzie 4kB pierwszej tabeli
-    // przekodowania
-	//m7todo: printowanie klawiszy?
-	if (cKey >= '0' && cKey <= '9')
+{
+    // dump keypress info in the log
+    if( !Global::iPause ) {
+        // podczas pauzy klawisze nie działają
+        std::string keyinfo;
+        auto keyname = glfwGetKeyName( cKey, 0 );
+        if( keyname != nullptr ) {
+            keyinfo += std::string( keyname );
+        }
+        else {
+            switch( cKey ) {
+
+                case GLFW_KEY_SPACE: { keyinfo += "Space"; break; }
+                case GLFW_KEY_ENTER: { keyinfo += "Enter"; break; }
+                case GLFW_KEY_ESCAPE: { keyinfo += "Esc"; break; }
+                case GLFW_KEY_TAB: { keyinfo += "Tab"; break; }
+                case GLFW_KEY_INSERT: { keyinfo += "Insert"; break; }
+                case GLFW_KEY_DELETE: { keyinfo += "Delete"; break; }
+                case GLFW_KEY_HOME: { keyinfo += "Home"; break; }
+                case GLFW_KEY_END: { keyinfo += "End"; break; }
+                case GLFW_KEY_F1: { keyinfo += "F1"; break; }
+                case GLFW_KEY_F2: { keyinfo += "F2"; break; }
+                case GLFW_KEY_F3: { keyinfo += "F3"; break; }
+                case GLFW_KEY_F4: { keyinfo += "F4"; break; }
+                case GLFW_KEY_F5: { keyinfo += "F5"; break; }
+                case GLFW_KEY_F6: { keyinfo += "F6"; break; }
+                case GLFW_KEY_F7: { keyinfo += "F7"; break; }
+                case GLFW_KEY_F8: { keyinfo += "F8"; break; }
+                case GLFW_KEY_F9: { keyinfo += "F9"; break; }
+                case GLFW_KEY_F10: { keyinfo += "F10"; break; }
+                case GLFW_KEY_F11: { keyinfo += "F11"; break; }
+                case GLFW_KEY_F12: { keyinfo += "F12"; break; }
+            }
+        }
+        if( keyinfo.empty() == false ) {
+
+            std::string keymodifiers;
+            if( Global::shiftState )
+                keymodifiers += "[Shift]+";
+            if( Global::ctrlState )
+                keymodifiers += "[Ctrl]+";
+
+            WriteLog( "Key pressed: " + keymodifiers + "[" + keyinfo + "]" );
+        }
+    }
+
+    // actual key processing
+    // TODO: redo the input system
+    if( ( cKey >= GLFW_KEY_0 ) && ( cKey <= GLFW_KEY_9 ) ) // klawisze cyfrowe
     {
         int i = cKey - '0'; // numer klawisza
         if (Global::shiftState)
@@ -330,11 +506,11 @@ void TWorld::OnKeyDown(int cKey)
                     // additional time speedup keys in debug mode
                     if (Global::ctrlState) {
                         // ctrl-f3
-                        GlobalTime->UpdateMTableTime( 20.0 * 60.0 );
+                        Simulation::Time.update( 20.0 * 60.0 );
                     }
                     else if (Global::shiftState) {
                         // shift-f3
-                        GlobalTime->UpdateMTableTime( 5.0 * 60.0 );
+                        Simulation::Time.update( 5.0 * 60.0 );
                     }
                 }
                 if( (!Global::ctrlState)
@@ -774,20 +950,19 @@ bool TWorld::Update()
     if( (Global::iPause == false)
      || (m_init == false) )
     { // jak pauza, to nie ma po co tego przeliczać
-        GlobalTime->UpdateMTableTime(Timer::GetDeltaTime()); // McZapkie-300302: czas rozkladowy
         // Ra 2014-07: przeliczenie kąta czasu (do animacji zależnych od czasu)
-        Global::fTimeAngleDeg =
-            GlobalTime->hh * 15.0 + GlobalTime->mm * 0.25 + GlobalTime->mr / 240.0;
-        Global::fClockAngleDeg[0] = 36.0 * (int(GlobalTime->mr) % 10); // jednostki sekund
-        Global::fClockAngleDeg[1] = 36.0 * (int(GlobalTime->mr) / 10); // dziesiątki sekund
-        Global::fClockAngleDeg[2] = 36.0 * (GlobalTime->mm % 10); // jednostki minut
-        Global::fClockAngleDeg[3] = 36.0 * (GlobalTime->mm / 10); // dziesiątki minut
-        Global::fClockAngleDeg[4] = 36.0 * (GlobalTime->hh % 10); // jednostki godzin
-        Global::fClockAngleDeg[5] = 36.0 * (GlobalTime->hh / 10); // dziesiątki godzin
+        Simulation::Time.update( Timer::GetDeltaTime() );
+        auto const &time = Simulation::Time.data();
+        Global::fTimeAngleDeg = time.wHour * 15.0 + time.wMinute * 0.25 + ( ( time.wSecond + 0.001 * time.wMilliseconds ) / 240.0 );
+        Global::fClockAngleDeg[ 0 ] = 36.0 * ( time.wSecond % 10 ); // jednostki sekund
+        Global::fClockAngleDeg[ 1 ] = 36.0 * ( time.wSecond / 10 ); // dziesiątki sekund
+        Global::fClockAngleDeg[ 2 ] = 36.0 * ( time.wMinute % 10 ); // jednostki minut
+        Global::fClockAngleDeg[ 3 ] = 36.0 * ( time.wMinute / 10 ); // dziesiątki minut
+        Global::fClockAngleDeg[ 4 ] = 36.0 * ( time.wHour % 10 ); // jednostki godzin
+        Global::fClockAngleDeg[ 5 ] = 36.0 * ( time.wHour / 10 ); // dziesiątki godzin
 
         Update_Environment();
     } // koniec działań niewykonywanych podczas pauzy
-    // poprzednie jakoś tam działało
 
     // fixed step, simulation time based updates
 
@@ -1173,7 +1348,6 @@ TWorld::Render_Cab() {
         // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
         return;
     }
-
 /*
     // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
     if( ( Train->Dynamic()->mdKabina != Train->Dynamic()->mdModel ) &&
@@ -1407,21 +1581,21 @@ TWorld::Render_Cab() {
         }
 #endif
 
+#ifdef EU07_USE_OLD_RENDERCODE
         if( Global::bUseVBO ) {
             // renderowanie z użyciem VBO. NOTE: needs update, and eventual merge into single render path down the road
             dynamic->mdKabina->RaRender( 0.0, dynamic->Material()->replacable_skins, dynamic->Material()->textures_alpha );
             dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->Material()->replacable_skins, dynamic->Material()->textures_alpha );
         }
         else {
-        // renderowanie z Display List
-#ifdef EU07_USE_OLD_RENDERCODE
+            // renderowanie z Display List
             dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
             dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
-#else
-            GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
-            GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic->Material(), 0.0 );
-#endif
         }
+#else
+        GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
+        GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic->Material(), 0.0 );
+#endif
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
         // przywrócenie standardowych, bo zawsze są zmieniane
         glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
@@ -1445,20 +1619,21 @@ TWorld::Render_Cab() {
 void
 TWorld::Update_UI() {
 
-    OutText1 = OutText2 = OutText3 = OutText4 = "";
     UITable->text_lines.clear();
+    std::string  uitextline1, uitextline2, uitextline3, uitextline4;
 
     switch( Global::iTextMode ) {
 
         case( GLFW_KEY_F1 ) : {
             // f1, default mode: current time and timetable excerpt
-            OutText1 =
+            auto const &time = Simulation::Time.data();
+            uitextline1 =
                 "Time: "
-                + to_string( (int)GlobalTime->hh ) + ":"
-                + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
-                + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
+                + to_string( time.wHour ) + ":"
+                + ( time.wMinute < 10 ? "0" : "" ) + to_string( time.wMinute ) + ":"
+                + ( time.wSecond < 10 ? "0" : "" ) + to_string( time.wSecond );
             if( Global::iPause ) {
-                OutText1 += " (paused)";
+                uitextline1 += " (paused)";
             }
 
             if( Controlled && ( Controlled->Mechanik != nullptr ) ) {
@@ -1466,21 +1641,21 @@ TWorld::Update_UI() {
                 auto const &mover = Controlled->MoverParameters;
                 auto const &driver = Controlled->Mechanik;
 
-                OutText2 = "Throttle: " + to_string( driver->Controlling()->MainCtrlPos, 0, 2 ) + "+" + std::to_string( driver->Controlling()->ScndCtrlPos );
-                     if( mover->ActiveDir > 0 ) { OutText2 += " D"; }
-                else if( mover->ActiveDir < 0 ) { OutText2 += " R"; }
-                else                            { OutText2 += " N"; }
+                uitextline2 = "Throttle: " + to_string( driver->Controlling()->MainCtrlPos, 0, 2 ) + "+" + std::to_string( driver->Controlling()->ScndCtrlPos );
+                     if( mover->ActiveDir > 0 ) { uitextline2 += " D"; }
+                else if( mover->ActiveDir < 0 ) { uitextline2 += " R"; }
+                else                            { uitextline2 += " N"; }
 
-                OutText3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos );
+                uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos );
 
                 if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // detail mode on second key press
-                    OutText2 +=
+                    uitextline2 +=
                         " Speed: " + std::to_string( static_cast<int>( std::floor( mover->Vel ) ) ) + " km/h"
                         + " (limit: " + std::to_string( static_cast<int>( std::floor( driver->VelDesired ) ) ) + " km/h"
                         + ", next limit: " + std::to_string( static_cast<int>( std::floor( Controlled->Mechanik->VelNext ) ) ) + " km/h"
                         + " in " + to_string( Controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km)";
-                    OutText3 +=
+                    uitextline3 +=
                         "   Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
                 }
@@ -1502,21 +1677,22 @@ TWorld::Update_UI() {
             auto const table = tmp->Mechanik->Timetable();
             if( table == nullptr ) { break; }
 
-            OutText1 =
+            auto const &time = Simulation::Time.data();
+            uitextline1 =
                 "Time: "
-                + to_string( (int)GlobalTime->hh ) + ":"
-                + ( GlobalTime->mm < 10 ? "0" : "" ) + to_string( GlobalTime->mm ) + ":"
-                + ( GlobalTime->mr < 10 ? "0" : "" ) + to_string( std::floor( GlobalTime->mr ) );
+                + to_string( time.wHour ) + ":"
+                + ( time.wMinute < 10 ? "0" : "" ) + to_string( time.wMinute ) + ":"
+                + ( time.wSecond < 10 ? "0" : "" ) + to_string( time.wSecond );
             if( Global::iPause ) {
-                OutText1 += " (paused)";
+                uitextline1 += " (paused)";
             }
 
             if( Controlled
              && Controlled->Mechanik ) {
-                    OutText2 = Global::Bezogonkow( Controlled->Mechanik->Relation(), true )  + " (" + tmp->Mechanik->Timetable()->TrainName + ")";
-                    if( !OutText2.empty() ) {
+                    uitextline2 = Global::Bezogonkow( Controlled->Mechanik->Relation(), true )  + " (" + tmp->Mechanik->Timetable()->TrainName + ")";
+                    if( !uitextline2.empty() ) {
                         // jeśli jest podana relacja, to dodajemy punkt następnego zatrzymania
-                        OutText3 = " -> " + Global::Bezogonkow( Controlled->Mechanik->NextStop(), true );
+                        uitextline3 = " -> " + Global::Bezogonkow( Controlled->Mechanik->NextStop(), true );
                     }
                 }
 
@@ -1575,69 +1751,69 @@ TWorld::Update_UI() {
             if( tmp != nullptr ) {
                 // 
                 // jeśli domyślny ekran po pierwszym naciśnięciu
-                OutText1 = "Vehicle name: " + tmp->MoverParameters->Name;
+                uitextline1 = "Vehicle name: " + tmp->MoverParameters->Name;
 
                 if( ( tmp->Mechanik == nullptr ) && ( tmp->ctOwner ) ) {
                     // for cars other than leading unit indicate the leader
-                    OutText1 += ", owned by " + tmp->ctOwner->OwnerName();
+                    uitextline1 += ", owned by " + tmp->ctOwner->OwnerName();
                 }
                 // informacja o sprzęgach
-                OutText1 +=
+                uitextline1 +=
                     " C0:" +
                     ( tmp->PrevConnected ?
                     tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
                     "none" );
-                OutText1 +=
+                uitextline1 +=
                     " C1:" +
                     ( tmp->NextConnected ?
                     tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
                     "none" );
 
-                OutText2 = "Damage status: " + tmp->MoverParameters->EngineDescription( 0 );
+                uitextline2 = "Damage status: " + tmp->MoverParameters->EngineDescription( 0 );
 
-                OutText2 += "; Brake delay: ";
+                uitextline2 += "; Brake delay: ";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
-                    OutText2 += "G";
+                    uitextline2 += "G";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
-                    OutText2 += "P";
+                    uitextline2 += "P";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_R ) == bdelay_R )
-                    OutText2 += "R";
+                    uitextline2 += "R";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
-                    OutText2 += "+Mg";
+                    uitextline2 += "+Mg";
 
-                OutText2 += ", BTP:" + to_string( tmp->MoverParameters->LoadFlag, 0 );
+                uitextline2 += ", BTP:" + to_string( tmp->MoverParameters->LoadFlag, 0 );
                 {
-                    OutText2 +=
+                    uitextline2 +=
                         "; pant. "
                         + to_string( tmp->MoverParameters->PantPress, 2 )
                         + ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
                 }
 
-                OutText2 +=
+                uitextline2 +=
                     ", MED:"
                     + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
                     + "+"
                     + to_string( tmp->MoverParameters->AnPos, 2 );
 
-                OutText2 +=
+                uitextline2 +=
                     ", Ft:"
                     + to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
 
-                OutText2 +=
+                uitextline2 +=
                     "; TC:"
                     + to_string( tmp->MoverParameters->TotalCurrent, 0 );
-                OutText2 +=
+                uitextline2 +=
                     ", HV0:"
                     + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 )
                     + "@"
                     + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
-                OutText2 +=
+                uitextline2 +=
                     ", HV1:"
                     + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 )
                     + "@"
                     + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
 
-                OutText3 =
+                uitextline3 =
                     "BP: " + to_string( tmp->MoverParameters->BrakePress, 2 )
                     + " (" + to_string( tmp->MoverParameters->BrakeStatus, 0 )
                     + "), LBP: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
@@ -1651,16 +1827,16 @@ TWorld::Update_UI() {
 
                 if( tmp->MoverParameters->ManualBrakePos > 0 ) {
 
-                    OutText3 += ", manual brake on";
+                    uitextline3 += ", manual brake on";
                 }
 
                 if( tmp->MoverParameters->LocalBrakePos > 0 ) {
 
-                    OutText3 += ", local brake on";
+                    uitextline3 += ", local brake on";
                 }
                 else {
 
-                    OutText3 += ", local brake off";
+                    uitextline3 += ", local brake off";
                 }
 
                 if( tmp->Mechanik ) {
@@ -1670,9 +1846,9 @@ TWorld::Update_UI() {
                         if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
                             flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
 
-                    OutText4 = flags;
+                    uitextline4 = flags;
 
-                    OutText4 +=
+                    uitextline4 +=
                         "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
                         + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
@@ -1684,14 +1860,14 @@ TWorld::Update_UI() {
                     if( ( tmp->Mechanik->VelNext == 0.0 )
                         && ( tmp->Mechanik->eSignNext ) ) {
                         // jeśli ma zapamiętany event semafora, nazwa eventu semafora
-                        OutText4 +=
+                        uitextline4 +=
                             " ("
                             + Global::Bezogonkow( tmp->Mechanik->eSignNext->asName )
                             + ")";
                     }
 
                     // biezaca komenda dla AI
-                    OutText4 += ", command: " + tmp->Mechanik->OrderCurrent();
+                    uitextline4 += ", command: " + tmp->Mechanik->OrderCurrent();
                 }
 
                 if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
@@ -1712,7 +1888,7 @@ TWorld::Update_UI() {
             }
             else {
                 // wyświetlenie współrzędnych w scenerii oraz kąta kamery, gdy nie mamy wskaźnika
-                OutText1 =
+                uitextline1 =
                     "Camera position: "
                     + to_string( Camera.Pos.x, 2 ) + " "
                     + to_string( Camera.Pos.y, 2 ) + " "
@@ -1723,8 +1899,8 @@ TWorld::Update_UI() {
                     + std::string( "S SEE NEN NWW SW" )
                     .substr( 0 + 2 * floor( fmod( 8 + ( Camera.Yaw + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 );
                 // current luminance level
-                OutText2 = "Light level: " + to_string( Global::fLuminance, 3 );
-                if( Global::FakeLight ) { OutText2 += "(*)"; }
+                uitextline2 = "Light level: " + to_string( Global::fLuminance, 3 );
+                if( Global::FakeLight ) { uitextline2 += "(*)"; }
             }
 
             break;
@@ -1732,13 +1908,13 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F8 ) : {
 
-            OutText1 =
+            uitextline1 =
                 "Draw range x " + to_string( Global::fDistanceFactor, 1 )
                 + "; FPS: " + to_string( Timer::GetFPS(), 2 );
             if( Global::iSlowMotion ) {
-                OutText1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
+                uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
-            OutText1 +=
+            uitextline1 +=
                 ", sectors: " + to_string( Ground.iRendered )
                 + "/" + to_string( Global::iSegmentsRendered )
                 + "; FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
@@ -1748,18 +1924,12 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F9 ) : {
             // informacja o wersji, sposobie wyświetlania i błędach OpenGL
-            OutText1 = Global::asVersion; // informacja o wersji
+            uitextline1 = Global::asVersion; // informacja o wersji
             if( Global::iMultiplayer ) {
-                OutText1 += " (multiplayer mode is active)";
+                uitextline1 += " (multiplayer mode is active)";
             }
 
-            OutText2 =
-                std::string("Rendering mode: ")
-                + ( Global::bUseVBO ?
-                    "VBO" :
-                    "Display Lists" )
-                + ". "
-                + GfxRenderer.Info();
+            uitextline2 = GfxRenderer.Info();
 
             // dump last opengl error, if any
             GLenum glerror = glGetError();
@@ -1767,7 +1937,7 @@ TWorld::Update_UI() {
                 Global::LastGLError = to_string( glerror ) + " (" + Global::Bezogonkow( (char *)gluErrorString( glerror ) ) + ")";
             }
             if( false == Global::LastGLError.empty() ) {
-                OutText3 =
+                uitextline3 =
                     "Last openGL error: "
                     + Global::LastGLError;
             }
@@ -1777,16 +1947,16 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F10 ) : {
 
-            OutText1 = ( "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y]." );
+            uitextline1 = ( "Press [Y] key to quit / Aby zakonczyc program, przycisnij klawisz [Y]." );
 
             break;
         }
 
         case( GLFW_KEY_F12 ) : {
             // opcje włączenia i wyłączenia logowania
-            OutText1 = "[0] Debugmode " + std::string( DebugModeFlag ? "(on)" : "(off)" );
-            OutText2 = "[1] log.txt " + std::string( ( Global::iWriteLogEnabled & 1 ) ? "(on)" : "(off)" );
-            OutText3 = "[2] Console " + std::string( ( Global::iWriteLogEnabled & 2 ) ? "(on)" : "(off)" );
+            uitextline1 = "[0] Debugmode " + std::string( DebugModeFlag ? "(on)" : "(off)" );
+            uitextline2 = "[1] log.txt " + std::string( ( Global::iWriteLogEnabled & 1 ) ? "(on)" : "(off)" );
+            uitextline3 = "[2] Console " + std::string( ( Global::iWriteLogEnabled & 2 ) ? "(on)" : "(off)" );
 
             break;
         }
@@ -1804,7 +1974,7 @@ TWorld::Update_UI() {
                     break;
                 }
 
-                OutText1 =
+                uitextline1 =
                     "vel: " + to_string(tmp->GetVelocity(), 2) + " km/h"
                     + "; dist: " + to_string(tmp->MoverParameters->DistCounter, 2) + " km"
                     + "; pos: ("
@@ -1813,7 +1983,7 @@ TWorld::Update_UI() {
                     + to_string( tmp->GetPosition().z, 2 )
                     + ")";
 
-                OutText2 =
+                uitextline2 =
                     "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 1 )
                     + "; HamP=" + std::to_string( tmp->MoverParameters->LocalBrakePos ) + "/" + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( tmp->MoverParameters->MainCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->MainCtrlActualPos ) + ")"
@@ -1829,14 +1999,14 @@ TWorld::Update_UI() {
                         to_string( tmp->MoverParameters->RunningShape.R, 1 ) )
                     + " An=" + to_string( tmp->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
 
-                if( tprev != int( GlobalTime->mr ) ) {
-                    tprev = GlobalTime->mr;
+                if( tprev != Simulation::Time.data().wSecond ) {
+                    tprev = Simulation::Time.data().wSecond;
                     Acc = ( tmp->MoverParameters->Vel - VelPrev ) / 3.6;
                     VelPrev = tmp->MoverParameters->Vel;
                 }
-                OutText2 += ( "; As=" ) + to_string( Acc, 2 ); // przyspieszenie wzdłużne
+                uitextline2 += ( "; As=" ) + to_string( Acc, 2 ); // przyspieszenie wzdłużne
 
-                OutText3 =
+                uitextline3 =
                     "cyl.ham. " + to_string( tmp->MoverParameters->BrakePress, 2 )
                     + "; prz.gl. " + to_string( tmp->MoverParameters->PipePress, 2 )
                     + "; zb.gl. " + to_string( tmp->MoverParameters->CompressedVolume, 2 )
@@ -1845,49 +2015,49 @@ TWorld::Update_UI() {
  
                 // McZapkie: warto wiedziec w jakim stanie sa przelaczniki
                 if( tmp->MoverParameters->ConvOvldFlag )
-                    OutText3 += " C! ";
+                    uitextline3 += " C! ";
                 else if( tmp->MoverParameters->FuseFlag )
-                    OutText3 += " F! ";
+                    uitextline3 += " F! ";
                 else if( !tmp->MoverParameters->Mains )
-                    OutText3 += " () ";
+                    uitextline3 += " () ";
                 else {
                     switch(
                         tmp->MoverParameters->ActiveDir *
                         ( tmp->MoverParameters->Imin == tmp->MoverParameters->IminLo ?
                             1 :
                             2 ) ) {
-                        case  2: { OutText3 += " >> "; break; }
-                        case  1: { OutText3 += " -> "; break; }
-                        case  0: { OutText3 += " -- "; break; }
-                        case -1: { OutText3 += " <- "; break; }
-                        case -2: { OutText3 += " << "; break; }
+                        case  2: { uitextline3 += " >> "; break; }
+                        case  1: { uitextline3 += " -> "; break; }
+                        case  0: { uitextline3 += " -- "; break; }
+                        case -1: { uitextline3 += " <- "; break; }
+                        case -2: { uitextline3 += " << "; break; }
                     }
                 }
                 // McZapkie: predkosc szlakowa
                 if( tmp->MoverParameters->RunningTrack.Velmax == -1 ) {
-                    OutText3 += " Vtrack=Vmax";
+                    uitextline3 += " Vtrack=Vmax";
                 }
                 else {
-                    OutText3 += " Vtrack " + to_string( tmp->MoverParameters->RunningTrack.Velmax, 2 );
+                    uitextline3 += " Vtrack " + to_string( tmp->MoverParameters->RunningTrack.Velmax, 2 );
                 }
 
                 if( ( tmp->MoverParameters->EnginePowerSource.SourceType == CurrentCollector )
                     || ( tmp->MoverParameters->TrainType == dt_EZT ) ) {
-                    OutText3 +=
+                    uitextline3 +=
                         "; pant. " + to_string( tmp->MoverParameters->PantPress, 2 )
                         + ( tmp->MoverParameters->bPantKurek3 ? "=" : "^" ) + "ZG";
                 }
 
                 // McZapkie: komenda i jej parametry
                 if( tmp->MoverParameters->CommandIn.Command != ( "" ) ) {
-                    OutText4 =
+                    uitextline4 =
                         "C:" + tmp->MoverParameters->CommandIn.Command
                         + " V1=" + to_string( tmp->MoverParameters->CommandIn.Value1, 0 )
                         + " V2=" + to_string( tmp->MoverParameters->CommandIn.Value2, 0 );
                 }
                 if( ( tmp->Mechanik )
                  && ( tmp->Mechanik->AIControllFlag == AIdriver ) ) {
-                    OutText4 +=
+                    uitextline4 +=
                         "AI: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
                         + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
@@ -1927,7 +2097,7 @@ TWorld::Update_UI() {
 #ifdef EU07_USE_OLD_UI_CODE
     if( Controlled && DebugModeFlag && !Global::iTextMode ) {
 
-        OutText1 +=
+        uitextline1 +=
             ( "; d_omega " ) + to_string( Controlled->MoverParameters->dizel_engagedeltaomega, 3 );
 
         if( Controlled->MoverParameters->EngineType == ElectricInductionMotor ) {
@@ -1935,7 +2105,7 @@ TWorld::Update_UI() {
             for( int i = 0; i <= 8; i++ ) {
                 for( int j = 0; j <= 9; j++ ) {
                     glRasterPos2f( 0.05f + 0.03f * i, 0.16f - 0.01f * j );
-                    OutText4 = to_string( Train->fEIMParams[ i ][ j ], 2 );
+                    uitextline4 = to_string( Train->fEIMParams[ i ][ j ], 2 );
                 }
             }
         }
@@ -1944,24 +2114,23 @@ TWorld::Update_UI() {
 
     // update the ui header texts
     auto &headerdata = UIHeader->text_lines;
-    headerdata[ 0 ].data = OutText1;
-    headerdata[ 1 ].data = OutText2;
-    headerdata[ 2 ].data = OutText3;
-    headerdata[ 3 ].data = OutText4;
+    headerdata[ 0 ].data = uitextline1;
+    headerdata[ 1 ].data = uitextline2;
+    headerdata[ 2 ].data = uitextline3;
+    headerdata[ 3 ].data = uitextline4;
 
-    { // stenogramy dźwięków (ukryć, gdy tabelka skanowania lub rozkład?)
-        auto &transcripts = UITranscripts->text_lines;
-        transcripts.clear();
-        for( auto const &transcript : Global::tranTexts.aLines ) {
+    // stenogramy dźwięków (ukryć, gdy tabelka skanowania lub rozkład?)
+    auto &transcripts = UITranscripts->text_lines;
+    transcripts.clear();
+    for( auto const &transcript : Global::tranTexts.aLines ) {
 
-            if( Global::fTimeAngleDeg >= transcript.fShow ) {
+        if( Global::fTimeAngleDeg >= transcript.fShow ) {
 
-                cParser parser( transcript.asText );
-                while( true == parser.getTokens(1, false, "|") ) {
+            cParser parser( transcript.asText );
+            while( true == parser.getTokens( 1, false, "|" ) ) {
 
-                    std::string transcriptline; parser >> transcriptline;
-                    transcripts.emplace_back( transcriptline, float4( 1.0f, 1.0f, 0.0f, 1.0f ) );
-                }
+                std::string transcriptline; parser >> transcriptline;
+                transcripts.emplace_back( transcriptline, float4( 1.0f, 1.0f, 0.0f, 1.0f ) );
             }
         }
     }
@@ -2036,15 +2205,12 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
                 {
                     double t = pRozkaz->fPar[1];
-                    GlobalTime->dd = floor(t); // niby nie powinno być dnia, ale...
+                    Simulation::Time.data().wDay = std::floor(t); // niby nie powinno być dnia, ale...
                     if (Global::fMoveLight >= 0)
                         Global::fMoveLight = t; // trzeba by deklinację Słońca przeliczyć
-                    GlobalTime->hh = floor(24 * t) - 24.0 * GlobalTime->dd;
-                    GlobalTime->mm =
-                        floor(60 * 24 * t) - 60.0 * (24.0 * GlobalTime->dd + GlobalTime->hh);
-                    GlobalTime->mr =
-                        floor(60 * 60 * 24 * t) -
-                        60.0 * (60.0 * (24.0 * GlobalTime->dd + GlobalTime->hh) + GlobalTime->mm);
+                    Simulation::Time.data().wHour = std::floor(24 * t) - 24.0 * Simulation::Time.data().wDay;
+                    Simulation::Time.data().wMinute = std::floor(60 * 24 * t) - 60.0 * (24.0 * Simulation::Time.data().wDay + Simulation::Time.data().wHour);
+                    Simulation::Time.data().wSecond = std::floor( 60 * 60 * 24 * t ) - 60.0 * ( 60.0 * ( 24.0 * Simulation::Time.data().wDay + Simulation::Time.data().wHour ) + Simulation::Time.data().wMinute );
                 }
             if (*pRozkaz->iPar & 2)
             { // ustawienie flag zapauzowania
@@ -2333,79 +2499,88 @@ world_environment::init() {
 
 	m_skydome.init();
     m_sun.init();
+    m_moon.init();
     m_stars.init();
     m_clouds.Init();
-}
-
-void
-world_environment::update() {
-
-    // move sun...
-    m_sun.update();
-    auto const position = m_sun.getPosition();
-    // ...update the global data to match new sun state...
-    Global::SunAngle = m_sun.getAngle();
-    // ...update skydome to match the current sun position as well...
-    m_skydome.Update( position );
-    // ...retrieve current sky colour and brightness...
-    auto const skydomecolour = m_skydome.GetAverageColor();
-    auto const skydomehsv = RGBtoHSV( skydomecolour );
-    auto const intensity = std::min( 1.15f * (0.05f + m_sun.getIntensity() + skydomehsv.z), 1.25f );
-    // ...update light colours and intensity.
-    // NOTE: intensity combines intensity of the sun and the light reflected by the sky dome
-    // it'd be more technically correct to have just the intensity of the sun here,
-    // but whether it'd _look_ better is something to be tested
-
-	Global::daylight.position = float3(position.x, position.y, position.z);
-	vector3 sun = -1.0 * m_sun.getDirection();
-	Global::daylight.direction = float3(sun.x, sun.y, sun.z);
-	Global::daylight.color = float3(intensity * 255.0f / 255.0f,
-	                        intensity * 242.0f / 255.0f,
-	                        intensity * 231.0f / 255.0f);
-	Global::daylight.ambient = float3(skydomecolour.x, skydomecolour.y, skydomecolour.z);
-
-    // update the fog. setting it to match the average colour of the sky dome is cheap
-    // but quite effective way to make the distant items blend with background better
-    Global::FogColor[ 0 ] = skydomecolour.x;
-    Global::FogColor[ 1 ] = skydomecolour.y;
-    Global::FogColor[ 2 ] = skydomecolour.z;
-    ::glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
-
-    ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f ); // kolor nieba
 }
 
 extern TWorld World;
 
 void
-world_environment::render() {
+world_environment::update() {
+	// move celestial bodies...
+	m_sun.update();
+	m_moon.update();
+	// ...determine source of key light and adjust global state accordingly...
+	auto const sunlightlevel = m_sun.getIntensity();
+	auto const moonlightlevel = m_moon.getIntensity();
+	float keylightintensity;
+	float twilightfactor;
+	float3 keylightcolor;
+	if (moonlightlevel > sunlightlevel) {
+		// rare situations when the moon is brighter than the sun, typically at night
+		Global::SunAngle = m_moon.getAngle();
+		Math3D::vector3 moon_dir = -1.0 * m_moon.getDirection();
+		Global::daylight.direction = glm::vec3(moon_dir.x, moon_dir.y, moon_dir.z);
+		keylightintensity = moonlightlevel;
+		// if the moon is up, it overrides the twilight
+		twilightfactor = 0.0f;
+		keylightcolor = float3(255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f);
+	}
+	else {
+		// regular situation with sun as the key light
+		Global::SunAngle = m_sun.getAngle();
+		Math3D::vector3 sun_dir = -1.0 * m_sun.getDirection();
+		Global::daylight.direction = glm::vec3(sun_dir.x, sun_dir.y, sun_dir.z);
+		keylightintensity = sunlightlevel;
+		// diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
+		twilightfactor = clamp(-Global::SunAngle, 0.0f, 18.0f) / 18.0f;
+		// TODO: crank orange up at dawn/dusk
+		keylightcolor = float3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f);
+		float const duskfactor = 1.0f - clamp(Global::SunAngle, 0.0f, 18.0f) / 18.0f;
+		keylightcolor = interpolate(
+			float3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f),
+			float3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f),
+			duskfactor);
+	}
+	// ...update skydome to match the current sun position as well...
+	m_skydome.SetOvercastFactor(Global::Overcast);
+	m_skydome.Update(m_sun.getPosition());
+	// ...retrieve current sky colour and brightness...
+	auto const skydomecolour = m_skydome.GetAverageColor();
+	auto const skydomehsv = RGBtoHSV(skydomecolour);
+	// sun strength is reduced by overcast level
+	keylightintensity *= (1.0f - Global::Overcast * 0.65f);
 
-    GfxRenderer.Bind( 0 );
+	// intensity combines intensity of the sun and the light reflected by the sky dome
+	// it'd be more technically correct to have just the intensity of the sun here,
+	// but whether it'd _look_ better is something to be tested
+	auto const intensity = std::min(1.15f * (0.05f + keylightintensity + skydomehsv.z), 1.25f);
+	// the impact of sun component is reduced proportionally to overcast level, as overcast increases role of ambient light
+	auto const diffuselevel = interpolate(keylightintensity, intensity * (1.0f - twilightfactor), 1.0f - Global::Overcast * 0.75f);
+	// ...update light colours and intensity.
+	keylightcolor = keylightcolor * diffuselevel;
+	Global::daylight.color.x = keylightcolor.x;
+	Global::daylight.color.y = keylightcolor.y;
+	Global::daylight.color.z = keylightcolor.z;
 
-    ::glDisable( GL_LIGHTING );
-    ::glDisable( GL_FOG );
-    ::glDisable( GL_DEPTH_TEST );
-    ::glDepthMask( GL_FALSE );
-    ::glPushMatrix();
-    ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
+	// tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
+	// (this is pure conjecture, aimed more to 'look right' than be accurate)
+	float const ambienttone = clamp(1.0f - (Global::SunAngle / 90.0f), 0.0f, 1.0f);
+	Global::daylight.ambient.x = interpolate(skydomehsv.z, skydomecolour.x, ambienttone);
+	Global::daylight.ambient.y = interpolate(skydomehsv.z, skydomecolour.y, ambienttone);
+	Global::daylight.ambient.z = interpolate(skydomehsv.z, skydomecolour.z, ambienttone);
 
-    m_skydome.Render();
-    m_stars.render();
-    m_clouds.Render( m_skydome.GetAverageColor() * 2.5f );
+	Global::fLuminance = intensity;
 
-    if( DebugModeFlag == true ) {
-        // mark sun position for easier debugging
-        m_sun.render();
-    }
+	// update the fog. setting it to match the average colour of the sky dome is cheap
+	// but quite effective way to make the distant items blend with background better
+	Global::FogColor[0] = skydomecolour.x;
+	Global::FogColor[1] = skydomecolour.y;
+	Global::FogColor[2] = skydomecolour.z;
+	::glFogfv(GL_FOG_COLOR, Global::FogColor); // kolor mgły
 
-	World.shader.set_ambient(Global::daylight.ambient);
-	World.shader.set_light(0, gl_program_light::DIR, Global::daylight.position, Global::daylight.direction,
-		0.0f, 0.0f, Global::daylight.color * Global::daylight.intensity, 0.0f, 0.0f);
-
-    ::glPopMatrix();
-    ::glDepthMask( GL_TRUE );
-    ::glEnable( GL_DEPTH_TEST );
-    ::glEnable( GL_FOG );
-    ::glEnable( GL_LIGHTING );
+	::glClearColor(skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f); // kolor nieba
 }
 
 void

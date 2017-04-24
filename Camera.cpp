@@ -111,12 +111,12 @@ vector3 TCamera::GetDirection()
 
     return (Normalize(Vec));
 }
-/*
+
 bool TCamera::SetMatrix()
 {
-    glRotated( -Roll * 180.0f / M_PI, 0, 0, 1 ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
-    glRotated( -Pitch * 180.0f / M_PI, 1, 0, 0 );
-    glRotated( -Yaw * 180.0f / M_PI, 0, 1, 0 ); // w zewnętrznym widoku: kierunek patrzenia
+    glRotated( -Roll * 180.0 / M_PI, 0.0, 0.0, 1.0 ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
+    glRotated( -Pitch * 180.0 / M_PI, 1.0, 0.0, 0.0 );
+    glRotated( -Yaw * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // w zewnętrznym widoku: kierunek patrzenia
 
     if( Type == tp_Follow )
     {
@@ -132,7 +132,7 @@ bool TCamera::SetMatrix()
     Global::SetCameraPosition(Pos); // było +pOffset
     return true;
 }
-*/
+
 bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
 
     Matrix = glm::rotate( Matrix, (float)-Roll, glm::vec3( 0.0f, 0.0f, 1.0f ) ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
@@ -157,9 +157,9 @@ bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
 void TCamera::SetCabMatrix(vector3 &p)
 { // ustawienie widoku z kamery bez przesunięcia robionego przez OpenGL - nie powinno tak trząść
 
-    glRotated(-Roll * 180.0f / M_PI, 0, 0, 1);
-    glRotated(-Pitch * 180.0f / M_PI, 1, 0, 0);
-    glRotated(-Yaw * 180.0f / M_PI, 0, 1, 0); // w zewnętrznym widoku: kierunek patrzenia
+    glRotated(-Roll * 180.0 / M_PI, 0.0, 0.0, 1.0);
+    glRotated(-Pitch * 180.0 / M_PI, 1.0, 0.0, 0.0);
+    glRotated(-Yaw * 180.0 / M_PI, 0.0, 1.0, 0.0); // w zewnętrznym widoku: kierunek patrzenia
     if (Type == tp_Follow)
         gluLookAt(Pos.x - p.x, Pos.y - p.y, Pos.z - p.z, LookAt.x - p.x, LookAt.y - p.y,
                   LookAt.z - p.z, vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero

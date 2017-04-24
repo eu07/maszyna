@@ -218,6 +218,7 @@ class Global
 	static float Background[3];
 	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
+    static float Overcast;
     // static bool bTimeChange;
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
     static opengl_light AmbientLight;
@@ -248,7 +249,6 @@ class Global
     static int iRailProFiltering; // domyślne rozmywanie tekstury szyn
     static int iDynamicFiltering; // domyślne rozmywanie tekstur pojazdów
     static int iReCompile; // zwiększany, gdy trzeba odświeżyć siatki
-    static bool bUseVBO; // czy jest VBO w karcie graficznej
     static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
@@ -360,10 +360,9 @@ class Global
 
 	struct daylight_s
 	{
-		float3 position;
-		float3 direction;
-		float3 color;
-		float3 ambient;
+		glm::vec3 ambient;
+		glm::vec3 direction;
+		glm::vec3 color;
 		float intensity;
 	};
 

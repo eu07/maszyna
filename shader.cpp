@@ -103,12 +103,12 @@ void gl_program_mvp::copy_gl_mvp()
 	glUniformMatrix4fv(p_uniform, 1, GL_FALSE, p.e);
 }
 
-void gl_program_mvp::set_mv(glm::mat4 &m)
+void gl_program_mvp::set_mv(const glm::mat4 &m)
 {
 	glUniformMatrix4fv(mv_uniform, 1, GL_FALSE, glm::value_ptr(m));
 }
 
-void gl_program_mvp::set_p(glm::mat4 &m)
+void gl_program_mvp::set_p(const glm::mat4 &m)
 {
 	glUniformMatrix4fv(p_uniform, 1, GL_FALSE, glm::value_ptr(m));
 }
@@ -117,7 +117,6 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 {
 	ambient_uniform = glGetUniformLocation(id, "ambient");
 	lcount_uniform = glGetUniformLocation(id, "lights_count");
-	specular_uniform = glGetUniformLocation(id, "specular");
 
 	for (size_t i = 0; i < MAX_LIGHTS; i++)
 	{
@@ -136,10 +135,10 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 	glUniform1i(lcount_uniform, 0);
 }
 
-void gl_program_light::set_ambient(float3 &ambient)
+void gl_program_light::set_ambient(glm::vec3 &ambient)
 {
 	glUseProgram(id);
-	glUniform3fv(ambient_uniform, 1, &ambient.x);
+	glUniform3fv(ambient_uniform, 1, glm::value_ptr(ambient));
 }
 
 void gl_program_light::set_light_count(GLuint count)
@@ -148,13 +147,11 @@ void gl_program_light::set_light_count(GLuint count)
 	glUniform1ui(lcount_uniform, count);
 }
 
-void gl_program_light::set_light(GLuint i, type t, float3 &pos, float3 &dir,
+void gl_program_light::set_light(GLuint i, type t, glm::vec3 &pos, glm::vec3 &dir,
 	float in_cutoff, float out_cutoff,
-	float3 &color, float linear, float quadratic)
+	glm::vec3 &color, float linear, float quadratic)
 {
-	float arr[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, arr);
-	glm::mat4 mv = glm::make_mat4(arr);
+	glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
 
 	glm::vec3 trans_pos = mv * glm::vec4(pos.x, pos.y, pos.z, 1.0f);
 	glm::vec3 trans_dir = mv * glm::vec4(dir.x, dir.y, dir.z, 0.0f);
@@ -165,13 +162,7 @@ void gl_program_light::set_light(GLuint i, type t, float3 &pos, float3 &dir,
 	glUniform3fv(lights_uniform[i].dir, 1, glm::value_ptr(trans_dir));
 	glUniform1f(lights_uniform[i].in_cutoff, in_cutoff);
 	glUniform1f(lights_uniform[i].out_cutoff, out_cutoff);
-	glUniform3fv(lights_uniform[i].color, 1, &color.x);
+	glUniform3fv(lights_uniform[i].color, 1, glm::value_ptr(color));
 	glUniform1f(lights_uniform[i].linear, linear);
 	glUniform1f(lights_uniform[i].quadratic, quadratic);
-}
-
-void gl_program_light::set_object(float specular)
-{
-	glUseProgram(id);
-	glUniform1f(specular_uniform, specular);
 }

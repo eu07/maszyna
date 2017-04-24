@@ -206,7 +206,7 @@ void CSkyDome::SetGammaCorrection( float const Gamma ) {
 
 void CSkyDome::SetOvercastFactor( float const Overcast ) {
 
-	m_overcast = clamp( Overcast, 0.0f, 1.0f );
+	m_overcast = clamp( Overcast, 0.0f, 1.0f ) * 0.75f; // going above 0.65 makes the model go pretty bad, appearance-wise
 }
 
 void CSkyDome::GetPerez( float *Perez, float Distribution[ 5 ][ 2 ], const float Turbidity ) {
@@ -299,7 +299,7 @@ void CSkyDome::RebuildColors() {
 
 		// luminance(Y) for clear & overcast sky
 		float const yclear = PerezFunctionO2( perezluminance, icostheta, gamma, cosgamma2, zenithluminance );
-		float const yover = ( 1.0f + 2.0f * vertex.y ) / 3.0f;
+		float const yover = zenithluminance * ( 1.0f + 2.0f * vertex.y ) / 3.0f;
 		
 		float const Y = interpolate( yclear, yover, m_overcast );
 		float const X = (x / y) * Y;  
@@ -316,6 +316,11 @@ void CSkyDome::RebuildColors() {
             // exp scale
 			colorconverter.z = 1.0f - exp( -m_expfactor * colorconverter.z );  
 		}
+
+        // desaturate sky colour, based on overcast level
+        if( colorconverter.y > 0.0f ) {
+            colorconverter.y *= ( 1.0f - m_overcast );
+        }
 
         // override the hue, based on sun height above the horizon. crude way to deal with model shortcomings
         // correction begins when the sun is higher than 10 degrees above the horizon, and fully in effect at 10+15 degrees
@@ -340,8 +345,8 @@ void CSkyDome::RebuildColors() {
 */
         // crude correction for the times where the model breaks (late night)
         // TODO: use proper night sky calculation for these times instead
-        if( ( color.x <= 0.0f )
-         && ( color.y <= 0.0f ) ) {
+        if( ( color.x <= 0.05f )
+         && ( color.y <= 0.05f ) ) {
             // darken the sky as the sun goes deeper below the horizon
             // 15:50:75 is picture-based night sky colour. it may not be accurate but looks 'right enough'
             color.z = 0.75f * std::max( color.z + m_sundirection.y, 0.075f );

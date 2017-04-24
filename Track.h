@@ -95,10 +95,6 @@ class TSwitchExtension
   private:
 };
 
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-const int iMaxNumDynamics = 40; // McZapkie-100303
-#endif
-
 class TIsolated
 { // obiekt zbierający zajętości z kilku odcinków
     int iAxles = 0; // ilość osi na odcinkach obsługiwanych przez obiekt
@@ -152,13 +148,8 @@ class TTrack : public Resource
     TGroundNode *
         pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
   public:
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-    int iNumDynamics = 0;
-    TDynamicObject *Dynamics[iMaxNumDynamics];
-#else
     typedef std::deque<TDynamicObject *> dynamics_sequence;
     dynamics_sequence Dynamics;
-#endif
     int iEvents = 0; // Ra: flaga informująca o obecności eventów
     TEvent *evEventall0 = nullptr; // McZapkie-140302: wyzwalany gdy pojazd stoi
     TEvent *evEventall1 = nullptr;
@@ -204,11 +195,7 @@ class TTrack : public Resource
     TTrack * NullCreate(int dir);
     inline bool IsEmpty()
     {
-#ifdef EU07_USE_OLD_TTRACK_DYNAMICS_ARRAY
-        return (iNumDynamics <= 0);
-#else
         return Dynamics.empty();
-#endif
     };
     void ConnectPrevPrev(TTrack *pNewPrev, int typ);
     void ConnectPrevNext(TTrack *pNewPrev, int typ);
