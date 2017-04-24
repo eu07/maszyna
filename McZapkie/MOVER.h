@@ -659,6 +659,7 @@ public:
     double CompressorSpeed = 0.0;
 	/*cisnienie wlaczania, zalaczania sprezarki, wydajnosc sprezarki*/
 	TBrakeDelayTable BrakeDelay; /*opoznienie hamowania/odhamowania t/o*/
+    double AirLeakRate{ 0.01 }; // base rate of air leak from brake system components ( 0.001 = 1 l/sec )
 	int BrakeCtrlPosNo = 0;     /*ilosc pozycji hamulca*/
 							/*nastawniki:*/
 	int MainCtrlPosNo = 0;     /*ilosc pozycji nastawnika*/

@@ -2843,8 +2843,7 @@ void TMoverParameters::UpdateBrakePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::CompressorCheck(double dt)
 {
-    // TODO: expose leak rate as a parameter to the .fiz file
-    CompressedVolume = std::max( 0.0, CompressedVolume - dt * 0.001 ); // nieszczelności: 0.001=1l/s
+    CompressedVolume = std::max( 0.0, CompressedVolume - dt * AirLeakRate * 0.1 ); // nieszczelności: 0.001=1l/s
 
     // if (CompressorSpeed>0.0) then //ten warunek został sprawdzony przy wywołaniu funkcji
     if (VeselVolume > 0)
@@ -2968,8 +2967,10 @@ void TMoverParameters::CompressorCheck(double dt)
 // *************************************************************************************************
 void TMoverParameters::UpdatePipePressure(double dt)
 {
-    // TODO: expose leak rate as a parameter to the .fiz file
-    PipePress = std::max( 0.0, PipePress - dt * 0.001 ); // nieszczelności: 0.001=1l/s
+    if( PipePress > 1.0 ) {
+        Pipe->Flow( -(PipePress)* AirLeakRate * dt );
+        Pipe->Act();
+    }
 
     const double LBDelay = 100;
     const double kL = 0.5;
@@ -3187,8 +3188,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::UpdateScndPipePressure(double dt)
 {
-    // TODO: expose leak rate as a parameter to the .fiz file
-    ScndPipePress = std::max( 0.0, ScndPipePress - dt * 0.001 ); // nieszczelności: 0.001=0.1l/s
+    if( ScndPipePress > 1.0 ) {
+        Pipe2->Flow( -(ScndPipePress)* AirLeakRate * dt );
+        Pipe2->Act();
+    }
 
     const double Spz = 0.5067;
     TMoverParameters *c;
@@ -6494,6 +6497,11 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
             lookup->second :
             1;
     }
+
+    if( true == extract_value( AirLeakRate, "AirLeakRate", line, "" ) ) {
+        // the parameter is provided in form of a multiplier, where 1.0 means the default rate of 0.001
+        AirLeakRate *= 0.01;
+    }
 }
 
 void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
@@ -6705,8 +6713,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         }
 
         // mbpm
-        extract_value( MBPM, "MaxBPMass", line, "" );
-//        MBPM *= 1000;
+        if( true == extract_value( MBPM, "MaxBPMass", line, "" ) ) {
+            // NOTE: only convert the value from tons to kilograms if the entry is present in the config file
+            MBPM *= 1000.0;
+        }
 
         // asbtype
         std::string asb;

@@ -2742,7 +2742,8 @@ void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Com
 
 void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Command ) {
 
-    if( Train->ggHornButton.SubModel == nullptr ) {
+    if( ( Train->ggHornButton.SubModel == nullptr )
+     && ( Train->ggHornLowButton.SubModel == nullptr ) ) {
         if( Command.action == GLFW_PRESS ) {
             WriteLog( "Horn button is missing, or wasn't defined" );
         }
@@ -2759,11 +2760,13 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
                 Train->mvControlled->WarningSignal &= ~2;
             }
             // audio feedback
-            if( Train->ggHornButton.GetValue() > -0.5 ) {
+            if( ( Train->ggHornButton.GetValue() > -0.5 )
+             || ( Train->ggHornLowButton.GetValue() < 0.5 ) ) {
                 Train->play_sound( Train->dsbSwitch );
             }
             // visual feedback
             Train->ggHornButton.UpdateValue( -1.0 );
+            Train->ggHornLowButton.UpdateValue( 1.0 );
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -2771,17 +2774,20 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
         // NOTE: we turn off both low and high horn, due to unreliability of release event when shift key is involved
         Train->mvControlled->WarningSignal &= ~( 1 | 2 );
         // audio feedback
-        if( Train->ggHornButton.GetValue() < -0.5 ) {
+        if( ( Train->ggHornButton.GetValue() < -0.5 )
+         || ( Train->ggHornLowButton.GetValue() > 0.5 ) ) {
             Train->play_sound( Train->dsbSwitch );
         }
         // visual feedback
         Train->ggHornButton.UpdateValue( 0.0 );
+        Train->ggHornLowButton.UpdateValue( 0.0 );
     }
 }
 
 void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Command ) {
 
-    if( Train->ggHornButton.SubModel == nullptr ) {
+    if( ( Train->ggHornButton.SubModel == nullptr )
+     && ( Train->ggHornHighButton.SubModel == nullptr ) ) {
         if( Command.action == GLFW_PRESS ) {
             WriteLog( "Horn button is missing, or wasn't defined" );
         }
@@ -2803,6 +2809,7 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
             }
             // visual feedback
             Train->ggHornButton.UpdateValue( 1.0 );
+            Train->ggHornHighButton.UpdateValue( 1.0 );
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -2814,6 +2821,7 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
             Train->play_sound( Train->dsbSwitch );
         }
         // visual feedback
+        Train->ggHornButton.UpdateValue( 0.0 );
         Train->ggHornButton.UpdateValue( 0.0 );
     }
 }
@@ -7399,6 +7407,8 @@ bool TTrain::Update( double const Deltatime )
         ggSignallingButton.Update();
         ggNextCurrentButton.Update();
         ggHornButton.Update();
+        ggHornLowButton.Update();
+        ggHornHighButton.Update();
         ggUniversal1Button.Update();
         ggUniversal2Button.Update();
         ggUniversal3Button.Update();
@@ -8169,6 +8179,8 @@ void TTrain::clear_cab_controls()
     ggSandButton.Clear();
     ggAntiSlipButton.Clear();
     ggHornButton.Clear();
+    ggHornLowButton.Clear();
+    ggHornHighButton.Clear();
     ggNextCurrentButton.Clear();
     ggUniversal1Button.Clear();
     ggUniversal2Button.Clear();
@@ -8759,7 +8771,15 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         // dzwignia syreny
         ggHornButton.Load(Parser, DynamicObject->mdKabina);
     }
-    else if (Label == "fuse_bt:")
+    else if( Label == "hornlow_bt:" ) {
+        // dzwignia syreny
+        ggHornLowButton.Load( Parser, DynamicObject->mdKabina );
+    }
+    else if( Label == "hornhigh_bt:" ) {
+        // dzwignia syreny
+        ggHornHighButton.Load( Parser, DynamicObject->mdKabina );
+    }
+    else if( Label == "fuse_bt:" )
     {
         // bezp. nadmiarowy
         ggFuseButton.Load(Parser, DynamicObject->mdKabina);

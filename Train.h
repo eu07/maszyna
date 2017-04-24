@@ -261,6 +261,8 @@ public: // reszta może by?publiczna
 
     // ABu 090305 - syrena i prad nastepnego czlonu
     TGauge ggHornButton;
+    TGauge ggHornLowButton;
+    TGauge ggHornHighButton;
     TGauge ggNextCurrentButton;
     // ABu 090305 - uniwersalne przyciski
     TGauge ggUniversal1Button;
