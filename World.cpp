@@ -824,15 +824,6 @@ void TWorld::OnKeyDown(int cKey)
     //}
 }
 
-void TWorld::OnKeyUp(int cKey)
-{ // zwolnienie klawisza; (cKey) to kod klawisza, cyfrowe i literowe się zgadzają
-    if (!Global::iPause) // podczas pauzy sterownaie nie działa
-        if (Train)
-            if (Controlled)
-                if ((Controlled->Controller == Humandriver) ? true : DebugModeFlag || (cKey == 'Q'))
-                    Train->OnKeyUp(cKey); // przekazanie zwolnienia klawisza do kabiny
-};
-
 void TWorld::OnMouseMove(double x, double y)
 { // McZapkie:060503-definicja obracania myszy
     Camera.OnCursorMove(x * Global::fMouseXScale / Global::ZoomFactor, -y * Global::fMouseYScale / Global::ZoomFactor);

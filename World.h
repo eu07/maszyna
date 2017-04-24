@@ -101,7 +101,6 @@ TWorld();
     bool InitPerformed() { return m_init; }
     GLFWwindow *window;
     void OnKeyDown(int cKey);
-    void OnKeyUp(int cKey);
     // void UpdateWindow();
     void OnMouseMove(double x, double y);
     void OnCommandGet(DaneRozkaz *pRozkaz);

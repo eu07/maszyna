@@ -23,15 +23,11 @@ http://mozilla.org/MPL/2.0/.
 
 const int maxcab = 2;
 
-// const double fCzuwakTime= 90.0f;
 const double fCzuwakBlink = 0.15;
 const float fConverterPrzekaznik = 1.5f; // hunter-261211: do przekaznika nadmiarowego przetwornicy
 // 0.33f
 // const double fBuzzerTime= 5.0f;
 const float fHaslerTime = 1.2f;
-
-// const double fStycznTime= 0.5f;
-// const double fDblClickTime= 0.2f;
 
 class TCab
 {
@@ -73,7 +69,6 @@ class TTrain
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
     void OnKeyDown(int cKey);
-    void OnKeyUp(int cKey);
 
     inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
     inline vector3 GetUp() { return DynamicObject->VectorUp(); };
@@ -423,8 +418,7 @@ public: // reszta może by?publiczna
     // TFadeSound sConverter;  //przetwornica
     // TFadeSound sSmallCompressor;  //przetwornica
 
-    int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1:
-    // przyciemnione, 2: pelne)
+    int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 

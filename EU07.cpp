@@ -161,10 +161,6 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
             default: { break; }
         }
     }
-    else if( action == GLFW_RELEASE )
-    {
-        World.OnKeyUp( key );
-    }
 }
 
 void focus_callback( GLFWwindow *window, int focus )
