@@ -66,6 +66,9 @@ set(SOURCES
 "uilayer.cpp"
 "openglmatrixstack.cpp"
 "moon.cpp"
+"command.cpp"
+"keyboardinput.cpp"
+"gamepadinput.cpp"
 )
 
 if (WIN32)

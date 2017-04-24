@@ -325,8 +325,13 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             >> discard >> fFarDecayRadius
             >> discard >> fCosFalloffAngle // kąt liczony dla średnicy, a nie promienia
             >> discard >> fCosHotspotAngle; // kąt liczony dla średnicy, a nie promienia
-        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
-        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+        // convert conve parameters if specified in degrees
+        if( fCosFalloffAngle > 1.0 ) {
+            fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+        }
+        if( fCosHotspotAngle > 1.0 ) {
+            fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+        }
         iNumVerts = 1;
 /*
         iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi zostać bez zmiany
@@ -899,22 +904,22 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		break;
 	case at_SecondsJump: // sekundy z przeskokiem
-		m = glm::rotate(m, glm::radians(Simulation::Time.data().wSecond * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wSecond * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_MinutesJump: // minuty z przeskokiem
-		m = glm::rotate(m, glm::radians(Simulation::Time.data().wMinute * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_HoursJump: // godziny skokowo 12h/360°
-		m = glm::rotate(m, glm::radians(Simulation::Time.data().wHour * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours24Jump: // godziny skokowo 24h/360°
-		m = glm::rotate(m, glm::radians(Simulation::Time.data().wHour * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Seconds: // sekundy płynnie
-		m = glm::rotate(m, glm::radians((float)Simulation::Time.second() * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians((float)simulation::Time.second() * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Minutes: // minuty płynnie
-		m = glm::rotate(m, glm::radians(Simulation::Time.data().wMinute * 6.0f + (float)Simulation::Time.second() * 0.1f), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f + (float)simulation::Time.second() * 0.1f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Hours: // godziny płynnie 12h/360°
 				   // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
@@ -943,7 +948,7 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
-		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * Simulation::Time.second() / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * simulation::Time.second() / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case at_Sky: // animacja nieba
 		m = glm::rotate(m, glm::radians((float)Global::fLatitudeDeg), glm::vec3(0.0f, 1.0f, 0.0f)); // ustawienie osi OY na północ
@@ -1526,15 +1531,21 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 		LoadFromBinFile(asBinary, dynamic);
 		asBinary = ""; // wyłączenie zapisu
 		Init();
-	}
+        // cache the file name, in case someone wants it later
+        m_filename = name + ".e3d";
+    }
 	else
 	{
 		if (FileExists(name + ".t3d"))
 		{
 			LoadFromTextFile(FileName, dynamic); // wczytanie tekstowego
-			if (!dynamic) // pojazdy dopiero po ustawieniu animacji
-				Init(); // generowanie siatek i zapis E3D
-		}
+            if( !dynamic ) {
+                // pojazdy dopiero po ustawieniu animacji
+                Init(); // generowanie siatek i zapis E3D
+            }
+            // cache the file name, in case someone wants it later
+            m_filename = name + ".t3d";
+        }
 	}
 	bool const result =
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
@@ -1902,6 +1913,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
         // so as a workaround we're doing it here manually
         iFlags |= 0x20;
     }
+    // intercept and fix hotspot values if specified in degrees and not directly
+    if( fCosFalloffAngle > 1.0 ) {
+        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+    }
+    if( fCosHotspotAngle > 1.0 ) {
+        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+    }
+
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
 
 	iVboPtr = tVboPtr;

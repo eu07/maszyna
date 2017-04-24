@@ -57,8 +57,8 @@ light_array::update() {
             light.direction.z = -light.direction.z;
         }
         // determine intensity of this light set
-        if( true == light.owner->MoverParameters->Battery ) {
-            // with battery on, the intensity depends on the state of activated switches
+        if( ( true == light.owner->MoverParameters->Battery ) || ( true == light.owner->MoverParameters->ConverterFlag ) ) {
+            // with power on, the intensity depends on the state of activated switches
             auto const &lightbits = light.owner->iLights[ light.index ];
             light.count = 0 +
                 ( ( lightbits & 1 ) ? 1 : 0 ) +

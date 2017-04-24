@@ -115,7 +115,7 @@ void cSun::move() {
     static double radtodeg = 57.295779513; // converts from radians to degrees
     static double degtorad = 0.0174532925; // converts from degrees to radians
 
-    SYSTEMTIME localtime = Simulation::Time.data(); // time for the calculation
+    SYSTEMTIME localtime = simulation::Time.data(); // time for the calculation
 
     if( m_observer.hour >= 0 ) { localtime.wHour = m_observer.hour; }
     if( m_observer.minute >= 0 ) { localtime.wMinute = m_observer.minute; }
@@ -258,9 +258,9 @@ void cSun::irradiance() {
 	static double degrad = 57.295779513;					// converts from radians to degrees
 	static double raddeg = 0.0174532925;					// converts from degrees to radians
 
-    auto const &localtime = Simulation::Time.data(); // time for the calculation
+    auto const &localtime = simulation::Time.data(); // time for the calculation
 
-	m_body.dayang = ( Simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
+	m_body.dayang = ( simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
 	double sd = sin( raddeg * m_body.dayang );				// sine of the day angle
 	double cd = cos( raddeg * m_body.dayang );				// cosine of the day angle or delination
 	m_body.erv = 1.000110 + 0.034221*cd + 0.001280*sd;

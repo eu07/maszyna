@@ -986,11 +986,8 @@ TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObj
     return nullptr;
 }
 
-TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir,
-                                                                double ScanDist, int &CouplNr)
-{ // skanowanie toru w poszukiwaniu obiektu najblizszego
-    // kamerze
-    // double MyScanDir=ScanDir;  //Moja orientacja na torze.  //Ra: nie używane
+TDynamicObject * TDynamicObject::ABuScanNearestObject(TTrack *Track, double ScanDir, double ScanDist, int &CouplNr)
+{ // skanowanie toru w poszukiwaniu obiektu najblizszego kamerze
     if (ABuGetDirection() < 0)
         ScanDir = -ScanDir;
     TDynamicObject *FoundedObj;
@@ -2914,11 +2911,12 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // fragment "z EXE Kursa"
     if (MoverParameters->Mains) // nie wchodzić w funkcję bez potrzeby
-        if ((!MoverParameters->Battery) && (Controller == Humandriver) &&
-            (MoverParameters->EngineType != DieselEngine) &&
-            (MoverParameters->EngineType != WheelsDriven))
-        { // jeśli bateria wyłączona, a nie diesel ani drezyna
-            // reczna
+        if ( ( false == MoverParameters->Battery)
+          && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
+          && ( Controller == Humandriver)
+          && ( MoverParameters->EngineType != DieselEngine )
+          && ( MoverParameters->EngineType != WheelsDriven ) )
+        { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
             if (MoverParameters->MainSwitch(false)) // wyłączyć zasilanie
                 MoverParameters->EventFlag = true;
         }
@@ -3291,8 +3289,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             if (tmpTraction.TractionVoltage == 0)
             { // to coś wyłączało dźwięk silnika w ST43!
                 MoverParameters->ConverterFlag = false;
-                MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie
-                // sprężarki powinno być w jednym miejscu!
+                MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie sprężarki powinno być w jednym miejscu!
             }
         }
     }
@@ -4297,45 +4294,47 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             }
 #else
             { // tekstura wymienna jest raczej jedynie w "dynamic\"
-                ReplacableSkin = Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
-				std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
-				if (!x.empty())
-                    m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9 );
+//                ReplacableSkin = Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
+				std::string nowheretexture = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
+                if( false == nowheretexture.empty() ) {
+                    m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( nowheretexture, "", 9 );
+                }
 
-                if (m_materialdata.multi_textures > 0)
-                { // jeśli model ma 4 tekstury
-                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId(
-                        ReplacableSkin + ",1", "", Global::iDynamicFiltering);
-                    if( m_materialdata.replacable_skins[ 1 ] )
-                    { // pierwsza z zestawu znaleziona
-                        m_materialdata.replacable_skins[ 2 ] = GfxRenderer.GetTextureId(
-                            ReplacableSkin + ",2", "", Global::iDynamicFiltering);
-                        if( m_materialdata.replacable_skins[ 2 ] )
-                        {
-                            m_materialdata.multi_textures = 2; // już są dwie
-                            m_materialdata.replacable_skins[ 3 ] = GfxRenderer.GetTextureId(
-                                ReplacableSkin + ",3", "", Global::iDynamicFiltering);
-                            if( m_materialdata.replacable_skins[ 3 ] )
-                            {
-                                m_materialdata.multi_textures = 3; // a teraz nawet trzy
-                                m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId(
-                                    ReplacableSkin + ",4", "", Global::iDynamicFiltering);
-                                if( m_materialdata.replacable_skins[ 4 ] )
-                                    m_materialdata.multi_textures = 4; // jak są cztery, to blokujemy podmianę tekstury
-                                // rozkładem
-                            }
+                if (m_materialdata.multi_textures > 0) {
+                    // jeśli model ma 4 tekstury
+                    // check for the pipe method first
+                    if( ReplacableSkin.find( '|' ) != std::string::npos ) {
+                        cParser nameparser( ReplacableSkin );
+                        nameparser.getTokens( 4, true, "|" );
+                        int skinindex = 0;
+                        std::string texturename; nameparser >> texturename;
+                        while( ( texturename != "" ) && ( skinindex < 4 ) ) {
+                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + texturename, "" );
+                            ++skinindex;
+                            texturename = ""; nameparser >> texturename;
                         }
+                        m_materialdata.multi_textures = skinindex;
                     }
-                    else
-                    { // zestaw nie zadziałał, próbujemy normanie
-                        m_materialdata.multi_textures = 0;
-                        m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId(
-                            ReplacableSkin, "", Global::iDynamicFiltering);
+                    else {
+                        // otherwise try the basic approach
+                        int skinindex = 0;
+                        do {
+                            texture_manager::size_type texture = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), "", Global::iDynamicFiltering, true );
+                            if( false == GfxRenderer.Texture( texture ).is_ready ) {
+                                break;
+                            }
+                            m_materialdata.replacable_skins[ skinindex + 1 ] = texture;
+                            ++skinindex;
+                        } while( skinindex < 4 );
+                        m_materialdata.multi_textures = skinindex;
+                        if( m_materialdata.multi_textures == 0 ) {
+                            // zestaw nie zadziałał, próbujemy normanie
+                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin, "", Global::iDynamicFiltering );
+                        }
                     }
                 }
                 else
-                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId(
-                        ReplacableSkin, "", Global::iDynamicFiltering);
+                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin, "", Global::iDynamicFiltering );
                 if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha )
                     m_materialdata.textures_alpha = 0x31310031; // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
                 else

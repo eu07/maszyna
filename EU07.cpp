@@ -20,9 +20,12 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "stdafx.h"
 #include <png.h>
 #include <thread>
+#include <direct.h>
 
 #include "Globals.h"
 #include "Logs.h"
+#include "keyboardinput.h"
+#include "gamepadinput.h"
 #include "Console.h"
 #include "PyInt.h"
 #include "World.h"
@@ -40,7 +43,14 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 
 TWorld World;
 
-void screenshot_save_thread(char *img)
+namespace input {
+
+keyboard_input Keyboard;
+gamepad_input Gamepad;
+
+}
+
+void screenshot_save_thread( char *img )
 {
 	png_image png;
 	memset(&png, 0, sizeof(png_image));
@@ -91,12 +101,17 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
+    input::Keyboard.mouse( x, y );
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
 	World.OnMouseMove(x * 0.005, y * 0.01);
+#endif
 	glfwSetCursorPos(window, 0.0, 0.0);
 }
 
 void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
 {
+    input::Keyboard.key( key, action );
+
     Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
     Global::ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
 
@@ -116,53 +131,14 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
         switch( key )
         {
-			case GLFW_KEY_F11:
-				make_screenshot();
-				break;
-            case GLFW_KEY_ESCAPE: {
-/*                
-                if( ( DebugModeFlag ) //[Esc] pauzuje tylko bez Debugmode
-                 && ( Global::iPause == 0 ) ) { // but unpausing should work always
-                    
-                    break;
-                }
-*/
-                if( Global::iPause & 1 ) // jeśli pauza startowa
-                    Global::iPause &= ~1; // odpauzowanie, gdy po wczytaniu miało nie startować
-                else if( !( Global::iMultiplayer & 2 ) ) // w multiplayerze pauza nie ma sensu
-                    if( !Global::ctrlState ) // z [Ctrl] to radiostop jest
-                        Global::iPause ^= 2; // zmiana stanu zapauzowania
-                if( Global::iPause ) {// jak pauza
-                    Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
-                }
+
+            case GLFW_KEY_F11: {
+                make_screenshot();
                 break;
             }
-            case GLFW_KEY_F7:
-                if( DebugModeFlag ) {
 
-                    if( Global::ctrlState ) {
-                        // ctrl + f7 toggles static daylight
-                        World.ToggleDaylight();
-                        break;
-                    }
-                    // f7: wireframe toggle
-                    // siatki wyświetlane tyko w trybie testowym
-                    Global::bWireFrame = !Global::bWireFrame;
-                    if( true == Global::bWireFrame ) {
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-                    }
-                    else {
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-                    }
-                    ++Global::iReCompile; // odświeżyć siatki
-                    // Ra: jeszcze usunąć siatki ze skompilowanych obiektów!
-                }
-                break;
+            default: { break; }
         }
-    }
-    else if( action == GLFW_RELEASE )
-    {
-        World.OnKeyUp( key );
     }
 }
 
@@ -204,7 +180,11 @@ int main(int argc, char *argv[])
 	if (!glfwInit())
 		return -1;
 
-    DeleteFile("errors.txt");
+#ifdef _WINDOWS
+    DeleteFile( "log.txt" );
+    DeleteFile( "errors.txt" );
+    mkdir("logs");
+#endif
     Global::LoadIniFile("eu07.ini");
     Global::InitKeys();
 
@@ -321,6 +301,8 @@ int main(int argc, char *argv[])
 
         return -1;
     }
+    input::Keyboard.init();
+    input::Gamepad.init();
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
 	try
@@ -338,9 +320,10 @@ int main(int argc, char *argv[])
 	}
 
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
-
+/*
     if( !joyGetNumDevs() )
         WriteLog( "No joystick" );
+*/
     if( Global::iModifyTGA < 0 ) { // tylko modyfikacja TGA, bez uruchamiania symulacji
         Global::iMaxTextureSize = 64; //żeby nie zamulać pamięci
         World.ModifyTGA(); // rekurencyjne przeglądanie katalogów
@@ -357,7 +340,8 @@ int main(int argc, char *argv[])
             && World.Update()
             && GfxRenderer.Render())
         {
-			glfwPollEvents();
+            glfwPollEvents();
+            input::Gamepad.poll();
         }
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     }
@@ -367,5 +351,6 @@ int main(int argc, char *argv[])
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
 	return 0;
 }

@@ -15,23 +15,19 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "Timer.h"
 #include "mover.h"
+
 //---------------------------------------------------------------------------
 
 // TViewPyramid TCamera::OrgViewPyramid;
 //={vector3(-1,1,1),vector3(1,1,1),vector3(-1,-1,1),vector3(1,-1,1),vector3(0,0,0)};
 
-const vector3 OrgCrossPos = vector3(0, -10, 0);
-
 void TCamera::Init(vector3 NPos, vector3 NAngle)
 {
 
-    pOffset = vector3(-0.0, 0, 0);
     vUp = vector3(0, 1, 0);
     //    pOffset= vector3(-0.8,0,0);
-    CrossPos = OrgCrossPos;
     CrossDist = 10;
     Velocity = vector3(0, 0, 0);
-    OldVelocity = vector3(0, 0, 0);
     Pitch = NAngle.x;
     Yaw = NAngle.y;
     Roll = NAngle.z;
@@ -54,51 +50,332 @@ void TCamera::OnCursorMove(double x, double y)
     if (Type == tp_Follow) // jeżeli jazda z pojazdem
     {
         clamp(Pitch, -M_PI_4, M_PI_4); // ograniczenie kąta spoglądania w dół i w górę
-        // Fix(Yaw,-M_PI,M_PI);
+    }
+}
+
+void
+TCamera::OnCommand( command_data const &Command ) {
+
+    double const walkspeed = 1.0;
+    double const runspeed = ( DebugModeFlag ? 50.0 : 7.5 );
+    double const speedmultiplier = ( DebugModeFlag ? 7.5 : 1.0 );
+
+    switch( Command.command ) {
+
+        case user_command::viewturn: {
+
+            OnCursorMove(
+                reinterpret_cast<double const &>( Command.param1 ) *  0.005 * Global::fMouseXScale / Global::ZoomFactor,
+                reinterpret_cast<double const &>( Command.param2 ) * -0.01  * Global::fMouseYScale / Global::ZoomFactor );
+            break;
+        }
+
+        case user_command::movevector: {
+
+            auto const movespeed =
+                ( Type == tp_Free ?
+                    runspeed * speedmultiplier :
+                    walkspeed );
+
+            // left-right
+            double const movex = reinterpret_cast<double const &>( Command.param1 );
+            if( movex > 0.0 ) {
+                m_keys.right = true;
+                m_keys.left = false;
+            }
+            else if( movex < 0.0 ) {
+                m_keys.right = false;
+                m_keys.left = true;
+            }
+            else {
+                m_keys.right = false;
+                m_keys.left = false;
+            }
+            // 2/3rd of the stick range enables walk speed, past that we lerp between walk and run speed
+            m_moverate.x =
+                walkspeed
+                + ( std::max( 0.0, std::abs( movex ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed );
+
+            // forward-back
+            double const movez = reinterpret_cast<double const &>( Command.param2 );
+            if( movez > 0.0 ) {
+                m_keys.forward = true;
+                m_keys.back = false;
+            }
+            else if( movez < 0.0 ) {
+                m_keys.forward = false;
+                m_keys.back = true;
+            }
+            else {
+                m_keys.forward = false;
+                m_keys.back = false;
+            }
+            m_moverate.z =
+                walkspeed
+                + ( std::max( 0.0, std::abs( movez ) - 0.65 ) / 0.35 ) * ( movespeed - walkspeed );
+            break;
+        }
+
+        case user_command::moveforward: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.forward = true;
+                m_moverate.z =
+                    ( Type == tp_Free ?
+                        walkspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.forward = false;
+            }
+            break;
+        }
+
+        case user_command::moveback: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.back = true;
+                m_moverate.z =
+                    ( Type == tp_Free ?
+                        walkspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.back = false;
+            }
+            break;
+        }
+
+        case user_command::moveleft: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.left = true;
+                m_moverate.x =
+                    ( Type == tp_Free ?
+                        walkspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.left = false;
+            }
+            break;
+        }
+
+        case user_command::moveright: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.right = true;
+                m_moverate.x =
+                    ( Type == tp_Free ?
+                        walkspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.right = false;
+            }
+            break;
+        }
+
+        case user_command::moveup: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.up = true;
+                m_moverate.y =
+                    ( Type == tp_Free ?
+                        walkspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.up = false;
+            }
+            break;
+        }
+
+        case user_command::movedown: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.down = true;
+                m_moverate.y =
+                    ( Type == tp_Free ?
+                        walkspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.down = false;
+            }
+            break;
+        }
+
+        case user_command::moveforwardfast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.forward = true;
+                m_moverate.z =
+                    ( Type == tp_Free ?
+                        runspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.forward = false;
+            }
+            break;
+        }
+
+        case user_command::movebackfast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.back = true;
+                m_moverate.z =
+                    ( Type == tp_Free ?
+                        runspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.back = false;
+            }
+            break;
+        }
+
+        case user_command::moveleftfast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.left = true;
+                m_moverate.x =
+                    ( Type == tp_Free ?
+                        runspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.left = false;
+            }
+            break;
+        }
+
+        case user_command::moverightfast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.right = true;
+                m_moverate.x =
+                    ( Type == tp_Free ?
+                        runspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.right = false;
+            }
+            break;
+        }
+
+        case user_command::moveupfast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.up = true;
+                m_moverate.y =
+                    ( Type == tp_Free ?
+                        runspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.up = false;
+            }
+            break;
+        }
+
+        case user_command::movedownfast: {
+
+            if( Command.action != GLFW_RELEASE ) {
+                m_keys.down = true;
+                m_moverate.y =
+                    ( Type == tp_Free ?
+                        runspeed * speedmultiplier :
+                        walkspeed );
+            }
+            else {
+                m_keys.down = false;
+            }
+            break;
+        }
     }
 }
 
 void TCamera::Update()
 {
-    // ABu: zmiana i uniezaleznienie predkosci od FPS
-    double a = ( Global::shiftState ? 5.00 : 1.00);
-    if (Global::ctrlState)
-        a = a * 100;
-    //    OldVelocity=Velocity;
-    if (FreeFlyModeFlag == true)
-        Type = tp_Free;
-    else
-        Type = tp_Follow;
-    if (Type == tp_Free)
-    {
-        if (Console::Pressed(Global::Keys[k_MechUp]))
-            Velocity.y += a;
-        if (Console::Pressed(Global::Keys[k_MechDown]))
-            Velocity.y -= a;
+    if( FreeFlyModeFlag == true ) { Type = tp_Free; }
+    else                          { Type = tp_Follow; }
+
+    // check for sent user commands
+    // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
+    // ultimately we'll need to track position of camera/driver for all human entities present in the scenario
+    command_data command;
+    // NOTE: currently we're only storing commands for local entity and there's no id system in place,
+    // so we're supplying 'default' entity id of 0
+    while( simulation::Commands.pop( command, static_cast<std::size_t>( command_target::entity ) | 0 ) ) {
+
+        OnCommand( command );
+    }
+
+    auto const deltatime = Timer::GetDeltaRenderTime(); // czas bez pauzy
+
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
+    double a = 0.8; // default (walk) movement speed
+    if( Type == tp_Free ) {
+        // when not in the cab the speed modifiers are active
+        if( Global::shiftState ) { a = 2.5; }
+        if( Global::ctrlState ) { a *= 10.0; }
+    }
+
+    if( ( Type == tp_Free )
+     || ( false == Global::ctrlState ) ) {
+        // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
+        if( Console::Pressed( Global::Keys[ k_MechUp ] ) )
+            Velocity.y = clamp( Velocity.y + a * 10.0 * deltatime, -a, a );
+        if( Console::Pressed( Global::Keys[ k_MechDown ] ) )
+            Velocity.y = clamp( Velocity.y - a * 10.0 * deltatime, -a, a );
 
         // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
-        if (Console::Pressed(Global::Keys[k_MechRight]))
-            Velocity.x += a;
-        if (Console::Pressed(Global::Keys[k_MechLeft]))
-            Velocity.x -= a;
-        if (Console::Pressed(Global::Keys[k_MechForward]))
-            Velocity.z -= a;
-        if (Console::Pressed(Global::Keys[k_MechBackward]))
-            Velocity.z += a;
-        // gora-dol
-        // if (Console::Pressed(GLFW_KEY_KP_9)) Pos.y+=0.1;
-        // if (Console::Pressed(GLFW_KEY_KP_3)) Pos.y-=0.1;
+        if( Console::Pressed( Global::Keys[ k_MechRight ] ) )
+            Velocity.x = clamp( Velocity.x + a * 10.0 * deltatime, -a, a );
+        if( Console::Pressed( Global::Keys[ k_MechLeft ] ) )
+            Velocity.x = clamp( Velocity.x - a * 10.0 * deltatime, -a, a );
+        if( Console::Pressed( Global::Keys[ k_MechForward ] ) )
+            Velocity.z = clamp( Velocity.z - a * 10.0 * deltatime, -a, a );
+        if( Console::Pressed( Global::Keys[ k_MechBackward ] ) )
+            Velocity.z = clamp( Velocity.z + a * 10.0 * deltatime, -a, a );
+    }
+#else
+/*
+    m_moverate = 0.8; // default (walk) movement speed
+    if( Type == tp_Free ) {
+        // when not in the cab the speed modifiers are active
+        if( Global::shiftState ) { m_moverate = 2.5; }
+        if( Global::ctrlState ) { m_moverate *= 10.0; }
+    }
+*/
+    if( ( Type == tp_Free )
+     || ( false == Global::ctrlState ) ) {
+        // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
+        if( m_keys.up )
+            Velocity.y = clamp( Velocity.y + m_moverate.y * 10.0 * deltatime, -m_moverate.y, m_moverate.y );
+        if( m_keys.down )
+            Velocity.y = clamp( Velocity.y - m_moverate.y * 10.0 * deltatime, -m_moverate.y, m_moverate.y );
 
-        // McZapkie: zeby nie hustalo przy malym FPS:
-        //        Velocity= (Velocity+OldVelocity)/2;
-        //    matrix4x4 mat;
+        // McZapkie-170402: poruszanie i rozgladanie we free takie samo jak w follow
+        if( m_keys.right )
+            Velocity.x = clamp( Velocity.x + m_moverate.x * 10.0 * deltatime, -m_moverate.x, m_moverate.x );
+        if( m_keys.left )
+            Velocity.x = clamp( Velocity.x - m_moverate.x * 10.0 * deltatime, -m_moverate.x, m_moverate.x );
+        if( m_keys.forward )
+            Velocity.z = clamp( Velocity.z - m_moverate.z * 10.0 * deltatime, -m_moverate.z, m_moverate.z );
+        if( m_keys.back )
+            Velocity.z = clamp( Velocity.z + m_moverate.z * 10.0 * deltatime, -m_moverate.z, m_moverate.z );
+    }
+#endif
+
+    if( Type == tp_Free ) {
+        // free movement position update is handled here, movement while in vehicle is handled by train update
         vector3 Vec = Velocity;
-        Vec.RotateY(Yaw);
-        Pos = Pos + Vec * Timer::GetDeltaRenderTime(); // czas bez pauzy
-        Velocity = Velocity / 2; // płynne hamowanie ruchu
-        //    double tmp= 10*DeltaTime;
-        //        Velocity+= -Velocity*10 * Timer::GetDeltaTime();//( tmp<1 ? tmp : 1 );
-        //        Type= tp_Free;
+        Vec.RotateY( Yaw );
+        Pos += Vec * 5.0 * deltatime;
     }
 }
 
