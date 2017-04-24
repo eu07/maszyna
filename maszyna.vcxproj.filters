@@ -16,14 +16,14 @@
     <Filter Include="Source Files\mczapkie">
       <UniqueIdentifier>{fafd38ab-4c2a-48c8-8e66-ad0d928573b3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\console">
-      <UniqueIdentifier>{2d73d7b2-5252-499c-963a-88fa3cb1af53}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\mczapkie">
       <UniqueIdentifier>{36684428-8a48-435f-bca4-a24d9bfe2587}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\console">
+    <Filter Include="Header Files\input">
       <UniqueIdentifier>{cdf75bec-91f7-413c-8b57-9e32cba49148}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\input">
+      <UniqueIdentifier>{2d73d7b2-5252-499c-963a-88fa3cb1af53}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -157,7 +157,7 @@
       <Filter>Source Files\mczapkie</Filter>
     </ClCompile>
     <ClCompile Include="console\LPT.cpp">
-      <Filter>Source Files\console</Filter>
+      <Filter>Source Files\input</Filter>
     </ClCompile>
     <ClCompile Include="mczapkie\mctools.cpp">
       <Filter>Source Files\mczapkie</Filter>
@@ -169,13 +169,13 @@
       <Filter>Source Files\mczapkie</Filter>
     </ClCompile>
     <ClCompile Include="console\PoKeys55.cpp">
-      <Filter>Source Files\console</Filter>
+      <Filter>Source Files\input</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Console\MWD.cpp">
-      <Filter>Source Files\console</Filter>
+      <Filter>Source Files\input</Filter>
     </ClCompile>
     <ClCompile Include="Names.cpp">
       <Filter>Source Files</Filter>
@@ -211,6 +211,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="moon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gamepadinput.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="keyboardinput.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="command.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -291,10 +300,10 @@
       <Filter>Header Files\mczapkie</Filter>
     </ClInclude>
     <ClInclude Include="Console\PoKeys55.h">
-      <Filter>Header Files\console</Filter>
+      <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="Console\LPT.h">
-      <Filter>Header Files\console</Filter>
+      <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="RealSound.h">
       <Filter>Header Files</Filter>
@@ -375,7 +384,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Console\MWD.h">
-      <Filter>Header Files\console</Filter>
+      <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="sun.h">
       <Filter>Header Files</Filter>
@@ -412,6 +421,15 @@
     </ClInclude>
     <ClInclude Include="moon.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="command.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="keyboardinput.h">
+      <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="gamepadinput.h">
+      <Filter>Header Files\input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

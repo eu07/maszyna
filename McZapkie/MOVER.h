@@ -416,37 +416,30 @@ struct TPowerParameters
 		struct
 		{
 			_mover__3 RHeater;
-
 		};
 		struct
 		{
 			_mover__2 RPowerCable;
-
 		};
 		struct
 		{
 			TCurrentCollector CollectorParameters;
-
 		};
 		struct
 		{
 			_mover__1 RAccumulator;
-
 		};
 		struct
 		{
 			TEngineTypes GeneratorEngine;
-
 		};
 		struct
 		{
 			double InputVoltage;
-
 		};
 		struct
 		{
 			TPowerType PowerType;
-
 		};
 
 	};
@@ -666,15 +659,24 @@ public:
     double CompressorSpeed = 0.0;
 	/*cisnienie wlaczania, zalaczania sprezarki, wydajnosc sprezarki*/
 	TBrakeDelayTable BrakeDelay; /*opoznienie hamowania/odhamowania t/o*/
+    double AirLeakRate{ 0.01 }; // base rate of air leak from brake system components ( 0.001 = 1 l/sec )
 	int BrakeCtrlPosNo = 0;     /*ilosc pozycji hamulca*/
 							/*nastawniki:*/
 	int MainCtrlPosNo = 0;     /*ilosc pozycji nastawnika*/
 	int ScndCtrlPosNo = 0;
-	int LightsPosNo = 0; // NOTE: values higher than 0 seem to break the current code for light switches
+	int LightsPosNo = 0;
     int LightsDefPos = 1;
 	bool LightsWrap = false;
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
-	bool ScndInMain = false;     /*zaleznosc bocznika od nastawnika*/
+    enum light {
+
+        headlight_left  = 0x01,
+        redmarker_left  = 0x02,
+        headlight_upper = 0x04,
+        headlight_right = 0x10,
+        redmarker_right = 0x20,
+    };
+    int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
 	TSecuritySystem SecuritySystem;
@@ -754,7 +756,7 @@ public:
 	double DoorStayOpen = 0.0;               /*jak dlugo otwarte w przypadku DoorCloseCtrl=2*/
 	bool DoorClosureWarning = false;      /*czy jest ostrzeganie przed zamknieciem*/
 	double DoorOpenSpeed = 1.0; double DoorCloseSpeed = 1.0;      /*predkosc otwierania i zamykania w j.u. */
-	double DoorMaxShiftL = 0.5; double DoorMaxShiftR = 0.5; double DoorMaxPlugShift = 0.5;/*szerokosc otwarcia lub kat*/
+	double DoorMaxShiftL = 0.5; double DoorMaxShiftR = 0.5; double DoorMaxPlugShift = 0.1;/*szerokosc otwarcia lub kat*/
 	int DoorOpenMethod = 2;             /*sposob otwarcia - 1: przesuwne, 2: obrotowe, 3: trójelementowe*/
 	double PlatformSpeed = 0.25;   /*szybkosc stopnia*/
 	double PlatformMaxShift = 0.5; /*wysuniecie stopnia*/
@@ -879,6 +881,7 @@ public:
 	bool FuseFlag = false;       /*!o bezpiecznik nadmiarowy*/
 	bool ConvOvldFlag = false;              /*!  nadmiarowy przetwornicy i ogrzewania*/
 	bool StLinFlag = false;       /*!o styczniki liniowe*/
+    bool StLinSwitchOff{ false }; // state of the button forcing motor connectors open
 	bool ResistorsFlag = false;  /*!o jazda rezystorowa*/
 	double RventRot = 0.0;          /*!s obroty wentylatorow rozruchowych*/
 	bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
@@ -1187,7 +1190,7 @@ extract_value( _Type &Variable, std::string const &Key, std::string const &Input
             converter >> Variable;
         }
         return false; // couldn't locate the variable in provided input
-    }
+	}
 }
 
 template <>

@@ -66,7 +66,7 @@ inline float3 operator/( float3 const &v, float const k )
 };
 inline float3 SafeNormalize(const float3 &v)
 { // bezpieczna normalizacja (wektor długości 1.0)
-    double l = v.Length();
+    auto const l = v.Length();
     float3 retVal;
     if (l == 0)
         retVal.x = retVal.y = retVal.z = 0;
@@ -104,11 +104,11 @@ class float4
         z = c;
         w = d;
     };
-    double inline float4::LengthSquared() const
+    float inline float4::LengthSquared() const
     {
         return x * x + y * y + z * z + w * w;
     };
-    double inline float4::Length() const
+    float inline float4::Length() const
     {
         return sqrt(x * x + y * y + z * z + w * w);
     };
@@ -132,26 +132,26 @@ inline float4 operator+(const float4 &v1, const float4 &v2)
 {
     return float4(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w + v2.w);
 };
-inline float4 operator/(const float4 &v, double k)
+inline float4 operator/(const float4 &v, float const k)
 {
     return float4(v.x / k, v.y / k, v.z / k, v.w / k);
 };
 inline float4 Normalize(const float4 &v)
 { // bezpieczna normalizacja (wektor długości 1.0)
-    double l = v.LengthSquared();
-    if (l == 1.0)
+    auto const lengthsquared = v.LengthSquared();
+    if (lengthsquared == 1.0)
         return v;
-    if (l == 0.0)
+    if (lengthsquared == 0.0)
         return float4(); // wektor zerowy, w=1
     else
-        return v / sqrt(l); // pierwiastek liczony tylko jeśli trzeba wykonać dzielenia
+        return v / std::sqrt(lengthsquared); // pierwiastek liczony tylko jeśli trzeba wykonać dzielenia
 };
 inline
 float Dot(const float4 &q1, const float4 &q2)
 { // iloczyn skalarny
     return q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
 }
-inline float4 &operator*=(float4 &v1, double d)
+inline float4 &operator*=(float4 &v1, float const d)
 { // mnożenie przez skalar, jaki ma sens?
     v1.x *= d;
     v1.y *= d;
@@ -172,7 +172,7 @@ inline float4 Slerp(const float4 &q0, const float4 &q1, float t)
         new_q1.w = -new_q1.w;
         cosOmega = -cosOmega;
     }
-    double k0, k1;
+    float k0, k1;
     if (cosOmega > 0.9999f)
     { // jeśli jesteśmy z (t) na maksimum kosinusa, to tam prawie liniowo jest
         k0 = 1.0f - t;
@@ -180,9 +180,9 @@ inline float4 Slerp(const float4 &q0, const float4 &q1, float t)
     }
     else
     { // a w ogólnym przypadku trzeba liczyć na trygonometrię
-        double sinOmega = sqrt(1.0f - cosOmega * cosOmega); // sinus z jedynki tryg.
-        double omega = atan2(sinOmega, cosOmega); // wyznaczenie kąta
-        double oneOverSinOmega = 1.0f / sinOmega; // odwrotność sinusa, bo sinus w mianowniku
+        auto const sinOmega = std::sqrt(1.0f - cosOmega * cosOmega); // sinus z jedynki tryg.
+        auto const omega = std::atan2(sinOmega, cosOmega); // wyznaczenie kąta
+        auto const oneOverSinOmega = 1.0f / sinOmega; // odwrotność sinusa, bo sinus w mianowniku
         k0 = sin((1.0f - t) * omega) * oneOverSinOmega;
         k1 = sin(t * omega) * oneOverSinOmega;
     }

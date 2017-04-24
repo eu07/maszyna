@@ -321,8 +321,13 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
             >> discard >> fFarDecayRadius
             >> discard >> fCosFalloffAngle // kąt liczony dla średnicy, a nie promienia
             >> discard >> fCosHotspotAngle; // kąt liczony dla średnicy, a nie promienia
-        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
-        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+        // convert conve parameters if specified in degrees
+        if( fCosFalloffAngle > 1.0 ) {
+            fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+        }
+        if( fCosHotspotAngle > 1.0 ) {
+            fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+        }
         iNumVerts = 1;
 /*
         iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi zostać bez zmiany
@@ -956,22 +961,22 @@ void TSubModel::RaAnimation(TAnimType a)
 		glRotatef(v_Angles.z, 0.0f, 0.0f, 1.0f);
 		break;
 	case at_SecondsJump: // sekundy z przeskokiem
-		glRotatef(Simulation::Time.data().wSecond * 6.0, 0.0, 1.0, 0.0);
+		glRotatef(simulation::Time.data().wSecond * 6.0, 0.0, 1.0, 0.0);
 		break;
 	case at_MinutesJump: // minuty z przeskokiem
-		glRotatef(Simulation::Time.data().wMinute * 6.0, 0.0, 1.0, 0.0);
+		glRotatef(simulation::Time.data().wMinute * 6.0, 0.0, 1.0, 0.0);
 		break;
 	case at_HoursJump: // godziny skokowo 12h/360°
-		glRotatef(Simulation::Time.data().wHour * 30.0 * 0.5, 0.0, 1.0, 0.0);
+		glRotatef(simulation::Time.data().wHour * 30.0 * 0.5, 0.0, 1.0, 0.0);
 		break;
 	case at_Hours24Jump: // godziny skokowo 24h/360°
-		glRotatef(Simulation::Time.data().wHour * 15.0 * 0.25, 0.0, 1.0, 0.0);
+		glRotatef(simulation::Time.data().wHour * 15.0 * 0.25, 0.0, 1.0, 0.0);
 		break;
 	case at_Seconds: // sekundy płynnie
-		glRotatef(Simulation::Time.second() * 6.0, 0.0, 1.0, 0.0);
+		glRotatef(simulation::Time.second() * 6.0, 0.0, 1.0, 0.0);
 		break;
 	case at_Minutes: // minuty płynnie
-		glRotatef(Simulation::Time.data().wMinute * 6.0 + Simulation::Time.second() * 0.1, 0.0, 1.0, 0.0);
+		glRotatef(simulation::Time.data().wMinute * 6.0 + simulation::Time.second() * 0.1, 0.0, 1.0, 0.0);
 		break;
 	case at_Hours: // godziny płynnie 12h/360°
 		glRotatef(2.0 * Global::fTimeAngleDeg, 0.0, 1.0, 0.0);
@@ -996,7 +1001,7 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
-		glRotated(1.5 * std::sin(M_PI * Simulation::Time.second() / 6.0), 0.0, 1.0, 0.0);
+		glRotated(1.5 * std::sin(M_PI * simulation::Time.second() / 6.0), 0.0, 1.0, 0.0);
 		break;
 	case at_Sky: // animacja nieba
 		glRotated(Global::fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na północ
@@ -1644,15 +1649,21 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 		LoadFromBinFile(asBinary, dynamic);
 		asBinary = ""; // wyłączenie zapisu
 		Init();
-	}
+        // cache the file name, in case someone wants it later
+        m_filename = name + ".e3d";
+    }
 	else
 	{
 		if (FileExists(name + ".t3d"))
 		{
 			LoadFromTextFile(FileName, dynamic); // wczytanie tekstowego
-			if (!dynamic) // pojazdy dopiero po ustawieniu animacji
-				Init(); // generowanie siatek i zapis E3D
-		}
+            if( !dynamic ) {
+                // pojazdy dopiero po ustawieniu animacji
+                Init(); // generowanie siatek i zapis E3D
+            }
+            // cache the file name, in case someone wants it later
+            m_filename = name + ".t3d";
+        }
 	}
 	bool const result =
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
@@ -2023,6 +2034,14 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
         // so as a workaround we're doing it here manually
         iFlags |= 0x20;
     }
+    // intercept and fix hotspot values if specified in degrees and not directly
+    if( fCosFalloffAngle > 1.0 ) {
+        fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
+    }
+    if( fCosHotspotAngle > 1.0 ) {
+        fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
+    }
+
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
 
 	iVboPtr = tVboPtr;

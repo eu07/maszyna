@@ -18,6 +18,33 @@ std::ofstream comms; // lista komunikatow "comms.txt", można go wyłączyć
 
 char endstring[10] = "\n";
 
+std::string filename_date() {
+
+    ::SYSTEMTIME st;
+    ::GetLocalTime( &st );
+    char buffer[ 256 ];
+    sprintf( buffer,
+        "%d%02d%02d_%02d%02d",
+        st.wYear,
+        st.wMonth,
+        st.wDay,
+        st.wHour,
+        st.wMinute );
+
+    return std::string( buffer );
+}
+
+std::string filename_scenery() {
+
+    auto extension = Global::SceneryFile.rfind( '.' );
+    if( extension != std::string::npos ) {
+        return Global::SceneryFile.substr( 0, extension );
+    }
+    else {
+        return Global::SceneryFile;
+    }
+}
+
 void WriteConsoleOnly(const char *str, double value)
 {
     char buf[255];
@@ -57,8 +84,14 @@ void WriteLog(const char *str, bool newline)
     {
         if (Global::iWriteLogEnabled & 1)
         {
-            if (!output.is_open())
-                output.open("log.txt", std::ios::trunc);
+            if( !output.is_open() ) {
+                
+                std::string const filename =
+                    ( Global::MultipleLogs ?
+                    "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" :
+                    "log.txt" );
+                output.open( filename, std::ios::trunc );
+            }
             output << str;
             if (newline)
                 output << "\n";
@@ -72,9 +105,13 @@ void WriteLog(const char *str, bool newline)
 
 void ErrorLog(const char *str)
 { // Ra: bezwarunkowa rejestracja poważnych błędów
-    if (!errors.is_open())
-    {
-        errors.open("errors.txt", std::ios::trunc);
+    if (!errors.is_open()) {
+
+        std::string const filename =
+            ( Global::MultipleLogs ?
+            "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" :
+            "errors.txt" );
+        errors.open( filename, std::ios::trunc );
         errors << "EU07.EXE " + Global::asRelease << "\n";
     }
     if (str)

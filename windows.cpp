@@ -18,7 +18,7 @@ LONG CALLBACK unhandled_handler(::EXCEPTION_POINTERS* e)
 	{
 		auto nameEnd = name + ::GetModuleFileNameA(::GetModuleHandleA(0), name, MAX_PATH);
 		::SYSTEMTIME t;
-		::GetSystemTime(&t);
+		::GetLocalTime(&t);
 		wsprintfA(nameEnd - strlen(".exe"),
 			"_crashdump_%4d%02d%02d_%02d%02d%02d.dmp",
 			t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute, t.wSecond);

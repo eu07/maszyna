@@ -45,7 +45,6 @@ static int const bdelay_G = 1;    //G
 static int const bdelay_P = 2;    //P
 static int const bdelay_R = 4;    //R
 static int const bdelay_M = 8;    //Mg
-static int const bdelay_GR = 128; //G-R
 
 
 /*stan hamulca*/

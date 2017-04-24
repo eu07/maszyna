@@ -282,7 +282,7 @@ bool
 opengl_renderer::Render( TGround *Ground ) {
 
     glDisable( GL_BLEND );
-    glAlphaFunc( GL_GREATER, 0.45f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     glEnable( GL_LIGHTING );
     glColor3f( 1.0f, 1.0f, 1.0f );
 
@@ -319,7 +319,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
+    double squaredistance = SquareMagnitude( ( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
 
     ::glPushMatrix();
@@ -591,7 +591,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    double squaredistance = SquareMagnitude( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor;
+    double squaredistance = SquareMagnitude( ( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
 
     ::glPushMatrix();

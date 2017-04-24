@@ -25,11 +25,11 @@ class TGauge // zmienne "gg"
 { // animowany wskaźnik, mogący przyjmować wiele stanów pośrednich
   private:
     TGaugeType eType; // typ ruchu
-    double fFriction; // hamowanie przy zliżaniu się do zadanej wartości
-    double fDesiredValue; // wartość docelowa
-    double fValue; // wartość obecna
-    double fOffset; // wartość początkowa ("0")
-    double fScale; // wartość końcowa ("1")
+    double fFriction{ 0.0 }; // hamowanie przy zliżaniu się do zadanej wartości
+    double fDesiredValue{ 0.0 }; // wartość docelowa
+    double fValue{ 0.0 }; // wartość obecna
+    double fOffset{ 0.0 }; // wartość początkowa ("0")
+    double fScale{ 1.0 }; // wartość końcowa ("1")
     double fStepSize; // nie używane
     char cDataType; // typ zmiennej parametru: f-float, d-double, i-int
     union
@@ -51,10 +51,7 @@ class TGauge // zmienne "gg"
     void DecValue(double fNewDesired);
     void UpdateValue(double fNewDesired);
     void PutValue(double fNewDesired);
-    float GetValue()
-    {
-        return fValue;
-    };
+    double GetValue() const;
     void Update();
     void Render();
     void AssignFloat(float *fValue);

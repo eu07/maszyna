@@ -386,7 +386,7 @@ void TGroundNode::RenderAlphaVBO()
         if( ( PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
         {
             glDisable( GL_BLEND );
-            glAlphaFunc( GL_GREATER, 0.45f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+            glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
         };
 #endif
 
@@ -662,7 +662,7 @@ void TGroundNode::RenderAlphaDL()
         if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
         {
             glDisable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+            glAlphaFunc(GL_GREATER, 0.50f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
         };
 #endif
         if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
@@ -2826,7 +2826,7 @@ bool TGround::Init(std::string File)
 
             cParser timeparser( token );
             timeparser.getTokens( 2, false, ":" );
-            auto &time = Simulation::Time.data();
+            auto &time = simulation::Time.data();
             timeparser
                 >> time.wHour
                 >> time.wMinute;
@@ -4758,7 +4758,7 @@ TGround::Render( Math3D::vector3 const &Camera ) {
 bool TGround::RenderDL(vector3 pPosition)
 { // renderowanie scenerii z Display List - faza nieprzezroczystych
     glDisable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.50f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
     CameraDirection.x = sin(Global::pCameraRotation); // wektor kierunkowy
     CameraDirection.z = cos(Global::pCameraRotation);
@@ -4848,7 +4848,7 @@ bool TGround::RenderAlphaDL(vector3 pPosition)
 bool TGround::RenderVBO(vector3 pPosition)
 { // renderowanie scenerii z VBO - faza nieprzezroczystych
     glDisable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.45f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    glAlphaFunc(GL_GREATER, 0.50f); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek
     CameraDirection.x = sin(Global::pCameraRotation); // wektor kierunkowy
     CameraDirection.z = cos(Global::pCameraRotation);

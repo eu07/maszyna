@@ -25,6 +25,7 @@
 #include <shlobj.h>
 #undef NOMINMAX
 #include <dbghelp.h>
+#include <direct.h>
 #endif
 // stl
 #include <cstdlib>

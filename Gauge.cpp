@@ -15,9 +15,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "Gauge.h"
-#include "Timer.h"
 #include "parser.h"
 #include "Model3d.h"
+#include "Timer.h"
+#include "logs.h"
 
 TGauge::TGauge()
 {
@@ -86,10 +87,18 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul)
 		>> val5;
 	val3 *= mul;
 		TSubModel *sm = md1->GetFromName( str1.c_str() );
+    if( val3 == 0.0 ) {
+        ErrorLog( "Scale of 0.0 defined for sub-model \"" + str1 + "\" in 3d model \"" + md1->NameGet() + "\". Forcing scale of 1.0 to prevent division by 0" );
+        val3 = 1.0;
+    }
     if (sm) // jeśli nie znaleziony
         md2 = NULL; // informacja, że znaleziony
     else if (md2) // a jest podany drugi model (np. zewnętrzny)
         sm = md2->GetFromName(str1.c_str()); // to może tam będzie, co za różnica gdzie
+    if( sm == nullptr ) {
+        ErrorLog( "Failed to locate sub-model \"" + str1 + "\" in 3d model \"" + md1->NameGet() + "\"" );
+    }
+
     if (str2 == "mov")
         Init(sm, gt_Move, val3, val4, val5);
     else if (str2 == "wip")
@@ -136,19 +145,22 @@ void TGauge::PutValue(double fNewDesired)
     fValue = fDesiredValue;
 };
 
+double TGauge::GetValue() const {
+    // we feed value in range 0-1 so we should be getting it reported in the same range
+    return ( fValue - fOffset ) / fScale;
+}
+
 void TGauge::Update()
 {
     float dt = Timer::GetDeltaTime();
-    if ((fFriction > 0) && (dt < 0.5 * fFriction)) // McZapkie-281102:
-        // zabezpieczenie przed
-        // oscylacjami dla dlugich
-        // czasow
-        fValue += dt * (fDesiredValue - fValue) / fFriction;
+    if( ( fFriction > 0 ) && ( dt < 0.5 * fFriction ) ) {
+        // McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
+        fValue += dt * ( fDesiredValue - fValue ) / fFriction;
+    }
     else
         fValue = fDesiredValue;
     if (SubModel)
-    { // warunek na wszelki wypadek, gdyby się submodel nie
-        // podłączył
+    { // warunek na wszelki wypadek, gdyby się submodel nie podłączył
         TSubModel *sm;
         switch (eType)
         {
