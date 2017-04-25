@@ -132,7 +132,7 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 
 	glUseProgram(id);
 	glUniform3f(ambient_uniform, 1.0f, 1.0f, 1.0f);
-	glUniform1i(lcount_uniform, 0);
+	glUniform1ui(lcount_uniform, 0);
 }
 
 void gl_program_light::set_ambient(glm::vec3 &ambient)

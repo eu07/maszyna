@@ -813,10 +813,10 @@ texture_manager::Bind( texture_manager::size_type const Id ) {
     //       having it active would lead to some terrain and spline chunks receiving wrong
     //       (the most recent?) texture, instead of the proper one. It'd also affect negatively
     //       light point rendering.
-    if( Id == m_activetexture ) {
-        // don't bind again what's already active
-        return;
-    }
+    //if( Id == m_activetexture ) {
+    //    // don't bind again what's already active
+    //    return;
+    //}
 
     // TODO: do binding in texture object, add support for other types
     if( Id != 0 ) {

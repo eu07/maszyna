@@ -857,10 +857,10 @@ void TSubRect::RaNodeAdd(TGroundNode *Node)
     switch (Node->iType)
     {
     case TP_TRACK:
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // DL: do nieprzezroczystych
+		{
+			Node->nNext3 = nRenderRect;
+			nRenderRect = Node;
+		} // VBO: do nieprzezroczystych z sektora
         break;
     case GL_TRIANGLE_STRIP:
     case GL_TRIANGLE_FAN:

@@ -2865,6 +2865,7 @@ TTrack * TTrack::RaAnimate()
                 glGetBufferSubData(
                     GL_ARRAY_BUFFER, SwitchExtension->iLeftVBO * sizeof(CVertNormTex),
                     2 * 2 * 12 * sizeof(CVertNormTex), &Vert); // pobranie fragmentu bufora VBO
+				//m7todo: co to jest?
                 if (SwitchExtension->RightSwitch)
                 { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
                     SwitchExtension->Segments[0]->RaAnimate(v, rpts3, -nnumPts, fTexLength, 0,
