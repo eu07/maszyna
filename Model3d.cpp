@@ -931,20 +931,11 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		break;
 	case at_Billboard: // obrót w pionie do kamery
 	{
-		/*
-		matrix4x4 mat; // potrzebujemy współrzędne przesunięcia środka układu
-					   // współrzędnych submodelu
-		glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray()); // pobranie aktualnej matrycy
-
-        matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
+        matrix4x4 mat; mat.OpenGL_Matrix( glm::value_ptr(m) );
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
-		glLoadIdentity(); // macierz jedynkowa
-		glTranslatef(gdzie.x, gdzie.y, gdzie.z); // początek układu zostaje bez
-												 // zmian
-		glRotated(atan2(gdzie.x, gdzie.z) * 180.0 / M_PI, 0.0, 1.0,
-			0.0); // jedynie obracamy w pionie o kąt
-		*/
-		//m7todo: restore
+		m = glm::mat4(1.0f);
+		m = glm::translate(m, glm::vec3(gdzie.x, gdzie.y, gdzie.z)); // początek układu zostaje bez zmian
+		m = glm::rotate(m, atan2(gdzie.x, gdzie.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)

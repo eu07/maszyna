@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "Float3d.h"
 #include "Logs.h"
+#include "openglmatrixstack.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -95,12 +96,8 @@ gl_program_mvp::gl_program_mvp(std::vector<gl_shader> v) : gl_program(v)
 
 void gl_program_mvp::copy_gl_mvp()
 {
-	float4x4 mv, p;
-	glGetFloatv(GL_MODELVIEW_MATRIX, mv.e);
-	glGetFloatv(GL_PROJECTION_MATRIX, p.e);
-
-	glUniformMatrix4fv(mv_uniform, 1, GL_FALSE, mv.e);
-	glUniformMatrix4fv(p_uniform, 1, GL_FALSE, p.e);
+	glUniformMatrix4fv(mv_uniform, 1, GL_FALSE, glm::value_ptr(OpenGLMatrices.data(GL_MODELVIEW)));
+	glUniformMatrix4fv(p_uniform, 1, GL_FALSE, glm::value_ptr(OpenGLMatrices.data(GL_PROJECTION)));
 }
 
 void gl_program_mvp::set_mv(const glm::mat4 &m)
@@ -116,6 +113,7 @@ void gl_program_mvp::set_p(const glm::mat4 &m)
 gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 {
 	ambient_uniform = glGetUniformLocation(id, "ambient");
+	emission_uniform = glGetUniformLocation(id, "emission");
 	lcount_uniform = glGetUniformLocation(id, "lights_count");
 
 	for (size_t i = 0; i < MAX_LIGHTS; i++)
@@ -131,7 +129,8 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 	}
 
 	glUseProgram(id);
-	glUniform3f(ambient_uniform, 1.0f, 1.0f, 1.0f);
+	glUniform3f(ambient_uniform, 0.0f, 0.0f, 0.0f);
+	glUniform3f(emission_uniform, 0.0f, 0.0f, 0.0f);
 	glUniform1ui(lcount_uniform, 0);
 }
 
@@ -165,4 +164,10 @@ void gl_program_light::set_light(GLuint i, type t, glm::vec3 &pos, glm::vec3 &di
 	glUniform3fv(lights_uniform[i].color, 1, glm::value_ptr(color));
 	glUniform1f(lights_uniform[i].linear, linear);
 	glUniform1f(lights_uniform[i].quadratic, quadratic);
+}
+
+void gl_program_light::set_material(glm::vec3 &emission)
+{
+	glUseProgram(id);
+	glUniform3fv(emission_uniform, 1, glm::value_ptr(emission));
 }

@@ -56,13 +56,15 @@ public:
 	gl_program_light(std::vector<gl_shader>);
 
 	void set_ambient(glm::vec3 &ambient);
+	void set_material(glm::vec3 &emission);
 	void set_light_count(GLuint count);
 	void set_light(GLuint id, type t, glm::vec3 &pos, glm::vec3 &dir, float in_cutoff, float out_cutoff,
 		glm::vec3 &color, float linear, float quadratic);
 
 private:
-	GLuint lcount_uniform;
 	GLuint ambient_uniform;
+	GLuint emission_uniform;
+	GLuint lcount_uniform;
 	struct light_s
 	{
 		GLuint type;

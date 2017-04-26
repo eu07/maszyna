@@ -483,32 +483,22 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-				/*
-                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
-                // ...luminance
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
-                }
-				*/
+
+				if (Global::fLuminance < Submodel->fLight)
+					World.shader.set_material(glm::make_vec3(Submodel->f4Diffuse));
 
                 // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
                 ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
 
-				/*
-                // post-draw reset
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // restore default (lack of) brightness
-                    glm::vec4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( noemission ) );
-                }
-				*/
+				if (Global::fLuminance < Submodel->fLight)
+					World.shader.set_material(glm::vec3(0.0f));
             }
         }
-		//m7todo: restore
-		/*
+		
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
-            auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+			//m7todo: shaderize
+			
+			auto const &modelview = mm;
             auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
             Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
@@ -522,6 +512,11 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                 float const distancefactor = std::max( 0.5, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) );
 
                 if( lightlevel > 0.0f ) {
+					glUseProgram(0);
+					glEnableClientState(GL_VERTEX_ARRAY);
+					glLoadMatrixf(glm::value_ptr(mm));
+					glVertexPointer(3, GL_FLOAT, sizeof(CVertNormTex), static_cast<char *>(nullptr)); // pozycje
+
                     // material configuration:
                     ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
 
@@ -536,12 +531,18 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
 
                     // post-draw reset
                     ::glPopAttrib();
+					glDisableClientState(GL_VERTEX_ARRAY);
+
+					glUseProgram(World.shader);
                 }
             }
+			
         }
         else if( Submodel->eType == TP_STARS ) {
-
+			//m7todo: reenable
+			/*
             if( Global::fLuminance < Submodel->fLight ) {
+				glUseProgram(0);
 
                 // material configuration:
                 ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
@@ -552,23 +553,26 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                 // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
                 // NOTE: we're doing manual switch to color vbo setup, because there doesn't seem to be any convenient way available atm
                 // TODO: implement easier way to go about it
-                ::glDisableClientState( GL_NORMAL_ARRAY );
-                ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-                ::glEnableClientState( GL_COLOR_ARRAY );
-                ::glColorPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // kolory
 
-                ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
+				glEnableClientState(GL_VERTEX_ARRAY);
+                glEnableClientState( GL_COLOR_ARRAY );
+				glLoadMatrixf(glm::value_ptr(mm));
 
-                ::glDisableClientState( GL_COLOR_ARRAY );
-                ::glEnableClientState( GL_NORMAL_ARRAY );
-                ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+				glVertexPointer(3, GL_FLOAT, sizeof(CVertNormTex), static_cast<char *>(nullptr)); // pozycje
+                glColorPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // kolory
+
+                glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
+
+				glDisableClientState(GL_VERTEX_ARRAY);
+                glDisableClientState( GL_COLOR_ARRAY );
 
                 // post-draw reset
                 ::glPopAttrib();
+
+				glUseProgram(World.shader);
             }
-			
+			*/
         }
-		*/
 
         if( Submodel->Child != NULL )
             if( Submodel->iAlpha & Submodel->iFlags & 0x001F0000 )
@@ -740,35 +744,24 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-				/*
-                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
-                // ...luminance
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
-                }
-				*/
 
-			  // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
+				if (Global::fLuminance < Submodel->fLight)
+					World.shader.set_material(glm::make_vec3(Submodel->f4Diffuse));
+
+			    // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
                 ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
 
-				/*
-                // post-draw reset
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // restore default (lack of) brightness
-                    glm::vec4 const noemission( 0.0f, 0.0f, 0.0f, 1.0f );
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( noemission ) );
-                }
-				*/
+				if (Global::fLuminance < Submodel->fLight)
+					World.shader.set_material(glm::vec3(0.0f));
             }
         }
-#if 0
+
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
 
             if( Global::fLuminance < Submodel->fLight ) {
                 // NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
                 // TODO: separate instance data from reusable geometry
-                auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
+                auto const &modelview = mm;
                 auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
                 Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
@@ -779,6 +772,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                     glarelevel = std::max( 0.0f, glarelevel - static_cast<float>(Global::fLuminance) );
 
                     if( glarelevel > 0.0f ) {
+						glUseProgram(0);
 
                         ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
 
@@ -787,10 +781,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                         ::glDisable( GL_LIGHTING );
                         ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
-                        ::glPushMatrix();
-                        ::glLoadIdentity(); // macierz jedynkowa
-                        ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
-                        ::glRotated( atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
+						glm::mat4 x = glm::mat4(1.0f);
+						x = glm::translate(x, glm::vec3(lightcenter.x, lightcenter.y, lightcenter.z)); // początek układu zostaje bez zmian
+						x = glm::rotate(x, atan2(lightcenter.x, lightcenter.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
+						glLoadMatrixf(glm::value_ptr(x));
 
                         // TODO: turn the drawing instructions into a compiled call / array
                         ::glBegin( GL_TRIANGLE_STRIP );
@@ -808,14 +802,13 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                         // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
                         ::glEnd();
-
-                        ::glPopMatrix();
                         ::glPopAttrib();
+
+						glUseProgram(World.shader);
                     }
                 }
             }
         }
-#endif
 
         if( Submodel->Child != NULL )
 			if( Submodel->iAlpha & Submodel->iFlags & 0x002F0000 )
