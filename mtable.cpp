@@ -1,7 +1,3 @@
-/**   @file
-     @brief
-*/
-
 /*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
@@ -14,9 +10,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "mtable.h"
 #include "mczapkie/mctools.h"
-
-// using namespace Mtable;
-std::shared_ptr<TMTableTime> Mtable::GlobalTime;
 
 double CompareTime(double t1h, double t1m, double t2h, double t2m) /*roznica czasu w minutach*/
 // zwraca różnicę czasu
@@ -73,7 +66,12 @@ bool TTrainParameters::IsStop()
         return true; // na ostatnim się zatrzymać zawsze
 }
 
-bool TTrainParameters::UpdateMTable(double hh, double mm, std::string NewName)
+bool TTrainParameters::UpdateMTable( simulation_time const &Time, std::string const &NewName ) {
+
+    return UpdateMTable( Time.data().wHour, Time.data().wMinute, NewName );
+}
+
+bool TTrainParameters::UpdateMTable(double hh, double mm, std::string const &NewName)
 /*odfajkowanie dojechania do stacji (NewName) i przeliczenie opóźnienia*/
 {
     bool OK;
@@ -138,13 +136,13 @@ std::string TTrainParameters::ShowRelation()
         return "";
 }
 
-TTrainParameters::TTrainParameters(std::string NewTrainName)
+TTrainParameters::TTrainParameters(std::string const &NewTrainName)
 /*wstępne ustawienie parametrów rozkładu jazdy*/
 {
     NewName(NewTrainName);
 }
 
-void TTrainParameters::NewName(std::string NewTrainName)
+void TTrainParameters::NewName(std::string const &NewTrainName)
 /*wstępne ustawienie parametrów rozkładu jazdy*/
 {
     TrainName = NewTrainName;
@@ -519,30 +517,29 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
 void TMTableTime::UpdateMTableTime(double deltaT)
 // dodanie czasu (deltaT) w sekundach, z przeliczeniem godziny
 {
-    mr = mr + deltaT; // dodawanie sekund
-    while (mr > 60.0) // przeliczenie sekund do właściwego przedziału
+    mr += deltaT; // dodawanie sekund
+    while (mr >= 60.0) // przeliczenie sekund do właściwego przedziału
     {
-        mr = mr - 60.0;
+        mr -= 60.0;
         ++mm;
     }
     while (mm > 59) // przeliczenie minut do właściwego przedziału
     {
-        mm = mm - 60;
+        mm -= 60;
         ++hh;
     }
     while (hh > 23) // przeliczenie godzin do właściwego przedziału
     {
-        hh = hh - 24;
+        hh -= 24;
         ++dd; // zwiększenie numeru dnia
     }
-    GameTime = GameTime + deltaT;
 }
 
 bool TTrainParameters::DirectionChange()
 // sprawdzenie, czy po zatrzymaniu wykonać kolejne komendy
 {
     if ((StationIndex > 0) && (StationIndex < StationCount)) // dla ostatniej stacji nie
-        if (TimeTable[StationIndex].StationWare.find("@") != std::string::npos)
+        if (TimeTable[StationIndex].StationWare.find('@') != std::string::npos)
             return true;
     return false;
 }

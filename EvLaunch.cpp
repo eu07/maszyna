@@ -177,9 +177,9 @@ bool TEventLauncher::Render()
     }
     else
     { // jeśli nie cykliczny, to sprawdzić czas
-        if (GlobalTime->hh == iHour)
+        if (simulation::Time.data().wHour == iHour)
         {
-            if (GlobalTime->mm == iMinute)
+            if (simulation::Time.data().wMinute == iMinute)
             { // zgodność czasu uruchomienia
                 if (UpdatedTime < 10)
                 {

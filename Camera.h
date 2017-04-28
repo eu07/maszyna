@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "dumb3d.h"
 #include "dynobj.h"
+#include "command.h"
 
 using namespace Math3D;
 
@@ -25,7 +26,16 @@ enum TCameraType
 class TCamera
 {
   private:
-    vector3 pOffset; // nie używane (zerowe)
+    struct keys {
+        bool forward{ false };
+        bool back{ false };
+        bool left{ false };
+        bool right{ false };
+        bool up{ false };
+        bool down{ false };
+        bool run{ false };
+    } m_keys;
+    glm::dvec3 m_moverate;
 
   public: // McZapkie: potrzebuje do kiwania na boki
     double Pitch;
@@ -36,7 +46,6 @@ class TCamera
     vector3 LookAt; // współrzędne punktu, na który ma patrzeć
     vector3 vUp;
     vector3 Velocity;
-    vector3 OldVelocity; // lepiej usredniac zeby nie bylo rozbiezne przy malym FPS
     vector3 CrossPos;
     double CrossDist;
     void Init(vector3 NPos, vector3 NAngle);
@@ -44,10 +53,10 @@ class TCamera
     {
         Pitch = Yaw = Roll = 0;
     };
-    void OnCursorMove(double x, double y);
+    void OnCursorMove(double const x, double const y);
+    void OnCommand( command_data const &Command );
     void Update();
     vector3 GetDirection();
-    // vector3 inline GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
     bool SetMatrix();
     bool SetMatrix(glm::mat4 &Matrix);
     void SetCabMatrix( vector3 &p );

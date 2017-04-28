@@ -7,8 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TimerH
-#define TimerH
+#pragma once
 
 namespace Timer
 {
@@ -36,4 +35,3 @@ void UpdateTimers(bool pause);
 };
 
 //---------------------------------------------------------------------------
-#endif

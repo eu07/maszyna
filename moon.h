@@ -6,11 +6,9 @@
 #include "dumb3d.h"
 
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// cSun -- class responsible for dynamic calculation of position and intensity of the Sun,
-//         given current weather, time and geographic location.
+// TODO: sun and moon share code as celestial bodies, we could make a base class out of it
 
-class cSun {
+class cMoon {
 
 public:
 // types:
@@ -24,23 +22,25 @@ public:
 	// returns vector pointing at the sun
 	Math3D::vector3 getDirection();
 	// returns current elevation above horizon
-	float getAngle();
+	float getAngle() const;
 	// returns current intensity of the sun
 	float getIntensity();
+    // returns current phase of the moon
+    float getPhase() const { return m_phase; }
     // sets current time, overriding one acquired from the system clock
     void setTime( int const Hour, int const Minute, int const Second );
 	// sets current geographic location
 	void setLocation( float const Longitude, float const Latitude );
-	// sets ambient temperature in degrees C.
-	void setTemperature( float const Temperature );
-	// sets surface pressure in milibars
-	void setPressure( float const Pressure );
+    // sets ambient temperature in degrees C.
+    void setTemperature( float const Temperature );
+    // sets surface pressure in milibars
+    void setPressure( float const Pressure );
 
 // constructors:
-	cSun();
+	cMoon();
 
 // deconstructor:
-	~cSun();
+	~cMoon();
 
 // members:
 
@@ -54,31 +54,34 @@ protected:
 	void refract();
 	// calculates light intensity at current moment
 	void irradiance();
+    void phase();
+    // helper, normalize values to range 0...1
+    float normalize( const float Value ) const;
 
 // members:
-	GLUquadricObj *sunsphere;	// temporary handler for sun positioning test
+	GLUquadricObj *moonsphere;	// temporary handler for moon positioning test
 
 	struct celestialbody {	// main planet parameters
 
-        double dayang;		// day angle (daynum*360/year-length) degrees
+		double dayang;		// day angle (daynum*360/year-length) degrees
         double phlong;      // longitude of perihelion
         double mnlong;		// mean longitude, degrees
-        double mnanom;		// mean anomaly, degrees
+		double mnanom;		// mean anomaly, degrees
         double tranom;      // true anomaly, degrees
-        double eclong;		// ecliptic longitude, degrees.
-        double oblecl;		// obliquity of ecliptic.
-        double declin;		// declination--zenith angle of solar noon at equator, degrees NORTH.
-        double rascen;		// right ascension, degrees
-        double hrang;		// hour angle--hour of sun from solar noon, degrees WEST
-        double zenetr;		// solar zenith angle, no atmospheric correction (= ETR)
-        double zenref;		// solar zenith angle, deg. from zenith, refracted
-        double coszen;		// cosine of refraction corrected solar zenith angle
-        double elevetr;		// solar elevation, no atmospheric correction (= ETR)
-        double elevref;		// solar elevation angle, deg. from horizon, refracted.
-        double distance;	// distance from earth in AUs
-        double erv;			// earth radius vector (multiplied to solar constant)
-        double etr;			// extraterrestrial (top-of-atmosphere) W/sq m global horizontal solar irradiance
-        double etrn;		// extraterrestrial (top-of-atmosphere) W/sq m direct normal solar irradiance
+		double eclong;		// ecliptic longitude, degrees.
+		double oblecl;		// obliquity of ecliptic.
+		double declin;		// declination--zenith angle of solar noon at equator, degrees NORTH.
+		double rascen;		// right ascension, degrees
+		double hrang;		// hour angle--hour of sun from solar noon, degrees WEST
+		double zenetr;		// solar zenith angle, no atmospheric correction (= ETR)
+		double zenref;		// solar zenith angle, deg. from zenith, refracted
+		double coszen;		// cosine of refraction corrected solar zenith angle
+		double elevetr;		// solar elevation, no atmospheric correction (= ETR)
+		double elevref;		// solar elevation angle, deg. from horizon, refracted.
+		double distance;	// distance from earth in AUs
+		double erv;			// earth radius vector (multiplied to solar constant)
+		double etr;			// extraterrestrial (top-of-atmosphere) W/sq m global horizontal solar irradiance
+		double etrn;		// extraterrestrial (top-of-atmosphere) W/sq m direct normal solar irradiance
     };
 
 	struct observer {		// weather, time and position data in observer's location
@@ -99,4 +102,5 @@ protected:
     celestialbody m_body;
     observer m_observer;
     Math3D::vector3 m_position;
+    float m_phase;
 };

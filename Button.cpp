@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Button.h"
 #include "Console.h"
+#include "logs.h"
 
 //---------------------------------------------------------------------------
 
@@ -57,6 +58,8 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2)
     {
         pModelOn = NULL;
         pModelOff = NULL;
+
+        ErrorLog( "Failed to locate sub-model \"" + token + "\" in 3d model \"" + pModel1->NameGet() + "\"" );
     }
 };
 

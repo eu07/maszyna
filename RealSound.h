@@ -48,6 +48,7 @@ class TRealSound
     int GetStatus();
     void ResetPosition();
     // void FreqReset(float f=22050.0) {fFrequency=f;};
+    bool Empty() { return ( pSound == nullptr ); }
 };
 
 class TTextSound : public TRealSound

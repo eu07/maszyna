@@ -826,19 +826,16 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         { // zaliczamy posterunek w pewnej odległości przed (choć W4 nie zasłania
 // już semafora)
 #if LOGSTOPS
-                            WriteLog(pVehicle->asName + " as " + TrainParams->TrainName + ": at " +
-                                     std::to_string(GlobalTime->hh) + ":" + std::to_string(GlobalTime->mm) +
-                                     " skipped " + asNextStop); // informacja
+                            WriteLog(
+                                pVehicle->asName + " as " + TrainParams->TrainName
+                                + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
+                                + " skipped " + asNextStop); // informacja
 #endif
-                            fLastStopExpDist = mvOccupied->DistCounter + 0.250 +
-                                               0.001 * fLength; // przy jakim dystansie (stanie
-                            // licznika) ma przesunąć na
-                            // następny postój
-                            TrainParams->UpdateMTable(
-                                GlobalTime->hh, GlobalTime->mm, asNextStop);
+                            // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
+                            fLastStopExpDist = mvOccupied->DistCounter + 0.250 + 0.001 * fLength;
+                            TrainParams->UpdateMTable( simulation::Time, asNextStop );
                             TrainParams->StationIndexInc(); // przejście do następnej
-                            asNextStop =
-                                TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
+                            asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
                             // TableClear(); //aby od nowa sprawdziło W4 z inną nazwą już - to nie
                             // jest dobry pomysł
                             sSpeedTable[i].iFlags = 0; // nie liczy się już
@@ -933,8 +930,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 // niezależne od sposobu obsługi drzwi, bo
                                 // opóźnia również kierownika
                             }
-                            if (TrainParams->UpdateMTable(
-                                    GlobalTime->hh, GlobalTime->mm, asNextStop) )
+                            if (TrainParams->UpdateMTable( simulation::Time, asNextStop) )
                             { // to się wykona tylko raz po zatrzymaniu na W4
                                 if (TrainParams->CheckTrainLatency() < 0.0)
                                     iDrivigFlags |= moveLate; // odnotowano spóźnienie
@@ -980,7 +976,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             if (TrainParams->StationIndex < TrainParams->StationCount)
                             { // jeśli są dalsze stacje, czekamy do godziny odjazdu
 
-                                if (TrainParams->IsTimeToGo(GlobalTime->hh, GlobalTime->mm))
+                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute))
                                 { // z dalszą akcją czekamy do godziny odjazdu
 									/* potencjalny problem z ruszaniem z w4
                                     if (TrainParams->CheckTrainLatency() < 0)
@@ -997,10 +993,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
 // TableClear(); //aby od nowa sprawdziło W4 z inną nazwą już - to nie jest dobry pomysł
 #if LOGSTOPS
-                                    WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
-                                             ": at " + std::to_string(GlobalTime->hh) + ":" +
-                                             std::to_string(GlobalTime->mm) + " next " +
-                                             asNextStop); // informacja
+                                    WriteLog(
+                                        pVehicle->asName + " as " + TrainParams->TrainName
+                                        + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
+                                        + " next " + asNextStop); // informacja
 #endif
                                     if (int(floor(sSpeedTable[i].evEvent->ValueGet(1))) & 1)
 										iDrivigFlags |= moveStopHere; // nie podjeżdżać do semafora,
@@ -1024,10 +1020,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             else
                             { // jeśli dojechaliśmy do końca rozkładu
 #if LOGSTOPS
-                                WriteLog(pVehicle->asName + " as " + TrainParams->TrainName +
-                                         ": at " + std::to_string(GlobalTime->hh) + ":" +
-                                         std::to_string(GlobalTime->mm) +
-                                         " end of route."); // informacja
+                                WriteLog(
+                                    pVehicle->asName + " as " + TrainParams->TrainName
+                                    + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
+                                    + " end of route."); // informacja
 #endif
                                 asNextStop = TrainParams->NextStop(); // informacja o końcu trasy
                                 TrainParams->NewName("none"); // czyszczenie nieaktualnego rozkładu
@@ -2869,8 +2865,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
             }
             else
             { // inicjacja pierwszego przystanku i pobranie jego nazwy
-                TrainParams->UpdateMTable(GlobalTime->hh, GlobalTime->mm,
-                                          TrainParams->NextStationName);
+                TrainParams->UpdateMTable( simulation::Time, TrainParams->NextStationName );
                 TrainParams->StationIndexInc(); // przejście do następnej
                 iStationStart = TrainParams->StationIndex;
                 asNextStop = TrainParams->NextStop();
