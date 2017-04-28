@@ -744,9 +744,9 @@ void TMoverParameters::UpdatePantVolume(double dt)
                 if( ( true == PantPressSwitchActive )
                  && ( PantPress < EnginePowerSource.CollectorParameters.MinPress ) ) {
                     // wywalenie szybkiego z powodu niskiego ciśnienia
-                    if( GetTrainsetVoltage() < EnginePowerSource.CollectorParameters.MinV ) {
+                    if( GetTrainsetVoltage() < 0.5 * EnginePowerSource.MaxVoltage ) {
                         // to jest trochę proteza; zasilanie członu może być przez sprzęg WN
-                        if( MainSwitch( false, TrainType == dt_EZT ) ) {
+                        if( MainSwitch( false, ( TrainType == dt_EZT ? command_range::unit : command_range::local ) ) ) {
                             EventFlag = true;
                         }
                     }
@@ -1522,7 +1522,7 @@ void TMoverParameters::ConverterCheck()
 { // sprawdzanie przetwornicy
     if( ( ConverterAllow )
      && ( ( Mains )
-     || ( GetTrainsetVoltage() > 0.5 * EnginePowerSource.MaxVoltage ) ) ) {
+       || ( GetTrainsetVoltage() > 0.5 * EnginePowerSource.MaxVoltage ) ) ) {
         ConverterFlag = true;
     }
     else {
@@ -2271,7 +2271,7 @@ bool TMoverParameters::AntiSlippingButton(void)
 // Q: 20160713
 // włączenie / wyłączenie obwodu głownego
 // *************************************************************************************************
-bool TMoverParameters::MainSwitch( bool const State, bool const Multiunitcontrol )
+bool TMoverParameters::MainSwitch( bool const State, int const Notify )
 {
     bool MS;
 
@@ -2285,17 +2285,25 @@ bool TMoverParameters::MainSwitch( bool const State, bool const Multiunitcontrol
         {
             if( Mains ) {
                 // jeśli był załączony
-                if( true == Multiunitcontrol ) {
+                if( Notify != command_range::local ) {
                     // wysłanie wyłączenia do pozostałych?
-                    SendCtrlToNext( "MainSwitch", int( State ), CabNo );
+                    SendCtrlToNext(
+                        "MainSwitch", int( State ), CabNo,
+                        ( Notify == command_range::unit ?
+                            ctrain_controll | ctrain_depot :
+                            ctrain_controll ) );
                 }
             }
             Mains = State;
             if( Mains ) {
                 // jeśli został załączony
-                if( true == Multiunitcontrol ) {
-                    // wyslanie po wlaczeniu albo przed wylaczeniem
-                    SendCtrlToNext( "MainSwitch", int( State ), CabNo );
+                if( Notify != command_range::local ) {
+                    // wysłanie wyłączenia do pozostałych?
+                    SendCtrlToNext(
+                        "MainSwitch", int( State ), CabNo,
+                        ( Notify == command_range::unit ?
+                            ctrain_controll | ctrain_depot :
+                            ctrain_controll ) );
                 }
             }
             MS = true; // wartość zwrotna
@@ -4068,7 +4076,7 @@ double TMoverParameters::TractionForce(double dt)
 				if ( (std::max(GetTrainsetVoltage(), std::abs(Voltage)) < EnginePowerSource.CollectorParameters.MinV) ||
 					(std::max(GetTrainsetVoltage(), std::abs(Voltage)) * EnginePowerSource.CollectorParameters.OVP >
 						EnginePowerSource.CollectorParameters.MaxV))
-					if (MainSwitch(false, TrainType == dt_EZT)) // TODO: check whether we need to send this EMU-wide
+                        if( MainSwitch( false, ( TrainType == dt_EZT ? command_range::unit : command_range::local ) ) ) // TODO: check whether we need to send this EMU-wide
 						EventFlag = true; // wywalanie szybkiego z powodu niewłaściwego napięcia
 
             if (((DynamicBrakeType == dbrake_automatic) || (DynamicBrakeType == dbrake_switch)) &&
@@ -4355,7 +4363,7 @@ double TMoverParameters::TractionForce(double dt)
                 // nie wchodzić w funkcję bez potrzeby
                 if( ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) < EnginePowerSource.CollectorParameters.MinV )
                  || ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
-                    MainSwitch( false, TrainType == dt_EZT ); // TODO: check whether we need to send this EMU-wide
+                    MainSwitch( false, ( TrainType == dt_EZT ? command_range::unit : command_range::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
             tmpV = abs(nrot) * (PI * WheelDiameter) * 3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
@@ -5069,7 +5077,7 @@ bool TMoverParameters::AutoRelayCheck(void)
 // Q: 20160713
 // Podnosi / opuszcza przedni pantograf. Returns: state of the pantograph after the operation
 // *************************************************************************************************
-bool TMoverParameters::PantFront(bool const State, bool const Multiunitcontrol)
+bool TMoverParameters::PantFront( bool const State, int const Notify )
 {
 /*
     if( ( true == Battery )
@@ -5079,14 +5087,24 @@ bool TMoverParameters::PantFront(bool const State, bool const Multiunitcontrol)
             PantFrontUp = State;
             if( State == true ) {
                 PantFrontStart = 0;
-                if( true == Multiunitcontrol ) {
-                    SendCtrlToNext( "PantFront", 1, CabNo );
+                if( Notify != command_range::local ) {
+                    // wysłanie wyłączenia do pozostałych?
+                    SendCtrlToNext(
+                        "PantFront", 1, CabNo,
+                        ( Notify == command_range::unit ?
+                            ctrain_controll | ctrain_depot :
+                            ctrain_controll ) );
                 }
             }
             else {
                 PantFrontStart = 1;
-                if( true == Multiunitcontrol ) {
-                    SendCtrlToNext( "PantFront", 0, CabNo );
+                if( Notify != command_range::local ) {
+                    // wysłanie wyłączenia do pozostałych?
+                    SendCtrlToNext(
+                        "PantFront", 0, CabNo,
+                        ( Notify == command_range::unit ?
+                            ctrain_controll | ctrain_depot :
+                            ctrain_controll ) );
                 }
             }
         }
@@ -5112,7 +5130,7 @@ bool TMoverParameters::PantFront(bool const State, bool const Multiunitcontrol)
 // Q: 20160713
 // Podnoszenie / opuszczanie pantografu tylnego
 // *************************************************************************************************
-bool TMoverParameters::PantRear(bool const State, bool const Multiunitcontrol)
+bool TMoverParameters::PantRear( bool const State, int const Notify )
 {
 /*
     if( ( true == Battery )
@@ -5122,14 +5140,24 @@ bool TMoverParameters::PantRear(bool const State, bool const Multiunitcontrol)
             PantRearUp = State;
             if( State == true ) {
                 PantRearStart = 0;
-                if( true == Multiunitcontrol ) {
-                    SendCtrlToNext( "PantRear", 1, CabNo );
+                if( Notify != command_range::local ) {
+                    // wysłanie wyłączenia do pozostałych?
+                    SendCtrlToNext(
+                        "PantRear", 1, CabNo,
+                        ( Notify == command_range::unit ?
+                            ctrain_controll | ctrain_depot :
+                            ctrain_controll ) );
                 }
             }
             else {
                 PantRearStart = 1;
-                if( true == Multiunitcontrol ) {
-                    SendCtrlToNext( "PantRear", 0, CabNo );
+                if( Notify != command_range::local ) {
+                    // wysłanie wyłączenia do pozostałych?
+                    SendCtrlToNext(
+                        "PantRear", 0, CabNo,
+                        ( Notify == command_range::unit ?
+                            ctrain_controll | ctrain_depot :
+                            ctrain_controll ) );
                 }
             }
         }
@@ -7653,18 +7681,20 @@ bool TMoverParameters::SendCtrlBroadcast(std::string CtrlCommand, double ctrlval
 // Q: 20160714
 // Ustawienie komendy wraz z parametrami
 // *************************************************************************************************
-bool TMoverParameters::SetInternalCommand(std::string NewCommand, double NewValue1,
-                                          double NewValue2)
+bool TMoverParameters::SetInternalCommand(std::string NewCommand, double NewValue1, double NewValue2, int const Couplertype)
 {
     bool SIC;
-    if ((CommandIn.Command == NewCommand) && (CommandIn.Value1 == NewValue1) &&
-        (CommandIn.Value2 == NewValue2))
+    if( ( CommandIn.Command == NewCommand )
+     && ( CommandIn.Value1 == NewValue1 )
+     && ( CommandIn.Value2 == NewValue2 )
+     && ( CommandIn.Coupling == Couplertype ) )
         SIC = false;
     else
     {
         CommandIn.Command = NewCommand;
         CommandIn.Value1 = NewValue1;
         CommandIn.Value2 = NewValue2;
+        CommandIn.Coupling = Couplertype;
         SIC = true;
         LastLoadChangeTime = 0; // zerowanie czasu (roz)ładowania
     }
@@ -7676,7 +7706,7 @@ bool TMoverParameters::SetInternalCommand(std::string NewCommand, double NewValu
 // Q: 20160714
 // wysyłanie komendy w kierunku dir (1=przód, -1=tył) do kolejnego pojazdu (jednego)
 // *************************************************************************************************
-bool TMoverParameters::SendCtrlToNext( std::string CtrlCommand, double ctrlvalue, double dir ) {
+bool TMoverParameters::SendCtrlToNext( std::string const CtrlCommand, double const ctrlvalue, double const dir, int const Couplertype ) {
     bool OK;
     int d; // numer sprzęgu w kierunku którego wysyłamy
 
@@ -7687,15 +7717,15 @@ bool TMoverParameters::SendCtrlToNext( std::string CtrlCommand, double ctrlvalue
     if( OK ) {
         // musi być wybrana niezerowa kabina
         if( ( Couplers[ d ].Connected != nullptr )
-         && ( TestFlag( Couplers[ d ].CouplingFlag, ctrain_controll ) ) ) {
+         && ( TestFlag( Couplers[ d ].CouplingFlag, Couplertype ) ) ) {
             if( Couplers[ d ].ConnectedNr != d ) {
                 // jeśli ten nastpęny jest zgodny z aktualnym
-                if( Couplers[ d ].Connected->SetInternalCommand( CtrlCommand, ctrlvalue, dir ) )
+                if( Couplers[ d ].Connected->SetInternalCommand( CtrlCommand, ctrlvalue, dir, Couplertype ) )
                     OK = ( Couplers[ d ].Connected->RunInternalCommand() && OK ); // tu jest rekurencja
             }
             else {
                 // jeśli następny jest ustawiony przeciwnie, zmieniamy kierunek
-                if( Couplers[ d ].Connected->SetInternalCommand( CtrlCommand, ctrlvalue, -dir ) )
+                if( Couplers[ d ].Connected->SetInternalCommand( CtrlCommand, ctrlvalue, -dir, Couplertype ) )
                     OK = ( Couplers[ d ].Connected->RunInternalCommand() && OK ); // tu jest rekurencja
             }
         }
@@ -7714,7 +7744,7 @@ bool TMoverParameters::SendCtrlToNext( std::string CtrlCommand, double ctrlvalue
 // Komenda musi być zdefiniowana tutaj, a jeśli się wywołuje funkcję, to ona nie może
 // sama przesyłać do kolejnych pojazdów. Należy też się zastanowić, czy dla uzyskania
 // jakiejś zmiany (np. IncMainCtrl) lepiej wywołać funkcję, czy od razu wysłać komendę.
-bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CValue2)
+bool TMoverParameters::RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype )
 {
     bool OK;
     std::string testload;
@@ -7724,7 +7754,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 	{
 		if (MainCtrlPosNo >= floor(CValue1))
 			MainCtrlPos = static_cast<int>(floor(CValue1));
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
 	}
 	else if (Command == "ScndCtrl")
 	{
@@ -7738,7 +7768,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 				ScndCtrlActualPos = 0;
 		if (ScndCtrlPosNo >= floor(CValue1))
 			ScndCtrlPos = static_cast<int>(floor(CValue1));
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	/*  else if command='BrakeCtrl' then
 	begin
@@ -7753,7 +7783,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 		Hamulec->SetEPS(CValue1);
 		// fBrakeCtrlPos:=BrakeCtrlPos; //to powinnno być w jednym miejscu, aktualnie w C++!!!
 		BrakePressureActual = BrakePressureTable[BrakeCtrlPos];
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	} // youby - odluzniacz hamulcow, przyda sie
 	else if (Command == "BrakeReleaser")
 	{
@@ -7770,13 +7800,13 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 		}
 		else
 			Mains = false;
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "Direction")
 	{
 		ActiveDir = static_cast<int>(floor(CValue1));
 		DirAbsolute = ActiveDir * CabNo;
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "CabActivisation")
 	{
@@ -7797,7 +7827,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
             }
 		}
 		DirAbsolute = ActiveDir * CabNo;
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "AutoRelaySwitch")
 	{
@@ -7805,7 +7835,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 			AutoRelayFlag = true;
 		else
 			AutoRelayFlag = false;
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "FuseSwitch")
 	{
@@ -7817,7 +7847,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 							  // if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and not FuseFlag and
 							  // (CValue1=0) and Mains then
 							  //   FuseFlag:=true;
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "ConverterSwitch") /*NBMX*/
 	{
@@ -7825,7 +7855,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 			ConverterAllow = true;
 		else if ((CValue1 == 0))
 			ConverterAllow = false;
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "BatterySwitch") /*NBMX*/
     {
@@ -7837,7 +7867,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
             SecuritySystem.Status = SecuritySystem.Status || s_waiting; // aktywacja czuwaka
         else
             SecuritySystem.Status = 0; // wyłączenie czuwaka
-        OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     //   else if command='EpFuseSwitch' then         {NBMX}
         //   begin
@@ -7851,7 +7881,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 			CompressorAllow = true;
 		else if ((CValue1 == 0))
 			CompressorAllow = false;
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "DoorOpen") /*NBMX*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
@@ -7869,7 +7899,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 			if ((CValue1 == 1) || (CValue1 == 3))
 				DoorRightOpened = true;
 		}
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "DoorClose") /*NBMX*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
@@ -7887,7 +7917,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 			if ((CValue1 == 1) || (CValue1 == 3))
 				DoorRightOpened = false;
 		}
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "PantFront") /*Winger 160204*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
@@ -7932,7 +7962,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 					PantRearStart = 1;
 				}
 		}
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "PantRear") /*Winger 160204, ABu 310105 i 030305*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
@@ -7977,7 +8007,7 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 					PantFrontStart = 1;
 				}
 		}
-		OK = SendCtrlToNext(Command, CValue1, CValue2);
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "MaxCurrentSwitch")
 	{
@@ -8063,19 +8093,19 @@ bool TMoverParameters::RunCommand(std::string Command, double CValue1, double CV
 // Q: 20160714
 // Uruchamia funkcję RunCommand aż do skutku. Jeśli będzie pozytywny to kasuje komendę.
 // *************************************************************************************************
-bool TMoverParameters::RunInternalCommand(void)
+bool TMoverParameters::RunInternalCommand()
 {
     bool OK;
 
     if (!CommandIn.Command.empty())
     {
-        OK = RunCommand(CommandIn.Command, CommandIn.Value1, CommandIn.Value2);
-        if (OK)
+        OK = RunCommand( CommandIn.Command, CommandIn.Value1, CommandIn.Value2, CommandIn.Coupling );
+        if (OK) {
 
-        {
             CommandIn.Command.clear(); // kasowanie bo rozkaz wykonany
             CommandIn.Value1 = 0;
             CommandIn.Value2 = 0;
+            CommandIn.Coupling = 0;
             CommandIn.Location.X = 0;
             CommandIn.Location.Y = 0;
             CommandIn.Location.Z = 0;

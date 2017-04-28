@@ -150,6 +150,12 @@ enum coupling {
     heating = 0x40,
     permanent = 0x80
 };
+/*! przesylanie komend sterujacych*/
+enum command_range {
+    local,
+    unit,
+    consist
+};
 											/*typ hamulca elektrodynamicznego*/
 static int const dbrake_none = 0;
 static int const dbrake_passive = 1;
@@ -279,7 +285,8 @@ struct TCommand
 	std::string Command; /*komenda*/
 	double Value1 = 0.0; /*argumenty komendy*/
 	double Value2 = 0.0;
-	TLocation Location;
+    int Coupling{ ctrain_controll }; // coupler flag used to determine command propagation
+    TLocation Location;
 };
 
 /*tory*/
@@ -1012,11 +1019,11 @@ public:
 
 	/*! przesylanie komend sterujacych*/
 	bool SendCtrlBroadcast(std::string CtrlCommand, double ctrlvalue);
-	bool SendCtrlToNext(std::string CtrlCommand, double ctrlvalue, double dir);
-	bool SetInternalCommand(std::string NewCommand, double NewValue1, double NewValue2);
+	bool SendCtrlToNext(std::string const CtrlCommand, double const ctrlvalue, double const dir, int const Couplertype = ctrain_controll);
+    bool SetInternalCommand( std::string NewCommand, double NewValue1, double NewValue2, int const Couplertype = ctrain_controll );
 	double GetExternalCommand(std::string &Command);
-	bool RunCommand(std::string Command, double CValue1, double CValue2);
-	bool RunInternalCommand(void);
+    bool RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype = ctrain_controll );
+    bool RunInternalCommand();
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
 	bool CabActivisation(void);
 	bool CabDeactivisation(void);
@@ -1088,7 +1095,7 @@ public:
 
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/
-    bool MainSwitch( bool const State, bool const Multiunitcontrol = true );/*! wylacznik glowny*/
+    bool MainSwitch( bool const State, int const Notify = command_range::consist );/*! wylacznik glowny*/
 	bool ConverterSwitch(bool State);/*! wl/wyl przetwornicy*/
 	bool CompressorSwitch(bool State);/*! wl/wyl sprezarki*/
 
@@ -1116,8 +1123,8 @@ public:
 	bool AutoRelayCheck(void);//symulacja automatycznego rozruchu
 
 	bool ResistorsFlagCheck(void); //sprawdzenie kontrolki oporow rozruchowych NBMX
-	bool PantFront(bool const State, bool const Multiunitcontrol = true ); //obsluga pantografou przedniego
-	bool PantRear(bool const State, bool const Multiunitcontrol = true ); //obsluga pantografu tylnego
+    bool PantFront( bool const State, int const Notify = command_range::consist ); //obsluga pantografou przedniego
+    bool PantRear( bool const State, int const Notify = command_range::consist ); //obsluga pantografu tylnego
 
 							   /*-funkcje typowe dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	bool dizel_EngageSwitch(double state);

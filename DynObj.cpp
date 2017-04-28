@@ -2468,11 +2468,12 @@ bool TDynamicObject::Update(double dt, double dt1)
                 // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
                 if( true == MoverParameters->PantPressSwitchActive ) {
                     // opuszczenie pantografów przy niskim ciśnieniu
-                    MoverParameters->PantFront( false, MoverParameters->TrainType == dt_EZT );
-                    MoverParameters->PantRear( false, MoverParameters->TrainType == dt_EZT );
+                    MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                    MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
                     // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
-                    if( MoverParameters->GetTrainsetVoltage() == 0.0 ) {
-                        MoverParameters->MainSwitch( false, false );
+                    if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
+                        // TODO: check whether line breaker should be open EMU-wide
+                        MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
                     }
                     // mark the pressure switch as spent
                     MoverParameters->PantPressSwitchActive = false;
@@ -2931,15 +2932,15 @@ bool TDynamicObject::Update(double dt, double dt1)
           && ( MoverParameters->EngineType != DieselEngine )
           && ( MoverParameters->EngineType != WheelsDriven ) )
         { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
-            if( MoverParameters->MainSwitch( false, MoverParameters->TrainType == dt_EZT ) ) {
+            if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) ) ) {
                 // wyłączyć zasilanie
                 // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
                 MoverParameters->EventFlag = true;
                 // drop pantographs
                 // NOTE: this isn't universal behaviour
                 // TODO: have this dependant on .fiz-driven flag
-                MoverParameters->PantFront( false, MoverParameters->TrainType == dt_EZT );
-                MoverParameters->PantRear( false, MoverParameters->TrainType == dt_EZT );
+                MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
             }
         }
     if (MoverParameters->TrainType == dt_ET42)
@@ -4148,22 +4149,20 @@ void TDynamicObject::RenderSounds()
             sConverter.TurnOff(MechInside, GetPosition());
         sConverter.Update(MechInside, GetPosition());
     }
-    if (MoverParameters->WarningSignal > 0)
-    {
-        if (TestFlag(MoverParameters->WarningSignal, 1))
-            sHorn1.TurnOn(MechInside, GetPosition());
-        else
-            sHorn1.TurnOff(MechInside, GetPosition());
-        if (TestFlag(MoverParameters->WarningSignal, 2))
-            sHorn2.TurnOn(MechInside, GetPosition());
-        else
-            sHorn2.TurnOff(MechInside, GetPosition());
+
+    if( TestFlag( MoverParameters->WarningSignal, 1 ) ) {
+        sHorn1.TurnOn( MechInside, GetPosition() );
     }
-    else
-    {
-        sHorn1.TurnOff(MechInside, GetPosition());
-        sHorn2.TurnOff(MechInside, GetPosition());
+    else {
+        sHorn1.TurnOff( MechInside, GetPosition() );
     }
+    if( TestFlag( MoverParameters->WarningSignal, 2 ) ) {
+        sHorn2.TurnOn( MechInside, GetPosition() );
+    }
+    else {
+        sHorn2.TurnOff( MechInside, GetPosition() );
+    }
+
     if (MoverParameters->DoorClosureWarning)
     {
         if (MoverParameters->DepartureSignal) // NBMX sygnal odjazdu, MC: pod warunkiem ze jest

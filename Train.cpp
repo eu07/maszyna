@@ -2783,7 +2783,7 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
         // NOTE: we turn off both low and high horn, due to unreliability of release event when shift key is involved
-        Train->mvControlled->WarningSignal &= ~( 1 | 2 );
+        Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
         // audio feedback
         if( ( Train->ggHornButton.GetValue() < -0.5 )
          || ( Train->ggHornLowButton.GetValue() > 0.5 ) ) {
@@ -2826,14 +2826,14 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
         // NOTE: we turn off both low and high horn, due to unreliability of release event when shift key is involved
-        Train->mvControlled->WarningSignal &= ~( 1 | 2 );
+        Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
         // audio feedback
         if( Train->ggHornButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
         // visual feedback
         Train->ggHornButton.UpdateValue( 0.0 );
-        Train->ggHornButton.UpdateValue( 0.0 );
+        Train->ggHornHighButton.UpdateValue( 0.0 );
     }
 }
 
@@ -3507,45 +3507,6 @@ bool TTrain::Update( double const Deltatime )
     DWORD stat;
     double dt = Deltatime; // Timer::GetDeltaTime();
 
-    // catch cases where the power goes out, and the linebreaker state is left as closed
-    if( ( m_linebreakerstate == 1 )
-     && ( false == mvControlled->Mains )
-     && ( ggMainButton.GetValue() < 0.05 ) ) {
-        // crude way to catch cases where the main was knocked out and the user is trying to restart it
-        // because the state of the line breaker isn't changed to match, we need to do it here manually
-        m_linebreakerstate = 0;
-    }
-
-    // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
-    // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
-    if( ( mvControlled->Battery )
-     || ( mvControlled->ConverterFlag ) ) {
-        if( ( false == mvControlled->PantFrontUp )
-         && ( ggPantFrontButton.GetValue() > 0.95 ) ) {
-            mvControlled->PantFront( true );
-        }
-        if( ( false == mvControlled->PantRearUp )
-         && ( ggPantRearButton.GetValue() > 0.95 ) ) {
-            mvControlled->PantRear( true );
-        }
-    }
-/*
-    // NOTE: disabled while switch state isn't preserved while moving between compartments
-    // check whether we should raise the pantographs, based on volume in pantograph tank
-    if( mvControlled->PantPress > (
-            mvControlled->TrainType == dt_EZT ?
-                2.4 :
-                3.5 ) ) {
-        if( ( false == mvControlled->PantFrontUp )
-         && ( ggPantFrontButton.GetValue() > 0.95 ) ) {
-            mvControlled->PantFront( true );
-        }
-        if( ( false == mvControlled->PantRearUp )
-         && ( ggPantRearButton.GetValue() > 0.95 ) ) {
-            mvControlled->PantRear( true );
-        }
-    }
-*/
     if (DynamicObject->mdKabina)
     { // Ra: TODO: odczyty klawiatury/pulpitu nie
         // powinny być uzależnione od istnienia modelu
@@ -3780,7 +3741,7 @@ bool TTrain::Update( double const Deltatime )
                 // TODO: check whether it should affect entire consist for EMU
                 // TODO: check whether it should happen if there's power supplied alternatively through hvcouplers
                 // TODO: potentially move this to the mover module, as there isn't much reason to have this dependent on the operator presence
-                mvControlled->MainSwitch( false, false );
+                mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
             }
         }
 
@@ -3811,7 +3772,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     mvControlled->ConvOvldFlag = true;
                     if (mvControlled->TrainType != dt_EZT)
-                        mvControlled->MainSwitch(false, mvControlled->TrainType == dt_EZT);
+                        mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
                 }
                 else if( fConverterTimer >= fConverterPrzekaznik ) {
                     // changed switch from always true to take into account state of the compressor switch
@@ -5826,6 +5787,46 @@ bool TTrain::Update( double const Deltatime )
             break;
         }
     }
+
+    // catch cases where the power goes out, and the linebreaker state is left as closed
+    if( ( m_linebreakerstate == 1 )
+     && ( false == mvControlled->Mains )
+     && ( ggMainButton.GetValue() < 0.05 ) ) {
+        // crude way to catch cases where the main was knocked out and the user is trying to restart it
+        // because the state of the line breaker isn't changed to match, we need to do it here manually
+        m_linebreakerstate = 0;
+    }
+
+    // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
+    // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
+    if( ( mvControlled->Battery )
+     || ( mvControlled->ConverterFlag ) ) {
+        if( ( false == mvControlled->PantFrontUp )
+         && ( ggPantFrontButton.GetValue() >= 1.0 ) ) {
+            mvControlled->PantFront( true );
+        }
+        if( ( false == mvControlled->PantRearUp )
+         && ( ggPantRearButton.GetValue() >= 1.0 ) ) {
+            mvControlled->PantRear( true );
+        }
+    }
+/*
+    // NOTE: disabled while switch state isn't preserved while moving between compartments
+    // check whether we should raise the pantographs, based on volume in pantograph tank
+    if( mvControlled->PantPress > (
+            mvControlled->TrainType == dt_EZT ?
+                2.4 :
+                3.5 ) ) {
+        if( ( false == mvControlled->PantFrontUp )
+         && ( ggPantFrontButton.GetValue() > 0.95 ) ) {
+            mvControlled->PantFront( true );
+        }
+        if( ( false == mvControlled->PantRearUp )
+         && ( ggPantRearButton.GetValue() > 0.95 ) ) {
+            mvControlled->PantRear( true );
+        }
+    }
+*/
 
     m_updated = true;
     return true; //(DynamicObject->Update(dt));
