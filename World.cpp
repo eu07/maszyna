@@ -1820,24 +1820,48 @@ TWorld::Update_UI() {
                 uitextline2 +=
                     "; TC:"
                     + to_string( tmp->MoverParameters->TotalCurrent, 0 );
+#ifdef EU07_USE_OLD_HVCOUPLERS
                 uitextline2 +=
-                    ", HV0:"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 )
-                    + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
+                    ", HV0: ("
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::outgoing ], 0 )
+                    + ")<-"
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::incoming ], 0 );
                 uitextline2 +=
-                    ", HV1:"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 )
-                    + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
+                    ", HV1: ("
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::outgoing ], 0 )
+                    + ")<-"
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::incoming ], 0 );
+#else
+                uitextline2 +=
+                    ", HV: "
+                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.incoming, 0 )
+                    + "->("
+                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.outgoing, 0 )
+                    + ")F" + (tmp->DirectionGet() ? "<<" : ">>") + "R("
+                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.outgoing, 0 )
+                    + ")<-"
+                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.incoming, 0 );
+#endif
+                // equipment flags
+                uitextline3  = "";
+                uitextline3 += ( tmp->MoverParameters->Battery ? "B" : "b" );
+                uitextline3 += ( tmp->MoverParameters->Mains ? "M" : "m" );
+                uitextline3 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantPressSwitchActive ? "O" : "o" ) : "." );;
+                uitextline3 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantPressSwitchActive ? "P" : "p" ) : "." );;
+                uitextline3 += ( tmp->MoverParameters->PantPressSwitchActive ? "!" : "." );
+                uitextline3 += ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." );
+                uitextline3 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
+                uitextline3 += ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." );
+                uitextline3 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
 
-                uitextline3 =
-                    "BP: " + to_string( tmp->MoverParameters->BrakePress, 2 )
+                uitextline3 +=
+                    " BP: " + to_string( tmp->MoverParameters->BrakePress, 2 )
                     + " (" + to_string( tmp->MoverParameters->BrakeStatus, 0 )
                     + "), LBP: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
                     + ", PP: " + to_string( tmp->MoverParameters->PipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->ScndPipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
+                    + ", MT: " + to_string( tmp->MoverParameters->CompressedVolume, 3 )
                     + ", BVP: " + to_string( tmp->MoverParameters->Volume, 3 )
                     + ", " + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
                     + ", " + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 )

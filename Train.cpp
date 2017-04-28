@@ -1533,6 +1533,10 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
         // press or hold...
         if( Train->m_linebreakerstate == 0 ) {
             // ...to close the circuit
+            if( Command.action == GLFW_PRESS ) {
+                // fresh press, start fresh closing delay calculation
+                Train->fMainRelayTimer = 0.0f;
+            }
             if( Train->ggMainOnButton.SubModel != nullptr ) {
                 // two separate switches to close and break the circuit
                 // audio feedback
@@ -1552,8 +1556,9 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                 Train->ggMainButton.UpdateValue( 1.0 );
             }
             // keep track of period the button is held down, to determine when/if circuit closes
-            if( ( false == ( Train->mvControlled->EnginePowerSource.PowerType == ElectricSeriesMotor ) || ( Train->mvControlled->EngineType == ElectricInductionMotor ) )
-             || ( Train->fHVoltage > 0.0f ) ) {
+            if( ( false == ( ( Train->mvControlled->EngineType == ElectricSeriesMotor )
+                          || ( Train->mvControlled->EngineType == ElectricInductionMotor ) ) )
+             || ( Train->fHVoltage > 0.5 * Train->mvControlled->EnginePowerSource.MaxVoltage ) ) {
                 // prevent the switch from working if there's no power
                 // TODO: consider whether it makes sense for diesel engines and such
                 Train->fMainRelayTimer += 0.33f; // Command.time_delta * 5.0;
@@ -1695,6 +1700,8 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
             // finalize the state of the line breaker
             Train->m_linebreakerstate = 1;
         }
+        // on button release reset the closing timer, just in case something elsewhere tries to read it
+        Train->fMainRelayTimer = 0.0f;
     }
 }
 
@@ -1705,15 +1712,17 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
         if( ( false == Train->mvControlled->ConverterAllow )
          && ( Train->ggConverterButton.GetValue() < 0.5 ) ) {
             // turn on
+            // sound feedback
+            if( Train->ggConverterButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggConverterButton.UpdateValue( 1.0 );
+/*
             if( ( Train->mvControlled->EnginePowerSource.SourceType != CurrentCollector )
              || ( Train->mvControlled->PantRearVolt != 0.0 )
              || ( Train->mvControlled->PantFrontVolt != 0.0 ) ) {
-                // visual feedback
-                Train->ggConverterButton.UpdateValue( 1.0 );
-                // sound feedback
-                if( Train->ggConverterButton.GetValue() < 0.5 ) {
-                    Train->play_sound( Train->dsbSwitch );
-                }
+*/
                 // impulse type switch has no effect if there's no power
                 // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
                 if( ( Train->mvOccupied->ConvSwitchType != "impulse" )
@@ -1728,7 +1737,9 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
                         }
                     }
                 }
+/*
             }
+*/
         }
         else {
             //turn off
@@ -3141,11 +3152,13 @@ if
                                     if (DynamicObject->Mechanik) // na wszelki wypadek
                                         DynamicObject->Mechanik->CheckVehicles(Connect); // aktualizacja flag kierunku w składzie
                                     play_sound( dsbCouplerAttach );
+                                    // one coupling type per key press
+                                    return;
                                 }
                                 else
                                     WriteLog("Mechanical coupling failed.");
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_pneumatic)) // pneumatyka
+                        if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_pneumatic)) // pneumatyka
                         {
                             if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag
                                 & tmp->MoverParameters->Couplers[CouplNr].AllowedFlag
@@ -3155,12 +3168,16 @@ if
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
                                         (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_pneumatic)))
                                 {
-                                    rsHiss.Play(1, DSBPLAY_LOOPING, true, tmp->GetPosition());
+                                    // TODO: dedicated 'click' sound for connecting cable-type connections
+                                    play_sound( dsbCouplerDetach );
+//                                    rsHiss.Play( 1, DSBPLAY_LOOPING, true, tmp->GetPosition() );
                                     DynamicObject->SetPneumatic(CouplNr != 0, true); // Ra: to mi się nie podoba !!!!
                                     tmp->SetPneumatic(CouplNr != 0, true);
+                                    // one coupling type per key press
+                                    return;
                                 }
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_scndpneumatic)) // zasilajacy
+                        if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_scndpneumatic)) // zasilajacy
                         {
                             if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag
                                 & tmp->MoverParameters->Couplers[CouplNr].AllowedFlag
@@ -3170,17 +3187,18 @@ if
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
                                         (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_scndpneumatic)))
                                 {
-                                    //              rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
+                                    // TODO: dedicated 'click' sound for connecting cable-type connections
                                     play_sound( dsbCouplerDetach );
-                                    DynamicObject->SetPneumatic(CouplNr != 0, false); // Ra: to mi się nie podoba !!!!
+//                                    rsHiss.Play( 1, DSBPLAY_LOOPING, true, tmp->GetPosition() );
+                                    DynamicObject->SetPneumatic( CouplNr != 0, false ); // Ra: to mi się nie podoba !!!!
                                     tmp->SetPneumatic(CouplNr != 0, false);
+                                    // one coupling type per key press
+                                    return;
                                 }
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_controll)) // ukrotnionko
+                        if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_controll)) // ukrotnionko
                         {
-                            if ((tmp->MoverParameters->Couplers[CouplNr]
-                                     .Connected->Couplers[CouplNr]
-                                     .AllowedFlag &
+                            if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag &
                                  tmp->MoverParameters->Couplers[CouplNr].AllowedFlag &
                                  ctrain_controll) == ctrain_controll)
                                 if (tmp->MoverParameters->Attach(
@@ -3188,14 +3206,15 @@ if
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
                                         (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_controll)))
                                 {
+                                    // TODO: dedicated 'click' sound for connecting cable-type connections
                                     play_sound( dsbCouplerAttach );
+                                    // one coupling type per key press
+                                    return;
                                 }
                         }
-                        else if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_passenger)) // mostek
+                        if (!TestFlag(tmp->MoverParameters->Couplers[CouplNr].CouplingFlag, ctrain_passenger)) // mostek
                         {
-                            if ((tmp->MoverParameters->Couplers[CouplNr]
-                                     .Connected->Couplers[CouplNr]
-                                     .AllowedFlag &
+                            if ((tmp->MoverParameters->Couplers[CouplNr].Connected->Couplers[CouplNr].AllowedFlag &
                                  tmp->MoverParameters->Couplers[CouplNr].AllowedFlag &
                                  ctrain_passenger) == ctrain_passenger)
                                 if (tmp->MoverParameters->Attach(
@@ -3203,10 +3222,29 @@ if
                                         tmp->MoverParameters->Couplers[CouplNr].Connected,
                                         (tmp->MoverParameters->Couplers[CouplNr].CouplingFlag | ctrain_passenger)))
                                 {
-                                    //                  rsHiss.Play(1,DSBPLAY_LOOPING,true,tmp->GetPosition());
-                                    play_sound( dsbCouplerDetach );
+                                    play_sound( dsbCouplerAttach );
+/*
                                     DynamicObject->SetPneumatic(CouplNr != 0, false);
                                     tmp->SetPneumatic(CouplNr != 0, false);
+*/
+                                    // one coupling type per key press
+                                    return;
+                                }
+                        }
+                        if( false == TestFlag( tmp->MoverParameters->Couplers[ CouplNr ].CouplingFlag, ctrain_heating ) ) {
+                            // heating
+                            if( ( tmp->MoverParameters->Couplers[ CouplNr ].Connected->Couplers[ CouplNr ].AllowedFlag
+                                & tmp->MoverParameters->Couplers[ CouplNr ].AllowedFlag
+                                & ctrain_heating ) == ctrain_heating )
+                                if( tmp->MoverParameters->Attach(
+                                    CouplNr, 2,
+                                    tmp->MoverParameters->Couplers[ CouplNr ].Connected,
+                                    ( tmp->MoverParameters->Couplers[ CouplNr ].CouplingFlag | ctrain_heating ) ) ) {
+
+                                    // TODO: dedicated 'click' sound for connecting cable-type connections
+                                    play_sound( dsbCouplerAttach );
+                                    // one coupling type per key press
+                                    return;
                                 }
                         }
                     }
@@ -3478,6 +3516,19 @@ bool TTrain::Update( double const Deltatime )
         m_linebreakerstate = 0;
     }
 
+    // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
+    // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
+    if( ( mvControlled->Battery )
+     || ( mvControlled->ConverterFlag ) ) {
+        if( ( false == mvControlled->PantFrontUp )
+         && ( ggPantFrontButton.GetValue() > 0.95 ) ) {
+            mvControlled->PantFront( true );
+        }
+        if( ( false == mvControlled->PantRearUp )
+         && ( ggPantRearButton.GetValue() > 0.95 ) ) {
+            mvControlled->PantRear( true );
+        }
+    }
 /*
     // NOTE: disabled while switch state isn't preserved while moving between compartments
     // check whether we should raise the pantographs, based on volume in pantograph tank
@@ -3502,15 +3553,14 @@ bool TTrain::Update( double const Deltatime )
         tor = DynamicObject->GetTrack(); // McZapkie-180203
         // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
         float maxtacho = 3;
-        fTachoVelocity = Min0R(fabs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot),
-                               mvControlled->Vmax * 1.05);
+        fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
         { // skacze osobna zmienna
             float ff = simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
             // pomiar, pol sekundy ustawienie
             if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
             {
                 if (fTachoVelocity > 1) // jedzie
-                    fTachoVelocityJump = fTachoVelocity + (2 - Random(3) + Random(3)) * 0.5;
+                    fTachoVelocityJump = fTachoVelocity + (2.0 - Random(3) + Random(3)) * 0.5;
                 else
                     fTachoVelocityJump = 0; // stoi
                 fTachoTimer = ff; // juz zmienil
@@ -3725,12 +3775,14 @@ bool TTrain::Update( double const Deltatime )
         // przy dowolnym ustawieniu kierunkowego
         // Ra: to już jest w T_MoverParameters::TractionForce(), ale zależy od
         // kierunku
-        if (mvControlled->EngineType == ElectricSeriesMotor)
-            if (fabs(mvControlled->RunningTraction.TractionVoltage) <
-                0.5 *
-                    mvControlled->EnginePowerSource
-                        .MaxVoltage) // minimalne napięcie pobierać z FIZ?
-                mvControlled->MainSwitch(false);
+        if( mvControlled->EngineType == ElectricSeriesMotor ) {
+            if( std::max( mvControlled->GetTrainsetVoltage(), std::fabs( mvControlled->RunningTraction.TractionVoltage ) ) < 0.5 * mvControlled->EnginePowerSource.MaxVoltage ) {
+                // TODO: check whether it should affect entire consist for EMU
+                // TODO: check whether it should happen if there's power supplied alternatively through hvcouplers
+                // TODO: potentially move this to the mover module, as there isn't much reason to have this dependent on the operator presence
+                mvControlled->MainSwitch( false, false );
+            }
+        }
 
         // hunter-091012: swiatlo
         if (bCabLight == true)
@@ -3759,7 +3811,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     mvControlled->ConvOvldFlag = true;
                     if (mvControlled->TrainType != dt_EZT)
-                        mvControlled->MainSwitch(false);
+                        mvControlled->MainSwitch(false, mvControlled->TrainType == dt_EZT);
                 }
                 else if( fConverterTimer >= fConverterPrzekaznik ) {
                     // changed switch from always true to take into account state of the compressor switch
@@ -4702,74 +4754,20 @@ bool TTrain::Update( double const Deltatime )
             ggManualBrake.UpdateValue(double(mvOccupied->ManualBrakePos));
             ggManualBrake.Update();
         }
-        if (ggBrakeProfileCtrl.SubModel)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggBrakeProfileCtrl.UpdateValue(
-                double(mvOccupied->BrakeDelayFlag == 4 ? 2 : mvOccupied->BrakeDelayFlag - 1));
-#endif
-            ggBrakeProfileCtrl.Update();
-        }
-        if (ggBrakeProfileG.SubModel)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggBrakeProfileG.UpdateValue( double( mvOccupied->BrakeDelayFlag == bdelay_G ? 1 : 0 ) );
-#endif
-            ggBrakeProfileG.Update();
-        }
-        if (ggBrakeProfileR.SubModel)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggBrakeProfileR.UpdateValue( double( mvOccupied->BrakeDelayFlag == bdelay_R ? 1 : 0 ) );
-#endif
-            ggBrakeProfileR.Update();
-        }
-
-        if (ggMaxCurrentCtrl.SubModel)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggMaxCurrentCtrl.UpdateValue( double( mvControlled->Imax == mvControlled->ImaxHi ) );
-#endif
-            ggMaxCurrentCtrl.Update();
-        }
-
+        ggBrakeProfileCtrl.Update();
+        ggBrakeProfileG.Update();
+        ggBrakeProfileR.Update();
+        ggMaxCurrentCtrl.Update();
         // NBMX wrzesien 2003 - drzwi
-        if (ggDoorLeftButton.SubModel)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggDoorLeftButton.PutValue( mvOccupied->DoorLeftOpened ? 1 : 0 );
-#endif
-            ggDoorLeftButton.Update();
-        }
-        if (ggDoorRightButton.SubModel)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggDoorRightButton.PutValue( mvOccupied->DoorRightOpened ? 1 : 0 );
-#endif
-            ggDoorRightButton.Update();
-        }
-        if (ggDepartureSignalButton.SubModel)
-        {
-            //      ggDepartureSignalButton.UpdateValue(double());
-            ggDepartureSignalButton.Update();
-        }
-
+        ggDoorLeftButton.Update();
+        ggDoorRightButton.Update();
+        ggDepartureSignalButton.Update();
         // NBMX dzwignia sprezarki
-        if (ggCompressorButton.SubModel) // hunter-261211: poprawka
-            ggCompressorButton.Update();
-        if (ggMainButton.SubModel)
-            ggMainButton.Update();
-        if (ggRadioButton.SubModel)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggRadioButton.PutValue( mvOccupied->Radio ? 1 : 0 );
-#endif
-            ggRadioButton.Update();
-        }
-        if (ggConverterButton.SubModel)
-            ggConverterButton.Update();
-        if (ggConverterOffButton.SubModel)
-            ggConverterOffButton.Update();
+        ggCompressorButton.Update();
+        ggMainButton.Update();
+        ggRadioButton.Update();
+        ggConverterButton.Update();
+        ggConverterOffButton.Update();
 
 #ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if( ( ( DynamicObject->iLights[ 0 ] ) == 0 ) && ( ( DynamicObject->iLights[ 1 ] ) == 0 ) )
@@ -4918,64 +4916,18 @@ bool TTrain::Update( double const Deltatime )
             ggLightsButton.PutValue(mvOccupied->LightsPos - 1);
             ggLightsButton.Update();
         }
-        if( ggDimHeadlightsButton.SubModel ) {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggDimHeadlightsButton.PutValue( DynamicObject->DimHeadlights ? 1.0 : 0.0 );
-#endif
-            ggDimHeadlightsButton.Update();
-        }
-
+        ggDimHeadlightsButton.Update();
         //---------
         // Winger 010304 - pantografy
         // NOTE: shouldn't the pantograph updates check whether it's front or rear cabin?
-        if (ggPantFrontButton.SubModel ) {
-            ggPantFrontButton.Update();
-        }
-        if (ggPantRearButton.SubModel) {
-            ggPantRearButton.Update();
-        }
-        if (ggPantFrontButtonOff.SubModel) {
-            ggPantFrontButtonOff.Update();
-        }
+        ggPantFrontButton.Update();
+        ggPantRearButton.Update();
+        ggPantFrontButtonOff.Update();
+        ggTrainHeatingButton.Update();
+        ggSignallingButton.Update();
+        ggDoorSignallingButton.Update();
         // Winger 020304 - ogrzewanie
-        //----------
         // hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy
-        if( ggTrainHeatingButton.SubModel )
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            if( mvControlled->Heating )
-            {
-                ggTrainHeatingButton.PutValue(1);
-                // if (mvControlled->ConverterFlag==true)
-                // btLampkaOgrzewanieSkladu.TurnOn();
-            }
-            else
-            {
-                ggTrainHeatingButton.PutValue(0);
-                // btLampkaOgrzewanieSkladu.TurnOff();
-            }
-#endif
-            ggTrainHeatingButton.Update();
-        }
-        if (ggSignallingButton.SubModel != nullptr)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggSignallingButton.PutValue( mvControlled->Signalling ? 1 : 0 );
-#endif
-            ggSignallingButton.Update();
-        }
-        if (ggDoorSignallingButton.SubModel != nullptr)
-        {
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-            ggDoorSignallingButton.PutValue( mvControlled->DoorSignalling ? 1 : 0 );
-#endif
-            ggDoorSignallingButton.Update();
-        }
-        // if (ggDistCounter.SubModel)
-        //{//Ra 2014-07: licznik kilometrów
-        // ggDistCounter.PutValue(mvControlled->DistCounter);
-        // ggDistCounter.Update();
-        //}
         if ((((mvControlled->EngineType == ElectricSeriesMotor) && (mvControlled->Mains == true) &&
               (mvControlled->ConvOvldFlag == false)) ||
              (mvControlled->ConverterFlag)) &&

@@ -798,7 +798,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         // else btCPass2.TurnOff();
-        if (MoverParameters->Battery)
+        if (MoverParameters->Battery || MoverParameters->ConverterFlag)
         { // sygnaly konca pociagu
             if (btEndSignals1.Active())
             {
@@ -900,7 +900,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // Ra: przechyłkę załatwiamy na etapie przesuwania modelu
         // if (ObjSqrDist<80000) ABuModelRoll(); //przechyłki od 400m
     }
-    if (MoverParameters->Battery)
+    if( MoverParameters->Battery || MoverParameters->ConverterFlag )
     { // sygnały czoła pociagu //Ra: wyświetlamy bez
         // ograniczeń odległości, by były widoczne z
         // daleka
@@ -1778,9 +1778,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 MoverParameters->PipePress = 0.0;
                 MoverParameters->Pipe2->CreatePress(0.0);
                 MoverParameters->ScndPipePress = 0.0;
-                MoverParameters->PantVolume = 1;
-                MoverParameters->PantPress = 0;
-                MoverParameters->CompressedVolume = 0;
+                MoverParameters->PantVolume = 0.1;
+                MoverParameters->PantPress = 0.0;
+                MoverParameters->CompressedVolume = 0.0;
             }
 
             if (ActPar.find('1') != std::string::npos) // wylaczanie 10%
@@ -2456,30 +2456,41 @@ bool TDynamicObject::Update(double dt, double dt1)
     // McZapkie-260202
     if ((MoverParameters->EnginePowerSource.SourceType == CurrentCollector) &&
         (MoverParameters->Power > 1.0)) // aby rozrządczy nie opuszczał silnikowemu
+/*
         if ((MechInside) || (MoverParameters->TrainType == dt_EZT))
         {
+*/
             // if
             // ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
             // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-            if (MoverParameters->PantPress < (MoverParameters->TrainType == dt_EZT ? 2.4 : 3.5))
-            { // 3.5 wg
-                // http://www.transportszynowy.pl/eu06-07pneumat.php
-                //"Wyłączniki ciśnieniowe odbieraków prądu wyłączają sterowanie
-                // wyłącznika szybkiego
-                // oraz uniemożliwiają podniesienie odbieraków prądu, gdy w instalacji
-                // rozrządu
-                // ciśnienie spadnie poniżej wartości 3,5 bara."
+            if( MoverParameters->PantPress < ( MoverParameters->TrainType == dt_EZT ? 2.5 : 3.5 ) ) {
+                // 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
                 // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
-                // if (!MoverParameters->PantCompFlag)
-                // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-                MoverParameters->PantFront(false); // opuszczenie pantografów przy niskim ciśnieniu
-                MoverParameters->PantRear(false); // to idzie w ukrotnieniu, a nie powinno...
+                if( true == MoverParameters->PantPressSwitchActive ) {
+                    // opuszczenie pantografów przy niskim ciśnieniu
+                    MoverParameters->PantFront( false, MoverParameters->TrainType == dt_EZT );
+                    MoverParameters->PantRear( false, MoverParameters->TrainType == dt_EZT );
+                    // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
+                    if( MoverParameters->GetTrainsetVoltage() == 0.0 ) {
+                        MoverParameters->MainSwitch( false, false );
+                    }
+                    // mark the pressure switch as spent
+                    MoverParameters->PantPressSwitchActive = false;
+                }
             }
-            // Winger - automatyczne wylaczanie malej sprezarki
-            else if (MoverParameters->PantPress >= 4.8)
-                MoverParameters->PantCompFlag = false;
-        } // Ra: do Mover to trzeba przenieść, żeby AI też mogło sobie podpompować
+            else {
+                // prime the pressure switch
+                // TODO: check what decides whether the pressure switch is active, prototypically
+                MoverParameters->PantPressSwitchActive = true;
 
+                if( MoverParameters->PantPress >= 4.8 ) {
+                    // Winger - automatyczne wylaczanie malej sprezarki
+                    MoverParameters->PantCompFlag = false;
+                }
+            }
+/*
+        } // Ra: do Mover to trzeba przenieść, żeby AI też mogło sobie podpompować
+*/
     double dDOMoveLen;
 
     TLocation l;
@@ -2911,14 +2922,25 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // fragment "z EXE Kursa"
     if (MoverParameters->Mains) // nie wchodzić w funkcję bez potrzeby
-        if ( ( false == MoverParameters->Battery)
+        if ( ( false == MoverParameters->Battery )
           && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
-          && ( Controller == Humandriver)
+/*
+        // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
+          && ( Controller == Humandriver )
+*/
           && ( MoverParameters->EngineType != DieselEngine )
           && ( MoverParameters->EngineType != WheelsDriven ) )
         { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
-            if (MoverParameters->MainSwitch(false)) // wyłączyć zasilanie
+            if( MoverParameters->MainSwitch( false, MoverParameters->TrainType == dt_EZT ) ) {
+                // wyłączyć zasilanie
+                // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
                 MoverParameters->EventFlag = true;
+                // drop pantographs
+                // NOTE: this isn't universal behaviour
+                // TODO: have this dependant on .fiz-driven flag
+                MoverParameters->PantFront( false, MoverParameters->TrainType == dt_EZT );
+                MoverParameters->PantRear( false, MoverParameters->TrainType == dt_EZT );
+            }
         }
     if (MoverParameters->TrainType == dt_ET42)
     { // powinny być wszystkie dwuczłony oraz EZT
@@ -3210,21 +3232,23 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantRearVolt = 0.0;
                 break;
             } // pozostałe na razie nie obsługiwane
-            if (MoverParameters->PantPress >
-                (MoverParameters->TrainType == dt_EZT ? 2.5 : 3.3)) // Ra 2013-12:
-                // Niebugocław
-                // mówi, że w EZT
-                // podnoszą się
-                // przy 2.5
-                pantspeedfactor = 0.015 * (MoverParameters->PantPress) *
-                                  dt1; // z EXE Kursa  //Ra: wysokość zależy od ciśnienia !!!
-            else
+            if( MoverParameters->PantPress > (
+                    MoverParameters->TrainType == dt_EZT ?
+                        2.45 : // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
+                        3.45 ) ) {
+                // z EXE Kursa
+                // Ra: wysokość zależy od ciśnienia !!!
+                pantspeedfactor = 0.015 * ( MoverParameters->PantPress ) * dt1;
+            }
+            else {
                 pantspeedfactor = 0.0;
-            if (pantspeedfactor < 0)
-                pantspeedfactor = 0;
+            }
+            pantspeedfactor = std::max( 0.0, pantspeedfactor );
             k = p->fAngleL;
-            if (i ? MoverParameters->PantRearUp :
-                    MoverParameters->PantFrontUp) // jeśli ma być podniesiony
+            if( ( pantspeedfactor > 0.0 )
+             && ( i ?
+                    MoverParameters->PantRearUp :
+                    MoverParameters->PantFrontUp ) )// jeśli ma być podniesiony
             {
                 if (PantDiff > 0.001) // jeśli nie dolega do drutu
                 { // jeśli poprzednia wysokość jest mniejsza niż pożądana, zwiększyć kąt
