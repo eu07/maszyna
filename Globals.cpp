@@ -80,11 +80,12 @@ double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
 std::vector<vector3> Global::FreeCameraInitAngle;
-double Global::fFogStart = 1700;
-double Global::fFogEnd = 2000;
 float Global::Background[3] = {0.2f, 0.4f, 0.33f};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
+double Global::fFogStart = 1700;
+double Global::fFogEnd = 2000;
+float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
 #ifdef EU07_USE_OLD_LIGHTING_MODEL
 GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
 GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};
@@ -106,6 +107,7 @@ int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę t
 
 // parametry użytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
+bool Global::RealisticControlMode{ false };
 int Global::iWindowWidth = 800;
 int Global::iWindowHeight = 600;
 float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD
@@ -165,6 +167,7 @@ bool Global::bOldSmudge = false; // Używanie starej smugi
 bool Global::bWireFrame = false;
 bool Global::bSoundEnabled = true;
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
+bool Global::MultipleLogs{ false };
 bool Global::bManageNodes = true;
 bool Global::bDecompressDDS = false; // czy programowa dekompresja DDS
 
@@ -373,7 +376,11 @@ void Global::ConfigParse(cParser &Parser)
                 Global::iWriteLogEnabled = stol_def(token,3);
             }
         }
-        else if (token == "adjustscreenfreq")
+        else if( token == "multiplelogs" ) {
+            Parser.getTokens();
+            Parser >> Global::MultipleLogs;
+        }
+        else if( token == "adjustscreenfreq" )
         {
             // McZapkie-240403 - czestotliwosc odswiezania ekranu
             Parser.getTokens();

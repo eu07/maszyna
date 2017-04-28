@@ -342,6 +342,7 @@ private:
 	int *iModel; // zawartość pliku binarnego
 	int iSubModelsCount; // Ra: używane do tworzenia binarnych
 	std::string asBinary; // nazwa pod którą zapisać model binarny
+    std::string m_filename;
 public:
 	inline TSubModel * GetSMRoot()
 	{
@@ -382,7 +383,8 @@ public:
 	void Init();
 	std::string NameGet()
 	{
-		return Root ? Root->pName : NULL;
+//		return Root ? Root->pName : NULL;
+        return m_filename;
 	};
 	int TerrainCount();
 	TSubModel * TerrainSquare(int n);

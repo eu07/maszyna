@@ -18,7 +18,7 @@ double ResourceManager::_lastReport = 0.0f;
 
 void ResourceManager::Register(Resource *resource)
 {
-    _resources.push_back(resource);
+    _resources.emplace_back(resource);
 };
 
 void ResourceManager::Unregister(Resource *resource)

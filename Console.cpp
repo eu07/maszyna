@@ -82,29 +82,14 @@ public static Int32 GetScreenSaverTimeout()
 // static class member storage allocation
 TKeyTrans Console::ktTable[4 * 256];
 
-// Ra: do poprawienia
-void SetLedState(unsigned char Code, bool bOn){
-    // Ra: bajer do migania LED-ami w klawiaturze
-    // NOTE: disabled for the time being
-    // TODO: find non Borland specific equivalent, or get rid of it
-    /*   if (Win32Platform == VER_PLATFORM_WIN32_NT)
-        {
-            // WriteLog(AnsiString(int(GetAsyncKeyState(Code))));
-            if (bool(GetAsyncKeyState(Code)) != bOn)
-            {
-                keybd_event(Code, MapVirtualKey(Code, 0), KEYEVENTF_EXTENDEDKEY, 0);
-                keybd_event(Code, MapVirtualKey(Code, 0), KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
-       0);
-            }
-        }
-        else
-        {
-            TKeyboardState KBState;
-            GetKeyboardState(KBState);
-            KBState[Code] = bOn ? 1 : 0;
-            SetKeyboardState(KBState);
-        };
-    */
+// Ra: bajer do migania LED-ami w klawiaturze
+void SetLedState( unsigned char Code, bool bOn ) {
+#ifdef _WINDOWS
+    if( bOn != ( ::GetKeyState( Code ) != 0 ) ) {
+        keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | 0, 0 );
+        keybd_event( Code, MapVirtualKey( Code, 0 ), KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0 );
+    }
+#endif
 };
 
 //---------------------------------------------------------------------------
@@ -243,22 +228,24 @@ void Console::BitsUpdate(int mask)
     switch (iMode)
     {
     case 1: // sterowanie światełkami klawiatury: CA/SHP+opory
-        if (mask & 3) // gdy SHP albo CA
-            SetLedState(VK_CAPITAL, (iBits & 3) != 0);
-        if (mask & 4) // gdy jazda na oporach
-        { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_SCROLL, true); // przyciśnięty
-            SetLedState(VK_SCROLL, false); // zwolniony
+        if( mask & 3 ) {
+            // gdy SHP albo CA
+            SetLedState( VK_CAPITAL, ( iBits & 3 ) != 0 );
+        }
+        if (mask & 4) {
+            // gdy jazda na oporach
+            SetLedState( VK_SCROLL, ( iBits & 4 ) != 0 );
             ++iConfig; // licznik użycia Scroll Lock
         }
         break;
     case 2: // sterowanie światełkami klawiatury: CA+SHP
-        if (mask & 2) // gdy CA
-            SetLedState(VK_CAPITAL, (iBits & 2) != 0);
-        if (mask & 1) // gdy SHP
-        { // Scroll Lock ma jakoś dziwnie... zmiana stanu na przeciwny
-            SetLedState(VK_SCROLL, true); // przyciśnięty
-            SetLedState(VK_SCROLL, false); // zwolniony
+        if( mask & 2 ) {
+            // gdy CA
+            SetLedState( VK_CAPITAL, ( iBits & 2 ) != 0 );
+        }
+        if (mask & 1) {
+            // gdy SHP
+            SetLedState( VK_SCROLL, ( iBits & 1 ) != 0 );
             ++iConfig; // licznik użycia Scroll Lock
         }
         break;

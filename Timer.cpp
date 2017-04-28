@@ -15,12 +15,12 @@ namespace Timer
 {
 
 double DeltaTime, DeltaRenderTime;
-double fFPS = 0.0f;
-double fLastTime = 0.0f;
-DWORD dwFrames = 0L;
-double fSimulationTime = 0;
-double fSoundTimer = 0;
-double fSinceStart = 0;
+double fFPS{ 0.0f };
+double fLastTime{ 0.0f };
+DWORD dwFrames{ 0 };
+double fSimulationTime{ 0.0 };
+double fSoundTimer{ 0.0 };
+double fSinceStart{ 0.0 };
 
 double GetTime()
 {
@@ -69,15 +69,10 @@ double GetFPS()
 
 void ResetTimers()
 {
-    // double CurrentTime=
-#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
-    ::GetTickCount64();
-#else
-    ::GetTickCount();
-#endif
+    UpdateTimers( Global::iPause != 0 );
     DeltaTime = 0.1;
-    DeltaRenderTime = 0;
-    fSoundTimer = 0;
+    DeltaRenderTime = 0.0;
+    fSoundTimer = 0.0;
 };
 
 LONGLONG fr, count, oldCount;
@@ -92,17 +87,17 @@ void UpdateTimers(bool pause)
         DeltaTime = Global::fTimeSpeed * DeltaRenderTime;
         fSoundTimer += DeltaTime;
         if (fSoundTimer > 0.1)
-            fSoundTimer = 0;
+            fSoundTimer = 0.0;
         /*
           double CurrentTime= double(count)/double(fr);//GetTickCount();
           DeltaTime= (CurrentTime-OldTime);
           OldTime= CurrentTime;
         */
-        if (DeltaTime > 1)
-            DeltaTime = 1;
+        if (DeltaTime > 1.0)
+            DeltaTime = 1.0;
     }
     else
-        DeltaTime = 0; // wszystko stoi, bo czas nie płynie
+        DeltaTime = 0.0; // wszystko stoi, bo czas nie płynie
     oldCount = count;
 
     // Keep track of the time lapse and frame count

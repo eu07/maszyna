@@ -72,23 +72,11 @@ double Min0R(double x1, double x2)
 // TODO: replace with something sensible
 std::string Now() {
 
-	std::time_t timenow = std::time( nullptr );
-	std::tm tm = *std::localtime( &timenow );
-	std::stringstream  converter;
-	converter << std::put_time( &tm, "%c" );
+    std::time_t timenow = std::time( nullptr );
+    std::tm tm = *std::localtime( &timenow );
+    std::stringstream  converter;
+    converter << std::put_time( &tm, "%c" );
     return converter.str();
-
-/*	char buffer[ 256 ];
-	sprintf( buffer,
-		"%d-%02d-%02d %02d:%02d:%02d.%03d",
-		st.wYear,
-		st.wMonth,
-		st.wDay,
-		st.wHour,
-		st.wMinute,
-		st.wSecond,
-		st.wMilliseconds );
-*/
 }
 
 bool TestFlag(int Flag, int Value)

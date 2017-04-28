@@ -35,7 +35,8 @@ http://mozilla.org/MPL/2.0/.
 #define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
 
 template <typename _Type>
-_Type clamp( _Type const Value, _Type const Min, _Type const Max ) {
+_Type
+clamp( _Type const Value, _Type const Min, _Type const Max ) {
 
     _Type value = Value;
     if( value < Min ) { value = Min; }
@@ -43,8 +44,20 @@ _Type clamp( _Type const Value, _Type const Min, _Type const Max ) {
     return value;
 }
 
+// keeps the provided value in specified range 0-Range, as if the range was circular buffer
 template <typename _Type>
-_Type interpolate( _Type const First, _Type const Second, float const Factor ) {
+_Type
+clamp_circular( _Type Value, _Type const Range = static_cast<_Type>(360) ) {
+
+    Value -= Range * (int)( Value / Range ); // clamp the range to 0-360
+    if( Value < 0.0 ) Value += Range;
+
+    return Value;
+}
+
+template <typename _Type>
+_Type
+interpolate( _Type const First, _Type const Second, float const Factor ) {
 
     return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
 }

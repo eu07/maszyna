@@ -129,11 +129,15 @@ double TMoverParameters::current(double n, double U)
 
     R = RList[MainCtrlActualPos].R * Bn + CircuitRes;
 
-    if ((TrainType != dt_EZT) || (Imin != IminLo) ||
-        (!ScndS)) // yBARC - boczniki na szeregu poprawnie
-        Mn = RList[MainCtrlActualPos].Mn; // to jest wykonywane dla EU07
-    else
-        Mn = RList[MainCtrlActualPos].Mn * RList[MainCtrlActualPos].Bn;
+    if( ( TrainType != dt_EZT )
+     || ( Imin != IminLo )
+     || ( false == ScndS ) ) {
+        // yBARC - boczniki na szeregu poprawnie
+        Mn = RList[ MainCtrlActualPos ].Mn; // to jest wykonywane dla EU07
+    }
+    else {
+        Mn = RList[ MainCtrlActualPos ].Mn * RList[ MainCtrlActualPos ].Bn;
+    }
 
     //  writepaslog("#",
     //  "C++-----------------------------------------------------------------------------");
@@ -154,21 +158,25 @@ double TMoverParameters::current(double n, double U)
     if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
         ConverterFlag && Mains) // hamowanie EP09   //TUHEX
     {
+        // TODO: zrobic bardziej uniwersalne nie tylko dla EP09
         MotorCurrent =
-            -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) *
-            n * 2.0 / ep09resED; // TODO: zrobic bardziej uniwersalne nie tylko dla EP09
+            -Max0R(MotorParam[0].fi * (Vadd / (Vadd + MotorParam[0].Isat) - MotorParam[0].fi0), 0) * n * 2.0 / ep09resED;
     }
-    else if ((RList[MainCtrlActualPos].Bn == 0) || (!StLinFlag))
-        MotorCurrent = 0; // wylaczone
+    else if( ( RList[ MainCtrlActualPos ].Bn == 0 )
+          || ( false == StLinFlag ) ) {
+        // wylaczone
+        MotorCurrent = 0;
+    }
     else
     { // wlaczone...
         SP = ScndCtrlActualPos;
 
         if (ScndCtrlActualPos < 255) // tak smiesznie bede wylaczal
         {
-            if (ScndInMain)
-                if (!(RList[MainCtrlActualPos].ScndAct == 255))
-                    SP = RList[MainCtrlActualPos].ScndAct;
+            if( ( ScndInMain )
+             && ( RList[ MainCtrlActualPos ].ScndAct != 255 ) ) {
+                SP = RList[ MainCtrlActualPos ].ScndAct;
+            }
 
             Rz = Mn * WindingRes + R;
 
@@ -212,10 +220,10 @@ double TMoverParameters::current(double n, double U)
                 {
                     if (U > 0)
                         MotorCurrent =
-                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n + sqrt(Delta)) / (2.0 * Rz);
+                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n + std::sqrt(Delta)) / (2.0 * Rz);
                     else
                         MotorCurrent =
-                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n - sqrt(Delta)) / (2.0 * Rz);
+                            (U1 - Isf * Rz - Mn * MotorParam[SP].fi * n - std::sqrt(Delta)) / (2.0 * Rz);
                 }
                 else
                     MotorCurrent = 0;
@@ -676,10 +684,23 @@ bool TMoverParameters::CurrentSwitch(int direction)
         if (TrainType != dt_EZT)
             return (MinCurrentSwitch(direction != 0));
     }
-    if (EngineType == DieselEngine) // dla 2Ls150
-        if (ShuntModeAllow)
-            if (ActiveDir == 0) // przed ustawieniem kierunku
+    // TBD, TODO: split off shunt mode toggle into a separate command? It doesn't make much sense to have these two together like that
+    // dla 2Ls150
+    if( ( EngineType == DieselEngine )
+     && ( true == ShuntModeAllow )
+     && ( ActiveDir == 0 ) ) {
+        // przed ustawieniem kierunku
                 ShuntMode = ( direction != 0 );
+        return true;
+    }
+    // for SM42/SP42
+    if( ( EngineType == DieselElectric )
+     && ( true == ShuntModeAllow )
+     && ( MainCtrlPos == 0 ) ) {
+        ShuntMode = ( direction != 0 );
+        return true;
+    }
+
     return false;
 };
 
@@ -1814,8 +1835,9 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
             LastRelayTime = 0;
 
 	if ((OK) && (EngineType == ElectricInductionMotor))
+        // NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
-			ScndCtrlActualPos = Round(Vel + 0.5f);
+			ScndCtrlActualPos = Round(Vel + 0.5);
 		else
 			ScndCtrlActualPos = Round(Vel * 1.0 / 2 + 0.5);
 
@@ -2031,10 +2053,12 @@ void TMoverParameters::SecuritySystemCheck(double dt)
         (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
     {
         // CA
-        if (Vel >=
-            SecuritySystem
-                .AwareMinSpeed) // domyślnie predkość większa od 10% Vmax, albo podanej jawnie w FIZ
-        {
+        if( ( SecuritySystem.AwareMinSpeed > 0.0 ?
+                ( Vel >= SecuritySystem.AwareMinSpeed ) :
+                ( ActiveDir != 0 ) ) ) {
+            // domyślnie predkość większa od 10% Vmax, albo podanej jawnie w FIZ
+            // with defined minspeed of 0 the alerter will activate with reverser out of neutral position
+            // this emulates behaviour of engines like SM42
             SecuritySystem.SystemTimer += dt;
             if (TestFlag(SecuritySystem.SystemType, 1) &&
                 TestFlag(SecuritySystem.Status, s_aware)) // jeśli świeci albo miga
@@ -2819,6 +2843,8 @@ void TMoverParameters::UpdateBrakePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::CompressorCheck(double dt)
 {
+    CompressedVolume = std::max( 0.0, CompressedVolume - dt * AirLeakRate * 0.1 ); // nieszczelności: 0.001=1l/s
+
     // if (CompressorSpeed>0.0) then //ten warunek został sprawdzony przy wywołaniu funkcji
     if (VeselVolume > 0)
     {
@@ -2941,6 +2967,11 @@ void TMoverParameters::CompressorCheck(double dt)
 // *************************************************************************************************
 void TMoverParameters::UpdatePipePressure(double dt)
 {
+    if( PipePress > 1.0 ) {
+        Pipe->Flow( -(PipePress)* AirLeakRate * dt );
+        Pipe->Act();
+    }
+
     const double LBDelay = 100;
     const double kL = 0.5;
     //double dV;
@@ -3115,7 +3146,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
             // temp = (Handle as TFVel6).GetCP
             temp = Handle->GetCP();
         else
-            temp = 0;
+            temp = 0.0;
         Hamulec->SetEPS(temp);
         SendCtrlToNext("Brake", temp,
                        CabNo); // Ra 2014-11: na tym się wysypuje, ale nie wiem, w jakich warunkach
@@ -3124,9 +3155,9 @@ void TMoverParameters::UpdatePipePressure(double dt)
     Pipe->Act();
     PipePress = Pipe->P();
     if ((BrakeStatus & 128) == 128) // jesli hamulec wyłączony
-        temp = 0; // odetnij
+        temp = 0.0; // odetnij
     else
-        temp = 1; // połącz
+        temp = 1.0; // połącz
     Pipe->Flow(temp * Hamulec->GetPF(temp * PipePress, dt, Vel) + GetDVc(dt));
 
     if (ASBType == 128)
@@ -3138,17 +3169,17 @@ void TMoverParameters::UpdatePipePressure(double dt)
     Pipe->Act();
     PipePress = Pipe->P();
 
-    dpMainValve = dpMainValve / (100 * dt); // normalizacja po czasie do syczenia;
+    dpMainValve = dpMainValve / (100.0 * dt); // normalizacja po czasie do syczenia;
 
-    if (PipePress < -1)
+    if (PipePress < -1.0)
     {
-        PipePress = -1;
-        Pipe->CreatePress(-1);
+        PipePress = -1.0;
+        Pipe->CreatePress(-1.0);
         Pipe->Act();
     }
 
-    if (CompressedVolume < 0)
-        CompressedVolume = 0;
+    if (CompressedVolume < 0.0)
+        CompressedVolume = 0.0;
 }
 
 // *************************************************************************************************
@@ -3157,6 +3188,11 @@ void TMoverParameters::UpdatePipePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::UpdateScndPipePressure(double dt)
 {
+    if( ScndPipePress > 1.0 ) {
+        Pipe2->Flow( -(ScndPipePress)* AirLeakRate * dt );
+        Pipe2->Act();
+    }
+
     const double Spz = 0.5067;
     TMoverParameters *c;
     double dv1, dv2, dV;
@@ -4087,106 +4123,152 @@ double TMoverParameters::TractionForce(double dt)
             if ((MainCtrlPos == 0) || (ShuntMode))
                 ScndCtrlPos = 0;
 
-            else if (AutoRelayFlag)
-                switch (RelayType)
-                {
-                case 0:
-                {
-                    if ((Im <= (MPTRelay[ScndCtrlPos].Iup * PosRatio)) &&
-                        (ScndCtrlPos < ScndCtrlPosNo))
+            else {
+                if( AutoRelayFlag ) {
+
+                    switch( RelayType ) {
+
+                        case 0: {
+
+                            if( ( Im <= ( MPTRelay[ ScndCtrlPos ].Iup * PosRatio ) ) &&
+                                ( ScndCtrlPos < ScndCtrlPosNo ) )
                         ++ScndCtrlPos;
-                    if ((Im >= (MPTRelay[ScndCtrlPos].Idown * PosRatio)) && (ScndCtrlPos > 0))
+                            if( ( Im >= ( MPTRelay[ ScndCtrlPos ].Idown * PosRatio ) ) && ( ScndCtrlPos > 0 ) )
                         --ScndCtrlPos;
                     break;
                 }
-                case 1:
-                {
-                    if ((MPTRelay[ScndCtrlPos].Iup < Vel) && (ScndCtrlPos < ScndCtrlPosNo))
+                        case 1: {
+
+                            if( ( MPTRelay[ ScndCtrlPos ].Iup < Vel ) && ( ScndCtrlPos < ScndCtrlPosNo ) )
                         ++ScndCtrlPos;
-                    if ((MPTRelay[ScndCtrlPos].Idown > Vel) && (ScndCtrlPos > 0))
+                            if( ( MPTRelay[ ScndCtrlPos ].Idown > Vel ) && ( ScndCtrlPos > 0 ) )
                         --ScndCtrlPos;
                     break;
                 }
-                case 2:
-                {
-                    if ((MPTRelay[ScndCtrlPos].Iup < Vel) && (ScndCtrlPos < ScndCtrlPosNo) &&
-                        (EnginePower < (tmp * 0.99)))
+                        case 2: {
+
+                            if( ( MPTRelay[ ScndCtrlPos ].Iup < Vel ) && ( ScndCtrlPos < ScndCtrlPosNo ) &&
+                                ( EnginePower < ( tmp * 0.99 ) ) )
                         ++ScndCtrlPos;
-                    if ((MPTRelay[ScndCtrlPos].Idown < Im) && (ScndCtrlPos > 0))
+                            if( ( MPTRelay[ ScndCtrlPos ].Idown < Im ) && ( ScndCtrlPos > 0 ) )
                         --ScndCtrlPos;
                     break;
                 }
                 case 41:
                 {
-                    if ((MainCtrlPos == MainCtrlPosNo) &&
-                        (tmpV * 3.6 > MPTRelay[ScndCtrlPos].Iup) && (ScndCtrlPos < ScndCtrlPosNo))
-                    {
+                            if( ( MainCtrlPos == MainCtrlPosNo )
+                             && ( tmpV * 3.6 > MPTRelay[ ScndCtrlPos ].Iup )
+                             && ( ScndCtrlPos < ScndCtrlPosNo ) ) {
                         ++ScndCtrlPos;
                         enrot = enrot * 0.73;
                     }
-                    if ((Im > MPTRelay[ScndCtrlPos].Idown) && (ScndCtrlPos > 0))
+                            if( ( Im > MPTRelay[ ScndCtrlPos ].Idown )
+                                && ( ScndCtrlPos > 0 ) ) {
                         --ScndCtrlPos;
+                            }
                     break;
                 }
                 case 45:
                 {
-                    if ((MainCtrlPos > 11) && (ScndCtrlPos < ScndCtrlPosNo))
-                        if ((ScndCtrlPos == 0))
-                            if ((MPTRelay[ScndCtrlPos].Iup > Im))
+                            if( ( MainCtrlPos >= 10 ) && ( ScndCtrlPos < ScndCtrlPosNo ) ) {
+                                if( ScndCtrlPos == 0 ) {
+                                    if( Im < MPTRelay[ ScndCtrlPos ].Iup ) {
                                 ++ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos].Iup < Vel))
+                                    }
+                                }
+                                else {
+                                    if( Vel > MPTRelay[ ScndCtrlPos ].Iup ) {
                                 ++ScndCtrlPos;
-
+                                    }
+                                    // check for cases where the speed drops below threshold for level 2 or 3
+                                    if( ( ScndCtrlPos > 1 )
+                                     && ( Vel < MPTRelay[ ScndCtrlPos - 1 ].Idown ) ){
+                                        --ScndCtrlPos;
+                                    }
+                                }
+                            }
                     // malenie
-                    if ((ScndCtrlPos > 0) && (MainCtrlPos < 12))
-                        if ((ScndCtrlPos == ScndCtrlPosNo))
-                            if ((MPTRelay[ScndCtrlPos].Idown < Im))
+                            if( ( ScndCtrlPos > 0 ) && ( MainCtrlPos < 10 ) ) {
+                                if( ScndCtrlPos == 1 ) {
+                                    if( Im > MPTRelay[ ScndCtrlPos - 1 ].Idown ) {
                                 --ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos].Idown > Vel))
+                                    }
+                                }
+                                else {
+                                    if( Vel < MPTRelay[ ScndCtrlPos ].Idown ) {
                                 --ScndCtrlPos;
-                    if ((MainCtrlPos < 11) && (ScndCtrlPos > 2))
-                        ScndCtrlPos = 2;
-                    if ((MainCtrlPos < 9) && (ScndCtrlPos > 0))
+                                    }
+                                }
+                            }
+                            // 3rd level drops with master controller at position lower than 10...
+                            if( MainCtrlPos < 10 ) {
+                                ScndCtrlPos = std::min( 2, ScndCtrlPos );
+                            }
+                            // ...and below position 7 field shunt drops altogether
+                            if( MainCtrlPos < 7 ) {
                         ScndCtrlPos = 0;
                 }
+                            break;
+                        }
                 case 46:
                 {
                     // wzrastanie
-                    if ((MainCtrlPos > 9) && (ScndCtrlPos < ScndCtrlPosNo))
-                        if ((ScndCtrlPos) % 2 == 0)
-                            if ((MPTRelay[ScndCtrlPos].Iup > Im))
+                            if( ( MainCtrlPos >= 10 )
+                             && ( ScndCtrlPos < ScndCtrlPosNo ) ) {
+                                if( ( ScndCtrlPos ) % 2 == 0 ) {
+                                    if( ( MPTRelay[ ScndCtrlPos ].Iup > Im ) ) {
                                 ++ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos - 1].Iup > Im) &&
-                                     (MPTRelay[ScndCtrlPos].Iup < Vel))
+                                    }
+                                }
+                                else {
+                                    if( ( MPTRelay[ ScndCtrlPos - 1 ].Iup > Im )
+                                     && ( MPTRelay[ ScndCtrlPos ].Iup < Vel ) ) {
                                 ++ScndCtrlPos;
-
+                                    }
+                                }
+                            }
                     // malenie
-                    if ((MainCtrlPos < 10) && (ScndCtrlPos > 0))
-                        if ((ScndCtrlPos) % 2 == 0)
-                            if ((MPTRelay[ScndCtrlPos].Idown < Im))
+                            if( ( MainCtrlPos < 10 )
+                             && ( ScndCtrlPos > 0 ) ) {
+                                if( ( ScndCtrlPos ) % 2 == 0 ) {
+                                    if( ( MPTRelay[ ScndCtrlPos ].Idown < Im ) ) {
                                 --ScndCtrlPos;
-                            else if ((MPTRelay[ScndCtrlPos + 1].Idown < Im) &&
-                                     (MPTRelay[ScndCtrlPos].Idown > Vel))
+                                    }
+                                }
+                                else {
+                                    if( ( MPTRelay[ ScndCtrlPos + 1 ].Idown < Im )
+                                     && ( MPTRelay[ ScndCtrlPos ].Idown > Vel ) ) {
                                 --ScndCtrlPos;
-                    if ((MainCtrlPos < 9) && (ScndCtrlPos > 2))
-                        ScndCtrlPos = 2;
-                    if ((MainCtrlPos < 6) && (ScndCtrlPos > 0))
+                                    }
+                                }
+                            }
+                            if( MainCtrlPos < 10 ) {
+                                ScndCtrlPos = std::min( 2, ScndCtrlPos );
+                            }
+                            if( MainCtrlPos < 7 ) {
                         ScndCtrlPos = 0;
                 }
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
                 } // switch RelayType
+                }
+            }
 			break;
         } // DieselElectric
 
         case ElectricInductionMotor:
         {
-            if ((Mains)) // nie wchodzić w funkcję bez potrzeby
-                if ((abs(Voltage) < EnginePowerSource.CollectorParameters.MinV) ||
-                    (abs(Voltage) > EnginePowerSource.CollectorParameters.MaxV + 200))
-                {
-                    MainSwitch(false);
+            if( ( Mains ) ) {
+                // nie wchodzić w funkcję bez potrzeby
+                if( ( abs( Voltage ) < EnginePowerSource.CollectorParameters.MinV )
+                 || ( abs( Voltage ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
+                    MainSwitch( false );
                 }
-            tmpV = abs(nrot) * (PI * WheelDiameter) *
-                   3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
+                }
+            tmpV = abs(nrot) * (PI * WheelDiameter) * 3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
             if ((Mains))
             {
 
@@ -4833,7 +4915,8 @@ bool TMoverParameters::AutoRelayCheck(void)
                 (MainCtrlActualPos == 0) && (ActiveDir != 0))
             { //^^ TODO: sprawdzic BUG, prawdopodobnie w CreateBrakeSys()
                 DelayCtrlFlag = true;
-                if (LastRelayTime >= InitialCtrlDelay)
+                if( (LastRelayTime >= InitialCtrlDelay)
+                 && ( false == StLinSwitchOff ) )
                 {
                     StLinFlag = true; // ybARC - zalaczenie stycznikow liniowych
                     MainCtrlActualPos = 1;
@@ -4894,48 +4977,37 @@ bool TMoverParameters::AutoRelayCheck(void)
 
 // *************************************************************************************************
 // Q: 20160713
-// Podnosi / opuszcza przedni pantograf
+// Podnosi / opuszcza przedni pantograf. Returns: state of the pantograph after the operation
 // *************************************************************************************************
 bool TMoverParameters::PantFront(bool State)
 {
-    double pf1 = 0;
-    bool PF = false;
+    if( ( true == Battery )
+     || ( true == ConverterFlag ) ) {
 
-    if ((Battery ==
-         true) /* and ((TrainType<>dt_ET40)or ((TrainType=dt_ET40) and (EnginePowerSource.CollectorsNo>1)))*/)
-    {
-        PF = true;
-        if (State == true)
-            pf1 = 1;
-        else
-            pf1 = 0;
-        if (PantFrontUp != State)
-        {
+        if( PantFrontUp != State ) {
             PantFrontUp = State;
-            if (State == true)
-            {
+            if( State == true ) {
                 PantFrontStart = 0;
-                SendCtrlToNext("PantFront", 1, CabNo);
+                SendCtrlToNext( "PantFront", 1, CabNo );
             }
-            else
-            {
-                PF = false;
+            else {
                 PantFrontStart = 1;
-                SendCtrlToNext("PantFront", 0, CabNo);
-                //{Ra: nie ma potrzeby opuszczać obydwu na raz, jak mozemy każdy osobno
-                //      if (TrainType == dt_EZT) && (ActiveCab == 1)
-                //       {
-                //        PantRearUp = false;
-                //        PantRearStart = 1;
-                //        SendCtrlToNext("PantRear", 0, CabNo);
-                //       }
-                //}
+                SendCtrlToNext( "PantFront", 0, CabNo );
+            }
             }
         }
-        else
-            SendCtrlToNext("PantFront", pf1, CabNo);
+    else {
+        // no power, drop the pantograph
+        // NOTE: this is a simplification as it should just drop on its own with loss of pressure without resupply from (dead) compressor
+        PantFrontStart = (
+            PantFrontUp ?
+                1 :
+                0 );
+        PantFrontUp = false;
+        SendCtrlToNext( "PantFront", 0, CabNo );
     }
-    return PF;
+
+    return PantFrontUp;
 }
 
 // *************************************************************************************************
@@ -4944,35 +5016,33 @@ bool TMoverParameters::PantFront(bool State)
 // *************************************************************************************************
 bool TMoverParameters::PantRear(bool State)
 {
-    double pf1;
-	bool PR = false;
+    if( ( true == Battery )
+     || ( true == ConverterFlag ) ) {
 
-    if (Battery == true)
-    {
-        PR = true;
-        if (State == true)
-            pf1 = 1;
-        else
-            pf1 = 0;
-        if (PantRearUp != State)
-        {
+        if( PantRearUp != State ) {
             PantRearUp = State;
-            if (State == true)
-            {
+            if( State == true ) {
                 PantRearStart = 0;
-                SendCtrlToNext("PantRear", 1, CabNo);
+                SendCtrlToNext( "PantRear", 1, CabNo );
             }
-            else
-            {
-                PR = false;
+            else {
                 PantRearStart = 1;
-                SendCtrlToNext("PantRear", 0, CabNo);
+                SendCtrlToNext( "PantRear", 0, CabNo );
+            }
             }
         }
-        else
-            SendCtrlToNext("PantRear", pf1, CabNo);
+    else {
+        // no power, drop the pantograph
+        // NOTE: this is a simplification as it should just drop on its own with loss of pressure without resupply from (dead) compressor
+        PantRearStart = (
+            PantRearUp ?
+                1 :
+                0 );
+        PantRearUp = false;
+        SendCtrlToNext( "PantRear", 0, CabNo );
     }
-    return PR;
+
+    return PantRearUp;
 }
 
 // *************************************************************************************************
@@ -5926,10 +5996,15 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+        if( inputline[ 0 ] == ' ' ) {
+            // guard against malformed config files with leading spaces
+            inputline.erase( 0, inputline.find_first_not_of( ' ' ) );
+        }
 		if( inputline.length() == 0 ) {
 			startBPT = false;
 			continue;
 		}
+
         // checking if table parsing should be switched off goes first...
 		if( issection( "END-MPT", inputline ) ) {
 			startBPT = false;
@@ -6422,6 +6497,11 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
             lookup->second :
             1;
     }
+
+    if( true == extract_value( AirLeakRate, "AirLeakRate", line, "" ) ) {
+        // the parameter is provided in form of a multiplier, where 1.0 means the default rate of 0.001
+        AirLeakRate *= 0.01;
+    }
 }
 
 void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
@@ -6633,8 +6713,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         }
 
         // mbpm
-        extract_value( MBPM, "MaxBPMass", line, "" );
-//        MBPM *= 1000;
+        if( true == extract_value( MBPM, "MaxBPMass", line, "" ) ) {
+            // NOTE: only convert the value from tons to kilograms if the entry is present in the config file
+            MBPM *= 1000.0;
+        }
 
         // asbtype
         std::string asb;
@@ -6891,6 +6973,9 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
 
     extract_value( PantSwitchType, "Pantograph", Input, "" );
     extract_value( ConvSwitchType, "Converter", Input, "" );
+    // because people can't make up their minds whether it's "impulse" or "Impulse"...
+    PantSwitchType = ToLower( PantSwitchType );
+    ConvSwitchType = ToLower( ConvSwitchType );
 }
 
 void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {
@@ -7910,5 +7995,24 @@ double TMoverParameters::ShowCurrentP(int AmpN)
                 if (Couplers[b].Connected->Power > 0.01)
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;
+    }
+}
+
+template <>
+bool
+extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
+
+    auto value = extract_value( Key, Input );
+    if( false == value.empty() ) {
+        // set the specified variable to retrieved value
+        Variable = ( ToLower( value ) == "yes" );
+        return true; // located the variable
+    }
+    else {
+        // set the variable to provided default value
+        if( false == Default.empty() ) {
+            Variable = ( ToLower( Default ) == "yes" );
+        }
+        return false; // couldn't locate the variable in provided input
     }
 }
