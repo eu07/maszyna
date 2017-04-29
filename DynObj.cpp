@@ -2463,30 +2463,45 @@ bool TDynamicObject::Update(double dt, double dt1)
             // if
             // ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
             // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-            if( MoverParameters->PantPress < ( MoverParameters->TrainType == dt_EZT ? 2.5 : 3.5 ) ) {
+            
+            if( MoverParameters->PantPress < MoverParameters->EnginePowerSource.CollectorParameters.MinPress ) {
                 // 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
-                // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
                 if( true == MoverParameters->PantPressSwitchActive ) {
                     // opuszczenie pantografów przy niskim ciśnieniu
+/*
+                    // NOTE: disabled, the pantographs drop by themseleves when the pantograph tank pressure gets low enough
                     MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
                     MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
-                    // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
-                    if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
-                        // TODO: check whether line breaker should be open EMU-wide
-                        MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+*/
+                    if( MoverParameters->TrainType != dt_EZT ) {
+                        // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
+                        if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
+                            // TODO: check whether line breaker should be open EMU-wide
+                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                        }
+                    }
+                    else {
+                        // specialized variant for EMU -- pwr system disables converter and heating,
+                        // and prevents their activation until pressure switch is set again
+                        MoverParameters->PantPressLockActive = true;
+                        // TODO: separate 'heating allowed' from actual heating flag, so we can disable it here without messing up heating toggle
+                        MoverParameters->ConverterSwitch( false, command_range::unit );
                     }
                     // mark the pressure switch as spent
                     MoverParameters->PantPressSwitchActive = false;
                 }
             }
             else {
-                // prime the pressure switch
-                // TODO: check what decides whether the pressure switch is active, prototypically
-                MoverParameters->PantPressSwitchActive = true;
+                if( MoverParameters->PantPress >= 4.6 ) {
+                    // prime the pressure switch
+                    MoverParameters->PantPressSwitchActive = true;
+                    // turn off the subsystems lock
+                    MoverParameters->PantPressLockActive = false;
 
-                if( MoverParameters->PantPress >= 4.8 ) {
-                    // Winger - automatyczne wylaczanie malej sprezarki
-                    MoverParameters->PantCompFlag = false;
+                    if( MoverParameters->PantPress >= 4.8 ) {
+                        // Winger - automatyczne wylaczanie malej sprezarki
+                        MoverParameters->PantCompFlag = false;
+                    }
                 }
             }
 /*

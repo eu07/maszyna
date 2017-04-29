@@ -737,6 +737,11 @@ void TMoverParameters::UpdatePantVolume(double dt)
         }
         if (!PantCompFlag && (PantVolume > 0.1))
             PantVolume -= dt * 0.0003; // nieszczelności: 0.0003=0.3l/s
+/*
+        // NOTE: disabled as this is redundant with check done in dynobj.update()
+        // TODO: determine if this isn't a mistake --
+        // though unlikely it's possible this is emulation of a different circuit than the pantograph pressure switch, with similar function?
+        // TBD, TODO: alternatively, move the dynobj.update() subroutine here, as it doesn't touch elements outside of the mover object
         if( Mains ) {
             // nie wchodzić w funkcję bez potrzeby
             if( EngineType == ElectricSeriesMotor ) {
@@ -750,14 +755,15 @@ void TMoverParameters::UpdatePantVolume(double dt)
                             EventFlag = true;
                         }
                     }
-/*
+
                     // NOTE: disabled, the flag gets set in dynobj.update() when the pantograph actually drops
                     // mark the pressure switch as spent, regardless whether line breaker actually opened
                     PantPressSwitchActive = false;
-*/
+
                 }
             }
         }
+*/
 /*
         // NOTE: pantograph tank pressure sharing experimentally disabled for more accurate simulation
         if (TrainType != dt_EZT) // w EN57 pompuje się tylko w silnikowym
@@ -1521,6 +1527,7 @@ double TMoverParameters::ShowEngineRotation(int VehN)
 void TMoverParameters::ConverterCheck()
 { // sprawdzanie przetwornicy
     if( ( ConverterAllow )
+     && ( false == PantPressLockActive )
      && ( ( Mains )
        || ( GetTrainsetVoltage() > 0.5 * EnginePowerSource.MaxVoltage ) ) ) {
         ConverterFlag = true;
@@ -2273,9 +2280,8 @@ bool TMoverParameters::AntiSlippingButton(void)
 // *************************************************************************************************
 bool TMoverParameters::MainSwitch( bool const State, int const Notify )
 {
-    bool MS;
+    bool MS = false; // Ra: przeniesione z końca
 
-    MS = false; // Ra: przeniesione z końca
     if ((Mains != State) && (MainCtrlPosNo > 0))
     {
         if ((State == false) ||
@@ -2314,16 +2320,6 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
             }
 			if (((TrainType == dt_EZT) && (!State)))
 				ConvOvldFlag = true;
-			// if (State=false) then //jeśli wyłączony
-            // begin
-            // SetFlag(SoundFlag,sound_relay); //hunter-091012: przeniesione do Train.cpp, zeby sie
-            // nie zapetlal
-            // if (SecuritySystem.Status<>12) then
-            //  SecuritySystem.Status:=0; //deaktywacja czuwaka; Ra: a nie baterią?
-            // end
-            // else
-            // if (SecuritySystem.Status<>12) then
-            // SecuritySystem.Status:=s_waiting; //aktywacja czuwaka
         }
     }
     // else MainSwitch:=false;
@@ -2334,9 +2330,10 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
 // Q: 20160713
 // włączenie / wyłączenie przetwornicy
 // *************************************************************************************************
-bool TMoverParameters::ConverterSwitch(bool State)
+bool TMoverParameters::ConverterSwitch( bool State, int const Notify )
 {
     bool CS = false; // Ra: normalnie chyba false?
+
     if (ConverterAllow != State)
     {
         ConverterAllow = State;
@@ -2344,10 +2341,24 @@ bool TMoverParameters::ConverterSwitch(bool State)
         if (CompressorPower == 2)
             CompressorAllow = ConverterAllow;
     }
-    if (ConverterAllow == true)
-        SendCtrlToNext("ConverterSwitch", 1, CabNo);
-    else
-        SendCtrlToNext("ConverterSwitch", 0, CabNo);
+    if( ConverterAllow == true ) {
+        if( Notify != command_range::local ) {
+            SendCtrlToNext(
+                "ConverterSwitch", 1, CabNo,
+                ( Notify == command_range::unit ?
+                    ctrain_controll | ctrain_depot :
+                    ctrain_controll ) );
+        }
+    }
+    else {
+        if( Notify != command_range::local ) {
+            SendCtrlToNext(
+                "ConverterSwitch", 0, CabNo,
+                ( Notify == command_range::unit ?
+                    ctrain_controll | ctrain_depot :
+                    ctrain_controll ) );
+        }
+    }
 
     return CS;
 }
@@ -2356,7 +2367,7 @@ bool TMoverParameters::ConverterSwitch(bool State)
 // Q: 20160713
 // włączenie / wyłączenie sprężarki
 // *************************************************************************************************
-bool TMoverParameters::CompressorSwitch(bool State)
+bool TMoverParameters::CompressorSwitch( bool State, int const Notify )
 {
     bool CS = false; // Ra: normalnie chyba tak?
     // if State=true then
@@ -2367,10 +2378,24 @@ bool TMoverParameters::CompressorSwitch(bool State)
         CompressorAllow = State;
         CS = true;
     }
-    if (CompressorAllow == true)
-        SendCtrlToNext("CompressorSwitch", 1, CabNo);
-    else
-        SendCtrlToNext("CompressorSwitch", 0, CabNo);
+    if( CompressorAllow == true ) {
+        if( Notify != command_range::local ) {
+            SendCtrlToNext(
+                "CompressorSwitch", 1, CabNo,
+                ( Notify == command_range::unit ?
+                    ctrain_controll | ctrain_depot :
+                    ctrain_controll ) );
+        }
+    }
+    else {
+        if( Notify != command_range::local ) {
+            SendCtrlToNext(
+                "CompressorSwitch", 0, CabNo,
+                ( Notify == command_range::unit ?
+                    ctrain_controll | ctrain_depot :
+                    ctrain_controll ) );
+        }
+    }
 
     return CS;
 }
@@ -7246,8 +7271,8 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             extract_value( collectorparameters.MaxV, "MaxVoltage", Line, "" );
             collectorparameters.OVP = //przekaźnik nadnapięciowy
                 extract_value( "OverVoltProt", Line ) == "Yes" ?
-                1 :
-                0;
+                    1 :
+                    0;
             //napięcie rozłączające WS
             collectorparameters.MinV = 0.5 * collectorparameters.MaxV; //gdyby parametr nie podany
             extract_value( collectorparameters.MinV, "MinV", Line, "" );
@@ -7255,7 +7280,7 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             collectorparameters.InsetV = 0.6 * collectorparameters.MaxV; //gdyby parametr nie podany
             extract_value( collectorparameters.InsetV, "InsetV", Line, "" );
             //ciśnienie rozłączające WS
-            extract_value( collectorparameters.MinPress, "MinPress", Line, "2.0" ); //domyślnie 2 bary do załączenia WS
+            extract_value( collectorparameters.MinPress, "MinPress", Line, "3.5" ); //domyślnie 2 bary do załączenia WS
             //maksymalne ciśnienie za reduktorem
             collectorparameters.MaxPress = 5.0 + 0.001 * ( Random( 50 ) - Random( 50 ) );
             extract_value( collectorparameters.MaxPress, "MaxPress", Line, "" );

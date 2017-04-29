@@ -922,7 +922,8 @@ public:
 	double RventRot = 0.0;          /*!s obroty wentylatorow rozruchowych*/
 	bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
 	double PantPress = 0.0; /*Cisnienie w zbiornikach pantografow*/
-    bool PantPressSwitchActive{ false }; // state of the pantograph pressure switch. gets primed when the pantograph is up
+    bool PantPressSwitchActive{ false }; // state of the pantograph pressure switch. gets primed at defined pressure level in pantograph air system
+    bool PantPressLockActive{ false }; // pwr system state flag. fires when pressure switch activates by pantograph pressure dropping below defined level
     bool s_CAtestebrake = false; //hunter-091012: zmienna dla testu ca
 
     /*-zmienne dla lokomotywy spalinowej z przekladnia mechaniczna*/
@@ -1096,8 +1097,8 @@ public:
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/
     bool MainSwitch( bool const State, int const Notify = command_range::consist );/*! wylacznik glowny*/
-	bool ConverterSwitch(bool State);/*! wl/wyl przetwornicy*/
-	bool CompressorSwitch(bool State);/*! wl/wyl sprezarki*/
+    bool ConverterSwitch( bool State, int const Notify = command_range::consist );/*! wl/wyl przetwornicy*/
+    bool CompressorSwitch( bool State, int const Notify = command_range::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
 	void ConverterCheck(); // przetwornica

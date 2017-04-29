@@ -1212,41 +1212,20 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == ( Train->mvOccupied->ActiveCab == 1 ? Train->mvControlled->PantFrontUp : Train->mvControlled->PantRearUp ) ) {
+        if( false == Train->mvControlled->PantFrontUp ) {
             // turn on...
-            if( Train->mvOccupied->ActiveCab == 1 ) {
-                // przedni gdy w kabinie 1
-                Train->mvControlled->PantFrontSP = false;
-                if( Train->mvControlled->PantFront( true ) ) {
-                    if( Train->mvControlled->PantFrontStart != 1 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        if( Train->ggPantFrontButton.SubModel ) {
-                            Train->ggPantFrontButton.UpdateValue( 1.0 );
-                        }
-                        if( Train->ggPantFrontButtonOff.SubModel != nullptr ) {
-                            // pantograph control can have two-button setup
-                            Train->ggPantFrontButtonOff.UpdateValue( 0.0 );
-                        }
+            Train->mvControlled->PantFrontSP = false;
+            if( Train->mvControlled->PantFront( true ) ) {
+                if( Train->mvControlled->PantFrontStart != 1 ) {
+                    // sound feedback
+                    Train->play_sound( Train->dsbSwitch );
+                    // visual feedback
+                    if( Train->ggPantFrontButton.SubModel ) {
+                        Train->ggPantFrontButton.UpdateValue( 1.0 );
                     }
-                }
-            }
-            else {
-                // rear otherwise
-                Train->mvControlled->PantRearSP = false;
-                if( Train->mvControlled->PantRear( true ) ) {
-                    if( Train->mvControlled->PantRearStart != 1 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        if( Train->ggPantFrontButton.SubModel ) {
-                            Train->ggPantFrontButton.UpdateValue( 1.0 );
-                        }
-                        if( Train->ggPantFrontButtonOff.SubModel != nullptr ) {
-                            // pantograph control can have two-button setup
-                            Train->ggPantFrontButtonOff.UpdateValue( 0.0 );
-                        }
+                    if( Train->ggPantFrontButtonOff.SubModel != nullptr ) {
+                        // pantograph control can have two-button setup
+                        Train->ggPantFrontButtonOff.UpdateValue( 0.0 );
                     }
                 }
             }
@@ -1261,32 +1240,15 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
                 return;
             }
 
-            if( Train->mvOccupied->ActiveCab == 1 ) {
-                // przedni gdy w kabinie 1
-                Train->mvControlled->PantFrontSP = false;
-                if( false == Train->mvControlled->PantFront( false ) ) {
-                    if( Train->mvControlled->PantFrontStart != 0 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        Train->ggPantFrontButton.UpdateValue( 0.0 );
-                        // pantograph control can have two-button setup
-                        Train->ggPantFrontButtonOff.UpdateValue( 1.0 );
-                    }
-                }
-            }
-            else {
-                // rear otherwise
-                Train->mvControlled->PantRearSP = false;
-                if( false == Train->mvControlled->PantRear( false ) ) {
-                    if( Train->mvControlled->PantRearStart != 0 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        Train->ggPantFrontButton.UpdateValue( 0.0 );
-                        // pantograph control can have two-button setup
-                        Train->ggPantFrontButtonOff.UpdateValue( 1.0 );
-                    }
+            Train->mvControlled->PantFrontSP = false;
+            if( false == Train->mvControlled->PantFront( false ) ) {
+                if( Train->mvControlled->PantFrontStart != 0 ) {
+                    // sound feedback
+                    Train->play_sound( Train->dsbSwitch );
+                    // visual feedback
+                    Train->ggPantFrontButton.UpdateValue( 0.0 );
+                    // pantograph control can have two-button setup
+                    Train->ggPantFrontButtonOff.UpdateValue( 1.0 );
                 }
             }
         }
@@ -1315,41 +1277,20 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == ( Train->mvOccupied->ActiveCab == 1 ? Train->mvControlled->PantRearUp : Train->mvControlled->PantFrontUp ) ) {
+        if( false == Train->mvControlled->PantRearUp ) {
             // turn on...
-            if( Train->mvOccupied->ActiveCab == 1 ) {
-                // rear if in front cab
-                Train->mvControlled->PantRearSP = false;
-                if( Train->mvControlled->PantRear( true ) ) {
-                    if( Train->mvControlled->PantRearStart != 1 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        if( Train->ggPantRearButton.SubModel ) {
-                            Train->ggPantRearButton.UpdateValue( 1.0 );
-                        }
-                        if( Train->ggPantRearButtonOff.SubModel != nullptr ) {
-                            // pantograph control can have two-button setup
-                            Train->ggPantRearButtonOff.UpdateValue( 0.0 );
-                        }
+            Train->mvControlled->PantRearSP = false;
+            if( Train->mvControlled->PantRear( true ) ) {
+                if( Train->mvControlled->PantRearStart != 1 ) {
+                    // sound feedback
+                    Train->play_sound( Train->dsbSwitch );
+                    // visual feedback
+                    if( Train->ggPantRearButton.SubModel ) {
+                        Train->ggPantRearButton.UpdateValue( 1.0 );
                     }
-                }
-            }
-            else {
-                // front otherwise
-                Train->mvControlled->PantFrontSP = false;
-                if( Train->mvControlled->PantFront( true ) ) {
-                    if( Train->mvControlled->PantFrontStart != 1 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        if( Train->ggPantRearButton.SubModel ) {
-                            Train->ggPantRearButton.UpdateValue( 1.0 );
-                        }
-                        if( Train->ggPantRearButtonOff.SubModel != nullptr ) {
-                            // pantograph control can have two-button setup
-                            Train->ggPantRearButtonOff.UpdateValue( 0.0 );
-                        }
+                    if( Train->ggPantRearButtonOff.SubModel != nullptr ) {
+                        // pantograph control can have two-button setup
+                        Train->ggPantRearButtonOff.UpdateValue( 0.0 );
                     }
                 }
             }
@@ -1364,32 +1305,15 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
                 return;
             }
 
-            if( Train->mvOccupied->ActiveCab == 1 ) {
-                // rear if in front cab
-                Train->mvControlled->PantRearSP = false;
-                if( false == Train->mvControlled->PantRear( false ) ) {
-                    if( Train->mvControlled->PantRearStart != 0 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        Train->ggPantRearButton.UpdateValue( 0.0 );
-                        // pantograph control can have two-button setup
-                        Train->ggPantRearButtonOff.UpdateValue( 1.0 );
-                    }
-                }
-            }
-            else {
-                // front otherwise
-                Train->mvControlled->PantFrontSP = false;
-                if( false == Train->mvControlled->PantFront( false ) ) {
-                    if( Train->mvControlled->PantFrontStart != 0 ) {
-                        // sound feedback
-                        Train->play_sound( Train->dsbSwitch );
-                        // visual feedback
-                        Train->ggPantRearButton.UpdateValue( 0.0 );
-                        // pantograph control can have two-button setup
-                        Train->ggPantRearButtonOff.UpdateValue( 1.0 );
-                    }
+            Train->mvControlled->PantRearSP = false;
+            if( false == Train->mvControlled->PantRear( false ) ) {
+                if( Train->mvControlled->PantRearStart != 0 ) {
+                    // sound feedback
+                    Train->play_sound( Train->dsbSwitch );
+                    // visual feedback
+                    Train->ggPantRearButton.UpdateValue( 0.0 );
+                    // pantograph control can have two-button setup
+                    Train->ggPantRearButtonOff.UpdateValue( 1.0 );
                 }
             }
         }
@@ -1563,11 +1487,13 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                 // TODO: consider whether it makes sense for diesel engines and such
                 Train->fMainRelayTimer += 0.33f; // Command.time_delta * 5.0;
             }
+/*
             if( Train->mvControlled->Mains != true ) {
                 // hunter-080812: poprawka
                 Train->mvControlled->ConverterSwitch( false );
                 Train->mvControlled->CompressorSwitch( false );
             }
+*/
             if( Train->fMainRelayTimer > Train->mvControlled->InitialCtrlDelay ) {
                 // wlaczanie WSa z opoznieniem
                 Train->m_linebreakerstate = 2;
@@ -3067,16 +2993,19 @@ void TTrain::OnKeyDown(int cKey)
         }
         else if (cKey == Global::Keys[k_CabForward])
         {
-            if (!CabChange(1))
-                if (TestFlag(DynamicObject->MoverParameters->Couplers[0].CouplingFlag,
-                             ctrain_passenger))
-                { // przejscie do nastepnego pojazdu
+            if( !CabChange( 1 ) ) {
+                if( TestFlag( DynamicObject->MoverParameters->Couplers[ 0 ].CouplingFlag,
+                    ctrain_passenger ) ) { // przejscie do nastepnego pojazdu
                     Global::changeDynObj = DynamicObject->PrevConnected;
                     Global::changeDynObj->MoverParameters->ActiveCab =
                         DynamicObject->PrevConnectedNo ? -1 : 1;
                 }
+            }
+/*
+            NOTE: disabled to allow 'prototypical' 'tricking' pantograph compressor to run unattended
             if (DynamicObject->MoverParameters->ActiveCab)
                 mvControlled->PantCompFlag = false; // wyjście z maszynowego wyłącza sprężarkę
+*/
         }
         else if (cKey == Global::Keys[k_CabBackward])
         {
@@ -3088,9 +3017,12 @@ void TTrain::OnKeyDown(int cKey)
                     Global::changeDynObj->MoverParameters->ActiveCab =
                         DynamicObject->NextConnectedNo ? -1 : 1;
                 }
+/*
+            NOTE: disabled to allow 'prototypical' 'tricking' pantograph compressor to run unattended
             if (DynamicObject->MoverParameters->ActiveCab)
                 mvControlled->PantCompFlag =
                     false; // wyjście z maszynowego wyłącza sprężarkę pomocniczą
+*/
         }
         else if (cKey == Global::Keys[k_Couple])
         { // ABu051104: male zmiany, zeby mozna bylo laczyc odlegle wagony
@@ -3736,7 +3668,8 @@ bool TTrain::Update( double const Deltatime )
         // przy dowolnym ustawieniu kierunkowego
         // Ra: to już jest w T_MoverParameters::TractionForce(), ale zależy od
         // kierunku
-        if( mvControlled->EngineType == ElectricSeriesMotor ) {
+        if( ( mvControlled->Mains )
+         && ( mvControlled->EngineType == ElectricSeriesMotor ) ) {
             if( std::max( mvControlled->GetTrainsetVoltage(), std::fabs( mvControlled->RunningTraction.TractionVoltage ) ) < 0.5 * mvControlled->EnginePowerSource.MaxVoltage ) {
                 // TODO: check whether it should affect entire consist for EMU
                 // TODO: check whether it should happen if there's power supplied alternatively through hvcouplers
@@ -4365,7 +4298,11 @@ bool TTrain::Update( double const Deltatime )
 
         if (mvControlled->Battery || mvControlled->ConverterFlag)
         {
-            btLampkaWylSzybki.Turn( ( m_linebreakerstate > 0 ? true : false ) );
+            btLampkaWylSzybki.Turn(
+                ( ( (m_linebreakerstate > 0)
+                 || (true == mvControlled->Mains) ) ?
+                    true :
+                    false ) );
 
             // hunter-261211: jakis stary kod (i niezgodny z prawda),
             // zahaszowalem i poprawilem
@@ -5286,6 +5223,8 @@ bool TTrain::Update( double const Deltatime )
                                           false) // nie wyłączać, gdy AI
                 mvControlled->PantCompFlag = false; // wyłączona, gdy nie trzymamy klawisza
 #else
+/*
+        // NOTE: disabled to allow 'prototypical' 'tricking' pantograph compressor into running unattended
         if( ( ( DynamicObject->Mechanik != nullptr )
            && ( false == DynamicObject->Mechanik->AIControllFlag ) )
          && ( mvControlled->TrainType == dt_EZT ?
@@ -5295,6 +5234,7 @@ bool TTrain::Update( double const Deltatime )
             // NOTE: this will break in multiplayer setups, do a proper tracking of pantograph user then
             mvControlled->PantCompFlag = false;
         }
+*/
 #endif
         if (Console::Pressed(Global::Keys[k_Univ2]))
         {
@@ -6661,31 +6601,23 @@ void TTrain::set_cab_controls() {
     // pantographs
     if( mvOccupied->PantSwitchType != "impulse" ) {
         ggPantFrontButton.PutValue(
-            ( mvOccupied->ActiveCab == 1 ?
-                mvControlled->PantFrontUp :
-                mvControlled->PantRearUp ) ?
-                    1.0 :
-                    0.0 );
+            ( mvControlled->PantFrontUp ?
+                1.0 :
+                0.0 ) );
         ggPantFrontButtonOff.PutValue(
-            ( mvOccupied->ActiveCab == 1 ?
-                mvControlled->PantFrontUp :
-                mvControlled->PantRearUp ) ?
-                    0.0 :
-                    1.0 );
+            ( mvControlled->PantFrontUp ?
+                0.0 :
+                1.0 ) );
     }
     if( mvOccupied->PantSwitchType != "impulse" ) {
         ggPantRearButton.PutValue(
-            ( mvOccupied->ActiveCab == 1 ?
-                mvControlled->PantRearUp :
-                mvControlled->PantFrontUp ) ?
-                    1.0 :
-                    0.0 );
+            ( mvControlled->PantRearUp ?
+                1.0 :
+                0.0 ) );
         ggPantRearButtonOff.PutValue(
-            ( mvOccupied->ActiveCab == 1 ?
-                mvControlled->PantRearUp :
-                mvControlled->PantFrontUp ) ?
-                    0.0 :
-                    1.0 );
+            ( mvControlled->PantRearUp ?
+                0.0 :
+                1.0 ) );
     }
     // converter
     if( mvOccupied->ConvSwitchType != "impulse" ) {

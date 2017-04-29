@@ -1844,11 +1844,11 @@ TWorld::Update_UI() {
 #endif
                 // equipment flags
                 uitextline3  = "";
-                uitextline3 += ( tmp->MoverParameters->Battery ? "B" : "b" );
-                uitextline3 += ( tmp->MoverParameters->Mains ? "M" : "m" );
-                uitextline3 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantPressSwitchActive ? "O" : "o" ) : "." );;
-                uitextline3 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantPressSwitchActive ? "P" : "p" ) : "." );;
-                uitextline3 += ( tmp->MoverParameters->PantPressSwitchActive ? "!" : "." );
+                uitextline3 += ( tmp->MoverParameters->Battery ? "B" : "." );
+                uitextline3 += ( tmp->MoverParameters->Mains ? "M" : "." );
+                uitextline3 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
+                uitextline3 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
+                uitextline3 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
                 uitextline3 += ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." );
                 uitextline3 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
                 uitextline3 += ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." );
