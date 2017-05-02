@@ -69,7 +69,7 @@ struct TGroundVertex
 {
     vector3 Point;
     vector3 Normal;
-    float tu, tv;
+    float tu{ 0.0f }, tv{ 0.0f };
     void HalfSet(const TGroundVertex &v1, const TGroundVertex &v2)
     { // wyliczenie współrzędnych i mapowania punktu na środku odcinka v1<->v2
         Point = 0.5 * (v1.Point + v2.Point);

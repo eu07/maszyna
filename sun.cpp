@@ -258,8 +258,6 @@ void cSun::irradiance() {
 	static double degrad = 57.295779513;					// converts from radians to degrees
 	static double raddeg = 0.0174532925;					// converts from degrees to radians
 
-    auto const &localtime = simulation::Time.data(); // time for the calculation
-
 	m_body.dayang = ( simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
 	double sd = sin( raddeg * m_body.dayang );				// sine of the day angle
 	double cd = cos( raddeg * m_body.dayang );				// cosine of the day angle or delination

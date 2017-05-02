@@ -80,7 +80,7 @@ private:
     glm::vec2 m_leftstick;
     glm::vec2 m_rightstick;
     glm::vec2 m_triggers;
-    double m_modeaccumulator; // used to throttle command input rate for vehicle controls
+    double m_modeaccumulator{ 0.0 }; // used to throttle command input rate for vehicle controls
 };
 
 //---------------------------------------------------------------------------

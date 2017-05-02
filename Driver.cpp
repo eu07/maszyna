@@ -2696,8 +2696,18 @@ void TController::SpeedSet()
                         if (ReactionTime > 0.1)
                             ReactionTime = 0.1; // orientuj się szybciej
                     } // if (Im>Imin)
-                if (fabs(mvControlling->Im) > 0.75 * mvControlling->ImaxHi) // jeśli prąd jest duży
-                    mvControlling->SandDoseOn(); // piaskujemy tory, coby się nie ślizgać
+                // NOTE: this step is likely to conflict with directive to operate sandbox based on the state of slipping wheels
+                // TODO: gather all sandbox operating logic in one place
+                if( fabs( mvControlling->Im ) > 0.75 * mvControlling->ImaxHi ) {
+                    // jeśli prąd jest duży
+                    mvControlling->Sandbox( true ); // piaskujemy tory, coby się nie ślizgać
+                }
+                else {
+                    // otherwise we switch the sander off, if it's active
+                    if( mvControlling->SandDose ) {
+                        mvControlling->Sandbox( false );
+                    }
+                }
                 if ((fabs(mvControlling->Im) > 0.96 * mvControlling->Imax) ||
                     mvControlling->SlippingWheels) // jeśli prąd jest duży (można 690 na 750)
                     if (mvControlling->ScndCtrlPos > 0) // jeżeli jest bocznik
@@ -3241,9 +3251,15 @@ bool TController::UpdateSituation(double dt)
         //   mvOccupied->PipePress=0.5; //yB: w SPKS są poprawnie zrobione pozycje
         if (mvControlling->SlippingWheels)
         {
-            mvControlling->SandDoseOn(); // piasku!
+            mvControlling->Sandbox(true); // piasku!
             // Controlling->SlippingWheels=false; //a to tu nie ma sensu, flaga używana w dalszej
             // części
+        }
+        else {
+            // deactivate sandbox if we aren't slipping
+            if( mvControlling->SandDose ) {
+                mvControlling->Sandbox( false );
+            }
         }
     }
     // ABu-160305 testowanie gotowości do jazdy
@@ -3293,6 +3309,16 @@ bool TController::UpdateSituation(double dt)
             if (fReady < 0.8) // delikatniejszy warunek, obejmuje wszystkie wagony
                 Ready = true; //żeby uznać za odhamowany
     HelpMeFlag = false;
+
+    // crude way to deal with automatic door opening on W4 preventing further ride
+    // for human-controlled vehicles with no door control and dynamic brake auto-activating with door open
+    if( ( false == AIControllFlag )
+     && ( iDrivigFlags & moveDoorOpened )
+     && ( mvOccupied->DoorOpenCtrl != 1 )
+     && ( mvControlling->MainCtrlPos > 0 ) ) {
+        Doors( false );
+    }
+
     // Winger 020304
     if (AIControllFlag)
     {

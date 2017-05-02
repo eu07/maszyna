@@ -925,19 +925,17 @@ void TTrain::OnCommand_sandboxactivate( TTrain *Train, command_data const &Comma
         return;
     }
 
-    if( Command.action != GLFW_RELEASE ) {
-        // press or hold
-        Train->mvControlled->SandDose = true;
+    if( Command.action == GLFW_PRESS ) {
+        // press
+        Train->mvControlled->Sandbox( true );
         // audio feedback
-        if( Train->ggSandButton.GetValue() < 0.05 ) {
-            Train->play_sound( Train->dsbSwitch );
-        }
+        Train->play_sound( Train->dsbSwitch );
         // visual feedback
         Train->ggSandButton.UpdateValue( 1.0 );
     }
-    else {
+    else if( Command.action == GLFW_RELEASE) {
         // release
-        Train->mvControlled->SandDose = false;
+        Train->mvControlled->Sandbox( false );
 /*
         // audio feedback
         if( Train->ggAntiSlipButton.GetValue() > 0.5 ) {
@@ -4333,7 +4331,7 @@ bool TTrain::Update( double const Deltatime )
 
             //         if
             //         ((TestFlag(mvControlled->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
-            btLampkaHamPosp.Turn((TestFlag(mvOccupied->BrakeStatus, 1))); // lampka drugiego stopnia hamowania
+            btLampkaHamPosp.Turn((TestFlag(mvOccupied->Hamulec->GetBrakeStatus(), 1))); // lampka drugiego stopnia hamowania
             //TODO: youBy wyciągnąć flagę wysokiego stopnia
 
             // hunter-121211: lampka zanikowo-pradowego wentylatorow:

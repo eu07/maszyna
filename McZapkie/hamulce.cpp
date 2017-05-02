@@ -16,6 +16,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #include "hamulce.h"
 #include <typeinfo>
 #include "Mover.h"
+#include "usefull.h"
 
 //---FUNKCJE OGOLNE---
 
@@ -51,10 +52,10 @@ double PF_old(double P1, double P2, double S)
 
 double PF( double const P1, double const P2, double const S, double const DP )
 {
-    double PH = std::max(P1, P2) + 1; // wyzsze cisnienie absolutne
-    double PL = P1 + P2 - PH + 2; // nizsze cisnienie absolutne
-    double sg = PL / PH; // bezwymiarowy stosunek cisnien
-    double FM = PH * 197 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
+    double const PH = std::max(P1, P2) + 1.0; // wyzsze cisnienie absolutne
+    double const PL = P1 + P2 - PH + 2.0; // nizsze cisnienie absolutne
+    double const sg = PL / PH; // bezwymiarowy stosunek cisnien
+    double const FM = PH * 197.0 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
     if (sg > 0.5) // jesli ponizej stosunku krytycznego
         if ((PH - PL) < DP) // niewielka roznica cisnien
             return (1.0 - sg) / DPL * FM * 2.0 * std::sqrt((DP) * (PH - DP));
@@ -69,15 +70,15 @@ double PF1( double const P1, double const P2, double const S )
 {
     static double const DPS = 0.001;
 
-    double PH = std::max(P1, P2) + 1; // wyzsze cisnienie absolutne
-    double PL = P1 + P2 - PH + 2; // nizsze cisnienie absolutne
-    double sg = PL / PH; // bezwymiarowy stosunek cisnien
-    double FM = PH * 197 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
-    if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
-        if ((sg < DPS)) // niewielka roznica cisnien
-            return (1 - sg) / DPS * FM * 2 * std::sqrt((DPS) * (1 - DPS));
+    double const PH = std::max(P1, P2) + 1.0; // wyzsze cisnienie absolutne
+    double const PL = P1 + P2 - PH + 2.0; // nizsze cisnienie absolutne
+    double const sg = PL / PH; // bezwymiarowy stosunek cisnien
+    double const FM = PH * 197.0 * S * Sign(P2 - P1); // najwyzszy mozliwy przeplyw, wraz z kierunkiem
+    if (sg > 0.5) // jesli ponizej stosunku krytycznego
+        if (sg < DPS) // niewielka roznica cisnien
+            return (1.0 - sg) / DPS * FM * 2.0 * std::sqrt((DPS) * (1.0 - DPS));
         else
-            return FM * 2 * std::sqrt((sg) * (1 - sg));
+            return FM * 2.0 * std::sqrt((sg) * (1.0 - sg));
     else // powyzej stosunku krytycznego
         return FM;
 }
@@ -1184,50 +1185,50 @@ void TESt3AL2::Init( double const PP, double const HPP, double const LPP, double
 double TLSt::GetPF( double const PP, double const dt, double const Vel )
 {
     double result;
-    double dv;
-    double dV1;
-    double temp;
-    double VVP;
-    double BVP;
-    double BCP;
-    double CVP;
 
     // ValveRes.CreatePress(LBP);
     // LBP:=0;
 
-    BVP = BrakeRes->P();
-    VVP = ValveRes->P();
-    BCP = ImplsRes->P();
-    CVP = CntrlRes->P();
+    double const BVP{ BrakeRes->P() };
+    double const VVP{ ValveRes->P() };
+    double const BCP{ ImplsRes->P() };
+    double const CVP{ CntrlRes->P() };
 
-    dv = 0;
-    dV1 = 0;
+    double dV{ 0.0 };
+    double dV1{ 0.0 };
 
     // sprawdzanie stanu
-    if ((BrakeStatus & b_rls) == b_rls)
-        if ((CVP < 0))
+    if( ( BrakeStatus & b_rls ) == b_rls ) {
+        if( CVP < 0.0 ) {
             BrakeStatus &= ~b_rls;
+        }
         else
         { // 008
-            dv = PF1(CVP, BCP, 0.024) * dt;
-            CntrlRes->Flow(+dv);
-            //     dV1:=+dV; //minus potem jest
-            //     ImplsRes->Flow(-dV1);
+            dV = PF1( CVP, BCP, 0.024 ) * dt;
+            CntrlRes->Flow( dV );
+/*
+            // NOTE: attempted fix, disabled because it breaks when releaser is used while releasing breakes
+            dV = PF1(CVP, VVP, 0.024) * dt;
+            CntrlRes->Flow( dV );
+            dV1 = dV; //minus potem jest
+            ImplsRes->Flow( -dV1 );
+*/
         }
+    }
 
-    VVP = ValveRes->P();
+    double temp;
     // przeplyw ZS <-> PG
     if (((CVP - BCP) * BVM > 0.5))
-        temp = 0;
+        temp = 0.0;
     else if ((VVP > CVP + 0.4))
         temp = 0.5;
     else
         temp = 0.5;
 
-    dv = PF1(CVP, VVP, 0.0015 * temp / 1.8 / 2) * dt;
-    CntrlRes->Flow(+dv);
-    ValveRes->Flow(-0.04 * dv);
-    dV1 = dV1 - 0.96 * dv;
+    dV = PF1(CVP, VVP, 0.0015 * temp / 1.8 / 2) * dt;
+    CntrlRes->Flow(+dV);
+    ValveRes->Flow(-0.04 * dV);
+    dV1 = dV1 - 0.96 * dV;
 
     // luzowanie KI  {G}
     //   if VVP>BCP then
@@ -1236,26 +1237,38 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
     //    dV:=PF(VVP,BCP,0.00020*(1.33-int((CVP-BCP)*BVM>0.65)))*dt
     //  else dV:=0;      0.00025 P
     /*P*/
-    if (VVP > BCP)
-        dv = PF(VVP, BCP,
-                0.00043 * (1.5 - int(((CVP - BCP) * BVM > 1) && (BrakeDelayFlag == bdelay_G))),
-                0.1) *
-             dt;
-    else if ((CVP - BCP) < 1.5)
-        dv = PF(VVP, BCP,
-                0.001472 * (1.36 - int(((CVP - BCP) * BVM > 1) && (BrakeDelayFlag == bdelay_G))),
-                0.1) *
-             dt;
-    else
-        dv = 0;
+    if( VVP > BCP ) {
+        dV =
+            PF( VVP, BCP,
+                0.00043 * ( 1.5 - (
+                    true == ( ( ( CVP - BCP ) * BVM > 1.0 )
+                           && ( BrakeDelayFlag == bdelay_G ) ) ?
+                        1.0 :
+                        0.0 ) ),
+                0.1 )
+            * dt;
+    }
+    else if( ( CVP - BCP ) < 1.5 ) {
+        dV = PF( VVP, BCP,
+                0.001472 * ( 1.36 - (
+                    true == ( ( ( CVP - BCP ) * BVM > 1.0 )
+                           && ( BrakeDelayFlag == bdelay_G ) ) ?
+                        1.0 :
+                        0.0 ) ),
+                0.1 )
+            * dt;
+    }
+    else {
+        dV = 0;
+    }
 
-    ImplsRes->Flow(-dv);
-    ValveRes->Flow(+dv);
+    ImplsRes->Flow(-dV);
+    ValveRes->Flow(+dV);
     // przeplyw PG <-> rozdzielacz
-    dv = PF(PP, VVP, 0.01, 0.1) * dt;
-    ValveRes->Flow(-dv);
+    dV = PF(PP, VVP, 0.01, 0.1) * dt;
+    ValveRes->Flow(-dV);
 
-    result = dv - dV1;
+    result = dV - dV1;
 
     //  if Vel>55 then temp:=0.72 else
     //    temp:=1;{R}
@@ -1272,18 +1285,18 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
     if ((BrakeCyl->P() > temp + 0.005) || (temp < 0.28))
         //   dV:=PF(0,BrakeCyl->P(),0.0015*3*sizeBC)*dt
         //   dV:=PF(0,BrakeCyl->P(),0.005*3*sizeBC)*dt
-        dv = PFVd(BrakeCyl->P(), 0, 0.005 * 7 * SizeBC, temp) * dt;
+        dV = PFVd(BrakeCyl->P(), 0, 0.005 * 7 * SizeBC, temp) * dt;
     else
-        dv = 0;
-    BrakeCyl->Flow(-dv);
+        dV = 0;
+    BrakeCyl->Flow(-dV);
     // przeplyw ZP <-> CH
     if ((BrakeCyl->P() < temp - 0.005) && (temp > 0.29))
         //   dV:=PF(BVP,BrakeCyl->P(),0.002*3*sizeBC*2)*dt
-        dv = -PFVa(BVP, BrakeCyl->P(), 0.002 * 7 * SizeBC * 2, temp) * dt;
+        dV = -PFVa(BVP, BrakeCyl->P(), 0.002 * 7 * SizeBC * 2, temp) * dt;
     else
-        dv = 0;
-    BrakeRes->Flow(dv);
-    BrakeCyl->Flow(-dv);
+        dV = 0;
+    BrakeRes->Flow(dV);
+    BrakeCyl->Flow(-dV);
 
     ImplsRes->Act();
     ValveRes->Act();
@@ -2198,124 +2211,145 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     static int const LBDelay = 100;
     static double const xpM = 0.3; // mnoznik membrany komory pod
 
-    double LimPP;
-    double dpPipe;
-    double dpMainValve;
-    double ActFlowSpeed;
-    double DP;
-    double pom;
-    int i;
+    ep = (PP / 2.0) * 1.5 + (ep / 2.0) * 0.5; // SPKS!!
 
-    ep = PP / 2 * 1.5 + ep / 2 * 0.5; // SPKS!!
-    //          ep:=pp;
-    //          ep:=cp/3+pp/3+ep/3;
-    //          ep:=cp;
+    for( int idx = 0; idx < 5; ++idx ) {
+        Sounds[ idx ] = 0;
+    }
 
-    for (i = 0; i < 5; ++i)
-        Sounds[i] = 0;
-    DP = 0;
+    // na wszelki wypadek, zeby nie wyszlo poza zakres
+    i_bcp = clamp( i_bcp, -1.999, 5.999 );
 
-    i_bcp = Max0R(Min0R(i_bcp, 5.999), -1.999); // na wszelki wypadek, zeby nie wyszlo poza zakres
-
-    if ((TP > 0))
-    { // jesli czasowy jest niepusty
-        //            dp:=0.07; //od cisnienia 5 do 0 w 60 sekund ((5-0)*dt/75)
+    double DP{ 0.0 };
+    if( TP > 0.0 ) {
+        // jesli czasowy jest niepusty
         DP = 0.045; // 2.5 w 55 sekund (5,35->5,15 w PG)
-        TP = TP - DP * dt;
+        TP -= DP * dt;
         Sounds[s_fv4a_t] = DP;
     }
-    else //.08
-    {
-        TP = 0;
+    else {
+        //.08
+        TP = 0.0;
     }
 
-    if ((XP > 0)) // jesli komora pod niepusta jest niepusty
-    {
+    if (XP > 0) {
+        // jesli komora pod niepusta jest niepusty
         DP = 2.5;
         Sounds[s_fv4a_x] = DP * XP;
-        XP = XP - dt * DP * 2; // od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
+        XP -= dt * DP * 2.0; // od cisnienia 5 do 0 w 10 sekund ((5-0)*dt/10)
     }
-    else //.75
-        XP = 0; // jak pusty, to pusty
+    else {
+        // jak pusty, to pusty
+        XP = 0.0;
+    }
 
-    LimPP = Min0R(LPP_RP(i_bcp) + TP * 0.08 + RedAdj, HP); // pozycja + czasowy lub zasilanie
-    ActFlowSpeed = BPT[lround(i_bcp) + 2][0];
+    double pom;
+    if( EQ( i_bcp, -1.0 ) ) {
+        pom = std::min( HP, 5.4 + RedAdj );
+    }
+    else {
+        pom = std::min( CP, HP );
+    }
 
-    if ((EQ(i_bcp, -1)))
-        pom = Min0R(HP, 5.4 + RedAdj);
-    else
-        pom = Min0R(CP, HP);
-
-    if ((pom > RP + 0.25))
+    if( pom > RP + 0.25 ) {
         Fala = true;
-    if ((Fala))
-        if ((pom > RP + 0.3))
-            //              if(ep>rp+0.11)then
-            XP = XP - 20 * PR(pom, XP) * dt;
-        //              else
-        //                xp:=xp-16*(ep-(ep+0.01))/(0.1)*PR(ep,xp)*dt;
-        else
+    }
+    if( Fala ) {
+        if( pom > RP + 0.3 ) {
+            XP = XP - 20.0 * PR( pom, XP ) * dt;
+        }
+        else {
             Fala = false;
+        }
+    }
 
-    if ((LimPP > CP)) // podwyzszanie szybkie
-        CP = CP + 5 * 60 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy;
-    else
-        CP = CP + 13 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
+    double LimPP = std::min(
+        LPP_RP( i_bcp ) + TP * 0.08 + RedAdj,
+        HP ); // pozycja + czasowy lub zasilanie
+
+    // zbiornik sterujacy
+    if( LimPP > CP ) {
+        // podwyzszanie szybkie
+        CP +=
+            5.0 * 60.0
+            * std::min(
+                std::abs( LimPP - CP ),
+                0.05 )
+            * PR( CP, LimPP )
+            * dt;
+    }
+    else {
+        CP += 
+            13
+            * std::min(
+                std::abs( LimPP - CP ),
+                0.05 )
+            * PR( CP, LimPP )
+            * dt;
+    }
 
     LimPP = pom; // cp
-    dpPipe = Min0R(HP, LimPP + XP * xpM);
+    double const dpPipe = std::min(HP, LimPP + XP * xpM);
 
-    if (dpPipe > PP)
-        dpMainValve = -PFVa(HP, PP, ActFlowSpeed / LBDelay, dpPipe, 0.4);
-    else
-        dpMainValve = PFVd(PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4);
+    double const ActFlowSpeed = BPT[ std::lround( i_bcp ) + 2 ][ 0 ];
 
-    if (EQ(i_bcp, -1))
-    {
-        if ((TP < 5))
-            TP = TP + dt; // 5/10
-        if ((TP < 1))
-            TP = TP - 0.5 * dt; // 5/10
-        // dpMainValve:=dpMainValve*2;
-        //+1*PF(dpPipe,pp,ActFlowSpeed/LBDelay)//coby
-        // nie przeszkadzal przy ladowaniu z zaworu obok
+    double dpMainValve;
+    if( dpPipe > PP ) {
+        dpMainValve = -PFVa( HP, PP, ActFlowSpeed / LBDelay, dpPipe, 0.4 );
+    }
+    else {
+        dpMainValve = PFVd( PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4 );
     }
 
-    if (EQ(i_bcp, 0))
-    {
-        if ((TP > 2))
-            dpMainValve = dpMainValve * 1.5; //+0.5*PF(dpPipe,pp,ActFlowSpeed/LBDelay)//coby nie
-        // przeszkadzal przy ladowaniu z zaworu obok
+    if (EQ(i_bcp, -1)) {
+
+        if( TP < 5 ) { TP += dt; }
+        if( TP < 1 ) { TP -= 0.5 * dt; }
+    }
+
+    if (EQ(i_bcp, 0)) {
+
+        if( TP > 2 ) {
+            dpMainValve *= 1.5;
+        }
     }
 
     ep = dpPipe;
-    if ((EQ(i_bcp, 0) || (RP > ep)))
-        RP = RP + PF(RP, ep, 0.0007) * dt; // powolne wzrastanie, ale szybsze na jezdzie;
-    else
-        RP = RP + PF(RP, ep, 0.000093 / 2 * 2) * dt; // powolne wzrastanie i to bardzo
-    // jednak trzeba wydluzyc, bo
-    // obecnie zle dziala
-    if ((RP < ep) &&
-        (RP <
-         BPT[lround(i_bcpno) + 2][1])) // jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
-        RP = RP + PF(RP, CP, 0.005) * dt; // przypisz cisnienie w PG - wydluzanie napelniania o czas
-    // potrzebny do napelnienia PG
+    if( ( EQ( i_bcp, 0 )
+     || ( RP > ep ) ) ) {
+        // powolne wzrastanie, ale szybsze na jezdzie;
+        RP += PF( RP, ep, 0.0007 ) * dt;
+    }
+    else {
+        // powolne wzrastanie i to bardzo
+        RP += PF( RP, ep, 0.000093 / 2 * 2 ) * dt;
+    }
+    // jednak trzeba wydluzyc, bo obecnie zle dziala
+    if( ( RP < ep )
+     && ( RP < BPT[ std::lround( i_bcpno ) + 2 ][ 1 ] ) ) {
+        // jesli jestesmy ponizej cisnienia w sterujacym (2.9 bar)
+        // przypisz cisnienie w PG - wydluzanie napelniania o czas potrzebny do napelnienia PG
+        RP += PF( RP, CP, 0.005 ) * dt; 
+    }
 
-    if ((EQ(i_bcp, i_bcpno)) || (EQ(i_bcp, -2)))
-    {
-        DP = PF(0, PP, ActFlowSpeed / LBDelay);
+    if( ( EQ( i_bcp, i_bcpno ) )
+     || ( EQ( i_bcp, -2 ) ) ) {
+
+        DP = PF( 0.0, PP, ActFlowSpeed / LBDelay );
         dpMainValve = DP;
         Sounds[s_fv4a_e] = DP;
-        Sounds[s_fv4a_u] = 0;
-        Sounds[s_fv4a_b] = 0;
-        Sounds[s_fv4a_x] = 0;
+        Sounds[s_fv4a_u] = 0.0;
+        Sounds[s_fv4a_b] = 0.0;
+        Sounds[s_fv4a_x] = 0.0;
     }
-    else
-    {
-        if (dpMainValve > 0)
-            Sounds[s_fv4a_b] = dpMainValve;
-        else
-            Sounds[s_fv4a_u] = -dpMainValve;
+    else {
+
+        if( dpMainValve > 0.0 ) {
+            Sounds[ s_fv4a_b ] = dpMainValve;
+        }
+        else {
+            Sounds[ s_fv4a_u ] = -dpMainValve;
+        }
     }
 
     return dpMainValve * dt;
@@ -2347,17 +2381,11 @@ double TFV4aM::GetPos(int i)
 
 double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
 {
-    int i_pos;
+    int const i_pos = 2 + std::floor( pos ); // zaokraglone w dol
 
-    i_pos = lround(pos - 0.5) + 2; // zaokraglone w dol
-    double i, j, k, l;
-    i = BPT[i_pos][1];
-    j = BPT[i_pos + 1][1];
-    k = pos + 2 - i_pos;
-    l = i + (j - i) * k;
-    double r = BPT[i_pos][1] +
-               (BPT[i_pos + 1][1] - BPT[i_pos][1]) * (pos + 2 - i_pos); // interpolacja liniowa
-    return r;
+    return
+        BPT[i_pos][1]
+        + (BPT[i_pos + 1][1] - BPT[i_pos][1]) * ((pos + 2) - i_pos); // interpolacja liniowa
 }
 bool TFV4aM::EQ(double pos, double i_pos)
 {
@@ -2366,8 +2394,7 @@ bool TFV4aM::EQ(double pos, double i_pos)
 
 //---FV4a/M--- nowonapisany kran bez poprawki IC
 
-double TMHZ_EN57::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
-{
+double TMHZ_EN57::GetPF( double i_bcp, double PP, double HP, double dt, double ep ) {
     static int const LBDelay = 100;
 
     double LimPP;
@@ -2376,13 +2403,11 @@ double TMHZ_EN57::GetPF(double i_bcp, double PP, double HP, double dt, double ep
     double ActFlowSpeed;
     double DP;
     double pom;
-    int i;
 
-    {
-        long i_end = 5;
-        for (i = 0; i < i_end; ++i)
-            Sounds[i] = 0;
+    for( int idx = 0; idx < 5; ++idx ) {
+        Sounds[ idx ] = 0;
     }
+
     DP = 0;
 
     i_bcp = Max0R(Min0R(i_bcp, 9.999), -0.999); // na wszelki wypadek, zeby nie wyszlo poza zakres

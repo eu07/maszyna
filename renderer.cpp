@@ -871,9 +871,9 @@ opengl_renderer::Update ( double const Deltatime ) {
     int targetsegments;
     float targetfactor;
 
-         if( framerate > 65.0 ) { targetsegments = 400; targetfactor = 3.0f; }
-    else if( framerate > 40.0 ) { targetsegments = 225; targetfactor = 1.5f; }
-    else if( framerate > 15.0 ) { targetsegments =  90; targetfactor = Global::ScreenHeight / 768.0f; }
+         if( framerate > 90.0 ) { targetsegments = 400; targetfactor = 3.0f; }
+    else if( framerate > 60.0 ) { targetsegments = 225; targetfactor = 1.5f; }
+    else if( framerate > 30.0 ) { targetsegments =  90; targetfactor = Global::ScreenHeight / 768.0f; }
     else                        { targetsegments =   9; targetfactor = Global::ScreenHeight / 768.0f * 0.75f; }
 
     if( targetsegments > Global::iSegmentsRendered ) {

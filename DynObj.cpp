@@ -1753,27 +1753,22 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             // wylaczanie hamulca
             if (ActPar.find("<>") != std::string::npos) // wylaczanie na probe hamowania naglego
             {
-                MoverParameters->BrakeStatus |= 128; // wylacz
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
             }
             if (ActPar.find('0') != std::string::npos) // wylaczanie na sztywno
             {
-                MoverParameters->BrakeStatus |= 128; // wylacz
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 MoverParameters->Hamulec->ForceEmptiness();
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
             }
             if (ActPar.find('E') != std::string::npos) // oprozniony
             {
                 MoverParameters->Hamulec->ForceEmptiness();
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 MoverParameters->Pipe->CreatePress(0);
                 MoverParameters->Pipe2->CreatePress(0);
             }
             if (ActPar.find('Q') != std::string::npos) // oprozniony
             {
-                //    MoverParameters->Hamulec->ForceEmptiness(); //TODO: sprawdzic,
-                //    dlaczego
-                //    pojawia sie blad przy uzyciu tej linijki w lokomotywie
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
+                MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->Pipe->CreatePress(0.0);
                 MoverParameters->PipePress = 0.0;
                 MoverParameters->Pipe2->CreatePress(0.0);
@@ -1787,18 +1782,16 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             {
                 if (Random(10) < 1) // losowanie 1/10
                 {
-                    MoverParameters->BrakeStatus |= 128; // wylacz
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
-                    MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 }
             }
             if (ActPar.find('X') != std::string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
             {
                 if (Random(100) < 20) // losowanie 20/100
                 {
-                    MoverParameters->BrakeStatus |= 128; // wylacz
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
-                    MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 }
                 if (MoverParameters->BrakeCylMult[2] * MoverParameters->BrakeCylMult[1] >
                     0.01) // jesli jest nastawiacz mechaniczny PL
@@ -2443,16 +2436,6 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (!bEnabled)
         return false; // a normalnie powinny mieć bEnabled==false
 
-    // Ra: przeniosłem - no już lepiej tu, niż w wyświetlaniu!
-    // if ((MoverParameters->ConverterFlag==false) &&
-    // (MoverParameters->TrainType!=dt_ET22))
-    // Ra: to nie może tu być, bo wyłącza sprężarkę w rozrządczym EZT!
-    // if
-    // ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
-    // MoverParameters->CompressorFlag=false;
-    // if (MoverParameters->CompressorPower==2)
-    // MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
-
     // McZapkie-260202
     if ((MoverParameters->EnginePowerSource.SourceType == CurrentCollector) &&
         (MoverParameters->Power > 1.0)) // aby rozrządczy nie opuszczał silnikowemu
@@ -2500,6 +2483,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 
                     if( MoverParameters->PantPress >= 4.8 ) {
                         // Winger - automatyczne wylaczanie malej sprezarki
+                        // TODO: governor lock, disables usage until pressure drop below 3.8 (should really make compressor object we could reuse)
                         MoverParameters->PantCompFlag = false;
                     }
                 }
@@ -2958,28 +2942,6 @@ bool TDynamicObject::Update(double dt, double dt1)
                 MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
             }
         }
-    if (MoverParameters->TrainType == dt_ET42)
-    { // powinny być wszystkie dwuczłony oraz EZT
-        /*
-             //Ra: to jest bez sensu, bo wyłącza WS przy przechodzeniu przez
-           "wewnętrzne" kabiny (z
-           powodu ActiveCab)
-             //trzeba to zrobić inaczej, np. dla członu A sprawdzać, czy jest B
-             //albo sprawdzać w momencie załączania WS i zmiany w sprzęgach
-             if
-           (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected->MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected->MoverParameters->TrainType!=dt_ET42)))
-             {//sprawdzenie, czy z tyłu kabiny mamy drugi człon
-              if (MoverParameters->MainSwitch(false))
-               MoverParameters->EventFlag=true;
-             }
-             if
-           ((!(TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0))||(!(TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)))
-             {
-              if (MoverParameters->MainSwitch(false))
-               MoverParameters->EventFlag=true;
-             }
-        */
-    }
 
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen =
@@ -3323,6 +3285,9 @@ bool TDynamicObject::Update(double dt, double dt1)
             sPantDown.Play(vol, 0, MechInside, vPosition);
             MoverParameters->PantRearSP = true;
         }
+/*
+        // NOTE: disabled because it's both redundant and doesn't take into account alternative power sources
+        // converter and compressor will (should) turn off during their individual checks, in the mover's (fast)computemovement() calls
         if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
         { // Winger 240404 - wylaczanie sprezarki i
             // przetwornicy przy braku napiecia
@@ -3332,6 +3297,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie sprężarki powinno być w jednym miejscu!
             }
         }
+*/
     }
     else if (MoverParameters->EnginePowerSource.SourceType == InternalSource)
         if (MoverParameters->EnginePowerSource.PowerType == SteamPower)

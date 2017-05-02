@@ -801,6 +801,7 @@ void TSegment::RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints, int
         s = fStep * iSkip; // iSkip - ile odcinków z początku pominąć
         i = iSkip; // domyślnie 0
         t = fTsBuffer[i]; // tabela wattości t dla segmentów
+        // BUG: length of spline can be 0, we should skip geometry generation for such cases
         fOffset = 0.1 / fLength; // pierwsze 10cm
         pos1 = FastGetPoint(t); // wektor początku segmentu
         dir = FastGetDirection(t, fOffset); // wektor kierunku
