@@ -189,27 +189,15 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
 { // przeliczenie odległości od punktu (*p), w kierunku (*dir), zaczynając od pojazdu
     // dla kolejnych pozycji podawane są współrzędne poprzedniego obiektu w (*p)
     vector3 v = vPos - *p; // wektor od poprzedniego obiektu (albo pojazdu) do punktu zmiany
-    fDist =
-        v.Length(); // długość wektora to odległość pomiędzy czołem a sygnałem albo początkiem toru
-    // v.SafeNormalize(); //normalizacja w celu określenia znaku (nie potrzebna?)
+    fDist = v.Length(); // długość wektora to odległość pomiędzy czołem a sygnałem albo początkiem toru
     if (len == 0.0)
     { // jeżeli liczymy względem pojazdu
         double angle;
         if( dir ) {
-            glm::vec3 target{ glm::normalize( glm::make_vec3( &v.x ) ) };
-            glm::vec3 direction{ glm::normalize( glm::make_vec3( &dir->x ) ) };
-            angle = glm::dot( target, direction );
-//            assert( angle < M_PI_2 );
-/*
-            angle = std::atan2(
-                glm::length(
-                    glm::cross(
-                        target,
-                        direction ) ),
+            angle =
                 glm::dot(
-                    target,
-                    direction ) );
-*/
+                    glm::normalize( glm::make_vec3( &v.x ) ), // towards target
+                    glm::normalize( glm::make_vec3( &dir->x ) ) ); // orientation at scan point
         }
         else {
             angle = fDist;
@@ -217,8 +205,9 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
         if (angle < 0.0) // iloczyn skalarny jest ujemny, gdy punkt jest z tyłu
         { // jeśli coś jest z tyłu, to dokładna odległość nie ma już większego znaczenia
             fDist = -fDist; // potrzebne do badania wyjechania składem poza ograniczenie
-            if (iFlags & spElapsed) // 32 ustawione, gdy obiekt już został minięty
-            { // jeśli minięty (musi być minięty również przez końcówkę składu)
+            if (iFlags & spElapsed) {
+                // jeśli minięty (musi być minięty również przez końcówkę składu)
+                // NOTE: empty branch, why?
             }
             else
             {
@@ -237,13 +226,8 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                 }
             }
         }
-/*
-        else if (fDist < 50.0) // przy dużym kącie łuku iloczyn skalarny bardziej zaniży odległość
-            // niż cięciwa
-            fDist = iska; // ale przy małych odległościach rzut na chwilową prostą ruchu da
-        // dokładniejsze wartości
-*/
     }
+
     if (fDist > 0.0) // nie może być 0.0, a przypadkiem mogło by się trafić i było by źle
         if ((iFlags & spElapsed) == 0) // 32 ustawione, gdy obiekt już został minięty
         { // jeśli obiekt nie został minięty, można od niego zliczać narastająco (inaczej może być
@@ -844,68 +828,22 @@ void TController::TableCheck(double fDistance)
         vector3 dir = pVehicles[0]->VectorFront() * pVehicles[0]->DirectionGet(); // wektor kierunku jazdy
         vector3 pos = pVehicles[0]->HeadPosition(); // zaczynamy od pozycji pojazdu
         double len = 0.0; // odległość będziemy zliczać narastająco
-#ifdef EU07_USE_OLD_SPEEDTABLE
-        for (int i = iFirst; i != iLast; i = (i + 1) % iSpeedTableSize)
-#else
-        assert( iLast == sSpeedTable.size() - 1 );
         for( int i = 0; i <= iLast; ++i )
-#endif
         { // aktualizacja rekordów z wyjątkiem ostatniego
             if (sSpeedTable[i].iFlags & spEnabled) // jeśli pozycja istotna
             {
                 if (sSpeedTable[i].Update(&pos, &dir, len))
                 {
                     if( Global::iWriteLogEnabled & 8 ) {
-/*
-                        WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->NameGet() + " (deleting subsequent records)" );
-*/
                         WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->NameGet() + " (generating fresh trace)" );
                     }
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                    int k = ( iLast + 1 ) % iSpeedTableSize; // skanujemy razem z ostatnią pozycją
-                    for (int j = (i+1) % iSpeedTableSize; j != k; j = (j + 1) % iSpeedTableSize)
-					{ // kasowanie wszystkich rekordów za zmienioną zwrotnicą
-                        if (Global::iWriteLogEnabled & 8)
-                            WriteLog("TableCheck: Delete from table: " + sSpeedTable[j].GetName());
-                        sSpeedTable[j].iFlags = 0;
-                        if (&sSpeedTable[j] == sSemNext)
-							sSemNext = NULL; // przy kasowaniu tabelki zrzucamy także semafor
-                        if (&sSpeedTable[j] == sSemNextStop)
-							sSemNextStop = NULL; // przy kasowaniu tabelki zrzucamy także semafor
-                    }
-#else
-/*
-                    while( iLast > i ) {
-                        if( Global::iWriteLogEnabled & 8 ) {
-                            WriteLog( "Speed table for" + OwnerName() + " deleting record " + sSpeedTable[ iLast ].GetName() );
-                        }
-                        // przy kasowaniu tabelki zrzucamy także semafor
-                        if( sSemNext == &sSpeedTable[ iLast ] ) {
-                            sSemNext = nullptr;
-                        }
-                        if( sSemNextStop == &sSpeedTable[ iLast ] ) {
-                            sSemNextStop = nullptr;
-                        }
-                        sSpeedTable.pop_back();
-                        --iLast;
-                    }
-
-                    tLast = sSpeedTable[ i ].trTrack;
-                    if (Global::iWriteLogEnabled & 8)
-                    {
-                        WriteLog( "Speed table for" + OwnerName() + " has new last element, " + sSpeedTable[i].GetName() );
-                    }
-*/
-                    // NOTE: alternative to the above, dirty trick to perform scan from the beginning
+                    // NOTE: dirty trick to perform scan from the beginning
                     // a workaround for current routines not preserving properly scan distance if started from the middle
-                    // and the scan extending far beyond specified limit
+                    // and the scan extending far beyond specified limit as result
                     iTableDirection = -iDirection;
                     TableTraceRoute( fDistance, pVehicles[ 1 ] );
-#endif
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                    iLast = i; // pokazujemy gdzie jest ostatni kawałek
-#endif
-					break; // nie kontynuujemy pętli, trzeba doskanować ciąg dalszy
+                    // nie kontynuujemy pętli, trzeba doskanować ciąg dalszy
+                    break;
                 }
                 if (sSpeedTable[i].iFlags & spTrack) // jeśli odcinek
                 {
@@ -936,24 +874,14 @@ void TController::TableCheck(double fDistance)
                         }
                 }
             }
-#ifdef EU07_USE_OLD_SPEEDTABLE
-            if( i == iFirst ) // jeśli jest pierwszą pozycją tabeli
-            { // pozbycie się początkowej pozycji
-                if ((sSpeedTable[i].iFlags & spEnabled) == 0) // jeśli pozycja istotna (po Update() może się zmienić)
-                    // if (iFirst!=iLast) //ostatnia musi zostać - to załatwia for()
-                    iFirst = (iFirst + 1) % iSpeedTableSize; // kolejne sprawdzanie będzie już od następnej pozycji
-            }
-#endif
         }
         sSpeedTable[iLast].Update(&pos, &dir, len); // aktualizacja ostatniego
         // WriteLog("TableCheck: Upate last track. Dist=" + AnsiString(sSpeedTable[iLast].fDist));
         if( sSpeedTable[ iLast ].fDist < fDistance ) {
             TableTraceRoute( fDistance, pVehicles[ 1 ] ); // doskanowanie dalszego odcinka
         }
-#ifndef EU07_USE_OLD_SPEEDTABLE
         // garbage collection
         TablePurger();
-#endif
     }
 };
 
@@ -972,14 +900,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     // te flagi są ustawiane tutaj, w razie potrzeby
     iDrivigFlags &= ~(moveTrackEnd | moveSwitchFound | moveSemaphorFound | moveSpeedLimitFound);
 
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    int i, k = iLast - iFirst + 1;
-    if (k < 0)
-        k += iSpeedTableSize; // ilość pozycji do przeanalizowania
-    for (i = iFirst; k > 0; --k, i = (i + 1) % iSpeedTableSize)
-#else
     for( std::size_t i = 0; i < sSpeedTable.size(); ++i )
-#endif
     { // sprawdzenie rekordów od (iFirst) do (iLast), o ile są istotne
         if (sSpeedTable[i].iFlags & spEnabled) // badanie istotności
         { // o ile dana pozycja tabelki jest istotna
@@ -1226,57 +1147,23 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
             else if (sSpeedTable[i].iFlags & spEvent) // W4 może się deaktywować
             { // jeżeli event, może być potrzeba wysłania komendy, aby ruszył
                 // sprawdzanie eventów pasywnych miniętych
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                if (sSpeedTable[i].fDist < 0.0 && sSemNext == &sSpeedTable[i])
-#else
                 if( (sSpeedTable[ i ].fDist < 0.0) && (SemNextIndex == i) )
-#endif
                 {
                     if( Global::iWriteLogEnabled & 8 ) {
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                        WriteLog( "TableUpdate: semaphor " + sSemNext->GetName() + " passed by " + OwnerName() );
-                    }
-                    sSemNext = NULL; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
-#else
                         WriteLog( "Speed table update for " + OwnerName() + ", passed semaphor " + sSpeedTable[ SemNextIndex ].GetName() );
                     }
                     SemNextIndex = -1; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
-#endif
                 }
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                if( sSpeedTable[ i ].fDist < 0.0 && sSemNextStop == &sSpeedTable[ i ] )
-#else
                 if( (sSpeedTable[ i ].fDist < 0.0) && (SemNextStopIndex == i) )
-#endif
                 {
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                    if( Global::iWriteLogEnabled & 8 ) {
-                        WriteLog( "TableUpdate: semaphor " + sSemNextStop->GetName() + " passed by " + OwnerName() );
-                    }
-                    sSemNextStop = NULL; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
-#else
                     if( Global::iWriteLogEnabled & 8 ) {
                         WriteLog( "Speed table update for " + OwnerName() + ", passed semaphor " + sSpeedTable[ SemNextStopIndex ].GetName() );
                     }
                     SemNextStopIndex = -1; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
-#endif
                 }
                 if (sSpeedTable[i].fDist > 0.0 &&
                     sSpeedTable[i].IsProperSemaphor(OrderCurrentGet()))
                 {
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                    if( !sSemNext )
-                    {
-                         // jeśli jest mienięty poprzedni semafor a wcześniej
-                        // byl nowy to go dorzucamy do zmiennej, żeby cały czas widział najbliższy
-                        sSemNext = &sSpeedTable[ i ];
-                        if (Global::iWriteLogEnabled & 8)
-                        WriteLog("TableUpdate: Next semaphor: " + sSemNext->GetName() + " by " + OwnerName());
-                    }
-                    if( !sSemNextStop || ( sSemNextStop && sSemNextStop->fVelNext != 0 && sSpeedTable[ i ].fVelNext == 0 ) ) {
-                        sSemNextStop = &sSpeedTable[ i ];
-                    }
-#else
                     if( SemNextIndex == -1 ) {
                         // jeśli jest mienięty poprzedni semafor a wcześniej
                         // byl nowy to go dorzucamy do zmiennej, żeby cały czas widział najbliższy
@@ -1290,7 +1177,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                        && ( sSpeedTable[ i ].fVelNext == 0 ) ) ) {
                         SemNextStopIndex = i;
                     }
-#endif
                 }
                 if (sSpeedTable[i].iFlags & spOutsideStation)
                 { // jeśli W5, to reakcja zależna od trybu jazdy
@@ -1573,55 +1459,6 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 void TController::TablePurger()
 { // odtykacz: usuwa mniej istotne pozycje ze środka tabelki, aby uniknąć zatkania
     //(np. brak ograniczenia pomiędzy zwrotnicami, usunięte sygnały, minięte odcinki łuku)
-#ifdef EU07_USE_OLD_SPEEDPOS
-    if( Global::iWriteLogEnabled & 8 )
-	WriteLog("Speed table garbage collection for " + OwnerName());
-    int i, j, k = iLast - iFirst; // może być 15 albo 16 pozycji, ostatniej nie ma co sprawdzać
-    if (k < 0)
-        k += iSpeedTableSize; // ilość pozycji do przeanalizowania
-    for (i = iFirst; k > 0; --k, i = (i + 1) % iSpeedTableSize)
-    { // sprawdzenie rekordów od (iFirst) do (iLast), o ile są istotne
-        if ((sSpeedTable[i].iFlags & spEnabled) ?
-                (sSpeedTable[i].fVelNext < 0) && ((sSpeedTable[i].iFlags & 0xAB) == 0xA3) :
-                true)
-        { // jeśli jest to minięty (0x20) tor (0x03) do liczenia cięciw (0x80), a nie zwrotnica
-            // (0x08)
-            for (; k > 0; --k, i = (i + 1) % iSpeedTableSize)
-            {
-                sSpeedTable[i] = sSpeedTable[(i + 1) % iSpeedTableSize]; // skopiowanie
-                if (&sSpeedTable[(i + 1) % iSpeedTableSize] == sSemNext)
-                    sSemNext = &sSpeedTable[i]; // przeniesienie znacznika o semaforze
-                if (&sSpeedTable[(i + 1) % iSpeedTableSize] == sSemNextStop)
-                    sSemNextStop = &sSpeedTable[i]; // przeniesienie znacznika o semaforze
-            }
-            if (Global::iWriteLogEnabled & 8)
-            WriteLog("Speed table garbage collection for " + OwnerName() + ": slot removed");
-            iLast = (iLast - 1 + iSpeedTableSize) % iSpeedTableSize; // cofnięcie z zawinięciem
-            return;
-        }
-    }
-    // jeśli powyższe odtykane nie pomoże, można usunąć coś więcej, albo powiększyć tabelkę
-    TSpeedPos *t = new TSpeedPos[iSpeedTableSize + 16]; // zwiększenie
-    k = iLast - iFirst + 1; // tym razem wszystkie
-    if (k < 0)
-        k += iSpeedTableSize; // ilość pozycji do przeanalizowania
-    for (j = -1, i = iFirst; k > 0; --k)
-    { // przepisywanie rekordów iFirst..iLast na 0..k
-        t[++j] = sSpeedTable[i];
-        if (&sSpeedTable[i] == sSemNext)
-            sSemNext = &t[j]; // przeniesienie znacznika o semaforze
-        if (&sSpeedTable[i] == sSemNextStop)
-            sSemNextStop = &t[j]; // przeniesienie znacznika o semaforze
-        i = (i + 1) % iSpeedTableSize; // kolejna pozycja mogą być zawinięta
-    }
-    iFirst = 0; // teraz będzie od zera
-    iLast = j; // ostatnia
-    delete[] sSpeedTable; // to już nie potrzebne
-    sSpeedTable = t; // bo jest nowe
-    iSpeedTableSize += 16;
-    if (Global::iWriteLogEnabled & 8)
-    WriteLog("Speed table garbage collection for " + OwnerName() + ": table increased to "+std::to_string(iSpeedTableSize)+" slots");
-#else
     // simplest approach should be good enough for start -- just copy whatever is still relevant, then swap
     // do a trial run first, to see if we need to bother at all
     std::size_t trimcount{ 0 };
@@ -1664,11 +1501,9 @@ void TController::TablePurger()
     if( Global::iWriteLogEnabled & 8 ) {
         WriteLog( "Speed table garbage collection for " + OwnerName() + " cut away " + std::to_string( trimcount ) + ( trimcount == 1 ? " record" : " records" ) );
     }
-
     // update the data
     sSpeedTable = trimmedtable;
     iLast = sSpeedTable.size() - 1;
-#endif
 };
 
 //---------------------------------------------------------------------------
@@ -1721,9 +1556,6 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     }
 
     SetDriverPsyche(); // na końcu, bo wymaga ustawienia zmiennych
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    sSpeedTable = new TSpeedPos[iSpeedTableSize];
-#endif
     TableClear();
 
     if( WriteLogFlag ) {
@@ -1762,9 +1594,6 @@ TController::~TController()
 { // wykopanie mechanika z roboty
     delete tsGuardSignal;
     delete TrainParams;
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    delete[] sSpeedTable;
-#endif
     CloseLog();
 };
 
@@ -4432,13 +4261,9 @@ bool TController::UpdateSituation(double dt)
                                 TrainParams
                                     ->TTVmax); // jesli nie spozniony to nie przekraczać rozkladowej
                 if (VelDesired > 0.0)
-#ifdef EU07_USE_OLD_SPEEDPOS
-                    if( ( sSemNext && sSemNext->fVelNext != 0.0 ) || ( iDrivigFlags & moveStopHere ) == 0 )
-#else
                     if( ( ( SemNextIndex != -1 )
-                        && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) )
+                       && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) )
                      || ( ( iDrivigFlags & moveStopHere ) == 0 ) )
-#endif
                     { // jeśli można jechać, to odpalić dźwięk kierownika oraz zamknąć drzwi w
                         // składzie, jeśli nie mamy czekać na sygnał też trzeba odpalić
 
@@ -5632,20 +5457,12 @@ void TController::ControllingSet()
 
 std::string TController::TableText( std::size_t const Index )
 { // pozycja tabelki prędkości
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    i = (iFirst + i) % iSpeedTableSize; // numer pozycji
-    if (i != iLast) // w (iLast) znajduje się kolejny tor do przeskanowania, ale nie jest ona
-        // aktywną
-        return sSpeedTable[i].TableText();
-    return ""; // wskaźnik końca
-#else
     if( Index < sSpeedTable.size() ) {
         return sSpeedTable[ Index ].TableText();
     }
     else {
         return "";
     }
-#endif
 };
 
 int TController::CrossRoute(TTrack *tr)
@@ -5653,11 +5470,7 @@ int TController::CrossRoute(TTrack *tr)
     // pożądany numer segmentu jest określany podczas skanowania drogi
     // droga powinna być określona sposobem przejazdu przez skrzyżowania albo współrzędnymi miejsca
     // docelowego
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    for (int i = iFirst; i != iLast; i = (i + 1) % iSpeedTableSize)
-#else
     for( std::size_t i = 0; i < sSpeedTable.size(); ++i )
-#endif
     { // trzeba przejrzeć tabelę skanowania w poszukiwaniu (tr)
         // i jak się znajdzie, to zwrócić zapamiętany numer segmentu i kierunek przejazdu
         // (-6..-1,1..6)
@@ -5678,25 +5491,13 @@ void TController::RouteSwitch(int d)
             iRouteWanted = d; // zapamiętanie
             if( mvOccupied->CategoryFlag & 2 ) {
                 // jeśli samochód
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                for( int i = iFirst; i != iLast; i = ( i + 1 ) % iSpeedTableSize ) {
-#else
                 for( std::size_t i = 0; i < sSpeedTable.size(); ++i ) {
-#endif
                     // szukanie pierwszego skrzyżowania i resetowanie kierunku na nim
                     if( true == TestFlag( sSpeedTable[ i ].iFlags, spEnabled | spTrack ) ) {
                         // jeśli pozycja istotna (1) oraz odcinek (2)
                         if( false == TestFlag( sSpeedTable[ i ].iFlags, spElapsed ) ) {
                             // odcinek nie może być miniętym
                             if( sSpeedTable[ i ].trTrack->eType == tt_Cross ) // jeśli skrzyżowanie
-#ifdef EU07_USE_OLD_SPEEDTABLE
-                            { // obcięcie tabelki skanowania przed skrzyżowaniem, aby ponownie wybrać drogę
-                                iLast = i - 1; // ponowne skanowanie skrzyżowania (w zwrotnicach jest iLast=i, ale tam jest prościej)
-                                if( iLast < 0 )
-                                    iLast += iSpeedTableSize; // bo tabelka jest zapętlona
-                                return;
-                            }
-#else
                             {
                                 while( sSpeedTable.size() >= i ) {
                                     // NOTE: we're ignoring semaphor flags and not resetting them like we do for train route trimming
@@ -5706,7 +5507,6 @@ void TController::RouteSwitch(int d)
                                 }
                                 iLast = sSpeedTable.size();
                             }
-#endif
                         }
                     }
                 }

@@ -167,25 +167,14 @@ extern bool WriteLogFlag; // logowanie parametrów fizycznych
 class TController
 {
   private: // obsługa tabelki prędkości (musi mieć możliwość odhaczania stacji w rozkładzie)
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    TSpeedPos *sSpeedTable = nullptr; // najbliższe zmiany prędkości
-    int iSpeedTableSize = 16; // wielkość tabelki
-    int iFirst = 0; // aktualna pozycja w tabeli (modulo iSpeedTableSize)
-#else
     int iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
     int iTableDirection{ 0 }; // kierunek zapełnienia tabelki względem pojazdu z AI
     std::vector<TSpeedPos> sSpeedTable;
-#endif
     double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze
     TTrack *tLast = nullptr; // ostatni analizowany tor
     TEvent *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    TSpeedPos *sSemNext = nullptr; // następny semafor na drodze zależny od trybu jazdy
-    TSpeedPos *sSemNextStop = nullptr; // następny semafor na drodze zależny od trybu jazdy i na stój
-#else
     std::size_t SemNextIndex{ -1 };
     std::size_t SemNextStopIndex{ -1 };
-#endif
   private: // parametry aktualnego składu
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji

@@ -1916,7 +1916,7 @@ TWorld::Update_UI() {
                         + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
 
                     if( ( tmp->Mechanik->VelNext == 0.0 )
-                        && ( tmp->Mechanik->eSignNext ) ) {
+                     && ( tmp->Mechanik->eSignNext ) ) {
                         // jeśli ma zapamiętany event semafora, nazwa eventu semafora
                         uitextline4 +=
                             " ("
@@ -1935,7 +1935,7 @@ TWorld::Update_UI() {
                         break;
                     }
 
-                    std::size_t i = 0; std::size_t const speedtablesize = std::min( 30, std::max( 0, static_cast<int>(tmp->Mechanik->TableSize()) - 1  ) );
+                    std::size_t i = 0; std::size_t const speedtablesize = clamp( static_cast<int>( tmp->Mechanik->TableSize() ) - 1, 0, 30 );
                     do {
                         std::string scanline = tmp->Mechanik->TableText( i );
                         if( scanline.empty() ) { break; }
