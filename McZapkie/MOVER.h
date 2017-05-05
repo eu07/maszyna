@@ -139,7 +139,23 @@ static int const ctrain_passenger = 16;     //mostek przejściowy
 static int const ctrain_scndpneumatic = 32; //przewody 8 atm (żółte; zasilanie powietrzem)
 static int const ctrain_heating = 64;       //przewody ogrzewania WN
 static int const ctrain_depot = 128;        //nie rozłączalny podczas zwykłych manewrów (międzyczłonowy), we wpisie wartość ujemna
-
+enum coupling {
+    faux = 0x0,
+    coupler = 0x1,
+    brakehose = 0x2,
+    control = 0x4,
+    highvoltage = 0x8,
+    gangway = 0x10,
+    mainhose = 0x20,
+    heating = 0x40,
+    permanent = 0x80
+};
+/*! przesylanie komend sterujacych*/
+enum command_range {
+    local,
+    unit,
+    consist
+};
 											/*typ hamulca elektrodynamicznego*/
 static int const dbrake_none = 0;
 static int const dbrake_passive = 1;
@@ -269,7 +285,8 @@ struct TCommand
 	std::string Command; /*komenda*/
 	double Value1 = 0.0; /*argumenty komendy*/
 	double Value2 = 0.0;
-	TLocation Location;
+    int Coupling{ ctrain_controll }; // coupler flag used to determine command propagation
+    TLocation Location;
 };
 
 /*tory*/
@@ -360,14 +377,14 @@ struct TBoilerType {
 };
 /*rodzaj odbieraka pradu*/
 struct TCurrentCollector {
-	long CollectorsNo; //musi być tu, bo inaczej się kopie
-	double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie używany
-	double CSW;       //szerokość części roboczej (styku) ślizgacza
-	double MinV; double MaxV; //minimalne i maksymalne akceptowane napięcie
-	double OVP;       //czy jest przekaznik nadnapieciowy
-	double InsetV;    //minimalne napięcie wymagane do załączenia
-	double MinPress;  //minimalne ciśnienie do załączenia WS
-	double MaxPress;  //maksymalne ciśnienie za reduktorem
+    long CollectorsNo{ 0 }; //musi być tu, bo inaczej się kopie
+    double MinH{ 0.0 }; double MaxH{ 0.0 }; //zakres ruchu pantografu, nigdzie nie używany
+    double CSW{ 0.0 };       //szerokość części roboczej (styku) ślizgacza
+    double MinV{ 0.0 }; double MaxV{ 0.0 }; //minimalne i maksymalne akceptowane napięcie
+    double OVP{ 0.0 };       //czy jest przekaznik nadnapieciowy
+    double InsetV{ 0.0 };    //minimalne napięcie wymagane do załączenia
+    double MinPress{ 0.0 };  //minimalne ciśnienie do załączenia WS
+    double MaxPress{ 0.0 };  //maksymalne ciśnienie za reduktorem
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;
@@ -536,6 +553,12 @@ struct TTransmision
 
 enum TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
 
+struct power_coupling {
+    double current{ 0.0 };
+    double voltage{ 0.0 };
+    bool local{ false }; // whether the power comes from external or onboard source
+};
+
 struct TCoupling {
 	/*parametry*/
     double SpringKB = 1.0;   /*stala sprezystosci zderzaka/sprzegu, %tlumiennosci */
@@ -556,6 +579,9 @@ struct TCoupling {
 	double CForce = 0.0;                /*sila z jaka dzialal*/
 	double Dist = 0.0;                  /*strzalka ugiecia zderzaków*/
 	bool CheckCollision = false;     /*czy sprawdzac sile czy pedy*/
+
+    power_coupling power_high;
+    power_coupling power_low; // TODO: implement this
 };
 
 class TMoverParameters
@@ -768,7 +794,17 @@ public:
 	TRotation Rot;
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
-	double HVCouplers[2][2]; //przewod WN
+    enum side {
+        front = 0,
+        rear
+    };
+#ifdef EU07_USE_OLD_HVCOUPLERS
+    double HVCouplers[ 2 ][ 2 ]; //przewod WN
+    enum hvcoupler {
+        current = 0,
+        voltage
+    };
+#endif
 	int ScanCounter = 0;   /*pomocnicze do skanowania sprzegow*/
 	bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
@@ -804,6 +840,7 @@ public:
 	bool CompressorFlag = false;             /*!o czy wlaczona sprezarka*/
 	bool PantCompFlag = false;             /*!o czy wlaczona sprezarka pantografow*/
 	bool CompressorAllow = false;            /*! zezwolenie na uruchomienie sprezarki  NBMX*/
+    bool CompressorGovernorLock{ false }; // indicates whether compressor pressure switch was activated due to reaching cut-out pressure
 	bool ConverterFlag = false ;              /*!  czy wlaczona przetwornica NBMX*/
 	bool ConverterAllow = false;             /*zezwolenie na prace przetwornicy NBMX*/
 	int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
@@ -812,7 +849,9 @@ public:
 	int LocalBrakePos = 0;                 /*nastawa hamulca indywidualnego*/
 	int ManualBrakePos = 0;                 /*nastawa hamulca recznego*/
 	double LocalBrakePosA = 0.0;
-	int BrakeStatus = b_off; /*0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R*/
+/*
+	int BrakeStatus = b_off; //0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R
+*/
 	bool EmergencyBrakeFlag = false;        /*hamowanie nagle*/
 	int BrakeDelayFlag = 0;               /*nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4*/
 	int BrakeDelays = 0;                   /*nastawy mozliwe do uzyskania*/
@@ -886,7 +925,9 @@ public:
 	double RventRot = 0.0;          /*!s obroty wentylatorow rozruchowych*/
 	bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
 	double PantPress = 0.0; /*Cisnienie w zbiornikach pantografow*/
-	bool s_CAtestebrake = false; //hunter-091012: zmienna dla testu ca
+    bool PantPressSwitchActive{ false }; // state of the pantograph pressure switch. gets primed at defined pressure level in pantograph air system
+    bool PantPressLockActive{ false }; // pwr system state flag. fires when pressure switch activates by pantograph pressure dropping below defined level
+    bool s_CAtestebrake = false; //hunter-091012: zmienna dla testu ca
 
     /*-zmienne dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	double dizel_fill = 0.0; /*napelnienie*/
@@ -982,11 +1023,11 @@ public:
 
 	/*! przesylanie komend sterujacych*/
 	bool SendCtrlBroadcast(std::string CtrlCommand, double ctrlvalue);
-	bool SendCtrlToNext(std::string CtrlCommand, double ctrlvalue, double dir);
-	bool SetInternalCommand(std::string NewCommand, double NewValue1, double NewValue2);
+	bool SendCtrlToNext(std::string const CtrlCommand, double const ctrlvalue, double const dir, int const Couplertype = ctrain_controll);
+    bool SetInternalCommand( std::string NewCommand, double NewValue1, double NewValue2, int const Couplertype = ctrain_controll );
 	double GetExternalCommand(std::string &Command);
-	bool RunCommand(std::string Command, double CValue1, double CValue2);
-	bool RunInternalCommand(void);
+    bool RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype = ctrain_controll );
+    bool RunInternalCommand();
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
 	bool CabActivisation(void);
 	bool CabDeactivisation(void);
@@ -1002,7 +1043,7 @@ public:
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/
 
-	bool SandDoseOn(void);/*wlacza/wylacza sypanie piasku*/
+    bool Sandbox( bool const State, int const Notify = command_range::consist );/*wlacza/wylacza sypanie piasku*/
 
 						  /*! zbijanie czuwaka/SHP*/
 	void SSReset(void);
@@ -1058,9 +1099,9 @@ public:
 
 	/*--funkcje dla lokomotyw*/
 	bool DirectionBackward(void);/*! kierunek ruchu*/
-	bool MainSwitch(bool State);/*! wylacznik glowny*/
-	bool ConverterSwitch(bool State);/*! wl/wyl przetwornicy*/
-	bool CompressorSwitch(bool State);/*! wl/wyl sprezarki*/
+    bool MainSwitch( bool const State, int const Notify = command_range::consist );/*! wylacznik glowny*/
+    bool ConverterSwitch( bool State, int const Notify = command_range::consist );/*! wl/wyl przetwornicy*/
+    bool CompressorSwitch( bool State, int const Notify = command_range::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
 	void ConverterCheck(); // przetwornica
@@ -1074,7 +1115,7 @@ public:
 								 /*function ShowEngineRotation(VehN:int): integer; //Ra 2014-06: przeniesione do C++*/
 								 /*funkcje uzalezniajace sile pociagowa od predkosci: v2n, n2r, current, momentum*/
 	double v2n(void);
-	double current(double n, double U);
+	double Current(double n, double U);
 	double Momentum(double I);
 	double MomentumF(double I, double Iw, int SCP);
 
@@ -1086,8 +1127,8 @@ public:
 	bool AutoRelayCheck(void);//symulacja automatycznego rozruchu
 
 	bool ResistorsFlagCheck(void); //sprawdzenie kontrolki oporow rozruchowych NBMX
-	bool PantFront(bool State); //obsluga pantografou przedniego
-	bool PantRear(bool State); //obsluga pantografu tylnego
+    bool PantFront( bool const State, int const Notify = command_range::consist ); //obsluga pantografou przedniego
+    bool PantRear( bool const State, int const Notify = command_range::consist ); //obsluga pantografu tylnego
 
 							   /*-funkcje typowe dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	bool dizel_EngageSwitch(double state);

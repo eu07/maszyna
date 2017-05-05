@@ -184,7 +184,7 @@ class TBrake {
 		bool DCV = false; //podwojny zawor zwrotny
 		double ASBP = 0.0; //cisnienie hamulca pp
 
-		int BrakeStatus = 0; //flaga stanu
+        int BrakeStatus{ b_off }; //flaga stanu
 		int SoundFlag = 0;
 
   public:
@@ -213,6 +213,8 @@ class TBrake {
         void SetASBP( double const Press ); //ustalenie cisnienia pp
     virtual void ForceEmptiness();
     int GetSoundFlag();
+    int GetBrakeStatus() const { return BrakeStatus; }
+    void SetBrakeStatus( int const Status ) { BrakeStatus = Status; }
     virtual void SetED( double const EDstate ) {}; //stan hamulca ED do luzowania
 };
 

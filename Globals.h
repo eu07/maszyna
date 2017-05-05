@@ -130,7 +130,9 @@ class TTranscript
     float fHide; // czas ukrycia/usunięcia
     std::string asText; // tekst gotowy do wyświetlenia (usunięte znaczniki czasu)
     bool bItalic; // czy kursywa (dźwięk nieistotny dla prowadzącego)
+/*
     int iNext; // następna używana linijka, żeby nie przestawiać fizycznie tabeli
+*/
 };
 
 /*
