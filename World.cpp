@@ -714,6 +714,9 @@ void TWorld::OnKeyDown(int cKey)
                     Train->OnKeyDown(cKey); // przekazanie klawisza do kabiny
     if (FreeFlyModeFlag) // aby nie odluźniało wagonu za lokomotywą
     { // operacje wykonywane na dowolnym pojeździe, przeniesione tu z kabiny
+/*
+        // NOTE: disabled so it doesn't interfere with new system controls in outside view
+        // TODO: implement as part of the new system
         if (cKey == Global::Keys[k_Releaser]) // odluźniacz
         { // działa globalnie, sprawdzić zasięg
             TDynamicObject *temp = Global::DynamicNearest();
@@ -721,7 +724,7 @@ void TWorld::OnKeyDown(int cKey)
             {
                 if (Global::ctrlState) // z ctrl odcinanie
                 {
-                    temp->MoverParameters->BrakeStatus ^= 128;
+                    temp->MoverParameters->Hamulec->SetBrakeStatus( temp->MoverParameters->Hamulec->GetBrakeStatus() ^ 128 );
                 }
                 else if (temp->MoverParameters->BrakeReleaser(1))
                 {
@@ -731,7 +734,9 @@ void TWorld::OnKeyDown(int cKey)
                 }
             }
         }
-        else if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczęśliwszy
+        else
+*/
+            if (cKey == Global::Keys[k_Heating]) // Ra: klawisz nie jest najszczęśliwszy
         { // zmiana próżny/ładowny; Ra: zabrane z kabiny
             TDynamicObject *temp = Global::DynamicNearest();
             if (temp)
@@ -1799,12 +1804,12 @@ TWorld::Update_UI() {
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     uitextline2 += "+Mg";
 
-                uitextline2 += ", BTP:" + to_string( tmp->MoverParameters->LoadFlag, 0 );
+                uitextline2 += ", BTP: " + to_string( tmp->MoverParameters->LoadFlag, 0 );
                 {
                     uitextline2 +=
-                        "; pant. "
+                        "; pant: "
                         + to_string( tmp->MoverParameters->PantPress, 2 )
-                        + ( tmp->MoverParameters->bPantKurek3 ? "<ZG" : "|ZG" );
+                        + ( tmp->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
                 }
 
                 uitextline2 +=
@@ -1820,28 +1825,63 @@ TWorld::Update_UI() {
                 uitextline2 +=
                     "; TC:"
                     + to_string( tmp->MoverParameters->TotalCurrent, 0 );
+#ifdef EU07_USE_OLD_HVCOUPLERS
                 uitextline2 +=
-                    ", HV0:"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 1 ], 0 )
+                    ", HV0: "
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::voltage ], 0 )
                     + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 0 ][ 0 ], 0 );
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::current ], 0 );
                 uitextline2 +=
-                    ", HV1:"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 1 ], 0 )
+                    ", HV1: "
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::voltage ], 0 )
                     + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ 1 ][ 0 ], 0 );
+                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::current ], 0 );
+#else
+                auto const frontcouplerhighvoltage =
+                    to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.voltage, 0 )
+                    + "@"
+                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.current, 0 );
+                auto const rearcouplerhighvoltage =
+                    to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.voltage, 0 )
+                    + "@"
+                    + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.current, 0 );
+                uitextline2 += ", HV: ";
+                    if( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
+                        uitextline2 +=
+                              "(" + frontcouplerhighvoltage + ")-"
+                            + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                            + "-(" + rearcouplerhighvoltage + ")";
+                    }
+                    else {
+                        uitextline2 +=
+                              frontcouplerhighvoltage
+                            + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                            + rearcouplerhighvoltage;
+                    }
+#endif
+                // equipment flags
+                uitextline3  = "";
+                uitextline3 += ( tmp->MoverParameters->Battery ? "B" : "." );
+                uitextline3 += ( tmp->MoverParameters->Mains ? "M" : "." );
+                uitextline3 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
+                uitextline3 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
+                uitextline3 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
+                uitextline3 += ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." );
+                uitextline3 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
+                uitextline3 += ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." );
+                uitextline3 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
 
-                uitextline3 =
-                    "BP: " + to_string( tmp->MoverParameters->BrakePress, 2 )
-                    + " (" + to_string( tmp->MoverParameters->BrakeStatus, 0 )
-                    + "), LBP: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
-                    + ", PP: " + to_string( tmp->MoverParameters->PipePress, 2 )
+                uitextline3 +=
+                    " TrB: " + to_string( tmp->MoverParameters->BrakePress, 2 )
+                    + ", " + to_hex_str( tmp->MoverParameters->Hamulec->GetBrakeStatus(), 2 )
+                    + ", LcB: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
+                    + ", pipes: " + to_string( tmp->MoverParameters->PipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->ScndPipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
-                    + ", BVP: " + to_string( tmp->MoverParameters->Volume, 3 )
-                    + ", " + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
-                    + ", " + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 )
-                    + ", " + to_string( tmp->MoverParameters->BrakeStatus, 0 );
+                    + ", MT: " + to_string( tmp->MoverParameters->CompressedVolume, 3 )
+                    + ", BT: " + to_string( tmp->MoverParameters->Volume, 3 )
+                    + ", CtlP: " + to_string( tmp->MoverParameters->CntrlPipePress, 3 )
+                    + ", CtlT: " + to_string( tmp->MoverParameters->Hamulec->GetCRP(), 3 );
 
                 if( tmp->MoverParameters->ManualBrakePos > 0 ) {
 
@@ -1876,7 +1916,7 @@ TWorld::Update_UI() {
                         + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
 
                     if( ( tmp->Mechanik->VelNext == 0.0 )
-                        && ( tmp->Mechanik->eSignNext ) ) {
+                     && ( tmp->Mechanik->eSignNext ) ) {
                         // jeśli ma zapamiętany event semafora, nazwa eventu semafora
                         uitextline4 +=
                             " ("
@@ -1895,13 +1935,13 @@ TWorld::Update_UI() {
                         break;
                     }
 
-                    int i = 0;
+                    std::size_t i = 0; std::size_t const speedtablesize = clamp( static_cast<int>( tmp->Mechanik->TableSize() ) - 1, 0, 30 );
                     do {
                         std::string scanline = tmp->Mechanik->TableText( i );
                         if( scanline.empty() ) { break; }
                         UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), Global::UITextColor );
                         ++i;
-                    } while( i < 16 ); // TController:iSpeedTableSize TODO: change when the table gets recoded
+                    } while( i < speedtablesize ); // TController:iSpeedTableSize TODO: change when the table gets recoded
                 }
             }
             else {
@@ -1999,8 +2039,8 @@ TWorld::Update_UI() {
                 }
 
                 uitextline1 =
-                    "vel: " + to_string(tmp->GetVelocity(), 2) + " km/h"
-                    + "; dist: " + to_string(tmp->MoverParameters->DistCounter, 2) + " km"
+                    "vel: " + to_string( tmp->GetVelocity(), 2 ) + " km/h" + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" )
+                    + "; dist: " + to_string( tmp->MoverParameters->DistCounter, 2 ) + " km"
                     + "; pos: ("
                     + to_string( tmp->GetPosition().x, 2 ) + ", "
                     + to_string( tmp->GetPosition().y, 2 ) + ", "
@@ -2533,7 +2573,7 @@ world_environment::update() {
     m_moon.update();
     // ...determine source of key light and adjust global state accordingly...
     auto const sunlightlevel = m_sun.getIntensity();
-    auto const moonlightlevel = m_moon.getIntensity();
+    auto const moonlightlevel = m_moon.getIntensity() * 0.65f; // scaled down by arbitrary factor, it's pretty bright otherwise
     float keylightintensity;
     float twilightfactor;
     float3 keylightcolor;
@@ -2555,8 +2595,6 @@ world_environment::update() {
         keylightintensity = sunlightlevel;
         // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
         twilightfactor = clamp( -Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
-        // TODO: crank orange up at dawn/dusk
-        keylightcolor = float3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
         float const duskfactor = 1.0f - clamp( Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(
             float3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),

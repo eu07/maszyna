@@ -798,7 +798,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         // else btCPass2.TurnOff();
-        if (MoverParameters->Battery)
+        if (MoverParameters->Battery || MoverParameters->ConverterFlag)
         { // sygnaly konca pociagu
             if (btEndSignals1.Active())
             {
@@ -900,7 +900,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // Ra: przechyłkę załatwiamy na etapie przesuwania modelu
         // if (ObjSqrDist<80000) ABuModelRoll(); //przechyłki od 400m
     }
-    if (MoverParameters->Battery)
+    if( MoverParameters->Battery || MoverParameters->ConverterFlag )
     { // sygnały czoła pociagu //Ra: wyświetlamy bez
         // ograniczeń odległości, by były widoczne z
         // daleka
@@ -1753,52 +1753,45 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             // wylaczanie hamulca
             if (ActPar.find("<>") != std::string::npos) // wylaczanie na probe hamowania naglego
             {
-                MoverParameters->BrakeStatus |= 128; // wylacz
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
             }
             if (ActPar.find('0') != std::string::npos) // wylaczanie na sztywno
             {
-                MoverParameters->BrakeStatus |= 128; // wylacz
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 MoverParameters->Hamulec->ForceEmptiness();
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
             }
             if (ActPar.find('E') != std::string::npos) // oprozniony
             {
                 MoverParameters->Hamulec->ForceEmptiness();
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 MoverParameters->Pipe->CreatePress(0);
                 MoverParameters->Pipe2->CreatePress(0);
             }
             if (ActPar.find('Q') != std::string::npos) // oprozniony
             {
-                //    MoverParameters->Hamulec->ForceEmptiness(); //TODO: sprawdzic,
-                //    dlaczego
-                //    pojawia sie blad przy uzyciu tej linijki w lokomotywie
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
+                MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->Pipe->CreatePress(0.0);
                 MoverParameters->PipePress = 0.0;
                 MoverParameters->Pipe2->CreatePress(0.0);
                 MoverParameters->ScndPipePress = 0.0;
-                MoverParameters->PantVolume = 1;
-                MoverParameters->PantPress = 0;
-                MoverParameters->CompressedVolume = 0;
+                MoverParameters->PantVolume = 0.1;
+                MoverParameters->PantPress = 0.0;
+                MoverParameters->CompressedVolume = 0.0;
             }
 
             if (ActPar.find('1') != std::string::npos) // wylaczanie 10%
             {
                 if (Random(10) < 1) // losowanie 1/10
                 {
-                    MoverParameters->BrakeStatus |= 128; // wylacz
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
-                    MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 }
             }
             if (ActPar.find('X') != std::string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
             {
                 if (Random(100) < 20) // losowanie 20/100
                 {
-                    MoverParameters->BrakeStatus |= 128; // wylacz
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
-                    MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 }
                 if (MoverParameters->BrakeCylMult[2] * MoverParameters->BrakeCylMult[1] >
                     0.01) // jesli jest nastawiacz mechaniczny PL
@@ -2443,43 +2436,61 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (!bEnabled)
         return false; // a normalnie powinny mieć bEnabled==false
 
-    // Ra: przeniosłem - no już lepiej tu, niż w wyświetlaniu!
-    // if ((MoverParameters->ConverterFlag==false) &&
-    // (MoverParameters->TrainType!=dt_ET22))
-    // Ra: to nie może tu być, bo wyłącza sprężarkę w rozrządczym EZT!
-    // if
-    // ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
-    // MoverParameters->CompressorFlag=false;
-    // if (MoverParameters->CompressorPower==2)
-    // MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
-
     // McZapkie-260202
     if ((MoverParameters->EnginePowerSource.SourceType == CurrentCollector) &&
         (MoverParameters->Power > 1.0)) // aby rozrządczy nie opuszczał silnikowemu
+/*
         if ((MechInside) || (MoverParameters->TrainType == dt_EZT))
         {
+*/
             // if
             // ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
             // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-            if (MoverParameters->PantPress < (MoverParameters->TrainType == dt_EZT ? 2.4 : 3.5))
-            { // 3.5 wg
-                // http://www.transportszynowy.pl/eu06-07pneumat.php
-                //"Wyłączniki ciśnieniowe odbieraków prądu wyłączają sterowanie
-                // wyłącznika szybkiego
-                // oraz uniemożliwiają podniesienie odbieraków prądu, gdy w instalacji
-                // rozrządu
-                // ciśnienie spadnie poniżej wartości 3,5 bara."
-                // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
-                // if (!MoverParameters->PantCompFlag)
-                // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-                MoverParameters->PantFront(false); // opuszczenie pantografów przy niskim ciśnieniu
-                MoverParameters->PantRear(false); // to idzie w ukrotnieniu, a nie powinno...
+            
+            if( MoverParameters->PantPress < MoverParameters->EnginePowerSource.CollectorParameters.MinPress ) {
+                // 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
+                if( true == MoverParameters->PantPressSwitchActive ) {
+                    // opuszczenie pantografów przy niskim ciśnieniu
+/*
+                    // NOTE: disabled, the pantographs drop by themseleves when the pantograph tank pressure gets low enough
+                    MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                    MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+*/
+                    if( MoverParameters->TrainType != dt_EZT ) {
+                        // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
+                        if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
+                            // TODO: check whether line breaker should be open EMU-wide
+                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                        }
+                    }
+                    else {
+                        // specialized variant for EMU -- pwr system disables converter and heating,
+                        // and prevents their activation until pressure switch is set again
+                        MoverParameters->PantPressLockActive = true;
+                        // TODO: separate 'heating allowed' from actual heating flag, so we can disable it here without messing up heating toggle
+                        MoverParameters->ConverterSwitch( false, command_range::unit );
+                    }
+                    // mark the pressure switch as spent
+                    MoverParameters->PantPressSwitchActive = false;
+                }
             }
-            // Winger - automatyczne wylaczanie malej sprezarki
-            else if (MoverParameters->PantPress >= 4.8)
-                MoverParameters->PantCompFlag = false;
-        } // Ra: do Mover to trzeba przenieść, żeby AI też mogło sobie podpompować
+            else {
+                if( MoverParameters->PantPress >= 4.6 ) {
+                    // prime the pressure switch
+                    MoverParameters->PantPressSwitchActive = true;
+                    // turn off the subsystems lock
+                    MoverParameters->PantPressLockActive = false;
 
+                    if( MoverParameters->PantPress >= 4.8 ) {
+                        // Winger - automatyczne wylaczanie malej sprezarki
+                        // TODO: governor lock, disables usage until pressure drop below 3.8 (should really make compressor object we could reuse)
+                        MoverParameters->PantCompFlag = false;
+                    }
+                }
+            }
+/*
+        } // Ra: do Mover to trzeba przenieść, żeby AI też mogło sobie podpompować
+*/
     double dDOMoveLen;
 
     TLocation l;
@@ -2911,37 +2922,26 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // fragment "z EXE Kursa"
     if (MoverParameters->Mains) // nie wchodzić w funkcję bez potrzeby
-        if ( ( false == MoverParameters->Battery)
+        if ( ( false == MoverParameters->Battery )
           && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
-          && ( Controller == Humandriver)
+/*
+        // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
+          && ( Controller == Humandriver )
+*/
           && ( MoverParameters->EngineType != DieselEngine )
           && ( MoverParameters->EngineType != WheelsDriven ) )
         { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
-            if (MoverParameters->MainSwitch(false)) // wyłączyć zasilanie
+            if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) ) ) {
+                // wyłączyć zasilanie
+                // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
                 MoverParameters->EventFlag = true;
+                // drop pantographs
+                // NOTE: this isn't universal behaviour
+                // TODO: have this dependant on .fiz-driven flag
+                MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+            }
         }
-    if (MoverParameters->TrainType == dt_ET42)
-    { // powinny być wszystkie dwuczłony oraz EZT
-        /*
-             //Ra: to jest bez sensu, bo wyłącza WS przy przechodzeniu przez
-           "wewnętrzne" kabiny (z
-           powodu ActiveCab)
-             //trzeba to zrobić inaczej, np. dla członu A sprawdzać, czy jest B
-             //albo sprawdzać w momencie załączania WS i zmiany w sprzęgach
-             if
-           (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected->MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected->MoverParameters->TrainType!=dt_ET42)))
-             {//sprawdzenie, czy z tyłu kabiny mamy drugi człon
-              if (MoverParameters->MainSwitch(false))
-               MoverParameters->EventFlag=true;
-             }
-             if
-           ((!(TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0))||(!(TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)))
-             {
-              if (MoverParameters->MainSwitch(false))
-               MoverParameters->EventFlag=true;
-             }
-        */
-    }
 
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen =
@@ -3210,21 +3210,23 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantRearVolt = 0.0;
                 break;
             } // pozostałe na razie nie obsługiwane
-            if (MoverParameters->PantPress >
-                (MoverParameters->TrainType == dt_EZT ? 2.5 : 3.3)) // Ra 2013-12:
-                // Niebugocław
-                // mówi, że w EZT
-                // podnoszą się
-                // przy 2.5
-                pantspeedfactor = 0.015 * (MoverParameters->PantPress) *
-                                  dt1; // z EXE Kursa  //Ra: wysokość zależy od ciśnienia !!!
-            else
+            if( MoverParameters->PantPress > (
+                    MoverParameters->TrainType == dt_EZT ?
+                        2.45 : // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
+                        3.45 ) ) {
+                // z EXE Kursa
+                // Ra: wysokość zależy od ciśnienia !!!
+                pantspeedfactor = 0.015 * ( MoverParameters->PantPress ) * dt1;
+            }
+            else {
                 pantspeedfactor = 0.0;
-            if (pantspeedfactor < 0)
-                pantspeedfactor = 0;
+            }
+            pantspeedfactor = std::max( 0.0, pantspeedfactor );
             k = p->fAngleL;
-            if (i ? MoverParameters->PantRearUp :
-                    MoverParameters->PantFrontUp) // jeśli ma być podniesiony
+            if( ( pantspeedfactor > 0.0 )
+             && ( i ?
+                    MoverParameters->PantRearUp :
+                    MoverParameters->PantFrontUp ) )// jeśli ma być podniesiony
             {
                 if (PantDiff > 0.001) // jeśli nie dolega do drutu
                 { // jeśli poprzednia wysokość jest mniejsza niż pożądana, zwiększyć kąt
@@ -3283,6 +3285,9 @@ bool TDynamicObject::Update(double dt, double dt1)
             sPantDown.Play(vol, 0, MechInside, vPosition);
             MoverParameters->PantRearSP = true;
         }
+/*
+        // NOTE: disabled because it's both redundant and doesn't take into account alternative power sources
+        // converter and compressor will (should) turn off during their individual checks, in the mover's (fast)computemovement() calls
         if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
         { // Winger 240404 - wylaczanie sprezarki i
             // przetwornicy przy braku napiecia
@@ -3292,6 +3297,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie sprężarki powinno być w jednym miejscu!
             }
         }
+*/
     }
     else if (MoverParameters->EnginePowerSource.SourceType == InternalSource)
         if (MoverParameters->EnginePowerSource.PowerType == SteamPower)
@@ -4124,22 +4130,20 @@ void TDynamicObject::RenderSounds()
             sConverter.TurnOff(MechInside, GetPosition());
         sConverter.Update(MechInside, GetPosition());
     }
-    if (MoverParameters->WarningSignal > 0)
-    {
-        if (TestFlag(MoverParameters->WarningSignal, 1))
-            sHorn1.TurnOn(MechInside, GetPosition());
-        else
-            sHorn1.TurnOff(MechInside, GetPosition());
-        if (TestFlag(MoverParameters->WarningSignal, 2))
-            sHorn2.TurnOn(MechInside, GetPosition());
-        else
-            sHorn2.TurnOff(MechInside, GetPosition());
+
+    if( TestFlag( MoverParameters->WarningSignal, 1 ) ) {
+        sHorn1.TurnOn( MechInside, GetPosition() );
     }
-    else
-    {
-        sHorn1.TurnOff(MechInside, GetPosition());
-        sHorn2.TurnOff(MechInside, GetPosition());
+    else {
+        sHorn1.TurnOff( MechInside, GetPosition() );
     }
+    if( TestFlag( MoverParameters->WarningSignal, 2 ) ) {
+        sHorn2.TurnOn( MechInside, GetPosition() );
+    }
+    else {
+        sHorn2.TurnOff( MechInside, GetPosition() );
+    }
+
     if (MoverParameters->DoorClosureWarning)
     {
         if (MoverParameters->DepartureSignal) // NBMX sygnal odjazdu, MC: pod warunkiem ze jest
