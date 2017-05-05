@@ -102,6 +102,7 @@ enum TAction
 
 enum TSpeedPosFlag
 { // wartości dla iFlag w TSpeedPos
+    spNone = 0x0,
     spEnabled = 0x1, // pozycja brana pod uwagę
     spTrack = 0x2, // to jest tor
     spReverse = 0x4, // odwrotnie
@@ -126,11 +127,11 @@ enum TSpeedPosFlag
 class TSpeedPos
 { // pozycja tabeli prędkości dla AI
   public:
-    double fDist; // aktualna odległość (ujemna gdy minięte)
-    double fVelNext; // prędkość obowiązująca od tego miejsca
-    double fSectionVelocityDist; // długość ograniczenia prędkości
+    double fDist{ 0.0 }; // aktualna odległość (ujemna gdy minięte)
+    double fVelNext{ -1.0 }; // prędkość obowiązująca od tego miejsca
+    double fSectionVelocityDist{ 0.0 }; // długość ograniczenia prędkości
     // double fAcc;
-    int iFlags; // flagi typu wpisu do tabelki
+    int iFlags{ spNone }; // flagi typu wpisu do tabelki
     // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (może się zmienić),16-stan
     // zwrotnicy,32-minięty,64=koniec,128=łuk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wysłana komenda,0x2000=W5
@@ -138,8 +139,8 @@ class TSpeedPos
     vector3 vPos; // współrzędne XYZ do liczenia odległości
     struct
     {
-        TTrack *trTrack; // wskaźnik na tor o zmiennej prędkości (zwrotnica, obrotnica)
-        TEvent *evEvent; // połączenie z eventem albo komórką pamięci
+        TTrack *trTrack{ nullptr }; // wskaźnik na tor o zmiennej prędkości (zwrotnica, obrotnica)
+        TEvent *evEvent{ nullptr }; // połączenie z eventem albo komórką pamięci
     };
     void CommandCheck();
 
@@ -166,16 +167,25 @@ extern bool WriteLogFlag; // logowanie parametrów fizycznych
 class TController
 {
   private: // obsługa tabelki prędkości (musi mieć możliwość odhaczania stacji w rozkładzie)
+#ifdef EU07_USE_OLD_SPEEDTABLE
     TSpeedPos *sSpeedTable = nullptr; // najbliższe zmiany prędkości
     int iSpeedTableSize = 16; // wielkość tabelki
     int iFirst = 0; // aktualna pozycja w tabeli (modulo iSpeedTableSize)
-    int iLast = 0; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
-    int iTableDirection = 0; // kierunek zapełnienia tabelki względem pojazdu z AI
+#else
+    int iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
+    int iTableDirection{ 0 }; // kierunek zapełnienia tabelki względem pojazdu z AI
+    std::vector<TSpeedPos> sSpeedTable;
+#endif
     double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze
     TTrack *tLast = nullptr; // ostatni analizowany tor
     TEvent *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
+#ifdef EU07_USE_OLD_SPEEDTABLE
     TSpeedPos *sSemNext = nullptr; // następny semafor na drodze zależny od trybu jazdy
     TSpeedPos *sSemNextStop = nullptr; // następny semafor na drodze zależny od trybu jazdy i na stój
+#else
+    std::size_t SemNextIndex{ -1 };
+    std::size_t SemNextStopIndex{ -1 };
+#endif
   private: // parametry aktualnego składu
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
@@ -358,13 +368,15 @@ class TController
     TEvent *CheckTrackEvent(double fDirection, TTrack *Track);
     bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
-    bool TableNotFound(TEvent *e);
+    bool TableNotFound(TEvent const *Event) const;
     void TableClear();
     TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     void TablePurger();
+public:
+    std::size_t TableSize() const { return sSpeedTable.size(); }
 
   private: // Ra: stare funkcje skanujące, używane do szukania sygnalizatora z tyłu
     bool BackwardTrackBusy(TTrack *Track);
@@ -395,9 +407,9 @@ class TController
     };
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
-    std::string TableText(int i);
+    std::string TableText(std::size_t const Index);
     int CrossRoute(TTrack *tr);
     void RouteSwitch(int d);
-    std::string OwnerName();
+    std::string OwnerName() const;
     TMoverParameters const *Controlling() const { return mvControlling; }
 };

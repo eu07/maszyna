@@ -1935,13 +1935,13 @@ TWorld::Update_UI() {
                         break;
                     }
 
-                    int i = 0;
+                    std::size_t i = 0; std::size_t const speedtablesize = std::min( 30, std::max( 0, static_cast<int>(tmp->Mechanik->TableSize()) - 1  ) );
                     do {
                         std::string scanline = tmp->Mechanik->TableText( i );
                         if( scanline.empty() ) { break; }
                         UITable->text_lines.emplace_back( Global::Bezogonkow( scanline ), Global::UITextColor );
                         ++i;
-                    } while( i < 16 ); // TController:iSpeedTableSize TODO: change when the table gets recoded
+                    } while( i < speedtablesize ); // TController:iSpeedTableSize TODO: change when the table gets recoded
                 }
             }
             else {
@@ -2039,8 +2039,8 @@ TWorld::Update_UI() {
                 }
 
                 uitextline1 =
-                    "vel: " + to_string(tmp->GetVelocity(), 2) + " km/h"
-                    + "; dist: " + to_string(tmp->MoverParameters->DistCounter, 2) + " km"
+                    "vel: " + to_string( tmp->GetVelocity(), 2 ) + " km/h" + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" )
+                    + "; dist: " + to_string( tmp->MoverParameters->DistCounter, 2 ) + " km"
                     + "; pos: ("
                     + to_string( tmp->GetPosition().x, 2 ) + ", "
                     + to_string( tmp->GetPosition().y, 2 ) + ", "
@@ -2573,7 +2573,7 @@ world_environment::update() {
     m_moon.update();
     // ...determine source of key light and adjust global state accordingly...
     auto const sunlightlevel = m_sun.getIntensity();
-    auto const moonlightlevel = m_moon.getIntensity();
+    auto const moonlightlevel = m_moon.getIntensity() * 0.65f; // scaled down by arbitrary factor, it's pretty bright otherwise
     float keylightintensity;
     float twilightfactor;
     float3 keylightcolor;

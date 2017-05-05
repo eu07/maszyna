@@ -2562,7 +2562,7 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                     if( Train->ggDoorLeftButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
-                    Train->play_sound( Train->dsbDoorOpen );
+                    Train->play_sound( Train->dsbDoorClose );
                 }
             }
             else {
@@ -2573,7 +2573,7 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                     if( Train->ggDoorRightButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
-                    Train->play_sound( Train->dsbDoorOpen );
+                    Train->play_sound( Train->dsbDoorClose );
                 }
             }
         }
@@ -2623,7 +2623,7 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                     if( Train->ggDoorRightButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
-                    Train->play_sound( Train->dsbDoorOpen );
+                    Train->play_sound( Train->dsbDoorClose );
                 }
             }
             else {
@@ -2634,7 +2634,7 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                     if( Train->ggDoorLeftButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
-                    Train->play_sound( Train->dsbDoorOpen );
+                    Train->play_sound( Train->dsbDoorClose );
                 }
             }
         }
