@@ -45,6 +45,11 @@ http://mozilla.org/MPL/2.0/.
 #define M_2PI 6.283185307179586476925286766559;
 const float maxrot = (float)(M_PI / 3.0); // 60°
 
+std::string const TDynamicObject::MED_labels[] = {
+    "masa: ", "amax: ", "Fzad: ", "FmPN: ", "FmED: ", "FrED: ", "FzPN: ", "nPrF: "
+};
+
+
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
 { // ustawienie wymiarów dla pantografu AKP-4E
@@ -5275,10 +5280,19 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 //---------------------------------------------------------------------------
 void TDynamicObject::RadioStop()
 { // zatrzymanie pojazdu
-    if (Mechanik) // o ile ktoś go prowadzi
-        if (MoverParameters->SecuritySystem.RadioStop &&
-            MoverParameters->Radio) // jeśli pojazd ma RadioStop i jest on aktywny
-            Mechanik->PutCommand("Emergency_brake", 1.0, 1.0, &vPosition, stopRadio);
+    if( Mechanik ) {
+        // o ile ktoś go prowadzi
+        if( ( MoverParameters->SecuritySystem.RadioStop )
+         && ( MoverParameters->Radio ) ) {
+            // jeśli pojazd ma RadioStop i jest on aktywny
+            Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &vPosition, stopRadio );
+            // add onscreen notification for human driver
+            // TODO: do it selectively for the 'local' driver once the multiplayer is in
+            if( false == Mechanik->AIControllFlag ) {
+                Global::tranTexts.AddLine( "!! RADIO-STOP !!", 0.0, 10.0, false );
+            }
+        }
+    }
 };
 
 //---------------------------------------------------------------------------

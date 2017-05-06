@@ -484,6 +484,7 @@ public: // reszta może by?publiczna
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
+    static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel() { return iRadioChannel; };
     inline TDynamicObject *Dynamic() { return DynamicObject; };

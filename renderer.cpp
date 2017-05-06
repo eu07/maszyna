@@ -167,8 +167,14 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
+/*
     ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
-
+*/
+    glm::mat4 worldcamera;
+    World.Camera.SetMatrix( worldcamera );
+    glLoadIdentity();
+    glMultMatrixf( glm::value_ptr( glm::mat4( glm::mat3( worldcamera ) ) ) );
+    
     // setup fog
     if( Global::fFogEnd > 0 ) {
         // fog setup
