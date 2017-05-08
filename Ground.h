@@ -172,7 +172,6 @@ class TGroundNode : public Resource
 
     void Compile(bool many = false);
     void Release();
-    bool GetTraction();
 
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
     void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
@@ -201,16 +200,17 @@ class TSubRect : public Resource, public CMesh
     TGroundNode *nRootMesh = nullptr; // obiekty renderujące wg tekstury (wtórne, lista po nNext2)
     TGroundNode *nMeshed = nullptr; // lista obiektów dla których istnieją obiekty renderujące grupowo
   public:
-    TGroundNode *
-        nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
-    TGroundNode *
-        nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
+    TGroundNode * nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
+    TGroundNode * nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
     TGroundNode *nRenderRect = nullptr; // z poziomu sektora - nieprzezroczyste (nNext3)
     TGroundNode *nRenderRectAlpha = nullptr; // z poziomu sektora - przezroczyste (nNext3)
     TGroundNode *nRenderWires = nullptr; // z poziomu sektora - druty i inne linie (nNext3)
     TGroundNode *nRender = nullptr; // indywidualnie - nieprzezroczyste (nNext3)
     TGroundNode *nRenderMixed = nullptr; // indywidualnie - nieprzezroczyste i przezroczyste (nNext3)
     TGroundNode *nRenderAlpha = nullptr; // indywidualnie - przezroczyste (nNext3)
+#ifdef EU07_SCENERY_EDITOR
+    std::deque< TGroundNode* > m_memcells; // collection of memcells present in the sector
+#endif
     int iNodeCount = 0; // licznik obiektów, do pomijania pustych sektorów
   public:
     void LoadNodes(); // utworzenie VBO sektora

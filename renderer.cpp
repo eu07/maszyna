@@ -112,6 +112,10 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     m_moontextureid = GetTextureId( "fx\\moon", szTexturePath );
     WriteLog( "...gfx data pre-loading done" );
 
+    // prepare debug mode objects
+    m_quadric = gluNewQuadric();
+    gluQuadricNormals( m_quadric, GLU_FLAT );
+
     return true;
 }
 
@@ -585,7 +589,25 @@ opengl_renderer::Render( TSubModel *Submodel ) {
     if( Submodel->Next )
         if( Submodel->iAlpha & Submodel->iFlags & 0x1F000000 )
             Render( Submodel->Next ); // dalsze rekurencyjnie
-};
+}
+
+void
+opengl_renderer::Render( TMemCell *Memcell ) {
+
+    ::glPushAttrib( GL_ENABLE_BIT );
+//    ::glDisable( GL_LIGHTING );
+    ::glDisable( GL_TEXTURE_2D );
+//    ::glEnable( GL_BLEND );
+    ::glPushMatrix();
+
+    auto const position = Memcell->Position();
+    ::glTranslated( position.x, position.y + 0.5, position.z );
+    ::glColor3f( 0.36f, 0.75f, 0.35f );
+    ::gluSphere( m_quadric, 0.35, 4, 2 );
+
+    ::glPopMatrix();
+    ::glPopAttrib();
+}
 
 bool
 opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {

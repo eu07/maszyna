@@ -702,8 +702,8 @@ void TWorld::OnKeyDown(int cKey)
             Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
         }
     }
-    else if( Global::ctrlState && cKey == GLFW_KEY_PAUSE ) //[Ctrl]+[Break]
-    { // hamowanie wszystkich pojazdów w okolicy
+    else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) ) {
+        //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
 	}

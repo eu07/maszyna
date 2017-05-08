@@ -2232,8 +2232,9 @@ bool TController::IncBrake()
             OK = mvOccupied->IncLocalBrakeLevel( std::floor( 1.5 + std::abs( AccDesired ) ) );
         break;
     case Pneumatic:
-        if ((mvOccupied->Couplers[0].Connected == NULL) &&
-            (mvOccupied->Couplers[1].Connected == NULL))
+        // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
+        if ((mvOccupied->Couplers[0].CouplingFlag == 0) &&
+            (mvOccupied->Couplers[1].CouplingFlag == 0))
             OK = mvOccupied->IncLocalBrakeLevel(
                 1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) ); // hamowanie lokalnym bo luzem jedzie
         else
