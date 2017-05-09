@@ -2943,8 +2943,11 @@ bool TDynamicObject::Update(double dt, double dt1)
                 // drop pantographs
                 // NOTE: this isn't universal behaviour
                 // TODO: have this dependant on .fiz-driven flag
+                // NOTE: moved to pantspeed calculation part a little later in the function. all remarks and todo still apply
+/*
                 MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
                 MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+*/
             }
         }
 
@@ -3224,6 +3227,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                 pantspeedfactor = 0.015 * ( MoverParameters->PantPress ) * dt1;
             }
             else {
+                pantspeedfactor = 0.0;
+            }
+            if( ( false == MoverParameters->Battery )
+             && ( false == MoverParameters->ConverterFlag ) ) {
                 pantspeedfactor = 0.0;
             }
             pantspeedfactor = std::max( 0.0, pantspeedfactor );

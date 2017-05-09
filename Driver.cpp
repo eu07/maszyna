@@ -226,6 +226,15 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
                 }
             }
         }
+        else {
+            if( fDist < 50.0 ) {
+                // old sceneries use trick of placing 'helper' semaphores underground, which can lead to vehicles running over them instead of stopping in front of them
+                // to account for it at short distances we redo distance calculation on 2d plane
+                fDist = glm::dot(
+                    glm::vec3( v.x, 0.0, v.z ),
+                    glm::vec3( dir->x, 0.0, dir->z ) );
+            }
+        }
     }
 
     if (fDist > 0.0) // nie może być 0.0, a przypadkiem mogło by się trafić i było by źle
@@ -391,6 +400,8 @@ void TController::TableClear()
     iTableDirection = 0; // nieznany
     tLast = nullptr;
     fLastVel = -1.0;
+    SemNextIndex = -1;
+    SemNextStopIndex = -1;
     eSignSkip = nullptr; // nic nie pomijamy
 };
 
