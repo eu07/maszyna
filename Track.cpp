@@ -176,7 +176,7 @@ void TTrack::Init()
         break;
     case tt_Cross: // tylko dla skrzyżowania dróg
 		SwitchExtension = std::make_shared<TSwitchExtension>( this, 6 ); // 6 po³¹czeñ
-        SwitchExtension->vPoints = NULL; // brak tablicy punktów
+        SwitchExtension->vPoints = nullptr; // brak tablicy punktów
         SwitchExtension->iPoints = 0;
         SwitchExtension->bPoints = false; // tablica punktów nie wypełniona
         SwitchExtension->iRoads = 4; // domyślnie 4
@@ -647,31 +647,26 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             if (eType != tt_Cross)
                 SwitchExtension->Segments[1]->Init(p3, p3 + cp3, p4 + cp4, p4, segsize, r3, r4);
             else
-                SwitchExtension->Segments[1]->Init(p4, p4 + cp4, p3 + cp3, p3, segsize, r4,
-                                                   r3); // odwrócony
+                SwitchExtension->Segments[1]->Init(p4, p4 + cp4, p3 + cp3, p3, segsize, r4, r3); // odwrócony
         }
         else
             SwitchExtension->Segments[1]->Init(p3, p4, segsize, r3, r4);
         if (eType == tt_Cross)
         { // Ra 2014-07: dla skrzyżowań będą dodatkowe segmenty
-            SwitchExtension->Segments[2]->Init(p2, cp2 + p2, cp4 + p4, p4, segsize, r2,
-                                               r4); // z punktu 2 do 4
-            if (LengthSquared3(p3 - p1) <
-                0.01) // gdy mniej niż 10cm, to mamy skrzyżowanie trzech dróg
+            SwitchExtension->Segments[2]->Init(p2, cp2 + p2, cp4 + p4, p4, segsize, r2, r4); // z punktu 2 do 4
+            if (LengthSquared3(p3 - p1) < 0.01) // gdy mniej niż 10cm, to mamy skrzyżowanie trzech dróg
                 SwitchExtension->iRoads = 3;
             else // dla 4 dróg będą dodatkowe 3 segmenty
             {
-                SwitchExtension->Segments[3]->Init(p4, p4 + cp4, p1 + cp1, p1, segsize, r4,
-                                                   r1); // z punktu 4 do 1
-                SwitchExtension->Segments[4]->Init(p1, p1 + cp1, p3 + cp3, p3, segsize, r1,
-                                                   r3); // z punktu 1 do 3
-                SwitchExtension->Segments[5]->Init(p3, p3 + cp3, p2 + cp2, p2, segsize, r3,
-                                                   r2); // z punktu 3 do 2
+                SwitchExtension->Segments[3]->Init(p4, p4 + cp4, p1 + cp1, p1, segsize, r4, r1); // z punktu 4 do 1
+                SwitchExtension->Segments[4]->Init(p1, p1 + cp1, p3 + cp3, p3, segsize, r1, r3); // z punktu 1 do 3
+                SwitchExtension->Segments[5]->Init(p3, p3 + cp3, p2 + cp2, p2, segsize, r3, r2); // z punktu 3 do 2
             }
         }
 
         Switch(0); // na stałe w położeniu 0 - nie ma początkowego stanu zwrotnicy we wpisie
 
+        if( eType == tt_Switch )
         // Ra: zamienić później na iloczyn wektorowy
         {
             vector3 v1, v2;
@@ -1673,24 +1668,15 @@ void TTrack::Compile(GLuint tex)
                         SwitchExtension->Segments[5]->RenderLoft(
                             rpts2, -3, fTexLength, 0, 1, &b, render); // tylko jeśli jest z lewej
                 }
-                else // to będzie ewentualnie dla prostego na skrzyżowaniu trzech dróg
-                { // punkt 3 pokrywa się z punktem 1, jak w zwrotnicy; połączenie 1->2 nie musi być
-                    // prostoliniowe
+                else
+                    // to będzie ewentualnie dla prostego na skrzyżowaniu trzech dróg
+                { // punkt 3 pokrywa się z punktem 1, jak w zwrotnicy; połączenie 1->2 nie musi być prostoliniowe
                     if ((fTexHeight1 >= 0.0) ? true : (side != 0.0)) // OK
-                        SwitchExtension->Segments[2]->RenderLoft(rpts2, -3, fTexLength, 0, 1, &b,
-                                                                 render); // z P2 do P4
+                        SwitchExtension->Segments[2]->RenderLoft(rpts2, -3, fTexLength, 0, 1, &b, render); // z P2 do P4
                     if ((fTexHeight1 >= 0.0) ? true : (side != 0.0)) // OK
-                        SwitchExtension->Segments[1]->RenderLoft(
-                            rpts2, -3, fTexLength, 0, 1, &b, render); // z P4 do P3=P1 (odwrócony)
+                        SwitchExtension->Segments[1]->RenderLoft(rpts2, -3, fTexLength, 0, 1, &b, render); // z P4 do P3=P1 (odwrócony)
                     if ((fTexHeight1 >= 0.0) ? true : (side != 0.0)) // OK
-                        SwitchExtension->Segments[0]->RenderLoft(rpts2, -3, fTexLength, 0, 1, &b,
-                                                                 render); // z P1 do P2
-                    /*
-                    if ((fTexHeight1>=0.0)?true:(slop!=0.0))
-                     Segment->RenderLoft(rpts1,3,fTexLength);
-                    if ((fTexHeight1>=0.0)?true:(side!=0.0))
-                     Segment->RenderLoft(rpts2,3,fTexLength);
-                    */
+                        SwitchExtension->Segments[0]->RenderLoft(rpts2, -3, fTexLength, 0, 1, &b, render); // z P1 do P2
                 }
             }
             // renderowanie nawierzchni na końcu

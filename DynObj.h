@@ -546,6 +546,7 @@ public: // modele składowe pojazdu
     std::string TextureTest(std::string const &name);
     void OverheadTrack(float o);
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
+    static std::string const MED_labels[ 8 ];
 };
 
 //---------------------------------------------------------------------------

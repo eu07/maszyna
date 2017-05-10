@@ -45,6 +45,11 @@ http://mozilla.org/MPL/2.0/.
 #define M_2PI 6.283185307179586476925286766559;
 const float maxrot = (float)(M_PI / 3.0); // 60°
 
+std::string const TDynamicObject::MED_labels[] = {
+    "masa: ", "amax: ", "Fzad: ", "FmPN: ", "FmED: ", "FrED: ", "FzPN: ", "nPrF: "
+};
+
+
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
 { // ustawienie wymiarów dla pantografu AKP-4E
@@ -2938,8 +2943,11 @@ bool TDynamicObject::Update(double dt, double dt1)
                 // drop pantographs
                 // NOTE: this isn't universal behaviour
                 // TODO: have this dependant on .fiz-driven flag
+                // NOTE: moved to pantspeed calculation part a little later in the function. all remarks and todo still apply
+/*
                 MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
                 MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+*/
             }
         }
 
@@ -3219,6 +3227,10 @@ bool TDynamicObject::Update(double dt, double dt1)
                 pantspeedfactor = 0.015 * ( MoverParameters->PantPress ) * dt1;
             }
             else {
+                pantspeedfactor = 0.0;
+            }
+            if( ( false == MoverParameters->Battery )
+             && ( false == MoverParameters->ConverterFlag ) ) {
                 pantspeedfactor = 0.0;
             }
             pantspeedfactor = std::max( 0.0, pantspeedfactor );
@@ -5275,10 +5287,19 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 //---------------------------------------------------------------------------
 void TDynamicObject::RadioStop()
 { // zatrzymanie pojazdu
-    if (Mechanik) // o ile ktoś go prowadzi
-        if (MoverParameters->SecuritySystem.RadioStop &&
-            MoverParameters->Radio) // jeśli pojazd ma RadioStop i jest on aktywny
-            Mechanik->PutCommand("Emergency_brake", 1.0, 1.0, &vPosition, stopRadio);
+    if( Mechanik ) {
+        // o ile ktoś go prowadzi
+        if( ( MoverParameters->SecuritySystem.RadioStop )
+         && ( MoverParameters->Radio ) ) {
+            // jeśli pojazd ma RadioStop i jest on aktywny
+            Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &vPosition, stopRadio );
+            // add onscreen notification for human driver
+            // TODO: do it selectively for the 'local' driver once the multiplayer is in
+            if( false == Mechanik->AIControllFlag ) {
+                Global::tranTexts.AddLine( "!! RADIO-STOP !!", 0.0, 10.0, false );
+            }
+        }
+    }
 };
 
 //---------------------------------------------------------------------------

@@ -304,7 +304,7 @@ void TGroundNode::RenderVBO() { // renderowanie obiektu z VBO - faza nieprzezroc
 
     double distancesquared = SquareMagnitude( pCenter - Global::pCameraPosition ) / Global::ZoomFactor;
     if( ( distancesquared > ( fSquareRadius * Global::fDistanceFactor ) )
-        || ( distancesquared < ( fSquareMinRadius / Global::fDistanceFactor ) ) ) {
+     || ( distancesquared < ( fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return;
     }
 
@@ -316,6 +316,10 @@ void TGroundNode::RenderVBO() { // renderowanie obiektu z VBO - faza nieprzezroc
         }
         case TP_MODEL: {
             Model->Render( &pCenter );
+            return;
+        }
+        case TP_MEMCELL: {
+            GfxRenderer.Render( MemCell );
             return;
         }
     }
@@ -575,6 +579,10 @@ void TGroundNode::RenderDL()
         }
         case TP_MODEL: {
             Model->Render( &pCenter );
+            return;
+        }
+        case TP_MEMCELL: {
+            GfxRenderer.Render( MemCell );
             return;
         }
     }
@@ -847,7 +855,12 @@ void TSubRect::NodeAdd(TGroundNode *Node)
         // Node->nNext3=nMeshed; //dopisanie do listy sortowania
         // nMeshed=Node;
         break;
-    case TP_MEMCELL:
+#ifdef EU07_SCENERY_EDITOR
+    case TP_MEMCELL: {
+        m_memcells.emplace_back( Node );
+        break;
+    }
+#endif
     case TP_TRACTIONPOWERSOURCE: // a te w ogóle pomijamy
         //  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
         break;
@@ -1173,7 +1186,14 @@ void TSubRect::RenderDL()
         node->RenderDL(); // nieprzezroczyste z mieszanych modeli
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
-
+#ifdef EU07_SCENERY_EDITOR
+    // memcells
+    if( DebugModeFlag ) {
+        for( auto const memcell : m_memcells ) {
+            memcell->RenderDL();
+        }
+    }
+#endif
 /*
     float width = 100.0f;
     float height = 25.0f;
@@ -1246,6 +1266,14 @@ void TSubRect::RenderVBO()
         node->RenderVBO(); // nieprzezroczyste z mieszanych modeli
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
+#ifdef EU07_SCENERY_EDITOR
+    // memcells
+    if( DebugModeFlag ) {
+        for( auto const memcell : m_memcells ) {
+            memcell->RenderVBO();
+        }
+    }
+#endif
 };
 
 void TSubRect::RenderAlphaVBO()

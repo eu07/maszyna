@@ -205,6 +205,11 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle }
 };
 
+std::vector<std::string> const TTrain::fPress_labels = {
+
+    "ch1:  ", "ch2:  ", "ch3:  ", "ch4:  ", "ch5:  ", "ch6:  ", "ch7:  ", "ch8:  ", "ch9:  ", "ch0:  "
+};
+
 TTrain::TTrain()
 {
     ActiveUniversal4 = false;
@@ -2767,7 +2772,10 @@ void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command )
         if( Command.action == GLFW_PRESS ) {
             WriteLog( "Radio switch is missing, or wasn't defined" );
         }
+/*
+        // NOTE: we ignore the lack of 3d model to allow system reset after receiving radio-stop signal
         return;
+*/
     }
 
     if( Command.action == GLFW_PRESS ) {
