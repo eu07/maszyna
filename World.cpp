@@ -702,8 +702,8 @@ void TWorld::OnKeyDown(int cKey)
             Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
         }
     }
-    else if( Global::ctrlState && cKey == GLFW_KEY_PAUSE ) //[Ctrl]+[Break]
-    { // hamowanie wszystkich pojazdów w okolicy
+    else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) ) {
+        //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
 	}
@@ -2131,21 +2131,22 @@ TWorld::Update_UI() {
                 // induction motor data
                 if( tmp->MoverParameters->EngineType == ElectricInductionMotor ) {
 
-                    UITable->text_lines.emplace_back( "   eimc:     eimv:    press:", Global::UITextColor );
+                    UITable->text_lines.emplace_back( "      eimc:            eimv:            press:", Global::UITextColor );
                     for( int i = 0; i <= 20; ++i ) {
 
                         std::string parameters =
-                              to_string(tmp->MoverParameters->eimc[i], 2, 9)
-                            + " " + to_string( tmp->MoverParameters->eimv[ i ], 2, 9 );
+                            tmp->MoverParameters->eimc_labels[ i ] + to_string( tmp->MoverParameters->eimc[ i ], 2, 9 )
+                            + " | "
+                            + tmp->MoverParameters->eimv_labels[ i ] + to_string( tmp->MoverParameters->eimv[ i ], 2, 9 );
 
-                        if( i <= 10 ) {
-                            parameters += " " + to_string( Train->fPress[ i ][ 0 ], 2, 9 );
+                        if( i < 10 ) {
+                            parameters += " | " + Train->fPress_labels[i] + to_string( Train->fPress[ i ][ 0 ], 2, 9 );
                         }
                         else if( i == 12 ) {
-                            parameters += "    med:";
+                            parameters += "        med:";
                         }
                         else if( i >= 13 ) {
-                            parameters += " " + to_string( tmp->MED[ 0 ][ i - 13 ], 2, 9 );
+                            parameters += " | " + tmp->MED_labels[ i - 13 ] + to_string( tmp->MED[ 0 ][ i - 13 ], 2, 9 );
                         }
 
                         UITable->text_lines.emplace_back( parameters, Global::UITextColor );

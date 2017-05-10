@@ -773,6 +773,7 @@ public:
 	double Ftmax = 0.0;
 	/*- dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimc[26];
+    static std::vector<std::string> const eimc_labels;
 	/*-dla wagonow*/
     double MaxLoad = 0.0;           /*masa w T lub ilosc w sztukach - ladownosc*/
 	std::string LoadAccepted; std::string LoadQuantity; /*co moze byc zaladowane, jednostki miary*/
@@ -939,6 +940,7 @@ public:
 
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimv[21];
+    static std::vector<std::string> const eimv_labels;
 
 	/*-zmienne dla drezyny*/
 	double PulseForce = 0.0;        /*przylozona sila*/

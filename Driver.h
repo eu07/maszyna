@@ -173,8 +173,8 @@ class TController
     double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze
     TTrack *tLast = nullptr; // ostatni analizowany tor
     TEvent *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
-    std::size_t SemNextIndex{ -1 };
-    std::size_t SemNextStopIndex{ -1 };
+    std::size_t SemNextIndex{ std::size_t(-1) };
+    std::size_t SemNextStopIndex{ std::size_t( -1 ) };
   private: // parametry aktualnego składu
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
