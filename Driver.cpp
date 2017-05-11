@@ -230,9 +230,7 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len)
             if( fDist < 50.0 ) {
                 // old sceneries use trick of placing 'helper' semaphores underground, which can lead to vehicles running over them instead of stopping in front of them
                 // to account for it at short distances we redo distance calculation on 2d plane
-                fDist = glm::dot(
-                    glm::vec3( v.x, 0.0, v.z ),
-                    glm::vec3( dir->x, 0.0, dir->z ) );
+                fDist = glm::length( glm::vec3( v.x, 0.0, v.z ) );
             }
         }
     }

@@ -290,16 +290,13 @@ void TGroundNode::RaRenderVBO()
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
+#ifdef EU07_USE_OLD_RENDERCODE
 void TGroundNode::RenderVBO() { // renderowanie obiektu z VBO - faza nieprzezroczystych
 
     switch( iType ) { // obiekty renderowane niezależnie od odległości
         case TP_SUBMODEL:
             TSubModel::fSquareDist = 0;
-#ifdef EU07_USE_OLD_RENDERCODE
-            return smTerrain->RenderDL();
-#else
             GfxRenderer.Render( smTerrain );
-#endif
     }
 
     double distancesquared = SquareMagnitude( pCenter - Global::pCameraPosition ) / Global::ZoomFactor;
@@ -334,15 +331,9 @@ void TGroundNode::RenderVBO() { // renderowanie obiektu z VBO - faza nieprzezroc
                 if( linealpha > 255 )
                     linealpha = 255;
                 float r, g, b;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-                r = floor( Diffuse[ 0 ] * Global::ambientDayLight[ 0 ] ); // w zaleznosci od koloru swiatla
-                g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
-                b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
-#else
                 r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
                 g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
                 b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
-#endif
                 glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
                 GfxRenderer.Bind( 0 );
 
@@ -436,6 +427,8 @@ void TGroundNode::RenderAlphaVBO()
 #endif
 }
 
+#endif
+
 void TGroundNode::Compile(bool many)
 { // tworzenie skompilowanej listy w wyświetlaniu DL
     if (!many)
@@ -451,49 +444,28 @@ void TGroundNode::Compile(bool many)
     }
     if ((iType == GL_LINES) || (iType == GL_LINE_STRIP) || (iType == GL_LINE_LOOP))
     {
-#ifdef USE_VERTEX_ARRAYS
-        glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
-        glDrawArrays(iType, 0, iNumPts);
-#else
         glBegin(iType);
         for (int i = 0; i < iNumPts; i++)
             glVertex3dv(&Points[i].x);
         glEnd();
-#endif
     }
     else if (iType == GL_TRIANGLE_STRIP || iType == GL_TRIANGLE_FAN || iType == GL_TRIANGLES)
     { // jak nie linie, to trójkąty
         TGroundNode *tri = this;
         do
         { // pętla po obiektach w grupie w celu połączenia siatek
-#ifdef USE_VERTEX_ARRAYS
-            glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Point.x);
-            glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Normal.x);
-            glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
-#endif
+            // TODO: eliminate these calls, they're duplicated by setup part in the unified render function
             glColor3ub(tri->Diffuse[0], tri->Diffuse[1], tri->Diffuse[2]);
             GfxRenderer.Bind(Global::bWireFrame ? 0 : tri->TextureID);
-#ifdef USE_VERTEX_ARRAYS
-            glDrawArrays(Global::bWireFrame ? GL_LINE_LOOP : tri->iType, 0, tri->iNumVerts);
-#else
+
             glBegin(Global::bWireFrame ? GL_LINE_LOOP : tri->iType);
             for (int i = 0; i < tri->iNumVerts; i++)
             {
-                glNormal3d(tri->Vertices[i].Normal.x, tri->Vertices[i].Normal.y,
-                           tri->Vertices[i].Normal.z);
+                glNormal3dv(&tri->Vertices[i].Normal.x);
                 glTexCoord2f(tri->Vertices[i].tu, tri->Vertices[i].tv);
                 glVertex3dv(&tri->Vertices[i].Point.x);
             };
             glEnd();
-#endif
-            /*
-               if (tri->pTriGroup) //jeśli z grupy
-               {tri=tri->pNext2; //następny w sektorze
-                while (tri?!tri->pTriGroup:false) tri=tri->pNext2; //szukamy kolejnego należącego do
-               grupy
-               }
-               else
-            */
             tri = NULL; // a jak nie, to koniec
         } while (tri);
     }
@@ -552,17 +524,14 @@ void TGroundNode::RenderHidden()
     }
 };
 
+#ifdef EU07_USE_OLD_RENDERCODE
 void TGroundNode::RenderDL()
 { // wyświetlanie obiektu przez Display List
     switch (iType)
     { // obiekty renderowane niezależnie od odległości
     case TP_SUBMODEL:
         TSubModel::fSquareDist = 0;
-#ifdef EU07_USE_OLD_RENDERCODE
-        return smTerrain->RenderDL();
-#else
         GfxRenderer.Render( smTerrain );
-#endif
     }
 
     double distancesquared = SquareMagnitude(pCenter - Global::pCameraPosition) / Global::ZoomFactor;
@@ -605,15 +574,9 @@ void TGroundNode::RenderDL()
                 if( linealpha > 255 )
                     linealpha = 255;
                 float r, g, b;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-                r = floor( Diffuse[ 0 ] * Global::ambientDayLight[ 0 ] ); // w zaleznosci od koloru swiatla
-                g = floor( Diffuse[ 1 ] * Global::ambientDayLight[ 1 ] );
-                b = floor( Diffuse[ 2 ] * Global::ambientDayLight[ 2 ] );
-#else
                 r = floor( Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ); // w zaleznosci od koloru swiatla
                 g = floor( Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] );
                 b = floor( Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] );
-#endif
                 glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
                 GfxRenderer.Bind( 0 );
 
@@ -689,15 +652,9 @@ void TGroundNode::RenderAlphaDL()
                 float linealpha = 255000 * fLineThickness / ( distancesquared + 1.0 );
                 if (linealpha > 255)
                     linealpha = 255;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-                r = Diffuse[ 0 ] * Global::ambientDayLight[ 0 ]; // w zaleznosci od koloru swiatla
-                g = Diffuse[ 1 ] * Global::ambientDayLight[ 1 ];
-                b = Diffuse[ 2 ] * Global::ambientDayLight[ 2 ];
-#else
                 float r = Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ]; // w zaleznosci od koloru swiatla
                 float g = Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ];
                 float b = Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ];
-#endif
                 glColor4ub( r, g, b, linealpha ); // przezroczystosc dalekiej linii
                 GfxRenderer.Bind( 0 );
 
@@ -720,6 +677,7 @@ void TGroundNode::RenderAlphaDL()
     }
 #endif
 }
+#endif
 
 //------------------------------------------------------------------------------
 //------------------ Podstawowy pojemnik terenu - sektor -----------------------
@@ -1093,8 +1051,7 @@ void TSubRect::LoadNodes()
         case GL_LINE_STRIP:
         case GL_LINE_LOOP:
             n->iVboPtr = m_nVertexCount; // nowy początek
-            m_nVertexCount +=
-                n->iNumPts; // miejsce w tablicach normalnych i teksturowania się zmarnuje...
+            m_nVertexCount += n->iNumPts; // miejsce w tablicach normalnych i teksturowania się zmarnuje...
             break;
         case TP_TRACK:
             n->iVboPtr = m_nVertexCount; // nowy początek
@@ -1180,10 +1137,10 @@ void TSubRect::RenderDL()
 { // renderowanie nieprzezroczystych (DL)
     TGroundNode *node;
     RaAnimate(); // przeliczenia animacji torów w sektorze
-    for (node = nRender; node; node = node->nNext3)
-        node->RenderDL(); // nieprzezroczyste obiekty (oprócz pojazdów)
+    for( node = nRender; node; node = node->nNext3 )
+        GfxRenderer.Render( node ); // nieprzezroczyste obiekty (oprócz pojazdów)
     for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderDL(); // nieprzezroczyste z mieszanych modeli
+        GfxRenderer.Render( node ); // nieprzezroczyste z mieszanych modeli
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
 #ifdef EU07_SCENERY_EDITOR
@@ -1237,13 +1194,10 @@ void TSubRect::RenderDL()
 void TSubRect::RenderAlphaDL()
 { // renderowanie przezroczystych modeli oraz pojazdów (DL)
     TGroundNode *node;
-    for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderAlphaDL(); // przezroczyste z mieszanych modeli
-    for (node = nRenderAlpha; node; node = node->nNext3)
-        node->RenderAlphaDL(); // przezroczyste modele
-    // for (node=tmp->nRender;node;node=node->nNext3)
-    // if (node->iType==TP_TRACK)
-    //  node->pTrack->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
+    for( node = nRenderMixed; node; node = node->nNext3 )
+        GfxRenderer.Render_Alpha( node ); // przezroczyste z mieszanych modeli
+    for( node = nRenderAlpha; node; node = node->nNext3 )
+        GfxRenderer.Render_Alpha( node ); // przezroczyste modele
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
 };
@@ -1255,15 +1209,15 @@ void TSubRect::RenderVBO()
     LoadNodes(); // czemu tutaj?
     if (StartVBO())
     {
-        for (node = nRenderRect; node; node = node->nNext3)
-            if (node->iVboPtr >= 0)
-                node->RenderVBO(); // nieprzezroczyste obiekty terenu
+        for( node = nRenderRect; node; node = node->nNext3 )
+            if( node->iVboPtr >= 0 )
+                GfxRenderer.Render( node ); // nieprzezroczyste obiekty terenu
         EndVBO();
     }
-    for (node = nRender; node; node = node->nNext3)
-        node->RenderVBO(); // nieprzezroczyste obiekty (oprócz pojazdów)
+    for( node = nRender; node; node = node->nNext3 )
+        GfxRenderer.Render( node ); // nieprzezroczyste obiekty (oprócz pojazdów)
     for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderVBO(); // nieprzezroczyste z mieszanych modeli
+        GfxRenderer.Render( node ); // nieprzezroczyste z mieszanych modeli
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
 #ifdef EU07_SCENERY_EDITOR
@@ -1279,13 +1233,10 @@ void TSubRect::RenderVBO()
 void TSubRect::RenderAlphaVBO()
 { // renderowanie przezroczystych modeli oraz pojazdów (VBO)
     TGroundNode *node;
-    for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderAlphaVBO(); // przezroczyste z mieszanych modeli
-    for (node = nRenderAlpha; node; node = node->nNext3)
-        node->RenderAlphaVBO(); // przezroczyste modele
-    // for (node=tmp->nRender;node;node=node->nNext3)
-    // if (node->iType==TP_TRACK)
-    //  node->pTrack->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
+    for( node = nRenderMixed; node; node = node->nNext3 )
+        GfxRenderer.Render_Alpha( node ); // przezroczyste z mieszanych modeli
+    for( node = nRenderAlpha; node; node = node->nNext3 )
+        GfxRenderer.Render_Alpha( node ); // przezroczyste modele
     for (int j = 0; j < iTracks; ++j)
         tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
 };
@@ -1299,8 +1250,6 @@ void TSubRect::RenderSounds()
 //------------------ Kwadrat kilometrowy ------------------------------------
 //---------------------------------------------------------------------------
 int TGroundRect::iFrameNumber = 0; // licznik wyświetlanych klatek
-
-//TGroundRect::TGroundRect( float3 const &Position, float const Radius = 1000.0f * M_SQRT2 ) :
 
 TGroundRect::~TGroundRect()
 {
@@ -1343,50 +1292,12 @@ void TGroundRect::RenderDL()
                     node->Compile(true);
                 glEndList();
             }
-            nRender->RenderDL(); // nieprzezroczyste trójkąty kwadratu kilometrowego
+            GfxRenderer.Render( nRender ); // nieprzezroczyste trójkąty kwadratu kilometrowego
         }
-        if (nRootMesh)
-            nRootMesh->RenderDL();
+        if( nRootMesh )
+            GfxRenderer.Render( nRootMesh );
         iLastDisplay = iFrameNumber; // drugi raz nie potrzeba
     }
-/*
-    float width = 500.0f;
-    float height = 50.0f;
-    float3 vTopLeftFront( m_area.center.x - width, m_area.center.y + height, m_area.center.z + width );
-    float3 vTopLeftBack( m_area.center.x - width, m_area.center.y + height, m_area.center.z - width );
-    float3 vTopRightBack( m_area.center.x + width, m_area.center.y + height, m_area.center.z - width );
-    float3 vTopRightFront( m_area.center.x + width, m_area.center.y + height, m_area.center.z + width );
-
-    float3 vBottom_LeftFront( m_area.center.x - width, m_area.center.y - height, m_area.center.z + width );
-    float3 vBottom_LeftBack( m_area.center.x - width, m_area.center.y - height, m_area.center.z - width );
-    float3 vBottomRightBack( m_area.center.x + width, m_area.center.y - height, m_area.center.z - width );
-    float3 vBottomRightFront( m_area.center.x + width, m_area.center.y - height, m_area.center.z + width );
-
-    glDisable( GL_LIGHTING );
-    glDisable( GL_TEXTURE_2D );
-    glColor3ub( 0, 255, 255 );
-    glBegin( GL_LINE_LOOP );
-    glVertex3fv( &vTopLeftFront.x );
-    glVertex3fv( &vTopLeftBack.x );
-    glVertex3fv( &vTopRightBack.x );
-    glVertex3fv( &vTopRightFront.x );
-    glEnd();
-    glBegin( GL_LINE_LOOP );
-    glVertex3fv( &vBottom_LeftFront.x );
-    glVertex3fv( &vBottom_LeftBack.x );
-    glVertex3fv( &vBottomRightBack.x );
-    glVertex3fv( &vBottomRightFront.x );
-    glEnd();
-    glBegin( GL_LINES );
-    glVertex3fv( &vTopLeftFront.x );		glVertex3fv( &vBottom_LeftFront.x );
-    glVertex3fv( &vTopLeftBack.x );		glVertex3fv( &vBottom_LeftBack.x );
-    glVertex3fv( &vTopRightBack.x );		glVertex3fv( &vBottomRightBack.x );
-    glVertex3fv( &vTopRightFront.x );	glVertex3fv( &vBottomRightFront.x );
-    glEnd();
-    glColor3ub( 255, 255, 255 );
-    glEnable( GL_TEXTURE_2D );
-    glEnable( GL_LIGHTING );
-*/
 };
 
 void TGroundRect::RenderVBO()
@@ -1410,46 +1321,8 @@ void TGroundRect::RenderVBO()
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-void TGround::MoveGroundNode(vector3 pPosition)
-{ // Ra: to wymaga gruntownej reformy
-    /*
-     TGroundNode *Current;
-     for (Current=RootNode;Current!=NULL;Current=Current->Next)
-      Current->MoveMe(pPosition);
-
-     TGroundRect *Rectx=new TGroundRect; //kwadrat kilometrowy
-     for(int i=0;i<iNumRects;i++)
-      for(int j=0;j<iNumRects;j++)
-       Rects[i][j]=*Rectx; //kopiowanie zawartości do każdego kwadratu
-     delete Rectx;
-     for (Current=RootNode;Current!=NULL;Current=Current->Next)
-     {//rozłożenie obiektów na mapie
-      if (Current->iType!=TP_DYNAMIC)
-      {//pojazdów to w ogóle nie dotyczy
-       if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójkąt?
-        :(Current->iFlags&0x20)?true //~czy teksturę ma nieprzezroczystą?
-         //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójkąt?
-         :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
-          :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
-        GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-       else //dodajemy do kwadratu kilometrowego
-        GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-      }
-     }
-     for (Current=RootDynamic;Current!=NULL;Current=Current->Next)
-     {
-      Current->pCenter+=pPosition;
-      Current->DynamicObject->UpdatePos();
-     }
-     for (Current=RootDynamic;Current!=NULL;Current=Current->Next)
-      Current->DynamicObject->MoverParameters->Physic_ReActivation();
-    */
-}
-
 std::vector<TGroundVertex> TempVerts;
-/*
-TGroundVertex TempVerts[ 10000 ]; // tu wczytywane s¹ trójk¹ty
-*/
+
 BYTE TempConnectionType[ 200 ]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
 TGround::TGround()
@@ -4856,8 +4729,8 @@ bool TGround::RenderAlphaDL(vector3 pPosition)
     for (i = iRendered - 1; i >= 0; --i) // od najdalszych
     { // przezroczyste trójkąty w oddzielnym cyklu przed modelami
         tmp = pRendered[i];
-        for (node = tmp->nRenderRectAlpha; node; node = node->nNext3)
-            node->RenderAlphaDL(); // przezroczyste modele
+        for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 )
+            GfxRenderer.Render_Alpha( node ); // przezroczyste modele
     }
     for (i = iRendered - 1; i >= 0; --i) // od najdalszych
     { // renderowanie przezroczystych modeli oraz pojazdów
@@ -4867,8 +4740,8 @@ bool TGround::RenderAlphaDL(vector3 pPosition)
     for (i = iRendered - 1; i >= 0; --i) // od najdalszych
     { // druty na końcu, żeby się nie robiły białe plamy na tle lasu
         tmp = pRendered[i];
-        for (node = tmp->nRenderWires; node; node = node->nNext3)
-            node->RenderAlphaDL(); // druty
+        for( node = tmp->nRenderWires; node; node = node->nNext3 )
+            GfxRenderer.Render_Alpha( node ); // druty
     }
     return true;
 }
@@ -4954,9 +4827,9 @@ bool TGround::RenderAlphaVBO(vector3 pPosition)
         tmp->LoadNodes(); // ewentualne tworzenie siatek
         if (tmp->StartVBO())
         {
-            for (node = tmp->nRenderRectAlpha; node; node = node->nNext3)
-                if (node->iVboPtr >= 0)
-                    node->RenderAlphaVBO(); // nieprzezroczyste obiekty terenu
+            for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 )
+                if( node->iVboPtr >= 0 )
+                    GfxRenderer.Render_Alpha( node ); // nieprzezroczyste obiekty terenu
             tmp->EndVBO();
         }
     }
@@ -4968,8 +4841,8 @@ bool TGround::RenderAlphaVBO(vector3 pPosition)
         tmp = pRendered[i];
         if (tmp->StartVBO())
         {
-            for (node = tmp->nRenderWires; node; node = node->nNext3)
-                node->RenderAlphaVBO(); // przezroczyste modele
+            for( node = tmp->nRenderWires; node; node = node->nNext3 )
+                GfxRenderer.Render_Alpha( node ); // przezroczyste modele
             tmp->EndVBO();
         }
     }

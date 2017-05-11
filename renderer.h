@@ -125,6 +125,8 @@ public:
     bool
         Render( TGround *Ground );
     bool
+        Render( TGroundNode *Node );
+    bool
         Render( TDynamicObject *Dynamic );
     bool
         Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
@@ -134,6 +136,8 @@ public:
         Render( TSubModel *Submodel );
     void
         Render( TMemCell *Memcell );
+    bool
+        Render_Alpha( TGroundNode *Node );
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool

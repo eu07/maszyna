@@ -104,14 +104,8 @@ class vector3
         return &x;
     }
 
-    //    union
-    //  {
-    //        struct
-    //        {
     double x, y, z;
-    //        };
-    //    	scalar_t e[3];
-    //    };
+
     bool inline Equal(vector3 *v)
     { // sprawdzenie odległości punktów
         if (std::fabs(x - v->x) > 0.02)

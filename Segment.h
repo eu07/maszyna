@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "VBO.h"
 #include "dumb3d.h"
 #include "Classes.h"
+#include "usefull.h"
 
 using namespace Math3D;
 
@@ -61,8 +62,6 @@ class TSegment
     double fDirection = 0.0; // Ra: kąt prostego w planie; dla łuku kąt od Point1
     double fStoop = 0.0; // Ra: kąt wzniesienia; dla łuku od Point1
     vector3 vA, vB, vC; // współczynniki wielomianów trzeciego stopnia vD==Point1
-    // TSegment *pPrev; //odcinek od strony punktu 1 - w segmencie, żeby nie skakać na zwrotnicach
-    // TSegment *pNext; //odcinek od strony punktu 2
     TTrack *pOwner = nullptr; // wskaźnik na właściciela
     double fAngle[2]; // kąty zakończenia drogi na przejazdach
 
@@ -71,12 +70,8 @@ class TSegment
     double GetTFromS(double s);
     vector3 RaInterpolate(double t);
     vector3 RaInterpolate0(double t);
-    // TSegment *segNeightbour[2]; //sąsiednie odcinki - musi być przeniesione z Track
-    // int iNeightbour[2]; //do którego końca doczepiony
   public:
     bool bCurve = false;
-    // int iShape; //Ra: flagi kształtu dadzą więcej możliwości optymalizacji
-    // (0-Bezier,1-prosty,2/3-łuk w lewo/prawo,6/7-przejściowa w lewo/prawo)
     TSegment(TTrack *owner);
     ~TSegment();
     bool Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1 = 0,
@@ -109,21 +104,16 @@ class TSegment
     {
         return Point2;
     };
-    inline double GetRoll(double s)
+    inline double GetRoll(double const Distance)
     {
-        s /= fLength;
-        return ((1.0 - s) * fRoll1 + s * fRoll2);
+        return interpolate( fRoll1, fRoll2, Distance / fLength );
     }
     void GetRolls(double &r1, double &r2)
     { // pobranie przechyłek (do generowania trójkątów)
         r1 = fRoll1;
         r2 = fRoll2;
     }
-    void RenderLoft(const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength,
-                    int iSkip = 0, int iQualityFactor = 1, vector3 **p = NULL, bool bRender = true);
-    void RenderSwitchRail(const vector6 *ShapePoints1, const vector6 *ShapePoints2,
-                          int iNumShapePoints, double fTextureLength, int iSkip = 0,
-                          double fOffsetX = 0.0f);
+    void RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0, bool Onlypositions = false, vector3 **p = nullptr, bool bRender = true);
     void Render();
     inline double GetLength()
     {
@@ -143,15 +133,10 @@ class TSegment
     {
         return fTsBuffer ? iSegCount : 1;
     };
-    void RaRenderLoft(CVertNormTex *&Vert, const vector6 *ShapePoints, int iNumShapePoints,
-                      double fTextureLength, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0);
-    void RaAnimate(CVertNormTex *&Vert, const vector6 *ShapePoints, int iNumShapePoints,
-                   double fTextureLength, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0);
     void AngleSet(int i, double a)
     {
         fAngle[i] = a;
     };
-    void Rollment(double w1, double w2); // poprawianie przechyłki
 };
 
 //---------------------------------------------------------------------------
