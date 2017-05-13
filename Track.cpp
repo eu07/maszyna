@@ -454,16 +454,9 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         WriteLog(str);
     parser->getTokens(4);
     *parser >> fTrackLength >> fTrackWidth >> fFriction >> fSoundDistance;
-    //    fTrackLength=Parser->GetNextSymbol().ToDouble();                       //track length
-    //    100502
-    //    fTrackWidth=Parser->GetNextSymbol().ToDouble();                        //track width
-    //    fFriction=Parser->GetNextSymbol().ToDouble();                          //friction coeff.
-    //    fSoundDistance=Parser->GetNextSymbol().ToDouble();   //snd
     fTrackWidth2 = fTrackWidth; // rozstaw/szerokość w punkcie 2, na razie taka sama
     parser->getTokens(2);
     *parser >> iQualityFlag >> iDamageFlag;
-    //    iQualityFlag=Parser->GetNextSymbol().ToInt();   //McZapkie: qualityflag
-    //    iDamageFlag=Parser->GetNextSymbol().ToInt();   //damage
     if (iDamageFlag & 128)
         iAction |= 0x80; // flaga wykolejania z powodu uszkodzenia
     parser->getTokens();
@@ -511,9 +504,6 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
                                                                      Global::iRailProFiltering));
         parser->getTokens(3);
         *parser >> fTexHeight1 >> fTexWidth >> fTexSlope;
-        //     fTexHeight=Parser->GetNextSymbol().ToDouble(); //tex sub height
-        //     fTexWidth=Parser->GetNextSymbol().ToDouble(); //tex sub width
-        //     fTexSlope=Parser->GetNextSymbol().ToDouble(); //tex sub slope width
         if (iCategoryFlag & 4)
             fTexHeight1 = -fTexHeight1; // rzeki mają wysokość odwrotnie niż drogi
     }
@@ -767,8 +757,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             // nFouling[1]=
         }
         else if (str == "overhead")
-        { // informacja o stanie sieci: 0-jazda bezprądowa, >0-z opuszczonym i ograniczeniem
-            // prędkości
+        { // informacja o stanie sieci: 0-jazda bezprądowa, >0-z opuszczonym i ograniczeniem prędkości
             parser->getTokens();
             *parser >> fOverhead;
             if (fOverhead > 0.0)
@@ -776,8 +765,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             // ograniczenie dla pantografujących)
         }
         else if (str == "colides")
-        { // informacja o stanie sieci: 0-jazda bezprądowa, >0-z opuszczonym i ograniczeniem
-            // prędkości
+        { // informacja o stanie sieci: 0-jazda bezprądowa, >0-z opuszczonym i ograniczeniem prędkości
             parser->getTokens();
             *parser >> token;
             // trColides=; //tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
@@ -821,8 +809,7 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
     }
     else
     {
-        ErrorLog(
-            "Bad track: Event0 cannot be assigned to track, track already has one");
+        ErrorLog( "Bad track: Event0 cannot be assigned to track, track already has one");
         bError = true;
     }
     if (!evEvent1)
@@ -835,15 +822,13 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
         }
         else if (!asEvent1Name.empty())
         { // Ra: tylko w logu informacja
-            ErrorLog("Bad track: Event1 \"" + asEvent1Name +
-                     "\" does not exist");
+            ErrorLog("Bad track: Event1 \"" + asEvent1Name + "\" does not exist");
             bError = true;
         }
     }
     else
     {
-        ErrorLog(
-            "Bad track: Event1 cannot be assigned to track, track already has one");
+        ErrorLog("Bad track: Event1 cannot be assigned to track, track already has one");
         bError = true;
     }
     if (!evEvent2)
@@ -856,15 +841,13 @@ bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent
         }
         else if (!asEvent2Name.empty())
         { // Ra: tylko w logu informacja
-            ErrorLog("Bad track: Event2 \"" + asEvent2Name +
-                     "\" does not exist");
+            ErrorLog("Bad track: Event2 \"" + asEvent2Name + "\" does not exist");
             bError = true;
         }
     }
     else
     {
-        ErrorLog(
-            "Bad track: Event2 cannot be assigned to track, track already has one");
+        ErrorLog("Bad track: Event2 cannot be assigned to track, track already has one");
         bError = true;
     }
     return !bError;
@@ -908,8 +891,7 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
         {
             if (!asEvent0Name.empty())
             { // Ra: tylko w logu informacja
-                WriteLog("Eventall1 \"" + asEventall1Name +
-                         "\" does not exist");
+                WriteLog("Eventall1 \"" + asEventall1Name + "\" does not exist");
                 bError = true;
             }
         }
@@ -1026,23 +1008,7 @@ void TTrack::MoveMe(vector3 pPosition)
 
 const int numPts = 4;
 const int nnumPts = 12;
-/*
-const vector6 szyna[nnumPts]= //szyna - vextor6(x,y,mapowanie tekstury,xn,yn,zn)
-{pierwotna szyna, opracował youBy, zmiany w celu uzyskania symetrii
- vector6( 0.111,-0.180,0.00, 1.000, 0.000,0.000),
- vector6( 0.045,-0.155,0.15, 0.707, 0.707,0.000),
- vector6( 0.045,-0.070,0.25, 0.707,-0.707,0.000),
- vector6( 0.071,-0.040,0.35, 0.707,-0.707,0.000), //albo tu 0.073
- vector6( 0.072,-0.010,0.40, 0.707, 0.707,0.000),
- vector6( 0.052,-0.000,0.45, 0.000, 1.000,0.000),
- vector6( 0.020,-0.000,0.55, 0.000, 1.000,0.000),
- vector6( 0.000,-0.010,0.60,-0.707, 0.707,0.000),
- vector6( 0.001,-0.040,0.65,-0.707,-0.707,0.000), //albo tu -0.001
- vector6( 0.027,-0.070,0.75,-0.707,-0.707,0.000), //albo zostanie asymetryczna
- vector6( 0.027,-0.155,0.85,-0.707, 0.707,0.000),
- vector6(-0.039,-0.180,1.00,-1.000, 0.000,0.000)
-};
-*/
+
 const vector6 szyna[nnumPts] = // szyna - vextor6(x,y,mapowanie tekstury,xn,yn,zn)
     { // tę wersję opracował Tolein (bez pochylenia)
      vector6(0.111, -0.180, 0.00, 1.000, 0.000, 0.000),
@@ -1188,8 +1154,7 @@ void TTrack::Compile(GLuint tex)
                         // profil
                         if (iTrapezoid) // trapez albo przechyłki
                         { // podsypka z podkladami trapezowata
-                            // ewentualnie poprawić mapowanie, żeby środek mapował się na
-                            // 1.435/4.671 ((0.3464,0.6536)
+                            // ewentualnie poprawić mapowanie, żeby środek mapował się na 1.435/4.671 ((0.3464,0.6536)
                             // bo się tekstury podsypki rozjeżdżają po zmianie proporcji profilu
                             bpts1[0] = vector6(rozp, -fTexHeight1 - 0.18, 0.00, normal1.x, -normal1.y, 0.0); // lewy brzeg
                             bpts1[1] = vector6((fHTW + side) * cos1, -(fHTW + side) * sin1 - 0.18, 0.33, 0.0, 1.0, 0.0); // krawędź załamania
@@ -1575,8 +1540,7 @@ void TTrack::Compile(GLuint tex)
                         tex ?
                             TextureID2 == tex :
                             true ) :
-                        false ); // renderować nie trzeba, ale trzeba wyznaczyć
-                // punkty brzegowe nawierzchni
+                        false ); // renderować nie trzeba, ale trzeba wyznaczyć punkty brzegowe nawierzchni
                 // if (iTrapezoid) //trapez albo przechyłki
                 if (SwitchExtension->iRoads == 4)
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
@@ -1703,33 +1667,7 @@ void TTrack::Render()
         EnvironmentReset(); // ustawienie oświetlenia na zwykłe
         if (InMovement())
             Release(); // zwrotnica w trakcie animacji do odrysowania
-    };
-//#ifdef _DEBUG
-#if 0
- if (DebugModeFlag && ScannedFlag) //McZapkie-230702
- //if (iNumDynamics) //będzie kreska na zajętym torze
- {
-  vector3 pos1,pos2,pos3;
-  glDisable(GL_DEPTH_TEST);
-      glDisable(GL_LIGHTING);
-  glColor3ub(255,0,0);
-  glBindTexture(GL_TEXTURE_2D,0);
-  glBegin(GL_LINE_STRIP);
-      pos1=Segment->FastGetPoint_0();
-      pos2=Segment->FastGetPoint(0.5);
-      pos3=Segment->FastGetPoint_1();
-      glVertex3f(pos1.x,pos1.y,pos1.z);
-      glVertex3f(pos2.x,pos2.y+10,pos2.z);
-      glVertex3f(pos3.x,pos3.y,pos3.z);
-  glEnd();
-  glEnable(GL_LIGHTING);
-  glEnable(GL_DEPTH_TEST);
-  ScannedFlag=false;
- }
-#endif
-    // glLightfv(GL_LIGHT0,GL_AMBIENT,Global::ambientDayLight);
-    // glLightfv(GL_LIGHT0,GL_DIFFUSE,Global::diffuseDayLight);
-    // glLightfv(GL_LIGHT0,GL_SPECULAR,Global::specularDayLight);
+    }
 };
 
 bool TTrack::CheckDynamicObject(TDynamicObject *Dynamic)
@@ -1856,16 +1794,10 @@ int TTrack::RaArrayPrepare()
                 }
                 if (fTexHeight1 >= 0) {
                     // normalne pobocze, na razie się składa z
-                    // NOTE: for the road part 1x the point amount would be enough, but we provide extra padding
-                    // on account of unexamined issues with geometry data bleeding between vbo chunks
-                    // TODO: sort this out if/when the vbo system is revised
                     return SwitchExtension->iPoints * ((TextureID1 ? 1 : 0) + (TextureID2 ? 12 : 0));
                 }
                 else {
                     // jeśli fTexHeight1<0, to są chodniki i może któregoś nie być
-                    // NOTE: for the road part 1x the point amount would be enough, but we provide extra padding
-                    // on account of unexamined issues with geometry data bleeding between vbo chunks
-                    // TODO: sort this out if/when the vbo system is revised
                     return SwitchExtension->iPoints * ((TextureID1 ? 1 : 0) + (TextureID2 ? 6 : 0 ));
                 }
             }
@@ -2048,23 +1980,23 @@ void TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start)
                 }
                 if (SwitchExtension->RightSwitch)
                 { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
-                    SwitchExtension->iLeftVBO = Vert - Start; // indeks lewej iglicy
-                    SwitchExtension->Segments[0]->RenderLoft( Vert, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2);
-                    SwitchExtension->Segments[0]->RenderLoft( Vert, rpts1, nnumPts, fTexLength, 1.0, 2);
                     SwitchExtension->Segments[0]->RenderLoft( Vert, rpts2, nnumPts, fTexLength);
+                    SwitchExtension->Segments[0]->RenderLoft( Vert, rpts1, nnumPts, fTexLength, 1.0, 2 );
+                    SwitchExtension->iLeftVBO = Vert - Start; // indeks lewej iglicy
+                    SwitchExtension->Segments[0]->RenderLoft( Vert, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
 
-                    SwitchExtension->Segments[1]->RenderLoft( Vert, rpts1, nnumPts, fTexLength);
                     SwitchExtension->iRightVBO = Vert - Start; // indeks prawej iglicy
-                    SwitchExtension->Segments[1]->RenderLoft( Vert, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1);
-                    SwitchExtension->Segments[1]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2);
+                    SwitchExtension->Segments[1]->RenderLoft( Vert, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
+                    SwitchExtension->Segments[1]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2 );
+                    SwitchExtension->Segments[1]->RenderLoft( Vert, rpts1, nnumPts, fTexLength );
                 }
                 else
                 { // lewa działa lepiej niż prawa
                     SwitchExtension->Segments[0]->RenderLoft( Vert, rpts1, nnumPts, fTexLength); // lewa szyna normalna cała
+                    SwitchExtension->Segments[0]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
                     SwitchExtension->iLeftVBO = Vert - Start; // indeks lewej iglicy
                     SwitchExtension->Segments[0]->RenderLoft( Vert, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2); // prawa iglica
-                    SwitchExtension->Segments[0]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2); // prawa szyna za iglicą
-
+                    
                     SwitchExtension->iRightVBO = Vert - Start; // indeks prawej iglicy
                     SwitchExtension->Segments[1]->RenderLoft( Vert, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1); // lewa iglica
                     SwitchExtension->Segments[1]->RenderLoft( Vert, rpts1, nnumPts, fTexLength, 1.0, 2); // lewa szyna za iglicą
@@ -2467,26 +2399,36 @@ void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
     // dla kolejnych tekstur!
     EnvironmentSet();
     int seg;
-    int i;
     switch( iCategoryFlag & 15 ) {
         case 1: {
             // tor
             if( eType == tt_Switch ) // dla zwrotnicy tylko szyny
             {
+                int const bladesegmentcount = 2;
                 if( TextureID1 )
                     if( ( seg = SwitchExtension->Segments[ 0 ]->RaSegCount() ) > 0 ) {
                         GfxRenderer.Bind( TextureID1 ); // szyny +
-                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
-                        iPtr += 24 * seg; // pominięcie lewej szyny
-                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
-                        iPtr += 24 * seg; // pominięcie prawej szyny
+                        ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                        iPtr += 24 * seg;
+                        ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * (seg - bladesegmentcount) );
+                        // NOTE: due to way blades bend need to render each segment separately, or some unwanted edges may show
+                        iPtr += 24 * ( seg - bladesegmentcount );
+                        for( int i = 0; i < bladesegmentcount; ++i ) {
+                            ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 );
+                            iPtr += 24;
+                        }
                     }
                 if( TextureID2 )
                     if( ( seg = SwitchExtension->Segments[ 1 ]->RaSegCount() ) > 0 ) {
-                        GfxRenderer.Bind( TextureID2 ); // szyny -
-                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
-                        iPtr += 24 * seg; // pominięcie lewej szyny
-                        glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
+                        GfxRenderer.Bind( TextureID2 );
+                        // NOTE: due to way blades bend need to render each segment separately, or some unwanted edges may show
+                        for( int i = 0; i < bladesegmentcount; ++i ) {
+                            ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 );
+                            iPtr += 24;
+                        }
+                        ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * ( seg - bladesegmentcount ) );
+                        iPtr += 24 * ( seg - bladesegmentcount );
+                        ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
                         iPtr += 24 * seg;
                     }
             }
@@ -2606,40 +2548,6 @@ void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
 void TTrack::EnvironmentSet()
 { // ustawienie zmienionego światła
     glColor3f(1.0f, 1.0f, 1.0f); // Ra: potrzebne to?
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    // TODO: re-implement this
-    if (eEnvironment)
-    { // McZapkie-310702: zmiana oswietlenia w tunelu, wykopie
-        GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-        GLfloat diffuseLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-        GLfloat specularLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-        switch (eEnvironment)
-        { // modyfikacje oświetlenia zależnie od środowiska
-        case e_canyon:
-            for (int li = 0; li < 3; li++)
-            {
-                // ambientLight[li]= Global::ambientDayLight[li]*0.8; //0.7
-                diffuseLight[li] = Global::diffuseDayLight[li] * 0.4; // 0.3
-                specularLight[li] = Global::specularDayLight[li] * 0.5; // 0.4
-            }
-            // glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-            break;
-        case e_tunnel:
-            for (int li = 0; li < 3; li++)
-            {
-                ambientLight[li] = Global::ambientDayLight[li] * 0.2;
-                diffuseLight[li] = Global::diffuseDayLight[li] * 0.1;
-                specularLight[li] = Global::specularDayLight[li] * 0.2;
-            }
-            glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-            break;
-        }
-    }
-#else
     switch( eEnvironment ) {
         case e_canyon: {
             Global::DayLight.apply_intensity( 0.4f );
@@ -2653,22 +2561,10 @@ void TTrack::EnvironmentSet()
             break;
         }
     }
-#endif
 };
 
 void TTrack::EnvironmentReset()
 { // przywrócenie domyślnego światła
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    // TODO: re-implement this
-    switch (eEnvironment)
-    { // przywrócenie globalnych ustawień światła, o ile było zmienione
-    case e_canyon: // wykop
-    case e_tunnel: // tunel
-        glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-        glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
-    }
-#else
     switch( eEnvironment ) {
         case e_canyon:
         case e_tunnel: {
@@ -2679,7 +2575,6 @@ void TTrack::EnvironmentReset()
             break;
         }
     }
-#endif
 };
 
 void TTrack::RenderDyn()
@@ -2911,7 +2806,7 @@ void TTrack::RaAnimListAdd(TTrack *t)
     }
 };
 
-TTrack * TTrack::RaAnimate()
+TTrack * TTrack::RaAnimate(GLuint const Vertexbuffer)
 { // wykonanie rekurencyjne animacji, wywoływane przed wyświetleniem sektora
     // zwraca wskaźnik toru wymagającego dalszej animacji
     if (SwitchExtension->pNextAnim)
@@ -2944,7 +2839,8 @@ TTrack * TTrack::RaAnimate()
                 m = false; // koniec animacji
             }
         }
-        if (Global::bUseVBO)
+        if( ( Global::bUseVBO )
+         && ( Vertexbuffer != -1 ) )
         { // dla OpenGL 1.4 odświeży się cały sektor, w późniejszych poprawiamy fragment
             if (GLEW_VERSION_1_5) // dla OpenGL 1.4 to się nie wykona poprawnie
                 if (TextureID1) // Ra: !!!! tu jest do poprawienia
@@ -2953,71 +2849,47 @@ TTrack * TTrack::RaAnimate()
                     double fHTW = 0.5 * fabs(fTrackWidth);
                     double fHTW2 = fHTW; // Ra: na razie niech tak będzie
                     double cos1 = 1.0, sin1 = 0.0, cos2 = 1.0, sin2 = 0.0; // Ra: ...
-                    for (int i = 0; i < 12; ++i)
-                    {
-                        rpts3[i] =
-                            vector6(
-                                (fHTW + iglica[i].x) * cos1 + iglica[i].y * sin1,
-                                -(fHTW + iglica[i].x) * sin1 + iglica[i].y * cos1,
-                                iglica[i].z);
-                        rpts3[i + 12] =
-                            vector6(
-                                (fHTW2 + szyna[i].x) * cos2 + szyna[i].y * sin2,
-                                -(fHTW2 + szyna[i].x) * sin2 + iglica[i].y * cos2,
-                                szyna[i].z);
-                        rpts4[11 - i] =
-                            vector6(
-                                (-fHTW - iglica[i].x) * cos1 + iglica[i].y * sin1,
-                                -(-fHTW - iglica[i].x) * sin1 + iglica[i].y * cos1,
-                                iglica[i].z);
-                        rpts4[23 - i] =
-                            vector6(
-                                (-fHTW2 - szyna[i].x) * cos2 + szyna[i].y * sin2,
-                                -(-fHTW2 - szyna[i].x) * sin2 + iglica[i].y * cos2,
-                                szyna[i].z);
+                    for( int i = 0; i < 12; ++i ) {
+
+                        rpts3[ i ] =
+                            vector6( +( fHTW + iglica[ i ].x ) * cos1 + iglica[ i ].y * sin1,
+                                     -( +fHTW + iglica[ i ].x ) * sin1 + iglica[ i ].y * cos1, iglica[ i ].z );
+                        rpts3[ i + 12 ] =
+                            vector6( +( fHTW2 + szyna[ i ].x ) * cos2 + szyna[ i ].y * sin2,
+                                     -( +fHTW2 + szyna[ i ].x ) * sin2 + iglica[ i ].y * cos2, szyna[ i ].z );
+                        rpts4[ 11 - i ] =
+                            vector6( ( -fHTW - iglica[ i ].x ) * cos1 + iglica[ i ].y * sin1,
+                                    -( -fHTW - iglica[ i ].x ) * sin1 + iglica[ i ].y * cos1, iglica[ i ].z );
+                        rpts4[ 23 - i ] =
+                            vector6( ( -fHTW2 - szyna[ i ].x ) * cos2 + szyna[ i ].y * sin2,
+                                    -( -fHTW2 - szyna[ i ].x ) * sin2 + iglica[ i ].y * cos2, szyna[ i ].z );
                     }
-                    CVertNormTex Vert[2 * 2 * 12]; // na razie 2 segmenty
-                    CVertNormTex *v = Vert; // bo RaAnimate() modyfikuje wskaźnik
-                    glGetBufferSubData(
-                        GL_ARRAY_BUFFER, SwitchExtension->iLeftVBO * sizeof(CVertNormTex),
-                        2 * 2 * 12 * sizeof(CVertNormTex), &Vert); // pobranie fragmentu bufora VBO
-                    if (SwitchExtension->RightSwitch)
-                    { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( v, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2, true );
-                        ::glBufferSubData(
-                            GL_ARRAY_BUFFER,
-                            SwitchExtension->iLeftVBO * sizeof(CVertNormTex),
-                            2 * 2 * 12 * sizeof(CVertNormTex),
-                            &Vert); // wysłanie fragmentu bufora VBO
-                        v = Vert;
-                        ::glGetBufferSubData(
-                            GL_ARRAY_BUFFER,
-                            SwitchExtension->iRightVBO * sizeof(CVertNormTex),
-                            2 * 2 * 12 * sizeof(CVertNormTex),
-                            &Vert); // pobranie fragmentu bufora VBO
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( v, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1, true );
+                    // NOTE: performance-wise it'd make much more sense to keep the most recent shape cached as part of switch extension,
+                    // and only send updates when/if they take place, instead of the current back-and-forth
+                    // TODO: implement optimized version
+
+                    // fetch current blade geometry
+                    std::vector<CVertNormTex> bladesbuffer; bladesbuffer.resize( 2 * 2 * 24 ); // 2 blades, 2 segments each
+                    ::glGetBufferSubData(
+                        GL_ARRAY_BUFFER,
+                        SwitchExtension->iLeftVBO * sizeof( CVertNormTex ),
+                        bladesbuffer.size() * sizeof( CVertNormTex ),
+                        bladesbuffer.data() );
+                    auto bladevertices = bladesbuffer.data();
+                    if( SwitchExtension->RightSwitch ) { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( bladevertices, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2, true );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( bladevertices, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1, true );
                     }
-                    else
-                    { // oryginalnie lewa działała lepiej niż prawa
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( v, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2, true ); // prawa iglica
-                        ::glBufferSubData(
-                            GL_ARRAY_BUFFER,
-                            SwitchExtension->iLeftVBO * sizeof(CVertNormTex),
-                            2 * 2 * 12 * sizeof(CVertNormTex),
-                            &Vert); // wysłanie fragmentu bufora VBO
-                        v = Vert;
-                        ::glGetBufferSubData(
-                            GL_ARRAY_BUFFER,
-                            SwitchExtension->iRightVBO * sizeof(CVertNormTex),
-                            2 * 2 * 12 * sizeof(CVertNormTex),
-                            &Vert); // pobranie fragmentu bufora VBO
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( v, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1, true ); // lewa iglica
+                    else {
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( bladevertices, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2, true ); // prawa iglica
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( bladevertices, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1, true ); // lewa iglica
                     }
+                    // push back updated geometry
                     ::glBufferSubData(
                         GL_ARRAY_BUFFER,
-                        SwitchExtension->iRightVBO * sizeof(CVertNormTex),
-                        2 * 2 * 12 * sizeof(CVertNormTex),
-                        &Vert); // wysłanie fragmentu bufora VBO
+                        SwitchExtension->iLeftVBO * sizeof( CVertNormTex ),
+                        bladesbuffer.size() * sizeof( CVertNormTex ),
+                        bladesbuffer.data() );
                 }
         }
         else // gdy Display List

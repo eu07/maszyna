@@ -1004,16 +1004,26 @@ bool TSubRect::RaTrackAnimAdd(TTrack *t)
 
 void TSubRect::RaAnimate()
 { // wykonanie animacji
-    if (!tTrackAnim)
-        return; // nie ma nic do animowania
-    if (Global::bUseVBO)
-    { // odświeżenie VBO sektora
-        if (GLEW_VERSION_1_5) // modyfikacje VBO są dostępne od OpenGL 1.5
-            glBindBuffer(GL_ARRAY_BUFFER, m_nVBOVertices);
-        else // dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odświeżenie całego sektora
-            Release(); // opróżnienie VBO sektora, aby się odświeżył z nowymi ustawieniami
+    if( !tTrackAnim ) {
+        // nie ma nic do animowania
+        return;
     }
-    tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
+    // crude way to mark whether a vbo is bound, for the vbo render path
+    // TODO: sort this shit out and re-arrange into something more elegant... eventually
+    GLuint vertexbuffer{ static_cast<GLuint>(-1) };
+    if (Global::bUseVBO) {
+        // odświeżenie VBO sektora
+        if( GLEW_VERSION_1_5 ) {
+            // modyfikacje VBO są dostępne od OpenGL 1.5
+            vertexbuffer = m_nVBOVertices;
+            ::glBindBuffer( GL_ARRAY_BUFFER, vertexbuffer );
+        }
+        else {
+            // dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odświeżenie całego sektora
+            Release(); // opróżnienie VBO sektora, aby się odświeżył z nowymi ustawieniami
+        }
+    }
+    tTrackAnim = tTrackAnim->RaAnimate( vertexbuffer ); // przeliczenie animacji kolejnego
 };
 
 TTraction * TSubRect::FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude)

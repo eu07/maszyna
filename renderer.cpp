@@ -1290,8 +1290,8 @@ opengl_renderer::Init_caps() {
         + " Vendor: " + std::string( (char *)glGetString( GL_VENDOR ) )
         + " OpenGL Version: " + oglversion );
 
-    if( !GLEW_VERSION_1_4 ) {
-        ErrorLog( "Requires openGL >= 1.4" );
+    if( !GLEW_VERSION_1_5 ) {
+        ErrorLog( "Requires openGL >= 1.5" );
         return false;
     }
 
