@@ -293,8 +293,6 @@ class TGround
     TGroundNode *nRootOfType[TP_LAST]; // tablica grupująca obiekty, przyspiesza szukanie
     // TGroundNode *nLastOfType[TP_LAST]; //ostatnia
     TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
-    int hh = 0,
-        mm = 0; // ustawienia czasu
     // int tracks,tracksfar; //liczniki torów
     typedef std::unordered_map<std::string, TEvent *> event_map;
     event_map m_eventmap;
@@ -374,7 +372,6 @@ class TGround
     void TrackJoin(TGroundNode *Current);
 
   private:
-    void OpenGLUpdate(HDC hDC);
     void RaTriangleDivider(TGroundNode *node);
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
     bool PROBLEND;

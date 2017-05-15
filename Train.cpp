@@ -1600,7 +1600,7 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
             if( Train->mvControlled->EngineType != DieselEngine ) {
                 if( Train->mvControlled->MainSwitch( true ) ) {
                     // side-effects
-                    Train->mvControlled->ConverterSwitch( Train->ggConverterButton.GetValue() > 0.5 );
+                    Train->mvControlled->ConverterSwitch( ( Train->ggConverterButton.GetValue() > 0.5 ) || ( Train->mvControlled->ConverterStart == start::automatic ) );
                     Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
                 }
             }
@@ -1635,6 +1635,11 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
 }
 
 void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvControlled->ConverterStart == start::automatic ) {
+        // let the automatic thing do its automatic thing...
+        return;
+    }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
@@ -3680,7 +3685,7 @@ bool TTrain::Update( double const Deltatime )
                 // TODO: check whether it should affect entire consist for EMU
                 // TODO: check whether it should happen if there's power supplied alternatively through hvcouplers
                 // TODO: potentially move this to the mover module, as there isn't much reason to have this dependent on the operator presence
-                mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? range::unit : range::local ) );
             }
         }
 
@@ -3711,7 +3716,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     mvControlled->ConvOvldFlag = true;
                     if (mvControlled->TrainType != dt_EZT)
-                        mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                        mvControlled->MainSwitch( false, ( mvControlled->TrainType == dt_EZT ? range::unit : range::local ) );
                 }
                 else if( fConverterTimer >= fConverterPrzekaznik ) {
                     // changed switch from always true to take into account state of the compressor switch
@@ -4440,9 +4445,10 @@ bool TTrain::Update( double const Deltatime )
                 tmp = DynamicObject->PrevConnected;
 
             if (tmp)
-                if (tmp->MoverParameters->Mains)
+                if ( mvControlled->Battery || mvControlled->ConverterFlag )
                 {
-                    btLampkaWylSzybkiB.TurnOn();
+                    btLampkaWylSzybkiB.Turn( tmp->MoverParameters->Mains );
+
                     btLampkaOporyB.Turn(tmp->MoverParameters->ResistorsFlagCheck());
                     btLampkaBezoporowaB.Turn(
                         tmp->MoverParameters->ResistorsFlagCheck() ||
@@ -5312,7 +5318,7 @@ bool TTrain::Update( double const Deltatime )
                 switch (LampkaUniversal3_typ)
                 {
                 case 0:
-                    btLampkaUniversal3.Turn(mvControlled->Battery);
+                    btLampkaUniversal3.Turn( mvControlled->Battery || mvControlled->ConverterFlag );
                     break;
                 case 1:
                     btLampkaUniversal3.Turn(mvControlled->Mains);

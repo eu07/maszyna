@@ -285,8 +285,7 @@ void TGroundNode::MoveMe(vector3 pPosition)
 void TGroundNode::RaRenderVBO()
 { // renderowanie z domyslnego bufora VBO
     glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
-    if (TextureID)
-        GfxRenderer.Bind(TextureID); // Ustaw aktywną teksturę
+    GfxRenderer.Bind( TextureID ); // Ustaw aktywną teksturę
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
@@ -2248,31 +2247,19 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     case GL_LINES:
     case GL_LINE_STRIP:
     case GL_LINE_LOOP: {
-            parser->getTokens( 3 );
-            *parser >> tmp->Diffuse[ 0 ] >> tmp->Diffuse[ 1 ] >> tmp->Diffuse[ 2 ];
-            //   tmp->Diffuse[0]=Parser->GetNextSymbol().ToDouble()/255;
-            //   tmp->Diffuse[1]=Parser->GetNextSymbol().ToDouble()/255;
-            //   tmp->Diffuse[2]=Parser->GetNextSymbol().ToDouble()/255;
-            parser->getTokens();
-            *parser >> tmp->fLineThickness;
+            parser->getTokens( 4 );
+            *parser
+                >> tmp->Diffuse[ 0 ]
+                >> tmp->Diffuse[ 1 ]
+                >> tmp->Diffuse[ 2 ]
+                >> tmp->fLineThickness;
             TempVerts.clear();
             TGroundVertex vertex;
             i = 0;
             parser->getTokens();
             *parser >> token;
             do {
-                str = token;
-/*
-                TempVerts[ i ].Point.x = atof( str.c_str() );
-                parser->getTokens( 2 );
-                *parser >> TempVerts[ i ].Point.y >> TempVerts[ i ].Point.z;
-                TempVerts[ i ].Point.RotateZ( aRotate.z / 180 * M_PI );
-                TempVerts[ i ].Point.RotateX( aRotate.x / 180 * M_PI );
-                TempVerts[ i ].Point.RotateY( aRotate.y / 180 * M_PI );
-                TempVerts[ i ].Point += pOrigin;
-                tmp->pCenter += TempVerts[ i ].Point;
-*/
-                vertex.Point.x = std::atof( str.c_str() );
+                vertex.Point.x = std::atof( token.c_str() );
                 parser->getTokens( 2 );
                 *parser
                     >> vertex.Point.y
@@ -2328,27 +2315,19 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
 TEvent * TGround::FindEvent(const std::string &asEventName)
 {
     auto const lookup = m_eventmap.find( asEventName );
-    return
+    return (
         lookup != m_eventmap.end() ?
-        lookup->second :
-        nullptr;
-    /* //powolna wyszukiwarka
-     for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
-     {
-      if (Current->asName==asEventName)
-       return Current;
-     }
-     return NULL;
-    */
+            lookup->second :
+            nullptr );
 }
 
 TEvent * TGround::FindEventScan( std::string const &asEventName )
 { // wyszukanie eventu z opcją utworzenia niejawnego dla komórek skanowanych
     auto const lookup = m_eventmap.find( asEventName );
-    auto e =
+    auto e = (
         lookup != m_eventmap.end() ?
-        lookup->second :
-        nullptr;
+            lookup->second :
+            nullptr );
     if (e)
         return e; // jak istnieje, to w porządku
     if (asEventName.rfind(":scan") != std::string::npos) // jeszcze może być event niejawny
@@ -4289,11 +4268,6 @@ bool TGround::CheckQuery()
     } // while
     return true;
 }
-
-void TGround::OpenGLUpdate(HDC hDC)
-{
-    SwapBuffers(hDC); // swap buffers (double buffering)
-};
 
 void TGround::UpdatePhys(double dt, int iter)
 { // aktualizacja fizyki stałym krokiem: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeń
