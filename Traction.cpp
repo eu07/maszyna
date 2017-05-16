@@ -599,10 +599,10 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
         if (DebugModeFlag) // tylko podczas testów
             Material = 4; // pokazanie, że to przęsło ma podłączone zasilanie
 #else
-        // TBD, TODO: we don't need to maintain 4-7 value range as it's part of legacy system
         PowerState = 4;
 #endif
-        while (t ? !t->psPower[d] : false) // jeśli jest jakiś kolejny i nie ma ustalonego zasilacza
+        while( ( t != nullptr )
+            && ( t->psPower[d] == nullptr ) ) // jeśli jest jakiś kolejny i nie ma ustalonego zasilacza
         { // ustawienie zasilacza i policzenie rezystancji zastępczej
 #ifdef EU07_USE_OLD_TRACTIONPOWER_CODE
             if (DebugModeFlag) // tylko podczas testów
@@ -615,11 +615,14 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
 #else
             if( t->PowerState != 4 ) {
                 // przęsła zasilającego nie modyfikować
-                if( t->PowerState < 4 ) {
-                    // tymczasowo, aby zmieniła kolor
+                if( t->psPowered != nullptr ) {
+
                     t->PowerState = 4;
                 }
-                t->PowerState |= d ? 2 : 1; // kolor zależny od strony, z której jest zasilanie
+                else {
+                    // kolor zależny od strony, z której jest zasilanie
+                    t->PowerState |= d ? 2 : 1;
+                }
             }
 #endif
             t->psPower[d] = ps; // skopiowanie wskaźnika zasilacza od danej strony
@@ -751,32 +754,32 @@ TTraction::wire_color( float &Red, float &Green, float &Blue ) const {
         // tymczasowo pokazanie zasilanych odcinków
         switch( PowerState ) {
 
-            case 4: {
-                // niebieskie z podłączonym zasilaniem
-                Red = 0.5f;
-                Green = 0.5f;
-                Blue = 1.0f;
-                break;
-            }
-            case 5: {
+            case 1: {
                 // czerwone z podłączonym zasilaniem 1
                 Red = 1.0f;
                 Green = 0.0f;
                 Blue = 0.0f;
                 break;
             }
-            case 6: {
+            case 2: {
                 // zielone z podłączonym zasilaniem 2
                 Red = 0.0f;
                 Green = 1.0f;
                 Blue = 0.0f;
                 break;
             }
-            case 7: {
+            case 3: {
                 //żółte z podłączonym zasilaniem z obu stron
                 Red = 1.0f;
                 Green = 1.0f;
                 Blue = 0.0f;
+                break;
+            }
+            case 4: {
+                // niebieskie z podłączonym zasilaniem
+                Red = 0.5f;
+                Green = 0.5f;
+                Blue = 1.0f;
                 break;
             }
             default: { break; }

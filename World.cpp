@@ -281,11 +281,10 @@ bool TWorld::Init( GLFWwindow *Window ) {
     Global::window = Window; // do WM_COPYDATA
     Global::pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
 
-    WriteLog("\nStarting MaSzyna rail vehicle simulator.");
-    WriteLog( "Release " + Global::asRelease + " (executable: " + Global::ExecutableName + ")" );
-    WriteLog("Online documentation and additional files on http://eu07.pl");
-    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n");
+    WriteLog( "\nStarting MaSzyna rail vehicle simulator (release: " + Global::asVersion + ")" );
+    WriteLog( "For online documentation and additional files refer to: http://eu07.pl");
+    WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+        "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
 
@@ -1982,7 +1981,7 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F9 ) : {
             // informacja o wersji, sposobie wyświetlania i błędach OpenGL
-            uitextline1 = Global::asVersion; // informacja o wersji
+            uitextline1 = "MaSzyna " + Global::asVersion; // informacja o wersji
             if( Global::iMultiplayer ) {
                 uitextline1 += " (multiplayer mode is active)";
             }
