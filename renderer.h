@@ -137,6 +137,8 @@ public:
     void
         Render( TMemCell *Memcell );
     bool
+        Render_Alpha( TGround *Ground );
+    bool
         Render_Alpha( TGroundNode *Node );
     bool
         Render_Alpha( TDynamicObject *Dynamic );

@@ -5802,14 +5802,12 @@ bool TTrain::CabChange(int iDirection)
                               DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName +
                                   ".mmd"))
             { // zmiana kabiny w ramach tego samego pojazdu
-                DynamicObject->MoverParameters
-                    ->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+                DynamicObject->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+                DynamicObject->Mechanik->CheckVehicles( Change_direction );
                 return true; // udało się zmienić kabinę
             }
-        DynamicObject->MoverParameters->CabActivisation(); // aktywizacja
-        // poprzedniej, bo
-        // jeszcze nie wiadomo,
-        // czy jakiś pojazd jest
+        // aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiś pojazd jest
+        DynamicObject->MoverParameters->CabActivisation();
     }
     return false; // ewentualna zmiana pojazdu
 }

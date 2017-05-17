@@ -320,9 +320,11 @@ class TController
     // procedury dotyczace rozkazow dla maszynisty
     void SetVelocity(double NewVel, double NewVelNext,
                      TStopReason r = stopNone); // uaktualnia informacje o prędkości
+/*
     bool SetProximityVelocity(
         double NewDist,
         double NewVelNext); // uaktualnia informacje o prędkości przy nastepnym semaforze
+*/
   public:
     void JumpToNextOrder();
     void JumpToFirstOrder();
@@ -331,6 +333,7 @@ class TController
     inline TOrders OrderCurrentGet();
     inline TOrders OrderNextGet();
     bool CheckVehicles(TOrders user = Wait_for_orders);
+    int CheckDirection();
 
   private:
     void CloseLog();
@@ -351,21 +354,22 @@ class TController
     void DirectionForward(bool forward);
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
-    double Distance(vector3 &p1, vector3 &n, vector3 &p2);
+//    double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
   private: // Ra: metody obsługujące skanowanie toru
     TEvent *CheckTrackEvent(double fDirection, TTrack *Track);
-    bool TableCheckEvent(TEvent *e);
+//    bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;
-    void TableClear();
-    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
+//    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     void TablePurger();
 public:
     std::size_t TableSize() const { return sSpeedTable.size(); }
+    void TableClear();
+    int TableDirection() { return iTableDirection; }
 
   private: // Ra: stare funkcje skanujące, używane do szukania sygnalizatora z tyłu
     bool BackwardTrackBusy(TTrack *Track);

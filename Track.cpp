@@ -2659,8 +2659,8 @@ bool TTrack::Switch(int i, double t, double d)
                                           true) // jeśli nie dodane do animacji
             { // nie ma się co bawić
                 SwitchExtension->fOffset = SwitchExtension->fDesiredOffset;
-                RaAnimate(); // przeliczenie położenia iglic; czy zadziała na niewyświetlanym
-                // sektorze w VBO?
+                // przeliczenie położenia iglic; czy zadziała na niewyświetlanym sektorze w VBO?
+                RaAnimate();
             }
             return true;
         }
@@ -2809,8 +2809,8 @@ void TTrack::RaAnimListAdd(TTrack *t)
 TTrack * TTrack::RaAnimate(GLuint const Vertexbuffer)
 { // wykonanie rekurencyjne animacji, wywoływane przed wyświetleniem sektora
     // zwraca wskaźnik toru wymagającego dalszej animacji
-    if (SwitchExtension->pNextAnim)
-        SwitchExtension->pNextAnim = SwitchExtension->pNextAnim->RaAnimate();
+    if( SwitchExtension->pNextAnim )
+        SwitchExtension->pNextAnim = SwitchExtension->pNextAnim->RaAnimate( Vertexbuffer );
     bool m = true; // animacja trwa
     if (eType == tt_Switch) // dla zwrotnicy tylko szyny
     {

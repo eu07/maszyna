@@ -97,8 +97,6 @@ struct TGroundVertex
     }
 };
 
-class TSubRect; // sektor (aktualnie 200m×200m, ale może być zmieniony)
-
 class TGroundNode : public Resource
 { // obiekt scenerii
 
@@ -216,8 +214,7 @@ class TSubRect : public Resource, public CMesh
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
     TTraction * FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude);
-    bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i
-    // (nRenderWires)
+    bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
     void RaAnimate(); // przeliczenie animacji torów
     void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
@@ -335,11 +332,6 @@ class TGround
     void Update_Lights(); // updates scene lights array
     bool AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool GetTraction(TDynamicObject *model);
-    bool Render( Math3D::vector3 const &Camera );
-    bool RenderDL(vector3 pPosition);
-    bool RenderAlphaDL(vector3 pPosition);
-    bool RenderVBO(vector3 pPosition);
-    bool RenderAlphaVBO(vector3 pPosition);
     bool CheckQuery();
     TGroundNode * DynamicFindAny(std::string asNameToFind);
     TGroundNode * DynamicFind(std::string asNameToFind);

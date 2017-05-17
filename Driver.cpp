@@ -82,8 +82,8 @@ Tutaj łączymy teorię z praktyką - tu nic nie działa i nikt nie wie dlaczego
 // stałe
 const double EasyReactionTime = 0.5; //[s] przebłyski świadomości dla zwykłej jazdy
 const double HardReactionTime = 0.2;
-const double EasyAcceleration = 0.5; //[m/ss]
-const double HardAcceleration = 0.9;
+const double EasyAcceleration = 0.85; //[m/ss]
+const double HardAcceleration = 9.81;
 const double PrepareTime = 2.0; //[s] przebłyski świadomości przy odpalaniu
 bool WriteLogFlag = false;
 
@@ -450,7 +450,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
     TEvent *pEvent{ nullptr };
     double fLastDir{ 0.0 };
 
-    if (iTableDirection != iDirection) {
+    if (iTableDirection != iDirection ) {
         // jeśli zmiana kierunku, zaczynamy od toru ze wskazanym pojazdem
         iTableDirection = iDirection; // ustalenie w jakim kierunku jest wypełniana tabelka względem pojazdu
         pTrack = pVehicle->RaTrackGet(); // odcinek, na którym stoi
@@ -468,6 +468,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         SemNextStopIndex = -1;
     }
     else {
+        if( iTableDirection == 0 ) { return; }
         // kontynuacja skanowania od ostatnio sprawdzonego toru (w ostatniej pozycji zawsze jest tor)
         if( ( SemNextStopIndex != -1 )
          && ( sSpeedTable[SemNextStopIndex].fVelNext < 1.0 ) ) {
@@ -499,6 +500,11 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             ( lastspeedpoint.iFlags & ( spElapsed | spEnd ) != 0 ) ?
                 0.0 :
                 pTrack->Length() );
+    }
+
+    if( iTableDirection == 0 ) {
+        // don't bother
+        return;
     }
 
     if( fCurrentDistance >= fDistance ) {
@@ -1664,14 +1670,20 @@ void TController::AutoRewident()
     }
 };
 
+int TController::CheckDirection() {
+
+    int d = mvOccupied->DirAbsolute; // który sprzęg jest z przodu
+    if( !d ) // jeśli nie ma ustalonego kierunku
+        d = mvOccupied->CabNo; // to jedziemy wg aktualnej kabiny
+    iDirection = d; // ustalenie kierunku jazdy (powinno zrobić PrepareEngine?)
+    return d;
+}
+
 bool TController::CheckVehicles(TOrders user)
 { // sprawdzenie stanu posiadanych pojazdów w składzie i zapalenie świateł
     TDynamicObject *p; // roboczy wskaźnik na pojazd
     iVehicles = 0; // ilość pojazdów w składzie
-    int d = mvOccupied->DirAbsolute; // który sprzęg jest z przodu
-    if (!d) // jeśli nie ma ustalonego kierunku
-        d = mvOccupied->CabNo; // to jedziemy wg aktualnej kabiny
-    iDirection = d; // ustalenie kierunku jazdy (powinno zrobić PrepareEngine?)
+    int d = CheckDirection();
     d = d >= 0 ? 0 : 1; // kierunek szukania czoła (numer sprzęgu)
     pVehicles[0] = p = pVehicle->FirstFind(d); // pojazd na czele składu
     // liczenie pojazdów w składzie i ustalenie parametrów
@@ -2058,20 +2070,22 @@ bool TController::PrepareEngine()
         mvOccupied->BatterySwitch(true);
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         { // jeśli silnikowy jest pantografującym
-            if (mvControlling->PantPress > 4.3)
-            { // jeżeli jest wystarczające ciśnienie w pantografach
+            mvControlling->PantFront( true );
+            mvControlling->PantRear( true );
+            if (mvControlling->PantPress < 4.2) {
+                // załączenie małej sprężarki
+                if( mvControlling->TrainType != dt_EZT ) {
+                    // odłączenie zbiornika głównego, bo z nim nie da rady napompować
+                    mvControlling->bPantKurek3 = false;
+                }
+                mvControlling->PantCompFlag = true; // załączenie sprężarki pantografów
+            }
+            else {
+                // jeżeli jest wystarczające ciśnienie w pantografach
                 if ((!mvControlling->bPantKurek3) ||
                     (mvControlling->PantPress <=
                      mvControlling->ScndPipePress)) // kurek przełączony albo główna już pompuje
                     mvControlling->PantCompFlag = false; // sprężarkę pantografów można już wyłączyć
-                mvControlling->PantFront(true);
-                mvControlling->PantRear(true);
-            }
-            else if (mvControlling->PantPress < 4.2) //żeby nie załączał zaraz po przekroczeniu 4.0
-            { // załączenie małej sprężarki
-                mvControlling->bPantKurek3 =
-                    false; // odłączenie zbiornika głównego, bo z nim nie da rady napompować
-                mvControlling->PantCompFlag = true; // załączenie sprężarki pantografów
             }
         }
         // if (mvOccupied->TrainType==dt_EZT)
@@ -2352,11 +2366,19 @@ bool TController::IncSpeed()
         if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeśli gada, to nie jedziemy
             return false;
     bool OK = true;
-    if ( ( iDrivigFlags & moveDoorOpened )
-      && ( VelDesired > 0.0 ) ) // to prevent door shuffle on stop
-        Doors(false); // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
-    if (fActionTime < 0.0) // gdy jest nakaz poczekać z jazdą, to nie ruszać
+    if( ( iDrivigFlags & moveDoorOpened )
+     && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop
+          // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
+        Doors( false );
+    }
+    if( fActionTime < 0.0 ) {
+        // gdy jest nakaz poczekać z jazdą, to nie ruszać
         return false;
+    }
+    if( true == mvOccupied->DepartureSignal ) {
+        // shut off departure warning
+        mvOccupied->DepartureSignal = false;
+    }
     if (mvControlling->SlippingWheels)
         return false; // jak poślizg, to nie przyspieszamy
     switch (mvOccupied->EngineType)
@@ -2528,8 +2550,6 @@ void TController::SpeedSet()
     switch (mvOccupied->EngineType)
     {
     case None: // McZapkie-041003: wagon sterowniczy
-        if (fActionTime >= -1.0)
-            mvOccupied->DepartureSignal = false; // trochę niech pobuczy, zanim pojedzie
         if (mvControlling->MainCtrlPosNo > 0)
         { // jeśli ma czym kręcić
             // TODO: sprawdzanie innego czlonu //if (!FuseFlagCheck())
@@ -2714,17 +2734,24 @@ void TController::Doors(bool what)
     { // zamykanie
         if (mvOccupied->DoorOpenCtrl == 1)
         { // jeśli drzwi sterowane z kabiny
-            if (AIControllFlag)
-                if (mvOccupied->DoorLeftOpened || mvOccupied->DoorRightOpened)
-                { // AI zamyka drzwi przed odjazdem
-                    if (mvOccupied->DoorClosureWarning)
+            if( AIControllFlag ) {
+                if( mvOccupied->DoorLeftOpened || mvOccupied->DoorRightOpened ) { // AI zamyka drzwi przed odjazdem
+                    if( ( true == mvOccupied->DoorClosureWarning )
+                     && ( false == mvOccupied->DepartureSignal )
+                     && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
                         mvOccupied->DepartureSignal = true; // załącenie bzyczka
-                    mvOccupied->DoorLeft(false); // zamykanie drzwi
-                    mvOccupied->DoorRight(false);
+                        fActionTime = -3.0 - 0.1 * Random( 10 ); // 3-4 second wait
+                    }
+                    if( fActionTime > -0.5 ) {
                     // Ra: trzeba by ustawić jakiś czas oczekiwania na zamknięcie się drzwi
-                    fActionTime = -1.5 - 0.1 * Random(10); // czekanie sekundę, może trochę dłużej
-                    iDrivigFlags &= ~moveDoorOpened; // nie wykonywać drugi raz
+                        mvOccupied->DoorLeft( false ); // zamykanie drzwi
+                        mvOccupied->DoorRight( false );
+                        iDrivigFlags &= ~moveDoorOpened;
+                        // 1.5-2.5 sec wait, +potentially 0.5 remaining
+                        fActionTime = -1.5 - 0.1 * Random( 10 );
+                    }
                 }
+            }
         }
         else
         { // jeśli nie, to zamykanie w składzie wagonowym
@@ -2736,7 +2763,7 @@ void TController::Doors(bool what)
                 p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
             }
             // WaitingSet(5); //10 sekund tu to za długo, opóźnia odjazd o pół minuty
-            fActionTime = -1.5 - 0.1 * Random(10); // czekanie sekundę, może trochę dłużej
+            fActionTime = -3.0 - 0.1 * Random(10); // czekanie sekundę, może trochę dłużej
             iDrivigFlags &= ~moveDoorOpened; // zostały zamknięte - nie wykonywać drugi raz
         }
     }
@@ -3261,18 +3288,12 @@ bool TController::UpdateSituation(double dt)
     {
         if (mvControlling->EnginePowerSource.SourceType == CurrentCollector)
         {
-            if (mvOccupied->ScndPipePress > 4.3) // gdy główna sprężarka bezpiecznie nabije
-                // ciśnienie
-                mvControlling->bPantKurek3 =
-                    true; // to można przestawić kurek na zasilanie pantografów z głównej pneumatyki
+            if (mvOccupied->ScndPipePress > 4.3) // gdy główna sprężarka bezpiecznie nabije ciśnienie
+                mvControlling->bPantKurek3 = true; // to można przestawić kurek na zasilanie pantografów z głównej pneumatyki
             fVoltage =
                 0.5 * (fVoltage +
                        fabs(mvControlling->RunningTraction.TractionVoltage)); // uśrednione napięcie
-            // sieci: przy spadku
-            // poniżej wartości
-            // minimalnej opóźnić
-            // rozruch o losowy
-            // czas
+            // sieci: przy spadku poniżej wartości minimalnej opóźnić rozruch o losowy czas
             if (fVoltage < mvControlling->EnginePowerSource.CollectorParameters
                                .MinV) // gdy rozłączenie WS z powodu niskiego napięcia
                 if (fActionTime >= 0) // jeśli czas oczekiwania nie został ustawiony

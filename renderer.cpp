@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 #include "timer.h"
 #include "world.h"
+#include "data.h"
 #include "dynobj.h"
 #include "animmodel.h"
 #include "traction.h"
@@ -146,7 +147,7 @@ opengl_renderer::Render() {
         m_camera.update_frustum();
 
         Render( &World.Environment );
-        World.Ground.Render( World.Camera.Pos );
+        Render( &World.Ground );
 
         World.Render_Cab();
 
@@ -293,7 +294,7 @@ opengl_renderer::Render( world_environment *Environment ) {
 
 bool
 opengl_renderer::Render( TGround *Ground ) {
-
+/*
     glDisable( GL_BLEND );
     glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     glEnable( GL_LIGHTING );
@@ -315,8 +316,102 @@ opengl_renderer::Render( TGround *Ground ) {
             }
         }
     }
+*/
+    ::glEnable( GL_LIGHTING );
+    ::glDisable( GL_BLEND );
+    ::glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    ::glColor3f( 1.0f, 1.0f, 1.0f );
 
-    return true;
+    ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
+
+    Update_Lights( Ground->m_lights );
+
+    Ground->CameraDirection.x = std::sin( Global::pCameraRotation ); // wektor kierunkowy
+    Ground->CameraDirection.z = std::cos( Global::pCameraRotation );
+    TGroundNode *node;
+    // rednerowanie globalnych (nie za często?)
+    for( node = Ground->srGlobal.nRenderHidden; node; node = node->nNext3 ) {
+        node->RenderHidden();
+    }
+    // renderowanie czołgowe dla obiektów aktywnych a niewidocznych
+    int n = 2 * iNumSubRects; //(2*==2km) promień wyświetlanej mapy w sektorach
+    int c = Ground->GetColFromX( Global::pCameraPosition.x );
+    int r = Ground->GetRowFromZ( Global::pCameraPosition.z );
+    TSubRect *tmp;
+    int i, j, k;
+    for( j = r - n; j <= r + n; j++ ) {
+        for( i = c - n; i <= c + n; i++ ) {
+            if( ( tmp = Ground->FastGetSubRect( i, j ) ) != nullptr ) {
+                // oznaczanie aktywnych sektorów
+                tmp->LoadNodes();
+
+                for( node = tmp->nRenderHidden; node; node = node->nNext3 ) {
+                    node->RenderHidden();
+                }
+                // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
+                tmp->RenderSounds();
+            }
+        }
+    }
+    // renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
+    Ground->iRendered = 0; // ilość renderowanych sektorów
+    Math3D::vector3 direction;
+    for( k = 0; k < Global::iSegmentsRendered; ++k ) // sektory w kolejności odległości
+    { // przerobione na użycie SectorOrder
+        i = SectorOrder[ k ].x; // na starcie oba >=0
+        j = SectorOrder[ k ].y;
+        do {
+            // pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
+            if( j <= 0 )
+                i = -i;
+            j = -j; // i oraz j musi być zmienione wcześniej, żeby continue działało
+            direction = Math3D::vector3( i, 0, j ); // wektor od kamery do danego sektora
+            if( Math3D::LengthSquared3( direction ) > 5 ) // te blisko są zawsze wyświetlane
+            {
+                direction = Math3D::SafeNormalize( direction ); // normalizacja
+                if( Ground->CameraDirection.x * direction.x + Ground->CameraDirection.z * direction.z < 0.55 )
+                    continue; // pomijanie sektorów poza kątem patrzenia
+            }
+            // kwadrat kilometrowy nie zawsze, bo szkoda FPS
+            if( Global::bUseVBO ) {
+                // vbo render path
+                Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderVBO();
+            }
+            else {
+                // display list render path
+                Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderDL();
+            }
+            if( ( tmp = Ground->FastGetSubRect( i + c, j + r ) ) != nullptr ) {
+                if( tmp->iNodeCount ) {
+                    // o ile są jakieś obiekty, bo po co puste sektory przelatywać
+                    Ground->pRendered[ Ground->iRendered++ ] = tmp; // tworzenie listy sektorów do renderowania
+                }
+            }
+        } while( ( i < 0 ) || ( j < 0 ) ); // są 4 przypadki, oprócz i=j=0
+    }
+
+    // dodać renderowanie terenu z E3D - jedno VBO jest używane dla całego modelu, chyba że jest ich więcej
+    if( Global::bUseVBO ) {
+        if( Global::pTerrainCompact ) {
+            Global::pTerrainCompact->TerrainRenderVBO( TGroundRect::iFrameNumber );
+        }
+    }
+
+    // renderowanie nieprzezroczystych
+    for( i = 0; i < Ground->iRendered; ++i ) {
+        if( Global::bUseVBO ) {
+            // vbo render path
+            Ground->pRendered[ i ]->RenderVBO();
+        }
+        else {
+            // display list render path
+            Ground->pRendered[ i ]->RenderDL();
+        }
+    }
+
+    // regular render takes care of all solid geometry present in the scene, thus we can launch alpha parts render here
+    return Render_Alpha( Ground );
+
 }
 
 bool
@@ -431,7 +526,12 @@ opengl_renderer::Render( TGroundNode *Node ) {
             }
             else {
                 // display list render path
-                ::glCallList( Node->DisplayListID );
+                if( Node->DisplayListID != 0 ) {
+                    ::glCallList( Node->DisplayListID );
+                }
+                else {
+                    return false;
+                }
             }
             return true;
         }
@@ -728,6 +828,75 @@ opengl_renderer::Render( TMemCell *Memcell ) {
 
     ::glPopMatrix();
     ::glPopAttrib();
+}
+
+bool
+opengl_renderer::Render_Alpha( TGround *Ground ) {
+
+    // legacy version of the code:
+    ::glEnable( GL_BLEND );
+    ::glAlphaFunc( GL_GREATER, 0.04f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    ::glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+
+    TGroundNode *node;
+    TSubRect *tmp;
+    // Ra: renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
+    for( int i = Ground->iRendered - 1; i >= 0; --i ) // od najdalszych
+    { // przezroczyste trójkąty w oddzielnym cyklu przed modelami
+        tmp = Ground->pRendered[ i ];
+        if( Global::bUseVBO ) {
+            // vbo render path
+            if( tmp->StartVBO() ) {
+                for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
+                    if( node->iVboPtr >= 0 ) {
+                        Render_Alpha( node );
+                    }
+                }
+                tmp->EndVBO();
+            }
+        }
+        else {
+            // display list render path
+            for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
+                Render_Alpha( node );
+            }
+        }
+    }
+    for( int i = Ground->iRendered - 1; i >= 0; --i ) // od najdalszych
+    { // renderowanie przezroczystych modeli oraz pojazdów
+        if( Global::bUseVBO ) {
+            // vbo render path
+            Ground->pRendered[ i ]->RenderAlphaVBO();
+        }
+        else {
+            // display list render path
+            Ground->pRendered[ i ]->RenderAlphaDL();
+        }
+    }
+
+    ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
+
+    for( int i = Ground->iRendered - 1; i >= 0; --i ) // od najdalszych
+    { // druty na końcu, żeby się nie robiły białe plamy na tle lasu
+        tmp = Ground->pRendered[ i ];
+        if( Global::bUseVBO ) {
+            // vbo render path
+            if( tmp->StartVBO() ) {
+                for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
+                    Render_Alpha( node );
+                }
+                tmp->EndVBO();
+            }
+        }
+        else {
+            // display list render path
+            for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
+                Render_Alpha( node ); // druty
+            }
+        }
+    }
+
+    return true;
 }
 
 // NOTE: legacy render system switch
