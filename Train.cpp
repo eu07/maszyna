@@ -5820,6 +5820,8 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     //Wartości domyślne by nie wysypywało przy wybrakowanych mmd @240816 Stele
+    // NOTE: should be no longer needed as safety checks were added,
+    // but leaving the defaults for the sake of incomplete mmd files
     dsbPneumaticSwitch = TSoundsManager::GetFromName("silence1.wav", true);
     dsbBufferClamp = TSoundsManager::GetFromName("en57_bufferclamp.wav", true);
     dsbCouplerDetach = TSoundsManager::GetFromName("couplerdetach.wav", true);
@@ -5847,67 +5849,67 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // nastawnik:
                 dsbNastawnikJazdy =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "ctrlscnd:")
             {
                 // hunter-081211: nastawnik bocznikowania
                 dsbNastawnikBocz =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "reverserkey:")
             {
                 // hunter-131211: dzwiek kierunkowego
                 dsbReverserKey =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "buzzer:")
             {
                 // bzyczek shp:
                 dsbBuzzer =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "slipalarm:")
             {
                 // Bombardier 011010: alarm przy poslizgu:
                 dsbSlipAlarm =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "tachoclock:")
             {
                 // cykanie rejestratora:
                 dsbHasler =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "switch:")
             {
                 // przelaczniki:
                 dsbSwitch =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "pneumaticswitch:")
             {
                 // stycznik EP:
                 dsbPneumaticSwitch =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "wejscie_na_bezoporow:")
             {
                 // hunter-111211: wydzielenie wejscia na bezoporowa i na drugi uklad do pliku
                 dsbWejscie_na_bezoporow =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "wejscie_na_drugi_uklad:")
             {
 
                 dsbWejscie_na_drugi_uklad =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "relay:")
             {
                 // styczniki itp:
                 dsbRelay =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
                 if (!dsbWejscie_na_bezoporow)
                 { // hunter-111211: domyslne, gdy brak
                     dsbWejscie_na_bezoporow =
@@ -5923,39 +5925,37 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // wylaczniki pneumatyczne:
                 dsbPneumaticRelay =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "couplerattach:")
             {
                 // laczenie:
                 dsbCouplerAttach =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "couplerstretch:")
             {
                 // laczenie:
-                dsbCouplerStretch = TSoundsManager::GetFromName(
-                    parser.getToken<std::string>().c_str(),
-                    true); // McZapkie-090503: PROWIZORKA!!! "en57_couplerstretch.wav"
+                dsbCouplerStretch =
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "couplerdetach:")
             {
                 // rozlaczanie:
                 dsbCouplerDetach =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "bufferclamp:")
             {
                 // laczenie:
-                dsbBufferClamp = TSoundsManager::GetFromName(
-                    parser.getToken<std::string>().c_str(),
-                    true); // McZapkie-090503: PROWIZORKA!!! "en57_bufferclamp.wav"
+                dsbBufferClamp =
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "ignition:")
             {
                 // odpalanie silnika
                 dsbDieselIgnition =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "brakesound:")
             {
@@ -6073,25 +6073,25 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // podniesienie patyka:
                 dsbPantUp =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "pantographdown:")
             {
                 // podniesienie patyka:
                 dsbPantDown =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "doorclose:")
             {
                 // zamkniecie drzwi:
                 dsbDoorClose =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "dooropen:")
             {
                 // otwarcie drzwi:
                 dsbDoorOpen =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
 
         } while (token != "");

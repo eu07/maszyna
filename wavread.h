@@ -15,12 +15,12 @@ http://mozilla.org/MPL/2.0/.
 //
 // Copyright (c) 1999 Microsoft Corp. All rights reserved.
 //-----------------------------------------------------------------------------
-#ifndef WAVE_READ_H
-#define WAVE_READ_H
+#pragma once
 
 #include <mmsystem.h>
+#include <string>
 
-HRESULT WaveOpenFile(CHAR *strFileName, HMMIO *phmmioIn, WAVEFORMATEX **ppwfxInfo,
+HRESULT WaveOpenFile(std::string const &Filename, HMMIO *phmmioIn, WAVEFORMATEX **ppwfxInfo,
                      MMCKINFO *pckInRIFF);
 HRESULT WaveStartDataRead(HMMIO *phmmioIn, MMCKINFO *pckIn, MMCKINFO *pckInRIFF);
 HRESULT WaveReadFile(HMMIO hmmioIn, UINT cbRead, BYTE *pbDest, MMCKINFO *pckIn, UINT *cbActualRead);
@@ -41,10 +41,8 @@ class CWaveSoundRead
     CWaveSoundRead();
     ~CWaveSoundRead();
 
-    HRESULT Open(CHAR *strFilename);
+    HRESULT Open(std::string const &Filename);
     HRESULT Reset();
     HRESULT Read(UINT nSizeToRead, BYTE *pbData, UINT *pnSizeRead);
     HRESULT Close();
 };
-
-#endif WAVE_READ_H

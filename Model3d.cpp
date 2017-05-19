@@ -1577,8 +1577,12 @@ TModel3d::~TModel3d()
 	}
 	else
 	{ // wczytano z pliku binarnego (jest właścicielem tablic)
-		m_pVNT = NULL; // nie usuwać tego, bo wskazuje na iModel
-		Root = NULL;
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+		m_pVNT = nullptr; // nie usuwać tego, bo wskazuje na iModel
+#else
+        m_pVNT.clear();
+#endif
+		Root = nullptr;
 		delete[] iModel; // usuwamy cały wczytany plik i to wystarczy
 	}
 	// później się jeszcze usuwa obiekt z którego dziedziczymy tabelę VBO
@@ -1801,7 +1805,11 @@ void TModel3d::SaveToBinFile(char const *FileName)
 		transforms[i].serialize_float32(s);
 
 	MakeArray(iNumVerts);
-	Root->RaArrayFill(m_pVNT);
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    Root->RaArrayFill(m_pVNT);
+#else
+    Root->RaArrayFill( m_pVNT.data() );
+#endif
 	sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
 	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
 	for (size_t i = 0; i < (size_t)iNumVerts; i++)
@@ -1886,7 +1894,11 @@ void TSubModel::deserialize(std::istream &s)
 
 void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
-	m_pVNT = nullptr;
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    m_pVNT = nullptr;
+#else
+    m_pVNT.clear();
+#endif
 	Root = nullptr;
 	float4x4 *tm = nullptr;
 
@@ -1900,13 +1912,22 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 
 		if (type == MAKE_ID4('V', 'N', 'T', '0'))
 		{
-			if (m_pVNT != nullptr)
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            if (m_pVNT != nullptr)
+#else
+            if( false == m_pVNT.empty() )
+#endif
 				throw std::runtime_error("e3d: duplicated VNT chunk");
 
 			size_t vt_cnt = size / 32;
 			iNumVerts = (int)vt_cnt;
 			m_nVertexCount = (int)vt_cnt;
-			m_pVNT = new CVertNormTex[vt_cnt];
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            assert( m_pVNT == nullptr );
+            m_pVNT = new CVertNormTex[vt_cnt];
+#else
+            m_pVNT.resize( vt_cnt );
+#endif
 			for (size_t i = 0; i < vt_cnt; i++)
 				m_pVNT[i].deserialize(s);
 		}
@@ -1967,12 +1988,20 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 	if (!Root)
 		throw std::runtime_error("e3d: no submodels");
 
-	if (!m_pVNT)
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    if (!m_pVNT)
+#else
+    if(m_pVNT.empty() )
+#endif
 		throw std::runtime_error("e3d: no vertices");
 
 	for (size_t i = 0; (int)i < iSubModelsCount; i++)
 	{
-		Root[i].BinInit(Root, tm, (float8*)m_pVNT, &Textures, &Names, dynamic);
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+        Root[i].BinInit(Root, tm, (float8*)m_pVNT, &Textures, &Names, dynamic);
+#else
+        Root[ i ].BinInit( Root, tm, (float8*)m_pVNT.data(), &Textures, &Names, dynamic );
+#endif
 
 		if (Root[i].ChildGet())
 			Root[i].ChildGet()->Parent = &Root[i];
@@ -2151,11 +2180,18 @@ void TModel3d::Init()
 */
 			if (Global::bUseVBO)
 			{
-				if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku
-							 // tekstowego)
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+                if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
+#else
+                if( m_pVNT.empty() )
+#endif
 				{ // tworzenie tymczasowej tablicy z wierzchołkami całego modelu
 					MakeArray(iNumVerts); // tworzenie tablic dla VBO
-					Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+                    Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
+#else
+                    Root->RaArrayFill( m_pVNT.data() ); // wypełnianie tablicy
+#endif
 					BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamięci
 				}
 				else

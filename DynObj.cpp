@@ -5072,7 +5072,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 					// plik z przyspieszaczem (upust po zlapaniu hamowania)
                     //         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
 					parser.getTokens( 1, false ); parser >> token;
-					sBrakeAcc = TSoundsManager::GetFromName( token.c_str(), true );
+					sBrakeAcc = TSoundsManager::GetFromName( token, true );
                     bBrakeAcc = true;
                     //         sBrakeAcc.AM=1.0;
                     //         sBrakeAcc.AA=0.0;

@@ -823,11 +823,19 @@ void TSubRect::LoadNodes()
                     break;
                 case TP_TRACK:
                     if (n->iNumVerts) // bo tory zabezpieczające są niewidoczne
-                        n->pTrack->RaArrayFill(m_pVNT + n->iVboPtr, m_pVNT);
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+                        n->pTrack->RaArrayFill( m_pVNT + n->iVboPtr, m_pVNT );
+#else
+                        n->pTrack->RaArrayFill(m_pVNT.data() + n->iVboPtr, m_pVNT.data());
+#endif
                     break;
                 case TP_TRACTION:
                     if (n->iNumVerts) // druty mogą być niewidoczne...?
-                        n->hvTraction->RaArrayFill(m_pVNT + n->iVboPtr);
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+                        n->hvTraction->RaArrayFill( m_pVNT + n->iVboPtr );
+#else
+                        n->hvTraction->RaArrayFill(m_pVNT.data() + n->iVboPtr);
+#endif
                     break;
                 }
             n = n->nNext2; // następny z sektora

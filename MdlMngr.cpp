@@ -56,7 +56,8 @@ void TModelsManager::Init()
   */
 void TModelsManager::Free()
 {
-    SafeDeleteArray(Models);
+    delete[] Models;
+    Models = nullptr;
 }
 
 TModel3d * TModelsManager::LoadModel(std::string const &Name, bool dynamic)
