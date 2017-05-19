@@ -324,8 +324,10 @@ int TTraction::RaArrayPrepare()
     return iLines;
 };
 
-void TTraction::RaArrayFill(CVertNormTex *Vert)
+int TTraction::RaArrayFill(CVertNormTex *Vert)
 { // wypełnianie tablic VBO
+    int debugvertexcount{ 0 };
+
     double ddp = std::hypot(pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z);
     if (Wires == 2)
         WireOffset = 0;
@@ -334,10 +336,12 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
     Vert->y = pPoint1.y;
     Vert->z = pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
     ++Vert;
+    ++debugvertexcount;
     Vert->x = pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset;
     Vert->y = pPoint2.y;
     Vert->z = pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
     ++Vert;
+    ++debugvertexcount;
     // Nie wiem co 'Marcin
     Math3D::vector3 pt1, pt2, pt3, pt4, v1, v2;
     v1 = pPoint4 - pPoint3;
@@ -355,6 +359,7 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
         Vert->y = pPoint3.y;
         Vert->z = pPoint3.z;
         ++Vert;
+        ++debugvertexcount;
         for (int i = 0; i < iNumSections - 1; ++i)
         {
             pt3 = pPoint3 + v1 * f;
@@ -366,6 +371,7 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
                 Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference;
                 Vert->z = pt3.z;
                 ++Vert;
+                ++debugvertexcount;
             }
             f += step;
         }
@@ -373,6 +379,7 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
         Vert->y = pPoint4.y;
         Vert->z = pPoint4.z;
         ++Vert;
+        ++debugvertexcount;
     }
     // Drugi przewod jezdny 'Winger
     if (Wires > 2)
@@ -381,10 +388,12 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
         Vert->y = pPoint1.y;
         Vert->z = pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
         ++Vert;
+        ++debugvertexcount;
         Vert->x = pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
         Vert->y = pPoint2.y;
         Vert->z = pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
         ++Vert;
+        ++debugvertexcount;
     }
 
     f = step;
@@ -394,6 +403,7 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
         Vert->y = pPoint3.y - 0.65f * fHeightDifference;
         Vert->z = pPoint3.z;
         ++Vert;
+        ++debugvertexcount;
         for( int i = 0; i < iNumSections - 1; ++i ) {
             pt3 = pPoint3 + v1 * f;
             t = ( 1 - std::fabs( f - mid ) * 2 );
@@ -405,11 +415,14 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
                     0.05 );
             Vert->z = pt3.z;
             ++Vert;
+            ++debugvertexcount;
             f += step;
         }
         Vert->x = pPoint4.x;
         Vert->y = pPoint4.y - 0.65f * fHeightDifference;
         Vert->z = pPoint4.z;
+        ++Vert;
+        ++debugvertexcount;
     }
     f = step;
 
@@ -430,20 +443,24 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
                 Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 );
                 Vert->z = pt3.z;
                 ++Vert;
+                ++debugvertexcount;
                 Vert->x = pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset;
                 Vert->y = pt4.y;
                 Vert->z = pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
                 ++Vert;
+                ++debugvertexcount;
             }
             else {
                 Vert->x = pt3.x;
                 Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 );
                 Vert->z = pt3.z;
                 ++Vert;
+                ++debugvertexcount;
                 Vert->x = pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset;
                 Vert->y = pt4.y;
                 Vert->z = pt4.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
                 ++Vert;
+                ++debugvertexcount;
             }
             if( ( ( Wires == 4 )
              && ( ( i == 1 )
@@ -452,14 +469,17 @@ void TTraction::RaArrayFill(CVertNormTex *Vert)
                 Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - 0.05;
                 Vert->z = pt3.z;
                 ++Vert;
+                ++debugvertexcount;
                 Vert->x = pt3.x;
                 Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference;
                 Vert->z = pt3.z;
                 ++Vert;
+                ++debugvertexcount;
             }
             f += step;
         }
     }
+    return debugvertexcount;
 };
 
 void TTraction::RenderVBO(float mgn, int iPtr)

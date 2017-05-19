@@ -116,26 +116,24 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
         // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
         return false; // zerowe nie mogą być
     }
+
+    if( ( pOwner->eType == tt_Switch )
+     && ( fStep * 3.0 > fLength ) ) {
+        // NOTE: a workaround for too short switches (less than 3 segments) messing up animation/generation of blades
+        fStep = fLength / 3.0;
+    }
+
     fStoop = std::atan2((Point2.y - Point1.y), fLength); // pochylenie toru prostego, żeby nie liczyć wielokrotnie
     SafeDeleteArray(fTsBuffer);
 
-    if( ( bCurve ) && ( fStep > 0 ) ) {
-        if( fStep > 0 ) { // Ra: prosty dostanie podział, jak ma różną przechyłkę na końcach
-            double s = 0;
-            int i = 0;
-            iSegCount = static_cast<int>( std::ceil( fLength / fStep )); // potrzebne do VBO
-            // fStep=fLength/(double)(iSegCount-1); //wyrównanie podziału
-            fTsBuffer = new double[ iSegCount + 1 ];
-            fTsBuffer[ 0 ] = 0; /* TODO : fix fTsBuffer */
-            while( s < fLength ) {
-                i++;
-                s += fStep;
-                if( s > fLength )
-                    s = fLength;
-                fTsBuffer[ i ] = GetTFromS( s );
-            }
-        }
+    iSegCount = static_cast<int>( std::ceil( fLength / fStep ) ); // potrzebne do VBO
+    fTsBuffer = new double[ iSegCount + 1 ];
+    fTsBuffer[ 0 ] = 0.0;
+    for( int i = 1; i < iSegCount; ++i ) {
+        fTsBuffer[ i ] = GetTFromS( i * fStep );
     }
+    fTsBuffer[ iSegCount ] = 1.0;
+
     return true;
 }
 
@@ -317,14 +315,16 @@ vector3 TSegment::FastGetPoint(double t)
     return (bCurve ? RaInterpolate(t) : ((1.0 - t) * Point1 + (t)*Point2));
 }
 
-void TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, double fOffsetX, bool Onlypositions, vector3 **p, bool bRender)
+int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, double fOffsetX, bool Onlypositions, vector3 **p, bool bRender)
 { // generowanie trójkątów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla łuku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
     // podany jest przekrój końcowy
     // podsypka toru jest robiona za pomocą 6 punktów, szyna 12, drogi i rzeki na 3+2+3
+    int debugvertexcount{ 0 };
+
     if( !fTsBuffer )
-        return; // prowizoryczne zabezpieczenie przed wysypem - ustalić faktyczną przyczynę
+        return debugvertexcount; // prowizoryczne zabezpieczenie przed wysypem - ustalić faktyczną przyczynę
 
     vector3 pos1, pos2, dir, parallel1, parallel2, pt, norm;
     double s, step, fOffset, tv1, tv2, t, fEnd;
@@ -348,6 +348,9 @@ void TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, in
     fEnd = fLength * double( iEnd ) / double( iSegCount );
     m2 = s / fEnd;
     jmm2 = 1.0 - m2;
+
+    int const debugvertexlimit = std::abs( iNumShapePoints ) * 2 * ( iEnd - iSkip );
+
     while( i < iEnd ) {
 
         ++i; // kolejny punkt łamanej
@@ -410,6 +413,7 @@ void TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, in
                         }
                         ++Output;
                     }
+                    ++debugvertexcount;
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -447,6 +451,7 @@ void TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, in
                         }
                         ++Output;
                     }
+                    ++debugvertexcount;
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -455,64 +460,73 @@ void TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, in
                                 *( *p ) = pt;
                                 ( *p )++;
                             } // zapamiętanie brzegu jezdni
+
+                assert( debugvertexcount <= debugvertexlimit );
             }
         }
         else {
-            for( int j = 0; j < iNumShapePoints; ++j ) {
-                //łuk z jednym profilem
-                pt = parallel1 * ( ShapePoints[ j ].x - fOffsetX ) + pos1;
-                pt.y += ShapePoints[ j ].y;
-                if( false == Onlypositions ) {
-                    norm = ShapePoints[ j ].n.x * parallel1;
-                    norm.y += ShapePoints[ j ].n.y;
-                }
-                if( Output == nullptr ) {
-                    // immediate mode
+            if( bRender  ) {
+                for( int j = 0; j < iNumShapePoints; ++j ) {
+                    //łuk z jednym profilem
+                    pt = parallel1 * ( ShapePoints[ j ].x - fOffsetX ) + pos1;
+                    pt.y += ShapePoints[ j ].y;
                     if( false == Onlypositions ) {
-                        ::glNormal3f( norm.x, norm.y, norm.z );
-                        ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv1 );
+                        norm = ShapePoints[ j ].n.x * parallel1;
+                        norm.y += ShapePoints[ j ].n.y;
                     }
-                    ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na początku odcinka
-                }
-                else {
-                    Output->x = pt.x;
-                    Output->y = pt.y;
-                    Output->z = pt.z;
+                    if( Output == nullptr ) {
+                        // immediate mode
+                        if( false == Onlypositions ) {
+                            ::glNormal3f( norm.x, norm.y, norm.z );
+                            ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv1 );
+                        }
+                        ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na początku odcinka
+                    }
+                    else {
+                        Output->x = pt.x;
+                        Output->y = pt.y;
+                        Output->z = pt.z;
+                        if( false == Onlypositions ) {
+                            Output->nx = norm.x;
+                            Output->ny = norm.y;
+                            Output->nz = norm.z;
+                            Output->u = ShapePoints[ j ].z / Texturescale;
+                            Output->v = tv1;
+                        }
+                        ++Output;
+                    }
+                    ++debugvertexcount;
+
+                    pt = parallel2 * ShapePoints[ j ].x + pos2;
+                    pt.y += ShapePoints[ j ].y;
                     if( false == Onlypositions ) {
-                        Output->nx = norm.x;
-                        Output->ny = norm.y;
-                        Output->nz = norm.z;
-                        Output->u = ShapePoints[ j ].z / Texturescale;
-                        Output->v = tv1;
+                        norm = ShapePoints[ j ].n.x * parallel2;
+                        norm.y += ShapePoints[ j ].n.y;
                     }
-                    ++Output;
-                }
-                pt = parallel2 * ShapePoints[ j ].x + pos2;
-                pt.y += ShapePoints[ j ].y;
-                if( false == Onlypositions ) {
-                    norm = ShapePoints[ j ].n.x * parallel2;
-                    norm.y += ShapePoints[ j ].n.y;
-                }
-                if( Output == nullptr ) {
-                    // immediate mode
-                    if( false == Onlypositions ) {
-                        ::glNormal3f( norm.x, norm.y, norm.z );
-                        ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv2 );
+                    if( Output == nullptr ) {
+                        // immediate mode
+                        if( false == Onlypositions ) {
+                            ::glNormal3f( norm.x, norm.y, norm.z );
+                            ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv2 );
+                        }
+                        ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na końcu odcinka
                     }
-                    ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na końcu odcinka
-                }
-                else {
-                    Output->x = pt.x;
-                    Output->y = pt.y;
-                    Output->z = pt.z;
-                    if( false == Onlypositions ) {
-                        Output->nx = norm.x;
-                        Output->ny = norm.y;
-                        Output->nz = norm.z;
-                        Output->u = ShapePoints[ j ].z / Texturescale;
-                        Output->v = tv2;
+                    else {
+                        Output->x = pt.x;
+                        Output->y = pt.y;
+                        Output->z = pt.z;
+                        if( false == Onlypositions ) {
+                            Output->nx = norm.x;
+                            Output->ny = norm.y;
+                            Output->nz = norm.z;
+                            Output->u = ShapePoints[ j ].z / Texturescale;
+                            Output->v = tv2;
+                        }
+                        ++Output;
                     }
-                    ++Output;
+                    ++debugvertexcount;
+
+                    assert( debugvertexcount <= debugvertexlimit );
                 }
             }
         }
@@ -526,6 +540,10 @@ void TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, in
             tv1 = tv2;
         }
     }
+
+    assert( debugvertexcount == debugvertexlimit );
+
+    return debugvertexcount;
 };
 
 void TSegment::Render()

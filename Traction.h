@@ -68,7 +68,7 @@ class TTraction
     //    virtual void SelectedRender();
     void RenderDL(float mgn);
     int RaArrayPrepare();
-    void RaArrayFill(CVertNormTex *Vert);
+    int RaArrayFill(CVertNormTex *Vert);
     void RenderVBO(float mgn, int iPtr);
     int TestPoint(Math3D::vector3 *Point);
     void Connect(int my, TTraction *with, int to);

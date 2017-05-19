@@ -787,6 +787,7 @@ void TSubRect::LoadNodes()
         return; // jeśli nie ma obiektów do wyświetlenia z VBO, to koniec
     if (Global::bUseVBO)
     { // tylko liczenie wierzchołów, gdy nie ma VBO
+        int debugvertexcount{ 0 };
         MakeArray(m_nVertexCount);
         n = nRootNode;
         int i;
@@ -808,7 +809,9 @@ void TSubRect::LoadNodes()
                         m_pVNT[n->iVboPtr + i].nz = n->Vertices[i].Normal.z;
                         m_pVNT[n->iVboPtr + i].u = n->Vertices[i].tu;
                         m_pVNT[n->iVboPtr + i].v = n->Vertices[i].tv;
+                        ++debugvertexcount;
                     }
+                    assert( debugvertexcount <= m_nVertexCount );
                     break;
                 case GL_LINES:
                 case GL_LINE_STRIP:
@@ -819,23 +822,35 @@ void TSubRect::LoadNodes()
                         m_pVNT[n->iVboPtr + i].y = n->Points[i].y;
                         m_pVNT[n->iVboPtr + i].z = n->Points[i].z;
                         // miejsce w tablicach normalnych i teksturowania się marnuje...
+                        ++debugvertexcount;
                     }
+                    assert( debugvertexcount <= m_nVertexCount );
                     break;
                 case TP_TRACK:
-                    if (n->iNumVerts) // bo tory zabezpieczające są niewidoczne
+                    if( n->iNumVerts ) { // bo tory zabezpieczające są niewidoczne
 #ifdef EU07_USE_OLD_VERTEXBUFFER
-                        n->pTrack->RaArrayFill( m_pVNT + n->iVboPtr, m_pVNT );
+                        int const batch = n->pTrack->RaArrayFill( m_pVNT + n->iVboPtr, m_pVNT, std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
 #else
-                        n->pTrack->RaArrayFill(m_pVNT.data() + n->iVboPtr, m_pVNT.data());
+                        int const batch = n->pTrack->RaArrayFill( m_pVNT.data() + n->iVboPtr, m_pVNT.data(), std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
 #endif
+                        assert( batch == n->iNumVerts );
+                        assert( batch + n->iVboPtr <= m_nVertexCount );
+                        debugvertexcount += batch;
+                        assert( debugvertexcount <= m_nVertexCount );
+                    }
                     break;
                 case TP_TRACTION:
-                    if (n->iNumVerts) // druty mogą być niewidoczne...?
+                    if( n->iNumVerts ) { // druty mogą być niewidoczne...?
 #ifdef EU07_USE_OLD_VERTEXBUFFER
-                        n->hvTraction->RaArrayFill( m_pVNT + n->iVboPtr );
+                        int const batch = n->hvTraction->RaArrayFill( m_pVNT + n->iVboPtr );
 #else
-                        n->hvTraction->RaArrayFill(m_pVNT.data() + n->iVboPtr);
+                        int const batch = n->hvTraction->RaArrayFill( m_pVNT.data() + n->iVboPtr );
 #endif
+                        assert( batch == n->iNumVerts );
+                        assert( batch + n->iVboPtr <= m_nVertexCount );
+                        debugvertexcount += batch;
+                        assert( debugvertexcount <= m_nVertexCount );
+                    }
                     break;
                 }
             n = n->nNext2; // następny z sektora
