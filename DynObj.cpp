@@ -1879,8 +1879,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     { // McZapkie-040602: jeśli coś siedzi w pojeździe
         if (Name == Global::asHumanCtrlVehicle) // jeśli pojazd wybrany do prowadzenia
         {
-            if (DebugModeFlag ? false : MoverParameters->EngineType !=
-                                            Dumb) // jak nie Debugmode i nie jest dumbem
+            if ( MoverParameters->EngineType != Dumb)
                 Controller = Humandriver; // wsadzamy tam sterującego
             else // w przeciwnym razie trzeba włączyć pokazywanie kabiny
                 bDisplayCab = true;

@@ -375,11 +375,12 @@ bool TWorld::Init( GLFWwindow *Window ) {
     WriteLog( "Load time: " +
 		std::to_string( std::chrono::duration_cast<std::chrono::seconds>(( std::chrono::system_clock::now() - timestart )).count() )
 		+ " seconds");
+/*
     if (DebugModeFlag) // w Debugmode automatyczne włączenie AI
         if (Train)
             if (Train->Dynamic()->Mechanik)
                 Train->Dynamic()->Mechanik->TakeControl(true);
-
+*/
     UILayer.set_progress();
     UILayer.set_background( "" );
     UILayer.clear_texts();
@@ -1748,11 +1749,9 @@ TWorld::Update_UI() {
                             Global::Bezogonkow( "| " + station + " | " + arrival + " | " + departure + " | " + vmax + " | " + tableline->StationWare, true ),
                             ( ( owner->iStationStart < table->StationIndex )
                            && ( i < table->StationIndex )
-                           && ( time.wHour >= tableline->Dh )
-                           && ( time.wMinute >= tableline->Dm ) ?
+                           && ( ( time.wHour * 60 + time.wMinute ) >= ( tableline->Dh * 60 + tableline->Dm ) ) ?
                                 float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
-                                Global::UITextColor )
-                            );
+                                Global::UITextColor ) );
                         // divider/footer
                         UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", Global::UITextColor );
                     }

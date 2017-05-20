@@ -114,7 +114,10 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     {
         ErrorLog( "Bad geometry (zero length) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
         // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
+        fLength = 0.01; // crude workaround TODO: fix this properly
+/*
         return false; // zerowe nie mogą być
+*/
     }
 
     if( ( pOwner->eType == tt_Switch )

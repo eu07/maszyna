@@ -110,6 +110,7 @@ int Global::iWindowHeight = 600;
 float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD
 int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
+bool Global::InputGamepad{ true };
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
 bool Global::VSync{ false };
@@ -800,6 +801,11 @@ void Global::ConfigParse(cParser &Parser)
             Parser >> Global::Background[0] // r
                 >> Global::Background[1] // g
                 >> Global::Background[2]; // b
+        }
+        else if( token == "input.gamepad" ) {
+            // czy grupować eventy o tych samych nazwach
+            Parser.getTokens();
+            Parser >> Global::InputGamepad;
         }
         // maciek001: ustawienia MWD
 		else if (token == "mwdmasterenable") {         // główne włączenie maszyny!

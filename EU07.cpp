@@ -411,7 +411,9 @@ int main(int argc, char *argv[])
             && GfxRenderer.Render())
         {
             glfwPollEvents();
-            input::Gamepad.poll();
+            if( true == Global::InputGamepad ) {
+                input::Gamepad.poll();
+            }
         }
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     }

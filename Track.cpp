@@ -532,7 +532,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             // na przechyłce doliczyć jeszcze pół przechyłki
         }
         if( fRadius != 0 ) // gdy podany promień
-            segsize = clamp( 0.2 + fabs( fRadius ) * 0.02, 2.5, 10.0 );
+            segsize = clamp( 0.2 + std::fabs( fRadius ) * 0.02, 2.0, 10.0 );
         else
             segsize = 10.0; // for straights, 10m per segment works good enough
 
@@ -595,7 +595,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             // na przechyłce doliczyć jeszcze pół przechyłki?
         }
         if (fRadiusTable[0] > 0)
-            segsize = clamp( 0.2 + fRadiusTable[0] * 0.02, 2.5, 5.0 );
+            segsize = clamp( 0.2 + fRadiusTable[0] * 0.02, 2.0, 5.0 );
         else if (eType != tt_Cross) // dla skrzyżowań muszą być podane kontrolne
         { // jak promień zerowy, to przeliczamy punkty kontrolne
             cp1 = (p1 + p1 + p2) / 3.0 - p1; // jak jest prosty, to się zoptymalizuje
@@ -625,7 +625,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         }
 
         if (fRadiusTable[1] > 0)
-            segsize = clamp( 0.2 + fRadiusTable[ 1 ] * 0.02, 2.5, 5.0 );
+            segsize = clamp( 0.2 + fRadiusTable[ 1 ] * 0.02, 2.0, 5.0 );
 
         else if (eType != tt_Cross) // dla skrzyżowań muszą być podane kontrolne
         { // jak promień zerowy, to przeliczamy punkty kontrolne

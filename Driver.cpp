@@ -2246,76 +2246,79 @@ bool TController::ReleaseEngine()
 bool TController::IncBrake()
 { // zwiększenie hamowania
     bool OK = false;
-    switch (mvOccupied->BrakeSystem)
-    {
-    case Individual:
-        if (mvOccupied->LocalBrake == ManualBrake)
-            OK = mvOccupied->IncManualBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) );
-        else
-            OK = mvOccupied->IncLocalBrakeLevel( std::floor( 1.5 + std::abs( AccDesired ) ) );
-        break;
-    case Pneumatic:
-        // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
-        if ((mvOccupied->Couplers[0].CouplingFlag == 0) &&
-            (mvOccupied->Couplers[1].CouplingFlag == 0))
-            OK = mvOccupied->IncLocalBrakeLevel(
-                1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) ); // hamowanie lokalnym bo luzem jedzie
-        else
-        {
-            if (mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo)
-            {
-                if (AccDesired < -1.5) // hamowanie nagle
-                    OK = mvOccupied->IncBrakeLevel();
-                else
-                    OK = false;
+    switch( mvOccupied->BrakeSystem ) {
+        case Individual: {
+            if( mvOccupied->LocalBrake == ManualBrake ) {
+                OK = mvOccupied->IncManualBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) );
+            }
+            else {
+                OK = mvOccupied->IncLocalBrakeLevel( std::floor( 1.5 + std::abs( AccDesired ) ) );
+            }
+            break;
+        }
+        case Pneumatic: {
+            // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
+            bool standalone{ true };
+            if( ( mvOccupied->TrainType == dt_ET41 )
+             || ( mvOccupied->TrainType == dt_ET42 ) ) {
+                   // NOTE: we're doing simplified checks full of presuptions here.
+                   // they'll break if someone does strange thing like turning around the second unit
+                if( ( mvOccupied->Couplers[ 1 ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ 1 ].Connected->Couplers[ 1 ].CouplingFlag > 0 ) ) {
+                    standalone = false;
+                }
+                if( ( mvOccupied->Couplers[ 0 ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ 0 ].Connected->Couplers[ 0 ].CouplingFlag > 0 ) ) {
+                    standalone = false;
+                }
+            }
+            else {
+                standalone =
+                    ( ( mvOccupied->Couplers[ 0 ].CouplingFlag == 0 )
+                   && ( mvOccupied->Couplers[ 1 ].CouplingFlag == 0 ) );
+            }
+            if( true == standalone ) {
+                OK = mvOccupied->IncLocalBrakeLevel(
+                    1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) ); // hamowanie lokalnym bo luzem jedzie
+            }
+            else {
+                if( mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo ) {
+                    if( AccDesired < -1.5 ) // hamowanie nagle
+                        OK = mvOccupied->IncBrakeLevel();
+                    else
+                        OK = false;
+                }
+                else {
+                    // dodane dla towarowego
+                    if( mvOccupied->BrakeDelayFlag == bdelay_G ?
+                        -AccDesired * 6.6 > std::min( 2, mvOccupied->BrakeCtrlPos ) :
+                        true ) {
+                        OK = mvOccupied->IncBrakeLevel();
+                    }
+                    else
+                        OK = false;
+                }
+            }
+            if( mvOccupied->BrakeCtrlPos > 0 ) {
+                mvOccupied->BrakeReleaser( 0 );
+            }
+            break;
+        }
+        case ElectroPneumatic: {
+            if( mvOccupied->EngineType == ElectricInductionMotor ) {
+                OK = mvOccupied->IncLocalBrakeLevel( 1 );
+            }
+            else if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_EPB ) ) {
+                mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
+                if( mvOccupied->Handle->GetPos( bh_EPR ) - mvOccupied->Handle->GetPos( bh_EPN ) < 0.1 )
+                    mvOccupied->SwitchEPBrake( 1 ); // to nie chce działać
+                OK = true;
             }
             else
-            {
-                /*
-                    if (AccDesired>-0.2) and ((Vel<20) or (Vel-VelNext<10)))
-                            begin
-                              if BrakeCtrlPos>0)
-                               OK:=IncBrakeLevel
-                              else;
-                               OK:=IncLocalBrakeLevel(1);   //finezyjne hamowanie lokalnym
-                             end
-                           else
-                */
-                // dodane dla towarowego
-                if (mvOccupied->BrakeDelayFlag == bdelay_G ?
-                        -AccDesired * 6.6 > std::min(2, mvOccupied->BrakeCtrlPos) :
-                        true)
-                {
-                    OK = mvOccupied->IncBrakeLevel();
-                }
-                else
-                    OK = false;
-            }
+                OK = false;
+            break;
         }
-        if (mvOccupied->BrakeCtrlPos > 0)
-            mvOccupied->BrakeReleaser(0);
-        break;
-    case ElectroPneumatic:
-        if (mvOccupied->EngineType == ElectricInductionMotor)
-        {
-            OK = mvOccupied->IncLocalBrakeLevel(1);
-        }
-        else if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPB))
-        {
-            mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPB));
-            if (mvOccupied->Handle->GetPos(bh_EPR) - mvOccupied->Handle->GetPos(bh_EPN) < 0.1)
-                mvOccupied->SwitchEPBrake(1); // to nie chce działać
-            OK = true;
-        }
-        else
-            OK = false;
-        //   if (mvOccupied->BrakeCtrlPos<mvOccupied->BrakeCtrlPosNo)
-        //    if
-        //    (mvOccupied->BrakePressureTable[mvOccupied->BrakeCtrlPos+1+2].BrakeType==ElectroPneumatic)
-        //    //+2 to indeks Pascala
-        //     OK=mvOccupied->IncBrakeLevel();
-        //    else
-        //     OK=false;
+        default: { break; }
     }
     return OK;
 }
