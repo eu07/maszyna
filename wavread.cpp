@@ -257,6 +257,8 @@ HRESULT CWaveSoundRead::Read(UINT nSizeToRead, BYTE *pbData, UINT *pnSizeRead)
 //-----------------------------------------------------------------------------
 HRESULT CWaveSoundRead::Close()
 {
-    mmioClose(m_hmmioIn, 0);
+    if( m_hmmioIn != NULL ) {
+        mmioClose( m_hmmioIn, 0 );
+    }
     return S_OK;
 }

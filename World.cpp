@@ -2384,103 +2384,119 @@ void TWorld::ModifyTGA(const std::string &dir)
     }
 */
 };
+
 //---------------------------------------------------------------------------
-std::string last; // zmienne używane w rekurencji
-double shift = 0;
-void TWorld::CreateE3D(std::string const &dir, bool dyn)
+
+void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
 { // rekurencyjna generowanie plików E3D
 
-/* TODO: remove Borland file access stuff
-    TTrack *trk;
-    double at;
-    TSearchRec sr;
-    if (FindFirst(dir + "*.*", faDirectory | faArchive, sr) == 0)
-    {
-        do
-        {
-            if (sr.Name[1] != '.')
-                if ((sr.Attr & faDirectory)) // jeśli katalog, to rekurencja
-                    CreateE3D(dir + sr.Name + "\\", dyn);
-                else if (dyn)
-                {
-                    if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".mmd")
-                    {
-                        // konwersja pojazdów będzie ułomna, bo nie poustawiają się animacje na
-                        // submodelach określonych w MMD
-                        // TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),true);
-                        if (last != dir)
-                        { // utworzenie toru dla danego pojazdu
-                            last = dir;
-                            trk = TTrack::Create400m(1, shift);
-                            shift += 10.0; // następny tor będzie deczko dalej, aby nie zabić FPS
-                            at = 400.0;
-                            // if (shift>1000) break; //bezpiecznik
+    std::string last; // zmienne używane w rekurencji
+    TTrack *trk{ nullptr };
+    double at{ 0.0 };
+    double shift{ 0.0 };
+
+#ifdef _WINDOWS
+
+	std::string searchpattern( "*.*" );
+
+	::WIN32_FIND_DATA filedata;
+	::HANDLE search = ::FindFirstFile( ( Path + searchpattern ).c_str(), &filedata );
+
+	if( search == INVALID_HANDLE_VALUE ) { return; } // if nothing to do, bail out
+
+	do {
+
+		std::string filename = filedata.cFileName;
+
+		if( filedata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) {
+			// launch recursive search for sub-directories...
+			if( filename == "." ) { continue; }
+			if( filename == ".." ) { continue; }
+			CreateE3D( Path + filename + "\\", Dynamic );
+		}
+		else {
+            // process the file
+            if( filename.size() < 4 ) { continue; }
+            std::string const filetype = ToLower( filename.substr( filename.size() - 4, 4 ) );
+            if( filetype == ".mmd" ) {
+                if( false == Dynamic ) { continue; }
+
+                // konwersja pojazdów będzie ułomna, bo nie poustawiają się animacje na submodelach określonych w MMD
+                if( last != Path ) { // utworzenie toru dla danego pojazdu
+                    last = Path;
+                    trk = TTrack::Create400m( 1, shift );
+                    shift += 10.0; // następny tor będzie deczko dalej, aby nie zabić FPS
+                    at = 400.0;
+                }
+                TGroundNode *tmp = new TGroundNode();
+                tmp->DynamicObject = new TDynamicObject();
+
+                at -= tmp->DynamicObject->Init(
+                    "",
+                    Path.substr( 8, Path.size() - 9 ), // skip leading "dynamic/" and trailing slash
+                    "none",
+                    filename.substr( 0, filename.size() - 4 ),
+                    trk,
+                    at,
+                    "nobody", 0.0, "none", 0.0, "", false, "" );
+
+                // po wczytaniu CHK zrobić pętlę po ładunkach, aby każdy z nich skonwertować
+                cParser loadparser( tmp->DynamicObject->MoverParameters->LoadAccepted ); // typy ładunków
+                std::string loadname;
+                loadparser.getTokens( 1, true, "," ); loadparser >> loadname;
+                while( loadname != "" ) {
+
+                    if( ( true == FileExists( Path + loadname + ".t3d" ) )
+                     && ( false == FileExists( Path + loadname + ".e3d" ) ) ) {
+                            // a nie ma jeszcze odpowiednika binarnego
+                            at -= tmp->DynamicObject->Init(
+                                "",
+                                Path.substr( 8, Path.size() - 9 ), // skip leading "dynamic/" and trailing slash
+                                "none",
+                                filename.substr( 0, filename.size() - 4 ),
+                                trk,
+                                at,
+                                "nobody", 0.0, "none", 1.0, loadname, false, "" );
                         }
-                        TGroundNode *tmp = new TGroundNode();
-                        tmp->DynamicObject = new TDynamicObject();
-                        // Global::asCurrentTexturePath=dir; //pojazdy mają tekstury we własnych
-                        // katalogach
-                        at -= tmp->DynamicObject->Init(
-                            "", string((dir.SubString(9, dir.Length() - 9)).c_str()), "none",
-                            string(sr.Name.SubString(1, sr.Name.Length() - 4).c_str()), trk, at, "nobody", 0.0,
-                            "none", 0.0, "", false, "");
-                        // po wczytaniu CHK zrobić pętlę po ładunkach, aby każdy z nich skonwertować
-                        AnsiString loads, load;
-                        loads = AnsiString(tmp->DynamicObject->MoverParameters->LoadAccepted.c_str()); // typy ładunków
-                        if (!loads.IsEmpty())
-                        {
-                            loads += ","; // przecinek na końcu
-                            int i = loads.Pos(",");
-                            while (i > 1)
-                            { // wypadało by sprawdzić, czy T3D ładunku jest
-                                load = loads.SubString(1, i - 1);
-                                if (FileExists(dir + load + ".t3d")) // o ile jest plik ładunku, bo
-                                    // inaczej nie ma to sensu
-                                    if (!FileExists(
-                                            dir + load +
-                                            ".e3d")) // a nie ma jeszcze odpowiednika binarnego
-                                        at -= tmp->DynamicObject->Init(
-                                            "", dir.SubString(9, dir.Length() - 9).c_str(), "none",
-                                            sr.Name.SubString(1, sr.Name.Length() - 4).c_str(), trk, at,
-                                            "nobody", 0.0, "none", 1.0, load.c_str(), false, "");
-                                loads.Delete(1, i); // usunięcie z następującym przecinkiem
-                                i = loads.Pos(",");
-                            }
-                        }
-                        if (tmp->DynamicObject->iCabs)
-                        { // jeśli ma jakąkolwiek kabinę
-                            delete Train;
-                            Train = new TTrain();
-                            if (tmp->DynamicObject->iCabs & 1)
-                            {
-                                tmp->DynamicObject->MoverParameters->ActiveCab = 1;
-                                Train->Init(tmp->DynamicObject, true);
-                            }
-                            if (tmp->DynamicObject->iCabs & 4)
-                            {
-                                tmp->DynamicObject->MoverParameters->ActiveCab = -1;
-                                Train->Init(tmp->DynamicObject, true);
-                            }
-                            if (tmp->DynamicObject->iCabs & 2)
-                            {
-                                tmp->DynamicObject->MoverParameters->ActiveCab = 0;
-                                Train->Init(tmp->DynamicObject, true);
-                            }
-                        }
-                        Global::asCurrentTexturePath =
-                            (szTexturePath); // z powrotem defaultowa sciezka do tekstur
+
+                    loadname = "";
+                    loadparser.getTokens( 1, true, "," ); loadparser >> loadname;
+                }
+
+                if( tmp->DynamicObject->iCabs ) { // jeśli ma jakąkolwiek kabinę
+                    delete Train;
+                    Train = new TTrain();
+                    if( tmp->DynamicObject->iCabs & 1 ) {
+                        tmp->DynamicObject->MoverParameters->ActiveCab = 1;
+                        Train->Init( tmp->DynamicObject, true );
+                    }
+                    if( tmp->DynamicObject->iCabs & 4 ) {
+                        tmp->DynamicObject->MoverParameters->ActiveCab = -1;
+                        Train->Init( tmp->DynamicObject, true );
+                    }
+                    if( tmp->DynamicObject->iCabs & 2 ) {
+                        tmp->DynamicObject->MoverParameters->ActiveCab = 0;
+                        Train->Init( tmp->DynamicObject, true );
                     }
                 }
-                else if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".t3d")
-                { // z modelami jest prościej
-                    Global::asCurrentTexturePath = dir.c_str();
-                    TModelsManager::GetModel(AnsiString(dir + sr.Name).c_str(), false);
-                }
-        } while (FindNext(sr) == 0);
-        FindClose(sr);
-    }
-*/
+                // z powrotem defaultowa sciezka do tekstur
+                Global::asCurrentTexturePath = ( szTexturePath );
+            }
+            else if( filetype == ".t3d" ) {
+                // z modelami jest prościej
+                    Global::asCurrentTexturePath = Path;
+                    TModelsManager::GetModel( Path + filename, false );
+            }
+		}
+
+	} while( ::FindNextFile( search, &filedata ) );
+
+	// all done, clean up
+	::FindClose( search );
+
+#endif
 };
+
 //---------------------------------------------------------------------------
 void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
 { // ewentualna zmiana kabiny użytkownikowi

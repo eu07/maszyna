@@ -198,7 +198,7 @@ TTrack * TTrack::Create400m(int what, double dx)
     trk->bVisible = false; // nie potrzeba pokazywać, zresztą i tak nie ma tekstur
     trk->iCategoryFlag = what; // taki sam typ plus informacja, że dodatkowy
     trk->Init(); // utworzenie segmentu
-    trk->Segment->Init(vector3(-dx, 0, 0), vector3(-dx, 0, 400), 0, 0, 0); // prosty
+    trk->Segment->Init(vector3(-dx, 0, 0), vector3(-dx, 0, 400), 10.0, 0, 0); // prosty
     tmp->pCenter = vector3(-dx, 0, 200); //środek, aby się mogło wyświetlić
     TSubRect *r = Global::pGround->GetSubRect(tmp->pCenter.x, tmp->pCenter.z);
     r->NodeAdd(tmp); // dodanie toru do segmentu
