@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 
 using namespace Math3D;
 
+#define EU07_DEBUG_VBO
+
 // 110405 Ra: klasa punktów przekroju z normalnymi
 
 class vector6 : public vector3

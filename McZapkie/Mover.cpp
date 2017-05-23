@@ -1565,6 +1565,7 @@ double TMoverParameters::ShowEngineRotation(int VehN)
 void TMoverParameters::ConverterCheck( double const Timestep ) {
     // TODO: move other converter checks here, to have it all in one place for potential device object
     if( ( ConverterAllow )
+     && ( ConverterAllowLocal )
      && ( false == PantPressLockActive )
      && ( Mains ) ) {
         // delay timer can be optionally configured, and is set anew whenever converter goes off
@@ -3018,7 +3019,7 @@ void TMoverParameters::CompressorCheck(double dt)
         if (MaxCompressor - MinCompressor < 0.0001)
         {
             //     if (Mains && (MainCtrlPos > 1))
-            if (CompressorAllow && Mains && (MainCtrlPos > 0))
+            if (CompressorAllow && CompressorAllowLocal && Mains && (MainCtrlPos > 0))
             {
                 if (Compressor < MaxCompressor)
                     if ((EngineType == DieselElectric) && (CompressorPower > 0))
@@ -3048,8 +3049,10 @@ void TMoverParameters::CompressorCheck(double dt)
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                     if (Couplers[1].Connected != NULL)
                         CompressorFlag =
-                            (Couplers[1].Connected->CompressorAllow &&
-                             Couplers[1].Connected->ConverterFlag && Couplers[1].Connected->Mains);
+                            ( Couplers[ 1 ].Connected->CompressorAllow
+                           && Couplers[ 1 ].Connected->CompressorAllowLocal
+                           && Couplers[ 1 ].Connected->Mains
+                           && Couplers[ 1 ].Connected->ConverterFlag );
                     else
                         CompressorFlag = false; // bez tamtego członu nie zadziała
                 }
@@ -3057,14 +3060,17 @@ void TMoverParameters::CompressorCheck(double dt)
                 { // zasilanie sprężarki w członie ra z członu silnikowego (sprzęg 1)
                     if (Couplers[0].Connected != NULL)
                         CompressorFlag =
-                            (Couplers[0].Connected->CompressorAllow &&
-                             Couplers[0].Connected->ConverterFlag && Couplers[0].Connected->Mains);
+                            ( Couplers[ 0 ].Connected->CompressorAllow
+                           && Couplers[ 0 ].Connected->CompressorAllowLocal
+                           && Couplers[ 0 ].Connected->Mains
+                           && Couplers[ 0 ].Connected->ConverterFlag );
                     else
                         CompressorFlag = false; // bez tamtego członu nie zadziała
                 }
                 else
                     CompressorFlag =
                         ( ( CompressorAllow ) 
+                       && ( CompressorAllowLocal )
                        && ( Mains )
                        && ( ( ConverterFlag )
                          || ( CompressorPower == 0 ) ) );
@@ -3080,12 +3086,12 @@ void TMoverParameters::CompressorCheck(double dt)
                     // for these multi-unit engines compressors turn off whenever any of them was affected by the governor
                     // NOTE: this is crude implementation, TODO: re-implement when a more elegant/flexible system is in place
                     if( ( Couplers[ 1 ].Connected != nullptr )
-                        && ( true == TestFlag( Couplers[ 1 ].CouplingFlag, coupling::permanent ) ) ) {
+                     && ( true == TestFlag( Couplers[ 1 ].CouplingFlag, coupling::permanent ) ) ) {
                         // the first unit isn't allowed to start its compressor until second unit can start its own as well
                         CompressorFlag &= ( Couplers[ 1 ].Connected->CompressorGovernorLock == false );
                     }
                     if( ( Couplers[ 0 ].Connected != nullptr )
-                        && ( true == TestFlag( Couplers[ 0 ].CouplingFlag, coupling::permanent ) ) ) {
+                     && ( true == TestFlag( Couplers[ 0 ].CouplingFlag, coupling::permanent ) ) ) {
                         // the second unit isn't allowed to start its compressor until first unit can start its own as well
                         CompressorFlag &= ( Couplers[ 0 ].Connected->CompressorGovernorLock == false );
                     }
@@ -3110,8 +3116,9 @@ void TMoverParameters::CompressorCheck(double dt)
                         if( Couplers[ 1 ].Connected != nullptr ) {
                             CompressorFlag =
                                 ( Couplers[ 1 ].Connected->CompressorAllow
-                               && Couplers[ 1 ].Connected->ConverterFlag
-                               && Couplers[ 1 ].Connected->Mains );
+                               && Couplers[ 1 ].Connected->CompressorAllowLocal
+                               && Couplers[ 1 ].Connected->Mains
+                               && Couplers[ 1 ].Connected->ConverterFlag );
                             }
                         else {
                             CompressorFlag = false; // bez tamtego członu nie zadziała
@@ -3122,8 +3129,9 @@ void TMoverParameters::CompressorCheck(double dt)
                         if( Couplers[ 0 ].Connected != nullptr ) {
                             CompressorFlag =
                                 ( Couplers[ 0 ].Connected->CompressorAllow
-                               && Couplers[ 0 ].Connected->ConverterFlag
-                               && Couplers[ 0 ].Connected->Mains );
+                               && Couplers[ 0 ].Connected->CompressorAllowLocal
+                               && Couplers[ 0 ].Connected->Mains
+                               && Couplers[ 0 ].Connected->ConverterFlag );
                         }
                         else {
                             CompressorFlag = false; // bez tamtego członu nie zadziała
@@ -3132,6 +3140,7 @@ void TMoverParameters::CompressorCheck(double dt)
                     else {
                         CompressorFlag =
                             ( ( CompressorAllow )
+                           && ( CompressorAllowLocal )
                            && ( Mains )
                            && ( ( ConverterFlag )
                              || ( CompressorPower == 0 ) ) );
@@ -7303,9 +7312,11 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
 
     extract_value( PantSwitchType, "Pantograph", Input, "" );
     extract_value( ConvSwitchType, "Converter", Input, "" );
+    extract_value( StLinSwitchType, "MotorConnectors", Input, "" );
     // because people can't make up their minds whether it's "impulse" or "Impulse"...
     PantSwitchType = ToLower( PantSwitchType );
     ConvSwitchType = ToLower( ConvSwitchType );
+    StLinSwitchType = ToLower( StLinSwitchType );
 }
 
 void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {

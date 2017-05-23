@@ -787,7 +787,6 @@ void TSubRect::LoadNodes()
         return; // jeśli nie ma obiektów do wyświetlenia z VBO, to koniec
     if (Global::bUseVBO)
     { // tylko liczenie wierzchołów, gdy nie ma VBO
-        int debugvertexcount{ 0 };
         MakeArray(m_nVertexCount);
         n = nRootNode;
         int i;
@@ -809,9 +808,7 @@ void TSubRect::LoadNodes()
                         m_pVNT[n->iVboPtr + i].nz = n->Vertices[i].Normal.z;
                         m_pVNT[n->iVboPtr + i].u = n->Vertices[i].tu;
                         m_pVNT[n->iVboPtr + i].v = n->Vertices[i].tv;
-                        ++debugvertexcount;
                     }
-                    assert( debugvertexcount <= m_nVertexCount );
                     break;
                 case GL_LINES:
                 case GL_LINE_STRIP:
@@ -822,34 +819,24 @@ void TSubRect::LoadNodes()
                         m_pVNT[n->iVboPtr + i].y = n->Points[i].y;
                         m_pVNT[n->iVboPtr + i].z = n->Points[i].z;
                         // miejsce w tablicach normalnych i teksturowania się marnuje...
-                        ++debugvertexcount;
                     }
-                    assert( debugvertexcount <= m_nVertexCount );
                     break;
                 case TP_TRACK:
                     if( n->iNumVerts ) { // bo tory zabezpieczające są niewidoczne
 #ifdef EU07_USE_OLD_VERTEXBUFFER
-                        int const batch = n->pTrack->RaArrayFill( m_pVNT + n->iVboPtr, m_pVNT, std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
+                        n->pTrack->RaArrayFill( m_pVNT + n->iVboPtr, m_pVNT, std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
 #else
-                        int const batch = n->pTrack->RaArrayFill( m_pVNT.data() + n->iVboPtr, m_pVNT.data(), std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
+                        n->pTrack->RaArrayFill( m_pVNT.data() + n->iVboPtr, m_pVNT.data(), std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
 #endif
-                        assert( batch == n->iNumVerts );
-                        assert( batch + n->iVboPtr <= m_nVertexCount );
-                        debugvertexcount += batch;
-                        assert( debugvertexcount <= m_nVertexCount );
                     }
                     break;
                 case TP_TRACTION:
                     if( n->iNumVerts ) { // druty mogą być niewidoczne...?
 #ifdef EU07_USE_OLD_VERTEXBUFFER
-                        int const batch = n->hvTraction->RaArrayFill( m_pVNT + n->iVboPtr );
+                        n->hvTraction->RaArrayFill( m_pVNT + n->iVboPtr );
 #else
-                        int const batch = n->hvTraction->RaArrayFill( m_pVNT.data() + n->iVboPtr );
+                        n->hvTraction->RaArrayFill( m_pVNT.data() + n->iVboPtr );
 #endif
-                        assert( batch == n->iNumVerts );
-                        assert( batch + n->iVboPtr <= m_nVertexCount );
-                        debugvertexcount += batch;
-                        assert( debugvertexcount <= m_nVertexCount );
                     }
                     break;
                 }
@@ -1333,17 +1320,14 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     TGroundNode *tmp1;
     TTrack *Track;
     std::string token;
-    parser->getTokens(2);
-    *parser >> r >> rmin;
-    parser->getTokens();
-    *parser >> token;
-    asNodeName = token;
-    parser->getTokens();
-    *parser >> token;
-	str = token;
+    parser->getTokens(4);
+    *parser
+        >> r
+        >> rmin
+        >> asNodeName
+        >> str;
     //str = AnsiString(token.c_str());
-	TGroundNode *tmp;
-    tmp = new TGroundNode();
+	TGroundNode *tmp = new TGroundNode();
     tmp->asName = (asNodeName == "none" ? "" : asNodeName);
     if (r >= 0)
         tmp->fSquareRadius = r * r;
@@ -2186,7 +2170,7 @@ bool TGround::Init(std::string File)
                     if (!LastNode->Vertices)
                         SafeDelete(LastNode); // usuwamy nieprzezroczyste trójkąty terenu
                 }
-                else if (Global::bLoadTraction ? false : LastNode->iType == TP_TRACTION)
+                else if ( ( LastNode->iType == TP_TRACTION ) && ( false == Global::bLoadTraction ) )
                     SafeDelete(LastNode); // usuwamy druty, jeśli wyłączone
                 if (LastNode) // dopiero na koniec dopisujemy do tablic
                     if (LastNode->iType != TP_DYNAMIC)

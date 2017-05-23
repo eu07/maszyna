@@ -228,10 +228,14 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_M },
         // convertertoggle
         { GLFW_KEY_X },
+        // convertertogglelocal
+        { GLFW_KEY_X | keymodifier::shift },
         // converteroverloadrelayreset
         { GLFW_KEY_N | keymodifier::control },
         // compressortoggle
         { GLFW_KEY_C },
+        // compressortoggleloal
+        { GLFW_KEY_C | keymodifier::shift },
         // motoroverloadrelaythresholdtoggle
         { GLFW_KEY_F },
         // motoroverloadrelayreset

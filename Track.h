@@ -240,7 +240,7 @@ class TTrack : public Resource
 
     void Render(); // renderowanie z Display Lists
     int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
-    int RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const Vertexcount); // wypełnianie VBO
+    void RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const Vertexcount); // wypełnianie VBO
     void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
     void RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
     void RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)

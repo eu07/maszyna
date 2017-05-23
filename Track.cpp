@@ -405,8 +405,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     std::string token;
 
     parser->getTokens();
-    *parser >> token;
-    str = token; // typ toru
+    *parser >> str; // typ toru
 
     if (str == "normal")
     {
@@ -460,8 +459,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     if (iDamageFlag & 128)
         iAction |= 0x80; // flaga wykolejania z powodu uszkodzenia
     parser->getTokens();
-    *parser >> token;
-    str = token; // environment
+    *parser >> str; // environment
     if (str == "flat")
         eEnvironment = e_flat;
     else if (str == "mountains" || str == "mountain")
@@ -477,7 +475,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     else
     {
         eEnvironment = e_unknown;
-        Error("Unknown track environment: \"" + str + "\"");
+        Error( "Unknown track environment: \"" + str + "\"" );
     }
     parser->getTokens();
     *parser >> token;
@@ -485,8 +483,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     if (bVisible)
     {
         parser->getTokens();
-        *parser >> token;
-        str = token; // railtex
+        *parser >> str; // railtex
         TextureID1 = (str == "none" ? 0 : GfxRenderer.GetTextureId(
                                               str, szTexturePath,
                                               (iCategoryFlag & 1) ? Global::iRailProFiltering :
@@ -496,8 +493,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         if (fTexLength < 0.01)
             fTexLength = 4; // Ra: zabezpiecznie przed zawieszeniem
         parser->getTokens();
-        *parser >> token;
-        str = token; // sub || railtex
+        *parser >> str; // sub || railtex
         TextureID2 = (str == "none" ? 0 : GfxRenderer.GetTextureId(
                                               str, szTexturePath,
                                               (eType == tt_Normal) ? Global::iBallastFiltering :
@@ -1232,7 +1228,7 @@ void TTrack::Compile(GLuint tex)
                 }
             break;
         case tt_Switch: // dla zwrotnicy dwa razy szyny
-            if (TextureID1) // zwrotnice nie są grupowane, aby prościej było je animować
+            if (TextureID1 || TextureID2) // zwrotnice nie są grupowane, aby prościej było je animować
             { // iglice liczone tylko dla zwrotnic
                 // Ra: TODO: oddzielna animacja każdej iglicy, opór na docisku
                 vector6 rpts3[24], rpts4[24];
@@ -1254,27 +1250,34 @@ void TTrack::Compile(GLuint tex)
                 // McZapkie-130302 - poprawione rysowanie szyn
                 if (SwitchExtension->RightSwitch)
                 { // zwrotnica prawa
-                    GfxRenderer.Bind( TextureID1 );
-                    SwitchExtension->Segments[0]->RenderLoft( immediate, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2); // prawa iglica
-                    SwitchExtension->Segments[0]->RenderLoft( immediate, rpts1, nnumPts, fTexLength, 1.0, 2); // prawa szyna za iglicą
-                    SwitchExtension->Segments[0]->RenderLoft( immediate, rpts2, nnumPts, fTexLength); // lewa szyna normalnie cała
-                    if (TextureID2 != TextureID1) // nie wiadomo, czy OpenGL to optymalizuje
+                    if( TextureID1 ) {
+                        GfxRenderer.Bind( TextureID1 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( immediate, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 ); // prawa iglica
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( immediate, rpts1, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( immediate, rpts2, nnumPts, fTexLength ); // lewa szyna normalnie cała
+                    }
+                    if( TextureID2 ) {
                         GfxRenderer.Bind( TextureID2 );
-                    SwitchExtension->Segments[1]->RenderLoft( immediate, rpts1, nnumPts, fTexLength); // prawa szyna normalna cała
-                    SwitchExtension->Segments[1]->RenderLoft( immediate, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1); // lewa iglica
-                    SwitchExtension->Segments[1]->RenderLoft( immediate, rpts2, nnumPts, fTexLength, 1.0, 2); // lewa szyna za iglicą
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( immediate, rpts1, nnumPts, fTexLength ); // prawa szyna normalna cała
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( immediate, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 ); // lewa iglica
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( immediate, rpts2, nnumPts, fTexLength, 1.0, 2 ); // lewa szyna za iglicą
+                    }
                 }
                 else
                 { // lewa kiedyś działała lepiej niż prawa
-                    GfxRenderer.Bind( TextureID1 );
-                    SwitchExtension->Segments[0]->RenderLoft( immediate, rpts1, nnumPts, fTexLength); // prawa szyna normalna cała
-                    SwitchExtension->Segments[0]->RenderLoft( immediate, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2); // lewa iglica
-                    SwitchExtension->Segments[0]->RenderLoft( immediate, rpts2, nnumPts, fTexLength, 1.0, 2); // lewa szyna za iglicą
-                    if (TextureID2 != TextureID1) // nie wiadomo, czy OpenGL to optymalizuje
+                    if( TextureID1 ) {
+                        GfxRenderer.Bind( TextureID1 );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( immediate, rpts1, nnumPts, fTexLength ); // prawa szyna normalna cała
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( immediate, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 ); // lewa iglica
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( immediate, rpts2, nnumPts, fTexLength, 1.0, 2 ); // lewa szyna za iglicą
+                    }
+                    if( TextureID2 ) {
+                        // nie wiadomo, czy OpenGL to optymalizuje
                         GfxRenderer.Bind( TextureID2 );
-                    SwitchExtension->Segments[1]->RenderLoft( immediate, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1); // prawa iglica
-                    SwitchExtension->Segments[1]->RenderLoft( immediate, rpts1, nnumPts, fTexLength, 1.0, 2); // prawa szyna za iglicą
-                    SwitchExtension->Segments[1]->RenderLoft( immediate, rpts2, nnumPts, fTexLength); // lewa szyna normalnie cała
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( immediate, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 ); // prawa iglica
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( immediate, rpts1, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( immediate, rpts2, nnumPts, fTexLength ); // lewa szyna normalnie cała
+                    }
                 }
             }
             break;
@@ -1782,31 +1785,33 @@ int TTrack::RaArrayPrepare()
                 if( SwitchExtension->iRoads == 3 ) {
                     // mogą być tylko 3 drogi zamiast 4
                     SwitchExtension->iPoints =
-                        5
-                        + SwitchExtension->Segments[ 0 ]->RaSegCount()
+                          SwitchExtension->Segments[ 0 ]->RaSegCount()
                         + SwitchExtension->Segments[ 1 ]->RaSegCount()
                         + SwitchExtension->Segments[ 2 ]->RaSegCount();
                 }
                 else {
                     SwitchExtension->iPoints =
-                        5
-                        + SwitchExtension->Segments[ 2 ]->RaSegCount()
+                          SwitchExtension->Segments[ 2 ]->RaSegCount()
                         + SwitchExtension->Segments[ 3 ]->RaSegCount()
                         + SwitchExtension->Segments[ 4 ]->RaSegCount()
                         + SwitchExtension->Segments[ 5 ]->RaSegCount();
                 }
+/*
                 if (fTexHeight1 >= 0) {
                     // normalne pobocze, na razie się składa z
-                    return SwitchExtension->iPoints * ((TextureID1 ? 1 : 0) + (TextureID2 ? 12 : 0));
+                    return ( ( TextureID1 ? SwitchExtension->iPoints + SwitchExtension->iRoads + 2 : 0 ) + ( TextureID2 ? SwitchExtension->iPoints * 12 : 0 ) );
                 }
                 else {
                     // jeśli fTexHeight1<0, to są chodniki i może któregoś nie być
-                    return SwitchExtension->iPoints * ((TextureID1 ? 1 : 0) + (TextureID2 ? 6 : 0 ));
+                    return ( ( TextureID1 ? SwitchExtension->iPoints + SwitchExtension->iRoads + 2 : 0 ) + ( TextureID2 ? SwitchExtension->iPoints * 6 : 0 ) );
                 }
+*/
+                // each sub-segment covers only one side of the road, so it has points for single sideroad, if any
+                return ( ( TextureID1 ? SwitchExtension->iPoints + SwitchExtension->iRoads + 2 : 0 ) + ( TextureID2 ? SwitchExtension->iPoints * 6 : 0 ) );
             }
             else // standardowo dla zwykłej drogi
                 if (fTexHeight1 >= 0) // jeśli fTexHeight1<0, to są chodniki i może któregoś nie być
-                return (Segment->RaSegCount()) *
+                return ( Segment->RaSegCount()) *
                        ((TextureID1 ? 4 : 0) + (TextureID2 ? 12 : 0)); // może nie być poziomego!
             else
                 return (Segment->RaSegCount()) *
@@ -1818,9 +1823,8 @@ int TTrack::RaArrayPrepare()
     return 0;
 };
 
-int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const Vertexcount)
+void TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const Vertexcount)
 { // wypełnianie tablic VBO
-    int debugvertexcount{ 0 };
     // Ra: trzeba rozdzielić szyny od podsypki, aby móc grupować wg tekstur
     double fHTW = 0.5 * fabs(fTrackWidth);
     double side = fabs(fTexWidth); // szerokść podsypki na zewnątrz szyny albo pobocza
@@ -1955,19 +1959,16 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
                         bpts1[3] = vector6(-rozp, -fTexHeight1 - 0.18, 0.5 + map12, -normal1.x, -normal1.y, 0.0); // prawy skos
                     }
                 }
-                debugvertexcount += Segment->RenderLoft(Vert, bpts1, iTrapezoid ? -4 : 4, fTexLength);
-                assert( debugvertexcount <= Vertexcount );
+                Segment->RenderLoft(Vert, bpts1, iTrapezoid ? -4 : 4, fTexLength);
             }
             if (TextureID1)
             { // szyny - generujemy dwie, najwyżej rysować się będzie jedną
-                debugvertexcount += Segment->RenderLoft(Vert, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength);
-                assert( debugvertexcount <= Vertexcount );
-                debugvertexcount += Segment->RenderLoft(Vert, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength);
-                assert( debugvertexcount <= Vertexcount );
+                Segment->RenderLoft(Vert, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength);
+                Segment->RenderLoft(Vert, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength);
             }
             break;
         case tt_Switch: // dla zwrotnicy dwa razy szyny
-            if (TextureID1) // Ra: !!!! tu jest do poprawienia
+            if( TextureID1 || TextureID2 )
             { // iglice liczone tylko dla zwrotnic
                 vector6 rpts3[24], rpts4[24];
                 for (i = 0; i < 12; ++i)
@@ -1987,46 +1988,34 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
                 }
                 if (SwitchExtension->RightSwitch)
                 { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
-                    int batch{ 0 };
-                    batch = SwitchExtension->Segments[0]->RenderLoft( Vert, rpts2, nnumPts, fTexLength);
-                    debugvertexcount += batch;
-                    assert( debugvertexcount <= Vertexcount );
-                    batch = SwitchExtension->Segments[0]->RenderLoft( Vert, rpts1, nnumPts, fTexLength, 1.0, 2 );
-                    debugvertexcount += batch;
-                    assert( debugvertexcount <= Vertexcount );
-                    SwitchExtension->iLeftVBO = Vert - Start; // indeks lewej iglicy
-                    batch = SwitchExtension->Segments[0]->RenderLoft( Vert, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
-                    debugvertexcount += batch;
-                    assert( debugvertexcount <= Vertexcount );
+                    if( TextureID1 ) {
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts2, nnumPts, fTexLength );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts1, nnumPts, fTexLength, 1.0, 2 );
 
-                    SwitchExtension->iRightVBO = Vert - Start; // indeks prawej iglicy
-                    batch = SwitchExtension->Segments[1]->RenderLoft( Vert, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
-                    debugvertexcount += batch;
-                    assert( debugvertexcount <= Vertexcount );
-                    batch = SwitchExtension->Segments[1]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2 );
-                    debugvertexcount += batch;
-                    assert( debugvertexcount <= Vertexcount );
-                    batch = SwitchExtension->Segments[1]->RenderLoft( Vert, rpts1, nnumPts, fTexLength );
-                    debugvertexcount += batch;
-                    assert( debugvertexcount <= Vertexcount );
+                        SwitchExtension->iLeftVBO = Vert - Start; // indeks lewej iglicy
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
+                    }
+                    if( TextureID2 ) {
+                        SwitchExtension->iRightVBO = Vert - Start; // indeks prawej iglicy
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2 );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts1, nnumPts, fTexLength );
+                    }
                 }
                 else
                 { // lewa działa lepiej niż prawa
-                    debugvertexcount += SwitchExtension->Segments[0]->RenderLoft( Vert, rpts1, nnumPts, fTexLength); // lewa szyna normalna cała
-                    assert( debugvertexcount <= Vertexcount );
-                    debugvertexcount += SwitchExtension->Segments[0]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
-                    assert( debugvertexcount <= Vertexcount );
-                    SwitchExtension->iLeftVBO = Vert - Start; // indeks lewej iglicy
-                    debugvertexcount += SwitchExtension->Segments[0]->RenderLoft( Vert, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2); // prawa iglica
-                    assert( debugvertexcount <= Vertexcount );
-
-                    SwitchExtension->iRightVBO = Vert - Start; // indeks prawej iglicy
-                    debugvertexcount += SwitchExtension->Segments[1]->RenderLoft( Vert, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1); // lewa iglica
-                    assert( debugvertexcount <= Vertexcount );
-                    debugvertexcount += SwitchExtension->Segments[1]->RenderLoft( Vert, rpts1, nnumPts, fTexLength, 1.0, 2); // lewa szyna za iglicą
-                    assert( debugvertexcount <= Vertexcount );
-                    debugvertexcount += SwitchExtension->Segments[1]->RenderLoft( Vert, rpts2, nnumPts, fTexLength); // prawa szyna normalnie cała
-                    assert( debugvertexcount <= Vertexcount );
+                    if( TextureID1 ) {
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts1, nnumPts, fTexLength ); // lewa szyna normalna cała
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts2, nnumPts, fTexLength, 1.0, 2 ); // prawa szyna za iglicą
+                        SwitchExtension->iLeftVBO = Vert - Start; // indeks lewej iglicy
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 ); // prawa iglica
+                    }
+                    if( TextureID2 ) {
+                        SwitchExtension->iRightVBO = Vert - Start; // indeks prawej iglicy
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 ); // lewa iglica
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts1, nnumPts, fTexLength, 1.0, 2 ); // lewa szyna za iglicą
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts2, nnumPts, fTexLength ); // prawa szyna normalnie cała
+                    }
                 }
             }
             break;
@@ -2060,8 +2049,7 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
             }
             if (TextureID1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
-                debugvertexcount += Segment->RenderLoft(Vert, bpts1, iTrapezoid ? -2 : 2, fTexLength);
-                assert( debugvertexcount <= Vertexcount );
+                Segment->RenderLoft(Vert, bpts1, iTrapezoid ? -2 : 2, fTexLength);
             }
             if (TextureID2)
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
@@ -2142,25 +2130,21 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony
                   // odcinka
                     if( ( fTexHeight1 >= 0.0 ) || ( slop != 0.0 ) ) {
-                        debugvertexcount += Segment->RenderLoft( Vert, rpts1, -3, fTexLength ); // tylko jeśli jest z prawej
-                        assert( debugvertexcount <= Vertexcount );
+                        Segment->RenderLoft( Vert, rpts1, -3, fTexLength ); // tylko jeśli jest z prawej
                     }
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        debugvertexcount += Segment->RenderLoft( Vert, rpts2, -3, fTexLength ); // tylko jeśli jest z lewej
-                        assert( debugvertexcount <= Vertexcount );
+                        Segment->RenderLoft( Vert, rpts2, -3, fTexLength ); // tylko jeśli jest z lewej
                     }
                 }
                 else { // pobocza zwykłe, brak przechyłki
                     if( ( fTexHeight1 >= 0.0 ) || ( slop != 0.0 ) ) {
-                        debugvertexcount += Segment->RenderLoft( Vert, rpts1, 3, fTexLength );
-                        assert( debugvertexcount <= Vertexcount );
+                        Segment->RenderLoft( Vert, rpts1, 3, fTexLength );
                     }
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        debugvertexcount += Segment->RenderLoft( Vert, rpts2, 3, fTexLength );
-                        assert( debugvertexcount <= Vertexcount );
-                    }
+                        Segment->RenderLoft( Vert, rpts2, 3, fTexLength );
                     }
                 }
+            }
             break;
         }
         case tt_Cross: // skrzyżowanie dróg rysujemy inaczej
@@ -2191,24 +2175,9 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
 			int i; // ile punktów (może byc różna ilość punktów między drogami)
             if (!SwitchExtension->vPoints)
             { // jeśli tablica punktów nie jest jeszcze utworzona, zliczamy punkty i tworzymy ją
-                if( SwitchExtension->iRoads == 3 ) {
-                    // mogą być tylko 3 drogi zamiast 4
-                    SwitchExtension->iPoints =
-                        5
-                        + SwitchExtension->Segments[ 0 ]->RaSegCount()
-                        + SwitchExtension->Segments[ 1 ]->RaSegCount()
-                        + SwitchExtension->Segments[ 2 ]->RaSegCount();
-                }
-                else {
-                    SwitchExtension->iPoints =
-                        5
-                        + SwitchExtension->Segments[ 2 ]->RaSegCount()
-                        + SwitchExtension->Segments[ 3 ]->RaSegCount()
-                        + SwitchExtension->Segments[ 4 ]->RaSegCount()
-                        + SwitchExtension->Segments[ 5 ]->RaSegCount();
-                }
-                // tablica utworzona z zapasem, ale nie wypełniona współrzędnymi
-                SwitchExtension->vPoints = new vector3[SwitchExtension->iPoints];
+                // points were already counted during preparation stage
+                // we'll need to add couple extra points for the complete fan we'll build
+                SwitchExtension->vPoints = new vector3[SwitchExtension->iPoints + SwitchExtension->iRoads];
             }
             vector3 *b =
                 SwitchExtension->bPoints ?
@@ -2297,46 +2266,32 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
                 if (SwitchExtension->iRoads == 4)
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        debugvertexcount += SwitchExtension->Segments[ 2 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
-                        assert( debugvertexcount <= Vertexcount );
-                        debugvertexcount += SwitchExtension->Segments[ 3 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
-                        assert( debugvertexcount <= Vertexcount );
-                        debugvertexcount += SwitchExtension->Segments[ 4 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
-                        assert( debugvertexcount <= Vertexcount );
-                        debugvertexcount += SwitchExtension->Segments[ 5 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
-                        assert( debugvertexcount <= Vertexcount );
+                        SwitchExtension->Segments[ 2 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
+                        SwitchExtension->Segments[ 3 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
+                        SwitchExtension->Segments[ 4 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
+                        SwitchExtension->Segments[ 5 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render );
                     }
                 }
                 else {
                     // punkt 3 pokrywa się z punktem 1, jak w zwrotnicy; połączenie 1->2 nie musi być prostoliniowe
                     if( ( fTexHeight1 >= 0.0 ) || ( side != 0.0 ) ) {
-                        debugvertexcount += SwitchExtension->Segments[ 2 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render ); // z P2 do P4
-                        assert( debugvertexcount <= Vertexcount );
-                        debugvertexcount += SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render ); // z P4 do P3=P1 (odwrócony)
-                        assert( debugvertexcount <= Vertexcount );
-                        debugvertexcount += SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render ); // z P1 do P2
-                        assert( debugvertexcount <= Vertexcount );
+                        SwitchExtension->Segments[ 2 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render ); // z P2 do P4
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render ); // z P4 do P3=P1 (odwrócony)
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( Vert, rpts2, -3, fTexLength, 1.0, 0, 0, 0.0, false, &b, render ); // z P1 do P2
                     }
                 }
             }
             // renderowanie nawierzchni na końcu
             double sina0 = sin(a[0]), cosa0 = cos(a[0]);
             double u, v;
-            if (!SwitchExtension->bPoints) // jeśli tablica nie wypełniona
-                if (b) // ale jest wskaźnik do tablicy - może nie być?
-                { // coś się gubi w obliczeniach na wskaźnikach
-                  // ustalenie liczby punktów, bo mogło wyjść inaczej niż policzone z góry
-                    i = (int)(((size_t)(b)) - ((size_t)(SwitchExtension->vPoints))) / sizeof(vector3);
-                    if (i > 0)
-                    { // jeśli zostało to właśnie utworzone
-                        SwitchExtension->iPoints = std::min( SwitchExtension->iPoints - 2, i );
-                        SwitchExtension->vPoints[SwitchExtension->iPoints++] = SwitchExtension->vPoints[0];
-                        ++SwitchExtension->iPoints; // we'll add one extra point in the middle
-                        SwitchExtension->bPoints = true; // tablica punktów została wypełniona
-                    }
-                }
+            if( ( false == SwitchExtension->bPoints ) // jeśli tablica nie wypełniona
+             && ( b != nullptr ) ) {
+                SwitchExtension->bPoints = true; // tablica punktów została wypełniona
+            }
+
             if (TextureID1) {
-            // jeśli podana tekstura nawierzchni
+                // jeśli podana tekstura nawierzchni
+                // we start with a vertex in the middle...
                 Vert->nx = 0.0;
                 Vert->ny = 1.0;
                 Vert->nz = 0.0;
@@ -2346,8 +2301,21 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
                 Vert->y = oxz.y;
                 Vert->z = oxz.z;
                 ++Vert;
-                ++debugvertexcount;
-                for (i = SwitchExtension->iPoints - 2; i >= 0; --i)
+                // ...and add one extra vertex to close the fan...
+                Vert->nx = 0.0;
+                Vert->ny = 1.0;
+                Vert->nz = 0.0;
+                // mapowanie we współrzędnych scenerii
+                u = ( SwitchExtension->vPoints[ 0 ].x - oxz.x ) / fTexLength;
+                v = ( SwitchExtension->vPoints[ 0 ].z - oxz.z ) / ( fTexRatio1 * fTexLength );
+                Vert->u = cosa0 * u + sina0 * v + 0.5;
+                Vert->v = -sina0 * u + cosa0 * v + 0.5;
+                Vert->x = SwitchExtension->vPoints[ 0 ].x;
+                Vert->y = SwitchExtension->vPoints[ 0 ].y;
+                Vert->z = SwitchExtension->vPoints[ 0 ].z;
+                ++Vert;
+                // ...then draw the precalculated rest
+                for (i = SwitchExtension->iPoints + SwitchExtension->iRoads - 1; i >= 0; --i)
                 {
                     Vert->nx = 0.0;
                     Vert->ny = 1.0;
@@ -2361,13 +2329,11 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
                     Vert->y = SwitchExtension->vPoints[ i ].y;
                     Vert->z = SwitchExtension->vPoints[ i ].z;
                     ++Vert;
-                    ++debugvertexcount;
                 }
-                assert( debugvertexcount <= Vertexcount );
             }
             break;
-        }
-        }
+        } // tt_cross
+        } // road
         break;
     case 4: // Ra: rzeki na razie jak drogi, przechyłki na pewno nie mają
         switch (eType) // dalej zależnie od typu
@@ -2402,8 +2368,7 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
             }
             if (TextureID1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
-                debugvertexcount += Segment->RenderLoft(Vert, bpts1, iTrapezoid ? -2 : 2, fTexLength);
-                assert( debugvertexcount <= Vertexcount );
+                Segment->RenderLoft(Vert, bpts1, iTrapezoid ? -2 : 2, fTexLength);
             }
             if (TextureID2)
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w
@@ -2425,24 +2390,20 @@ int TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const
                     rpts2[3] = vector6(bpts1[3].x, bpts1[3].y, 1.0);
                     rpts2[4] = vector6(bpts1[3].x - side2, bpts1[3].y, 0.5);
                     rpts2[5] = vector6(-rozp2, -fTexHeight2, 0.0); // prawy brzeg prawego pobocza
-                    debugvertexcount += Segment->RenderLoft(Vert, rpts1, -3, fTexLength);
-                    assert( debugvertexcount <= Vertexcount );
-                    debugvertexcount += Segment->RenderLoft(Vert, rpts2, -3, fTexLength);
-                    assert( debugvertexcount <= Vertexcount );
+                    Segment->RenderLoft(Vert, rpts1, -3, fTexLength);
+                    Segment->RenderLoft(Vert, rpts2, -3, fTexLength);
                 }
                 else
                 { // pobocza zwykłe, brak przechyłki
-                    debugvertexcount += Segment->RenderLoft(Vert, rpts1, 3, fTexLength);
-                    assert( debugvertexcount <= Vertexcount );
-                    debugvertexcount += Segment->RenderLoft(Vert, rpts2, 3, fTexLength);
-                    assert( debugvertexcount <= Vertexcount );
+                    Segment->RenderLoft(Vert, rpts1, 3, fTexLength);
+                    Segment->RenderLoft(Vert, rpts2, 3, fTexLength);
                 }
             }
         }
         }
         break;
     }
-    return debugvertexcount;
+    return;
 };
 
 void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
@@ -2456,12 +2417,12 @@ void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
             if( eType == tt_Switch ) // dla zwrotnicy tylko szyny
             {
                 int const bladesegmentcount = 2;
-                if( TextureID1 )
+                if( TextureID1 ) {
                     if( ( seg = SwitchExtension->Segments[ 0 ]->RaSegCount() ) > 0 ) {
                         GfxRenderer.Bind( TextureID1 ); // szyny +
                         ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
                         iPtr += 24 * seg;
-                        ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * (seg - bladesegmentcount) );
+                        ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * ( seg - bladesegmentcount ) );
                         // NOTE: due to way blades bend need to render each segment separately, or some unwanted edges may show
                         iPtr += 24 * ( seg - bladesegmentcount );
                         for( int i = 0; i < bladesegmentcount; ++i ) {
@@ -2469,7 +2430,8 @@ void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
                             iPtr += 24;
                         }
                     }
-                if( TextureID2 )
+                }
+                if( TextureID2 ) {
                     if( ( seg = SwitchExtension->Segments[ 1 ]->RaSegCount() ) > 0 ) {
                         GfxRenderer.Bind( TextureID2 );
                         // NOTE: due to way blades bend need to render each segment separately, or some unwanted edges may show
@@ -2482,6 +2444,7 @@ void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
                         ::glDrawArrays( GL_TRIANGLE_STRIP, iPtr, 24 * seg );
                         iPtr += 24 * seg;
                     }
+                }
             }
             else // dla toru podsypka plus szyny
             {
@@ -2564,7 +2527,7 @@ void TTrack::RaRenderVBO( int iPtr ) { // renderowanie z użyciem VBO
                     if( TextureID1 ) {
                         // roads
                         GfxRenderer.Bind( TextureID1 );
-                        ::glDrawArrays( GL_TRIANGLE_FAN, iPtr, SwitchExtension->iPoints );
+                        ::glDrawArrays( GL_TRIANGLE_FAN, iPtr, SwitchExtension->iPoints + SwitchExtension->iRoads + 2 );
                         iPtr += SwitchExtension->iPoints;
                     }
                 }
@@ -2921,19 +2884,21 @@ TTrack * TTrack::RaAnimate(GLuint const Vertexbuffer)
 
                     // fetch current blade geometry
                     std::vector<CVertNormTex> bladesbuffer; bladesbuffer.resize( 2 * 2 * 24 ); // 2 blades, 2 segments each
+/*
                     ::glGetBufferSubData(
                         GL_ARRAY_BUFFER,
                         SwitchExtension->iLeftVBO * sizeof( CVertNormTex ),
                         bladesbuffer.size() * sizeof( CVertNormTex ),
                         bladesbuffer.data() );
+*/
                     auto bladevertices = bladesbuffer.data();
                     if( SwitchExtension->RightSwitch ) { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( bladevertices, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2, true );
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( bladevertices, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1, true );
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( bladevertices, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 /*, true*/ );
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( bladevertices, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 /*, true*/ );
                     }
                     else {
-                        SwitchExtension->Segments[ 0 ]->RenderLoft( bladevertices, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2, true ); // prawa iglica
-                        SwitchExtension->Segments[ 1 ]->RenderLoft( bladevertices, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1, true ); // lewa iglica
+                        SwitchExtension->Segments[ 0 ]->RenderLoft( bladevertices, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 /*, true*/ ); // prawa iglica
+                        SwitchExtension->Segments[ 1 ]->RenderLoft( bladevertices, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 /*, true*/ ); // lewa iglica
                     }
                     // push back updated geometry
                     ::glBufferSubData(
@@ -2987,8 +2952,7 @@ TTrack * TTrack::RaAnimate(GLuint const Vertexbuffer)
                             int size = RaArrayPrepare(); // wielkość tabeli potrzebna dla tej obrotnicy
                             CVertNormTex *Vert = new CVertNormTex[size]; // bufor roboczy
                             // CVertNormTex *v=Vert; //zmieniane przez
-                            auto const debugvertexcount = RaArrayFill(Vert, Vert - SwitchExtension->iLeftVBO, size); // iLeftVBO powinno zostać niezmienione
-                            assert( debugvertexcount == size );
+                            RaArrayFill(Vert, Vert - SwitchExtension->iLeftVBO, size); // iLeftVBO powinno zostać niezmienione
                             ::glBufferSubData(
                                 GL_ARRAY_BUFFER, SwitchExtension->iLeftVBO * sizeof(CVertNormTex),
                                 size * sizeof(CVertNormTex), Vert); // wysłanie fragmentu bufora VBO

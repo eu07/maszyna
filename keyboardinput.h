@@ -70,7 +70,7 @@ private:
     bool m_shift{ false };
     bool m_ctrl{ false };
     bindings_cache m_bindingscache;
-    std::array<char, GLFW_KEY_LAST> m_keys;
+    std::array<char, GLFW_KEY_LAST + 1> m_keys;
 };
 
 //---------------------------------------------------------------------------

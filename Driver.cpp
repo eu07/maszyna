@@ -869,8 +869,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // if (p7&3) //żeby jeszcze poczekał chwilę, zanim zamknie
                                     // WaitingSet(10); //10 sekund (wziąć z rozkładu????)
                                 }
-                                if (fStopTime > -5) // na końcu rozkładu się ustawia 60s i tu by było skrócenie
-                                    WaitingSet(10); // 10 sekund (wziąć z rozkładu????) - czekanie
+
+                                if( fStopTime > -5 ) // na końcu rozkładu się ustawia 60s i tu by było skrócenie
+                                    WaitingSet( 15.0 + Random( 15.0 ) ); // 10 sekund (wziąć z rozkładu????) - czekanie
                                 // niezależne od sposobu obsługi drzwi, bo opóźnia również kierownika
                             }
                             if (TrainParams->UpdateMTable( simulation::Time, asNextStop) )
@@ -980,11 +981,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                 fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
                                 WaitingSet(60); // tak ze 2 minuty, aż wszyscy wysiądą
-                                JumpToNextOrder(); // wykonanie kolejnego rozkazu (Change_direction
-                                // albo Shunt)
-                                iDrivigFlags |= moveStopHere | moveStartHorn; // ma się nie ruszać
-                                // aż do momentu
-                                // podania sygnału
+                                // wykonanie kolejnego rozkazu (Change_direction albo Shunt)
+                                JumpToNextOrder();
+                                // ma się nie ruszać aż do momentu podania sygnału
+                                iDrivigFlags |= moveStopHere | moveStartHorn;
                                 continue; // nie analizować prędkości
                             } // koniec obsługi ostatniej stacji
                         } // if (MoverParameters->Vel==0.0)
@@ -4142,6 +4142,7 @@ bool TController::UpdateSituation(double dt)
                                     ->TTVmax); // jesli nie spozniony to nie przekraczać rozkladowej
                 if (VelDesired > 0.0)
                     if( ( ( SemNextIndex != -1 )
+                       && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
                        && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) )
                      || ( ( iDrivigFlags & moveStopHere ) == 0 ) )
                     { // jeśli można jechać, to odpalić dźwięk kierownika oraz zamknąć drzwi w

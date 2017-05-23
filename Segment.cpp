@@ -130,6 +130,7 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     SafeDeleteArray(fTsBuffer);
 
     iSegCount = static_cast<int>( std::ceil( fLength / fStep ) ); // potrzebne do VBO
+    fStep = fLength / iSegCount; // update step to equalize size of individual pieces
     fTsBuffer = new double[ iSegCount + 1 ];
     fTsBuffer[ 0 ] = 0.0;
     for( int i = 1; i < iSegCount; ++i ) {
@@ -324,10 +325,10 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
     // podany jest przekrój końcowy
     // podsypka toru jest robiona za pomocą 6 punktów, szyna 12, drogi i rzeki na 3+2+3
-    int debugvertexcount{ 0 };
+    int vertexcount{ 0 };
 
     if( !fTsBuffer )
-        return debugvertexcount; // prowizoryczne zabezpieczenie przed wysypem - ustalić faktyczną przyczynę
+        return vertexcount; // prowizoryczne zabezpieczenie przed wysypem - ustalić faktyczną przyczynę
 
     vector3 pos1, pos2, dir, parallel1, parallel2, pt, norm;
     double s, step, fOffset, tv1, tv2, t, fEnd;
@@ -351,8 +352,6 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
     fEnd = fLength * double( iEnd ) / double( iSegCount );
     m2 = s / fEnd;
     jmm2 = 1.0 - m2;
-
-    int const debugvertexlimit = std::abs( iNumShapePoints ) * 2 * ( iEnd - iSkip );
 
     while( i < iEnd ) {
 
@@ -416,7 +415,7 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
                         }
                         ++Output;
                     }
-                    ++debugvertexcount;
+                    ++vertexcount;
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -454,7 +453,7 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
                         }
                         ++Output;
                     }
-                    ++debugvertexcount;
+                    ++vertexcount;
                 }
                 if( p ) // jeśli jest wskaźnik do tablicy
                     if( *p )
@@ -463,8 +462,6 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
                                 *( *p ) = pt;
                                 ( *p )++;
                             } // zapamiętanie brzegu jezdni
-
-                assert( debugvertexcount <= debugvertexlimit );
             }
         }
         else {
@@ -498,7 +495,7 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
                         }
                         ++Output;
                     }
-                    ++debugvertexcount;
+                    ++vertexcount;
 
                     pt = parallel2 * ShapePoints[ j ].x + pos2;
                     pt.y += ShapePoints[ j ].y;
@@ -527,9 +524,7 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
                         }
                         ++Output;
                     }
-                    ++debugvertexcount;
-
-                    assert( debugvertexcount <= debugvertexlimit );
+                    ++vertexcount;
                 }
             }
         }
@@ -544,9 +539,7 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
         }
     }
 
-    assert( debugvertexcount == debugvertexlimit );
-
-    return debugvertexcount;
+    return vertexcount;
 };
 
 void TSegment::Render()
