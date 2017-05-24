@@ -2046,9 +2046,7 @@ bool TGround::Init(std::string File)
     cParser parser(File, cParser::buffer_FILE, subpath, Global::bLoadTraction);
     std::string token;
 
-    const int OriginStackMaxDepth = 100; // rozmiar stosu dla zagnieżdżenia origin
-    int OriginStackTop = 0;
-    vector3 OriginStack[OriginStackMaxDepth]; // stos zagnieżdżenia origin
+    std::stack<Math3D::vector3> OriginStack; // stos zagnieżdżenia origin
 
     TGroundNode *LastNode = NULL; // do użycia w trainset
     iNumNodes = 0;
@@ -2222,8 +2220,7 @@ bool TGround::Init(std::string File)
                     tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
                     RootEvent = tmp;
                     if (!found)
-                    { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko
-                        // pierwszy
+                    { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
                         if (RootEvent->Type != tp_Ignored)
                             if (RootEvent->asName.find(
                                     "onstart") != std::string::npos) // event uruchamiany automatycznie po starcie
@@ -2233,56 +2230,39 @@ bool TGround::Init(std::string File)
                 }
             }
         }
-        //     else
-        //     if (str==AnsiString("include"))  //Tolaris to zrobil wewnatrz parsera
-        //     {
-        //         Include(Parser);
-        //     }
         else if (str == "rotate")
         {
             // parser.getTokens(3);
-            // parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawać błędne
-            // rezultaty
+            // parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawać błędne rezultaty // ??? how so TODO: investigate
             parser.getTokens();
             parser >> aRotate.x;
             parser.getTokens();
             parser >> aRotate.y;
             parser.getTokens();
             parser >> aRotate.z;
-            // WriteLog("*** rotate "+AnsiString(aRotate.x)+" "+AnsiString(aRotate.y)+"
-            // "+AnsiString(aRotate.z));
         }
         else if (str == "origin")
         {
-            //      str=Parser->GetNextSymbol().LowerCase();
-            //      if (str=="begin")
-            {
-                if (OriginStackTop >= OriginStackMaxDepth - 1)
-                {
-                    MessageBox(0, "Origin stack overflow ", "Error", MB_OK);
-                    break;
-                }
-                parser.getTokens(3);
-                parser >> OriginStack[OriginStackTop].x >> OriginStack[OriginStackTop].y >>
-                    OriginStack[OriginStackTop].z;
-                pOrigin += OriginStack[OriginStackTop]; // sumowanie całkowitego przesunięcia
-                OriginStackTop++; // zwiększenie wskaźnika stosu
-            }
+            Math3D::vector3 offset;
+            parser.getTokens(3);
+            parser
+                >> offset.x
+                >> offset.y
+                >> offset.z;
+            // sumowanie całkowitego przesunięcia
+            OriginStack.emplace(
+                offset + (
+                OriginStack.empty() ?
+                    Math3D::vector3() :
+                    OriginStack.top() ) );
+            pOrigin = OriginStack.top();
         }
         else if (str == "endorigin")
         {
-            //      else
-            //    if (str=="end")
-            {
-                if (OriginStackTop <= 0)
-                {
-                    MessageBox(0, "Origin stack underflow ", "Error", MB_OK);
-                    break;
-                }
-
-                OriginStackTop--; // zmniejszenie wskaźnika stosu
-                pOrigin -= OriginStack[OriginStackTop];
-            }
+            OriginStack.pop();
+            pOrigin = ( OriginStack.empty() ?
+                Math3D::vector3() :
+                OriginStack.top() );
         }
         else if (str == "atmo") // TODO: uporzadkowac gdzie maja byc parametry mgly!
         { // Ra: ustawienie parametrów OpenGL przeniesione do FirstInit
