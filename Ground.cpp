@@ -1625,19 +1625,15 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                                            str4);
             if (tf3 != 0.0) // zero oznacza błąd
             {
-                fTrainSetDist -=
-                    tf3; // przesunięcie dla kolejnego, minus bo idziemy w stronę punktu 1
+                // przesunięcie dla kolejnego, minus bo idziemy w stronę punktu 1
+                fTrainSetDist -= tf3;
                 tmp->pCenter = tmp->DynamicObject->GetPosition();
-/* // NOTE: the ctrain_depot flag is used to mark merged together parts of modular trains
-   //       clearing it here breaks this connection, so i'm disabling this piece of code.
-   //       if it has some actual purpose and disabling it breaks that, a different solution has to be found
-   //       either for modular trains, or whatever it is this code does.
-                if (TempConnectionType[iTrainSetWehicleNumber]) // jeśli jest sprzęg
-                    if (tmp->DynamicObject->MoverParameters->Couplers[tf1 == -1.0 ? 0 : 1]
-                            .AllowedFlag &
-                        ctrain_depot) // jesli zablokowany
-                        TempConnectionType[iTrainSetWehicleNumber] |= ctrain_depot; // będzie blokada
-*/
+                // automatically establish permanent connections for couplers which specify them in their definitions
+                if( TempConnectionType[ iTrainSetWehicleNumber ] ) {
+                    if( tmp->DynamicObject->MoverParameters->Couplers[ ( tf1 == -1.0 ? 0 : 1 ) ].AllowedFlag & coupling::permanent ) {
+                        TempConnectionType[ iTrainSetWehicleNumber ] |= coupling::permanent;
+                    }
+                }
                 iTrainSetWehicleNumber++;
             }
             else
@@ -1825,29 +1821,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 parser->getTokens();
                 *parser >> token;
             } while (token.compare("endtri") != 0);
-            // delete tmp; //nie ma co tego trzymać
-            // tmp=NULL; //to jest błąd
         }
         else
         {
-/*
-            i = 0;
-*/
             TempVerts.clear();
             TGroundVertex vertex;
-            do
-            {
-/*
-                if (i < 9999) // 3333 trójkąty
-                { // liczba wierzchołków nie jest nieograniczona
-*/
-/*
-                    parser->getTokens(3);
-                    *parser >> TempVerts[i].Point.x >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
-                    parser->getTokens(3);
-                    *parser >> TempVerts[i].Normal.x >> TempVerts[i].Normal.y >>
-                        TempVerts[i].Normal.z;
-*/
+            do {
                 parser->getTokens( 8, false );
                 *parser
                     >> vertex.Point.x
@@ -1858,49 +1837,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                     >> vertex.Normal.z
                     >> vertex.tu
                     >> vertex.tv;
-                /*
-                         str=Parser->GetNextSymbol().LowerCase();
-                         if (str==AnsiString("x"))
-                             TempVerts[i].tu=(TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("y"))
-                             TempVerts[i].tu=(TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("z"))
-                             TempVerts[i].tu=(TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                             TempVerts[i].tu=str.ToDouble();;
-
-                         str=Parser->GetNextSymbol().LowerCase();
-                         if (str==AnsiString("x"))
-                             TempVerts[i].tv=(TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("y"))
-                             TempVerts[i].tv=(TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("z"))
-                             TempVerts[i].tv=(TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                             TempVerts[i].tv=str.ToDouble();;
-                    */
-/*
-                    parser->getTokens(2);
-                    *parser >> TempVerts[i].tu >> TempVerts[i].tv;
-*/
-                    //    tf=Parser->GetNextSymbol().ToDouble();
-                    //          TempVerts[i].tu=tf;
-                    //        tf=Parser->GetNextSymbol().ToDouble();
-                    //      TempVerts[i].tv=tf;
-/*
-                    TempVerts[i].Point.RotateZ(aRotate.z / 180 * M_PI);
-                    TempVerts[i].Point.RotateX(aRotate.x / 180 * M_PI);
-                    TempVerts[i].Point.RotateY(aRotate.y / 180 * M_PI);
-                    TempVerts[i].Normal.RotateZ(aRotate.z / 180 * M_PI);
-                    TempVerts[i].Normal.RotateX(aRotate.x / 180 * M_PI);
-                    TempVerts[i].Normal.RotateY(aRotate.y / 180 * M_PI);
-                    TempVerts[i].Point += pOrigin;
-                    tmp->pCenter += TempVerts[i].Point;
-*/
                 vertex.Point.RotateZ( aRotate.z / 180 * M_PI );
                 vertex.Point.RotateX( aRotate.x / 180 * M_PI );
                 vertex.Point.RotateY( aRotate.y / 180 * M_PI );
@@ -1911,26 +1847,14 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 tmp->pCenter += vertex.Point;
 
                 TempVerts.emplace_back( vertex );
-/*
-                }
-                else if (i == 9999)
-                    ErrorLog("Bad triangles: too many verices");
-                i++;
-*/
                 parser->getTokens();
                 *parser >> token;
 
-                //   }
-
             } while (token.compare("endtri") != 0);
-/*
-            nv = i;
-*/
+
             nv = (int)TempVerts.size();
             tmp->Init(nv); // utworzenie tablicy wierzchołków
             tmp->pCenter /= (nv > 0 ? nv : 1);
-
-            //   memcpy(tmp->Vertices,TempVerts,nv*sizeof(TGroundVertex));
 
             r = 0;
             for (int i = 0; i < nv; i++)
@@ -1940,7 +1864,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 if (tf > r)
                     r = tf;
             }
-
             //   tmp->fSquareRadius=2000*2000+r;
             tmp->fSquareRadius += r;
             RaTriangleDivider(tmp); // Ra: dzielenie trójkątów jest teraz całkiem wydajne
@@ -2123,22 +2046,6 @@ bool TGround::Init(std::string File)
     cParser parser(File, cParser::buffer_FILE, subpath, Global::bLoadTraction);
     std::string token;
 
-    /*
-        TFileStream *fs;
-        fs=new TFileStream(asFile , fmOpenRead	| fmShareCompat	);
-        AnsiString str="";
-        int size=fs->Size;
-        str.SetLength(size);
-        fs->Read(str.c_str(),size);
-        str+="";
-        delete fs;
-        TQueryParserComp *Parser;
-        Parser=new TQueryParserComp(NULL);
-        Parser->TextToParse=str;
-    //    Parser->LoadStringToParse(asFile);
-        Parser->First();
-        AnsiString Token,asFileName;
-    */
     const int OriginStackMaxDepth = 100; // rozmiar stosu dla zagnieżdżenia origin
     int OriginStackTop = 0;
     vector3 OriginStack[OriginStackMaxDepth]; // stos zagnieżdżenia origin
@@ -2434,58 +2341,15 @@ bool TGround::Init(std::string File)
         else if (str == "light")
         { // Ra: ustawianie światła przeniesione do FirstInit
             WriteLog("Scenery light definition");
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-            vector3 lp;
-            parser.getTokens();
-            parser >> lp.x;
-            parser.getTokens();
-            parser >> lp.y;
-            parser.getTokens();
-            parser >> lp.z;
-            lp = Normalize(lp); // kierunek padania
-            Global::lightPos[0] = lp.x; // daylight position
-            Global::lightPos[1] = lp.y;
-            Global::lightPos[2] = lp.z;
-#else
             parser.getTokens(3, false);
             parser
                 >> Global::DayLight.direction.x
                 >> Global::DayLight.direction.y
                 >> Global::DayLight.direction.z;;
             Global::DayLight.direction.Normalize();
-#endif
             parser.getTokens(9, false);
 
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-            parser
-                >> Global::ambientDayLight[ 0 ]
-                >> Global::ambientDayLight[ 1 ]
-                >> Global::ambientDayLight[ 2 ]
-                >> Global::diffuseDayLight[ 0 ]
-                >> Global::diffuseDayLight[ 1 ]
-                >> Global::diffuseDayLight[ 2 ]
-                >> Global::specularDayLight[ 0 ]
-                >> Global::specularDayLight[ 1 ]
-                >> Global::specularDayLight[ 2 ];
-#else
-/*
-            parser
-                // kolor wszechobceny
-                >> Global::DayLight.ambient[0]
-                >> Global::DayLight.ambient[1]
-                >> Global::DayLight.ambient[2]
-                // kolor padający
-                >> Global::DayLight.diffuse[0]
-                >> Global::DayLight.diffuse[1]
-                >> Global::DayLight.diffuse[2]
-                // kolor odbity
-                >> Global::DayLight.specular[0]
-                >> Global::DayLight.specular[1]
-                >> Global::DayLight.specular[2];
-*/
-#endif
-            do
-            {
+            do {
                 parser.getTokens();
                 parser >> token;
             } while (token.compare("endlight") != 0);

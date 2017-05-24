@@ -512,11 +512,6 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         return;
     }
 
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    // jak coś się znajdzie, zostanie wpisane w tę pozycję, którą właśnie odczytano
-    --iLast;
-#endif
-
     while (fCurrentDistance < fDistance)
     {
         if (pTrack != tLast) // ostatni zapisany w tabelce nie był jeszcze sprawdzony

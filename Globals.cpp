@@ -83,17 +83,8 @@ GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
 float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
-GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};
-GLfloat Global::specularDayLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
-GLfloat Global::ambientLight[] = {0.80f, 0.80f, 0.85f, 1.0f}; // stałe
-GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
-GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
-#else
 opengl_light Global::DayLight;
 int Global::DynamicLightCount{ 3 };
-#endif
 GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
 GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
 GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //śladowe

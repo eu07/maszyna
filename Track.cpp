@@ -2595,11 +2595,7 @@ void TTrack::RenderDyn()
 { // renderowanie nieprzezroczystych fragmentów pojazdów
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
-#ifdef EU07_USE_OLD_RENDERCODE
-        dynamic->Render();
-#else
         GfxRenderer.Render( dynamic );
-#endif
     }
 };
 
@@ -2607,11 +2603,7 @@ void TTrack::RenderDynAlpha()
 { // renderowanie przezroczystych fragmentów pojazdów
     for( auto dynamic : Dynamics ) {
         // sam sprawdza, czy VBO; zmienia kontekst VBO!
-#ifdef EU07_USE_OLD_RENDERCODE
-        dynamic->RenderAlpha();
-#else
         GfxRenderer.Render_Alpha( dynamic );
-#endif
     }
 };
 

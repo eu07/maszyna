@@ -221,20 +221,11 @@ class Global
     static GLfloat FogColor[];
     static float Overcast;
     // static bool bTimeChange;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    static opengl_light AmbientLight;
 
-    static GLfloat ambientDayLight[];
-    static GLfloat diffuseDayLight[];
-    static GLfloat specularDayLight[];
-    static GLfloat ambientLight[];
-    static GLfloat diffuseLight[];
-    static GLfloat specularLight[];
-#else
     // TODO: put these things in the renderer
     static opengl_light DayLight;
     static int DynamicLightCount;
-#endif
+
     static GLfloat whiteLight[];
     static GLfloat noLight[];
     static GLfloat darkLight[];
