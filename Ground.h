@@ -122,19 +122,20 @@ public:
         TGroundNode *nNode; // obiekt renderujący grupowo ma tu wskaźnik na listę obiektów
     };
     std::string asName; // nazwa (nie zawsze ma znaczenie)
+
+    vector3 pCenter; // współrzędne środka do przydzielenia sektora
+    vector3 m_rootposition; // position of the ground (sub)rectangle holding the node, in the 3d world
+    // visualization-related data
+    // TODO: wrap these in a struct, when cleaning objects up
     union
     {
         int iNumVerts; // dla trójkątów
         int iNumPts; // dla linii
         int iCount; // dla terenu
-        // int iState; //Ra: nie używane - dźwięki zapętlone
     };
-    vector3 pCenter; // współrzędne środka do przydzielenia sektora
-
     double fLineThickness; // McZapkie-120702: grubosc linii
     double fSquareRadius; // kwadrat widoczności do
     double fSquareMinRadius; // kwadrat widoczności od
-    // TGroundNode *nMeshGroup; //Ra: obiekt grupujący trójkąty w TSubRect dla tekstury
     int iVersion; // wersja siatki (do wykonania rekompilacji)
     // union ?
     GLuint DisplayListID; // numer siatki DisplayLists
@@ -144,6 +145,7 @@ public:
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     int Ambient[4], Diffuse[4], Specular[4]; // oświetlenie
     bool bVisible;
+
     TGroundNode *nNext; // lista wszystkich w scenerii, ostatni na początku
     TGroundNode *nNext2; // lista obiektów w sektorze
     TGroundNode *nNext3; // lista obiektów renderowanych we wspólnym cyklu
@@ -153,8 +155,6 @@ public:
     void Init(int n);
     void InitCenter(); // obliczenie współrzędnych środka
     void InitNormals();
-
-    void MoveMe(vector3 pPosition); // przesuwanie (nie działa)
 
     // bool Disable();
     inline TGroundNode * Find(const std::string &asNameToFind, TGroundNodeType iNodeType)
@@ -177,7 +177,7 @@ public:
 
 struct bounding_area {
 
-    float3 center; // mid point of the rectangle
+    glm::vec3 center; // mid point of the rectangle
     float radius{ 0.0f }; // radius of the bounding sphere
 };
 

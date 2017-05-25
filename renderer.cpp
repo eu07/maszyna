@@ -142,9 +142,16 @@ opengl_renderer::Render() {
     ::glLoadIdentity();
 
     if( World.InitPerformed() ) {
-
+/*
         World.Camera.SetMatrix();
         m_camera.update_frustum();
+*/
+        glm::dmat4 worldcamera;
+        World.Camera.SetMatrix( worldcamera );
+        m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera );
+        // frustum tests are performed in 'world space' but after we set up frustum
+        // we no longer need camera translation, only rotation
+        ::glMultMatrixd( glm::value_ptr( glm::dmat4( glm::dmat3( worldcamera ))));
 
         Render( &World.Environment );
         Render( &World.Ground );
@@ -178,11 +185,12 @@ opengl_renderer::Render( world_environment *Environment ) {
 /*
     ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
 */
+/*
     glm::mat4 worldcamera;
     World.Camera.SetMatrix( worldcamera );
     glLoadIdentity();
     glMultMatrixf( glm::value_ptr( glm::mat4( glm::mat3( worldcamera ) ) ) );
-    
+*/   
     // setup fog
     if( Global::fFogEnd > 0 ) {
         // fog setup
@@ -294,12 +302,16 @@ opengl_renderer::Render( world_environment *Environment ) {
 
 bool
 opengl_renderer::Render( TGround *Ground ) {
-/*
-    glDisable( GL_BLEND );
-    glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
-    glEnable( GL_LIGHTING );
-    glColor3f( 1.0f, 1.0f, 1.0f );
 
+    ::glEnable( GL_LIGHTING );
+    ::glDisable( GL_BLEND );
+    ::glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
+    ::glColor3f( 1.0f, 1.0f, 1.0f );
+
+    ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
+
+    Update_Lights( Ground->m_lights );
+/*
     glm::vec3 const cameraposition( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
     int const camerax = static_cast<int>( std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2 );
     int const cameraz = static_cast<int>( std::floor( cameraposition.z / 1000.0f ) + iNumRects / 2 );
@@ -317,15 +329,6 @@ opengl_renderer::Render( TGround *Ground ) {
         }
     }
 */
-    ::glEnable( GL_LIGHTING );
-    ::glDisable( GL_BLEND );
-    ::glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
-    ::glColor3f( 1.0f, 1.0f, 1.0f );
-
-    ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
-
-    Update_Lights( Ground->m_lights );
-
     Ground->CameraDirection.x = std::sin( Global::pCameraRotation ); // wektor kierunkowy
     Ground->CameraDirection.z = std::cos( Global::pCameraRotation );
     TGroundNode *node;
@@ -354,6 +357,16 @@ opengl_renderer::Render( TGround *Ground ) {
         }
     }
     // renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
+    // pre-calculate camera view span
+    double const fieldofviewcosine =
+        std::cos(
+            std::max(
+                // vertical...
+                Global::FieldOfView / Global::ZoomFactor,
+                // ...or horizontal, whichever is bigger
+                Global::FieldOfView / Global::ZoomFactor
+                * std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ) ) );
+
     Ground->iRendered = 0; // ilość renderowanych sektorów
     Math3D::vector3 direction;
     for( k = 0; k < Global::iSegmentsRendered; ++k ) // sektory w kolejności odległości
@@ -369,10 +382,16 @@ opengl_renderer::Render( TGround *Ground ) {
             if( Math3D::LengthSquared3( direction ) > 5 ) // te blisko są zawsze wyświetlane
             {
                 direction = Math3D::SafeNormalize( direction ); // normalizacja
-                if( Ground->CameraDirection.x * direction.x + Ground->CameraDirection.z * direction.z < 0.55 )
+                if( Ground->CameraDirection.x * direction.x + Ground->CameraDirection.z * direction.z < 0.5 )
                     continue; // pomijanie sektorów poza kątem patrzenia
             }
             // kwadrat kilometrowy nie zawsze, bo szkoda FPS
+            // TODO: unify all math objects
+            ::glPushMatrix();
+            auto const &cellorigin = Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].m_area.center;
+            auto const originoffset = Math3D::vector3( cellorigin.x, cellorigin.y, cellorigin.z ) - Global::pCameraPosition;
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
             if( Global::bUseVBO ) {
                 // vbo render path
                 Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderVBO();
@@ -381,6 +400,8 @@ opengl_renderer::Render( TGround *Ground ) {
                 // display list render path
                 Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderDL();
             }
+            ::glPopMatrix();
+
             if( ( tmp = Ground->FastGetSubRect( i + c, j + r ) ) != nullptr ) {
                 if( tmp->iNodeCount ) {
                     // o ile są jakieś obiekty, bo po co puste sektory przelatywać
@@ -389,16 +410,15 @@ opengl_renderer::Render( TGround *Ground ) {
             }
         } while( ( i < 0 ) || ( j < 0 ) ); // są 4 przypadki, oprócz i=j=0
     }
-
     // dodać renderowanie terenu z E3D - jedno VBO jest używane dla całego modelu, chyba że jest ich więcej
     if( Global::bUseVBO ) {
         if( Global::pTerrainCompact ) {
             Global::pTerrainCompact->TerrainRenderVBO( TGroundRect::iFrameNumber );
         }
     }
-
     // renderowanie nieprzezroczystych
     for( i = 0; i < Ground->iRendered; ++i ) {
+
         if( Global::bUseVBO ) {
             // vbo render path
             Ground->pRendered[ i ]->RenderVBO();
@@ -408,10 +428,8 @@ opengl_renderer::Render( TGround *Ground ) {
             Ground->pRendered[ i ]->RenderDL();
         }
     }
-
     // regular render takes care of all solid geometry present in the scene, thus we can launch alpha parts render here
     return Render_Alpha( Ground );
-
 }
 
 bool
@@ -436,22 +454,30 @@ opengl_renderer::Render( TGroundNode *Node ) {
     switch (Node->iType)
     {
         case TP_TRACK: {
+
+            if( Global::bUseVBO && ( Node->iNumVerts <= 0 ) ) {
+                return false;
+            }
+            // setup
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
             // TODO: unify the render code after generic buffers are in place
             if( Global::bUseVBO ) {
-                if( Node->iNumVerts ) {
-                    Node->pTrack->RaRenderVBO( Node->iVboPtr );
-                }
-                else {
-                    return false;
-                }
+                // vbo render path
+                Node->pTrack->RaRenderVBO( Node->iVboPtr );
             }
             else {
+                // display list render path
                 Node->pTrack->Render();
             }
+            // post-render cleanup
+            ::glPopMatrix();
             return true;
         }
         case TP_MODEL: {
-            Node->Model->Render( &Node->pCenter );
+            Node->Model->Render( Node->pCenter - Global::pCameraPosition );
             return true;
         }
         case TP_MEMCELL: {
@@ -480,6 +506,9 @@ opengl_renderer::Render( TGroundNode *Node ) {
             // wszelkie linie są rysowane na samym końcu
             if( Node->iNumPts ) {
                 // setup
+                ::glPushMatrix();
+                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // w zaleznosci od koloru swiatla
                 ::glColor4ub(
                     static_cast<GLubyte>( std::floor( Node->Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ) ),
@@ -497,6 +526,9 @@ opengl_renderer::Render( TGroundNode *Node ) {
                 else {
                     ::glCallList( Node->DisplayListID );
                 }
+
+                // post-render cleanup
+                ::glPopMatrix();
                 return true;
             }
             else {
@@ -505,7 +537,17 @@ opengl_renderer::Render( TGroundNode *Node ) {
         }
         else {
             // GL_TRIANGLE etc
+            if( ( Global::bUseVBO ?
+                    Node->iVboPtr < 0 :
+                    Node->DisplayListID  == 0 ) ) {
+                return false;
+            }
+
             // setup
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
             ::glColor3ub(
                 static_cast<GLubyte>( Node->Diffuse[ 0 ] ),
                 static_cast<GLubyte>( Node->Diffuse[ 1 ] ),
@@ -517,22 +559,16 @@ opengl_renderer::Render( TGroundNode *Node ) {
             // TODO: unify the render code after generic buffers are in place
             if( Global::bUseVBO ) {
                 // vbo render path
-                if( Node->iVboPtr >= 0 ) {
-                    ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumVerts );
-                }
-                else {
-                    return false;
-                }
+                ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumVerts );
             }
             else {
                 // display list render path
-                if( Node->DisplayListID != 0 ) {
-                    ::glCallList( Node->DisplayListID );
-                }
-                else {
-                    return false;
-                }
+                ::glCallList( Node->DisplayListID );
             }
+
+            // post-render cleanup
+            ::glPopMatrix();
+
             return true;
         }
     }
@@ -550,11 +586,11 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    double squaredistance = SquareMagnitude( ( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor );
+    auto const originoffset = Dynamic->vPosition - Global::pCameraPosition;
+    double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
-
     ::glPushMatrix();
-
+/*
     if( Dynamic == Global::pUserDynamic ) {
         //specjalne ustawienie, aby nie trzęsło
         //tu trzeba by ustawić animacje na modelu zewnętrznym
@@ -563,7 +599,8 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     }
     else
         ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
-
+*/
+    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
     if( Dynamic->fShade > 0.0f ) {
@@ -666,7 +703,7 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-    auto const result = Render( Model, Material, SquareMagnitude( Position - Global::GetCameraPosition() ) );
+    auto const result = Render( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
 
     ::glPopMatrix();
 
@@ -932,12 +969,19 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         case TP_TRACTION: {
             // TODO: unify the render code after generic buffers are in place
             if( Node->bVisible ) {
+                // setup
+                ::glPushMatrix();
+                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+                // render
                 if( Global::bUseVBO ) {
                     Node->hvTraction->RenderVBO( distancesquared, Node->iVboPtr );
                 }
                 else {
                     Node->hvTraction->RenderDL( distancesquared );
                 }
+                // post-render cleanup
+                ::glPopMatrix();
                 return true;
             }
             else {
@@ -945,7 +989,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             }
         }
         case TP_MODEL: {
-            Node->Model->RenderAlpha( &Node->pCenter );
+            Node->Model->RenderAlpha( Node->pCenter - Global::pCameraPosition );
             return true;
         }
     }
@@ -980,6 +1024,9 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             // wszelkie linie są rysowane na samym końcu
             if( Node->iNumPts ) {
                 // setup
+                ::glPushMatrix();
+                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // w zaleznosci od koloru swiatla
                 ::glColor4ub(
                     static_cast<GLubyte>( std::floor( Node->Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ) ),
@@ -997,12 +1044,18 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 else {
                     ::glCallList( Node->DisplayListID );
                 }
+                // post-render cleanup
+                ::glPopMatrix();
                 result = true;
             }
         }
         else {
             // GL_TRIANGLE etc
             // setup
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
             ::glColor3ub(
                 static_cast<GLubyte>( Node->Diffuse[ 0 ] ),
                 static_cast<GLubyte>( Node->Diffuse[ 1 ] ),
@@ -1024,8 +1077,10 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 ::glCallList( Node->DisplayListID );
                 result = true;
             }
+            // post-render cleanup
+            ::glPopMatrix();
         }
-        // post-render cleanup
+
 #ifdef _PROBLEND
         if( ( Node->PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
         {
@@ -1049,17 +1104,19 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    double squaredistance = SquareMagnitude( ( Global::pCameraPosition - Dynamic->vPosition ) / Global::ZoomFactor );
+    auto const originoffset = Dynamic->vPosition - Global::pCameraPosition;
+    double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
-
     ::glPushMatrix();
+/*
     if( Dynamic == Global::pUserDynamic ) { // specjalne ustawienie, aby nie trzęsło
         ::glLoadIdentity(); // zacząć od macierzy jedynkowej
         Global::pCamera->SetCabMatrix( Dynamic->vPosition ); // specjalne ustawienie kamery
     }
     else
         ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
-
+*/
+    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
     if( Dynamic->fShade > 0.0f ) {
@@ -1161,7 +1218,7 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, M
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position - Global::GetCameraPosition() ) );
+    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
 
     ::glPopMatrix();
 
@@ -1400,7 +1457,7 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
             continue;
         }
         // if the light passed tests so far, it's good enough
-        renderlight->set_position( scenelight.position );
+        renderlight->set_position( scenelight.position - Global::pCameraPosition );
         renderlight->direction = scenelight.direction;
 
         auto luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels

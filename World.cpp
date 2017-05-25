@@ -1276,6 +1276,8 @@ TWorld::Render_Cab() {
         return;
     }
 
+    ::glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
+/*
     glPushMatrix();
     vector3 pos = dynamic->GetPosition(); // wszpółrzędne pojazdu z kabiną
     // glTranslatef(pos.x,pos.y,pos.z); //przesunięcie o wektor (tak było i trzęsło)
@@ -1284,7 +1286,11 @@ TWorld::Render_Cab() {
     glLoadIdentity(); // zacząć od macierzy jedynkowej
     Camera.SetCabMatrix( pos ); // widok z kamery po przesunięciu
     glMultMatrixd( dynamic->mMatrix.getArray() ); // ta macierz nie ma przesunięcia
-    glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
+*/
+    ::glPushMatrix();
+    auto const originoffset = dynamic->GetPosition() - Global::pCameraPosition;
+    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+    ::glMultMatrixd( dynamic->mMatrix.getArray() );
 
     if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
     {

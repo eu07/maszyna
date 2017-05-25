@@ -606,16 +606,16 @@ int TAnimModel::Flags()
 //-----------------------------------------------------------------------------
 // 2011-03-16 funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
-void TAnimModel::Render( vector3 *vPosition ) {
+void TAnimModel::Render( vector3 const &Position ) {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render( pModel, Material(), *vPosition, vAngle );
+        GfxRenderer.Render( pModel, Material(), Position, vAngle );
 };
-void TAnimModel::RenderAlpha( vector3 *vPosition ) {
+void TAnimModel::RenderAlpha( vector3 const &Position ) {
     RaPrepare();
     if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render_Alpha( pModel, Material(), *vPosition, vAngle );
+        GfxRenderer.Render_Alpha( pModel, Material(), Position, vAngle );
 };
 
 //---------------------------------------------------------------------------

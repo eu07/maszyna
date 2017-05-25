@@ -319,7 +319,7 @@ vector3 TSegment::FastGetPoint(double t)
     return (bCurve ? RaInterpolate(t) : ((1.0 - t) * Point1 + (t)*Point2));
 }
 
-int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, double fOffsetX, bool Onlypositions, vector3 **p, bool bRender)
+int TSegment::RenderLoft( CVertNormTex* &Output, Math3D::vector3 const &Origin, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale, int iSkip, int iEnd, double fOffsetX, vector3 **p, bool bRender)
 { // generowanie trójkątów dla odcinka trajektorii ruchu
     // standardowo tworzy triangle_strip dla prostego albo ich zestaw dla łuku
     // po modyfikacji - dla ujemnego (iNumShapePoints) w dodatkowych polach tabeli
@@ -368,12 +368,10 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
             jmm2 = 0.0;
         }
 
-        if( false == Onlypositions ) {
-            while( tv1 < 0.0 ) {
-                tv1 += 1.0;
-            }
-            tv2 = tv1 - step / fTextureLength; // mapowanie na końcu segmentu
+        while( tv1 < 0.0 ) {
+            tv1 += 1.0;
         }
+        tv2 = tv1 - step / fTextureLength; // mapowanie na końcu segmentu
 
         t = fTsBuffer[ i ]; // szybsze od GetTFromS(s);
         pos2 = FastGetPoint( t );
@@ -389,30 +387,25 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
             for( int j = 0; j < iNumShapePoints; ++j ) {
                 pt = parallel1 * ( jmm1 * ( ShapePoints[ j ].x - fOffsetX ) + m1 * ShapePoints[ j + iNumShapePoints ].x ) + pos1;
                 pt.y += jmm1 * ShapePoints[ j ].y + m1 * ShapePoints[ j + iNumShapePoints ].y;
-                if( false == Onlypositions ) {
-                    norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel1;
-                    norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
-                }
+                pt -= Origin;
+                norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel1;
+                norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
                 if( bRender ) { // skrzyżowania podczas łączenia siatek mogą nie renderować poboczy, ale potrzebować punktów
                     if( Output == nullptr ) {
                         // immediate mode
-                        if( false == Onlypositions ) {
-                            ::glNormal3f( norm.x, norm.y, norm.z );
-                            ::glTexCoord2f( (jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale, tv1 );
-                        }
+                        ::glNormal3f( norm.x, norm.y, norm.z );
+                        ::glTexCoord2f( (jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale, tv1 );
                         ::glVertex3f( pt.x, pt.y, pt.z ); // pt nie mamy gdzie zapamiętać?
                     }
                     else {
                         Output->x = pt.x;
                         Output->y = pt.y;
                         Output->z = pt.z;
-                        if( false == Onlypositions ) {
-                            Output->nx = norm.x;
-                            Output->ny = norm.y;
-                            Output->nz = norm.z;
-                            Output->u = (jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
-                            Output->v = tv1;
-                        }
+                        Output->nx = norm.x;
+                        Output->ny = norm.y;
+                        Output->nz = norm.z;
+                        Output->u = (jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
+                        Output->v = tv1;
                         ++Output;
                     }
                     ++vertexcount;
@@ -427,30 +420,25 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
                 // dla trapezu drugi koniec ma inne współrzędne
                 pt = parallel2 * ( jmm2 * ( ShapePoints[ j ].x - fOffsetX ) + m2 * ShapePoints[ j + iNumShapePoints ].x ) + pos2;
                 pt.y += jmm2 * ShapePoints[ j ].y + m2 * ShapePoints[ j + iNumShapePoints ].y;
-                if( false == Onlypositions ) {
-                    norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel2;
-                    norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
-                }
+                pt -= Origin;
+                norm = ( jmm1 * ShapePoints[ j ].n.x + m1 * ShapePoints[ j + iNumShapePoints ].n.x ) * parallel2;
+                norm.y += jmm1 * ShapePoints[ j ].n.y + m1 * ShapePoints[ j + iNumShapePoints ].n.y;
                 if( bRender ) { // skrzyżowania podczas łączenia siatek mogą nie renderować poboczy, ale potrzebować punktów
                     if( Output == nullptr ) {
                         // immediate mode
-                        if( false == Onlypositions ) {
-                            ::glNormal3f( norm.x, norm.y, norm.z );
-                            ::glTexCoord2f( (jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale, tv2 );
-                        }
+                        ::glNormal3f( norm.x, norm.y, norm.z );
+                        ::glTexCoord2f( (jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale, tv2 );
                         ::glVertex3f( pt.x, pt.y, pt.z );
                     }
                     else {
                         Output->x = pt.x;
                         Output->y = pt.y;
                         Output->z = pt.z;
-                        if( false == Onlypositions ) {
-                            Output->nx = norm.x;
-                            Output->ny = norm.y;
-                            Output->nz = norm.z;
-                            Output->u = (jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
-                            Output->v = tv2;
-                        }
+                        Output->nx = norm.x;
+                        Output->ny = norm.y;
+                        Output->nz = norm.z;
+                        Output->u = (jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
+                        Output->v = tv2;
                         ++Output;
                     }
                     ++vertexcount;
@@ -470,58 +458,48 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
                     //łuk z jednym profilem
                     pt = parallel1 * ( ShapePoints[ j ].x - fOffsetX ) + pos1;
                     pt.y += ShapePoints[ j ].y;
-                    if( false == Onlypositions ) {
-                        norm = ShapePoints[ j ].n.x * parallel1;
-                        norm.y += ShapePoints[ j ].n.y;
-                    }
+                    pt -= Origin;
+                    norm = ShapePoints[ j ].n.x * parallel1;
+                    norm.y += ShapePoints[ j ].n.y;
                     if( Output == nullptr ) {
                         // immediate mode
-                        if( false == Onlypositions ) {
-                            ::glNormal3f( norm.x, norm.y, norm.z );
-                            ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv1 );
-                        }
+                        ::glNormal3f( norm.x, norm.y, norm.z );
+                        ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv1 );
                         ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na początku odcinka
                     }
                     else {
                         Output->x = pt.x;
                         Output->y = pt.y;
                         Output->z = pt.z;
-                        if( false == Onlypositions ) {
-                            Output->nx = norm.x;
-                            Output->ny = norm.y;
-                            Output->nz = norm.z;
-                            Output->u = ShapePoints[ j ].z / Texturescale;
-                            Output->v = tv1;
-                        }
+                        Output->nx = norm.x;
+                        Output->ny = norm.y;
+                        Output->nz = norm.z;
+                        Output->u = ShapePoints[ j ].z / Texturescale;
+                        Output->v = tv1;
                         ++Output;
                     }
                     ++vertexcount;
 
                     pt = parallel2 * ShapePoints[ j ].x + pos2;
                     pt.y += ShapePoints[ j ].y;
-                    if( false == Onlypositions ) {
-                        norm = ShapePoints[ j ].n.x * parallel2;
-                        norm.y += ShapePoints[ j ].n.y;
-                    }
+                    pt -= Origin;
+                    norm = ShapePoints[ j ].n.x * parallel2;
+                    norm.y += ShapePoints[ j ].n.y;
                     if( Output == nullptr ) {
                         // immediate mode
-                        if( false == Onlypositions ) {
-                            ::glNormal3f( norm.x, norm.y, norm.z );
-                            ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv2 );
-                        }
+                        ::glNormal3f( norm.x, norm.y, norm.z );
+                        ::glTexCoord2f( ShapePoints[ j ].z / Texturescale, tv2 );
                         ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na końcu odcinka
                     }
                     else {
                         Output->x = pt.x;
                         Output->y = pt.y;
                         Output->z = pt.z;
-                        if( false == Onlypositions ) {
-                            Output->nx = norm.x;
-                            Output->ny = norm.y;
-                            Output->nz = norm.z;
-                            Output->u = ShapePoints[ j ].z / Texturescale;
-                            Output->v = tv2;
-                        }
+                        Output->nx = norm.x;
+                        Output->ny = norm.y;
+                        Output->nz = norm.z;
+                        Output->u = ShapePoints[ j ].z / Texturescale;
+                        Output->v = tv2;
                         ++Output;
                     }
                     ++vertexcount;
@@ -534,9 +512,7 @@ int TSegment::RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int
         }
         pos1 = pos2;
         parallel1 = parallel2;
-        if( false == Onlypositions ) {
-            tv1 = tv2;
-        }
+        tv1 = tv2;
     }
 
     return vertexcount;

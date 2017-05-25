@@ -161,8 +161,8 @@ class TAnimModel
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(char *pName);
     TAnimContainer * GetContainer(char *pName);
-    void Render( vector3 *vPosition );
-    void RenderAlpha( vector3 *vPosition );
+    void Render( vector3 const &Position );
+    void RenderAlpha( vector3 const &Position );
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {

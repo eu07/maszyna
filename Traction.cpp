@@ -324,7 +324,7 @@ int TTraction::RaArrayPrepare()
     return iLines;
 };
 
-int TTraction::RaArrayFill(CVertNormTex *Vert)
+int TTraction::RaArrayFill(CVertNormTex *Vert, Math3D::vector3 const &Origin)
 { // wypełnianie tablic VBO
     int debugvertexcount{ 0 };
 
@@ -332,14 +332,14 @@ int TTraction::RaArrayFill(CVertNormTex *Vert)
     if (Wires == 2)
         WireOffset = 0;
     // jezdny
-    Vert->x = pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset;
-    Vert->y = pPoint1.y;
-    Vert->z = pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
+    Vert->x = pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
+    Vert->y = pPoint1.y - Origin.y;
+    Vert->z = pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
     ++Vert;
     ++debugvertexcount;
-    Vert->x = pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset;
-    Vert->y = pPoint2.y;
-    Vert->z = pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
+    Vert->x = pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
+    Vert->y = pPoint2.y - Origin.y;
+    Vert->z = pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
     ++Vert;
     ++debugvertexcount;
     // Nie wiem co 'Marcin
@@ -355,9 +355,9 @@ int TTraction::RaArrayFill(CVertNormTex *Vert)
     // Przewod nosny 'Marcin
     if (Wires > 1)
     { // lina nośna w kawałkach
-        Vert->x = pPoint3.x;
-        Vert->y = pPoint3.y;
-        Vert->z = pPoint3.z;
+        Vert->x = pPoint3.x - Origin.x;
+        Vert->y = pPoint3.y - Origin.y;
+        Vert->z = pPoint3.z - Origin.z;
         ++Vert;
         ++debugvertexcount;
         for (int i = 0; i < iNumSections - 1; ++i)
@@ -367,31 +367,31 @@ int TTraction::RaArrayFill(CVertNormTex *Vert)
             if( ( Wires < 4 )
              || ( ( i != 0 )
                && ( i != iNumSections - 2 ) ) ) {
-                Vert->x = pt3.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference;
-                Vert->z = pt3.z;
+                Vert->x = pt3.x - Origin.x;
+                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y;
+                Vert->z = pt3.z - Origin.z;
                 ++Vert;
                 ++debugvertexcount;
             }
             f += step;
         }
-        Vert->x = pPoint4.x;
-        Vert->y = pPoint4.y;
-        Vert->z = pPoint4.z;
+        Vert->x = pPoint4.x - Origin.x;
+        Vert->y = pPoint4.y - Origin.y;
+        Vert->z = pPoint4.z - Origin.z;
         ++Vert;
         ++debugvertexcount;
     }
     // Drugi przewod jezdny 'Winger
     if (Wires > 2)
     {
-        Vert->x = pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-        Vert->y = pPoint1.y;
-        Vert->z = pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
+        Vert->x = pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x;
+        Vert->y = pPoint1.y - Origin.y;
+        Vert->z = pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z;
         ++Vert;
         ++debugvertexcount;
-        Vert->x = pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-        Vert->y = pPoint2.y;
-        Vert->z = pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
+        Vert->x = pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x;
+        Vert->y = pPoint2.y - Origin.y;
+        Vert->z = pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z;
         ++Vert;
         ++debugvertexcount;
     }
@@ -399,28 +399,29 @@ int TTraction::RaArrayFill(CVertNormTex *Vert)
     f = step;
 
     if( Wires == 4 ) {
-        Vert->x = pPoint3.x;
-        Vert->y = pPoint3.y - 0.65f * fHeightDifference;
-        Vert->z = pPoint3.z;
+        Vert->x = pPoint3.x - Origin.x;
+        Vert->y = pPoint3.y - 0.65f * fHeightDifference - Origin.y;
+        Vert->z = pPoint3.z - Origin.z;
         ++Vert;
         ++debugvertexcount;
         for( int i = 0; i < iNumSections - 1; ++i ) {
             pt3 = pPoint3 + v1 * f;
             t = ( 1 - std::fabs( f - mid ) * 2 );
-            Vert->x = pt3.x;
+            Vert->x = pt3.x - Origin.x;
             Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - (
                 ( ( i == 0 )
                || ( i == iNumSections - 2 ) ) ?
                     0.25f * fHeightDifference :
-                    0.05 );
-            Vert->z = pt3.z;
+                    0.05 )
+                - Origin.y;
+            Vert->z = pt3.z - Origin.z;
             ++Vert;
             ++debugvertexcount;
             f += step;
         }
-        Vert->x = pPoint4.x;
-        Vert->y = pPoint4.y - 0.65f * fHeightDifference;
-        Vert->z = pPoint4.z;
+        Vert->x = pPoint4.x - Origin.x;
+        Vert->y = pPoint4.y - 0.65f * fHeightDifference - Origin.y;
+        Vert->z = pPoint4.z - Origin.z;
         ++Vert;
         ++debugvertexcount;
     }
@@ -439,40 +440,40 @@ int TTraction::RaArrayFill(CVertNormTex *Vert)
             t = (1 - std::fabs(f - mid) * 2);
 
             if( ( i % 2 ) == 0 ) {
-                Vert->x = pt3.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 );
-                Vert->z = pt3.z;
+                Vert->x = pt3.x - Origin.x;
+                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y;
+                Vert->z = pt3.z - Origin.z;
                 ++Vert;
                 ++debugvertexcount;
-                Vert->x = pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset;
-                Vert->y = pt4.y;
-                Vert->z = pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
+                Vert->x = pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
+                Vert->y = pt4.y - Origin.y;
+                Vert->z = pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
                 ++Vert;
                 ++debugvertexcount;
             }
             else {
-                Vert->x = pt3.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 );
-                Vert->z = pt3.z;
+                Vert->x = pt3.x - Origin.x;
+                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y;
+                Vert->z = pt3.z - Origin.z;
                 ++Vert;
                 ++debugvertexcount;
-                Vert->x = pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset;
-                Vert->y = pt4.y;
-                Vert->z = pt4.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset;
+                Vert->x = pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
+                Vert->y = pt4.y - Origin.y;
+                Vert->z = pt4.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
                 ++Vert;
                 ++debugvertexcount;
             }
             if( ( ( Wires == 4 )
              && ( ( i == 1 )
                || ( i == iNumSections - 3 ) ) ) ) {
-                Vert->x = pt3.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - 0.05;
-                Vert->z = pt3.z;
+                Vert->x = pt3.x - Origin.x;
+                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - 0.05 - Origin.y;
+                Vert->z = pt3.z - Origin.z;
                 ++Vert;
                 ++debugvertexcount;
-                Vert->x = pt3.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference;
-                Vert->z = pt3.z;
+                Vert->x = pt3.x - Origin.x;
+                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y;
+                Vert->z = pt3.z - Origin.z;
                 ++Vert;
                 ++debugvertexcount;
             }
