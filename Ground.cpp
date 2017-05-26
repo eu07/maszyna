@@ -255,9 +255,9 @@ void TGroundNode::RaRenderVBO()
     glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
 }
 
-void TGroundNode::Compile(bool many)
+void TGroundNode::Compile( Math3D::vector3 const &Origin, bool const Multiple )
 { // tworzenie skompilowanej listy w wyświetlaniu DL
-    if (!many)
+    if (false == Multiple)
     { // obsługa pojedynczej listy
         if (DisplayListID)
             Release();
@@ -273,9 +273,9 @@ void TGroundNode::Compile(bool many)
         glBegin(iType);
         for (int i = 0; i < iNumPts; ++i)
             glVertex3d(
-                Points[i].x - m_rootposition.x,
-                Points[i].y - m_rootposition.y,
-                Points[i].z - m_rootposition.z );
+                Points[i].x - Origin.x,
+                Points[i].y - Origin.y,
+                Points[i].z - Origin.z );
         glEnd();
     }
     else if (iType == GL_TRIANGLE_STRIP || iType == GL_TRIANGLE_FAN || iType == GL_TRIANGLES)
@@ -293,9 +293,9 @@ void TGroundNode::Compile(bool many)
                 Vertices[i].tu,
                 Vertices[i].tv);
             glVertex3d(
-                Points[i].x - m_rootposition.x,
-                Points[i].y - m_rootposition.y,
-                Points[i].z - m_rootposition.z );
+                Vertices[i].Point.x - Origin.x,
+                Vertices[i].Point.y - Origin.y,
+                Vertices[i].Point.z - Origin.z );
         }
         glEnd();
     }
@@ -318,7 +318,7 @@ void TGroundNode::Compile(bool many)
             n = n->nNext3; // następny z listy
         }
     }
-    if (!many)
+    if (false == Multiple)
         if (Global::bManageNodes)
             glEndList();
 };
@@ -392,6 +392,7 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     case TP_TRACK: // TODO: tory z cieniem (tunel, canyon) też dać bez łączenia?
         ++iTracks; // jeden tor więcej
         Node->pTrack->RaOwnerSet(this); // do którego sektora ma zgłaszać animację
+/*
         if( ( true == Global::bUseVBO )
          || ( false == Node->pTrack->IsGroupable() ) ) {
             // tory ruchome nie są grupowane przy Display Lists (wymagają odświeżania DL)
@@ -427,6 +428,11 @@ void TSubRect::NodeAdd(TGroundNode *Node)
                 nMeshed = Node;
             } // do podzielenia potem
         }
+*/
+        // NOTE: track merge code temporarily disabled to simplify implementation of camera-centric rendering
+        // TODO: re-implement merge for both render paths down the road
+        RaNodeAdd( Node );
+
         break;
     case GL_TRIANGLE_STRIP:
     case GL_TRIANGLE_FAN:
@@ -940,8 +946,10 @@ TGroundRect::Init() {
                 - glm::vec3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
                 + glm::vec3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
                 + glm::vec3( subrectsize * column, 0.0f, subrectsize * row );
+/*
             // NOTE: the actual coordinates get swapped, as they're swapped in rest of the code :x
             area.center = glm::vec3( area.center.z, area.center.y, area.center.x );
+*/
             area.radius = subrectsize * M_SQRT2;
         }
     }
@@ -962,15 +970,22 @@ void TGroundRect::RenderDL()
                 nRender->DisplayListID = glGenLists(1);
                 glNewList(nRender->DisplayListID, GL_COMPILE);
                 nRender->iVersion = Global::iReCompile; // aktualna wersja siatek
+                auto const origin = Math3D::vector3( m_area.center.x, m_area.center.y, m_area.center.z );
                 for (TGroundNode *node = nRender; node; node = node->nNext3) // następny tej grupy
-                    node->Compile(true);
+                    node->Compile(origin, true);
                 glEndList();
             }
             GfxRenderer.Render( nRender ); // nieprzezroczyste trójkąty kwadratu kilometrowego
         }
-        if( nRootMesh )
+        // submodels geometry is world-centric, so at least for the time being we need to pop the stack early
+        ::glPopMatrix();
+        if( nRootMesh ) {
             GfxRenderer.Render( nRootMesh );
+        }
         iLastDisplay = iFrameNumber; // drugi raz nie potrzeba
+    }
+    else {
+        ::glPopMatrix();
     }
 #else
     if( iLastDisplay != iFrameNumber ) { // tylko jezeli dany kwadrat nie był jeszcze renderowany
@@ -1898,7 +1913,7 @@ TSubRect * TGround::FastGetSubRect(int iCol, int iRow)
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
         return NULL;
-    return (Rects[br][bc].FastGetRect(sc, sr));
+    return (Rects[bc][br].FastGetRect(sc, sr));
 }
 
 TSubRect * TGround::GetSubRect(int iCol, int iRow)
@@ -1910,7 +1925,7 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
         return NULL; // jeśli poza mapą
-    return (Rects[br][bc].SafeGetRect(sc, sr)); // pobranie małego kwadratu
+    return (Rects[bc][br].SafeGetRect(sc, sr)); // pobranie małego kwadratu
 }
 
 TEvent * TGround::FindEvent(const std::string &asEventName)

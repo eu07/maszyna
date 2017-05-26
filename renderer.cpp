@@ -395,12 +395,12 @@ opengl_renderer::Render( TGround *Ground ) {
             if( Global::bUseVBO ) {
                 // vbo render path
                 Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderVBO();
+                ::glPopMatrix();
             }
             else {
                 // display list render path
                 Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderDL();
             }
-            ::glPopMatrix();
 
             if( ( tmp = Ground->FastGetSubRect( i + c, j + r ) ) != nullptr ) {
                 if( tmp->iNodeCount ) {
@@ -440,8 +440,12 @@ opengl_renderer::Render( TGroundNode *Node ) {
     switch (Node->iType)
     { // obiekty renderowane niezależnie od odległości
     case TP_SUBMODEL:
+        ::glPushMatrix();
+        auto const originoffset = Node->pCenter - Global::pCameraPosition;
+        ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
         TSubModel::fSquareDist = 0;
         Render( Node->smTerrain );
+        ::glPopMatrix();
         return true;
     }
 
@@ -494,7 +498,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
             // additional setup for display lists
             if( ( Node->DisplayListID == 0 )
              || ( Node->iVersion != Global::iReCompile ) ) { // Ra: wymuszenie rekompilacji
-                Node->Compile();
+                Node->Compile(Node->m_rootposition);
                 if( Global::bManageNodes )
                     ResourceManager::Register( Node );
             };
@@ -506,9 +510,6 @@ opengl_renderer::Render( TGroundNode *Node ) {
             // wszelkie linie są rysowane na samym końcu
             if( Node->iNumPts ) {
                 // setup
-                ::glPushMatrix();
-                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // w zaleznosci od koloru swiatla
                 ::glColor4ub(
                     static_cast<GLubyte>( std::floor( Node->Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ) ),
@@ -521,14 +522,16 @@ opengl_renderer::Render( TGroundNode *Node ) {
                 // render
                 // TODO: unify the render code after generic buffers are in place
                 if( Global::bUseVBO ) {
+                    ::glPushMatrix();
+                    auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+                    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                     ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumPts );
+                    ::glPopMatrix();
                 }
                 else {
                     ::glCallList( Node->DisplayListID );
                 }
-
                 // post-render cleanup
-                ::glPopMatrix();
                 return true;
             }
             else {
@@ -542,12 +545,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
                     Node->DisplayListID  == 0 ) ) {
                 return false;
             }
-
             // setup
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
             ::glColor3ub(
                 static_cast<GLubyte>( Node->Diffuse[ 0 ] ),
                 static_cast<GLubyte>( Node->Diffuse[ 1 ] ),
@@ -559,16 +557,17 @@ opengl_renderer::Render( TGroundNode *Node ) {
             // TODO: unify the render code after generic buffers are in place
             if( Global::bUseVBO ) {
                 // vbo render path
+                ::glPushMatrix();
+                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumVerts );
+                ::glPopMatrix();
             }
             else {
                 // display list render path
                 ::glCallList( Node->DisplayListID );
             }
-
             // post-render cleanup
-            ::glPopMatrix();
-
             return true;
         }
     }
@@ -703,7 +702,8 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-    auto const result = Render( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
+//    auto const result = Render( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
+    auto const result = Render( Model, Material, SquareMagnitude( Position ) ); // position is effectively camera offset
 
     ::glPopMatrix();
 
@@ -978,7 +978,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                     Node->hvTraction->RenderVBO( distancesquared, Node->iVboPtr );
                 }
                 else {
-                    Node->hvTraction->RenderDL( distancesquared );
+                    Node->hvTraction->RenderDL( distancesquared, Node->m_rootposition );
                 }
                 // post-render cleanup
                 ::glPopMatrix();
@@ -1010,7 +1010,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             // additional setup for display lists
             if( ( Node->DisplayListID == 0 )
              || ( Node->iVersion != Global::iReCompile ) ) { // Ra: wymuszenie rekompilacji
-                Node->Compile();
+                Node->Compile(Node->m_rootposition);
                 if( Global::bManageNodes )
                     ResourceManager::Register( Node );
             };
@@ -1218,7 +1218,8 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, M
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
+//    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
+    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position ) ); // position is effectively camera offset
 
     ::glPopMatrix();
 

@@ -56,7 +56,7 @@ class TTraction
     int iTries = 0;
     int PowerState{ 0 }; // type of incoming power, if any
 
-    void Optimize();
+    void Optimize( Math3D::vector3 const &Origin );
 
     TTraction();
     ~TTraction();
@@ -66,7 +66,7 @@ class TTraction
     //    { return TNode::Hit(x,z,hitPoint,hitDirection); };
     //  virtual bool Move(double dx, double dy, double dz) { return false; };
     //    virtual void SelectedRender();
-    void RenderDL(float mgn);
+    void RenderDL(float mgn, Math3D::vector3 const &Origin );
     int RaArrayPrepare();
     int RaArrayFill( CVertNormTex *Vert, Math3D::vector3 const &Origin );
     void RenderVBO(float mgn, int iPtr);

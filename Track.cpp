@@ -1447,19 +1447,19 @@ void TTrack::Compile(GLuint tex)
                 if( SwitchExtension->iRoads == 3 ) {
                     // mogą być tylko 3 drogi zamiast 4
                     SwitchExtension->iPoints =
-                        5 + SwitchExtension->Segments[ 0 ]->RaSegCount() +
-                        SwitchExtension->Segments[ 1 ]->RaSegCount() +
-                        SwitchExtension->Segments[ 2 ]->RaSegCount();
+                          SwitchExtension->Segments[ 0 ]->RaSegCount()
+                        + SwitchExtension->Segments[ 1 ]->RaSegCount()
+                        + SwitchExtension->Segments[ 2 ]->RaSegCount();
                 }
                 else {
                     SwitchExtension->iPoints =
-                        5 + SwitchExtension->Segments[ 2 ]->RaSegCount() +
-                        SwitchExtension->Segments[ 3 ]->RaSegCount() +
-                        SwitchExtension->Segments[ 4 ]->RaSegCount() +
-                        SwitchExtension->Segments[ 5 ]->RaSegCount(); // mogą być tylko 3 drogi
+                          SwitchExtension->Segments[ 2 ]->RaSegCount()
+                        + SwitchExtension->Segments[ 3 ]->RaSegCount()
+                        + SwitchExtension->Segments[ 4 ]->RaSegCount()
+                        + SwitchExtension->Segments[ 5 ]->RaSegCount();
                 }
                 // tablica utworzona z zapasem, ale nie wypełniona współrzędnymi
-                SwitchExtension->vPoints = new vector3[SwitchExtension->iPoints];
+                SwitchExtension->vPoints = new vector3[ SwitchExtension->iPoints + SwitchExtension->iRoads ];
             }
             vector3 *b =
                 SwitchExtension->bPoints ?
@@ -1573,39 +1573,43 @@ void TTrack::Compile(GLuint tex)
             // renderowanie nawierzchni na końcu
             double sina0 = sin(a[0]), cosa0 = cos(a[0]);
             double u, v;
-            if (!SwitchExtension->bPoints) // jeśli tablica nie wypełniona
-                if (b) // ale jest wskaźnik do tablicy - może nie być?
-                { // coś się gubi w obliczeniach na wskaźnikach
-                  // ustalenie liczby punktów, bo mogło wyjść inaczej niż
-                    i = (int)(((size_t)(b)) - ((size_t)(SwitchExtension->vPoints))) / sizeof(vector3);
-                    // policzone z góry
-                    if (i > 0)
-                    { // jeśli zostało to właśnie utworzone
-                        if (SwitchExtension->iPoints > i) // jeśli wyszło mniej niż było miejsca
-                            SwitchExtension->iPoints = i; // domknięcie wachlarza
-                        else {
-                            // jak tutaj wejdzie, to błąd jest - zrobić miejsce na powtórzenie pierwszego punktu na końcu
-                            --SwitchExtension->iPoints;
-                        }
-                        SwitchExtension->vPoints[SwitchExtension->iPoints++] = SwitchExtension->vPoints[0];
-                        SwitchExtension->bPoints = true; // tablica punktów została wypełniona
-                    }
-                }
+            if( ( false == SwitchExtension->bPoints ) // jeśli tablica nie wypełniona
+             && ( b != nullptr ) ) {
+                SwitchExtension->bPoints = true; // tablica punktów została wypełniona
+            }
+
             if (TextureID1) // jeśli podana tekstura nawierzchni
                 if ( (tex == TextureID1) || (tex == 0) ) // jeśli pasuje do grupy (tex)
                 {
                     if (!tex)
                         GfxRenderer.Bind( TextureID1 );
                     glBegin(GL_TRIANGLE_FAN); // takie kółeczko będzie
+                    // we start with a vertex in the middle...
                     glNormal3f(0, 1, 0);
                     glTexCoord2f(0.5, 0.5); //środek tekstury na środku skrzyżowania
-                    glVertex3f(oxz.x, oxz.y, oxz.z);
-                    for (i = SwitchExtension->iPoints - 1; i >= 0; --i)
+                    glVertex3f(
+                        oxz.x - origin.x,
+                        oxz.y - origin.y,
+                        oxz.z - origin.z );
+                    // ...and add one extra vertex to close the fan...
+                    glNormal3f( 0, 1, 0 );
+                    // mapowanie we współrzędnych scenerii
+                    u = ( SwitchExtension->vPoints[ 0 ].x - oxz.x + origin.x ) / fTexLength;
+                    v = ( SwitchExtension->vPoints[ 0 ].z - oxz.z + origin.z ) / ( fTexRatio1 * fTexLength );
+                    glTexCoord2f(
+                        cosa0 * u + sina0 * v + 0.5,
+                        -sina0 * u + cosa0 * v + 0.5 );
+                    glVertex3f(
+                        SwitchExtension->vPoints[ 0 ].x,
+                        SwitchExtension->vPoints[ 0 ].y,
+                        SwitchExtension->vPoints[ 0 ].z );
+
+                    for ( i = SwitchExtension->iPoints + SwitchExtension->iRoads - 1; i >= 0; --i )
                     {
                         glNormal3f(0, 1, 0);
                         // mapowanie we współrzędnych scenerii
-                        u = (SwitchExtension->vPoints[i].x - oxz.x) / fTexLength;
-                        v = (SwitchExtension->vPoints[i].z - oxz.z) / (fTexRatio1 * fTexLength);
+                        u = (SwitchExtension->vPoints[i].x - oxz.x + origin.x) / fTexLength;
+                        v = (SwitchExtension->vPoints[i].z - oxz.z + origin.z) / (fTexRatio1 * fTexLength);
                         glTexCoord2f(
                             cosa0 * u + sina0 * v + 0.5,
                             -sina0 * u + cosa0 * v + 0.5);

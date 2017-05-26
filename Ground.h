@@ -166,7 +166,7 @@ public:
         return NULL;
     };
 
-    void Compile(bool many = false);
+    void Compile(Math3D::vector3 const &Origin, bool const Multiple = false);
     void Release();
 
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
@@ -341,16 +341,15 @@ class TGround
     {
         return &Rects[GetColFromX(x) / iNumSubRects][GetRowFromZ(z) / iNumSubRects];
     };
+    TSubRect * GetSubRect( int iCol, int iRow );
     TSubRect * GetSubRect(double x, double z)
     {
         return GetSubRect(GetColFromX(x), GetRowFromZ(z));
     };
-    TSubRect * FastGetSubRect(double x, double z)
-    {
-        return FastGetSubRect(GetColFromX(x), GetRowFromZ(z));
+    TSubRect * FastGetSubRect( int iCol, int iRow );
+    TSubRect * FastGetSubRect( double x, double z ) {
+        return FastGetSubRect( GetColFromX( x ), GetRowFromZ( z ) );
     };
-    TSubRect * GetSubRect(int iCol, int iRow);
-    TSubRect * FastGetSubRect(int iCol, int iRow);
     int GetRowFromZ(double z)
     {
         return (int)(z / fSubRectSize + fHalfTotalNumSubRects);

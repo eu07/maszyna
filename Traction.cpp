@@ -109,7 +109,7 @@ TTraction::~TTraction()
         glDeleteLists(uiDisplayList, 1);
 }
 
-void TTraction::Optimize()
+void TTraction::Optimize( Math3D::vector3 const &Origin )
 {
     if (Global::bUseVBO)
         return;
@@ -125,13 +125,13 @@ void TTraction::Optimize()
         // Przewoz jezdny 1 'Marcin
         glBegin(GL_LINE_STRIP);
         glVertex3f(
-            pPoint1.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset,
-            pPoint1.y,
-            pPoint1.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
+            pPoint1.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
+            pPoint1.y - Origin.y,
+            pPoint1.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z);
         glVertex3f(
-            pPoint2.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset,
-            pPoint2.y,
-            pPoint2.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
+            pPoint2.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
+            pPoint2.y - Origin.y,
+            pPoint2.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
         glEnd();
         // Nie wiem co 'Marcin
         Math3D::vector3 pt1, pt2, pt3, pt4, v1, v2;
@@ -147,29 +147,39 @@ void TTraction::Optimize()
         if (Wires > 1)
         {
             glBegin(GL_LINE_STRIP);
-            glVertex3f(pPoint3.x, pPoint3.y, pPoint3.z);
+            glVertex3f(
+                pPoint3.x - Origin.x,
+                pPoint3.y - Origin.y,
+                pPoint3.z - Origin.z );
             for (int i = 0; i < iNumSections - 1; ++i)
             {
                 pt3 = pPoint3 + v1 * f;
                 t = (1 - std::fabs(f - mid) * 2);
                 if ((Wires < 4) || ((i != 0) && (i != iNumSections - 2)))
                     glVertex3f(
-                        pt3.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference,
-                        pt3.z);
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt(t) * fHeightDifference - Origin.y,
+                        pt3.z - Origin.z );
                 f += step;
             }
-            glVertex3f(pPoint4.x, pPoint4.y, pPoint4.z);
+            glVertex3f(
+                pPoint4.x - Origin.x,
+                pPoint4.y - Origin.y,
+                pPoint4.z - Origin.z );
             glEnd();
         }
         // Drugi przewod jezdny 'Winger
         if (Wires > 2)
         {
             glBegin(GL_LINE_STRIP);
-            glVertex3f(pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pPoint1.y,
-                       pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
-            glVertex3f(pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pPoint2.y,
-                       pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
+            glVertex3f(
+                pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
+                pPoint1.y - Origin.y,
+                pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
+            glVertex3f(
+                pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
+                pPoint2.y - Origin.y,
+                pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
             glEnd();
         }
 
@@ -178,22 +188,29 @@ void TTraction::Optimize()
         if (Wires == 4)
         {
             glBegin(GL_LINE_STRIP);
-            glVertex3f(pPoint3.x, pPoint3.y - 0.65f * fHeightDifference, pPoint3.z);
+            glVertex3f(
+                pPoint3.x - Origin.x,
+                pPoint3.y - 0.65f * fHeightDifference - Origin.y,
+                pPoint3.z - Origin.z );
             for (int i = 0; i < iNumSections - 1; ++i)
             {
                 pt3 = pPoint3 + v1 * f;
                 t = (1 - std::fabs(f - mid) * 2);
                 glVertex3f(
-                    pt3.x,
+                    pt3.x - Origin.x,
                     pt3.y - std::sqrt( t ) * fHeightDifference - (
                     ( ( i == 0 )
                    || ( i == iNumSections - 2 ) ) ?
                         0.25f * fHeightDifference :
-                        0.05 ),
-                    pt3.z);
+                        0.05 )
+                    - Origin.y,
+                    pt3.z - Origin.z );
                 f += step;
             }
-            glVertex3f(pPoint4.x, pPoint4.y - 0.65f * fHeightDifference, pPoint4.z);
+            glVertex3f(
+                pPoint4.x - Origin.x,
+                pPoint4.y - 0.65f * fHeightDifference - Origin.y,
+                pPoint4.z - Origin.z );
             glEnd();
         }
 
@@ -214,35 +231,35 @@ void TTraction::Optimize()
                 if ((i % 2) == 0)
                 {
                     glVertex3f(
-                        pt3.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - ((i == 0) || (i == iNumSections - 2) ? flo : flo1),
-                        pt3.z);
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt(t) * fHeightDifference - ((i == 0) || (i == iNumSections - 2) ? flo : flo1) - Origin.y,
+                        pt3.z - Origin.z );
                     glVertex3f(
-                        pt4.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset,
-                        pt4.y,
-                        pt4.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
+                        pt4.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
+                        pt4.y - Origin.y,
+                        pt4.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
                 }
                 else
                 {
                     glVertex3f(
-                        pt3.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - ((i == 0) || (i == iNumSections - 2) ? flo : flo1),
-                        pt3.z);
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt(t) * fHeightDifference - ((i == 0) || (i == iNumSections - 2) ? flo : flo1) - Origin.y,
+                        pt3.z - Origin.z );
                     glVertex3f(
-                        pt4.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset,
-                        pt4.y,
-                        pt4.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
+                        pt4.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
+                        pt4.y - Origin.y,
+                        pt4.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
                 }
                 if ((Wires == 4) && ((i == 1) || (i == iNumSections - 3)))
                 {
                     glVertex3f(
-                        pt3.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - 0.05,
-                        pt3.z);
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt(t) * fHeightDifference - 0.05 - Origin.y,
+                        pt3.z - Origin.z );
                     glVertex3f(
-                        pt3.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference,
-                        pt3.z);
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt(t) * fHeightDifference - Origin.y,
+                        pt3.z - Origin.z );
                 }
                 f += step;
             }
@@ -258,7 +275,7 @@ void TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
     fSquaredRadius= SquareMagnitude((pPoint2-pPoint1)*0.5f);
 } */
 
-void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
+void TTraction::RenderDL(float mgn, Math3D::vector3 const &Origin ) // McZapkie: mgn to odleglosc od obserwatora
 {
     // McZapkie: ustalanie przezroczystosci i koloru linii:
     if( Wires != 0 && !TestFlag( DamageFlag, 128 ) ) // rysuj jesli sa druty i nie zerwana
@@ -281,7 +298,7 @@ void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
         ::glColor4f( red, green, blue, linealpha );
         // draw code
         if (!uiDisplayList)
-            Optimize(); // generowanie DL w miarę potrzeby
+            Optimize( Origin ); // generowanie DL w miarę potrzeby
         ::glCallList(uiDisplayList);
         // cleanup
         ::glLineWidth(1.0);

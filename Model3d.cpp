@@ -1828,6 +1828,8 @@ TSubModel *TModel3d::TerrainSquare(int n)
 void TModel3d::TerrainRenderVBO(int n)
 { // renderowanie terenu z VBO
 	glPushMatrix();
+    ::glTranslated( -Global::pCameraPosition.x, -Global::pCameraPosition.y, -Global::pCameraPosition.z );
+
 	// glTranslated(vPosition->x,vPosition->y,vPosition->z);
 	// if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
 	// if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
