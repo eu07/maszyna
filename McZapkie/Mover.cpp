@@ -3685,7 +3685,8 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
         else
             FTrain = 0;
         Fb = BrakeForce(RunningTrack);
-        if( std::max( std::abs( FTrain ), Fb ) > TotalMassxg * Adhesive( RunningTrack.friction ) ) // poslizg
+        if( ( Vel > 0.001 ) // crude trap, to prevent braked stationary vehicles from passing fb > mass * adhesive test
+         && ( std::max( std::abs( FTrain ), Fb ) > TotalMassxg * Adhesive( RunningTrack.friction ) ) ) // poslizg
         {
             SlippingWheels = true;
         }

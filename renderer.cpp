@@ -322,9 +322,9 @@ opengl_renderer::Render( TGround *Ground ) {
     for( int column = originx; column <= originx + segmentcount; ++column ) {
         for( int row = originz; row <= originz + segmentcount; ++row ) {
 
-            auto &rectangle = Ground->Rects[ column ][ row ];
-            if( m_camera.visible( rectangle.m_area ) ) {
-                rectangle.RenderDL();
+            auto *rectangle = &Ground->Rects[ column ][ row ];
+            if( m_camera.visible( rectangle->m_area ) ) {
+                Render( rectangle );
             }
         }
     }
@@ -386,21 +386,7 @@ opengl_renderer::Render( TGround *Ground ) {
                     continue; // pomijanie sektorów poza kątem patrzenia
             }
             // kwadrat kilometrowy nie zawsze, bo szkoda FPS
-            // TODO: unify all math objects
-            ::glPushMatrix();
-            auto const &cellorigin = Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].m_area.center;
-            auto const originoffset = Math3D::vector3( cellorigin.x, cellorigin.y, cellorigin.z ) - Global::pCameraPosition;
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            if( Global::bUseVBO ) {
-                // vbo render path
-                Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderVBO();
-                ::glPopMatrix();
-            }
-            else {
-                // display list render path
-                Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ].RenderDL();
-            }
+            Render( &Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ] );
 
             if( ( tmp = Ground->FastGetSubRect( i + c, j + r ) ) != nullptr ) {
                 if( tmp->iNodeCount ) {
@@ -418,18 +404,141 @@ opengl_renderer::Render( TGround *Ground ) {
     }
     // renderowanie nieprzezroczystych
     for( i = 0; i < Ground->iRendered; ++i ) {
-
-        if( Global::bUseVBO ) {
-            // vbo render path
-            Ground->pRendered[ i ]->RenderVBO();
-        }
-        else {
-            // display list render path
-            Ground->pRendered[ i ]->RenderDL();
-        }
+        Render( Ground->pRendered[ i ] );
     }
     // regular render takes care of all solid geometry present in the scene, thus we can launch alpha parts render here
     return Render_Alpha( Ground );
+}
+
+// TODO: unify ground render code, until then old version is in place
+#define EU07_USE_OLD_RENDERCODE
+bool
+opengl_renderer::Render( TGroundRect *Groundcell ) {
+
+    ::glPushMatrix();
+    auto const &cellorigin = Groundcell->m_area.center;
+    // TODO: unify all math objects
+    auto const originoffset = Math3D::vector3( cellorigin.x, cellorigin.y, cellorigin.z ) - Global::pCameraPosition;
+    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+    bool result{ false }; // will be true if we do any rendering
+
+    // TODO: unify render paths
+    if( Global::bUseVBO ) {
+
+        if ( Groundcell->iLastDisplay != Groundcell->iFrameNumber)
+        { // tylko jezeli dany kwadrat nie był jeszcze renderowany
+            Groundcell->LoadNodes(); // ewentualne tworzenie siatek
+            if ( Groundcell->nRenderRect && Groundcell->StartVBO())
+            {
+                for (TGroundNode *node = Groundcell->nRenderRect; node; node = node->nNext3) // następny tej grupy
+#ifdef EU07_USE_OLD_RENDERCODE
+                    node->RaRenderVBO(); // nieprzezroczyste trójkąty kwadratu kilometrowego
+#else
+                    Render( node ); // nieprzezroczyste trójkąty kwadratu kilometrowego
+#endif
+                Groundcell->EndVBO();
+                Groundcell->iLastDisplay = Groundcell->iFrameNumber;
+                result = true;
+            }
+            if ( Groundcell->nTerrain)
+                Groundcell->nTerrain->smTerrain->iVisible = Groundcell->iFrameNumber; // ma się wyświetlić w tej ramce
+        }
+        ::glPopMatrix();
+    }
+    else {
+#ifdef EU07_USE_OLD_RENDERCODE
+        if (Groundcell->iLastDisplay != Groundcell->iFrameNumber)
+        { // tylko jezeli dany kwadrat nie był jeszcze renderowany
+            // for (TGroundNode* node=pRender;node;node=node->pNext3)
+            // node->Render(); //nieprzezroczyste trójkąty kwadratu kilometrowego
+            if ( Groundcell->nRender)
+            { //łączenie trójkątów w jedną listę - trochę wioska
+                if (!Groundcell->nRender->DisplayListID || ( Groundcell->nRender->iVersion != Global::iReCompile))
+                { // jeżeli nie skompilowany, kompilujemy wszystkie trójkąty w jeden
+                    Groundcell->nRender->fSquareRadius = 5000.0 * 5000.0; // aby agregat nigdy nie znikał
+                    Groundcell->nRender->DisplayListID = glGenLists(1);
+                    glNewList( Groundcell->nRender->DisplayListID, GL_COMPILE);
+                    Groundcell->nRender->iVersion = Global::iReCompile; // aktualna wersja siatek
+                    auto const origin = Math3D::vector3( Groundcell->m_area.center.x, Groundcell->m_area.center.y, Groundcell->m_area.center.z );
+                    for (TGroundNode *node = Groundcell->nRender; node; node = node->nNext3) // następny tej grupy
+                        node->Compile(origin, true);
+                    glEndList();
+                }
+                Render( Groundcell->nRender ); // nieprzezroczyste trójkąty kwadratu kilometrowego
+            }
+            // submodels geometry is world-centric, so at least for the time being we need to pop the stack early
+            ::glPopMatrix();
+
+            if( Groundcell->nRootMesh ) {
+                Render( Groundcell->nRootMesh );
+            }
+            Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
+            result = true;
+        }
+        else {
+            ::glPopMatrix();
+        }
+#else
+        if( iLastDisplay != iFrameNumber ) { // tylko jezeli dany kwadrat nie był jeszcze renderowany
+            LoadNodes(); // ewentualne tworzenie siatek
+            if( nRenderRect ) {
+                for( TGroundNode *node = nRenderRect; node; node = node->nNext3 ) // następny tej grupy
+                    Render( node ); // nieprzezroczyste trójkąty kwadratu kilometrowego
+            }
+            if( nRootMesh )
+                Render( nRootMesh );
+            iLastDisplay = iFrameNumber;
+        }
+#endif
+    }
+
+    return result;
+}
+#undef EU07_USE_OLD_RENDERCODE
+
+bool
+opengl_renderer::Render( TSubRect *Groundsubcell ) {
+
+    Groundsubcell->RaAnimate(); // przeliczenia animacji torów w sektorze
+
+    TGroundNode *node;
+    // nieprzezroczyste obiekty terenu
+    if( Global::bUseVBO ) {
+        // vbo render path
+        if( Groundsubcell->StartVBO() ) {
+            for( node = Groundsubcell->nRenderRect; node; node = node->nNext3 ) {
+                if( node->iVboPtr >= 0 ) {
+                    Render( node );
+                }
+            }
+            Groundsubcell->EndVBO();
+        }
+    }
+    else {
+        // display list render path
+        for( node = Groundsubcell->nRenderRect; node; node = node->nNext3 ) {
+            Render( node ); // nieprzezroczyste obiekty terenu
+        }
+    }
+    // nieprzezroczyste obiekty (oprócz pojazdów)
+    for( node = Groundsubcell->nRender; node; node = node->nNext3 )
+        Render( node );
+    // nieprzezroczyste z mieszanych modeli
+    for( node = Groundsubcell->nRenderMixed; node; node = node->nNext3 )
+        Render( node );
+    // nieprzezroczyste fragmenty pojazdów na torach
+    for( int j = 0; j < Groundsubcell->iTracks; ++j )
+        Groundsubcell->tTracks[ j ]->RenderDyn();
+#ifdef EU07_SCENERY_EDITOR
+    // memcells
+    if( DebugModeFlag ) {
+        for( auto const memcell : m_memcells ) {
+            memcell->RenderDL();
+        }
+    }
+#endif
+    return true;
 }
 
 bool
@@ -901,14 +1010,7 @@ opengl_renderer::Render_Alpha( TGround *Ground ) {
     }
     for( int i = Ground->iRendered - 1; i >= 0; --i ) // od najdalszych
     { // renderowanie przezroczystych modeli oraz pojazdów
-        if( Global::bUseVBO ) {
-            // vbo render path
-            Ground->pRendered[ i ]->RenderAlphaVBO();
-        }
-        else {
-            // display list render path
-            Ground->pRendered[ i ]->RenderAlphaDL();
-        }
+        Render_Alpha( Ground->pRendered[ i ] );
     }
 
     ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
@@ -932,6 +1034,20 @@ opengl_renderer::Render_Alpha( TGround *Ground ) {
             }
         }
     }
+
+    return true;
+}
+
+bool
+opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
+
+    TGroundNode *node;
+    for( node = Groundsubcell->nRenderMixed; node; node = node->nNext3 )
+        Render_Alpha( node ); // przezroczyste z mieszanych modeli
+    for( node = Groundsubcell->nRenderAlpha; node; node = node->nNext3 )
+        Render_Alpha( node ); // przezroczyste modele
+    for( int j = 0; j < Groundsubcell->iTracks; ++j )
+        Groundsubcell->tTracks[ j ]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
 
     return true;
 }

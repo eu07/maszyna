@@ -192,8 +192,8 @@ class TSubRect : public Resource, public CMesh
     TGroundNode *nRootMesh = nullptr; // obiekty renderujące wg tekstury (wtórne, lista po nNext2)
     TGroundNode *nMeshed = nullptr; // lista obiektów dla których istnieją obiekty renderujące grupowo
   public:
-    TGroundNode * nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
-    TGroundNode * nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
+    TGroundNode *nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
+    TGroundNode *nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
     TGroundNode *nRenderRect = nullptr; // z poziomu sektora - nieprzezroczyste (nNext3)
     TGroundNode *nRenderRectAlpha = nullptr; // z poziomu sektora - przezroczyste (nNext3)
     TGroundNode *nRenderWires = nullptr; // z poziomu sektora - druty i inne linie (nNext3)
@@ -217,11 +217,6 @@ class TSubRect : public Resource, public CMesh
     bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
     void RaAnimate(); // przeliczenie animacji torów
-    void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
-    void RenderAlphaDL(); // renderowanie przezroczystych w Display Lists
-    // (McZapkie-131202)
-    void RenderVBO(); // renderowanie nieprzezroczystych z własnego VBO
-    void RenderAlphaVBO(); // renderowanie przezroczystych z (własnego) VBO
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
 };
 
@@ -238,6 +233,8 @@ class TGroundRect : public TSubRect
 { // kwadrat kilometrowy
     // obiekty o niewielkiej ilości wierzchołków będą renderowane stąd
     // Ra: 2012-02 doszły submodele terenu
+    friend class opengl_renderer;
+
   private:
     int iLastDisplay; // numer klatki w której był ostatnio wyświetlany
     TSubRect *pSubRects{ nullptr };
@@ -264,8 +261,6 @@ class TGroundRect : public TSubRect
             for (int i = iNumSubRects * iNumSubRects - 1; i >= 0; --i)
                 pSubRects[i].Sort(); // optymalizacja obiektów w sektorach
     };
-    void RenderDL();
-    void RenderVBO();
 };
 
 class TGround

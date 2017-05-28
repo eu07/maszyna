@@ -125,6 +125,10 @@ public:
     bool
         Render( TGround *Ground );
     bool
+        Render( TGroundRect *Groundcell );
+    bool
+        Render( TSubRect *Groundsubcell );
+    bool
         Render( TGroundNode *Node );
     bool
         Render( TDynamicObject *Dynamic );
@@ -138,6 +142,8 @@ public:
         Render( TMemCell *Memcell );
     bool
         Render_Alpha( TGround *Ground );
+    bool
+        Render_Alpha( TSubRect *Groundsubcell );
     bool
         Render_Alpha( TGroundNode *Node );
     bool
