@@ -62,6 +62,8 @@ private:
 */
 };
 
+typedef std::size_t texture_handle;
+
 class texture_manager {
 
 private:

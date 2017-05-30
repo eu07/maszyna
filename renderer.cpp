@@ -775,11 +775,12 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
 
     // TODO: unify the render code after generic buffers are in place
     // setup
+/*
     if( Global::bUseVBO ) {
         if( false == Model->StartVBO() )
             return false;
     }
-
+*/
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
             Material->replacable_skins :
@@ -793,7 +794,7 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
 
     // post-render cleanup
     if( Global::bUseVBO ) {
-        Model->EndVBO();
+//        Model->EndVBO();
     }
 
     return true;
@@ -857,7 +858,10 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
                 // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
                 if( Global::bUseVBO ) {
+/*
                     ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
+*/
+                    Submodel->pRoot->m_geometry->draw( Submodel->m_chunk );
                 }
                 else {
                     ::glCallList( Submodel->uiDisplayList );
@@ -898,7 +902,10 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
                     // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
                     if( Global::bUseVBO ) {
+/*
                         ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
+*/
+                        Submodel->pRoot->m_geometry->draw( Submodel->m_chunk );
                     }
                     else {
                         ::glCallList( Submodel->uiDisplayList );
@@ -921,6 +928,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
                 // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
                 if( Global::bUseVBO ) {
+/*
                     // NOTE: we're doing manual switch to color vbo setup, because there doesn't seem to be any convenient way available atm
                     // TODO: implement easier way to go about it
                     ::glDisableClientState( GL_NORMAL_ARRAY );
@@ -933,6 +941,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     ::glDisableClientState( GL_COLOR_ARRAY );
                     ::glEnableClientState( GL_NORMAL_ARRAY );
                     ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+*/
                 }
                 else {
                     ::glCallList( Submodel->uiDisplayList );
@@ -1298,11 +1307,12 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
 
     // TODO: unify the render code after generic buffers are in place
     // setup
+/*
     if( Global::bUseVBO ) {
         if( false == Model->StartVBO() )
             return false;
     }
-
+*/
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
         Material->replacable_skins :
@@ -1315,10 +1325,11 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
     Render_Alpha( Model->Root );
 
     // post-render cleanup
+/*
     if( Global::bUseVBO ) {
         Model->EndVBO();
     }
-
+*/
     return true;
 }
 
@@ -1378,7 +1389,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 
                 // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
                 if( Global::bUseVBO ) {
+/*
                     ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
+*/
+                    Submodel->pRoot->m_geometry->draw( Submodel->m_chunk );
                 }
                 else {
                     ::glCallList( Submodel->uiDisplayList );

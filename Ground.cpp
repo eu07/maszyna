@@ -4348,7 +4348,7 @@ void TGround::TerrainWrite()
     // int ver=0; //całkowita ilość wierzchołków
     int i, j, k; // indeksy w pętli
     TGroundNode *Current;
-    float8 *ver; // trójkąty
+    basic_vertex *ver; // trójkąty
     TSubModel::iInstance = 0; // pozycja w tabeli wierzchołków liczona narastająco
     for (i = 0; i < iNumRects; ++i) // pętla po wszystkich kwadratach kilometrowych
         for (j = 0; j < iNumRects; ++j)
@@ -4395,14 +4395,14 @@ void TGround::TerrainWrite()
                             Current->iVboPtr = -1; // bo to było tymczasowo używane
                             for (k = 0; k < Current->iNumVerts; ++k)
                             { // przepisanie współrzędnych
-                                ver[k].Point.x = Current->Vertices[k].Point.x;
-                                ver[k].Point.y = Current->Vertices[k].Point.y;
-                                ver[k].Point.z = Current->Vertices[k].Point.z;
-                                ver[k].Normal.x = Current->Vertices[k].Normal.x;
-                                ver[k].Normal.y = Current->Vertices[k].Normal.y;
-                                ver[k].Normal.z = Current->Vertices[k].Normal.z;
-                                ver[k].tu = Current->Vertices[k].tu;
-                                ver[k].tv = Current->Vertices[k].tv;
+                                ver[k].position.x = Current->Vertices[k].Point.x;
+                                ver[k].position.y = Current->Vertices[k].Point.y;
+                                ver[k].position.z = Current->Vertices[k].Point.z;
+                                ver[k].normal.x = Current->Vertices[k].Normal.x;
+                                ver[k].normal.y = Current->Vertices[k].Normal.y;
+                                ver[k].normal.z = Current->Vertices[k].Normal.z;
+                                ver[k].texture.s = Current->Vertices[k].tu;
+                                ver[k].texture.t = Current->Vertices[k].tv;
                             }
                             break;
                         case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze

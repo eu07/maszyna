@@ -113,11 +113,6 @@ TSubModel::~TSubModel()
 		delete fMatrix; // własny transform trzeba usunąć (zawsze jeden)
 		delete[] Vertices;
 	}
-	/*
-	else
-	{//wczytano z pliku binarnego (nie jest właścicielem tablic)
-	}
-	*/
 	delete[] smLetter; // używany tylko roboczo dla TP_TEXT, do przyspieszenia
 					   // wyświetlania
 };
@@ -141,23 +136,23 @@ void TSubModel::NameSet(const char *n)
 // int TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3
 // *pt,GLVERTEX
 // *Vertices)
-int TSubModel::SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, float3 *pt,
-	float8 *Vertices)
+int TSubModel::SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, glm::vec3 *pt,
+	basic_vertex *Vertices)
 { // szukanie punktu stycznego
   // do (pt), zwraca numer
   // wierzchołka, a nie trójkąta
 	int iNumFaces = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
 								   // GLVERTEX *p; //roboczy wskaźnik
-	float8 *p; // roboczy wskaźnik
+	basic_vertex *p; // roboczy wskaźnik
 	for (int i = f; i < iNumFaces; ++i) // pętla po trójkątach, od trójkąta (f)
 		if (Masks[i] & dwMask) // jeśli wspólna maska powierzchni
 		{
 			p = Vertices + 3 * i;
-			if (p->Point == *pt)
+			if (p->position == *pt)
 				return 3 * i;
-			if ((++p)->Point == *pt)
+			if ((++p)->position == *pt)
 				return 3 * i + 1;
-			if ((++p)->Point == *pt)
+			if ((++p)->position == *pt)
 				return 3 * i + 2;
 		}
 	return -1; // nie znaleziono stycznego wierzchołka
@@ -446,7 +441,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 			// Vertices=new GLVERTEX[iNumVerts];
 			if (iNumVerts)
 			{
-				Vertices = new float8[iNumVerts];
+				Vertices = new basic_vertex[iNumVerts];
 				iNumFaces = iNumVerts / 3;
 				sg = new unsigned int[iNumFaces]; // maski powierzchni: 0 oznacza brak
 												  // użredniania wektorów normalnych
@@ -467,21 +462,28 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 															   // wektorów normalnych
 					}
 					parser.getTokens(3, false);
-					parser >> Vertices[i].Point.x >> Vertices[i].Point.y >> Vertices[i].Point.z;
+					parser
+                        >> Vertices[i].position.x
+                        >> Vertices[i].position.y
+                        >> Vertices[i].position.z;
 					if (maska == -1)
 					{ // jeśli wektory normalne podane jawnie
 						parser.getTokens(3, false);
-						parser >> Vertices[i].Normal.x >> Vertices[i].Normal.y >>
-							Vertices[i].Normal.z;
+						parser
+                            >> Vertices[i].normal.x
+                            >> Vertices[i].normal.y
+                            >> Vertices[i].normal.z;
 						wsp[i] = i; // wektory normalne "są już policzone"
 					}
 					parser.getTokens(2, false);
-					parser >> Vertices[i].tu >> Vertices[i].tv;
+					parser
+                        >> Vertices[i].texture.s
+                        >> Vertices[i].texture.t;
 					if (i % 3 == 2) // jeżeli wczytano 3 punkty
 					{
-						if (Vertices[i].Point == Vertices[i - 1].Point ||
-							Vertices[i - 1].Point == Vertices[i - 2].Point ||
-							Vertices[i - 2].Point == Vertices[i].Point)
+						if (Vertices[i].position == Vertices[i - 1].position
+                         || Vertices[i - 1].position == Vertices[i - 2].position
+                         || Vertices[i - 2].position == Vertices[i].position)
 						{ // jeżeli punkty się nakładają na siebie
 							--iNumFaces; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
@@ -491,10 +493,9 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 						}
 						if (i > 0) // jeśli pierwszy trójkąt będzie zdegenerowany, to
 								   // zostanie usunięty i nie ma co sprawdzać
-							if (((Vertices[i].Point - Vertices[i - 1].Point).Length() > 1000.0) ||
-								((Vertices[i - 1].Point - Vertices[i - 2].Point).Length() >
-									1000.0) ||
-									((Vertices[i - 2].Point - Vertices[i].Point).Length() > 1000.0))
+							if ((glm::length(Vertices[i].position - Vertices[i - 1].position) > 1000.0)
+                                || (glm::length(Vertices[i - 1].position - Vertices[i - 2].position) > 1000.0)
+                                || (glm::length(Vertices[i - 2].position - Vertices[i].position) > 1000.0))
 							{ // jeżeli są dalej niż 2km od siebie //Ra 15-01:
 							  // obiekt wstawiany nie powinien być większy niż
 							  // 300m (trójkąty terenu w E3D mogą mieć 1.5km)
@@ -507,26 +508,27 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 					}
 				}
 				int i; // indeks dla trójkątów
-				float3 *n = new float3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
-				for (i = 0; i < iNumFaces; i++) // pętla po trójkątach - będzie
+				glm::vec3 *n = new glm::vec3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
+				for (i = 0; i < iNumFaces; ++i) // pętla po trójkątach - będzie
 												// szybciej, jak wstępnie przeliczymy
 												// normalne trójkątów
-					n[i] = SafeNormalize(
-						CrossProduct(Vertices[i * 3].Point - Vertices[i * 3 + 1].Point,
-							Vertices[i * 3].Point - Vertices[i * 3 + 2].Point));
+					n[i] = glm::normalize(
+						glm::cross(
+                            Vertices[i * 3].position - Vertices[i * 3 + 1].position,
+							Vertices[i * 3].position - Vertices[i * 3 + 2].position));
 				int v; // indeks dla wierzchołków
 				int f; // numer trójkąta stycznego
-				float3 norm; // roboczy wektor normalny
-				for (v = 0; v < iNumVerts; v++)
+				glm::vec3 norm; // roboczy wektor normalny
+				for (v = 0; v < iNumVerts; ++v)
 				{ // pętla po wierzchołkach trójkątów
 					if (wsp[v] >= 0) // jeśli już był liczony wektor normalny z użyciem
 									 // tego wierzchołka
-						Vertices[v].Normal =
-						Vertices[wsp[v]].Normal; // to wystarczy skopiować policzony wcześniej
+						Vertices[v].normal =
+						Vertices[wsp[v]].normal; // to wystarczy skopiować policzony wcześniej
 					else
 					{ // inaczej musimy dopiero policzyć
 						i = v / 3; // numer trójkąta
-						norm = float3(0, 0, 0); // liczenie zaczynamy od zera
+						norm = glm::vec3(); // liczenie zaczynamy od zera
 						f = v; // zaczynamy dodawanie wektorów normalnych od własnego
 						while (f >= 0)
 						{ // sumowanie z wektorem normalnym sąsiada (włącznie
@@ -534,13 +536,13 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 							wsp[f] = v; // informacja, że w tym wierzchołku jest już policzony
 										// wektor normalny
 							norm += n[f / 3];
-							f = SeekFaceNormal(sg, f / 3 + 1, sg[i], &Vertices[v].Point,
+							f = SeekFaceNormal(sg, f / 3 + 1, sg[i], &Vertices[v].position,
 								Vertices); // i szukanie od kolejnego trójkąta
 						}
 						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane
 						// przez transformy, aby normalne po przeskalowaniu były jednostkowe
-						Vertices[v].Normal =
-							SafeNormalize(norm); // przepisanie do wierzchołka trójkąta
+						Vertices[v].normal =
+							glm::normalize(norm); // przepisanie do wierzchołka trójkąta
 					}
 				}
 				delete[] wsp;
@@ -561,21 +563,24 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 		parser.getTokens(2, false);
 		parser >> discard >> iNumVerts;
 		// Vertices=new GLVERTEX[iNumVerts];
-		Vertices = new float8[iNumVerts];
+		Vertices = new basic_vertex[iNumVerts];
 		int i, j;
-		for (i = 0; i < iNumVerts; i++)
+		for (i = 0; i < iNumVerts; ++i)
 		{
 			if (i % 3 == 0)
 			{
 				parser.ignoreToken(); // maska powierzchni trójkąta
 			}
 			parser.getTokens(5, false);
-			parser >> Vertices[i].Point.x >> Vertices[i].Point.y >> Vertices[i].Point.z >>
-				j // zakodowany kolor
+			parser
+                >> Vertices[i].position.x
+                >> Vertices[i].position.y
+                >> Vertices[i].position.z
+                >> j // zakodowany kolor
 				>> discard;
-			Vertices[i].Normal.x = ((j) & 0xFF) / 255.0; // R
-			Vertices[i].Normal.y = ((j >> 8) & 0xFF) / 255.0; // G
-			Vertices[i].Normal.z = ((j >> 16) & 0xFF) / 255.0; // B
+			Vertices[i].normal.x = ((j) & 0xFF) / 255.0; // R
+			Vertices[i].normal.y = ((j >> 8) & 0xFF) / 255.0; // G
+			Vertices[i].normal.z = ((j >> 16) & 0xFF) / 255.0; // B
 		}
 	}
 	// Visible=true; //się potem wyłączy w razie potrzeby
@@ -605,11 +610,9 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        // s->asTexture=AnsiString(TTexturesManager::GetName(tex).c_str());
         s->TextureNameSet(GfxRenderer.Texture(tex).name.c_str());
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
-        // iAnimOwner=0; //roboczy wskaźnik na wierzchołek
     }
     if (s->iNumVerts < 0)
         s->iNumVerts = tri; // bo na początku jest -1, czyli że nie wiadomo
@@ -618,7 +621,7 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
     return s->iNumVerts - tri; // zwraca pozycję tych trójkątów w submodelu
 };
 
-float8 *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
+basic_vertex *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
 { // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane
   // przy tworzeniu E3D terenu
 	TSubModel *s = this;
@@ -633,9 +636,7 @@ float8 *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
 		return NULL; // coś nie tak poszło
 	if (!s->Vertices)
 	{ // utworznie tabeli trójkątów
-		s->Vertices = new float8[s->iNumVerts];
-		// iVboPtr=pos; //pozycja submodelu w tabeli wierzchołków
-		// pos+=iNumVerts; //rezerwacja miejsca w tabeli
+		s->Vertices = new basic_vertex[s->iNumVerts];
 		s->iVboPtr = iInstance; // pozycja submodelu w tabeli wierzchołków
 		iInstance += s->iNumVerts; // pozycja dla następnego
 	}
@@ -648,7 +649,6 @@ void TSubModel::DisplayLists()
   // każdego submodelu
 	if (Global::bUseVBO)
 		return; // Ra: przy VBO to się nie przyda
-				// iFlags|=0x4000; //wyłączenie przeliczania wierzchołków, bo nie są zachowane
 	if (eType < TP_ROTATOR)
 	{
 		if (iNumVerts > 0)
@@ -670,9 +670,9 @@ void TSubModel::DisplayLists()
 				glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
 				glVertex3dv(&Vertices[i].Point.x);
 				*/
-				glNormal3fv(&Vertices[i].Normal.x);
-				glTexCoord2f(Vertices[i].tu, Vertices[i].tv);
-				glVertex3fv(&Vertices[i].Point.x);
+				glNormal3fv(glm::value_ptr(Vertices[i].normal));
+				glTexCoord2fv(glm::value_ptr(Vertices[i].texture));
+				glVertex3fv(glm::value_ptr(Vertices[i].position));
 			};
 			glEnd();
 #endif
@@ -693,10 +693,10 @@ void TSubModel::DisplayLists()
         uiDisplayList = glGenLists(1);
         glNewList(uiDisplayList, GL_COMPILE);
         glBegin(GL_POINTS);
-        for (int i = 0; i < iNumVerts; i++)
+        for (int i = 0; i < iNumVerts; ++i)
         {
-            glColor3f(Vertices[i].Normal.x, Vertices[i].Normal.y, Vertices[i].Normal.z);
-            glVertex3fv(&Vertices[i].Point.x);
+            glColor3fv(glm::value_ptr(Vertices[i].normal));
+            glVertex3fv(glm::value_ptr(Vertices[i].position));
         };
         glEnd();
         glEndList();
@@ -736,13 +736,13 @@ void TSubModel::InitialRotate(bool doit)
                 if (Vertices)
                 {
                     for (int i = 0; i < iNumVerts; ++i)
-                        Vertices[i].Point = (*mat) * Vertices[i].Point;
+                        Vertices[i].position = (*mat) * Vertices[i].position;
                     (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] =
                         0.0; // zerujemy przesunięcie przed obracaniem normalnych
                     if (eType != TP_STARS) // gwiazdki mają kolory zamiast normalnych, to
                         // ich wtedy nie ruszamy
                         for (int i = 0; i < iNumVerts; ++i)
-                            Vertices[i].Normal = SafeNormalize((*mat) * Vertices[i].Normal);
+                            Vertices[i].normal = glm::normalize((*mat) * Vertices[i].normal);
                 }
                 mat->Identity(); // jedynkowanie transformu po przeliczeniu wierzchołków
                 iFlags &= ~0x8000; // transform jedynkowy
@@ -756,17 +756,17 @@ void TSubModel::InitialRotate(bool doit)
         if (Vertices)
             for (int i = 0; i < iNumVerts; ++i)
             {
-                Vertices[i].Point.x = -Vertices[i].Point.x; // zmiana znaku X
-                t = Vertices[i].Point.y; // zamiana Y i Z
-                Vertices[i].Point.y = Vertices[i].Point.z;
-                Vertices[i].Point.z = t;
+                Vertices[i].position.x = -Vertices[i].position.x; // zmiana znaku X
+                t = Vertices[i].position.y; // zamiana Y i Z
+                Vertices[i].position.y = Vertices[i].position.z;
+                Vertices[i].position.z = t;
                 // wektory normalne również trzeba przekształcić, bo się źle oświetlają
                 if( eType != TP_STARS ) {
                     // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
-                    Vertices[ i ].Normal.x = -Vertices[ i ].Normal.x; // zmiana znaku X
-                    t = Vertices[ i ].Normal.y; // zamiana Y i Z
-                    Vertices[ i ].Normal.y = Vertices[ i ].Normal.z;
-                    Vertices[ i ].Normal.z = t;
+                    Vertices[ i ].normal.x = -Vertices[ i ].normal.x; // zmiana znaku X
+                    t = Vertices[ i ].normal.y; // zamiana Y i Z
+                    Vertices[ i ].normal.y = Vertices[ i ].normal.z;
+                    Vertices[ i ].normal.z = t;
                 }
             }
         if (Child)
@@ -1045,14 +1045,14 @@ void TSubModel::RaArrayFill(CVertNormTex *Vert)
 	if ((eType < TP_ROTATOR) || (eType == TP_STARS))
 		for (int i = 0; i < iNumVerts; ++i)
 		{
-			Vert[iVboPtr + i].x = Vertices[i].Point.x;
-			Vert[iVboPtr + i].y = Vertices[i].Point.y;
-			Vert[iVboPtr + i].z = Vertices[i].Point.z;
-			Vert[iVboPtr + i].nx = Vertices[i].Normal.x;
-			Vert[iVboPtr + i].ny = Vertices[i].Normal.y;
-			Vert[iVboPtr + i].nz = Vertices[i].Normal.z;
-			Vert[iVboPtr + i].u = Vertices[i].tu;
-			Vert[iVboPtr + i].v = Vertices[i].tv;
+			Vert[iVboPtr + i].x = Vertices[i].position.x;
+			Vert[iVboPtr + i].y = Vertices[i].position.y;
+			Vert[iVboPtr + i].z = Vertices[i].position.z;
+			Vert[iVboPtr + i].nx = Vertices[i].normal.x;
+			Vert[iVboPtr + i].ny = Vertices[i].normal.y;
+			Vert[iVboPtr + i].nz = Vertices[i].normal.z;
+			Vert[iVboPtr + i].u = Vertices[i].texture.s;
+			Vert[iVboPtr + i].v = Vertices[i].texture.t;
 		}
 	else if (eType == TP_FREESPOTLIGHT)
 		Vert[iVboPtr].x = Vert[iVboPtr].y = Vert[iVboPtr].z = 0.0;
@@ -1114,6 +1114,7 @@ float TSubModel::MaxY(const float4x4 &m)
 		return 0; // tylko dla trójkątów liczymy
 	if (iNumVerts < 1)
 		return 0;
+/*
 	if (!Vertices)
 		return 0;
 	float y,
@@ -1126,6 +1127,22 @@ float TSubModel::MaxY(const float4x4 &m)
 		if (my < y)
 			my = y;
 	}
+*/
+    float my =
+        m[ 0 ][ 1 ] * Vertices[ 0 ].position.x
+      + m[ 1 ][ 1 ] * Vertices[ 0 ].position.y
+      + m[ 2 ][ 1 ] * Vertices[ 0 ].position.z
+      + m[ 3 ][ 1 ];
+    float y;
+    for( int i = 1; i < iNumVerts; ++i ) {
+        y =
+            m[ 0 ][ 1 ] * Vertices[ i ].position.x
+          + m[ 1 ][ 1 ] * Vertices[ i ].position.y
+          + m[ 2 ][ 1 ] * Vertices[ i ].position.z
+          + m[ 3 ][ 1 ];
+
+        if( my < y ) { my = y; }
+    }
 	return my;
 };
 //---------------------------------------------------------------------------
@@ -1495,28 +1512,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 		uint32_t size = sn_utils::ld_uint32(s) - 8;
 		std::streampos end = s.tellg() + (std::streampos)size;
 
-		if (type == MAKE_ID4('V', 'N', 'T', '0'))
-		{
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            if (m_pVNT != nullptr)
-#else
-            if( false == m_pVNT.empty() )
-#endif
-				throw std::runtime_error("e3d: duplicated VNT chunk");
-
-			size_t vt_cnt = size / 32;
-			iNumVerts = (int)vt_cnt;
-			m_nVertexCount = (int)vt_cnt;
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            assert( m_pVNT == nullptr );
-            m_pVNT = new CVertNormTex[vt_cnt];
-#else
-            m_pVNT.resize( vt_cnt );
-#endif
-			for (size_t i = 0; i < vt_cnt; i++)
-				m_pVNT[i].deserialize(s);
-		}
-		else if ((type & 0x00FFFFFF) == MAKE_ID4('S', 'U', 'B', 0))
+		if ((type & 0x00FFFFFF) == MAKE_ID4('S', 'U', 'B', 0))
 		{
 			if (Root != nullptr)
 				throw std::runtime_error("e3d: duplicated SUB chunk");
@@ -1531,6 +1527,66 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 				s.seekg(pos + sm_size * i);
 				Root[i].deserialize(s);
 			}
+		}
+		else if (type == MAKE_ID4('V', 'N', 'T', '0'))
+		{
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            if (m_pVNT != nullptr)
+#else
+            if( false == m_pVNT.empty() )
+#endif
+				throw std::runtime_error("e3d: duplicated VNT chunk");
+
+/*
+			size_t vt_cnt = size / 32;
+			iNumVerts = (int)vt_cnt;
+			m_nVertexCount = (int)vt_cnt;
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            assert( m_pVNT == nullptr );
+            m_pVNT = new CVertNormTex[vt_cnt];
+#else
+            m_pVNT.resize( vt_cnt );
+#endif
+			for (size_t i = 0; i < vt_cnt; i++)
+				m_pVNT[i].deserialize(s);
+*/
+
+            // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk
+            // geometry associated with chunks isn't stored in the order the actual chunks are listed, so we need to sort that out first
+            std::vector< std::pair<int, int> > submodeloffsets;
+            submodeloffsets.reserve( iSubModelsCount );
+            for( int idx = 0; idx < iSubModelsCount; ++idx ) {
+                auto &submodel = Root[ idx ];
+                if( submodel.iNumVerts <= 0 ) { continue; }
+                submodeloffsets.emplace_back( submodel.tVboPtr, idx );
+            }
+            std::sort(
+                submodeloffsets.begin(),
+                submodeloffsets.end(),
+                []( std::pair<int, int> const &Left, std::pair<int, int> const &Right ) {
+                    return (Left.first) < (Right.first); } );
+            // once sorted we can grab geometry for the chunks as they come
+            for( auto const &submodeloffset : submodeloffsets ) {
+                auto &submodel = Root[ submodeloffset.second ];
+                vertex_array vertices; vertices.resize( submodel.iNumVerts );
+                for( auto &vertex : vertices ) {
+                    vertex.deserialize( s );
+                }
+                // remap geometry type for custom type submodels
+                int type;
+                switch( submodel.eType ) {
+                    case TP_FREESPOTLIGHT:
+                    case TP_STARS: {
+                        type = GL_POINTS;
+                        break; }
+                    default: {
+                        type = submodel.eType;
+                        break;
+                    }
+                }
+                submodel.m_chunk = m_geometry->create( vertices, type );
+            }
+
 		}
 		else if (type == MAKE_ID4('T', 'R', 'A', '0'))
 		{
@@ -1572,18 +1628,23 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 
 	if (!Root)
 		throw std::runtime_error("e3d: no submodels");
-
+/*
 #ifdef EU07_USE_OLD_VERTEXBUFFER
     if (!m_pVNT)
 #else
     if(m_pVNT.empty() )
 #endif
 		throw std::runtime_error("e3d: no vertices");
-
-	for (size_t i = 0; (int)i < iSubModelsCount; i++)
+*/
+	for (size_t i = 0; (int)i < iSubModelsCount; ++i)
 	{
 #ifdef EU07_USE_OLD_VERTEXBUFFER
-        Root[i].BinInit(Root, tm, (float8*)m_pVNT, &Textures, &Names, dynamic);
+        Root[i].BinInit(
+            Root, tm,
+            ( Root[i].m_chunk ?
+                &m_geometry->data(Root[i].m_chunk)[0] :
+                nullptr ),
+            &Textures, &Names, dynamic);
 #else
         Root[ i ].BinInit( Root, tm, (float8*)m_pVNT.data(), &Textures, &Names, dynamic );
 #endif
@@ -1595,7 +1656,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 	}
 }
 
-void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
+void TSubModel::BinInit(TSubModel *s, float4x4 *m, basic_vertex *v,
 	std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic)
 { // ustawienie wskaźników w submodelu
 	//m7todo: brzydko
@@ -1659,9 +1720,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
 
 	iVboPtr = tVboPtr;
-	Vertices = v + iVboPtr;
-	// if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, żeby się nie
-	// renderowało na siłę
+	Vertices = v;
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
@@ -1696,27 +1755,26 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 		// parser.getToken(parent);
 		parser.getTokens(1, false); // nazwa submodelu nadrzędnego bez zmieny na małe
 		parser >> parent;
-		if (parent == "")
-			break;
+        if( parent == "" ) {
+            break;
+        }
 		SubModel = new TSubModel();
 		iNumVerts += SubModel->Load(parser, this, iNumVerts, dynamic);
-		SubModel->Parent = AddToNamed(
-			parent.c_str(), SubModel); // będzie potrzebne do wyliczenia pozycji, np. pantografu
-									   // iSubModelsCount++;
+
+        // będzie potrzebne do wyliczenia pozycji, np. pantografu
+		SubModel->Parent = AddToNamed(parent.c_str(), SubModel); 
+
 		parser.getTokens();
 		parser >> token;
 	}
-	// Ra: od wersji 334 przechylany jest cały model, a nie tylko pierwszy
-	// submodel
-	// ale bujanie kabiny nadal używa bananów :( od 393 przywrócone, ale z
-	// dodatkowym warunkiem
+	// Ra: od wersji 334 przechylany jest cały model, a nie tylko pierwszy submodel
+	// ale bujanie kabiny nadal używa bananów :( od 393 przywrócone, ale z dodatkowym warunkiem
 	if (Global::iConvertModels & 4)
 	{ // automatyczne banany czasem psuły przechylanie kabin...
 		if (dynamic && Root)
 		{
 			if (Root->NextGet()) // jeśli ma jakiekolwiek kolejne
-			{ // dynamic musi mieć "banana", bo tylko pierwszy obiekt jest animowany,
-			  // a następne nie
+			{ // dynamic musi mieć "banana", bo tylko pierwszy obiekt jest animowany, a następne nie
 				SubModel = new TSubModel(); // utworzenie pustego
 				SubModel->ChildAdd(Root);
 				Root = SubModel;

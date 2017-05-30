@@ -49,6 +49,9 @@ CMesh::CMesh()
 #endif
     m_nVertexCount = -1;
     m_nVBOVertices = 0; // nie zarezerwowane
+
+    // TODO: bind proper subtype based on the settings
+    m_geometry = std::make_shared<opengl_vbogeometrybank>();
 };
 
 CMesh::~CMesh()
@@ -107,6 +110,7 @@ void CMesh::Clear()
 
 bool CMesh::StartVBO()
 { // początek rysowania elementów z VBO
+
     if (m_nVertexCount <= 0)
         return false; // nie ma nic do rysowania w ten sposób
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -118,12 +122,15 @@ bool CMesh::StartVBO()
         glVertexPointer( 3, GL_FLOAT, sizeof(CVertNormTex), static_cast<char *>(nullptr) ); // pozycje
 		glNormalPointer( GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // normalne
 		glTexCoordPointer( 2, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 24 ); // wierzchołki
+        return true; // można rysować z VBO
     }
-    return true; // można rysować z VBO
+
+    return false;
 };
 
 bool CMesh::StartColorVBO()
 { // początek rysowania punktów świecących z VBO
+
     if (m_nVertexCount <= 0)
         return false; // nie ma nic do rysowania w ten sposób
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -134,8 +141,9 @@ bool CMesh::StartColorVBO()
 		glVertexPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) ); // pozycje
         // glColorPointer(3,GL_UNSIGNED_BYTE,sizeof(CVertNormTex),((char*)NULL)+12); //kolory
 		glColorPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // kolory
+        return true; // można rysować z VBO
     }
-    return true; // można rysować z VBO
+    return false;
 };
 
 void CMesh::EndVBO()

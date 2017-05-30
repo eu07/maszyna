@@ -19,82 +19,6 @@ http://mozilla.org/MPL/2.0/.
 
 using namespace Math3D;
 
-struct GLVERTEX
-{
-	vector3 Point;
-	vector3 Normal;
-	float tu, tv;
-};
-
-class TMaterialColor
-{
-public:
-	TMaterialColor() {};
-	TMaterialColor(char V)
-	{
-		r = g = b = V;
-	};
-	// TMaterialColor(double R, double G, double B)
-	TMaterialColor(char R, char G, char B)
-	{
-		r = R;
-		g = G;
-		b = B;
-	};
-
-	char r, g, b;
-};
-
-/*
-struct TMaterial
-{
-int ID;
-AnsiString Name;
-//McZapkie-240702: lepiej uzywac wartosci float do opisu koloru bo funkcje opengl chyba tego na ogol
-uzywaja
-float Ambient[4];
-float Diffuse[4];
-float Specular[4];
-float Transparency;
-GLuint TextureID;
-};
-*/
-/*
-struct THitBoxContainer
-{
-TPlane Planes[6];
-int Index;
-inline void Reset() { Planes[0]= TPlane(vector3(0,0,0),0.0f); };
-inline bool Inside(vector3 Point)
-{
-bool Hit= true;
-
-if (Planes[0].Defined())
-for (int i=0; i<6; i++)
-{
-if (Planes[i].GetSide(Point)>0)
-{
-Hit= false;
-break;
-};
-
-}
-else return(false);
-return(Hit);
-};
-};
-*/
-
-/* Ra: tego nie będziemy już używać, bo można wycisnąć więcej
-typedef enum
-{smt_Unknown,       //nieznany
-smt_Mesh,          //siatka
-smt_Point,
-smt_FreeSpotLight, //punkt świetlny
-smt_Text,          //generator tekstu
-smt_Stars          //wiele punktów świetlnych
-} TSubModelType;
-*/
 // Ra: specjalne typy submodeli, poza tym GL_TRIANGLES itp.
 const int TP_ROTATOR = 256;
 const int TP_FREESPOTLIGHT = 257;
@@ -134,6 +58,7 @@ class TSubModel
     //m7todo: zrobić normalną serializację
 
     friend class opengl_renderer;
+    friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
 
 private:
 	int iNext;
@@ -160,7 +85,6 @@ private:
 	union
 	{ // transform, nie każdy submodel musi mieć
 		float4x4 *fMatrix; // pojedyncza precyzja wystarcza
-						   // matrix4x4 *dMatrix; //do testu macierz podwójnej precyzji
 		int iMatrix; // w pliku binarnym jest numer matrycy
 	};
 	int iNumVerts; // ilość wierzchołków (1 dla FreeSpotLight)
@@ -188,21 +112,19 @@ private:
 	TSubModel *Next;
 	TSubModel *Child;
 	intptr_t iVboPtr;
+    geometrychunk_handle m_chunk; // geometry of the submodel
 	texture_manager::size_type TextureID; // numer tekstury, -1 wymienna, 0 brak
 	bool bWire; // nie używane, ale wczytywane
 				// short TexAlpha;  //Ra: nie używane już
 	GLuint uiDisplayList; // roboczy numer listy wyświetlania
 	float Opacity; // nie używane, ale wczytywane //m7todo: wywalić to
-				   // ABu: te same zmienne, ale zdublowane dla Render i RenderAlpha,
-				   // bo sie chrzanilo przemieszczanie obiektow.
-				   // Ra: już się nie chrzani
 	float f_Angle;
 	float3 v_RotateAxis;
 	float3 v_Angles;
 
 public: // chwilowo
 	float3 v_TransVector;
-	float8 *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
+	basic_vertex *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
 	size_t iAnimOwner; // roboczy numer egzemplarza, który ustawił animację
 	TAnimType b_aAnim; // kody animacji oddzielnie, bo zerowane
 public:
@@ -212,14 +134,10 @@ public:
 		smLetter; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
 	TSubModel *Parent; // nadrzędny, np. do wymnażania macierzy
 	int iVisible; // roboczy stan widoczności
-				  // AnsiString asTexture; //robocza nazwa tekstury do zapisania w pliku binarnym
-				  // AnsiString asName; //robocza nazwa
 	std::string pTexture; // robocza nazwa tekstury do zapisania w pliku binarnym
 	std::string pName; // robocza nazwa
 private:
-	// int SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3 *pt,GLVERTEX
-	// *Vertices);
-	int SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, float3 *pt, float8 *Vertices);
+	int SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, glm::vec3 *pt, basic_vertex *Vertices);
 	void RaAnimation(TAnimType a);
 
 public:
@@ -235,18 +153,10 @@ public:
 	int Load(cParser &Parser, TModel3d *Model, int Pos, bool dynamic);
 	void ChildAdd(TSubModel *SubModel);
 	void NextAdd(TSubModel *SubModel);
-	TSubModel * NextGet()
-	{
-		return Next;
-	};
-	TSubModel * ChildGet()
-	{
-		return Child;
-	};
+	TSubModel * NextGet() { return Next; };
+	TSubModel * ChildGet() { return Child; };
 	int TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri);
-	float8 * TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
-	// float8* TrianglePtr(const char *tex,int tri);
-	// void SetRotate(vector3 vNewRotateAxis,float fNewAngle);
+	basic_vertex * TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ(vector3 vNewAngles);
 	void SetRotateXYZ(float3 vNewAngles);
@@ -255,18 +165,9 @@ public:
 	void SetRotateIK1(float3 vNewAngles);
 	TSubModel * GetFromName(std::string const &search, bool i = true);
 	TSubModel * GetFromName(char const *search, bool i = true);
-	// inline matrix4x4* GetMatrix() {return dMatrix;};
-	inline float4x4 * GetMatrix()
-	{
-		return fMatrix;
-	};
-	// matrix4x4* GetTransform() {return Matrix;};
-	inline void Hide()
-	{
-		iVisible = 0;
-	};
+	inline float4x4 * GetMatrix() { return fMatrix; };
+	inline void Hide() { iVisible = 0; };
 	void RaArrayFill(CVertNormTex *Vert);
-	// void Render();
 	int FlagsCheck();
 	void WillBeAnimated()
 	{
@@ -275,7 +176,7 @@ public:
 	};
 	void InitialRotate(bool doit);
 	void DisplayLists();
-	void BinInit(TSubModel *s, float4x4 *m, float8 *v,
+	void BinInit(TSubModel *s, float4x4 *m, basic_vertex *v,
 		std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
 	void ReplacableSet(texture_manager::size_type const *r, int a)
 	{
@@ -285,14 +186,8 @@ public:
 	void TextureNameSet(const char *n);
 	void NameSet(const char *n);
 	// Ra: funkcje do budowania terenu z E3D
-	int Flags()
-	{
-		return iFlags;
-	};
-	void UnFlagNext()
-	{
-		iFlags &= 0x00FFFFFF;
-	};
+	int Flags() { return iFlags; };
+	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
 	void ColorsSet(int *a, int *d, int *s);
 	inline float3 Translation1Get()
 	{
@@ -323,9 +218,6 @@ class TModel3d : public CMesh
     friend class opengl_renderer;
 
 private:
-	// TMaterial *Materials;
-	// int MaterialsCount; //Ra: nie używane
-	// bool TractionPart; //Ra: nie używane
 	TSubModel *Root; // drzewo submodeli
 	int iFlags; // Ra: czy submodele mają przezroczyste tekstury
 public: // Ra: tymczasowo
@@ -338,16 +230,10 @@ private:
 	std::string asBinary; // nazwa pod którą zapisać model binarny
     std::string m_filename;
 public:
-	inline TSubModel * GetSMRoot()
-	{
-		return (Root);
-	};
-	// double Radius; //Ra: nie używane
+	inline TSubModel * GetSMRoot() { return (Root); };
 	TModel3d();
-	TModel3d(char *FileName);
 	~TModel3d();
 	TSubModel * GetFromName(const char *sName);
-	// TMaterial* GetMaterialFromName(char *sName);
 	TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);
 	void LoadFromTextFile(std::string const &FileName, bool dynamic);
@@ -355,17 +241,9 @@ public:
 	bool LoadFromFile(std::string const &FileName, bool dynamic);
 	void SaveToBinFile(char const *FileName);
 	void BreakHierarhy();
-	// inline int GetSubModelsCount() { return (SubModelsCount); };
-	int Flags() const
-	{
-		return iFlags;
-	};
+	int Flags() const { return iFlags; };
 	void Init();
-	std::string NameGet()
-	{
-//		return Root ? Root->pName : NULL;
-        return m_filename;
-	};
+	std::string NameGet() { return m_filename; };
 	int TerrainCount();
 	TSubModel * TerrainSquare(int n);
 	void TerrainRenderVBO(int n);

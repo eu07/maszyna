@@ -7,8 +7,9 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef VBOH
-#define VBOH
+#pragma once
+
+#include "openglgeometrybank.h"
 
 #define EU07_USE_OLD_VERTEXBUFFER
 
@@ -32,13 +33,6 @@ class CVertNormTex
 class CMesh
 { // wsparcie dla VBO
   public:
-    int m_nVertexCount; // liczba wierzchołków
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-    CVertNormTex *m_pVNT;
-#else
-    std::vector<CVertNormTex> m_pVNT;
-#endif
-    unsigned int m_nVBOVertices; // numer VBO z wierzchołkami
     CMesh();
     ~CMesh();
     void MakeArray(int n); // tworzenie tablicy z elementami VNT
@@ -47,6 +41,14 @@ class CMesh
     bool StartVBO();
     void EndVBO();
     bool StartColorVBO();
-};
 
+    int m_nVertexCount; // liczba wierzchołków
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    CVertNormTex *m_pVNT;
+#else
+    std::vector<CVertNormTex> m_pVNT;
 #endif
+    unsigned int m_nVBOVertices; // numer VBO z wierzchołkami
+
+    std::shared_ptr<geometry_bank> m_geometry;
+};
