@@ -773,7 +773,7 @@ void TMoverParameters::UpdatePantVolume(double dt)
                     // wywalenie szybkiego z powodu niskiego ciśnienia
                     if( GetTrainsetVoltage() < 0.5 * EnginePowerSource.MaxVoltage ) {
                         // to jest trochę proteza; zasilanie członu może być przez sprzęg WN
-                        if( MainSwitch( false, ( TrainType == dt_EZT ? command_range::unit : command_range::local ) ) ) {
+                        if( MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ) ) {
                             EventFlag = true;
                         }
                     }
@@ -1366,7 +1366,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
         Compressor = 0;
         CompressorFlag = false;
     };
-    ConverterCheck();
+    ConverterCheck(dt);
     if (CompressorSpeed > 0.0) // sprężarka musi mieć jakąś niezerową wydajność
         CompressorCheck(dt); //żeby rozważać jej załączenie i pracę
     UpdateBrakePressure(dt);
@@ -1522,7 +1522,7 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
         Compressor = 0;
         CompressorFlag = false;
     };
-    ConverterCheck();
+    ConverterCheck(dt);
     if (CompressorSpeed > 0.0) // sprężarka musi mieć jakąś niezerową wydajność
         CompressorCheck(dt); //żeby rozważać jej załączenie i pracę
     UpdateBrakePressure(dt);
@@ -1561,15 +1561,23 @@ double TMoverParameters::ShowEngineRotation(int VehN)
     return 0.0;
 };
 
-void TMoverParameters::ConverterCheck()
-{ // sprawdzanie przetwornicy
+// sprawdzanie przetwornicy
+void TMoverParameters::ConverterCheck( double const Timestep ) {
+    // TODO: move other converter checks here, to have it all in one place for potential device object
     if( ( ConverterAllow )
      && ( false == PantPressLockActive )
      && ( Mains ) ) {
-        ConverterFlag = true;
+        // delay timer can be optionally configured, and is set anew whenever converter goes off
+        if( ConverterStartDelayTimer <= 0.0 ) {
+            ConverterFlag = true;
+        }
+        else {
+            ConverterStartDelayTimer -= Timestep;
+        }
     }
     else {
         ConverterFlag = false;
+        ConverterStartDelayTimer = static_cast<double>( ConverterStartDelay );
     }
 };
 
@@ -2087,10 +2095,10 @@ bool TMoverParameters::Sandbox( bool const State, int const Notify )
         }
     }
 
-    if( Notify != command_range::local ) {
+    if( Notify != range::local ) {
         // if requested pass the command on
         auto const couplingtype =
-            ( Notify == command_range::unit ?
+            ( Notify == range::unit ?
                 ctrain_controll | ctrain_depot :
                 ctrain_controll );
 
@@ -2348,11 +2356,11 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
         {
             if( Mains ) {
                 // jeśli był załączony
-                if( Notify != command_range::local ) {
+                if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "MainSwitch", int( State ), CabNo,
-                        ( Notify == command_range::unit ?
+                        ( Notify == range::unit ?
                             ctrain_controll | ctrain_depot :
                             ctrain_controll ) );
                 }
@@ -2360,11 +2368,11 @@ bool TMoverParameters::MainSwitch( bool const State, int const Notify )
             Mains = State;
             if( Mains ) {
                 // jeśli został załączony
-                if( Notify != command_range::local ) {
+                if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "MainSwitch", int( State ), CabNo,
-                        ( Notify == command_range::unit ?
+                        ( Notify == range::unit ?
                             ctrain_controll | ctrain_depot :
                             ctrain_controll ) );
                 }
@@ -2399,19 +2407,19 @@ bool TMoverParameters::ConverterSwitch( bool State, int const Notify )
             CompressorAllow = ConverterAllow;
     }
     if( ConverterAllow == true ) {
-        if( Notify != command_range::local ) {
+        if( Notify != range::local ) {
             SendCtrlToNext(
                 "ConverterSwitch", 1, CabNo,
-                ( Notify == command_range::unit ?
+                ( Notify == range::unit ?
                     ctrain_controll | ctrain_depot :
                     ctrain_controll ) );
         }
     }
     else {
-        if( Notify != command_range::local ) {
+        if( Notify != range::local ) {
             SendCtrlToNext(
                 "ConverterSwitch", 0, CabNo,
-                ( Notify == command_range::unit ?
+                ( Notify == range::unit ?
                     ctrain_controll | ctrain_depot :
                     ctrain_controll ) );
         }
@@ -2436,19 +2444,19 @@ bool TMoverParameters::CompressorSwitch( bool State, int const Notify )
         CS = true;
     }
     if( CompressorAllow == true ) {
-        if( Notify != command_range::local ) {
+        if( Notify != range::local ) {
             SendCtrlToNext(
                 "CompressorSwitch", 1, CabNo,
-                ( Notify == command_range::unit ?
+                ( Notify == range::unit ?
                     ctrain_controll | ctrain_depot :
                     ctrain_controll ) );
         }
     }
     else {
-        if( Notify != command_range::local ) {
+        if( Notify != range::local ) {
             SendCtrlToNext(
                 "CompressorSwitch", 0, CabNo,
-                ( Notify == command_range::unit ?
+                ( Notify == range::unit ?
                     ctrain_controll | ctrain_depot :
                     ctrain_controll ) );
         }
@@ -4165,7 +4173,7 @@ double TMoverParameters::TractionForce(double dt)
 				if ( (std::max(GetTrainsetVoltage(), std::abs(Voltage)) < EnginePowerSource.CollectorParameters.MinV) ||
 					(std::max(GetTrainsetVoltage(), std::abs(Voltage)) * EnginePowerSource.CollectorParameters.OVP >
 						EnginePowerSource.CollectorParameters.MaxV))
-                        if( MainSwitch( false, ( TrainType == dt_EZT ? command_range::unit : command_range::local ) ) ) // TODO: check whether we need to send this EMU-wide
+                        if( MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ) ) // TODO: check whether we need to send this EMU-wide
 						EventFlag = true; // wywalanie szybkiego z powodu niewłaściwego napięcia
 
             if (((DynamicBrakeType == dbrake_automatic) || (DynamicBrakeType == dbrake_switch)) &&
@@ -4464,7 +4472,7 @@ double TMoverParameters::TractionForce(double dt)
                 // nie wchodzić w funkcję bez potrzeby
                 if( ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) < EnginePowerSource.CollectorParameters.MinV )
                  || ( std::max( std::abs( Voltage ), GetTrainsetVoltage() ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
-                    MainSwitch( false, ( TrainType == dt_EZT ? command_range::unit : command_range::local ) ); // TODO: check whether we need to send this EMU-wide
+                    MainSwitch( false, ( TrainType == dt_EZT ? range::unit : range::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
             tmpV = abs(nrot) * (PI * WheelDiameter) * 3.6; //*DirAbsolute*eimc[eimc_s_p]; - do przemyslenia dzialanie pp
@@ -4538,21 +4546,21 @@ double TMoverParameters::TractionForce(double dt)
                 {
                     PosRatio = 0;
                     tmp = 4;
-                    Sandbox( true, command_range::local );
+                    Sandbox( true, range::local );
                 } // przeciwposlizg
                 if ((abs((PosRatio + 9.80 * dizel_fill) * dmoment * 100) >
                      0.95 * Adhesive(RunningTrack.friction) * TotalMassxg))
                 {
                     PosRatio = 0;
                     tmp = 9;
-                    Sandbox( true, command_range::local );
+                    Sandbox( true, range::local );
                 } // przeciwposlizg
                 if ((SlippingWheels))
                 {
                     // PosRatio = -PosRatio * 0; // serio -0 ???
 					PosRatio = 0;
                     tmp = 9;
-                    Sandbox( true, command_range::local );
+                    Sandbox( true, range::local );
                 } // przeciwposlizg
 
                 dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.1), -0.1) * 2 *
@@ -5190,22 +5198,22 @@ bool TMoverParameters::PantFront( bool const State, int const Notify )
             PantFrontUp = State;
             if( State == true ) {
                 PantFrontStart = 0;
-                if( Notify != command_range::local ) {
+                if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "PantFront", 1, CabNo,
-                        ( Notify == command_range::unit ?
+                        ( Notify == range::unit ?
                             ctrain_controll | ctrain_depot :
                             ctrain_controll ) );
                 }
             }
             else {
                 PantFrontStart = 1;
-                if( Notify != command_range::local ) {
+                if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "PantFront", 0, CabNo,
-                        ( Notify == command_range::unit ?
+                        ( Notify == range::unit ?
                             ctrain_controll | ctrain_depot :
                             ctrain_controll ) );
                 }
@@ -5243,22 +5251,22 @@ bool TMoverParameters::PantRear( bool const State, int const Notify )
             PantRearUp = State;
             if( State == true ) {
                 PantRearStart = 0;
-                if( Notify != command_range::local ) {
+                if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "PantRear", 1, CabNo,
-                        ( Notify == command_range::unit ?
+                        ( Notify == range::unit ?
                             ctrain_controll | ctrain_depot :
                             ctrain_controll ) );
                 }
             }
             else {
                 PantRearStart = 1;
-                if( Notify != command_range::local ) {
+                if( Notify != range::local ) {
                     // wysłanie wyłączenia do pozostałych?
                     SendCtrlToNext(
                         "PantRear", 0, CabNo,
-                        ( Notify == command_range::unit ?
+                        ( Notify == range::unit ?
                             ctrain_controll | ctrain_depot :
                             ctrain_controll ) );
                 }
@@ -7048,6 +7056,20 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         0;
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
+
+    // converter
+    {
+        std::map<std::string, start> starts{
+            { "Manual", start::manual },
+            { "Automatic", start::automatic }
+        };
+        auto lookup = starts.find( extract_value( "ConverterStart", line ) );
+        ConverterStart =
+            lookup != starts.end() ?
+                lookup->second :
+                start::manual;
+    }
+    extract_value( ConverterStartDelay, "ConverterStartDelay", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
@@ -8148,7 +8170,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "Sandbox")
 	{
-        OK = Sandbox( CValue1 == 1, command_range::local );
+        OK = Sandbox( CValue1 == 1, range::local );
 	}
 	else if (Command == "CabSignal") /*SHP,Indusi*/
 	{ // Ra: to powinno działać tylko w członie obsadzonym

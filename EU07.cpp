@@ -52,6 +52,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment( lib, "setupapi.lib" )
 #pragma comment( lib, "python27.lib" )
 #pragma comment (lib, "dbghelp.lib")
+#pragma comment (lib, "version.lib")
 #ifdef CAN_I_HAS_LIBPNG
 #pragma comment (lib, "libpng16.lib")
 #endif
@@ -224,12 +225,49 @@ int main(int argc, char *argv[])
         AllocConsole();
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
-
+/*
     std::string executable( argv[ 0 ] ); auto const pathend = executable.rfind( '\\' );
     Global::ExecutableName =
         ( pathend != std::string::npos ?
             executable.substr( executable.rfind( '\\' ) + 1 ) :
             executable );
+*/
+    // retrieve product version from the file's version data table
+    {
+        auto const fileversionsize = ::GetFileVersionInfoSize( argv[ 0 ], NULL );
+        std::vector<BYTE>fileversiondata; fileversiondata.resize( fileversionsize );
+        if( ::GetFileVersionInfo( argv[ 0 ], NULL, fileversionsize, fileversiondata.data() ) ) {
+
+            struct lang_codepage {
+                WORD language;
+                WORD codepage;
+            } *langcodepage;
+            UINT datasize;
+
+            ::VerQueryValue(
+                fileversiondata.data(),
+                TEXT( "\\VarFileInfo\\Translation" ),
+                (LPVOID*)&langcodepage,
+                &datasize );
+
+            std::string subblock; subblock.resize( 50 );
+            ::StringCchPrintf(
+                &subblock[0], subblock.size(),
+                TEXT( "\\StringFileInfo\\%04x%04x\\ProductVersion" ),
+                langcodepage->language,
+                langcodepage->codepage );
+
+            VOID *stringdata;
+            if( ::VerQueryValue(
+                    fileversiondata.data(),
+                    subblock.data(),
+                    &stringdata,
+                    &datasize ) ) {
+
+                Global::asVersion = std::string( reinterpret_cast<char*>(stringdata) );
+            }
+        }
+    }
 
 	for (int i = 1; i < argc; ++i)
 	{

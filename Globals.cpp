@@ -32,8 +32,7 @@ std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
 std::string Global::asCurrentDynamicPath = "";
-int Global::iSlowMotion =
-    0; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
+int Global::iSlowMotion = 0; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
 double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
@@ -48,9 +47,7 @@ GLFWwindow *Global::window;
 bool Global::shiftState;
 bool Global::ctrlState;
 int Global::iCameraLast = -1;
-std::string Global::asRelease = "16.0.1172.482";
-std::string Global::asVersion = "Compilation 2017-03-19, release " + Global::asRelease; // tutaj, bo wysyłany
-std::string Global::ExecutableName;
+std::string Global::asVersion = "couldn't retrieve version string";
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca

@@ -266,9 +266,7 @@ class Global
     static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
     static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
     static int iCameraLast;
-    static std::string asRelease; // numer
     static std::string asVersion; // z opisem
-    static std::string ExecutableName;
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego

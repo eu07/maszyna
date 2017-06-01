@@ -256,7 +256,7 @@ class TTrack : public Resource
     void RaAssign(TGroundNode *gn, TAnimContainer *ac);
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
     void RaAnimListAdd(TTrack *t);
-    TTrack * RaAnimate();
+    TTrack * RaAnimate(GLuint const Vertexbuffer = -1);
 
     void RadioStop();
     void AxleCounter(int i, TDynamicObject *o)
