@@ -2472,10 +2472,15 @@ bool TDynamicObject::Update(double dt, double dt1)
             }
             else {
                 if( MoverParameters->PantPress >= 4.6 ) {
-                    // prime the pressure switch
-                    MoverParameters->PantPressSwitchActive = true;
-                    // turn off the subsystems lock
-                    MoverParameters->PantPressLockActive = false;
+                    // NOTE: we require active low power source to prime the pressure switch
+                    // this is a work-around for potential isssues caused by the switch activating on otherwise idle vehicles, but should check whether it's accurate
+                    if( ( true == MoverParameters->Battery )
+                     || ( true == MoverParameters->ConverterFlag ) ) {
+                        // prime the pressure switch
+                        MoverParameters->PantPressSwitchActive = true;
+                        // turn off the subsystems lock
+                        MoverParameters->PantPressLockActive = false;
+                    }
 
                     if( MoverParameters->PantPress >= 4.8 ) {
                         // Winger - automatyczne wylaczanie malej sprezarki
@@ -5233,22 +5238,27 @@ TDynamicObject * TDynamicObject::ControlledFind()
     // jeździć dobrze
     // również hamowanie wykonuje się zaworem w członie, a nie w silnikowym...
     TDynamicObject *d = this; // zaczynamy od aktualnego
-    if (d->MoverParameters->TrainType & dt_EZT) // na razie dotyczy to EZT
-        if (d->NextConnected ? d->MoverParameters->Couplers[1].AllowedFlag & ctrain_depot : false)
-        { // gdy jest człon od sprzęgu 1, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((d->MoverParameters->Power < 1.0) && (d->NextConnected->MoverParameters->Power >
-                                                      1.0)) // my nie mamy mocy, ale ten drugi ma
+    if( d->MoverParameters->TrainType & dt_EZT ) {
+        // na razie dotyczy to EZT
+        if( ( d->NextConnected != nullptr )
+         && ( true == TestFlag( d->MoverParameters->Couplers[ 1 ].AllowedFlag, coupling::permanent ) ) ) {
+            // gdy jest człon od sprzęgu 1, a sprzęg łączony warsztatowo (powiedzmy)
+            if( ( d->MoverParameters->Power < 1.0 )
+             && ( d->NextConnected->MoverParameters->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
                 d = d->NextConnected; // będziemy sterować tym z mocą
+            }
         }
-        else if (d->PrevConnected ? d->MoverParameters->Couplers[0].AllowedFlag & ctrain_depot :
-                                    false)
-        { // gdy jest człon od sprzęgu 0, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((d->MoverParameters->Power < 1.0) && (d->PrevConnected->MoverParameters->Power >
-                                                      1.0)) // my nie mamy mocy, ale ten drugi ma
+        else if( ( d->PrevConnected != nullptr )
+              && ( true == TestFlag( d->MoverParameters->Couplers[ 0 ].AllowedFlag, coupling::permanent ) ) ) {
+            // gdy jest człon od sprzęgu 0, a sprzęg łączony warsztatowo (powiedzmy)
+            if( ( d->MoverParameters->Power < 1.0 )
+             && ( d->PrevConnected->MoverParameters->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
                 d = d->PrevConnected; // będziemy sterować tym z mocą
+            }
         }
+    }
     return d;
 };
 //---------------------------------------------------------------------------

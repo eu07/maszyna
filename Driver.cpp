@@ -469,6 +469,16 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
     }
     else {
         if( iTableDirection == 0 ) { return; }
+        // NOTE: provisory fix for BUG: sempahor indices no longer matching table size
+        // TODO: find and really fix the reason it happens
+        if( ( SemNextIndex != -1 )
+         && ( SemNextIndex >= sSpeedTable.size() ) ) {
+            SemNextIndex = -1;
+        }
+        if( ( SemNextStopIndex != -1 )
+         && ( SemNextStopIndex >= sSpeedTable.size() ) ) {
+            SemNextStopIndex = -1;
+        }
         // kontynuacja skanowania od ostatnio sprawdzonego toru (w ostatniej pozycji zawsze jest tor)
         if( ( SemNextStopIndex != -1 )
          && ( sSpeedTable[SemNextStopIndex].fVelNext < 1.0 ) ) {
@@ -1335,7 +1345,6 @@ void TController::TablePurger()
     // we can only update pointers safely after new table is finalized, so record their indices until then
     for( std::size_t idx = 0; idx < sSpeedTable.size() - 1; ++idx ) {
         // cache placement of semaphors in the new table, if we encounter them
-        // NOTE: we rely on the semaphor actually getting added in the next step rather than skipped, but it's a pretty safe bet
         if( idx == SemNextIndex ) {
             SemNextIndex = trimmedtable.size();
         }
@@ -1346,6 +1355,13 @@ void TController::TablePurger()
         if( ( 0 == ( speedpoint.iFlags & spEnabled ) )
          || ( ( speedpoint.iFlags & ( spElapsed | spTrack | spCurve | spSwitch ) == ( spElapsed | spTrack | spCurve ) )
            && ( speedpoint.fVelNext < 0.0 ) ) ) {
+            // if the trimmed point happens to be currently active semaphor we need to invalidate their placements
+            if( idx == SemNextIndex ) {
+                SemNextIndex = -1;
+            }
+            if( idx == SemNextStopIndex ) {
+                SemNextStopIndex = -1;
+            }
             continue;
         }
         // we're left with useful speed point record we should copy
@@ -3365,8 +3381,8 @@ bool TController::UpdateSituation(double dt)
     }
     ElapsedTime += dt;
     WaitingTime += dt;
-    fBrakeTime -=
-        dt; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
+    // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
+    fBrakeTime -= dt;
     fStopTime += dt; // zliczanie czasu postoju, nie ruszy dopóki ujemne
     fActionTime += dt; // czas używany przy regulacji prędkości i zamykaniu drzwi
     if (WriteLogFlag)
@@ -3384,7 +3400,7 @@ bool TController::UpdateSituation(double dt)
             LastUpdatedTime = LastUpdatedTime + dt;
     }
     // Ra: skanowanie również dla prowadzonego ręcznie, aby podpowiedzieć prędkość
-    if ((LastReactionTime > Min0R(ReactionTime, 2.0)))
+    if ((LastReactionTime > std::min(ReactionTime, 2.0)))
     {
         // Ra: nie wiem czemu ReactionTime potrafi dostać 12 sekund, to jest przegięcie, bo przeżyna
         // STÓJ
@@ -3429,18 +3445,48 @@ bool TController::UpdateSituation(double dt)
         if (AIControllFlag)
         { // tu bedzie logika sterowania
             if (mvOccupied->CommandIn.Command != "")
-                if (!mvOccupied->RunInternalCommand()) // rozpoznaj komende bo lokomotywa jej nie
-                    // rozpoznaje
+                if( !mvOccupied->RunInternalCommand() ) {
+                    // rozpoznaj komende bo lokomotywa jej nie rozpoznaje
                     RecognizeCommand(); // samo czyta komendę wstawioną do pojazdu?
-            if (mvOccupied->SecuritySystem.Status > 1) // jak zadziałało CA/SHP
-                if (!mvOccupied->SecuritySystemReset()) // to skasuj
-                    // if
-                    // ((TestFlag(mvOccupied->SecuritySystem.Status,s_ebrake))&&(mvOccupied->BrakeCtrlPos==0)&&(AccDesired>0.0))
-                    if ((TestFlag(mvOccupied->SecuritySystem.Status, s_SHPebrake) ||
-                         TestFlag(mvOccupied->SecuritySystem.Status, s_CAebrake)) &&
-                        (mvOccupied->BrakeCtrlPos == 0) && (AccDesired > 0.0))
-                        mvOccupied->BrakeLevelSet(
-                            0); //!!! hm, może po prostu normalnie sterować hamulcem?
+                }
+            if( mvOccupied->SecuritySystem.Status > 1 ) {
+                // jak zadziałało CA/SHP
+                if( !mvOccupied->SecuritySystemReset() ) { // to skasuj
+                    if( ( mvOccupied->BrakeCtrlPos == 0 )
+                     && ( AccDesired > 0.0 )
+                     && ( ( TestFlag( mvOccupied->SecuritySystem.Status, s_SHPebrake ) )
+                       || ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAebrake ) ) ) ) {
+                        //!!! hm, może po prostu normalnie sterować hamulcem?
+                        mvOccupied->BrakeLevelSet( 0 );
+                    }
+                }
+            }
+            // basic emergency stop handling, while at it
+            if( ( true == mvOccupied->EmergencyBrakeFlag ) // radio-stop
+             && ( mvOccupied->Vel < 0.01 ) // and actual stop
+             && ( true == mvOccupied->Radio ) ) { // and we didn't touch the radio yet
+                // turning off the radio should reset the flag, during security system check
+                if( m_radiocontroltime > 2.5 ) {
+                    // arbitrary 2.5 sec delay between stop and disabling the radio
+                    mvOccupied->Radio = false;
+                    m_radiocontroltime = 0.0;
+                }
+                else {
+                    m_radiocontroltime += LastReactionTime;
+                }
+            }
+            if( ( false == mvOccupied->Radio )
+             && ( false == mvOccupied->EmergencyBrakeFlag ) ) {
+                // otherwise if it's safe to do so, turn the radio back on
+                if( m_radiocontroltime > 5.0 ) {
+                    // arbitrary 5 sec delay before switching radio back on
+                    mvOccupied->Radio = true;
+                    m_radiocontroltime = 0.0;
+                }
+                else {
+                    m_radiocontroltime += LastReactionTime;
+                }
+            }
         }
         switch (OrderList[OrderPos])
         { // ustalenie prędkości przy doczepianiu i odczepianiu, dystansów w pozostałych przypadkach

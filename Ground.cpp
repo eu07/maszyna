@@ -3178,9 +3178,9 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
         if (!Event->iQueued) // jeśli nie dodany jeszcze do kolejki
         { // kolejka eventów jest posortowana względem (fStartTime)
             Event->Activator = Node;
-            if (Event->Type == tp_AddValues ? (Event->fDelay == 0.0) : false)
-            { // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić
-                // jakieś dodawanie
+            if( ( Event->Type == tp_AddValues )
+             && ( Event->fDelay == 0.0 ) ) {
+                // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
                 // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
                 // wykonującą eventy i ją wywołać
                 if (EventConditon(Event))
@@ -3208,11 +3208,10 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                                  std::to_string(Event->Params[1].asdouble) + " " +
                                  std::to_string(Event->Params[2].asdouble));
                 }
-                Event =
-                    Event
-                        ->evJoined; // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki
+                // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
+                Event = Event->evJoined;
             }
-            if (Event)
+            if( Event != nullptr )
             { // standardowe dodanie do kolejki
                 WriteLog("EVENT ADDED TO QUEUE: " + Event->asName + (Node ? (" by " + Node->asName) : ""));
                 Event->fStartTime =
@@ -3221,10 +3220,13 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                     Event->fStartTime += Event->fRandomDelay * Random(10000) *
                                          0.0001; // doliczenie losowego czasu opóźnienia
                 ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
-                if (QueryRootEvent ? Event->fStartTime >= QueryRootEvent->fStartTime : false)
-                    QueryRootEvent->AddToQuery(Event); // dodanie gdzieś w środku
-                else
-                { // dodanie z przodu: albo nic nie ma, albo ma być wykonany szybciej niż pierwszy
+                if( ( QueryRootEvent != nullptr )
+                 && ( Event->fStartTime > QueryRootEvent->fStartTime ) ) {
+                    // dodanie gdzieś w środku
+                    QueryRootEvent->AddToQuery( Event );
+                }
+                else {
+                    // dodanie z przodu: albo nic nie ma, albo ma być wykonany szybciej niż pierwszy
                     Event->evNext = QueryRootEvent;
                     QueryRootEvent = Event;
                 }
@@ -3355,11 +3357,9 @@ bool TGround::CheckQuery()
         { // to teraz on będzie następny do wykonania
             QueryRootEvent = QueryRootEvent->evJoined; // następny będzie ten doczepiony
             QueryRootEvent->evNext = tmpEvent->evNext; // pamiętając o następnym z kolejki
-            QueryRootEvent->fStartTime =
-                tmpEvent->fStartTime; // czas musi być ten sam, bo nie jest aktualizowany
+            QueryRootEvent->fStartTime = tmpEvent->fStartTime; // czas musi być ten sam, bo nie jest aktualizowany
             QueryRootEvent->Activator = tmpEvent->Activator; // pojazd aktywujący
-            // w sumie można by go dodać normalnie do kolejki, ale trzeba te połączone posortować wg
-            // czasu wykonania
+            // w sumie można by go dodać normalnie do kolejki, ale trzeba te połączone posortować wg czasu wykonania
         }
         else // a jak nazwa jest unikalna, to kolejka idzie dalej
             QueryRootEvent = QueryRootEvent->evNext; // NULL w skrajnym przypadku
@@ -3880,9 +3880,10 @@ bool TGround::GetTraction(TDynamicObject *model)
                                         node->hvTraction
                                             ->vParametric; // współczynniki równania parametrycznego
                                     fRaParam = -DotProduct(pant0, vFront);
-                                    fRaParam = -(DotProduct(node->hvTraction->pPoint1, vFront) +
-                                                 fRaParam) /
-                                               DotProduct(vParam, vFront);
+                                    auto const paramfrontdot = DotProduct( vParam, vFront );
+                                    fRaParam =
+                                        -( DotProduct( node->hvTraction->pPoint1, vFront ) + fRaParam )
+                                        / ( paramfrontdot != 0.0 ? paramfrontdot : 0.001 ); // div0 trap
                                     if ((fRaParam >= -0.001) ? (fRaParam <= 1.001) : false)
                                     { // jeśli tylko jest w przedziale, wyznaczyć odległość wzdłuż
                                         // wektorów vUp i vLeft

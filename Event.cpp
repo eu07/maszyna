@@ -612,8 +612,10 @@ void TEvent::Load(cParser *parser, vector3 *org)
 
 void TEvent::AddToQuery(TEvent *e)
 { // dodanie eventu do kolejki
-    if (evNext ? (e->fStartTime >= evNext->fStartTime) : false)
-        evNext->AddToQuery(e); // sortowanie wg czasu
+    if( ( evNext != nullptr )
+     && ( e->fStartTime > evNext->fStartTime ) ) {
+        evNext->AddToQuery( e ); // sortowanie wg czasu
+    }
     else
     { // dodanie z przodu
         e->evNext = evNext;
