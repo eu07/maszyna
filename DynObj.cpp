@@ -2458,14 +2458,14 @@ bool TDynamicObject::Update(double dt, double dt1)
                     // opuszczenie pantografów przy niskim ciśnieniu
 /*
                     // NOTE: disabled, the pantographs drop by themseleves when the pantograph tank pressure gets low enough
-                    MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
-                    MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                    MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+                    MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
 */
                     if( MoverParameters->TrainType != dt_EZT ) {
                         // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
                         if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
                             // TODO: check whether line breaker should be open EMU-wide
-                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
                         }
                     }
                     else {
@@ -2473,7 +2473,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                         // and prevents their activation until pressure switch is set again
                         MoverParameters->PantPressLockActive = true;
                         // TODO: separate 'heating allowed' from actual heating flag, so we can disable it here without messing up heating toggle
-                        MoverParameters->ConverterSwitch( false, command_range::unit );
+                        MoverParameters->ConverterSwitch( false, range::unit );
                     }
                     // mark the pressure switch as spent
                     MoverParameters->PantPressSwitchActive = false;
@@ -2936,7 +2936,7 @@ bool TDynamicObject::Update(double dt, double dt1)
           && ( MoverParameters->EngineType != DieselEngine )
           && ( MoverParameters->EngineType != WheelsDriven ) )
         { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
-            if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) ) ) {
+            if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) ) ) {
                 // wyłączyć zasilanie
                 // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
                 MoverParameters->EventFlag = true;
@@ -2945,8 +2945,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                 // TODO: have this dependant on .fiz-driven flag
                 // NOTE: moved to pantspeed calculation part a little later in the function. all remarks and todo still apply
 /*
-                MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
-                MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? command_range::unit : command_range::local ) );
+                MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+                MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
 */
             }
         }

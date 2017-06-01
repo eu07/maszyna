@@ -281,11 +281,10 @@ bool TWorld::Init( GLFWwindow *Window ) {
     Global::window = Window; // do WM_COPYDATA
     Global::pCamera = &Camera; // Ra: wskaźnik potrzebny do likwidacji drgań
 
-    WriteLog("\nStarting MaSzyna rail vehicle simulator.");
-    WriteLog( "Release " + Global::asRelease + " (executable: " + Global::ExecutableName + ")" );
-    WriteLog("Online documentation and additional files on http://eu07.pl");
-    WriteLog("Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-             "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n");
+    WriteLog( "\nStarting MaSzyna rail vehicle simulator (release: " + Global::asVersion + ")" );
+    WriteLog( "For online documentation and additional files refer to: http://eu07.pl");
+    WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
+        "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
 
@@ -621,10 +620,6 @@ void TWorld::OnKeyDown(int cKey)
                         else {
                             glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
                         }
-/*
-                        ++Global::iReCompile; // odświeżyć siatki
-                        // Ra: jeszcze usunąć siatki ze skompilowanych obiektów!
-*/
                     }
                 }
                 break;
@@ -1751,9 +1746,12 @@ TWorld::Update_UI() {
 
                         UITable->text_lines.emplace_back(
                             Global::Bezogonkow( "| " + station + " | " + arrival + " | " + departure + " | " + vmax + " | " + tableline->StationWare, true ),
-                            ( ( owner->iStationStart < table->StationIndex ) && ( i < table->StationIndex ) ?
-                            float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
-                            Global::UITextColor )
+                            ( ( owner->iStationStart < table->StationIndex )
+                           && ( i < table->StationIndex )
+                           && ( time.wHour >= tableline->Dh )
+                           && ( time.wMinute >= tableline->Dm ) ?
+                                float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
+                                Global::UITextColor )
                             );
                         // divider/footer
                         UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", Global::UITextColor );
@@ -1982,7 +1980,7 @@ TWorld::Update_UI() {
 
         case( GLFW_KEY_F9 ) : {
             // informacja o wersji, sposobie wyświetlania i błędach OpenGL
-            uitextline1 = Global::asVersion; // informacja o wersji
+            uitextline1 = "MaSzyna " + Global::asVersion; // informacja o wersji
             if( Global::iMultiplayer ) {
                 uitextline1 += " (multiplayer mode is active)";
             }
@@ -1996,9 +1994,11 @@ TWorld::Update_UI() {
                 + GfxRenderer.Info();
 
             // dump last opengl error, if any
-            GLenum glerror = glGetError();
+            GLenum glerror = ::glGetError();
             if( glerror != GL_NO_ERROR ) {
-                Global::LastGLError = to_string( glerror ) + " (" + Global::Bezogonkow( (char *)gluErrorString( glerror ) ) + ")";
+                std::string glerrorstring( (char *)::gluErrorString( glerror ) );
+                win1250_to_ascii( glerrorstring );
+                Global::LastGLError = std::to_string( glerror ) + " (" + glerrorstring + ")";
             }
             if( false == Global::LastGLError.empty() ) {
                 uitextline3 =

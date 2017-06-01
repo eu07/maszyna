@@ -112,7 +112,7 @@ void ErrorLog(const char *str)
             "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" :
             "errors.txt" );
         errors.open( filename, std::ios::trunc );
-        errors << "EU07.EXE " + Global::asRelease << "\n";
+        errors << "EU07.EXE " + Global::asVersion << "\n";
     }
     if (str)
         errors << str;

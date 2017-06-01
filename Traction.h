@@ -54,8 +54,7 @@ class TTraction
     TTraction *hvParallel = nullptr; // jednokierunkowa i zapętlona lista przęseł ewentualnej bieżni wspólnej
     float fResistance[2]; // rezystancja zastępcza do punktu zasilania (0: przęsło zasilane, <0: do policzenia)
     int iTries = 0;
-    // bool bVisible;
-    // DWORD dwFlags;
+    int PowerState{ 0 }; // type of incoming power, if any
 
     void Optimize();
 
@@ -78,5 +77,7 @@ class TTraction
     void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = NULL);
     void PowerSet(TTractionPowerSource *ps);
     double VoltageGet(double u, double i);
+private:
+    void wire_color( float &Red, float &Green, float &Blue ) const;
 };
 //---------------------------------------------------------------------------
