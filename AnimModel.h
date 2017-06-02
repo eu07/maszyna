@@ -12,8 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#ifndef AnimModelH
-#define AnimModelH
+#pragma once
 
 #include "Model3d.h"
 #include "Texture.h"
@@ -139,11 +138,7 @@ class TAnimModel
     TSubModel *LightsOn[iMaxNumLights]; // Ra: te wskaźniki powinny być w ramach TModel3d
     TSubModel *LightsOff[iMaxNumLights];
     vector3 vAngle; // bazowe obroty egzemplarza względem osi
-#ifdef EU07_USE_OLD_RENDERCODE
-    int iTexAlpha; //żeby nie sprawdzać za każdym razem, dla 4 wymiennych tekstur
-#else
     material_data m_materialdata;
-#endif
 
     std::string asText; // tekst dla wyświetlacza znakowego
     TAnimAdvanced *pAdvanced;
@@ -155,14 +150,9 @@ class TAnimModel
     void RaAnimate(); // przeliczenie animacji egzemplarza
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
   public:
-#ifdef EU07_USE_OLD_RENDERCODE
-    texture_manager::size_type ReplacableSkinId[5]; // McZapkie-020802: zmienialne skory
-#endif
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
-#ifndef EU07_USE_OLD_RENDERCODE
     inline
         material_data const *Material() const { return &m_materialdata; }
-#endif
 
     TAnimModel();
     ~TAnimModel();
@@ -171,20 +161,8 @@ class TAnimModel
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(char *pName);
     TAnimContainer * GetContainer(char *pName);
-/*  void RenderDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void RenderAlphaDL(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void RenderVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-    void RenderAlphaVBO(vector3 pPosition = vector3(0, 0, 0), double fAngle = 0);
-*/
-#ifdef EU07_USE_OLD_RENDERCODE
-    void RenderDL( vector3 *vPosition );
-    void RenderAlphaDL(vector3 *vPosition);
-    void RenderVBO(vector3 *vPosition);
-    void RenderAlphaVBO(vector3 *vPosition);
-#else
-    void Render( vector3 *vPosition );
-    void RenderAlpha( vector3 *vPosition );
-#endif
+    void Render( vector3 const &Position );
+    void RenderAlpha( vector3 const &Position );
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {
@@ -201,6 +179,4 @@ class TAnimModel
     static void AnimUpdate(double dt);
 };
 
-
 //---------------------------------------------------------------------------
-#endif

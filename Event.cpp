@@ -610,14 +610,32 @@ void TEvent::Load(cParser *parser, vector3 *org)
     }
 };
 
-void TEvent::AddToQuery(TEvent *e)
-{ // dodanie eventu do kolejki
-    if (evNext ? (e->fStartTime >= evNext->fStartTime) : false)
-        evNext->AddToQuery(e); // sortowanie wg czasu
-    else
-    { // dodanie z przodu
-        e->evNext = evNext;
-        evNext = e;
+void TEvent::AddToQuery( TEvent *Event, TEvent *&Start ) {
+
+    TEvent *target( Start );
+    TEvent *previous( nullptr );
+    while( ( Event->fStartTime >= target->fStartTime )
+        && ( target->evNext != nullptr ) ) {
+        previous = target;
+        target = target->evNext;
+    }
+    // the new event will be either before or after the one we located
+    if( Event->fStartTime >= target->fStartTime ) {
+        assert( target->evNext == nullptr );
+        target->evNext = Event;
+        // if we have resurrected event land at the end of list, the link from previous run could potentially "add" unwanted events to the queue
+        Event->evNext = nullptr;
+    }
+    else {
+        if( previous != nullptr ) {
+            previous->evNext = Event;
+            Event->evNext = target;
+        }
+        else {
+            // special case, we're inserting our event before the provided start point
+            Event->evNext = Start;
+            Start = Event;
+        }
     }
 }
 

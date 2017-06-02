@@ -105,7 +105,7 @@ class TEvent // zmienne: ev*
     ~TEvent();
     void Init();
     void Load(cParser *parser, vector3 *org);
-    void AddToQuery(TEvent *e);
+    static void AddToQuery( TEvent *Event, TEvent *&Start );
     std::string CommandGet();
     TCommandType Command();
     double ValueGet(int n);

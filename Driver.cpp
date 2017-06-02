@@ -469,6 +469,16 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
     }
     else {
         if( iTableDirection == 0 ) { return; }
+        // NOTE: provisory fix for BUG: sempahor indices no longer matching table size
+        // TODO: find and really fix the reason it happens
+        if( ( SemNextIndex != -1 )
+         && ( SemNextIndex >= sSpeedTable.size() ) ) {
+            SemNextIndex = -1;
+        }
+        if( ( SemNextStopIndex != -1 )
+         && ( SemNextStopIndex >= sSpeedTable.size() ) ) {
+            SemNextStopIndex = -1;
+        }
         // kontynuacja skanowania od ostatnio sprawdzonego toru (w ostatniej pozycji zawsze jest tor)
         if( ( SemNextStopIndex != -1 )
          && ( sSpeedTable[SemNextStopIndex].fVelNext < 1.0 ) ) {
@@ -511,11 +521,6 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         // all done
         return;
     }
-
-#ifdef EU07_USE_OLD_SPEEDTABLE
-    // jak coś się znajdzie, zostanie wpisane w tę pozycję, którą właśnie odczytano
-    --iLast;
-#endif
 
     while (fCurrentDistance < fDistance)
     {
@@ -869,8 +874,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // if (p7&3) //żeby jeszcze poczekał chwilę, zanim zamknie
                                     // WaitingSet(10); //10 sekund (wziąć z rozkładu????)
                                 }
-                                if (fStopTime > -5) // na końcu rozkładu się ustawia 60s i tu by było skrócenie
-                                    WaitingSet(10); // 10 sekund (wziąć z rozkładu????) - czekanie
+
+                                if( fStopTime > -5 ) // na końcu rozkładu się ustawia 60s i tu by było skrócenie
+                                    WaitingSet( 15.0 + Random( 15.0 ) ); // 10 sekund (wziąć z rozkładu????) - czekanie
                                 // niezależne od sposobu obsługi drzwi, bo opóźnia również kierownika
                             }
                             if (TrainParams->UpdateMTable( simulation::Time, asNextStop) )
@@ -980,11 +986,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 sSpeedTable[i].fVelNext = -1; // można jechać za W4
                                 fLastStopExpDist = -1.0f; // nie ma rozkładu, nie ma usuwania stacji
                                 WaitingSet(60); // tak ze 2 minuty, aż wszyscy wysiądą
-                                JumpToNextOrder(); // wykonanie kolejnego rozkazu (Change_direction
-                                // albo Shunt)
-                                iDrivigFlags |= moveStopHere | moveStartHorn; // ma się nie ruszać
-                                // aż do momentu
-                                // podania sygnału
+                                // wykonanie kolejnego rozkazu (Change_direction albo Shunt)
+                                JumpToNextOrder();
+                                // ma się nie ruszać aż do momentu podania sygnału
+                                iDrivigFlags |= moveStopHere | moveStartHorn;
                                 continue; // nie analizować prędkości
                             } // koniec obsługi ostatniej stacji
                         } // if (MoverParameters->Vel==0.0)
@@ -1340,7 +1345,6 @@ void TController::TablePurger()
     // we can only update pointers safely after new table is finalized, so record their indices until then
     for( std::size_t idx = 0; idx < sSpeedTable.size() - 1; ++idx ) {
         // cache placement of semaphors in the new table, if we encounter them
-        // NOTE: we rely on the semaphor actually getting added in the next step rather than skipped, but it's a pretty safe bet
         if( idx == SemNextIndex ) {
             SemNextIndex = trimmedtable.size();
         }
@@ -1351,6 +1355,13 @@ void TController::TablePurger()
         if( ( 0 == ( speedpoint.iFlags & spEnabled ) )
          || ( ( speedpoint.iFlags & ( spElapsed | spTrack | spCurve | spSwitch ) == ( spElapsed | spTrack | spCurve ) )
            && ( speedpoint.fVelNext < 0.0 ) ) ) {
+            // if the trimmed point happens to be currently active semaphor we need to invalidate their placements
+            if( idx == SemNextIndex ) {
+                SemNextIndex = -1;
+            }
+            if( idx == SemNextStopIndex ) {
+                SemNextStopIndex = -1;
+            }
             continue;
         }
         // we're left with useful speed point record we should copy
@@ -2246,76 +2257,79 @@ bool TController::ReleaseEngine()
 bool TController::IncBrake()
 { // zwiększenie hamowania
     bool OK = false;
-    switch (mvOccupied->BrakeSystem)
-    {
-    case Individual:
-        if (mvOccupied->LocalBrake == ManualBrake)
-            OK = mvOccupied->IncManualBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) );
-        else
-            OK = mvOccupied->IncLocalBrakeLevel( std::floor( 1.5 + std::abs( AccDesired ) ) );
-        break;
-    case Pneumatic:
-        // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
-        if ((mvOccupied->Couplers[0].CouplingFlag == 0) &&
-            (mvOccupied->Couplers[1].CouplingFlag == 0))
-            OK = mvOccupied->IncLocalBrakeLevel(
-                1 + static_cast<int>( std::floor( 0.5 + std::fabs(AccDesired))) ); // hamowanie lokalnym bo luzem jedzie
-        else
-        {
-            if (mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo)
-            {
-                if (AccDesired < -1.5) // hamowanie nagle
-                    OK = mvOccupied->IncBrakeLevel();
-                else
-                    OK = false;
+    switch( mvOccupied->BrakeSystem ) {
+        case Individual: {
+            if( mvOccupied->LocalBrake == ManualBrake ) {
+                OK = mvOccupied->IncManualBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) );
+            }
+            else {
+                OK = mvOccupied->IncLocalBrakeLevel( std::floor( 1.5 + std::abs( AccDesired ) ) );
+            }
+            break;
+        }
+        case Pneumatic: {
+            // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
+            bool standalone{ true };
+            if( ( mvOccupied->TrainType == dt_ET41 )
+             || ( mvOccupied->TrainType == dt_ET42 ) ) {
+                   // NOTE: we're doing simplified checks full of presuptions here.
+                   // they'll break if someone does strange thing like turning around the second unit
+                if( ( mvOccupied->Couplers[ 1 ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ 1 ].Connected->Couplers[ 1 ].CouplingFlag > 0 ) ) {
+                    standalone = false;
+                }
+                if( ( mvOccupied->Couplers[ 0 ].CouplingFlag & coupling::permanent )
+                 && ( mvOccupied->Couplers[ 0 ].Connected->Couplers[ 0 ].CouplingFlag > 0 ) ) {
+                    standalone = false;
+                }
+            }
+            else {
+                standalone =
+                    ( ( mvOccupied->Couplers[ 0 ].CouplingFlag == 0 )
+                   && ( mvOccupied->Couplers[ 1 ].CouplingFlag == 0 ) );
+            }
+            if( true == standalone ) {
+                OK = mvOccupied->IncLocalBrakeLevel(
+                    1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) ); // hamowanie lokalnym bo luzem jedzie
+            }
+            else {
+                if( mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo ) {
+                    if( AccDesired < -1.5 ) // hamowanie nagle
+                        OK = mvOccupied->IncBrakeLevel();
+                    else
+                        OK = false;
+                }
+                else {
+                    // dodane dla towarowego
+                    if( mvOccupied->BrakeDelayFlag == bdelay_G ?
+                        -AccDesired * 6.6 > std::min( 2, mvOccupied->BrakeCtrlPos ) :
+                        true ) {
+                        OK = mvOccupied->IncBrakeLevel();
+                    }
+                    else
+                        OK = false;
+                }
+            }
+            if( mvOccupied->BrakeCtrlPos > 0 ) {
+                mvOccupied->BrakeReleaser( 0 );
+            }
+            break;
+        }
+        case ElectroPneumatic: {
+            if( mvOccupied->EngineType == ElectricInductionMotor ) {
+                OK = mvOccupied->IncLocalBrakeLevel( 1 );
+            }
+            else if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_EPB ) ) {
+                mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
+                if( mvOccupied->Handle->GetPos( bh_EPR ) - mvOccupied->Handle->GetPos( bh_EPN ) < 0.1 )
+                    mvOccupied->SwitchEPBrake( 1 ); // to nie chce działać
+                OK = true;
             }
             else
-            {
-                /*
-                    if (AccDesired>-0.2) and ((Vel<20) or (Vel-VelNext<10)))
-                            begin
-                              if BrakeCtrlPos>0)
-                               OK:=IncBrakeLevel
-                              else;
-                               OK:=IncLocalBrakeLevel(1);   //finezyjne hamowanie lokalnym
-                             end
-                           else
-                */
-                // dodane dla towarowego
-                if (mvOccupied->BrakeDelayFlag == bdelay_G ?
-                        -AccDesired * 6.6 > std::min(2, mvOccupied->BrakeCtrlPos) :
-                        true)
-                {
-                    OK = mvOccupied->IncBrakeLevel();
-                }
-                else
-                    OK = false;
-            }
+                OK = false;
+            break;
         }
-        if (mvOccupied->BrakeCtrlPos > 0)
-            mvOccupied->BrakeReleaser(0);
-        break;
-    case ElectroPneumatic:
-        if (mvOccupied->EngineType == ElectricInductionMotor)
-        {
-            OK = mvOccupied->IncLocalBrakeLevel(1);
-        }
-        else if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPB))
-        {
-            mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPB));
-            if (mvOccupied->Handle->GetPos(bh_EPR) - mvOccupied->Handle->GetPos(bh_EPN) < 0.1)
-                mvOccupied->SwitchEPBrake(1); // to nie chce działać
-            OK = true;
-        }
-        else
-            OK = false;
-        //   if (mvOccupied->BrakeCtrlPos<mvOccupied->BrakeCtrlPosNo)
-        //    if
-        //    (mvOccupied->BrakePressureTable[mvOccupied->BrakeCtrlPos+1+2].BrakeType==ElectroPneumatic)
-        //    //+2 to indeks Pascala
-        //     OK=mvOccupied->IncBrakeLevel();
-        //    else
-        //     OK=false;
+        default: { break; }
     }
     return OK;
 }
@@ -3367,8 +3381,8 @@ bool TController::UpdateSituation(double dt)
     }
     ElapsedTime += dt;
     WaitingTime += dt;
-    fBrakeTime -=
-        dt; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
+    // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
+    fBrakeTime -= dt;
     fStopTime += dt; // zliczanie czasu postoju, nie ruszy dopóki ujemne
     fActionTime += dt; // czas używany przy regulacji prędkości i zamykaniu drzwi
     if (WriteLogFlag)
@@ -3386,7 +3400,7 @@ bool TController::UpdateSituation(double dt)
             LastUpdatedTime = LastUpdatedTime + dt;
     }
     // Ra: skanowanie również dla prowadzonego ręcznie, aby podpowiedzieć prędkość
-    if ((LastReactionTime > Min0R(ReactionTime, 2.0)))
+    if ((LastReactionTime > std::min(ReactionTime, 2.0)))
     {
         // Ra: nie wiem czemu ReactionTime potrafi dostać 12 sekund, to jest przegięcie, bo przeżyna
         // STÓJ
@@ -3431,18 +3445,48 @@ bool TController::UpdateSituation(double dt)
         if (AIControllFlag)
         { // tu bedzie logika sterowania
             if (mvOccupied->CommandIn.Command != "")
-                if (!mvOccupied->RunInternalCommand()) // rozpoznaj komende bo lokomotywa jej nie
-                    // rozpoznaje
+                if( !mvOccupied->RunInternalCommand() ) {
+                    // rozpoznaj komende bo lokomotywa jej nie rozpoznaje
                     RecognizeCommand(); // samo czyta komendę wstawioną do pojazdu?
-            if (mvOccupied->SecuritySystem.Status > 1) // jak zadziałało CA/SHP
-                if (!mvOccupied->SecuritySystemReset()) // to skasuj
-                    // if
-                    // ((TestFlag(mvOccupied->SecuritySystem.Status,s_ebrake))&&(mvOccupied->BrakeCtrlPos==0)&&(AccDesired>0.0))
-                    if ((TestFlag(mvOccupied->SecuritySystem.Status, s_SHPebrake) ||
-                         TestFlag(mvOccupied->SecuritySystem.Status, s_CAebrake)) &&
-                        (mvOccupied->BrakeCtrlPos == 0) && (AccDesired > 0.0))
-                        mvOccupied->BrakeLevelSet(
-                            0); //!!! hm, może po prostu normalnie sterować hamulcem?
+                }
+            if( mvOccupied->SecuritySystem.Status > 1 ) {
+                // jak zadziałało CA/SHP
+                if( !mvOccupied->SecuritySystemReset() ) { // to skasuj
+                    if( ( mvOccupied->BrakeCtrlPos == 0 )
+                     && ( AccDesired > 0.0 )
+                     && ( ( TestFlag( mvOccupied->SecuritySystem.Status, s_SHPebrake ) )
+                       || ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAebrake ) ) ) ) {
+                        //!!! hm, może po prostu normalnie sterować hamulcem?
+                        mvOccupied->BrakeLevelSet( 0 );
+                    }
+                }
+            }
+            // basic emergency stop handling, while at it
+            if( ( true == mvOccupied->EmergencyBrakeFlag ) // radio-stop
+             && ( mvOccupied->Vel < 0.01 ) // and actual stop
+             && ( true == mvOccupied->Radio ) ) { // and we didn't touch the radio yet
+                // turning off the radio should reset the flag, during security system check
+                if( m_radiocontroltime > 2.5 ) {
+                    // arbitrary 2.5 sec delay between stop and disabling the radio
+                    mvOccupied->Radio = false;
+                    m_radiocontroltime = 0.0;
+                }
+                else {
+                    m_radiocontroltime += LastReactionTime;
+                }
+            }
+            if( ( false == mvOccupied->Radio )
+             && ( false == mvOccupied->EmergencyBrakeFlag ) ) {
+                // otherwise if it's safe to do so, turn the radio back on
+                if( m_radiocontroltime > 5.0 ) {
+                    // arbitrary 5 sec delay before switching radio back on
+                    mvOccupied->Radio = true;
+                    m_radiocontroltime = 0.0;
+                }
+                else {
+                    m_radiocontroltime += LastReactionTime;
+                }
+            }
         }
         switch (OrderList[OrderPos])
         { // ustalenie prędkości przy doczepianiu i odczepianiu, dystansów w pozostałych przypadkach
@@ -4139,6 +4183,7 @@ bool TController::UpdateSituation(double dt)
                                     ->TTVmax); // jesli nie spozniony to nie przekraczać rozkladowej
                 if (VelDesired > 0.0)
                     if( ( ( SemNextIndex != -1 )
+                       && ( SemNextIndex < sSpeedTable.size() ) // BUG: index can point at non-existing slot. investigate reason(s)
                        && ( sSpeedTable[SemNextIndex].fVelNext != 0.0 ) )
                      || ( ( iDrivigFlags & moveStopHere ) == 0 ) )
                     { // jeśli można jechać, to odpalić dźwięk kierownika oraz zamknąć drzwi w

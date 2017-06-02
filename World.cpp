@@ -375,11 +375,12 @@ bool TWorld::Init( GLFWwindow *Window ) {
     WriteLog( "Load time: " +
 		std::to_string( std::chrono::duration_cast<std::chrono::seconds>(( std::chrono::system_clock::now() - timestart )).count() )
 		+ " seconds");
+/*
     if (DebugModeFlag) // w Debugmode automatyczne włączenie AI
         if (Train)
             if (Train->Dynamic()->Mechanik)
                 Train->Dynamic()->Mechanik->TakeControl(true);
-
+*/
     UILayer.set_progress();
     UILayer.set_background( "" );
     UILayer.clear_texts();
@@ -905,43 +906,52 @@ void TWorld::DistantView( bool const Near )
     Camera.RaLook(); // jednorazowe przestawienie kamery
 };
 
-void TWorld::FollowView(bool wycisz)
-{ // ustawienie śledzenia pojazdu
+// ustawienie śledzenia pojazdu
+void TWorld::FollowView(bool wycisz) {
+
     Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
+
     if (Controlled) // jest pojazd do prowadzenia?
     {
-        vector3 camStara =
-            Camera.Pos; // przestawianie kamery jest bez sensu: do przerobienia na potem
-        // Controlled->ABuSetModelShake(vector3(0,0,0));
+        Ground.Silence( Camera.Pos ); // wyciszenie dźwięków z poprzedniej pozycji
+
         if (FreeFlyModeFlag)
         { // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
-            if (Train)
-                Train->Dynamic()->ABuSetModelShake(
-                    vector3(0, 0, 0)); // wyłączenie trzęsienia na siłę?
-            // Camera.Pos=Train->pMechPosition+Normalize(Train->GetDirection())*20;
+            if( Train ) {
+                // wyłączenie trzęsienia na siłę?
+                Train->Dynamic()->ABuSetModelShake( vector3() );
+            }
+
             DistantView(); // przestawienie kamery
             //żeby nie bylo numerów z 'fruwajacym' lokiem - konsekwencja bujania pudła
-            Global::SetCameraPosition(
-                Camera.Pos); // tu ustawić nową, bo od niej liczą się odległości
-            Ground.Silence(camStara); // wyciszenie dźwięków z poprzedniej pozycji
+            // tu ustawić nową, bo od niej liczą się odległości
+            Global::SetCameraPosition( Camera.Pos );
         }
         else if (Train)
         { // korekcja ustawienia w kabinie - OK
-            vector3 camStara = Camera.Pos; // przestawianie kamery jest bez sensu: do przerobienia na potem
-            // Ra: czy to tu jest potrzebne, bo przelicza się kawałek dalej?
-            Camera.Pos = Train->pMechPosition; // Train.GetPosition1();
+            if( wycisz ) {
+                // wyciszenie dźwięków z poprzedniej pozycji
+                // trzymanie prawego w kabinie daje marny efekt
+                Ground.Silence( Camera.Pos );
+            }
+            Camera.Pos = Train->pMechPosition;
             Camera.Roll = std::atan(Train->pMechShake.x * Train->fMechRoll); // hustanie kamery na boki
             Camera.Pitch -= 0.5 * std::atan(Train->vMechVelocity.z * Train->fMechPitch); // hustanie kamery przod tyl
-            if (Train->Dynamic()->MoverParameters->ActiveCab == 0)
-                Camera.LookAt = Train->pMechPosition + Train->GetDirection() * 5.0;
-            else // patrz w strone wlasciwej kabiny
-                Camera.LookAt = Train->pMechPosition + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab;
-            Train->pMechOffset.x = Train->pMechSittingPosition.x;
-            Train->pMechOffset.y = Train->pMechSittingPosition.y;
-            Train->pMechOffset.z = Train->pMechSittingPosition.z;
+
+            if( Train->Dynamic()->MoverParameters->ActiveCab == 0 ) {
+                Camera.LookAt =
+                      Train->pMechPosition
+                    + Train->GetDirection() * 5.0;
+            }
+            else {
+                // patrz w strone wlasciwej kabiny
+                Camera.LookAt =
+                      Train->pMechPosition
+                    + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab;
+            }
+            Train->pMechOffset = Train->pMechSittingPosition;
+
             Global::SetCameraPosition( Train->Dynamic() ->GetPosition()); // tu ustawić nową, bo od niej liczą się odległości
-            if (wycisz) // trzymanie prawego w kabinie daje marny efekt
-                Ground.Silence(camStara); // wyciszenie dźwięków z poprzedniej pozycji
         }
     }
     else
@@ -1238,105 +1248,7 @@ TWorld::Update_Camera( double const Deltatime ) {
 
 void TWorld::Update_Environment() {
 
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-
-    if( Global::fMoveLight < 0.0 ) {
-        return;
-    }
-
-    // double a=Global::fTimeAngleDeg/180.0*M_PI-M_PI; //kąt godzinny w radianach
-    double a = fmod( Global::fTimeAngleDeg, 360.0 ) / 180.0 * M_PI -
-        M_PI; // kąt godzinny w radianach
-    //(a) jest traktowane jako czas miejscowy, nie uwzględniający stref czasowych ani czasu
-    // letniego
-    // aby wyznaczyć strefę czasową, trzeba uwzględnić południk miejscowy
-    // aby uwzględnić czas letni, trzeba sprawdzić dzień roku
-    double L = Global::fLatitudeDeg / 180.0 * M_PI; // szerokość geograficzna
-    double H = asin( cos( L ) * cos( Global::fSunDeclination ) * cos( a ) +
-        sin( L ) * sin( Global::fSunDeclination ) ); // kąt ponad horyzontem
-    // double A=asin(cos(d)*sin(M_PI-a)/cos(H));
-    // Declination=((0.322003-22.971*cos(t)-0.357898*cos(2*t)-0.14398*cos(3*t)+3.94638*sin(t)+0.019334*sin(2*t)+0.05928*sin(3*t)))*Pi/180
-    // Altitude=asin(sin(Declination)*sin(latitude)+cos(Declination)*cos(latitude)*cos((15*(time-12))*(Pi/180)));
-    // Azimuth=(acos((cos(latitude)*sin(Declination)-cos(Declination)*sin(latitude)*cos((15*(time-12))*(Pi/180)))/cos(Altitude)));
-    // double A=acos(cos(L)*sin(d)-cos(d)*sin(L)*cos(M_PI-a)/cos(H));
-    // dAzimuth = atan2(-sin( dHourAngle ),tan( dDeclination )*dCos_Latitude -
-    // dSin_Latitude*dCos_HourAngle );
-    double A = atan2( sin( a ), tan( Global::fSunDeclination ) * cos( L ) - sin( L ) * cos( a ) );
-    vector3 lp = vector3( sin( A ), tan( H ), cos( A ) );
-    lp = Normalize( lp ); // przeliczenie na wektor długości 1.0
-    Global::lightPos[ 0 ] = (float)lp.x;
-    Global::lightPos[ 1 ] = (float)lp.y;
-    Global::lightPos[ 2 ] = (float)lp.z;
-    glLightfv( GL_LIGHT0, GL_POSITION, Global::lightPos ); // daylight position
-    if( H > 0 ) { // słońce ponad horyzontem
-        Global::ambientDayLight[ 0 ] = Global::ambientLight[ 0 ];
-        Global::ambientDayLight[ 1 ] = Global::ambientLight[ 1 ];
-        Global::ambientDayLight[ 2 ] = Global::ambientLight[ 2 ];
-        if( H > 0.02 ) // ponad 1.146° zaczynają się cienie
-        {
-            Global::diffuseDayLight[ 0 ] =
-                Global::diffuseLight[ 0 ]; // od wschodu do zachodu maksimum ???
-            Global::diffuseDayLight[ 1 ] = Global::diffuseLight[ 1 ];
-            Global::diffuseDayLight[ 2 ] = Global::diffuseLight[ 2 ];
-            Global::specularDayLight[ 0 ] = Global::specularLight[ 0 ]; // podobnie specular
-            Global::specularDayLight[ 1 ] = Global::specularLight[ 1 ];
-            Global::specularDayLight[ 2 ] = Global::specularLight[ 2 ];
-        }
-        else {
-            Global::diffuseDayLight[ 0 ] =
-                50 * H * Global::diffuseLight[ 0 ]; // wschód albo zachód
-            Global::diffuseDayLight[ 1 ] = 50 * H * Global::diffuseLight[ 1 ];
-            Global::diffuseDayLight[ 2 ] = 50 * H * Global::diffuseLight[ 2 ];
-            Global::specularDayLight[ 0 ] =
-                50 * H * Global::specularLight[ 0 ]; // podobnie specular
-            Global::specularDayLight[ 1 ] = 50 * H * Global::specularLight[ 1 ];
-            Global::specularDayLight[ 2 ] = 50 * H * Global::specularLight[ 2 ];
-        }
-    }
-    else { // słońce pod horyzontem
-        GLfloat lum = 3.1831 * ( H > -0.314159 ? 0.314159 + H :
-            0.0 ); // po zachodzie ambient się ściemnia
-        Global::ambientDayLight[ 0 ] = lum * Global::ambientLight[ 0 ];
-        Global::ambientDayLight[ 1 ] = lum * Global::ambientLight[ 1 ];
-        Global::ambientDayLight[ 2 ] = lum * Global::ambientLight[ 2 ];
-        Global::diffuseDayLight[ 0 ] =
-            Global::noLight[ 0 ]; // od zachodu do wschodu nie ma diffuse
-        Global::diffuseDayLight[ 1 ] = Global::noLight[ 1 ];
-        Global::diffuseDayLight[ 2 ] = Global::noLight[ 2 ];
-        Global::specularDayLight[ 0 ] = Global::noLight[ 0 ]; // ani specular
-        Global::specularDayLight[ 1 ] = Global::noLight[ 1 ];
-        Global::specularDayLight[ 2 ] = Global::noLight[ 2 ];
-    }
-    // Calculate sky colour according to time of day.
-    // GLfloat sin_t = sin(PI * time_of_day / 12.0);
-    // back_red = 0.3 * (1.0 - sin_t);
-    // back_green = 0.9 * sin_t;
-    // back_blue = sin_t + 0.4, 1.0;
-    // aktualizacja świateł
-    glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
-    glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
-    glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
-
-    Global::fLuminance = // to posłuży również do zapalania latarń
-        +0.150 * ( Global::diffuseDayLight[ 0 ] + Global::ambientDayLight[ 0 ] ) // R
-        + 0.295 * ( Global::diffuseDayLight[ 1 ] + Global::ambientDayLight[ 1 ] ) // G
-        + 0.055 * ( Global::diffuseDayLight[ 2 ] + Global::ambientDayLight[ 2 ] ); // B
-
-    vector3 sky = vector3( Global::AtmoColor[ 0 ], Global::AtmoColor[ 1 ], Global::AtmoColor[ 2 ] );
-    if( Global::fLuminance < 0.25 ) { // przyspieszenie zachodu/wschodu
-        sky *= 4.0 * Global::fLuminance; // nocny kolor nieba
-        GLfloat fog[ 3 ];
-        fog[ 0 ] = Global::FogColor[ 0 ] * 4.0 * Global::fLuminance;
-        fog[ 1 ] = Global::FogColor[ 1 ] * 4.0 * Global::fLuminance;
-        fog[ 2 ] = Global::FogColor[ 2 ] * 4.0 * Global::fLuminance;
-        glFogfv( GL_FOG_COLOR, fog ); // nocny kolor mgły
-    }
-    else {
-        glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
-    }
-#else
     Environment.update();
-#endif
 }
 
 void TWorld::ResourceSweep()
@@ -1363,11 +1275,9 @@ TWorld::Render_Cab() {
         // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
         return;
     }
+
+    ::glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
 /*
-    // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
-    if( ( Train->Dynamic()->mdKabina != Train->Dynamic()->mdModel ) &&
-        Train->Dynamic()->bDisplayCab && !FreeFlyModeFlag ) {
-*/
     glPushMatrix();
     vector3 pos = dynamic->GetPosition(); // wszpółrzędne pojazdu z kabiną
     // glTranslatef(pos.x,pos.y,pos.z); //przesunięcie o wektor (tak było i trzęsło)
@@ -1376,247 +1286,28 @@ TWorld::Render_Cab() {
     glLoadIdentity(); // zacząć od macierzy jedynkowej
     Camera.SetCabMatrix( pos ); // widok z kamery po przesunięciu
     glMultMatrixd( dynamic->mMatrix.getArray() ); // ta macierz nie ma przesunięcia
-/*
-    //*yB: moje smuuugi 1
-    if( Global::bSmudge ) { // Ra: uwzględniłem zacienienie pojazdu przy zapalaniu smug
- 
-       // 1. warunek na smugę wyznaczyc wcześniej
-        // 2. jeśli smuga włączona, nie renderować pojazdu użytkownika w DynObj
-        // 3. jeśli smuga właczona, wyrenderować pojazd użytkownia po dodaniu smugi do sceny
-        auto const &frontlights = Train->Controlled()->iLights[ 0 ];
-        float frontlightstrength = 0.f +
-            ( ( frontlights & 1 ) ? 0.3f : 0.f ) +
-            ( ( frontlights & 4 ) ? 0.3f : 0.f ) +
-            ( ( frontlights & 16 ) ? 0.3f : 0.f );
-        frontlightstrength = std::max( frontlightstrength - Global::fLuminance, 0.0 );
-        auto const &rearlights = Train->Controlled()->iLights[ 1 ];
-        float rearlightstrength = 0.f +
-            ( ( rearlights & 1 ) ? 0.3f : 0.f ) +
-            ( ( rearlights & 4 ) ? 0.3f : 0.f ) +
-            ( ( rearlights & 16 ) ? 0.3f : 0.f );
-        rearlightstrength = std::max( rearlightstrength - Global::fLuminance, 0.0 );
-
-        if( ( Train->Controlled()->Battery )  // trochę na skróty z tą baterią
-         && ( ( frontlightstrength > 0.f )
-           || ( rearlightstrength > 0.f ) ) ) {
-
-            if( Global::bOldSmudge == true ) {
-                glBlendFunc( GL_SRC_ALPHA, GL_ONE );
-                //    glBlendFunc(GL_ONE_MINUS_DST_COLOR, GL_DST_COLOR);
-                //    glBlendFunc(GL_SRC_ALPHA_SATURATE,GL_ONE);
-                glDisable( GL_DEPTH_TEST );
-                glDisable( GL_LIGHTING );
-                glDisable( GL_FOG );
-                GfxRenderer.Bind( light ); // Select our texture
-                glBegin( GL_QUADS );
-                float fSmudge =
-                    dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
-                if( frontlightstrength > 0.f ) { // wystarczy jeden zapalony z przodu
-                    glColor4f( 1.0f, 1.0f, 1.0f, 0.5f * frontlightstrength );
-                    glTexCoord2f( 0, 0 );
-                    glVertex3f( 15.0, 0.0, +fSmudge ); // rysowanie względem położenia modelu
-                    glTexCoord2f( 1, 0 );
-                    glVertex3f( -15.0, 0.0, +fSmudge );
-                    glTexCoord2f( 1, 1 );
-                    glVertex3f( -15.0, 2.5, 250.0 );
-                    glTexCoord2f( 0, 1 );
-                    glVertex3f( 15.0, 2.5, 250.0 );
-                }
-                if( rearlightstrength > 0.f ) { // wystarczy jeden zapalony z tyłu
-                    glColor4f( 1.0f, 1.0f, 1.0f, 0.5f * rearlightstrength );
-                    glTexCoord2f( 0, 0 );
-                    glVertex3f( -15.0, 0.0, -fSmudge );
-                    glTexCoord2f( 1, 0 );
-                    glVertex3f( 15.0, 0.0, -fSmudge );
-                    glTexCoord2f( 1, 1 );
-                    glVertex3f( 15.0, 2.5, -250.0 );
-                    glTexCoord2f( 0, 1 );
-                    glVertex3f( -15.0, 2.5, -250.0 );
-                }
-                glEnd();
-
-                glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-                glEnable( GL_DEPTH_TEST );
-                // glEnable(GL_LIGHTING); //i tak się włączy potem
-                glEnable( GL_FOG );
-            }
-            else {
-
-                glBlendFunc( GL_DST_COLOR, GL_ONE );
-                glDepthFunc( GL_GEQUAL );
-                glAlphaFunc( GL_GREATER, 0.004 );
-                // glDisable(GL_DEPTH_TEST);
-                glDisable( GL_LIGHTING );
-                glDisable( GL_FOG );
-                //glColor4f(0.15f, 0.15f, 0.15f, 0.25f);
-                GfxRenderer.Bind( light ); // Select our texture
-                //float ddl = (0.15*Global::diffuseDayLight[0]+0.295*Global::diffuseDayLight[1]+0.055*Global::diffuseDayLight[2]); //0.24:0
-                glBegin( GL_QUADS );
-                float fSmudge = dynamic->MoverParameters->DimHalf.y + 7; // gdzie zaczynać smugę
-                if( frontlightstrength > 0.f ) {
-                    // wystarczy jeden zapalony z przodu
-                    for( int i = 15; i <= 35; i++ ) {
-                        float z = i * i * i * 0.01f;//25/4;
-                        //float C = (36 - i*0.5)*0.005*(1.5 - sqrt(ddl));
-                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * frontlightstrength;
-                        glColor4f( C, C, C, 1.0f );// *frontlightstrength );
-                        glTexCoord2f( 0, 0 );  glVertex3f( -10 / 2 - 2 * i / 4,  6.0 + 0.3*z, 13 + 1.7*z / 3 );
-                        glTexCoord2f( 1, 0 );  glVertex3f(  10 / 2 + 2 * i / 4,  6.0 + 0.3*z, 13 + 1.7*z / 3 );
-                        glTexCoord2f( 1, 1 );  glVertex3f(  10 / 2 + 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
-                        glTexCoord2f( 0, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, 13 + 1.7*z / 3 );
-                    }
-                }
-                if( rearlightstrength > 0.f ) {
-                    // wystarczy jeden zapalony z tyłu
-                    for( int i = 15; i <= 35; i++ ) {
-                        float z = i * i * i * 0.01f;//25/4;
-                        float C = ( 36 - i*0.5 )*0.005*sqrt( ( 1 / sqrt( Global::fLuminance + 0.015 ) ) - 1 ) * rearlightstrength;
-                        glColor4f( C, C, C, 1.0f );// *rearlightstrength );
-                        glTexCoord2f( 0, 0 );  glVertex3f( 10 / 2 + 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
-                        glTexCoord2f( 1, 0 );  glVertex3f( -10 / 2 - 2 * i / 4, 6.0 + 0.3*z, -13 - 1.7*z / 3 );
-                        glTexCoord2f( 1, 1 );  glVertex3f( -10 / 2 - 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3 );
-                        glTexCoord2f( 0, 1 );  glVertex3f( 10 / 2 + 2 * i / 4, -5.0 - 0.5*z, -13 - 1.7*z / 3 );
-                    }
-                }
-                glEnd();
-
-                glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-                // glEnable(GL_DEPTH_TEST);
-                glAlphaFunc( GL_GREATER, 0.04 );
-                glDepthFunc( GL_LEQUAL );
-                glEnable( GL_LIGHTING ); //i tak się włączy potem
-                glEnable( GL_FOG );
-            }
-        }
-
-        glEnable( GL_LIGHTING ); // po renderowaniu smugi jest to wyłączone
-        // Ra: pojazd użytkownika należało by renderować po smudze, aby go nie rozświetlała
-
-        Global::bSmudge = false; // aby model użytkownika się teraz wyrenderował
-        dynamic->Render();
-        dynamic->RenderAlpha(); // przezroczyste fragmenty pojazdów na torach
-
-    } // yB: moje smuuugi 1 - koniec
-    else
-*/        glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
+*/
+    ::glPushMatrix();
+    auto const originoffset = dynamic->GetPosition() - Global::pCameraPosition;
+    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+    ::glMultMatrixd( dynamic->mMatrix.getArray() );
 
     if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
     {
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // oswietlenie kabiny
-        GLfloat ambientCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
-        GLfloat diffuseCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
-        GLfloat specularCabLight[ 4 ] = { 0.5f, 0.5f, 0.5f, 1.0f };
-        for( int li = 0; li < 3; li++ ) { // przyciemnienie standardowe
-            ambientCabLight[ li ] = Global::ambientDayLight[ li ] * 0.9;
-            diffuseCabLight[ li ] = Global::diffuseDayLight[ li ] * 0.5;
-            specularCabLight[ li ] = Global::specularDayLight[ li ] * 0.5;
-        }
-        switch( dynamic->MyTrack->eEnvironment ) { // wpływ świetła zewnętrznego
-            case e_canyon:
-            {
-                for( int li = 0; li < 3; li++ ) {
-                    diffuseCabLight[ li ] *= 0.6;
-                    specularCabLight[ li ] *= 0.7;
-                }
-            }
-            break;
-            case e_tunnel:
-            {
-                for( int li = 0; li < 3; li++ ) {
-                    ambientCabLight[ li ] *= 0.3;
-                    diffuseCabLight[ li ] *= 0.1;
-                    specularCabLight[ li ] *= 0.2;
-                }
-            }
-            break;
-        }
-        switch( Train->iCabLightFlag ) // Ra: uzeleżnic od napięcia w obwodzie sterowania
-        { // hunter-091012: uzaleznienie jasnosci od przetwornicy
-            case 0: //światło wewnętrzne zgaszone
-                break;
-            case 1: //światło wewnętrzne przygaszone (255 216 176)
-                if( dynamic->MoverParameters->ConverterFlag ==
-                    true ) // jasnosc dla zalaczonej przetwornicy
-                {
-                    ambientCabLight[ 0 ] = Max0R( 0.700, ambientCabLight[ 0 ] ) * 0.75; // R
-                    ambientCabLight[ 1 ] = Max0R( 0.593, ambientCabLight[ 1 ] ) * 0.75; // G
-                    ambientCabLight[ 2 ] = Max0R( 0.483, ambientCabLight[ 2 ] ) * 0.75; // B
-
-                    for( int i = 0; i < 3; i++ )
-                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
-                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
-                }
-                else {
-                    ambientCabLight[ 0 ] = Max0R( 0.700, ambientCabLight[ 0 ] ) * 0.375; // R
-                    ambientCabLight[ 1 ] = Max0R( 0.593, ambientCabLight[ 1 ] ) * 0.375; // G
-                    ambientCabLight[ 2 ] = Max0R( 0.483, ambientCabLight[ 2 ] ) * 0.375; // B
-
-                    for( int i = 0; i < 3; i++ )
-                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
-                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
-                }
-                break;
-            case 2: //światło wewnętrzne zapalone (255 216 176)
-                if( dynamic->MoverParameters->ConverterFlag ==
-                    true ) // jasnosc dla zalaczonej przetwornicy
-                {
-                    ambientCabLight[ 0 ] = Max0R( 1.000, ambientCabLight[ 0 ] ); // R
-                    ambientCabLight[ 1 ] = Max0R( 0.847, ambientCabLight[ 1 ] ); // G
-                    ambientCabLight[ 2 ] = Max0R( 0.690, ambientCabLight[ 2 ] ); // B
-
-                    for( int i = 0; i < 3; i++ )
-                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
-                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
-                }
-                else {
-                    ambientCabLight[ 0 ] = Max0R( 1.000, ambientCabLight[ 0 ] ) * 0.5; // R
-                    ambientCabLight[ 1 ] = Max0R( 0.847, ambientCabLight[ 1 ] ) * 0.5; // G
-                    ambientCabLight[ 2 ] = Max0R( 0.690, ambientCabLight[ 2 ] ) * 0.5; // B
-
-                    for( int i = 0; i < 3; i++ )
-                        if( ambientCabLight[ i ] <= ( Global::ambientDayLight[ i ] * 0.9 ) )
-                            ambientCabLight[ i ] = Global::ambientDayLight[ i ] * 0.9;
-                }
-                break;
-        }
-        glLightfv( GL_LIGHT0, GL_AMBIENT, ambientCabLight );
-        glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseCabLight );
-        glLightfv( GL_LIGHT0, GL_SPECULAR, specularCabLight );
-#else
+        // setup
         if( dynamic->fShade > 0.0f ) {
             // change light level based on light level of the occupied track
             Global::DayLight.apply_intensity( dynamic->fShade );
         }
         if( dynamic->InteriorLightLevel > 0.0f ) {
-
             // crude way to light the cabin, until we have something more complete in place
             auto const cablight = dynamic->InteriorLight * dynamic->InteriorLightLevel;
             ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
         }
-#endif
-
-#ifdef EU07_USE_OLD_RENDERCODE
-        if( Global::bUseVBO ) {
-            // renderowanie z użyciem VBO. NOTE: needs update, and eventual merge into single render path down the road
-            dynamic->mdKabina->RaRender( 0.0, dynamic->Material()->replacable_skins, dynamic->Material()->textures_alpha );
-            dynamic->mdKabina->RaRenderAlpha( 0.0, dynamic->Material()->replacable_skins, dynamic->Material()->textures_alpha );
-        }
-        else {
-            // renderowanie z Display List
-            dynamic->mdKabina->Render( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
-            dynamic->mdKabina->RenderAlpha( 0.0, dynamic->ReplacableSkinID, dynamic->iAlpha );
-        }
-#else
+        // render
         GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
         GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic->Material(), 0.0 );
-#endif
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // przywrócenie standardowych, bo zawsze są zmieniane
-        glLightfv( GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight );
-        glLightfv( GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight );
-        glLightfv( GL_LIGHT0, GL_SPECULAR, Global::specularDayLight );
-#else
+        // post-render restore
         if( dynamic->fShade > 0.0f ) {
             // change light level based on light level of the occupied track
             Global::DayLight.apply_intensity();
@@ -1626,7 +1317,6 @@ TWorld::Render_Cab() {
             GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
             ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
         }
-#endif
     }
     glPopMatrix();
 }
@@ -1748,11 +1438,9 @@ TWorld::Update_UI() {
                             Global::Bezogonkow( "| " + station + " | " + arrival + " | " + departure + " | " + vmax + " | " + tableline->StationWare, true ),
                             ( ( owner->iStationStart < table->StationIndex )
                            && ( i < table->StationIndex )
-                           && ( time.wHour >= tableline->Dh )
-                           && ( time.wMinute >= tableline->Dm ) ?
+                           && ( ( time.wHour * 60 + time.wMinute ) >= ( tableline->Dh * 60 + tableline->Dm ) ) ?
                                 float4( 0.0f, 1.0f, 0.0f, 1.0f ) :// czas minął i odjazd był, to nazwa stacji będzie na zielono
-                                Global::UITextColor )
-                            );
+                                Global::UITextColor ) );
                         // divider/footer
                         UITable->text_lines.emplace_back( "+----------------------------+-------+-------+-----+", Global::UITextColor );
                     }
@@ -1864,9 +1552,9 @@ TWorld::Update_UI() {
                 uitextline3 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
                 uitextline3 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
                 uitextline3 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
-                uitextline3 += ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." );
+                uitextline3 += ( false == tmp->MoverParameters->ConverterAllowLocal ? "-" : ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
                 uitextline3 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
-                uitextline3 += ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." );
+                uitextline3 += ( false == tmp->MoverParameters->CompressorAllowLocal ? "-" : ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
                 uitextline3 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
 
                 uitextline3 +=
@@ -2385,103 +2073,119 @@ void TWorld::ModifyTGA(const std::string &dir)
     }
 */
 };
+
 //---------------------------------------------------------------------------
-std::string last; // zmienne używane w rekurencji
-double shift = 0;
-void TWorld::CreateE3D(std::string const &dir, bool dyn)
+
+void TWorld::CreateE3D(std::string const &Path, bool Dynamic)
 { // rekurencyjna generowanie plików E3D
 
-/* TODO: remove Borland file access stuff
-    TTrack *trk;
-    double at;
-    TSearchRec sr;
-    if (FindFirst(dir + "*.*", faDirectory | faArchive, sr) == 0)
-    {
-        do
-        {
-            if (sr.Name[1] != '.')
-                if ((sr.Attr & faDirectory)) // jeśli katalog, to rekurencja
-                    CreateE3D(dir + sr.Name + "\\", dyn);
-                else if (dyn)
-                {
-                    if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".mmd")
-                    {
-                        // konwersja pojazdów będzie ułomna, bo nie poustawiają się animacje na
-                        // submodelach określonych w MMD
-                        // TModelsManager::GetModel(AnsiString(dir+sr.Name).c_str(),true);
-                        if (last != dir)
-                        { // utworzenie toru dla danego pojazdu
-                            last = dir;
-                            trk = TTrack::Create400m(1, shift);
-                            shift += 10.0; // następny tor będzie deczko dalej, aby nie zabić FPS
-                            at = 400.0;
-                            // if (shift>1000) break; //bezpiecznik
+    std::string last; // zmienne używane w rekurencji
+    TTrack *trk{ nullptr };
+    double at{ 0.0 };
+    double shift{ 0.0 };
+
+#ifdef _WINDOWS
+
+	std::string searchpattern( "*.*" );
+
+	::WIN32_FIND_DATA filedata;
+	::HANDLE search = ::FindFirstFile( ( Path + searchpattern ).c_str(), &filedata );
+
+	if( search == INVALID_HANDLE_VALUE ) { return; } // if nothing to do, bail out
+
+	do {
+
+		std::string filename = filedata.cFileName;
+
+		if( filedata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) {
+			// launch recursive search for sub-directories...
+			if( filename == "." ) { continue; }
+			if( filename == ".." ) { continue; }
+			CreateE3D( Path + filename + "\\", Dynamic );
+		}
+		else {
+            // process the file
+            if( filename.size() < 4 ) { continue; }
+            std::string const filetype = ToLower( filename.substr( filename.size() - 4, 4 ) );
+            if( filetype == ".mmd" ) {
+                if( false == Dynamic ) { continue; }
+
+                // konwersja pojazdów będzie ułomna, bo nie poustawiają się animacje na submodelach określonych w MMD
+                if( last != Path ) { // utworzenie toru dla danego pojazdu
+                    last = Path;
+                    trk = TTrack::Create400m( 1, shift );
+                    shift += 10.0; // następny tor będzie deczko dalej, aby nie zabić FPS
+                    at = 400.0;
+                }
+                TGroundNode *tmp = new TGroundNode();
+                tmp->DynamicObject = new TDynamicObject();
+
+                at -= tmp->DynamicObject->Init(
+                    "",
+                    Path.substr( 8, Path.size() - 9 ), // skip leading "dynamic/" and trailing slash
+                    "none",
+                    filename.substr( 0, filename.size() - 4 ),
+                    trk,
+                    at,
+                    "nobody", 0.0, "none", 0.0, "", false, "" );
+
+                // po wczytaniu CHK zrobić pętlę po ładunkach, aby każdy z nich skonwertować
+                cParser loadparser( tmp->DynamicObject->MoverParameters->LoadAccepted ); // typy ładunków
+                std::string loadname;
+                loadparser.getTokens( 1, true, "," ); loadparser >> loadname;
+                while( loadname != "" ) {
+
+                    if( ( true == FileExists( Path + loadname + ".t3d" ) )
+                     && ( false == FileExists( Path + loadname + ".e3d" ) ) ) {
+                            // a nie ma jeszcze odpowiednika binarnego
+                            at -= tmp->DynamicObject->Init(
+                                "",
+                                Path.substr( 8, Path.size() - 9 ), // skip leading "dynamic/" and trailing slash
+                                "none",
+                                filename.substr( 0, filename.size() - 4 ),
+                                trk,
+                                at,
+                                "nobody", 0.0, "none", 1.0, loadname, false, "" );
                         }
-                        TGroundNode *tmp = new TGroundNode();
-                        tmp->DynamicObject = new TDynamicObject();
-                        // Global::asCurrentTexturePath=dir; //pojazdy mają tekstury we własnych
-                        // katalogach
-                        at -= tmp->DynamicObject->Init(
-                            "", string((dir.SubString(9, dir.Length() - 9)).c_str()), "none",
-                            string(sr.Name.SubString(1, sr.Name.Length() - 4).c_str()), trk, at, "nobody", 0.0,
-                            "none", 0.0, "", false, "");
-                        // po wczytaniu CHK zrobić pętlę po ładunkach, aby każdy z nich skonwertować
-                        AnsiString loads, load;
-                        loads = AnsiString(tmp->DynamicObject->MoverParameters->LoadAccepted.c_str()); // typy ładunków
-                        if (!loads.IsEmpty())
-                        {
-                            loads += ","; // przecinek na końcu
-                            int i = loads.Pos(",");
-                            while (i > 1)
-                            { // wypadało by sprawdzić, czy T3D ładunku jest
-                                load = loads.SubString(1, i - 1);
-                                if (FileExists(dir + load + ".t3d")) // o ile jest plik ładunku, bo
-                                    // inaczej nie ma to sensu
-                                    if (!FileExists(
-                                            dir + load +
-                                            ".e3d")) // a nie ma jeszcze odpowiednika binarnego
-                                        at -= tmp->DynamicObject->Init(
-                                            "", dir.SubString(9, dir.Length() - 9).c_str(), "none",
-                                            sr.Name.SubString(1, sr.Name.Length() - 4).c_str(), trk, at,
-                                            "nobody", 0.0, "none", 1.0, load.c_str(), false, "");
-                                loads.Delete(1, i); // usunięcie z następującym przecinkiem
-                                i = loads.Pos(",");
-                            }
-                        }
-                        if (tmp->DynamicObject->iCabs)
-                        { // jeśli ma jakąkolwiek kabinę
-                            delete Train;
-                            Train = new TTrain();
-                            if (tmp->DynamicObject->iCabs & 1)
-                            {
-                                tmp->DynamicObject->MoverParameters->ActiveCab = 1;
-                                Train->Init(tmp->DynamicObject, true);
-                            }
-                            if (tmp->DynamicObject->iCabs & 4)
-                            {
-                                tmp->DynamicObject->MoverParameters->ActiveCab = -1;
-                                Train->Init(tmp->DynamicObject, true);
-                            }
-                            if (tmp->DynamicObject->iCabs & 2)
-                            {
-                                tmp->DynamicObject->MoverParameters->ActiveCab = 0;
-                                Train->Init(tmp->DynamicObject, true);
-                            }
-                        }
-                        Global::asCurrentTexturePath =
-                            (szTexturePath); // z powrotem defaultowa sciezka do tekstur
+
+                    loadname = "";
+                    loadparser.getTokens( 1, true, "," ); loadparser >> loadname;
+                }
+
+                if( tmp->DynamicObject->iCabs ) { // jeśli ma jakąkolwiek kabinę
+                    delete Train;
+                    Train = new TTrain();
+                    if( tmp->DynamicObject->iCabs & 1 ) {
+                        tmp->DynamicObject->MoverParameters->ActiveCab = 1;
+                        Train->Init( tmp->DynamicObject, true );
+                    }
+                    if( tmp->DynamicObject->iCabs & 4 ) {
+                        tmp->DynamicObject->MoverParameters->ActiveCab = -1;
+                        Train->Init( tmp->DynamicObject, true );
+                    }
+                    if( tmp->DynamicObject->iCabs & 2 ) {
+                        tmp->DynamicObject->MoverParameters->ActiveCab = 0;
+                        Train->Init( tmp->DynamicObject, true );
                     }
                 }
-                else if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".t3d")
-                { // z modelami jest prościej
-                    Global::asCurrentTexturePath = dir.c_str();
-                    TModelsManager::GetModel(AnsiString(dir + sr.Name).c_str(), false);
-                }
-        } while (FindNext(sr) == 0);
-        FindClose(sr);
-    }
-*/
+                // z powrotem defaultowa sciezka do tekstur
+                Global::asCurrentTexturePath = ( szTexturePath );
+            }
+            else if( filetype == ".t3d" ) {
+                // z modelami jest prościej
+                    Global::asCurrentTexturePath = Path;
+                    TModelsManager::GetModel( Path + filename, false );
+            }
+		}
+
+	} while( ::FindNextFile( search, &filedata ) );
+
+	// all done, clean up
+	::FindClose( search );
+
+#endif
 };
+
 //---------------------------------------------------------------------------
 void TWorld::CabChange(TDynamicObject *old, TDynamicObject *now)
 { // ewentualna zmiana kabiny użytkownikowi

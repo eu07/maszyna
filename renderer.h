@@ -94,7 +94,7 @@ public:
         update_frustum() { m_frustum.calculate(); }
     inline
     void
-        update_frustum(glm::mat4 &Projection, glm::mat4 &Modelview) { m_frustum.calculate(Projection, Modelview); }
+        update_frustum(glm::mat4 const &Projection, glm::mat4 const &Modelview) { m_frustum.calculate(Projection, Modelview); }
     bool
         visible( bounding_area const &Area ) const;
     bool
@@ -125,6 +125,10 @@ public:
     bool
         Render( TGround *Ground );
     bool
+        Render( TGroundRect *Groundcell );
+    bool
+        Render( TSubRect *Groundsubcell );
+    bool
         Render( TGroundNode *Node );
     bool
         Render( TDynamicObject *Dynamic );
@@ -138,6 +142,8 @@ public:
         Render( TMemCell *Memcell );
     bool
         Render_Alpha( TGround *Ground );
+    bool
+        Render_Alpha( TSubRect *Groundsubcell );
     bool
         Render_Alpha( TGroundNode *Node );
     bool

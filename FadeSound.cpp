@@ -25,7 +25,7 @@ void TFadeSound::Free()
 {
 }
 
-void TFadeSound::Init(char *Name, float fNewFade)
+void TFadeSound::Init(std::string const &Name, float fNewFade)
 {
     Sound = TSoundsManager::GetFromName(Name, false);
     if (Sound)

@@ -82,9 +82,9 @@ typedef std::vector<opengl_stack> openglstack_array;
 public:
 // constructors:
     opengl_matrices() {
-            m_stacks.emplace_back(); // projection
-            m_stacks.emplace_back(); // modelview
-        }
+        m_stacks.emplace_back(); // projection
+        m_stacks.emplace_back(); // modelview
+    }
 
 // methods:
     void
