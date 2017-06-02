@@ -274,9 +274,7 @@ class TGround
     TGroundRect Rects[iNumRects][iNumRects]; // mapa kwadratów kilometrowych
     TEvent *RootEvent = nullptr; // lista zdarzeń
     TEvent *QueryRootEvent = nullptr,
-           *tmpEvent = nullptr,
-           *tmp2Event = nullptr,
-           *OldQRE = nullptr;
+           *tmpEvent = nullptr;
     TSubRect *pRendered[1500]; // lista renderowanych sektorów
     int iNumNodes = 0;
     vector3 pOrigin;

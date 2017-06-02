@@ -2881,10 +2881,12 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
         if( false == TestFlag( Train->mvOccupied->WarningSignal, 1 ) ) {
             // turn on
             Train->mvOccupied->WarningSignal |= 1;
+/*
             if( true == TestFlag( Train->mvOccupied->WarningSignal, 2 ) ) {
                 // low and high horn are treated as mutually exclusive
                 Train->mvControlled->WarningSignal &= ~2;
             }
+*/
             // audio feedback
             if( ( Train->ggHornButton.GetValue() > -0.5 )
              || ( Train->ggHornLowButton.GetValue() < 0.5 ) ) {
@@ -2897,8 +2899,11 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
     }
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
+/*
         // NOTE: we turn off both low and high horn, due to unreliability of release event when shift key is involved
         Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
+*/
+        Train->mvOccupied->WarningSignal &= ~1;
         // audio feedback
         if( ( Train->ggHornButton.GetValue() < -0.5 )
          || ( Train->ggHornLowButton.GetValue() > 0.5 ) ) {
@@ -2925,10 +2930,12 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
         if( false == TestFlag( Train->mvOccupied->WarningSignal, 2 ) ) {
             // turn on
             Train->mvOccupied->WarningSignal |= 2;
+/*
             if( true == TestFlag( Train->mvOccupied->WarningSignal, 1 ) ) {
                 // low and high horn are treated as mutually exclusive
                 Train->mvControlled->WarningSignal &= ~1;
             }
+*/
             // audio feedback
             if( Train->ggHornButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
@@ -2940,8 +2947,11 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
     }
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
+/*
         // NOTE: we turn off both low and high horn, due to unreliability of release event when shift key is involved
         Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
+*/
+        Train->mvOccupied->WarningSignal &= ~2;
         // audio feedback
         if( Train->ggHornButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
