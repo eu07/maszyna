@@ -14,16 +14,12 @@ http://mozilla.org/MPL/2.0/.
 class TMdlContainer
 {
     friend class TModelsManager;
-    TMdlContainer()
-    {
-        Model = NULL;
-    };
     ~TMdlContainer()
     {
-        SafeDelete(Model);
+        delete Model;
     };
     TModel3d * LoadModel(std::string const &NewName, bool dynamic);
-    TModel3d *Model;
+    TModel3d *Model{ nullptr };
     std::string Name;
 };
 

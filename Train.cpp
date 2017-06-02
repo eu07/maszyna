@@ -175,8 +175,10 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::pantographlowerall, &TTrain::OnCommand_pantographlowerall },
     { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
     { user_command::convertertoggle, &TTrain::OnCommand_convertertoggle },
+    { user_command::convertertogglelocal, &TTrain::OnCommand_convertertogglelocal },
     { user_command::converteroverloadrelayreset, &TTrain::OnCommand_converteroverloadrelayreset },
     { user_command::compressortoggle, &TTrain::OnCommand_compressortoggle },
+    { user_command::compressortogglelocal, &TTrain::OnCommand_compressortogglelocal },
     { user_command::motorconnectorsopen, &TTrain::OnCommand_motorconnectorsopen },
     { user_command::motordisconnect, &TTrain::OnCommand_motordisconnect },
     { user_command::motoroverloadrelaythresholdtoggle, &TTrain::OnCommand_motoroverloadrelaythresholdtoggle },
@@ -1727,6 +1729,69 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
     }
 }
 
+void TTrain::OnCommand_convertertogglelocal( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->ConverterStart == start::automatic ) {
+        // let the automatic thing do its automatic thing...
+        return;
+    }
+    if( Train->ggConverterLocalButton.SubModel == nullptr ) {
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( false == Train->mvOccupied->ConverterAllowLocal )
+         && ( Train->ggConverterLocalButton.GetValue() < 0.5 ) ) {
+            // turn on
+            // sound feedback
+            if( Train->ggConverterLocalButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggConverterLocalButton.UpdateValue( 1.0 );
+            // effect
+            Train->mvOccupied->ConverterAllowLocal = true;
+/*
+            if( true == Train->mvControlled->ConverterSwitch( true, range::local ) ) {
+                // side effects
+                // control the compressor, if it's paired with the converter
+                if( Train->mvControlled->CompressorPower == 2 ) {
+                    // hunter-091012: tak jest poprawnie
+                    Train->mvControlled->CompressorSwitch( true, range::local );
+                }
+            }
+*/
+        }
+        else {
+            //turn off
+            // sound feedback
+            if( Train->ggConverterLocalButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggConverterLocalButton.UpdateValue( 0.0 );
+            // effect
+            Train->mvOccupied->ConverterAllowLocal = false;
+/*
+            if( true == Train->mvControlled->ConverterSwitch( false, range::local ) ) {
+                // side effects
+                // control the compressor, if it's paired with the converter
+                if( Train->mvControlled->CompressorPower == 2 ) {
+                    // hunter-091012: tak jest poprawnie
+                    Train->mvControlled->CompressorSwitch( false, range::local );
+                }
+                // if there's no (low voltage) power source left, drop pantographs
+                if( false == Train->mvControlled->Battery ) {
+                    Train->mvControlled->PantFront( false, range::local );
+                    Train->mvControlled->PantRear( false, range::local );
+                }
+            }
+*/
+        }
+    }
+}
+
 void TTrain::OnCommand_converteroverloadrelayreset( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggConverterFuseButton.SubModel == nullptr ) {
@@ -1824,6 +1889,42 @@ void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Comm
 */
 }
 
+void TTrain::OnCommand_compressortogglelocal( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->CompressorPower >= 2 ) {
+        return;
+    }
+    if( Train->ggCompressorLocalButton.SubModel == nullptr ) {
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( false == Train->mvOccupied->CompressorAllowLocal ) {
+            // turn on
+            // sound feedback
+            if( Train->ggCompressorLocalButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggCompressorLocalButton.UpdateValue( 1.0 );
+            // effect
+            Train->mvOccupied->CompressorAllowLocal = true;
+        }
+        else {
+            //turn off
+            // sound feedback
+            if( Train->ggCompressorLocalButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggCompressorLocalButton.UpdateValue( 0.0 );
+            // effect
+            Train->mvOccupied->CompressorAllowLocal = false;
+        }
+    }
+}
+
 void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command ) {
 
     // TODO: don't rely on presense of 3d model to determine presence of the switch
@@ -1833,31 +1934,111 @@ void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &C
         }
         return;
     }
-
-    if( Command.action != GLFW_RELEASE ) {
-        // button works while it's held down
-        if( true == Train->mvControlled->StLinFlag ) {
+    // NOTE: because we don't have modeled actual circuits this is a simplification of the real mechanics
+    // namely, pressing the button will flip it in the entire unit, which isn't exactly physically possible
+    if( Command.action == GLFW_PRESS ) {
+        // button works while it's held down but we can only pay attention to initial press
+        if( false == Train->mvControlled->StLinSwitchOff ) {
+            // open the connectors
+            Train->mvControlled->StLinSwitchOff = true;
+            if( ( Train->mvControlled->TrainType == dt_ET41 )
+             || ( Train->mvControlled->TrainType == dt_ET42 ) ) {
+                // crude implementation of the butto affecting entire unit for multi-unit engines
+                // TODO: rework it into part of standard command propagation system
+                if( ( Train->mvControlled->Couplers[ 0 ].Connected != nullptr )
+                 && ( true == TestFlag( Train->mvControlled->Couplers[ 0 ].CouplingFlag, coupling::permanent ) ) ) {
+                    // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                    Train->mvControlled->Couplers[ 0 ].Connected->StLinSwitchOff = true;
+                }
+                if( ( Train->mvControlled->Couplers[ 1 ].Connected != nullptr )
+                 && ( true == TestFlag( Train->mvControlled->Couplers[ 1 ].CouplingFlag, coupling::permanent ) ) ) {
+                    // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                    Train->mvControlled->Couplers[ 1 ].Connected->StLinSwitchOff = true;
+                }
+            }
+            // sound feedback
+            if( Train->ggStLinOffButton.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggStLinOffButton.UpdateValue( 1.0 );
+            // effect
+            if( true == Train->mvControlled->StLinFlag ) {
+                Train->play_sound( Train->dsbRelay );
+            }
             // yBARC - zmienione na przeciwne, bo true to zalaczone
             Train->mvControlled->StLinFlag = false;
-            Train->play_sound( Train->dsbRelay );
+            if( ( Train->mvControlled->TrainType == dt_ET41 )
+             || ( Train->mvControlled->TrainType == dt_ET42 ) ) {
+                // crude implementation of the butto affecting entire unit for multi-unit engines
+                // TODO: rework it into part of standard command propagation system
+                if( ( Train->mvControlled->Couplers[ 0 ].Connected != nullptr )
+                 && ( true == TestFlag( Train->mvControlled->Couplers[ 0 ].CouplingFlag, coupling::permanent ) ) ) {
+                    // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                    Train->mvControlled->Couplers[ 0 ].Connected->StLinFlag = false;
+                }
+                if( ( Train->mvControlled->Couplers[ 1 ].Connected != nullptr )
+                 && ( true == TestFlag( Train->mvControlled->Couplers[ 1 ].CouplingFlag, coupling::permanent ) ) ) {
+                    // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                    Train->mvControlled->Couplers[ 1 ].Connected->StLinFlag = false;
+                }
+            }
         }
-        Train->mvControlled->StLinSwitchOff = true;
-        // sound feedback
-        if( Train->ggStLinOffButton.GetValue() < 0.05 ) {
-            Train->play_sound( Train->dsbSwitch );
+        else {
+            if( Train->mvControlled->StLinSwitchType == "toggle" ) {
+                // default type of button (impulse) has only one effect on press, but the toggle type can toggle the state
+                Train->mvControlled->StLinSwitchOff = false;
+                if( ( Train->mvControlled->TrainType == dt_ET41 )
+                 || ( Train->mvControlled->TrainType == dt_ET42 ) ) {
+                    // crude implementation of the butto affecting entire unit for multi-unit engines
+                    // TODO: rework it into part of standard command propagation system
+                    if( ( Train->mvControlled->Couplers[ 0 ].Connected != nullptr )
+                     && ( true == TestFlag( Train->mvControlled->Couplers[ 0 ].CouplingFlag, coupling::permanent ) ) ) {
+                        // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                        Train->mvControlled->Couplers[ 0 ].Connected->StLinSwitchOff = false;
+                    }
+                    if( ( Train->mvControlled->Couplers[ 1 ].Connected != nullptr )
+                     && ( true == TestFlag( Train->mvControlled->Couplers[ 1 ].CouplingFlag, coupling::permanent ) ) ) {
+                        // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                        Train->mvControlled->Couplers[ 1 ].Connected->StLinSwitchOff = false;
+                    }
+                }
+                // sound feedback
+                if( Train->ggStLinOffButton.GetValue() > 0.5 ) {
+                    Train->play_sound( Train->dsbSwitch );
+                }
+                // visual feedback
+                Train->ggStLinOffButton.UpdateValue( 0.0 );
+            }
         }
-        // visual feedback
-        Train->ggStLinOffButton.UpdateValue( 1.0 );
     }
-    else {
+    else if( Command.action == GLFW_RELEASE ) {
         // button released
-        Train->mvControlled->StLinSwitchOff = false;
-        // sound feedback
-        if( Train->ggStLinOffButton.GetValue() > 0.5 ) {
-            Train->play_sound( Train->dsbSwitch );
+        if( Train->mvControlled->StLinSwitchType != "toggle" ) {
+            // default button type (impulse) works on button release
+            Train->mvControlled->StLinSwitchOff = false;
+            if( ( Train->mvControlled->TrainType == dt_ET41 )
+             || ( Train->mvControlled->TrainType == dt_ET42 ) ) {
+                // crude implementation of the butto affecting entire unit for multi-unit engines
+                // TODO: rework it into part of standard command propagation system
+                if( ( Train->mvControlled->Couplers[ 0 ].Connected != nullptr )
+                 && ( true == TestFlag( Train->mvControlled->Couplers[ 0 ].CouplingFlag, coupling::permanent ) ) ) {
+                    // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                    Train->mvControlled->Couplers[ 0 ].Connected->StLinSwitchOff = false;
+                }
+                if( ( Train->mvControlled->Couplers[ 1 ].Connected != nullptr )
+                 && ( true == TestFlag( Train->mvControlled->Couplers[ 1 ].CouplingFlag, coupling::permanent ) ) ) {
+                    // the first unit isn't allowed to start its compressor until second unit can start its own as well
+                    Train->mvControlled->Couplers[ 1 ].Connected->StLinSwitchOff = false;
+                }
+            }
+            // sound feedback
+            if( Train->ggStLinOffButton.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            Train->ggStLinOffButton.UpdateValue( 0.0 );
         }
-        // visual feedback
-        Train->ggStLinOffButton.UpdateValue( 0.0 );
     }
 }
 
@@ -2700,10 +2881,12 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
         if( false == TestFlag( Train->mvOccupied->WarningSignal, 1 ) ) {
             // turn on
             Train->mvOccupied->WarningSignal |= 1;
+/*
             if( true == TestFlag( Train->mvOccupied->WarningSignal, 2 ) ) {
                 // low and high horn are treated as mutually exclusive
                 Train->mvControlled->WarningSignal &= ~2;
             }
+*/
             // audio feedback
             if( ( Train->ggHornButton.GetValue() > -0.5 )
              || ( Train->ggHornLowButton.GetValue() < 0.5 ) ) {
@@ -2716,8 +2899,11 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
     }
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
+/*
         // NOTE: we turn off both low and high horn, due to unreliability of release event when shift key is involved
         Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
+*/
+        Train->mvOccupied->WarningSignal &= ~1;
         // audio feedback
         if( ( Train->ggHornButton.GetValue() < -0.5 )
          || ( Train->ggHornLowButton.GetValue() > 0.5 ) ) {
@@ -2744,10 +2930,12 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
         if( false == TestFlag( Train->mvOccupied->WarningSignal, 2 ) ) {
             // turn on
             Train->mvOccupied->WarningSignal |= 2;
+/*
             if( true == TestFlag( Train->mvOccupied->WarningSignal, 1 ) ) {
                 // low and high horn are treated as mutually exclusive
                 Train->mvControlled->WarningSignal &= ~1;
             }
+*/
             // audio feedback
             if( Train->ggHornButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
@@ -2759,8 +2947,11 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
     }
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
+/*
         // NOTE: we turn off both low and high horn, due to unreliability of release event when shift key is involved
         Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
+*/
+        Train->mvOccupied->WarningSignal &= ~2;
         // audio feedback
         if( Train->ggHornButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
@@ -4674,9 +4865,11 @@ bool TTrain::Update( double const Deltatime )
         ggDepartureSignalButton.Update();
         // NBMX dzwignia sprezarki
         ggCompressorButton.Update();
+        ggCompressorLocalButton.Update();
         ggMainButton.Update();
         ggRadioButton.Update();
         ggConverterButton.Update();
+        ggConverterLocalButton.Update();
         ggConverterOffButton.Update();
 
 #ifdef EU07_USE_OLD_COMMAND_SYSTEM
@@ -5820,6 +6013,8 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     //Wartości domyślne by nie wysypywało przy wybrakowanych mmd @240816 Stele
+    // NOTE: should be no longer needed as safety checks were added,
+    // but leaving the defaults for the sake of incomplete mmd files
     dsbPneumaticSwitch = TSoundsManager::GetFromName("silence1.wav", true);
     dsbBufferClamp = TSoundsManager::GetFromName("en57_bufferclamp.wav", true);
     dsbCouplerDetach = TSoundsManager::GetFromName("couplerdetach.wav", true);
@@ -5847,67 +6042,67 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // nastawnik:
                 dsbNastawnikJazdy =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "ctrlscnd:")
             {
                 // hunter-081211: nastawnik bocznikowania
                 dsbNastawnikBocz =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "reverserkey:")
             {
                 // hunter-131211: dzwiek kierunkowego
                 dsbReverserKey =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "buzzer:")
             {
                 // bzyczek shp:
                 dsbBuzzer =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "slipalarm:")
             {
                 // Bombardier 011010: alarm przy poslizgu:
                 dsbSlipAlarm =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "tachoclock:")
             {
                 // cykanie rejestratora:
                 dsbHasler =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "switch:")
             {
                 // przelaczniki:
                 dsbSwitch =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "pneumaticswitch:")
             {
                 // stycznik EP:
                 dsbPneumaticSwitch =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "wejscie_na_bezoporow:")
             {
                 // hunter-111211: wydzielenie wejscia na bezoporowa i na drugi uklad do pliku
                 dsbWejscie_na_bezoporow =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "wejscie_na_drugi_uklad:")
             {
 
                 dsbWejscie_na_drugi_uklad =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "relay:")
             {
                 // styczniki itp:
                 dsbRelay =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
                 if (!dsbWejscie_na_bezoporow)
                 { // hunter-111211: domyslne, gdy brak
                     dsbWejscie_na_bezoporow =
@@ -5923,39 +6118,37 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // wylaczniki pneumatyczne:
                 dsbPneumaticRelay =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "couplerattach:")
             {
                 // laczenie:
                 dsbCouplerAttach =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "couplerstretch:")
             {
                 // laczenie:
-                dsbCouplerStretch = TSoundsManager::GetFromName(
-                    parser.getToken<std::string>().c_str(),
-                    true); // McZapkie-090503: PROWIZORKA!!! "en57_couplerstretch.wav"
+                dsbCouplerStretch =
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "couplerdetach:")
             {
                 // rozlaczanie:
                 dsbCouplerDetach =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "bufferclamp:")
             {
                 // laczenie:
-                dsbBufferClamp = TSoundsManager::GetFromName(
-                    parser.getToken<std::string>().c_str(),
-                    true); // McZapkie-090503: PROWIZORKA!!! "en57_bufferclamp.wav"
+                dsbBufferClamp =
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "ignition:")
             {
                 // odpalanie silnika
                 dsbDieselIgnition =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "brakesound:")
             {
@@ -6073,25 +6266,25 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {
                 // podniesienie patyka:
                 dsbPantUp =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "pantographdown:")
             {
                 // podniesienie patyka:
                 dsbPantDown =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "doorclose:")
             {
                 // zamkniecie drzwi:
                 dsbDoorClose =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
             else if (token == "dooropen:")
             {
                 // otwarcie drzwi:
                 dsbDoorOpen =
-                    TSoundsManager::GetFromName(parser.getToken<std::string>().c_str(), true);
+                    TSoundsManager::GetFromName(parser.getToken<std::string>(), true);
             }
 
         } while (token != "");
@@ -6604,6 +6797,11 @@ void TTrain::set_cab_controls() {
     if( true == mvOccupied->Battery ) {
         ggBatteryButton.PutValue( 1.0 );
     }
+    // motor connectors
+    ggStLinOffButton.PutValue(
+        ( mvControlled->StLinSwitchOff ?
+            1.0 :
+            0.0 ) );
     // radio
     if( true == mvOccupied->Radio ) {
         ggRadioButton.PutValue( 1.0 );
@@ -6636,10 +6834,19 @@ void TTrain::set_cab_controls() {
                 1.0 :
                 0.0 );
     }
+    ggConverterLocalButton.PutValue(
+        mvControlled->ConverterAllowLocal ?
+            1.0 :
+            0.0 );
     // compressor
-    if( true == mvControlled->CompressorAllow ) {
-        ggCompressorButton.PutValue( 1.0 );
-    }
+    ggCompressorButton.PutValue(
+        mvControlled->CompressorAllow ?
+            1.0 :
+            0.0 );
+    ggCompressorLocalButton.PutValue(
+        mvControlled->CompressorAllowLocal ?
+            1.0 :
+            0.0 );
     // motor overload relay threshold / shunt mode
     if( mvControlled->Imax == mvControlled->ImaxHi ) {
         ggMaxCurrentCtrl.PutValue( 1.0 );
@@ -7175,10 +7382,18 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         // sprezarka
         ggCompressorButton.Load(Parser, DynamicObject->mdKabina);
     }
+    else if( Label == "compressorlocal_sw:" ) {
+        // sprezarka
+        ggCompressorLocalButton.Load( Parser, DynamicObject->mdKabina );
+    }
     else if (Label == "converter_sw:")
     {
         // przetwornica
         ggConverterButton.Load(Parser, DynamicObject->mdKabina);
+    }
+    else if( Label == "converterlocal_sw:" ) {
+        // przetwornica
+        ggConverterLocalButton.Load( Parser, DynamicObject->mdKabina );
     }
     else if (Label == "converteroff_sw:")
     {

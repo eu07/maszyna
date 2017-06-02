@@ -144,98 +144,6 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability)
         return false;
 }
 
-std::string ReadWord(std::ifstream &infile)
-{
-    std::string s = "";
-    char c;
-	bool nextword = false;
-
-    while ((!infile.eof()) && (!nextword))
-    {
-        infile.get(c);
-        if (_spacesigns.find(c) != std::string::npos)
-            if (s != "")
-                nextword = true;
-        if (_spacesigns.find(c) == std::string::npos)
-            s += c;
-    }
-    return s;
-}
-
-std::string TrimSpace(std::string &s)
-{
-    /*int ii;
-
-    switch (Just)
-    {
-    case CutLeft:
-    {
-        ii = 0;
-        while ((ii < s.length()) && (s[ii + 1] == (char)" "))
-            ++ii;
-        s = s.substr(ii + 1, s.length() - ii);
-    }
-    case CutRight:
-    {
-        ii = s.length();
-        while ((ii > 0) && (s[ii] == (char)" "))
-            --ii;
-        s = s.substr(0, ii);
-    }
-    case CutBoth:
-    {
-        s = TrimSpace(s, CutLeft);
-        s = TrimSpace(s, CutRight);
-    }
-    }
-    return s;*/
-
-    if (s.empty())
-        return "";
-    size_t first = s.find_first_not_of(' ');
-    if (first == std::string::npos)
-        return "";
-    size_t last = s.find_last_not_of(' ');
-    return s.substr(first, (last - first + 1));
-}
-
-char* TrimAndReduceSpaces(const char* s)
-{ // redukuje spacje pomiedzy znakami do jednej
-	char* tmp = nullptr;
-	if (s)
-	{
-
-		tmp = _strdup(s);
-		char* from = tmp + strspn(tmp, " ");
-		char* to = tmp;
-
-		do if ((*to = *from++) == ' ')
-			from += strspn(from, " ");
-		while (*to++);
-
-		while (*--to == ' ')
-			*to = '\0';
-	}
-	return tmp;
-}
-
-std::string ExtractKeyWord(std::string InS, std::string KeyWord)
-{
-    std::string s;
-    InS = InS + " ";
-    std::size_t kwp = InS.find(KeyWord);
-    if (kwp != std::string::npos)
-    {
-		s = InS.substr(kwp, InS.length());
-        //s = Copy(InS, kwp, length(InS));
-		s = s.substr(0, s.find_first_of(" "));
-        //s = Copy(s, 1, Pos(" ", s) - 1);
-    }
-    else
-        s = "";
-    return s;
-}
-
 std::string DUE(std::string s) /*Delete Before Equal sign*/
 {
     //DUE = Copy(s, Pos("=", s) + 1, length(s));
@@ -473,8 +381,7 @@ void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R
 bool FileExists( std::string const &Filename ) {
 
 	std::ifstream file( Filename );
-	if( file.is_open() == false ) { return false; }
-	else                          { return true; }
+    return( true == file.is_open() );
 }
 
 /*

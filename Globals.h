@@ -221,20 +221,11 @@ class Global
     static GLfloat FogColor[];
     static float Overcast;
     // static bool bTimeChange;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    static opengl_light AmbientLight;
 
-    static GLfloat ambientDayLight[];
-    static GLfloat diffuseDayLight[];
-    static GLfloat specularDayLight[];
-    static GLfloat ambientLight[];
-    static GLfloat diffuseLight[];
-    static GLfloat specularLight[];
-#else
     // TODO: put these things in the renderer
     static opengl_light DayLight;
     static int DynamicLightCount;
-#endif
+
     static GLfloat whiteLight[];
     static GLfloat noLight[];
     static GLfloat darkLight[];
@@ -255,6 +246,7 @@ class Global
     static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
+    static bool InputGamepad; // whether gamepad support is enabled
     static double fLuminance; // jasność światła do automatycznego zapalania
     static float SunAngle; // angle of the sun relative to horizon
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
@@ -287,7 +279,6 @@ class Global
     static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
     static bool bActive; // czy jest aktywnym oknem
-    static void BindTexture(GLuint t);
     static int iConvertModels; // tworzenie plików binarnych
     static int iErorrCounter; // licznik sprawdzań do śledzenia błędów OpenGL
     static bool bInactivePause; // automatyczna pauza, gdy okno nieaktywne

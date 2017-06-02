@@ -201,8 +201,7 @@ class TController
   public:
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
-    double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę
-    // hamulca
+    double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
   private:
     double fReady = 0.0; // poziom odhamowania wagonów
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
@@ -211,6 +210,7 @@ class TController
     double deltalog = 0.05; // przyrost czasu
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
+    double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
     TAction eAction = actSleep; // aktualny stan
     bool HelpMeFlag = false; // wystawiane True jesli cos niedobrego sie dzieje
   public:

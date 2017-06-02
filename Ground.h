@@ -122,19 +122,20 @@ public:
         TGroundNode *nNode; // obiekt renderujący grupowo ma tu wskaźnik na listę obiektów
     };
     std::string asName; // nazwa (nie zawsze ma znaczenie)
+
+    vector3 pCenter; // współrzędne środka do przydzielenia sektora
+    vector3 m_rootposition; // position of the ground (sub)rectangle holding the node, in the 3d world
+    // visualization-related data
+    // TODO: wrap these in a struct, when cleaning objects up
     union
     {
         int iNumVerts; // dla trójkątów
         int iNumPts; // dla linii
         int iCount; // dla terenu
-        // int iState; //Ra: nie używane - dźwięki zapętlone
     };
-    vector3 pCenter; // współrzędne środka do przydzielenia sektora
-
     double fLineThickness; // McZapkie-120702: grubosc linii
     double fSquareRadius; // kwadrat widoczności do
     double fSquareMinRadius; // kwadrat widoczności od
-    // TGroundNode *nMeshGroup; //Ra: obiekt grupujący trójkąty w TSubRect dla tekstury
     int iVersion; // wersja siatki (do wykonania rekompilacji)
     // union ?
     GLuint DisplayListID; // numer siatki DisplayLists
@@ -144,6 +145,7 @@ public:
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     int Ambient[4], Diffuse[4], Specular[4]; // oświetlenie
     bool bVisible;
+
     TGroundNode *nNext; // lista wszystkich w scenerii, ostatni na początku
     TGroundNode *nNext2; // lista obiektów w sektorze
     TGroundNode *nNext3; // lista obiektów renderowanych we wspólnym cyklu
@@ -153,8 +155,6 @@ public:
     void Init(int n);
     void InitCenter(); // obliczenie współrzędnych środka
     void InitNormals();
-
-    void MoveMe(vector3 pPosition); // przesuwanie (nie działa)
 
     // bool Disable();
     inline TGroundNode * Find(const std::string &asNameToFind, TGroundNodeType iNodeType)
@@ -166,7 +166,7 @@ public:
         return NULL;
     };
 
-    void Compile(bool many = false);
+    void Compile(Math3D::vector3 const &Origin, bool const Multiple = false);
     void Release();
 
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
@@ -177,7 +177,7 @@ public:
 
 struct bounding_area {
 
-    float3 center; // mid point of the rectangle
+    glm::vec3 center; // mid point of the rectangle
     float radius{ 0.0f }; // radius of the bounding sphere
 };
 
@@ -192,8 +192,8 @@ class TSubRect : public Resource, public CMesh
     TGroundNode *nRootMesh = nullptr; // obiekty renderujące wg tekstury (wtórne, lista po nNext2)
     TGroundNode *nMeshed = nullptr; // lista obiektów dla których istnieją obiekty renderujące grupowo
   public:
-    TGroundNode * nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
-    TGroundNode * nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
+    TGroundNode *nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
+    TGroundNode *nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
     TGroundNode *nRenderRect = nullptr; // z poziomu sektora - nieprzezroczyste (nNext3)
     TGroundNode *nRenderRectAlpha = nullptr; // z poziomu sektora - przezroczyste (nNext3)
     TGroundNode *nRenderWires = nullptr; // z poziomu sektora - druty i inne linie (nNext3)
@@ -217,11 +217,6 @@ class TSubRect : public Resource, public CMesh
     bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
     void RaAnimate(); // przeliczenie animacji torów
-    void RenderDL(); // renderowanie nieprzezroczystych w Display Lists
-    void RenderAlphaDL(); // renderowanie przezroczystych w Display Lists
-    // (McZapkie-131202)
-    void RenderVBO(); // renderowanie nieprzezroczystych z własnego VBO
-    void RenderAlphaVBO(); // renderowanie przezroczystych z (własnego) VBO
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
 };
 
@@ -238,6 +233,8 @@ class TGroundRect : public TSubRect
 { // kwadrat kilometrowy
     // obiekty o niewielkiej ilości wierzchołków będą renderowane stąd
     // Ra: 2012-02 doszły submodele terenu
+    friend class opengl_renderer;
+
   private:
     int iLastDisplay; // numer klatki w której był ostatnio wyświetlany
     TSubRect *pSubRects{ nullptr };
@@ -264,8 +261,6 @@ class TGroundRect : public TSubRect
             for (int i = iNumSubRects * iNumSubRects - 1; i >= 0; --i)
                 pSubRects[i].Sort(); // optymalizacja obiektów w sektorach
     };
-    void RenderDL();
-    void RenderVBO();
 };
 
 class TGround
@@ -279,9 +274,7 @@ class TGround
     TGroundRect Rects[iNumRects][iNumRects]; // mapa kwadratów kilometrowych
     TEvent *RootEvent = nullptr; // lista zdarzeń
     TEvent *QueryRootEvent = nullptr,
-           *tmpEvent = nullptr,
-           *tmp2Event = nullptr,
-           *OldQRE = nullptr;
+           *tmpEvent = nullptr;
     TSubRect *pRendered[1500]; // lista renderowanych sektorów
     int iNumNodes = 0;
     vector3 pOrigin;
@@ -341,16 +334,15 @@ class TGround
     {
         return &Rects[GetColFromX(x) / iNumSubRects][GetRowFromZ(z) / iNumSubRects];
     };
+    TSubRect * GetSubRect( int iCol, int iRow );
     TSubRect * GetSubRect(double x, double z)
     {
         return GetSubRect(GetColFromX(x), GetRowFromZ(z));
     };
-    TSubRect * FastGetSubRect(double x, double z)
-    {
-        return FastGetSubRect(GetColFromX(x), GetRowFromZ(z));
+    TSubRect * FastGetSubRect( int iCol, int iRow );
+    TSubRect * FastGetSubRect( double x, double z ) {
+        return FastGetSubRect( GetColFromX( x ), GetRowFromZ( z ) );
     };
-    TSubRect * GetSubRect(int iCol, int iRow);
-    TSubRect * FastGetSubRect(int iCol, int iRow);
     int GetRowFromZ(double z)
     {
         return (int)(z / fSubRectSize + fHalfTotalNumSubRects);

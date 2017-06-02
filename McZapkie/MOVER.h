@@ -847,12 +847,14 @@ public:
 	bool CompressorFlag = false;             /*!o czy wlaczona sprezarka*/
 	bool PantCompFlag = false;             /*!o czy wlaczona sprezarka pantografow*/
 	bool CompressorAllow = false;            /*! zezwolenie na uruchomienie sprezarki  NBMX*/
+    bool CompressorAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool CompressorGovernorLock{ false }; // indicates whether compressor pressure switch was activated due to reaching cut-out pressure
     // TODO converter parameters, for when we start cleaning up mover parameters
     start ConverterStart{ manual }; // whether converter is started manually, or by other means
     float ConverterStartDelay{ 0.0f }; // delay (in seconds) before the converter is started, once its activation conditions are met
     double ConverterStartDelayTimer{ 0.0 }; // helper, for tracking whether converter start delay passed
 	bool ConverterAllow = false;             /*zezwolenie na prace przetwornicy NBMX*/
+    bool ConverterAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool ConverterFlag = false;              /*!  czy wlaczona przetwornica NBMX*/
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
@@ -978,8 +980,10 @@ public:
 	int PantRearStart = 0;
 	double PantFrontVolt = 0.0;   //pantograf pod napieciem? 'Winger 160404
 	double PantRearVolt = 0.0;
+    // TODO: move these switch types where they belong, cabin definition
 	std::string PantSwitchType;
 	std::string ConvSwitchType;
+    std::string StLinSwitchType;
 
 	bool Heating = false; //ogrzewanie 'Winger 020304
 	int DoubleTr = 1; //trakcja ukrotniona - przedni pojazd 'Winger 160304

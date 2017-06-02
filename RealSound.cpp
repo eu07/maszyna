@@ -40,7 +40,7 @@ void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, 
                       bool Dynamic, bool freqmod, double rmin)
 {
     // Nazwa=SoundName; //to tak raczej nie zadziała, (SoundName) jest tymczasowe
-    pSound = TSoundsManager::GetFromName(SoundName.c_str(), Dynamic, &fFrequency);
+    pSound = TSoundsManager::GetFromName(SoundName, Dynamic, &fFrequency);
     if (pSound)
     {
         if (freqmod)
@@ -48,8 +48,7 @@ void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, 
             { // dla modulowanych nie może być zmiany mnożnika, bo częstotliwość w nagłówku byłą
                 // ignorowana, a mogła być inna niż 22050
                 fFrequency = 22050.0;
-                ErrorLog("Bad sound: " + std::string(SoundName) +
-                         ", as modulated, should have 22.05kHz in header");
+                ErrorLog("Bad sound: " + SoundName + ", as modulated, should have 22.05kHz in header");
             }
         AM = 1.0;
         pSound->SetVolume(DSBVOLUME_MIN);
@@ -57,7 +56,7 @@ void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, 
     else
     { // nie ma dźwięku, to jest wysyp
         AM = 0;
-        ErrorLog("Missed sound: " + std::string(SoundName));
+        ErrorLog("Missed sound: " + SoundName);
     }
     if (DistanceAttenuation > 0.0)
     {
@@ -268,26 +267,8 @@ void TTextSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
     { // jeśli ma powiązany tekst
         DWORD stat;
         pSound->GetStatus(&stat);
-        if (!(stat & DSBSTATUS_PLAYING)) // jeśli nie jest aktualnie odgrywany
-        {
-/*
-            std::string t( asText );
-			size_t i;
-            do
-            { // na razie zrobione jakkolwiek, docelowo przenieść teksty do tablicy nazw
-                i = t.find('\r'); // znak nowej linii
-				if( i == std::string::npos ) {
-					Global::tranTexts.Add( t, fTime, true );
-				}
-                else
-                {
-                    Global::tranTexts.Add(t.substr(0, i), fTime, true);
-                    t.erase(0, i + 1);
-                    while (t.empty() ? false : (unsigned char)(t[1]) < 33)
-                        t.erase(0, 1);
-                }
-            } while (i != std::string::npos);
-*/
+        if (!(stat & DSBSTATUS_PLAYING)) {
+            // jeśli nie jest aktualnie odgrywany
             Global::tranTexts.Add( asText, fTime, true );
         }
     }

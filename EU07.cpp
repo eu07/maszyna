@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
-
 */
 /*
 Authors:
@@ -383,9 +382,15 @@ int main(int argc, char *argv[])
     input::Gamepad.init();
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-    if (!World.Init(window))
-	{
-        ErrorLog( "Failed to init TWorld" );
+    try {
+        if( false == World.Init( window ) ) {
+            ErrorLog( "Failed to init TWorld" );
+            return -1;
+        }
+    }
+    catch( std::bad_alloc const &Error ) {
+
+        ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
         return -1;
     }
 
@@ -406,13 +411,23 @@ int main(int argc, char *argv[])
         } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
         Console::On(); // włączenie konsoli
-        while (!glfwWindowShouldClose(window)
-            && World.Update()
-            && GfxRenderer.Render())
-        {
-            glfwPollEvents();
-            input::Gamepad.poll();
+
+        try {
+            while( ( false == glfwWindowShouldClose( window ) )
+                && ( true == World.Update() )
+                && ( true == GfxRenderer.Render() ) ) {
+                glfwPollEvents();
+                if( true == Global::InputGamepad ) {
+                    input::Gamepad.poll();
+                }
+            }
         }
+        catch( std::bad_alloc const &Error ) {
+
+            ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
+            return -1;
+        }
+
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     }
 

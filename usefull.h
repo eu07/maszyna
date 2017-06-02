@@ -11,17 +11,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 
-#define SafeDelete(a) \
-    {                 \
-        delete (a);   \
-        a = nullptr;     \
-    }
-#define SafeDeleteArray(a) \
-    {                      \
-        delete[](a);       \
-        a = nullptr;          \
-    }
-
 #define sign(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
 
 #define DegToRad(a) ((M_PI / 180.0) * (a)) //(a) w nawiasie, bo może być dodawaniem
@@ -31,8 +20,21 @@ http://mozilla.org/MPL/2.0/.
 #define asSceneryPath std::string("scenery\\")
 #define szSceneryPath "scenery\\"
 #define szTexturePath "textures\\"
+#define szSoundPath "sounds\\"
 
 #define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
+
+template <typename _Type>
+void SafeDelete( _Type &Pointer ) {
+    delete Pointer;
+    Pointer = nullptr;
+}
+
+template <typename _Type>
+void SafeDeleteArray( _Type &Pointer ) {
+    delete[] Pointer;
+    Pointer = nullptr;
+}
 
 template <typename _Type>
 _Type

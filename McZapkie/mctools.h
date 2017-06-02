@@ -105,11 +105,6 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*to samo ale zawsze niezaleznie od DebugFlag*/
 
 /*operacje na stringach*/
-std::string ReadWord( std::ifstream& infile); /*czyta slowo z wiersza pliku tekstowego*/
-//std::string Ups(std::string s);
-//std::string TrimSpace(std::string &s);
-//char* TrimAndReduceSpaces(const char* s);
-//std::string ExtractKeyWord(std::string InS,  std::string KeyWord);   /*wyciaga slowo kluczowe i lancuch do pierwszej spacji*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
 std::string ExchangeCharInString(std::string const &s,  const char &aim, const char &target); // zamienia jeden znak na drugi

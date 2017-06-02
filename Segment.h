@@ -113,7 +113,7 @@ class TSegment
         r1 = fRoll1;
         r2 = fRoll2;
     }
-    void RenderLoft( CVertNormTex* &Output, const vector6 *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0, bool Onlypositions = false, vector3 **p = nullptr, bool bRender = true);
+    int RenderLoft( CVertNormTex* &Output, Math3D::vector3 const &Origin, vector6 const *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0, vector3 **p = nullptr, bool bRender = true);
     void Render();
     inline double GetLength()
     {

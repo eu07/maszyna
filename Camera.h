@@ -58,7 +58,7 @@ class TCamera
     void Update();
     vector3 GetDirection();
     bool SetMatrix();
-    bool SetMatrix(glm::mat4 &Matrix);
+    bool SetMatrix(glm::dmat4 &Matrix);
     void SetCabMatrix( vector3 &p );
     void RaLook();
     void Stop();

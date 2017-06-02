@@ -411,13 +411,7 @@ TAnimModel::TAnimModel()
     pModel = NULL;
     iNumLights = 0;
     fBlinkTimer = 0;
-#ifdef EU07_USE_OLD_RENDERCODE
-    ReplacableSkinId[ 0 ] = 0;
-    ReplacableSkinId[ 1 ] = 0;
-    ReplacableSkinId[ 2 ] = 0;
-    ReplacableSkinId[ 3 ] = 0;
-    ReplacableSkinId[ 4 ] = 0;
-#endif
+
     for (int i = 0; i < iMaxNumLights; i++)
     {
         LightsOn[i] = LightsOff[i] = NULL; // normalnie nie ma
@@ -443,28 +437,7 @@ bool TAnimModel::Init(TModel3d *pNewModel)
     pModel = pNewModel;
     return (pModel != NULL);
 }
-#ifdef EU07_USE_OLD_RENDERCODE
-bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
-{
-    if (asReplacableTexture.substr(0, 1) ==
-        "*") // od gwiazdki zaczynają się teksty na wyświetlaczach
-        asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
-    else if (asReplacableTexture != "none")
-        ReplacableSkinId[1] =
-            GfxRenderer.GetTextureId( asReplacableTexture, "" );
-    if( ( ReplacableSkinId[ 1 ] != 0 )
-     && ( GfxRenderer.Texture( ReplacableSkinId[ 1 ] ).has_alpha ) ) {
-        // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-        iTexAlpha = 0x31310031; 
-    }
-    else{
-        // tekstura nieprzezroczysta - nie renderować w cyklu
-        iTexAlpha = 0x30300030;
-    }
-    // przezroczystych
-    return (Init(TModelsManager::GetModel(asName)));
-}
-#else
+
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
     if (asReplacableTexture.substr(0, 1) ==
@@ -485,7 +458,6 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
     // przezroczystych
     return (Init(TModelsManager::GetModel(asName)));
 }
-#endif
 
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie świateł
@@ -622,111 +594,29 @@ void TAnimModel::RaPrepare()
     // for (pCurrent=pRoot;pCurrent!=NULL;pCurrent=pCurrent->pNext) //albo osobny łańcuch
     //  pCurrent->UpdateModelIK(); //przeliczenie odwrotnej kinematyki
 }
-/*
-void TAnimModel::RenderVBO(vector3 pPosition, double fAngle)
-{ // sprawdza światła i rekurencyjnie renderuje TModel3d
-    RaAnimate(); // jednorazowe przeliczenie animacji
-    RaPrepare();
-    if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRender(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
-}
 
-void TAnimModel::RenderAlphaVBO(vector3 pPosition, double fAngle)
-{
-    RaPrepare();
-    if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRenderAlpha(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
-};
-
-void TAnimModel::RenderDL(vector3 pPosition, double fAngle)
-{
-    RaAnimate(); // jednorazowe przeliczenie animacji
-    RaPrepare();
-    if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->Render(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
-}
-
-void TAnimModel::RenderAlphaDL(vector3 pPosition, double fAngle)
-{
-    RaPrepare();
-    if (pModel)
-        pModel->RenderAlpha(pPosition, fAngle, ReplacableSkinId, iTexAlpha);
-};
-*/
-#ifdef EU07_USE_OLD_RENDERCODE
-int TAnimModel::Flags()
-{ // informacja dla TGround, czy ma być w Render, RenderAlpha, czy RenderMixed
-    int i = pModel ? pModel->Flags() : 0; // pobranie flag całego modelu
-    if (ReplacableSkinId[1] > 0) // jeśli ma wymienną teksturę 0
-        i |= (i & 0x01010001) * ((iTexAlpha & 1) ? 0x20 : 0x10);
-    // if (ReplacableSkinId[2]>0) //jeśli ma wymienną teksturę 1
-    // i|=(i&0x02020002)*((iTexAlpha&1)?0x10:0x08);
-    // if (ReplacableSkinId[3]>0) //jeśli ma wymienną teksturę 2
-    // i|=(i&0x04040004)*((iTexAlpha&1)?0x08:0x04);
-    // if (ReplacableSkinId[4]>0) //jeśli ma wymienną teksturę 3
-    // i|=(i&0x08080008)*((iTexAlpha&1)?0x04:0x02);
-    return i;
-};
-#else
 int TAnimModel::Flags()
 { // informacja dla TGround, czy ma być w Render, RenderAlpha, czy RenderMixed
     int i = pModel ? pModel->Flags() : 0; // pobranie flag całego modelu
     if( m_materialdata.replacable_skins[ 1 ] > 0 ) // jeśli ma wymienną teksturę 0
         i |= (i & 0x01010001) * ((m_materialdata.textures_alpha & 1) ? 0x20 : 0x10);
-    // if (ReplacableSkinId[2]>0) //jeśli ma wymienną teksturę 1
-    // i|=(i&0x02020002)*((iTexAlpha&1)?0x10:0x08);
-    // if (ReplacableSkinId[3]>0) //jeśli ma wymienną teksturę 2
-    // i|=(i&0x04040004)*((iTexAlpha&1)?0x08:0x04);
-    // if (ReplacableSkinId[4]>0) //jeśli ma wymienną teksturę 3
-    // i|=(i&0x08080008)*((iTexAlpha&1)?0x04:0x02);
     return i;
 };
-#endif
 
 //-----------------------------------------------------------------------------
-// 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
+// 2011-03-16 funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
-#ifdef EU07_USE_OLD_RENDERCODE
-void TAnimModel::RenderDL(vector3 *vPosition)
-{
+void TAnimModel::Render( vector3 const &Position ) {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
     if( pModel ) // renderowanie rekurencyjne submodeli
-        pModel->Render(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
+        GfxRenderer.Render( pModel, Material(), Position, vAngle );
 };
-void TAnimModel::RenderAlphaDL(vector3 *vPosition)
-{
-    RaPrepare();
-    if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RenderAlpha(vPosition, &vAngle, ReplacableSkinId, iTexAlpha);
-};
-
-void TAnimModel::RenderVBO(vector3 *vPosition)
-{
-    RaAnimate(); // jednorazowe przeliczenie animacji
-    RaPrepare();
-    if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRender( vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha );
-};
-void TAnimModel::RenderAlphaVBO(vector3 *vPosition)
-{
-    RaPrepare();
-    if (pModel) // renderowanie rekurencyjne submodeli
-        pModel->RaRenderAlpha( vPosition, &vAngle, Material()->replacable_skins, Material()->textures_alpha );
-};
-#else
-void TAnimModel::Render( vector3 *vPosition ) {
-    RaAnimate(); // jednorazowe przeliczenie animacji
+void TAnimModel::RenderAlpha( vector3 const &Position ) {
     RaPrepare();
     if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render( pModel, Material(), *vPosition, vAngle );
+        GfxRenderer.Render_Alpha( pModel, Material(), Position, vAngle );
 };
-void TAnimModel::RenderAlpha( vector3 *vPosition ) {
-    RaPrepare();
-    if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render_Alpha( pModel, Material(), *vPosition, vAngle );
-};
-#endif
 
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()
@@ -901,13 +791,8 @@ void TAnimModel::LightSet(int n, float v)
 void TAnimModel::AnimUpdate(double dt)
 { // wykonanie zakolejkowanych animacji, nawet gdy modele nie są aktualnie wyświetlane
     TAnimContainer *p = TAnimModel::acAnimList;
-    while (p)
-    { // jeśli w ogóle jest co animować
-        // if ((*p)->fTranslateSpeed==0.0)
-        // if ((*p)->fRotateSpeed==0.0)
-        // {//jak się naanimował, to usunąć z listy
-        //  *p=(*p)->ListRemove(); //zwraca wskaźnik do kolejnego z listy
-        // }
+    while( p ) {
+
         p->UpdateModel();
         p = p->acAnimNext; // na razie bez usuwania z listy, bo głównie obrotnica na nią wchodzi
     }
