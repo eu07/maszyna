@@ -3169,10 +3169,10 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
         { // kolejka eventów jest posortowana względem (fStartTime)
             Event->Activator = Node;
             if( ( Event->Type == tp_AddValues )
-                && ( Event->fDelay == 0.0 ) ) {
-                   // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
-                   // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
-                   // wykonującą eventy i ją wywołać
+             && ( Event->fDelay == 0.0 ) ) {
+                // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
+                // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
+                // wykonującą eventy i ją wywołać
                 if( EventConditon( Event ) ) { // teraz mogą być warunki do tych eventów
                     Event->Params[ 5 ].asMemCell->UpdateValues(
                         Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
