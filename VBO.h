@@ -50,5 +50,6 @@ class CMesh
 #endif
     unsigned int m_nVBOVertices; // numer VBO z wierzchołkami
 
-    std::shared_ptr<geometry_bank> m_geometry;
+    geometrybank_handle m_geometrybank;
+
 };

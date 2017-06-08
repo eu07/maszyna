@@ -29,7 +29,7 @@ using namespace Mtable;
 
 double TSubModel::fSquareDist = 0;
 size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
-texture_manager::size_type const *TSubModel::ReplacableSkinId = NULL;
+texture_handle const *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
 std::string *TSubModel::pasText;
@@ -117,20 +117,20 @@ TSubModel::~TSubModel()
 					   // wyświetlania
 };
 
-void TSubModel::TextureNameSet(const char *n)
+void TSubModel::TextureNameSet(std::string const &Name)
 { // ustawienie nazwy submodelu, o
   // ile nie jest wczytany z E3D
 	if (iFlags & 0x0200)
 	{ // tylko jeżeli submodel zosta utworzony przez new
-		pTexture = std::string(n);
+		pTexture = Name;
 	}
 };
 
-void TSubModel::NameSet(const char *n)
+void TSubModel::NameSet(std::string const &Name)
 { // ustawienie nazwy submodelu, o ile
   // nie jest wczytany z E3D
 	if (iFlags & 0x0200)
-		pName = std::string(n);
+		pName = Name;
 };
 
 // int TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3
@@ -204,9 +204,6 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 { // Ra: VBO tworzone na poziomie modelu, a nie submodeli
     iNumVerts = 0;
     iVboPtr = Pos; // pozycja w VBO
-    // TMaterialColorf Ambient,Diffuse,Specular;
-    // GLuint TextureID;
-    // char *extName;
     if (!parser.expectToken("type:"))
         Error("Model type parse failure!");
     {
@@ -224,22 +221,24 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     };
     parser.ignoreToken();
     std::string token;
-    // parser.getToken(token1); //ze zmianą na małe!
     parser.getTokens(1, false); // nazwa submodelu bez zmieny na małe
     parser >> token;
-    NameSet(token.c_str());
-    if (dynamic)
-    { // dla pojazdu, blokujemy załączone submodele, które mogą być
-        // nieobsługiwane
-        if ( (token.size() >= 3)
-          && (token.find("_on") + 3 == token.length())) // jeśli nazwa kończy się na "_on"
-            iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
+    NameSet(token);
+    if (dynamic) {
+        // dla pojazdu, blokujemy załączone submodele, które mogą być nieobsługiwane
+        if( ( token.size() >= 3 )
+         && ( token.find( "_on" ) + 3 == token.length() ) ) {
+            // jeśli nazwa kończy się na "_on" to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
+            iVisible = 0;
+        }
     }
-    else // dla pozostałych modeli blokujemy zapalone światła, które mogą być
-        // nieobsługiwane
-        if (token.compare(0, 8, "Light_On") == 0) // jeśli nazwa zaczyna się od "Light_On"
-        iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem
-    // "Light_Off"
+    else {
+        // dla pozostałych modeli blokujemy zapalone światła, które mogą być nieobsługiwane
+        if( token.compare( 0, 8, "Light_On" ) == 0 ) {
+            // jeśli nazwa zaczyna się od "Light_On" to domyślnie wyłączyć, żeby się nie nakładało z obiektem "Light_Off"
+            iVisible = 0;
+        }
+    }
 
     if (parser.expectToken("anim:")) // Ra: ta informacja by się przydała!
     { // rodzaj animacji
@@ -590,7 +589,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 	return iNumVerts; // do określenia wielkości VBO
 };
 
-int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
+int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
 { // dodanie trójkątów do submodelu, używane
     // przy tworzeniu E3D terenu
     TSubModel *s = this;
@@ -644,6 +643,7 @@ basic_vertex *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls
 	return s->Vertices + pos; // wskaźnik na wolne miejsce w tabeli wierzchołków
 };
 
+#ifdef EU07_USE_OLD_RENDERCODE
 void TSubModel::DisplayLists()
 { // utworznie po jednej skompilowanej liście dla
   // każdego submodelu
@@ -708,6 +708,7 @@ void TSubModel::DisplayLists()
     if (Next)
         Next->DisplayLists();
 };
+#endif
 
 void TSubModel::InitialRotate(bool doit)
 { // konwersja układu współrzędnych na zgodny ze scenerią
@@ -986,11 +987,6 @@ void TSubModel::RaAnimation(TAnimType a)
 		break;
 	case at_Billboard: // obrót w pionie do kamery
 	{
-/*
-		matrix4x4 mat; // potrzebujemy współrzędne przesunięcia środka układu
-					   // współrzędnych submodelu
-		glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray()); // pobranie aktualnej matrycy
-*/
         matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
 		glLoadIdentity(); // macierz jedynkowa
@@ -1090,6 +1086,7 @@ void TSubModel::ColorsSet(int *a, int *d, int *s)
 		for (i = 0; i < 4; ++i)
 			f4Specular[i] = s[i] / 255.0;
 };
+
 void TSubModel::ParentMatrix(float4x4 *m)
 { // pobranie transformacji względem wstawienia modelu
   // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D), to
@@ -1107,68 +1104,41 @@ void TSubModel::ParentMatrix(float4x4 *m)
 	// dla ostatniego może być potrzebny dodatkowy obrót, jeśli wczytano z T3D, a
 	// nie obrócono jeszcze
 };
-float TSubModel::MaxY(const float4x4 &m)
-{ // obliczenie maksymalnej wysokości,
-  // na początek ślizgu w pantografie
-	if (eType != 4)
-		return 0; // tylko dla trójkątów liczymy
-	if (iNumVerts < 1)
-		return 0;
-/*
-	if (!Vertices)
-		return 0;
-	float y,
-		my = m[0][1] * Vertices[0].Point.x + m[1][1] * Vertices[0].Point.y +
-		m[2][1] * Vertices[0].Point.z + m[3][1];
-	for (int i = 1; i < iNumVerts; ++i)
-	{
-		y = m[0][1] * Vertices[i].Point.x + m[1][1] * Vertices[i].Point.y +
-			m[2][1] * Vertices[i].Point.z + m[3][1];
-		if (my < y)
-			my = y;
-	}
-*/
-    float my =
-        m[ 0 ][ 1 ] * Vertices[ 0 ].position.x
-      + m[ 1 ][ 1 ] * Vertices[ 0 ].position.y
-      + m[ 2 ][ 1 ] * Vertices[ 0 ].position.z
-      + m[ 3 ][ 1 ];
-    float y;
-    for( int i = 1; i < iNumVerts; ++i ) {
-        y =
-            m[ 0 ][ 1 ] * Vertices[ i ].position.x
-          + m[ 1 ][ 1 ] * Vertices[ i ].position.y
-          + m[ 2 ][ 1 ] * Vertices[ i ].position.z
-          + m[ 3 ][ 1 ];
 
-        if( my < y ) { my = y; }
+float TSubModel::MaxY( float4x4 const &m )
+{ // obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
+    if( eType != 4 ) {
+        // tylko dla trójkątów liczymy
+        return 0;
     }
-	return my;
+    if( m_geometry == NULL ) {
+        return 0;
+    }
+
+    auto maxy { 0.0f };
+    for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+
+        maxy = std::max(
+            maxy,
+            m[ 0 ][ 1 ] * vertex.position.x
+          + m[ 1 ][ 1 ] * vertex.position.y
+          + m[ 2 ][ 1 ] * vertex.position.z
+          + m[ 3 ][ 1 ] );
+    }
+
+    return maxy;
 };
 //---------------------------------------------------------------------------
 
 TModel3d::TModel3d()
 {
-	// Materials=NULL;
-	// MaterialsCount=0;
 	Root = NULL;
 	iFlags = 0;
 	iSubModelsCount = 0;
 	iModel = NULL; // tylko jak wczytany model binarny
 	iNumVerts = 0; // nie ma jeszcze wierzchołków
 };
-/*
-TModel3d::TModel3d(char *FileName)
-{
-//    Root=NULL;
-//    Materials=NULL;
-//    MaterialsCount=0;
-Root=NULL;
-SubModelsCount=0;
-iFlags=0;
-LoadFromFile(FileName);
-};
-*/
+
 TModel3d::~TModel3d()
 {
 	// SafeDeleteArray(Materials);
@@ -1226,18 +1196,6 @@ TSubModel *TModel3d::GetFromName(const char *sName)
 		return Root ? Root->GetFromName(sName) : NULL;
 	}
 };
-
-/*
-TMaterial* TModel3d::GetMaterialFromName(char *sName)
-{
-AnsiString tmp=AnsiString(sName).Trim();
-for (int i=0; i<MaterialsCount; i++)
-if (strcmp(sName,Materials[i].Name.c_str())==0)
-//        if (Trim()==Materials[i].Name.tmp)
-return Materials+i;
-return Materials;
-}
-*/
 
 bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 {
@@ -1503,6 +1461,9 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 #endif
 	Root = nullptr;
 	float4x4 *tm = nullptr;
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
 
 	std::streampos end = s.tellg() + (std::streampos)size;
 
@@ -1536,7 +1497,6 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
             if( false == m_pVNT.empty() )
 #endif
 				throw std::runtime_error("e3d: duplicated VNT chunk");
-
 /*
 			size_t vt_cnt = size / 32;
 			iNumVerts = (int)vt_cnt;
@@ -1550,22 +1510,21 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 			for (size_t i = 0; i < vt_cnt; i++)
 				m_pVNT[i].deserialize(s);
 */
-
             // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk
-            // geometry associated with chunks isn't stored in the order the actual chunks are listed, so we need to sort that out first
+            // geometry associated with chunks isn't stored in the same order as the chunks themselves, so we need to sort that out first
             std::vector< std::pair<int, int> > submodeloffsets;
             submodeloffsets.reserve( iSubModelsCount );
-            for( int idx = 0; idx < iSubModelsCount; ++idx ) {
-                auto &submodel = Root[ idx ];
+            for( int submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {
+                auto const &submodel = Root[ submodelindex ];
                 if( submodel.iNumVerts <= 0 ) { continue; }
-                submodeloffsets.emplace_back( submodel.tVboPtr, idx );
+                submodeloffsets.emplace_back( submodel.tVboPtr, submodelindex );
             }
             std::sort(
                 submodeloffsets.begin(),
                 submodeloffsets.end(),
                 []( std::pair<int, int> const &Left, std::pair<int, int> const &Right ) {
                     return (Left.first) < (Right.first); } );
-            // once sorted we can grab geometry for the chunks as they come
+            // once sorted we can grab geometry as it comes, and assign it to the chunks it belongs to
             for( auto const &submodeloffset : submodeloffsets ) {
                 auto &submodel = Root[ submodeloffset.second ];
                 vertex_array vertices; vertices.resize( submodel.iNumVerts );
@@ -1584,7 +1543,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                         break;
                     }
                 }
-                submodel.m_chunk = m_geometry->create( vertices, type );
+                submodel.m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, type );
             }
 
 		}
@@ -1639,12 +1598,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 	for (size_t i = 0; (int)i < iSubModelsCount; ++i)
 	{
 #ifdef EU07_USE_OLD_VERTEXBUFFER
-        Root[i].BinInit(
-            Root, tm,
-            ( Root[i].m_chunk ?
-                &m_geometry->data(Root[i].m_chunk)[0] :
-                nullptr ),
-            &Textures, &Names, dynamic);
+        Root[i].BinInit( Root, tm, &Textures, &Names, dynamic );
 #else
         Root[ i ].BinInit( Root, tm, (float8*)m_pVNT.data(), &Textures, &Names, dynamic );
 #endif
@@ -1656,8 +1610,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 	}
 }
 
-void TSubModel::BinInit(TSubModel *s, float4x4 *m, basic_vertex *v,
-	std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic)
+void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic)
 { // ustawienie wskaźników w submodelu
 	//m7todo: brzydko
 	iVisible = 1; // tymczasowo używane
@@ -1720,7 +1673,6 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, basic_vertex *v,
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
 
 	iVboPtr = tVboPtr;
-	Vertices = v;
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
@@ -1812,15 +1764,9 @@ void TModel3d::Init()
 				SaveToBinFile(asBinary.c_str()); // utworzy tablicę (m_pVNT)
 			asBinary = ""; // zablokowanie powtórnego zapisu
 		}
-		if (iNumVerts)
+#ifdef EU07_USE_OLD_DRAW_CODE
+        if (iNumVerts)
 		{
-/* // NOTE: we will be applying distance factor dynamically during render,
-   // so we're leaving the defined ranges intact
-			if (Global::fDistanceFactor !=
-				1.0) // trochę zaoszczędzi czasu na modelach z wieloma submocelami
-				Root->AdjustDist(); // aktualizacja odległości faz LoD, zależnie od
-									// rozdzielczości pionowej oraz multisamplingu
-*/
 			if (Global::bUseVBO)
 			{
 #ifdef EU07_USE_OLD_VERTEXBUFFER
@@ -1844,10 +1790,9 @@ void TModel3d::Init()
 			{ // przygotowanie skompilowanych siatek dla DisplayLists
 				Root->DisplayLists(); // tworzenie skompilowanej listy dla submodelu
 			}
-			// if (Root->TextureID) //o ile ma teksturę
-			// Root->iFlags|=0x80; //konieczność ustawienia tekstury
 		}
-	}
+#endif
+    }
 };
 
 void TModel3d::BreakHierarhy()

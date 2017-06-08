@@ -79,7 +79,7 @@ private:
     GLuint m_fontbase{ (GLuint)-1 }; // numer DL dla znaków w napisach
     float m_progress{ 0.0f };                // percentage of filled progres bar, to indicate lengthy operations.
     float m_subtaskprogress{ 0.0f };                // percentage of filled progres bar, to indicate lengthy operations.
-    texture_manager::size_type m_background; // path to texture used as the background. size depends on mAspect.
+    texture_handle m_background; // path to texture used as the background. size depends on mAspect.
     std::vector<std::shared_ptr<ui_panel> > m_panels;
 };
 

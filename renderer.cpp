@@ -142,10 +142,7 @@ opengl_renderer::Render() {
     ::glLoadIdentity();
 
     if( World.InitPerformed() ) {
-/*
-        World.Camera.SetMatrix();
-        m_camera.update_frustum();
-*/
+
         glm::dmat4 worldcamera;
         World.Camera.SetMatrix( worldcamera );
         m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera );
@@ -182,15 +179,6 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
-/*
-    ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
-*/
-/*
-    glm::mat4 worldcamera;
-    World.Camera.SetMatrix( worldcamera );
-    glLoadIdentity();
-    glMultMatrixf( glm::value_ptr( glm::mat4( glm::mat3( worldcamera ) ) ) );
-*/   
     // setup fog
     if( Global::fFogEnd > 0 ) {
         // fog setup
@@ -299,6 +287,63 @@ opengl_renderer::Render( world_environment *Environment ) {
 
     return true;
 }
+
+// geometry methods
+// creates a new geometry bank. returns: handle to the bank or NULL
+geometrybank_handle
+opengl_renderer::Create_Bank() {
+
+    return m_geometry.create_bank();
+}
+
+// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+geometry_handle
+opengl_renderer::Insert( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type ) {
+
+    return m_geometry.create_chunk( Vertices, Geometry, Type );
+}
+
+// replaces data of specified chunk with the supplied vertex data, starting from specified offset
+bool
+opengl_renderer::Replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset ) {
+
+    return m_geometry.replace( Vertices, Geometry, Offset );
+}
+
+// adds supplied vertex data at the end of specified chunk
+bool
+opengl_renderer::Append( vertex_array &Vertices, geometry_handle const &Geometry ) {
+
+    return m_geometry.append( Vertices, Geometry );
+}
+
+// provides direct access to vertex data of specfied chunk
+vertex_array const &
+opengl_renderer::Vertices( geometry_handle const &Geometry ) const {
+
+    return m_geometry.vertices( Geometry );
+}
+
+// texture methods
+texture_handle
+opengl_renderer::GetTextureId( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
+
+    return m_textures.create( Filename, Dir, Filter, Loadnow );
+}
+
+void
+opengl_renderer::Bind( texture_handle const Texture ) {
+    // temporary until we separate the renderer
+    m_textures.bind( Texture );
+}
+
+opengl_texture &
+opengl_renderer::Texture( texture_handle const Texture ) {
+
+    return m_textures.texture( Texture );
+}
+
+
 
 bool
 opengl_renderer::Render( TGround *Ground ) {
@@ -698,16 +743,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
     ::glPushMatrix();
-/*
-    if( Dynamic == Global::pUserDynamic ) {
-        //specjalne ustawienie, aby nie trzęsło
-        //tu trzeba by ustawić animacje na modelu zewnętrznym
-        ::glLoadIdentity(); // zacząć od macierzy jedynkowej
-        Global::pCamera->SetCabMatrix( Dynamic->vPosition ); // specjalne ustawienie kamery
-    }
-    else
-        ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
-*/
+
     ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
@@ -773,14 +809,7 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
 
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
 
-    // TODO: unify the render code after generic buffers are in place
     // setup
-/*
-    if( Global::bUseVBO ) {
-        if( false == Model->StartVBO() )
-            return false;
-    }
-*/
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
             Material->replacable_skins :
@@ -793,9 +822,6 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
     Render( Model->Root );
 
     // post-render cleanup
-    if( Global::bUseVBO ) {
-//        Model->EndVBO();
-    }
 
     return true;
 }
@@ -812,7 +838,6 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-//    auto const result = Render( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
     auto const result = Render( Model, Material, SquareMagnitude( Position ) ); // position is effectively camera offset
 
     ::glPopMatrix();
@@ -856,16 +881,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
                 }
 
-                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                if( Global::bUseVBO ) {
-/*
-                    ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
-*/
-                    Submodel->pRoot->m_geometry->draw( Submodel->m_chunk );
-                }
-                else {
-                    ::glCallList( Submodel->uiDisplayList );
-                }
+                // main draw call
+                m_geometry.draw( Submodel->m_geometry );
 
                 // post-draw reset
                 if( Global::fLuminance < Submodel->fLight ) {
@@ -900,16 +917,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     ::glDisable( GL_LIGHTING );
                     ::glEnable( GL_BLEND );
 
-                    // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                    if( Global::bUseVBO ) {
-/*
-                        ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
-*/
-                        Submodel->pRoot->m_geometry->draw( Submodel->m_chunk );
-                    }
-                    else {
-                        ::glCallList( Submodel->uiDisplayList );
-                    }
+                    // main draw call
+                    m_geometry.draw( Submodel->m_geometry );
 
                     // post-draw reset
                     ::glPopAttrib();
@@ -926,9 +935,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 Bind( 0 );
                 ::glDisable( GL_LIGHTING );
 
-                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                if( Global::bUseVBO ) {
+                // main draw call
+                // TODO: add support for colour data draw mode
+                m_geometry.draw( Submodel->m_geometry );
 /*
+                if( Global::bUseVBO ) {
                     // NOTE: we're doing manual switch to color vbo setup, because there doesn't seem to be any convenient way available atm
                     // TODO: implement easier way to go about it
                     ::glDisableClientState( GL_NORMAL_ARRAY );
@@ -941,12 +952,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     ::glDisableClientState( GL_COLOR_ARRAY );
                     ::glEnableClientState( GL_NORMAL_ARRAY );
                     ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-*/
                 }
                 else {
                     ::glCallList( Submodel->uiDisplayList );
                 }
-
+*/
                 // post-draw reset
                 ::glPopAttrib();
             }
@@ -1094,18 +1104,39 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         case TP_TRACTION: {
             // TODO: unify the render code after generic buffers are in place
             if( Node->bVisible ) {
+                // rysuj jesli sa druty i nie zerwana
+                if( ( Node->hvTraction->Wires == 0 )
+                 || ( true == TestFlag( Node->hvTraction->DamageFlag, 128 ) ) ) {
+                    return false;
+                }
                 // setup
                 ::glPushMatrix();
                 auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+                Bind( NULL );
+                if( !Global::bSmoothTraction ) {
+                    // na liniach kiepsko wygląda - robi gradient
+                    ::glDisable( GL_LINE_SMOOTH );
+                }
+                float const linealpha = static_cast<float>(
+                    std::min(
+                        1.2,
+                        5000 * Node->hvTraction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
+                ::glLineWidth( linealpha );
+                // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+                auto const color { Node->hvTraction->wire_color() };
+                ::glColor4f( color.r, color.g, color.b, linealpha );
+
                 // render
-                if( Global::bUseVBO ) {
-                    Node->hvTraction->RenderVBO( distancesquared, Node->iVboPtr );
-                }
-                else {
-                    Node->hvTraction->RenderDL( distancesquared, Node->m_rootposition );
-                }
+                m_geometry.draw( Node->hvTraction->m_geometry );
+
                 // post-render cleanup
+                ::glLineWidth( 1.0 );
+                if( !Global::bSmoothTraction ) {
+                    ::glEnable( GL_LINE_SMOOTH );
+                }
+
                 ::glPopMatrix();
                 return true;
             }
@@ -1233,14 +1264,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
     ::glPushMatrix();
-/*
-    if( Dynamic == Global::pUserDynamic ) { // specjalne ustawienie, aby nie trzęsło
-        ::glLoadIdentity(); // zacząć od macierzy jedynkowej
-        Global::pCamera->SetCabMatrix( Dynamic->vPosition ); // specjalne ustawienie kamery
-    }
-    else
-        ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
-*/
+
     ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
@@ -1305,18 +1329,11 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
 
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
 
-    // TODO: unify the render code after generic buffers are in place
     // setup
-/*
-    if( Global::bUseVBO ) {
-        if( false == Model->StartVBO() )
-            return false;
-    }
-*/
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
-        Material->replacable_skins :
-        nullptr ),
+            Material->replacable_skins :
+            nullptr ),
         alpha );
 
     Model->Root->pRoot = Model;
@@ -1325,11 +1342,7 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
     Render_Alpha( Model->Root );
 
     // post-render cleanup
-/*
-    if( Global::bUseVBO ) {
-        Model->EndVBO();
-    }
-*/
+
     return true;
 }
 
@@ -1345,7 +1358,6 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, M
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-//    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
     auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position ) ); // position is effectively camera offset
 
     ::glPopMatrix();
@@ -1387,16 +1399,8 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
                 }
 
-                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                if( Global::bUseVBO ) {
-/*
-                    ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
-*/
-                    Submodel->pRoot->m_geometry->draw( Submodel->m_chunk );
-                }
-                else {
-                    ::glCallList( Submodel->uiDisplayList );
-                }
+                // main draw call
+                m_geometry.draw( Submodel->m_geometry );
 
                 // post-draw reset
                 if( Global::fLuminance < Submodel->fLight ) {
@@ -1554,7 +1558,7 @@ opengl_renderer::Update ( double const Deltatime ) {
 
     // TODO: add garbage collection and other less frequent works here
     if( DebugModeFlag )
-        m_debuginfo = m_textures.Info();
+        m_debuginfo = m_textures.info();
 };
 
 // debug performance string

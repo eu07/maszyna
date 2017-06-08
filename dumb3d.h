@@ -140,8 +140,8 @@ class matrix4x4
             for (int x = 0; x < 4; ++x)
                 (*this)(x)[y] = initArray[i++];
     }
-    template <typename _Type>
-    void OpenGL_Matrix(_Type const *initArray)
+    template <typename Type_>
+    void OpenGL_Matrix(Type_ const *initArray)
     {
         int i = 0;
         for (int x = 0; x < 4; ++x)

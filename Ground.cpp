@@ -380,7 +380,14 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     // nRenderWires     - lista grup renderowanych z własnych VBO albo DL - druty i linie
     // nMeshed          - obiekty do pogrupowania wg tekstur
 
-    Node->m_rootposition = Math3D::vector3( m_area.center.x, m_area.center.y, m_area.center.z ) ;
+    Node->m_rootposition = Math3D::vector3( m_area.center.x, m_area.center.y, m_area.center.z );
+
+    // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
+    // NOTE: this method is called for both subcell and cell, but subcells get first created and passed the handle from their parent
+    // thus, this effectively only gets executed for the 'parent' ground cells. Not the most elegant, but for now it'll do
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
 
     switch (Node->iType)
     {
@@ -756,9 +763,7 @@ void TSubRect::LoadNodes()
             m_nVertexCount += n->iNumVerts;
             break;
         case TP_TRACTION:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            n->iNumVerts = n->hvTraction->RaArrayPrepare(); // zliczenie wierzchołków
-            m_nVertexCount += n->iNumVerts;
+            n->hvTraction->create_geometry( m_geometrybank, n->m_rootposition );
             break;
         }
         n = n->nNext2; // następny z sektora
@@ -810,14 +815,7 @@ void TSubRect::LoadNodes()
 #endif
                     }
                     break;
-                case TP_TRACTION:
-                    if( n->iNumVerts ) { // druty mogą być niewidoczne...?
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-                        n->hvTraction->RaArrayFill( m_pVNT + n->iVboPtr, n->m_rootposition );
-#else
-                        n->hvTraction->RaArrayFill( m_pVNT.data() + n->iVboPtr );
-#endif
-                    }
+                default:
                     break;
                 }
             n = n->nNext2; // następny z sektora
@@ -857,22 +855,25 @@ TGroundRect::~TGroundRect()
 
 void
 TGroundRect::Init() {
+    // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
 
     pSubRects = new TSubRect[ iNumSubRects * iNumSubRects ];
     float const subrectsize = 1000.0f / iNumSubRects;
     for( int column = 0; column < iNumSubRects; ++column ) {
         for( int row = 0; row < iNumSubRects; ++row ) {
-            auto &area = SafeGetRect(column, row)->m_area;
+            auto subcell = FastGetRect( column, row );
+            auto &area = subcell->m_area;
             area.center =
                 m_area.center
                 - glm::vec3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
                 + glm::vec3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
                 + glm::vec3( subrectsize * column, 0.0f, subrectsize * row );
-/*
-            // NOTE: the actual coordinates get swapped, as they're swapped in rest of the code :x
-            area.center = glm::vec3( area.center.z, area.center.y, area.center.x );
-*/
             area.radius = subrectsize * M_SQRT2;
+            // all subcells share the same geometry bank with their parent, to reduce buffer switching during render
+            subcell->m_geometrybank = m_geometrybank;
         }
     }
 };
@@ -1822,8 +1823,11 @@ void TGround::FirstInit()
             Current->InitNormals();
             if (Current->iType != TP_DYNAMIC)
             { // pojazdów w ogóle nie dotyczy dodawanie do mapy
-                if (i == TP_EVLAUNCH ? Current->EvLaunch->IsGlobal() : false)
-                    srGlobal.NodeAdd(Current); // dodanie do globalnego obiektu
+                if( ( i == TP_EVLAUNCH )
+                 && ( true == Current->EvLaunch->IsGlobal() ) ) {
+                    // dodanie do globalnego obiektu
+                    srGlobal.NodeAdd( Current );
+                }
                 else if (i == TP_TERRAIN)
                 { // specjalne przetwarzanie terenu wczytanego z pliku E3D
                     TGroundRect *gr;
@@ -1918,8 +1922,10 @@ bool TGround::Init(std::string File)
                     if (!LastNode->Vertices)
                         SafeDelete(LastNode); // usuwamy nieprzezroczyste trójkąty terenu
                 }
-                else if ( ( LastNode->iType == TP_TRACTION ) && ( false == Global::bLoadTraction ) )
-                    SafeDelete(LastNode); // usuwamy druty, jeśli wyłączone
+                else if( ( LastNode->iType == TP_TRACTION )
+                      && ( false == Global::bLoadTraction ) ) {
+                    SafeDelete( LastNode ); // usuwamy druty, jeśli wyłączone
+                }
 
                 if (LastNode) // dopiero na koniec dopisujemy do tablic
                     if (LastNode->iType != TP_DYNAMIC)
@@ -4371,11 +4377,9 @@ void TGround::TerrainWrite()
                             m->iNumVerts +=
                                 Current->iNumVerts; // zwiększenie całkowitej ilości wierzchołków
                             break;
-                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
-                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
                         }
                 for (Current = Rects[i][j].nRootNode; Current; Current = Current->nNext2)
@@ -4383,15 +4387,10 @@ void TGround::TerrainWrite()
                         switch (Current->iType)
                         { // pętla po trójkątach - dopisywanie wierzchołków
                         case GL_TRIANGLES:
-                            // ver=sk->TrianglePtr(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts);
                             // //wskaźnik na początek
                             ver = sk->TrianglePtr(Current->TextureID, Current->iVboPtr,
                                                   Current->Ambient, Current->Diffuse,
                                                   Current->Specular); // wskaźnik na początek
-                            // WriteLog("Zapis "+AnsiString(Current->iNumVerts)+" trójkątów w
-                            // ("+AnsiString(i)+","+AnsiString(j)+") od
-                            // "+AnsiString(Current->iVboPtr)+" dla
-                            // "+AnsiString(Current->TextureID));
                             Current->iVboPtr = -1; // bo to było tymczasowo używane
                             for (k = 0; k < Current->iNumVerts; ++k)
                             { // przepisanie współrzędnych
@@ -4405,11 +4404,9 @@ void TGround::TerrainWrite()
                                 ver[k].texture.t = Current->Vertices[k].tv;
                             }
                             break;
-                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
-                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
                         }
             }

@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include "GL/glew.h"
+#include "openglgeometrybank.h"
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
@@ -141,7 +142,7 @@ public:
     GLuint DisplayListID; // numer siatki DisplayLists
     bool PROBLEND;
     int iVboPtr; // indeks w buforze VBO
-    texture_manager::size_type TextureID; // główna (jedna) tekstura obiektu
+    texture_handle TextureID; // główna (jedna) tekstura obiektu
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     int Ambient[4], Diffuse[4], Specular[4]; // oświetlenie
     bool bVisible;
@@ -235,32 +236,38 @@ class TGroundRect : public TSubRect
     // Ra: 2012-02 doszły submodele terenu
     friend class opengl_renderer;
 
-  private:
+private:
+    TSubRect *pSubRects { nullptr };
     int iLastDisplay; // numer klatki w której był ostatnio wyświetlany
-    TSubRect *pSubRects{ nullptr };
+
     void Init();
 
-  public:
-    static int iFrameNumber; // numer kolejny wyświetlanej klatki
-    TGroundNode *nTerrain{ nullptr }; // model terenu z E3D - użyć nRootMesh?
+public:
     virtual ~TGroundRect();
-
-    TSubRect * SafeGetRect(int iCol, int iRow)
-    { // pobranie wskaźnika do małego kwadratu, utworzenie jeśli trzeba
-        if (!pSubRects)
-            Init(); // utworzenie małych kwadratów
+    // pobranie wskaźnika do małego kwadratu, utworzenie jeśli trzeba
+    TSubRect * SafeGetRect(int iCol, int iRow) {
+        if( !pSubRects ) {
+            // utworzenie małych kwadratów
+            Init();
+        }
         return pSubRects + iRow * iNumSubRects + iCol; // zwrócenie właściwego
     };
-    TSubRect * FastGetRect(int iCol, int iRow)
-    { // pobranie wskaźnika do małego kwadratu, bez tworzenia jeśli nie ma
+    // pobranie wskaźnika do małego kwadratu, bez tworzenia jeśli nie ma
+    TSubRect * FastGetRect(int iCol, int iRow) {
         return (pSubRects ? pSubRects + iRow * iNumSubRects + iCol : NULL);
     };
-    void Optimize()
-    { // optymalizacja obiektów w sektorach
-        if (pSubRects)
-            for (int i = iNumSubRects * iNumSubRects - 1; i >= 0; --i)
-                pSubRects[i].Sort(); // optymalizacja obiektów w sektorach
+    // optymalizacja obiektów w sektorach
+    void Optimize() {
+        if( pSubRects ) {
+            for( int i = iNumSubRects * iNumSubRects - 1; i >= 0; --i ) {
+                // optymalizacja obiektów w sektorach
+                pSubRects[ i ].Sort();
+            }
+        }
     };
+
+    static int iFrameNumber; // numer kolejny wyświetlanej klatki
+    TGroundNode *nTerrain { nullptr }; // model terenu z E3D - użyć nRootMesh?
 };
 
 class TGround
@@ -269,7 +276,6 @@ class TGround
 
     vector3 CameraDirection; // zmienna robocza przy renderowaniu
     int const *iRange = nullptr; // tabela widoczności
-    // TGroundNode *nRootNode; //lista wszystkich węzłów
     TGroundNode *nRootDynamic = nullptr; // lista pojazdów
     TGroundRect Rects[iNumRects][iNumRects]; // mapa kwadratów kilometrowych
     TEvent *RootEvent = nullptr; // lista zdarzeń
@@ -283,9 +289,7 @@ class TGround
     vector3 aRotate;
     bool bInitDone = false;
     TGroundNode *nRootOfType[TP_LAST]; // tablica grupująca obiekty, przyspiesza szukanie
-    // TGroundNode *nLastOfType[TP_LAST]; //ostatnia
     TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
-    // int tracks,tracksfar; //liczniki torów
     typedef std::unordered_map<std::string, TEvent *> event_map;
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
@@ -296,7 +300,6 @@ class TGround
 
   public:
     bool bDynamicRemove = false; // czy uruchomić procedurę usuwania pojazdów
-    TDynamicObject *LastDyn = nullptr; // ABu: paskudnie, ale na bardzo szybko moze jakos przejdzie...
 
     TGround();
     ~TGround();
@@ -311,17 +314,6 @@ class TGround
     TTraction * FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude);
     TTraction * TractionNearestFind(vector3 &p, int dir, TGroundNode *n);
     TGroundNode * AddGroundNode(cParser *parser);
-    bool AddGroundNode(double x, double z, TGroundNode *Node)
-    {
-        TSubRect *tmp = GetSubRect(x, z);
-        if (tmp)
-        {
-            tmp->NodeAdd(Node);
-            return true;
-        }
-        else
-            return false;
-    };
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki stałym krokiem
     bool Update(double dt, int iter); // aktualizacja przesunięć zgodna z FPS
     void Update_Lights(); // updates scene lights array

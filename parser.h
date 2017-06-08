@@ -32,9 +32,9 @@ class cParser //: public std::stringstream
     // destructor:
     virtual ~cParser();
     // methods:
-    template <typename _Type>
+    template <typename Type_>
     cParser&
-        operator>>( _Type &Right );
+        operator>>( Type_ &Right );
     template <>
     cParser&
         operator>>( std::string &Right );
@@ -107,9 +107,9 @@ class cParser //: public std::stringstream
     std::deque<std::string> tokens;
 };
 
-template<typename _Type>
+template<typename Type_>
 cParser&
-cParser::operator>>( _Type &Right ) {
+cParser::operator>>( Type_ &Right ) {
 
     if( true == this->tokens.empty() ) { return *this; }
 

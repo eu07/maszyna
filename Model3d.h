@@ -112,8 +112,8 @@ private:
 	TSubModel *Next;
 	TSubModel *Child;
 	intptr_t iVboPtr;
-    geometrychunk_handle m_chunk; // geometry of the submodel
-	texture_manager::size_type TextureID; // numer tekstury, -1 wymienna, 0 brak
+    geometry_handle m_geometry; // geometry of the submodel
+	texture_handle TextureID; // numer tekstury, -1 wymienna, 0 brak
 	bool bWire; // nie używane, ale wczytywane
 				// short TexAlpha;  //Ra: nie używane już
 	GLuint uiDisplayList; // roboczy numer listy wyświetlania
@@ -142,7 +142,7 @@ private:
 
 public:
 	static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
-	static texture_manager::size_type const *ReplacableSkinId;
+	static texture_handle const *ReplacableSkinId;
 	static int iAlpha; // maska bitowa dla danego przebiegu
 	static double fSquareDist;
 	static TModel3d *pRoot;
@@ -155,7 +155,7 @@ public:
 	void NextAdd(TSubModel *SubModel);
 	TSubModel * NextGet() { return Next; };
 	TSubModel * ChildGet() { return Child; };
-	int TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri);
+	int TriangleAdd(TModel3d *m, texture_handle tex, int tri);
 	basic_vertex * TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ(vector3 vNewAngles);
@@ -175,16 +175,17 @@ public:
 			iFlags |= 0x4000;
 	};
 	void InitialRotate(bool doit);
+#ifdef EU07_USE_OLD_DRAW_CODE
 	void DisplayLists();
-	void BinInit(TSubModel *s, float4x4 *m, basic_vertex *v,
-		std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
-	void ReplacableSet(texture_manager::size_type const *r, int a)
+#endif
+	void BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
+	void ReplacableSet(texture_handle const *r, int a)
 	{
 		ReplacableSkinId = r;
 		iAlpha = a;
 	};
-	void TextureNameSet(const char *n);
-	void NameSet(const char *n);
+	void TextureNameSet( std::string const &Name );
+	void NameSet( std::string const &Name );
 	// Ra: funkcje do budowania terenu z E3D
 	int Flags() { return iFlags; };
 	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
@@ -202,7 +203,7 @@ public:
 		return TextureID;
 	}
 	void ParentMatrix(float4x4 *m);
-	float MaxY(const float4x4 &m);
+	float MaxY( float4x4 const &m );
 	void AdjustDist();
 
 	void deserialize(std::istream&);

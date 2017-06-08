@@ -109,39 +109,39 @@ public:
         pop_matrix() { m_stacks[ m_mode ].pop_matrix(); }
     void
         load_identity() { m_stacks[ m_mode ].load_identity(); }
-    template <typename _Type>
+    template <typename Type_>
     void
-        rotate( _Type const Angle, _Type const X, _Type const Y, _Type const Z ) {
+        rotate( Type_ const Angle, Type_ const X, Type_ const Y, Type_ const Z ) {
             m_stacks[ m_mode ].rotate(
                 static_cast<float>(Angle) * 0.0174532925f, // deg2rad
                 glm::vec3(
                     static_cast<float>(X),
                     static_cast<float>(Y),
                     static_cast<float>(Z) ) ); }
-    template <typename _Type>
+    template <typename Type_>
     void
-        translate( _Type const X, _Type const Y, _Type const Z ) {
+        translate( Type_ const X, Type_ const Y, Type_ const Z ) {
             m_stacks[ m_mode ].translate(
                 glm::vec3(
                     static_cast<float>( X ),
                     static_cast<float>( Y ),
                     static_cast<float>( Z ) ) ); }
-    template <typename _Type>
+    template <typename Type_>
     void
-        multiply( _Type const *Matrix ) {
+        multiply( Type_ const *Matrix ) {
             m_stacks[ m_mode ].multiply(
                 glm::make_mat4( Matrix ) ); }
-    template <typename _Type>
+    template <typename Type_>
     void
-        perspective( _Type const Fovy, _Type const Aspect, _Type const Znear, _Type const Zfar ) {
+        perspective( Type_ const Fovy, Type_ const Aspect, Type_ const Znear, Type_ const Zfar ) {
             m_stacks[ m_mode ].perspective(
                 static_cast<float>(Fovy) * 0.0174532925f, // deg2rad
                 static_cast<float>( Aspect ),
                 static_cast<float>( Znear ),
                 static_cast<float>( Zfar ) ); }
-    template <typename _Type>
+    template <typename Type_>
     void
-        look_at( _Type const Eyex, _Type const Eyey, _Type const Eyez, _Type const Centerx, _Type const Centery, _Type const Centerz, _Type const Upx, _Type const Upy, _Type const Upz ) {
+        look_at( Type_ const Eyex, Type_ const Eyey, Type_ const Eyez, Type_ const Centerx, Type_ const Centery, Type_ const Centerz, Type_ const Upx, Type_ const Upy, Type_ const Upz ) {
             m_stacks[ m_mode ].look_at(
                 glm::vec3(
                     static_cast<float>( Eyex ),

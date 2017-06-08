@@ -30,7 +30,23 @@ typedef std::vector<basic_vertex> vertex_array;
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
-typedef std::size_t geometrychunk_handle;
+struct geometry_handle {
+// constructors
+    geometry_handle() :
+        bank( 0 ), chunk( 0 )
+    {}
+    geometry_handle( std::uint32_t const Bank, std::uint32_t const Chunk ) :
+                                   bank( Bank ),            chunk( Chunk )
+    {}
+// methods
+    inline
+    operator std::uint32_t() const {
+        return bank << 12 | chunk; }
+// members
+    std::uint32_t
+        bank  : 20, // 1 mil banks
+        chunk : 12; // 4 k chunks per bank
+};
 
 class geometry_bank {
 
@@ -41,27 +57,28 @@ public:
 
 // destructor:
     virtual
-        ~geometry_bank() { ; }
+        ~geometry_bank() {}
 
 // methods:
     // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk or NULL
-    virtual
-    geometrychunk_handle
-        create( vertex_array &Vertices, int const Datatype );
+    geometry_handle
+        create( vertex_array &Vertices, int const Type );
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
-    virtual
     bool
-        replace( vertex_array &Vertices, geometrychunk_handle const Chunk, std::size_t const Offset = 0 );
+        replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
+    // adds supplied vertex data at the end of specified chunk
+    bool
+        append( vertex_array &Vertices, geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
-    virtual
     void
-        draw( geometrychunk_handle const Chunk ) = 0;
+        draw( geometry_handle const &Geometry );
     // draws geometry stored in supplied list of chunks
-    template <typename _Iterator>
+    template <typename Iterator_>
     void
-        draw( _Iterator First, _Iterator Last ) { while( First != Last ) { draw( *First ); ++First; } }
-    vertex_array &
-        data( geometrychunk_handle const Chunk );
+        draw( Iterator_ First, Iterator_ Last ) { while( First != Last ) { draw( *First ); ++First; } }
+    // provides direct access to vertex data of specfied chunk
+    vertex_array const &
+        vertices( geometry_handle const &Geometry ) const;
 
 protected:
 // types:
@@ -69,16 +86,34 @@ protected:
         int type; // kind of geometry used by the chunk
         vertex_array vertices; // geometry data
 
-        geometry_chunk( vertex_array &Vertices, int const Datatype ) :
-                            vertices( Vertices ),   type( Datatype )
+        geometry_chunk( vertex_array &Vertices, int const Type ) :
+                            vertices( Vertices ),   type( Type )
         {}
     };
 
     typedef std::vector<geometry_chunk> geometrychunk_sequence;
 
+// methods
+    inline
+    geometry_chunk &
+        chunk( geometry_handle const Geometry ) {
+            return m_chunks[ Geometry.chunk - 1 ]; }
+    inline
+    geometry_chunk const &
+        chunk( geometry_handle const Geometry ) const {
+            return m_chunks[ Geometry.chunk - 1 ]; }
+
 // members:
     geometrychunk_sequence m_chunks;
 
+private:
+// methods:
+    // create() subclass details
+    virtual void create_( geometry_handle const &Geometry ) = 0;
+    // replace() subclass details
+    virtual void replace_( geometry_handle const &Geometry ) = 0;
+    // draw() subclass details
+    virtual void draw_( geometry_handle const &Geometry ) = 0;
 };
 
 // opengl vbo-based variant of the geometry bank
@@ -87,15 +122,8 @@ class opengl_vbogeometrybank : public geometry_bank {
 
 public:
 // methods:
-    // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk or NULL
-    geometrychunk_handle
-        create( vertex_array &Vertices, int const Datatype );
-    // replaces data of specified chunk with the supplied vertex data, starting from specified offset
-    bool
-        replace( vertex_array &Vertices, geometrychunk_handle const Chunk, std::size_t const Offset = 0 );
-    // draws geometry stored in specified chunk
-    void
-        draw( geometrychunk_handle const Chunk );
+    ~opengl_vbogeometrybank() {
+        delete_buffer(); }
 
 private:
 // types:
@@ -108,6 +136,15 @@ private:
     typedef std::vector<chunk_record> chunkrecord_sequence;
 
 // methods:
+    // create() subclass details
+    void
+        create_( geometry_handle const &Geometry );
+    // replace() subclass details
+    void
+        replace_( geometry_handle const &Geometry );
+    // draw() subclass details
+    void
+        draw_( geometry_handle const &Geometry );
     void
         bind_buffer();
     void
@@ -118,5 +155,92 @@ private:
     GLuint m_buffer{ NULL }; // id of the buffer holding data on the opengl end
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
+
+};
+
+// opengl display list based variant of the geometry bank
+
+class opengl_dlgeometrybank : public geometry_bank {
+
+public:
+// methods:
+    ~opengl_dlgeometrybank() {
+        for( auto &chunkrecord : m_chunkrecords ) {
+            ::glDeleteLists( chunkrecord.list, 1 ); } }
+
+private:
+// types:
+    struct chunk_record {
+        GLuint list{ 0 }; // display list associated with the chunk
+    };
+
+    typedef std::vector<chunk_record> chunkrecord_sequence;
+
+// methods:
+    // create() subclass details
+    void
+        create_( geometry_handle const &Geometry );
+    // replace() subclass details
+    void
+        replace_( geometry_handle const &Geometry );
+    // draw() subclass details
+    void
+        draw_( geometry_handle const &Geometry );
+    void
+        delete_list( geometry_handle const &Geometry );
+
+// members:
+    chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
+
+};
+
+// geometry bank manager, holds collection of geometry banks
+
+typedef geometry_handle geometrybank_handle;
+
+class geometrybank_manager {
+
+public:
+// methods:
+    // creates a new geometry bank. returns: handle to the bank or NULL
+    geometrybank_handle
+        create_bank();
+    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    geometry_handle
+        create_chunk( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type );
+    // replaces data of specified chunk with the supplied vertex data, starting from specified offset
+    bool
+        replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
+    // adds supplied vertex data at the end of specified chunk
+    bool
+        append( vertex_array &Vertices, geometry_handle const &Geometry );
+    // draws geometry stored in specified chunk
+    void
+        draw( geometry_handle const &Geometry );
+    // provides direct access to vertex data of specfied chunk
+    vertex_array const &
+        vertices( geometry_handle const &Geometry ) const;
+
+private:
+// types:
+    typedef std::deque< std::shared_ptr<geometry_bank> > geometrybank_sequence;
+
+// members:
+    geometrybank_sequence m_geometrybanks;
+
+// methods
+    inline
+    bool
+        valid( geometry_handle const &Geometry ) {
+        return ( ( Geometry.bank != 0 )
+              && ( Geometry.bank <= m_geometrybanks.size() ) ); }
+    inline
+    geometrybank_sequence::value_type &
+        bank( geometry_handle const Geometry ) {
+            return m_geometrybanks[ Geometry.bank - 1 ]; }
+    inline
+    geometrybank_sequence::value_type const &
+        bank( geometry_handle const Geometry ) const {
+            return m_geometrybanks[ Geometry.bank - 1 ]; }
 
 };

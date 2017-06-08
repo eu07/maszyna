@@ -133,8 +133,8 @@ class TTrack : public Resource
     TTrack *trNext = nullptr; // odcinek od strony punktu 2 - to powinno być w segmencie
     TTrack *trPrev = nullptr; // odcinek od strony punktu 1
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
-    texture_manager::size_type TextureID1 = 0; // tekstura szyn albo nawierzchni
-    texture_manager::size_type TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
+    texture_handle TextureID1 = 0; // tekstura szyn albo nawierzchni
+    texture_handle TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
     float fTexLength = 4.0f; // długość powtarzania tekstury w metrach
     float fTexRatio1 = 1.0f; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexRatio2 = 1.0f; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)

@@ -11,6 +11,8 @@ http://mozilla.org/MPL/2.0/.
 #include "openglgeometrybank.h"
 
 #include "sn_utils.h"
+#include "logs.h"
+#include "globals.h"
 
 void
 basic_vertex::serialize( std::ostream &s ) {
@@ -45,23 +47,27 @@ basic_vertex::deserialize( std::istream &s ) {
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
 // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk
-geometrychunk_handle
-geometry_bank::create( vertex_array &Vertices, int const Datatype ) {
+geometry_handle
+geometry_bank::create( vertex_array &Vertices, int const Type ) {
 
-    if( true == Vertices.empty() ) { return NULL; }
+    if( true == Vertices.empty() ) { return geometry_handle( 0, 0 ); }
 
-    m_chunks.emplace_back( Vertices, Datatype );
+    m_chunks.emplace_back( Vertices, Type );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
-    return m_chunks.size();
+    geometry_handle chunkhandle{ 0, m_chunks.size() };
+    // template method
+    create_( chunkhandle );
+    // all done
+    return chunkhandle;
 }
 
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool
-geometry_bank::replace( vertex_array &Vertices, geometrychunk_handle const Chunk, std::size_t const Offset ) {
+geometry_bank::replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset ) {
 
-    if( ( Chunk == 0 ) || ( Chunk > m_chunks.size() ) ) { return false; }
+    if( ( Geometry.chunk == 0 ) || ( Geometry.chunk > m_chunks.size() ) ) { return false; }
 
-    auto &chunk = m_chunks[ Chunk - 1 ];
+    auto &chunk = geometry_bank::chunk( Geometry );
 
     if( ( Offset == 0 )
      && ( Vertices.size() == chunk.vertices.size() ) ) {
@@ -75,61 +81,66 @@ geometry_bank::replace( vertex_array &Vertices, geometrychunk_handle const Chunk
         chunk.vertices.resize( Offset + Vertices.size(), basic_vertex() );
         chunk.vertices.insert( std::end( chunk.vertices ), std::begin( Vertices ), std::end( Vertices ) );
     }
+    // template method
+    replace_( Geometry );
+    // all done
     return true;
 }
 
-vertex_array &
-geometry_bank::data( geometrychunk_handle const Chunk ) {
+// adds supplied vertex data at the end of specified chunk
+bool
+geometry_bank::append( vertex_array &Vertices, geometry_handle const &Geometry ) {
 
-    return m_chunks.at( Chunk - 1 ).vertices;
+    if( ( Geometry.chunk == 0 ) || ( Geometry.chunk > m_chunks.size() ) ) { return false; }
+
+    return replace( Vertices, Geometry, geometry_bank::chunk( Geometry ).vertices.size() );
+}
+
+// draws geometry stored in specified chunk
+void
+geometry_bank::draw( geometry_handle const &Geometry ) {
+    // template method
+    draw_( Geometry );
+}
+
+vertex_array const &
+geometry_bank::vertices( geometry_handle const &Geometry ) const {
+
+    return geometry_bank::chunk( Geometry ).vertices;
 }
 
 // opengl vbo-based variant of the geometry bank
 
 GLuint opengl_vbogeometrybank::m_activebuffer{ NULL }; // buffer bound currently on the opengl end, if any
 
-// creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk
-geometrychunk_handle
-opengl_vbogeometrybank::create( vertex_array &Vertices, int const Datatype ) {
-
-    auto const handle = geometry_bank::create( Vertices, Datatype );
-    if( handle == NULL ) {
-        // if we didn't get anything, bail early
-        return handle;
-    }
-    // adding a chunk means we'll be (re)building the buffer, which will fill the chunk records, amongst other things
-    // so we don't need to initialize the values here
+// create() subclass details
+void
+opengl_vbogeometrybank::create_( geometry_handle const &Geometry ) {
+    // adding a chunk means we'll be (re)building the buffer, which will fill the chunk records, amongst other things.
+    // thus we don't need to initialize the values here
     m_chunkrecords.emplace_back( chunk_record() );
     // kiss the existing buffer goodbye, new overall data size means we'll be making a new one
     delete_buffer();
-
-    return handle;
 }
 
-// replaces data of specified chunk with the supplied vertex data, starting from specified offset
-bool
-opengl_vbogeometrybank::replace( vertex_array &Vertices, geometrychunk_handle const Chunk, std::size_t const Offset ) {
+// replace() subclass details
+void
+opengl_vbogeometrybank::replace_( geometry_handle const &Geometry ) {
 
-    auto const result = geometry_bank::replace( Vertices, Chunk, Offset );
-    if( false == result ) {
-        // if nothing happened we can bail out early
-        return result;
-    }
-    auto &chunkrecord = m_chunkrecords[ Chunk - 1 ];
+    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
     chunkrecord.is_good = false;
     // if the overall length of the chunk didn't change we can get away with reusing the old buffer...
-    if( m_chunks[ Chunk - 1 ].vertices.size() != chunkrecord.size ) {
+    if( geometry_bank::chunk( Geometry ).vertices.size() != chunkrecord.size ) {
         // ...but otherwise we'll need to allocate a new one
         // TBD: we could keep and reuse the old buffer also if the new chunk is smaller than the old one,
         // but it'd require some extra tracking and work to keep all chunks up to date; also wasting vram; may be not worth it?
         delete_buffer();
     }
-    return result;
 }
 
-// draws geometry stored in specified chunk
+// draw() subclass details
 void
-opengl_vbogeometrybank::draw( geometrychunk_handle const Chunk ) {
+opengl_vbogeometrybank::draw_( geometry_handle const &Geometry ) {
 
     if( m_buffer == NULL ) {
         // if there's no buffer, we'll have to make one
@@ -138,13 +149,13 @@ opengl_vbogeometrybank::draw( geometrychunk_handle const Chunk ) {
         if( true == m_chunks.empty() ) { return; }
 
         std::size_t datasize{ 0 };
-        auto &chunkrecord = m_chunkrecords.begin();
-        for( auto &chunk : m_chunks ) {
-            // fill all chunk records, based on the chunk data
-            chunkrecord->offset = datasize;
-            chunkrecord->size = chunk.vertices.size();
-            datasize += chunkrecord->size;
-            ++chunkrecord;
+        auto chunkiterator = m_chunks.cbegin();
+        for( auto &chunkrecord : m_chunkrecords ) {
+            // fill records for all chunks, based on the chunk data
+            chunkrecord.offset = datasize;
+            chunkrecord.size = chunkiterator->vertices.size();
+            datasize += chunkrecord.size;
+            ++chunkiterator;
         }
         // the odds for all created chunks to get replaced with empty ones are quite low, but the possibility does exist
         if( datasize == 0 ) { return; }
@@ -158,6 +169,12 @@ opengl_vbogeometrybank::draw( geometrychunk_handle const Chunk ) {
             datasize * sizeof( basic_vertex ),
             nullptr,
             GL_STATIC_DRAW );
+        if( ::glGetError() == GL_OUT_OF_MEMORY ) {
+            // TBD: throw a bad_alloc?
+            ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
+            delete_buffer();
+            return;
+        }
         m_buffercapacity = datasize;
     }
     // actual draw procedure starts here
@@ -165,8 +182,8 @@ opengl_vbogeometrybank::draw( geometrychunk_handle const Chunk ) {
     if( m_activebuffer != m_buffer ) {
         bind_buffer();
     }
-    auto &chunkrecord = m_chunkrecords[ Chunk - 1 ];
-    auto const &chunk = m_chunks[ Chunk - 1 ];
+    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
+    auto const &chunk = geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
         // we may potentially need to upload new buffer data before we can draw it
         ::glBufferSubData(
@@ -215,4 +232,104 @@ opengl_vbogeometrybank::delete_buffer() {
         m_buffer = NULL;
         m_buffercapacity = 0;
     }
+}
+
+// opengl display list based variant of the geometry bank
+
+// create() subclass details
+void
+opengl_dlgeometrybank::create_( geometry_handle const &Geometry ) {
+
+    m_chunkrecords.emplace_back( chunk_record() );
+}
+
+// replace() subclass details
+void
+opengl_dlgeometrybank::replace_( geometry_handle const &Geometry ) {
+
+    delete_list( Geometry );
+}
+
+// draw() subclass details
+void
+opengl_dlgeometrybank::draw_( geometry_handle const &Geometry ) {
+
+    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
+    if( chunkrecord.list == 0 ) {
+        // we don't have a list ready, so compile one
+        chunkrecord.list = ::glGenLists( 1 );
+        auto const &chunk = geometry_bank::chunk( Geometry );
+        ::glNewList( chunkrecord.list, GL_COMPILE );
+
+        ::glBegin( chunk.type );
+        // TODO: add specification of chunk vertex attributes
+        for( auto const &vertex : chunk.vertices ) {
+            ::glNormal3fv( glm::value_ptr( vertex.normal ) );
+            ::glTexCoord2fv( glm::value_ptr( vertex.texture ) );
+            ::glVertex3fv( glm::value_ptr( vertex.position ) );
+        }
+        ::glEnd();
+        ::glEndList();
+    }
+    // with the list done we can just play it
+    ::glCallList( chunkrecord.list );
+}
+
+void
+opengl_dlgeometrybank::delete_list( geometry_handle const &Geometry ) {
+    // NOTE: given it's our own internal method we trust it to be called with valid parameters
+    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
+    ::glDeleteLists( chunkrecord.list, 1 );
+    chunkrecord.list = 0;
+}
+
+// geometry bank manager, holds collection of geometry banks
+
+// creates a new geometry bank. returns: handle to the bank or NULL
+geometrybank_handle
+geometrybank_manager::create_bank() {
+
+    if( true == Global::bUseVBO ) { m_geometrybanks.emplace_back( std::make_shared<opengl_vbogeometrybank>() ); }
+    else                          { m_geometrybanks.emplace_back( std::make_shared<opengl_dlgeometrybank>() ); }
+    // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
+    return geometrybank_handle( m_geometrybanks.size(), 0 );
+}
+
+// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+geometry_handle
+geometrybank_manager::create_chunk( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type ) {
+
+    auto const newchunkhandle = bank( Geometry )->create( Vertices, Type );
+
+    if( newchunkhandle.chunk != 0 ) { return geometry_handle( Geometry.bank, newchunkhandle.chunk ); }
+    else                            { return geometry_handle( 0, 0 ); }
+}
+
+// replaces data of specified chunk with the supplied vertex data, starting from specified offset
+bool
+geometrybank_manager::replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset ) {
+
+    return bank( Geometry )->replace( Vertices, Geometry, Offset );
+}
+
+// adds supplied vertex data at the end of specified chunk
+bool
+geometrybank_manager::append( vertex_array &Vertices, geometry_handle const &Geometry ) {
+
+    return bank( Geometry )->append( Vertices, Geometry );
+}
+// draws geometry stored in specified chunk
+void
+geometrybank_manager::draw( geometry_handle const &Geometry ) {
+
+    if( Geometry == NULL ) { return; }
+
+    return bank( Geometry )->draw( Geometry );
+}
+
+// provides direct access to vertex data of specfied chunk
+vertex_array const &
+geometrybank_manager::vertices( geometry_handle const &Geometry ) const {
+
+    return bank( Geometry )->vertices( Geometry );
 }

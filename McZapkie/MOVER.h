@@ -1228,9 +1228,9 @@ extract_value( std::string const &Key, std::string const &Input ) {
     return value;
 }
 
-template <typename _Type>
+template <typename Type_>
 bool
-extract_value( _Type &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
+extract_value( Type_ &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
 
     auto value = extract_value( Key, Input );
     if( false == value.empty() ) {

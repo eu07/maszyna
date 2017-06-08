@@ -62,7 +62,7 @@ private:
 */
 };
 
-typedef std::size_t texture_handle;
+typedef int texture_handle;
 
 class texture_manager {
 
@@ -70,68 +70,52 @@ private:
     typedef std::vector<opengl_texture> opengltexture_array;
 
 public:
-//    typedef opengltexture_array::size_type size_type;
-    typedef int size_type;
-
     texture_manager();
-    ~texture_manager() { Free(); }
+    ~texture_manager() { delete_textures(); }
 
-    size_type
-        GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
+    texture_handle
+        create( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
     void
-        Bind( size_type const Id );
+        bind( texture_handle const Texture );
     opengl_texture &
-        Texture( size_type const Id ) { return m_textures[ Id ]; }
-    void
-        Init();
-    void
-        Free();
+        texture( texture_handle const Texture ) { return m_textures[ Texture ]; }
     // debug performance string
     std::string
-        Info() const;
+        info() const;
 
 private:
-    typedef std::unordered_map<std::string, size_type> index_map;
-/*
-    opengltexture_array::size_type LoadFromFile(std::string name, int filter = -1);
-*/
-/*
-    bool LoadBMP( std::string const &fileName);
-    bool LoadTEX( std::string fileName );
-    bool LoadTGA( std::string fileName, int filter = -1 );
-    bool LoadDDS( std::string fileName, int filter = -1 );
-*/
+    typedef std::unordered_map<std::string, std::size_t> index_map;
+
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
-    size_type find_in_databank( std::string const &Texturename );
+    texture_handle
+        find_in_databank( std::string const &Texturename ) const;
     // checks whether specified file exists. returns name of the located file, or empty string.
-    std::string find_on_disk( std::string const &Texturename );
-/*
-    void SetFiltering(int filter);
-    void SetFiltering(bool alpha, bool hash);
-    GLuint CreateTexture(GLubyte *buff, GLint bpp, int width, int height, bool bHasAlpha,
-                         bool bHash, bool bDollar = true, int filter = -1);
-*/
-    static const size_type npos{ 0 }; // should be -1, but the rest of the code uses -1 for something else
+    std::string
+        find_on_disk( std::string const &Texturename ) const;
+    void
+        delete_textures();
+
+    static const texture_handle npos{ 0 }; // should be -1, but the rest of the code uses -1 for something else
     opengltexture_array m_textures;
     index_map m_texturemappings;
-    size_type m_activetexture{ 0 }; // last i.e. currently bound texture
+    texture_handle m_activetexture{ 0 }; // last i.e. currently bound texture
 };
 
 // reduces provided data image to half of original size, using basic 2x2 average
-template <typename _Colortype>
+template <typename Colortype_>
 void
 downsample( std::size_t const Width, std::size_t const Height, char *Imagedata ) {
 
-    _Colortype *destination = reinterpret_cast<_Colortype*>( Imagedata );
-    _Colortype *sampler = reinterpret_cast<_Colortype*>( Imagedata );
+    Colortype_ *destination = reinterpret_cast<Colortype_*>( Imagedata );
+    Colortype_ *sampler = reinterpret_cast<Colortype_*>( Imagedata );
 
-    _Colortype accumulator, color;
+    Colortype_ accumulator, color;
 /*
     _Colortype color;
     float component;
 */
-    for( size_t row = 0; row < Height; row += 2, sampler += Width ) { // column movement advances us down another row
-        for( size_t column = 0; column < Width; column += 2, sampler += 2 ) {
+    for( std::size_t row = 0; row < Height; row += 2, sampler += Width ) { // column movement advances us down another row
+        for( std::size_t column = 0; column < Width; column += 2, sampler += 2 ) {
 /*
             // straightforward, but won't work with byte data
             auto color = (
@@ -158,8 +142,8 @@ downsample( std::size_t const Width, std::size_t const Height, char *Imagedata )
             *destination++ = color;
 /*
             // "full" 8bit resolution
-            color = _Colortype(); component = 0;
-            for( int idx = 0; idx < sizeof( _Colortype ); ++idx ) {
+            color = Colortype_(); component = 0;
+            for( int idx = 0; idx < sizeof( Colortype_ ); ++idx ) {
 
                 component = (
                     (*sampler)[idx]

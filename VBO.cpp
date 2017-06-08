@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "GL/glew.h"
 #include "usefull.h"
 #include "sn_utils.h"
+#include "globals.h"
 //---------------------------------------------------------------------------
 
 void CVertNormTex::deserialize(std::istream &s)
@@ -49,9 +50,6 @@ CMesh::CMesh()
 #endif
     m_nVertexCount = -1;
     m_nVBOVertices = 0; // nie zarezerwowane
-
-    // TODO: bind proper subtype based on the settings
-    m_geometry = std::make_shared<opengl_vbogeometrybank>();
 };
 
 CMesh::~CMesh()

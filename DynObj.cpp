@@ -3992,7 +3992,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         // otherwise try the basic approach
                         int skinindex = 0;
                         do {
-                            texture_manager::size_type texture = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), "", Global::iDynamicFiltering, true );
+                            texture_handle texture = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), "", Global::iDynamicFiltering, true );
                             if( false == GfxRenderer.Texture( texture ).is_ready ) {
                                 break;
                             }

@@ -143,7 +143,7 @@ class TAnim
 struct material_data {
 
     int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
-    texture_manager::size_type replacable_skins[ 5 ]; // McZapkie:zmienialne nadwozie
+    texture_handle replacable_skins[ 5 ]; // McZapkie:zmienialne nadwozie
     int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
 
     material_data() {
