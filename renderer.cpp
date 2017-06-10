@@ -367,9 +367,9 @@ opengl_renderer::Render( TGround *Ground ) {
     for( int column = originx; column <= originx + segmentcount; ++column ) {
         for( int row = originz; row <= originz + segmentcount; ++row ) {
 
-            auto *rectangle = &Ground->Rects[ column ][ row ];
-            if( m_camera.visible( rectangle->m_area ) ) {
-                Render( rectangle );
+            auto *cell = &Ground->Rects[ column ][ row ];
+            if( m_camera.visible( cell->m_area ) ) {
+                Render( cell );
             }
         }
     }
@@ -387,8 +387,8 @@ opengl_renderer::Render( TGround *Ground ) {
     int r = Ground->GetRowFromZ( Global::pCameraPosition.z );
     TSubRect *tmp;
     int i, j, k;
-    for( j = r - n; j <= r + n; j++ ) {
-        for( i = c - n; i <= c + n; i++ ) {
+    for( j = r - n; j <= r + n; ++j ) {
+        for( i = c - n; i <= c + n; ++i ) {
             if( ( tmp = Ground->FastGetSubRect( i, j ) ) != nullptr ) {
                 // oznaczanie aktywnych sektorów
                 tmp->LoadNodes();
@@ -441,12 +441,29 @@ opengl_renderer::Render( TGround *Ground ) {
             }
         } while( ( i < 0 ) || ( j < 0 ) ); // są 4 przypadki, oprócz i=j=0
     }
+/*
     // dodać renderowanie terenu z E3D - jedno VBO jest używane dla całego modelu, chyba że jest ich więcej
     if( Global::bUseVBO ) {
-        if( Global::pTerrainCompact ) {
+        if( ( Global::pTerrainCompact != nullptr )
+         && ( Global::pTerrainCompact->pModel != nullptr ) ) {
+#ifdef EU07_USE_OLD_RENDERCODE
             Global::pTerrainCompact->TerrainRenderVBO( TGroundRect::iFrameNumber );
+#endif
+            // TODO: remap geometry of terrain cells to allow camera-centric rendering
+            ::glPushMatrix();
+            ::glTranslated( -Global::pCameraPosition.x, -Global::pCameraPosition.y, -Global::pCameraPosition.z );
+            TSubModel *submodel = Global::pTerrainCompact->pModel->Root;
+            while( submodel != nullptr ) {
+                if( submodel->iVisible == TGroundRect::iFrameNumber ) {
+                    // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
+                    Render( submodel ); // sub kolejne (Next) się nie wyrenderują
+                }
+                submodel = submodel->NextGet();
+            }
+            ::glPopMatrix();
         }
     }
+*/
     // renderowanie nieprzezroczystych
     for( i = 0; i < Ground->iRendered; ++i ) {
         Render( Ground->pRendered[ i ] );
@@ -456,43 +473,42 @@ opengl_renderer::Render( TGround *Ground ) {
 }
 
 // TODO: unify ground render code, until then old version is in place
-#define EU07_USE_OLD_RENDERCODE
 bool
 opengl_renderer::Render( TGroundRect *Groundcell ) {
 
-    ::glPushMatrix();
-    auto const &cellorigin = Groundcell->m_area.center;
-    // TODO: unify all math objects
-    auto const originoffset = Math3D::vector3( cellorigin.x, cellorigin.y, cellorigin.z ) - Global::pCameraPosition;
-    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-    bool result{ false }; // will be true if we do any rendering
+    bool result { false }; // will be true if we do any rendering
 
     // TODO: unify render paths
     if( Global::bUseVBO ) {
 
-        if ( Groundcell->iLastDisplay != Groundcell->iFrameNumber)
-        { // tylko jezeli dany kwadrat nie był jeszcze renderowany
+        if ( Groundcell->iLastDisplay != Groundcell->iFrameNumber) {
+            // tylko jezeli dany kwadrat nie był jeszcze renderowany
             Groundcell->LoadNodes(); // ewentualne tworzenie siatek
-            if ( Groundcell->nRenderRect && Groundcell->StartVBO())
-            {
-                for (TGroundNode *node = Groundcell->nRenderRect; node; node = node->nNext3) // następny tej grupy
-#ifdef EU07_USE_OLD_RENDERCODE
-                    node->RaRenderVBO(); // nieprzezroczyste trójkąty kwadratu kilometrowego
-#else
-                    Render( node ); // nieprzezroczyste trójkąty kwadratu kilometrowego
-#endif
+
+            if( ( Groundcell->nRenderRect != nullptr )
+             && ( true == Groundcell->StartVBO() ) ) {
+                // nieprzezroczyste trójkąty kwadratu kilometrowego
+                for( TGroundNode *node = Groundcell->nRenderRect; node; node = node->nNext3 ) {
+                    Render( node );
+                }
                 Groundcell->EndVBO();
-                Groundcell->iLastDisplay = Groundcell->iFrameNumber;
-                result = true;
             }
-            if ( Groundcell->nTerrain)
-                Groundcell->nTerrain->smTerrain->iVisible = Groundcell->iFrameNumber; // ma się wyświetlić w tej ramce
+            if( Groundcell->nTerrain ) {
+                
+                Render( Groundcell->nTerrain );
+            }
+            Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
+            result = true;
         }
-        ::glPopMatrix();
     }
     else {
-#ifdef EU07_USE_OLD_RENDERCODE
+        // display list render path
+        ::glPushMatrix();
+        auto const &cellorigin = Groundcell->m_area.center;
+        // TODO: unify all math objects
+        auto const originoffset = Math3D::vector3( cellorigin.x, cellorigin.y, cellorigin.z ) - Global::pCameraPosition;
+        ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
         if (Groundcell->iLastDisplay != Groundcell->iFrameNumber)
         { // tylko jezeli dany kwadrat nie był jeszcze renderowany
             // for (TGroundNode* node=pRender;node;node=node->pNext3)
@@ -505,7 +521,7 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
                     Groundcell->nRender->DisplayListID = glGenLists(1);
                     glNewList( Groundcell->nRender->DisplayListID, GL_COMPILE);
                     Groundcell->nRender->iVersion = Global::iReCompile; // aktualna wersja siatek
-                    auto const origin = Math3D::vector3( Groundcell->m_area.center.x, Groundcell->m_area.center.y, Groundcell->m_area.center.z );
+                    auto const origin = glm::dvec3( Groundcell->m_area.center );
                     for (TGroundNode *node = Groundcell->nRender; node; node = node->nNext3) // następny tej grupy
                         node->Compile(origin, true);
                     glEndList();
@@ -515,32 +531,18 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
             // submodels geometry is world-centric, so at least for the time being we need to pop the stack early
             ::glPopMatrix();
 
-            if( Groundcell->nRootMesh ) {
-                Render( Groundcell->nRootMesh );
-            }
+            if( Groundcell->nTerrain ) { Render( Groundcell->nTerrain ); }
+
             Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
             result = true;
         }
         else {
             ::glPopMatrix();
         }
-#else
-        if( iLastDisplay != iFrameNumber ) { // tylko jezeli dany kwadrat nie był jeszcze renderowany
-            LoadNodes(); // ewentualne tworzenie siatek
-            if( nRenderRect ) {
-                for( TGroundNode *node = nRenderRect; node; node = node->nNext3 ) // następny tej grupy
-                    Render( node ); // nieprzezroczyste trójkąty kwadratu kilometrowego
-            }
-            if( nRootMesh )
-                Render( nRootMesh );
-            iLastDisplay = iFrameNumber;
-        }
-#endif
     }
 
     return result;
 }
-#undef EU07_USE_OLD_RENDERCODE
 
 bool
 opengl_renderer::Render( TSubRect *Groundsubcell ) {
@@ -665,11 +667,13 @@ opengl_renderer::Render( TGroundNode *Node ) {
             if( Node->iNumPts ) {
                 // setup
                 // w zaleznosci od koloru swiatla
-                ::glColor4ub(
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] ) ),
-                    static_cast<GLubyte>( std::min( 255.0, 255000 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) );
+                ::glColor4fv(
+                    glm::value_ptr(
+                        glm::vec4(
+                            Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ),
+                            std::min(
+                                1.0,
+                                1000.0 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) ) );
 
                 GfxRenderer.Bind( 0 );
 
@@ -700,10 +704,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
                 return false;
             }
             // setup
-            ::glColor3ub(
-                static_cast<GLubyte>( Node->Diffuse[ 0 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 1 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 2 ] ) );
+            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
 
             Bind( Node->TextureID );
 
@@ -874,11 +875,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
+                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
                 // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
                     // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse) );
                 }
 
                 // main draw call
@@ -1184,11 +1185,13 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
                 // w zaleznosci od koloru swiatla
-                ::glColor4ub(
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] ) ),
-                    static_cast<GLubyte>( std::min( 255.0, 255000 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) );
+                ::glColor4fv(
+                    glm::value_ptr(
+                        glm::vec4(
+                            Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ),
+                            std::min(
+                                1.0,
+                                1000.0 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) ) );
 
                 GfxRenderer.Bind( 0 );
 
@@ -1212,10 +1215,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
-            ::glColor3ub(
-                static_cast<GLubyte>( Node->Diffuse[ 0 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 1 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 2 ] ) );
+            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
 
             Bind( Node->TextureID );
 
@@ -1392,11 +1392,11 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
+                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
                 // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
                     // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse) );
                 }
 
                 // main draw call

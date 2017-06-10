@@ -72,6 +72,9 @@ class vector3
         y = b;
         z = c;
     }
+    vector3( glm::dvec3 const &Vector ) :
+        x( Vector.x ), y( Vector.y ), z( Vector.z )
+    {}
 
     // The int parameter is the number of elements to copy from initArray (3 or 4)
     //	explicit vector3(scalar_t* initArray, int arraySize = 3)

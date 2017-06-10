@@ -91,7 +91,7 @@ sekcji z sąsiedniego przęsła).
 */
 
 std::size_t
-TTraction::create_geometry( geometrybank_handle const &Bank, Math3D::vector3 const &Origin ) {
+TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
 
     if( m_geometry != NULL ) {
         return GfxRenderer.Vertices( m_geometry ).size() / 2;
@@ -117,13 +117,13 @@ TTraction::create_geometry( geometrybank_handle const &Bank, Math3D::vector3 con
     vertices.emplace_back( startvertex );
     vertices.emplace_back( endvertex );
     // Nie wiem co 'Marcin
-    Math3D::vector3 pt1, pt2, pt3, pt4, v1, v2;
+    glm::dvec3 pt1, pt2, pt3, pt4, v1, v2;
     v1 = pPoint4 - pPoint3;
     v2 = pPoint2 - pPoint1;
     float step = 0;
     if( iNumSections > 0 )
         step = 1.0f / (float)iNumSections;
-    float f = step;
+    double f = step;
     float mid = 0.5;
     float t;
     // Przewod nosny 'Marcin
@@ -274,13 +274,13 @@ TTraction::create_geometry( geometrybank_handle const &Bank, Math3D::vector3 con
     return elementcount;
 }
 
-int TTraction::TestPoint(Math3D::vector3 *Point)
+int TTraction::TestPoint(glm::dvec3 const &Point)
 { // sprawdzanie, czy przęsła można połączyć
     if (!hvNext[0])
-        if (pPoint1.Equal(Point))
+        if( glm::all( glm::epsilonEqual( Point, pPoint1, 0.025 ) ) )
             return 0;
     if (!hvNext[1])
-        if (pPoint2.Equal(Point))
+        if( glm::all( glm::epsilonEqual( Point, pPoint2, 0.025 ) ) )
             return 1;
     return -1;
 };
@@ -358,7 +358,7 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
             }
             t->psPower[d] = ps; // skopiowanie wskaźnika zasilacza od danej strony
             t->fResistance[d] = r; // wpisanie rezystancji w kierunku tego zasilacza
-            r += t->fResistivity * Length3(t->vParametric); // doliczenie oporu kolejnego odcinka
+            r += t->fResistivity * glm::dot(t->vParametric, t->vParametric ); // doliczenie oporu kolejnego odcinka
             p = t; // zapamiętanie dotychczasowego
             t = p->hvNext[d ^ 1]; // podążanie w tę samą stronę
             d = p->iNext[d ^ 1];
@@ -368,7 +368,7 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
     else
     { // podążanie w obu kierunkach, można by rekurencją, ale szkoda zasobów
         r = 0.5 * fResistivity *
-            Length3(vParametric); // powiedzmy, że w zasilanym przęśle jest połowa
+            glm::dot(vParametric, vParametric ); // powiedzmy, że w zasilanym przęśle jest połowa
         if (fResistance[0] == 0.0)
             ResistanceCalc(0, r); // do tyłu (w stronę Point1)
         if (fResistance[1] == 0.0)

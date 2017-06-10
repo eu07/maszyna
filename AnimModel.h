@@ -128,8 +128,11 @@ class TAnimAdvanced
     int SortByBone();
 };
 
-class TAnimModel
-{ // opakowanie modelu, określające stan egzemplarza
+// opakowanie modelu, określające stan egzemplarza
+class TAnimModel {
+
+    friend class opengl_renderer;
+
   private:
     TAnimContainer *pRoot; // pojemniki sterujące, tylko dla aniomowanych submodeli
     TModel3d *pModel;
@@ -173,7 +176,9 @@ class TAnimModel
     bool TerrainLoaded();
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
+#ifdef EU07_USE_OLD_RENDERCODE
     void TerrainRenderVBO(int n);
+#endif
     void AnimationVND(void *pData, double a, double b, double c, double d);
     void LightSet(int n, float v);
     static void AnimUpdate(double dt);

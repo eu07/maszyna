@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sn_utils.h"
 #include "globals.h"
 //---------------------------------------------------------------------------
-
+/*
 void CVertNormTex::deserialize(std::istream &s)
 {
 	x = sn_utils::ld_float32(s);
@@ -42,7 +42,7 @@ void CVertNormTex::serialize(std::ostream &s)
 	sn_utils::ls_float32(s, u);
 	sn_utils::ls_float32(s, v);
 }
-
+*/
 CMesh::CMesh()
 { // utworzenie pustego obiektu
 #ifdef EU07_USE_OLD_VERTEXBUFFER
@@ -117,7 +117,7 @@ bool CMesh::StartVBO()
     if (m_nVBOVertices)
     {
         glBindBuffer(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
-        glVertexPointer( 3, GL_FLOAT, sizeof(CVertNormTex), static_cast<char *>(nullptr) ); // pozycje
+        glVertexPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) ); // pozycje
 		glNormalPointer( GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // normalne
 		glTexCoordPointer( 2, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 24 ); // wierzchołki
         return true; // można rysować z VBO

@@ -398,14 +398,14 @@ int TSegment::RenderLoft( CVertNormTex* &Output, Math3D::vector3 const &Origin, 
                         ::glVertex3f( pt.x, pt.y, pt.z ); // pt nie mamy gdzie zapamiętać?
                     }
                     else {
-                        Output->x = pt.x;
-                        Output->y = pt.y;
-                        Output->z = pt.z;
-                        Output->nx = norm.x;
-                        Output->ny = norm.y;
-                        Output->nz = norm.z;
-                        Output->u = (jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
-                        Output->v = tv1;
+                        Output->position.x = pt.x;
+                        Output->position.y = pt.y;
+                        Output->position.z = pt.z;
+                        Output->normal.x = norm.x;
+                        Output->normal.y = norm.y;
+                        Output->normal.z = norm.z;
+                        Output->texture.s = (jmm1 * ShapePoints[ j ].z + m1 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
+                        Output->texture.t = tv1;
                         ++Output;
                     }
                     ++vertexcount;
@@ -431,14 +431,14 @@ int TSegment::RenderLoft( CVertNormTex* &Output, Math3D::vector3 const &Origin, 
                         ::glVertex3f( pt.x, pt.y, pt.z );
                     }
                     else {
-                        Output->x = pt.x;
-                        Output->y = pt.y;
-                        Output->z = pt.z;
-                        Output->nx = norm.x;
-                        Output->ny = norm.y;
-                        Output->nz = norm.z;
-                        Output->u = (jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
-                        Output->v = tv2;
+                        Output->position.x = pt.x;
+                        Output->position.y = pt.y;
+                        Output->position.z = pt.z;
+                        Output->normal.x = norm.x;
+                        Output->normal.y = norm.y;
+                        Output->normal.z = norm.z;
+                        Output->texture.s = (jmm2 * ShapePoints[ j ].z + m2 * ShapePoints[ j + iNumShapePoints ].z) / Texturescale;
+                        Output->texture.t = tv2;
                         ++Output;
                     }
                     ++vertexcount;
@@ -468,14 +468,14 @@ int TSegment::RenderLoft( CVertNormTex* &Output, Math3D::vector3 const &Origin, 
                         ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na początku odcinka
                     }
                     else {
-                        Output->x = pt.x;
-                        Output->y = pt.y;
-                        Output->z = pt.z;
-                        Output->nx = norm.x;
-                        Output->ny = norm.y;
-                        Output->nz = norm.z;
-                        Output->u = ShapePoints[ j ].z / Texturescale;
-                        Output->v = tv1;
+                        Output->position.x = pt.x;
+                        Output->position.y = pt.y;
+                        Output->position.z = pt.z;
+                        Output->normal.x = norm.x;
+                        Output->normal.y = norm.y;
+                        Output->normal.z = norm.z;
+                        Output->texture.s = ShapePoints[ j ].z / Texturescale;
+                        Output->texture.t = tv1;
                         ++Output;
                     }
                     ++vertexcount;
@@ -492,14 +492,14 @@ int TSegment::RenderLoft( CVertNormTex* &Output, Math3D::vector3 const &Origin, 
                         ::glVertex3f( pt.x, pt.y, pt.z ); // punkt na końcu odcinka
                     }
                     else {
-                        Output->x = pt.x;
-                        Output->y = pt.y;
-                        Output->z = pt.z;
-                        Output->nx = norm.x;
-                        Output->ny = norm.y;
-                        Output->nz = norm.z;
-                        Output->u = ShapePoints[ j ].z / Texturescale;
-                        Output->v = tv2;
+                        Output->position.x = pt.x;
+                        Output->position.y = pt.y;
+                        Output->position.z = pt.z;
+                        Output->normal.x = norm.x;
+                        Output->normal.y = norm.y;
+                        Output->normal.z = norm.z;
+                        Output->texture.s = ShapePoints[ j ].z / Texturescale;
+                        Output->texture.t = tv2;
                         ++Output;
                     }
                     ++vertexcount;

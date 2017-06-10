@@ -59,9 +59,16 @@ clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
 
 template <typename Type_>
 Type_
-interpolate( Type_ const First, Type_ const Second, float const Factor ) {
+interpolate( Type_ const &First, Type_ const &Second, float const Factor ) {
 
     return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
+template <typename Type_>
+Type_
+interpolate( Type_ const &First, Type_ const &Second, double const Factor ) {
+
+    return ( First * ( 1.0 - Factor ) ) + ( Second * Factor );
 }
 
 //---------------------------------------------------------------------------

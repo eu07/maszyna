@@ -1091,7 +1091,7 @@ void TTrack::Compile(GLuint tex)
         normal2 = normal1;
     }
 
-    auto const origin = pMyNode->m_rootposition;
+    auto const origin { pMyNode->m_rootposition };
 
     double roll1, roll2;
     switch (iCategoryFlag & 15)
@@ -1866,7 +1866,7 @@ void TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int cons
         normal2 = normal1;
     }
 
-    auto const origin = pMyNode->m_rootposition;
+    auto const origin { pMyNode->m_rootposition };
 
     double roll1, roll2;
     switch (iCategoryFlag & 15)
@@ -2302,42 +2302,42 @@ void TTrack::RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int cons
             if (TextureID1) {
                 // jeśli podana tekstura nawierzchni
                 // we start with a vertex in the middle...
-                Vert->nx = 0.0;
-                Vert->ny = 1.0;
-                Vert->nz = 0.0;
-                Vert->u = 0.5;
-                Vert->v = 0.5;
-                Vert->x = oxz.x - origin.x;
-                Vert->y = oxz.y - origin.y;
-                Vert->z = oxz.z - origin.z;
+                Vert->normal.x = 0.0;
+                Vert->normal.y = 1.0;
+                Vert->normal.z = 0.0;
+                Vert->texture.s = 0.5;
+                Vert->texture.t = 0.5;
+                Vert->position.x = oxz.x - origin.x;
+                Vert->position.y = oxz.y - origin.y;
+                Vert->position.z = oxz.z - origin.z;
                 ++Vert;
                 // ...and add one extra vertex to close the fan...
-                Vert->nx = 0.0;
-                Vert->ny = 1.0;
-                Vert->nz = 0.0;
+                Vert->normal.x = 0.0;
+                Vert->normal.y = 1.0;
+                Vert->normal.z = 0.0;
                 // mapowanie we współrzędnych scenerii
                 u = ( SwitchExtension->vPoints[ 0 ].x - oxz.x + origin.x ) / fTexLength;
                 v = ( SwitchExtension->vPoints[ 0 ].z - oxz.z + origin.z ) / ( fTexRatio1 * fTexLength );
-                Vert->u = cosa0 * u + sina0 * v + 0.5;
-                Vert->v = -sina0 * u + cosa0 * v + 0.5;
-                Vert->x = SwitchExtension->vPoints[ 0 ].x;
-                Vert->y = SwitchExtension->vPoints[ 0 ].y;
-                Vert->z = SwitchExtension->vPoints[ 0 ].z;
+                Vert->texture.s = cosa0 * u + sina0 * v + 0.5;
+                Vert->texture.t = -sina0 * u + cosa0 * v + 0.5;
+                Vert->position.x = SwitchExtension->vPoints[ 0 ].x;
+                Vert->position.y = SwitchExtension->vPoints[ 0 ].y;
+                Vert->position.z = SwitchExtension->vPoints[ 0 ].z;
                 ++Vert;
                 // ...then draw the precalculated rest
                 for (i = SwitchExtension->iPoints + SwitchExtension->iRoads - 1; i >= 0; --i)
                 {
-                    Vert->nx = 0.0;
-                    Vert->ny = 1.0;
-                    Vert->nz = 0.0;
+                    Vert->normal.x = 0.0;
+                    Vert->normal.y = 1.0;
+                    Vert->normal.z = 0.0;
                     // mapowanie we współrzędnych scenerii
                     u = (SwitchExtension->vPoints[i].x - oxz.x + origin.x ) / fTexLength;
                     v = (SwitchExtension->vPoints[i].z - oxz.z + origin.z ) / (fTexRatio1 * fTexLength);
-                    Vert->u =  cosa0 * u + sina0 * v + 0.5;
-                    Vert->v = -sina0 * u + cosa0 * v + 0.5;
-                    Vert->x = SwitchExtension->vPoints[ i ].x;
-                    Vert->y = SwitchExtension->vPoints[ i ].y;
-                    Vert->z = SwitchExtension->vPoints[ i ].z;
+                    Vert->texture.s =  cosa0 * u + sina0 * v + 0.5;
+                    Vert->texture.t = -sina0 * u + cosa0 * v + 0.5;
+                    Vert->position.x = SwitchExtension->vPoints[ i ].x;
+                    Vert->position.y = SwitchExtension->vPoints[ i ].y;
+                    Vert->position.z = SwitchExtension->vPoints[ i ].z;
                     ++Vert;
                 }
             }
@@ -2894,7 +2894,7 @@ TTrack * TTrack::RaAnimate(GLuint const Vertexbuffer)
                         bladesbuffer.data() );
 */
                     auto bladevertices = bladesbuffer.data();
-                    auto const origin = pMyNode->m_rootposition;
+                    auto const origin { pMyNode->m_rootposition };
                     if( SwitchExtension->RightSwitch ) { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
                         SwitchExtension->Segments[ 0 ]->RenderLoft( bladevertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 /*, true*/ );
                         SwitchExtension->Segments[ 1 ]->RenderLoft( bladevertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 /*, true*/ );

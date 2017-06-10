@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #define EU07_USE_OLD_VERTEXBUFFER
 
 //---------------------------------------------------------------------------
+/*
 class CVertNormTex
 {
   public:
@@ -29,6 +30,8 @@ class CVertNormTex
 	void deserialize(std::istream&);
 	void serialize(std::ostream&);
 };
+*/
+typedef basic_vertex CVertNormTex;
 
 class CMesh
 { // wsparcie dla VBO

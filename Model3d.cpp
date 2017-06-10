@@ -177,12 +177,19 @@ template <typename ColorT> inline void readColor(cParser &parser, ColorT *color)
     color[ 2 ] /= 255.0;
 };
 
-inline void readColor(cParser &parser, int &color)
+inline void readColor(cParser &parser, glm::vec4 &color)
 {
-	int r, g, b, discard;
+	int discard;
 	parser.getTokens(4, false);
-	parser >> discard >> r >> g >> b;
+	parser
+        >> discard
+        >> color.r
+        >> color.g
+        >> color.b;
+    color /= 255.0f;
+/*
 	color = r + (g << 8) + (b << 16);
+*/
 };
 /*
 inline void readMatrix(cParser& parser,matrix4x4& matrix)
@@ -620,7 +627,7 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
     return s->iNumVerts - tri; // zwraca pozycję tych trójkątów w submodelu
 };
 
-basic_vertex *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
+basic_vertex *TSubModel::TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane
   // przy tworzeniu E3D terenu
 	TSubModel *s = this;
@@ -639,7 +646,7 @@ basic_vertex *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls
 		s->iVboPtr = iInstance; // pozycja submodelu w tabeli wierzchołków
 		iInstance += s->iNumVerts; // pozycja dla następnego
 	}
-	s->ColorsSet(la, ld, ls); // ustawienie kolorów świateł
+	s->ColorsSet(Ambient, Diffuse, Specular); // ustawienie kolorów świateł
 	return s->Vertices + pos; // wskaźnik na wolne miejsce w tabeli wierzchołków
 };
 
@@ -1038,20 +1045,24 @@ void TSubModel::RaArrayFill(CVertNormTex *Vert)
 { // wypełnianie tablic VBO
 	if (Child)
 		Child->RaArrayFill(Vert);
-	if ((eType < TP_ROTATOR) || (eType == TP_STARS))
-		for (int i = 0; i < iNumVerts; ++i)
-		{
-			Vert[iVboPtr + i].x = Vertices[i].position.x;
-			Vert[iVboPtr + i].y = Vertices[i].position.y;
-			Vert[iVboPtr + i].z = Vertices[i].position.z;
-			Vert[iVboPtr + i].nx = Vertices[i].normal.x;
-			Vert[iVboPtr + i].ny = Vertices[i].normal.y;
-			Vert[iVboPtr + i].nz = Vertices[i].normal.z;
-			Vert[iVboPtr + i].u = Vertices[i].texture.s;
-			Vert[iVboPtr + i].v = Vertices[i].texture.t;
-		}
-	else if (eType == TP_FREESPOTLIGHT)
-		Vert[iVboPtr].x = Vert[iVboPtr].y = Vert[iVboPtr].z = 0.0;
+    if( ( eType < TP_ROTATOR ) || ( eType == TP_STARS ) )
+        for( int i = 0; i < iNumVerts; ++i ) {
+            Vert[ iVboPtr + i ].position = Vertices[ i ].position;
+            Vert[ iVboPtr + i ].normal = Vertices[ i ].normal;
+            Vert[ iVboPtr + i ].texture = Vertices[ i ].texture;
+/*
+            Vert[iVboPtr + i].x = Vertices[i].position.x;
+            Vert[iVboPtr + i].y = Vertices[i].position.y;
+            Vert[iVboPtr + i].z = Vertices[i].position.z;
+            Vert[iVboPtr + i].nx = Vertices[i].normal.x;
+            Vert[iVboPtr + i].ny = Vertices[i].normal.y;
+            Vert[iVboPtr + i].nz = Vertices[i].normal.z;
+            Vert[iVboPtr + i].u = Vertices[i].texture.s;
+            Vert[iVboPtr + i].v = Vertices[i].texture.t;
+*/
+        }
+    else if( eType == TP_FREESPOTLIGHT )
+        Vert[ iVboPtr ].position = glm::vec3();
 	if (Next)
 		Next->RaArrayFill(Vert);
 };
@@ -1073,9 +1084,13 @@ void TSubModel::AdjustDist()
 		Next->AdjustDist();
 };
 
-void TSubModel::ColorsSet(int *a, int *d, int *s)
+void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // ustawienie kolorów dla modelu terenu
-	int i;
+    f4Ambient = glm::vec4( Ambient, 1.0f );
+    f4Diffuse = glm::vec4( Diffuse, 1.0f );
+    f4Specular = glm::vec4( Specular, 1.0f );
+/*
+    int i;
 	if (a)
 		for (i = 0; i < 4; ++i)
 			f4Ambient[i] = a[i] / 255.0;
@@ -1085,6 +1100,7 @@ void TSubModel::ColorsSet(int *a, int *d, int *s)
 	if (s)
 		for (i = 0; i < 4; ++i)
 			f4Specular[i] = s[i] / 255.0;
+*/
 };
 
 void TSubModel::ParentMatrix(float4x4 *m)
@@ -1429,13 +1445,13 @@ void TSubModel::deserialize(std::istream &s)
 	fVisible = sn_utils::ld_float32(s);
 	fLight = sn_utils::ld_float32(s);
 
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Ambient[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Diffuse[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Specular[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Emision[i] = sn_utils::ld_float32(s);
 
 	fWireSize = sn_utils::ld_float32(s);
@@ -1828,28 +1844,17 @@ TSubModel *TModel3d::TerrainSquare(int n)
 	r->UnFlagNext(); // blokowanie wyświetlania po Next głównej listy
 	return r;
 };
+#ifdef EU07_USE_OLD_RENDERCODE
 void TModel3d::TerrainRenderVBO(int n)
 { // renderowanie terenu z VBO
-	glPushMatrix();
+	::glPushMatrix();
     ::glTranslated( -Global::pCameraPosition.x, -Global::pCameraPosition.y, -Global::pCameraPosition.z );
-
-	// glTranslated(vPosition->x,vPosition->y,vPosition->z);
-	// if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
-	// if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
-	// if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
-	// TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
-	// //zmienna globalna!
-	if (StartVBO())
-	{ // odwrócenie flag, aby wyłapać nieprzezroczyste
-	  // Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
-		TSubModel *r = Root;
-		while (r)
-		{
-			if (r->iVisible == n) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
-				GfxRenderer.Render(r); // sub kolejne (Next) się nie wyrenderują
-			r = r->NextGet();
-		}
-		EndVBO();
-	}
-	glPopMatrix();
+    TSubModel *r = Root;
+    while( r ) {
+        if( r->iVisible == n ) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
+            GfxRenderer.Render( r ); // sub kolejne (Next) się nie wyrenderują
+        r = r->NextGet();
+    }
+    ::glPopMatrix();
 };
+#endif

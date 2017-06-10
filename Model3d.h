@@ -92,10 +92,11 @@ private:
 	int iTexture; // numer nazwy tekstury, -1 wymienna, 0 brak
 	float fVisible; // próg jasności światła do załączenia submodelu
 	float fLight; // próg jasności światła do zadziałania selfillum
-	float f4Ambient[4];
-	float f4Diffuse[4]; // float ze względu na glMaterialfv()
-	float f4Specular[4];
-	float f4Emision[4];
+	glm::vec4
+        f4Ambient,
+        f4Diffuse,
+        f4Specular,
+        f4Emision;
 	float fWireSize; // nie używane, ale wczytywane
 	float fSquareMaxDist;
 	float fSquareMinDist;
@@ -156,7 +157,7 @@ public:
 	TSubModel * NextGet() { return Next; };
 	TSubModel * ChildGet() { return Child; };
 	int TriangleAdd(TModel3d *m, texture_handle tex, int tri);
-	basic_vertex * TrianglePtr(int tex, int pos, int *la, int *ld, int *ls);
+	basic_vertex * TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ(vector3 vNewAngles);
 	void SetRotateXYZ(float3 vNewAngles);
@@ -189,7 +190,7 @@ public:
 	// Ra: funkcje do budowania terenu z E3D
 	int Flags() { return iFlags; };
 	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
-	void ColorsSet(int *a, int *d, int *s);
+	void ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
 	inline float3 Translation1Get()
 	{
 		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector;
@@ -247,7 +248,9 @@ public:
 	std::string NameGet() { return m_filename; };
 	int TerrainCount();
 	TSubModel * TerrainSquare(int n);
-	void TerrainRenderVBO(int n);
+#ifdef EU07_USE_OLD_RENDERCODE
+    void TerrainRenderVBO(int n);
+#endif
 	void deserialize(std::istream &s, size_t size, bool dynamic);
 };
 

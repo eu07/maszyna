@@ -23,20 +23,27 @@ http://mozilla.org/MPL/2.0/.
 
 using namespace Math3D;
 
+typedef int TGroundNodeType;
 // Ra: zmniejszone liczby, aby zrobić tabelkę i zoptymalizować wyszukiwanie
 const int TP_MODEL = 10;
+/*
 const int TP_MESH = 11; // Ra: specjalny obiekt grupujący siatki dla tekstury
 const int TP_DUMMYTRACK = 12; // Ra: zdublowanie obiektu toru dla rozdzielenia tekstur
+*/
 const int TP_TERRAIN = 13; // Ra: specjalny model dla terenu
 const int TP_DYNAMIC = 14;
 const int TP_SOUND = 15;
 const int TP_TRACK = 16;
-// const int TP_GEOMETRY=17;
+/*
+const int TP_GEOMETRY=17;
+*/
 const int TP_MEMCELL = 18;
 const int TP_EVLAUNCH = 19; // MC
 const int TP_TRACTION = 20;
 const int TP_TRACTIONPOWERSOURCE = 21; // MC
-// const int TP_ISOLATED=22; //Ra
+/*
+const int TP_ISOLATED=22; //Ra
+*/
 const int TP_SUBMODEL = 22; // Ra: submodele terenu
 const int TP_LAST = 25; // rozmiar tablicy
 
@@ -64,37 +71,28 @@ struct DaneRozkaz2
 	};
 };
 
-typedef int TGroundNodeType;
-
 struct TGroundVertex
 {
-    vector3 Point;
-    vector3 Normal;
-    float tu{ 0.0f }, tv{ 0.0f };
+    glm::dvec3 position;
+    glm::vec3 normal;
+    glm::vec2 texture;
+
     void HalfSet(const TGroundVertex &v1, const TGroundVertex &v2)
     { // wyliczenie współrzędnych i mapowania punktu na środku odcinka v1<->v2
-        Point = 0.5 * (v1.Point + v2.Point);
-        Normal = 0.5 * (v1.Normal + v2.Normal);
-        tu = 0.5 * (v1.tu + v2.tu);
-        tv = 0.5 * (v1.tv + v2.tv);
+        interpolate_( v1, v2, 0.5 );
     }
     void SetByX(const TGroundVertex &v1, const TGroundVertex &v2, double x)
     { // wyliczenie współrzędnych i mapowania punktu na odcinku v1<->v2
-        double i = (x - v1.Point.x) / (v2.Point.x - v1.Point.x); // parametr równania
-        double j = 1.0 - i;
-        Point = j * v1.Point + i * v2.Point;
-        Normal = j * v1.Normal + i * v2.Normal;
-        tu = j * v1.tu + i * v2.tu;
-        tv = j * v1.tv + i * v2.tv;
+        interpolate_( v1, v2, ( x - v1.position.x ) / ( v2.position.x - v1.position.x ) );
     }
     void SetByZ(const TGroundVertex &v1, const TGroundVertex &v2, double z)
     { // wyliczenie współrzędnych i mapowania punktu na odcinku v1<->v2
-        double i = (z - v1.Point.z) / (v2.Point.z - v1.Point.z); // parametr równania
-        double j = 1.0 - i;
-        Point = j * v1.Point + i * v2.Point;
-        Normal = j * v1.Normal + i * v2.Normal;
-        tu = j * v1.tu + i * v2.tu;
-        tv = j * v1.tv + i * v2.tv;
+        interpolate_( v1, v2, ( z - v1.position.z ) / ( v2.position.z - v1.position.z ) );
+    }
+    void interpolate_( const TGroundVertex &v1, const TGroundVertex &v2, double factor ) {
+        position = interpolate( v1.position, v2.position, factor );
+        normal = interpolate( v1.normal, v2.normal, static_cast<float>( factor ) );
+        texture = interpolate( v1.texture, v2.texture, static_cast<float>( factor ) );
     }
 };
 
@@ -103,8 +101,11 @@ class TGroundNode : public Resource
 
     friend class opengl_renderer;
 
-private:
 public:
+    TGroundNode *nNext; // lista wszystkich w scenerii, ostatni na początku
+    TGroundNode *nNext2; // lista obiektów w sektorze
+    TGroundNode *nNext3; // lista obiektów renderowanych we wspólnym cyklu
+    std::string asName; // nazwa (nie zawsze ma znaczenie)
     TGroundNodeType iType; // typ obiektu
     union
     { // Ra: wskażniki zależne od typu - zrobić klasy dziedziczone zamiast
@@ -112,7 +113,7 @@ public:
         TSubModel *smTerrain; // modele terenu (kwadratow kilometrowych)
         TAnimModel *Model; // model z animacjami
         TDynamicObject *DynamicObject; // pojazd
-        vector3 *Points; // punkty dla linii
+        glm::dvec3 *Points; // punkty dla linii
         TTrack *pTrack; // trajektoria ruchu
         TGroundVertex *Vertices; // wierzchołki dla trójkątów
         TMemCell *MemCell; // komórka pamięci
@@ -122,39 +123,35 @@ public:
         TTextSound *tsStaticSound; // dźwięk przestrzenny
         TGroundNode *nNode; // obiekt renderujący grupowo ma tu wskaźnik na listę obiektów
     };
-    std::string asName; // nazwa (nie zawsze ma znaczenie)
-
-    vector3 pCenter; // współrzędne środka do przydzielenia sektora
-    vector3 m_rootposition; // position of the ground (sub)rectangle holding the node, in the 3d world
+    Math3D::vector3 pCenter; // współrzędne środka do przydzielenia sektora
+    glm::dvec3 m_rootposition; // position of the ground (sub)rectangle holding the node, in the 3d world
     // visualization-related data
     // TODO: wrap these in a struct, when cleaning objects up
+    double fSquareMinRadius; // kwadrat widoczności od
+    double fSquareRadius; // kwadrat widoczności do
     union
     {
         int iNumVerts; // dla trójkątów
         int iNumPts; // dla linii
         int iCount; // dla terenu
     };
-    double fLineThickness; // McZapkie-120702: grubosc linii
-    double fSquareRadius; // kwadrat widoczności do
-    double fSquareMinRadius; // kwadrat widoczności od
     int iVersion; // wersja siatki (do wykonania rekompilacji)
-    // union ?
     GLuint DisplayListID; // numer siatki DisplayLists
-    bool PROBLEND;
     int iVboPtr; // indeks w buforze VBO
-    texture_handle TextureID; // główna (jedna) tekstura obiektu
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
-    int Ambient[4], Diffuse[4], Specular[4]; // oświetlenie
+    texture_handle TextureID; // główna (jedna) tekstura obiektu
+    glm::vec3
+        Ambient{ 1.0f, 1.0f, 1.0f },
+        Diffuse{ 1.0f, 1.0f, 1.0f },
+        Specular{ 1.0f, 1.0f, 1.0f }; // oświetlenie
+    double fLineThickness; // McZapkie-120702: grubosc linii
+    bool PROBLEND;
     bool bVisible;
 
-    TGroundNode *nNext; // lista wszystkich w scenerii, ostatni na początku
-    TGroundNode *nNext2; // lista obiektów w sektorze
-    TGroundNode *nNext3; // lista obiektów renderowanych we wspólnym cyklu
     TGroundNode();
     TGroundNode(TGroundNodeType t, int n = 0);
     ~TGroundNode();
     void Init(int n);
-    void InitCenter(); // obliczenie współrzędnych środka
     void InitNormals();
 
     // bool Disable();
@@ -167,19 +164,20 @@ public:
         return NULL;
     };
 
-    void Compile(Math3D::vector3 const &Origin, bool const Multiple = false);
+    void Compile(glm::dvec3 const &Origin, bool const Multiple = false);
     void Release();
 
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
+#ifdef EU07_USE_OLD_RENDERCODE
     // (McZapkie-131202)
     void RaRenderVBO(); // renderowanie (nieprzezroczystych) ze wspólnego VBO
-
+#endif
 };
 
 struct bounding_area {
 
     glm::vec3 center; // mid point of the rectangle
-    float radius{ 0.0f }; // radius of the bounding sphere
+    float radius { 0.0f }; // radius of the bounding sphere
 };
 
 class TSubRect : public Resource, public CMesh
@@ -190,8 +188,10 @@ class TSubRect : public Resource, public CMesh
     TTrack **tTracks = nullptr; // tory do renderowania pojazdów
   protected:
     TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
+#ifdef EU07_USE_OLD_RENDERCODE
     TGroundNode *nRootMesh = nullptr; // obiekty renderujące wg tekstury (wtórne, lista po nNext2)
     TGroundNode *nMeshed = nullptr; // lista obiektów dla których istnieją obiekty renderujące grupowo
+#endif
   public:
     TGroundNode *nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
     TGroundNode *nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
@@ -211,10 +211,9 @@ class TSubRect : public Resource, public CMesh
     virtual ~TSubRect();
     virtual void Release(); // zwalnianie VBO sektora
     void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
-    void RaNodeAdd(TGroundNode *Node); // dodanie obiektu do listy renderowania
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
-    TTraction * FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude);
+    TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude);
     bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
     void RaAnimate(); // przeliczenie animacji torów
@@ -311,8 +310,8 @@ class TGround
     bool InitEvents();
     bool InitLaunchers();
     TTrack * FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude);
-    TTraction * FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude);
-    TTraction * TractionNearestFind(vector3 &p, int dir, TGroundNode *n);
+    TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TGroundNode *Exclude);
+    TTraction * TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n);
     TGroundNode * AddGroundNode(cParser *parser);
     void UpdatePhys(double dt, int iter); // aktualizacja fizyki stałym krokiem
     bool Update(double dt, int iter); // aktualizacja przesunięć zgodna z FPS
