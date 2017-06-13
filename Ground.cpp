@@ -2840,17 +2840,6 @@ TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclud
             if ((tmp = sr->FindTrack(&Point, iConnection, Exclude->pTrack)) != NULL)
                 return tmp;
     }
-#if 0
- //wyszukiwanie czołgowe (po wszystkich jak leci) - nie ma chyba sensu
- for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
- {
-  if ((Current->iType==TP_TRACK) && (Current!=Exclude))
-  {
-   iConnection=Current->pTrack->TestPoint(&Point);
-   if (iConnection>=0) return Current->pTrack;
-  }
- }
-#endif
     return NULL;
 }
 
@@ -2946,22 +2935,21 @@ TTraction * TGround::TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n)
 
 bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
-    if (Event->bEnabled) // jeśli może być dodany do kolejki (nie używany w skanowaniu)
-        if (!Event->iQueued) // jeśli nie dodany jeszcze do kolejki
+    if( Event->bEnabled ) {
+        // jeśli może być dodany do kolejki (nie używany w skanowaniu)
+        if( !Event->iQueued ) // jeśli nie dodany jeszcze do kolejki
         { // kolejka eventów jest posortowana względem (fStartTime)
             Event->Activator = Node;
-            if (Event->Type == tp_AddValues ? (Event->fDelay == 0.0) : false)
-            { // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić
-                // jakieś dodawanie
+            if( ( Event->Type == tp_AddValues )
+             && ( Event->fDelay == 0.0 ) ) {
+                // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
                 // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
                 // wykonującą eventy i ją wywołać
-                if (EventConditon(Event))
-                { // teraz mogą być warunki do tych eventów
-                    Event->Params[5].asMemCell->UpdateValues(
-                        Event->Params[0].asText, Event->Params[1].asdouble,
-                        Event->Params[2].asdouble, Event->iFlags);
-                    if (Event->Params[6].asTrack)
-                    { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
+                if( EventConditon( Event ) ) { // teraz mogą być warunki do tych eventów
+                    Event->Params[ 5 ].asMemCell->UpdateValues(
+                        Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
+                        Event->Params[ 2 ].asdouble, Event->iFlags );
+                    if( Event->Params[ 6 ].asTrack ) { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
                         for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
                             Event->Params[ 5 ].asMemCell->PutCommand(
@@ -2969,39 +2957,47 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
                                 &Event->Params[ 4 ].nGroundNode->pCenter );
                         }
                         //if (DebugModeFlag)
-                            WriteLog("EVENT EXECUTED: AddValues & Track command - " +
-                                     std::string(Event->Params[0].asText) + " " +
-                                     std::to_string(Event->Params[1].asdouble) + " " +
-                                     std::to_string(Event->Params[2].asdouble));
+                        WriteLog(
+                            "EVENT EXECUTED" + ( Node ? ( " by " + Node->asName ) : "" ) + ": AddValues & Track command ( "
+                            + std::string( Event->Params[ 0 ].asText ) + " "
+                            + std::to_string( Event->Params[ 1 ].asdouble ) + " "
+                            + std::to_string( Event->Params[ 2 ].asdouble ) + " )" );
                     }
                     //else if (DebugModeFlag)
-                        WriteLog("EVENT EXECUTED: AddValues - " +
-                                 std::string(Event->Params[0].asText) + " " +
-                                 std::to_string(Event->Params[1].asdouble) + " " +
-                                 std::to_string(Event->Params[2].asdouble));
+                    WriteLog(
+                        "EVENT EXECUTED" + ( Node ? ( " by " + Node->asName ) : "" ) + ": AddValues ( "
+                        + std::string( Event->Params[ 0 ].asText ) + " "
+                        + std::to_string( Event->Params[ 1 ].asdouble ) + " "
+                        + std::to_string( Event->Params[ 2 ].asdouble ) + " )" );
                 }
-                Event =
-                    Event
-                        ->evJoined; // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki
+                // jeśli jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
+                do {
+                    Event = Event->evJoined;
+                    // NOTE: we could've received a new event from joint event above, so we need to check conditions just in case and discard the bad events
+                    // TODO: refactor this arrangement, it's hardly optimal
+                } while( ( Event != nullptr )
+                    && ( ( false == Event->bEnabled )
+                      || ( Event->iQueued > 0 ) ) );
             }
-            if (Event)
-            { // standardowe dodanie do kolejki
-                WriteLog("EVENT ADDED TO QUEUE: " + Event->asName + (Node ? (" by " + Node->asName) : ""));
-                Event->fStartTime =
-                    fabs(Event->fDelay) + Timer::GetTime(); // czas od uruchomienia scenerii
-                if (Event->fRandomDelay > 0.0)
-                    Event->fStartTime += Event->fRandomDelay * Random(10000) *
-                                         0.0001; // doliczenie losowego czasu opóźnienia
+            if( Event != nullptr ) {
+                // standardowe dodanie do kolejki
                 ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
-                if (QueryRootEvent ? Event->fStartTime >= QueryRootEvent->fStartTime : false)
-                    QueryRootEvent->AddToQuery(Event); // dodanie gdzieś w środku
-                else
-                { // dodanie z przodu: albo nic nie ma, albo ma być wykonany szybciej niż pierwszy
-                    Event->evNext = QueryRootEvent;
+                WriteLog( "EVENT ADDED TO QUEUE" + ( Node ? ( " by " + Node->asName ) : "" ) + ": " + Event->asName );
+                Event->fStartTime = std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+                if( Event->fRandomDelay > 0.0 ) {
+                    // doliczenie losowego czasu opóźnienia
+                    Event->fStartTime += Event->fRandomDelay * Random( 10000 ) * 0.0001;
+                }
+                if( QueryRootEvent != nullptr ) {
+                    TEvent::AddToQuery( Event, QueryRootEvent );
+                }
+                else {
                     QueryRootEvent = Event;
+                    QueryRootEvent->evNext = nullptr;
                 }
             }
         }
+    }
     return true;
 }
 
@@ -3078,69 +3074,25 @@ bool TGround::CheckQuery()
 { // sprawdzenie kolejki eventów oraz wykonanie tych, którym czas minął
     TLocation loc;
     int i;
-    /* //Ra: to w ogóle jakiś chory kod jest; wygląda jak wyszukanie eventu z najlepszym czasem
-     Double evtime,evlowesttime; //Ra: co to za typ?
-     //evlowesttime=1000000;
-     if (QueryRootEvent)
-     {
-      OldQRE=QueryRootEvent;
-      tmpEvent=QueryRootEvent;
-     }
-     if (QueryRootEvent)
-     {
-      for (i=0;i<90;++i)
-      {
-       evtime=((tmpEvent->fStartTime)-(Timer::GetTime())); //pobranie wartości zmiennej
-       if (evtime<evlowesttime)
-       {
-        evlowesttime=evtime;
-        tmp2Event=tmpEvent;
-       }
-       if (tmpEvent->Next)
-        tmpEvent=tmpEvent->Next;
-       else
-        i=100;
-      }
-      if (OldQRE!=tmp2Event)
-      {
-       QueryRootEvent->AddToQuery(QueryRootEvent);
-       QueryRootEvent=tmp2Event;
-      }
-     }
-    */
-    /*
-     if (QueryRootEvent)
-     {//wypisanie kolejki
-      tmpEvent=QueryRootEvent;
-      WriteLog("--> Event queue:");
-      while (tmpEvent)
-      {
-       WriteLog(tmpEvent->asName+" "+AnsiString(tmpEvent->fStartTime));
-       tmpEvent=tmpEvent->Next;
-      }
-     }
-    */
-    while (QueryRootEvent ? QueryRootEvent->fStartTime < Timer::GetTime() : false)
+    while( ( QueryRootEvent != nullptr )
+        && ( QueryRootEvent->fStartTime < Timer::GetTime() ) )
     { // eventy są posortowana wg czasu wykonania
         tmpEvent = QueryRootEvent; // wyjęcie eventu z kolejki
         if (QueryRootEvent->evJoined) // jeśli jest kolejny o takiej samej nazwie
         { // to teraz on będzie następny do wykonania
             QueryRootEvent = QueryRootEvent->evJoined; // następny będzie ten doczepiony
             QueryRootEvent->evNext = tmpEvent->evNext; // pamiętając o następnym z kolejki
-            QueryRootEvent->fStartTime =
-                tmpEvent->fStartTime; // czas musi być ten sam, bo nie jest aktualizowany
+            QueryRootEvent->fStartTime = tmpEvent->fStartTime; // czas musi być ten sam, bo nie jest aktualizowany
             QueryRootEvent->Activator = tmpEvent->Activator; // pojazd aktywujący
-            // w sumie można by go dodać normalnie do kolejki, ale trzeba te połączone posortować wg
-            // czasu wykonania
+            QueryRootEvent->iQueued = 1;
+            // w sumie można by go dodać normalnie do kolejki, ale trzeba te połączone posortować wg czasu wykonania
         }
         else // a jak nazwa jest unikalna, to kolejka idzie dalej
             QueryRootEvent = QueryRootEvent->evNext; // NULL w skrajnym przypadku
         if (tmpEvent->bEnabled)
         { // w zasadzie te wyłączone są skanowane i nie powinny się nigdy w kolejce znaleźć
-            WriteLog("EVENT LAUNCHED: " + tmpEvent->asName +
-                     (tmpEvent->Activator ?
-                        std::string(" by " + tmpEvent->Activator->asName) :
-                        "" ));
+            --tmpEvent->iQueued; // teraz moze być ponownie dodany do kolejki
+            WriteLog( "EVENT LAUNCHED" + ( tmpEvent->Activator ? ( " by " + tmpEvent->Activator->asName ) : "" ) + ": " + tmpEvent->asName );
             switch (tmpEvent->Type)
             {
             case tp_CopyValues: // skopiowanie wartości z innej komórki
@@ -3302,29 +3254,20 @@ bool TGround::CheckQuery()
                                    conditional_anyelse)) // warunek spelniony albo było użyte else
                 {
                     WriteLog("Multiple passed");
-                    for (i = 0; i < 8; ++i)
-                    { // dodawane do kolejki w kolejności zapisania
-                        if (tmpEvent->Params[i].asEvent)
-                            if (bCondition != (((tmpEvent->iFlags & (conditional_else << i)) != 0)))
-                            {
-                                if (tmpEvent->Params[i].asEvent != tmpEvent)
-                                    AddToQuery(tmpEvent->Params[i].asEvent,
-                                               tmpEvent->Activator); // normalnie dodać
-                                else // jeśli ma być rekurencja
-                                    if (tmpEvent->fDelay >=
-                                        5.0) // to musi mieć sensowny okres powtarzania
-                                    if (tmpEvent->iQueued < 2)
-                                    { // trzeba zrobić wyjątek, aby event mógł się sam dodać do
-                                        // kolejki, raz już jest, ale będzie usunięty
-                                        // pętla eventowa może być uruchomiona wiele razy, ale tylko
-                                        // pierwsze uruchomienie zadziała
-                                        tmpEvent->iQueued =
-                                            0; // tymczasowo, aby był ponownie dodany do kolejki
-                                        AddToQuery(tmpEvent, tmpEvent->Activator);
-                                        tmpEvent->iQueued =
-                                            2; // kolejny raz już absolutnie nie dodawać
+                    for (i = 0; i < 8; ++i) {
+                        // dodawane do kolejki w kolejności zapisania
+                        if( tmpEvent->Params[ i ].asEvent ) {
+                            if( bCondition != ( ( ( tmpEvent->iFlags & ( conditional_else << i ) ) != 0 ) ) ) {
+                                if( tmpEvent->Params[ i ].asEvent != tmpEvent )
+                                    AddToQuery( tmpEvent->Params[ i ].asEvent, tmpEvent->Activator ); // normalnie dodać
+                                else {
+                                    // jeśli ma być rekurencja to musi mieć sensowny okres powtarzania
+                                    if( tmpEvent->fDelay >= 5.0 ) {
+                                        AddToQuery( tmpEvent, tmpEvent->Activator );
                                     }
+                                }
                             }
+                        }
                     }
                     if (Global::iMultiplayer) // dajemy znać do serwera o wykonaniu
                         if ((tmpEvent->iFlags & conditional_anyelse) ==
@@ -3407,22 +3350,6 @@ bool TGround::CheckQuery()
                 break;
             } // switch (tmpEvent->Type)
         } // if (tmpEvent->bEnabled)
-        --tmpEvent->iQueued; // teraz moze być ponownie dodany do kolejki
-        /*
-          if (QueryRootEvent->eJoined) //jeśli jest kolejny o takiej samej nazwie
-          {//to teraz jego dajemy do wykonania
-           QueryRootEvent->eJoined->Next=QueryRootEvent->Next; //pamiętając o następnym z kolejki
-           QueryRootEvent->eJoined->fStartTime=QueryRootEvent->fStartTime; //czas musi być ten sam,
-          bo nie jest aktualizowany
-           //QueryRootEvent->fStartTime=0;
-           QueryRootEvent=QueryRootEvent->eJoined; //a wykonać ten doczepiony
-          }
-          else
-          {//a jak nazwa jest unikalna, to kolejka idzie dalej
-           //QueryRootEvent->fStartTime=0;
-           QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku
-          }
-        */
     } // while
     return true;
 }
@@ -3652,10 +3579,11 @@ bool TGround::GetTraction(TDynamicObject *model)
                                     vParam =
                                         node->hvTraction
                                             ->vParametric; // współczynniki równania parametrycznego
-                                    fRaParam = -glm::dot(pant0, vFront);
-                                    fRaParam = -(glm::dot(node->hvTraction->pPoint1, vFront) +
-                                                 fRaParam) /
-                                               glm::dot(vParam, vFront);
+                                    fRaParam = -DotProduct(pant0, vFront);
+                                    auto const paramfrontdot = DotProduct( vParam, vFront );
+                                    fRaParam =
+                                        -( DotProduct( node->hvTraction->pPoint1, vFront ) + fRaParam )
+                                        / ( paramfrontdot != 0.0 ? paramfrontdot : 0.001 ); // div0 trap
                                     if ((fRaParam >= -0.001) ? (fRaParam <= 1.001) : false)
                                     { // jeśli tylko jest w przedziale, wyznaczyć odległość wzdłuż
                                         // wektorów vUp i vLeft
