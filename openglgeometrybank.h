@@ -18,13 +18,29 @@ http://mozilla.org/MPL/2.0/.
 #endif
 
 struct basic_vertex {
+
     glm::vec3 position; // 3d space
     glm::vec3 normal; // 3d space
     glm::vec2 texture; // uv space
 
+    basic_vertex() = default;
+    basic_vertex( glm::vec3 const&Position, glm::vec3 const &Normal, glm::vec2 const &Texture ) :
+                        position( Position ),        normal( Normal ),       texture( Texture )
+    {}
     void serialize( std::ostream& );
     void deserialize( std::istream& );
 };
+
+// data streams carried in a vertex
+enum stream {
+    position = 0x1,
+    normal = 0x2,
+    color = 0x4, // currently normal and colour streams are stored in the same slot, and mutually exclusive
+    texture = 0x8
+};
+
+unsigned int const basic_streams { stream::position | stream::normal | stream::texture };
+unsigned int const color_streams{ stream::position | stream::color | stream::texture };
 
 typedef std::vector<basic_vertex> vertex_array;
 
@@ -40,12 +56,20 @@ struct geometry_handle {
     {}
 // methods
     inline
-    operator std::uint32_t() const {
-        return bank << 12 | chunk; }
+    operator std::uint64_t() const {
+/*
+        return bank << 14 | chunk; }
+*/
+        return bank << 32 | chunk; }
+
 // members
+/*
     std::uint32_t
-        bank  : 20, // 1 mil banks
-        chunk : 12; // 4 k chunks per bank
+        bank  : 18, // 250k banks
+        chunk : 14; // 16k chunks per bank
+*/
+    std::uint32_t bank;
+    std::uint32_t chunk;
 };
 
 class geometry_bank {
@@ -62,7 +86,7 @@ public:
 // methods:
     // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk or NULL
     geometry_handle
-        create( vertex_array &Vertices, int const Type );
+        create( vertex_array &Vertices, unsigned int const Type, unsigned int const Streams = stream::position | stream::normal | stream::texture );
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
         replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
@@ -83,11 +107,12 @@ public:
 protected:
 // types:
     struct geometry_chunk {
-        int type; // kind of geometry used by the chunk
+        unsigned int streams; // data streams carried by vertices
+        unsigned int type; // kind of geometry used by the chunk
         vertex_array vertices; // geometry data
 
-        geometry_chunk( vertex_array &Vertices, int const Type ) :
-                            vertices( Vertices ),   type( Type )
+        geometry_chunk( vertex_array &Vertices, unsigned int const Type, unsigned int const Streams ) :
+                            vertices( Vertices ),            type( Type ),         streams( Streams )
         {}
     };
 
@@ -121,9 +146,14 @@ private:
 class opengl_vbogeometrybank : public geometry_bank {
 
 public:
-// methods:
+// destructor
     ~opengl_vbogeometrybank() {
         delete_buffer(); }
+// methods:
+    static
+    void
+        reset() {
+            m_activebuffer = 0; }
 
 private:
 // types:
@@ -217,6 +247,12 @@ public:
     // draws geometry stored in specified chunk
     void
         draw( geometry_handle const &Geometry );
+    template <typename Iterator_>
+    void
+        draw( Iterator_ First, Iterator_ Last ) {
+        while( First != Last ) { 
+            draw( *First );
+            ++First; } }
     // provides direct access to vertex data of specfied chunk
     vertex_array const &
         vertices( geometry_handle const &Geometry ) const;

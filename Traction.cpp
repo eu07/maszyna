@@ -358,7 +358,7 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
             }
             t->psPower[d] = ps; // skopiowanie wskaźnika zasilacza od danej strony
             t->fResistance[d] = r; // wpisanie rezystancji w kierunku tego zasilacza
-            r += t->fResistivity * glm::dot(t->vParametric, t->vParametric ); // doliczenie oporu kolejnego odcinka
+            r += t->fResistivity * glm::length(t->vParametric); // doliczenie oporu kolejnego odcinka
             p = t; // zapamiętanie dotychczasowego
             t = p->hvNext[d ^ 1]; // podążanie w tę samą stronę
             d = p->iNext[d ^ 1];
@@ -367,8 +367,7 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
     }
     else
     { // podążanie w obu kierunkach, można by rekurencją, ale szkoda zasobów
-        r = 0.5 * fResistivity *
-            glm::dot(vParametric, vParametric ); // powiedzmy, że w zasilanym przęśle jest połowa
+        r = 0.5 * fResistivity * glm::length(vParametric); // powiedzmy, że w zasilanym przęśle jest połowa
         if (fResistance[0] == 0.0)
             ResistanceCalc(0, r); // do tyłu (w stronę Point1)
         if (fResistance[1] == 0.0)

@@ -247,82 +247,13 @@ void TGroundNode::InitNormals()
     }
 }
 /*
-void TGroundNode::RaRenderVBO()
-{ // renderowanie z domyslnego bufora VBO
-    glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
-    GfxRenderer.Bind( TextureID ); // Ustaw aktywną teksturę
-    glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
-}
-*/
-void TGroundNode::Compile( glm::dvec3 const &Origin, bool const Multiple )
-{ // tworzenie skompilowanej listy w wyświetlaniu DL
-    if (false == Multiple)
-    { // obsługa pojedynczej listy
-        if (DisplayListID)
-            Release();
-        if (Global::bManageNodes)
-        {
-            DisplayListID = glGenLists(1);
-            glNewList(DisplayListID, GL_COMPILE);
-            iVersion = Global::iReCompile; // aktualna wersja siatek (do WireFrame)
-        }
-    }
-    if ((iType == GL_LINES) || (iType == GL_LINE_STRIP) || (iType == GL_LINE_LOOP))
-    {
-        glBegin(iType);
-        for (int i = 0; i < iNumPts; ++i)
-            glVertex3dv( glm::value_ptr( Points[i] - Origin ) );
-        glEnd();
-    }
-    else if (iType == GL_TRIANGLE_STRIP || iType == GL_TRIANGLE_FAN || iType == GL_TRIANGLES)
-    { // jak nie linie, to trójkąty
-      // TODO: eliminate these calls, they're duplicated by setup part in the unified render function
-#ifdef EU07_USE_OLD_RENDERCODE
-        ::glColor3fv( glm::value_ptr( Diffuse ) );
-        GfxRenderer.Bind(TextureID);
-#endif
-        glBegin(iType);
-        for (int i = 0; i < iNumVerts; ++i)
-        {
-            glNormal3fv( glm::value_ptr( Vertices[ i ].normal ) );
-            glTexCoord2fv( glm::value_ptr( Vertices[ i ].texture ) );
-            glVertex3dv( glm::value_ptr( Vertices[ i ].position - Origin ) );
-        }
-        glEnd();
-    }
-/*
-    else if (iType == TP_MESH)
-    { // grupa ze wspólną teksturą - wrzucanie do wspólnego Display List
-#ifdef EU07_USE_OLD_RENDERCODE
-        if (TextureID)
-            GfxRenderer.Bind(TextureID); // Ustaw aktywną teksturę
-#endif
-        TGroundNode *n = nNode;
-        while (n ? n->TextureID == TextureID : false)
-        { // wszystkie obiekty o tej samej testurze
-            switch (n->iType)
-            { // poszczególne typy różnie się tworzy
-            case TP_TRACK:
-            case TP_DUMMYTRACK:
-                n->pTrack->Compile(TextureID); // dodanie trójkątów dla podanej tekstury
-                break;
-            }
-            n = n->nNext3; // następny z listy
-        }
-    }
-*/
-    if (false == Multiple)
-        if (Global::bManageNodes)
-            glEndList();
-};
-
 void TGroundNode::Release()
 {
     if (DisplayListID)
         glDeleteLists(DisplayListID, 1);
     DisplayListID = 0;
 };
-
+*/
 void TGroundNode::RenderHidden()
 { // renderowanie obiektów niewidocznych
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
@@ -354,8 +285,10 @@ void TGroundNode::RenderHidden()
 //------------------------------------------------------------------------------
 TSubRect::~TSubRect()
 {
+/*
     if (Global::bManageNodes) // Ra: tu się coś sypie
         ResourceManager::Unregister(this); // wyrejestrowanie ze sprzątacza
+*/
     // TODO: usunąć obiekty z listy (nRootMesh), bo są one tworzone dla sektora
 	delete[] tTracks;
 }
@@ -393,46 +326,22 @@ void TSubRect::NodeAdd(TGroundNode *Node)
         Node->pTrack->RaOwnerSet(this); // do którego sektora ma zgłaszać animację
         // NOTE: track merge/sort temporarily disabled to simplify unification of render code
         // TODO: refactor sorting as universal part of drawing process in the renderer
-#ifdef EU07_USE_OLD_RENDERCODE
-        if( Global::bUseVBO ) {
-            Node->nNext3 = nRenderRect;
-            nRenderRect = Node;
-        } // VBO: do nieprzezroczystych z sektora
-        else {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // DL: do nieprzezroczystych
-#else
         Node->nNext3 = nRenderRect;
         nRenderRect = Node;
-#endif
         break;
     case GL_TRIANGLE_STRIP:
     case GL_TRIANGLE_FAN:
     case GL_TRIANGLES:
-        // Node->nNext3=nMeshed; nMeshed=Node; //do podzielenia potem
-        if (Node->iFlags & 0x20) // czy jest przezroczyste?
-        {
+        if (Node->iFlags & 0x20) {
+            // do przezroczystych z sektora
             Node->nNext3 = nRenderRectAlpha;
             nRenderRectAlpha = Node;
-        } // DL: do przezroczystych z sektora
-#ifdef EU07_USE_OLD_RENDERCODE
-        else if (Global::bUseVBO)
-        {
-            Node->nNext3 = nRenderRect;
-            nRenderRect = Node;
-        } // VBO: do nieprzezroczystych z sektora
-        else
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // DL: do nieprzezroczystych wszelakich
-#else
+        }
         else {
+            // do nieprzezroczystych z sektora
             Node->nNext3 = nRenderRect;
             nRenderRect = Node;
-        } // do nieprzezroczystych z sektora
-#endif
+        }
         break;
     case TP_TRACTION:
     case GL_LINES:
@@ -471,9 +380,11 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     case TP_DYNAMIC:
         return; // tych nie dopisujemy wcale
     }
-    Node->nNext2 = nRootNode; // dopisanie do ogólnej listy
+    // dopisanie do ogólnej listy
+    Node->nNext2 = nRootNode;
     nRootNode = Node;
-    ++iNodeCount; // licznik obiektów
+    // licznik obiektów
+    ++iNodeCount;
 }
 
 // przygotowanie sektora do renderowania
@@ -516,8 +427,10 @@ TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
 
 bool TSubRect::RaTrackAnimAdd(TTrack *t)
 { // aktywacja animacji torów w VBO (zwrotnica, obrotnica)
-    if (m_nVertexCount < 0)
-        return true; // nie ma animacji, gdy nie widać
+    if( false == m_geometrycreated ) {
+        // nie ma animacji, gdy nie widać
+        return true;
+    }
     if (tTrackAnim)
         tTrackAnim->RaAnimListAdd(t);
     else
@@ -531,22 +444,7 @@ void TSubRect::RaAnimate()
         // nie ma nic do animowania
         return;
     }
-    // crude way to mark whether a vbo is bound, for the vbo render path
-    // TODO: sort this shit out and re-arrange into something more elegant... eventually
-    GLuint vertexbuffer { static_cast<GLuint>(-1) };
-    if (Global::bUseVBO) {
-        // odświeżenie VBO sektora
-        if( GLEW_VERSION_1_5 ) {
-            // modyfikacje VBO są dostępne od OpenGL 1.5
-            vertexbuffer = m_nVBOVertices;
-            ::glBindBuffer( GL_ARRAY_BUFFER, vertexbuffer );
-        }
-        else {
-            // dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odświeżenie całego sektora
-            Release(); // opróżnienie VBO sektora, aby się odświeżył z nowymi ustawieniami
-        }
-    }
-    tTrackAnim = tTrackAnim->RaAnimate( vertexbuffer ); // przeliczenie animacji kolejnego
+    tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
 };
 
 TTraction * TSubRect::FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude)
@@ -562,126 +460,69 @@ TTraction * TSubRect::FindTraction(glm::dvec3 const &Point, int &iConnection, TT
     return NULL;
 };
 
-void TSubRect::LoadNodes()
-{ // utworzenie siatek VBO dla wszystkich node w sektorze
-    if (m_nVertexCount >= 0)
-        return; // obiekty były już sprawdzone
-    m_nVertexCount = 0; //-1 oznacza, że nie sprawdzono listy obiektów
-    if (!nRootNode)
+// utworzenie siatek VBO dla wszystkich node w sektorze
+void TSubRect::LoadNodes() {
+
+    if( true == m_geometrycreated ) {
+        // obiekty były już sprawdzone
         return;
-    TGroundNode *n = nRootNode;
-    while (n)
-    {
-        switch (n->iType)
-        {
-        case GL_TRIANGLE_STRIP:
-        case GL_TRIANGLE_FAN:
-        case GL_TRIANGLES:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            m_nVertexCount += n->iNumVerts;
-            break;
-        case GL_LINES:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            m_nVertexCount += n->iNumPts; // miejsce w tablicach normalnych i teksturowania się zmarnuje...
-            break;
-        case TP_TRACK:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            n->iNumVerts = n->pTrack->RaArrayPrepare(); // zliczenie wierzchołków
-            m_nVertexCount += n->iNumVerts;
-            break;
-        case TP_TRACTION:
-            n->hvTraction->create_geometry( m_geometrybank, n->m_rootposition );
-            break;
-        }
-        n = n->nNext2; // następny z sektora
     }
-    if (m_nVertexCount <= 0)
-        return; // jeśli nie ma obiektów do wyświetlenia z VBO, to koniec
-    if (Global::bUseVBO)
-    { // tylko liczenie wierzchołów, gdy nie ma VBO
+    else {
+        // mark it done for future checks
+        m_geometrycreated = true;
+    }
 
-        MakeArray(m_nVertexCount);
-
-        n = nRootNode;
-        int i;
-        while (n)
-        {
-            if (n->iVboPtr >= 0)
-                switch (n->iType)
-                {
-                case GL_TRIANGLE_STRIP:
-                case GL_TRIANGLE_FAN:
-                case GL_TRIANGLES:
-                    for (i = 0; i < n->iNumVerts; ++i)
-                    { // Ra: trójkąty można od razu wczytywać do takich tablic... to może poczekać
-                        m_pVNT[ n->iVboPtr + i ].position = n->Vertices[ i ].position - n->m_rootposition;
-/*
-                        m_pVNT[n->iVboPtr + i].x = n->Vertices[i].position.x - n->m_rootposition.x;
-                        m_pVNT[n->iVboPtr + i].y = n->Vertices[i].position.y - n->m_rootposition.y;
-                        m_pVNT[n->iVboPtr + i].z = n->Vertices[i].position.z - n->m_rootposition.z;
-*/
-                        m_pVNT[ n->iVboPtr + i ].normal = n->Vertices[ i ].normal;
-/*
-                        m_pVNT[n->iVboPtr + i].nx = n->Vertices[i].normal.x;
-                        m_pVNT[n->iVboPtr + i].ny = n->Vertices[i].normal.y;
-                        m_pVNT[n->iVboPtr + i].nz = n->Vertices[i].normal.z;
-*/
-                        m_pVNT[ n->iVboPtr + i ].texture = n->Vertices[ i ].texture;
-/*
-                        m_pVNT[n->iVboPtr + i].u = n->Vertices[i].tu;
-                        m_pVNT[n->iVboPtr + i].v = n->Vertices[i].tv;
-*/
-                    }
-                    break;
-                case GL_LINES:
-                case GL_LINE_STRIP:
-                case GL_LINE_LOOP:
-                    for (i = 0; i < n->iNumPts; ++i)
-                    {
-                        m_pVNT[ n->iVboPtr + i ].position = ( n->Points[ i ] - n->m_rootposition );
-/*
-                            glm::vec3(
-                                n->Points[ i ].x - n->m_rootposition.x,
-                                n->Points[ i ].y - n->m_rootposition.y,
-                                n->Points[ i ].z - n->m_rootposition.z );
-*/
-                        // miejsce w tablicach normalnych i teksturowania się marnuje...
-                    }
-                    break;
-                case TP_TRACK:
-                    if( n->iNumVerts ) { // bo tory zabezpieczające są niewidoczne
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-                        n->pTrack->RaArrayFill( m_pVNT + n->iVboPtr, m_pVNT, std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
-#else
-                        n->pTrack->RaArrayFill( m_pVNT.data() + n->iVboPtr, m_pVNT.data(), std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
-#endif
-                    }
-                    break;
-                default:
-                    break;
+    auto *node { nRootNode };
+    while( node != nullptr ) {
+        switch (node->iType) {
+            case GL_TRIANGLES: {
+                vertex_array vertices;
+                for( std::size_t idx = 0; idx < node->iNumVerts; ++idx ) {
+                    vertices.emplace_back(
+                        node->Vertices[ idx ].position - node->m_rootposition,
+                        node->Vertices[ idx ].normal,
+                        node->Vertices[ idx ].texture );
                 }
-            n = n->nNext2; // następny z sektora
+                node->m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, GL_TRIANGLES );
+                SafeDeleteArray( node->Vertices );
+                node->iNumVerts = 0;
+                break;
+            }
+            case GL_LINES: {
+                vertex_array vertices;
+                for( std::size_t idx = 0; idx < node->iNumPts; ++idx ) {
+                    vertices.emplace_back(
+                        node->Points[ idx ] - node->m_rootposition,
+                        glm::vec3(),
+                        glm::vec2() );
+                }
+                node->m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, GL_LINES );
+                SafeDeleteArray( node->Vertices );
+                node->iNumPts = 0;
+                break;
+            }
+            case TP_TRACK:
+                if( node->pTrack->bVisible ) { // bo tory zabezpieczające są niewidoczne
+                    node->pTrack->create_geometry( m_geometrybank );
+                }
+                break;
+            case TP_TRACTION:
+                node->hvTraction->create_geometry( m_geometrybank, node->m_rootposition );
+                break;
+            default: { break; }
         }
-        BuildVBOs();
+        node = node->nNext2; // następny z sektora
     }
+/*
     if (Global::bManageNodes)
         ResourceManager::Register(this); // dodanie do automatu zwalniającego pamięć
+*/
 }
-
-bool TSubRect::StartVBO()
-{ // początek rysowania elementów z VBO w sektorze
-    SetLastUsage(Timer::GetSimulationTime()); // te z tyłu będą niepotrzebnie zwalniane
-    return CMesh::StartVBO();
-};
-
+/*
 void TSubRect::Release()
 { // wirtualne zwolnienie zasobów przez sprzątacz albo destruktor
-    if (Global::bUseVBO)
-        CMesh::Clear(); // usuwanie buforów
 };
-
+*/
 void TSubRect::RenderSounds()
 { // aktualizacja dźwięków w pojazdach sektora (sektor może nie być wyświetlany)
     for (int j = 0; j < iTracks; ++j)
@@ -708,7 +549,7 @@ TGroundRect::Init() {
     float const subrectsize = 1000.0f / iNumSubRects;
     for( int column = 0; column < iNumSubRects; ++column ) {
         for( int row = 0; row < iNumSubRects; ++row ) {
-            auto subcell = FastGetRect( column, row );
+            auto subcell = FastGetSubRect( column, row );
             auto &area = subcell->m_area;
             area.center =
                 m_area.center
@@ -734,8 +575,9 @@ TGround::TGround()
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
+/*
     ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
-
+*/
     // set bounding area information for ground rectangles
     float const rectsize = 1000.0f;
     glm::vec3 const worldcenter;
@@ -876,9 +718,9 @@ void TGround::RaTriangleDivider(TGroundNode *node)
         return; // tylko pojedyncze trójkąty
     if (node->iNumVerts != 3)
         return; // tylko gdy jeden trójkąt
-    double x0 = 1000.0 * floor(0.001 * node->pCenter.x) - 200.0;
+    double x0 = 1000.0 * std::floor(0.001 * node->pCenter.x) - 200.0;
     double x1 = x0 + 1400.0;
-    double z0 = 1000.0 * floor(0.001 * node->pCenter.z) - 200.0;
+    double z0 = 1000.0 * std::floor(0.001 * node->pCenter.z) - 200.0;
     double z1 = z0 + 1400.0;
     if ((node->Vertices[0].position.x >= x0) && (node->Vertices[0].position.x <= x1) &&
         (node->Vertices[0].position.z >= z0) && (node->Vertices[0].position.z <= z1) &&
@@ -999,7 +841,6 @@ void TGround::RaTriangleDivider(TGroundNode *node)
 TGroundNode * TGround::AddGroundNode(cParser *parser)
 { // wczytanie wpisu typu "node"
 	std::string str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
-	int nv, i;
 	double tf, r, rmin, tf1, tf3;
 	int int1;
 	size_t int2;
@@ -1415,7 +1256,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->nNode[0].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
             tmp->nNode[0].Model = Global::pTerrainCompact;
             tmp->nNode[0].iFlags = 0x200; // nie wyświetlany, ale usuwany
-            for (i = 1; i < tmp->iCount; ++i)
+            for (std::size_t i = 1; i < tmp->iCount; ++i)
             { // a reszta to submodele
                 tmp->nNode[i].iType = TP_SUBMODEL; //
                 tmp->nNode[i].smTerrain = Global::pTerrainCompact->TerrainSquare(i - 1);
@@ -1498,19 +1339,20 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 #endif
         tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
         tmp->iFlags = GfxRenderer.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
-        if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
-                Global::pTerrainCompact->TerrainLoaded() :
-                false)
-        { // jeśli jest tekstura nieprzezroczysta, a teren załadowany, to pomijamy trójkąty
-            do
-            { // pomijanie trójkątów
+        if( (tmp->iType == GL_TRIANGLES)
+         && (tmp->iFlags & 0x10)
+         && (Global::pTerrainCompact->TerrainLoaded()) ) {
+            // jeśli jest tekstura nieprzezroczysta, a teren załadowany, to pomijamy trójkąty
+            do {
+                // pomijanie trójkątów
                 parser->getTokens();
                 *parser >> token;
             } while (token.compare("endtri") != 0);
         }
         else
         {
-            TGroundVertex vertex;
+            TGroundVertex vertex, vertex1, vertex2;
+            std::size_t vertexcount { 0 };
             do {
                 parser->getTokens( 8, false );
                 *parser
@@ -1522,14 +1364,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                     >> vertex.normal.z
                     >> vertex.texture.s
                     >> vertex.texture.t;
-/*
-                vertex.position.RotateZ( aRotate.z / 180 * M_PI );
-                vertex.position.RotateX( aRotate.x / 180 * M_PI );
-                vertex.position.RotateY( aRotate.y / 180 * M_PI );
-                vertex.normal.RotateZ( aRotate.z / 180 * M_PI );
-                vertex.normal.RotateX( aRotate.x / 180 * M_PI );
-                vertex.normal.RotateY( aRotate.y / 180 * M_PI );
-*/
                 vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
                 vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
                 vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
@@ -1538,19 +1372,52 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 vertex.normal = glm::rotateY( vertex.normal, static_cast<float>( aRotate.y / 180 * M_PI ) );
                 vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
                 tmp->pCenter += vertex.position;
-
-                importedvertices.emplace_back( vertex );
+                // convert all data to gl_triangles to allow data merge for matching nodes
+                switch( tmp->iType ) {
+                    case GL_TRIANGLES: {
+                        importedvertices.emplace_back( vertex );
+                        break;
+                    }
+                    case GL_TRIANGLE_FAN: {
+                             if( vertexcount == 0 ) { vertex1 = vertex; }
+                        else if( vertexcount == 1 ) { vertex2 = vertex; }
+                        else if( vertexcount >= 2 ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex2 );
+                            importedvertices.emplace_back( vertex );
+                            vertex2 = vertex;
+                        }
+                        ++vertexcount;
+                        break;
+                    }
+                    case GL_TRIANGLE_STRIP: {
+                             if( vertexcount == 0 ) { vertex1 = vertex; }
+                        else if( vertexcount == 1 ) { vertex2 = vertex; }
+                        else if( vertexcount >= 2 ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex2 );
+                            importedvertices.emplace_back( vertex );
+                            vertex1 = vertex2;
+                            vertex2 = vertex;
+                        }
+                        ++vertexcount;
+                        break;
+                    }
+                    default: { break; }
+                }
                 parser->getTokens();
                 *parser >> token;
 
             } while (token.compare("endtri") != 0);
 
-            nv = (int)importedvertices.size();
+            tmp->iType = GL_TRIANGLES;
+
+            auto const nv = importedvertices.size();
             tmp->Init(nv); // utworzenie tablicy wierzchołków
             tmp->pCenter /= (nv > 0 ? nv : 1);
 
             r = 0;
-            for (int i = 0; i < nv; i++)
+            for (std::size_t i = 0; i < nv; ++i)
             {
                 tmp->Vertices[i] = importedvertices[i];
                 tf = SquareMagnitude( tmp->Vertices[ i ].position - tmp->pCenter );
@@ -1571,8 +1438,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 >> tmp->Diffuse.b
                 >> tmp->fLineThickness;
             tmp->Diffuse /= 255.0f;
-            TGroundVertex vertex;
-            i = 0;
+
+            TGroundVertex vertex, vertex0, vertex1;
+            std::size_t vertexcount{ 0 };
+
             parser->getTokens();
             *parser >> token;
             do {
@@ -1581,32 +1450,64 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 *parser
                     >> vertex.position.y
                     >> vertex.position.z;
-/*
-                vertex.position.RotateZ( aRotate.z / 180 * M_PI );
-                vertex.position.RotateX( aRotate.x / 180 * M_PI );
-                vertex.position.RotateY( aRotate.y / 180 * M_PI );
-*/
                 vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
                 vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
                 vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
 
                 vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
-
                 tmp->pCenter += vertex.position;
-
-                importedvertices.emplace_back( vertex );
-
-                ++i;
+                // convert all data to gl_lines to allow data merge for matching nodes
+                switch( tmp->iType ) {
+                    case GL_LINES: {
+                        importedvertices.emplace_back( vertex );
+                        break;
+                    }
+                    case GL_LINE_STRIP: {
+                        if( vertexcount > 0 ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        vertex1 = vertex;
+                        ++vertexcount;
+                        break;
+                    }
+                    case GL_LINE_LOOP: {
+                        if( vertexcount == 0 ) {
+                            vertex0 = vertex;
+                            vertex1 = vertex;
+                        }
+                        else {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        vertex1 = vertex;
+                        ++vertexcount;
+                        break;
+                    }
+                    default: { break; }
+                }
                 parser->getTokens();
                 *parser >> token;
             } while( token.compare( "endline" ) != 0 );
-            nv = i;
-            //   tmp->Init(nv);
+            // add closing line for the loop
+            if( ( tmp->iType == GL_LINE_LOOP )
+             && ( vertexcount > 2 ) ) {
+                importedvertices.emplace_back( vertex1 );
+                importedvertices.emplace_back( vertex0 );
+            }
+            if( importedvertices.size() % 2 != 0 ) {
+                ErrorLog( "Lines node specified odd number of vertices, encountered in file \"" + parser->Name() + "\"" );
+                importedvertices.pop_back();
+            }
+            tmp->iType = GL_LINES;
+
+            auto const nv = importedvertices.size();
             tmp->Points = new glm::dvec3[ nv ];
             tmp->iNumPts = nv;
             tmp->pCenter /= ( nv > 0 ? nv : 1 );
-            for( int i = 0; i < nv; i++ )
+            for( std::size_t i = 0; i < nv; ++i ) {
                 tmp->Points[ i ] = importedvertices[ i ].position;
+            }
             break;
         }
     }
@@ -1622,7 +1523,7 @@ TSubRect * TGround::FastGetSubRect(int iCol, int iRow)
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
         return NULL;
-    return (Rects[bc][br].FastGetRect(sc, sr));
+    return (Rects[bc][br].FastGetSubRect(sc, sr));
 }
 
 TSubRect * TGround::GetSubRect(int iCol, int iRow)
@@ -1634,7 +1535,7 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
         return NULL; // jeśli poza mapą
-    return (Rects[bc][br].SafeGetRect(sc, sr)); // pobranie małego kwadratu
+    return (Rects[bc][br].SafeGetSubRect(sc, sr)); // pobranie małego kwadratu
 }
 
 TEvent * TGround::FindEvent(const std::string &asEventName)
@@ -1670,23 +1571,21 @@ void TGround::FirstInit()
         return; // Ra: żeby nie robiło się dwa razy
     bInitDone = true;
     WriteLog("InitNormals");
-    int i, j;
-    for (i = 0; i < TP_LAST; ++i)
-    {
-        for (TGroundNode *Current = nRootOfType[i]; Current; Current = Current->nNext)
-        {
+    for (int type = 0; type < TP_LAST; ++type) {
+        for (TGroundNode *Current = nRootOfType[type]; Current != nullptr; Current = Current->nNext) {
+
             Current->InitNormals();
             if (Current->iType != TP_DYNAMIC)
             { // pojazdów w ogóle nie dotyczy dodawanie do mapy
-                if( ( i == TP_EVLAUNCH )
+                if( ( type == TP_EVLAUNCH )
                  && ( true == Current->EvLaunch->IsGlobal() ) ) {
                     // dodanie do globalnego obiektu
                     srGlobal.NodeAdd( Current );
                 }
-                else if (i == TP_TERRAIN)
+                else if (type == TP_TERRAIN)
                 { // specjalne przetwarzanie terenu wczytanego z pliku E3D
                     TGroundRect *gr;
-                    for (j = 1; j < Current->iCount; ++j)
+                    for (int j = 1; j < Current->iCount; ++j)
                     { // od 1 do końca są zestawy trójkątów
                         std::string xxxzzz = Current->nNode[j].smTerrain->pName; // pobranie nazwy
                         gr = GetRect(
@@ -1706,6 +1605,7 @@ void TGround::FirstInit()
                     // dodajemy do kwadratu kilometrowego
                     // override visibility ranges, to ensure the content is drawn from far enough
                     // TODO: subclass NodeAdd() for the ground cell and specialize it, instead of this
+                    // TODO: given their view ranges are the same, combine the geometry in single per-material nodes
                     Current->fSquareRadius = 50000.0 * 50000.0;
                     Current->fSquareMinRadius = 0.0;
                     GetRect( Current->pCenter.x, Current->pCenter.z )->NodeAdd( Current );
@@ -1713,8 +1613,8 @@ void TGround::FirstInit()
             }
         }
     }
-    for (i = 0; i < iNumRects; ++i)
-        for (j = 0; j < iNumRects; ++j)
+    for (std::size_t i = 0; i < iNumRects; ++i)
+        for (std::size_t j = 0; j < iNumRects; ++j)
             Rects[i][j].Optimize(); // optymalizacja obiektów w sektorach
 
     WriteLog("InitNormals OK");
@@ -1751,7 +1651,7 @@ bool TGround::Init(std::string File)
 
     std::stack<Math3D::vector3> OriginStack; // stos zagnieżdżenia origin
 
-    TGroundNode *LastNode = NULL; // do użycia w trainset
+    TGroundNode *LastNode = nullptr; // do użycia w trainset
     iNumNodes = 0;
     token = "";
     parser.getTokens();
@@ -1763,64 +1663,76 @@ bool TGround::Init(std::string File)
         ++processed;
         if( processed % 1000 == 0 )
         {
+            glfwPollEvents();
             UILayer.set_progress( parser.getProgress(), parser.getFullProgress() );
             GfxRenderer.Render();
-            glfwPollEvents();
         }
         str = token;
-        if (str == "node")
-        {
-            LastNode = AddGroundNode(&parser); // rozpoznanie węzła
-            if (LastNode)
-            { // jeżeli przetworzony poprawnie
-                if (LastNode->iType == GL_TRIANGLES)
-                {
-                    if (!LastNode->Vertices)
-                        SafeDelete(LastNode); // usuwamy nieprzezroczyste trójkąty terenu
-                }
-                else if( ( LastNode->iType == TP_TRACTION )
-                      && ( false == Global::bLoadTraction ) ) {
-                    SafeDelete( LastNode ); // usuwamy druty, jeśli wyłączone
+        if (str == "node") {
+            // rozpoznanie węzła
+            LastNode = AddGroundNode(&parser);
+            if (LastNode) {
+                // jeżeli przetworzony poprawnie
+                switch( LastNode->iType ) {
+                    // validate the new node
+                    case GL_TRIANGLES: {
+                        if( LastNode->Vertices == nullptr ) {
+                            SafeDelete( LastNode );
+                        }
+                        break;
+                    }
+                    case TP_TRACTION: {
+                        if( false == Global::bLoadTraction ) {
+                            // usuwamy druty, jeśli wyłączone
+                            SafeDelete( LastNode );
+                        }
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
                 }
 
-                if (LastNode) // dopiero na koniec dopisujemy do tablic
-                    if (LastNode->iType != TP_DYNAMIC)
-                    { // jeśli nie jest pojazdem
-                      // ostatni dodany dołączamy na końcu nowego
-                        LastNode->nNext = nRootOfType[LastNode->iType];
+                if( LastNode ) {
+                    // dopiero na koniec dopisujemy do tablic
+                    if( LastNode->iType != TP_DYNAMIC ) {
+                        // jeśli nie jest pojazdem ostatni dodany dołączamy na końcu nowego
+                        LastNode->nNext = nRootOfType[ LastNode->iType ];
                         // ustawienie nowego na początku listy
-                        nRootOfType[LastNode->iType] = LastNode; 
-                        iNumNodes++;
+                        nRootOfType[ LastNode->iType ] = LastNode;
+                        ++iNumNodes;
                     }
-                    else
-                    { // jeśli jest pojazdem
-                        // if (!bInitDone) FirstInit(); //jeśli nie było w scenerii
-                        if (LastNode->DynamicObject->Mechanik) // ale może być pasażer
-                            if (LastNode->DynamicObject->Mechanik
-                                    ->Primary()) // jeśli jest głównym (pasażer nie jest)
-                                nTrainSetDriver =
-                                    LastNode; // pojazd, któremu zostanie wysłany rozkład
+                    else { // jeśli jest pojazdem
+                        if( ( LastNode->DynamicObject->Mechanik != nullptr )
+                         && ( LastNode->DynamicObject->Mechanik->Primary() ) ) {
+                               // jeśli jest głównym (pasażer nie jest)
+                            nTrainSetDriver = LastNode; // pojazd, któremu zostanie wysłany rozkład
+                        }
                         LastNode->nNext = nRootDynamic;
                         nRootDynamic = LastNode; // dopisanie z przodu do listy
-                        // if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
-                        if (nTrainSetNode) // jeżeli istnieje wcześniejszy TP_DYNAMIC
+
+                        if( nTrainSetNode != nullptr ) {
+                            // jeżeli istnieje wcześniejszy TP_DYNAMIC
                             nTrainSetNode->DynamicObject->AttachPrev(
                                 LastNode->DynamicObject,
-                                TempConnectionType[iTrainSetWehicleNumber - 2]);
+                                TempConnectionType[ iTrainSetWehicleNumber - 2 ] );
+                        }
                         nTrainSetNode = LastNode; // ostatnio wczytany
-                        if (TempConnectionType[iTrainSetWehicleNumber - 1] ==
-                            0) // jeśli sprzęg jest zerowy, to wysłać rozkład do składu
+
+                        if( TempConnectionType[ iTrainSetWehicleNumber - 1 ] == 0 ) // jeśli sprzęg jest zerowy, to wysłać rozkład do składu
                         { // powinien też tu wchodzić, gdy pojazd bez trainset
-                            if (nTrainSetDriver) // pojazd, któremu zostanie wysłany rozkład
+                            if( nTrainSetDriver ) // pojazd, któremu zostanie wysłany rozkład
                             { // wysłanie komendy "Timetable" ustawia odpowiedni tryb jazdy
                                 nTrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
                                 nTrainSetDriver->DynamicObject->Mechanik->PutCommand(
-                                    "Timetable:" + asTrainName, fTrainSetVel, 0, NULL);
-                                nTrainSetDriver =
-                                    NULL; // a przy "endtrainset" już wtedy nie potrzeba
+                                    "Timetable:" + asTrainName,
+                                    fTrainSetVel, 0,
+                                    nullptr );
+                                nTrainSetDriver = nullptr; // a przy "endtrainset" już wtedy nie potrzeba
                             }
                         }
                     }
+                }
             }
             else
             {
@@ -1927,10 +1839,11 @@ bool TGround::Init(std::string File)
                     RootEvent = tmp;
                     if (!found)
                     { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
-                        if (RootEvent->Type != tp_Ignored)
-                            if (RootEvent->asName.find(
-                                    "onstart") != std::string::npos) // event uruchamiany automatycznie po starcie
-                                AddToQuery(RootEvent, NULL); // dodanie do kolejki
+                        if( ( RootEvent->Type != tp_Ignored )
+                         && ( RootEvent->asName.find( "onstart" ) != std::string::npos ) ) {
+                            // event uruchamiany automatycznie po starcie
+                            AddToQuery( RootEvent, NULL ); // dodanie do kolejki
+                        }
                         m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
                     }
                 }

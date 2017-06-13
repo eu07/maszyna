@@ -56,7 +56,7 @@ class TTraction
     void Connect(int my, TTraction *with, int to);
     void Init();
     bool WhereIs();
-    void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = NULL);
+    void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = nullptr);
     void PowerSet(TTractionPowerSource *ps);
     double VoltageGet(double u, double i);
 private:

@@ -48,13 +48,13 @@ basic_vertex::deserialize( std::istream &s ) {
 
 // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk
 geometry_handle
-geometry_bank::create( vertex_array &Vertices, int const Type ) {
+geometry_bank::create( vertex_array &Vertices, unsigned int const Type, unsigned int const Streams ) {
 
     if( true == Vertices.empty() ) { return geometry_handle( 0, 0 ); }
 
-    m_chunks.emplace_back( Vertices, Type );
+    m_chunks.emplace_back( Vertices, Type, Streams );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
-    geometry_handle chunkhandle{ 0, m_chunks.size() };
+    geometry_handle chunkhandle { 0, static_cast<std::uint32_t>(m_chunks.size()) };
     // template method
     create_( chunkhandle );
     // all done

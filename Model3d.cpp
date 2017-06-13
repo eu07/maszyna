@@ -1041,7 +1041,7 @@ void TSubModel::RaAnimation(TAnimType a)
 
    //---------------------------------------------------------------------------
 
-void TSubModel::RaArrayFill(CVertNormTex *Vert)
+void TSubModel::RaArrayFill(basic_vertex *Vert)
 { // wypełnianie tablic VBO
 	if (Child)
 		Child->RaArrayFill(Vert);
@@ -1159,17 +1159,11 @@ TModel3d::~TModel3d()
 {
 	// SafeDeleteArray(Materials);
 	if (iFlags & 0x0200)
-	{ // wczytany z pliku tekstowego, submodele sprzątają
-	  // same
+	{ // wczytany z pliku tekstowego, submodele sprzątają same
 		SafeDelete(Root); // submodele się usuną rekurencyjnie
 	}
 	else
 	{ // wczytano z pliku binarnego (jest właścicielem tablic)
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-		m_pVNT = nullptr; // nie usuwać tego, bo wskazuje na iModel
-#else
-        m_pVNT.clear();
-#endif
 		Root = nullptr;
 		delete[] iModel; // usuwamy cały wczytany plik i to wystarczy
 	}
@@ -1344,6 +1338,9 @@ void TSubModel::serialize(std::ostream &s,
 
 void TModel3d::SaveToBinFile(char const *FileName)
 {
+    // TODO: re-implement!
+    return;
+
 	WriteLog("saving e3d model..");
 
 	//m7todo: można by zoptymalizować robiąc unordered_map
@@ -1379,18 +1376,20 @@ void TModel3d::SaveToBinFile(char const *FileName)
 	sn_utils::ls_uint32(s, 8 + (uint32_t)transforms.size() * 64);
 	for (size_t i = 0; i < transforms.size(); i++)
 		transforms[i].serialize_float32(s);
-
+/*
 	MakeArray(iNumVerts);
 #ifdef EU07_USE_OLD_VERTEXBUFFER
     Root->RaArrayFill(m_pVNT);
 #else
     Root->RaArrayFill( m_pVNT.data() );
 #endif
+*/
 	sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
 	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
+/*
 	for (size_t i = 0; i < (size_t)iNumVerts; i++)
 		m_pVNT[i].serialize(s);
-
+*/
 	if (textures.size())
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('T', 'E', 'X', '0'));
@@ -1470,11 +1469,6 @@ void TSubModel::deserialize(std::istream &s)
 
 void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-    m_pVNT = nullptr;
-#else
-    m_pVNT.clear();
-#endif
 	Root = nullptr;
 	float4x4 *tm = nullptr;
     if( m_geometrybank == NULL ) {
@@ -1507,19 +1501,16 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 		}
 		else if (type == MAKE_ID4('V', 'N', 'T', '0'))
 		{
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            if (m_pVNT != nullptr)
-#else
-            if( false == m_pVNT.empty() )
-#endif
-				throw std::runtime_error("e3d: duplicated VNT chunk");
 /*
-			size_t vt_cnt = size / 32;
+            if (m_pVNT != nullptr)
+				throw std::runtime_error("e3d: duplicated VNT chunk");
+
+            size_t vt_cnt = size / 32;
 			iNumVerts = (int)vt_cnt;
 			m_nVertexCount = (int)vt_cnt;
 #ifdef EU07_USE_OLD_VERTEXBUFFER
             assert( m_pVNT == nullptr );
-            m_pVNT = new CVertNormTex[vt_cnt];
+            m_pVNT = new basic_vertex[vt_cnt];
 #else
             m_pVNT.resize( vt_cnt );
 #endif
@@ -1613,13 +1604,9 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 */
 	for (size_t i = 0; (int)i < iSubModelsCount; ++i)
 	{
-#ifdef EU07_USE_OLD_VERTEXBUFFER
         Root[i].BinInit( Root, tm, &Textures, &Names, dynamic );
-#else
-        Root[ i ].BinInit( Root, tm, (float8*)m_pVNT.data(), &Textures, &Names, dynamic );
-#endif
 
-		if (Root[i].ChildGet())
+        if (Root[i].ChildGet())
 			Root[i].ChildGet()->Parent = &Root[i];
 		if (Root[i].NextGet())
 			Root[i].NextGet()->Parent = Root[i].Parent;

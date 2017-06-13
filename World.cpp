@@ -1267,7 +1267,7 @@ TWorld::Render_Cab() {
     }
 
     TDynamicObject *dynamic = Train->Dynamic();
-    TSubModel::iInstance = reinterpret_cast<size_t>( dynamic );
+    TSubModel::iInstance = reinterpret_cast<std::size_t>( dynamic );
 
     if( ( true == FreeFlyModeFlag )
      || ( false == dynamic->bDisplayCab )
@@ -1275,8 +1275,6 @@ TWorld::Render_Cab() {
         // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
         return;
     }
-
-    ::glEnable( GL_LIGHTING ); // po renderowaniu drutów może być to wyłączone. TODO: have the wires render take care of its own shit
 /*
     glPushMatrix();
     vector3 pos = dynamic->GetPosition(); // wszpółrzędne pojazdu z kabiną
@@ -1651,7 +1649,7 @@ TWorld::Update_UI() {
         }
 
         case( GLFW_KEY_F8 ) : {
-
+            // gfx renderer data
             uitextline1 =
                 "Draw range x " + to_string( Global::fDistanceFactor, 1 )
                 + "; FPS: " + to_string( Timer::GetFPS(), 2 );
@@ -1659,28 +1657,16 @@ TWorld::Update_UI() {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
             uitextline1 +=
-                ", sectors: " + to_string( Ground.iRendered )
-                + "/" + to_string( Global::iSegmentsRendered )
+                ", sectors: " + std::to_string( GfxRenderer.m_drawcount )
+                + "/" + std::to_string( Global::iSegmentsRendered )
                 + "; FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
 
-            break;
-        }
-
-        case( GLFW_KEY_F9 ) : {
-            // informacja o wersji, sposobie wyświetlania i błędach OpenGL
-            uitextline1 = "MaSzyna " + Global::asVersion; // informacja o wersji
-            if( Global::iMultiplayer ) {
-                uitextline1 += " (multiplayer mode is active)";
-            }
-
             uitextline2 =
-                std::string("Rendering mode: ")
+                std::string( "Rendering mode: " )
                 + ( Global::bUseVBO ?
                     "VBO" :
                     "Display Lists" )
-                + ". "
-                + GfxRenderer.Info();
-
+                + ". ";
             // dump last opengl error, if any
             GLenum glerror = ::glGetError();
             if( glerror != GL_NO_ERROR ) {
@@ -1689,9 +1675,21 @@ TWorld::Update_UI() {
                 Global::LastGLError = std::to_string( glerror ) + " (" + glerrorstring + ")";
             }
             if( false == Global::LastGLError.empty() ) {
-                uitextline3 =
+                uitextline2 +=
                     "Last openGL error: "
                     + Global::LastGLError;
+            }
+            // renderer stats
+            uitextline3 = GfxRenderer.Info();
+
+            break;
+        }
+
+        case( GLFW_KEY_F9 ) : {
+            // informacja o wersji
+            uitextline1 = "MaSzyna " + Global::asVersion; // informacja o wersji
+            if( Global::iMultiplayer ) {
+                uitextline1 += " (multiplayer mode is active)";
             }
 
             break;

@@ -172,6 +172,7 @@ public:
 
 // members
     GLenum static const sunlight{ GL_LIGHT0 };
+    std::size_t m_drawcount { 0 };
 
 private:
 // types
@@ -195,6 +196,8 @@ private:
     bool
         Render( TGroundNode *Node );
     void
+        Render( TTrack *Track );
+    void
         Render( TMemCell *Memcell );
     bool
         Render_Alpha( TGround *Ground );
@@ -212,16 +215,18 @@ private:
     geometrybank_manager m_geometry;
     texture_manager m_textures;
     opengl_camera m_camera;
-    rendermode renderpass{ rendermode::color };
-    float m_drawrange{ 2500.0f }; // current drawing range
-    float m_drawtime{ 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
-    double m_updateaccumulator{ 0.0 };
+    rendermode renderpass { rendermode::color };
+    float m_drawrange { 2500.0f }; // current drawing range
+    float m_drawtime { 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
+    double m_updateaccumulator { 0.0 };
     std::string m_debuginfo;
-    GLFWwindow *m_window{ nullptr };
-    texture_handle m_glaretextureid{ -1 };
-    texture_handle m_suntextureid{ -1 };
-    texture_handle m_moontextureid{ -1 };
+    GLFWwindow *m_window { nullptr };
+    texture_handle m_glaretexture { -1 };
+    texture_handle m_suntexture { -1 };
+    texture_handle m_moontexture { -1 };
+    geometry_handle m_billboardgeometry { 0, 0 };
     GLUquadricObj *m_quadric; // helper object for drawing debug mode scene elements
+    std::vector< TSubRect* > m_drawqueue; // list of subcells to be drawn in current render pass
 
 };
 

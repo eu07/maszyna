@@ -85,19 +85,21 @@ class cParser //: public std::stringstream
     static std::size_t countTokens( std::string const &Stream, std::string Path = "" );
     // add custom definition of text which should be ignored when retrieving tokens
     void addCommentStyle( std::string const &Commentstart, std::string const &Commentend );
+    // returns name of currently open file, or empty string for text type stream
+    std::string Name();
 
   private:
     // methods:
     std::string readToken(bool ToLower = true, const char *Break = "\n\r\t ;");
     std::string readQuotes( char const Quote = '\"' );
     std::string readComment( std::string const &Break = "\n\r\t ;" );
-//    std::string trtest;
     bool findQuotes( std::string &String );
     bool trimComments( std::string &String );
     std::size_t count();
     // members:
     bool LoadTraction; // load traction?
     std::istream *mStream; // relevant kind of buffer is attached on creation.
+    std::string mFile; // name of the open file, if any
     std::string mPath; // path to open stream, for relative path lookups.
     std::streamoff mSize; // size of open stream, for progress report.
     typedef std::map<std::string, std::string> commentmap;

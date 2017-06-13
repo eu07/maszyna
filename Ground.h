@@ -21,8 +21,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Names.h"
 #include "lightarray.h"
 
-using namespace Math3D;
-
 typedef int TGroundNodeType;
 // Ra: zmniejszone liczby, aby zrobić tabelkę i zoptymalizować wyszukiwanie
 const int TP_MODEL = 10;
@@ -95,8 +93,14 @@ struct TGroundVertex
         texture = interpolate( v1.texture, v2.texture, static_cast<float>( factor ) );
     }
 };
-
-class TGroundNode : public Resource
+/*
+// ground node holding single, unique piece of 3d geometry. TBD, TODO: unify this with basic 3d model node
+struct mesh_node {
+    std::vector<TGroundVertex> vertices;
+    geometry_handle geometry; // geometry prepared for drawing
+};
+*/
+class TGroundNode /*: public Resource*/
 { // obiekt scenerii
 
     friend class opengl_renderer;
@@ -138,6 +142,9 @@ public:
     int iVersion; // wersja siatki (do wykonania rekompilacji)
     GLuint DisplayListID; // numer siatki DisplayLists
     int iVboPtr; // indeks w buforze VBO
+    // NOTE: geometry handle is duplicated in (anim)model(3d), as well as in track and traction type nodes
+    // TODO: clean this up when node types are refactored into an inheritance/composition scheme
+    geometry_handle m_geometry; // geometry of the submodel
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     texture_handle TextureID; // główna (jedna) tekstura obiektu
     glm::vec3
@@ -153,25 +160,10 @@ public:
     ~TGroundNode();
     void Init(int n);
     void InitNormals();
-
-    // bool Disable();
-    inline TGroundNode * Find(const std::string &asNameToFind, TGroundNodeType iNodeType)
-    { // wyszukiwanie czołgowe z typem
-        if ((iNodeType == iType) && (asNameToFind == asName))
-            return this;
-        else if (nNext)
-            return nNext->Find(asNameToFind, iNodeType);
-        return NULL;
-    };
-
-    void Compile(glm::dvec3 const &Origin, bool const Multiple = false);
+/*
     void Release();
-
+*/
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
-#ifdef EU07_USE_OLD_RENDERCODE
-    // (McZapkie-131202)
-    void RaRenderVBO(); // renderowanie (nieprzezroczystych) ze wspólnego VBO
-#endif
 };
 
 struct bounding_area {
@@ -180,7 +172,7 @@ struct bounding_area {
     float radius { 0.0f }; // radius of the bounding sphere
 };
 
-class TSubRect : public Resource, public CMesh
+class TSubRect : /*public Resource,*/ public CMesh
 { // sektor składowy kwadratu kilometrowego
   public:
     bounding_area m_area;
@@ -209,12 +201,13 @@ class TSubRect : public Resource, public CMesh
     void LoadNodes(); // utworzenie VBO sektora
   public:
     virtual ~TSubRect();
+/*
     virtual void Release(); // zwalnianie VBO sektora
+*/
     void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude);
-    bool StartVBO(); // ustwienie VBO sektora dla (nRenderRect), (nRenderRectAlpha) i (nRenderWires)
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
     void RaAnimate(); // przeliczenie animacji torów
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
@@ -244,7 +237,7 @@ private:
 public:
     virtual ~TGroundRect();
     // pobranie wskaźnika do małego kwadratu, utworzenie jeśli trzeba
-    TSubRect * SafeGetRect(int iCol, int iRow) {
+    TSubRect * SafeGetSubRect(int iCol, int iRow) {
         if( !pSubRects ) {
             // utworzenie małych kwadratów
             Init();
@@ -252,7 +245,7 @@ public:
         return pSubRects + iRow * iNumSubRects + iCol; // zwrócenie właściwego
     };
     // pobranie wskaźnika do małego kwadratu, bez tworzenia jeśli nie ma
-    TSubRect * FastGetRect(int iCol, int iRow) {
+    TSubRect * FastGetSubRect(int iCol, int iRow) {
         return (pSubRects ? pSubRects + iRow * iNumSubRects + iCol : NULL);
     };
     // optymalizacja obiektów w sektorach
@@ -282,7 +275,9 @@ class TGround
            *tmpEvent = nullptr,
            *tmp2Event = nullptr,
            *OldQRE = nullptr;
+/*
     TSubRect *pRendered[1500]; // lista renderowanych sektorów
+*/
     int iNumNodes = 0;
     vector3 pOrigin;
     vector3 aRotate;
@@ -293,6 +288,7 @@ class TGround
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
     light_array m_lights; // collection of dynamic light sources present in the scene
+    bool PROBLEND;
 
   private: // metody prywatne
     bool EventConditon(TEvent *e);
@@ -351,7 +347,6 @@ class TGround
   private:
     void RaTriangleDivider(TGroundNode *node);
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
-    bool PROBLEND;
 
   public:
     void WyslijEvent(const std::string &e, const std::string &d);

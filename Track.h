@@ -15,8 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Segment.h"
 #include "Texture.h"
 
-class TEvent;
-
 typedef enum
 {
     tt_Unknown,
@@ -39,6 +37,7 @@ typedef enum
 } TEnvironmentType;
 // Ra: opracować alternatywny system cieni/świateł z definiowaniem koloru oświetlenia w halach
 
+class TEvent;
 class TTrack;
 class TGroundNode;
 class TSubRect;
@@ -77,10 +76,10 @@ class TSwitchExtension
         };
         struct
         { // zmienne dla skrzyżowania
-            vector3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
-            int iPoints; // liczba faktycznie użytych wierzchołków nawierzchni
-            bool bPoints; // czy utworzone?
             int iRoads; // ile dróg się spotyka?
+            vector3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
+//            int iPoints; // liczba faktycznie użytych wierzchołków nawierzchni
+            bool bPoints; // czy utworzone?
         };
     };
     bool bMovement = false; // czy w trakcie animacji
@@ -108,46 +107,48 @@ class TIsolated
     TIsolated();
     TIsolated(const std::string &n, TIsolated *i);
     ~TIsolated();
-    static TIsolated * Find(
-        const std::string &n); // znalezienie obiektu albo utworzenie nowego
+    static TIsolated * Find(const std::string &n); // znalezienie obiektu albo utworzenie nowego
     void Modify(int i, TDynamicObject *o); // dodanie lub odjęcie osi
-    bool Busy()
-    {
-        return (iAxles > 0);
-    };
-    static TIsolated * Root()
-    {
-        return (pRoot);
-    };
-    TIsolated * Next()
-    {
-        return (pNext);
-    };
+    bool Busy() {
+        return (iAxles > 0); };
+    static TIsolated * Root() {
+        return (pRoot); };
+    TIsolated * Next() {
+        return (pNext); };
 };
 
-class TTrack : public Resource
-{ // trajektoria ruchu - opakowanie
-  private:
+// trajektoria ruchu - opakowanie
+class TTrack : public Resource {
+
+    friend class opengl_renderer;
+
+private:
+    TGroundNode * pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
+    TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
 	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
     std::shared_ptr<TSegment> Segment;
-    TTrack *trNext = nullptr; // odcinek od strony punktu 2 - to powinno być w segmencie
-    TTrack *trPrev = nullptr; // odcinek od strony punktu 1
+    TTrack * trNext = nullptr; // odcinek od strony punktu 2 - to powinno być w segmencie
+    TTrack * trPrev = nullptr; // odcinek od strony punktu 1
+
     // McZapkie-070402: dodalem zmienne opisujace rozmiary tekstur
-    texture_handle TextureID1 = 0; // tekstura szyn albo nawierzchni
-    texture_handle TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
+    int iTrapezoid = 0; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
+    double fRadiusTable[ 2 ]; // dwa promienie, drugi dla zwrotnicy
     float fTexLength = 4.0f; // długość powtarzania tekstury w metrach
     float fTexRatio1 = 1.0f; // proporcja boków tekstury nawierzchni (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexRatio2 = 1.0f; // proporcja boków tekstury chodnika (żeby zaoszczędzić na rozmiarach tekstur...)
     float fTexHeight1 = 0.6f; // wysokość brzegu względem trajektorii
     float fTexWidth = 0.9f; // szerokość boku
     float fTexSlope = 0.9f;
-    double fRadiusTable[ 2 ]; // dwa promienie, drugi dla zwrotnicy
-    int iTrapezoid = 0; // 0-standard, 1-przechyłka, 2-trapez, 3-oba
+/*
     GLuint DisplayListID = 0;
-    TIsolated *pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
-    TGroundNode *
-        pMyNode = nullptr; // Ra: proteza, żeby tor znał swoją nazwę TODO: odziedziczyć TTrack z TGroundNode
-  public:
+*/
+    texture_handle TextureID1 = 0; // tekstura szyn albo nawierzchni
+    texture_handle TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
+    typedef std::vector<geometry_handle> geometryhandle_sequence;
+    geometryhandle_sequence Geometry1; // geometry chunks textured with texture 1
+    geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
+
+public:
     typedef std::deque<TDynamicObject *> dynamics_sequence;
     dynamics_sequence Dynamics;
     int iEvents = 0; // Ra: flaga informująca o obecności eventów
@@ -193,39 +194,30 @@ class TTrack : public Resource
     void Init();
     static TTrack * Create400m(int what, double dx);
     TTrack * NullCreate(int dir);
-    inline bool IsEmpty()
-    {
-        return Dynamics.empty();
-    };
+    inline bool IsEmpty() {
+        return Dynamics.empty(); };
     void ConnectPrevPrev(TTrack *pNewPrev, int typ);
     void ConnectPrevNext(TTrack *pNewPrev, int typ);
     void ConnectNextPrev(TTrack *pNewNext, int typ);
     void ConnectNextNext(TTrack *pNewNext, int typ);
-    inline double Length()
-    {
-        return Segment->GetLength();
-    };
-	inline std::shared_ptr<TSegment> CurrentSegment()
-    {
-        return Segment;
-    };
-    inline TTrack * CurrentNext()
-    {
-        return (trNext);
-    };
-    inline TTrack * CurrentPrev()
-    {
-        return (trPrev);
-    };
+    inline double Length() {
+        return Segment->GetLength(); };
+	inline std::shared_ptr<TSegment> CurrentSegment() {
+        return Segment; };
+    inline TTrack * CurrentNext() {
+        return (trNext); };
+    inline TTrack * CurrentPrev() {
+        return (trPrev); };
     TTrack * Neightbour(int s, double &d);
     bool SetConnections(int i);
     bool Switch(int i, double t = -1.0, double d = -1.0);
     bool SwitchForced(int i, TDynamicObject *o);
     int CrossSegment(int from, int into);
-    inline int GetSwitchState()
-    {
-        return (SwitchExtension ? SwitchExtension->CurrentIndex : -1);
-    };
+    inline int GetSwitchState() {
+        return (
+            SwitchExtension ?
+                SwitchExtension->CurrentIndex :
+                -1); };
     void Load(cParser *parser, vector3 pOrigin, std::string name);
     bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
@@ -233,44 +225,42 @@ class TTrack : public Resource
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);
-    void MoveMe(vector3 pPosition);
 
     void Release();
+/*
     void Compile(GLuint tex = 0);
-
     void Render(); // renderowanie z Display Lists
     int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
-    void RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const Vertexcount); // wypełnianie VBO
+*/
+    void create_geometry(geometrybank_handle const &Bank); // wypełnianie VBO
+/*
     void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
+*/
     void RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
     void RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)
-    void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich
-    // wyświetlania
+    void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
-    void RaOwnerSet(TSubRect *o)
-    {
+    void RaOwnerSet(TSubRect *o) {
         if (SwitchExtension)
-            SwitchExtension->pOwner = o;
-    };
+            SwitchExtension->pOwner = o; };
     bool InMovement(); // czy w trakcie animacji?
     void RaAssign(TGroundNode *gn, TAnimContainer *ac);
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
     void RaAnimListAdd(TTrack *t);
-    TTrack * RaAnimate(GLuint const Vertexbuffer = -1);
+    TTrack * RaAnimate();
 
     void RadioStop();
-    void AxleCounter(int i, TDynamicObject *o)
-    {
+    void AxleCounter(int i, TDynamicObject *o) {
         if (pIsolated)
-            pIsolated->Modify(i, o);
-    }; // dodanie lub odjęcie osi
+            pIsolated->Modify(i, o); }; // dodanie lub odjęcie osi
     std::string IsolatedName();
     bool IsolatedEventsAssign(TEvent *busy, TEvent *free);
     double WidthTotal();
-    GLuint TextureGet(int i)
-    {
-        return i ? TextureID1 : TextureID2;
-    };
+    GLuint TextureGet(int i) {
+        return (
+            i ?
+            TextureID1 :
+            TextureID2 ); };
     bool IsGroupable();
     int TestPoint(vector3 *Point);
     void MovedUp1(double dh);

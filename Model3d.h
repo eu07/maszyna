@@ -168,7 +168,7 @@ public:
 	TSubModel * GetFromName(char const *search, bool i = true);
 	inline float4x4 * GetMatrix() { return fMatrix; };
 	inline void Hide() { iVisible = 0; };
-	void RaArrayFill(CVertNormTex *Vert);
+	void RaArrayFill(basic_vertex *Vert);
 	int FlagsCheck();
 	void WillBeAnimated()
 	{
