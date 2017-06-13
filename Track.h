@@ -118,7 +118,7 @@ class TIsolated
 };
 
 // trajektoria ruchu - opakowanie
-class TTrack : public Resource {
+class TTrack /*: public Resource*/ {
 
     friend class opengl_renderer;
 
@@ -225,9 +225,9 @@ public:
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);
-
-    void Release();
 /*
+    void Release();
+
     void Compile(GLuint tex = 0);
     void Render(); // renderowanie z Display Lists
     int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa

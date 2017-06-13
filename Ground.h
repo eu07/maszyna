@@ -139,9 +139,6 @@ public:
         int iNumPts; // dla linii
         int iCount; // dla terenu
     };
-    int iVersion; // wersja siatki (do wykonania rekompilacji)
-    GLuint DisplayListID; // numer siatki DisplayLists
-    int iVboPtr; // indeks w buforze VBO
     // NOTE: geometry handle is duplicated in (anim)model(3d), as well as in track and traction type nodes
     // TODO: clean this up when node types are refactored into an inheritance/composition scheme
     geometry_handle m_geometry; // geometry of the submodel
@@ -273,6 +270,7 @@ class TGround
     TEvent *RootEvent = nullptr; // lista zdarzeń
     TEvent *QueryRootEvent = nullptr,
            *tmpEvent = nullptr;
+/*
     TSubRect *pRendered[1500]; // lista renderowanych sektorów
 */
     int iNumNodes = 0;

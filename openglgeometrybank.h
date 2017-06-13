@@ -60,7 +60,8 @@ struct geometry_handle {
 /*
         return bank << 14 | chunk; }
 */
-        return bank << 32 | chunk; }
+        return ( std::uint64_t { bank } << 32 | chunk );
+    }
 
 // members
 /*

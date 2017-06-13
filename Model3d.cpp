@@ -187,18 +187,8 @@ inline void readColor(cParser &parser, glm::vec4 &color)
         >> color.g
         >> color.b;
     color /= 255.0f;
-/*
-	color = r + (g << 8) + (b << 16);
-*/
 };
-/*
-inline void readMatrix(cParser& parser,matrix4x4& matrix)
-{//Ra: wczytanie transforma
-for (int x=0;x<=3;x++) //wiersze
-for (int y=0;y<=3;y++) //kolumny
-parser.getToken(matrix(x)[y]);
-};
-*/
+
 inline void readMatrix(cParser &parser, float4x4 &matrix)
 { // Ra: wczytanie transforma
 	parser.getTokens(16, false);
@@ -597,8 +587,7 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 };
 
 int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
-{ // dodanie trójkątów do submodelu, używane
-    // przy tworzeniu E3D terenu
+{ // dodanie trójkątów do submodelu, używane przy tworzeniu E3D terenu
     TSubModel *s = this;
     while (s ? (s->TextureID != tex) : false)
     { // szukanie submodelu o danej teksturze
@@ -616,7 +605,7 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        s->TextureNameSet(GfxRenderer.Texture(tex).name.c_str());
+        s->TextureNameSet(GfxRenderer.Texture(tex).name);
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
     }
@@ -628,8 +617,7 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
 };
 
 basic_vertex *TSubModel::TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
-{ // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane
-  // przy tworzeniu E3D terenu
+{ // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane przy tworzeniu E3D terenu
 	TSubModel *s = this;
 	while (s ? s->TextureID != tex : false)
 	{ // szukanie submodelu o danej teksturze

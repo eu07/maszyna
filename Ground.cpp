@@ -70,31 +70,17 @@ TGroundNode::TGroundNode()
     iType = GL_POINTS;
     Vertices = NULL;
     nNext = nNext2 = NULL;
-/*
-    pCenter = vector3(0, 0, 0);
-*/
     iCount = 0; // wierzchołków w trójkącie
     // iNumPts=0; //punktów w linii
     TextureID = 0;
     iFlags = 0; // tryb przezroczystości nie zbadany
-    DisplayListID = 0;
     Pointer = NULL; // zerowanie wskaźnika kontekstowego
     bVisible = false; // czy widoczny
     fSquareRadius = 10000 * 10000;
     fSquareMinRadius = 0;
     asName = "";
     fLineThickness=1.0; //mm dla linii
-/*
-    for (int i = 0; i < 3; i++)
-    {
-        Ambient[i] = Global::whiteLight[i] * 255;
-        Diffuse[i] = Global::whiteLight[i] * 255;
-        Specular[i] = Global::noLight[i] * 255;
-    }
-*/
     nNext3 = NULL; // nie wyświetla innych
-    iVboPtr = -1; // indeks w VBO sektora (-1: nie używa VBO)
-    iVersion = 0; // wersja siatki
 }
 
 TGroundNode::~TGroundNode()
@@ -182,7 +168,7 @@ void TGroundNode::InitNormals()
     glm::dvec3 v1, v2, v3, v4, v5;
     glm::vec3 n1, n2, n3, n4;
     glm::vec2 t1;
-    std::size_t i;
+    int i;
     switch (iType)
     {
     case GL_TRIANGLE_STRIP:
@@ -246,14 +232,7 @@ void TGroundNode::InitNormals()
         break;
     }
 }
-/*
-void TGroundNode::Release()
-{
-    if (DisplayListID)
-        glDeleteLists(DisplayListID, 1);
-    DisplayListID = 0;
-};
-*/
+
 void TGroundNode::RenderHidden()
 { // renderowanie obiektów niewidocznych
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
@@ -285,10 +264,6 @@ void TGroundNode::RenderHidden()
 //------------------------------------------------------------------------------
 TSubRect::~TSubRect()
 {
-/*
-    if (Global::bManageNodes) // Ra: tu się coś sypie
-        ResourceManager::Unregister(this); // wyrejestrowanie ze sprzątacza
-*/
     // TODO: usunąć obiekty z listy (nRootMesh), bo są one tworzone dla sektora
 	delete[] tTracks;
 }
@@ -477,7 +452,7 @@ void TSubRect::LoadNodes() {
         switch (node->iType) {
             case GL_TRIANGLES: {
                 vertex_array vertices;
-                for( std::size_t idx = 0; idx < node->iNumVerts; ++idx ) {
+                for( int idx = 0; idx < node->iNumVerts; ++idx ) {
                     vertices.emplace_back(
                         node->Vertices[ idx ].position - node->m_rootposition,
                         node->Vertices[ idx ].normal,
@@ -490,7 +465,7 @@ void TSubRect::LoadNodes() {
             }
             case GL_LINES: {
                 vertex_array vertices;
-                for( std::size_t idx = 0; idx < node->iNumPts; ++idx ) {
+                for( int idx = 0; idx < node->iNumPts; ++idx ) {
                     vertices.emplace_back(
                         node->Points[ idx ] - node->m_rootposition,
                         glm::vec3(),
@@ -513,16 +488,8 @@ void TSubRect::LoadNodes() {
         }
         node = node->nNext2; // następny z sektora
     }
-/*
-    if (Global::bManageNodes)
-        ResourceManager::Register(this); // dodanie do automatu zwalniającego pamięć
-*/
 }
-/*
-void TSubRect::Release()
-{ // wirtualne zwolnienie zasobów przez sprzątacz albo destruktor
-};
-*/
+
 void TSubRect::RenderSounds()
 { // aktualizacja dźwięków w pojazdach sektora (sektor może nie być wyświetlany)
     for (int j = 0; j < iTracks; ++j)
@@ -575,9 +542,6 @@ TGround::TGround()
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
-/*
-    ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
-*/
     // set bounding area information for ground rectangles
     float const rectsize = 1000.0f;
     glm::vec3 const worldcenter;
@@ -780,14 +744,6 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     ntri->Init(3);
     ntri->TextureID = node->TextureID;
     ntri->iFlags = node->iFlags;
-/*
-    for (int j = 0; j < 4; ++j)
-    {
-        ntri->Ambient[j] = node->Ambient[j];
-        ntri->Diffuse[j] = node->Diffuse[j];
-        ntri->Specular[j] = node->Specular[j];
-    }
-*/
     ntri->Ambient = node->Ambient;
     ntri->Diffuse = node->Diffuse;
     ntri->Specular = node->Specular;
@@ -1256,7 +1212,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->nNode[0].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
             tmp->nNode[0].Model = Global::pTerrainCompact;
             tmp->nNode[0].iFlags = 0x200; // nie wyświetlany, ale usuwany
-            for (std::size_t i = 1; i < tmp->iCount; ++i)
+            for (int i = 1; i < tmp->iCount; ++i)
             { // a reszta to submodele
                 tmp->nNode[i].iType = TP_SUBMODEL; //
                 tmp->nNode[i].smTerrain = Global::pTerrainCompact->TerrainSquare(i - 1);
@@ -2073,7 +2029,7 @@ bool TGround::Init(std::string File)
 bool TGround::InitEvents()
 { //łączenie eventów z pozostałymi obiektami
     TGroundNode *tmp, *trk;
-    char buff[255];
+    char buff[ 255 ]; std::string cellastext;
     int i;
     for (TEvent *Current = RootEvent; Current; Current = Current->evNext2)
     {
@@ -2166,19 +2122,16 @@ bool TGround::InitEvents()
             else
                 ErrorLog("Bad copyvalues: event \"" + Current->asName +
                          "\" cannot find memcell \"" + Current->asNodeName + "\"");
-            strcpy(
-                buff,
-                Current->Params[9].asText); // skopiowanie nazwy drugiej komórki do bufora roboczego
+            cellastext = Current->Params[ 9 ].asText;
             SafeDeleteArray(Current->Params[9].asText); // usunięcie nazwy komórki
-            tmp = FindGroundNode(buff, TP_MEMCELL); // komórka źódłowa
-            if (tmp)
-            {
+            tmp = FindGroundNode( cellastext, TP_MEMCELL); // komórka źódłowa
+            if (tmp != nullptr ) {
                 Current->Params[8].nGroundNode = tmp;
                 Current->Params[9].asMemCell = tmp->MemCell; // komórka źródłowa
             }
             else
                 ErrorLog("Bad copyvalues: event \"" + Current->asName +
-                         "\" cannot find memcell \"" + buff + "\"");
+                         "\" cannot find memcell \"" + cellastext + "\"");
             break;
         case tp_Animation: // animacja modelu
             tmp = FindGroundNode(Current->asNodeName, TP_MODEL); // egzemplarza modelu do animowania
@@ -4024,13 +3977,17 @@ void TGround::DynamicRemove(TDynamicObject *dyn)
 };
 
 //---------------------------------------------------------------------------
+
 void TGround::TerrainRead(std::string const &f){
     // Ra: wczytanie trójkątów terenu z pliku E3D
 };
 
 //---------------------------------------------------------------------------
+
 void TGround::TerrainWrite()
 { // Ra: zapisywanie trójkątów terenu do pliku E3D
+    // TODO: re-implement
+/*
     if (Global::pTerrainCompact->TerrainLoaded())
         return; // jeśli zostało wczytane, to nie ma co dalej robić
     if (Global::asTerrainModel.empty())
@@ -4092,16 +4049,6 @@ void TGround::TerrainWrite()
                                 ver[ k ].position = Current->Vertices[ k ].position;
                                 ver[ k ].normal = Current->Vertices[ k ].normal;
                                 ver[ k ].texture = Current->Vertices[ k ].texture;
-/*
-                                ver[k].position.x = Current->Vertices[k].position.x;
-                                ver[k].position.y = Current->Vertices[k].position.y;
-                                ver[k].position.z = Current->Vertices[k].position.z;
-                                ver[k].normal.x = Current->Vertices[k].normal.x;
-                                ver[k].normal.y = Current->Vertices[k].normal.y;
-                                ver[k].normal.z = Current->Vertices[k].normal.z;
-                                ver[k].texture.s = Current->Vertices[k].tu;
-                                ver[k].texture.t = Current->Vertices[k].tv;
-*/
                             }
                             break;
                         case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
@@ -4111,7 +4058,9 @@ void TGround::TerrainWrite()
                         }
             }
     m->SaveToBinFile(strdup(("models\\" + Global::asTerrainModel).c_str()));
+*/
 };
+
 //---------------------------------------------------------------------------
 
 void TGround::TrackBusyList()
