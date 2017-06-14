@@ -795,6 +795,8 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
         texture_manager::texture( textureindex ).load();
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         texture_manager::texture( textureindex ).create();
+        // texture creation binds a different texture, force a re-bind on next use
+        m_activetexture = 0;
 #endif
     }
 
@@ -803,16 +805,11 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
 
 void
 texture_manager::bind( texture_handle const Texture ) {
-/*
-    // NOTE: this optimization disabled for the time being, until the render code is reviewed
-    //       having it active would lead to some terrain and spline chunks receiving wrong
-    //       (the most recent?) texture, instead of the proper one. It'd also affect negatively
-    //       light point rendering.
-    if( Id == m_activetexture ) {
+
+    if( Texture == m_activetexture ) {
         // don't bind again what's already active
         return;
     }
-*/
     // TODO: do binding in texture object, add support for other types
     if( Texture != 0 ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD

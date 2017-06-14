@@ -33,10 +33,11 @@ struct basic_vertex {
 
 // data streams carried in a vertex
 enum stream {
+    none     = 0x0,
     position = 0x1,
-    normal = 0x2,
-    color = 0x4, // currently normal and colour streams are stored in the same slot, and mutually exclusive
-    texture = 0x8
+    normal   = 0x2,
+    color    = 0x4, // currently normal and colour streams are stored in the same slot, and mutually exclusive
+    texture  = 0x8
 };
 
 unsigned int const basic_streams { stream::position | stream::normal | stream::texture };
@@ -87,7 +88,7 @@ public:
 // methods:
     // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk or NULL
     geometry_handle
-        create( vertex_array &Vertices, unsigned int const Type, unsigned int const Streams = stream::position | stream::normal | stream::texture );
+        create( vertex_array &Vertices, unsigned int const Type );
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
         replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
@@ -96,11 +97,11 @@ public:
         append( vertex_array &Vertices, geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( geometry_handle const &Geometry );
+        draw( geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
     // draws geometry stored in supplied list of chunks
     template <typename Iterator_>
     void
-        draw( Iterator_ First, Iterator_ Last ) { while( First != Last ) { draw( *First ); ++First; } }
+        draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Streams ); ++First; } }
     // provides direct access to vertex data of specfied chunk
     vertex_array const &
         vertices( geometry_handle const &Geometry ) const;
@@ -108,12 +109,11 @@ public:
 protected:
 // types:
     struct geometry_chunk {
-        unsigned int streams; // data streams carried by vertices
         unsigned int type; // kind of geometry used by the chunk
         vertex_array vertices; // geometry data
 
-        geometry_chunk( vertex_array &Vertices, unsigned int const Type, unsigned int const Streams ) :
-                            vertices( Vertices ),            type( Type ),         streams( Streams )
+        geometry_chunk( vertex_array &Vertices, unsigned int const Type ) :
+                            vertices( Vertices ),            type( Type )
         {}
     };
 
@@ -139,7 +139,7 @@ private:
     // replace() subclass details
     virtual void replace_( geometry_handle const &Geometry ) = 0;
     // draw() subclass details
-    virtual void draw_( geometry_handle const &Geometry ) = 0;
+    virtual void draw_( geometry_handle const &Geometry, unsigned int const Streams ) = 0;
 };
 
 // opengl vbo-based variant of the geometry bank
@@ -154,7 +154,8 @@ public:
     static
     void
         reset() {
-            m_activebuffer = 0; }
+            m_activebuffer = 0;
+            m_activestreams = stream::none; }
 
 private:
 // types:
@@ -175,15 +176,18 @@ private:
         replace_( geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( geometry_handle const &Geometry );
+        draw_( geometry_handle const &Geometry, unsigned int const Streams );
     void
         bind_buffer();
     void
         delete_buffer();
+    void
+        bind_streams( unsigned int const Streams );
 
 // members:
     static GLuint m_activebuffer; // buffer bound currently on the opengl end, if any
-    GLuint m_buffer{ NULL }; // id of the buffer holding data on the opengl end
+    static unsigned int m_activestreams;
+    GLuint m_buffer { NULL }; // id of the buffer holding data on the opengl end
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 
@@ -202,7 +206,8 @@ public:
 private:
 // types:
     struct chunk_record {
-        GLuint list{ 0 }; // display list associated with the chunk
+        GLuint list { 0 }; // display list associated with the chunk
+        unsigned int streams { 0 }; // stream combination used to generate the display list
     };
 
     typedef std::vector<chunk_record> chunkrecord_sequence;
@@ -216,7 +221,7 @@ private:
         replace_( geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( geometry_handle const &Geometry );
+        draw_( geometry_handle const &Geometry, unsigned int const Streams );
     void
         delete_list( geometry_handle const &Geometry );
 
@@ -247,12 +252,12 @@ public:
         append( vertex_array &Vertices, geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( geometry_handle const &Geometry );
+        draw( geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
     template <typename Iterator_>
     void
-        draw( Iterator_ First, Iterator_ Last ) {
+        draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) {
         while( First != Last ) { 
-            draw( *First );
+            draw( *First, Streams );
             ++First; } }
     // provides direct access to vertex data of specfied chunk
     vertex_array const &

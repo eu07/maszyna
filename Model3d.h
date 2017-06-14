@@ -112,12 +112,15 @@ private:
 
 	TSubModel *Next;
 	TSubModel *Child;
+/*
 	intptr_t iVboPtr;
+*/
     geometry_handle m_geometry; // geometry of the submodel
 	texture_handle TextureID; // numer tekstury, -1 wymienna, 0 brak
 	bool bWire; // nie używane, ale wczytywane
-				// short TexAlpha;  //Ra: nie używane już
+/*
 	GLuint uiDisplayList; // roboczy numer listy wyświetlania
+*/
 	float Opacity; // nie używane, ale wczytywane //m7todo: wywalić to
 	float f_Angle;
 	float3 v_RotateAxis;
@@ -125,7 +128,10 @@ private:
 
 public: // chwilowo
 	float3 v_TransVector;
+/*
 	basic_vertex *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
+*/
+    vertex_array Vertices;
 	size_t iAnimOwner; // roboczy numer egzemplarza, który ustawił animację
 	TAnimType b_aAnim; // kody animacji oddzielnie, bo zerowane
 public:
@@ -138,7 +144,7 @@ public:
 	std::string pTexture; // robocza nazwa tekstury do zapisania w pliku binarnym
 	std::string pName; // robocza nazwa
 private:
-	int SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, glm::vec3 *pt, basic_vertex *Vertices);
+	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices );
 	void RaAnimation(TAnimType a);
 
 public:
@@ -151,13 +157,15 @@ public:
 	TSubModel();
 	~TSubModel();
 	void FirstInit();
-	int Load(cParser &Parser, TModel3d *Model, int Pos, bool dynamic);
+	int Load(cParser &Parser, TModel3d *Model, /*int Pos,*/ bool dynamic);
 	void ChildAdd(TSubModel *SubModel);
 	void NextAdd(TSubModel *SubModel);
 	TSubModel * NextGet() { return Next; };
 	TSubModel * ChildGet() { return Child; };
 	int TriangleAdd(TModel3d *m, texture_handle tex, int tri);
+/*
 	basic_vertex * TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
+*/
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ(vector3 vNewAngles);
 	void SetRotateXYZ(float3 vNewAngles);
@@ -168,7 +176,10 @@ public:
 	TSubModel * GetFromName(char const *search, bool i = true);
 	inline float4x4 * GetMatrix() { return fMatrix; };
 	inline void Hide() { iVisible = 0; };
+/*
 	void RaArrayFill(basic_vertex *Vert);
+*/
+    void create_geometry( geometrybank_handle const &Bank );
 	int FlagsCheck();
 	void WillBeAnimated()
 	{
@@ -241,7 +252,7 @@ public:
 	void LoadFromTextFile(std::string const &FileName, bool dynamic);
 	void LoadFromBinFile(std::string const &FileName, bool dynamic);
 	bool LoadFromFile(std::string const &FileName, bool dynamic);
-	void SaveToBinFile(char const *FileName);
+	void SaveToBinFile(std::string const &FileName);
 	void BreakHierarhy();
 	int Flags() const { return iFlags; };
 	void Init();

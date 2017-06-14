@@ -48,11 +48,11 @@ basic_vertex::deserialize( std::istream &s ) {
 
 // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk
 geometry_handle
-geometry_bank::create( vertex_array &Vertices, unsigned int const Type, unsigned int const Streams ) {
+geometry_bank::create( vertex_array &Vertices, unsigned int const Type ) {
 
     if( true == Vertices.empty() ) { return geometry_handle( 0, 0 ); }
 
-    m_chunks.emplace_back( Vertices, Type, Streams );
+    m_chunks.emplace_back( Vertices, Type );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     geometry_handle chunkhandle { 0, static_cast<std::uint32_t>(m_chunks.size()) };
     // template method
@@ -98,9 +98,9 @@ geometry_bank::append( vertex_array &Vertices, geometry_handle const &Geometry )
 
 // draws geometry stored in specified chunk
 void
-geometry_bank::draw( geometry_handle const &Geometry ) {
+geometry_bank::draw( geometry_handle const &Geometry, unsigned int const Streams ) {
     // template method
-    draw_( Geometry );
+    draw_( Geometry, Streams );
 }
 
 vertex_array const &
@@ -111,7 +111,8 @@ geometry_bank::vertices( geometry_handle const &Geometry ) const {
 
 // opengl vbo-based variant of the geometry bank
 
-GLuint opengl_vbogeometrybank::m_activebuffer{ NULL }; // buffer bound currently on the opengl end, if any
+GLuint opengl_vbogeometrybank::m_activebuffer { NULL }; // buffer bound currently on the opengl end, if any
+unsigned int opengl_vbogeometrybank::m_activestreams { stream::none }; // currently enabled data type pointers
 
 // create() subclass details
 void
@@ -140,7 +141,7 @@ opengl_vbogeometrybank::replace_( geometry_handle const &Geometry ) {
 
 // draw() subclass details
 void
-opengl_vbogeometrybank::draw_( geometry_handle const &Geometry ) {
+opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int const Streams ) {
 
     if( m_buffer == NULL ) {
         // if there's no buffer, we'll have to make one
@@ -152,6 +153,7 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry ) {
         auto chunkiterator = m_chunks.cbegin();
         for( auto &chunkrecord : m_chunkrecords ) {
             // fill records for all chunks, based on the chunk data
+            chunkrecord.is_good = false; // if we're re-creating buffer, chunks might've been uploaded in the old one
             chunkrecord.offset = datasize;
             chunkrecord.size = chunkiterator->vertices.size();
             datasize += chunkrecord.size;
@@ -193,6 +195,9 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry ) {
             chunk.vertices.data() );
         chunkrecord.is_good = true;
     }
+    if( m_activestreams != Streams ) {
+        bind_streams( Streams );
+    }
     // ...render...
     ::glDrawArrays( chunk.type, chunkrecord.offset, chunkrecord.size );
     // ...post-render cleanup
@@ -208,16 +213,8 @@ void
 opengl_vbogeometrybank::bind_buffer() {
 
     ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
-    // TODO: allow specifying other vertex data setups
-    ::glVertexPointer( 3, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) );
-    ::glNormalPointer( GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + sizeof(float) * 3 ); // normalne
-    ::glTexCoordPointer( 2, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 24 ); // wierzchołki
-    // TODO: allow specifying other vertex data setups, either in the draw() parameters or during chunk or buffer creation
-    ::glEnableClientState( GL_VERTEX_ARRAY );
-    ::glEnableClientState( GL_NORMAL_ARRAY );
-    ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-
     m_activebuffer = m_buffer;
+    m_activestreams = stream::none;
 }
 
 void
@@ -231,7 +228,45 @@ opengl_vbogeometrybank::delete_buffer() {
         }
         m_buffer = NULL;
         m_buffercapacity = 0;
+        // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
+        // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice
     }
+}
+
+void
+opengl_vbogeometrybank::bind_streams( unsigned int const Streams ) {
+
+    if( Streams & stream::position ) {
+        ::glVertexPointer( 3, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) );
+        ::glEnableClientState( GL_VERTEX_ARRAY );
+    }
+    else {
+        ::glDisableClientState( GL_VERTEX_ARRAY );
+    }
+    // NOTE: normal and color streams share the data, making them effectively mutually exclusive
+    if( Streams & stream::normal ) {
+        ::glNormalPointer( GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 );
+        ::glEnableClientState( GL_NORMAL_ARRAY );
+    }
+    else {
+        ::glDisableClientState( GL_NORMAL_ARRAY );
+    }
+    if( Streams & stream::color ) {
+        ::glColorPointer( 3, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 );
+        ::glEnableClientState( GL_COLOR_ARRAY );
+    }
+    else {
+        ::glDisableClientState( GL_COLOR_ARRAY );
+    }
+    if( Streams & stream::texture ) {
+        ::glTexCoordPointer( 2, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 24 );
+        ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+    }
+    else {
+        ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+    }
+
+    m_activestreams = Streams;
 }
 
 // opengl display list based variant of the geometry bank
@@ -252,21 +287,25 @@ opengl_dlgeometrybank::replace_( geometry_handle const &Geometry ) {
 
 // draw() subclass details
 void
-opengl_dlgeometrybank::draw_( geometry_handle const &Geometry ) {
+opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, unsigned int const Streams ) {
 
     auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
+    if( chunkrecord.streams != Streams ) {
+        delete_list( Geometry );
+    }
     if( chunkrecord.list == 0 ) {
         // we don't have a list ready, so compile one
+        chunkrecord.streams = Streams;
         chunkrecord.list = ::glGenLists( 1 );
         auto const &chunk = geometry_bank::chunk( Geometry );
         ::glNewList( chunkrecord.list, GL_COMPILE );
 
         ::glBegin( chunk.type );
-        // TODO: add specification of chunk vertex attributes
         for( auto const &vertex : chunk.vertices ) {
-            ::glNormal3fv( glm::value_ptr( vertex.normal ) );
-            ::glTexCoord2fv( glm::value_ptr( vertex.texture ) );
-            ::glVertex3fv( glm::value_ptr( vertex.position ) );
+                 if( Streams & stream::normal ) { ::glNormal3fv( glm::value_ptr( vertex.normal ) ); }
+            else if( Streams & stream::color )  { ::glColor3fv( glm::value_ptr( vertex.normal ) ); }
+            if( Streams & stream::texture )     { ::glTexCoord2fv( glm::value_ptr( vertex.texture ) ); }
+            if( Streams & stream::position )    { ::glVertex3fv( glm::value_ptr( vertex.position ) ); }
         }
         ::glEnd();
         ::glEndList();
@@ -279,8 +318,11 @@ void
 opengl_dlgeometrybank::delete_list( geometry_handle const &Geometry ) {
     // NOTE: given it's our own internal method we trust it to be called with valid parameters
     auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
-    ::glDeleteLists( chunkrecord.list, 1 );
-    chunkrecord.list = 0;
+    if( chunkrecord.list != 0 ) {
+        ::glDeleteLists( chunkrecord.list, 1 );
+        chunkrecord.list = 0;
+    }
+    chunkrecord.streams = stream::none;
 }
 
 // geometry bank manager, holds collection of geometry banks
@@ -320,11 +362,11 @@ geometrybank_manager::append( vertex_array &Vertices, geometry_handle const &Geo
 }
 // draws geometry stored in specified chunk
 void
-geometrybank_manager::draw( geometry_handle const &Geometry ) {
+geometrybank_manager::draw( geometry_handle const &Geometry, unsigned int const Streams ) {
 
     if( Geometry == NULL ) { return; }
 
-    return bank( Geometry )->draw( Geometry );
+    return bank( Geometry )->draw( Geometry, Streams );
 }
 
 // provides direct access to vertex data of specfied chunk

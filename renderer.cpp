@@ -157,7 +157,6 @@ opengl_renderer::Render() {
         // frustum tests are performed in 'world space' but after we set up frustum
         // we no longer need camera translation, only rotation
         ::glMultMatrixd( glm::value_ptr( glm::dmat4( glm::dmat3( worldcamera ))));
-
         Render( &World.Environment );
         Render( &World.Ground );
 
@@ -835,27 +834,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 ::glDisable( GL_LIGHTING );
 
                 // main draw call
-                // TODO: add support for colour data draw mode
-                m_geometry.draw( Submodel->m_geometry );
-/*
-                if( Global::bUseVBO ) {
-                    // NOTE: we're doing manual switch to color vbo setup, because there doesn't seem to be any convenient way available atm
-                    // TODO: implement easier way to go about it
-                    ::glDisableClientState( GL_NORMAL_ARRAY );
-                    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-                    ::glEnableClientState( GL_COLOR_ARRAY );
-                    ::glColorPointer( 3, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 12 ); // kolory
+                m_geometry.draw( Submodel->m_geometry, color_streams );
 
-                    ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
-
-                    ::glDisableClientState( GL_COLOR_ARRAY );
-                    ::glEnableClientState( GL_NORMAL_ARRAY );
-                    ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-                }
-                else {
-                    ::glCallList( Submodel->uiDisplayList );
-                }
-*/
                 // post-draw reset
                 ::glPopAttrib();
             }
@@ -986,9 +966,6 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
     // pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE,
     // wlasciwie dla kazdego node'a
     // i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
-/*
-    Node->SetLastUsage( Timer::GetSimulationTime() );
-*/
     double const distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor );
     if( ( distancesquared > ( Node->fSquareRadius    * Global::fDistanceFactor ) )
      || ( distancesquared < ( Node->fSquareMinRadius / Global::fDistanceFactor ) ) ) {

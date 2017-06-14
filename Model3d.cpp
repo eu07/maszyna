@@ -51,10 +51,14 @@ TSubModel::TSubModel()
 void TSubModel::FirstInit()
 {
 	eType = TP_ROTATOR;
+/*
 	Vertices = NULL;
 	uiDisplayList = 0;
+*/
 	iNumVerts = -1; // do sprawdzenia
+/*
 	iVboPtr = -1;
+*/
 	fLight = -1.0; //świetcenie wyłączone
 	v_RotateAxis = float3(0, 0, 0);
 	v_TransVector = float3(0, 0, 0);
@@ -103,15 +107,19 @@ void TSubModel::FirstInit()
 
 TSubModel::~TSubModel()
 {
+/*
 	if (uiDisplayList)
 		glDeleteLists(uiDisplayList, 1);
+*/
 	if (iFlags & 0x0200)
 	{ // wczytany z pliku tekstowego musi sam posprzątać
 	  // SafeDeleteArray(Indices);
 		SafeDelete(Next);
 		SafeDelete(Child);
 		delete fMatrix; // własny transform trzeba usunąć (zawsze jeden)
+/*
 		delete[] Vertices;
+*/
 	}
 	delete[] smLetter; // używany tylko roboczo dla TP_TEXT, do przyspieszenia
 					   // wyświetlania
@@ -136,25 +144,20 @@ void TSubModel::NameSet(std::string const &Name)
 // int TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3
 // *pt,GLVERTEX
 // *Vertices)
-int TSubModel::SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, glm::vec3 *pt,
-	basic_vertex *Vertices)
-{ // szukanie punktu stycznego
-  // do (pt), zwraca numer
-  // wierzchołka, a nie trójkąta
-	int iNumFaces = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
-								   // GLVERTEX *p; //roboczy wskaźnik
-	basic_vertex *p; // roboczy wskaźnik
-	for (int i = f; i < iNumFaces; ++i) // pętla po trójkątach, od trójkąta (f)
-		if (Masks[i] & dwMask) // jeśli wspólna maska powierzchni
-		{
-			p = Vertices + 3 * i;
-			if (p->position == *pt)
-				return 3 * i;
-			if ((++p)->position == *pt)
-				return 3 * i + 1;
-			if ((++p)->position == *pt)
-				return 3 * i + 2;
-		}
+int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices)
+{ // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
+	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
+    for( int faceidx = Startface; faceidx < facecount; ++faceidx ) {
+        // pętla po trójkątach, od trójkąta (f)
+        if( Masks[ faceidx ] & Mask ) {
+            // jeśli wspólna maska powierzchni
+            for( int vertexidx = 0; vertexidx < 2; ++vertexidx ) {
+                if( Vertices[ 3 * faceidx + vertexidx ].position == Position ) {
+                    return 3 * faceidx + vertexidx;
+                }
+            }
+        }
+    }
 	return -1; // nie znaleziono stycznego wierzchołka
 }
 
@@ -197,10 +200,12 @@ inline void readMatrix(cParser &parser, float4x4 &matrix)
 			parser >> matrix(x)[y];
 };
 
-int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
+int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic)
 { // Ra: VBO tworzone na poziomie modelu, a nie submodeli
     iNumVerts = 0;
+/*
     iVboPtr = Pos; // pozycja w VBO
+*/
     if (!parser.expectToken("type:"))
         Error("Model type parse failure!");
     {
@@ -329,13 +334,18 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     {
         std::string discard;
         parser.getTokens(5, false);
-        parser >> discard >> bWire >> discard >> fWireSize >> discard;
-        Opacity = readIntAsDouble(parser,
-                                  100.0f); // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
+        parser
+            >> discard >> bWire
+            >> discard >> fWireSize
+            >> discard;
+        // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
+        Opacity = readIntAsDouble(parser, 100.0f); 
         if (Opacity > 1.0f)
             Opacity *= 0.01f; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
+/*
         if ((Global::iConvertModels & 1) == 0) // dla zgodności wstecz
             Opacity = 0.0; // wszystko idzie w przezroczyste albo zależnie od tekstury
+*/
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
         std::string texture = parser.getToken<std::string>();
@@ -371,20 +381,19 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         }
         else
         { // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
-            // asTexture=AnsiString(texture.c_str()); //zapamiętanie nazwy tekstury
             TextureNameSet(texture.c_str());
-            if (texture.find_first_of("/\\") == texture.npos)
-                texture.insert(0, Global::asCurrentTexturePath.c_str());
+            if( texture.find_first_of( "/\\" ) == texture.npos ) {
+                texture.insert( 0, Global::asCurrentTexturePath.c_str() );
+            }
             TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
-            // TexAlpha=TTexturesManager::GetAlpha(TextureID);
-            // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
-            iFlags |=
-                ( GfxRenderer.Texture(TextureID).has_alpha ?
-                    0x20 :
-                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
+            iFlags |=
+                ( ( ( Opacity < 1.0 )
+                 && ( GfxRenderer.Texture(TextureID).has_alpha ) ) ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
     }
     else
@@ -407,8 +416,6 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 	readMatrix(parser, *fMatrix); // wczytanie transform
 	if (!fMatrix->IdentityIs())
 		iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechować
-	int iNumFaces; // ilość trójkątów
-	unsigned int *sg; // maski przynależności trójkątów do powierzchni
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
 		parser.getTokens(2, false);
@@ -423,11 +430,11 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 		{ // jeśli pierwszy znak jest gwiazdką, poszukać
 		  // submodelu o nazwie bez tej gwiazdki i wziąć z
 		  // niego wierzchołki
-			Error("Verticles reference not yet supported!");
+			Error("Vertices reference not yet supported!");
 		}
 		else
 		{ // normalna lista wierzchołków
-			iNumVerts = atoi(token.c_str());
+			iNumVerts = std::atoi(token.c_str());
 			if (iNumVerts % 3)
 			{
 				iNumVerts = 0;
@@ -435,27 +442,31 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 				return 0;
 			}
 			// Vertices=new GLVERTEX[iNumVerts];
-			if (iNumVerts)
-			{
+			if (iNumVerts) {
+/*
 				Vertices = new basic_vertex[iNumVerts];
-				iNumFaces = iNumVerts / 3;
-				sg = new unsigned int[iNumFaces]; // maski powierzchni: 0 oznacza brak
-												  // użredniania wektorów normalnych
-				int *wsp = new int[iNumVerts]; // z którego wierzchołka kopiować wektor
-											   // normalny
+*/
+                Vertices.resize( iNumVerts );
+                int facecount = iNumVerts / 3;
+/*
+                unsigned int *sg; // maski przynależności trójkątów do powierzchni
+                sg = new unsigned int[iNumFaces]; // maski powierzchni: 0 oznacza brak użredniania wektorów normalnych
+				int *wsp = new int[iNumVerts]; // z którego wierzchołka kopiować wektor normalny
+*/
+                std::vector<unsigned int> sg; sg.resize( facecount ); // maski przynależności trójkątów do powierzchni
+                std::vector<int> wsp; wsp.resize( iNumVerts );// z którego wierzchołka kopiować wektor normalny
 				int maska = 0;
-				for (int i = 0; i < iNumVerts; i++)
-				{ // Ra: z konwersją na układ scenerii - będzie wydajniejsze
-				  // wyświetlanie
+				for (int i = 0; i < iNumVerts; ++i) {
+                    // Ra: z konwersją na układ scenerii - będzie wydajniejsze wyświetlanie
 					wsp[i] = -1; // wektory normalne nie są policzone dla tego wierzchołka
-					if ((i % 3) == 0)
-					{ // jeśli będzie maska -1, to dalej będą
-					  // wierzchołki z wektorami normalnymi, podanymi
-					  // jawnie
+					if ((i % 3) == 0) {
+                        // jeśli będzie maska -1, to dalej będą wierzchołki z wektorami normalnymi, podanymi jawnie
 						maska = parser.getToken<int>(false); // maska powierzchni trójkąta
-						sg[i / 3] = (maska == -1) ? 0 : maska; // dla maski -1 będzie 0,
-															   // czyli nie ma wspólnych
-															   // wektorów normalnych
+                        // dla maski -1 będzie 0, czyli nie ma wspólnych wektorów normalnych
+						sg[i / 3] = (
+                            ( maska == -1 ) ?
+                                0 :
+                                maska );
 					}
 					parser.getTokens(3, false);
 					parser
@@ -475,80 +486,77 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 					parser
                         >> Vertices[i].texture.s
                         >> Vertices[i].texture.t;
-					if (i % 3 == 2) // jeżeli wczytano 3 punkty
-					{
-						if (Vertices[i].position == Vertices[i - 1].position
+					if (i % 3 == 2) { 
+                        // jeżeli wczytano 3 punkty
+						if (Vertices[i    ].position == Vertices[i - 1].position
                          || Vertices[i - 1].position == Vertices[i - 2].position
-                         || Vertices[i - 2].position == Vertices[i].position)
+                         || Vertices[i - 2].position == Vertices[i    ].position)
 						{ // jeżeli punkty się nakładają na siebie
-							--iNumFaces; // o jeden trójkąt mniej
+							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog(std::string("Degenerated triangle ignored in: \"") + pName +
-								"\", verticle " + std::to_string(i));
+							WriteLog("Degenerated triangle ignored in: \"" + pName + "\", verticle " + std::to_string(i));
 						}
-						if (i > 0) // jeśli pierwszy trójkąt będzie zdegenerowany, to
-								   // zostanie usunięty i nie ma co sprawdzać
-							if ((glm::length(Vertices[i].position - Vertices[i - 1].position) > 1000.0)
-                                || (glm::length(Vertices[i - 1].position - Vertices[i - 2].position) > 1000.0)
-                                || (glm::length(Vertices[i - 2].position - Vertices[i].position) > 1000.0))
-							{ // jeżeli są dalej niż 2km od siebie //Ra 15-01:
-							  // obiekt wstawiany nie powinien być większy niż
-							  // 300m (trójkąty terenu w E3D mogą mieć 1.5km)
-								--iNumFaces; // o jeden trójkąt mniej
+						if (i > 0) {
+                            // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
+							if ((glm::length(Vertices[i    ].position - Vertices[i - 1].position) > 1000.0)
+                             || (glm::length(Vertices[i - 1].position - Vertices[i - 2].position) > 1000.0)
+                             || (glm::length(Vertices[i - 2].position - Vertices[i    ].position) > 1000.0)) {
+                                // jeżeli są dalej niż 2km od siebie //Ra 15-01:
+                                // obiekt wstawiany nie powinien być większy niż 300m (trójkąty terenu w E3D mogą mieć 1.5km)
+								--facecount; // o jeden trójkąt mniej
 								iNumVerts -= 3; // czyli o 3 wierzchołki
 								i -= 3; // wczytanie kolejnego w to miejsce
-								WriteLog(std::string("Too large triangle ignored in: \"") + pName +
-									"\"");
+								WriteLog( "Too large triangle ignored in: \"" + pName + "\"" );
 							}
+                        }
 					}
 				}
-				int i; // indeks dla trójkątów
+/*
 				glm::vec3 *n = new glm::vec3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
-				for (i = 0; i < iNumFaces; ++i) // pętla po trójkątach - będzie
-												// szybciej, jak wstępnie przeliczymy
-												// normalne trójkątów
-					n[i] = glm::normalize(
-						glm::cross(
-                            Vertices[i * 3].position - Vertices[i * 3 + 1].position,
-							Vertices[i * 3].position - Vertices[i * 3 + 2].position));
-				int v; // indeks dla wierzchołków
-				int f; // numer trójkąta stycznego
-				glm::vec3 norm; // roboczy wektor normalny
-				for (v = 0; v < iNumVerts; ++v)
-				{ // pętla po wierzchołkach trójkątów
-					if (wsp[v] >= 0) // jeśli już był liczony wektor normalny z użyciem
-									 // tego wierzchołka
-						Vertices[v].normal =
-						Vertices[wsp[v]].normal; // to wystarczy skopiować policzony wcześniej
-					else
-					{ // inaczej musimy dopiero policzyć
-						i = v / 3; // numer trójkąta
-						norm = glm::vec3(); // liczenie zaczynamy od zera
-						f = v; // zaczynamy dodawanie wektorów normalnych od własnego
-						while (f >= 0)
-						{ // sumowanie z wektorem normalnym sąsiada (włącznie
-						  // ze sobą)
-							wsp[f] = v; // informacja, że w tym wierzchołku jest już policzony
-										// wektor normalny
-							norm += n[f / 3];
-							f = SeekFaceNormal(sg, f / 3 + 1, sg[i], &Vertices[v].position,
-								Vertices); // i szukanie od kolejnego trójkąta
+*/
+                std::vector<glm::vec3> facenormals;
+                for( int i = 0; i < facecount; ++i ) {
+                    // pętla po trójkątach - będzie szybciej, jak wstępnie przeliczymy normalne trójkątów
+                    facenormals.emplace_back(
+                        glm::normalize(
+                            glm::cross(
+                                Vertices[ i * 3 ].position - Vertices[ i * 3 + 1 ].position,
+                                Vertices[ i * 3 ].position - Vertices[ i * 3 + 2 ].position ) ) );
+                }
+				glm::vec3 vertexnormal; // roboczy wektor normalny
+				for (int vertexidx = 0; vertexidx < iNumVerts; ++vertexidx) { 
+                    // pętla po wierzchołkach trójkątów
+                    if( wsp[ vertexidx ] >= 0 ) {
+                        // jeśli już był liczony wektor normalny z użyciem tego wierzchołka to wystarczy skopiować policzony wcześniej
+                        Vertices[ vertexidx ].normal = Vertices[ wsp[ vertexidx ] ].normal;
+                    }
+					else {
+                        // inaczej musimy dopiero policzyć
+						auto const faceidx = vertexidx / 3; // numer trójkąta
+						vertexnormal = glm::vec3(); // liczenie zaczynamy od zera
+						auto adjacenvertextidx = vertexidx; // zaczynamy dodawanie wektorów normalnych od własnego
+						while (adjacenvertextidx >= 0) {
+                            // sumowanie z wektorem normalnym sąsiada (włącznie ze sobą)
+							wsp[adjacenvertextidx] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
+							vertexnormal += facenormals[adjacenvertextidx / 3];
+                            // i szukanie od kolejnego trójkąta
+							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
 						}
-						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane
-						// przez transformy, aby normalne po przeskalowaniu były jednostkowe
-						Vertices[v].normal =
-							glm::normalize(norm); // przepisanie do wierzchołka trójkąta
+						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
+						Vertices[vertexidx].normal = glm::normalize(vertexnormal); // przepisanie do wierzchołka trójkąta
 					}
 				}
+/*
 				delete[] wsp;
 				delete[] n;
 				delete[] sg;
+*/
 			}
 			else // gdy brak wierzchołków
 			{
 				eType = TP_ROTATOR; // submodel pomocniczy, ma tylko macierz przekształcenia
-				iVboPtr = iNumVerts = 0; // dla formalności
+				/*iVboPtr =*/ iNumVerts = 0; // dla formalności
 			}
 		} // obsługa submodelu z własną listą wierzchołków
 	}
@@ -558,9 +566,13 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 		std::string discard;
 		parser.getTokens(2, false);
 		parser >> discard >> iNumVerts;
+/*
 		// Vertices=new GLVERTEX[iNumVerts];
 		Vertices = new basic_vertex[iNumVerts];
-		int i, j;
+*/
+        Vertices.resize( iNumVerts );
+        int i;
+        unsigned int color;
 		for (i = 0; i < iNumVerts; ++i)
 		{
 			if (i % 3 == 0)
@@ -572,13 +584,17 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
                 >> Vertices[i].position.x
                 >> Vertices[i].position.y
                 >> Vertices[i].position.z
-                >> j // zakodowany kolor
+                >> color // zakodowany kolor
 				>> discard;
-			Vertices[i].normal.x = ((j) & 0xFF) / 255.0; // R
-			Vertices[i].normal.y = ((j >> 8) & 0xFF) / 255.0; // G
-			Vertices[i].normal.z = ((j >> 16) & 0xFF) / 255.0; // B
+			Vertices[i].normal.x = ((color) & 0xff) / 255.0f; // R
+			Vertices[i].normal.y = ((color >> 8) & 0xff) / 255.0f; // G
+			Vertices[i].normal.z = ((color >> 16) & 0xff) / 255.0f; // B
 		}
 	}
+    else if( eType == TP_FREESPOTLIGHT ) {
+        // single light points only have single data point, duh
+        Vertices.emplace_back();
+    }
 	// Visible=true; //się potem wyłączy w razie potrzeby
 	// iFlags|=0x0200; //wczytano z pliku tekstowego (jest właścicielem tablic)
 	if (iNumVerts < 1)
@@ -615,9 +631,10 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
         s->iNumVerts += tri; // aktualizacja ilości wierzchołków
     return s->iNumVerts - tri; // zwraca pozycję tych trójkątów w submodelu
 };
-
+/*
 basic_vertex *TSubModel::TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane przy tworzeniu E3D terenu
+
 	TSubModel *s = this;
 	while (s ? s->TextureID != tex : false)
 	{ // szukanie submodelu o danej teksturze
@@ -637,7 +654,7 @@ basic_vertex *TSubModel::TrianglePtr(int tex, int pos, glm::vec3 const &Ambient,
 	s->ColorsSet(Ambient, Diffuse, Specular); // ustawienie kolorów świateł
 	return s->Vertices + pos; // wskaźnik na wolne miejsce w tabeli wierzchołków
 };
-
+*/
 #ifdef EU07_USE_OLD_RENDERCODE
 void TSubModel::DisplayLists()
 { // utworznie po jednej skompilowanej liście dla
@@ -709,10 +726,10 @@ void TSubModel::InitialRotate(bool doit)
 { // konwersja układu współrzędnych na zgodny ze scenerią
     if (iFlags & 0xC000) // jeśli jest animacja albo niejednostkowy transform
     { // niejednostkowy transform jest mnożony i wystarczy zabawy
-        if (doit)
-        { // obrót lewostronny
-            if (!fMatrix) // macierzy może nie być w dodanym "bananie"
-            {
+        if (doit) {
+            // obrót lewostronny
+            if (!fMatrix) {
+                // macierzy może nie być w dodanym "bananie"
                 fMatrix = new float4x4(); // tworzy macierz o przypadkowej zawartości
                 fMatrix->Identity(); // a zaczynamy obracanie od jednostkowej
             }
@@ -729,16 +746,18 @@ void TSubModel::InitialRotate(bool doit)
             { // jak nie ma potomnych, można wymnożyć przez transform i wyjedynkować
                 // go
                 float4x4 *mat = GetMatrix(); // transform submodelu
-                if (Vertices)
-                {
-                    for (int i = 0; i < iNumVerts; ++i)
-                        Vertices[i].position = (*mat) * Vertices[i].position;
-                    (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] =
-                        0.0; // zerujemy przesunięcie przed obracaniem normalnych
-                    if (eType != TP_STARS) // gwiazdki mają kolory zamiast normalnych, to
-                        // ich wtedy nie ruszamy
-                        for (int i = 0; i < iNumVerts; ++i)
-                            Vertices[i].normal = glm::normalize((*mat) * Vertices[i].normal);
+                if( false == Vertices.empty() ) {
+                    for( auto &vertex : Vertices ) {
+                        vertex.position = (*mat) * vertex.position;
+                    }
+                    // zerujemy przesunięcie przed obracaniem normalnych
+                    (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] = 0.0;
+                    if( eType != TP_STARS ) {
+                        // gwiazdki mają kolory zamiast normalnych, to ich wtedy nie ruszamy
+                        for( auto &vertex : Vertices ) {
+                            vertex.normal = glm::normalize( ( *mat ) * vertex.normal );
+                        }
+                    }
                 }
                 mat->Identity(); // jedynkowanie transformu po przeliczeniu wierzchołków
                 iFlags &= ~0x8000; // transform jedynkowy
@@ -748,23 +767,26 @@ void TSubModel::InitialRotate(bool doit)
         if (doit)
     { // jeśli jest jednostkowy transform, to przeliczamy
         // wierzchołki, a mnożenie podajemy dalej
-        double t;
-        if (Vertices)
-            for (int i = 0; i < iNumVerts; ++i)
-            {
-                Vertices[i].position.x = -Vertices[i].position.x; // zmiana znaku X
-                t = Vertices[i].position.y; // zamiana Y i Z
-                Vertices[i].position.y = Vertices[i].position.z;
-                Vertices[i].position.z = t;
+        float swapcopy;
+//        if( false == Vertices.empty() ) {
+/*
+            for( auto &vertex : Vertices ) {
+*/
+        for( int idx = 0; idx < iNumVerts; ++idx ) {
+                Vertices[idx].position.x = -Vertices[idx].position.x; // zmiana znaku X
+                swapcopy = Vertices[idx].position.y; // zamiana Y i Z
+                Vertices[idx].position.y = Vertices[idx].position.z;
+                Vertices[idx].position.z = swapcopy;
                 // wektory normalne również trzeba przekształcić, bo się źle oświetlają
                 if( eType != TP_STARS ) {
                     // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
-                    Vertices[ i ].normal.x = -Vertices[ i ].normal.x; // zmiana znaku X
-                    t = Vertices[ i ].normal.y; // zamiana Y i Z
-                    Vertices[ i ].normal.y = Vertices[ i ].normal.z;
-                    Vertices[ i ].normal.z = t;
+                    Vertices[idx].normal.x = -Vertices[idx].normal.x; // zmiana znaku X
+                    swapcopy = Vertices[idx].normal.y; // zamiana Y i Z
+                    Vertices[idx].normal.y = Vertices[idx].normal.z;
+                    Vertices[idx].normal.z = swapcopy;
                 }
             }
+ //       }
         if (Child)
             Child->InitialRotate(doit); // potomne ewentualnie obrócimy
     }
@@ -1028,7 +1050,7 @@ void TSubModel::RaAnimation(TAnimType a)
 };
 
    //---------------------------------------------------------------------------
-
+/*
 void TSubModel::RaArrayFill(basic_vertex *Vert)
 { // wypełnianie tablic VBO
 	if (Child)
@@ -1038,22 +1060,31 @@ void TSubModel::RaArrayFill(basic_vertex *Vert)
             Vert[ iVboPtr + i ].position = Vertices[ i ].position;
             Vert[ iVboPtr + i ].normal = Vertices[ i ].normal;
             Vert[ iVboPtr + i ].texture = Vertices[ i ].texture;
-/*
-            Vert[iVboPtr + i].x = Vertices[i].position.x;
-            Vert[iVboPtr + i].y = Vertices[i].position.y;
-            Vert[iVboPtr + i].z = Vertices[i].position.z;
-            Vert[iVboPtr + i].nx = Vertices[i].normal.x;
-            Vert[iVboPtr + i].ny = Vertices[i].normal.y;
-            Vert[iVboPtr + i].nz = Vertices[i].normal.z;
-            Vert[iVboPtr + i].u = Vertices[i].texture.s;
-            Vert[iVboPtr + i].v = Vertices[i].texture.t;
-*/
         }
     else if( eType == TP_FREESPOTLIGHT )
         Vert[ iVboPtr ].position = glm::vec3();
 	if (Next)
 		Next->RaArrayFill(Vert);
 };
+*/
+void
+TSubModel::create_geometry( geometrybank_handle const &Bank ) {
+
+    if( Child )
+        Child->create_geometry( Bank );
+
+    if( false == Vertices.empty() ) {
+        // conveniently all relevant custom node types use GL_POINTS, or we'd have to determine the type on individual basis
+        auto type = (
+            eType < TP_ROTATOR ?
+                eType :
+                GL_POINTS );
+        m_geometry = GfxRenderer.Insert( Vertices, Bank, type );
+    }
+
+    if( Next )
+        Next->create_geometry( Bank );
+}
 
 // NOTE: leftover from static distance factor adjustment.
 // TODO: get rid of it, once we have the dynamic adjustment code in place
@@ -1285,9 +1316,10 @@ void TSubModel::serialize(std::ostream &s,
 
 	sn_utils::ls_int32(s, iFlags);
 	sn_utils::ls_int32(s, (int32_t)get_container_pos(transforms, *fMatrix));
-
+/*
 	sn_utils::ls_int32(s, iNumVerts);
 	sn_utils::ls_int32(s, (int)iVboPtr);
+*/
 	if (TextureID <= 0)
 		sn_utils::ls_int32(s, TextureID);
 	else
@@ -1324,7 +1356,7 @@ void TSubModel::serialize(std::ostream &s,
 		s.put(0);
 }
 
-void TModel3d::SaveToBinFile(char const *FileName)
+void TModel3d::SaveToBinFile(std::string const &FileName)
 {
     // TODO: re-implement!
     return;
@@ -1637,10 +1669,12 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
 		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
+/*
         iFlags |=
             ( GfxRenderer.Texture( TextureID ).has_alpha ?
                 0x20 :
                 0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+*/
     }
 	else
 		TextureID = iTexture;
@@ -1662,8 +1696,9 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
     }
 
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
-
+/*
 	iVboPtr = tVboPtr;
+*/
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
@@ -1702,7 +1737,7 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
             break;
         }
 		SubModel = new TSubModel();
-		iNumVerts += SubModel->Load(parser, this, iNumVerts, dynamic);
+		iNumVerts += SubModel->Load(parser, this, /*iNumVerts,*/ dynamic);
 
         // będzie potrzebne do wyliczenia pozycji, np. pantografu
 		SubModel->Parent = AddToNamed(parent.c_str(), SubModel); 
@@ -1752,37 +1787,15 @@ void TModel3d::Init()
 		if (false == asBinary.empty()) // jeśli jest podana nazwa
 		{
 			if (Global::iConvertModels) // i włączony zapis
-				SaveToBinFile(asBinary.c_str()); // utworzy tablicę (m_pVNT)
+				SaveToBinFile( asBinary ); // utworzy tablicę (m_pVNT)
 			asBinary = ""; // zablokowanie powtórnego zapisu
 		}
-#ifdef EU07_USE_OLD_DRAW_CODE
-        if (iNumVerts)
-		{
-			if (Global::bUseVBO)
-			{
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-                if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
-#else
-                if( m_pVNT.empty() )
-#endif
-				{ // tworzenie tymczasowej tablicy z wierzchołkami całego modelu
-					MakeArray(iNumVerts); // tworzenie tablic dla VBO
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-                    Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
-#else
-                    Root->RaArrayFill( m_pVNT.data() ); // wypełnianie tablicy
-#endif
-					BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamięci
-				}
-				else
-					BuildVBOs(false); // tworzenie VBO bez usuwania tablicy z pamięci
-			}
-			else
-			{ // przygotowanie skompilowanych siatek dla DisplayLists
-				Root->DisplayLists(); // tworzenie skompilowanej listy dla submodelu
-			}
-		}
-#endif
+        if (iNumVerts) {
+            if( m_geometrybank == NULL ) {
+                m_geometrybank = GfxRenderer.Create_Bank();
+            }
+            Root->create_geometry( m_geometrybank );
+        }
     }
 };
 
