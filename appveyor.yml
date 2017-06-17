@@ -3,7 +3,7 @@ branches:
   except:
   - master
   - dp
-image: Visual Studio 2015
+image: Visual Studio 2017
 clone_depth: 1
 build_script:
 - cmd: >-

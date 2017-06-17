@@ -5,6 +5,8 @@
 
 #pragma once
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #ifdef _MSC_VER
 // memory debug functions
 #define _CRTDBG_MAP_ALLOC
@@ -28,8 +30,6 @@
 // stl
 #include <cstdlib>
 #include <cassert>
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <iomanip>
