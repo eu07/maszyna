@@ -27,7 +27,7 @@ struct basic_vertex {
     basic_vertex( glm::vec3 const&Position, glm::vec3 const &Normal, glm::vec2 const &Texture ) :
                         position( Position ),        normal( Normal ),       texture( Texture )
     {}
-    void serialize( std::ostream& );
+    void serialize( std::ostream& ) const;
     void deserialize( std::istream& );
 };
 
@@ -111,10 +111,12 @@ protected:
     struct geometry_chunk {
         unsigned int type; // kind of geometry used by the chunk
         vertex_array vertices; // geometry data
-
+        // NOTE: constructor doesn't copy provided vertex data, but moves it
         geometry_chunk( vertex_array &Vertices, unsigned int const Type ) :
-                            vertices( Vertices ),            type( Type )
-        {}
+                                                             type( Type )
+        {
+            vertices.swap( Vertices );
+        }
     };
 
     typedef std::vector<geometry_chunk> geometrychunk_sequence;

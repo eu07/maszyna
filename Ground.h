@@ -149,7 +149,6 @@ public:
         Diffuse{ 1.0f, 1.0f, 1.0f },
         Specular{ 1.0f, 1.0f, 1.0f }; // oświetlenie
     double fLineThickness; // McZapkie-120702: grubosc linii
-    bool PROBLEND;
     bool bVisible;
 
     TGroundNode();
@@ -283,7 +282,6 @@ class TGround
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
     light_array m_lights; // collection of dynamic light sources present in the scene
-    bool PROBLEND;
 
   private: // metody prywatne
     bool EventConditon(TEvent *e);

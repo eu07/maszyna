@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "globals.h"
 
 void
-basic_vertex::serialize( std::ostream &s ) {
+basic_vertex::serialize( std::ostream &s ) const {
 
     sn_utils::ls_float32( s, position.x );
     sn_utils::ls_float32( s, position.y );

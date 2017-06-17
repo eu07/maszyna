@@ -1651,15 +1651,13 @@ TWorld::Update_UI() {
         case( GLFW_KEY_F8 ) : {
             // gfx renderer data
             uitextline1 =
-                "Draw range x " + to_string( Global::fDistanceFactor, 1 )
-                + "; FPS: " + to_string( Timer::GetFPS(), 2 );
+                "FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 )
+                + ", Draw range x " + to_string( Global::fDistanceFactor, 1 )
+                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
+                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
             if( Global::iSlowMotion ) {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
-            uitextline1 +=
-                ", sectors: " + std::to_string( GfxRenderer.m_drawcount )
-                + "/" + std::to_string( Global::iSegmentsRendered )
-                + "; FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 );
 
             uitextline2 =
                 std::string( "Rendering mode: " )

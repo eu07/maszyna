@@ -182,6 +182,8 @@ private:
 
     typedef std::vector<opengl_light> opengllight_array;
 
+    typedef std::pair< double, TSubRect * > distancesubcell_pair;
+
 // methods
     bool
         Init_caps();
@@ -226,7 +228,7 @@ private:
     texture_handle m_moontexture { -1 };
     geometry_handle m_billboardgeometry { 0, 0 };
     GLUquadricObj *m_quadric; // helper object for drawing debug mode scene elements
-    std::vector< TSubRect* > m_drawqueue; // list of subcells to be drawn in current render pass
+    std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
 
 };
 

@@ -368,7 +368,14 @@ opengl_renderer::Render( TGround *Ground ) {
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
 
     Update_Lights( Ground->m_lights );
-/*
+
+    m_drawqueue.clear();
+
+    // rednerowanie globalnych (nie za często?)
+    for( TGroundNode *node = Ground->srGlobal.nRenderHidden; node; node = node->nNext3 ) {
+        node->RenderHidden();
+    }
+
     glm::vec3 const cameraposition( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
     int const camerax = static_cast<int>( std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2 );
     int const cameraz = static_cast<int>( std::floor( cameraposition.z / 1000.0f ) + iNumRects / 2 );
@@ -380,89 +387,40 @@ opengl_renderer::Render( TGround *Ground ) {
         for( int row = originz; row <= originz + segmentcount; ++row ) {
 
             auto *cell = &Ground->Rects[ column ][ row ];
+
+            for( int subcellcolumn = 0; subcellcolumn < iNumSubRects; ++subcellcolumn ) {
+                for( int subcellrow = 0; subcellrow < iNumSubRects; ++subcellrow ) {
+                    auto subcell = cell->FastGetSubRect( subcellcolumn, subcellrow );
+                    if( subcell == nullptr ) { continue; }
+                    // renderowanie obiektów aktywnych a niewidocznych
+                    for( auto node = subcell->nRenderHidden; node; node = node->nNext3 ) {
+                        node->RenderHidden();
+                    }
+                    // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
+                    subcell->RenderSounds();
+                }
+            }
+
             if( m_camera.visible( cell->m_area ) ) {
                 Render( cell );
             }
         }
     }
-*/
-    Ground->CameraDirection.x = std::sin( Global::pCameraRotation ); // wektor kierunkowy
-    Ground->CameraDirection.z = std::cos( Global::pCameraRotation );
-    TGroundNode *node;
-    // rednerowanie globalnych (nie za często?)
-    for( node = Ground->srGlobal.nRenderHidden; node; node = node->nNext3 ) {
-        node->RenderHidden();
+
+    // draw queue was filled while rendering content of ground cells. now sort the nodes based on their distance to viewer...
+    std::sort(
+        std::begin( m_drawqueue ),
+        std::end( m_drawqueue ),
+        []( distancesubcell_pair const &Left, distancesubcell_pair const &Right ) {
+            return ( Left.first ) < ( Right.first ); } );
+    // ...then render the opaque content of the visible subcells.
+    for( auto subcellpair : m_drawqueue ) {
+        Render( subcellpair.second );
     }
-    // renderowanie czołgowe dla obiektów aktywnych a niewidocznych
-    int n = 2 * iNumSubRects; //(2*==2km) promień wyświetlanej mapy w sektorach
-    int c = Ground->GetColFromX( Global::pCameraPosition.x );
-    int r = Ground->GetRowFromZ( Global::pCameraPosition.z );
-    TSubRect *tmp;
-    int i, j, k;
-    for( j = r - n; j <= r + n; ++j ) {
-        for( i = c - n; i <= c + n; ++i ) {
-            if( ( tmp = Ground->FastGetSubRect( i, j ) ) != nullptr ) {
-                // oznaczanie aktywnych sektorów
-                tmp->LoadNodes();
-
-                for( node = tmp->nRenderHidden; node; node = node->nNext3 ) {
-                    node->RenderHidden();
-                }
-                // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
-                tmp->RenderSounds();
-            }
-        }
-    }
-    // renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
-    // pre-calculate camera view span
-    double const fieldofviewcosine =
-        std::cos(
-            std::max(
-                // vertical...
-                Global::FieldOfView / Global::ZoomFactor,
-                // ...or horizontal, whichever is bigger
-                Global::FieldOfView / Global::ZoomFactor
-                * std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ) ) );
-
-    m_drawqueue.clear();
-
-    Math3D::vector3 direction;
-    for( k = 0; k < Global::iSegmentsRendered; ++k ) // sektory w kolejności odległości
-    { // przerobione na użycie SectorOrder
-        i = SectorOrder[ k ].x; // na starcie oba >=0
-        j = SectorOrder[ k ].y;
-        do {
-            // pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
-            if( j <= 0 )
-                i = -i;
-            j = -j; // i oraz j musi być zmienione wcześniej, żeby continue działało
-            direction = Math3D::vector3( i, 0, j ); // wektor od kamery do danego sektora
-            if( Math3D::LengthSquared3( direction ) > 5 ) // te blisko są zawsze wyświetlane
-            {
-                direction = Math3D::SafeNormalize( direction ); // normalizacja
-                if( Ground->CameraDirection.x * direction.x + Ground->CameraDirection.z * direction.z < 0.5 )
-                    continue; // pomijanie sektorów poza kątem patrzenia
-            }
-            // kwadrat kilometrowy nie zawsze, bo szkoda FPS
-            Render( &Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ] );
-
-            if( ( tmp = Ground->FastGetSubRect( i + c, j + r ) ) != nullptr ) {
-                if( tmp->iNodeCount ) {
-                    // o ile są jakieś obiekty, bo po co puste sektory przelatywać
-                    m_drawqueue.emplace_back( tmp );
-                }
-            }
-        } while( ( i < 0 ) || ( j < 0 ) ); // są 4 przypadki, oprócz i=j=0
-    }
-
-    for( auto subcell : m_drawqueue ) {
-        Render( subcell );
-    }
-    // regular render takes care of all solid geometry present in the scene, thus we can launch alpha parts render here
+    // now hand the control over to the renderer of translucent parts, it'll do the rest
     return Render_Alpha( Ground );
 }
 
-// TODO: unify ground render code, until then old version is in place
 bool
 opengl_renderer::Render( TGroundRect *Groundcell ) {
 
@@ -484,12 +442,28 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
         }
         Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
         result = true;
+
+        // add the subcells of the cell to the draw queue
+        if( Groundcell->pSubRects != nullptr ) {
+            for( std::size_t subcellindex = 0; subcellindex < iNumSubRects * iNumSubRects; ++subcellindex ) {
+                auto subcell = Groundcell->pSubRects + subcellindex;
+                if( subcell->iNodeCount ) {
+                    // o ile są jakieś obiekty, bo po co puste sektory przelatywać
+                    m_drawqueue.emplace_back(
+                        ( Global::pCameraPosition - glm::dvec3( subcell->m_area.center ) ).LengthSquared(),
+                        subcell );
+                }
+            }
+        }
     }
     return result;
 }
 
 bool
 opengl_renderer::Render( TSubRect *Groundsubcell ) {
+
+    // oznaczanie aktywnych sektorów
+    Groundsubcell->LoadNodes();
 
     Groundsubcell->RaAnimate(); // przeliczenia animacji torów w sektorze
 
@@ -906,23 +880,23 @@ opengl_renderer::Render_Alpha( TGround *Ground ) {
     TGroundNode *node;
     TSubRect *tmp;
     // Ra: renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
-    for( auto subcell = std::rbegin( m_drawqueue ); subcell != std::rend( m_drawqueue ); ++subcell ) {
+    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair ) {
         // przezroczyste trójkąty w oddzielnym cyklu przed modelami
-        tmp = *subcell;
+        tmp = subcellpair->second;
         for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
             Render_Alpha( node );
         }
     }
-    for( auto subcell = std::rbegin( m_drawqueue ); subcell != std::rend( m_drawqueue ); ++subcell )
+    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair )
     { // renderowanie przezroczystych modeli oraz pojazdów
-        Render_Alpha( *subcell );
+        Render_Alpha( subcellpair->second );
     }
 
     ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
 
-    for( auto subcell = std::rbegin( m_drawqueue ); subcell != std::rend( m_drawqueue ); ++subcell ) {
+    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair ) {
         // druty na końcu, żeby się nie robiły białe plamy na tle lasu
-        tmp = *subcell;
+        tmp = subcellpair->second;
         for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
             Render_Alpha( node );
         }
@@ -947,25 +921,9 @@ opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
     return true;
 }
 
-// NOTE: legacy render system switch
-#define _PROBLEND
-
 bool
 opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
-    // SPOSOB NA POZBYCIE SIE RAMKI DOOKOLA TEXTURY ALPHA DLA OBIEKTOW ZAGNIEZDZONYCH W SCN JAKO
-    // NODE
-
-    // W GROUND.H dajemy do klasy TGroundNode zmienna bool PROBLEND to samo robimy w klasie TGround
-    // nastepnie podczas wczytywania textury dla TRIANGLES w TGround::AddGroundNode
-    // sprawdzamy czy w nazwie jest @ i wg tego
-    // ustawiamy PROBLEND na true dla wlasnie wczytywanego trojkata (kazdy trojkat jest osobnym
-    // nodem)
-    // nastepnie podczas renderowania w bool TGroundNode::RenderAlpha()
-    // na poczatku ustawiamy standardowe GL_GREATER = 0.04
-    // pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE,
-    // wlasciwie dla kazdego node'a
-    // i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
     double const distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor );
     if( ( distancesquared > ( Node->fSquareRadius    * Global::fDistanceFactor ) )
      || ( distancesquared < ( Node->fSquareMinRadius / Global::fDistanceFactor ) ) ) {
@@ -1029,14 +987,15 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 return false;
             }
             // setup
-            // w zaleznosci od koloru swiatla
+            auto const linewidth = clamp( 100.0 * Node->fLineThickness / ( distancesquared + 1.0 ), 1.0, 10.0 );
             ::glColor4fv(
                 glm::value_ptr(
                     glm::vec4(
-                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ),
-                        std::min(
-                            1.0,
-                            1000.0 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) ) );
+                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
+                        std::min( 1.0, linewidth ) ) ) );
+            if( linewidth > 1.0 ) {
+                ::glLineWidth( static_cast<float>(linewidth) );
+            }
 
             GfxRenderer.Bind( 0 );
 
@@ -1048,6 +1007,10 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             m_geometry.draw( Node->m_geometry );
 
             // post-render cleanup
+            if( linewidth > 1.0 ) {
+                ::glLineWidth( 1.0f );
+            }
+
             ::glPopMatrix();
 
             return true;
@@ -1059,13 +1022,6 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 return false;
             }
             // setup
-#ifdef _PROBLEND
-            if( ( Node->PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-            {
-                ::glDisable( GL_BLEND );
-                ::glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
-            };
-#endif
             ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
 
             Bind( Node->TextureID );
@@ -1080,13 +1036,6 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             // post-render cleanup
             ::glPopMatrix();
 
-#ifdef _PROBLEND
-            if( ( Node->PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-            {
-                ::glEnable( GL_BLEND );
-                ::glAlphaFunc( GL_GREATER, 0.04f );
-            }
-#endif
             return true;
         }
 

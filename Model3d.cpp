@@ -42,69 +42,6 @@ std::string *TSubModel::pasText;
 // 0x3F3F003F - wszystkie wymienne tekstury używane w danym cyklu
 // Ale w TModel3d okerśla przezroczystość tekstur wymiennych!
 
-TSubModel::TSubModel()
-{
-	::SecureZeroMemory(this, sizeof(TSubModel)); // istotne przy zapisywaniu wersji binarnej
-	FirstInit();
-};
-
-void TSubModel::FirstInit()
-{
-	eType = TP_ROTATOR;
-/*
-	Vertices = NULL;
-	uiDisplayList = 0;
-*/
-	iNumVerts = -1; // do sprawdzenia
-/*
-	iVboPtr = -1;
-*/
-	fLight = -1.0; //świetcenie wyłączone
-	v_RotateAxis = float3(0, 0, 0);
-	v_TransVector = float3(0, 0, 0);
-	f_Angle = 0;
-	b_Anim = at_None;
-	b_aAnim = at_None;
-	fVisible = 0.0; // zawsze widoczne
-	iVisible = 1;
-	fMatrix = NULL; // to samo co iMatrix=0;
-	Next = NULL;
-	Child = NULL;
-	TextureID = 0;
-	// TexAlpha=false;
-	iFlags = 0x0200; // bit 9=1: submodel został utworzony a nie ustawiony na
-					 // wczytany plik
-					 // TexHash=false;
-					 // Hits=NULL;
-					 // CollisionPts=NULL;
-					 // CollisionPtsCount=0;
-	Opacity = 0.0f; // przy wczytywaniu modeli było dzielone przez 100...
-	bWire = false;
-	fWireSize = 0;
-	fNearAttenStart = 40;
-	fNearAttenEnd = 80;
-	bUseNearAtten = false;
-	iFarAttenDecay = 0;
-	fFarDecayRadius = 100.0f;
-	fCosFalloffAngle = 0.5f; // 120°?
-	fCosHotspotAngle = 0.3f; // 145°?
-	fCosViewAngle = 0;
-	fSquareMaxDist = 10000 * 10000; // 10km
-	fSquareMinDist = 0;
-	iName = -1; // brak nazwy
-	iTexture = 0; // brak tekstury
-				  // asName="";
-				  // asTexture="";
-	pName = "";
-	pTexture = "";
-	f4Ambient[0] = f4Ambient[1] = f4Ambient[2] = f4Ambient[3] = 1.0; //{1,1,1,1};
-	f4Diffuse[0] = f4Diffuse[1] = f4Diffuse[2] = f4Diffuse[3] = 1.0; //{1,1,1,1};
-	f4Specular[0] = f4Specular[1] = f4Specular[2] = 0.0;
-	f4Specular[3] = 1.0; //{0,0,0,1};
-	f4Emision[0] = f4Emision[1] = f4Emision[2] = f4Emision[3] = 1.0;
-	smLetter = NULL; // używany tylko roboczo dla TP_TEXT, do przyspieszenia wyświetlania
-};
-
 TSubModel::~TSubModel()
 {
 /*
@@ -141,9 +78,6 @@ void TSubModel::NameSet(std::string const &Name)
 		pName = Name;
 };
 
-// int TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3
-// *pt,GLVERTEX
-// *Vertices)
 int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
 	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
@@ -518,11 +452,14 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                 std::vector<glm::vec3> facenormals;
                 for( int i = 0; i < facecount; ++i ) {
                     // pętla po trójkątach - będzie szybciej, jak wstępnie przeliczymy normalne trójkątów
+                    auto facenormal = 
+                        glm::cross(
+                            Vertices[ i * 3 ].position - Vertices[ i * 3 + 1 ].position,
+                            Vertices[ i * 3 ].position - Vertices[ i * 3 + 2 ].position );
                     facenormals.emplace_back(
-                        glm::normalize(
-                            glm::cross(
-                                Vertices[ i * 3 ].position - Vertices[ i * 3 + 1 ].position,
-                                Vertices[ i * 3 ].position - Vertices[ i * 3 + 2 ].position ) ) );
+                        glm::length( facenormal ) > 0.0f ?
+                            glm::normalize( facenormal ) :
+                            glm::vec3() );
                 }
 				glm::vec3 vertexnormal; // roboczy wektor normalny
 				for (int vertexidx = 0; vertexidx < iNumVerts; ++vertexidx) { 
@@ -544,7 +481,10 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
 						}
 						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
-						Vertices[vertexidx].normal = glm::normalize(vertexnormal); // przepisanie do wierzchołka trójkąta
+                        Vertices[ vertexidx ].normal = (
+                            glm::length( vertexnormal ) > 0.0f ?
+                                glm::normalize( vertexnormal ) :
+                                glm::vec3() ); // przepisanie do wierzchołka trójkąta
 					}
 				}
 /*
@@ -755,7 +695,10 @@ void TSubModel::InitialRotate(bool doit)
                     if( eType != TP_STARS ) {
                         // gwiazdki mają kolory zamiast normalnych, to ich wtedy nie ruszamy
                         for( auto &vertex : Vertices ) {
-                            vertex.normal = glm::normalize( ( *mat ) * vertex.normal );
+                            vertex.normal = (
+                                glm::length( vertex.normal ) > 0.0f ?
+                                    glm::normalize( ( *mat ) * vertex.normal ) :
+                                    glm::vec3() );
                         }
                     }
                 }
@@ -772,18 +715,18 @@ void TSubModel::InitialRotate(bool doit)
 /*
             for( auto &vertex : Vertices ) {
 */
-        for( int idx = 0; idx < iNumVerts; ++idx ) {
-                Vertices[idx].position.x = -Vertices[idx].position.x; // zmiana znaku X
-                swapcopy = Vertices[idx].position.y; // zamiana Y i Z
-                Vertices[idx].position.y = Vertices[idx].position.z;
-                Vertices[idx].position.z = swapcopy;
+        for( auto &vertex : Vertices ) {
+                vertex.position.x = -vertex.position.x; // zmiana znaku X
+                swapcopy = vertex.position.y; // zamiana Y i Z
+                vertex.position.y = vertex.position.z;
+                vertex.position.z = swapcopy;
                 // wektory normalne również trzeba przekształcić, bo się źle oświetlają
                 if( eType != TP_STARS ) {
                     // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
-                    Vertices[idx].normal.x = -Vertices[idx].normal.x; // zmiana znaku X
-                    swapcopy = Vertices[idx].normal.y; // zamiana Y i Z
-                    Vertices[idx].normal.y = Vertices[idx].normal.z;
-                    Vertices[idx].normal.z = swapcopy;
+                    vertex.normal.x = -vertex.normal.x; // zmiana znaku X
+                    swapcopy = vertex.normal.y; // zamiana Y i Z
+                    vertex.normal.y = vertex.normal.z;
+                    vertex.normal.z = swapcopy;
                 }
             }
  //       }
@@ -1050,30 +993,34 @@ void TSubModel::RaAnimation(TAnimType a)
 };
 
    //---------------------------------------------------------------------------
-/*
-void TSubModel::RaArrayFill(basic_vertex *Vert)
-{ // wypełnianie tablic VBO
-	if (Child)
-		Child->RaArrayFill(Vert);
-    if( ( eType < TP_ROTATOR ) || ( eType == TP_STARS ) )
-        for( int i = 0; i < iNumVerts; ++i ) {
-            Vert[ iVboPtr + i ].position = Vertices[ i ].position;
-            Vert[ iVboPtr + i ].normal = Vertices[ i ].normal;
-            Vert[ iVboPtr + i ].texture = Vertices[ i ].texture;
+
+void TSubModel::serialize_geometry( std::ostream &Output ) {
+
+    if( Child ) {
+        Child->serialize_geometry( Output );
+    }
+    if( m_geometry != NULL ) {
+        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+            vertex.serialize( Output );
         }
-    else if( eType == TP_FREESPOTLIGHT )
-        Vert[ iVboPtr ].position = glm::vec3();
-	if (Next)
-		Next->RaArrayFill(Vert);
+    }
+    if( Next ) {
+        Next->serialize_geometry( Output );
+    }
 };
-*/
+
 void
-TSubModel::create_geometry( geometrybank_handle const &Bank ) {
+TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &Bank ) {
+
+    // data offset is used to determine data offset of each submodel into single shared geometry bank
+    // (the offsets are part of legacy system which we now need to work around for backward compatibility)
 
     if( Child )
-        Child->create_geometry( Bank );
+        Child->create_geometry( Dataoffset, Bank );
 
     if( false == Vertices.empty() ) {
+        tVboPtr = static_cast<int>( Dataoffset );
+        Dataoffset += Vertices.size();
         // conveniently all relevant custom node types use GL_POINTS, or we'd have to determine the type on individual basis
         auto type = (
             eType < TP_ROTATOR ?
@@ -1083,7 +1030,7 @@ TSubModel::create_geometry( geometrybank_handle const &Bank ) {
     }
 
     if( Next )
-        Next->create_geometry( Bank );
+        Next->create_geometry( Dataoffset, Bank );
 }
 
 // NOTE: leftover from static distance factor adjustment.
@@ -1140,25 +1087,34 @@ void TSubModel::ParentMatrix(float4x4 *m)
 	// nie obrócono jeszcze
 };
 
-float TSubModel::MaxY( float4x4 const &m )
-{ // obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
-    if( eType != 4 ) {
-        // tylko dla trójkątów liczymy
-        return 0;
-    }
-    if( m_geometry == NULL ) {
-        return 0;
-    }
+// obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
+float TSubModel::MaxY( float4x4 const &m ) {
+    // tylko dla trójkątów liczymy
+    if( eType != 4 ) { return 0; }
 
     auto maxy { 0.0f };
-    for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+    // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
+    if( m_geometry != NULL ) {
 
-        maxy = std::max(
-            maxy,
-            m[ 0 ][ 1 ] * vertex.position.x
-          + m[ 1 ][ 1 ] * vertex.position.y
-          + m[ 2 ][ 1 ] * vertex.position.z
-          + m[ 3 ][ 1 ] );
+        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+            maxy = std::max(
+                maxy,
+                  m[ 0 ][ 1 ] * vertex.position.x
+                + m[ 1 ][ 1 ] * vertex.position.y
+                + m[ 2 ][ 1 ] * vertex.position.z
+                + m[ 3 ][ 1 ] );
+        }
+    }
+    else if( false == Vertices.empty() ) {
+
+        for( auto const &vertex : Vertices ) {
+            maxy = std::max(
+                maxy,
+                  m[ 0 ][ 1 ] * vertex.position.x
+                + m[ 1 ][ 1 ] * vertex.position.y
+                + m[ 2 ][ 1 ] * vertex.position.z
+                + m[ 3 ][ 1 ] );
+        }
     }
 
     return maxy;
@@ -1316,10 +1272,10 @@ void TSubModel::serialize(std::ostream &s,
 
 	sn_utils::ls_int32(s, iFlags);
 	sn_utils::ls_int32(s, (int32_t)get_container_pos(transforms, *fMatrix));
-/*
+
 	sn_utils::ls_int32(s, iNumVerts);
-	sn_utils::ls_int32(s, (int)iVboPtr);
-*/
+	sn_utils::ls_int32(s, tVboPtr);
+
 	if (TextureID <= 0)
 		sn_utils::ls_int32(s, TextureID);
 	else
@@ -1358,9 +1314,6 @@ void TSubModel::serialize(std::ostream &s,
 
 void TModel3d::SaveToBinFile(std::string const &FileName)
 {
-    // TODO: re-implement!
-    return;
-
 	WriteLog("saving e3d model..");
 
 	//m7todo: można by zoptymalizować robiąc unordered_map
@@ -1396,20 +1349,11 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	sn_utils::ls_uint32(s, 8 + (uint32_t)transforms.size() * 64);
 	for (size_t i = 0; i < transforms.size(); i++)
 		transforms[i].serialize_float32(s);
-/*
-	MakeArray(iNumVerts);
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-    Root->RaArrayFill(m_pVNT);
-#else
-    Root->RaArrayFill( m_pVNT.data() );
-#endif
-*/
-	sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
+
+    sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
 	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
-/*
-	for (size_t i = 0; i < (size_t)iNumVerts; i++)
-		m_pVNT[i].serialize(s);
-*/
+    Root->serialize_geometry( s );
+
 	if (textures.size())
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('T', 'E', 'X', '0'));
@@ -1555,6 +1499,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
             for( auto const &submodeloffset : submodeloffsets ) {
                 auto &submodel = Root[ submodeloffset.second ];
                 vertex_array vertices; vertices.resize( submodel.iNumVerts );
+                iNumVerts += submodel.iNumVerts;
                 for( auto &vertex : vertices ) {
                     vertex.deserialize( s );
                 }
@@ -1669,12 +1614,13 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
 		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
-/*
-        iFlags |=
-            ( GfxRenderer.Texture( TextureID ).has_alpha ?
-                0x20 :
-                0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
-*/
+        if( ( iFlags & 0x30 ) == 0 ) {
+            // texture-alpha based fallback if for some reason we don't have opacity flag set yet
+            iFlags |=
+                ( GfxRenderer.Texture( TextureID ).has_alpha ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        }
     }
 	else
 		TextureID = iTexture;
@@ -1688,10 +1634,10 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         iFlags |= 0x20;
     }
     // intercept and fix hotspot values if specified in degrees and not directly
-    if( fCosFalloffAngle > 1.0 ) {
+    if( fCosFalloffAngle > 1.0f ) {
         fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
     }
-    if( fCosHotspotAngle > 1.0 ) {
+    if( fCosHotspotAngle > 1.0f ) {
         fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
     }
 
@@ -1784,17 +1730,17 @@ void TModel3d::Init()
 			Root->InitialRotate(true); // argumet określa, czy wykonać pierwotny obrót
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
-		if (false == asBinary.empty()) // jeśli jest podana nazwa
-		{
-			if (Global::iConvertModels) // i włączony zapis
-				SaveToBinFile( asBinary ); // utworzy tablicę (m_pVNT)
-			asBinary = ""; // zablokowanie powtórnego zapisu
-		}
         if (iNumVerts) {
             if( m_geometrybank == NULL ) {
                 m_geometrybank = GfxRenderer.Create_Bank();
             }
-            Root->create_geometry( m_geometrybank );
+            std::size_t dataoffset = 0;
+            Root->create_geometry( dataoffset, m_geometrybank );
+        }
+        if( ( Global::iConvertModels > 0 )
+         && ( false == asBinary.empty() ) ) {
+            SaveToBinFile( asBinary );
+            asBinary = ""; // zablokowanie powtórnego zapisu
         }
     }
 };

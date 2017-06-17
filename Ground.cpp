@@ -39,7 +39,6 @@ http://mozilla.org/MPL/2.0/.
 #include "world.h"
 #include "uilayer.h"
 
-#define _PROBLEND 1
 //---------------------------------------------------------------------------
 
 extern "C"
@@ -1283,18 +1282,16 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             *parser >> token;
         }
         str = token;
-#ifdef _PROBLEND
-        // PROBLEND Q: 13122011 - Szociu: 27012012
-        PROBLEND = true; // domyslnie uruchomione nowe wyświetlanie
-        tmp->PROBLEND = true; // odwolanie do tgroundnode, bo rendering jest w tej klasie
-        if (str.find('@') != std::string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
-        {
-            PROBLEND = false; // jeśli jest, wyswietla po staremu
-            tmp->PROBLEND = false;
-        }
-#endif
         tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
-        tmp->iFlags = GfxRenderer.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
+
+        tmp->iFlags |= 200; // z usuwaniem
+        // remainder of legacy 'problend' system -- geometry assigned a texture with '@' in its name is treated as translucent, opaque otherwise
+        tmp->iFlags |= (
+            ( ( str.find( '@' ) != std::string::npos )
+           && ( true == GfxRenderer.Texture( tmp->TextureID ).has_alpha ) ) ?
+                0x20 :
+                0x10 );
+
         if( (tmp->iType == GL_TRIANGLES)
          && (tmp->iFlags & 0x10)
          && (Global::pTerrainCompact->TerrainLoaded()) ) {
@@ -1327,7 +1324,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 vertex.normal = glm::rotateX( vertex.normal, static_cast<float>( aRotate.x / 180 * M_PI ) );
                 vertex.normal = glm::rotateY( vertex.normal, static_cast<float>( aRotate.y / 180 * M_PI ) );
                 vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
-                tmp->pCenter += vertex.position;
                 // convert all data to gl_triangles to allow data merge for matching nodes
                 switch( tmp->iType ) {
                     case GL_TRIANGLES: {
@@ -1370,6 +1366,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 
             auto const nv = importedvertices.size();
             tmp->Init(nv); // utworzenie tablicy wierzchołków
+
+            for( std::size_t i = 0; i < nv; ++i ) {
+                tmp->pCenter += importedvertices[ i ].position;
+            }
             tmp->pCenter /= (nv > 0 ? nv : 1);
 
             r = 0;
@@ -1411,7 +1411,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
 
                 vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
-                tmp->pCenter += vertex.position;
                 // convert all data to gl_lines to allow data merge for matching nodes
                 switch( tmp->iType ) {
                     case GL_LINES: {
@@ -1460,10 +1459,11 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             auto const nv = importedvertices.size();
             tmp->Points = new glm::dvec3[ nv ];
             tmp->iNumPts = nv;
-            tmp->pCenter /= ( nv > 0 ? nv : 1 );
             for( std::size_t i = 0; i < nv; ++i ) {
                 tmp->Points[ i ] = importedvertices[ i ].position;
+                tmp->pCenter += importedvertices[ i ].position;
             }
+            tmp->pCenter /= ( nv > 0 ? nv : 1 );
             break;
         }
     }
