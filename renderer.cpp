@@ -39,7 +39,8 @@ opengl_camera::visible( TDynamicObject const *Dynamic ) const {
         static_cast<float>( Dynamic->MoverParameters->Dim.L ),
         static_cast<float>( Dynamic->MoverParameters->Dim.H ),
         static_cast<float>( Dynamic->MoverParameters->Dim.W ) );
-    float const radius = glm::length( diagonal ) * 0.5f;
+    // we're giving vehicles some extra padding, to allow for things like shared bogeys extending past the main body
+    float const radius = glm::length( diagonal ) * 0.65f;
 
     return ( m_frustum.sphere_inside( Dynamic->GetPosition(), radius ) > 0.0f );
 }
@@ -47,10 +48,7 @@ opengl_camera::visible( TDynamicObject const *Dynamic ) const {
 bool
 opengl_renderer::Init( GLFWwindow *Window ) {
 
-    if( false == Init_caps() ) {
-
-        return false;
-    }
+    if( false == Init_caps() ) { return false; }
 
     m_window = Window;
 
@@ -111,11 +109,21 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     }
     // preload some common textures
     WriteLog( "Loading common gfx data..." );
-    m_glaretextureid = GetTextureId( "fx\\lightglare", szTexturePath );
-    m_suntextureid = GetTextureId( "fx\\sun", szTexturePath );
-    m_moontextureid = GetTextureId( "fx\\moon", szTexturePath );
+    m_glaretexture = GetTextureId( "fx\\lightglare", szTexturePath );
+    m_suntexture = GetTextureId( "fx\\sun", szTexturePath );
+    m_moontexture = GetTextureId( "fx\\moon", szTexturePath );
     WriteLog( "...gfx data pre-loading done" );
-
+    // prepare basic geometry chunks
+    auto const geometrybank = m_geometry.create_bank();
+    float const size = 2.5f;
+    m_billboardgeometry = m_geometry.create_chunk(
+        vertex_array{
+            { { -size,  size, 0.0f }, glm::vec3(), { 1.0f, 1.0f } },
+            { {  size,  size, 0.0f }, glm::vec3(), { 0.0f, 1.0f } },
+            { { -size, -size, 0.0f }, glm::vec3(), { 1.0f, 0.0f } },
+            { {  size, -size, 0.0f }, glm::vec3(), { 0.0f, 0.0f } } },
+            geometrybank,
+            GL_TRIANGLE_STRIP );
     // prepare debug mode objects
     m_quadric = gluNewQuadric();
     gluQuadricNormals( m_quadric, GLU_FLAT );
@@ -142,17 +150,13 @@ opengl_renderer::Render() {
     ::glLoadIdentity();
 
     if( World.InitPerformed() ) {
-/*
-        World.Camera.SetMatrix();
-        m_camera.update_frustum();
-*/
+
         glm::dmat4 worldcamera;
         World.Camera.SetMatrix( worldcamera );
         m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera );
         // frustum tests are performed in 'world space' but after we set up frustum
         // we no longer need camera translation, only rotation
         ::glMultMatrixd( glm::value_ptr( glm::dmat4( glm::dmat3( worldcamera ))));
-
         Render( &World.Environment );
         Render( &World.Ground );
 
@@ -160,6 +164,7 @@ opengl_renderer::Render() {
 
         // accumulate last 20 frames worth of render time (cap at 1000 fps to prevent calculations going awry)
         m_drawtime = std::max( 20.0f, 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count());
+        m_drawcount = m_drawqueue.size();
     }
 
     UILayer.render();
@@ -182,15 +187,6 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
-/*
-    ::glTranslatef( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
-*/
-/*
-    glm::mat4 worldcamera;
-    World.Camera.SetMatrix( worldcamera );
-    glLoadIdentity();
-    glMultMatrixf( glm::value_ptr( glm::mat4( glm::mat3( worldcamera ) ) ) );
-*/   
     // setup fog
     if( Global::fFogEnd > 0 ) {
         // fog setup
@@ -201,6 +197,10 @@ opengl_renderer::Render( world_environment *Environment ) {
     else { ::glDisable( GL_FOG ); }
 
     Environment->m_skydome.Render();
+    if( true == Global::bUseVBO ) {
+        // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
+        opengl_vbogeometrybank::reset();
+    }
     Environment->m_stars.render();
 
     float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
@@ -225,7 +225,7 @@ opengl_renderer::Render( world_environment *Environment ) {
     auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
     // sun
     {
-        Bind( m_suntextureid );
+        Bind( m_suntexture );
         ::glColor4f( suncolor.x, suncolor.y, suncolor.z, 1.0f );
         auto const sunvector = Environment->m_sun.getDirection();
         auto const sunposition = modelview * glm::vec4( sunvector.x, sunvector.y, sunvector.z, 1.0f );
@@ -246,7 +246,7 @@ opengl_renderer::Render( world_environment *Environment ) {
     }
     // moon
     {
-        Bind( m_moontextureid );
+        Bind( m_moontexture );
         float3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
         ::glColor4f( mooncolor.x, mooncolor.y, mooncolor.z, static_cast<GLfloat>( 1.0 - Global::fLuminance * 0.5 ) );
 
@@ -300,6 +300,63 @@ opengl_renderer::Render( world_environment *Environment ) {
     return true;
 }
 
+// geometry methods
+// creates a new geometry bank. returns: handle to the bank or NULL
+geometrybank_handle
+opengl_renderer::Create_Bank() {
+
+    return m_geometry.create_bank();
+}
+
+// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+geometry_handle
+opengl_renderer::Insert( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type ) {
+
+    return m_geometry.create_chunk( Vertices, Geometry, Type );
+}
+
+// replaces data of specified chunk with the supplied vertex data, starting from specified offset
+bool
+opengl_renderer::Replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset ) {
+
+    return m_geometry.replace( Vertices, Geometry, Offset );
+}
+
+// adds supplied vertex data at the end of specified chunk
+bool
+opengl_renderer::Append( vertex_array &Vertices, geometry_handle const &Geometry ) {
+
+    return m_geometry.append( Vertices, Geometry );
+}
+
+// provides direct access to vertex data of specfied chunk
+vertex_array const &
+opengl_renderer::Vertices( geometry_handle const &Geometry ) const {
+
+    return m_geometry.vertices( Geometry );
+}
+
+// texture methods
+texture_handle
+opengl_renderer::GetTextureId( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
+
+    return m_textures.create( Filename, Dir, Filter, Loadnow );
+}
+
+void
+opengl_renderer::Bind( texture_handle const Texture ) {
+    // temporary until we separate the renderer
+    m_textures.bind( Texture );
+}
+
+opengl_texture &
+opengl_renderer::Texture( texture_handle const Texture ) {
+
+    return m_textures.texture( Texture );
+}
+
+
+
 bool
 opengl_renderer::Render( TGround *Ground ) {
 
@@ -311,7 +368,14 @@ opengl_renderer::Render( TGround *Ground ) {
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
 
     Update_Lights( Ground->m_lights );
-/*
+
+    m_drawqueue.clear();
+
+    // rednerowanie globalnych (nie za często?)
+    for( TGroundNode *node = Ground->srGlobal.nRenderHidden; node; node = node->nNext3 ) {
+        node->RenderHidden();
+    }
+
     glm::vec3 const cameraposition( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
     int const camerax = static_cast<int>( std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2 );
     int const cameraz = static_cast<int>( std::floor( cameraposition.z / 1000.0f ) + iNumRects / 2 );
@@ -322,214 +386,104 @@ opengl_renderer::Render( TGround *Ground ) {
     for( int column = originx; column <= originx + segmentcount; ++column ) {
         for( int row = originz; row <= originz + segmentcount; ++row ) {
 
-            auto *rectangle = &Ground->Rects[ column ][ row ];
-            if( m_camera.visible( rectangle->m_area ) ) {
-                Render( rectangle );
-            }
-        }
-    }
-*/
-    Ground->CameraDirection.x = std::sin( Global::pCameraRotation ); // wektor kierunkowy
-    Ground->CameraDirection.z = std::cos( Global::pCameraRotation );
-    TGroundNode *node;
-    // rednerowanie globalnych (nie za często?)
-    for( node = Ground->srGlobal.nRenderHidden; node; node = node->nNext3 ) {
-        node->RenderHidden();
-    }
-    // renderowanie czołgowe dla obiektów aktywnych a niewidocznych
-    int n = 2 * iNumSubRects; //(2*==2km) promień wyświetlanej mapy w sektorach
-    int c = Ground->GetColFromX( Global::pCameraPosition.x );
-    int r = Ground->GetRowFromZ( Global::pCameraPosition.z );
-    TSubRect *tmp;
-    int i, j, k;
-    for( j = r - n; j <= r + n; j++ ) {
-        for( i = c - n; i <= c + n; i++ ) {
-            if( ( tmp = Ground->FastGetSubRect( i, j ) ) != nullptr ) {
-                // oznaczanie aktywnych sektorów
-                tmp->LoadNodes();
+            auto *cell = &Ground->Rects[ column ][ row ];
 
-                for( node = tmp->nRenderHidden; node; node = node->nNext3 ) {
-                    node->RenderHidden();
-                }
-                // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
-                tmp->RenderSounds();
-            }
-        }
-    }
-    // renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
-    // pre-calculate camera view span
-    double const fieldofviewcosine =
-        std::cos(
-            std::max(
-                // vertical...
-                Global::FieldOfView / Global::ZoomFactor,
-                // ...or horizontal, whichever is bigger
-                Global::FieldOfView / Global::ZoomFactor
-                * std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ) ) );
-
-    Ground->iRendered = 0; // ilość renderowanych sektorów
-    Math3D::vector3 direction;
-    for( k = 0; k < Global::iSegmentsRendered; ++k ) // sektory w kolejności odległości
-    { // przerobione na użycie SectorOrder
-        i = SectorOrder[ k ].x; // na starcie oba >=0
-        j = SectorOrder[ k ].y;
-        do {
-            // pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0 czwarty: j>=0, i>=0;
-            if( j <= 0 )
-                i = -i;
-            j = -j; // i oraz j musi być zmienione wcześniej, żeby continue działało
-            direction = Math3D::vector3( i, 0, j ); // wektor od kamery do danego sektora
-            if( Math3D::LengthSquared3( direction ) > 5 ) // te blisko są zawsze wyświetlane
-            {
-                direction = Math3D::SafeNormalize( direction ); // normalizacja
-                if( Ground->CameraDirection.x * direction.x + Ground->CameraDirection.z * direction.z < 0.5 )
-                    continue; // pomijanie sektorów poza kątem patrzenia
-            }
-            // kwadrat kilometrowy nie zawsze, bo szkoda FPS
-            Render( &Ground->Rects[ ( i + c ) / iNumSubRects ][ ( j + r ) / iNumSubRects ] );
-
-            if( ( tmp = Ground->FastGetSubRect( i + c, j + r ) ) != nullptr ) {
-                if( tmp->iNodeCount ) {
-                    // o ile są jakieś obiekty, bo po co puste sektory przelatywać
-                    Ground->pRendered[ Ground->iRendered++ ] = tmp; // tworzenie listy sektorów do renderowania
+            for( int subcellcolumn = 0; subcellcolumn < iNumSubRects; ++subcellcolumn ) {
+                for( int subcellrow = 0; subcellrow < iNumSubRects; ++subcellrow ) {
+                    auto subcell = cell->FastGetSubRect( subcellcolumn, subcellrow );
+                    if( subcell == nullptr ) { continue; }
+                    // renderowanie obiektów aktywnych a niewidocznych
+                    for( auto node = subcell->nRenderHidden; node; node = node->nNext3 ) {
+                        node->RenderHidden();
+                    }
+                    // jeszcze dźwięki pojazdów by się przydały, również niewidocznych
+                    subcell->RenderSounds();
                 }
             }
-        } while( ( i < 0 ) || ( j < 0 ) ); // są 4 przypadki, oprócz i=j=0
-    }
-    // dodać renderowanie terenu z E3D - jedno VBO jest używane dla całego modelu, chyba że jest ich więcej
-    if( Global::bUseVBO ) {
-        if( Global::pTerrainCompact ) {
-            Global::pTerrainCompact->TerrainRenderVBO( TGroundRect::iFrameNumber );
+
+            if( m_camera.visible( cell->m_area ) ) {
+                Render( cell );
+            }
         }
     }
-    // renderowanie nieprzezroczystych
-    for( i = 0; i < Ground->iRendered; ++i ) {
-        Render( Ground->pRendered[ i ] );
+
+    // draw queue was filled while rendering content of ground cells. now sort the nodes based on their distance to viewer...
+    std::sort(
+        std::begin( m_drawqueue ),
+        std::end( m_drawqueue ),
+        []( distancesubcell_pair const &Left, distancesubcell_pair const &Right ) {
+            return ( Left.first ) < ( Right.first ); } );
+    // ...then render the opaque content of the visible subcells.
+    for( auto subcellpair : m_drawqueue ) {
+        Render( subcellpair.second );
     }
-    // regular render takes care of all solid geometry present in the scene, thus we can launch alpha parts render here
+    // now hand the control over to the renderer of translucent parts, it'll do the rest
     return Render_Alpha( Ground );
 }
 
-// TODO: unify ground render code, until then old version is in place
-#define EU07_USE_OLD_RENDERCODE
 bool
 opengl_renderer::Render( TGroundRect *Groundcell ) {
 
-    ::glPushMatrix();
-    auto const &cellorigin = Groundcell->m_area.center;
-    // TODO: unify all math objects
-    auto const originoffset = Math3D::vector3( cellorigin.x, cellorigin.y, cellorigin.z ) - Global::pCameraPosition;
-    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+    bool result { false }; // will be true if we do any rendering
 
-    bool result{ false }; // will be true if we do any rendering
+    if( Groundcell->iLastDisplay != Groundcell->iFrameNumber ) {
+        // tylko jezeli dany kwadrat nie był jeszcze renderowany
+        Groundcell->LoadNodes(); // ewentualne tworzenie siatek
 
-    // TODO: unify render paths
-    if( Global::bUseVBO ) {
-
-        if ( Groundcell->iLastDisplay != Groundcell->iFrameNumber)
-        { // tylko jezeli dany kwadrat nie był jeszcze renderowany
-            Groundcell->LoadNodes(); // ewentualne tworzenie siatek
-            if ( Groundcell->nRenderRect && Groundcell->StartVBO())
-            {
-                for (TGroundNode *node = Groundcell->nRenderRect; node; node = node->nNext3) // następny tej grupy
-#ifdef EU07_USE_OLD_RENDERCODE
-                    node->RaRenderVBO(); // nieprzezroczyste trójkąty kwadratu kilometrowego
-#else
-                    Render( node ); // nieprzezroczyste trójkąty kwadratu kilometrowego
-#endif
-                Groundcell->EndVBO();
-                Groundcell->iLastDisplay = Groundcell->iFrameNumber;
-                result = true;
+        if( Groundcell->nRenderRect != nullptr ) {
+            // nieprzezroczyste trójkąty kwadratu kilometrowego
+            for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
+                Render( node );
             }
-            if ( Groundcell->nTerrain)
-                Groundcell->nTerrain->smTerrain->iVisible = Groundcell->iFrameNumber; // ma się wyświetlić w tej ramce
         }
-        ::glPopMatrix();
-    }
-    else {
-#ifdef EU07_USE_OLD_RENDERCODE
-        if (Groundcell->iLastDisplay != Groundcell->iFrameNumber)
-        { // tylko jezeli dany kwadrat nie był jeszcze renderowany
-            // for (TGroundNode* node=pRender;node;node=node->pNext3)
-            // node->Render(); //nieprzezroczyste trójkąty kwadratu kilometrowego
-            if ( Groundcell->nRender)
-            { //łączenie trójkątów w jedną listę - trochę wioska
-                if (!Groundcell->nRender->DisplayListID || ( Groundcell->nRender->iVersion != Global::iReCompile))
-                { // jeżeli nie skompilowany, kompilujemy wszystkie trójkąty w jeden
-                    Groundcell->nRender->fSquareRadius = 5000.0 * 5000.0; // aby agregat nigdy nie znikał
-                    Groundcell->nRender->DisplayListID = glGenLists(1);
-                    glNewList( Groundcell->nRender->DisplayListID, GL_COMPILE);
-                    Groundcell->nRender->iVersion = Global::iReCompile; // aktualna wersja siatek
-                    auto const origin = Math3D::vector3( Groundcell->m_area.center.x, Groundcell->m_area.center.y, Groundcell->m_area.center.z );
-                    for (TGroundNode *node = Groundcell->nRender; node; node = node->nNext3) // następny tej grupy
-                        node->Compile(origin, true);
-                    glEndList();
+        if( Groundcell->nTerrain ) {
+
+            Render( Groundcell->nTerrain );
+        }
+        Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
+        result = true;
+
+        // add the subcells of the cell to the draw queue
+        if( Groundcell->pSubRects != nullptr ) {
+            for( std::size_t subcellindex = 0; subcellindex < iNumSubRects * iNumSubRects; ++subcellindex ) {
+                auto subcell = Groundcell->pSubRects + subcellindex;
+                if( subcell->iNodeCount ) {
+                    // o ile są jakieś obiekty, bo po co puste sektory przelatywać
+                    m_drawqueue.emplace_back(
+                        ( Global::pCameraPosition - glm::dvec3( subcell->m_area.center ) ).LengthSquared(),
+                        subcell );
                 }
-                Render( Groundcell->nRender ); // nieprzezroczyste trójkąty kwadratu kilometrowego
             }
-            // submodels geometry is world-centric, so at least for the time being we need to pop the stack early
-            ::glPopMatrix();
-
-            if( Groundcell->nRootMesh ) {
-                Render( Groundcell->nRootMesh );
-            }
-            Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
-            result = true;
         }
-        else {
-            ::glPopMatrix();
-        }
-#else
-        if( iLastDisplay != iFrameNumber ) { // tylko jezeli dany kwadrat nie był jeszcze renderowany
-            LoadNodes(); // ewentualne tworzenie siatek
-            if( nRenderRect ) {
-                for( TGroundNode *node = nRenderRect; node; node = node->nNext3 ) // następny tej grupy
-                    Render( node ); // nieprzezroczyste trójkąty kwadratu kilometrowego
-            }
-            if( nRootMesh )
-                Render( nRootMesh );
-            iLastDisplay = iFrameNumber;
-        }
-#endif
     }
-
     return result;
 }
-#undef EU07_USE_OLD_RENDERCODE
 
 bool
 opengl_renderer::Render( TSubRect *Groundsubcell ) {
+
+    // oznaczanie aktywnych sektorów
+    Groundsubcell->LoadNodes();
 
     Groundsubcell->RaAnimate(); // przeliczenia animacji torów w sektorze
 
     TGroundNode *node;
     // nieprzezroczyste obiekty terenu
-    if( Global::bUseVBO ) {
-        // vbo render path
-        if( Groundsubcell->StartVBO() ) {
-            for( node = Groundsubcell->nRenderRect; node; node = node->nNext3 ) {
-                if( node->iVboPtr >= 0 ) {
-                    Render( node );
-                }
-            }
-            Groundsubcell->EndVBO();
-        }
-    }
-    else {
-        // display list render path
-        for( node = Groundsubcell->nRenderRect; node; node = node->nNext3 ) {
-            Render( node ); // nieprzezroczyste obiekty terenu
-        }
+    for( node = Groundsubcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
+        Render( node );
     }
     // nieprzezroczyste obiekty (oprócz pojazdów)
-    for( node = Groundsubcell->nRender; node; node = node->nNext3 )
+    for( node = Groundsubcell->nRender; node != nullptr; node = node->nNext3 ) {
         Render( node );
+    }
     // nieprzezroczyste z mieszanych modeli
-    for( node = Groundsubcell->nRenderMixed; node; node = node->nNext3 )
+    for( node = Groundsubcell->nRenderMixed; node != nullptr; node = node->nNext3 ) {
         Render( node );
+    }
     // nieprzezroczyste fragmenty pojazdów na torach
-    for( int j = 0; j < Groundsubcell->iTracks; ++j )
+    for( int j = 0; j < Groundsubcell->iTracks; ++j ) {
         Groundsubcell->tTracks[ j ]->RenderDyn();
+    }
 #ifdef EU07_SCENERY_EDITOR
     // memcells
     if( DebugModeFlag ) {
@@ -543,9 +497,9 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
 
 bool
 opengl_renderer::Render( TGroundNode *Node ) {
-
+/*
     Node->SetLastUsage( Timer::GetSimulationTime() );
-
+*/
     switch (Node->iType)
     { // obiekty renderowane niezależnie od odległości
     case TP_SUBMODEL:
@@ -564,121 +518,84 @@ opengl_renderer::Render( TGroundNode *Node ) {
         return false;
     }
 
-    switch (Node->iType)
-    {
-        case TP_TRACK: {
+    switch (Node->iType) {
 
-            if( Global::bUseVBO && ( Node->iNumVerts <= 0 ) ) {
-                return false;
-            }
+        case TP_TRACK: {
             // setup
             ::glPushMatrix();
             auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
-            // TODO: unify the render code after generic buffers are in place
-            if( Global::bUseVBO ) {
-                // vbo render path
-                Node->pTrack->RaRenderVBO( Node->iVboPtr );
-            }
-            else {
-                // display list render path
-                Node->pTrack->Render();
-            }
+            // render
+            Render( Node->pTrack );
             // post-render cleanup
             ::glPopMatrix();
             return true;
         }
+
         case TP_MODEL: {
             Node->Model->Render( Node->pCenter - Global::pCameraPosition );
             return true;
         }
-        case TP_MEMCELL: {
-            GfxRenderer.Render( Node->MemCell );
-            return true;
-        }
-    }
 
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if( ( Node->iFlags & 0x10 )
-     || ( Node->fLineThickness < 0 ) ) {
-        // TODO: unify the render code after generic buffers are in place
-        if( false == Global::bUseVBO ) {
-            // additional setup for display lists
-            if( ( Node->DisplayListID == 0 )
-             || ( Node->iVersion != Global::iReCompile ) ) { // Ra: wymuszenie rekompilacji
-                Node->Compile(Node->m_rootposition);
-                if( Global::bManageNodes )
-                    ResourceManager::Register( Node );
-            };
-        }
-
-        if( ( Node->iType == GL_LINES )
-         || ( Node->iType == GL_LINE_STRIP )
-         || ( Node->iType == GL_LINE_LOOP ) ) {
-            // wszelkie linie są rysowane na samym końcu
-            if( Node->iNumPts ) {
-                // setup
-                // w zaleznosci od koloru swiatla
-                ::glColor4ub(
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] ) ),
-                    static_cast<GLubyte>( std::min( 255.0, 255000 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) );
-
-                GfxRenderer.Bind( 0 );
-
-                // render
-                // TODO: unify the render code after generic buffers are in place
-                if( Global::bUseVBO ) {
-                    ::glPushMatrix();
-                    auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-                    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-                    ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumPts );
-                    ::glPopMatrix();
-                }
-                else {
-                    ::glCallList( Node->DisplayListID );
-                }
-                // post-render cleanup
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-        else {
-            // GL_TRIANGLE etc
-            if( ( Global::bUseVBO ?
-                    Node->iVboPtr < 0 :
-                    Node->DisplayListID  == 0 ) ) {
+        case GL_LINES: {
+            if( ( Node->m_geometry == NULL )
+             || ( Node->fLineThickness > 0.0 ) ) {
                 return false;
             }
             // setup
-            ::glColor3ub(
-                static_cast<GLubyte>( Node->Diffuse[ 0 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 1 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 2 ] ) );
+            // w zaleznosci od koloru swiatla
+            ::glColor4fv(
+                glm::value_ptr(
+                    glm::vec4(
+                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ),
+                        std::min(
+                            1.0,
+                            1000.0 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) ) );
+
+            GfxRenderer.Bind( 0 );
+
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+            // render
+            m_geometry.draw( Node->m_geometry );
+
+            // post-render cleanup
+            ::glPopMatrix();
+
+            return true;
+        }
+
+        case GL_TRIANGLES: {
+            if( ( Node->m_geometry == NULL )
+             || ( ( Node->iFlags & 0x10 ) == 0 ) ) {
+                return false;
+            }
+            // setup
+            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
 
             Bind( Node->TextureID );
 
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
             // render
-            // TODO: unify the render code after generic buffers are in place
-            if( Global::bUseVBO ) {
-                // vbo render path
-                ::glPushMatrix();
-                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-                ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumVerts );
-                ::glPopMatrix();
-            }
-            else {
-                // display list render path
-                ::glCallList( Node->DisplayListID );
-            }
+            m_geometry.draw( Node->m_geometry );
+
             // post-render cleanup
+            ::glPopMatrix();
+
             return true;
         }
+
+        case TP_MEMCELL: {
+            Render( Node->MemCell );
+            return true;
+        }
+
+        default: { break; }
     }
     // in theory we shouldn't ever get here but, eh
     return false;
@@ -698,16 +615,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
     ::glPushMatrix();
-/*
-    if( Dynamic == Global::pUserDynamic ) {
-        //specjalne ustawienie, aby nie trzęsło
-        //tu trzeba by ustawić animacje na modelu zewnętrznym
-        ::glLoadIdentity(); // zacząć od macierzy jedynkowej
-        Global::pCamera->SetCabMatrix( Dynamic->vPosition ); // specjalne ustawienie kamery
-    }
-    else
-        ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
-*/
+
     ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
@@ -773,13 +681,7 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
 
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
 
-    // TODO: unify the render code after generic buffers are in place
     // setup
-    if( Global::bUseVBO ) {
-        if( false == Model->StartVBO() )
-            return false;
-    }
-
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
             Material->replacable_skins :
@@ -792,9 +694,6 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
     Render( Model->Root );
 
     // post-render cleanup
-    if( Global::bUseVBO ) {
-        Model->EndVBO();
-    }
 
     return true;
 }
@@ -811,7 +710,6 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-//    auto const result = Render( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
     auto const result = Render( Model, Material, SquareMagnitude( Position ) ); // position is effectively camera offset
 
     ::glPopMatrix();
@@ -848,20 +746,15 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
+                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
                 // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
                     // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse) );
                 }
 
-                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                if( Global::bUseVBO ) {
-                    ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
-                }
-                else {
-                    ::glCallList( Submodel->uiDisplayList );
-                }
+                // main draw call
+                m_geometry.draw( Submodel->m_geometry );
 
                 // post-draw reset
                 if( Global::fLuminance < Submodel->fLight ) {
@@ -896,13 +789,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     ::glDisable( GL_LIGHTING );
                     ::glEnable( GL_BLEND );
 
-                    // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                    if( Global::bUseVBO ) {
-                        ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
-                    }
-                    else {
-                        ::glCallList( Submodel->uiDisplayList );
-                    }
+                    // main draw call
+                    m_geometry.draw( Submodel->m_geometry );
 
                     // post-draw reset
                     ::glPopAttrib();
@@ -919,24 +807,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 Bind( 0 );
                 ::glDisable( GL_LIGHTING );
 
-                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                if( Global::bUseVBO ) {
-                    // NOTE: we're doing manual switch to color vbo setup, because there doesn't seem to be any convenient way available atm
-                    // TODO: implement easier way to go about it
-                    ::glDisableClientState( GL_NORMAL_ARRAY );
-                    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-                    ::glEnableClientState( GL_COLOR_ARRAY );
-                    ::glColorPointer( 3, GL_FLOAT, sizeof( CVertNormTex ), static_cast<char *>( nullptr ) + 12 ); // kolory
-
-                    ::glDrawArrays( GL_POINTS, Submodel->iVboPtr, Submodel->iNumVerts );
-
-                    ::glDisableClientState( GL_COLOR_ARRAY );
-                    ::glEnableClientState( GL_NORMAL_ARRAY );
-                    ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-                }
-                else {
-                    ::glCallList( Submodel->uiDisplayList );
-                }
+                // main draw call
+                m_geometry.draw( Submodel->m_geometry, color_streams );
 
                 // post-draw reset
                 ::glPopAttrib();
@@ -956,6 +828,28 @@ opengl_renderer::Render( TSubModel *Submodel ) {
     if( Submodel->Next )
         if( Submodel->iAlpha & Submodel->iFlags & 0x1F000000 )
             Render( Submodel->Next ); // dalsze rekurencyjnie
+}
+
+void
+opengl_renderer::Render( TTrack *Track ) {
+
+    if( ( Track->TextureID1 == 0 )
+     && ( Track->TextureID2 == 0 ) ) {
+        return;
+    }
+
+    Track->EnvironmentSet();
+
+    if( Track->TextureID1 != 0 ) {
+        Bind( Track->TextureID1 );
+        m_geometry.draw( std::begin( Track->Geometry1 ), std::end( Track->Geometry1 ) );
+    }
+    if( Track->TextureID2 != 0 ) {
+        Bind( Track->TextureID2 );
+        m_geometry.draw( std::begin( Track->Geometry2 ), std::end( Track->Geometry2 ) );
+    }
+
+    Track->EnvironmentReset();
 }
 
 void
@@ -979,7 +873,6 @@ opengl_renderer::Render( TMemCell *Memcell ) {
 bool
 opengl_renderer::Render_Alpha( TGround *Ground ) {
 
-    // legacy version of the code:
     ::glEnable( GL_BLEND );
     ::glAlphaFunc( GL_GREATER, 0.04f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
     ::glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
@@ -987,53 +880,29 @@ opengl_renderer::Render_Alpha( TGround *Ground ) {
     TGroundNode *node;
     TSubRect *tmp;
     // Ra: renderowanie progresywne - zależne od FPS oraz kierunku patrzenia
-    for( int i = Ground->iRendered - 1; i >= 0; --i ) // od najdalszych
-    { // przezroczyste trójkąty w oddzielnym cyklu przed modelami
-        tmp = Ground->pRendered[ i ];
-        if( Global::bUseVBO ) {
-            // vbo render path
-            if( tmp->StartVBO() ) {
-                for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
-                    if( node->iVboPtr >= 0 ) {
-                        Render_Alpha( node );
-                    }
-                }
-                tmp->EndVBO();
-            }
-        }
-        else {
-            // display list render path
-            for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
-                Render_Alpha( node );
-            }
+    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair ) {
+        // przezroczyste trójkąty w oddzielnym cyklu przed modelami
+        tmp = subcellpair->second;
+        for( node = tmp->nRenderRectAlpha; node; node = node->nNext3 ) {
+            Render_Alpha( node );
         }
     }
-    for( int i = Ground->iRendered - 1; i >= 0; --i ) // od najdalszych
+    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair )
     { // renderowanie przezroczystych modeli oraz pojazdów
-        Render_Alpha( Ground->pRendered[ i ] );
+        Render_Alpha( subcellpair->second );
     }
 
     ::glDisable( GL_LIGHTING ); // linie nie powinny świecić
 
-    for( int i = Ground->iRendered - 1; i >= 0; --i ) // od najdalszych
-    { // druty na końcu, żeby się nie robiły białe plamy na tle lasu
-        tmp = Ground->pRendered[ i ];
-        if( Global::bUseVBO ) {
-            // vbo render path
-            if( tmp->StartVBO() ) {
-                for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
-                    Render_Alpha( node );
-                }
-                tmp->EndVBO();
-            }
-        }
-        else {
-            // display list render path
-            for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
-                Render_Alpha( node ); // druty
-            }
+    for( auto subcellpair = std::rbegin( m_drawqueue ); subcellpair != std::rend( m_drawqueue ); ++subcellpair ) {
+        // druty na końcu, żeby się nie robiły białe plamy na tle lasu
+        tmp = subcellpair->second;
+        for( node = tmp->nRenderWires; node; node = node->nNext3 ) {
+            Render_Alpha( node );
         }
     }
+
+    ::glEnable( GL_LIGHTING );
 
     return true;
 }
@@ -1052,27 +921,8 @@ opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
     return true;
 }
 
-// NOTE: legacy render system switch
-#define _PROBLEND
-
 bool
 opengl_renderer::Render_Alpha( TGroundNode *Node ) {
-
-    // SPOSOB NA POZBYCIE SIE RAMKI DOOKOLA TEXTURY ALPHA DLA OBIEKTOW ZAGNIEZDZONYCH W SCN JAKO
-    // NODE
-
-    // W GROUND.H dajemy do klasy TGroundNode zmienna bool PROBLEND to samo robimy w klasie TGround
-    // nastepnie podczas wczytywania textury dla TRIANGLES w TGround::AddGroundNode
-    // sprawdzamy czy w nazwie jest @ i wg tego
-    // ustawiamy PROBLEND na true dla wlasnie wczytywanego trojkata (kazdy trojkat jest osobnym
-    // nodem)
-    // nastepnie podczas renderowania w bool TGroundNode::RenderAlpha()
-    // na poczatku ustawiamy standardowe GL_GREATER = 0.04
-    // pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE,
-    // wlasciwie dla kazdego node'a
-    // i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
-
-    Node->SetLastUsage( Timer::GetSimulationTime() );
 
     double const distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor );
     if( ( distancesquared > ( Node->fSquareRadius    * Global::fDistanceFactor ) )
@@ -1083,21 +933,43 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
     switch (Node->iType)
     {
         case TP_TRACTION: {
-            // TODO: unify the render code after generic buffers are in place
             if( Node->bVisible ) {
+                // rysuj jesli sa druty i nie zerwana
+                if( ( Node->hvTraction->Wires == 0 )
+                 || ( true == TestFlag( Node->hvTraction->DamageFlag, 128 ) ) ) {
+                    return false;
+                }
                 // setup
+                if( !Global::bSmoothTraction ) {
+                    // na liniach kiepsko wygląda - robi gradient
+                    ::glDisable( GL_LINE_SMOOTH );
+                }
+                float const linealpha = static_cast<float>(
+                    std::min(
+                        1.2,
+                        5000 * Node->hvTraction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
+                ::glLineWidth( linealpha );
+                // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+                auto const color { Node->hvTraction->wire_color() };
+                ::glColor4f( color.r, color.g, color.b, linealpha );
+
+                Bind( NULL );
+
                 ::glPushMatrix();
                 auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
                 ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
                 // render
-                if( Global::bUseVBO ) {
-                    Node->hvTraction->RenderVBO( distancesquared, Node->iVboPtr );
-                }
-                else {
-                    Node->hvTraction->RenderDL( distancesquared, Node->m_rootposition );
-                }
+                m_geometry.draw( Node->hvTraction->m_geometry );
+
                 // post-render cleanup
                 ::glPopMatrix();
+
+                ::glLineWidth( 1.0 );
+                if( !Global::bSmoothTraction ) {
+                    ::glEnable( GL_LINE_SMOOTH );
+                }
+
                 return true;
             }
             else {
@@ -1108,103 +980,66 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             Node->Model->RenderAlpha( Node->pCenter - Global::pCameraPosition );
             return true;
         }
-    }
 
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if( ( Node->iNumVerts && ( Node->iFlags & 0x20 ) )
-     || ( Node->iNumPts && ( Node->fLineThickness > 0 ) ) ) {
-
-#ifdef _PROBLEND
-        if( ( Node->PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-        {
-            ::glDisable( GL_BLEND );
-            ::glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
-        };
-#endif
-        // TODO: unify the render code after generic buffers are in place
-        if( false == Global::bUseVBO ) {
-            // additional setup for display lists
-            if( ( Node->DisplayListID == 0 )
-             || ( Node->iVersion != Global::iReCompile ) ) { // Ra: wymuszenie rekompilacji
-                Node->Compile(Node->m_rootposition);
-                if( Global::bManageNodes )
-                    ResourceManager::Register( Node );
-            };
-        }
-
-        bool result( false );
-
-        if( ( Node->iType == GL_LINES )
-         || ( Node->iType == GL_LINE_STRIP )
-         || ( Node->iType == GL_LINE_LOOP ) ) {
-            // wszelkie linie są rysowane na samym końcu
-            if( Node->iNumPts ) {
-                // setup
-                ::glPushMatrix();
-                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-                // w zaleznosci od koloru swiatla
-                ::glColor4ub(
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 0 ] * Global::DayLight.ambient[ 0 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 1 ] * Global::DayLight.ambient[ 1 ] ) ),
-                    static_cast<GLubyte>( std::floor( Node->Diffuse[ 2 ] * Global::DayLight.ambient[ 2 ] ) ),
-                    static_cast<GLubyte>( std::min( 255.0, 255000 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) );
-
-                GfxRenderer.Bind( 0 );
-
-                // render
-                // TODO: unify the render code after generic buffers are in place
-                if( Global::bUseVBO ) {
-                    ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumPts );
-                }
-                else {
-                    ::glCallList( Node->DisplayListID );
-                }
-                // post-render cleanup
-                ::glPopMatrix();
-                result = true;
+        case GL_LINES: {
+            if( ( Node->m_geometry == NULL )
+             || ( Node->fLineThickness < 0.0 ) ) {
+                return false;
             }
-        }
-        else {
-            // GL_TRIANGLE etc
             // setup
+            auto const linewidth = clamp( 100.0 * Node->fLineThickness / ( distancesquared + 1.0 ), 1.0, 10.0 );
+            ::glColor4fv(
+                glm::value_ptr(
+                    glm::vec4(
+                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
+                        std::min( 1.0, linewidth ) ) ) );
+            if( linewidth > 1.0 ) {
+                ::glLineWidth( static_cast<float>(linewidth) );
+            }
+
+            GfxRenderer.Bind( 0 );
+
             ::glPushMatrix();
             auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
-            ::glColor3ub(
-                static_cast<GLubyte>( Node->Diffuse[ 0 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 1 ] ),
-                static_cast<GLubyte>( Node->Diffuse[ 2 ] ) );
+            // render
+            m_geometry.draw( Node->m_geometry );
+
+            // post-render cleanup
+            if( linewidth > 1.0 ) {
+                ::glLineWidth( 1.0f );
+            }
+
+            ::glPopMatrix();
+
+            return true;
+        }
+
+        case GL_TRIANGLES: {
+            if( ( Node->m_geometry == NULL )
+             || ( ( Node->iFlags & 0x20 ) == 0 ) ) {
+                return false;
+            }
+            // setup
+            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
 
             Bind( Node->TextureID );
 
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
             // render
-            // TODO: unify the render code after generic buffers are in place
-            if( Global::bUseVBO ) {
-                // vbo render path
-                if( Node->iVboPtr >= 0 ) {
-                    ::glDrawArrays( Node->iType, Node->iVboPtr, Node->iNumVerts );
-                    result = true;
-                }
-            }
-            else {
-                // display list render path
-                ::glCallList( Node->DisplayListID );
-                result = true;
-            }
+            m_geometry.draw( Node->m_geometry );
+
             // post-render cleanup
             ::glPopMatrix();
+
+            return true;
         }
 
-#ifdef _PROBLEND
-        if( ( Node->PROBLEND ) ) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-        {
-            ::glEnable( GL_BLEND );
-            ::glAlphaFunc( GL_GREATER, 0.04f );
-        }
-#endif
-        return result;
+        default: { break; }
     }
     // in theory we shouldn't ever get here but, eh
     return false;
@@ -1213,10 +1048,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 bool
 opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
-    if( false == Dynamic->renderme ) {
-
-        return false;
-    }
+    if( false == Dynamic->renderme ) { return false; }
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
@@ -1224,14 +1056,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
     ::glPushMatrix();
-/*
-    if( Dynamic == Global::pUserDynamic ) { // specjalne ustawienie, aby nie trzęsło
-        ::glLoadIdentity(); // zacząć od macierzy jedynkowej
-        Global::pCamera->SetCabMatrix( Dynamic->vPosition ); // specjalne ustawienie kamery
-    }
-    else
-        ::glTranslated( Dynamic->vPosition.x, Dynamic->vPosition.y, Dynamic->vPosition.z ); // standardowe przesunięcie względem początku scenerii
-*/
+
     ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
     ::glMultMatrixd( Dynamic->mMatrix.getArray() );
 
@@ -1296,17 +1121,11 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
 
     Model->Root->fSquareDist = Squaredistance; // zmienna globalna!
 
-    // TODO: unify the render code after generic buffers are in place
     // setup
-    if( Global::bUseVBO ) {
-        if( false == Model->StartVBO() )
-            return false;
-    }
-
     Model->Root->ReplacableSet(
         ( Material != nullptr ?
-        Material->replacable_skins :
-        nullptr ),
+            Material->replacable_skins :
+            nullptr ),
         alpha );
 
     Model->Root->pRoot = Model;
@@ -1315,9 +1134,6 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
     Render_Alpha( Model->Root );
 
     // post-render cleanup
-    if( Global::bUseVBO ) {
-        Model->EndVBO();
-    }
 
     return true;
 }
@@ -1334,7 +1150,6 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, M
     if( Angle.z != 0.0 )
         ::glRotated( Angle.z, 0.0, 0.0, 1.0 );
 
-//    auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position / Global::ZoomFactor ) ); // position is effectively camera offset
     auto const result = Render_Alpha( Model, Material, SquareMagnitude( Position ) ); // position is effectively camera offset
 
     ::glPopMatrix();
@@ -1369,20 +1184,15 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-                ::glColor3fv( Submodel->f4Diffuse ); // McZapkie-240702: zamiast ub
+                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
                 // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
                     // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, Submodel->f4Diffuse );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse) );
                 }
 
-                // main draw call. TODO: generic buffer base class, specialized for vbo, dl etc
-                if( Global::bUseVBO ) {
-                    ::glDrawArrays( Submodel->eType, Submodel->iVboPtr, Submodel->iNumVerts );
-                }
-                else {
-                    ::glCallList( Submodel->uiDisplayList );
-                }
+                // main draw call
+                m_geometry.draw( Submodel->m_geometry );
 
                 // post-draw reset
                 if( Global::fLuminance < Submodel->fLight ) {
@@ -1408,10 +1218,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     glarelevel = std::max( 0.0f, glarelevel - static_cast<float>(Global::fLuminance) );
 
                     if( glarelevel > 0.0f ) {
-
+                        // setup
                         ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
 
-                        Bind( m_glaretextureid );
+                        Bind( m_glaretexture );
                         ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], glarelevel );
                         ::glDisable( GL_LIGHTING );
                         ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
@@ -1419,15 +1229,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         ::glPushMatrix();
                         ::glLoadIdentity(); // macierz jedynkowa
                         ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
-                        ::glRotated( atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
+                        ::glRotated( std::atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
 
-                        // TODO: turn the drawing instructions into a compiled call / array
-                        ::glBegin( GL_TRIANGLE_STRIP );
-                        float const size = 2.5f;
-                        ::glTexCoord2f( 1.0f, 1.0f ); ::glVertex3f( -size, size, 0.0f );
-                        ::glTexCoord2f( 0.0f, 1.0f ); ::glVertex3f( size, size, 0.0f );
-                        ::glTexCoord2f( 1.0f, 0.0f ); ::glVertex3f( -size, -size, 0.0f );
-                        ::glTexCoord2f( 0.0f, 0.0f ); ::glVertex3f( size, -size, 0.0f );
+                        // main draw call
+                        m_geometry.draw( m_billboardgeometry );
 /*
                         // NOTE: we could do simply...
                         vec3 vertexPosition_worldspace =
@@ -1436,8 +1241,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         + CameraUp_worldspace * squareVertices.y * BillboardSize.y;
                         // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
-                        ::glEnd();
-
+                        // post-render cleanup
                         ::glPopMatrix();
                         ::glPopAttrib();
                     }
@@ -1539,8 +1343,12 @@ opengl_renderer::Update ( double const Deltatime ) {
     }
 
     // TODO: add garbage collection and other less frequent works here
-    if( DebugModeFlag )
-        m_debuginfo = m_textures.Info();
+    if( true == DebugModeFlag ) {
+        m_debuginfo = m_textures.info();
+    }
+    else {
+        m_debuginfo.clear();
+    }
 };
 
 // debug performance string

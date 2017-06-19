@@ -72,6 +72,9 @@ class vector3
         y = b;
         z = c;
     }
+    vector3( glm::dvec3 const &Vector ) :
+        x( Vector.x ), y( Vector.y ), z( Vector.z )
+    {}
 
     // The int parameter is the number of elements to copy from initArray (3 or 4)
     //	explicit vector3(scalar_t* initArray, int arraySize = 3)
@@ -140,8 +143,8 @@ class matrix4x4
             for (int x = 0; x < 4; ++x)
                 (*this)(x)[y] = initArray[i++];
     }
-    template <typename _Type>
-    void OpenGL_Matrix(_Type const *initArray)
+    template <typename Type_>
+    void OpenGL_Matrix(Type_ const *initArray)
     {
         int i = 0;
         for (int x = 0; x < 4; ++x)

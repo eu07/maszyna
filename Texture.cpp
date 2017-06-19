@@ -692,13 +692,9 @@ opengl_texture::downsize( GLuint const Format ) {
     };
 }
 
-void
-texture_manager::Init() {
-}
-
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
-texture_manager::size_type
-texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
+texture_handle
+texture_manager::create( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
 
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
@@ -788,7 +784,7 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
         traits += '#';
     }
     texture.traits = traits;
-    auto const textureindex = (texture_manager::size_type)m_textures.size();
+    auto const textureindex = (texture_handle)m_textures.size();
     m_textures.emplace_back( texture );
     m_texturemappings.emplace( filename, textureindex );
 
@@ -796,9 +792,11 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 
     if( true == Loadnow ) {
 
-        Texture( textureindex ).load();
+        texture_manager::texture( textureindex ).load();
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
-        Texture( textureindex ).create();
+        texture_manager::texture( textureindex ).create();
+        // texture creation binds a different texture, force a re-bind on next use
+        m_activetexture = 0;
 #endif
     }
 
@@ -806,23 +804,18 @@ texture_manager::GetTextureId( std::string Filename, std::string const &Dir, int
 };
 
 void
-texture_manager::Bind( texture_manager::size_type const Id ) {
-/*
-    // NOTE: this optimization disabled for the time being, until the render code is reviewed
-    //       having it active would lead to some terrain and spline chunks receiving wrong
-    //       (the most recent?) texture, instead of the proper one. It'd also affect negatively
-    //       light point rendering.
-    if( Id == m_activetexture ) {
+texture_manager::bind( texture_handle const Texture ) {
+
+    if( Texture == m_activetexture ) {
         // don't bind again what's already active
         return;
     }
-*/
     // TODO: do binding in texture object, add support for other types
-    if( Id != 0 ) {
+    if( Texture != 0 ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
-        ::glBindTexture( GL_TEXTURE_2D, Texture(Id).id );
-        m_activetexture = Texture(Id).id;
+        ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
+        m_activetexture = texture(Texture).id;
 #else
         if( Texture( Id ).bind() == resource_state::good ) {
             m_activetexture = Id;
@@ -842,7 +835,7 @@ texture_manager::Bind( texture_manager::size_type const Id ) {
 }
 
 void
-texture_manager::Free() {
+texture_manager::delete_textures() {
     for( auto const &texture : m_textures ) {
         // usunięcie wszyskich tekstur (bez usuwania struktury)
         if( ( texture.id > 0 )
@@ -854,7 +847,7 @@ texture_manager::Free() {
 
 // debug performance string
 std::string
-texture_manager::Info() const {
+texture_manager::info() const {
 
     // TODO: cache this data and update only during resource sweep
     std::size_t totaltexturecount{ m_textures.size() - 1 };
@@ -892,8 +885,8 @@ texture_manager::Info() const {
 }
 
 // checks whether specified texture is in the texture bank. returns texture id, or npos.
-texture_manager::size_type
-texture_manager::find_in_databank( std::string const &Texturename ) {
+texture_handle
+texture_manager::find_in_databank( std::string const &Texturename ) const {
 
     auto lookup = m_texturemappings.find( Texturename );
     if( lookup != m_texturemappings.end() ) {
@@ -910,7 +903,7 @@ texture_manager::find_in_databank( std::string const &Texturename ) {
 
 // checks whether specified file exists.
 std::string
-texture_manager::find_on_disk( std::string const &Texturename ) {
+texture_manager::find_on_disk( std::string const &Texturename ) const {
 
     {
         std::ifstream file( Texturename );

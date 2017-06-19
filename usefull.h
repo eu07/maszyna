@@ -24,32 +24,32 @@ http://mozilla.org/MPL/2.0/.
 
 #define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
 
-template <typename _Type>
-void SafeDelete( _Type &Pointer ) {
+template <typename Type_>
+void SafeDelete( Type_ &Pointer ) {
     delete Pointer;
     Pointer = nullptr;
 }
 
-template <typename _Type>
-void SafeDeleteArray( _Type &Pointer ) {
+template <typename Type_>
+void SafeDeleteArray( Type_ &Pointer ) {
     delete[] Pointer;
     Pointer = nullptr;
 }
 
-template <typename _Type>
-_Type
-clamp( _Type const Value, _Type const Min, _Type const Max ) {
+template <typename Type_>
+Type_
+clamp( Type_ const Value, Type_ const Min, Type_ const Max ) {
 
-    _Type value = Value;
+    Type_ value = Value;
     if( value < Min ) { value = Min; }
     if( value > Max ) { value = Max; }
     return value;
 }
 
 // keeps the provided value in specified range 0-Range, as if the range was circular buffer
-template <typename _Type>
-_Type
-clamp_circular( _Type Value, _Type const Range = static_cast<_Type>(360) ) {
+template <typename Type_>
+Type_
+clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
 
     Value -= Range * (int)( Value / Range ); // clamp the range to 0-360
     if( Value < 0.0 ) Value += Range;
@@ -57,11 +57,18 @@ clamp_circular( _Type Value, _Type const Range = static_cast<_Type>(360) ) {
     return Value;
 }
 
-template <typename _Type>
-_Type
-interpolate( _Type const First, _Type const Second, float const Factor ) {
+template <typename Type_>
+Type_
+interpolate( Type_ const &First, Type_ const &Second, float const Factor ) {
 
     return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
+template <typename Type_>
+Type_
+interpolate( Type_ const &First, Type_ const &Second, double const Factor ) {
+
+    return ( First * ( 1.0 - Factor ) ) + ( Second * Factor );
 }
 
 //---------------------------------------------------------------------------

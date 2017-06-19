@@ -631,11 +631,13 @@ TSubModel * TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaźników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
 };
+#ifdef EU07_USE_OLD_RENDERCODE
 void TAnimModel::TerrainRenderVBO(int n)
 { // renderowanie terenu z VBO
     if (pModel)
         pModel->TerrainRenderVBO(n);
 };
+#endif
 //---------------------------------------------------------------------------
 
 void TAnimModel::Advanced()
