@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <unordered_map>
 #include <string>
 
-template <typename _Type>
+template <typename Type_>
 class TNames {
 
 public:
@@ -26,7 +26,7 @@ public:
 // methods:
     // dodanie obiektu z wskaźnikiem. updates data field if the object already exists. returns true for insertion, false for update
     bool
-        Add( int const Type, std::string const &Name, _Type Data ) {
+        Add( int const Type, std::string const &Name, Type_ Data ) {
 
             auto lookup = find_map( Type ).emplace( Name, Data );
             if( lookup.second == false ) {
@@ -40,7 +40,7 @@ public:
             }
     }
     // returns pointer associated with provided label, or nullptr if there's no match
-    _Type
+    Type_
         Find( int const Type, std::string const &Name ) {
 
             auto const &map = find_map( Type );
@@ -51,7 +51,7 @@ public:
 
 private:
 // types:
-    typedef std::unordered_map<std::string, _Type>              type_map;
+    typedef std::unordered_map<std::string, Type_>              type_map;
     typedef std::unordered_map<int, type_map>                   typemap_map;
 
 // methods:

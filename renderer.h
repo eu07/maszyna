@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "GL/glew.h"
+#include "openglgeometrybank.h"
 #include "texture.h"
 #include "lightarray.h"
 #include "dumb3d.h"
@@ -120,6 +121,72 @@ public:
     // main draw call. returns false on error
     bool
         Render();
+    // render sub-methods, temporarily exposed until we complete migrating render code to the renderer
+    bool
+        Render( TDynamicObject *Dynamic );
+    bool
+        Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    bool
+        Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
+    void
+        Render( TSubModel *Submodel );
+    bool
+        Render_Alpha( TDynamicObject *Dynamic );
+    bool
+        Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    bool
+        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
+    // maintenance jobs
+    void
+        Update( double const Deltatime );
+    // debug performance string
+    std::string const &
+        Info() const;
+    // light methods
+    void
+        Disable_Lights();
+    // geometry methods
+    // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
+    // creates a new geometry bank. returns: handle to the bank or NULL
+    geometrybank_handle
+        Create_Bank();
+    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    geometry_handle
+        Insert( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type );
+    // replaces data of specified chunk with the supplied vertex data, starting from specified offset
+    bool
+        Replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset = 0 );
+    // adds supplied vertex data at the end of specified chunk
+    bool
+        Append( vertex_array &Vertices, geometry_handle const &Geometry );
+    // provides direct access to vertex data of specfied chunk
+    vertex_array const &
+        Vertices( geometry_handle const &Geometry ) const;
+    // texture methods
+    texture_handle
+        GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
+    void
+        Bind( texture_handle const Texture );
+    opengl_texture &
+        Texture( texture_handle const Texture );
+
+// members
+    GLenum static const sunlight{ GL_LIGHT0 };
+    std::size_t m_drawcount { 0 };
+
+private:
+// types
+    enum class rendermode {
+        color
+    };
+
+    typedef std::vector<opengl_light> opengllight_array;
+
+    typedef std::pair< double, TSubRect * > distancesubcell_pair;
+
+// methods
+    bool
+        Init_caps();
     bool
         Render( world_environment *Environment );
     bool
@@ -130,14 +197,8 @@ public:
         Render( TSubRect *Groundsubcell );
     bool
         Render( TGroundNode *Node );
-    bool
-        Render( TDynamicObject *Dynamic );
-    bool
-        Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
-    bool
-        Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     void
-        Render( TSubModel *Submodel );
+        Render( TTrack *Track );
     void
         Render( TMemCell *Memcell );
     bool
@@ -146,75 +207,28 @@ public:
         Render_Alpha( TSubRect *Groundsubcell );
     bool
         Render_Alpha( TGroundNode *Node );
-    bool
-        Render_Alpha( TDynamicObject *Dynamic );
-    bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
-    bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     void
         Render_Alpha( TSubModel *Submodel );
-    // maintenance jobs
-    void
-        Update( double const Deltatime);
     void
         Update_Lights( light_array const &Lights );
-    void
-        Disable_Lights();
-    inline
-    bool
-        Visible( TDynamicObject const *Dynamic ) const { return m_camera.visible( Dynamic ); }
-    // debug performance string
-    std::string const &
-        Info() const;
-
-    texture_manager::size_type
-        GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true ) {
-
-            return m_textures.GetTextureId( Filename, Dir, Filter, Loadnow );
-        }
-
-    void
-        Bind( texture_manager::size_type const Id ) {
-            // temporary until we separate the renderer
-            m_textures.Bind( Id );
-        }
-
-    opengl_texture &
-        Texture( texture_manager::size_type const Id ) {
-        
-            return m_textures.Texture( Id );
-        }
 
 // members
-    GLenum static const sunlight{ GL_LIGHT0 };
-
-private:
-// types
-    enum class rendermode {
-        color
-    };
-
-    typedef std::vector<opengl_light> opengllight_array;
-
-// methods
-    bool
-        Init_caps();
-    
-// members
-    rendermode renderpass{ rendermode::color };
     opengllight_array m_lights;
+    geometrybank_manager m_geometry;
     texture_manager m_textures;
     opengl_camera m_camera;
-    float m_drawrange{ 2500.0f }; // current drawing range
-    float m_drawtime{ 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
-    double m_updateaccumulator{ 0.0 };
+    rendermode renderpass { rendermode::color };
+    float m_drawrange { 2500.0f }; // current drawing range
+    float m_drawtime { 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
+    double m_updateaccumulator { 0.0 };
     std::string m_debuginfo;
-    GLFWwindow *m_window{ nullptr };
-    texture_manager::size_type m_glaretextureid{ -1 };
-    texture_manager::size_type m_suntextureid{ -1 };
-    texture_manager::size_type m_moontextureid{ -1 };
+    GLFWwindow *m_window { nullptr };
+    texture_handle m_glaretexture { -1 };
+    texture_handle m_suntexture { -1 };
+    texture_handle m_moontexture { -1 };
+    geometry_handle m_billboardgeometry { 0, 0 };
     GLUquadricObj *m_quadric; // helper object for drawing debug mode scene elements
+    std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
 
 };
 

@@ -449,23 +449,17 @@ public: // reszta może by?publiczna
     int CAflag; // hunter-131211: dla osobnego zbijania CA i SHP
 
     double fPoslizgTimer;
-    //    double fShpTimer;
-    //    double fDblClickTimer;
-    // ABu: Przeniesione do public. - Wiem, ze to nieladnie...
-    // bool CabChange(int iDirection);
-    // bool InitializeCab(int NewCabNo, AnsiString asFileName);
     TTrack *tor;
     int keybrakecount;
     // McZapkie-240302 - przyda sie do tachometru
-    float fTachoVelocity;
-    float fTachoVelocityJump; // ze skakaniem
-    float fTachoTimer;
-    float fTachoCount;
-    float fHVoltage; // napi?cie dla dynamicznych ga?ek
-    float fHCurrent[4]; // pr?dy: suma i amperomierze 1,2,3
-    float fEngine[4]; // obroty te? trzeba pobra?
-    int iCarNo, iPowerNo, iUnitNo; // liczba pojazdow, czlonow napednych i jednostek spiętych ze
-                                   // sobą
+    float fTachoVelocity{ 0.0f };
+    float fTachoVelocityJump{ 0.0f }; // ze skakaniem
+    float fTachoTimer{ 0.0f };
+    float fTachoCount{ 0.0f };
+    float fHVoltage{ 0.0f }; // napi?cie dla dynamicznych ga?ek
+    float fHCurrent[ 4 ] = { 0.0f, 0.0f, 0.0f, 0.0f }; // pr?dy: suma i amperomierze 1,2,3
+    float fEngine[ 4 ] = { 0.0f, 0.0f, 0.0f, 0.0f }; // obroty te? trzeba pobra?
+    int iCarNo, iPowerNo, iUnitNo; // liczba pojazdow, czlonow napednych i jednostek spiętych ze sobą
     bool bDoors[20][3]; // drzwi dla wszystkich czlonow
     int iUnits[20]; // numer jednostki
     int iDoorNo[20]; // liczba drzwi
