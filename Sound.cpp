@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Usefull.h"
 #include "mczapkie/mctools.h"
 #include "WavRead.h"
-//#define SAFE_DELETE(p)  { if(p) { delete (p);     (p)=NULL; } }
+
 #define SAFE_RELEASE(p)     \
     {                       \
         if (p)              \
@@ -24,43 +24,31 @@ http://mozilla.org/MPL/2.0/.
         }                   \
     }
 
-char Directory[] = "sounds\\";
-
 LPDIRECTSOUND TSoundsManager::pDS;
 LPDIRECTSOUNDNOTIFY TSoundsManager::pDSNotify;
 
 int TSoundsManager::Count = 0;
 TSoundContainer *TSoundsManager::First = NULL;
 
-TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const char *strFileName,
-                                 int NConcurrent)
+TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, std::string const &Directory, std::string const &Filename, int NConcurrent)
 { // wczytanie pliku dźwiękowego
     int hr = 111;
-    DSBuffer = NULL; // na początek, gdyby uruchomić dźwięków się nie udało
-
+    DSBuffer = nullptr; // na początek, gdyby uruchomić dźwięków się nie udało
     Concurrent = NConcurrent;
-
     Oldest = 0;
-    //    strcpy(Name, strFileName);
-
-    strcpy(Name, Directory);
-    strcat(Name, strFileName);
-
-    CWaveSoundRead *pWaveSoundRead;
+    m_name = Directory + Filename;
 
     // Create a new wave file class
-    pWaveSoundRead = new CWaveSoundRead();
+    std::shared_ptr<CWaveSoundRead> pWaveSoundRead = std::make_shared<CWaveSoundRead>();
 
     // Load the wave file
-    if (FAILED(pWaveSoundRead->Open(Name)))
-        if (FAILED(pWaveSoundRead->Open(strdup(strFileName))))
-        {
-            //        SetFileUI( hDlg, TEXT("Bad wave file.") );
-			ErrorLog( "Missed sound: " + std::string( strFileName ) );
-			return;
-        }
+    if( ( FAILED( pWaveSoundRead->Open( m_name ) ) )
+     && ( FAILED( pWaveSoundRead->Open( Filename ) ) ) ) {
+        ErrorLog( "Missed sound: " + Filename );
+        return;
+    }
 
-    strcpy(Name, ToLower(strFileName).c_str());
+    m_name = ToLower( Filename );
 
     // Set up the direct sound buffer, and only request the flags needed
     // since each requires some overhead and limits if the buffer can
@@ -133,27 +121,10 @@ TSoundContainer::TSoundContainer(LPDIRECTSOUND pDS, const char *Directory, const
     // We dont need the wav file data buffer anymore, so delete it
     delete[] pbWavData;
 
-    delete pWaveSoundRead;
-
     DSBuffers.push(DSBuffer);
-
-    /*
-        for (int i=1; i<Concurrent; i++)
-        {
-            if( FAILED( hr= pDS->DuplicateSoundBuffer(pDSBuffer[0],&(pDSBuffer[i]))))
-            {
-                Concurrent= i;
-                break;
-            };
-
-
-        };*/
 };
 TSoundContainer::~TSoundContainer()
 {
-    //    for (int i=Concurrent-1; i>=0; i--)
-    //        SAFE_RELEASE( pDSBuffer[i] );
-    //    free(pDSBuffer);
     while (!DSBuffers.empty())
     {
         SAFE_RELEASE(DSBuffers.top());
@@ -185,84 +156,51 @@ void TSoundsManager::Free()
     SAFE_RELEASE(pDS);
 };
 
-TSoundContainer * TSoundsManager::LoadFromFile(const char *Dir, const char *Name, int Concurrent)
+TSoundContainer * TSoundsManager::LoadFromFile( std::string const &Dir, std::string const &Filename, int Concurrent)
 {
-    TSoundContainer *Tmp = First;
-    First = new TSoundContainer(pDS, Dir, Name, Concurrent);
-    First->Next = Tmp;
+    TSoundContainer *tmp = First;
+    First = new TSoundContainer(pDS, Dir, Filename, Concurrent);
+    First->Next = tmp;
     Count++;
     return First; // albo NULL, jak nie wyjdzie (na razie zawsze wychodzi)
 };
 
-void TSoundsManager::LoadSounds(char *Directory)
-{ // wczytanie wszystkich plików z katalogu - mało elastyczne
-    WIN32_FIND_DATA FindFileData;
-    HANDLE handle = FindFirstFile("sounds\\*.wav", &FindFileData);
-    if (handle != INVALID_HANDLE_VALUE)
-        do
-        {
-            LoadFromFile(Directory, FindFileData.cFileName, 1);
-        } while (FindNextFile(handle, &FindFileData));
-    FindClose(handle);
-};
-
-LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(const char *Name, bool Dynamic, float *fSamplingRate)
+LPDIRECTSOUNDBUFFER TSoundsManager::GetFromName(std::string const &Name, bool Dynamic, float *fSamplingRate)
 { // wyszukanie dźwięku w pamięci albo wczytanie z pliku
+    std::string name{ ToLower(Name) };
     std::string file;
     if (Dynamic)
     { // próba wczytania z katalogu pojazdu
-        file = Global::asCurrentDynamicPath + Name;
+        file = Global::asCurrentDynamicPath + name;
         if (FileExists(file))
-            Name = file.c_str(); // nowa nazwa
+            name = file; // nowa nazwa
         else
             Dynamic = false; // wczytanie z "sounds/"
     }
     TSoundContainer *Next = First;
     for (int i = 0; i < Count; i++)
     {
-        if (strcmp(Name, Next->Name) == 0)
-        {
+        if( name == Next->m_name ) {
+
             if (fSamplingRate)
                 *fSamplingRate = Next->fSamplingRate; // częstotliwość
             return (Next->GetUnique(pDS));
-            //      DSBuffers.
-            /*
-                Next->pDSBuffer[Next->Oldest]->Stop();
-                Next->pDSBuffer[Next->Oldest]->SetCurrentPosition(0);
-                if (Next->Oldest<Next->Concurrent-1)
-                {
-                    Next->Oldest++;
-                    return (Next->pDSBuffer[Next->Oldest-1]);
-                }
-                else
-                {
-                    Next->Oldest= 0;
-                    return (Next->pDSBuffer[Next->Concurrent-1]);
-                };
-
-       /*         for (int j=0; j<Next->Concurrent; j++)
-                {
-
-                    Next->pDSBuffer[j]->GetStatus(&dwStatus);
-                    if ((dwStatus & DSBSTATUS_PLAYING) != DSBSTATUS_PLAYING)
-                        return (Next->pDSBuffer[j]);
-                }                                   */
         }
         else
             Next = Next->Next;
     };
     if (Dynamic) // wczytanie z katalogu pojazdu
-        Next = LoadFromFile("", Name, 1);
+        Next = LoadFromFile("", name, 1);
     else
-        Next = LoadFromFile(Directory, Name, 1);
+        Next = LoadFromFile(szSoundPath, name, 1);
     if (Next)
     { //
         if (fSamplingRate)
             *fSamplingRate = Next->fSamplingRate; // częstotliwość
         return Next->GetUnique(pDS);
     }
-    ErrorLog("Missed sound: " + std::string(Name) );
-    return (NULL);
+    ErrorLog("Missed sound: " + Name );
+    return (nullptr);
 };
 
 void TSoundsManager::RestoreAll()
@@ -298,10 +236,6 @@ void TSoundsManager::RestoreAll()
         Next = Next->Next;
     };
 };
-
-// void TSoundsManager::Init(char *Name, int Concurrent)
-// TSoundsManager::TSoundsManager(HWND hWnd)
-// void TSoundsManager::Init(HWND hWnd, char *NDirectory)
 
 void TSoundsManager::Init(HWND hWnd)
 {

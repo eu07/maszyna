@@ -973,357 +973,6 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 	}
 };
 
-#ifdef EU07_USE_OLD_RENDERCODE
-void TSubModel::RenderDL()
-{ // główna procedura renderowania przez DL
-	return;
-    if( ( iVisible )
-     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
-     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
-    {
-        if (iFlags & 0xC000)
-        {
-            glPushMatrix();
-            if (fMatrix)
-                glMultMatrixf(fMatrix->readArray());
-//            if (b_Anim)
-//                RaAnimation(b_Anim);
-        }
-        if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
-            if (iAlpha & iFlags & 0x1F) // rysuj gdy element nieprzezroczysty
-            {
-                if (TextureID < 0) // && (ReplacableSkinId!=0))
-                { // zmienialne skóry
-                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
-                    // TexAlpha=!(iAlpha&1); //zmiana tylko w przypadku wymienej tekstury
-                }
-                else
-                    GfxRenderer.Bind(TextureID); // również 0
-                if (Global::fLuminance < fLight)
-                {
-                    glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-                    glCallList(uiDisplayList); // tylko dla siatki
-                    glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-                }
-                else
-                    glCallList(uiDisplayList); // tylko dla siatki
-            }
-        }
-        else if (eType == TP_FREESPOTLIGHT)
-        { // wersja DL
-            matrix4x4 mat; // macierz opisuje układ renderowania względem kamery
-            glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray());
-            // kąt między kierunkiem światła a współrzędnymi kamery
-            vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu świecącego względem kamery
-            fCosViewAngle = DotProduct(Normalize(mat * vector3(0, 0, 1) - gdzie), Normalize(gdzie));
-            if (fCosViewAngle > fCosFalloffAngle) // kąt większy niż maksymalny stożek swiatła
-            {
-                double Distdimm = 1.0;
-                if (fCosViewAngle <
-                    fCosHotspotAngle) // zmniejszona jasność między Hotspot a Falloff
-                    if (fCosFalloffAngle < fCosHotspotAngle)
-                        Distdimm = 1.0 -
-                                   (fCosHotspotAngle - fCosViewAngle) /
-                                       (fCosHotspotAngle - fCosFalloffAngle);
-                glColor3f(f4Diffuse[0] * Distdimm, f4Diffuse[1] * Distdimm,
-                          f4Diffuse[2] * Distdimm);
-                /*  TODO: poprawic to zeby dzialalo
-                                              if (iFarAttenDecay>0)
-                                               switch (iFarAttenDecay)
-                                               {
-                                                case 1:
-                                    Distdimm=fFarDecayRadius/(1+sqrt(fSquareDist));
-                   //dorobic od kata
-                                                break;
-                                                case 2:
-                                                    Distdimm=fFarDecayRadius/(1+fSquareDist);
-                   //dorobic od kata
-                                                break;
-                                               }
-                                              if (Distdimm>1)
-                                               Distdimm=1;
-                                              glColor3f(Diffuse[0]*Distdimm,Diffuse[1]*Distdimm,Diffuse[2]*Distdimm);
-                */
-                //           glPopMatrix();
-                //        return;
-                glCallList(uiDisplayList); // wyświetlenie warunkowe
-            }
-        }
-        else if (eType == TP_STARS)
-        {
-            // glDisable(GL_LIGHTING);  //Tolaris-030603: bo mu punkty swiecace sie
-            // blendowaly
-            if (Global::fLuminance < fLight)
-            {
-                glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-                glCallList(uiDisplayList); // narysuj naraz wszystkie punkty z DL
-                glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-            }
-        }
-        if (Child != NULL)
-            if (iAlpha & iFlags & 0x001F0000)
-                Child->RenderDL();
-        if (iFlags & 0xC000)
-            glPopMatrix();
-    }
-    if (b_Anim < at_SecondsJump)
-        b_Anim = at_None; // wyłączenie animacji dla kolejnego użycia subm
-    if (Next)
-        if (iAlpha & iFlags & 0x1F000000)
-            Next->RenderDL(); // dalsze rekurencyjnie
-}; // Render
-
-void TSubModel::RenderAlphaDL()
-{ // renderowanie przezroczystych przez DL
-	return;
-    if( ( iVisible )
-     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
-     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
-    {
-        if (iFlags & 0xC000)
-        {
-            glPushMatrix();
-            if (fMatrix)
-                glMultMatrixf(fMatrix->readArray());
-//            if (b_aAnim)
-//                RaAnimation(b_aAnim);
-        }
-        if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
-            if (iAlpha & iFlags & 0x2F) // rysuj gdy element przezroczysty
-            {
-                if (TextureID < 0) // && (ReplacableSkinId!=0))
-                { // zmienialne skóry
-                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
-                    // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
-                }
-                else
-                    GfxRenderer.Bind(TextureID); // również 0
-                if (Global::fLuminance < fLight)
-                {
-                    glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-                    glCallList(uiDisplayList); // tylko dla siatki
-                    glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-                }
-                else
-                    glCallList(uiDisplayList); // tylko dla siatki
-            }
-        }
-        else if (eType == TP_FREESPOTLIGHT)
-        {
-            // dorobić aureolę!
-        }
-        if (Child != NULL)
-            if (eType == TP_TEXT)
-            { // tekst renderujemy w specjalny sposób, zamiast
-                // submodeli z łańcucha Child
-                int i, j = (int)pasText->size();
-                TSubModel *p;
-                if (!smLetter)
-                { // jeśli nie ma tablicy, to ją stworzyć; miejsce
-                    // nieodpowiednie, ale tymczasowo
-                    // może być
-                    smLetter = new TSubModel *[256]; // tablica wskaźników submodeli dla
-                    // wyświetlania tekstu
-                    ZeroMemory(smLetter, 256 * sizeof(TSubModel *)); // wypełnianie zerami
-                    p = Child;
-                    while (p)
-                    {
-                        smLetter[p->pName[0]] = p;
-                        p = p->Next; // kolejny znak
-                    }
-                }
-                for (i = 1; i <= j; ++i)
-                {
-                    p = smLetter[(*pasText)[i]]; // znak do wyświetlenia
-                    if (p)
-                    { // na razie tylko jako przezroczyste
-                        p->RenderAlphaDL();
-                        if (p->fMatrix)
-                            glMultMatrixf(p->fMatrix->readArray()); // przesuwanie widoku
-                    }
-                }
-            }
-            else if (iAlpha & iFlags & 0x002F0000)
-                Child->RenderAlphaDL();
-        if (iFlags & 0xC000)
-            glPopMatrix();
-    }
-    if (b_aAnim < at_SecondsJump)
-        b_aAnim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
-    if (Next != NULL)
-        if (iAlpha & iFlags & 0x2F000000)
-            Next->RenderAlphaDL();
-}; // RenderAlpha
-
-void TSubModel::RenderVBO(glm::mat4 m)
-{ // główna procedura renderowania przez VBO
-    if( ( iVisible )
-     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
-     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
-    {
-		glm::mat4 mm = m;
-        if (iFlags & 0xC000)
-        {
-			if (fMatrix)
-				mm *= glm::make_mat4(fMatrix->e);
-            if (b_Anim)
-                RaAnimation(mm, b_Anim);
-			World.shader.set_mv(mm);
-        }
-        if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
-            if (iAlpha & iFlags & 0x1F) // rysuj gdy element nieprzezroczysty
-            {
-                if (TextureID < 0) // && (ReplacableSkinId!=0))
-                { // zmienialne skóry
-                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
-                }
-                else
-                    GfxRenderer.Bind(TextureID); // również 0
-                //glColor3fv(f4Diffuse); // McZapkie-240702: zamiast ub
-                if (Global::fLuminance < fLight)
-                {
-                    //glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-                    glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
-                    //glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-                }
-                else
-                    glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
-            }
-        }
-        else if (eType == TP_FREESPOTLIGHT)
-        { // wersja VBO
-/*
-            matrix4x4 mat; // macierz opisuje układ renderowania względem kamery
-            glGetDoublev(GL_MODELVIEW_MATRIX, mat.getArray());
-*/
-            matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
-            // kąt między kierunkiem światła a współrzędnymi kamery
-            vector3 gdzie = mat * vector3(0, 0, 0); // pozycja punktu świecącego względem kamery
-            fCosViewAngle = DotProduct(Normalize(mat * vector3(0, 0, 1) - gdzie), Normalize(gdzie));
-            if (fCosViewAngle > fCosFalloffAngle) // kąt większy niż maksymalny stożek swiatła
-            {
-                double Distdimm = 1.0;
-                if (fCosViewAngle <
-                    fCosHotspotAngle) // zmniejszona jasność między Hotspot a Falloff
-                    if (fCosFalloffAngle < fCosHotspotAngle)
-                        Distdimm = 1.0 -
-                                   (fCosHotspotAngle - fCosViewAngle) /
-                                       (fCosHotspotAngle - fCosFalloffAngle);
-
-                GfxRenderer.Bind(0); // nie teksturować
-
-                float color[4] = { (float)(f4Diffuse[0] * Distdimm), (float)(f4Diffuse[1] * Distdimm),
-				                   (float)(f4Diffuse[2] * Distdimm), 0 };
-
-                //glColorMaterial(GL_FRONT, GL_EMISSION);
-                //glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie blendowaly
-                //glColor3fv(color); // inaczej są białe
-                //glMaterialfv(GL_FRONT, GL_EMISSION, color);
-                glDrawArrays(GL_POINTS, iVboPtr, iNumVerts); // narysuj wierzchołek z VBO
-                //glEnable(GL_LIGHTING);
-                //glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); // co ma ustawiać glColor
-                //glMaterialfv(GL_FRONT, GL_EMISSION, emm2); // bez tego słupy się świecą
-            }
-        }
-        else if (eType == TP_STARS)
-        {
-            if (Global::fLuminance < fLight)
-            { // Ra: pewnie można by to zrobić
-                // lepiej, bez powtarzania StartVBO()
-                pRoot->EndVBO(); // Ra: to też nie jest zbyt ładne
-                if (pRoot->StartColorVBO())
-                { // wyświetlanie kolorowych punktów zamiast
-                    // trójkątów
-                    GfxRenderer.Bind(0); // tekstury nie ma
-                    glColorMaterial(GL_FRONT, GL_EMISSION);
-                    glDisable(GL_LIGHTING); // Tolaris-030603: bo mu punkty swiecace sie
-                    // blendowaly
-                    // glMaterialfv(GL_FRONT,GL_EMISSION,f4Diffuse);  //zeby swiecilo na
-                    // kolorowo
-                    glDrawArrays(GL_POINTS, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie punkty z VBO
-                    glEnable(GL_LIGHTING);
-                    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-                    // glMaterialfv(GL_FRONT,GL_EMISSION,emm2);
-                    pRoot->EndVBO();
-                    pRoot->StartVBO();
-                }
-            }
-        }
-        if (Child != NULL)
-            if (iAlpha & iFlags & 0x001F0000)
-                Child->RenderVBO(mm);
-		if (iFlags & 0xC000)
-			World.shader.set_mv(m);
-    }
-    if (b_Anim < at_SecondsJump)
-        b_Anim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
-    if (Next)
-        if (iAlpha & iFlags & 0x1F000000)
-            Next->RenderVBO(m); // dalsze rekurencyjnie
-}; // RaRender
-
-void TSubModel::RenderAlphaVBO(glm::mat4 m)
-{ // renderowanie przezroczystych przez VBO
-    if( ( iVisible )
-     && ( fSquareDist >= (fSquareMinDist / Global::fDistanceFactor) )
-     && ( fSquareDist <= (fSquareMaxDist * Global::fDistanceFactor) ) )
-    {
-		glm::mat4 mm = m;
-        if (iFlags & 0xC000)
-        {
-			if (fMatrix)
-				mm *= glm::make_mat4(fMatrix->e);
-			if (b_Anim)
-				RaAnimation(mm, b_Anim);
-			World.shader.set_mv(mm);
-        }
-
-        if (eType < TP_ROTATOR)
-        { // renderowanie obiektów OpenGL
-            if (iAlpha & iFlags & 0x2F) // rysuj gdy element przezroczysty
-            {
-                if (TextureID < 0) // && (ReplacableSkinId!=0))
-                { // zmienialne skory
-                    GfxRenderer.Bind(ReplacableSkinId[-TextureID]);
-                    // TexAlpha=iAlpha&1; //zmiana tylko w przypadku wymienej tekstury
-                }
-                else
-                    GfxRenderer.Bind(TextureID); // również 0
-                if (Global::fLuminance < fLight)
-                {
-                    //glMaterialfv(GL_FRONT, GL_EMISSION, f4Diffuse); // zeby swiecilo na kolorowo
-                    glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
-                    //glMaterialfv(GL_FRONT, GL_EMISSION, emm2);
-                }
-                else
-                    glDrawArrays(eType, iVboPtr,
-                                 iNumVerts); // narysuj naraz wszystkie trójkąty z VBO
-            }
-        }
-        else if (eType == TP_FREESPOTLIGHT)
-        {
-            // dorobić aureolę!
-        }
-        if (Child)
-            if (iAlpha & iFlags & 0x002F0000)
-                Child->RenderAlphaVBO(mm);
-		if (iFlags & 0xC000)
-			World.shader.set_mv(m);
-    }
-    if (b_aAnim < at_SecondsJump)
-        b_aAnim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
-    if (Next)
-        if (iAlpha & iFlags & 0x2F000000)
-            Next->RenderAlphaVBO(m);
-}; // RaRenderAlpha
-#endif
    //---------------------------------------------------------------------------
 
 void TSubModel::RaArrayFill(CVertNormTex *Vert)
@@ -1450,8 +1099,12 @@ TModel3d::~TModel3d()
 	}
 	else
 	{ // wczytano z pliku binarnego (jest właścicielem tablic)
-		m_pVNT = NULL; // nie usuwać tego, bo wskazuje na iModel
-		Root = NULL;
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+		m_pVNT = nullptr; // nie usuwać tego, bo wskazuje na iModel
+#else
+        m_pVNT.clear();
+#endif
+		Root = nullptr;
 		delete[] iModel; // usuwamy cały wczytany plik i to wystarczy
 	}
 	// później się jeszcze usuwa obiekt z którego dziedziczymy tabelę VBO
@@ -1674,7 +1327,11 @@ void TModel3d::SaveToBinFile(char const *FileName)
 		transforms[i].serialize_float32(s);
 
 	MakeArray(iNumVerts);
-	Root->RaArrayFill(m_pVNT);
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    Root->RaArrayFill(m_pVNT);
+#else
+    Root->RaArrayFill( m_pVNT.data() );
+#endif
 	sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
 	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
 	for (size_t i = 0; i < (size_t)iNumVerts; i++)
@@ -1759,7 +1416,11 @@ void TSubModel::deserialize(std::istream &s)
 
 void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
-	m_pVNT = nullptr;
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    m_pVNT = nullptr;
+#else
+    m_pVNT.clear();
+#endif
 	Root = nullptr;
 	float4x4 *tm = nullptr;
 
@@ -1773,13 +1434,22 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 
 		if (type == MAKE_ID4('V', 'N', 'T', '0'))
 		{
-			if (m_pVNT != nullptr)
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            if (m_pVNT != nullptr)
+#else
+            if( false == m_pVNT.empty() )
+#endif
 				throw std::runtime_error("e3d: duplicated VNT chunk");
 
 			size_t vt_cnt = size / 32;
 			iNumVerts = (int)vt_cnt;
 			m_nVertexCount = (int)vt_cnt;
-			m_pVNT = new CVertNormTex[vt_cnt];
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            assert( m_pVNT == nullptr );
+            m_pVNT = new CVertNormTex[vt_cnt];
+#else
+            m_pVNT.resize( vt_cnt );
+#endif
 			for (size_t i = 0; i < vt_cnt; i++)
 				m_pVNT[i].deserialize(s);
 		}
@@ -1840,12 +1510,20 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 	if (!Root)
 		throw std::runtime_error("e3d: no submodels");
 
-	if (!m_pVNT)
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    if (!m_pVNT)
+#else
+    if(m_pVNT.empty() )
+#endif
 		throw std::runtime_error("e3d: no vertices");
 
 	for (size_t i = 0; (int)i < iSubModelsCount; i++)
 	{
-		Root[i].BinInit(Root, tm, (float8*)m_pVNT, &Textures, &Names, dynamic);
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+        Root[i].BinInit(Root, tm, (float8*)m_pVNT, &Textures, &Names, dynamic);
+#else
+        Root[ i ].BinInit( Root, tm, (float8*)m_pVNT.data(), &Textures, &Names, dynamic );
+#endif
 
 		if (Root[i].ChildGet())
 			Root[i].ChildGet()->Parent = &Root[i];
@@ -2019,11 +1697,18 @@ void TModel3d::Init()
 				Root->AdjustDist(); // aktualizacja odległości faz LoD, zależnie od
 									// rozdzielczości pionowej oraz multisamplingu
 */
-			if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku
-							// tekstowego)
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
+#else
+            if( m_pVNT.empty() )
+#endif
 			{ // tworzenie tymczasowej tablicy z wierzchołkami całego modelu
 				MakeArray(iNumVerts); // tworzenie tablic dla VBO
-				Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+                Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
+#else
+                Root->RaArrayFill( m_pVNT.data() ); // wypełnianie tablicy
+#endif
 				BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamięci
 			}
 			else
@@ -2038,168 +1723,6 @@ void TModel3d::BreakHierarhy()
 {
 	Error("Not implemented yet :(");
 };
-
-#ifdef EU07_USE_OLD_RENDERCODE
-void TModel3d::Render(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
-{
-	iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
-	if (iAlpha & iFlags & 0x1F1F001F) // czy w ogóle jest co robić w tym cyklu?
-	{
-		TSubModel::fSquareDist = fSquareDistance; // zmienna globalna!
-		Root->ReplacableSet(ReplacableSkinId, iAlpha);
-		Root->RenderDL();
-	}
-};
-
-void TModel3d::RenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId, int iAlpha)
-{
-	if (iAlpha & iFlags & 0x2F2F002F)
-	{
-		TSubModel::fSquareDist = fSquareDistance; // zmienna globalna!
-		Root->ReplacableSet(ReplacableSkinId, iAlpha);
-		Root->RenderAlphaDL();
-	}
-};
-
-void TModel3d::RaRender(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
-{ // renderowanie specjalne, np. kabiny
-	iAlpha ^= 0x0F0F000F; // odwrócenie flag tekstur, aby wyłapać nieprzezroczyste
-	if (iAlpha & iFlags & 0x1F1F001F) // czy w ogóle jest co robić w tym cyklu?
-	{
-		TSubModel::fSquareDist = fSquareDistance; // zmienna globalna!
-		if (StartVBO())
-		{ // odwrócenie flag, aby wyłapać nieprzezroczyste
-			Root->ReplacableSet(ReplacableSkinId, iAlpha);
-			Root->pRoot = this;
-			
-			float mv[16], p[16];
-			glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-			glGetFloatv(GL_PROJECTION_MATRIX, p);
-			World.shader.set_mv(glm::make_mat4(mv));
-			World.shader.set_p(glm::make_mat4(p));
-			Root->RenderVBO(glm::make_mat4(mv));
-
-			EndVBO();
-		}
-	}
-};
-
-void TModel3d::RaRenderAlpha(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
-{ // renderowanie specjalne, np. kabiny
-	if (iAlpha & iFlags & 0x2F2F002F) // czy w ogóle jest co robić w tym cyklu?
-	{
-		TSubModel::fSquareDist = fSquareDistance; // zmienna globalna!
-		if (StartVBO())
-		{
-			Root->ReplacableSet(ReplacableSkinId, iAlpha);
-
-			float mv[16], p[16];
-			glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-			glGetFloatv(GL_PROJECTION_MATRIX, p);
-			World.shader.set_mv(glm::make_mat4(mv));
-			World.shader.set_p(glm::make_mat4(p));
-			Root->RenderAlphaVBO(glm::make_mat4(mv));
-
-			EndVBO();
-		}
-	}
-};
-#endif
-//-----------------------------------------------------------------------------
-// 2011-03-16 cztery nowe funkcje renderowania z możliwością pochylania obiektów
-//-----------------------------------------------------------------------------
-#ifdef EU07_USE_OLD_RENDERCODE
-void TModel3d::Render(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId, int iAlpha)
-{ // nieprzezroczyste, Display List
-	glPushMatrix();
-	glTranslated(vPosition->x, vPosition->y, vPosition->z);
-	if (vAngle->y != 0.0)
-		glRotated(vAngle->y, 0.0, 1.0, 0.0);
-	if (vAngle->x != 0.0)
-		glRotated(vAngle->x, 1.0, 0.0, 0.0);
-	if (vAngle->z != 0.0)
-		glRotated(vAngle->z, 0.0, 0.0, 1.0);
-	TSubModel::fSquareDist =
-		SquareMagnitude(*vPosition - Global::GetCameraPosition()); // zmienna globalna!
-																   // odwrócenie flag, aby wyłapać nieprzezroczyste
-	Root->ReplacableSet(ReplacableSkinId, iAlpha ^ 0x0F0F000F);
-	Root->RenderDL();
-	glPopMatrix();
-};
-void TModel3d::RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId,
-	int iAlpha)
-{ // przezroczyste, Display List
-	glPushMatrix();
-	glTranslated(vPosition->x, vPosition->y, vPosition->z);
-	if (vAngle->y != 0.0)
-		glRotated(vAngle->y, 0.0, 1.0, 0.0);
-	if (vAngle->x != 0.0)
-		glRotated(vAngle->x, 1.0, 0.0, 0.0);
-	if (vAngle->z != 0.0)
-		glRotated(vAngle->z, 0.0, 0.0, 1.0);
-	TSubModel::fSquareDist =
-		SquareMagnitude(*vPosition - Global::GetCameraPosition()); // zmienna globalna!
-	Root->ReplacableSet(ReplacableSkinId, iAlpha);
-	Root->RenderAlphaDL();
-	glPopMatrix();
-};
-
-void TModel3d::RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId, int iAlpha)
-{ // nieprzezroczyste, VBO
-	glPushMatrix();
-	glTranslated(vPosition->x, vPosition->y, vPosition->z);
-	if (vAngle->y != 0.0)
-		glRotated(vAngle->y, 0.0, 1.0, 0.0);
-	if (vAngle->x != 0.0)
-		glRotated(vAngle->x, 1.0, 0.0, 0.0);
-	if (vAngle->z != 0.0)
-		glRotated(vAngle->z, 0.0, 0.0, 1.0);
-	TSubModel::fSquareDist =
-		SquareMagnitude(*vPosition - Global::GetCameraPosition()); // zmienna globalna!
-	if (StartVBO())
-	{ // odwrócenie flag, aby wyłapać nieprzezroczyste
-		Root->ReplacableSet(ReplacableSkinId, iAlpha ^ 0x0F0F000F);
-
-		float mv[16], p[16];
-		glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-		glGetFloatv(GL_PROJECTION_MATRIX, p);
-		World.shader.set_mv(glm::make_mat4(mv));
-		World.shader.set_p(glm::make_mat4(p));
-		Root->RenderVBO(glm::make_mat4(mv));
-
-		EndVBO();
-	}
-	glPopMatrix();
-};
-void TModel3d::RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId,
-	int iAlpha)
-{ // przezroczyste, VBO
-	glPushMatrix();
-	glTranslated(vPosition->x, vPosition->y, vPosition->z);
-	if (vAngle->y != 0.0)
-		glRotated(vAngle->y, 0.0, 1.0, 0.0);
-	if (vAngle->x != 0.0)
-		glRotated(vAngle->x, 1.0, 0.0, 0.0);
-	if (vAngle->z != 0.0)
-		glRotated(vAngle->z, 0.0, 0.0, 1.0);
-	TSubModel::fSquareDist =
-		SquareMagnitude(*vPosition - Global::GetCameraPosition()); // zmienna globalna!
-	if (StartVBO())
-	{
-		Root->ReplacableSet(ReplacableSkinId, iAlpha);
-
-		float mv[16], p[16];
-		glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-		glGetFloatv(GL_PROJECTION_MATRIX, p);
-		World.shader.set_mv(glm::make_mat4(mv));
-		World.shader.set_p(glm::make_mat4(p));
-		Root->RenderAlphaVBO(glm::make_mat4(mv));
-
-		EndVBO();
-	}
-	glPopMatrix();
-};
-#endif
 
 //-----------------------------------------------------------------------------
 // 2012-02 funkcje do tworzenia terenu z E3D
@@ -2232,13 +1755,13 @@ TSubModel *TModel3d::TerrainSquare(int n)
 void TModel3d::TerrainRenderVBO(int n)
 { // renderowanie terenu z VBO
 	glPushMatrix();
-
+    ::glTranslated( -Global::pCameraPosition.x, -Global::pCameraPosition.y, -Global::pCameraPosition.z );
 	float mv[16], p[16];
 	glGetFloatv(GL_MODELVIEW_MATRIX, mv);
 	glGetFloatv(GL_PROJECTION_MATRIX, p);
 	World.shader.set_mv(glm::make_mat4(mv));
 	World.shader.set_p(glm::make_mat4(p));
-	
+
 	// glTranslated(vPosition->x,vPosition->y,vPosition->z);
 	// if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
 	// if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);

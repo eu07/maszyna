@@ -240,7 +240,7 @@ class TTrack : public Resource
 
     void Render(); // renderowanie z Display Lists
     int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
-    void RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start); // wypełnianie VBO
+    void RaArrayFill(CVertNormTex *Vert, const CVertNormTex *Start, int const Vertexcount); // wypełnianie VBO
     void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
     void RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
     void RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)
@@ -256,7 +256,7 @@ class TTrack : public Resource
     void RaAssign(TGroundNode *gn, TAnimContainer *ac);
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
     void RaAnimListAdd(TTrack *t);
-    TTrack * RaAnimate();
+    TTrack * RaAnimate(GLuint const Vertexbuffer = -1);
 
     void RadioStop();
     void AxleCounter(int i, TDynamicObject *o)

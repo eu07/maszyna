@@ -102,6 +102,7 @@ enum TAction
 
 enum TSpeedPosFlag
 { // wartości dla iFlag w TSpeedPos
+    spNone = 0x0,
     spEnabled = 0x1, // pozycja brana pod uwagę
     spTrack = 0x2, // to jest tor
     spReverse = 0x4, // odwrotnie
@@ -126,11 +127,11 @@ enum TSpeedPosFlag
 class TSpeedPos
 { // pozycja tabeli prędkości dla AI
   public:
-    double fDist; // aktualna odległość (ujemna gdy minięte)
-    double fVelNext; // prędkość obowiązująca od tego miejsca
-    double fSectionVelocityDist; // długość ograniczenia prędkości
+    double fDist{ 0.0 }; // aktualna odległość (ujemna gdy minięte)
+    double fVelNext{ -1.0 }; // prędkość obowiązująca od tego miejsca
+    double fSectionVelocityDist{ 0.0 }; // długość ograniczenia prędkości
     // double fAcc;
-    int iFlags; // flagi typu wpisu do tabelki
+    int iFlags{ spNone }; // flagi typu wpisu do tabelki
     // 1=istotny,2=tor,4=odwrotnie,8-zwrotnica (może się zmienić),16-stan
     // zwrotnicy,32-minięty,64=koniec,128=łuk
     // 0x100=event,0x200=manewrowa,0x400=przystanek,0x800=SBL,0x1000=wysłana komenda,0x2000=W5
@@ -138,8 +139,8 @@ class TSpeedPos
     vector3 vPos; // współrzędne XYZ do liczenia odległości
     struct
     {
-        TTrack *trTrack; // wskaźnik na tor o zmiennej prędkości (zwrotnica, obrotnica)
-        TEvent *evEvent; // połączenie z eventem albo komórką pamięci
+        TTrack *trTrack{ nullptr }; // wskaźnik na tor o zmiennej prędkości (zwrotnica, obrotnica)
+        TEvent *evEvent{ nullptr }; // połączenie z eventem albo komórką pamięci
     };
     void CommandCheck();
 
@@ -166,16 +167,14 @@ extern bool WriteLogFlag; // logowanie parametrów fizycznych
 class TController
 {
   private: // obsługa tabelki prędkości (musi mieć możliwość odhaczania stacji w rozkładzie)
-    TSpeedPos *sSpeedTable = nullptr; // najbliższe zmiany prędkości
-    int iSpeedTableSize = 16; // wielkość tabelki
-    int iFirst = 0; // aktualna pozycja w tabeli (modulo iSpeedTableSize)
-    int iLast = 0; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
-    int iTableDirection = 0; // kierunek zapełnienia tabelki względem pojazdu z AI
+    size_t iLast{ 0 }; // ostatnia wypełniona pozycja w tabeli <iFirst (modulo iSpeedTableSize)
+    int iTableDirection{ 0 }; // kierunek zapełnienia tabelki względem pojazdu z AI
+    std::vector<TSpeedPos> sSpeedTable;
     double fLastVel = 0.0; // prędkość na poprzednio sprawdzonym torze
     TTrack *tLast = nullptr; // ostatni analizowany tor
     TEvent *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
-    TSpeedPos *sSemNext = nullptr; // następny semafor na drodze zależny od trybu jazdy
-    TSpeedPos *sSemNextStop = nullptr; // następny semafor na drodze zależny od trybu jazdy i na stój
+    std::size_t SemNextIndex{ std::size_t(-1) };
+    std::size_t SemNextStopIndex{ std::size_t( -1 ) };
   private: // parametry aktualnego składu
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
@@ -202,8 +201,7 @@ class TController
   public:
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
-    double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę
-    // hamulca
+    double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
   private:
     double fReady = 0.0; // poziom odhamowania wagonów
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
@@ -212,6 +210,7 @@ class TController
     double deltalog = 0.05; // przyrost czasu
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
+    double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
     TAction eAction = actSleep; // aktualny stan
     bool HelpMeFlag = false; // wystawiane True jesli cos niedobrego sie dzieje
   public:
@@ -321,9 +320,11 @@ class TController
     // procedury dotyczace rozkazow dla maszynisty
     void SetVelocity(double NewVel, double NewVelNext,
                      TStopReason r = stopNone); // uaktualnia informacje o prędkości
+/*
     bool SetProximityVelocity(
         double NewDist,
         double NewVelNext); // uaktualnia informacje o prędkości przy nastepnym semaforze
+*/
   public:
     void JumpToNextOrder();
     void JumpToFirstOrder();
@@ -332,6 +333,7 @@ class TController
     inline TOrders OrderCurrentGet();
     inline TOrders OrderNextGet();
     bool CheckVehicles(TOrders user = Wait_for_orders);
+    int CheckDirection();
 
   private:
     void CloseLog();
@@ -352,19 +354,22 @@ class TController
     void DirectionForward(bool forward);
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
     void Lights(int head, int rear);
-    double Distance(vector3 &p1, vector3 &n, vector3 &p2);
+//    double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
   private: // Ra: metody obsługujące skanowanie toru
     TEvent *CheckTrackEvent(double fDirection, TTrack *Track);
-    bool TableCheckEvent(TEvent *e);
+//    bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
-    bool TableNotFound(TEvent *e);
-    void TableClear();
-    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
+    bool TableNotFound(TEvent const *Event) const;
+//    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     void TablePurger();
+public:
+    std::size_t TableSize() const { return sSpeedTable.size(); }
+    void TableClear();
+    int TableDirection() { return iTableDirection; }
 
   private: // Ra: stare funkcje skanujące, używane do szukania sygnalizatora z tyłu
     bool BackwardTrackBusy(TTrack *Track);
@@ -395,9 +400,9 @@ class TController
     };
     void MoveTo(TDynamicObject *to);
     void DirectionInitial();
-    std::string TableText(int i);
+    std::string TableText(std::size_t const Index);
     int CrossRoute(TTrack *tr);
     void RouteSwitch(int d);
-    std::string OwnerName();
+    std::string OwnerName() const;
     TMoverParameters const *Controlling() const { return mvControlling; }
 };

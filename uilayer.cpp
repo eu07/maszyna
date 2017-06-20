@@ -150,7 +150,7 @@ ui_layer::render_panels() {
     glPushAttrib( GL_ENABLE_BIT );
     glDisable( GL_TEXTURE_2D );
 
-    float const width = std::min( 4.0f / 3.0f, static_cast<float>(Global::iWindowWidth) / Global::iWindowHeight ) * Global::iWindowHeight;
+    float const width = std::min( 4.0f / 3.0f, static_cast<float>(Global::iWindowWidth) / std::max( 1, Global::iWindowHeight ) ) * Global::iWindowHeight;
     float const height = Global::iWindowHeight / 768.0;
 
     for( auto const &panel : m_panels ) {

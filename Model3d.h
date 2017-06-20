@@ -255,12 +255,6 @@ public:
 	void SetRotateIK1(float3 vNewAngles);
 	TSubModel * GetFromName(std::string const &search, bool i = true);
 	TSubModel * GetFromName(char const *search, bool i = true);
-#ifdef EU07_USE_OLD_RENDERCODE
-	void RenderDL();
-	void RenderAlphaDL();
-    void RenderVBO();
-	void RenderAlphaVBO();
-#endif
 	// inline matrix4x4* GetMatrix() {return dMatrix;};
 	inline float4x4 * GetMatrix()
 	{
@@ -361,20 +355,6 @@ public:
 	bool LoadFromFile(std::string const &FileName, bool dynamic);
 	void SaveToBinFile(char const *FileName);
 	void BreakHierarhy();
-	// renderowanie specjalne
-#ifdef EU07_USE_OLD_RENDERCODE
-	void Render(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RenderAlpha(double fSquareDistance, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-#endif
-    void RaRender(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RaRenderAlpha(double fSquareDistance, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	// trzy kąty obrotu
-#ifdef EU07_USE_OLD_RENDERCODE
-    void Render( vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030 );
-	void RenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-#endif
-	void RaRender(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
-	void RaRenderAlpha(vector3 *vPosition, vector3 *vAngle, texture_manager::size_type const *ReplacableSkinId = NULL, int iAlpha = 0x30300030);
 	// inline int GetSubModelsCount() { return (SubModelsCount); };
 	int Flags() const
 	{

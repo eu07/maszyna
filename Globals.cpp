@@ -32,8 +32,7 @@ std::string Global::AppName{ "EU07" };
 std::string Global::asCurrentSceneryPath = "scenery/";
 std::string Global::asCurrentTexturePath = std::string(szTexturePath);
 std::string Global::asCurrentDynamicPath = "";
-int Global::iSlowMotion =
-    0; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
+int Global::iSlowMotion = 0; // info o malym FPS: 0-OK, 1-wyłączyć multisampling, 3-promień 1.5km, 7-1km
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
 double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
@@ -48,8 +47,7 @@ GLFWwindow *Global::window;
 bool Global::shiftState;
 bool Global::ctrlState;
 int Global::iCameraLast = -1;
-std::string Global::asRelease = "NG";
-std::string Global::asVersion = "EU07++NG";
+std::string Global::asVersion = "UNKNOWN";
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca
@@ -84,16 +82,7 @@ GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
 float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
-GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};
-GLfloat Global::specularDayLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
-GLfloat Global::ambientLight[] = {0.80f, 0.80f, 0.85f, 1.0f}; // stałe
-GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
-GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
-#else
 int Global::DynamicLightCount = 7;
-#endif
 GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
 GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
 GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //śladowe
@@ -110,6 +99,7 @@ int Global::iWindowHeight = 600;
 float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD
 int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
+bool Global::InputGamepad{ true };
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
 bool Global::VSync{ false };
@@ -795,6 +785,11 @@ void Global::ConfigParse(cParser &Parser)
             Parser >> Global::Background[0] // r
                 >> Global::Background[1] // g
                 >> Global::Background[2]; // b
+        }
+        else if( token == "input.gamepad" ) {
+            // czy grupować eventy o tych samych nazwach
+            Parser.getTokens();
+            Parser >> Global::InputGamepad;
         }
         // maciek001: ustawienia MWD
 		else if (token == "mwdmasterenable") {         // główne włączenie maszyny!

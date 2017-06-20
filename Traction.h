@@ -54,10 +54,9 @@ class TTraction
     TTraction *hvParallel = nullptr; // jednokierunkowa i zapętlona lista przęseł ewentualnej bieżni wspólnej
     float fResistance[2]; // rezystancja zastępcza do punktu zasilania (0: przęsło zasilane, <0: do policzenia)
     int iTries = 0;
-    // bool bVisible;
-    // DWORD dwFlags;
+    int PowerState{ 0 }; // type of incoming power, if any
 
-    void Optimize();
+    void Optimize( Math3D::vector3 const &Origin );
 
     TTraction();
     ~TTraction();
@@ -67,9 +66,9 @@ class TTraction
     //    { return TNode::Hit(x,z,hitPoint,hitDirection); };
     //  virtual bool Move(double dx, double dy, double dz) { return false; };
     //    virtual void SelectedRender();
-    void RenderDL(float mgn);
+    void RenderDL(float mgn, Math3D::vector3 const &Origin );
     int RaArrayPrepare();
-    void RaArrayFill(CVertNormTex *Vert);
+    int RaArrayFill( CVertNormTex *Vert, Math3D::vector3 const &Origin );
     void RenderVBO(float mgn, int iPtr);
     int TestPoint(Math3D::vector3 *Point);
     void Connect(int my, TTraction *with, int to);
@@ -78,5 +77,7 @@ class TTraction
     void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = NULL);
     void PowerSet(TTractionPowerSource *ps);
     double VoltageGet(double u, double i);
+private:
+    void wire_color( float &Red, float &Green, float &Blue ) const;
 };
 //---------------------------------------------------------------------------

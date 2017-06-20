@@ -146,8 +146,10 @@ class TTrain
     static void OnCommand_pantographlowerall( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_convertertogglelocal( TTrain *Train, command_data const &Command );
     static void OnCommand_converteroverloadrelayreset( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_compressortogglelocal( TTrain *Train, command_data const &Command );
     static void OnCommand_motorconnectorsopen( TTrain *Train, command_data const &Command );
     static void OnCommand_motordisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command_data const &Command );
@@ -251,7 +253,9 @@ public: // reszta może by?publiczna
     TGauge ggIgnitionKey;
 
     TGauge ggCompressorButton;
+    TGauge ggCompressorLocalButton; // controls only compressor of its own unit (et42-specific)
     TGauge ggConverterButton;
+    TGauge ggConverterLocalButton; // controls only converter of its own unit (et42-specific)
     TGauge ggConverterOffButton;
 
     // ABu 090305 - syrena i prad nastepnego czlonu
@@ -484,6 +488,7 @@ public: // reszta może by?publiczna
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
+    static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
     int RadioChannel() { return iRadioChannel; };
     inline TDynamicObject *Dynamic() { return DynamicObject; };

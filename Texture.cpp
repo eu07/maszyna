@@ -424,7 +424,6 @@ opengl_texture::load_TGA() {
     else if( tgaheader[ 2 ] == 10 ) {
         // compressed TGA
         int currentpixel = 0;
-        int currentbyte = 0;
 
         unsigned char buffer[ 4 ] = { 255, 255, 255, 255 };
         const int pixelcount = data_width * data_height;

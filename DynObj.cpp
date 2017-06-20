@@ -45,6 +45,11 @@ http://mozilla.org/MPL/2.0/.
 #define M_2PI 6.283185307179586476925286766559;
 const float maxrot = (float)(M_PI / 3.0); // 60°
 
+std::string const TDynamicObject::MED_labels[] = {
+    "masa: ", "amax: ", "Fzad: ", "FmPN: ", "FmED: ", "FrED: ", "FzPN: ", "nPrF: "
+};
+
+
 //---------------------------------------------------------------------------
 void TAnimPant::AKP_4E()
 { // ustawienie wymiarów dla pantografu AKP-4E
@@ -798,7 +803,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         // else btCPass2.TurnOff();
-        if (MoverParameters->Battery)
+        if (MoverParameters->Battery || MoverParameters->ConverterFlag)
         { // sygnaly konca pociagu
             if (btEndSignals1.Active())
             {
@@ -900,7 +905,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // Ra: przechyłkę załatwiamy na etapie przesuwania modelu
         // if (ObjSqrDist<80000) ABuModelRoll(); //przechyłki od 400m
     }
-    if (MoverParameters->Battery)
+    if( MoverParameters->Battery || MoverParameters->ConverterFlag )
     { // sygnały czoła pociagu //Ra: wyświetlamy bez
         // ograniczeń odległości, by były widoczne z
         // daleka
@@ -1526,14 +1531,6 @@ TDynamicObject::TDynamicObject()
     //}
     mdModel = NULL;
     mdKabina = NULL;
-#ifdef EU07_USE_OLD_RENDERCODE
-    ReplacableSkinID[ 0 ] = 0;
-    ReplacableSkinID[ 1 ] = 0;
-    ReplacableSkinID[ 2 ] = 0;
-    ReplacableSkinID[ 3 ] = 0;
-    ReplacableSkinID[ 4 ] = 0;
-    iAlpha = 0x30300030; // tak gdy tekstury wymienne nie mają przezroczystości
-#endif
     // smWiazary[0]=smWiazary[1]=NULL;
     smWahacze[0] = smWahacze[1] = smWahacze[2] = smWahacze[3] = NULL;
     fWahaczeAmp = 0;
@@ -1753,52 +1750,45 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             // wylaczanie hamulca
             if (ActPar.find("<>") != std::string::npos) // wylaczanie na probe hamowania naglego
             {
-                MoverParameters->BrakeStatus |= 128; // wylacz
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
             }
             if (ActPar.find('0') != std::string::npos) // wylaczanie na sztywno
             {
-                MoverParameters->BrakeStatus |= 128; // wylacz
+                MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 MoverParameters->Hamulec->ForceEmptiness();
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
             }
             if (ActPar.find('E') != std::string::npos) // oprozniony
             {
                 MoverParameters->Hamulec->ForceEmptiness();
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 MoverParameters->Pipe->CreatePress(0);
                 MoverParameters->Pipe2->CreatePress(0);
             }
             if (ActPar.find('Q') != std::string::npos) // oprozniony
             {
-                //    MoverParameters->Hamulec->ForceEmptiness(); //TODO: sprawdzic,
-                //    dlaczego
-                //    pojawia sie blad przy uzyciu tej linijki w lokomotywie
-                MoverParameters->BrakeReleaser(1); // odluznij automatycznie
+                MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->Pipe->CreatePress(0.0);
                 MoverParameters->PipePress = 0.0;
                 MoverParameters->Pipe2->CreatePress(0.0);
                 MoverParameters->ScndPipePress = 0.0;
-                MoverParameters->PantVolume = 1;
-                MoverParameters->PantPress = 0;
-                MoverParameters->CompressedVolume = 0;
+                MoverParameters->PantVolume = 0.1;
+                MoverParameters->PantPress = 0.0;
+                MoverParameters->CompressedVolume = 0.0;
             }
 
             if (ActPar.find('1') != std::string::npos) // wylaczanie 10%
             {
                 if (Random(10) < 1) // losowanie 1/10
                 {
-                    MoverParameters->BrakeStatus |= 128; // wylacz
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
-                    MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 }
             }
             if (ActPar.find('X') != std::string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
             {
                 if (Random(100) < 20) // losowanie 20/100
                 {
-                    MoverParameters->BrakeStatus |= 128; // wylacz
+                    MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                     MoverParameters->Hamulec->ForceEmptiness();
-                    MoverParameters->BrakeReleaser(1); // odluznij automatycznie
                 }
                 if (MoverParameters->BrakeCylMult[2] * MoverParameters->BrakeCylMult[1] >
                     0.01) // jesli jest nastawiacz mechaniczny PL
@@ -1881,8 +1871,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     { // McZapkie-040602: jeśli coś siedzi w pojeździe
         if (Name == Global::asHumanCtrlVehicle) // jeśli pojazd wybrany do prowadzenia
         {
-            if (DebugModeFlag ? false : MoverParameters->EngineType !=
-                                            Dumb) // jak nie Debugmode i nie jest dumbem
+            if ( MoverParameters->EngineType != Dumb)
                 Controller = Humandriver; // wsadzamy tam sterującego
             else // w przeciwnym razie trzeba włączyć pokazywanie kabiny
                 bDisplayCab = true;
@@ -2443,43 +2432,66 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (!bEnabled)
         return false; // a normalnie powinny mieć bEnabled==false
 
-    // Ra: przeniosłem - no już lepiej tu, niż w wyświetlaniu!
-    // if ((MoverParameters->ConverterFlag==false) &&
-    // (MoverParameters->TrainType!=dt_ET22))
-    // Ra: to nie może tu być, bo wyłącza sprężarkę w rozrządczym EZT!
-    // if
-    // ((MoverParameters->ConverterFlag==false)&&(MoverParameters->CompressorPower!=0))
-    // MoverParameters->CompressorFlag=false;
-    // if (MoverParameters->CompressorPower==2)
-    // MoverParameters->CompressorAllow=MoverParameters->ConverterFlag;
-
     // McZapkie-260202
     if ((MoverParameters->EnginePowerSource.SourceType == CurrentCollector) &&
         (MoverParameters->Power > 1.0)) // aby rozrządczy nie opuszczał silnikowemu
+/*
         if ((MechInside) || (MoverParameters->TrainType == dt_EZT))
         {
+*/
             // if
             // ((!MoverParameters->PantCompFlag)&&(MoverParameters->CompressedVolume>=2.8))
             // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-            if (MoverParameters->PantPress < (MoverParameters->TrainType == dt_EZT ? 2.4 : 3.5))
-            { // 3.5 wg
-                // http://www.transportszynowy.pl/eu06-07pneumat.php
-                //"Wyłączniki ciśnieniowe odbieraków prądu wyłączają sterowanie
-                // wyłącznika szybkiego
-                // oraz uniemożliwiają podniesienie odbieraków prądu, gdy w instalacji
-                // rozrządu
-                // ciśnienie spadnie poniżej wartości 3,5 bara."
-                // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
-                // if (!MoverParameters->PantCompFlag)
-                // MoverParameters->PantVolume=MoverParameters->CompressedVolume;
-                MoverParameters->PantFront(false); // opuszczenie pantografów przy niskim ciśnieniu
-                MoverParameters->PantRear(false); // to idzie w ukrotnieniu, a nie powinno...
+            
+            if( MoverParameters->PantPress < MoverParameters->EnginePowerSource.CollectorParameters.MinPress ) {
+                // 3.5 wg http://www.transportszynowy.pl/eu06-07pneumat.php
+                if( true == MoverParameters->PantPressSwitchActive ) {
+                    // opuszczenie pantografów przy niskim ciśnieniu
+/*
+                    // NOTE: disabled, the pantographs drop by themseleves when the pantograph tank pressure gets low enough
+                    MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+                    MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+*/
+                    if( MoverParameters->TrainType != dt_EZT ) {
+                        // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
+                        if( MoverParameters->GetTrainsetVoltage() < 0.5 * MoverParameters->EnginePowerSource.MaxVoltage ) {
+                            // TODO: check whether line breaker should be open EMU-wide
+                            MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+                        }
+                    }
+                    else {
+                        // specialized variant for EMU -- pwr system disables converter and heating,
+                        // and prevents their activation until pressure switch is set again
+                        MoverParameters->PantPressLockActive = true;
+                        // TODO: separate 'heating allowed' from actual heating flag, so we can disable it here without messing up heating toggle
+                        MoverParameters->ConverterSwitch( false, range::unit );
+                    }
+                    // mark the pressure switch as spent
+                    MoverParameters->PantPressSwitchActive = false;
+                }
             }
-            // Winger - automatyczne wylaczanie malej sprezarki
-            else if (MoverParameters->PantPress >= 4.8)
-                MoverParameters->PantCompFlag = false;
-        } // Ra: do Mover to trzeba przenieść, żeby AI też mogło sobie podpompować
+            else {
+                if( MoverParameters->PantPress >= 4.6 ) {
+                    // NOTE: we require active low power source to prime the pressure switch
+                    // this is a work-around for potential isssues caused by the switch activating on otherwise idle vehicles, but should check whether it's accurate
+                    if( ( true == MoverParameters->Battery )
+                     || ( true == MoverParameters->ConverterFlag ) ) {
+                        // prime the pressure switch
+                        MoverParameters->PantPressSwitchActive = true;
+                        // turn off the subsystems lock
+                        MoverParameters->PantPressLockActive = false;
+                    }
 
+                    if( MoverParameters->PantPress >= 4.8 ) {
+                        // Winger - automatyczne wylaczanie malej sprezarki
+                        // TODO: governor lock, disables usage until pressure drop below 3.8 (should really make compressor object we could reuse)
+                        MoverParameters->PantCompFlag = false;
+                    }
+                }
+            }
+/*
+        } // Ra: do Mover to trzeba przenieść, żeby AI też mogło sobie podpompować
+*/
     double dDOMoveLen;
 
     TLocation l;
@@ -2911,37 +2923,29 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // fragment "z EXE Kursa"
     if (MoverParameters->Mains) // nie wchodzić w funkcję bez potrzeby
-        if ( ( false == MoverParameters->Battery)
+        if ( ( false == MoverParameters->Battery )
           && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
-          && ( Controller == Humandriver)
+/*
+        // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
+          && ( Controller == Humandriver )
+*/
           && ( MoverParameters->EngineType != DieselEngine )
           && ( MoverParameters->EngineType != WheelsDriven ) )
         { // jeśli bateria wyłączona, a nie diesel ani drezyna reczna
-            if (MoverParameters->MainSwitch(false)) // wyłączyć zasilanie
+            if( MoverParameters->MainSwitch( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) ) ) {
+                // wyłączyć zasilanie
+                // NOTE: we turn off entire EMU, but only the affected unit for other multi-unit consists
                 MoverParameters->EventFlag = true;
+                // drop pantographs
+                // NOTE: this isn't universal behaviour
+                // TODO: have this dependant on .fiz-driven flag
+                // NOTE: moved to pantspeed calculation part a little later in the function. all remarks and todo still apply
+/*
+                MoverParameters->PantFront( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+                MoverParameters->PantRear( false, ( MoverParameters->TrainType == dt_EZT ? range::unit : range::local ) );
+*/
+            }
         }
-    if (MoverParameters->TrainType == dt_ET42)
-    { // powinny być wszystkie dwuczłony oraz EZT
-        /*
-             //Ra: to jest bez sensu, bo wyłącza WS przy przechodzeniu przez
-           "wewnętrzne" kabiny (z
-           powodu ActiveCab)
-             //trzeba to zrobić inaczej, np. dla członu A sprawdzać, czy jest B
-             //albo sprawdzać w momencie załączania WS i zmiany w sprzęgach
-             if
-           (((TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0)&&(NextConnected->MoverParameters->TrainType!=dt_ET42))||((TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)&&(PrevConnected->MoverParameters->TrainType!=dt_ET42)))
-             {//sprawdzenie, czy z tyłu kabiny mamy drugi człon
-              if (MoverParameters->MainSwitch(false))
-               MoverParameters->EventFlag=true;
-             }
-             if
-           ((!(TestFlag(MoverParameters->Couplers[1].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab>0))||(!(TestFlag(MoverParameters->Couplers[0].CouplingFlag,ctrain_controll))&&(MoverParameters->ActiveCab<0)))
-             {
-              if (MoverParameters->MainSwitch(false))
-               MoverParameters->EventFlag=true;
-             }
-        */
-    }
 
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen =
@@ -3210,21 +3214,27 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantRearVolt = 0.0;
                 break;
             } // pozostałe na razie nie obsługiwane
-            if (MoverParameters->PantPress >
-                (MoverParameters->TrainType == dt_EZT ? 2.5 : 3.3)) // Ra 2013-12:
-                // Niebugocław
-                // mówi, że w EZT
-                // podnoszą się
-                // przy 2.5
-                pantspeedfactor = 0.015 * (MoverParameters->PantPress) *
-                                  dt1; // z EXE Kursa  //Ra: wysokość zależy od ciśnienia !!!
-            else
+            if( MoverParameters->PantPress > (
+                    MoverParameters->TrainType == dt_EZT ?
+                        2.45 : // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
+                        3.45 ) ) {
+                // z EXE Kursa
+                // Ra: wysokość zależy od ciśnienia !!!
+                pantspeedfactor = 0.015 * ( MoverParameters->PantPress ) * dt1;
+            }
+            else {
                 pantspeedfactor = 0.0;
-            if (pantspeedfactor < 0)
-                pantspeedfactor = 0;
+            }
+            if( ( false == MoverParameters->Battery )
+             && ( false == MoverParameters->ConverterFlag ) ) {
+                pantspeedfactor = 0.0;
+            }
+            pantspeedfactor = std::max( 0.0, pantspeedfactor );
             k = p->fAngleL;
-            if (i ? MoverParameters->PantRearUp :
-                    MoverParameters->PantFrontUp) // jeśli ma być podniesiony
+            if( ( pantspeedfactor > 0.0 )
+             && ( i ?
+                    MoverParameters->PantRearUp :
+                    MoverParameters->PantFrontUp ) )// jeśli ma być podniesiony
             {
                 if (PantDiff > 0.001) // jeśli nie dolega do drutu
                 { // jeśli poprzednia wysokość jest mniejsza niż pożądana, zwiększyć kąt
@@ -3283,6 +3293,9 @@ bool TDynamicObject::Update(double dt, double dt1)
             sPantDown.Play(vol, 0, MechInside, vPosition);
             MoverParameters->PantRearSP = true;
         }
+/*
+        // NOTE: disabled because it's both redundant and doesn't take into account alternative power sources
+        // converter and compressor will (should) turn off during their individual checks, in the mover's (fast)computemovement() calls
         if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
         { // Winger 240404 - wylaczanie sprezarki i
             // przetwornicy przy braku napiecia
@@ -3292,6 +3305,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie sprężarki powinno być w jednym miejscu!
             }
         }
+*/
     }
     else if (MoverParameters->EnginePowerSource.SourceType == InternalSource)
         if (MoverParameters->EnginePowerSource.PowerType == SteamPower)
@@ -3546,262 +3560,6 @@ void TDynamicObject::TurnOff()
 	btMechanik1.TurnOff();
 	btMechanik2.TurnOff();
 };
-#ifdef EU07_USE_OLD_RENDERCODE
-void TDynamicObject::Render()
-{ // rysowanie elementów nieprzezroczystych
-    // youBy - sprawdzamy, czy jest sens renderowac
-
-    if (GfxRenderer.Visible(this))
-    {
-        TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
-        // AnsiString asLoadName="";
-        double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition) / Global::ZoomFactor;
-        ABuLittleUpdate(ObjSqrDist); // ustawianie zmiennych submodeli dla wspólnego modelu
-
-// Cone(vCoulpler[0],modelRot.z,0);
-// Cone(vCoulpler[1],modelRot.z,1);
-
-// ActualTrack= GetTrack(); //McZapkie-240702
-
-#if RENDER_CONE
-        { // Ra: testowe renderowanie pozycji wózków w postaci ostrosłupów, wymaga
-            // GLUT32.DLL
-            double dir = RadToDeg(atan2(vLeft.z, vLeft.x));
-            Axle0.Render(0);
-            Axle1.Render(1); // bogieRot[0]
-            // if (PrevConnected) //renderowanie połączenia
-        }
-#endif
-
-        glPushMatrix();
-        // vector3 pos= vPosition;
-        // double ObjDist= SquareMagnitude(Global::pCameraPosition-pos);
-        if (this == Global::pUserDynamic)
-        { // specjalne ustawienie, aby nie trzęsło
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-            if (Global::bSmudge)
-            { // jak jest widoczna smuga, to pojazd renderować po
-                // wyrenderowaniu smugi
-                glPopMatrix(); // a to trzeba zebrać przed wyjściem
-                return;
-            }
-#endif
-            // if (Global::pWorld->) //tu trzeba by ustawić animacje na modelu
-            // zewnętrznym
-            glLoadIdentity(); // zacząć od macierzy jedynkowej
-            Global::pCamera->SetCabMatrix(vPosition); // specjalne ustawienie kamery
-        }
-        else
-            glTranslated(vPosition.x, vPosition.y,
-                         vPosition.z); // standardowe przesunięcie względem początku scenerii
-        glMultMatrixd(mMatrix.getArray());
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        if (fShade > 0.0)
-        { // Ra: zmiana oswietlenia w tunelu, wykopie
-            GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            GLfloat diffuseLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            GLfloat specularLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            // trochę problem z ambientem w wykopie...
-            for (int li = 0; li < 3; li++)
-            {
-                ambientLight[li] = Global::ambientDayLight[li] * fShade;
-                diffuseLight[li] = Global::diffuseDayLight[li] * fShade;
-                specularLight[li] = Global::specularDayLight[li] * fShade;
-            }
-            glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-        }
-#else
-        if( fShade > 0.0f ) {
-            // change light level based on light level of the occupied track
-            Global::DayLight.apply_intensity( fShade );
-        }
-#endif
-        if (Global::bUseVBO)
-        { // wersja VBO
-            if (mdLowPolyInt)
-                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
-                    mdLowPolyInt->RaRender(ObjSqrDist, ReplacableSkinID, iAlpha);
-            mdModel->RaRender(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdLoad) // renderowanie nieprzezroczystego ładunku
-                mdLoad->RaRender(ObjSqrDist, ReplacableSkinID, iAlpha);
-        }
-        else
-        { // wersja Display Lists
-            if( mdLowPolyInt ) {
-                // low poly interior
-                if( FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab ) {
-                    // enable cab light if needed
-                    if( InteriorLightLevel > 0.0f ) {
-
-                        // crude way to light the cabin, until we have something more complete in place
-                        auto const cablight = InteriorLight * InteriorLightLevel;
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-                    }
-
-                    mdLowPolyInt->Render( ObjSqrDist, ReplacableSkinID, iAlpha );
-
-                    if( InteriorLightLevel > 0.0f ) {
-                        // reset the overall ambient
-                        GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-                    }
-                }
-            }
-            mdModel->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdLoad) // renderowanie nieprzezroczystego ładunku
-                mdLoad->Render(ObjSqrDist, ReplacableSkinID, iAlpha);
-        }
-
-        // Ra: czy ta kabina tu ma sens?
-        // Ra: czy nie renderuje się dwukrotnie?
-        // Ra: dlaczego jest zablokowana w przezroczystych?
-        if (mdKabina) // jeśli ma model kabiny
-            if ((mdKabina != mdModel) && bDisplayCab && FreeFlyModeFlag)
-            { // rendering kabiny gdy jest oddzielnym modelem i
-                // ma byc wyswietlana
-                // ABu: tylko w trybie FreeFly, zwykly tryb w world.cpp
-                // Ra: świetła są ustawione dla zewnętrza danego pojazdu
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-                // TODO: re-mplement this
-                // oswietlenie kabiny
-                GLfloat ambientCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-                GLfloat diffuseCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-                GLfloat specularCabLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-                for (int li = 0; li < 3; li++)
-                {
-                    ambientCabLight[li] = Global::ambientDayLight[li] * 0.9;
-                    diffuseCabLight[li] = Global::diffuseDayLight[li] * 0.5;
-                    specularCabLight[li] = Global::specularDayLight[li] * 0.5;
-                }
-                switch (MyTrack->eEnvironment)
-                {
-                case e_canyon:
-                {
-                    for (int li = 0; li < 3; li++)
-                    {
-                        diffuseCabLight[li] *= 0.6f;
-                        specularCabLight[li] *= 0.7f;
-                    }
-                }
-                break;
-                case e_tunnel:
-                {
-                    for (int li = 0; li < 3; li++)
-                    {
-                        ambientCabLight[li] *= 0.3f;
-                        diffuseCabLight[li] *= 0.1f;
-                        specularCabLight[li] *= 0.2f;
-                    }
-                }
-                break;
-                }
-                glLightfv(GL_LIGHT0, GL_AMBIENT, ambientCabLight);
-                glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseCabLight);
-                glLightfv(GL_LIGHT0, GL_SPECULAR, specularCabLight);
-#endif
-                if (Global::bUseVBO)
-                    mdKabina->RaRender(ObjSqrDist, 0);
-                else
-                    mdKabina->Render(ObjSqrDist, 0);
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-                glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-                glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-                glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
-#endif
-            }
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        if( fShade != 0.0 ) // tylko jeśli było zmieniane
-        { // przywrócenie standardowego oświetlenia
-            glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
-        }
-#else
-        if( fShade > 0.0f ) {
-            // restore regular light level
-            Global::DayLight.apply_intensity();
-        }
-#endif
-        glPopMatrix();
-        if (btnOn)
-            TurnOff(); // przywrócenie domyślnych pozycji submodeli
-    } // yB - koniec mieszania z grafika
-};
-
-void TDynamicObject::RenderAlpha()
-{ // rysowanie elementów półprzezroczystych
-    if (renderme)
-    {
-        TSubModel::iInstance = (size_t)this; //żeby nie robić cudzych animacji
-        double ObjSqrDist = SquareMagnitude(Global::pCameraPosition - vPosition);
-        ABuLittleUpdate(ObjSqrDist); // ustawianie zmiennych submodeli dla wspólnego modelu
-        glPushMatrix();
-        if (this == Global::pUserDynamic)
-        { // specjalne ustawienie, aby nie trzęsło
-            glPopMatrix(); // to trzeba zebrać przed wyściem
-            return;
-            glLoadIdentity(); // zacząć od macierzy jedynkowej
-            Global::pCamera->SetCabMatrix(vPosition); // specjalne ustawienie kamery
-        }
-        else
-            glTranslated(vPosition.x, vPosition.y,
-                         vPosition.z); // standardowe przesunięcie względem początku scenerii
-        glMultMatrixd(mMatrix.getArray());
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO: re-implement this
-        if (fShade > 0.0)
-        { // Ra: zmiana oswietlenia w tunelu, wykopie
-            GLfloat ambientLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            GLfloat diffuseLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            GLfloat specularLight[4] = {0.5f, 0.5f, 0.5f, 1.0f};
-            // trochę problem z ambientem w wykopie...
-            for (int li = 0; li < 3; li++)
-            {
-                ambientLight[li] = Global::ambientDayLight[li] * fShade;
-                diffuseLight[li] = Global::diffuseDayLight[li] * fShade;
-                specularLight[li] = Global::specularDayLight[li] * fShade;
-            }
-            glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
-        }
-#endif
-        if (Global::bUseVBO)
-        { // wersja VBO
-            if (mdLowPolyInt)
-                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
-                    mdLowPolyInt->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            mdModel->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdLoad)
-                mdLoad->RaRenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-        }
-        else
-        { // wersja Display Lists
-            if (mdLowPolyInt)
-                if (FreeFlyModeFlag ? true : !mdKabina || !bDisplayCab)
-                    mdLowPolyInt->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            mdModel->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-            if (mdLoad)
-                mdLoad->RenderAlpha(ObjSqrDist, ReplacableSkinID, iAlpha);
-        }
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-        // TODO: re-implement this
-        if (fShade != 0.0) // tylko jeśli było zmieniane
-        { // przywrócenie standardowego oświetlenia
-            glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight);
-        }
-#endif
-        glPopMatrix();
-        if (btnOn)
-            TurnOff(); // przywrócenie domyślnych pozycji submodeli
-    }
-    return;
-} // koniec renderalpha
-#endif
 
 void TDynamicObject::RenderSounds()
 { // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem
@@ -4124,22 +3882,20 @@ void TDynamicObject::RenderSounds()
             sConverter.TurnOff(MechInside, GetPosition());
         sConverter.Update(MechInside, GetPosition());
     }
-    if (MoverParameters->WarningSignal > 0)
-    {
-        if (TestFlag(MoverParameters->WarningSignal, 1))
-            sHorn1.TurnOn(MechInside, GetPosition());
-        else
-            sHorn1.TurnOff(MechInside, GetPosition());
-        if (TestFlag(MoverParameters->WarningSignal, 2))
-            sHorn2.TurnOn(MechInside, GetPosition());
-        else
-            sHorn2.TurnOff(MechInside, GetPosition());
+
+    if( TestFlag( MoverParameters->WarningSignal, 1 ) ) {
+        sHorn1.TurnOn( MechInside, GetPosition() );
     }
-    else
-    {
-        sHorn1.TurnOff(MechInside, GetPosition());
-        sHorn2.TurnOff(MechInside, GetPosition());
+    else {
+        sHorn1.TurnOff( MechInside, GetPosition() );
     }
+    if( TestFlag( MoverParameters->WarningSignal, 2 ) ) {
+        sHorn2.TurnOn( MechInside, GetPosition() );
+    }
+    else {
+        sHorn2.TurnOff( MechInside, GetPosition() );
+    }
+
     if (MoverParameters->DoorClosureWarning)
     {
         if (MoverParameters->DepartureSignal) // NBMX sygnal odjazdu, MC: pod warunkiem ze jest
@@ -4195,26 +3951,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 
 		if( token == "models:") {
 			// modele i podmodele
-#ifdef EU07_USE_OLD_RENDERCODE
-            iMultiTex = 0; // czy jest wiele tekstur wymiennych?
-			parser.getTokens();
-			parser >> asModel;
-            if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
-            { // model wymaga wielu tekstur wymiennych
-                iMultiTex = 1;
-                asModel.erase( asModel.length() - 1 );
-            }
-            std::size_t i = asModel.find( ',' );
-            if ( i != std::string::npos )
-            { // Ra 2015-01: może szukać przecinka w nazwie modelu, a po przecinku była by liczba tekstur?
-                if (i < asModel.length())
-                    iMultiTex = asModel[i + 1] - '0';
-                if (iMultiTex < 0)
-                    iMultiTex = 0;
-                else if (iMultiTex > 1)
-                    iMultiTex = 1; // na razie ustawiamy na 1
-            }
-#else
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
 			parser >> asModel;
@@ -4230,71 +3966,13 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     m_materialdata.multi_textures = asModel[i + 1] - '0';
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
-#endif
             asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje
             // modele w dynamics/basedir
             Global::asCurrentTexturePath = BaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
             assert( mdModel != nullptr ); // TODO: handle this more gracefully than all going to shit
             if (ReplacableSkin != "none")
-#ifdef EU07_USE_OLD_RENDERCODE
-            { // tekstura wymienna jest raczej jedynie w "dynamic\"
-                ReplacableSkin =
-                    Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
-				std::string x = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
-				if (!x.empty())
-					ReplacableSkinID[4] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + "nowhere", "", 9);
-
-                if (iMultiTex > 0)
-                { // jeśli model ma 4 tekstury
-                    ReplacableSkinID[1] = GfxRenderer.GetTextureId(
-                        ReplacableSkin + ",1", "", Global::iDynamicFiltering);
-                    if (ReplacableSkinID[1])
-                    { // pierwsza z zestawu znaleziona
-                        ReplacableSkinID[2] = GfxRenderer.GetTextureId(
-                            ReplacableSkin + ",2", "", Global::iDynamicFiltering);
-                        if (ReplacableSkinID[2])
-                        {
-                            iMultiTex = 2; // już są dwie
-                            ReplacableSkinID[3] = GfxRenderer.GetTextureId(
-                                ReplacableSkin + ",3", "", Global::iDynamicFiltering);
-                            if (ReplacableSkinID[3])
-                            {
-                                iMultiTex = 3; // a teraz nawet trzy
-                                ReplacableSkinID[4] = GfxRenderer.GetTextureId(
-                                    ReplacableSkin + ",4", "", Global::iDynamicFiltering);
-                                if (ReplacableSkinID[4])
-                                    iMultiTex = 4; // jak są cztery, to blokujemy podmianę tekstury rozkładem
-                            }
-                        }
-                    }
-                    else
-                    { // zestaw nie zadziałał, próbujemy normanie
-                        iMultiTex = 0;
-                        ReplacableSkinID[1] = GfxRenderer.GetTextureId(
-                            ReplacableSkin, "", Global::iDynamicFiltering);
-                    }
-                }
-                else
-                    ReplacableSkinID[1] = GfxRenderer.GetTextureId(
-                        ReplacableSkin, "", Global::iDynamicFiltering);
-                if (GfxRenderer.Texture(ReplacableSkinID[1]).has_alpha)
-                    iAlpha = 0x31310031; // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                else
-                    iAlpha = 0x30300030; // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-                if (ReplacableSkinID[2])
-                    if (GfxRenderer.Texture(ReplacableSkinID[2]).has_alpha)
-                        iAlpha |= 0x02020002; // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                if (ReplacableSkinID[3])
-                    if (GfxRenderer.Texture(ReplacableSkinID[3]).has_alpha)
-                        iAlpha |= 0x04040004; // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                if (ReplacableSkinID[4])
-                    if (GfxRenderer.Texture(ReplacableSkinID[4]).has_alpha)
-                        iAlpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-            }
-#else
-            { // tekstura wymienna jest raczej jedynie w "dynamic\"
-//                ReplacableSkin = Global::asCurrentTexturePath + ReplacableSkin; // skory tez z dynamic/...
+            {
 				std::string nowheretexture = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
                 if( false == nowheretexture.empty() ) {
                     m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( nowheretexture, "", 9 );
@@ -4349,7 +4027,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 4 ] ).has_alpha )
                         m_materialdata.textures_alpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
             }
-#endif
             if (!MoverParameters->LoadAccepted.empty())
                 // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
                 // MoverParameters->LoadType!=AnsiString("passengers"))
@@ -5056,7 +4733,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 					// plik z przyspieszaczem (upust po zlapaniu hamowania)
                     //         sBrakeAcc.Init(str.c_str(),Parser->GetNextSymbol().ToDouble(),GetPosition().x,GetPosition().y,GetPosition().z,true);
 					parser.getTokens( 1, false ); parser >> token;
-					sBrakeAcc = TSoundsManager::GetFromName( token.c_str(), true );
+					sBrakeAcc = TSoundsManager::GetFromName( token, true );
                     bBrakeAcc = true;
                     //         sBrakeAcc.AM=1.0;
                     //         sBrakeAcc.AA=0.0;
@@ -5271,10 +4948,19 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 //---------------------------------------------------------------------------
 void TDynamicObject::RadioStop()
 { // zatrzymanie pojazdu
-    if (Mechanik) // o ile ktoś go prowadzi
-        if (MoverParameters->SecuritySystem.RadioStop &&
-            MoverParameters->Radio) // jeśli pojazd ma RadioStop i jest on aktywny
-            Mechanik->PutCommand("Emergency_brake", 1.0, 1.0, &vPosition, stopRadio);
+    if( Mechanik ) {
+        // o ile ktoś go prowadzi
+        if( ( MoverParameters->SecuritySystem.RadioStop )
+         && ( MoverParameters->Radio ) ) {
+            // jeśli pojazd ma RadioStop i jest on aktywny
+            Mechanik->PutCommand( "Emergency_brake", 1.0, 1.0, &vPosition, stopRadio );
+            // add onscreen notification for human driver
+            // TODO: do it selectively for the 'local' driver once the multiplayer is in
+            if( false == Mechanik->AIControllFlag ) {
+                Global::tranTexts.AddLine( "!! RADIO-STOP !!", 0.0, 10.0, false );
+            }
+        }
+    }
 };
 
 //---------------------------------------------------------------------------
@@ -5552,22 +5238,27 @@ TDynamicObject * TDynamicObject::ControlledFind()
     // jeździć dobrze
     // również hamowanie wykonuje się zaworem w członie, a nie w silnikowym...
     TDynamicObject *d = this; // zaczynamy od aktualnego
-    if (d->MoverParameters->TrainType & dt_EZT) // na razie dotyczy to EZT
-        if (d->NextConnected ? d->MoverParameters->Couplers[1].AllowedFlag & ctrain_depot : false)
-        { // gdy jest człon od sprzęgu 1, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((d->MoverParameters->Power < 1.0) && (d->NextConnected->MoverParameters->Power >
-                                                      1.0)) // my nie mamy mocy, ale ten drugi ma
+    if( d->MoverParameters->TrainType & dt_EZT ) {
+        // na razie dotyczy to EZT
+        if( ( d->NextConnected != nullptr )
+         && ( true == TestFlag( d->MoverParameters->Couplers[ 1 ].AllowedFlag, coupling::permanent ) ) ) {
+            // gdy jest człon od sprzęgu 1, a sprzęg łączony warsztatowo (powiedzmy)
+            if( ( d->MoverParameters->Power < 1.0 )
+             && ( d->NextConnected->MoverParameters->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
                 d = d->NextConnected; // będziemy sterować tym z mocą
+            }
         }
-        else if (d->PrevConnected ? d->MoverParameters->Couplers[0].AllowedFlag & ctrain_depot :
-                                    false)
-        { // gdy jest człon od sprzęgu 0, a sprzęg łączony
-            // warsztatowo (powiedzmy)
-            if ((d->MoverParameters->Power < 1.0) && (d->PrevConnected->MoverParameters->Power >
-                                                      1.0)) // my nie mamy mocy, ale ten drugi ma
+        else if( ( d->PrevConnected != nullptr )
+              && ( true == TestFlag( d->MoverParameters->Couplers[ 0 ].AllowedFlag, coupling::permanent ) ) ) {
+            // gdy jest człon od sprzęgu 0, a sprzęg łączony warsztatowo (powiedzmy)
+            if( ( d->MoverParameters->Power < 1.0 )
+             && ( d->PrevConnected->MoverParameters->Power > 1.0 ) ) {
+                // my nie mamy mocy, ale ten drugi ma
                 d = d->PrevConnected; // będziemy sterować tym z mocą
+            }
         }
+    }
     return d;
 };
 //---------------------------------------------------------------------------
@@ -5631,62 +5322,16 @@ std::string TDynamicObject::TextureTest(std::string const &name)
     return ""; // nie znaleziona
 };
 
-#ifdef EU07_USE_OLD_RENDERCODE
-void TDynamicObject::DestinationSet(std::string to, std::string numer)
-{ // ustawienie stacji
-    // docelowej oraz wymiennej
-    // tekstury 4, jeśli
-    // istnieje plik
-    // w zasadzie, to każdy wagon mógłby mieć inną stację docelową
-    // zwłaszcza w towarowych, pod kątem zautomatyzowania maewrów albo pracy górki
-    // ale to jeszcze potrwa, zanim będzie możliwe, na razie można wpisać stację z
-    // rozkładu
-    if (abs(iMultiTex) >= 4)
-        return; // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
-	numer = Global::Bezogonkow(numer);
-    asDestination = to;
-    to = Global::Bezogonkow(to); // do szukania pliku obcinamy ogonki
-    std::string x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
-	if (!x.empty())
-    {
-        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
-        return;
-    }
-	x = TextureTest(asBaseDir + numer );
-	if (!x.empty())
-    {
-        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
-        return;
-    }
-    if (to.empty())
-        to = "nowhere";
-    x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejności z nazwą FIZ/MMD
-    if (!x.empty())
-    {
-        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
-        return;
-    }
-    x = TextureTest(asBaseDir + to); // na razie prymitywnie
-    if (!x.empty())
-        ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9); // rozmywania 0,1,4,5 nie nadają się
-    else
-		{
-        x = TextureTest(asBaseDir + "nowhere"); // jak nie znalazł dedykowanej, to niech daje nowhere
-		if (!x.empty())
-			ReplacableSkinID[4] = GfxRenderer.GetTextureId( x, "", 9);
-		}
-    // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa
-    // tekstury nr 4
-};
-#else
 void TDynamicObject::DestinationSet(std::string to, std::string numer)
 { // ustawienie stacji docelowej oraz wymiennej tekstury 4, jeśli istnieje plik
     // w zasadzie, to każdy wagon mógłby mieć inną stację docelową
     // zwłaszcza w towarowych, pod kątem zautomatyzowania maewrów albo pracy górki
     // ale to jeszcze potrwa, zanim będzie możliwe, na razie można wpisać stację z
     // rozkładu
-    if( std::abs( m_materialdata.multi_textures ) >= 4 )
-        return; // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
+    if( std::abs( m_materialdata.multi_textures ) >= 4 ) {
+        // jak są 4 tekstury wymienne, to nie zmieniać rozkładem
+        return;
+    }
 	numer = Global::Bezogonkow(numer);
     asDestination = to;
     to = Global::Bezogonkow(to); // do szukania pliku obcinamy ogonki
@@ -5719,10 +5364,8 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
 		if (!x.empty())
             m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( x, "", 9 );
 		}
-    // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa
-    // tekstury nr 4
+    // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa tekstury nr 4
 };
-#endif
 
 void TDynamicObject::OverheadTrack(float o)
 { // ewentualne wymuszanie jazdy

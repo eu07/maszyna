@@ -24,7 +24,7 @@ class TFadeSound
   public:
     TFadeSound();
     ~TFadeSound();
-    void Init(char *Name, float fNewFade);
+    void Init(std::string const &Name, float fNewFade);
     void TurnOn();
     void TurnOff();
     bool Playing()

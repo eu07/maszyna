@@ -17,26 +17,7 @@ http://mozilla.org/MPL/2.0/.
 //-----------------------------------------------------------------------------
 #include "stdafx.h"
 #include "WavRead.h"
-
-//-----------------------------------------------------------------------------
-// Defines, constants, and global variables
-//-----------------------------------------------------------------------------
-#define SAFE_DELETE(p)  \
-    {                   \
-        if (p)          \
-        {               \
-            delete (p); \
-            (p) = NULL; \
-        }               \
-    }
-#define SAFE_RELEASE(p)     \
-    {                       \
-        if (p)              \
-        {                   \
-            (p)->Release(); \
-            (p) = NULL;     \
-        }                   \
-    }
+#include "usefull.h"
 
 //-----------------------------------------------------------------------------
 // Name: ReadMMIO()
@@ -122,13 +103,13 @@ HRESULT ReadMMIO(HMMIO hmmioIn, MMCKINFO *pckInRIFF, WAVEFORMATEX **ppwfxInfo)
 //       so the data can be easily read with WaveReadFile. Returns 0 if
 //       successful, the error code if not.
 //-----------------------------------------------------------------------------
-HRESULT WaveOpenFile(CHAR *strFileName, HMMIO *phmmioIn, WAVEFORMATEX **ppwfxInfo,
+HRESULT WaveOpenFile( std::string const &Filename, HMMIO *phmmioIn, WAVEFORMATEX **ppwfxInfo,
                      MMCKINFO *pckInRIFF)
 {
     HRESULT hr;
     HMMIO hmmioIn = NULL;
 
-    if (NULL == (hmmioIn = mmioOpen(strFileName, NULL, MMIO_ALLOCBUF | MMIO_READ)))
+    if (NULL == (hmmioIn = mmioOpen(const_cast<char*>(Filename.c_str()), NULL, MMIO_ALLOCBUF | MMIO_READ)))
         return E_FAIL;
 
     if (FAILED(hr = ReadMMIO(hmmioIn, pckInRIFF, ppwfxInfo)))
@@ -228,20 +209,20 @@ CWaveSoundRead::CWaveSoundRead()
 CWaveSoundRead::~CWaveSoundRead()
 {
     Close();
-    SAFE_DELETE(m_pwfx);
+    SafeDelete(m_pwfx);
 }
 
 //-----------------------------------------------------------------------------
 // Name: Open()
 // Desc: Opens a wave file for reading
 //-----------------------------------------------------------------------------
-HRESULT CWaveSoundRead::Open(CHAR *strFilename)
+HRESULT CWaveSoundRead::Open(std::string const &Filename)
 {
-    SAFE_DELETE(m_pwfx);
+    SafeDelete(m_pwfx);
 
     HRESULT hr;
 
-    if (FAILED(hr = WaveOpenFile(strFilename, &m_hmmioIn, &m_pwfx, &m_ckInRiff)))
+    if (FAILED(hr = WaveOpenFile(Filename, &m_hmmioIn, &m_pwfx, &m_ckInRiff)))
         return hr;
 
     if (FAILED(hr = Reset()))
@@ -276,6 +257,8 @@ HRESULT CWaveSoundRead::Read(UINT nSizeToRead, BYTE *pbData, UINT *pnSizeRead)
 //-----------------------------------------------------------------------------
 HRESULT CWaveSoundRead::Close()
 {
-    mmioClose(m_hmmioIn, 0);
+    if( m_hmmioIn != NULL ) {
+        mmioClose( m_hmmioIn, 0 );
+    }
     return S_OK;
 }

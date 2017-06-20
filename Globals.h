@@ -130,7 +130,9 @@ class TTranscript
     float fHide; // czas ukrycia/usunięcia
     std::string asText; // tekst gotowy do wyświetlenia (usunięte znaczniki czasu)
     bool bItalic; // czy kursywa (dźwięk nieistotny dla prowadzącego)
+/*
     int iNext; // następna używana linijka, żeby nie przestawiać fizycznie tabeli
+*/
 };
 
 /*
@@ -219,19 +221,10 @@ class Global
     static GLfloat FogColor[];
     static float Overcast;
     // static bool bTimeChange;
-#ifdef EU07_USE_OLD_LIGHTING_MODEL
-    static opengl_light AmbientLight;
 
-    static GLfloat ambientDayLight[];
-    static GLfloat diffuseDayLight[];
-    static GLfloat specularDayLight[];
-    static GLfloat ambientLight[];
-    static GLfloat diffuseLight[];
-    static GLfloat specularLight[];
-#else
     // TODO: put these things in the renderer
     static int DynamicLightCount;
-#endif
+
     static GLfloat whiteLight[];
     static GLfloat noLight[];
     static GLfloat darkLight[];
@@ -251,6 +244,7 @@ class Global
     static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
+    static bool InputGamepad; // whether gamepad support is enabled
     static double fLuminance; // jasność światła do automatycznego zapalania
     static float SunAngle; // angle of the sun relative to horizon
     static int iMultiplayer; // blokada działania niektórych eventów na rzecz kominikacji
@@ -262,7 +256,6 @@ class Global
     static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
     static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
     static int iCameraLast;
-    static std::string asRelease; // numer
     static std::string asVersion; // z opisem
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
@@ -283,7 +276,7 @@ class Global
     static bool bGlutFont; // tekst generowany przez GLUT
     static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
-    static void BindTexture(GLuint t);
+
     static int iConvertModels; // tworzenie plików binarnych
     static int iErorrCounter; // licznik sprawdzań do śledzenia błędów OpenGL
     static bool bInactivePause; // automatyczna pauza, gdy okno nieaktywne

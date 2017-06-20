@@ -410,21 +410,21 @@ bool TCamera::SetMatrix()
     return true;
 }
 
-bool TCamera::SetMatrix( glm::mat4 &Matrix ) {
+bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
 
-    Matrix = glm::rotate( Matrix, (float)-Roll, glm::vec3( 0.0f, 0.0f, 1.0f ) ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
-    Matrix = glm::rotate( Matrix, (float)-Pitch, glm::vec3( 1.0f, 0.0f, 0.0f ) );
-    Matrix = glm::rotate( Matrix, (float)-Yaw, glm::vec3( 0.0f, 1.0f, 0.0f ) ); // w zewnętrznym widoku: kierunek patrzenia
+    Matrix = glm::rotate( Matrix, -Roll, glm::dvec3( 0.0, 0.0, 1.0 ) ); // po wyłączeniu tego kręci się pojazd, a sceneria nie
+    Matrix = glm::rotate( Matrix, -Pitch, glm::dvec3( 1.0, 0.0, 0.0 ) );
+    Matrix = glm::rotate( Matrix, -Yaw, glm::dvec3( 0.0, 1.0, 0.0 ) ); // w zewnętrznym widoku: kierunek patrzenia
 
     if( Type == tp_Follow ) {
 
         Matrix *= glm::lookAt(
-            glm::vec3( Pos.x, Pos.y, Pos.z ),
-            glm::vec3( LookAt.x, LookAt.y, LookAt.z ),
-            glm::vec3( vUp.x, vUp.y, vUp.z ) );
+            glm::dvec3( Pos.x, Pos.y, Pos.z ),
+            glm::dvec3( LookAt.x, LookAt.y, LookAt.z ),
+            glm::dvec3( vUp.x, vUp.y, vUp.z ) );
     }
     else {
-        Matrix = glm::translate( Matrix, glm::vec3( -Pos.x, -Pos.y, -Pos.z ) ); // nie zmienia kierunku patrzenia
+        Matrix = glm::translate( Matrix, glm::dvec3( -Pos.x, -Pos.y, -Pos.z ) ); // nie zmienia kierunku patrzenia
     }
 
     Global::SetCameraPosition( Pos ); // było +pOffset

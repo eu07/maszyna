@@ -45,7 +45,9 @@ void CVertNormTex::serialize(std::ostream &s)
 
 CMesh::CMesh()
 { // utworzenie pustego obiektu
+#ifdef EU07_USE_OLD_VERTEXBUFFER
     m_pVNT = nullptr;
+#endif
     m_nVertexCount = -1;
     m_nVBOVertices = 0; // nie zarezerwowane
 };
@@ -58,7 +60,13 @@ CMesh::~CMesh()
 void CMesh::MakeArray(int n)
 { // tworzenie tablic
     m_nVertexCount = n;
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+    assert( m_pVNT == nullptr );
     m_pVNT = new CVertNormTex[m_nVertexCount]; // przydzielenie pamięci dla tablicy
+#else
+    m_pVNT.clear();
+    m_pVNT.resize( m_nVertexCount );
+#endif
 };
 
 void CMesh::BuildVBOs(bool del)
@@ -91,7 +99,11 @@ void CMesh::Clear()
     }
     m_nVBOVertices = 0;
     m_nVertexCount = -1; // do ponownego zliczenia
+#ifdef EU07_USE_OLD_VERTEXBUFFER
     SafeDeleteArray(m_pVNT); // usuwanie tablic, gdy były użyte do Vertex Array
+#else
+    m_pVNT.clear();
+#endif
 };
 
 extern TWorld World;

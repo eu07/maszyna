@@ -11,6 +11,9 @@ http://mozilla.org/MPL/2.0/.
 
 #ifndef VBOH
 #define VBOH
+
+#define EU07_USE_OLD_VERTEXBUFFER
+
 //---------------------------------------------------------------------------
 class CVertNormTex
 {
@@ -34,7 +37,11 @@ class CMesh
 	gl_program shader;
   public:
     int m_nVertexCount; // liczba wierzchołków
+#ifdef EU07_USE_OLD_VERTEXBUFFER
     CVertNormTex *m_pVNT;
+#else
+    std::vector<CVertNormTex> m_pVNT;
+#endif
     unsigned int m_nVBOVertices; // numer VBO z wierzchołkami
     CMesh();
     ~CMesh();

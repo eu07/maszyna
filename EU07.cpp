@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 /*
     MaSzyna EU07 locomotive simulator
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
-
 */
 /*
 Authors:
@@ -40,6 +39,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment (lib, "winmm.lib")
 #pragma comment (lib, "setupapi.lib")
 #pragma comment (lib, "dbghelp.lib")
+#pragma comment (lib, "version.lib")
 
 TWorld World;
 
@@ -195,7 +195,9 @@ int main(int argc, char *argv[])
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
 
-	for (int i = 1; i < argc; i++)
+	Global::asVersion = "NG";
+
+	for (int i = 1; i < argc; ++i)
 	{
 		std::string token(argv[i]);
 
@@ -297,20 +299,17 @@ int main(int argc, char *argv[])
 #endif
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-	try
-	{
-		if ((false == GfxRenderer.Init(window))
-			|| (false == UILayer.init(window)))
-			return -1;
-		input::Keyboard.init();
-		input::Gamepad.init();
+    try {
+        if( false == World.Init( window ) ) {
+            ErrorLog( "Failed to init TWorld" );
+            return -1;
+        }
+    }
+    catch( std::bad_alloc const &Error ) {
 
-		if (!World.Init(window))
-		{
-			std::cout << "failed to init TWorld" << std::endl;
-			return -1;
-		}
-	}
+        ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
+        return -1;
+    }
 	catch (std::runtime_error e)
 	{
 		WriteLog(e.what());
@@ -334,13 +333,23 @@ int main(int argc, char *argv[])
         } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
         Console::On(); // włączenie konsoli
-        while (!glfwWindowShouldClose(window)
-            && World.Update()
-            && GfxRenderer.Render())
-        {
-            glfwPollEvents();
-            input::Gamepad.poll();
+
+        try {
+            while( ( false == glfwWindowShouldClose( window ) )
+                && ( true == World.Update() )
+                && ( true == GfxRenderer.Render() ) ) {
+                glfwPollEvents();
+                if( true == Global::InputGamepad ) {
+                    input::Gamepad.poll();
+                }
+            }
         }
+        catch( std::bad_alloc const &Error ) {
+
+            ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
+            return -1;
+        }
+
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
     }
 
