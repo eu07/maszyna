@@ -18,7 +18,6 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "mctools.h"
 #include "TractionPower.h"
-#include "renderer.h"
 
 //---------------------------------------------------------------------------
 /*
@@ -91,483 +90,197 @@ jawnie nazwę sekcji, ewentualnie nazwę zasilacza (zostanie zastąpiona wskazan
 sekcji z sąsiedniego przęsła).
 */
 
-TTraction::TTraction()
-{
-    hvNext[ 0 ] = nullptr;
-    hvNext[ 1 ] = nullptr;
-    psPower[ 0 ] = nullptr;
-    psPower[ 1 ] = nullptr; // na początku zasilanie nie podłączone
-    iNext[ 0 ] = 0;
-    iNext[ 1 ] = 0;
-    fResistance[ 0 ] = -1.0;
-    fResistance[ 1 ] = -1.0; // trzeba dopiero policzyć
-}
+std::size_t
+TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
 
-TTraction::~TTraction()
-{
-
-}
-
-void TTraction::Optimize( Math3D::vector3 const &Origin )
-{
-
-    if (Wires != 0)
-    {
-        // Dlugosc odcinka trakcji 'Winger
-        double ddp = std::hypot(pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z);
-        if (Wires == 2)
-            WireOffset = 0;
-        // Przewoz jezdny 1 'Marcin
-        glBegin(GL_LINE_STRIP);
-        glVertex3f(
-            pPoint1.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
-            pPoint1.y - Origin.y,
-            pPoint1.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z);
-        glVertex3f(
-            pPoint2.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
-            pPoint2.y - Origin.y,
-            pPoint2.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
-        glEnd();
-        // Nie wiem co 'Marcin
-        Math3D::vector3 pt1, pt2, pt3, pt4, v1, v2;
-        v1 = pPoint4 - pPoint3;
-        v2 = pPoint2 - pPoint1;
-        float step = 0;
-        if (iNumSections > 0)
-            step = 1.0f / (float)iNumSections;
-        float f = step;
-        float mid = 0.5;
-        float t;
-        // Przewod nosny 'Marcin
-        if (Wires > 1)
-        {
-            glBegin(GL_LINE_STRIP);
-            glVertex3f(
-                pPoint3.x - Origin.x,
-                pPoint3.y - Origin.y,
-                pPoint3.z - Origin.z );
-            for (int i = 0; i < iNumSections - 1; ++i)
-            {
-                pt3 = pPoint3 + v1 * f;
-                t = (1 - std::fabs(f - mid) * 2);
-                if ((Wires < 4) || ((i != 0) && (i != iNumSections - 2)))
-                    glVertex3f(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - Origin.y,
-                        pt3.z - Origin.z );
-                f += step;
-            }
-            glVertex3f(
-                pPoint4.x - Origin.x,
-                pPoint4.y - Origin.y,
-                pPoint4.z - Origin.z );
-            glEnd();
-        }
-        // Drugi przewod jezdny 'Winger
-        if (Wires > 2)
-        {
-            glBegin(GL_LINE_STRIP);
-            glVertex3f(
-                pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
-                pPoint1.y - Origin.y,
-                pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
-            glVertex3f(
-                pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
-                pPoint2.y - Origin.y,
-                pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
-            glEnd();
-        }
-
-        f = step;
-
-        if (Wires == 4)
-        {
-            glBegin(GL_LINE_STRIP);
-            glVertex3f(
-                pPoint3.x - Origin.x,
-                pPoint3.y - 0.65f * fHeightDifference - Origin.y,
-                pPoint3.z - Origin.z );
-            for (int i = 0; i < iNumSections - 1; ++i)
-            {
-                pt3 = pPoint3 + v1 * f;
-                t = (1 - std::fabs(f - mid) * 2);
-                glVertex3f(
-                    pt3.x - Origin.x,
-                    pt3.y - std::sqrt( t ) * fHeightDifference - (
-                    ( ( i == 0 )
-                   || ( i == iNumSections - 2 ) ) ?
-                        0.25f * fHeightDifference :
-                        0.05 )
-                    - Origin.y,
-                    pt3.z - Origin.z );
-                f += step;
-            }
-            glVertex3f(
-                pPoint4.x - Origin.x,
-                pPoint4.y - 0.65f * fHeightDifference - Origin.y,
-                pPoint4.z - Origin.z );
-            glEnd();
-        }
-
-        f = step;
-
-        // Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
-        if (Wires != 1)
-        {
-            glBegin(GL_LINES);
-            for (int i = 0; i < iNumSections - 1; ++i)
-            {
-                float flo, flo1;
-                flo = (Wires == 4 ? 0.25f * fHeightDifference : 0);
-                flo1 = (Wires == 4 ? +0.05 : 0);
-                pt3 = pPoint3 + v1 * f;
-                pt4 = pPoint1 + v2 * f;
-                t = (1 - std::fabs(f - mid) * 2);
-                if ((i % 2) == 0)
-                {
-                    glVertex3f(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - ((i == 0) || (i == iNumSections - 2) ? flo : flo1) - Origin.y,
-                        pt3.z - Origin.z );
-                    glVertex3f(
-                        pt4.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
-                        pt4.y - Origin.y,
-                        pt4.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
-                }
-                else
-                {
-                    glVertex3f(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - ((i == 0) || (i == iNumSections - 2) ? flo : flo1) - Origin.y,
-                        pt3.z - Origin.z );
-                    glVertex3f(
-                        pt4.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x,
-                        pt4.y - Origin.y,
-                        pt4.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z );
-                }
-                if ((Wires == 4) && ((i == 1) || (i == iNumSections - 3)))
-                {
-                    glVertex3f(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - 0.05 - Origin.y,
-                        pt3.z - Origin.z );
-                    glVertex3f(
-                        pt3.x - Origin.x,
-                        pt3.y - std::sqrt(t) * fHeightDifference - Origin.y,
-                        pt3.z - Origin.z );
-                }
-                f += step;
-            }
-            glEnd();
-        }
-        glEndList();
+    if( m_geometry != NULL ) {
+        return GfxRenderer.Vertices( m_geometry ).size() / 2;
     }
-}
-/*
-void TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
-{
-    pPosition= (pPoint2+pPoint1)*0.5f;
-    fSquaredRadius= SquareMagnitude((pPoint2-pPoint1)*0.5f);
-} */
 
-void TTraction::RenderDL(float mgn, Math3D::vector3 const &Origin ) // McZapkie: mgn to odleglosc od obserwatora
-{
-    // McZapkie: ustalanie przezroczystosci i koloru linii:
-    if( Wires != 0 && !TestFlag( DamageFlag, 128 ) ) // rysuj jesli sa druty i nie zerwana
-    {
-        // setup
-        GfxRenderer.Bind( 0 );
-        if( !Global::bSmoothTraction ) {
-            // na liniach kiepsko wygląda - robi gradient
-            ::glDisable( GL_LINE_SMOOTH );
-        }
-        float linealpha = 5000 * WireThickness / ( mgn + 1.0 ); //*WireThickness
-        linealpha = std::min( 1.2f, linealpha ); // zbyt grube nie są dobre
-        ::glLineWidth( linealpha );
-        // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-        float
-            red{ 0.0f },
-            green{ 0.0f },
-            blue{ 0.0f };
-        wire_color( red, green, blue );
-        ::glColor4f( red, green, blue, linealpha );
-        // draw code
-        if (!uiDisplayList)
-            Optimize( Origin ); // generowanie DL w miarę potrzeby
-        ::glCallList(uiDisplayList);
-        // cleanup
-        ::glLineWidth(1.0);
-        ::glEnable(GL_LINE_SMOOTH);
-    }
-}
+    vertex_array vertices;
 
-// przygotowanie tablic do skopiowania do VBO (zliczanie wierzchołków)
-int TTraction::RaArrayPrepare()
-{
-    // jezdny
-    iLines = 2;
-    // przewod nosny
-    if( Wires > 1 ) {
-        iLines += 2 + (
-            Wires < 4 ?
-            std::max( 0, iNumSections - 1 ) :
-            ( iNumSections > 2 ?
-                std::max( 0, iNumSections - 1 - 2 ) :
-                std::max( 0, iNumSections - 1 - 1 ) ) );
-    }
-    // drugi przewod jezdny
-    if( Wires > 2 ) {
-        iLines += 2;
-    }
-    if( Wires == 4 ) {
-        iLines += 2 + std::max( 0, iNumSections - 1 );
-    }
-    // przewody pionowe (wieszaki)
-    if( Wires > 1 ) {
-        iLines += 2 * ( std::max( 0, iNumSections - 1 ) );
-        if( ( Wires == 4 )
-          &&( iNumSections > 0 ) ) {
-            iLines += (
-                iNumSections > 4 ?
-                    4 :
-                    2 );
-        }
-    }
-    return iLines;
-};
-
-int TTraction::RaArrayFill(CVertNormTex *Vert, Math3D::vector3 const &Origin)
-{ // wypełnianie tablic VBO
-    int debugvertexcount{ 0 };
-
-    double ddp = std::hypot(pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z);
-    if (Wires == 2)
+    double ddp = std::hypot( pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z );
+    if( Wires == 2 )
         WireOffset = 0;
     // jezdny
-    Vert->x = pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
-    Vert->y = pPoint1.y - Origin.y;
-    Vert->z = pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
-    ++Vert;
-    ++debugvertexcount;
-    Vert->x = pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
-    Vert->y = pPoint2.y - Origin.y;
-    Vert->z = pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
-    ++Vert;
-    ++debugvertexcount;
+    basic_vertex startvertex, endvertex;
+    startvertex.position =
+        glm::vec3(
+            pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+            pPoint1.y - Origin.y,
+            pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+    endvertex.position =
+        glm::vec3(
+            pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+            pPoint2.y - Origin.y,
+            pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+    vertices.emplace_back( startvertex );
+    vertices.emplace_back( endvertex );
     // Nie wiem co 'Marcin
-    Math3D::vector3 pt1, pt2, pt3, pt4, v1, v2;
+    glm::dvec3 pt1, pt2, pt3, pt4, v1, v2;
     v1 = pPoint4 - pPoint3;
     v2 = pPoint2 - pPoint1;
     float step = 0;
     if( iNumSections > 0 )
         step = 1.0f / (float)iNumSections;
-    float f = step;
+    double f = step;
     float mid = 0.5;
     float t;
     // Przewod nosny 'Marcin
-    if (Wires > 1)
-    { // lina nośna w kawałkach
-        Vert->x = pPoint3.x - Origin.x;
-        Vert->y = pPoint3.y - Origin.y;
-        Vert->z = pPoint3.z - Origin.z;
-        ++Vert;
-        ++debugvertexcount;
-        for (int i = 0; i < iNumSections - 1; ++i)
-        {
+    if( Wires > 1 ) { // lina nośna w kawałkach
+        startvertex.position =
+            glm::vec3(
+                pPoint3.x - Origin.x,
+                pPoint3.y - Origin.y,
+                pPoint3.z - Origin.z );
+        for( int i = 0; i < iNumSections - 1; ++i ) {
             pt3 = pPoint3 + v1 * f;
-            t = (1 - std::fabs(f - mid) * 2);
+            t = ( 1 - std::fabs( f - mid ) * 2 );
             if( ( Wires < 4 )
              || ( ( i != 0 )
                && ( i != iNumSections - 2 ) ) ) {
-                Vert->x = pt3.x - Origin.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y;
-                Vert->z = pt3.z - Origin.z;
-                ++Vert;
-                ++debugvertexcount;
+                endvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y,
+                        pt3.z - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
+                startvertex = endvertex;
             }
             f += step;
         }
-        Vert->x = pPoint4.x - Origin.x;
-        Vert->y = pPoint4.y - Origin.y;
-        Vert->z = pPoint4.z - Origin.z;
-        ++Vert;
-        ++debugvertexcount;
+        endvertex.position =
+            glm::vec3(
+                pPoint4.x - Origin.x,
+                pPoint4.y - Origin.y,
+                pPoint4.z - Origin.z );
+        vertices.emplace_back( startvertex );
+        vertices.emplace_back( endvertex );
     }
     // Drugi przewod jezdny 'Winger
-    if (Wires > 2)
-    {
-        Vert->x = pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x;
-        Vert->y = pPoint1.y - Origin.y;
-        Vert->z = pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z;
-        ++Vert;
-        ++debugvertexcount;
-        Vert->x = pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset - Origin.x;
-        Vert->y = pPoint2.y - Origin.y;
-        Vert->z = pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset - Origin.z;
-        ++Vert;
-        ++debugvertexcount;
+    if( Wires > 2 ) {
+        startvertex.position =
+            glm::vec3(
+                pPoint1.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                pPoint1.y - Origin.y,
+                pPoint1.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+        endvertex.position =
+            glm::vec3(
+                pPoint2.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                pPoint2.y - Origin.y,
+                pPoint2.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+        vertices.emplace_back( startvertex );
+        vertices.emplace_back( endvertex );
     }
 
     f = step;
 
     if( Wires == 4 ) {
-        Vert->x = pPoint3.x - Origin.x;
-        Vert->y = pPoint3.y - 0.65f * fHeightDifference - Origin.y;
-        Vert->z = pPoint3.z - Origin.z;
-        ++Vert;
-        ++debugvertexcount;
+        startvertex.position =
+            glm::vec3(
+                pPoint3.x - Origin.x,
+                pPoint3.y - 0.65f * fHeightDifference - Origin.y,
+                pPoint3.z - Origin.z );
         for( int i = 0; i < iNumSections - 1; ++i ) {
             pt3 = pPoint3 + v1 * f;
             t = ( 1 - std::fabs( f - mid ) * 2 );
-            Vert->x = pt3.x - Origin.x;
-            Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - (
-                ( ( i == 0 )
-               || ( i == iNumSections - 2 ) ) ?
-                    0.25f * fHeightDifference :
-                    0.05 )
-                - Origin.y;
-            Vert->z = pt3.z - Origin.z;
-            ++Vert;
-            ++debugvertexcount;
+            endvertex.position =
+                glm::vec3(
+                    pt3.x - Origin.x,
+                    pt3.y - std::sqrt( t ) * fHeightDifference - (
+                        ( ( i == 0 )
+                       || ( i == iNumSections - 2 ) ) ?
+                            0.25f * fHeightDifference :
+                            0.05 )
+                        - Origin.y,
+                    pt3.z - Origin.z );
+            vertices.emplace_back( startvertex );
+            vertices.emplace_back( endvertex );
+            startvertex = endvertex;
             f += step;
         }
-        Vert->x = pPoint4.x - Origin.x;
-        Vert->y = pPoint4.y - 0.65f * fHeightDifference - Origin.y;
-        Vert->z = pPoint4.z - Origin.z;
-        ++Vert;
-        ++debugvertexcount;
+        endvertex.position =
+            glm::vec3(
+                pPoint4.x - Origin.x,
+                pPoint4.y - 0.65f * fHeightDifference - Origin.y,
+                pPoint4.z - Origin.z );
+        vertices.emplace_back( startvertex );
+        vertices.emplace_back( endvertex );
     }
     f = step;
 
     // Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
-    if (Wires > 1)
-    {
-        for (int i = 0; i < iNumSections - 1; ++i)
-        {
+    if( Wires > 1 ) {
+        for( int i = 0; i < iNumSections - 1; ++i ) {
             float flo, flo1;
             flo = ( Wires == 4 ? 0.25f * fHeightDifference : 0 );
             flo1 = ( Wires == 4 ? +0.05 : 0 );
             pt3 = pPoint3 + v1 * f;
             pt4 = pPoint1 + v2 * f;
-            t = (1 - std::fabs(f - mid) * 2);
+            t = ( 1 - std::fabs( f - mid ) * 2 );
 
             if( ( i % 2 ) == 0 ) {
-                Vert->x = pt3.x - Origin.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y;
-                Vert->z = pt3.z - Origin.z;
-                ++Vert;
-                ++debugvertexcount;
-                Vert->x = pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
-                Vert->y = pt4.y - Origin.y;
-                Vert->z = pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
-                ++Vert;
-                ++debugvertexcount;
+                startvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y,
+                        pt3.z - Origin.z );
+                endvertex.position =
+                    glm::vec3(
+                        pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                        pt4.y - Origin.y,
+                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
             }
             else {
-                Vert->x = pt3.x - Origin.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y;
-                Vert->z = pt3.z - Origin.z;
-                ++Vert;
-                ++debugvertexcount;
-                Vert->x = pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x;
-                Vert->y = pt4.y - Origin.y;
-                Vert->z = pt4.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z;
-                ++Vert;
-                ++debugvertexcount;
+                startvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y,
+                        pt3.z - Origin.z );
+                endvertex.position =
+                    glm::vec3(
+                        pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                        pt4.y - Origin.y,
+                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
             }
             if( ( ( Wires == 4 )
              && ( ( i == 1 )
                || ( i == iNumSections - 3 ) ) ) ) {
-                Vert->x = pt3.x - Origin.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - 0.05 - Origin.y;
-                Vert->z = pt3.z - Origin.z;
-                ++Vert;
-                ++debugvertexcount;
-                Vert->x = pt3.x - Origin.x;
-                Vert->y = pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y;
-                Vert->z = pt3.z - Origin.z;
-                ++Vert;
-                ++debugvertexcount;
+                startvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - 0.05 - Origin.y,
+                        pt3.z - Origin.z );
+                endvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y,
+                        pt3.z - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
             }
             f += step;
         }
     }
-    return debugvertexcount;
-};
 
-void TTraction::RenderVBO(float mgn, int iPtr)
-{ // renderowanie z użyciem VBO
-    if (Wires != 0 && !TestFlag(DamageFlag, 128)) // rysuj jesli sa druty i nie zerwana
-    {
-        // setup
-        GfxRenderer.Bind(0);
-        if( !Global::bSmoothTraction ) {
-            // na liniach kiepsko wygląda - robi gradient
-            ::glDisable( GL_LINE_SMOOTH );
-        }
-        float linealpha = 5000 * WireThickness / (mgn + 1.0); //*WireThickness
-        linealpha = std::min( 1.2f, linealpha ); // zbyt grube nie są dobre
-        ::glLineWidth(linealpha);
-        // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-        float
-            red{ 0.0f },
-            green{ 0.0f },
-            blue{ 0.0f };
-        wire_color( red, green, blue );
-        ::glColor4f(red, green, blue, linealpha);
-        // draw code
-        // jezdny
-        ::glDrawArrays( GL_LINE_STRIP, iPtr, 2 );
-        iPtr += 2;
-        // przewod nosny
-        if( Wires > 1 ) {
-            auto const piececount = 2 + (
-                Wires < 4 ?
-                    std::max( 0 , iNumSections - 1 ) :
-                    ( iNumSections > 2 ?
-                        std::max( 0, iNumSections - 1 - 2 ) :
-                        std::max( 0, iNumSections - 1 - 1 ) ) );
-            ::glDrawArrays( GL_LINE_STRIP, iPtr, piececount );
-            iPtr += piececount;
-        }
-        // drugi przewod jezdny
-        if( Wires > 2 ) {
-            ::glDrawArrays( GL_LINE_STRIP, iPtr, 2 );
-            iPtr += 2;
-        }
-        if( Wires == 4 ) {
-            auto const piececount = 2 + std::max( 0, iNumSections - 1 );
-            ::glDrawArrays( GL_LINE_STRIP, iPtr, piececount );
-            iPtr += piececount;
-        }
-        // przewody pionowe (wieszaki)
-        if( Wires != 1 ) {
-            auto piececount = 2 * std::max( 0, iNumSections - 1 );
-            if( ( Wires == 4 )
-             && ( iNumSections > 0 ) ) {
-                piececount += (
-                    iNumSections > 4 ?
-                        4 :
-                        2 );
-            }
-            if( piececount > 0 ) {
-                ::glDrawArrays( GL_LINES, iPtr, piececount );
-                iPtr += piececount;
-            }
-        }
-        // cleanup
-        ::glLineWidth(1.0);
-        ::glEnable(GL_LINE_SMOOTH);
-    }
-};
+    auto const elementcount = vertices.size() / 2;
+    m_geometry = GfxRenderer.Insert( vertices, Bank, GL_LINES );
 
-int TTraction::TestPoint(Math3D::vector3 *Point)
+    return elementcount;
+}
+
+int TTraction::TestPoint(glm::dvec3 const &Point)
 { // sprawdzanie, czy przęsła można połączyć
     if (!hvNext[0])
-        if (pPoint1.Equal(Point))
+        if( glm::all( glm::epsilonEqual( Point, pPoint1, 0.025 ) ) )
             return 0;
     if (!hvNext[1])
-        if (pPoint2.Equal(Point))
+        if( glm::all( glm::epsilonEqual( Point, pPoint2, 0.025 ) ) )
             return 1;
     return -1;
 };
@@ -628,24 +341,10 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
         else
             ps = psPower[d ^ 1]; // zasilacz od przeciwnej strony niż idzie analiza
         d = iNext[d]; // kierunek
-#ifdef EU07_USE_OLD_TRACTIONPOWER_CODE
-        if (DebugModeFlag) // tylko podczas testów
-            Material = 4; // pokazanie, że to przęsło ma podłączone zasilanie
-#else
         PowerState = 4;
-#endif
         while( ( t != nullptr )
             && ( t->psPower[d] == nullptr ) ) // jeśli jest jakiś kolejny i nie ma ustalonego zasilacza
         { // ustawienie zasilacza i policzenie rezystancji zastępczej
-#ifdef EU07_USE_OLD_TRACTIONPOWER_CODE
-            if (DebugModeFlag) // tylko podczas testów
-                if (t->Material != 4) // przęsła zasilającego nie modyfikować
-                {
-                    if (t->Material < 4)
-                        t->Material = 4; // tymczasowo, aby zmieniła kolor
-                    t->Material |= d ? 2 : 1; // kolor zależny od strony, z której jest zasilanie
-                }
-#else
             if( t->PowerState != 4 ) {
                 // przęsła zasilającego nie modyfikować
                 if( t->psPowered != nullptr ) {
@@ -657,10 +356,9 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
                     t->PowerState |= d ? 2 : 1;
                 }
             }
-#endif
             t->psPower[d] = ps; // skopiowanie wskaźnika zasilacza od danej strony
             t->fResistance[d] = r; // wpisanie rezystancji w kierunku tego zasilacza
-            r += t->fResistivity * Length3(t->vParametric); // doliczenie oporu kolejnego odcinka
+            r += t->fResistivity * glm::length(t->vParametric); // doliczenie oporu kolejnego odcinka
             p = t; // zapamiętanie dotychczasowego
             t = p->hvNext[d ^ 1]; // podążanie w tę samą stronę
             d = p->iNext[d ^ 1];
@@ -669,8 +367,7 @@ void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
     }
     else
     { // podążanie w obu kierunkach, można by rekurencją, ale szkoda zasobów
-        r = 0.5 * fResistivity *
-            Length3(vParametric); // powiedzmy, że w zasilanym przęśle jest połowa
+        r = 0.5 * fResistivity * glm::length(vParametric); // powiedzmy, że w zasilanym przęśle jest połowa
         if (fResistance[0] == 0.0)
             ResistanceCalc(0, r); // do tyłu (w stronę Point1)
         if (fResistance[1] == 0.0)
@@ -744,44 +441,45 @@ double TTraction::VoltageGet(double u, double i)
     return 0.0; // gdy nie podłączony wcale?
 };
 
-void
-TTraction::wire_color( float &Red, float &Green, float &Blue ) const {
+glm::vec3
+TTraction::wire_color() const {
 
+    glm::vec3 color;
     if( false == DebugModeFlag ) {
         switch( Material ) { // Ra: kolory podzieliłem przez 2, bo po zmianie ambient za jasne były
                              // trzeba uwzględnić kierunek świecenia Słońca - tylko ze Słońcem widać kolor
             case 1: {
                 if( TestFlag( DamageFlag, 1 ) ) {
-                    Red = 0.00000f;
-                    Green = 0.32549f;
-                    Blue = 0.2882353f; // zielona miedź
+                    color.r = 0.00000f;
+                    color.g = 0.32549f;
+                    color.b = 0.2882353f; // zielona miedź
                 }
                 else {
-                    Red = 0.35098f;
-                    Green = 0.22549f;
-                    Blue = 0.1f; // czerwona miedź
+                    color.r = 0.35098f;
+                    color.g = 0.22549f;
+                    color.b = 0.1f; // czerwona miedź
                 }
                 break;
             }
             case 2: {
                 if( TestFlag( DamageFlag, 1 ) ) {
-                    Red = 0.10f;
-                    Green = 0.10f;
-                    Blue = 0.10f; // czarne Al
+                    color.r = 0.10f;
+                    color.g = 0.10f;
+                    color.b = 0.10f; // czarne Al
                 }
                 else {
-                    Red = 0.25f;
-                    Green = 0.25f;
-                    Blue = 0.25f; // srebrne Al
+                    color.r = 0.25f;
+                    color.g = 0.25f;
+                    color.b = 0.25f; // srebrne Al
                 }
                 break;
             }
             default: {break; }
         }
         // w zaleźności od koloru swiatła
-		Red *= Global::daylight.ambient.x;
-		Green *= Global::daylight.ambient.y;
-		Blue *= Global::daylight.ambient.z;
+		color.r *= Global::daylight.ambient.x;
+		color.g *= Global::daylight.ambient.y;
+		color.b *= Global::daylight.ambient.z;
     }
     else {
         // tymczasowo pokazanie zasilanych odcinków
@@ -789,38 +487,39 @@ TTraction::wire_color( float &Red, float &Green, float &Blue ) const {
 
             case 1: {
                 // czerwone z podłączonym zasilaniem 1
-                Red = 1.0f;
-                Green = 0.0f;
-                Blue = 0.0f;
+                color.r = 1.0f;
+                color.g = 0.0f;
+                color.b = 0.0f;
                 break;
             }
             case 2: {
                 // zielone z podłączonym zasilaniem 2
-                Red = 0.0f;
-                Green = 1.0f;
-                Blue = 0.0f;
+                color.r = 0.0f;
+                color.g = 1.0f;
+                color.b = 0.0f;
                 break;
             }
             case 3: {
                 //żółte z podłączonym zasilaniem z obu stron
-                Red = 1.0f;
-                Green = 1.0f;
-                Blue = 0.0f;
+                color.r = 1.0f;
+                color.g = 1.0f;
+                color.b = 0.0f;
                 break;
             }
             case 4: {
                 // niebieskie z podłączonym zasilaniem
-                Red = 0.5f;
-                Green = 0.5f;
-                Blue = 1.0f;
+                color.r = 0.5f;
+                color.g = 0.5f;
+                color.b = 1.0f;
                 break;
             }
             default: { break; }
         }
         if( hvParallel ) { // jeśli z bieżnią wspólną, to dodatkowo przyciemniamy
-            Red *= 0.6f;
-            Green *= 0.6f;
-            Blue *= 0.6f;
+            color.r *= 0.6f;
+            color.g *= 0.6f;
+            color.b *= 0.6f;
         }
     }
+    return color;
 }

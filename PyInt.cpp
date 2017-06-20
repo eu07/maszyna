@@ -292,7 +292,7 @@ void TPythonScreenRenderer::updateTexture()
             WriteLog(buff);
 #endif // _PY_INT_MORE_LOG
             glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            glBindTexture(GL_TEXTURE_2D, _textureId);
+            GfxRenderer.Bind(_textureId);
             // setup texture parameters
             if( GLEW_VERSION_1_4 ) {
 

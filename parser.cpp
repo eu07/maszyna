@@ -30,6 +30,9 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
     // mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie używane
     // store to calculate sub-sequent includes from relative path
     mPath = Path;
+    if( Type == buffertype::buffer_FILE ) {
+        mFile = Stream;
+    }
     // reset pointers and attach proper type of buffer
     switch (Type)
     {
@@ -263,8 +266,15 @@ std::size_t cParser::count() {
     return count - 1;
 }
 
-
 void cParser::addCommentStyle( std::string const &Commentstart, std::string const &Commentend ) {
 
     mComments.insert( commentmap::value_type(Commentstart, Commentend) );
+}
+
+// returns name of currently open file, or empty string for text type stream
+std::string
+cParser::Name() {
+
+    if( mIncludeParser ) { return mIncludeParser->Name(); }
+    else                 { return mPath + mFile; }
 }

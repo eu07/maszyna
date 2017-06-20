@@ -481,7 +481,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         }
         // kontynuacja skanowania od ostatnio sprawdzonego toru (w ostatniej pozycji zawsze jest tor)
         if( ( SemNextStopIndex != -1 )
-         && ( sSpeedTable[SemNextStopIndex].fVelNext < 1.0 ) ) {
+         && ( sSpeedTable[SemNextStopIndex].fVelNext == 0.0 ) ) {
             // znaleziono semafor lub tarczę lub tor z prędkością zero, trzeba sprawdzić czy to nadał semafor
             // jeśli jest następny semafor to sprawdzamy czy to on nadał zero
             if( ( OrderCurrentGet() & Obey_train )

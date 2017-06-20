@@ -39,7 +39,6 @@ http://mozilla.org/MPL/2.0/.
 #include "world.h"
 #include "uilayer.h"
 
-#define _PROBLEND 1
 //---------------------------------------------------------------------------
 
 extern "C"
@@ -70,29 +69,17 @@ TGroundNode::TGroundNode()
     iType = GL_POINTS;
     Vertices = NULL;
     nNext = nNext2 = NULL;
-    pCenter = vector3(0, 0, 0);
     iCount = 0; // wierzchołków w trójkącie
     // iNumPts=0; //punktów w linii
     TextureID = 0;
     iFlags = 0; // tryb przezroczystości nie zbadany
-    DisplayListID = 0;
     Pointer = NULL; // zerowanie wskaźnika kontekstowego
     bVisible = false; // czy widoczny
     fSquareRadius = 10000 * 10000;
     fSquareMinRadius = 0;
     asName = "";
-    // Color= TMaterialColor(1);
-    // fAngle=0; //obrót dla modelu
     fLineThickness=1.0; //mm dla linii
-    for (int i = 0; i < 3; i++)
-    {
-        Ambient[i] = Global::whiteLight[i] * 255;
-        Diffuse[i] = Global::whiteLight[i] * 255;
-        Specular[i] = Global::noLight[i] * 255;
-    }
     nNext3 = NULL; // nie wyświetla innych
-    iVboPtr = -1; // indeks w VBO sektora (-1: nie używa VBO)
-    iVersion = 0; // wersja siatki
 }
 
 TGroundNode::~TGroundNode()
@@ -155,66 +142,65 @@ void TGroundNode::Init(int n)
     Vertices = new TGroundVertex[iNumVerts];
 }
 
-TGroundNode::TGroundNode(TGroundNodeType t, int n)
-{ // utworzenie obiektu
-    TGroundNode(); // domyślne ustawienia
+TGroundNode::TGroundNode( TGroundNodeType t, int n ) :
+    TGroundNode() {
+    // utworzenie obiektu
     iNumVerts = n;
-    if (iNumVerts)
-        Vertices = new TGroundVertex[iNumVerts];
-    iType = t;
-    switch (iType)
-    { // zależnie od typu
-    case TP_TRACK:
-        pTrack = new TTrack(this);
-        break;
+    if( iNumVerts ) {
+        Vertices = new TGroundVertex[ iNumVerts ];
     }
-}
-
-void TGroundNode::InitCenter()
-{ // obliczenie środka ciężkości obiektu
-    for (int i = 0; i < iNumVerts; i++)
-        pCenter += Vertices[i].Point;
-    pCenter /= iNumVerts;
+    iType = t;
+    switch (iType) {
+        // zależnie od typu
+        case TP_TRACK: {
+            pTrack = new TTrack( this );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 }
 
 void TGroundNode::InitNormals()
 { // obliczenie wektorów normalnych
-    vector3 v1, v2, v3, v4, v5, n1, n2, n3, n4;
+    glm::dvec3 v1, v2, v3, v4, v5;
+    glm::vec3 n1, n2, n3, n4;
+    glm::vec2 t1;
     int i;
-    float tu, tv;
     switch (iType)
     {
     case GL_TRIANGLE_STRIP:
-        v1 = Vertices[0].Point - Vertices[1].Point;
-        v2 = Vertices[1].Point - Vertices[2].Point;
-        n1 = SafeNormalize(CrossProduct(v1, v2));
-        if (Vertices[0].Normal == vector3(0, 0, 0))
-            Vertices[0].Normal = n1;
-        v3 = Vertices[2].Point - Vertices[3].Point;
-        n2 = SafeNormalize(CrossProduct(v3, v2));
-        if (Vertices[1].Normal == vector3(0, 0, 0))
-            Vertices[1].Normal = (n1 + n2) * 0.5;
+        v1 = Vertices[0].position - Vertices[1].position;
+        v2 = Vertices[1].position - Vertices[2].position;
+        n1 = glm::normalize(glm::cross(v1, v2));
+        if (Vertices[0].normal == glm::vec3())
+            Vertices[0].normal = n1;
+        v3 = Vertices[2].position - Vertices[3].position;
+        n2 = glm::normalize(glm::cross(v3, v2));
+        if (Vertices[1].normal == glm::vec3())
+            Vertices[1].normal = (n1 + n2) * 0.5f;
 
-        for (i = 2; i < iNumVerts - 2; i += 2)
+        for ( i = 2; i < iNumVerts - 2; i += 2)
         {
-            v4 = Vertices[i - 1].Point - Vertices[i].Point;
-            v5 = Vertices[i].Point - Vertices[i + 1].Point;
-            n3 = SafeNormalize(CrossProduct(v3, v4));
-            n4 = SafeNormalize(CrossProduct(v5, v4));
-            if (Vertices[i].Normal == vector3(0, 0, 0))
-                Vertices[i].Normal = (n1 + n2 + n3) / 3;
-            if (Vertices[i + 1].Normal == vector3(0, 0, 0))
-                Vertices[i + 1].Normal = (n2 + n3 + n4) / 3;
+            v4 = Vertices[i - 1].position - Vertices[i].position;
+            v5 = Vertices[i].position - Vertices[i + 1].position;
+            n3 = glm::normalize(glm::cross(v3, v4));
+            n4 = glm::normalize(glm::cross(v5, v4));
+            if (Vertices[i].normal == glm::vec3())
+                Vertices[i].normal = (n1 + n2 + n3) / 3.0f;
+            if (Vertices[i + 1].normal == glm::vec3())
+                Vertices[i + 1].normal = (n2 + n3 + n4) / 3.0f;
             n1 = n3;
             n2 = n4;
             v3 = v5;
         }
-        if (Vertices[i].Normal == vector3(0, 0, 0))
-            Vertices[i].Normal = (n1 + n2) / 2;
+        if (Vertices[i].normal == glm::vec3())
+            Vertices[i].normal = (n1 + n2) / 2.0f;
 		if (i + 1 < iNumVerts)
 		{
-			if (Vertices[i + 1].Normal == vector3(0, 0, 0))
-				Vertices[i + 1].Normal = n2;
+			if (Vertices[i + 1].normal == glm::vec3())
+				Vertices[i + 1].normal = n2;
 		}
 		else
 			WriteLog("odd number of vertices, normals may be wrong!");
@@ -226,109 +212,25 @@ void TGroundNode::InitNormals()
     case GL_TRIANGLES:
         for (i = 0; i < iNumVerts; i += 3)
         {
-            v1 = Vertices[i + 0].Point - Vertices[i + 1].Point;
-            v2 = Vertices[i + 1].Point - Vertices[i + 2].Point;
-            n1 = SafeNormalize(CrossProduct(v1, v2));
-            if (Vertices[i + 0].Normal == vector3(0, 0, 0))
-                Vertices[i + 0].Normal = (n1);
-            if (Vertices[i + 1].Normal == vector3(0, 0, 0))
-                Vertices[i + 1].Normal = (n1);
-            if (Vertices[i + 2].Normal == vector3(0, 0, 0))
-                Vertices[i + 2].Normal = (n1);
-            tu = floor(Vertices[i + 0].tu);
-            tv = floor(Vertices[i + 0].tv);
-            Vertices[i + 1].tv -= tv;
-            Vertices[i + 2].tv -= tv;
-            Vertices[i + 0].tv -= tv;
-            Vertices[i + 1].tu -= tu;
-            Vertices[i + 2].tu -= tu;
-            Vertices[i + 0].tu -= tu;
+            v1 = Vertices[i + 0].position - Vertices[i + 1].position;
+            v2 = Vertices[i + 1].position - Vertices[i + 2].position;
+            n1 = glm::normalize(glm::cross(v1, v2));
+            if (Vertices[i + 0].normal == glm::vec3())
+                Vertices[i + 0].normal = (n1);
+            if (Vertices[i + 1].normal == glm::vec3())
+                Vertices[i + 1].normal = (n1);
+            if (Vertices[i + 2].normal == glm::vec3())
+                Vertices[i + 2].normal = (n1);
+            t1 = glm::vec2(
+                std::floor( Vertices[ i + 0 ].texture.s ),
+                std::floor( Vertices[ i + 0 ].texture.t ) );
+            Vertices[ i + 1 ].texture -= t1;
+            Vertices[ i + 2 ].texture -= t1;
+            Vertices[ i + 0 ].texture -= t1;
         }
         break;
     }
 }
-
-void TGroundNode::RaRenderVBO()
-{ // renderowanie z domyslnego bufora VBO
-    glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
-    GfxRenderer.Bind( TextureID ); // Ustaw aktywną teksturę
-    glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójkąty
-}
-
-void TGroundNode::Compile( Math3D::vector3 const &Origin, bool const Multiple )
-{ // tworzenie skompilowanej listy w wyświetlaniu DL
-    if (false == Multiple)
-    { // obsługa pojedynczej listy
-        if (DisplayListID)
-            Release();
-        if (Global::bManageNodes)
-        {
-            DisplayListID = glGenLists(1);
-            glNewList(DisplayListID, GL_COMPILE);
-            iVersion = Global::iReCompile; // aktualna wersja siatek (do WireFrame)
-        }
-    }
-    if ((iType == GL_LINES) || (iType == GL_LINE_STRIP) || (iType == GL_LINE_LOOP))
-    {
-        glBegin(iType);
-        for (int i = 0; i < iNumPts; ++i)
-            glVertex3d(
-                Points[i].x - Origin.x,
-                Points[i].y - Origin.y,
-                Points[i].z - Origin.z );
-        glEnd();
-    }
-    else if (iType == GL_TRIANGLE_STRIP || iType == GL_TRIANGLE_FAN || iType == GL_TRIANGLES)
-    { // jak nie linie, to trójkąty
-      // TODO: eliminate these calls, they're duplicated by setup part in the unified render function
-#ifdef EU07_USE_OLD_RENDERCODE
-        glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
-        GfxRenderer.Bind(TextureID);
-#endif
-        glBegin(iType);
-        for (int i = 0; i < iNumVerts; ++i)
-        {
-            glNormal3dv(&Vertices[i].Normal.x);
-            glTexCoord2f(
-                Vertices[i].tu,
-                Vertices[i].tv);
-            glVertex3d(
-                Vertices[i].Point.x - Origin.x,
-                Vertices[i].Point.y - Origin.y,
-                Vertices[i].Point.z - Origin.z );
-        }
-        glEnd();
-    }
-    else if (iType == TP_MESH)
-    { // grupa ze wspólną teksturą - wrzucanie do wspólnego Display List
-#ifdef EU07_USE_OLD_RENDERCODE
-        if (TextureID)
-            GfxRenderer.Bind(TextureID); // Ustaw aktywną teksturę
-#endif
-        TGroundNode *n = nNode;
-        while (n ? n->TextureID == TextureID : false)
-        { // wszystkie obiekty o tej samej testurze
-            switch (n->iType)
-            { // poszczególne typy różnie się tworzy
-            case TP_TRACK:
-            case TP_DUMMYTRACK:
-                n->pTrack->Compile(TextureID); // dodanie trójkątów dla podanej tekstury
-                break;
-            }
-            n = n->nNext3; // następny z listy
-        }
-    }
-    if (false == Multiple)
-        if (Global::bManageNodes)
-            glEndList();
-};
-
-void TGroundNode::Release()
-{
-    if (DisplayListID)
-        glDeleteLists(DisplayListID, 1);
-    DisplayListID = 0;
-};
 
 void TGroundNode::RenderHidden()
 { // renderowanie obiektów niewidocznych
@@ -361,8 +263,6 @@ void TGroundNode::RenderHidden()
 //------------------------------------------------------------------------------
 TSubRect::~TSubRect()
 {
-    if (Global::bManageNodes) // Ra: tu się coś sypie
-        ResourceManager::Unregister(this); // wyrejestrowanie ze sprzątacza
     // TODO: usunąć obiekty z listy (nRootMesh), bo są one tworzone dla sektora
 	delete[] tTracks;
 }
@@ -378,9 +278,15 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     // nRender          - lista grup renderowanych z własnych VBO albo DL
     // nRenderAlpha     - lista grup renderowanych z własnych VBO albo DL z przezroczystością
     // nRenderWires     - lista grup renderowanych z własnych VBO albo DL - druty i linie
-    // nMeshed          - obiekty do pogrupowania wg tekstur
 
-    Node->m_rootposition = Math3D::vector3( m_area.center.x, m_area.center.y, m_area.center.z ) ;
+    Node->m_rootposition = m_area.center;
+
+    // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
+    // NOTE: this method is called for both subcell and cell, but subcells get first created and passed the handle from their parent
+    // thus, this effectively only gets executed for the 'parent' ground cells. Not the most elegant, but for now it'll do
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
 
     switch (Node->iType)
     {
@@ -392,66 +298,24 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     case TP_TRACK: // TODO: tory z cieniem (tunel, canyon) też dać bez łączenia?
         ++iTracks; // jeden tor więcej
         Node->pTrack->RaOwnerSet(this); // do którego sektora ma zgłaszać animację
-/*
-        if( ( true == Global::bUseVBO )
-         || ( false == Node->pTrack->IsGroupable() ) ) {
-            // tory ruchome nie są grupowane przy Display Lists (wymagają odświeżania DL)
-            RaNodeAdd( Node );
-        }
-        else
-        { // tory nieruchome mogą być pogrupowane wg tekstury, przy VBO wszystkie
-            Node->TextureID = Node->pTrack->TextureGet(0); // pobranie tekstury do sortowania
-            GLuint t = Node->pTrack->TextureGet(1);
-            if (Node->TextureID) // jeżeli jest pierwsza
-            {
-                if (t && (Node->TextureID != t))
-                { // jeśli są dwie różne tekstury, dodajemy drugi obiekt dla danego toru
-                    TGroundNode *n = new TGroundNode(); // BUG: source of a memory leak here
-                    n->iType = TP_DUMMYTRACK; // obiekt renderujący siatki dla tekstury
-                    n->TextureID = t;
-                    n->pTrack = Node->pTrack; // wskazuje na ten sam tor
-                    n->pCenter = Node->pCenter;
-                    n->fSquareRadius = Node->fSquareRadius;
-                    n->fSquareMinRadius = Node->fSquareMinRadius;
-                    n->iFlags = Node->iFlags;
-                    n->nNext2 = nRootMesh;
-                    nRootMesh = n; // podczepienie do listy, żeby usunąć na końcu
-                    n->nNext3 = nMeshed;
-                    nMeshed = n;
-                }
-            }
-            else
-                Node->TextureID = t; // jest tylko druga tekstura
-            if (Node->TextureID)
-            {
-                Node->nNext3 = nMeshed;
-                nMeshed = Node;
-            } // do podzielenia potem
-        }
-*/
-        // NOTE: track merge code temporarily disabled to simplify implementation of camera-centric rendering
-        // TODO: re-implement merge for both render paths down the road
-        RaNodeAdd( Node );
-
+        // NOTE: track merge/sort temporarily disabled to simplify unification of render code
+        // TODO: refactor sorting as universal part of drawing process in the renderer
+        Node->nNext3 = nRenderRect;
+        nRenderRect = Node;
         break;
     case GL_TRIANGLE_STRIP:
     case GL_TRIANGLE_FAN:
     case GL_TRIANGLES:
-        // Node->nNext3=nMeshed; nMeshed=Node; //do podzielenia potem
-        if (Node->iFlags & 0x20) // czy jest przezroczyste?
-        {
+        if (Node->iFlags & 0x20) {
+            // do przezroczystych z sektora
             Node->nNext3 = nRenderRectAlpha;
             nRenderRectAlpha = Node;
-        } // DL: do przezroczystych z sektora
-#ifdef EU07_USE_OLD_RENDERCODE
-        Node->nNext3 = nRenderRect;
-        nRenderRect = Node;
-#else
+        }
         else {
+            // do nieprzezroczystych z sektora
             Node->nNext3 = nRenderRect;
             nRenderRect = Node;
-        } // do nieprzezroczystych z sektora
-#endif
+        }
         break;
     case TP_TRACTION:
     case GL_LINES:
@@ -477,8 +341,6 @@ void TSubRect::NodeAdd(TGroundNode *Node)
             Node->nNext3 = nRenderMixed;
             nRenderMixed = Node;
         } // do mieszanych
-        // Node->nNext3=nMeshed; //dopisanie do listy sortowania
-        // nMeshed=Node;
         break;
 #ifdef EU07_SCENERY_EDITOR
     case TP_MEMCELL: {
@@ -492,145 +354,28 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     case TP_DYNAMIC:
         return; // tych nie dopisujemy wcale
     }
-    Node->nNext2 = nRootNode; // dopisanie do ogólnej listy
+    // dopisanie do ogólnej listy
+    Node->nNext2 = nRootNode;
     nRootNode = Node;
-    ++iNodeCount; // licznik obiektów
+    // licznik obiektów
+    ++iNodeCount;
 }
 
-void TSubRect::RaNodeAdd(TGroundNode *Node)
-{ // finalna kwalifikacja na listy renderowania, jeśli nie obsługiwane grupowo
-    switch (Node->iType)
-    {
-    case TP_TRACK:
-#ifdef EU07_USE_OLD_RENDERCODE
-        Node->nNext3 = nRenderRect;
-        nRenderRect = Node;
-#else
-        Node->nNext3 = nRenderRect;
-        nRenderRect = Node;
-#endif
-        break;
-    case GL_TRIANGLE_STRIP:
-    case GL_TRIANGLE_FAN:
-    case GL_TRIANGLES:
-        if (Node->iFlags & 0x20) // czy jest przezroczyste?
-        {
-            Node->nNext3 = nRenderRectAlpha;
-            nRenderRectAlpha = Node;
-        } // DL: do przezroczystych z sektora
-#ifdef EU07_USE_OLD_RENDERCODE
-        Node->nNext3 = nRenderRect;
-        nRenderRect = Node;
-#else
-        else {
-            Node->nNext3 = nRenderRect;
-            nRenderRect = Node;
-        } // do nieprzezroczystych z sektora
-#endif
-        break;
-    case TP_MODEL: // modele zawsze wyświetlane z własnego VBO
-        if ((Node->iFlags & 0x20200020) == 0) // czy brak przezroczystości?
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // do nieprzezroczystych
-        else if ((Node->iFlags & 0x10100010) == 0) // czy brak nieprzezroczystości?
-        {
-            Node->nNext3 = nRenderAlpha;
-            nRenderAlpha = Node;
-        } // do przezroczystych
-        else // jak i take i takie, to będzie dwa razy renderowane...
-        {
-            Node->nNext3 = nRenderMixed;
-            nRenderMixed = Node;
-        } // do mieszanych
-        break;
-    case TP_MESH: // grupa ze wspólną teksturą
-        //{Node->nNext3=nRenderRect; nRenderRect=Node;} //do nieprzezroczystych z sektora
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // do nieprzezroczystych
-        break;
-    case TP_SUBMODEL: // submodele terenu w kwadracie kilometrowym idą do nRootMesh
-        // WriteLog("nRootMesh was "+AnsiString(nRootMesh?"not null ":"null
-        // ")+IntToHex(int(this),8));
-        Node->nNext3 = nRootMesh; // przy VBO musi być inaczej
-        nRootMesh = Node;
-        break;
-    }
-}
+// przygotowanie sektora do renderowania
+void TSubRect::Sort() {
 
-void TSubRect::Sort()
-{ // przygotowanie sektora do renderowania
-    TGroundNode **n0, *n1, *n2; // wskaźniki robocze
-    delete[] tTracks; // usunięcie listy
-    tTracks =
-        iTracks ? new TTrack *[iTracks] : NULL; // tworzenie tabeli torów do renderowania pojazdów
-    if (tTracks)
-    { // wypełnianie tabeli torów
+    assert( tTracks == nullptr );
+    if( iTracks > 0 ) {
+        tTracks = new TTrack *[ iTracks ]; // tworzenie tabeli torów do renderowania pojazdów
         int i = 0;
-        for (n1 = nRootNode; n1; n1 = n1->nNext2) // kolejne obiekty z sektora
-            if (n1->iType == TP_TRACK)
-                tTracks[i++] = n1->pTrack;
-    }
-    // sortowanie obiektów w sektorze na listy renderowania
-    if (!nMeshed)
-        return; // nie ma nic do sortowania
-    bool sorted = false;
-    while (!sorted)
-    { // sortowanie bąbelkowe obiektów wg tekstury
-        sorted = true; // zakładamy posortowanie
-        n0 = &nMeshed; // wskaźnik niezbędny do zamieniania obiektów
-        n1 = nMeshed; // lista obiektów przetwarzanych na statyczne siatki
-        while (n1)
-        { // sprawdzanie stanu posortowania obiektów i ewentualne zamiany
-            n2 = n1->nNext3; // kolejny z tej listy
-            if (n2) // jeśli istnieje
-                if (n1->TextureID > n2->TextureID)
-                { // zamiana elementów miejscami
-                    *n0 = n2; // drugi będzie na początku
-                    n1->nNext3 = n2->nNext3; // ten zza drugiego będzie za pierwszym
-                    n2->nNext3 = n1; // a za drugim będzie pierwszy
-                    sorted = false; // potrzebny kolejny przebieg
-                }
-            n0 = &(n1->nNext3);
-            n1 = n2;
-        };
-    }
-    // wyrzucenie z listy obiektów pojedynczych (nie ma z czym ich grupować)
-    // nawet jak są pojedyncze, to i tak lepiej, aby były w jednym Display List
-    /*
-        else
-        {//dodanie do zwykłej listy renderowania i usunięcie z grupowego
-         *n0=n2; //drugi będzie na początku
-         RaNodeAdd(n1); //nie ma go z czym zgrupować; (n1->nNext3) zostanie nadpisane
-         n1=n2; //potrzebne do ustawienia (n0)
+        for( TGroundNode *node = nRootNode; node != nullptr; node = node->nNext2 ) {
+            // kolejne obiekty z sektora
+            if( node->iType == TP_TRACK ) {
+                tTracks[ i++ ] = node->pTrack;
+            }
         }
-    */
-    //...
-    // przeglądanie listy i tworzenie obiektów renderujących dla danej tekstury
-    int t = 0; // pomocniczy kod tekstury
-    n1 = nMeshed; // lista obiektów przetwarzanych na statyczne siatki
-    while (n1)
-    { // dla każdej tekstury powinny istnieć co najmniej dwa obiekty, ale dla DL nie ma to znaczenia
-        if (t < n1->TextureID) // jeśli (n1) ma inną teksturę niż poprzednie
-        { // można zrobić obiekt renderujący
-            t = n1->TextureID;
-			n2 = new TGroundNode(); // BUG: source of a memory leak here
-            n2->nNext2 = nRootMesh;
-            nRootMesh = n2; // podczepienie na początku listy
-            nRootMesh->iType = TP_MESH; // obiekt renderujący siatki dla tekstury
-            nRootMesh->TextureID = t;
-            nRootMesh->nNode = n1; // pierwszy element z listy
-            nRootMesh->pCenter = n1->pCenter;
-            nRootMesh->fSquareRadius = 1e8; // widać bez ograniczeń
-            nRootMesh->fSquareMinRadius = 0.0;
-            nRootMesh->iFlags = 0x10;
-            RaNodeAdd(nRootMesh); // dodanie do odpowiedniej listy renderowania
-        }
-        n1 = n1->nNext3; // kolejny z tej listy
-    };
+    }
+    // NOTE: actual sort procedure temporarily removed as part of render code unification
 }
 
 TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
@@ -656,8 +401,10 @@ TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
 
 bool TSubRect::RaTrackAnimAdd(TTrack *t)
 { // aktywacja animacji torów w VBO (zwrotnica, obrotnica)
-    if (m_nVertexCount < 0)
-        return true; // nie ma animacji, gdy nie widać
+    if( false == m_geometrycreated ) {
+        // nie ma animacji, gdy nie widać
+        return true;
+    }
     if (tTrackAnim)
         tTrackAnim->RaAnimListAdd(t);
     else
@@ -671,19 +418,10 @@ void TSubRect::RaAnimate()
         // nie ma nic do animowania
         return;
     }
-    // crude way to mark whether a vbo is bound, for the vbo render path
-    // TODO: sort this shit out and re-arrange into something more elegant... eventually
-    GLuint vertexbuffer{ static_cast<GLuint>(-1) };
-    // odświeżenie VBO sektora
-    if( GLEW_VERSION_1_5 ) {
-        // modyfikacje VBO są dostępne od OpenGL 1.5
-        vertexbuffer = m_nVBOVertices;
-        ::glBindBuffer( GL_ARRAY_BUFFER, vertexbuffer );
-    }
-    tTrackAnim = tTrackAnim->RaAnimate( vertexbuffer ); // przeliczenie animacji kolejnego
+    tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
 };
 
-TTraction * TSubRect::FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude)
+TTraction * TSubRect::FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude)
 { // szukanie przęsła w sektorze, którego koniec jest najbliższy (*Point)
     TGroundNode *Current;
     for (Current = nRenderWires; Current; Current = Current->nNext3)
@@ -696,117 +434,60 @@ TTraction * TSubRect::FindTraction(vector3 *Point, int &iConnection, TTraction *
     return NULL;
 };
 
-void TSubRect::LoadNodes()
-{ // utworzenie siatek VBO dla wszystkich node w sektorze
-    if (m_nVertexCount >= 0)
-        return; // obiekty były już sprawdzone
-    m_nVertexCount = 0; //-1 oznacza, że nie sprawdzono listy obiektów
-    if (!nRootNode)
+// utworzenie siatek VBO dla wszystkich node w sektorze
+void TSubRect::LoadNodes() {
+
+    if( true == m_geometrycreated ) {
+        // obiekty były już sprawdzone
         return;
-    TGroundNode *n = nRootNode;
-    while (n)
-    {
-        switch (n->iType)
-        {
-        case GL_TRIANGLE_STRIP:
-        case GL_TRIANGLE_FAN:
-        case GL_TRIANGLES:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            m_nVertexCount += n->iNumVerts;
-            break;
-        case GL_LINES:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            m_nVertexCount += n->iNumPts; // miejsce w tablicach normalnych i teksturowania się zmarnuje...
-            break;
-        case TP_TRACK:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            n->iNumVerts = n->pTrack->RaArrayPrepare(); // zliczenie wierzchołków
-            m_nVertexCount += n->iNumVerts;
-            break;
-        case TP_TRACTION:
-            n->iVboPtr = m_nVertexCount; // nowy początek
-            n->iNumVerts = n->hvTraction->RaArrayPrepare(); // zliczenie wierzchołków
-            m_nVertexCount += n->iNumVerts;
-            break;
-        }
-        n = n->nNext2; // następny z sektora
     }
-    if (m_nVertexCount <= 0)
-        return; // jeśli nie ma obiektów do wyświetlenia z VBO, to koniec
-    { // tylko liczenie wierzchołów, gdy nie ma VBO
-        MakeArray(m_nVertexCount);
-        n = nRootNode;
-        int i;
-        while (n)
-        {
-            if (n->iVboPtr >= 0)
-                switch (n->iType)
-                {
-                case GL_TRIANGLE_STRIP:
-                case GL_TRIANGLE_FAN:
-                case GL_TRIANGLES:
-                    for (i = 0; i < n->iNumVerts; ++i)
-                    { // Ra: trójkąty można od razu wczytywać do takich tablic... to może poczekać
-                        m_pVNT[n->iVboPtr + i].x = n->Vertices[i].Point.x - n->m_rootposition.x;
-                        m_pVNT[n->iVboPtr + i].y = n->Vertices[i].Point.y - n->m_rootposition.y;
-                        m_pVNT[n->iVboPtr + i].z = n->Vertices[i].Point.z - n->m_rootposition.z;
-                        m_pVNT[n->iVboPtr + i].nx = n->Vertices[i].Normal.x;
-                        m_pVNT[n->iVboPtr + i].ny = n->Vertices[i].Normal.y;
-                        m_pVNT[n->iVboPtr + i].nz = n->Vertices[i].Normal.z;
-                        m_pVNT[n->iVboPtr + i].u = n->Vertices[i].tu;
-                        m_pVNT[n->iVboPtr + i].v = n->Vertices[i].tv;
-                    }
-                    break;
-                case GL_LINES:
-                case GL_LINE_STRIP:
-                case GL_LINE_LOOP:
-                    for (i = 0; i < n->iNumPts; ++i)
-                    {
-                        m_pVNT[n->iVboPtr + i].x = n->Points[i].x - n->m_rootposition.x;
-                        m_pVNT[n->iVboPtr + i].y = n->Points[i].y - n->m_rootposition.y;
-                        m_pVNT[n->iVboPtr + i].z = n->Points[i].z - n->m_rootposition.z;
-                        // miejsce w tablicach normalnych i teksturowania się marnuje...
-                    }
-                    break;
-                case TP_TRACK:
-                    if( n->iNumVerts ) { // bo tory zabezpieczające są niewidoczne
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-                        n->pTrack->RaArrayFill( m_pVNT + n->iVboPtr, m_pVNT, std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
-#else
-                        n->pTrack->RaArrayFill( m_pVNT.data() + n->iVboPtr, m_pVNT.data(), std::min( n->iNumVerts, m_nVertexCount - n->iVboPtr ) );
-#endif
-                    }
-                    break;
-                case TP_TRACTION:
-                    if( n->iNumVerts ) { // druty mogą być niewidoczne...?
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-                        n->hvTraction->RaArrayFill( m_pVNT + n->iVboPtr, n->m_rootposition );
-#else
-                        n->hvTraction->RaArrayFill( m_pVNT.data() + n->iVboPtr );
-#endif
-                    }
-                    break;
+    else {
+        // mark it done for future checks
+        m_geometrycreated = true;
+    }
+
+    auto *node { nRootNode };
+    while( node != nullptr ) {
+        switch (node->iType) {
+            case GL_TRIANGLES: {
+                vertex_array vertices;
+                for( int idx = 0; idx < node->iNumVerts; ++idx ) {
+                    vertices.emplace_back(
+                        node->Vertices[ idx ].position - node->m_rootposition,
+                        node->Vertices[ idx ].normal,
+                        node->Vertices[ idx ].texture );
                 }
-            n = n->nNext2; // następny z sektora
+                node->m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, GL_TRIANGLES );
+                SafeDeleteArray( node->Vertices );
+                node->iNumVerts = 0;
+                break;
+            }
+            case GL_LINES: {
+                vertex_array vertices;
+                for( int idx = 0; idx < node->iNumPts; ++idx ) {
+                    vertices.emplace_back(
+                        node->Points[ idx ] - node->m_rootposition,
+                        glm::vec3(),
+                        glm::vec2() );
+                }
+                node->m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, GL_LINES );
+                SafeDeleteArray( node->Vertices );
+                node->iNumPts = 0;
+                break;
+            }
+            case TP_TRACK:
+                if( node->pTrack->bVisible ) { // bo tory zabezpieczające są niewidoczne
+                    node->pTrack->create_geometry( m_geometrybank );
+                }
+                break;
+            case TP_TRACTION:
+                node->hvTraction->create_geometry( m_geometrybank, node->m_rootposition );
+                break;
+            default: { break; }
         }
-        BuildVBOs();
+        node = node->nNext2; // następny z sektora
     }
-    if (Global::bManageNodes)
-        ResourceManager::Register(this); // dodanie do automatu zwalniającego pamięć
 }
-
-bool TSubRect::StartVBO()
-{ // początek rysowania elementów z VBO w sektorze
-    SetLastUsage(Timer::GetSimulationTime()); // te z tyłu będą niepotrzebnie zwalniane
-    return CMesh::StartVBO();
-};
-
-void TSubRect::Release()
-{ // wirtualne zwolnienie zasobów przez sprzątacz albo destruktor
-        CMesh::Clear(); // usuwanie buforów
-};
 
 void TSubRect::RenderSounds()
 { // aktualizacja dźwięków w pojazdach sektora (sektor może nie być wyświetlany)
@@ -825,29 +506,30 @@ TGroundRect::~TGroundRect()
 
 void
 TGroundRect::Init() {
+    // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
 
     pSubRects = new TSubRect[ iNumSubRects * iNumSubRects ];
     float const subrectsize = 1000.0f / iNumSubRects;
     for( int column = 0; column < iNumSubRects; ++column ) {
         for( int row = 0; row < iNumSubRects; ++row ) {
-            auto &area = SafeGetRect(column, row)->m_area;
+            auto subcell = FastGetSubRect( column, row );
+            auto &area = subcell->m_area;
             area.center =
                 m_area.center
                 - glm::vec3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
                 + glm::vec3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
                 + glm::vec3( subrectsize * column, 0.0f, subrectsize * row );
-/*
-            // NOTE: the actual coordinates get swapped, as they're swapped in rest of the code :x
-            area.center = glm::vec3( area.center.z, area.center.y, area.center.x );
-*/
-            area.radius = subrectsize * (float)M_SQRT2;
+            area.radius = subrectsize * M_SQRT2;
+            // all subcells share the same geometry bank with their parent, to reduce buffer switching during render
+            subcell->m_geometrybank = m_geometrybank;
         }
     }
 };
 
 //---------------------------------------------------------------------------
-
-std::vector<TGroundVertex> TempVerts;
 
 BYTE TempConnectionType[ 200 ]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
 
@@ -859,11 +541,9 @@ TGround::TGround()
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
     ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
-    ::SecureZeroMemory( pRendered, sizeof( pRendered ) );
-
     // set bounding area information for ground rectangles
     float const rectsize = 1000.0f;
-    glm::vec3 const worldcenter( 0.0f, 0.0f, 0.0f );
+    glm::vec3 const worldcenter;
     for( int column = 0; column < iNumRects; ++column ) {
         for( int row = 0; row < iNumRects; ++row ) {
             auto &area = Rects[ column ][ row ].m_area;
@@ -1001,16 +681,16 @@ void TGround::RaTriangleDivider(TGroundNode *node)
         return; // tylko pojedyncze trójkąty
     if (node->iNumVerts != 3)
         return; // tylko gdy jeden trójkąt
-    double x0 = 1000.0 * floor(0.001 * node->pCenter.x) - 200.0;
+    double x0 = 1000.0 * std::floor(0.001 * node->pCenter.x) - 200.0;
     double x1 = x0 + 1400.0;
-    double z0 = 1000.0 * floor(0.001 * node->pCenter.z) - 200.0;
+    double z0 = 1000.0 * std::floor(0.001 * node->pCenter.z) - 200.0;
     double z1 = z0 + 1400.0;
-    if ((node->Vertices[0].Point.x >= x0) && (node->Vertices[0].Point.x <= x1) &&
-        (node->Vertices[0].Point.z >= z0) && (node->Vertices[0].Point.z <= z1) &&
-        (node->Vertices[1].Point.x >= x0) && (node->Vertices[1].Point.x <= x1) &&
-        (node->Vertices[1].Point.z >= z0) && (node->Vertices[1].Point.z <= z1) &&
-        (node->Vertices[2].Point.x >= x0) && (node->Vertices[2].Point.x <= x1) &&
-        (node->Vertices[2].Point.z >= z0) && (node->Vertices[2].Point.z <= z1))
+    if ((node->Vertices[0].position.x >= x0) && (node->Vertices[0].position.x <= x1) &&
+        (node->Vertices[0].position.z >= z0) && (node->Vertices[0].position.z <= z1) &&
+        (node->Vertices[1].position.x >= x0) && (node->Vertices[1].position.x <= x1) &&
+        (node->Vertices[1].position.z >= z0) && (node->Vertices[1].position.z <= z1) &&
+        (node->Vertices[2].position.x >= x0) && (node->Vertices[2].position.x <= x1) &&
+        (node->Vertices[2].position.z >= z0) && (node->Vertices[2].position.z <= z1))
         return; // trójkąt wystający mniej niż 200m z kw. kilometrowego jest do przyjęcia
     // Ra: przerobić na dzielenie na 2 trójkąty, podział w przecięciu z siatką kilometrową
     // Ra: i z rekurencją będzie dzielić trzy trójkąty, jeśli będzie taka potrzeba
@@ -1020,40 +700,40 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     x1 -= 200.0; // przestawienie na siatkę
     z0 += 200.0;
     z1 -= 200.0;
-    mul = (node->Vertices[0].Point.x - x0) * (node->Vertices[1].Point.x - x0); // AB na wschodzie
+    mul = (node->Vertices[0].position.x - x0) * (node->Vertices[1].position.x - x0); // AB na wschodzie
     if (mul < min)
         min = mul, divide = 0;
-    mul = (node->Vertices[1].Point.x - x0) * (node->Vertices[2].Point.x - x0); // BC na wschodzie
+    mul = (node->Vertices[1].position.x - x0) * (node->Vertices[2].position.x - x0); // BC na wschodzie
     if (mul < min)
         min = mul, divide = 1;
-    mul = (node->Vertices[2].Point.x - x0) * (node->Vertices[0].Point.x - x0); // CA na wschodzie
+    mul = (node->Vertices[2].position.x - x0) * (node->Vertices[0].position.x - x0); // CA na wschodzie
     if (mul < min)
         min = mul, divide = 2;
-    mul = (node->Vertices[0].Point.x - x1) * (node->Vertices[1].Point.x - x1); // AB na zachodzie
+    mul = (node->Vertices[0].position.x - x1) * (node->Vertices[1].position.x - x1); // AB na zachodzie
     if (mul < min)
         min = mul, divide = 8;
-    mul = (node->Vertices[1].Point.x - x1) * (node->Vertices[2].Point.x - x1); // BC na zachodzie
+    mul = (node->Vertices[1].position.x - x1) * (node->Vertices[2].position.x - x1); // BC na zachodzie
     if (mul < min)
         min = mul, divide = 9;
-    mul = (node->Vertices[2].Point.x - x1) * (node->Vertices[0].Point.x - x1); // CA na zachodzie
+    mul = (node->Vertices[2].position.x - x1) * (node->Vertices[0].position.x - x1); // CA na zachodzie
     if (mul < min)
         min = mul, divide = 10;
-    mul = (node->Vertices[0].Point.z - z0) * (node->Vertices[1].Point.z - z0); // AB na południu
+    mul = (node->Vertices[0].position.z - z0) * (node->Vertices[1].position.z - z0); // AB na południu
     if (mul < min)
         min = mul, divide = 4;
-    mul = (node->Vertices[1].Point.z - z0) * (node->Vertices[2].Point.z - z0); // BC na południu
+    mul = (node->Vertices[1].position.z - z0) * (node->Vertices[2].position.z - z0); // BC na południu
     if (mul < min)
         min = mul, divide = 5;
-    mul = (node->Vertices[2].Point.z - z0) * (node->Vertices[0].Point.z - z0); // CA na południu
+    mul = (node->Vertices[2].position.z - z0) * (node->Vertices[0].position.z - z0); // CA na południu
     if (mul < min)
         min = mul, divide = 6;
-    mul = (node->Vertices[0].Point.z - z1) * (node->Vertices[1].Point.z - z1); // AB na północy
+    mul = (node->Vertices[0].position.z - z1) * (node->Vertices[1].position.z - z1); // AB na północy
     if (mul < min)
         min = mul, divide = 12;
-    mul = (node->Vertices[1].Point.z - z1) * (node->Vertices[2].Point.z - z1); // BC na północy
+    mul = (node->Vertices[1].position.z - z1) * (node->Vertices[2].position.z - z1); // BC na północy
     if (mul < min)
         min = mul, divide = 13;
-    mul = (node->Vertices[2].Point.z - z1) * (node->Vertices[0].Point.z - z1); // CA na północy
+    mul = (node->Vertices[2].position.z - z1) * (node->Vertices[0].position.z - z1); // CA na północy
     if (mul < min)
         divide = 14;
     // tworzymy jeden dodatkowy trójkąt, dzieląc jeden bok na przecięciu siatki kilometrowej
@@ -1063,19 +743,16 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     ntri->Init(3);
     ntri->TextureID = node->TextureID;
     ntri->iFlags = node->iFlags;
-    for (int j = 0; j < 4; ++j)
-    {
-        ntri->Ambient[j] = node->Ambient[j];
-        ntri->Diffuse[j] = node->Diffuse[j];
-        ntri->Specular[j] = node->Specular[j];
-    }
+    ntri->Ambient = node->Ambient;
+    ntri->Diffuse = node->Diffuse;
+    ntri->Specular = node->Specular;
     ntri->asName = node->asName;
     ntri->fSquareRadius = node->fSquareRadius;
     ntri->fSquareMinRadius = node->fSquareMinRadius;
     ntri->bVisible = node->bVisible; // a są jakieś niewidoczne?
     ntri->nNext = nRootOfType[GL_TRIANGLES];
     nRootOfType[GL_TRIANGLES] = ntri; // dopisanie z przodu do listy
-    iNumNodes++;
+    ++iNumNodes;
     switch (divide & 3)
     { // podzielenie jednego z boków, powstaje wierzchołek D
     case 0: // podział AB (0-1) -> ADC i DBC
@@ -1110,19 +787,15 @@ void TGround::RaTriangleDivider(TGroundNode *node)
         break;
     }
     // przeliczenie środków ciężkości obu
-    node->pCenter =
-        (node->Vertices[0].Point + node->Vertices[1].Point + node->Vertices[2].Point) / 3.0;
-    ntri->pCenter =
-        (ntri->Vertices[0].Point + ntri->Vertices[1].Point + ntri->Vertices[2].Point) / 3.0;
+    node->pCenter = ( node->Vertices[ 0 ].position + node->Vertices[ 1 ].position + node->Vertices[ 2 ].position ) / 3.0;
+    ntri->pCenter = ( ntri->Vertices[ 0 ].position + ntri->Vertices[ 1 ].position + ntri->Vertices[ 2 ].position ) / 3.0;
     RaTriangleDivider(node); // rekurencja, bo nawet na TD raz nie wystarczy
     RaTriangleDivider(ntri);
 };
 
 TGroundNode * TGround::AddGroundNode(cParser *parser)
 { // wczytanie wpisu typu "node"
-    // parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzać
 	std::string str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
-	int nv, i;
 	double tf, r, rmin, tf1, tf3;
 	int int1;
 	size_t int2;
@@ -1138,7 +811,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         >> rmin
         >> asNodeName
         >> str;
-    //str = AnsiString(token.c_str());
 	TGroundNode *tmp = new TGroundNode();
     tmp->asName = (asNodeName == "none" ? "" : asNodeName);
     if (r >= 0)
@@ -1190,6 +862,9 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         delete tmp;
         return NULL;
     }
+    glm::dvec3 center;
+    std::vector<TGroundVertex> importedvertices;
+
     switch (tmp->iType)
     {
     case TP_TRACTION:
@@ -1198,8 +873,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         *parser >> token;
         tmp->hvTraction->asPowerSupplyName = token; // nazwa zasilacza
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >>
-            tmp->hvTraction->fResistivity;
+        *parser
+            >> tmp->hvTraction->NominalVoltage
+            >> tmp->hvTraction->MaxCurrent
+            >> tmp->hvTraction->fResistivity;
         if (tmp->hvTraction->fResistivity == 0.01f) // tyle jest w sceneriach [om/km]
             tmp->hvTraction->fResistivity = 0.075f; // taka sensowniejsza wartość za
         // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
@@ -1221,33 +898,38 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         parser->getTokens();
         *parser >> tmp->hvTraction->DamageFlag;
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint1.x >> tmp->hvTraction->pPoint1.y >>
-            tmp->hvTraction->pPoint1.z;
-        tmp->hvTraction->pPoint1 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint1.x
+            >> tmp->hvTraction->pPoint1.y
+            >> tmp->hvTraction->pPoint1.z;
+        tmp->hvTraction->pPoint1 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint2.x >> tmp->hvTraction->pPoint2.y >>
-            tmp->hvTraction->pPoint2.z;
-        tmp->hvTraction->pPoint2 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint2.x
+            >> tmp->hvTraction->pPoint2.y
+            >> tmp->hvTraction->pPoint2.z;
+        tmp->hvTraction->pPoint2 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint3.x >> tmp->hvTraction->pPoint3.y >>
-            tmp->hvTraction->pPoint3.z;
-        tmp->hvTraction->pPoint3 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint3.x
+            >> tmp->hvTraction->pPoint3.y
+            >> tmp->hvTraction->pPoint3.z;
+        tmp->hvTraction->pPoint3 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint4.x >> tmp->hvTraction->pPoint4.y >>
-            tmp->hvTraction->pPoint4.z;
-        tmp->hvTraction->pPoint4 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint4.x
+            >> tmp->hvTraction->pPoint4.y
+            >> tmp->hvTraction->pPoint4.z;
+        tmp->hvTraction->pPoint4 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
         parser->getTokens();
         *parser >> tf1;
         tmp->hvTraction->fHeightDifference =
-            (tmp->hvTraction->pPoint3.y - tmp->hvTraction->pPoint1.y + tmp->hvTraction->pPoint4.y -
-             tmp->hvTraction->pPoint2.y) *
-                0.5f -
-            tf1;
+            (tmp->hvTraction->pPoint3.y - tmp->hvTraction->pPoint1.y + tmp->hvTraction->pPoint4.y - tmp->hvTraction->pPoint2.y) * 0.5f - tf1;
         parser->getTokens();
         *parser >> tf1;
         if (tf1 > 0)
             tmp->hvTraction->iNumSections =
-                (tmp->hvTraction->pPoint1 - tmp->hvTraction->pPoint2).Length() / tf1;
+                glm::length((tmp->hvTraction->pPoint1 - tmp->hvTraction->pPoint2)) / tf1;
         else
             tmp->hvTraction->iNumSections = 0;
         parser->getTokens();
@@ -1272,19 +954,24 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->hvTraction->Init(); // przeliczenie parametrów
         // if (Global::bLoadTraction)
         // tmp->hvTraction->Optimize(); //generowanie DL dla wszystkiego przy wczytywaniu?
-        tmp->pCenter = (tmp->hvTraction->pPoint2 + tmp->hvTraction->pPoint1) * 0.5f;
-        // if (!Global::bLoadTraction) SafeDelete(tmp); //Ra: tak być nie może, bo NULL to błąd
+        tmp->pCenter = interpolate( tmp->hvTraction->pPoint2, tmp->hvTraction->pPoint1, 0.5 );
         break;
     case TP_TRACTIONPOWERSOURCE:
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
         tmp->pCenter += pOrigin;
         tmp->psTractionPowerSource = new TTractionPowerSource(tmp);
         tmp->psTractionPowerSource->Load(parser);
         break;
     case TP_MEMCELL:
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
         tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzględnienie rotacji
         tmp->pCenter += pOrigin;
         tmp->MemCell = new TMemCell(&tmp->pCenter);
@@ -1299,7 +986,10 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         break;
     case TP_EVLAUNCH:
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
         tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzględnienie rotacji
         tmp->pCenter += pOrigin;
         tmp->EvLaunch = new TEventLauncher();
@@ -1310,8 +1000,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         if (Global::iWriteLogEnabled & 4)
             if (!tmp->asName.empty())
                 WriteLog(tmp->asName);
-        tmp->pTrack->Load(parser, pOrigin,
-                          tmp->asName); // w nazwie może być nazwa odcinka izolowanego
+        tmp->pTrack->Load(parser, pOrigin, tmp->asName); // w nazwie może być nazwa odcinka izolowanego
         if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
             if( false == m_trackmap.Add( TP_TRACK, tmp->asName, tmp ) ) {
@@ -1319,14 +1008,18 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 ErrorLog( "Duplicated track: " + tmp->asName ); // to zgłaszać duplikat
             }
         }
-        tmp->pCenter = (tmp->pTrack->CurrentSegment()->FastGetPoint_0() +
-                        tmp->pTrack->CurrentSegment()->FastGetPoint(0.5) +
-                        tmp->pTrack->CurrentSegment()->FastGetPoint_1()) /
-                       3.0;
+        tmp->pCenter = (
+              tmp->pTrack->CurrentSegment()->FastGetPoint_0()
+            + tmp->pTrack->CurrentSegment()->FastGetPoint( 0.5 )
+            + tmp->pTrack->CurrentSegment()->FastGetPoint_1() )
+            / 3.0;
         break;
     case TP_SOUND:
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
         tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzględnienie rotacji
         tmp->pCenter += pOrigin;
         parser->getTokens();
@@ -1335,11 +1028,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 		//str = AnsiString(token.c_str());
         tmp->tsStaticSound = new TTextSound(str, sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z, false, false, rmin);
         if (rmin < 0.0)
-            rmin =
-                0.0; // przywrócenie poprawnej wartości, jeśli służyła do wyłączenia efektu Dopplera
-
-        //            tmp->pDirectSoundBuffer=TSoundsManager::GetFromName(str.c_str());
-        //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
+            rmin = 0.0; // przywrócenie poprawnej wartości, jeśli służyła do wyłączenia efektu Dopplera
         parser->getTokens();
         *parser >> token;
         break;
@@ -1373,12 +1062,11 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 str4 = "";
             }
             int2 = 0; // zeruje po wykorzystaniu
-            //    *parser >> int1; //yB: nastawy i takie tam TUTAJ!!!!!
             if (int1 < 0)
                 int1 = (-int1) |
                        ctrain_depot; // sprzęg zablokowany (pojazdy nierozłączalne przy manewrach)
             if (tf1 != -1.0)
-                if (fabs(tf1) > 0.5) // maksymalna odległość między sprzęgami - do przemyślenia
+                if (std::fabs(tf1) > 0.5) // maksymalna odległość między sprzęgami - do przemyślenia
                     int1 = 0; // likwidacja sprzęgu, jeśli odległość zbyt duża - to powinno być
             // uwzględniane w fizyce sprzęgów...
             TempConnectionType[iTrainSetWehicleNumber] = int1; // wartość dodatnia
@@ -1501,37 +1189,19 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI);
         // McZapkie-260402: model tez ma wspolrzedne wzgledne
         tmp->pCenter += pOrigin;
-        // tmp->fAngle+=aRotate.y; // /180*M_PI
-        /*
-           if (tmp->iType==TP_MODEL)
-           {//jeśli standardowy model
-        */
+
         tmp->Model = new TAnimModel();
-        tmp->Model->RaAnglesSet(aRotate.x, tf1 + aRotate.y,
-                                aRotate.z); // dostosowanie do pochylania linii
-        if (tmp->Model->Load(
-                parser, tmp->iType == TP_TERRAIN)) // wczytanie modelu, tekstury i stanu świateł...
-            tmp->iFlags =
-                tmp->Model->Flags() | 0x200; // ustalenie, czy przezroczysty; flaga usuwania
+        tmp->Model->RaAnglesSet(aRotate.x, tf1 + aRotate.y, aRotate.z); // dostosowanie do pochylania linii
+        if( tmp->Model->Load( parser, tmp->iType == TP_TERRAIN ) ) {
+            // wczytanie modelu, tekstury i stanu świateł...
+            tmp->iFlags = tmp->Model->Flags() | 0x200; // ustalenie, czy przezroczysty; flaga usuwania
+        }
         else if (tmp->iType != TP_TERRAIN)
         { // model nie wczytał się - ignorowanie node
             delete tmp;
             tmp = NULL; // nie może być tu return
             break; // nie może być tu return?
         }
-        /*
-           }
-           else if (tmp->iType==TP_TERRAIN)
-           {//nie potrzeba nakładki animującej submodele
-            *parser >> token;
-            tmp->pModel3D=TModelsManager::GetModel(token.c_str(),false);
-            do //Ra: z tym to trochę bez sensu jest
-            {parser->getTokens();
-             *parser >> token;
-             str=AnsiString(token.c_str());
-            } while (str!="endterrains");
-           }
-        */
         if (tmp->iType == TP_TERRAIN)
         { // jeśli model jest terenem, trzeba utworzyć dodatkowe obiekty
             // po wczytaniu model ma już utworzone DL albo VBO
@@ -1541,7 +1211,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->nNode[0].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
             tmp->nNode[0].Model = Global::pTerrainCompact;
             tmp->nNode[0].iFlags = 0x200; // nie wyświetlany, ale usuwany
-            for (i = 1; i < tmp->iCount; ++i)
+            for (int i = 1; i < tmp->iCount; ++i)
             { // a reszta to submodele
                 tmp->nNode[i].iType = TP_SUBMODEL; //
                 tmp->nNode[i].smTerrain = Global::pTerrainCompact->TerrainSquare(i - 1);
@@ -1575,30 +1245,30 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             {
                 if (token.compare("ambient:") == 0)
                 {
-                    parser->getTokens();
-                    *parser >> tmp->Ambient[0];
-                    parser->getTokens();
-                    *parser >> tmp->Ambient[1];
-                    parser->getTokens();
-                    *parser >> tmp->Ambient[2];
+                    parser->getTokens(3);
+                    *parser
+                        >> tmp->Ambient.r
+                        >> tmp->Ambient.g
+                        >> tmp->Ambient.b;
+                    tmp->Ambient /= 255.0f;
                 }
                 else if (token.compare("diffuse:") == 0)
                 { // Ra: coś jest nie tak, bo w jednej linijce nie działa
-                    parser->getTokens();
-                    *parser >> tmp->Diffuse[0];
-                    parser->getTokens();
-                    *parser >> tmp->Diffuse[1];
-                    parser->getTokens();
-                    *parser >> tmp->Diffuse[2];
+                    parser->getTokens( 3 );
+                    *parser
+                        >> tmp->Diffuse.r
+                        >> tmp->Diffuse.g
+                        >> tmp->Diffuse.b;
+                    tmp->Diffuse /= 255.0f;
                 }
                 else if (token.compare("specular:") == 0)
                 {
-                    parser->getTokens();
-                    *parser >> tmp->Specular[0];
-                    parser->getTokens();
-                    *parser >> tmp->Specular[1];
-                    parser->getTokens();
-                    *parser >> tmp->Specular[2];
+                    parser->getTokens( 3 );
+                    *parser
+                        >> tmp->Specular.r
+                        >> tmp->Specular.g
+                        >> tmp->Specular.b;
+                    tmp->Specular /= 255.0f;
                 }
                 else
                     Error("Scene material failure!");
@@ -1612,71 +1282,104 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             *parser >> token;
         }
         str = token;
-#ifdef _PROBLEND
-        // PROBLEND Q: 13122011 - Szociu: 27012012
-        PROBLEND = true; // domyslnie uruchomione nowe wyświetlanie
-        tmp->PROBLEND = true; // odwolanie do tgroundnode, bo rendering jest w tej klasie
-        if (str.find('@') != std::string::npos) // sprawdza, czy w nazwie tekstury jest znak "@"
-        {
-            PROBLEND = false; // jeśli jest, wyswietla po staremu
-            tmp->PROBLEND = false;
-        }
-#endif
         tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
-        tmp->iFlags = GfxRenderer.Texture(tmp->TextureID).has_alpha ? 0x220 : 0x210; // z usuwaniem
-        if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
-                Global::pTerrainCompact->TerrainLoaded() :
-                false)
-        { // jeśli jest tekstura nieprzezroczysta, a teren załadowany, to pomijamy trójkąty
-            do
-            { // pomijanie trójkątów
+
+        tmp->iFlags |= 200; // z usuwaniem
+        // remainder of legacy 'problend' system -- geometry assigned a texture with '@' in its name is treated as translucent, opaque otherwise
+        tmp->iFlags |= (
+            ( ( str.find( '@' ) != std::string::npos )
+           && ( true == GfxRenderer.Texture( tmp->TextureID ).has_alpha ) ) ?
+                0x20 :
+                0x10 );
+
+        if( (tmp->iType == GL_TRIANGLES)
+         && (tmp->iFlags & 0x10)
+         && (Global::pTerrainCompact->TerrainLoaded()) ) {
+            // jeśli jest tekstura nieprzezroczysta, a teren załadowany, to pomijamy trójkąty
+            do {
+                // pomijanie trójkątów
                 parser->getTokens();
                 *parser >> token;
             } while (token.compare("endtri") != 0);
         }
         else
         {
-            TempVerts.clear();
-            TGroundVertex vertex;
+            TGroundVertex vertex, vertex1, vertex2;
+            std::size_t vertexcount { 0 };
             do {
                 parser->getTokens( 8, false );
                 *parser
-                    >> vertex.Point.x
-                    >> vertex.Point.y
-                    >> vertex.Point.z
-                    >> vertex.Normal.x
-                    >> vertex.Normal.y
-                    >> vertex.Normal.z
-                    >> vertex.tu
-                    >> vertex.tv;
-                vertex.Point.RotateZ( aRotate.z / 180 * M_PI );
-                vertex.Point.RotateX( aRotate.x / 180 * M_PI );
-                vertex.Point.RotateY( aRotate.y / 180 * M_PI );
-                vertex.Normal.RotateZ( aRotate.z / 180 * M_PI );
-                vertex.Normal.RotateX( aRotate.x / 180 * M_PI );
-                vertex.Normal.RotateY( aRotate.y / 180 * M_PI );
-                vertex.Point += pOrigin;
-                tmp->pCenter += vertex.Point;
-
-                TempVerts.emplace_back( vertex );
+                    >> vertex.position.x
+                    >> vertex.position.y
+                    >> vertex.position.z
+                    >> vertex.normal.x
+                    >> vertex.normal.y
+                    >> vertex.normal.z
+                    >> vertex.texture.s
+                    >> vertex.texture.t;
+                vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
+                vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
+                vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
+                vertex.normal = glm::rotateZ( vertex.normal, static_cast<float>( aRotate.z / 180 * M_PI ) );
+                vertex.normal = glm::rotateX( vertex.normal, static_cast<float>( aRotate.x / 180 * M_PI ) );
+                vertex.normal = glm::rotateY( vertex.normal, static_cast<float>( aRotate.y / 180 * M_PI ) );
+                vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
+                // convert all data to gl_triangles to allow data merge for matching nodes
+                switch( tmp->iType ) {
+                    case GL_TRIANGLES: {
+                        importedvertices.emplace_back( vertex );
+                        break;
+                    }
+                    case GL_TRIANGLE_FAN: {
+                             if( vertexcount == 0 ) { vertex1 = vertex; }
+                        else if( vertexcount == 1 ) { vertex2 = vertex; }
+                        else if( vertexcount >= 2 ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex2 );
+                            importedvertices.emplace_back( vertex );
+                            vertex2 = vertex;
+                        }
+                        ++vertexcount;
+                        break;
+                    }
+                    case GL_TRIANGLE_STRIP: {
+                             if( vertexcount == 0 ) { vertex1 = vertex; }
+                        else if( vertexcount == 1 ) { vertex2 = vertex; }
+                        else if( vertexcount >= 2 ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex2 );
+                            importedvertices.emplace_back( vertex );
+                            vertex1 = vertex2;
+                            vertex2 = vertex;
+                        }
+                        ++vertexcount;
+                        break;
+                    }
+                    default: { break; }
+                }
                 parser->getTokens();
                 *parser >> token;
 
             } while (token.compare("endtri") != 0);
 
-            nv = (int)TempVerts.size();
+            tmp->iType = GL_TRIANGLES;
+
+            auto const nv = importedvertices.size();
             tmp->Init(nv); // utworzenie tablicy wierzchołków
+
+            for( std::size_t i = 0; i < nv; ++i ) {
+                tmp->pCenter += importedvertices[ i ].position;
+            }
             tmp->pCenter /= (nv > 0 ? nv : 1);
 
             r = 0;
-            for (int i = 0; i < nv; i++)
+            for (std::size_t i = 0; i < nv; ++i)
             {
-                tmp->Vertices[i] = TempVerts[i];
-                tf = SquareMagnitude(tmp->Vertices[i].Point - tmp->pCenter);
+                tmp->Vertices[i] = importedvertices[i];
+                tf = SquareMagnitude( tmp->Vertices[ i ].position - tmp->pCenter );
                 if (tf > r)
                     r = tf;
             }
-            //   tmp->fSquareRadius=2000*2000+r;
             tmp->fSquareRadius += r;
             RaTriangleDivider(tmp); // Ra: dzielenie trójkątów jest teraz całkiem wydajne
         } // koniec wczytywania trójkątów
@@ -1686,39 +1389,81 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     case GL_LINE_LOOP: {
             parser->getTokens( 4 );
             *parser
-                >> tmp->Diffuse[ 0 ]
-                >> tmp->Diffuse[ 1 ]
-                >> tmp->Diffuse[ 2 ]
+                >> tmp->Diffuse.r
+                >> tmp->Diffuse.g
+                >> tmp->Diffuse.b
                 >> tmp->fLineThickness;
-            TempVerts.clear();
-            TGroundVertex vertex;
-            i = 0;
+            tmp->Diffuse /= 255.0f;
+
+            TGroundVertex vertex, vertex0, vertex1;
+            std::size_t vertexcount{ 0 };
+
             parser->getTokens();
             *parser >> token;
             do {
-                vertex.Point.x = std::atof( token.c_str() );
+                vertex.position.x = std::atof( token.c_str() );
                 parser->getTokens( 2 );
                 *parser
-                    >> vertex.Point.y
-                    >> vertex.Point.z;
-                vertex.Point.RotateZ( aRotate.z / 180 * M_PI );
-                vertex.Point.RotateX( aRotate.x / 180 * M_PI );
-                vertex.Point.RotateY( aRotate.y / 180 * M_PI );
-                vertex.Point += pOrigin;
-                tmp->pCenter += vertex.Point;
-                TempVerts.emplace_back( vertex );
+                    >> vertex.position.y
+                    >> vertex.position.z;
+                vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
+                vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
+                vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
 
-                ++i;
+                vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
+                // convert all data to gl_lines to allow data merge for matching nodes
+                switch( tmp->iType ) {
+                    case GL_LINES: {
+                        importedvertices.emplace_back( vertex );
+                        break;
+                    }
+                    case GL_LINE_STRIP: {
+                        if( vertexcount > 0 ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        vertex1 = vertex;
+                        ++vertexcount;
+                        break;
+                    }
+                    case GL_LINE_LOOP: {
+                        if( vertexcount == 0 ) {
+                            vertex0 = vertex;
+                            vertex1 = vertex;
+                        }
+                        else {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        vertex1 = vertex;
+                        ++vertexcount;
+                        break;
+                    }
+                    default: { break; }
+                }
                 parser->getTokens();
                 *parser >> token;
             } while( token.compare( "endline" ) != 0 );
-            nv = i;
-            //   tmp->Init(nv);
-            tmp->Points = new vector3[ nv ];
+            // add closing line for the loop
+            if( ( tmp->iType == GL_LINE_LOOP )
+             && ( vertexcount > 2 ) ) {
+                importedvertices.emplace_back( vertex1 );
+                importedvertices.emplace_back( vertex0 );
+            }
+            if( importedvertices.size() % 2 != 0 ) {
+                ErrorLog( "Lines node specified odd number of vertices, encountered in file \"" + parser->Name() + "\"" );
+                importedvertices.pop_back();
+            }
+            tmp->iType = GL_LINES;
+
+            auto const nv = importedvertices.size();
+            tmp->Points = new glm::dvec3[ nv ];
             tmp->iNumPts = nv;
+            for( std::size_t i = 0; i < nv; ++i ) {
+                tmp->Points[ i ] = importedvertices[ i ].position;
+                tmp->pCenter += importedvertices[ i ].position;
+            }
             tmp->pCenter /= ( nv > 0 ? nv : 1 );
-            for( int i = 0; i < nv; i++ )
-                tmp->Points[ i ] = TempVerts[ i ].Point;
             break;
         }
     }
@@ -1734,7 +1479,7 @@ TSubRect * TGround::FastGetSubRect(int iCol, int iRow)
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
         return NULL;
-    return (Rects[bc][br].FastGetRect(sc, sr));
+    return (Rects[bc][br].FastGetSubRect(sc, sr));
 }
 
 TSubRect * TGround::GetSubRect(int iCol, int iRow)
@@ -1746,7 +1491,7 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
         return NULL; // jeśli poza mapą
-    return (Rects[bc][br].SafeGetRect(sc, sr)); // pobranie małego kwadratu
+    return (Rects[bc][br].SafeGetSubRect(sc, sr)); // pobranie małego kwadratu
 }
 
 TEvent * TGround::FindEvent(const std::string &asEventName)
@@ -1782,20 +1527,21 @@ void TGround::FirstInit()
         return; // Ra: żeby nie robiło się dwa razy
     bInitDone = true;
     WriteLog("InitNormals");
-    int i, j;
-    for (i = 0; i < TP_LAST; ++i)
-    {
-        for (TGroundNode *Current = nRootOfType[i]; Current; Current = Current->nNext)
-        {
+    for (int type = 0; type < TP_LAST; ++type) {
+        for (TGroundNode *Current = nRootOfType[type]; Current != nullptr; Current = Current->nNext) {
+
             Current->InitNormals();
             if (Current->iType != TP_DYNAMIC)
             { // pojazdów w ogóle nie dotyczy dodawanie do mapy
-                if (i == TP_EVLAUNCH ? Current->EvLaunch->IsGlobal() : false)
-                    srGlobal.NodeAdd(Current); // dodanie do globalnego obiektu
-                else if (i == TP_TERRAIN)
+                if( ( type == TP_EVLAUNCH )
+                 && ( true == Current->EvLaunch->IsGlobal() ) ) {
+                    // dodanie do globalnego obiektu
+                    srGlobal.NodeAdd( Current );
+                }
+                else if (type == TP_TERRAIN)
                 { // specjalne przetwarzanie terenu wczytanego z pliku E3D
                     TGroundRect *gr;
-                    for (j = 1; j < Current->iCount; ++j)
+                    for (int j = 1; j < Current->iCount; ++j)
                     { // od 1 do końca są zestawy trójkątów
                         std::string xxxzzz = Current->nNode[j].smTerrain->pName; // pobranie nazwy
                         gr = GetRect(
@@ -1813,13 +1559,18 @@ void TGround::FirstInit()
                 }
                 else {
                     // dodajemy do kwadratu kilometrowego
+                    // override visibility ranges, to ensure the content is drawn from far enough
+                    // TODO: subclass NodeAdd() for the ground cell and specialize it, instead of this
+                    // TODO: given their view ranges are the same, combine the geometry in single per-material nodes
+                    Current->fSquareRadius = 50000.0 * 50000.0;
+                    Current->fSquareMinRadius = 0.0;
                     GetRect( Current->pCenter.x, Current->pCenter.z )->NodeAdd( Current );
                 }
             }
         }
     }
-    for (i = 0; i < iNumRects; ++i)
-        for (j = 0; j < iNumRects; ++j)
+    for (std::size_t i = 0; i < iNumRects; ++i)
+        for (std::size_t j = 0; j < iNumRects; ++j)
             Rects[i][j].Optimize(); // optymalizacja obiektów w sektorach
 
     WriteLog("InitNormals OK");
@@ -1856,7 +1607,7 @@ bool TGround::Init(std::string File)
 
     std::stack<Math3D::vector3> OriginStack; // stos zagnieżdżenia origin
 
-    TGroundNode *LastNode = NULL; // do użycia w trainset
+    TGroundNode *LastNode = nullptr; // do użycia w trainset
     iNumNodes = 0;
     token = "";
     parser.getTokens();
@@ -1868,62 +1619,76 @@ bool TGround::Init(std::string File)
         ++processed;
         if( processed % 1000 == 0 )
         {
+            glfwPollEvents();
             UILayer.set_progress( parser.getProgress(), parser.getFullProgress() );
             GfxRenderer.Render();
-            glfwPollEvents();
         }
         str = token;
-        if (str == "node")
-        {
-            LastNode = AddGroundNode(&parser); // rozpoznanie węzła
-            if (LastNode)
-            { // jeżeli przetworzony poprawnie
-                if (LastNode->iType == GL_TRIANGLES)
-                {
-                    if (!LastNode->Vertices)
-                        SafeDelete(LastNode); // usuwamy nieprzezroczyste trójkąty terenu
-                }
-                else if ( ( LastNode->iType == TP_TRACTION ) && ( false == Global::bLoadTraction ) )
-                    SafeDelete(LastNode); // usuwamy druty, jeśli wyłączone
-
-                if (LastNode) // dopiero na koniec dopisujemy do tablic
-                    if (LastNode->iType != TP_DYNAMIC)
-                    { // jeśli nie jest pojazdem
-                      // ostatni dodany dołączamy na końcu nowego
-                        LastNode->nNext = nRootOfType[LastNode->iType];
-                        // ustawienie nowego na początku listy
-                        nRootOfType[LastNode->iType] = LastNode; 
-                        iNumNodes++;
+        if (str == "node") {
+            // rozpoznanie węzła
+            LastNode = AddGroundNode(&parser);
+            if (LastNode) {
+                // jeżeli przetworzony poprawnie
+                switch( LastNode->iType ) {
+                    // validate the new node
+                    case GL_TRIANGLES: {
+                        if( LastNode->Vertices == nullptr ) {
+                            SafeDelete( LastNode );
+                        }
+                        break;
                     }
-                    else
-                    { // jeśli jest pojazdem
-                        // if (!bInitDone) FirstInit(); //jeśli nie było w scenerii
-                        if (LastNode->DynamicObject->Mechanik) // ale może być pasażer
-                            if (LastNode->DynamicObject->Mechanik
-                                    ->Primary()) // jeśli jest głównym (pasażer nie jest)
-                                nTrainSetDriver =
-                                    LastNode; // pojazd, któremu zostanie wysłany rozkład
+                    case TP_TRACTION: {
+                        if( false == Global::bLoadTraction ) {
+                            // usuwamy druty, jeśli wyłączone
+                            SafeDelete( LastNode );
+                        }
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+
+                if( LastNode ) {
+                    // dopiero na koniec dopisujemy do tablic
+                    if( LastNode->iType != TP_DYNAMIC ) {
+                        // jeśli nie jest pojazdem ostatni dodany dołączamy na końcu nowego
+                        LastNode->nNext = nRootOfType[ LastNode->iType ];
+                        // ustawienie nowego na początku listy
+                        nRootOfType[ LastNode->iType ] = LastNode;
+                        ++iNumNodes;
+                    }
+                    else { // jeśli jest pojazdem
+                        if( ( LastNode->DynamicObject->Mechanik != nullptr )
+                         && ( LastNode->DynamicObject->Mechanik->Primary() ) ) {
+                               // jeśli jest głównym (pasażer nie jest)
+                            nTrainSetDriver = LastNode; // pojazd, któremu zostanie wysłany rozkład
+                        }
                         LastNode->nNext = nRootDynamic;
                         nRootDynamic = LastNode; // dopisanie z przodu do listy
-                        // if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
-                        if (nTrainSetNode) // jeżeli istnieje wcześniejszy TP_DYNAMIC
+
+                        if( nTrainSetNode != nullptr ) {
+                            // jeżeli istnieje wcześniejszy TP_DYNAMIC
                             nTrainSetNode->DynamicObject->AttachPrev(
                                 LastNode->DynamicObject,
-                                TempConnectionType[iTrainSetWehicleNumber - 2]);
+                                TempConnectionType[ iTrainSetWehicleNumber - 2 ] );
+                        }
                         nTrainSetNode = LastNode; // ostatnio wczytany
-                        if (TempConnectionType[iTrainSetWehicleNumber - 1] ==
-                            0) // jeśli sprzęg jest zerowy, to wysłać rozkład do składu
+
+                        if( TempConnectionType[ iTrainSetWehicleNumber - 1 ] == 0 ) // jeśli sprzęg jest zerowy, to wysłać rozkład do składu
                         { // powinien też tu wchodzić, gdy pojazd bez trainset
-                            if (nTrainSetDriver) // pojazd, któremu zostanie wysłany rozkład
+                            if( nTrainSetDriver ) // pojazd, któremu zostanie wysłany rozkład
                             { // wysłanie komendy "Timetable" ustawia odpowiedni tryb jazdy
                                 nTrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
                                 nTrainSetDriver->DynamicObject->Mechanik->PutCommand(
-                                    "Timetable:" + asTrainName, fTrainSetVel, 0, NULL);
-                                nTrainSetDriver =
-                                    NULL; // a przy "endtrainset" już wtedy nie potrzeba
+                                    "Timetable:" + asTrainName,
+                                    fTrainSetVel, 0,
+                                    nullptr );
+                                nTrainSetDriver = nullptr; // a przy "endtrainset" już wtedy nie potrzeba
                             }
                         }
                     }
+                }
             }
             else
             {
@@ -2030,10 +1795,11 @@ bool TGround::Init(std::string File)
                     RootEvent = tmp;
                     if (!found)
                     { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
-                        if (RootEvent->Type != tp_Ignored)
-                            if (RootEvent->asName.find(
-                                    "onstart") != std::string::npos) // event uruchamiany automatycznie po starcie
-                                AddToQuery(RootEvent, NULL); // dodanie do kolejki
+                        if( ( RootEvent->Type != tp_Ignored )
+                         && ( RootEvent->asName.find( "onstart" ) != std::string::npos ) ) {
+                            // event uruchamiany automatycznie po starcie
+                            AddToQuery( RootEvent, NULL ); // dodanie do kolejki
+                        }
                         m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
                     }
                 }
@@ -2263,7 +2029,7 @@ bool TGround::Init(std::string File)
 bool TGround::InitEvents()
 { //łączenie eventów z pozostałymi obiektami
     TGroundNode *tmp, *trk;
-    char buff[255];
+    char buff[ 255 ]; std::string cellastext;
     int i;
     for (TEvent *Current = RootEvent; Current; Current = Current->evNext2)
     {
@@ -2356,19 +2122,16 @@ bool TGround::InitEvents()
             else
                 ErrorLog("Bad copyvalues: event \"" + Current->asName +
                          "\" cannot find memcell \"" + Current->asNodeName + "\"");
-            strcpy(
-                buff,
-                Current->Params[9].asText); // skopiowanie nazwy drugiej komórki do bufora roboczego
+            cellastext = Current->Params[ 9 ].asText;
             SafeDeleteArray(Current->Params[9].asText); // usunięcie nazwy komórki
-            tmp = FindGroundNode(buff, TP_MEMCELL); // komórka źódłowa
-            if (tmp)
-            {
+            tmp = FindGroundNode( cellastext, TP_MEMCELL); // komórka źódłowa
+            if (tmp != nullptr ) {
                 Current->Params[8].nGroundNode = tmp;
                 Current->Params[9].asMemCell = tmp->MemCell; // komórka źródłowa
             }
             else
                 ErrorLog("Bad copyvalues: event \"" + Current->asName +
-                         "\" cannot find memcell \"" + buff + "\"");
+                         "\" cannot find memcell \"" + cellastext + "\"");
             break;
         case tp_Animation: // animacja modelu
             tmp = FindGroundNode(Current->asNodeName, TP_MODEL); // egzemplarza modelu do animowania
@@ -2764,7 +2527,7 @@ void TGround::InitTraction()
         Traction = nCurrent->hvTraction;
         if (!Traction->hvNext[0]) // tylko jeśli jeszcze nie podłączony
         {
-            tmp = FindTraction(&Traction->pPoint1, iConnection, nCurrent);
+            tmp = FindTraction(Traction->pPoint1, iConnection, nCurrent);
             switch (iConnection)
             {
             case 0:
@@ -2799,7 +2562,7 @@ void TGround::InitTraction()
         }
         if (!Traction->hvNext[1]) // tylko jeśli jeszcze nie podłączony
         {
-            tmp = FindTraction(&Traction->pPoint2, iConnection, nCurrent);
+            tmp = FindTraction(Traction->pPoint2, iConnection, nCurrent);
             switch (iConnection)
             {
             case 0:
@@ -3033,14 +2796,14 @@ TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclud
     return NULL;
 }
 
-TTraction * TGround::FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude)
+TTraction * TGround::FindTraction(glm::dvec3 const &Point, int &iConnection, TGroundNode *Exclude)
 { // wyszukiwanie innego przęsła kończącego się w (Point)
     TTraction *tmp;
     iConnection = -1;
     TSubRect *sr;
     // najpierw szukamy w okolicznych segmentach
-    int c = GetColFromX(Point->x);
-    int r = GetRowFromZ(Point->z);
+    int c = GetColFromX(Point.x);
+    int r = GetRowFromZ(Point.z);
     if ((sr = FastGetSubRect(c, r)) != NULL) // większość będzie w tym samym sektorze
         if ((tmp = sr->FindTraction(Point, iConnection, Exclude->hvTraction)) != NULL)
             return tmp;
@@ -3069,7 +2832,7 @@ TTraction * TGround::FindTraction(vector3 *Point, int &iConnection, TGroundNode 
     return NULL;
 };
 
-TTraction * TGround::TractionNearestFind(vector3 &p, int dir, TGroundNode *n)
+TTraction * TGround::TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n)
 { // wyszukanie najbliższego do (p) przęsła o tej samej nazwie sekcji (ale innego niż podłączone)
     // oraz zasilanego z kierunku (dir)
     TGroundNode *nCurrent, *nBest = NULL;
@@ -3092,7 +2855,7 @@ TTraction * TGround::TractionNearestFind(vector3 &p, int dir, TGroundNode *n)
                                         ->hvNext[0]) // ale nie jest bezpośrednio podłączonym
                                     if (nCurrent->hvTraction != n->hvTraction->hvNext[1])
                                         if (nCurrent->hvTraction->psPower
-                                                [k = (DotProduct(
+                                                [k = (glm::dot(
                                                           n->hvTraction->vParametric,
                                                           nCurrent->hvTraction->vParametric) >= 0 ?
                                                           dir ^ 1 :
@@ -3101,10 +2864,7 @@ TTraction * TGround::TractionNearestFind(vector3 &p, int dir, TGroundNode *n)
                                             if (nCurrent->hvTraction->fResistance[k] >=
                                                 0.0) //żeby się nie propagowały jakieś ujemne
                                             { // znaleziony kandydat do połączenia
-                                                d = SquareMagnitude(
-                                                    p -
-                                                    nCurrent
-                                                        ->pCenter); // kwadrat odległości środków
+                                                d = SquareMagnitude( p - nCurrent->pCenter ); // kwadrat odległości środków
                                                 if (dist > d)
                                                 { // zapamiętanie nowego najbliższego
                                                     dist = d; // nowy rekord odległości
@@ -3123,7 +2883,7 @@ TTraction * TGround::TractionNearestFind(vector3 &p, int dir, TGroundNode *n)
         // else
         // n->hvTraction->pPoint4=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
     }
-    return (nBest ? nBest->hvTraction : NULL);
+    return (nBest ? nBest->hvTraction : nullptr);
 };
 
 bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
@@ -3134,10 +2894,10 @@ bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
         { // kolejka eventów jest posortowana względem (fStartTime)
             Event->Activator = Node;
             if( ( Event->Type == tp_AddValues )
-                && ( Event->fDelay == 0.0 ) ) {
-                   // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
-                   // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
-                   // wykonującą eventy i ją wywołać
+             && ( Event->fDelay == 0.0 ) ) {
+                // eventy AddValues trzeba wykonywać natychmiastowo, inaczej kolejka może zgubić jakieś dodawanie
+                // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by było wydzielić funkcję
+                // wykonującą eventy i ją wywołać
                 if( EventConditon( Event ) ) { // teraz mogą być warunki do tych eventów
                     Event->Params[ 5 ].asMemCell->UpdateValues(
                         Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
@@ -3654,15 +3414,16 @@ bool TGround::GetTraction(TDynamicObject *model)
     double fRaParam; // parametr równania parametrycznego odcinka drutu
     double fVertical; // odległość w pionie; musi być w zasięgu ruchu "pionowego" pantografu
     double fHorizontal; // odległość w bok; powinna być mniejsza niż pół szerokości pantografu
-    vector3 vLeft, vUp, vFront, dwys;
-    vector3 pant0;
-    vector3 vParam; // współczynniki równania parametrycznego drutu
-    vector3 vStyk; // punkt przebicia drutu przez płaszczyznę ruchu pantografu
-    vector3 vGdzie; // wektor położenia drutu względem pojazdu
-    vFront = model->VectorFront(); // wektor normalny dla płaszczyzny ruchu pantografu
-    vUp = model->VectorUp(); // wektor pionu pudła (pochylony od pionu na przechyłce)
-    vLeft = model->VectorLeft(); // wektor odległości w bok (odchylony od poziomu na przechyłce)
-    dwys = model->GetPosition(); // współrzędne środka pojazdu
+    glm::dvec3 vLeft, vUp, vFront, dwys;
+    glm::dvec3 pant0;
+    glm::dvec3 vParam; // współczynniki równania parametrycznego drutu
+    glm::dvec3 vStyk; // punkt przebicia drutu przez płaszczyznę ruchu pantografu
+    glm::dvec3 vGdzie; // wektor położenia drutu względem pojazdu
+    vFront = glm::make_vec3(model->VectorFront().getArray()); // wektor normalny dla płaszczyzny ruchu pantografu
+    vUp = glm::make_vec3(model->VectorUp().getArray()); // wektor pionu pudła (pochylony od pionu na przechyłce)
+    vLeft = glm::make_vec3(model->VectorLeft().getArray()); // wektor odległości w bok (odchylony od poziomu na przechyłce)
+    auto const position = model->GetPosition(); // współrzędne środka pojazdu
+    dwys = glm::dvec3( position.x, position.y, position.z );
     TAnimPant *p; // wskaźnik do obiektu danych pantografu
     for (int k = 0; k < model->iAnimType[ANIM_PANTS]; ++k)
     { // pętla po pantografach
@@ -3677,11 +3438,11 @@ bool TGround::GetTraction(TDynamicObject *model)
                 { // powtarzane aż do znalezienia odpowiedniego odcinka na liście dwukierunkowej
                     // obliczamy wyraz wolny równania płaszczyzny (to miejsce nie jest odpowienie)
                     vParam = p->hvPowerWire->vParametric; // współczynniki równania parametrycznego
-                    fRaParam = -DotProduct(pant0, vFront);
+                    fRaParam = -glm::dot(pant0, vFront);
                     // podstawiamy równanie parametryczne drutu do równania płaszczyzny pantografu
                     // vFront.x*(t1x+t*vParam.x)+vFront.y*(t1y+t*vParam.y)+vFront.z*(t1z+t*vParam.z)+fRaDist=0;
-                    fRaParam = -(DotProduct(p->hvPowerWire->pPoint1, vFront) + fRaParam) /
-                               DotProduct(vParam, vFront);
+                    fRaParam = -(glm::dot(p->hvPowerWire->pPoint1, vFront) + fRaParam) /
+                               glm::dot(vParam, vFront);
                     if (fRaParam <
                         -0.001) // histereza rzędu 7cm na 70m typowego przęsła daje 1 promil
                         p->hvPowerWire = p->hvPowerWire->hvNext[0];
@@ -3707,10 +3468,10 @@ bool TGround::GetTraction(TDynamicObject *model)
                         // el.)
                         vGdzie = vStyk - pant0; // wektor
                         // odległość w pionie musi być w zasięgu ruchu "pionowego" pantografu
-                        fVertical = DotProduct(
+                        fVertical = glm::dot(
                             vGdzie, vUp); // musi się mieścić w przedziale ruchu pantografu
                         // odległość w bok powinna być mniejsza niż pół szerokości pantografu
-                        fHorizontal = fabs(DotProduct(vGdzie, vLeft)) -
+                        fHorizontal = std::fabs(glm::dot(vGdzie, vLeft)) -
                                       p->fWidth; // to się musi mieścić w przedziale zależnym od
                         // szerokości pantografu
                         // jeśli w pionie albo w bok jest za daleko, to dany drut jest nieużyteczny
@@ -3784,7 +3545,7 @@ bool TGround::GetTraction(TDynamicObject *model)
                                         // drutem (dla generatora łuku
                                         // el.)
                                         vGdzie = vStyk - pant0; // wektor
-                                        fVertical = DotProduct(
+                                        fVertical = glm::dot(
                                             vGdzie,
                                             vUp); // musi się mieścić w przedziale ruchu pantografu
                                         if (fVertical >= 0.0) // jeśli ponad pantografem (bo może
@@ -3797,7 +3558,7 @@ bool TGround::GetTraction(TDynamicObject *model)
                                                 // (bEnableTraction) aby dało się jeździć na
                                                 // koślawych
                                                 // sceneriach
-                                                fHorizontal = fabs(DotProduct(vGdzie, vLeft)) -
+                                                fHorizontal = std::fabs(glm::dot(vGdzie, vLeft)) -
                                                               p->fWidth; // i do tego jeszcze
                                                 // wejdzie pod ślizg
                                                 if (fHorizontal <= 0.0) // 0.635 dla AKP-1 AKP-4E
@@ -3831,7 +3592,7 @@ bool TGround::GetTraction(TDynamicObject *model)
                                             // znaleziony
                                             {
                                                 fHorizontal =
-                                                    fabs(DotProduct(vGdzie, vLeft)) - p->fWidth;
+                                                    std::fabs(glm::dot(vGdzie, vLeft)) - p->fWidth;
                                                 if (fHorizontal <= 0.0) // 0.635 dla AKP-1 AKP-4E
                                                 { // to się musi mieścić w przedziale zaleznym od
                                                     // szerokości pantografu
@@ -4216,13 +3977,17 @@ void TGround::DynamicRemove(TDynamicObject *dyn)
 };
 
 //---------------------------------------------------------------------------
+
 void TGround::TerrainRead(std::string const &f){
     // Ra: wczytanie trójkątów terenu z pliku E3D
 };
 
 //---------------------------------------------------------------------------
+
 void TGround::TerrainWrite()
 { // Ra: zapisywanie trójkątów terenu do pliku E3D
+    // TODO: re-implement
+/*
     if (Global::pTerrainCompact->TerrainLoaded())
         return; // jeśli zostało wczytane, to nie ma co dalej robić
     if (Global::asTerrainModel.empty())
@@ -4241,7 +4006,7 @@ void TGround::TerrainWrite()
     // int ver=0; //całkowita ilość wierzchołków
     int i, j, k; // indeksy w pętli
     TGroundNode *Current;
-    float8 *ver; // trójkąty
+    basic_vertex *ver; // trójkąty
     TSubModel::iInstance = 0; // pozycja w tabeli wierzchołków liczona narastająco
     for (i = 0; i < iNumRects; ++i) // pętla po wszystkich kwadratach kilometrowych
         for (j = 0; j < iNumRects; ++j)
@@ -4264,11 +4029,9 @@ void TGround::TerrainWrite()
                             m->iNumVerts +=
                                 Current->iNumVerts; // zwiększenie całkowitej ilości wierzchołków
                             break;
-                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
-                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
                         }
                 for (Current = Rects[i][j].nRootNode; Current; Current = Current->nNext2)
@@ -4276,38 +4039,28 @@ void TGround::TerrainWrite()
                         switch (Current->iType)
                         { // pętla po trójkątach - dopisywanie wierzchołków
                         case GL_TRIANGLES:
-                            // ver=sk->TrianglePtr(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts);
                             // //wskaźnik na początek
                             ver = sk->TrianglePtr(Current->TextureID, Current->iVboPtr,
                                                   Current->Ambient, Current->Diffuse,
                                                   Current->Specular); // wskaźnik na początek
-                            // WriteLog("Zapis "+AnsiString(Current->iNumVerts)+" trójkątów w
-                            // ("+AnsiString(i)+","+AnsiString(j)+") od
-                            // "+AnsiString(Current->iVboPtr)+" dla
-                            // "+AnsiString(Current->TextureID));
                             Current->iVboPtr = -1; // bo to było tymczasowo używane
                             for (k = 0; k < Current->iNumVerts; ++k)
                             { // przepisanie współrzędnych
-                                ver[k].Point.x = Current->Vertices[k].Point.x;
-                                ver[k].Point.y = Current->Vertices[k].Point.y;
-                                ver[k].Point.z = Current->Vertices[k].Point.z;
-                                ver[k].Normal.x = Current->Vertices[k].Normal.x;
-                                ver[k].Normal.y = Current->Vertices[k].Normal.y;
-                                ver[k].Normal.z = Current->Vertices[k].Normal.z;
-                                ver[k].tu = Current->Vertices[k].tu;
-                                ver[k].tv = Current->Vertices[k].tv;
+                                ver[ k ].position = Current->Vertices[ k ].position;
+                                ver[ k ].normal = Current->Vertices[ k ].normal;
+                                ver[ k ].texture = Current->Vertices[ k ].texture;
                             }
                             break;
-                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
-                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze
-                            // trójkąty
+                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiać na pojedyncze trójkąty
                             break;
                         }
             }
     m->SaveToBinFile(strdup(("models\\" + Global::asTerrainModel).c_str()));
+*/
 };
+
 //---------------------------------------------------------------------------
 
 void TGround::TrackBusyList()

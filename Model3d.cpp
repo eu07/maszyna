@@ -33,7 +33,7 @@ using namespace Mtable;
 
 double TSubModel::fSquareDist = 0;
 size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
-texture_manager::size_type const *TSubModel::ReplacableSkinId = NULL;
+texture_handle const *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
 TModel3d *TSubModel::pRoot; // Ra: tymczasowo wskaźnik na model widoczny z submodelu
 std::string *TSubModel::pasText;
@@ -46,124 +46,56 @@ std::string *TSubModel::pasText;
 // 0x3F3F003F - wszystkie wymienne tekstury używane w danym cyklu
 // Ale w TModel3d okerśla przezroczystość tekstur wymiennych!
 
-TSubModel::TSubModel()
-{
-	::SecureZeroMemory(this, sizeof(TSubModel)); // istotne przy zapisywaniu wersji binarnej
-	FirstInit();
-};
-
-void TSubModel::FirstInit()
-{
-	eType = TP_ROTATOR;
-	Vertices = NULL;
-	uiDisplayList = 0;
-	iNumVerts = -1; // do sprawdzenia
-	iVboPtr = -1;
-	fLight = -1.0; //świetcenie wyłączone
-	v_RotateAxis = float3(0, 0, 0);
-	v_TransVector = float3(0, 0, 0);
-	f_Angle = 0;
-	b_Anim = at_None;
-	b_aAnim = at_None;
-	fVisible = 0.0; // zawsze widoczne
-	iVisible = 1;
-	fMatrix = NULL; // to samo co iMatrix=0;
-	Next = NULL;
-	Child = NULL;
-	TextureID = 0;
-	// TexAlpha=false;
-	iFlags = 0x0200; // bit 9=1: submodel został utworzony a nie ustawiony na
-					 // wczytany plik
-					 // TexHash=false;
-					 // Hits=NULL;
-					 // CollisionPts=NULL;
-					 // CollisionPtsCount=0;
-	Opacity = 0.0f; // przy wczytywaniu modeli było dzielone przez 100...
-	bWire = false;
-	fWireSize = 0;
-	fNearAttenStart = 40;
-	fNearAttenEnd = 80;
-	bUseNearAtten = false;
-	iFarAttenDecay = 0;
-	fFarDecayRadius = 100.0f;
-	fCosFalloffAngle = 0.5f; // 120°?
-	fCosHotspotAngle = 0.3f; // 145°?
-	fCosViewAngle = 0;
-	fSquareMaxDist = 10000 * 10000; // 10km
-	fSquareMinDist = 0;
-	iName = -1; // brak nazwy
-	iTexture = 0; // brak tekstury
-				  // asName="";
-				  // asTexture="";
-	pName = "";
-	pTexture = "";
-	f4Ambient[0] = f4Ambient[1] = f4Ambient[2] = f4Ambient[3] = 1.0; //{1,1,1,1};
-	f4Diffuse[0] = f4Diffuse[1] = f4Diffuse[2] = f4Diffuse[3] = 1.0; //{1,1,1,1};
-	f4Specular[0] = f4Specular[1] = f4Specular[2] = 0.0;
-	f4Specular[3] = 1.0; //{0,0,0,1};
-	f4Emision[0] = f4Emision[1] = f4Emision[2] = f4Emision[3] = 1.0;
-	smLetter = NULL; // używany tylko roboczo dla TP_TEXT, do przyspieszenia wyświetlania
-};
-
 TSubModel::~TSubModel()
 {
+/*
 	if (uiDisplayList)
 		glDeleteLists(uiDisplayList, 1);
+*/
 	if (iFlags & 0x0200)
 	{ // wczytany z pliku tekstowego musi sam posprzątać
 	  // SafeDeleteArray(Indices);
 		SafeDelete(Next);
 		SafeDelete(Child);
 		delete fMatrix; // własny transform trzeba usunąć (zawsze jeden)
+/*
 		delete[] Vertices;
+*/
 	}
-	/*
-	else
-	{//wczytano z pliku binarnego (nie jest właścicielem tablic)
-	}
-	*/
 	delete[] smLetter; // używany tylko roboczo dla TP_TEXT, do przyspieszenia
 					   // wyświetlania
 };
 
-void TSubModel::TextureNameSet(const char *n)
+void TSubModel::TextureNameSet(std::string const &Name)
 { // ustawienie nazwy submodelu, o
   // ile nie jest wczytany z E3D
 	if (iFlags & 0x0200)
 	{ // tylko jeżeli submodel zosta utworzony przez new
-		pTexture = std::string(n);
+		pTexture = Name;
 	}
 };
 
-void TSubModel::NameSet(const char *n)
+void TSubModel::NameSet(std::string const &Name)
 { // ustawienie nazwy submodelu, o ile
   // nie jest wczytany z E3D
 	if (iFlags & 0x0200)
-		pName = std::string(n);
+		pName = Name;
 };
 
-// int TSubModel::SeekFaceNormal(DWORD *Masks, int f,DWORD dwMask,vector3
-// *pt,GLVERTEX
-// *Vertices)
-int TSubModel::SeekFaceNormal(unsigned int *Masks, int f, unsigned int dwMask, float3 *pt,
-	float8 *Vertices)
-{ // szukanie punktu stycznego
-  // do (pt), zwraca numer
-  // wierzchołka, a nie trójkąta
-	int iNumFaces = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
-								   // GLVERTEX *p; //roboczy wskaźnik
-	float8 *p; // roboczy wskaźnik
-	for (int i = f; i < iNumFaces; ++i) // pętla po trójkątach, od trójkąta (f)
-		if (Masks[i] & dwMask) // jeśli wspólna maska powierzchni
-		{
-			p = Vertices + 3 * i;
-			if (p->Point == *pt)
-				return 3 * i;
-			if ((++p)->Point == *pt)
-				return 3 * i + 1;
-			if ((++p)->Point == *pt)
-				return 3 * i + 2;
-		}
+int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices)
+{ // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
+	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
+    for( int faceidx = Startface; faceidx < facecount; ++faceidx ) {
+        // pętla po trójkątach, od trójkąta (f)
+        if( Masks[ faceidx ] & Mask ) {
+            // jeśli wspólna maska powierzchni
+            for( int vertexidx = 0; vertexidx < 2; ++vertexidx ) {
+                if( Vertices[ 3 * faceidx + vertexidx ].position == Position ) {
+                    return 3 * faceidx + vertexidx;
+                }
+            }
+        }
+    }
 	return -1; // nie znaleziono stycznego wierzchołka
 }
 
@@ -186,21 +118,18 @@ template <typename ColorT> inline void readColor(cParser &parser, ColorT *color)
     color[ 2 ] /= 255.0;
 };
 
-inline void readColor(cParser &parser, int &color)
+inline void readColor(cParser &parser, glm::vec4 &color)
 {
-	int r, g, b, discard;
+	int discard;
 	parser.getTokens(4, false);
-	parser >> discard >> r >> g >> b;
-	color = r + (g << 8) + (b << 16);
+	parser
+        >> discard
+        >> color.r
+        >> color.g
+        >> color.b;
+    color /= 255.0f;
 };
-/*
-inline void readMatrix(cParser& parser,matrix4x4& matrix)
-{//Ra: wczytanie transforma
-for (int x=0;x<=3;x++) //wiersze
-for (int y=0;y<=3;y++) //kolumny
-parser.getToken(matrix(x)[y]);
-};
-*/
+
 inline void readMatrix(cParser &parser, float4x4 &matrix)
 { // Ra: wczytanie transforma
 	parser.getTokens(16, false);
@@ -209,13 +138,12 @@ inline void readMatrix(cParser &parser, float4x4 &matrix)
 			parser >> matrix(x)[y];
 };
 
-int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
+int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic)
 { // Ra: VBO tworzone na poziomie modelu, a nie submodeli
     iNumVerts = 0;
+/*
     iVboPtr = Pos; // pozycja w VBO
-    // TMaterialColorf Ambient,Diffuse,Specular;
-    // GLuint TextureID;
-    // char *extName;
+*/
     if (!parser.expectToken("type:"))
         Error("Model type parse failure!");
     {
@@ -233,22 +161,24 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     };
     parser.ignoreToken();
     std::string token;
-    // parser.getToken(token1); //ze zmianą na małe!
     parser.getTokens(1, false); // nazwa submodelu bez zmieny na małe
     parser >> token;
-    NameSet(token.c_str());
-    if (dynamic)
-    { // dla pojazdu, blokujemy załączone submodele, które mogą być
-        // nieobsługiwane
-        if ( (token.size() >= 3)
-          && (token.find("_on") + 3 == token.length())) // jeśli nazwa kończy się na "_on"
-            iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
+    NameSet(token);
+    if (dynamic) {
+        // dla pojazdu, blokujemy załączone submodele, które mogą być nieobsługiwane
+        if( ( token.size() >= 3 )
+         && ( token.find( "_on" ) + 3 == token.length() ) ) {
+            // jeśli nazwa kończy się na "_on" to domyślnie wyłączyć, żeby się nie nakładało z obiektem "_off"
+            iVisible = 0;
+        }
     }
-    else // dla pozostałych modeli blokujemy zapalone światła, które mogą być
-        // nieobsługiwane
-        if (token.compare(0, 8, "Light_On") == 0) // jeśli nazwa zaczyna się od "Light_On"
-        iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem
-    // "Light_Off"
+    else {
+        // dla pozostałych modeli blokujemy zapalone światła, które mogą być nieobsługiwane
+        if( token.compare( 0, 8, "Light_On" ) == 0 ) {
+            // jeśli nazwa zaczyna się od "Light_On" to domyślnie wyłączyć, żeby się nie nakładało z obiektem "Light_Off"
+            iVisible = 0;
+        }
+    }
 
     if (parser.expectToken("anim:")) // Ra: ta informacja by się przydała!
     { // rodzaj animacji
@@ -342,13 +272,18 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
     {
         std::string discard;
         parser.getTokens(5, false);
-        parser >> discard >> bWire >> discard >> fWireSize >> discard;
-        Opacity = readIntAsDouble(parser,
-                                  100.0f); // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
+        parser
+            >> discard >> bWire
+            >> discard >> fWireSize
+            >> discard;
+        // wymagane jest 0 dla szyb, 100 idzie w nieprzezroczyste
+        Opacity = readIntAsDouble(parser, 100.0f); 
         if (Opacity > 1.0f)
             Opacity *= 0.01f; // w 2013 był błąd i aby go obejść, trzeba było wpisać 10000.0
+/*
         if ((Global::iConvertModels & 1) == 0) // dla zgodności wstecz
             Opacity = 0.0; // wszystko idzie w przezroczyste albo zależnie od tekstury
+*/
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
         std::string texture = parser.getToken<std::string>();
@@ -384,20 +319,19 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
         }
         else
         { // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
-            // asTexture=AnsiString(texture.c_str()); //zapamiętanie nazwy tekstury
             TextureNameSet(texture.c_str());
-            if (texture.find_first_of("/\\") == texture.npos)
-                texture.insert(0, Global::asCurrentTexturePath.c_str());
+            if( texture.find_first_of( "/\\" ) == texture.npos ) {
+                texture.insert( 0, Global::asCurrentTexturePath.c_str() );
+            }
             TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
-            // TexAlpha=TTexturesManager::GetAlpha(TextureID);
-            // iFlags|=TexAlpha?0x20:0x10; //0x10-nieprzezroczysta, 0x20-przezroczysta
-            iFlags |=
-                ( GfxRenderer.Texture(TextureID).has_alpha ?
-                    0x20 :
-                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
+            iFlags |=
+                ( ( ( Opacity < 1.0 )
+                 && ( GfxRenderer.Texture(TextureID).has_alpha ) ) ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
     }
     else
@@ -420,8 +354,6 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 	readMatrix(parser, *fMatrix); // wczytanie transform
 	if (!fMatrix->IdentityIs())
 		iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechować
-	int iNumFaces; // ilość trójkątów
-	unsigned int *sg; // maski przynależności trójkątów do powierzchni
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
 		parser.getTokens(2, false);
@@ -436,11 +368,11 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 		{ // jeśli pierwszy znak jest gwiazdką, poszukać
 		  // submodelu o nazwie bez tej gwiazdki i wziąć z
 		  // niego wierzchołki
-			Error("Verticles reference not yet supported!");
+			Error("Vertices reference not yet supported!");
 		}
 		else
 		{ // normalna lista wierzchołków
-			iNumVerts = atoi(token.c_str());
+			iNumVerts = std::atoi(token.c_str());
 			if (iNumVerts % 3)
 			{
 				iNumVerts = 0;
@@ -448,113 +380,127 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 				return 0;
 			}
 			// Vertices=new GLVERTEX[iNumVerts];
-			if (iNumVerts)
-			{
-				Vertices = new float8[iNumVerts];
-				iNumFaces = iNumVerts / 3;
-				sg = new unsigned int[iNumFaces]; // maski powierzchni: 0 oznacza brak
-												  // użredniania wektorów normalnych
-				int *wsp = new int[iNumVerts]; // z którego wierzchołka kopiować wektor
-											   // normalny
+			if (iNumVerts) {
+/*
+				Vertices = new basic_vertex[iNumVerts];
+*/
+                Vertices.resize( iNumVerts );
+                int facecount = iNumVerts / 3;
+/*
+                unsigned int *sg; // maski przynależności trójkątów do powierzchni
+                sg = new unsigned int[iNumFaces]; // maski powierzchni: 0 oznacza brak użredniania wektorów normalnych
+				int *wsp = new int[iNumVerts]; // z którego wierzchołka kopiować wektor normalny
+*/
+                std::vector<unsigned int> sg; sg.resize( facecount ); // maski przynależności trójkątów do powierzchni
+                std::vector<int> wsp; wsp.resize( iNumVerts );// z którego wierzchołka kopiować wektor normalny
 				int maska = 0;
-				for (int i = 0; i < iNumVerts; i++)
-				{ // Ra: z konwersją na układ scenerii - będzie wydajniejsze
-				  // wyświetlanie
+				for (int i = 0; i < iNumVerts; ++i) {
+                    // Ra: z konwersją na układ scenerii - będzie wydajniejsze wyświetlanie
 					wsp[i] = -1; // wektory normalne nie są policzone dla tego wierzchołka
-					if ((i % 3) == 0)
-					{ // jeśli będzie maska -1, to dalej będą
-					  // wierzchołki z wektorami normalnymi, podanymi
-					  // jawnie
+					if ((i % 3) == 0) {
+                        // jeśli będzie maska -1, to dalej będą wierzchołki z wektorami normalnymi, podanymi jawnie
 						maska = parser.getToken<int>(false); // maska powierzchni trójkąta
-						sg[i / 3] = (maska == -1) ? 0 : maska; // dla maski -1 będzie 0,
-															   // czyli nie ma wspólnych
-															   // wektorów normalnych
+                        // dla maski -1 będzie 0, czyli nie ma wspólnych wektorów normalnych
+						sg[i / 3] = (
+                            ( maska == -1 ) ?
+                                0 :
+                                maska );
 					}
 					parser.getTokens(3, false);
-					parser >> Vertices[i].Point.x >> Vertices[i].Point.y >> Vertices[i].Point.z;
+					parser
+                        >> Vertices[i].position.x
+                        >> Vertices[i].position.y
+                        >> Vertices[i].position.z;
 					if (maska == -1)
 					{ // jeśli wektory normalne podane jawnie
 						parser.getTokens(3, false);
-						parser >> Vertices[i].Normal.x >> Vertices[i].Normal.y >>
-							Vertices[i].Normal.z;
+						parser
+                            >> Vertices[i].normal.x
+                            >> Vertices[i].normal.y
+                            >> Vertices[i].normal.z;
 						wsp[i] = i; // wektory normalne "są już policzone"
 					}
 					parser.getTokens(2, false);
-					parser >> Vertices[i].tu >> Vertices[i].tv;
-					if (i % 3 == 2) // jeżeli wczytano 3 punkty
-					{
-						if (Vertices[i].Point == Vertices[i - 1].Point ||
-							Vertices[i - 1].Point == Vertices[i - 2].Point ||
-							Vertices[i - 2].Point == Vertices[i].Point)
+					parser
+                        >> Vertices[i].texture.s
+                        >> Vertices[i].texture.t;
+					if (i % 3 == 2) { 
+                        // jeżeli wczytano 3 punkty
+						if (Vertices[i    ].position == Vertices[i - 1].position
+                         || Vertices[i - 1].position == Vertices[i - 2].position
+                         || Vertices[i - 2].position == Vertices[i    ].position)
 						{ // jeżeli punkty się nakładają na siebie
-							--iNumFaces; // o jeden trójkąt mniej
+							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog(std::string("Degenerated triangle ignored in: \"") + pName +
-								"\", verticle " + std::to_string(i));
+							WriteLog("Degenerated triangle ignored in: \"" + pName + "\", verticle " + std::to_string(i));
 						}
-						if (i > 0) // jeśli pierwszy trójkąt będzie zdegenerowany, to
-								   // zostanie usunięty i nie ma co sprawdzać
-							if (((Vertices[i].Point - Vertices[i - 1].Point).Length() > 1000.0) ||
-								((Vertices[i - 1].Point - Vertices[i - 2].Point).Length() >
-									1000.0) ||
-									((Vertices[i - 2].Point - Vertices[i].Point).Length() > 1000.0))
-							{ // jeżeli są dalej niż 2km od siebie //Ra 15-01:
-							  // obiekt wstawiany nie powinien być większy niż
-							  // 300m (trójkąty terenu w E3D mogą mieć 1.5km)
-								--iNumFaces; // o jeden trójkąt mniej
+						if (i > 0) {
+                            // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
+							if ((glm::length(Vertices[i    ].position - Vertices[i - 1].position) > 1000.0)
+                             || (glm::length(Vertices[i - 1].position - Vertices[i - 2].position) > 1000.0)
+                             || (glm::length(Vertices[i - 2].position - Vertices[i    ].position) > 1000.0)) {
+                                // jeżeli są dalej niż 2km od siebie //Ra 15-01:
+                                // obiekt wstawiany nie powinien być większy niż 300m (trójkąty terenu w E3D mogą mieć 1.5km)
+								--facecount; // o jeden trójkąt mniej
 								iNumVerts -= 3; // czyli o 3 wierzchołki
 								i -= 3; // wczytanie kolejnego w to miejsce
-								WriteLog(std::string("Too large triangle ignored in: \"") + pName +
-									"\"");
+								WriteLog( "Too large triangle ignored in: \"" + pName + "\"" );
 							}
+                        }
 					}
 				}
-				int i; // indeks dla trójkątów
-				float3 *n = new float3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
-				for (i = 0; i < iNumFaces; i++) // pętla po trójkątach - będzie
-												// szybciej, jak wstępnie przeliczymy
-												// normalne trójkątów
-					n[i] = SafeNormalize(
-						CrossProduct(Vertices[i * 3].Point - Vertices[i * 3 + 1].Point,
-							Vertices[i * 3].Point - Vertices[i * 3 + 2].Point));
-				int v; // indeks dla wierzchołków
-				int f; // numer trójkąta stycznego
-				float3 norm; // roboczy wektor normalny
-				for (v = 0; v < iNumVerts; v++)
-				{ // pętla po wierzchołkach trójkątów
-					if (wsp[v] >= 0) // jeśli już był liczony wektor normalny z użyciem
-									 // tego wierzchołka
-						Vertices[v].Normal =
-						Vertices[wsp[v]].Normal; // to wystarczy skopiować policzony wcześniej
-					else
-					{ // inaczej musimy dopiero policzyć
-						i = v / 3; // numer trójkąta
-						norm = float3(0, 0, 0); // liczenie zaczynamy od zera
-						f = v; // zaczynamy dodawanie wektorów normalnych od własnego
-						while (f >= 0)
-						{ // sumowanie z wektorem normalnym sąsiada (włącznie
-						  // ze sobą)
-							wsp[f] = v; // informacja, że w tym wierzchołku jest już policzony
-										// wektor normalny
-							norm += n[f / 3];
-							f = SeekFaceNormal(sg, f / 3 + 1, sg[i], &Vertices[v].Point,
-								Vertices); // i szukanie od kolejnego trójkąta
+/*
+				glm::vec3 *n = new glm::vec3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
+*/
+                std::vector<glm::vec3> facenormals;
+                for( int i = 0; i < facecount; ++i ) {
+                    // pętla po trójkątach - będzie szybciej, jak wstępnie przeliczymy normalne trójkątów
+                    auto facenormal = 
+                        glm::cross(
+                            Vertices[ i * 3 ].position - Vertices[ i * 3 + 1 ].position,
+                            Vertices[ i * 3 ].position - Vertices[ i * 3 + 2 ].position );
+                    facenormals.emplace_back(
+                        glm::length( facenormal ) > 0.0f ?
+                            glm::normalize( facenormal ) :
+                            glm::vec3() );
+                }
+				glm::vec3 vertexnormal; // roboczy wektor normalny
+				for (int vertexidx = 0; vertexidx < iNumVerts; ++vertexidx) { 
+                    // pętla po wierzchołkach trójkątów
+                    if( wsp[ vertexidx ] >= 0 ) {
+                        // jeśli już był liczony wektor normalny z użyciem tego wierzchołka to wystarczy skopiować policzony wcześniej
+                        Vertices[ vertexidx ].normal = Vertices[ wsp[ vertexidx ] ].normal;
+                    }
+					else {
+                        // inaczej musimy dopiero policzyć
+						auto const faceidx = vertexidx / 3; // numer trójkąta
+						vertexnormal = glm::vec3(); // liczenie zaczynamy od zera
+						auto adjacenvertextidx = vertexidx; // zaczynamy dodawanie wektorów normalnych od własnego
+						while (adjacenvertextidx >= 0) {
+                            // sumowanie z wektorem normalnym sąsiada (włącznie ze sobą)
+							wsp[adjacenvertextidx] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
+							vertexnormal += facenormals[adjacenvertextidx / 3];
+                            // i szukanie od kolejnego trójkąta
+							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
 						}
-						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane
-						// przez transformy, aby normalne po przeskalowaniu były jednostkowe
-						Vertices[v].Normal =
-							SafeNormalize(norm); // przepisanie do wierzchołka trójkąta
+						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
+                        Vertices[ vertexidx ].normal = (
+                            glm::length( vertexnormal ) > 0.0f ?
+                                glm::normalize( vertexnormal ) :
+                                glm::vec3() ); // przepisanie do wierzchołka trójkąta
 					}
 				}
+/*
 				delete[] wsp;
 				delete[] n;
 				delete[] sg;
+*/
 			}
 			else // gdy brak wierzchołków
 			{
 				eType = TP_ROTATOR; // submodel pomocniczy, ma tylko macierz przekształcenia
-				iVboPtr = iNumVerts = 0; // dla formalności
+				/*iVboPtr =*/ iNumVerts = 0; // dla formalności
 			}
 		} // obsługa submodelu z własną listą wierzchołków
 	}
@@ -564,24 +510,35 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 		std::string discard;
 		parser.getTokens(2, false);
 		parser >> discard >> iNumVerts;
+/*
 		// Vertices=new GLVERTEX[iNumVerts];
-		Vertices = new float8[iNumVerts];
-		int i, j;
-		for (i = 0; i < iNumVerts; i++)
+		Vertices = new basic_vertex[iNumVerts];
+*/
+        Vertices.resize( iNumVerts );
+        int i;
+        unsigned int color;
+		for (i = 0; i < iNumVerts; ++i)
 		{
 			if (i % 3 == 0)
 			{
 				parser.ignoreToken(); // maska powierzchni trójkąta
 			}
 			parser.getTokens(5, false);
-			parser >> Vertices[i].Point.x >> Vertices[i].Point.y >> Vertices[i].Point.z >>
-				j // zakodowany kolor
+			parser
+                >> Vertices[i].position.x
+                >> Vertices[i].position.y
+                >> Vertices[i].position.z
+                >> color // zakodowany kolor
 				>> discard;
-			Vertices[i].Normal.x = ((j) & 0xFF) / 255.0; // R
-			Vertices[i].Normal.y = ((j >> 8) & 0xFF) / 255.0; // G
-			Vertices[i].Normal.z = ((j >> 16) & 0xFF) / 255.0; // B
+			Vertices[i].normal.x = ((color) & 0xff) / 255.0f; // R
+			Vertices[i].normal.y = ((color >> 8) & 0xff) / 255.0f; // G
+			Vertices[i].normal.z = ((color >> 16) & 0xff) / 255.0f; // B
 		}
 	}
+    else if( eType == TP_FREESPOTLIGHT ) {
+        // single light points only have single data point, duh
+        Vertices.emplace_back();
+    }
 	// Visible=true; //się potem wyłączy w razie potrzeby
 	// iFlags|=0x0200; //wczytano z pliku tekstowego (jest właścicielem tablic)
 	if (iNumVerts < 1)
@@ -589,9 +546,8 @@ int TSubModel::Load(cParser &parser, TModel3d *Model, int Pos, bool dynamic)
 	return iNumVerts; // do określenia wielkości VBO
 };
 
-int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
-{ // dodanie trójkątów do submodelu, używane
-    // przy tworzeniu E3D terenu
+int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
+{ // dodanie trójkątów do submodelu, używane przy tworzeniu E3D terenu
     TSubModel *s = this;
     while (s ? (s->TextureID != tex) : false)
     { // szukanie submodelu o danej teksturze
@@ -609,11 +565,9 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        // s->asTexture=AnsiString(TTexturesManager::GetName(tex).c_str());
-        s->TextureNameSet(GfxRenderer.Texture(tex).name.c_str());
+        s->TextureNameSet(GfxRenderer.Texture(tex).name);
         s->TextureID = tex;
         s->eType = GL_TRIANGLES;
-        // iAnimOwner=0; //roboczy wskaźnik na wierzchołek
     }
     if (s->iNumVerts < 0)
         s->iNumVerts = tri; // bo na początku jest -1, czyli że nie wiadomo
@@ -621,10 +575,10 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_manager::size_type tex, int tri)
         s->iNumVerts += tri; // aktualizacja ilości wierzchołków
     return s->iNumVerts - tri; // zwraca pozycję tych trójkątów w submodelu
 };
+/*
+basic_vertex *TSubModel::TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
+{ // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane przy tworzeniu E3D terenu
 
-float8 *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
-{ // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane
-  // przy tworzeniu E3D terenu
 	TSubModel *s = this;
 	while (s ? s->TextureID != tex : false)
 	{ // szukanie submodelu o danej teksturze
@@ -637,29 +591,87 @@ float8 *TSubModel::TrianglePtr(int tex, int pos, int *la, int *ld, int *ls)
 		return NULL; // coś nie tak poszło
 	if (!s->Vertices)
 	{ // utworznie tabeli trójkątów
-		s->Vertices = new float8[s->iNumVerts];
-		// iVboPtr=pos; //pozycja submodelu w tabeli wierzchołków
-		// pos+=iNumVerts; //rezerwacja miejsca w tabeli
+		s->Vertices = new basic_vertex[s->iNumVerts];
 		s->iVboPtr = iInstance; // pozycja submodelu w tabeli wierzchołków
 		iInstance += s->iNumVerts; // pozycja dla następnego
 	}
-	s->ColorsSet(la, ld, ls); // ustawienie kolorów świateł
+	s->ColorsSet(Ambient, Diffuse, Specular); // ustawienie kolorów świateł
 	return s->Vertices + pos; // wskaźnik na wolne miejsce w tabeli wierzchołków
 };
-
+*/
+#ifdef EU07_USE_OLD_RENDERCODE
 void TSubModel::DisplayLists()
-{
-	return;
+{ // utworznie po jednej skompilowanej liście dla
+  // każdego submodelu
+	if (eType < TP_ROTATOR)
+	{
+		if (iNumVerts > 0)
+		{
+			uiDisplayList = glGenLists(1);
+			glNewList(uiDisplayList, GL_COMPILE);
+#ifdef USE_VERTEX_ARRAYS
+								   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
+			glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
+			glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
+			glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
+			glDrawArrays(eType, 0, iNumVerts);
+#else
+			glBegin(eType);
+			for (int i = 0; i < iNumVerts; i++)
+			{
+				/*
+				glNormal3dv(&Vertices[i].Normal.x);
+				glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
+				glVertex3dv(&Vertices[i].Point.x);
+				*/
+				glNormal3fv(glm::value_ptr(Vertices[i].normal));
+				glTexCoord2fv(glm::value_ptr(Vertices[i].texture));
+				glVertex3fv(glm::value_ptr(Vertices[i].position));
+			};
+			glEnd();
+#endif
+            glEndList();
+        }
+    }
+    else if (eType == TP_FREESPOTLIGHT)
+    {
+        uiDisplayList = glGenLists(1);
+        glNewList(uiDisplayList, GL_COMPILE);
+        glBegin(GL_POINTS);
+        glVertex3f( 0.0f, 0.0f, -0.05f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
+        glEnd();
+        glEndList();
+    }
+    else if (eType == TP_STARS)
+    { // punkty świecące dookólnie
+        uiDisplayList = glGenLists(1);
+        glNewList(uiDisplayList, GL_COMPILE);
+        glBegin(GL_POINTS);
+        for (int i = 0; i < iNumVerts; ++i)
+        {
+            glColor3fv(glm::value_ptr(Vertices[i].normal));
+            glVertex3fv(glm::value_ptr(Vertices[i].position));
+        };
+        glEnd();
+        glEndList();
+    }
+    // SafeDeleteArray(Vertices); //przy VBO muszą zostać do załadowania całego
+    // modelu
+    if (Child)
+        Child->DisplayLists();
+    if (Next)
+        Next->DisplayLists();
 };
+#endif
 
 void TSubModel::InitialRotate(bool doit)
 { // konwersja układu współrzędnych na zgodny ze scenerią
     if (iFlags & 0xC000) // jeśli jest animacja albo niejednostkowy transform
     { // niejednostkowy transform jest mnożony i wystarczy zabawy
-        if (doit)
-        { // obrót lewostronny
-            if (!fMatrix) // macierzy może nie być w dodanym "bananie"
-            {
+        if (doit) {
+            // obrót lewostronny
+            if (!fMatrix) {
+                // macierzy może nie być w dodanym "bananie"
                 fMatrix = new float4x4(); // tworzy macierz o przypadkowej zawartości
                 fMatrix->Identity(); // a zaczynamy obracanie od jednostkowej
             }
@@ -676,16 +688,21 @@ void TSubModel::InitialRotate(bool doit)
             { // jak nie ma potomnych, można wymnożyć przez transform i wyjedynkować
                 // go
                 float4x4 *mat = GetMatrix(); // transform submodelu
-                if (Vertices)
-                {
-                    for (int i = 0; i < iNumVerts; ++i)
-                        Vertices[i].Point = (*mat) * Vertices[i].Point;
-                    (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] =
-                        0.0; // zerujemy przesunięcie przed obracaniem normalnych
-                    if (eType != TP_STARS) // gwiazdki mają kolory zamiast normalnych, to
-                        // ich wtedy nie ruszamy
-                        for (int i = 0; i < iNumVerts; ++i)
-                            Vertices[i].Normal = SafeNormalize((*mat) * Vertices[i].Normal);
+                if( false == Vertices.empty() ) {
+                    for( auto &vertex : Vertices ) {
+                        vertex.position = (*mat) * vertex.position;
+                    }
+                    // zerujemy przesunięcie przed obracaniem normalnych
+                    (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] = 0.0;
+                    if( eType != TP_STARS ) {
+                        // gwiazdki mają kolory zamiast normalnych, to ich wtedy nie ruszamy
+                        for( auto &vertex : Vertices ) {
+                            vertex.normal = (
+                                glm::length( vertex.normal ) > 0.0f ?
+                                    glm::normalize( ( *mat ) * vertex.normal ) :
+                                    glm::vec3() );
+                        }
+                    }
                 }
                 mat->Identity(); // jedynkowanie transformu po przeliczeniu wierzchołków
                 iFlags &= ~0x8000; // transform jedynkowy
@@ -695,23 +712,26 @@ void TSubModel::InitialRotate(bool doit)
         if (doit)
     { // jeśli jest jednostkowy transform, to przeliczamy
         // wierzchołki, a mnożenie podajemy dalej
-        double t;
-        if (Vertices)
-            for (int i = 0; i < iNumVerts; ++i)
-            {
-                Vertices[i].Point.x = -Vertices[i].Point.x; // zmiana znaku X
-                t = Vertices[i].Point.y; // zamiana Y i Z
-                Vertices[i].Point.y = Vertices[i].Point.z;
-                Vertices[i].Point.z = t;
+        float swapcopy;
+//        if( false == Vertices.empty() ) {
+/*
+            for( auto &vertex : Vertices ) {
+*/
+        for( auto &vertex : Vertices ) {
+                vertex.position.x = -vertex.position.x; // zmiana znaku X
+                swapcopy = vertex.position.y; // zamiana Y i Z
+                vertex.position.y = vertex.position.z;
+                vertex.position.z = swapcopy;
                 // wektory normalne również trzeba przekształcić, bo się źle oświetlają
                 if( eType != TP_STARS ) {
                     // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
-                    Vertices[ i ].Normal.x = -Vertices[ i ].Normal.x; // zmiana znaku X
-                    t = Vertices[ i ].Normal.y; // zamiana Y i Z
-                    Vertices[ i ].Normal.y = Vertices[ i ].Normal.z;
-                    Vertices[ i ].Normal.z = t;
+                    vertex.normal.x = -vertex.normal.x; // zmiana znaku X
+                    swapcopy = vertex.normal.y; // zamiana Y i Z
+                    vertex.normal.y = vertex.normal.z;
+                    vertex.normal.z = swapcopy;
                 }
             }
+ //       }
         if (Child)
             Child->InitialRotate(doit); // potomne ewentualnie obrócimy
     }
@@ -931,7 +951,7 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		break;
 	case at_Billboard: // obrót w pionie do kamery
 	{
-        matrix4x4 mat; mat.OpenGL_Matrix( glm::value_ptr(m) );
+        matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
 		m = glm::mat4(1.0f);
 		m = glm::translate(m, glm::vec3(gdzie.x, gdzie.y, gdzie.z)); // początek układu zostaje bez zmian
@@ -975,27 +995,44 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 
    //---------------------------------------------------------------------------
 
-void TSubModel::RaArrayFill(CVertNormTex *Vert)
-{ // wypełnianie tablic VBO
-	if (Child)
-		Child->RaArrayFill(Vert);
-	if ((eType < TP_ROTATOR) || (eType == TP_STARS))
-		for (int i = 0; i < iNumVerts; ++i)
-		{
-			Vert[iVboPtr + i].x = Vertices[i].Point.x;
-			Vert[iVboPtr + i].y = Vertices[i].Point.y;
-			Vert[iVboPtr + i].z = Vertices[i].Point.z;
-			Vert[iVboPtr + i].nx = Vertices[i].Normal.x;
-			Vert[iVboPtr + i].ny = Vertices[i].Normal.y;
-			Vert[iVboPtr + i].nz = Vertices[i].Normal.z;
-			Vert[iVboPtr + i].u = Vertices[i].tu;
-			Vert[iVboPtr + i].v = Vertices[i].tv;
-		}
-	else if (eType == TP_FREESPOTLIGHT)
-		Vert[iVboPtr].x = Vert[iVboPtr].y = Vert[iVboPtr].z = 0.0;
-	if (Next)
-		Next->RaArrayFill(Vert);
+void TSubModel::serialize_geometry( std::ostream &Output ) {
+
+    if( Child ) {
+        Child->serialize_geometry( Output );
+    }
+    if( m_geometry != NULL ) {
+        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+            vertex.serialize( Output );
+        }
+    }
+    if( Next ) {
+        Next->serialize_geometry( Output );
+    }
 };
+
+void
+TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &Bank ) {
+
+    // data offset is used to determine data offset of each submodel into single shared geometry bank
+    // (the offsets are part of legacy system which we now need to work around for backward compatibility)
+
+    if( Child )
+        Child->create_geometry( Dataoffset, Bank );
+
+    if( false == Vertices.empty() ) {
+        tVboPtr = static_cast<int>( Dataoffset );
+        Dataoffset += Vertices.size();
+        // conveniently all relevant custom node types use GL_POINTS, or we'd have to determine the type on individual basis
+        auto type = (
+            eType < TP_ROTATOR ?
+                eType :
+                GL_POINTS );
+        m_geometry = GfxRenderer.Insert( Vertices, Bank, type );
+    }
+
+    if( Next )
+        Next->create_geometry( Dataoffset, Bank );
+}
 
 // NOTE: leftover from static distance factor adjustment.
 // TODO: get rid of it, once we have the dynamic adjustment code in place
@@ -1014,9 +1051,13 @@ void TSubModel::AdjustDist()
 		Next->AdjustDist();
 };
 
-void TSubModel::ColorsSet(int *a, int *d, int *s)
+void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // ustawienie kolorów dla modelu terenu
-	int i;
+    f4Ambient = glm::vec4( Ambient, 1.0f );
+    f4Diffuse = glm::vec4( Diffuse, 1.0f );
+    f4Specular = glm::vec4( Specular, 1.0f );
+/*
+    int i;
 	if (a)
 		for (i = 0; i < 4; ++i)
 			f4Ambient[i] = a[i] / 255.0;
@@ -1026,7 +1067,9 @@ void TSubModel::ColorsSet(int *a, int *d, int *s)
 	if (s)
 		for (i = 0; i < 4; ++i)
 			f4Specular[i] = s[i] / 255.0;
+*/
 };
+
 void TSubModel::ParentMatrix(float4x4 *m)
 { // pobranie transformacji względem wstawienia modelu
   // jeśli nie zostało wykonane Init() (tzn. zaraz po wczytaniu T3D), to
@@ -1044,66 +1087,59 @@ void TSubModel::ParentMatrix(float4x4 *m)
 	// dla ostatniego może być potrzebny dodatkowy obrót, jeśli wczytano z T3D, a
 	// nie obrócono jeszcze
 };
-float TSubModel::MaxY(const float4x4 &m)
-{ // obliczenie maksymalnej wysokości,
-  // na początek ślizgu w pantografie
-	if (eType != 4)
-		return 0; // tylko dla trójkątów liczymy
-	if (iNumVerts < 1)
-		return 0;
-	if (!Vertices)
-		return 0;
-	float y,
-		my = m[0][1] * Vertices[0].Point.x + m[1][1] * Vertices[0].Point.y +
-		m[2][1] * Vertices[0].Point.z + m[3][1];
-	for (int i = 1; i < iNumVerts; ++i)
-	{
-		y = m[0][1] * Vertices[i].Point.x + m[1][1] * Vertices[i].Point.y +
-			m[2][1] * Vertices[i].Point.z + m[3][1];
-		if (my < y)
-			my = y;
-	}
-	return my;
+
+// obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
+float TSubModel::MaxY( float4x4 const &m ) {
+    // tylko dla trójkątów liczymy
+    if( eType != 4 ) { return 0; }
+
+    auto maxy { 0.0f };
+    // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
+    if( m_geometry != NULL ) {
+
+        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+            maxy = std::max(
+                maxy,
+                  m[ 0 ][ 1 ] * vertex.position.x
+                + m[ 1 ][ 1 ] * vertex.position.y
+                + m[ 2 ][ 1 ] * vertex.position.z
+                + m[ 3 ][ 1 ] );
+        }
+    }
+    else if( false == Vertices.empty() ) {
+
+        for( auto const &vertex : Vertices ) {
+            maxy = std::max(
+                maxy,
+                  m[ 0 ][ 1 ] * vertex.position.x
+                + m[ 1 ][ 1 ] * vertex.position.y
+                + m[ 2 ][ 1 ] * vertex.position.z
+                + m[ 3 ][ 1 ] );
+        }
+    }
+
+    return maxy;
 };
 //---------------------------------------------------------------------------
 
 TModel3d::TModel3d()
 {
-	// Materials=NULL;
-	// MaterialsCount=0;
 	Root = NULL;
 	iFlags = 0;
 	iSubModelsCount = 0;
 	iModel = NULL; // tylko jak wczytany model binarny
 	iNumVerts = 0; // nie ma jeszcze wierzchołków
 };
-/*
-TModel3d::TModel3d(char *FileName)
-{
-//    Root=NULL;
-//    Materials=NULL;
-//    MaterialsCount=0;
-Root=NULL;
-SubModelsCount=0;
-iFlags=0;
-LoadFromFile(FileName);
-};
-*/
+
 TModel3d::~TModel3d()
 {
 	// SafeDeleteArray(Materials);
 	if (iFlags & 0x0200)
-	{ // wczytany z pliku tekstowego, submodele sprzątają
-	  // same
+	{ // wczytany z pliku tekstowego, submodele sprzątają same
 		SafeDelete(Root); // submodele się usuną rekurencyjnie
 	}
 	else
 	{ // wczytano z pliku binarnego (jest właścicielem tablic)
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-		m_pVNT = nullptr; // nie usuwać tego, bo wskazuje na iModel
-#else
-        m_pVNT.clear();
-#endif
 		Root = nullptr;
 		delete[] iModel; // usuwamy cały wczytany plik i to wystarczy
 	}
@@ -1146,18 +1182,6 @@ TSubModel *TModel3d::GetFromName(const char *sName)
 		return Root ? Root->GetFromName(sName) : NULL;
 	}
 };
-
-/*
-TMaterial* TModel3d::GetMaterialFromName(char *sName)
-{
-AnsiString tmp=AnsiString(sName).Trim();
-for (int i=0; i<MaterialsCount; i++)
-if (strcmp(sName,Materials[i].Name.c_str())==0)
-//        if (Trim()==Materials[i].Name.tmp)
-return Materials+i;
-return Materials;
-}
-*/
 
 bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
 {
@@ -1251,7 +1275,8 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_int32(s, (int32_t)get_container_pos(transforms, *fMatrix));
 
 	sn_utils::ls_int32(s, iNumVerts);
-	sn_utils::ls_int32(s, (int)iVboPtr);
+	sn_utils::ls_int32(s, tVboPtr);
+
 	if (TextureID <= 0)
 		sn_utils::ls_int32(s, TextureID);
 	else
@@ -1288,7 +1313,7 @@ void TSubModel::serialize(std::ostream &s,
 		s.put(0);
 }
 
-void TModel3d::SaveToBinFile(char const *FileName)
+void TModel3d::SaveToBinFile(std::string const &FileName)
 {
 	WriteLog("saving e3d model..");
 
@@ -1326,16 +1351,9 @@ void TModel3d::SaveToBinFile(char const *FileName)
 	for (size_t i = 0; i < transforms.size(); i++)
 		transforms[i].serialize_float32(s);
 
-	MakeArray(iNumVerts);
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-    Root->RaArrayFill(m_pVNT);
-#else
-    Root->RaArrayFill( m_pVNT.data() );
-#endif
-	sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
+    sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
 	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
-	for (size_t i = 0; i < (size_t)iNumVerts; i++)
-		m_pVNT[i].serialize(s);
+    Root->serialize_geometry( s );
 
 	if (textures.size())
 	{
@@ -1391,13 +1409,13 @@ void TSubModel::deserialize(std::istream &s)
 	fVisible = sn_utils::ld_float32(s);
 	fLight = sn_utils::ld_float32(s);
 
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Ambient[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Diffuse[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Specular[i] = sn_utils::ld_float32(s);
-	for (size_t i = 0; i < 4; i++)
+	for (size_t i = 0; i < 4; ++i)
 		f4Emision[i] = sn_utils::ld_float32(s);
 
 	fWireSize = sn_utils::ld_float32(s);
@@ -1416,13 +1434,11 @@ void TSubModel::deserialize(std::istream &s)
 
 void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-    m_pVNT = nullptr;
-#else
-    m_pVNT.clear();
-#endif
 	Root = nullptr;
 	float4x4 *tm = nullptr;
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
 
 	std::streampos end = s.tellg() + (std::streampos)size;
 
@@ -1432,28 +1448,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 		uint32_t size = sn_utils::ld_uint32(s) - 8;
 		std::streampos end = s.tellg() + (std::streampos)size;
 
-		if (type == MAKE_ID4('V', 'N', 'T', '0'))
-		{
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            if (m_pVNT != nullptr)
-#else
-            if( false == m_pVNT.empty() )
-#endif
-				throw std::runtime_error("e3d: duplicated VNT chunk");
-
-			size_t vt_cnt = size / 32;
-			iNumVerts = (int)vt_cnt;
-			m_nVertexCount = (int)vt_cnt;
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            assert( m_pVNT == nullptr );
-            m_pVNT = new CVertNormTex[vt_cnt];
-#else
-            m_pVNT.resize( vt_cnt );
-#endif
-			for (size_t i = 0; i < vt_cnt; i++)
-				m_pVNT[i].deserialize(s);
-		}
-		else if ((type & 0x00FFFFFF) == MAKE_ID4('S', 'U', 'B', 0))
+		if ((type & 0x00FFFFFF) == MAKE_ID4('S', 'U', 'B', 0))
 		{
 			if (Root != nullptr)
 				throw std::runtime_error("e3d: duplicated SUB chunk");
@@ -1468,6 +1463,62 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 				s.seekg(pos + sm_size * i);
 				Root[i].deserialize(s);
 			}
+		}
+		else if (type == MAKE_ID4('V', 'N', 'T', '0'))
+		{
+/*
+            if (m_pVNT != nullptr)
+				throw std::runtime_error("e3d: duplicated VNT chunk");
+
+            size_t vt_cnt = size / 32;
+			iNumVerts = (int)vt_cnt;
+			m_nVertexCount = (int)vt_cnt;
+#ifdef EU07_USE_OLD_VERTEXBUFFER
+            assert( m_pVNT == nullptr );
+            m_pVNT = new basic_vertex[vt_cnt];
+#else
+            m_pVNT.resize( vt_cnt );
+#endif
+			for (size_t i = 0; i < vt_cnt; i++)
+				m_pVNT[i].deserialize(s);
+*/
+            // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk
+            // geometry associated with chunks isn't stored in the same order as the chunks themselves, so we need to sort that out first
+            std::vector< std::pair<int, int> > submodeloffsets;
+            submodeloffsets.reserve( iSubModelsCount );
+            for( int submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {
+                auto const &submodel = Root[ submodelindex ];
+                if( submodel.iNumVerts <= 0 ) { continue; }
+                submodeloffsets.emplace_back( submodel.tVboPtr, submodelindex );
+            }
+            std::sort(
+                submodeloffsets.begin(),
+                submodeloffsets.end(),
+                []( std::pair<int, int> const &Left, std::pair<int, int> const &Right ) {
+                    return (Left.first) < (Right.first); } );
+            // once sorted we can grab geometry as it comes, and assign it to the chunks it belongs to
+            for( auto const &submodeloffset : submodeloffsets ) {
+                auto &submodel = Root[ submodeloffset.second ];
+                vertex_array vertices; vertices.resize( submodel.iNumVerts );
+                iNumVerts += submodel.iNumVerts;
+                for( auto &vertex : vertices ) {
+                    vertex.deserialize( s );
+                }
+                // remap geometry type for custom type submodels
+                int type;
+                switch( submodel.eType ) {
+                    case TP_FREESPOTLIGHT:
+                    case TP_STARS: {
+                        type = GL_POINTS;
+                        break; }
+                    default: {
+                        type = submodel.eType;
+                        break;
+                    }
+                }
+                submodel.m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, type );
+            }
+
 		}
 		else if (type == MAKE_ID4('T', 'R', 'A', '0'))
 		{
@@ -1509,31 +1560,26 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 
 	if (!Root)
 		throw std::runtime_error("e3d: no submodels");
-
+/*
 #ifdef EU07_USE_OLD_VERTEXBUFFER
     if (!m_pVNT)
 #else
     if(m_pVNT.empty() )
 #endif
 		throw std::runtime_error("e3d: no vertices");
-
-	for (size_t i = 0; (int)i < iSubModelsCount; i++)
+*/
+	for (size_t i = 0; (int)i < iSubModelsCount; ++i)
 	{
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-        Root[i].BinInit(Root, tm, (float8*)m_pVNT, &Textures, &Names, dynamic);
-#else
-        Root[ i ].BinInit( Root, tm, (float8*)m_pVNT.data(), &Textures, &Names, dynamic );
-#endif
+        Root[i].BinInit( Root, tm, &Textures, &Names, dynamic );
 
-		if (Root[i].ChildGet())
+        if (Root[i].ChildGet())
 			Root[i].ChildGet()->Parent = &Root[i];
 		if (Root[i].NextGet())
 			Root[i].NextGet()->Parent = Root[i].Parent;
 	}
 }
 
-void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
-	std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic)
+void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic)
 { // ustawienie wskaźników w submodelu
 	//m7todo: brzydko
 	iVisible = 1; // tymczasowo używane
@@ -1569,7 +1615,13 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
 		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
-		iFlags |= (GfxRenderer.Texture(TextureID).has_alpha ? 0x20 : 0x10); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        if( ( iFlags & 0x30 ) == 0 ) {
+            // texture-alpha based fallback if for some reason we don't have opacity flag set yet
+            iFlags |=
+                ( GfxRenderer.Texture( TextureID ).has_alpha ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        }
     }
 	else
 		TextureID = iTexture;
@@ -1583,19 +1635,17 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, float8 *v,
         iFlags |= 0x20;
     }
     // intercept and fix hotspot values if specified in degrees and not directly
-    if( fCosFalloffAngle > 1.0 ) {
+    if( fCosFalloffAngle > 1.0f ) {
         fCosFalloffAngle = std::cos( DegToRad( 0.5f * fCosFalloffAngle ) );
     }
-    if( fCosHotspotAngle > 1.0 ) {
+    if( fCosHotspotAngle > 1.0f ) {
         fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
     }
 
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
-
+/*
 	iVboPtr = tVboPtr;
-	Vertices = v + iVboPtr;
-	// if (!iNumVerts) eType=-1; //tymczasowo zmiana typu, żeby się nie
-	// renderowało na siłę
+*/
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
@@ -1630,27 +1680,26 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 		// parser.getToken(parent);
 		parser.getTokens(1, false); // nazwa submodelu nadrzędnego bez zmieny na małe
 		parser >> parent;
-		if (parent == "")
-			break;
+        if( parent == "" ) {
+            break;
+        }
 		SubModel = new TSubModel();
-		iNumVerts += SubModel->Load(parser, this, iNumVerts, dynamic);
-		SubModel->Parent = AddToNamed(
-			parent.c_str(), SubModel); // będzie potrzebne do wyliczenia pozycji, np. pantografu
-									   // iSubModelsCount++;
+		iNumVerts += SubModel->Load(parser, this, /*iNumVerts,*/ dynamic);
+
+        // będzie potrzebne do wyliczenia pozycji, np. pantografu
+		SubModel->Parent = AddToNamed(parent.c_str(), SubModel); 
+
 		parser.getTokens();
 		parser >> token;
 	}
-	// Ra: od wersji 334 przechylany jest cały model, a nie tylko pierwszy
-	// submodel
-	// ale bujanie kabiny nadal używa bananów :( od 393 przywrócone, ale z
-	// dodatkowym warunkiem
+	// Ra: od wersji 334 przechylany jest cały model, a nie tylko pierwszy submodel
+	// ale bujanie kabiny nadal używa bananów :( od 393 przywrócone, ale z dodatkowym warunkiem
 	if (Global::iConvertModels & 4)
 	{ // automatyczne banany czasem psuły przechylanie kabin...
 		if (dynamic && Root)
 		{
 			if (Root->NextGet()) // jeśli ma jakiekolwiek kolejne
-			{ // dynamic musi mieć "banana", bo tylko pierwszy obiekt jest animowany,
-			  // a następne nie
+			{ // dynamic musi mieć "banana", bo tylko pierwszy obiekt jest animowany, a następne nie
 				SubModel = new TSubModel(); // utworzenie pustego
 				SubModel->ChildAdd(Root);
 				Root = SubModel;
@@ -1682,41 +1731,19 @@ void TModel3d::Init()
 			Root->InitialRotate(true); // argumet określa, czy wykonać pierwotny obrót
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
-		if (false == asBinary.empty()) // jeśli jest podana nazwa
-		{
-			if (Global::iConvertModels) // i włączony zapis
-				SaveToBinFile(asBinary.c_str()); // utworzy tablicę (m_pVNT)
-			asBinary = ""; // zablokowanie powtórnego zapisu
-		}
-		if (iNumVerts)
-		{
-/* // NOTE: we will be applying distance factor dynamically during render,
-   // so we're leaving the defined ranges intact
-			if (Global::fDistanceFactor !=
-				1.0) // trochę zaoszczędzi czasu na modelach z wieloma submocelami
-				Root->AdjustDist(); // aktualizacja odległości faz LoD, zależnie od
-									// rozdzielczości pionowej oraz multisamplingu
-*/
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            if (!m_pVNT) // jeśli nie ma jeszcze tablicy (wczytano z pliku tekstowego)
-#else
-            if( m_pVNT.empty() )
-#endif
-			{ // tworzenie tymczasowej tablicy z wierzchołkami całego modelu
-				MakeArray(iNumVerts); // tworzenie tablic dla VBO
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-                Root->RaArrayFill(m_pVNT); // wypełnianie tablicy
-#else
-                Root->RaArrayFill( m_pVNT.data() ); // wypełnianie tablicy
-#endif
-				BuildVBOs(); // tworzenie VBO i usuwanie tablicy z pamięci
-			}
-			else
-				BuildVBOs(false); // tworzenie VBO bez usuwania tablicy z pamięci
-			// if (Root->TextureID) //o ile ma teksturę
-			// Root->iFlags|=0x80; //konieczność ustawienia tekstury
-		}
-	}
+        if (iNumVerts) {
+            if( m_geometrybank == NULL ) {
+                m_geometrybank = GfxRenderer.Create_Bank();
+            }
+            std::size_t dataoffset = 0;
+            Root->create_geometry( dataoffset, m_geometrybank );
+        }
+        if( ( Global::iConvertModels > 0 )
+         && ( false == asBinary.empty() ) ) {
+            SaveToBinFile( asBinary );
+            asBinary = ""; // zablokowanie powtórnego zapisu
+        }
+    }
 };
 
 void TModel3d::BreakHierarhy()
@@ -1752,33 +1779,17 @@ TSubModel *TModel3d::TerrainSquare(int n)
 	r->UnFlagNext(); // blokowanie wyświetlania po Next głównej listy
 	return r;
 };
+#ifdef EU07_USE_OLD_RENDERCODE
 void TModel3d::TerrainRenderVBO(int n)
 { // renderowanie terenu z VBO
-	glPushMatrix();
+	::glPushMatrix();
     ::glTranslated( -Global::pCameraPosition.x, -Global::pCameraPosition.y, -Global::pCameraPosition.z );
-	float mv[16], p[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, mv);
-	glGetFloatv(GL_PROJECTION_MATRIX, p);
-	World.shader.set_mv(glm::make_mat4(mv));
-	World.shader.set_p(glm::make_mat4(p));
-
-	// glTranslated(vPosition->x,vPosition->y,vPosition->z);
-	// if (vAngle->y!=0.0) glRotated(vAngle->y,0.0,1.0,0.0);
-	// if (vAngle->x!=0.0) glRotated(vAngle->x,1.0,0.0,0.0);
-	// if (vAngle->z!=0.0) glRotated(vAngle->z,0.0,0.0,1.0);
-	// TSubModel::fSquareDist=SquareMagnitude(*vPosition-Global::GetCameraPosition());
-	// //zmienna globalna!
-	if (StartVBO())
-	{ // odwrócenie flag, aby wyłapać nieprzezroczyste
-	  // Root->ReplacableSet(ReplacableSkinId,iAlpha^0x0F0F000F);
-		TSubModel *r = Root;
-		while (r)
-		{
-			if (r->iVisible == n) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
-				GfxRenderer.Render(r); // sub kolejne (Next) się nie wyrenderują
-			r = r->NextGet();
-		}
-		EndVBO();
-	}
-	glPopMatrix();
+    TSubModel *r = Root;
+    while( r ) {
+        if( r->iVisible == n ) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
+            GfxRenderer.Render( r ); // sub kolejne (Next) się nie wyrenderują
+        r = r->NextGet();
+    }
+    ::glPopMatrix();
 };
+#endif

@@ -263,6 +263,13 @@ inline float3 operator*(const float4x4 &m, const float3 &v)
                   v.x * m[0][2] + v.y * m[1][2] + v.z * m[2][2] + m[3][2]);
 }
 
+inline glm::vec3 operator*( const float4x4 &m, const glm::vec3 &v ) { // mnożenie wektora przez macierz
+    return glm::vec3(
+        v.x * m[ 0 ][ 0 ] + v.y * m[ 1 ][ 0 ] + v.z * m[ 2 ][ 0 ] + m[ 3 ][ 0 ],
+        v.x * m[ 0 ][ 1 ] + v.y * m[ 1 ][ 1 ] + v.z * m[ 2 ][ 1 ] + m[ 3 ][ 1 ],
+        v.x * m[ 0 ][ 2 ] + v.y * m[ 1 ][ 2 ] + v.z * m[ 2 ][ 2 ] + m[ 3 ][ 2 ] );
+}
+
 inline float4x4 &float4x4::Rotation(double angle, float3 axis)
 {
     double c = cos(angle);
