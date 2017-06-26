@@ -143,12 +143,8 @@ class TAnim
 struct material_data {
 
     int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
-    texture_handle replacable_skins[ 5 ]; // McZapkie:zmienialne nadwozie
+    texture_handle replacable_skins[ 5 ] = { NULL, NULL, NULL, NULL, NULL }; // McZapkie:zmienialne nadwozie
     int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
-
-    material_data() {
-        ::SecureZeroMemory( replacable_skins, sizeof( replacable_skins ) );
-    }
 };
 
 class TDynamicObject { // klasa pojazdu
@@ -169,8 +165,7 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
     // bool bCameraNear; //blisko kamer są potrzebne dodatkowe obliczenia szczegółów
-    TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer,
-        int &CouplNr );
+    TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
 public: // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
@@ -191,8 +186,18 @@ public: // modele składowe pojazdu
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
-    float3 InteriorLight{ 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
-    float InteriorLightLevel{ 0.0f }; // current level of interior lighting
+    float3 InteriorLight { 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
+    float InteriorLightLevel { 0.0f }; // current level of interior lighting
+    struct section_light {
+        TSubModel *compartment;
+        TSubModel *load;
+        float level;
+        section_light( TSubModel *Compartment, TSubModel *Load, float const Level ) :
+                      compartment(Compartment),      load(Load),      level(Level)
+        {}
+    };
+    std::vector<section_light> SectionLightLevels; // table of light levels for specific compartments of associated 3d model
+    bool SectionLightsActive { false }; // flag indicating whether section lights were set.
     float fShade; // zacienienie: 0:normalnie, -1:w ciemności, +1:dodatkowe światło (brak koloru?)
 
   private: // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
@@ -200,7 +205,9 @@ public: // modele składowe pojazdu
 
   public:
     inline
-        material_data const *Material() const { return &m_materialdata; }
+    material_data const
+        *Material() const {
+            return &m_materialdata; }
     // tymczasowo udostępnione do wyszukiwania drutu
     int iAnimType[ ANIM_TYPES ]; // 0-osie,1-drzwi,2-obracane,3-zderzaki,4-wózki,5-pantografy,6-tłoki
   private:
@@ -226,6 +233,7 @@ public: // modele składowe pojazdu
     void UpdateLeverFloat(TAnim *pAnim); // animacja gałki zależna od float
     void UpdateLeverInt(TAnim *pAnim); // animacja gałki zależna od int (wartość)
     void UpdateLeverEnum(TAnim *pAnim); // animacja gałki zależna od int (lista kątów)
+    void toggle_lights(); // switch light levels for registered interior sections
   private: // Ra: ciąg dalszy animacji, dopiero do ogarnięcia
     // ABuWozki 060504
     vector3 bogieRot[2]; // Obroty wozkow w/m korpusu

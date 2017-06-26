@@ -157,6 +157,7 @@ opengl_renderer::Render() {
         // frustum tests are performed in 'world space' but after we set up frustum
         // we no longer need camera translation, only rotation
         ::glMultMatrixd( glm::value_ptr( glm::dmat4( glm::dmat3( worldcamera ))));
+
         Render( &World.Environment );
         Render( &World.Ground );
 
@@ -538,19 +539,26 @@ opengl_renderer::Render( TGroundNode *Node ) {
         }
 
         case GL_LINES: {
-            if( ( Node->m_geometry == NULL )
+            if( ( Node->Piece->geometry == NULL )
              || ( Node->fLineThickness > 0.0 ) ) {
                 return false;
             }
             // setup
-            // w zaleznosci od koloru swiatla
+            auto const distance = std::sqrt( distancesquared );
+            auto const linealpha =
+                10.0 * Node->fLineThickness
+                / std::max(
+                    0.5 * Node->m_radius + 1.0,
+                    distance - ( 0.5 * Node->m_radius ) );
             ::glColor4fv(
                 glm::value_ptr(
                     glm::vec4(
-                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ),
-                        std::min(
-                            1.0,
-                            1000.0 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) ) );
+                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
+                        1.0 ) ) ); // if the thickness is defined negative, lines are always drawn opaque
+            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 32.0 );
+            if( linewidth > 1.0 ) {
+                ::glLineWidth( static_cast<float>( linewidth ) );
+            }
 
             GfxRenderer.Bind( 0 );
 
@@ -559,16 +567,18 @@ opengl_renderer::Render( TGroundNode *Node ) {
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
             // render
-            m_geometry.draw( Node->m_geometry );
+            m_geometry.draw( Node->Piece->geometry );
 
             // post-render cleanup
             ::glPopMatrix();
+
+            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
 
             return true;
         }
 
         case GL_TRIANGLES: {
-            if( ( Node->m_geometry == NULL )
+            if( ( Node->Piece->geometry == NULL )
              || ( ( Node->iFlags & 0x10 ) == 0 ) ) {
                 return false;
             }
@@ -582,7 +592,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
             // render
-            m_geometry.draw( Node->m_geometry );
+            m_geometry.draw( Node->Piece->geometry );
 
             // post-render cleanup
             ::glPopMatrix();
@@ -750,7 +760,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
                     // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse) );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
                 }
 
                 // main draw call
@@ -772,7 +782,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
             if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) // kąt większy niż maksymalny stożek swiatła
             {
-                float lightlevel = 1.0f;
+                float lightlevel = 1.0f; // TODO, TBD: parameter to control light strength
                 // view angle attenuation
                 float const anglefactor = ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
                 // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
@@ -946,7 +956,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 }
                 float const linealpha = static_cast<float>(
                     std::min(
-                        1.2,
+                        1.25,
                         5000 * Node->hvTraction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
                 ::glLineWidth( linealpha );
                 // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
@@ -982,17 +992,23 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         }
 
         case GL_LINES: {
-            if( ( Node->m_geometry == NULL )
+            if( ( Node->Piece->geometry == NULL )
              || ( Node->fLineThickness < 0.0 ) ) {
                 return false;
             }
             // setup
-            auto const linewidth = clamp( 100.0 * Node->fLineThickness / ( distancesquared + 1.0 ), 1.0, 10.0 );
+            auto const distance = std::sqrt( distancesquared );
+            auto const linealpha =
+                10.0 * Node->fLineThickness
+                / std::max(
+                    0.5 * Node->m_radius + 1.0,
+                    distance - ( 0.5 * Node->m_radius ) );
             ::glColor4fv(
                 glm::value_ptr(
                     glm::vec4(
                         Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
-                        std::min( 1.0, linewidth ) ) ) );
+                        std::min( 1.0, linealpha ) ) ) );
+            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 32.0 );
             if( linewidth > 1.0 ) {
                 ::glLineWidth( static_cast<float>(linewidth) );
             }
@@ -1004,20 +1020,18 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
             // render
-            m_geometry.draw( Node->m_geometry );
+            m_geometry.draw( Node->Piece->geometry );
 
             // post-render cleanup
-            if( linewidth > 1.0 ) {
-                ::glLineWidth( 1.0f );
-            }
-
             ::glPopMatrix();
+
+            if( linewidth > 1.0 ) { ::glLineWidth( 1.0f ); }
 
             return true;
         }
 
         case GL_TRIANGLES: {
-            if( ( Node->m_geometry == NULL )
+            if( ( Node->Piece->geometry == NULL )
              || ( ( Node->iFlags & 0x20 ) == 0 ) ) {
                 return false;
             }
@@ -1031,7 +1045,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
             // render
-            m_geometry.draw( Node->m_geometry );
+            m_geometry.draw( Node->Piece->geometry );
 
             // post-render cleanup
             ::glPopMatrix();
@@ -1188,7 +1202,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 // ...luminance
                 if( Global::fLuminance < Submodel->fLight ) {
                     // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse) );
+                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
                 }
 
                 // main draw call
@@ -1311,7 +1325,7 @@ opengl_renderer::Update ( double const Deltatime ) {
     else if( framerate > 60.0 ) { targetsegments = 225; targetfactor = 1.5f; }
     else if( framerate > 30.0 ) { targetsegments =  90; targetfactor = Global::ScreenHeight / 768.0f; }
     else                        { targetsegments =   9; targetfactor = Global::ScreenHeight / 768.0f * 0.75f; }
-
+/*
     if( targetsegments > Global::iSegmentsRendered ) {
 
         Global::iSegmentsRendered = std::min( targetsegments, Global::iSegmentsRendered + 5 );
@@ -1320,6 +1334,7 @@ opengl_renderer::Update ( double const Deltatime ) {
 
         Global::iSegmentsRendered = std::max( targetsegments, Global::iSegmentsRendered - 5 );
     }
+*/
     if( targetfactor > Global::fDistanceFactor ) {
 
         Global::fDistanceFactor = std::min( targetfactor, Global::fDistanceFactor + 0.05f );
@@ -1343,6 +1358,8 @@ opengl_renderer::Update ( double const Deltatime ) {
     }
 
     // TODO: add garbage collection and other less frequent works here
+    m_geometry.update();
+
     if( true == DebugModeFlag ) {
         m_debuginfo = m_textures.info();
     }

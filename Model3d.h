@@ -56,6 +56,7 @@ class TSubModel
 
     friend class opengl_renderer;
     friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
+    friend class TDynamicObject; // temporary etc
 
 private:
     int iNext{ NULL };
@@ -85,47 +86,41 @@ private:
 		float4x4 *fMatrix = nullptr; // pojedyncza precyzja wystarcza
 		int iMatrix; // w pliku binarnym jest numer matrycy
 	};
-    int iNumVerts{ -1 }; // ilość wierzchołków (1 dla FreeSpotLight)
+    int iNumVerts { -1 }; // ilość wierzchołków (1 dla FreeSpotLight)
 	int tVboPtr; // początek na liście wierzchołków albo indeksów
-    int iTexture{ 0 }; // numer nazwy tekstury, -1 wymienna, 0 brak
-    float fVisible{ 0.0f }; // próg jasności światła do załączenia submodelu
-    float fLight{ -1.0f }; // próg jasności światła do zadziałania selfillum
+    int iTexture { 0 }; // numer nazwy tekstury, -1 wymienna, 0 brak
+    float fVisible { 0.0f }; // próg jasności światła do załączenia submodelu
+    float fLight { -1.0f }; // próg jasności światła do zadziałania selfillum
 	glm::vec4
-        f4Ambient{ 1.0f,1.0f,1.0f,1.0f },
-        f4Diffuse{ 1.0f,1.0f,1.0f,1.0f },
-        f4Specular{ 0.0f,0.0f,0.0f,1.0f },
-        f4Emision{ 1.0f,1.0f,1.0f,1.0f };
-    float fWireSize{ 0.0f }; // nie używane, ale wczytywane
-    float fSquareMaxDist{ 10000.0f * 10000.0f };
-    float fSquareMinDist{ 0.0f };
+        f4Ambient { 1.0f,1.0f,1.0f,1.0f },
+        f4Diffuse { 1.0f,1.0f,1.0f,1.0f },
+        f4Specular { 0.0f,0.0f,0.0f,1.0f },
+        f4Emision { 1.0f,1.0f,1.0f,1.0f };
+    float fWireSize { 0.0f }; // nie używane, ale wczytywane
+    float fSquareMaxDist { 10000.0f * 10000.0f };
+    float fSquareMinDist { 0.0f };
 	// McZapkie-050702: parametry dla swiatla:
-    float fNearAttenStart{ 40.0f };
-    float fNearAttenEnd{ 80.0f };
-    bool bUseNearAtten{ false }; // te 3 zmienne okreslaja rysowanie aureoli wokol zrodla swiatla
-    int iFarAttenDecay{ 0 }; // ta zmienna okresla typ zaniku natezenia swiatla (0:brak, 1,2: potega 1/R)
-    float fFarDecayRadius{ 100.0f }; // normalizacja j.w.
-    float fCosFalloffAngle{ 0.5f }; // cosinus kąta stożka pod którym widać światło
-    float fCosHotspotAngle{ 0.3f }; // cosinus kąta stożka pod którym widać aureolę i zwiększone natężenie światła
-    float fCosViewAngle{ 0.0f }; // cos kata pod jakim sie teraz patrzy
+    float fNearAttenStart { 40.0f };
+    float fNearAttenEnd { 80.0f };
+    bool bUseNearAtten { false }; // te 3 zmienne okreslaja rysowanie aureoli wokol zrodla swiatla
+    int iFarAttenDecay { 0 }; // ta zmienna okresla typ zaniku natezenia swiatla (0:brak, 1,2: potega 1/R)
+    float fFarDecayRadius { 100.0f }; // normalizacja j.w.
+    float fCosFalloffAngle { 0.5f }; // cosinus kąta stożka pod którym widać światło
+    float fCosHotspotAngle { 0.3f }; // cosinus kąta stożka pod którym widać aureolę i zwiększone natężenie światła
+    float fCosViewAngle { 0.0f }; // cos kata pod jakim sie teraz patrzy
 
-    TSubModel *Next{ nullptr };
-    TSubModel *Child{ nullptr };
-/*
-	intptr_t iVboPtr;
-*/
-    geometry_handle m_geometry{ NULL, NULL }; // geometry of the submodel
-    texture_handle TextureID{ NULL }; // numer tekstury, -1 wymienna, 0 brak
-    bool bWire{ false }; // nie używane, ale wczytywane
-/*
-	GLuint uiDisplayList; // roboczy numer listy wyświetlania
-*/
-    float Opacity{ 1.0f };
-    float f_Angle{ 0.0f };
-    float3 v_RotateAxis{ 0.0f, 0.0f, 0.0f };
+    TSubModel *Next { nullptr };
+    TSubModel *Child { nullptr };
+    geometry_handle m_geometry { NULL, NULL }; // geometry of the submodel
+    texture_handle TextureID { NULL }; // numer tekstury, -1 wymienna, 0 brak
+    bool bWire { false }; // nie używane, ale wczytywane
+    float Opacity { 1.0f };
+    float f_Angle { 0.0f };
+    float3 v_RotateAxis { 0.0f, 0.0f, 0.0f };
 	float3 v_Angles { 0.0f, 0.0f, 0.0f };
 
 public: // chwilowo
-    float3 v_TransVector{ 0.0f, 0.0f, 0.0f };
+    float3 v_TransVector { 0.0f, 0.0f, 0.0f };
 /*
 	basic_vertex *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
 */
@@ -192,18 +187,14 @@ public:
 	int Flags() { return iFlags; };
 	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
 	void ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
-	inline float3 Translation1Get()
-	{
-		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector;
-	}
-	inline float3 Translation2Get()
-	{
-		return *(fMatrix->TranslationGet()) + Child->Translation1Get();
-	}
-	int GetTextureId()
-	{
-		return TextureID;
-	}
+    // sets light level (alpha component of illumination color) to specified value
+    void SetLightLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
+	inline float3 Translation1Get() {
+		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector; }
+	inline float3 Translation2Get() {
+		return *(fMatrix->TranslationGet()) + Child->Translation1Get(); }
+	int GetTextureId() {
+		return TextureID; }
 	void ParentMatrix(float4x4 *m);
 	float MaxY( float4x4 const &m );
 	void AdjustDist();
