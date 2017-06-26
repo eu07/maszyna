@@ -446,7 +446,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Degenerated triangle ignored in: \"" + pName + "\", vertice " + std::to_string(i));
+							WriteLog("Degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(i) + "-" + std::to_string(i+2));
 						}
 						if (i > 0) {
                             // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
