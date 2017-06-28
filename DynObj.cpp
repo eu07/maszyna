@@ -527,6 +527,39 @@ void TDynamicObject::UpdateLeverEnum(TAnim *pAnim)
     pAnim->smAnimated->SetRotate(float3(1, 0, 0), pAnim->fParam[*pAnim->iIntBase]);
 };
 
+// sets light levels for registered interior sections
+void
+TDynamicObject::toggle_lights() {
+
+    if( true == SectionLightsActive ) {
+        // switch all lights off
+        for( auto &sectionlight : SectionLightLevels ) {
+            sectionlight.level = 0.0f;
+        }
+        SectionLightsActive = false;
+    }
+    else {
+        std::string compartmentname;
+        // set lights with probability depending on the compartment type. TODO: expose this in .mmd file
+        for( auto &sectionlight : SectionLightLevels ) {
+
+            compartmentname = sectionlight.compartment->pName;
+            if( ( compartmentname.find( "corridor" ) != std::string::npos )
+             || ( compartmentname.find( "korytarz" ) != std::string::npos ) ) {
+                // corridors are lit 100% of time
+                sectionlight.level = 0.75f;
+            }
+            else if(
+                ( compartmentname.find( "compartment" ) != std::string::npos )
+             || ( compartmentname.find( "przedzial" )   != std::string::npos ) ) {
+                // compartments are lit with 75% probability
+                sectionlight.level = ( Random() < 0.75 ? 0.75f : 0.05f );
+            }
+        }
+        SectionLightsActive = true;
+    }
+}
+
 // ABu 29.01.05 przeklejone z render i renderalpha: *********************
 void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 { // ABu290105: pozbierane i uporzadkowane powtarzajace
@@ -945,6 +978,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         // else btHeadSignals23.TurnOff();
+    }
+    // interior light levels
+    for( auto const &section : SectionLightLevels ) {
+        section.compartment->SetLightLevel( section.level, true );
+        if( section.load != nullptr ) {
+            section.load->SetLightLevel( section.level, true );
+        }
     }
 }
 // ABu 29.01.05 koniec przeklejenia *************************************
@@ -1949,6 +1989,41 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
 	btMechanik1.Init("mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init("mechanik2", mdLowPolyInt, false);
     TurnOff(); // resetowanie zmiennych submodeli
+
+    if( mdLowPolyInt != nullptr ) {
+        // check the low poly interior for potential compartments of interest, ie ones which can be individually lit
+        // TODO: definition of relevant compartments in the .mmd file
+        TSubModel *submodel { nullptr };
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) { SectionLightLevels.emplace_back( submodel, nullptr, 0.0f ); }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) { SectionLightLevels.emplace_back( submodel, nullptr, 0.0f ); }
+        if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) { SectionLightLevels.emplace_back( submodel, nullptr, 0.0f ); }
+        // passenger car compartments
+        std::vector<std::string> nameprefixes = { "corridor", "korytarz", "compartment", "przedzial" };
+        int compartmentindex;
+        std::string compartmentname;
+        for( auto const &nameprefix : nameprefixes ) {
+            compartmentindex = 0;
+            do {
+                compartmentname =
+                    nameprefix + (
+                    compartmentindex < 10 ?
+                        "0" + std::to_string( compartmentindex ) :
+                              std::to_string( compartmentindex ) );
+                submodel = mdLowPolyInt->GetFromName( compartmentname.c_str() );
+                if( submodel != nullptr ) {
+                    // if specified compartment was found we check also for potential matching section in the currently assigned load
+                    // NOTE: if the load gets changed this will invalidate stored pointers. TODO: rebuild the table on load change
+                    SectionLightLevels.emplace_back(
+                        submodel,
+                        ( mdLoad != nullptr ?
+                            mdLoad->GetFromName( compartmentname.c_str() ):
+                            nullptr ),
+                        0.0f );
+                }
+                ++compartmentindex;
+            } while( submodel != nullptr );
+        }
+    }
     // wyszukiwanie zderzakow
     if (mdModel) // jeśli ma w czym szukać
         for (int i = 0; i < 2; i++)
@@ -3414,6 +3489,20 @@ bool TDynamicObject::Update(double dt, double dt1)
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveR < 0)
             dDoorMoveR = 0;
+    }
+
+    // compartment lights
+/*
+    if( ( ctOwner != nullptr ?
+            ctOwner->Controlling()->Battery != SectionLightsActive :
+            MoverParameters->Battery != SectionLightsActive ) ) {
+        // if the vehicle has a controller, we base the light state on state of the controller otherwise we check the vehicle itself
+*/
+    // the version above won't work as the vehicles don't turn batteries off :|
+    if( ( ctOwner != nullptr ?
+            ctOwner->Controlling()->Battery != SectionLightsActive :
+            SectionLightsActive == true ) ) { // without controller lights are off. NOTE: this likely mess up the EMU
+        toggle_lights();
     }
 
     // ABu-160303 sledzenie toru przed obiektem: *******************************

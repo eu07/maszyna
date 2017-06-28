@@ -29,8 +29,18 @@ struct opengl_texture {
 
     // methods
     void load();
-    resource_state bind();
-    resource_state create();
+    resource_state
+        bind();
+    resource_state
+        create();
+    inline
+    int
+        width() const {
+            return data_width; }
+    inline
+    int
+        height() const {
+            return data_height; }
     // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
