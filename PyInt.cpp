@@ -457,7 +457,7 @@ void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &n
         WriteLog( "Python Screen: submodel " + subModelName + " not found - Ignoring screen" );
         return; // nie ma takiego sub modelu w danej kabinie pomijamy
     }
-    int textureId = GfxRenderer.Texture(subModel->GetTextureId()).id;
+    auto textureId = subModel->GetTextureId();
     if (textureId <= 0)
     {
         WriteLog( "Python Screen: invalid texture id " + std::to_string(textureId) + " - Ignoring screen" );

@@ -5889,9 +5889,8 @@ bool TTrain::Update( double const Deltatime )
         }
         case 2: {
             //światło wewnętrzne zapalone (255 216 176)
-            if( mvOccupied->ConverterFlag ==
-                true ) // jasnosc dla zalaczonej przetwornicy
-            {
+            if( mvOccupied->ConverterFlag == true ) {
+                // jasnosc dla zalaczonej przetwornicy
                 DynamicObject->InteriorLightLevel = 1.0f;
             }
             else {
@@ -6441,6 +6440,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     {
         DynamicObject->mdKabina->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie binarnego
         set_cab_controls();
+        // HACK: for some reason simulation at the start is slow until a sound is played
+        // until we do a proper fix, try to play a 'silent' sound when cab is entered
+        // TBD: it could be instead a legit sound of door closing
+        play_sound( dsbSwitch, DSBVOLUME_MIN );
         return true;
     }
     return (token == "none");
