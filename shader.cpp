@@ -114,6 +114,7 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 {
 	ambient_uniform = glGetUniformLocation(id, "ambient");
 	emission_uniform = glGetUniformLocation(id, "emission");
+	specular_uniform = glGetUniformLocation(id, "specular");
 	lcount_uniform = glGetUniformLocation(id, "lights_count");
 
 	for (size_t i = 0; i < MAX_LIGHTS; i++)
@@ -131,6 +132,7 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 	glUseProgram(id);
 	glUniform3f(ambient_uniform, 0.0f, 0.0f, 0.0f);
 	glUniform3f(emission_uniform, 0.0f, 0.0f, 0.0f);
+	glUniform1f(specular_uniform, 0.0f);
 	glUniform1ui(lcount_uniform, 0);
 }
 
@@ -166,8 +168,9 @@ void gl_program_light::set_light(GLuint i, type t, glm::vec3 &pos, glm::vec3 &di
 	glUniform1f(lights_uniform[i].quadratic, quadratic);
 }
 
-void gl_program_light::set_material(glm::vec3 &emission)
+void gl_program_light::set_material(float specular, glm::vec3 &emission)
 {
 	glUseProgram(id);
+	glUniform1f(specular_uniform, specular);
 	glUniform3fv(emission_uniform, 1, glm::value_ptr(emission));
 }

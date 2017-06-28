@@ -14,7 +14,7 @@ public:
 	void Generate();
 	void RebuildColors();
 
-	bool SetSunPosition( Math3D::vector3 const &Direction );
+	bool SetSunPosition( glm::vec3 const &Direction );
 	
 	void SetTurbidity( const float Turbidity = 5.0f );
 	void SetExposure( const bool Linearexposure, const float Expfactor );		
@@ -22,32 +22,32 @@ public:
 	void SetGammaCorrection( const float Gamma = 2.2f );
 
 	// update skydome
-    void Update( Math3D::vector3 const &Sun );
+    void Update( glm::vec3 const &Sun );
 	// render skydome to screen
 	void Render();
 
     // retrieves average colour of the sky dome
-    float3 GetAverageColor() { return m_averagecolour; }
+    glm::vec3 GetAverageColor() { return m_averagecolour; }
 
 private:
 	// shading parametrs
-    float3 m_sundirection;
+    glm::vec3 m_sundirection;
     float m_thetasun, m_phisun;
     float m_turbidity;
     bool m_linearexpcontrol;
     float m_expfactor;
     float m_overcast;
     float m_gammacorrection;
-    float3 m_averagecolour;
+    glm::vec3 m_averagecolour;
 
 	gl_program_mvp m_shader;
 
 	// data
     int m_tesselation;
-    std::vector<float3> m_vertices;
+    std::vector<glm::vec3> m_vertices;
     std::vector<std::uint16_t> m_indices;
 //    std::vector<float3> m_normals;
-    std::vector<float3> m_colours;
+    std::vector<glm::vec3> m_colours;
     GLuint m_vertexbuffer{ (GLuint)-1 };
     GLuint m_indexbuffer{ (GLuint)-1 };
     GLuint m_coloursbuffer{ (GLuint)-1 };

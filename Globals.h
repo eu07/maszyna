@@ -224,11 +224,8 @@ class Global
 
     // TODO: put these things in the renderer
     static int DynamicLightCount;
+    static bool ScaleSpecularValues;
 
-    static GLfloat whiteLight[];
-    static GLfloat noLight[];
-    static GLfloat darkLight[];
-    static GLfloat lightPos[4];
     static int iSlowMotion;
     static TDynamicObject *changeDynObj;
     static double ABuDebug;

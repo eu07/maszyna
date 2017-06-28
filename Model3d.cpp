@@ -244,8 +244,13 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     if (eType < TP_ROTATOR)
         readColor(parser, f4Ambient); // ignoruje token przed
     readColor(parser, f4Diffuse);
-    if (eType < TP_ROTATOR)
-        readColor(parser, f4Specular);
+    if( eType < TP_ROTATOR ) {
+        readColor( parser, f4Specular );
+        if( pName == "cien" ) {
+            // crude workaround to kill specular on shadow geometry of legacy models
+            f4Specular = glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+        }
+    }
     parser.ignoreTokens(1); // zignorowanie nazwy "SelfIllum:"
     {
         std::string light = parser.getToken<std::string>();
@@ -371,6 +376,10 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 	readMatrix(parser, *fMatrix); // wczytanie transform
 	if (!fMatrix->IdentityIs())
 		iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechować
+    if( std::abs( Det( *fMatrix ) - 1.0f ) > 0.01f ) {
+        ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factor: " + to_string( Det( *fMatrix ), 2 ) + ")" );
+        m_normalizenormals = true;
+    }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
 		parser.getTokens(2, false);
@@ -450,7 +459,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Degenerated triangle ignored in: \"" + pName + "\", vertice " + std::to_string(i));
+							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(i) + "-" + std::to_string(i+2));
 						}
 						if (i > 0) {
                             // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
@@ -462,7 +471,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 								--facecount; // o jeden trójkąt mniej
 								iNumVerts -= 3; // czyli o 3 wierzchołki
 								i -= 3; // wczytanie kolejnego w to miejsce
-								WriteLog( "Too large triangle ignored in: \"" + pName + "\"" );
+								WriteLog( "Bad model: too large triangle ignored in: \"" + pName + "\"" );
 							}
                         }
 					}
@@ -478,7 +487,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                             Vertices[ i * 3 ].position - Vertices[ i * 3 + 1 ].position,
                             Vertices[ i * 3 ].position - Vertices[ i * 3 + 2 ].position );
                     facenormals.emplace_back(
-                        glm::length( facenormal ) > 0.0f ?
+                        glm::length2( facenormal ) > 0.0f ?
                             glm::normalize( facenormal ) :
                             glm::vec3() );
                 }
@@ -496,16 +505,24 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 						auto adjacenvertextidx = vertexidx; // zaczynamy dodawanie wektorów normalnych od własnego
 						while (adjacenvertextidx >= 0) {
                             // sumowanie z wektorem normalnym sąsiada (włącznie ze sobą)
-							wsp[adjacenvertextidx] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
-							vertexnormal += facenormals[adjacenvertextidx / 3];
+                            if( glm::dot( vertexnormal, facenormals[ adjacenvertextidx / 3 ] ) > -0.99f ) {
+                                wsp[ adjacenvertextidx ] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
+                                vertexnormal += facenormals[ adjacenvertextidx / 3 ];
+                            }
+                            else {
+                                ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling" );
+                            }
                             // i szukanie od kolejnego trójkąta
 							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
-						}
+                        }
 						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
+                        if( glm::length2( vertexnormal ) == 0.0f ) {
+                            WriteLog( "Bad model: zero lenght normal vector generated for sub-model \"" + pName + "\"" );
+                        }
                         Vertices[ vertexidx ].normal = (
-                            glm::length( vertexnormal ) > 0.0f ?
+                            glm::length2( vertexnormal ) > 0.0f ?
                                 glm::normalize( vertexnormal ) :
-                                glm::vec3() ); // przepisanie do wierzchołka trójkąta
+                                facenormals[ vertexidx / 3 ] ); // przepisanie do wierzchołka trójkąta
 					}
 				}
                 Vertices.resize( iNumVerts ); // in case we had some degenerate triangles along the way
@@ -1517,6 +1534,15 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                 iNumVerts += submodel.iNumVerts;
                 for( auto &vertex : vertices ) {
                     vertex.deserialize( s );
+                    if( submodel.eType < TP_ROTATOR ) {
+                        // normal vectors debug routine
+                        auto normallength = glm::length2( vertex.normal );
+                        if( ( false == submodel.m_normalizenormals )
+                         && ( std::abs( normallength - 1.0f ) > 0.01f ) ) {
+                            submodel.m_normalizenormals = true;
+                            WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization" );
+                        }
+                    }
                 }
                 // remap geometry type for custom type submodels
                 int type;
@@ -1600,6 +1626,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 	Child = (iChild > 0) ? s + iChild : nullptr; // zerowy nie może być potomnym
 	Next = (iNext > 0) ? s + iNext : nullptr; // zerowy nie może być następnym
 	fMatrix = ((iMatrix >= 0) && m) ? m + iMatrix : nullptr;
+
 	if (n->size() && (iName >= 0))
 	{
 		pName = n->at(iName);
@@ -1613,12 +1640,16 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 			// obiektem "Light_Off"
 			else if (dynamic)
 			{ // inaczej wyłączało smugę w latarniach
-				if ((pName.size() >= 3) && (pName.substr(pName.size() - 3, 3) == "_on"))
-				{ // jeśli jest kontrolką w stanie zapalonym
-					iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z
+				if ((pName.size() >= 3) && (pName.substr(pName.size() - 3, 3) == "_on")) {
+                    // jeśli jest kontrolką w stanie zapalonym to domyślnie wyłączyć,
+                    // żeby się nie nakładało z obiektem "_off"
+					iVisible = 0;
 				}
 			}
-			// obiektem "_off"
+            // hack: reset specular light value for shadow submodels
+            if( pName == "cien" ) {
+                f4Specular = glm::vec4 { 0.0f, 0.0f, 0.0f, 1.0f };
+            }
 		}
 	}
 	else
@@ -1655,11 +1686,22 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
     if( fCosHotspotAngle > 1.0f ) {
         fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
     }
+    // cap specular values for legacy models
+    f4Specular = glm::vec4{
+        clamp( f4Specular.r, 0.0f, 1.0f ),
+        clamp( f4Specular.g, 0.0f, 1.0f ),
+        clamp( f4Specular.b, 0.0f, 1.0f ),
+        clamp( f4Specular.a, 0.0f, 1.0f ) };
 
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
-/*
-	iVboPtr = tVboPtr;
-*/
+
+    if( ( fMatrix != nullptr )
+     && ( std::abs( Det( *fMatrix ) - 1.0f ) > 0.01f ) ) {
+        // check whether we need to enable normal vectors normalization for this submodel
+        ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factor: " + to_string( Det( *fMatrix ), 2 ) + ")" );
+        m_normalizenormals = true;
+    }
+
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)

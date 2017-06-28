@@ -50,8 +50,13 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
     // calculate stream size
     if (mStream)
     {
-        mSize = mStream->rdbuf()->pubseekoff(0, std::ios_base::end);
-        mStream->rdbuf()->pubseekoff(0, std::ios_base::beg);
+        if( true == mStream->fail() ) {
+            ErrorLog( "Failed to open file \"" + Path + "\"" );
+        }
+        else {
+            mSize = mStream->rdbuf()->pubseekoff( 0, std::ios_base::end );
+            mStream->rdbuf()->pubseekoff( 0, std::ios_base::beg );
+        }
     }
     else
         mSize = 0;

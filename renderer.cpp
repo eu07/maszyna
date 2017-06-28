@@ -25,6 +25,12 @@ http://mozilla.org/MPL/2.0/.
 opengl_renderer GfxRenderer;
 extern TWorld World;
 
+namespace colors {
+
+glm::vec4 const none { 0.0f, 0.0f, 0.0f, 1.0f };
+
+} // namespace colors
+
 // returns true if specified object is within camera frustum, false otherwise
 bool
 opengl_camera::visible( bounding_area const &Area ) const {
@@ -75,14 +81,19 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     glPointSize( 3.0f );
     glEnable( GL_POINT_SMOOTH );
 
-    glEnable( GL_COLOR_MATERIAL );
-    glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
+    ::glLightModeli( GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR );
+    ::glMaterialf( GL_FRONT, GL_SHININESS, 15.0f );
+    if( true == Global::ScaleSpecularValues ) {
+        m_specularopaquescalefactor = 0.25f;
+        m_speculartranslucentscalefactor = 1.5f;
+    }
+    ::glEnable( GL_COLOR_MATERIAL );
+    ::glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
 
     // setup lighting
-    GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-    glEnable( GL_LIGHTING );
-    glEnable( GL_LIGHT0 );
+    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(m_baseambient) );
+    ::glEnable( GL_LIGHTING );
+    ::glEnable( GL_LIGHT0 );
 
     // directional light
     // TODO, TBD: test omni-directional variant
@@ -207,9 +218,9 @@ opengl_renderer::Render( world_environment *Environment ) {
     Environment->m_stars.render();
 
     float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
-    float3 suncolor = interpolate(
-        float3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
-        float3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
+    glm::vec3 suncolor = interpolate(
+        glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
+        glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
         duskfactor );
 
     if( DebugModeFlag == true ) {
@@ -250,11 +261,10 @@ opengl_renderer::Render( world_environment *Environment ) {
     // moon
     {
         Bind( m_moontexture );
-        float3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
+        glm::vec3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
         ::glColor4f( mooncolor.x, mooncolor.y, mooncolor.z, static_cast<GLfloat>( 1.0 - Global::fLuminance * 0.5 ) );
 
-        auto const moonvector = Environment->m_moon.getDirection();
-        auto const moonposition = modelview * glm::vec4( moonvector.x, moonvector.y, moonvector.z, 1.0f );
+        auto const moonposition = modelview * glm::vec4( Environment->m_moon.getDirection(), 1.0f );
         ::glPushMatrix();
         ::glLoadIdentity(); // macierz jedynkowa
         ::glTranslatef( moonposition.x, moonposition.y, moonposition.z );
@@ -621,6 +631,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
         // change light level based on light level of the occupied track
 		Global::daylight.intensity = Dynamic->fShade;
     }
+    m_renderspecular = true; // vehicles are rendered with specular component. static models without, at least for the time being
 
     // render
     if( Dynamic->mdLowPolyInt ) {
@@ -638,18 +649,19 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(m_baseambient) );
             }
         }
     }
 
-    Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+    if( Dynamic->mdModel )
+        Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
 
     if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
         Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
 
     // post-render cleanup
+    m_renderspecular = false;
     if( Dynamic->fShade > 0.0f ) {
         // restore regular light level
 		Global::daylight.intensity = 1.0f;
@@ -760,18 +772,14 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
-                // ...luminance
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // zeby swiecilo na kolorowo
-					World.shader.set_material(glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a);
-                }
+
+				World.shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
+					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f));
 
                 // main draw call
                 m_geometry.draw( Submodel->m_geometry );
 
-				if (Global::fLuminance < Submodel->fLight)
-					World.shader.set_material(glm::vec3(0.0f));
+				World.shader.set_material(0.0f, glm::vec3(0.0f));
             }
         }
 		
@@ -1082,6 +1090,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
         // change light level based on light level of the occupied track
         Global::daylight.intensity = Dynamic->fShade;
     }
+    m_renderspecular = true;
 
     // render
     if( Dynamic->mdLowPolyInt ) {
@@ -1099,18 +1108,19 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-                GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
             }
         }
     }
 
-    Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+    if( Dynamic->mdModel )
+        Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
 
     if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
         Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance );
 
     // post-render cleanup
+    m_renderspecular = false;
     if( Dynamic->fShade > 0.0f ) {
         // restore regular light level
 		Global::daylight.intensity = 1.0f;
@@ -1204,21 +1214,16 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                     // również 0
                     Bind( Submodel->TextureID );
                 }
-                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
-                // ...luminance
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // zeby swiecilo na kolorowo
-					World.shader.set_material(glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a);
-                }
+
+				World.shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
+					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f));
 
 				// main draw call
 				m_geometry.draw(Submodel->m_geometry);
 
-				if (Global::fLuminance < Submodel->fLight)
-					World.shader.set_material(glm::vec3(0.0f));
-			}
-		}
-
+				World.shader.set_material(0.0f, glm::vec3(0.0f));
+            }
+        }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
 
             if( Global::fLuminance < Submodel->fLight ) {
@@ -1381,11 +1386,12 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
             // but there could still be weaker lights which are closer, so keep looking
             continue;
         }
+        // if the light passed tests so far, it's good enough
 
-		// if the light passed tests so far, it's good enough
+		Math3D::vector3 pos = scenelight.position - Global::pCameraPosition;
 
 		auto const luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
-		glm::vec3 position(scenelight.position.x, scenelight.position.y, scenelight.position.z);
+		glm::vec3 position(pos.x, pos.y, pos.z);
 		glm::vec3 direction(scenelight.direction.x, scenelight.direction.y, scenelight.direction.z);
 		glm::vec3 color(scenelight.color.x,
 		                scenelight.color.y,

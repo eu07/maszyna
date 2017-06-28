@@ -178,6 +178,10 @@ private:
     geometry_handle m_billboardgeometry { 0, 0 };
     GLUquadricObj *m_quadric; // helper object for drawing debug mode scene elements
     std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
+    glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
+    bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
+    float m_specularopaquescalefactor { 1.0f };
+    float m_speculartranslucentscalefactor { 1.0f };
 
 };
 
