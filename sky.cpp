@@ -27,14 +27,14 @@ void TSky::Init()
         mdCloud = TModelsManager::GetModel( Global::asSky );
 };
 
-void TSky::Render( float3 const &Tint )
+void TSky::Render( glm::vec3 const &Tint )
 {
     if (mdCloud)
     { // jeśli jest model nieba
         // setup
         ::glEnable( GL_LIGHTING );
         GfxRenderer.Disable_Lights();
-        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &Tint.x );
+        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(Tint) );
         // render
         GfxRenderer.Render( mdCloud, nullptr, 100.0 );
         GfxRenderer.Render_Alpha( mdCloud, nullptr, 100.0 );

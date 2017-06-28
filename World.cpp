@@ -2277,34 +2277,34 @@ world_environment::update() {
     auto const moonlightlevel = m_moon.getIntensity() * 0.65f; // scaled down by arbitrary factor, it's pretty bright otherwise
     float keylightintensity;
     float twilightfactor;
-    float3 keylightcolor;
+    glm::vec3 keylightcolor;
     if( moonlightlevel > sunlightlevel ) {
         // rare situations when the moon is brighter than the sun, typically at night
         Global::SunAngle = m_moon.getAngle();
         Global::DayLight.set_position( m_moon.getPosition() );
-        Global::DayLight.direction = -1.0 * m_moon.getDirection();
+        Global::DayLight.direction = -1.0f * m_moon.getDirection();
         keylightintensity = moonlightlevel;
         // if the moon is up, it overrides the twilight
         twilightfactor = 0.0f;
-        keylightcolor = float3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
+        keylightcolor = glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
     }
     else {
         // regular situation with sun as the key light
         Global::SunAngle = m_sun.getAngle();
         Global::DayLight.set_position( m_sun.getPosition() );
-        Global::DayLight.direction = -1.0 * m_sun.getDirection();
+        Global::DayLight.direction = -1.0f * m_sun.getDirection();
         keylightintensity = sunlightlevel;
         // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
         twilightfactor = clamp( -Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
         float const duskfactor = 1.0f - clamp( Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(
-            float3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
-            float3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
+            glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
+            glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
             duskfactor );
     }
     // ...update skydome to match the current sun position as well...
     m_skydome.SetOvercastFactor( Global::Overcast );
-    m_skydome.Update( m_sun.getPosition() );
+    m_skydome.Update( m_sun.getDirection() );
     // ...retrieve current sky colour and brightness...
     auto const skydomecolour = m_skydome.GetAverageColor();
     auto const skydomehsv = RGBtoHSV( skydomecolour );
@@ -2319,9 +2319,8 @@ world_environment::update() {
     auto const diffuselevel = interpolate( keylightintensity, intensity * ( 1.0f - twilightfactor ), 1.0f - Global::Overcast * 0.75f );
     // ...update light colours and intensity.
     keylightcolor = keylightcolor * diffuselevel;
-    Global::DayLight.diffuse[ 0 ] = keylightcolor.x;
-    Global::DayLight.diffuse[ 1 ] = keylightcolor.y;
-    Global::DayLight.diffuse[ 2 ] = keylightcolor.z;
+    Global::DayLight.diffuse = glm::vec4( keylightcolor, Global::DayLight.diffuse.a );
+    Global::DayLight.specular = glm::vec4( keylightcolor * 0.85f, diffuselevel );
 
     // tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
     // (this is pure conjecture, aimed more to 'look right' than be accurate)

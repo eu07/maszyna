@@ -21,53 +21,44 @@ http://mozilla.org/MPL/2.0/.
 struct opengl_light {
 
     GLuint id{ (GLuint)-1 };
-    Math3D::vector3 direction;
-    GLfloat position[ 4 ]; // 4th parameter specifies directional(0) or omni-directional(1) light source
-    GLfloat ambient[ 4 ];
-    GLfloat diffuse[ 4 ];
-    GLfloat specular[ 4 ];
-
-    opengl_light() {
-        position[ 0 ] = position[ 1 ] = position[ 2 ] = 0.0f; position[ 3 ] = 1.0f; // 0,0,0,1
-        ambient[ 0 ] = ambient[ 1 ] = ambient[ 2 ] = 0.0f; ambient[ 3 ] = 1.0f; // 0,0,0,1
-        diffuse[ 0 ] = diffuse[ 1 ] = diffuse[ 2 ] = diffuse[ 3 ] = 1.0f; // 1,1,1,1
-        specular[ 0 ] = specular[ 1 ] = specular[ 2 ] = specular[ 3 ] = 1.0f; // 1,1,1,1
-    }
+    glm::vec3 direction;
+    glm::vec4
+        position { 0.0f, 0.0f, 0.0f, 1.0f }, // 4th parameter specifies directional(0) or omni-directional(1) light source
+        ambient { 0.0f, 0.0f, 0.0f, 1.0f },
+        diffuse { 1.0f, 1.0f, 1.0f, 1.0f },
+        specular { 1.0f, 1.0f, 1.0f, 1.0f };
 
     inline
     void apply_intensity( float const Factor = 1.0f ) {
 
         if( Factor == 1.0 ) {
 
-            glLightfv( id, GL_AMBIENT, ambient );
-            glLightfv( id, GL_DIFFUSE, diffuse );
-            glLightfv( id, GL_SPECULAR, specular );
+            glLightfv( id, GL_AMBIENT, glm::value_ptr(ambient) );
+            glLightfv( id, GL_DIFFUSE, glm::value_ptr(diffuse) );
+            glLightfv( id, GL_SPECULAR, glm::value_ptr(specular) );
         }
         else {
             // temporary light scaling mechanics (ultimately this work will be left to the shaders
-            float4 scaledambient( ambient[ 0 ] * Factor, ambient[ 1 ] * Factor, ambient[ 2 ] * Factor, ambient[ 3 ] );
-            float4 scaleddiffuse( diffuse[ 0 ] * Factor, diffuse[ 1 ] * Factor, diffuse[ 2 ] * Factor, diffuse[ 3 ] );
-            float4 scaledspecular( specular[ 0 ] * Factor, specular[ 1 ] * Factor, specular[ 2 ] * Factor, specular[ 3 ] );
-            glLightfv( id, GL_AMBIENT, &scaledambient.x );
-            glLightfv( id, GL_DIFFUSE, &scaleddiffuse.x );
-            glLightfv( id, GL_SPECULAR, &scaledspecular.x );
+            glm::vec4 scaledambient( ambient.r * Factor, ambient.g * Factor, ambient.b * Factor, ambient.a );
+            glm::vec4 scaleddiffuse( diffuse.r * Factor, diffuse.g * Factor, diffuse.b * Factor, diffuse.a );
+            glm::vec4 scaledspecular( specular.r * Factor, specular.g * Factor, specular.b * Factor, specular.a );
+            glLightfv( id, GL_AMBIENT, glm::value_ptr(scaledambient) );
+            glLightfv( id, GL_DIFFUSE, glm::value_ptr(scaleddiffuse) );
+            glLightfv( id, GL_SPECULAR, glm::value_ptr(scaledspecular) );
         }
     }
     inline
     void apply_angle() {
 
-        glLightfv( id, GL_POSITION, position );
-        if( position[ 3 ] == 1.0f ) {
-            GLfloat directionarray[] = { (GLfloat)direction.x, (GLfloat)direction.y, (GLfloat)direction.z };
-            glLightfv( id, GL_SPOT_DIRECTION, directionarray );
+        glLightfv( id, GL_POSITION, glm::value_ptr(position) );
+        if( position.w == 1.0f ) {
+            glLightfv( id, GL_SPOT_DIRECTION, glm::value_ptr(direction) );
         }
     }
     inline
-    void set_position( Math3D::vector3 const &Position ) {
+    void set_position( glm::vec3 const &Position ) {
 
-        position[ 0 ] = Position.x;
-        position[ 1 ] = Position.y;
-        position[ 2 ] = Position.z;
+        position = glm::vec4( Position, position.w );
     }
 };
 
@@ -229,6 +220,10 @@ private:
     geometry_handle m_billboardgeometry { 0, 0 };
     GLUquadricObj *m_quadric; // helper object for drawing debug mode scene elements
     std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
+    glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
+    bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
+    float m_specularopaquescalefactor { 1.0f };
+    float m_speculartranslucentscalefactor { 1.0f };
 
 };
 
