@@ -157,7 +157,6 @@ opengl_renderer::Render() {
         // frustum tests are performed in 'world space' but after we set up frustum
         // we no longer need camera translation, only rotation
         ::glMultMatrixd( glm::value_ptr( glm::dmat4( glm::dmat3( worldcamera ))));
-
 		glDisable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Environment );
 		glUseProgram(World.shader);
@@ -171,11 +170,10 @@ opengl_renderer::Render() {
         m_drawtime = std::max( 20.0f, 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count());
         m_drawcount = m_drawqueue.size();
     }
-
+	glDebug("dis1");
 	glUseProgram(0);
 	glEnable(GL_FRAMEBUFFER_SRGB);
     UILayer.render();
-
     glfwSwapBuffers( m_window );
     return true; // for now always succeed
 }
@@ -204,10 +202,8 @@ opengl_renderer::Render( world_environment *Environment ) {
     else { ::glDisable( GL_FOG ); }
 
     Environment->m_skydome.Render();
-    if( true == Global::bUseVBO ) {
-        // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
-        opengl_vbogeometrybank::reset();
-    }
+    // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
+    opengl_vbogeometrybank::reset();
     Environment->m_stars.render();
 
     float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
@@ -366,6 +362,8 @@ opengl_renderer::Texture( texture_handle const Texture ) {
 bool
 opengl_renderer::Render( TGround *Ground ) {
 
+	World.shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
+
     ::glEnable( GL_LIGHTING );
     ::glDisable( GL_BLEND );
     ::glAlphaFunc( GL_GREATER, 0.50f ); // im mniejsza wartość, tym większa ramka, domyślnie 0.1f
@@ -408,7 +406,9 @@ opengl_renderer::Render( TGround *Ground ) {
             }
 
             if( m_camera.visible( cell->m_area ) ) {
+				glDebug("to tu?");
                 Render( cell );
+				glDebug("koniec to tu");
             }
         }
     }
@@ -443,7 +443,6 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
             }
         }
         if( Groundcell->nTerrain ) {
-
             Render( Groundcell->nTerrain );
         }
         Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
@@ -506,6 +505,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
 /*
     Node->SetLastUsage( Timer::GetSimulationTime() );
 */
+
     switch (Node->iType)
     { // obiekty renderowane niezależnie od odległości
     case TP_SUBMODEL:
@@ -524,17 +524,14 @@ opengl_renderer::Render( TGroundNode *Node ) {
         return false;
     }
 
+	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+	World.shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+
     switch (Node->iType) {
 
         case TP_TRACK: {
-            // setup
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
             // render
             Render( Node->pTrack );
-            // post-render cleanup
-            ::glPopMatrix();
             return true;
         }
 
@@ -553,22 +550,15 @@ opengl_renderer::Render( TGroundNode *Node ) {
             ::glColor4fv(
                 glm::value_ptr(
                     glm::vec4(
-                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ),
+                        Node->Diffuse * Global::daylight.ambient,
                         std::min(
                             1.0,
                             1000.0 * Node->fLineThickness / ( distancesquared + 1.0 ) ) ) ) );
 
             GfxRenderer.Bind( 0 );
 
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
             // render
             m_geometry.draw( Node->m_geometry );
-
-            // post-render cleanup
-            ::glPopMatrix();
 
             return true;
         }
@@ -583,15 +573,8 @@ opengl_renderer::Render( TGroundNode *Node ) {
 
             Bind( Node->TextureID );
 
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
             // render
             m_geometry.draw( Node->m_geometry );
-
-            // post-render cleanup
-            ::glPopMatrix();
 
             return true;
         }
@@ -803,7 +786,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
 					glUseProgram(0);
 					glEnableClientState(GL_VERTEX_ARRAY);
 					glLoadMatrixf(glm::value_ptr(mm));
-					glVertexPointer(3, GL_FLOAT, sizeof(CVertNormTex), static_cast<char *>(nullptr)); // pozycje
+					glVertexPointer(3, GL_FLOAT, sizeof(basic_vertex), static_cast<char *>(nullptr)); // pozycje
 
                     // material configuration:
                     ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
@@ -862,7 +845,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
 
     if( Submodel->Next )
         if( Submodel->iAlpha & Submodel->iFlags & 0x1F000000 )
-            Render( Submodel->Next ); // dalsze rekurencyjnie
+            Render( Submodel->Next, m ); // dalsze rekurencyjnie
 }
 
 void
@@ -965,6 +948,9 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         return false;
     }
 
+	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+	World.shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+
     switch (Node->iType)
     {
         case TP_TRACTION: {
@@ -990,15 +976,8 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
                 Bind( NULL );
 
-                ::glPushMatrix();
-                auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
                 // render
                 m_geometry.draw( Node->hvTraction->m_geometry );
-
-                // post-render cleanup
-                ::glPopMatrix();
 
                 ::glLineWidth( 1.0 );
                 if( !Global::bSmoothTraction ) {
@@ -1026,17 +1005,13 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             ::glColor4fv(
                 glm::value_ptr(
                     glm::vec4(
-                        Node->Diffuse * glm::make_vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
+                        Node->Diffuse * Global::daylight.ambient, // w zaleznosci od koloru swiatla
                         std::min( 1.0, linewidth ) ) ) );
             if( linewidth > 1.0 ) {
                 ::glLineWidth( static_cast<float>(linewidth) );
             }
 
             GfxRenderer.Bind( 0 );
-
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
 
             // render
             m_geometry.draw( Node->m_geometry );
@@ -1045,8 +1020,6 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             if( linewidth > 1.0 ) {
                 ::glLineWidth( 1.0f );
             }
-
-            ::glPopMatrix();
 
             return true;
         }
@@ -1061,15 +1034,8 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
             Bind( Node->TextureID );
 
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-
             // render
             m_geometry.draw( Node->m_geometry );
-
-            // post-render cleanup
-            ::glPopMatrix();
 
             return true;
         }
@@ -1209,27 +1175,29 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
 			World.shader.set_mv(mm);
 		}
 
-        if( Submodel->eType < TP_ROTATOR ) {
-            // renderowanie obiektów OpenGL
-            if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) // rysuj gdy element przezroczysty
-            {
-                // textures...
-                if( Submodel->TextureID < 0 ) { // zmienialne skóry
-                    Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
-                }
-                else {
-                    // również 0
-                    Bind( Submodel->TextureID );
-                }
-                ::glColor3fv( glm::value_ptr(Submodel->f4Diffuse) ); // McZapkie-240702: zamiast ub
-                // ...luminance
-                if( Global::fLuminance < Submodel->fLight ) {
-                    // zeby swiecilo na kolorowo
-                    ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse) );
-                }
+		if (Submodel->eType < TP_ROTATOR) {
+			// renderowanie obiektów OpenGL
+			if (Submodel->iAlpha & Submodel->iFlags & 0x2F) // rysuj gdy element przezroczysty
+			{
+				// textures...
+				if (Submodel->TextureID < 0) { // zmienialne skóry
+					Bind(Submodel->ReplacableSkinId[-Submodel->TextureID]);
+				}
+				else {
+					// również 0
+					Bind(Submodel->TextureID);
+				}
+				::glColor3fv(glm::value_ptr(Submodel->f4Diffuse)); // McZapkie-240702: zamiast ub
+				// ...luminance
+				if (Global::fLuminance < Submodel->fLight) {
+					// zeby swiecilo na kolorowo
+					::glMaterialfv(GL_FRONT, GL_EMISSION, glm::value_ptr(Submodel->f4Diffuse));
+				}
 
-                // main draw call
-                m_geometry.draw( Submodel->m_geometry );
+				// main draw call
+				m_geometry.draw(Submodel->m_geometry);
+			}
+		}
 
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
 

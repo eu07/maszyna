@@ -522,7 +522,7 @@ TGroundRect::Init() {
                 - glm::vec3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
                 + glm::vec3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
                 + glm::vec3( subrectsize * column, 0.0f, subrectsize * row );
-            area.radius = subrectsize * M_SQRT2;
+            area.radius = subrectsize * (float)M_SQRT2;
             // all subcells share the same geometry bank with their parent, to reduce buffer switching during render
             subcell->m_geometrybank = m_geometrybank;
         }
@@ -1365,7 +1365,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             tmp->iType = GL_TRIANGLES;
 
             auto const nv = importedvertices.size();
-            tmp->Init(nv); // utworzenie tablicy wierzchołków
+            tmp->Init((int)nv); // utworzenie tablicy wierzchołków
 
             for( std::size_t i = 0; i < nv; ++i ) {
                 tmp->pCenter += importedvertices[ i ].position;
@@ -1458,7 +1458,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 
             auto const nv = importedvertices.size();
             tmp->Points = new glm::dvec3[ nv ];
-            tmp->iNumPts = nv;
+            tmp->iNumPts = (int)nv;
             for( std::size_t i = 0; i < nv; ++i ) {
                 tmp->Points[ i ] = importedvertices[ i ].position;
                 tmp->pCenter += importedvertices[ i ].position;

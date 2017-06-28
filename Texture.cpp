@@ -890,14 +890,14 @@ texture_manager::find_in_databank( std::string const &Texturename ) const {
 
     auto lookup = m_texturemappings.find( Texturename );
     if( lookup != m_texturemappings.end() ) {
-        return lookup->second;
+        return (int)lookup->second;
     }
     // jeszcze próba z dodatkową ścieżką
     lookup = m_texturemappings.find( szTexturePath + Texturename );
 
     return (
         lookup != m_texturemappings.end() ?
-            lookup->second :
+            (int)lookup->second :
             npos );
 }
 

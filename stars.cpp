@@ -14,6 +14,8 @@ cStars::init() {
 
 void
 cStars::render() {
+	//m7todo: restore
+	/*
     // setup
     ::glPushMatrix();
 
@@ -27,4 +29,5 @@ cStars::render() {
     ::glPointSize( 3.0f );
 
     ::glPopMatrix();
+	*/
 }

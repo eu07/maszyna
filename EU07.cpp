@@ -298,6 +298,13 @@ int main(int argc, char *argv[])
         ::SendMessage( Hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>( icon ) );
 #endif
 
+	if ((false == GfxRenderer.Init(window))
+		|| (false == UILayer.init(window)))
+		return -1;
+
+	input::Keyboard.init();
+	input::Gamepad.init();
+
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
     try {
         if( false == World.Init( window ) ) {

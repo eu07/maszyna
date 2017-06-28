@@ -169,6 +169,7 @@ void CSkyDome::Render() {
 
 	glDrawElements(GL_TRIANGLES, (GLsizei)m_indices.size(), GL_UNSIGNED_SHORT, 0);
 	glBindVertexArray(0);
+	glDebug("dis2");
 	glUseProgram(0);
 }
 

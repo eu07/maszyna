@@ -78,18 +78,12 @@ public:
         Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     bool
         Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
-    void
-        Render( TSubModel *Submodel );
+    void Render( TSubModel *Submodel );
 	void Render(TSubModel *Submodel, glm::mat4 m);
-	void Render_Alpha(TSubModel *Submodel);
-    void
-        Render( TMemCell *Memcell );
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool
         Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
-    void
-        Render_Alpha( TSubModel *Submodel, glm::mat4 m);
     bool
         Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
     // maintenance jobs
@@ -136,6 +130,8 @@ private:
         color
     };
 
+	typedef std::pair<double, TSubRect*> distancesubcell_pair;
+
 // methods
     bool
         Init_caps();
@@ -161,11 +157,12 @@ private:
         Render_Alpha( TGroundNode *Node );
     void
         Render_Alpha( TSubModel *Submodel );
+	void
+		Render_Alpha(TSubModel *Submodel, glm::mat4 m);
     void
         Update_Lights( light_array const &Lights );
 
 // members
-    opengllight_array m_lights;
     geometrybank_manager m_geometry;
     texture_manager m_textures;
     opengl_camera m_camera;
