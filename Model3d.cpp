@@ -82,6 +82,23 @@ void TSubModel::NameSet(std::string const &Name)
 		pName = Name;
 };
 
+// sets light level (alpha component of illumination color) to specified value
+void
+TSubModel::SetLightLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {
+
+    f4Emision.a = Level;
+    if( true == Includesiblings ) {
+        auto sibling { this };
+        while( ( sibling = sibling->Next ) != nullptr ) {
+            sibling->f4Emision.a = Level;
+        }
+    }
+    if( ( true == Includechildren )
+     && ( Child != nullptr ) ) {
+        Child->SetLightLevel( Level, true, true ); // node's children include child's siblings and children
+    }
+}
+
 int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
 	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
@@ -319,9 +336,9 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         }
         else
         { // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
-            TextureNameSet(texture.c_str());
+            TextureNameSet(texture);
             if( texture.find_first_of( "/\\" ) == texture.npos ) {
-                texture.insert( 0, Global::asCurrentTexturePath.c_str() );
+                texture.insert( 0, Global::asCurrentTexturePath );
             }
             TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
             // renderowanie w cyklu przezroczystych tylko jeśli:
@@ -433,7 +450,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Degenerated triangle ignored in: \"" + pName + "\", verticle " + std::to_string(i));
+							WriteLog("Degenerated triangle ignored in: \"" + pName + "\", vertice " + std::to_string(i));
 						}
 						if (i > 0) {
                             // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
@@ -491,6 +508,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                                 glm::vec3() ); // przepisanie do wierzchołka trójkąta
 					}
 				}
+                Vertices.resize( iNumVerts ); // in case we had some degenerate triangles along the way
 /*
 				delete[] wsp;
 				delete[] n;
@@ -538,6 +556,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     else if( eType == TP_FREESPOTLIGHT ) {
         // single light points only have single data point, duh
         Vertices.emplace_back();
+        iNumVerts = 1;
     }
 	// Visible=true; //się potem wyłączy w razie potrzeby
 	// iFlags|=0x0200; //wczytano z pliku tekstowego (jest właścicielem tablic)
@@ -713,25 +732,20 @@ void TSubModel::InitialRotate(bool doit)
     { // jeśli jest jednostkowy transform, to przeliczamy
         // wierzchołki, a mnożenie podajemy dalej
         float swapcopy;
-//        if( false == Vertices.empty() ) {
-/*
-            for( auto &vertex : Vertices ) {
-*/
         for( auto &vertex : Vertices ) {
-                vertex.position.x = -vertex.position.x; // zmiana znaku X
-                swapcopy = vertex.position.y; // zamiana Y i Z
-                vertex.position.y = vertex.position.z;
-                vertex.position.z = swapcopy;
-                // wektory normalne również trzeba przekształcić, bo się źle oświetlają
-                if( eType != TP_STARS ) {
-                    // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
-                    vertex.normal.x = -vertex.normal.x; // zmiana znaku X
-                    swapcopy = vertex.normal.y; // zamiana Y i Z
-                    vertex.normal.y = vertex.normal.z;
-                    vertex.normal.z = swapcopy;
-                }
+            vertex.position.x = -vertex.position.x; // zmiana znaku X
+            swapcopy = vertex.position.y; // zamiana Y i Z
+            vertex.position.y = vertex.position.z;
+            vertex.position.z = swapcopy;
+            // wektory normalne również trzeba przekształcić, bo się źle oświetlają
+            if( eType != TP_STARS ) {
+                // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
+                vertex.normal.x = -vertex.normal.x; // zmiana znaku X
+                swapcopy = vertex.normal.y; // zamiana Y i Z
+                vertex.normal.y = vertex.normal.z;
+                vertex.normal.z = swapcopy;
             }
- //       }
+        }
         if (Child)
             Child->InitialRotate(doit); // potomne ewentualnie obrócimy
     }

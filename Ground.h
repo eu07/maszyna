@@ -93,15 +93,15 @@ struct TGroundVertex
         texture = interpolate( v1.texture, v2.texture, static_cast<float>( factor ) );
     }
 };
-/*
+
 // ground node holding single, unique piece of 3d geometry. TBD, TODO: unify this with basic 3d model node
-struct mesh_node {
+struct piece_node {
     std::vector<TGroundVertex> vertices;
-    geometry_handle geometry; // geometry prepared for drawing
+    geometry_handle geometry { 0,0 }; // geometry prepared for drawing
 };
-*/
-class TGroundNode /*: public Resource*/
-{ // obiekt scenerii
+
+// obiekt scenerii
+class TGroundNode {
 
     friend class opengl_renderer;
 
@@ -117,9 +117,8 @@ public:
         TSubModel *smTerrain; // modele terenu (kwadratow kilometrowych)
         TAnimModel *Model; // model z animacjami
         TDynamicObject *DynamicObject; // pojazd
-        glm::dvec3 *Points; // punkty dla linii
+        piece_node *Piece; // non-instanced piece of geometry
         TTrack *pTrack; // trajektoria ruchu
-        TGroundVertex *Vertices; // wierzchołki dla trójkątów
         TMemCell *MemCell; // komórka pamięci
         TEventLauncher *EvLaunch; // wyzwalacz zdarzeń
         TTraction *hvTraction; // drut zasilający
@@ -128,6 +127,7 @@ public:
         TGroundNode *nNode; // obiekt renderujący grupowo ma tu wskaźnik na listę obiektów
     };
     Math3D::vector3 pCenter; // współrzędne środka do przydzielenia sektora
+    float m_radius { 0.0f }; // bounding radius of geometry stored in the node. TODO: reuse bounding_area struct for radius and center
     glm::dvec3 m_rootposition; // position of the ground (sub)rectangle holding the node, in the 3d world
     // visualization-related data
     // TODO: wrap these in a struct, when cleaning objects up
@@ -139,9 +139,6 @@ public:
         int iNumPts; // dla linii
         int iCount; // dla terenu
     };
-    // NOTE: geometry handle is duplicated in (anim)model(3d), as well as in track and traction type nodes
-    // TODO: clean this up when node types are refactored into an inheritance/composition scheme
-    geometry_handle m_geometry; // geometry of the submodel
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
     texture_handle TextureID; // główna (jedna) tekstura obiektu
     glm::vec3
@@ -152,9 +149,11 @@ public:
     bool bVisible;
 
     TGroundNode();
-    TGroundNode(TGroundNodeType t, int n = 0);
+    TGroundNode(TGroundNodeType t);
     ~TGroundNode();
+/*
     void Init(int n);
+*/
     void InitNormals();
 /*
     void Release();
@@ -200,7 +199,7 @@ class TSubRect : /*public Resource,*/ public CMesh
 /*
     virtual void Release(); // zwalnianie VBO sektora
 */
-    void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
+    virtual void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude);
@@ -242,17 +241,19 @@ public:
     };
     // pobranie wskaźnika do małego kwadratu, bez tworzenia jeśli nie ma
     TSubRect * FastGetSubRect(int iCol, int iRow) {
-        return (pSubRects ? pSubRects + iRow * iNumSubRects + iCol : NULL);
-    };
+        return (
+            pSubRects ?
+                pSubRects + iRow * iNumSubRects + iCol :
+                nullptr); };
+    void NodeAdd( TGroundNode *Node ); // dodanie obiektu do sektora na etapie rozdzielania na sektory
+    // compares two provided nodes, returns true if their content can be merged
+    bool mergeable( TGroundNode const &Left, TGroundNode const &Right );
     // optymalizacja obiektów w sektorach
     void Optimize() {
         if( pSubRects ) {
             for( int i = iNumSubRects * iNumSubRects - 1; i >= 0; --i ) {
                 // optymalizacja obiektów w sektorach
-                pSubRects[ i ].Sort();
-            }
-        }
-    };
+                pSubRects[ i ].Sort(); } } };
 
     static int iFrameNumber; // numer kolejny wyświetlanej klatki
     TGroundNode *nTerrain { nullptr }; // model terenu z E3D - użyć nRootMesh?
@@ -308,8 +309,8 @@ class TGround
     bool AddToQuery(TEvent *Event, TDynamicObject *Node);
     bool GetTraction(TDynamicObject *model);
     bool CheckQuery();
-    TGroundNode * DynamicFindAny(std::string asNameToFind);
-    TGroundNode * DynamicFind(std::string asNameToFind);
+    TGroundNode * DynamicFindAny(std::string const &Name);
+    TGroundNode * DynamicFind(std::string const &Name);
     void DynamicList(bool all = false);
     TGroundNode * FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType);
     TGroundRect * GetRect(double x, double z)
@@ -343,7 +344,9 @@ class TGround
 
   public:
     void WyslijEvent(const std::string &e, const std::string &d);
+/*
     int iRendered; // ilość renderowanych sektorów, pobierana przy pokazywniu FPS
+*/
     void WyslijString(const std::string &t, int n);
     void WyslijWolny(const std::string &t);
     void WyslijNamiary(TGroundNode *t);

@@ -102,6 +102,9 @@ public:
     template <typename Iterator_>
     void
         draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Streams ); ++First; } }
+    // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
+    void
+        release();
     // provides direct access to vertex data of specfied chunk
     vertex_array const &
         vertices( geometry_handle const &Geometry ) const;
@@ -142,6 +145,8 @@ private:
     virtual void replace_( geometry_handle const &Geometry ) = 0;
     // draw() subclass details
     virtual void draw_( geometry_handle const &Geometry, unsigned int const Streams ) = 0;
+    // resource release subclass details
+    virtual void release_() = 0;
 };
 
 // opengl vbo-based variant of the geometry bank
@@ -149,6 +154,8 @@ private:
 class opengl_vbogeometrybank : public geometry_bank {
 
 public:
+// constructors:
+    opengl_vbogeometrybank() = default;
 // destructor
     ~opengl_vbogeometrybank() {
         delete_buffer(); }
@@ -179,6 +186,9 @@ private:
     // draw() subclass details
     void
         draw_( geometry_handle const &Geometry, unsigned int const Streams );
+    // release () subclass details
+    void
+        release_();
     void
         bind_buffer();
     void
@@ -201,7 +211,9 @@ private:
 class opengl_dlgeometrybank : public geometry_bank {
 
 public:
-// methods:
+// constructors:
+    opengl_dlgeometrybank() = default;
+// destructor:
     ~opengl_dlgeometrybank() {
         for( auto &chunkrecord : m_chunkrecords ) {
             ::glDeleteLists( chunkrecord.list, 1 ); } }
@@ -225,6 +237,9 @@ private:
     // draw() subclass details
     void
         draw_( geometry_handle const &Geometry, unsigned int const Streams );
+    // release () subclass details
+    void
+        release_();
     void
         delete_list( geometry_handle const &Geometry );
 
@@ -241,6 +256,8 @@ class geometrybank_manager {
 
 public:
 // methods:
+    // performs a resource sweep
+    void update();
     // creates a new geometry bank. returns: handle to the bank or NULL
     geometrybank_handle
         create_bank();
@@ -268,23 +285,31 @@ public:
 
 private:
 // types:
-    typedef std::deque< std::shared_ptr<geometry_bank> > geometrybank_sequence;
+    typedef std::pair<
+        std::shared_ptr<geometry_bank>,
+        std::chrono::steady_clock::time_point > geometrybanktimepoint_pair;
+
+    typedef std::deque< geometrybanktimepoint_pair > geometrybanktimepointpair_sequence;
 
 // members:
-    geometrybank_sequence m_geometrybanks;
+    std::chrono::nanoseconds const unusedresourcetimetolive { std::chrono::seconds { 60 } };
+    geometrybanktimepointpair_sequence::size_type const unusedresourcesweepsize { 300 };
+    geometrybanktimepointpair_sequence m_geometrybanks;
+    geometrybanktimepointpair_sequence::size_type m_resourcesweepindex { 0 };
+    std::chrono::steady_clock::time_point m_resourcetimestamp { std::chrono::steady_clock::now() };
 
 // methods
     inline
     bool
         valid( geometry_handle const &Geometry ) {
-        return ( ( Geometry.bank != 0 )
-              && ( Geometry.bank <= m_geometrybanks.size() ) ); }
+            return ( ( Geometry.bank != 0 )
+                  && ( Geometry.bank <= m_geometrybanks.size() ) ); }
     inline
-    geometrybank_sequence::value_type &
+    geometrybanktimepointpair_sequence::value_type &
         bank( geometry_handle const Geometry ) {
             return m_geometrybanks[ Geometry.bank - 1 ]; }
     inline
-    geometrybank_sequence::value_type const &
+    geometrybanktimepointpair_sequence::value_type const &
         bank( geometry_handle const Geometry ) const {
             return m_geometrybanks[ Geometry.bank - 1 ]; }
 

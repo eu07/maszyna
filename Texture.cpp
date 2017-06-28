@@ -817,8 +817,8 @@ texture_manager::bind( texture_handle const Texture ) {
         ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
         m_activetexture = texture(Texture).id;
 #else
-        if( Texture( Id ).bind() == resource_state::good ) {
-            m_activetexture = Id;
+        if( texture( Texture ).bind() == resource_state::good ) {
+            m_activetexture = Texture;
         }
         else {
             // TODO: bind a special 'error' texture on failure
@@ -839,7 +839,7 @@ texture_manager::delete_textures() {
     for( auto const &texture : m_textures ) {
         // usunięcie wszyskich tekstur (bez usuwania struktury)
         if( ( texture.id > 0 )
-            && ( texture.id != -1 ) ) {
+         && ( texture.id != -1 ) ) {
             ::glDeleteTextures( 1, &texture.id );
         }
     }
@@ -876,7 +876,7 @@ texture_manager::info() const {
         + std::to_string( readytexturecount )
         + " ("
         + to_string( readytexturesize / 1024.0f, 2 ) + " mb)"
-        + " in vram, ";
+        + " in vram, "
 #endif
         + std::to_string( totaltexturecount )
         + " ("

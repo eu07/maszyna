@@ -174,12 +174,22 @@ void
 ui_layer::render_background() {
 
 	if( m_background == 0 ) return;
-
     // NOTE: we limit/expect the background to come with 4:3 ratio.
     // TODO, TBD: if we expose texture width or ratio from texture object, this limitation could be lifted
-
     GfxRenderer.Bind( m_background );
-    quad( float4( 0.0f, 0.0f, 1024.0f, 768.0f ), float4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+    auto const height { 768.0f };
+    auto const &texture = GfxRenderer.Texture( m_background );
+    float const width = (
+        texture.width() == texture.height() ?
+            1024.0f : // legacy mode, square texture displayed as 4:3 image
+            texture.width() / ( texture.height() / 768.0f ) );
+    quad(
+        float4(
+            ( 1024.0f * 0.5f ) - ( width  * 0.5f ),
+            (  768.0f * 0.5f ) - ( height * 0.5f ),
+            ( 1024.0f * 0.5f ) - ( width  * 0.5f ) + width,
+            (  768.0f * 0.5f ) - ( height * 0.5f ) + height ),
+        float4( 1.0f, 1.0f, 1.0f, 1.0f ) );
 }
 
 void
@@ -218,7 +228,11 @@ ui_layer::quad( float4 const &Coordinates, float4 const &Color ) {
             Global::iWindowHeight / 768.0 :
             Global::iWindowHeight / 768.0 * screenratio / ( 4.0f / 3.0f ) );
     float const height = 768.0f * heightratio;
-
+/*
+    float const heightratio = Global::iWindowHeight / 768.0f;
+    float const height = 768.0f * heightratio;
+    float const width = Global::iWindowWidth * heightratio;
+*/
     glColor4fv(&Color.x);
 
     glBegin( GL_TRIANGLE_STRIP );

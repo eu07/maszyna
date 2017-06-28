@@ -67,7 +67,6 @@ std::string LogComment;
 TGroundNode::TGroundNode()
 { // nowy obiekt terenu - pusty
     iType = GL_POINTS;
-    Vertices = NULL;
     nNext = nNext2 = NULL;
     iCount = 0; // wierzchołków w trójkącie
     // iNumPts=0; //punktów w linii
@@ -115,9 +114,6 @@ TGroundNode::~TGroundNode()
 		break;
     case TP_TERRAIN:
     { // pierwsze nNode zawiera model E3D, reszta to trójkąty
-        for (int i = 1; i < iCount; ++i)
-            nNode->Vertices =
-                NULL; // zerowanie wskaźników w kolejnych elementach, bo nie są do usuwania
         delete[] nNode; // usunięcie tablicy i pierwszego elementu
     }
     case TP_SUBMODEL: // dla formalności, nie wymaga usuwania
@@ -125,33 +121,31 @@ TGroundNode::~TGroundNode()
     case GL_LINES:
     case GL_LINE_STRIP:
     case GL_LINE_LOOP:
-        SafeDeleteArray(Points);
-        break;
     case GL_TRIANGLE_STRIP:
     case GL_TRIANGLE_FAN:
     case GL_TRIANGLES:
-        SafeDeleteArray(Vertices);
+        SafeDelete( Piece );
         break;
     }
 }
-
+/*
 void TGroundNode::Init(int n)
 { // utworzenie tablicy wierzchołków
     bVisible = false;
     iNumVerts = n;
     Vertices = new TGroundVertex[iNumVerts];
 }
-
-TGroundNode::TGroundNode( TGroundNodeType t, int n ) :
+*/
+TGroundNode::TGroundNode( TGroundNodeType t ) :
     TGroundNode() {
     // utworzenie obiektu
-    iNumVerts = n;
-    if( iNumVerts ) {
-        Vertices = new TGroundVertex[ iNumVerts ];
-    }
     iType = t;
     switch (iType) {
         // zależnie od typu
+        case GL_TRIANGLES: {
+            Piece = new piece_node;
+            break;
+        }
         case TP_TRACK: {
             pTrack = new TTrack( this );
             break;
@@ -171,36 +165,36 @@ void TGroundNode::InitNormals()
     switch (iType)
     {
     case GL_TRIANGLE_STRIP:
-        v1 = Vertices[0].position - Vertices[1].position;
-        v2 = Vertices[1].position - Vertices[2].position;
+        v1 = Piece->vertices[0].position - Piece->vertices[1].position;
+        v2 = Piece->vertices[1].position - Piece->vertices[2].position;
         n1 = glm::normalize(glm::cross(v1, v2));
-        if (Vertices[0].normal == glm::vec3())
-            Vertices[0].normal = n1;
-        v3 = Vertices[2].position - Vertices[3].position;
+        if (Piece->vertices[0].normal == glm::vec3())
+            Piece->vertices[0].normal = n1;
+        v3 = Piece->vertices[2].position - Piece->vertices[3].position;
         n2 = glm::normalize(glm::cross(v3, v2));
-        if (Vertices[1].normal == glm::vec3())
-            Vertices[1].normal = (n1 + n2) * 0.5f;
+        if (Piece->vertices[1].normal == glm::vec3())
+            Piece->vertices[1].normal = (n1 + n2) * 0.5f;
 
         for ( i = 2; i < iNumVerts - 2; i += 2)
         {
-            v4 = Vertices[i - 1].position - Vertices[i].position;
-            v5 = Vertices[i].position - Vertices[i + 1].position;
+            v4 = Piece->vertices[i - 1].position - Piece->vertices[i].position;
+            v5 = Piece->vertices[i].position - Piece->vertices[i + 1].position;
             n3 = glm::normalize(glm::cross(v3, v4));
             n4 = glm::normalize(glm::cross(v5, v4));
-            if (Vertices[i].normal == glm::vec3())
-                Vertices[i].normal = (n1 + n2 + n3) / 3.0f;
-            if (Vertices[i + 1].normal == glm::vec3())
-                Vertices[i + 1].normal = (n2 + n3 + n4) / 3.0f;
+            if (Piece->vertices[i].normal == glm::vec3())
+                Piece->vertices[i].normal = (n1 + n2 + n3) / 3.0f;
+            if (Piece->vertices[i + 1].normal == glm::vec3())
+                Piece->vertices[i + 1].normal = (n2 + n3 + n4) / 3.0f;
             n1 = n3;
             n2 = n4;
             v3 = v5;
         }
-        if (Vertices[i].normal == glm::vec3())
-            Vertices[i].normal = (n1 + n2) / 2.0f;
+        if (Piece->vertices[i].normal == glm::vec3())
+            Piece->vertices[i].normal = (n1 + n2) / 2.0f;
 		if (i + 1 < iNumVerts)
 		{
-			if (Vertices[i + 1].normal == glm::vec3())
-				Vertices[i + 1].normal = n2;
+			if (Piece->vertices[i + 1].normal == glm::vec3())
+				Piece->vertices[i + 1].normal = n2;
 		}
 		else
 			WriteLog("odd number of vertices, normals may be wrong!");
@@ -212,21 +206,21 @@ void TGroundNode::InitNormals()
     case GL_TRIANGLES:
         for (i = 0; i < iNumVerts; i += 3)
         {
-            v1 = Vertices[i + 0].position - Vertices[i + 1].position;
-            v2 = Vertices[i + 1].position - Vertices[i + 2].position;
+            v1 = Piece->vertices[i + 0].position - Piece->vertices[i + 1].position;
+            v2 = Piece->vertices[i + 1].position - Piece->vertices[i + 2].position;
             n1 = glm::normalize(glm::cross(v1, v2));
-            if (Vertices[i + 0].normal == glm::vec3())
-                Vertices[i + 0].normal = (n1);
-            if (Vertices[i + 1].normal == glm::vec3())
-                Vertices[i + 1].normal = (n1);
-            if (Vertices[i + 2].normal == glm::vec3())
-                Vertices[i + 2].normal = (n1);
+            if( Piece->vertices[i + 0].normal == glm::vec3() )
+                Piece->vertices[i + 0].normal = (n1);
+            if( Piece->vertices[i + 1].normal == glm::vec3() )
+                Piece->vertices[i + 1].normal = (n1);
+            if( Piece->vertices[i + 2].normal == glm::vec3() )
+                Piece->vertices[i + 2].normal = (n1);
             t1 = glm::vec2(
-                std::floor( Vertices[ i + 0 ].texture.s ),
-                std::floor( Vertices[ i + 0 ].texture.t ) );
-            Vertices[ i + 1 ].texture -= t1;
-            Vertices[ i + 2 ].texture -= t1;
-            Vertices[ i + 0 ].texture -= t1;
+                std::floor( Piece->vertices[ i + 0 ].texture.s ),
+                std::floor( Piece->vertices[ i + 0 ].texture.t ) );
+            Piece->vertices[ i + 1 ].texture -= t1;
+            Piece->vertices[ i + 2 ].texture -= t1;
+            Piece->vertices[ i + 0 ].texture -= t1;
         }
         break;
     }
@@ -349,8 +343,10 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     }
 #endif
     case TP_TRACTIONPOWERSOURCE: // a te w ogóle pomijamy
+/*
         //  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
         break;
+*/
     case TP_DYNAMIC:
         return; // tych nie dopisujemy wcale
     }
@@ -380,22 +376,14 @@ void TSubRect::Sort() {
 
 TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
 { // szukanie toru, którego koniec jest najbliższy (*Point)
-    for (int i = 0; i < iTracks; ++i)
-        if (tTracks[i] != Exclude) // można użyć tabelę torów, bo jest mniejsza
+    for( int i = 0; i < iTracks; ++i ) {
+        if( tTracks[ i ] != Exclude ) // można użyć tabelę torów, bo jest mniejsza
         {
-            iConnection = tTracks[i]->TestPoint(Point);
-            if (iConnection >= 0)
-                return tTracks[i]; // szukanie TGroundNode nie jest potrzebne
+            iConnection = tTracks[ i ]->TestPoint( Point );
+            if( iConnection >= 0 )
+                return tTracks[ i ]; // szukanie TGroundNode nie jest potrzebne
         }
-    /*
-     TGroundNode *Current;
-     for (Current=nRootNode;Current;Current=Current->Next)
-      if ((Current->iType==TP_TRACK)&&(Current->pTrack!=Exclude)) //można użyć tabelę torów
-       {
-        iConnection=Current->pTrack->TestPoint(Point);
-        if (iConnection>=0) return Current;
-       }
-    */
+    }
     return NULL;
 };
 
@@ -449,30 +437,20 @@ void TSubRect::LoadNodes() {
     auto *node { nRootNode };
     while( node != nullptr ) {
         switch (node->iType) {
-            case GL_TRIANGLES: {
-                vertex_array vertices;
-                for( int idx = 0; idx < node->iNumVerts; ++idx ) {
-                    vertices.emplace_back(
-                        node->Vertices[ idx ].position - node->m_rootposition,
-                        node->Vertices[ idx ].normal,
-                        node->Vertices[ idx ].texture );
-                }
-                node->m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, GL_TRIANGLES );
-                SafeDeleteArray( node->Vertices );
-                node->iNumVerts = 0;
-                break;
-            }
+            case GL_TRIANGLES:
             case GL_LINES: {
                 vertex_array vertices;
-                for( int idx = 0; idx < node->iNumPts; ++idx ) {
+                for( auto const &vertex : node->Piece->vertices ) {
                     vertices.emplace_back(
-                        node->Points[ idx ] - node->m_rootposition,
-                        glm::vec3(),
-                        glm::vec2() );
+                        vertex.position - node->m_rootposition,
+                        vertex.normal,
+                        vertex.texture );
                 }
-                node->m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, GL_LINES );
-                SafeDeleteArray( node->Vertices );
-                node->iNumPts = 0;
+                node->Piece->geometry = GfxRenderer.Insert( vertices, m_geometrybank, node->iType );
+                node->Piece->vertices.swap( std::vector<TGroundVertex>() ); // hipster shrink_to_fit
+                // TODO: get rid of the vertex counters, they're obsolete at this point
+                if( node->iType == GL_LINES ) { node->iNumVerts = 0; }
+                else                          { node->iNumPts = 0; }
                 break;
             }
             case TP_TRACK:
@@ -528,6 +506,59 @@ TGroundRect::Init() {
         }
     }
 };
+
+// dodanie obiektu do sektora na etapie rozdzielania na sektory
+void
+TGroundRect::NodeAdd( TGroundNode *Node ) {
+
+    // override visibility ranges, to ensure the content is drawn from far enough
+    Node->fSquareRadius = 50000.0 * 50000.0;
+    Node->fSquareMinRadius = 0.0;
+
+    // if the cell already has a node with matching material settings, we can just add the new geometry to it
+    if( ( Node->iType == GL_TRIANGLES ) ) {
+        // cell node only receives opaque geometry, so we can skip transparency test
+        auto matchingnode { nRenderRect };
+        while( ( matchingnode != nullptr )
+            && ( false == mergeable( *Node, *matchingnode ) ) ) {
+            // search will get us either a matching node, or a nullptr
+            matchingnode = matchingnode->nNext3;
+        }
+        if( matchingnode != nullptr ) {
+            // a valid match, so dump the content into it
+            // updating centre points isn't strictly necessary since render is based off the cell's middle, but, eh
+            matchingnode->pCenter =
+                interpolate(
+                    matchingnode->pCenter, Node->pCenter,
+                    static_cast<float>( Node->iNumVerts ) / ( Node->iNumVerts + matchingnode->iNumVerts ) );
+            matchingnode->iNumVerts += Node->iNumVerts;
+            matchingnode->Piece->vertices.resize( matchingnode->iNumVerts, TGroundVertex() );
+            matchingnode->Piece->vertices.insert(
+                std::end( matchingnode->Piece->vertices ),
+                std::begin( Node->Piece->vertices ), std::end( Node->Piece->vertices ) );
+            // clear content of the node we're copying. a minor memory saving at best, but still a saving
+            Node->Piece->vertices.swap( std::vector<TGroundVertex>() );
+            Node->iNumVerts = 0;
+            // since we've put the data in existing node we can skip adding the new one...
+            return;
+            // ...for others, they'll go through the regular procedure, along with other non-mergeable types
+        }
+    }
+
+    return TSubRect::NodeAdd( Node );
+}
+
+// compares two provided nodes, returns true if their content can be merged
+bool
+TGroundRect::mergeable( TGroundNode const &Left, TGroundNode const &Right ) {
+    // since view ranges and transparency type for all nodes put through this method are guaranteed to be equal,
+    // we can skip their tests and only do the material check.
+    // TODO, TBD: material as dedicated type, and refactor this method into a simple equality test
+    return ( ( Left.TextureID == Right.TextureID )
+          && ( Left.Ambient == Right.Ambient )
+          && ( Left.Diffuse == Right.Diffuse )
+          && ( Left.Specular == Right.Specular ) );
+}
 
 //---------------------------------------------------------------------------
 
@@ -594,19 +625,19 @@ void TGround::Free()
     nRootDynamic = NULL;
 }
 
-TGroundNode * TGround::DynamicFindAny(std::string asNameToFind)
+TGroundNode * TGround::DynamicFindAny(std::string const &Name)
 { // wyszukanie pojazdu o podanej nazwie, szukanie po wszystkich (użyć drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
-        if ((Current->asName == asNameToFind))
+        if ((Current->asName == Name))
             return Current;
     return NULL;
 };
 
-TGroundNode * TGround::DynamicFind(std::string asNameToFind)
+TGroundNode * TGround::DynamicFind(std::string const &Name)
 { // wyszukanie pojazdu z obsadą o podanej nazwie (użyć drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
         if (Current->DynamicObject->Mechanik)
-            if ((Current->asName == asNameToFind))
+            if ((Current->asName == Name))
                 return Current;
     return NULL;
 };
@@ -685,12 +716,12 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     double x1 = x0 + 1400.0;
     double z0 = 1000.0 * std::floor(0.001 * node->pCenter.z) - 200.0;
     double z1 = z0 + 1400.0;
-    if ((node->Vertices[0].position.x >= x0) && (node->Vertices[0].position.x <= x1) &&
-        (node->Vertices[0].position.z >= z0) && (node->Vertices[0].position.z <= z1) &&
-        (node->Vertices[1].position.x >= x0) && (node->Vertices[1].position.x <= x1) &&
-        (node->Vertices[1].position.z >= z0) && (node->Vertices[1].position.z <= z1) &&
-        (node->Vertices[2].position.x >= x0) && (node->Vertices[2].position.x <= x1) &&
-        (node->Vertices[2].position.z >= z0) && (node->Vertices[2].position.z <= z1))
+    if ((node->Piece->vertices[0].position.x >= x0) && (node->Piece->vertices[0].position.x <= x1) &&
+        (node->Piece->vertices[0].position.z >= z0) && (node->Piece->vertices[0].position.z <= z1) &&
+        (node->Piece->vertices[1].position.x >= x0) && (node->Piece->vertices[1].position.x <= x1) &&
+        (node->Piece->vertices[1].position.z >= z0) && (node->Piece->vertices[1].position.z <= z1) &&
+        (node->Piece->vertices[2].position.x >= x0) && (node->Piece->vertices[2].position.x <= x1) &&
+        (node->Piece->vertices[2].position.z >= z0) && (node->Piece->vertices[2].position.z <= z1))
         return; // trójkąt wystający mniej niż 200m z kw. kilometrowego jest do przyjęcia
     // Ra: przerobić na dzielenie na 2 trójkąty, podział w przecięciu z siatką kilometrową
     // Ra: i z rekurencją będzie dzielić trzy trójkąty, jeśli będzie taka potrzeba
@@ -700,47 +731,46 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     x1 -= 200.0; // przestawienie na siatkę
     z0 += 200.0;
     z1 -= 200.0;
-    mul = (node->Vertices[0].position.x - x0) * (node->Vertices[1].position.x - x0); // AB na wschodzie
+    mul = (node->Piece->vertices[0].position.x - x0) * (node->Piece->vertices[1].position.x - x0); // AB na wschodzie
     if (mul < min)
         min = mul, divide = 0;
-    mul = (node->Vertices[1].position.x - x0) * (node->Vertices[2].position.x - x0); // BC na wschodzie
+    mul = (node->Piece->vertices[1].position.x - x0) * (node->Piece->vertices[2].position.x - x0); // BC na wschodzie
     if (mul < min)
         min = mul, divide = 1;
-    mul = (node->Vertices[2].position.x - x0) * (node->Vertices[0].position.x - x0); // CA na wschodzie
+    mul = (node->Piece->vertices[2].position.x - x0) * (node->Piece->vertices[0].position.x - x0); // CA na wschodzie
     if (mul < min)
         min = mul, divide = 2;
-    mul = (node->Vertices[0].position.x - x1) * (node->Vertices[1].position.x - x1); // AB na zachodzie
+    mul = (node->Piece->vertices[0].position.x - x1) * (node->Piece->vertices[1].position.x - x1); // AB na zachodzie
     if (mul < min)
         min = mul, divide = 8;
-    mul = (node->Vertices[1].position.x - x1) * (node->Vertices[2].position.x - x1); // BC na zachodzie
+    mul = (node->Piece->vertices[1].position.x - x1) * (node->Piece->vertices[2].position.x - x1); // BC na zachodzie
     if (mul < min)
         min = mul, divide = 9;
-    mul = (node->Vertices[2].position.x - x1) * (node->Vertices[0].position.x - x1); // CA na zachodzie
+    mul = (node->Piece->vertices[2].position.x - x1) * (node->Piece->vertices[0].position.x - x1); // CA na zachodzie
     if (mul < min)
         min = mul, divide = 10;
-    mul = (node->Vertices[0].position.z - z0) * (node->Vertices[1].position.z - z0); // AB na południu
+    mul = (node->Piece->vertices[0].position.z - z0) * (node->Piece->vertices[1].position.z - z0); // AB na południu
     if (mul < min)
         min = mul, divide = 4;
-    mul = (node->Vertices[1].position.z - z0) * (node->Vertices[2].position.z - z0); // BC na południu
+    mul = (node->Piece->vertices[1].position.z - z0) * (node->Piece->vertices[2].position.z - z0); // BC na południu
     if (mul < min)
         min = mul, divide = 5;
-    mul = (node->Vertices[2].position.z - z0) * (node->Vertices[0].position.z - z0); // CA na południu
+    mul = (node->Piece->vertices[2].position.z - z0) * (node->Piece->vertices[0].position.z - z0); // CA na południu
     if (mul < min)
         min = mul, divide = 6;
-    mul = (node->Vertices[0].position.z - z1) * (node->Vertices[1].position.z - z1); // AB na północy
+    mul = (node->Piece->vertices[0].position.z - z1) * (node->Piece->vertices[1].position.z - z1); // AB na północy
     if (mul < min)
         min = mul, divide = 12;
-    mul = (node->Vertices[1].position.z - z1) * (node->Vertices[2].position.z - z1); // BC na północy
+    mul = (node->Piece->vertices[1].position.z - z1) * (node->Piece->vertices[2].position.z - z1); // BC na północy
     if (mul < min)
         min = mul, divide = 13;
-    mul = (node->Vertices[2].position.z - z1) * (node->Vertices[0].position.z - z1); // CA na północy
+    mul = (node->Piece->vertices[2].position.z - z1) * (node->Piece->vertices[0].position.z - z1); // CA na północy
     if (mul < min)
         divide = 14;
     // tworzymy jeden dodatkowy trójkąt, dzieląc jeden bok na przecięciu siatki kilometrowej
     TGroundNode *ntri; // wskaźnik na nowy trójkąt
-    ntri = new TGroundNode(); // a ten jest nowy
-    ntri->iType = GL_TRIANGLES; // kopiowanie parametrów, przydałby się konstruktor kopiujący
-    ntri->Init(3);
+    ntri = new TGroundNode(GL_TRIANGLES); // a ten jest nowy
+    // kopiowanie parametrów, przydałby się konstruktor kopiujący
     ntri->TextureID = node->TextureID;
     ntri->iFlags = node->iFlags;
     ntri->Ambient = node->Ambient;
@@ -753,42 +783,44 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     ntri->nNext = nRootOfType[GL_TRIANGLES];
     nRootOfType[GL_TRIANGLES] = ntri; // dopisanie z przodu do listy
     ++iNumNodes;
+    ntri->iNumVerts = 3;
+    ntri->Piece->vertices.resize( 3 );
     switch (divide & 3)
     { // podzielenie jednego z boków, powstaje wierzchołek D
     case 0: // podział AB (0-1) -> ADC i DBC
-        ntri->Vertices[2] = node->Vertices[2]; // wierzchołek C jest wspólny
-        ntri->Vertices[1] = node->Vertices[1]; // wierzchołek B przechodzi do nowego
+        ntri->Piece->vertices[2] = node->Piece->vertices[2]; // wierzchołek C jest wspólny
+        ntri->Piece->vertices[1] = node->Piece->vertices[1]; // wierzchołek B przechodzi do nowego
         // node->Vertices[1].HalfSet(node->Vertices[0],node->Vertices[1]); //na razie D tak
         if (divide & 4)
-            node->Vertices[1].SetByZ(node->Vertices[0], node->Vertices[1], (divide & 8) ? z1 : z0);
+            node->Piece->vertices[1].SetByZ(node->Piece->vertices[0], node->Piece->vertices[1], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[1].SetByX(node->Vertices[0], node->Vertices[1], (divide & 8) ? x1 : x0);
-        ntri->Vertices[0] = node->Vertices[1]; // wierzchołek D jest wspólny
+            node->Piece->vertices[1].SetByX(node->Piece->vertices[0], node->Piece->vertices[1], (divide & 8) ? x1 : x0);
+        ntri->Piece->vertices[0] = node->Piece->vertices[1]; // wierzchołek D jest wspólny
         break;
     case 1: // podział BC (1-2) -> ABD i ADC
-        ntri->Vertices[0] = node->Vertices[0]; // wierzchołek A jest wspólny
-        ntri->Vertices[2] = node->Vertices[2]; // wierzchołek C przechodzi do nowego
+        ntri->Piece->vertices[0] = node->Piece->vertices[0]; // wierzchołek A jest wspólny
+        ntri->Piece->vertices[2] = node->Piece->vertices[2]; // wierzchołek C przechodzi do nowego
         // node->Vertices[2].HalfSet(node->Vertices[1],node->Vertices[2]); //na razie D tak
         if (divide & 4)
-            node->Vertices[2].SetByZ(node->Vertices[1], node->Vertices[2], (divide & 8) ? z1 : z0);
+            node->Piece->vertices[2].SetByZ(node->Piece->vertices[1], node->Piece->vertices[2], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[2].SetByX(node->Vertices[1], node->Vertices[2], (divide & 8) ? x1 : x0);
-        ntri->Vertices[1] = node->Vertices[2]; // wierzchołek D jest wspólny
+            node->Piece->vertices[2].SetByX(node->Piece->vertices[1], node->Piece->vertices[2], (divide & 8) ? x1 : x0);
+        ntri->Piece->vertices[1] = node->Piece->vertices[2]; // wierzchołek D jest wspólny
         break;
     case 2: // podział CA (2-0) -> ABD i DBC
-        ntri->Vertices[1] = node->Vertices[1]; // wierzchołek B jest wspólny
-        ntri->Vertices[2] = node->Vertices[2]; // wierzchołek C przechodzi do nowego
+        ntri->Piece->vertices[1] = node->Piece->vertices[1]; // wierzchołek B jest wspólny
+        ntri->Piece->vertices[2] = node->Piece->vertices[2]; // wierzchołek C przechodzi do nowego
         // node->Vertices[2].HalfSet(node->Vertices[2],node->Vertices[0]); //na razie D tak
         if (divide & 4)
-            node->Vertices[2].SetByZ(node->Vertices[2], node->Vertices[0], (divide & 8) ? z1 : z0);
+            node->Piece->vertices[2].SetByZ(node->Piece->vertices[2], node->Piece->vertices[0], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[2].SetByX(node->Vertices[2], node->Vertices[0], (divide & 8) ? x1 : x0);
-        ntri->Vertices[0] = node->Vertices[2]; // wierzchołek D jest wspólny
+            node->Piece->vertices[2].SetByX(node->Piece->vertices[2], node->Piece->vertices[0], (divide & 8) ? x1 : x0);
+        ntri->Piece->vertices[0] = node->Piece->vertices[2]; // wierzchołek D jest wspólny
         break;
     }
     // przeliczenie środków ciężkości obu
-    node->pCenter = ( node->Vertices[ 0 ].position + node->Vertices[ 1 ].position + node->Vertices[ 2 ].position ) / 3.0;
-    ntri->pCenter = ( ntri->Vertices[ 0 ].position + ntri->Vertices[ 1 ].position + ntri->Vertices[ 2 ].position ) / 3.0;
+    node->pCenter = ( node->Piece->vertices[ 0 ].position + node->Piece->vertices[ 1 ].position + node->Piece->vertices[ 2 ].position ) / 3.0;
+    ntri->pCenter = ( ntri->Piece->vertices[ 0 ].position + ntri->Piece->vertices[ 1 ].position + ntri->Piece->vertices[ 2 ].position ) / 3.0;
     RaTriangleDivider(node); // rekurencja, bo nawet na TD raz nie wystarczy
     RaTriangleDivider(ntri);
 };
@@ -1218,7 +1250,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 tmp->nNode[i].iFlags = 0x10; // nieprzezroczyste; nie usuwany
                 tmp->nNode[i].bVisible = true;
                 tmp->nNode[i].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
-                // tmp->nNode[i].asName=
             }
         }
         else if (!tmp->asName.empty()) // jest pusta gdy "none"
@@ -1291,18 +1322,6 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
            && ( true == GfxRenderer.Texture( tmp->TextureID ).has_alpha ) ) ?
                 0x20 :
                 0x10 );
-
-        if( (tmp->iType == GL_TRIANGLES)
-         && (tmp->iFlags & 0x10)
-         && (Global::pTerrainCompact->TerrainLoaded()) ) {
-            // jeśli jest tekstura nieprzezroczysta, a teren załadowany, to pomijamy trójkąty
-            do {
-                // pomijanie trójkątów
-                parser->getTokens();
-                *parser >> token;
-            } while (token.compare("endtri") != 0);
-        }
-        else
         {
             TGroundVertex vertex, vertex1, vertex2;
             std::size_t vertexcount { 0 };
@@ -1346,9 +1365,17 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                              if( vertexcount == 0 ) { vertex1 = vertex; }
                         else if( vertexcount == 1 ) { vertex2 = vertex; }
                         else if( vertexcount >= 2 ) {
-                            importedvertices.emplace_back( vertex1 );
-                            importedvertices.emplace_back( vertex2 );
+                            // swap order every other triangle, to maintain consistent winding
+                            if( vertexcount % 2 == 0 ) {
+                                importedvertices.emplace_back( vertex1 );
+                                importedvertices.emplace_back( vertex2 );
+                            }
+                            else {
+                                importedvertices.emplace_back( vertex2 );
+                                importedvertices.emplace_back( vertex1 );
+                            }
                             importedvertices.emplace_back( vertex );
+
                             vertex1 = vertex2;
                             vertex2 = vertex;
                         }
@@ -1363,25 +1390,27 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             } while (token.compare("endtri") != 0);
 
             tmp->iType = GL_TRIANGLES;
+            tmp->Piece = new piece_node();
+            tmp->iNumVerts = (int)importedvertices.size();
 
-            auto const nv = importedvertices.size();
-            tmp->Init((int)nv); // utworzenie tablicy wierzchołków
+            if( tmp->iNumVerts > 0 ) {
 
-            for( std::size_t i = 0; i < nv; ++i ) {
-                tmp->pCenter += importedvertices[ i ].position;
+                tmp->Piece->vertices.swap( importedvertices );
+
+                for( auto const &vertex : tmp->Piece->vertices ) {
+                    tmp->pCenter += vertex.position;
+                }
+                tmp->pCenter /= tmp->iNumVerts;
+
+                r = 0;
+                for( auto const &vertex : tmp->Piece->vertices ) {
+                    tf = SquareMagnitude( vertex.position - tmp->pCenter );
+                    if( tf > r )
+                        r = tf;
+                }
+                tmp->fSquareRadius += r;
+                RaTriangleDivider( tmp ); // Ra: dzielenie trójkątów jest teraz całkiem wydajne
             }
-            tmp->pCenter /= (nv > 0 ? nv : 1);
-
-            r = 0;
-            for (std::size_t i = 0; i < nv; ++i)
-            {
-                tmp->Vertices[i] = importedvertices[i];
-                tf = SquareMagnitude( tmp->Vertices[ i ].position - tmp->pCenter );
-                if (tf > r)
-                    r = tf;
-            }
-            tmp->fSquareRadius += r;
-            RaTriangleDivider(tmp); // Ra: dzielenie trójkątów jest teraz całkiem wydajne
         } // koniec wczytywania trójkątów
         break;
     case GL_LINES:
@@ -1394,6 +1423,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 >> tmp->Diffuse.b
                 >> tmp->fLineThickness;
             tmp->Diffuse /= 255.0f;
+            tmp->fLineThickness = std::min( 30.0, tmp->fLineThickness ); // 30 pix equals rougly width of a signal pole viewed from ~1m away
 
             TGroundVertex vertex, vertex0, vertex1;
             std::size_t vertexcount{ 0 };
@@ -1455,15 +1485,25 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 importedvertices.pop_back();
             }
             tmp->iType = GL_LINES;
+            tmp->Piece = new piece_node();
+            tmp->iNumPts = (int)importedvertices.size();
 
-            auto const nv = importedvertices.size();
-            tmp->Points = new glm::dvec3[ nv ];
-            tmp->iNumPts = (int)nv;
-            for( std::size_t i = 0; i < nv; ++i ) {
-                tmp->Points[ i ] = importedvertices[ i ].position;
-                tmp->pCenter += importedvertices[ i ].position;
+            if( false == importedvertices.empty() ) {
+
+                tmp->Piece->vertices.swap( importedvertices );
+
+                glm::dvec3 minpoint( std::numeric_limits<double>::max(), 0.0, std::numeric_limits<double>::max() );
+                glm::dvec3 maxpoint( std::numeric_limits<double>::lowest(), 0.0, std::numeric_limits<double>::lowest() );
+                for( auto const &vertex : tmp->Piece->vertices ) {
+                    tmp->pCenter += vertex.position;
+                    minpoint.x = std::min( minpoint.x, vertex.position.x );
+                    minpoint.z = std::min( minpoint.z, vertex.position.z );
+                    maxpoint.x = std::max( maxpoint.x, vertex.position.x );
+                    maxpoint.z = std::max( maxpoint.z, vertex.position.z );
+                }
+                tmp->pCenter /= tmp->iNumPts;
+                tmp->m_radius = static_cast<float>( glm::distance( maxpoint, minpoint ) * 0.5 );
             }
-            tmp->pCenter /= ( nv > 0 ? nv : 1 );
             break;
         }
     }
@@ -1559,11 +1599,6 @@ void TGround::FirstInit()
                 }
                 else {
                     // dodajemy do kwadratu kilometrowego
-                    // override visibility ranges, to ensure the content is drawn from far enough
-                    // TODO: subclass NodeAdd() for the ground cell and specialize it, instead of this
-                    // TODO: given their view ranges are the same, combine the geometry in single per-material nodes
-                    Current->fSquareRadius = 50000.0 * 50000.0;
-                    Current->fSquareMinRadius = 0.0;
                     GetRect( Current->pCenter.x, Current->pCenter.z )->NodeAdd( Current );
                 }
             }
@@ -1632,7 +1667,7 @@ bool TGround::Init(std::string File)
                 switch( LastNode->iType ) {
                     // validate the new node
                     case GL_TRIANGLES: {
-                        if( LastNode->Vertices == nullptr ) {
+                        if( true == LastNode->Piece->vertices.empty() ) {
                             SafeDelete( LastNode );
                         }
                         break;
@@ -1692,7 +1727,7 @@ bool TGround::Init(std::string File)
             }
             else
             {
-                Error("Scene parse error near " + token);
+                ErrorLog("Scene parsing error in file \"" + parser.Name() + "\", unexpected token \"" + token + "\"");
                 // break;
             }
         }
@@ -1722,20 +1757,21 @@ bool TGround::Init(std::string File)
                                                                          fTrainSetVel, 0, NULL);
                 }
             }
-            if (LastNode) // ostatni wczytany obiekt
-                if (LastNode->iType ==
-                    TP_DYNAMIC) // o ile jest pojazdem (na ogół jest, ale kto wie...)
-                    if (iTrainSetWehicleNumber ? !TempConnectionType[iTrainSetWehicleNumber - 1] :
-                                                 false) // jeśli ostatni pojazd ma sprzęg 0
-                        LastNode->DynamicObject->RaLightsSet(-1, 2 + 32 + 64); // to założymy mu
-            // końcówki blaszane
-            // (jak AI się
-            // odpali, to sobie
-            // poprawi)
+            if( LastNode ) {
+                // ostatni wczytany obiekt
+                if( LastNode->iType == TP_DYNAMIC ) {
+                    // o ile jest pojazdem (na ogół jest, ale kto wie...)
+                    if( ( iTrainSetWehicleNumber > 0 )
+                     && ( TempConnectionType[ iTrainSetWehicleNumber - 1 ] == 0 ) ) {
+                        // jeśli ostatni pojazd ma sprzęg 0 to założymy mu końcówki blaszane
+                        // (jak AI się odpali, to sobie poprawi)
+                        LastNode->DynamicObject->RaLightsSet( -1, 2 + 32 + 64 );
+                    }
+                }
+            }
             bTrainSet = false;
             fTrainSetVel = 0;
-            // iTrainSetConnection=0;
-            nTrainSetNode = nTrainSetDriver = NULL;
+            nTrainSetNode = nTrainSetDriver = nullptr;
             iTrainSetWehicleNumber = 0;
         }
         else if (str == "event")

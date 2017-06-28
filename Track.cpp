@@ -2156,7 +2156,6 @@ TTrack * TTrack::RaAnimate()
 
             if (SwitchExtension->RightSwitch)
             { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
-                vertex_array vertices;
                 if( TextureID1 ) {
                     // left blade
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
@@ -2171,7 +2170,6 @@ TTrack * TTrack::RaAnimate()
                 }
             }
             else { // lewa działa lepiej niż prawa
-                vertex_array vertices;
                 if( TextureID1 ) {
                     // right blade
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );

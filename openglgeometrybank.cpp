@@ -55,7 +55,7 @@ geometry_bank::create( vertex_array &Vertices, unsigned int const Type ) {
     m_chunks.emplace_back( Vertices, Type );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     geometry_handle chunkhandle { 0, static_cast<std::uint32_t>(m_chunks.size()) };
-    // template method
+    // template method implementation
     create_( chunkhandle );
     // all done
     return chunkhandle;
@@ -81,7 +81,7 @@ geometry_bank::replace( vertex_array &Vertices, geometry_handle const &Geometry,
         chunk.vertices.resize( Offset + Vertices.size(), basic_vertex() );
         chunk.vertices.insert( std::end( chunk.vertices ), std::begin( Vertices ), std::end( Vertices ) );
     }
-    // template method
+    // template method implementation
     replace_( Geometry );
     // all done
     return true;
@@ -99,8 +99,15 @@ geometry_bank::append( vertex_array &Vertices, geometry_handle const &Geometry )
 // draws geometry stored in specified chunk
 void
 geometry_bank::draw( geometry_handle const &Geometry, unsigned int const Streams ) {
-    // template method
+    // template method implementation
     draw_( Geometry, Streams );
+}
+
+// frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
+void
+geometry_bank::release() {
+    // template method implementation
+    release_();
 }
 
 vertex_array const &
@@ -205,6 +212,13 @@ glDebug("D97");
     // ...post-render cleanup
 }
 
+// release () subclass details
+void
+opengl_vbogeometrybank::release_() {
+
+    delete_buffer();
+}
+
 void
 opengl_vbogeometrybank::bind_buffer() {
 	glBindVertexArray(m_vao);
@@ -222,6 +236,7 @@ opengl_vbogeometrybank::delete_buffer() {
 		glBindVertexArray(m_vao);
         if( m_activebuffer == m_buffer ) {
             m_activebuffer = NULL;
+            bind_streams( stream::none );
         }
         m_buffer = NULL;
         m_buffercapacity = 0;
@@ -312,6 +327,19 @@ opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, unsigned int cons
     ::glCallList( chunkrecord.list );
 }
 
+// release () subclass details
+void
+opengl_dlgeometrybank::release_() {
+
+    for( auto &chunkrecord : m_chunkrecords ) {
+        if( chunkrecord.list != 0 ) {
+            ::glDeleteLists( chunkrecord.list, 1 );
+            chunkrecord.list = 0;
+        }
+        chunkrecord.streams = stream::none;
+    }
+}
+
 void
 opengl_dlgeometrybank::delete_list( geometry_handle const &Geometry ) {
     // NOTE: given it's our own internal method we trust it to be called with valid parameters
@@ -325,11 +353,36 @@ opengl_dlgeometrybank::delete_list( geometry_handle const &Geometry ) {
 
 // geometry bank manager, holds collection of geometry banks
 
+// performs a resource sweep
+void
+geometrybank_manager::update() {
+
+    m_resourcetimestamp = std::chrono::steady_clock::now();
+    // garbage collection sweep is limited to a number of records per call, to reduce impact on framerate
+    auto const sweeplastindex =
+        std::min(
+            m_resourcesweepindex + geometrybank_manager::unusedresourcesweepsize,
+            m_geometrybanks.size() );
+    auto const blanktimestamp { std::chrono::steady_clock::time_point() };
+    for( auto bankindex = m_resourcesweepindex; bankindex < sweeplastindex; ++bankindex ) {
+        if( ( m_geometrybanks[ bankindex ].second != blanktimestamp )
+         && ( m_resourcetimestamp - m_geometrybanks[ bankindex ].second > geometrybank_manager::unusedresourcetimetolive ) ) {
+
+            m_geometrybanks[ bankindex ].first->release();
+            m_geometrybanks[ bankindex ].second = blanktimestamp;
+        }
+    }
+    m_resourcesweepindex = (
+        m_resourcesweepindex + geometrybank_manager::unusedresourcesweepsize >= m_geometrybanks.size() ?
+            0 : // if the next sweep chunk is beyond actual data, so start anew
+            m_resourcesweepindex + geometrybank_manager::unusedresourcesweepsize );
+}
+
 // creates a new geometry bank. returns: handle to the bank or NULL
 geometrybank_handle
 geometrybank_manager::create_bank() {
 
-    m_geometrybanks.emplace_back( std::make_shared<opengl_vbogeometrybank>() );
+	m_geometrybanks.emplace_back(std::make_shared<opengl_vbogeometrybank>(), std::chrono::steady_clock::time_point());
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     return geometrybank_handle( (uint32_t)m_geometrybanks.size(), 0 );
 }
@@ -338,7 +391,7 @@ geometrybank_manager::create_bank() {
 geometry_handle
 geometrybank_manager::create_chunk( vertex_array &Vertices, geometrybank_handle const &Geometry, int const Type ) {
 
-    auto const newchunkhandle = bank( Geometry )->create( Vertices, Type );
+    auto const newchunkhandle = bank( Geometry ).first->create( Vertices, Type );
 
     if( newchunkhandle.chunk != 0 ) { return geometry_handle( Geometry.bank, newchunkhandle.chunk ); }
     else                            { return geometry_handle( 0, 0 ); }
@@ -348,14 +401,14 @@ geometrybank_manager::create_chunk( vertex_array &Vertices, geometrybank_handle 
 bool
 geometrybank_manager::replace( vertex_array &Vertices, geometry_handle const &Geometry, std::size_t const Offset ) {
 
-    return bank( Geometry )->replace( Vertices, Geometry, Offset );
+    return bank( Geometry ).first->replace( Vertices, Geometry, Offset );
 }
 
 // adds supplied vertex data at the end of specified chunk
 bool
 geometrybank_manager::append( vertex_array &Vertices, geometry_handle const &Geometry ) {
 
-    return bank( Geometry )->append( Vertices, Geometry );
+    return bank( Geometry ).first->append( Vertices, Geometry );
 }
 // draws geometry stored in specified chunk
 void
@@ -363,12 +416,15 @@ geometrybank_manager::draw( geometry_handle const &Geometry, unsigned int const 
 
     if( Geometry == NULL ) { return; }
 
-    return bank( Geometry )->draw( Geometry, Streams );
+    auto &bankrecord = bank( Geometry );
+
+    bankrecord.second = m_resourcetimestamp;
+    bankrecord.first->draw( Geometry, Streams );
 }
 
 // provides direct access to vertex data of specfied chunk
 vertex_array const &
 geometrybank_manager::vertices( geometry_handle const &Geometry ) const {
 
-    return bank( Geometry )->vertices( Geometry );
+    return bank( Geometry ).first->vertices( Geometry );
 }
