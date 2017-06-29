@@ -102,17 +102,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     Global::daylight.color.y = 242.0f / 255.0f;
     Global::daylight.color.z = 231.0f / 255.0f;
 
-    // setup fog
-    if( Global::fFogEnd > 0 ) {
-        // fog setup
-        ::glFogi( GL_FOG_MODE, GL_LINEAR );
-        ::glFogfv( GL_FOG_COLOR, Global::FogColor );
-        ::glFogf( GL_FOG_START, Global::fFogStart );
-        ::glFogf( GL_FOG_END, Global::fFogEnd );
-        ::glEnable( GL_FOG );
-    }
-    else { ::glDisable( GL_FOG ); }
-
 	World.shader = gl_program_light({ gl_shader("lighting.vert"), gl_shader("blinnphong.frag") });
 	Global::daylight.intensity = 1.0f; //m7todo: przenieść
 
@@ -168,9 +157,11 @@ opengl_renderer::Render() {
         // frustum tests are performed in 'world space' but after we set up frustum
         // we no longer need camera translation, only rotation
         ::glMultMatrixd( glm::value_ptr( glm::dmat4( glm::dmat3( worldcamera ))));
+		glDebug("rendering environment");
 		glDisable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Environment );
-		glUseProgram(World.shader);
+		glDebug("rendering world");
+		World.shader.bind();
 		glEnable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Ground );
 
@@ -181,10 +172,13 @@ opengl_renderer::Render() {
         m_drawtime = std::max( 20.0f, 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::milliseconds>( ( std::chrono::steady_clock::now() - timestart ) ).count());
         m_drawcount = m_drawqueue.size();
     }
-	glDebug("dis1");
-	glUseProgram(0);
+
+	glDebug("rendering ui");
+	World.shader.unbind();
 	glEnable(GL_FRAMEBUFFER_SRGB);
     UILayer.render();
+	glDebug("rendering end");
+
     glfwSwapBuffers( m_window );
     return true; // for now always succeed
 }
@@ -206,11 +200,10 @@ opengl_renderer::Render( world_environment *Environment ) {
     // setup fog
     if( Global::fFogEnd > 0 ) {
         // fog setup
-        ::glFogfv( GL_FOG_COLOR, Global::FogColor );
-        ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / Global::fFogEnd ) );
-        ::glEnable( GL_FOG );
+		//m7todo: set fog amount based on scenery settings
+		World.shader.set_fog(0.0005f, glm::make_vec3(Global::FogColor));
     }
-    else { ::glDisable( GL_FOG ); }
+    else { World.shader.set_fog(0.0f, glm::make_vec3(Global::FogColor)); }
 
     Environment->m_skydome.Render();
     // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
@@ -416,9 +409,7 @@ opengl_renderer::Render( TGround *Ground ) {
             }
 
             if( m_camera.visible( cell->m_area ) ) {
-				glDebug("to tu?");
                 Render( cell );
-				glDebug("koniec to tu");
             }
         }
     }
@@ -642,14 +633,14 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
                 // crude way to light the cabin, until we have something more complete in place
                 auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+				World.shader.set_ambient(glm::make_vec3(&cablight.x));
             }
 
             Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr(m_baseambient) );
+				World.shader.set_ambient(glm::vec3(m_baseambient));
             }
         }
     }
@@ -732,6 +723,7 @@ void opengl_renderer::Render(TSubModel *Submodel)
 	World.shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
 	World.shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
 	Render(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
+	World.shader.set_material(0.0f, glm::vec3(0.0f));
 }
 
 void opengl_renderer::Render_Alpha(TSubModel *Submodel)
@@ -739,6 +731,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 	World.shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
 	World.shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
 	Render_Alpha(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
+	World.shader.set_material(0.0f, glm::vec3(0.0f));
 }
 
 void
@@ -778,8 +771,6 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
 
                 // main draw call
                 m_geometry.draw( Submodel->m_geometry );
-
-				World.shader.set_material(0.0f, glm::vec3(0.0f));
             }
         }
 		
@@ -800,7 +791,8 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                 float const distancefactor = static_cast<float>( std::max( 0.5, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) );
 
                 if( lightlevel > 0.0f ) {
-					glUseProgram(0);
+					gl_program::unbind();
+
 					glEnableClientState(GL_VERTEX_ARRAY);
 					glLoadMatrixf(glm::value_ptr(mm));
 					glVertexPointer(3, GL_FLOAT, sizeof(basic_vertex), static_cast<char *>(nullptr)); // pozycje
@@ -821,13 +813,13 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                     ::glPopAttrib();
 					glDisableClientState(GL_VERTEX_ARRAY);
 
-					glUseProgram(World.shader);
+					gl_program::bind_last();
                 }
             }
 			
         }
         else if( Submodel->eType == TP_STARS ) {
-			//m7todo: reenable
+			//m7todo: restore
 			/*
             if( Global::fLuminance < Submodel->fLight ) {
 				glUseProgram(0);
@@ -1101,14 +1093,14 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
                 // crude way to light the cabin, until we have something more complete in place
                 auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+				World.shader.set_ambient(glm::make_vec3(&cablight.x));
             }
 
             Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( m_baseambient ) );
+				World.shader.set_ambient(glm::vec3(m_baseambient));
             }
         }
     }
@@ -1220,8 +1212,6 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
 
 				// main draw call
 				m_geometry.draw(Submodel->m_geometry);
-
-				World.shader.set_material(0.0f, glm::vec3(0.0f));
             }
         }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
@@ -1240,7 +1230,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                     glarelevel = std::max( 0.0f, glarelevel - static_cast<float>(Global::fLuminance) );
 
                     if( glarelevel > 0.0f ) {
-						glUseProgram(0);
+						gl_program::unbind();
+
+						glEnableClientState(GL_VERTEX_ARRAY);
+						glVertexPointer(3, GL_FLOAT, sizeof(basic_vertex), static_cast<char *>(nullptr)); // pozycje
                         // setup
                         ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
 
@@ -1264,10 +1257,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                         + CameraUp_worldspace * squareVertices.y * BillboardSize.y;
                         // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
-                        ::glEnd();
                         ::glPopAttrib();
+						glDisableClientState(GL_VERTEX_ARRAY);
 
-						glUseProgram(World.shader);
+						gl_program::bind_last();
                     }
                 }
             }

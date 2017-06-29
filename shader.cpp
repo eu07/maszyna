@@ -83,6 +83,34 @@ gl_program::gl_program(std::vector<gl_shader> shaders)
 	}
 }
 
+gl_program* gl_program::current_program = nullptr;
+gl_program* gl_program::last_program = nullptr;
+
+void gl_program::bind()
+{
+	if (current_program == this)
+		return;
+	last_program = current_program;
+	current_program = this;
+	glUseProgram(*current_program);
+}
+
+void gl_program::bind_last()
+{
+	current_program = last_program;
+	if (current_program != nullptr)
+		glUseProgram(*current_program);
+	else
+		glUseProgram(0);
+}
+
+void gl_program::unbind()
+{
+	last_program = current_program;
+	current_program = nullptr;
+	glUseProgram(0);
+}
+
 gl_program::operator GLuint()
 {
 	return id;
@@ -91,18 +119,21 @@ gl_program::operator GLuint()
 gl_program_mvp::gl_program_mvp(std::vector<gl_shader> v) : gl_program(v)
 {
 	mv_uniform = glGetUniformLocation(id, "modelview");
+	mvn_uniform = glGetUniformLocation(id, "modelviewnormal");
 	p_uniform = glGetUniformLocation(id, "projection");
 }
 
 void gl_program_mvp::copy_gl_mvp()
 {
-	glUniformMatrix4fv(mv_uniform, 1, GL_FALSE, glm::value_ptr(OpenGLMatrices.data(GL_MODELVIEW)));
-	glUniformMatrix4fv(p_uniform, 1, GL_FALSE, glm::value_ptr(OpenGLMatrices.data(GL_PROJECTION)));
+	set_mv(OpenGLMatrices.data(GL_MODELVIEW));
+	set_p(OpenGLMatrices.data(GL_PROJECTION));
 }
 
 void gl_program_mvp::set_mv(const glm::mat4 &m)
 {
+	glm::mat3 mvn = glm::mat3(glm::transpose(glm::inverse(m)));
 	glUniformMatrix4fv(mv_uniform, 1, GL_FALSE, glm::value_ptr(m));
+	glUniformMatrix3fv(mvn_uniform, 1, GL_FALSE, glm::value_ptr(mvn));
 }
 
 void gl_program_mvp::set_p(const glm::mat4 &m)
@@ -112,9 +143,13 @@ void gl_program_mvp::set_p(const glm::mat4 &m)
 
 gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 {
+	bind();
+
 	ambient_uniform = glGetUniformLocation(id, "ambient");
 	emission_uniform = glGetUniformLocation(id, "emission");
 	specular_uniform = glGetUniformLocation(id, "specular");
+	fog_color_uniform = glGetUniformLocation(id, "fog_color");
+	fog_density_uniform = glGetUniformLocation(id, "fog_density");
 	lcount_uniform = glGetUniformLocation(id, "lights_count");
 
 	for (size_t i = 0; i < MAX_LIGHTS; i++)
@@ -129,22 +164,25 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 		lights_uniform[i].quadratic = glGetUniformLocation(id, std::string("lights[" + std::to_string(i) + "].quadratic").c_str());
 	}
 
-	glUseProgram(id);
-	glUniform3f(ambient_uniform, 0.0f, 0.0f, 0.0f);
-	glUniform3f(emission_uniform, 0.0f, 0.0f, 0.0f);
-	glUniform1f(specular_uniform, 0.0f);
 	glUniform1ui(lcount_uniform, 0);
 }
 
 void gl_program_light::set_ambient(glm::vec3 &ambient)
 {
-	glUseProgram(id);
+	bind();
 	glUniform3fv(ambient_uniform, 1, glm::value_ptr(ambient));
+}
+
+void gl_program_light::set_fog(float density, glm::vec3 &color)
+{
+	bind();
+	glUniform1f(fog_density_uniform, density);
+	glUniform3fv(fog_color_uniform, 1, glm::value_ptr(color));
 }
 
 void gl_program_light::set_light_count(GLuint count)
 {
-	glUseProgram(id);
+	bind();
 	glUniform1ui(lcount_uniform, count);
 }
 
@@ -157,7 +195,7 @@ void gl_program_light::set_light(GLuint i, type t, glm::vec3 &pos, glm::vec3 &di
 	glm::vec3 trans_pos = mv * glm::vec4(pos.x, pos.y, pos.z, 1.0f);
 	glm::vec3 trans_dir = mv * glm::vec4(dir.x, dir.y, dir.z, 0.0f);
 
-	glUseProgram(id);
+	bind();
 	glUniform1ui(lights_uniform[i].type, (GLuint)t);
 	glUniform3fv(lights_uniform[i].pos, 1, glm::value_ptr(trans_pos));
 	glUniform3fv(lights_uniform[i].dir, 1, glm::value_ptr(trans_dir));
@@ -170,7 +208,7 @@ void gl_program_light::set_light(GLuint i, type t, glm::vec3 &pos, glm::vec3 &di
 
 void gl_program_light::set_material(float specular, glm::vec3 &emission)
 {
-	glUseProgram(id);
+	bind();
 	glUniform1f(specular_uniform, specular);
 	glUniform3fv(emission_uniform, 1, glm::value_ptr(emission));
 }

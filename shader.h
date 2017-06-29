@@ -23,12 +23,19 @@ public:
 	gl_program() = default;
 	gl_program(std::vector<gl_shader>);
 
+	static gl_program* current_program;
+	static gl_program* last_program;
+	void bind();
+	static void bind_last();
+	static void unbind();
+
 	operator GLuint();
 };
 
 class gl_program_mvp : public gl_program
 {
 	GLuint mv_uniform;
+	GLuint mvn_uniform;
 	GLuint p_uniform;
 
 public:
@@ -56,6 +63,7 @@ public:
 	gl_program_light(std::vector<gl_shader>);
 
 	void set_ambient(glm::vec3 &ambient);
+	void gl_program_light::set_fog(float density, glm::vec3 &color);
 	void set_material(float specular, glm::vec3 &emission);
 	void set_light_count(GLuint count);
 	void set_light(GLuint id, type t, glm::vec3 &pos, glm::vec3 &dir, float in_cutoff, float out_cutoff,
@@ -64,6 +72,8 @@ public:
 private:
 	GLuint ambient_uniform;
 	GLuint specular_uniform;
+	GLuint fog_color_uniform;
+	GLuint fog_density_uniform;
 	GLuint emission_uniform;
 	GLuint lcount_uniform;
 	struct light_s

@@ -1298,7 +1298,7 @@ TWorld::Render_Cab() {
         if( dynamic->InteriorLightLevel > 0.0f ) {
             // crude way to light the cabin, until we have something more complete in place
             auto const cablight = dynamic->InteriorLight * dynamic->InteriorLightLevel;
-            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+			shader.set_ambient(glm::make_vec3(&cablight.x));
         }
         // render
         GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
@@ -1311,7 +1311,7 @@ TWorld::Render_Cab() {
         if( dynamic->InteriorLightLevel > 0.0f ) {
             // reset the overall ambient
             GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
+			shader.set_ambient(glm::make_vec3(ambient));
         }
     }
     glPopMatrix();

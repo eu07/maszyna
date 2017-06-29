@@ -162,15 +162,15 @@ void CSkyDome::Render() {
     }
     // begin
 
-	glUseProgram(m_shader);
+	m_shader.bind();
 	glBindVertexArray(m_vao);
 
 	m_shader.copy_gl_mvp();
 
 	glDrawElements(GL_TRIANGLES, (GLsizei)m_indices.size(), GL_UNSIGNED_SHORT, 0);
 	glBindVertexArray(0);
-	glDebug("dis2");
-	glUseProgram(0);
+
+	m_shader.bind_last();
 }
 
 bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {

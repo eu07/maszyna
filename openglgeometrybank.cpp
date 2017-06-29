@@ -206,7 +206,7 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int con
 	if( m_activestreams != Streams ) {
         bind_streams( Streams );
     }
-glDebug("D97");
+
     // ...render...
     ::glDrawArrays( chunk.type, (GLint)chunkrecord.offset, (GLsizei)chunkrecord.size );
     // ...post-render cleanup
