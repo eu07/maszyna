@@ -539,11 +539,10 @@ TDynamicObject::toggle_lights() {
         SectionLightsActive = false;
     }
     else {
-        std::string compartmentname;
         // set lights with probability depending on the compartment type. TODO: expose this in .mmd file
         for( auto &sectionlight : SectionLightLevels ) {
 
-            compartmentname = sectionlight.compartment->pName;
+            std::string const &compartmentname = sectionlight.compartment->pName;
             if( ( compartmentname.find( "corridor" ) != std::string::npos )
              || ( compartmentname.find( "korytarz" ) != std::string::npos ) ) {
                 // corridors are lit 100% of time
@@ -584,8 +583,9 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                     pAnimations[i].yUpdate(pAnimations +
                                            i); // aktualizacja animacji (położenia submodeli
 */
-        if( ObjSqrDist < 2500 ) // gdy bliżej niż 50m
-        {
+        if( ( mdModel != nullptr )
+         && ( ObjSqrDist < 2500 ) ) {
+            // gdy bliżej niż 50m
             // ABu290105: rzucanie pudlem
             // te animacje wymagają bananów w modelach!
             mdModel->GetSMRoot()->SetTranslate(modelShake);
@@ -4033,12 +4033,17 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
     bool Stop_InternalData = false;
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
 	cParser parser( TypeName + ".mmd", cParser::buffer_FILE, BaseDir );
+    if( false == parser.ok() ) {
+        ErrorLog( "Failed to load appearance data for vehicle " + MoverParameters->Name );
+        return;
+    }
 	std::string token;
     do {
 		token = "";
 		parser.getTokens(); parser >> token;
 
-		if( token == "models:") {
+		if( ( token == "models:" )
+         || ( token == "ï»¿models:" ) ) { // crude way to handle utf8 bom potentially appearing before the first token
 			// modele i podmodele
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();
@@ -5024,13 +5029,12 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
     }
 
     if (mdModel)
-        mdModel->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie
-    // binarnego
+        mdModel->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie binarnego
     if (mdLoad)
         mdLoad->Init();
     if (mdLowPolyInt)
         mdLowPolyInt->Init();
-    // sHorn2.CopyIfEmpty(sHorn1); ///żeby jednak trąbił też drugim
+
     Global::asCurrentTexturePath = szTexturePath; // kiedyś uproszczone wnętrze mieszało tekstury nieba
 }
 

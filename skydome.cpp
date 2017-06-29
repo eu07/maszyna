@@ -86,8 +86,8 @@ void CSkyDome::Generate() {
 //            m_normals.emplace_back( float3( x * zr, -y * zr, -z ) );
 */
             // cartesian to opengl swap: -x, -z, -y
-            m_vertices.emplace_back( float3( -x * zr, -z - offset, -y * zr ) * radius );
-            m_colours.emplace_back( float3( 0.75f, 0.75f, 0.75f ) ); // placeholder
+            m_vertices.emplace_back( glm::vec3( -x * zr, -z - offset, -y * zr ) * radius );
+            m_colours.emplace_back( glm::vec3( 0.75f, 0.75f, 0.75f ) ); // placeholder
 
             if( (i == 0) || (j == 0) ) {
                 // initial edge of the dome, don't start indices yet
@@ -107,7 +107,7 @@ void CSkyDome::Generate() {
     }
 }
 
-void CSkyDome::Update( Math3D::vector3 const &Sun ) {
+void CSkyDome::Update( glm::vec3 const &Sun ) {
 
     if( true == SetSunPosition( Sun ) ) {
         // build colors if there's a change in sun position
@@ -150,15 +150,14 @@ void CSkyDome::Render() {
     ::glDisableClientState( GL_VERTEX_ARRAY );
 }
 
-bool CSkyDome::SetSunPosition( Math3D::vector3 const &Direction ) {
+bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {
 
-    auto sundirection = SafeNormalize( float3( Direction.x, Direction.y, Direction.z) );
-    if( sundirection == m_sundirection ) {
+    if( Direction == m_sundirection ) {
 
         return false;
     }
 
-    m_sundirection = sundirection;
+    m_sundirection = Direction;
 	m_thetasun = std::acosf( m_sundirection.y );
 	m_phisun = std::atan2( m_sundirection.z, m_sundirection.x );
 
@@ -244,18 +243,18 @@ void CSkyDome::RebuildColors() {
 	zenithluminance = PerezFunctionO1( perezluminance, m_thetasun, zenithluminance );
 
     // start with fresh average for the new pass
-    float3 averagecolor{ 0.0f, 0.0f, 0.0f };
+    glm::vec3 averagecolor { 0.0f, 0.0f, 0.0f };
 
 	// trough all vertices
-	float3 vertex;
-	float3 color, colorconverter, shiftedcolor;
+	glm::vec3 vertex;
+	glm::vec3 color, colorconverter, shiftedcolor;
 
 	for ( unsigned int i = 0; i < m_vertices.size(); ++i ) {
 		// grab it
-		vertex = SafeNormalize( m_vertices[ i ] );
+		vertex = glm::normalize( m_vertices[ i ] );
 
 		// angle between sun and vertex
-		const float gamma = std::acos( DotProduct( vertex, m_sundirection ) );
+		const float gamma = std::acos( glm::dot( vertex, m_sundirection ) );
 
 		// warning : major hack!!! .. i had to do something with values under horizon
 		//vertex.y = Clamp<float>( vertex.y, 0.05f, 1.0f );
@@ -283,7 +282,7 @@ void CSkyDome::RebuildColors() {
 		float const X = (x / y) * Y;  
 		float const Z = ((1.0f - x - y) / y) * Y;
 		
-		colorconverter = float3( X, Y, Z );
+		colorconverter = glm::vec3( X, Y, Z );
 		color = XYZtoRGB( colorconverter );
 
 		colorconverter = RGBtoHSV(color);
@@ -292,7 +291,7 @@ void CSkyDome::RebuildColors() {
 			colorconverter.z *= m_expfactor;
 		} else {
             // exp scale
-			colorconverter.z = 1.0f - exp( -m_expfactor * colorconverter.z );  
+			colorconverter.z = 1.0f - std::exp( -m_expfactor * colorconverter.z );  
 		}
 
         // desaturate sky colour, based on overcast level
@@ -309,12 +308,12 @@ void CSkyDome::RebuildColors() {
         // this height-based factor is reduced the farther the sky is up in the sky
         float const shiftfactor = clamp( interpolate(heightbasedphase, sunbasedphase, sunbasedphase), 0.0f, 1.0f );
         // h = 210 makes for 'typical' sky tone
-        shiftedcolor = float3( 210.0f, colorconverter.y, colorconverter.z );
+        shiftedcolor = glm::vec3( 210.0f, colorconverter.y, colorconverter.z );
         shiftedcolor = HSVtoRGB( shiftedcolor );
 
 		color = HSVtoRGB(colorconverter);
 
-        color = Interpolate( color, shiftedcolor, shiftfactor );
+        color = interpolate( color, shiftedcolor, shiftfactor );
 /*
 		// gamma control
 		color.x = std::pow( color.x, m_gammacorrection );
@@ -338,10 +337,10 @@ void CSkyDome::RebuildColors() {
 	}
     // NOTE: average reduced to 25% makes nice tint value for clouds lit from behind
     // down the road we could interpolate between it and full strength average, to improve accuracy of cloud appearance
-    m_averagecolour = averagecolor / m_indices.size();
-    m_averagecolour.x = std::max( m_averagecolour.x, 0.0f );
-    m_averagecolour.y = std::max( m_averagecolour.y, 0.0f );
-    m_averagecolour.z = std::max( m_averagecolour.z, 0.0f );
+    m_averagecolour = averagecolor / static_cast<float>( m_indices.size() );
+    m_averagecolour.r = std::max( m_averagecolour.r, 0.0f );
+    m_averagecolour.g = std::max( m_averagecolour.g, 0.0f );
+    m_averagecolour.b = std::max( m_averagecolour.b, 0.0f );
 
     if( m_coloursbuffer != -1 ) {
         // the colour buffer was already initialized, so on this run we update its content

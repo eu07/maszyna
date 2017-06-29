@@ -1937,7 +1937,7 @@ bool TGround::Init(std::string File)
                 >> Global::DayLight.direction.x
                 >> Global::DayLight.direction.y
                 >> Global::DayLight.direction.z;;
-            Global::DayLight.direction.Normalize();
+            Global::DayLight.direction = glm::normalize( Global::DayLight.direction );
             parser.getTokens(9, false);
 
             do {

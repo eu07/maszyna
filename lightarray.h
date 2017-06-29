@@ -20,7 +20,7 @@ public:
         TDynamicObject const *owner; // the object in world which 'carries' the light
         int index{ -1 }; // 0: front lights, 1: rear lights
         Math3D::vector3 position; // position of the light in 3d scene
-        Math3D::vector3 direction; // direction of the light in 3d scene
+        glm::vec3 direction; // direction of the light in 3d scene
         float3 color{ 255.0f / 255.0f, 241.0f / 255.0f, 224.0f / 255.0f }; // color of the light, default is halogen light
         float intensity{ 0.0f }; // (combined) intensity of the light(s)
         int count{ 0 }; // number (or pattern) of active light(s)

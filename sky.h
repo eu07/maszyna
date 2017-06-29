@@ -11,7 +11,6 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Model3d.h"
-#include "Float3d.h"
 
 class TSky
 {
@@ -22,7 +21,7 @@ class TSky
     TSky();
     ~TSky();
     void Init();
-    void Render( float3 const &Tint = float3(1.0f, 1.0f, 1.0f) );
+    void Render( glm::vec3 const &Tint = glm::vec3(1.0f, 1.0f, 1.0f) );
 };
 
 //---------------------------------------------------------------------------
