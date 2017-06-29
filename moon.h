@@ -3,7 +3,6 @@
 #include "windows.h"
 #include "GL/glew.h"
 #include "GL/wglew.h"
-#include "dumb3d.h"
 
 
 // TODO: sun and moon share code as celestial bodies, we could make a base class out of it
@@ -18,9 +17,9 @@ public:
     void update();
 	void render();
     // returns location of the sun in the 3d scene
-    Math3D::vector3 getPosition() { return m_position; }
+    glm::vec3 getPosition() { return m_position; }
 	// returns vector pointing at the sun
-	Math3D::vector3 getDirection();
+	glm::vec3 getDirection();
 	// returns current elevation above horizon
 	float getAngle() const;
 	// returns current intensity of the sun
@@ -101,6 +100,6 @@ protected:
 
     celestialbody m_body;
     observer m_observer;
-    Math3D::vector3 m_position;
+    glm::vec3 m_position;
     float m_phase;
 };

@@ -3,28 +3,28 @@
 #include "float3d.h"
 
 inline
-float3
-XYZtoRGB( float3 const &XYZ ) {
+glm::vec3
+XYZtoRGB( glm::vec3 const &XYZ ) {
 
     // M^-1 for Adobe RGB from http://www.brucelindbloom.com/Eqn_RGB_XYZ_Matrix.html
     float const mi[ 3 ][ 3 ] = { 2.041369f, -0.969266f, 0.0134474f, -0.5649464f, 1.8760108f, -0.1183897f, -0.3446944f, 0.041556f, 1.0154096f };
     // m^-1 for sRGB:
 //    float const mi[ 3 ][ 3 ] = { 3.240479f, -0.969256f, 0.055648f, -1.53715f, 1.875991f, -0.204043f, -0.49853f, 0.041556f, 1.057311f };
 
-    return float3{
+    return glm::vec3{
         XYZ.x*mi[ 0 ][ 0 ] + XYZ.y*mi[ 1 ][ 0 ] + XYZ.z*mi[ 2 ][ 0 ],
         XYZ.x*mi[ 0 ][ 1 ] + XYZ.y*mi[ 1 ][ 1 ] + XYZ.z*mi[ 2 ][ 1 ],
         XYZ.x*mi[ 0 ][ 2 ] + XYZ.y*mi[ 1 ][ 2 ] + XYZ.z*mi[ 2 ][ 2 ] };
 }
 
 inline
-float3
-RGBtoHSV( float3 const &RGB ) {
+glm::vec3
+RGBtoHSV( glm::vec3 const &RGB ) {
 
-    float3 hsv;
+    glm::vec3 hsv;
 
-    float const max = std::max( std::max( RGB.x, RGB.y ), RGB.z );
-    float const min = std::min( std::min( RGB.x, RGB.y ), RGB.z );
+    float const max = std::max( std::max( RGB.r, RGB.g ), RGB.b );
+    float const min = std::min( std::min( RGB.r, RGB.g ), RGB.b );
     float const delta = max - min;
 
     hsv.z = max;                                // v
@@ -43,13 +43,13 @@ RGBtoHSV( float3 const &RGB ) {
         hsv.x = NAN;                            // its now undefined
         return hsv;
     }
-    if( RGB.x >= max )                           // > is bogus, just keeps compilor happy
-        hsv.x = ( RGB.y - RGB.z ) / delta;        // between yellow & magenta
+    if( RGB.r >= max )                           // > is bogus, just keeps compilor happy
+        hsv.x = ( RGB.g - RGB.b ) / delta;        // between yellow & magenta
     else
-        if( RGB.y >= max )
-            hsv.x = 2.0 + ( RGB.y - RGB.x ) / delta;  // between cyan & yellow
+        if( RGB.g >= max )
+            hsv.x = 2.0 + ( RGB.g - RGB.r ) / delta;  // between cyan & yellow
         else
-            hsv.x = 4.0 + ( RGB.x - RGB.y ) / delta;  // between magenta & cyan
+            hsv.x = 4.0 + ( RGB.r - RGB.g ) / delta;  // between magenta & cyan
 
     hsv.x *= 60.0;                              // degrees
 
@@ -60,15 +60,15 @@ RGBtoHSV( float3 const &RGB ) {
 }
 
 inline
-float3
-HSVtoRGB( float3 const &HSV ) {
+glm::vec3
+HSVtoRGB( glm::vec3 const &HSV ) {
 
-    float3 rgb;
+    glm::vec3 rgb;
 
     if( HSV.y <= 0.0 ) {       // < is bogus, just shuts up warnings
-        rgb.x = HSV.z;
-        rgb.y = HSV.z;
-        rgb.z = HSV.z;
+        rgb.r = HSV.z;
+        rgb.g = HSV.z;
+        rgb.b = HSV.z;
         return rgb;
     }
     float hh = HSV.x;
@@ -82,36 +82,36 @@ HSVtoRGB( float3 const &HSV ) {
 
     switch( i ) {
         case 0:
-            rgb.x = HSV.z;
-            rgb.y = t;
-            rgb.z = p;
+            rgb.r = HSV.z;
+            rgb.g = t;
+            rgb.b = p;
             break;
         case 1:
-            rgb.x = q;
-            rgb.y = HSV.z;
-            rgb.z = p;
+            rgb.r = q;
+            rgb.g = HSV.z;
+            rgb.b = p;
             break;
         case 2:
-            rgb.x = p;
-            rgb.y = HSV.z;
-            rgb.z = t;
+            rgb.r = p;
+            rgb.g = HSV.z;
+            rgb.b = t;
             break;
 
         case 3:
-            rgb.x = p;
-            rgb.y = q;
-            rgb.z = HSV.z;
+            rgb.r = p;
+            rgb.g = q;
+            rgb.b = HSV.z;
             break;
         case 4:
-            rgb.x = t;
-            rgb.y = p;
-            rgb.z = HSV.z;
+            rgb.r = t;
+            rgb.g = p;
+            rgb.b = HSV.z;
             break;
         case 5:
         default:
-            rgb.x = HSV.z;
-            rgb.y = p;
-            rgb.z = q;
+            rgb.r = HSV.z;
+            rgb.g = p;
+            rgb.b = q;
             break;
     }
     return rgb;

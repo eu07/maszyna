@@ -82,13 +82,10 @@ GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
-float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
 opengl_light Global::DayLight;
-int Global::DynamicLightCount{ 3 };
-GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
-GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
-GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //śladowe
-GLfloat Global::lightPos[4];
+int Global::DynamicLightCount { 3 };
+bool Global::ScaleSpecularValues { true };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
 int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę toru
@@ -224,13 +221,6 @@ std::string Global::GetNextSymbol()
 
 void Global::LoadIniFile(std::string asFileName)
 {
-/*
-    for (int i = 0; i < 10; ++i)
-    { // zerowanie pozycji kamer
-        pFreeCameraInit[i] = vector3(0, 0, 0); // współrzędne w scenerii
-        pFreeCameraInitAngle[i] = vector3(0, 0, 0); // kąty obrotu w radianach
-    }
-*/
     FreeCameraInit.resize( 10 );
     FreeCameraInitAngle.resize( 10 );
     cParser parser(asFileName, cParser::buffer_FILE);
@@ -542,6 +532,11 @@ void Global::ConfigParse(cParser &Parser)
             // clamp the light number
             // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
             Global::DynamicLightCount = clamp( Global::DynamicLightCount, 1, 7 ); 
+        }
+        else if( token == "scalespeculars" ) {
+            // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
+            Parser.getTokens();
+            Parser >> Global::ScaleSpecularValues;
         }
         else if (token == "smoothtraction")
         {

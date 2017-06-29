@@ -33,9 +33,9 @@ void
 cSun::update() {
 
     move();
-    Math3D::vector3 position( 0.0f, 0.0f, -2000.0f * Global::fDistanceFactor );
-    position.RotateX( (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
-    position.RotateY( (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
+    glm::vec3 position( 0.0f, 0.0f, -2000.0f * Global::fDistanceFactor );
+    position = glm::rotateX( position, (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
+    position = glm::rotateY( position, (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
 
     m_position = position;
 }
@@ -63,14 +63,10 @@ cSun::render() {
 	glPopMatrix();
 }
 
-Math3D::vector3
+glm::vec3
 cSun::getDirection() {
 
-	Math3D::vector3 position( 0.f, 0.f, -1.f );
-	position.RotateX( (float)(  m_body.elevref * (M_PI/180.0)) );
-	position.RotateY( (float)( -m_body.hrang *   (M_PI/180.0)) );
-	position.Normalize();
-	return position;
+	return glm::normalize( m_position );
 }
 
 float

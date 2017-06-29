@@ -47,12 +47,12 @@ light_array::update() {
         if( light.index == 0 ) {
             // front light set
             light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
-            light.direction = light.owner->VectorFront();
+            light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
         }
         else {
             // rear light set
             light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
-            light.direction = light.owner->VectorFront();
+            light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
             light.direction.x = -light.direction.x;
             light.direction.z = -light.direction.z;
         }
