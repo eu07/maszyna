@@ -31,5 +31,8 @@ artifacts:
   name: release_win32
 - path: builds/build_win64/Release/eu07++ng.exe
   name: release_win64
+- path: shaders
+  name: shaders
+  type: zip
 cache:
     - builds/deps_win -> builds/download_windeps.bat
