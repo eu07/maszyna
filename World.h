@@ -143,8 +143,6 @@ private:
     void CabChange(TDynamicObject *old, TDynamicObject *now);
     // handles vehicle change flag
     void ChangeDynamic();
-
-	gl_program_light shader; //m7todo: tmp
 };
 
 //---------------------------------------------------------------------------

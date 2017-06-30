@@ -60,6 +60,8 @@ private:
 class opengl_renderer {
 
 public:
+	gl_program_light shader;
+
 // types
 
 // destructor

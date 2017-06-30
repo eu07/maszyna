@@ -102,7 +102,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     Global::daylight.color.y = 242.0f / 255.0f;
     Global::daylight.color.z = 231.0f / 255.0f;
 
-	World.shader = gl_program_light({ gl_shader("lighting.vert"), gl_shader("blinnphong.frag") });
+	shader = gl_program_light({ gl_shader("lighting.vert"), gl_shader("blinnphong.frag") });
 	Global::daylight.intensity = 1.0f; //m7todo: przenieść
 
 
@@ -161,7 +161,7 @@ opengl_renderer::Render() {
 		glDisable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Environment );
 		glDebug("rendering world");
-		World.shader.bind();
+		shader.bind();
 		glEnable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Ground );
 
@@ -174,7 +174,7 @@ opengl_renderer::Render() {
     }
 
 	glDebug("rendering ui");
-	World.shader.unbind();
+	shader.unbind();
 	glEnable(GL_FRAMEBUFFER_SRGB);
     UILayer.render();
 	glDebug("rendering end");
@@ -200,10 +200,9 @@ opengl_renderer::Render( world_environment *Environment ) {
     // setup fog
     if( Global::fFogEnd > 0 ) {
         // fog setup
-		//m7todo: set fog amount based on scenery settings
-		World.shader.set_fog(0.0005f, glm::make_vec3(Global::FogColor));
+		shader.set_fog(1.0f / Global::fFogEnd, glm::make_vec3(Global::FogColor));
     }
-    else { World.shader.set_fog(0.0f, glm::make_vec3(Global::FogColor)); }
+    else { shader.set_fog(0.0f, glm::make_vec3(Global::FogColor)); }
 
     Environment->m_skydome.Render();
     // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
@@ -365,7 +364,7 @@ opengl_renderer::Texture( texture_handle const Texture ) {
 bool
 opengl_renderer::Render( TGround *Ground ) {
 
-	World.shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
+	shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
 
     ::glEnable( GL_LIGHTING );
     ::glDisable( GL_BLEND );
@@ -526,7 +525,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
     }
 
 	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-	World.shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+	shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
 
     switch (Node->iType) {
 
@@ -579,12 +578,15 @@ opengl_renderer::Render( TGroundNode *Node ) {
                 return false;
             }
             // setup
-            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
+			//m7todo: set diffuse color
+			shader.set_material(Node->Specular.x * m_specularopaquescalefactor, glm::vec3(0.0f));
 
             Bind( Node->TextureID );
 
             // render
             m_geometry.draw( Node->Piece->geometry );
+
+			shader.set_material(0.0f, glm::vec3(0.0f));
 
             return true;
         }
@@ -633,14 +635,14 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
                 // crude way to light the cabin, until we have something more complete in place
                 auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-				World.shader.set_ambient(glm::make_vec3(&cablight.x));
+				shader.set_ambient(glm::make_vec3(&cablight.x));
             }
 
             Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-				World.shader.set_ambient(glm::vec3(m_baseambient));
+				shader.set_ambient(glm::vec3(m_baseambient));
             }
         }
     }
@@ -720,18 +722,18 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
 
 void opengl_renderer::Render(TSubModel *Submodel)
 {
-	World.shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
-	World.shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
+	shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
+	shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
 	Render(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
-	World.shader.set_material(0.0f, glm::vec3(0.0f));
+	shader.set_material(0.0f, glm::vec3(0.0f));
 }
 
 void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 {
-	World.shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
-	World.shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
+	shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
+	shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
 	Render_Alpha(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
-	World.shader.set_material(0.0f, glm::vec3(0.0f));
+	shader.set_material(0.0f, glm::vec3(0.0f));
 }
 
 void
@@ -748,7 +750,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
 				mm *= glm::make_mat4(Submodel->fMatrix->e);
 			if (Submodel->b_Anim)
 				Submodel->RaAnimation(mm, Submodel->b_Anim);
-			World.shader.set_mv(mm);
+			shader.set_mv(mm);
 		}
 
         if( Submodel->eType < TP_ROTATOR ) {
@@ -766,7 +768,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                     Bind( Submodel->TextureID );
                 }
 
-				World.shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
+				shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
 					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f));
 
                 // main draw call
@@ -846,7 +848,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                 Render( Submodel->Child, mm );
 
         if( Submodel->iFlags & 0xC000 )
-			World.shader.set_mv(m);
+			shader.set_mv(m);
     }
 	
     if( Submodel->b_Anim < at_SecondsJump )
@@ -958,7 +960,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
     }
 
 	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-	World.shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+	shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
 
     switch (Node->iType)
     {
@@ -1047,12 +1049,15 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 return false;
             }
             // setup
-            ::glColor3fv( glm::value_ptr( Node->Diffuse ) );
+			//m7todo: set diffuse color
+			shader.set_material(Node->Specular.x * m_speculartranslucentscalefactor, glm::vec3(0.0f));
 
             Bind( Node->TextureID );
 
             // render
             m_geometry.draw( Node->Piece->geometry );
+
+			shader.set_material(0.0f, glm::vec3(0.0f));
 
             return true;
         }
@@ -1093,14 +1098,14 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
                 // crude way to light the cabin, until we have something more complete in place
                 auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-				World.shader.set_ambient(glm::make_vec3(&cablight.x));
+				shader.set_ambient(glm::make_vec3(&cablight.x));
             }
 
             Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-				World.shader.set_ambient(glm::vec3(m_baseambient));
+				shader.set_ambient(glm::vec3(m_baseambient));
             }
         }
     }
@@ -1191,7 +1196,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
 				mm *= glm::make_mat4(Submodel->fMatrix->e);
 			if (Submodel->b_Anim)
 				Submodel->RaAnimation(mm, Submodel->b_Anim);
-			World.shader.set_mv(mm);
+			shader.set_mv(mm);
 		}
 
         if( Submodel->eType < TP_ROTATOR ) {
@@ -1207,7 +1212,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                     Bind( Submodel->TextureID );
                 }
 
-				World.shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
+				shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
 					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f));
 
 				// main draw call
@@ -1271,7 +1276,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                 Render_Alpha( Submodel->Child, mm );
 
         if( Submodel->iFlags & 0xC000 )
-			World.shader.set_mv(m);
+			shader.set_mv(m);
     }
 
     if( Submodel->b_aAnim < at_SecondsJump )
@@ -1390,21 +1395,21 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
 		                scenelight.color.y,
 		                scenelight.color.z);
 
-		World.shader.set_light((GLuint)renderlight + 1, gl_program_light::SPOT, position, direction, 0.906f, 0.866f, color, 0.007f, 0.0002f);
+		shader.set_light((GLuint)renderlight + 1, gl_program_light::SPOT, position, direction, 0.906f, 0.866f, color, 0.007f, 0.0002f);
 
         ++renderlight;
     }
 
-	World.shader.set_ambient(Global::daylight.ambient);
-	World.shader.set_light(0, gl_program_light::DIR, glm::vec3(0.0f), Global::daylight.direction,
+	shader.set_ambient(Global::daylight.ambient);
+	shader.set_light(0, gl_program_light::DIR, glm::vec3(0.0f), Global::daylight.direction,
 		0.0f, 0.0f, Global::daylight.color, 0.0f, 0.0f);
-	World.shader.set_light_count((GLuint)renderlight + 1);
+	shader.set_light_count((GLuint)renderlight + 1);
 }
 
 void
 opengl_renderer::Disable_Lights() {
 
-	World.shader.set_light_count(0);
+	shader.set_light_count(0);
 }
 
 bool
