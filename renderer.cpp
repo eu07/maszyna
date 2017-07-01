@@ -360,7 +360,7 @@ opengl_renderer::Bind( texture_handle const Texture ) {
     m_textures.bind( Texture );
 }
 
-opengl_texture &
+opengl_texture const &
 opengl_renderer::Texture( texture_handle const Texture ) {
 
     return m_textures.texture( Texture );
@@ -758,9 +758,15 @@ opengl_renderer::Render( TSubModel *Submodel ) {
             // renderowanie obiektów OpenGL
             if( Submodel->iAlpha & Submodel->iFlags & 0x1F ) // rysuj gdy element nieprzezroczysty
             {
-                if( true == Submodel->m_normalizenormals ) {
-                    ::glEnable( GL_NORMALIZE );
+                switch( Submodel->m_normalizenormals ) {
+                    case TSubModel::normalize: {
+                        ::glEnable( GL_NORMALIZE ); break; }
+                    case TSubModel::rescale: {
+                        ::glEnable( GL_RESCALE_NORMAL ); break; }
+                    default: {
+                        break; }
                 }
+
                 // material configuration:
                 // textures...
                 if( Submodel->TextureID < 0 )
@@ -794,8 +800,13 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                     // restore default (lack of) brightness
                     ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
                 }
-                if( true == Submodel->m_normalizenormals ) {
-                    ::glDisable( GL_NORMALIZE );
+                switch( Submodel->m_normalizenormals ) {
+                    case TSubModel::normalize: {
+                        ::glDisable( GL_NORMALIZE ); break; }
+                    case TSubModel::rescale: {
+                        ::glDisable( GL_RESCALE_NORMAL ); break; }
+                    default: {
+                        break; }
                 }
             }
         }
@@ -1217,8 +1228,13 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
             // renderowanie obiektów OpenGL
             if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) // rysuj gdy element przezroczysty
             {
-                if( true == Submodel->m_normalizenormals ) {
-                    ::glEnable( GL_NORMALIZE );
+                switch( Submodel->m_normalizenormals ) {
+                    case TSubModel::normalize: {
+                        ::glEnable( GL_NORMALIZE ); break; }
+                    case TSubModel::rescale: {
+                        ::glEnable( GL_RESCALE_NORMAL ); break; }
+                    default: {
+                        break; }
                 }
                 // textures...
                 if( Submodel->TextureID < 0 ) { // zmienialne skóry
@@ -1250,8 +1266,13 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     // restore default (lack of) brightness
                     ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
                 }
-                if( true == Submodel->m_normalizenormals ) {
-                    ::glDisable( GL_NORMALIZE );
+                switch( Submodel->m_normalizenormals ) {
+                    case TSubModel::normalize: {
+                        ::glDisable( GL_NORMALIZE ); break; }
+                    case TSubModel::rescale: {
+                        ::glDisable( GL_RESCALE_NORMAL ); break; }
+                    default: {
+                        break; }
                 }
             }
         }

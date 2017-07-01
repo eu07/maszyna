@@ -158,7 +158,7 @@ public:
         GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
     void
         Bind( texture_handle const Texture );
-    opengl_texture &
+    opengl_texture const &
         Texture( texture_handle const Texture );
 
 // members
