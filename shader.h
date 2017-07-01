@@ -35,7 +35,7 @@ public:
 class gl_program_mvp : public gl_program
 {
 	GLuint mv_uniform;
-	GLuint mvn_uniform;
+	GLint mvn_uniform;
 	GLuint p_uniform;
 
 public:
@@ -62,6 +62,7 @@ public:
 	gl_program_light() = default;
 	gl_program_light(std::vector<gl_shader>);
 
+	void set_lightview(glm::mat4 &lightview);
 	void set_ambient(glm::vec3 &ambient);
 	void gl_program_light::set_fog(float density, glm::vec3 &color);
 	void set_material(float specular, glm::vec3 &emission);
@@ -70,6 +71,7 @@ public:
 		glm::vec3 &color, float linear, float quadratic);
 
 private:
+	GLuint lightview_uniform;
 	GLuint ambient_uniform;
 	GLuint specular_uniform;
 	GLuint fog_color_uniform;

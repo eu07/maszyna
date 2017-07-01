@@ -61,6 +61,9 @@ class opengl_renderer {
 
 public:
 	gl_program_light shader;
+	gl_program_mvp depth_shader;
+	gl_program_mvp *active_shader = nullptr;
+	GLuint depth_tex, depth_fbo;
 
 // types
 

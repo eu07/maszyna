@@ -815,7 +815,7 @@ texture_manager::bind( texture_handle const Texture ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
         ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
-        m_activetexture = texture(Texture).id;
+		m_activetexture = Texture;
 #else
         if( texture( Texture ).bind() == resource_state::good ) {
             m_activetexture = Texture;

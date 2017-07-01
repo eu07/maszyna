@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "usefull.h"
 #include "World.h"
 
+#include <glm/gtx/string_cast.hpp>
+
 opengl_renderer GfxRenderer;
 extern TWorld World;
 
@@ -101,10 +103,29 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     Global::daylight.color.x = 255.0f / 255.0f;
     Global::daylight.color.y = 242.0f / 255.0f;
     Global::daylight.color.z = 231.0f / 255.0f;
-
-	shader = gl_program_light({ gl_shader("lighting.vert"), gl_shader("blinnphong.frag") });
 	Global::daylight.intensity = 1.0f; //m7todo: przenieść
 
+	shader = gl_program_light({ gl_shader("lighting.vert"), gl_shader("blinnphong.frag") });
+	depth_shader = gl_program_mvp({ gl_shader("shadowmap.vert"), gl_shader("empty.frag") });
+	active_shader = &shader;
+
+	glGenFramebuffers(1, &depth_fbo);
+	glGenTextures(1, &depth_tex);
+	glBindTexture(GL_TEXTURE_2D, depth_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+		1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, depth_tex);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_tex, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
     // preload some common textures
     WriteLog( "Loading common gfx data..." );
@@ -139,30 +160,68 @@ opengl_renderer::Render() {
     ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     ::glDepthFunc( GL_LEQUAL );
 
-    ::glMatrixMode( GL_PROJECTION ); // select the Projection Matrix
-    ::gluPerspective(
-        Global::FieldOfView / Global::ZoomFactor,
+    ::glMatrixMode( GL_PROJECTION );
+    glm::mat4 perspective = glm::perspective(
+        glm::radians(Global::FieldOfView / Global::ZoomFactor),
         std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ),
         0.1f * Global::ZoomFactor,
         m_drawrange * Global::fDistanceFactor );
+	glLoadMatrixf(glm::value_ptr(perspective));
 
-    ::glMatrixMode( GL_MODELVIEW ); // Select The Modelview Matrix
+    ::glMatrixMode( GL_MODELVIEW );
     ::glLoadIdentity();
 
     if( World.InitPerformed() ) {
+        glDebug("rendering shadow map");
+        glDisable(GL_FRAMEBUFFER_SRGB);
+        glViewport(0, 0, 1024, 1024);
+
+        glm::mat4 depthproj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
+		glm::vec3 playerpos = glm::vec3(World.Camera.Pos.x, World.Camera.Pos.y, World.Camera.Pos.z);
+		glm::vec3 shadoweye = playerpos - Global::daylight.direction * 50.0f;
+		Global::SetCameraPosition(Math3D::vector3(shadoweye));
+        glm::mat4 depthcam = glm::lookAt(shadoweye,
+				playerpos,
+                glm::vec3(0.0f, 1.0f, 0.0f));
+        m_camera.update_frustum(depthproj, depthcam);
+        glMatrixMode(GL_PROJECTION);
+        glLoadMatrixf(glm::value_ptr(depthproj));
+        glMatrixMode(GL_MODELVIEW);
+        glMultMatrixf(glm::value_ptr(glm::mat4(glm::mat3(depthcam))));
+
+        glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        active_shader = &depth_shader; depth_shader.bind();
+        Render(&World.Ground);
+        active_shader = nullptr; depth_shader.unbind();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glViewport(0, 0, Global::ScreenWidth, Global::ScreenHeight);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glMatrixMode(GL_PROJECTION);
+        glLoadMatrixf(glm::value_ptr(perspective));
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, depth_tex);
+		glActiveTexture(GL_TEXTURE0);
 
         glm::dmat4 worldcamera;
         World.Camera.SetMatrix( worldcamera );
-        m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera );
-        // frustum tests are performed in 'world space' but after we set up frustum
-        // we no longer need camera translation, only rotation
-        ::glMultMatrixd( glm::value_ptr( glm::dmat4( glm::dmat3( worldcamera ))));
+        m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera);
+		::glMultMatrixd(glm::value_ptr(glm::dmat4(glm::dmat3(worldcamera))));
 		glDebug("rendering environment");
 		glDisable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Environment );
 		glDebug("rendering world");
-		shader.bind();
 		glEnable(GL_FRAMEBUFFER_SRGB);
+		shader.bind(); active_shader = &shader;
+
+		glm::vec3 transdiff = Global::daylight.direction * 50.0f;
+		glm::mat3 rotdiff = glm::inverse(glm::mat3(depthcam)) * glm::mat3(worldcamera);
+		glm::mat4 lv = depthproj * glm::translate(glm::mat4(rotdiff), transdiff);
+
+		shader.set_lightview(lv);
         Render( &World.Ground );
 
 		glDebug("rendering cab");
@@ -174,7 +233,7 @@ opengl_renderer::Render() {
     }
 
 	glDebug("rendering ui");
-	shader.unbind();
+	gl_program::unbind(); active_shader = nullptr;
 	glEnable(GL_FRAMEBUFFER_SRGB);
     UILayer.render();
 	glDebug("rendering end");
@@ -364,7 +423,7 @@ opengl_renderer::Texture( texture_handle const Texture ) {
 bool
 opengl_renderer::Render( TGround *Ground ) {
 
-	shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
+	active_shader->set_p(OpenGLMatrices.data(GL_PROJECTION));
 
     ::glEnable( GL_LIGHTING );
     ::glDisable( GL_BLEND );
@@ -525,7 +584,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
     }
 
 	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-	shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+	active_shader->set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
 
     switch (Node->iType) {
 
@@ -722,16 +781,14 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, Math3D:
 
 void opengl_renderer::Render(TSubModel *Submodel)
 {
-	shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
-	shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
+	active_shader->copy_gl_mvp();
 	Render(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
 	shader.set_material(0.0f, glm::vec3(0.0f));
 }
 
 void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 {
-	shader.set_mv(OpenGLMatrices.data(GL_MODELVIEW));
-	shader.set_p(OpenGLMatrices.data(GL_PROJECTION));
+	active_shader->copy_gl_mvp();;
 	Render_Alpha(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
 	shader.set_material(0.0f, glm::vec3(0.0f));
 }
@@ -750,7 +807,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
 				mm *= glm::make_mat4(Submodel->fMatrix->e);
 			if (Submodel->b_Anim)
 				Submodel->RaAnimation(mm, Submodel->b_Anim);
-			shader.set_mv(mm);
+			active_shader->set_mv(mm);
 		}
 
         if( Submodel->eType < TP_ROTATOR ) {
@@ -796,6 +853,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
 					gl_program::unbind();
 
 					glEnableClientState(GL_VERTEX_ARRAY);
+					glPushMatrix();
 					glLoadMatrixf(glm::value_ptr(mm));
 					glVertexPointer(3, GL_FLOAT, sizeof(basic_vertex), static_cast<char *>(nullptr)); // pozycje
 
@@ -814,6 +872,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                     // post-draw reset
                     ::glPopAttrib();
 					glDisableClientState(GL_VERTEX_ARRAY);
+					glPopMatrix();
 
 					gl_program::bind_last();
                 }
@@ -848,7 +907,7 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                 Render( Submodel->Child, mm );
 
         if( Submodel->iFlags & 0xC000 )
-			shader.set_mv(m);
+			active_shader->set_mv(m);
     }
 	
     if( Submodel->b_Anim < at_SecondsJump )
@@ -960,7 +1019,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
     }
 
 	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
-	shader.set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+	active_shader->set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
 
     switch (Node->iType)
     {
@@ -1196,7 +1255,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
 				mm *= glm::make_mat4(Submodel->fMatrix->e);
 			if (Submodel->b_Anim)
 				Submodel->RaAnimation(mm, Submodel->b_Anim);
-			shader.set_mv(mm);
+			active_shader->set_mv(mm);
 		}
 
         if( Submodel->eType < TP_ROTATOR ) {
@@ -1250,6 +1309,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
 						glm::mat4 x = glm::mat4(1.0f);
 						x = glm::translate(x, glm::vec3(lightcenter.x, lightcenter.y, lightcenter.z)); // początek układu zostaje bez zmian
 						x = glm::rotate(x, atan2(lightcenter.x, lightcenter.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
+						glPushMatrix();
 						glLoadMatrixf(glm::value_ptr(x));
 
                         // main draw call
@@ -1262,6 +1322,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                         + CameraUp_worldspace * squareVertices.y * BillboardSize.y;
                         // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
+						glPopMatrix();
                         ::glPopAttrib();
 						glDisableClientState(GL_VERTEX_ARRAY);
 
@@ -1276,7 +1337,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                 Render_Alpha( Submodel->Child, mm );
 
         if( Submodel->iFlags & 0xC000 )
-			shader.set_mv(m);
+			active_shader->set_mv(m);
     }
 
     if( Submodel->b_aAnim < at_SecondsJump )

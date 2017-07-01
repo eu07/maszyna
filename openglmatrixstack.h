@@ -51,6 +51,10 @@ public:
         translate( glm::vec3 const &Translation ) {
             m_stack.top() = glm::translate( m_stack.top(), Translation );
             upload(); }
+	void
+		load(glm::mat4 const &Matrix) {
+		m_stack.top() = Matrix;
+		upload(); }
     void
         multiply( glm::mat4 const &Matrix ) {
             m_stack.top() *= Matrix;
@@ -131,6 +135,11 @@ public:
         multiply( Type_ const *Matrix ) {
             m_stacks[ m_mode ].multiply(
                 glm::make_mat4( Matrix ) ); }
+	template <typename Type_>
+	void
+		load(Type_ const *Matrix) {
+		m_stacks[m_mode].load(
+			glm::make_mat4(Matrix)); }
     template <typename Type_>
     void
         perspective( Type_ const Fovy, Type_ const Aspect, Type_ const Znear, Type_ const Zfar ) {
@@ -179,5 +188,6 @@ extern opengl_matrices OpenGLMatrices;
 #define glMultMatrixf OpenGLMatrices.multiply
 #define gluPerspective OpenGLMatrices.perspective
 #define gluLookAt OpenGLMatrices.look_at
+#define glLoadMatrixf OpenGLMatrices.load
 
 //---------------------------------------------------------------------------

@@ -23,10 +23,12 @@ struct light_s
 in vec3 f_normal;
 in vec2 f_coord;
 in vec3 f_pos;
+in vec4 f_light_pos;
 
 out vec4 color;
 
 uniform sampler2D tex;
+uniform sampler2D shadowmap;
 
 uniform vec3 ambient;
 uniform vec3 emission;
@@ -36,6 +38,16 @@ uniform float specular;
 
 uniform light_s lights[8];
 uniform uint lights_count;
+
+float calc_shadow()
+{
+	vec3 coords = f_light_pos.xyz / f_light_pos.w;
+	coords = coords * 0.5 + 0.5;
+	float closest_depth = texture(shadowmap, coords.xy).r;
+	float current_depth = coords.z;
+	float shadow = current_depth > closest_depth ? 0.0 : 1.0;
+	return shadow;
+}
 
 vec3 apply_fog(vec3 color)
 {
@@ -90,6 +102,7 @@ float calc_dir_light(light_s light)
 
 void main()
 {
+	float shadow = calc_shadow();
 	vec3 result = ambient * 0.3 + emission;
 	for (uint i = 0U; i < lights_count; i++)
 	{
@@ -103,7 +116,7 @@ void main()
 		else if (light.type == LIGHT_DIR)
 			part = calc_dir_light(light);
 		
-		result += light.color * part;
+		result += light.color * part * shadow;
 	}
 	
 	vec4 tex_color = texture(tex, f_coord);	
