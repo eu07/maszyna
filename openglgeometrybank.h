@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #ifdef _WINDOWS
 #include "GL/wglew.h"
 #endif
+#include "ResourceManager.h"
 
 struct basic_vertex {
 
@@ -275,9 +276,9 @@ public:
     template <typename Iterator_>
     void
         draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) {
-        while( First != Last ) { 
-            draw( *First, Streams );
-            ++First; } }
+            while( First != Last ) { 
+                draw( *First, Streams );
+                ++First; } }
     // provides direct access to vertex data of specfied chunk
     vertex_array const &
         vertices( geometry_handle const &Geometry ) const;
@@ -290,12 +291,9 @@ private:
 
     typedef std::deque< geometrybanktimepoint_pair > geometrybanktimepointpair_sequence;
 
-// members:
-    std::chrono::nanoseconds const unusedresourcetimetolive { std::chrono::seconds { 60 } };
-    geometrybanktimepointpair_sequence::size_type const unusedresourcesweepsize { 300 };
+    // members:
     geometrybanktimepointpair_sequence m_geometrybanks;
-    geometrybanktimepointpair_sequence::size_type m_resourcesweepindex { 0 };
-    std::chrono::steady_clock::time_point m_resourcetimestamp { std::chrono::steady_clock::now() };
+    garbage_collector<geometrybanktimepointpair_sequence> m_garbagecollector { m_geometrybanks, 60, 120, "geometry buffer" };
 
 // methods
     inline

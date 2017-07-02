@@ -24,10 +24,12 @@ http://mozilla.org/MPL/2.0/.
 #include "logs.h"
 #include "sn_utils.h"
 
+#define EU07_DEFERRED_TEXTURE_UPLOAD
+
 texture_manager::texture_manager() {
 
     // since index 0 is used to indicate no texture, we put a blank entry in the first texture slot
-    m_textures.emplace_back( opengl_texture() );
+    m_textures.emplace_back( new opengl_texture(), std::chrono::steady_clock::time_point() );
 }
 
 // loads texture data from specified file
@@ -518,12 +520,12 @@ opengl_texture::bind() {
     return data_state;
 }
 
-resource_state
+bool
 opengl_texture::create() {
 
     if( data_state != resource_state::good ) {
         // don't bother until we have useful texture data
-        return data_state;
+        return false;
     }
 
     // TODO: consider creating and storing low-res version of the texture if it's ever unloaded from the gfx card,
@@ -562,8 +564,8 @@ opengl_texture::create() {
         for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
             if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
-                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
-                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
+             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
+             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
                 // compressed dds formats
                 int const datablocksize =
                     ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
@@ -590,15 +592,44 @@ opengl_texture::create() {
             }
         }
 
-        data.resize( 0 ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
+        data.swap( std::vector<char>() ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
 /*
     data_state = resource_state::none;
 */
-        data_state = resource_state::good;
+        data_state = resource_state::none;
         is_ready = true;
     }
 
-    return data_state;
+    return true;
+}
+
+// releases resources allocated on the opengl end, storing local copy if requested
+void
+opengl_texture::release( bool const Backup ) {
+
+    if( id == -1 ) { return; }
+
+    assert( is_ready );
+
+    if( true == Backup ) {
+        // query texture details needed to perform the backup...
+        ::glBindTexture( GL_TEXTURE_2D, id );
+        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint *)&data_format );
+        GLint datasize;
+        ::glGetTexLevelParameteriv( GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, (GLint *)&datasize );
+        data.resize( datasize );
+        // ...fetch the data...
+        ::glGetCompressedTexImage( GL_TEXTURE_2D, 0, &data[ 0 ] );
+        // ...and update texture object state
+        data_mapcount = 1; // we keep copy of only top mipmap level
+        data_state = resource_state::good;
+    }
+    // release opengl resources
+    ::glDeleteTextures( 1, &id );
+    id = -1;
+    is_ready = false;
+
+    return;
 }
 
 void
@@ -773,8 +804,8 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
         return npos;
     }
 
-    opengl_texture texture;
-    texture.name = filename;
+    auto texture = new opengl_texture();
+    texture->name = filename;
     if( ( Filter > 0 ) && ( Filter < 10 ) ) {
         // temporary. TODO, TBD: check how it's used and possibly get rid of it
         traits += std::to_string( ( Filter  < 4 ? Filter + 4 : Filter ) );
@@ -783,9 +814,9 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
         traits += '#';
     }
-    texture.traits = traits;
+    texture->traits = traits;
     auto const textureindex = (texture_handle)m_textures.size();
-    m_textures.emplace_back( texture );
+    m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
     m_texturemappings.emplace( filename, textureindex );
 
     WriteLog( "Created texture object for \"" + filename + "\"" );
@@ -796,7 +827,7 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         texture_manager::texture( textureindex ).create();
         // texture creation binds a different texture, force a re-bind on next use
-        m_activetexture = 0;
+        m_activetexture = -1;
 #endif
     }
 
@@ -806,7 +837,9 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
 void
 texture_manager::bind( texture_handle const Texture ) {
 
-    if( Texture == m_activetexture ) {
+    m_textures[ Texture ].second = m_garbagecollector.timestamp();
+
+    if( ( Texture != 0 ) && ( Texture == m_activetexture ) ) {
         // don't bind again what's already active
         return;
     }
@@ -838,10 +871,20 @@ void
 texture_manager::delete_textures() {
     for( auto const &texture : m_textures ) {
         // usunięcie wszyskich tekstur (bez usuwania struktury)
-        if( ( texture.id > 0 )
-         && ( texture.id != -1 ) ) {
-            ::glDeleteTextures( 1, &texture.id );
+        if( ( texture.first->id > 0 )
+         && ( texture.first->id != -1 ) ) {
+            ::glDeleteTextures( 1, &(texture.first->id) );
         }
+        delete texture.first;
+    }
+}
+
+// performs a resource sweep
+void
+texture_manager::update() {
+
+    if( m_garbagecollector.sweep() > 0 ) {
+        m_activetexture = -1;
     }
 }
 
@@ -859,13 +902,13 @@ texture_manager::info() const {
 
     for( auto const& texture : m_textures ) {
 
-        totaltexturesize += texture.size;
+        totaltexturesize += texture.first->size;
 #ifdef EU07_DEFERRED_TEXTURE_UPLOAD
 
-        if( texture.is_ready ) {
+        if( texture.first->is_ready ) {
 
             ++readytexturecount;
-            readytexturesize += texture.size;
+            readytexturesize += texture.first->size;
         }
 #endif
     }

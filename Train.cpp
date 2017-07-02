@@ -1524,8 +1524,8 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                 Train->ggMainButton.UpdateValue( 1.0 );
             }
             // keep track of period the button is held down, to determine when/if circuit closes
-            if( ( false == ( ( Train->mvControlled->EngineType == ElectricSeriesMotor )
-                          || ( Train->mvControlled->EngineType == ElectricInductionMotor ) ) )
+            if( ( ( ( Train->mvControlled->EngineType != ElectricSeriesMotor )
+                 && ( Train->mvControlled->EngineType != ElectricInductionMotor ) ) )
              || ( Train->fHVoltage > 0.5 * Train->mvControlled->EnginePowerSource.MaxVoltage ) ) {
                 // prevent the switch from working if there's no power
                 // TODO: consider whether it makes sense for diesel engines and such

@@ -1253,7 +1253,9 @@ void TWorld::Update_Environment() {
 
 void TWorld::ResourceSweep()
 {
+/*
     ResourceManager::Sweep( Timer::GetSimulationTime() );
+*/
 };
 
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
@@ -1664,7 +1666,7 @@ TWorld::Update_UI() {
                 + ( Global::bUseVBO ?
                     "VBO" :
                     "Display Lists" )
-                + ". ";
+                + " ";
             // dump last opengl error, if any
             GLenum glerror = ::glGetError();
             if( glerror != GL_NO_ERROR ) {

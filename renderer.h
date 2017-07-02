@@ -91,10 +91,17 @@ public:
         visible( bounding_area const &Area ) const;
     bool
         visible( TDynamicObject const *Dynamic ) const;
+    inline
+    glm::dvec3 const &
+        position() const { return m_position; }
+    inline
+    glm::dvec3 &
+        position() { return m_position; }
 
 private:
 // members:
     cFrustum m_frustum;
+    glm::dvec3 m_position;
 };
 
 // bare-bones render controller, in lack of anything better yet

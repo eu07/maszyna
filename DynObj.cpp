@@ -989,12 +989,6 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 }
 // ABu 29.01.05 koniec przeklejenia *************************************
 
-double ABuAcos(const vector3 &calc_temp)
-{ // Odpowiednik funkcji Arccos, bo cos
-    // mi tam nie dzialalo.
-    return atan2(-calc_temp.x, calc_temp.z); // Ra: tak prościej
-}
-
 TDynamicObject * TDynamicObject::ABuFindNearestObject(TTrack *Track, TDynamicObject *MyPointer, int &CouplNr)
 {
     // zwraca wskaznik do obiektu znajdujacego sie na torze (Track), którego sprzęg jest najblizszy kamerze
@@ -4056,8 +4050,9 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             std::size_t i = asModel.find( ',' );
             if ( i != std::string::npos )
             { // Ra 2015-01: może szukać przecinka w nazwie modelu, a po przecinku była by liczba tekstur?
-                if (i < asModel.length())
-                    m_materialdata.multi_textures = asModel[i + 1] - '0';
+                if( i < asModel.length() ) {
+                    m_materialdata.multi_textures = asModel[ i + 1 ] - '0';
+                }
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
             asModel = BaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje
@@ -4092,7 +4087,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         int skinindex = 0;
                         do {
                             texture_handle texture = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), "", Global::iDynamicFiltering, true );
-                            if( false == GfxRenderer.Texture( texture ).is_ready ) {
+                            if( texture == NULL ) {
                                 break;
                             }
                             m_materialdata.replacable_skins[ skinindex + 1 ] = texture;
@@ -4105,61 +4100,72 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         }
                     }
                 }
-                else
+                else {
                     m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin, "", Global::iDynamicFiltering );
-                if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha )
-                    m_materialdata.textures_alpha = 0x31310031; // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                else
-                    m_materialdata.textures_alpha = 0x30300030; // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-                if( m_materialdata.replacable_skins[ 2 ] )
-                    if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 2 ] ).has_alpha )
-                        m_materialdata.textures_alpha |= 0x02020002; // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                if( m_materialdata.replacable_skins[ 3 ] )
-                    if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 3 ] ).has_alpha )
-                        m_materialdata.textures_alpha |= 0x04040004; // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                if( m_materialdata.replacable_skins[ 4 ] )
-                    if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 4 ] ).has_alpha )
-                        m_materialdata.textures_alpha |= 0x08080008; // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                }
+                if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) {
+                    // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                    m_materialdata.textures_alpha = 0x31310031;
+                }
+                else {
+                    // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
+                    m_materialdata.textures_alpha = 0x30300030;
+                }
+
+                if( ( m_materialdata.replacable_skins[ 2 ] )
+                 && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 2 ] ).has_alpha ) ) {
+                    // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                    m_materialdata.textures_alpha |= 0x02020002;
+                }
+                if( ( m_materialdata.replacable_skins[ 3 ] )
+                 && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 3 ] ).has_alpha ) ) {
+                    // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                    m_materialdata.textures_alpha |= 0x04040004;
+                }
+                if( ( m_materialdata.replacable_skins[ 4 ] )
+                 && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 4 ] ).has_alpha ) ) {
+                    // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+                    m_materialdata.textures_alpha |= 0x08080008;
+                }
             }
-            if (!MoverParameters->LoadAccepted.empty())
-                // if (MoverParameters->LoadAccepted!=AnsiString("")); // &&
-                // MoverParameters->LoadType!=AnsiString("passengers"))
-                if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
-                { // wartość niby "pantstate" - nazwa dla formalności, ważna jest ilość
-                    if (MoverParameters->Load == 1)
-                        MoverParameters->PantFront(true);
-                    else if (MoverParameters->Load == 2)
-                        MoverParameters->PantRear(true);
-                    else if (MoverParameters->Load == 3)
-                    {
-                        MoverParameters->PantFront(true);
-                        MoverParameters->PantRear(true);
+            if( !MoverParameters->LoadAccepted.empty() ) {
+
+                if( MoverParameters->EnginePowerSource.SourceType == CurrentCollector ) {
+                    // wartość niby "pantstate" - nazwa dla formalności, ważna jest ilość
+                    if( MoverParameters->Load == 1 ) {
+                        MoverParameters->PantFront( true );
                     }
-                    else if (MoverParameters->Load == 4)
-                        MoverParameters->DoubleTr = -1;
-                    else if (MoverParameters->Load == 5)
-                    {
-                        MoverParameters->DoubleTr = -1;
-                        MoverParameters->PantRear(true);
+                    else if( MoverParameters->Load == 2 ) {
+                        MoverParameters->PantRear( true );
                     }
-                    else if (MoverParameters->Load == 6)
-                    {
-                        MoverParameters->DoubleTr = -1;
-                        MoverParameters->PantFront(true);
+                    else if( MoverParameters->Load == 3 ) {
+                        MoverParameters->PantFront( true );
+                        MoverParameters->PantRear( true );
                     }
-                    else if (MoverParameters->Load == 7)
-                    {
+                    else if( MoverParameters->Load == 4 ) {
                         MoverParameters->DoubleTr = -1;
-                        MoverParameters->PantFront(true);
-                        MoverParameters->PantRear(true);
+                    }
+                    else if( MoverParameters->Load == 5 ) {
+                        MoverParameters->DoubleTr = -1;
+                        MoverParameters->PantRear( true );
+                    }
+                    else if( MoverParameters->Load == 6 ) {
+                        MoverParameters->DoubleTr = -1;
+                        MoverParameters->PantFront( true );
+                    }
+                    else if( MoverParameters->Load == 7 ) {
+                        MoverParameters->DoubleTr = -1;
+                        MoverParameters->PantFront( true );
+                        MoverParameters->PantRear( true );
                     }
                 }
-                else // Ra: tu wczytywanie modelu ładunku jest w porządku
-                {
+                else {
+                    // Ra: tu wczytywanie modelu ładunku jest w porządku
                     if( false == asLoadName.empty() ) {
                         mdLoad = TModelsManager::GetModel( asLoadName, true ); // ladunek
                     }
                 }
+            }
             Global::asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {
 				token = "";
@@ -4198,11 +4204,9 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     }
                     // WriteLog("Total animations: "+AnsiString(iAnimations));
                 }
-/*
-                if( nullptr == pAnimations )
-*/
-                if( true == pAnimations.empty() )
-                { // Ra: tworzenie tabeli animacji, jeśli jeszcze nie było
+
+                if( true == pAnimations.empty() ) {
+                    // Ra: tworzenie tabeli animacji, jeśli jeszcze nie było
 /*
                     // disabled as default animation amounts are no longer supported
                     if( !iAnimations ) {
@@ -4217,9 +4221,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                      iAnimType[ANIM_PANTS]=0;
                     }
                     */
-/*
-                    pAnimations = new TAnim[iAnimations];
-*/
                     pAnimations.resize( iAnimations );
                     int i, j, k = 0, sm = 0;
                     for (j = 0; j < ANIM_TYPES; ++j)
@@ -4229,9 +4230,6 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                                 if (!pants)
                                     if (iAnimType[ANIM_PANTS]) // o ile jakieś pantografy są (a domyślnie są)
                                         pants = &pAnimations[k]; // zapamiętanie na potrzeby wyszukania submodeli
-/*
-                                        pants = pAnimations + k; // zapamiętanie na potrzeby wyszukania submodeli
-*/
                             pAnimations[k].iShift = sm; // przesunięcie do przydzielenia wskaźnika
                             sm += pAnimations[k++].TypeSet(j); // ustawienie typu animacji i zliczanie tablicowanych submodeli
                         }
@@ -4281,8 +4279,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         if (pAnimations[i].smAnimated)
                         { //++iAnimatedAxles;
                             pAnimations[i].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
-/*                          pAnimations[i].yUpdate = UpdateAxle; // animacja osi
-*/							pAnimations[ i ].yUpdate = std::bind( &TDynamicObject::UpdateAxle, this, std::placeholders::_1 );
+							pAnimations[i].yUpdate = std::bind( &TDynamicObject::UpdateAxle, this, std::placeholders::_1 );
                             pAnimations[i].fMaxDist = 50 * MoverParameters->WheelDiameter; // nie kręcić w większej odległości
                             pAnimations[i].fMaxDist *= pAnimations[i].fMaxDist * MoverParameters->WheelDiameter; // 50m do kwadratu, a średnica do trzeciej
                             pAnimations[i].fMaxDist *= Global::fDistanceFactor; // współczynnik przeliczeniowy jakości ekranu
@@ -4671,20 +4668,16 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                             switch (MoverParameters->DoorOpenMethod)
                             { // od razu zapinamy potrzebny typ animacji
                             case 1:
-/*                              pAnimations[i + j].yUpdate = UpdateDoorTranslate;
-*/								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorTranslate, this, std::placeholders::_1 );
+								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorTranslate, this, std::placeholders::_1 );
                                 break;
                             case 2:
-/*                              pAnimations[i + j].yUpdate = UpdateDoorRotate;
-*/								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorRotate, this, std::placeholders::_1 );
+								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorRotate, this, std::placeholders::_1 );
                                 break;
                             case 3:
-/*                              pAnimations[i + j].yUpdate = UpdateDoorFold;
-*/								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorFold, this, std::placeholders::_1 );
+								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorFold, this, std::placeholders::_1 );
                                 break; // obrót 3 kolejnych submodeli
 							case 4:
-/*								pAnimations[i + j].yUpdate = UpdateDoorPlug;
-*/								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorPlug, this, std::placeholders::_1 );
+								pAnimations[ i + j ].yUpdate = std::bind( &TDynamicObject::UpdateDoorPlug, this, std::placeholders::_1 );
 								break;
 							default:
 								break;
