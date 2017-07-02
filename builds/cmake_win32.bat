@@ -2,7 +2,7 @@ if not exist deps_win call %~dp0download_windeps.bat
 set DEPS_DIR="%cd%/deps_win"
 if not exist build_win32 mkdir build_win32
 pushd build_win32
-cmake ../.. -T v141_xp ^
+cmake ../.. -T v140_xp ^
 -DGLEW_INCLUDE_DIR=%DEPS_DIR%/glew-2.0.0/include ^
 -DGLEW_LIBRARY=%DEPS_DIR%/glew-2.0.0/lib/Release/Win32/glew32.lib ^
 -DGLFW3_ROOT_PATH=%DEPS_DIR%/glfw-3.2.1.bin.WIN32 ^
