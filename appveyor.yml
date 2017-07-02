@@ -29,9 +29,9 @@ build_script:
 test: off
 deploy: off
 artifacts:
-- path: builds/build_win32/Release/eu07++ng.exe
+- path: builds/build_win32/RelWithDebInfo/eu07++ng.exe
   name: release_win32
-- path: builds/build_win64/Release/eu07++ng.exe
+- path: builds/build_win64/RelWithDebInfo/eu07++ng.exe
   name: release_win64
 - path: shaders
   name: shaders
