@@ -20,6 +20,5 @@ void main()
 	f_normal = modelviewnormal * v_normal;
 	f_coord = v_coord;
 	f_pos = vec3(modelview * vec4(v_vert, 1.0f));
-	//f_light_pos = lightview * vec4(f_pos, 1.0f);
 	f_light_pos = lightview * vec4(f_pos, 1.0f);
 }

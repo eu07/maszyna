@@ -45,7 +45,7 @@ float calc_shadow()
 	coords = coords * 0.5 + 0.5;
 	float closest_depth = texture(shadowmap, coords.xy).r;
 	float current_depth = coords.z;
-	float shadow = current_depth > closest_depth ? 0.0 : 1.0;
+	float shadow = (current_depth - 0.1) > closest_depth ? 0.0 : 1.0;
 	return shadow;
 }
 

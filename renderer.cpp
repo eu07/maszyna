@@ -210,18 +210,14 @@ opengl_renderer::Render() {
         World.Camera.SetMatrix( worldcamera );
         m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera);
 		::glMultMatrixd(glm::value_ptr(glm::dmat4(glm::dmat3(worldcamera))));
+		shader.bind(); active_shader = &shader;
 		glDebug("rendering environment");
 		glDisable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Environment );
 		glDebug("rendering world");
 		glEnable(GL_FRAMEBUFFER_SRGB);
-		shader.bind(); active_shader = &shader;
 
-		glm::vec3 transdiff = Global::daylight.direction * 50.0f;
-		glm::mat3 rotdiff = glm::inverse(glm::mat3(depthcam)) * glm::mat3(worldcamera);
-		glm::mat4 lv = depthproj * glm::translate(glm::mat4(rotdiff), transdiff);
-
-		shader.set_lightview(lv);
+		shader.set_lightview(depthproj * depthcam); //to jest źle. nie uwzględnia przesunięcia to wiadomo, ale obrót też jest źle
         Render( &World.Ground );
 
 		glDebug("rendering cab");
