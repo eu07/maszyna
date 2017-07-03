@@ -285,6 +285,8 @@ public: // reszta może by?publiczna
     TGauge ggPantFrontButtonOff; // EZT
     TGauge ggPantRearButtonOff;
     TGauge ggPantAllDownButton;
+    TGauge ggPantSelectedButton;
+    TGauge ggPantSelectedDownButton;
     // Winger 020304 - wlacznik ogrzewania
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;

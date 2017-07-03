@@ -8,6 +8,8 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
+
+/*
 #include "ResourceManager.h"
 #include "Logs.h"
 
@@ -84,3 +86,4 @@ void ResourceManager::Sweep(double currentTime)
 
     _lastUpdate = currentTime;
 };
+*/

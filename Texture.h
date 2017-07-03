@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include <ddraw.h>
 #include <string>
 #include "GL/glew.h"
+#include "ResourceManager.h"
 
 enum class resource_state {
     none,
@@ -27,12 +28,16 @@ struct opengl_texture {
 	static DDPIXELFORMAT deserialize_ddpf(std::istream&);
 	static DDSCAPS2 deserialize_ddscaps(std::istream&);
 
-    // methods
-    void load();
+// methods
+    void
+        load();
     resource_state
         bind();
-    resource_state
+    bool
         create();
+    // releases resources allocated on the opengl end, storing local copy if requested
+    void
+        release( bool const Backup = true );
     inline
     int
         width() const {
@@ -41,7 +46,7 @@ struct opengl_texture {
     int
         height() const {
             return data_height; }
-    // members
+// members
     GLuint id{ (GLuint)-1 }; // associated GL resource
     bool has_alpha{ false }; // indicates the texture has alpha channel
     bool is_ready{ false }; // indicates the texture was processed and is ready for use
@@ -50,7 +55,7 @@ struct opengl_texture {
     std::size_t size{ 0 }; // size of the texture data, in kb
 
 private:
-    // methods
+// methods
     void load_BMP();
     void load_DDS();
     void load_TEX();
@@ -58,7 +63,7 @@ private:
     void set_filtering();
     void downsize( GLuint const Format );
 
-    // members
+// members
     std::vector<char> data; // texture data
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },
@@ -76,9 +81,6 @@ typedef int texture_handle;
 
 class texture_manager {
 
-private:
-    typedef std::vector<opengl_texture> opengltexture_array;
-
 public:
     texture_manager();
     ~texture_manager() { delete_textures(); }
@@ -88,14 +90,25 @@ public:
     void
         bind( texture_handle const Texture );
     opengl_texture &
-        texture( texture_handle const Texture ) { return m_textures[ Texture ]; }
+        texture( texture_handle const Texture ) { return *(m_textures[ Texture ].first); }
+    // performs a resource sweep
+    void
+        update();
     // debug performance string
     std::string
         info() const;
 
 private:
+// types:
+    typedef std::pair<
+        opengl_texture *,
+        std::chrono::steady_clock::time_point > texturetimepoint_pair;
+
+    typedef std::vector< texturetimepoint_pair > texturetimepointpair_sequence;
+
     typedef std::unordered_map<std::string, std::size_t> index_map;
 
+// methods:
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
     texture_handle
         find_in_databank( std::string const &Texturename ) const;
@@ -105,10 +118,12 @@ private:
     void
         delete_textures();
 
-    static const texture_handle npos{ 0 }; // should be -1, but the rest of the code uses -1 for something else
-    opengltexture_array m_textures;
+// members:
+    texture_handle const npos { 0 }; // should be -1, but the rest of the code uses -1 for something else
+    texturetimepointpair_sequence m_textures;
     index_map m_texturemappings;
-    texture_handle m_activetexture{ 0 }; // last i.e. currently bound texture
+    garbage_collector<texturetimepointpair_sequence> m_garbagecollector { m_textures, 600, 60, "texture" };
+    texture_handle m_activetexture { 0 }; // last i.e. currently bound texture
 };
 
 // reduces provided data image to half of original size, using basic 2x2 average
