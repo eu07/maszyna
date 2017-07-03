@@ -1028,7 +1028,8 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
     }
 
 	auto const originoffset = Node->m_rootposition - m_camera.position();
-	active_shader->set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+	glm::mat4 mm(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
+	active_shader->set_mv(mm);
 
     switch (Node->iType)
     {
@@ -1044,14 +1045,23 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                     // na liniach kiepsko wygląda - robi gradient
                     ::glDisable( GL_LINE_SMOOTH );
                 }
+
+				gl_program::unbind();
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glPushMatrix();
+				glLoadMatrixf(glm::value_ptr(mm));
+				glVertexPointer(3, GL_FLOAT, sizeof(basic_vertex), static_cast<char *>(nullptr));
+
                 float const linealpha = static_cast<float>(
                     std::min(
                         1.25,
                         5000 * Node->hvTraction->WireThickness / ( distancesquared + 1.0 ) ) ); // zbyt grube nie są dobre
                 ::glLineWidth( linealpha );
                 // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
+
                 auto const color { Node->hvTraction->wire_color() };
                 ::glColor4f( color.r, color.g, color.b, linealpha );
+				//::glColor4f(0.0f, 0.0f, 0.0f, linealpha);
 
                 Bind( NULL );
 
@@ -1062,6 +1072,10 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 if( !Global::bSmoothTraction ) {
                     ::glEnable( GL_LINE_SMOOTH );
                 }
+
+				glPopMatrix();
+				glDisableClientState(GL_VERTEX_ARRAY);
+				gl_program::bind_last();
 
                 return true;
             }
@@ -1307,6 +1321,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
 
 						glEnableClientState(GL_VERTEX_ARRAY);
 						glVertexPointer(3, GL_FLOAT, sizeof(basic_vertex), static_cast<char *>(nullptr)); // pozycje
+
                         // setup
                         ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT );
 

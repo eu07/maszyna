@@ -130,8 +130,7 @@ opengl_vbogeometrybank::create_( geometry_handle const &Geometry ) {
     // kiss the existing buffer goodbye, new overall data size means we'll be making a new one
     delete_buffer();
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glGenVertexArrays(1, &m_vao); // TBD: m7todo: maybe vao should be global for all buffers?
+	glGenVertexArrays(1, &m_vao);
 }
 
 // replace() subclass details
@@ -174,6 +173,7 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int con
         bind_buffer();
         // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
         // TODO: allow to specify usage hint at the object creation, and pass it here
+		m_activestreams = stream::none;
         ::glBufferData(
             GL_ARRAY_BUFFER,
             datasize * sizeof( basic_vertex ),
@@ -224,16 +224,14 @@ opengl_vbogeometrybank::bind_buffer() {
 	glBindVertexArray(m_vao);
     ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
     m_activebuffer = m_buffer;
-    m_activestreams = stream::none;
 }
 
 void
 opengl_vbogeometrybank::delete_buffer() {
-
+	glDeleteVertexArrays(1, &m_vao);
     if( m_buffer != NULL ) {
         
         ::glDeleteBuffers( 1, &m_buffer );
-		glBindVertexArray(m_vao);
         if( m_activebuffer == m_buffer ) {
             m_activebuffer = NULL;
             bind_streams( stream::none );

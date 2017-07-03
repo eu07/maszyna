@@ -476,10 +476,11 @@ TTraction::wire_color() const {
             }
             default: {break; }
         }
+		color *= 0.2;
         // w zaleźności od koloru swiatła
-		color.r *= Global::daylight.ambient.x;
-		color.g *= Global::daylight.ambient.y;
-		color.b *= Global::daylight.ambient.z;
+		//color.r *= Global::daylight.ambient.x;
+		//color.g *= Global::daylight.ambient.y;
+		//color.b *= Global::daylight.ambient.z;
     }
     else {
         // tymczasowo pokazanie zasilanych odcinków

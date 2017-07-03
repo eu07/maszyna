@@ -2273,10 +2273,10 @@ world_environment::update() {
     auto const moonlightlevel = m_moon.getIntensity() * 0.5f; // scaled down by arbitrary factor, it's pretty bright otherwise
     float keylightintensity;
     float twilightfactor;
-    glm::vec3 keylightcolor;
+    glm::vec3 keylightcolor(0.0f);
     if( moonlightlevel > sunlightlevel ) {
-		WriteLog("using moon: " + std::to_string(moonlightlevel));
-
+		twilightfactor = 1.0f;
+		/*
         // rare situations when the moon is brighter than the sun, typically at night
         Global::SunAngle = m_moon.getAngle();
 		Global::daylight.direction = -1.0f * m_moon.getDirection();
@@ -2284,10 +2284,9 @@ world_environment::update() {
         // if the moon is up, it overrides the twilight
         twilightfactor = 0.0f;
         keylightcolor = glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
+		*/
     }
     else {
-		WriteLog("using sun: " + std::to_string(sunlightlevel));
-
         // regular situation with sun as the key light
         Global::SunAngle = m_sun.getAngle();
 		Global::daylight.direction = -1.0f * m_sun.getDirection();
@@ -2318,10 +2317,7 @@ world_environment::update() {
 	// ...update light colours and intensity.
 	keylightcolor = keylightcolor * diffuselevel;
 
-	if (sunlightlevel > moonlightlevel)
-		Global::daylight.color = keylightcolor * 0.8f;
-	else
-		Global::daylight.color = glm::vec3(0.0f);
+	Global::daylight.color = keylightcolor * 0.8f;
 
 	// tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
 	// (this is pure conjecture, aimed more to 'look right' than be accurate)
