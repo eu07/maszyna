@@ -106,7 +106,7 @@ int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const 
         // pętla po trójkątach, od trójkąta (f)
         if( Masks[ faceidx ] & Mask ) {
             // jeśli wspólna maska powierzchni
-            for( int vertexidx = 0; vertexidx < 2; ++vertexidx ) {
+            for( int vertexidx = 0; vertexidx < 3; ++vertexidx ) {
                 if( Vertices[ 3 * faceidx + vertexidx ].position == Position ) {
                     return 3 * faceidx + vertexidx;
                 }
@@ -374,11 +374,27 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     // transformation matrix
 	fMatrix = new float4x4();
 	readMatrix(parser, *fMatrix); // wczytanie transform
-	if (!fMatrix->IdentityIs())
-		iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechować
-    if( std::abs( Det( *fMatrix ) - 1.0f ) > 0.01f ) {
-        ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factor: " + to_string( Det( *fMatrix ), 2 ) + ")" );
-        m_normalizenormals = true;
+    if( !fMatrix->IdentityIs() ) {
+        iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechować
+        // check the scaling
+        auto const matrix = glm::make_mat4( fMatrix->readArray() );
+        glm::vec3 const scale{
+            glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
+            glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
+            glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
+        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
+         || ( std::abs( scale.y - 1.0f ) > 0.01 )
+         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
+            ErrorLog(
+                "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: "
+                + to_string( scale.x, 2 ) + ", "
+                + to_string( scale.y, 2 ) + ", "
+                + to_string( scale.z, 2 ) + ")" );
+            m_normalizenormals = (
+                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
+                    rescale :
+                    normalize );
+        }
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
@@ -1539,7 +1555,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                         auto normallength = glm::length2( vertex.normal );
                         if( ( false == submodel.m_normalizenormals )
                          && ( std::abs( normallength - 1.0f ) > 0.01f ) ) {
-                            submodel.m_normalizenormals = true;
+                            submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
                             WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization" );
                         }
                     }
@@ -1695,13 +1711,26 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 
 	iFlags &= ~0x0200; // wczytano z pliku binarnego (nie jest właścicielem tablic)
 
-    if( ( fMatrix != nullptr )
-     && ( std::abs( Det( *fMatrix ) - 1.0f ) > 0.01f ) ) {
-        // check whether we need to enable normal vectors normalization for this submodel
-        ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factor: " + to_string( Det( *fMatrix ), 2 ) + ")" );
-        m_normalizenormals = true;
+    if( fMatrix != nullptr ) {
+        auto const matrix = glm::make_mat4( fMatrix->readArray() );
+        glm::vec3 const scale {
+            glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
+            glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
+            glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
+        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
+         || ( std::abs( scale.y - 1.0f ) > 0.01 )
+         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
+            ErrorLog(
+                "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: "
+                + to_string( scale.x, 2 ) + ", "
+                + to_string( scale.y, 2 ) + ", "
+                + to_string( scale.z, 2 ) + ")" );
+            m_normalizenormals = (
+                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
+                    rescale :
+                    normalize );
+        }
     }
-
 };
 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)

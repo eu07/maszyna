@@ -50,10 +50,17 @@ public:
         visible( bounding_area const &Area ) const;
     bool
         visible( TDynamicObject const *Dynamic ) const;
+    inline
+    glm::dvec3 const &
+        position() const { return m_position; }
+    inline
+    glm::dvec3 &
+        position() { return m_position; }
 
 private:
 // members:
     cFrustum m_frustum;
+    glm::dvec3 m_position;
 };
 
 // bare-bones render controller, in lack of anything better yet
@@ -64,6 +71,7 @@ public:
 	gl_program_mvp depth_shader;
 	gl_program_mvp *active_shader = nullptr;
 	GLuint depth_tex, depth_fbo;
+	opengl_camera m_camera;
 
 // types
 
@@ -122,7 +130,7 @@ public:
         GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
     void
         Bind( texture_handle const Texture );
-    opengl_texture &
+    opengl_texture const &
         Texture( texture_handle const Texture );
 
 // members
@@ -170,7 +178,6 @@ private:
 // members
     geometrybank_manager m_geometry;
     texture_manager m_textures;
-    opengl_camera m_camera;
     rendermode renderpass { rendermode::color };
     float m_drawrange { 2500.0f }; // current drawing range
     float m_drawtime { 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps

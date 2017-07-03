@@ -179,11 +179,17 @@ opengl_renderer::Render() {
         glDisable(GL_FRAMEBUFFER_SRGB);
         glViewport(0, 0, Global::shadowtune.map_size, Global::shadowtune.map_size);
 
+		glm::mat4 coordmove(
+			0.5, 0.0, 0.0, 0.0,
+			0.0, 0.5, 0.0, 0.0,
+			0.0, 0.0, 0.5, 0.0,
+			0.5, 0.5, 0.5, 1.0
+		);
         glm::mat4 depthproj = glm::ortho(-Global::shadowtune.width, Global::shadowtune.width,
 			-Global::shadowtune.width, Global::shadowtune.width, 0.0f, Global::shadowtune.depth);
 		glm::vec3 playerpos = glm::vec3(World.Camera.Pos.x, World.Camera.Pos.y, World.Camera.Pos.z);
 		glm::vec3 shadoweye = playerpos - Global::daylight.direction * Global::shadowtune.distance;
-		Global::SetCameraPosition(Math3D::vector3(0.0f, 0.0f, 0.0f));
+		m_camera.position() = shadoweye;
         glm::mat4 depthcam = glm::lookAt(shadoweye,
 				playerpos,
                 glm::vec3(0.0f, 1.0f, 0.0f));
@@ -191,13 +197,15 @@ opengl_renderer::Render() {
         glMatrixMode(GL_PROJECTION);
         glLoadMatrixf(glm::value_ptr(depthproj));
         glMatrixMode(GL_MODELVIEW);
-        glMultMatrixf(glm::value_ptr(depthcam));
+		glMultMatrixd(glm::value_ptr(glm::mat4(glm::mat3(depthcam))));
 
         glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
         glClear(GL_DEPTH_BUFFER_BIT);
+		glCullFace(GL_FRONT);
         active_shader = &depth_shader; depth_shader.bind();
         Render(&World.Ground);
         active_shader = nullptr; depth_shader.unbind();
+		glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glViewport(0, 0, Global::ScreenWidth, Global::ScreenHeight);
@@ -210,19 +218,19 @@ opengl_renderer::Render() {
 		glBindTexture(GL_TEXTURE_2D, depth_tex);
 		glActiveTexture(GL_TEXTURE0);
 
-        glm::dmat4 worldcamera;
-        World.Camera.SetMatrix( worldcamera );
+		glm::dmat4 worldcamera;
+		World.Camera.SetMatrix(worldcamera);
         m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera);
-		::glMultMatrixd(glm::value_ptr(worldcamera));
+		m_camera.position() = glm::make_vec3(Global::pCameraPosition.getArray());
+		glMultMatrixd(glm::value_ptr(glm::mat4(glm::mat3(worldcamera))));
 		shader.bind(); active_shader = &shader;
+		shader.set_lightview(coordmove * depthproj * depthcam * glm::inverse(glm::mat4(worldcamera)));
 		glDebug("rendering environment");
 		glDisable(GL_FRAMEBUFFER_SRGB);
         Render( &World.Environment );
 		glDebug("rendering world");
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
-		Global::SetCameraPosition(Math3D::vector3(0.0f, 0.0f, 0.0f));
-		shader.set_lightview(depthproj * depthcam * glm::inverse(glm::mat4(worldcamera)));
         Render( &World.Ground );
 
 		glDebug("rendering cab");
@@ -251,7 +259,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         return false;
     }
 
-    Bind( 0 );
+    Bind( NULL );
 
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_DEPTH_TEST );
@@ -413,7 +421,7 @@ opengl_renderer::Bind( texture_handle const Texture ) {
     m_textures.bind( Texture );
 }
 
-opengl_texture &
+opengl_texture const &
 opengl_renderer::Texture( texture_handle const Texture ) {
 
     return m_textures.texture( Texture );
@@ -442,7 +450,7 @@ opengl_renderer::Render( TGround *Ground ) {
         node->RenderHidden();
     }
 
-    glm::vec3 const cameraposition( Global::pCameraPosition.x, Global::pCameraPosition.y, Global::pCameraPosition.z );
+    glm::vec3 const cameraposition { m_camera.position() };
     int const camerax = static_cast<int>( std::floor( cameraposition.x / 1000.0f ) + iNumRects / 2 );
     int const cameraz = static_cast<int>( std::floor( cameraposition.z / 1000.0f ) + iNumRects / 2 );
     int const segmentcount = 2 * static_cast<int>(std::ceil( m_drawrange * Global::fDistanceFactor / 1000.0f ));
@@ -515,7 +523,7 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
                 if( subcell->iNodeCount ) {
                     // o ile są jakieś obiekty, bo po co puste sektory przelatywać
                     m_drawqueue.emplace_back(
-                        ( Global::pCameraPosition - glm::dvec3( subcell->m_area.center ) ).LengthSquared(),
+                        glm::length2( m_camera.position() - glm::dvec3( subcell->m_area.center ) ),
                         subcell );
                 }
             }
@@ -570,7 +578,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
     { // obiekty renderowane niezależnie od odległości
     case TP_SUBMODEL:
         ::glPushMatrix();
-        auto const originoffset = Node->pCenter - Global::pCameraPosition;
+        auto const originoffset = Node->pCenter - m_camera.position();
         ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
         TSubModel::fSquareDist = 0;
         Render( Node->smTerrain );
@@ -578,13 +586,13 @@ opengl_renderer::Render( TGroundNode *Node ) {
         return true;
     }
 
-    double const distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor );
+    double const distancesquared = SquareMagnitude( ( Node->pCenter - m_camera.position() ) / Global::ZoomFactor );
     if( ( distancesquared > ( Node->fSquareRadius    * Global::fDistanceFactor ) )
      || ( distancesquared < ( Node->fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return false;
     }
 
-	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+	auto const originoffset = Node->m_rootposition - m_camera.position();
 	active_shader->set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
 
     switch (Node->iType) {
@@ -596,7 +604,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
         }
 
         case TP_MODEL: {
-            Node->Model->Render( Node->pCenter - Global::pCameraPosition );
+            Node->Model->Render( Node->pCenter - m_camera.position() );
             return true;
         }
 
@@ -672,7 +680,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    auto const originoffset = Dynamic->vPosition - Global::pCameraPosition;
+    auto const originoffset = Dynamic->vPosition - m_camera.position();
     double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
     ::glPushMatrix();
@@ -1013,13 +1021,13 @@ opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
 bool
 opengl_renderer::Render_Alpha( TGroundNode *Node ) {
 
-    double const distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor );
+    double const distancesquared = SquareMagnitude( ( Node->pCenter - m_camera.position() ) / Global::ZoomFactor );
     if( ( distancesquared > ( Node->fSquareRadius    * Global::fDistanceFactor ) )
      || ( distancesquared < ( Node->fSquareMinRadius / Global::fDistanceFactor ) ) ) {
         return false;
     }
 
-	auto const originoffset = Node->m_rootposition - Global::pCameraPosition;
+	auto const originoffset = Node->m_rootposition - m_camera.position();
 	active_shader->set_mv(glm::translate(OpenGLMatrices.data(GL_MODELVIEW), glm::vec3(originoffset.x, originoffset.y, originoffset.z)));
 
     switch (Node->iType)
@@ -1062,7 +1070,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             }
         }
         case TP_MODEL: {
-            Node->Model->RenderAlpha( Node->pCenter - Global::pCameraPosition );
+            Node->Model->RenderAlpha( Node->pCenter - m_camera.position() );
             return true;
         }
 
@@ -1135,7 +1143,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    auto const originoffset = Dynamic->vPosition - Global::pCameraPosition;
+    auto const originoffset = Dynamic->vPosition - m_camera.position();
     double const squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
     Dynamic->ABuLittleUpdate( squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
     ::glPushMatrix();
@@ -1407,6 +1415,7 @@ opengl_renderer::Update ( double const Deltatime ) {
 
     // TODO: add garbage collection and other less frequent works here
     m_geometry.update();
+    m_textures.update();
 
     if( true == DebugModeFlag ) {
         m_debuginfo = m_textures.info();
@@ -1441,14 +1450,14 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
             // all lights past this one are bound to be off
             break;
         }
-        if( ( Global::pCameraPosition - scenelight.position ).Length() > 1000.0f ) {
+        if( ( m_camera.position() - scenelight.position ).Length() > 1000.0f ) {
             // we don't care about lights past arbitrary limit of 1 km.
             // but there could still be weaker lights which are closer, so keep looking
             continue;
         }
         // if the light passed tests so far, it's good enough
 
-		Math3D::vector3 pos = scenelight.position - Global::pCameraPosition;
+		Math3D::vector3 pos = scenelight.position - m_camera.position();
 
 		auto const luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
 		glm::vec3 position(pos.x, pos.y, pos.z);

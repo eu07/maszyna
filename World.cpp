@@ -1251,7 +1251,9 @@ void TWorld::Update_Environment() {
 
 void TWorld::ResourceSweep()
 {
+/*
     ResourceManager::Sweep( Timer::GetSimulationTime() );
+*/
 };
 
 // rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
@@ -1284,7 +1286,7 @@ TWorld::Render_Cab() {
     glMultMatrixd( dynamic->mMatrix.getArray() ); // ta macierz nie ma przesunięcia
 */
     ::glPushMatrix();
-    auto const originoffset = dynamic->GetPosition() - Global::pCameraPosition;
+    auto const originoffset = dynamic->GetPosition() - GfxRenderer.m_camera.position();
     ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
     ::glMultMatrixd( dynamic->mMatrix.getArray() );
 
@@ -1657,7 +1659,7 @@ TWorld::Update_UI() {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
 
-            uitextline2 = GfxRenderer.Info();
+
 
             // dump last opengl error, if any
             GLenum glerror = ::glGetError();

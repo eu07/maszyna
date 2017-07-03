@@ -39,50 +39,15 @@ uniform float specular;
 uniform light_s lights[8];
 uniform uint lights_count;
 
-vec2 poissonDisk[16] = vec2[]( 
-   vec2( -0.94201624, -0.39906216 ), 
-   vec2( 0.94558609, -0.76890725 ), 
-   vec2( -0.094184101, -0.92938870 ), 
-   vec2( 0.34495938, 0.29387760 ), 
-   vec2( -0.91588581, 0.45771432 ), 
-   vec2( -0.81544232, -0.87912464 ), 
-   vec2( -0.38277543, 0.27676845 ), 
-   vec2( 0.97484398, 0.75648379 ), 
-   vec2( 0.44323325, -0.97511554 ), 
-   vec2( 0.53742981, -0.47373420 ), 
-   vec2( -0.26496911, -0.41893023 ), 
-   vec2( 0.79197514, 0.19090188 ), 
-   vec2( -0.24188840, 0.99706507 ), 
-   vec2( -0.81409955, 0.91437590 ), 
-   vec2( 0.19984126, 0.78641367 ), 
-   vec2( 0.14383161, -0.14100790 ) 
-);
-
-float random(vec3 seed, int i)
-{
-	vec4 seed4 = vec4(seed,i);
-	float dot_product = dot(seed4, vec4(12.9898,78.233,45.164,94.673));
-	return fract(sin(dot_product) * 43758.5453);
-}
-
 float calc_shadow()
 {
-	vec3 coords = f_light_pos.xyz;// / f_light_pos.w;
-	coords = coords * 0.5 + 0.5;
-	float bias = 0.005;
+	vec3 coords = f_light_pos.xyz;
+	float bias = clamp(0.0025*tan(acos(clamp(dot(f_normal, -lights[0].dir), 0.0, 1.0))), 0, 0.01);
 
-	//PCF
+	//sampler PCF
 	//float shadow = texture(shadowmap, vec3(coords.xy, coords.z - bias));
-	
-	//PCF + stratified poisson sampling
-	//float shadow = 1.0;
-    //for (int i=0;i<4;i++)
-	//{
-	//	int index = int(16.0*random(gl_FragCoord.xyy, i))%16;
-	//	shadow -= 0.25*(1.0-texture(shadowmap, vec3(coords.xy + poissonDisk[index]/5000.0, coords.z - bias)));
-    //}
 
-	//PCF + PCF
+	//sampler PCF + PCF
 	float shadow = 0.0;
 	vec2 texel = 1.0 / textureSize(shadowmap, 0);
 	for (float y = -1.5; y <= 1.5; y += 1.0)
@@ -159,8 +124,10 @@ void main()
 			part = calc_point_light(light);
 		else if (light.type == LIGHT_DIR)
 			part = calc_dir_light(light);
-		
-		result += light.color * part * shadow;
+
+		if (i == 0U)
+			part *= shadow;
+		result += light.color * part;
 	}
 	
 	vec4 tex_color = texture(tex, f_coord);	

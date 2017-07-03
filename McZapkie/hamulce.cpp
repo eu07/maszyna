@@ -113,17 +113,18 @@ double PFVd( double PH, double PL, double const S, double LIM, double const DP )
     if (LIM < PH)
     {
         LIM = LIM + 1;
-        PH = PH + 1; // wyzsze cisnienie absolutne
-        PL = PL + 1; // nizsze cisnienie absolutne
+        PH = PH + 1.0; // wyzsze cisnienie absolutne
+        PL = PL + 1.0; // nizsze cisnienie absolutne
+        assert( PH != PL );
         double sg = PL / PH; // bezwymiarowy stosunek cisnien
-        double FM = PH * 197 * S; // najwyzszy mozliwy przeplyw, wraz z kierunkiem
+        double FM = PH * 197.0 * S; // najwyzszy mozliwy przeplyw, wraz z kierunkiem
         if ((PH - LIM) < 0.1)
             FM = FM * (PH - LIM) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
         if ((sg > 0.5)) // jesli ponizej stosunku krytycznego
             if ((PH - PL) < DPL) // niewielka roznica cisnien
-                return (PH - PL) / DPL * FM * 2 * std::sqrt((sg) * (1 - sg));
+                return (PH - PL) / DPL * FM * 2.0 * std::sqrt((sg) * (1.0 - sg));
             else
-                return FM * 2 * std::sqrt((sg) * (1 - sg));
+                return FM * 2.0 * std::sqrt((sg) * (1.0 - sg));
         else // powyzej stosunku krytycznego
             return FM;
     }
@@ -150,7 +151,7 @@ void TReservoir::Flow(double dv)
 
 void TReservoir::Act()
 {
-    Vol = Vol + dVol;
+    Vol = std::max( 0.0, Vol + dVol );
     dVol = 0;
 }
 
@@ -2131,39 +2132,34 @@ double TFV4a::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
     static int const LBDelay = 100;
 
-    double LimPP;
-    double dpPipe;
-    double dpMainValve;
-    double ActFlowSpeed;
-
     ep = PP; // SPKS!!
-    LimPP = Min0R(BPT[lround(i_bcp) + 2][1], HP);
-    ActFlowSpeed = BPT[lround(i_bcp) + 2][0];
+    double LimPP = std::min(BPT[std::lround(i_bcp) + 2][1], HP);
+    double ActFlowSpeed = BPT[std::lround(i_bcp) + 2][0];
 
     if ((i_bcp == i_bcpno))
         LimPP = 2.9;
 
-    CP = CP + 20 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt / 1;
-    RP = RP + 20 * Min0R(abs(ep - RP), 0.05) * PR(RP, ep) * dt / 2.5;
+    CP = CP + 20 * std::min(std::abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt / 1;
+    RP = RP + 20 * std::min(std::abs(ep - RP), 0.05) * PR(RP, ep) * dt / 2.5;
 
     LimPP = CP;
-    dpPipe = Min0R(HP, LimPP);
+    double dpPipe = std::min(HP, LimPP);
 
-    dpMainValve = PF(dpPipe, PP, ActFlowSpeed / LBDelay) * dt;
+    double dpMainValve = PF(dpPipe, PP, ActFlowSpeed / LBDelay) * dt;
     if ((CP > RP + 0.05))
-        dpMainValve = PF(Min0R(CP + 0.1, HP), PP, 1.1 * ActFlowSpeed / LBDelay) * dt;
+        dpMainValve = PF(std::min(CP + 0.1, HP), PP, 1.1 * ActFlowSpeed / LBDelay) * dt;
     if ((CP < RP - 0.05))
         dpMainValve = PF(CP - 0.1, PP, 1.1 * ActFlowSpeed / LBDelay) * dt;
 
     if (lround(i_bcp) == -1)
     {
-        CP = CP + 5 * Min0R(abs(LimPP - CP), 0.2) * PR(CP, LimPP) * dt / 2;
+        CP = CP + 5 * std::min(std::abs(LimPP - CP), 0.2) * PR(CP, LimPP) * dt / 2;
         if ((CP < RP + 0.03))
             if ((TP < 5))
                 TP = TP + dt;
         //            if(cp+0.03<5.4)then
         if ((RP + 0.03 < 5.4) || (CP + 0.03 < 5.4)) // fala
-            dpMainValve = PF(Min0R(HP, 17.1), PP, ActFlowSpeed / LBDelay) * dt;
+            dpMainValve = PF(std::min(HP, 17.1), PP, ActFlowSpeed / LBDelay) * dt;
         //              dpMainValve:=20*Min0R(abs(ep-7.1),0.05)*PF(HP,pp,ActFlowSpeed/LBDelay)*dt;
         else
         {
@@ -2183,9 +2179,9 @@ double TFV4a::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
             TP = TP - dt / 12 / 2;
         }
         if ((CP > RP + 0.1) && (CP <= 5))
-            dpMainValve = PF(Min0R(CP + 0.25, HP), PP, 2 * ActFlowSpeed / LBDelay) * dt;
+            dpMainValve = PF(std::min(CP + 0.25, HP), PP, 2 * ActFlowSpeed / LBDelay) * dt;
         else if (CP > 5)
-            dpMainValve = PF(Min0R(CP, HP), PP, 2 * ActFlowSpeed / LBDelay) * dt;
+            dpMainValve = PF(std::min(CP, HP), PP, 2 * ActFlowSpeed / LBDelay) * dt;
         else
             dpMainValve = PF(dpPipe, PP, ActFlowSpeed / LBDelay) * dt;
     }
@@ -2208,8 +2204,8 @@ void TFV4a::Init(double Press)
 
 double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 {
-    static int const LBDelay = 100;
-    static double const xpM = 0.3; // mnoznik membrany komory pod
+    int const LBDelay { 100 };
+    double const xpM { 0.3 }; // mnoznik membrany komory pod
 
     ep = (PP / 2.0) * 1.5 + (ep / 2.0) * 0.5; // SPKS!!
 
@@ -2293,13 +2289,10 @@ double TFV4aM::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
     double const ActFlowSpeed = BPT[ std::lround( i_bcp ) + 2 ][ 0 ];
 
-    double dpMainValve;
-    if( dpPipe > PP ) {
-        dpMainValve = -PFVa( HP, PP, ActFlowSpeed / LBDelay, dpPipe, 0.4 );
-    }
-    else {
-        dpMainValve = PFVd( PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4 );
-    }
+    double dpMainValve = (
+        dpPipe > PP ?
+            -PFVa( HP, PP, ActFlowSpeed / LBDelay, dpPipe, 0.4 ) :
+             PFVd( PP,  0, ActFlowSpeed / LBDelay, dpPipe, 0.4 ) );
 
     if (EQ(i_bcp, -1)) {
 
