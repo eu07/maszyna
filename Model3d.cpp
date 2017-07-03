@@ -382,19 +382,6 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
-        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
-         || ( std::abs( scale.y - 1.0f ) > 0.01 )
-         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog(
-                "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: "
-                + to_string( scale.x, 2 ) + ", "
-                + to_string( scale.y, 2 ) + ", "
-                + to_string( scale.z, 2 ) + ")" );
-            m_normalizenormals = (
-                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
-                    rescale :
-                    normalize );
-        }
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
@@ -1553,11 +1540,6 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                     if( submodel.eType < TP_ROTATOR ) {
                         // normal vectors debug routine
                         auto normallength = glm::length2( vertex.normal );
-                        if( ( false == submodel.m_normalizenormals )
-                         && ( std::abs( normallength - 1.0f ) > 0.01f ) ) {
-                            submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
-                            WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization" );
-                        }
                     }
                 }
                 // remap geometry type for custom type submodels
@@ -1717,19 +1699,6 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             glm::length( glm::vec3( glm::column( matrix, 0 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 1 ) ) ),
             glm::length( glm::vec3( glm::column( matrix, 2 ) ) ) };
-        if( ( std::abs( scale.x - 1.0f ) > 0.01 )
-         || ( std::abs( scale.y - 1.0f ) > 0.01 )
-         || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog(
-                "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: "
-                + to_string( scale.x, 2 ) + ", "
-                + to_string( scale.y, 2 ) + ", "
-                + to_string( scale.z, 2 ) + ")" );
-            m_normalizenormals = (
-                ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
-                    rescale :
-                    normalize );
-        }
     }
 };
 
