@@ -329,7 +329,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glLoadIdentity(); // macierz jedynkowa
         ::glTranslatef( moonposition.x, moonposition.y, moonposition.z );
 
-        float const size = 0.02f; // TODO: expose distance/scale factor from the moon object
+        float const size = 0.02f / 4.0f; // TODO: expose distance/scale factor from the moon object
         // choose the moon appearance variant, based on current moon phase
         // NOTE: implementation specific, 8 variants are laid out in 3x3 arrangement
         // from new moon onwards, top left to right bottom (last spot is left for future use, if any)
