@@ -91,10 +91,17 @@ public:
         visible( bounding_area const &Area ) const;
     bool
         visible( TDynamicObject const *Dynamic ) const;
+    inline
+    glm::dvec3 const &
+        position() const { return m_position; }
+    inline
+    glm::dvec3 &
+        position() { return m_position; }
 
 private:
 // members:
     cFrustum m_frustum;
+    glm::dvec3 m_position;
 };
 
 // bare-bones render controller, in lack of anything better yet
@@ -158,7 +165,7 @@ public:
         GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
     void
         Bind( texture_handle const Texture );
-    opengl_texture &
+    opengl_texture const &
         Texture( texture_handle const Texture );
 
 // members

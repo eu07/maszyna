@@ -359,25 +359,7 @@ opengl_dlgeometrybank::delete_list( geometry_handle const &Geometry ) {
 void
 geometrybank_manager::update() {
 
-    m_resourcetimestamp = std::chrono::steady_clock::now();
-    // garbage collection sweep is limited to a number of records per call, to reduce impact on framerate
-    auto const sweeplastindex =
-        std::min(
-            m_resourcesweepindex + geometrybank_manager::unusedresourcesweepsize,
-            m_geometrybanks.size() );
-    auto const blanktimestamp { std::chrono::steady_clock::time_point() };
-    for( auto bankindex = m_resourcesweepindex; bankindex < sweeplastindex; ++bankindex ) {
-        if( ( m_geometrybanks[ bankindex ].second != blanktimestamp )
-         && ( m_resourcetimestamp - m_geometrybanks[ bankindex ].second > geometrybank_manager::unusedresourcetimetolive ) ) {
-
-            m_geometrybanks[ bankindex ].first->release();
-            m_geometrybanks[ bankindex ].second = blanktimestamp;
-        }
-    }
-    m_resourcesweepindex = (
-        m_resourcesweepindex + geometrybank_manager::unusedresourcesweepsize >= m_geometrybanks.size() ?
-            0 : // if the next sweep chunk is beyond actual data, so start anew
-            m_resourcesweepindex + geometrybank_manager::unusedresourcesweepsize );
+    m_garbagecollector.sweep();
 }
 
 // creates a new geometry bank. returns: handle to the bank or NULL
@@ -421,7 +403,7 @@ geometrybank_manager::draw( geometry_handle const &Geometry, unsigned int const 
 
     auto &bankrecord = bank( Geometry );
 
-    bankrecord.second = m_resourcetimestamp;
+    bankrecord.second = m_garbagecollector.timestamp();
     bankrecord.first->draw( Geometry, Streams );
 }
 

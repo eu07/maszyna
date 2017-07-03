@@ -58,6 +58,13 @@ class TSubModel
     friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
     friend class TDynamicObject; // temporary etc
 
+public:
+    enum normalization {
+        none = 0,
+        rescale,
+        normalize
+    };
+
 private:
     int iNext{ NULL };
     int iChild{ NULL };
@@ -96,7 +103,7 @@ private:
         f4Diffuse { 1.0f,1.0f,1.0f,1.0f },
         f4Specular { 0.0f,0.0f,0.0f,1.0f },
         f4Emision { 1.0f,1.0f,1.0f,1.0f };
-    bool m_normalizenormals { false }; // indicates vectors need to be normalized due to scaling etc
+    normalization m_normalizenormals { normalization::none }; // indicates vectors need to be normalized due to scaling etc
     float fWireSize { 0.0f }; // nie używane, ale wczytywane
     float fSquareMaxDist { 10000.0f * 10000.0f };
     float fSquareMinDist { 0.0f };
