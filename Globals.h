@@ -283,6 +283,14 @@ class Global
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
 	static bool bOldSmudge; // Używanie starej smugi
 	
+	static struct shadowtune_t
+	{
+		unsigned int map_size;
+		float width;
+		float depth;
+		float distance;
+	} shadowtune;
+
     static TWorld *pWorld; // wskaźnik na świat do usuwania pojazdów
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
     static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku

@@ -150,6 +150,7 @@ double Global::fFpsRadiusMax = 3000.0; // maksymalny promień renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promień renderowania
 double Global::fRadiusFactor = 1.1; // współczynnik jednorazowej zmiany promienia scenerii
 bool Global::bOldSmudge = false; // Używanie starej smugi
+Global::shadowtune_t Global::shadowtune = { 8192, 200.0f, 150.0f, 100.0f };
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
@@ -536,6 +537,14 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> Global::ScaleSpecularValues;
         }
+		else if (token == "shadowtune")
+		{
+			Parser.getTokens(4, false);
+			Parser >> Global::shadowtune.map_size;
+			Parser >> Global::shadowtune.width;
+			Parser >> Global::shadowtune.depth;
+			Parser >> Global::shadowtune.distance;
+		}
         else if (token == "smoothtraction")
         {
             // podwójna jasność ambient

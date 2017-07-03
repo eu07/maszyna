@@ -113,11 +113,14 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 	glGenTextures(1, &depth_tex);
 	glBindTexture(GL_TEXTURE_2D, depth_tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-		1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		Global::shadowtune.map_size, Global::shadowtune.map_size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, depth_tex);
@@ -174,12 +177,13 @@ opengl_renderer::Render() {
     if( World.InitPerformed() ) {
         glDebug("rendering shadow map");
         glDisable(GL_FRAMEBUFFER_SRGB);
-        glViewport(0, 0, 1024, 1024);
+        glViewport(0, 0, Global::shadowtune.map_size, Global::shadowtune.map_size);
 
-        glm::mat4 depthproj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
+        glm::mat4 depthproj = glm::ortho(-Global::shadowtune.width, Global::shadowtune.width,
+			-Global::shadowtune.width, Global::shadowtune.width, 0.0f, Global::shadowtune.depth);
 		glm::vec3 playerpos = glm::vec3(World.Camera.Pos.x, World.Camera.Pos.y, World.Camera.Pos.z);
-		glm::vec3 shadoweye = playerpos - Global::daylight.direction * 50.0f;
-		Global::SetCameraPosition(Math3D::vector3(shadoweye));
+		glm::vec3 shadoweye = playerpos - Global::daylight.direction * Global::shadowtune.distance;
+		Global::SetCameraPosition(Math3D::vector3(0.0f, 0.0f, 0.0f));
         glm::mat4 depthcam = glm::lookAt(shadoweye,
 				playerpos,
                 glm::vec3(0.0f, 1.0f, 0.0f));
@@ -187,7 +191,7 @@ opengl_renderer::Render() {
         glMatrixMode(GL_PROJECTION);
         glLoadMatrixf(glm::value_ptr(depthproj));
         glMatrixMode(GL_MODELVIEW);
-        glMultMatrixf(glm::value_ptr(glm::mat4(glm::mat3(depthcam))));
+        glMultMatrixf(glm::value_ptr(depthcam));
 
         glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo);
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -209,7 +213,7 @@ opengl_renderer::Render() {
         glm::dmat4 worldcamera;
         World.Camera.SetMatrix( worldcamera );
         m_camera.update_frustum( OpenGLMatrices.data( GL_PROJECTION ), worldcamera);
-		::glMultMatrixd(glm::value_ptr(glm::dmat4(glm::dmat3(worldcamera))));
+		::glMultMatrixd(glm::value_ptr(worldcamera));
 		shader.bind(); active_shader = &shader;
 		glDebug("rendering environment");
 		glDisable(GL_FRAMEBUFFER_SRGB);
@@ -217,7 +221,8 @@ opengl_renderer::Render() {
 		glDebug("rendering world");
 		glEnable(GL_FRAMEBUFFER_SRGB);
 
-		shader.set_lightview(depthproj * depthcam); //to jest źle. nie uwzględnia przesunięcia to wiadomo, ale obrót też jest źle
+		Global::SetCameraPosition(Math3D::vector3(0.0f, 0.0f, 0.0f));
+		shader.set_lightview(depthproj * depthcam * glm::inverse(glm::mat4(worldcamera)));
         Render( &World.Ground );
 
 		glDebug("rendering cab");
