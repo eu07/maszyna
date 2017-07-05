@@ -44,7 +44,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>eu07++</TargetName>
     <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)bin\</OutDir>
+    <OutDir>E:\Gry\Maszyna_15_04_s\</OutDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -71,7 +71,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/libpng/include;$(SolutionDir)ref/python/include;$(SolutionDir)ref/glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -90,6 +90,7 @@
     <ClCompile Include="AnimModel.cpp" />
     <ClCompile Include="Button.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="command.cpp" />
     <ClCompile Include="Console.cpp" />
     <ClCompile Include="console\LPT.cpp" />
     <ClCompile Include="Console\MWD.cpp" />
@@ -103,9 +104,11 @@
     <ClCompile Include="FadeSound.cpp" />
     <ClCompile Include="Float3d.cpp" />
     <ClCompile Include="frustum.cpp" />
+    <ClCompile Include="gamepadinput.cpp" />
     <ClCompile Include="Gauge.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="Ground.cpp" />
+    <ClCompile Include="keyboardinput.cpp" />
     <ClCompile Include="lightarray.cpp" />
     <ClCompile Include="Logs.cpp" />
     <ClCompile Include="mczapkie\friction.cpp" />
@@ -116,8 +119,10 @@
     <ClCompile Include="MdlMngr.cpp" />
     <ClCompile Include="MemCell.cpp" />
     <ClCompile Include="Model3d.cpp" />
+    <ClCompile Include="moon.cpp" />
     <ClCompile Include="mtable.cpp" />
     <ClCompile Include="Names.cpp" />
+    <ClCompile Include="openglgeometrybank.cpp" />
     <ClCompile Include="openglmatrixstack.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="PyInt.cpp" />
@@ -158,6 +163,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Classes.h" />
     <ClInclude Include="color.h" />
+    <ClInclude Include="command.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Console\LPT.h" />
     <ClInclude Include="Console\MWD.h" />
@@ -171,9 +177,11 @@
     <ClInclude Include="FadeSound.h" />
     <ClInclude Include="Float3d.h" />
     <ClInclude Include="frustum.h" />
+    <ClInclude Include="gamepadinput.h" />
     <ClInclude Include="Gauge.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="Ground.h" />
+    <ClInclude Include="keyboardinput.h" />
     <ClInclude Include="lightarray.h" />
     <ClInclude Include="Logs.h" />
     <ClInclude Include="McZapkie\friction.h" />
@@ -184,8 +192,10 @@
     <ClInclude Include="MdlMngr.h" />
     <ClInclude Include="MemCell.h" />
     <ClInclude Include="Model3d.h" />
+    <ClInclude Include="moon.h" />
     <ClInclude Include="mtable.h" />
     <ClInclude Include="Names.h" />
+    <ClInclude Include="openglgeometrybank.h" />
     <ClInclude Include="openglmatrixstack.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="PyInt.h" />
@@ -214,6 +224,7 @@
     <ClInclude Include="uilayer.h" />
     <ClInclude Include="usefull.h" />
     <ClInclude Include="VBO.h" />
+    <ClInclude Include="version.h" />
     <ClInclude Include="wavread.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>
