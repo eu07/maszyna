@@ -238,7 +238,6 @@ class Global
     static int iBallastFiltering; // domyślne rozmywanie tekstury podsypki
     static int iRailProFiltering; // domyślne rozmywanie tekstury szyn
     static int iDynamicFiltering; // domyślne rozmywanie tekstur pojazdów
-    static int iReCompile; // zwiększany, gdy trzeba odświeżyć siatki
     static bool bUseVBO; // czy jest VBO w karcie graficznej
     static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
@@ -257,6 +256,7 @@ class Global
     static int iCameraLast;
     static std::string asVersion; // z opisem
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
+    static bool ControlPicking; // indicates controls pick mode is enabled
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego
     static bool bDoubleAmbient; // podwójna jasność ambient

@@ -66,6 +66,7 @@ namespace input {
 
 keyboard_input Keyboard;
 gamepad_input Gamepad;
+glm::dvec2 mouse_pos;  // stores last mouse position in control picking mode
 
 }
 
@@ -122,11 +123,22 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
-    input::Keyboard.mouse( x, y );
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-	World.OnMouseMove(x * 0.005, y * 0.01);
-#endif
-	glfwSetCursorPos(window, 0.0, 0.0);
+    if( true == Global::ControlPicking ) {
+        glfwSetCursorPos( window, x, y );
+    }
+    else {
+        input::Keyboard.mouse( x, y );
+        glfwSetCursorPos( window, 0, 0 );
+    }
+}
+
+void mouse_button_callback( GLFWwindow* window, int button, int action, int mods ) {
+
+    if( ( button == GLFW_MOUSE_BUTTON_LEFT )
+     || ( button == GLFW_MOUSE_BUTTON_RIGHT ) ) {
+        // we don't care about other mouse buttons at the moment
+        input::Keyboard.mouse( button, action );
+    }
 }
 
 void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
@@ -135,6 +147,27 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
     Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
     Global::ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
+
+    if( ( key == GLFW_KEY_LEFT_ALT )
+     || ( key == GLFW_KEY_RIGHT_ALT ) ) {
+        // if the alt key was pressed toggle control picking mode and set matching cursor behaviour
+        if( action == GLFW_RELEASE ) {
+
+            if( Global::ControlPicking ) {
+                // switch off
+                glfwGetCursorPos( window, &input::mouse_pos.x, &input::mouse_pos.y );
+                glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+                glfwSetCursorPos( window, 0, 0 );
+            }
+            else {
+                // enter picking mode
+                glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                glfwSetCursorPos( window, input::mouse_pos.x, input::mouse_pos.y );
+            }
+            // actually toggle the mode
+            Global::ControlPicking = !Global::ControlPicking;
+        }
+    }
 
     if( ( key == GLFW_KEY_LEFT_SHIFT )
      || ( key == GLFW_KEY_LEFT_CONTROL )
@@ -340,6 +373,7 @@ int main(int argc, char *argv[])
     glfwSetCursorPos(window, 0.0, 0.0);
     glfwSetFramebufferSizeCallback(window, window_resize_callback);
     glfwSetCursorPosCallback(window, cursor_pos_callback);
+    glfwSetMouseButtonCallback( window, mouse_button_callback );
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback( window, scroll_callback );
     glfwSetWindowFocusCallback(window, focus_callback);
@@ -417,6 +451,7 @@ int main(int argc, char *argv[])
                 && ( true == World.Update() )
                 && ( true == GfxRenderer.Render() ) ) {
                 glfwPollEvents();
+                input::Keyboard.poll();
                 if( true == Global::InputGamepad ) {
                     input::Gamepad.poll();
                 }

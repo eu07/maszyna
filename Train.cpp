@@ -22,6 +22,27 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 
+void
+control_mapper::insert( TGauge const &Gauge, std::string const &Label ) {
+
+    auto const submodel = Gauge.SubModel;
+    if( submodel != nullptr ) {
+        m_controlnames.emplace( submodel, Label );
+    }
+}
+
+std::string
+control_mapper::find( TSubModel const *Control ) const {
+
+    auto const lookup = m_controlnames.find( Control );
+    if( lookup != m_controlnames.end() ) {
+        return lookup->second;
+    }
+    else {
+        return "";
+    }
+}
+
 TCab::TCab()
 {
     CabPos1.x = -1.0;
@@ -5943,13 +5964,16 @@ bool TTrain::Update( double const Deltatime )
     // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
     if( ( mvControlled->Battery )
      || ( mvControlled->ConverterFlag ) ) {
-        if( ( false == mvControlled->PantFrontUp )
-         && ( ggPantFrontButton.GetValue() >= 1.0 ) ) {
-            mvControlled->PantFront( true );
-        }
-        if( ( false == mvControlled->PantRearUp )
-         && ( ggPantRearButton.GetValue() >= 1.0 ) ) {
-            mvControlled->PantRear( true );
+        if( ggPantAllDownButton.GetValue() == 0.0 ) {
+            // the 'lower all' button overrides state of switches, while active itself
+            if( ( false == mvControlled->PantFrontUp )
+             && ( ggPantFrontButton.GetValue() >= 1.0 ) ) {
+                mvControlled->PantFront( true );
+            }
+            if( ( false == mvControlled->PantRearUp )
+             && ( ggPantRearButton.GetValue() >= 1.0 ) ) {
+                mvControlled->PantRear( true );
+            }
         }
     }
 /*
@@ -6309,6 +6333,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 
 bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 {
+    m_controlmapper.clear();
     pyScreens.reset(this);
     pyScreens.setLookupPath(DynamicObject->asBaseDir);
     bool parse = false;
@@ -7195,309 +7220,78 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
 // otherwise
 // NOTE: this is temporary work-around for compiler else-if limit
 // TODO: refactor the cabin controls into some sensible structure
-bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex)
-{
+bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex) {
 
-    TGauge *gg; // roboczy wskaźnik na obiekt animujący gałkę
-
-    /*	sanity check
-            if( !DynamicObject->mdKabina ) {
-                    WriteLog( "Cab not initialised!" );
-                    return false;
-            }
-    */
-    // SEKCJA REGULATOROW
-    if (Label == "mainctrl:")
-    {
-        // nastawnik
-        ggMainCtrl.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "mainctrlact:")
-    {
-        // zabek pozycji aktualnej
-        ggMainCtrlAct.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "scndctrl:")
-    {
-        // bocznik
-        ggScndCtrl.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "dirkey:")
-    {
-        // klucz kierunku
-        ggDirKey.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "brakectrl:")
-    {
-        // hamulec zasadniczy
-        ggBrakeCtrl.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "localbrake:")
-    {
-        // hamulec pomocniczy
-        ggLocalBrake.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "manualbrake:")
-    {
-        // hamulec reczny
-        ggManualBrake.Load(Parser, DynamicObject->mdKabina);
-    }
-    // sekcja przelacznikow obrotowych
-    else if (Label == "brakeprofile_sw:")
-    {
-        // przelacznik tow/osob/posp
-        ggBrakeProfileCtrl.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "brakeprofileg_sw:")
-    {
-        // przelacznik tow/osob
-        ggBrakeProfileG.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "brakeprofiler_sw:")
-    {
-        // przelacznik osob/posp
-        ggBrakeProfileR.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "maxcurrent_sw:")
-    {
-        // przelacznik rozruchu
-        ggMaxCurrentCtrl.Load(Parser, DynamicObject->mdKabina);
-    }
-    // SEKCJA przyciskow sprezynujacych
-    else if (Label == "main_off_bt:")
-    {
-        // przycisk wylaczajacy (w EU07 wyl szybki czerwony)
-        ggMainOffButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "main_on_bt:")
-    {
-        // przycisk wlaczajacy (w EU07 wyl szybki zielony)
-        ggMainOnButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "security_reset_bt:")
-    {
-        // przycisk zbijajacy SHP/czuwak
-        ggSecurityResetButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "releaser_bt:")
-    {
-        // przycisk odluzniacza
-        ggReleaserButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "sand_bt:")
-    {
-        // przycisk piasecznicy
-        ggSandButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "antislip_bt:")
-    {
-        // przycisk antyposlizgowy
-        ggAntiSlipButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "horn_bt:")
-    {
-        // dzwignia syreny
-        ggHornButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "hornlow_bt:" ) {
-        // dzwignia syreny
-        ggHornLowButton.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if( Label == "hornhigh_bt:" ) {
-        // dzwignia syreny
-        ggHornHighButton.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if( Label == "fuse_bt:" )
-    {
-        // bezp. nadmiarowy
-        ggFuseButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "converterfuse_bt:")
-    {
-        // hunter-261211:
-        // odblokowanie przekaznika nadm. przetw. i ogrz.
-        ggConverterFuseButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "stlinoff_bt:")
-    {
-        // st. liniowe
-        ggStLinOffButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "door_left_sw:")
-    {
-        // drzwi lewe
-        ggDoorLeftButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "door_right_sw:")
-    {
-        // drzwi prawe
-        ggDoorRightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "departure_signal_bt:")
-    {
-        // sygnal odjazdu
-        ggDepartureSignalButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "upperlight_sw:")
-    {
-        // swiatlo
-        ggUpperLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "leftlight_sw:")
-    {
-        // swiatlo
-        ggLeftLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "rightlight_sw:")
-    {
-        // swiatlo
-        ggRightLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "dimheadlights_sw:" ) {
-        // swiatlo
-        ggDimHeadlightsButton.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if( Label == "leftend_sw:" )
-    {
-        // swiatlo
-        ggLeftEndLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "rightend_sw:")
-    {
-        // swiatlo
-        ggRightEndLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "lights_sw:")
-    {
-        // swiatla wszystkie
-        ggLightsButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    //---------------------
-    // hunter-230112: przelaczniki swiatel tylnich
-    else if (Label == "rearupperlight_sw:")
-    {
-        // swiatlo
-        ggRearUpperLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "rearleftlight_sw:")
-    {
-        // swiatlo
-        ggRearLeftLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "rearrightlight_sw:")
-    {
-        // swiatlo
-        ggRearRightLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "rearleftend_sw:")
-    {
-        // swiatlo
-        ggRearLeftEndLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "rearrightend_sw:")
-    {
-        // swiatlo
-        ggRearRightEndLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    //------------------
-    else if (Label == "compressor_sw:")
-    {
-        // sprezarka
-        ggCompressorButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "compressorlocal_sw:" ) {
-        // sprezarka
-        ggCompressorLocalButton.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if (Label == "converter_sw:")
-    {
-        // przetwornica
-        ggConverterButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "converterlocal_sw:" ) {
-        // przetwornica
-        ggConverterLocalButton.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if (Label == "converteroff_sw:")
-    {
-        // przetwornica wyl
-        ggConverterOffButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "main_sw:")
-    {
-        // wyl szybki (ezt)
-        ggMainButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "radio_sw:")
-    {
-        // radio
-        ggRadioButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "pantfront_sw:")
-    {
-        // patyk przedni
-        ggPantFrontButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "pantrear_sw:")
-    {
-        // patyk tylny
-        ggPantRearButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "pantfrontoff_sw:" )
-    {
-        // patyk przedni w dol
-        ggPantFrontButtonOff.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "pantrearoff_sw:" ) {
-        // rear pant down
-        ggPantRearButtonOff.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if( Label == "pantalloff_sw:" ) {
-        // both pantographs down
-        ggPantAllDownButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "pantselected_sw:" ) {
-        // operate selected pantograph(s)
-        ggPantSelectedButton.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if( Label == "pantselectedoff_sw:" ) {
-        // operate selected pantograph(s)
-        ggPantSelectedDownButton.Load( Parser, DynamicObject->mdKabina );
-    }
-    else if (Label == "trainheating_sw:") {
-        // grzanie skladu
-        ggTrainHeatingButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "signalling_sw:")
-    {
-        // Sygnalizacja hamowania
-        ggSignallingButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "door_signalling_sw:")
-    {
-        // Sygnalizacja blokady drzwi
-        ggDoorSignallingButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "nextcurrent_sw:")
-    {
-        //  prąd drugiego członu
-        ggNextCurrentButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "cablight_sw:")
-    {
-        // hunter-091012: swiatlo w kabinie
-        ggCabLightButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if (Label == "cablightdim_sw:")
-    {
-        // hunter-091012: przyciemnienie swiatla w kabinie
-        ggCabLightDimButton.Load(Parser, DynamicObject->mdKabina);
-    }
-    else if( Label == "battery_sw:" ) {
-
-        ggBatteryButton.Load( Parser, DynamicObject->mdKabina );
+    TGauge *gg { nullptr }; // roboczy wskaźnik na obiekt animujący gałkę
+    std::unordered_map<std::string, TGauge &> gauges = {
+        { "mainctrl:", ggMainCtrl },
+        { "scndctrl:", ggScndCtrl },
+        { "dirkey:" , ggDirKey },
+        { "brakectrl:", ggBrakeCtrl },
+        { "localbrake:", ggLocalBrake },
+        { "manualbrake:", ggManualBrake },
+        { "brakeprofile_sw:", ggBrakeProfileCtrl },
+        { "brakeprofileg_sw:", ggBrakeProfileG },
+        { "brakeprofiler_sw:", ggBrakeProfileR },
+        { "maxcurrent_sw:", ggMaxCurrentCtrl },
+        { "main_off_bt:", ggMainOffButton },
+        { "main_on_bt:", ggMainOnButton },
+        { "security_reset_bt:", ggSecurityResetButton },
+        { "releaser_bt:", ggReleaserButton },
+        { "sand_bt:", ggSandButton },
+        { "antislip_bt:", ggAntiSlipButton },
+        { "horn_bt:", ggHornButton },
+        { "hornlow_bt:", ggHornLowButton },
+        { "hornhigh_bt:", ggHornHighButton },
+        { "fuse_bt:", ggFuseButton },
+        { "converterfuse_bt:", ggConverterFuseButton },
+        { "stlinoff_bt:", ggStLinOffButton },
+        { "door_left_sw:", ggDoorLeftButton },
+        { "door_right_sw:", ggDoorRightButton },
+        { "departure_signal_bt:", ggDepartureSignalButton },
+        { "upperlight_sw:", ggUpperLightButton },
+        { "leftlight_sw:", ggLeftLightButton },
+        { "rightlight_sw:", ggRightLightButton },
+        { "dimheadlights_sw:", ggDimHeadlightsButton },
+        { "leftend_sw:", ggLeftEndLightButton },
+        { "rightend_sw:", ggRightEndLightButton },
+        { "lights_sw:", ggLightsButton },
+        { "rearupperlight_sw:", ggRearUpperLightButton },
+        { "rearleftlight_sw:", ggRearLeftLightButton },
+        { "rearrightlight_sw:", ggRearRightLightButton },
+        { "rearleftend_sw:", ggRearLeftEndLightButton },
+        { "rearrightend_sw:",  ggRearRightEndLightButton },
+        { "compressor_sw:", ggCompressorButton },
+        { "compressorlocal_sw:", ggCompressorLocalButton },
+        { "converter_sw:", ggConverterButton },
+        { "converterlocal_sw:", ggConverterLocalButton },
+        { "converteroff_sw:", ggConverterOffButton },
+        { "main_sw:", ggMainButton },
+        { "radio_sw:", ggRadioButton },
+        { "pantfront_sw:", ggPantFrontButton },
+        { "pantrear_sw:", ggPantRearButton },
+        { "pantfrontoff_sw:", ggPantFrontButtonOff },
+        { "pantrearoff_sw:", ggPantRearButtonOff },
+        { "pantalloff_sw:", ggPantAllDownButton },
+        { "pantselected_sw:", ggPantSelectedButton },
+        { "pantselectedoff_sw:", ggPantSelectedDownButton },
+        { "trainheating_sw:", ggTrainHeatingButton },
+        { "signalling_sw:", ggSignallingButton },
+        { "door_signalling_sw:", ggDoorSignallingButton },
+        { "nextcurrent_sw:", ggNextCurrentButton },
+        { "cablight_sw:", ggCabLightButton },
+        { "cablightdim_sw:", ggCabLightDimButton },
+        { "battery_sw:", ggBatteryButton }
+    };
+    auto lookup = gauges.find( Label );
+    if( lookup != gauges.end() ) {
+        lookup->second.Load( Parser, DynamicObject->mdKabina );
+        m_controlmapper.insert( lookup->second, lookup->first );
     }
     // ABu 090305: uniwersalne przyciski lub inne rzeczy
+    else if( Label == "mainctrlact:" ) {
+        ggMainCtrlAct.Load( Parser, DynamicObject->mdKabina, DynamicObject->mdModel );
+    }
     else if (Label == "universal1:")
     {
         ggUniversal1Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);

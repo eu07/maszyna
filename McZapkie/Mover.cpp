@@ -814,9 +814,11 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
            sn3 = 0.0,
            sn4 = 0.0,
            sn5 = 0.0; // Ra: zrobić z tego amperomierz NN
-    if ((BatteryVoltage > 0) && (EngineType != DieselEngine) && (EngineType != WheelsDriven) &&
-        (NominalBatteryVoltage > 0))
-    {
+    if( ( BatteryVoltage > 0 )
+     && ( EngineType != DieselEngine )
+     && ( EngineType != WheelsDriven )
+     && ( NominalBatteryVoltage > 0 ) ) {
+
         if ((NominalBatteryVoltage / BatteryVoltage < 1.22) && Battery)
         { // 110V
             if (!ConverterFlag)
@@ -884,10 +886,10 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
         if (BatteryVoltage < 0.01)
             BatteryVoltage = 0.01;
     }
-    else if (NominalBatteryVoltage == 0)
-        BatteryVoltage = 0;
-    else
-        BatteryVoltage = 90;
+    else {
+        // TODO: check and implement proper way to handle this for diesel engines
+        BatteryVoltage = NominalBatteryVoltage;
+    }
 };
 
 /* Ukrotnienie EN57:

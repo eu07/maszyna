@@ -121,9 +121,14 @@ std::string to_string(double _Val, int precision);
 std::string to_string(double _Val, int precision, int width);
 std::string to_hex_str( int const _Val, int const width = 4 );
 
-inline std::string to_string(bool _Val)
-{
+inline std::string to_string(bool _Val) {
+
 	return _Val == true ? "true" : "false";
+}
+
+template <typename Type_, glm::precision Precision_ = glm::defaultp>
+std::string to_string( glm::tvec3<Type_, Precision_> const &Value ) {
+    return to_string( Value.x, 2 ) + ", " + to_string( Value.y, 2 ) + ", " + to_string( Value.z, 2 );
 }
 
 int stol_def(const std::string & str, const int & DefaultValue);

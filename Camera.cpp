@@ -419,27 +419,16 @@ bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
     if( Type == tp_Follow ) {
 
         Matrix *= glm::lookAt(
-            glm::dvec3( Pos.x, Pos.y, Pos.z ),
-            glm::dvec3( LookAt.x, LookAt.y, LookAt.z ),
-            glm::dvec3( vUp.x, vUp.y, vUp.z ) );
+            glm::dvec3{ Pos },
+            glm::dvec3{ LookAt },
+            glm::dvec3{ vUp } );
     }
     else {
-        Matrix = glm::translate( Matrix, glm::dvec3( -Pos.x, -Pos.y, -Pos.z ) ); // nie zmienia kierunku patrzenia
+        Matrix = glm::translate( Matrix, glm::dvec3{ -Pos } ); // nie zmienia kierunku patrzenia
     }
 
     Global::SetCameraPosition( Pos ); // było +pOffset
     return true;
-}
-
-void TCamera::SetCabMatrix(vector3 &p)
-{ // ustawienie widoku z kamery bez przesunięcia robionego przez OpenGL - nie powinno tak trząść
-
-    glRotated(-Roll * 180.0 / M_PI, 0.0, 0.0, 1.0);
-    glRotated(-Pitch * 180.0 / M_PI, 1.0, 0.0, 0.0);
-    glRotated(-Yaw * 180.0 / M_PI, 0.0, 1.0, 0.0); // w zewnętrznym widoku: kierunek patrzenia
-    if (Type == tp_Follow)
-        gluLookAt(Pos.x - p.x, Pos.y - p.y, Pos.z - p.z, LookAt.x - p.x, LookAt.y - p.y,
-                  LookAt.z - p.z, vUp.x, vUp.y, vUp.z); // Ra: pOffset is zero
 }
 
 void TCamera::RaLook()

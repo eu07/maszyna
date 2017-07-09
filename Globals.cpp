@@ -38,7 +38,6 @@ double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
 float Global::SunAngle = 0.0f;
-int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
 int Global::ScreenWidth = 1;
 int Global::ScreenHeight = 1;
 float Global::ZoomFactor = 1.0f;
@@ -48,6 +47,7 @@ bool Global::shiftState;
 bool Global::ctrlState;
 int Global::iCameraLast = -1;
 std::string Global::asVersion = "couldn't retrieve version string";
+bool Global::ControlPicking = false; // indicates controls pick mode is enabled
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca

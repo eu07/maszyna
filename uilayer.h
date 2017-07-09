@@ -51,6 +51,8 @@ public:
 	void
         set_background( std::string const &Filename = "" );
     void
+        set_tooltip( std::string const &Tooltip ) { m_tooltip = Tooltip; }
+    void
         clear_texts() { m_panels.clear(); }
     void
         push_back( std::shared_ptr<ui_panel> Panel ) { m_panels.emplace_back( Panel ); }
@@ -67,6 +69,8 @@ private:
         render_progress();
     void
         render_panels();
+    void
+        render_tooltip();
     // prints specified text, using display lists font
     void
         print( std::string const &Text );
@@ -76,11 +80,18 @@ private:
 
 
 // members:
-    GLuint m_fontbase{ (GLuint)-1 }; // numer DL dla znaków w napisach
-    float m_progress{ 0.0f };                // percentage of filled progres bar, to indicate lengthy operations.
-    float m_subtaskprogress{ 0.0f };                // percentage of filled progres bar, to indicate lengthy operations.
-    texture_handle m_background; // path to texture used as the background. size depends on mAspect.
+    GLFWwindow *m_window { nullptr };
+    GLuint m_fontbase { (GLuint)-1 }; // numer DL dla znaków w napisach
+
+    // progress bar config. TODO: put these together into an object
+    float m_progress { 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
+    float m_subtaskprogress{ 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
+    std::string m_progresstext; // label placed over the progress bar
+    bool m_progressbottom { false }; // location of the progress bar
+
+    texture_handle m_background { NULL }; // path to texture used as the background. size depends on mAspect.
     std::vector<std::shared_ptr<ui_panel> > m_panels;
+    std::string m_tooltip;
 };
 
 extern ui_layer UILayer;

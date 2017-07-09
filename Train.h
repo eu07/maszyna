@@ -57,6 +57,18 @@ class TCab
     void Update();
 };
 
+class control_mapper {
+    typedef std::unordered_map< TSubModel const *, std::string> submodelstring_map;
+    submodelstring_map m_controlnames;
+public:
+    void
+        clear() { m_controlnames.clear(); }
+    void
+        insert( TGauge const &Gauge, std::string const &Label );
+    std::string
+        find( TSubModel const *Control ) const;
+};
+
 class TTrain
 {
   public:
@@ -72,6 +84,7 @@ class TTrain
 
     inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
     inline vector3 GetUp() { return DynamicObject->VectorUp(); };
+    inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
     void UpdateMechPosition(double dt);
     vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
@@ -84,7 +97,7 @@ class TTrain
 
   private:
 // types
-      typedef void( *command_handler )( TTrain *Train, command_data const &Command );
+    typedef void( *command_handler )( TTrain *Train, command_data const &Command );
     typedef std::unordered_map<user_command, command_handler> commandhandler_map;
     // clears state of all cabin controls
     void clear_cab_controls();
@@ -184,8 +197,9 @@ class TTrain
     TMoverParameters *mvSecond; // drugi człon (ET40, ET41, ET42, ukrotnienia)
     TMoverParameters *mvThird; // trzeci człon (SN61)
     // helper variable, to prevent immediate switch between closing and opening line breaker circuit
-    int m_linebreakerstate{ 0 }; // -1: freshly open, 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
+    int m_linebreakerstate { 0 }; // -1: freshly open, 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
     static const commandhandler_map m_commandhandlers;
+    control_mapper m_controlmapper;
 
 public: // reszta może by?publiczna
 

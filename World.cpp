@@ -180,6 +180,20 @@ simulation_time::julian_day() const {
     return JD;
 }
 
+namespace locale {
+
+std::string
+control( std::string const &Label ) {
+
+    auto const lookup = m_controls.find( Label );
+    return (
+        lookup != m_controls.end() ?
+            lookup->second :
+            "" );
+}
+
+}
+
 TWorld::TWorld()
 {
     // randomize();
@@ -1135,43 +1149,44 @@ void
 TWorld::Update_Camera( double const Deltatime ) {
     // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
 
-    if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
-        Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
-        // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
-        // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-        if( Controlled ? LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < 2250000 :
-            false ) // gdy bliżej niż 1.5km
-            Camera.LookAt = Controlled->GetPosition();
-        else {
-            TDynamicObject *d =
-                Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
-            if( !d )
-                d = Ground.DynamicNearest( Camera.Pos,
-                1000 ); // dalej szukanie, jesli bliżej nie ma
-            if( d && pDynamicNearest ) // jeśli jakiś jest znaleziony wcześniej
-                if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
-                    LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
-                    d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
-            // poprzedni najbliższy, zostaje poprzedni
-            if( d )
-                pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
-            if( pDynamicNearest )
-                Camera.LookAt = pDynamicNearest->GetPosition();
+    if( false == Global::ControlPicking ) {
+        if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
+            Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
+            // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
+            // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
+            if( Controlled && LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) // gdy bliżej niż 1.5km
+                Camera.LookAt = Controlled->GetPosition();
+            else {
+                TDynamicObject *d =
+                    Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
+                if( !d )
+                    d = Ground.DynamicNearest( Camera.Pos,
+                        1000 ); // dalej szukanie, jesli bliżej nie ma
+                if( d && pDynamicNearest ) // jeśli jakiś jest znaleziony wcześniej
+                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
+                        LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
+                        d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
+                // poprzedni najbliższy, zostaje poprzedni
+                if( d )
+                    pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
+                if( pDynamicNearest )
+                    Camera.LookAt = pDynamicNearest->GetPosition();
+            }
+            if( FreeFlyModeFlag )
+                Camera.RaLook(); // jednorazowe przestawienie kamery
         }
-        if( FreeFlyModeFlag )
-            Camera.RaLook(); // jednorazowe przestawienie kamery
-    }
-    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) { //||Console::Pressed(VK_F4))
-        FollowView( false ); // bez wyciszania dźwięków
-    }
-    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) == GLFW_PRESS ) {
-        // middle mouse button controls zoom.
-        Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>( Deltatime ) );
-    }
-    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) != GLFW_PRESS ) {
-        // reset zoom level if the button is no longer held down.
-        // NOTE: yes, this is terrible way to go about it. it'll do for now.
-        Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) { //||Console::Pressed(VK_F4))
+            FollowView( false ); // bez wyciszania dźwięków
+        }
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) == GLFW_PRESS ) {
+            // middle mouse button controls zoom.
+            Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>( Deltatime ) );
+        }
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) != GLFW_PRESS ) {
+            // reset zoom level if the button is no longer held down.
+            // NOTE: yes, this is terrible way to go about it. it'll do for now.
+            Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
+        }
     }
 
     Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
@@ -1258,74 +1273,28 @@ void TWorld::ResourceSweep()
 */
 };
 
-// rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-void
-TWorld::Render_Cab() {
-
-    if( Train == nullptr ) {
-
-        TSubModel::iInstance = 0;
-        return;
-    }
-
-    TDynamicObject *dynamic = Train->Dynamic();
-    TSubModel::iInstance = reinterpret_cast<std::size_t>( dynamic );
-
-    if( ( true == FreeFlyModeFlag )
-     || ( false == dynamic->bDisplayCab )
-     || ( dynamic->mdKabina == dynamic->mdModel ) ) {
-        // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
-        return;
-    }
-/*
-    glPushMatrix();
-    vector3 pos = dynamic->GetPosition(); // wszpółrzędne pojazdu z kabiną
-    // glTranslatef(pos.x,pos.y,pos.z); //przesunięcie o wektor (tak było i trzęsło)
-    // aby pozbyć się choć trochę trzęsienia, trzeba by nie przeliczać kabiny do punktu
-    // zerowego scenerii
-    glLoadIdentity(); // zacząć od macierzy jedynkowej
-    Camera.SetCabMatrix( pos ); // widok z kamery po przesunięciu
-    glMultMatrixd( dynamic->mMatrix.getArray() ); // ta macierz nie ma przesunięcia
-*/
-    ::glPushMatrix();
-    auto const originoffset = dynamic->GetPosition() - Global::pCameraPosition;
-    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-    ::glMultMatrixd( dynamic->mMatrix.getArray() );
-
-    if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
-    {
-        // setup
-        if( dynamic->fShade > 0.0f ) {
-            // change light level based on light level of the occupied track
-            Global::DayLight.apply_intensity( dynamic->fShade );
-        }
-        if( dynamic->InteriorLightLevel > 0.0f ) {
-            // crude way to light the cabin, until we have something more complete in place
-            auto const cablight = dynamic->InteriorLight * dynamic->InteriorLightLevel;
-            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
-        }
-        // render
-        GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
-        GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic->Material(), 0.0 );
-        // post-render restore
-        if( dynamic->fShade > 0.0f ) {
-            // change light level based on light level of the occupied track
-            Global::DayLight.apply_intensity();
-        }
-        if( dynamic->InteriorLightLevel > 0.0f ) {
-            // reset the overall ambient
-            GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-            ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, ambient );
-        }
-    }
-    glPopMatrix();
-}
-
 void
 TWorld::Update_UI() {
 
     UITable->text_lines.clear();
     std::string  uitextline1, uitextline2, uitextline3, uitextline4;
+    UILayer.set_tooltip( "" );
+
+    if( ( Train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
+        if( false == DebugModeFlag ) {
+            // in regular mode show control functions, for defined controls
+            UILayer.set_tooltip( locale::control( Train->GetLabel( GfxRenderer.Pick_Control() ) ) );
+        }
+        else {
+            // in debug mode show names of submodels, to help with cab setup and/or debugging
+            auto const cabcontrol = GfxRenderer.Pick_Control();
+            UILayer.set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
+        }
+    }
+    if( ( true == Global::ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
+        auto const scenerynode = GfxRenderer.Pick_Node();
+        UILayer.set_tooltip( ( scenerynode ? scenerynode->asName : "" ) );
+    }
 
     switch( Global::iTextMode ) {
 
@@ -2338,9 +2307,6 @@ world_environment::update() {
     Global::FogColor[ 0 ] = skydomecolour.x;
     Global::FogColor[ 1 ] = skydomecolour.y;
     Global::FogColor[ 2 ] = skydomecolour.z;
-    ::glFogfv( GL_FOG_COLOR, Global::FogColor ); // kolor mgły
-
-    ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f ); // kolor nieba
 }
 
 void

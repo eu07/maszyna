@@ -120,10 +120,11 @@ const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */
-    batterytoggle
+    batterytoggle,
 /*
 const int k_WalkMode = 73;
 */
+    none = -1
 };
 
 enum class command_target {

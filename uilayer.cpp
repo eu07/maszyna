@@ -25,9 +25,10 @@ ui_layer::~ui_layer() {
 bool
 ui_layer::init( GLFWwindow *Window ) {
 
+    m_window = Window;
     HFONT font; // Windows Font ID
     m_fontbase = ::glGenLists(96); // storage for 96 characters
-    HDC hDC = ::GetDC( glfwGetWin32Window( Window ) );
+    HDC hDC = ::GetDC( glfwGetWin32Window( m_window ) );
     font = ::CreateFont( -MulDiv( 10, ::GetDeviceCaps( hDC, LOGPIXELSY ), 72 ), // height of font
                         0, // width of font
                         0, // angle of escapement
@@ -79,6 +80,7 @@ ui_layer::render() {
     render_background();
     render_progress();
     render_panels();
+    render_tooltip();
 
 	glPopAttrib();
 }
@@ -94,12 +96,14 @@ void
 ui_layer::set_background( std::string const &Filename ) {
 
     if( false == Filename.empty() ) {
-
         m_background = GfxRenderer.GetTextureId( Filename, szTexturePath );
     }
     else {
-
-        m_background = 0;
+        m_background = NULL;
+    }
+    if( m_background != NULL ) {
+        auto const &texture = GfxRenderer.Texture( m_background );
+        m_progressbottom = ( texture.width() != texture.height() );
     }
 }
 /*
@@ -115,17 +119,27 @@ ui_layer::render_progress() {
 	glPushAttrib( GL_ENABLE_BIT );
     glDisable( GL_TEXTURE_2D );
 
-    quad( float4( 75.0f, 640.0f, 75.0f + 320.0f, 640.0f + 16.0f ), float4(0.0f, 0.0f, 0.0f, 0.25f) );
+    glm::vec2 origin, size;
+    if( m_progressbottom == true ) {
+        origin = glm::vec2{ 0.0f, 768.0f - 20.0f };
+        size   = glm::vec2{ 1024.0f, 20.0f };
+    }
+    else {
+        origin = glm::vec2{ 75.0f, 640.0f };
+        size   = glm::vec2{ 320.0f, 16.0f };
+    }
+
+    quad( float4( origin.x, origin.y, origin.x + size.x, origin.y + size.y ), float4(0.0f, 0.0f, 0.0f, 0.25f) );
     // secondary bar
     if( m_subtaskprogress ) {
         quad(
-            float4( 75.0f, 640.0f, 75.0f + 320.0f * m_subtaskprogress, 640.0f + 16.0f),
+            float4( origin.x, origin.y, origin.x + size.x * m_subtaskprogress, origin.y + size.y),
             float4( 8.0f/255.0f, 160.0f/255.0f, 8.0f/255.0f, 0.35f ) );
     }
     // primary bar
 	if( m_progress ) {
         quad(
-            float4( 75.0f, 640.0f, 75.0f + 320.0f * m_progress, 640.0f + 16.0f ),
+            float4( origin.x, origin.y, origin.x + size.x * m_progress, origin.y + size.y ),
             float4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
     }
 
@@ -156,6 +170,23 @@ ui_layer::render_panels() {
             ++lineidx;
         }
     }
+
+    glPopAttrib();
+}
+
+void
+ui_layer::render_tooltip() {
+
+    if( m_tooltip.empty() ) { return; }
+
+    glm::dvec2 mousepos;
+    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
+
+    glPushAttrib( GL_ENABLE_BIT );
+    glDisable( GL_TEXTURE_2D );
+    ::glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
+    ::glRasterPos2f( mousepos.x + 20.0f, mousepos.y + 25.0f );
+    print( m_tooltip );
 
     glPopAttrib();
 }
