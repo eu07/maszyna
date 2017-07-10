@@ -48,6 +48,7 @@ bool Global::ctrlState;
 int Global::iCameraLast = -1;
 std::string Global::asVersion = "couldn't retrieve version string";
 bool Global::ControlPicking = false; // indicates controls pick mode is enabled
+bool Global::InputMouse = true; // whether control pick mode can be activated
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca
@@ -370,6 +371,11 @@ void Global::ConfigParse(cParser &Parser)
             // McZapkie-060503 - czulosc ruchu myszy (krecenia glowa)
             Parser.getTokens(2, false);
             Parser >> Global::fMouseXScale >> Global::fMouseYScale;
+        }
+        else if( token == "mousecontrol" ) {
+            // whether control pick mode can be activated
+            Parser.getTokens();
+            Parser >> Global::InputMouse;
         }
         else if (token == "enabletraction")
         {

@@ -47,6 +47,8 @@ public:
 	// stores operation progress
 	void
         set_progress( float const Progress = 0.0f, float const Subtaskprogress = 0.0f );
+    void
+        set_progress( std::string const &Text ) { m_progresstext = Text; }
 	// sets the ui background texture, if any
 	void
         set_background( std::string const &Filename = "" );

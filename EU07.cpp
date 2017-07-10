@@ -23,6 +23,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Globals.h"
 #include "Logs.h"
 #include "keyboardinput.h"
+#include "mouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
 #include "PyInt.h"
@@ -65,6 +66,7 @@ TWorld World;
 namespace input {
 
 keyboard_input Keyboard;
+mouse_input Mouse;
 gamepad_input Gamepad;
 glm::dvec2 mouse_pos;  // stores last mouse position in control picking mode
 
@@ -123,11 +125,12 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
+    input::Mouse.move( x, y );
+
     if( true == Global::ControlPicking ) {
         glfwSetCursorPos( window, x, y );
     }
     else {
-        input::Keyboard.mouse( x, y );
         glfwSetCursorPos( window, 0, 0 );
     }
 }
@@ -137,7 +140,7 @@ void mouse_button_callback( GLFWwindow* window, int button, int action, int mods
     if( ( button == GLFW_MOUSE_BUTTON_LEFT )
      || ( button == GLFW_MOUSE_BUTTON_RIGHT ) ) {
         // we don't care about other mouse buttons at the moment
-        input::Keyboard.mouse( button, action );
+        input::Mouse.button( button, action );
     }
 }
 
@@ -148,8 +151,9 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
     Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
     Global::ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
 
-    if( ( key == GLFW_KEY_LEFT_ALT )
-     || ( key == GLFW_KEY_RIGHT_ALT ) ) {
+    if( ( true == Global::InputMouse )
+     && ( ( key == GLFW_KEY_LEFT_ALT )
+       || ( key == GLFW_KEY_RIGHT_ALT ) ) ) {
         // if the alt key was pressed toggle control picking mode and set matching cursor behaviour
         if( action == GLFW_RELEASE ) {
 
@@ -413,6 +417,7 @@ int main(int argc, char *argv[])
         return -1;
     }
     input::Keyboard.init();
+    input::Mouse.init();
     input::Gamepad.init();
 
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
@@ -452,9 +457,8 @@ int main(int argc, char *argv[])
                 && ( true == GfxRenderer.Render() ) ) {
                 glfwPollEvents();
                 input::Keyboard.poll();
-                if( true == Global::InputGamepad ) {
-                    input::Gamepad.poll();
-                }
+                if( true == Global::InputMouse )   { input::Mouse.poll(); }
+                if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
             }
         }
         catch( std::bad_alloc const &Error ) {

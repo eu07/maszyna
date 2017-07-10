@@ -1,0 +1,335 @@
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
+
+#include "stdafx.h"
+#include "mouseinput.h"
+#include "globals.h"
+#include "timer.h"
+#include "world.h"
+#include "train.h"
+#include "renderer.h"
+
+extern TWorld World;
+
+void
+mouse_input::move( double Mousex, double Mousey ) {
+
+    if( false == Global::ControlPicking ) {
+        // default control mode
+        m_relay.post(
+            user_command::viewturn,
+            reinterpret_cast<std::uint64_t const &>( Mousex ),
+            reinterpret_cast<std::uint64_t const &>( Mousey ),
+            GLFW_PRESS,
+            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+            // TODO: pass correct entity id once the missing systems are in place
+            0 );
+    }
+    else {
+        if( false == m_pickmodepanning ) {
+            // even if the view panning isn't active we capture the cursor position in case it does get activated
+            m_cursorposition.x = Mousex;
+            m_cursorposition.y = Mousey;
+            return;
+        }
+        glm::dvec2 cursorposition { Mousex, Mousey };
+        auto const viewoffset = cursorposition - m_cursorposition;
+        m_relay.post(
+            user_command::viewturn,
+            reinterpret_cast<std::uint64_t const &>( viewoffset.x ),
+            reinterpret_cast<std::uint64_t const &>( viewoffset.y ),
+            GLFW_PRESS,
+            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+            // TODO: pass correct entity id once the missing systems are in place
+            0 );
+        m_cursorposition = cursorposition;
+    }
+}
+
+void
+mouse_input::button( int const Button, int const Action ) {
+
+    if( false == Global::ControlPicking ) { return; }
+    if( true == FreeFlyModeFlag ) {
+        // for now we're only interested in cab controls
+        return;
+    }
+
+    user_command &mousecommand = (
+        Button == GLFW_MOUSE_BUTTON_LEFT ?
+            m_mousecommandleft :
+            m_mousecommandright
+        );
+
+    if( Action == GLFW_RELEASE ) {
+        if( mousecommand != user_command::none ) {
+            // NOTE: basic keyboard controls don't have any parameters
+            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+            // TODO: pass correct entity id once the missing systems are in place
+            m_relay.post( mousecommand, 0, 0, Action, 0 );
+            mousecommand = user_command::none;
+        }
+        else {
+            // if it's the right mouse button that got released, stop view panning
+            if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+                m_pickmodepanning = false;
+            }
+        }
+    }
+    else {
+        // if not release then it's press
+        auto train = World.train();
+        if( train != nullptr ) {
+            auto lookup = m_mousecommands.find( train->GetLabel( GfxRenderer.Update_Pick_Control() ) );
+            if( lookup != m_mousecommands.end() ) {
+                mousecommand = (
+                    Button == GLFW_MOUSE_BUTTON_LEFT ?
+                        lookup->second.left :
+                        lookup->second.right
+                    );
+                if( mousecommand != user_command::none ) {
+                    // check manually for commands which have 'fast' variants launched with shift modifier
+                    if( Global::shiftState ) {
+                        switch( mousecommand ) {
+                            case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
+                            case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
+                            case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
+                            case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
+                            case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
+                            case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
+                            default: { break; }
+                        }
+                    }
+                    // NOTE: basic keyboard controls don't have any parameters
+                    // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+                    // TODO: pass correct entity id once the missing systems are in place
+                    m_relay.post( mousecommand, 0, 0, Action, 0 );
+                    m_updateaccumulator = 0.0; // prevent potential command repeat right after issuing one
+                    if( mousecommand == user_command::mastercontrollerincrease ) {
+                        m_updateaccumulator -= 0.15; // extra pause on first increase of master controller
+                    }
+                }
+            }
+            else {
+                // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
+                if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+                    m_pickmodepanning = true;
+                }
+            }
+        }
+    }
+}
+
+void
+mouse_input::poll() {
+
+    m_updateaccumulator += Timer::GetDeltaRenderTime();
+
+    if( m_updateaccumulator < 0.1 ) {
+        // too early for any work
+        return;
+    }
+    m_updateaccumulator -= 0.1;
+
+    if( m_mousecommandleft != user_command::none ) {
+        // NOTE: basic keyboard controls don't have any parameters
+        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+        // TODO: pass correct entity id once the missing systems are in place
+        m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+    }
+    if( m_mousecommandright != user_command::none ) {
+        // NOTE: basic keyboard controls don't have any parameters
+        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+        // TODO: pass correct entity id once the missing systems are in place
+        m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+    }
+}
+
+void
+mouse_input::default_bindings() {
+
+    m_mousecommands = {
+        { "mainctrl:", {
+            user_command::mastercontrollerincrease,
+            user_command::mastercontrollerdecrease } },
+        { "scndctrl:", {
+            user_command::secondcontrollerincrease,
+            user_command::secondcontrollerdecrease } },
+        { "dirkey:", {
+            user_command::reverserincrease,
+            user_command::reverserdecrease } },
+        { "brakectrl:", {
+            user_command::trainbrakeincrease,
+            user_command::trainbrakedecrease } },
+        { "localbrake:", {
+            user_command::independentbrakeincrease,
+            user_command::independentbrakedecrease } },
+        { "manualbrake:", {
+            user_command::none,
+            user_command::none } },
+        { "brakeprofile_sw:", {
+            user_command::brakeactingspeedincrease,
+            user_command::brakeactingspeeddecrease } },
+        { "brakeprofileg_sw:", {
+            user_command::brakeactingspeeddecrease,
+            user_command::none } },
+        { "brakeprofiler_sw:", {
+            user_command::brakeactingspeedincrease,
+            user_command::none } },
+        { "maxcurrent_sw:", {
+            user_command::motoroverloadrelaythresholdtoggle,
+            user_command::none } },
+        { "main_off_bt:", {
+            user_command::linebreakertoggle,
+            user_command::none } },
+        { "main_on_bt:",{
+            user_command::linebreakertoggle,
+            user_command::none } }, // TODO: dedicated on and off line breaker commands
+        { "security_reset_bt:", {
+            user_command::alerteracknowledge,
+            user_command::none } },
+        { "releaser_bt:", {
+            user_command::independentbrakebailoff,
+            user_command::none } },
+        { "sand_bt:", {
+            user_command::sandboxactivate,
+            user_command::none } },
+        { "antislip_bt:", {
+            user_command::wheelspinbrakeactivate,
+            user_command::none } },
+        { "horn_bt:", {
+            user_command::hornhighactivate,
+            user_command::hornlowactivate } },
+        { "hornlow_bt:", {
+            user_command::hornlowactivate,
+            user_command::none } },
+        { "hornhigh_bt:", {
+            user_command::hornhighactivate,
+            user_command::none } },
+        { "fuse_bt:", {
+            user_command::motoroverloadrelayreset,
+            user_command::none } },
+        { "converterfuse_bt:", {
+            user_command::converteroverloadrelayreset,
+            user_command::none } },
+        { "stlinoff_bt:", {
+            user_command::motorconnectorsopen,
+            user_command::none } },
+        { "door_left_sw:", {
+            user_command::doortoggleleft,
+            user_command::none } },
+        { "door_right_sw:", {
+            user_command::doortoggleright,
+            user_command::none } },
+        { "departure_signal_bt:", {
+            user_command::departureannounce,
+            user_command::none } },
+        { "upperlight_sw:", {
+            user_command::headlighttoggleupper,
+            user_command::none } },
+        { "leftlight_sw:", {
+            user_command::headlighttoggleleft,
+            user_command::none } },
+        { "rightlight_sw:", {
+            user_command::headlighttoggleright,
+            user_command::none } },
+        { "dimheadlights_sw:", {
+            user_command::headlightsdimtoggle,
+            user_command::none } },
+        { "leftend_sw:", {
+            user_command::redmarkertoggleleft,
+            user_command::none } },
+        { "rightend_sw:", {
+            user_command::redmarkertoggleright,
+            user_command::none } },
+        { "lights_sw:", {
+            user_command::none,
+            user_command::none } }, // TODO: implement commands for lights controller
+        { "rearupperlight_sw:", {
+            user_command::headlighttogglerearupper,
+            user_command::none } },
+        { "rearleftlight_sw:", {
+            user_command::headlighttogglerearleft,
+            user_command::none } },
+        { "rearrightlight_sw:", {
+            user_command::headlighttogglerearright,
+            user_command::none } },
+        { "rearleftend_sw:", {
+            user_command::redmarkertogglerearleft,
+            user_command::none } },
+        { "rearrightend_sw:", {
+            user_command::redmarkertogglerearright,
+            user_command::none } },
+        { "compressor_sw:", {
+            user_command::compressortoggle,
+            user_command::none } },
+        { "compressorlocal_sw:", {
+            user_command::compressortogglelocal,
+            user_command::none } },
+        { "converter_sw:", {
+            user_command::convertertoggle,
+            user_command::none } },
+        { "converterlocal_sw:", {
+            user_command::convertertogglelocal,
+            user_command::none } },
+        { "converteroff_sw:", {
+            user_command::convertertoggle,
+            user_command::none } }, // TODO: dedicated converter shutdown command
+        { "main_sw:", {
+            user_command::linebreakertoggle,
+            user_command::none } },
+        { "radio_sw:", {
+            user_command::radiotoggle,
+            user_command::none } },
+        { "pantfront_sw:", {
+            user_command::pantographtogglefront,
+            user_command::none } },
+        { "pantrear_sw:", {
+            user_command::pantographtogglerear,
+            user_command::none } },
+        { "pantfrontoff_sw:", {
+            user_command::pantographtogglefront,
+            user_command::none } }, // TODO: dedicated lower pantograph commands
+        { "pantrearoff_sw:", {
+            user_command::pantographtogglerear,
+            user_command::none } }, // TODO: dedicated lower pantograph commands
+        { "pantalloff_sw:", {
+            user_command::pantographlowerall,
+            user_command::none } },
+        { "pantselected_sw:", {
+            user_command::none,
+            user_command::none } }, // TODO: selected pantograph(s) operation command
+        { "pantselectedoff_sw:", {
+            user_command::none,
+            user_command::none } }, // TODO: lower selected pantograp(s) command
+        { "trainheating_sw:", {
+            user_command::heatingtoggle,
+            user_command::none } },
+        { "signalling_sw:", {
+            user_command::mubrakingindicatortoggle,
+            user_command::none } },
+        { "door_signalling_sw:", {
+            user_command::doorlocktoggle,
+            user_command::none } },
+        { "nextcurrent_sw:", {
+            user_command::mucurrentindicatorothersourceactivate,
+            user_command::none } },
+        { "cablight_sw:", {
+            user_command::interiorlighttoggle,
+            user_command::none } },
+        { "cablightdim_sw:", {
+            user_command::interiorlightdimtoggle,
+            user_command::none } },
+        { "battery_sw:", {
+            user_command::batterytoggle,
+            user_command::none } }
+    };
+}
+
+//---------------------------------------------------------------------------

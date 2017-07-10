@@ -256,7 +256,8 @@ class Global
     static int iCameraLast;
     static std::string asVersion; // z opisem
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
-    static bool ControlPicking; // indicates controls pick mode is enabled
+    static bool ControlPicking; // indicates controls pick mode is active
+    static bool InputMouse; // whether control pick mode can be activated
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego
     static bool bDoubleAmbient; // podwójna jasność ambient

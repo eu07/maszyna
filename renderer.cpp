@@ -206,8 +206,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             // TODO: run shadowmap pass before color
 
 //            ::glViewport( 0, 0, Global::ScreenWidth, Global::ScreenHeight );
-            auto const skydomecolour = World.Environment.m_skydome.GetAverageColor();
-            ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.0f ); // kolor nieba
+            if( World.InitPerformed() ) {
+                auto const skydomecolour = World.Environment.m_skydome.GetAverageColor();
+                ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.0f ); // kolor nieba
+            }
             ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
             if( World.InitPerformed() ) {
@@ -1972,6 +1974,7 @@ opengl_renderer::Update_Pick_Control() {
         ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
     }
 #endif
+    m_pickcontrolitem = control;
     return control;
 }
 
@@ -2015,6 +2018,7 @@ opengl_renderer::Update_Pick_Node() {
         ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
     }
 #endif
+    m_picksceneryitem = node;
     return node;
 }
 
@@ -2080,7 +2084,7 @@ opengl_renderer::Update( double const Deltatime ) {
 
     if( ( true  == Global::ControlPicking )
      && ( false == FreeFlyModeFlag ) ) {
-        m_pickcontrolitem = Update_Pick_Control();
+        Update_Pick_Control();
     }
     else {
         m_pickcontrolitem = nullptr;
@@ -2089,7 +2093,7 @@ opengl_renderer::Update( double const Deltatime ) {
     if( ( true == Global::ControlPicking )
      && ( true == DebugModeFlag ) 
      && ( true == FreeFlyModeFlag ) ) {
-        m_picksceneryitem = Update_Pick_Node();
+        Update_Pick_Node();
     }
     else {
         m_picksceneryitem = nullptr;

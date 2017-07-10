@@ -152,17 +152,19 @@ double TGauge::GetValue() const {
 
 void TGauge::Update() {
 
-    float dt = Timer::GetDeltaTime();
-    if( ( fFriction > 0 ) && ( dt < 0.5 * fFriction ) ) {
-        // McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
-        fValue += dt * ( fDesiredValue - fValue ) / fFriction;
-    }
-    else {
-        fValue = fDesiredValue;
-    }
-    if( std::abs( fDesiredValue - fValue ) <= 0.001 ) {
-        // close enough, we can stop updating the model
-        fValue = fDesiredValue; // set it exactly as requested just in case it matters
+    if( fValue != fDesiredValue ) {
+        float dt = Timer::GetDeltaTime();
+        if( ( fFriction > 0 ) && ( dt < 0.5 * fFriction ) ) {
+            // McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
+            fValue += dt * ( fDesiredValue - fValue ) / fFriction;
+            if( std::abs( fDesiredValue - fValue ) <= 0.0001 ) {
+                // close enough, we can stop updating the model
+                fValue = fDesiredValue; // set it exactly as requested just in case it matters
+            }
+        }
+        else {
+            fValue = fDesiredValue;
+        }
     }
     if( SubModel )
     { // warunek na wszelki wypadek, gdyby się submodel nie podłączył

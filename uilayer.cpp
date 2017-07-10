@@ -143,7 +143,29 @@ ui_layer::render_progress() {
             float4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
     }
 
-	glPopAttrib();
+    if( false == m_progresstext.empty() ) {
+        float const screenratio = static_cast<float>( Global::iWindowWidth ) / Global::iWindowHeight;
+        float const width =
+            ( screenratio >= (4.0f/3.0f) ?
+                ( 4.0f / 3.0f ) * Global::iWindowHeight :
+                Global::iWindowWidth );
+        float const heightratio =
+            ( screenratio >= ( 4.0f / 3.0f ) ?
+                Global::iWindowHeight / 768.0 :
+                Global::iWindowHeight / 768.0 * screenratio / ( 4.0f / 3.0f ) );
+        float const height = 768.0f * heightratio;
+
+        ::glColor4f( 216.0f / 255.0f, 216.0f / 255.0f, 216.0f / 255.0f, 1.0f );
+        auto const charsize = 9.0f;
+        auto const textwidth = m_progresstext.size() * charsize;
+        auto const textheight = 12.0f;
+        ::glRasterPos2f(
+            ( 0.5f * ( Global::iWindowWidth  - width )  + origin.x * heightratio ) + ( ( size.x * heightratio - textwidth ) * 0.5f * heightratio ),
+            ( 0.5f * ( Global::iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
+        print( m_progresstext );
+    }
+
+    glPopAttrib();
 }
 
 void

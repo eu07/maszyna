@@ -301,34 +301,38 @@ bool TWorld::Init( GLFWwindow *Window ) {
         "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
-
+/*
     std::shared_ptr<ui_panel> initpanel = std::make_shared<ui_panel>(85, 600);
-
+*/
     TSoundsManager::Init( glfwGetWin32Window( window ) );
     WriteLog("Sound Init OK");
     TModelsManager::Init();
     WriteLog("Models init OK");
-
+/*
     initpanel->text_lines.emplace_back( "Loading scenery / Wczytywanie scenerii:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
     initpanel->text_lines.emplace_back( Global::SceneryFile.substr(0, 40), float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
     UILayer.push_back( initpanel );
+*/
+    glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
+    UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
 
     GfxRenderer.Render();
 
     WriteLog( "Ground init" );
-    Ground.Init(Global::SceneryFile);
-    WriteLog( "Ground init OK" );
-
-    glfwSetWindowTitle( window,  ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
+    if( true == Ground.Init( Global::SceneryFile ) ) {
+        WriteLog( "Ground init OK" );
+    }
 
     simulation::Time.init();
 
     Environment.init();
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
-
+/*
     initpanel->text_lines.clear();
     initpanel->text_lines.emplace_back( "Preparing train / Przygotowanie kabiny:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+*/
+    UILayer.set_progress( "Preparing train / Przygotowanie kabiny" );
     GfxRenderer.Render();
     
     WriteLog( "Player train init: " + Global::asHumanCtrlVehicle );
@@ -396,6 +400,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
                 Train->Dynamic()->Mechanik->TakeControl(true);
 */
     UILayer.set_progress();
+    UILayer.set_progress( "" );
     UILayer.set_background( "" );
     UILayer.clear_texts();
 

@@ -1544,7 +1544,7 @@ double TMoverParameters::ShowEngineRotation(int VehN)
     switch (VehN)
     { // numer obrotomierza
     case 1:
-        return fabs(enrot);
+        return std::abs(enrot);
     case 2:
         for (b = 0; b <= 1; ++b)
             if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
@@ -3045,6 +3045,11 @@ void TMoverParameters::CompressorCheck(double dt)
         }
         else
         {
+            if( ( EngineType == DieselEngine )
+             && ( CompressorPower == 0 ) ) {
+                // experimental: make sure compressor coupled with diesel engine is always ready for work
+                CompressorAllow = true;
+            }
             if (CompressorFlag) // jeśli sprężarka załączona
             { // sprawdzić możliwe warunki wyłączenia sprężarki
                 if (CompressorPower == 5) // jeśli zasilanie z sąsiedniego członu
@@ -3172,29 +3177,38 @@ void TMoverParameters::CompressorCheck(double dt)
                 }
             }
 
-            if (CompressorFlag)
-                if ((EngineType == DieselElectric) && (CompressorPower > 0))
-                    CompressedVolume += dt * CompressorSpeed * (2.0 * MaxCompressor - Compressor) /
-                                        MaxCompressor *
-                                        (DElist[MainCtrlPos].RPM / DElist[MainCtrlPosNo].RPM);
-                else
-                {
+            if( CompressorFlag ) {
+                if( ( EngineType == DieselElectric ) && ( CompressorPower > 0 ) ) {
                     CompressedVolume +=
-                        dt * CompressorSpeed * (2.0 * MaxCompressor - Compressor) / MaxCompressor;
-                    if ((CompressorPower == 5) && (Couplers[1].Connected != NULL))
-                        Couplers[1].Connected->TotalCurrent +=
-                            0.0015 * Couplers[1].Connected->Voltage; // tymczasowo tylko obciążenie
-                                                                     // sprężarki, tak z 5A na
-                                                                     // sprężarkę
-                    else if ((CompressorPower == 4) && (Couplers[0].Connected != NULL))
-                        Couplers[0].Connected->TotalCurrent +=
-                            0.0015 * Couplers[0].Connected->Voltage; // tymczasowo tylko obciążenie
-                                                                     // sprężarki, tak z 5A na
-                                                                     // sprężarkę
+                        dt * CompressorSpeed
+                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        * ( DElist[ MainCtrlPos ].RPM / DElist[ MainCtrlPosNo ].RPM );
+                }
+                else if( ( EngineType == DieselEngine ) && ( CompressorPower == 0 ) ) {
+                    // experimental: compressor coupled with diesel engine, output scaled by current engine rotational speed
+                    CompressedVolume +=
+                        dt * CompressorSpeed
+                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        * ( std::abs( enrot ) / nmax );
+                }
+                else {
+                    CompressedVolume +=
+                        dt * CompressorSpeed * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor;
+                    if( ( CompressorPower == 5 ) && ( Couplers[ 1 ].Connected != NULL ) )
+                        Couplers[ 1 ].Connected->TotalCurrent +=
+                        0.0015 * Couplers[ 1 ].Connected->Voltage; // tymczasowo tylko obciążenie
+                                                                 // sprężarki, tak z 5A na
+                                                                 // sprężarkę
+                    else if( ( CompressorPower == 4 ) && ( Couplers[ 0 ].Connected != NULL ) )
+                        Couplers[ 0 ].Connected->TotalCurrent +=
+                        0.0015 * Couplers[ 0 ].Connected->Voltage; // tymczasowo tylko obciążenie
+                                                                 // sprężarki, tak z 5A na
+                                                                 // sprężarkę
                     else
                         TotalCurrent += 0.0015 *
-                            Voltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
+                        Voltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
                 }
+            }
         }
     }
 }
@@ -7236,9 +7250,10 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 
             extract_value( dizel_nmin, "nmin", Input, "" );
             dizel_nmin /= 60.0;
-            extract_value( dizel_nmax, "nmax", Input, "" );
-            dizel_nmax /= 60.0; 
-            nmax = dizel_nmax; // not sure if this is needed, but just in case
+            // TODO: unify naming scheme and sort out which diesel engine params are used where and how
+            extract_value( nmax, "nmax", Input, "" );
+            nmax /= 60.0; 
+//            nmax = dizel_nmax; // not sure if this is needed, but just in case
             extract_value( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
             dizel_nmax_cutoff /= 60.0;
             extract_value( dizel_AIM, "AIM", Input, "1.0" );

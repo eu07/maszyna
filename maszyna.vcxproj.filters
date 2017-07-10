@@ -225,6 +225,9 @@
     <ClCompile Include="openglgeometrybank.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mouseinput.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -439,6 +442,9 @@
     </ClInclude>
     <ClInclude Include="openglgeometrybank.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mouseinput.h">
+      <Filter>Header Files\input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
