@@ -225,7 +225,17 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
-    { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle }
+    { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
+    { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle1, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle2, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle3, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle4, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle5, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle6, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle7, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle8, &TTrain::OnCommand_generictoggle },
+    { user_command::generictoggle9, &TTrain::OnCommand_generictoggle }
 };
 
 std::vector<std::string> const TTrain::fPress_labels = {
@@ -233,9 +243,10 @@ std::vector<std::string> const TTrain::fPress_labels = {
     "ch1:  ", "ch2:  ", "ch3:  ", "ch4:  ", "ch5:  ", "ch6:  ", "ch7:  ", "ch8:  ", "ch9:  ", "ch0:  "
 };
 
-TTrain::TTrain()
-{
-    ActiveUniversal4 = false;
+TTrain::TTrain() {
+/*
+    Universal4Active = false;
+*/
     ShowNextCurrent = false;
     // McZapkie-240302 - przyda sie do tachometru
     fTachoVelocity = 0;
@@ -257,7 +268,7 @@ TTrain::TTrain()
     bCabLightDim = false;
     //-----
     pMechSittingPosition = vector3(0, 0, 0); // ABu: 180404
-    LampkaUniversal3_st = false; // ABu: 030405
+    InstrumentLightActive = false; // ABu: 030405
     dsbNastawnikJazdy = NULL;
     dsbNastawnikBocz = NULL;
     dsbRelay = NULL;
@@ -424,7 +435,7 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "ca", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) ) );
     PyDict_SetItemString( dict, "shp", PyGetBool( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) ) );
     PyDict_SetItemString( dict, "pantpress", PyGetFloat( mvControlled->PantPress ) );
-    PyDict_SetItemString( dict, "universal3", PyGetBool( LampkaUniversal3_st ) );
+    PyDict_SetItemString( dict, "universal3", PyGetBool( InstrumentLightActive ) );
     // movement data
     PyDict_SetItemString( dict, "velocity", PyGetFloat( mover->Vel ) );
     PyDict_SetItemString( dict, "tractionforce", PyGetFloat( mover->Ft ) );
@@ -2665,7 +2676,7 @@ void TTrain::OnCommand_instrumentlighttoggle( TTrain *Train, command_data const 
 
     // NOTE: the check is disabled, as we're presuming light control is present in every vehicle
     // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
-    if( Train->ggUniversal3Button.SubModel == nullptr ) {
+    if( Train->ggInstrumentLightButton.SubModel == nullptr ) {
         if( Command.action == GLFW_PRESS ) {
             WriteLog( "Universal3 switch is missing, or wasn't defined" );
         }
@@ -2675,25 +2686,25 @@ void TTrain::OnCommand_instrumentlighttoggle( TTrain *Train, command_data const 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         // NOTE: instrument lighting isn't fully implemented, so we have to rely on the state of the 'button' i.e. light itself
-        if( false == Train->LampkaUniversal3_st ) {
+        if( false == Train->InstrumentLightActive ) {
             // turn on
-            Train->LampkaUniversal3_st = true;
+            Train->InstrumentLightActive = true;
             // audio feedback
-            if( Train->ggUniversal3Button.GetValue() < 0.5 ) {
+            if( Train->ggInstrumentLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
             // visual feedback
-            Train->ggUniversal3Button.UpdateValue( 1.0 );
+            Train->ggInstrumentLightButton.UpdateValue( 1.0 );
         }
         else {
             //turn off
-            Train->LampkaUniversal3_st = false;
+            Train->InstrumentLightActive = false;
             // audio feedback
-            if( Train->ggUniversal3Button.GetValue() > 0.5 ) {
+            if( Train->ggInstrumentLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
             // visual feedback
-            Train->ggUniversal3Button.UpdateValue( 0.0 );
+            Train->ggInstrumentLightButton.UpdateValue( 0.0 );
         }
     }
 }
@@ -2728,6 +2739,41 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
             }
             // visual feedback
             Train->ggTrainHeatingButton.UpdateValue( 0.0 );
+        }
+    }
+}
+
+void TTrain::OnCommand_generictoggle( TTrain *Train, command_data const &Command ) {
+
+    auto const itemindex = static_cast<int>( Command.command ) - static_cast<int>( user_command::generictoggle0 );
+    auto &item = Train->ggUniversals[ itemindex ];
+
+    if( item.SubModel == nullptr ) {
+        if( Command.action == GLFW_PRESS ) {
+            WriteLog( "Train generic item " + std::to_string( itemindex ) + " is missing, or wasn't defined" );
+        }
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( item.GetValue() < 0.25 ) {
+            // turn on
+            // audio feedback
+            if( item.GetValue() < 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            item.UpdateValue( 1.0 );
+        }
+        else {
+            //turn off
+            // audio feedback
+            if( item.GetValue() > 0.5 ) {
+                Train->play_sound( Train->dsbSwitch );
+            }
+            // visual feedback
+            item.UpdateValue( 0.0 );
         }
     }
 }
@@ -5193,7 +5239,6 @@ bool TTrain::Update( double const Deltatime )
         }
         else
             ggMainOffButton.UpdateValue(0);
-#endif
         /* if (cKey==Global::Keys[k_Main])     //z shiftem
          {
             ggMainOnButton.PutValue(1);
@@ -5220,7 +5265,6 @@ bool TTrain::Update( double const Deltatime )
              }
         }
         else */
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         //----------------
         // hunter-131211: czuwak przeniesiony z OnKeyPress
         // hunter-091012: zrobiony test czuwaka
@@ -5253,7 +5297,6 @@ bool TTrain::Update( double const Deltatime )
             }
             CAflag = false;
         }
-#endif
         /*
         if ( Console::Pressed(Global::Keys[k_Czuwak]) )
         {
@@ -5292,7 +5335,6 @@ bool TTrain::Update( double const Deltatime )
         }
        */
 
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if( Console::Pressed( Global::Keys[ k_Sand ] ) )
         {
             if (mvControlled->TrainType != dt_EZT && ggSandButton.SubModel != NULL)
@@ -5375,7 +5417,6 @@ bool TTrain::Update( double const Deltatime )
             ggCompressorButton.PutValue(0);
             mvControlled->CompressorSwitch(false);
         }
-#endif
         /*
         bez szifta
         if (cKey==Global::Keys[k_Converter])       //NBMX wyl przetwornicy
@@ -5398,7 +5439,6 @@ bool TTrain::Update( double const Deltatime )
         else
         */
         //-----------------
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if ((!FreeFlyModeFlag) &&
             (!(DynamicObject->Mechanik ? DynamicObject->Mechanik->AIControllFlag : false)))
         {
@@ -5422,7 +5462,6 @@ bool TTrain::Update( double const Deltatime )
             else
                 mvOccupied->BrakeReleaser(0);
         } // FFMF
-#endif
 
         if (Console::Pressed(Global::Keys[k_Univ1]))
         {
@@ -5435,13 +5474,11 @@ bool TTrain::Update( double const Deltatime )
                         ggUniversal1Button.DecValue(dt / 2);
             }
         }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if (!Console::Pressed(Global::Keys[k_SmallCompressor]))
             // Ra: przecieść to na zwolnienie klawisza
             if (DynamicObject->Mechanik ? !DynamicObject->Mechanik->AIControllFlag :
                                           false) // nie wyłączać, gdy AI
                 mvControlled->PantCompFlag = false; // wyłączona, gdy nie trzymamy klawisza
-#else
 /*
         // NOTE: disabled to allow 'prototypical' 'tricking' pantograph compressor into running unattended
         if( ( ( DynamicObject->Mechanik != nullptr )
@@ -5454,7 +5491,6 @@ bool TTrain::Update( double const Deltatime )
             mvControlled->PantCompFlag = false;
         }
 */
-#endif
         if (Console::Pressed(Global::Keys[k_Univ2]))
         {
             if (!DebugModeFlag)
@@ -5467,7 +5503,6 @@ bool TTrain::Update( double const Deltatime )
             }
         }
 
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         // hunter-091012: zrobione z uwzglednieniem przelacznika swiatla
         if (Console::Pressed(Global::Keys[k_Univ3]))
         {
@@ -5484,13 +5519,13 @@ bool TTrain::Update( double const Deltatime )
                 }
                 else
                 {
-                    if (ggUniversal3Button.SubModel)
+                    if (ggInstrumentLightButton.SubModel)
                     {
-                        ggUniversal3Button.PutValue(1); // hunter-131211: z UpdateValue na
+                        ggInstrumentLightButton.PutValue(1); // hunter-131211: z UpdateValue na
                         // PutValue - by zachowywal sie jak
                         // pozostale przelaczniki
-                        if (btLampkaUniversal3.Active())
-                            LampkaUniversal3_st = true;
+                        if (btInstrumentLight.Active())
+                            InstrumentLightActive = true;
                     }
                 }
             }
@@ -5507,37 +5542,37 @@ bool TTrain::Update( double const Deltatime )
                 }
                 else
                 {
-                    if (ggUniversal3Button.SubModel)
+                    if (ggInstrumentLightButton.SubModel)
                     {
-                        ggUniversal3Button.PutValue(0); // hunter-131211: z UpdateValue na
+                        ggInstrumentLightButton.PutValue(0); // hunter-131211: z UpdateValue na
                         // PutValue - by zachowywal sie jak
                         // pozostale przelaczniki
-                        if (btLampkaUniversal3.Active())
-                            LampkaUniversal3_st = false;
+                        if (btInstrumentLight.Active())
+                            InstrumentLightActive = false;
                     }
                 }
             }
         }
 #endif
         // ABu030405 obsluga lampki uniwersalnej:
-        if (btLampkaUniversal3.Active()) // w ogóle jest
-            if (LampkaUniversal3_st) // załączona
-                switch (LampkaUniversal3_typ)
+        if (btInstrumentLight.Active()) // w ogóle jest
+            if (InstrumentLightActive) // załączona
+                switch (InstrumentLightType)
                 {
                 case 0:
-                    btLampkaUniversal3.Turn( mvControlled->Battery || mvControlled->ConverterFlag );
+                    btInstrumentLight.Turn( mvControlled->Battery || mvControlled->ConverterFlag );
                     break;
                 case 1:
-                    btLampkaUniversal3.Turn(mvControlled->Mains);
+                    btInstrumentLight.Turn(mvControlled->Mains);
                     break;
                 case 2:
-                    btLampkaUniversal3.Turn(mvControlled->ConverterFlag);
+                    btInstrumentLight.Turn(mvControlled->ConverterFlag);
                     break;
                 default:
-                    btLampkaUniversal3.TurnOff();
+                    btInstrumentLight.TurnOff();
                 }
             else
-                btLampkaUniversal3.TurnOff();
+                btInstrumentLight.TurnOff();
 
 #ifdef EU07_USE_OLD_COMMAND_SYSTEM
         // hunter-091012: przepisanie univ4 i zrobione z uwzglednieniem przelacznika
@@ -5556,7 +5591,7 @@ bool TTrain::Update( double const Deltatime )
                 }
                 else
                 {
-                    ActiveUniversal4 = true;
+                    Universal4Active = true;
                     // ggUniversal4Button.UpdateValue(1);
                 }
             }
@@ -5574,7 +5609,7 @@ bool TTrain::Update( double const Deltatime )
                 }
                 else
                 {
-                    ActiveUniversal4 = false;
+                    Universal4Active = false;
                     // ggUniversal4Button.UpdateValue(0);
                 }
             }
@@ -5889,18 +5924,23 @@ bool TTrain::Update( double const Deltatime )
         ggHornButton.Update();
         ggHornLowButton.Update();
         ggHornHighButton.Update();
+/*
         ggUniversal1Button.Update();
         ggUniversal2Button.Update();
-        ggUniversal3Button.Update();
+        if( Universal4Active ) {
+            ggUniversal4Button.PermIncValue( dt );
+        }
+        ggUniversal4Button.Update();
+*/
+        for( auto &universal : ggUniversals ) {
+            universal.Update();
+        }
         // hunter-091012
+        ggInstrumentLightButton.Update();
         ggCabLightButton.Update();
         ggCabLightDimButton.Update();
         ggBatteryButton.Update();
         //------
-        if (ActiveUniversal4)
-            ggUniversal4Button.PermIncValue(dt);
-
-        ggUniversal4Button.Update();
 #ifdef EU07_USE_OLD_COMMAND_SYSTEM
         ggMainOffButton.UpdateValue(0);
         ggMainOnButton.UpdateValue(0);
@@ -6460,7 +6500,9 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                         DynamicObject
                             ->mdModel; // McZapkie-170103: szukaj elementy kabiny w glownym modelu
                 }
-                ActiveUniversal4 = false;
+/*
+                Universal4Active = false;
+*/
                 clear_cab_controls();
             }
             if (nullptr == DynamicObject->mdKabina)
@@ -6706,14 +6748,19 @@ void TTrain::clear_cab_controls()
     ggHornLowButton.Clear();
     ggHornHighButton.Clear();
     ggNextCurrentButton.Clear();
+/*
     ggUniversal1Button.Clear();
     ggUniversal2Button.Clear();
-    ggUniversal3Button.Clear();
+    ggUniversal4Button.Clear();
+*/
+    for( auto &universal : ggUniversals ) {
+        universal.Clear();
+    }
+    ggInstrumentLightButton.Clear();
     // hunter-091012
     ggCabLightButton.Clear();
     ggCabLightDimButton.Clear();
     //-------
-    ggUniversal4Button.Clear();
     ggFuseButton.Clear();
     ggConverterFuseButton.Clear();
     ggStLinOffButton.Clear();
@@ -6772,7 +6819,7 @@ void TTrain::clear_cab_controls()
     btLampkaRadio.Clear();
     btLampkaHamulecReczny.Clear();
     btLampkaBlokadaDrzwi.Clear();
-    btLampkaUniversal3.Clear();
+    btInstrumentLight.Clear();
     btLampkaWentZaluzje.Clear();
     btLampkaOgrzewanieSkladu.Clear(11);
     btLampkaSHP.Clear(0);
@@ -6930,8 +6977,8 @@ void TTrain::set_cab_controls() {
     if( true == bCabLightDim ) {
         ggCabLightDimButton.PutValue( 1.0 );
     }
-    if( true == LampkaUniversal3_st ) {
-        ggUniversal3Button.PutValue( 1.0 );
+    if( true == InstrumentLightActive ) {
+        ggInstrumentLightButton.PutValue( 1.0 );
     }
     // doors
     // NOTE: we're relying on the cab models to have switches reversed for the rear cab(?)
@@ -7073,20 +7120,20 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     {
         btLampkaWysRozr.Load(Parser, DynamicObject->mdKabina);
     }
-    else if (Label == "i-universal3:")
+    else if (Label == "i-instrumentlight:")
     {
-        btLampkaUniversal3.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
-        LampkaUniversal3_typ = 0;
+        btInstrumentLight.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
+        InstrumentLightType = 0;
     }
-    else if (Label == "i-universal3_M:")
+    else if (Label == "i-instrumentlight_M:")
     {
-        btLampkaUniversal3.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
-        LampkaUniversal3_typ = 1;
+        btInstrumentLight.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
+        InstrumentLightType = 1;
     }
-    else if (Label == "i-universal3_C:")
+    else if (Label == "i-instrumentlight_C:")
     {
-        btLampkaUniversal3.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
-        LampkaUniversal3_typ = 2;
+        btInstrumentLight.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
+        InstrumentLightType = 2;
     }
     else if (Label == "i-vent_trim:")
     {
@@ -7279,9 +7326,20 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "signalling_sw:", ggSignallingButton },
         { "door_signalling_sw:", ggDoorSignallingButton },
         { "nextcurrent_sw:", ggNextCurrentButton },
+        { "instrumentlight_sw:", ggInstrumentLightButton },
         { "cablight_sw:", ggCabLightButton },
         { "cablightdim_sw:", ggCabLightDimButton },
-        { "battery_sw:", ggBatteryButton }
+        { "battery_sw:", ggBatteryButton },
+        { "universal0:", ggUniversals[ 0 ] },
+        { "universal1:", ggUniversals[ 1 ] },
+        { "universal2:", ggUniversals[ 2 ] },
+        { "universal3:", ggUniversals[ 3 ] },
+        { "universal4:", ggUniversals[ 4 ] },
+        { "universal5:", ggUniversals[ 5 ] },
+        { "universal6:", ggUniversals[ 6 ] },
+        { "universal7:", ggUniversals[ 7 ] },
+        { "universal8:", ggUniversals[ 8 ] },
+        { "universal9:", ggUniversals[ 9 ] }
     };
     auto lookup = gauges.find( Label );
     if( lookup != gauges.end() ) {
@@ -7292,6 +7350,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     else if( Label == "mainctrlact:" ) {
         ggMainCtrlAct.Load( Parser, DynamicObject->mdKabina, DynamicObject->mdModel );
     }
+/*
     else if (Label == "universal1:")
     {
         ggUniversal1Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
@@ -7302,12 +7361,13 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     }
     else if (Label == "universal3:")
     {
-        ggUniversal3Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
+        ggInstrumentLightButton.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
     }
     else if (Label == "universal4:")
     {
         ggUniversal4Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
     }
+*/
     // SEKCJA WSKAZNIKOW
     else if ((Label == "tachometer:") || (Label == "tachometerb:"))
     {

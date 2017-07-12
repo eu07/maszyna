@@ -228,6 +228,9 @@
     <ClCompile Include="mouseinput.cpp">
       <Filter>Source Files\input</Filter>
     </ClCompile>
+    <ClCompile Include="translation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -445,6 +448,9 @@
     </ClInclude>
     <ClInclude Include="mouseinput.h">
       <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="translation.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

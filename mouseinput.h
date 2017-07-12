@@ -10,7 +10,6 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <unordered_map>
-#include <array>
 #include "command.h"
 
 class mouse_input {
@@ -21,7 +20,7 @@ public:
 
 // methods
     bool
-        init() { return true; }
+        init();
     void
         move( double const Mousex, double const Mousey );
     void
@@ -48,13 +47,16 @@ private:
         default_bindings();
 
 // members
+    command_relay m_relay;
     controlcommands_map m_mousecommands;
     user_command m_mousecommandleft { user_command::none }; // last if any command issued with left mouse button
     user_command m_mousecommandright { user_command::none }; // last if any command issued with right mouse button
-    command_relay m_relay;
+    double m_updaterate { 0.075 };
     double m_updateaccumulator { 0.0 };
     bool m_pickmodepanning { false }; // indicates mouse is in view panning mode
-    glm::dvec2 m_cursorposition; // stored last mouse position, used for panning
+    glm::dvec2 m_cursorposition; // stored last cursor position, used for panning
+    glm::dvec2 m_commandstartcursor; // helper, cursor position when the command was initiated
+    bool m_varyingpollrate { false }; // indicates rate of command repeats is affected by the cursor position
 };
 
 //---------------------------------------------------------------------------

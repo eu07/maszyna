@@ -30,6 +30,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "color.h"
 #include "uilayer.h"
+#include "translation.h"
 
 //---------------------------------------------------------------------------
 
@@ -178,20 +179,6 @@ simulation_time::julian_day() const {
     }
 
     return JD;
-}
-
-namespace locale {
-
-std::string
-control( std::string const &Label ) {
-
-    auto const lookup = m_controls.find( Label );
-    return (
-        lookup != m_controls.end() ?
-            lookup->second :
-            "" );
-}
-
 }
 
 TWorld::TWorld()
@@ -717,8 +704,8 @@ void TWorld::OnKeyDown(int cKey)
             Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
         }
     }
-    else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) ) {
-        //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy
+    else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) && ( Global::shiftState ) ) {
+        //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy // added shift to prevent odd issue with glfw producing pause presses on its own
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
 	}
@@ -1288,7 +1275,7 @@ TWorld::Update_UI() {
     if( ( Train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
         if( false == DebugModeFlag ) {
             // in regular mode show control functions, for defined controls
-            UILayer.set_tooltip( locale::control( Train->GetLabel( GfxRenderer.Pick_Control() ) ) );
+            UILayer.set_tooltip( locale::label_cab_control( Train->GetLabel( GfxRenderer.Pick_Control() ) ) );
         }
         else {
             // in debug mode show names of submodels, to help with cab setup and/or debugging

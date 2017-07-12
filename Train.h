@@ -73,7 +73,6 @@ class TTrain
 {
   public:
     bool CabChange(int iDirection);
-    bool ActiveUniversal4;
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, std::string const &asFileName);
     TTrain();
@@ -189,6 +188,7 @@ class TTrain
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
 
 // members
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -277,12 +277,16 @@ public: // reszta może by?publiczna
     TGauge ggHornLowButton;
     TGauge ggHornHighButton;
     TGauge ggNextCurrentButton;
+/*
     // ABu 090305 - uniwersalne przyciski
     TGauge ggUniversal1Button;
     TGauge ggUniversal2Button;
-    TGauge ggUniversal3Button;
     TGauge ggUniversal4Button;
+    bool Universal4Active;
+*/
+    std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
 
+    TGauge ggInstrumentLightButton;
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
     TGauge ggBatteryButton; // Stele 161228 hebelek baterii
@@ -335,9 +339,9 @@ public: // reszta może by?publiczna
     //    TButton btLampkaUnknown;
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
-    TButton btLampkaUniversal3;
-    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
-    bool LampkaUniversal3_st;
+    TButton btInstrumentLight;
+    int InstrumentLightType; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
+    bool InstrumentLightActive;
     TButton btLampkaWentZaluzje; // ET22
     TButton btLampkaOgrzewanieSkladu;
     TButton btLampkaSHP;

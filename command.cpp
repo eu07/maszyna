@@ -125,6 +125,16 @@ const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */
+    { "generictoggle0", command_target::vehicle },
+    { "generictoggle1", command_target::vehicle },
+    { "generictoggle2", command_target::vehicle },
+    { "generictoggle3", command_target::vehicle },
+    { "generictoggle4", command_target::vehicle },
+    { "generictoggle5", command_target::vehicle },
+    { "generictoggle6", command_target::vehicle },
+    { "generictoggle7", command_target::vehicle },
+    { "generictoggle8", command_target::vehicle },
+    { "generictoggle9", command_target::vehicle },
     { "batterytoggle", command_target::vehicle }
 /*
 const int k_WalkMode = 73;

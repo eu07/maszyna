@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "mouseinput.h"
+#include "usefull.h"
 #include "globals.h"
 #include "timer.h"
 #include "world.h"
@@ -16,6 +17,17 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 
 extern TWorld World;
+
+bool
+mouse_input::init() {
+
+#ifdef _WINDOWS
+    DWORD systemkeyboardspeed;
+    ::SystemParametersInfo( SPI_GETKEYBOARDSPEED, 0, &systemkeyboardspeed, 0 );
+    m_updaterate = interpolate( 0.5, 0.04, systemkeyboardspeed / 31.0 );
+#endif
+    return true;
+}
 
 void
 mouse_input::move( double Mousex, double Mousey ) {
@@ -76,11 +88,13 @@ mouse_input::button( int const Button, int const Action ) {
             mousecommand = user_command::none;
         }
         else {
-            // if it's the right mouse button that got released, stop view panning
+            // if it's the right mouse button that got released and we had no command active, we were potentially in view panning mode; stop it
             if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
                 m_pickmodepanning = false;
             }
         }
+        // if we were in varying command repeat rate, we can stop that now. done without any conditions, to catch some unforeseen edge cases
+        m_varyingpollrate = false;
     }
     else {
         // if not release then it's press
@@ -114,6 +128,25 @@ mouse_input::button( int const Button, int const Action ) {
                     if( mousecommand == user_command::mastercontrollerincrease ) {
                         m_updateaccumulator -= 0.15; // extra pause on first increase of master controller
                     }
+                    switch( mousecommand ) {
+                        case user_command::mastercontrollerincrease:
+                        case user_command::mastercontrollerdecrease:
+                        case user_command::secondcontrollerincrease:
+                        case user_command::secondcontrollerdecrease:
+                        case user_command::trainbrakeincrease:
+                        case user_command::trainbrakedecrease:
+                        case user_command::independentbrakeincrease:
+                        case user_command::independentbrakedecrease: {
+                            // these commands trigger varying repeat rate mode,
+                            // which scales the rate based on the distance of the cursor from its point when the command was first issued
+                            m_commandstartcursor = m_cursorposition;
+                            m_varyingpollrate = true;
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
                 }
             }
             else {
@@ -131,11 +164,16 @@ mouse_input::poll() {
 
     m_updateaccumulator += Timer::GetDeltaRenderTime();
 
-    if( m_updateaccumulator < 0.1 ) {
+    auto updaterate { m_updaterate };
+    if( m_varyingpollrate ) {
+        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global::ScreenHeight ) );
+    }
+
+    if( m_updateaccumulator < updaterate ) {
         // too early for any work
         return;
     }
-    m_updateaccumulator -= 0.1;
+    m_updateaccumulator -= updaterate;
 
     if( m_mousecommandleft != user_command::none ) {
         // NOTE: basic keyboard controls don't have any parameters
@@ -320,6 +358,9 @@ mouse_input::default_bindings() {
         { "nextcurrent_sw:", {
             user_command::mucurrentindicatorothersourceactivate,
             user_command::none } },
+        { "instrumentlight_sw:", {
+            user_command::instrumentlighttoggle,
+            user_command::none } },
         { "cablight_sw:", {
             user_command::interiorlighttoggle,
             user_command::none } },
@@ -328,6 +369,36 @@ mouse_input::default_bindings() {
             user_command::none } },
         { "battery_sw:", {
             user_command::batterytoggle,
+            user_command::none } },
+        { "universal0:", {
+            user_command::generictoggle0,
+            user_command::none } },
+        { "universal1:", {
+            user_command::generictoggle1,
+            user_command::none } },
+        { "universal2:", {
+            user_command::generictoggle2,
+            user_command::none } },
+        { "universal3:", {
+            user_command::generictoggle3,
+            user_command::none } },
+        { "universal4:", {
+            user_command::generictoggle4,
+            user_command::none } },
+        { "universal5:", {
+            user_command::generictoggle5,
+            user_command::none } },
+        { "universal6:", {
+            user_command::generictoggle6,
+            user_command::none } },
+        { "universal7:", {
+            user_command::generictoggle7,
+            user_command::none } },
+        { "universal8:", {
+            user_command::generictoggle8,
+            user_command::none } },
+        { "universal9:", {
+            user_command::generictoggle9,
             user_command::none } }
     };
 }

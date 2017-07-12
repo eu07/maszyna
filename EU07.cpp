@@ -68,7 +68,7 @@ namespace input {
 keyboard_input Keyboard;
 mouse_input Mouse;
 gamepad_input Gamepad;
-glm::dvec2 mouse_pos;  // stores last mouse position in control picking mode
+glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking mode
 
 }
 
@@ -144,8 +144,8 @@ void mouse_button_callback( GLFWwindow* window, int button, int action, int mods
     }
 }
 
-void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
-{
+void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods ) {
+
     input::Keyboard.key( key, action );
 
     Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
@@ -159,14 +159,14 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
             if( Global::ControlPicking ) {
                 // switch off
-                glfwGetCursorPos( window, &input::mouse_pos.x, &input::mouse_pos.y );
+                glfwGetCursorPos( window, &input::mouse_pickmodepos.x, &input::mouse_pickmodepos.y );
                 glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
                 glfwSetCursorPos( window, 0, 0 );
             }
             else {
                 // enter picking mode
                 glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
-                glfwSetCursorPos( window, input::mouse_pos.x, input::mouse_pos.y );
+                glfwSetCursorPos( window, input::mouse_pickmodepos.x, input::mouse_pickmodepos.y );
             }
             // actually toggle the mode
             Global::ControlPicking = !Global::ControlPicking;
@@ -183,8 +183,8 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
         return;
     }
 
-    if( action == GLFW_PRESS || action == GLFW_REPEAT )
-    {
+    if( action == GLFW_PRESS || action == GLFW_REPEAT ) {
+
         World.OnKeyDown( key );
 
         switch( key )
