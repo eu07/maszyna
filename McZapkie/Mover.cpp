@@ -2023,6 +2023,7 @@ bool TMoverParameters::CabActivisation(void)
     {
         CabNo = ActiveCab; // sterowanie jest z kabiny z obsadą
         DirAbsolute = ActiveDir * CabNo;
+        SecuritySystem.Status |= s_waiting; // activate the alerter TODO: make it part of control based cab selection
         SendCtrlToNext("CabActivisation", 1, CabNo);
     }
     return OK;
@@ -2042,6 +2043,8 @@ bool TMoverParameters::CabDeactivisation(void)
         CabNo = 0;
         DirAbsolute = ActiveDir * CabNo;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
+        SecuritySystem.Status = 0; // deactivate alerter TODO: make it part of control based cab selection
+
         SendCtrlToNext("CabActivisation", 0, ActiveCab); // CabNo==0!
     }
     return OK;

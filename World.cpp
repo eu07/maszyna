@@ -1427,9 +1427,10 @@ TWorld::Update_UI() {
                     // for cars other than leading unit indicate the leader
                     uitextline1 += ", owned by " + tmp->ctOwner->OwnerName();
                 }
+                uitextline1 += "; Status: " + tmp->MoverParameters->EngineDescription( 0 );
                 // informacja o sprzęgach
                 uitextline1 +=
-                    " C0:" +
+                    "; C0:" +
                     ( tmp->PrevConnected ?
                     tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
                     "none" );
@@ -1439,9 +1440,23 @@ TWorld::Update_UI() {
                     tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
                     "none" );
 
-                uitextline2 = "Damage status: " + tmp->MoverParameters->EngineDescription( 0 );
-
-                uitextline2 += "; Brake delay: ";
+                // equipment flags
+                uitextline2  = ( tmp->MoverParameters->Battery ? "B" : "." );
+                uitextline2 += ( tmp->MoverParameters->Mains ? "M" : "." );
+                uitextline2 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
+                uitextline2 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
+                uitextline2 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
+                uitextline2 += ( false == tmp->MoverParameters->ConverterAllowLocal ? "-" : ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
+                uitextline2 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
+                uitextline2 += ( false == tmp->MoverParameters->CompressorAllowLocal ? "-" : ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
+                uitextline2 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
+/*
+                uitextline2 +=
+                    " AnlgB: " + to_string( tmp->MoverParameters->AnPos, 1 )
+                    + "+"
+                    + to_string( tmp->MoverParameters->LocalBrakePosA, 1 )
+*/
+                uitextline2 += " Bdelay: ";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
                     uitextline2 += "G";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
@@ -1451,39 +1466,22 @@ TWorld::Update_UI() {
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     uitextline2 += "+Mg";
 
-                uitextline2 += ", BTP: " + to_string( tmp->MoverParameters->LoadFlag, 0 );
-                {
-                    uitextline2 +=
-                        "; pant: "
-                        + to_string( tmp->MoverParameters->PantPress, 2 )
-                        + ( tmp->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
-                }
+                uitextline2 += ", Load: " + to_string( tmp->MoverParameters->LoadFlag, 0 );
 
                 uitextline2 +=
-                    ", MED:"
-                    + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
-                    + "+"
-                    + to_string( tmp->MoverParameters->AnPos, 2 );
+                    "; Pant: "
+                    + to_string( tmp->MoverParameters->PantPress, 2 )
+                    + ( tmp->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
 
                 uitextline2 +=
-                    ", Ft:"
-                    + to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
+                    "; Ft: " + to_string( tmp->MoverParameters->Ft * 0.001f * tmp->MoverParameters->ActiveCab, 1 )
+                    + ", Fb: " + to_string( tmp->MoverParameters->Fb * 0.001f, 1 )
+                    + ", Fr: " + to_string( tmp->MoverParameters->RunningTrack.friction, 2 )
+                    + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" );
 
                 uitextline2 +=
                     "; TC:"
                     + to_string( tmp->MoverParameters->TotalCurrent, 0 );
-#ifdef EU07_USE_OLD_HVCOUPLERS
-                uitextline2 +=
-                    ", HV0: "
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::voltage ], 0 )
-                    + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::current ], 0 );
-                uitextline2 +=
-                    ", HV1: "
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::voltage ], 0 )
-                    + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::current ], 0 );
-#else
                 auto const frontcouplerhighvoltage =
                     to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.voltage, 0 )
                     + "@"
@@ -1493,36 +1491,26 @@ TWorld::Update_UI() {
                     + "@"
                     + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.current, 0 );
                 uitextline2 += ", HV: ";
-                    if( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
-                        uitextline2 +=
-                              "(" + frontcouplerhighvoltage + ")-"
-                            + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
-                            + "-(" + rearcouplerhighvoltage + ")";
-                    }
-                    else {
-                        uitextline2 +=
-                              frontcouplerhighvoltage
-                            + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
-                            + rearcouplerhighvoltage;
-                    }
-#endif
-                // equipment flags
-                uitextline3  = "";
-                uitextline3 += ( tmp->MoverParameters->Battery ? "B" : "." );
-                uitextline3 += ( tmp->MoverParameters->Mains ? "M" : "." );
-                uitextline3 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
-                uitextline3 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
-                uitextline3 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
-                uitextline3 += ( false == tmp->MoverParameters->ConverterAllowLocal ? "-" : ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
-                uitextline3 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
-                uitextline3 += ( false == tmp->MoverParameters->CompressorAllowLocal ? "-" : ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
-                uitextline3 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
+                if( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
+                    uitextline2 +=
+                            "(" + frontcouplerhighvoltage + ")-"
+                        + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                        + "-(" + rearcouplerhighvoltage + ")";
+                }
+                else {
+                    uitextline2 +=
+                            frontcouplerhighvoltage
+                        + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                        + rearcouplerhighvoltage;
+                }
 
                 uitextline3 +=
-                    " TrB: " + to_string( tmp->MoverParameters->BrakePress, 2 )
-                    + ", " + to_hex_str( tmp->MoverParameters->Hamulec->GetBrakeStatus(), 2 )
-                    + ", LcB: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
-                    + ", pipes: " + to_string( tmp->MoverParameters->PipePress, 2 )
+                    "TrB: " + to_string( tmp->MoverParameters->BrakePress, 2 )
+                    + ", " + to_hex_str( tmp->MoverParameters->Hamulec->GetBrakeStatus(), 2 );
+
+                uitextline3 +=
+                    "; LcB: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
+                    + "; pipes: " + to_string( tmp->MoverParameters->PipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->ScndPipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
                     + ", MT: " + to_string( tmp->MoverParameters->CompressedVolume, 3 )
@@ -1532,9 +1520,9 @@ TWorld::Update_UI() {
 
                 if( tmp->MoverParameters->ManualBrakePos > 0 ) {
 
-                    uitextline3 += ", manual brake on";
+                    uitextline3 += "; manual brake on";
                 }
-
+/*
                 if( tmp->MoverParameters->LocalBrakePos > 0 ) {
 
                     uitextline3 += ", local brake on";
@@ -1543,7 +1531,7 @@ TWorld::Update_UI() {
 
                     uitextline3 += ", local brake off";
                 }
-
+*/
                 if( tmp->Mechanik ) {
                     // o ile jest ktoś w środku
                     std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
