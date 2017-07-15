@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "../logs.h"
 #include "Oerlikon_ESt.h"
 #include "../parser.h"
+#include "mctools.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.
@@ -21,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 
 const double dEpsilon = 0.01; // 1cm (zależy od typu sprzęgu...)
 const double CouplerTune = 0.1; // skalowanie tlumiennosci
+
+int ConversionError = 0;
 
 std::vector<std::string> const TMoverParameters::eimc_labels = {
     "dfic: ", "dfmax:", "p:    ", "scfu: ", "cim:  ", "icif: ", "Uzmax:", "Uzh:  ", "DU:   ", "I0:   ",
@@ -5097,14 +5100,17 @@ bool TMoverParameters::AutoRelayCheck(void)
                         // IminLo
                     }
                 // main bez samoczynnego rozruchu
+                if( ( MainCtrlActualPos < ( sizeof( RList ) / sizeof( TScheme ) - 1 ) ) // crude guard against running out of current fixed table
+                 && ( ( RList[ MainCtrlActualPos ].Relay < MainCtrlPos )
+                   || ( RList[ MainCtrlActualPos + 1 ].Relay == MainCtrlPos )
+                   || ( ( TrainType == dt_ET22 )
+                     && ( DelayCtrlFlag ) ) ) ) {
 
-                if ((RList[MainCtrlActualPos].Relay < MainCtrlPos) ||
-                    (RList[MainCtrlActualPos + 1].Relay == MainCtrlPos) ||
-                    ((TrainType == dt_ET22) && (DelayCtrlFlag)))
-                {
-                    if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
-                        (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
-                    {
+                    if( ( RList[MainCtrlPos].R == 0 )
+                     && ( MainCtrlPos > 0 )
+                     && ( MainCtrlPos != MainCtrlPosNo )
+                     && ( FastSerialCircuit == 1 ) ) {
+
                         MainCtrlActualPos++;
                         //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
                         //                 szybkie wchodzenie na bezoporowa (303E)
@@ -5803,28 +5809,28 @@ std::string TMoverParameters::EngineDescription(int what)
         {
             if (TestFlag(DamageFlag, dtrain_thinwheel))
                 if (Power > 0.1)
-                    outstr = "Thin wheel,";
+                    outstr = "Thin wheel";
                 else
-                    outstr = "Load shifted,";
+                    outstr = "Load shifted";
             if (TestFlag(DamageFlag, dtrain_wheelwear))
-                outstr = "Wheel wear,";
+                outstr = "Wheel wear";
             if (TestFlag(DamageFlag, dtrain_bearing))
-                outstr = "Bearing damaged,";
+                outstr = "Bearing damaged";
             if (TestFlag(DamageFlag, dtrain_coupling))
-                outstr = "Coupler broken,";
+                outstr = "Coupler broken";
             if (TestFlag(DamageFlag, dtrain_loaddamage))
                 if (Power > 0.1)
-                    outstr = "Ventilator damaged,";
+                    outstr = "Ventilator damaged";
                 else
-                    outstr = "Load damaged,";
+                    outstr = "Load damaged";
 
             if (TestFlag(DamageFlag, dtrain_loaddestroyed))
                 if (Power > 0.1)
-                    outstr = "Engine damaged,";
+                    outstr = "Engine damaged";
                 else
-                    outstr = "LOAD DESTROYED,";
+                    outstr = "LOAD DESTROYED";
             if (TestFlag(DamageFlag, dtrain_axle))
-                outstr = "Axle broken,";
+                outstr = "Axle broken";
             if (TestFlag(DamageFlag, dtrain_out))
                 outstr = "DERAILED";
             if (outstr == "")
@@ -6105,7 +6111,7 @@ bool TMoverParameters::readRList( std::string const &Input ) {
         return false;
     }
     auto idx = LISTLINE++;
-    if( idx >= sizeof( RList ) ) {
+    if( idx >= sizeof( RList ) / sizeof( TScheme ) ) {
         WriteLog( "Read RList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -6127,7 +6133,7 @@ bool TMoverParameters::readDList( std::string const &line ) {
     cParser parser( line );
     parser.getTokens( 3, false );
     auto idx = LISTLINE++;
-    if( idx >= sizeof( RList ) ) {
+    if( idx >= sizeof( RList ) / sizeof( TScheme ) ) {
         WriteLog( "Read DList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -6147,7 +6153,7 @@ bool TMoverParameters::readFFList( std::string const &line ) {
     return false;
     }
     int idx = LISTLINE++;
-    if( idx >= sizeof( DElist ) ) {
+    if( idx >= sizeof( DElist ) / sizeof( TDEScheme ) ) {
         WriteLog( "Read FList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -6167,7 +6173,7 @@ bool TMoverParameters::readWWList( std::string const &line ) {
         return false;
     }
     int idx = LISTLINE++;
-    if( idx >= sizeof( DElist ) ) {
+    if( idx >= sizeof( DElist ) / sizeof( TDEScheme ) ) {
         WriteLog( "Read WWList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -8362,24 +8368,5 @@ double TMoverParameters::ShowCurrentP(int AmpN)
                 if (Couplers[b].Connected->Power > 0.01)
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;
-    }
-}
-
-template <>
-bool
-extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
-
-    auto value = extract_value( Key, Input );
-    if( false == value.empty() ) {
-        // set the specified variable to retrieved value
-        Variable = ( ToLower( value ) == "yes" );
-        return true; // located the variable
-    }
-    else {
-        // set the variable to provided default value
-        if( false == Default.empty() ) {
-            Variable = ( ToLower( Default ) == "yes" );
-        }
-        return false; // couldn't locate the variable in provided input
     }
 }

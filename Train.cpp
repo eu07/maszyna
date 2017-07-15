@@ -56,14 +56,16 @@ TCab::TCab()
     dimm_r = dimm_g = dimm_b = 1;
     intlit_r = intlit_g = intlit_b = 0;
     intlitlow_r = intlitlow_g = intlitlow_b = 0;
+/*
     iGaugesMax = 100; // 95 - trzeba pobierać to z pliku konfiguracyjnego
     ggList = new TGauge[iGaugesMax];
     iGauges = 0; // na razie nie są dodane
     iButtonsMax = 60; // 55 - trzeba pobierać to z pliku konfiguracyjnego
     btList = new TButton[iButtonsMax];
     iButtons = 0;
+*/
 }
-
+/*
 void TCab::Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
                 double Initz2, bool InitEnabled, bool InitOccupied)
 {
@@ -76,9 +78,13 @@ void TCab::Init(double Initx1, double Inity1, double Initz1, double Initx2, doub
     bEnabled = InitEnabled;
     bOccupied = InitOccupied;
 }
-
+*/
 void TCab::Load(cParser &Parser)
 {
+    // NOTE: clearing control tables here is bit of a crutch, imposed by current scheme of loading compartments anew on each cab change
+    ggList.clear();
+    btList.clear();
+
     std::string token;
     Parser.getTokens();
     Parser >> token;
@@ -112,12 +118,15 @@ void TCab::Load(cParser &Parser)
 
 TCab::~TCab()
 {
+/*
     delete[] ggList;
     delete[] btList;
+*/
 };
 
-TGauge *TCab::Gauge(int n)
+TGauge &TCab::Gauge(int n)
 { // pobranie adresu obiektu aniomowanego ruchem
+/*
     if (n < 0)
     { // rezerwacja wolnego
         ggList[iGauges].Clear();
@@ -126,9 +135,19 @@ TGauge *TCab::Gauge(int n)
     else if (n < iGauges)
         return ggList + n;
     return NULL;
+*/
+    if( n < 0 ) {
+        ggList.emplace_back();
+        return ggList.back();
+    }
+    else {
+        return ggList[ n ];
+    }
 };
-TButton *TCab::Button(int n)
+
+TButton &TCab::Button(int n)
 { // pobranie adresu obiektu animowanego wyborem 1 z 2
+/*
     if (n < 0)
     { // rezerwacja wolnego
         return btList + iButtons++;
@@ -136,10 +155,19 @@ TButton *TCab::Button(int n)
     else if (n < iButtons)
         return btList + n;
     return NULL;
+*/
+    if( n < 0 ) {
+        btList.emplace_back();
+        return btList.back();
+    }
+    else {
+        return btList[ n ];
+    }
 };
 
 void TCab::Update()
 { // odczyt parametrów i ustawienie animacji submodelom
+/*
     int i;
     for (i = 0; i < iGauges; ++i)
     { // animacje izometryczne
@@ -149,6 +177,16 @@ void TCab::Update()
     for (i = 0; i < iButtons; ++i)
     { // animacje dwustanowe
         btList[i].Update(); // odczyt parametru i wybór submodelu
+    }
+*/
+    for( auto &gauge : ggList ) {
+        // animacje izometryczne
+        gauge.UpdateValue(); // odczyt parametru i przeliczenie na kąt
+        gauge.Update(); // ustawienie animacji
+    }
+    for( auto &button : btList ) {
+        // animacje dwustanowe
+        button.Update(); // odczyt parametru i wybór submodelu
     }
 };
 
@@ -519,10 +557,14 @@ void TTrain::OnCommand_mastercontrollerincrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         if( Train->mvControlled->IncMainCtrl( 1 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikJazdy );
         }
+#else
+        Train->mvControlled->IncMainCtrl( 1 );
+#endif
     }
 }
 
@@ -530,10 +572,14 @@ void TTrain::OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         if( Train->mvControlled->IncMainCtrl( 2 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikJazdy );
         }
+#else
+        Train->mvControlled->IncMainCtrl( 2 );
+#endif
     }
 }
 
@@ -541,10 +587,14 @@ void TTrain::OnCommand_mastercontrollerdecrease( TTrain *Train, command_data con
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         if( Train->mvControlled->DecMainCtrl( 1 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikJazdy );
         }
+#else
+        Train->mvControlled->DecMainCtrl( 1 );
+#endif
     }
 }
 
@@ -552,10 +602,14 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         if( Train->mvControlled->DecMainCtrl( 2 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikJazdy );
         }
+#else
+        Train->mvControlled->DecMainCtrl( 2 );
+#endif
     }
 }
 
@@ -568,10 +622,16 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
             if( Train->mvControlled->AnPos > 1 )
                 Train->mvControlled->AnPos = 1;
         }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         else if( Train->mvControlled->IncScndCtrl( 1 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
         }
+#else
+        else {
+            Train->mvControlled->IncScndCtrl( 1 );
+        }
+#endif
     }
 }
 
@@ -579,10 +639,14 @@ void TTrain::OnCommand_secondcontrollerincreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         if( Train->mvControlled->IncScndCtrl( 2 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
         }
+#else
+        Train->mvControlled->IncScndCtrl( 2 );
+#endif
     }
 }
 
@@ -592,6 +656,7 @@ void TTrain::OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &C
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( false == Train->mvOccupied->AutoRelayFlag ) {
             // turn on
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             if( Train->mvOccupied->AutoRelaySwitch( true ) ) {
                 // audio feedback
                 Train->play_sound( Train->dsbSwitch );
@@ -599,9 +664,13 @@ void TTrain::OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &C
                 // NOTE: there's no button for notching relay control
                 // TBD, TODO: add notching relay control button?
             }
+#else
+            Train->mvOccupied->AutoRelaySwitch( true );
+#endif
         }
         else {
             //turn off
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             if( Train->mvOccupied->AutoRelaySwitch( false ) ) {
                 // audio feedback
                 Train->play_sound( Train->dsbSwitch );
@@ -609,6 +678,9 @@ void TTrain::OnCommand_notchingrelaytoggle( TTrain *Train, command_data const &C
                 // NOTE: there's no button for notching relay control
                 // TBD, TODO: add notching relay control button?
             }
+#else
+            Train->mvOccupied->AutoRelaySwitch( false );
+#endif
         }
     }
 }
@@ -625,20 +697,24 @@ void TTrain::OnCommand_mucurrentindicatorothersourceactivate( TTrain *Train, com
     if( Command.action == GLFW_PRESS ) {
         // turn on
         Train->ShowNextCurrent = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         if( Train->ggNextCurrentButton.GetValue() < 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggNextCurrentButton.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
         //turn off
         Train->ShowNextCurrent = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         if( Train->ggNextCurrentButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggNextCurrentButton.UpdateValue( 0.0 );
     }
@@ -653,10 +729,14 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
             if( Train->mvControlled->AnPos > 1 )
                 Train->mvControlled->AnPos = 1;
         }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         else if( Train->mvControlled->DecScndCtrl( 1 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
         }
+#else
+        Train->mvControlled->DecScndCtrl( 1 );
+#endif
     }
 }
 
@@ -664,10 +744,14 @@ void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         if( Train->mvControlled->DecScndCtrl( 2 ) ) {
             // sound feedback
             Train->play_sound( Train->dsbNastawnikBocz, Train->dsbNastawnikJazdy, DSBVOLUME_MAX, 0 );
         }
+#else
+        Train->mvControlled->DecScndCtrl( 2 );
+#endif
     }
 }
 
@@ -729,10 +813,12 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
         if( Command.action != GLFW_RELEASE ) {
             // press or hold
             Train->mvOccupied->BrakeReleaser( 1 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggReleaserButton.GetValue() < 0.05 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggReleaserButton.UpdateValue( 1.0 );
         }
@@ -862,8 +948,8 @@ void TTrain::OnCommand_trainbrakefirstservice( TTrain *Train, command_data const
 
         // sound feedback
         if( ( Train->is_eztoer() )
-            && ( Train->mvControlled->Mains )
-            && ( Train->mvOccupied->BrakeCtrlPos != 1 ) ) {
+         && ( Train->mvControlled->Mains )
+         && ( Train->mvOccupied->BrakeCtrlPos != 1 ) ) {
             Train->play_sound( Train->dsbPneumaticSwitch );
         }
 
@@ -934,10 +1020,12 @@ void TTrain::OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const
     if( Command.action != GLFW_RELEASE ) {
         // press or hold
         Train->mvControlled->AntiSlippingBrake();
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         if( Train->ggAntiSlipButton.GetValue() < 0.05 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggAntiSlipButton.UpdateValue( 1.0 );
     }
@@ -967,8 +1055,10 @@ void TTrain::OnCommand_sandboxactivate( TTrain *Train, command_data const &Comma
     if( Command.action == GLFW_PRESS ) {
         // press
         Train->mvControlled->Sandbox( true );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         Train->play_sound( Train->dsbSwitch );
+#endif
         // visual feedback
         Train->ggSandButton.UpdateValue( 1.0 );
     }
@@ -1025,11 +1115,13 @@ void TTrain::OnCommand_brakeactingspeedincrease( TTrain *Train, command_data con
                 Train->mvOccupied->BrakeDelayFlag << 1 :
                 Train->mvOccupied->BrakeDelayFlag | bdelay_M );
         if( true == Train->mvOccupied->BrakeDelaySwitch( fasterbrakesetting ) ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             Train->play_sound( Train->dsbSwitch );
 /*
             Train->play_sound( Train->dsbPneumaticRelay );
 */
+#endif
             // visual feedback
             if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
                 Train->ggBrakeProfileCtrl.UpdateValue(
@@ -1065,11 +1157,13 @@ void TTrain::OnCommand_brakeactingspeeddecrease( TTrain *Train, command_data con
                 Train->mvOccupied->BrakeDelayFlag >> 1 :
                 Train->mvOccupied->BrakeDelayFlag ^ bdelay_M );
         if( true == Train->mvOccupied->BrakeDelaySwitch( slowerbrakesetting ) ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             Train->play_sound( Train->dsbSwitch );
 /*
             Train->play_sound( Train->dsbPneumaticRelay );
 */
+#endif
             // visual feedback
             if( Train->ggBrakeProfileCtrl.SubModel != nullptr ) {
                 Train->ggBrakeProfileCtrl.UpdateValue(
@@ -1111,20 +1205,24 @@ void TTrain::OnCommand_mubrakingindicatortoggle( TTrain *Train, command_data con
         if( false == Train->mvControlled->Signalling) {
             // turn on
             Train->mvControlled->Signalling = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggSignallingButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggSignallingButton.UpdateValue( 1.0 );
         }
         else {
             //turn off
             Train->mvControlled->Signalling = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggSignallingButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggSignallingButton.UpdateValue( 0.0 );
         }
@@ -1136,8 +1234,10 @@ void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Comm
     if( Command.action == GLFW_PRESS ) {
 
         if( Train->mvOccupied->DirectionForward() ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             Train->play_sound( Train->dsbReverserKey, Train->dsbSwitch, DSBVOLUME_MAX, 0 );
+#endif
             // aktualizacja skrajnych pojazdów w składzie
             if( ( Train->mvOccupied->ActiveDir )
              && ( Train->DynamicObject->Mechanik ) ) {
@@ -1153,8 +1253,10 @@ void TTrain::OnCommand_reverserdecrease( TTrain *Train, command_data const &Comm
     if( Command.action == GLFW_PRESS ) {
 
         if( Train->mvOccupied->DirectionBackward() ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             Train->play_sound( Train->dsbReverserKey, Train->dsbSwitch, DSBVOLUME_MAX, 0 );
+#endif
             // aktualizacja skrajnych pojazdów w składzie
             if( ( Train->mvOccupied->ActiveDir )
              && ( Train->DynamicObject->Mechanik ) ) {
@@ -1181,10 +1283,12 @@ void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Co
         }
         // visual feedback
         Train->ggSecurityResetButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // sound feedback
         if( Train->ggSecurityResetButton.GetValue() < 0.05 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
     }
     else {
         // release
@@ -1212,8 +1316,10 @@ void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command
                 if( Train->ggBatteryButton.SubModel ) {
                     Train->ggBatteryButton.UpdateValue( 1 );
                 }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // audio feedback
                 Train->play_sound( Train->dsbSwitch );
+#endif
                 // side-effects
                 if( Train->mvOccupied->LightsPosNo > 0 ) {
                     Train->SetLights();
@@ -1232,8 +1338,10 @@ void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command
                 if( Train->ggBatteryButton.SubModel ) {
                     Train->ggBatteryButton.UpdateValue( 0 );
                 }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // audio feedback
                 Train->play_sound( Train->dsbSwitch );
+#endif
                 // side-effects
                 if( false == Train->mvControlled->ConverterFlag ) {
                     // if there's no (low voltage) power source left, drop pantographs
@@ -1254,8 +1362,10 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
             Train->mvControlled->PantFrontSP = false;
             if( Train->mvControlled->PantFront( true ) ) {
                 if( Train->mvControlled->PantFrontStart != 1 ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     Train->play_sound( Train->dsbSwitch );
+#endif
                     // visual feedback
                     Train->ggPantFrontButton.UpdateValue( 1.0 );
                     // NOTE: currently we animate the selectable pantograph control based on standard key presses
@@ -1284,8 +1394,10 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
             Train->mvControlled->PantFrontSP = false;
             if( false == Train->mvControlled->PantFront( false ) ) {
                 if( Train->mvControlled->PantFrontStart != 0 ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     Train->play_sound( Train->dsbSwitch );
+#endif
                     // visual feedback
                     Train->ggPantFrontButton.UpdateValue( 0.0 );
                     // NOTE: currently we animate the selectable pantograph control based on standard key presses
@@ -1303,17 +1415,21 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             if( Train->ggPantFrontButton.GetValue() > 0.35 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             Train->ggPantFrontButton.UpdateValue( 0.0 );
             // NOTE: currently we animate the selectable pantograph control based on standard key presses
             // TODO: implement actual selection control, and refactor handling this control setup in a separate method
             Train->ggPantSelectedButton.UpdateValue( 0.0 );
             // also the switch off button, in cabs which have it
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             if( Train->ggPantFrontButtonOff.GetValue() > 0.35 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             if( Train->ggPantFrontButtonOff.SubModel ) {
                 Train->ggPantFrontButtonOff.UpdateValue( 0.0 );
             }
@@ -1335,8 +1451,10 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
             Train->mvControlled->PantRearSP = false;
             if( Train->mvControlled->PantRear( true ) ) {
                 if( Train->mvControlled->PantRearStart != 1 ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     Train->play_sound( Train->dsbSwitch );
+#endif
                     // visual feedback
                     Train->ggPantRearButton.UpdateValue( 1.0 );
                     // NOTE: currently we animate the selectable pantograph control based on standard key presses
@@ -1365,8 +1483,10 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
             Train->mvControlled->PantRearSP = false;
             if( false == Train->mvControlled->PantRear( false ) ) {
                 if( Train->mvControlled->PantRearStart != 0 ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     Train->play_sound( Train->dsbSwitch );
+#endif
                     // visual feedback
                     Train->ggPantRearButton.UpdateValue( 0.0 );
                     // NOTE: currently we animate the selectable pantograph control based on standard key presses
@@ -1384,17 +1504,21 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             if( Train->ggPantRearButton.GetValue() > 0.35 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             Train->ggPantRearButton.UpdateValue( 0.0 );
             // NOTE: currently we animate the selectable pantograph control based on standard key presses
             // TODO: implement actual selection control, and refactor handling this control setup in a separate method
             Train->ggPantSelectedButton.UpdateValue( 0.0 );
             // also the switch off button, in cabs which have it
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             if( Train->ggPantRearButtonOff.GetValue() > 0.35 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             if( Train->ggPantRearButtonOff.SubModel ) {
                 Train->ggPantRearButtonOff.UpdateValue( 0.0 );
             }
@@ -1421,14 +1545,18 @@ void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_d
         if( Train->mvControlled->bPantKurek3 == false ) {
             // connect pantographs with primary tank
             Train->mvControlled->bPantKurek3 = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             Train->play_sound( Train->dsbSwitch );
+#endif
         }
         else {
             // connect pantograps with pantograph compressor
             Train->mvControlled->bPantKurek3 = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             Train->play_sound( Train->dsbSwitch );
+#endif
         }
     }
 }
@@ -1451,10 +1579,12 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
     if( Command.action != GLFW_RELEASE ) {
         // press or hold to activate
         Train->mvControlled->PantCompFlag = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         if( Command.action == GLFW_PRESS ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
     }
     else {
         // release to disable
@@ -1481,11 +1611,13 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
         // ...and rear
         Train->mvControlled->PantRearSP = false;
         Train->mvControlled->PantRear( false );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // sound feedback
         // TODO: separate sound effect for pneumatic buttons
         if( Train->ggPantAllDownButton.GetValue() < 0.35 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggPantAllDownButton.UpdateValue( 1.0 );
         if( Train->ggPantSelectedDownButton.SubModel != nullptr ) {
@@ -1494,6 +1626,7 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
     }
     else if( Command.action == GLFW_RELEASE ) {
         // release the button
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // sound feedback
 /*
         // NOTE: release sound disabled as this is typically pneumatic button
@@ -1502,6 +1635,7 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
             Train->play_sound( Train->dsbSwitch );
         }
 */
+#endif
         // visual feedback
         Train->ggPantAllDownButton.UpdateValue( 0.0 );
         if( Train->ggPantSelectedDownButton.SubModel != nullptr ) {
@@ -1539,19 +1673,23 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
             }
             if( Train->ggMainOnButton.SubModel != nullptr ) {
                 // two separate switches to close and break the circuit
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // audio feedback
                 if( Command.action == GLFW_PRESS ) {
                     Train->play_sound( Train->dsbSwitch );
                 }
+#endif
                 // visual feedback
                 Train->ggMainOnButton.UpdateValue( 1.0 );
             }
             else if( Train->ggMainButton.SubModel != nullptr ) {
                 // single two-state switch
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // audio feedback
                 if( Command.action == GLFW_PRESS ) {
                     Train->play_sound( Train->dsbSwitch );
                 }
+#endif
                 // visual feedback
                 Train->ggMainButton.UpdateValue( 1.0 );
             }
@@ -1594,10 +1732,12 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
 
                 if( Train->ggMainOffButton.SubModel != nullptr ) {
                     // two separate switches to close and break the circuit
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // audio feedback
                     if( Command.action == GLFW_PRESS ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     // visual feedback
                     Train->ggMainOffButton.UpdateValue( 1.0 );
                 }
@@ -1618,10 +1758,12 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                     else
 */
                     {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                         // audio feedback
                         if( Command.action == GLFW_PRESS ) {
                             Train->play_sound( Train->dsbSwitch );
                         }
+#endif
                         // visual feedback
                         Train->ggMainButton.UpdateValue( 0.0 );
                     }
@@ -1647,20 +1789,24 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
             // for setup with two separate swiches
             if( Train->ggMainOnButton.SubModel != nullptr ) {
                 Train->ggMainOnButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // audio feedback
                 if( Train->ggMainOnButton.GetValue() > 0.5 ) {
                     Train->play_sound( Train->dsbSwitch );
                 }
+#endif
             }
             if( Train->ggMainOffButton.SubModel != nullptr ) {
                 Train->ggMainOffButton.UpdateValue( 0.0 );
             }
             // and the two-state switch too, for good measure
             if( Train->ggMainButton.SubModel != nullptr ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // audio feedback
                 if( Train->ggMainButton.GetValue() > 0.5 ) {
                     Train->play_sound( Train->dsbSwitch );
                 }
+#endif
                 // visual feedback
                 Train->ggMainButton.UpdateValue( 0.0 );
             }
@@ -1677,10 +1823,12 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                     Train->mvControlled->CompressorSwitch( Train->ggCompressorButton.GetValue() > 0.5 );
                 }
             }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggMainOnButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             if( Train->ggMainOnButton.SubModel != nullptr ) {
                 // setup with two separate switches
@@ -1691,10 +1839,12 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
             // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
             if( Train->mvControlled->TrainType == dt_EZT ) {
                 if( Train->ggMainButton.SubModel != nullptr ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // audio feedback
                     if( Train->ggMainButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     // visual feedback
                     Train->ggMainButton.UpdateValue( 0.0 );
                 }
@@ -1719,10 +1869,12 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
         if( ( false == Train->mvControlled->ConverterAllow )
          && ( Train->ggConverterButton.GetValue() < 0.5 ) ) {
             // turn on
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggConverterButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggConverterButton.UpdateValue( 1.0 );
 /*
@@ -1750,6 +1902,7 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
         }
         else {
             //turn off
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->mvOccupied->ConvSwitchType == "impulse" ) {
                 if( Train->ggConverterOffButton.GetValue() < 0.5 ) {
@@ -1761,6 +1914,7 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
                     Train->play_sound( Train->dsbSwitch );
                 }
             }
+#endif
             // visual feedback
             Train->ggConverterButton.UpdateValue( 0.0 );
             if( Train->ggConverterOffButton.SubModel != nullptr ) {
@@ -1789,11 +1943,13 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
         // on button release...
         if( Train->mvOccupied->ConvSwitchType == "impulse" ) {
             // ...return switches to start position if applicable
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             if( ( Train->ggConverterButton.GetValue() > 0.0 )
              || ( Train->ggConverterOffButton.GetValue() > 0.0 ) ) {
                 // sound feedback
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             Train->ggConverterButton.UpdateValue( 0.0 );
             Train->ggConverterOffButton.UpdateValue( 0.0 );
         }
@@ -1815,10 +1971,12 @@ void TTrain::OnCommand_convertertogglelocal( TTrain *Train, command_data const &
         if( ( false == Train->mvOccupied->ConverterAllowLocal )
          && ( Train->ggConverterLocalButton.GetValue() < 0.5 ) ) {
             // turn on
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggConverterLocalButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggConverterLocalButton.UpdateValue( 1.0 );
             // effect
@@ -1836,10 +1994,12 @@ void TTrain::OnCommand_convertertogglelocal( TTrain *Train, command_data const &
         }
         else {
             //turn off
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggConverterLocalButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggConverterLocalButton.UpdateValue( 0.0 );
             // effect
@@ -1879,19 +2039,23 @@ void TTrain::OnCommand_converteroverloadrelayreset( TTrain *Train, command_data 
          && ( Train->mvControlled->TrainType != dt_EZT ) ) {
             Train->mvControlled->ConvOvldFlag = false;
         }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // sound feedback
         if( Train->ggConverterFuseButton.GetValue() < 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggConverterFuseButton.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // release
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // sound feedback
         if( Train->ggConverterFuseButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggConverterFuseButton.UpdateValue( 0.0 );
     }
@@ -1909,10 +2073,12 @@ void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Comm
             // turn on
             // visual feedback
             Train->ggCompressorButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggCompressorButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // impulse type switch has no effect if there's no power
             // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
             // (we're presuming impulse type switch for all EMUs for the time being)
@@ -1925,8 +2091,10 @@ void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Comm
         else {
             //turn off
             if( true == Train->mvControlled->CompressorSwitch( false ) ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // sound feedback
                 Train->play_sound( Train->dsbSwitch );
+#endif
                 // NOTE: we don't have switch type definition for the compresor switch
                 // so for the time being we have hard coded "impulse" switches for all EMUs
                 // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
@@ -1973,10 +2141,12 @@ void TTrain::OnCommand_compressortogglelocal( TTrain *Train, command_data const 
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( false == Train->mvOccupied->CompressorAllowLocal ) {
             // turn on
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggCompressorLocalButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggCompressorLocalButton.UpdateValue( 1.0 );
             // effect
@@ -1984,10 +2154,12 @@ void TTrain::OnCommand_compressortogglelocal( TTrain *Train, command_data const 
         }
         else {
             //turn off
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggCompressorLocalButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggCompressorLocalButton.UpdateValue( 0.0 );
             // effect
@@ -2027,10 +2199,12 @@ void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &C
                     Train->mvControlled->Couplers[ 1 ].Connected->StLinSwitchOff = true;
                 }
             }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggStLinOffButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggStLinOffButton.UpdateValue( 1.0 );
             // effect
@@ -2074,10 +2248,12 @@ void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &C
                         Train->mvControlled->Couplers[ 1 ].Connected->StLinSwitchOff = false;
                     }
                 }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // sound feedback
                 if( Train->ggStLinOffButton.GetValue() > 0.5 ) {
                     Train->play_sound( Train->dsbSwitch );
                 }
+#endif
                 // visual feedback
                 Train->ggStLinOffButton.UpdateValue( 0.0 );
             }
@@ -2103,10 +2279,12 @@ void TTrain::OnCommand_motorconnectorsopen( TTrain *Train, command_data const &C
                     Train->mvControlled->Couplers[ 1 ].Connected->StLinSwitchOff = false;
                 }
             }
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggStLinOffButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggStLinOffButton.UpdateValue( 0.0 );
         }
@@ -2123,10 +2301,14 @@ void TTrain::OnCommand_motordisconnect( TTrain *Train, command_data const &Comma
     }
 
     if( Command.action == GLFW_PRESS ) {
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         if( true == Train->mvControlled->CutOffEngine() ) {
             // sound feedback
             Train->play_sound( Train->dsbSwitch );
         }
+#else
+        Train->mvControlled->CutOffEngine();
+#endif
     }
 }
 
@@ -2139,10 +2321,12 @@ void TTrain::OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command
             if( true == Train->mvControlled->CurrentSwitch( true ) ) {
                 // visual feedback
                 Train->ggMaxCurrentCtrl.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // sound feedback
                 if( Train->ggMaxCurrentCtrl.GetValue() < 0.5 ) {
                     Train->play_sound( Train->dsbSwitch );
                 }
+#endif
             }
         }
         else {
@@ -2150,10 +2334,12 @@ void TTrain::OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command
             if( true == Train->mvControlled->CurrentSwitch( false ) ) {
                 // visual feedback
                 Train->ggMaxCurrentCtrl.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                 // sound feedback
                 if( Train->ggMaxCurrentCtrl.GetValue() > 0.5 ) {
                     Train->play_sound( Train->dsbSwitch );
                 }
+#endif
             }
         }
     }
@@ -2171,19 +2357,23 @@ void TTrain::OnCommand_motoroverloadrelayreset( TTrain *Train, command_data cons
     if( Command.action == GLFW_PRESS ) {
         // press
         Train->mvControlled->FuseOn();
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // sound feedback
         if( Train->ggFuseButton.GetValue() < 0.05 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggFuseButton.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // release
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // sound feedback
         if( Train->ggFuseButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggFuseButton.UpdateValue( 0.0 );
     }
@@ -2208,20 +2398,24 @@ void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &C
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
             // visual feedback
             Train->ggLeftLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggLeftLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
             // visual feedback
             Train->ggLeftLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggLeftLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2245,20 +2439,24 @@ void TTrain::OnCommand_headlighttoggleright( TTrain *Train, command_data const &
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
             // visual feedback
             Train->ggRightLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRightLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
             // visual feedback
             Train->ggRightLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRightLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2282,20 +2480,24 @@ void TTrain::OnCommand_headlighttoggleupper( TTrain *Train, command_data const &
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
             // visual feedback
             Train->ggUpperLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggUpperLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
             // visual feedback
             Train->ggUpperLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggUpperLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2319,20 +2521,24 @@ void TTrain::OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &C
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
             Train->ggLeftEndLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggLeftEndLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
             Train->ggLeftEndLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggLeftEndLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2356,20 +2562,24 @@ void TTrain::OnCommand_redmarkertoggleright( TTrain *Train, command_data const &
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
             Train->ggRightEndLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRightEndLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
             Train->ggRightEndLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRightEndLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2394,20 +2604,24 @@ void TTrain::OnCommand_headlighttogglerearleft( TTrain *Train, command_data cons
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
             // visual feedback
             Train->ggRearLeftLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearLeftLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
             // visual feedback
             Train->ggRearLeftLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearLeftLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2432,20 +2646,24 @@ void TTrain::OnCommand_headlighttogglerearright( TTrain *Train, command_data con
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
             // visual feedback
             Train->ggRearRightLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearRightLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
             // visual feedback
             Train->ggRearRightLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearRightLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2469,20 +2687,24 @@ void TTrain::OnCommand_headlighttogglerearupper( TTrain *Train, command_data con
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
             // visual feedback
             Train->ggRearUpperLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearUpperLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_upper;
             // visual feedback
             Train->ggRearUpperLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearUpperLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2507,20 +2729,24 @@ void TTrain::OnCommand_redmarkertogglerearleft( TTrain *Train, command_data cons
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
             Train->ggRearLeftEndLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearLeftEndLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
             Train->ggRearLeftEndLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearLeftEndLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2545,20 +2771,24 @@ void TTrain::OnCommand_redmarkertogglerearright( TTrain *Train, command_data con
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
             Train->ggRearRightEndLightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearRightEndLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
             Train->ggRearRightEndLightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // sound feedback
             if( Train->ggRearRightEndLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
         }
     }
 }
@@ -2579,20 +2809,24 @@ void TTrain::OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &C
         if( false == Train->DynamicObject->DimHeadlights ) {
             // turn on
             Train->DynamicObject->DimHeadlights = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggDimHeadlightsButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggDimHeadlightsButton.UpdateValue( 1.0 );
         }
         else {
             //turn off
             Train->DynamicObject->DimHeadlights = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggDimHeadlightsButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggDimHeadlightsButton.UpdateValue( 0.0 );
         }
@@ -2616,10 +2850,12 @@ void TTrain::OnCommand_interiorlighttoggle( TTrain *Train, command_data const &C
             // turn on
             Train->bCabLight = true;
             Train->btCabLight.TurnOn();
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggCabLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggCabLightButton.UpdateValue( 1.0 );
         }
@@ -2627,10 +2863,12 @@ void TTrain::OnCommand_interiorlighttoggle( TTrain *Train, command_data const &C
             //turn off
             Train->bCabLight = false;
             Train->btCabLight.TurnOff();
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggCabLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggCabLightButton.UpdateValue( 0.0 );
         }
@@ -2652,20 +2890,24 @@ void TTrain::OnCommand_interiorlightdimtoggle( TTrain *Train, command_data const
         if( false == Train->bCabLightDim ) {
             // turn on
             Train->bCabLightDim = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggCabLightDimButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggCabLightDimButton.UpdateValue( 1.0 );
         }
         else {
             //turn off
             Train->bCabLightDim = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggCabLightDimButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggCabLightDimButton.UpdateValue( 0.0 );
         }
@@ -2689,20 +2931,24 @@ void TTrain::OnCommand_instrumentlighttoggle( TTrain *Train, command_data const 
         if( false == Train->InstrumentLightActive ) {
             // turn on
             Train->InstrumentLightActive = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggInstrumentLightButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggInstrumentLightButton.UpdateValue( 1.0 );
         }
         else {
             //turn off
             Train->InstrumentLightActive = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggInstrumentLightButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggInstrumentLightButton.UpdateValue( 0.0 );
         }
@@ -2723,20 +2969,24 @@ void TTrain::OnCommand_heatingtoggle( TTrain *Train, command_data const &Command
         if( false == Train->mvControlled->Heating ) {
             // turn on
             Train->mvControlled->Heating = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggTrainHeatingButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggTrainHeatingButton.UpdateValue( 1.0 );
         }
         else {
             //turn off
             Train->mvControlled->Heating = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggTrainHeatingButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggTrainHeatingButton.UpdateValue( 0.0 );
         }
@@ -2759,19 +3009,23 @@ void TTrain::OnCommand_generictoggle( TTrain *Train, command_data const &Command
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( item.GetValue() < 0.25 ) {
             // turn on
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( item.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             item.UpdateValue( 1.0 );
         }
         else {
             //turn off
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( item.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             item.UpdateValue( 0.0 );
         }
@@ -2794,10 +3048,12 @@ void TTrain::OnCommand_doorlocktoggle( TTrain *Train, command_data const &Comman
             // TODO: check wheter we really need separate flags for this
             Train->mvControlled->DoorSignalling = true;
             Train->mvOccupied->DoorBlocked = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggDoorSignallingButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggDoorSignallingButton.UpdateValue( 1.0 );
         }
@@ -2806,10 +3062,12 @@ void TTrain::OnCommand_doorlocktoggle( TTrain *Train, command_data const &Comman
             // TODO: check wheter we really need separate flags for this
             Train->mvControlled->DoorSignalling = false;
             Train->mvOccupied->DoorBlocked = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggDoorSignallingButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggDoorSignallingButton.UpdateValue( 0.0 );
         }
@@ -2831,10 +3089,12 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
             if( Train->mvOccupied->ActiveCab == 1 ) {
                 if( Train->mvOccupied->DoorLeft( true ) ) {
                     Train->ggDoorLeftButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorLeftButton.GetValue() < 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorOpen );
                 }
             }
@@ -2842,10 +3102,12 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 // in the rear cab sides are reversed
                 if( Train->mvOccupied->DoorRight( true ) ) {
                     Train->ggDoorRightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorRightButton.GetValue() < 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorOpen );
                 }
             }
@@ -2855,10 +3117,12 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
             if( Train->mvOccupied->ActiveCab == 1 ) {
                 if( Train->mvOccupied->DoorLeft( false ) ) {
                     Train->ggDoorLeftButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorLeftButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorClose );
                 }
             }
@@ -2866,10 +3130,12 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
                 // in the rear cab sides are reversed
                 if( Train->mvOccupied->DoorRight( false ) ) {
                     Train->ggDoorRightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorRightButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorClose );
                 }
             }
@@ -2892,10 +3158,12 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
             if( Train->mvOccupied->ActiveCab == 1 ) {
                 if( Train->mvOccupied->DoorRight( true ) ) {
                     Train->ggDoorRightButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorRightButton.GetValue() < 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorOpen );
                 }
             }
@@ -2903,10 +3171,12 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 // in the rear cab sides are reversed
                 if( Train->mvOccupied->DoorLeft( true ) ) {
                     Train->ggDoorLeftButton.UpdateValue( 1.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorLeftButton.GetValue() < 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorOpen );
                 }
             }
@@ -2916,10 +3186,12 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
             if( Train->mvOccupied->ActiveCab == 1 ) {
                 if( Train->mvOccupied->DoorRight( false ) ) {
                     Train->ggDoorRightButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorRightButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorClose );
                 }
             }
@@ -2927,10 +3199,12 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
                 // in the rear cab sides are reversed
                 if( Train->mvOccupied->DoorLeft( false ) ) {
                     Train->ggDoorLeftButton.UpdateValue( 0.0 );
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
                     // sound feedback
                     if( Train->ggDoorLeftButton.GetValue() > 0.5 ) {
                         Train->play_sound( Train->dsbSwitch );
                     }
+#endif
                     Train->play_sound( Train->dsbDoorClose );
                 }
             }
@@ -2952,10 +3226,12 @@ void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Com
         if( false == Train->mvControlled->DepartureSignal ) {
             // turn on
             Train->mvControlled->DepartureSignal = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggDepartureSignalButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggDepartureSignalButton.UpdateValue( 1.0 );
         }
@@ -2963,10 +3239,12 @@ void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Com
     else if( Command.action == GLFW_RELEASE ) {
         // turn off
         Train->mvControlled->DepartureSignal = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         if( Train->ggDepartureSignalButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggDepartureSignalButton.UpdateValue( 0.0 );
     }
@@ -2993,11 +3271,13 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
                 Train->mvControlled->WarningSignal &= ~2;
             }
 */
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( ( Train->ggHornButton.GetValue() > -0.5 )
              || ( Train->ggHornLowButton.GetValue() < 0.5 ) ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggHornButton.UpdateValue( -1.0 );
             Train->ggHornLowButton.UpdateValue( 1.0 );
@@ -3010,11 +3290,13 @@ void TTrain::OnCommand_hornlowactivate( TTrain *Train, command_data const &Comma
         Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
 */
         Train->mvOccupied->WarningSignal &= ~1;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         if( ( Train->ggHornButton.GetValue() < -0.5 )
          || ( Train->ggHornLowButton.GetValue() > 0.5 ) ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggHornButton.UpdateValue( 0.0 );
         Train->ggHornLowButton.UpdateValue( 0.0 );
@@ -3042,10 +3324,12 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
                 Train->mvControlled->WarningSignal &= ~1;
             }
 */
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggHornButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggHornButton.UpdateValue( 1.0 );
             Train->ggHornHighButton.UpdateValue( 1.0 );
@@ -3058,10 +3342,12 @@ void TTrain::OnCommand_hornhighactivate( TTrain *Train, command_data const &Comm
         Train->mvOccupied->WarningSignal &= ~( 1 | 2 );
 */
         Train->mvOccupied->WarningSignal &= ~2;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
         // audio feedback
         if( Train->ggHornButton.GetValue() > 0.5 ) {
             Train->play_sound( Train->dsbSwitch );
         }
+#endif
         // visual feedback
         Train->ggHornButton.UpdateValue( 0.0 );
         Train->ggHornHighButton.UpdateValue( 0.0 );
@@ -3085,20 +3371,24 @@ void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command )
         if( false == Train->mvOccupied->Radio ) {
             // turn on
             Train->mvOccupied->Radio = true;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggRadioButton.GetValue() < 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggRadioButton.UpdateValue( 1.0 );
         }
         else {
             // turn off
             Train->mvOccupied->Radio = false;
+#ifdef EU07_USE_OLD_CONTROLSOUNDS
             // audio feedback
             if( Train->ggRadioButton.GetValue() > 0.5 ) {
                 Train->play_sound( Train->dsbSwitch );
             }
+#endif
             // visual feedback
             Train->ggRadioButton.UpdateValue( 0.0 );
         }
@@ -6452,8 +6742,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         {
             // ABu: wstawione warunki, wczesniej tylko to:
             //   str=Parser->GetNextSymbol().LowerCase();
-            if (parse == true)
-            {
+            if (parse == true) {
 
                 token = "";
                 parser->getTokens();
@@ -7032,9 +7321,9 @@ void TTrain::set_cab_controls() {
 // TODO: refactor the cabin controls into some sensible structure
 bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int const Cabindex)
 {
-
+/*
     TButton *bt; // roboczy wskaźnik na obiekt animujący lampkę
-
+*/
     // SEKCJA LAMPEK
     if (Label == "i-maxft:")
     {
@@ -7250,9 +7539,9 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     else if (Label == "i-doors:")
     {
         int i = Parser.getToken<int>() - 1;
-        bt = Cabine[Cabindex].Button(-1); // pierwsza wolna lampka
-        bt->Load(Parser, DynamicObject->mdKabina);
-        bt->AssignBool(bDoors[0] + 3 * i);
+        auto &button = Cabine[Cabindex].Button(-1); // pierwsza wolna lampka
+        button.Load(Parser, DynamicObject->mdKabina);
+        button.AssignBool(bDoors[0] + 3 * i);
     }
     else
     {
@@ -7269,7 +7558,9 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
 // TODO: refactor the cabin controls into some sensible structure
 bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex) {
 
+/*
     TGauge *gg { nullptr }; // roboczy wskaźnik na obiekt animujący gałkę
+*/
     std::unordered_map<std::string, TGauge &> gauges = {
         { "mainctrl:", ggMainCtrl },
         { "scndctrl:", ggScndCtrl },
@@ -7350,73 +7641,55 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     else if( Label == "mainctrlact:" ) {
         ggMainCtrlAct.Load( Parser, DynamicObject->mdKabina, DynamicObject->mdModel );
     }
-/*
-    else if (Label == "universal1:")
-    {
-        ggUniversal1Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
-    }
-    else if (Label == "universal2:")
-    {
-        ggUniversal2Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
-    }
-    else if (Label == "universal3:")
-    {
-        ggInstrumentLightButton.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
-    }
-    else if (Label == "universal4:")
-    {
-        ggUniversal4Button.Load(Parser, DynamicObject->mdKabina, DynamicObject->mdModel);
-    }
-*/
     // SEKCJA WSKAZNIKOW
     else if ((Label == "tachometer:") || (Label == "tachometerb:"))
     {
         // predkosciomierz wskaźnikowy z szarpaniem
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(&fTachoVelocityJump);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(&fTachoVelocityJump);
     }
     else if (Label == "tachometern:")
     {
         // predkosciomierz wskaźnikowy bez szarpania
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(&fTachoVelocity);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(&fTachoVelocity);
     }
     else if (Label == "tachometerd:")
     {
         // predkosciomierz cyfrowy
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(&fTachoVelocity);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(&fTachoVelocity);
     }
     else if ((Label == "hvcurrent1:") || (Label == "hvcurrent1b:"))
     {
         // 1szy amperomierz
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(fHCurrent + 1);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(fHCurrent + 1);
     }
     else if ((Label == "hvcurrent2:") || (Label == "hvcurrent2b:"))
     {
         // 2gi amperomierz
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(fHCurrent + 2);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(fHCurrent + 2);
     }
     else if ((Label == "hvcurrent3:") || (Label == "hvcurrent3b:"))
     {
         // 3ci amperomierz
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałska
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(fHCurrent + 3);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałska
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(fHCurrent + 3);
     }
     else if ((Label == "hvcurrent:") || (Label == "hvcurrentb:"))
     {
         // amperomierz calkowitego pradu
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(fHCurrent);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(fHCurrent);
     }
     else if (Label == "eimscreen:")
     {
@@ -7424,9 +7697,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         int i, j;
         Parser.getTokens(2, false);
         Parser >> i >> j;
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(&fEIMParams[i][j]);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(&fEIMParams[i][j]);
     }
     else if (Label == "brakes:")
     {
@@ -7434,43 +7707,43 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         int i, j;
         Parser.getTokens(2, false);
         Parser >> i >> j;
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(&fPress[i - 1][j]);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(&fPress[i - 1][j]);
     }
     else if ((Label == "brakepress:") || (Label == "brakepressb:"))
     {
         // manometr cylindrow hamulcowych
         // Ra 2014-08: przeniesione do TCab
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina, NULL, 0.1);
-        gg->AssignDouble(&mvOccupied->BrakePress);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina, nullptr, 0.1);
+        gauge.AssignDouble(&mvOccupied->BrakePress);
     }
     else if ((Label == "pipepress:") || (Label == "pipepressb:"))
     {
         // manometr przewodu hamulcowego
-        TGauge *gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina, NULL, 0.1);
-        gg->AssignDouble(&mvOccupied->PipePress);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina, nullptr, 0.1);
+        gauge.AssignDouble(&mvOccupied->PipePress);
     }
     else if (Label == "limpipepress:")
     {
         // manometr zbiornika sterujacego zaworu maszynisty
-        ggZbS.Load(Parser, DynamicObject->mdKabina, NULL, 0.1);
+        ggZbS.Load(Parser, DynamicObject->mdKabina, nullptr, 0.1);
     }
     else if (Label == "cntrlpress:")
     {
         // manometr zbiornika kontrolnego/rorzďż˝du
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina, NULL, 0.1);
-        gg->AssignDouble(&mvControlled->PantPress);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina, nullptr, 0.1);
+        gauge.AssignDouble(&mvControlled->PantPress);
     }
     else if ((Label == "compressor:") || (Label == "compressorb:"))
     {
         // manometr sprezarki/zbiornika glownego
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina, NULL, 0.1);
-        gg->AssignDouble(&mvOccupied->Compressor);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina, nullptr, 0.1);
+        gauge.AssignDouble(&mvOccupied->Compressor);
     }
     // yB - dla drugiej sekcji
     else if (Label == "hvbcurrent1:")
@@ -7500,12 +7773,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         if (Parser.getToken<std::string>() == "analog")
         {
             // McZapkie-300302: zegarek
-            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), gt_Rotate,
-                             0.016666667, 0, 0);
-            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), gt_Rotate,
-                             0.016666667, 0, 0);
-            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), gt_Rotate,
-                             0.083333333, 0, 0);
+            ggClockSInd.Init(DynamicObject->mdKabina->GetFromName("ClockShand"), gt_Rotate, 1.0/60.0, 0, 0);
+            ggClockMInd.Init(DynamicObject->mdKabina->GetFromName("ClockMhand"), gt_Rotate, 1.0/60.0, 0, 0);
+            ggClockHInd.Init(DynamicObject->mdKabina->GetFromName("ClockHhand"), gt_Rotate, 1.0/12.0, 0, 0);
         }
     }
     else if (Label == "evoltage:")
@@ -7516,9 +7786,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     else if (Label == "hvoltage:")
     {
         // woltomierz wysokiego napiecia
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(&fHVoltage);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(&fHVoltage);
     }
     else if (Label == "lvoltage:")
     {
@@ -7528,29 +7798,29 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     else if (Label == "enrot1m:")
     {
         // obrotomierz
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(fEngine + 1);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(fEngine + 1);
     } // ggEnrot1m.Load(Parser,DynamicObject->mdKabina);
     else if (Label == "enrot2m:")
     {
         // obrotomierz
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(fEngine + 2);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(fEngine + 2);
     } // ggEnrot2m.Load(Parser,DynamicObject->mdKabina);
     else if (Label == "enrot3m:")
     { // obrotomierz
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignFloat(fEngine + 3);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignFloat(fEngine + 3);
     } // ggEnrot3m.Load(Parser,DynamicObject->mdKabina);
     else if (Label == "engageratio:")
     {
         // np. ciśnienie sterownika sprzęgła
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignDouble(&mvControlled->dizel_engage);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignDouble(&mvControlled->dizel_engage);
     } // ggEngageRatio.Load(Parser,DynamicObject->mdKabina);
     else if (Label == "maingearstatus:")
     {
@@ -7564,9 +7834,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     else if (Label == "distcounter:")
     {
         // Ra 2014-07: licznik kilometrów
-        gg = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
-        gg->Load(Parser, DynamicObject->mdKabina);
-        gg->AssignDouble(&mvControlled->DistCounter);
+        auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+        gauge.Load(Parser, DynamicObject->mdKabina);
+        gauge.AssignDouble(&mvControlled->DistCounter);
     }
     else
     {

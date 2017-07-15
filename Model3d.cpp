@@ -1217,11 +1217,11 @@ TSubModel *TModel3d::GetFromName(const char *sName)
 	if (!sName)
 		return Root; // potrzebne do terenu z E3D
 	if (iFlags & 0x0200) // wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
-		return Root ? Root->GetFromName(sName) : NULL;
+		return Root ? Root->GetFromName(sName) : nullptr;
 	else // wczytano z pliku binarnego, można wyszukać iteracyjnie
 	{
 		// for (int i=0;i<iSubModelsCount;++i)
-		return Root ? Root->GetFromName(sName) : NULL;
+		return Root ? Root->GetFromName(sName) : nullptr;
 	}
 };
 
