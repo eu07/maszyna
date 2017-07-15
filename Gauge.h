@@ -43,18 +43,19 @@ class TGauge {
     PSound m_soundfxdecrease { nullptr }; // sound associated with decreasing control's value
     std::map<int, PSound> m_soundfxvalues; // sounds associated with specific values
 // methods
+    // imports member data pair from the config file
+    bool
+        Load_mapping( cParser &Input );
     // plays specified sound
     void
         play( PSound Sound );
 
   public:
     TGauge() = default;
-    ~TGauge() {}
     inline
     void Clear() { *this = TGauge(); }
     void Init(TSubModel *NewSubModel, TGaugeType eNewTyp, double fNewScale = 1, double fNewOffset = 0, double fNewFriction = 0, double fNewValue = 0);
     bool Load(cParser &Parser, TModel3d *md1, TModel3d *md2 = nullptr, double mul = 1.0);
-    bool Load_mapping( cParser &Input );
     void PermIncValue(double fNewDesired);
     void IncValue(double fNewDesired);
     void DecValue(double fNewDesired);

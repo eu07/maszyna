@@ -200,7 +200,7 @@ TGauge::UpdateValue( double fNewDesired, PSound Fallbacksound ) {
     else if( ( currentvalue > fNewDesired ) && ( m_soundfxdecrease != nullptr ) ) {
         play( m_soundfxdecrease );
     }
-    else {
+    else if( Fallbacksound != nullptr ) {
         // ...and if that fails too, try the provided fallback sound from legacy system
         play( Fallbacksound );
     }

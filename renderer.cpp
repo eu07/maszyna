@@ -346,12 +346,12 @@ opengl_renderer::Render_camera() {
             break;
         }
         case rendermode::shadows: {
-            m_renderpass.camera.position() = Global::pCameraPosition - glm::dvec3{ Global::DayLight.direction * 750.0f };
+            m_renderpass.camera.position() = Global::pCameraPosition - glm::dvec3{ Global::DayLight.direction * 750.f };
             m_renderpass.camera.position().y = std::max( 50.0, m_renderpass.camera.position().y ); // prevent shadow source from dipping too low
             viewmatrix = glm::lookAt(
                 m_renderpass.camera.position(),
                 glm::dvec3{ Global::pCameraPosition.x, 0.0, Global::pCameraPosition.z },
-                glm::dvec3{ 0.0f, 1.0f, 0.0f } );
+                glm::dvec3{ 0.f, 1.f, 0.f } );
             break;
         }
         default: {
