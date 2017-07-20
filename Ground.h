@@ -313,27 +313,21 @@ class TGround
     TGroundNode * DynamicFind(std::string const &Name);
     void DynamicList(bool all = false);
     TGroundNode * FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType);
-    TGroundRect * GetRect(double x, double z)
-    {
-        return &Rects[GetColFromX(x) / iNumSubRects][GetRowFromZ(z) / iNumSubRects];
-    };
+    TGroundRect * GetRect( double x, double z );
     TSubRect * GetSubRect( int iCol, int iRow );
-    TSubRect * GetSubRect(double x, double z)
-    {
-        return GetSubRect(GetColFromX(x), GetRowFromZ(z));
-    };
+    inline
+    TSubRect * GetSubRect(double x, double z) {
+        return GetSubRect(GetColFromX(x), GetRowFromZ(z)); };
     TSubRect * FastGetSubRect( int iCol, int iRow );
+    inline
     TSubRect * FastGetSubRect( double x, double z ) {
-        return FastGetSubRect( GetColFromX( x ), GetRowFromZ( z ) );
-    };
-    int GetRowFromZ(double z)
-    {
-        return (int)(z / fSubRectSize + fHalfTotalNumSubRects);
-    };
-    int GetColFromX(double x)
-    {
-        return (int)(x / fSubRectSize + fHalfTotalNumSubRects);
-    };
+        return FastGetSubRect( GetColFromX( x ), GetRowFromZ( z ) ); };
+    inline
+    int GetRowFromZ(double z) {
+        return (int)(z / fSubRectSize + fHalfTotalNumSubRects); };
+    inline
+    int GetColFromX(double x) {
+        return (int)(x / fSubRectSize + fHalfTotalNumSubRects); };
     TEvent * FindEvent(const std::string &asEventName);
     TEvent * FindEventScan(const std::string &asEventName);
     void TrackJoin(TGroundNode *Current);

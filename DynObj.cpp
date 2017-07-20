@@ -1717,7 +1717,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         if (ConversionError == -8)
             ErrorLog("Missed file: " + BaseDir + "\\" + Type_Name + ".fiz");
         Error("Cannot load dynamic object " + asName + " from:\r\n" + BaseDir + "\\" + Type_Name +
-              ".fiz\r\nError " + to_string(ConversionError) + " in line " + to_string(LineCount));
+              ".fiz\r\nError " + to_string(ConversionError));
         return 0.0; // zerowa długość to brak pojazdu
     }
     bool driveractive = (fVel != 0.0); // jeśli prędkość niezerowa, to aktywujemy ruch

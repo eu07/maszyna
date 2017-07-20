@@ -307,10 +307,12 @@ TTrack * TTrack::NullCreate(int dir)
         tmp2->pCenter = tmp->pCenter; // ten sam środek jest
     // Ra: to poniżej to porażka, ale na razie się nie da inaczej
     TSubRect *r = Global::pGround->GetSubRect(tmp->pCenter.x, tmp->pCenter.z);
-    r->NodeAdd(tmp); // dodanie toru do segmentu
-    if (tmp2)
-        r->NodeAdd(tmp2); // drugiego też
-    r->Sort(); //żeby wyświetlał tabor z dodanego toru
+    if( r != nullptr ) {
+        r->NodeAdd( tmp ); // dodanie toru do segmentu
+        if( tmp2 )
+            r->NodeAdd( tmp2 ); // drugiego też
+        r->Sort(); //żeby wyświetlał tabor z dodanego toru
+    }
     return trk;
 };
 

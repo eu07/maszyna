@@ -106,6 +106,8 @@ TWorld();
     void OnCommandGet(DaneRozkaz *pRozkaz);
     bool Update();
     void TrainDelete(TDynamicObject *d = NULL);
+    TTrain const *
+        train() const { return Train; }
     // switches between static and dynamic daylight calculation
     void ToggleDaylight();
 
@@ -114,7 +116,6 @@ private:
     void Update_Camera( const double Deltatime );
     void Update_UI();
     void ResourceSweep();
-    void Render_Cab();
 
     TCamera Camera;
     TGround Ground;

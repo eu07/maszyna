@@ -39,6 +39,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <array>
 #include <vector>
 #include <deque>
 #include <list>

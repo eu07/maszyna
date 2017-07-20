@@ -134,15 +134,6 @@ public:
         Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     bool
         Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
-    // maintenance jobs
-    void
-        Update( double const Deltatime );
-    // debug performance string
-    std::string const &
-        Info() const;
-    // light methods
-    void
-        Disable_Lights();
     // geometry methods
     // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
     // creates a new geometry bank. returns: handle to the bank or NULL
@@ -167,6 +158,24 @@ public:
         Bind( texture_handle const Texture );
     opengl_texture const &
         Texture( texture_handle const Texture );
+    // light methods
+    void
+        Disable_Lights();
+    // utility methods
+    TSubModel const *
+        Pick_Control() const { return m_pickcontrolitem; }
+    TGroundNode const *
+        Pick_Node() const { return m_picksceneryitem; }
+    // maintenance jobs
+    void
+        Update( double const Deltatime );
+    TSubModel const *
+        Update_Pick_Control();
+    TGroundNode const *
+        Update_Pick_Node();
+    // debug performance string
+    std::string const &
+        Info() const;
 
 // members
     GLenum static const sunlight{ GL_LIGHT0 };
@@ -175,16 +184,37 @@ public:
 private:
 // types
     enum class rendermode {
-        color
+        color,
+        shadows,
+        pickcontrols,
+        pickscenery
+    };
+
+    typedef std::pair< double, TSubRect * > distancesubcell_pair;
+
+    struct renderpass_config {
+        opengl_camera camera;
+        rendermode draw_mode { rendermode::color };
+        float draw_range { 0.0f };
+        std::vector<distancesubcell_pair> draw_queue; // list of subcells to be drawn in current render pass
     };
 
     typedef std::vector<opengl_light> opengllight_array;
 
-    typedef std::pair< double, TSubRect * > distancesubcell_pair;
-
 // methods
     bool
         Init_caps();
+    // runs jobs needed to generate graphics for specified render pass
+    void
+        Render_pass( rendermode const Mode );
+    // configures projection matrix for the current render pass
+    void
+        Render_projection();
+    // configures camera for the current render pass
+    void
+        Render_camera();
+    void
+        Render_setup( bool const Alpha = false );
     bool
         Render( world_environment *Environment );
     bool
@@ -197,6 +227,8 @@ private:
         Render( TGroundNode *Node );
     void
         Render( TTrack *Track );
+    bool
+        Render_cab( TDynamicObject *Dynamic );
     void
         Render( TMemCell *Memcell );
     bool
@@ -209,29 +241,43 @@ private:
         Render_Alpha( TSubModel *Submodel );
     void
         Update_Lights( light_array const &Lights );
-
+    glm::vec3
+        pick_color( std::size_t const Index );
+    std::size_t
+        pick_index( glm::ivec3 const &Color );
 // members
-    opengllight_array m_lights;
     geometrybank_manager m_geometry;
     texture_manager m_textures;
-    opengl_camera m_camera;
-    rendermode renderpass { rendermode::color };
-    float m_drawrange { 2500.0f }; // current drawing range
-    float m_drawtime { 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
-    double m_updateaccumulator { 0.0 };
-    std::string m_debuginfo;
+    opengllight_array m_lights;
     GLFWwindow *m_window { nullptr };
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
+    GLuint m_pickframebuffer { 0 }; // TODO: refactor pick framebuffer stuff into an object
+    GLuint m_picktexture { 0 };
+    GLuint m_pickdepthbuffer { 0 };
+#endif
+    GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
+
+    geometry_handle m_billboardgeometry { 0, 0 };
     texture_handle m_glaretexture { -1 };
     texture_handle m_suntexture { -1 };
     texture_handle m_moontexture { -1 };
-    geometry_handle m_billboardgeometry { 0, 0 };
-    GLUquadricObj *m_quadric; // helper object for drawing debug mode scene elements
-    std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
+
+    float m_drawtime { 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
+    double m_updateaccumulator { 0.0 };
+    std::string m_debuginfo;
+
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
-    bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
     float m_specularopaquescalefactor { 1.0f };
     float m_speculartranslucentscalefactor { 1.0f };
 
+    bool m_framebuffersupport { false };
+    rendermode m_texenvmode { rendermode::color }; // last configured texture environment
+    renderpass_config m_renderpass;
+    bool m_renderspecular { false }; // controls whether to include specular component in the calculations
+    std::vector<TGroundNode const *> m_picksceneryitems;
+    std::vector<TSubModel const *> m_pickcontrolsitems;
+    TSubModel const *m_pickcontrolitem { nullptr };
+    TGroundNode const *m_picksceneryitem { nullptr };
 };
 
 extern opengl_renderer GfxRenderer;

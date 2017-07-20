@@ -47,16 +47,6 @@ void SetDeltaTime(double t)
     DeltaTime = t;
 }
 
-double GetSimulationTime()
-{
-    return fSimulationTime;
-}
-
-void SetSimulationTime(double t)
-{
-    fSimulationTime = t;
-}
-
 bool GetSoundTimer()
 { // Ra: być może, by dźwięki nie modyfikowały się zbyt często, po 0.1s zeruje się ten licznik
     return (fSoundTimer == 0.0f);

@@ -447,7 +447,7 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         m_materialdata.replacable_skins[1] =
             GfxRenderer.GetTextureId( asReplacableTexture, "" );
     if( ( m_materialdata.replacable_skins[ 1 ] != 0 )
-        && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
+     && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         m_materialdata.textures_alpha = 0x31310031;
     }
@@ -470,7 +470,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
             if (ter) // jeśli teren
             {
 				if( name.substr( name.rfind( '.' ) ) == ".t3d" ) {
-					name[ name.length() - 2 ] = 'e';
+					name[ name.length() - 3 ] = 'e';
 				}
                 Global::asTerrainModel = name;
                 WriteLog("Terrain model \"" + name + "\" will be created.");

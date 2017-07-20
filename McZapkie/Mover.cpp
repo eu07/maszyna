@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "../logs.h"
 #include "Oerlikon_ESt.h"
 #include "../parser.h"
+#include "mctools.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.
@@ -21,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 
 const double dEpsilon = 0.01; // 1cm (zależy od typu sprzęgu...)
 const double CouplerTune = 0.1; // skalowanie tlumiennosci
+
+int ConversionError = 0;
 
 std::vector<std::string> const TMoverParameters::eimc_labels = {
     "dfic: ", "dfmax:", "p:    ", "scfu: ", "cim:  ", "icif: ", "Uzmax:", "Uzh:  ", "DU:   ", "I0:   ",
@@ -814,9 +817,11 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
            sn3 = 0.0,
            sn4 = 0.0,
            sn5 = 0.0; // Ra: zrobić z tego amperomierz NN
-    if ((BatteryVoltage > 0) && (EngineType != DieselEngine) && (EngineType != WheelsDriven) &&
-        (NominalBatteryVoltage > 0))
-    {
+    if( ( BatteryVoltage > 0 )
+     && ( EngineType != DieselEngine )
+     && ( EngineType != WheelsDriven )
+     && ( NominalBatteryVoltage > 0 ) ) {
+
         if ((NominalBatteryVoltage / BatteryVoltage < 1.22) && Battery)
         { // 110V
             if (!ConverterFlag)
@@ -884,10 +889,10 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
         if (BatteryVoltage < 0.01)
             BatteryVoltage = 0.01;
     }
-    else if (NominalBatteryVoltage == 0)
-        BatteryVoltage = 0;
-    else
-        BatteryVoltage = 90;
+    else {
+        // TODO: check and implement proper way to handle this for diesel engines
+        BatteryVoltage = NominalBatteryVoltage;
+    }
 };
 
 /* Ukrotnienie EN57:
@@ -1542,7 +1547,7 @@ double TMoverParameters::ShowEngineRotation(int VehN)
     switch (VehN)
     { // numer obrotomierza
     case 1:
-        return fabs(enrot);
+        return std::abs(enrot);
     case 2:
         for (b = 0; b <= 1; ++b)
             if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
@@ -2021,6 +2026,7 @@ bool TMoverParameters::CabActivisation(void)
     {
         CabNo = ActiveCab; // sterowanie jest z kabiny z obsadą
         DirAbsolute = ActiveDir * CabNo;
+        SecuritySystem.Status |= s_waiting; // activate the alerter TODO: make it part of control based cab selection
         SendCtrlToNext("CabActivisation", 1, CabNo);
     }
     return OK;
@@ -2040,6 +2046,8 @@ bool TMoverParameters::CabDeactivisation(void)
         CabNo = 0;
         DirAbsolute = ActiveDir * CabNo;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
+        SecuritySystem.Status = 0; // deactivate alerter TODO: make it part of control based cab selection
+
         SendCtrlToNext("CabActivisation", 0, ActiveCab); // CabNo==0!
     }
     return OK;
@@ -3043,6 +3051,11 @@ void TMoverParameters::CompressorCheck(double dt)
         }
         else
         {
+            if( ( EngineType == DieselEngine )
+             && ( CompressorPower == 0 ) ) {
+                // experimental: make sure compressor coupled with diesel engine is always ready for work
+                CompressorAllow = true;
+            }
             if (CompressorFlag) // jeśli sprężarka załączona
             { // sprawdzić możliwe warunki wyłączenia sprężarki
                 if (CompressorPower == 5) // jeśli zasilanie z sąsiedniego członu
@@ -3170,29 +3183,38 @@ void TMoverParameters::CompressorCheck(double dt)
                 }
             }
 
-            if (CompressorFlag)
-                if ((EngineType == DieselElectric) && (CompressorPower > 0))
-                    CompressedVolume += dt * CompressorSpeed * (2.0 * MaxCompressor - Compressor) /
-                                        MaxCompressor *
-                                        (DElist[MainCtrlPos].RPM / DElist[MainCtrlPosNo].RPM);
-                else
-                {
+            if( CompressorFlag ) {
+                if( ( EngineType == DieselElectric ) && ( CompressorPower > 0 ) ) {
                     CompressedVolume +=
-                        dt * CompressorSpeed * (2.0 * MaxCompressor - Compressor) / MaxCompressor;
-                    if ((CompressorPower == 5) && (Couplers[1].Connected != NULL))
-                        Couplers[1].Connected->TotalCurrent +=
-                            0.0015 * Couplers[1].Connected->Voltage; // tymczasowo tylko obciążenie
-                                                                     // sprężarki, tak z 5A na
-                                                                     // sprężarkę
-                    else if ((CompressorPower == 4) && (Couplers[0].Connected != NULL))
-                        Couplers[0].Connected->TotalCurrent +=
-                            0.0015 * Couplers[0].Connected->Voltage; // tymczasowo tylko obciążenie
-                                                                     // sprężarki, tak z 5A na
-                                                                     // sprężarkę
+                        dt * CompressorSpeed
+                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        * ( DElist[ MainCtrlPos ].RPM / DElist[ MainCtrlPosNo ].RPM );
+                }
+                else if( ( EngineType == DieselEngine ) && ( CompressorPower == 0 ) ) {
+                    // experimental: compressor coupled with diesel engine, output scaled by current engine rotational speed
+                    CompressedVolume +=
+                        dt * CompressorSpeed
+                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        * ( std::abs( enrot ) / nmax );
+                }
+                else {
+                    CompressedVolume +=
+                        dt * CompressorSpeed * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor;
+                    if( ( CompressorPower == 5 ) && ( Couplers[ 1 ].Connected != NULL ) )
+                        Couplers[ 1 ].Connected->TotalCurrent +=
+                        0.0015 * Couplers[ 1 ].Connected->Voltage; // tymczasowo tylko obciążenie
+                                                                 // sprężarki, tak z 5A na
+                                                                 // sprężarkę
+                    else if( ( CompressorPower == 4 ) && ( Couplers[ 0 ].Connected != NULL ) )
+                        Couplers[ 0 ].Connected->TotalCurrent +=
+                        0.0015 * Couplers[ 0 ].Connected->Voltage; // tymczasowo tylko obciążenie
+                                                                 // sprężarki, tak z 5A na
+                                                                 // sprężarkę
                     else
                         TotalCurrent += 0.0015 *
-                            Voltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
+                        Voltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
                 }
+            }
         }
     }
 }
@@ -5078,14 +5100,17 @@ bool TMoverParameters::AutoRelayCheck(void)
                         // IminLo
                     }
                 // main bez samoczynnego rozruchu
+                if( ( MainCtrlActualPos < ( sizeof( RList ) / sizeof( TScheme ) - 1 ) ) // crude guard against running out of current fixed table
+                 && ( ( RList[ MainCtrlActualPos ].Relay < MainCtrlPos )
+                   || ( RList[ MainCtrlActualPos + 1 ].Relay == MainCtrlPos )
+                   || ( ( TrainType == dt_ET22 )
+                     && ( DelayCtrlFlag ) ) ) ) {
 
-                if ((RList[MainCtrlActualPos].Relay < MainCtrlPos) ||
-                    (RList[MainCtrlActualPos + 1].Relay == MainCtrlPos) ||
-                    ((TrainType == dt_ET22) && (DelayCtrlFlag)))
-                {
-                    if ((RList[MainCtrlPos].R == 0) && (MainCtrlPos > 0) &&
-                        (!(MainCtrlPos == MainCtrlPosNo)) && (FastSerialCircuit == 1))
-                    {
+                    if( ( RList[MainCtrlPos].R == 0 )
+                     && ( MainCtrlPos > 0 )
+                     && ( MainCtrlPos != MainCtrlPosNo )
+                     && ( FastSerialCircuit == 1 ) ) {
+
                         MainCtrlActualPos++;
                         //                 MainCtrlActualPos:=MainCtrlPos; //hunter-111012:
                         //                 szybkie wchodzenie na bezoporowa (303E)
@@ -5784,28 +5809,28 @@ std::string TMoverParameters::EngineDescription(int what)
         {
             if (TestFlag(DamageFlag, dtrain_thinwheel))
                 if (Power > 0.1)
-                    outstr = "Thin wheel,";
+                    outstr = "Thin wheel";
                 else
-                    outstr = "Load shifted,";
+                    outstr = "Load shifted";
             if (TestFlag(DamageFlag, dtrain_wheelwear))
-                outstr = "Wheel wear,";
+                outstr = "Wheel wear";
             if (TestFlag(DamageFlag, dtrain_bearing))
-                outstr = "Bearing damaged,";
+                outstr = "Bearing damaged";
             if (TestFlag(DamageFlag, dtrain_coupling))
-                outstr = "Coupler broken,";
+                outstr = "Coupler broken";
             if (TestFlag(DamageFlag, dtrain_loaddamage))
                 if (Power > 0.1)
-                    outstr = "Ventilator damaged,";
+                    outstr = "Ventilator damaged";
                 else
-                    outstr = "Load damaged,";
+                    outstr = "Load damaged";
 
             if (TestFlag(DamageFlag, dtrain_loaddestroyed))
                 if (Power > 0.1)
-                    outstr = "Engine damaged,";
+                    outstr = "Engine damaged";
                 else
-                    outstr = "LOAD DESTROYED,";
+                    outstr = "LOAD DESTROYED";
             if (TestFlag(DamageFlag, dtrain_axle))
-                outstr = "Axle broken,";
+                outstr = "Axle broken";
             if (TestFlag(DamageFlag, dtrain_out))
                 outstr = "DERAILED";
             if (outstr == "")
@@ -6086,7 +6111,7 @@ bool TMoverParameters::readRList( std::string const &Input ) {
         return false;
     }
     auto idx = LISTLINE++;
-    if( idx >= sizeof( RList ) ) {
+    if( idx >= sizeof( RList ) / sizeof( TScheme ) ) {
         WriteLog( "Read RList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -6108,7 +6133,7 @@ bool TMoverParameters::readDList( std::string const &line ) {
     cParser parser( line );
     parser.getTokens( 3, false );
     auto idx = LISTLINE++;
-    if( idx >= sizeof( RList ) ) {
+    if( idx >= sizeof( RList ) / sizeof( TScheme ) ) {
         WriteLog( "Read DList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -6128,7 +6153,7 @@ bool TMoverParameters::readFFList( std::string const &line ) {
     return false;
     }
     int idx = LISTLINE++;
-    if( idx >= sizeof( DElist ) ) {
+    if( idx >= sizeof( DElist ) / sizeof( TDEScheme ) ) {
         WriteLog( "Read FList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -6148,7 +6173,7 @@ bool TMoverParameters::readWWList( std::string const &line ) {
         return false;
     }
     int idx = LISTLINE++;
-    if( idx >= sizeof( DElist ) ) {
+    if( idx >= sizeof( DElist ) / sizeof( TDEScheme ) ) {
         WriteLog( "Read WWList: number of entries exceeded capacity of the data table" );
         return false;
     }
@@ -7234,9 +7259,10 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 
             extract_value( dizel_nmin, "nmin", Input, "" );
             dizel_nmin /= 60.0;
-            extract_value( dizel_nmax, "nmax", Input, "" );
-            dizel_nmax /= 60.0; 
-            nmax = dizel_nmax; // not sure if this is needed, but just in case
+            // TODO: unify naming scheme and sort out which diesel engine params are used where and how
+            extract_value( nmax, "nmax", Input, "" );
+            nmax /= 60.0; 
+//            nmax = dizel_nmax; // not sure if this is needed, but just in case
             extract_value( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
             dizel_nmax_cutoff /= 60.0;
             extract_value( dizel_AIM, "AIM", Input, "1.0" );
@@ -8342,24 +8368,5 @@ double TMoverParameters::ShowCurrentP(int AmpN)
                 if (Couplers[b].Connected->Power > 0.01)
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;
-    }
-}
-
-template <>
-bool
-extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
-
-    auto value = extract_value( Key, Input );
-    if( false == value.empty() ) {
-        // set the specified variable to retrieved value
-        Variable = ( ToLower( value ) == "yes" );
-        return true; // located the variable
-    }
-    else {
-        // set the variable to provided default value
-        if( false == Default.empty() ) {
-            Variable = ( ToLower( Default ) == "yes" );
-        }
-        return false; // couldn't locate the variable in provided input
     }
 }

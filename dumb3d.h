@@ -64,18 +64,16 @@ class vector3
   public:
     vector3(void) :
         x(0.0), y(0.0), z(0.0)
-    {
-    }
-    vector3(scalar_t a, scalar_t b, scalar_t c)
-    {
-        x = a;
-        y = b;
-        z = c;
-    }
+    {}
+    vector3( scalar_t X, scalar_t Y, scalar_t Z ) :
+                   x( X ),     y( Y ),     z( Z )
+    {}
     vector3( glm::dvec3 const &Vector ) :
         x( Vector.x ), y( Vector.y ), z( Vector.z )
     {}
-
+    template <glm::precision Precision_>
+    operator glm::tvec3<double, Precision_>() const {
+        return glm::tvec3<double, Precision_>{ x, y, z }; }
     // The int parameter is the number of elements to copy from initArray (3 or 4)
     //	explicit vector3(scalar_t* initArray, int arraySize = 3)
     //	{ for (int i = 0;i<arraySize;++i) e[i] = initArray[i]; }

@@ -21,8 +21,8 @@ class TFadeSound
           fTime = 0.0f;
     TSoundState State = ss_Off;
 
-  public:
-    TFadeSound();
+public:
+    TFadeSound() = default;
     ~TFadeSound();
     void Init(std::string const &Name, float fNewFade);
     void TurnOn();

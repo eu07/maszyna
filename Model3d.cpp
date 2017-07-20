@@ -381,11 +381,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if( ( std::abs( scale.x - 1.0f ) > 0.01 )
          || ( std::abs( scale.y - 1.0f ) > 0.01 )
          || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog(
-                "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: "
-                + to_string( scale.x, 2 ) + ", "
-                + to_string( scale.y, 2 ) + ", "
-                + to_string( scale.z, 2 ) + ")" );
+            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")" );
             m_normalizenormals = (
                 ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
                     rescale :
@@ -1221,11 +1217,11 @@ TSubModel *TModel3d::GetFromName(const char *sName)
 	if (!sName)
 		return Root; // potrzebne do terenu z E3D
 	if (iFlags & 0x0200) // wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
-		return Root ? Root->GetFromName(sName) : NULL;
+		return Root ? Root->GetFromName(sName) : nullptr;
 	else // wczytano z pliku binarnego, można wyszukać iteracyjnie
 	{
 		// for (int i=0;i<iSubModelsCount;++i)
-		return Root ? Root->GetFromName(sName) : NULL;
+		return Root ? Root->GetFromName(sName) : nullptr;
 	}
 };
 
@@ -1719,11 +1715,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         if( ( std::abs( scale.x - 1.0f ) > 0.01 )
          || ( std::abs( scale.y - 1.0f ) > 0.01 )
          || ( std::abs( scale.z - 1.0f ) > 0.01 ) ) {
-            ErrorLog(
-                "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: "
-                + to_string( scale.x, 2 ) + ", "
-                + to_string( scale.y, 2 ) + ", "
-                + to_string( scale.z, 2 ) + ")" );
+            ErrorLog( "Bad model: transformation matrix for sub-model \"" + pName + "\" imposes geometry scaling (factors: " + to_string( scale ) + ")" );
             m_normalizenormals = (
                 ( ( std::abs( scale.x - scale.y ) < 0.01f ) && ( std::abs( scale.y - scale.z ) < 0.01f ) ) ?
                     rescale :
