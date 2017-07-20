@@ -226,6 +226,7 @@ class Global
     static opengl_light DayLight;
     static int DynamicLightCount;
     static bool ScaleSpecularValues;
+    static bool RenderShadows;
 
     static int iSlowMotion;
     static TDynamicObject *changeDynObj;

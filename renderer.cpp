@@ -120,10 +120,9 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         m_lights.emplace_back( light );
     }
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
+    // pick buffer resources
     if( true == m_framebuffersupport ) {
-        // try to create the pick buffer. RGBA8 2D texture, 24 bit depth texture, 1024x512
-        int const width { 1024 };
-        int const height { 512 };
+        // try to create the pick buffer. RGBA8 2D texture, 24 bit depth texture, 1024x1024 (height of 512 would suffice but, eh)
         // texture
         ::glGenTextures( 1, &m_picktexture );
         ::glBindTexture( GL_TEXTURE_2D, m_picktexture );
@@ -131,18 +130,17 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-        ::glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
+        ::glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, m_pickbuffersize, m_pickbuffersize, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
         // depth buffer
         ::glGenRenderbuffersEXT( 1, &m_pickdepthbuffer );
         ::glBindRenderbufferEXT( GL_RENDERBUFFER_EXT, m_pickdepthbuffer );
-        ::glRenderbufferStorageEXT( GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, width, height );
-        // create and set up the framebuffer
+        ::glRenderbufferStorageEXT( GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, m_pickbuffersize, m_pickbuffersize );
+        // create and assemble the framebuffer
         ::glGenFramebuffersEXT( 1, &m_pickframebuffer );
         ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_pickframebuffer );
         ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, m_picktexture, 0 );
         ::glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, m_pickdepthbuffer );
-        //-------------------------
-        //Does the GPU support current FBO configuration?
+        // check if we got it working
         GLenum status = ::glCheckFramebufferStatusEXT( GL_FRAMEBUFFER_EXT );
         if( status == GL_FRAMEBUFFER_COMPLETE_EXT ) {
             WriteLog( "Picking framebuffer setup complete" );
@@ -154,6 +152,41 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now
     }
 #endif
+    // shadowmap resources
+    if( ( true == Global::RenderShadows )
+     && ( true == m_framebuffersupport ) ) {
+        // texture:
+        ::glGenTextures( 1, &m_shadowtexture );
+        ::glBindTexture( GL_TEXTURE_2D, m_shadowtexture );
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        // enable shadow comparison: true (ie not in shadow) if r<=texture...
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
+        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+        // ...shadow comparison should generate an INTENSITY result
+        ::glTexParameteri( GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY );
+        ::glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_shadowbuffersize, m_shadowbuffersize, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL );
+        // create and assemble the framebuffer
+        ::glGenFramebuffersEXT( 1, &m_shadowframebuffer );
+        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_shadowframebuffer );
+        ::glDrawBuffer( GL_NONE ); // we won't be rendering colour data, so can skip the colour attachment
+        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, m_shadowtexture, 0 );
+        // check if we got it working
+        GLenum status = ::glCheckFramebufferStatusEXT( GL_FRAMEBUFFER_EXT );
+        if( status == GL_FRAMEBUFFER_COMPLETE_EXT ) {
+            WriteLog( "Shadows framebuffer setup complete" );
+        }
+        else {
+            ErrorLog( "Shadows framebuffer setup failed" );
+            m_framebuffersupport = false;
+            Global::RenderShadows = false;
+        }
+        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now
+        ::glDrawBuffer( GL_BACK );
+    }
+
     ::glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
     // preload some common textures
     WriteLog( "Loading common gfx data..." );
@@ -205,7 +238,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
             // TODO: run shadowmap pass before color
 
-//            ::glViewport( 0, 0, Global::ScreenWidth, Global::ScreenHeight );
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
+            ::glViewport( 0, 0, Global::ScreenWidth, Global::ScreenHeight );
+#endif
             if( World.InitPerformed() ) {
                 auto const skydomecolour = World.Environment.m_skydome.GetAverageColor();
                 ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.0f ); // kolor nieba
@@ -234,9 +269,33 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             break;
         }
 
+        case rendermode::shadows: {
+
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
+            ::glViewport( 0, 0, m_pickbuffersize, m_pickbuffersize ); // TODO: separate shadow buffer
+#endif
+            ::glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+            ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+            if( World.InitPerformed() ) {
+                // setup
+                m_renderpass.draw_range = 500.0f; // 1.5km square centered around camera
+                Render_projection();
+                Render_camera();
+                ::glDepthFunc( GL_LEQUAL );
+                // render
+                // opaque parts...
+                Render_setup();
+                Render( &World.Ground );
+            }
+            break;
+        }
+
         case rendermode::pickcontrols: {
 
-//            ::glViewport( 0, 0, 1024, 512 );
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
+            ::glViewport( 0, 0, m_pickbuffersize, m_pickbuffersize );
+#endif
             ::glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
             ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -259,7 +318,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
         case rendermode::pickscenery: {
 
-//            ::glViewport( 0, 0, 1024, 512 );
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
+            ::glViewport( 0, 0, m_pickbuffersize, m_pickbuffersize );
+#endif
             ::glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
             ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -319,6 +380,12 @@ opengl_renderer::Render_projection() {
 */
         case rendermode::shadows: {
             // TODO: set parallel projection
+            ::gluPerspective(
+                Global::FieldOfView,
+                1.f,
+//                std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ),
+                2.f,
+                m_renderpass.draw_range * Global::fDistanceFactor );
             break;
         }
 
@@ -346,7 +413,7 @@ opengl_renderer::Render_camera() {
             break;
         }
         case rendermode::shadows: {
-            m_renderpass.camera.position() = Global::pCameraPosition - glm::dvec3{ Global::DayLight.direction * 750.f };
+            m_renderpass.camera.position() = Global::pCameraPosition - glm::dvec3{ Global::DayLight.direction * 250.f };
             m_renderpass.camera.position().y = std::max( 50.0, m_renderpass.camera.position().y ); // prevent shadow source from dipping too low
             viewmatrix = glm::lookAt(
                 m_renderpass.camera.position(),
@@ -1258,6 +1325,9 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 // rysuj gdy element nieprzezroczysty
                 switch( m_renderpass.draw_mode ) {
                     case rendermode::color: {
+// NOTE: code disabled as normalization marking doesn't take into account scaling propagation down hierarchy chains
+// for the time being we'll do with enforced worst-case scaling method, when speculars are enabled
+#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                         switch( Submodel->m_normalizenormals ) {
                             case TSubModel::normalize: {
                                 ::glEnable( GL_NORMALIZE ); break; }
@@ -1266,6 +1336,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             default: {
                                 break; }
                         }
+#else
+                        if( true == m_renderspecular ) {
+                            ::glEnable( GL_NORMALIZE );
+                        }
+#endif
                         // material configuration:
                         // textures...
                         if( Submodel->TextureID < 0 ) { // zmienialne skóry
@@ -1280,6 +1355,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         if( ( true == m_renderspecular ) && ( Global::DayLight.specular.a > 0.01f ) ) {
                             // specular strength in legacy models is set uniformly to 150, 150, 150 so we scale it down for opaque elements
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * Global::DayLight.specular.a * m_specularopaquescalefactor ) );
+                            ::glEnable( GL_RESCALE_NORMAL );
                         }
                         // ...luminance
                         if( Global::fLuminance < Submodel->fLight ) {
@@ -1298,6 +1374,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             // restore default (lack of) brightness
                             ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
                         }
+#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                         switch( Submodel->m_normalizenormals ) {
                             case TSubModel::normalize: {
                                 ::glDisable( GL_NORMALIZE ); break; }
@@ -1306,6 +1383,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             default: {
                                 break; }
                         }
+#else
+                        if( true == m_renderspecular ) {
+                            ::glDisable( GL_NORMALIZE );
+                        }
+#endif
                         break;
                     }
                     case rendermode::shadows:
@@ -1800,6 +1882,9 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
             // renderowanie obiektów OpenGL
             if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) // rysuj gdy element przezroczysty
             {
+// NOTE: code disabled as normalization marking doesn't take into account scaling propagation down hierarchy chains
+// for the time being we'll do with enforced worst-case scaling method, when speculars are enabled
+#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                 switch( Submodel->m_normalizenormals ) {
                     case TSubModel::normalize: {
                         ::glEnable( GL_NORMALIZE ); break; }
@@ -1808,6 +1893,11 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     default: {
                         break; }
                 }
+#else
+                if( true == m_renderspecular ) {
+                    ::glEnable( GL_NORMALIZE );
+                }
+#endif
                 // textures...
                 if( Submodel->TextureID < 0 ) { // zmienialne skóry
                     Bind( Submodel->ReplacableSkinId[ -Submodel->TextureID ] );
@@ -1838,6 +1928,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     // restore default (lack of) brightness
                     ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
                 }
+#ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                 switch( Submodel->m_normalizenormals ) {
                     case TSubModel::normalize: {
                         ::glDisable( GL_NORMALIZE ); break; }
@@ -1846,6 +1937,11 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     default: {
                         break; }
                 }
+#else
+                if( true == m_renderspecular ) {
+                    ::glDisable( GL_NORMALIZE );
+                }
+#endif
             }
         }
         else if( Submodel->eType == TP_FREESPOTLIGHT ) {
@@ -1954,12 +2050,14 @@ opengl_renderer::Update_Pick_Control() {
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
     mousepos.y = Global::ScreenHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
-/*
+
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
     glm::ivec2 pickbufferpos {
-        mousepos.x * 1024.0f / Global::ScreenWidth,
-        mousepos.y *  512.0f / Global::ScreenHeight };
-*/
+        mousepos.x * m_pickbuffersize / Global::ScreenWidth,
+        mousepos.y * m_pickbuffersize / Global::ScreenHeight };
+#else
     glm::ivec2 pickbufferpos{ mousepos };
+#endif
      
     unsigned char pickreadout[4];
     ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
@@ -1998,12 +2096,14 @@ opengl_renderer::Update_Pick_Node() {
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
     mousepos.y = Global::ScreenHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
-/*
+
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
     glm::ivec2 pickbufferpos {
-        mousepos.x * 1024.0f / Global::ScreenWidth,
-        mousepos.y *  512.0f / Global::ScreenHeight };
-*/
+        mousepos.x * m_pickbuffersize / Global::ScreenWidth,
+        mousepos.y * m_pickbuffersize / Global::ScreenHeight };
+#else
     glm::ivec2 pickbufferpos{ mousepos };
+#endif
      
     unsigned char pickreadout[4];
     ::glReadPixels( pickbufferpos.x, pickbufferpos.y, 1, 1, GL_BGRA, GL_UNSIGNED_BYTE, pickreadout );
@@ -2198,15 +2298,13 @@ opengl_renderer::Init_caps() {
     WriteLog( "Supported extensions:" +  std::string((char *)glGetString( GL_EXTENSIONS )) );
 
     WriteLog( std::string("Render path: ") + ( Global::bUseVBO ? "VBO" : "Display lists" ) );
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
     if( GLEW_EXT_framebuffer_object ) {
         m_framebuffersupport = true;
         WriteLog( "Framebuffer objects enabled" );
     }
     else {
-        WriteLog( "Framebuffer objects not supported, resorting to back buffer rendering" );
+        WriteLog( "Framebuffer objects not supported, resorting to back buffer rendering where possible" );
     }
-#endif
     if( Global::iMultisampling )
         WriteLog( "Using multisampling x" + std::to_string( 1 << Global::iMultisampling ) );
     // ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur

@@ -87,6 +87,7 @@ float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved
 opengl_light Global::DayLight;
 int Global::DynamicLightCount { 3 };
 bool Global::ScaleSpecularValues { true };
+bool Global::RenderShadows { false };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
 int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę toru
@@ -543,6 +544,11 @@ void Global::ConfigParse(cParser &Parser)
             // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
             Parser.getTokens();
             Parser >> Global::ScaleSpecularValues;
+        }
+        else if( token == "shadows" ) {
+            // shadow render toggle
+            Parser.getTokens();
+            Parser >> Global::RenderShadows;
         }
         else if (token == "smoothtraction")
         {

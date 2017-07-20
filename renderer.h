@@ -254,7 +254,11 @@ private:
     GLuint m_pickframebuffer { 0 }; // TODO: refactor pick framebuffer stuff into an object
     GLuint m_picktexture { 0 };
     GLuint m_pickdepthbuffer { 0 };
+    int m_pickbuffersize { 1024 }; // size of (square) textures bound with the pick framebuffer
 #endif
+    GLuint m_shadowframebuffer { 0 };
+    GLuint m_shadowtexture { 0 };
+    int m_shadowbuffersize { 2048 };
     GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
 
     geometry_handle m_billboardgeometry { 0, 0 };

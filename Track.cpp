@@ -1267,30 +1267,31 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 }
                 vertex_array vertices;
                 Segment->RenderLoft(vertices, origin, bpts1, iTrapezoid ? -4 : 4, fTexLength);
+                if( ( Bank != 0 ) && ( true == Geometry2.empty() ) ) {
+                    Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
+                }
                 if( ( Bank == 0 ) && ( false == Geometry2.empty() ) ) {
                     // special variant, replace existing data for a turntable track
                     GfxRenderer.Replace( vertices, Geometry2[ 0 ] );
-                }
-                else {
-                    Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                 }
             }
             if (TextureID1)
             { // szyny - generujemy dwie, najwyżej rysować się będzie jedną
                 vertex_array vertices;
+                if( ( Bank != 0 ) && ( true == Geometry1.empty() ) ) {
+                    Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
+                    vertices.clear(); // reuse the scratchpad
+                    Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
+                }
                 if( ( Bank == 0 ) && ( false == Geometry1.empty() ) ) {
+                    // special variant, replace existing data for a turntable track
                     Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     GfxRenderer.Replace( vertices, Geometry1[ 0 ] );
                     vertices.clear(); // reuse the scratchpad
                     Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     GfxRenderer.Replace( vertices, Geometry1[ 1 ] );
-                }
-                else {
-                    Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
-                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
-                    vertices.clear(); // reuse the scratchpad
-                    Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
-                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                 }
             }
             break;

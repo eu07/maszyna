@@ -36,7 +36,7 @@ class TButton
         play( PSound Sound );
 
   public:
-    TButton();
+    TButton() = default;
     void Clear(int const i = -1);
     inline void FeedbackBitSet(int const i) {
         iFeedbackBit = 1 << i; };
