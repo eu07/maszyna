@@ -764,7 +764,14 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 // first 19 chars of the command is expected to be "PassengerStopPoint:" so we skip them
                 if ( ToLower(sSpeedTable[i].evEvent->CommandGet()).compare( 19, sizeof(asNextStop), ToLower(asNextStop)) != 0 )
                 { // jeśli nazwa nie jest zgodna
-                    if( sSpeedTable[ i ].fDist < -fLength ) {
+                    if (sSpeedTable[i].fDist < 300.0 && sSpeedTable[i].fDist > 0) // tylko jeśli W4 jest blisko, przy dwóch może zaczać szaleć
+                    {
+                        // porównuje do następnej stacji, więc trzeba przewinąć do poprzedniej
+                        // nastepnie ustawić następną na aktualną tak żeby prawidłowo ją obsłużył w następnym kroku
+                        TrainParams->RewindTimeTable(sSpeedTable[i].evEvent->CommandGet());
+                        asNextStop = TrainParams->NextStop();
+                    }
+                    else if( sSpeedTable[ i ].fDist < -fLength ) {
                         // jeśli został przejechany
                         sSpeedTable[ i ].iFlags = 0; // to można usunąć (nie mogą być usuwane w skanowaniu)
                     }
