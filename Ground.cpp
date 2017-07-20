@@ -208,7 +208,8 @@ void TGroundNode::InitNormals()
         {
             v1 = Piece->vertices[i + 0].position - Piece->vertices[i + 1].position;
             v2 = Piece->vertices[i + 1].position - Piece->vertices[i + 2].position;
-            n1 = glm::normalize(glm::cross(v1, v2));
+            auto c = glm::cross(v1, v2);
+            n1 = glm::length(c) != 0 ? glm::normalize(c) : glm::vec3();
             if( Piece->vertices[i + 0].normal == glm::vec3() )
                 Piece->vertices[i + 0].normal = (n1);
             if( Piece->vertices[i + 1].normal == glm::vec3() )
