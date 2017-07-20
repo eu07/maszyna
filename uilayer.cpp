@@ -96,7 +96,7 @@ void
 ui_layer::set_background( std::string const &Filename ) {
 
     if( false == Filename.empty() ) {
-        m_background = GfxRenderer.GetTextureId( Filename, szTexturePath );
+        m_background = GfxRenderer.Fetch_Texture( Filename );
     }
     else {
         m_background = NULL;

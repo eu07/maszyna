@@ -53,9 +53,8 @@ std::string LogComment;
 bool
 degenerate( glm::dvec3 const &Vertex1, glm::dvec3 const &Vertex2, glm::dvec3 const &Vertex3 ) {
 
-    return ( ( Vertex1 == Vertex2 )
-          || ( Vertex2 == Vertex3 )
-          || ( Vertex3 == Vertex1 ) );
+//  degenerate( A, B, C, minarea ) = ( ( B - A ).cross( C - A ) ).lengthSquared() < ( 4.0f * minarea * minarea );
+    return glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) < std::numeric_limits<double>::epsilon();
 }
 
 //---------------------------------------------------------------------------
@@ -1330,7 +1329,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             *parser >> token;
         }
         str = token;
-        tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
+        tmp->TextureID = GfxRenderer.Fetch_Texture( str );
         bool const clamps = (
             tmp->TextureID ?
                 GfxRenderer.Texture( tmp->TextureID ).traits.find( 's' ) != std::string::npos :

@@ -341,7 +341,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             if( texture.find_first_of( "/\\" ) == texture.npos ) {
                 texture.insert( 0, Global::asCurrentTexturePath );
             }
-            TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
+            TextureID = GfxRenderer.Fetch_Texture( texture );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
@@ -1670,7 +1670,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		pTexture = t->at(iTexture);
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
-		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
+		TextureID = GfxRenderer.Fetch_Texture(pTexture);
         if( ( iFlags & 0x30 ) == 0 ) {
             // texture-alpha based fallback if for some reason we don't have opacity flag set yet
             iFlags |=

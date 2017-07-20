@@ -190,9 +190,9 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     ::glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
     // preload some common textures
     WriteLog( "Loading common gfx data..." );
-    m_glaretexture = GetTextureId( "fx\\lightglare", szTexturePath );
-    m_suntexture = GetTextureId( "fx\\sun", szTexturePath );
-    m_moontexture = GetTextureId( "fx\\moon", szTexturePath );
+    m_glaretexture = Fetch_Texture( "fx\\lightglare" );
+    m_suntexture = Fetch_Texture( "fx\\sun" );
+    m_moontexture = Fetch_Texture( "fx\\moon" );
     WriteLog( "...gfx data pre-loading done" );
     // prepare basic geometry chunks
     auto const geometrybank = m_geometry.create_bank();
@@ -236,14 +236,26 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
         case rendermode::color: {
 
-            // TODO: run shadowmap pass before color
+            if( Global::RenderShadows && World.InitPerformed() ) {
+                // run shadowmap pass before color
+                ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_shadowframebuffer );
+                ::glDrawBuffer( GL_NONE ); // we won't be rendering colour data, so can skip the colour attachment
 
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
+                Render_pass( rendermode::shadows );
+                m_renderpass.draw_mode = rendermode::color; // restore draw mode. TODO: render mode stack
+
+                ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target
+                ::glDrawBuffer( GL_BACK );
+            }
+
             ::glViewport( 0, 0, Global::ScreenWidth, Global::ScreenHeight );
-#endif
+
             if( World.InitPerformed() ) {
                 auto const skydomecolour = World.Environment.m_skydome.GetAverageColor();
                 ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.0f ); // kolor nieba
+            }
+            else {
+                ::glClearColor( 51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f ); // initial background Color
             }
             ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -271,15 +283,14 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
         case rendermode::shadows: {
 
-#ifdef EU07_USE_PICKING_FRAMEBUFFER
-            ::glViewport( 0, 0, m_pickbuffersize, m_pickbuffersize ); // TODO: separate shadow buffer
-#endif
+            ::glViewport( 0, 0, m_shadowbuffersize, m_shadowbuffersize );
+
             ::glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-            ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+            ::glClear( GL_DEPTH_BUFFER_BIT );
 
             if( World.InitPerformed() ) {
                 // setup
-                m_renderpass.draw_range = 500.0f; // 1.5km square centered around camera
+                m_renderpass.draw_range = 500.0f; // 1.0km square centered around camera
                 Render_projection();
                 Render_camera();
                 ::glDepthFunc( GL_LEQUAL );
@@ -355,9 +366,11 @@ opengl_renderer::Render_projection() {
 
     switch( m_renderpass.draw_mode ) {
 
-        case rendermode::color:
+#ifndef EU07_USE_PICKING_FRAMEBUFFER
         case rendermode::pickcontrols:
-        case rendermode::pickscenery: {
+        case rendermode::pickscenery:
+#endif
+        case rendermode::color: {
             ::gluPerspective(
                 Global::FieldOfView / Global::ZoomFactor,
                 std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ),
@@ -365,19 +378,20 @@ opengl_renderer::Render_projection() {
                 m_renderpass.draw_range * Global::fDistanceFactor );
             break;
         }
-/*
-        // version for the smaller pickbuffer. ultimately scratched because resolution isn't comfortable/reliable enough for the user
+#ifdef EU07_USE_PICKING_FRAMEBUFFER
         case rendermode::pickcontrols:
         case rendermode::pickscenery: {
-            // TODO: render to buffer and scissor test for pick modes
+            // TODO: scissor test for pick modes
+            auto const angle = Global::FieldOfView / Global::ZoomFactor;
+            auto const height = std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ) / ( Global::ScreenWidth / m_pickbuffersize );
             ::gluPerspective(
                 Global::FieldOfView / Global::ZoomFactor,
-                std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ) / ( Global::ScreenWidth / 1024.0f ),
+                std::max( 1.0f, (float)Global::ScreenWidth ) / std::max( 1.0f, (float)Global::ScreenHeight ) / ( Global::ScreenWidth / m_pickbuffersize ),
                 0.1f * Global::ZoomFactor,
                 m_renderpass.draw_range * Global::fDistanceFactor );
             break;
         }
-*/
+#endif
         case rendermode::shadows: {
             // TODO: set parallel projection
             ::gluPerspective(
@@ -447,6 +461,9 @@ opengl_renderer::Render_setup( bool const Alpha ) {
         case rendermode::color: {
             ::glEnable( GL_LIGHTING );
             ::glShadeModel( GL_SMOOTH );
+            if( Global::iMultisampling ) {
+                ::glEnable( GL_MULTISAMPLE );
+            }
             // setup fog
             if( Global::fFogEnd > 0 ) {
                 // fog setup
@@ -474,9 +491,12 @@ opengl_renderer::Render_setup( bool const Alpha ) {
         case rendermode::shadows:
         case rendermode::pickcontrols:
         case rendermode::pickscenery: {
-            ::glDisable( GL_FOG );
             ::glDisable( GL_LIGHTING );
             ::glShadeModel( GL_FLAT );
+            if( Global::iMultisampling ) {
+                ::glDisable( GL_MULTISAMPLE );
+            }
+            ::glDisable( GL_FOG );
 
             if( m_texenvmode != m_renderpass.draw_mode ) {
                 // solid colour with texture alpha
@@ -508,19 +528,32 @@ opengl_renderer::Render( world_environment *Environment ) {
     }
 
     Bind( NULL );
-
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
 
+    // skydome
     Environment->m_skydome.Render();
     if( true == Global::bUseVBO ) {
         // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
         opengl_vbogeometrybank::reset();
     }
-    Environment->m_stars.render();
+    // stars
+    if( Environment->m_stars.m_stars != nullptr ) {
+        // setup
+        ::glPushMatrix();
+        ::glRotatef( Environment->m_stars.m_latitude, 1.f, 0.f, 0.f ); // ustawienie osi OY na północ
+        ::glRotatef( -std::fmod( (float)Global::fTimeAngleDeg, 360.f ), 0.f, 1.f, 0.f ); // obrót dobowy osi OX
+        ::glPointSize( 2.f );
+        // render
+        GfxRenderer.Render( Environment->m_stars.m_stars, nullptr, 1.0 );
+        // post-render cleanup
+        ::glPointSize( 3.f );
+        ::glPopMatrix();
+    }
 
+    // celestial bodies
     float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
     glm::vec3 suncolor = interpolate(
         glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
@@ -601,10 +634,26 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glPopAttrib();
 
     // clouds
-    Environment->m_clouds.Render(
-        interpolate( Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f )
-        * ( 1.0f - Global::Overcast * 0.5f ) // overcast darkens the clouds
-        * 2.5f ); // arbitrary adjustment factor
+    if( Environment->m_clouds.mdCloud ) {
+        // setup
+        Disable_Lights();
+        ::glEnable( GL_LIGHTING );
+        ::glLightModelfv(
+            GL_LIGHT_MODEL_AMBIENT,
+            glm::value_ptr(
+                interpolate( Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f )
+                * ( 1.0f - Global::Overcast * 0.5f ) // overcast darkens the clouds
+                * 2.5f // arbitrary adjustment factor
+            ) );
+        // render
+        Render( Environment->m_clouds.mdCloud, nullptr, 100.0 );
+        Render_Alpha( Environment->m_clouds.mdCloud, nullptr, 100.0 );
+        // post-render cleanup
+        GLfloat noambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, noambient );
+        ::glEnable( GL_LIGHT0 ); // other lights will be enabled during lights update
+        ::glDisable( GL_LIGHTING );
+    }
 
     Global::DayLight.apply_angle();
     Global::DayLight.apply_intensity();
@@ -655,7 +704,7 @@ opengl_renderer::Vertices( geometry_handle const &Geometry ) const {
 
 // texture methods
 texture_handle
-opengl_renderer::GetTextureId( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
+opengl_renderer::Fetch_Texture( std::string const &Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
 
     return m_textures.create( Filename, Dir, Filter, Loadnow );
 }
@@ -854,7 +903,7 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
 #ifdef EU07_SCENERY_EDITOR
             // memcells
             if( EditorModeFlag ) {
-                for( auto const memcell : m_memcells ) {
+                for( auto const memcell : Groundsubcell->m_memcells ) {
                     Render( memcell );
                 }
             }
@@ -888,7 +937,7 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
 #ifdef EU07_SCENERY_EDITOR
             // memcells
             if( EditorModeFlag ) {
-                for( auto const memcell : m_memcells ) {
+                for( auto const memcell : Groundsubcell->m_memcells ) {
                     ::glColor3fv( glm::value_ptr( pick_color( m_picksceneryitems.size() + 1 ) ) );
                     Render( memcell );
                 }
@@ -961,7 +1010,14 @@ opengl_renderer::Render( TGroundNode *Node ) {
                     break;
                 }
             }
+#ifdef EU07_USE_OLD_RENDERCODE
             Node->Model->Render( Node->pCenter - m_renderpass.camera.position() );
+#else
+            Node->Model->RaAnimate(); // jednorazowe przeliczenie animacji
+            Node->Model->RaPrepare();
+            if( Node->Model->pModel ) // renderowanie rekurencyjne submodeli
+                Render( Node->Model->pModel, Node->Model->Material(), Node->pCenter - m_renderpass.camera.position(), Node->Model->vAngle );
+#endif
             return true;
         }
 
@@ -1559,19 +1615,35 @@ opengl_renderer::Render( TTrack *Track ) {
 void
 opengl_renderer::Render( TMemCell *Memcell ) {
 
-    ::glPushAttrib( GL_ENABLE_BIT );
-//    ::glDisable( GL_LIGHTING );
-    ::glDisable( GL_TEXTURE_2D );
-//    ::glEnable( GL_BLEND );
     ::glPushMatrix();
-
-    auto const position = Memcell->Position();
+    auto const position = Memcell->Position() - m_renderpass.camera.position();
     ::glTranslated( position.x, position.y + 0.5, position.z );
-    ::glColor3f( 0.36f, 0.75f, 0.35f );
-    ::gluSphere( m_quadric, 0.35, 4, 2 );
+
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::color: {
+            ::glPushAttrib( GL_ENABLE_BIT );
+            ::glDisable( GL_TEXTURE_2D );
+            ::glColor3f( 0.36f, 0.75f, 0.35f );
+
+            ::gluSphere( m_quadric, 0.35, 4, 2 );
+
+            ::glPopAttrib();
+            break;
+        }
+        case rendermode::pickscenery:
+        case rendermode::shadows: {
+            ::gluSphere( m_quadric, 0.35, 4, 2 );
+            break;
+        }
+        case rendermode::pickcontrols: {
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 
     ::glPopMatrix();
-    ::glPopAttrib();
 }
 
 bool
@@ -1615,8 +1687,11 @@ opengl_renderer::Render_Alpha( TSubRect *Groundsubcell ) {
         Render_Alpha( node ); // przezroczyste z mieszanych modeli
     for( node = Groundsubcell->nRenderAlpha; node; node = node->nNext3 )
         Render_Alpha( node ); // przezroczyste modele
-    for( int j = 0; j < Groundsubcell->iTracks; ++j )
-        Groundsubcell->tTracks[ j ]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
+    for( int trackidx = 0; trackidx < Groundsubcell->iTracks; ++trackidx ) {
+        for( auto dynamic : Groundsubcell->tTracks[ trackidx ]->Dynamics ) {
+            Render_Alpha( dynamic ); // przezroczyste fragmenty pojazdów na torach
+        }
+    }
 
     return true;
 }
@@ -1677,7 +1752,13 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             }
         }
         case TP_MODEL: {
+#ifdef EU07_USE_OLD_RENDERCODE
             Node->Model->RenderAlpha( Node->pCenter - m_renderpass.camera.position() );
+#else
+            Node->Model->RaPrepare();
+            if( Node->Model->pModel ) // renderowanie rekurencyjne submodeli
+                Render_Alpha( Node->Model->pModel, Node->Model->Material(), Node->pCenter - m_renderpass.camera.position(), Node->Model->vAngle );
+#endif
             return true;
         }
 
@@ -2137,15 +2218,11 @@ opengl_renderer::Update( double const Deltatime ) {
     // adjust draw ranges etc, based on recent performance
     auto const framerate = 1000.0f / (m_drawtime / 20.0f);
 
-    // NOTE: until we have quadtree in place we have to rely on the legacy rendering
-    // once this is resolved we should be able to simply adjust draw range
-    int targetsegments;
     float targetfactor;
-
-         if( framerate > 90.0 ) { targetsegments = 400; targetfactor = 3.0f; }
-    else if( framerate > 60.0 ) { targetsegments = 225; targetfactor = 1.5f; }
-    else if( framerate > 30.0 ) { targetsegments =  90; targetfactor = Global::ScreenHeight / 768.0f; }
-    else                        { targetsegments =   9; targetfactor = Global::ScreenHeight / 768.0f * 0.75f; }
+         if( framerate > 90.0 ) { targetfactor = 3.0f; }
+    else if( framerate > 60.0 ) { targetfactor = 1.5f; }
+    else if( framerate > 30.0 ) { targetfactor = Global::ScreenHeight / 768.0f; }
+    else                        { targetfactor = Global::ScreenHeight / 768.0f * 0.75f; }
 
     if( targetfactor > Global::fDistanceFactor ) {
 

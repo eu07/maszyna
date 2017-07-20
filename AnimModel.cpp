@@ -445,7 +445,7 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
     else if (asReplacableTexture != "none")
         m_materialdata.replacable_skins[1] =
-            GfxRenderer.GetTextureId( asReplacableTexture, "" );
+            GfxRenderer.Fetch_Texture( asReplacableTexture, "" );
     if( ( m_materialdata.replacable_skins[ 1 ] != 0 )
      && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
@@ -606,6 +606,7 @@ int TAnimModel::Flags()
 //-----------------------------------------------------------------------------
 // 2011-03-16 funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
+#ifdef EU07_USE_OLD_RENDERCODE
 void TAnimModel::Render( vector3 const &Position ) {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
@@ -617,7 +618,7 @@ void TAnimModel::RenderAlpha( vector3 const &Position ) {
     if( pModel ) // renderowanie rekurencyjne submodeli
         GfxRenderer.Render_Alpha( pModel, Material(), Position, vAngle );
 };
-
+#endif
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()
 { // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy

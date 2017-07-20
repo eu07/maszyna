@@ -119,21 +119,6 @@ public:
     // main draw call. returns false on error
     bool
         Render();
-    // render sub-methods, temporarily exposed until we complete migrating render code to the renderer
-    bool
-        Render( TDynamicObject *Dynamic );
-    bool
-        Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
-    bool
-        Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
-    void
-        Render( TSubModel *Submodel );
-    bool
-        Render_Alpha( TDynamicObject *Dynamic );
-    bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
-    bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
     // geometry methods
     // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
     // creates a new geometry bank. returns: handle to the bank or NULL
@@ -153,7 +138,7 @@ public:
         Vertices( geometry_handle const &Geometry ) const;
     // texture methods
     texture_handle
-        GetTextureId( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
+        Fetch_Texture( std::string const &Filename, std::string const &Dir = szTexturePath, int const Filter = -1, bool const Loadnow = true );
     void
         Bind( texture_handle const Texture );
     opengl_texture const &
@@ -225,6 +210,14 @@ private:
         Render( TSubRect *Groundsubcell );
     bool
         Render( TGroundNode *Node );
+    bool
+        Render( TDynamicObject *Dynamic );
+    bool
+        Render( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    bool
+        Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
+    void
+        Render( TSubModel *Submodel );
     void
         Render( TTrack *Track );
     bool
@@ -237,6 +230,12 @@ private:
         Render_Alpha( TSubRect *Groundsubcell );
     bool
         Render_Alpha( TGroundNode *Node );
+    bool
+        Render_Alpha( TDynamicObject *Dynamic );
+    bool
+        Render_Alpha( TModel3d *Model, material_data const *Material, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+    bool
+        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
     void
         Render_Alpha( TSubModel *Submodel );
     void
@@ -277,6 +276,7 @@ private:
     bool m_framebuffersupport { false };
     rendermode m_texenvmode { rendermode::color }; // last configured texture environment
     renderpass_config m_renderpass;
+//    std::stack<renderpass_config> m_renderpasses;
     bool m_renderspecular { false }; // controls whether to include specular component in the calculations
     std::vector<TGroundNode const *> m_picksceneryitems;
     std::vector<TSubModel const *> m_pickcontrolsitems;

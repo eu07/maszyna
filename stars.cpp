@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "stars.h"
 #include "globals.h"
+#include "MdlMngr.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // cStars -- simple starfield model, simulating appearance of starry sky
@@ -9,9 +10,9 @@
 void
 cStars::init() {
 
-    m_stars.LoadFromFile( "models\\skydome_stars.t3d", false );
+    m_stars = TModelsManager::GetModel( "models\\skydome_stars.t3d", false );
 }
-
+#ifdef EU07_USE_OLD_RENDERCODE
 void
 cStars::render() {
     // setup
@@ -28,3 +29,4 @@ cStars::render() {
 
     ::glPopMatrix();
 }
+#endif

@@ -236,8 +236,6 @@ public:
 /*
     void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
 */
-    void RenderDyn(); // renderowanie nieprzezroczystych pojazdów (oba tryby)
-    void RenderDynAlpha(); // renderowanie przezroczystych pojazdów (oba tryby)
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet(TSubRect *o) {
