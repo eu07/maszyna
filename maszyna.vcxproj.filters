@@ -1,469 +1,469 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
-    </Filter>
-    <Filter Include="Source Files\mczapkie">
-      <UniqueIdentifier>{fafd38ab-4c2a-48c8-8e66-ad0d928573b3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\mczapkie">
-      <UniqueIdentifier>{36684428-8a48-435f-bca4-a24d9bfe2587}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\input">
-      <UniqueIdentifier>{cdf75bec-91f7-413c-8b57-9e32cba49148}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\input">
-      <UniqueIdentifier>{2d73d7b2-5252-499c-963a-88fa3cb1af53}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="AdvSound.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AirCoupler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AnimModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Button.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Console.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Driver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dumb3d.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DynObj.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="EU07.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Event.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="EvLaunch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FadeSound.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Float3d.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Gauge.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Globals.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Ground.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Logs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MdlMngr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MemCell.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model3d.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mtable.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="parser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PyInt.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RealSound.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ResourceManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Segment.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sky.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Sound.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Spring.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TextureDDS.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Timer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Track.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Traction.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TractionPower.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Train.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TrkFoll.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VBO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="wavread.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="World.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mczapkie\friction.cpp">
-      <Filter>Source Files\mczapkie</Filter>
-    </ClCompile>
-    <ClCompile Include="mczapkie\hamulce.cpp">
-      <Filter>Source Files\mczapkie</Filter>
-    </ClCompile>
-    <ClCompile Include="console\LPT.cpp">
-      <Filter>Source Files\input</Filter>
-    </ClCompile>
-    <ClCompile Include="mczapkie\mctools.cpp">
-      <Filter>Source Files\mczapkie</Filter>
-    </ClCompile>
-    <ClCompile Include="mczapkie\Mover.cpp">
-      <Filter>Source Files\mczapkie</Filter>
-    </ClCompile>
-    <ClCompile Include="mczapkie\Oerlikon_ESt.cpp">
-      <Filter>Source Files\mczapkie</Filter>
-    </ClCompile>
-    <ClCompile Include="console\PoKeys55.cpp">
-      <Filter>Source Files\input</Filter>
-    </ClCompile>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Console\MWD.cpp">
-      <Filter>Source Files\input</Filter>
-    </ClCompile>
-    <ClCompile Include="Names.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sun.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="skydome.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="stars.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="lightarray.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="windows.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sn_utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="frustum.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="uilayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="openglmatrixstack.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="command.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="moon.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="openglgeometrybank.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="keyboardinput.cpp">
-      <Filter>Source Files\input</Filter>
-    </ClCompile>
-    <ClCompile Include="gamepadinput.cpp">
-      <Filter>Source Files\input</Filter>
-    </ClCompile>
-    <ClCompile Include="openglgeometrybank.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mouseinput.cpp">
-      <Filter>Source Files\input</Filter>
-    </ClCompile>
-    <ClCompile Include="translation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Globals.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Console.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Logs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="McZapkie\mover.h">
-      <Filter>Header Files\mczapkie</Filter>
-    </ClInclude>
-    <ClInclude Include="World.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dumb3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PyInt.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="usefull.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Classes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Ground.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MdlMngr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sky.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="parser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VBO.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Float3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TractionPower.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="McZapkie\Oerlikon_ESt.h">
-      <Filter>Header Files\mczapkie</Filter>
-    </ClInclude>
-    <ClInclude Include="McZapkie\mctools.h">
-      <Filter>Header Files\mczapkie</Filter>
-    </ClInclude>
-    <ClInclude Include="McZapkie\hamulce.h">
-      <Filter>Header Files\mczapkie</Filter>
-    </ClInclude>
-    <ClInclude Include="McZapkie\friction.h">
-      <Filter>Header Files\mczapkie</Filter>
-    </ClInclude>
-    <ClInclude Include="Console\PoKeys55.h">
-      <Filter>Header Files\input</Filter>
-    </ClInclude>
-    <ClInclude Include="Console\LPT.h">
-      <Filter>Header Files\input</Filter>
-    </ClInclude>
-    <ClInclude Include="RealSound.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Segment.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Spring.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Button.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AirCoupler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Gauge.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DynObj.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Train.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Names.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FadeSound.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Sound.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AdvSound.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Model3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Event.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AnimModel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="wavread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Track.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TrkFoll.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Traction.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Timer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TextureDDS.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ResourceManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mtable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MemCell.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="EvLaunch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Driver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Console\MWD.h">
-      <Filter>Header Files\input</Filter>
-    </ClInclude>
-    <ClInclude Include="sun.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="skydome.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="color.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="stars.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lightarray.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sn_utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="frustum.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="uilayer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="openglmatrixstack.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="moon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="command.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="version.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="openglgeometrybank.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gamepadinput.h">
-      <Filter>Header Files\input</Filter>
-    </ClInclude>
-    <ClInclude Include="keyboardinput.h">
-      <Filter>Header Files\input</Filter>
-    </ClInclude>
-    <ClInclude Include="mouseinput.h">
-      <Filter>Header Files\input</Filter>
-    </ClInclude>
-    <ClInclude Include="translation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="maszyna.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="eu07.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-  </ItemGroup>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Source Files\mczapkie">
+      <UniqueIdentifier>{fafd38ab-4c2a-48c8-8e66-ad0d928573b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\mczapkie">
+      <UniqueIdentifier>{36684428-8a48-435f-bca4-a24d9bfe2587}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\input">
+      <UniqueIdentifier>{cdf75bec-91f7-413c-8b57-9e32cba49148}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\input">
+      <UniqueIdentifier>{2d73d7b2-5252-499c-963a-88fa3cb1af53}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AdvSound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AirCoupler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Button.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Console.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Driver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dumb3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DynObj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EU07.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Event.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EvLaunch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FadeSound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Float3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Gauge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Globals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Ground.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Logs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MdlMngr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MemCell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Model3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mtable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PyInt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RealSound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Segment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sky.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Spring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureDDS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Track.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Traction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TractionPower.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Train.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TrkFoll.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VBO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wavread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="World.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mczapkie\friction.cpp">
+      <Filter>Source Files\mczapkie</Filter>
+    </ClCompile>
+    <ClCompile Include="mczapkie\hamulce.cpp">
+      <Filter>Source Files\mczapkie</Filter>
+    </ClCompile>
+    <ClCompile Include="console\LPT.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="mczapkie\mctools.cpp">
+      <Filter>Source Files\mczapkie</Filter>
+    </ClCompile>
+    <ClCompile Include="mczapkie\Mover.cpp">
+      <Filter>Source Files\mczapkie</Filter>
+    </ClCompile>
+    <ClCompile Include="mczapkie\Oerlikon_ESt.cpp">
+      <Filter>Source Files\mczapkie</Filter>
+    </ClCompile>
+    <ClCompile Include="console\PoKeys55.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Console\MWD.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="Names.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sun.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="skydome.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stars.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lightarray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="windows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sn_utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="frustum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="uilayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="openglmatrixstack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="command.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="moon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="openglgeometrybank.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="keyboardinput.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="gamepadinput.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="openglgeometrybank.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mouseinput.cpp">
+      <Filter>Source Files\input</Filter>
+    </ClCompile>
+    <ClCompile Include="translation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Console.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="McZapkie\mover.h">
+      <Filter>Header Files\mczapkie</Filter>
+    </ClInclude>
+    <ClInclude Include="World.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dumb3d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PyInt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="usefull.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Ground.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MdlMngr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sky.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VBO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Float3d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TractionPower.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="McZapkie\Oerlikon_ESt.h">
+      <Filter>Header Files\mczapkie</Filter>
+    </ClInclude>
+    <ClInclude Include="McZapkie\mctools.h">
+      <Filter>Header Files\mczapkie</Filter>
+    </ClInclude>
+    <ClInclude Include="McZapkie\hamulce.h">
+      <Filter>Header Files\mczapkie</Filter>
+    </ClInclude>
+    <ClInclude Include="McZapkie\friction.h">
+      <Filter>Header Files\mczapkie</Filter>
+    </ClInclude>
+    <ClInclude Include="Console\PoKeys55.h">
+      <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="Console\LPT.h">
+      <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="RealSound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Segment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Spring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Button.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AirCoupler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gauge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DynObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Train.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Names.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FadeSound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AdvSound.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Model3d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wavread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Track.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TrkFoll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Traction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureDDS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mtable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MemCell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EvLaunch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Driver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Console\MWD.h">
+      <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="sun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="skydome.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="color.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stars.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lightarray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sn_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="frustum.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="uilayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="openglmatrixstack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="moon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="command.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="openglgeometrybank.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gamepadinput.h">
+      <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="keyboardinput.h">
+      <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="mouseinput.h">
+      <Filter>Header Files\input</Filter>
+    </ClInclude>
+    <ClInclude Include="translation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="maszyna.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="eu07.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

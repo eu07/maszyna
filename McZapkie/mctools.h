@@ -36,7 +36,7 @@ inline long Round(double const f)
 	//return lround(f);
 }
 
-double Random(double a, double b);
+extern double Random(double a, double b);
 
 inline double Random()
 {

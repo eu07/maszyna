@@ -37,14 +37,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <TargetName>eu07++d</TargetName>
+    <TargetName>eu07++d_st_renew</TargetName>
     <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
     <OutDir>E:\Gry\MaSzyna_15_04\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <TargetName>eu07++</TargetName>
+    <TargetName>eu07++st_renew</TargetName>
     <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
-    <OutDir>E:\Gry\Maszyna_15_04_s\</OutDir>
+    <OutDir>E:\Gry\Maszyna_15_04\</OutDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -120,6 +120,7 @@
     <ClCompile Include="MemCell.cpp" />
     <ClCompile Include="Model3d.cpp" />
     <ClCompile Include="moon.cpp" />
+    <ClCompile Include="mouseinput.cpp" />
     <ClCompile Include="mtable.cpp" />
     <ClCompile Include="Names.cpp" />
     <ClCompile Include="openglgeometrybank.cpp" />
@@ -148,6 +149,7 @@
     <ClCompile Include="Traction.cpp" />
     <ClCompile Include="TractionPower.cpp" />
     <ClCompile Include="Train.cpp" />
+    <ClCompile Include="translation.cpp" />
     <ClCompile Include="TrkFoll.cpp" />
     <ClCompile Include="uilayer.cpp" />
     <ClCompile Include="VBO.cpp" />
@@ -193,6 +195,7 @@
     <ClInclude Include="MemCell.h" />
     <ClInclude Include="Model3d.h" />
     <ClInclude Include="moon.h" />
+    <ClInclude Include="mouseinput.h" />
     <ClInclude Include="mtable.h" />
     <ClInclude Include="Names.h" />
     <ClInclude Include="openglgeometrybank.h" />
@@ -220,6 +223,7 @@
     <ClInclude Include="Traction.h" />
     <ClInclude Include="TractionPower.h" />
     <ClInclude Include="Train.h" />
+    <ClInclude Include="translation.h" />
     <ClInclude Include="TrkFoll.h" />
     <ClInclude Include="uilayer.h" />
     <ClInclude Include="usefull.h" />
