@@ -1493,32 +1493,42 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 // spotlights are only rendered in colour mode(s)
                 case rendermode::color: {
                     auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
-                    auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
-                    Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
+                    auto const lightcenter =
+                        modelview
+                        * interpolate(
+                            glm::vec4( 0.f, 0.f, -0.05f, 1.f ),
+                            glm::vec4( 0.f, 0.f, -0.25f, 1.f ),
+                            static_cast<float>( TSubModel::fSquareDist / Submodel->fSquareMaxDist ) ); // pozycja punktu świecącego względem kamery
+                    Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.f, 0.f, -1.f, 1.f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
-                    if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) // kąt większy niż maksymalny stożek swiatła
-                    {
-                        float lightlevel = 1.0f; // TODO, TBD: parameter to control light strength
-                                                 // view angle attenuation
+                    if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {
+                        // kąt większy niż maksymalny stożek swiatła
+                        float lightlevel = 1.f; // TODO, TBD: parameter to control light strength
+                        // view angle attenuation
                         float const anglefactor = ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
                         // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
                         // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
                         float const distancefactor = static_cast<float>( std::max( 0.5, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) );
 
-                        if( lightlevel > 0.0f ) {
+                        if( lightlevel > 0.f ) {
                             // material configuration:
                             ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
 
                             Bind( 0 );
-                            ::glPointSize( std::max( 2.0f, 4.0f * distancefactor * anglefactor ) );
+                            ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
                             ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], lightlevel * anglefactor );
                             ::glDisable( GL_LIGHTING );
                             ::glEnable( GL_BLEND );
+
+                            ::glPushMatrix();
+                            ::glLoadIdentity();
+                            ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
 
                             // main draw call
                             m_geometry.draw( Submodel->m_geometry );
 
                             // post-draw reset
+                            ::glPopMatrix();
                             ::glPopAttrib();
                         }
                     }
@@ -2031,8 +2041,13 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 // NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
                 // TODO: separate instance data from reusable geometry
                 auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
-                auto const lightcenter = modelview * glm::vec4( 0.0f, 0.0f, -0.05f, 1.0f ); // pozycja punktu świecącego względem kamery
-                Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.0f, 0.0f, -1.0f, 1.0f ) - lightcenter ), glm::normalize( -lightcenter ) );
+                auto const lightcenter =
+                    modelview
+                    * interpolate(
+                        glm::vec4( 0.f, 0.f, -0.05f, 1.f ),
+                        glm::vec4( 0.f, 0.f, -0.10f, 1.f ),
+                        static_cast<float>( TSubModel::fSquareDist / Submodel->fSquareMaxDist ) ); // pozycja punktu świecącego względem kamery
+                Submodel->fCosViewAngle = glm::dot( glm::normalize( modelview * glm::vec4( 0.f, 0.f, -1.f, 1.f ) - lightcenter ), glm::normalize( -lightcenter ) );
 
                 float glarelevel = 0.6f; // luminosity at night is at level of ~0.1, so the overall resulting transparency is ~0.5 at full 'brightness'
                 if( Submodel->fCosViewAngle > Submodel->fCosFalloffAngle ) {

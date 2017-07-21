@@ -49,14 +49,6 @@ extern "C"
 bool bCondition; // McZapkie: do testowania warunku na event multiple
 std::string LogComment;
 
-// tests whether provided points form a degenerate triangle
-bool
-degenerate( glm::dvec3 const &Vertex1, glm::dvec3 const &Vertex2, glm::dvec3 const &Vertex3 ) {
-
-//  degenerate( A, B, C, minarea ) = ( ( B - A ).cross( C - A ) ).lengthSquared() < ( 4.0f * minarea * minarea );
-    return glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) < std::numeric_limits<double>::epsilon();
-}
-
 //---------------------------------------------------------------------------
 // Obiekt renderujący siatkę jest sztucznie tworzonym obiektem pomocniczym,
 // grupującym siatki obiektów dla danej tekstury. Obiektami składowymi mogą

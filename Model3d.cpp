@@ -460,10 +460,8 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                         >> Vertices[i].texture.t;
 					if (i % 3 == 2) { 
                         // jeżeli wczytano 3 punkty
-						if (Vertices[i    ].position == Vertices[i - 1].position
-                         || Vertices[i - 1].position == Vertices[i - 2].position
-                         || Vertices[i - 2].position == Vertices[i    ].position)
-						{ // jeżeli punkty się nakładają na siebie
+                        if( true == degenerate( Vertices[ i ].position, Vertices[ i - 1 ].position, Vertices[ i - 2 ].position ) ) {
+                            // jeżeli punkty się nakładają na siebie
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
