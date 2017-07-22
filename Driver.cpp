@@ -675,6 +675,7 @@ void TController::TableCheck(double fDistance)
     if( iTableDirection != iDirection ) {
         // jak zmiana kierunku, to skanujemy od końca składu
         TableTraceRoute( fDistance, pVehicles[ 1 ] );
+        TableSort();
     }
     else if (iTableDirection)
     { // trzeba sprawdzić, czy coś się zmieniło
@@ -692,11 +693,14 @@ void TController::TableCheck(double fDistance)
                     if( Global::iWriteLogEnabled & 8 ) {
                         WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->NameGet() + " (generating fresh trace)" );
                     }
-                    // NOTE: dirty trick to perform scan from the beginning
-                    // a workaround for current routines not preserving properly scan distance if started from the middle
-                    // and the scan extending far beyond specified limit as result
-                    iTableDirection = -iDirection;
+                    // usuwamy wszystko za tym torem
+                    while (sSpeedTable.back().trTrack != sSpeedTable[i].trTrack)
+                    { // usuwamy wszystko dopóki nie trafimy na tą zwrotnicę
+                        sSpeedTable.pop_back();
+                        iLast--;
+                    }
                     TableTraceRoute( fDistance, pVehicles[ 1 ] );
+                    TableSort();
                     // nie kontynuujemy pętli, trzeba doskanować ciąg dalszy
                     break;
                 }
@@ -734,6 +738,7 @@ void TController::TableCheck(double fDistance)
         // WriteLog("TableCheck: Upate last track. Dist=" + AnsiString(sSpeedTable[iLast].fDist));
         if( sSpeedTable[ iLast ].fDist < fDistance ) {
             TableTraceRoute( fDistance, pVehicles[ 1 ] ); // doskanowanie dalszego odcinka
+            TableSort();
         }
         // garbage collection
         TablePurger();
@@ -1376,6 +1381,29 @@ void TController::TablePurger()
     std::swap( sSpeedTable, trimmedtable );
     iLast = sSpeedTable.size() - 1;
 };
+
+void TController::TableSort()
+{
+    TSpeedPos sp_temp = TSpeedPos(); // uzywany do przenoszenia
+    for (std::size_t i = 0; i < iLast - 1; i++)
+    { // pętla tylko do dwóch pozycji od końca bo ostatniej nie modyfikujemy
+        if (sSpeedTable[i].fDist > sSpeedTable[i + 1].fDist)
+        { // jesli pozycja wcześniejsza jest dalej to źle
+            sp_temp = sSpeedTable[i + 1];
+            sSpeedTable[i + 1] = sSpeedTable[i]; // zamiana
+            sSpeedTable[i] = sp_temp;
+            // jeszcze sprawdzenie czy pozycja nie była indeksowana dla eventów
+            if (SemNextIndex == i)
+                SemNextIndex++;
+            else if (SemNextIndex == i + 1)
+                SemNextIndex--;
+            if (SemNextStopIndex == i)
+                SemNextStopIndex++;
+            else if (SemNextStopIndex == i + 1)
+                SemNextStopIndex--;
+        }
+    }
+}
 
 //---------------------------------------------------------------------------
 

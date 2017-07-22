@@ -371,6 +371,7 @@ private: // parametry aktualnego składu
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     void TablePurger();
+    void TableSort();
     inline double MoveDistanceGet()
     {
         return dMoveLen;
