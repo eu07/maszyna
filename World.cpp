@@ -32,6 +32,8 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "translation.h"
 
+//#define EU07_USE_DEBUG_SHADOWMAP
+
 //---------------------------------------------------------------------------
 
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
@@ -632,8 +634,13 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case GLFW_KEY_F8: {
+#ifdef EU07_USE_DEBUG_SHADOWMAP
+                if( Global::iTextMode == cKey ) { ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; }
+                if( Global::iScreenMode[ cKey - GLFW_KEY_F1 ] > 1 ) {
+                    Global::iScreenMode[ cKey - GLFW_KEY_F1 ] = 0;
+                }
+#endif
                 Global::iTextMode = cKey;
-                // FPS
                 break;
             }
             case GLFW_KEY_F9: {
@@ -1693,7 +1700,7 @@ TWorld::Update_UI() {
                        std::to_string( int( tmp->MoverParameters->Im ) ) )
                     + "; U=" + to_string( int( tmp->MoverParameters->RunningTraction.TractionVoltage + 0.5 ) )
                     + "; R=" +
-                    ( tmp->MoverParameters->RunningShape.R > 100000.0 ?
+                    ( std::abs( tmp->MoverParameters->RunningShape.R ) > 10000.0 ?
                         "~0.0" :
                         to_string( tmp->MoverParameters->RunningShape.R, 1 ) )
                     + " An=" + to_string( tmp->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne

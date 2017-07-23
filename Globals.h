@@ -227,6 +227,12 @@ class Global
     static int DynamicLightCount;
     static bool ScaleSpecularValues;
     static bool RenderShadows;
+    static struct shadowtune_t {
+        unsigned int map_size;
+        float width;
+        float depth;
+        float distance;
+    } shadowtune;
 
     static int iSlowMotion;
     static TDynamicObject *changeDynObj;

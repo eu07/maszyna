@@ -65,7 +65,7 @@ ui_layer::render() {
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho( 0.f, Global::ScreenWidth, Global::ScreenHeight, 0.f, -1.f, 1.f );
+	glOrtho( 0, Global::ScreenWidth, Global::ScreenHeight, 0, -1, 1 );
 
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -272,10 +272,10 @@ ui_layer::quad( float4 const &Coordinates, float4 const &Color ) {
 
     glBegin( GL_TRIANGLE_STRIP );
 
-    glTexCoord2f( 0.f, 1.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
-    glTexCoord2f( 0.f, 0.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
-    glTexCoord2f( 1.f, 1.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
-    glTexCoord2f( 1.f, 0.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
+    glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
+    glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
+    glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.y * heightratio );
+    glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( 0.5f * ( Global::iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global::iWindowHeight - height ) + Coordinates.w * heightratio );
 
     glEnd();
 }
