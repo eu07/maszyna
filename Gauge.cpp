@@ -180,7 +180,7 @@ void TGauge::DecValue(double fNewDesired)
 void
 TGauge::UpdateValue( double fNewDesired, PSound Fallbacksound ) {
 
-    if( static_cast<int>( std::round( ( fDesiredValue - fOffset ) / fScale ) ) == static_cast<int>( fNewDesired ) ) {
+    if( static_cast<int>( std::round( 100.0 * ( fDesiredValue - fOffset ) / fScale ) ) == static_cast<int>( 100.0 * fNewDesired ) ) {
         return;
     }
     fDesiredValue = fNewDesired * fScale + fOffset;

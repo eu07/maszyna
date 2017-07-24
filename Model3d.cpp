@@ -341,7 +341,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             if( texture.find_first_of( "/\\" ) == texture.npos ) {
                 texture.insert( 0, Global::asCurrentTexturePath );
             }
-            TextureID = GfxRenderer.GetTextureId( texture, szTexturePath );
+            TextureID = GfxRenderer.Fetch_Texture( texture );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
@@ -460,10 +460,8 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                         >> Vertices[i].texture.t;
 					if (i % 3 == 2) { 
                         // jeżeli wczytano 3 punkty
-						if (Vertices[i    ].position == Vertices[i - 1].position
-                         || Vertices[i - 1].position == Vertices[i - 2].position
-                         || Vertices[i - 2].position == Vertices[i    ].position)
-						{ // jeżeli punkty się nakładają na siebie
+                        if( true == degenerate( Vertices[ i ].position, Vertices[ i - 1 ].position, Vertices[ i - 2 ].position ) ) {
+                            // jeżeli punkty się nakładają na siebie
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
@@ -1670,7 +1668,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		pTexture = t->at(iTexture);
 		if (pTexture.find_last_of("/\\") == std::string::npos)
 			pTexture.insert(0, Global::asCurrentTexturePath);
-		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
+		TextureID = GfxRenderer.Fetch_Texture(pTexture);
         if( ( iFlags & 0x30 ) == 0 ) {
             // texture-alpha based fallback if for some reason we don't have opacity flag set yet
             iFlags |=

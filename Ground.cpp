@@ -49,15 +49,6 @@ extern "C"
 bool bCondition; // McZapkie: do testowania warunku na event multiple
 std::string LogComment;
 
-// tests whether provided points form a degenerate triangle
-bool
-degenerate( glm::dvec3 const &Vertex1, glm::dvec3 const &Vertex2, glm::dvec3 const &Vertex3 ) {
-
-    return ( ( Vertex1 == Vertex2 )
-          || ( Vertex2 == Vertex3 )
-          || ( Vertex3 == Vertex1 ) );
-}
-
 //---------------------------------------------------------------------------
 // Obiekt renderujący siatkę jest sztucznie tworzonym obiektem pomocniczym,
 // grupującym siatki obiektów dla danej tekstury. Obiektami składowymi mogą
@@ -1331,7 +1322,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             *parser >> token;
         }
         str = token;
-        tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
+        tmp->TextureID = GfxRenderer.Fetch_Texture( str );
         bool const clamps = (
             tmp->TextureID ?
                 GfxRenderer.Texture( tmp->TextureID ).traits.find( 's' ) != std::string::npos :

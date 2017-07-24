@@ -14,13 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "logs.h"
 
-TButton::TButton()
-{
-    iFeedbackBit = 0;
-    bData = NULL;
-    Clear();
-};
-
 void TButton::Clear(int i)
 {
     pModelOn = nullptr;

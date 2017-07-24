@@ -483,20 +483,20 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     {
         parser->getTokens();
         *parser >> str; // railtex
-        TextureID1 = (str == "none" ? 0 : GfxRenderer.GetTextureId(
-                                              str, szTexturePath,
-                                              (iCategoryFlag & 1) ? Global::iRailProFiltering :
-                                                                    Global::iBallastFiltering));
+        TextureID1 = (
+            str == "none" ?
+                NULL :
+                GfxRenderer.Fetch_Texture( str ) );
         parser->getTokens();
         *parser >> fTexLength; // tex tile length
         if (fTexLength < 0.01)
             fTexLength = 4; // Ra: zabezpiecznie przed zawieszeniem
         parser->getTokens();
         *parser >> str; // sub || railtex
-        TextureID2 = (str == "none" ? 0 : GfxRenderer.GetTextureId(
-                                              str, szTexturePath,
-                                              (eType == tt_Normal) ? Global::iBallastFiltering :
-                                                                     Global::iRailProFiltering));
+        TextureID2 = (
+            str == "none" ?
+                NULL :
+                GfxRenderer.Fetch_Texture( str ) );
         parser->getTokens(3);
         *parser >> fTexHeight1 >> fTexWidth >> fTexSlope;
         if (iCategoryFlag & 4)
@@ -1267,30 +1267,31 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 }
                 vertex_array vertices;
                 Segment->RenderLoft(vertices, origin, bpts1, iTrapezoid ? -4 : 4, fTexLength);
+                if( ( Bank != 0 ) && ( true == Geometry2.empty() ) ) {
+                    Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
+                }
                 if( ( Bank == 0 ) && ( false == Geometry2.empty() ) ) {
                     // special variant, replace existing data for a turntable track
                     GfxRenderer.Replace( vertices, Geometry2[ 0 ] );
-                }
-                else {
-                    Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                 }
             }
             if (TextureID1)
             { // szyny - generujemy dwie, najwyżej rysować się będzie jedną
                 vertex_array vertices;
+                if( ( Bank != 0 ) && ( true == Geometry1.empty() ) ) {
+                    Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
+                    vertices.clear(); // reuse the scratchpad
+                    Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
+                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
+                }
                 if( ( Bank == 0 ) && ( false == Geometry1.empty() ) ) {
+                    // special variant, replace existing data for a turntable track
                     Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     GfxRenderer.Replace( vertices, Geometry1[ 0 ] );
                     vertices.clear(); // reuse the scratchpad
                     Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
                     GfxRenderer.Replace( vertices, Geometry1[ 1 ] );
-                }
-                else {
-                    Segment->RenderLoft( vertices, origin, rpts1, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
-                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
-                    vertices.clear(); // reuse the scratchpad
-                    Segment->RenderLoft( vertices, origin, rpts2, iTrapezoid ? -nnumPts : nnumPts, fTexLength );
-                    Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                 }
             }
             break;
@@ -1862,22 +1863,6 @@ void TTrack::EnvironmentReset()
         default: {
             break;
         }
-    }
-};
-
-void TTrack::RenderDyn()
-{ // renderowanie nieprzezroczystych fragmentów pojazdów
-    for( auto dynamic : Dynamics ) {
-        // sam sprawdza, czy VBO; zmienia kontekst VBO!
-        GfxRenderer.Render( dynamic );
-    }
-};
-
-void TTrack::RenderDynAlpha()
-{ // renderowanie przezroczystych fragmentów pojazdów
-    for( auto dynamic : Dynamics ) {
-        // sam sprawdza, czy VBO; zmienia kontekst VBO!
-        GfxRenderer.Render_Alpha( dynamic );
     }
 };
 

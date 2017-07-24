@@ -4066,7 +4066,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
             {
 				std::string nowheretexture = TextureTest(Global::asCurrentTexturePath + "nowhere"); // na razie prymitywnie
                 if( false == nowheretexture.empty() ) {
-                    m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( nowheretexture, "", 9 );
+                    m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Texture( nowheretexture, "", 9 );
                 }
 
                 if (m_materialdata.multi_textures > 0) {
@@ -4078,7 +4078,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         int skinindex = 0;
                         std::string texturename; nameparser >> texturename;
                         while( ( texturename != "" ) && ( skinindex < 4 ) ) {
-                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + texturename, "" );
+                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Texture( Global::asCurrentTexturePath + texturename, "" );
                             ++skinindex;
                             texturename = ""; nameparser >> texturename;
                         }
@@ -4088,7 +4088,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         // otherwise try the basic approach
                         int skinindex = 0;
                         do {
-                            texture_handle texture = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), "", Global::iDynamicFiltering, true );
+                            texture_handle texture = GfxRenderer.Fetch_Texture( Global::asCurrentTexturePath + ReplacableSkin + "," + std::to_string( skinindex + 1 ), "", Global::iDynamicFiltering, true );
                             if( texture == NULL ) {
                                 break;
                             }
@@ -4098,12 +4098,12 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         m_materialdata.multi_textures = skinindex;
                         if( m_materialdata.multi_textures == 0 ) {
                             // zestaw nie zadziałał, próbujemy normanie
-                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin, "", Global::iDynamicFiltering );
+                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Texture( Global::asCurrentTexturePath + ReplacableSkin, "", Global::iDynamicFiltering );
                         }
                     }
                 }
                 else {
-                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.GetTextureId( Global::asCurrentTexturePath + ReplacableSkin, "", Global::iDynamicFiltering );
+                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Texture( Global::asCurrentTexturePath + ReplacableSkin, "", Global::iDynamicFiltering );
                 }
                 if( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) {
                     // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
@@ -5426,13 +5426,13 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     std::string x = TextureTest(asBaseDir + numer + "@" + MoverParameters->TypeName);
 	if (!x.empty())
     {
-        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
+        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Texture( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
 	x = TextureTest(asBaseDir + numer );
 	if (!x.empty())
     {
-        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
+        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Texture( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     if (to.empty())
@@ -5440,17 +5440,17 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer)
     x = TextureTest(asBaseDir + to + "@" + MoverParameters->TypeName); // w pierwszej kolejności z nazwą FIZ/MMD
     if (!x.empty())
     {
-        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
+        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Texture( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
         return;
     }
     x = TextureTest(asBaseDir + to); // na razie prymitywnie
     if (!x.empty())
-        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
+        m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Texture( x, "", 9 ); // rozmywania 0,1,4,5 nie nadają się
     else
 		{
         x = TextureTest(asBaseDir + "nowhere"); // jak nie znalazł dedykowanej, to niech daje nowhere
 		if (!x.empty())
-            m_materialdata.replacable_skins[ 4 ] = GfxRenderer.GetTextureId( x, "", 9 );
+            m_materialdata.replacable_skins[ 4 ] = GfxRenderer.Fetch_Texture( x, "", 9 );
 		}
     // Ra 2015-01: żeby zalogować błąd, trzeba by mieć pewność, że model używa tekstury nr 4
 };

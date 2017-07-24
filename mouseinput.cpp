@@ -125,9 +125,11 @@ mouse_input::button( int const Button, int const Action ) {
                     // TODO: pass correct entity id once the missing systems are in place
                     m_relay.post( mousecommand, 0, 0, Action, 0 );
                     m_updateaccumulator = 0.0; // prevent potential command repeat right after issuing one
+/*
                     if( mousecommand == user_command::mastercontrollerincrease ) {
                         m_updateaccumulator -= 0.15; // extra pause on first increase of master controller
                     }
+*/
                     switch( mousecommand ) {
                         case user_command::mastercontrollerincrease:
                         case user_command::mastercontrollerdecrease:
