@@ -1258,10 +1258,10 @@ opengl_renderer::Render( TGroundNode *Node ) {
 
         case TP_TRACK: {
             // setup
-            ::glPushMatrix();
-            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
-            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
             switch( m_renderpass.draw_mode ) {
+                case rendermode::shadows: {
+                    return false;
+                }
                 case rendermode::pickscenery: {
                     // add the node to the pick list
                     m_picksceneryitems.emplace_back( Node );
@@ -1271,6 +1271,9 @@ opengl_renderer::Render( TGroundNode *Node ) {
                     break;
                 }
             }
+            ::glPushMatrix();
+            auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
+            ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
             // render
             Render( Node->pTrack );
             // post-render cleanup
