@@ -71,7 +71,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     glShadeModel( GL_SMOOTH ); // Enable Smooth Shading
 
     glActiveTexture( m_diffusetextureunit );
-    glClientActiveTexture( m_diffusetextureunit );
+    m_geometry.units().texture = m_diffusetextureunit;
     UILayer.set_unit( m_diffusetextureunit );
 
     glEnable( GL_DEPTH_TEST );
@@ -566,7 +566,7 @@ void
 opengl_renderer::setup_camera_light_perspective( glm::dmat4 &Viewmatrix ) {
 
     m_renderpass.camera.position() = Global::pCameraPosition - glm::dvec3{ Global::DayLight.direction * m_renderpass.draw_range * 0.5f };
-    m_renderpass.camera.position().y = std::max( 75.0, m_renderpass.camera.position().y ); // prevent shadow source from dipping too low
+    m_renderpass.camera.position().y = std::max<float>( m_renderpass.draw_range * 0.5f * 0.1f, m_renderpass.camera.position().y ); // prevent shadow source from dipping too low
     Viewmatrix = glm::lookAt(
         m_renderpass.camera.position(),
         glm::dvec3{ Global::pCameraPosition.x, 0.0, Global::pCameraPosition.z },

@@ -963,8 +963,6 @@ void TWorld::FollowView(bool wycisz) {
                     + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab;
             }
             Train->pMechOffset = Train->pMechSittingPosition;
-
-            Global::SetCameraPosition( Train->Dynamic() ->GetPosition()); // tu ustawić nową, bo od niej liczą się odległości
         }
     }
     else

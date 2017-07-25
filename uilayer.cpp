@@ -65,7 +65,7 @@ ui_layer::render() {
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho( 0, Global::ScreenWidth, Global::ScreenHeight, 0, -1, 1 );
+	glOrtho( 0, std::max( 1, Global::ScreenWidth ), std::max( 1, Global::ScreenHeight ), 0, -1, 1 );
 
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
