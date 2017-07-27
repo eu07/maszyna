@@ -77,7 +77,7 @@ bool
 degenerate( VecType_ const &Vertex1, VecType_ const &Vertex2, VecType_ const &Vertex3 ) {
 
     //  degenerate( A, B, C, minarea ) = ( ( B - A ).cross( C - A ) ).lengthSquared() < ( 4.0f * minarea * minarea );
-    return glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) < std::numeric_limits<VecType_::value_type>::epsilon();
+    return ( glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) == 0.0 );
 }
 
 //---------------------------------------------------------------------------

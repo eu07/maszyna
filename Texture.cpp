@@ -609,8 +609,6 @@ opengl_texture::release( bool const Backup ) {
 
     if( id == -1 ) { return; }
 
-    assert( is_ready );
-
     if( true == Backup ) {
         // query texture details needed to perform the backup...
         ::glBindTexture( GL_TEXTURE_2D, id );

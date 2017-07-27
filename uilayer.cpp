@@ -78,6 +78,7 @@ ui_layer::render() {
 
     // render code here
     render_background();
+    render_texture();
     render_progress();
     render_panels();
     render_tooltip();
@@ -233,6 +234,31 @@ ui_layer::render_background() {
             ( 1024.0f * 0.5f ) - ( width  * 0.5f ) + width,
             (  768.0f * 0.5f ) - ( height * 0.5f ) + height ),
         float4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+}
+
+void
+ui_layer::render_texture() {
+
+    if( m_texture != NULL ) {
+        ::glColor4f( 1.f, 1.f, 1.f, 1.f );
+        ::glDisable( GL_BLEND );
+
+        GfxRenderer.Bind( NULL );
+        ::glBindTexture( GL_TEXTURE_2D, m_texture );
+
+        auto const size = 512.f;
+
+        glBegin( GL_TRIANGLE_STRIP );
+
+        glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( 0.f, 256.f );
+        glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( 0.f, 256.f + size );
+        glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( size, 256.f );
+        glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( size, 256.f + size );
+
+        glEnd();
+
+        ::glEnable( GL_BLEND );
+    }
 }
 
 void

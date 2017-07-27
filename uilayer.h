@@ -55,6 +55,8 @@ public:
 	void
         set_background( std::string const &Filename = "" );
     void
+        set_texture( GLuint Texture = NULL ) { m_texture = Texture; }
+    void
         set_tooltip( std::string const &Tooltip ) { m_tooltip = Tooltip; }
     void
         clear_texts() { m_panels.clear(); }
@@ -68,6 +70,8 @@ private:
     // draws background quad with specified earlier texture
     void
         render_background();
+    void
+        render_texture();
     // draws a progress bar in defined earlier state
     void
         render_progress();
@@ -95,6 +99,7 @@ private:
     bool m_progressbottom { false }; // location of the progress bar
 
     texture_handle m_background { NULL }; // path to texture used as the background. size depends on mAspect.
+    GLuint m_texture { NULL };
     std::vector<std::shared_ptr<ui_panel> > m_panels;
     std::string m_tooltip;
 };

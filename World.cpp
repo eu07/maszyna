@@ -32,8 +32,6 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "translation.h"
 
-//#define EU07_USE_DEBUG_SHADOWMAP
-
 //---------------------------------------------------------------------------
 
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
@@ -634,12 +632,6 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case GLFW_KEY_F8: {
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-                if( Global::iTextMode == cKey ) { ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; }
-                if( Global::iScreenMode[ cKey - GLFW_KEY_F1 ] > 1 ) {
-                    Global::iScreenMode[ cKey - GLFW_KEY_F1 ] = 0;
-                }
-#endif
                 Global::iTextMode = cKey;
                 break;
             }

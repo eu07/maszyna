@@ -18,6 +18,9 @@ http://mozilla.org/MPL/2.0/.
 #include "world.h"
 #include "memcell.h"
 
+#define EU07_USE_PICKING_FRAMEBUFFER
+//#define EU07_USE_DEBUG_SHADOWMAP
+
 struct opengl_light {
 
     GLuint id{ (GLuint)-1 };
@@ -159,7 +162,7 @@ public:
     TGroundNode const *
         Update_Pick_Node();
     // debug performance string
-    std::string
+    std::string const &
         Info() const;
 
 // members
@@ -180,7 +183,7 @@ private:
 
     struct renderpass_config {
         opengl_camera camera;
-        rendermode draw_mode { rendermode::color };
+        rendermode draw_mode { rendermode::none };
         float draw_range { 0.0f };
         std::vector<distancesubcell_pair> draw_queue; // list of subcells to be drawn in current render pass
     };
@@ -218,7 +221,7 @@ private:
     void
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
-        toggle_units( bool const Diffuse, bool const Shadows, bool const Reflections );
+        switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
     bool
         Render( world_environment *Environment );
     bool
@@ -269,13 +272,16 @@ private:
     opengllight_array m_lights;
     GLFWwindow *m_window { nullptr };
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
-    GLuint m_pickframebuffer { 0 }; // TODO: refactor pick framebuffer stuff into an object
-    GLuint m_picktexture { 0 };
-    GLuint m_pickdepthbuffer { 0 };
+    GLuint m_pickframebuffer { NULL }; // TODO: refactor pick framebuffer stuff into an object
+    GLuint m_picktexture { NULL };
+    GLuint m_pickdepthbuffer { NULL };
     int m_pickbuffersize { 1024 }; // size of (square) textures bound with the pick framebuffer
 #endif
-    GLuint m_shadowframebuffer { 0 };
-    GLuint m_shadowtexture { 0 };
+    GLuint m_shadowframebuffer { NULL };
+    GLuint m_shadowtexture { NULL };
+#ifdef EU07_USE_DEBUG_SHADOWMAP
+    GLuint m_shadowdebugtexture{ NULL };
+#endif
     int m_shadowbuffersize { 4096 };
     glm::mat4 m_shadowtexturematrix;
     glm::vec4 m_shadowcolor{ 0.5f, 0.5f, 0.5f, 1.f };

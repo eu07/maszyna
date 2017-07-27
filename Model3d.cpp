@@ -428,7 +428,9 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                 std::vector<unsigned int> sg; sg.resize( facecount ); // maski przynależności trójkątów do powierzchni
                 std::vector<int> wsp; wsp.resize( iNumVerts );// z którego wierzchołka kopiować wektor normalny
 				int maska = 0;
+                int rawvertexcount = 0; // used to keep track of vertex indices in source file
 				for (int i = 0; i < iNumVerts; ++i) {
+                    ++rawvertexcount;
                     // Ra: z konwersją na układ scenerii - będzie wydajniejsze wyświetlanie
 					wsp[i] = -1; // wektory normalne nie są policzone dla tego wierzchołka
 					if ((i % 3) == 0) {
@@ -465,7 +467,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(i) + "-" + std::to_string(i+2));
+							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(rawvertexcount-2) + "-" + std::to_string(rawvertexcount));
 						}
 						if (i > 0) {
                             // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać

@@ -88,7 +88,7 @@ opengl_light Global::DayLight;
 int Global::DynamicLightCount { 3 };
 bool Global::ScaleSpecularValues { true };
 bool Global::RenderShadows { false };
-Global::shadowtune_t Global::shadowtune = { 2048, 200.0f, 150.0f, 100.0f };
+Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 1250.f, 100.f };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
 int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę toru
