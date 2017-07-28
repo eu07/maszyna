@@ -489,9 +489,8 @@ void TWorld::OnKeyDown(int cKey)
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global::pCameraPosition) jest trochę bez sensu
-                    Global::SetCameraPosition(
-                        Global::FreeCameraInit[i]); // nowa pozycja dla generowania obiektów
-                    Ground.Silence(Camera.Pos); // wyciszenie wszystkiego z poprzedniej pozycji
+                    Ground.Silence( Global::pCameraPosition ); // wyciszenie wszystkiego z poprzedniej pozycji
+                    Global::SetCameraPosition( Global::FreeCameraInit[i] ); // nowa pozycja dla generowania obiektów
                     Camera.Init(Global::FreeCameraInit[i],
                                 Global::FreeCameraInitAngle[i]); // przestawienie
                 }
@@ -1136,25 +1135,25 @@ bool TWorld::Update()
 
 void
 TWorld::Update_Camera( double const Deltatime ) {
-    // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
 
     if( false == Global::ControlPicking ) {
         if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
             Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
-            // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
-            // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-            if( Controlled && LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) // gdy bliżej niż 1.5km
+            if( Controlled && LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
+                // gdy bliżej niż 1.5km
                 Camera.LookAt = Controlled->GetPosition();
+            }
             else {
                 TDynamicObject *d =
                     Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
                 if( !d )
-                    d = Ground.DynamicNearest( Camera.Pos,
-                        1000 ); // dalej szukanie, jesli bliżej nie ma
-                if( d && pDynamicNearest ) // jeśli jakiś jest znaleziony wcześniej
-                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
-                        LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
+                    d = Ground.DynamicNearest( Camera.Pos, 1000 ); // dalej szukanie, jesli bliżej nie ma
+                if( d && pDynamicNearest ) {
+                    // jeśli jakiś jest znaleziony wcześniej
+                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) > LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) ) {
                         d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
+                    }
+                }
                 // poprzedni najbliższy, zostaje poprzedni
                 if( d )
                     pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
@@ -1164,7 +1163,7 @@ TWorld::Update_Camera( double const Deltatime ) {
             if( FreeFlyModeFlag )
                 Camera.RaLook(); // jednorazowe przestawienie kamery
         }
-        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) { //||Console::Pressed(VK_F4))
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) {
             FollowView( false ); // bez wyciszania dźwięków
         }
         else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) == GLFW_PRESS ) {
@@ -1179,12 +1178,7 @@ TWorld::Update_Camera( double const Deltatime ) {
     }
 
     Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
-/*
-    if( Camera.Type == tp_Follow ) {
-        if( Train ) { // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
-            Train->UpdateMechPosition( Deltatime /
-                Global::fTimeSpeed ); // ograniczyć telepanie po przyspieszeniu
-*/
+
     if( (Train != nullptr)
      && (Camera.Type == tp_Follow )) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
@@ -1248,6 +1242,8 @@ TWorld::Update_Camera( double const Deltatime ) {
     else { // kamera nieruchoma
         Global::SetCameraRotation( Camera.Yaw - M_PI );
     }
+    // all done, update camera position to the new value
+    Global::SetCameraPosition( Camera.Pos );
 }
 
 void TWorld::Update_Environment() {

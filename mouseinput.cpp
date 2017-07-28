@@ -168,7 +168,7 @@ mouse_input::poll() {
 
     auto updaterate { m_updaterate };
     if( m_varyingpollrate ) {
-        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global::ScreenHeight ) );
+        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_commandstartcursor ) / std::max( 1, Global::iWindowHeight ) );
     }
 
     if( m_updateaccumulator < updaterate ) {

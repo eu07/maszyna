@@ -78,8 +78,8 @@ void screenshot_save_thread( char *img )
 	png_image png;
 	memset(&png, 0, sizeof(png_image));
 	png.version = PNG_IMAGE_VERSION;
-	png.width = Global::ScreenWidth;
-	png.height = Global::ScreenHeight;
+	png.width = Global::iWindowWidth;
+	png.height = Global::iWindowHeight;
 	png.format = PNG_FORMAT_RGB;
 
 	char datetime[64];
@@ -95,7 +95,7 @@ void screenshot_save_thread( char *img )
 	std::string filename = "screenshots/" + std::string(datetime) +
 	                       "_" + std::to_string(perf) + ".png";
 
-	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::ScreenWidth * 3, nullptr) == 1)
+	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::iWindowWidth * 3, nullptr) == 1)
 		WriteLog("saved " + filename + ".");
 	else
 		WriteLog("failed to save screenshot.");
@@ -105,8 +105,8 @@ void screenshot_save_thread( char *img )
 
 void make_screenshot()
 {
-	char *img = new char[Global::ScreenWidth * Global::ScreenHeight * 3];
-	glReadPixels(0, 0, Global::ScreenWidth, Global::ScreenHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+	char *img = new char[Global::iWindowWidth * Global::iWindowHeight * 3];
+	glReadPixels(0, 0, Global::iWindowWidth, Global::iWindowHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
 
 	std::thread t(screenshot_save_thread, img);
 	t.detach();
@@ -117,8 +117,8 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 {
     // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
     // TBD, TODO: merge them?
-	Global::ScreenWidth = Global::iWindowWidth = w;
-	Global::ScreenHeight = Global::iWindowHeight = h;
+	Global::iWindowWidth = w;
+	Global::iWindowHeight = h;
     Global::fDistanceFactor = std::max( 0.5f, h / 768.0f ); // not sure if this is really something we want to use
 	glViewport(0, 0, w, h);
 }

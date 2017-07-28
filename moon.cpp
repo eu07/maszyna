@@ -55,7 +55,7 @@ cMoon::render() {
 	glEnd();
 	glPushMatrix();
 	glTranslatef( position.x, position.y, position.z );
-    gluSphere( moonsphere, /* (float)( Global::ScreenHeight / Global::FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
+    gluSphere( moonsphere, /* (float)( Global::iWindowHeight / Global::FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
 	glPopMatrix();
 }
 

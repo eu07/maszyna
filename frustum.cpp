@@ -10,6 +10,10 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "frustum.h"
 
+std::vector<glm::vec4> ndcfrustumshapepoints = {
+    { -1, -1, -1, 1 }, { 1, -1, -1, 1 }, { 1, 1, -1, 1 }, { -1, 1, -1, 1 }, // z-near
+    { -1, -1,  1, 1 }, { 1, -1,  1, 1 }, { 1, 1,  1, 1 }, { -1, 1,  1, 1 } }; // z-far
+
 void
 cFrustum::calculate() {
 
@@ -83,6 +87,14 @@ cFrustum::calculate( glm::mat4 const &Projection, glm::mat4 const &Modelview ) {
     m_frustum[ side_FRONT ][ plane_C ] = clip[ 11 ] + clip[ 10 ];
     m_frustum[ side_FRONT ][ plane_D ] = clip[ 15 ] + clip[ 14 ];
     normalize_plane( side_FRONT );
+
+    m_inversetransformation = glm::inverse( Projection * Modelview );
+
+    // calculate frustum corners
+    m_frustumpoints = ndcfrustumshapepoints;
+    transform_to_world(
+        std::begin( m_frustumpoints ),
+        std::end( m_frustumpoints ) );
 }
 
 bool
@@ -167,6 +179,19 @@ cFrustum::cube_inside( float const X, float const Y, float const Z, float const 
     }
 
     return true;
+}
+
+std::vector<std::size_t> const frustumshapepoinstorder{ 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7 };
+
+// debug helper, draws shape of frustum in world space
+void
+cFrustum::draw( glm::vec3 const &Offset ) const {
+
+    ::glBegin( GL_LINES );
+    for( auto const pointindex : frustumshapepoinstorder ) {
+        ::glVertex3fv( glm::value_ptr( glm::vec3{ m_frustumpoints[ pointindex ] } - Offset ) );
+    }
+    ::glEnd();
 }
 
 void cFrustum::normalize_plane( cFrustum::side const Side ) {

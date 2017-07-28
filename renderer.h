@@ -26,10 +26,10 @@ struct opengl_light {
     GLuint id{ (GLuint)-1 };
     glm::vec3 direction;
     glm::vec4
-        position { 0.0f, 0.0f, 0.0f, 1.0f }, // 4th parameter specifies directional(0) or omni-directional(1) light source
-        ambient { 0.0f, 0.0f, 0.0f, 1.0f },
-        diffuse { 1.0f, 1.0f, 1.0f, 1.0f },
-        specular { 1.0f, 1.0f, 1.0f, 1.0f };
+        position { 0.f, 0.f, 0.f, 1.f }, // 4th parameter specifies directional(0) or omni-directional(1) light source
+        ambient { 0.f, 0.f, 0.f, 1.f },
+        diffuse { 1.f, 1.f, 1.f, 1.f },
+        specular { 1.f, 1.f, 1.f, 1.f };
 
     inline
     void apply_intensity( float const Factor = 1.0f ) {
@@ -54,7 +54,7 @@ struct opengl_light {
     void apply_angle() {
 
         glLightfv( id, GL_POSITION, glm::value_ptr(position) );
-        if( position.w == 1.0f ) {
+        if( position.w == 1.f ) {
             glLightfv( id, GL_SPOT_DIRECTION, glm::value_ptr(direction) );
         }
     }
@@ -86,7 +86,7 @@ public:
 // methods:
     inline
     void
-        update_frustum() { m_frustum.calculate(); }
+        update_frustum() { m_frustum.calculate( m_projection, m_modelview ); }
     inline
     void
         update_frustum(glm::mat4 const &Projection, glm::mat4 const &Modelview) { m_frustum.calculate(Projection, Modelview); }
@@ -100,11 +100,28 @@ public:
     inline
     glm::dvec3 &
         position() { return m_position; }
+    inline
+    glm::mat4 const &
+        projection() const { return m_projection; }
+    inline
+    glm::mat4 &
+        projection() { return m_projection; }
+    inline
+    glm::mat4 const &
+        modelview() const { return m_modelview; }
+    inline
+    glm::mat4 &
+        modelview() { return m_modelview; }
+    inline
+    cFrustum const &
+        frustum() { return m_frustum; }
 
 private:
 // members:
     cFrustum m_frustum;
     glm::dvec3 m_position;
+    glm::mat4 m_projection;
+    glm::mat4 m_modelview;
 };
 
 // bare-bones render controller, in lack of anything better yet
@@ -185,7 +202,28 @@ private:
         opengl_camera camera;
         rendermode draw_mode { rendermode::none };
         float draw_range { 0.0f };
-        std::vector<distancesubcell_pair> draw_queue; // list of subcells to be drawn in current render pass
+
+        void
+            setup( rendermode const Mode );
+    private:
+        // configures projection matrix for the current render pass
+        void
+            setup_projection();
+        void
+            setup_projection_world();
+        void
+            setup_projection_light_ortho();
+        void
+            setup_projection_light_perspective();
+        // configures camera for the current render pass
+        void
+            setup_modelview();
+        void
+            setup_modelview_world( glm::dmat4 &Viewmatrix );
+        void
+            setup_modelview_light_ortho( glm::dmat4 &Viewmatrix );
+        void
+            setup_modelview_light_perspective( glm::dmat4 &Viewmatrix );
     };
 
     typedef std::vector<opengl_light> opengllight_array;
@@ -196,24 +234,8 @@ private:
     // runs jobs needed to generate graphics for specified render pass
     void
         Render_pass( rendermode const Mode );
-    // configures projection matrix for the current render pass
     void
-        setup_projection();
-    void
-        setup_projection_world();
-    void
-        setup_projection_light_ortho();
-    void
-        setup_projection_light_perspective();
-    // configures camera for the current render pass
-    void
-        setup_camera();
-    void
-        setup_camera_world( glm::dmat4 &Viewmatrix );
-    void
-        setup_camera_light_ortho( glm::dmat4 &Viewmatrix );
-    void
-        setup_camera_light_perspective( glm::dmat4 &Viewmatrix );
+        setup_matrices();
     void
         setup_drawing( bool const Alpha = false );
     void
@@ -267,46 +289,49 @@ private:
     std::size_t
         pick_index( glm::ivec3 const &Color );
 // members
+    GLFWwindow *m_window { nullptr };
     geometrybank_manager m_geometry;
     texture_manager m_textures;
     opengllight_array m_lights;
-    GLFWwindow *m_window { nullptr };
+
+    geometry_handle m_billboardgeometry { NULL, NULL };
+    texture_handle m_glaretexture { -1 };
+    texture_handle m_suntexture { -1 };
+    texture_handle m_moontexture { -1 };
+    texture_handle m_reflectiontexture { -1 };
+    GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
+
+    bool m_framebuffersupport { false };
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
     GLuint m_pickframebuffer { NULL }; // TODO: refactor pick framebuffer stuff into an object
     GLuint m_picktexture { NULL };
     GLuint m_pickdepthbuffer { NULL };
-    int m_pickbuffersize { 1024 }; // size of (square) textures bound with the pick framebuffer
 #endif
+    int m_shadowbuffersize { 4096 };
     GLuint m_shadowframebuffer { NULL };
     GLuint m_shadowtexture { NULL };
 #ifdef EU07_USE_DEBUG_SHADOWMAP
     GLuint m_shadowdebugtexture{ NULL };
 #endif
-    int m_shadowbuffersize { 4096 };
-    glm::mat4 m_shadowtexturematrix;
-    glm::vec4 m_shadowcolor{ 0.5f, 0.5f, 0.5f, 1.f };
-    GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
+    glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
+
     int m_shadowtextureunit { GL_TEXTURE1 };
     int m_helpertextureunit { GL_TEXTURE0 };
     int m_diffusetextureunit { GL_TEXTURE2 };
 
-    geometry_handle m_billboardgeometry { 0, 0 };
-    texture_handle m_glaretexture { -1 };
-    texture_handle m_suntexture { -1 };
-    texture_handle m_moontexture { -1 };
-    texture_handle m_reflectiontexture { -1 };
-
-    float m_drawtime { 1000.0f / 30.0f * 20.0f }; // start with presumed 'neutral' average of 30 fps
+    float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
     double m_updateaccumulator { 0.0 };
     std::string m_debuginfo;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
-    float m_specularopaquescalefactor { 1.0f };
-    float m_speculartranslucentscalefactor { 1.0f };
+    glm::vec4 m_shadowcolor { 0.5f, 0.5f, 0.5f, 1.f };
+    float m_specularopaquescalefactor { 1.f };
+    float m_speculartranslucentscalefactor { 1.f };
+    bool m_renderspecular{ false }; // controls whether to include specular component in the calculations
 
-    bool m_framebuffersupport { false };
     renderpass_config m_renderpass;
-    bool m_renderspecular { false }; // controls whether to include specular component in the calculations
+    std::vector<distancesubcell_pair> m_drawqueue; // list of subcells to be drawn in current render pass
+
     std::vector<TGroundNode const *> m_picksceneryitems;
     std::vector<TSubModel const *> m_pickcontrolsitems;
     TSubModel const *m_pickcontrolitem { nullptr };

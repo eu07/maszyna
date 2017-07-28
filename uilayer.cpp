@@ -65,7 +65,7 @@ ui_layer::render() {
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho( 0, std::max( 1, Global::ScreenWidth ), std::max( 1, Global::ScreenHeight ), 0, -1, 1 );
+	glOrtho( 0, std::max( 1, Global::iWindowWidth ), std::max( 1, Global::iWindowHeight ), 0, -1, 1 );
 
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -107,11 +107,7 @@ ui_layer::set_background( std::string const &Filename ) {
         m_progressbottom = ( texture.width() != texture.height() );
     }
 }
-/*
-void cGuiLayer::setNote( const std::string Note ) { mNote = Note; }
 
-std::string cGuiLayer::getNote() { return mNote; }
-*/
 void
 ui_layer::render_progress() {
 
@@ -247,13 +243,14 @@ ui_layer::render_texture() {
         ::glBindTexture( GL_TEXTURE_2D, m_texture );
 
         auto const size = 512.f;
+        auto const offset = 64.f;
 
         glBegin( GL_TRIANGLE_STRIP );
 
-        glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( 0.f, 256.f );
-        glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( 0.f, 256.f + size );
-        glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( size, 256.f );
-        glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( size, 256.f + size );
+        glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( offset, Global::iWindowHeight - offset - size );
+        glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( offset, Global::iWindowHeight - offset );
+        glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( offset + size, Global::iWindowHeight - offset - size );
+        glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( offset + size, Global::iWindowHeight - offset );
 
         glEnd();
 

@@ -61,6 +61,20 @@ public:
         cube_inside( Math3D::vector3 const &Center, float const Size ) const { return cube_inside( static_cast<float>( Center.x ), static_cast<float>( Center.y ), static_cast<float>( Center.z ), Size ); }
     bool
         cube_inside( float const X, float const Y, float const Z, float const Size ) const;
+    // transforms provided set of clip space points to world space
+    template <class Iterator_>
+    void
+        transform_to_world( Iterator_ First, Iterator_ Last ) {
+            std::for_each(
+                First, Last,
+                [this]( glm::vec4 &point ) {
+                    // transform each point using the cached matrix...
+                    point = this->m_inversetransformation * point;
+                    // ...and scale by transformed w
+                    point = glm::vec4{ glm::vec3{ point } / point.w, 1.f }; } ); }
+    // debug helper, draws shape of frustum in world space
+    void
+        draw( glm::vec3 const &Offset ) const;
 
 protected:
 // types:
@@ -74,5 +88,7 @@ protected:
         normalize_plane( cFrustum::side const Side );	// normalizes a plane (A side) from the frustum
 
 // members:
-	float m_frustum[6][4];						// holds the A B C and D values (normal & distance) for each side of the frustum.
+	float m_frustum[6][4]; // holds the A B C and D values (normal & distance) for each side of the frustum.
+    glm::mat4 m_inversetransformation; // cached inverse transformation matrix
+    std::vector<glm::vec4> m_frustumpoints; // coordinates of corners for defined frustum, in world space
 };
