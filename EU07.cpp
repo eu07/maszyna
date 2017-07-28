@@ -30,7 +30,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "World.h"
 #include "Mover.h"
 #include "usefull.h"
-#include "timer.h"
+#include "Timer.h"
 #include "resource.h"
 #include "uilayer.h"
 

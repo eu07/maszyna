@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AdvSound.h"
 #include "Button.h"
 #include "AirCoupler.h"
-#include "texture.h"
+#include "Texture.h"
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------

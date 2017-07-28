@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Track.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "renderer.h"
 #include "Timer.h"
 #include "Ground.h"

@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "parser.h"
 #include "Timer.h"
 #include "MemCell.h"

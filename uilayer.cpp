@@ -1,9 +1,9 @@
 ﻿#include "stdafx.h"
 #include "uilayer.h"
-#include "globals.h"
+#include "Globals.h"
 #include "usefull.h"
 #include "renderer.h"
-#include "logs.h"
+#include "Logs.h"
 
 #include <GL/glut.h>
 

@@ -16,9 +16,9 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "Model3d.h"
 
 #include "Globals.h"
-#include "logs.h"
+#include "Logs.h"
 #include "mczapkie/mctools.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"

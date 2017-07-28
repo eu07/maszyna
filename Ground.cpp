@@ -36,7 +36,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Driver.h"
 #include "Console.h"
 #include "Names.h"
-#include "world.h"
+#include "World.h"
 #include "uilayer.h"
 
 //---------------------------------------------------------------------------

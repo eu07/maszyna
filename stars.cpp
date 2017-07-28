@@ -1,7 +1,7 @@
 ﻿
 #include "stdafx.h"
 #include "stars.h"
-#include "globals.h"
+#include "Globals.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // cStars -- simple starfield model, simulating appearance of starry sky

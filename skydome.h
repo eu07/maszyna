@@ -1,7 +1,7 @@
 #pragma	once
 
 #include "dumb3d.h"
-#include "float3d.h"
+#include "Float3d.h"
 #include "shader.h"
 
 // sky gradient based on "A practical analytic model for daylight" 

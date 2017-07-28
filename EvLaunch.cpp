@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "EvLaunch.h"
 #include "Globals.h"
 #include "Logs.h"
-#include "Usefull.h"
+#include "usefull.h"
 #include "McZapkie/mctools.h"
 #include "Event.h"
 #include "MemCell.h"

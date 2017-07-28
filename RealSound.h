@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include "Sound.h"
-#include "Geometry.h"
+#include "geometry.h"
 
 class TRealSound
 {

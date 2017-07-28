@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "classes.hpp"
 #pragma hdrstop
 
-#include "Geometry.h"
+#include "geometry.h"
 #include "Spline.h"
 #include "usefull.h"
 #include "maptextfile.hpp"

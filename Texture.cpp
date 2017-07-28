@@ -14,14 +14,14 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "texture.h"
+#include "Texture.h"
 
 #include <ddraw.h>
 #include "GL/glew.h"
 
 #include "usefull.h"
-#include "globals.h"
-#include "logs.h"
+#include "Globals.h"
+#include "Logs.h"
 #include "sn_utils.h"
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD

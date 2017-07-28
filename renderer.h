@@ -11,13 +11,13 @@ http://mozilla.org/MPL/2.0/.
 
 #include "GL/glew.h"
 #include "openglgeometrybank.h"
-#include "texture.h"
+#include "Texture.h"
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
-#include "world.h"
-#include "memcell.h"
-#include "ground.h"
+#include "World.h"
+#include "MemCell.h"
+#include "Ground.h"
 #include "shader.h"
 #include "World.h"
 

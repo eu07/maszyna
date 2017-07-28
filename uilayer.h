@@ -2,8 +2,8 @@
 #pragma once
 
 #include <string>
-#include "texture.h"
-#include "float3d.h"
+#include "Texture.h"
+#include "Float3d.h"
 
 // GuiLayer -- basic user interface class. draws requested information on top of openGL screen
 

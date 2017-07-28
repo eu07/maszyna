@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "parser.h"
-#include "logs.h"
+#include "Logs.h"
 
 /*
     MaSzyna EU07 locomotive simulator parser
