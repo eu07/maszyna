@@ -624,14 +624,14 @@ public:
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
 	bool DoorSignalling = false;         /*Czy jest zalaczona sygnalizacja blokady drzwi*/
 	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
-	double NominalBatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
+	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
 	double Cx = 0.0;                 /*wsp. op. aerodyn.*/
-	double Floor = 0.96;              //poziom podłogi dla ładunków
-	double WheelDiameter = 1.0;     /*srednica kol napednych*/
-	double WheelDiameterL = 0.9;    //Ra: srednica kol tocznych przednich
-	double WheelDiameterT = 0.9;    //Ra: srednica kol tocznych tylnych
-	double TrackW = 1.435;             /*nominalna szerokosc toru [m]*/
+	float Floor = 0.96f;              //poziom podłogi dla ładunków
+	float WheelDiameter = 1.f;     /*srednica kol napednych*/
+	float WheelDiameterL = 0.9f;    //Ra: srednica kol tocznych przednich
+	float WheelDiameterT = 0.9f;    //Ra: srednica kol tocznych tylnych
+	float TrackW = 1.435f;             /*nominalna szerokosc toru [m]*/
 	double AxleInertialMoment = 0.0; /*moment bezwladnosci zestawu kolowego*/
 	std::string AxleArangement;  /*uklad osi np. Bo'Bo' albo 1'C*/
 	int NPoweredAxles = 0;     /*ilosc osi napednych liczona z powyzszego*/

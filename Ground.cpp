@@ -1352,12 +1352,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 >> vertex.normal.z
                 >> vertex.texture.s
                 >> vertex.texture.t;
-            vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
-            vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
-            vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
-            vertex.normal = glm::rotateZ( vertex.normal, static_cast<float>( aRotate.z / 180 * M_PI ) );
-            vertex.normal = glm::rotateX( vertex.normal, static_cast<float>( aRotate.x / 180 * M_PI ) );
-            vertex.normal = glm::rotateY( vertex.normal, static_cast<float>( aRotate.y / 180 * M_PI ) );
+            vertex.position = glm::rotateZ( vertex.position, glm::radians( aRotate.z ) );
+            vertex.position = glm::rotateX( vertex.position, glm::radians( aRotate.x ) );
+            vertex.position = glm::rotateY( vertex.position, glm::radians( aRotate.y ) );
+            vertex.normal = glm::rotateZ( vertex.normal, glm::radians<float>( aRotate.z ) );
+            vertex.normal = glm::rotateX( vertex.normal, glm::radians<float>( aRotate.x ) );
+            vertex.normal = glm::rotateY( vertex.normal, glm::radians<float>( aRotate.y ) );
             vertex.position += glm::dvec3{ pOrigin };
             if( true == clamps ) { vertex.texture.s = clamp( vertex.texture.s, 0.001f, 0.999f ); }
             if( true == clampt ) { vertex.texture.t = clamp( vertex.texture.t, 0.001f, 0.999f ); }
@@ -1486,9 +1486,9 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 *parser
                     >> vertex.position.y
                     >> vertex.position.z;
-                vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
-                vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
-                vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
+                vertex.position = glm::rotateZ( vertex.position, glm::radians( aRotate.z ) );
+                vertex.position = glm::rotateX( vertex.position, glm::radians( aRotate.x ) );
+                vertex.position = glm::rotateY( vertex.position, glm::radians( aRotate.y ) );
 
                 vertex.position += glm::dvec3{ pOrigin };
                 // convert all data to gl_lines to allow data merge for matching nodes

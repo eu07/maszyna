@@ -1667,16 +1667,22 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		pName = "";
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
-		pTexture = t->at(iTexture);
-		if (pTexture.find_last_of("/\\") == std::string::npos)
-			pTexture.insert(0, Global::asCurrentTexturePath);
-		TextureID = GfxRenderer.Fetch_Texture(pTexture);
-        if( ( iFlags & 0x30 ) == 0 ) {
-            // texture-alpha based fallback if for some reason we don't have opacity flag set yet
-            iFlags |=
-                ( GfxRenderer.Texture( TextureID ).has_alpha ?
-                    0x20 :
-                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        if( iTexture < t->size() ) {
+            pTexture = t->at( iTexture );
+            if( pTexture.find_last_of( "/\\" ) == std::string::npos )
+                pTexture.insert( 0, Global::asCurrentTexturePath );
+            TextureID = GfxRenderer.Fetch_Texture( pTexture );
+            if( ( iFlags & 0x30 ) == 0 ) {
+                // texture-alpha based fallback if for some reason we don't have opacity flag set yet
+                iFlags |=
+                    ( GfxRenderer.Texture( TextureID ).has_alpha ?
+                        0x20 :
+                        0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+            }
+        }
+        else {
+            ErrorLog( "Bad model: reference to non-existent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
+            TextureID = NULL;
         }
     }
 	else

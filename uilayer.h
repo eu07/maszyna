@@ -24,8 +24,8 @@ struct ui_panel {
     {}
 
     std::vector<text_line> text_lines;
-    float origin_x;
-    float origin_y;
+    int origin_x;
+    int origin_y;
 };
 
 class ui_layer {

@@ -507,7 +507,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         fCurrentDistance = lastspeedpoint.fDist;
         // nie doliczac dlugosci gdy: miniety początek lub jazda do konca toru
         fTrackLength = (
-            ( lastspeedpoint.iFlags & ( spElapsed | spEnd ) != 0 ) ?
+            ( ( lastspeedpoint.iFlags & ( spElapsed | spEnd ) ) != 0 ) ?
                 0.0 :
                 pTrack->Length() );
     }
@@ -1331,7 +1331,7 @@ void TController::TablePurger()
     for( std::size_t idx = 0; idx < sSpeedTable.size() - 1; ++idx ) {
         auto const &speedpoint = sSpeedTable[ idx ];
         if( ( 0 == ( speedpoint.iFlags & spEnabled ) )
-         || ( ( speedpoint.iFlags & ( spElapsed | spTrack | spCurve | spSwitch ) == ( spElapsed | spTrack | spCurve ) )
+         || ( ( ( speedpoint.iFlags & ( spElapsed | spTrack | spCurve | spSwitch ) ) == ( spElapsed | spTrack | spCurve ) )
            && ( speedpoint.fVelNext < 0.0 ) ) ) {
             // NOTE: we could break out early here, but running through entire thing gives us exact size needed for new table
             ++trimcount;
@@ -1353,7 +1353,7 @@ void TController::TablePurger()
         }
         auto const &speedpoint = sSpeedTable[ idx ];
         if( ( 0 == ( speedpoint.iFlags & spEnabled ) )
-         || ( ( speedpoint.iFlags & ( spElapsed | spTrack | spCurve | spSwitch ) == ( spElapsed | spTrack | spCurve ) )
+         || ( ( ( speedpoint.iFlags & ( spElapsed | spTrack | spCurve | spSwitch ) ) == ( spElapsed | spTrack | spCurve ) )
            && ( speedpoint.fVelNext < 0.0 ) ) ) {
             // if the trimmed point happens to be currently active semaphor we need to invalidate their placements
             if( idx == SemNextIndex ) {

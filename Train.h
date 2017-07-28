@@ -155,9 +155,7 @@ class TTrain
     static void OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressoractivate( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command );
-    static void pantographtogglefront( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglerear( TTrain *Train, command_data const &Command );
-    static void pantographtogglerear( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographlowerall( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_convertertoggle( TTrain *Train, command_data const &Command );
