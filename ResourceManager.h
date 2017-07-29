@@ -110,7 +110,7 @@ private:
     std::chrono::nanoseconds const m_unusedresourcetimetolive;
     typename Container_::size_type const m_unusedresourcesweepsize;
     std::string const m_resourcename;
-    typename Container_ &m_container;
+    Container_ &m_container;
     typename Container_::size_type m_resourcesweepindex { 0 };
     std::chrono::steady_clock::time_point m_resourcetimestamp { std::chrono::steady_clock::now() };
 };

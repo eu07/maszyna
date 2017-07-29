@@ -592,10 +592,7 @@ opengl_texture::create() {
             }
         }
 
-        data.swap( std::vector<char>() ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
-/*
-    data_state = resource_state::none;
-*/
+        data = std::vector<char>();
         data_state = resource_state::none;
         is_ready = true;
     }
