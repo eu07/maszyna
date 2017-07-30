@@ -38,7 +38,8 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
     {
     case buffer_FILE:
         Path.append(Stream);
-        mStream = new std::ifstream(Path.c_str());
+		std::replace(Path.begin(), Path.end(), '\\', '/');
+        mStream = new std::ifstream(Path);
         break;
     case buffer_TEXT:
         mStream = new std::istringstream(Stream);

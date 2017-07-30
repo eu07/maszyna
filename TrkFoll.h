@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #define TrkFollH
 
 #include "Track.h"
-#include "McZapkie\MOVER.h"
+#include "McZapkie/MOVER.h"
 
 class TTrackFollower
 { // oś poruszająca się po torze

@@ -278,7 +278,7 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
     // NOTE: this method is called for both subcell and cell, but subcells get first created and passed the handle from their parent
     // thus, this effectively only gets executed for the 'parent' ground cells. Not the most elegant, but for now it'll do
-    if( m_geometrybank == NULL ) {
+    if( m_geometrybank == 0 ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -447,7 +447,8 @@ void TSubRect::LoadNodes() {
                         vertex.texture );
                 }
                 node->Piece->geometry = GfxRenderer.Insert( vertices, m_geometrybank, node->iType );
-                node->Piece->vertices.swap( std::vector<TGroundVertex>() ); // hipster shrink_to_fit
+				node->Piece->vertices.clear();
+				node->Piece->vertices.shrink_to_fit();
                 // TODO: get rid of the vertex counters, they're obsolete at this point
                 if( node->iType == GL_LINES ) { node->iNumVerts = 0; }
                 else                          { node->iNumPts = 0; }
@@ -485,7 +486,7 @@ TGroundRect::~TGroundRect()
 void
 TGroundRect::Init() {
     // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
-    if( m_geometrybank == NULL ) {
+    if( m_geometrybank == 0 ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -537,7 +538,9 @@ TGroundRect::NodeAdd( TGroundNode *Node ) {
                 std::end( matchingnode->Piece->vertices ),
                 std::begin( Node->Piece->vertices ), std::end( Node->Piece->vertices ) );
             // clear content of the node we're copying. a minor memory saving at best, but still a saving
-            Node->Piece->vertices.swap( std::vector<TGroundVertex>() );
+            Node->Piece->vertices.clear();
+            Node->Piece->vertices.shrink_to_fit();
+
             Node->iNumVerts = 0;
             // since we've put the data in existing node we can skip adding the new one...
             return;
@@ -571,7 +574,7 @@ TGround::TGround()
     for( int i = 0; i < TP_LAST; ++i ) {
         nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
     }
-    ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
+	memset(TempConnectionType, 0, sizeof(TempConnectionType));
     // set bounding area information for ground rectangles
     float const rectsize = 1000.0f;
     glm::vec3 const worldcenter;
@@ -2783,7 +2786,7 @@ bool TGround::InitLaunchers()
                 if (tmp)
                     EventLauncher->MemCell = tmp->MemCell; // jeśli znaleziona, dopisać
                 else
-                    MessageBox(0, "Cannot find Memory Cell for Event Launcher", "Error", MB_OK);
+                    WriteLog("Cannot find Memory Cell for Event Launcher");
             }
             else
                 EventLauncher->MemCell = NULL;
@@ -3173,7 +3176,7 @@ bool TGround::CheckQuery()
                 Error("Not implemented yet :(");
                 break;
             case tp_Exit:
-                MessageBox(0, tmpEvent->asNodeName.c_str(), " THE END ", MB_OK);
+                WriteLog(tmpEvent->asNodeName.c_str());
                 Global::iTextMode = -1; // wyłączenie takie samo jak sekwencja F10 -> Y
                 return false;
             case tp_Sound:
@@ -3695,7 +3698,7 @@ bool TGround::GetTraction(TDynamicObject *model)
     return true;
 };
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 //---------------------------------------------------------------------------
 void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
 { // wysłanie komunikatu do sterującego
@@ -3704,9 +3707,11 @@ void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LP
         h = FindWindow(0, ClassName.c_str()); // można by to zapamiętać
     SendMessage(h, Msg, wParam, lParam);
 };
+#endif
 //--------------------------------
 void TGround::WyslijEvent(const std::string &e, const std::string &d)
 { // Ra: jeszcze do wyczyszczenia
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 2; // 2 - event
@@ -3721,10 +3726,12 @@ void TGround::WyslijEvent(const std::string &e, const std::string &d)
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
+#endif
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 { // wysłanie informacji w postaci pojedynczego tekstu
+#ifdef _WIN32
 	DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 13; // numer komunikatu
@@ -3738,10 +3745,12 @@ void TGround::WyslijUszkodzenia(const std::string &t, char fl)
 	cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
+#endif
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijString(const std::string &t, int n)
 { // wysłanie informacji w postaci pojedynczego tekstu
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = n; // numer komunikatu
@@ -3754,15 +3763,19 @@ void TGround::WyslijString(const std::string &t, int n)
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
+#endif
 };
 //---------------------------------------------------------------------------
 void TGround::WyslijWolny(const std::string &t)
 { // Ra: jeszcze do wyczyszczenia
+#ifdef _WIN32
     WyslijString(t, 4); // tor wolny
+#endif
 };
 //--------------------------------
 void TGround::WyslijNamiary(TGroundNode *t)
 { // wysłanie informacji o pojeździe - (float), długość ramki będzie zwiększana w miarę potrzeby
+#ifdef _WIN32
     // WriteLog("Wysylam pojazd");
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
@@ -3835,10 +3848,12 @@ void TGround::WyslijNamiary(TGroundNode *t)
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
     // WriteLog("Ramka poszla!");
 	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
+#endif
 };
 //
 void TGround::WyslijObsadzone()
 {   // wysłanie informacji o pojeździe
+#ifdef _WIN32
 	DaneRozkaz2 r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 12;   // kod 12
@@ -3877,11 +3892,13 @@ void TGround::WyslijObsadzone()
 	// WriteLog("Ramka gotowa");
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
+#endif
 }
 
 //--------------------------------
 void TGround::WyslijParam(int nr, int fl)
 { // wysłanie parametrów symulacji w ramce (nr) z flagami (fl)
+#ifdef _WIN32
     DaneRozkaz r;
     r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = nr; // zwykle 5
@@ -3900,8 +3917,8 @@ void TGround::WyslijParam(int nr, int fl)
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
     Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
-};
 #endif
+};
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -4093,7 +4110,7 @@ void TGround::TerrainWrite()
                             break;
                         }
             }
-    m->SaveToBinFile(strdup(("models\\" + Global::asTerrainModel).c_str()));
+    m->SaveToBinFile(strdup(("models/" + Global::asTerrainModel).c_str()));
 */
 };
 

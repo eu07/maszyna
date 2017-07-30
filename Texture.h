@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <istream>
-#include <ddraw.h>
+#include "winheaders.h"
 #include <string>
 #include "GL/glew.h"
 #include "ResourceManager.h"

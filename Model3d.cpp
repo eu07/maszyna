@@ -17,7 +17,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 #include "Globals.h"
 #include "Logs.h"
-#include "mczapkie/mctools.h"
+#include "McZapkie/mctools.h"
 #include "usefull.h"
 #include "renderer.h"
 #include "Timer.h"
@@ -989,7 +989,7 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
 		m = glm::mat4(1.0f);
 		m = glm::translate(m, glm::vec3(gdzie.x, gdzie.y, gdzie.z)); // początek układu zostaje bez zmian
-		m = glm::rotate(m, atan2(gdzie.x, gdzie.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
+		m = glm::rotate(m, (float)atan2(gdzie.x, gdzie.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
 	}
 	break;
 	case at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
@@ -1034,7 +1034,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) {
     if( Child ) {
         Child->serialize_geometry( Output );
     }
-    if( m_geometry != NULL ) {
+    if( m_geometry != 0 ) {
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
             vertex.serialize( Output );
         }
@@ -1129,7 +1129,7 @@ float TSubModel::MaxY( float4x4 const &m ) {
 
     auto maxy { 0.0f };
     // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
-    if( m_geometry != NULL ) {
+    if( m_geometry != 0 ) {
 
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
             maxy = std::max(
@@ -1470,7 +1470,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
 	Root = nullptr;
 	float4x4 *tm = nullptr;
-    if( m_geometrybank == NULL ) {
+    if( m_geometrybank == 0 ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -1655,8 +1655,8 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
 		pTexture = t->at(iTexture);
-		if (pTexture.find_last_of("/\\") == std::string::npos)
-			pTexture.insert(0, Global::asCurrentTexturePath);
+               if (pTexture.find_last_of("/\\") == std::string::npos)
+                       pTexture.insert(0, Global::asCurrentTexturePath);
 		TextureID = GfxRenderer.GetTextureId(pTexture, szTexturePath);
         if( ( iFlags & 0x30 ) == 0 ) {
             // texture-alpha based fallback if for some reason we don't have opacity flag set yet
@@ -1706,7 +1706,9 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
 	WriteLog("Loading binary format 3d model data from \"" + FileName + "\"...");
 	
-	std::ifstream file(FileName, std::ios::binary);
+	std::string fn = FileName;
+	std::replace(fn.begin(), fn.end(), '\\', '/');
+	std::ifstream file(fn, std::ios::binary);
 
 	uint32_t type = sn_utils::ld_uint32(file);
 	uint32_t size = sn_utils::ld_uint32(file) - 8;
@@ -1786,7 +1788,7 @@ void TModel3d::Init()
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
-            if( m_geometrybank == NULL ) {
+            if( m_geometrybank == 0 ) {
                 m_geometrybank = GfxRenderer.Create_Bank();
             }
             std::size_t dataoffset = 0;

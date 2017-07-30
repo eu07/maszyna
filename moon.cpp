@@ -15,9 +15,17 @@ cMoon::cMoon() {
 	m_observer.press = 1013.0;						// surface pressure, millibars
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
 
-	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
-	::GetTimeZoneInformation( &timezoneinfo );
-	m_observer.timezone = -timezoneinfo.Bias / 60.0f;
+#ifdef _WIN32
+    TIME_ZONE_INFORMATION timezoneinfo;             // TODO: timezone dependant on geographic location
+    ::GetTimeZoneInformation( &timezoneinfo );
+    m_observer.timezone = -timezoneinfo.Bias / 60.0f;
+#elif __linux__
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    time_t local = mktime(localtime(&ts.tv_sec));
+    time_t utc = mktime(gmtime(&ts.tv_sec));
+    m_observer.timezone = (local - utc) / 3600.0f;
+#endif
 }
 
 cMoon::~cMoon() { gluDeleteQuadric( moonsphere ); }
@@ -48,13 +56,12 @@ cMoon::render() {
 
 	glColor4f( 225.0f/255.0f, 225.0f/255.0f, 255.0f/255.0f, 1.f );
 	// debug line to locate the sun easier
-	Math3D::vector3 position = m_position;
 	glBegin( GL_LINES );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( position.x, 0.0f, position.z );
+	glVertex3f( m_position.x, m_position.y, m_position.z );
+	glVertex3f( m_position.x, 0.0f, m_position.z );
 	glEnd();
 	glPushMatrix();
-	glTranslatef( position.x, position.y, position.z );
+	glTranslatef( m_position.x, m_position.y, m_position.z );
     gluSphere( moonsphere, /* (float)( Global::ScreenHeight / Global::FieldOfView ) * 0.5 * */ ( m_body.distance / 60.2666 ) * 9.037461, 12, 12 );
 	glPopMatrix();
 }

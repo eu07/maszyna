@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 //#include <fstream>
 #include "Classes.h"
 #include "dumb3d.h"
-#include "mczapkie/mover.h"
+#include "McZapkie/MOVER.h"
 #include <string>
 using namespace Math3D;
 using namespace Mtable;

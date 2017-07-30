@@ -120,7 +120,7 @@ bool UnSetFlag(int &Flag, int Value)
 	return true;
 }
 
-inline double Random(double a, double b)
+double Random(double a, double b)
 {
     std::uniform_real_distribution<> dis(a, b);
     return dis(Global::random_engine);
@@ -166,7 +166,7 @@ std::string ExchangeCharInString( std::string const &Source, char const &From, c
 	std::for_each(Source.cbegin(), Source.cend(), [&](char const idx) {
 		if( idx != From )    { replacement += idx; }
 		else {
-			if( To != NULL ) { replacement += To; } }
+			if( To != 0 ) { replacement += To; } }
 	} );
 
 	return replacement;
@@ -379,8 +379,9 @@ void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R
 }
 
 bool FileExists( std::string const &Filename ) {
-
-	std::ifstream file( Filename );
+	std::string fn = Filename;
+	std::replace(fn.begin(), fn.end(), '\\', '/');
+	std::ifstream file( fn );
     return( true == file.is_open() );
 }
 

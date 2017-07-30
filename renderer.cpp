@@ -132,19 +132,21 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 
     // preload some common textures
     WriteLog( "Loading common gfx data..." );
-    m_glaretexture = GetTextureId( "fx\\lightglare", szTexturePath );
-    m_suntexture = GetTextureId( "fx\\sun", szTexturePath );
-    m_moontexture = GetTextureId( "fx\\moon", szTexturePath );
+    m_glaretexture = GetTextureId( "fx/lightglare", szTexturePath );
+    m_suntexture = GetTextureId( "fx/sun", szTexturePath );
+    m_moontexture = GetTextureId( "fx/moon", szTexturePath );
     WriteLog( "...gfx data pre-loading done" );
     // prepare basic geometry chunks
     auto const geometrybank = m_geometry.create_bank();
     float const size = 2.5f;
-    m_billboardgeometry = m_geometry.create_chunk(
-        vertex_array{
+    auto va = vertex_array{
             { { -size,  size, 0.0f }, glm::vec3(), { 1.0f, 1.0f } },
             { {  size,  size, 0.0f }, glm::vec3(), { 0.0f, 1.0f } },
             { { -size, -size, 0.0f }, glm::vec3(), { 1.0f, 0.0f } },
-            { {  size, -size, 0.0f }, glm::vec3(), { 0.0f, 0.0f } } },
+            { {  size, -size, 0.0f }, glm::vec3(), { 0.0f, 0.0f } } };
+
+    m_billboardgeometry = m_geometry.create_chunk(
+            va,
             geometrybank,
             GL_TRIANGLE_STRIP );
     // prepare debug mode objects
@@ -259,7 +261,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         return false;
     }
 
-    Bind( NULL );
+    Bind( 0 );
 
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_DEPTH_TEST );
@@ -609,7 +611,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
         }
 
         case GL_LINES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == 0 )
              || ( Node->fLineThickness > 0.0 ) ) {
                 return false;
             }
@@ -641,7 +643,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
         }
 
         case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == 0 )
              || ( ( Node->iFlags & 0x10 ) == 0 ) ) {
                 return false;
             }
@@ -1063,7 +1065,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 ::glColor4f( color.r, color.g, color.b, linealpha );
 				//::glColor4f(0.0f, 0.0f, 0.0f, linealpha);
 
-                Bind( NULL );
+                Bind( 0 );
 
                 // render
                 m_geometry.draw( Node->hvTraction->m_geometry );
@@ -1089,7 +1091,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         }
 
         case GL_LINES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == 0 )
              || ( Node->fLineThickness < 0.0 ) ) {
                 return false;
             }
@@ -1126,7 +1128,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         }
 
         case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == 0 )
              || ( ( Node->iFlags & 0x20 ) == 0 ) ) {
                 return false;
             }
@@ -1332,7 +1334,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
 
 						glm::mat4 x = glm::mat4(1.0f);
 						x = glm::translate(x, glm::vec3(lightcenter.x, lightcenter.y, lightcenter.z)); // początek układu zostaje bez zmian
-						x = glm::rotate(x, atan2(lightcenter.x, lightcenter.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
+						x = glm::rotate(x, (float)atan2(lightcenter.x, lightcenter.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
 						glPushMatrix();
 						glLoadMatrixf(glm::value_ptr(x));
 

@@ -340,7 +340,9 @@ class TGround
 
   private:
     void RaTriangleDivider(TGroundNode *node);
+#ifdef _WIN32
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
+#endif
 
   public:
     void WyslijEvent(const std::string &e, const std::string &d);

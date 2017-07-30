@@ -414,9 +414,9 @@ PyObject *TTrain::GetTrainState() {
     PyDict_SetItemString( dict, "im", PyGetFloat( mover->Im ) );
     PyDict_SetItemString( dict, "fuse", PyGetBool( mover->FuseFlag ) );
     // induction motor state data
-    char* TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
-    char* TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
-    char* TXTP[ 3 ] = { "bc", "bp", "sp" };
+    const char* TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
+    const char* TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
+    const char* TXTP[ 3 ] = { "bc", "bp", "sp" };
     for( int j = 0; j < 10; ++j )
         PyDict_SetItemString( dict, ( std::string( "eimp_t_" ) + std::string( TXTT[ j ] ) ).c_str(), PyGetFloatS( fEIMParams[ 0 ][ j ] ) );
     for( int i = 0; i < 8; ++i ) {
@@ -3873,6 +3873,7 @@ bool TTrain::Update( double const Deltatime )
             fEIMParams[1 + i][9] = 0;
         }
 
+#ifdef _WIN32
         if (Global::iFeedbackMode == 4)
         { // wykonywać tylko gdy wyprowadzone na pulpit
             Console::ValueSet(0,
@@ -3904,6 +3905,7 @@ bool TTrain::Update( double const Deltatime )
 			Console::ValueSet(7, fTachoVelocity);
 			//Console::ValueSet(8, mvControlled->BatteryVoltage); // jeszcze nie pora ;)
 		}
+#endif
 
         // hunter-080812: wyrzucanie szybkiego na elektrykach gdy nie ma napiecia
         // przy dowolnym ustawieniu kierunkowego
@@ -4801,6 +4803,7 @@ bool TTrain::Update( double const Deltatime )
         }
         if (ggBrakeCtrl.SubModel)
         {
+#ifdef _WIN32
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : 
 						(Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
@@ -4828,6 +4831,7 @@ bool TTrain::Update( double const Deltatime )
                 // else //standardowa prodedura z kranem powiązanym z klawiaturą
                 // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
             }
+#endif
             // else //standardowa prodedura z kranem powiązanym z klawiaturą
             // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
             ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
@@ -4835,6 +4839,7 @@ bool TTrain::Update( double const Deltatime )
         }
         if (ggLocalBrake.SubModel)
         {
+#ifdef _WIN32
             if (DynamicObject->Mechanik ?
                     (DynamicObject->Mechanik->AIControllFlag ? false : (Global::iFeedbackMode == 4 || (Global::bMWDmasterEnable && Global::bMWDBreakEnable))) :
                     false) // nie blokujemy AI
@@ -4854,6 +4859,7 @@ bool TTrain::Update( double const Deltatime )
                     ggLocalBrake.UpdateValue(double(mvOccupied->LocalBrakePos));
             }
             else // standardowa prodedura z kranem powiązanym z klawiaturą
+#endif
                 ggLocalBrake.UpdateValue(double(mvOccupied->LocalBrakePos));
             ggLocalBrake.Update();
         }
@@ -5063,7 +5069,9 @@ bool TTrain::Update( double const Deltatime )
                     if (!(stat & DSBSTATUS_PLAYING))
                     {
                         play_sound( dsbBuzzer, DSBVOLUME_MAX, DSBPLAY_LOOPING );
+#ifdef _WIN32
                         Console::BitsSet(1 << 14); // ustawienie bitu 16 na PoKeys
+#endif
                     }
                 }
             }
@@ -5075,7 +5083,9 @@ bool TTrain::Update( double const Deltatime )
                     if (stat & DSBSTATUS_PLAYING)
                     {
                         dsbBuzzer->Stop();
+#ifdef _WIN32
                         Console::BitsClear(1 << 14); // ustawienie bitu 16 na PoKeys
+#endif
                     }
                 }
             }

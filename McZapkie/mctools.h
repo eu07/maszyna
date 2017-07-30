@@ -30,7 +30,7 @@ http://mozilla.org/MPL/2.0/.
 */
 static char _EOL[2] = { (char)13, (char)10 };
 static char  _Spacesigns[4] = { (char)' ', (char)9, (char)13, (char)10 };
-static std::string _spacesigns = " " + (char)9  + (char)13  + (char)10;
+static std::string _spacesigns = " \x09\x0D\x0A";
 static int const CutLeft = -1;
 static int const CutRight = 1;
 static int const CutBoth = 0;  /*Cut_Space*/
@@ -68,7 +68,7 @@ inline long Round(double const f)
 	//return lround(f);
 }
 
-extern double Random(double a, double b);
+double Random(double a, double b);
 
 inline double Random()
 {

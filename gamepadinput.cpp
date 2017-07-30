@@ -40,7 +40,7 @@ glm::vec2 circle_to_square( glm::vec2 const &Point, int const Roundness = 0 ) {
     // Find the inner-roundness scaling factor and LERP
     auto const length = glm::length( Point );
     auto const factor = std::pow( length, Roundness );
-    return interpolate( Point, squared, factor );
+    return interpolate( Point, squared, (float)factor );
 }
 
 gamepad_input::gamepad_input() {

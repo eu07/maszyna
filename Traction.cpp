@@ -93,7 +93,7 @@ sekcji z sąsiedniego przęsła).
 std::size_t
 TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
 
-    if( m_geometry != NULL ) {
+    if( m_geometry != 0 ) {
         return GfxRenderer.Vertices( m_geometry ).size() / 2;
     }
 

@@ -15,7 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Driver.h"
 
-#include <direct.h>
 #include "Globals.h"
 #include "Logs.h"
 #include "mtable.h"
@@ -1431,8 +1430,12 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     TableClear();
 
     if( WriteLogFlag ) {
-        mkdir( "physicslog\\" );
-        LogFile.open( std::string( "physicslog\\" + VehicleName + ".dat" ).c_str(),
+#ifdef _WIN32
+        CreateDirectory( "physicslog", NULL );
+#elif __linux__
+        mkdir( "physicslog", 0644 );
+#endif
+        LogFile.open( std::string( "physicslog/" + VehicleName + ".dat" ).c_str(),
             std::ios::in | std::ios::out | std::ios::trunc );
 #if LOGPRESS == 0
         LogFile << std::string( " Time [s]   Velocity [m/s]  Acceleration [m/ss]   Coupler.Dist[m]  "

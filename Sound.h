@@ -10,7 +10,38 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <stack>
+#include <cinttypes>
+
+#ifdef _WIN32
 #include <dsound.h>
+#else
+#define DSBFREQUENCY_MIN 0
+#define DSBFREQUENCY_MAX 0
+#define DSBSTATUS_PLAYING 0
+#define DSBPLAY_LOOPING 0
+#define DSBVOLUME_MIN 0
+#define DSBVOLUME_MAX 0
+struct DSBCAPS
+{
+	uint16_t dwBufferBytes;
+	uint16_t dwSize;
+};
+struct dummysb
+{
+	void Stop() {}
+	void SetCurrentPosition(int) {}
+	void SetVolume(int) {}
+	void Play(int, int, int) {}
+	void GetStatus(unsigned int *stat) { *stat = 0; }
+	void SetPan(int) {}
+	void SetFrequency(int) {}
+	void GetCaps(DSBCAPS *caps) { caps->dwBufferBytes = 0; }
+};
+typedef dummysb* LPDIRECTSOUNDBUFFER;
+typedef int LPDIRECTSOUNDNOTIFY;
+typedef int LPDIRECTSOUND;
+typedef int HWND;
+#endif
 
 typedef LPDIRECTSOUNDBUFFER PSound;
 

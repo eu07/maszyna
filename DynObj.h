@@ -143,7 +143,7 @@ class TAnim
 struct material_data {
 
     int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
-    texture_handle replacable_skins[ 5 ] = { NULL, NULL, NULL, NULL, NULL }; // McZapkie:zmienialne nadwozie
+    texture_handle replacable_skins[ 5 ] = { 0, 0, 0, 0, 0 }; // McZapkie:zmienialne nadwozie
     int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
 };
 
@@ -428,7 +428,7 @@ public: // modele składowe pojazdu
     // poprzedniego
     TDynamicObject();
     ~TDynamicObject();
-    double TDynamicObject::Init( // zwraca długość pojazdu albo 0, jeśli błąd
+    double Init( // zwraca długość pojazdu albo 0, jeśli błąd
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);

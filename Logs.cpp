@@ -19,9 +19,24 @@ std::ofstream comms; // lista komunikatow "comms.txt", można go wyłączyć
 char endstring[10] = "\n";
 
 std::string filename_date() {
-
     ::SYSTEMTIME st;
+
+#ifdef __linux__
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    tm *tms = localtime(&ts.tv_sec);
+    st.wYear = tms->tm_year;
+    st.wMonth = tms->tm_mon;
+    st.wDayOfWeek = tms->tm_wday;
+    st.wDay = tms->tm_mday;
+    st.wHour = tms->tm_hour;
+    st.wMinute = tms->tm_min;
+    st.wSecond = tms->tm_sec;
+    st.wMilliseconds = ts.tv_nsec / 1000000;
+#elif _WIN32
     ::GetLocalTime( &st );
+#endif
+
     char buffer[ 256 ];
     sprintf( buffer,
         "%d%02d%02d_%02d%02d",
@@ -47,16 +62,19 @@ std::string filename_scenery() {
 
 void WriteConsoleOnly(const char *str, double value)
 {
+#ifdef _WIN32
     char buf[255];
     sprintf(buf, "%s %f \n", str, value);
     // stdout=  GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD wr = 0;
     WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), buf, (DWORD)strlen(buf), &wr, NULL);
     // WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
+#endif
 }
 
 void WriteConsoleOnly(const char *str, bool newline)
 {
+#ifdef _WIN32
     // printf("%n ffafaf /n",str);
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
                             FOREGROUND_GREEN | FOREGROUND_INTENSITY);
@@ -64,6 +82,7 @@ void WriteConsoleOnly(const char *str, bool newline)
     WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), str, (DWORD)strlen(str), &wr, NULL);
     if (newline)
         WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
+#endif
 }
 
 void WriteLog(const char *str, double value)

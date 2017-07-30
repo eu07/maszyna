@@ -19,7 +19,6 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "stdafx.h"
 #include <png.h>
 #include <thread>
-#include <direct.h>
 
 #include "Globals.h"
 #include "Logs.h"
@@ -28,7 +27,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Console.h"
 #include "PyInt.h"
 #include "World.h"
-#include "Mover.h"
+#include "MOVER.h"
 #include "usefull.h"
 #include "Timer.h"
 #include "resource.h"
@@ -67,7 +66,13 @@ void screenshot_save_thread( char *img )
 	strftime(datetime, 64, "%Y-%m-%d_%H-%M-%S", tm_info);
 
 	uint64_t perf;
+#ifdef _WIN32
 	QueryPerformanceCounter((LARGE_INTEGER*)&perf);
+#elif __linux__
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	perf = ts.tv_nsec;
+#endif
 
 	std::string filename = "screenshots/" + std::string(datetime) +
 	                       "_" + std::to_string(perf) + ".png";
@@ -183,17 +188,19 @@ int main(int argc, char *argv[])
 #ifdef _WINDOWS
     DeleteFile( "log.txt" );
     DeleteFile( "errors.txt" );
-    mkdir("logs");
+    CreateDirectory("logs", NULL);
 #endif
     Global::LoadIniFile("eu07.ini");
     Global::InitKeys();
 
+#ifdef _WIN32
     // hunter-271211: ukrywanie konsoli
     if( Global::iWriteLogEnabled & 2 )
 	{
         AllocConsole();
         SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN );
     }
+#endif
 
 	Global::asVersion = "NG";
 
@@ -324,7 +331,9 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+#ifdef _WIN32
     Console *pConsole = new Console(); // Ra: nie wiem, czy ma to sens, ale jakoś zainicjowac trzeba
+#endif
 /*
     if( !joyGetNumDevs() )
         WriteLog( "No joystick" );
@@ -336,11 +345,13 @@ int main(int argc, char *argv[])
     else {
         if( Global::iConvertModels < 0 ) {
             Global::iConvertModels = -Global::iConvertModels;
-            World.CreateE3D( "models\\" ); // rekurencyjne przeglądanie katalogów
-            World.CreateE3D( "dynamic\\", true );
+            World.CreateE3D( "models/" ); // rekurencyjne przeglądanie katalogów
+            World.CreateE3D( "dynamic/", true );
         } // po zrobieniu E3D odpalamy normalnie scenerię, by ją zobaczyć
 
+#ifdef _WIN32
         Console::On(); // włączenie konsoli
+#endif
 
         try {
             while( ( false == glfwWindowShouldClose( window ) )
@@ -358,11 +369,15 @@ int main(int argc, char *argv[])
             return -1;
         }
 
+#ifdef _WIN32
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
+#endif
     }
 
 	TPythonInterpreter::killInstance();
+#ifdef _WIN32
 	delete pConsole;
+#endif
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

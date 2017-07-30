@@ -35,12 +35,6 @@ class cParser //: public std::stringstream
     template <typename Type_>
     cParser&
         operator>>( Type_ &Right );
-    template <>
-    cParser&
-        operator>>( std::string &Right );
-    template <>
-    cParser&
-        operator>>( bool &Right );
     template <typename _Output>
 	_Output
 		getToken( bool const ToLower = true )
@@ -50,12 +44,6 @@ class cParser //: public std::stringstream
         *this >> output;
 		return output;
     };
-	template <>
-	bool
-		getToken<bool>( bool const ToLower ) {
-
-		return ( getToken<std::string>() == "true" );
-	}
     inline void ignoreToken()
     {
         readToken();
@@ -108,6 +96,19 @@ class cParser //: public std::stringstream
     std::vector<std::string> parameters; // parameter list for included file.
     std::deque<std::string> tokens;
 };
+
+    template <> inline
+    cParser&
+        cParser::operator>>( std::string &Right );
+    template <> inline
+    cParser&
+        cParser::operator>>( bool &Right );
+	template <> inline
+	bool
+		cParser::getToken<bool>( bool const ToLower ) {
+		return ( getToken<std::string>() == "true" );
+	}
+
 
 template<typename Type_>
 cParser&

@@ -1,4 +1,3 @@
-
 #include "stdafx.h"
 #include "sun.h"
 #include "Globals.h"
@@ -15,9 +14,17 @@ cSun::cSun() {
 	m_observer.press = 1013.0;						// surface pressure, millibars
 	m_observer.temp = 15.0;							// ambient dry-bulb temperature, degrees C
 
+#ifdef _WIN32
 	TIME_ZONE_INFORMATION timezoneinfo;				// TODO: timezone dependant on geographic location
 	::GetTimeZoneInformation( &timezoneinfo );
 	m_observer.timezone = -timezoneinfo.Bias / 60.0f;
+#elif __linux__
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    time_t local = mktime(localtime(&ts.tv_sec));
+    time_t utc = mktime(gmtime(&ts.tv_sec));
+	m_observer.timezone = (local - utc) / 3600.0f;
+#endif
 }
 
 cSun::~cSun() { gluDeleteQuadric( sunsphere ); }
@@ -51,13 +58,12 @@ cSun::render() {
 */
 	glColor4f( 255.0f/255.0f, 242.0f/255.0f, 231.0f/255.0f, 1.f );
 	// debug line to locate the sun easier
-	Math3D::vector3 position = m_position;
 	glBegin( GL_LINES );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( position.x, 0.0f, position.z );
+	glVertex3f( m_position.x, m_position.y, m_position.z );
+	glVertex3f( m_position.x, 0.0f, m_position.z );
 	glEnd();
 	glPushMatrix();
-	glTranslatef( position.x, position.y, position.z );
+	glTranslatef( m_position.x, m_position.y, m_position.z );
 	// radius is a result of scaling true distance down to 2km -- it's scaled by equal ratio
 	gluSphere( sunsphere, (float)(m_body.distance * 9.359157), 12, 12 );
 	glPopMatrix();

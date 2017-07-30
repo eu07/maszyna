@@ -173,7 +173,7 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 	glUniform1ui(lcount_uniform, 0);
 }
 
-void gl_program_light::set_lightview(glm::mat4 &lightview)
+void gl_program_light::set_lightview(const glm::mat4 &lightview)
 {
 	if (current_program != this)
 		return;
@@ -181,7 +181,7 @@ void gl_program_light::set_lightview(glm::mat4 &lightview)
 	glUniformMatrix4fv(lightview_uniform, 1, GL_FALSE, glm::value_ptr(lightview));
 }
 
-void gl_program_light::set_ambient(glm::vec3 &ambient)
+void gl_program_light::set_ambient(const glm::vec3 &ambient)
 {
 	if (current_program != this)
 		return;
@@ -189,7 +189,7 @@ void gl_program_light::set_ambient(glm::vec3 &ambient)
 	glUniform3fv(ambient_uniform, 1, glm::value_ptr(ambient));
 }
 
-void gl_program_light::set_fog(float density, glm::vec3 &color)
+void gl_program_light::set_fog(float density, const glm::vec3 &color)
 {
 	if (current_program != this)
 		return;
@@ -206,9 +206,9 @@ void gl_program_light::set_light_count(GLuint count)
 	glUniform1ui(lcount_uniform, count);
 }
 
-void gl_program_light::set_light(GLuint i, type t, glm::vec3 &pos, glm::vec3 &dir,
+void gl_program_light::set_light(GLuint i, type t, const glm::vec3 &pos, const glm::vec3 &dir,
 	float in_cutoff, float out_cutoff,
-	glm::vec3 &color, float linear, float quadratic)
+	const glm::vec3 &color, float linear, float quadratic)
 {
 	if (current_program != this)
 		return;
@@ -228,7 +228,7 @@ void gl_program_light::set_light(GLuint i, type t, glm::vec3 &pos, glm::vec3 &di
 	glUniform1f(lights_uniform[i].quadratic, quadratic);
 }
 
-void gl_program_light::set_material(float specular, glm::vec3 &emission)
+void gl_program_light::set_material(float specular, const glm::vec3 &emission)
 {
 	if (current_program != this)
 		return;

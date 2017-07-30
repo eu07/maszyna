@@ -25,6 +25,10 @@ ui_layer::~ui_layer() {
 bool
 ui_layer::init( GLFWwindow *Window ) {
 
+#ifndef _WIN32
+	Global::bGlutFont = true;
+#endif
+
 	if (Global::bGlutFont)
 	{
 		int zi = 0;
@@ -36,6 +40,7 @@ ui_layer::init( GLFWwindow *Window ) {
 		return true;
 	}
 
+#ifdef _WIN32
     HFONT font; // Windows Font ID
     m_fontbase = ::glGenLists(96); // storage for 96 characters
     HDC hDC = ::GetDC( glfwGetWin32Window( Window ) );
@@ -63,11 +68,10 @@ ui_layer::init( GLFWwindow *Window ) {
     }
     else {
         ErrorLog( "Font init failed" );
-//        return false;
-        // NOTE: we report success anyway, given some cards can't produce fonts in this manner
         Global::DLFont = false;
         return true;
     }
+#endif
 }
 
 void

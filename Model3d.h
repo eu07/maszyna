@@ -50,6 +50,8 @@ enum TAnimType // rodzaj animacji
 	at_Undefined = 0x800000FF // animacja chwilowo nieokreślona
 };
 
+class TModel3d;
+
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
     //m7todo: zrobić normalną serializację
@@ -119,7 +121,7 @@ private:
 
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
-    geometry_handle m_geometry { NULL, NULL }; // geometry of the submodel
+    geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
     texture_handle TextureID { NULL }; // numer tekstury, -1 wymienna, 0 brak
     bool bWire { false }; // nie używane, ale wczytywane
     float Opacity { 1.0f };

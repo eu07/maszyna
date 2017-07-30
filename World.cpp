@@ -45,10 +45,12 @@ simulation_time Time;
 
 }
 
+#ifdef _WIN32
 extern "C"
 {
     GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
 }
+#endif
 
 void
 simulation_time::init() {
@@ -62,7 +64,21 @@ simulation_time::init() {
     WORD const requestedhour = m_time.wHour;
     WORD const requestedminute = m_time.wMinute;
 
+#ifdef __linux__
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	tm *tms = localtime(&ts.tv_sec);
+	m_time.wYear = tms->tm_year;
+	m_time.wMonth = tms->tm_mon;
+	m_time.wDayOfWeek = tms->tm_wday;
+	m_time.wDay = tms->tm_mday;
+	m_time.wHour = tms->tm_hour;
+	m_time.wMinute = tms->tm_min;
+	m_time.wSecond = tms->tm_sec;
+	m_time.wMilliseconds = ts.tv_nsec / 1000000;
+#elif _WIN32
     ::GetLocalTime( &m_time );
+#endif
 
     if( Global::fMoveLight > 0.0 ) {
         // day and month of the year can be overriden by scenario setup
@@ -288,7 +304,11 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     std::shared_ptr<ui_panel> initpanel = std::make_shared<ui_panel>(85, 600);
 
+#ifdef _WIN32
     TSoundsManager::Init( glfwGetWin32Window( window ) );
+#else
+    TSoundsManager::Init( 0 );
+#endif
     WriteLog("Sound Init OK");
     TModelsManager::Init();
     WriteLog("Models init OK");
@@ -662,8 +682,7 @@ void TWorld::OnKeyDown(int cKey)
     { // i potwierdzenie
         if( cKey == GLFW_KEY_Y ) {
             // flaga wyjścia z programu
-            ::PostQuitMessage( 0 );
-//            Global::iTextMode = -1;
+			glfwSetWindowShouldClose(window, 1);
         }
         return; // nie przekazujemy do pociągu
     }
@@ -673,6 +692,7 @@ void TWorld::OnKeyDown(int cKey)
         {
             if (cKey == GLFW_KEY_1)
                 Global::iWriteLogEnabled ^= 1; // włącz/wyłącz logowanie do pliku
+#ifdef _WIN32
             else if (cKey == GLFW_KEY_2)
             { // włącz/wyłącz okno konsoli
                 Global::iWriteLogEnabled ^= 2;
@@ -683,6 +703,7 @@ void TWorld::OnKeyDown(int cKey)
                     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN);
                 }
             }
+#endif
             // else if (cKey=='3') Global::iWriteLogEnabled^=4; //wypisywanie nazw torów
         }
     }
@@ -1004,7 +1025,9 @@ bool TWorld::Update()
         // tak można np. moc silników itp., ale ruch musi być przeliczany w każdej klatce, bo
         // inaczej skacze
         Global::tranTexts.Update(); // obiekt obsługujący stenogramy dźwięków na ekranie
+#ifdef _WIN32
         Console::Update(); // obsługa cykli PoKeys (np. aktualizacja wyjść analogowych)
+#endif
         double iter =
             ceil(fTimeBuffer / fMaxDt); // ile kroków się zmieściło od ostatniego sprawdzania?
         int n = int(iter); // ile kroków jako int
@@ -1106,7 +1129,9 @@ bool TWorld::Update()
 
     fTime50Hz += dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
     while( fTime50Hz >= 1.0 / 50.0 ) {
+#ifdef _WIN32
         Console::Update(); // to i tak trzeba wywoływać
+#endif
         Update_UI();
 
         Camera.Velocity *= 0.65;
@@ -1300,7 +1325,8 @@ TWorld::Render_Cab() {
         if( dynamic->InteriorLightLevel > 0.0f ) {
             // crude way to light the cabin, until we have something more complete in place
             auto const cablight = dynamic->InteriorLight * dynamic->InteriorLightLevel;
-			GfxRenderer.shader.set_ambient(glm::make_vec3(&cablight.x));
+			glm::vec3 cablight_glm = glm::make_vec3(&cablight.x);
+			GfxRenderer.shader.set_ambient(cablight_glm);
         }
         // render
         GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
@@ -1312,8 +1338,8 @@ TWorld::Render_Cab() {
         }
         if( dynamic->InteriorLightLevel > 0.0f ) {
             // reset the overall ambient
-            GLfloat ambient[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-			GfxRenderer.shader.set_ambient(glm::make_vec3(ambient));
+            glm::vec3 ambient(0.0f, 0.0f, 0.0f);
+			GfxRenderer.shader.set_ambient(ambient);
         }
     }
     glPopMatrix();

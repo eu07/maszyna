@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include <Windows.h>
+//#include <Windows.h>
 #include "renderer.h"
 #include <GLFW/glfw3.h>
 #include <GL/glew.h>
@@ -195,8 +195,8 @@ class Global
     static bool bManageNodes;
     static bool bDecompressDDS;
     //    bool WFreeFly;
-    static float Global::fMouseXScale;
-    static float Global::fMouseYScale;
+    static float fMouseXScale;
+    static float fMouseYScale;
     static double fFogStart;
     static double fFogEnd;
     static TGround *pGround;
@@ -333,7 +333,6 @@ class Global
     static TDynamicObject * DynamicNearest();
     static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
-    static bool DoEvents();
     static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
 	static double CutValueToRange(double min, double value, double max);

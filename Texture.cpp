@@ -16,7 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "Texture.h"
 
-#include <ddraw.h>
 #include "GL/glew.h"
 
 #include "usefull.h"
@@ -592,7 +591,9 @@ opengl_texture::create() {
             }
         }
 
-        data.swap( std::vector<char>() ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
+		// TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
+		data.clear();
+		data.shrink_to_fit();
 /*
     data_state = resource_state::none;
 */
@@ -742,20 +743,7 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
     if( Filename.rfind( '.' ) != std::string::npos )
         Filename.erase( Filename.rfind( '.' ) ); // trim extension if there's one
 
-    for( char &c : Filename ) {
-        // change forward slashes to windows ones. NOTE: probably not strictly necessary, but eh
-        c = ( c == '/' ? '\\' : c );
-    }
-/*
-    std::transform(
-        Filename.begin(), Filename.end(),
-        Filename.begin(),
-        []( char Char ){ return Char == '/' ? '\\' : Char; } );
-*/
-    if( Filename.find( '\\' ) == std::string::npos ) {
-        // jeśli bieżaca ścieżka do tekstur nie została dodana to dodajemy domyślną
-        Filename = szTexturePath + Filename;
-    }
+	std::replace(Filename.begin(), Filename.end(), '\\', '/'); // fix slashes
 
     std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
 
@@ -936,7 +924,7 @@ texture_manager::find_in_databank( std::string const &Texturename ) const {
         return (int)lookup->second;
     }
     // jeszcze próba z dodatkową ścieżką
-    lookup = m_texturemappings.find( szTexturePath + Texturename );
+    lookup = m_texturemappings.find( global_texture_path + Texturename );
 
     return (
         lookup != m_texturemappings.end() ?
@@ -957,10 +945,10 @@ texture_manager::find_on_disk( std::string const &Texturename ) const {
     }
     // if we fail make a last ditch attempt in the default textures directory
     {
-        std::ifstream file( szTexturePath + Texturename );
+        std::ifstream file( global_texture_path + Texturename );
         if( true == file.is_open() ) {
             // success
-            return szTexturePath + Texturename;
+            return global_texture_path + Texturename;
         }
     }
     // no results either way, report failure

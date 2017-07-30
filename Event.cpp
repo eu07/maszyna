@@ -22,7 +22,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "MemCell.h"
 #include "Ground.h"
-#include "McZapkie\mctools.h"
+#include "McZapkie/mctools.h"
 
 TEvent::TEvent( std::string const &m ) :
                        asNodeName( m )
@@ -56,7 +56,7 @@ TEvent::~TEvent()
         // SafeDeleteArray(Params[9].asText); //nie usuwać - nazwa jest zamieniana na wskaźnik do
         // submodelu
         if (Params[0].asInt == 4) // jeśli z pliku VMD
-            delete[] Params[8].asPointer; // zwolnić obszar
+            delete[] (char*)(Params[8].asPointer); // zwolnić obszar
     case tp_GetValues: // nic
         break;
 	case tp_PutValues: // params[0].astext stores the token
@@ -488,9 +488,9 @@ void TEvent::Load(cParser *parser, vector3 *org)
         }
         else if (token.substr(token.length() - 4, 4) == ".vmd") // na razie tu, może będzie inaczej
         { // animacja z pliku VMD
-//			TFileStream *fs = new TFileStream( "models\\" + AnsiString( token.c_str() ), fmOpenRead );
+//			TFileStream *fs = new TFileStream( "models/" + AnsiString( token.c_str() ), fmOpenRead );
 			{
-				std::ifstream file( "models\\" + token, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
+				std::ifstream file( "models/" + token, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
 				auto size = file.tellg();   // ios::ate already positioned us at the end of the file
 				file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
 				Params[ 7 ].asInt = size;

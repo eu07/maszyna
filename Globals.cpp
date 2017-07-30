@@ -780,13 +780,6 @@ void Global::ConfigParse(cParser &Parser)
             Global::UITextColor = Global::UITextColor / 255.0f;
             Global::UITextColor.w = 1.0f;
         }
-        else if (token == "pyscreenrendererpriority")
-        {
-            // priority of python screen renderer
-            Parser.getTokens();
-            Parser >> token;
-            TPythonInterpreter::getInstance()->setScreenRendererPriority(token.c_str());
-        }
         else if (token == "background")
         {
 
@@ -925,7 +918,9 @@ void Global::ConfigParse(cParser &Parser)
             // TBD: remove, or launch depending on passed flag?
         if (qp)
     { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
-    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+#ifdef _WIN32
+		    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+#endif
             /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
                         fFpsRadiusMax; // maksymalny promień renderowania 3000.0 -> 225
             if (iFpsRadiusMax > 400)
@@ -1075,20 +1070,6 @@ bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
 {
     return pGround->AddToQuery(event, who);
 };
-//---------------------------------------------------------------------------
-
-bool Global::DoEvents()
-{ // wywoływać czasem, żeby nie robił wrażenia zawieszonego
-    MSG msg;
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-    {
-        if (msg.message == WM_QUIT)
-            return FALSE;
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    return TRUE;
-}
 //---------------------------------------------------------------------------
 
 TTranscripts::TTranscripts()

@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 //#include "math.h"
 #include "Timer.h"
-#include "mczapkie/mctools.h"
+#include "McZapkie/mctools.h"
 #include "usefull.h"
 
 TRealSound::TRealSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,

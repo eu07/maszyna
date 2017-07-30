@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "usefull.h"
 #include "Console.h"
 #include "Timer.h"
-#include "mover.h"
+#include "MOVER.h"
 
 //---------------------------------------------------------------------------
 

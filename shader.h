@@ -62,13 +62,13 @@ public:
 	gl_program_light() = default;
 	gl_program_light(std::vector<gl_shader>);
 
-	void set_lightview(glm::mat4 &lightview);
-	void set_ambient(glm::vec3 &ambient);
-	void gl_program_light::set_fog(float density, glm::vec3 &color);
-	void set_material(float specular, glm::vec3 &emission);
+	void set_lightview(const glm::mat4 &lightview);
+	void set_ambient(const glm::vec3 &ambient);
+	void set_fog(float density, const glm::vec3 &color);
+	void set_material(float specular, const glm::vec3 &emission);
 	void set_light_count(GLuint count);
-	void set_light(GLuint id, type t, glm::vec3 &pos, glm::vec3 &dir, float in_cutoff, float out_cutoff,
-		glm::vec3 &color, float linear, float quadratic);
+	void set_light(GLuint id, type t, const glm::vec3 &pos, const glm::vec3 &dir, float in_cutoff, float out_cutoff,
+		const glm::vec3 &color, float linear, float quadratic);
 
 private:
 	GLuint lightview_uniform;

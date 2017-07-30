@@ -9,7 +9,7 @@
 void
 cStars::init() {
 
-    m_stars.LoadFromFile( "models\\skydome_stars.t3d", false );
+    m_stars.LoadFromFile( "models/skydome_stars.t3d", false );
 }
 
 void

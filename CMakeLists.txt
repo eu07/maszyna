@@ -15,17 +15,12 @@ set(SOURCES
 "Train.cpp"
 "TrkFoll.cpp"
 "VBO.cpp"
-"wavread.cpp"
 "World.cpp"
 "AdvSound.cpp"
 "AirCoupler.cpp"
 "AnimModel.cpp"
 "Button.cpp"
 "Camera.cpp"
-"Console.cpp"
-"Console/LPT.cpp"
-"Console/MWD.cpp"
-"Console/PoKeys55.cpp"
 "Driver.cpp"
 "dumb3d.cpp"
 "DynObj.cpp"
@@ -74,7 +69,7 @@ set(SOURCES
 
 if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
-	set(SOURCES ${SOURCES} "windows.cpp")
+	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/MWD.cpp" "Console/PoKeys55.cpp" "wavread.cpp")
 endif()
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
@@ -115,5 +110,10 @@ include_directories(${PNG_INCLUDE_DIRS} ${PNG_PNG_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARY})
 
+find_package(Threads REQUIRED)
+target_link_libraries(${PROJECT_NAME} Threads::Threads)
+
 find_package(GLM REQUIRED)
 include_directories(${GLM_INCLUDE_DIRS})
+
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined -g")

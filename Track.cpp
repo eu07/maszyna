@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Ground.h"
 #include "parser.h"
-#include "Mover.h"
+#include "MOVER.h"
 #include "DynObj.h"
 #include "AnimModel.h"
 #include "MemCell.h"

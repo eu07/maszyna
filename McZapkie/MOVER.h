@@ -383,14 +383,14 @@ struct TBoilerType {
 };
 /*rodzaj odbieraka pradu*/
 struct TCurrentCollector {
-    long CollectorsNo{ 0 }; //musi być tu, bo inaczej się kopie
-    double MinH{ 0.0 }; double MaxH{ 0.0 }; //zakres ruchu pantografu, nigdzie nie używany
-    double CSW{ 0.0 };       //szerokość części roboczej (styku) ślizgacza
-    double MinV{ 0.0 }; double MaxV{ 0.0 }; //minimalne i maksymalne akceptowane napięcie
-    double OVP{ 0.0 };       //czy jest przekaznik nadnapieciowy
-    double InsetV{ 0.0 };    //minimalne napięcie wymagane do załączenia
-    double MinPress{ 0.0 };  //minimalne ciśnienie do załączenia WS
-    double MaxPress{ 0.0 };  //maksymalne ciśnienie za reduktorem
+    long CollectorsNo; //musi być tu, bo inaczej się kopie
+    double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie używany
+    double CSW;       //szerokość części roboczej (styku) ślizgacza
+    double MinV; double MaxV; //minimalne i maksymalne akceptowane napięcie
+    double OVP;       //czy jest przekaznik nadnapieciowy
+    double InsetV;    //minimalne napięcie wymagane do załączenia
+    double MinPress;  //minimalne ciśnienie do załączenia WS
+    double MaxPress;  //maksymalne ciśnienie za reduktorem
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;

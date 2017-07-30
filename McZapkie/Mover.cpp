@@ -8,11 +8,11 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "Mover.h"
-#include "../globals.h"
-#include "../logs.h"
+#include "MOVER.h"
+#include "Globals.h"
+#include "Logs.h"
 #include "Oerlikon_ESt.h"
-#include "../parser.h"
+#include "parser.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.
@@ -6300,6 +6300,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
     WriteLog("LOAD FIZ FROM " + file);
 
+	std::replace(file.begin(), file.end(), '\\', '/');
     std::ifstream in(file);
 	if (!in.is_open())
 	{
@@ -7424,26 +7425,26 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
 
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
-            extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
-            extract_value( collectorparameters.MinH, "MinH", Line, "" );
-            extract_value( collectorparameters.MaxH, "MaxH", Line, "" );
-            extract_value( collectorparameters.CSW, "CSW", Line, "" ); //szerokość części roboczej
-            extract_value( collectorparameters.MaxV, "MaxVoltage", Line, "" );
+            extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "0.0" );
+            extract_value( collectorparameters.MinH, "MinH", Line, "0.0" );
+            extract_value( collectorparameters.MaxH, "MaxH", Line, "0.0" );
+            extract_value( collectorparameters.CSW, "CSW", Line, "0.0" ); //szerokość części roboczej
+            extract_value( collectorparameters.MaxV, "MaxVoltage", Line, "0.0" );
             collectorparameters.OVP = //przekaźnik nadnapięciowy
                 extract_value( "OverVoltProt", Line ) == "Yes" ?
                     1 :
                     0;
             //napięcie rozłączające WS
             collectorparameters.MinV = 0.5 * collectorparameters.MaxV; //gdyby parametr nie podany
-            extract_value( collectorparameters.MinV, "MinV", Line, "" );
+            extract_value( collectorparameters.MinV, "MinV", Line, "0.0" );
             //napięcie wymagane do załączenia WS
             collectorparameters.InsetV = 0.6 * collectorparameters.MaxV; //gdyby parametr nie podany
-            extract_value( collectorparameters.InsetV, "InsetV", Line, "" );
+            extract_value( collectorparameters.InsetV, "InsetV", Line, "0.0" );
             //ciśnienie rozłączające WS
             extract_value( collectorparameters.MinPress, "MinPress", Line, "3.5" ); //domyślnie 2 bary do załączenia WS
             //maksymalne ciśnienie za reduktorem
             collectorparameters.MaxPress = 5.0 + 0.001 * ( Random( 50 ) - Random( 50 ) );
-            extract_value( collectorparameters.MaxPress, "MaxPress", Line, "" );
+            extract_value( collectorparameters.MaxPress, "MaxPress", Line, "0.0" );
             break;
         }
         case PowerCable: {

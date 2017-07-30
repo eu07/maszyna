@@ -1,9 +1,13 @@
 #ifndef PyIntH
 #define PyIntH
 
-#include <vector>
-#include <set>
-#include <string>
+#ifdef _POSIX_C_SOURCE
+#undef _POSIX_C_SOURCE
+#endif
+
+#ifdef _XOPEN_SOURCE
+#undef _XOPEN_SOURCE
+#endif
 
 #ifdef _DEBUG
 #undef _DEBUG // bez tego macra Py_DECREF powoduja problemy przy linkowaniu
@@ -12,6 +16,12 @@
 #else
 #include "Python.h"
 #endif
+
+#include <vector>
+#include <set>
+#include <string>
+#include <thread>
+
 #include "parser.h"
 #include "Model3d.h"
 
@@ -36,7 +46,6 @@ class TPythonInterpreter
     TPythonInterpreter();
 	~TPythonInterpreter() {}
     static TPythonInterpreter *_instance;
-    int _screenRendererPriority = 0;
 //    std::set<const char *, ltstr> _classes;
 	std::set<std::string> _classes;
 	PyObject *_main;
@@ -53,11 +62,6 @@ class TPythonInterpreter
 */	bool loadClassFile( std::string const &lookupPath, std::string const &className );
 	PyObject *newClass( std::string const &className );
 	PyObject *newClass( std::string const &className, PyObject *argsTuple );
-	int getScreenRendererPriotity()
-    {
-        return _screenRendererPriority;
-    };
-    void setScreenRendererPriority(const char *priority);
     void handleError();
 };
 
@@ -84,8 +88,7 @@ class TPythonScreens
     bool _cleanupReadyFlag;
     bool _renderReadyFlag;
     bool _terminationFlag;
-    void *_thread;
-    unsigned int _threadId;
+    std::thread *_thread;
     std::vector<TPythonScreenRenderer *> _screens;
     std::string _lookupPath;
     void *_train;

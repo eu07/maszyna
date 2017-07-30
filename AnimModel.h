@@ -94,11 +94,11 @@ class TAnimContainer
     void UpdateModel();
     void UpdateModelIK();
     bool InMovement(); // czy w trakcie animacji?
-    double _fastcall AngleGet()
+    double AngleGet()
     {
         return vRotateAngles.z;
     }; // jednak ostatnia, T3D ma inny układ
-    vector3 _fastcall TransGet()
+    vector3 TransGet()
     {
         return vector3(-vTranslation.x, vTranslation.z, vTranslation.y);
     }; // zmiana, bo T3D ma inny układ
