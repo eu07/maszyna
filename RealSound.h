@@ -10,29 +10,33 @@ http://mozilla.org/MPL/2.0/.
 #ifndef RealSoundH
 #define RealSoundH
 
+#include <string>
 #include "Sound.h"
 #include "Geometry.h"
 
 class TRealSound
 {
   protected:
-    PSound pSound;
-    char *Nazwa; // dla celow odwszawiania
-    double fDistance, fPreviousDistance; // dla liczenia Dopplera
-    float fFrequency; // czêstotliwoœæ samplowania pliku
-    int iDoppler; // Ra 2014-07: mo¿liwoœæ wy³¹czenia efektu Dopplera np. dla œpiewu ptaków
+    PSound pSound = nullptr;
+//  char *Nazwa; // dla celow odwszawiania NOTE: currently not used anywhere
+    double fDistance = 0.0,
+           fPreviousDistance = 0.0; // dla liczenia Dopplera
+    float fFrequency = 22050.0; // czÄ™stotliwoÅ›Ä‡ samplowania pliku
+    int iDoppler = 0; // Ra 2014-07: moÅ¼liwoÅ›Ä‡ wyÅ‚Ä…czenia efektu Dopplera np. dla Å›piewu ptakÃ³w
   public:
     vector3 vSoundPosition; // polozenie zrodla dzwieku
-    double dSoundAtt; // odleglosc polowicznego zaniku dzwieku
-    double AM; // mnoznik amplitudy
-    double AA; // offset amplitudy
-    double FM; // mnoznik czestotliwosci
-    double FA; // offset czestotliwosci
-    bool bLoopPlay; // czy zapêtlony dŸwiêk jest odtwarzany
-    TRealSound();
+    double dSoundAtt = -1.0; // odleglosc polowicznego zaniku dzwieku
+    double AM = 0.0; // mnoznik amplitudy
+    double AA = 0.0; // offset amplitudy
+    double FM = 0.0; // mnoznik czestotliwosci
+    double FA = 0.0; // offset czestotliwosci
+    bool bLoopPlay = false; // czy zapÄ™tlony dÅºwiÄ™k jest odtwarzany
+    TRealSound() = default;
+	TRealSound( std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+		bool freqmod = false, double rmin = 0.0);
     ~TRealSound();
     void Free();
-    void Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+    void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
               bool freqmod = false, double rmin = 0.0);
     double ListenerDistance(vector3 ListenerPosition);
     void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
@@ -44,31 +48,34 @@ class TRealSound
     int GetStatus();
     void ResetPosition();
     // void FreqReset(float f=22050.0) {fFrequency=f;};
+    bool Empty() { return ( pSound == nullptr ); }
 };
 
 class TTextSound : public TRealSound
-{ // dŸwiêk ze stenogramem
-    AnsiString asText;
+{ // dÅºwiÄ™k ze stenogramem
+    std::string asText;
     float fTime; // czas trwania
   public:
-    void Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
-              bool freqmod = false, double rmin = 0.0);
+    TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
+               bool Dynamic, bool freqmod = false, double rmin = 0.0);
+    void Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
+              bool Dynamic, bool freqmod = false, double rmin = 0.0);
     void Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition);
 };
 
 class TSynthSound
-{ // klasa generuj¹ca sygna³ odjazdu (Rp12, Rp13), potem rozbudowaæ o pracê manewrowego...
-    int iIndex[44]; // indeksy pocz¹tkowe, gdy mamy kilka wariantów dŸwiêków sk³adowych
+{ // klasa generujÄ…ca sygnaÅ‚ odjazdu (Rp12, Rp13), potem rozbudowaÄ‡ o pracÄ™ manewrowego...
+    int iIndex[44]; // indeksy poczÄ…tkowe, gdy mamy kilka wariantÃ³w dÅºwiÄ™kÃ³w skÅ‚adowych
     // 0..9 - cyfry 0..9
     // 10..19 - liczby 10..19
-    // 21..29 - dziesi¹tki (*21==*10?)
+    // 21..29 - dziesiÄ…tki (*21==*10?)
     // 31..39 - setki 100,200,...,800,900
-    // 40 - "tysi¹c"
-    // 41 - "tysi¹ce"
-    // 42 - indeksy pocz¹tkowe dla "odjazd"
-    // 43 - indeksy pocz¹tkowe dla "gotów"
-    PSound *sSound; // posortowana tablica dŸwiêków, rozmiar zale¿ny od liczby znalezionych plików
-    // a mo¿e zamiast wielu plików/dŸwiêków zrobiæ jeden po³¹czony plik i pos³ugiwaæ siê czasem
+    // 40 - "tysiÄ…c"
+    // 41 - "tysiÄ…ce"
+    // 42 - indeksy poczÄ…tkowe dla "odjazd"
+    // 43 - indeksy poczÄ…tkowe dla "gotÃ³w"
+    PSound *sSound; // posortowana tablica dÅºwiÄ™kÃ³w, rozmiar zaleÅ¼ny od liczby znalezionych plikÃ³w
+    // a moÅ¼e zamiast wielu plikÃ³w/dÅºwiÄ™kÃ³w zrobiÄ‡ jeden poÅ‚Ä…czony plik i posÅ‚ugiwaÄ‡ siÄ™ czasem
     // od..do?
 };
 

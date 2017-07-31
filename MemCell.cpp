@@ -13,49 +13,35 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "Driver.h"
-#include "mctools.hpp"
+#include "stdafx.h"
 #include "MemCell.h"
+
+#include "Globals.h"
+#include "Logs.h"
+#include "Usefull.h"
+#include "Driver.h"
 #include "Event.h"
 #include "parser.h"
 
-#include "Usefull.h"
-#include "Globals.h"
-
-//---------------------------------------------------------------------------
-#pragma package(smart_init)
 //---------------------------------------------------------------------------
 
 TMemCell::TMemCell(vector3 *p)
 {
     fValue1 = fValue2 = 0;
-    szText = new char[256]; // musi byæ dla automatycznie tworzonych komórek dla odcinków
-    // izolowanych
     vPosition =
-        p ? *p : vector3(0, 0, 0); // ustawienie wspó³rzêdnych, bo do TGroundNode nie ma dostêpu
-    bCommand = false; // komenda wys³ana
+        p ? *p : vector3(0, 0, 0); // ustawienie wspÃ³Å‚rzÄ™dnych, bo do TGroundNode nie ma dostÄ™pu
+    bCommand = false; // komenda wysÅ‚ana
     OnSent = NULL;
 }
-
-TMemCell::~TMemCell()
-{
-    SafeDeleteArray(szText);
-}
-
 void TMemCell::Init()
 {
 }
-
-void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask)
+void TMemCell::UpdateValues( std::string const &szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask )
 {
     if (CheckMask & update_memadd)
-    { // dodawanie wartoœci
-        if (TestFlag(CheckMask, update_memstring))
-            strcat(szText, szNewText);
+    { // dodawanie wartoÅ›ci
+        if( TestFlag( CheckMask, update_memstring ) )
+            szText += szNewText;
         if (TestFlag(CheckMask, update_memval1))
             fValue1 += fNewValue1;
         if (TestFlag(CheckMask, update_memval2))
@@ -63,53 +49,53 @@ void TMemCell::UpdateValues(char *szNewText, double fNewValue1, double fNewValue
     }
     else
     {
-        if (TestFlag(CheckMask, update_memstring))
-            strcpy(szText, szNewText);
+        if( TestFlag( CheckMask, update_memstring ) )
+            szText = szNewText;
         if (TestFlag(CheckMask, update_memval1))
             fValue1 = fNewValue1;
         if (TestFlag(CheckMask, update_memval2))
             fValue2 = fNewValue2;
     }
     if (TestFlag(CheckMask, update_memstring))
-        CommandCheck(); // jeœli zmieniony tekst, próbujemy rozpoznaæ komendê
+        CommandCheck(); // jeÅ›li zmieniony tekst, prÃ³bujemy rozpoznaÄ‡ komendÄ™
 }
 
 TCommandType TMemCell::CommandCheck()
 { // rozpoznanie komendy
-    if (strcmp(szText, "SetVelocity") == 0) // najpopularniejsze
+    if( szText == "SetVelocity" ) // najpopularniejsze
     {
         eCommand = cm_SetVelocity;
-        bCommand = false; // ta komenda nie jest wysy³ana
+        bCommand = false; // ta komenda nie jest wysyÅ‚ana
     }
-    else if (strcmp(szText, "ShuntVelocity") == 0) // w tarczach manewrowych
+    else if( szText == "ShuntVelocity" ) // w tarczach manewrowych
     {
         eCommand = cm_ShuntVelocity;
-        bCommand = false; // ta komenda nie jest wysy³ana
+        bCommand = false; // ta komenda nie jest wysyÅ‚ana
     }
-    else if (strcmp(szText, "Change_direction") == 0) // zdarza siê
+    else if( szText == "Change_direction" ) // zdarza siÄ™
     {
         eCommand = cm_ChangeDirection;
-        bCommand = true; // do wys³ania
+        bCommand = true; // do wysÅ‚ania
     }
-    else if (strcmp(szText, "OutsideStation") == 0) // zdarza siê
+    else if( szText == "OutsideStation" ) // zdarza siÄ™
     {
         eCommand = cm_OutsideStation;
-        bCommand = false; // tego nie powinno byæ w komórce
+        bCommand = false; // tego nie powinno byÄ‡ w komÃ³rce
     }
-    else if (strncmp(szText, "PassengerStopPoint:", 19) == 0) // porównanie pocz¹tków
+    else if( szText.compare( 0, 19, "PassengerStopPoint:" ) == 0 ) // porÃ³wnanie poczÄ…tkÃ³w
     {
         eCommand = cm_PassengerStopPoint;
-        bCommand = false; // tego nie powinno byæ w komórce
+        bCommand = false; // tego nie powinno byÄ‡ w komÃ³rce
     }
-    else if (strcmp(szText, "SetProximityVelocity") == 0) // nie powinno tego byæ
+    else if( szText == "SetProximityVelocity" ) // nie powinno tego byÄ‡
     {
         eCommand = cm_SetProximityVelocity;
-        bCommand = false; // ta komenda nie jest wysy³ana
+        bCommand = false; // ta komenda nie jest wysyÅ‚ana
     }
     else
     {
-        eCommand = cm_Unknown; // ci¹g nierozpoznany (nie jest komend¹)
-        bCommand = true; // do wys³ania
+        eCommand = cm_Unknown; // ciÄ…g nierozpoznany (nie jest komendÄ…)
+        bCommand = true; // do wysÅ‚ania
     }
     return eCommand;
 }
@@ -118,50 +104,50 @@ bool TMemCell::Load(cParser *parser)
 {
     std::string token;
     parser->getTokens(1, false); // case sensitive
-    *parser >> token;
-    SafeDeleteArray(szText);
-    szText = new char[256]; // musi byæ bufor do ³¹czenia tekstów
-    strcpy(szText, token.c_str());
-    parser->getTokens();
-    *parser >> fValue1;
-    parser->getTokens();
-    *parser >> fValue2;
+    *parser >> szText;
+    parser->getTokens( 2, false );
+    *parser
+        >> fValue1
+        >> fValue2;
     parser->getTokens();
     *parser >> token;
-    if (token.compare("none") != 0) // gdy ró¿ne od "none"
-        asTrackName = AnsiString(token.c_str()); // sprawdzane przez IsEmpty()
+    if (token != "none") // gdy rÃ³Å¼ne od "none"
+        asTrackName = token; // sprawdzane przez IsEmpty()
     parser->getTokens();
     *parser >> token;
-    if (token.compare("endmemcell") != 0)
+    if (token != "endmemcell")
         Error("endmemcell statement missing");
     CommandCheck();
     return true;
 }
 
 void TMemCell::PutCommand(TController *Mech, vector3 *Loc)
-{ // wys³anie zawartoœci komórki do AI
+{ // wysÅ‚anie zawartoÅ›ci komÃ³rki do AI
     if (Mech)
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
 }
 
-bool TMemCell::Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask)
-{ // porównanie zawartoœci komórki pamiêci z podanymi wartoœciami
-    if (TestFlag(CheckMask, conditional_memstring))
-    { // porównaæ teksty
-        char *pos = StrPos(szTestText, "*"); // zwraca wskaŸnik na pozycjê albo NULL
-        if (pos)
-        { // porównanie fragmentu ³añcucha
-            int i = pos - szTestText; // iloœæ porównywanych znaków
-            if (i) // jeœli nie jest pierwszym znakiem
-                if (AnsiString(szTestText, i) != AnsiString(szText, i))
-                    return false; // pocz¹tki o d³ugoœci (i) s¹ ró¿ne
+bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask ) {
+    // porÃ³wnanie zawartoÅ›ci komÃ³rki pamiÄ™ci z podanymi wartoÅ›ciami
+    if( TestFlag( CheckMask, conditional_memstring ) ) {
+        // porÃ³wnaÄ‡ teksty
+        auto range = szTestText.find( '*' );
+        if( range != std::string::npos ) {
+            // compare string parts
+            if( 0 != szText.compare( 0, range, szTestText, 0, range ) ) {
+                return false;
+            }
         }
-        else if (AnsiString(szTestText) != AnsiString(szText))
-            return false; //³¹ñcuchy s¹ ró¿ne
+        else {
+            // compare full strings
+            if( szText != szTestText ) {
+                return false;
+            }
+        }
     }
-    // tekst zgodny, porównaæ resztê
-    return ((!TestFlag(CheckMask, conditional_memval1) || (fValue1 == fTestValue1)) &&
-            (!TestFlag(CheckMask, conditional_memval2) || (fValue2 == fTestValue2)));
+    // tekst zgodny, porÃ³wnaÄ‡ resztÄ™
+    return ( ( !TestFlag( CheckMask, conditional_memval1 ) || ( fValue1 == fTestValue1 ) )
+          && ( !TestFlag( CheckMask, conditional_memval2 ) || ( fValue2 == fTestValue2 ) ) );
 };
 
 bool TMemCell::Render()
@@ -170,7 +156,7 @@ bool TMemCell::Render()
 }
 
 bool TMemCell::IsVelocity()
-{ // sprawdzenie, czy event odczytu tej komórki ma byæ do skanowania, czy do kolejkowania
+{ // sprawdzenie, czy event odczytu tej komÃ³rki ma byÄ‡ do skanowania, czy do kolejkowania
     if (eCommand == cm_SetVelocity)
         return true;
     if (eCommand == cm_ShuntVelocity)
@@ -183,11 +169,11 @@ void TMemCell::StopCommandSent()
     if (!bCommand)
         return;
     bCommand = false;
-    if (OnSent) // jeœli jest event
+    if (OnSent) // jeÅ›li jest event
         Global::AddToQuery(OnSent, NULL);
 };
 
 void TMemCell::AssignEvents(TEvent *e)
-{ // powi¹zanie eventu
+{ // powiÄ…zanie eventu
     OnSent = e;
 };

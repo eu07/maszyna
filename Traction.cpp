@@ -12,71 +12,66 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Traction.h"
-#include "mctools.hpp"
 #include "Globals.h"
-#include "Usefull.h"
+#include "logs.h"
+#include "mctools.h"
 #include "TractionPower.h"
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)
 /*
 
 === Koncepcja dwustronnego zasilania sekcji sieci trakcyjnej, Ra 2014-02 ===
-0. Kaøde przÍs≥o sieci moøe mieÊ wpisanπ nazwÍ zasilacza, a takøe napiÍcie
-nominalne i maksymalny prπd, ktÛre stanowiπ redundancjÍ do danych zasilacza.
-Rezystancja moøe siÍ zmieniaÊ, materia≥ i gruboúÊ drutu powinny byÊ wspÛlny
-dla segmentu. Podanie punktÛw umoøliwia ≥πczenie przÍse≥ w listy dwukierunkowe,
-co usprawnia wyszukiwania kolejnych przese≥ podczas jazdy. Dla bieøni wspÛlnej
-powinna byÊ podana nazwa innego przÍs≥a w parametrze "parallel". Wskaüniki
-na przÍs≥a bieøni wspÛlnej majπ byÊ uk≥adane w jednokierunkowy pierúcieÒ.
-1. Problemem jest ustalenie topologii sekcji dla linii dwutorowych. Nad kaødym
-torem powinna znajdowaÊ siÍ oddzielna sekcja sieci, aby mog≥a zostaÊ od≥πczona
-w przypadku zwarcia. Sekcje nad rÛwnoleg≥ymi torami sπ rÛwnieø ≥πczone
-rÛwnolegle przez kabiny sekcyjne, co zmniejsza p≥ynπce prπdy i spadki napiÍÊ.
-2. Drugim zagadnieniem jest zasilanie sekcji jednoczeúnie z dwÛch stron, czyli
-sekcja musi mieÊ swojπ nazwÍ oraz wskazanie dwÛch zasilaczy ze wskazaniem
-geograficznym ich po≥oøenia. Dodatkowπ trudnoúciπ jest brak po≥πczenia
-pomiÍdzy segmentami naprÍøania. Podsumowujπc, kaødy segment naprÍøania powinien
-mieÊ przypisanie do sekcji zasilania, a dodatkowo skrajne segmenty powinny
-wskazywaÊ dwa rÛøne zasilacze.
-3. Zasilaczem sieci moøe byÊ podstacja, ktÛra w wersji 3kV powinna generowaÊ
-pod obciπøeniem napiÍcie maksymalne rzÍdu 3600V, a spadek napiÍcia nastÍpuje
-na jej rezystancji wewnÍtrznej oraz na przewodach trakcyjnych. Zasilaczem moøe
-byÊ rÛwnieø kabina sekcyjna, ktÛra jest zasilana z podstacji poprzez przewody
+0. Ka≈ºde przƒôs≈Ço sieci mo≈ºe mieƒá wpisanƒÖ nazwƒô zasilacza, a tak≈ºe napiƒôcie
+nominalne i maksymalny prƒÖd, kt√≥re stanowiƒÖ redundancjƒô do danych zasilacza.
+Rezystancja mo≈ºe siƒô zmieniaƒá, materia≈Ç i grubo≈õƒá drutu powinny byƒá wsp√≥lny
+dla segmentu. Podanie punkt√≥w umo≈ºliwia ≈ÇƒÖczenie przƒôse≈Ç w listy dwukierunkowe,
+co usprawnia wyszukiwania kolejnych przese≈Ç podczas jazdy. Dla bie≈ºni wsp√≥lnej
+powinna byƒá podana nazwa innego przƒôs≈Ça w parametrze "parallel". Wska≈∫niki
+na przƒôs≈Ça bie≈ºni wsp√≥lnej majƒÖ byƒá uk≈Çadane w jednokierunkowy pier≈õcie≈Ñ.
+1. Problemem jest ustalenie topologii sekcji dla linii dwutorowych. Nad ka≈ºdym
+torem powinna znajdowaƒá siƒô oddzielna sekcja sieci, aby mog≈Ça zostaƒá od≈ÇƒÖczona
+w przypadku zwarcia. Sekcje nad r√≥wnoleg≈Çymi torami sƒÖ r√≥wnie≈º ≈ÇƒÖczone
+r√≥wnolegle przez kabiny sekcyjne, co zmniejsza p≈ÇynƒÖce prƒÖdy i spadki napiƒôƒá.
+2. Drugim zagadnieniem jest zasilanie sekcji jednocze≈õnie z dw√≥ch stron, czyli
+sekcja musi mieƒá swojƒÖ nazwƒô oraz wskazanie dw√≥ch zasilaczy ze wskazaniem
+geograficznym ich po≈Ço≈ºenia. DodatkowƒÖ trudno≈õciƒÖ jest brak po≈ÇƒÖczenia
+pomiƒôdzy segmentami naprƒô≈ºania. PodsumowujƒÖc, ka≈ºdy segment naprƒô≈ºania powinien
+mieƒá przypisanie do sekcji zasilania, a dodatkowo skrajne segmenty powinny
+wskazywaƒá dwa r√≥≈ºne zasilacze.
+3. Zasilaczem sieci mo≈ºe byƒá podstacja, kt√≥ra w wersji 3kV powinna generowaƒá
+pod obciƒÖ≈ºeniem napiƒôcie maksymalne rzƒôdu 3600V, a spadek napiƒôcia nastƒôpuje
+na jej rezystancji wewnƒôtrznej oraz na przewodach trakcyjnych. Zasilaczem mo≈ºe
+byƒá r√≥wnie≈º kabina sekcyjna, kt√≥ra jest zasilana z podstacji poprzez przewody
 trakcyjne.
-4. Dla uproszczenia moøna przyjπÊ, øe zasilanie pojazdu odbywaÊ siÍ bÍdzie z
-dwÛch sπsiednich podstacji, pomiÍdzy ktÛrymi moøe byÊ dowolna liczba kabin
-sekcyjnych. W przypadku wy≥πczenia jednej z tych podstacji, zasilanie moøe
-byÊ pobierane z kolejnej. £πcznie naleøy rozwaøaÊ 4 najbliøsze podstacje,
-przy czym do obliczeÒ moøna przyjmowaÊ 2 z nich.
-5. PrzÍs≥a sieci sπ ≥πczone w listÍ dwukierunkowπ, wiÍc wystarczy nazwÍ
-sekcji wpisaÊ w jednym z nich, wpisanie w kaødym nie przeszkadza.
-Alternatywnym sposobem ≥πczenia segmentÛw naprÍøania moøe byÊ wpisywanie
-nazw przÍse≥ jako "parallel", co moøe byÊ uciπøliwe dla autorÛw scenerii.
-W skrajnych przÍs≥ach naleøa≥oby dodatkowo wpisaÊ nazwÍ zasilacza, bÍdzie
-to jednoczeúnie wskazanie przÍs≥a, do ktÛrego pod≥πczone sπ przewody
-zasilajπce. Konieczne jest odrÛønienie nazwy sekcji od nazwy zasilacza, co
-moøna uzyskaÊ rÛønicujπc ich nazwy albo np. specyficznie ustawiajπc wartoúÊ
-prπdu albo napiÍcia przÍs≥a.
-6. Jeúli dany segment naprÍøania jest wspÛlny dla dwÛch sekcji zasilania,
-to jedno z przÍse≥ musi mieÊ nazwÍ "*" (gwiazdka), co bÍdzie oznacza≥o, øe
-ma zamontowany izolator. Dla uzyskania efektÛw typu ≥uk elektryczny, naleøa≥o
-by wskazaÊ po≥oøenie izolatora i jego d≥ugoúÊ (ew. typ).
-7. RÛwnieø w parametrach zasilacza naleøa≥o by okreúliÊ, czy jest podstacjπ,
-czy jedynie kabinπ sekcyjnπ. RÛøniÊ siÍ one bÍdπ fizykπ dzia≥ania.
-8. Dla zbudowanej topologii sekcji i zasilaczy naleøa≥o by zbudowaÊ dynamiczny
-schemat zastÍpczy. Dynamika polega na wy≥πczaniu sekcji ze zwarciem oraz
-przeciπøonych podstacji. Musi byÊ teø moøliwoúÊ wy≥πczenia sekcji albo
-podstacji za pomocπ eventu.
-9. Dla kaødej sekcji musi byÊ tworzony obiekt, wskazujπcy na podstacje
-zasilajπce na koÒcach, stan w≥πczenia, zwarcia, przepiÍcia. Do tego obiektu
-musi wskazywaÊ kaøde przÍs≥o z aktywnym zasilaniem.
+4. Dla uproszczenia mo≈ºna przyjƒÖƒá, ≈ºe zasilanie pojazdu odbywaƒá siƒô bƒôdzie z
+dw√≥ch sƒÖsiednich podstacji, pomiƒôdzy kt√≥rymi mo≈ºe byƒá dowolna liczba kabin
+sekcyjnych. W przypadku wy≈ÇƒÖczenia jednej z tych podstacji, zasilanie mo≈ºe
+byƒá pobierane z kolejnej. ≈ÅƒÖcznie nale≈ºy rozwa≈ºaƒá 4 najbli≈ºsze podstacje,
+przy czym do oblicze≈Ñ mo≈ºna przyjmowaƒá 2 z nich.
+5. Przƒôs≈Ça sieci sƒÖ ≈ÇƒÖczone w listƒô dwukierunkowƒÖ, wiƒôc wystarczy nazwƒô
+sekcji wpisaƒá w jednym z nich, wpisanie w ka≈ºdym nie przeszkadza.
+Alternatywnym sposobem ≈ÇƒÖczenia segment√≥w naprƒô≈ºania mo≈ºe byƒá wpisywanie
+nazw przƒôse≈Ç jako "parallel", co mo≈ºe byƒá uciƒÖ≈ºliwe dla autor√≥w scenerii.
+W skrajnych przƒôs≈Çach nale≈ºa≈Çoby dodatkowo wpisaƒá nazwƒô zasilacza, bƒôdzie
+to jednocze≈õnie wskazanie przƒôs≈Ça, do kt√≥rego pod≈ÇƒÖczone sƒÖ przewody
+zasilajƒÖce. Konieczne jest odr√≥≈ºnienie nazwy sekcji od nazwy zasilacza, co
+mo≈ºna uzyskaƒá r√≥≈ºnicujƒÖc ich nazwy albo np. specyficznie ustawiajƒÖc warto≈õƒá
+prƒÖdu albo napiƒôcia przƒôs≈Ça.
+6. Je≈õli dany segment naprƒô≈ºania jest wsp√≥lny dla dw√≥ch sekcji zasilania,
+to jedno z przƒôse≈Ç musi mieƒá nazwƒô "*" (gwiazdka), co bƒôdzie oznacza≈Ço, ≈ºe
+ma zamontowany izolator. Dla uzyskania efekt√≥w typu ≈Çuk elektryczny, nale≈ºa≈Ço
+by wskazaƒá po≈Ço≈ºenie izolatora i jego d≈Çugo≈õƒá (ew. typ).
+7. R√≥wnie≈º w parametrach zasilacza nale≈ºa≈Ço by okre≈õliƒá, czy jest podstacjƒÖ,
+czy jedynie kabinƒÖ sekcyjnƒÖ. R√≥≈ºniƒá siƒô one bƒôdƒÖ fizykƒÖ dzia≈Çania.
+8. Dla zbudowanej topologii sekcji i zasilaczy nale≈ºa≈Ço by zbudowaƒá dynamiczny
+schemat zastƒôpczy. Dynamika polega na wy≈ÇƒÖczaniu sekcji ze zwarciem oraz
+przeciƒÖ≈ºonych podstacji. Musi byƒá te≈º mo≈ºliwo≈õƒá wy≈ÇƒÖczenia sekcji albo
+podstacji za pomocƒÖ eventu.
+9. Dla ka≈ºdej sekcji musi byƒá tworzony obiekt, wskazujƒÖcy na podstacje
+zasilajƒÖce na ko≈Ñcach, stan w≈ÇƒÖczenia, zwarcia, przepiƒôcia. Do tego obiektu
+musi wskazywaƒá ka≈ºde przƒôs≈Ço z aktywnym zasilaniem.
 
           z.1                  z.2             z.3
    -=-a---1*1---c-=---c---=-c--2*2--e---=---e-3-*-3--g-=-
@@ -84,492 +79,214 @@ musi wskazywaÊ kaøde przÍs≥o z aktywnym zasilaniem.
 
    nazwy sekcji (@): a,b,c,d,e,f,g,h
    nazwy zasilaczy (#): 1,2,3
-   przÍs≥o z izolatorem: *
-   przÍs≥a bez wskazania nazwy sekcji/zasilacza: -
-   segment naprÍzania: =-x-=
-   segment naprÍøania z izolatorem: =---@---#*#---@---=
-   segment naprÍøania bez izolatora: =--------@------=
+   przƒôs≈Ço z izolatorem: *
+   przƒôs≈Ça bez wskazania nazwy sekcji/zasilacza: -
+   segment naprƒôzania: =-x-=
+   segment naprƒô≈ºania z izolatorem: =---@---#*#---@---=
+   segment naprƒô≈ºania bez izolatora: =--------@------=
 
-Obecnie brak nazwy sekcji nie jest akceptowany i kaøde przÍs≥o musi mieÊ wpisanπ
-jawnie nazwÍ sekcji, ewentualnie nazwÍ zasilacza (zostanie zastπpiona wskazaniem
-sekcji z sπsiedniego przÍs≥a).
+Obecnie brak nazwy sekcji nie jest akceptowany i ka≈ºde przƒôs≈Ço musi mieƒá wpisanƒÖ
+jawnie nazwƒô sekcji, ewentualnie nazwƒô zasilacza (zostanie zastƒÖpiona wskazaniem
+sekcji z sƒÖsiedniego przƒôs≈Ça).
 */
 
-TTraction::TTraction()
-{
-    pPoint1 = pPoint2 = pPoint3 = pPoint4 = vector3(0, 0, 0);
-    // vFront=vector3(0,0,1);
-    // vUp=vector3(0,1,0);
-    // vLeft=vector3(1,0,0);
-    fHeightDifference = 0;
-    iNumSections = 0;
-    iLines = 0;
-    //    dwFlags= 0;
-    Wires = 2;
-    //    fU=fR= 0;
-    uiDisplayList = 0;
-    asPowerSupplyName = "";
-    //    mdPole= NULL;
-    //    ReplacableSkinID= 0;
-    hvNext[0] = hvNext[1] = NULL;
-    iLast = 1; //øe niby ostatni drut
-    psPowered = psPower[0] = psPower[1] = NULL; // na poczπtku zasilanie nie pod≥πczone
-    psSection = NULL; // na poczπtku nie pod≥πczone
-    hvParallel = NULL; // normalnie brak bieøni wspÛlnej
-    fResistance[0] = fResistance[1] = -1.0; // trzeba dopiero policzyÊ
-    iTries = 0; // ile razy prÛbowaÊ pod≥πczyÊ, ustawiane pÛüniej
-}
+std::size_t
+TTraction::create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin ) {
 
-TTraction::~TTraction()
-{
-    if (!Global::bUseVBO)
-        glDeleteLists(uiDisplayList, 1);
-}
-
-void TTraction::Optimize()
-{
-    if (Global::bUseVBO)
-        return;
-    uiDisplayList = glGenLists(1);
-    glNewList(uiDisplayList, GL_COMPILE);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    //    glColor3ub(0,0,0); McZapkie: to do render
-
-    //    glPushMatrix();
-    //    glTranslatef(pPosition.x,pPosition.y,pPosition.z);
-
-    if (Wires != 0)
-    {
-        // Dlugosc odcinka trakcji 'Winger
-        double ddp = hypot(pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z);
-
-        if (Wires == 2)
-            WireOffset = 0;
-        // Przewoz jezdny 1 'Marcin
-        glBegin(GL_LINE_STRIP);
-        glVertex3f(pPoint1.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pPoint1.y,
-                   pPoint1.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
-        glVertex3f(pPoint2.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pPoint2.y,
-                   pPoint2.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
-        glEnd();
-        // Nie wiem co 'Marcin
-        vector3 pt1, pt2, pt3, pt4, v1, v2;
-        v1 = pPoint4 - pPoint3;
-        v2 = pPoint2 - pPoint1;
-        float step = 0;
-        if (iNumSections > 0)
-            step = 1.0f / (float)iNumSections;
-        float f = step;
-        float mid = 0.5;
-        float t;
-
-        // Przewod nosny 'Marcin
-        if (Wires != 1)
-        {
-            glBegin(GL_LINE_STRIP);
-            glVertex3f(pPoint3.x, pPoint3.y, pPoint3.z);
-            for (int i = 0; i < iNumSections - 1; i++)
-            {
-                pt3 = pPoint3 + v1 * f;
-                t = (1 - fabs(f - mid) * 2);
-                if ((Wires < 4) || ((i != 0) && (i != iNumSections - 2)))
-                    glVertex3f(pt3.x, pt3.y - sqrt(t) * fHeightDifference, pt3.z);
-                f += step;
-            }
-            glVertex3f(pPoint4.x, pPoint4.y, pPoint4.z);
-            glEnd();
-        }
-
-        // Drugi przewod jezdny 'Winger
-        if (Wires > 2)
-        {
-            glBegin(GL_LINE_STRIP);
-            glVertex3f(pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pPoint1.y,
-                       pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
-            glVertex3f(pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pPoint2.y,
-                       pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
-            glEnd();
-        }
-
-        f = step;
-
-        if (Wires == 4)
-        {
-            glBegin(GL_LINE_STRIP);
-            glVertex3f(pPoint3.x, pPoint3.y - 0.65f * fHeightDifference, pPoint3.z);
-            for (int i = 0; i < iNumSections - 1; i++)
-            {
-                pt3 = pPoint3 + v1 * f;
-                t = (1 - fabs(f - mid) * 2);
-                glVertex3f(
-                    pt3.x,
-                    pt3.y - sqrt(t) * fHeightDifference -
-                        ((i == 0) || (i == iNumSections - 2) ? 0.25f * fHeightDifference : +0.05),
-                    pt3.z);
-                f += step;
-            }
-            glVertex3f(pPoint4.x, pPoint4.y - 0.65f * fHeightDifference, pPoint4.z);
-            glEnd();
-        }
-
-        f = step;
-
-        // Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
-        if (Wires != 1)
-        {
-            glBegin(GL_LINES);
-            for (int i = 0; i < iNumSections - 1; i++)
-            {
-                float flo, flo1;
-                flo = (Wires == 4 ? 0.25f * fHeightDifference : 0);
-                flo1 = (Wires == 4 ? +0.05 : 0);
-                pt3 = pPoint3 + v1 * f;
-                pt4 = pPoint1 + v2 * f;
-                t = (1 - fabs(f - mid) * 2);
-                if ((i % 2) == 0)
-                {
-                    glVertex3f(pt3.x, pt3.y - sqrt(t) * fHeightDifference -
-                                          ((i == 0) || (i == iNumSections - 2) ? flo : flo1),
-                               pt3.z);
-                    glVertex3f(pt4.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pt4.y,
-                               pt4.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
-                }
-                else
-                {
-                    glVertex3f(pt3.x, pt3.y - sqrt(t) * fHeightDifference -
-                                          ((i == 0) || (i == iNumSections - 2) ? flo : flo1),
-                               pt3.z);
-                    glVertex3f(pt4.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset, pt4.y,
-                               pt4.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset);
-                }
-                if ((Wires == 4) && ((i == 1) || (i == iNumSections - 3)))
-                {
-                    glVertex3f(pt3.x, pt3.y - sqrt(t) * fHeightDifference - 0.05, pt3.z);
-                    glVertex3f(pt3.x, pt3.y - sqrt(t) * fHeightDifference, pt3.z);
-                }
-                // endif;
-                f += step;
-            }
-            glEnd();
-        }
-        glEndList();
+    if( m_geometry != NULL ) {
+        return GfxRenderer.Vertices( m_geometry ).size() / 2;
     }
-}
-/*
-void TTraction::InitCenter(vector3 Angles, vector3 pOrigin)
-{
-    pPosition= (pPoint2+pPoint1)*0.5f;
-    fSquaredRadius= SquareMagnitude((pPoint2-pPoint1)*0.5f);
-} */
 
-void TTraction::RenderDL(float mgn) // McZapkie: mgn to odleglosc od obserwatora
-{
-    // McZapkie: ustalanie przezroczystosci i koloru linii:
-    if (Wires != 0 && !TestFlag(DamageFlag, 128)) // rysuj jesli sa druty i nie zerwana
-    {
-        // glDisable(GL_LIGHTING); //aby nie uøywa≥o wektorÛw normalnych do kolorowania
-        glColor4f(0, 0, 0, 1); // jak nieznany kolor to czarne nieprzezroczyste
-        if (!Global::bSmoothTraction)
-            glDisable(GL_LINE_SMOOTH); // na liniach kiepsko wyglπda - robi gradient
-        float linealpha = 5000 * WireThickness / (mgn + 1.0); //*WireThickness
-        if (linealpha > 1.2)
-            linealpha = 1.2; // zbyt grube nie sπ dobre
-        glLineWidth(linealpha);
-        if (linealpha > 1.0)
-            linealpha = 1.0;
-        // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-        float r, g, b;
-        switch (Material)
-        { // Ra: kolory podzieli≥em przez 2, bo po zmianie ambient za jasne by≥y
-        // trzeba uwzglÍdniÊ kierunek úwiecenia S≥oÒca - tylko ze S≥oÒcem widaÊ kolor
-        case 1:
-            if (TestFlag(DamageFlag, 1))
-            {
-                r = 0.00000;
-                g = 0.32549;
-                b = 0.2882353; // zielona miedü
-            }
-            else
-            {
-                r = 0.35098;
-                g = 0.22549;
-                b = 0.1; // czerwona miedü
-            }
-            break;
-        case 2:
-            if (TestFlag(DamageFlag, 1))
-            {
-                r = 0.10;
-                g = 0.10;
-                b = 0.10; // czarne Al
-            }
-            else
-            {
-                r = 0.25;
-                g = 0.25;
-                b = 0.25; // srebrne Al
-            }
-            break;
-        // tymczasowo pokazanie zasilanych odcinkÛw
-        case 4:
-            r = 0.5;
-            g = 0.5;
-            b = 1.0;
-            break; // niebieskie z pod≥πczonym zasilaniem
-        case 5:
-            r = 1.0;
-            g = 0.0;
-            b = 0.0;
-            break; // czerwone z pod≥πczonym zasilaniem 1
-        case 6:
-            r = 0.0;
-            g = 1.0;
-            b = 0.0;
-            break; // zielone z pod≥πczonym zasilaniem 2
-        case 7:
-            r = 1.0;
-            g = 1.0;
-            b = 0.0;
-            break; //øÛ≥te z pod≥πczonym zasilaniem z obu stron
-        }
-        if (DebugModeFlag)
-            if (hvParallel)
-            { // jeúli z bieøniπ wspÛlnπ, to dodatkowo przyciemniamy
-                r *= 0.6;
-                g *= 0.6;
-                b *= 0.6;
-            }
-        r *= Global::ambientDayLight[0]; // w zaleünoúci od koloru swiat≥a
-        g *= Global::ambientDayLight[1];
-        b *= Global::ambientDayLight[2];
-        if (linealpha > 1.0)
-            linealpha = 1.0; // trzeba ograniczyÊ do <=1
-        glColor4f(r, g, b, linealpha);
-        if (!uiDisplayList)
-            Optimize(); // generowanie DL w miarÍ potrzeby
-        glCallList(uiDisplayList);
-        glLineWidth(1.0);
-        glEnable(GL_LINE_SMOOTH);
-        // glEnable(GL_LIGHTING); //bez tego siÍ modele nie oúwietlajπ
-    }
-}
+    vertex_array vertices;
 
-int TTraction::RaArrayPrepare()
-{ // przygotowanie tablic do skopiowania do VBO (zliczanie wierzcho≥kÛw)
-    // if (bVisible) //o ile w ogÛle widaÊ
-    switch (Wires)
-    {
-    case 1:
-        iLines = 2;
-        break;
-    case 2:
-        iLines = iNumSections ? 4 * (iNumSections)-2 + 2 : 4;
-        break;
-    case 3:
-        iLines = iNumSections ? 4 * (iNumSections)-2 + 4 : 6;
-        break;
-    case 4:
-        iLines = iNumSections ? 4 * (iNumSections)-2 + 6 : 8;
-        break;
-    default:
-        iLines = 0;
-    }
-    // else iLines=0;
-    return iLines;
-};
-
-void TTraction::RaArrayFill(CVertNormTex *Vert)
-{ // wype≥nianie tablic VBO
-    CVertNormTex *old = Vert;
-    double ddp = hypot(pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z);
-    if (Wires == 2)
+    double ddp = std::hypot( pPoint2.x - pPoint1.x, pPoint2.z - pPoint1.z );
+    if( Wires == 2 )
         WireOffset = 0;
     // jezdny
-    Vert->x = pPoint1.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-    Vert->y = pPoint1.y;
-    Vert->z = pPoint1.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
-    ++Vert;
-    Vert->x = pPoint2.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-    Vert->y = pPoint2.y;
-    Vert->z = pPoint2.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
-    ++Vert;
+    basic_vertex startvertex, endvertex;
+    startvertex.position =
+        glm::vec3(
+            pPoint1.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+            pPoint1.y - Origin.y,
+            pPoint1.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+    endvertex.position =
+        glm::vec3(
+            pPoint2.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+            pPoint2.y - Origin.y,
+            pPoint2.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+    vertices.emplace_back( startvertex );
+    vertices.emplace_back( endvertex );
     // Nie wiem co 'Marcin
-    vector3 pt1, pt2, pt3, pt4, v1, v2;
+    glm::dvec3 pt1, pt2, pt3, pt4, v1, v2;
     v1 = pPoint4 - pPoint3;
     v2 = pPoint2 - pPoint1;
     float step = 0;
-    if (iNumSections > 0)
+    if( iNumSections > 0 )
         step = 1.0f / (float)iNumSections;
-    float f = step;
+    double f = step;
     float mid = 0.5;
     float t;
     // Przewod nosny 'Marcin
-    if (Wires > 1)
-    { // lina noúna w kawa≥kach
-        Vert->x = pPoint3.x;
-        Vert->y = pPoint3.y;
-        Vert->z = pPoint3.z;
-        ++Vert;
-        for (int i = 0; i < iNumSections - 1; i++)
-        {
+    if( Wires > 1 ) { // lina no≈õna w kawa≈Çkach
+        startvertex.position =
+            glm::vec3(
+                pPoint3.x - Origin.x,
+                pPoint3.y - Origin.y,
+                pPoint3.z - Origin.z );
+        for( int i = 0; i < iNumSections - 1; ++i ) {
             pt3 = pPoint3 + v1 * f;
-            t = (1 - fabs(f - mid) * 2);
-            Vert->x = pt3.x;
-            Vert->y = pt3.y - sqrt(t) * fHeightDifference;
-            Vert->z = pt3.z;
-            ++Vert;
-            Vert->x = pt3.x; // drugi raz, bo nie jest line_strip
-            Vert->y = pt3.y - sqrt(t) * fHeightDifference;
-            Vert->z = pt3.z;
-            ++Vert;
+            t = ( 1 - std::fabs( f - mid ) * 2 );
+            if( ( Wires < 4 )
+             || ( ( i != 0 )
+               && ( i != iNumSections - 2 ) ) ) {
+                endvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y,
+                        pt3.z - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
+                startvertex = endvertex;
+            }
             f += step;
         }
-        Vert->x = pPoint4.x;
-        Vert->y = pPoint4.y;
-        Vert->z = pPoint4.z;
-        ++Vert;
+        endvertex.position =
+            glm::vec3(
+                pPoint4.x - Origin.x,
+                pPoint4.y - Origin.y,
+                pPoint4.z - Origin.z );
+        vertices.emplace_back( startvertex );
+        vertices.emplace_back( endvertex );
     }
     // Drugi przewod jezdny 'Winger
-    if (Wires == 3)
-    {
-        Vert->x = pPoint1.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-        Vert->y = pPoint1.y;
-        Vert->z = pPoint1.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
-        ++Vert;
-        Vert->x = pPoint2.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-        Vert->y = pPoint2.y;
-        Vert->z = pPoint2.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
-        ++Vert;
+    if( Wires > 2 ) {
+        startvertex.position =
+            glm::vec3(
+                pPoint1.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                pPoint1.y - Origin.y,
+                pPoint1.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+        endvertex.position =
+            glm::vec3(
+                pPoint2.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                pPoint2.y - Origin.y,
+                pPoint2.z + ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+        vertices.emplace_back( startvertex );
+        vertices.emplace_back( endvertex );
+    }
+
+    f = step;
+
+    if( Wires == 4 ) {
+        startvertex.position =
+            glm::vec3(
+                pPoint3.x - Origin.x,
+                pPoint3.y - 0.65f * fHeightDifference - Origin.y,
+                pPoint3.z - Origin.z );
+        for( int i = 0; i < iNumSections - 1; ++i ) {
+            pt3 = pPoint3 + v1 * f;
+            t = ( 1 - std::fabs( f - mid ) * 2 );
+            endvertex.position =
+                glm::vec3(
+                    pt3.x - Origin.x,
+                    pt3.y - std::sqrt( t ) * fHeightDifference - (
+                        ( ( i == 0 )
+                       || ( i == iNumSections - 2 ) ) ?
+                            0.25f * fHeightDifference :
+                            0.05 )
+                        - Origin.y,
+                    pt3.z - Origin.z );
+            vertices.emplace_back( startvertex );
+            vertices.emplace_back( endvertex );
+            startvertex = endvertex;
+            f += step;
+        }
+        endvertex.position =
+            glm::vec3(
+                pPoint4.x - Origin.x,
+                pPoint4.y - 0.65f * fHeightDifference - Origin.y,
+                pPoint4.z - Origin.z );
+        vertices.emplace_back( startvertex );
+        vertices.emplace_back( endvertex );
     }
     f = step;
+
     // Przewody pionowe (wieszaki) 'Marcin, poprawki na 2 przewody jezdne 'Winger
-    if (Wires > 1)
-    {
-        for (int i = 0; i < iNumSections - 1; i++)
-        {
+    if( Wires > 1 ) {
+        for( int i = 0; i < iNumSections - 1; ++i ) {
+            float flo, flo1;
+            flo = ( Wires == 4 ? 0.25f * fHeightDifference : 0 );
+            flo1 = ( Wires == 4 ? +0.05 : 0 );
             pt3 = pPoint3 + v1 * f;
             pt4 = pPoint1 + v2 * f;
-            t = (1 - fabs(f - mid) * 2);
-            Vert->x = pt3.x;
-            Vert->y = pt3.y - sqrt(t) * fHeightDifference;
-            Vert->z = pt3.z;
-            ++Vert;
-            if ((i % 2) == 0)
-            {
-                Vert->x = pt4.x - (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-                Vert->y = pt4.y;
-                Vert->z = pt4.z - (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
+            t = ( 1 - std::fabs( f - mid ) * 2 );
+
+            if( ( i % 2 ) == 0 ) {
+                startvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y,
+                        pt3.z - Origin.z );
+                endvertex.position =
+                    glm::vec3(
+                        pt4.x - ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                        pt4.y - Origin.y,
+                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
             }
-            else
-            {
-                Vert->x = pt4.x + (pPoint2.z / ddp - pPoint1.z / ddp) * WireOffset;
-                Vert->y = pt4.y;
-                Vert->z = pt4.z + (-pPoint2.x / ddp + pPoint1.x / ddp) * WireOffset;
+            else {
+                startvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - ( ( i == 0 ) || ( i == iNumSections - 2 ) ? flo : flo1 ) - Origin.y,
+                        pt3.z - Origin.z );
+                endvertex.position =
+                    glm::vec3(
+                        pt4.x + ( pPoint2.z / ddp - pPoint1.z / ddp ) * WireOffset - Origin.x,
+                        pt4.y - Origin.y,
+                        pt4.z - ( -pPoint2.x / ddp + pPoint1.x / ddp ) * WireOffset - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
             }
-            ++Vert;
+            if( ( ( Wires == 4 )
+             && ( ( i == 1 )
+               || ( i == iNumSections - 3 ) ) ) ) {
+                startvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - 0.05 - Origin.y,
+                        pt3.z - Origin.z );
+                endvertex.position =
+                    glm::vec3(
+                        pt3.x - Origin.x,
+                        pt3.y - std::sqrt( t ) * fHeightDifference - Origin.y,
+                        pt3.z - Origin.z );
+                vertices.emplace_back( startvertex );
+                vertices.emplace_back( endvertex );
+            }
             f += step;
         }
     }
-    if ((Vert - old) != iLines)
-        WriteLog("!!! Wygenerowano punktÛw " + AnsiString(Vert - old) + ", powinno byÊ " +
-                 AnsiString(iLines));
-};
 
-void TTraction::RenderVBO(float mgn, int iPtr)
-{ // renderowanie z uøyciem VBO
-    if (Wires != 0 && !TestFlag(DamageFlag, 128)) // rysuj jesli sa druty i nie zerwana
-    {
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_LIGHTING); // aby nie uøywa≥o wektorÛw normalnych do kolorowania
-        glColor4f(0, 0, 0, 1); // jak nieznany kolor to czarne nieprzezroczyste
-        if (!Global::bSmoothTraction)
-            glDisable(GL_LINE_SMOOTH); // na liniach kiepsko wyglπda - robi gradient
-        float linealpha = 5000 * WireThickness / (mgn + 1.0); //*WireThickness
-        if (linealpha > 1.2)
-            linealpha = 1.2; // zbyt grube nie sπ dobre
-        glLineWidth(linealpha);
-        // McZapkie-261102: kolor zalezy od materialu i zasniedzenia
-        float r, g, b;
-        switch (Material)
-        { // Ra: kolory podzieli≥em przez 2, bo po zmianie ambient za jasne by≥y
-        // trzeba uwzglÍdniÊ kierunek úwiecenia S≥oÒca - tylko ze S≥oÒcem widaÊ kolor
-        case 1:
-            if (TestFlag(DamageFlag, 1))
-            {
-                r = 0.00000;
-                g = 0.32549;
-                b = 0.2882353; // zielona miedü
-            }
-            else
-            {
-                r = 0.35098;
-                g = 0.22549;
-                b = 0.1; // czerwona miedü
-            }
-            break;
-        case 2:
-            if (TestFlag(DamageFlag, 1))
-            {
-                r = 0.10;
-                g = 0.10;
-                b = 0.10; // czarne Al
-            }
-            else
-            {
-                r = 0.25;
-                g = 0.25;
-                b = 0.25; // srebrne Al
-            }
-            break;
-        // tymczasowo pokazanie zasilanych odcinkÛw
-        case 4:
-            r = 0.5;
-            g = 0.5;
-            b = 1.0;
-            break; // niebieskie z pod≥πczonym zasilaniem
-        case 5:
-            r = 1.0;
-            g = 0.0;
-            b = 0.0;
-            break; // czerwone z pod≥πczonym zasilaniem 1
-        case 6:
-            r = 0.0;
-            g = 1.0;
-            b = 0.0;
-            break; // zielone z pod≥πczonym zasilaniem 2
-        case 7:
-            r = 1.0;
-            g = 1.0;
-            b = 0.0;
-            break; //øÛ≥te z pod≥πczonym zasilaniem z obu stron
-        }
-        r = r * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-        g = g * Global::ambientDayLight[1];
-        b = b * Global::ambientDayLight[2];
-        if (linealpha > 1.0)
-            linealpha = 1.0; // trzeba ograniczyÊ do <=1
-        glColor4f(r, g, b, linealpha);
-        glDrawArrays(GL_LINES, iPtr, iLines);
-        glLineWidth(1.0);
-        glEnable(GL_LINE_SMOOTH);
-        glEnable(GL_LIGHTING); // bez tego siÍ modele nie oúwietlajπ
-    }
-};
+    auto const elementcount = vertices.size() / 2;
+    m_geometry = GfxRenderer.Insert( vertices, Bank, GL_LINES );
 
-int TTraction::TestPoint(vector3 *Point)
-{ // sprawdzanie, czy przÍs≥a moøna po≥πczyÊ
+    return elementcount;
+}
+
+int TTraction::TestPoint(glm::dvec3 const &Point)
+{ // sprawdzanie, czy przƒôs≈Ça mo≈ºna po≈ÇƒÖczyƒá
     if (!hvNext[0])
-        if (pPoint1.Equal(Point))
+        if( glm::all( glm::epsilonEqual( Point, pPoint1, 0.025 ) ) )
             return 0;
     if (!hvNext[1])
-        if (pPoint2.Equal(Point))
+        if( glm::all( glm::epsilonEqual( Point, pPoint2, 0.025 ) ) )
             return 1;
     return -1;
 };
 
 void TTraction::Connect(int my, TTraction *with, int to)
-{ //≥πczenie segmentu (with) od strony (my) do jego (to)
+{ //≈ÇƒÖczenie segmentu (with) od strony (my) do jego (to)
     if (my)
     { // do mojego Point2
         hvNext[1] = with;
@@ -590,118 +307,120 @@ void TTraction::Connect(int my, TTraction *with, int to)
         with->hvNext[0] = this;
         with->iNext[0] = my;
     }
-    if (hvNext[0]) // jeúli z obu stron pod≥πczony
+    if (hvNext[0]) // je≈õli z obu stron pod≈ÇƒÖczony
         if (hvNext[1])
             iLast = 0; // to nie jest ostatnim
-    if (with->hvNext[0]) // temu teø, bo drugi raz ≥πczenie siÍ nie nie wykona
+    if (with->hvNext[0]) // temu te≈º, bo drugi raz ≈ÇƒÖczenie siƒô nie nie wykona
         if (with->hvNext[1])
             with->iLast = 0; // to nie jest ostatnim
 };
 
 bool TTraction::WhereIs()
-{ // ustalenie przedostatnich przÍse≥
+{ // ustalenie przedostatnich przƒôse≈Ç
     if (iLast)
-        return (iLast == 1); // ma juø ustalonπ informacjÍ o po≥oøeniu
-    if (hvNext[0] ? hvNext[0]->iLast == 1 : false) // jeúli poprzedni jest ostatnim
+        return (iLast == 1); // ma ju≈º ustalonƒÖ informacjƒô o po≈Ço≈ºeniu
+    if (hvNext[0] ? hvNext[0]->iLast == 1 : false) // je≈õli poprzedni jest ostatnim
         iLast = 2; // jest przedostatnim
-    else if (hvNext[1] ? hvNext[1]->iLast == 1 : false) // jeúli nastÍpny jest ostatnim
+    else if (hvNext[1] ? hvNext[1]->iLast == 1 : false) // je≈õli nastƒôpny jest ostatnim
         iLast = 2; // jest przedostatnim
-    return (iLast == 1); // ostatnie bÍdπ dostawaÊ zasilanie
+    return (iLast == 1); // ostatnie bƒôdƒÖ dostawaƒá zasilanie
 };
 
 void TTraction::Init()
-{ // przeliczenie parametrÛw
-    vParametric = pPoint2 - pPoint1; // wektor mnoønikÛw parametru dla rÛwnania parametrycznego
+{ // przeliczenie parametr√≥w
+    vParametric = pPoint2 - pPoint1; // wektor mno≈ºnik√≥w parametru dla r√≥wnania parametrycznego
 };
 
 void TTraction::ResistanceCalc(int d, double r, TTractionPowerSource *ps)
-{ //(this) jest przÍs≥em zasilanym, o rezystancji (r), policzyÊ rezystancjÍ zastÍpczπ sπsiednich
+{ //(this) jest przƒôs≈Çem zasilanym, o rezystancji (r), policzyƒá rezystancjƒô zastƒôpczƒÖ sƒÖsiednich
     if (d >= 0)
-    { // podπøanie we wskazanym kierunku
+    { // podƒÖ≈ºanie we wskazanym kierunku
         TTraction *t = hvNext[d], *p;
         if (ps)
-            psPower[d ^ 1] = ps; // pod≥πczenie podanego
+            psPower[d ^ 1] = ps; // pod≈ÇƒÖczenie podanego
         else
-            ps = psPower[d ^ 1]; // zasilacz od przeciwnej strony niø idzie analiza
+            ps = psPower[d ^ 1]; // zasilacz od przeciwnej strony ni≈º idzie analiza
         d = iNext[d]; // kierunek
-        // double r; //sumaryczna rezystancja
-        if (DebugModeFlag) // tylko podczas testÛw
-            Material = 4; // pokazanie, øe to przÍs≥o ma pod≥πczone zasilanie
-        while (t ? !t->psPower[d] : false) // jeúli jest jakiú kolejny i nie ma ustalonego zasilacza
-        { // ustawienie zasilacza i policzenie rezystancji zastÍpczej
-            if (DebugModeFlag) // tylko podczas testÛw
-                if (t->Material != 4) // przÍs≥a zasilajπcego nie modyfikowaÊ
-                {
-                    if (t->Material < 4)
-                        t->Material = 4; // tymczasowo, aby zmieni≥a kolor
-                    t->Material |= d ? 2 : 1; // kolor zaleøny od strony, z ktÛrej jest zasilanie
+        PowerState = 4;
+        while( ( t != nullptr )
+            && ( t->psPower[d] == nullptr ) ) // je≈õli jest jaki≈õ kolejny i nie ma ustalonego zasilacza
+        { // ustawienie zasilacza i policzenie rezystancji zastƒôpczej
+            if( t->PowerState != 4 ) {
+                // przƒôs≈Ça zasilajƒÖcego nie modyfikowaƒá
+                if( t->psPowered != nullptr ) {
+
+                    t->PowerState = 4;
                 }
-            t->psPower[d] = ps; // skopiowanie wskaünika zasilacza od danej strony
+                else {
+                    // kolor zale≈ºny od strony, z kt√≥rej jest zasilanie
+                    t->PowerState |= d ? 2 : 1;
+                }
+            }
+            t->psPower[d] = ps; // skopiowanie wska≈∫nika zasilacza od danej strony
             t->fResistance[d] = r; // wpisanie rezystancji w kierunku tego zasilacza
-            r += t->fResistivity * Length3(t->vParametric); // doliczenie oporu kolejnego odcinka
-            p = t; // zapamiÍtanie dotychczasowego
-            t = p->hvNext[d ^ 1]; // podπøanie w tÍ samπ stronÍ
+            r += t->fResistivity * glm::length(t->vParametric); // doliczenie oporu kolejnego odcinka
+            p = t; // zapamiƒôtanie dotychczasowego
+            t = p->hvNext[d ^ 1]; // podƒÖ≈ºanie w tƒô samƒÖ stronƒô
             d = p->iNext[d ^ 1];
-            // w przypadku zapÍtlenia sieci moøe siÍ zawiesiÊ?
+            // w przypadku zapƒôtlenia sieci mo≈ºe siƒô zawiesiƒá?
         }
     }
     else
-    { // podπøanie w obu kierunkach, moøna by rekurencjπ, ale szkoda zasobÛw
-        r = 0.5 * fResistivity *
-            Length3(vParametric); // powiedzmy, øe w zasilanym przÍúle jest po≥owa
+    { // podƒÖ≈ºanie w obu kierunkach, mo≈ºna by rekurencjƒÖ, ale szkoda zasob√≥w
+        r = 0.5 * fResistivity * glm::length(vParametric); // powiedzmy, ≈ºe w zasilanym przƒô≈õle jest po≈Çowa
         if (fResistance[0] == 0.0)
-            ResistanceCalc(0, r); // do ty≥u (w stronÍ Point1)
+            ResistanceCalc(0, r); // do ty≈Çu (w stronƒô Point1)
         if (fResistance[1] == 0.0)
-            ResistanceCalc(1, r); // do przodu (w stronÍ Point2)
+            ResistanceCalc(1, r); // do przodu (w stronƒô Point2)
     }
 };
 
 void TTraction::PowerSet(TTractionPowerSource *ps)
-{ // pod≥πczenie przÍs≥a do zasilacza
+{ // pod≈ÇƒÖczenie przƒôs≈Ça do zasilacza
     if (ps->bSection)
         psSection = ps; // ustalenie sekcji zasilania
     else
-    { // ustalenie punktu zasilania (nie ma jeszcze po≥πczeÒ miÍdzy przÍs≥ami)
-        psPowered = ps; // ustawienie bezpoúredniego zasilania dla przÍs≥a
-        psPower[0] = psPower[1] = ps; // a to chyba nie jest dobry pomys≥, bo nawet zasilane przÍs≥o
-        // powinno mieÊ wskazania na inne
-        fResistance[0] = fResistance[1] = 0.0; // a liczy siÍ tylko rezystancja zasilacza
+    { // ustalenie punktu zasilania (nie ma jeszcze po≈ÇƒÖcze≈Ñ miƒôdzy przƒôs≈Çami)
+        psPowered = ps; // ustawienie bezpo≈õredniego zasilania dla przƒôs≈Ça
+        psPower[0] = psPower[1] = ps; // a to chyba nie jest dobry pomys≈Ç, bo nawet zasilane przƒôs≈Ço
+        // powinno mieƒá wskazania na inne
+        fResistance[0] = fResistance[1] = 0.0; // a liczy siƒô tylko rezystancja zasilacza
     }
 };
 
 double TTraction::VoltageGet(double u, double i)
-{ // pobranie napiÍcia na przÍúle po pod≥πczeniu do niego rezystancji (res) - na razie jest to prπd
+{ // pobranie napiƒôcia na przƒô≈õle po pod≈ÇƒÖczeniu do niego rezystancji (res) - na razie jest to prƒÖd
     if (!psSection)
         if (!psPowered)
-            return NominalVoltage; // jak nie ma zasilacza, to napiÍcie podane w przÍúle
-    // na poczπtek moøna za≥oøyÊ, øe wszystkie podstacje majπ to samo napiÍcie i nie p≥ynie prπd
-    // pomiÍdzy nimi
-    // dla danego przÍs≥a mamy 3 ürÛd≥a zasilania
-    // 1. zasilacz psPower[0] z rezystancjπ fResistance[0] oraz jego wewnÍtrznπ
-    // 2. zasilacz psPower[1] z rezystancjπ fResistance[1] oraz jego wewnÍtrznπ
-    // 3. zasilacz psPowered z jego wewnÍtrznπ rezystancjπ dla przÍse≥ zasilanych bezpoúrednio
+            return NominalVoltage; // jak nie ma zasilacza, to napiƒôcie podane w przƒô≈õle
+    // na poczƒÖtek mo≈ºna za≈Ço≈ºyƒá, ≈ºe wszystkie podstacje majƒÖ to samo napiƒôcie i nie p≈Çynie prƒÖd
+    // pomiƒôdzy nimi
+    // dla danego przƒôs≈Ça mamy 3 ≈∫r√≥d≈Ça zasilania
+    // 1. zasilacz psPower[0] z rezystancjƒÖ fResistance[0] oraz jego wewnƒôtrznƒÖ
+    // 2. zasilacz psPower[1] z rezystancjƒÖ fResistance[1] oraz jego wewnƒôtrznƒÖ
+    // 3. zasilacz psPowered z jego wewnƒôtrznƒÖ rezystancjƒÖ dla przƒôse≈Ç zasilanych bezpo≈õrednio
     double res = (i != 0.0) ? (u / i) : 10000.0;
     if (psPowered)
         return psPowered->CurrentGet(res) *
-               res; // yB: dla zasilanego nie baw siÍ w gwiazdy, tylko bierz bezpoúrednio
+               res; // yB: dla zasilanego nie baw siƒô w gwiazdy, tylko bierz bezpo≈õrednio
     double r0t, r1t, r0g, r1g;
-    double u0, u1, i0, i1;
-    r0t = fResistance[0]; //úredni pomys≥, ale lepsze niø nic
-    r1t = fResistance[1]; // bo nie uwzglÍdnia spadkÛw z innych pojazdÛw
+    double i0, i1;
+    r0t = fResistance[0]; //≈õredni pomys≈Ç, ale lepsze ni≈º nic
+    r1t = fResistance[1]; // bo nie uwzglƒôdnia spadk√≥w z innych pojazd√≥w
     if (psPower[0] && psPower[1])
-    { // gdy przÍs≥o jest zasilane z obu stron - mamy trÛjkπt: res, r0t, r1t
-        // yB: Gdy wywali podstacja, to zaczyna siÍ robiÊ nieciekawie - napiÍcie w sekcji na jednym
-        // koÒcu jest rÛwne zasilaniu,
-        // yB: a na drugim koÒcu jest rÛwne 0. Kolejna sprawa to rozrÛønienie uszynienia sieci na
-        // podstacji/od≥πczniku (czyli
-        // yB: potencja≥ masy na sieci) od braku zasilania (czyli od≥πczenie ürÛd≥a od sieci i brak
-        // jego wp≥ywu na napiÍcie).
+    { // gdy przƒôs≈Ço jest zasilane z obu stron - mamy tr√≥jkƒÖt: res, r0t, r1t
+        // yB: Gdy wywali podstacja, to zaczyna siƒô robiƒá nieciekawie - napiƒôcie w sekcji na jednym
+        // ko≈Ñcu jest r√≥wne zasilaniu,
+        // yB: a na drugim ko≈Ñcu jest r√≥wne 0. Kolejna sprawa to rozr√≥≈ºnienie uszynienia sieci na
+        // podstacji/od≈ÇƒÖczniku (czyli
+        // yB: potencja≈Ç masy na sieci) od braku zasilania (czyli od≈ÇƒÖczenie ≈∫r√≥d≈Ça od sieci i brak
+        // jego wp≈Çywu na napiƒôcie).
         if ((r0t > 0.0) && (r1t > 0.0))
-        { // rezystancje w mianowniku nie mogπ byÊ zerowe
-            r0g = res + r0t + (res * r0t) / r1t; // przeliczenie z trÛjkπta na gwiazdÍ
+        { // rezystancje w mianowniku nie mogƒÖ byƒá zerowe
+            r0g = res + r0t + (res * r0t) / r1t; // przeliczenie z tr√≥jkƒÖta na gwiazdƒô
             r1g = res + r1t + (res * r1t) / r0t;
-            // pobierane sπ prπdy dla kaødej rezystancji, a suma jest mnoøona przez rezystancjÍ
-            // pojazdu w celu uzyskania napiÍcia
+            // pobierane sƒÖ prƒÖdy dla ka≈ºdej rezystancji, a suma jest mno≈ºona przez rezystancjƒô
+            // pojazdu w celu uzyskania napiƒôcia
             i0 = psPower[0]->CurrentGet(r0g); // oddzielnie dla sprawdzenia
             i1 = psPower[1]->CurrentGet(r1g);
             return (i0 + i1) * res;
@@ -711,13 +430,96 @@ double TTraction::VoltageGet(double u, double i)
         else if (r1t >= 0.0)
             return psPower[1]->CurrentGet(res + r1t) * res;
         else
-            return 0.0; // co z tym zrobiÊ?
+            return 0.0; // co z tym zrobiƒá?
     }
     else if (psPower[0] && (r0t >= 0.0))
-    { // jeúli odcinek pod≥πczony jest tylko z jednej strony
+    { // je≈õli odcinek pod≈ÇƒÖczony jest tylko z jednej strony
         return psPower[0]->CurrentGet(res + r0t) * res;
     }
     else if (psPower[1] && (r1t >= 0.0))
         return psPower[1]->CurrentGet(res + r1t) * res;
-    return 0.0; // gdy nie pod≥πczony wcale?
+    return 0.0; // gdy nie pod≈ÇƒÖczony wcale?
 };
+
+glm::vec3
+TTraction::wire_color() const {
+
+    glm::vec3 color;
+    if( false == DebugModeFlag ) {
+        switch( Material ) { // Ra: kolory podzieli≈Çem przez 2, bo po zmianie ambient za jasne by≈Çy
+                             // trzeba uwzglƒôdniƒá kierunek ≈õwiecenia S≈Ço≈Ñca - tylko ze S≈Ço≈Ñcem widaƒá kolor
+            case 1: {
+                if( TestFlag( DamageFlag, 1 ) ) {
+                    color.r = 0.00000f;
+                    color.g = 0.32549f;
+                    color.b = 0.2882353f; // zielona mied≈∫
+                }
+                else {
+                    color.r = 0.35098f;
+                    color.g = 0.22549f;
+                    color.b = 0.1f; // czerwona mied≈∫
+                }
+                break;
+            }
+            case 2: {
+                if( TestFlag( DamageFlag, 1 ) ) {
+                    color.r = 0.10f;
+                    color.g = 0.10f;
+                    color.b = 0.10f; // czarne Al
+                }
+                else {
+                    color.r = 0.25f;
+                    color.g = 0.25f;
+                    color.b = 0.25f; // srebrne Al
+                }
+                break;
+            }
+            default: {break; }
+        }
+        // w zale≈∫no≈õci od koloru swiat≈Ça
+        color.r *= Global::DayLight.ambient[ 0 ];
+        color.g *= Global::DayLight.ambient[ 1 ];
+        color.b *= Global::DayLight.ambient[ 2 ];
+    }
+    else {
+        // tymczasowo pokazanie zasilanych odcink√≥w
+        switch( PowerState ) {
+
+            case 1: {
+                // czerwone z pod≈ÇƒÖczonym zasilaniem 1
+                color.r = 1.0f;
+                color.g = 0.0f;
+                color.b = 0.0f;
+                break;
+            }
+            case 2: {
+                // zielone z pod≈ÇƒÖczonym zasilaniem 2
+                color.r = 0.0f;
+                color.g = 1.0f;
+                color.b = 0.0f;
+                break;
+            }
+            case 3: {
+                //≈º√≥≈Çte z pod≈ÇƒÖczonym zasilaniem z obu stron
+                color.r = 1.0f;
+                color.g = 1.0f;
+                color.b = 0.0f;
+                break;
+            }
+            case 4: {
+                // niebieskie z pod≈ÇƒÖczonym zasilaniem
+                color.r = 0.5f;
+                color.g = 0.5f;
+                color.b = 1.0f;
+                break;
+            }
+            default: { break; }
+        }
+        if( hvParallel ) { // je≈õli z bie≈ºniƒÖ wsp√≥lnƒÖ, to dodatkowo przyciemniamy
+            color.r *= 0.6f;
+            color.g *= 0.6f;
+            color.b *= 0.6f;
+        }
+    }
+    return color;
+}

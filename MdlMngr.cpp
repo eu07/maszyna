@@ -13,22 +13,19 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#include "Texture.h"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "MdlMngr.h"
+
 #include "Globals.h"
+#include "Logs.h"
+#include "McZapkie/mctools.h"
 
-#define SeekFiles AnsiString("*.t3d")
+//#define SeekFiles std::string("*.t3d")
 
-TModel3d * TMdlContainer::LoadModel(char *newName, bool dynamic)
+TModel3d * TMdlContainer::LoadModel(std::string const &NewName, bool dynamic)
 { // wczytanie modelu do kontenerka
-    SafeDeleteArray(Name);
     SafeDelete(Model);
-    Name = new char[strlen(newName) + 1];
-    strcpy(Name, newName);
+	Name = NewName;
     Model = new TModel3d();
     if (!Model->LoadFromFile(Name, dynamic)) // np. "models\\pkp/head1-y.t3d"
         SafeDelete(Model);
@@ -37,7 +34,7 @@ TModel3d * TMdlContainer::LoadModel(char *newName, bool dynamic)
 
 TMdlContainer *TModelsManager::Models;
 int TModelsManager::Count;
-const MAX_MODELS = 1000;
+int const MAX_MODELS = 1000;
 
 void TModelsManager::Init()
 {
@@ -59,10 +56,11 @@ void TModelsManager::Init()
   */
 void TModelsManager::Free()
 {
-    SafeDeleteArray(Models);
+    delete[] Models;
+    Models = nullptr;
 }
 
-TModel3d * TModelsManager::LoadModel(char *Name, bool dynamic)
+TModel3d * TModelsManager::LoadModel(std::string const &Name, bool dynamic)
 { // wczytanie modelu do tablicy
     TModel3d *mdl = NULL;
     if (Count >= MAX_MODELS)
@@ -71,111 +69,111 @@ TModel3d * TModelsManager::LoadModel(char *Name, bool dynamic)
     {
         mdl = Models[Count].LoadModel(Name, dynamic);
         if (mdl)
-            Count++; // jeœli b³¹d wczytania modelu, to go nie wliczamy
+            Count++; // jeÅ›li bÅ‚Ä…d wczytania modelu, to go nie wliczamy
     }
     return mdl;
 }
 
-TModel3d * TModelsManager::GetModel(const char *Name, bool dynamic)
-{ // model mo¿e byæ we wpisie "node...model" albo "node...dynamic", a tak¿e byæ dodatkowym w dynamic
-    // (kabina, wnêtrze, ³adunek)
-    // dla "node...dynamic" mamy podan¹ œcie¿kê w "\dynamic\" i musi byæ co najmniej 1 poziom, zwkle
-    // s¹ 2
-    // dla "node...model" mo¿e byæ typowy model statyczny ze œcie¿k¹, domyœlnie w "\scenery\" albo
+TModel3d * TModelsManager::GetModel(std::string const &Name, bool dynamic)
+{ // model moÅ¼e byÄ‡ we wpisie "node...model" albo "node...dynamic", a takÅ¼e byÄ‡ dodatkowym w dynamic
+    // (kabina, wnÄ™trze, Å‚adunek)
+    // dla "node...dynamic" mamy podanÄ… Å›cieÅ¼kÄ™ w "\dynamic\" i musi byÄ‡ co najmniej 1 poziom, zwkle
+    // sÄ… 2
+    // dla "node...model" moÅ¼e byÄ‡ typowy model statyczny ze Å›cieÅ¼kÄ…, domyÅ›lnie w "\scenery\" albo
     // "\models"
-    // albo mo¿e byæ model z "\dynamic\", jeœli potrzebujemy wstawiæ auto czy wagon nieruchomo
-    // - ze œcie¿ki z której jest wywo³any, np. dir="scenery\bud\" albo dir="dynamic\pkp\st44_v1\"
+    // albo moÅ¼e byÄ‡ model z "\dynamic\", jeÅ›li potrzebujemy wstawiÄ‡ auto czy wagon nieruchomo
+    // - ze Å›cieÅ¼ki z ktÃ³rej jest wywoÅ‚any, np. dir="scenery\bud\" albo dir="dynamic\pkp\st44_v1\"
     // plus name="model.t3d"
-    // - z domyœlnej œcie¿ki dla modeli, np. "scenery\" albo "models\" plus name="bud\dombale.t3d"
+    // - z domyÅ›lnej Å›cieÅ¼ki dla modeli, np. "scenery\" albo "models\" plus name="bud\dombale.t3d"
     // (dir="")
-    // - konkretnie podanej œcie¿ki np. name="\scenery\bud\dombale.t3d" (dir="")
-    // wywo³ania:
-    // - konwersja wszystkiego do E3D, podawana dok³adna œcie¿ka, tekstury tam, gdzie plik
-    // - wczytanie kabiny, dok³adna œcie¿ka, tekstury z katalogu modelu
-    // - wczytanie ³adunku, œcie¿ka dok³adna, tekstury z katalogu modelu
-    // - wczytanie modelu, œcie¿ka dok³adna, tekstury z katalogu modelu
-    // - wczytanie przedsionków, œcie¿ka dok³adna, tekstury z katalogu modelu
-    // - wczytanie uproszczonego wnêtrza, œcie¿ka dok³adna, tekstury z katalogu modelu
-    // - niebo animowane, œcie¿ka brana ze wpisu, tekstury nieokreœlone
-    // - wczytanie modelu animowanego - Init() - sprawdziæ
-    char buf[255];
-    AnsiString buftp = Global::asCurrentTexturePath; // zapamiêtanie aktualnej œcie¿ki do tekstur,
-    // bo bêdzie tyczmasowo zmieniana
+    // - konkretnie podanej Å›cieÅ¼ki np. name="\scenery\bud\dombale.t3d" (dir="")
+    // wywoÅ‚ania:
+    // - konwersja wszystkiego do E3D, podawana dokÅ‚adna Å›cieÅ¼ka, tekstury tam, gdzie plik
+    // - wczytanie kabiny, dokÅ‚adna Å›cieÅ¼ka, tekstury z katalogu modelu
+    // - wczytanie Å‚adunku, Å›cieÅ¼ka dokÅ‚adna, tekstury z katalogu modelu
+    // - wczytanie modelu, Å›cieÅ¼ka dokÅ‚adna, tekstury z katalogu modelu
+    // - wczytanie przedsionkÃ³w, Å›cieÅ¼ka dokÅ‚adna, tekstury z katalogu modelu
+    // - wczytanie uproszczonego wnÄ™trza, Å›cieÅ¼ka dokÅ‚adna, tekstury z katalogu modelu
+    // - niebo animowane, Å›cieÅ¼ka brana ze wpisu, tekstury nieokreÅ›lone
+    // - wczytanie modelu animowanego - Init() - sprawdziÄ‡
+	std::string buf;
+    std::string buftp = Global::asCurrentTexturePath; // zapamiÄ™tanie aktualnej Å›cieÅ¼ki do tekstur,
+    // bo bÄ™dzie tyczmasowo zmieniana
     /*
-    // Ra: niby tak jest lepiej, ale dzia³a gorzej, wiêc przywrócone jest oryginalne
-     //nawet jeœli model bêdzie pobrany z tablicy, to trzeba ustaliæ œcie¿kê dla tekstur
-     if (dynamic) //na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
-     {//dla pojazdów podana jest zawsze pe³na œcie¿ka do modelu
+    // Ra: niby tak jest lepiej, ale dziaÅ‚a gorzej, wiÄ™c przywrÃ³cone jest oryginalne
+     //nawet jeÅ›li model bÄ™dzie pobrany z tablicy, to trzeba ustaliÄ‡ Å›cieÅ¼kÄ™ dla tekstur
+     if (dynamic) //na razie tak, bo nie wiadomo, jaki moÅ¼e mieÄ‡ wpÅ‚yw na pozostaÅ‚e modele
+     {//dla pojazdÃ³w podana jest zawsze peÅ‚na Å›cieÅ¼ka do modelu
       strcpy(buf,Name);
       if (strchr(Name,'/')!=NULL)
-      {//pobieranie tekstur z katalogu, w którym jest model
+      {//pobieranie tekstur z katalogu, w ktÃ³rym jest model
        Global::asCurrentTexturePath=Global::asCurrentTexturePath+AnsiString(Name);
        Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
       }
      }
      else
-     {//dla modeli scenerii trzeba ustaliæ œcie¿kê
+     {//dla modeli scenerii trzeba ustaliÄ‡ Å›cieÅ¼kÄ™
       if (strchr(Name,'\\')==NULL)
-      {//jeœli nie ma lewego ukoœnika w œcie¿ce, a jest prawy, to zmieniæ œcie¿kê dla tekstur na tê
+      {//jeÅ›li nie ma lewego ukoÅ›nika w Å›cieÅ¼ce, a jest prawy, to zmieniÄ‡ Å›cieÅ¼kÄ™ dla tekstur na tÄ™
     z modelem
-       strcpy(buf,"models\\"); //Ra: by³o by lepiej katalog dodaæ w parserze
-       //strcpy(buf,"scenery\\"); //Ra: by³o by lepiej katalog dodaæ w parserze
+       strcpy(buf,"models\\"); //Ra: byÅ‚o by lepiej katalog dodaÄ‡ w parserze
+       //strcpy(buf,"scenery\\"); //Ra: byÅ‚o by lepiej katalog dodaÄ‡ w parserze
        strcat(buf,Name);
        if (strchr(Name,'/')!=NULL)
-       {//jeszcze musi byæ prawy ukoœnik
+       {//jeszcze musi byÄ‡ prawy ukoÅ›nik
         Global::asCurrentTexturePath=Global::asCurrentTexturePath+AnsiString(Name);
         Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/")+1,Global::asCurrentTexturePath.Length());
        }
       }
       else
-      {//jeœli jest lewy ukoœnik, to œcie¿kê do tekstur zmieniæ tylko dla pojazdów
+      {//jeÅ›li jest lewy ukoÅ›nik, to Å›cieÅ¼kÄ™ do tekstur zmieniÄ‡ tylko dla pojazdÃ³w
        strcpy(buf,Name);
       }
      }
      StrLower(buf);
      for (int i=0;i<Count;i++)
-     {//bezsensowne przeszukanie tabeli na okolicznoœæ wyst¹pienia modelu
+     {//bezsensowne przeszukanie tabeli na okolicznoÅ›Ä‡ wystÄ…pienia modelu
       if (strcmp(buf,Models[i].Name)==0)
       {
-       Global::asCurrentTexturePath=buftp; //odtworzenie œcie¿ki do tekstur
+       Global::asCurrentTexturePath=buftp; //odtworzenie Å›cieÅ¼ki do tekstur
        return (Models[i].Model); //model znaleziony
       }
      };
     */
-    if (strchr(Name, '\\') == NULL)
+    if( Name.find('\\') == std::string::npos )
     {
-        strcpy(buf, "models\\"); // Ra: by³o by lepiej katalog dodaæ w parserze
-        strcat(buf, Name);
-        if (strchr(Name, '/') != NULL)
+        buf = "models\\"; // Ra: byÅ‚o by lepiej katalog dodaÄ‡ w parserze
+		buf.append( Name );
+        if( Name.find( '/') != std::string::npos)
         {
-            Global::asCurrentTexturePath = Global::asCurrentTexturePath + AnsiString(Name);
-            Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/") + 1,
-                                                Global::asCurrentTexturePath.Length());
+            Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
+            Global::asCurrentTexturePath.erase(Global::asCurrentTexturePath.find("/") + 1,
+                                                Global::asCurrentTexturePath.length());
         }
     }
     else
     {
-        strcpy(buf, Name);
-        if (dynamic) // na razie tak, bo nie wiadomo, jaki mo¿e mieæ wp³yw na pozosta³e modele
-            if (strchr(Name, '/') != NULL)
-            { // pobieranie tekstur z katalogu, w którym jest model
-                Global::asCurrentTexturePath = Global::asCurrentTexturePath + AnsiString(Name);
-                Global::asCurrentTexturePath.Delete(Global::asCurrentTexturePath.Pos("/") + 1,
-                                                    Global::asCurrentTexturePath.Length());
+		buf = Name;
+        if (dynamic) // na razie tak, bo nie wiadomo, jaki moÅ¼e mieÄ‡ wpÅ‚yw na pozostaÅ‚e modele
+            if (Name.find( '/') != std::string::npos)
+            { // pobieranie tekstur z katalogu, w ktÃ³rym jest model
+                Global::asCurrentTexturePath = Global::asCurrentTexturePath + Name;
+                Global::asCurrentTexturePath.erase(Global::asCurrentTexturePath.find("/") + 1,
+                                                    Global::asCurrentTexturePath.length() - 1);
             }
     }
-    StrLower(buf);
-    for (int i = 0; i < Count; i++)
+	buf = ToLower( buf );
+    for (int i = 0; i < Count; ++i)
     {
-        if (strcmp(buf, Models[i].Name) == 0)
+        if ( buf == Models[i].Name )
         {
             Global::asCurrentTexturePath = buftp;
             return (Models[i].Model);
         }
     };
-    TModel3d *tmpModel = LoadModel(buf, dynamic); // model nie znaleziony, to wczytaæ
-    Global::asCurrentTexturePath = buftp; // odtworzenie œcie¿ki do tekstur
-    return (tmpModel); // NULL jeœli b³¹d
+    TModel3d *tmpModel = LoadModel(buf, dynamic); // model nie znaleziony, to wczytaÄ‡
+    Global::asCurrentTexturePath = buftp; // odtworzenie Å›cieÅ¼ki do tekstur
+    return (tmpModel); // NULL jeÅ›li bÅ‚Ä…d
 };
 
 /*
@@ -196,4 +194,3 @@ TModel3d TModelsManager::GetModel(char *Name, AnsiString asReplacableTexture)
 */
 
 //---------------------------------------------------------------------------
-#pragma package(smart_init)

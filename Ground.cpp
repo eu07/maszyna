@@ -13,18 +13,14 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-
-#include "opengl/glew.h"
-#include "opengl/glut.h"
-
-#pragma hdrstop
-
-#include "Timer.h"
-#include "Texture.h"
+#include "stdafx.h"
 #include "Ground.h"
+
 #include "Globals.h"
+#include "Logs.h"
+#include "usefull.h"
+#include "Timer.h"
+#include "renderer.h"
 #include "Event.h"
 #include "EvLaunch.h"
 #include "TractionPower.h"
@@ -33,66 +29,58 @@ http://mozilla.org/MPL/2.0/.
 #include "RealSound.h"
 #include "AnimModel.h"
 #include "MemCell.h"
-#include "mtable.hpp"
+#include "mtable.h"
 #include "DynObj.h"
 #include "Data.h"
 #include "parser.h" //Tolaris-010603
 #include "Driver.h"
 #include "Console.h"
 #include "Names.h"
+#include "world.h"
+#include "uilayer.h"
 
-#define _PROBLEND 1
 //---------------------------------------------------------------------------
-#pragma package(smart_init)
+
+extern "C"
+{
+    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+}
 
 bool bCondition; // McZapkie: do testowania warunku na event multiple
-AnsiString LogComment;
+std::string LogComment;
 
 //---------------------------------------------------------------------------
-// Obiekt renderuj¹cy siatkê jest sztucznie tworzonym obiektem pomocniczym,
-// grupuj¹cym siatki obiektów dla danej tekstury. Obiektami sk³adowymi mog¹
-// byc trójk¹ty terenu, szyny, podsypki, a tak¿e proste modele np. s³upy.
-// Obiekty sk³adowe dodane s¹ do listy TSubRect::nMeshed z list¹ zrobion¹ na
-// TGroundNode::nNext3, gdzie s¹ posortowane wg tekstury. Obiekty renderuj¹ce
-// s¹ wpisane na listê TSubRect::nRootMesh (TGroundNode::nNext2) oraz na
-// odpowiednie listy renderowania, gdzie zastêpuj¹ obiekty sk³adowe (nNext3).
-// Problematyczne s¹ tory/drogi/rzeki, gdzie u¿ywane sa 2 tekstury. Dlatego
-// tory s¹ zdublowane jako TP_TRACK oraz TP_DUMMYTRACK. Jeœli tekstura jest
-// tylko jedna (np. zwrotnice), nie jest u¿ywany TP_DUMMYTRACK.
+// Obiekt renderujÄ…cy siatkÄ™ jest sztucznie tworzonym obiektem pomocniczym,
+// grupujÄ…cym siatki obiektÃ³w dla danej tekstury. Obiektami skÅ‚adowymi mogÄ…
+// byc trÃ³jkÄ…ty terenu, szyny, podsypki, a takÅ¼e proste modele np. sÅ‚upy.
+// Obiekty skÅ‚adowe dodane sÄ… do listy TSubRect::nMeshed z listÄ… zrobionÄ… na
+// TGroundNode::nNext3, gdzie sÄ… posortowane wg tekstury. Obiekty renderujÄ…ce
+// sÄ… wpisane na listÄ™ TSubRect::nRootMesh (TGroundNode::nNext2) oraz na
+// odpowiednie listy renderowania, gdzie zastÄ™pujÄ… obiekty skÅ‚adowe (nNext3).
+// Problematyczne sÄ… tory/drogi/rzeki, gdzie uÅ¼ywane sa 2 tekstury. Dlatego
+// tory sÄ… zdublowane jako TP_TRACK oraz TP_DUMMYTRACK. JeÅ›li tekstura jest
+// tylko jedna (np. zwrotnice), nie jest uÅ¼ywany TP_DUMMYTRACK.
 //---------------------------------------------------------------------------
 TGroundNode::TGroundNode()
 { // nowy obiekt terenu - pusty
     iType = GL_POINTS;
-    Vertices = NULL;
     nNext = nNext2 = NULL;
-    pCenter = vector3(0, 0, 0);
-    iCount = 0; // wierzcho³ków w trójk¹cie
-    // iNumPts=0; //punktów w linii
+    iCount = 0; // wierzchoÅ‚kÃ³w w trÃ³jkÄ…cie
+    // iNumPts=0; //punktÃ³w w linii
     TextureID = 0;
-    iFlags = 0; // tryb przezroczystoœci nie zbadany
-    DisplayListID = 0;
-    Pointer = NULL; // zerowanie wskaŸnika kontekstowego
+    iFlags = 0; // tryb przezroczystoÅ›ci nie zbadany
+    Pointer = NULL; // zerowanie wskaÅºnika kontekstowego
     bVisible = false; // czy widoczny
     fSquareRadius = 10000 * 10000;
     fSquareMinRadius = 0;
     asName = "";
-    // Color= TMaterialColor(1);
-    // fAngle=0; //obrót dla modelu
-    // fLineThickness=1.0; //mm dla linii
-    for (int i = 0; i < 3; i++)
-    {
-        Ambient[i] = Global::whiteLight[i] * 255;
-        Diffuse[i] = Global::whiteLight[i] * 255;
-        Specular[i] = Global::noLight[i] * 255;
-    }
-    nNext3 = NULL; // nie wyœwietla innych
-    iVboPtr = -1; // indeks w VBO sektora (-1: nie u¿ywa VBO)
-    iVersion = 0; // wersja siatki
+    fLineThickness=1.0; //mm dla linii
+    nNext3 = NULL; // nie wyÅ›wietla innych
 }
 
 TGroundNode::~TGroundNode()
 {
-    // if (iFlags&0x200) //czy obiekt zosta³ utworzony?
+    // if (iFlags&0x200) //czy obiekt zostaÅ‚ utworzony?
     switch (iType)
     {
     case TP_MEMCELL:
@@ -114,97 +102,100 @@ TGroundNode::~TGroundNode()
         SafeDelete(DynamicObject);
         break;
     case TP_MODEL:
-        if (iFlags & 0x200) // czy model zosta³ utworzony?
+        if (iFlags & 0x200) // czy model zostaÅ‚ utworzony?
             delete Model;
         Model = NULL;
         break;
+	case TP_SOUND:
+		SafeDelete(tsStaticSound);
+		break;
     case TP_TERRAIN:
-    { // pierwsze nNode zawiera model E3D, reszta to trójk¹ty
-        for (int i = 1; i < iCount; ++i)
-            nNode->Vertices =
-                NULL; // zerowanie wskaŸników w kolejnych elementach, bo nie s¹ do usuwania
-        delete[] nNode; // usuniêcie tablicy i pierwszego elementu
+    { // pierwsze nNode zawiera model E3D, reszta to trÃ³jkÄ…ty
+        delete[] nNode; // usuniÄ™cie tablicy i pierwszego elementu
     }
-    case TP_SUBMODEL: // dla formalnoœci, nie wymaga usuwania
+    case TP_SUBMODEL: // dla formalnoÅ›ci, nie wymaga usuwania
         break;
     case GL_LINES:
     case GL_LINE_STRIP:
     case GL_LINE_LOOP:
-        SafeDeleteArray(Points);
-        break;
     case GL_TRIANGLE_STRIP:
     case GL_TRIANGLE_FAN:
     case GL_TRIANGLES:
-        SafeDeleteArray(Vertices);
+        SafeDelete( Piece );
         break;
     }
 }
-
+/*
 void TGroundNode::Init(int n)
-{ // utworzenie tablicy wierzcho³ków
+{ // utworzenie tablicy wierzchoÅ‚kÃ³w
     bVisible = false;
     iNumVerts = n;
     Vertices = new TGroundVertex[iNumVerts];
 }
-
-TGroundNode::TGroundNode(TGroundNodeType t, int n)
-{ // utworzenie obiektu
-    TGroundNode(); // domyœlne ustawienia
-    iNumVerts = n;
-    if (iNumVerts)
-        Vertices = new TGroundVertex[iNumVerts];
+*/
+TGroundNode::TGroundNode( TGroundNodeType t ) :
+    TGroundNode() {
+    // utworzenie obiektu
     iType = t;
-    switch (iType)
-    { // zale¿nie od typu
-    case TP_TRACK:
-        pTrack = new TTrack(this);
-        break;
+    switch (iType) {
+        // zaleÅ¼nie od typu
+        case GL_TRIANGLES: {
+            Piece = new piece_node;
+            break;
+        }
+        case TP_TRACK: {
+            pTrack = new TTrack( this );
+            break;
+        }
+        default: {
+            break;
+        }
     }
 }
 
-void TGroundNode::InitCenter()
-{ // obliczenie œrodka ciê¿koœci obiektu
-    for (int i = 0; i < iNumVerts; i++)
-        pCenter += Vertices[i].Point;
-    pCenter /= iNumVerts;
-}
-
 void TGroundNode::InitNormals()
-{ // obliczenie wektorów normalnych
-    vector3 v1, v2, v3, v4, v5, n1, n2, n3, n4;
+{ // obliczenie wektorÃ³w normalnych
+    glm::dvec3 v1, v2, v3, v4, v5;
+    glm::vec3 n1, n2, n3, n4;
+    glm::vec2 t1;
     int i;
-    float tu, tv;
     switch (iType)
     {
     case GL_TRIANGLE_STRIP:
-        v1 = Vertices[0].Point - Vertices[1].Point;
-        v2 = Vertices[1].Point - Vertices[2].Point;
-        n1 = SafeNormalize(CrossProduct(v1, v2));
-        if (Vertices[0].Normal == vector3(0, 0, 0))
-            Vertices[0].Normal = n1;
-        v3 = Vertices[2].Point - Vertices[3].Point;
-        n2 = SafeNormalize(CrossProduct(v3, v2));
-        if (Vertices[1].Normal == vector3(0, 0, 0))
-            Vertices[1].Normal = (n1 + n2) * 0.5;
+        v1 = Piece->vertices[0].position - Piece->vertices[1].position;
+        v2 = Piece->vertices[1].position - Piece->vertices[2].position;
+        n1 = glm::normalize(glm::cross(v1, v2));
+        if (Piece->vertices[0].normal == glm::vec3())
+            Piece->vertices[0].normal = n1;
+        v3 = Piece->vertices[2].position - Piece->vertices[3].position;
+        n2 = glm::normalize(glm::cross(v3, v2));
+        if (Piece->vertices[1].normal == glm::vec3())
+            Piece->vertices[1].normal = (n1 + n2) * 0.5f;
 
-        for (i = 2; i < iNumVerts - 2; i += 2)
+        for ( i = 2; i < iNumVerts - 2; i += 2)
         {
-            v4 = Vertices[i - 1].Point - Vertices[i].Point;
-            v5 = Vertices[i].Point - Vertices[i + 1].Point;
-            n3 = SafeNormalize(CrossProduct(v3, v4));
-            n4 = SafeNormalize(CrossProduct(v5, v4));
-            if (Vertices[i].Normal == vector3(0, 0, 0))
-                Vertices[i].Normal = (n1 + n2 + n3) / 3;
-            if (Vertices[i + 1].Normal == vector3(0, 0, 0))
-                Vertices[i + 1].Normal = (n2 + n3 + n4) / 3;
+            v4 = Piece->vertices[i - 1].position - Piece->vertices[i].position;
+            v5 = Piece->vertices[i].position - Piece->vertices[i + 1].position;
+            n3 = glm::normalize(glm::cross(v3, v4));
+            n4 = glm::normalize(glm::cross(v5, v4));
+            if (Piece->vertices[i].normal == glm::vec3())
+                Piece->vertices[i].normal = (n1 + n2 + n3) / 3.0f;
+            if (Piece->vertices[i + 1].normal == glm::vec3())
+                Piece->vertices[i + 1].normal = (n2 + n3 + n4) / 3.0f;
             n1 = n3;
             n2 = n4;
             v3 = v5;
         }
-        if (Vertices[i].Normal == vector3(0, 0, 0))
-            Vertices[i].Normal = (n1 + n2) / 2;
-        if (Vertices[i + 1].Normal == vector3(0, 0, 0))
-            Vertices[i + 1].Normal = n2;
+        if (Piece->vertices[i].normal == glm::vec3())
+            Piece->vertices[i].normal = (n1 + n2) / 2.0f;
+		if (i + 1 < iNumVerts)
+		{
+			if (Piece->vertices[i + 1].normal == glm::vec3())
+				Piece->vertices[i + 1].normal = n2;
+		}
+		else
+			WriteLog("odd number of vertices, normals may be wrong!");
+
         break;
     case GL_TRIANGLE_FAN:
 
@@ -212,315 +203,28 @@ void TGroundNode::InitNormals()
     case GL_TRIANGLES:
         for (i = 0; i < iNumVerts; i += 3)
         {
-            v1 = Vertices[i + 0].Point - Vertices[i + 1].Point;
-            v2 = Vertices[i + 1].Point - Vertices[i + 2].Point;
-            n1 = SafeNormalize(CrossProduct(v1, v2));
-            if (Vertices[i + 0].Normal == vector3(0, 0, 0))
-                Vertices[i + 0].Normal = (n1);
-            if (Vertices[i + 1].Normal == vector3(0, 0, 0))
-                Vertices[i + 1].Normal = (n1);
-            if (Vertices[i + 2].Normal == vector3(0, 0, 0))
-                Vertices[i + 2].Normal = (n1);
-            tu = floor(Vertices[i + 0].tu);
-            tv = floor(Vertices[i + 0].tv);
-            Vertices[i + 1].tv -= tv;
-            Vertices[i + 2].tv -= tv;
-            Vertices[i + 0].tv -= tv;
-            Vertices[i + 1].tu -= tu;
-            Vertices[i + 2].tu -= tu;
-            Vertices[i + 0].tu -= tu;
+            v1 = Piece->vertices[i + 0].position - Piece->vertices[i + 1].position;
+            v2 = Piece->vertices[i + 1].position - Piece->vertices[i + 2].position;
+            n1 = glm::normalize(glm::cross(v1, v2));
+            if( Piece->vertices[i + 0].normal == glm::vec3() )
+                Piece->vertices[i + 0].normal = (n1);
+            if( Piece->vertices[i + 1].normal == glm::vec3() )
+                Piece->vertices[i + 1].normal = (n1);
+            if( Piece->vertices[i + 2].normal == glm::vec3() )
+                Piece->vertices[i + 2].normal = (n1);
+            t1 = glm::vec2(
+                std::floor( Piece->vertices[ i + 0 ].texture.s ),
+                std::floor( Piece->vertices[ i + 0 ].texture.t ) );
+            Piece->vertices[ i + 1 ].texture -= t1;
+            Piece->vertices[ i + 2 ].texture -= t1;
+            Piece->vertices[ i + 0 ].texture -= t1;
         }
         break;
     }
 }
-
-void TGroundNode::MoveMe(vector3 pPosition)
-{ // przesuwanie obiektów scenerii o wektor w celu redukcji trzêsienia
-    pCenter += pPosition;
-    switch (iType)
-    {
-    case TP_TRACTION:
-        hvTraction->pPoint1 += pPosition;
-        hvTraction->pPoint2 += pPosition;
-        hvTraction->pPoint3 += pPosition;
-        hvTraction->pPoint4 += pPosition;
-        hvTraction->Optimize();
-        break;
-    case TP_MODEL:
-    case TP_DYNAMIC:
-    case TP_MEMCELL:
-    case TP_EVLAUNCH:
-        break;
-    case TP_TRACK:
-        pTrack->MoveMe(pPosition);
-        break;
-    case TP_SOUND: // McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-        tsStaticSound->vSoundPosition += pPosition;
-        break;
-    case GL_LINES:
-    case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-        for (int i = 0; i < iNumPts; i++)
-            Points[i] += pPosition;
-        ResourceManager::Unregister(this);
-        break;
-    default:
-        for (int i = 0; i < iNumVerts; i++)
-            Vertices[i].Point += pPosition;
-        ResourceManager::Unregister(this);
-    }
-}
-
-void TGroundNode::RaRenderVBO()
-{ // renderowanie z domyslnego bufora VBO
-    glColor3ub(Diffuse[0], Diffuse[1], Diffuse[2]);
-    if (TextureID)
-        glBindTexture(GL_TEXTURE_2D, TextureID); // Ustaw aktywn¹ teksturê
-    glDrawArrays(iType, iVboPtr, iNumVerts); // Narysuj naraz wszystkie trójk¹ty
-}
-
-void TGroundNode::RenderVBO()
-{ // renderowanie obiektu z VBO - faza nieprzezroczystych
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
-    if ((mgn > fSquareRadius || (mgn < fSquareMinRadius)) &&
-        (iType != TP_EVLAUNCH)) // McZapkie-070602: nie rysuj odleglych obiektow ale sprawdzaj
-        // wyzwalacz zdarzen
-        return;
-    int i, a;
-    switch (iType)
-    {
-    case TP_TRACTION:
-        return;
-    case TP_TRACK:
-        if (iNumVerts)
-            pTrack->RaRenderVBO(iVboPtr);
-        return;
-    case TP_MODEL:
-        Model->RenderVBO(&pCenter);
-        return;
-    // case TP_SOUND: //McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-    // if ((pStaticSound->GetStatus()&DSBSTATUS_PLAYING)==DSBPLAY_LOOPING)
-    // {
-    //  pStaticSound->Play(1,DSBPLAY_LOOPING,true,pStaticSound->vSoundPosition);
-    //  pStaticSound->AdjFreq(1.0,Timer::GetDeltaTime());
-    // }
-    // return; //Ra: TODO sprawdziæ, czy dŸwiêki nie s¹ tylko w RenderHidden
-    case TP_MEMCELL:
-        return;
-    case TP_EVLAUNCH:
-        if (EvLaunch->Render())
-            if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
-            {
-                if (Console::Pressed(VK_SHIFT) && EvLaunch->Event2 != NULL)
-                    Global::AddToQuery(EvLaunch->Event2, NULL);
-                else if (EvLaunch->Event1 != NULL)
-                    Global::AddToQuery(EvLaunch->Event1, NULL);
-            }
-        return;
-    case GL_LINES:
-    case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-        if (iNumPts)
-        {
-            float linealpha = 255000 * fLineThickness / (mgn + 1.0);
-            if (linealpha > 255)
-                linealpha = 255;
-            float r, g, b;
-            r = floor(Diffuse[0] * Global::ambientDayLight[0]); // w zaleznosci od koloru swiatla
-            g = floor(Diffuse[1] * Global::ambientDayLight[1]);
-            b = floor(Diffuse[2] * Global::ambientDayLight[2]);
-            glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
-            // glDisable(GL_LIGHTING); //nie powinny œwieciæ
-            glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
-            // glEnable(GL_LIGHTING);
-        }
-        return;
-    default:
-        if (iVboPtr >= 0)
-            RaRenderVBO();
-    };
-    return;
-};
-
-void TGroundNode::RenderAlphaVBO()
-{ // renderowanie obiektu z VBO - faza przezroczystych
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
-    float r, g, b;
-    if (mgn < fSquareMinRadius)
-        return;
-    if (mgn > fSquareRadius)
-        return;
-    int i, a;
-#ifdef _PROBLEND
-    if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-    {
-        glDisable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-    };
-#endif
-    switch (iType)
-    {
-    case TP_TRACTION:
-        if (bVisible)
-        {
-#ifdef _PROBLEND
-            glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-            hvTraction->RenderVBO(mgn, iVboPtr);
-        }
-        return;
-    case TP_MODEL:
-#ifdef _PROBLEND
-        glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-        Model->RenderAlphaVBO(&pCenter);
-        return;
-    case GL_LINES:
-    case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-        if (iNumPts)
-        {
-            float linealpha = 255000 * fLineThickness / (mgn + 1.0);
-            if (linealpha > 255)
-                linealpha = 255;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
-            glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
-            // glDisable(GL_LIGHTING); //nie powinny œwieciæ
-            glDrawArrays(iType, iVboPtr, iNumPts); // rysowanie linii
-// glEnable(GL_LIGHTING);
-#ifdef _PROBLEND
-            glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-        }
-#ifdef _PROBLEND
-        glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-        return;
-    default:
-        if (iVboPtr >= 0)
-        {
-            RaRenderVBO();
-#ifdef _PROBLEND
-            glEnable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.04);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-            return;
-        }
-    }
-#ifdef _PROBLEND
-    glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-    return;
-}
-
-void TGroundNode::Compile(bool many)
-{ // tworzenie skompilowanej listy w wyœwietlaniu DL
-    if (!many)
-    { // obs³uga pojedynczej listy
-        if (DisplayListID)
-            Release();
-        if (Global::bManageNodes)
-        {
-            DisplayListID = glGenLists(1);
-            glNewList(DisplayListID, GL_COMPILE);
-            iVersion = Global::iReCompile; // aktualna wersja siatek (do WireFrame)
-        }
-    }
-    if ((iType == GL_LINES) || (iType == GL_LINE_STRIP) || (iType == GL_LINE_LOOP))
-    {
-#ifdef USE_VERTEX_ARRAYS
-        glVertexPointer(3, GL_DOUBLE, sizeof(vector3), &Points[0].x);
-#endif
-        glBindTexture(GL_TEXTURE_2D, 0);
-#ifdef USE_VERTEX_ARRAYS
-        glDrawArrays(iType, 0, iNumPts);
-#else
-        glBegin(iType);
-        for (int i = 0; i < iNumPts; i++)
-            glVertex3dv(&Points[i].x);
-        glEnd();
-#endif
-    }
-    else if (iType == GL_TRIANGLE_STRIP || iType == GL_TRIANGLE_FAN || iType == GL_TRIANGLES)
-    { // jak nie linie, to trójk¹ty
-        TGroundNode *tri = this;
-        do
-        { // pêtla po obiektach w grupie w celu po³¹czenia siatek
-#ifdef USE_VERTEX_ARRAYS
-            glVertexPointer(3, GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Point.x);
-            glNormalPointer(GL_DOUBLE, sizeof(TGroundVertex), &tri->Vertices[0].Normal.x);
-            glTexCoordPointer(2, GL_FLOAT, sizeof(TGroundVertex), &tri->Vertices[0].tu);
-#endif
-            glColor3ub(tri->Diffuse[0], tri->Diffuse[1], tri->Diffuse[2]);
-            glBindTexture(GL_TEXTURE_2D, Global::bWireFrame ? 0 : tri->TextureID);
-#ifdef USE_VERTEX_ARRAYS
-            glDrawArrays(Global::bWireFrame ? GL_LINE_LOOP : tri->iType, 0, tri->iNumVerts);
-#else
-            glBegin(Global::bWireFrame ? GL_LINE_LOOP : tri->iType);
-            for (int i = 0; i < tri->iNumVerts; i++)
-            {
-                glNormal3d(tri->Vertices[i].Normal.x, tri->Vertices[i].Normal.y,
-                           tri->Vertices[i].Normal.z);
-                glTexCoord2f(tri->Vertices[i].tu, tri->Vertices[i].tv);
-                glVertex3dv(&tri->Vertices[i].Point.x);
-            };
-            glEnd();
-#endif
-            /*
-               if (tri->pTriGroup) //jeœli z grupy
-               {tri=tri->pNext2; //nastêpny w sektorze
-                while (tri?!tri->pTriGroup:false) tri=tri->pNext2; //szukamy kolejnego nale¿¹cego do
-               grupy
-               }
-               else
-            */
-            tri = NULL; // a jak nie, to koniec
-        } while (tri);
-    }
-    else if (iType == TP_MESH)
-    { // grupa ze wspóln¹ tekstur¹ - wrzucanie do wspólnego Display List
-        if (TextureID)
-            glBindTexture(GL_TEXTURE_2D, TextureID); // Ustaw aktywn¹ teksturê
-        TGroundNode *n = nNode;
-        while (n ? n->TextureID == TextureID : false)
-        { // wszystkie obiekty o tej samej testurze
-            switch (n->iType)
-            { // poszczególne typy ró¿nie siê tworzy
-            case TP_TRACK:
-            case TP_DUMMYTRACK:
-                n->pTrack->Compile(TextureID); // dodanie trójk¹tów dla podanej tekstury
-                break;
-            }
-            n = n->nNext3; // nastêpny z listy
-        }
-    }
-    if (!many)
-        if (Global::bManageNodes)
-            glEndList();
-};
-
-void TGroundNode::Release()
-{
-    if (DisplayListID)
-        glDeleteLists(DisplayListID, 1);
-    DisplayListID = 0;
-};
 
 void TGroundNode::RenderHidden()
-{ // renderowanie obiektów niewidocznych
+{ // renderowanie obiektÃ³w niewidocznych
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
     switch (iType)
     {
@@ -536,7 +240,7 @@ void TGroundNode::RenderHidden()
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
             {
                 WriteLog("Eventlauncher " + asName);
-                if (Console::Pressed(VK_SHIFT) && (EvLaunch->Event2))
+                if (Global::shiftState && (EvLaunch->Event2))
                     Global::AddToQuery(EvLaunch->Event2, NULL);
                 else if (EvLaunch->Event1)
                     Global::AddToQuery(EvLaunch->Event1, NULL);
@@ -545,485 +249,165 @@ void TGroundNode::RenderHidden()
     }
 };
 
-void TGroundNode::RenderDL()
-{ // wyœwietlanie obiektu przez Display List
-    switch (iType)
-    { // obiekty renderowane niezale¿nie od odleg³oœci
-    case TP_SUBMODEL:
-        TSubModel::fSquareDist = 0;
-        return smTerrain->RenderDL();
-    }
-    // if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
-    if ((mgn > fSquareRadius) || (mgn < fSquareMinRadius)) // McZapkie-070602: nie rysuj odleglych
-        // obiektow ale sprawdzaj wyzwalacz
-        // zdarzen
-        return;
-    int i, a;
-    switch (iType)
-    {
-    case TP_TRACK:
-        return pTrack->Render();
-    case TP_MODEL:
-        return Model->RenderDL(&pCenter);
-    }
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    // if ((iNumVerts&&(iFlags&0x10))||(iNumPts&&(fLineThickness<0)))
-    if ((iFlags & 0x10) || (fLineThickness < 0))
-    {
-        if (!DisplayListID || (iVersion != Global::iReCompile)) // Ra: wymuszenie rekompilacji
-        {
-            Compile();
-            if (Global::bManageNodes)
-                ResourceManager::Register(this);
-        };
-
-        if ((iType == GL_LINES) || (iType == GL_LINE_STRIP) || (iType == GL_LINE_LOOP))
-        // if (iNumPts)
-        { // wszelkie linie s¹ rysowane na samym koñcu
-            float r, g, b;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
-            glColor4ub(r, g, b, 1.0);
-            glCallList(DisplayListID);
-            // glColor4fv(Diffuse); //przywrócenie koloru
-            // glColor3ub(Diffuse[0],Diffuse[1],Diffuse[2]);
-        }
-        // GL_TRIANGLE etc
-        else
-            glCallList(DisplayListID);
-        SetLastUsage(Timer::GetSimulationTime());
-    };
-};
-
-void TGroundNode::RenderAlphaDL()
-{
-    // SPOSOB NA POZBYCIE SIE RAMKI DOOKOLA TEXTURY ALPHA DLA OBIEKTOW ZAGNIEZDZONYCH W SCN JAKO
-    // NODE
-
-    // W GROUND.H dajemy do klasy TGroundNode zmienna bool PROBLEND to samo robimy w klasie TGround
-    // nastepnie podczas wczytywania textury dla TRIANGLES w TGround::AddGroundNode
-    // sprawdzamy czy w nazwie jest @ i wg tego
-    // ustawiamy PROBLEND na true dla wlasnie wczytywanego trojkata (kazdy trojkat jest osobnym
-    // nodem)
-    // nastepnie podczas renderowania w bool TGroundNode::RenderAlpha()
-    // na poczatku ustawiamy standardowe GL_GREATER = 0.04
-    // pozniej sprawdzamy czy jest wlaczony PROBLEND dla aktualnie renderowanego noda TRIANGLE,
-    // wlasciwie dla kazdego node'a
-    // i jezeli tak to odpowiedni GL_GREATER w przeciwnym wypadku standardowy 0.04
-
-    // if (pTriGroup) if (pTriGroup!=this) return; //wyœwietla go inny obiekt
-    double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
-    float r, g, b;
-    if (mgn < fSquareMinRadius)
-        return;
-    if (mgn > fSquareRadius)
-        return;
-    int i, a;
-    switch (iType)
-    {
-    case TP_TRACTION:
-        if (bVisible)
-            hvTraction->RenderDL(mgn);
-        return;
-    case TP_MODEL:
-        Model->RenderAlphaDL(&pCenter);
-        return;
-    case TP_TRACK:
-        // pTrack->RenderAlpha();
-        return;
-    };
-
-    // TODO: sprawdzic czy jest potrzebny warunek fLineThickness < 0
-    if ((iNumVerts && (iFlags & 0x20)) || (iNumPts && (fLineThickness > 0)))
-    {
-#ifdef _PROBLEND
-        if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-        {
-            glDisable(GL_BLEND);
-            glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-        };
-#endif
-        if (!DisplayListID) //||Global::bReCompile) //Ra: wymuszenie rekompilacji
-        {
-            Compile();
-            if (Global::bManageNodes)
-                ResourceManager::Register(this);
-        };
-
-        // GL_LINE, GL_LINE_STRIP, GL_LINE_LOOP
-        if (iNumPts)
-        {
-            float linealpha = 255000 * fLineThickness / (mgn + 1.0);
-            if (linealpha > 255)
-                linealpha = 255;
-            r = Diffuse[0] * Global::ambientDayLight[0]; // w zaleznosci od koloru swiatla
-            g = Diffuse[1] * Global::ambientDayLight[1];
-            b = Diffuse[2] * Global::ambientDayLight[2];
-            glColor4ub(r, g, b, linealpha); // przezroczystosc dalekiej linii
-            glCallList(DisplayListID);
-        }
-        // GL_TRIANGLE etc
-        else
-            glCallList(DisplayListID);
-        SetLastUsage(Timer::GetSimulationTime());
-    };
-#ifdef _PROBLEND
-    if ((PROBLEND)) // sprawdza, czy w nazwie nie ma @    //Q: 13122011 - Szociu: 27012012
-    {
-        glEnable(GL_BLEND);
-        glAlphaFunc(GL_GREATER, 0.04);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    };
-#endif
-}
-
 //------------------------------------------------------------------------------
 //------------------ Podstawowy pojemnik terenu - sektor -----------------------
 //------------------------------------------------------------------------------
-TSubRect::TSubRect()
-{
-    nRootNode = NULL; // lista wszystkich obiektów jest pusta
-    nRenderHidden = nRenderRect = nRenderRectAlpha = nRender = nRenderMixed = nRenderAlpha =
-        nRenderWires = NULL;
-    tTrackAnim = NULL; // nic nie animujemy
-    tTracks = NULL; // nie ma jeszcze torów
-    nRootMesh = nMeshed = NULL; // te listy te¿ s¹ puste
-    iNodeCount = 0; // licznik obiektów
-    iTracks = 0; // licznik torów
-}
 TSubRect::~TSubRect()
 {
-    if (Global::bManageNodes) // Ra: tu siê coœ sypie
-        ResourceManager::Unregister(this); // wyrejestrowanie ze sprz¹tacza
-    // TODO: usun¹æ obiekty z listy (nRootMesh), bo s¹ one tworzone dla sektora
+    // TODO: usunÄ…Ä‡ obiekty z listy (nRootMesh), bo sÄ… one tworzone dla sektora
+	delete[] tTracks;
 }
 
 void TSubRect::NodeAdd(TGroundNode *Node)
-{ // przyczepienie obiektu do sektora, wstêpna kwalifikacja na listy renderowania
+{ // przyczepienie obiektu do sektora, wstÄ™pna kwalifikacja na listy renderowania
     if (!this)
-        return; // zabezpiecznie przed obiektami przekraczaj¹cymi obszar roboczy
-    // Ra: sortowanie obiektów na listy renderowania:
-    // nRenderHidden    - lista obiektów niewidocznych, "renderowanych" równie¿ z ty³u
+        return; // zabezpiecznie przed obiektami przekraczajÄ…cymi obszar roboczy
+    // Ra: sortowanie obiektÃ³w na listy renderowania:
+    // nRenderHidden    - lista obiektÃ³w niewidocznych, "renderowanych" rÃ³wnieÅ¼ z tyÅ‚u
     // nRenderRect      - lista grup renderowanych z sektora
-    // nRenderRectAlpha - lista grup renderowanych z sektora z przezroczystoœci¹
-    // nRender          - lista grup renderowanych z w³asnych VBO albo DL
-    // nRenderAlpha     - lista grup renderowanych z w³asnych VBO albo DL z przezroczystoœci¹
-    // nRenderWires     - lista grup renderowanych z w³asnych VBO albo DL - druty i linie
-    // nMeshed          - obiekty do pogrupowania wg tekstur
-    GLuint t; // pomocniczy kod tekstury
+    // nRenderRectAlpha - lista grup renderowanych z sektora z przezroczystoÅ›ciÄ…
+    // nRender          - lista grup renderowanych z wÅ‚asnych VBO albo DL
+    // nRenderAlpha     - lista grup renderowanych z wÅ‚asnych VBO albo DL z przezroczystoÅ›ciÄ…
+    // nRenderWires     - lista grup renderowanych z wÅ‚asnych VBO albo DL - druty i linie
+
+    Node->m_rootposition = m_area.center;
+
+    // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
+    // NOTE: this method is called for both subcell and cell, but subcells get first created and passed the handle from their parent
+    // thus, this effectively only gets executed for the 'parent' ground cells. Not the most elegant, but for now it'll do
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
+
     switch (Node->iType)
     {
-    case TP_SOUND: // te obiekty s¹ sprawdzanie niezale¿nie od kierunku patrzenia
+    case TP_SOUND: // te obiekty sÄ… sprawdzanie niezaleÅ¼nie od kierunku patrzenia
     case TP_EVLAUNCH:
         Node->nNext3 = nRenderHidden;
         nRenderHidden = Node; // do listy koniecznych
         break;
-    case TP_TRACK: // TODO: tory z cieniem (tunel, canyon) te¿ daæ bez ³¹czenia?
-        ++iTracks; // jeden tor wiêcej
-        Node->pTrack->RaOwnerSet(this); // do którego sektora ma zg³aszaæ animacjê
-        // if (Global::bUseVBO?false:!Node->pTrack->IsGroupable())
-        if (Global::bUseVBO ? true :
-                              !Node->pTrack->IsGroupable()) // TODO: tymczasowo dla VBO wy³¹czone
-            RaNodeAdd(
-                Node); // tory ruchome nie s¹ grupowane przy Display Lists (wymagaj¹ odœwie¿ania DL)
-        else
-        { // tory nieruchome mog¹ byæ pogrupowane wg tekstury, przy VBO wszystkie
-            Node->TextureID = Node->pTrack->TextureGet(0); // pobranie tekstury do sortowania
-            t = Node->pTrack->TextureGet(1);
-            if (Node->TextureID) // je¿eli jest pierwsza
-            {
-                if (t && (Node->TextureID != t))
-                { // jeœli s¹ dwie ró¿ne tekstury, dodajemy drugi obiekt dla danego toru
-                    TGroundNode *n = new TGroundNode();
-                    n->iType = TP_DUMMYTRACK; // obiekt renderuj¹cy siatki dla tekstury
-                    n->TextureID = t;
-                    n->pTrack = Node->pTrack; // wskazuje na ten sam tor
-                    n->pCenter = Node->pCenter;
-                    n->fSquareRadius = Node->fSquareRadius;
-                    n->fSquareMinRadius = Node->fSquareMinRadius;
-                    n->iFlags = Node->iFlags;
-                    n->nNext2 = nRootMesh;
-                    nRootMesh = n; // podczepienie do listy, ¿eby usun¹æ na koñcu
-                    n->nNext3 = nMeshed;
-                    nMeshed = n;
-                }
-            }
-            else
-                Node->TextureID = t; // jest tylko druga tekstura
-            if (Node->TextureID)
-            {
-                Node->nNext3 = nMeshed;
-                nMeshed = Node;
-            } // do podzielenia potem
-        }
+    case TP_TRACK: // TODO: tory z cieniem (tunel, canyon) teÅ¼ daÄ‡ bez Å‚Ä…czenia?
+        ++iTracks; // jeden tor wiÄ™cej
+        Node->pTrack->RaOwnerSet(this); // do ktÃ³rego sektora ma zgÅ‚aszaÄ‡ animacjÄ™
+        // NOTE: track merge/sort temporarily disabled to simplify unification of render code
+        // TODO: refactor sorting as universal part of drawing process in the renderer
+        Node->nNext3 = nRenderRect;
+        nRenderRect = Node;
         break;
     case GL_TRIANGLE_STRIP:
     case GL_TRIANGLE_FAN:
     case GL_TRIANGLES:
-        // Node->nNext3=nMeshed; nMeshed=Node; //do podzielenia potem
-        if (Node->iFlags & 0x20) // czy jest przezroczyste?
-        {
+        if (Node->iFlags & 0x20) {
+            // do przezroczystych z sektora
             Node->nNext3 = nRenderRectAlpha;
             nRenderRectAlpha = Node;
-        } // DL: do przezroczystych z sektora
-        else if (Global::bUseVBO)
-        {
+        }
+        else {
+            // do nieprzezroczystych z sektora
             Node->nNext3 = nRenderRect;
             nRenderRect = Node;
-        } // VBO: do nieprzezroczystych z sektora
-        else
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // DL: do nieprzezroczystych wszelakich
-        /*
-           //Ra: na razie wy³¹czone do testów VBO
-           //if
-           ((Node->iType==GL_TRIANGLE_STRIP)||(Node->iType==GL_TRIANGLE_FAN)||(Node->iType==GL_TRIANGLES))
-            if (Node->fSquareMinRadius==0.0) //znikaj¹ce z bliska nie mog¹ byæ optymalizowane
-             if (Node->fSquareRadius>=160000.0) //tak od 400m to ju¿ normalne trójk¹ty musz¹ byæ
-             //if (Node->iFlags&0x10) //i nieprzezroczysty
-             {if (pTriGroup) //je¿eli by³ ju¿ jakiœ grupuj¹cy
-              {if (pTriGroup->fSquareRadius>Node->fSquareRadius) //i mia³ wiêkszy zasiêg
-                Node->fSquareRadius=pTriGroup->fSquareRadius; //zwiêkszenie zakresu widocznoœci
-           grupuj¹cego
-               pTriGroup->pTriGroup=Node; //poprzedniemu doczepiamy nowy
-              }
-              Node->pTriGroup=Node; //nowy lider ma siê sam wyœwietlaæ - wskaŸnik na siebie
-              pTriGroup=Node; //zapamiêtanie lidera
-             }
-        */
+        }
         break;
     case TP_TRACTION:
     case GL_LINES:
     case GL_LINE_STRIP:
-    case GL_LINE_LOOP: // te renderowane na koñcu, ¿eby nie ³apa³y koloru nieba
+    case GL_LINE_LOOP: // te renderowane na koÅ„cu, Å¼eby nie Å‚apaÅ‚y koloru nieba
         Node->nNext3 = nRenderWires;
-        nRenderWires = Node; // lista drutów
+        nRenderWires = Node; // lista drutÃ³w
         break;
-    case TP_MODEL: // modele zawsze wyœwietlane z w³asnego VBO
-        // jeœli model jest prosty, mo¿na próbowaæ zrobiæ wspóln¹ siatkê (s³upy)
-        if ((Node->iFlags & 0x20200020) == 0) // czy brak przezroczystoœci?
+    case TP_MODEL: // modele zawsze wyÅ›wietlane z wÅ‚asnego VBO
+        // jeÅ›li model jest prosty, moÅ¼na prÃ³bowaÄ‡ zrobiÄ‡ wspÃ³lnÄ… siatkÄ™ (sÅ‚upy)
+        if ((Node->iFlags & 0x20200020) == 0) // czy brak przezroczystoÅ›ci?
         {
             Node->nNext3 = nRender;
             nRender = Node;
         } // do nieprzezroczystych
-        else if ((Node->iFlags & 0x10100010) == 0) // czy brak nieprzezroczystoœci?
+        else if ((Node->iFlags & 0x10100010) == 0) // czy brak nieprzezroczystoÅ›ci?
         {
             Node->nNext3 = nRenderAlpha;
             nRenderAlpha = Node;
         } // do przezroczystych
-        else // jak i take i takie, to bêdzie dwa razy renderowane...
+        else // jak i take i takie, to bÄ™dzie dwa razy renderowane...
         {
             Node->nNext3 = nRenderMixed;
             nRenderMixed = Node;
         } // do mieszanych
-        // Node->nNext3=nMeshed; //dopisanie do listy sortowania
-        // nMeshed=Node;
         break;
-    case TP_MEMCELL:
-    case TP_TRACTIONPOWERSOURCE: // a te w ogóle pomijamy
-        //  case TP_ISOLATED: //lista torów w obwodzie izolowanym - na razie ignorowana
+#ifdef EU07_SCENERY_EDITOR
+    case TP_MEMCELL: {
+        m_memcells.emplace_back( Node );
         break;
+    }
+#endif
+    case TP_TRACTIONPOWERSOURCE: // a te w ogÃ³le pomijamy
+/*
+        //  case TP_ISOLATED: //lista torÃ³w w obwodzie izolowanym - na razie ignorowana
+        break;
+*/
     case TP_DYNAMIC:
         return; // tych nie dopisujemy wcale
     }
-    Node->nNext2 = nRootNode; // dopisanie do ogólnej listy
+    // dopisanie do ogÃ³lnej listy
+    Node->nNext2 = nRootNode;
     nRootNode = Node;
-    ++iNodeCount; // licznik obiektów
+    // licznik obiektÃ³w
+    ++iNodeCount;
 }
 
-void TSubRect::RaNodeAdd(TGroundNode *Node)
-{ // finalna kwalifikacja na listy renderowania, jeœli nie obs³ugiwane grupowo
-    switch (Node->iType)
-    {
-    case TP_TRACK:
-        if (Global::bUseVBO)
-        {
-            Node->nNext3 = nRenderRect;
-            nRenderRect = Node;
-        } // VBO: do nieprzezroczystych z sektora
-        else
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // DL: do nieprzezroczystych
-        break;
-    case GL_TRIANGLE_STRIP:
-    case GL_TRIANGLE_FAN:
-    case GL_TRIANGLES:
-        if (Node->iFlags & 0x20) // czy jest przezroczyste?
-        {
-            Node->nNext3 = nRenderRectAlpha;
-            nRenderRectAlpha = Node;
-        } // DL: do przezroczystych z sektora
-        else if (Global::bUseVBO)
-        {
-            Node->nNext3 = nRenderRect;
-            nRenderRect = Node;
-        } // VBO: do nieprzezroczystych z sektora
-        else
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // DL: do nieprzezroczystych wszelakich
-        break;
-    case TP_MODEL: // modele zawsze wyœwietlane z w³asnego VBO
-        if ((Node->iFlags & 0x20200020) == 0) // czy brak przezroczystoœci?
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // do nieprzezroczystych
-        else if ((Node->iFlags & 0x10100010) == 0) // czy brak nieprzezroczystoœci?
-        {
-            Node->nNext3 = nRenderAlpha;
-            nRenderAlpha = Node;
-        } // do przezroczystych
-        else // jak i take i takie, to bêdzie dwa razy renderowane...
-        {
-            Node->nNext3 = nRenderMixed;
-            nRenderMixed = Node;
-        } // do mieszanych
-        break;
-    case TP_MESH: // grupa ze wspóln¹ tekstur¹
-        //{Node->nNext3=nRenderRect; nRenderRect=Node;} //do nieprzezroczystych z sektora
-        {
-            Node->nNext3 = nRender;
-            nRender = Node;
-        } // do nieprzezroczystych
-        break;
-    case TP_SUBMODEL: // submodele terenu w kwadracie kilometrowym id¹ do nRootMesh
-        // WriteLog("nRootMesh was "+AnsiString(nRootMesh?"not null ":"null
-        // ")+IntToHex(int(this),8));
-        Node->nNext3 = nRootMesh; // przy VBO musi byæ inaczej
-        nRootMesh = Node;
-        break;
-    }
-}
+// przygotowanie sektora do renderowania
+void TSubRect::Sort() {
 
-void TSubRect::Sort()
-{ // przygotowanie sektora do renderowania
-    TGroundNode **n0, *n1, *n2; // wskaŸniki robocze
-    delete[] tTracks; // usuniêcie listy
-    tTracks =
-        iTracks ? new TTrack *[iTracks] : NULL; // tworzenie tabeli torów do renderowania pojazdów
-    if (tTracks)
-    { // wype³nianie tabeli torów
+    assert( tTracks == nullptr );
+    if( iTracks > 0 ) {
+        tTracks = new TTrack *[ iTracks ]; // tworzenie tabeli torÃ³w do renderowania pojazdÃ³w
         int i = 0;
-        for (n1 = nRootNode; n1; n1 = n1->nNext2) // kolejne obiekty z sektora
-            if (n1->iType == TP_TRACK)
-                tTracks[i++] = n1->pTrack;
-    }
-    // sortowanie obiektów w sektorze na listy renderowania
-    if (!nMeshed)
-        return; // nie ma nic do sortowania
-    bool sorted = false;
-    while (!sorted)
-    { // sortowanie b¹belkowe obiektów wg tekstury
-        sorted = true; // zak³adamy posortowanie
-        n0 = &nMeshed; // wskaŸnik niezbêdny do zamieniania obiektów
-        n1 = nMeshed; // lista obiektów przetwarzanych na statyczne siatki
-        while (n1)
-        { // sprawdzanie stanu posortowania obiektów i ewentualne zamiany
-            n2 = n1->nNext3; // kolejny z tej listy
-            if (n2) // jeœli istnieje
-                if (n1->TextureID > n2->TextureID)
-                { // zamiana elementów miejscami
-                    *n0 = n2; // drugi bêdzie na pocz¹tku
-                    n1->nNext3 = n2->nNext3; // ten zza drugiego bêdzie za pierwszym
-                    n2->nNext3 = n1; // a za drugim bêdzie pierwszy
-                    sorted = false; // potrzebny kolejny przebieg
-                }
-            n0 = &(n1->nNext3);
-            n1 = n2;
-        };
-    }
-    // wyrzucenie z listy obiektów pojedynczych (nie ma z czym ich grupowaæ)
-    // nawet jak s¹ pojedyncze, to i tak lepiej, aby by³y w jednym Display List
-    /*
-        else
-        {//dodanie do zwyk³ej listy renderowania i usuniêcie z grupowego
-         *n0=n2; //drugi bêdzie na pocz¹tku
-         RaNodeAdd(n1); //nie ma go z czym zgrupowaæ; (n1->nNext3) zostanie nadpisane
-         n1=n2; //potrzebne do ustawienia (n0)
+        for( TGroundNode *node = nRootNode; node != nullptr; node = node->nNext2 ) {
+            // kolejne obiekty z sektora
+            if( node->iType == TP_TRACK ) {
+                tTracks[ i++ ] = node->pTrack;
+            }
         }
-    */
-    //...
-    // przegl¹danie listy i tworzenie obiektów renderuj¹cych dla danej tekstury
-    GLuint t = 0; // pomocniczy kod tekstury
-    n1 = nMeshed; // lista obiektów przetwarzanych na statyczne siatki
-    while (n1)
-    { // dla ka¿dej tekstury powinny istnieæ co najmniej dwa obiekty, ale dla DL nie ma to znaczenia
-        if (t < n1->TextureID) // jeœli (n1) ma inn¹ teksturê ni¿ poprzednie
-        { // mo¿na zrobiæ obiekt renderuj¹cy
-            t = n1->TextureID;
-            n2 = new TGroundNode();
-            n2->nNext2 = nRootMesh;
-            nRootMesh = n2; // podczepienie na pocz¹tku listy
-            nRootMesh->iType = TP_MESH; // obiekt renderuj¹cy siatki dla tekstury
-            nRootMesh->TextureID = t;
-            nRootMesh->nNode = n1; // pierwszy element z listy
-            nRootMesh->pCenter = n1->pCenter;
-            nRootMesh->fSquareRadius = 1e8; // widaæ bez ograniczeñ
-            nRootMesh->fSquareMinRadius = 0.0;
-            nRootMesh->iFlags = 0x10;
-            RaNodeAdd(nRootMesh); // dodanie do odpowiedniej listy renderowania
-        }
-        n1 = n1->nNext3; // kolejny z tej listy
-    };
+    }
+    // NOTE: actual sort procedure temporarily removed as part of render code unification
 }
 
 TTrack * TSubRect::FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude)
-{ // szukanie toru, którego koniec jest najbli¿szy (*Point)
-    TTrack *Track;
-    for (int i = 0; i < iTracks; ++i)
-        if (tTracks[i] != Exclude) // mo¿na u¿yæ tabelê torów, bo jest mniejsza
+{ // szukanie toru, ktÃ³rego koniec jest najbliÅ¼szy (*Point)
+    for( int i = 0; i < iTracks; ++i ) {
+        if( tTracks[ i ] != Exclude ) // moÅ¼na uÅ¼yÄ‡ tabelÄ™ torÃ³w, bo jest mniejsza
         {
-            iConnection = tTracks[i]->TestPoint(Point);
-            if (iConnection >= 0)
-                return tTracks[i]; // szukanie TGroundNode nie jest potrzebne
+            iConnection = tTracks[ i ]->TestPoint( Point );
+            if( iConnection >= 0 )
+                return tTracks[ i ]; // szukanie TGroundNode nie jest potrzebne
         }
-    /*
-     TGroundNode *Current;
-     for (Current=nRootNode;Current;Current=Current->Next)
-      if ((Current->iType==TP_TRACK)&&(Current->pTrack!=Exclude)) //mo¿na u¿yæ tabelê torów
-       {
-        iConnection=Current->pTrack->TestPoint(Point);
-        if (iConnection>=0) return Current;
-       }
-    */
+    }
     return NULL;
 };
 
 bool TSubRect::RaTrackAnimAdd(TTrack *t)
-{ // aktywacja animacji torów w VBO (zwrotnica, obrotnica)
-    if (m_nVertexCount < 0)
-        return true; // nie ma animacji, gdy nie widaæ
+{ // aktywacja animacji torÃ³w w VBO (zwrotnica, obrotnica)
+    if( false == m_geometrycreated ) {
+        // nie ma animacji, gdy nie widaÄ‡
+        return true;
+    }
     if (tTrackAnim)
         tTrackAnim->RaAnimListAdd(t);
     else
         tTrackAnim = t;
-    return false; // bêdzie animowane...
+    return false; // bÄ™dzie animowane...
 }
 
 void TSubRect::RaAnimate()
 { // wykonanie animacji
-    if (!tTrackAnim)
-        return; // nie ma nic do animowania
-    if (Global::bUseVBO)
-    { // odœwie¿enie VBO sektora
-        if (Global::bOpenGL_1_5) // modyfikacje VBO s¹ dostêpne od OpenGL 1.5
-            glBindBufferARB(GL_ARRAY_BUFFER_ARB, m_nVBOVertices);
-        else // dla OpenGL 1.4 z GL_ARB_vertex_buffer_object odœwie¿enie ca³ego sektora
-            Release(); // opró¿nienie VBO sektora, aby siê odœwie¿y³ z nowymi ustawieniami
+    if( tTrackAnim == nullptr ) {
+        // nie ma nic do animowania
+        return;
     }
     tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
 };
 
-TTraction * TSubRect::FindTraction(vector3 *Point, int &iConnection, TTraction *Exclude)
-{ // szukanie przês³a w sektorze, którego koniec jest najbli¿szy (*Point)
+TTraction * TSubRect::FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude)
+{ // szukanie przÄ™sÅ‚a w sektorze, ktÃ³rego koniec jest najbliÅ¼szy (*Point)
     TGroundNode *Current;
     for (Current = nRenderWires; Current; Current = Current->nNext3)
         if ((Current->iType == TP_TRACTION) && (Current->hvTraction != Exclude))
@@ -1035,292 +419,171 @@ TTraction * TSubRect::FindTraction(vector3 *Point, int &iConnection, TTraction *
     return NULL;
 };
 
-void TSubRect::LoadNodes()
-{ // utworzenie siatek VBO dla wszystkich node w sektorze
-    if (m_nVertexCount >= 0)
-        return; // obiekty by³y ju¿ sprawdzone
-    m_nVertexCount = 0; //-1 oznacza, ¿e nie sprawdzono listy obiektów
-    if (!nRootNode)
+// utworzenie siatek VBO dla wszystkich node w sektorze
+void TSubRect::LoadNodes() {
+
+    if( true == m_geometrycreated ) {
+        // obiekty byÅ‚y juÅ¼ sprawdzone
         return;
-    TGroundNode *n = nRootNode;
-    while (n)
-    {
-        switch (n->iType)
-        {
-        case GL_TRIANGLE_STRIP:
-        case GL_TRIANGLE_FAN:
-        case GL_TRIANGLES:
-            n->iVboPtr = m_nVertexCount; // nowy pocz¹tek
-            m_nVertexCount += n->iNumVerts;
-            break;
-        case GL_LINES:
-        case GL_LINE_STRIP:
-        case GL_LINE_LOOP:
-            n->iVboPtr = m_nVertexCount; // nowy pocz¹tek
-            m_nVertexCount +=
-                n->iNumPts; // miejsce w tablicach normalnych i teksturowania siê zmarnuje...
-            break;
-        case TP_TRACK:
-            n->iVboPtr = m_nVertexCount; // nowy pocz¹tek
-            n->iNumVerts = n->pTrack->RaArrayPrepare(); // zliczenie wierzcho³ków
-            m_nVertexCount += n->iNumVerts;
-            break;
-        case TP_TRACTION:
-            n->iVboPtr = m_nVertexCount; // nowy pocz¹tek
-            n->iNumVerts = n->hvTraction->RaArrayPrepare(); // zliczenie wierzcho³ków
-            m_nVertexCount += n->iNumVerts;
-            break;
-        }
-        n = n->nNext2; // nastêpny z sektora
     }
-    if (!m_nVertexCount)
-        return; // jeœli nie ma obiektów do wyœwietlenia z VBO, to koniec
-    if (Global::bUseVBO)
-    { // tylko liczenie wierzcho³ów, gdy nie ma VBO
-        MakeArray(m_nVertexCount);
-        n = nRootNode;
-        int i;
-        while (n)
-        {
-            if (n->iVboPtr >= 0)
-                switch (n->iType)
-                {
-                case GL_TRIANGLE_STRIP:
-                case GL_TRIANGLE_FAN:
-                case GL_TRIANGLES:
-                    for (i = 0; i < n->iNumVerts; ++i)
-                    { // Ra: trójk¹ty mo¿na od razu wczytywaæ do takich tablic... to mo¿e poczekaæ
-                        m_pVNT[n->iVboPtr + i].x = n->Vertices[i].Point.x;
-                        m_pVNT[n->iVboPtr + i].y = n->Vertices[i].Point.y;
-                        m_pVNT[n->iVboPtr + i].z = n->Vertices[i].Point.z;
-                        m_pVNT[n->iVboPtr + i].nx = n->Vertices[i].Normal.x;
-                        m_pVNT[n->iVboPtr + i].ny = n->Vertices[i].Normal.y;
-                        m_pVNT[n->iVboPtr + i].nz = n->Vertices[i].Normal.z;
-                        m_pVNT[n->iVboPtr + i].u = n->Vertices[i].tu;
-                        m_pVNT[n->iVboPtr + i].v = n->Vertices[i].tv;
-                    }
-                    break;
-                case GL_LINES:
-                case GL_LINE_STRIP:
-                case GL_LINE_LOOP:
-                    for (i = 0; i < n->iNumPts; ++i)
-                    {
-                        m_pVNT[n->iVboPtr + i].x = n->Points[i].x;
-                        m_pVNT[n->iVboPtr + i].y = n->Points[i].y;
-                        m_pVNT[n->iVboPtr + i].z = n->Points[i].z;
-                        // miejsce w tablicach normalnych i teksturowania siê marnuje...
-                    }
-                    break;
-                case TP_TRACK:
-                    if (n->iNumVerts) // bo tory zabezpieczaj¹ce s¹ niewidoczne
-                        n->pTrack->RaArrayFill(m_pVNT + n->iVboPtr, m_pVNT);
-                    break;
-                case TP_TRACTION:
-                    if (n->iNumVerts) // druty mog¹ byæ niewidoczne...?
-                        n->hvTraction->RaArrayFill(m_pVNT + n->iVboPtr);
-                    break;
+    else {
+        // mark it done for future checks
+        m_geometrycreated = true;
+    }
+
+    auto *node { nRootNode };
+    while( node != nullptr ) {
+        switch (node->iType) {
+            case GL_TRIANGLES:
+            case GL_LINES: {
+                vertex_array vertices;
+                for( auto const &vertex : node->Piece->vertices ) {
+                    vertices.emplace_back(
+                        vertex.position - node->m_rootposition,
+                        vertex.normal,
+                        vertex.texture );
                 }
-            n = n->nNext2; // nastêpny z sektora
+                node->Piece->geometry = GfxRenderer.Insert( vertices, m_geometrybank, node->iType );
+                node->Piece->vertices.swap( std::vector<TGroundVertex>() ); // hipster shrink_to_fit
+                // TODO: get rid of the vertex counters, they're obsolete at this point
+                if( node->iType == GL_LINES ) { node->iNumVerts = 0; }
+                else                          { node->iNumPts = 0; }
+                break;
+            }
+            case TP_TRACK:
+                if( node->pTrack->bVisible ) { // bo tory zabezpieczajÄ…ce sÄ… niewidoczne
+                    node->pTrack->create_geometry( m_geometrybank );
+                }
+                break;
+            case TP_TRACTION:
+                node->hvTraction->create_geometry( m_geometrybank, node->m_rootposition );
+                break;
+            default: { break; }
         }
-        BuildVBOs();
+        node = node->nNext2; // nastÄ™pny z sektora
     }
-    if (Global::bManageNodes)
-        ResourceManager::Register(this); // dodanie do automatu zwalniaj¹cego pamiêæ
 }
 
-bool TSubRect::StartVBO()
-{ // pocz¹tek rysowania elementów z VBO w sektorze
-    SetLastUsage(Timer::GetSimulationTime()); // te z ty³u bêd¹ niepotrzebnie zwalniane
-    return CMesh::StartVBO();
-};
-
-void TSubRect::Release()
-{ // wirtualne zwolnienie zasobów przez sprz¹tacz albo destruktor
-    if (Global::bUseVBO)
-        CMesh::Clear(); // usuwanie buforów
-};
-
-void TSubRect::RenderDL()
-{ // renderowanie nieprzezroczystych (DL)
-    TGroundNode *node;
-    RaAnimate(); // przeliczenia animacji torów w sektorze
-    for (node = nRender; node; node = node->nNext3)
-        node->RenderDL(); // nieprzezroczyste obiekty (oprócz pojazdów)
-    for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderDL(); // nieprzezroczyste z mieszanych modeli
-    for (int j = 0; j < iTracks; ++j)
-        tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
-};
-
-void TSubRect::RenderAlphaDL()
-{ // renderowanie przezroczystych modeli oraz pojazdów (DL)
-    TGroundNode *node;
-    for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderAlphaDL(); // przezroczyste z mieszanych modeli
-    for (node = nRenderAlpha; node; node = node->nNext3)
-        node->RenderAlphaDL(); // przezroczyste modele
-    // for (node=tmp->nRender;node;node=node->nNext3)
-    // if (node->iType==TP_TRACK)
-    //  node->pTrack->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
-    for (int j = 0; j < iTracks; ++j)
-        tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
-};
-
-void TSubRect::RenderVBO()
-{ // renderowanie nieprzezroczystych (VBO)
-    TGroundNode *node;
-    RaAnimate(); // przeliczenia animacji torów w sektorze
-    LoadNodes(); // czemu tutaj?
-    if (StartVBO())
-    {
-        for (node = nRenderRect; node; node = node->nNext3)
-            if (node->iVboPtr >= 0)
-                node->RenderVBO(); // nieprzezroczyste obiekty terenu
-        EndVBO();
-    }
-    for (node = nRender; node; node = node->nNext3)
-        node->RenderVBO(); // nieprzezroczyste obiekty (oprócz pojazdów)
-    for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderVBO(); // nieprzezroczyste z mieszanych modeli
-    for (int j = 0; j < iTracks; ++j)
-        tTracks[j]->RenderDyn(); // nieprzezroczyste fragmenty pojazdów na torach
-};
-
-void TSubRect::RenderAlphaVBO()
-{ // renderowanie przezroczystych modeli oraz pojazdów (VBO)
-    TGroundNode *node;
-    for (node = nRenderMixed; node; node = node->nNext3)
-        node->RenderAlphaVBO(); // przezroczyste z mieszanych modeli
-    for (node = nRenderAlpha; node; node = node->nNext3)
-        node->RenderAlphaVBO(); // przezroczyste modele
-    // for (node=tmp->nRender;node;node=node->nNext3)
-    // if (node->iType==TP_TRACK)
-    //  node->pTrack->RenderAlpha(); //przezroczyste fragmenty pojazdów na torach
-    for (int j = 0; j < iTracks; ++j)
-        tTracks[j]->RenderDynAlpha(); // przezroczyste fragmenty pojazdów na torach
-};
-
 void TSubRect::RenderSounds()
-{ // aktualizacja dŸwiêków w pojazdach sektora (sektor mo¿e nie byæ wyœwietlany)
+{ // aktualizacja dÅºwiÄ™kÃ³w w pojazdach sektora (sektor moÅ¼e nie byÄ‡ wyÅ›wietlany)
     for (int j = 0; j < iTracks; ++j)
-        tTracks[j]->RenderDynSounds(); // dŸwiêki pojazdów id¹ niezale¿nie od wyœwietlania
+        tTracks[j]->RenderDynSounds(); // dÅºwiÄ™ki pojazdÃ³w idÄ… niezaleÅ¼nie od wyÅ›wietlania
 };
 //---------------------------------------------------------------------------
 //------------------ Kwadrat kilometrowy ------------------------------------
 //---------------------------------------------------------------------------
-int TGroundRect::iFrameNumber = 0; // licznik wyœwietlanych klatek
-
-TGroundRect::TGroundRect()
-{
-    pSubRects = NULL;
-    nTerrain = NULL;
-};
+int TGroundRect::iFrameNumber = 0; // licznik wyÅ›wietlanych klatek
 
 TGroundRect::~TGroundRect()
 {
     SafeDeleteArray(pSubRects);
 };
 
-void TGroundRect::RenderDL()
-{ // renderowanie kwadratu kilometrowego (DL), jeœli jeszcze nie zrobione
-    if (iLastDisplay != iFrameNumber)
-    { // tylko jezeli dany kwadrat nie by³ jeszcze renderowany
-        // for (TGroundNode* node=pRender;node;node=node->pNext3)
-        // node->Render(); //nieprzezroczyste trójk¹ty kwadratu kilometrowego
-        if (nRender)
-        { //³¹czenie trójk¹tów w jedn¹ listê - trochê wioska
-            if (!nRender->DisplayListID || (nRender->iVersion != Global::iReCompile))
-            { // je¿eli nie skompilowany, kompilujemy wszystkie trójk¹ty w jeden
-                nRender->fSquareRadius = 5000.0 * 5000.0; // aby agregat nigdy nie znika³
-                nRender->DisplayListID = glGenLists(1);
-                glNewList(nRender->DisplayListID, GL_COMPILE);
-                nRender->iVersion = Global::iReCompile; // aktualna wersja siatek
-                for (TGroundNode *node = nRender; node; node = node->nNext3) // nastêpny tej grupy
-                    node->Compile(true);
-                glEndList();
-            }
-            nRender->RenderDL(); // nieprzezroczyste trójk¹ty kwadratu kilometrowego
+void
+TGroundRect::Init() {
+    // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
+    if( m_geometrybank == NULL ) {
+        m_geometrybank = GfxRenderer.Create_Bank();
+    }
+
+    pSubRects = new TSubRect[ iNumSubRects * iNumSubRects ];
+    float const subrectsize = 1000.0f / iNumSubRects;
+    for( int column = 0; column < iNumSubRects; ++column ) {
+        for( int row = 0; row < iNumSubRects; ++row ) {
+            auto subcell = FastGetSubRect( column, row );
+            auto &area = subcell->m_area;
+            area.center =
+                m_area.center
+                - glm::vec3( 500.0f, 0.0f, 500.0f ) // 'upper left' corner of rectangle
+                + glm::vec3( subrectsize * 0.5f, 0.0f, subrectsize * 0.5f ) // center of sub-rectangle
+                + glm::vec3( subrectsize * column, 0.0f, subrectsize * row );
+            area.radius = subrectsize * M_SQRT2;
+            // all subcells share the same geometry bank with their parent, to reduce buffer switching during render
+            subcell->m_geometrybank = m_geometrybank;
         }
-        if (nRootMesh)
-            nRootMesh->RenderDL();
-        iLastDisplay = iFrameNumber; // drugi raz nie potrzeba
     }
 };
 
-void TGroundRect::RenderVBO()
-{ // renderowanie kwadratu kilometrowego (VBO), jeœli jeszcze nie zrobione
-    if (iLastDisplay != iFrameNumber)
-    { // tylko jezeli dany kwadrat nie by³ jeszcze renderowany
-        LoadNodes(); // ewentualne tworzenie siatek
-        if (StartVBO())
-        {
-            for (TGroundNode *node = nRenderRect; node; node = node->nNext3) // nastêpny tej grupy
-                node->RaRenderVBO(); // nieprzezroczyste trójk¹ty kwadratu kilometrowego
-            EndVBO();
-            iLastDisplay = iFrameNumber;
+// dodanie obiektu do sektora na etapie rozdzielania na sektory
+void
+TGroundRect::NodeAdd( TGroundNode *Node ) {
+
+    // override visibility ranges, to ensure the content is drawn from far enough
+    Node->fSquareRadius = 50000.0 * 50000.0;
+    Node->fSquareMinRadius = 0.0;
+
+    // if the cell already has a node with matching material settings, we can just add the new geometry to it
+    if( ( Node->iType == GL_TRIANGLES ) ) {
+        // cell node only receives opaque geometry, so we can skip transparency test
+        auto matchingnode { nRenderRect };
+        while( ( matchingnode != nullptr )
+            && ( false == mergeable( *Node, *matchingnode ) ) ) {
+            // search will get us either a matching node, or a nullptr
+            matchingnode = matchingnode->nNext3;
         }
-        if (nTerrain)
-            nTerrain->smTerrain->iVisible = iFrameNumber; // ma siê wyœwietliæ w tej ramce
+        if( matchingnode != nullptr ) {
+            // a valid match, so dump the content into it
+            // updating centre points isn't strictly necessary since render is based off the cell's middle, but, eh
+            matchingnode->pCenter =
+                interpolate(
+                    matchingnode->pCenter, Node->pCenter,
+                    static_cast<float>( Node->iNumVerts ) / ( Node->iNumVerts + matchingnode->iNumVerts ) );
+            matchingnode->iNumVerts += Node->iNumVerts;
+            matchingnode->Piece->vertices.resize( matchingnode->iNumVerts, TGroundVertex() );
+            matchingnode->Piece->vertices.insert(
+                std::end( matchingnode->Piece->vertices ),
+                std::begin( Node->Piece->vertices ), std::end( Node->Piece->vertices ) );
+            // clear content of the node we're copying. a minor memory saving at best, but still a saving
+            Node->Piece->vertices.swap( std::vector<TGroundVertex>() );
+            Node->iNumVerts = 0;
+            // since we've put the data in existing node we can skip adding the new one...
+            return;
+            // ...for others, they'll go through the regular procedure, along with other non-mergeable types
+        }
     }
-};
 
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-
-void TGround::MoveGroundNode(vector3 pPosition)
-{ // Ra: to wymaga gruntownej reformy
-    /*
-     TGroundNode *Current;
-     for (Current=RootNode;Current!=NULL;Current=Current->Next)
-      Current->MoveMe(pPosition);
-
-     TGroundRect *Rectx=new TGroundRect; //kwadrat kilometrowy
-     for(int i=0;i<iNumRects;i++)
-      for(int j=0;j<iNumRects;j++)
-       Rects[i][j]=*Rectx; //kopiowanie zawartoœci do ka¿dego kwadratu
-     delete Rectx;
-     for (Current=RootNode;Current!=NULL;Current=Current->Next)
-     {//roz³o¿enie obiektów na mapie
-      if (Current->iType!=TP_DYNAMIC)
-      {//pojazdów to w ogóle nie dotyczy
-       if ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true //~czy trójk¹t?
-        :(Current->iFlags&0x20)?true //~czy teksturê ma nieprzezroczyst¹?
-         //:(Current->iNumVerts!=3)?true //~czy tylko jeden trójk¹t?
-         :(Current->fSquareMinRadius!=0.0)?true //~czy widoczny z bliska?
-          :(Current->fSquareRadius<=90000.0)) //~czy widoczny z daleka?
-        GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-       else //dodajemy do kwadratu kilometrowego
-        GetRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
-      }
-     }
-     for (Current=RootDynamic;Current!=NULL;Current=Current->Next)
-     {
-      Current->pCenter+=pPosition;
-      Current->DynamicObject->UpdatePos();
-     }
-     for (Current=RootDynamic;Current!=NULL;Current=Current->Next)
-      Current->DynamicObject->MoverParameters->Physic_ReActivation();
-    */
+    return TSubRect::NodeAdd( Node );
 }
+
+// compares two provided nodes, returns true if their content can be merged
+bool
+TGroundRect::mergeable( TGroundNode const &Left, TGroundNode const &Right ) {
+    // since view ranges and transparency type for all nodes put through this method are guaranteed to be equal,
+    // we can skip their tests and only do the material check.
+    // TODO, TBD: material as dedicated type, and refactor this method into a simple equality test
+    return ( ( Left.TextureID == Right.TextureID )
+          && ( Left.Ambient == Right.Ambient )
+          && ( Left.Diffuse == Right.Diffuse )
+          && ( Left.Specular == Right.Specular ) );
+}
+
+//---------------------------------------------------------------------------
+
+BYTE TempConnectionType[ 200 ]; // Ra: sprzÃªgi w skÂ³adzie; ujemne, gdy odwrotnie
 
 TGround::TGround()
 {
-    // RootNode=NULL;
-    nRootDynamic = NULL;
-    QueryRootEvent = NULL;
-    tmpEvent = NULL;
-    tmp2Event = NULL;
-    OldQRE = NULL;
-    RootEvent = NULL;
-    iNumNodes = 0;
-    // pTrain=NULL;
     Global::pGround = this;
-    bInitDone = false; // Ra: ¿eby nie robi³o dwa razy FirstInit
-    for (int i = 0; i < TP_LAST; i++)
-        nRootOfType[i] = NULL; // zerowanie tablic wyszukiwania
-    bDynamicRemove = false; // na razie nic do usuniêcia
-    sTracks = new TNames(); // nazwy torów - na razie tak
+
+    for( int i = 0; i < TP_LAST; ++i ) {
+        nRootOfType[ i ] = nullptr; // zerowanie tablic wyszukiwania
+    }
+    ::SecureZeroMemory( TempConnectionType, sizeof( TempConnectionType ) );
+    // set bounding area information for ground rectangles
+    float const rectsize = 1000.0f;
+    glm::vec3 const worldcenter;
+    for( int column = 0; column < iNumRects; ++column ) {
+        for( int row = 0; row < iNumRects; ++row ) {
+            auto &area = Rects[ column ][ row ].m_area;
+            // NOTE: in current implementation triangles can stick out to ~200m from the area, so we add extra padding
+            area.radius = ( rectsize * 0.5f * M_SQRT2 ) + 200.0f;
+            area.center =
+                worldcenter
+                - glm::vec3( (iNumRects / 2) * rectsize, 0.0f, (iNumRects / 2) * rectsize ) // 'upper left' corner of the world
+                + glm::vec3( rectsize * 0.5f, 0.0f, rectsize * 0.5f ) // center of the rectangle
+                + glm::vec3( rectsize * column, 0.0f, rectsize * row );
+        }
+    }
 }
 
 TGround::~TGround()
@@ -1357,40 +620,66 @@ void TGround::Free()
     iNumNodes = 0;
     // RootNode=NULL;
     nRootDynamic = NULL;
-    delete sTracks;
 }
 
-TGroundNode * TGround::DynamicFindAny(AnsiString asNameToFind)
-{ // wyszukanie pojazdu o podanej nazwie, szukanie po wszystkich (u¿yæ drzewa!)
+TGroundNode * TGround::DynamicFindAny(std::string const &Name)
+{ // wyszukanie pojazdu o podanej nazwie, szukanie po wszystkich (uÅ¼yÄ‡ drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
-        if ((Current->asName == asNameToFind))
+        if ((Current->asName == Name))
             return Current;
     return NULL;
 };
 
-TGroundNode * TGround::DynamicFind(AnsiString asNameToFind)
-{ // wyszukanie pojazdu z obsad¹ o podanej nazwie (u¿yæ drzewa!)
+TGroundNode * TGround::DynamicFind(std::string const &Name)
+{ // wyszukanie pojazdu z obsadÄ… o podanej nazwie (uÅ¼yÄ‡ drzewa!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
         if (Current->DynamicObject->Mechanik)
-            if ((Current->asName == asNameToFind))
+            if ((Current->asName == Name))
                 return Current;
     return NULL;
 };
 
 void TGround::DynamicList(bool all)
-{ // odes³anie nazw pojazdów dostêpnych na scenerii (nazwy, szczególnie wagonów, mog¹ siê
-    // powtarzaæ!)
+{ // odesÅ‚anie nazw pojazdÃ³w dostÄ™pnych na scenerii (nazwy, szczegÃ³lnie wagonÃ³w, mogÄ… siÄ™
+    // powtarzaÄ‡!)
     for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
         if (all || Current->DynamicObject->Mechanik)
-            WyslijString(Current->asName, 6); // same nazwy pojazdów
-    WyslijString("none", 6); // informacja o koñcu listy
+            WyslijString(Current->asName, 6); // same nazwy pojazdÃ³w
+    WyslijString("none", 6); // informacja o koÅ„cu listy
 };
 
-TGroundNode * TGround::FindGroundNode(AnsiString asNameToFind, TGroundNodeType iNodeType)
+TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType)
 { // wyszukiwanie obiektu o podanej nazwie i konkretnym typie
     if ((iNodeType == TP_TRACK) || (iNodeType == TP_MEMCELL) || (iNodeType == TP_MODEL))
     { // wyszukiwanie w drzewie binarnym
-        return (TGroundNode *)sTracks->Find(iNodeType, asNameToFind.c_str());
+/*
+        switch( iNodeType ) {
+
+            case TP_TRACK: {
+                auto const lookup = m_trackmap.find( asNameToFind );
+                return
+                    lookup != m_trackmap.end() ?
+                    lookup->second :
+                    nullptr;
+            }
+            case TP_MODEL: {
+                auto const lookup = m_modelmap.find( asNameToFind );
+                return
+                    lookup != m_modelmap.end() ?
+                    lookup->second :
+                    nullptr;
+            }
+            case TP_MEMCELL: {
+                auto const lookup = m_memcellmap.find( asNameToFind );
+                return
+                    lookup != m_memcellmap.end() ?
+                    lookup->second :
+                    nullptr;
+            }
+        }
+        return nullptr;
+*/
+        return m_trackmap.Find( iNodeType, asNameToFind );
     }
     // standardowe wyszukiwanie liniowe
     TGroundNode *Current;
@@ -1400,172 +689,174 @@ TGroundNode * TGround::FindGroundNode(AnsiString asNameToFind, TGroundNodeType i
     return NULL;
 }
 
+TGroundRect *
+TGround::GetRect( double x, double z ) {
+
+    auto const column = GetColFromX( x ) / iNumSubRects;
+    auto const row = GetRowFromZ( z ) / iNumSubRects;
+
+    if( ( column >= 0 ) && ( column < iNumRects )
+     && ( row    >= 0 ) && ( row    < iNumRects ) ) {
+        return &Rects[ column ][ row ];
+    }
+    else {
+        return nullptr;
+    }
+};
+
 double fTrainSetVel = 0;
 double fTrainSetDir = 0;
-double fTrainSetDist = 0; // odleg³oœæ sk³adu od punktu 1 w stronê punktu 2
-AnsiString asTrainSetTrack = "";
+double fTrainSetDist = 0; // odlegÅ‚oÅ›Ä‡ skÅ‚adu od punktu 1 w stronÄ™ punktu 2
+std::string asTrainSetTrack = "";
 int iTrainSetConnection = 0;
 bool bTrainSet = false;
-AnsiString asTrainName = "";
+std::string asTrainName = "";
 int iTrainSetWehicleNumber = 0;
-TGroundNode *nTrainSetNode = NULL; // poprzedni pojazd do ³¹czenia
-TGroundNode *nTrainSetDriver = NULL; // pojazd, któremu zostanie wys³any rozk³ad
-
-TGroundVertex TempVerts[10000]; // tu wczytywane s¹ trójk¹ty
-Byte TempConnectionType[200]; // Ra: sprzêgi w sk³adzie; ujemne, gdy odwrotnie
+TGroundNode *nTrainSetNode = NULL; // poprzedni pojazd do Å‚Ä…czenia
+TGroundNode *nTrainSetDriver = NULL; // pojazd, ktÃ³remu zostanie wysÅ‚any rozkÅ‚ad
 
 void TGround::RaTriangleDivider(TGroundNode *node)
-{ // tworzy dodatkowe trójk¹ty i zmiejsza podany
-    // to jest wywo³ywane przy wczytywaniu trójk¹tów
-    // dodatkowe trójk¹ty s¹ dodawane do g³ównej listy trójk¹tów
-    // podzia³ trójk¹tów na sektory i kwadraty jest dokonywany póŸniej w FirstInit
+{ // tworzy dodatkowe trÃ³jkÄ…ty i zmiejsza podany
+    // to jest wywoÅ‚ywane przy wczytywaniu trÃ³jkÄ…tÃ³w
+    // dodatkowe trÃ³jkÄ…ty sÄ… dodawane do gÅ‚Ã³wnej listy trÃ³jkÄ…tÃ³w
+    // podziaÅ‚ trÃ³jkÄ…tÃ³w na sektory i kwadraty jest dokonywany pÃ³Åºniej w FirstInit
     if (node->iType != GL_TRIANGLES)
-        return; // tylko pojedyncze trójk¹ty
+        return; // tylko pojedyncze trÃ³jkÄ…ty
     if (node->iNumVerts != 3)
-        return; // tylko gdy jeden trójk¹t
-    double x0 = 1000.0 * floor(0.001 * node->pCenter.x) - 200.0;
+        return; // tylko gdy jeden trÃ³jkÄ…t
+    double x0 = 1000.0 * std::floor(0.001 * node->pCenter.x) - 200.0;
     double x1 = x0 + 1400.0;
-    double z0 = 1000.0 * floor(0.001 * node->pCenter.z) - 200.0;
+    double z0 = 1000.0 * std::floor(0.001 * node->pCenter.z) - 200.0;
     double z1 = z0 + 1400.0;
-    if ((node->Vertices[0].Point.x >= x0) && (node->Vertices[0].Point.x <= x1) &&
-        (node->Vertices[0].Point.z >= z0) && (node->Vertices[0].Point.z <= z1) &&
-        (node->Vertices[1].Point.x >= x0) && (node->Vertices[1].Point.x <= x1) &&
-        (node->Vertices[1].Point.z >= z0) && (node->Vertices[1].Point.z <= z1) &&
-        (node->Vertices[2].Point.x >= x0) && (node->Vertices[2].Point.x <= x1) &&
-        (node->Vertices[2].Point.z >= z0) && (node->Vertices[2].Point.z <= z1))
-        return; // trójk¹t wystaj¹cy mniej ni¿ 200m z kw. kilometrowego jest do przyjêcia
-    // Ra: przerobiæ na dzielenie na 2 trójk¹ty, podzia³ w przeciêciu z siatk¹ kilometrow¹
-    // Ra: i z rekurencj¹ bêdzie dzieliæ trzy trójk¹ty, jeœli bêdzie taka potrzeba
-    int divide = -1; // bok do podzielenia: 0=AB, 1=BC, 2=CA; +4=podzia³ po OZ; +8 na x1/z1
-    double min = 0, mul; // jeœli przechodzi przez oœ, iloczyn bêdzie ujemny
+    if ((node->Piece->vertices[0].position.x >= x0) && (node->Piece->vertices[0].position.x <= x1) &&
+        (node->Piece->vertices[0].position.z >= z0) && (node->Piece->vertices[0].position.z <= z1) &&
+        (node->Piece->vertices[1].position.x >= x0) && (node->Piece->vertices[1].position.x <= x1) &&
+        (node->Piece->vertices[1].position.z >= z0) && (node->Piece->vertices[1].position.z <= z1) &&
+        (node->Piece->vertices[2].position.x >= x0) && (node->Piece->vertices[2].position.x <= x1) &&
+        (node->Piece->vertices[2].position.z >= z0) && (node->Piece->vertices[2].position.z <= z1))
+        return; // trÃ³jkÄ…t wystajÄ…cy mniej niÅ¼ 200m z kw. kilometrowego jest do przyjÄ™cia
+    // Ra: przerobiÄ‡ na dzielenie na 2 trÃ³jkÄ…ty, podziaÅ‚ w przeciÄ™ciu z siatkÄ… kilometrowÄ…
+    // Ra: i z rekurencjÄ… bÄ™dzie dzieliÄ‡ trzy trÃ³jkÄ…ty, jeÅ›li bÄ™dzie taka potrzeba
+    int divide = -1; // bok do podzielenia: 0=AB, 1=BC, 2=CA; +4=podziaÅ‚ po OZ; +8 na x1/z1
+    double min = 0, mul; // jeÅ›li przechodzi przez oÅ›, iloczyn bÄ™dzie ujemny
     x0 += 200.0;
-    x1 -= 200.0; // przestawienie na siatkê
+    x1 -= 200.0; // przestawienie na siatkÄ™
     z0 += 200.0;
     z1 -= 200.0;
-    mul = (node->Vertices[0].Point.x - x0) * (node->Vertices[1].Point.x - x0); // AB na wschodzie
+    mul = (node->Piece->vertices[0].position.x - x0) * (node->Piece->vertices[1].position.x - x0); // AB na wschodzie
     if (mul < min)
         min = mul, divide = 0;
-    mul = (node->Vertices[1].Point.x - x0) * (node->Vertices[2].Point.x - x0); // BC na wschodzie
+    mul = (node->Piece->vertices[1].position.x - x0) * (node->Piece->vertices[2].position.x - x0); // BC na wschodzie
     if (mul < min)
         min = mul, divide = 1;
-    mul = (node->Vertices[2].Point.x - x0) * (node->Vertices[0].Point.x - x0); // CA na wschodzie
+    mul = (node->Piece->vertices[2].position.x - x0) * (node->Piece->vertices[0].position.x - x0); // CA na wschodzie
     if (mul < min)
         min = mul, divide = 2;
-    mul = (node->Vertices[0].Point.x - x1) * (node->Vertices[1].Point.x - x1); // AB na zachodzie
+    mul = (node->Piece->vertices[0].position.x - x1) * (node->Piece->vertices[1].position.x - x1); // AB na zachodzie
     if (mul < min)
         min = mul, divide = 8;
-    mul = (node->Vertices[1].Point.x - x1) * (node->Vertices[2].Point.x - x1); // BC na zachodzie
+    mul = (node->Piece->vertices[1].position.x - x1) * (node->Piece->vertices[2].position.x - x1); // BC na zachodzie
     if (mul < min)
         min = mul, divide = 9;
-    mul = (node->Vertices[2].Point.x - x1) * (node->Vertices[0].Point.x - x1); // CA na zachodzie
+    mul = (node->Piece->vertices[2].position.x - x1) * (node->Piece->vertices[0].position.x - x1); // CA na zachodzie
     if (mul < min)
         min = mul, divide = 10;
-    mul = (node->Vertices[0].Point.z - z0) * (node->Vertices[1].Point.z - z0); // AB na po³udniu
+    mul = (node->Piece->vertices[0].position.z - z0) * (node->Piece->vertices[1].position.z - z0); // AB na poÅ‚udniu
     if (mul < min)
         min = mul, divide = 4;
-    mul = (node->Vertices[1].Point.z - z0) * (node->Vertices[2].Point.z - z0); // BC na po³udniu
+    mul = (node->Piece->vertices[1].position.z - z0) * (node->Piece->vertices[2].position.z - z0); // BC na poÅ‚udniu
     if (mul < min)
         min = mul, divide = 5;
-    mul = (node->Vertices[2].Point.z - z0) * (node->Vertices[0].Point.z - z0); // CA na po³udniu
+    mul = (node->Piece->vertices[2].position.z - z0) * (node->Piece->vertices[0].position.z - z0); // CA na poÅ‚udniu
     if (mul < min)
         min = mul, divide = 6;
-    mul = (node->Vertices[0].Point.z - z1) * (node->Vertices[1].Point.z - z1); // AB na pó³nocy
+    mul = (node->Piece->vertices[0].position.z - z1) * (node->Piece->vertices[1].position.z - z1); // AB na pÃ³Å‚nocy
     if (mul < min)
         min = mul, divide = 12;
-    mul = (node->Vertices[1].Point.z - z1) * (node->Vertices[2].Point.z - z1); // BC na pó³nocy
+    mul = (node->Piece->vertices[1].position.z - z1) * (node->Piece->vertices[2].position.z - z1); // BC na pÃ³Å‚nocy
     if (mul < min)
         min = mul, divide = 13;
-    mul = (node->Vertices[2].Point.z - z1) * (node->Vertices[0].Point.z - z1); // CA na pó³nocy
+    mul = (node->Piece->vertices[2].position.z - z1) * (node->Piece->vertices[0].position.z - z1); // CA na pÃ³Å‚nocy
     if (mul < min)
         divide = 14;
-    // tworzymy jeden dodatkowy trójk¹t, dziel¹c jeden bok na przeciêciu siatki kilometrowej
-    TGroundNode *ntri; // wskaŸnik na nowy trójk¹t
-    ntri = new TGroundNode(); // a ten jest nowy
-    ntri->iType = GL_TRIANGLES; // kopiowanie parametrów, przyda³by siê konstruktor kopiuj¹cy
-    ntri->Init(3);
+    // tworzymy jeden dodatkowy trÃ³jkÄ…t, dzielÄ…c jeden bok na przeciÄ™ciu siatki kilometrowej
+    TGroundNode *ntri; // wskaÅºnik na nowy trÃ³jkÄ…t
+    ntri = new TGroundNode(GL_TRIANGLES); // a ten jest nowy
+    // kopiowanie parametrÃ³w, przydaÅ‚by siÄ™ konstruktor kopiujÄ…cy
     ntri->TextureID = node->TextureID;
     ntri->iFlags = node->iFlags;
-    for (int j = 0; j < 4; ++j)
-    {
-        ntri->Ambient[j] = node->Ambient[j];
-        ntri->Diffuse[j] = node->Diffuse[j];
-        ntri->Specular[j] = node->Specular[j];
-    }
+    ntri->Ambient = node->Ambient;
+    ntri->Diffuse = node->Diffuse;
+    ntri->Specular = node->Specular;
     ntri->asName = node->asName;
     ntri->fSquareRadius = node->fSquareRadius;
     ntri->fSquareMinRadius = node->fSquareMinRadius;
-    ntri->bVisible = node->bVisible; // a s¹ jakieœ niewidoczne?
+    ntri->bVisible = node->bVisible; // a sÄ… jakieÅ› niewidoczne?
     ntri->nNext = nRootOfType[GL_TRIANGLES];
     nRootOfType[GL_TRIANGLES] = ntri; // dopisanie z przodu do listy
-    iNumNodes++;
+    ++iNumNodes;
+    ntri->iNumVerts = 3;
+    ntri->Piece->vertices.resize( 3 );
     switch (divide & 3)
-    { // podzielenie jednego z boków, powstaje wierzcho³ek D
-    case 0: // podzia³ AB (0-1) -> ADC i DBC
-        ntri->Vertices[2] = node->Vertices[2]; // wierzcho³ek C jest wspólny
-        ntri->Vertices[1] = node->Vertices[1]; // wierzcho³ek B przechodzi do nowego
+    { // podzielenie jednego z bokÃ³w, powstaje wierzchoÅ‚ek D
+    case 0: // podziaÅ‚ AB (0-1) -> ADC i DBC
+        ntri->Piece->vertices[2] = node->Piece->vertices[2]; // wierzchoÅ‚ek C jest wspÃ³lny
+        ntri->Piece->vertices[1] = node->Piece->vertices[1]; // wierzchoÅ‚ek B przechodzi do nowego
         // node->Vertices[1].HalfSet(node->Vertices[0],node->Vertices[1]); //na razie D tak
         if (divide & 4)
-            node->Vertices[1].SetByZ(node->Vertices[0], node->Vertices[1], divide & 8 ? z1 : z0);
+            node->Piece->vertices[1].SetByZ(node->Piece->vertices[0], node->Piece->vertices[1], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[1].SetByX(node->Vertices[0], node->Vertices[1], divide & 8 ? x1 : x0);
-        ntri->Vertices[0] = node->Vertices[1]; // wierzcho³ek D jest wspólny
+            node->Piece->vertices[1].SetByX(node->Piece->vertices[0], node->Piece->vertices[1], (divide & 8) ? x1 : x0);
+        ntri->Piece->vertices[0] = node->Piece->vertices[1]; // wierzchoÅ‚ek D jest wspÃ³lny
         break;
-    case 1: // podzia³ BC (1-2) -> ABD i ADC
-        ntri->Vertices[0] = node->Vertices[0]; // wierzcho³ek A jest wspólny
-        ntri->Vertices[2] = node->Vertices[2]; // wierzcho³ek C przechodzi do nowego
+    case 1: // podziaÅ‚ BC (1-2) -> ABD i ADC
+        ntri->Piece->vertices[0] = node->Piece->vertices[0]; // wierzchoÅ‚ek A jest wspÃ³lny
+        ntri->Piece->vertices[2] = node->Piece->vertices[2]; // wierzchoÅ‚ek C przechodzi do nowego
         // node->Vertices[2].HalfSet(node->Vertices[1],node->Vertices[2]); //na razie D tak
         if (divide & 4)
-            node->Vertices[2].SetByZ(node->Vertices[1], node->Vertices[2], divide & 8 ? z1 : z0);
+            node->Piece->vertices[2].SetByZ(node->Piece->vertices[1], node->Piece->vertices[2], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[2].SetByX(node->Vertices[1], node->Vertices[2], divide & 8 ? x1 : x0);
-        ntri->Vertices[1] = node->Vertices[2]; // wierzcho³ek D jest wspólny
+            node->Piece->vertices[2].SetByX(node->Piece->vertices[1], node->Piece->vertices[2], (divide & 8) ? x1 : x0);
+        ntri->Piece->vertices[1] = node->Piece->vertices[2]; // wierzchoÅ‚ek D jest wspÃ³lny
         break;
-    case 2: // podzia³ CA (2-0) -> ABD i DBC
-        ntri->Vertices[1] = node->Vertices[1]; // wierzcho³ek B jest wspólny
-        ntri->Vertices[2] = node->Vertices[2]; // wierzcho³ek C przechodzi do nowego
+    case 2: // podziaÅ‚ CA (2-0) -> ABD i DBC
+        ntri->Piece->vertices[1] = node->Piece->vertices[1]; // wierzchoÅ‚ek B jest wspÃ³lny
+        ntri->Piece->vertices[2] = node->Piece->vertices[2]; // wierzchoÅ‚ek C przechodzi do nowego
         // node->Vertices[2].HalfSet(node->Vertices[2],node->Vertices[0]); //na razie D tak
         if (divide & 4)
-            node->Vertices[2].SetByZ(node->Vertices[2], node->Vertices[0], divide & 8 ? z1 : z0);
+            node->Piece->vertices[2].SetByZ(node->Piece->vertices[2], node->Piece->vertices[0], (divide & 8) ? z1 : z0);
         else
-            node->Vertices[2].SetByX(node->Vertices[2], node->Vertices[0], divide & 8 ? x1 : x0);
-        ntri->Vertices[0] = node->Vertices[2]; // wierzcho³ek D jest wspólny
+            node->Piece->vertices[2].SetByX(node->Piece->vertices[2], node->Piece->vertices[0], (divide & 8) ? x1 : x0);
+        ntri->Piece->vertices[0] = node->Piece->vertices[2]; // wierzchoÅ‚ek D jest wspÃ³lny
         break;
     }
-    // przeliczenie œrodków ciê¿koœci obu
-    node->pCenter =
-        (node->Vertices[0].Point + node->Vertices[1].Point + node->Vertices[2].Point) / 3.0;
-    ntri->pCenter =
-        (ntri->Vertices[0].Point + ntri->Vertices[1].Point + ntri->Vertices[2].Point) / 3.0;
+    // przeliczenie Å›rodkÃ³w ciÄ™Å¼koÅ›ci obu
+    node->pCenter = ( node->Piece->vertices[ 0 ].position + node->Piece->vertices[ 1 ].position + node->Piece->vertices[ 2 ].position ) / 3.0;
+    ntri->pCenter = ( ntri->Piece->vertices[ 0 ].position + ntri->Piece->vertices[ 1 ].position + ntri->Piece->vertices[ 2 ].position ) / 3.0;
     RaTriangleDivider(node); // rekurencja, bo nawet na TD raz nie wystarczy
     RaTriangleDivider(ntri);
 };
 
 TGroundNode * TGround::AddGroundNode(cParser *parser)
 { // wczytanie wpisu typu "node"
-    // parser->LoadTraction=Global::bLoadTraction; //Ra: tu nie potrzeba powtarzaæ
-    AnsiString str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
-    int nv, ti, i, n;
-    double tf, r, rmin, tf1, tf2, tf3, tf4, l, dist, mgn;
-    int int1, int2;
-    bool bError = false, curve;
+	std::string str, str1, str2, str3, str4, Skin, DriverType, asNodeName;
+	double tf, r, rmin, tf1, tf3;
+	int int1;
+	size_t int2;
+	bool bError = false;
     vector3 pt, front, up, left, pos, tv;
     matrix4x4 mat2, mat1, mat;
-    GLuint TexID;
     TGroundNode *tmp1;
     TTrack *Track;
-    TTextSound *tmpsound;
     std::string token;
-    parser->getTokens(2);
-    *parser >> r >> rmin;
-    parser->getTokens();
-    *parser >> token;
-    asNodeName = AnsiString(token.c_str());
-    parser->getTokens();
-    *parser >> token;
-    str = AnsiString(token.c_str());
-    TGroundNode *tmp, *tmp2;
-    tmp = new TGroundNode();
-    tmp->asName = (asNodeName == AnsiString("none") ? AnsiString("") : asNodeName);
+    parser->getTokens(4);
+    *parser
+        >> r
+        >> rmin
+        >> asNodeName
+        >> str;
+	TGroundNode *tmp = new TGroundNode();
+    tmp->asName = (asNodeName == "none" ? "" : asNodeName);
     if (r >= 0)
         tmp->fSquareRadius = r * r;
     tmp->fSquareMinRadius = rmin * rmin;
@@ -1583,7 +874,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->iType = GL_LINE_LOOP;
     else if (str == "model")
         tmp->iType = TP_MODEL;
-    // else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwo³ania
+    // else if (str=="terrain")             tmp->iType=TP_TERRAIN; //tymczasowo do odwoÅ‚ania
     else if (str == "dynamic")
         tmp->iType = TP_DYNAMIC;
     else if (str == "sound")
@@ -1604,75 +895,85 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     // WriteLog("-> node "+str+" "+tmp->asName);
     if (bError)
     {
-        Error(AnsiString("Scene parse error near " + str).c_str());
+        Error("Scene parse error near " + str);
         for (int i = 0; i < 60; ++i)
-        { // Ra: skopiowanie dalszej czêœci do logu - taka prowizorka, lepsza ni¿ nic
-            parser->getTokens(); // pobranie linijki tekstu nie dzia³a
+        { // Ra: skopiowanie dalszej czÄ™Å›ci do logu - taka prowizorka, lepsza niÅ¼ nic
+            parser->getTokens(); // pobranie linijki tekstu nie dziaÅ‚a
             *parser >> token;
-            WriteLog(token.c_str());
+            WriteLog(token);
         }
         // if (tmp==RootNode) RootNode=NULL;
         delete tmp;
         return NULL;
     }
+    glm::dvec3 center;
+    std::vector<TGroundVertex> importedvertices;
+
     switch (tmp->iType)
     {
     case TP_TRACTION:
         tmp->hvTraction = new TTraction();
         parser->getTokens();
         *parser >> token;
-        tmp->hvTraction->asPowerSupplyName = AnsiString(token.c_str()); // nazwa zasilacza
+        tmp->hvTraction->asPowerSupplyName = token; // nazwa zasilacza
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->NominalVoltage >> tmp->hvTraction->MaxCurrent >>
-            tmp->hvTraction->fResistivity;
-        if (tmp->hvTraction->fResistivity == 0.01) // tyle jest w sceneriach [om/km]
-            tmp->hvTraction->fResistivity = 0.075; // taka sensowniejsza wartoœæ za
+        *parser
+            >> tmp->hvTraction->NominalVoltage
+            >> tmp->hvTraction->MaxCurrent
+            >> tmp->hvTraction->fResistivity;
+        if (tmp->hvTraction->fResistivity == 0.01f) // tyle jest w sceneriach [om/km]
+            tmp->hvTraction->fResistivity = 0.075f; // taka sensowniejsza wartoÅ›Ä‡ za
         // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
-        tmp->hvTraction->fResistivity *= 0.001; // teraz [om/m]
+        tmp->hvTraction->fResistivity *= 0.001f; // teraz [om/m]
         parser->getTokens();
         *parser >> token;
-        // Ra 2014-02: a tutaj damy symbol sieci i jej budowê, np.:
+        // Ra 2014-02: a tutaj damy symbol sieci i jej budowÄ™, np.:
         // SKB70-C, CuCd70-2C, KB95-2C, C95-C, C95-2C, YC95-2C, YpC95-2C, YC120-2C
         // YpC120-2C, YzC120-2C, YwsC120-2C, YC150-C150, YC150-2C150, C150-C150
         // C120-2C, 2C120-2C, 2C120-2C-1, 2C120-2C-2, 2C120-2C-3, 2C120-2C-4
         if (token.compare("none") == 0)
             tmp->hvTraction->Material = 0;
         else if (token.compare("al") == 0)
-            tmp->hvTraction->Material = 2; // 1=aluminiowa, rysuje siê na czarno
+            tmp->hvTraction->Material = 2; // 1=aluminiowa, rysuje siÄ™ na czarno
         else
-            tmp->hvTraction->Material = 1; // 1=miedziana, rysuje siê na zielono albo czerwono
+            tmp->hvTraction->Material = 1; // 1=miedziana, rysuje siÄ™ na zielono albo czerwono
         parser->getTokens();
         *parser >> tmp->hvTraction->WireThickness;
         parser->getTokens();
         *parser >> tmp->hvTraction->DamageFlag;
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint1.x >> tmp->hvTraction->pPoint1.y >>
-            tmp->hvTraction->pPoint1.z;
-        tmp->hvTraction->pPoint1 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint1.x
+            >> tmp->hvTraction->pPoint1.y
+            >> tmp->hvTraction->pPoint1.z;
+        tmp->hvTraction->pPoint1 += glm::dvec3{ pOrigin };
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint2.x >> tmp->hvTraction->pPoint2.y >>
-            tmp->hvTraction->pPoint2.z;
-        tmp->hvTraction->pPoint2 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint2.x
+            >> tmp->hvTraction->pPoint2.y
+            >> tmp->hvTraction->pPoint2.z;
+        tmp->hvTraction->pPoint2 += glm::dvec3{ pOrigin };
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint3.x >> tmp->hvTraction->pPoint3.y >>
-            tmp->hvTraction->pPoint3.z;
-        tmp->hvTraction->pPoint3 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint3.x
+            >> tmp->hvTraction->pPoint3.y
+            >> tmp->hvTraction->pPoint3.z;
+        tmp->hvTraction->pPoint3 += glm::dvec3{ pOrigin };
         parser->getTokens(3);
-        *parser >> tmp->hvTraction->pPoint4.x >> tmp->hvTraction->pPoint4.y >>
-            tmp->hvTraction->pPoint4.z;
-        tmp->hvTraction->pPoint4 += pOrigin;
+        *parser
+            >> tmp->hvTraction->pPoint4.x
+            >> tmp->hvTraction->pPoint4.y
+            >> tmp->hvTraction->pPoint4.z;
+        tmp->hvTraction->pPoint4 += glm::dvec3{ pOrigin };
         parser->getTokens();
         *parser >> tf1;
         tmp->hvTraction->fHeightDifference =
-            (tmp->hvTraction->pPoint3.y - tmp->hvTraction->pPoint1.y + tmp->hvTraction->pPoint4.y -
-             tmp->hvTraction->pPoint2.y) *
-                0.5f -
-            tf1;
+            (tmp->hvTraction->pPoint3.y - tmp->hvTraction->pPoint1.y + tmp->hvTraction->pPoint4.y - tmp->hvTraction->pPoint2.y) * 0.5f - tf1;
         parser->getTokens();
         *parser >> tf1;
         if (tf1 > 0)
             tmp->hvTraction->iNumSections =
-                (tmp->hvTraction->pPoint1 - tmp->hvTraction->pPoint2).Length() / tf1;
+                glm::length((tmp->hvTraction->pPoint1 - tmp->hvTraction->pPoint2)) / tf1;
         else
             tmp->hvTraction->iNumSections = 0;
         parser->getTokens();
@@ -1685,51 +986,55 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         parser->getTokens();
         *parser >> token;
         if (token.compare("parallel") == 0)
-        { // jawne wskazanie innego przês³a, na które mo¿e przestawiæ siê pantograf
+        { // jawne wskazanie innego przÄ™sÅ‚a, na ktÃ³re moÅ¼e przestawiÄ‡ siÄ™ pantograf
             parser->getTokens();
-            *parser >> token; // wypada³o by to zapamiêtaæ...
-            tmp->hvTraction->asParallel = AnsiString(token.c_str());
+            *parser >> token; // wypadaÅ‚o by to zapamiÄ™taÄ‡...
+            tmp->hvTraction->asParallel = token;
             parser->getTokens();
-            *parser >> token; // a tu ju¿ powinien byæ koniec
+            *parser >> token; // a tu juÅ¼ powinien byÄ‡ koniec
         }
         if (token.compare("endtraction") != 0)
             Error("ENDTRACTION delimiter missing! " + str2 + " found instead.");
-        tmp->hvTraction->Init(); // przeliczenie parametrów
+        tmp->hvTraction->Init(); // przeliczenie parametrÃ³w
         // if (Global::bLoadTraction)
         // tmp->hvTraction->Optimize(); //generowanie DL dla wszystkiego przy wczytywaniu?
-        tmp->pCenter = (tmp->hvTraction->pPoint2 + tmp->hvTraction->pPoint1) * 0.5f;
-        // if (!Global::bLoadTraction) SafeDelete(tmp); //Ra: tak byæ nie mo¿e, bo NULL to b³¹d
+        tmp->pCenter = interpolate( tmp->hvTraction->pPoint2, tmp->hvTraction->pPoint1, 0.5 );
         break;
     case TP_TRACTIONPOWERSOURCE:
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
         tmp->pCenter += pOrigin;
         tmp->psTractionPowerSource = new TTractionPowerSource(tmp);
         tmp->psTractionPowerSource->Load(parser);
         break;
     case TP_MEMCELL:
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzglêdnienie rotacji
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
+        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzglÄ™dnienie rotacji
         tmp->pCenter += pOrigin;
         tmp->MemCell = new TMemCell(&tmp->pCenter);
         tmp->MemCell->Load(parser);
-        if (!tmp->asName.IsEmpty()) // jest pusta gdy "none"
+        if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-            if (sTracks->Update(TP_MEMCELL, tmp->asName.c_str(),
-                                tmp)) // najpierw sprawdziæ, czy ju¿ jest
-            { // przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ
-                // wsteczna)
-                ErrorLog("Duplicated memcell: " + tmp->asName); // to zg³aszaæ duplikat
+            if( false == m_trackmap.Add( TP_MEMCELL, tmp->asName, tmp ) ) {
+                // przy zdublowaniu wskaÅºnik zostanie podmieniony w drzewku na pÃ³Åºniejszy (zgodnoÅ›Ä‡ wsteczna)
+                ErrorLog( "Duplicated memcell: " + tmp->asName ); // to zgÅ‚aszaÄ‡ duplikat
             }
-            else
-                sTracks->Add(TP_MEMCELL, tmp->asName.c_str(), tmp); // nazwa jest unikalna
         }
         break;
     case TP_EVLAUNCH:
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzglêdnienie rotacji
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
+        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzglÄ™dnienie rotacji
         tmp->pCenter += pOrigin;
         tmp->EvLaunch = new TEventLauncher();
         tmp->EvLaunch->Load(parser);
@@ -1737,126 +1042,103 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
     case TP_TRACK:
         tmp->pTrack = new TTrack(tmp);
         if (Global::iWriteLogEnabled & 4)
-            if (!tmp->asName.IsEmpty())
-                WriteLog(tmp->asName.c_str());
-        tmp->pTrack->Load(parser, pOrigin,
-                          tmp->asName); // w nazwie mo¿e byæ nazwa odcinka izolowanego
-        if (!tmp->asName.IsEmpty()) // jest pusta gdy "none"
+            if (!tmp->asName.empty())
+                WriteLog(tmp->asName);
+        tmp->pTrack->Load(parser, pOrigin, tmp->asName); // w nazwie moÅ¼e byÄ‡ nazwa odcinka izolowanego
+        if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-            if (sTracks->Update(TP_TRACK, tmp->asName.c_str(),
-                                tmp)) // najpierw sprawdziæ, czy ju¿ jest
-            { // przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ
-                // wsteczna)
-                if (tmp->pTrack->iCategoryFlag & 1) // jeœli jest zdublowany tor kolejowy
-                    ErrorLog("Duplicated track: " + tmp->asName); // to zg³aszaæ duplikat
+            if( false == m_trackmap.Add( TP_TRACK, tmp->asName, tmp ) ) {
+                // przy zdublowaniu wskaÅºnik zostanie podmieniony w drzewku na pÃ³Åºniejszy (zgodnoÅ›Ä‡ wsteczna)
+                ErrorLog( "Duplicated track: " + tmp->asName ); // to zgÅ‚aszaÄ‡ duplikat
             }
-            else
-                sTracks->Add(TP_TRACK, tmp->asName.c_str(), tmp); // nazwa jest unikalna
         }
-        tmp->pCenter = (tmp->pTrack->CurrentSegment()->FastGetPoint_0() +
-                        tmp->pTrack->CurrentSegment()->FastGetPoint(0.5) +
-                        tmp->pTrack->CurrentSegment()->FastGetPoint_1()) /
-                       3.0;
+        tmp->pCenter = (
+              tmp->pTrack->CurrentSegment()->FastGetPoint_0()
+            + tmp->pTrack->CurrentSegment()->FastGetPoint( 0.5 )
+            + tmp->pTrack->CurrentSegment()->FastGetPoint_1() )
+            / 3.0;
         break;
     case TP_SOUND:
-        tmp->tsStaticSound = new TTextSound;
         parser->getTokens(3);
-        *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
-        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzglêdnienie rotacji
+        *parser
+            >> tmp->pCenter.x
+            >> tmp->pCenter.y
+            >> tmp->pCenter.z;
+        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI); // Ra 2014-11: uwzglÄ™dnienie rotacji
         tmp->pCenter += pOrigin;
         parser->getTokens();
         *parser >> token;
-        str = AnsiString(token.c_str());
-        tmp->tsStaticSound->Init(str.c_str(), sqrt(tmp->fSquareRadius), tmp->pCenter.x,
-                                 tmp->pCenter.y, tmp->pCenter.z, false, rmin);
+		str = token;
+		//str = AnsiString(token.c_str());
+        tmp->tsStaticSound = new TTextSound(str, sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z, false, false, rmin);
         if (rmin < 0.0)
-            rmin =
-                0.0; // przywrócenie poprawnej wartoœci, jeœli s³u¿y³a do wy³¹czenia efektu Dopplera
-
-        //            tmp->pDirectSoundBuffer=TSoundsManager::GetFromName(str.c_str());
-        //            tmp->iState=(Parser->GetNextSymbol().LowerCase()=="loop"?DSBPLAY_LOOPING:0);
+            rmin = 0.0; // przywrÃ³cenie poprawnej wartoÅ›ci, jeÅ›li sÅ‚uÅ¼yÅ‚a do wyÅ‚Ä…czenia efektu Dopplera
         parser->getTokens();
         *parser >> token;
         break;
     case TP_DYNAMIC:
         tmp->DynamicObject = new TDynamicObject();
         // tmp->DynamicObject->Load(Parser);
-        parser->getTokens();
-        *parser >> token;
-        str1 = AnsiString(token.c_str()); // katalog
-        // McZapkie: doszedl parametr ze zmienialna skora
-        parser->getTokens();
-        *parser >> token;
-        Skin = AnsiString(token.c_str()); // tekstura wymienna
-        parser->getTokens();
-        *parser >> token;
-        str3 = AnsiString(token.c_str()); // McZapkie-131102: model w MMD
+        parser->getTokens(3);
+        *parser
+            >> str1 // katalog
+            >> Skin // tekstura wymienna
+            >> str3; // McZapkie-131102: model w MMD
         if (bTrainSet)
-        { // jeœli pojazd jest umieszczony w sk³adzie
+        { // jeÅ›li pojazd jest umieszczony w skÅ‚adzie
             str = asTrainSetTrack;
-            parser->getTokens();
-            *parser >> tf1; // Ra: -1 oznacza odwrotne wstawienie, normalnie w sk³adzie 0
-            parser->getTokens();
-            *parser >> token;
-            DriverType = AnsiString(token.c_str()); // McZapkie:010303 - w przyszlosci rozne
-            // konfiguracje mechanik/pomocnik itp
-            tf3 = fTrainSetVel; // prêdkoœæ
-            parser->getTokens();
-            *parser >> token;
-            str4 = AnsiString(token.c_str());
-            int2 = str4.Pos("."); // yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
-            if (int2 > 0) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
+            parser->getTokens(3);
+            *parser
+                >> tf1 // Ra: -1 oznacza odwrotne wstawienie, normalnie w skÅ‚adzie 0
+                >> DriverType // McZapkie:010303 - w przyszlosci rozne konfiguracje mechanik/pomocnik itp
+                >> str4;
+            tf3 = fTrainSetVel; // prÄ™dkoÅ›Ä‡
+            int2 = str4.find("."); // yB: wykorzystuje tutaj zmienna, ktora potem bedzie ladunkiem
+            if (int2 != std::string::npos) // yB: jesli znalazl kropke, to ja przetwarza jako parametry
             {
-                int dlugosc = str4.Length();
-                int1 = str4.SubString(1, int2 - 1).ToInt(); // niech sprzegiem bedzie do kropki cos
-                str4 = str4.SubString(int2 + 1, dlugosc - int2);
+                size_t dlugosc = str4.length();
+                int1 = atoi(str4.substr(0, int2).c_str()); // niech sprzegiem bedzie do kropki cos
+                str4 = str4.substr(int2 + 1, dlugosc - int2);
             }
             else
             {
-                int1 = str4.ToInt();
+                int1 = atoi(str4.c_str());
                 str4 = "";
             }
             int2 = 0; // zeruje po wykorzystaniu
-            //    *parser >> int1; //yB: nastawy i takie tam TUTAJ!!!!!
             if (int1 < 0)
                 int1 = (-int1) |
-                       ctrain_depot; // sprzêg zablokowany (pojazdy nieroz³¹czalne przy manewrach)
+                       ctrain_depot; // sprzÄ™g zablokowany (pojazdy nierozÅ‚Ä…czalne przy manewrach)
             if (tf1 != -1.0)
-                if (fabs(tf1) > 0.5) // maksymalna odleg³oœæ miêdzy sprzêgami - do przemyœlenia
-                    int1 = 0; // likwidacja sprzêgu, jeœli odleg³oœæ zbyt du¿a - to powinno byæ
-            // uwzglêdniane w fizyce sprzêgów...
-            TempConnectionType[iTrainSetWehicleNumber] = int1; // wartoœæ dodatnia
+                if (std::fabs(tf1) > 0.5) // maksymalna odlegÅ‚oÅ›Ä‡ miÄ™dzy sprzÄ™gami - do przemyÅ›lenia
+                    int1 = 0; // likwidacja sprzÄ™gu, jeÅ›li odlegÅ‚oÅ›Ä‡ zbyt duÅ¼a - to powinno byÄ‡
+            // uwzglÄ™dniane w fizyce sprzÄ™gÃ³w...
+            TempConnectionType[iTrainSetWehicleNumber] = int1; // wartoÅ›Ä‡ dodatnia
         }
         else
         { // pojazd wstawiony luzem
-            fTrainSetDist = 0; // zerowanie dodatkowego przesuniêcia
-            asTrainName = ""; // puste oznacza jazdê pojedynczego bez rozk³adu, "none" jest dla
-            // sk³adu (trainset)
-            parser->getTokens();
-            *parser >> token;
-            str = AnsiString(token.c_str()); // track
-            parser->getTokens();
-            *parser >> tf1; // Ra: -1 oznacza odwrotne wstawienie
-            parser->getTokens();
-            *parser >> token;
-            DriverType = AnsiString(token.c_str()); // McZapkie:010303: obsada
-            parser->getTokens();
-            *parser >>
-                tf3; // prêdkoœæ, niektórzy wpisuj¹ tu "3" jako sprzêg, ¿eby nie by³o tabliczki
+            fTrainSetDist = 0; // zerowanie dodatkowego przesuniÄ™cia
+            asTrainName = ""; // puste oznacza jazdÄ™ pojedynczego bez rozkÅ‚adu, "none" jest dla
+            // skÅ‚adu (trainset)
+            parser->getTokens(4);
+            *parser
+                >> str // track
+                >> tf1 // Ra: -1 oznacza odwrotne wstawienie
+                >> DriverType // McZapkie:010303: obsada
+                >> tf3; // prÄ™dkoÅ›Ä‡, niektÃ³rzy wpisujÄ… tu "3" jako sprzÄ™g, Å¼eby nie byÅ‚o tabliczki
             iTrainSetWehicleNumber = 0;
-            TempConnectionType[iTrainSetWehicleNumber] = 3; // likwidacja tabliczki na koñcu?
+            TempConnectionType[iTrainSetWehicleNumber] = 3; // likwidacja tabliczki na koÅ„cu?
         }
         parser->getTokens();
-        *parser >> int2; // iloœæ ³adunku
+        *parser >> int2; // iloÅ›Ä‡ Å‚adunku
         if (int2 > 0)
-        { // je¿eli ³adunku jest wiêcej ni¿ 0, to rozpoznajemy jego typ
+        { // jeÅ¼eli Å‚adunku jest wiÄ™cej niÅ¼ 0, to rozpoznajemy jego typ
             parser->getTokens();
-            *parser >> token;
-            str2 = AnsiString(token.c_str()); // LoadType
-            if (str2 == AnsiString("enddynamic")) // idiotoodpornoœæ: ³adunek bez podanego typu
+            *parser >> str2; // LoadType
+            if (str2 == "enddynamic") // idiotoodpornoÅ›Ä‡: Å‚adunek bez podanego typu
             {
                 str2 = "";
-                int2 = 0; // iloœæ bez typu siê nie liczy jako ³adunek
+                int2 = 0; // iloÅ›Ä‡ bez typu siÄ™ nie liczy jako Å‚adunek
             }
         }
         else
@@ -1864,70 +1146,84 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 
         tmp1 = FindGroundNode(str, TP_TRACK); // poszukiwanie toru
         if (tmp1 ? tmp1->pTrack != NULL : false)
-        { // jeœli tor znaleziony
+        { // jeÅ›li tor znaleziony
             Track = tmp1->pTrack;
-            if (!iTrainSetWehicleNumber) // jeœli pierwszy pojazd
-                if (Track->evEvent0) // jeœli tor ma Event0
-                    if (fabs(fTrainSetVel) <= 1.0) // a sk³ad stoi
-                        if (fTrainSetDist >= 0.0) // ale mo¿e nie siêgaæ na owy tor
-                            if (fTrainSetDist < 8.0) // i raczej nie siêga
+            if (!iTrainSetWehicleNumber) // jeÅ›li pierwszy pojazd
+                if (Track->evEvent0) // jeÅ›li tor ma Event0
+                    if (fabs(fTrainSetVel) <= 1.0) // a skÅ‚ad stoi
+                        if (fTrainSetDist >= 0.0) // ale moÅ¼e nie siÄ™gaÄ‡ na owy tor
+                            if (fTrainSetDist < 8.0) // i raczej nie siÄ™ga
                                 fTrainSetDist =
-                                    8.0; // przesuwamy oko³o pó³ EU07 dla wstecznej zgodnoœci
+                                    8.0; // przesuwamy okoÅ‚o pÃ³Å‚ EU07 dla wstecznej zgodnoÅ›ci
             // WriteLog("Dynamic shift: "+AnsiString(fTrainSetDist));
-            /* //Ra: to jednak robi du¿e problemy - przesuniêcie w dynamic jest przesuniêciem do
-               ty³u, odwrotnie ni¿ w trainset
-                if (!iTrainSetWehicleNumber) //dla pierwszego jest to przesuniêcie (ujemne = do
-               ty³u)
-                 if (tf1!=-1.0) //-1 wyj¹tkowo oznacza odwrócenie
-                  tf1=-tf1; //a dla kolejnych odleg³oœæ miêdzy sprzêgami (ujemne = wbite)
+            /* //Ra: to jednak robi duÅ¼e problemy - przesuniÄ™cie w dynamic jest przesuniÄ™ciem do
+               tyÅ‚u, odwrotnie niÅ¼ w trainset
+                if (!iTrainSetWehicleNumber) //dla pierwszego jest to przesuniÄ™cie (ujemne = do
+               tyÅ‚u)
+                 if (tf1!=-1.0) //-1 wyjÄ…tkowo oznacza odwrÃ³cenie
+                  tf1=-tf1; //a dla kolejnych odlegÅ‚oÅ›Ä‡ miÄ™dzy sprzÄ™gami (ujemne = wbite)
             */
             tf3 = tmp->DynamicObject->Init(asNodeName, str1, Skin, str3, Track,
                                            (tf1 == -1.0 ? fTrainSetDist : fTrainSetDist - tf1),
                                            DriverType, tf3, asTrainName, int2, str2, (tf1 == -1.0),
                                            str4);
-            if (tf3 != 0.0) // zero oznacza b³¹d
+            if (tf3 != 0.0) // zero oznacza bÅ‚Ä…d
             {
-                fTrainSetDist -=
-                    tf3; // przesuniêcie dla kolejnego, minus bo idziemy w stronê punktu 1
+                // przesuniÄ™cie dla kolejnego, minus bo idziemy w stronÄ™ punktu 1
+                fTrainSetDist -= tf3;
                 tmp->pCenter = tmp->DynamicObject->GetPosition();
-                if (TempConnectionType[iTrainSetWehicleNumber]) // jeœli jest sprzêg
-                    if (tmp->DynamicObject->MoverParameters->Couplers[tf1 == -1.0 ? 0 : 1]
-                            .AllowedFlag &
-                        ctrain_depot) // jesli zablokowany
-                        TempConnectionType[iTrainSetWehicleNumber] |= ctrain_depot; // bêdzie
-                // blokada
+                // automatically establish permanent connections for couplers which specify them in their definitions
+                if( TempConnectionType[ iTrainSetWehicleNumber ] ) {
+                    if( tmp->DynamicObject->MoverParameters->Couplers[ ( tf1 == -1.0 ? 0 : 1 ) ].AllowedFlag & coupling::permanent ) {
+                        TempConnectionType[ iTrainSetWehicleNumber ] |= coupling::permanent;
+                    }
+                }
                 iTrainSetWehicleNumber++;
             }
             else
             { // LastNode=NULL;
                 delete tmp;
-                tmp = NULL; // nie mo¿e byæ tu return, bo trzeba pomin¹æ jeszcze enddynamic
+                tmp = NULL; // nie moÅ¼e byÄ‡ tu return, bo trzeba pominÄ…Ä‡ jeszcze enddynamic
             }
         }
         else
         { // gdy tor nie znaleziony
             ErrorLog("Missed track: dynamic placed on \"" + tmp->DynamicObject->asTrack + "\"");
             delete tmp;
-            tmp = NULL; // nie mo¿e byæ tu return, bo trzeba pomin¹æ jeszcze enddynamic
+            tmp = NULL; // nie moÅ¼e byÄ‡ tu return, bo trzeba pominÄ…Ä‡ jeszcze enddynamic
         }
         parser->getTokens();
         *parser >> token;
         if (token.compare("destination") == 0)
-        { // dok¹d wagon ma jechaæ, uwzglêdniane przy manewrach
+        { // dokÄ…d wagon ma jechaÄ‡, uwzglÄ™dniane przy manewrach
             parser->getTokens();
             *parser >> token;
             if (tmp)
-                tmp->DynamicObject->asDestination = AnsiString(token.c_str());
+                tmp->DynamicObject->asDestination = token;
             *parser >> token;
         }
         if (token.compare("enddynamic") != 0)
             Error("enddynamic statement missing");
+/*
+        if( tmp->DynamicObject->MoverParameters->LightPowerSource.SourceType != TPowerSource::NotDefined ) {
+            // if the vehicle has defined light source, it can (potentially) emit light, so add it to the light array
+*/
+        if( ( tmp != nullptr )
+         && ( tmp->DynamicObject->MoverParameters->CategoryFlag == 1 ) // trains only
+         && ( ( tmp->DynamicObject->MoverParameters->SecuritySystem.SystemType != 0 )
+           || ( tmp->DynamicObject->MoverParameters->SandCapacity > 0.0 ) ) ) {
+            // we check for presence of security system or sand load, as a way to determine whether the vehicle is a controllable engine
+            // NOTE: this isn't 100% precise, e.g. middle EZT module comes with security system, while it has no lights, and some engines
+            //       don't have security systems fitted
+            m_lights.insert( tmp->DynamicObject );
+        }
+
         break;
     case TP_MODEL:
         if (rmin < 0)
         {
             tmp->iType = TP_TERRAIN;
-            tmp->fSquareMinRadius = 0; // to w ogóle potrzebne?
+            tmp->fSquareMinRadius = 0; // to w ogÃ³le potrzebne?
         }
         parser->getTokens(3);
         *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
@@ -1937,264 +1233,329 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI);
         // McZapkie-260402: model tez ma wspolrzedne wzgledne
         tmp->pCenter += pOrigin;
-        // tmp->fAngle+=aRotate.y; // /180*M_PI
-        /*
-           if (tmp->iType==TP_MODEL)
-           {//jeœli standardowy model
-        */
+
         tmp->Model = new TAnimModel();
-        tmp->Model->RaAnglesSet(aRotate.x, tf1 + aRotate.y,
-                                aRotate.z); // dostosowanie do pochylania linii
-        if (tmp->Model->Load(
-                parser, tmp->iType == TP_TERRAIN)) // wczytanie modelu, tekstury i stanu œwiate³...
-            tmp->iFlags =
-                tmp->Model->Flags() | 0x200; // ustalenie, czy przezroczysty; flaga usuwania
-        else if (tmp->iType != TP_TERRAIN)
-        { // model nie wczyta³ siê - ignorowanie node
-            delete tmp;
-            tmp = NULL; // nie mo¿e byæ tu return
-            break; // nie mo¿e byæ tu return?
+        tmp->Model->RaAnglesSet(aRotate.x, tf1 + aRotate.y, aRotate.z); // dostosowanie do pochylania linii
+        if( tmp->Model->Load( parser, tmp->iType == TP_TERRAIN ) ) {
+            // wczytanie modelu, tekstury i stanu Å›wiateÅ‚...
+            tmp->iFlags = tmp->Model->Flags() | 0x200; // ustalenie, czy przezroczysty; flaga usuwania
         }
-        /*
-           }
-           else if (tmp->iType==TP_TERRAIN)
-           {//nie potrzeba nak³adki animuj¹cej submodele
-            *parser >> token;
-            tmp->pModel3D=TModelsManager::GetModel(token.c_str(),false);
-            do //Ra: z tym to trochê bez sensu jest
-            {parser->getTokens();
-             *parser >> token;
-             str=AnsiString(token.c_str());
-            } while (str!="endterrains");
-           }
-        */
+        else if (tmp->iType != TP_TERRAIN)
+        { // model nie wczytaÅ‚ siÄ™ - ignorowanie node
+            delete tmp;
+            tmp = NULL; // nie moÅ¼e byÄ‡ tu return
+            break; // nie moÅ¼e byÄ‡ tu return?
+        }
         if (tmp->iType == TP_TERRAIN)
-        { // jeœli model jest terenem, trzeba utworzyæ dodatkowe obiekty
-            // po wczytaniu model ma ju¿ utworzone DL albo VBO
+        { // jeÅ›li model jest terenem, trzeba utworzyÄ‡ dodatkowe obiekty
+            // po wczytaniu model ma juÅ¼ utworzone DL albo VBO
             Global::pTerrainCompact = tmp->Model; // istnieje co najmniej jeden obiekt terenu
+            tmp->pCenter = Math3D::vector3( 0.0, 0.0, 0.0 ); // enforce placement in the world center
             tmp->iCount = Global::pTerrainCompact->TerrainCount() + 1; // zliczenie submodeli
-            tmp->nNode = new TGroundNode[tmp->iCount]; // sztuczne node dla kwadratów
+            tmp->nNode = new TGroundNode[tmp->iCount]; // sztuczne node dla kwadratÃ³w
             tmp->nNode[0].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
             tmp->nNode[0].Model = Global::pTerrainCompact;
-            tmp->nNode[0].iFlags = 0x200; // nie wyœwietlany, ale usuwany
-            for (i = 1; i < tmp->iCount; ++i)
+            tmp->nNode[0].iFlags = 0x200; // nie wyÅ›wietlany, ale usuwany
+            for (int i = 1; i < tmp->iCount; ++i)
             { // a reszta to submodele
-                tmp->nNode[i].iType = TP_SUBMODEL; //
+                tmp->nNode[i].iType = TP_SUBMODEL;
                 tmp->nNode[i].smTerrain = Global::pTerrainCompact->TerrainSquare(i - 1);
                 tmp->nNode[i].iFlags = 0x10; // nieprzezroczyste; nie usuwany
                 tmp->nNode[i].bVisible = true;
                 tmp->nNode[i].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
-                // tmp->nNode[i].asName=
             }
         }
-        else if (!tmp->asName.IsEmpty()) // jest pusta gdy "none"
+        else if (!tmp->asName.empty()) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
-            if (sTracks->Update(TP_MODEL, tmp->asName.c_str(),
-                                tmp)) // najpierw sprawdziæ, czy ju¿ jest
-            { // przy zdublowaniu wskaŸnik zostanie podmieniony w drzewku na póŸniejszy (zgodnoœæ
-                // wsteczna)
-                ErrorLog("Duplicated model: " + tmp->asName); // to zg³aszaæ duplikat
+            if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
+                // przy zdublowaniu wskaÅºnik zostanie podmieniony w drzewku na pÃ³Åºniejszy (zgodnoÅ›Ä‡ wsteczna)
+                ErrorLog( "Duplicated model: " + tmp->asName ); // to zgÅ‚aszaÄ‡ duplikat
             }
-            else
-                sTracks->Add(TP_MODEL, tmp->asName.c_str(), tmp); // nazwa jest unikalna
         }
         // str=Parser->GetNextSymbol().LowerCase();
         break;
     // case TP_GEOMETRY :
     case GL_TRIANGLES:
     case GL_TRIANGLE_STRIP:
-    case GL_TRIANGLE_FAN:
+    case GL_TRIANGLE_FAN: {
+
         parser->getTokens();
         *parser >> token;
         // McZapkie-050702: opcjonalne wczytywanie parametrow materialu (ambient,diffuse,specular)
-        if (token.compare("material") == 0)
-        {
+        if( token.compare( "material" ) == 0 ) {
             parser->getTokens();
             *parser >> token;
-            while (token.compare("endmaterial") != 0)
-            {
-                if (token.compare("ambient:") == 0)
-                {
-                    parser->getTokens();
-                    *parser >> tmp->Ambient[0];
-                    parser->getTokens();
-                    *parser >> tmp->Ambient[1];
-                    parser->getTokens();
-                    *parser >> tmp->Ambient[2];
+            while( token.compare( "endmaterial" ) != 0 ) {
+                if( token.compare( "ambient:" ) == 0 ) {
+                    parser->getTokens( 3 );
+                    *parser
+                        >> tmp->Ambient.r
+                        >> tmp->Ambient.g
+                        >> tmp->Ambient.b;
+                    tmp->Ambient /= 255.0f;
                 }
-                else if (token.compare("diffuse:") == 0)
-                { // Ra: coœ jest nie tak, bo w jednej linijce nie dzia³a
-                    parser->getTokens();
-                    *parser >> tmp->Diffuse[0];
-                    parser->getTokens();
-                    *parser >> tmp->Diffuse[1];
-                    parser->getTokens();
-                    *parser >> tmp->Diffuse[2];
+                else if( token.compare( "diffuse:" ) == 0 ) { // Ra: coÅ› jest nie tak, bo w jednej linijce nie dziaÅ‚a
+                    parser->getTokens( 3 );
+                    *parser
+                        >> tmp->Diffuse.r
+                        >> tmp->Diffuse.g
+                        >> tmp->Diffuse.b;
+                    tmp->Diffuse /= 255.0f;
                 }
-                else if (token.compare("specular:") == 0)
-                {
-                    parser->getTokens();
-                    *parser >> tmp->Specular[0];
-                    parser->getTokens();
-                    *parser >> tmp->Specular[1];
-                    parser->getTokens();
-                    *parser >> tmp->Specular[2];
+                else if( token.compare( "specular:" ) == 0 ) {
+                    parser->getTokens( 3 );
+                    *parser
+                        >> tmp->Specular.r
+                        >> tmp->Specular.g
+                        >> tmp->Specular.b;
+                    tmp->Specular /= 255.0f;
                 }
                 else
-                    Error("Scene material failure!");
+                    Error( "Scene material failure!" );
                 parser->getTokens();
                 *parser >> token;
             }
         }
-        if (token.compare("endmaterial") == 0)
-        {
+        if( token.compare( "endmaterial" ) == 0 ) {
             parser->getTokens();
             *parser >> token;
         }
-        str = AnsiString(token.c_str());
-#ifdef _PROBLEND
-        // PROBLEND Q: 13122011 - Szociu: 27012012
-        PROBLEND = true; // domyslnie uruchomione nowe wyœwietlanie
-        tmp->PROBLEND = true; // odwolanie do tgroundnode, bo rendering jest w tej klasie
-        if (str.Pos("@") > 0) // sprawdza, czy w nazwie tekstury jest znak "@"
-        {
-            PROBLEND = false; // jeœli jest, wyswietla po staremu
-            tmp->PROBLEND = false;
-        }
-#endif
-        tmp->TextureID = TTexturesManager::GetTextureID(szTexturePath, szSceneryPath, str.c_str());
-        tmp->iFlags = TTexturesManager::GetAlpha(tmp->TextureID) ? 0x220 : 0x210; // z usuwaniem
-        if (((tmp->iType == GL_TRIANGLES) && (tmp->iFlags & 0x10)) ?
-                Global::pTerrainCompact->TerrainLoaded() :
-                false)
-        { // jeœli jest tekstura nieprzezroczysta, a teren za³adowany, to pomijamy trójk¹ty
-            do
-            { // pomijanie trójk¹tów
-                parser->getTokens();
-                *parser >> token;
-            } while (token.compare("endtri") != 0);
-            // delete tmp; //nie ma co tego trzymaæ
-            // tmp=NULL; //to jest b³¹d
-        }
-        else
-        {
-            i = 0;
-            do
-            {
-                if (i < 9999) // 3333 trójk¹ty
-                { // liczba wierzcho³ków nie jest nieograniczona
-                    parser->getTokens(3);
-                    *parser >> TempVerts[i].Point.x >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
-                    parser->getTokens(3);
-                    *parser >> TempVerts[i].Normal.x >> TempVerts[i].Normal.y >>
-                        TempVerts[i].Normal.z;
-                    /*
-                         str=Parser->GetNextSymbol().LowerCase();
-                         if (str==AnsiString("x"))
-                             TempVerts[i].tu=(TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("y"))
-                             TempVerts[i].tu=(TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("z"))
-                             TempVerts[i].tu=(TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                             TempVerts[i].tu=str.ToDouble();;
+        str = token;
+        tmp->TextureID = GfxRenderer.Fetch_Texture( str );
+        bool const clamps = (
+            tmp->TextureID ?
+                GfxRenderer.Texture( tmp->TextureID ).traits.find( 's' ) != std::string::npos :
+                false );
+        bool const clampt = (
+            tmp->TextureID ?
+                GfxRenderer.Texture( tmp->TextureID ).traits.find( 't' ) != std::string::npos :
+                false );
 
-                         str=Parser->GetNextSymbol().LowerCase();
-                         if (str==AnsiString("x"))
-                             TempVerts[i].tv=(TempVerts[i].Point.x+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("y"))
-                             TempVerts[i].tv=(TempVerts[i].Point.y+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                         if (str==AnsiString("z"))
-                             TempVerts[i].tv=(TempVerts[i].Point.z+Parser->GetNextSymbol().ToDouble())/Parser->GetNextSymbol().ToDouble();
-                         else
-                             TempVerts[i].tv=str.ToDouble();;
-                    */
-                    parser->getTokens(2);
-                    *parser >> TempVerts[i].tu >> TempVerts[i].tv;
+        tmp->iFlags |= 200; // z usuwaniem
+        // remainder of legacy 'problend' system -- geometry assigned a texture with '@' in its name is treated as translucent, opaque otherwise
+        tmp->iFlags |= (
+            ( ( str.find( '@' ) != std::string::npos )
+           && ( true == GfxRenderer.Texture( tmp->TextureID ).has_alpha ) ) ?
+                0x20 :
+                0x10 );
 
-                    //    tf=Parser->GetNextSymbol().ToDouble();
-                    //          TempVerts[i].tu=tf;
-                    //        tf=Parser->GetNextSymbol().ToDouble();
-                    //      TempVerts[i].tv=tf;
-
-                    TempVerts[i].Point.RotateZ(aRotate.z / 180 * M_PI);
-                    TempVerts[i].Point.RotateX(aRotate.x / 180 * M_PI);
-                    TempVerts[i].Point.RotateY(aRotate.y / 180 * M_PI);
-                    TempVerts[i].Normal.RotateZ(aRotate.z / 180 * M_PI);
-                    TempVerts[i].Normal.RotateX(aRotate.x / 180 * M_PI);
-                    TempVerts[i].Normal.RotateY(aRotate.y / 180 * M_PI);
-                    TempVerts[i].Point += pOrigin;
-                    tmp->pCenter += TempVerts[i].Point;
+        TGroundVertex vertex, vertex1, vertex2;
+        std::size_t vertexcount{ 0 };
+        do {
+            parser->getTokens( 8, false );
+            *parser
+                >> vertex.position.x
+                >> vertex.position.y
+                >> vertex.position.z
+                >> vertex.normal.x
+                >> vertex.normal.y
+                >> vertex.normal.z
+                >> vertex.texture.s
+                >> vertex.texture.t;
+            vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
+            vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
+            vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
+            vertex.normal = glm::rotateZ( vertex.normal, static_cast<float>( aRotate.z / 180 * M_PI ) );
+            vertex.normal = glm::rotateX( vertex.normal, static_cast<float>( aRotate.x / 180 * M_PI ) );
+            vertex.normal = glm::rotateY( vertex.normal, static_cast<float>( aRotate.y / 180 * M_PI ) );
+            vertex.position += glm::dvec3{ pOrigin };
+            if( true == clamps ) { vertex.texture.s = clamp( vertex.texture.s, 0.001f, 0.999f ); }
+            if( true == clampt ) { vertex.texture.t = clamp( vertex.texture.t, 0.001f, 0.999f ); }
+            // convert all data to gl_triangles to allow data merge for matching nodes
+            switch( tmp->iType ) {
+                case GL_TRIANGLES: {
+                         if( vertexcount == 0 ) { vertex1 = vertex; }
+                    else if( vertexcount == 1 ) { vertex2 = vertex; }
+                    else if( vertexcount >= 2 ) {
+                        if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex2 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        else {
+                            ErrorLog(
+                                "Bad geometry: degenerate triangle encountered"
+                                + ( tmp->asName != "" ? " in node \"" + tmp->asName + "\"" : "" )
+                                + " (vertices: " + to_string( vertex1.position ) + " + " + to_string( vertex2.position ) + " + " + to_string( vertex.position ) + ")" );
+                        }
+                    }
+                    ++vertexcount;
+                    if( vertexcount > 2 ) { vertexcount = 0; } // start new triangle if needed
+                    break;
                 }
-                else if (i == 9999)
-                    ErrorLog("Bad triangles: too many verices");
-                i++;
-                parser->getTokens();
-                *parser >> token;
+                case GL_TRIANGLE_FAN: {
+                         if( vertexcount == 0 ) { vertex1 = vertex; }
+                    else if( vertexcount == 1 ) { vertex2 = vertex; }
+                    else if( vertexcount >= 2 ) {
+                        if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex2 );
+                            importedvertices.emplace_back( vertex );
+                            vertex2 = vertex;
+                        }
+                        else {
+                            ErrorLog(
+                                "Bad geometry: degenerate triangle encountered"
+                                + ( tmp->asName != "" ? " in node \"" + tmp->asName + "\"" : "" )
+                                + " (vertices: " + to_string( vertex1.position ) + " + " + to_string( vertex2.position ) + " + " + to_string( vertex.position ) + ")" );
+                        }
+                    }
+                    ++vertexcount;
+                    break;
+                }
+                case GL_TRIANGLE_STRIP: {
+                         if( vertexcount == 0 ) { vertex1 = vertex; }
+                    else if( vertexcount == 1 ) { vertex2 = vertex; }
+                    else if( vertexcount >= 2 ) {
+                        if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
+                            // swap order every other triangle, to maintain consistent winding
+                            if( vertexcount % 2 == 0 ) {
+                                importedvertices.emplace_back( vertex1 );
+                                importedvertices.emplace_back( vertex2 );
+                            }
+                            else {
+                                importedvertices.emplace_back( vertex2 );
+                                importedvertices.emplace_back( vertex1 );
+                            }
+                            importedvertices.emplace_back( vertex );
 
-                //   }
+                            vertex1 = vertex2;
+                            vertex2 = vertex;
+                        }
+                        else {
+                            ErrorLog(
+                                "Bad geometry: degenerate triangle encountered"
+                                + ( tmp->asName != "" ? " in node \"" + tmp->asName + "\"" : "" )
+                                + " (vertices: " + to_string( vertex1.position ) + " + " + to_string( vertex2.position ) + " + " + to_string( vertex.position ) + ")" );
+                        }
+                    }
+                    ++vertexcount;
+                    break;
+                }
+                default: { break; }
+            }
+            parser->getTokens();
+            *parser >> token;
 
-            } while (token.compare("endtri") != 0);
-            nv = i;
-            tmp->Init(nv); // utworzenie tablicy wierzcho³ków
-            tmp->pCenter /= (nv > 0 ? nv : 1);
+        } while( token.compare( "endtri" ) != 0 );
 
-            //   memcpy(tmp->Vertices,TempVerts,nv*sizeof(TGroundVertex));
+        tmp->iType = GL_TRIANGLES;
+        tmp->Piece = new piece_node();
+        tmp->iNumVerts = importedvertices.size();
+
+        if( tmp->iNumVerts > 0 ) {
+
+            tmp->Piece->vertices.swap( importedvertices );
+
+            for( auto const &vertex : tmp->Piece->vertices ) {
+                tmp->pCenter += vertex.position;
+            }
+            tmp->pCenter /= tmp->iNumVerts;
 
             r = 0;
-            for (int i = 0; i < nv; i++)
-            {
-                tmp->Vertices[i] = TempVerts[i];
-                tf = SquareMagnitude(tmp->Vertices[i].Point - tmp->pCenter);
-                if (tf > r)
+            for( auto const &vertex : tmp->Piece->vertices ) {
+                tf = glm::length2( vertex.position - glm::dvec3{ tmp->pCenter } );
+                if( tf > r )
                     r = tf;
             }
-
-            //   tmp->fSquareRadius=2000*2000+r;
             tmp->fSquareRadius += r;
-            RaTriangleDivider(tmp); // Ra: dzielenie trójk¹tów jest teraz ca³kiem wydajne
-        } // koniec wczytywania trójk¹tów
+            RaTriangleDivider( tmp ); // Ra: dzielenie trÃ³jkÄ…tÃ³w jest teraz caÅ‚kiem wydajne
+        } // koniec wczytywania trÃ³jkÄ…tÃ³w
         break;
+    }
     case GL_LINES:
     case GL_LINE_STRIP:
-    case GL_LINE_LOOP:
-        parser->getTokens(3);
-        *parser >> tmp->Diffuse[0] >> tmp->Diffuse[1] >> tmp->Diffuse[2];
-        //   tmp->Diffuse[0]=Parser->GetNextSymbol().ToDouble()/255;
-        //   tmp->Diffuse[1]=Parser->GetNextSymbol().ToDouble()/255;
-        //   tmp->Diffuse[2]=Parser->GetNextSymbol().ToDouble()/255;
-        parser->getTokens();
-        *parser >> tmp->fLineThickness;
-        i = 0;
-        parser->getTokens();
-        *parser >> token;
-        do
-        {
-            str = AnsiString(token.c_str());
-            TempVerts[i].Point.x = str.ToDouble();
-            parser->getTokens(2);
-            *parser >> TempVerts[i].Point.y >> TempVerts[i].Point.z;
-            TempVerts[i].Point.RotateZ(aRotate.z / 180 * M_PI);
-            TempVerts[i].Point.RotateX(aRotate.x / 180 * M_PI);
-            TempVerts[i].Point.RotateY(aRotate.y / 180 * M_PI);
-            TempVerts[i].Point += pOrigin;
-            tmp->pCenter += TempVerts[i].Point;
-            i++;
+    case GL_LINE_LOOP: {
+            parser->getTokens( 4 );
+            *parser
+                >> tmp->Diffuse.r
+                >> tmp->Diffuse.g
+                >> tmp->Diffuse.b
+                >> tmp->fLineThickness;
+            tmp->Diffuse /= 255.0f;
+            tmp->fLineThickness = std::min( 30.0, tmp->fLineThickness ); // 30 pix equals rougly width of a signal pole viewed from ~1m away
+
+            TGroundVertex vertex, vertex0, vertex1;
+            std::size_t vertexcount{ 0 };
+
             parser->getTokens();
             *parser >> token;
-        } while (token.compare("endline") != 0);
-        nv = i;
-        //   tmp->Init(nv);
-        tmp->Points = new vector3[nv];
-        tmp->iNumPts = nv;
-        tmp->pCenter /= (nv > 0 ? nv : 1);
-        for (int i = 0; i < nv; i++)
-            tmp->Points[i] = TempVerts[i].Point;
-        break;
+            do {
+                vertex.position.x = std::atof( token.c_str() );
+                parser->getTokens( 2 );
+                *parser
+                    >> vertex.position.y
+                    >> vertex.position.z;
+                vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
+                vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
+                vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
+
+                vertex.position += glm::dvec3{ pOrigin };
+                // convert all data to gl_lines to allow data merge for matching nodes
+                switch( tmp->iType ) {
+                    case GL_LINES: {
+                        importedvertices.emplace_back( vertex );
+                        break;
+                    }
+                    case GL_LINE_STRIP: {
+                        if( vertexcount > 0 ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        vertex1 = vertex;
+                        ++vertexcount;
+                        break;
+                    }
+                    case GL_LINE_LOOP: {
+                        if( vertexcount == 0 ) {
+                            vertex0 = vertex;
+                            vertex1 = vertex;
+                        }
+                        else {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        vertex1 = vertex;
+                        ++vertexcount;
+                        break;
+                    }
+                    default: { break; }
+                }
+                parser->getTokens();
+                *parser >> token;
+            } while( token.compare( "endline" ) != 0 );
+            // add closing line for the loop
+            if( ( tmp->iType == GL_LINE_LOOP )
+             && ( vertexcount > 2 ) ) {
+                importedvertices.emplace_back( vertex1 );
+                importedvertices.emplace_back( vertex0 );
+            }
+            if( importedvertices.size() % 2 != 0 ) {
+                ErrorLog( "Lines node specified odd number of vertices, encountered in file \"" + parser->Name() + "\"" );
+                importedvertices.pop_back();
+            }
+            tmp->iType = GL_LINES;
+            tmp->Piece = new piece_node();
+            tmp->iNumPts = importedvertices.size();
+
+            if( false == importedvertices.empty() ) {
+
+                tmp->Piece->vertices.swap( importedvertices );
+
+                glm::dvec3 minpoint( std::numeric_limits<double>::max(), 0.0, std::numeric_limits<double>::max() );
+                glm::dvec3 maxpoint( std::numeric_limits<double>::lowest(), 0.0, std::numeric_limits<double>::lowest() );
+                for( auto const &vertex : tmp->Piece->vertices ) {
+                    tmp->pCenter += vertex.position;
+                    minpoint.x = std::min( minpoint.x, vertex.position.x );
+                    minpoint.z = std::min( minpoint.z, vertex.position.z );
+                    maxpoint.x = std::max( maxpoint.x, vertex.position.x );
+                    maxpoint.z = std::max( maxpoint.z, vertex.position.z );
+                }
+                tmp->pCenter /= tmp->iNumPts;
+                tmp->m_radius = static_cast<float>( glm::distance( maxpoint, minpoint ) * 0.5 );
+            }
+            break;
+        }
     }
     return tmp;
 }
@@ -2208,322 +1569,276 @@ TSubRect * TGround::FastGetSubRect(int iCol, int iRow)
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
         return NULL;
-    return (Rects[br][bc].FastGetRect(sc, sr));
+    return (Rects[bc][br].FastGetSubRect(sc, sr));
 }
 
 TSubRect * TGround::GetSubRect(int iCol, int iRow)
-{ // znalezienie ma³ego kwadratu mapy
+{ // znalezienie maÅ‚ego kwadratu mapy
     int br, bc, sr, sc;
-    br = iRow / iNumSubRects; // wspó³rzêdne kwadratu kilometrowego
+    br = iRow / iNumSubRects; // wspÃ³Å‚rzÄ™dne kwadratu kilometrowego
     bc = iCol / iNumSubRects;
-    sr = iRow - br * iNumSubRects; // wspó³rzêdne wzglêne ma³ego kwadratu
+    sr = iRow - br * iNumSubRects; // wspÃ³Å‚rzÄ™dne wzglÄ™ne maÅ‚ego kwadratu
     sc = iCol - bc * iNumSubRects;
     if ((br < 0) || (bc < 0) || (br >= iNumRects) || (bc >= iNumRects))
-        return NULL; // jeœli poza map¹
-    return (Rects[br][bc].SafeGetRect(sc, sr)); // pobranie ma³ego kwadratu
+        return NULL; // jeÅ›li poza mapÄ…
+    return (Rects[bc][br].SafeGetSubRect(sc, sr)); // pobranie maÅ‚ego kwadratu
 }
 
-TEvent * TGround::FindEvent(const AnsiString &asEventName)
+TEvent * TGround::FindEvent(const std::string &asEventName)
 {
-    return (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie
-    /* //powolna wyszukiwarka
-     for (TEvent *Current=RootEvent;Current;Current=Current->Next2)
-     {
-      if (Current->asName==asEventName)
-       return Current;
-     }
-     return NULL;
-    */
+    auto const lookup = m_eventmap.find( asEventName );
+    return (
+        lookup != m_eventmap.end() ?
+            lookup->second :
+            nullptr );
 }
 
-TEvent * TGround::FindEventScan(const AnsiString &asEventName)
-{ // wyszukanie eventu z opcj¹ utworzenia niejawnego dla komórek skanowanych
-    TEvent *e = (TEvent *)sTracks->Find(0, asEventName.c_str()); // wyszukiwanie w drzewie eventów
+TEvent * TGround::FindEventScan( std::string const &asEventName )
+{ // wyszukanie eventu z opcjÄ… utworzenia niejawnego dla komÃ³rek skanowanych
+    auto const lookup = m_eventmap.find( asEventName );
+    auto e = (
+        lookup != m_eventmap.end() ?
+            lookup->second :
+            nullptr );
     if (e)
-        return e; // jak istnieje, to w porz¹dku
-    if (asEventName.SubString(asEventName.Length() - 4, 5) ==
-        ":scan") // jeszcze mo¿e byæ event niejawny
-    { // no to szukamy komórki pamiêci o nazwie zawartej w evencie
-        AnsiString n = asEventName.SubString(1, asEventName.Length() - 5); // do dwukropka
-        if (sTracks->Find(TP_MEMCELL, n.c_str())) // jeœli jest takowa komórka pamiêci
+        return e; // jak istnieje, to w porzÄ…dku
+    if (asEventName.rfind(":scan") != std::string::npos) // jeszcze moÅ¼e byÄ‡ event niejawny
+    { // no to szukamy komÃ³rki pamiÄ™ci o nazwie zawartej w evencie
+        std::string n = asEventName.substr(0, asEventName.length() - 5); // do dwukropka
+        if( m_trackmap.Find( TP_MEMCELL, n ) != nullptr ) // jeÅ›li jest takowa komÃ³rka pamiÄ™ci
             e = new TEvent(n); // utworzenie niejawnego eventu jej odczytu
     }
-    return e; // utworzony albo siê nie uda³o
+    return e; // utworzony albo siÄ™ nie udaÅ‚o
 }
 
 void TGround::FirstInit()
-{ // ustalanie zale¿noœci na scenerii przed wczytaniem pojazdów
+{ // ustalanie zaleÅ¼noÅ›ci na scenerii przed wczytaniem pojazdÃ³w
     if (bInitDone)
-        return; // Ra: ¿eby nie robi³o siê dwa razy
+        return; // Ra: Å¼eby nie robiÅ‚o siÄ™ dwa razy
     bInitDone = true;
     WriteLog("InitNormals");
-    int i, j;
-    for (i = 0; i < TP_LAST; ++i)
-    {
-        for (TGroundNode *Current = nRootOfType[i]; Current; Current = Current->nNext)
-        {
+    for (int type = 0; type < TP_LAST; ++type) {
+        for (TGroundNode *Current = nRootOfType[type]; Current != nullptr; Current = Current->nNext) {
+
             Current->InitNormals();
             if (Current->iType != TP_DYNAMIC)
-            { // pojazdów w ogóle nie dotyczy dodawanie do mapy
-                if (i == TP_EVLAUNCH ? Current->EvLaunch->IsGlobal() : false)
-                    srGlobal.NodeAdd(Current); // dodanie do globalnego obiektu
-                else if (i == TP_TERRAIN)
-                { // specjalne przetwarzanie terenu wczytanego z pliku E3D
-                    AnsiString xxxzzz; // nazwa kwadratu
+            { // pojazdÃ³w w ogÃ³le nie dotyczy dodawanie do mapy
+                if( ( type == TP_EVLAUNCH )
+                 && ( true == Current->EvLaunch->IsGlobal() ) ) {
+                    // dodanie do globalnego obiektu
+                    srGlobal.NodeAdd( Current );
+                }
+                else if (type == TP_TERRAIN) {
+                    // specjalne przetwarzanie terenu wczytanego z pliku E3D
                     TGroundRect *gr;
-                    for (j = 1; j < Current->iCount; ++j)
-                    { // od 1 do koñca s¹ zestawy trójk¹tów
-                        xxxzzz = AnsiString(Current->nNode[j].smTerrain->pName); // pobranie nazwy
-                        gr = GetRect(1000 * (xxxzzz.SubString(1, 3).ToIntDef(0) - 500),
-                                     1000 * (xxxzzz.SubString(4, 3).ToIntDef(0) - 500));
-                        if (Global::bUseVBO)
-                            gr->nTerrain = Current->nNode + j; // zapamiêtanie
-                        else
-                            gr->RaNodeAdd(&Current->nNode[j]);
+                    for (int j = 1; j < Current->iCount; ++j) {
+                        // od 1 do koÅ„ca sÄ… zestawy trÃ³jkÄ…tÃ³w
+                        std::string xxxzzz = Current->nNode[j].smTerrain->pName; // pobranie nazwy
+                        gr = GetRect(
+                            ( std::stoi( xxxzzz.substr( 0, 3 )) - 500 ) * 1000,
+                            ( std::stoi( xxxzzz.substr( 3, 3 )) - 500 ) * 1000 );
+                        gr->nTerrain = Current->nNode + j; // zapamiÄ™tanie
                     }
                 }
-                //    else if
-                //    ((Current->iType!=GL_TRIANGLES)&&(Current->iType!=GL_TRIANGLE_STRIP)?true
-                //    //~czy trójk¹t?
-                else if ((Current->iType != GL_TRIANGLES) ?
-                             true //~czy trójk¹t?
-                             :
-                             (Current->iFlags & 0x20) ?
-                             true //~czy teksturê ma nieprzezroczyst¹?
-                             :
-                             (Current->fSquareMinRadius != 0.0) ?
-                             true //~czy widoczny z bliska?
-                             :
-                             (Current->fSquareRadius <= 90000.0)) //~czy widoczny z daleka?
-                    GetSubRect(Current->pCenter.x, Current->pCenter.z)->NodeAdd(Current);
-                else // dodajemy do kwadratu kilometrowego
-                    GetRect(Current->pCenter.x, Current->pCenter.z)->NodeAdd(Current);
+                else {
+                    TSubRect *targetcell { nullptr };
+                    // test whether we can add the node to a ground cell, or a subcell
+                    if( ( Current->iType != GL_TRIANGLES )
+                     || ( Current->iFlags & 0x20 )
+                     || ( Current->fSquareMinRadius != 0.0 )
+                     || ( Current->fSquareRadius <= 90000.0 ) ) {
+                        // add to sub-rectangle
+                        targetcell = GetSubRect( Current->pCenter.x, Current->pCenter.z );
+                    }
+                    else {
+                        // dodajemy do kwadratu kilometrowego
+                        targetcell = GetRect( Current->pCenter.x, Current->pCenter.z );
+                    }
+                    if( targetcell != nullptr ) {
+                        targetcell->NodeAdd( Current );
+                    }
+                    else {
+                        ErrorLog( "Scenery node" + (
+                            Current->asName == "" ?
+                                "" :
+                                " \"" + Current->asName + "\"" )
+                            + " placed in location outside of map bounds (location: " + to_string( glm::dvec3{ Current->pCenter } ) + ")" );
+                    }
+                }
             }
-            // if (Current->iType!=TP_DYNAMIC)
-            // GetSubRect(Current->pCenter.x,Current->pCenter.z)->AddNode(Current);
         }
     }
-    for (i = 0; i < iNumRects; ++i)
-        for (j = 0; j < iNumRects; ++j)
-            Rects[i][j].Optimize(); // optymalizacja obiektów w sektorach
+    for (std::size_t i = 0; i < iNumRects; ++i)
+        for (std::size_t j = 0; j < iNumRects; ++j)
+            Rects[i][j].Optimize(); // optymalizacja obiektÃ³w w sektorach
+
     WriteLog("InitNormals OK");
-    WriteLog("InitTracks");
-    InitTracks(); //³¹czenie odcinków ze sob¹ i przyklejanie eventów
+
+    InitTracks(); //Å‚Ä…czenie odcinkÃ³w ze sobÄ… i przyklejanie eventÃ³w
     WriteLog("InitTracks OK");
-    WriteLog("InitTraction");
-    InitTraction(); //³¹czenie drutów ze sob¹
+
+    InitTraction(); //Å‚Ä…czenie drutÃ³w ze sobÄ…
     WriteLog("InitTraction OK");
-    WriteLog("InitEvents");
+
     InitEvents();
     WriteLog("InitEvents OK");
-    WriteLog("InitLaunchers");
+
     InitLaunchers();
     WriteLog("InitLaunchers OK");
-    WriteLog("InitGlobalTime");
-    // ABu 160205: juz nie TODO :)
-    GlobalTime = new TMTableTime(
-        hh, mm, srh, srm, ssh,
-        ssm); // McZapkie-300302: inicjacja czasu rozkladowego - TODO: czytac z trasy!
-    WriteLog("InitGlobalTime OK");
-    // jeszcze ustawienie pogody, gdyby nie by³o w scenerii wpisów
-    glClearColor(Global::AtmoColor[0], Global::AtmoColor[1], Global::AtmoColor[2],
-                 0.0); // Background Color
-    if (Global::fFogEnd > 0)
-    {
-        glFogi(GL_FOG_MODE, GL_LINEAR);
-        glFogfv(GL_FOG_COLOR, Global::FogColor); // set fog color
-        glFogf(GL_FOG_START, Global::fFogStart); // fog start depth
-        glFogf(GL_FOG_END, Global::fFogEnd); // fog end depth
-        glEnable(GL_FOG);
-    }
-    else
-        glDisable(GL_FOG);
-    glDisable(GL_LIGHTING);
-    glLightfv(GL_LIGHT0, GL_POSITION, Global::lightPos); // daylight position
-    glLightfv(GL_LIGHT0, GL_AMBIENT, Global::ambientDayLight); // kolor wszechobceny
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, Global::diffuseDayLight); // kolor padaj¹cy
-    glLightfv(GL_LIGHT0, GL_SPECULAR, Global::specularDayLight); // kolor odbity
-    // musi byæ tutaj, bo wczeœniej nie mieliœmy wartoœci œwiat³a
-    if (Global::fMoveLight >= 0.0) // albo tak, albo niech ustala minimum ciemnoœci w nocy
-    {
-        Global::fLuminance = // obliczenie luminacji "œwiat³a w ciemnoœci"
-            +0.150 * Global::ambientDayLight[0] // R
-            + 0.295 * Global::ambientDayLight[1] // G
-            + 0.055 * Global::ambientDayLight[2]; // B
-        if (Global::fLuminance > 0.1) // jeœli mia³o by byæ za jasno
-            for (int i = 0; i < 3; i++)
-                Global::ambientDayLight[i] *=
-                    0.1 / Global::fLuminance; // ograniczenie jasnoœci w nocy
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
-    }
-    else if (Global::bDoubleAmbient) // Ra: wczeœniej by³o ambient dawane na obydwa œwiat³a
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Global::ambientDayLight);
-    glEnable(GL_LIGHTING);
+
     WriteLog("FirstInit is done");
 };
 
-bool TGround::Init(AnsiString asFile, HDC hDC)
-{ // g³ówne wczytywanie scenerii
-    if (asFile.LowerCase().SubString(1, 7) == "scenery")
-        asFile.Delete(1, 8); // Ra: usuniêcie niepotrzebnych znaków - zgodnoœæ wstecz z 2003
-    WriteLog("Loading scenery from " + asFile);
+bool TGround::Init(std::string File)
+{ // gÅ‚Ã³wne wczytywanie scenerii
+    if (ToLower(File).substr(0, 7) == "scenery")
+        File = File.erase(0, 8); // Ra: usuniÄ™cie niepotrzebnych znakÃ³w - zgodnoÅ›Ä‡ wstecz z 2003
+    WriteLog("Loading scenery from " + File);
     Global::pGround = this;
     // pTrain=NULL;
-    pOrigin = aRotate = vector3(0, 0, 0); // zerowanie przesuniêcia i obrotu
-    AnsiString str = "";
+    pOrigin = aRotate = vector3(0, 0, 0); // zerowanie przesuniÄ™cia i obrotu
+    std::string str;
     // TFileStream *fs;
     // int size;
-    std::string subpath = Global::asCurrentSceneryPath.c_str(); //   "scenery/";
-    cParser parser(asFile.c_str(), cParser::buffer_FILE, subpath, Global::bLoadTraction);
+    std::string subpath = Global::asCurrentSceneryPath; //   "scenery/";
+    cParser parser(File, cParser::buffer_FILE, subpath, Global::bLoadTraction);
     std::string token;
 
-    /*
-        TFileStream *fs;
-        fs=new TFileStream(asFile , fmOpenRead	| fmShareCompat	);
-        AnsiString str="";
-        int size=fs->Size;
-        str.SetLength(size);
-        fs->Read(str.c_str(),size);
-        str+="";
-        delete fs;
-        TQueryParserComp *Parser;
-        Parser=new TQueryParserComp(NULL);
-        Parser->TextToParse=str;
-    //    Parser->LoadStringToParse(asFile);
-        Parser->First();
-        AnsiString Token,asFileName;
-    */
-    const int OriginStackMaxDepth = 100; // rozmiar stosu dla zagnie¿d¿enia origin
-    int OriginStackTop = 0;
-    vector3 OriginStack[OriginStackMaxDepth]; // stos zagnie¿d¿enia origin
+    std::stack<Math3D::vector3> OriginStack; // stos zagnieÅ¼dÅ¼enia origin
 
-    double tf;
-    int ParamCount, ParamPos;
-
-    // ABu: Jezeli nie ma definicji w scenerii to ustawiane ponizsze wartosci:
-    hh = 10; // godzina startu
-    mm = 30; // minuty startu
-    srh = 6; // godzina wschodu slonca
-    srm = 0; // minuty wschodu slonca
-    ssh = 20; // godzina zachodu slonca
-    ssm = 0; // minuty zachodu slonca
-    TGroundNode *LastNode = NULL; // do u¿ycia w trainset
+    TGroundNode *LastNode = nullptr; // do uÅ¼ycia w trainset
     iNumNodes = 0;
     token = "";
     parser.getTokens();
     parser >> token;
-    int refresh = 0;
+    std::size_t processed = 0;
 
     while (token != "") //(!Parser->EndOfFile)
     {
-        if (refresh == 50)
-        { // SwapBuffers(hDC); //Ra: bez ogranicznika za bardzo spowalnia :( a u niektórych miga
-            refresh = 0;
-            Global::DoEvents();
-        }
-        else
-            ++refresh;
-        str = AnsiString(token.c_str());
-        if (str == AnsiString("node"))
+        ++processed;
+        if( processed % 1000 == 0 )
         {
-            LastNode = AddGroundNode(&parser); // rozpoznanie wêz³a
-            if (LastNode)
-            { // je¿eli przetworzony poprawnie
-                if (LastNode->iType == GL_TRIANGLES)
-                {
-                    if (!LastNode->Vertices)
-                        SafeDelete(LastNode); // usuwamy nieprzezroczyste trójk¹ty terenu
-                }
-                else if (Global::bLoadTraction ? false : LastNode->iType == TP_TRACTION)
-                    SafeDelete(LastNode); // usuwamy druty, jeœli wy³¹czone
-                if (LastNode) // dopiero na koniec dopisujemy do tablic
-                    if (LastNode->iType != TP_DYNAMIC)
-                    { // jeœli nie jest pojazdem
-                        LastNode->nNext = nRootOfType[LastNode->iType]; // ostatni dodany do³¹czamy
-                        // na koñcu nowego
-                        nRootOfType[LastNode->iType] =
-                            LastNode; // ustawienie nowego na pocz¹tku listy
-                        iNumNodes++;
+            glfwPollEvents();
+            UILayer.set_progress( parser.getProgress(), parser.getFullProgress() );
+            GfxRenderer.Render();
+        }
+        str = token;
+        if (str == "node") {
+            // rozpoznanie wÄ™zÅ‚a
+            LastNode = AddGroundNode(&parser);
+            if (LastNode) {
+                // jeÅ¼eli przetworzony poprawnie
+                switch( LastNode->iType ) {
+                    // validate the new node
+                    case GL_TRIANGLES: {
+                        if( true == LastNode->Piece->vertices.empty() ) {
+                            SafeDelete( LastNode );
+                        }
+                        break;
                     }
-                    else
-                    { // jeœli jest pojazdem
-                        // if (!bInitDone) FirstInit(); //jeœli nie by³o w scenerii
-                        if (LastNode->DynamicObject->Mechanik) // ale mo¿e byæ pasa¿er
-                            if (LastNode->DynamicObject->Mechanik
-                                    ->Primary()) // jeœli jest g³ównym (pasa¿er nie jest)
-                                nTrainSetDriver =
-                                    LastNode; // pojazd, któremu zostanie wys³any rozk³ad
+                    case TP_TRACTION: {
+                        if( false == Global::bLoadTraction ) {
+                            // usuwamy druty, jeÅ›li wyÅ‚Ä…czone
+                            SafeDelete( LastNode );
+                        }
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+
+                if( LastNode ) {
+                    // dopiero na koniec dopisujemy do tablic
+                    if( LastNode->iType != TP_DYNAMIC ) {
+                        // jeÅ›li nie jest pojazdem ostatni dodany doÅ‚Ä…czamy na koÅ„cu nowego
+                        LastNode->nNext = nRootOfType[ LastNode->iType ];
+                        // ustawienie nowego na poczÄ…tku listy
+                        nRootOfType[ LastNode->iType ] = LastNode;
+                        ++iNumNodes;
+                    }
+                    else { // jeÅ›li jest pojazdem
+                        if( ( LastNode->DynamicObject->Mechanik != nullptr )
+                         && ( LastNode->DynamicObject->Mechanik->Primary() ) ) {
+                               // jeÅ›li jest gÅ‚Ã³wnym (pasaÅ¼er nie jest)
+                            nTrainSetDriver = LastNode; // pojazd, ktÃ³remu zostanie wysÅ‚any rozkÅ‚ad
+                        }
                         LastNode->nNext = nRootDynamic;
                         nRootDynamic = LastNode; // dopisanie z przodu do listy
-                        // if (bTrainSet && (LastNode?(LastNode->iType==TP_DYNAMIC):false))
-                        if (nTrainSetNode) // je¿eli istnieje wczeœniejszy TP_DYNAMIC
+
+                        if( nTrainSetNode != nullptr ) {
+                            // jeÅ¼eli istnieje wczeÅ›niejszy TP_DYNAMIC
                             nTrainSetNode->DynamicObject->AttachPrev(
                                 LastNode->DynamicObject,
-                                TempConnectionType[iTrainSetWehicleNumber - 2]);
+                                TempConnectionType[ iTrainSetWehicleNumber - 2 ] );
+                        }
                         nTrainSetNode = LastNode; // ostatnio wczytany
-                        if (TempConnectionType[iTrainSetWehicleNumber - 1] ==
-                            0) // jeœli sprzêg jest zerowy, to wys³aæ rozk³ad do sk³adu
-                        { // powinien te¿ tu wchodziæ, gdy pojazd bez trainset
-                            if (nTrainSetDriver) // pojazd, któremu zostanie wys³any rozk³ad
-                            { // wys³anie komendy "Timetable" ustawia odpowiedni tryb jazdy
+
+                        if( TempConnectionType[ iTrainSetWehicleNumber - 1 ] == 0 ) // jeÅ›li sprzÄ™g jest zerowy, to wysÅ‚aÄ‡ rozkÅ‚ad do skÅ‚adu
+                        { // powinien teÅ¼ tu wchodziÄ‡, gdy pojazd bez trainset
+                            if( nTrainSetDriver ) // pojazd, ktÃ³remu zostanie wysÅ‚any rozkÅ‚ad
+                            { // wysÅ‚anie komendy "Timetable" ustawia odpowiedni tryb jazdy
                                 nTrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
                                 nTrainSetDriver->DynamicObject->Mechanik->PutCommand(
-                                    "Timetable:" + asTrainName, fTrainSetVel, 0, NULL);
-                                nTrainSetDriver =
-                                    NULL; // a przy "endtrainset" ju¿ wtedy nie potrzeba
+                                    "Timetable:" + asTrainName,
+                                    fTrainSetVel, 0,
+                                    nullptr );
+                                nTrainSetDriver = nullptr; // a przy "endtrainset" juÅ¼ wtedy nie potrzeba
                             }
                         }
                     }
+                }
             }
             else
             {
-                Error("Scene parse error near " + AnsiString(token.c_str()));
+                ErrorLog("Scene parsing error in file \"" + parser.Name() + "\", unexpected token \"" + token + "\"");
                 // break;
             }
         }
-        else if (str == AnsiString("trainset"))
+        else if (str == "trainset")
         {
             iTrainSetWehicleNumber = 0;
             nTrainSetNode = NULL;
-            nTrainSetDriver = NULL; // pojazd, któremu zostanie wys³any rozk³ad
+            nTrainSetDriver = NULL; // pojazd, ktÃ³remu zostanie wysÅ‚any rozkÅ‚ad
             bTrainSet = true;
             parser.getTokens();
             parser >> token;
-            asTrainName = AnsiString(token.c_str()); // McZapkie: rodzaj+nazwa pociagu w SRJP
+            asTrainName = token; // McZapkie: rodzaj+nazwa pociagu w SRJP
             parser.getTokens();
             parser >> token;
-            asTrainSetTrack = AnsiString(token.c_str()); //œcie¿ka startowa
+            asTrainSetTrack = token; //Å›cieÅ¼ka startowa
             parser.getTokens(2);
-            parser >> fTrainSetDist >> fTrainSetVel; // przesuniêcie i prêdkoœæ
+            parser >> fTrainSetDist >> fTrainSetVel; // przesuniÄ™cie i prÄ™dkoÅ›Ä‡
         }
-        else if (str == AnsiString("endtrainset"))
+        else if (str == "endtrainset")
         { // McZapkie-110103: sygnaly konca pociagu ale tylko dla pociagow rozkladowych
-            if (nTrainSetNode) // trainset bez dynamic siê sypa³
-            { // powinien te¿ tu wchodziæ, gdy pojazd bez trainset
-                if (nTrainSetDriver) // pojazd, któremu zostanie wys³any rozk³ad
-                { // wys³anie komendy "Timetable" ustawia odpowiedni tryb jazdy
+            if (nTrainSetNode) // trainset bez dynamic siÄ™ sypaÅ‚
+            { // powinien teÅ¼ tu wchodziÄ‡, gdy pojazd bez trainset
+                if (nTrainSetDriver) // pojazd, ktÃ³remu zostanie wysÅ‚any rozkÅ‚ad
+                { // wysÅ‚anie komendy "Timetable" ustawia odpowiedni tryb jazdy
                     nTrainSetDriver->DynamicObject->Mechanik->DirectionInitial();
                     nTrainSetDriver->DynamicObject->Mechanik->PutCommand("Timetable:" + asTrainName,
                                                                          fTrainSetVel, 0, NULL);
                 }
             }
-            if (LastNode) // ostatni wczytany obiekt
-                if (LastNode->iType ==
-                    TP_DYNAMIC) // o ile jest pojazdem (na ogó³ jest, ale kto wie...)
-                    if (iTrainSetWehicleNumber ? !TempConnectionType[iTrainSetWehicleNumber - 1] :
-                                                 false) // jeœli ostatni pojazd ma sprzêg 0
-                        LastNode->DynamicObject->RaLightsSet(-1, 2 + 32 + 64); // to za³o¿ymy mu
-            // koñcówki blaszane
-            // (jak AI siê
-            // odpali, to sobie
-            // poprawi)
+            if( LastNode ) {
+                // ostatni wczytany obiekt
+                if( LastNode->iType == TP_DYNAMIC ) {
+                    // o ile jest pojazdem (na ogÃ³Å‚ jest, ale kto wie...)
+                    if( ( iTrainSetWehicleNumber > 0 )
+                     && ( TempConnectionType[ iTrainSetWehicleNumber - 1 ] == 0 ) ) {
+                        // jeÅ›li ostatni pojazd ma sprzÄ™g 0 to zaÅ‚oÅ¼ymy mu koÅ„cÃ³wki blaszane
+                        // (jak AI siÄ™ odpali, to sobie poprawi)
+                        LastNode->DynamicObject->RaLightsSet( -1, 2 + 32 + 64 );
+                    }
+                }
+            }
             bTrainSet = false;
             fTrainSetVel = 0;
-            // iTrainSetConnection=0;
-            nTrainSetNode = nTrainSetDriver = NULL;
+            nTrainSetNode = nTrainSetDriver = nullptr;
             iTrainSetWehicleNumber = 0;
         }
-        else if (str == AnsiString("event"))
+        else if (str == "event")
         {
             TEvent *tmp = new TEvent();
             tmp->Load(&parser, &pOrigin);
@@ -2533,234 +1848,179 @@ bool TGround::Init(AnsiString asFile, HDC hDC)
             { // najpierw sprawdzamy, czy nie ma, a potem dopisujemy
                 TEvent *found = FindEvent(tmp->asName);
                 if (found)
-                { // jeœli znaleziony duplikat
-                    int i = tmp->asName.Length();
-                    if (tmp->asName[1] == '#') // zawsze jeden znak co najmniej jest
+                { // jeÅ›li znaleziony duplikat
+                    auto const size = tmp->asName.size();
+                    if( tmp->asName[0] == '#' ) // zawsze jeden znak co najmniej jest
                     {
                         delete tmp;
-                        tmp = NULL;
-                    } // utylizacja duplikatu z krzy¿ykiem
-                    else if (i > 8 ? tmp->asName.SubString(1, 9) == "lineinfo:" :
-                                     false) // tymczasowo wyj¹tki
+                        tmp = nullptr;
+                    } // utylizacja duplikatu z krzyÅ¼ykiem
+                    else if( ( size > 8 )
+                          && ( tmp->asName.substr( 0, 9 ) == "lineinfo:" ))
+                        // tymczasowo wyjÄ…tki
                     {
                         delete tmp;
-                        tmp = NULL;
-                    } // tymczasowa utylizacja duplikatów W5
-                    else if (i > 8 ? tmp->asName.SubString(i - 7, 8) == "_warning" :
-                                     false) // tymczasowo wyj¹tki
+                        tmp = nullptr;
+                    } // tymczasowa utylizacja duplikatÃ³w W5
+                    else if( ( size > 8 )
+                          && ( tmp->asName.substr( size - 8 ) == "_warning"))
+                        // tymczasowo wyjÄ…tki
                     {
                         delete tmp;
-                        tmp = NULL;
-                    } // tymczasowa utylizacja duplikatu z tr¹bieniem
-                    else if (i > 4 ? tmp->asName.SubString(i - 3, 4) == "_shp" :
-                                     false) // nie podlegaj¹ logowaniu
+                        tmp = nullptr;
+                    } // tymczasowa utylizacja duplikatu z trÄ…bieniem
+                    else if( ( size > 4 )
+                          && ( tmp->asName.substr( size - 4 ) == "_shp" ))
+                          // nie podlegajÄ… logowaniu
                     {
                         delete tmp;
                         tmp = NULL;
                     } // tymczasowa utylizacja duplikatu SHP
-                    if (tmp) // jeœli nie zosta³ zutylizowany
+                    if (tmp) // jeÅ›li nie zostaÅ‚ zutylizowany
                         if (Global::bJoinEvents)
-                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
+                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunkÃ³w)
                         else
                         {
                             ErrorLog("Duplicated event: " + tmp->asName);
-                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
+                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunkÃ³w)
                             found->Type = tp_Ignored; // dezaktywacja pierwotnego - taka proteza na
-                            // wsteczn¹ zgodnoœæ
-                            // SafeDelete(tmp); //bezlitoœnie usuwamy wszelkie duplikaty, ¿eby nie
-                            // zaœmiecaæ drzewka
+                            // wstecznÄ… zgodnoÅ›Ä‡
+                            // SafeDelete(tmp); //bezlitoÅ›nie usuwamy wszelkie duplikaty, Å¼eby nie
+                            // zaÅ›miecaÄ‡ drzewka
                         }
                 }
-                if (tmp)
-                { // jeœli nie duplikat
-                    tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
+                if ( nullptr != tmp )
+                { // jeÅ›li nie duplikat
+                    tmp->evNext2 = RootEvent; // lista wszystkich eventÃ³w (m.in. do InitEvents)
                     RootEvent = tmp;
                     if (!found)
-                    { // jeœli nazwa wyst¹pi³a, to do kolejki i wyszukiwarki dodawany jest tylko
-                        // pierwszy
-                        if (RootEvent->Type != tp_Ignored)
-                            if (RootEvent->asName.Pos(
-                                    "onstart")) // event uruchamiany automatycznie po starcie
-                                AddToQuery(RootEvent, NULL); // dodanie do kolejki
-                        sTracks->Add(0, tmp->asName.c_str(), tmp); // dodanie do wyszukiwarki
+                    { // jeÅ›li nazwa wystÄ…piÅ‚a, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
+                        if( ( RootEvent->Type != tp_Ignored )
+                         && ( RootEvent->asName.find( "onstart" ) != std::string::npos ) ) {
+                            // event uruchamiany automatycznie po starcie
+                            AddToQuery( RootEvent, NULL ); // dodanie do kolejki
+                        }
+                        m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
                     }
                 }
             }
         }
-        //     else
-        //     if (str==AnsiString("include"))  //Tolaris to zrobil wewnatrz parsera
-        //     {
-        //         Include(Parser);
-        //     }
-        else if (str == AnsiString("rotate"))
+        else if (str == "rotate")
         {
             // parser.getTokens(3);
-            // parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawaæ b³êdne
-            // rezultaty
+            // parser >> aRotate.x >> aRotate.y >> aRotate.z; //Ra: to potrafi dawaÄ‡ bÅ‚Ä™dne rezultaty // ??? how so TODO: investigate
             parser.getTokens();
             parser >> aRotate.x;
             parser.getTokens();
             parser >> aRotate.y;
             parser.getTokens();
             parser >> aRotate.z;
-            // WriteLog("*** rotate "+AnsiString(aRotate.x)+" "+AnsiString(aRotate.y)+"
-            // "+AnsiString(aRotate.z));
         }
-        else if (str == AnsiString("origin"))
+        else if (str == "origin")
         {
-            //      str=Parser->GetNextSymbol().LowerCase();
-            //      if (str=="begin")
-            {
-                if (OriginStackTop >= OriginStackMaxDepth - 1)
-                {
-                    MessageBox(0, AnsiString("Origin stack overflow ").c_str(), "Error", MB_OK);
-                    break;
-                }
-                parser.getTokens(3);
-                parser >> OriginStack[OriginStackTop].x >> OriginStack[OriginStackTop].y >>
-                    OriginStack[OriginStackTop].z;
-                pOrigin += OriginStack[OriginStackTop]; // sumowanie ca³kowitego przesuniêcia
-                OriginStackTop++; // zwiêkszenie wskaŸnika stosu
-            }
+            Math3D::vector3 offset;
+            parser.getTokens(3);
+            parser
+                >> offset.x
+                >> offset.y
+                >> offset.z;
+            // sumowanie caÅ‚kowitego przesuniÄ™cia
+            OriginStack.emplace(
+                offset + (
+                OriginStack.empty() ?
+                    Math3D::vector3() :
+                    OriginStack.top() ) );
+            pOrigin = OriginStack.top();
         }
-        else if (str == AnsiString("endorigin"))
+        else if (str == "endorigin")
         {
-            //      else
-            //    if (str=="end")
-            {
-                if (OriginStackTop <= 0)
-                {
-                    MessageBox(0, AnsiString("Origin stack underflow ").c_str(), "Error", MB_OK);
-                    break;
-                }
-
-                OriginStackTop--; // zmniejszenie wskaŸnika stosu
-                pOrigin -= OriginStack[OriginStackTop];
-            }
+            OriginStack.pop();
+            pOrigin = ( OriginStack.empty() ?
+                Math3D::vector3() :
+                OriginStack.top() );
         }
-        else if (str == AnsiString("atmo")) // TODO: uporzadkowac gdzie maja byc parametry mgly!
-        { // Ra: ustawienie parametrów OpenGL przeniesione do FirstInit
+        else if (str == "atmo") // TODO: uporzadkowac gdzie maja byc parametry mgly!
+        { // Ra: ustawienie parametrÃ³w OpenGL przeniesione do FirstInit
             WriteLog("Scenery atmo definition");
             parser.getTokens(3);
-            parser >> Global::AtmoColor[0] >> Global::AtmoColor[1] >> Global::AtmoColor[2];
+            parser
+                >> Global::AtmoColor[0]
+                >> Global::AtmoColor[1]
+                >> Global::AtmoColor[2];
             parser.getTokens(2);
-            parser >> Global::fFogStart >> Global::fFogEnd;
+            parser
+                >> Global::fFogStart
+                >> Global::fFogEnd;
             if (Global::fFogEnd > 0.0)
-            { // ostatnie 3 parametry s¹ opcjonalne
+            { // ostatnie 3 parametry sÄ… opcjonalne
                 parser.getTokens(3);
-                parser >> Global::FogColor[0] >> Global::FogColor[1] >> Global::FogColor[2];
+                parser
+                    >> Global::FogColor[0]
+                    >> Global::FogColor[1]
+                    >> Global::FogColor[2];
             }
             parser.getTokens();
             parser >> token;
+            if( token != "endatmo" ) {
+                // optional overcast parameter
+                // NOTE: parameter system needs some decent replacement, but not worth the effort if we're moving to built-in editor
+                Global::Overcast = clamp( std::stof( token ), 0.0f, 1.0f );
+            }
             while (token.compare("endatmo") != 0)
-            { // a kolejne parametry s¹ pomijane
+            { // a kolejne parametry sÄ… pomijane
                 parser.getTokens();
                 parser >> token;
             }
         }
-        else if (str == AnsiString("time"))
+        else if (str == "time")
         {
             WriteLog("Scenery time definition");
-            char temp_in[9];
-            char temp_out[9];
-            int i, j;
             parser.getTokens();
-            parser >> temp_in;
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (i = 0; temp_in[i] != ':'; i++)
-                temp_out[i] = temp_in[i];
-            hh = atoi(temp_out);
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (j = i + 1; j <= 8; j++)
-                temp_out[j - (i + 1)] = temp_in[j];
-            mm = atoi(temp_out);
+            parser >> token;
 
-            parser.getTokens();
-            parser >> temp_in;
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (i = 0; temp_in[i] != ':'; i++)
-                temp_out[i] = temp_in[i];
-            srh = atoi(temp_out);
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (j = i + 1; j <= 8; j++)
-                temp_out[j - (i + 1)] = temp_in[j];
-            srm = atoi(temp_out);
+            cParser timeparser( token );
+            timeparser.getTokens( 2, false, ":" );
+            auto &time = simulation::Time.data();
+            timeparser
+                >> time.wHour
+                >> time.wMinute;
 
-            parser.getTokens();
-            parser >> temp_in;
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (i = 0; temp_in[i] != ':'; i++)
-                temp_out[i] = temp_in[i];
-            ssh = atoi(temp_out);
-            for (j = 0; j <= 8; j++)
-                temp_out[j] = ' ';
-            for (j = i + 1; j <= 8; j++)
-                temp_out[j - (i + 1)] = temp_in[j];
-            ssm = atoi(temp_out);
+            // NOTE: we ignore old sunrise and sunset definitions, as they're now calculated dynamically
+
             while (token.compare("endtime") != 0)
             {
                 parser.getTokens();
                 parser >> token;
             }
         }
-        else if (str == AnsiString("light"))
-        { // Ra: ustawianie œwiat³a przeniesione do FirstInit
+        else if (str == "light")
+        { // Ra: ustawianie Å›wiatÅ‚a przeniesione do FirstInit
             WriteLog("Scenery light definition");
-            vector3 lp;
-            parser.getTokens();
-            parser >> lp.x;
-            parser.getTokens();
-            parser >> lp.y;
-            parser.getTokens();
-            parser >> lp.z;
-            lp = Normalize(lp); // kierunek padania
-            Global::lightPos[0] = lp.x; // daylight position
-            Global::lightPos[1] = lp.y;
-            Global::lightPos[2] = lp.z;
-            parser.getTokens();
-            parser >> Global::ambientDayLight[0]; // kolor wszechobceny
-            parser.getTokens();
-            parser >> Global::ambientDayLight[1];
-            parser.getTokens();
-            parser >> Global::ambientDayLight[2];
+            parser.getTokens(3, false);
+            parser
+                >> Global::DayLight.direction.x
+                >> Global::DayLight.direction.y
+                >> Global::DayLight.direction.z;;
+            Global::DayLight.direction = glm::normalize( Global::DayLight.direction );
+            parser.getTokens(9, false);
 
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[0]; // kolor padaj¹cy
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[1];
-            parser.getTokens();
-            parser >> Global::diffuseDayLight[2];
-
-            parser.getTokens();
-            parser >> Global::specularDayLight[0]; // kolor odbity
-            parser.getTokens();
-            parser >> Global::specularDayLight[1];
-            parser.getTokens();
-            parser >> Global::specularDayLight[2];
-
-            do
-            {
+            do {
                 parser.getTokens();
                 parser >> token;
             } while (token.compare("endlight") != 0);
         }
-        else if (str == AnsiString("camera"))
+        else if (str == "camera")
         {
             vector3 xyz, abc;
-            xyz = abc = vector3(0, 0, 0); // wartoœci domyœlne, bo nie wszystie musz¹ byæ
-            int i = -1, into = -1; // do której definicji kamery wstawiæ
+            xyz = abc = vector3(0, 0, 0); // wartoÅ›ci domyÅ›lne, bo nie wszystie muszÄ… byÄ‡
+            int i = -1, into = -1; // do ktÃ³rej definicji kamery wstawiÄ‡
             WriteLog("Scenery camera definition");
             do
-            { // opcjonalna siódma liczba okreœla numer kamery, a kiedyœ by³y tylko 3
+            { // opcjonalna siÃ³dma liczba okreÅ›la numer kamery, a kiedyÅ› byÅ‚y tylko 3
                 parser.getTokens();
                 parser >> token;
                 switch (++i)
-                { // kiedyœ camera mia³o tylko 3 wspó³rzêdne
+                { // kiedyÅ› camera miaÅ‚o tylko 3 wspÃ³Å‚rzÄ™dne
                 case 0:
                     xyz.x = atof(token.c_str());
                     break;
@@ -2780,40 +2040,40 @@ bool TGround::Init(AnsiString asFile, HDC hDC)
                     abc.z = atof(token.c_str());
                     break;
                 case 6:
-                    into = atoi(token.c_str()); // takie sobie, bo mo¿na wpisaæ -1
+                    into = atoi(token.c_str()); // takie sobie, bo moÅ¼na wpisaÄ‡ -1
                 }
             } while (token.compare("endcamera") != 0);
             if (into < 0)
                 into = ++Global::iCameraLast;
             if ((into >= 0) && (into < 10))
             { // przepisanie do odpowiedniego miejsca w tabelce
-                Global::pFreeCameraInit[into] = xyz;
-                abc.x = DegToRad(abc.x);
-                abc.y = DegToRad(abc.y);
-                abc.z = DegToRad(abc.z);
-                Global::pFreeCameraInitAngle[into] = abc;
+                Global::FreeCameraInit[ into ] = xyz;
+                Global::FreeCameraInitAngle[ into ] =
+                    Math3D::vector3(
+                        DegToRad( abc.x ),
+                        DegToRad( abc.y ),
+                        DegToRad( abc.z ) );
                 Global::iCameraLast = into; // numer ostatniej
             }
         }
-        else if (str == AnsiString("sky"))
+        else if (str == "sky")
         { // youBy - niebo z pliku
             WriteLog("Scenery sky definition");
             parser.getTokens();
             parser >> token;
-            AnsiString SkyTemp;
-            SkyTemp = AnsiString(token.c_str());
+            std::string SkyTemp = token;
             if (Global::asSky == "1")
                 Global::asSky = SkyTemp;
             do
-            { // po¿arcie dodatkowych parametrów
+            { // poÅ¼arcie dodatkowych parametrÃ³w
                 parser.getTokens();
                 parser >> token;
             } while (token.compare("endsky") != 0);
             WriteLog(Global::asSky.c_str());
         }
-        else if (str == AnsiString("firstinit"))
+        else if (str == "firstinit")
             FirstInit();
-        else if (str == AnsiString("description"))
+        else if (str == "description")
         {
             do
             {
@@ -2821,8 +2081,8 @@ bool TGround::Init(AnsiString asFile, HDC hDC)
                 parser >> token;
             } while (token.compare("enddescription") != 0);
         }
-        else if (str == AnsiString("test"))
-        { // wypisywanie treœci po przetworzeniu
+        else if (str == "test")
+        { // wypisywanie treÅ›ci po przetworzeniu
             WriteLog("---> Parser test:");
             do
             {
@@ -2832,15 +2092,15 @@ bool TGround::Init(AnsiString asFile, HDC hDC)
             } while (token.compare("endtest") != 0);
             WriteLog("---> End of parser test.");
         }
-        else if (str == AnsiString("config"))
-        { // mo¿liwoœæ przedefiniowania parametrów w scenerii
-            Global::ConfigParse(NULL, &parser); // parsowanie dodatkowych ustawieñ
+        else if (str == "config")
+        { // moÅ¼liwoÅ›Ä‡ przedefiniowania parametrÃ³w w scenerii
+            Global::ConfigParse(parser); // parsowanie dodatkowych ustawieÅ„
         }
-        else if (str != AnsiString(""))
-        { // pomijanie od nierozpoznanej komendy do jej zakoñczenia
+        else if (str != "")
+        { // pomijanie od nierozpoznanej komendy do jej zakoÅ„czenia
             if ((token.length() > 2) && (atof(token.c_str()) == 0.0))
-            { // jeœli nie liczba, to spróbowaæ pomin¹æ komendê
-                WriteLog(AnsiString("Unrecognized command: " + str));
+            { // jeÅ›li nie liczba, to sprÃ³bowaÄ‡ pominÄ…Ä‡ komendÄ™
+                WriteLog("Unrecognized command: " + str);
                 str = "end" + str;
                 do
                 {
@@ -2849,64 +2109,55 @@ bool TGround::Init(AnsiString asFile, HDC hDC)
                     parser >> token;
                 } while ((token != "") && (token.compare(str.c_str()) != 0));
             }
-            else // jak liczba to na pewno b³¹d
-                Error(AnsiString("Unrecognized command: " + str));
+            else // jak liczba to na pewno bÅ‚Ä…d
+                Error("Unrecognized command: " + str);
         }
-        else if (str == AnsiString(""))
-            break;
-
-        // LastNode=NULL;
 
         token = "";
         parser.getTokens();
         parser >> token;
     }
 
-    delete parser;
-    sTracks->Sort(TP_TRACK); // finalne sortowanie drzewa torów
-    sTracks->Sort(TP_MEMCELL); // finalne sortowanie drzewa komórek pamiêci
-    sTracks->Sort(TP_MODEL); // finalne sortowanie drzewa modeli
-    sTracks->Sort(0); // finalne sortowanie drzewa eventów
     if (!bInitDone)
-        FirstInit(); // jeœli nie by³o w scenerii
+        FirstInit(); // jeÅ›li nie byÅ‚o w scenerii
     if (Global::pTerrainCompact)
-        TerrainWrite(); // Ra: teraz mo¿na zapisaæ teren w jednym pliku
+        TerrainWrite(); // Ra: teraz moÅ¼na zapisaÄ‡ teren w jednym pliku
     Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
 
 bool TGround::InitEvents()
-{ //³¹czenie eventów z pozosta³ymi obiektami
+{ //Å‚Ä…czenie eventÃ³w z pozostaÅ‚ymi obiektami
     TGroundNode *tmp, *trk;
-    char buff[255];
+    char buff[ 255 ]; std::string cellastext;
     int i;
     for (TEvent *Current = RootEvent; Current; Current = Current->evNext2)
     {
         switch (Current->Type)
         {
-        case tp_AddValues: // sumowanie wartoœci
-        case tp_UpdateValues: // zmiana wartoœci
+        case tp_AddValues: // sumowanie wartoÅ›ci
+        case tp_UpdateValues: // zmiana wartoÅ›ci
             tmp = FindGroundNode(Current->asNodeName,
-                                 TP_MEMCELL); // nazwa komórki powi¹zanej z eventem
+                                 TP_MEMCELL); // nazwa komÃ³rki powiÄ…zanej z eventem
             if (tmp)
             { // McZapkie-100302
                 if (Current->iFlags & (conditional_trackoccupied | conditional_trackfree))
-                { // jeœli chodzi o zajetosc toru (tor mo¿e byæ inny, ni¿ wpisany w komórce)
+                { // jeÅ›li chodzi o zajetosc toru (tor moÅ¼e byÄ‡ inny, niÅ¼ wpisany w komÃ³rce)
                     trk = FindGroundNode(Current->asNodeName,
-                                         TP_TRACK); // nazwa toru ta sama, co nazwa komórki
+                                         TP_TRACK); // nazwa toru ta sama, co nazwa komÃ³rki
                     if (trk)
                         Current->Params[9].asTrack = trk->pTrack;
                     if (!Current->Params[9].asTrack)
-                        ErrorLog("Bad event: track \"" + AnsiString(Current->asNodeName) +
+                        ErrorLog("Bad event: track \"" + Current->asNodeName +
                                  "\" does not exists in \"" + Current->asName + "\"");
                 }
                 Current->Params[4].nGroundNode = tmp;
-                Current->Params[5].asMemCell = tmp->MemCell; // komórka do aktualizacji
+                Current->Params[5].asMemCell = tmp->MemCell; // komÃ³rka do aktualizacji
                 if (Current->iFlags & (conditional_memcompare))
-                    Current->Params[9].asMemCell = tmp->MemCell; // komórka do badania warunku
+                    Current->Params[9].asMemCell = tmp->MemCell; // komÃ³rka do badania warunku
                 if (!tmp->MemCell->asTrackName
-                         .IsEmpty()) // tor powi¹zany z komórk¹ powi¹zan¹ z eventem
-                { // tu potrzebujemy wskaŸnik do komórki w (tmp)
+                         .empty()) // tor powiÄ…zany z komÃ³rkÄ… powiÄ…zanÄ… z eventem
+                { // tu potrzebujemy wskaÅºnik do komÃ³rki w (tmp)
                     trk = FindGroundNode(tmp->MemCell->asTrackName, TP_TRACK);
                     if (trk)
                         Current->Params[6].asTrack = trk->pTrack;
@@ -2918,14 +2169,14 @@ bool TGround::InitEvents()
                     Current->Params[6].asTrack = NULL;
             }
             else
-            { // nie ma komórki, to nie bêdzie dzia³a³ poprawnie
+            { // nie ma komÃ³rki, to nie bÄ™dzie dziaÅ‚aÅ‚ poprawnie
                 Current->Type = tp_Ignored; // deaktywacja
                 ErrorLog("Bad event: \"" + Current->asName + "\" cannot find memcell \"" +
                          Current->asNodeName + "\"");
             }
             break;
         case tp_LogValues: // skojarzenie z memcell
-            if (Current->asNodeName.IsEmpty())
+            if (Current->asNodeName.empty())
             { // brak skojarzenia daje logowanie wszystkich
                 Current->Params[9].asMemCell = NULL;
                 break;
@@ -2937,27 +2188,27 @@ bool TGround::InitEvents()
             {
                 Current->Params[8].nGroundNode = tmp;
                 Current->Params[9].asMemCell = tmp->MemCell;
-                if (Current->Type == tp_GetValues) // jeœli odczyt komórki
-                    if (tmp->MemCell->IsVelocity()) // a komórka zawiera komendê SetVelocity albo
+                if (Current->Type == tp_GetValues) // jeÅ›li odczyt komÃ³rki
+                    if (tmp->MemCell->IsVelocity()) // a komÃ³rka zawiera komendÄ™ SetVelocity albo
                         // ShuntVelocity
-                        Current->bEnabled = false; // to event nie bêdzie dodawany do kolejki
+                        Current->bEnabled = false; // to event nie bÄ™dzie dodawany do kolejki
             }
             else
-            { // nie ma komórki, to nie bêdzie dzia³a³ poprawnie
+            { // nie ma komÃ³rki, to nie bÄ™dzie dziaÅ‚aÅ‚ poprawnie
                 Current->Type = tp_Ignored; // deaktywacja
                 ErrorLog("Bad event: \"" + Current->asName + "\" cannot find memcell \"" +
                          Current->asNodeName + "\"");
             }
             break;
-        case tp_CopyValues: // skopiowanie komórki do innej
-            tmp = FindGroundNode(Current->asNodeName, TP_MEMCELL); // komórka docelowa
+        case tp_CopyValues: // skopiowanie komÃ³rki do innej
+            tmp = FindGroundNode(Current->asNodeName, TP_MEMCELL); // komÃ³rka docelowa
             if (tmp)
             {
                 Current->Params[4].nGroundNode = tmp;
-                Current->Params[5].asMemCell = tmp->MemCell; // komórka docelowa
+                Current->Params[5].asMemCell = tmp->MemCell; // komÃ³rka docelowa
                 if (!tmp->MemCell->asTrackName
-                         .IsEmpty()) // tor powi¹zany z komórk¹ powi¹zan¹ z eventem
-                { // tu potrzebujemy wskaŸnik do komórki w (tmp)
+                         .empty()) // tor powiÄ…zany z komÃ³rkÄ… powiÄ…zanÄ… z eventem
+                { // tu potrzebujemy wskaÅºnik do komÃ³rki w (tmp)
                     trk = FindGroundNode(tmp->MemCell->asTrackName, TP_TRACK);
                     if (trk)
                         Current->Params[6].asTrack = trk->pTrack;
@@ -2971,19 +2222,16 @@ bool TGround::InitEvents()
             else
                 ErrorLog("Bad copyvalues: event \"" + Current->asName +
                          "\" cannot find memcell \"" + Current->asNodeName + "\"");
-            strcpy(
-                buff,
-                Current->Params[9].asText); // skopiowanie nazwy drugiej komórki do bufora roboczego
-            SafeDeleteArray(Current->Params[9].asText); // usuniêcie nazwy komórki
-            tmp = FindGroundNode(buff, TP_MEMCELL); // komórka Ÿód³owa
-            if (tmp)
-            {
+            cellastext = Current->Params[ 9 ].asText;
+            SafeDeleteArray(Current->Params[9].asText); // usuniÄ™cie nazwy komÃ³rki
+            tmp = FindGroundNode( cellastext, TP_MEMCELL); // komÃ³rka ÅºÃ³dÅ‚owa
+            if (tmp != nullptr ) {
                 Current->Params[8].nGroundNode = tmp;
-                Current->Params[9].asMemCell = tmp->MemCell; // komórka Ÿród³owa
+                Current->Params[9].asMemCell = tmp->MemCell; // komÃ³rka ÅºrÃ³dÅ‚owa
             }
             else
                 ErrorLog("Bad copyvalues: event \"" + Current->asName +
-                         "\" cannot find memcell \"" + AnsiString(buff) + "\"");
+                         "\" cannot find memcell \"" + cellastext + "\"");
             break;
         case tp_Animation: // animacja modelu
             tmp = FindGroundNode(Current->asNodeName, TP_MODEL); // egzemplarza modelu do animowania
@@ -2992,9 +2240,9 @@ bool TGround::InitEvents()
                 strcpy(
                     buff,
                     Current->Params[9].asText); // skopiowanie nazwy submodelu do bufora roboczego
-                SafeDeleteArray(Current->Params[9].asText); // usuniêcie nazwy submodelu
+                SafeDeleteArray(Current->Params[9].asText); // usuniÄ™cie nazwy submodelu
                 if (Current->Params[0].asInt == 4)
-                    Current->Params[9].asModel = tmp->Model; // model dla ca³omodelowych animacji
+                    Current->Params[9].asModel = tmp->Model; // model dla caÅ‚omodelowych animacji
                 else
                 { // standardowo przypisanie submodelu
                     Current->Params[9].asAnimContainer = tmp->Model->GetContainer(buff); // submodel
@@ -3003,9 +2251,9 @@ bool TGround::InitEvents()
                         Current->Params[9].asAnimContainer->WillBeAnimated(); // oflagowanie
                         // animacji
                         if (!Current->Params[9]
-                                 .asAnimContainer->Event()) // nie szukaæ, gdy znaleziony
+                                 .asAnimContainer->Event()) // nie szukaÄ‡, gdy znaleziony
                             Current->Params[9].asAnimContainer->EventAssign(
-                                FindEvent(Current->asNodeName + "." + AnsiString(buff) + ":done"));
+                                FindEvent(Current->asNodeName + "." + buff + ":done"));
                     }
                 }
             }
@@ -3014,7 +2262,7 @@ bool TGround::InitEvents()
                          Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
-        case tp_Lights: // zmiana œwiete³ modelu
+        case tp_Lights: // zmiana Å›wieteÅ‚ modelu
             tmp = FindGroundNode(Current->asNodeName, TP_MODEL);
             if (tmp)
                 Current->Params[9].asModel = tmp->Model;
@@ -3023,10 +2271,10 @@ bool TGround::InitEvents()
                          Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
-        case tp_Visible: // ukrycie albo przywrócenie obiektu
+        case tp_Visible: // ukrycie albo przywrÃ³cenie obiektu
             tmp = FindGroundNode(Current->asNodeName, TP_MODEL); // najpierw model
             if (!tmp)
-                tmp = FindGroundNode(Current->asNodeName, TP_TRACTION); // mo¿e druty?
+                tmp = FindGroundNode(Current->asNodeName, TP_TRACTION); // moÅ¼e druty?
             if (!tmp)
                 tmp = FindGroundNode(Current->asNodeName, TP_TRACK); // albo tory?
             if (tmp)
@@ -3036,26 +2284,26 @@ bool TGround::InitEvents()
                          Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
-        case tp_Switch: // prze³o¿enie zwrotnicy albo zmiana stanu obrotnicy
+        case tp_Switch: // przeÅ‚oÅ¼enie zwrotnicy albo zmiana stanu obrotnicy
             tmp = FindGroundNode(Current->asNodeName, TP_TRACK);
             if (tmp)
-            { // dowi¹zanie toru
-                if (!tmp->pTrack->iAction) // jeœli nie jest zwrotnic¹ ani obrotnic¹
-                    tmp->pTrack->iAction |= 0x100; // to bêdzie siê zmienia³ stan uszkodzenia
+            { // dowiÄ…zanie toru
+                if (!tmp->pTrack->iAction) // jeÅ›li nie jest zwrotnicÄ… ani obrotnicÄ…
+                    tmp->pTrack->iAction |= 0x100; // to bÄ™dzie siÄ™ zmieniaÅ‚ stan uszkodzenia
                 Current->Params[9].asTrack = tmp->pTrack;
-                if (!Current->Params[0].asInt) // jeœli prze³¹cza do stanu 0
+                if (!Current->Params[0].asInt) // jeÅ›li przeÅ‚Ä…cza do stanu 0
                     if (Current->Params[2].asdouble >=
-                        0.0) // jeœli jest zdefiniowany dodatkowy ruch iglic
+                        0.0) // jeÅ›li jest zdefiniowany dodatkowy ruch iglic
                         Current->Params[9].asTrack->Switch(
                             0, Current->Params[1].asdouble,
-                            Current->Params[2].asdouble); // przes³anie parametrów
+                            Current->Params[2].asdouble); // przesÅ‚anie parametrÃ³w
             }
             else
                 ErrorLog("Bad switch: event \"" + Current->asName + "\" cannot find track \"" +
                          Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
-        case tp_Sound: // odtworzenie dŸwiêku
+        case tp_Sound: // odtworzenie dÅºwiÄ™ku
             tmp = FindGroundNode(Current->asNodeName, TP_SOUND);
             if (tmp)
                 Current->Params[9].tsTextSound = tmp->tsStaticSound;
@@ -3064,14 +2312,14 @@ bool TGround::InitEvents()
                          "\" cannot find static sound \"" + Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
-        case tp_TrackVel: // ustawienie prêdkoœci na torze
-            if (!Current->asNodeName.IsEmpty())
+        case tp_TrackVel: // ustawienie prÄ™dkoÅ›ci na torze
+            if (!Current->asNodeName.empty())
             {
                 tmp = FindGroundNode(Current->asNodeName, TP_TRACK);
                 if (tmp)
                 {
                     tmp->pTrack->iAction |=
-                        0x200; // flaga zmiany prêdkoœci toru jest istotna dla skanowania
+                        0x200; // flaga zmiany prÄ™dkoÅ›ci toru jest istotna dla skanowania
                     Current->Params[9].asTrack = tmp->pTrack;
                 }
                 else
@@ -3099,35 +2347,30 @@ bool TGround::InitEvents()
             { // przepisanie nazwy do bufora
                 strcpy(buff, Current->Params[9].asText);
                 SafeDeleteArray(Current->Params[9].asText);
-                Current->Params[9].asPointer = NULL; // zerowanie wskaŸnika, aby wykryæ brak obeiktu
+                Current->Params[9].asPointer = NULL; // zerowanie wskaÅºnika, aby wykryÄ‡ brak obeiktu
             }
             else
                 buff[0] = '\0';
             if (Current->iFlags & (conditional_trackoccupied | conditional_trackfree))
-            { // jeœli chodzi o zajetosc toru
+            { // jeÅ›li chodzi o zajetosc toru
                 tmp = FindGroundNode(buff, TP_TRACK);
                 if (tmp)
                     Current->Params[9].asTrack = tmp->pTrack;
                 if (!Current->Params[9].asTrack)
                 {
-                    ErrorLog(AnsiString("Bad event: Track \"") + AnsiString(buff) +
-                             "\" does not exist in \"" + Current->asName + "\"");
-                    Current->iFlags &=
-                        ~(conditional_trackoccupied | conditional_trackfree); // zerowanie flag
+                    ErrorLog("Bad event: Track \"" + std::string(buff) + "\" does not exist in \"" + Current->asName + "\"");
+                    Current->iFlags &= ~(conditional_trackoccupied | conditional_trackfree); // zerowanie flag
                 }
             }
-            else if (Current->iFlags &
-                     (conditional_memstring | conditional_memval1 | conditional_memval2))
-            { // jeœli chodzi o komorke pamieciow¹
+            else if (Current->iFlags & (conditional_memstring | conditional_memval1 | conditional_memval2))
+            { // jeÅ›li chodzi o komorke pamieciowÄ…
                 tmp = FindGroundNode(buff, TP_MEMCELL);
                 if (tmp)
                     Current->Params[9].asMemCell = tmp->MemCell;
                 if (!Current->Params[9].asMemCell)
                 {
-                    ErrorLog(AnsiString("Bad event: MemCell \"") + AnsiString(buff) +
-                             AnsiString("\" does not exist in \"" + Current->asName + "\""));
-                    Current->iFlags &=
-                        ~(conditional_memstring | conditional_memval1 | conditional_memval2);
+                    ErrorLog("Bad event: MemCell \"" + std::string(buff) + "\" does not exist in \"" + Current->asName + "\"");
+                    Current->iFlags &= ~(conditional_memstring | conditional_memval1 | conditional_memval2);
                 }
             }
             for (i = 0; i < 8; i++)
@@ -3137,22 +2380,21 @@ bool TGround::InitEvents()
                     strcpy(buff, Current->Params[i].asText);
                     SafeDeleteArray(Current->Params[i].asText);
                     Current->Params[i].asEvent = FindEvent(buff);
-                    if (!Current->Params[i].asEvent) // Ra: tylko w logu informacja o braku
-                        if (AnsiString(Current->Params[i].asText).SubString(1, 5) != "none_")
-                        {
-                            WriteLog(AnsiString("Event \"") + AnsiString(buff) +
-                                     AnsiString("\" does not exist"));
-                            ErrorLog("Missed event: " + AnsiString(buff) + " in multiple " +
-                                     Current->asName);
+					if( !Current->Params[ i ].asEvent ) { // Ra: tylko w logu informacja o braku
+						if( ( Current->Params[ i ].asText == NULL )
+						 || ( std::string( Current->Params[ i ].asText ).substr( 0, 5 ) != "none_" ) ) {
+							WriteLog( "Event \"" + std::string( buff ) + "\" does not exist" );
+							ErrorLog( "Missed event: " + std::string( buff ) + " in multiple " + Current->asName );
+						}
                         }
                 }
             }
             break;
-        case tp_Voltage: // zmiana napiêcia w zasilaczu (TractionPowerSource)
-            if (!Current->asNodeName.IsEmpty())
+        case tp_Voltage: // zmiana napiÄ™cia w zasilaczu (TractionPowerSource)
+            if (!Current->asNodeName.empty())
             {
                 tmp = FindGroundNode(Current->asNodeName,
-                                     TP_TRACTIONPOWERSOURCE); // pod³¹czenie zasilacza
+                                     TP_TRACTIONPOWERSOURCE); // podÅ‚Ä…czenie zasilacza
                 if (tmp)
                     Current->Params[9].psPower = tmp->psTractionPowerSource;
                 else
@@ -3161,87 +2403,87 @@ bool TGround::InitEvents()
             }
             Current->asNodeName = "";
             break;
-        case tp_Message: // wyœwietlenie komunikatu
+        case tp_Message: // wyÅ›wietlenie komunikatu
             break;
         }
         if (Current->fDelay < 0)
             AddToQuery(Current, NULL);
     }
     for (TGroundNode *Current = nRootOfType[TP_MEMCELL]; Current; Current = Current->nNext)
-    { // Ra: eventy komórek pamiêci, wykonywane po wys³aniu komendy do zatrzymanego pojazdu
+    { // Ra: eventy komÃ³rek pamiÄ™ci, wykonywane po wysÅ‚aniu komendy do zatrzymanego pojazdu
         Current->MemCell->AssignEvents(FindEvent(Current->asName + ":sent"));
     }
     return true;
 }
 
 void TGround::InitTracks()
-{ //³¹czenie torów ze sob¹ i z eventami
+{ //Å‚Ä…czenie torÃ³w ze sobÄ… i z eventami
     TGroundNode *Current, *Model;
     TTrack *tmp; // znaleziony tor
     TTrack *Track;
-    int iConnection, state;
-    AnsiString name;
+	int iConnection;
+    std::string name;
     // tracks=tracksfar=0;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
     {
         Track = Current->pTrack;
         if (Global::iHiddenEvents & 1)
-            if (!Current->asName.IsEmpty())
-            { // jeœli podana jest nazwa torów, mo¿na szukaæ eventów skojarzonych przez nazwê
-                if (Track->asEvent0Name.IsEmpty())
+            if (!Current->asName.empty())
+            { // jeÅ›li podana jest nazwa torÃ³w, moÅ¼na szukaÄ‡ eventÃ³w skojarzonych przez nazwÄ™
+                if (Track->asEvent0Name.empty())
                     if (FindEvent(Current->asName + ":event0"))
                         Track->asEvent0Name = Current->asName + ":event0";
-                if (Track->asEvent1Name.IsEmpty())
+                if (Track->asEvent1Name.empty())
                     if (FindEvent(Current->asName + ":event1"))
                         Track->asEvent1Name = Current->asName + ":event1";
-                if (Track->asEvent2Name.IsEmpty())
+                if (Track->asEvent2Name.empty())
                     if (FindEvent(Current->asName + ":event2"))
                         Track->asEvent2Name = Current->asName + ":event2";
 
-                if (Track->asEventall0Name.IsEmpty())
+                if (Track->asEventall0Name.empty())
                     if (FindEvent(Current->asName + ":eventall0"))
                         Track->asEventall0Name = Current->asName + ":eventall0";
-                if (Track->asEventall1Name.IsEmpty())
+                if (Track->asEventall1Name.empty())
                     if (FindEvent(Current->asName + ":eventall1"))
                         Track->asEventall1Name = Current->asName + ":eventall1";
-                if (Track->asEventall2Name.IsEmpty())
+                if (Track->asEventall2Name.empty())
                     if (FindEvent(Current->asName + ":eventall2"))
                         Track->asEventall2Name = Current->asName + ":eventall2";
             }
         Track->AssignEvents(
-            Track->asEvent0Name.IsEmpty() ? NULL : FindEvent(Track->asEvent0Name),
-            Track->asEvent1Name.IsEmpty() ? NULL : FindEventScan(Track->asEvent1Name),
-            Track->asEvent2Name.IsEmpty() ? NULL : FindEventScan(Track->asEvent2Name));
+            Track->asEvent0Name.empty() ? NULL : FindEvent(Track->asEvent0Name),
+            Track->asEvent1Name.empty() ? NULL : FindEventScan(Track->asEvent1Name),
+            Track->asEvent2Name.empty() ? NULL : FindEventScan(Track->asEvent2Name));
         Track->AssignallEvents(
-            Track->asEventall0Name.IsEmpty() ? NULL : FindEvent(Track->asEventall0Name),
-            Track->asEventall1Name.IsEmpty() ? NULL : FindEvent(Track->asEventall1Name),
-            Track->asEventall2Name.IsEmpty() ? NULL :
+            Track->asEventall0Name.empty() ? NULL : FindEvent(Track->asEventall0Name),
+            Track->asEventall1Name.empty() ? NULL : FindEvent(Track->asEventall1Name),
+            Track->asEventall2Name.empty() ? NULL :
                                                FindEvent(Track->asEventall2Name)); // MC-280503
         switch (Track->eType)
         {
-        case tt_Table: // obrotnicê te¿ ³¹czymy na starcie z innymi torami
+        case tt_Table: // obrotnicÄ™ teÅ¼ Å‚Ä…czymy na starcie z innymi torami
             Model = FindGroundNode(Current->asName, TP_MODEL); // szukamy modelu o tej samej nazwie
-            // if (tmp) //mamy model, trzeba zapamiêtaæ wskaŸnik do jego animacji
-            { // jak coœ pójdzie Ÿle, to robimy z tego normalny tor
-                // Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wi¹zanie toru z modelem
+            // if (tmp) //mamy model, trzeba zapamiÄ™taÄ‡ wskaÅºnik do jego animacji
+            { // jak coÅ› pÃ³jdzie Åºle, to robimy z tego normalny tor
+                // Track->ModelAssign(tmp->Model->GetContainer(NULL)); //wiÄ…zanie toru z modelem
                 // obrotnicy
                 Track->RaAssign(
                     Current, Model ? Model->Model : NULL, FindEvent(Current->asName + ":done"),
-                    FindEvent(Current->asName + ":joined")); // wi¹zanie toru z modelem obrotnicy
-                // break; //jednak po³¹czê z s¹siednim, jak ma siê wysypywaæ null track
+                    FindEvent(Current->asName + ":joined")); // wiÄ…zanie toru z modelem obrotnicy
+                // break; //jednak poÅ‚Ä…czÄ™ z sÄ…siednim, jak ma siÄ™ wysypywaÄ‡ null track
             }
             if (!Model) // jak nie ma modelu
-                break; // to pewnie jest wykolejnica, a ta jest domyœlnie zamkniêta i wykoleja
-        case tt_Normal: // tylko proste s¹ pod³¹czane do rozjazdów, st¹d dwa rozjazdy siê nie
-            // po³¹cz¹ ze sob¹
-            if (Track->CurrentPrev() == NULL) // tylko jeœli jeszcze nie pod³¹czony
+                break; // to pewnie jest wykolejnica, a ta jest domyÅ›lnie zamkniÄ™ta i wykoleja
+        case tt_Normal: // tylko proste sÄ… podÅ‚Ä…czane do rozjazdÃ³w, stÄ…d dwa rozjazdy siÄ™ nie
+            // poÅ‚Ä…czÄ… ze sobÄ…
+            if (Track->CurrentPrev() == NULL) // tylko jeÅ›li jeszcze nie podÅ‚Ä…czony
             {
                 tmp = FindTrack(Track->CurrentSegment()->FastGetPoint_0(), iConnection, Current);
                 switch (iConnection)
                 {
-                case -1: // Ra: pierwsza koncepcja zawijania samochodów i statków
-                    // if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
-                    // Track->ConnectPrevPrev(Track,0); //³¹czenie koñca odcinka do samego siebie
+                case -1: // Ra: pierwsza koncepcja zawijania samochodÃ³w i statkÃ³w
+                    // if ((Track->iCategoryFlag&1)==0) //jeÅ›li nie jest torem szynowym
+                    // Track->ConnectPrevPrev(Track,0); //Å‚Ä…czenie koÅ„ca odcinka do samego siebie
                     break;
                 case 0:
                     Track->ConnectPrevPrev(tmp, 0);
@@ -3251,34 +2493,34 @@ void TGround::InitTracks()
                     break;
                 case 2:
                     Track->ConnectPrevPrev(tmp, 0); // do Point1 pierwszego
-                    tmp->SetConnections(0); // zapamiêtanie ustawieñ w Segmencie
+                    tmp->SetConnections(0); // zapamiÄ™tanie ustawieÅ„ w Segmencie
                     break;
                 case 3:
                     Track->ConnectPrevNext(tmp, 1); // do Point2 pierwszego
-                    tmp->SetConnections(0); // zapamiêtanie ustawieñ w Segmencie
+                    tmp->SetConnections(0); // zapamiÄ™tanie ustawieÅ„ w Segmencie
                     break;
                 case 4:
                     tmp->Switch(1);
                     Track->ConnectPrevPrev(tmp, 2); // do Point1 drugiego
-                    tmp->SetConnections(1); // robi te¿ Switch(0)
+                    tmp->SetConnections(1); // robi teÅ¼ Switch(0)
                     tmp->Switch(0);
                     break;
                 case 5:
                     tmp->Switch(1);
                     Track->ConnectPrevNext(tmp, 3); // do Point2 drugiego
-                    tmp->SetConnections(1); // robi te¿ Switch(0)
+                    tmp->SetConnections(1); // robi teÅ¼ Switch(0)
                     tmp->Switch(0);
                     break;
                 }
             }
-            if (Track->CurrentNext() == NULL) // tylko jeœli jeszcze nie pod³¹czony
+            if (Track->CurrentNext() == NULL) // tylko jeÅ›li jeszcze nie podÅ‚Ä…czony
             {
                 tmp = FindTrack(Track->CurrentSegment()->FastGetPoint_1(), iConnection, Current);
                 switch (iConnection)
                 {
-                case -1: // Ra: pierwsza koncepcja zawijania samochodów i statków
-                    // if ((Track->iCategoryFlag&1)==0) //jeœli nie jest torem szynowym
-                    // Track->ConnectNextNext(Track,1); //³¹czenie koñca odcinka do samego siebie
+                case -1: // Ra: pierwsza koncepcja zawijania samochodÃ³w i statkÃ³w
+                    // if ((Track->iCategoryFlag&1)==0) //jeÅ›li nie jest torem szynowym
+                    // Track->ConnectNextNext(Track,1); //Å‚Ä…czenie koÅ„ca odcinka do samego siebie
                     break;
                 case 0:
                     Track->ConnectNextPrev(tmp, 0);
@@ -3288,104 +2530,104 @@ void TGround::InitTracks()
                     break;
                 case 2:
                     Track->ConnectNextPrev(tmp, 0);
-                    tmp->SetConnections(0); // zapamiêtanie ustawieñ w Segmencie
+                    tmp->SetConnections(0); // zapamiÄ™tanie ustawieÅ„ w Segmencie
                     break;
                 case 3:
                     Track->ConnectNextNext(tmp, 1);
-                    tmp->SetConnections(0); // zapamiêtanie ustawieñ w Segmencie
+                    tmp->SetConnections(0); // zapamiÄ™tanie ustawieÅ„ w Segmencie
                     break;
                 case 4:
                     tmp->Switch(1);
                     Track->ConnectNextPrev(tmp, 2);
-                    tmp->SetConnections(1); // robi te¿ Switch(0)
+                    tmp->SetConnections(1); // robi teÅ¼ Switch(0)
                     // tmp->Switch(0);
                     break;
                 case 5:
                     tmp->Switch(1);
                     Track->ConnectNextNext(tmp, 3);
-                    tmp->SetConnections(1); // robi te¿ Switch(0)
+                    tmp->SetConnections(1); // robi teÅ¼ Switch(0)
                     // tmp->Switch(0);
                     break;
                 }
             }
             break;
-        case tt_Switch: // dla rozjazdów szukamy eventów sygnalizacji rozprucia
+        case tt_Switch: // dla rozjazdÃ³w szukamy eventÃ³w sygnalizacji rozprucia
             Track->AssignForcedEvents(FindEvent(Current->asName + ":forced+"),
                                       FindEvent(Current->asName + ":forced-"));
             break;
         }
         name = Track->IsolatedName(); // pobranie nazwy odcinka izolowanego
-        if (!name.IsEmpty()) // jeœli zosta³a zwrócona nazwa
+        if (!name.empty()) // jeÅ›li zostaÅ‚a zwrÃ³cona nazwa
             Track->IsolatedEventsAssign(FindEvent(name + ":busy"), FindEvent(name + ":free"));
-        if (Current->asName.SubString(1, 1) ==
-            "*") // mo¿liwy portal, jeœli nie pod³¹czony od striny 1
+        if (Current->asName.substr(0, 1) ==
+            "*") // moÅ¼liwy portal, jeÅ›li nie podÅ‚Ä…czony od striny 1
             if (!Track->CurrentPrev() && Track->CurrentNext())
                 Track->iCategoryFlag |= 0x100; // ustawienie flagi portalu
     }
     // WriteLog("Total "+AnsiString(tracks)+", far "+AnsiString(tracksfar));
     TIsolated *p = TIsolated::Root();
     while (p)
-    { // jeœli siê znajdzie, to podaæ wskaŸnik
-        Current = FindGroundNode(p->asName, TP_MEMCELL); // czy jest komóka o odpowiedniej nazwie
+    { // jeÅ›li siÄ™ znajdzie, to podaÄ‡ wskaÅºnik
+        Current = FindGroundNode(p->asName, TP_MEMCELL); // czy jest komÃ³ka o odpowiedniej nazwie
         if (Current)
-            p->pMemCell = Current->MemCell; // przypisanie powi¹zanej komórki
+            p->pMemCell = Current->MemCell; // przypisanie powiÄ…zanej komÃ³rki
         else
-        { // utworzenie automatycznej komórki
-            Current = new TGroundNode(); // to nie musi mieæ nazwy, nazwa w wyszukiwarce wystarczy
+        { // utworzenie automatycznej komÃ³rki
+            Current = new TGroundNode(); // to nie musi mieÄ‡ nazwy, nazwa w wyszukiwarce wystarczy
             // Current->asName=p->asName; //mazwa identyczna, jak nazwa odcinka izolowanego
-            Current->MemCell = new TMemCell(NULL); // nowa komórka
-            sTracks->Add(TP_MEMCELL, p->asName.c_str(), Current); // dodanie do wyszukiwarki
+            Current->MemCell = new TMemCell(NULL); // nowa komÃ³rka
+            m_trackmap.Add( TP_MEMCELL, p->asName, Current );
             Current->nNext =
-                nRootOfType[TP_MEMCELL]; // to nie powinno tutaj byæ, bo robi siê œmietnik
+                nRootOfType[TP_MEMCELL]; // to nie powinno tutaj byÄ‡, bo robi siÄ™ Å›mietnik
             nRootOfType[TP_MEMCELL] = Current;
             iNumNodes++;
-            p->pMemCell = Current->MemCell; // wskaŸnik komóki przekazany do odcinka izolowanego
+            p->pMemCell = Current->MemCell; // wskaÅºnik komÃ³ki przekazany do odcinka izolowanego
         }
         p = p->Next();
     }
     // for (Current=nRootOfType[TP_TRACK];Current;Current=Current->nNext)
     // if (Current->pTrack->eType==tt_Cross)
-    //  Current->pTrack->ConnectionsLog(); //zalogowanie informacji o po³¹czeniach
+    //  Current->pTrack->ConnectionsLog(); //zalogowanie informacji o poÅ‚Ä…czeniach
 }
 
 void TGround::InitTraction()
-{ //³¹czenie drutów ze sob¹ oraz z torami i eventami
+{ //Å‚Ä…czenie drutÃ³w ze sobÄ… oraz z torami i eventami
     TGroundNode *nCurrent, *nTemp;
-    TTraction *tmp; // znalezione przês³o
+    TTraction *tmp; // znalezione przÄ™sÅ‚o
     TTraction *Traction;
     int iConnection;
-    AnsiString name;
+    std::string name;
     for (nCurrent = nRootOfType[TP_TRACTION]; nCurrent; nCurrent = nCurrent->nNext)
-    { // pod³¹czenie do zasilacza, ¿eby mo¿na by³o sumowaæ pr¹d kilku pojazdów
-        // a jednoczeœnie z jednego miejsca zmieniaæ napiêcie eventem
-        // wykonywane najpierw, ¿eby mo¿na by³o logowaæ pod³¹czenie 2 zasilaczy do jednego drutu
-        // izolator zawieszony na przêœle jest ma byæ osobnym odcinkiem drutu o d³ugoœci ok. 1m,
-        // pod³¹czonym do zasilacza o nazwie "*" (gwiazka); "none" nie bêdzie odpowiednie
+    { // podÅ‚Ä…czenie do zasilacza, Å¼eby moÅ¼na byÅ‚o sumowaÄ‡ prÄ…d kilku pojazdÃ³w
+        // a jednoczeÅ›nie z jednego miejsca zmieniaÄ‡ napiÄ™cie eventem
+        // wykonywane najpierw, Å¼eby moÅ¼na byÅ‚o logowaÄ‡ podÅ‚Ä…czenie 2 zasilaczy do jednego drutu
+        // izolator zawieszony na przÄ™Å›le jest ma byÄ‡ osobnym odcinkiem drutu o dÅ‚ugoÅ›ci ok. 1m,
+        // podÅ‚Ä…czonym do zasilacza o nazwie "*" (gwiazka); "none" nie bÄ™dzie odpowiednie
         Traction = nCurrent->hvTraction;
         nTemp = FindGroundNode(Traction->asPowerSupplyName, TP_TRACTIONPOWERSOURCE);
         if (nTemp) // jak zasilacz znaleziony
-            Traction->PowerSet(nTemp->psTractionPowerSource); // to pod³¹czyæ do przês³a
-        else if (Traction->asPowerSupplyName != "*") // gwiazdka dla przês³a z izolatorem
-            if (Traction->asPowerSupplyName != "none") // dopuszczamy na razie brak pod³¹czenia?
-            { // logowanie b³êdu i utworzenie zasilacza o domyœlnej zawartoœci
+            Traction->PowerSet(nTemp->psTractionPowerSource); // to podÅ‚Ä…czyÄ‡ do przÄ™sÅ‚a
+        else if (Traction->asPowerSupplyName != "*") // gwiazdka dla przÄ™sÅ‚a z izolatorem
+            if (Traction->asPowerSupplyName != "none") // dopuszczamy na razie brak podÅ‚Ä…czenia?
+            { // logowanie bÅ‚Ä™du i utworzenie zasilacza o domyÅ›lnej zawartoÅ›ci
                 ErrorLog("Missed TractionPowerSource: " + Traction->asPowerSupplyName);
                 nTemp = new TGroundNode();
                 nTemp->iType = TP_TRACTIONPOWERSOURCE;
                 nTemp->asName = Traction->asPowerSupplyName;
                 nTemp->psTractionPowerSource = new TTractionPowerSource(nTemp);
                 nTemp->psTractionPowerSource->Init(Traction->NominalVoltage, Traction->MaxCurrent);
-                nTemp->nNext = nRootOfType[nTemp->iType]; // ostatni dodany do³¹czamy na koñcu
+                nTemp->nNext = nRootOfType[nTemp->iType]; // ostatni dodany doÅ‚Ä…czamy na koÅ„cu
                 // nowego
-                nRootOfType[nTemp->iType] = nTemp; // ustawienie nowego na pocz¹tku listy
+                nRootOfType[nTemp->iType] = nTemp; // ustawienie nowego na poczÄ…tku listy
                 iNumNodes++;
             }
     }
     for (nCurrent = nRootOfType[TP_TRACTION]; nCurrent; nCurrent = nCurrent->nNext)
     {
         Traction = nCurrent->hvTraction;
-        if (!Traction->hvNext[0]) // tylko jeœli jeszcze nie pod³¹czony
+        if (!Traction->hvNext[0]) // tylko jeÅ›li jeszcze nie podÅ‚Ä…czony
         {
-            tmp = FindTraction(&Traction->pPoint1, iConnection, nCurrent);
+            tmp = FindTraction(Traction->pPoint1, iConnection, nCurrent);
             switch (iConnection)
             {
             case 0:
@@ -3395,32 +2637,32 @@ void TGround::InitTraction()
                 Traction->Connect(0, tmp, 1);
                 break;
             }
-            if (Traction->hvNext[0]) // jeœli zosta³ pod³¹czony
-                if (Traction->psSection && tmp->psSection) // tylko przês³o z izolatorem mo¿e nie
-                    // mieæ zasilania, bo ma 2, trzeba
-                    // sprawdzaæ s¹siednie
+            if (Traction->hvNext[0]) // jeÅ›li zostaÅ‚ podÅ‚Ä…czony
+                if (Traction->psSection && tmp->psSection) // tylko przÄ™sÅ‚o z izolatorem moÅ¼e nie
+                    // mieÄ‡ zasilania, bo ma 2, trzeba
+                    // sprawdzaÄ‡ sÄ…siednie
                     if (Traction->psSection !=
-                        tmp->psSection) // po³¹czone odcinki maj¹ ró¿ne zasilacze
-                    { // to mo¿e byæ albo pod³¹czenie podstacji lub kabiny sekcyjnej do sekcji, albo
-                        // b³¹d
+                        tmp->psSection) // poÅ‚Ä…czone odcinki majÄ… rÃ³Å¼ne zasilacze
+                    { // to moÅ¼e byÄ‡ albo podÅ‚Ä…czenie podstacji lub kabiny sekcyjnej do sekcji, albo
+                        // bÅ‚Ä…d
                         if (Traction->psSection->bSection && !tmp->psSection->bSection)
-                        { //(tmp->psSection) jest podstacj¹, a (Traction->psSection) nazw¹ sekcji
-                            tmp->PowerSet(Traction->psSection); // zast¹pienie wskazaniem sekcji
+                        { //(tmp->psSection) jest podstacjÄ…, a (Traction->psSection) nazwÄ… sekcji
+                            tmp->PowerSet(Traction->psSection); // zastÄ…pienie wskazaniem sekcji
                         }
                         else if (!Traction->psSection->bSection && tmp->psSection->bSection)
-                        { //(Traction->psSection) jest podstacj¹, a (tmp->psSection) nazw¹ sekcji
-                            Traction->PowerSet(tmp->psSection); // zast¹pienie wskazaniem sekcji
+                        { //(Traction->psSection) jest podstacjÄ…, a (tmp->psSection) nazwÄ… sekcji
+                            Traction->PowerSet(tmp->psSection); // zastÄ…pienie wskazaniem sekcji
                         }
-                        else // jeœli obie to sekcje albo obie podstacje, to bêdzie b³¹d
+                        else // jeÅ›li obie to sekcje albo obie podstacje, to bÄ™dzie bÅ‚Ä…d
                             ErrorLog("Bad power: at " +
-                                     FloatToStrF(Traction->pPoint1.x, ffFixed, 6, 2) + " " +
-                                     FloatToStrF(Traction->pPoint1.y, ffFixed, 6, 2) + " " +
-                                     FloatToStrF(Traction->pPoint1.z, ffFixed, 6, 2));
+                                     to_string(Traction->pPoint1.x, 2, 6) + " " +
+                                     to_string(Traction->pPoint1.y, 2, 6) + " " +
+                                     to_string(Traction->pPoint1.z, 2, 6));
                     }
         }
-        if (!Traction->hvNext[1]) // tylko jeœli jeszcze nie pod³¹czony
+        if (!Traction->hvNext[1]) // tylko jeÅ›li jeszcze nie podÅ‚Ä…czony
         {
-            tmp = FindTraction(&Traction->pPoint2, iConnection, nCurrent);
+            tmp = FindTraction(Traction->pPoint2, iConnection, nCurrent);
             switch (iConnection)
             {
             case 0:
@@ -3430,140 +2672,140 @@ void TGround::InitTraction()
                 Traction->Connect(1, tmp, 1);
                 break;
             }
-            if (Traction->hvNext[1]) // jeœli zosta³ pod³¹czony
-                if (Traction->psSection && tmp->psSection) // tylko przês³o z izolatorem mo¿e nie
-                    // mieæ zasilania, bo ma 2, trzeba
-                    // sprawdzaæ s¹siednie
+            if (Traction->hvNext[1]) // jeÅ›li zostaÅ‚ podÅ‚Ä…czony
+                if (Traction->psSection && tmp->psSection) // tylko przÄ™sÅ‚o z izolatorem moÅ¼e nie
+                    // mieÄ‡ zasilania, bo ma 2, trzeba
+                    // sprawdzaÄ‡ sÄ…siednie
                     if (Traction->psSection != tmp->psSection)
-                    { // to mo¿e byæ albo pod³¹czenie podstacji lub kabiny sekcyjnej do sekcji, albo
-                        // b³¹d
+                    { // to moÅ¼e byÄ‡ albo podÅ‚Ä…czenie podstacji lub kabiny sekcyjnej do sekcji, albo
+                        // bÅ‚Ä…d
                         if (Traction->psSection->bSection && !tmp->psSection->bSection)
-                        { //(tmp->psSection) jest podstacj¹, a (Traction->psSection) nazw¹ sekcji
-                            tmp->PowerSet(Traction->psSection); // zast¹pienie wskazaniem sekcji
+                        { //(tmp->psSection) jest podstacjÄ…, a (Traction->psSection) nazwÄ… sekcji
+                            tmp->PowerSet(Traction->psSection); // zastÄ…pienie wskazaniem sekcji
                         }
                         else if (!Traction->psSection->bSection && tmp->psSection->bSection)
-                        { //(Traction->psSection) jest podstacj¹, a (tmp->psSection) nazw¹ sekcji
-                            Traction->PowerSet(tmp->psSection); // zast¹pienie wskazaniem sekcji
+                        { //(Traction->psSection) jest podstacjÄ…, a (tmp->psSection) nazwÄ… sekcji
+                            Traction->PowerSet(tmp->psSection); // zastÄ…pienie wskazaniem sekcji
                         }
-                        else // jeœli obie to sekcje albo obie podstacje, to bêdzie b³¹d
+                        else // jeÅ›li obie to sekcje albo obie podstacje, to bÄ™dzie bÅ‚Ä…d
                             ErrorLog("Bad power: at " +
-                                     FloatToStrF(Traction->pPoint2.x, ffFixed, 6, 2) + " " +
-                                     FloatToStrF(Traction->pPoint2.y, ffFixed, 6, 2) + " " +
-                                     FloatToStrF(Traction->pPoint2.z, ffFixed, 6, 2));
+                                     to_string(Traction->pPoint2.x, 2, 6) + " " +
+                                     to_string(Traction->pPoint2.y, 2, 6) + " " +
+                                     to_string(Traction->pPoint2.z, 2, 6));
                     }
         }
     }
-    iConnection = 0; // teraz bêdzie licznikiem koñców
+    iConnection = 0; // teraz bÄ™dzie licznikiem koÅ„cÃ³w
     for (nCurrent = nRootOfType[TP_TRACTION]; nCurrent; nCurrent = nCurrent->nNext)
-    { // operacje maj¹ce na celu wykrywanie bie¿ni wspólnych i ³¹czenie przêse³ napr¹¿ania
-        if (nCurrent->hvTraction->WhereIs()) // oznakowanie przedostatnich przêse³
-        { // poszukiwanie bie¿ni wspólnej dla przedostatnich przêse³, równie¿ w celu po³¹czenia
+    { // operacje majÄ…ce na celu wykrywanie bieÅ¼ni wspÃ³lnych i Å‚Ä…czenie przÄ™seÅ‚ naprÄ…Å¼ania
+        if (nCurrent->hvTraction->WhereIs()) // oznakowanie przedostatnich przÄ™seÅ‚
+        { // poszukiwanie bieÅ¼ni wspÃ³lnej dla przedostatnich przÄ™seÅ‚, rÃ³wnieÅ¼ w celu poÅ‚Ä…czenia
             // zasilania
-            // to siê nie sprawdza, bo po³¹czyæ siê mog¹ dwa niezasilane odcinki jako najbli¿sze
+            // to siÄ™ nie sprawdza, bo poÅ‚Ä…czyÄ‡ siÄ™ mogÄ… dwa niezasilane odcinki jako najbliÅ¼sze
             // sobie
             // nCurrent->hvTraction->hvParallel=TractionNearestFind(nCurrent->pCenter,0,nCurrent);
-            // //szukanie najbli¿szego przês³a
-            // trzeba by zliczaæ koñce, a potem wpisaæ je do tablicy, aby sukcesywnie pod³¹czaæ do
+            // //szukanie najbliÅ¼szego przÄ™sÅ‚a
+            // trzeba by zliczaÄ‡ koÅ„ce, a potem wpisaÄ‡ je do tablicy, aby sukcesywnie podÅ‚Ä…czaÄ‡ do
             // zasilaczy
-            nCurrent->hvTraction->iTries = 5; // oznaczanie koñcowych
+            nCurrent->hvTraction->iTries = 5; // oznaczanie koÅ„cowych
             ++iConnection;
         }
         if (nCurrent->hvTraction->fResistance[0] == 0.0)
         {
             nCurrent->hvTraction
-                ->ResistanceCalc(); // obliczanie przêse³ w segmencie z bezpoœrednim zasilaniem
+                ->ResistanceCalc(); // obliczanie przÄ™seÅ‚ w segmencie z bezpoÅ›rednim zasilaniem
             // ErrorLog("Section "+nCurrent->hvTraction->asPowerSupplyName+" connected"); //jako
-            // niby b³¹d bêdzie bardziej widoczne
-            nCurrent->hvTraction->iTries = 0; // nie potrzeba mu szukaæ zasilania
+            // niby bÅ‚Ä…d bÄ™dzie bardziej widoczne
+            nCurrent->hvTraction->iTries = 0; // nie potrzeba mu szukaÄ‡ zasilania
         }
-        // if (!Traction->hvParallel) //jeszcze utworzyæ pêtle z bie¿ni wspólnych
+        // if (!Traction->hvParallel) //jeszcze utworzyÄ‡ pÄ™tle z bieÅ¼ni wspÃ³lnych
     }
-    int zg = 0; // zgodnoœæ kierunku przêse³, tymczasowo iterator do tabeli koñców
-    TGroundNode **nEnds = new TGroundNode *[iConnection]; // koñców jest ok. 10 razy mniej ni¿
-    // wszystkich przêse³ (Quark: 216)
+    int zg = 0; // zgodnoÅ›Ä‡ kierunku przÄ™seÅ‚, tymczasowo iterator do tabeli koÅ„cÃ³w
+    TGroundNode **nEnds = new TGroundNode *[iConnection]; // koÅ„cÃ³w jest ok. 10 razy mniej niÅ¼
+    // wszystkich przÄ™seÅ‚ (Quark: 216)
     for (nCurrent = nRootOfType[TP_TRACTION]; nCurrent; nCurrent = nCurrent->nNext)
-    { //³¹czenie bie¿ni wspólnych, w tym oznaczanie niepodanych jawnie
+    { //Å‚Ä…czenie bieÅ¼ni wspÃ³lnych, w tym oznaczanie niepodanych jawnie
         Traction = nCurrent->hvTraction;
-        if (!Traction->asParallel.IsEmpty()) // bêdzie wskaŸnik na inne przês³o
+        if (!Traction->asParallel.empty()) // bÄ™dzie wskaÅºnik na inne przÄ™sÅ‚o
             if ((Traction->asParallel == "none") ||
-                (Traction->asParallel == "*")) // jeœli nieokreœlone
+                (Traction->asParallel == "*")) // jeÅ›li nieokreÅ›lone
                 Traction->iLast =
-                    2; // jakby przedostatni - niech po prostu szuka (iLast ju¿ przeliczone)
-            else if (!Traction->hvParallel) // jeœli jeszcze nie zosta³ w³¹czony w kó³ko
+                    2; // jakby przedostatni - niech po prostu szuka (iLast juÅ¼ przeliczone)
+            else if (!Traction->hvParallel) // jeÅ›li jeszcze nie zostaÅ‚ wÅ‚Ä…czony w kÃ³Å‚ko
             {
                 nTemp = FindGroundNode(Traction->asParallel, TP_TRACTION);
                 if (nTemp)
-                { // o ile zostanie znalezione przês³o o takiej nazwie
+                { // o ile zostanie znalezione przÄ™sÅ‚o o takiej nazwie
                     if (!nTemp->hvTraction
-                             ->hvParallel) // jeœli tamten jeszcze nie ma wskaŸnika bie¿ni wspólnej
+                             ->hvParallel) // jeÅ›li tamten jeszcze nie ma wskaÅºnika bieÅ¼ni wspÃ³lnej
                         Traction->hvParallel =
-                            nTemp->hvTraction; // wpisaæ siebie i dalej daæ mu wskaŸnik zwrotny
-                    else // a jak ma, to albo do³¹czyæ siê do kó³eczka
+                            nTemp->hvTraction; // wpisaÄ‡ siebie i dalej daÄ‡ mu wskaÅºnik zwrotny
+                    else // a jak ma, to albo doÅ‚Ä…czyÄ‡ siÄ™ do kÃ³Å‚eczka
                         Traction->hvParallel =
-                            nTemp->hvTraction->hvParallel; // przj¹æ dotychczasowy wskaŸnik od niego
+                            nTemp->hvTraction->hvParallel; // przjÄ…Ä‡ dotychczasowy wskaÅºnik od niego
                     nTemp->hvTraction->hvParallel =
-                        Traction; // i na koniec ustawienie wskaŸnika zwrotnego
+                        Traction; // i na koniec ustawienie wskaÅºnika zwrotnego
                 }
                 if (!Traction->hvParallel)
                     ErrorLog("Missed overhead: " + Traction->asParallel); // logowanie braku
             }
-        if (Traction->iTries > 0) // jeœli zaznaczony do pod³¹czenia
+        if (Traction->iTries > 0) // jeÅ›li zaznaczony do podÅ‚Ä…czenia
             // if (!nCurrent->hvTraction->psPower[0]||!nCurrent->hvTraction->psPower[1])
             if (zg < iConnection) // zabezpieczenie
-                nEnds[zg++] = nCurrent; // wype³nianie tabeli koñców w celu szukania im po³¹czeñ
+                nEnds[zg++] = nCurrent; // wypeÅ‚nianie tabeli koÅ„cÃ³w w celu szukania im poÅ‚Ä…czeÅ„
     }
     while (zg < iConnection)
-        nEnds[zg++] = NULL; // zape³nienie do koñca tablicy, jeœli by jakieœ koñce wypad³y
-    zg = 1; // nieefektywny przebieg koñczy ³¹czenie
+        nEnds[zg++] = NULL; // zapeÅ‚nienie do koÅ„ca tablicy, jeÅ›li by jakieÅ› koÅ„ce wypadÅ‚y
+    zg = 1; // nieefektywny przebieg koÅ„czy Å‚Ä…czenie
     while (zg)
-    { // ustalenie zastêpczej rezystancji dla ka¿dego przês³a
-        zg = 0; // flaga pod³¹czonych przêse³ koñcowych: -1=puste wskaŸniki, 0=coœ zosta³o,
-        // 1=wykonano ³¹czenie
+    { // ustalenie zastÄ™pczej rezystancji dla kaÅ¼dego przÄ™sÅ‚a
+        zg = 0; // flaga podÅ‚Ä…czonych przÄ™seÅ‚ koÅ„cowych: -1=puste wskaÅºniki, 0=coÅ› zostaÅ‚o,
+        // 1=wykonano Å‚Ä…czenie
         for (int i = 0; i < iConnection; ++i)
-            if (nEnds[i]) // za³atwione bêdziemy zerowaæ
-            { // ka¿dy przebieg to próba pod³¹czenia koñca segmentu naprê¿ania do innego zasilanego
-                // przês³a
+            if (nEnds[i]) // zaÅ‚atwione bÄ™dziemy zerowaÄ‡
+            { // kaÅ¼dy przebieg to prÃ³ba podÅ‚Ä…czenia koÅ„ca segmentu naprÄ™Å¼ania do innego zasilanego
+                // przÄ™sÅ‚a
                 if (nEnds[i]->hvTraction->hvNext[0])
-                { // jeœli koñcowy ma ci¹g dalszy od strony 0 (Point1), szukamy odcinka najbli¿szego
+                { // jeÅ›li koÅ„cowy ma ciÄ…g dalszy od strony 0 (Point1), szukamy odcinka najbliÅ¼szego
                     // do Point2
                     if (TractionNearestFind(nEnds[i]->hvTraction->pPoint2, 0,
-                                            nEnds[i])) // poszukiwanie przês³a
+                                            nEnds[i])) // poszukiwanie przÄ™sÅ‚a
                     {
                         nEnds[i] = NULL;
-                        zg = 1; // jak coœ zosta³o pod³¹czone, to mo¿e zasilanie gdzieœ dodatkowo
+                        zg = 1; // jak coÅ› zostaÅ‚o podÅ‚Ä…czone, to moÅ¼e zasilanie gdzieÅ› dodatkowo
                         // dotrze
                     }
                 }
                 else if (nEnds[i]->hvTraction->hvNext[1])
-                { // jeœli koñcowy ma ci¹g dalszy od strony 1 (Point2), szukamy odcinka najbli¿szego
+                { // jeÅ›li koÅ„cowy ma ciÄ…g dalszy od strony 1 (Point2), szukamy odcinka najbliÅ¼szego
                     // do Point1
                     if (TractionNearestFind(nEnds[i]->hvTraction->pPoint1, 1,
-                                            nEnds[i])) // poszukiwanie przês³a
+                                            nEnds[i])) // poszukiwanie przÄ™sÅ‚a
                     {
                         nEnds[i] = NULL;
-                        zg = 1; // jak coœ zosta³o pod³¹czone, to mo¿e zasilanie gdzieœ dodatkowo
+                        zg = 1; // jak coÅ› zostaÅ‚o podÅ‚Ä…czone, to moÅ¼e zasilanie gdzieÅ› dodatkowo
                         // dotrze
                     }
                 }
                 else
-                { // gdy koniec jest samotny, to na razie nie zostanie pod³¹czony (nie powinno
-                    // takich byæ)
+                { // gdy koniec jest samotny, to na razie nie zostanie podÅ‚Ä…czony (nie powinno
+                    // takich byÄ‡)
                     nEnds[i] = NULL;
                 }
             }
     }
-    delete[] nEnds; // nie potrzebne ju¿
+    delete[] nEnds; // nie potrzebne juÅ¼
 };
 
 void TGround::TrackJoin(TGroundNode *Current)
-{ // wyszukiwanie s¹siednich torów do pod³¹czenia (wydzielone na u¿ytek obrotnicy)
+{ // wyszukiwanie sÄ…siednich torÃ³w do podÅ‚Ä…czenia (wydzielone na uÅ¼ytek obrotnicy)
     TTrack *Track = Current->pTrack;
     TTrack *tmp;
     int iConnection;
     if (!Track->CurrentPrev())
     {
         tmp = FindTrack(Track->CurrentSegment()->FastGetPoint_0(), iConnection,
-                        Current); // Current do pominiêcia
+                        Current); // Current do pominiÄ™cia
         switch (iConnection)
         {
         case 0:
@@ -3594,25 +2836,25 @@ bool TGround::InitLaunchers()
 {
     TGroundNode *Current, *tmp;
     TEventLauncher *EventLauncher;
-    int i;
+
     for (Current = nRootOfType[TP_EVLAUNCH]; Current; Current = Current->nNext)
     {
         EventLauncher = Current->EvLaunch;
         if (EventLauncher->iCheckMask != 0)
-            if (EventLauncher->asMemCellName != AnsiString("none"))
-            { // jeœli jest powi¹zana komórka pamiêci
+            if (EventLauncher->asMemCellName != "none")
+            { // jeÅ›li jest powiÄ…zana komÃ³rka pamiÄ™ci
                 tmp = FindGroundNode(EventLauncher->asMemCellName, TP_MEMCELL);
                 if (tmp)
-                    EventLauncher->MemCell = tmp->MemCell; // jeœli znaleziona, dopisaæ
+                    EventLauncher->MemCell = tmp->MemCell; // jeÅ›li znaleziona, dopisaÄ‡
                 else
                     MessageBox(0, "Cannot find Memory Cell for Event Launcher", "Error", MB_OK);
             }
             else
                 EventLauncher->MemCell = NULL;
-        EventLauncher->Event1 = (EventLauncher->asEvent1Name != AnsiString("none")) ?
+        EventLauncher->Event1 = (EventLauncher->asEvent1Name != "none") ?
                                     FindEvent(EventLauncher->asEvent1Name) :
                                     NULL;
-        EventLauncher->Event2 = (EventLauncher->asEvent2Name != AnsiString("none")) ?
+        EventLauncher->Event2 = (EventLauncher->asEvent2Name != "none") ?
                                     FindEvent(EventLauncher->asEvent2Name) :
                                     NULL;
     }
@@ -3620,22 +2862,20 @@ bool TGround::InitLaunchers()
 }
 
 TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclude)
-{ // wyszukiwanie innego toru koñcz¹cego siê w (Point)
-    TTrack *Track;
-    TGroundNode *Current;
+{ // wyszukiwanie innego toru koÅ„czÄ…cego siÄ™ w (Point)
     TTrack *tmp;
     iConnection = -1;
     TSubRect *sr;
     // najpierw szukamy w okolicznych segmentach
     int c = GetColFromX(Point.x);
     int r = GetRowFromZ(Point.z);
-    if ((sr = FastGetSubRect(c, r)) != NULL) // 75% torów jest w tym samym sektorze
+    if ((sr = FastGetSubRect(c, r)) != NULL) // 75% torÃ³w jest w tym samym sektorze
         if ((tmp = sr->FindTrack(&Point, iConnection, Exclude->pTrack)) != NULL)
             return tmp;
     int i, x, y;
     for (i = 1; i < 9;
-         ++i) // sektory w kolejnoœci odleg³oœci, 4 jest tu wystarczaj¹ce, 9 na wszelki wypadek
-    { // niemal wszystkie pod³¹czone tory znajduj¹ siê w s¹siednich 8 sektorach
+         ++i) // sektory w kolejnoÅ›ci odlegÅ‚oÅ›ci, 4 jest tu wystarczajÄ…ce, 9 na wszelki wypadek
+    { // niemal wszystkie podÅ‚Ä…czone tory znajdujÄ… siÄ™ w sÄ…siednich 8 sektorach
         x = SectorOrder[i].x;
         y = SectorOrder[i].y;
         if ((sr = FastGetSubRect(c + y, r + x)) != NULL)
@@ -3653,37 +2893,24 @@ TTrack * TGround::FindTrack(vector3 Point, int &iConnection, TGroundNode *Exclud
             if ((tmp = sr->FindTrack(&Point, iConnection, Exclude->pTrack)) != NULL)
                 return tmp;
     }
-#if 0
- //wyszukiwanie czo³gowe (po wszystkich jak leci) - nie ma chyba sensu
- for (Current=nRootOfType[TP_TRACK];Current;Current=Current->Next)
- {
-  if ((Current->iType==TP_TRACK) && (Current!=Exclude))
-  {
-   iConnection=Current->pTrack->TestPoint(&Point);
-   if (iConnection>=0) return Current->pTrack;
-  }
- }
-#endif
     return NULL;
 }
 
-TTraction * TGround::FindTraction(vector3 *Point, int &iConnection, TGroundNode *Exclude)
-{ // wyszukiwanie innego przês³a koñcz¹cego siê w (Point)
-    TTraction *Traction;
-    TGroundNode *Current;
+TTraction * TGround::FindTraction(glm::dvec3 const &Point, int &iConnection, TGroundNode *Exclude)
+{ // wyszukiwanie innego przÄ™sÅ‚a koÅ„czÄ…cego siÄ™ w (Point)
     TTraction *tmp;
     iConnection = -1;
     TSubRect *sr;
     // najpierw szukamy w okolicznych segmentach
-    int c = GetColFromX(Point->x);
-    int r = GetRowFromZ(Point->z);
-    if ((sr = FastGetSubRect(c, r)) != NULL) // wiêkszoœæ bêdzie w tym samym sektorze
+    int c = GetColFromX(Point.x);
+    int r = GetRowFromZ(Point.z);
+    if ((sr = FastGetSubRect(c, r)) != NULL) // wiÄ™kszoÅ›Ä‡ bÄ™dzie w tym samym sektorze
         if ((tmp = sr->FindTraction(Point, iConnection, Exclude->hvTraction)) != NULL)
             return tmp;
     int i, x, y;
     for (i = 1; i < 9;
-         ++i) // sektory w kolejnoœci odleg³oœci, 4 jest tu wystarczaj¹ce, 9 na wszelki wypadek
-    { // wszystkie przês³a powinny zostaæ znajdowaæ siê w s¹siednich 8 sektorach
+         ++i) // sektory w kolejnoÅ›ci odlegÅ‚oÅ›ci, 4 jest tu wystarczajÄ…ce, 9 na wszelki wypadek
+    { // wszystkie przÄ™sÅ‚a powinny zostaÄ‡ znajdowaÄ‡ siÄ™ w sÄ…siednich 8 sektorach
         x = SectorOrder[i].x;
         y = SectorOrder[i].y;
         if ((sr = FastGetSubRect(c + y, r + x)) != NULL)
@@ -3705,128 +2932,133 @@ TTraction * TGround::FindTraction(vector3 *Point, int &iConnection, TGroundNode 
     return NULL;
 };
 
-TTraction * TGround::TractionNearestFind(vector3 &p, int dir, TGroundNode *n)
-{ // wyszukanie najbli¿szego do (p) przês³a o tej samej nazwie sekcji (ale innego ni¿ pod³¹czone)
+TTraction * TGround::TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n)
+{ // wyszukanie najbliÅ¼szego do (p) przÄ™sÅ‚a o tej samej nazwie sekcji (ale innego niÅ¼ podÅ‚Ä…czone)
     // oraz zasilanego z kierunku (dir)
     TGroundNode *nCurrent, *nBest = NULL;
     int i, j, k, zg;
-    double d, dist = 200.0 * 200.0; //[m] odleg³oœæ graniczna
+    double d, dist = 200.0 * 200.0; //[m] odlegÅ‚oÅ›Ä‡ graniczna
     // najpierw szukamy w okolicznych segmentach
     int c = GetColFromX(n->pCenter.x);
     int r = GetRowFromZ(n->pCenter.z);
     TSubRect *sr;
-    for (i = -1; i <= 1; ++i) // przegl¹damy 9 najbli¿szych sektorów
+    for (i = -1; i <= 1; ++i) // przeglÄ…damy 9 najbliÅ¼szych sektorÃ³w
         for (j = -1; j <= 1; ++j) //
-            if ((sr = FastGetSubRect(c + i, r + j)) != NULL) // o ile w ogóle sektor jest
+            if ((sr = FastGetSubRect(c + i, r + j)) != NULL) // o ile w ogÃ³le sektor jest
                 for (nCurrent = sr->nRenderWires; nCurrent; nCurrent = nCurrent->nNext3)
                     if (nCurrent->iType == TP_TRACTION)
                         if (nCurrent->hvTraction->psSection ==
-                            n->hvTraction->psSection) // jeœli ta sama sekcja
+                            n->hvTraction->psSection) // jeÅ›li ta sama sekcja
                             if (nCurrent != n) // ale nie jest tym samym
                                 if (nCurrent->hvTraction !=
                                     n->hvTraction
-                                        ->hvNext[0]) // ale nie jest bezpoœrednio pod³¹czonym
+                                        ->hvNext[0]) // ale nie jest bezpoÅ›rednio podÅ‚Ä…czonym
                                     if (nCurrent->hvTraction != n->hvTraction->hvNext[1])
                                         if (nCurrent->hvTraction->psPower
-                                                [k = (DotProduct(
+                                                [k = (glm::dot(
                                                           n->hvTraction->vParametric,
                                                           nCurrent->hvTraction->vParametric) >= 0 ?
                                                           dir ^ 1 :
                                                           dir)]) // ma zasilanie z odpowiedniej
                                             // strony
                                             if (nCurrent->hvTraction->fResistance[k] >=
-                                                0.0) //¿eby siê nie propagowa³y jakieœ ujemne
-                                            { // znaleziony kandydat do po³¹czenia
-                                                d = SquareMagnitude(
-                                                    p -
-                                                    nCurrent
-                                                        ->pCenter); // kwadrat odleg³oœci œrodków
+                                                0.0) //Å¼eby siÄ™ nie propagowaÅ‚y jakieÅ› ujemne
+                                            { // znaleziony kandydat do poÅ‚Ä…czenia
+                                                d = glm::length2( p - glm::dvec3{ nCurrent->pCenter } ); // kwadrat odlegÅ‚oÅ›ci Å›rodkÃ³w
                                                 if (dist > d)
-                                                { // zapamiêtanie nowego najbli¿szego
-                                                    dist = d; // nowy rekord odleg³oœci
+                                                { // zapamiÄ™tanie nowego najbliÅ¼szego
+                                                    dist = d; // nowy rekord odlegÅ‚oÅ›ci
                                                     nBest = nCurrent;
-                                                    zg = k; // z którego koñca braæ wskaŸnik
+                                                    zg = k; // z ktÃ³rego koÅ„ca braÄ‡ wskaÅºnik
                                                     // zasilacza
                                                 }
                                             }
-    if (nBest) // jak znalezione przês³o z zasilaniem, to pod³¹czenie "równoleg³e"
+    if (nBest) // jak znalezione przÄ™sÅ‚o z zasilaniem, to podÅ‚Ä…czenie "rÃ³wnolegÅ‚e"
     {
         n->hvTraction->ResistanceCalc(dir, nBest->hvTraction->fResistance[zg],
                                       nBest->hvTraction->psPower[zg]);
-        // testowo skrzywienie przês³a tak, aby pokazaæ sk¹d ma zasilanie
-        // if (dir) //1 gdy ci¹g dalszy jest od strony Point2
+        // testowo skrzywienie przÄ™sÅ‚a tak, aby pokazaÄ‡ skÄ…d ma zasilanie
+        // if (dir) //1 gdy ciÄ…g dalszy jest od strony Point2
         // n->hvTraction->pPoint3=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
         // else
         // n->hvTraction->pPoint4=0.25*(nBest->pCenter+3*(zg?nBest->hvTraction->pPoint4:nBest->hvTraction->pPoint3));
     }
-    return (nBest ? nBest->hvTraction : NULL);
+    return (nBest ? nBest->hvTraction : nullptr);
 };
 
 bool TGround::AddToQuery(TEvent *Event, TDynamicObject *Node)
 {
-    if (Event->bEnabled) // jeœli mo¿e byæ dodany do kolejki (nie u¿ywany w skanowaniu)
-        if (!Event->iQueued) // jeœli nie dodany jeszcze do kolejki
-        { // kolejka eventów jest posortowana wzglêdem (fStartTime)
+    if( Event->bEnabled ) {
+        // jeÅ›li moÅ¼e byÄ‡ dodany do kolejki (nie uÅ¼ywany w skanowaniu)
+        if( !Event->iQueued ) // jeÅ›li nie dodany jeszcze do kolejki
+        { // kolejka eventÃ³w jest posortowana wzglÄ™dem (fStartTime)
             Event->Activator = Node;
-            if (Event->Type == tp_AddValues ? (Event->fDelay == 0.0) : false)
-            { // eventy AddValues trzeba wykonywaæ natychmiastowo, inaczej kolejka mo¿e zgubiæ
-                // jakieœ dodawanie
-                // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by by³o wydzieliæ funkcjê
-                // wykonuj¹c¹ eventy i j¹ wywo³aæ
-                if (EventConditon(Event))
-                { // teraz mog¹ byæ warunki do tych eventów
-                    Event->Params[5].asMemCell->UpdateValues(
-                        Event->Params[0].asText, Event->Params[1].asdouble,
-                        Event->Params[2].asdouble, Event->iFlags);
-                    if (Event->Params[6].asTrack)
-                    { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
+            if( ( Event->Type == tp_AddValues )
+             && ( Event->fDelay == 0.0 ) ) {
+                // eventy AddValues trzeba wykonywaÄ‡ natychmiastowo, inaczej kolejka moÅ¼e zgubiÄ‡ jakieÅ› dodawanie
+                // Ra: kopiowanie wykonania tu jest bez sensu, lepiej by byÅ‚o wydzieliÄ‡ funkcjÄ™
+                // wykonujÄ…cÄ… eventy i jÄ… wywoÅ‚aÄ‡
+                if( EventConditon( Event ) ) { // teraz mogÄ… byÄ‡ warunki do tych eventÃ³w
+                    Event->Params[ 5 ].asMemCell->UpdateValues(
+                        Event->Params[ 0 ].asText, Event->Params[ 1 ].asdouble,
+                        Event->Params[ 2 ].asdouble, Event->iFlags );
+                    if( Event->Params[ 6 ].asTrack ) { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
-                        for (int i = 0; i < Event->Params[6].asTrack->iNumDynamics; ++i)
-                            Event->Params[5].asMemCell->PutCommand(
-                                Event->Params[6].asTrack->Dynamics[i]->Mechanik,
-                                &Event->Params[4].nGroundNode->pCenter);
+                        for( auto dynamic : Event->Params[ 6 ].asTrack->Dynamics ) {
+                            Event->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                &Event->Params[ 4 ].nGroundNode->pCenter );
+                        }
                         //if (DebugModeFlag)
-                            WriteLog("EVENT EXECUTED: AddValues & Track command - " +
-                                     AnsiString(Event->Params[0].asText) + " " +
-                                     AnsiString(Event->Params[1].asdouble) + " " +
-                                     AnsiString(Event->Params[2].asdouble));
+                        WriteLog(
+                            "EVENT EXECUTED" + ( Node ? ( " by " + Node->asName ) : "" ) + ": AddValues & Track command ( "
+                            + std::string( Event->Params[ 0 ].asText ) + " "
+                            + std::to_string( Event->Params[ 1 ].asdouble ) + " "
+                            + std::to_string( Event->Params[ 2 ].asdouble ) + " )" );
                     }
                     //else if (DebugModeFlag)
-                        WriteLog("EVENT EXECUTED: AddValues - " +
-                                 AnsiString(Event->Params[0].asText) + " " +
-                                 AnsiString(Event->Params[1].asdouble) + " " +
-                                 AnsiString(Event->Params[2].asdouble));
+                    WriteLog(
+                        "EVENT EXECUTED" + ( Node ? ( " by " + Node->asName ) : "" ) + ": AddValues ( "
+                        + std::string( Event->Params[ 0 ].asText ) + " "
+                        + std::to_string( Event->Params[ 1 ].asdouble ) + " "
+                        + std::to_string( Event->Params[ 2 ].asdouble ) + " )" );
                 }
-                Event =
-                    Event
-                        ->evJoined; // jeœli jest kolejny o takiej samej nazwie, to idzie do kolejki
+                // jeÅ›li jest kolejny o takiej samej nazwie, to idzie do kolejki (and if there's no joint event it'll be set to null and processing will end here)
+                do {
+                    Event = Event->evJoined;
+                    // NOTE: we could've received a new event from joint event above, so we need to check conditions just in case and discard the bad events
+                    // TODO: refactor this arrangement, it's hardly optimal
+                } while( ( Event != nullptr )
+                    && ( ( false == Event->bEnabled )
+                      || ( Event->iQueued > 0 ) ) );
             }
-            if (Event)
-            { // standardowe dodanie do kolejki
-                WriteLog("EVENT ADDED TO QUEUE: " + Event->asName +
-                         (Node ? AnsiString(" by " + Node->asName) : AnsiString("")));
-                Event->fStartTime =
-                    fabs(Event->fDelay) + Timer::GetTime(); // czas od uruchomienia scenerii
-                if (Event->fRandomDelay > 0.0)
-                    Event->fStartTime += Event->fRandomDelay * random(10000) *
-                                         0.0001; // doliczenie losowego czasu opóŸnienia
-                ++Event->iQueued; // zabezpieczenie przed podwójnym dodaniem do kolejki
-                if (QueryRootEvent ? Event->fStartTime >= QueryRootEvent->fStartTime : false)
-                    QueryRootEvent->AddToQuery(Event); // dodanie gdzieœ w œrodku
-                else
-                { // dodanie z przodu: albo nic nie ma, albo ma byæ wykonany szybciej ni¿ pierwszy
-                    Event->evNext = QueryRootEvent;
+            if( Event != nullptr ) {
+                // standardowe dodanie do kolejki
+                ++Event->iQueued; // zabezpieczenie przed podwÃ³jnym dodaniem do kolejki
+                WriteLog( "EVENT ADDED TO QUEUE" + ( Node ? ( " by " + Node->asName ) : "" ) + ": " + Event->asName );
+                Event->fStartTime = std::abs( Event->fDelay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+                if( Event->fRandomDelay > 0.0 ) {
+                    // doliczenie losowego czasu opÃ³Åºnienia
+                    Event->fStartTime += Event->fRandomDelay * Random( 10000 ) * 0.0001;
+                }
+                if( QueryRootEvent != nullptr ) {
+                    TEvent::AddToQuery( Event, QueryRootEvent );
+                }
+                else {
                     QueryRootEvent = Event;
+                    QueryRootEvent->evNext = nullptr;
                 }
             }
         }
+    }
     return true;
 }
 
 bool TGround::EventConditon(TEvent *e)
-{ // sprawdzenie spelnienia warunków dla eventu
+{ // sprawdzenie spelnienia warunkÃ³w dla eventu
     if (e->iFlags <= update_only)
         return true; // bezwarunkowo
+
     if (e->iFlags & conditional_trackoccupied)
         return (!e->Params[9].asTrack->IsEmpty());
     else if (e->iFlags & conditional_trackfree)
@@ -3834,159 +3066,125 @@ bool TGround::EventConditon(TEvent *e)
     else if (e->iFlags & conditional_propability)
     {
         double rprobability = 1.0 * rand() / RAND_MAX;
-        WriteLog("Random integer: " + CurrToStr(rprobability) + "/" +
-                 CurrToStr(e->Params[10].asdouble));
+        WriteLog("Random integer: " + std::to_string(rprobability) + "/" +
+                 std::to_string(e->Params[10].asdouble));
         return (e->Params[10].asdouble > rprobability);
     }
     else if (e->iFlags & conditional_memcompare)
-    { // porównanie wartoœci
-        if (tmpEvent->Params[9].asMemCell->Compare(e->Params[10].asText, e->Params[11].asdouble,
-                                                   e->Params[12].asdouble, e->iFlags))
-			{ //logowanie spe³nionych warunków
-			LogComment = e->Params[9].asMemCell->Text() + AnsiString(" ") +
-                         FloatToStrF(e->Params[9].asMemCell->Value1(), ffFixed, 8, 2) + " " +
-                         FloatToStrF(tmpEvent->Params[9].asMemCell->Value2(), ffFixed, 8, 2) +
+    { // porÃ³wnanie wartoÅ›ci
+        if( nullptr == e->Params[9].asMemCell ) {
+
+            ErrorLog( "Event " + e->asName + " trying conditional_memcompare with nonexistent memcell" );
+            return true; // though this is technically error, we report success to maintain backward compatibility
+        }
+        if (tmpEvent->Params[9].asMemCell->Compare( ( e->Params[ 10 ].asText != nullptr ? e->Params[10].asText : "" ), e->Params[11].asdouble, e->Params[12].asdouble, e->iFlags) ) {
+            //logowanie speÅ‚nionych warunkÃ³w
+			LogComment = e->Params[9].asMemCell->Text() + " " +
+                         to_string(e->Params[9].asMemCell->Value1(), 2, 8) + " " +
+                         to_string(tmpEvent->Params[9].asMemCell->Value2(), 2, 8) +
                          " = ";
             if (TestFlag(e->iFlags, conditional_memstring))
-                LogComment += AnsiString(tmpEvent->Params[10].asText);
+                LogComment += std::string(tmpEvent->Params[10].asText);
             else
                 LogComment += "*";
             if (TestFlag(tmpEvent->iFlags, conditional_memval1))
-                LogComment += " " + FloatToStrF(tmpEvent->Params[11].asdouble, ffFixed, 8, 2);
+                LogComment += " " + to_string(tmpEvent->Params[11].asdouble, 2, 8);
             else
                 LogComment += " *";
             if (TestFlag(tmpEvent->iFlags, conditional_memval2))
-                LogComment += " " + FloatToStrF(tmpEvent->Params[12].asdouble, ffFixed, 8, 2);
+                LogComment += " " + to_string(tmpEvent->Params[12].asdouble, 2, 8);
             else
                 LogComment += " *";
-			WriteLog(LogComment.c_str());
+			WriteLog(LogComment);
             return true;
 			}
         //else if (Global::iWriteLogEnabled && DebugModeFlag) //zawsze bo to bardzo istotne w debugowaniu scenariuszy
 		else
-        { // nie zgadza siê, wiêc sprawdzmy, co
-            LogComment = e->Params[9].asMemCell->Text() + AnsiString(" ") +
-                         FloatToStrF(e->Params[9].asMemCell->Value1(), ffFixed, 8, 2) + " " +
-                         FloatToStrF(tmpEvent->Params[9].asMemCell->Value2(), ffFixed, 8, 2) +
+        { // nie zgadza siÄ™, wiÄ™c sprawdzmy, co
+            LogComment = e->Params[9].asMemCell->Text() + " " +
+                         to_string(e->Params[9].asMemCell->Value1(), 2, 8) + " " +
+                         to_string(tmpEvent->Params[9].asMemCell->Value2(), 2, 8) +
                          " != ";
             if (TestFlag(e->iFlags, conditional_memstring))
-                LogComment += AnsiString(tmpEvent->Params[10].asText);
+                LogComment += (tmpEvent->Params[10].asText);
             else
                 LogComment += "*";
             if (TestFlag(tmpEvent->iFlags, conditional_memval1))
-                LogComment += " " + FloatToStrF(tmpEvent->Params[11].asdouble, ffFixed, 8, 2);
+                LogComment += " " + to_string(tmpEvent->Params[11].asdouble, 2, 8);
             else
                 LogComment += " *";
             if (TestFlag(tmpEvent->iFlags, conditional_memval2))
-                LogComment += " " + FloatToStrF(tmpEvent->Params[12].asdouble, ffFixed, 8, 2);
+                LogComment += " " + to_string(tmpEvent->Params[12].asdouble, 2, 8);
             else
                 LogComment += " *";
-            WriteLog(LogComment.c_str());
+            WriteLog(LogComment);
         }
     }
     return false;
 };
 
 bool TGround::CheckQuery()
-{ // sprawdzenie kolejki eventów oraz wykonanie tych, którym czas min¹³
+{ // sprawdzenie kolejki eventÃ³w oraz wykonanie tych, ktÃ³rym czas minÄ…Å‚
     TLocation loc;
     int i;
-    /* //Ra: to w ogóle jakiœ chory kod jest; wygl¹da jak wyszukanie eventu z najlepszym czasem
-     Double evtime,evlowesttime; //Ra: co to za typ?
-     //evlowesttime=1000000;
-     if (QueryRootEvent)
-     {
-      OldQRE=QueryRootEvent;
-      tmpEvent=QueryRootEvent;
-     }
-     if (QueryRootEvent)
-     {
-      for (i=0;i<90;++i)
-      {
-       evtime=((tmpEvent->fStartTime)-(Timer::GetTime())); //pobranie wartoœci zmiennej
-       if (evtime<evlowesttime)
-       {
-        evlowesttime=evtime;
-        tmp2Event=tmpEvent;
-       }
-       if (tmpEvent->Next)
-        tmpEvent=tmpEvent->Next;
-       else
-        i=100;
-      }
-      if (OldQRE!=tmp2Event)
-      {
-       QueryRootEvent->AddToQuery(QueryRootEvent);
-       QueryRootEvent=tmp2Event;
-      }
-     }
-    */
-    /*
-     if (QueryRootEvent)
-     {//wypisanie kolejki
-      tmpEvent=QueryRootEvent;
-      WriteLog("--> Event queue:");
-      while (tmpEvent)
-      {
-       WriteLog(tmpEvent->asName+" "+AnsiString(tmpEvent->fStartTime));
-       tmpEvent=tmpEvent->Next;
-      }
-     }
-    */
-    while (QueryRootEvent ? QueryRootEvent->fStartTime < Timer::GetTime() : false)
-    { // eventy s¹ posortowana wg czasu wykonania
-        tmpEvent = QueryRootEvent; // wyjêcie eventu z kolejki
-        if (QueryRootEvent->evJoined) // jeœli jest kolejny o takiej samej nazwie
-        { // to teraz on bêdzie nastêpny do wykonania
-            QueryRootEvent = QueryRootEvent->evJoined; // nastêpny bêdzie ten doczepiony
-            QueryRootEvent->evNext = tmpEvent->evNext; // pamiêtaj¹c o nastêpnym z kolejki
-            QueryRootEvent->fStartTime =
-                tmpEvent->fStartTime; // czas musi byæ ten sam, bo nie jest aktualizowany
-            QueryRootEvent->Activator = tmpEvent->Activator; // pojazd aktywuj¹cy
-            // w sumie mo¿na by go dodaæ normalnie do kolejki, ale trzeba te po³¹czone posortowaæ wg
-            // czasu wykonania
+    while( ( QueryRootEvent != nullptr )
+        && ( QueryRootEvent->fStartTime < Timer::GetTime() ) )
+    { // eventy sÄ… posortowana wg czasu wykonania
+        tmpEvent = QueryRootEvent; // wyjÄ™cie eventu z kolejki
+        if (QueryRootEvent->evJoined) // jeÅ›li jest kolejny o takiej samej nazwie
+        { // to teraz on bÄ™dzie nastÄ™pny do wykonania
+            QueryRootEvent = QueryRootEvent->evJoined; // nastÄ™pny bÄ™dzie ten doczepiony
+            QueryRootEvent->evNext = tmpEvent->evNext; // pamiÄ™tajÄ…c o nastÄ™pnym z kolejki
+            QueryRootEvent->fStartTime = tmpEvent->fStartTime; // czas musi byÄ‡ ten sam, bo nie jest aktualizowany
+            QueryRootEvent->Activator = tmpEvent->Activator; // pojazd aktywujÄ…cy
+            QueryRootEvent->iQueued = 1;
+            // w sumie moÅ¼na by go dodaÄ‡ normalnie do kolejki, ale trzeba te poÅ‚Ä…czone posortowaÄ‡ wg czasu wykonania
         }
         else // a jak nazwa jest unikalna, to kolejka idzie dalej
             QueryRootEvent = QueryRootEvent->evNext; // NULL w skrajnym przypadku
         if (tmpEvent->bEnabled)
-        { // w zasadzie te wy³¹czone s¹ skanowane i nie powinny siê nigdy w kolejce znaleŸæ
-            WriteLog("EVENT LAUNCHED: " + tmpEvent->asName +
-                     (tmpEvent->Activator ? AnsiString(" by " + tmpEvent->Activator->asName) :
-                                            AnsiString("")));
+        { // w zasadzie te wyÅ‚Ä…czone sÄ… skanowane i nie powinny siÄ™ nigdy w kolejce znaleÅºÄ‡
+            --tmpEvent->iQueued; // teraz moze byÄ‡ ponownie dodany do kolejki
+            WriteLog( "EVENT LAUNCHED" + ( tmpEvent->Activator ? ( " by " + tmpEvent->Activator->asName ) : "" ) + ": " + tmpEvent->asName );
             switch (tmpEvent->Type)
             {
-            case tp_CopyValues: // skopiowanie wartoœci z innej komórki
+            case tp_CopyValues: // skopiowanie wartoÅ›ci z innej komÃ³rki
                 tmpEvent->Params[5].asMemCell->UpdateValues(
-                    tmpEvent->Params[9].asMemCell->Text(), tmpEvent->Params[9].asMemCell->Value1(),
+                    tmpEvent->Params[9].asMemCell->Text(),
+                    tmpEvent->Params[9].asMemCell->Value1(),
                     tmpEvent->Params[9].asMemCell->Value2(),
-                    tmpEvent->iFlags // flagi okreœlaj¹, co ma byæ skopiowane
+                    tmpEvent->iFlags // flagi okreÅ›lajÄ…, co ma byÄ‡ skopiowane
                     );
-            // break; //¿eby siê wys³a³o do torów i nie by³o potrzeby na AddValues * 0 0
-            case tp_AddValues: // ró¿ni siê jedn¹ flag¹ od UpdateValues
+            // break; //Å¼eby siÄ™ wysÅ‚aÅ‚o do torÃ³w i nie byÅ‚o potrzeby na AddValues * 0 0
+            case tp_AddValues: // rÃ³Å¼ni siÄ™ jednÄ… flagÄ… od UpdateValues
             case tp_UpdateValues:
                 if (EventConditon(tmpEvent))
-                { // teraz mog¹ byæ warunki do tych eventów
-                    if (tmpEvent->Type != tp_CopyValues) // dla CopyValues zrobi³o siê wczeœniej
+                { // teraz mogÄ… byÄ‡ warunki do tych eventÃ³w
+                    if (tmpEvent->Type != tp_CopyValues) // dla CopyValues zrobiÅ‚o siÄ™ wczeÅ›niej
                         tmpEvent->Params[5].asMemCell->UpdateValues(
-                            tmpEvent->Params[0].asText, tmpEvent->Params[1].asdouble,
-                            tmpEvent->Params[2].asdouble, tmpEvent->iFlags);
+                            tmpEvent->Params[0].asText,
+                            tmpEvent->Params[1].asdouble,
+                            tmpEvent->Params[2].asdouble,
+                            tmpEvent->iFlags);
                     if (tmpEvent->Params[6].asTrack)
                     { // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla
                         // wszystkich 'dynamic' na danym torze
-                        for (int i = 0; i < tmpEvent->Params[6].asTrack->iNumDynamics; ++i)
-                            tmpEvent->Params[5].asMemCell->PutCommand(
-                                tmpEvent->Params[6].asTrack->Dynamics[i]->Mechanik,
-                                &tmpEvent->Params[4].nGroundNode->pCenter);
+                        for( auto dynamic : tmpEvent->Params[ 6 ].asTrack->Dynamics ) {
+                            tmpEvent->Params[ 5 ].asMemCell->PutCommand(
+                                dynamic->Mechanik,
+                                &tmpEvent->Params[ 4 ].nGroundNode->pCenter );
+                        }
                         //if (DebugModeFlag)
-                            WriteLog("Type: UpdateValues & Track command - " +
-                                     AnsiString(tmpEvent->Params[0].asText) + " " +
-                                     AnsiString(tmpEvent->Params[1].asdouble) + " " +
-                                     AnsiString(tmpEvent->Params[2].asdouble));
+                        WriteLog("Type: UpdateValues & Track command - " +
+                            tmpEvent->Params[5].asMemCell->Text() + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value1() ) + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value2() ) );
                     }
-                    else //if (DebugModeFlag)
-                        WriteLog("Type: UpdateValues - " + AnsiString(tmpEvent->Params[0].asText) +
-                                 " " + AnsiString(tmpEvent->Params[1].asdouble) + " " +
-                                 AnsiString(tmpEvent->Params[2].asdouble));
+                    else //if (DebugModeFlag) 
+                        WriteLog("Type: UpdateValues - " +
+                            tmpEvent->Params[5].asMemCell->Text() + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value1() ) + " " +
+                            std::to_string( tmpEvent->Params[ 5 ].asMemCell->Value2() ) );
                 }
                 break;
             case tp_GetValues:
@@ -3996,7 +3194,7 @@ bool TGround::CheckQuery()
                     // loc.Y=  tmpEvent->Params[8].nGroundNode->pCenter.z;
                     // loc.Z=  tmpEvent->Params[8].nGroundNode->pCenter.y;
                     if (Global::iMultiplayer) // potwierdzenie wykonania dla serwera (odczyt
-                        // semafora ju¿ tak nie dzia³a)
+                        // semafora juÅ¼ tak nie dziaÅ‚a)
                         WyslijEvent(tmpEvent->asName, tmpEvent->Activator->GetName());
                     // tmpEvent->Params[9].asMemCell->PutCommand(tmpEvent->Activator->Mechanik,loc);
                     tmpEvent->Params[9].asMemCell->PutCommand(
@@ -4008,7 +3206,7 @@ bool TGround::CheckQuery()
                 if (tmpEvent->Activator)
                 {
                     loc.X =
-                        -tmpEvent->Params[3].asdouble; // zamiana, bo fizyka ma inaczej ni¿ sceneria
+                        -tmpEvent->Params[3].asdouble; // zamiana, bo fizyka ma inaczej niÅ¼ sceneria
                     loc.Y = tmpEvent->Params[5].asdouble;
                     loc.Z = tmpEvent->Params[4].asdouble;
                     if (tmpEvent->Activator->Mechanik) // przekazanie rozkazu do AI
@@ -4029,7 +3227,7 @@ bool TGround::CheckQuery()
                     for (i = 0; i < iMaxNumLights; i++)
                         if (tmpEvent->Params[i].asdouble >= 0) //-1 zostawia bez zmiany
                             tmpEvent->Params[9].asModel->LightSet(
-                                i, tmpEvent->Params[i].asdouble); // teraz te¿ u³amek
+                                i, tmpEvent->Params[i].asdouble); // teraz teÅ¼ uÅ‚amek
                 break;
             case tp_Visible:
                 if (tmpEvent->Params[9].nGroundNode)
@@ -4040,11 +3238,11 @@ bool TGround::CheckQuery()
                 break;
             case tp_Exit:
                 MessageBox(0, tmpEvent->asNodeName.c_str(), " THE END ", MB_OK);
-                Global::iTextMode = -1; // wy³¹czenie takie samo jak sekwencja F10 -> Y
+                Global::iTextMode = -1; // wyÅ‚Ä…czenie takie samo jak sekwencja F10 -> Y
                 return false;
             case tp_Sound:
                 switch (tmpEvent->Params[0].asInt)
-                { // trzy mo¿liwe przypadki:
+                { // trzy moÅ¼liwe przypadki:
                 case 0:
                     tmpEvent->Params[9].tsTextSound->Stop();
                     break;
@@ -4061,7 +3259,7 @@ bool TGround::CheckQuery()
             case tp_Disable:
                 Error("Not implemented yet :(");
                 break;
-            case tp_Animation: // Marcin: dorobic translacje - Ra: dorobi³em ;-)
+            case tp_Animation: // Marcin: dorobic translacje - Ra: dorobiÅ‚em ;-)
                 if (tmpEvent->Params[0].asInt == 1)
                     tmpEvent->Params[9].asAnimContainer->SetRotateAnim(
                         vector3(tmpEvent->Params[1].asdouble, tmpEvent->Params[2].asdouble,
@@ -4075,7 +3273,7 @@ bool TGround::CheckQuery()
                 else if (tmpEvent->Params[0].asInt == 4)
                     tmpEvent->Params[9].asModel->AnimationVND(
                         tmpEvent->Params[8].asPointer,
-                        tmpEvent->Params[1].asdouble, // tu mog¹ byæ dodatkowe parametry, np. od-do
+                        tmpEvent->Params[1].asdouble, // tu mogÄ… byÄ‡ dodatkowe parametry, np. od-do
                         tmpEvent->Params[2].asdouble, tmpEvent->Params[3].asdouble,
                         tmpEvent->Params[4].asdouble);
                 break;
@@ -4084,18 +3282,18 @@ bool TGround::CheckQuery()
                     tmpEvent->Params[9].asTrack->Switch(tmpEvent->Params[0].asInt,
                                                         tmpEvent->Params[1].asdouble,
                                                         tmpEvent->Params[2].asdouble);
-                if (Global::iMultiplayer) // dajemy znaæ do serwera o prze³o¿eniu
-                    WyslijEvent(tmpEvent->asName, ""); // wys³anie nazwy eventu prze³¹czajacego
-                // Ra: bardziej by siê przyda³a nazwa toru, ale nie ma do niej st¹d dostêpu
+                if (Global::iMultiplayer) // dajemy znaÄ‡ do serwera o przeÅ‚oÅ¼eniu
+                    WyslijEvent(tmpEvent->asName, ""); // wysÅ‚anie nazwy eventu przeÅ‚Ä…czajacego
+                // Ra: bardziej by siÄ™ przydaÅ‚a nazwa toru, ale nie ma do niej stÄ…d dostÄ™pu
                 break;
             case tp_TrackVel:
                 if (tmpEvent->Params[9].asTrack)
-                { // prêdkoœæ na zwrotnicy mo¿e byæ ograniczona z góry we wpisie, wiêkszej siê nie
+                { // prÄ™dkoÅ›Ä‡ na zwrotnicy moÅ¼e byÄ‡ ograniczona z gÃ³ry we wpisie, wiÄ™kszej siÄ™ nie
                     // ustawi eventem
                     WriteLog("type: TrackVel");
                     // WriteLog("Vel: ",tmpEvent->Params[0].asdouble);
                     tmpEvent->Params[9].asTrack->VelocitySet(tmpEvent->Params[0].asdouble);
-                    if (DebugModeFlag) // wyœwietlana jest ta faktycznie ustawiona
+                    if (DebugModeFlag) // wyÅ›wietlana jest ta faktycznie ustawiona
                         WriteLog("vel: ", tmpEvent->Params[9].asTrack->VelocityGet());
                 }
                 break;
@@ -4106,36 +3304,27 @@ bool TGround::CheckQuery()
             {
                 bCondition = EventConditon(tmpEvent);
                 if (bCondition || (tmpEvent->iFlags &
-                                   conditional_anyelse)) // warunek spelniony albo by³o u¿yte else
+                                   conditional_anyelse)) // warunek spelniony albo byÅ‚o uÅ¼yte else
                 {
                     WriteLog("Multiple passed");
-                    for (i = 0; i < 8; ++i)
-                    { // dodawane do kolejki w kolejnoœci zapisania
-                        if (tmpEvent->Params[i].asEvent)
-                            if (bCondition != bool(tmpEvent->iFlags & (conditional_else << i)))
-                            {
-                                if (tmpEvent->Params[i].asEvent != tmpEvent)
-                                    AddToQuery(tmpEvent->Params[i].asEvent,
-                                               tmpEvent->Activator); // normalnie dodaæ
-                                else // jeœli ma byæ rekurencja
-                                    if (tmpEvent->fDelay >=
-                                        5.0) // to musi mieæ sensowny okres powtarzania
-                                    if (tmpEvent->iQueued < 2)
-                                    { // trzeba zrobiæ wyj¹tek, aby event móg³ siê sam dodaæ do
-                                        // kolejki, raz ju¿ jest, ale bêdzie usuniêty
-                                        // pêtla eventowa mo¿e byæ uruchomiona wiele razy, ale tylko
-                                        // pierwsze uruchomienie zadzia³a
-                                        tmpEvent->iQueued =
-                                            0; // tymczasowo, aby by³ ponownie dodany do kolejki
-                                        AddToQuery(tmpEvent, tmpEvent->Activator);
-                                        tmpEvent->iQueued =
-                                            2; // kolejny raz ju¿ absolutnie nie dodawaæ
+                    for (i = 0; i < 8; ++i) {
+                        // dodawane do kolejki w kolejnoÅ›ci zapisania
+                        if( tmpEvent->Params[ i ].asEvent ) {
+                            if( bCondition != ( ( ( tmpEvent->iFlags & ( conditional_else << i ) ) != 0 ) ) ) {
+                                if( tmpEvent->Params[ i ].asEvent != tmpEvent )
+                                    AddToQuery( tmpEvent->Params[ i ].asEvent, tmpEvent->Activator ); // normalnie dodaÄ‡
+                                else {
+                                    // jeÅ›li ma byÄ‡ rekurencja to musi mieÄ‡ sensowny okres powtarzania
+                                    if( tmpEvent->fDelay >= 5.0 ) {
+                                        AddToQuery( tmpEvent, tmpEvent->Activator );
                                     }
+                                }
                             }
+                        }
                     }
-                    if (Global::iMultiplayer) // dajemy znaæ do serwera o wykonaniu
+                    if (Global::iMultiplayer) // dajemy znaÄ‡ do serwera o wykonaniu
                         if ((tmpEvent->iFlags & conditional_anyelse) ==
-                            0) // jednoznaczne tylko, gdy nie by³o else
+                            0) // jednoznaczne tylko, gdy nie byÅ‚o else
                         {
                             if (tmpEvent->Activator)
                                 WyslijEvent(tmpEvent->asName, tmpEvent->Activator->GetName());
@@ -4145,121 +3334,96 @@ bool TGround::CheckQuery()
                 }
             }
             break;
-            case tp_WhoIs: // pobranie nazwy poci¹gu do komórki pamiêci
+            case tp_WhoIs: // pobranie nazwy pociÄ…gu do komÃ³rki pamiÄ™ci
                 if (tmpEvent->iFlags & update_load)
-                { // jeœli pytanie o ³adunek
-                    if (tmpEvent->iFlags & update_memadd) // jeœli typ pojazdu
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
-                            tmpEvent->Activator->MoverParameters->TypeName.c_str(), // typ pojazdu
+                { // jeÅ›li pytanie o Å‚adunek
+                    if (tmpEvent->iFlags & update_memadd) // jeÅ›li typ pojazdu
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                            tmpEvent->Activator->MoverParameters->TypeName, // typ pojazdu
                             0, // na razie nic
                             0, // na razie nic
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
-                    else // jeœli parametry ³adunku
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
-                            tmpEvent->Activator->MoverParameters->LoadType != "" ?
-                                tmpEvent->Activator->MoverParameters->LoadType.c_str() :
-                                "none", // nazwa ³adunku
-                            tmpEvent->Activator->MoverParameters->Load, // aktualna iloœæ
-                            tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna iloœæ
+                    else // jeÅ›li parametry Å‚adunku
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                            tmpEvent->Activator->MoverParameters->LoadType, // nazwa Å‚adunku
+                            tmpEvent->Activator->MoverParameters->Load, // aktualna iloÅ›Ä‡
+                            tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna iloÅ›Ä‡
                             tmpEvent->iFlags &
                                 (update_memstring | update_memval1 | update_memval2));
                 }
                 else if (tmpEvent->iFlags & update_memadd)
-                { // jeœli miejsce docelowe pojazdu
-                    tmpEvent->Params[9].asMemCell->UpdateValues(
-                        tmpEvent->Activator->asDestination.c_str(), // adres docelowy
-                        tmpEvent->Activator->DirectionGet(), // kierunek pojazdu wzglêdem czo³a
-                        // sk³adu (1=zgodny,-1=przeciwny)
-                        tmpEvent->Activator->MoverParameters
-                            ->Power, // moc pojazdu silnikowego: 0 dla wagonu
+                { // jeÅ›li miejsce docelowe pojazdu
+                    tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+                        tmpEvent->Activator->asDestination, // adres docelowy
+                        tmpEvent->Activator->DirectionGet(), // kierunek pojazdu wzglÄ™dem czoÅ‚a skÅ‚adu (1=zgodny,-1=przeciwny)
+                        tmpEvent->Activator->MoverParameters ->Power, // moc pojazdu silnikowego: 0 dla wagonu
                         tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
                 }
                 else if (tmpEvent->Activator->Mechanik)
                     if (tmpEvent->Activator->Mechanik->Primary())
-                    { // tylko jeœli ktoœ tam siedzi - nie powinno dotyczyæ pasa¿era!
-                        tmpEvent->Params[9].asMemCell->UpdateValues(
-                            tmpEvent->Activator->Mechanik->TrainName().c_str(),
+                    { // tylko jeÅ›li ktoÅ› tam siedzi - nie powinno dotyczyÄ‡ pasaÅ¼era!
+                        tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
+							tmpEvent->Activator->Mechanik->TrainName(),
                             tmpEvent->Activator->Mechanik->StationCount() -
                                 tmpEvent->Activator->Mechanik
-                                    ->StationIndex(), // ile przystanków do koñca
+                                    ->StationIndex(), // ile przystankÃ³w do koÅ„ca
                             tmpEvent->Activator->Mechanik->IsStop() ? 1 :
                                                                       0, // 1, gdy ma tu zatrzymanie
                             tmpEvent->iFlags);
                         WriteLog("Train detected: " + tmpEvent->Activator->Mechanik->TrainName());
                     }
                 break;
-            case tp_LogValues: // zapisanie zawartoœci komórki pamiêci do logu
-                if (tmpEvent->Params[9].asMemCell) // jeœli by³a podana nazwa komórki
+            case tp_LogValues: // zapisanie zawartoÅ›ci komÃ³rki pamiÄ™ci do logu
+                if (tmpEvent->Params[9].asMemCell) // jeÅ›li byÅ‚a podana nazwa komÃ³rki
                     WriteLog("Memcell \"" + tmpEvent->asNodeName + "\": " +
                              tmpEvent->Params[9].asMemCell->Text() + " " +
-                             tmpEvent->Params[9].asMemCell->Value1() + " " +
-                             tmpEvent->Params[9].asMemCell->Value2());
+                             std::to_string(tmpEvent->Params[9].asMemCell->Value1()) + " " +
+                             std::to_string(tmpEvent->Params[9].asMemCell->Value2()));
                 else // lista wszystkich
                     for (TGroundNode *Current = nRootOfType[TP_MEMCELL]; Current;
                          Current = Current->nNext)
                         WriteLog("Memcell \"" + Current->asName + "\": " +
-                                 Current->MemCell->Text() + " " + Current->MemCell->Value1() + " " +
-                                 Current->MemCell->Value2());
+                                 Current->MemCell->Text() + " " + std::to_string(Current->MemCell->Value1()) + " " +
+                                 std::to_string(Current->MemCell->Value2()));
                 break;
-            case tp_Voltage: // zmiana napiêcia w zasilaczu (TractionPowerSource)
+            case tp_Voltage: // zmiana napiÄ™cia w zasilaczu (TractionPowerSource)
                 if (tmpEvent->Params[9].psPower)
-                { // na razie takie chamskie ustawienie napiêcia zasilania
+                { // na razie takie chamskie ustawienie napiÄ™cia zasilania
                     WriteLog("type: Voltage");
                     tmpEvent->Params[9].psPower->VoltageSet(tmpEvent->Params[0].asdouble);
                 }
             case tp_Friction: // zmiana tarcia na scenerii
-            { // na razie takie chamskie ustawienie napiêcia zasilania
+            { // na razie takie chamskie ustawienie napiÄ™cia zasilania
                 WriteLog("type: Friction");
                 Global::fFriction = (tmpEvent->Params[0].asdouble);
             }
             break;
-            case tp_Message: // wyœwietlenie komunikatu
+            case tp_Message: // wyÅ›wietlenie komunikatu
                 break;
             } // switch (tmpEvent->Type)
         } // if (tmpEvent->bEnabled)
-        --tmpEvent->iQueued; // teraz moze byæ ponownie dodany do kolejki
-        /*
-          if (QueryRootEvent->eJoined) //jeœli jest kolejny o takiej samej nazwie
-          {//to teraz jego dajemy do wykonania
-           QueryRootEvent->eJoined->Next=QueryRootEvent->Next; //pamiêtaj¹c o nastêpnym z kolejki
-           QueryRootEvent->eJoined->fStartTime=QueryRootEvent->fStartTime; //czas musi byæ ten sam,
-          bo nie jest aktualizowany
-           //QueryRootEvent->fStartTime=0;
-           QueryRootEvent=QueryRootEvent->eJoined; //a wykonaæ ten doczepiony
-          }
-          else
-          {//a jak nazwa jest unikalna, to kolejka idzie dalej
-           //QueryRootEvent->fStartTime=0;
-           QueryRootEvent=QueryRootEvent->Next; //NULL w skrajnym przypadku
-          }
-        */
     } // while
     return true;
 }
 
-void TGround::OpenGLUpdate(HDC hDC)
-{
-    SwapBuffers(hDC); // swap buffers (double buffering)
-};
-
 void TGround::UpdatePhys(double dt, int iter)
-{ // aktualizacja fizyki sta³ym krokiem: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+{ // aktualizacja fizyki staÅ‚ym krokiem: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeÅ„
     for (TGroundNode *Current = nRootOfType[TP_TRACTIONPOWERSOURCE]; Current;
          Current = Current->nNext)
-        Current->psTractionPowerSource->Update(dt * iter); // zerowanie sumy pr¹dów
+        Current->psTractionPowerSource->Update(dt * iter); // zerowanie sumy prÄ…dÃ³w
 };
 
 bool TGround::Update(double dt, int iter)
-{ // aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeñ
+{ // aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeÅ„
     if (dt == 0.0)
-    { // jeœli za³¹czona jest pauza, to tylko obs³u¿yæ ruch w kabinie trzeba
+    { // jeÅ›li zaÅ‚Ä…czona jest pauza, to tylko obsÅ‚uÅ¼yÄ‡ ruch w kabinie trzeba
         return true;
     }
-    // Ra: w zasadzie to trzeba by utworzyæ oddzieln¹ listê taboru do liczenia fizyki
-    //    na któr¹ by siê zapisywa³y wszystkie pojazdy bêd¹ce w ruchu
-    //    pojazdy stoj¹ce nie potrzebuj¹ aktualizacji, chyba ¿e np. ktoœ im zmieni nastawê hamulca
-    //    oddzieln¹ listê mo¿na by zrobiæ na pojazdy z napêdem, najlepiej posortowan¹ wg typu napêdu
+    // Ra: w zasadzie to trzeba by utworzyÄ‡ oddzielnÄ… listÄ™ taboru do liczenia fizyki
+    //    na ktÃ³rÄ… by siÄ™ zapisywaÅ‚y wszystkie pojazdy bÄ™dÄ…ce w ruchu
+    //    pojazdy stojÄ…ce nie potrzebujÄ… aktualizacji, chyba Å¼e np. ktoÅ› im zmieni nastawÄ™ hamulca
+    //    oddzielnÄ… listÄ™ moÅ¼na by zrobiÄ‡ na pojazdy z napÄ™dem, najlepiej posortowanÄ… wg typu napÄ™du
     if (iter > 1) // ABu: ponizsze wykonujemy tylko jesli wiecej niz jedna iteracja
     { // pierwsza iteracja i wyznaczenie stalych:
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
@@ -4271,29 +3435,29 @@ bool TGround::Update(double dt, int iter)
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
             Current->DynamicObject->FastUpdate(dt);
         // pozostale iteracje
-        for (int i = 1; i < (iter - 1); ++i) // jeœli iter==5, to wykona siê 3 razy
+        for (int i = 1; i < (iter - 1); ++i) // jeÅ›li iter==5, to wykona siÄ™ 3 razy
         {
             for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
                 Current->DynamicObject->UpdateForce(dt, dt, false);
             for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
                 Current->DynamicObject->FastUpdate(dt);
         }
-        // ABu 200205: a to robimy tylko raz, bo nie potrzeba wiêcej
+        // ABu 200205: a to robimy tylko raz, bo nie potrzeba wiÄ™cej
         // Winger 180204 - pantografy
-        double dt1 = dt * iter; // ca³kowity czas
+        double dt1 = dt * iter; // caÅ‚kowity czas
         UpdatePhys(dt1, 1);
         TAnimModel::AnimUpdate(dt1); // wykonanie zakolejkowanych animacji
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
-        { // Ra: zmieniæ warunek na sprawdzanie pantografów w jednej zmiennej: czy pantografy i czy
+        { // Ra: zmieniÄ‡ warunek na sprawdzanie pantografÃ³w w jednej zmiennej: czy pantografy i czy
             // podniesione
             if (Current->DynamicObject->MoverParameters->EnginePowerSource.SourceType ==
                 CurrentCollector)
-                GetTraction(Current->DynamicObject); // poszukiwanie drutu dla pantografów
+                GetTraction(Current->DynamicObject); // poszukiwanie drutu dla pantografÃ³w
             Current->DynamicObject->UpdateForce(dt, dt1, true); //,true);
         }
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
-            Current->DynamicObject->Update(dt, dt1); // Ra 2015-01: tylko tu przelicza sieæ
-        // trakcyjn¹
+            Current->DynamicObject->Update(dt, dt1); // Ra 2015-01: tylko tu przelicza sieÄ‡
+        // trakcyjnÄ…
     }
     else
     { // jezeli jest tylko jedna iteracja
@@ -4309,258 +3473,279 @@ bool TGround::Update(double dt, int iter)
             Current->DynamicObject->UpdateForce(dt, dt, true); //,true);
         }
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
-            Current->DynamicObject->Update(dt, dt); // Ra 2015-01: tylko tu przelicza sieæ trakcyjn¹
+            Current->DynamicObject->Update(dt, dt); // Ra 2015-01: tylko tu przelicza sieÄ‡ trakcyjnÄ…
     }
     if (bDynamicRemove)
-    { // jeœli jest coœ do usuniêcia z listy, to trzeba na koñcu
+    { // jeÅ›li jest coÅ› do usuniÄ™cia z listy, to trzeba na koÅ„cu
         for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
             if (!Current->DynamicObject->bEnabled)
             {
-                DynamicRemove(Current->DynamicObject); // usuniêcie tego i pod³¹czonych
-                Current = nRootDynamic; // sprawdzanie listy od pocz¹tku
+                DynamicRemove(Current->DynamicObject); // usuniÄ™cie tego i podÅ‚Ä…czonych
+                Current = nRootDynamic; // sprawdzanie listy od poczÄ…tku
             }
         bDynamicRemove = false; // na razie koniec
     }
     return true;
 };
 
+// updates scene lights array
+void
+TGround::Update_Lights() {
+
+    m_lights.update();
+    // arrange the light array from closest to farthest from current position of the camera
+    auto const camera = Global::pCameraPosition;
+    std::sort(
+        m_lights.data.begin(),
+        m_lights.data.end(),
+        [&]( light_array::light_record const &Left, light_array::light_record const &Right ) {
+            // move lights which are off at the end...
+            if( Left.intensity == 0.0f ) { return false; }
+            if( Right.intensity == 0.0f ) { return true; }
+            // ...otherwise prefer closer and/or brigher light sources
+            return ((camera - Left.position).LengthSquared() * (1.0f - Left.intensity)) < ((camera - Right.position).LengthSquared() * (1.0f - Right.intensity));
+        } );
+}
+
 // Winger 170204 - szukanie trakcji nad pantografami
 bool TGround::GetTraction(TDynamicObject *model)
-{ // aktualizacja drutu zasilaj¹cego dla ka¿dego pantografu, ¿eby odczytaæ napiêcie
-    // jeœli pojazd siê nie porusza, to nie ma sensu przeliczaæ tego wiêcej ni¿ raz
-    double fRaParam; // parametr równania parametrycznego odcinka drutu
-    double fVertical; // odleg³oœæ w pionie; musi byæ w zasiêgu ruchu "pionowego" pantografu
-    double fHorizontal; // odleg³oœæ w bok; powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
-    vector3 vLeft, vUp, vFront, dwys;
-    vector3 pant0;
-    vector3 vParam; // wspó³czynniki równania parametrycznego drutu
-    vector3 vStyk; // punkt przebicia drutu przez p³aszczyznê ruchu pantografu
-    vector3 vGdzie; // wektor po³o¿enia drutu wzglêdem pojazdu
-    vFront = model->VectorFront(); // wektor normalny dla p³aszczyzny ruchu pantografu
-    vUp = model->VectorUp(); // wektor pionu pud³a (pochylony od pionu na przechy³ce)
-    vLeft = model->VectorLeft(); // wektor odleg³oœci w bok (odchylony od poziomu na przechy³ce)
-    dwys = model->GetPosition(); // wspó³rzêdne œrodka pojazdu
-    TAnimPant *p; // wskaŸnik do obiektu danych pantografu
+{ // aktualizacja drutu zasilajÄ…cego dla kaÅ¼dego pantografu, Å¼eby odczytaÄ‡ napiÄ™cie
+    // jeÅ›li pojazd siÄ™ nie porusza, to nie ma sensu przeliczaÄ‡ tego wiÄ™cej niÅ¼ raz
+    double fRaParam; // parametr rÃ³wnania parametrycznego odcinka drutu
+    double fVertical; // odlegÅ‚oÅ›Ä‡ w pionie; musi byÄ‡ w zasiÄ™gu ruchu "pionowego" pantografu
+    double fHorizontal; // odlegÅ‚oÅ›Ä‡ w bok; powinna byÄ‡ mniejsza niÅ¼ pÃ³Å‚ szerokoÅ›ci pantografu
+    glm::dvec3 vLeft, vUp, vFront, dwys;
+    glm::dvec3 pant0;
+    glm::dvec3 vParam; // wspÃ³Å‚czynniki rÃ³wnania parametrycznego drutu
+    glm::dvec3 vStyk; // punkt przebicia drutu przez pÅ‚aszczyznÄ™ ruchu pantografu
+    glm::dvec3 vGdzie; // wektor poÅ‚oÅ¼enia drutu wzglÄ™dem pojazdu
+    vFront = glm::make_vec3(model->VectorFront().getArray()); // wektor normalny dla pÅ‚aszczyzny ruchu pantografu
+    vUp = glm::make_vec3(model->VectorUp().getArray()); // wektor pionu pudÅ‚a (pochylony od pionu na przechyÅ‚ce)
+    vLeft = glm::make_vec3(model->VectorLeft().getArray()); // wektor odlegÅ‚oÅ›ci w bok (odchylony od poziomu na przechyÅ‚ce)
+    auto const position = model->GetPosition(); // wspÃ³Å‚rzÄ™dne Å›rodka pojazdu
+    dwys = glm::dvec3( position.x, position.y, position.z );
+    TAnimPant *p; // wskaÅºnik do obiektu danych pantografu
     for (int k = 0; k < model->iAnimType[ANIM_PANTS]; ++k)
-    { // pêtla po pantografach
+    { // pÄ™tla po pantografach
         p = model->pants[k].fParamPants;
         if (k ? model->MoverParameters->PantRearUp : model->MoverParameters->PantFrontUp)
-        { // jeœli pantograf podniesiony
+        { // jeÅ›li pantograf podniesiony
             pant0 = dwys + (vLeft * p->vPos.z) + (vUp * p->vPos.y) + (vFront * p->vPos.x);
             if (p->hvPowerWire)
-            { // je¿eli znamy drut z poprzedniego przebiegu
-                int n = 30; //¿eby siê nie zapêtli³
+            { // jeÅ¼eli znamy drut z poprzedniego przebiegu
+                int n = 30; //Å¼eby siÄ™ nie zapÄ™tliÅ‚
                 while (p->hvPowerWire)
-                { // powtarzane a¿ do znalezienia odpowiedniego odcinka na liœcie dwukierunkowej
-                    // obliczamy wyraz wolny równania p³aszczyzny (to miejsce nie jest odpowienie)
-                    vParam = p->hvPowerWire->vParametric; // wspó³czynniki równania parametrycznego
-                    fRaParam = -DotProduct(pant0, vFront);
-                    // podstawiamy równanie parametryczne drutu do równania p³aszczyzny pantografu
+                { // powtarzane aÅ¼ do znalezienia odpowiedniego odcinka na liÅ›cie dwukierunkowej
+                    // obliczamy wyraz wolny rÃ³wnania pÅ‚aszczyzny (to miejsce nie jest odpowienie)
+                    vParam = p->hvPowerWire->vParametric; // wspÃ³Å‚czynniki rÃ³wnania parametrycznego
+                    fRaParam = -glm::dot(pant0, vFront);
+                    // podstawiamy rÃ³wnanie parametryczne drutu do rÃ³wnania pÅ‚aszczyzny pantografu
                     // vFront.x*(t1x+t*vParam.x)+vFront.y*(t1y+t*vParam.y)+vFront.z*(t1z+t*vParam.z)+fRaDist=0;
-                    fRaParam = -(DotProduct(p->hvPowerWire->pPoint1, vFront) + fRaParam) /
-                               DotProduct(vParam, vFront);
+                    fRaParam = -(glm::dot(p->hvPowerWire->pPoint1, vFront) + fRaParam) /
+                               glm::dot(vParam, vFront);
                     if (fRaParam <
-                        -0.001) // histereza rzêdu 7cm na 70m typowego przês³a daje 1 promil
+                        -0.001) // histereza rzÄ™du 7cm na 70m typowego przÄ™sÅ‚a daje 1 promil
                         p->hvPowerWire = p->hvPowerWire->hvNext[0];
                     else if (fRaParam > 1.001)
                         p->hvPowerWire = p->hvPowerWire->hvNext[1];
                     else if (p->hvPowerWire->iLast & 3)
-                    { // dla ostatniego i przedostatniego przês³a wymuszamy szukanie innego
-                        p->hvPowerWire = NULL; // nie to, ¿e nie ma, ale trzeba sprawdziæ inne
-                        // p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
+                    { // dla ostatniego i przedostatniego przÄ™sÅ‚a wymuszamy szukanie innego
+                        p->hvPowerWire = NULL; // nie to, Å¼e nie ma, ale trzeba sprawdziÄ‡ inne
+                        // p->fHorizontal=fHorizontal; //zapamiÄ™tanie poÅ‚oÅ¼enia drutu
                         break;
                     }
                     else if (p->hvPowerWire->hvParallel)
-                    { // jeœli przês³o tworzy bie¿niê wspóln¹, to trzeba sprawdziæ pozosta³e
-                        p->hvPowerWire = NULL; // nie to, ¿e nie ma, ale trzeba sprawdziæ inne
-                        // p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
-                        break; // tymczasowo dla bie¿ni wspólnych poszukiwanie po ca³oœci
+                    { // jeÅ›li przÄ™sÅ‚o tworzy bieÅ¼niÄ™ wspÃ³lnÄ…, to trzeba sprawdziÄ‡ pozostaÅ‚e
+                        p->hvPowerWire = NULL; // nie to, Å¼e nie ma, ale trzeba sprawdziÄ‡ inne
+                        // p->fHorizontal=fHorizontal; //zapamiÄ™tanie poÅ‚oÅ¼enia drutu
+                        break; // tymczasowo dla bieÅ¼ni wspÃ³lnych poszukiwanie po caÅ‚oÅ›ci
                     }
                     else
-                    { // jeœli t jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿ wektorów vUp i vLeft
+                    { // jeÅ›li t jest w przedziale, wyznaczyÄ‡ odlegÅ‚oÅ›Ä‡ wzdÅ‚uÅ¼ wektorÃ³w vUp i vLeft
                         vStyk = p->hvPowerWire->pPoint1 + fRaParam * vParam; // punkt styku
-                        // p³aszczyzny z drutem
-                        // (dla generatora ³uku
+                        // pÅ‚aszczyzny z drutem
+                        // (dla generatora Å‚uku
                         // el.)
                         vGdzie = vStyk - pant0; // wektor
-                        // odleg³oœæ w pionie musi byæ w zasiêgu ruchu "pionowego" pantografu
-                        fVertical = DotProduct(
-                            vGdzie, vUp); // musi siê mieœciæ w przedziale ruchu pantografu
-                        // odleg³oœæ w bok powinna byæ mniejsza ni¿ pó³ szerokoœci pantografu
-                        fHorizontal = fabs(DotProduct(vGdzie, vLeft)) -
-                                      p->fWidth; // to siê musi mieœciæ w przedziale zale¿nym od
-                        // szerokoœci pantografu
-                        // jeœli w pionie albo w bok jest za daleko, to dany drut jest nieu¿yteczny
+                        // odlegÅ‚oÅ›Ä‡ w pionie musi byÄ‡ w zasiÄ™gu ruchu "pionowego" pantografu
+                        fVertical = glm::dot(
+                            vGdzie, vUp); // musi siÄ™ mieÅ›ciÄ‡ w przedziale ruchu pantografu
+                        // odlegÅ‚oÅ›Ä‡ w bok powinna byÄ‡ mniejsza niÅ¼ pÃ³Å‚ szerokoÅ›ci pantografu
+                        fHorizontal = std::fabs(glm::dot(vGdzie, vLeft)) -
+                                      p->fWidth; // to siÄ™ musi mieÅ›ciÄ‡ w przedziale zaleÅ¼nym od
+                        // szerokoÅ›ci pantografu
+                        // jeÅ›li w pionie albo w bok jest za daleko, to dany drut jest nieuÅ¼yteczny
                         if (fHorizontal > 0) // 0.635 dla AKP-1 AKP-4E
-                        { // drut wyszed³ poza zakres roboczy, ale jeszcze jest nabie¿nik -
-                            // pantograf siê unosi bez utraty pr¹du
-                            if (fHorizontal > p->fWidthExtra) // czy wyszed³ za nabie¿nik
+                        { // drut wyszedÅ‚ poza zakres roboczy, ale jeszcze jest nabieÅ¼nik -
+                            // pantograf siÄ™ unosi bez utraty prÄ…du
+                            if (fHorizontal > p->fWidthExtra) // czy wyszedÅ‚ za nabieÅ¼nik
                             {
-                                p->hvPowerWire = NULL; // dotychczasowy drut nie liczy siê
-                                // p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
+                                p->hvPowerWire = NULL; // dotychczasowy drut nie liczy siÄ™
+                                // p->fHorizontal=fHorizontal; //zapamiÄ™tanie poÅ‚oÅ¼enia drutu
                             }
                             else
-                            { // problem jest, gdy nowy drut jest wy¿ej, wtedy pantograf od³¹cza siê
+                            { // problem jest, gdy nowy drut jest wyÅ¼ej, wtedy pantograf odÅ‚Ä…cza siÄ™
                                 // od starego, a na podniesienie do nowego potrzebuje czasu
                                 p->PantTraction =
                                     fVertical +
                                     0.15 * fHorizontal / p->fWidthExtra; // na razie liniowo na
-                                // nabie¿niku, dok³adnoœæ
-                                // poprawi siê póŸniej
-                                // p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
+                                // nabieÅ¼niku, dokÅ‚adnoÅ›Ä‡
+                                // poprawi siÄ™ pÃ³Åºniej
+                                // p->fHorizontal=fHorizontal; //zapamiÄ™tanie poÅ‚oÅ¼enia drutu
                             }
                         }
                         else
-                        { // po wyselekcjonowaniu drutu, przypisaæ go do toru, ¿eby nie trzeba by³o
-                            // szukaæ
-                            // dla 3 koñcowych przêse³ sprawdziæ wszystkie dostêpne przês³a
-                            // bo mog¹ byæ umieszczone równolegle nad torem - po³¹czyæ w pierœcieñ
-                            // najlepiej, jakby odcinki równoleg³e by³y oznaczone we wpisach
+                        { // po wyselekcjonowaniu drutu, przypisaÄ‡ go do toru, Å¼eby nie trzeba byÅ‚o
+                            // szukaÄ‡
+                            // dla 3 koÅ„cowych przÄ™seÅ‚ sprawdziÄ‡ wszystkie dostÄ™pne przÄ™sÅ‚a
+                            // bo mogÄ… byÄ‡ umieszczone rÃ³wnolegle nad torem - poÅ‚Ä…czyÄ‡ w pierÅ›cieÅ„
+                            // najlepiej, jakby odcinki rÃ³wnolegÅ‚e byÅ‚y oznaczone we wpisach
                             // WriteLog("Drut: "+AnsiString(fHorizontal)+" "+AnsiString(fVertical));
                             p->PantTraction = fVertical;
-                            // p->fHorizontal=fHorizontal; //zapamiêtanie po³o¿enia drutu
-                            break; // koniec pêtli, aktualny drut pasuje
+                            // p->fHorizontal=fHorizontal; //zapamiÄ™tanie poÅ‚oÅ¼enia drutu
+                            break; // koniec pÄ™tli, aktualny drut pasuje
                         }
                     }
-                    if (--n <= 0) // coœ za d³ugo to szukanie trwa
+                    if (--n <= 0) // coÅ› za dÅ‚ugo to szukanie trwa
                         p->hvPowerWire = NULL;
                 }
             }
-            if (!p->hvPowerWire) // else nie, bo móg³ zostaæ wyrzucony
+            if (!p->hvPowerWire) // else nie, bo mÃ³gÅ‚ zostaÄ‡ wyrzucony
             { // poszukiwanie po okolicznych sektorach
                 int c = GetColFromX(dwys.x) + 1;
                 int r = GetRowFromZ(dwys.z) + 1;
                 TSubRect *tmp;
                 TGroundNode *node;
-                p->PantTraction = 5.0; // taka za du¿a wartoœæ
+                p->PantTraction = 5.0; // taka za duÅ¼a wartoÅ›Ä‡
                 for (int j = r - 2; j <= r; j++)
                     for (int i = c - 2; i <= c; i++)
-                    { // poszukiwanie po najbli¿szych sektorach niewiele da przy wiêkszym
-                        // zagêszczeniu
+                    { // poszukiwanie po najbliÅ¼szych sektorach niewiele da przy wiÄ™kszym
+                        // zagÄ™szczeniu
                         tmp = FastGetSubRect(i, j);
                         if (tmp)
-                        { // dany sektor mo¿e nie mieæ nic w œrodku
+                        { // dany sektor moÅ¼e nie mieÄ‡ nic w Å›rodku
                             for (node = tmp->nRenderWires; node;
-                                 node = node->nNext3) // nastêpny z grupy
+                                 node = node->nNext3) // nastÄ™pny z grupy
                                 if (node->iType ==
-                                    TP_TRACTION) // w grupie tej s¹ druty oraz inne linie
+                                    TP_TRACTION) // w grupie tej sÄ… druty oraz inne linie
                                 {
                                     vParam =
                                         node->hvTraction
-                                            ->vParametric; // wspó³czynniki równania parametrycznego
-                                    fRaParam = -DotProduct(pant0, vFront);
-                                    fRaParam = -(DotProduct(node->hvTraction->pPoint1, vFront) +
-                                                 fRaParam) /
-                                               DotProduct(vParam, vFront);
+                                            ->vParametric; // wspÃ³Å‚czynniki rÃ³wnania parametrycznego
+                                    fRaParam = -glm::dot(pant0, vFront);
+                                    auto const paramfrontdot = glm::dot( vParam, vFront );
+                                    fRaParam =
+                                        -( glm::dot( node->hvTraction->pPoint1, vFront ) + fRaParam )
+                                        / ( paramfrontdot != 0.0 ? paramfrontdot : 0.001 ); // div0 trap
                                     if ((fRaParam >= -0.001) ? (fRaParam <= 1.001) : false)
-                                    { // jeœli tylko jest w przedziale, wyznaczyæ odleg³oœæ wzd³u¿
-                                        // wektorów vUp i vLeft
+                                    { // jeÅ›li tylko jest w przedziale, wyznaczyÄ‡ odlegÅ‚oÅ›Ä‡ wzdÅ‚uÅ¼
+                                        // wektorÃ³w vUp i vLeft
                                         vStyk = node->hvTraction->pPoint1 +
-                                                fRaParam * vParam; // punkt styku p³aszczyzny z
-                                        // drutem (dla generatora ³uku
+                                                fRaParam * vParam; // punkt styku pÅ‚aszczyzny z
+                                        // drutem (dla generatora Å‚uku
                                         // el.)
                                         vGdzie = vStyk - pant0; // wektor
-                                        fVertical = DotProduct(
+                                        fVertical = glm::dot(
                                             vGdzie,
-                                            vUp); // musi siê mieœciæ w przedziale ruchu pantografu
-                                        if (fVertical >= 0.0) // jeœli ponad pantografem (bo mo¿e
-                                            // ³apaæ druty spod wiaduktu)
+                                            vUp); // musi siÄ™ mieÅ›ciÄ‡ w przedziale ruchu pantografu
+                                        if (fVertical >= 0.0) // jeÅ›li ponad pantografem (bo moÅ¼e
+                                            // Å‚apaÄ‡ druty spod wiaduktu)
                                             if (Global::bEnableTraction ?
                                                     fVertical < p->PantWys - 0.15 :
-                                                    false) // jeœli drut jest ni¿ej ni¿ 15cm pod
-                                            // œlizgiem
-                                            { // prze³¹czamy w tryb po³amania, o ile jedzie;
-                                                // (bEnableTraction) aby da³o siê jeŸdziæ na
-                                                // koœlawych
+                                                    false) // jeÅ›li drut jest niÅ¼ej niÅ¼ 15cm pod
+                                            // Å›lizgiem
+                                            { // przeÅ‚Ä…czamy w tryb poÅ‚amania, o ile jedzie;
+                                                // (bEnableTraction) aby daÅ‚o siÄ™ jeÅºdziÄ‡ na
+                                                // koÅ›lawych
                                                 // sceneriach
-                                                fHorizontal = fabs(DotProduct(vGdzie, vLeft)) -
+                                                fHorizontal = std::fabs(glm::dot(vGdzie, vLeft)) -
                                                               p->fWidth; // i do tego jeszcze
-                                                // wejdzie pod œlizg
+                                                // wejdzie pod Å›lizg
                                                 if (fHorizontal <= 0.0) // 0.635 dla AKP-1 AKP-4E
                                                 {
                                                     p->PantWys =
-                                                        -1.0; // ujemna liczba oznacza po³amanie
-                                                    p->hvPowerWire = NULL; // bo inaczej siê zasila
-                                                    // w nieskoñczonoœæ z
-                                                    // po³amanego
-                                                    // p->fHorizontal=fHorizontal; //zapamiêtanie
-                                                    // po³o¿enia drutu
+                                                        -1.0; // ujemna liczba oznacza poÅ‚amanie
+                                                    p->hvPowerWire = NULL; // bo inaczej siÄ™ zasila
+                                                    // w nieskoÅ„czonoÅ›Ä‡ z
+                                                    // poÅ‚amanego
+                                                    // p->fHorizontal=fHorizontal; //zapamiÄ™tanie
+                                                    // poÅ‚oÅ¼enia drutu
                                                     if (model->MoverParameters->EnginePowerSource
                                                             .CollectorParameters.CollectorsNo >
-                                                        0) // liczba pantografów
+                                                        0) // liczba pantografÃ³w
                                                         --model->MoverParameters->EnginePowerSource
                                                               .CollectorParameters
-                                                              .CollectorsNo; // teraz bêdzie
+                                                              .CollectorsNo; // teraz bÄ™dzie
                                                     // mniejsza
                                                     if (DebugModeFlag)
                                                         ErrorLog(
                                                             "Pant. break: at " +
-                                                            FloatToStrF(pant0.x, ffFixed, 7, 2) +
+                                                            to_string(pant0.x, 2, 7) +
                                                             " " +
-                                                            FloatToStrF(pant0.y, ffFixed, 7, 2) +
+                                                            to_string(pant0.y, 2, 7) +
                                                             " " +
-                                                            FloatToStrF(pant0.z, ffFixed, 7, 2));
+                                                            to_string(pant0.z, 2, 7));
                                                 }
                                             }
-                                            else if (fVertical < p->PantTraction) // ale ni¿ej, ni¿
+                                            else if (fVertical < p->PantTraction) // ale niÅ¼ej, niÅ¼
                                             // poprzednio
                                             // znaleziony
                                             {
                                                 fHorizontal =
-                                                    fabs(DotProduct(vGdzie, vLeft)) - p->fWidth;
+                                                    std::fabs(glm::dot(vGdzie, vLeft)) - p->fWidth;
                                                 if (fHorizontal <= 0.0) // 0.635 dla AKP-1 AKP-4E
-                                                { // to siê musi mieœciæ w przedziale zaleznym od
-                                                    // szerokoœci pantografu
+                                                { // to siÄ™ musi mieÅ›ciÄ‡ w przedziale zaleznym od
+                                                    // szerokoÅ›ci pantografu
                                                     p->hvPowerWire =
-                                                        node->hvTraction; // jakiœ znaleziony
+                                                        node->hvTraction; // jakiÅ› znaleziony
                                                     p->PantTraction =
-                                                        fVertical; // zapamiêtanie nowej wysokoœci
-                                                    // p->fHorizontal=fHorizontal; //zapamiêtanie
-                                                    // po³o¿enia drutu
+                                                        fVertical; // zapamiÄ™tanie nowej wysokoÅ›ci
+                                                    // p->fHorizontal=fHorizontal; //zapamiÄ™tanie
+                                                    // poÅ‚oÅ¼enia drutu
                                                 }
                                                 else if (fHorizontal <
-                                                         p->fWidthExtra) // czy zmieœci³ siê w
-                                                // zakresie nabie¿nika?
-                                                { // problem jest, gdy nowy drut jest wy¿ej, wtedy
-                                                    // pantograf od³¹cza siê od starego, a na
+                                                         p->fWidthExtra) // czy zmieÅ›ciÅ‚ siÄ™ w
+                                                // zakresie nabieÅ¼nika?
+                                                { // problem jest, gdy nowy drut jest wyÅ¼ej, wtedy
+                                                    // pantograf odÅ‚Ä…cza siÄ™ od starego, a na
                                                     // podniesienie do nowego potrzebuje czasu
                                                     fVertical +=
                                                         0.15 * fHorizontal /
-                                                        p->fWidthExtra; // korekta wysokoœci o
-                                                    // nabie¿nik - drut nad
-                                                    // nabie¿nikiem jest
+                                                        p->fWidthExtra; // korekta wysokoÅ›ci o
+                                                    // nabieÅ¼nik - drut nad
+                                                    // nabieÅ¼nikiem jest
                                                     // geometrycznie jakby nieco
-                                                    // wy¿ej
+                                                    // wyÅ¼ej
                                                     if (fVertical <
                                                         p->PantTraction) // gdy po korekcie jest
-                                                    // ni¿ej, ni¿ poprzednio
+                                                    // niÅ¼ej, niÅ¼ poprzednio
                                                     // znaleziony
-                                                    { // gdyby to wystarczy³o, to mo¿emy go uznaæ
+                                                    { // gdyby to wystarczyÅ‚o, to moÅ¼emy go uznaÄ‡
                                                         p->hvPowerWire =
-                                                            node->hvTraction; // mo¿e byæ
+                                                            node->hvTraction; // moÅ¼e byÄ‡
                                                         p->PantTraction =
                                                             fVertical; // na razie liniowo na
-                                                        // nabie¿niku, dok³adnoœæ
-                                                        // poprawi siê póŸniej
+                                                        // nabieÅ¼niku, dokÅ‚adnoÅ›Ä‡
+                                                        // poprawi siÄ™ pÃ³Åºniej
                                                         // p->fHorizontal=fHorizontal;
-                                                        // //zapamiêtanie po³o¿enia drutu
+                                                        // //zapamiÄ™tanie poÅ‚oÅ¼enia drutu
                                                     }
                                                 }
                                             }
                                     } // warunek na parametr drutu <0;1>
-                                } // pêtla po drutach
+                                } // pÄ™tla po drutach
                         } // sektor istnieje
-                    } // pêtla po sektorach
+                    } // pÄ™tla po sektorach
             } // koniec poszukiwania w sektorach
-            if (!p->hvPowerWire) // jeœli drut nie znaleziony
-                if (!Global::bLiveTraction) // ale mo¿na oszukiwaæ
-                    model->pants[k].fParamPants->PantTraction = 1.4; // to dajemy coœ tam dla picu
-        } // koniec obs³ugi podniesionego
+            if (!p->hvPowerWire) // jeÅ›li drut nie znaleziony
+                if (!Global::bLiveTraction) // ale moÅ¼na oszukiwaÄ‡
+                    model->pants[k].fParamPants->PantTraction = 1.4; // to dajemy coÅ› tam dla picu
+        } // koniec obsÅ‚ugi podniesionego
         else
             p->hvPowerWire = NULL; // pantograf opuszczony
     }
     // if (model->fWahaczeAmp<model->MoverParameters->DistCounter)
-    //{//nieu¿ywana normalnie zmienna ogranicza powtórzone logowania
+    //{//nieuÅ¼ywana normalnie zmienna ogranicza powtÃ³rzone logowania
     // model->fWahaczeAmp=model->MoverParameters->DistCounter;
     // ErrorLog(FloatToStrF(1000.0*model->MoverParameters->DistCounter,ffFixed,7,3)+","+FloatToStrF(p->PantTraction,ffFixed,7,3)+","+FloatToStrF(p->fHorizontal,ffFixed,7,3)+","+FloatToStrF(p->PantWys,ffFixed,7,3)+","+AnsiString(p->hvPowerWire?1:0));
     // //
@@ -4568,296 +3753,104 @@ bool TGround::GetTraction(TDynamicObject *model)
     //{
     // //Global::iPause|=1; //zapauzowanie symulacji
     // Global::fTimeSpeed=1; //spowolnienie czasu do obejrzenia pantografu
-    // return true; //³apacz
+    // return true; //Å‚apacz
     //}
     //}
     return true;
 };
 
-bool TGround::RenderDL(vector3 pPosition)
-{ // renderowanie scenerii z Display List - faza nieprzezroczystych
-    glDisable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-    ++TGroundRect::iFrameNumber; // zwiêszenie licznika ramek (do usuwniania nadanimacji)
-    CameraDirection.x = sin(Global::pCameraRotation); // wektor kierunkowy
-    CameraDirection.z = cos(Global::pCameraRotation);
-    int tr, tc;
-    TGroundNode *node;
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glEnable(GL_LIGHTING);
-    int n = 2 * iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
-    int c = GetColFromX(pPosition.x);
-    int r = GetRowFromZ(pPosition.z);
-    TSubRect *tmp;
-    for (node = srGlobal.nRenderHidden; node; node = node->nNext3)
-        node->RenderHidden(); // rednerowanie globalnych (nie za czêsto?)
-    int i, j, k;
-    // renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
-    for (j = r - n; j <= r + n; j++)
-        for (i = c - n; i <= c + n; i++)
-            if ((tmp = FastGetSubRect(i, j)) != NULL)
-            {
-                tmp->LoadNodes(); // oznaczanie aktywnych sektorów
-                for (node = tmp->nRenderHidden; node; node = node->nNext3)
-                    node->RenderHidden();
-                tmp->RenderSounds(); // jeszcze dŸwiêki pojazdów by siê przyda³y, równie¿
-                // niewidocznych
-            }
-    // renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
-    iRendered = 0; // iloœæ renderowanych sektorów
-    vector3 direction;
-    for (k = 0; k < Global::iSegmentsRendered; ++k) // sektory w kolejnoœci odleg³oœci
-    { // przerobione na u¿ycie SectorOrder
-        i = SectorOrder[k].x; // na starcie oba >=0
-        j = SectorOrder[k].y;
-        do
-        {
-            if (j <= 0)
-                i = -i; // pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0
-            // czwarty: j>=0, i>=0;
-            j = -j; // i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
-            direction = vector3(i, 0, j); // wektor od kamery do danego sektora
-            if (LengthSquared3(direction) > 5) // te blisko s¹ zawsze wyœwietlane
-            {
-                direction = SafeNormalize(direction); // normalizacja
-                if (CameraDirection.x * direction.x + CameraDirection.z * direction.z < 0.55)
-                    continue; // pomijanie sektorów poza k¹tem patrzenia
-            }
-            Rects[(i + c) / iNumSubRects][(j + r) / iNumSubRects]
-                .RenderDL(); // kwadrat kilometrowy nie zawsze, bo szkoda FPS
-            if ((tmp = FastGetSubRect(i + c, j + r)) != NULL)
-                if (tmp->iNodeCount) // o ile s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
-                    pRendered[iRendered++] = tmp; // tworzenie listy sektorów do renderowania
-        } while ((i < 0) || (j < 0)); // s¹ 4 przypadki, oprócz i=j=0
-    }
-    for (i = 0; i < iRendered; i++)
-        pRendered[i]->RenderDL(); // renderowanie nieprzezroczystych
-    return true;
-}
-
-bool TGround::RenderAlphaDL(vector3 pPosition)
-{ // renderowanie scenerii z Display List - faza przezroczystych
-    glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-    TGroundNode *node;
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    TSubRect *tmp;
-    // Ra: renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
-    int i;
-    for (i = iRendered - 1; i >= 0; --i) // od najdalszych
-    { // przezroczyste trójk¹ty w oddzielnym cyklu przed modelami
-        tmp = pRendered[i];
-        for (node = tmp->nRenderRectAlpha; node; node = node->nNext3)
-            node->RenderAlphaDL(); // przezroczyste modele
-    }
-    for (i = iRendered - 1; i >= 0; --i) // od najdalszych
-    { // renderowanie przezroczystych modeli oraz pojazdów
-        pRendered[i]->RenderAlphaDL();
-    }
-    glDisable(GL_LIGHTING); // linie nie powinny œwieciæ
-    for (i = iRendered - 1; i >= 0; --i) // od najdalszych
-    { // druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
-        tmp = pRendered[i];
-        for (node = tmp->nRenderWires; node; node = node->nNext3)
-            node->RenderAlphaDL(); // druty
-    }
-    return true;
-}
-
-bool TGround::RenderVBO(vector3 pPosition)
-{ // renderowanie scenerii z VBO - faza nieprzezroczystych
-    glDisable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.45); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-    ++TGroundRect::iFrameNumber; // zwiêszenie licznika ramek
-    CameraDirection.x = sin(Global::pCameraRotation); // wektor kierunkowy
-    CameraDirection.z = cos(Global::pCameraRotation);
-    int tr, tc;
-    TGroundNode *node;
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glEnable(GL_LIGHTING);
-    int n = 2 * iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
-    int c = GetColFromX(pPosition.x);
-    int r = GetRowFromZ(pPosition.z);
-    TSubRect *tmp;
-    for (node = srGlobal.nRenderHidden; node; node = node->nNext3)
-        node->RenderHidden(); // rednerowanie globalnych (nie za czêsto?)
-    int i, j, k;
-    // renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
-    for (j = r - n; j <= r + n; j++)
-        for (i = c - n; i <= c + n; i++)
-        {
-            if ((tmp = FastGetSubRect(i, j)) != NULL)
-            {
-                for (node = tmp->nRenderHidden; node; node = node->nNext3)
-                    node->RenderHidden();
-                tmp->RenderSounds(); // jeszcze dŸwiêki pojazdów by siê przyda³y, równie¿
-                // niewidocznych
-            }
-        }
-    // renderowanie progresywne - zale¿ne od FPS oraz kierunku patrzenia
-    iRendered = 0; // iloœæ renderowanych sektorów
-    vector3 direction;
-    for (k = 0; k < Global::iSegmentsRendered; ++k) // sektory w kolejnoœci odleg³oœci
-    { // przerobione na u¿ycie SectorOrder
-        i = SectorOrder[k].x; // na starcie oba >=0
-        j = SectorOrder[k].y;
-        do
-        {
-            if (j <= 0)
-                i = -i; // pierwszy przebieg: j<=0, i>=0; drugi: j>=0, i<=0; trzeci: j<=0, i<=0
-            // czwarty: j>=0, i>=0;
-            j = -j; // i oraz j musi byæ zmienione wczeœniej, ¿eby continue dzia³a³o
-            direction = vector3(i, 0, j); // wektor od kamery do danego sektora
-            if (LengthSquared3(direction) > 5) // te blisko s¹ zawsze wyœwietlane
-            {
-                direction = SafeNormalize(direction); // normalizacja
-                if (CameraDirection.x * direction.x + CameraDirection.z * direction.z < 0.55)
-                    continue; // pomijanie sektorów poza k¹tem patrzenia
-            }
-            Rects[(i + c) / iNumSubRects][(j + r) / iNumSubRects]
-                .RenderVBO(); // kwadrat kilometrowy nie zawsze, bo szkoda FPS
-            if ((tmp = FastGetSubRect(i + c, j + r)) != NULL)
-                if (tmp->iNodeCount) // je¿eli s¹ jakieœ obiekty, bo po co puste sektory przelatywaæ
-                    pRendered[iRendered++] = tmp; // tworzenie listy sektorów do renderowania
-        } while ((i < 0) || (j < 0)); // s¹ 4 przypadki, oprócz i=j=0
-    }
-    // dodaæ rednerowanie terenu z E3D - jedno VBO jest u¿ywane dla ca³ego modelu, chyba ¿e jest ich
-    // wiêcej
-    if (Global::pTerrainCompact)
-        Global::pTerrainCompact->TerrainRenderVBO(TGroundRect::iFrameNumber);
-    for (i = 0; i < iRendered; i++)
-    { // renderowanie nieprzezroczystych
-        pRendered[i]->RenderVBO();
-    }
-    return true;
-}
-
-bool TGround::RenderAlphaVBO(vector3 pPosition)
-{ // renderowanie scenerii z VBO - faza przezroczystych
-    glEnable(GL_BLEND);
-    glAlphaFunc(GL_GREATER, 0.04); // im mniejsza wartoœæ, tym wiêksza ramka, domyœlnie 0.1f
-    TGroundNode *node;
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    TSubRect *tmp;
-    int i;
-    for (i = iRendered - 1; i >= 0; --i) // od najdalszych
-    { // renderowanie przezroczystych trójk¹tów sektora
-        tmp = pRendered[i];
-        tmp->LoadNodes(); // ewentualne tworzenie siatek
-        if (tmp->StartVBO())
-        {
-            for (node = tmp->nRenderRectAlpha; node; node = node->nNext3)
-                if (node->iVboPtr >= 0)
-                    node->RenderAlphaVBO(); // nieprzezroczyste obiekty terenu
-            tmp->EndVBO();
-        }
-    }
-    for (i = iRendered - 1; i >= 0; --i) // od najdalszych
-        pRendered[i]->RenderAlphaVBO(); // przezroczyste modeli oraz pojazdy
-    glDisable(GL_LIGHTING); // linie nie powinny œwieciæ
-    for (i = iRendered - 1; i >= 0; --i) // od najdalszych
-    { // druty na koñcu, ¿eby siê nie robi³y bia³e plamy na tle lasu
-        tmp = pRendered[i];
-        if (tmp->StartVBO())
-        {
-            for (node = tmp->nRenderWires; node; node = node->nNext3)
-                node->RenderAlphaVBO(); // przezroczyste modele
-            tmp->EndVBO();
-        }
-    }
-    return true;
-};
-
+#ifdef _WINDOWS
 //---------------------------------------------------------------------------
-void TGround::Navigate(String ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
-{ // wys³anie komunikatu do steruj¹cego
-    HWND h = FindWindow(ClassName.c_str(), 0); // mo¿na by to zapamiêtaæ
+void TGround::Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam)
+{ // wysÅ‚anie komunikatu do sterujÄ…cego
+    HWND h = FindWindow(ClassName.c_str(), 0); // moÅ¼na by to zapamiÄ™taÄ‡
     if (h == 0)
-        h = FindWindow(0, ClassName.c_str()); // mo¿na by to zapamiêtaæ
+        h = FindWindow(0, ClassName.c_str()); // moÅ¼na by to zapamiÄ™taÄ‡
     SendMessage(h, Msg, wParam, lParam);
 };
 //--------------------------------
-void TGround::WyslijEvent(const AnsiString &e, const AnsiString &d)
+void TGround::WyslijEvent(const std::string &e, const std::string &d)
 { // Ra: jeszcze do wyczyszczenia
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 2; // 2 - event
-    int i = e.Length(), j = d.Length();
+    size_t i = e.length(), j = d.length();
     r.cString[0] = char(i);
-    strcpy(r.cString + 1, e.c_str()); // zakoñczony zerem
-    r.cString[i + 2] = char(j); // licznik po zerze koñcz¹cym
-    strcpy(r.cString + 3 + i, d.c_str()); // zakoñczony zerem
+    strcpy(r.cString + 1, e.c_str()); // zakoÅ„czony zerem
+    r.cString[i + 2] = char(j); // licznik po zerze koÅ„czÄ…cym
+    strcpy(r.cString + 3 + i, d.c_str()); // zakoÅ„czony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
-    cData.cbData = 12 + i + j; // 8+dwa liczniki i dwa zera koñcz¹ce
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.cbData = (DWORD)(12 + i + j); // 8+dwa liczniki i dwa zera koÅ„czÄ…ce
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + e + " sent");
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + e + " sent" );
 };
 //---------------------------------------------------------------------------
-void TGround::WyslijUszkodzenia(const AnsiString &t, char fl)
-{ // wys³anie informacji w postaci pojedynczego tekstu
+void TGround::WyslijUszkodzenia(const std::string &t, char fl)
+{ // wysÅ‚anie informacji w postaci pojedynczego tekstu
 	DaneRozkaz r;
-	r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 13; // numer komunikatu
-	int i = t.Length();
+	size_t i = t.length();
 	r.cString[0] = char(fl);
 	r.cString[1] = char(i);
-	strcpy(r.cString + 2, t.c_str()); // z zerem koñcz¹cym
+	strcpy(r.cString + 2, t.c_str()); // z zerem koÅ„czÄ…cym
 	COPYDATASTRUCT cData;
-	cData.dwData = 'EU07'; // sygnatura
-	cData.cbData = 11 + i; // 8+licznik i zero koñcz¹ce
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+	cData.cbData = (DWORD)(11 + i); // 8+licznik i zero koÅ„czÄ…ce
 	cData.lpData = &r;
-	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t + " sent");
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
-void TGround::WyslijString(const AnsiString &t, int n)
-{ // wys³anie informacji w postaci pojedynczego tekstu
+void TGround::WyslijString(const std::string &t, int n)
+{ // wysÅ‚anie informacji w postaci pojedynczego tekstu
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = n; // numer komunikatu
-    int i = t.Length();
+    size_t i = t.length();
     r.cString[0] = char(i);
-    strcpy(r.cString + 1, t.c_str()); // z zerem koñcz¹cym
+    strcpy(r.cString + 1, t.c_str()); // z zerem koÅ„czÄ…cym
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
-    cData.cbData = 10 + i; // 8+licznik i zero koñcz¹ce
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.cbData = (DWORD)(10 + i); // 8+licznik i zero koÅ„czÄ…ce
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t + " sent");
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t + " sent");
 };
 //---------------------------------------------------------------------------
-void TGround::WyslijWolny(const AnsiString &t)
+void TGround::WyslijWolny(const std::string &t)
 { // Ra: jeszcze do wyczyszczenia
     WyslijString(t, 4); // tor wolny
 };
 //--------------------------------
 void TGround::WyslijNamiary(TGroundNode *t)
-{ // wys³anie informacji o pojeŸdzie - (float), d³ugoœæ ramki bêdzie zwiêkszana w miarê potrzeby
+{ // wysÅ‚anie informacji o pojeÅºdzie - (float), dÅ‚ugoÅ›Ä‡ ramki bÄ™dzie zwiÄ™kszana w miarÄ™ potrzeby
     // WriteLog("Wysylam pojazd");
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = 7; // 7 - dane pojazdu
-    int i = 32, j = t->asName.Length();
-    r.iPar[0] = i; // iloœæ danych liczbowych
+	int i = 32;
+	size_t j = t->asName.length();
+    r.iPar[0] = i; // iloÅ›Ä‡ danych liczbowych
     r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
     r.fPar[2] = t->DynamicObject->MoverParameters->Loc.X; // pozycja X
     r.fPar[3] = t->DynamicObject->MoverParameters->Loc.Y; // pozycja Y
     r.fPar[4] = t->DynamicObject->MoverParameters->Loc.Z; // pozycja Z
-    r.fPar[5] = t->DynamicObject->MoverParameters->V; // prêdkoœæ ruchu X
+    r.fPar[5] = t->DynamicObject->MoverParameters->V; // prÄ™dkoÅ›Ä‡ ruchu X
     r.fPar[6] = t->DynamicObject->MoverParameters->nrot * M_PI *
-                t->DynamicObject->MoverParameters->WheelDiameter; // prêdkoœæ obrotowa kó£
-    r.fPar[7] = 0; // prêdkoœæ ruchu Z
+                t->DynamicObject->MoverParameters->WheelDiameter; // prÄ™dkoÅ›Ä‡ obrotowa kÃ³Å
+    r.fPar[7] = 0; // prÄ™dkoÅ›Ä‡ ruchu Z
     r.fPar[8] = t->DynamicObject->MoverParameters->AccS; // przyspieszenie X
     r.fPar[9] = t->DynamicObject->MoverParameters->AccN; // przyspieszenie Y //na razie nie
     r.fPar[10] = t->DynamicObject->MoverParameters->AccV; // przyspieszenie Z
-    r.fPar[11] = t->DynamicObject->MoverParameters->DistCounter; // przejechana odleg³oœæ w km
-    r.fPar[12] = t->DynamicObject->MoverParameters->PipePress; // ciœnienie w PG
-    r.fPar[13] = t->DynamicObject->MoverParameters->ScndPipePress; // ciœnienie w PZ
-    r.fPar[14] = t->DynamicObject->MoverParameters->BrakePress; // ciœnienie w CH
-    r.fPar[15] = t->DynamicObject->MoverParameters->Compressor; // ciœnienie w ZG
-    r.fPar[16] = t->DynamicObject->MoverParameters->Itot; // Pr¹d ca³kowity
+    r.fPar[11] = t->DynamicObject->MoverParameters->DistCounter; // przejechana odlegÅ‚oÅ›Ä‡ w km
+    r.fPar[12] = t->DynamicObject->MoverParameters->PipePress; // ciÅ›nienie w PG
+    r.fPar[13] = t->DynamicObject->MoverParameters->ScndPipePress; // ciÅ›nienie w PZ
+    r.fPar[14] = t->DynamicObject->MoverParameters->BrakePress; // ciÅ›nienie w CH
+    r.fPar[15] = t->DynamicObject->MoverParameters->Compressor; // ciÅ›nienie w ZG
+    r.fPar[16] = t->DynamicObject->MoverParameters->Itot; // PrÄ…d caÅ‚kowity
     r.iPar[17] = t->DynamicObject->MoverParameters->MainCtrlPos; // Pozycja NJ
     r.iPar[18] = t->DynamicObject->MoverParameters->ScndCtrlPos; // Pozycja NB
     r.iPar[19] = t->DynamicObject->MoverParameters->MainCtrlActualPos; // Pozycja jezdna
@@ -4878,7 +3871,7 @@ void TGround::WyslijNamiary(TGroundNode *t)
         //   WriteLog("Probuje pant "+IntToStr(p));
         if (p < t->DynamicObject->iAnimType[ANIM_PANTS])
         {
-            r.fPar[23 + p] = t->DynamicObject->pants[p].fParamPants->PantWys; // stan pantografów 4
+            r.fPar[23 + p] = t->DynamicObject->pants[p].fParamPants->PantWys; // stan pantografÃ³w 4
             //     WriteLog("Zapisalem pant "+IntToStr(p));
         }
         else
@@ -4895,25 +3888,25 @@ void TGround::WyslijNamiary(TGroundNode *t)
     r.iPar[30] = t->DynamicObject->MoverParameters->WarningSignal; // trabienie
     r.fPar[31] = t->DynamicObject->MoverParameters->RunningTraction.TractionVoltage; // napiecie WN
     // WriteLog("Parametry gotowe");
-    i <<= 2; // iloœæ bajtów
-    r.cString[i] = char(j); // na koñcu nazwa, ¿eby jakoœ zidentyfikowaæ
-    strcpy(r.cString + i + 1, t->asName.c_str()); // zakoñczony zerem
+    i <<= 2; // iloÅ›Ä‡ bajtÃ³w
+    r.cString[i] = char(j); // na koÅ„cu nazwa, Å¼eby jakoÅ› zidentyfikowaÄ‡
+    strcpy(r.cString + i + 1, t->asName.c_str()); // zakoÅ„czony zerem
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
-    cData.cbData = 10 + i + j; // 8+licznik i zero koñcz¹ce
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
+    cData.cbData = (DWORD)(10 + i + j); // 8+licznik i zero koÅ„czÄ…ce
     cData.lpData = &r;
     // WriteLog("Ramka gotowa");
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
     // WriteLog("Ramka poszla!");
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " " + t->asName + " sent");
+	CommLog( Now() + " " + std::to_string(r.iComm) + " " + t->asName + " sent");
 };
 //
 void TGround::WyslijObsadzone()
-{   // wys³anie informacji o pojeŸdzie
+{   // wysÅ‚anie informacji o pojeÅºdzie
 	DaneRozkaz2 r;
-	r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
 	r.iComm = 12;   // kod 12
-	for (int i; i<1984; i++) r.cString[i] = 0;
+	for (int i=0; i<1984; ++i) r.cString[i] = 0;
 
 	int i = 0;
 	for (TGroundNode *Current = nRootDynamic; Current; Current = Current->nNext)
@@ -4931,291 +3924,276 @@ void TGround::WyslijObsadzone()
 		}
 	while (i <= 30)
 	{
-		strcpy(r.cString + 64 * i, AnsiString("none").c_str());
+		strcpy(r.cString + 64 * i, "none");
 		r.fPar[16 * i + 4] = 1;
 		r.fPar[16 * i + 5] = 2;
 		r.fPar[16 * i + 6] = 3;
 		r.iPar[16 * i + 7] = 0;
-		strcpy(r.cString + 64 * i + 32, AnsiString("none").c_str());
-		strcpy(r.cString + 64 * i + 48, AnsiString("none").c_str());
+		strcpy(r.cString + 64 * i + 32, "none");
+		strcpy(r.cString + 64 * i + 48, "none");
 		i++;
 	}
 
 	COPYDATASTRUCT cData;
-	cData.dwData = 'EU07';     // sygnatura
-	cData.cbData = 8 + 1984; // 8+licznik i zero koñcz¹ce
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' );     // sygnatura
+	cData.cbData = 8 + 1984; // 8+licznik i zero koÅ„czÄ…ce
 	cData.lpData = &r;
 	// WriteLog("Ramka gotowa");
-	Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
-	CommLog(AnsiString(Now()) + " " + IntToStr(r.iComm) + " obsadzone" + " sent");
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
+	CommLog( Now() + " " + std::to_string(r.iComm) + " obsadzone" + " sent");
 }
 
 //--------------------------------
 void TGround::WyslijParam(int nr, int fl)
-{ // wys³anie parametrów symulacji w ramce (nr) z flagami (fl)
+{ // wysÅ‚anie parametrÃ³w symulacji w ramce (nr) z flagami (fl)
     DaneRozkaz r;
-    r.iSygn = 'EU07';
+    r.iSygn = MAKE_ID4( 'E', 'U', '0', '7' );
     r.iComm = nr; // zwykle 5
-    r.iPar[0] = fl; // flagi istotnoœci kolejnych parametrów
-    int i = 0; // domyœlnie brak danych
+    r.iPar[0] = fl; // flagi istotnoÅ›ci kolejnych parametrÃ³w
+    int i = 0; // domyÅ›lnie brak danych
     switch (nr)
-    { // mo¿na tym przesy³aæ ró¿ne zestawy parametrów
+    { // moÅ¼na tym przesyÅ‚aÄ‡ rÃ³Å¼ne zestawy parametrÃ³w
     case 5: // czas i pauza
         r.fPar[1] = Global::fTimeAngleDeg / 360.0; // aktualny czas (1.0=doba)
         r.iPar[2] = Global::iPause; // stan zapauzowania
-        i = 8; // dwa parametry po 4 bajty ka¿dy
+        i = 8; // dwa parametry po 4 bajty kaÅ¼dy
         break;
     }
     COPYDATASTRUCT cData;
-    cData.dwData = 'EU07'; // sygnatura
+    cData.dwData = MAKE_ID4( 'E', 'U', '0', '7' ); // sygnatura
     cData.cbData = 12 + i; // 12+rozmiar danych
     cData.lpData = &r;
-    Navigate("TEU07SRK", WM_COPYDATA, (WPARAM)Global::hWnd, (LPARAM)&cData);
+    Navigate( "TEU07SRK", WM_COPYDATA, (WPARAM)glfwGetWin32Window( Global::window ), (LPARAM)&cData );
 };
+#endif
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 void TGround::RadioStop(vector3 pPosition)
-{ // zatrzymanie poci¹gów w okolicy
+{ // zatrzymanie pociÄ…gÃ³w w okolicy
     TGroundNode *node;
     TSubRect *tmp;
     int c = GetColFromX(pPosition.x);
     int r = GetRowFromZ(pPosition.z);
     int i, j;
-    int n = 2 * iNumSubRects; // przegl¹danie czo³gowe okolicznych torów w kwadracie 4km×4km
+    int n = 2 * iNumSubRects; // przeglÄ…danie czoÅ‚gowe okolicznych torÃ³w w kwadracie 4kmÃ—4km
     for (j = r - n; j <= r + n; j++)
         for (i = c - n; i <= c + n; i++)
             if ((tmp = FastGetSubRect(i, j)) != NULL)
                 for (node = tmp->nRootNode; node != NULL; node = node->nNext2)
                     if (node->iType == TP_TRACK)
-                        node->pTrack->RadioStop(); // przekazanie do ka¿dego toru w ka¿dym segmencie
+                        node->pTrack->RadioStop(); // przekazanie do kaÅ¼dego toru w kaÅ¼dym segmencie
 };
 
 TDynamicObject * TGround::DynamicNearest(vector3 pPosition, double distance, bool mech)
-{ // wyszukanie pojazdu najbli¿szego wzglêdem (pPosition)
+{ // wyszukanie pojazdu najbliÅ¼szego wzglÄ™dem (pPosition)
     TGroundNode *node;
     TSubRect *tmp;
     TDynamicObject *dyn = NULL;
     int c = GetColFromX(pPosition.x);
     int r = GetRowFromZ(pPosition.z);
-    int i, j, k;
-    double sqm = distance * distance, sqd; // maksymalny promien poszukiwañ do kwadratu
-    for (j = r - 1; j <= r + 1; j++) // plus dwa zewnêtrzne sektory, ³¹cznie 9
+	int i, j;
+    double sqm = distance * distance, sqd; // maksymalny promien poszukiwaÅ„ do kwadratu
+    for (j = r - 1; j <= r + 1; j++) // plus dwa zewnÄ™trzne sektory, Å‚Ä…cznie 9
         for (i = c - 1; i <= c + 1; i++)
             if ((tmp = FastGetSubRect(i, j)) != NULL)
-                for (node = tmp->nRootNode; node; node = node->nNext2) // nastêpny z sektora
-                    if (node->iType == TP_TRACK) // Ra: przebudowaæ na u¿ycie tabeli torów?
-                        for (k = 0; k < node->pTrack->iNumDynamics; k++)
-                            if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
-                                       true) // czy ma mieæ obsadê
-                                if ((sqd = SquareMagnitude(
-                                         node->pTrack->Dynamics[k]->GetPosition() - pPosition)) <
-                                    sqm)
-                                {
-                                    sqm = sqd; // nowa odleg³oœæ
-                                    dyn = node->pTrack->Dynamics[k]; // nowy lider
+                for (node = tmp->nRootNode; node; node = node->nNext2) // nastÄ™pny z sektora
+                    if (node->iType == TP_TRACK) // Ra: przebudowaÄ‡ na uÅ¼ycie tabeli torÃ³w?
+                        for( auto dynamic : node->pTrack->Dynamics ) {
+                            if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
+                                // czy ma mieÄ‡ obsadÄ™
+                                if( ( sqd = SquareMagnitude( dynamic->GetPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odlegÅ‚oÅ›Ä‡
+                                    dyn = dynamic; // nowy lider
                                 }
+                            }
+                        }
     return dyn;
 };
 TDynamicObject * TGround::CouplerNearest(vector3 pPosition, double distance, bool mech)
-{ // wyszukanie pojazdu, którego sprzêg jest najbli¿ej wzglêdem (pPosition)
+{ // wyszukanie pojazdu, ktÃ³rego sprzÄ™g jest najbliÅ¼ej wzglÄ™dem (pPosition)
     TGroundNode *node;
     TSubRect *tmp;
     TDynamicObject *dyn = NULL;
     int c = GetColFromX(pPosition.x);
     int r = GetRowFromZ(pPosition.z);
-    int i, j, k;
-    double sqm = distance * distance, sqd; // maksymalny promien poszukiwañ do kwadratu
-    for (j = r - 1; j <= r + 1; j++) // plus dwa zewnêtrzne sektory, ³¹cznie 9
+	int i, j;
+    double sqm = distance * distance, sqd; // maksymalny promien poszukiwaÅ„ do kwadratu
+    for (j = r - 1; j <= r + 1; j++) // plus dwa zewnÄ™trzne sektory, Å‚Ä…cznie 9
         for (i = c - 1; i <= c + 1; i++)
             if ((tmp = FastGetSubRect(i, j)) != NULL)
-                for (node = tmp->nRootNode; node; node = node->nNext2) // nastêpny z sektora
-                    if (node->iType == TP_TRACK) // Ra: przebudowaæ na u¿ycie tabeli torów?
-                        for (k = 0; k < node->pTrack->iNumDynamics; k++)
-                            if (mech ? (node->pTrack->Dynamics[k]->Mechanik != NULL) :
-                                       true) // czy ma mieæ obsadê
-                            {
-                                if ((sqd = SquareMagnitude(
-                                         node->pTrack->Dynamics[k]->HeadPosition() - pPosition)) <
-                                    sqm)
-                                {
-                                    sqm = sqd; // nowa odleg³oœæ
-                                    dyn = node->pTrack->Dynamics[k]; // nowy lider
+                for (node = tmp->nRootNode; node; node = node->nNext2) // nastÄ™pny z sektora
+                    if (node->iType == TP_TRACK) // Ra: przebudowaÄ‡ na uÅ¼ycie tabeli torÃ³w?
+                        for( auto dynamic : node->pTrack->Dynamics ) {
+                            if( mech ? ( dynamic->Mechanik != nullptr ) : true ) {
+                                // czy ma mieÄ‡ obsadÄ™
+                                if( ( sqd = SquareMagnitude( dynamic->HeadPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odlegÅ‚oÅ›Ä‡
+                                    dyn = dynamic; // nowy lider
                                 }
-                                if ((sqd = SquareMagnitude(
-                                         node->pTrack->Dynamics[k]->RearPosition() - pPosition)) <
-                                    sqm)
-                                {
-                                    sqm = sqd; // nowa odleg³oœæ
-                                    dyn = node->pTrack->Dynamics[k]; // nowy lider
+                                if( ( sqd = SquareMagnitude( dynamic->RearPosition() - pPosition ) ) < sqm ) {
+                                    sqm = sqd; // nowa odlegÅ‚oÅ›Ä‡
+                                    dyn = dynamic; // nowy lider
                                 }
                             }
+                        }
     return dyn;
 };
 //---------------------------------------------------------------------------
 void TGround::DynamicRemove(TDynamicObject *dyn)
-{ // Ra: usuniêcie pojazdów ze scenerii (gdy dojad¹ na koniec i nie sa potrzebne)
+{ // Ra: usuniÄ™cie pojazdÃ³w ze scenerii (gdy dojadÄ… na koniec i nie sa potrzebne)
     TDynamicObject *d = dyn->Prev();
-    if (d) // jeœli coœ jest z przodu
+    if (d) // jeÅ›li coÅ› jest z przodu
         DynamicRemove(d); // zaczynamy od tego z przodu
     else
-    { // jeœli mamy ju¿ tego na pocz¹tku
+    { // jeÅ›li mamy juÅ¼ tego na poczÄ…tku
         TGroundNode **n, *node;
         d = dyn; // od pierwszego
         while (d)
         {
             if (d->MyTrack)
-                d->MyTrack->RemoveDynamicObject(d); // usuniêcie z toru o ile nie usuniêty
-            n = &nRootDynamic; // lista pojazdów od pocz¹tku
+                d->MyTrack->RemoveDynamicObject(d); // usuniÄ™cie z toru o ile nie usuniÄ™ty
+            n = &nRootDynamic; // lista pojazdÃ³w od poczÄ…tku
             // node=NULL; //nie znalezione
             while (*n ? (*n)->DynamicObject != d : false)
-            { // usuwanie z listy pojazdów
-                n = &((*n)->nNext); // sprawdzenie kolejnego pojazdu na liœcie
+            { // usuwanie z listy pojazdÃ³w
+                n = &((*n)->nNext); // sprawdzenie kolejnego pojazdu na liÅ›cie
             }
             if ((*n)->DynamicObject == d)
-            { // jeœli znaleziony
-                node = (*n); // zapamiêtanie wêz³a, aby go usun¹æ
-                (*n) = node->nNext; // pominiêcie na liœcie
+            { // jeÅ›li znaleziony
+                node = (*n); // zapamiÄ™tanie wÄ™zÅ‚a, aby go usunÄ…Ä‡
+                (*n) = node->nNext; // pominiÄ™cie na liÅ›cie
                 Global::TrainDelete(d);
-                d = d->Next(); // przejœcie do kolejnego pojazdu, póki jeszcze jest
-                delete node; // usuwanie fizyczne z pamiêci
+                // remove potential entries in the light array
+                m_lights.remove( d );
+                d = d->Next(); // przejÅ›cie do kolejnego pojazdu, pÃ³ki jeszcze jest
+                delete node; // usuwanie fizyczne z pamiÄ™ci
             }
             else
-                d = NULL; // coœ nie tak!
+                d = NULL; // coÅ› nie tak!
         }
     }
 };
 
 //---------------------------------------------------------------------------
-void TGround::TerrainRead(const AnsiString &f){
-    // Ra: wczytanie trójk¹tów terenu z pliku E3D
+
+void TGround::TerrainRead(std::string const &f){
+    // Ra: wczytanie trÃ³jkÄ…tÃ³w terenu z pliku E3D
 };
 
 //---------------------------------------------------------------------------
+
 void TGround::TerrainWrite()
-{ // Ra: zapisywanie trójk¹tów terenu do pliku E3D
+{ // Ra: zapisywanie trÃ³jkÄ…tÃ³w terenu do pliku E3D
+    // TODO: re-implement
+/*
     if (Global::pTerrainCompact->TerrainLoaded())
-        return; // jeœli zosta³o wczytane, to nie ma co dalej robiæ
-    if (Global::asTerrainModel.IsEmpty())
+        return; // jeÅ›li zostaÅ‚o wczytane, to nie ma co dalej robiÄ‡
+    if (Global::asTerrainModel.empty())
         return;
-    // Trójk¹ty s¹ zapisywane kwadratami kilometrowymi.
-    // Kwadrat 500500 jest na œrodku (od 0.0 do 1000.0 na OX oraz OZ).
-    // Ewentualnie w numerowaniu kwadratów uwzglêdnic wpis //$g.
-    // Trójk¹ty s¹ grupowane w submodele wg tekstury.
-    // Triangle_strip oraz triangle_fan s¹ rozpisywane na pojedyncze trójk¹ty,
-    // chyba ¿e dla danej tekstury wychodzi tylko jeden submodel.
+    // TrÃ³jkÄ…ty sÄ… zapisywane kwadratami kilometrowymi.
+    // Kwadrat 500500 jest na Å›rodku (od 0.0 do 1000.0 na OX oraz OZ).
+    // Ewentualnie w numerowaniu kwadratÃ³w uwzglÄ™dnic wpis //$g.
+    // TrÃ³jkÄ…ty sÄ… grupowane w submodele wg tekstury.
+    // Triangle_strip oraz triangle_fan sÄ… rozpisywane na pojedyncze trÃ³jkÄ…ty,
+    // chyba Å¼e dla danej tekstury wychodzi tylko jeden submodel.
     TModel3d *m = new TModel3d(); // wirtualny model roboczy z oddzielnymi submodelami
-    TSubModel *sk; // wskaŸnik roboczy na submodel kwadratu
-    TSubModel *st; // wskaŸnik roboczy na submodel tekstury
-    // Zliczamy kwadraty z trójk¹tami, iloœæ tekstur oraz wierzcho³ków.
-    // Iloœæ kwadratów i iloœæ tekstur okreœli iloœæ submodeli.
-    // int sub=0; //ca³kowita iloœæ submodeli
-    // int ver=0; //ca³kowita iloœæ wierzcho³ków
-    int i, j, k; // indeksy w pêtli
+    TSubModel *sk; // wskaÅºnik roboczy na submodel kwadratu
+    // Zliczamy kwadraty z trÃ³jkÄ…tami, iloÅ›Ä‡ tekstur oraz wierzchoÅ‚kÃ³w.
+    // IloÅ›Ä‡ kwadratÃ³w i iloÅ›Ä‡ tekstur okreÅ›li iloÅ›Ä‡ submodeli.
+    // int sub=0; //caÅ‚kowita iloÅ›Ä‡ submodeli
+    // int ver=0; //caÅ‚kowita iloÅ›Ä‡ wierzchoÅ‚kÃ³w
+    int i, j, k; // indeksy w pÄ™tli
     TGroundNode *Current;
-    float8 *ver; // trójk¹ty
-    TSubModel::iInstance = 0; // pozycja w tabeli wierzcho³ków liczona narastaj¹co
-    for (i = 0; i < iNumRects; ++i) // pêtla po wszystkich kwadratach kilometrowych
+    basic_vertex *ver; // trÃ³jkÄ…ty
+    TSubModel::iInstance = 0; // pozycja w tabeli wierzchoÅ‚kÃ³w liczona narastajÄ…co
+    for (i = 0; i < iNumRects; ++i) // pÄ™tla po wszystkich kwadratach kilometrowych
         for (j = 0; j < iNumRects; ++j)
             if (Rects[i][j].iNodeCount)
-            { // o ile s¹ jakieœ trójk¹ty w œrodku
+            { // o ile sÄ… jakieÅ› trÃ³jkÄ…ty w Å›rodku
                 sk = new TSubModel(); // nowy submodel dla kawadratu
-                // numer kwadratu XXXZZZ, przy czym X jest ujemne - XXX roœnie na wschód, ZZZ roœnie
-                // na pó³noc
-                sk->NameSet(AnsiString(1000 * (500 + i - iNumRects / 2) + (500 + j - iNumRects / 2))
-                                .c_str()); // nazwa=numer kwadratu
+                // numer kwadratu XXXZZZ, przy czym X jest ujemne - XXX roÅ›nie na wschÃ³d, ZZZ roÅ›nie
+                // na pÃ³Å‚noc
+                sk->NameSet( std::to_string(1000 * (500 + i - iNumRects / 2) + (500 + j - iNumRects / 2)).c_str() ); // nazwa=numer kwadratu
                 m->AddTo(NULL, sk); // dodanie submodelu dla kwadratu
                 for (Current = Rects[i][j].nRootNode; Current; Current = Current->nNext2)
                     if (Current->TextureID)
                         switch (Current->iType)
-                        { // pêtla po trójk¹tach - zliczanie wierzcho³ków, dodaje submodel dla
-                        // ka¿dej tekstury
+                        { // pÄ™tla po trÃ³jkÄ…tach - zliczanie wierzchoÅ‚kÃ³w, dodaje submodel dla
+                        // kaÅ¼dej tekstury
                         case GL_TRIANGLES:
                             Current->iVboPtr = sk->TriangleAdd(
                                 m, Current->TextureID,
-                                Current->iNumVerts); // zwiêkszenie iloœci trójk¹tów w submodelu
+                                Current->iNumVerts); // zwiÄ™kszenie iloÅ›ci trÃ³jkÄ…tÃ³w w submodelu
                             m->iNumVerts +=
-                                Current->iNumVerts; // zwiêkszenie ca³kowitej iloœci wierzcho³ków
+                                Current->iNumVerts; // zwiÄ™kszenie caÅ‚kowitej iloÅ›ci wierzchoÅ‚kÃ³w
                             break;
-                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiaæ na pojedyncze
-                            // trójk¹ty
+                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiaÄ‡ na pojedyncze trÃ³jkÄ…ty
                             break;
-                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiaæ na pojedyncze
-                            // trójk¹ty
+                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiaÄ‡ na pojedyncze trÃ³jkÄ…ty
                             break;
                         }
                 for (Current = Rects[i][j].nRootNode; Current; Current = Current->nNext2)
                     if (Current->TextureID)
                         switch (Current->iType)
-                        { // pêtla po trójk¹tach - dopisywanie wierzcho³ków
+                        { // pÄ™tla po trÃ³jkÄ…tach - dopisywanie wierzchoÅ‚kÃ³w
                         case GL_TRIANGLES:
-                            // ver=sk->TrianglePtr(TTexturesManager::GetName(Current->TextureID).c_str(),Current->iNumVerts);
-                            // //wskaŸnik na pocz¹tek
+                            // //wskaÅºnik na poczÄ…tek
                             ver = sk->TrianglePtr(Current->TextureID, Current->iVboPtr,
                                                   Current->Ambient, Current->Diffuse,
-                                                  Current->Specular); // wskaŸnik na pocz¹tek
-                            // WriteLog("Zapis "+AnsiString(Current->iNumVerts)+" trójk¹tów w
-                            // ("+AnsiString(i)+","+AnsiString(j)+") od
-                            // "+AnsiString(Current->iVboPtr)+" dla
-                            // "+AnsiString(Current->TextureID));
-                            Current->iVboPtr = -1; // bo to by³o tymczasowo u¿ywane
+                                                  Current->Specular); // wskaÅºnik na poczÄ…tek
+                            Current->iVboPtr = -1; // bo to byÅ‚o tymczasowo uÅ¼ywane
                             for (k = 0; k < Current->iNumVerts; ++k)
-                            { // przepisanie wspó³rzêdnych
-                                ver[k].Point.x = Current->Vertices[k].Point.x;
-                                ver[k].Point.y = Current->Vertices[k].Point.y;
-                                ver[k].Point.z = Current->Vertices[k].Point.z;
-                                ver[k].Normal.x = Current->Vertices[k].Normal.x;
-                                ver[k].Normal.y = Current->Vertices[k].Normal.y;
-                                ver[k].Normal.z = Current->Vertices[k].Normal.z;
-                                ver[k].tu = Current->Vertices[k].tu;
-                                ver[k].tv = Current->Vertices[k].tv;
+                            { // przepisanie wspÃ³Å‚rzÄ™dnych
+                                ver[ k ].position = Current->Vertices[ k ].position;
+                                ver[ k ].normal = Current->Vertices[ k ].normal;
+                                ver[ k ].texture = Current->Vertices[ k ].texture;
                             }
                             break;
-                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiaæ na pojedyncze
-                            // trójk¹ty
+                        case GL_TRIANGLE_STRIP: // na razie nie, bo trzeba przerabiaÄ‡ na pojedyncze trÃ³jkÄ…ty
                             break;
-                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiaæ na pojedyncze
-                            // trójk¹ty
+                        case GL_TRIANGLE_FAN: // na razie nie, bo trzeba przerabiaÄ‡ na pojedyncze trÃ³jkÄ…ty
                             break;
                         }
             }
-    m->SaveToBinFile(AnsiString("models\\" + Global::asTerrainModel).c_str());
+    m->SaveToBinFile(strdup(("models\\" + Global::asTerrainModel).c_str()));
+*/
 };
+
 //---------------------------------------------------------------------------
 
 void TGround::TrackBusyList()
-{ // wys³anie informacji o wszystkich zajêtych odcinkach
+{ // wysÅ‚anie informacji o wszystkich zajÄ™tych odcinkach
     TGroundNode *Current;
-    TTrack *Track;
-    AnsiString name;
     for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
-        if (!Current->asName.IsEmpty()) // musi byæ nazwa
-            if (Current->pTrack->iNumDynamics) // osi to chyba nie ma jak policzyæ
-                WyslijString(Current->asName, 8); // zajêty
+        if (!Current->asName.empty()) // musi byÄ‡ nazwa
+            if( false == Current->pTrack->Dynamics.empty() )
+                WyslijString(Current->asName, 8); // zajÄ™ty
 };
 //---------------------------------------------------------------------------
 
 void TGround::IsolatedBusyList()
-{ // wys³anie informacji o wszystkich odcinkach izolowanych
+{ // wysÅ‚anie informacji o wszystkich odcinkach izolowanych
     TIsolated *Current;
     for (Current = TIsolated::Root(); Current; Current = Current->Next())
-        if (Current->Busy()) // sprawdŸ zajêtoœæ
-            WyslijString(Current->asName, 11); // zajêty
+        if (Current->Busy()) // sprawdÅº zajÄ™toÅ›Ä‡
+            WyslijString(Current->asName, 11); // zajÄ™ty
         else
             WyslijString(Current->asName, 10); // wolny
-    WyslijString("none", 10); // informacja o koñcu listy
+    WyslijString("none", 10); // informacja o koÅ„cu listy
 };
 //---------------------------------------------------------------------------
 
-void TGround::IsolatedBusy(const AnsiString t)
-{ // wys³anie informacji o odcinku izolowanym (t)
-    // Ra 2014-06: do wyszukania u¿yæ drzewka nazw
+void TGround::IsolatedBusy(const std::string t)
+{ // wysÅ‚anie informacji o odcinku izolowanym (t)
+    // Ra 2014-06: do wyszukania uÅ¼yÄ‡ drzewka nazw
     TIsolated *Current;
     for (Current = TIsolated::Root(); Current; Current = Current->Next())
         if (Current->asName == t) // wyszukiwanie odcinka o nazwie (t)
-            if (Current->Busy()) // sprawdŸ zajetoœæ
+            if (Current->Busy()) // sprawdÅº zajetoÅ›Ä‡
             {
-                WyslijString(Current->asName, 11); // zajêty
+                WyslijString(Current->asName, 11); // zajÄ™ty
                 return; // nie sprawdzaj dalszych
             }
     WyslijString(t, 10); // wolny
@@ -5224,21 +4202,20 @@ void TGround::IsolatedBusy(const AnsiString t)
 
 void TGround::Silence(vector3 gdzie)
 { // wyciszenie wszystkiego w sektorach przed przeniesieniem kamery z (gdzie)
-    int tr, tc;
     TGroundNode *node;
-    int n = 2 * iNumSubRects; //(2*==2km) promieñ wyœwietlanej mapy w sektorach
+    int n = 2 * iNumSubRects; //(2*==2km) promieÅ„ wyÅ›wietlanej mapy w sektorach
     int c = GetColFromX(gdzie.x); // sektory wg dotychczasowej pozycji kamery
     int r = GetRowFromZ(gdzie.z);
     TSubRect *tmp;
-    int i, j, k;
-    // renderowanie czo³gowe dla obiektów aktywnych a niewidocznych
+	int i, j;
+    // renderowanie czoÅ‚gowe dla obiektÃ³w aktywnych a niewidocznych
     for (j = r - n; j <= r + n; j++)
         for (i = c - n; i <= c + n; i++)
             if ((tmp = FastGetSubRect(i, j)) != NULL)
-            { // tylko dŸwiêki interesuj¹
+            { // tylko dÅºwiÄ™ki interesujÄ…
                 for (node = tmp->nRenderHidden; node; node = node->nNext3)
                     node->RenderHidden();
-                tmp->RenderSounds(); // dŸwiêki pojazdów by siê przyda³o wy³¹czyæ
+                tmp->RenderSounds(); // dÅºwiÄ™ki pojazdÃ³w by siÄ™ przydaÅ‚o wyÅ‚Ä…czyÄ‡
             }
 };
 //---------------------------------------------------------------------------

@@ -12,32 +12,19 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "math.h"
+#include "stdafx.h"
 #include "RealSound.h"
 #include "Globals.h"
-#include "Timer.h"
 #include "Logs.h"
-#include "McZapkie\mctools.hpp"
+//#include "math.h"
+#include "Timer.h"
+#include "mczapkie/mctools.h"
+#include "usefull.h"
 
-TRealSound::TRealSound()
+TRealSound::TRealSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z, bool Dynamic,
+	bool freqmod, double rmin)
 {
-    pSound = NULL;
-    dSoundAtt = -1;
-    AM = 0.0;
-    AA = 0.0;
-    FM = 0.0;
-    FA = 0.0;
-    vSoundPosition.x = 0;
-    vSoundPosition.y = 0;
-    vSoundPosition.z = 0;
-    fDistance = fPreviousDistance = 0.0;
-    fFrequency = 22050.0; // czêstotliwoœæ samplowania pliku
-    iDoppler = 0; // normlanie jest za³¹czony; !=0 - modyfikacje
-    bLoopPlay = false; // dŸwiêk wy³¹czony
+	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
 }
 
 TRealSound::~TRealSound()
@@ -49,28 +36,27 @@ void TRealSound::Free()
 {
 }
 
-void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, double Y, double Z,
+void TRealSound::Init(std::string const &SoundName, double DistanceAttenuation, double X, double Y, double Z,
                       bool Dynamic, bool freqmod, double rmin)
 {
-    // Nazwa=SoundName; //to tak raczej nie zadzia³a, (SoundName) jest tymczasowe
+    // Nazwa=SoundName; //to tak raczej nie zadziaÅ‚a, (SoundName) jest tymczasowe
     pSound = TSoundsManager::GetFromName(SoundName, Dynamic, &fFrequency);
     if (pSound)
     {
         if (freqmod)
             if (fFrequency != 22050.0)
-            { // dla modulowanych nie mo¿e byæ zmiany mno¿nika, bo czêstotliwoœæ w nag³ówku by³¹
-                // ignorowana, a mog³a byæ inna ni¿ 22050
+            { // dla modulowanych nie moÅ¼e byÄ‡ zmiany mnoÅ¼nika, bo czÄ™stotliwoÅ›Ä‡ w nagÅ‚Ã³wku byÅ‚Ä…
+                // ignorowana, a mogÅ‚a byÄ‡ inna niÅ¼ 22050
                 fFrequency = 22050.0;
-                ErrorLog("Bad sound: " + AnsiString(SoundName) +
-                         ", as modulated, should have 22.05kHz in header");
+                ErrorLog("Bad sound: " + SoundName + ", as modulated, should have 22.05kHz in header");
             }
         AM = 1.0;
         pSound->SetVolume(DSBVOLUME_MIN);
     }
     else
-    { // nie ma dŸwiêku, to jest wysyp
+    { // nie ma dÅºwiÄ™ku, to jest wysyp
         AM = 0;
-        ErrorLog("Missed sound: " + AnsiString(SoundName));
+        ErrorLog("Missed sound: " + SoundName);
     }
     if (DistanceAttenuation > 0.0)
     {
@@ -79,7 +65,7 @@ void TRealSound::Init(char *SoundName, double DistanceAttenuation, double X, dou
         vSoundPosition.y = Y;
         vSoundPosition.z = Z;
         if (rmin < 0)
-            iDoppler = 1; // wy³¹czenie efektu Dopplera, np. dla dŸwiêku ptaków
+            iDoppler = 1; // wyÅ‚Ä…czenie efektu Dopplera, np. dla dÅºwiÄ™ku ptakÃ³w
     }
     else
         dSoundAtt = -1;
@@ -102,7 +88,7 @@ void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
     if (!pSound)
         return;
     long int vol;
-    double dS;
+	double dS = 0.0;
     // double Distance;
     DWORD stat;
     if ((Global::bSoundEnabled) && (AM != 0))
@@ -116,19 +102,19 @@ void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
             vSoundPosition = NewPosition;
             dS = dSoundAtt; //*dSoundAtt; //bo odleglosc podawana w kwadracie
             fDistance = ListenerDistance(Global::pCameraPosition);
-            if (ListenerInside) // os³abianie dŸwiêków z odleg³oœci¹
+            if (ListenerInside) // osÅ‚abianie dÅºwiÄ™kÃ³w z odlegÅ‚oÅ›ciÄ…
                 Volume = Volume * dS / (dS + fDistance);
             else
-                Volume = Volume * dS / (dS + 2 * fDistance); // podwójne dla ListenerInside=false
+                Volume = Volume * dS / (dS + 2 * fDistance); // podwÃ³jne dla ListenerInside=false
         }
         if (iDoppler) //
         { // Ra 2014-07: efekt Dopplera nie zawsze jest wskazany
-            // if (FreeFlyModeFlag) //gdy swobodne latanie - nie sprawdza siê to
-            fPreviousDistance = fDistance; // to efektu Dopplera nie bêdzie
+            // if (FreeFlyModeFlag) //gdy swobodne latanie - nie sprawdza siÄ™ to
+            fPreviousDistance = fDistance; // to efektu Dopplera nie bÄ™dzie
         }
-        if (Looping) // dŸwiêk zapêtlony mo¿na wy³¹czyæ i zostanie w³¹czony w miarê potrzeby
-            bLoopPlay = true; // dŸwiêk wy³¹czony
-        // McZapkie-010302 - babranie tylko z niezbyt odleglymi dŸwiêkami
+        if (Looping) // dÅºwiÄ™k zapÄ™tlony moÅ¼na wyÅ‚Ä…czyÄ‡ i zostanie wÅ‚Ä…czony w miarÄ™ potrzeby
+            bLoopPlay = true; // dÅºwiÄ™k wyÅ‚Ä…czony
+        // McZapkie-010302 - babranie tylko z niezbyt odleglymi dÅºwiÄ™kami
         if ((dSoundAtt == -1) || (fDistance < 20.0 * dS))
         {
             //   vol=2*Volume+1;
@@ -149,28 +135,28 @@ void TRealSound::Play(double Volume, int Looping, bool ListenerInside, vector3 N
                 pSound->Play(0, 0, Looping);
         }
         else // wylacz dzwiek bo daleko
-        { // Ra 2014-09: oddalanie siê nie mo¿e byæ powodem do wy³¹czenie dŸwiêku
+        { // Ra 2014-09: oddalanie siÄ™ nie moÅ¼e byÄ‡ powodem do wyÅ‚Ä…czenie dÅºwiÄ™ku
             /*
             // Ra: stara wersja, ale podobno lepsza
                pSound->GetStatus(&stat);
-               if (bLoopPlay) //jeœli zapêtlony, to zostanie ponownie w³¹czony, o ile znajdzie siê
-            bli¿ej
+               if (bLoopPlay) //jeÅ›li zapÄ™tlony, to zostanie ponownie wÅ‚Ä…czony, o ile znajdzie siÄ™
+            bliÅ¼ej
                 if (stat&DSBSTATUS_PLAYING)
                  pSound->Stop();
-            // Ra: wy³¹czy³em, bo podobno jest gorzej ni¿ wczeœniej
-               //ZiomalCl: dŸwiêk po wy³¹czeniu sam siê nie w³¹czy, gdy wrócimy w rejon odtwarzania
-               pSound->SetVolume(DSBVOLUME_MIN); //dlatego lepiej go wyciszyæ na czas oddalenia siê
+            // Ra: wyÅ‚Ä…czyÅ‚em, bo podobno jest gorzej niÅ¼ wczeÅ›niej
+               //ZiomalCl: dÅºwiÄ™k po wyÅ‚Ä…czeniu sam siÄ™ nie wÅ‚Ä…czy, gdy wrÃ³cimy w rejon odtwarzania
+               pSound->SetVolume(DSBVOLUME_MIN); //dlatego lepiej go wyciszyÄ‡ na czas oddalenia siÄ™
                pSound->GetStatus(&stat);
                if (!(stat&DSBSTATUS_PLAYING))
-                pSound->Play(0,0,Looping); //ZiomalCl: w³¹czenie odtwarzania rownie¿ i tu, gdy¿
-            jesli uruchamiamy dŸwiêk poza promieniem, nie uruchomi siê on w ogóle
+                pSound->Play(0,0,Looping); //ZiomalCl: wÅ‚Ä…czenie odtwarzania rownieÅ¼ i tu, gdyÅ¼
+            jesli uruchamiamy dÅºwiÄ™k poza promieniem, nie uruchomi siÄ™ on w ogÃ³le
             */
         }
     }
 };
 
 void TRealSound::Start(){
-    // w³¹czenie dŸwiêku
+    // wÅ‚Ä…czenie dÅºwiÄ™ku
 
 };
 
@@ -180,7 +166,7 @@ void TRealSound::Stop()
     if (pSound)
         if ((Global::bSoundEnabled) && (AM != 0))
         {
-            bLoopPlay = false; // dŸwiêk wy³¹czony
+            bLoopPlay = false; // dÅºwiÄ™k wyÅ‚Ä…czony
             pSound->GetStatus(&stat);
             if (stat & DSBSTATUS_PLAYING)
                 pSound->Stop();
@@ -190,8 +176,8 @@ void TRealSound::Stop()
 void TRealSound::AdjFreq(double Freq, double dt) // McZapkie TODO: dorobic tu efekt Dopplera
 // Freq moze byc liczba dodatnia mniejsza od 1 lub wieksza od 1
 {
-    float df, Vlist, Vsrc;
-    if ((Global::bSoundEnabled) && (AM != 0))
+	float df, Vlist;
+    if ((Global::bSoundEnabled) && (AM != 0) && (pSound != nullptr))
     {
         if (dt > 0)
         // efekt Dopplera
@@ -204,15 +190,13 @@ void TRealSound::AdjFreq(double Freq, double dt) // McZapkie TODO: dorobic tu ef
         if (Timer::GetSoundTimer())
         {
             df = fFrequency * df; // TODO - brac czestotliwosc probkowania z wav
-            pSound->SetFrequency((df < DSBFREQUENCY_MIN ?
-                                      DSBFREQUENCY_MIN :
-                                      (df > DSBFREQUENCY_MAX ? DSBFREQUENCY_MAX : df)));
+            pSound->SetFrequency( clamp( df, static_cast<float>(DSBFREQUENCY_MIN), static_cast<float>(DSBFREQUENCY_MAX) ) );
         }
     }
 }
 
 double TRealSound::GetWaveTime() // McZapkie: na razie tylko dla 22KHz/8bps
-{ // u¿ywana do pomiaru czasu dla dŸwiêków z pocz¹tkiem i koñcem
+{ // uÅ¼ywana do pomiaru czasu dla dÅºwiÄ™kÃ³w z poczÄ…tkiem i koÅ„cem
     if (!pSound)
         return 0.0;
     double WaveTime;
@@ -243,58 +227,52 @@ int TRealSound::GetStatus()
 
 void TRealSound::ResetPosition()
 {
-    if (pSound) // Ra: znowu jakiœ badziew!
+    if (pSound) // Ra: znowu jakiÅ› badziew!
         pSound->SetCurrentPosition(0);
 }
 
-void TTextSound::Init(char *SoundName, double SoundAttenuation, double X, double Y, double Z,
+TTextSound::TTextSound(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
+	bool Dynamic, bool freqmod, double rmin)
+	: TRealSound(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin)
+{
+	Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
+}
+
+void TTextSound::Init(std::string const &SoundName, double SoundAttenuation, double X, double Y, double Z,
                       bool Dynamic, bool freqmod, double rmin)
 { // dodatkowo doczytuje plik tekstowy
-    TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
+    //TRealSound::Init(SoundName, SoundAttenuation, X, Y, Z, Dynamic, freqmod, rmin);
     fTime = GetWaveTime();
-    AnsiString txt = AnsiString(SoundName);
-    txt.Delete(txt.Length() - 3, 4); // obciêcie rozszerzenia
-    for (int i = txt.Length(); i > 0; --i)
+    std::string txt(SoundName);
+	txt.erase( txt.rfind( '.' ) ); // obciÄ™cie rozszerzenia
+    for (size_t i = txt.length(); i > 0; --i)
         if (txt[i] == '/')
             txt[i] = '\\'; // bo nie rozumi
-    txt += "-" + Global::asLang + ".txt"; // ju¿ mo¿e byæ w ró¿nych jêzykach
+    txt += "-" + Global::asLang + ".txt"; // juÅ¼ moÅ¼e byÄ‡ w rÃ³Å¼nych jÄ™zykach
     if (!FileExists(txt))
-        txt = "sounds\\" + txt; //œcie¿ka mo¿e nie byæ podana
+        txt = "sounds\\" + txt; //Å›cieÅ¼ka moÅ¼e nie byÄ‡ podana
     if (FileExists(txt))
     { // wczytanie
-        TFileStream *ts = new TFileStream(txt, fmOpenRead);
+/*      TFileStream *ts = new TFileStream(txt, fmOpenRead);
         asText = AnsiString::StringOfChar(' ', ts->Size);
         ts->Read(asText.c_str(), ts->Size);
         delete ts;
-    }
+*/		std::ifstream inputfile( txt );
+		asText.assign( std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() );
+	}
 };
 void TTextSound::Play(double Volume, int Looping, bool ListenerInside, vector3 NewPosition)
 {
-    if (!asText.IsEmpty())
-    { // jeœli ma powi¹zany tekst
+    if (false == asText.empty())
+    { // jeÅ›li ma powiÄ…zany tekst
         DWORD stat;
         pSound->GetStatus(&stat);
-        if (!(stat & DSBSTATUS_PLAYING)) // jeœli nie jest aktualnie odgrywany
-        {
-            int i;
-            AnsiString t = asText;
-            do
-            { // na razie zrobione jakkolwiek, docelowo przenieœæ teksty do tablicy nazw
-                i = t.Pos("\r"); // znak nowej linii
-                if (!i)
-                    Global::tranTexts.Add(t.c_str(), fTime, true);
-                else
-                {
-                    Global::tranTexts.Add(t.SubString(1, i - 1).c_str(), fTime, true);
-                    t.Delete(1, i);
-                    while (t.IsEmpty() ? false : (unsigned char)(t[1]) < 33)
-                        t.Delete(1, 1);
-                }
-            } while (i > 0);
+        if (!(stat & DSBSTATUS_PLAYING)) {
+            // jeÅ›li nie jest aktualnie odgrywany
+            Global::tranTexts.Add( asText, fTime, true );
         }
     }
     TRealSound::Play(Volume, Looping, ListenerInside, NewPosition);
 };
 
 //---------------------------------------------------------------------------
-#pragma package(smart_init)

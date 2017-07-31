@@ -7,81 +7,60 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TractionH
-#define TractionH
+#pragma once
 
-#include "opengl/glew.h"
+#include <string>
+#include "GL/glew.h"
 #include "dumb3d.h"
-#include "VBO.h"
-
-using namespace Math3D;
+#include "openglgeometrybank.h"
 
 class TTractionPowerSource;
 
 class TTraction
-{ // drut zasilaj¹cy, dla wskaŸników u¿ywaæ przedrostka "hv"
-  private:
-    // vector3 vUp,vFront,vLeft;
-    // matrix4x4 mMatrix;
-    // matryca do wyliczania pozycji drutu w zale¿noœci od [X,Y,k¹t] w scenerii:
-    // - x: odleg³oœæ w bok (czy odbierak siê nie zsun¹³)
-    // - y: przyjmuje wartoœæ <0,1>, jeœli pod drutem (wzd³u¿)
-    // - z: wysokoœæ bezwzglêdna drutu w danym miejsu
+{ // drut zasilajÄ…cy, dla wskaÅºnikÃ³w uÅ¼ywaÄ‡ przedrostka "hv"
+    friend class opengl_renderer;
+
   public: // na razie
-    TTractionPowerSource *psPower[2]; // najbli¿sze zasilacze z obu kierunków
-    TTractionPowerSource *psPowered; // ustawione tylko dla bezpoœrednio zasilanego przês³a
-    TTraction *hvNext[2]; //³¹czenie drutów w sieæ
-    int iNext[2]; // do którego koñca siê ³¹czy
-    int iLast; // ustawiony bit 0, jeœli jest ostatnim drutem w sekcji; bit1 - przedostatni
+    TTractionPowerSource *psPower[ 2 ] { nullptr, nullptr }; // najbliÅ¼sze zasilacze z obu kierunkÃ³w
+    TTractionPowerSource *psPowered { nullptr }; // ustawione tylko dla bezpoÅ›rednio zasilanego przÄ™sÅ‚a
+    TTraction *hvNext[ 2 ] { nullptr, nullptr }; //Å‚Ä…czenie drutÃ³w w sieÄ‡
+    int iNext[ 2 ] { 0, 0 }; // do ktÃ³rego koÅ„ca siÄ™ Å‚Ä…czy
+    int iLast { 1 }; //Å¼e niby ostatni drut // ustawiony bit 0, jeÅ›li jest ostatnim drutem w sekcji; bit1 - przedostatni
   public:
-    GLuint uiDisplayList;
-    vector3 pPoint1, pPoint2, pPoint3, pPoint4;
-    vector3 vParametric; // wspó³czynniki równania parametrycznego odcinka
-    double fHeightDifference; //,fMiddleHeight;
-    // int iCategory,iMaterial,iDamageFlag;
-    // float fU,fR,fMaxI,fWireThickness;
-    int iNumSections;
-    int iLines; // ilosc linii dla VBO
-    float NominalVoltage;
-    float MaxCurrent;
-    float fResistivity; //[om/m], przeliczone z [om/km]
-    DWORD Material; // 1: Cu, 2: Al
-    float WireThickness;
-    DWORD DamageFlag; // 1: zasniedziale, 128: zerwana
-    int Wires;
-    float WireOffset;
-    AnsiString asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
-    TTractionPowerSource *
-        psSection; // zasilacz (opcjonalnie mo¿e to byæ pulpit steruj¹cy EL2 w hali!)
-    AnsiString asParallel; // nazwa przês³a, z którym mo¿e byæ bie¿nia wspólna
-    TTraction *hvParallel; // jednokierunkowa i zapêtlona lista przêse³ ewentualnej bie¿ni wspólnej
-    float fResistance[2]; // rezystancja zastêpcza do punktu zasilania (0: przês³o zasilane, <0: do
-    // policzenia)
-    int iTries;
-    // bool bVisible;
-    // DWORD dwFlags;
+    glm::dvec3 pPoint1, pPoint2, pPoint3, pPoint4;
+    glm::dvec3 vParametric; // wspÃ³Å‚czynniki rÃ³wnania parametrycznego odcinka
+    double fHeightDifference { 0.0 }; //,fMiddleHeight;
+    int iNumSections { 0 };
+    float NominalVoltage { 0.0f };
+    float MaxCurrent { 0.0f };
+    float fResistivity { 0.0f }; //[om/m], przeliczone z [om/km]
+    DWORD Material { 0 }; // 1: Cu, 2: Al
+    float WireThickness { 0.0f };
+    DWORD DamageFlag { 0 }; // 1: zasniedziale, 128: zerwana
+    int Wires { 2 };
+    float WireOffset { 0.0f };
+    std::string asPowerSupplyName; // McZapkie: nazwa podstacji trakcyjnej
+    TTractionPowerSource *psSection { nullptr }; // zasilacz (opcjonalnie moÅ¼e to byÄ‡ pulpit sterujÄ…cy EL2 w hali!)
+    std::string asParallel; // nazwa przÄ™sÅ‚a, z ktÃ³rym moÅ¼e byÄ‡ bieÅ¼nia wspÃ³lna
+    TTraction *hvParallel { nullptr }; // jednokierunkowa i zapÄ™tlona lista przÄ™seÅ‚ ewentualnej bieÅ¼ni wspÃ³lnej
+    float fResistance[ 2 ] { -1.0f, -1.0f }; // rezystancja zastÄ™pcza do punktu zasilania (0: przÄ™sÅ‚o zasilane, <0: do policzenia)
+    int iTries { 0 };
+    int PowerState { 0 }; // type of incoming power, if any
+    // visualization data
+    geometry_handle m_geometry;
 
-    void Optimize();
-
-    TTraction();
-    ~TTraction();
-
-    //    virtual void InitCenter(vector3 Angles, vector3 pOrigin);
-    //    virtual bool Hit(double x, double z, vector3 &hitPoint, vector3 &hitDirection)
-    //    { return TNode::Hit(x,z,hitPoint,hitDirection); };
-    //  virtual bool Move(double dx, double dy, double dz) { return false; };
-    //    virtual void SelectedRender();
-    void RenderDL(float mgn);
-    int RaArrayPrepare();
-    void RaArrayFill(CVertNormTex *Vert);
-    void RenderVBO(float mgn, int iPtr);
-    int TestPoint(vector3 *Point);
+    // creates geometry data in specified geometry bank. returns: number of created elements, or NULL
+    // NOTE: deleting nodes doesn't currently release geometry data owned by the node. TODO: implement erasing individual geometry chunks and banks
+    std::size_t create_geometry( geometrybank_handle const &Bank, glm::dvec3 const &Origin );
+    int TestPoint(glm::dvec3 const &Point);
     void Connect(int my, TTraction *with, int to);
     void Init();
     bool WhereIs();
-    void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = NULL);
+    void ResistanceCalc(int d = -1, double r = 0, TTractionPowerSource *ps = nullptr);
     void PowerSet(TTractionPowerSource *ps);
     double VoltageGet(double u, double i);
+private:
+    glm::vec3 wire_color() const;
 };
+
 //---------------------------------------------------------------------------
-#endif

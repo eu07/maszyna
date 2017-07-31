@@ -7,12 +7,8 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "AirCoupler.h"
-#include "Timer.h"
 
 TAirCoupler::TAirCoupler()
 {
@@ -24,7 +20,7 @@ TAirCoupler::~TAirCoupler()
 }
 
 int TAirCoupler::GetStatus()
-{ // zwraca 1, jeœli istnieje model prosty, 2 gdy skoœny
+{ // zwraca 1, jeÅ›li istnieje model prosty, 2 gdy skoÅ›ny
     int x = 0;
     if (pModelOn)
         x = 1;
@@ -34,7 +30,7 @@ int TAirCoupler::GetStatus()
 }
 
 void TAirCoupler::Clear()
-{ // zerowanie wskaŸników
+{ // zerowanie wskaÅºnikÃ³w
     pModelOn = NULL;
     pModelOff = NULL;
     pModelxOn = NULL;
@@ -42,20 +38,22 @@ void TAirCoupler::Clear()
     bxOn = false;
 }
 
-void TAirCoupler::Init(AnsiString asName, TModel3d *pModel)
+void TAirCoupler::Init(std::string const &asName, TModel3d *pModel)
 { // wyszukanie submodeli
     if (!pModel)
-        return; // nie ma w czym szukaæ
-    pModelOn = pModel->GetFromName(AnsiString(asName + "_on").c_str()); // po³¹czony na wprost
-    pModelOff = pModel->GetFromName(AnsiString(asName + "_off").c_str()); // odwieszony
-    pModelxOn = pModel->GetFromName(AnsiString(asName + "_xon").c_str()); // po³¹czony na skos
+        return; // nie ma w czym szukaÄ‡
+    pModelOn = pModel->GetFromName( (asName + "_on").c_str() ); // poÅ‚Ä…czony na wprost
+    pModelOff = pModel->GetFromName( (asName + "_off").c_str() ); // odwieszony
+    pModelxOn = pModel->GetFromName( (asName + "_xon").c_str() ); // poÅ‚Ä…czony na skos
 }
 
-void TAirCoupler::Load(TQueryParserComp *Parser, TModel3d *pModel)
+void TAirCoupler::Load(cParser *Parser, TModel3d *pModel)
 {
-    AnsiString str = Parser->GetNextSymbol().LowerCase();
-    if (pModel)
-        Init(str, pModel);
+	std::string name = Parser->getToken<std::string>();
+	if( pModel ) {
+
+		Init( name, pModel );
+	}
     else
     {
         pModelOn = NULL;
@@ -78,5 +76,3 @@ void TAirCoupler::Update()
 }
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

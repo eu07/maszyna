@@ -7,10 +7,12 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef CameraH
-#define CameraH
+#pragma once
 
 #include "dumb3d.h"
+#include "dynobj.h"
+#include "command.h"
+
 using namespace Math3D;
 
 //---------------------------------------------------------------------------
@@ -18,23 +20,32 @@ enum TCameraType
 { // tryby pracy kamery
     tp_Follow, // jazda z pojazdem
     tp_Free, // stoi na scenerii
-    tp_Satelite // widok z góry (nie u¿ywany)
+    tp_Satelite // widok z gÃ³ry (nie uÅ¼ywany)
 };
 
 class TCamera
 {
   private:
-    vector3 pOffset; // nie u¿ywane (zerowe)
+    struct keys {
+        bool forward{ false };
+        bool back{ false };
+        bool left{ false };
+        bool right{ false };
+        bool up{ false };
+        bool down{ false };
+        bool run{ false };
+    } m_keys;
+    glm::dvec3 m_moverate;
+
   public: // McZapkie: potrzebuje do kiwania na boki
     double Pitch;
-    double Yaw; // w œrodku: 0=do przodu; na zewn¹trz: 0=na po³udnie
+    double Yaw; // w Å›rodku: 0=do przodu; na zewnÄ…trz: 0=na poÅ‚udnie
     double Roll;
     TCameraType Type;
-    vector3 Pos; // wspó³rzêdne obserwatora
-    vector3 LookAt; // wspó³rzêdne punktu, na który ma patrzeæ
+    vector3 Pos; // wspÃ³Å‚rzÄ™dne obserwatora
+    vector3 LookAt; // wspÃ³Å‚rzÄ™dne punktu, na ktÃ³ry ma patrzeÄ‡
     vector3 vUp;
     vector3 Velocity;
-    vector3 OldVelocity; // lepiej usredniac zeby nie bylo rozbiezne przy malym FPS
     vector3 CrossPos;
     double CrossDist;
     void Init(vector3 NPos, vector3 NAngle);
@@ -42,16 +53,14 @@ class TCamera
     {
         Pitch = Yaw = Roll = 0;
     };
-    void OnCursorMove(double x, double y);
+    void OnCursorMove(double const x, double const y);
+    void OnCommand( command_data const &Command );
     void Update();
     vector3 GetDirection();
-    // vector3 inline GetCrossPos() { return Pos+GetDirection()*CrossDist+CrossPos; };
-
     bool SetMatrix();
-    void SetCabMatrix(vector3 &p);
+    bool SetMatrix(glm::dmat4 &Matrix);
     void RaLook();
     void Stop();
     // bool GetMatrix(matrix4x4 &Matrix);
     vector3 PtNext, PtPrev;
 };
-#endif

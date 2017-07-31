@@ -11,157 +11,157 @@ http://mozilla.org/MPL/2.0/.
     Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 */
-
-#include "system.hpp"
-#pragma hdrstop
+#include "stdafx.h"
 
 #include "Globals.h"
-#include "QueryParserComp.hpp"
 #include "usefull.h"
-#include "Mover.h"
-#include "Driver.h"
+//#include "Mover.h"
 #include "Console.h"
-#include <Controls.hpp> //do odczytu daty
+#include "Driver.h"
+#include "Logs.h"
+#include "PyInt.h"
 #include "World.h"
+#include "parser.h"
 
 // namespace Global {
 
-// parametry do u¿ytku wewnêtrznego
+// parametry do uÅ¼ytku wewnÄ™trznego
 // double Global::tSinceStart=0;
 TGround *Global::pGround = NULL;
-// char Global::CreatorName1[30]="2001-2004 Maciej Czapkiewicz <McZapkie>";
-// char Global::CreatorName2[30]="2001-2003 Marcin WoŸniak <Marcin_EU>";
-// char Global::CreatorName3[20]="2004-2005 Adam Bugiel <ABu>";
-// char Global::CreatorName4[30]="2004 Arkadiusz Œlusarczyk <Winger>";
-// char Global::CreatorName5[30]="2003-2009 £ukasz Kirchner <Nbmx>";
-AnsiString Global::asCurrentSceneryPath = "scenery/";
-AnsiString Global::asCurrentTexturePath = AnsiString(szTexturePath);
-AnsiString Global::asCurrentDynamicPath = "";
-int Global::iSlowMotion =
-    0; // info o malym FPS: 0-OK, 1-wy³¹czyæ multisampling, 3-promieñ 1.5km, 7-1km
+std::string Global::AppName{ "EU07" };
+std::string Global::asCurrentSceneryPath = "scenery/";
+std::string Global::asCurrentTexturePath = std::string(szTexturePath);
+std::string Global::asCurrentDynamicPath = "";
+int Global::iSlowMotion = 0; // info o malym FPS: 0-OK, 1-wyÅ‚Ä…czyÄ‡ multisampling, 3-promieÅ„ 1.5km, 7-1km
 TDynamicObject *Global::changeDynObj = NULL; // info o zmianie pojazdu
-bool Global::detonatoryOK; // info o nowych detonatorach
 double Global::ABuDebug = 0;
-AnsiString Global::asSky = "1";
-double Global::fOpenGL = 0.0; // wersja OpenGL - do sprawdzania obecnoœci rozszerzeñ
-bool Global::bOpenGL_1_5 = false; // czy s¹ dostêpne funkcje OpenGL 1.5
-double Global::fLuminance = 1.0; // jasnoœæ œwiat³a do automatycznego zapalania
-int Global::iReCompile = 0; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
-HWND Global::hWnd = NULL; // uchwyt okna
+std::string Global::asSky = "1";
+double Global::fLuminance = 1.0; // jasnoÅ›Ä‡ Å›wiatÅ‚a do automatycznego zapalania
+float Global::SunAngle = 0.0f;
+int Global::ScreenWidth = 1;
+int Global::ScreenHeight = 1;
+float Global::ZoomFactor = 1.0f;
+float Global::FieldOfView = 45.0f;
+GLFWwindow *Global::window;
+bool Global::shiftState;
+bool Global::ctrlState;
 int Global::iCameraLast = -1;
-AnsiString Global::asRelease = "16.0.1172.481";
-AnsiString Global::asVersion =
-    "Compilation 2016-08-24, release " + Global::asRelease + "."; // tutaj, bo wysy³any
-int Global::iViewMode = 0; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty
-int Global::iTextMode = 0; // tryb pracy wyœwietlacza tekstowego
-int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0,
-                               0, 0, 0, 0, 0, 0}; // numer ekranu wyœwietlacza tekstowego
-double Global::fSunDeclination = 0.0; // deklinacja S³oñca
-double Global::fTimeAngleDeg = 0.0; // godzina w postaci k¹ta
-float Global::fClockAngleDeg[6]; // k¹ty obrotu cylindrów dla zegara cyfrowego
-char *Global::szTexturesTGA[4] = {"tga", "dds", "tex", "bmp"}; // lista tekstur od TGA
-char *Global::szTexturesDDS[4] = {"dds", "tga", "tex", "bmp"}; // lista tekstur od DDS
-int Global::iKeyLast = 0; // ostatnio naciœniêty klawisz w celu logowania
-GLuint Global::iTextureId = 0; // ostatnio u¿yta tekstura 2D
-int Global::iPause = 0x10; // globalna pauza ruchu
+std::string Global::asVersion = "couldn't retrieve version string";
+bool Global::ControlPicking = false; // indicates controls pick mode is enabled
+bool Global::InputMouse = true; // whether control pick mode can be activated
+int Global::iTextMode = 0; // tryb pracy wyÅ›wietlacza tekstowego
+int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyÅ›wietlacza tekstowego
+double Global::fSunDeclination = 0.0; // deklinacja SÅ‚oÅ„ca
+double Global::fTimeAngleDeg = 0.0; // godzina w postaci kÄ…ta
+float Global::fClockAngleDeg[6]; // kÄ…ty obrotu cylindrÃ³w dla zegara cyfrowego
+std::string Global::szTexturesTGA = ".tga"; // lista tekstur od TGA
+std::string Global::szTexturesDDS = ".dds"; // lista tekstur od DDS
+int Global::iKeyLast = 0; // ostatnio naciÅ›niÄ™ty klawisz w celu logowania
+int Global::iPause = 0; // 0x10; // globalna pauza ruchu
 bool Global::bActive = true; // czy jest aktywnym oknem
-int Global::iErorrCounter = 0; // licznik sprawdzañ do œledzenia b³êdów OpenGL
-int Global::iTextures = 0; // licznik u¿ytych tekstur
+int Global::iErorrCounter = 0; // licznik sprawdzaÅ„ do Å›ledzenia bÅ‚Ä™dÃ³w OpenGL
+int Global::iTextures = 0; // licznik uÅ¼ytych tekstur
 TWorld *Global::pWorld = NULL;
-Queryparsercomp::TQueryParserComp *Global::qParser = NULL;
 cParser *Global::pParser = NULL;
-int Global::iSegmentsRendered = 90; // iloœæ segmentów do regulacji wydajnoœci
+int Global::iSegmentsRendered = 90; // iloÅ›Ä‡ segmentÃ³w do regulacji wydajnoÅ›ci
 TCamera *Global::pCamera = NULL; // parametry kamery
-TDynamicObject *Global::pUserDynamic = NULL; // pojazd u¿ytkownika, renderowany bez trzêsienia
-bool Global::bSmudge = false; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
-AnsiString Global::asTranscript[5]; // napisy na ekranie (widoczne)
-TTranscripts Global::tranTexts; // obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
+TDynamicObject *Global::pUserDynamic = NULL; // pojazd uÅ¼ytkownika, renderowany bez trzÄ™sienia
+/*
+std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
+*/
+TTranscripts Global::tranTexts; // obiekt obsÅ‚ugujÄ…cy stenogramy dÅºwiÄ™kÃ³w na ekranie
+float4 Global::UITextColor = float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
 // parametry scenerii
 vector3 Global::pCameraPosition;
 double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
-vector3 Global::pFreeCameraInit[10];
-vector3 Global::pFreeCameraInitAngle[10];
-double Global::fFogStart = 1700;
-double Global::fFogEnd = 2000;
-float Global::Background[3] = { 0.2, 0.4, 0.33 }; 
+std::vector<vector3> Global::FreeCameraInit;
+std::vector<vector3> Global::FreeCameraInitAngle;
+float Global::Background[3] = {0.2f, 0.4f, 0.33f};
 GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
-GLfloat Global::ambientDayLight[] = {0.40f, 0.40f, 0.45f, 1.0f}; // robocze
-GLfloat Global::diffuseDayLight[] = {0.55f, 0.54f, 0.50f, 1.0f};
-GLfloat Global::specularDayLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
-GLfloat Global::ambientLight[] = {0.80f, 0.80f, 0.85f, 1.0f}; // sta³e
-GLfloat Global::diffuseLight[] = {0.85f, 0.85f, 0.80f, 1.0f};
-GLfloat Global::specularLight[] = {0.95f, 0.94f, 0.90f, 1.0f};
-GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
-GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
-GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //œladowe
-GLfloat Global::lightPos[4];
-bool Global::bRollFix = true; // czy wykonaæ przeliczanie przechy³ki
-bool Global::bJoinEvents = false; // czy grupowaæ eventy o tych samych nazwach
-int Global::iHiddenEvents = 1; // czy ³¹czyæ eventy z torami poprzez nazwê toru
+double Global::fFogStart = 1700;
+double Global::fFogEnd = 2000;
+float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+opengl_light Global::DayLight;
+int Global::DynamicLightCount { 3 };
+bool Global::ScaleSpecularValues { true };
+bool Global::RenderShadows { false };
+Global::shadowtune_t Global::shadowtune = { 2048, 200.0f, 150.0f, 100.0f };
+bool Global::bRollFix = true; // czy wykonaÄ‡ przeliczanie przechyÅ‚ki
+bool Global::bJoinEvents = false; // czy grupowaÄ‡ eventy o tych samych nazwach
+int Global::iHiddenEvents = 1; // czy Å‚Ä…czyÄ‡ eventy z torami poprzez nazwÄ™ toru
 
-// parametry u¿ytkowe (jak komu pasuje)
+// parametry uÅ¼ytkowe (jak komu pasuje)
 int Global::Keys[MaxKeys];
+bool Global::RealisticControlMode{ false };
 int Global::iWindowWidth = 800;
 int Global::iWindowHeight = 600;
-float Global::fDistanceFactor = 768.0; // baza do przeliczania odleg³oœci dla LoD
+float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odlegÅ‚oÅ›ci dla LoD
 int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
+bool Global::InputGamepad{ true };
 bool Global::bFreeFly = false;
 bool Global::bFullScreen = false;
+bool Global::VSync{ false };
 bool Global::bInactivePause = true; // automatyczna pauza, gdy okno nieaktywne
-float Global::fMouseXScale = 1.5;
-float Global::fMouseYScale = 0.2;
-char Global::szSceneryFile[256] = "td.scn";
-AnsiString Global::asHumanCtrlVehicle = "EU07-424";
-int Global::iMultiplayer = 0; // blokada dzia³ania niektórych funkcji na rzecz komunikacji
-double Global::fMoveLight = -1; // ruchome œwiat³o
-double Global::fLatitudeDeg = 52.0; // szerokoœæ geograficzna
-float Global::fFriction = 1.0; // mno¿nik tarcia - KURS90
+float Global::fMouseXScale = 1.5f;
+float Global::fMouseYScale = 0.2f;
+std::string Global::SceneryFile = "td.scn";
+std::string Global::asHumanCtrlVehicle = "EU07-424";
+int Global::iMultiplayer = 0; // blokada dziaÅ‚ania niektÃ³rych funkcji na rzecz komunikacji
+double Global::fMoveLight = -1; // ruchome Å›wiatÅ‚o
+bool Global::FakeLight{ false }; // toggle between fixed and dynamic daylight
+double Global::fLatitudeDeg = 52.0; // szerokoÅ›Ä‡ geograficzna
+float Global::fFriction = 1.0; // mnoÅ¼nik tarcia - KURS90
 double Global::fBrakeStep = 1.0; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-AnsiString Global::asLang = "pl"; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
+std::string Global::asLang = "pl"; // domyÅ›lny jÄ™zyk - http://tools.ietf.org/html/bcp47
 
-// parametry wydajnoœciowe (np. regulacja FPS, szybkoœæ wczytywania)
+// parametry wydajnoÅ›ciowe (np. regulacja FPS, szybkoÅ›Ä‡ wczytywania)
 bool Global::bAdjustScreenFreq = true;
 bool Global::bEnableTraction = true;
 bool Global::bLoadTraction = true;
 bool Global::bLiveTraction = true;
-int Global::iDefaultFiltering = 9; // domyœlne rozmywanie tekstur TGA bez alfa
-int Global::iBallastFiltering = 9; // domyœlne rozmywanie tekstur podsypki
-int Global::iRailProFiltering = 5; // domyœlne rozmywanie tekstur szyn
-int Global::iDynamicFiltering = 5; // domyœlne rozmywanie tekstur pojazdów
-bool Global::bUseVBO = false; // czy jest VBO w karcie graficznej (czy u¿yæ)
-GLint Global::iMaxTextureSize = 16384; // maksymalny rozmiar tekstury
-bool Global::bSmoothTraction = false; // wyg³adzanie drutów starym sposobem
-char **Global::szDefaultExt = Global::szTexturesDDS; // domyœlnie od DDS
+float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic filtering. TODO: move it to renderer object
+int Global::iDefaultFiltering = 9; // domyÅ›lne rozmywanie tekstur TGA bez alfa
+int Global::iBallastFiltering = 9; // domyÅ›lne rozmywanie tekstur podsypki
+int Global::iRailProFiltering = 5; // domyÅ›lne rozmywanie tekstur szyn
+int Global::iDynamicFiltering = 5; // domyÅ›lne rozmywanie tekstur pojazdÃ³w
+bool Global::bUseVBO = false; // czy jest VBO w karcie graficznej (czy uÅ¼yÄ‡)
+std::string Global::LastGLError;
+GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
+bool Global::bSmoothTraction = false; // wygÅ‚adzanie drutÃ³w starym sposobem
+std::string Global::szDefaultExt = Global::szTexturesDDS; // domyÅ›lnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+bool Global::DLFont{ false }; // switch indicating presence of basic font
 bool Global::bGlutFont = false; // czy tekst generowany przez GLUT32.DLL
-int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
-int Global::iSlowMotionMask = -1; // maska wy³¹czanych w³aœciwoœci dla zwiêkszenia FPS
-int Global::iModifyTGA = 7; // czy korygowaæ pliki TGA dla szybszego wczytywania
-// bool Global::bTerrainCompact=true; //czy zapisaæ teren w pliku
+//int Global::iConvertModels = 7; // tworzenie plikÃ³w binarnych, +2-optymalizacja transformÃ³w
+int Global::iConvertModels{ 0 }; // temporary override, to prevent generation of .e3d not compatible with old exe
+int Global::iSlowMotionMask = -1; // maska wyÅ‚Ä…czanych wÅ‚aÅ›ciwoÅ›ci dla zwiÄ™kszenia FPS
+int Global::iModifyTGA = 7; // czy korygowaÄ‡ pliki TGA dla szybszego wczytywania
+// bool Global::bTerrainCompact=true; //czy zapisaÄ‡ teren w pliku
 TAnimModel *Global::pTerrainCompact = NULL; // do zapisania terenu w pliku
-AnsiString Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
-double Global::fFpsAverage = 20.0; // oczekiwana wartosæ FPS
+std::string Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
+double Global::fFpsAverage = 20.0; // oczekiwana wartosÄ‡ FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
-double Global::fFpsMin = 0.0; // dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
-double Global::fFpsMax = 0.0; // górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
-double Global::fFpsRadiusMax = 3000.0; // maksymalny promieñ renderowania
-int Global::iFpsRadiusMax = 225; // maksymalny promieñ renderowania
-double Global::fRadiusFactor = 1.1; // wspó³czynnik jednorazowej zmiany promienia scenerii
-bool Global::bOldSmudge = false; // U¿ywanie starej smugi
+double Global::fFpsMin = 30.0; // dolna granica FPS, przy ktÃ³rej promieÅ„ scenerii bÄ™dzie zmniejszany
+double Global::fFpsMax = 65.0; // gÃ³rna granica FPS, przy ktÃ³rej promieÅ„ scenerii bÄ™dzie zwiÄ™kszany
+double Global::fFpsRadiusMax = 3000.0; // maksymalny promieÅ„ renderowania
+int Global::iFpsRadiusMax = 225; // maksymalny promieÅ„ renderowania
+double Global::fRadiusFactor = 1.1; // wspÃ³Å‚czynnik jednorazowej zmiany promienia scenerii
+bool Global::bOldSmudge = false; // UÅ¼ywanie starej smugi
 
-// parametry testowe (do testowania scenerii i obiektów)
+// parametry testowe (do testowania scenerii i obiektÃ³w)
 bool Global::bWireFrame = false;
 bool Global::bSoundEnabled = true;
-int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
+int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torÃ³w
+bool Global::MultipleLogs{ false };
 bool Global::bManageNodes = true;
 bool Global::bDecompressDDS = false; // czy programowa dekompresja DDS
 
 // parametry do kalibracji
-// kolejno wspó³czynniki dla potêg 0, 1, 2, 3 wartoœci odczytanej z urz¹dzenia
+// kolejno wspÃ³Å‚czynniki dla potÄ™g 0, 1, 2, 3 wartoÅ›ci odczytanej z urzÄ…dzenia
 double Global::fCalibrateIn[6][6] = {{0, 1, 0, 0, 0, 0},
                                      {0, 1, 0, 0, 0, 0},
                                      {0, 1, 0, 0, 0, 0},
@@ -178,526 +178,876 @@ double Global::fCalibrateOut[7][6] = {{0, 1, 0, 0, 0, 0},
 double Global::fCalibrateOutMax[7] = {0, 0, 0, 0, 0, 0, 0};
 int Global::iCalibrateOutDebugInfo = -1;
 int Global::iPoKeysPWM[7] = {0, 1, 2, 3, 4, 5, 6};
-// parametry przejœciowe (do usuniêcia)
-// bool Global::bTimeChange=false; //Ra: ZiomalCl wy³¹czy³ star¹ wersjê nocy
-// bool Global::bRenderAlpha=true; //Ra: wywali³am tê flagê
+// parametry przejÅ›ciowe (do usuniÄ™cia)
+// bool Global::bTimeChange=false; //Ra: ZiomalCl wyÅ‚Ä…czyÅ‚ starÄ… wersjÄ™ nocy
+// bool Global::bRenderAlpha=true; //Ra: wywaliÅ‚am tÄ™ flagÄ™
 bool Global::bnewAirCouplers = true;
-bool Global::bDoubleAmbient = false; // podwójna jasnoœæ ambient
-double Global::fTimeSpeed = 1.0; // przyspieszenie czasu, zmienna do testów
+bool Global::bDoubleAmbient = false; // podwÃ³jna jasnoÅ›Ä‡ ambient
+double Global::fTimeSpeed = 1.0; // przyspieszenie czasu, zmienna do testÃ³w
 bool Global::bHideConsole = false; // hunter-271211: ukrywanie konsoli
-int Global::iBpp = 32; // chyba ju¿ nie u¿ywa siê kart, na których 16bpp coœ poprawi
+int Global::iBpp = 32; // chyba juÅ¼ nie uÅ¼ywa siÄ™ kart, na ktÃ³rych 16bpp coÅ› poprawi
+//randomizacja
+std::mt19937 Global::random_engine = std::mt19937(std::time(NULL));
+// maciek001: konfiguracja wstÄ™pna portu COM
+bool Global::bMWDmasterEnable = false;              // gÅ‚Ã³wne wÅ‚Ä…czenie portu!
+bool Global::bMWDdebugEnable = false;               // wÅ‚Ä…cz dodawanie do logu
+int Global::iMWDDebugMode = 0;                      // co ma wyÅ›wietlaÄ‡ w logu
+std::string Global::sMWDPortId = "COM1";             // nazwa portu z ktÃ³rego korzystamy
+unsigned long int Global::iMWDBaudrate = 9600;      // prÄ™dkoÅ›Ä‡ transmisji danych
+bool Global::bMWDInputEnable = false;               // wÅ‚Ä…cz wejÅ›cia
+bool Global::bMWDBreakEnable = false;               // wÅ‚Ä…cz wejÅ›cia analogowe
+double Global::fMWDAnalogInCalib[4][2] = { { 0, 1023 },{ 0, 1023 },{ 0, 1023 },{ 0, 1023 } };	// wartoÅ›Ä‡ max potencjometru, wartoÅ›Ä‡ min potencjometru, rozdzielczoÅ›Ä‡ (max. wartoÅ›Ä‡ jaka moÅ¼e byÄ‡)
+double Global::fMWDzg[2] = { 0.9, 1023 };
+double Global::fMWDpg[2] = { 0.8, 1023 };
+double Global::fMWDph[2] = { 0.6, 1023 };
+double Global::fMWDvolt[2] = { 4000, 1023 };
+double Global::fMWDamp[2] = { 800, 1023 };
+double Global::fMWDlowVolt[2] = { 150, 1023 };
+int Global::iMWDdivider = 5;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
-AnsiString Global::GetNextSymbol()
+std::string Global::GetNextSymbol()
 { // pobranie tokenu z aktualnego parsera
-    if (qParser)
-        return qParser->EndOfFile ? AnsiString("endconfig") : qParser->GetNextSymbol();
-    if (pParser)
+
+    std::string token;
+    if (pParser != nullptr)
     {
-        std::string token;
+
         pParser->getTokens();
         *pParser >> token;
-        return AnsiString(token.c_str());
     };
-    return "";
+    return token;
 };
 
-void Global::LoadIniFile(AnsiString asFileName)
+void Global::LoadIniFile(std::string asFileName)
 {
-    int i;
-    for (i = 0; i < 10; ++i)
-    { // zerowanie pozycji kamer
-        pFreeCameraInit[i] = vector3(0, 0, 0); // wspó³rzêdne w scenerii
-        pFreeCameraInitAngle[i] = vector3(0, 0, 0); // k¹ty obrotu w radianach
-    }
-    TFileStream *fs;
-    fs = new TFileStream(asFileName, fmOpenRead | fmShareCompat);
-    if (!fs)
-        return;
-    AnsiString str = "";
-    int size = fs->Size;
-    str.SetLength(size);
-    fs->Read(str.c_str(), size);
-    // str+="";
-    delete fs;
-    TQueryParserComp *Parser;
-    Parser = new TQueryParserComp(NULL);
-    Parser->TextToParse = str;
-    // Parser->LoadStringToParse(asFile);
-    Parser->First();
-    ConfigParse(Parser);
-    delete Parser; // Ra: tego jak zwykle nie by³o wczeœniej :]
+    FreeCameraInit.resize( 10 );
+    FreeCameraInitAngle.resize( 10 );
+    cParser parser(asFileName, cParser::buffer_FILE);
+    ConfigParse(parser);
 };
 
-void Global::ConfigParse(TQueryParserComp *qp, cParser *cp)
-{ // Ra: trzeba by przerobiæ na cParser, ¿eby to dzia³a³o w scenerii
-    pParser = cp;
-    qParser = qp;
-    AnsiString str;
-    int i;
+void Global::ConfigParse(cParser &Parser)
+{
+
+    std::string token;
     do
     {
-        str = GetNextSymbol().LowerCase();
-        if (str == AnsiString("sceneryfile"))
+
+        token = "";
+        Parser.getTokens();
+        Parser >> token;
+
+        if (token == "sceneryfile")
         {
-            str = GetNextSymbol().LowerCase();
-            strcpy(szSceneryFile, str.c_str());
+
+            Parser.getTokens();
+            Parser >> Global::SceneryFile;
         }
-        else if (str == AnsiString("humanctrlvehicle"))
+        else if (token == "humanctrlvehicle")
         {
-            str = GetNextSymbol().LowerCase();
-            asHumanCtrlVehicle = str;
+
+            Parser.getTokens();
+            Parser >> Global::asHumanCtrlVehicle;
         }
-        else if (str == AnsiString("width"))
-            iWindowWidth = GetNextSymbol().ToInt();
-        else if (str == AnsiString("height"))
-            iWindowHeight = GetNextSymbol().ToInt();
-        else if (str == AnsiString("heightbase"))
-            fDistanceFactor = GetNextSymbol().ToInt();
-        else if (str == AnsiString("bpp"))
-            iBpp = ((GetNextSymbol().LowerCase() == AnsiString("32")) ? 32 : 16);
-        else if (str == AnsiString("fullscreen"))
-            bFullScreen = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("freefly")) // Mczapkie-130302
+        else if( token == "fieldofview" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::FieldOfView;
+            // guard against incorrect values
+            Global::FieldOfView = clamp( Global::FieldOfView, 15.0f, 75.0f );
+        }
+        else if (token == "width")
         {
-            bFreeFly = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-            pFreeCameraInit[0].x = GetNextSymbol().ToDouble();
-            pFreeCameraInit[0].y = GetNextSymbol().ToDouble();
-            pFreeCameraInit[0].z = GetNextSymbol().ToDouble();
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iWindowWidth;
         }
-        else if (str == AnsiString("wireframe"))
-            bWireFrame = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("debugmode")) // McZapkie! - DebugModeFlag uzywana w mover.pas,
+        else if (token == "height")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iWindowHeight;
+        }
+        else if (token == "heightbase")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::fDistanceFactor;
+        }
+        else if (token == "bpp")
+        {
+
+            Parser.getTokens();
+            Parser >> token;
+            Global::iBpp = (token == "32" ? 32 : 16);
+        }
+        else if (token == "fullscreen")
+        {
+
+            Parser.getTokens();
+            Parser >> Global::bFullScreen;
+        }
+        else if( token == "vsync" ) {
+
+            Parser.getTokens();
+            Parser >> Global::VSync;
+        }
+        else if (token == "freefly")
+        { // Mczapkie-130302
+
+            Parser.getTokens();
+            Parser >> Global::bFreeFly;
+            Parser.getTokens(3, false);
+            Parser >>
+                Global::FreeCameraInit[0].x,
+                Global::FreeCameraInit[0].y,
+                Global::FreeCameraInit[0].z;
+        }
+        else if (token == "wireframe")
+        {
+
+            Parser.getTokens();
+            Parser >> Global::bWireFrame;
+        }
+        else if (token == "debugmode")
+        { // McZapkie! - DebugModeFlag uzywana w mover.pas,
             // warto tez blokowac cheaty gdy false
-            DebugModeFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("soundenabled")) // McZapkie-040302 - blokada dzwieku - przyda
+            Parser.getTokens();
+            Parser >> DebugModeFlag;
+        }
+        else if (token == "soundenabled")
+        { // McZapkie-040302 - blokada dzwieku - przyda
             // sie do debugowania oraz na komp. bez karty
             // dzw.
-            bSoundEnabled = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+            Parser.getTokens();
+            Parser >> Global::bSoundEnabled;
+        }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
-        else if (str == AnsiString("physicslog")) // McZapkie-030402 - logowanie parametrow
+        else if (token == "physicslog")
+        { // McZapkie-030402 - logowanie parametrow
             // fizycznych dla kazdego pojazdu z maszynista
-            WriteLogFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("physicsdeactivation")) // McZapkie-291103 - usypianie fizyki
-            PhysicActivationFlag = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("debuglog"))
-        { // McZapkie-300402 - wylaczanie log.txt
-            str = GetNextSymbol().LowerCase();
-            if (str == "yes")
-                iWriteLogEnabled = 3;
-            else if (str == "no")
-                iWriteLogEnabled = 0;
+            Parser.getTokens();
+            Parser >> WriteLogFlag;
+        }
+        else if (token == "physicsdeactivation")
+        { // McZapkie-291103 - usypianie fizyki
+
+            Parser.getTokens();
+            Parser >> PhysicActivationFlag;
+        }
+        else if (token == "debuglog")
+        {
+            // McZapkie-300402 - wylaczanie log.txt
+            Parser.getTokens();
+            Parser >> token;
+            if (token == "yes")
+            {
+                Global::iWriteLogEnabled = 3;
+            }
+            else if (token == "no")
+            {
+                Global::iWriteLogEnabled = 0;
+            }
             else
-                iWriteLogEnabled = str.ToIntDef(3);
+            {
+                Global::iWriteLogEnabled = stol_def(token,3);
+            }
         }
-        else if (str == AnsiString("adjustscreenfreq"))
-        { // McZapkie-240403 - czestotliwosc odswiezania ekranu
-            str = GetNextSymbol();
-            bAdjustScreenFreq = (str.LowerCase() == AnsiString("yes"));
+        else if( token == "multiplelogs" ) {
+            Parser.getTokens();
+            Parser >> Global::MultipleLogs;
         }
-        else if (str == AnsiString("mousescale"))
-        { // McZapkie-060503 - czulosc ruchu myszy (krecenia glowa)
-            str = GetNextSymbol();
-            fMouseXScale = str.ToDouble();
-            str = GetNextSymbol();
-            fMouseYScale = str.ToDouble();
-        }
-        else if (str == AnsiString("enabletraction"))
-        { // Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz ³amanie
-            bEnableTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("loadtraction"))
-        { // Winger 140404 - ladowanie sie trakcji
-            bLoadTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("friction")) // mno¿nik tarcia - KURS90
-            fFriction = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("livetraction"))
-        { // Winger 160404 - zaleznosc napiecia loka od trakcji; Ra 2014-03: teraz pr¹d przy braku
-            // sieci
-            bLiveTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        }
-        else if (str == AnsiString("skyenabled"))
-        { // youBy - niebo
-            if (GetNextSymbol().LowerCase() == AnsiString("yes"))
-                asSky = "1";
-            else
-                asSky = "0";
-        }
-        else if (str == AnsiString("managenodes"))
+        else if( token == "adjustscreenfreq" )
         {
-            bManageNodes = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+            // McZapkie-240403 - czestotliwosc odswiezania ekranu
+            Parser.getTokens();
+            Parser >> Global::bAdjustScreenFreq;
         }
-        else if (str == AnsiString("decompressdds"))
+        else if (token == "mousescale")
         {
-            bDecompressDDS = (GetNextSymbol().LowerCase() == AnsiString("yes"));
+            // McZapkie-060503 - czulosc ruchu myszy (krecenia glowa)
+            Parser.getTokens(2, false);
+            Parser >> Global::fMouseXScale >> Global::fMouseYScale;
         }
-        // ShaXbee - domyslne rozszerzenie tekstur
-        else if (str == AnsiString("defaultext"))
+        else if( token == "mousecontrol" ) {
+            // whether control pick mode can be activated
+            Parser.getTokens();
+            Parser >> Global::InputMouse;
+        }
+        else if (token == "enabletraction")
         {
-            str = GetNextSymbol().LowerCase(); // rozszerzenie
-            if (str == "tga")
-                szDefaultExt = szTexturesTGA; // domyœlnie od TGA
-            // szDefaultExt=std::string(Parser->GetNextSymbol().LowerCase().c_str());
+            // Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz Å‚amanie
+            Parser.getTokens();
+            Parser >> Global::bEnableTraction;
         }
-        else if (str == AnsiString("newaircouplers"))
-            bnewAirCouplers = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("defaultfiltering"))
-            iDefaultFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("ballastfiltering"))
-            iBallastFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("railprofiltering"))
-            iRailProFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("dynamicfiltering"))
-            iDynamicFiltering = GetNextSymbol().ToIntDef(-1);
-        else if (str == AnsiString("usevbo"))
-            bUseVBO = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("feedbackmode"))
-            iFeedbackMode = GetNextSymbol().ToIntDef(1); // domyœlnie 1
-        else if (str == AnsiString("feedbackport"))
-            iFeedbackPort = GetNextSymbol().ToIntDef(0); // domyœlnie 0
-        else if (str == AnsiString("multiplayer"))
-            iMultiplayer = GetNextSymbol().ToIntDef(0); // domyœlnie 0
-        else if (str == AnsiString("maxtexturesize"))
-        { // wymuszenie przeskalowania tekstur
-            i = GetNextSymbol().ToIntDef(16384); // domyœlnie du¿e
-            if (i <= 64)
-                iMaxTextureSize = 64;
-            else if (i <= 128)
-                iMaxTextureSize = 128;
-            else if (i <= 256)
-                iMaxTextureSize = 256;
-            else if (i <= 512)
-                iMaxTextureSize = 512;
-            else if (i <= 1024)
-                iMaxTextureSize = 1024;
-            else if (i <= 2048)
-                iMaxTextureSize = 2048;
-            else if (i <= 4096)
-                iMaxTextureSize = 4096;
-            else if (i <= 8192)
-                iMaxTextureSize = 8192;
-            else
-                iMaxTextureSize = 16384;
-        }
-        else if (str == AnsiString("doubleambient")) // podwójna jasnoœæ ambient
-            bDoubleAmbient = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("movelight")) // numer dnia w roku albo -1
+        else if (token == "loadtraction")
         {
-            fMoveLight = GetNextSymbol().ToIntDef(-1); // numer dnia 1..365
-            if (fMoveLight == 0.0)
+            // Winger 140404 - ladowanie sie trakcji
+            Parser.getTokens();
+            Parser >> Global::bLoadTraction;
+        }
+        else if (token == "friction")
+        { // mnoÅ¼nik tarcia - KURS90
+
+            Parser.getTokens(1, false);
+            Parser >> Global::fFriction;
+        }
+        else if (token == "livetraction")
+        {
+            // Winger 160404 - zaleznosc napiecia loka od trakcji;
+            // Ra 2014-03: teraz prÄ…d przy braku sieci
+            Parser.getTokens();
+            Parser >> Global::bLiveTraction;
+        }
+        else if (token == "skyenabled")
+        {
+            // youBy - niebo
+            Parser.getTokens();
+            Parser >> token;
+            Global::asSky = (token == "yes" ? "1" : "0");
+        }
+        else if (token == "managenodes")
+        {
+
+            Parser.getTokens();
+            Parser >> Global::bManageNodes;
+        }
+        else if (token == "decompressdds")
+        {
+
+            Parser.getTokens();
+            Parser >> Global::bDecompressDDS;
+        }
+        else if (token == "defaultext")
+        {
+            // ShaXbee - domyslne rozszerzenie tekstur
+            Parser.getTokens();
+            Parser >> token;
+            if (token == "tga")
+            {
+                // domyÅ›lnie od TGA
+                Global::szDefaultExt = Global::szTexturesTGA;
+            }
+            else {
+                Global::szDefaultExt =
+                    ( token[ 0 ] == '.' ?
+                        token :
+                        "." + token );
+            }
+        }
+        else if (token == "newaircouplers")
+        {
+
+            Parser.getTokens();
+            Parser >> Global::bnewAirCouplers;
+        }
+        else if (token == "defaultfiltering")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iDefaultFiltering;
+        }
+        else if (token == "ballastfiltering")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iBallastFiltering;
+        }
+        else if (token == "railprofiltering")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iRailProFiltering;
+        }
+        else if (token == "dynamicfiltering")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iDynamicFiltering;
+        }
+        else if( token == "anisotropicfiltering" ) {
+
+            Parser.getTokens( 1, false );
+            Parser >> Global::AnisotropicFiltering;
+        }
+        else if( token == "usevbo" )
+        {
+
+            Parser.getTokens();
+            Parser >> Global::bUseVBO;
+        }
+        else if (token == "feedbackmode")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iFeedbackMode;
+        }
+        else if (token == "feedbackport")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iFeedbackPort;
+        }
+        else if (token == "multiplayer")
+        {
+
+            Parser.getTokens(1, false);
+            Parser >> Global::iMultiplayer;
+        }
+        else if (token == "maxtexturesize")
+        {
+            // wymuszenie przeskalowania tekstur
+            Parser.getTokens(1, false);
+            int size;
+            Parser >> size;
+                 if (size <= 64)   { Global::iMaxTextureSize = 64; }
+            else if (size <= 128)  { Global::iMaxTextureSize = 128; }
+            else if (size <= 256)  { Global::iMaxTextureSize = 256; }
+            else if (size <= 512)  { Global::iMaxTextureSize = 512; }
+            else if (size <= 1024) { Global::iMaxTextureSize = 1024; }
+            else if (size <= 2048) { Global::iMaxTextureSize = 2048; }
+            else if (size <= 4096) { Global::iMaxTextureSize = 4096; }
+            else if (size <= 8192) { Global::iMaxTextureSize = 8192; }
+            else                   { Global::iMaxTextureSize = 16384; }
+        }
+        else if (token == "doubleambient")
+        {
+            // podwÃ³jna jasnoÅ›Ä‡ ambient
+            Parser.getTokens();
+            Parser >> Global::bDoubleAmbient;
+        }
+        else if (token == "movelight")
+        {
+            // numer dnia w roku albo -1
+            Parser.getTokens(1, false);
+            Parser >> Global::fMoveLight;
+            if (Global::fMoveLight == 0.f)
             { // pobranie daty z systemu
-                unsigned short y, m, d;
-                TDate date = Now();
-                date.DecodeDate(&y, &m, &d);
-                fMoveLight =
-                    (double)date - (double)TDate(y, 1, 1) + 1; // numer bie¿¹cego dnia w roku
-            }
-            if (fMoveLight > 0.0) // tu jest nadal zwiêkszone o 1
-            { // obliczenie deklinacji wg:
-                // http://naturalfrequency.com/Tregenza_Sharples/Daylight_Algorithms/algorithm_1_11.htm
-                // Spencer J W Fourier series representation of the position of the sun Search 2 (5)
-                // 172 (1971)
-                fMoveLight = M_PI / 182.5 * (Global::fMoveLight - 1.0); // numer dnia w postaci k¹ta
-                fSunDeclination = 0.006918 - 0.3999120 * cos(fMoveLight) +
-                                  0.0702570 * sin(fMoveLight) - 0.0067580 * cos(2 * fMoveLight) +
-                                  0.0009070 * sin(2 * fMoveLight) -
-                                  0.0026970 * cos(3 * fMoveLight) + 0.0014800 * sin(3 * fMoveLight);
+                std::time_t timenow = std::time(0);
+                std::tm *localtime = std::localtime(&timenow);
+                Global::fMoveLight = localtime->tm_yday + 1; // numer bieÅ¼Ä…cego dnia w roku
             }
         }
-        else if (str == AnsiString("smoothtraction")) // podwójna jasnoœæ ambient
-            bSmoothTraction = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("timespeed")) // przyspieszenie czasu, zmienna do testów
-            fTimeSpeed = GetNextSymbol().ToIntDef(1);
-        else if (str == AnsiString("multisampling")) // tryb antyaliasingu: 0=brak,1=2px,2=4px
-            iMultisampling = GetNextSymbol().ToIntDef(2); // domyœlnie 2
-        else if (str == AnsiString("glutfont")) // tekst generowany przez GLUT
-            bGlutFont = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("latitude")) // szerokoœæ geograficzna
-            fLatitudeDeg = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("convertmodels")) // tworzenie plików binarnych
-            iConvertModels = GetNextSymbol().ToIntDef(7); // domyœlnie 7
-        else if (str == AnsiString("inactivepause")) // automatyczna pauza, gdy okno nieaktywne
-            bInactivePause = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("slowmotion")) // tworzenie plików binarnych
-            iSlowMotionMask = GetNextSymbol().ToIntDef(-1); // domyœlnie -1
-        else if (str == AnsiString("modifytga")) // czy korygowaæ pliki TGA dla szybszego
-            // wczytywania
-            iModifyTGA = GetNextSymbol().ToIntDef(0); // domyœlnie 0
-        else if (str == AnsiString("hideconsole")) // hunter-271211: ukrywanie konsoli
-            bHideConsole = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-		else if (str == AnsiString("oldsmudge"))
-            bOldSmudge = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str ==
-                 AnsiString(
-                     "rollfix")) // Ra: poprawianie przechy³ki, aby wewnêtrzna szyna by³a "pozioma"
-            bRollFix = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("fpsaverage")) // oczekiwana wartosæ FPS
-            fFpsAverage = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("fpsdeviation")) // odchylenie standardowe FPS
-            fFpsDeviation = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("fpsradiusmax")) // maksymalny promieñ renderowania
-            fFpsRadiusMax = GetNextSymbol().ToDouble();
-        else if (str == AnsiString("calibratein")) // parametry kalibracji wejœæ
-        { //
-            i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-            if ((i < 0) || (i > 5))
-                i = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-            fCalibrateIn[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-            fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
-            fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-            fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateIn[i][4] = 0.0; // mno¿nik 4 potêgi
-			fCalibrateIn[i][5] = 0.0; // mno¿nik 5 potêgi
-		}
-		else if (str == AnsiString("calibrate5din")) // parametry kalibracji wejœæ
-		{ //
-			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-			if ((i < 0) || (i > 5))
-				i = 5; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-			fCalibrateIn[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-			fCalibrateIn[i][1] = GetNextSymbol().ToDouble(); // mno¿nik
-			fCalibrateIn[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-			fCalibrateIn[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateIn[i][4] = GetNextSymbol().ToDouble(); // mno¿nik 4 potêgi
-			fCalibrateIn[i][5] = GetNextSymbol().ToDouble(); // mno¿nik 5 potêgi
-		}
-        else if (str == AnsiString("calibrateout")) // parametry kalibracji wyjœæ
-        { //
-            i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-            if ((i < 0) || (i > 6))
-                i = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-            fCalibrateOut[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-            fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
-            fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-            fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateOut[i][4] = 0.0; // mno¿nik dla 4 potêgi
-			fCalibrateOut[i][5] = 0.0; // mno¿nik dla 5 potêgi
+        else if( token == "dynamiclights" ) {
+            // number of dynamic lights in the scene
+            Parser.getTokens( 1, false );
+            Parser >> Global::DynamicLightCount;
+            // clamp the light number
+            // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
+            Global::DynamicLightCount = clamp( Global::DynamicLightCount, 1, 7 ); 
         }
-		else if (str == AnsiString("calibrate5dout")) // parametry kalibracji wyjœæ
-		{ //
-			i = GetNextSymbol().ToIntDef(-1); // numer wejœcia
-			if ((i < 0) || (i > 6))
-				i = 6; // na ostatni, bo i tak trzeba pomin¹æ wartoœci
-			fCalibrateOut[i][0] = GetNextSymbol().ToDouble(); // wyraz wolny
-			fCalibrateOut[i][1] = GetNextSymbol().ToDouble(); // mno¿nik liniowy
-			fCalibrateOut[i][2] = GetNextSymbol().ToDouble(); // mno¿nik dla kwadratu
-			fCalibrateOut[i][3] = GetNextSymbol().ToDouble(); // mno¿nik dla szeœcianu
-			fCalibrateOut[i][4] = GetNextSymbol().ToDouble(); // mno¿nik dla 4 potêgi
-			fCalibrateOut[i][5] = GetNextSymbol().ToDouble(); // mno¿nik dla 5 potêgi
+        else if( token == "scalespeculars" ) {
+            // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
+            Parser.getTokens();
+            Parser >> Global::ScaleSpecularValues;
+        }
+        else if( token == "shadows" ) {
+            // shadow render toggle
+            Parser.getTokens();
+            Parser >> Global::RenderShadows;
+        }
+        else if( token == "shadowtune" ) {
+            Parser.getTokens( 4, false );
+            Parser
+                >> Global::shadowtune.map_size
+                >> Global::shadowtune.width
+                >> Global::shadowtune.depth
+                >> Global::shadowtune.distance;
+        }
+        else if (token == "smoothtraction")
+        {
+            // podwÃ³jna jasnoÅ›Ä‡ ambient
+            Parser.getTokens();
+            Parser >> Global::bSmoothTraction;
+        }
+        else if (token == "timespeed")
+        {
+            // przyspieszenie czasu, zmienna do testÃ³w
+            Parser.getTokens(1, false);
+            Parser >> Global::fTimeSpeed;
+        }
+        else if (token == "multisampling")
+        {
+            // tryb antyaliasingu: 0=brak,1=2px,2=4px
+            Parser.getTokens(1, false);
+            Parser >> Global::iMultisampling;
+        }
+        else if (token == "glutfont")
+        {
+            // tekst generowany przez GLUT
+            Parser.getTokens();
+            Parser >> Global::bGlutFont;
+        }
+        else if (token == "latitude")
+        {
+            // szerokoÅ›Ä‡ geograficzna
+            Parser.getTokens(1, false);
+            Parser >> Global::fLatitudeDeg;
+        }
+        else if (token == "convertmodels")
+        {
+            // tworzenie plikÃ³w binarnych
+            Parser.getTokens(1, false);
+            Parser >> Global::iConvertModels;
+            // temporary override, to prevent generation of .e3d not compatible with old exe
+            Global::iConvertModels =
+                ( Global::iConvertModels > 128 ?
+                    Global::iConvertModels - 128 :
+                    0 );
+        }
+        else if (token == "inactivepause")
+        {
+            // automatyczna pauza, gdy okno nieaktywne
+            Parser.getTokens();
+            Parser >> Global::bInactivePause;
+        }
+        else if (token == "slowmotion")
+        {
+            // tworzenie plikÃ³w binarnych
+            Parser.getTokens(1, false);
+            Parser >> Global::iSlowMotionMask;
+        }
+        else if (token == "modifytga")
+        {
+            // czy korygowaÄ‡ pliki TGA dla szybszego wczytywania
+            Parser.getTokens(1, false);
+            Parser >> Global::iModifyTGA;
+        }
+        else if (token == "hideconsole")
+        {
+            // hunter-271211: ukrywanie konsoli
+            Parser.getTokens();
+            Parser >> Global::bHideConsole;
+        }
+        else if (token == "oldsmudge")
+        {
+
+            Parser.getTokens();
+            Parser >> Global::bOldSmudge;
+        }
+        else if (token == "rollfix")
+        {
+            // Ra: poprawianie przechyÅ‚ki, aby wewnÄ™trzna szyna byÅ‚a "pozioma"
+            Parser.getTokens();
+            Parser >> Global::bRollFix;
+        }
+        else if (token == "fpsaverage")
+        {
+            // oczekiwana wartoÅ›Ä‡ FPS
+            Parser.getTokens(1, false);
+            Parser >> Global::fFpsAverage;
+        }
+        else if (token == "fpsdeviation")
+        {
+            // odchylenie standardowe FPS
+            Parser.getTokens(1, false);
+            Parser >> Global::fFpsDeviation;
+        }
+        else if (token == "fpsradiusmax")
+        {
+            // maksymalny promieÅ„ renderowania
+            Parser.getTokens(1, false);
+            Parser >> Global::fFpsRadiusMax;
+        }
+        else if (token == "calibratein")
+        {
+            // parametry kalibracji wejÅ›Ä‡
+            Parser.getTokens(1, false);
+            int in;
+            Parser >> in;
+            if ((in < 0) || (in > 5))
+            {
+                in = 5; // na ostatni, bo i tak trzeba pominÄ…Ä‡ wartoÅ›ci
+            }
+            Parser.getTokens(4, false);
+            Parser
+                >> Global::fCalibrateIn[in][0] // wyraz wolny
+                >> Global::fCalibrateIn[in][1] // mnoÅ¼nik
+                >> Global::fCalibrateIn[in][2] // mnoÅ¼nik dla kwadratu
+                >> Global::fCalibrateIn[in][3]; // mnoÅ¼nik dla szeÅ›cianu
+            Global::fCalibrateIn[in][4] = 0.0; // mnoÅ¼nik 4 potÄ™gi
+            Global::fCalibrateIn[in][5] = 0.0; // mnoÅ¼nik 5 potÄ™gi
+        }
+        else if (token == "calibrate5din")
+        {
+            // parametry kalibracji wejÅ›Ä‡
+            Parser.getTokens(1, false);
+            int in;
+            Parser >> in;
+            if ((in < 0) || (in > 5))
+            {
+                in = 5; // na ostatni, bo i tak trzeba pominÄ…Ä‡ wartoÅ›ci
+            }
+            Parser.getTokens(6, false);
+            Parser >> Global::fCalibrateIn[in][0] // wyraz wolny
+                >> Global::fCalibrateIn[in][1] // mnoÅ¼nik
+                >> Global::fCalibrateIn[in][2] // mnoÅ¼nik dla kwadratu
+                >> Global::fCalibrateIn[in][3] // mnoÅ¼nik dla szeÅ›cianu
+                >> Global::fCalibrateIn[in][4] // mnoÅ¼nik 4 potÄ™gi
+                >> Global::fCalibrateIn[in][5]; // mnoÅ¼nik 5 potÄ™gi
+        }
+        else if (token == "calibrateout")
+        {
+            // parametry kalibracji wyjÅ›Ä‡
+            Parser.getTokens(1, false);
+            int out;
+            Parser >> out;
+            if ((out < 0) || (out > 6))
+            {
+                out = 6; // na ostatni, bo i tak trzeba pominÄ…Ä‡ wartoÅ›ci
+            }
+            Parser.getTokens(4, false);
+            Parser >> Global::fCalibrateOut[out][0] // wyraz wolny
+                >> Global::fCalibrateOut[out][1] // mnoÅ¼nik liniowy
+                >> Global::fCalibrateOut[out][2] // mnoÅ¼nik dla kwadratu
+                >> Global::fCalibrateOut[out][3]; // mnoÅ¼nik dla szeÅ›cianu
+            Global::fCalibrateOut[out][4] = 0.0; // mnoÅ¼nik dla 4 potÄ™gi
+            Global::fCalibrateOut[out][5] = 0.0; // mnoÅ¼nik dla 5 potÄ™gi
+        }
+        else if (token == "calibrate5dout")
+        {
+            // parametry kalibracji wyjÅ›Ä‡
+            Parser.getTokens(1, false);
+            int out;
+            Parser >> out;
+            if ((out < 0) || (out > 6))
+            {
+                out = 6; // na ostatni, bo i tak trzeba pominÄ…Ä‡ wartoÅ›ci
+            }
+            Parser.getTokens(6, false);
+            Parser >> Global::fCalibrateOut[out][0] // wyraz wolny
+                >> Global::fCalibrateOut[out][1] // mnoÅ¼nik liniowy
+                >> Global::fCalibrateOut[out][2] // mnoÅ¼nik dla kwadratu
+                >> Global::fCalibrateOut[out][3] // mnoÅ¼nik dla szeÅ›cianu
+                >> Global::fCalibrateOut[out][4] // mnoÅ¼nik dla 4 potÄ™gi
+                >> Global::fCalibrateOut[out][5]; // mnoÅ¼nik dla 5 potÄ™gi
+        }
+        else if (token == "calibrateoutmaxvalues")
+        {
+            // maksymalne wartoÅ›ci jakie moÅ¼na wyÅ›wietliÄ‡ na mierniku
+            Parser.getTokens(7, false);
+            Parser >> Global::fCalibrateOutMax[0] >> Global::fCalibrateOutMax[1] >>
+                Global::fCalibrateOutMax[2] >> Global::fCalibrateOutMax[3] >>
+                Global::fCalibrateOutMax[4] >> Global::fCalibrateOutMax[5] >>
+                Global::fCalibrateOutMax[6];
+        }
+        else if (token == "calibrateoutdebuginfo")
+        {
+            // wyjÅ›cie z info o przebiegu kalibracji
+            Parser.getTokens(1, false);
+            Parser >> Global::iCalibrateOutDebugInfo;
+        }
+        else if (token == "pwm")
+        {
+            // zmiana numerÃ³w wyjÅ›Ä‡ PWM
+            Parser.getTokens(2, false);
+            int pwm_out, pwm_no;
+            Parser >> pwm_out >> pwm_no;
+            Global::iPoKeysPWM[pwm_out] = pwm_no;
+        }
+        else if (token == "brakestep")
+        {
+            // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
+            Parser.getTokens(1, false);
+            Parser >> Global::fBrakeStep;
+        }
+        else if (token == "joinduplicatedevents")
+        {
+            // czy grupowaÄ‡ eventy o tych samych nazwach
+            Parser.getTokens();
+            Parser >> Global::bJoinEvents;
+        }
+        else if (token == "hiddenevents")
+        {
+            // czy Å‚Ä…czyÄ‡ eventy z torami poprzez nazwÄ™ toru
+            Parser.getTokens(1, false);
+            Parser >> Global::iHiddenEvents;
+        }
+        else if (token == "pause")
+        {
+            // czy po wczytaniu ma byÄ‡ pauza?
+            Parser.getTokens();
+            Parser >> token;
+            iPause |= (token == "yes" ? 1 : 0);
+        }
+        else if (token == "lang")
+        {
+            // domyÅ›lny jÄ™zyk - http://tools.ietf.org/html/bcp47
+            Parser.getTokens(1, false);
+            Parser >> Global::asLang;
+        }
+        else if( token == "uitextcolor" ) {
+            // color of the ui text. NOTE: will be obsolete once the real ui is in place
+            Parser.getTokens( 3, false );
+            Parser
+                >> Global::UITextColor.x
+                >> Global::UITextColor.y
+                >> Global::UITextColor.z;
+            Global::UITextColor.x = clamp( Global::UITextColor.x, 0.0f, 255.0f );
+            Global::UITextColor.y = clamp( Global::UITextColor.y, 0.0f, 255.0f );
+            Global::UITextColor.z = clamp( Global::UITextColor.z, 0.0f, 255.0f );
+            Global::UITextColor = Global::UITextColor / 255.0f;
+            Global::UITextColor.w = 1.0f;
+        }
+        else if (token == "pyscreenrendererpriority")
+        {
+            // priority of python screen renderer
+            Parser.getTokens();
+            Parser >> token;
+            TPythonInterpreter::getInstance()->setScreenRendererPriority(token.c_str());
+        }
+        else if (token == "background")
+        {
+
+            Parser.getTokens(3, false);
+            Parser >> Global::Background[0] // r
+                >> Global::Background[1] // g
+                >> Global::Background[2]; // b
+        }
+        else if( token == "input.gamepad" ) {
+            // czy grupowaÄ‡ eventy o tych samych nazwach
+            Parser.getTokens();
+            Parser >> Global::InputGamepad;
+        }
+        // maciek001: ustawienia MWD
+		else if (token == "mwdmasterenable") {         // gÅ‚Ã³wne wÅ‚Ä…czenie maszyny!
+			Parser.getTokens();
+			Parser >> bMWDmasterEnable;
+			if (bMWDdebugEnable) WriteLog("SerialPort Master Enable");
 		}
-		else if (str == AnsiString("calibrateoutmaxvalues"))
-		{ // maksymalne wartoœci jakie mo¿na wyœwietliæ na mierniku
-			fCalibrateOutMax[0] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[1] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[2] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[3] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[4] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[5] = GetNextSymbol().ToDouble();
-			fCalibrateOutMax[6] = GetNextSymbol().ToDouble();
+		else if (token == "mwddebugenable") {         // logowanie pracy
+			Parser.getTokens();
+			Parser >> bMWDdebugEnable;
+			if (bMWDdebugEnable) WriteLog("MWD Debug Mode On");
 		}
-		else if (str == AnsiString("calibrateoutdebuginfo")) // wyjœcie z info o przebiegu kalibracji
-			iCalibrateOutDebugInfo = GetNextSymbol().ToInt();
-		else if (str == AnsiString("pwm")) // zmiana numerów wyjœæ PWM
-		{
-			int pwm_out = GetNextSymbol().ToInt();
-			int pwm_no = GetNextSymbol().ToInt();
-			iPoKeysPWM[pwm_out] = pwm_no;
+		else if (token == "mwddebugmode") {           // co ma byÄ‡ debugowane?
+			Parser.getTokens(1, false);
+			Parser >> iMWDDebugMode;
+			if (bMWDdebugEnable) WriteLog("Debug Mode = " + to_string(iMWDDebugMode));
 		}
-        else if (str == AnsiString("brakestep")) // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-            fBrakeStep = GetNextSymbol().ToDouble();
-        else if (str ==
-                 AnsiString("joinduplicatedevents")) // czy grupowaæ eventy o tych samych nazwach
-            bJoinEvents = (GetNextSymbol().LowerCase() == AnsiString("yes"));
-        else if (str == AnsiString("hiddenevents")) // czy ³¹czyæ eventy z torami poprzez nazwê toru
-            iHiddenEvents = GetNextSymbol().ToIntDef(0);
-        else if (str == AnsiString("pause")) // czy po wczytaniu ma byæ pauza?
-            iPause |= (GetNextSymbol().LowerCase() == AnsiString("yes")) ? 1 : 0;
-        else if (str == AnsiString("lang"))
-            asLang = GetNextSymbol(); // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
-        else if (str == AnsiString("opengl")) // deklarowana wersja OpenGL, ¿eby powstrzymaæ b³êdy
-            fOpenGL = GetNextSymbol().ToDouble(); // wymuszenie wersji OpenGL
-        else if (str == AnsiString("pyscreenrendererpriority")) // priority of python screen renderer
-            TPythonInterpreter::getInstance()->setScreenRendererPriority(GetNextSymbol().LowerCase().c_str());
-		else if (str == AnsiString("background"))
-		{
-			Background[0] = GetNextSymbol().ToDouble(); // r
-			Background[1] = GetNextSymbol().ToDouble(); // g
-			Background[2] = GetNextSymbol().ToDouble(); // b
+		else if (token == "mwdcomportname") {         // nazwa portu COM
+			Parser.getTokens();
+			Parser >> sMWDPortId;
+			if (bMWDdebugEnable) WriteLog("PortName " + sMWDPortId);
 		}
-	} while (str != "endconfig"); //(!Parser->EndOfFile)
-    // na koniec trochê zale¿noœci
-    if (!bLoadTraction) // wczytywanie drutów i s³upów
-    { // tutaj wy³¹czenie, bo mog¹ nie byæ zdefiniowane w INI
-        bEnableTraction = false; // false = pantograf siê nie po³amie
-        bLiveTraction = false; // false = pantografy zawsze zbieraj¹ 95% MaxVoltage
+		else if (token == "mwdbaudrate") {            // prÄ™dkoÅ›Ä‡ transmisji danych
+			Parser.getTokens(1, false);
+			Parser >> iMWDBaudrate;
+			if (bMWDdebugEnable) WriteLog("Baud rate = " + to_string((int)(iMWDBaudrate / 1000)) + (" kbps"));
+		}
+		else if (token == "mwdinputenable") {         // wÅ‚Ä…cz wejÅ›cia
+			Parser.getTokens();
+			Parser >> bMWDInputEnable;
+			if (bMWDdebugEnable && bMWDInputEnable) WriteLog("MWD Input Enable");
+		}
+		else if (token == "mwdbreakenable") {         // wÅ‚Ä…cz obsÅ‚ugÄ™ hamulcÃ³w
+			Parser.getTokens();
+			Parser >> bMWDBreakEnable;
+			if (bMWDdebugEnable && bMWDBreakEnable) WriteLog("MWD Break Enable");
+		}
+		else if (token == "mwdmainbreakconfig") {      // ustawienia hamulca zespolonego
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[0][0] >> fMWDAnalogInCalib[0][1];
+			if (bMWDdebugEnable) WriteLog("Main break settings: " + to_string(fMWDAnalogInCalib[0][0]) + (" ") + to_string(fMWDAnalogInCalib[0][1]));
+		}
+		else if (token == "mwdlocbreakconfig") {	// ustawienia hamulca lokomotywy
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[1][0] >> fMWDAnalogInCalib[1][1];
+			if (bMWDdebugEnable) WriteLog("Locomotive break settings: " + to_string(fMWDAnalogInCalib[1][0]) + (" ") + to_string(fMWDAnalogInCalib[1][1]));
+		}
+		else if (token == "mwdanalogin1config") {      // ustawienia hamulca zespolonego
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[2][0] >> fMWDAnalogInCalib[2][1];
+			if (bMWDdebugEnable) WriteLog("Analog input 1 settings: " + to_string(fMWDAnalogInCalib[2][0]) + (" ") + to_string(fMWDAnalogInCalib[2][1]));
+		}
+		else if (token == "mwdanalogin2config") {	// ustawienia hamulca lokomotywy
+			Parser.getTokens(2, false);
+			Parser >> fMWDAnalogInCalib[3][0] >> fMWDAnalogInCalib[3][1];
+			if (bMWDdebugEnable) WriteLog("Analog input 2 settings: " + to_string(fMWDAnalogInCalib[3][0]) + (" ") + to_string(fMWDAnalogInCalib[3][1]));
+		}
+		else if (token == "mwdmaintankpress") {        // max ciÅ›nienie w zbiorniku gÅ‚ownym i rozdzielczoÅ›Ä‡
+			Parser.getTokens(2, false);
+			Parser >> fMWDzg[0] >> fMWDzg[1];
+			if (bMWDdebugEnable) WriteLog("MainAirTank settings: " + to_string(fMWDzg[0]) + (" ") + to_string(fMWDzg[1]));
+		}
+		else if (token == "mwdmainpipepress") {        // max ciÅ›nienie w przewodzie gÅ‚ownym i rozdzielczoÅ›Ä‡
+			Parser.getTokens(2, false);
+			Parser >> fMWDpg[0] >> fMWDpg[1];
+			if (bMWDdebugEnable) WriteLog("MainAirPipe settings: " + to_string(fMWDpg[0]) + (" ") + to_string(fMWDpg[1]));
+		}
+		else if (token == "mwdbreakpress") {           // max ciÅ›nienie w hamulcach i rozdzielczoÅ›Ä‡
+			Parser.getTokens(2, false);
+			Parser >> fMWDph[0] >> fMWDph[1];
+			if (bMWDdebugEnable) WriteLog("AirPipe settings: " + to_string(fMWDph[0]) + (" ") + to_string(fMWDph[1]));
+		}
+		else if (token == "mwdhivoltmeter") {          // max napiÄ™cie na woltomierzu WN
+			Parser.getTokens(2, false);
+			Parser >> fMWDvolt[0] >> fMWDvolt[1];
+			if (bMWDdebugEnable) WriteLog("VoltMeter settings: " + to_string(fMWDvolt[0]) + (" ") + to_string(fMWDvolt[1]));
+		}
+		else if (token == "mwdhiampmeter") {
+			Parser.getTokens(2, false);
+			Parser >> fMWDamp[0] >> fMWDamp[1];
+			if (bMWDdebugEnable) WriteLog("Amp settings: " + to_string(fMWDamp[0]) + (" ") + to_string(fMWDamp[1]));
+		}
+		else if (token == "mwdlowvoltmeter") {
+			Parser.getTokens(2, false);
+			Parser >> fMWDlowVolt[0] >> fMWDlowVolt[1];
+			if (bMWDdebugEnable) WriteLog("Low VoltMeter settings: " + to_string(fMWDlowVolt[0]) + (" ") + to_string(fMWDlowVolt[1]));
+		}
+		else if (token == "mwddivider") {
+			Parser.getTokens(1, false);
+			Parser >> iMWDdivider;
+			if (iMWDdivider == 0)
+			{
+				WriteLog("Dzielnik nie moÅ¼e byÄ‡ rÃ³wny ZERO! Ustawiam na 1!");
+				iMWDdivider = 1;
+			}
+			if (bMWDdebugEnable) WriteLog("Divider = " + to_string(iMWDdivider));
+		}
+    } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
+    // na koniec trochÄ™ zaleÅ¼noÅ›ci
+    if (!bLoadTraction) // wczytywanie drutÃ³w i sÅ‚upÃ³w
+    { // tutaj wyÅ‚Ä…czenie, bo mogÄ… nie byÄ‡ zdefiniowane w INI
+        bEnableTraction = false; // false = pantograf siÄ™ nie poÅ‚amie
+        bLiveTraction = false; // false = pantografy zawsze zbierajÄ… 95% MaxVoltage
     }
-    // if (fMoveLight>0) bDoubleAmbient=false; //wtedy tylko jedno œwiat³o ruchome
-    // if (fOpenGL<1.3) iMultisampling=0; //mo¿na by z góry wy³¹czyæ, ale nie mamy jeszcze fOpenGL
     if (iMultisampling)
-    { // antyaliasing ca³oekranowy wy³¹cza rozmywanie drutów
+    { // antyaliasing caÅ‚oekranowy wyÅ‚Ä…cza rozmywanie drutÃ³w
         bSmoothTraction = false;
     }
     if (iMultiplayer > 0)
     {
-        bInactivePause = false; // okno "w tle" nie mo¿e pauzowaæ, jeœli w³¹czona komunikacja
-        // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, wiêc iMultiplayer=1 da siê zapauzowaæ
+        bInactivePause = false; // okno "w tle" nie moÅ¼e pauzowaÄ‡, jeÅ›li wÅ‚Ä…czona komunikacja
+        // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, wiÄ™c iMultiplayer=1 da siÄ™ zapauzowaÄ‡
         // (tryb instruktora)
     }
+/*
     fFpsMin = fFpsAverage -
-              fFpsDeviation; // dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
+              fFpsDeviation; // dolna granica FPS, przy ktÃ³rej promieÅ„ scenerii bÄ™dzie zmniejszany
     fFpsMax = fFpsAverage +
-              fFpsDeviation; // górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
+              fFpsDeviation; // gÃ³rna granica FPS, przy ktÃ³rej promieÅ„ scenerii bÄ™dzie zwiÄ™kszany
+*/
     if (iPause)
-        iTextMode = VK_F1; // jak pauza, to pokazaæ zegar
-    if (qp)
-    { // to poni¿ej wykonywane tylko raz, jedynie po wczytaniu eu07.ini
-        Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
-        iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
-                        fFpsRadiusMax; // maksymalny promieñ renderowania 3000.0 -> 225
-        if (iFpsRadiusMax > 400)
-            iFpsRadiusMax = 400;
-        if (fDistanceFactor > 1.0)
-        { // dla 1.0 specjalny tryb bez przeliczania
-            fDistanceFactor =
-                iWindowHeight /
-                fDistanceFactor; // fDistanceFactor>1.0 dla rozdzielczoœci wiêkszych ni¿ bazowa
-            fDistanceFactor *=
-                (iMultisampling + 1.0) *
-                fDistanceFactor; // do kwadratu, bo wiêkszoœæ odleg³oœci to ich kwadraty
+        iTextMode = GLFW_KEY_F1; // jak pauza, to pokazaÄ‡ zegar
+    /*  this won't execute anymore with the old parser removed
+            // TBD: remove, or launch depending on passed flag?
+        if (qp)
+    { // to poniÅ¼ej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
+    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+            /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
+                        fFpsRadiusMax; // maksymalny promieÅ„ renderowania 3000.0 -> 225
+            if (iFpsRadiusMax > 400)
+                iFpsRadiusMax = 400;
+            if (fDistanceFactor > 1.0)
+            { // dla 1.0 specjalny tryb bez przeliczania
+                fDistanceFactor =
+                    iWindowHeight /
+                fDistanceFactor; // fDistanceFactor>1.0 dla rozdzielczoÅ›ci wiÄ™kszych niÅ¼ bazowa
+                fDistanceFactor *=
+                    (iMultisampling + 1.0) *
+                fDistanceFactor; // do kwadratu, bo wiÄ™kszoÅ›Ä‡ odlegÅ‚oÅ›ci to ich kwadraty
+            }
         }
-    }
-}
-
-void Global::InitKeys(AnsiString asFileName)
-{
-    //    if (FileExists(asFileName))
-    //    {
-    //       Error("Chwilowo plik keys.ini nie jest obs³ugiwany. £adujê standardowe
-    //       ustawienia.\nKeys.ini file is temporarily not functional, loading default keymap...");
-    /*        TQueryParserComp *Parser;
-            Parser=new TQueryParserComp(NULL);
-            Parser->LoadStringToParse(asFileName);
-
-            for (int keycount=0; keycount<MaxKeys; keycount++)
-             {
-              Keys[keycount]=Parser->GetNextSymbol().ToInt();
-             }
-
-            delete Parser;
     */
-    //    }
-    //    else
-    {
-        Keys[k_IncMainCtrl] = VK_ADD;
-        Keys[k_IncMainCtrlFAST] = VK_ADD;
-        Keys[k_DecMainCtrl] = VK_SUBTRACT;
-        Keys[k_DecMainCtrlFAST] = VK_SUBTRACT;
-        Keys[k_IncScndCtrl] = VK_DIVIDE;
-        Keys[k_IncScndCtrlFAST] = VK_DIVIDE;
-        Keys[k_DecScndCtrl] = VK_MULTIPLY;
-        Keys[k_DecScndCtrlFAST] = VK_MULTIPLY;
-        ///*NORMALNE
-        Keys[k_IncLocalBrakeLevel] = VK_NUMPAD1; // VK_NUMPAD7;
-        // Keys[k_IncLocalBrakeLevelFAST]=VK_END;  //VK_HOME;
-        Keys[k_DecLocalBrakeLevel] = VK_NUMPAD7; // VK_NUMPAD1;
-        // Keys[k_DecLocalBrakeLevelFAST]=VK_HOME; //VK_END;
-        Keys[k_IncBrakeLevel] = VK_NUMPAD3; // VK_NUMPAD9;
-        Keys[k_DecBrakeLevel] = VK_NUMPAD9; // VK_NUMPAD3;
-        Keys[k_Releaser] = VK_NUMPAD6;
-        Keys[k_EmergencyBrake] = VK_NUMPAD0;
-        Keys[k_Brake3] = VK_NUMPAD8;
-        Keys[k_Brake2] = VK_NUMPAD5;
-        Keys[k_Brake1] = VK_NUMPAD2;
-        Keys[k_Brake0] = VK_NUMPAD4;
-        Keys[k_WaveBrake] = VK_DECIMAL;
-        //*/
-        /*MOJE
-                Keys[k_IncLocalBrakeLevel]=VK_NUMPAD3;  //VK_NUMPAD7;
-                Keys[k_IncLocalBrakeLevelFAST]=VK_NUMPAD3;  //VK_HOME;
-                Keys[k_DecLocalBrakeLevel]=VK_DECIMAL;  //VK_NUMPAD1;
-                Keys[k_DecLocalBrakeLevelFAST]=VK_DECIMAL; //VK_END;
-                Keys[k_IncBrakeLevel]=VK_NUMPAD6;  //VK_NUMPAD9;
-                Keys[k_DecBrakeLevel]=VK_NUMPAD9;   //VK_NUMPAD3;
-                Keys[k_Releaser]=VK_NUMPAD5;
-                Keys[k_EmergencyBrake]=VK_NUMPAD0;
-                Keys[k_Brake3]=VK_NUMPAD2;
-                Keys[k_Brake2]=VK_NUMPAD1;
-                Keys[k_Brake1]=VK_NUMPAD4;
-                Keys[k_Brake0]=VK_NUMPAD7;
-                Keys[k_WaveBrake]=VK_NUMPAD8;
-        */
-        Keys[k_AntiSlipping] = VK_RETURN;
-        Keys[k_Sand] = VkKeyScan('s');
-        Keys[k_Main] = VkKeyScan('m');
-        Keys[k_Active] = VkKeyScan('w');
-        Keys[k_Battery] = VkKeyScan('j');
-        Keys[k_DirectionForward] = VkKeyScan('d');
-        Keys[k_DirectionBackward] = VkKeyScan('r');
-        Keys[k_Fuse] = VkKeyScan('n');
-        Keys[k_Compressor] = VkKeyScan('c');
-        Keys[k_Converter] = VkKeyScan('x');
-        Keys[k_MaxCurrent] = VkKeyScan('f');
-        Keys[k_CurrentAutoRelay] = VkKeyScan('g');
-        Keys[k_BrakeProfile] = VkKeyScan('b');
-        Keys[k_CurrentNext] = VkKeyScan('z');
-
-        Keys[k_Czuwak] = VkKeyScan(' ');
-        Keys[k_Horn] = VkKeyScan('a');
-        Keys[k_Horn2] = VkKeyScan('a');
-
-        Keys[k_FailedEngineCutOff] = VkKeyScan('e');
-
-        Keys[k_MechUp] = VK_PRIOR;
-        Keys[k_MechDown] = VK_NEXT;
-        Keys[k_MechLeft] = VK_LEFT;
-        Keys[k_MechRight] = VK_RIGHT;
-        Keys[k_MechForward] = VK_UP;
-        Keys[k_MechBackward] = VK_DOWN;
-
-        Keys[k_CabForward] = VK_HOME;
-        Keys[k_CabBackward] = VK_END;
-
-        Keys[k_Couple] = VK_INSERT;
-        Keys[k_DeCouple] = VK_DELETE;
-
-        Keys[k_ProgramQuit] = VK_F10;
-        // Keys[k_ProgramPause]=VK_F3;
-        Keys[k_ProgramHelp] = VK_F1;
-        // Keys[k_FreeFlyMode]=VK_F4;
-        Keys[k_WalkMode] = VK_F5;
-
-        Keys[k_OpenLeft] = VkKeyScan(',');
-        Keys[k_OpenRight] = VkKeyScan('.');
-        Keys[k_CloseLeft] = VkKeyScan(',');
-        Keys[k_CloseRight] = VkKeyScan('.');
-        Keys[k_DepartureSignal] = VkKeyScan('/');
-
-        // Winger 160204 - obsluga pantografow
-        Keys[k_PantFrontUp] = VkKeyScan('p'); // Ra: zamieniony przedni z tylnym
-        Keys[k_PantFrontDown] = VkKeyScan('p');
-        Keys[k_PantRearUp] = VkKeyScan('o');
-        Keys[k_PantRearDown] = VkKeyScan('o');
-        // Winger 020304 - ogrzewanie
-        Keys[k_Heating] = VkKeyScan('h');
-        Keys[k_LeftSign] = VkKeyScan('y');
-        Keys[k_UpperSign] = VkKeyScan('u');
-        Keys[k_RightSign] = VkKeyScan('i');
-        Keys[k_EndSign] = VkKeyScan('t');
-
-        Keys[k_SmallCompressor] = VkKeyScan('v');
-        Keys[k_StLinOff] = VkKeyScan('l');
-        // ABu 090305 - przyciski uniwersalne, do roznych bajerow :)
-        Keys[k_Univ1] = VkKeyScan('[');
-        Keys[k_Univ2] = VkKeyScan(']');
-        Keys[k_Univ3] = VkKeyScan(';');
-        Keys[k_Univ4] = VkKeyScan('\'');
-    }
 }
+
+void Global::InitKeys()
+{
+    Keys[k_IncMainCtrl] = GLFW_KEY_KP_ADD;
+    Keys[k_IncMainCtrlFAST] = GLFW_KEY_KP_ADD;
+    Keys[k_DecMainCtrl] = GLFW_KEY_KP_SUBTRACT;
+    Keys[k_DecMainCtrlFAST] = GLFW_KEY_KP_SUBTRACT;
+    Keys[k_IncScndCtrl] = GLFW_KEY_KP_DIVIDE;
+    Keys[k_IncScndCtrlFAST] = GLFW_KEY_KP_DIVIDE;
+    Keys[k_DecScndCtrl] = GLFW_KEY_KP_MULTIPLY;
+    Keys[k_DecScndCtrlFAST] = GLFW_KEY_KP_MULTIPLY;
+
+    Keys[k_IncLocalBrakeLevel] = GLFW_KEY_KP_1;
+    Keys[k_DecLocalBrakeLevel] = GLFW_KEY_KP_7;
+    Keys[k_IncBrakeLevel] = GLFW_KEY_KP_3;
+    Keys[k_DecBrakeLevel] = GLFW_KEY_KP_9;
+    Keys[k_Releaser] = GLFW_KEY_KP_6;
+    Keys[k_EmergencyBrake] = GLFW_KEY_KP_0;
+    Keys[k_Brake3] = GLFW_KEY_KP_8;
+    Keys[k_Brake2] = GLFW_KEY_KP_5;
+    Keys[k_Brake1] = GLFW_KEY_KP_2;
+    Keys[k_Brake0] = GLFW_KEY_KP_4;
+    Keys[k_WaveBrake] = GLFW_KEY_KP_DECIMAL;
+
+    Keys[k_AntiSlipping] = GLFW_KEY_KP_ENTER;
+    Keys[k_Sand] = 'S';
+    Keys[k_Main] = 'M';
+    Keys[k_Active] = 'W';
+    Keys[k_Battery] = 'J';
+    Keys[k_DirectionForward] = 'D';
+    Keys[k_DirectionBackward] = 'R';
+    Keys[k_Fuse] = 'N';
+    Keys[k_Compressor] = 'C';
+    Keys[k_Converter] = 'X';
+    Keys[k_MaxCurrent] = 'F';
+    Keys[k_CurrentAutoRelay] = 'G';
+    Keys[k_BrakeProfile] = 'B';
+    Keys[k_CurrentNext] = 'Z';
+
+    Keys[k_Czuwak] = ' ';
+    Keys[k_Horn] = 'A';
+    Keys[k_Horn2] = 'A';
+
+    Keys[k_FailedEngineCutOff] = 'E';
+
+    Keys[k_MechUp] = GLFW_KEY_PAGE_UP;
+    Keys[k_MechDown] = GLFW_KEY_PAGE_DOWN;
+    Keys[k_MechLeft] = GLFW_KEY_LEFT;
+    Keys[k_MechRight] = GLFW_KEY_RIGHT;
+    Keys[k_MechForward] = GLFW_KEY_UP;
+    Keys[k_MechBackward] = GLFW_KEY_DOWN;
+
+    Keys[k_CabForward] = GLFW_KEY_HOME;
+    Keys[k_CabBackward] = GLFW_KEY_END;
+
+    Keys[k_Couple] = GLFW_KEY_INSERT;
+    Keys[k_DeCouple] = GLFW_KEY_DELETE;
+
+    Keys[k_ProgramQuit] = GLFW_KEY_F10;
+    Keys[k_ProgramHelp] = GLFW_KEY_F1;
+    Keys[k_WalkMode] = GLFW_KEY_F5;
+
+    Keys[k_OpenLeft] = ',';
+    Keys[k_OpenRight] = '.';
+    Keys[k_CloseLeft] = ',';
+    Keys[k_CloseRight] = '.';
+    Keys[k_DepartureSignal] = '/';
+
+    // Winger 160204 - obsluga pantografow
+    Keys[k_PantFrontUp] = 'P'; // Ra: zamieniony przedni z tylnym
+    Keys[k_PantFrontDown] = 'P';
+    Keys[k_PantRearUp] = 'O';
+    Keys[k_PantRearDown] = 'O';
+    // Winger 020304 - ogrzewanie
+	Keys[k_Heating] = 'H';
+    // headlights
+	Keys[k_LeftSign] = 'Y';
+    Keys[k_UpperSign] = 'U';
+    Keys[k_RightSign] = 'I';
+    Keys[k_DimHeadlights] = 'L';
+    // tail lights
+    Keys[k_EndSign] = 'T';
+
+    Keys[k_SmallCompressor] = 'V';
+    Keys[k_StLinOff] = 'L';
+    // ABu 090305 - przyciski uniwersalne, do roznych bajerow :)
+    Keys[k_Univ1] = '[';
+    Keys[k_Univ2] = ']';
+    Keys[k_Univ3] = ';';
+    Keys[k_Univ4] = '\'';
+}
+
 /*
 vector3 Global::GetCameraPosition()
 {
@@ -710,7 +1060,7 @@ void Global::SetCameraPosition(vector3 pNewCameraPosition)
 }
 
 void Global::SetCameraRotation(double Yaw)
-{ // ustawienie bezwzglêdnego kierunku kamery z korekcj¹ do przedzia³u <-M_PI,M_PI>
+{ // ustawienie bezwzglÄ™dnego kierunku kamery z korekcjÄ… do przedziaÅ‚u <-M_PI,M_PI>
     pCameraRotation = Yaw;
     while (pCameraRotation < -M_PI)
         pCameraRotation += 2 * M_PI;
@@ -719,27 +1069,19 @@ void Global::SetCameraRotation(double Yaw)
     pCameraRotationDeg = pCameraRotation * 180.0 / M_PI;
 }
 
-void Global::BindTexture(GLuint t)
-{ // ustawienie aktualnej tekstury, tylko gdy siê zmienia
-    if (t != iTextureId)
-    {
-        iTextureId = t;
-    }
-};
-
 void Global::TrainDelete(TDynamicObject *d)
-{ // usuniêcie pojazdu prowadzonego przez u¿ytkownika
+{ // usuniÄ™cie pojazdu prowadzonego przez uÅ¼ytkownika
     if (pWorld)
         pWorld->TrainDelete(d);
 };
 
-TDynamicObject * Global::DynamicNearest()
-{ // ustalenie pojazdu najbli¿szego kamerze
+TDynamicObject *Global::DynamicNearest()
+{ // ustalenie pojazdu najbliÅ¼szego kamerze
     return pGround->DynamicNearest(pCamera->Pos);
 };
 
-TDynamicObject * Global::CouplerNearest()
-{ // ustalenie pojazdu najbli¿szego kamerze
+TDynamicObject *Global::CouplerNearest()
+{ // ustalenie pojazdu najbliÅ¼szego kamerze
     return pGround->CouplerNearest(pCamera->Pos);
 };
 
@@ -750,7 +1092,7 @@ bool Global::AddToQuery(TEvent *event, TDynamicObject *who)
 //---------------------------------------------------------------------------
 
 bool Global::DoEvents()
-{ // wywo³ywaæ czasem, ¿eby nie robi³ wra¿enia zawieszonego
+{ // wywoÅ‚ywaÄ‡ czasem, Å¼eby nie robiÅ‚ wraÅ¼enia zawieszonego
     MSG msg;
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
     {
@@ -765,158 +1107,210 @@ bool Global::DoEvents()
 
 TTranscripts::TTranscripts()
 {
-    iCount = 0; // brak linijek do wyœwietlenia
-    iStart = 0; // wype³niaæ od linijki 0
+/*
+    iCount = 0; // brak linijek do wyÅ›wietlenia
+    iStart = 0; // wypeÅ‚niaÄ‡ od linijki 0
     for (int i = 0; i < MAX_TRANSCRIPTS; ++i)
-    { // to do konstruktora mo¿na by daæ
+    { // to do konstruktora moÅ¼na by daÄ‡
         aLines[i].fHide = -1.0; // wolna pozycja (czas symulacji, 360.0 to doba)
         aLines[i].iNext = -1; // nie ma kolejnej
     }
-    fRefreshTime = 360.0; // wartoœc zaporowa
+*/
+    fRefreshTime = 360.0; // wartoÅ›c zaporowa
 };
 TTranscripts::~TTranscripts(){};
-void TTranscripts::AddLine(char *txt, float show, float hide, bool it)
+
+void TTranscripts::AddLine(std::string const &txt, float show, float hide, bool it)
 { // dodanie linii do tabeli, (show) i (hide) w [s] od aktualnego czasu
     if (show == hide)
         return; // komentarz jest ignorowany
-    show = Global::fTimeAngleDeg + show / 240.0; // jeœli doba to 360, to 1s bêdzie równe 1/240
+    show = Global::fTimeAngleDeg + show / 240.0; // jeÅ›li doba to 360, to 1s bÄ™dzie rÃ³wne 1/240
     hide = Global::fTimeAngleDeg + hide / 240.0;
-    int i = iStart, j, k; // od czegoœ trzeba zacz¹æ
+
+    TTranscript transcript;
+    transcript.asText = txt;
+    transcript.fShow = show;
+    transcript.fHide = hide;
+    transcript.bItalic = it;
+    aLines.emplace_back( transcript );
+    // set the next refresh time while at it
+    // TODO, TBD: sort the transcript lines? in theory, they should be coming arranged in the right order anyway
+    // short of cases with multiple sounds overleaping
+    fRefreshTime = aLines.front().fHide;
+/*
+    int i = iStart, j, k; // od czegoÅ› trzeba zaczÄ…Ä‡
     while ((aLines[i].iNext >= 0) ? (aLines[aLines[i].iNext].fShow <= show) :
-                                    false) // póki nie koniec i wczeœniej puszczane
-        i = aLines[i].iNext; // przejœcie do kolejnej linijki
-    //(i) wskazuje na liniê, po której nale¿y wstawiæ dany tekst, chyba ¿e
+                                    false) // pÃ³ki nie koniec i wczeÅ›niej puszczane
+        i = aLines[i].iNext; // przejÅ›cie do kolejnej linijki
+*/
+/*
+    //(i) wskazuje na liniÄ™, po ktÃ³rej naleÅ¼y wstawiÄ‡ dany tekst, chyba Å¼e
     while (txt ? *txt : false)
         for (j = 0; j < MAX_TRANSCRIPTS; ++j)
             if (aLines[j].fHide < 0.0)
             { // znaleziony pierwszy wolny
-                aLines[j].iNext = aLines[i].iNext; // dotychczasowy nastêpny bêdzie za nowym
-                if (aLines[iStart].fHide < 0.0) // jeœli tablica jest pusta
-                    iStart = j; // fHide trzeba sprawdziæ przed ewentualnym nadpisaniem, gdy i=j=0
+                aLines[j].iNext = aLines[i].iNext; // dotychczasowy nastÄ™pny bÄ™dzie za nowym
+                if (aLines[iStart].fHide < 0.0) // jeÅ›li tablica jest pusta
+                    iStart = j; // fHide trzeba sprawdziÄ‡ przed ewentualnym nadpisaniem, gdy i=j=0
                 else
-                    aLines[i].iNext = j; // a nowy bêdzie za tamtym wczeœniejszym
-                aLines[j].fShow = show; // wyœwietlaæ od
-                aLines[j].fHide = hide; // wyœwietlaæ do
+                    aLines[i].iNext = j; // a nowy bÄ™dzie za tamtym wczeÅ›niejszym
+                aLines[j].fShow = show; // wyÅ›wietlaÄ‡ od
+                aLines[j].fHide = hide; // wyÅ›wietlaÄ‡ do
                 aLines[j].bItalic = it;
-                aLines[j].asText = AnsiString(txt); // bez sensu, wystarczy³by wskaŸnik
-                if ((k = aLines[j].asText.Pos("|")) > 0)
-                { // jak jest podzia³ linijki na wiersze
-                    aLines[j].asText = aLines[j].asText.SubString(1, k - 1);
+                aLines[j].asText = std::string(txt); // bez sensu, wystarczyÅ‚by wskaÅºnik
+                if ((k = aLines[j].asText.find("|")) != std::string::npos)
+                { // jak jest podziaÅ‚ linijki na wiersze
+                    aLines[j].asText = aLines[j].asText.substr(0, k - 1);
                     txt += k;
-                    i = j; // kolejna linijka dopisywana bêdzie na koniec w³aœnie dodanej
+                    i = j; // kolejna linijka dopisywana bÄ™dzie na koniec wÅ‚aÅ›nie dodanej
                 }
                 else
                     txt = NULL; // koniec dodawania
-                if (fRefreshTime > show) // jeœli odœwie¿acz ustawiony jest na póŸniej
-                    fRefreshTime = show; // to odœwie¿yæ wczeœniej
-                break; // wiêcej ju¿ nic
+                if (fRefreshTime > show) // jeÅ›li odÅ›wieÅ¼acz ustawiony jest na pÃ³Åºniej
+                    fRefreshTime = show; // to odÅ›wieÅ¼yÄ‡ wczeÅ›niej
+                break; // wiÄ™cej juÅ¼ nic
             }
+*/
 };
-void TTranscripts::Add(char *txt, float len, bool backgorund)
-{ // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
-    if (!txt)
+void TTranscripts::Add(std::string const &txt, float len, bool backgorund)
+{ // dodanie tekstÃ³w, dÅ‚ugoÅ›Ä‡ dÅºwiÄ™ku, czy istotne
+    if (true == txt.empty())
         return; // pusty tekst
+/*
     int i = 0, j = int(0.5 + 10.0 * len); //[0.1s]
     if (*txt == '[')
-    { // powinny byæ dwa nawiasy
+    { // powinny byÄ‡ dwa nawiasy
         while (*++txt ? *txt != ']' : false)
             if ((*txt >= '0') && (*txt <= '9'))
-                i = 10 * i + int(*txt - '0'); // pierwsza liczba a¿ do ]
+                i = 10 * i + int(*txt - '0'); // pierwsza liczba aÅ¼ do ]
         if (*txt ? *++txt == '[' : false)
         {
-            j = 0; // drugi nawias okreœla czas zakoñczenia wyœwietlania
+            j = 0; // drugi nawias okreÅ›la czas zakoÅ„czenia wyÅ›wietlania
             while (*++txt ? *txt != ']' : false)
                 if ((*txt >= '0') && (*txt <= '9'))
-                    j = 10 * j + int(*txt - '0'); // druga liczba a¿ do ]
+                    j = 10 * j + int(*txt - '0'); // druga liczba aÅ¼ do ]
             if (*txt)
-                ++txt; // pominiêcie drugiego ]
+                ++txt; // pominiÄ™cie drugiego ]
         }
     }
-    AddLine(txt, 0.1 * i, 0.1 * j, false);
+*/
+    std::string asciitext{ txt }; win1250_to_ascii( asciitext ); // TODO: launch relevant conversion table based on language
+    cParser parser( asciitext );
+    while( true == parser.getTokens( 3, false, "[]\n" ) ) {
+
+        float begin, end;
+        std::string transcript;
+        parser
+            >> begin
+            >> end
+            >> transcript;
+        AddLine( transcript, 0.10 * begin, 0.12 * end, false );
+    }
+    // try to handle malformed(?) cases with no show/hide times
+    std::string transcript; parser >> transcript;
+    while( false == transcript.empty() ) {
+
+        WriteLog( "Transcript text with no display/hide times: \"" + transcript + "\"" );
+        AddLine( transcript, 0.0, 0.12 * transcript.size(), false );
+        transcript = ""; parser >> transcript;
+    }
 };
 void TTranscripts::Update()
-{ // usuwanie niepotrzebnych (nie czêœciej ni¿ 10 razy na sekundê)
-    if (fRefreshTime > Global::fTimeAngleDeg)
+{ // usuwanie niepotrzebnych (nie czÄ™Å›ciej niÅ¼ 10 razy na sekundÄ™)
+    if( Global::fTimeAngleDeg < fRefreshTime )
         return; // nie czas jeszcze na zmiany
-    // czas odœwie¿enia mo¿na ustaliæ wg tabelki, kiedy coœ siê w niej zmienia
-    fRefreshTime = Global::fTimeAngleDeg + 360.0; // wartoœæ zaporowa
-    int i = iStart, j = -1; // od czegoœ trzeba zacz¹æ
-    bool change = false; // czy zmieniaæ napisy?
+    // czas odÅ›wieÅ¼enia moÅ¼na ustaliÄ‡ wg tabelki, kiedy coÅ› siÄ™ w niej zmienia
+ //   fRefreshTime = Global::fTimeAngleDeg + 360.0; // wartoÅ›Ä‡ zaporowa
+
+    while( ( false == aLines.empty() )
+        && ( Global::fTimeAngleDeg >= aLines.front().fHide ) ) {
+        // remove expired lines
+        aLines.pop_front();
+    }
+    // update next refresh time
+    if( false == aLines.empty() ) { fRefreshTime = aLines.front().fHide; }
+    else                          { fRefreshTime = 360.0f; }
+/*
+    int i = iStart, j = -1; // od czegoÅ› trzeba zaczÄ…Ä‡
+    bool change = false; // czy zmieniaÄ‡ napisy?
     do
     {
         if (aLines[i].fHide >= 0.0) // o ile aktywne
             if (aLines[i].fHide < Global::fTimeAngleDeg)
-            { // gdy czas wyœwietlania up³yn¹³
-                aLines[i].fHide = -1.0; // teraz bêdzie woln¹ pozycj¹
+            { // gdy czas wyÅ›wietlania upÅ‚ynÄ…Å‚
+                aLines[i].fHide = -1.0; // teraz bÄ™dzie wolnÄ… pozycjÄ…
                 if (i == iStart)
                     iStart = aLines[i].iNext >= 0 ? aLines[i].iNext : 0; // przestawienie pierwszego
                 else if (j >= 0)
-                    aLines[j].iNext = aLines[i].iNext; // usuniêcie ze œrodka
+                    aLines[j].iNext = aLines[i].iNext; // usuniÄ™cie ze Å›rodka
                 change = true;
             }
             else
-            { // gdy ma byæ pokazane
-                if (aLines[i].fShow > Global::fTimeAngleDeg) // bêdzie pokazane w przysz³oœci
-                    if (fRefreshTime > aLines[i].fShow) // a nie ma nic wczeœniej
+            { // gdy ma byÄ‡ pokazane
+                if (aLines[i].fShow > Global::fTimeAngleDeg) // bÄ™dzie pokazane w przyszÅ‚oÅ›ci
+                    if (fRefreshTime > aLines[i].fShow) // a nie ma nic wczeÅ›niej
                         fRefreshTime = aLines[i].fShow;
                 if (fRefreshTime > aLines[i].fHide)
                     fRefreshTime = aLines[i].fHide;
             }
-        // mo¿na by jeszcze wykrywaæ, które nowe maj¹ byæ pokazane
+        // moÅ¼na by jeszcze wykrywaÄ‡, ktÃ³re nowe majÄ… byÄ‡ pokazane
         j = i;
         i = aLines[i].iNext; // kolejna linijka
-    } while (i >= 0); // póki po tablicy
-    change = true; // bo na razie nie ma warunku, ¿e coœ siê doda³o
+    } while (i >= 0); // pÃ³ki po tablicy
+    change = true; // bo na razie nie ma warunku, Å¼e coÅ› siÄ™ dodaÅ‚o
     if (change)
     { // aktualizacja linijek ekranowych
         i = iStart;
         j = -1;
         do
         {
-            if (aLines[i].fHide > 0.0) // jeœli nie ukryte
-                if (aLines[i].fShow < Global::fTimeAngleDeg) // to dodanie linijki do wyœwietlania
+            if (aLines[i].fHide > 0.0) // jeÅ›li nie ukryte
+                if (aLines[i].fShow < Global::fTimeAngleDeg) // to dodanie linijki do wyÅ›wietlania
                     if (j < 5 - 1) // ograniczona liczba linijek
                         Global::asTranscript[++j] = aLines[i].asText; // skopiowanie tekstu
             i = aLines[i].iNext; // kolejna linijka
-        } while (i >= 0); // póki po tablicy
+        } while (i >= 0); // pÃ³ki po tablicy
         for (++j; j < 5; ++j)
-            Global::asTranscript[j] = ""; // i czyszczenie nieu¿ywanych linijek
+            Global::asTranscript[j] = ""; // i czyszczenie nieuÅ¼ywanych linijek
     }
+*/
 };
 
-// Ra: tymczasowe rozwi¹zanie kwestii zagranicznych (czeskich) napisów
-char bezogonkowo[128] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
-                        " ^^L$A|S^CS<--RZo±,l'uP.,as>L\"lz"
-                        "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
-                        "raaaalccceeeeiiddnnoooo-ruuuuyt?";
+// Ra: tymczasowe rozwiÄ…zanie kwestii zagranicznych (czeskich) napisÃ³w
+char bezogonkowo[] = "E?,?\"_++?%S<STZZ?`'\"\".--??s>stzz"
+                        " ^^L$A|S^CS<--RZoÂ±,l'uP.,as>L\"lz"
+                     "RAAAALCCCEEEEIIDDNNOOOOxRUUUUYTB"
+                     "raaaalccceeeeiiddnnoooo-ruuuuyt?";
 
-AnsiString Global::Bezogonkow(AnsiString str, bool _)
-{ // wyciêcie liter z ogonkami, bo OpenGL nie umie wyœwietliæ
-    for (int i = 1; i <= str.Length(); ++i)
+std::string Global::Bezogonkow(std::string str, bool _)
+{ // wyciÄ™cie liter z ogonkami, bo OpenGL nie umie wyÅ›wietliÄ‡
+    for (unsigned int i = 1; i < str.length(); ++i)
         if (str[i] & 0x80)
             str[i] = bezogonkowo[str[i] & 0x7F];
-        else if (str[i] < ' ') // znaki steruj¹ce nie s¹ obs³ugiwane
+        else if (str[i] < ' ') // znaki sterujÄ…ce nie sÄ… obsÅ‚ugiwane
             str[i] = ' ';
         else if (_)
-            if (str[i] == '_') // nazwy stacji nie mog¹ zawieraæ spacji
-                str[i] = ' '; // wiêc trzeba wyœwietlaæ inaczej
+            if (str[i] == '_') // nazwy stacji nie mogÄ… zawieraÄ‡ spacji
+                str[i] = ' '; // wiÄ™c trzeba wyÅ›wietlaÄ‡ inaczej
     return str;
 };
 
 double Global::Min0RSpeed(double vel1, double vel2)
-{ // rozszerzenie funkcji Min0R o wartoœci -1.0
-	if (vel1 == -1.0)
-		vel1 = std::numeric_limits<double>::max();
-	if (vel2 == -1.0)
-		vel2 = std::numeric_limits<double>::max();
-	return Min0R(vel1, vel2);
+{ // rozszerzenie funkcji Min0R o wartoÅ›ci -1.0
+    if (vel1 == -1.0)
+    {
+        vel1 = std::numeric_limits<double>::max();
+    }
+    if (vel2 == -1.0)
+    {
+        vel2 = std::numeric_limits<double>::max();
+    }
+    return Min0R(vel1, vel2);
 };
 
 double Global::CutValueToRange(double min, double value, double max)
 { // przycinanie wartosci do podanych granic
-	value = Max0R(value, min);
-	value = Min0R(value, max);
-	return value;
+    value = Max0R(value, min);
+    value = Min0R(value, max);
+    return value;
 };
-
-#pragma package(smart_init)

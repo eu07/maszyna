@@ -7,62 +7,61 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef NamesH
-#define NamesH
-//---------------------------------------------------------------------------
-class ItemRecord
-{ // rekord opisuj¹cy obiekt; raz utworzony nie przemieszcza siê
-    // rozmiar rekordu mo¿na zmieniæ w razie potrzeby
-  public:
-    char *cName; // wskaŸnik do nazwy umieszczonej w buforze
-    int iFlags; // flagi bitowe
-    ItemRecord *rPrev, *rNext; // posortowane drzewo (przebudowywane w razie potrzeby)
-    union
-    {
-        void *pData; // wskaŸnik do obiektu
-        int iData; // albo numer obiektu (tekstury)
-        unsigned int uData;
-    };
-    // typedef
-    void ListGet(ItemRecord *r, int *&n);
-    void TreeAdd(ItemRecord *r, int c);
-    template <typename TOut> inline TOut *DataGet()
-    {
-        return (TOut *)pData;
-    };
-    template <typename TOut> inline void DataSet(TOut *x)
-    {
-        pData = (void *)x;
-    };
-    void * TreeFind(const char *n);
-    ItemRecord * TreeFindRecord(const char *n);
-};
+#pragma once
 
-class TNames
-{
-  public:
-    int iSize; // rozmiar bufora
-    char *cBuffer; // bufor dla rekordów (na pocz¹tku) i nazw (na koñcu)
-    ItemRecord *rRecords; // rekordy na pocz¹tku bufora
-    char *cLast; // ostatni u¿yty bajt na nazwy
-    ItemRecord *rTypes[20]; // ro¿ne typy obiektów (pocz¹tek drzewa)
-    int iLast; // ostatnio u¿yty rekord
-  public:
-    TNames();
-    int Add(int t, const char *n); // dodanie obiektu typu (t)
-    int Add(int t, const char *n, void *d); // dodanie obiektu z wskaŸnikiem
-    int Add(int t, const char *n, int d); // dodanie obiektu z numerem
-    bool Update(int t, const char *n, void *d); // dodanie jeœli nie ma, wymiana (d), gdy jest
-    void TreeSet();
-    ItemRecord * TreeSet(int *n, int d, int u);
-    void Sort(int t); // przebudowa drzewa typu (t)
-    ItemRecord * Item(int n); // rekord o numerze (n)
-    inline void *Find(const int t, const char *n)
-    {
-        return rTypes[t] ? rTypes[t]->TreeFind(n) : NULL;
-    };
-    ItemRecord * FindRecord(const int t, const char *n);
-    // template <typename TOut> inline TOut* Find(const int t,const char *n)
-    //{return (TOut*)(rTypes[t]->TreeFind(n));};
+#include <unordered_map>
+#include <string>
+
+template <typename Type_>
+class TNames {
+
+public:
+// types:
+
+// constructors:
+    TNames() = default;
+
+// destructor:
+
+// methods:
+    // dodanie obiektu z wskaÅºnikiem. updates data field if the object already exists. returns true for insertion, false for update
+    bool
+        Add( int const Type, std::string const &Name, Type_ Data ) {
+
+            auto lookup = find_map( Type ).emplace( Name, Data );
+            if( lookup.second == false ) {
+                // record already exists, update it
+                lookup.first->second = Data;
+                return false;
+            }
+            else {
+                // new record inserted, bail out
+                return true;
+            }
+    }
+    // returns pointer associated with provided label, or nullptr if there's no match
+    Type_
+        Find( int const Type, std::string const &Name ) {
+
+            auto const &map = find_map( Type );
+            auto const lookup = map.find( Name );
+            if( lookup != map.end() ) { return lookup->second; }
+            else                      { return nullptr; }
+    }
+
+private:
+// types:
+    typedef std::unordered_map<std::string, Type_>              type_map;
+    typedef std::unordered_map<int, type_map>                   typemap_map;
+
+// methods:
+    // returns database stored with specified type key; creates new database if needed.
+    type_map &
+        find_map( int const Type ) {
+    
+            return m_maps.emplace( Type, type_map() ).first->second;
+    }
+
+// members:
+    typemap_map                          m_maps;             // list of object maps of types specified so far
 };
-#endif

@@ -7,14 +7,29 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include <vcl.h>
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "float3d.h"
+#include "sn_utils.h"
 
 //---------------------------------------------------------------------------
 
-#pragma package(smart_init)
+void float4x4::deserialize_float32(std::istream &s)
+{
+	for (size_t i = 0; i < 16; i++)
+		e[i] = sn_utils::ld_float32(s);
+}
+
+void float4x4::deserialize_float64(std::istream &s)
+{
+	for (size_t i = 0; i < 16; i++)
+		e[i] = (float)sn_utils::ld_float64(s);
+}
+
+void float4x4::serialize_float32(std::ostream &s)
+{
+	for (size_t i = 0; i < 16; i++)
+		sn_utils::ls_float32(s, e[i]);
+}
 
 void float4x4::Quaternion(float4 *q)
 { // konwersja kwaternionu obrotu na macierz obrotu

@@ -6,34 +6,33 @@ distributed with this file, You can
 obtain one at
 http://mozilla.org/MPL/2.0/.
 */
+#pragma once
 
-#ifndef PoKeys55H
-#define PoKeys55H
+#include <string>
 //---------------------------------------------------------------------------
 class TPoKeys55
-{ // komunikacja z PoKeys bez okreúlania przeznaczenia pinÛw
-    unsigned char cRequest; // numer øπdania do sprawdzania odpowiedzi
+{ // komunikacja z PoKeys bez okre≈õlania przeznaczenia pin√≥w
+    unsigned char cRequest; // numer ≈ºƒÖdania do sprawdzania odpowiedzi
     unsigned char OutputBuffer[65]; // Allocate a memory buffer equal to our endpoint size + 1
     unsigned char InputBuffer[65]; // Allocate a memory buffer equal to our endpoint size + 1
-    int iPWM[8]; // 0-5:wyjúcia PWM,6:analogowe,7:czÍstotliwoúc PWM
+    int iPWM[8]; // 0-5:wyj≈õcia PWM,6:analogowe,7:czƒôstotliwo≈õc PWM
 	int iPWMbits;
     int iLastCommand;
     int iFaza;
-    int iRepeats; // liczba powtÛrzeÒ
-    bool bNoError; // zerowany po przepe≥nieniu licznika powtÛrzeÒ, ustawiany po udanej operacji
+    int iRepeats; // liczba powt√≥rze≈Ñ
+    bool bNoError; // zerowany po przepe≈Çnieniu licznika powt√≥rze≈Ñ, ustawiany po udanej operacji
   public:
-    float fAnalog[7]; // wejúcia analogowe, stan <0.0,1.0>
+    float fAnalog[7]; // wej≈õcia analogowe, stan <0.0,1.0>
     int iInputs[8];
     TPoKeys55();
     ~TPoKeys55();
     bool Connect();
-    bool Close();
+    void Close();
     bool Write(unsigned char c, unsigned char b3, unsigned char b4 = 0, unsigned char b5 = 0);
 	bool Read();
     bool ReadLoop(int i);
-    AnsiString Version();
+    std::string Version();
     bool PWM(int x, float y);
 	bool Update(bool pause);
 };
 //---------------------------------------------------------------------------
-#endif

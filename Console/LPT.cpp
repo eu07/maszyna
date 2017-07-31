@@ -7,8 +7,8 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
+#include "stdafx.h"
 #include "LPT.h"
-#include <windows.h>
 
 // LPT na USB:
 // USB\VID_067B&PID_2305&REV_0200
@@ -32,23 +32,23 @@ bool TLPT::Connect(int port)
         OutPort = (OutPortType)GetProcAddress(hDLL, "Out32");
     }
     else
-        return false; // MessageBox(NULL,"ERROR","B³¹d przy ³adowaniu pliku",MB_OK);
+        return false; // MessageBox(NULL,"ERROR","BÅ‚Ä…d przy Å‚adowaniu pliku",MB_OK);
     address =
-        port; //&0xFFFFFC; //ostatnie 2 bity maj¹ byæ zerowe -> a niech sobie OUT-uj¹, gdzie chc¹
+        port; //&0xFFFFFC; //ostatnie 2 bity majÄ… byÄ‡ zerowe -> a niech sobie OUT-ujÄ…, gdzie chcÄ…
     switch (address) // nie dotyczy 0x3BC
     {
     case 0x0378:
     case 0x0278:
-        OutPort(address + 0x402, 0); // SPP, czyli jednokierunkowe wyjœcie
+        OutPort(address + 0x402, 0); // SPP, czyli jednokierunkowe wyjÅ›cie
         break;
     case 0xBC00:
     case 0xBD00:
         OutPort(address + 0x006, 0); // 0xBC06? czysta improwizacja
     }
-    return bool(OutPort);
+    return OutPort != 0;
 };
 
 void TLPT::Out(int x)
-{ // wys³anie bajtu do portu
+{ // wysÅ‚anie bajtu do portu
     OutPort(address, x);
 };

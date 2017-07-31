@@ -7,56 +7,77 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef UsefullH
-#define UsefullH
+#pragma once
 
-#include "dumb3d.h"
-#include "Logs.h"
-
-//#define	B1(t)     (t*t*t)
-//#define	B2(t)     (3*t*t*(1-t))
-//#define	B3(t)     (3*t*(1-t)*(1-t))
-//#define	B4(t)     ((1-t)*(1-t)*(1-t))
-// Ra: to jest mocno nieoptymalne: 10+3*4=22 mno¿enia, 6 odejmowañ, 3*3=9 dodawañ
-// Ra: po przeliczeniu wspó³czynników mamy: 3*3=9 mno¿eñ i 3*3=9 dodawañ
-//#define	Interpolate(t,p1,cp1,cp2,p2)     (B4(t)*p1+B3(t)*cp1+B2(t)*cp2+B1(t)*p2)
-
-// Ra: "delete NULL" nic nie zrobi, wiêc "if (a!=NULL)" jest zbêdne
-//#define SafeFree(a) if (a!=NULL) free(a)
-#define SafeDelete(a) \
-    {                 \
-        delete (a);   \
-        a = NULL;     \
-    }
-#define SafeDeleteArray(a) \
-    {                      \
-        delete[](a);       \
-        a = NULL;          \
-    }
+#include "stdafx.h"
 
 #define sign(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
 
-#define DegToRad(a) ((M_PI / 180.0) * (a)) //(a) w nawiasie, bo mo¿e byæ dodawaniem
+#define DegToRad(a) ((M_PI / 180.0) * (a)) //(a) w nawiasie, bo moÅ¼e byÄ‡ dodawaniem
 #define RadToDeg(r) ((180.0 / M_PI) * (r))
 
-#define Fix(a, b, c) \
-    {                \
-        if (a < b)   \
-            a = b;   \
-        if (a > c)   \
-            a = c;   \
-    }
-
-#define asModelsPath AnsiString("models\\")
-#define asSceneryPath AnsiString("scenery\\")
-//#define asTexturePath AnsiString("textures\\")
-//#define asTextureExt AnsiString(".bmp")
+#define asModelsPath std::string("models\\")
+#define asSceneryPath std::string("scenery\\")
 #define szSceneryPath "scenery\\"
 #define szTexturePath "textures\\"
-//#define szDefaultTextureExt ".dds"
+#define szSoundPath "sounds\\"
 
-//#define DevelopTime     //FIXME
-//#define EditorMode
+#define MAKE_ID4(a,b,c,d) (((std::uint32_t)(d)<<24)|((std::uint32_t)(c)<<16)|((std::uint32_t)(b)<<8)|(std::uint32_t)(a))
+
+template <typename Type_>
+void SafeDelete( Type_ &Pointer ) {
+    delete Pointer;
+    Pointer = nullptr;
+}
+
+template <typename Type_>
+void SafeDeleteArray( Type_ &Pointer ) {
+    delete[] Pointer;
+    Pointer = nullptr;
+}
+
+template <typename Type_>
+Type_
+clamp( Type_ const Value, Type_ const Min, Type_ const Max ) {
+
+    Type_ value = Value;
+    if( value < Min ) { value = Min; }
+    if( value > Max ) { value = Max; }
+    return value;
+}
+
+// keeps the provided value in specified range 0-Range, as if the range was circular buffer
+template <typename Type_>
+Type_
+clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
+
+    Value -= Range * (int)( Value / Range ); // clamp the range to 0-360
+    if( Value < 0.0 ) Value += Range;
+
+    return Value;
+}
+
+template <typename Type_>
+Type_
+interpolate( Type_ const &First, Type_ const &Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
+template <typename Type_>
+Type_
+interpolate( Type_ const &First, Type_ const &Second, double const Factor ) {
+
+    return ( First * ( 1.0 - Factor ) ) + ( Second * Factor );
+}
+
+// tests whether provided points form a degenerate triangle
+template <typename VecType_>
+bool
+degenerate( VecType_ const &Vertex1, VecType_ const &Vertex2, VecType_ const &Vertex3 ) {
+
+    //  degenerate( A, B, C, minarea ) = ( ( B - A ).cross( C - A ) ).lengthSquared() < ( 4.0f * minarea * minarea );
+    return glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) < std::numeric_limits<VecType_::value_type>::epsilon();
+}
 
 //---------------------------------------------------------------------------
-#endif

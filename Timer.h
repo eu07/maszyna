@@ -7,8 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef TimerH
-#define TimerH
+#pragma once
 
 namespace Timer
 {
@@ -22,10 +21,6 @@ double GetfSinceStart();
 
 void SetDeltaTime(double v);
 
-double GetSimulationTime();
-
-void SetSimulationTime(double v);
-
 bool GetSoundTimer();
 
 double GetFPS();
@@ -36,4 +31,3 @@ void UpdateTimers(bool pause);
 };
 
 //---------------------------------------------------------------------------
-#endif

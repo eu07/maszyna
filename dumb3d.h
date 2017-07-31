@@ -7,11 +7,9 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef MATH3D_H
-#define MATH3D_H
+#pragma once
 
-//#include <cmath>
-#include <fastmath.h>
+#include <cmath>
 
 namespace Math3D
 {
@@ -29,22 +27,23 @@ typedef double scalar_t;
 // written in this style to allow for easy substitution with more efficient versions
 inline scalar_t SINE_FUNCTION(scalar_t x)
 {
-    return sin(x);
+    return std::sin(x);
 }
 inline scalar_t COSINE_FUNCTION(scalar_t x)
 {
-    return cos(x);
+    return std::cos(x);
 }
 inline scalar_t SQRT_FUNCTION(scalar_t x)
 {
-    return sqrt(x);
+    return std::sqrt(x);
 }
 
 // 2 element vector
 class vector2
 {
   public:
-    vector2(void)
+    vector2(void) :
+        x(0.0), y(0.0)
     {
     }
     vector2(scalar_t a, scalar_t b)
@@ -63,16 +62,18 @@ class vector2
 class vector3
 {
   public:
-    vector3(void)
-    {
-    }
-    vector3(scalar_t a, scalar_t b, scalar_t c)
-    {
-        x = a;
-        y = b;
-        z = c;
-    }
-
+    vector3(void) :
+        x(0.0), y(0.0), z(0.0)
+    {}
+    vector3( scalar_t X, scalar_t Y, scalar_t Z ) :
+                   x( X ),     y( Y ),     z( Z )
+    {}
+    vector3( glm::dvec3 const &Vector ) :
+        x( Vector.x ), y( Vector.y ), z( Vector.z )
+    {}
+    template <glm::precision Precision_>
+    operator glm::tvec3<double, Precision_>() const {
+        return glm::tvec3<double, Precision_>{ x, y, z }; }
     // The int parameter is the number of elements to copy from initArray (3 or 4)
     //	explicit vector3(scalar_t* initArray, int arraySize = 3)
     //	{ for (int i = 0;i<arraySize;++i) e[i] = initArray[i]; }
@@ -83,7 +84,8 @@ class vector3
 
     void inline Normalize();
     void inline SafeNormalize();
-    double inline Length();
+    double inline Length() const;
+    double inline LengthSquared() const;
     void inline Zero()
     {
         x = y = z = 0.0;
@@ -103,21 +105,15 @@ class vector3
         return &x;
     }
 
-    //    union
-    //  {
-    //        struct
-    //        {
     double x, y, z;
-    //        };
-    //    	scalar_t e[3];
-    //    };
+
     bool inline Equal(vector3 *v)
-    { // sprawdzenie odleg³oœci punktów
-        if (fabs(x - v->x) > 0.02)
-            return false; // szeœcian zamiast kuli
-        if (fabs(z - v->z) > 0.02)
+    { // sprawdzenie odlegÅ‚oÅ›ci punktÃ³w
+        if (std::fabs(x - v->x) > 0.02)
+            return false; // szeÅ›cian zamiast kuli
+        if (std::fabs(z - v->z) > 0.02)
             return false;
-        if (fabs(y - v->y) > 0.02)
+        if (std::fabs(y - v->y) > 0.02)
             return false;
         return true;
     };
@@ -131,20 +127,22 @@ class matrix4x4
   public:
     matrix4x4(void)
     {
+        ::SecureZeroMemory( e, sizeof( e ) );
     }
 
     // When defining matrices in C arrays, it is easiest to define them with
     // the column increasing fastest.  However, some APIs (OpenGL in particular) do this
     // backwards, hence the "constructor" from C matrices, or from OpenGL matrices.
     // Note that matrices are stored internally in OpenGL format.
-    void C_Matrix(scalar_t *initArray)
+    void C_Matrix(scalar_t const *initArray)
     {
         int i = 0;
         for (int y = 0; y < 4; ++y)
             for (int x = 0; x < 4; ++x)
                 (*this)(x)[y] = initArray[i++];
     }
-    void OpenGL_Matrix(scalar_t *initArray)
+    template <typename Type_>
+    void OpenGL_Matrix(Type_ const *initArray)
     {
         int i = 0;
         for (int x = 0; x < 4; ++x)
@@ -192,7 +190,7 @@ class matrix4x4
     inline matrix4x4 &ProjectionMatrix(bool perspective, scalar_t l, scalar_t r, scalar_t t,
                                        scalar_t b, scalar_t n, scalar_t f);
     void InitialRotate()
-    { // taka specjalna rotacja, nie ma co ci¹gaæ trygonometrii
+    { // taka specjalna rotacja, nie ma co ciÄ…gaÄ‡ trygonometrii
         double f;
         for (int i = 0; i < 16; i += 4)
         {
@@ -203,7 +201,7 @@ class matrix4x4
         }
     };
     inline bool IdentityIs()
-    { // sprawdzenie jednostkowoœci
+    { // sprawdzenie jednostkowoÅ›ci
         for (int i = 0; i < 16; ++i)
             if (e[i] != ((i % 5) ? 0.0 : 1.0)) // jedynki tylko na 0, 5, 10 i 15
                 return false;
@@ -414,6 +412,11 @@ inline vector3 CrossProduct(const vector3 &v1, const vector3 &v2)
     return vector3(v1.y * v2.z - v1.z * v2.y, v2.x * v1.z - v2.z * v1.x, v1.x * v2.y - v1.y * v2.x);
 }
 
+inline vector3 Interpolate( vector3 const &First, vector3 const &Second, float const Factor ) {
+
+    return ( First * ( 1.0f - Factor ) ) + ( Second * Factor );
+}
+
 inline vector3 operator*(const matrix4x4 &m, const vector3 &v)
 {
     return vector3(v.x * m[0][0] + v.y * m[1][0] + v.z * m[2][0] + m[3][0],
@@ -429,9 +432,14 @@ void inline vector3::Normalize()
     z *= il;
 }
 
-double inline vector3::Length()
+double inline vector3::Length() const
 {
     return SQRT_FUNCTION(x * x + y * y + z * z);
+}
+
+double inline vector3::LengthSquared() const {
+
+    return ( x * x + y * y + z * z );
 }
 
 inline bool operator==(const matrix4x4 &m1, const matrix4x4 &m2)
@@ -635,5 +643,3 @@ std::ostream &operator<<(std::ostream &os, const Math3D::matrix4x4 &m)
     return os;
 }
 #endif // OSTREAM_MATH3D
-
-#endif

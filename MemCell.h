@@ -7,38 +7,31 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef MemCellH
-#define MemCellH
+#pragma once
 
 #include "Classes.h"
 #include "dumb3d.h"
-using namespace Math3D;
 
 class TMemCell
 {
   private:
-    vector3 vPosition;
-    char *szText;
+    Math3D::vector3 vPosition;
+    std::string szText;
     double fValue1;
     double fValue2;
     TCommandType eCommand;
-    bool bCommand; // czy zawiera komendê dla zatrzymanego AI
-    TEvent *OnSent; // event dodawany do kolejki po wys³aniu komendy zatrzymuj¹cej sk³ad
+    bool bCommand; // czy zawiera komendÄ™ dla zatrzymanego AI
+    TEvent *OnSent; // event dodawany do kolejki po wysÅ‚aniu komendy zatrzymujÄ…cej skÅ‚ad
   public:
-    AnsiString
-        asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
-    TMemCell(vector3 *p);
-    ~TMemCell();
+    std::string asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
+    TMemCell( Math3D::vector3 *p );
     void Init();
-    void UpdateValues(char *szNewText, double fNewValue1, double fNewValue2, int CheckMask);
+    void UpdateValues( std::string const &szNewText, double const fNewValue1, double const fNewValue2, int const CheckMask );
     bool Load(cParser *parser);
-    void PutCommand(TController *Mech, vector3 *Loc);
-    bool Compare(char *szTestText, double fTestValue1, double fTestValue2, int CheckMask);
+    void PutCommand( TController *Mech, Math3D::vector3 *Loc );
+    bool Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask );
     bool Render();
-    inline char * Text()
-    {
-        return szText;
-    };
+    inline std::string const &Text() { return szText; }
     inline double Value1()
     {
         return fValue1;
@@ -47,7 +40,7 @@ class TMemCell
     {
         return fValue2;
     };
-    inline vector3 Position()
+    inline Math3D::vector3 Position()
     {
         return vPosition;
     };
@@ -66,4 +59,3 @@ class TMemCell
 };
 
 //---------------------------------------------------------------------------
-#endif

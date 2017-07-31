@@ -7,10 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
+#include "stdafx.h"
 #include "Timer.h"
 #include "Globals.h"
 
@@ -18,12 +15,12 @@ namespace Timer
 {
 
 double DeltaTime, DeltaRenderTime;
-double fFPS = 0.0f;
-double fLastTime = 0.0f;
-DWORD dwFrames = 0L;
-double fSimulationTime = 0;
-double fSoundTimer = 0;
-double fSinceStart = 0;
+double fFPS{ 0.0f };
+double fLastTime{ 0.0f };
+DWORD dwFrames{ 0 };
+double fSimulationTime{ 0.0 };
+double fSoundTimer{ 0.0 };
+double fSinceStart{ 0.0 };
 
 double GetTime()
 {
@@ -36,7 +33,7 @@ double GetDeltaTime()
 }
 
 double GetDeltaRenderTime()
-{ // czas renderowania (do poruszania siê)
+{ // czas renderowania (do poruszania siÄ™)
     return DeltaRenderTime;
 }
 
@@ -50,18 +47,8 @@ void SetDeltaTime(double t)
     DeltaTime = t;
 }
 
-double GetSimulationTime()
-{
-    return fSimulationTime;
-}
-
-void SetSimulationTime(double t)
-{
-    fSimulationTime = t;
-}
-
 bool GetSoundTimer()
-{ // Ra: byæ mo¿e, by dŸwiêki nie modyfikowa³y siê zbyt czêsto, po 0.1s zeruje siê ten licznik
+{ // Ra: byÄ‡ moÅ¼e, by dÅºwiÄ™ki nie modyfikowaÅ‚y siÄ™ zbyt czÄ™sto, po 0.1s zeruje siÄ™ ten licznik
     return (fSoundTimer == 0.0f);
 }
 
@@ -72,11 +59,10 @@ double GetFPS()
 
 void ResetTimers()
 {
-    // double CurrentTime=
-    GetTickCount();
+    UpdateTimers( Global::iPause != 0 );
     DeltaTime = 0.1;
-    DeltaRenderTime = 0;
-    fSoundTimer = 0;
+    DeltaRenderTime = 0.0;
+    fSoundTimer = 0.0;
 };
 
 LONGLONG fr, count, oldCount;
@@ -91,21 +77,25 @@ void UpdateTimers(bool pause)
         DeltaTime = Global::fTimeSpeed * DeltaRenderTime;
         fSoundTimer += DeltaTime;
         if (fSoundTimer > 0.1)
-            fSoundTimer = 0;
+            fSoundTimer = 0.0;
         /*
           double CurrentTime= double(count)/double(fr);//GetTickCount();
           DeltaTime= (CurrentTime-OldTime);
           OldTime= CurrentTime;
         */
-        if (DeltaTime > 1)
-            DeltaTime = 1;
+        if (DeltaTime > 1.0)
+            DeltaTime = 1.0;
     }
     else
-        DeltaTime = 0; // wszystko stoi, bo czas nie p³ynie
+        DeltaTime = 0.0; // wszystko stoi, bo czas nie pÅ‚ynie
     oldCount = count;
 
     // Keep track of the time lapse and frame count
-    double fTime = GetTickCount() * 0.001f; // Get current time in seconds
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+    double fTime = ::GetTickCount64() * 0.001f; // Get current time in seconds
+#else
+    double fTime = ::GetTickCount() * 0.001f; // Get current time in seconds
+#endif
     ++dwFrames; // licznik ramek
     // update the frame rate once per second
     if (fTime - fLastTime > 1.0f)
@@ -119,5 +109,3 @@ void UpdateTimers(bool pause)
 };
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

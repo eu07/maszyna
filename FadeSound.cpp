@@ -12,20 +12,9 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "Timer.h"
+#include "stdafx.h"
 #include "FadeSound.h"
-
-TFadeSound::TFadeSound()
-{
-    Sound = NULL;
-    fFade = 0;
-    dt = 0;
-    fTime = 0;
-}
+#include "Timer.h"
 
 TFadeSound::~TFadeSound()
 {
@@ -36,7 +25,7 @@ void TFadeSound::Free()
 {
 }
 
-void TFadeSound::Init(char *Name, float fNewFade)
+void TFadeSound::Init(std::string const &Name, float fNewFade)
 {
     Sound = TSoundsManager::GetFromName(Name, false);
     if (Sound)
@@ -101,5 +90,3 @@ void TFadeSound::Volume(long vol)
 }
 
 //---------------------------------------------------------------------------
-
-#pragma package(smart_init)

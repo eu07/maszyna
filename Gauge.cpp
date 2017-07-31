@@ -13,45 +13,18 @@ http://mozilla.org/MPL/2.0/.
 
 */
 
-#include "system.hpp"
-#include "classes.hpp"
-#pragma hdrstop
-
-#include "Timer.h"
-#include "QueryParserComp.hpp"
-#include "Model3d.h"
+#include "stdafx.h"
 #include "Gauge.h"
-#include "Console.h"
+#include "parser.h"
+#include "Model3d.h"
+#include "Timer.h"
+#include "logs.h"
 
-TGauge::TGauge()
-{
-    eType = gt_Unknown;
-    fFriction = 0.0;
-    fDesiredValue = 0.0;
-    fValue = 0.0;
-    fOffset = 0.0;
-    fScale = 1.0;
-    fStepSize = 5;
-    // iChannel=-1; //kana³ analogowej komunikacji zwrotnej
-    SubModel = NULL;
-};
-
-TGauge::~TGauge(){};
-
-void TGauge::Clear()
-{
-    SubModel = NULL;
-    eType = gt_Unknown;
-    fValue = 0;
-    fDesiredValue = 0;
-};
-
-void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset,
-                  double fNewFriction, double fNewValue)
-{ // ustawienie parametrów animacji submodelu
+void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale, double fNewOffset, double fNewFriction, double fNewValue)
+{ // ustawienie parametrÃ³w animacji submodelu
     if (NewSubModel)
-    { // warunek na wszelki wypadek, gdyby siê submodel nie
-        // pod³¹czy³
+    { // warunek na wszelki wypadek, gdyby siÄ™ submodel nie
+        // podÅ‚Ä…czyÅ‚
         fFriction = fNewFriction;
         fValue = fNewValue;
         fOffset = fNewOffset;
@@ -62,44 +35,122 @@ void TGauge::Init(TSubModel *NewSubModel, TGaugeType eNewType, double fNewScale,
         {
             TSubModel *sm = SubModel->ChildGet();
             do
-            { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od
+            { // pÄ™tla po submodelach potomnych i obracanie ich o kÄ…t zaleÅ¼y od
                 // cyfry w (fValue)
-                if (sm->pName)
-                { // musi mieæ niepust¹ nazwê
+                if (sm->pName.size())
+                { // musi mieÄ‡ niepustÄ… nazwÄ™
                     if (sm->pName[0] >= '0')
                         if (sm->pName[0] <= '9')
-                            sm->WillBeAnimated(); // wy³¹czenie optymalizacji
+                            sm->WillBeAnimated(); // wyÅ‚Ä…czenie optymalizacji
                 }
                 sm = sm->NextGet();
             } while (sm);
         }
-        else // a banan mo¿e byæ z optymalizacj¹?
-            NewSubModel->WillBeAnimated(); // wy³¹czenie ignowania jedynkowego transformu
+        else // a banan moÅ¼e byÄ‡ z optymalizacjÄ…?
+            NewSubModel->WillBeAnimated(); // wyÅ‚Ä…czenie ignowania jedynkowego transformu
     }
 };
 
-bool TGauge::Load(TQueryParserComp *Parser, TModel3d *md1, TModel3d *md2, double mul)
-{
-    AnsiString str1 = Parser->GetNextSymbol();
-    AnsiString str2 = Parser->GetNextSymbol().LowerCase();
-    double val3 = Parser->GetNextSymbol().ToDouble() * mul;
-    double val4 = Parser->GetNextSymbol().ToDouble();
-    double val5 = Parser->GetNextSymbol().ToDouble();
-    TSubModel *sm = md1->GetFromName(str1.c_str());
-    if (sm) // jeœli nie znaleziony
-        md2 = NULL; // informacja, ¿e znaleziony
-    else if (md2) // a jest podany drugi model (np. zewnêtrzny)
-        sm = md2->GetFromName(str1.c_str()); // to mo¿e tam bêdzie, co za ró¿nica gdzie
-    if (str2 == "mov")
-        Init(sm, gt_Move, val3, val4, val5);
-    else if (str2 == "wip")
-        Init(sm, gt_Wiper, val3, val4, val5);
-    else if (str2 == "dgt")
-        Init(sm, gt_Digital, val3, val4, val5);
-    else
-        Init(sm, gt_Rotate, val3, val4, val5);
-    return (md2); // true, gdy podany model zewnêtrzny, a w kabinie nie by³o
+bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
+
+    std::string submodelname, gaugetypename;
+    double scale, offset, friction;
+
+    Parser.getTokens();
+    if( Parser.peek() != "{" ) {
+        // old fixed size config
+        Parser >> submodelname;
+        gaugetypename = Parser.getToken<std::string>( true );
+        Parser.getTokens( 3, false );
+        Parser
+            >> scale
+            >> offset
+            >> friction;
+    }
+    else {
+        // new, block type config
+        // TODO: rework the base part into yaml-compatible flow style mapping
+        cParser mappingparser( Parser.getToken<std::string>( false, "}" ) );
+        submodelname = mappingparser.getToken<std::string>( false );
+        gaugetypename = mappingparser.getToken<std::string>( true );
+        mappingparser.getTokens( 3, false );
+        mappingparser
+            >> scale
+            >> offset
+            >> friction;
+        // new, variable length section
+        while( true == Load_mapping( mappingparser ) ) {
+            ; // all work done by while()
+        }
+    }
+
+	scale *= mul;
+		TSubModel *submodel = md1->GetFromName( submodelname.c_str() );
+    if( scale == 0.0 ) {
+        ErrorLog( "Scale of 0.0 defined for sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\". Forcing scale of 1.0 to prevent division by 0" );
+        scale = 1.0;
+    }
+    if (submodel) // jeÅ›li nie znaleziony
+        md2 = nullptr; // informacja, Å¼e znaleziony
+    else if (md2) // a jest podany drugi model (np. zewnÄ™trzny)
+        submodel = md2->GetFromName(submodelname.c_str()); // to moÅ¼e tam bÄ™dzie, co za rÃ³Å¼nica gdzie
+    if( submodel == nullptr ) {
+        ErrorLog( "Failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\"" );
+    }
+
+    std::map<std::string, TGaugeType> gaugetypes {
+        { "mov", gt_Move },
+        { "wip", gt_Wiper },
+        { "dgt", gt_Digital }
+    };
+    auto lookup = gaugetypes.find( gaugetypename );
+    auto const type = (
+        lookup != gaugetypes.end() ?
+            lookup->second :
+            gt_Rotate );
+    Init(submodel, type, scale, offset, friction);
+
+    return md2 != nullptr; // true, gdy podany model zewnÄ™trzny, a w kabinie nie byÅ‚o
 };
+
+bool
+TGauge::Load_mapping( cParser &Input ) {
+
+    if( false == Input.getTokens( 2, true, ", " ) ) {
+        return false;
+    }
+
+    std::string key, value;
+    Input
+        >> key
+        >> value;
+
+    if( key == "soundinc:" ) {
+        m_soundfxincrease = (
+            value != "none" ?
+                TSoundsManager::GetFromName( value, true ) :
+                nullptr );
+    }
+    else if( key == "sounddec:" ) {
+        m_soundfxdecrease = (
+            value != "none" ?
+                TSoundsManager::GetFromName( value, true ) :
+                nullptr );
+    }
+    else if( key.find( "sound" ) == 0 ) {
+        // sounds assigned to specific gauge values, defined by key soundFoo: where Foo = value
+        auto const indexstart = key.find_first_of( "-1234567890" );
+        auto const indexend = key.find_first_not_of( "-1234567890", indexstart );
+        if( indexstart != std::string::npos ) {
+            m_soundfxvalues.emplace(
+                std::stoi( key.substr( indexstart, indexend - indexstart ) ),
+                ( value != "none" ?
+                    TSoundsManager::GetFromName( value, true ) :
+                    nullptr ) );
+        }
+    }
+    return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
+}
 
 void TGauge::PermIncValue(double fNewDesired)
 {
@@ -112,22 +163,50 @@ void TGauge::PermIncValue(double fNewDesired)
 };
 
 void TGauge::IncValue(double fNewDesired)
-{ // u¿ywane tylko dla uniwersali
+{ // uÅ¼ywane tylko dla uniwersali
     fDesiredValue = fDesiredValue + fNewDesired * fScale + fOffset;
     if (fDesiredValue > fScale + fOffset)
         fDesiredValue = fScale + fOffset;
 };
 
 void TGauge::DecValue(double fNewDesired)
-{ // u¿ywane tylko dla uniwersali
+{ // uÅ¼ywane tylko dla uniwersali
     fDesiredValue = fDesiredValue - fNewDesired * fScale + fOffset;
     if (fDesiredValue < 0)
         fDesiredValue = 0;
 };
 
-void TGauge::UpdateValue(double fNewDesired)
-{ // ustawienie wartoœci docelowej
+// ustawienie wartoÅ›ci docelowej. plays provided fallback sound, if no sound was defined in the control itself
+void
+TGauge::UpdateValue( double fNewDesired, PSound Fallbacksound ) {
+
+    auto const desiredtimes100 = static_cast<int>( 100.0 * fNewDesired );
+    if( static_cast<int>( std::round( 100.0 * ( fDesiredValue - fOffset ) / fScale ) ) == desiredtimes100 ) {
+        return;
+    }
     fDesiredValue = fNewDesired * fScale + fOffset;
+    // if there's any sound associated with new requested value, play it
+    // check value-specific table first...
+    if( desiredtimes100 % 100 == 0 ) {
+        // filter out values other than full integers
+        auto const lookup = m_soundfxvalues.find( desiredtimes100 / 100 );
+        if( lookup != m_soundfxvalues.end() ) {
+            play( lookup->second );
+            return;
+        }
+    }
+    // ...and if there isn't any, fall back on the basic set...
+    auto const currentvalue = GetValue();
+    if( ( currentvalue < fNewDesired ) && ( m_soundfxincrease != nullptr ) ) {
+        play( m_soundfxincrease );
+    }
+    else if( ( currentvalue > fNewDesired ) && ( m_soundfxdecrease != nullptr ) ) {
+        play( m_soundfxdecrease );
+    }
+    else if( Fallbacksound != nullptr ) {
+        // ...and if that fails too, try the provided fallback sound from legacy system
+        play( Fallbacksound );
+    }
 };
 
 void TGauge::PutValue(double fNewDesired)
@@ -136,19 +215,29 @@ void TGauge::PutValue(double fNewDesired)
     fValue = fDesiredValue;
 };
 
-void TGauge::Update()
-{
-    float dt = Timer::GetDeltaTime();
-    if ((fFriction > 0) && (dt < 0.5 * fFriction)) // McZapkie-281102:
-        // zabezpieczenie przed
-        // oscylacjami dla dlugich
-        // czasow
-        fValue += dt * (fDesiredValue - fValue) / fFriction;
-    else
-        fValue = fDesiredValue;
-    if (SubModel)
-    { // warunek na wszelki wypadek, gdyby siê submodel nie
-        // pod³¹czy³
+double TGauge::GetValue() const {
+    // we feed value in range 0-1 so we should be getting it reported in the same range
+    return ( fValue - fOffset ) / fScale;
+}
+
+void TGauge::Update() {
+
+    if( fValue != fDesiredValue ) {
+        float dt = Timer::GetDeltaTime();
+        if( ( fFriction > 0 ) && ( dt < 0.5 * fFriction ) ) {
+            // McZapkie-281102: zabezpieczenie przed oscylacjami dla dlugich czasow
+            fValue += dt * ( fDesiredValue - fValue ) / fFriction;
+            if( std::abs( fDesiredValue - fValue ) <= 0.0001 ) {
+                // close enough, we can stop updating the model
+                fValue = fDesiredValue; // set it exactly as requested just in case it matters
+            }
+        }
+        else {
+            fValue = fDesiredValue;
+        }
+    }
+    if( SubModel )
+    { // warunek na wszelki wypadek, gdyby siÄ™ submodel nie podÅ‚Ä…czyÅ‚
         TSubModel *sm;
         switch (eType)
         {
@@ -171,17 +260,20 @@ void TGauge::Update()
             break;
         case gt_Digital: // Ra 2014-07: licznik cyfrowy
             sm = SubModel->ChildGet();
-            AnsiString n =
-                FormatFloat("0000000000", floor(fValue)); // na razie tak trochê bez sensu
+/*			std::string n = FormatFloat( "0000000000", floor( fValue ) ); // na razie tak trochÄ™ bez sensu
+*/			std::string n( "000000000" + std::to_string( static_cast<int>( std::floor( fValue ) ) ) );
+			if( n.length() > 10 ) { n.erase( 0, n.length() - 10 ); } // also dumb but should work for now
             do
-            { // pêtla po submodelach potomnych i obracanie ich o k¹t zale¿y od
-                // cyfry w (fValue)
-                if (sm->pName)
-                { // musi mieæ niepust¹ nazwê
-                    if (sm->pName[0] >= '0')
-                        if (sm->pName[0] <= '9')
-                            sm->SetRotate(float3(0, 1, 0),
-                                          -36.0 * (n['0' + 10 - sm->pName[0]] - '0'));
+            { // pÄ™tla po submodelach potomnych i obracanie ich o kÄ…t zaleÅ¼y od cyfry w (fValue)
+                if( sm->pName.size() ) {
+                    // musi mieÄ‡ niepustÄ… nazwÄ™
+                    if( ( sm->pName[ 0 ] >= '0' )
+                     && ( sm->pName[ 0 ] <= '9' ) ) {
+
+                        sm->SetRotate(
+                            float3( 0, 1, 0 ),
+                            -36.0 * ( n[ '0' + 9 - sm->pName[ 0 ] ] - '0' ) );
+                    }
                 }
                 sm = sm->NextGet();
             } while (sm);
@@ -208,9 +300,9 @@ void TGauge::AssignInt(int *iValue)
     iData = iValue;
 };
 void TGauge::UpdateValue()
-{ // ustawienie wartoœci docelowej z parametru
+{ // ustawienie wartoÅ›ci docelowej z parametru
     switch (cDataType)
-    { // to nie jest zbyt optymalne, mo¿na by zrobiæ osobne funkcje
+    { // to nie jest zbyt optymalne, moÅ¼na by zrobiÄ‡ osobne funkcje
     case 'f':
         fDesiredValue = (*fData) * fScale + fOffset;
         break;
@@ -223,6 +315,15 @@ void TGauge::UpdateValue()
     }
 };
 
-//---------------------------------------------------------------------------
+void
+TGauge::play( PSound Sound ) {
 
-#pragma package(smart_init)
+    if( Sound == nullptr ) { return; }
+
+    Sound->SetCurrentPosition( 0 );
+    Sound->SetVolume( DSBVOLUME_MAX );
+    Sound->Play( 0, 0, 0 );
+    return;
+}
+
+//---------------------------------------------------------------------------

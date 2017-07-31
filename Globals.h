@@ -7,17 +7,14 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef GlobalsH
-#define GlobalsH
+#pragma once
 
 #include <string>
-#include "system.hpp"
-#include "opengl/glew.h"
+#include <Windows.h>
+#include "renderer.h"
+#include "glfw/glfw3.h"
+#include "gl/glew.h"
 #include "dumb3d.h"
-#include "PyInt.h"
-//#include "Classes.h"
-
-using namespace Math3D;
 
 // definicje klawiszy
 const int k_IncMainCtrl = 0; //[Num+]
@@ -113,67 +110,77 @@ const int k_Active = 71;
 // Winger 020304
 const int k_Battery = 72;
 const int k_WalkMode = 73;
-const int MaxKeys = 74;
+int const k_DimHeadlights = 74;
+const int MaxKeys = 75;
 
-// klasy dla wskaŸników globalnych
+// klasy dla wskaÅºnikÃ³w globalnych
 class TGround;
 class TWorld;
 class TCamera;
 class TDynamicObject;
 class TAnimModel; // obiekt terenu
-namespace Queryparsercomp
-{
-class TQueryParserComp; // stary(?) parser
-}
 class cParser; // nowy (powolny!) parser
 class TEvent;
 class TTextSound;
 
 class TTranscript
-{ // klasa obs³uguj¹ca linijkê napisu do dŸwiêku
+{ // klasa obsÅ‚ugujÄ…ca linijkÄ™ napisu do dÅºwiÄ™ku
   public:
     float fShow; // czas pokazania
-    float fHide; // czas ukrycia/usuniêcia
-    AnsiString asText; // tekst gotowy do wyœwietlenia (usuniête znaczniki czasu)
-    bool bItalic; // czy kursywa (dŸwiêk nieistotny dla prowadz¹cego)
-    int iNext; // nastêpna u¿ywana linijka, ¿eby nie przestawiaæ fizycznie tabeli
+    float fHide; // czas ukrycia/usuniÄ™cia
+    std::string asText; // tekst gotowy do wyÅ›wietlenia (usuniÄ™te znaczniki czasu)
+    bool bItalic; // czy kursywa (dÅºwiÄ™k nieistotny dla prowadzÄ…cego)
+/*
+    int iNext; // nastÄ™pna uÅ¼ywana linijka, Å¼eby nie przestawiaÄ‡ fizycznie tabeli
+*/
 };
 
+/*
 #define MAX_TRANSCRIPTS 30
+*/
 class TTranscripts
-{ // klasa obs³uguj¹ca napisy do dŸwiêków
-    TTranscript aLines[MAX_TRANSCRIPTS]; // pozycje na napisy do wyœwietlenia
-    int iCount; // liczba zajêtych pozycji
-    int iStart; // pierwsza istotna pozycja w tabeli, ¿eby sortowaæ przestawiaj¹c numerki
+{ // klasa obsÅ‚ugujÄ…ca napisy do dÅºwiÄ™kÃ³w
+/*
+    TTranscript aLines[MAX_TRANSCRIPTS]; // pozycje na napisy do wyÅ›wietlenia
+*/
+public:
+    std::deque<TTranscript> aLines;
+/*
+    int iCount; // liczba zajÄ™tych pozycji
+    int iStart; // pierwsza istotna pozycja w tabeli, Å¼eby sortowaÄ‡ przestawiajÄ…c numerki
+*/
+private:
     float fRefreshTime;
 
   public:
     TTranscripts();
     ~TTranscripts();
-    void AddLine(char *txt, float show, float hide, bool it);
-    void Add(char *txt, float len,
-             bool backgorund = false); // dodanie tekstów, d³ugoœæ dŸwiêku, czy istotne
-    void Update(); // usuwanie niepotrzebnych (ok. 10 razy na sekundê)
+    void AddLine(std::string const &txt, float show, float hide, bool it);
+    // dodanie tekstÃ³w, dÅ‚ugoÅ›Ä‡ dÅºwiÄ™ku, czy istotne
+    void Add(std::string const &txt, float len, bool background = false);
+    // usuwanie niepotrzebnych (ok. 10 razy na sekundÄ™)
+    void Update(); 
 };
 
 class Global
 {
   private:
-    static GLuint iTextureId; // ostatnio u¿yta tekstura 2D
   public:
     // double Global::tSinceStart;
     static int Keys[MaxKeys];
-    static vector3 pCameraPosition; // pozycja kamery w œwiecie
+    static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
+    static Math3D::vector3 pCameraPosition; // pozycja kamery w Å›wiecie
     static double
-        pCameraRotation; // kierunek bezwzglêdny kamery w œwiecie: 0=pó³noc, 90°=zachód (-azymut)
+        pCameraRotation; // kierunek bezwzglÄ™dny kamery w Å›wiecie: 0=pÃ³Å‚noc, 90Â°=zachÃ³d (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard
-    static vector3 pFreeCameraInit[10]; // pozycje kamery
-    static vector3 pFreeCameraInitAngle[10];
+    static std::vector<Math3D::vector3> FreeCameraInit; // pozycje kamery
+    static std::vector<Math3D::vector3> FreeCameraInitAngle;
     static int iWindowWidth;
     static int iWindowHeight;
     static float fDistanceFactor;
     static int iBpp;
     static bool bFullScreen;
+    static bool VSync;
     static bool bFreeFly;
     // float RunningTime;
     static bool bWireFrame;
@@ -193,139 +200,161 @@ class Global
     static double fFogStart;
     static double fFogEnd;
     static TGround *pGround;
-    static char **szDefaultExt;
-    static char szSceneryFile[256];
-    static char CreatorName1[20];
-    static char CreatorName2[20];
-    static char CreatorName3[20];
-    static char CreatorName4[30];
-    static char CreatorName5[30];
-    static AnsiString asCurrentSceneryPath;
-    static AnsiString asCurrentTexturePath;
-    static AnsiString asCurrentDynamicPath;
+    static std::string szDefaultExt;
+    static std::string SceneryFile;
+    static std::string AppName;
+    static std::string asCurrentSceneryPath;
+    static std::string asCurrentTexturePath;
+    static std::string asCurrentDynamicPath;
     // McZapkie-170602: zewnetrzna definicja pojazdu uzytkownika
-    static AnsiString asHumanCtrlVehicle;
-    static void LoadIniFile(AnsiString asFileName);
-    static void InitKeys(AnsiString asFileName);
-    inline static vector3 GetCameraPosition()
-    {
-        return pCameraPosition;
-    };
-    static void SetCameraPosition(vector3 pNewCameraPosition);
+    static std::string asHumanCtrlVehicle;
+    static void LoadIniFile(std::string asFileName);
+    static void InitKeys();
+    inline static Math3D::vector3 GetCameraPosition() { return pCameraPosition; };
+    static void SetCameraPosition(Math3D::vector3 pNewCameraPosition);
     static void SetCameraRotation(double Yaw);
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
+    static bool MultipleLogs;
     // McZapkie-221002: definicja swiatla dziennego
 	static float Background[3];
 	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
+    static float Overcast;
     // static bool bTimeChange;
-    static GLfloat ambientDayLight[];
-    static GLfloat diffuseDayLight[];
-    static GLfloat specularDayLight[];
-    static GLfloat ambientLight[];
-    static GLfloat diffuseLight[];
-    static GLfloat specularLight[];
-    static GLfloat whiteLight[];
-    static GLfloat noLight[];
-    static GLfloat darkLight[];
-    static GLfloat lightPos[4];
+
+    // TODO: put these things in the renderer
+    static opengl_light DayLight;
+    static int DynamicLightCount;
+    static bool ScaleSpecularValues;
+    static bool RenderShadows;
+    static struct shadowtune_t {
+        unsigned int map_size;
+        float width;
+        float depth;
+        float distance;
+    } shadowtune;
+
     static int iSlowMotion;
     static TDynamicObject *changeDynObj;
     static double ABuDebug;
-    static bool detonatoryOK;
-    static AnsiString asSky;
+    static std::string asSky;
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
-    static int iDefaultFiltering; // domyœlne rozmywanie tekstur TGA
-    static int iBallastFiltering; // domyœlne rozmywanie tekstury podsypki
-    static int iRailProFiltering; // domyœlne rozmywanie tekstury szyn
-    static int iDynamicFiltering; // domyœlne rozmywanie tekstur pojazdów
-    static int iReCompile; // zwiêkszany, gdy trzeba odœwie¿yæ siatki
+    static float AnisotropicFiltering; // requested level of anisotropic filtering. TODO: move it to renderer object
+    static int iDefaultFiltering; // domyÅ›lne rozmywanie tekstur TGA
+    static int iBallastFiltering; // domyÅ›lne rozmywanie tekstury podsypki
+    static int iRailProFiltering; // domyÅ›lne rozmywanie tekstury szyn
+    static int iDynamicFiltering; // domyÅ›lne rozmywanie tekstur pojazdÃ³w
     static bool bUseVBO; // czy jest VBO w karcie graficznej
+    static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
-    static double fOpenGL; // wersja OpenGL - przyda siê
-    static bool bOpenGL_1_5; // czy s¹ dostêpne funkcje OpenGL 1.5
-    static double fLuminance; // jasnoœæ œwiat³a do automatycznego zapalania
-    static int iMultiplayer; // blokada dzia³ania niektórych eventów na rzecz kominikacji
-    static HWND hWnd; // uchwyt okna
+    static bool InputGamepad; // whether gamepad support is enabled
+    static double fLuminance; // jasnoÅ›Ä‡ Å›wiatÅ‚a do automatycznego zapalania
+    static float SunAngle; // angle of the sun relative to horizon
+    static int iMultiplayer; // blokada dziaÅ‚ania niektÃ³rych eventÃ³w na rzecz kominikacji
+	static GLFWwindow *window;
+	static bool shiftState; //m7todo: brzydko
+	static bool ctrlState;
+    static int ScreenWidth; // current window dimensions. TODO: move it to renderer
+    static int ScreenHeight;
+    static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
+    static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
     static int iCameraLast;
-    static AnsiString asRelease; // numer
-    static AnsiString asVersion; // z opisem
-    static int
-        iViewMode; // co aktualnie widaæ: 0-kabina, 1-latanie, 2-sprzêgi, 3-dokumenty, 4-obwody
+    static std::string asVersion; // z opisem
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
-    static int iTextMode; // tryb pracy wyœwietlacza tekstowego
-    static int iScreenMode[12]; // numer ekranu wyœwietlacza tekstowego
-    static bool bDoubleAmbient; // podwójna jasnoœæ ambient
+    static bool ControlPicking; // indicates controls pick mode is active
+    static bool InputMouse; // whether control pick mode can be activated
+    static int iTextMode; // tryb pracy wyÅ›wietlacza tekstowego
+    static int iScreenMode[12]; // numer ekranu wyÅ›wietlacza tekstowego
+    static bool bDoubleAmbient; // podwÃ³jna jasnoÅ›Ä‡ ambient
     static double fMoveLight; // numer dnia w roku albo -1
-    static bool bSmoothTraction; // wyg³adzanie drutów
-    static double fSunDeclination; // deklinacja S³oñca
-    static double fTimeSpeed; // przyspieszenie czasu, zmienna do testów
-    static double fTimeAngleDeg; // godzina w postaci k¹ta
-    static float fClockAngleDeg[6]; // k¹ty obrotu cylindrów dla zegara cyfrowego
-    static double fLatitudeDeg; // szerokoœæ geograficzna
-    static char *szTexturesTGA[4]; // lista tekstur od TGA
-    static char *szTexturesDDS[4]; // lista tekstur od DDS
+    static bool FakeLight; // toggle between fixed and dynamic daylight
+    static bool bSmoothTraction; // wygÅ‚adzanie drutÃ³w
+    static double fSunDeclination; // deklinacja SÅ‚oÅ„ca
+    static double fTimeSpeed; // przyspieszenie czasu, zmienna do testÃ³w
+    static double fTimeAngleDeg; // godzina w postaci kÄ…ta
+    static float fClockAngleDeg[6]; // kÄ…ty obrotu cylindrÃ³w dla zegara cyfrowego
+    static double fLatitudeDeg; // szerokoÅ›Ä‡ geograficzna
+    static std::string szTexturesTGA; // lista tekstur od TGA
+    static std::string szTexturesDDS; // lista tekstur od DDS
     static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
+    static bool DLFont; // switch indicating presence of basic font
     static bool bGlutFont; // tekst generowany przez GLUT
-    static int iKeyLast; // ostatnio naciœniêty klawisz w celu logowania
-    static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=t³o,b3=lagi,b4=wczytywanie
+    static int iKeyLast; // ostatnio naciÅ›niÄ™ty klawisz w celu logowania
+    static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tÅ‚o,b3=lagi,b4=wczytywanie
     static bool bActive; // czy jest aktywnym oknem
-    static void BindTexture(GLuint t);
-    static int iConvertModels; // tworzenie plików binarnych
-    static int iErorrCounter; // licznik sprawdzañ do œledzenia b³êdów OpenGL
+    static int iConvertModels; // tworzenie plikÃ³w binarnych
+    static int iErorrCounter; // licznik sprawdzaÅ„ do Å›ledzenia bÅ‚Ä™dÃ³w OpenGL
     static bool bInactivePause; // automatyczna pauza, gdy okno nieaktywne
-    static int iTextures; // licznik u¿ytych tekstur
-    static int iSlowMotionMask; // maska wy³¹czanych w³aœciwoœci
-    static int iModifyTGA; // czy korygowaæ pliki TGA dla szybszego wczytywania
+    static int iTextures; // licznik uÅ¼ytych tekstur
+    static int iSlowMotionMask; // maska wyÅ‚Ä…czanych wÅ‚aÅ›ciwoÅ›ci
+    static int iModifyTGA; // czy korygowaÄ‡ pliki TGA dla szybszego wczytywania
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
-	static bool bOldSmudge; // U¿ywanie starej smugi
+	static bool bOldSmudge; // UÅ¼ywanie starej smugi
 	
-    static TWorld *pWorld; // wskaŸnik na œwiat do usuwania pojazdów
+    static TWorld *pWorld; // wskaÅºnik na Å›wiat do usuwania pojazdÃ³w
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
-    static AnsiString asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
-    static bool bRollFix; // czy wykonaæ przeliczanie przechy³ki
-    static Queryparsercomp::TQueryParserComp *qParser;
+    static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
+    static bool bRollFix; // czy wykonaÄ‡ przeliczanie przechyÅ‚ki
     static cParser *pParser;
-    static int iSegmentsRendered; // iloœæ segmentów do regulacji wydajnoœci
-    static double fFpsAverage; // oczekiwana wartosæ FPS
+    static int iSegmentsRendered; // iloÅ›Ä‡ segmentÃ³w do regulacji wydajnoÅ›ci
+    static double fFpsAverage; // oczekiwana wartosÄ‡ FPS
     static double fFpsDeviation; // odchylenie standardowe FPS
-    static double fFpsMin; // dolna granica FPS, przy której promieñ scenerii bêdzie zmniejszany
-    static double fFpsMax; // górna granica FPS, przy której promieñ scenerii bêdzie zwiêkszany
-    static double fFpsRadiusMax; // maksymalny promieñ renderowania
-    static int iFpsRadiusMax; // maksymalny promieñ renderowania w rozmiarze tabeli sektorów
-    static double fRadiusFactor; // wspó³czynnik zmiany promienia
+    static double fFpsMin; // dolna granica FPS, przy ktÃ³rej promieÅ„ scenerii bÄ™dzie zmniejszany
+    static double fFpsMax; // gÃ³rna granica FPS, przy ktÃ³rej promieÅ„ scenerii bÄ™dzie zwiÄ™kszany
+    static double fFpsRadiusMax; // maksymalny promieÅ„ renderowania
+    static int iFpsRadiusMax; // maksymalny promieÅ„ renderowania w rozmiarze tabeli sektorÃ³w
+    static double fRadiusFactor; // wspÃ³Å‚czynnik zmiany promienia
     static TCamera *pCamera; // parametry kamery
-    static TDynamicObject *pUserDynamic; // pojazd u¿ytkownika, renderowany bez trzêsienia
-    static double fCalibrateIn[6][6]; // parametry kalibracyjne wejœæ z pulpitu
-    static double fCalibrateOut[7][6]; // parametry kalibracyjne wyjœæ dla pulpitu
-	static double fCalibrateOutMax[7]; // wartoœci maksymalne wyjœæ dla pulpitu
-	static int iCalibrateOutDebugInfo; // numer wyjœcia kalibrowanego dla którego wyœwietlaæ
+    static TDynamicObject *pUserDynamic; // pojazd uÅ¼ytkownika, renderowany bez trzÄ™sienia
+    static double fCalibrateIn[6][6]; // parametry kalibracyjne wejÅ›Ä‡ z pulpitu
+    static double fCalibrateOut[7][6]; // parametry kalibracyjne wyjÅ›Ä‡ dla pulpitu
+	static double fCalibrateOutMax[7]; // wartoÅ›ci maksymalne wyjÅ›Ä‡ dla pulpitu
+	static int iCalibrateOutDebugInfo; // numer wyjÅ›cia kalibrowanego dla ktÃ³rego wyÅ›wietlaÄ‡
 									   // informacje podczas kalibracji
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
-    static bool bJoinEvents; // czy grupowaæ eventy o tych samych nazwach
-    static bool bSmudge; // czy wyœwietlaæ smugê, a pojazd u¿ytkownika na koñcu
-    static AnsiString asTranscript[5]; // napisy na ekranie (widoczne)
-    static TTranscripts tranTexts; // obiekt obs³uguj¹cy stenogramy dŸwiêków na ekranie
-    static AnsiString asLang; // domyœlny jêzyk - http://tools.ietf.org/html/bcp47
-    static int iHiddenEvents; // czy ³¹czyæ eventy z torami poprzez nazwê toru
-    static TTextSound *tsRadioBusy[10]; // zajêtoœæ kana³ów radiowych (wskaŸnik na odgrywany dŸwiêk)
-	static int iPoKeysPWM[7]; // numery wejœæ dla PWM
+    static bool bJoinEvents; // czy grupowaÄ‡ eventy o tych samych nazwach
+/*
+    static std::string asTranscript[5]; // napisy na ekranie (widoczne)
+*/
+    static TTranscripts tranTexts; // obiekt obsÅ‚ugujÄ…cy stenogramy dÅºwiÄ™kÃ³w na ekranie
+    static float4 UITextColor; // base color of UI text
+    static std::string asLang; // domyÅ›lny jÄ™zyk - http://tools.ietf.org/html/bcp47
+    static int iHiddenEvents; // czy Å‚Ä…czyÄ‡ eventy z torami poprzez nazwÄ™ toru
+    static TTextSound *tsRadioBusy[10]; // zajÄ™toÅ›Ä‡ kanaÅ‚Ã³w radiowych (wskaÅºnik na odgrywany dÅºwiÄ™k)
+	static int iPoKeysPWM[7]; // numery wejÅ›Ä‡ dla PWM
+
+    //randomizacja
+    static std::mt19937 random_engine;
 
 	// metody
     static void TrainDelete(TDynamicObject *d);
-    static void ConfigParse(Queryparsercomp::TQueryParserComp *qp, cParser *cp = NULL);
-    static AnsiString GetNextSymbol();
+    static void ConfigParse(cParser &parser);
+    static std::string GetNextSymbol();
     static TDynamicObject * DynamicNearest();
     static TDynamicObject * CouplerNearest();
     static bool AddToQuery(TEvent *event, TDynamicObject *who);
     static bool DoEvents();
-    static AnsiString Bezogonkow(AnsiString str, bool _ = false);
+    static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
 	static double CutValueToRange(double min, double value, double max);
 
+    // maciek001: zmienne dla MWD
+	static bool bMWDmasterEnable;           // gÅ‚Ã³wne wÅ‚Ä…czenie portu COM
+	static bool bMWDdebugEnable;            // logowanie pracy
+	static int iMWDDebugMode;
+	static std::string sMWDPortId;           // nazwa portu COM
+	static unsigned long int iMWDBaudrate;  // prÄ™dkoÅ›Ä‡ transmisji
+	static bool bMWDInputEnable;            // wÅ‚Ä…cz wejÅ›cia
+	static bool bMWDBreakEnable;            // wÅ‚Ä…cz wejÅ›cia analogowe (hamulce)
+	static double fMWDAnalogInCalib[4][2];  // ustawienia kranÃ³w hamulca zespolonego i dodatkowego - min i max
+	static double fMWDzg[2];                // max wartoÅ›Ä‡ wskazywana i max wartoÅ›Ä‡ generowana (rozdzielczoÅ›Ä‡)
+	static double fMWDpg[2];
+	static double fMWDph[2];
+	static double fMWDvolt[2];
+	static double fMWDamp[2];
+	static double fMWDlowVolt[2];
+	static int iMWDdivider;
 };
-
 //---------------------------------------------------------------------------
-#endif

@@ -7,63 +7,44 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#ifndef SoundH
-#define SoundH
+#pragma once
 
 #include <stack>
-#undef EOF
-#include <objbase.h>
-//#include <initguid.h>
-//#include <commdlg.h>
-#include <mmreg.h>
 #include <dsound.h>
-//#include "resource.h"
-#include "WavRead.h"
 
 typedef LPDIRECTSOUNDBUFFER PSound;
 
-// inline Playing(PSound Sound)
-//{
-
-//}
-
 class TSoundContainer
 {
-  public:
+public:
     int Concurrent;
     int Oldest;
-    char Name[80];
+    std::string m_name;
     LPDIRECTSOUNDBUFFER DSBuffer;
-    float fSamplingRate; // czêstotliwoœæ odczytana z pliku
-    int iBitsPerSample; // ile bitów na próbkê
+    float fSamplingRate; // czÄ™stotliwoÅ›Ä‡ odczytana z pliku
+    int iBitsPerSample; // ile bitÃ³w na prÃ³bkÄ™
     TSoundContainer *Next;
     std::stack<LPDIRECTSOUNDBUFFER> DSBuffers;
-    LPDIRECTSOUNDBUFFER GetUnique(LPDIRECTSOUND pDS);
-    TSoundContainer(LPDIRECTSOUND pDS, char *Directory, char *strFileName, int NConcurrent);
+
+    TSoundContainer(LPDIRECTSOUND pDS, std::string const &Directory, std::string const &Filename, int NConcurrent);
     ~TSoundContainer();
+    LPDIRECTSOUNDBUFFER GetUnique( LPDIRECTSOUND pDS );
 };
 
 class TSoundsManager
 {
-  private:
+private:
     static LPDIRECTSOUND pDS;
     static LPDIRECTSOUNDNOTIFY pDSNotify;
-    // static char Directory[80];
-    static int Count;
     static TSoundContainer *First;
-    static TSoundContainer * LoadFromFile(char *Dir, char *Name, int Concurrent);
+    static int Count;
 
-  public:
-    // TSoundsManager(HWND hWnd);
-    // static void Init(HWND hWnd, char *NDirectory);
-    static void Init(HWND hWnd);
+    static TSoundContainer * LoadFromFile( std::string const &Directory, std::string const &FileName, int Concurrent);
+
+public:
     ~TSoundsManager();
+    static void Init( HWND hWnd );
     static void Free();
-    static void Init(char *Name, int Concurrent);
-    static void LoadSounds(char *Directory);
-    static LPDIRECTSOUNDBUFFER GetFromName(char *Name, bool Dynamic, float *fSamplingRate = NULL);
+    static LPDIRECTSOUNDBUFFER GetFromName( std::string const &Name, bool Dynamic, float *fSamplingRate = NULL );
     static void RestoreAll();
 };
-
-//---------------------------------------------------------------------------
-#endif
