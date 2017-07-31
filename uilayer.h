@@ -41,6 +41,8 @@ public:
 // methods:
     bool
         init( GLFWwindow *Window );
+    void
+        set_unit( GLint const Textureunit ) { m_textureunit = Textureunit; }
 	// draws requested UI elements
 	void
         render();
@@ -83,6 +85,7 @@ private:
 
 // members:
     GLFWwindow *m_window { nullptr };
+    GLint m_textureunit{ GL_TEXTURE0 };
     GLuint m_fontbase { (GLuint)-1 }; // numer DL dla znaków w napisach
 
     // progress bar config. TODO: put these together into an object
