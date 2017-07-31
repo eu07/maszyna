@@ -56,6 +56,10 @@ public:
             m_stack.top() *= Matrix;
             upload(); }
     void
+        ortho( float const Left, float const Right, float const Bottom, float const Top, float const Znear, float const Zfar ) {
+            m_stack.top() *= glm::ortho( Left, Right, Bottom, Top, Znear, Zfar );
+            upload(); }
+    void
         perspective( float const Fovy, float const Aspect, float const Znear, float const Zfar ) {
             m_stack.top() *= glm::perspective( Fovy, Aspect, Znear, Zfar );
             upload(); }
@@ -133,9 +137,19 @@ public:
                 glm::make_mat4( Matrix ) ); }
     template <typename Type_>
     void
+        ortho( Type_ const Left, Type_ const Right, Type_ const Bottom, Type_ const Top, Type_ const Znear, Type_ const Zfar ) {
+            m_stacks[ m_mode ].ortho(
+                static_cast<float>( Left ),
+                static_cast<float>( Right ),
+                static_cast<float>( Bottom ),
+                static_cast<float>( Top ),
+                static_cast<float>( Znear ),
+                static_cast<float>( Zfar ) ); }
+    template <typename Type_>
+    void
         perspective( Type_ const Fovy, Type_ const Aspect, Type_ const Znear, Type_ const Zfar ) {
             m_stacks[ m_mode ].perspective(
-                static_cast<float>(Fovy) * 0.0174532925f, // deg2rad
+                static_cast<float>( glm::radians( Fovy ) ),
                 static_cast<float>( Aspect ),
                 static_cast<float>( Znear ),
                 static_cast<float>( Zfar ) ); }
@@ -177,6 +191,7 @@ extern opengl_matrices OpenGLMatrices;
 // NOTE: no scale override as we aren't using it anywhere
 #define glMultMatrixd OpenGLMatrices.multiply
 #define glMultMatrixf OpenGLMatrices.multiply
+#define glOrtho OpenGLMatrices.ortho
 #define gluPerspective OpenGLMatrices.perspective
 #define gluLookAt OpenGLMatrices.look_at
 

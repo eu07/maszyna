@@ -98,6 +98,11 @@ std::string to_string( glm::tvec3<Type_, Precision_> const &Value ) {
     return to_string( Value.x, 2 ) + ", " + to_string( Value.y, 2 ) + ", " + to_string( Value.z, 2 );
 }
 
+template <typename Type_, glm::precision Precision_ = glm::defaultp>
+std::string to_string( glm::tvec4<Type_, Precision_> const &Value, int const Width = 2 ) {
+    return to_string( Value.x, Width ) + ", " + to_string( Value.y, Width ) + ", " + to_string( Value.z, Width ) + ", " + to_string( Value.w, Width );
+}
+
 int stol_def(const std::string & str, const int & DefaultValue);
 
 std::string ToLower(std::string const &text);
