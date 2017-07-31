@@ -1544,6 +1544,9 @@ TWorld::Update_UI() {
                     uitextline4 +=
                         "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
                         + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+						+ " ah=" + to_string(tmp->Mechanik->fAccThreshold, 2)
+						+ "@" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
+						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
                         + " VSm=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
