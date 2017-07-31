@@ -98,9 +98,9 @@ geometry_bank::append( vertex_array &Vertices, geometry_handle const &Geometry )
 
 // draws geometry stored in specified chunk
 void
-geometry_bank::draw( geometry_handle const &Geometry, unsigned int const Streams ) {
+geometry_bank::draw( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams ) {
     // template method implementation
-    draw_( Geometry, Streams );
+    draw_( Geometry, Units, Streams );
 }
 
 // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
@@ -148,7 +148,7 @@ opengl_vbogeometrybank::replace_( geometry_handle const &Geometry ) {
 
 // draw() subclass details
 void
-opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int const Streams ) {
+opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams ) {
 
     if( m_buffer == NULL ) {
         // if there's no buffer, we'll have to make one
@@ -203,7 +203,7 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int con
         chunkrecord.is_good = true;
     }
     if( m_activestreams != Streams ) {
-        bind_streams( Streams );
+        bind_streams( Units, Streams );
     }
     // ...render...
     ::glDrawArrays( chunk.type, chunkrecord.offset, chunkrecord.size );
@@ -239,7 +239,7 @@ opengl_vbogeometrybank::delete_buffer() {
         ::glDeleteBuffers( 1, &m_buffer );
         if( m_activebuffer == m_buffer ) {
             m_activebuffer = NULL;
-            bind_streams( stream::none );
+            release_streams();
         }
         m_buffer = NULL;
         m_buffercapacity = 0;
@@ -249,7 +249,7 @@ opengl_vbogeometrybank::delete_buffer() {
 }
 
 void
-opengl_vbogeometrybank::bind_streams( unsigned int const Streams ) {
+opengl_vbogeometrybank::bind_streams( stream_units const &Units, unsigned int const Streams ) {
 
     if( Streams & stream::position ) {
         ::glVertexPointer( 3, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) );
@@ -274,6 +274,7 @@ opengl_vbogeometrybank::bind_streams( unsigned int const Streams ) {
         ::glDisableClientState( GL_COLOR_ARRAY );
     }
     if( Streams & stream::texture ) {
+        ::glClientActiveTexture( Units.texture );
         ::glTexCoordPointer( 2, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 24 );
         ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
     }
@@ -282,6 +283,17 @@ opengl_vbogeometrybank::bind_streams( unsigned int const Streams ) {
     }
 
     m_activestreams = Streams;
+}
+
+void
+opengl_vbogeometrybank::release_streams() {
+
+    ::glDisableClientState( GL_VERTEX_ARRAY );
+    ::glDisableClientState( GL_NORMAL_ARRAY );
+    ::glDisableClientState( GL_COLOR_ARRAY );
+    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+
+    m_activestreams = stream::none;
 }
 
 // opengl display list based variant of the geometry bank
@@ -302,7 +314,7 @@ opengl_dlgeometrybank::replace_( geometry_handle const &Geometry ) {
 
 // draw() subclass details
 void
-opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, unsigned int const Streams ) {
+opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams ) {
 
     auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
     if( chunkrecord.streams != Streams ) {
@@ -319,7 +331,7 @@ opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, unsigned int cons
         for( auto const &vertex : chunk.vertices ) {
                  if( Streams & stream::normal ) { ::glNormal3fv( glm::value_ptr( vertex.normal ) ); }
             else if( Streams & stream::color )  { ::glColor3fv( glm::value_ptr( vertex.normal ) ); }
-            if( Streams & stream::texture )     { ::glTexCoord2fv( glm::value_ptr( vertex.texture ) ); }
+            if( Streams & stream::texture )     { ::glMultiTexCoord2fv( Units.texture, glm::value_ptr( vertex.texture ) ); }
             if( Streams & stream::position )    { ::glVertex3fv( glm::value_ptr( vertex.position ) ); }
         }
         ::glEnd();
@@ -404,7 +416,7 @@ geometrybank_manager::draw( geometry_handle const &Geometry, unsigned int const 
     auto &bankrecord = bank( Geometry );
 
     bankrecord.second = m_garbagecollector.timestamp();
-    bankrecord.first->draw( Geometry, Streams );
+    bankrecord.first->draw( Geometry, m_units, Streams );
 }
 
 // provides direct access to vertex data of specfied chunk

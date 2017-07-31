@@ -33,29 +33,28 @@ class cParser //: public std::stringstream
     virtual ~cParser();
     // methods:
     template <typename Type_>
-    cParser&
+    cParser &
         operator>>( Type_ &Right );
     template <>
-    cParser&
+    cParser &
         operator>>( std::string &Right );
     template <>
-    cParser&
+    cParser &
         operator>>( bool &Right );
-    template <typename _Output>
-	_Output
-		getToken( bool const ToLower = true )
-    {
-        getTokens( 1, ToLower );
-		_Output output;
-        *this >> output;
-		return output;
-    };
+    template <typename Output_>
+	Output_
+		getToken( bool const ToLower = true, const char *Break = "\n\r\t ;" ) {
+            getTokens( 1, ToLower, Break );
+		    Output_ output;
+            *this >> output;
+		    return output; };
 	template <>
 	bool
-		getToken<bool>( bool const ToLower ) {
-
-		return ( getToken<std::string>() == "true" );
-	}
+		getToken<bool>( bool const ToLower, const char *Break ) {
+            auto const token = getToken<std::string>( true, Break );
+            return ( ( token == "true" )
+                  || ( token == "yes" )
+                  || ( token == "1" ) ); }
     inline void ignoreToken()
     {
         readToken();
@@ -77,7 +76,13 @@ class cParser //: public std::stringstream
     {
         return !mStream->fail();
     };
-    bool getTokens(unsigned int Count = 1, bool ToLower = true, const char *Break = "\n\r\t ;");
+    bool getTokens(unsigned int Count = 1, bool ToLower = true, char const *Break = "\n\r\t ;");
+    // returns next incoming token, if any, without removing it from the set
+    std::string peek() const {
+        return (
+            false == tokens.empty() ?
+                tokens.front() :
+                "" ); }
     // returns percentage of file processed so far
     int getProgress() const;
     int getFullProgress() const;
