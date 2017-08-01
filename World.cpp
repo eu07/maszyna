@@ -288,23 +288,15 @@ bool TWorld::Init( GLFWwindow *Window ) {
         "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
-/*
-    std::shared_ptr<ui_panel> initpanel = std::make_shared<ui_panel>(85, 600);
-*/
+
     TSoundsManager::Init( glfwGetWin32Window( window ) );
     WriteLog("Sound Init OK");
     TModelsManager::Init();
     WriteLog("Models init OK");
-/*
-    initpanel->text_lines.emplace_back( "Loading scenery / Wczytywanie scenerii:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-    initpanel->text_lines.emplace_back( Global::SceneryFile.substr(0, 40), float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-    UILayer.push_back( initpanel );
-*/
+
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
-
-    GfxRenderer.Render();
 
     WriteLog( "Ground init" );
     if( true == Ground.Init( Global::SceneryFile ) ) {
@@ -315,13 +307,8 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     Environment.init();
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
-/*
-    initpanel->text_lines.clear();
-    initpanel->text_lines.emplace_back( "Preparing train / Przygotowanie kabiny:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-*/
+
     UILayer.set_progress( "Preparing train / Przygotowanie kabiny" );
-    GfxRenderer.Render();
-    
     WriteLog( "Player train init: " + Global::asHumanCtrlVehicle );
 
     TGroundNode *nPlayerTrain = NULL;
@@ -631,12 +618,18 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case GLFW_KEY_F8: {
-                Global::iTextMode = cKey;
+                if( Global::ctrlState
+                 && Global::shiftState ) {
+                    DebugCameraFlag = !DebugCameraFlag; // taka opcjonalna funkcja, może się czasem przydać
+                }
+                else {
+                    Global::iTextMode = cKey;
+                }
                 break;
             }
             case GLFW_KEY_F9: {
                 Global::iTextMode = cKey;
-                // wersja, typ wyświetlania, błędy OpenGL
+                // wersja
                 break;
             }
             case GLFW_KEY_F10: {
@@ -1074,8 +1067,9 @@ bool TWorld::Update()
             }
 
         // fixed step part of the camera update
-        if( (Train != nullptr)
-         && (Camera.Type == tp_Follow )) {
+        if( ( Train != nullptr )
+         && ( Camera.Type == tp_Follow )
+         && ( false == DebugCameraFlag ) ) {
             // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
             Train->UpdateMechPosition( m_secondaryupdaterate );
         }
@@ -1112,11 +1106,16 @@ bool TWorld::Update()
     while( fTime50Hz >= 1.0 / 50.0 ) {
         Console::Update(); // to i tak trzeba wywoływać
         Update_UI();
-
+        // decelerate camera
         Camera.Velocity *= 0.65;
         if( std::abs( Camera.Velocity.x ) < 0.01 ) { Camera.Velocity.x = 0.0; }
         if( std::abs( Camera.Velocity.y ) < 0.01 ) { Camera.Velocity.y = 0.0; }
         if( std::abs( Camera.Velocity.z ) < 0.01 ) { Camera.Velocity.z = 0.0; }
+        // decelerate debug camera too
+        DebugCamera.Velocity *= 0.65;
+        if( std::abs( DebugCamera.Velocity.x ) < 0.01 ) { DebugCamera.Velocity.x = 0.0; }
+        if( std::abs( DebugCamera.Velocity.y ) < 0.01 ) { DebugCamera.Velocity.y = 0.0; }
+        if( std::abs( DebugCamera.Velocity.z ) < 0.01 ) { DebugCamera.Velocity.z = 0.0; }
 
         fTime50Hz -= 1.0 / 50.0;
     }
@@ -1177,10 +1176,12 @@ TWorld::Update_Camera( double const Deltatime ) {
         }
     }
 
-    Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
+    if( DebugCameraFlag ) { DebugCamera.Update(); }
+    else                  { Camera.Update(); } // uwzględnienie ruchu wywołanego klawiszami
 
-    if( (Train != nullptr)
-     && (Camera.Type == tp_Follow )) {
+    if( ( Train != nullptr )
+     && ( Camera.Type == tp_Follow )
+     && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
         vector3 tempangle = Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
         double modelrotate = atan2( -tempangle.x, tempangle.z );
@@ -1243,7 +1244,8 @@ TWorld::Update_Camera( double const Deltatime ) {
         Global::SetCameraRotation( Camera.Yaw - M_PI );
     }
     // all done, update camera position to the new value
-    Global::SetCameraPosition( Camera.Pos );
+    Global::pCameraPosition = Camera.Pos;
+    Global::DebugCameraPosition = DebugCamera.Pos;
 }
 
 void TWorld::Update_Environment() {
@@ -1597,8 +1599,9 @@ TWorld::Update_UI() {
             uitextline1 =
                 "FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 )
                 + ", Draw range x " + to_string( Global::fDistanceFactor, 1 )
-                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
-                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
+//                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
+//                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
+                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer.Framerate())) );
             if( Global::iSlowMotion ) {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }

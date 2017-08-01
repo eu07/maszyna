@@ -352,7 +352,8 @@ void TCamera::Update()
     }
 */
     if( ( Type == tp_Free )
-     || ( false == Global::ctrlState ) ) {
+     || ( false == Global::ctrlState )
+     || ( true == DebugCameraFlag) ) {
         // ctrl is used for mirror view, so we ignore the controls when in vehicle if ctrl is pressed
         if( m_keys.up )
             Velocity.y = clamp( Velocity.y + m_moverate.y * 10.0 * deltatime, -m_moverate.y, m_moverate.y );
@@ -371,7 +372,8 @@ void TCamera::Update()
     }
 #endif
 
-    if( Type == tp_Free ) {
+    if( ( Type == tp_Free )
+     || ( true == DebugCameraFlag ) ) {
         // free movement position update is handled here, movement while in vehicle is handled by train update
         vector3 Vec = Velocity;
         Vec.RotateY( Yaw );
@@ -390,7 +392,7 @@ bool TCamera::SetMatrix( glm::dmat4 &Matrix ) {
     Matrix = glm::rotate( Matrix, -Pitch, glm::dvec3( 1.0, 0.0, 0.0 ) );
     Matrix = glm::rotate( Matrix, -Yaw, glm::dvec3( 0.0, 1.0, 0.0 ) ); // w zewnętrznym widoku: kierunek patrzenia
 
-    if( Type == tp_Follow ) {
+    if( ( Type == tp_Follow ) && ( false == DebugCameraFlag ) ) {
 
         Matrix *= glm::lookAt(
             glm::dvec3{ Pos },

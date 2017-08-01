@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 
 #define EU07_USE_PICKING_FRAMEBUFFER
 //#define EU07_USE_DEBUG_SHADOWMAP
+//#define EU07_USE_DEBUG_CAMERA
 
 struct opengl_light {
 
@@ -139,6 +140,9 @@ public:
     // main draw call. returns false on error
     bool
         Render();
+    inline
+    float
+        Framerate() { return m_framerate; }
     // geometry methods
     // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
     // creates a new geometry bank. returns: handle to the bank or NULL
@@ -199,31 +203,13 @@ private:
     typedef std::pair< double, TSubRect * > distancesubcell_pair;
 
     struct renderpass_config {
+
         opengl_camera camera;
         rendermode draw_mode { rendermode::none };
         float draw_range { 0.0f };
 
         void
-            setup( rendermode const Mode );
-    private:
-        // configures projection matrix for the current render pass
-        void
-            setup_projection();
-        void
-            setup_projection_world();
-        void
-            setup_projection_light_ortho();
-        void
-            setup_projection_light_perspective();
-        // configures camera for the current render pass
-        void
-            setup_modelview();
-        void
-            setup_modelview_world( glm::dmat4 &Viewmatrix );
-        void
-            setup_modelview_light_ortho( glm::dmat4 &Viewmatrix );
-        void
-            setup_modelview_light_perspective( glm::dmat4 &Viewmatrix );
+            setup( rendermode const Mode, bool const Framebuffersupport, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false );
     };
 
     typedef std::vector<opengl_light> opengllight_array;
@@ -288,6 +274,7 @@ private:
         pick_color( std::size_t const Index );
     std::size_t
         pick_index( glm::ivec3 const &Color );
+
 // members
     GLFWwindow *m_window { nullptr };
     geometrybank_manager m_geometry;
@@ -320,6 +307,10 @@ private:
     int m_diffusetextureunit { GL_TEXTURE2 };
 
     float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
+    std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
+    float m_framerate;
+    float m_drawtimecolor { 1000.f / 30.f * 20.f };
+    float m_drawtimeshadows { 0.f };
     double m_updateaccumulator { 0.0 };
     std::string m_debuginfo;
 
@@ -336,6 +327,9 @@ private:
     std::vector<TSubModel const *> m_pickcontrolsitems;
     TSubModel const *m_pickcontrolitem { nullptr };
     TGroundNode const *m_picksceneryitem { nullptr };
+#ifdef EU07_USE_DEBUG_CAMERA
+    renderpass_config m_worldcamera; // debug item
+#endif
 };
 
 extern opengl_renderer GfxRenderer;

@@ -10,10 +10,6 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "frustum.h"
 
-std::vector<glm::vec4> ndcfrustumshapepoints = {
-    { -1, -1, -1, 1 }, { 1, -1, -1, 1 }, { 1, 1, -1, 1 }, { -1, 1, -1, 1 }, // z-near
-    { -1, -1,  1, 1 }, { 1, -1,  1, 1 }, { 1, 1,  1, 1 }, { -1, 1,  1, 1 } }; // z-far
-
 void
 cFrustum::calculate() {
 
@@ -26,8 +22,8 @@ cFrustum::calculate() {
 void
 cFrustum::calculate( glm::mat4 const &Projection, glm::mat4 const &Modelview ) {
 
-    float const *proj = &Projection[ 0 ][ 0 ];
-    float const *modl = &Modelview[ 0 ][ 0 ];
+    float const *proj = glm::value_ptr( Projection );
+    float const *modl = glm::value_ptr( Modelview );
     float clip[ 16 ];
 
     // multiply the matrices to retrieve clipping planes
@@ -88,7 +84,7 @@ cFrustum::calculate( glm::mat4 const &Projection, glm::mat4 const &Modelview ) {
     m_frustum[ side_FRONT ][ plane_D ] = clip[ 15 ] + clip[ 14 ];
     normalize_plane( side_FRONT );
 
-    m_inversetransformation = glm::inverse( Projection * Modelview );
+    m_inversetransformation = glm::inverse( Projection * glm::mat4{ glm::mat3{ Modelview } } );
 
     // calculate frustum corners
     m_frustumpoints = ndcfrustumshapepoints;

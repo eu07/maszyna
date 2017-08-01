@@ -12,6 +12,10 @@ http://mozilla.org/MPL/2.0/.
 #include "float3d.h"
 #include "dumb3d.h"
 
+std::vector<glm::vec4> const ndcfrustumshapepoints = {
+    { -1, -1, -1, 1 },{ 1, -1, -1, 1 },{ 1, 1, -1, 1 },{ -1, 1, -1, 1 }, // z-near
+    { -1, -1,  1, 1 },{ 1, -1,  1, 1 },{ 1, 1,  1, 1 },{ -1, 1,  1, 1 } }; // z-far
+
 // generic frustum class. used to determine if objects are inside current view area
 
 class cFrustum {
@@ -64,7 +68,7 @@ public:
     // transforms provided set of clip space points to world space
     template <class Iterator_>
     void
-        transform_to_world( Iterator_ First, Iterator_ Last ) {
+        transform_to_world( Iterator_ First, Iterator_ Last ) const {
             std::for_each(
                 First, Last,
                 [this]( glm::vec4 &point ) {
@@ -76,7 +80,10 @@ public:
     void
         draw( glm::vec3 const &Offset ) const;
 
-protected:
+// members:
+    std::vector<glm::vec4> m_frustumpoints; // coordinates of corners for defined frustum, in world space
+
+private:
 // types:
     // planes of the frustum
     enum side { side_RIGHT = 0, side_LEFT = 1, side_BOTTOM = 2, side_TOP = 3, side_BACK = 4, side_FRONT = 5 };
@@ -90,5 +97,4 @@ protected:
 // members:
 	float m_frustum[6][4]; // holds the A B C and D values (normal & distance) for each side of the frustum.
     glm::mat4 m_inversetransformation; // cached inverse transformation matrix
-    std::vector<glm::vec4> m_frustumpoints; // coordinates of corners for defined frustum, in world space
 };

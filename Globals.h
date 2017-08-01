@@ -170,6 +170,7 @@ class Global
     static int Keys[MaxKeys];
     static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
     static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
+    static Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
     static double
         pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard

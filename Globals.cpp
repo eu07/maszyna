@@ -71,6 +71,7 @@ float4 Global::UITextColor = float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 2
 
 // parametry scenerii
 vector3 Global::pCameraPosition;
+vector3 Global::DebugCameraPosition;
 double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
@@ -86,7 +87,7 @@ opengl_light Global::DayLight;
 int Global::DynamicLightCount { 3 };
 bool Global::ScaleSpecularValues { true };
 bool Global::RenderShadows { false };
-Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 1250.f, 100.f };
+Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 250.f, 500.f };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
 int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę toru

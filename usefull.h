@@ -80,4 +80,19 @@ degenerate( VecType_ const &Vertex1, VecType_ const &Vertex2, VecType_ const &Ve
     return ( glm::length2( glm::cross( Vertex2 - Vertex1, Vertex3 - Vertex1 ) ) == 0.0 );
 }
 
+// calculates bounding box for provided set of points
+template <class Iterator_, class VecType_>
+void
+bounding_box( VecType_ &Mincorner, VecType_ &Maxcorner, Iterator_ First, Iterator_ Last ) {
+
+    Mincorner = VecType_( typename std::numeric_limits<VecType_::value_type>::max() );
+    Maxcorner = VecType_( typename std::numeric_limits<VecType_::value_type>::min() );
+
+    std::for_each(
+        First, Last,
+        [&]( typename Iterator_::value_type &point ) {
+            Mincorner = glm::min( Mincorner, VecType_{ point } );
+            Maxcorner = glm::max( Maxcorner, VecType_{ point } ); } );
+}
+
 //---------------------------------------------------------------------------
