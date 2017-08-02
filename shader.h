@@ -80,7 +80,7 @@ struct gl_ubodata_light
 	PAD(8);
 };
 
-static_assert(sizeof(gl_ubodata_light) == 64);
+static_assert(sizeof(gl_ubodata_light) == 64, "bad size of ubo structs");
 
 struct gl_ubodata_light_params
 {
@@ -95,7 +95,7 @@ struct gl_ubodata_light_params
 	gl_ubodata_light lights[MAX_LIGHTS];
 };
 
-static_assert(sizeof(gl_ubodata_light_params) == 544);
+static_assert(sizeof(gl_ubodata_light_params) == 544, "bad size of ubo structs");
 
 #pragma pack(pop)
 
