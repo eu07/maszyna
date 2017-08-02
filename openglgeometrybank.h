@@ -164,8 +164,7 @@ public:
     static
     void
         reset() {
-            m_activebuffer = 0;
-            m_activestreams = stream::none; }
+            m_activebuffer = 0; }
 
 private:
 // types:
@@ -199,52 +198,9 @@ private:
 
 // members:
     static GLuint m_activebuffer; // buffer bound currently on the opengl end, if any
-    static unsigned int m_activestreams;
     GLuint m_buffer { NULL }; // id of the buffer holding data on the opengl end
 	GLuint m_vao = 0;
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
-    chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
-
-};
-
-// opengl display list based variant of the geometry bank
-
-class opengl_dlgeometrybank : public geometry_bank {
-
-public:
-// constructors:
-    opengl_dlgeometrybank() = default;
-// destructor:
-    ~opengl_dlgeometrybank() {
-        for( auto &chunkrecord : m_chunkrecords ) {
-            ::glDeleteLists( chunkrecord.list, 1 ); } }
-
-private:
-// types:
-    struct chunk_record {
-        GLuint list { 0 }; // display list associated with the chunk
-        unsigned int streams { 0 }; // stream combination used to generate the display list
-    };
-
-    typedef std::vector<chunk_record> chunkrecord_sequence;
-
-// methods:
-    // create() subclass details
-    void
-        create_( geometry_handle const &Geometry );
-    // replace() subclass details
-    void
-        replace_( geometry_handle const &Geometry );
-    // draw() subclass details
-    void
-        draw_( geometry_handle const &Geometry, unsigned int const Streams );
-    // release () subclass details
-    void
-        release_();
-    void
-        delete_list( geometry_handle const &Geometry );
-
-// members:
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 
 };
