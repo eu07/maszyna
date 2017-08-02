@@ -7,10 +7,11 @@
 
 class gl_shader
 {
-	GLuint id;
+	GLuint id = 0;
 public:
 	gl_shader();
 	gl_shader(std::string);
+	~gl_shader();
 
 	operator GLuint();
 };
@@ -18,10 +19,12 @@ public:
 class gl_program
 {
 protected:
-	GLuint id;
+	GLuint id = 0;
+
 public:
 	gl_program() = default;
 	gl_program(std::vector<gl_shader>);
+	~gl_program();
 
 	static gl_program* current_program;
 	static gl_program* last_program;
@@ -47,46 +50,85 @@ public:
 	void copy_gl_mvp();
 };
 
-class gl_program_light : public gl_program_mvp
-{
-public:
-	static const size_t MAX_LIGHTS = 8;
+// layout std140
+// structs must match with GLSL
+// weird order to minimize padding
 
-	enum type
+#define PAD(x) uint64_t : x * 4; uint64_t : x * 4;
+#pragma pack(push, 1)
+struct gl_ubodata_light
+{
+	enum type_e
 	{
 		SPOT = 0,
 		POINT,
 		DIR
 	};
 
+	glm::vec3 pos;
+	type_e type;
+
+	glm::vec3 dir;
+	float in_cutoff;
+
+	glm::vec3 color;
+	float out_cutoff;
+
+	float linear;
+	float quadratic;
+
+	PAD(8);
+};
+
+static_assert(sizeof(gl_ubodata_light) == 64);
+
+struct gl_ubodata_light_params
+{
+	static const size_t MAX_LIGHTS = 8;
+
+	glm::vec3 ambient;
+	float fog_density;
+
+	glm::vec3 fog_color;
+	GLuint lights_count;
+
+	gl_ubodata_light lights[MAX_LIGHTS];
+};
+
+static_assert(sizeof(gl_ubodata_light_params) == 544);
+
+#pragma pack(pop)
+
+template<typename T>
+class gl_ubo
+{
+	GLuint buffer_id = 0;
+	GLuint binding_point;
+	static GLuint binding_point_cnt;
+
+public:
+	T data;
+	void init();
+	~gl_ubo();
+	void update();
+	GLuint get_binding_point()
+	{
+		return binding_point;
+	};
+};
+
+class gl_program_light : public gl_program_mvp
+{
+public:
 	gl_program_light() = default;
 	gl_program_light(std::vector<gl_shader>);
 
 	void set_lightview(const glm::mat4 &lightview);
-	void set_ambient(const glm::vec3 &ambient);
-	void set_fog(float density, const glm::vec3 &color);
 	void set_material(float specular, const glm::vec3 &emission);
-	void set_light_count(GLuint count);
-	void set_light(GLuint id, type t, const glm::vec3 &pos, const glm::vec3 &dir, float in_cutoff, float out_cutoff,
-		const glm::vec3 &color, float linear, float quadratic);
+	void bind_ubodata(GLuint point);
 
 private:
 	GLuint lightview_uniform;
-	GLuint ambient_uniform;
 	GLuint specular_uniform;
-	GLuint fog_color_uniform;
-	GLuint fog_density_uniform;
 	GLuint emission_uniform;
-	GLuint lcount_uniform;
-	struct light_s
-	{
-		GLuint type;
-		GLuint pos;
-		GLuint dir;
-		GLuint in_cutoff;
-		GLuint out_cutoff;
-		GLuint color;
-		GLuint linear;
-		GLuint quadratic;
-	} lights_uniform[MAX_LIGHTS];
 };

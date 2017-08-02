@@ -105,7 +105,9 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     Global::daylight.color.z = 231.0f / 255.0f;
 	Global::daylight.intensity = 1.0f; //m7todo: przenieść
 
+    ubo.init();
 	shader = gl_program_light({ gl_shader("lighting.vert"), gl_shader("blinnphong.frag") });
+    shader.bind_ubodata(ubo.get_binding_point());
 	depth_shader = gl_program_mvp({ gl_shader("shadowmap.vert"), gl_shader("empty.frag") });
 	active_shader = &shader;
 
@@ -267,12 +269,14 @@ opengl_renderer::Render( world_environment *Environment ) {
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
     ::glPushMatrix();
+
+    ubo.data.fog_color = glm::make_vec3(Global::FogColor);
     // setup fog
-    if( Global::fFogEnd > 0 ) {
-        // fog setup
-		shader.set_fog(1.0f / Global::fFogEnd, glm::make_vec3(Global::FogColor));
-    }
-    else { shader.set_fog(0.0f, glm::make_vec3(Global::FogColor)); }
+    if( Global::fFogEnd > 0 )
+		ubo.data.fog_density = 1.0f / Global::fFogEnd;
+    else
+        ubo.data.fog_density = 0.0f;
+    ubo.update();
 
     Environment->m_skydome.Render();
     // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
@@ -444,6 +448,7 @@ opengl_renderer::Render( TGround *Ground ) {
     ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
 
     Update_Lights( Ground->m_lights );
+    ubo.update();
 
     m_drawqueue.clear();
 
@@ -705,14 +710,14 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
                 // crude way to light the cabin, until we have something more complete in place
                 auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-				shader.set_ambient(glm::make_vec3(&cablight.x));
+				ubo.data.ambient = glm::make_vec3(&cablight.x);
             }
 
             Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-				shader.set_ambient(glm::vec3(m_baseambient));
+				ubo.data.ambient = glm::vec3(m_baseambient);
             }
         }
     }
@@ -1182,14 +1187,14 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
                 // crude way to light the cabin, until we have something more complete in place
                 auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-				shader.set_ambient(glm::make_vec3(&cablight.x));
+				ubo.data.ambient = glm::make_vec3(&cablight.x);
             }
 
             Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 
             if( Dynamic->InteriorLightLevel > 0.0f ) {
                 // reset the overall ambient
-				shader.set_ambient(glm::vec3(m_baseambient));
+				ubo.data.ambient = glm::vec3(m_baseambient);
             }
         }
     }
@@ -1457,6 +1462,8 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
 
 	size_t renderlight = 0;
 
+    glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
+
     for( auto const &scenelight : Lights.data ) {
 
         if( renderlight == Global::DynamicLightCount ) {
@@ -1483,21 +1490,30 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
 		                scenelight.color.y,
 		                scenelight.color.z);
 
-		shader.set_light((GLuint)renderlight + 1, gl_program_light::SPOT, position, direction, 0.906f, 0.866f, color, 0.007f, 0.0002f);
+        gl_ubodata_light *light = &ubo.data.lights[renderlight + 1];
+        light->type = gl_ubodata_light::SPOT;
+        light->pos = mv * glm::vec4(position, 1.0f);
+        light->dir = mv * glm::vec4(direction, 0.0f);
+        light->in_cutoff = 0.906f;
+        light->out_cutoff = 0.866f;
+        light->color = color;
+        light->linear = 0.007f;
+        light->quadratic = 0.0002f;
 
         ++renderlight;
     }
 
-	shader.set_ambient(Global::daylight.ambient);
-	shader.set_light(0, gl_program_light::DIR, glm::vec3(0.0f), Global::daylight.direction,
-		0.0f, 0.0f, Global::daylight.color, 0.0f, 0.0f);
-	shader.set_light_count((GLuint)renderlight + 1);
+    ubo.data.ambient = Global::daylight.ambient;
+	ubo.data.lights[0].type = gl_ubodata_light::DIR;
+    ubo.data.lights[0].dir = mv * glm::vec4(Global::daylight.direction, 0.0f);
+    ubo.data.lights[0].color = Global::daylight.color;
+    ubo.data.lights_count = renderlight + 1;
 }
 
 void
 opengl_renderer::Disable_Lights() {
 
-	shader.set_light_count(0);
+	ubo.data.lights_count = 0;
 }
 
 bool

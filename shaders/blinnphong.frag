@@ -6,15 +6,14 @@ const uint LIGHT_DIR = 2U;
 
 struct light_s
 {
+	vec3 pos;
 	uint type;
 
-	vec3 pos;
-	vec3 dir;
-	
+	vec3 dir;	
 	float in_cutoff;
-	float out_cutoff;
 
 	vec3 color;
+	float out_cutoff;
 	
 	float linear;
 	float quadratic;
@@ -30,14 +29,19 @@ out vec4 color;
 uniform sampler2D tex;
 uniform sampler2DShadow shadowmap;
 
-uniform vec3 ambient;
 uniform vec3 emission;
-uniform vec3 fog_color;
-uniform float fog_density;
 uniform float specular;
 
-uniform light_s lights[8];
-uniform uint lights_count;
+layout(std140) uniform ubodata
+{
+	vec3 ambient;
+	float fog_density;
+
+	vec3 fog_color;
+	uint lights_count;
+
+	light_s lights[8];
+};
 
 float calc_shadow()
 {

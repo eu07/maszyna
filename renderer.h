@@ -67,6 +67,7 @@ private:
 class opengl_renderer {
 
 public:
+    gl_ubo<gl_ubodata_light_params> ubo;
 	gl_program_light shader;
 	gl_program_mvp depth_shader;
 	gl_program_mvp *active_shader = nullptr;
