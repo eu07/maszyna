@@ -124,11 +124,12 @@ public:
 	gl_program_light(std::vector<gl_shader>);
 
 	void set_lightview(const glm::mat4 &lightview);
-	void set_material(float specular, const glm::vec3 &emission);
+	void set_material(float specular, const glm::vec3 &emission, const glm::vec4 &color = glm::vec4(0.0f));
 	void bind_ubodata(GLuint point);
 
 private:
 	GLuint lightview_uniform;
 	GLuint specular_uniform;
 	GLuint emission_uniform;
+	GLuint color_uniform;
 };

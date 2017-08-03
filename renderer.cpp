@@ -106,8 +106,13 @@ opengl_renderer::Init( GLFWwindow *Window ) {
 	Global::daylight.intensity = 1.0f; //m7todo: przenieść
 
     ubo.init();
+
 	shader = gl_program_light({ gl_shader("lighting.vert"), gl_shader("blinnphong.frag") });
     shader.bind_ubodata(ubo.get_binding_point());
+
+    notex_shader = gl_program_light({ gl_shader("notex-lighting.vert"), gl_shader("notex-blinnphong.frag") });
+    notex_shader.bind_ubodata(ubo.get_binding_point());
+
 	depth_shader = gl_program_mvp({ gl_shader("shadowmap.vert"), gl_shader("empty.frag") });
 	active_shader = &shader;
 

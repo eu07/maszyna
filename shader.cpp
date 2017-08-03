@@ -163,6 +163,7 @@ gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
 	lightview_uniform = glGetUniformLocation(id, "lightview");
 	emission_uniform = glGetUniformLocation(id, "emission");
 	specular_uniform = glGetUniformLocation(id, "specular");
+	color_uniform = glGetUniformLocation(id, "color");
 }
 
 void gl_program_light::bind_ubodata(GLuint point)
@@ -179,13 +180,15 @@ void gl_program_light::set_lightview(const glm::mat4 &lightview)
 	glUniformMatrix4fv(lightview_uniform, 1, GL_FALSE, glm::value_ptr(lightview));
 }
 
-void gl_program_light::set_material(float specular, const glm::vec3 &emission)
+void gl_program_light::set_material(float specular, const glm::vec3 &emission, const glm::vec4 &color)
 {
 	if (current_program != this)
 		return;
 
 	glUniform1f(specular_uniform, specular);
 	glUniform3fv(emission_uniform, 1, glm::value_ptr(emission));
+	if (color_uniform != -1)
+		glUniform4fv(color_uniform, 1, glm::value_ptr(color));
 }
 
 template<typename T>

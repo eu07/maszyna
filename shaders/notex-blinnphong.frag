@@ -20,15 +20,14 @@ struct light_s
 };
 
 in vec3 f_normal;
-in vec2 f_coord;
 in vec3 f_pos;
 in vec4 f_light_pos;
 
-out vec4 color;
+out vec4 o_color;
 
-uniform sampler2D tex;
 uniform sampler2DShadow shadowmap;
 
+uniform vec4 color;
 uniform vec3 emission;
 uniform float specular;
 
@@ -134,8 +133,5 @@ void main()
 		result += light.color * part;
 	}
 	
-	vec4 tex_color = texture(tex, f_coord);	
-	vec3 c = apply_fog(result * tex_color.xyz);
-	//color = vec4(c / (c + vec3(1.0)), tex_color.w);
-	color = vec4(c, tex_color.w);
+	o_color = vec4(apply_fog(result * color.xyz), color.w);
 }
