@@ -659,14 +659,15 @@ opengl_renderer::Render( TGroundNode *Node ) {
             }
             // setup
 			//m7todo: set diffuse color
-			shader.set_material(Node->Specular.x * m_specularopaquescalefactor, glm::vec3(0.0f));
+			shader.set_material({Node->Specular.x * m_specularopaquescalefactor, glm::vec3(0.0f)});
 
             Bind( Node->TextureID );
 
             // render
+            active_shader->update();
             m_geometry.draw( Node->Piece->geometry );
 
-			shader.set_material(0.0f, glm::vec3(0.0f));
+			shader.set_material({0.0f, glm::vec3(0.0f)});
 
             return true;
         }
@@ -804,14 +805,14 @@ void opengl_renderer::Render(TSubModel *Submodel)
 {
 	active_shader->copy_gl_mvp();
 	Render(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
-	shader.set_material(0.0f, glm::vec3(0.0f));
+	shader.set_material({0.0f, glm::vec3(0.0f)});
 }
 
 void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 {
 	active_shader->copy_gl_mvp();;
 	Render_Alpha(Submodel, OpenGLMatrices.data(GL_MODELVIEW));
-	shader.set_material(0.0f, glm::vec3(0.0f));
+	shader.set_material({0.0f, glm::vec3(0.0f)});
 }
 
 void
@@ -846,8 +847,10 @@ opengl_renderer::Render( TSubModel *Submodel, glm::mat4 m) {
                     Bind( Submodel->TextureID );
                 }
 
-				shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
-					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f));
+				shader.set_material({Submodel->f4Specular.x * m_speculartranslucentscalefactor,
+					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f)});
+
+                active_shader->update();
 
                 // main draw call
                 m_geometry.draw( Submodel->m_geometry );
@@ -948,6 +951,8 @@ opengl_renderer::Render( TTrack *Track ) {
     }
 
     Track->EnvironmentSet();
+
+    active_shader->update();
 
     if( Track->TextureID1 != 0 ) {
         Bind( Track->TextureID1 );
@@ -1125,6 +1130,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             GfxRenderer.Bind( 0 );
 
             // render
+            active_shader->update();
             m_geometry.draw( Node->Piece->geometry );
 
             // post-render cleanup
@@ -1144,14 +1150,15 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             }
             // setup
 			//m7todo: set diffuse color
-			shader.set_material(Node->Specular.x * m_speculartranslucentscalefactor, glm::vec3(0.0f));
+			shader.set_material({Node->Specular.x * m_speculartranslucentscalefactor, glm::vec3(0.0f)});
 
+            active_shader->update();
             Bind( Node->TextureID );
 
             // render
             m_geometry.draw( Node->Piece->geometry );
 
-			shader.set_material(0.0f, glm::vec3(0.0f));
+			shader.set_material({0.0f, glm::vec3(0.0f)});
 
             return true;
         }
@@ -1306,9 +1313,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel, glm::mat4 m) {
                     Bind( Submodel->TextureID );
                 }
 
-				shader.set_material(Submodel->f4Specular.x * m_speculartranslucentscalefactor,
-					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f));
+				shader.set_material({Submodel->f4Specular.x * m_speculartranslucentscalefactor,
+					Global::fLuminance < Submodel->fLight ? glm::vec3(Submodel->f4Diffuse) * Submodel->f4Emision.a : glm::vec3(0.0f)});
 
+                active_shader->update();
 				// main draw call
 				m_geometry.draw(Submodel->m_geometry);
             }

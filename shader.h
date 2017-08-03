@@ -41,6 +41,9 @@ class gl_program_mvp : public gl_program
 	GLint mvn_uniform;
 	GLuint p_uniform;
 
+	glm::mat4 mv, p;
+	bool mv_dirty, p_dirty;
+
 public:
 	gl_program_mvp() = default;
 	gl_program_mvp(std::vector<gl_shader>);
@@ -48,6 +51,7 @@ public:
 	void set_mv(const glm::mat4 &);
 	void set_p(const glm::mat4 &);
 	void copy_gl_mvp();
+	virtual void update();
 };
 
 // layout std140
@@ -119,17 +123,26 @@ public:
 
 class gl_program_light : public gl_program_mvp
 {
+	GLuint lightview_uniform;
+	GLuint specular_uniform;
+	GLuint emission_uniform;
+	GLuint color_uniform;
+
+	struct material_s
+	{
+		float specular;
+		glm::vec3 emission;
+		glm::vec4 color;
+	} material;
+
+	bool material_dirty;
+
 public:
 	gl_program_light() = default;
 	gl_program_light(std::vector<gl_shader>);
 
 	void set_lightview(const glm::mat4 &lightview);
-	void set_material(float specular, const glm::vec3 &emission, const glm::vec4 &color = glm::vec4(0.0f));
+	void set_material(const material_s &mat);
 	void bind_ubodata(GLuint point);
-
-private:
-	GLuint lightview_uniform;
-	GLuint specular_uniform;
-	GLuint emission_uniform;
-	GLuint color_uniform;
+	void update();
 };

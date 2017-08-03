@@ -141,17 +141,43 @@ void gl_program_mvp::copy_gl_mvp()
 
 void gl_program_mvp::set_mv(const glm::mat4 &m)
 {
-	if (mvn_uniform != -1)
+	if (m != mv)
 	{
-		glm::mat3 mvn = glm::mat3(glm::transpose(glm::inverse(m)));
-		glUniformMatrix3fv(mvn_uniform, 1, GL_FALSE, glm::value_ptr(mvn));
+		mv = m;
+		mv_dirty = true;
 	}
-	glUniformMatrix4fv(mv_uniform, 1, GL_FALSE, glm::value_ptr(m));
 }
 
 void gl_program_mvp::set_p(const glm::mat4 &m)
 {
-	glUniformMatrix4fv(p_uniform, 1, GL_FALSE, glm::value_ptr(m));
+	if (m != p)
+	{
+		p = m;
+		p_dirty = true;
+	}
+}
+
+void gl_program_mvp::update()
+{
+	if (current_program != this)
+		return;
+
+	if (mv_dirty)
+	{
+		if (mvn_uniform != -1)
+		{
+			glm::mat3 mvn = glm::mat3(glm::transpose(glm::inverse(mv)));
+			glUniformMatrix3fv(mvn_uniform, 1, GL_FALSE, glm::value_ptr(mvn));
+		}
+		glUniformMatrix4fv(mv_uniform, 1, GL_FALSE, glm::value_ptr(mv));
+		mv_dirty = false;
+	}
+
+	if (p_dirty)
+	{
+		glUniformMatrix4fv(p_uniform, 1, GL_FALSE, glm::value_ptr(p));
+		mv_dirty = false;
+	}
 }
 
 gl_program_light::gl_program_light(std::vector<gl_shader> v) : gl_program_mvp(v)
@@ -180,15 +206,34 @@ void gl_program_light::set_lightview(const glm::mat4 &lightview)
 	glUniformMatrix4fv(lightview_uniform, 1, GL_FALSE, glm::value_ptr(lightview));
 }
 
-void gl_program_light::set_material(float specular, const glm::vec3 &emission, const glm::vec4 &color)
+void gl_program_light::set_material(const material_s &mat)
 {
 	if (current_program != this)
 		return;
 
-	glUniform1f(specular_uniform, specular);
-	glUniform3fv(emission_uniform, 1, glm::value_ptr(emission));
-	if (color_uniform != -1)
-		glUniform4fv(color_uniform, 1, glm::value_ptr(color));
+	if (std::memcmp(&material, &mat, sizeof(material_s)))
+	{
+		material_dirty = true;
+		material = mat;
+	}
+}
+
+void gl_program_light::update()
+{
+	if (current_program != this)
+		return;
+
+	gl_program_mvp::update();
+
+	if (material_dirty)
+	{
+		glUniform1f(specular_uniform, material.specular);
+		glUniform3fv(emission_uniform, 1, glm::value_ptr(material.emission));
+		if (color_uniform != -1)
+			glUniform4fv(color_uniform, 1, glm::value_ptr(material.color));
+
+		material_dirty = false;
+	}
 }
 
 template<typename T>
