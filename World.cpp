@@ -1766,7 +1766,11 @@ TWorld::Update_UI() {
                  && ( tmp->Mechanik->AIControllFlag == AIdriver ) ) {
                     uitextline4 +=
                         "AI: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                        + " ad=" + to_string(tmp->Mechanik->AccDesired, 2)
+						+ "/" + to_string(tmp->Mechanik->AccDesired*tmp->Mechanik->BrakeAccFactor(), 2)
+						+ " atrain=" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
+						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
+						+ " aS=" + to_string(tmp->Mechanik->AbsAccS_pub, 2)
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 );
                 }

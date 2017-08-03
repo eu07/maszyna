@@ -3784,6 +3784,8 @@ double TMoverParameters::BrakeForceR(double ratio, double velocity)
 			press = MaxBrakePress[3];
 			if (DynamicBrakeType == dbrake_automatic)
 				ratio = ratio + (1.5 - ratio)*std::min(1.0, Vel*0.02);
+			if ((BrakeDelayFlag&bdelay_R) && (BrakeMethod != bp_Cosid) && (BrakeMethod != bp_D1) && (BrakeMethod != bp_D2)&&(Power>1))
+				ratio = ratio / 2;
 		}
 
 	}
@@ -3842,7 +3844,7 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
         Ntotal = u * BrakeRigEff;
     else
     {
-        u = (BrakePress * P2FTrans) * BrakeCylMult[0] - BrakeSlckAdj;
+        u = ((BrakePress * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj;
         if (u * (2.0 - BrakeRigEff) < Ntotal) // histereza na nacisku klockow
             Ntotal = u * (2.0 - BrakeRigEff);
     }

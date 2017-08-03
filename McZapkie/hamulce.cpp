@@ -2372,6 +2372,11 @@ double TFV4aM::GetPos(int i)
     return pos_table[i];
 }
 
+double TFV4aM::GetCP()
+{
+	return TP;
+}
+
 double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
 {
     int const i_pos = 2 + std::floor( pos ); // zaokraglone w dol
