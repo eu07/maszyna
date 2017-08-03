@@ -34,6 +34,20 @@ glm::vec4 const white{ 1.f, 1.f, 1.f, 1.f };
 
 } // namespace colors
 
+void
+opengl_camera::update_frustum( glm::mat4 const &Projection, glm::mat4 const &Modelview ) {
+
+    m_frustum.calculate( Projection, Modelview );
+    // cache inverse tranformation matrix
+    // NOTE: transformation is done only to camera-centric space
+    m_inversetransformation = glm::inverse( Projection * glm::mat4{ glm::mat3{ Modelview } } );
+    // calculate frustum corners
+    m_frustumpoints = ndcfrustumshapepoints;
+    transform_to_world(
+        std::begin( m_frustumpoints ),
+        std::end( m_frustumpoints ) );
+}
+
 // returns true if specified object is within camera frustum, false otherwise
 bool
 opengl_camera::visible( bounding_area const &Area ) const {
@@ -53,6 +67,17 @@ opengl_camera::visible( TDynamicObject const *Dynamic ) const {
     float const radius = glm::length( diagonal ) * 0.65f;
 
     return ( m_frustum.sphere_inside( Dynamic->GetPosition(), radius ) > 0.0f );
+}
+
+// debug helper, draws shape of frustum in world space
+void
+opengl_camera::draw( glm::vec3 const &Offset ) const {
+
+    ::glBegin( GL_LINES );
+    for( auto const pointindex : frustumshapepoinstorder ) {
+        ::glVertex3fv( glm::value_ptr( glm::vec3{ m_frustumpoints[ pointindex ] } - Offset ) );
+    }
+    ::glEnd();
 }
 
 bool
@@ -251,15 +276,16 @@ opengl_renderer::Render() {
         m_drawtime = std::max( 20.f, 0.95f * m_drawtime + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - m_drawstart ) ).count() / 1000.f );
     }
     m_drawstart = std::chrono::steady_clock::now();
-    auto const drawstartcolor = m_drawstart;
+    auto const drawstartcolorpass = m_drawstart;
 
     m_renderpass.draw_mode = rendermode::none; // force setup anew
+    m_debuginfo.clear();
     Render_pass( rendermode::color );
 
     m_drawcount = m_drawqueue.size();
     // accumulate last 20 frames worth of render time (cap at 1000 fps to prevent calculations going awry)
-    m_drawtimecolor = std::max( 20.f, 0.95f * m_drawtimecolor + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - drawstartcolor ) ).count() / 1000.f );
-    m_debuginfo += " frame total: " + to_string( m_drawtimecolor / 20.f, 2 ) + " msec (" + std::to_string( m_drawqueue.size() ) + " sectors)";
+    m_drawtimecolorpass = std::max( 20.f, 0.95f * m_drawtimecolorpass + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - drawstartcolorpass ) ).count() / 1000.f );
+    m_debuginfo += "frame total: " + to_string( m_drawtimecolorpass / 20.f, 2 ) + " msec (" + std::to_string( m_drawqueue.size() ) + " sectors) ";
 
     glfwSwapBuffers( m_window );
 
@@ -270,25 +296,26 @@ opengl_renderer::Render() {
 void
 opengl_renderer::Render_pass( rendermode const Mode ) {
 
-    m_renderpass.setup( Mode, m_framebuffersupport );
+    setup_pass( m_renderpass, Mode );
     switch( m_renderpass.draw_mode ) {
 
         case rendermode::color: {
 
             opengl_camera shadowcamera; // temporary helper, remove once ortho shadowmap code is done
-            if( Global::RenderShadows && World.InitPerformed() ) {
+            if( ( true == Global::RenderShadows )
+             && ( true == World.InitPerformed() )
+             && ( m_shadowcolor != colors::white ) ) {
                 // run shadowmap pass before color
                 Render_pass( rendermode::shadows );
 #ifdef EU07_USE_DEBUG_SHADOWMAP
                 UILayer.set_texture( m_shadowdebugtexture );
 #endif
                 shadowcamera = m_renderpass.camera; // cache shadow camera placement for visualization
-
-                m_renderpass.setup( rendermode::color, m_framebuffersupport ); // restore draw mode. TBD, TODO: render mode stack
+                setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
 #ifdef EU07_USE_DEBUG_CAMERA
-                m_worldcamera.setup(
+                setup_pass(
+                    m_worldcamera,
                     rendermode::color,
-                    m_framebuffersupport,
                     0.f,
                     std::min(
                         1.f,
@@ -337,10 +364,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glColor4f( 1.f, 0.9f, 0.8f, 1.f );
                     ::glDisable( GL_LIGHTING );
                     ::glDisable( GL_TEXTURE_2D );
-                    shadowcamera.frustum().draw( m_renderpass.camera.position() - shadowcamera.position() );
+                    shadowcamera.draw( m_renderpass.camera.position() - shadowcamera.position() );
                     if( DebugCameraFlag ) {
                         ::glColor4f( 0.8f, 1.f, 0.9f, 1.f );
-                        m_worldcamera.camera.frustum().draw( m_renderpass.camera.position() - m_worldcamera.camera.position() );
+                        m_worldcamera.camera.draw( m_renderpass.camera.position() - m_worldcamera.camera.position() );
                     }
                     ::glLineWidth( 1.f );
                     ::glEnable( GL_LIGHTING );
@@ -397,8 +424,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
                 ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target
 
-                m_drawtimeshadows = 0.95f * m_drawtimeshadows + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - shadowdrawstart ) ).count() / 1000.f;
-                m_debuginfo = "shadows: " + to_string( m_drawtimeshadows / 20.f, 2 ) + " msec (" + std::to_string( m_drawqueue.size() ) + " sectors)";
+                m_drawtimeshadowpass = 0.95f * m_drawtimeshadowpass + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - shadowdrawstart ) ).count() / 1000.f;
+                m_debuginfo += "shadows: " + to_string( m_drawtimeshadowpass / 20.f, 2 ) + " msec (" + std::to_string( m_drawqueue.size() ) + " sectors) ";
             }
             break;
         }
@@ -453,27 +480,29 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 }
 
 void
-opengl_renderer::renderpass_config::setup( rendermode const Mode, bool const Framebuffersupport, float const Znear, float const Zfar, bool const Ignoredebug ) {
+opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, float const Znear, float const Zfar, bool const Ignoredebug ) {
 
-    draw_mode = Mode;
+    Config.draw_mode = Mode;
 
     if( false == World.InitPerformed() ) { return; }
-
-    switch( draw_mode ) {
-        case rendermode::color:        { draw_range = Global::BaseDrawRange; break; }
-        case rendermode::shadows:      { draw_range = Global::BaseDrawRange * 0.5f; break; }
-        case rendermode::pickcontrols: { draw_range = 50.f; break; }
-        case rendermode::pickscenery:  { draw_range = Global::BaseDrawRange * 0.5f; break; }
-        default:                       { draw_range = 0.f; break; }
+    // setup draw range
+    switch( Mode ) {
+        case rendermode::color:        { Config.draw_range = Global::BaseDrawRange; break; }
+        case rendermode::shadows:      { Config.draw_range = Global::BaseDrawRange * 0.5f; break; }
+        case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
+        case rendermode::pickscenery:  { Config.draw_range = Global::BaseDrawRange * 0.5f; break; }
+        default:                       { Config.draw_range = 0.f; break; }
     }
+    // setup camera
+    auto &camera = Config.camera;
 
     camera.projection() = glm::mat4( 1.f );
     glm::dmat4 viewmatrix( 1.0 );
 
-    switch( draw_mode ) {
+    switch( Mode ) {
         case rendermode::color: {
             // projection
-            auto const zfar = draw_range * Global::fDistanceFactor * Zfar;
+            auto const zfar = Config.draw_range * Global::fDistanceFactor * Zfar;
             auto const znear = (
                 Znear > 0.f ?
                 Znear * zfar :
@@ -498,33 +527,29 @@ opengl_renderer::renderpass_config::setup( rendermode const Mode, bool const Fra
 
         case rendermode::shadows: {
             // calculate lightview boundaries based on relevant area of the world camera frustum:
-            // setup chunk of frustum we're interested in...
+            // ...setup chunk of frustum we're interested in...
             auto const znear = 0.f;
             auto const zfar = std::min( 1.f, Global::shadowtune.depth / ( Global::BaseDrawRange * Global::fDistanceFactor ) * std::max( 1.f, Global::ZoomFactor * 0.5f ) );
             renderpass_config worldview;
-            worldview.setup( rendermode::color, Framebuffersupport, znear, zfar, true );
-            // ...transform frustum shape to camera-centric world space...
-            auto frustumchunkshapepoints = ndcfrustumshapepoints;
-            worldview.camera.frustum().transform_to_world( std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
-            // ...determine the centre of frustum chunk in world space...
+            setup_pass( worldview, rendermode::color, znear, zfar, true );
+            auto &frustumchunkshapepoints = worldview.camera.frustum_points();
+            // ...modelview matrix: determine the centre of frustum chunk in world space...
             glm::vec3 frustumchunkmin, frustumchunkmax;
             bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
             auto const frustumchunkcentre = ( frustumchunkmin + frustumchunkmax ) * 0.5f;
-            auto const lighttarget = worldview.camera.position() + glm::dvec3{ frustumchunkcentre };
-
+            // ...cap the vertical angle to keep shadows from getting too long...
             auto const lightvector =
                 glm::normalize( glm::vec3{
-                              -Global::DayLight.direction.x,
-                    std::max( -Global::DayLight.direction.y, 0.15f ),
-                              -Global::DayLight.direction.z } );
-            // ...place the light source at the calculated centre...
-            camera.position() = lighttarget;// -glm::dvec3{ lightvector };
-            // ...setup world space light view matrix...
+                              Global::DayLight.direction.x,
+                    std::min( Global::DayLight.direction.y, -0.15f ),
+                              Global::DayLight.direction.z } );
+            // ...place the light source at the calculated centre and setup world space light view matrix...
+            camera.position() = worldview.camera.position() + glm::dvec3{ frustumchunkcentre };
             viewmatrix *= glm::lookAt(
                 camera.position(),
-                camera.position() - glm::dvec3{ lightvector },
+                camera.position() + glm::dvec3{ lightvector },
                 glm::dvec3{ 0.f, 1.f, 0.f } );
-            // ...calculate boundaries of the frustum chunk in light space...
+            // ...projection matrix: calculate boundaries of the frustum chunk in light space...
             auto const lightviewmatrix =
                 glm::translate(
                     glm::mat4{ glm::mat3{ viewmatrix } },
@@ -547,7 +572,7 @@ opengl_renderer::renderpass_config::setup( rendermode const Mode, bool const Fra
         case rendermode::pickscenery: {
             // TODO: scissor test for pick modes
             // projection
-            if( true == Framebuffersupport ) {
+            if( true == m_framebuffersupport ) {
                 auto const angle = Global::FieldOfView / Global::ZoomFactor;
                 auto const height = std::max( 1.0f, (float)Global::iWindowWidth ) / std::max( 1.0f, (float)Global::iWindowHeight ) / ( Global::iWindowWidth / EU07_PICKBUFFERSIZE );
                 camera.projection() *=
@@ -555,7 +580,7 @@ opengl_renderer::renderpass_config::setup( rendermode const Mode, bool const Fra
                         glm::radians( Global::FieldOfView / Global::ZoomFactor ),
                         std::max( 1.f, (float)Global::iWindowWidth ) / std::max( 1.0f, (float)Global::iWindowHeight ) / ( Global::iWindowWidth / EU07_PICKBUFFERSIZE ),
                         0.1f * Global::ZoomFactor,
-                        draw_range * Global::fDistanceFactor );
+                        Config.draw_range * Global::fDistanceFactor );
             }
             else {
                 camera.projection() *=
@@ -563,7 +588,7 @@ opengl_renderer::renderpass_config::setup( rendermode const Mode, bool const Fra
                         glm::radians( Global::FieldOfView / Global::ZoomFactor ),
                         std::max( 1.f, (float)Global::iWindowWidth ) / std::max( 1.f, (float)Global::iWindowHeight ),
                         0.1f * Global::ZoomFactor,
-                        draw_range * Global::fDistanceFactor );
+                        Config.draw_range * Global::fDistanceFactor );
             }
             // modelview
             camera.position() = Global::pCameraPosition;
@@ -681,7 +706,9 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
     // shadow texture unit.
     // interpolates between primary colour and the previous unit, which should hold darkened variant of the primary colour
     if( m_shadowtextureunit >= 0 ) {
-        if( ( true == Global::RenderShadows ) && ( true == Shadows ) ) {
+        if( ( true == Global::RenderShadows )
+         && ( true == Shadows )
+         && ( m_shadowcolor != colors::white ) ) {
 
             ::glActiveTexture( m_shadowtextureunit );
             ::glBindTexture( GL_TEXTURE_2D, m_shadowtexture );
@@ -756,7 +783,9 @@ void
 opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool const Reflections ) {
     // helper texture unit.
     if( m_helpertextureunit >= 0 ) {
-        if( ( true == Global::RenderShadows ) && ( true == Shadows ) ) {
+        if( ( true == Global::RenderShadows )
+         && ( true == Shadows )
+         && ( m_shadowcolor != colors::white ) ) {
             ::glActiveTexture( m_helpertextureunit );
             ::glEnable( GL_TEXTURE_2D );
         }
@@ -803,6 +832,17 @@ opengl_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
 
 bool
 opengl_renderer::Render( world_environment *Environment ) {
+
+    // calculate shadow tone, based on positions of celestial bodies
+    m_shadowcolor = interpolate(
+        glm::vec4{ 0.5f, 0.5f, 0.5f, 1.f },
+        glm::vec4{ colors::white },
+        clamp( -Environment->m_sun.getAngle(), 0.f, 6.f ) / 6.f );
+    if( ( Environment->m_sun.getAngle() < -18.f )
+     && ( Environment->m_moon.getAngle() > 0.f ) ) {
+        // turn on moon shadows after nautical twilight, if the moon is actually up
+        m_shadowcolor = glm::vec4{ 0.5f, 0.5f, 0.5f, 1.f };
+    }
 
     if( Global::bWireFrame ) {
         // bez nieba w trybie rysowania linii
@@ -888,7 +928,10 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glLoadIdentity(); // macierz jedynkowa
         ::glTranslatef( moonposition.x, moonposition.y, moonposition.z );
 
-        float const size = 0.02f; // TODO: expose distance/scale factor from the moon object
+        float const size = interpolate( // TODO: expose distance/scale factor from the moon object
+            0.0175f,
+            0.015f,
+            clamp( Environment->m_moon.getAngle(), 0.f, 90.f ) / 90.f );
         // choose the moon appearance variant, based on current moon phase
         // NOTE: implementation specific, 8 variants are laid out in 3x3 arrangement
         // from new moon onwards, top left to right bottom (last spot is left for future use, if any)
@@ -2628,7 +2671,7 @@ opengl_renderer::Update( double const Deltatime ) {
     m_framerate = 1000.f / ( m_drawtime / 20.f );
 
     // adjust draw ranges etc, based on recent performance
-    auto const framerate = 1000.0f / (m_drawtimecolor / 20.0f);
+    auto const framerate = 1000.0f / (m_drawtimecolorpass / 20.0f);
 
     float targetfactor;
          if( framerate > 90.0 ) { targetfactor = 3.0f; }
@@ -2697,7 +2740,18 @@ opengl_renderer::Info() const {
 }
 
 void
-opengl_renderer::Update_Lights( light_array const &Lights ) {
+opengl_renderer::Update_Lights( light_array &Lights ) {
+    // arrange the light array from closest to farthest from current position of the camera
+    auto const camera = m_renderpass.camera.position();
+    std::sort(
+        std::begin( Lights.data ),
+        std::end( Lights.data ),
+        [&camera]( light_array::light_record const &Left, light_array::light_record const &Right ) {
+            // move lights which are off at the end...
+            if( Left.intensity  == 0.f ) { return false; }
+            if( Right.intensity == 0.f ) { return true; }
+            // ...otherwise prefer closer and/or brigher light sources
+            return ( glm::length2( camera - Left.position ) * ( 1.f - Left.intensity ) ) < ( glm::length2( camera - Right.position ) * ( 1.f - Right.intensity ) ); } );
 
     size_t const count = std::min( m_lights.size(), Lights.data.size() );
     if( count == 0 ) { return; }
@@ -2710,40 +2764,35 @@ opengl_renderer::Update_Lights( light_array const &Lights ) {
             // we ran out of lights to assign
             break;
         }
-        if( scenelight.intensity == 0.0f ) {
+        if( scenelight.intensity == 0.f ) {
             // all lights past this one are bound to be off
             break;
         }
-        if( ( m_renderpass.camera.position() - scenelight.position ).Length() > 1000.0f ) {
+        auto const lightoffset = glm::vec3{ scenelight.position - camera };
+        if( glm::length( lightoffset ) > 1000.f ) {
             // we don't care about lights past arbitrary limit of 1 km.
             // but there could still be weaker lights which are closer, so keep looking
             continue;
         }
         // if the light passed tests so far, it's good enough
-        renderlight->set_position( glm::make_vec3( (scenelight.position - m_renderpass.camera.position()).readArray() ) );
+        renderlight->set_position( lightoffset );
         renderlight->direction = scenelight.direction;
 
-        auto luminance = Global::fLuminance; // TODO: adjust this based on location, e.g. for tunnels
+        auto luminance = static_cast<float>( Global::fLuminance );
+        // adjust luminance level based on vehicle's location, e.g. tunnels
         auto const environment = scenelight.owner->fShade;
-        if( environment > 0.0f ) {
+        if( environment > 0.f ) {
             luminance *= environment;
         }
-        renderlight->diffuse[ 0 ] = static_cast<GLfloat>( std::max( 0.0, scenelight.color.x - luminance ) );
-        renderlight->diffuse[ 1 ] = static_cast<GLfloat>( std::max( 0.0, scenelight.color.y - luminance ) );
-        renderlight->diffuse[ 2 ] = static_cast<GLfloat>( std::max( 0.0, scenelight.color.z - luminance ) );
-        renderlight->ambient[ 0 ] = static_cast<GLfloat>( std::max( 0.0, scenelight.color.x * scenelight.intensity - luminance) );
-        renderlight->ambient[ 1 ] = static_cast<GLfloat>( std::max( 0.0, scenelight.color.y * scenelight.intensity - luminance ) );
-        renderlight->ambient[ 2 ] = static_cast<GLfloat>( std::max( 0.0, scenelight.color.z * scenelight.intensity - luminance ) );
-/*
-        // NOTE: we have no simple way to determine whether the lights are falling on objects located in darker environment
-        // until this issue is resolved we're disabling reduction of light strenght based on the global luminance
-        renderlight->diffuse[ 0 ] = std::max( 0.0f, scenelight.color.x );
-        renderlight->diffuse[ 1 ] = std::max( 0.0f, scenelight.color.y );
-        renderlight->diffuse[ 2 ] = std::max( 0.0f, scenelight.color.z );
-        renderlight->ambient[ 0 ] = std::max( 0.0f, scenelight.color.x * scenelight.intensity );
-        renderlight->ambient[ 1 ] = std::max( 0.0f, scenelight.color.y * scenelight.intensity );
-        renderlight->ambient[ 2 ] = std::max( 0.0f, scenelight.color.z * scenelight.intensity );
-*/
+        renderlight->diffuse =
+            glm::vec4{
+                glm::max( glm::vec3{ colors::none }, scenelight.color - glm::vec3{ luminance } ),
+                renderlight->diffuse[ 3 ] };
+        renderlight->ambient =
+            glm::vec4{
+                glm::max( glm::vec3{ colors::none }, scenelight.color * glm::vec3{ scenelight.intensity } - glm::vec3{ luminance } ),
+                renderlight->ambient[ 3 ] };
+
         ::glLightf( renderlight->id, GL_LINEAR_ATTENUATION, static_cast<GLfloat>( (0.25 * scenelight.count) / std::pow( scenelight.count, 2 ) * (scenelight.owner->DimHeadlights ? 1.25 : 1.0) ) );
         ::glEnable( renderlight->id );
 

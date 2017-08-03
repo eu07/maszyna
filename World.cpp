@@ -2220,10 +2220,12 @@ world_environment::update() {
     m_sun.update();
     m_moon.update();
     // ...determine source of key light and adjust global state accordingly...
-    auto const sunlightlevel = m_sun.getIntensity();
+    // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
+    float twilightfactor = clamp( -m_sun.getAngle(), 0.0f, 18.0f ) / 18.0f;
+    // NOTE: sun light receives extra padding to prevent moon from kicking in too soon
+    auto const sunlightlevel = m_sun.getIntensity() + 0.05f * ( 1.f - twilightfactor );
     auto const moonlightlevel = m_moon.getIntensity() * 0.65f; // scaled down by arbitrary factor, it's pretty bright otherwise
     float keylightintensity;
-    float twilightfactor;
     glm::vec3 keylightcolor;
     if( moonlightlevel > sunlightlevel ) {
         // rare situations when the moon is brighter than the sun, typically at night
@@ -2241,8 +2243,7 @@ world_environment::update() {
         Global::DayLight.set_position( m_sun.getPosition() );
         Global::DayLight.direction = -1.0f * m_sun.getDirection();
         keylightintensity = sunlightlevel;
-        // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
-        twilightfactor = clamp( -Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
+        // include 'golden hour' effect in twilight lighting
         float const duskfactor = 1.0f - clamp( Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(
             glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),

@@ -12,9 +12,11 @@ http://mozilla.org/MPL/2.0/.
 #include "float3d.h"
 #include "dumb3d.h"
 
-std::vector<glm::vec4> const ndcfrustumshapepoints = {
+std::vector<glm::vec4> const ndcfrustumshapepoints {
     { -1, -1, -1, 1 },{ 1, -1, -1, 1 },{ 1, 1, -1, 1 },{ -1, 1, -1, 1 }, // z-near
     { -1, -1,  1, 1 },{ 1, -1,  1, 1 },{ 1, 1,  1, 1 },{ -1, 1,  1, 1 } }; // z-far
+
+std::vector<std::size_t> const frustumshapepoinstorder { 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7 };
 
 // generic frustum class. used to determine if objects are inside current view area
 
@@ -65,23 +67,6 @@ public:
         cube_inside( Math3D::vector3 const &Center, float const Size ) const { return cube_inside( static_cast<float>( Center.x ), static_cast<float>( Center.y ), static_cast<float>( Center.z ), Size ); }
     bool
         cube_inside( float const X, float const Y, float const Z, float const Size ) const;
-    // transforms provided set of clip space points to world space
-    template <class Iterator_>
-    void
-        transform_to_world( Iterator_ First, Iterator_ Last ) const {
-            std::for_each(
-                First, Last,
-                [this]( glm::vec4 &point ) {
-                    // transform each point using the cached matrix...
-                    point = this->m_inversetransformation * point;
-                    // ...and scale by transformed w
-                    point = glm::vec4{ glm::vec3{ point } / point.w, 1.f }; } ); }
-    // debug helper, draws shape of frustum in world space
-    void
-        draw( glm::vec3 const &Offset ) const;
-
-// members:
-    std::vector<glm::vec4> m_frustumpoints; // coordinates of corners for defined frustum, in world space
 
 private:
 // types:
@@ -96,5 +81,4 @@ private:
 
 // members:
 	float m_frustum[6][4]; // holds the A B C and D values (normal & distance) for each side of the frustum.
-    glm::mat4 m_inversetransformation; // cached inverse transformation matrix
 };

@@ -87,10 +87,9 @@ public:
 // methods:
     inline
     void
-        update_frustum() { m_frustum.calculate( m_projection, m_modelview ); }
-    inline
+        update_frustum() { update_frustum( m_projection, m_modelview ); }
     void
-        update_frustum(glm::mat4 const &Projection, glm::mat4 const &Modelview) { m_frustum.calculate(Projection, Modelview); }
+        update_frustum( glm::mat4 const &Projection, glm::mat4 const &Modelview );
     bool
         visible( bounding_area const &Area ) const;
     bool
@@ -114,15 +113,31 @@ public:
     glm::mat4 &
         modelview() { return m_modelview; }
     inline
-    cFrustum const &
-        frustum() { return m_frustum; }
+    std::vector<glm::vec4> &
+        frustum_points() { return m_frustumpoints; }
+    // transforms provided set of clip space points to world space
+    template <class Iterator_>
+    void
+        transform_to_world( Iterator_ First, Iterator_ Last ) const {
+            std::for_each(
+                First, Last,
+                [this]( glm::vec4 &point ) {
+                    // transform each point using the cached matrix...
+                    point = this->m_inversetransformation * point;
+                    // ...and scale by transformed w
+                    point = glm::vec4{ glm::vec3{ point } / point.w, 1.f }; } ); }
+    // debug helper, draws shape of frustum in world space
+    void
+        draw( glm::vec3 const &Offset ) const;
 
 private:
 // members:
     cFrustum m_frustum;
+    std::vector<glm::vec4> m_frustumpoints; // visualization helper; corners of defined frustum, in world space
     glm::dvec3 m_position;
     glm::mat4 m_projection;
     glm::mat4 m_modelview;
+    glm::mat4 m_inversetransformation; // cached transformation to world space
 };
 
 // bare-bones render controller, in lack of anything better yet
@@ -207,9 +222,6 @@ private:
         opengl_camera camera;
         rendermode draw_mode { rendermode::none };
         float draw_range { 0.0f };
-
-        void
-            setup( rendermode const Mode, bool const Framebuffersupport, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false );
     };
 
     typedef std::vector<opengl_light> opengllight_array;
@@ -220,6 +232,8 @@ private:
     // runs jobs needed to generate graphics for specified render pass
     void
         Render_pass( rendermode const Mode );
+    void
+        setup_pass( renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false );
     void
         setup_matrices();
     void
@@ -269,7 +283,7 @@ private:
     void
         Render_Alpha( TSubModel *Submodel );
     void
-        Update_Lights( light_array const &Lights );
+        Update_Lights( light_array &Lights );
     glm::vec3
         pick_color( std::size_t const Index );
     std::size_t
@@ -309,8 +323,8 @@ private:
     float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
     std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
     float m_framerate;
-    float m_drawtimecolor { 1000.f / 30.f * 20.f };
-    float m_drawtimeshadows { 0.f };
+    float m_drawtimecolorpass { 1000.f / 30.f * 20.f };
+    float m_drawtimeshadowpass { 0.f };
     double m_updateaccumulator { 0.0 };
     std::string m_debuginfo;
 

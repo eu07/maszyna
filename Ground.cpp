@@ -3493,18 +3493,6 @@ void
 TGround::Update_Lights() {
 
     m_lights.update();
-    // arrange the light array from closest to farthest from current position of the camera
-    auto const camera = Global::pCameraPosition;
-    std::sort(
-        m_lights.data.begin(),
-        m_lights.data.end(),
-        [&]( light_array::light_record const &Left, light_array::light_record const &Right ) {
-            // move lights which are off at the end...
-            if( Left.intensity == 0.0f ) { return false; }
-            if( Right.intensity == 0.0f ) { return true; }
-            // ...otherwise prefer closer and/or brigher light sources
-            return ((camera - Left.position).LengthSquared() * (1.0f - Left.intensity)) < ((camera - Right.position).LengthSquared() * (1.0f - Right.intensity));
-        } );
 }
 
 // Winger 170204 - szukanie trakcji nad pantografami
