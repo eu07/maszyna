@@ -1385,7 +1385,7 @@ void TController::TablePurger()
 void TController::TableSort()
 {
     TSpeedPos sp_temp = TSpeedPos(); // uzywany do przenoszenia
-    for (std::size_t i = 0; i < iLast - 1; i++)
+    for (std::size_t i = 0; i < (iLast - 1) && iLast > 0; i++)
     { // pętla tylko do dwóch pozycji od końca bo ostatniej nie modyfikujemy
         if (sSpeedTable[i].fDist > sSpeedTable[i + 1].fDist)
         { // jesli pozycja wcześniejsza jest dalej to źle
