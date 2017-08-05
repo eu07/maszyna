@@ -1187,11 +1187,12 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
                 break;
             }
         }
-
+#ifdef EU07_USE_OLD_TERRAINCODE
         if( Groundcell->nTerrain ) {
 
             Render( Groundcell->nTerrain );
         }
+#endif
         Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
         result = true;
 
@@ -1298,7 +1299,7 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
 
 bool
 opengl_renderer::Render( TGroundNode *Node ) {
-
+#ifdef EU07_USE_OLD_TERRAINCODE
     switch (Node->iType)
     { // obiekty renderowane niezależnie od odległości
     case TP_SUBMODEL:
@@ -1310,7 +1311,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
         ::glPopMatrix();
         return true;
     }
-
+#endif
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {

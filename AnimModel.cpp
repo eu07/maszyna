@@ -472,8 +472,10 @@ bool TAnimModel::Load(cParser *parser, bool ter)
 				if( name.substr( name.rfind( '.' ) ) == ".t3d" ) {
 					name[ name.length() - 3 ] = 'e';
 				}
+#ifdef EU07_USE_OLD_TERRAINCODE
                 Global::asTerrainModel = name;
                 WriteLog("Terrain model \"" + name + "\" will be created.");
+#endif
             }
             else
                 ErrorLog("Missed file: " + name);
@@ -632,13 +634,7 @@ TSubModel * TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaźników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
 };
-#ifdef EU07_USE_OLD_RENDERCODE
-void TAnimModel::TerrainRenderVBO(int n)
-{ // renderowanie terenu z VBO
-    if (pModel)
-        pModel->TerrainRenderVBO(n);
-};
-#endif
+
 //---------------------------------------------------------------------------
 
 void TAnimModel::Advanced()

@@ -50,6 +50,8 @@ enum TAnimType // rodzaj animacji
 	at_Undefined = 0x800000FF // animacja chwilowo nieokreślona
 };
 
+class TGroundNode;
+
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
     //m7todo: zrobić normalną serializację
@@ -213,7 +215,9 @@ public:
 		std::vector<std::string>&,
 		std::vector<std::string>&,
 		std::vector<float4x4>&);
-    void serialize_geometry( std::ostream &Output );
+    void serialize_geometry( std::ostream &Output ) const;
+    // places contained geometry in provided ground node
+    void convert( TGroundNode &Groundnode ) const;
 
 };
 

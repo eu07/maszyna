@@ -294,6 +294,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
+    GfxRenderer.Render();
 
     WriteLog( "Ground init" );
     if( true == Ground.Init( Global::SceneryFile ) ) {
@@ -1039,17 +1040,17 @@ bool TWorld::Update()
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
     Ground.Update(dt / updatecount, updatecount); // tu zrobić tylko coklatkową aktualizację przesunięć
-/*
-    if (DebugModeFlag)
-        if (Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
-            if( Console::Pressed( GLFW_KEY_ESCAPE ) ) {
-                // yB dodał przyspieszacz fizyki
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n); // 5 razy
-            }
-*/
+
+    // yB dodał przyspieszacz fizyki
+    if( (true == DebugModeFlag)
+     && (true == Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
+     && ( glfwGetKey( window, GLFW_KEY_PAUSE ) == GLFW_PRESS ) ) {
+
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount ); // 5 razy
+    }
     // secondary fixed step simulation time routines
 
     while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {

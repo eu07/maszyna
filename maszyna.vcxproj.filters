@@ -63,9 +63,6 @@
     <ClCompile Include="EvLaunch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FadeSound.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Float3d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -336,9 +333,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Names.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FadeSound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sound.h">

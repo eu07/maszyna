@@ -144,7 +144,7 @@ class TAnimModel {
     material_data m_materialdata;
 
     std::string asText; // tekst dla wyświetlacza znakowego
-    TAnimAdvanced *pAdvanced;
+    TAnimAdvanced *pAdvanced { nullptr };
     void Advanced();
     TLightState lsLights[iMaxNumLights];
     float fDark; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
