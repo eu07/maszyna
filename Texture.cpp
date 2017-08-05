@@ -909,7 +909,7 @@ texture_manager::info() const {
     }
 
     return
-        "Textures: "
+        "; textures: "
 #ifdef EU07_DEFERRED_TEXTURE_UPLOAD
         + std::to_string( readytexturecount )
         + " ("

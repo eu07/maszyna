@@ -408,7 +408,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 ::glEnable( GL_SCISSOR_TEST );
                 setup_matrices();
                 ::glEnable( GL_POLYGON_OFFSET_FILL ); // alleviate depth-fighting
-                ::glPolygonOffset( 4.f, 8.f );
+                ::glPolygonOffset( 2.f, 2.f );
                 // render
                 // opaque parts...
                 setup_drawing( false );
@@ -560,6 +560,11 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
             // ...use the dimensions to set up light projection boundaries
             // NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
+            auto const quantizationstep = ( Global::shadowtune.depth + 1000.f ) / m_shadowbuffersize;
+            frustumchunkmin.x -= std::remainder( frustumchunkmin.x, quantizationstep );
+            frustumchunkmin.y -= std::remainder( frustumchunkmin.y, quantizationstep );
+            frustumchunkmax.x -= std::remainder( frustumchunkmax.x, quantizationstep );
+            frustumchunkmax.y -= std::remainder( frustumchunkmax.y, quantizationstep );
             camera.projection() *=
                 glm::ortho(
                     frustumchunkmin.x, frustumchunkmax.x,
@@ -2708,10 +2713,7 @@ opengl_renderer::Update( double const Deltatime ) {
     }
 
     if( true == DebugModeFlag ) {
-        m_debuginfo = m_textures.info();
-    }
-    else {
-        m_debuginfo.clear();
+        m_debuginfo += m_textures.info();
     }
 
     if( ( true  == Global::ControlPicking )

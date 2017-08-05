@@ -203,7 +203,6 @@ TWorld::~TWorld()
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
     TSoundsManager::Free();
-    TModelsManager::Free();
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -291,8 +290,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     TSoundsManager::Init( glfwGetWin32Window( window ) );
     WriteLog("Sound Init OK");
-    TModelsManager::Init();
-    WriteLog("Models init OK");
 
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
