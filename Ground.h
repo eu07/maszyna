@@ -123,7 +123,7 @@ public:
         TEventLauncher *EvLaunch; // wyzwalacz zdarzeń
         TTraction *hvTraction; // drut zasilający
         TTractionPowerSource *psTractionPowerSource; // zasilanie drutu (zaniedbane w sceneriach)
-        TTextSound *tsStaticSound; // dźwięk przestrzenny
+        sound *tsStaticSound; // dźwięk przestrzenny
         TGroundNode *nNode; // obiekt renderujący grupowo ma tu wskaźnik na listę obiektów
     };
     Math3D::vector3 pCenter; // współrzędne środka do przydzielenia sektora

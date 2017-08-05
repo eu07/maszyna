@@ -9,10 +9,12 @@
 
 ui_layer UILayer;
 
+#ifdef _WIN32
 extern "C"
 {
-    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+	GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
+#endif
 
 ui_layer::~ui_layer() {
 /*

@@ -11,5 +11,9 @@ cmake ../.. -T v140_xp ^
 -DPNG_PNG_INCLUDE_DIR=%DEPS_DIR%/libpng/include ^
 -DPNG_LIBRARY=%DEPS_DIR%/libpng/lib/win32/libpng16.lib ^
 -DZLIB_INCLUDE_DIR=%DEPS_DIR%/zlib-1.2.11 ^
--DGLM_ROOT_DIR=%DEPS_DIR%/glm-0.9.8.4
+-DGLM_ROOT_DIR=%DEPS_DIR%/glm-0.9.8.4 ^
+-DOPENAL_INCLUDE_DIR=%DEPS_DIR%/openal/include ^
+-DOPENAL_LIBRARY=%DEPS_DIR%/openal/lib/win32/OpenAL32.lib ^
+-DLIBSNDFILE_INCLUDE_DIR=%DEPS_DIR%/libsndfile/include ^
+-DLIBSNDFILE_LIBRARY=%DEPS_DIR%/libsndfile/lib/win32/libsndfile-1.lib
 popd

@@ -121,7 +121,7 @@ class TDynamicObject;
 class TAnimModel; // obiekt terenu
 class cParser; // nowy (powolny!) parser
 class TEvent;
-class TTextSound;
+class sound;
 
 class TTranscript
 { // klasa obsługująca linijkę napisu do dźwięku
@@ -320,7 +320,7 @@ class Global
     static float4 UITextColor; // base color of UI text
     static std::string asLang; // domyślny język - http://tools.ietf.org/html/bcp47
     static int iHiddenEvents; // czy łączyć eventy z torami poprzez nazwę toru
-    static TTextSound *tsRadioBusy[10]; // zajętość kanałów radiowych (wskaźnik na odgrywany dźwięk)
+    static sound *tsRadioBusy[10]; // zajętość kanałów radiowych (wskaźnik na odgrywany dźwięk)
 	static int iPoKeysPWM[7]; // numery wejść dla PWM
 
     //randomizacja

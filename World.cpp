@@ -21,7 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
-#include "Sound.h"
+#include "sound.h"
 #include "Camera.h"
 #include "ResourceManager.h"
 #include "Event.h"
@@ -217,7 +217,7 @@ TWorld::~TWorld()
     Global::bManageNodes = false; // Ra: wyłączenie wyrejestrowania, bo się sypie
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
-    TSoundsManager::Free();
+    delete sound_man;
     TModelsManager::Free();
 }
 
@@ -304,12 +304,9 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     std::shared_ptr<ui_panel> initpanel = std::make_shared<ui_panel>(85, 600);
 
-#ifdef _WIN32
-    TSoundsManager::Init( glfwGetWin32Window( window ) );
-#else
-    TSoundsManager::Init( 0 );
-#endif
+    sound_man = new sound_manager();
     WriteLog("Sound Init OK");
+
     TModelsManager::Init();
     WriteLog("Models init OK");
 
@@ -760,8 +757,7 @@ void TWorld::OnKeyDown(int cKey)
                                          temp->MoverParameters->DecBrakeMult())
                     if (Train)
                     { // dźwięk oczywiście jest w kabinie
-                        Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                        Train->dsbSwitch->Play(0, 0, 0);
+                        Train->dsbSwitch->gain(1.0f).play();
                     }
             }
         }
@@ -790,8 +786,7 @@ void TWorld::OnKeyDown(int cKey)
                     tmp->iLights[CouplNr] = (tmp->iLights[CouplNr] & ~mask) | set;
                     if (Train)
                     { // Ra: ten dźwięk z kabiny to przegięcie, ale na razie zostawiam
-                        Train->dsbSwitch->SetVolume(DSBVOLUME_MAX);
-                        Train->dsbSwitch->Play(0, 0, 0);
+                        Train->dsbSwitch->gain(1.0f).play();
                     }
                 }
             }
@@ -811,8 +806,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->SetVolume(-80);
-                            Train->dsbPneumaticRelay->Play(0, 0, 0);
+                            Train->dsbPneumaticRelay->gain(0.5f).play();
                         }
             }
         }
@@ -831,8 +825,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->SetVolume(-80);
-                            Train->dsbPneumaticRelay->Play(0, 0, 0);
+                            Train->dsbPneumaticRelay->gain(0.5f).play();
                         }
             }
         }
@@ -1124,6 +1117,9 @@ bool TWorld::Update()
     // render time routines follow:
 
     dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
+
+    sound_man->set_listener(Camera.Pos, Camera.LookAt, Camera.vUp);
+    sound_man->update(dt);
 
     // fixed step render time routines
 

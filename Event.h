@@ -73,7 +73,7 @@ union TParam
     bool asBool;
     double asdouble;
     int asInt;
-    TTextSound *tsTextSound;
+    sound *tsTextSound;
     char *asText;
     TCommandType asCommand;
     TTractionPowerSource *psPower;

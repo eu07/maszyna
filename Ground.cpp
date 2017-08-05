@@ -26,7 +26,6 @@ http://mozilla.org/MPL/2.0/.
 #include "TractionPower.h"
 #include "Traction.h"
 #include "Track.h"
-#include "RealSound.h"
 #include "AnimModel.h"
 #include "MemCell.h"
 #include "mtable.h"
@@ -38,13 +37,16 @@ http://mozilla.org/MPL/2.0/.
 #include "Names.h"
 #include "World.h"
 #include "uilayer.h"
+#include "sound.h"
 
 //---------------------------------------------------------------------------
 
+#ifdef _WIN32
 extern "C"
 {
-    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+	GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
+#endif
 
 bool bCondition; // McZapkie: do testowania warunku na event multiple
 std::string LogComment;
@@ -231,13 +233,6 @@ void TGroundNode::RenderHidden()
     double mgn = SquareMagnitude(pCenter - Global::pCameraPosition);
     switch (iType)
     {
-    case TP_SOUND: // McZapkie - dzwiek zapetlony w zaleznosci od odleglosci
-        if ((tsStaticSound->GetStatus() & DSBSTATUS_PLAYING) == DSBPLAY_LOOPING)
-        {
-            tsStaticSound->Play(1, DSBPLAY_LOOPING, true, tsStaticSound->vSoundPosition);
-            tsStaticSound->AdjFreq(1.0, Timer::GetDeltaTime());
-        }
-        return;
     case TP_EVLAUNCH:
         if (EvLaunch->Render())
             if ((EvLaunch->dRadius < 0) || (mgn < EvLaunch->dRadius))
@@ -1060,8 +1055,11 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         parser->getTokens();
         *parser >> token;
 		str = token;
-		//str = AnsiString(token.c_str());
-        tmp->tsStaticSound = new TTextSound(str, sqrt(tmp->fSquareRadius), tmp->pCenter.x, tmp->pCenter.y, tmp->pCenter.z, false, false, rmin);
+
+        tmp->tsStaticSound = sound_man->create_text_sound(str);
+        if (tmp->tsStaticSound)
+            tmp->tsStaticSound->position(tmp->pCenter).dist(sqrt(tmp->fSquareRadius));
+
         if (rmin < 0.0)
             rmin = 0.0; // przywrócenie poprawnej wartości, jeśli służyła do wyłączenia efektu Dopplera
         parser->getTokens();
@@ -3183,15 +3181,13 @@ bool TGround::CheckQuery()
                 switch (tmpEvent->Params[0].asInt)
                 { // trzy możliwe przypadki:
                 case 0:
-                    tmpEvent->Params[9].tsTextSound->Stop();
+                    tmpEvent->Params[9].tsTextSound->stop();
                     break;
                 case 1:
-                    tmpEvent->Params[9].tsTextSound->Play(
-                        1, 0, true, tmpEvent->Params[9].tsTextSound->vSoundPosition);
+                    tmpEvent->Params[9].tsTextSound->play();
                     break;
                 case -1:
-                    tmpEvent->Params[9].tsTextSound->Play(
-                        1, DSBPLAY_LOOPING, true, tmpEvent->Params[9].tsTextSound->vSoundPosition);
+                    tmpEvent->Params[9].tsTextSound->play();
                     break;
                 }
                 break;

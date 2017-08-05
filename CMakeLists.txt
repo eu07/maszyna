@@ -16,7 +16,6 @@ set(SOURCES
 "TrkFoll.cpp"
 "VBO.cpp"
 "World.cpp"
-"AdvSound.cpp"
 "AirCoupler.cpp"
 "AnimModel.cpp"
 "Button.cpp"
@@ -27,7 +26,6 @@ set(SOURCES
 "EU07.cpp"
 "Event.cpp"
 "EvLaunch.cpp"
-"FadeSound.cpp"
 "Float3d.cpp"
 "Gauge.cpp"
 "Globals.cpp"
@@ -45,7 +43,6 @@ set(SOURCES
 "parser.cpp"
 "renderer.cpp"
 "PyInt.cpp"
-"RealSound.cpp"
 "ResourceManager.cpp"
 "sn_utils.cpp"
 "Segment.cpp"
@@ -54,7 +51,7 @@ set(SOURCES
 "stars.cpp"
 "lightarray.cpp"
 "skydome.cpp"
-"Sound.cpp"
+"sound.cpp"
 "Spring.cpp"
 "shader.cpp"
 "frustum.cpp"
@@ -116,4 +113,13 @@ target_link_libraries(${PROJECT_NAME} Threads::Threads)
 find_package(GLM REQUIRED)
 include_directories(${GLM_INCLUDE_DIRS})
 
-#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined -g")
+find_package(OpenAL REQUIRED)
+include_directories(${OPENAL_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} ${OPENAL_LIBRARY})
+
+find_package(libsndfile REQUIRED)
+include_directories(${LIBSNDFILE_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} ${LIBSNDFILE_LIBRARY})
+
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")

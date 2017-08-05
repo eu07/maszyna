@@ -25,6 +25,7 @@ http://mozilla.org/MPL/2.0/.
 #include "World.h"
 #include "McZapkie/mctools.h"
 #include "McZapkie/MOVER.h"
+#include "sound.h"
 
 #define LOGVELOCITY 0
 #define LOGORDERS 1
@@ -1467,7 +1468,7 @@ void TController::CloseLog()
 
 TController::~TController()
 { // wykopanie mechanika z roboty
-    delete tsGuardSignal;
+    sound_man->destroy_sound(&tsGuardSignal);
     delete TrainParams;
     CloseLog();
 };
@@ -2380,7 +2381,7 @@ bool TController::DecBrake()
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
     if (tsGuardSignal) // jeśli jest dźwięk kierownika
-        if (tsGuardSignal->GetStatus() & DSBSTATUS_PLAYING) // jeśli gada, to nie jedziemy
+        if (tsGuardSignal->is_playing()) // jeśli gada, to nie jedziemy
             return false;
     bool OK = true;
     if( ( iDrivigFlags & moveDoorOpened )
@@ -2864,9 +2865,8 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                 NewCommand = Global::asCurrentSceneryPath + NewCommand + ".wav"; // na razie jeden
                 if (FileExists(NewCommand))
                 { //  wczytanie dźwięku odjazdu podawanego bezpośrenido
-                    tsGuardSignal = new TTextSound(NewCommand, 30, pVehicle->GetPosition().x,
-                                        pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                        false);
+                    tsGuardSignal = sound_man->create_text_sound(NewCommand);
+                    tsGuardSignal->position(pVehicle->GetPosition());
                     // rsGuardSignal->Stop();
                     iGuardRadio = 0; // nie przez radio
                 }
@@ -2875,9 +2875,8 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                     NewCommand = NewCommand.insert(NewCommand.find_last_of("."),"radio"); // wstawienie przed kropkč
                     if (FileExists(NewCommand))
                     { //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = new TTextSound(NewCommand, -1, pVehicle->GetPosition().x,
-                                            pVehicle->GetPosition().y, pVehicle->GetPosition().z,
-                                            false);
+                        tsGuardSignal = sound_man->create_text_sound(NewCommand);
+                        tsGuardSignal->position(pVehicle->GetPosition());
                         iGuardRadio = iRadioChannel;
                     }
                 }
@@ -4202,7 +4201,7 @@ bool TController::UpdateSituation(double dt)
                                     ->DoorOpenCtrl ) // jeśli drzwi niesterowane przez maszynistę
                                     Doors( false ); // a EZT zamknie dopiero po odegraniu komunikatu kierownika
 
-                            tsGuardSignal->Stop();
+                            tsGuardSignal->stop();
                             // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
                             // bezpośrednim
                             // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
@@ -4210,9 +4209,7 @@ bool TController::UpdateSituation(double dt)
                             // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
                             // obsługę kanałów radiowych itd.
                             if (!iGuardRadio) // jeśli nie przez radio
-                                tsGuardSignal->Play(
-                                    1.0, 0, !FreeFlyModeFlag,
-                                    pVehicle->GetPosition()); // dla true jest głośniej
+                                tsGuardSignal->position(pVehicle->GetPosition()).play();
                             else
                                 // if (iGuardRadio==iRadioChannel) //zgodność kanału
                                 // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
@@ -4221,9 +4218,7 @@ bool TController::UpdateSituation(double dt)
                                 if (SquareMagnitude(pVehicle->GetPosition() -
                                                     Global::pCameraPosition) <
                                     2000 * 2000) // w odległości mniejszej niż 2km
-                                tsGuardSignal->Play(
-                                    1.0, 0, true,
-                                    pVehicle->GetPosition()); // dźwięk niby przez radio
+                                tsGuardSignal->position(pVehicle->GetPosition()).play();
                         }
                     }
                 if (mvOccupied->V == 0.0)

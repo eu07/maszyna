@@ -232,7 +232,7 @@ class TController
     // AnsiString OrderCommand; //komenda pobierana z pojazdu
     // double OrderValue; //argument komendy
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
-    TTextSound *tsGuardSignal = nullptr; // komunikat od kierownika
+    sound *tsGuardSignal = nullptr; // komunikat od kierownika
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
   public:
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
