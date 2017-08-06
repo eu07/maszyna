@@ -692,13 +692,13 @@ bool TMoverParameters::ChangeCab(int direction)
     return false;
 };
 
-bool TMoverParameters::CurrentSwitch(int direction)
-{ // rozruch wysoki (true) albo niski (false)
+// rozruch wysoki (true) albo niski (false)
+bool
+TMoverParameters::CurrentSwitch(bool const State) {
     // Ra: przeniosłem z Train.cpp, nie wiem czy ma to sens
-    if (MaxCurrentSwitch(direction != 0))
-    {
+    if (MaxCurrentSwitch(State)) {
         if (TrainType != dt_EZT)
-            return (MinCurrentSwitch(direction != 0));
+            return (MinCurrentSwitch(State));
     }
     // TBD, TODO: split off shunt mode toggle into a separate command? It doesn't make much sense to have these two together like that
     // dla 2Ls150
@@ -706,14 +706,14 @@ bool TMoverParameters::CurrentSwitch(int direction)
      && ( true == ShuntModeAllow )
      && ( ActiveDir == 0 ) ) {
         // przed ustawieniem kierunku
-                ShuntMode = ( direction != 0 );
+        ShuntMode = State;
         return true;
     }
     // for SM42/SP42
     if( ( EngineType == DieselElectric )
      && ( true == ShuntModeAllow )
      && ( MainCtrlPos == 0 ) ) {
-        ShuntMode = ( direction != 0 );
+        ShuntMode = State;
         return true;
     }
 

@@ -1024,7 +1024,7 @@ public:
 	bool IncBrakeLevel(); // wersja na użytek AI
 	bool DecBrakeLevel();
 	bool ChangeCab(int direction);
-	bool CurrentSwitch(int direction);
+	bool CurrentSwitch(bool const State);
 	void UpdateBatteryVoltage(double dt);
 	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
 	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana

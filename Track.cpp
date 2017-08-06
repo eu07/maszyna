@@ -2319,7 +2319,7 @@ int TTrack::TestPoint(vector3 *Point)
     return -1;
 };
 
-void TTrack::MovedUp1(double dh)
+void TTrack::MovedUp1(float const dh)
 { // poprawienie przechyłki wymaga wydłużenia podsypki
     fTexHeight1 += dh;
 };

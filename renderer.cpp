@@ -1431,7 +1431,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
                 ::glLineWidth( static_cast<float>( linewidth ) );
             }
 
-            GfxRenderer.Bind( 0 );
+            GfxRenderer.Bind( NULL );
 
             ::glPushMatrix();
             auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
@@ -1902,7 +1902,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             // material configuration:
                             ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
 
-                            Bind( 0 );
+                            Bind( NULL );
                             ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
                             ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], lightlevel * anglefactor );
                             ::glDisable( GL_LIGHTING );
@@ -1941,7 +1941,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         // material configuration:
                         ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
 
-                        Bind( 0 );
+                        Bind( NULL );
                         ::glDisable( GL_LIGHTING );
 
                         // main draw call
@@ -2217,7 +2217,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 ::glLineWidth( static_cast<float>(linewidth) );
             }
 
-            GfxRenderer.Bind( 0 );
+            GfxRenderer.Bind( NULL );
 
             ::glPushMatrix();
             auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();

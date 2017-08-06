@@ -288,17 +288,26 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     UILayer.set_background( "logo" );
 
-    TSoundsManager::Init( glfwGetWin32Window( window ) );
-    WriteLog("Sound Init OK");
+    if( true == TSoundsManager::Init( glfwGetWin32Window( window ) ) ) {
+        WriteLog( "Sound subsystem setup complete" );
+    }
+    else {
+        ErrorLog( "Sound subsystem setup failed" );
+        return false;
+    }
 
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
     GfxRenderer.Render();
 
-    WriteLog( "Ground init" );
+    WriteLog( "World setup..." );
     if( true == Ground.Init( Global::SceneryFile ) ) {
-        WriteLog( "Ground init OK" );
+        WriteLog( "...world setup done" );
+    }
+    else {
+        ErrorLog( "...world setup failed" );
+        return false;
     }
 
     simulation::Time.init();

@@ -1431,7 +1431,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     TableClear();
 
     if( WriteLogFlag ) {
-        mkdir( "physicslog\\" );
+        _mkdir( "physicslog\\" );
         LogFile.open( std::string( "physicslog\\" + VehicleName + ".dat" ).c_str(),
             std::ios::in | std::ios::out | std::ios::trunc );
 #if LOGPRESS == 0
@@ -1579,12 +1579,14 @@ void TController::Activation()
             ControllingSet(); // utworzenie połączenia do sterowanego pojazdu (może się zmienić) -
             // silnikowy dla EZT
         }
-        if (mvControlling->EngineType ==
-            DieselEngine) // dla 2Ls150 - przed ustawieniem kierunku - można zmienić tryb pracy
-            if (mvControlling->ShuntModeAllow)
+        if( mvControlling->EngineType == DieselEngine ) {
+            // dla 2Ls150 - przed ustawieniem kierunku - można zmienić tryb pracy
+            if( mvControlling->ShuntModeAllow ) {
                 mvControlling->CurrentSwitch(
-                    (OrderList[OrderPos] & Shunt) ||
-                    (fMass > 224000.0)); // do tego na wzniesieniu może nie dać rady na liniowym
+                    ( ( OrderList[ OrderPos ] & Shunt ) == Shunt )
+                   || ( fMass > 224000.0 ) ); // do tego na wzniesieniu może nie dać rady na liniowym
+            }
+        }
         // Ra: to przełączanie poniżej jest tu bez sensu
         mvOccupied->ActiveCab =
             iDirection; // aktywacja kabiny w prowadzonym pojeżdzie (silnikowy może być odwrotnie?)

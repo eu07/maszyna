@@ -261,7 +261,7 @@ public:
             TextureID2 ); };
     bool IsGroupable();
     int TestPoint(vector3 *Point);
-    void MovedUp1(double dh);
+    void MovedUp1(float const dh);
     std::string NameGet();
     void VelocitySet(float v);
     float VelocityGet();

@@ -187,16 +187,16 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
 
         World.OnKeyDown( key );
 
+#ifdef CAN_I_HAS_LIBPNG
         switch( key )
         {
-#ifdef CAN_I_HAS_LIBPNG
             case GLFW_KEY_F11: {
                 make_screenshot();
                 break;
             }
-#endif
             default: { break; }
         }
+#endif
     }
 }
 
@@ -423,7 +423,7 @@ int main(int argc, char *argv[])
     Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
     try {
         if( false == World.Init( window ) ) {
-            ErrorLog( "Failed to init TWorld" );
+            ErrorLog( "Simulation setup failed" );
             return -1;
         }
     }

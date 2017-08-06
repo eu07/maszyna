@@ -1433,16 +1433,16 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	std::ofstream s(FileName, std::ios::binary);
 
 	sn_utils::ls_uint32(s, MAKE_ID4('E', '3', 'D', '0'));
-	size_t e3d_spos = s.tellp();
+	auto const e3d_spos = s.tellp();
 	sn_utils::ls_uint32(s, 0);
 
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('S', 'U', 'B', '0'));
-		size_t sub_spos = s.tellp();
+		auto const sub_spos = s.tellp();
 		sn_utils::ls_uint32(s, 0);
 		for (size_t i = 0; i < models.size(); i++)
 			models[i]->serialize(s, models, names, textures, transforms);
-		size_t pos = s.tellp();
+		auto const pos = s.tellp();
 		s.seekp(sub_spos);
 		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - sub_spos));
 		s.seekp(pos);
@@ -1460,11 +1460,11 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	if (textures.size())
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('T', 'E', 'X', '0'));
-		size_t tex_spos = s.tellp();
+		auto const tex_spos = s.tellp();
 		sn_utils::ls_uint32(s, 0);
 		for (size_t i = 0; i < textures.size(); i++)
 			sn_utils::s_str(s, textures[i]);
-		size_t pos = s.tellp();
+		auto const pos = s.tellp();
 		s.seekp(tex_spos);
 		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - tex_spos));
 		s.seekp(pos);
@@ -1473,17 +1473,17 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	if (names.size())
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('N', 'A', 'M', '0'));
-		size_t nam_spos = s.tellp();
+		auto const nam_spos = s.tellp();
 		sn_utils::ls_uint32(s, 0);
 		for (size_t i = 0; i < names.size(); i++)
 			sn_utils::s_str(s, names[i]);
-		size_t pos = s.tellp();
+		auto const pos = s.tellp();
 		s.seekp(nam_spos);
 		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - nam_spos));
 		s.seekp(pos);
 	}
 
-	size_t end = s.tellp();
+	auto const end = s.tellp();
 	s.seekp(e3d_spos);
 	sn_utils::ls_uint32(s, (uint32_t)(4 + end - e3d_spos));
 	s.close();
@@ -1727,8 +1727,9 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		pName = "";
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
-        if( iTexture < t->size() ) {
-            pTexture = t->at( iTexture );
+        auto const textureindex = static_cast<std::size_t>( iTexture );
+        if( textureindex < t->size() ) {
+            pTexture = t->at( textureindex );
             if( pTexture.find_last_of( "/\\" ) == std::string::npos )
                 pTexture.insert( 0, Global::asCurrentTexturePath );
             TextureID = GfxRenderer.Fetch_Texture( pTexture );

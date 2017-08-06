@@ -237,38 +237,22 @@ void TSoundsManager::RestoreAll()
     };
 };
 
-void TSoundsManager::Init(HWND hWnd)
-{
+bool TSoundsManager::Init(HWND hWnd) {
 
-    First = NULL;
+    First = nullptr;
     Count = 0;
-    pDS = NULL;
-    pDSNotify = NULL;
+    pDS = nullptr;
+    pDSNotify = nullptr;
 
     HRESULT hr; //=222;
-    LPDIRECTSOUNDBUFFER pDSBPrimary = NULL;
-
-    //    strcpy(Directory, NDirectory);
+    LPDIRECTSOUNDBUFFER pDSBPrimary = nullptr;
 
     // Create IDirectSound using the primary sound device
     hr = DirectSoundCreate(NULL, &pDS, NULL);
-    if (hr != DS_OK)
-    {
+    if (hr != DS_OK) {
 
-        if (hr == DSERR_ALLOCATED)
-            return;
-        if (hr == DSERR_INVALIDPARAM)
-            return;
-        if (hr == DSERR_NOAGGREGATION)
-            return;
-        if (hr == DSERR_NODRIVER)
-            return;
-        if (hr == DSERR_OUTOFMEMORY)
-            return;
-
-        //  hr=0;
+        return false;
     };
-    //    return ;
 
     // Set coop level to DSSCL_PRIORITY
     //    if( FAILED( hr = pDS->SetCooperativeLevel( hWnd, DSSCL_PRIORITY ) ) );
@@ -285,8 +269,9 @@ void TSoundsManager::Init(HWND hWnd)
     dsbd.dwBufferBytes = 0;
     dsbd.lpwfxFormat = NULL;
 
-    if (FAILED(hr = pDS->CreateSoundBuffer(&dsbd, &pDSBPrimary, NULL)))
-        return;
+    if( FAILED( hr = pDS->CreateSoundBuffer( &dsbd, &pDSBPrimary, NULL ) ) ) {
+        return false;
+    }
 
     // Set primary buffer format to 22kHz and 16-bit output.
     WAVEFORMATEX wfx;
@@ -298,8 +283,11 @@ void TSoundsManager::Init(HWND hWnd)
     wfx.nBlockAlign = wfx.wBitsPerSample / 8 * wfx.nChannels;
     wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
 
-    if (FAILED(hr = pDSBPrimary->SetFormat(&wfx)))
-        return;
+    if( FAILED( hr = pDSBPrimary->SetFormat( &wfx ) ) ) {
+        return false;
+    }
 
     SAFE_RELEASE(pDSBPrimary);
+
+    return true;
 };
