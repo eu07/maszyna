@@ -119,6 +119,7 @@ geometry_bank::vertices( geometry_handle const &Geometry ) const {
 // opengl vbo-based variant of the geometry bank
 
 GLuint opengl_vbogeometrybank::m_activebuffer { 0 }; // buffer bound currently on the opengl end, if any
+unsigned int opengl_vbogeometrybank::m_activestreams { stream::none }; // currently enabled data type pointers
 
 // create() subclass details
 void
@@ -129,6 +130,7 @@ opengl_vbogeometrybank::create_( geometry_handle const &Geometry ) {
     // kiss the existing buffer goodbye, new overall data size means we'll be making a new one
     delete_buffer();
 
+	bind_streams(stream::none);
 	glGenVertexArrays(1, &m_vao);
 }
 
@@ -170,7 +172,6 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int con
         // try to set up the buffer we need
         ::glGenBuffers( 1, &m_buffer );
         bind_buffer();
-        bind_streams(Streams);
         // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
         // TODO: allow to specify usage hint at the object creation, and pass it here
         ::glBufferData(
@@ -202,6 +203,9 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int con
             chunk.vertices.data() );
         chunkrecord.is_good = true;
     }
+	if( m_activestreams != Streams ) {
+        bind_streams( Streams );
+    }
 
     // ...render...
     ::glDrawArrays( chunk.type, (GLint)chunkrecord.offset, (GLsizei)chunkrecord.size );
@@ -211,7 +215,7 @@ opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, unsigned int con
 // release () subclass details
 void
 opengl_vbogeometrybank::release_() {
-    glDeleteVertexArrays(1, &m_vao);
+
     delete_buffer();
 }
 
@@ -220,15 +224,18 @@ opengl_vbogeometrybank::bind_buffer() {
 	glBindVertexArray(m_vao);
     ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
     m_activebuffer = m_buffer;
+	bind_streams(stream::none);
 }
 
 void
 opengl_vbogeometrybank::delete_buffer() {
+	glDeleteVertexArrays(1, &m_vao);
     if( m_buffer != 0 ) {
         
         ::glDeleteBuffers( 1, &m_buffer );
         if( m_activebuffer == m_buffer ) {
             m_activebuffer = 0;
+            bind_streams( stream::none );
         }
         m_buffer = 0;
         m_buffercapacity = 0;
@@ -256,7 +263,6 @@ opengl_vbogeometrybank::bind_streams( unsigned int const Streams ) {
 		glDisableVertexAttribArray(1);
     }
 
-    //m7todo: support it
     if( Streams & stream::color ) {
 
     }
@@ -271,6 +277,77 @@ opengl_vbogeometrybank::bind_streams( unsigned int const Streams ) {
     else {
 		glDisableVertexAttribArray(2);
     }
+
+    m_activestreams = Streams;
+}
+
+// opengl display list based variant of the geometry bank
+
+// create() subclass details
+void
+opengl_dlgeometrybank::create_( geometry_handle const &Geometry ) {
+
+    m_chunkrecords.emplace_back( chunk_record() );
+}
+
+// replace() subclass details
+void
+opengl_dlgeometrybank::replace_( geometry_handle const &Geometry ) {
+
+    delete_list( Geometry );
+}
+
+// draw() subclass details
+void
+opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, unsigned int const Streams ) {
+
+    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
+    if( chunkrecord.streams != Streams ) {
+        delete_list( Geometry );
+    }
+    if( chunkrecord.list == 0 ) {
+        // we don't have a list ready, so compile one
+        chunkrecord.streams = Streams;
+        chunkrecord.list = ::glGenLists( 1 );
+        auto const &chunk = geometry_bank::chunk( Geometry );
+        ::glNewList( chunkrecord.list, GL_COMPILE );
+
+        ::glBegin( chunk.type );
+        for( auto const &vertex : chunk.vertices ) {
+                 if( Streams & stream::normal ) { ::glNormal3fv( glm::value_ptr( vertex.normal ) ); }
+            else if( Streams & stream::color )  { ::glColor3fv( glm::value_ptr( vertex.normal ) ); }
+            if( Streams & stream::texture )     { ::glTexCoord2fv( glm::value_ptr( vertex.texture ) ); }
+            if( Streams & stream::position )    { ::glVertex3fv( glm::value_ptr( vertex.position ) ); }
+        }
+        ::glEnd();
+        ::glEndList();
+    }
+    // with the list done we can just play it
+    ::glCallList( chunkrecord.list );
+}
+
+// release () subclass details
+void
+opengl_dlgeometrybank::release_() {
+
+    for( auto &chunkrecord : m_chunkrecords ) {
+        if( chunkrecord.list != 0 ) {
+            ::glDeleteLists( chunkrecord.list, 1 );
+            chunkrecord.list = 0;
+        }
+        chunkrecord.streams = stream::none;
+    }
+}
+
+void
+opengl_dlgeometrybank::delete_list( geometry_handle const &Geometry ) {
+    // NOTE: given it's our own internal method we trust it to be called with valid parameters
+    auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
+    if( chunkrecord.list != 0 ) {
+        ::glDeleteLists( chunkrecord.list, 1 );
+        chunkrecord.list = 0;
+    }
+    chunkrecord.streams = stream::none;
 }
 
 // geometry bank manager, holds collection of geometry banks
