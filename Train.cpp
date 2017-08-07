@@ -1368,10 +1368,6 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
             Train->mvControlled->PantFrontSP = false;
             if( Train->mvControlled->PantFront( true ) ) {
                 if( Train->mvControlled->PantFrontStart != 1 ) {
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-                    // sound feedback
-                    Train->play_sound( Train->dsbSwitch );
-#endif
                     // visual feedback
                     if( Train->ggPantFrontButton.SubModel )
                         Train->ggPantFrontButton.UpdateValue( 1.0, Train->dsbSwitch );
@@ -1404,10 +1400,6 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
             Train->mvControlled->PantFrontSP = false;
             if( false == Train->mvControlled->PantFront( false ) ) {
                 if( Train->mvControlled->PantFrontStart != 0 ) {
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-                    // sound feedback
-                    Train->play_sound( Train->dsbSwitch );
-#endif
                     // visual feedback
                     if( Train->ggPantFrontButton.SubModel )
                         Train->ggPantFrontButton.UpdateValue( 0.0, Train->dsbSwitch );
@@ -1429,11 +1421,6 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-            if( Train->ggPantFrontButton.GetValue() > 0.35 ) {
-                Train->play_sound( Train->dsbSwitch );
-            }
-#endif
             if( Train->ggPantFrontButton.SubModel )
                 Train->ggPantFrontButton.UpdateValue( 0.0, Train->dsbSwitch );
             // NOTE: currently we animate the selectable pantograph control based on standard key presses
@@ -1441,11 +1428,6 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
             if( Train->ggPantSelectedButton.SubModel )
                 Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
             // also the switch off button, in cabs which have it
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-            if( Train->ggPantFrontButtonOff.GetValue() > 0.35 ) {
-                Train->play_sound( Train->dsbSwitch );
-            }
-#endif
             if( Train->ggPantFrontButtonOff.SubModel )
                 Train->ggPantFrontButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
             if( Train->ggPantSelectedDownButton.SubModel ) {
@@ -1466,10 +1448,6 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
             Train->mvControlled->PantRearSP = false;
             if( Train->mvControlled->PantRear( true ) ) {
                 if( Train->mvControlled->PantRearStart != 1 ) {
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-                    // sound feedback
-                    Train->play_sound( Train->dsbSwitch );
-#endif
                     // visual feedback
                     if( Train->ggPantRearButton.SubModel )
                         Train->ggPantRearButton.UpdateValue( 1.0, Train->dsbSwitch );
@@ -1502,10 +1480,6 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
             Train->mvControlled->PantRearSP = false;
             if( false == Train->mvControlled->PantRear( false ) ) {
                 if( Train->mvControlled->PantRearStart != 0 ) {
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-                    // sound feedback
-                    Train->play_sound( Train->dsbSwitch );
-#endif
                     // visual feedback
                     if( Train->ggPantRearButton.SubModel )
                         Train->ggPantRearButton.UpdateValue( 0.0, Train->dsbSwitch );
@@ -1527,11 +1501,6 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-            if( Train->ggPantRearButton.GetValue() > 0.35 ) {
-                Train->play_sound( Train->dsbSwitch );
-            }
-#endif
             if( Train->ggPantRearButton.SubModel )
                 Train->ggPantRearButton.UpdateValue( 0.0, Train->dsbSwitch );
             // NOTE: currently we animate the selectable pantograph control based on standard key presses
@@ -1539,11 +1508,6 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
             if( Train->ggPantSelectedButton.SubModel )
                 Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
             // also the switch off button, in cabs which have it
-#ifdef EU07_USE_OLD_CONTROLSOUNDS
-            if( Train->ggPantRearButtonOff.GetValue() > 0.35 ) {
-                Train->play_sound( Train->dsbSwitch );
-            }
-#endif
             if( Train->ggPantRearButtonOff.SubModel )
                 Train->ggPantRearButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
             if( Train->ggPantSelectedDownButton.SubModel ) {

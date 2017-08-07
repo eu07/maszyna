@@ -241,7 +241,7 @@ public:
             e[i + 2] = f; // zamiana Y i Z
         }
     };
-    inline float4x4 &Rotation(double angle, float3 axis);
+    inline float4x4 &Rotation(float const angle, float3 const &axis);
     inline bool IdentityIs()
     { // sprawdzenie jednostkowości
         for (int i = 0; i < 16; ++i)
@@ -270,34 +270,30 @@ inline glm::vec3 operator*( const float4x4 &m, const glm::vec3 &v ) { // mnożen
         v.x * m[ 0 ][ 2 ] + v.y * m[ 1 ][ 2 ] + v.z * m[ 2 ][ 2 ] + m[ 3 ][ 2 ] );
 }
 
-inline float4x4 &float4x4::Rotation(double angle, float3 axis)
+inline float4x4 &float4x4::Rotation(float const Angle, float3 const &Axis)
 {
-    double c = cos(angle);
-    double s = sin(angle);
+    auto const c = std::cos(Angle);
+    auto const s = std::sin(Angle);
     // One minus c (short name for legibility of formulai)
-    double omc = (1 - c);
-    if (axis.Length() != 1.0f)
-        axis = SafeNormalize(axis);
-    double x = axis.x;
-    double y = axis.y;
-    double z = axis.z;
-    double xs = x * s;
-    double ys = y * s;
-    double zs = z * s;
-    double xyomc = x * y * omc;
-    double xzomc = x * z * omc;
-    double yzomc = y * z * omc;
-    e[0] = x * x * omc + c;
+    auto const omc = (1.f - c);
+    auto const axis = SafeNormalize(Axis);
+    auto const xs = axis.x * s;
+    auto const ys = axis.y * s;
+    auto const zs = axis.z * s;
+    auto const xyomc = axis.x * axis.y * omc;
+    auto const xzomc = axis.x * axis.z * omc;
+    auto const yzomc = axis.y * axis.z * omc;
+    e[0] = axis.x * axis.x * omc + c;
     e[1] = xyomc + zs;
     e[2] = xzomc - ys;
     e[3] = 0;
     e[4] = xyomc - zs;
-    e[5] = y * y * omc + c;
+    e[5] = axis.y * axis.y * omc + c;
     e[6] = yzomc + xs;
     e[7] = 0;
     e[8] = xzomc + ys;
     e[9] = yzomc - xs;
-    e[10] = z * z * omc + c;
+    e[10] = axis.z * axis.z * omc + c;
     e[11] = 0;
     e[12] = 0;
     e[13] = 0;

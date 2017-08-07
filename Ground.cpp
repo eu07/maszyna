@@ -153,74 +153,30 @@ TGroundNode::TGroundNode( TGroundNodeType t ) :
     }
 }
 
-void TGroundNode::InitNormals()
-{ // obliczenie wektorów normalnych
-    glm::dvec3 v1, v2, v3, v4, v5;
-    glm::vec3 n1, n2, n3, n4;
+// obliczenie wektorów normalnych
+void TGroundNode::InitNormals() {
+
+    glm::dvec3 v1, v2;
+    glm::vec3 n1;
     glm::vec2 t1;
-    int i;
-    switch (iType)
-    {
-    case GL_TRIANGLE_STRIP:
-        v1 = Piece->vertices[0].position - Piece->vertices[1].position;
-        v2 = Piece->vertices[1].position - Piece->vertices[2].position;
-        n1 = glm::normalize(glm::cross(v1, v2));
-        if (Piece->vertices[0].normal == glm::vec3())
-            Piece->vertices[0].normal = n1;
-        v3 = Piece->vertices[2].position - Piece->vertices[3].position;
-        n2 = glm::normalize(glm::cross(v3, v2));
-        if (Piece->vertices[1].normal == glm::vec3())
-            Piece->vertices[1].normal = (n1 + n2) * 0.5f;
 
-        for ( i = 2; i < iNumVerts - 2; i += 2)
-        {
-            v4 = Piece->vertices[i - 1].position - Piece->vertices[i].position;
-            v5 = Piece->vertices[i].position - Piece->vertices[i + 1].position;
-            n3 = glm::normalize(glm::cross(v3, v4));
-            n4 = glm::normalize(glm::cross(v5, v4));
-            if (Piece->vertices[i].normal == glm::vec3())
-                Piece->vertices[i].normal = (n1 + n2 + n3) / 3.0f;
-            if (Piece->vertices[i + 1].normal == glm::vec3())
-                Piece->vertices[i + 1].normal = (n2 + n3 + n4) / 3.0f;
-            n1 = n3;
-            n2 = n4;
-            v3 = v5;
-        }
-        if (Piece->vertices[i].normal == glm::vec3())
-            Piece->vertices[i].normal = (n1 + n2) / 2.0f;
-		if (i + 1 < iNumVerts)
-		{
-			if (Piece->vertices[i + 1].normal == glm::vec3())
-				Piece->vertices[i + 1].normal = n2;
-		}
-		else
-			WriteLog("odd number of vertices, normals may be wrong!");
+    for( auto i = 0; i < iNumVerts; i += 3 ) {
 
-        break;
-    case GL_TRIANGLE_FAN:
-
-        break;
-    case GL_TRIANGLES:
-        for (i = 0; i < iNumVerts; i += 3)
-        {
-            v1 = Piece->vertices[i + 0].position - Piece->vertices[i + 1].position;
-            v2 = Piece->vertices[i + 1].position - Piece->vertices[i + 2].position;
-            auto c = glm::cross(v1, v2);
-            n1 = glm::length(c) != 0 ? glm::normalize(c) : glm::vec3();
-            if( Piece->vertices[i + 0].normal == glm::vec3() )
-                Piece->vertices[i + 0].normal = (n1);
-            if( Piece->vertices[i + 1].normal == glm::vec3() )
-                Piece->vertices[i + 1].normal = (n1);
-            if( Piece->vertices[i + 2].normal == glm::vec3() )
-                Piece->vertices[i + 2].normal = (n1);
-            t1 = glm::vec2(
-                std::floor( Piece->vertices[ i + 0 ].texture.s ),
-                std::floor( Piece->vertices[ i + 0 ].texture.t ) );
-            Piece->vertices[ i + 1 ].texture -= t1;
-            Piece->vertices[ i + 2 ].texture -= t1;
-            Piece->vertices[ i + 0 ].texture -= t1;
-        }
-        break;
+        v1 = Piece->vertices[ i + 0 ].position - Piece->vertices[ i + 1 ].position;
+        v2 = Piece->vertices[ i + 1 ].position - Piece->vertices[ i + 2 ].position;
+        n1 = glm::normalize( glm::cross( v1, v2 ) );
+        if( Piece->vertices[ i + 0 ].normal == glm::vec3() )
+            Piece->vertices[ i + 0 ].normal = ( n1 );
+        if( Piece->vertices[ i + 1 ].normal == glm::vec3() )
+            Piece->vertices[ i + 1 ].normal = ( n1 );
+        if( Piece->vertices[ i + 2 ].normal == glm::vec3() )
+            Piece->vertices[ i + 2 ].normal = ( n1 );
+        t1 = glm::vec2(
+            std::floor( Piece->vertices[ i + 0 ].texture.s ),
+            std::floor( Piece->vertices[ i + 0 ].texture.t ) );
+        Piece->vertices[ i + 1 ].texture -= t1;
+        Piece->vertices[ i + 2 ].texture -= t1;
+        Piece->vertices[ i + 0 ].texture -= t1;
     }
 }
 
@@ -704,6 +660,42 @@ TGround::GetRect( double x, double z ) {
         return nullptr;
     }
 };
+
+// convert tp_terrain model to a series of triangle nodes
+void
+TGround::convert_terrain( TGroundNode const *Terrain ) {
+
+    TSubModel *submodel { nullptr };
+    for( auto cellindex = 1; cellindex < Terrain->iCount; ++cellindex ) {
+        // go through all submodels for individual terrain cells...
+        submodel = Terrain->nNode[ cellindex ].smTerrain;
+        convert_terrain( submodel );
+        // if there's more than one group of triangles in the cell they're held as children of the primary submodel
+        submodel = submodel->ChildGet();
+        while( submodel != nullptr ) {
+            convert_terrain( submodel );
+            submodel = submodel->NextGet();
+        }
+    }
+}
+
+void
+TGround::convert_terrain( TSubModel const *Submodel ) {
+
+    auto groundnode = new TGroundNode( GL_TRIANGLES );
+    Submodel->convert( *groundnode );
+
+    if( groundnode->iNumVerts > 0 ) {
+    // jeśli nie jest pojazdem ostatni dodany dołączamy na końcu nowego
+        groundnode->nNext = nRootOfType[ groundnode->iType ];
+        // ustawienie nowego na początku listy
+        nRootOfType[ groundnode->iType ] = groundnode;
+        ++iNumNodes;
+    }
+    else {
+        delete groundnode;
+    }
+}
 
 double fTrainSetVel = 0;
 double fTrainSetDir = 0;
@@ -1220,61 +1212,123 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
 
         break;
-    case TP_MODEL:
-        if (rmin < 0)
-        {
+    case TP_MODEL: {
+#ifdef EU07_USE_OLD_TERRAINCODE
+        if( rmin < 0 ) {
             tmp->iType = TP_TERRAIN;
             tmp->fSquareMinRadius = 0; // to w ogóle potrzebne?
         }
-        parser->getTokens(3);
+        parser->getTokens( 3 );
         *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
         parser->getTokens();
         *parser >> tf1;
         // OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
-        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI);
+        tmp->pCenter.RotateY( aRotate.y / 180.0 * M_PI );
         // McZapkie-260402: model tez ma wspolrzedne wzgledne
         tmp->pCenter += pOrigin;
 
         tmp->Model = new TAnimModel();
-        tmp->Model->RaAnglesSet(aRotate.x, tf1 + aRotate.y, aRotate.z); // dostosowanie do pochylania linii
+        tmp->Model->RaAnglesSet( aRotate.x, tf1 + aRotate.y, aRotate.z ); // dostosowanie do pochylania linii
         if( tmp->Model->Load( parser, tmp->iType == TP_TERRAIN ) ) {
             // wczytanie modelu, tekstury i stanu świateł...
             tmp->iFlags = tmp->Model->Flags() | 0x200; // ustalenie, czy przezroczysty; flaga usuwania
         }
-        else if (tmp->iType != TP_TERRAIN)
-        { // model nie wczytał się - ignorowanie node
+        else if( tmp->iType != TP_TERRAIN ) { // model nie wczytał się - ignorowanie node
             delete tmp;
             tmp = NULL; // nie może być tu return
             break; // nie może być tu return?
         }
-        if (tmp->iType == TP_TERRAIN)
-        { // jeśli model jest terenem, trzeba utworzyć dodatkowe obiekty
+        if( tmp->iType == TP_TERRAIN ) { // jeśli model jest terenem, trzeba utworzyć dodatkowe obiekty
             // po wczytaniu model ma już utworzone DL albo VBO
             Global::pTerrainCompact = tmp->Model; // istnieje co najmniej jeden obiekt terenu
             tmp->pCenter = Math3D::vector3( 0.0, 0.0, 0.0 ); // enforce placement in the world center
             tmp->iCount = Global::pTerrainCompact->TerrainCount() + 1; // zliczenie submodeli
-            tmp->nNode = new TGroundNode[tmp->iCount]; // sztuczne node dla kwadratów
-            tmp->nNode[0].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
-            tmp->nNode[0].Model = Global::pTerrainCompact;
-            tmp->nNode[0].iFlags = 0x200; // nie wyświetlany, ale usuwany
-            for (int i = 1; i < tmp->iCount; ++i)
-            { // a reszta to submodele
-                tmp->nNode[i].iType = TP_SUBMODEL;
-                tmp->nNode[i].smTerrain = Global::pTerrainCompact->TerrainSquare(i - 1);
-                tmp->nNode[i].iFlags = 0x10; // nieprzezroczyste; nie usuwany
-                tmp->nNode[i].bVisible = true;
-                tmp->nNode[i].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
+            tmp->nNode = new TGroundNode[ tmp->iCount ]; // sztuczne node dla kwadratów
+            tmp->nNode[ 0 ].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
+            tmp->nNode[ 0 ].Model = Global::pTerrainCompact;
+            tmp->nNode[ 0 ].iFlags = 0x200; // nie wyświetlany, ale usuwany
+            for( int i = 1; i < tmp->iCount; ++i ) { // a reszta to submodele
+                tmp->nNode[ i ].iType = TP_SUBMODEL;
+                tmp->nNode[ i ].smTerrain = Global::pTerrainCompact->TerrainSquare( i - 1 );
+                tmp->nNode[ i ].iFlags = 0x10; // nieprzezroczyste; nie usuwany
+                tmp->nNode[ i ].bVisible = true;
+                tmp->nNode[ i ].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
             }
         }
-        else if (!tmp->asName.empty()) // jest pusta gdy "none"
+        else if( !tmp->asName.empty() ) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
             if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
             }
         }
-        // str=Parser->GetNextSymbol().LowerCase();
+#else
+        if( rmin < 0 ) {
+            // legacy leftover: special case, terrain provided as 3d model
+            tmp->iType = TP_TERRAIN;
+            tmp->fSquareMinRadius = 0; // to w ogóle potrzebne?
+            // we ignore center and rotation for terrain; they should be set to 0 anyway
+            parser->getTokens( 4 );
+
+            tmp->iFlags = 0x200; // flaga usuwania
+            tmp->Model = new TAnimModel();
+            if( false == tmp->Model->Load( parser, true ) ) {
+                delete tmp;
+                tmp = nullptr;
+                break;
+            }
+            tmp->iFlags |= tmp->Model->Flags(); // ustalenie, czy przezroczysty
+            tmp->pCenter = Math3D::vector3(); // enforce placement in the world center
+            // jeśli model jest terenem, trzeba utworzyć dodatkowe obiekty
+            tmp->iCount = tmp->Model->TerrainCount() + 1; // zliczenie submodeli
+            Global::pTerrainCompact = tmp->Model;
+            tmp->nNode = new TGroundNode[ tmp->iCount ]; // sztuczne node dla kwadratów
+            tmp->nNode[ 0 ].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
+            tmp->nNode[ 0 ].Model = Global::pTerrainCompact;
+            tmp->nNode[ 0 ].iFlags = 0x200; // nie wyświetlany, ale usuwany
+            for( auto i = 1; i < tmp->iCount; ++i ) { // a reszta to submodele
+                tmp->nNode[ i ].iType = TP_SUBMODEL;
+                tmp->nNode[ i ].smTerrain = Global::pTerrainCompact->TerrainSquare( i - 1 );
+                tmp->nNode[ i ].iFlags = 0x10; // nieprzezroczyste; nie usuwany
+                tmp->nNode[ i ].bVisible = true;
+                tmp->nNode[ i ].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
+            }
+        }
+        else {
+            // regular 3d model
+            parser->getTokens( 3 );
+            *parser
+                >> tmp->pCenter.x
+                >> tmp->pCenter.y
+                >> tmp->pCenter.z;
+            parser->getTokens();
+            *parser >> tf1;
+            // OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
+            tmp->pCenter.RotateY( glm::radians( aRotate.y ) );
+            // McZapkie-260402: model tez ma wspolrzedne wzgledne
+            tmp->pCenter += pOrigin;
+
+            tmp->iFlags = 0x200; // flaga usuwania
+            tmp->Model = new TAnimModel();
+            tmp->Model->RaAnglesSet( aRotate.x, tf1 + aRotate.y, aRotate.z ); // dostosowanie do pochylania linii
+            if( false == tmp->Model->Load( parser, false ) ) {
+                // model nie wczytał się - ignorowanie node
+                delete tmp;
+                tmp = nullptr; // nie może być tu return
+                break; // nie może być tu return?
+            }
+            tmp->iFlags |= tmp->Model->Flags(); // ustalenie, czy przezroczysty
+            if( false == tmp->asName.empty() ) { // jest pusta gdy "none"
+                // dodanie do wyszukiwarki
+                if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
+                    // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
+                    ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
+                }
+            }
+        }
+#endif
         break;
+    }
     // case TP_GEOMETRY :
     case GL_TRIANGLES:
     case GL_TRIANGLE_STRIP:
@@ -1353,12 +1407,12 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 >> vertex.normal.z
                 >> vertex.texture.s
                 >> vertex.texture.t;
-            vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
-            vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
-            vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
-            vertex.normal = glm::rotateZ( vertex.normal, static_cast<float>( aRotate.z / 180 * M_PI ) );
-            vertex.normal = glm::rotateX( vertex.normal, static_cast<float>( aRotate.x / 180 * M_PI ) );
-            vertex.normal = glm::rotateY( vertex.normal, static_cast<float>( aRotate.y / 180 * M_PI ) );
+            vertex.position = glm::rotateZ( vertex.position, glm::radians( aRotate.z ) );
+            vertex.position = glm::rotateX( vertex.position, glm::radians( aRotate.x ) );
+            vertex.position = glm::rotateY( vertex.position, glm::radians( aRotate.y ) );
+            vertex.normal = glm::rotateZ( vertex.normal, glm::radians<float>( aRotate.z ) );
+            vertex.normal = glm::rotateX( vertex.normal, glm::radians<float>( aRotate.x ) );
+            vertex.normal = glm::rotateY( vertex.normal, glm::radians<float>( aRotate.y ) );
             vertex.position += glm::dvec3{ pOrigin };
             if( true == clamps ) { vertex.texture.s = clamp( vertex.texture.s, 0.001f, 0.999f ); }
             if( true == clampt ) { vertex.texture.t = clamp( vertex.texture.t, 0.001f, 0.999f ); }
@@ -1487,9 +1541,9 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 *parser
                     >> vertex.position.y
                     >> vertex.position.z;
-                vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
-                vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
-                vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
+                vertex.position = glm::rotateZ( vertex.position, glm::radians( aRotate.z ) );
+                vertex.position = glm::rotateX( vertex.position, glm::radians( aRotate.x ) );
+                vertex.position = glm::rotateY( vertex.position, glm::radians( aRotate.y ) );
 
                 vertex.position += glm::dvec3{ pOrigin };
                 // convert all data to gl_lines to allow data merge for matching nodes
@@ -1621,7 +1675,8 @@ void TGround::FirstInit()
     for (int type = 0; type < TP_LAST; ++type) {
         for (TGroundNode *Current = nRootOfType[type]; Current != nullptr; Current = Current->nNext) {
 
-            Current->InitNormals();
+            if( type == GL_TRIANGLES ) { Current->InitNormals(); }
+
             if (Current->iType != TP_DYNAMIC)
             { // pojazdów w ogóle nie dotyczy dodawanie do mapy
                 if( ( type == TP_EVLAUNCH )
@@ -1629,6 +1684,7 @@ void TGround::FirstInit()
                     // dodanie do globalnego obiektu
                     srGlobal.NodeAdd( Current );
                 }
+#ifdef EU07_USE_OLD_TERRAINCODE
                 else if (type == TP_TERRAIN) {
                     // specjalne przetwarzanie terenu wczytanego z pliku E3D
                     TGroundRect *gr;
@@ -1641,6 +1697,7 @@ void TGround::FirstInit()
                         gr->nTerrain = Current->nNode + j; // zapamiętanie
                     }
                 }
+#endif
                 else {
                     TSubRect *targetcell { nullptr };
                     // test whether we can add the node to a ground cell, or a subcell
@@ -1744,6 +1801,15 @@ bool TGround::Init(std::string File)
                         }
                         break;
                     }
+#ifndef EU07_SCENERY_EDITOR
+                    case TP_TERRAIN: {
+                        // convert legacy terrain model to a series of triangle nodes, to take advantage of camera-centric render and geometry merging
+                        // NOTE: this leaves us with a large model we don't use loaded and taking space. it'll sort of solve itself when the binary scenery file is in place
+                        convert_terrain( LastNode );
+                        SafeDelete( LastNode );
+                        Global::pTerrainCompact = nullptr;
+                    }
+#endif
                     default: {
                         break;
                     }
@@ -2121,8 +2187,10 @@ bool TGround::Init(std::string File)
 
     if (!bInitDone)
         FirstInit(); // jeśli nie było w scenerii
+#ifdef EU07_USE_OLD_TERRAINCODE
     if (Global::pTerrainCompact)
         TerrainWrite(); // Ra: teraz można zapisać teren w jednym pliku
+#endif
     Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
@@ -3494,18 +3562,6 @@ void
 TGround::Update_Lights() {
 
     m_lights.update();
-    // arrange the light array from closest to farthest from current position of the camera
-    auto const camera = Global::pCameraPosition;
-    std::sort(
-        m_lights.data.begin(),
-        m_lights.data.end(),
-        [&]( light_array::light_record const &Left, light_array::light_record const &Right ) {
-            // move lights which are off at the end...
-            if( Left.intensity == 0.0f ) { return false; }
-            if( Right.intensity == 0.0f ) { return true; }
-            // ...otherwise prefer closer and/or brigher light sources
-            return ((camera - Left.position).LengthSquared() * (1.0f - Left.intensity)) < ((camera - Right.position).LengthSquared() * (1.0f - Right.intensity));
-        } );
 }
 
 // Winger 170204 - szukanie trakcji nad pantografami

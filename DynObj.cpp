@@ -185,9 +185,10 @@ float TDynamicObject::GetEPP()
     // od strony sprzegu (coupler_nr) obiektu (start)
     TDynamicObject *temp = this;
     int coupler_nr = 0;
-    float eq = 0, am = 0;
+    double eq = 0.0;
+    double am = 0.0;
 
-    for (int i = 0; i < 300; i++) // ograniczenie do 300 na wypadek zapętlenia składu
+    for (int i = 0; i < 300; ++i) // ograniczenie do 300 na wypadek zapętlenia składu
     {
         if (!temp)
             break; // Ra: zabezpieczenie przed ewentaulnymi błędami sprzęgów
@@ -2732,26 +2733,20 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (Mechanik)
     { // Ra 2F3F: do Driver.cpp to przenieść?
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
-        if ((Mechanik->Primary()) &&
-            (MoverParameters->EngineType == ElectricInductionMotor)) // jesli glowny i z
-        // asynchronami, to
-        // niech steruje
-        { // hamulcem lacznie dla calego pociagu/ezt
-			bool kier = (DirectionGet() * MoverParameters->ActiveCab > 0);
-			float FED = 0;
-            int np = 0;
-            float masa = 0;
-            float FrED = 0;
-            float masamax = 0;
-            float FmaxPN = 0;
-			float FfulED = 0;
-			float FmaxED = 0;
-            float Fzad = 0;
-            float FzadED = 0;
-            float FzadPN = 0;
-			float Frj = 0;
-			float amax = 0;
-			float osie = 0;
+        if( ( Mechanik->Primary() )
+         && ( MoverParameters->EngineType == ElectricInductionMotor ) ) {
+            // jesli glowny i z asynchronami, to niech steruje hamulcem lacznie dla calego pociagu/ezt
+			auto const kier = (DirectionGet() * MoverParameters->ActiveCab > 0);
+            auto FED { 0.0 };
+            auto np { 0 };
+            auto masa { 0.0 };
+            auto FrED { 0.0 };
+            auto masamax { 0.0 };
+            auto FmaxPN { 0.0 };
+			auto FfulED { 0.0 };
+			auto FmaxED { 0.0 };
+            auto Frj { 0.0 };
+            auto osie { 0 };
 			// 1. ustal wymagana sile hamowania calego pociagu
             //   - opoznienie moze byc ustalane na podstawie charakterystyki
             //   - opoznienie moze byc ustalane na podstawie mas i cisnien granicznych
@@ -2762,11 +2757,14 @@ bool TDynamicObject::Update(double dt, double dt1)
             for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
 				(kier ? p = p->NextC(4) : p = p->PrevC(4)))
             {
-                np++;
-                masamax += p->MoverParameters->MBPM +
-                           (p->MoverParameters->MBPM > 1 ? 0 : p->MoverParameters->Mass) +
-                           p->MoverParameters->Mred;
-                float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
+                ++np;
+                masamax +=
+                    p->MoverParameters->MBPM
+                    + ( p->MoverParameters->MBPM > 1.0 ?
+                        0.0 :
+                        p->MoverParameters->Mass )
+                    + p->MoverParameters->Mred;
+                auto const Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
                                   p->MoverParameters->BrakeCylMult[0] -
                               p->MoverParameters->BrakeSlckAdj) *
@@ -2780,18 +2778,19 @@ bool TDynamicObject::Update(double dt, double dt1)
                                                            0) ?
                                p->MoverParameters->eimc[eimc_p_Fh] * 1000 :
                                0); // chwilowy max ED -> do rozdzialu sil
-                FED -= Min0R(p->MoverParameters->eimv[eimv_Fmax], 0) *
+                FED -= std::min(p->MoverParameters->eimv[eimv_Fmax], 0.0) *
                        1000; // chwilowy max ED -> do rozdzialu sil
-				FfulED = Min0R(p->MoverParameters->eimv[eimv_Fful], 0) *
+				FfulED = std::min(p->MoverParameters->eimv[eimv_Fful], 0.0) *
 					1000; // chwilowy max ED -> do rozdzialu sil
-				FrED -= Min0R(p->MoverParameters->eimv[eimv_Fr], 0) *
+				FrED -= std::min(p->MoverParameters->eimv[eimv_Fr], 0.0) *
                         1000; // chwilowo realizowane ED -> do pneumatyki
-				Frj += Max0R(p->MoverParameters->eimv[eimv_Fr], 0) *
+				Frj += std::max(p->MoverParameters->eimv[eimv_Fr], 0.0) *
 					1000;// chwilowo realizowany napęd -> do utrzymującego
 				masa += p->MoverParameters->TotalMass;
 				osie += p->MoverParameters->NAxles;
 			}
-            amax = FmaxPN / masamax;
+
+            auto const amax = FmaxPN / masamax;
             if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2) ||
                 (dDoorMoveL > 0.001) || (dDoorMoveR > 0.001))
             {
@@ -2808,24 +2807,28 @@ bool TDynamicObject::Update(double dt, double dt1)
                 MoverParameters->ShuntModeAllow = (MoverParameters->BrakePress > 0.2) &&
                                                   (MoverParameters->LocalBrakeRatio() < 0.01);
             }
-            Fzad = amax * MoverParameters->LocalBrakeRatio() * masa;
+            auto Fzad = amax * MoverParameters->LocalBrakeRatio() * masa;
             if ((MoverParameters->ScndS) &&
                 (MoverParameters->Vel > MoverParameters->eimc[eimc_p_Vh1]) && (FmaxED > 0))
             {
-                Fzad = Min0R(MoverParameters->LocalBrakeRatio() * FmaxED, FfulED);
+                Fzad = std::min(MoverParameters->LocalBrakeRatio() * FmaxED, FfulED);
             }
             if (((MoverParameters->ShuntMode) && (Frj < 0.0015 * masa)) ||
                 (MoverParameters->V * MoverParameters->DirAbsolute < -0.2))
             {
-                Fzad = Max0R(MoverParameters->StopBrakeDecc * masa, Fzad);
+                Fzad = std::max(MoverParameters->StopBrakeDecc * masa, Fzad);
             }
 
-            if (MoverParameters->BrakeHandle == MHZ_EN57?MoverParameters->BrakeOpModeFlag & bom_MED:MoverParameters->EpFuse)
-              FzadED = Min0R(Fzad, FmaxED);
-            else
-              FzadED = 0;
-            FzadPN = Fzad - FrED;
+            auto FzadED { 0.0 };
+            if( ( MoverParameters->EpFuse )
+             || ( ( MoverParameters->BrakeHandle == MHZ_EN57 )
+               && ( MoverParameters->BrakeOpModeFlag & bom_MED ) ) ) {
+                FzadED = std::min( Fzad, FmaxED );
+            }
+            auto const FzadPN = Fzad - FrED;
             //np = 0;
+            // BUG: likely memory leak, allocation per inner loop, deleted only once outside
+            // TODO: sort this shit out
 			bool* PrzekrF = new bool[np];
 			float nPrzekrF = 0;
 			bool test = true;
@@ -2849,7 +2852,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
 				p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
 			{
-                float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
+                auto const Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
                                p->MoverParameters->BrakeCylSpring) *
                                   p->MoverParameters->BrakeCylMult[0] -
                               p->MoverParameters->BrakeSlckAdj) *
@@ -2864,8 +2867,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                 FzED[i] = (FmaxED > 0 ? FzadED / FmaxED : 0);
                 p->MoverParameters->AnPos =
                     (MoverParameters->ScndS ? MoverParameters->LocalBrakeRatio() : FzED[i]);
-                FzEP[i] = FzadPN * p->MoverParameters->NAxles / osie;
-                i++;
+                FzEP[ i ] = static_cast<float>( FzadPN * p->MoverParameters->NAxles ) / static_cast<float>( osie );
+                ++i;
                 p->MoverParameters->ShuntMode = MoverParameters->ShuntMode;
                 p->MoverParameters->ShuntModeAllow = MoverParameters->ShuntModeAllow;
             }
@@ -2896,7 +2899,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                             FzEP[i] = 0;
                         przek += przek1;
                     }
-                    i++;
+                    ++i;
                 }
                 i = 0;
                 przek = przek / (np - nPrzekrF);
@@ -2907,7 +2910,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                     {
                         FzEP[i] += przek;
                     }
-                    i++;
+                    ++i;
                 }
             }
             i = 0;
@@ -2938,31 +2941,8 @@ bool TDynamicObject::Update(double dt, double dt1)
 						p->MoverParameters->LocalBrakePosA = p->MoverParameters->LocalBrakePosA;
 				else
 					p->MoverParameters->LocalBrakePosA = 0;
-				i++;
+				++i;
 			}
-			/*            ////ALGORYTM 1 - KAZDEMU PO ROWNO
-			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0); p;
-			(iDirection > 0 ? p = p->NextC(4) : p = p->PrevC(4)))
-			{
-
-			float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
-			p->MoverParameters->BrakeCylSpring) *
-			p->MoverParameters->BrakeCylMult[0] -
-			p->MoverParameters->BrakeSlckAdj) *
-			p->MoverParameters->BrakeCylNo * p->MoverParameters->BrakeRigEff;
-			float FmaxPoj = Nmax *
-			p->MoverParameters->Hamulec->GetFC(
-                            Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
-                            p->MoverParameters->Vel) *
-                        1000; // sila hamowania pn
-			//         Fpoj=(FED>0?-FzadED*p->MoverParameters->eimv[eimv_Fmax]*1000/FED:0);
-			//         p->MoverParameters->AnPos=(p->MoverParameters->eimc[eimc_p_Fh]>1?0.001f*Fpoj/(p->MoverParameters->eimc[eimc_p_Fh]):0);
-			p->MoverParameters->AnPos = (FmaxED > 0 ? FzadED / FmaxED : 0);
-			// Fpoj = FzadPN * Min0R(p->MoverParameters->TotalMass / masa, 1);
-			// p->MoverParameters->LocalBrakePosA =
-			//     (p->MoverParameters->SlippingWheels ? 0 : Min0R(Max0R(Fpoj / FmaxPoj, 0), 1));
-			p->MoverParameters->LocalBrakePosA = (p->MoverParameters->SlippingWheels ? 0 : FzadPN / FmaxPN);
-			}    */
 
 			MED[0][0] = masa*0.001;
 			MED[0][1] = amax;
@@ -2978,14 +2958,6 @@ bool TDynamicObject::Update(double dt, double dt1)
 			delete[] FzEP;
 			delete[] FmaxEP;
         }
-
-        // yB: cos (AI) tu jest nie kompatybilne z czyms (hamulce)
-        //   if (Controller!=Humandriver)
-        //    if (Mechanik->LastReactionTime>0.5)
-        //     {
-        //      MoverParameters->BrakeCtrlPos=0;
-        //      Mechanik->LastReactionTime=0;
-        //     }
 
         Mechanik->UpdateSituation(dt1); // przebłyski świadomości AI
     }

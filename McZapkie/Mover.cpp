@@ -8178,7 +8178,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	else if (Command == "PantRear") /*Winger 160204, ABu 310105 i 030305*/
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
 		if ((TrainType == dt_EZT))
-		{ /*'ezt'*/
+		{ //'ezt'
 			if ((CValue1 == 1))
 			{
 				PantRearUp = true;
@@ -8191,9 +8191,9 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 			}
 		}
 		else
-		{ /*nie 'ezt'*/
+		{ //nie 'ezt'
 			if ((CValue1 == 1))
-				/*if ostatni polaczony sprz. sterowania*/
+				//if ostatni polaczony sprz. sterowania
 				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
 					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
 				{

@@ -384,14 +384,14 @@ struct TBoilerType {
 };
 /*rodzaj odbieraka pradu*/
 struct TCurrentCollector {
-    long CollectorsNo{ 0 }; //musi być tu, bo inaczej się kopie
-    double MinH{ 0.0 }; double MaxH{ 0.0 }; //zakres ruchu pantografu, nigdzie nie używany
-    double CSW{ 0.0 };       //szerokość części roboczej (styku) ślizgacza
-    double MinV{ 0.0 }; double MaxV{ 0.0 }; //minimalne i maksymalne akceptowane napięcie
-    double OVP{ 0.0 };       //czy jest przekaznik nadnapieciowy
-    double InsetV{ 0.0 };    //minimalne napięcie wymagane do załączenia
-    double MinPress{ 0.0 };  //minimalne ciśnienie do załączenia WS
-    double MaxPress{ 0.0 };  //maksymalne ciśnienie za reduktorem
+    long CollectorsNo; //musi być tu, bo inaczej się kopie
+    double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie używany
+    double CSW;       //szerokość części roboczej (styku) ślizgacza
+    double MinV; double MaxV; //minimalne i maksymalne akceptowane napięcie
+    double OVP;       //czy jest przekaznik nadnapieciowy
+    double InsetV;    //minimalne napięcie wymagane do załączenia
+    double MinPress;  //minimalne ciśnienie do załączenia WS
+    double MaxPress;  //maksymalne ciśnienie za reduktorem
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;
@@ -624,14 +624,14 @@ public:
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
 	bool DoorSignalling = false;         /*Czy jest zalaczona sygnalizacja blokady drzwi*/
 	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
-	double NominalBatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
+	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
 	double Cx = 0.0;                 /*wsp. op. aerodyn.*/
-	double Floor = 0.96;              //poziom podłogi dla ładunków
-	double WheelDiameter = 1.0;     /*srednica kol napednych*/
-	double WheelDiameterL = 0.9;    //Ra: srednica kol tocznych przednich
-	double WheelDiameterT = 0.9;    //Ra: srednica kol tocznych tylnych
-	double TrackW = 1.435;             /*nominalna szerokosc toru [m]*/
+	float Floor = 0.96f;              //poziom podłogi dla ładunków
+	float WheelDiameter = 1.f;     /*srednica kol napednych*/
+	float WheelDiameterL = 0.9f;    //Ra: srednica kol tocznych przednich
+	float WheelDiameterT = 0.9f;    //Ra: srednica kol tocznych tylnych
+	float TrackW = 1.435f;             /*nominalna szerokosc toru [m]*/
 	double AxleInertialMoment = 0.0; /*moment bezwladnosci zestawu kolowego*/
 	std::string AxleArangement;  /*uklad osi np. Bo'Bo' albo 1'C*/
 	int NPoweredAxles = 0;     /*ilosc osi napednych liczona z powyzszego*/

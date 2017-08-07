@@ -19,6 +19,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "logs.h"
 #include "mczapkie/mctools.h"
 #include "Usefull.h"
+#include "ground.h"
 #include "renderer.h"
 #include "Timer.h"
 #include "mtable.h"
@@ -428,7 +429,9 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                 std::vector<unsigned int> sg; sg.resize( facecount ); // maski przynależności trójkątów do powierzchni
                 std::vector<int> wsp; wsp.resize( iNumVerts );// z którego wierzchołka kopiować wektor normalny
 				int maska = 0;
+                int rawvertexcount = 0; // used to keep track of vertex indices in source file
 				for (int i = 0; i < iNumVerts; ++i) {
+                    ++rawvertexcount;
                     // Ra: z konwersją na układ scenerii - będzie wydajniejsze wyświetlanie
 					wsp[i] = -1; // wektory normalne nie są policzone dla tego wierzchołka
 					if ((i % 3) == 0) {
@@ -465,7 +468,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 							--facecount; // o jeden trójkąt mniej
 							iNumVerts -= 3; // czyli o 3 wierzchołki
 							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(i) + "-" + std::to_string(i+2));
+							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(rawvertexcount-2) + "-" + std::to_string(rawvertexcount));
 						}
 						if (i > 0) {
                             // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
@@ -1035,7 +1038,7 @@ void TSubModel::RaAnimation(TAnimType a)
 
    //---------------------------------------------------------------------------
 
-void TSubModel::serialize_geometry( std::ostream &Output ) {
+void TSubModel::serialize_geometry( std::ostream &Output ) const {
 
     if( Child ) {
         Child->serialize_geometry( Output );
@@ -1072,6 +1075,65 @@ TSubModel::create_geometry( std::size_t &Dataoffset, geometrybank_handle const &
 
     if( Next )
         Next->create_geometry( Dataoffset, Bank );
+}
+
+// places contained geometry in provided ground node
+void
+TSubModel::convert( TGroundNode &Groundnode ) const {
+
+    Groundnode.asName = pName;
+    Groundnode.Ambient = f4Ambient;
+    Groundnode.Diffuse = f4Diffuse;
+    Groundnode.Specular = f4Specular;
+    Groundnode.TextureID = TextureID;
+    Groundnode.iFlags = (
+        ( true == GfxRenderer.Texture( TextureID ).has_alpha ) ?
+            0x20 :
+            0x10 );
+
+    if( m_geometry == NULL ) { return; }
+
+    std::size_t vertexcount { 0 };
+    std::vector<TGroundVertex> importedvertices;
+    TGroundVertex vertex, vertex1, vertex2;
+    for( auto const &sourcevertex : GfxRenderer.Vertices( m_geometry ) ) {
+        vertex.position = sourcevertex.position;
+        vertex.normal   = sourcevertex.normal;
+        vertex.texture  = sourcevertex.texture;
+             if( vertexcount == 0 ) { vertex1 = vertex; }
+        else if( vertexcount == 1 ) { vertex2 = vertex; }
+        else if( vertexcount >= 2 ) {
+            if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
+                importedvertices.emplace_back( vertex1 );
+                importedvertices.emplace_back( vertex2 );
+                importedvertices.emplace_back( vertex );
+            }
+        }
+        ++vertexcount;
+        if( vertexcount > 2 ) { vertexcount = 0; } // start new triangle if needed
+    }
+    if( Groundnode.Piece == nullptr ) {
+        Groundnode.Piece = new piece_node();
+    }
+    Groundnode.iNumVerts = importedvertices.size();
+    if( Groundnode.iNumVerts > 0 ) {
+
+        Groundnode.Piece->vertices.swap( importedvertices );
+
+        for( auto const &vertex : Groundnode.Piece->vertices ) {
+            Groundnode.pCenter += vertex.position;
+        }
+        Groundnode.pCenter /= Groundnode.iNumVerts;
+
+        double r { 0.0 };
+        double tf;
+        for( auto const &vertex : Groundnode.Piece->vertices ) {
+            tf = glm::length2( vertex.position - glm::dvec3{ Groundnode.pCenter } );
+            if( tf > r )
+                r = tf;
+        }
+        Groundnode.fSquareRadius += r;
+    }
 }
 
 // NOTE: leftover from static distance factor adjustment.
@@ -1665,16 +1727,22 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		pName = "";
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
-		pTexture = t->at(iTexture);
-		if (pTexture.find_last_of("/\\") == std::string::npos)
-			pTexture.insert(0, Global::asCurrentTexturePath);
-		TextureID = GfxRenderer.Fetch_Texture(pTexture);
-        if( ( iFlags & 0x30 ) == 0 ) {
-            // texture-alpha based fallback if for some reason we don't have opacity flag set yet
-            iFlags |=
-                ( GfxRenderer.Texture( TextureID ).has_alpha ?
-                    0x20 :
-                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        if( iTexture < t->size() ) {
+            pTexture = t->at( iTexture );
+            if( pTexture.find_last_of( "/\\" ) == std::string::npos )
+                pTexture.insert( 0, Global::asCurrentTexturePath );
+            TextureID = GfxRenderer.Fetch_Texture( pTexture );
+            if( ( iFlags & 0x30 ) == 0 ) {
+                // texture-alpha based fallback if for some reason we don't have opacity flag set yet
+                iFlags |=
+                    ( GfxRenderer.Texture( TextureID ).has_alpha ?
+                        0x20 :
+                        0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+            }
+        }
+        else {
+            ErrorLog( "Bad model: reference to non-existent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
+            TextureID = NULL;
         }
     }
 	else
@@ -1853,17 +1921,3 @@ TSubModel *TModel3d::TerrainSquare(int n)
 	r->UnFlagNext(); // blokowanie wyświetlania po Next głównej listy
 	return r;
 };
-#ifdef EU07_USE_OLD_RENDERCODE
-void TModel3d::TerrainRenderVBO(int n)
-{ // renderowanie terenu z VBO
-	::glPushMatrix();
-    ::glTranslated( -Global::pCameraPosition.x, -Global::pCameraPosition.y, -Global::pCameraPosition.z );
-    TSubModel *r = Root;
-    while( r ) {
-        if( r->iVisible == n ) // tylko jeśli ma być widoczny w danej ramce (problem dla 0==false)
-            GfxRenderer.Render( r ); // sub kolejne (Next) się nie wyrenderują
-        r = r->NextGet();
-    }
-    ::glPopMatrix();
-};
-#endif

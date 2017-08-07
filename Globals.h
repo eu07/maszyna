@@ -170,6 +170,7 @@ class Global
     static int Keys[MaxKeys];
     static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
     static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
+    static Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
     static double
         pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard
@@ -223,6 +224,7 @@ class Global
     // static bool bTimeChange;
 
     // TODO: put these things in the renderer
+    static float BaseDrawRange;
     static opengl_light DayLight;
     static int DynamicLightCount;
     static bool ScaleSpecularValues;
@@ -315,9 +317,6 @@ class Global
 									   // informacje podczas kalibracji
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     static bool bJoinEvents; // czy grupować eventy o tych samych nazwach
-/*
-    static std::string asTranscript[5]; // napisy na ekranie (widoczne)
-*/
     static TTranscripts tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
     static float4 UITextColor; // base color of UI text
     static std::string asLang; // domyślny język - http://tools.ietf.org/html/bcp47

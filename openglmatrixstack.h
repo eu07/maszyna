@@ -31,17 +31,23 @@ public:
 
 // methods:
     glm::mat4 const &
-        data() const { return m_stack.top(); }
+        data() const {
+            return m_stack.top(); }
     void
-        push_matrix() { m_stack.emplace(m_stack.top()); }
+        push_matrix() {
+            m_stack.emplace( m_stack.top() ); }
     void
         pop_matrix() {
             m_stack.pop();
-            if( m_stack.empty() ) { m_stack.emplace(1.0f); }
+            if( m_stack.empty() ) { m_stack.emplace( 1.f ); }
             upload(); }
     void
         load_identity() {
-            m_stack.top() = glm::mat4( 1.0f );
+            m_stack.top() = glm::mat4( 1.f );
+            upload(); }
+    void
+        load_matrix( glm::mat4 const &Matrix ) {
+            m_stack.top() = Matrix;
             upload(); }
     void
         rotate( float const Angle, glm::vec3 const &Axis ) {
@@ -113,6 +119,11 @@ public:
         pop_matrix() { m_stacks[ m_mode ].pop_matrix(); }
     void
         load_identity() { m_stacks[ m_mode ].load_identity(); }
+    void
+        load_matrix( glm::mat4 const &Matrix ) { m_stacks[ m_mode ].load_matrix( Matrix ); }
+    template <typename Type_>
+    void
+        load_matrix( Type_ const *Matrix ) { load_matrix( glm::make_mat4( Matrix ) ); }
     template <typename Type_>
     void
         rotate( Type_ const Angle, Type_ const X, Type_ const Y, Type_ const Z ) {
@@ -184,6 +195,8 @@ extern opengl_matrices OpenGLMatrices;
 #define glPushMatrix OpenGLMatrices.push_matrix
 #define glPopMatrix OpenGLMatrices.pop_matrix
 #define glLoadIdentity OpenGLMatrices.load_identity
+#define glLoadMatrixf OpenGLMatrices.load_matrix
+#define glLoadMatrixd OpenGLMatrices.load_matrix
 #define glRotated OpenGLMatrices.rotate
 #define glRotatef OpenGLMatrices.rotate
 #define glTranslated OpenGLMatrices.translate

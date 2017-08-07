@@ -72,6 +72,42 @@ cParser::~cParser()
     mComments.clear();
 }
 
+template<>
+cParser&
+cParser::operator>>( std::string &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = this->tokens.front();
+    this->tokens.pop_front();
+
+    return *this;
+}
+
+template<>
+cParser&
+cParser::operator>>( bool &Right ) {
+
+    if( true == this->tokens.empty() ) { return *this; }
+
+    Right = ( ( this->tokens.front() == "true" )
+           || ( this->tokens.front() == "yes" )
+           || ( this->tokens.front() == "1" ) );
+    this->tokens.pop_front();
+
+    return *this;
+}
+
+template <>
+bool
+cParser::getToken<bool>( bool const ToLower, const char *Break ) {
+
+    auto const token = getToken<std::string>( true, Break );
+    return ( ( token == "true" )
+          || ( token == "yes" )
+          || ( token == "1" ) );
+}
+
 // methods
 bool cParser::getTokens(unsigned int Count, bool ToLower, const char *Break)
 {

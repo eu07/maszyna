@@ -175,10 +175,6 @@ class TSubRect : /*public Resource,*/ public CMesh
     TTrack **tTracks = nullptr; // tory do renderowania pojazdów
   protected:
     TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
-#ifdef EU07_USE_OLD_RENDERCODE
-    TGroundNode *nRootMesh = nullptr; // obiekty renderujące wg tekstury (wtórne, lista po nNext2)
-    TGroundNode *nMeshed = nullptr; // lista obiektów dla których istnieją obiekty renderujące grupowo
-#endif
   public:
     TGroundNode *nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
     TGroundNode *nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
@@ -333,6 +329,9 @@ class TGround
     void TrackJoin(TGroundNode *Current);
 
   private:
+    // convert tp_terrain model to a series of triangle nodes
+    void convert_terrain( TGroundNode const *Terrain );
+    void convert_terrain( TSubModel const *Submodel );
     void RaTriangleDivider(TGroundNode *node);
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);
 

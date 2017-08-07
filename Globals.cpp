@@ -66,14 +66,12 @@ cParser *Global::pParser = NULL;
 int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajności
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
-/*
-std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
-*/
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
 float4 Global::UITextColor = float4( 225.0 / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
 // parametry scenerii
 vector3 Global::pCameraPosition;
+vector3 Global::DebugCameraPosition;
 double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
@@ -84,11 +82,12 @@ GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
 float Global::Overcast { 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
+float Global::BaseDrawRange { 2500.f };
 opengl_light Global::DayLight;
 int Global::DynamicLightCount { 3 };
 bool Global::ScaleSpecularValues { true };
 bool Global::RenderShadows { false };
-Global::shadowtune_t Global::shadowtune = { 2048, 200.0f, 150.0f, 100.0f };
+Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 250.f, 500.f };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
 int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę toru
@@ -98,7 +97,7 @@ int Global::Keys[MaxKeys];
 bool Global::RealisticControlMode{ false };
 int Global::iWindowWidth = 800;
 int Global::iWindowHeight = 600;
-float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD
+float Global::fDistanceFactor = Global::iWindowHeight / 768.0; // baza do przeliczania odległości dla LoD
 int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::InputGamepad{ true };

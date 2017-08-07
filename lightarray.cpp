@@ -60,10 +60,10 @@ light_array::update() {
         if( ( true == light.owner->MoverParameters->Battery ) || ( true == light.owner->MoverParameters->ConverterFlag ) ) {
             // with power on, the intensity depends on the state of activated switches
             auto const &lightbits = light.owner->iLights[ light.index ];
-            light.count = 0 +
-                ( ( lightbits & 1 ) ? 1 : 0 ) +
-                ( ( lightbits & 4 ) ? 1 : 0 ) +
-                ( ( lightbits & 16 ) ? 1 : 0 );
+            light.count = 0
+                + ( ( lightbits & TMoverParameters::light::headlight_left  ) ? 1 : 0 )
+                + ( ( lightbits & TMoverParameters::light::headlight_right ) ? 1 : 0 )
+                + ( ( lightbits & TMoverParameters::light::headlight_upper ) ? 1 : 0 );
 
             if( light.count > 0 ) {
                 // TODO: intensity can be affected further by dim switch or other factors

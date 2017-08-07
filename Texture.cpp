@@ -592,10 +592,7 @@ opengl_texture::create() {
             }
         }
 
-        data.swap( std::vector<char>() ); // TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
-/*
-    data_state = resource_state::none;
-*/
+        data = std::vector<char>();
         data_state = resource_state::none;
         is_ready = true;
     }
@@ -608,8 +605,6 @@ void
 opengl_texture::release( bool const Backup ) {
 
     if( id == -1 ) { return; }
-
-    assert( is_ready );
 
     if( true == Backup ) {
         // query texture details needed to perform the backup...
@@ -914,7 +909,7 @@ texture_manager::info() const {
     }
 
     return
-        "Textures: "
+        "; textures: "
 #ifdef EU07_DEFERRED_TEXTURE_UPLOAD
         + std::to_string( readytexturecount )
         + " ("

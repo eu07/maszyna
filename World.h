@@ -118,6 +118,7 @@ private:
     void ResourceSweep();
 
     TCamera Camera;
+    TCamera DebugCamera;
     TGround Ground;
     world_environment Environment;
     TTrain *Train;

@@ -15,7 +15,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Gauge.h"
 #include "Spring.h"
 #include "AdvSound.h"
-#include "FadeSound.h"
 #include "PyInt.h"
 #include "command.h"
 

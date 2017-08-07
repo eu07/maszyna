@@ -32,8 +32,6 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "translation.h"
 
-//#define EU07_USE_DEBUG_SHADOWMAP
-
 //---------------------------------------------------------------------------
 
 TDynamicObject *Controlled = NULL; // pojazd, który prowadzimy
@@ -205,7 +203,6 @@ TWorld::~TWorld()
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
     TSoundsManager::Free();
-    TModelsManager::Free();
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -290,22 +287,13 @@ bool TWorld::Init( GLFWwindow *Window ) {
         "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
     UILayer.set_background( "logo" );
-/*
-    std::shared_ptr<ui_panel> initpanel = std::make_shared<ui_panel>(85, 600);
-*/
+
     TSoundsManager::Init( glfwGetWin32Window( window ) );
     WriteLog("Sound Init OK");
-    TModelsManager::Init();
-    WriteLog("Models init OK");
-/*
-    initpanel->text_lines.emplace_back( "Loading scenery / Wczytywanie scenerii:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-    initpanel->text_lines.emplace_back( Global::SceneryFile.substr(0, 40), float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-    UILayer.push_back( initpanel );
-*/
+
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
-
     GfxRenderer.Render();
 
     WriteLog( "Ground init" );
@@ -317,13 +305,8 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     Environment.init();
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
-/*
-    initpanel->text_lines.clear();
-    initpanel->text_lines.emplace_back( "Preparing train / Przygotowanie kabiny:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-*/
+
     UILayer.set_progress( "Preparing train / Przygotowanie kabiny" );
-    GfxRenderer.Render();
-    
     WriteLog( "Player train init: " + Global::asHumanCtrlVehicle );
 
     TGroundNode *nPlayerTrain = NULL;
@@ -491,9 +474,8 @@ void TWorld::OnKeyDown(int cKey)
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global::pCameraPosition) jest trochę bez sensu
-                    Global::SetCameraPosition(
-                        Global::FreeCameraInit[i]); // nowa pozycja dla generowania obiektów
-                    Ground.Silence(Camera.Pos); // wyciszenie wszystkiego z poprzedniej pozycji
+                    Ground.Silence( Global::pCameraPosition ); // wyciszenie wszystkiego z poprzedniej pozycji
+                    Global::SetCameraPosition( Global::FreeCameraInit[i] ); // nowa pozycja dla generowania obiektów
                     Camera.Init(Global::FreeCameraInit[i],
                                 Global::FreeCameraInitAngle[i]); // przestawienie
                 }
@@ -634,18 +616,18 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case GLFW_KEY_F8: {
-#ifdef EU07_USE_DEBUG_SHADOWMAP
-                if( Global::iTextMode == cKey ) { ++Global::iScreenMode[ cKey - GLFW_KEY_F1 ]; }
-                if( Global::iScreenMode[ cKey - GLFW_KEY_F1 ] > 1 ) {
-                    Global::iScreenMode[ cKey - GLFW_KEY_F1 ] = 0;
+                if( Global::ctrlState
+                 && Global::shiftState ) {
+                    DebugCameraFlag = !DebugCameraFlag; // taka opcjonalna funkcja, może się czasem przydać
                 }
-#endif
-                Global::iTextMode = cKey;
+                else {
+                    Global::iTextMode = cKey;
+                }
                 break;
             }
             case GLFW_KEY_F9: {
                 Global::iTextMode = cKey;
-                // wersja, typ wyświetlania, błędy OpenGL
+                // wersja
                 break;
             }
             case GLFW_KEY_F10: {
@@ -1058,17 +1040,17 @@ bool TWorld::Update()
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
     Ground.Update(dt / updatecount, updatecount); // tu zrobić tylko coklatkową aktualizację przesunięć
-/*
-    if (DebugModeFlag)
-        if (Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
-            if( Console::Pressed( GLFW_KEY_ESCAPE ) ) {
-                // yB dodał przyspieszacz fizyki
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n); // 5 razy
-            }
-*/
+
+    // yB dodał przyspieszacz fizyki
+    if( (true == DebugModeFlag)
+     && (true == Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
+     && ( glfwGetKey( window, GLFW_KEY_PAUSE ) == GLFW_PRESS ) ) {
+
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount ); // 5 razy
+    }
     // secondary fixed step simulation time routines
 
     while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
@@ -1083,8 +1065,9 @@ bool TWorld::Update()
             }
 
         // fixed step part of the camera update
-        if( (Train != nullptr)
-         && (Camera.Type == tp_Follow )) {
+        if( ( Train != nullptr )
+         && ( Camera.Type == tp_Follow )
+         && ( false == DebugCameraFlag ) ) {
             // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
             Train->UpdateMechPosition( m_secondaryupdaterate );
         }
@@ -1121,11 +1104,16 @@ bool TWorld::Update()
     while( fTime50Hz >= 1.0 / 50.0 ) {
         Console::Update(); // to i tak trzeba wywoływać
         Update_UI();
-
+        // decelerate camera
         Camera.Velocity *= 0.65;
         if( std::abs( Camera.Velocity.x ) < 0.01 ) { Camera.Velocity.x = 0.0; }
         if( std::abs( Camera.Velocity.y ) < 0.01 ) { Camera.Velocity.y = 0.0; }
         if( std::abs( Camera.Velocity.z ) < 0.01 ) { Camera.Velocity.z = 0.0; }
+        // decelerate debug camera too
+        DebugCamera.Velocity *= 0.65;
+        if( std::abs( DebugCamera.Velocity.x ) < 0.01 ) { DebugCamera.Velocity.x = 0.0; }
+        if( std::abs( DebugCamera.Velocity.y ) < 0.01 ) { DebugCamera.Velocity.y = 0.0; }
+        if( std::abs( DebugCamera.Velocity.z ) < 0.01 ) { DebugCamera.Velocity.z = 0.0; }
 
         fTime50Hz -= 1.0 / 50.0;
     }
@@ -1144,25 +1132,25 @@ bool TWorld::Update()
 
 void
 TWorld::Update_Camera( double const Deltatime ) {
-    // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
 
     if( false == Global::ControlPicking ) {
         if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
             Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
-            // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
-            // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-            if( Controlled && LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) // gdy bliżej niż 1.5km
+            if( Controlled && LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
+                // gdy bliżej niż 1.5km
                 Camera.LookAt = Controlled->GetPosition();
+            }
             else {
                 TDynamicObject *d =
                     Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
                 if( !d )
-                    d = Ground.DynamicNearest( Camera.Pos,
-                        1000 ); // dalej szukanie, jesli bliżej nie ma
-                if( d && pDynamicNearest ) // jeśli jakiś jest znaleziony wcześniej
-                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
-                        LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
+                    d = Ground.DynamicNearest( Camera.Pos, 1000 ); // dalej szukanie, jesli bliżej nie ma
+                if( d && pDynamicNearest ) {
+                    // jeśli jakiś jest znaleziony wcześniej
+                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) > LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) ) {
                         d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
+                    }
+                }
                 // poprzedni najbliższy, zostaje poprzedni
                 if( d )
                     pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
@@ -1172,7 +1160,7 @@ TWorld::Update_Camera( double const Deltatime ) {
             if( FreeFlyModeFlag )
                 Camera.RaLook(); // jednorazowe przestawienie kamery
         }
-        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) { //||Console::Pressed(VK_F4))
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) {
             FollowView( false ); // bez wyciszania dźwięków
         }
         else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) == GLFW_PRESS ) {
@@ -1186,15 +1174,12 @@ TWorld::Update_Camera( double const Deltatime ) {
         }
     }
 
-    Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
-/*
-    if( Camera.Type == tp_Follow ) {
-        if( Train ) { // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
-            Train->UpdateMechPosition( Deltatime /
-                Global::fTimeSpeed ); // ograniczyć telepanie po przyspieszeniu
-*/
-    if( (Train != nullptr)
-     && (Camera.Type == tp_Follow )) {
+    if( DebugCameraFlag ) { DebugCamera.Update(); }
+    else                  { Camera.Update(); } // uwzględnienie ruchu wywołanego klawiszami
+
+    if( ( Train != nullptr )
+     && ( Camera.Type == tp_Follow )
+     && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
         vector3 tempangle = Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
         double modelrotate = atan2( -tempangle.x, tempangle.z );
@@ -1256,6 +1241,9 @@ TWorld::Update_Camera( double const Deltatime ) {
     else { // kamera nieruchoma
         Global::SetCameraRotation( Camera.Yaw - M_PI );
     }
+    // all done, update camera position to the new value
+    Global::pCameraPosition = Camera.Pos;
+    Global::DebugCameraPosition = DebugCamera.Pos;
 }
 
 void TWorld::Update_Environment() {
@@ -1609,8 +1597,9 @@ TWorld::Update_UI() {
             uitextline1 =
                 "FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 )
                 + ", Draw range x " + to_string( Global::fDistanceFactor, 1 )
-                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
-                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
+//                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
+//                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
+                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer.Framerate())) );
             if( Global::iSlowMotion ) {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
@@ -2229,10 +2218,12 @@ world_environment::update() {
     m_sun.update();
     m_moon.update();
     // ...determine source of key light and adjust global state accordingly...
-    auto const sunlightlevel = m_sun.getIntensity();
+    // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
+    float twilightfactor = clamp( -m_sun.getAngle(), 0.0f, 18.0f ) / 18.0f;
+    // NOTE: sun light receives extra padding to prevent moon from kicking in too soon
+    auto const sunlightlevel = m_sun.getIntensity() + 0.05f * ( 1.f - twilightfactor );
     auto const moonlightlevel = m_moon.getIntensity() * 0.65f; // scaled down by arbitrary factor, it's pretty bright otherwise
     float keylightintensity;
-    float twilightfactor;
     glm::vec3 keylightcolor;
     if( moonlightlevel > sunlightlevel ) {
         // rare situations when the moon is brighter than the sun, typically at night
@@ -2250,8 +2241,7 @@ world_environment::update() {
         Global::DayLight.set_position( m_sun.getPosition() );
         Global::DayLight.direction = -1.0f * m_sun.getDirection();
         keylightintensity = sunlightlevel;
-        // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
-        twilightfactor = clamp( -Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
+        // include 'golden hour' effect in twilight lighting
         float const duskfactor = 1.0f - clamp( Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(
             glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),

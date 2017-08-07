@@ -25,8 +25,8 @@ struct basic_vertex {
     glm::vec2 texture; // uv space
 
     basic_vertex() = default;
-    basic_vertex( glm::vec3 const&Position, glm::vec3 const &Normal, glm::vec2 const &Texture ) :
-                        position( Position ),        normal( Normal ),       texture( Texture )
+    basic_vertex( glm::vec3 const &Position, glm::vec3 const &Normal, glm::vec2 const &Texture ) :
+                         position( Position ),        normal( Normal ),       texture( Texture )
     {}
     void serialize( std::ostream& ) const;
     void deserialize( std::istream& );
