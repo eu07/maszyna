@@ -67,7 +67,7 @@ TGroundNode::TGroundNode()
     nNext = nNext2 = NULL;
     iCount = 0; // wierzchołków w trójkącie
     // iNumPts=0; //punktów w linii
-    TextureID = 0;
+    m_material = 0;
     iFlags = 0; // tryb przezroczystości nie zbadany
     Pointer = NULL; // zerowanie wskaźnika kontekstowego
     bVisible = false; // czy widoczny
@@ -508,7 +508,7 @@ TGroundRect::mergeable( TGroundNode const &Left, TGroundNode const &Right ) {
     // since view ranges and transparency type for all nodes put through this method are guaranteed to be equal,
     // we can skip their tests and only do the material check.
     // TODO, TBD: material as dedicated type, and refactor this method into a simple equality test
-    return ( ( Left.TextureID == Right.TextureID )
+    return ( ( Left.m_material == Right.m_material )
           && ( Left.Ambient == Right.Ambient )
           && ( Left.Diffuse == Right.Diffuse )
           && ( Left.Specular == Right.Specular ) );
@@ -776,7 +776,7 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     TGroundNode *ntri; // wskaźnik na nowy trójkąt
     ntri = new TGroundNode(GL_TRIANGLES); // a ten jest nowy
     // kopiowanie parametrów, przydałby się konstruktor kopiujący
-    ntri->TextureID = node->TextureID;
+    ntri->m_material = node->m_material;
     ntri->iFlags = node->iFlags;
     ntri->Ambient = node->Ambient;
     ntri->Diffuse = node->Diffuse;
@@ -1376,23 +1376,36 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             *parser >> token;
         }
         str = token;
-        tmp->TextureID = GfxRenderer.Fetch_Texture( str );
+        tmp->m_material = GfxRenderer.Fetch_Material( str );
+        auto const texturehandle = (
+            tmp->m_material != NULL ?
+                GfxRenderer.Material( tmp->m_material ).texture1 :
+                NULL );
+        auto const &texture = (
+            texturehandle ?
+                GfxRenderer.Texture( texturehandle ) :
+                opengl_texture() ); // dirty workaround for lack of better api
         bool const clamps = (
-            tmp->TextureID ?
-                GfxRenderer.Texture( tmp->TextureID ).traits.find( 's' ) != std::string::npos :
+            texturehandle ?
+                texture.traits.find( 's' ) != std::string::npos :
                 false );
         bool const clampt = (
-            tmp->TextureID ?
-                GfxRenderer.Texture( tmp->TextureID ).traits.find( 't' ) != std::string::npos :
+            texturehandle ?
+                texture.traits.find( 't' ) != std::string::npos :
                 false );
 
         tmp->iFlags |= 200; // z usuwaniem
         // remainder of legacy 'problend' system -- geometry assigned a texture with '@' in its name is treated as translucent, opaque otherwise
-        tmp->iFlags |= (
-            ( ( str.find( '@' ) != std::string::npos )
-           && ( true == GfxRenderer.Texture( tmp->TextureID ).has_alpha ) ) ?
-                0x20 :
-                0x10 );
+        if( texturehandle != NULL ) {
+            tmp->iFlags |= (
+                ( ( texture.name.find( '@' ) != std::string::npos )
+               && ( true == texture.has_alpha ) ) ?
+                    0x20 :
+                    0x10 );
+        }
+        else {
+            tmp->iFlags |= 0x10;
+        }
 
         TGroundVertex vertex, vertex1, vertex2;
         std::size_t vertexcount{ 0 };

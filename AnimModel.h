@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Model3d.h"
-#include "Texture.h"
+#include "material.h"
 #include "DynObj.h"
 
 const int iMaxNumLights = 8;

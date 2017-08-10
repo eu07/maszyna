@@ -440,14 +440,15 @@ bool TAnimModel::Init(TModel3d *pNewModel)
 
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
-    if (asReplacableTexture.substr(0, 1) ==
-        "*") // od gwiazdki zaczynają się teksty na wyświetlaczach
-        asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
-    else if (asReplacableTexture != "none")
-        m_materialdata.replacable_skins[1] =
-            GfxRenderer.Fetch_Texture( asReplacableTexture, "" );
-    if( ( m_materialdata.replacable_skins[ 1 ] != 0 )
-     && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
+    if( asReplacableTexture.substr( 0, 1 ) == "*" ) {
+        // od gwiazdki zaczynają się teksty na wyświetlaczach
+        asText = asReplacableTexture.substr( 1, asReplacableTexture.length() - 1 ); // zapamiętanie tekstu
+    }
+    else if( asReplacableTexture != "none" ) {
+        m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( asReplacableTexture );
+    }
+    if( ( m_materialdata.replacable_skins[ 1 ] != NULL )
+     && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         m_materialdata.textures_alpha = 0x31310031;
     }

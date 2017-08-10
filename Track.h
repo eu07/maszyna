@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "GL/glew.h"
 #include "ResourceManager.h"
 #include "Segment.h"
-#include "Texture.h"
+#include "material.h"
 
 typedef enum
 {
@@ -142,8 +142,8 @@ private:
 /*
     GLuint DisplayListID = 0;
 */
-    texture_handle TextureID1 = 0; // tekstura szyn albo nawierzchni
-    texture_handle TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
+    material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
+    material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
     typedef std::vector<geometry_handle> geometryhandle_sequence;
     geometryhandle_sequence Geometry1; // geometry chunks textured with texture 1
     geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
@@ -257,8 +257,8 @@ public:
     GLuint TextureGet(int i) {
         return (
             i ?
-            TextureID1 :
-            TextureID2 ); };
+            m_material1 :
+            m_material2 ); };
     bool IsGroupable();
     int TestPoint(vector3 *Point);
     void MovedUp1(float const dh);

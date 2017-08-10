@@ -4591,20 +4591,20 @@ bool TController::UpdateSituation(double dt)
                             // if not MinVelFlag)
                             if (fBrakeTime < 0 ? true : (AccDesired < fAccGravity - 0.3) ||
                                                      (mvOccupied->BrakeCtrlPos <= 0))
-                                if (!IncBrake()) // jeśli upłynął czas reakcji hamulca, chyba że
-                                    // nagłe albo luzował
+                                if( false == IncBrake() ) {
+                                    // jeśli upłynął czas reakcji hamulca, chyba że nagłe albo luzował
                                     MinVelFlag = true;
-                                else
-                                {
+                                }
+                                else {
                                     MinVelFlag = false;
                                     fBrakeTime =
-                                        3 +
-                                        0.5 *
-                                            (mvOccupied
-                                                 ->BrakeDelay[2 + 2 * mvOccupied->BrakeDelayFlag] -
-                                             3);
-                                    // Ra: ten czas należy zmniejszyć, jeśli czas dojazdu do
-                                    // zatrzymania jest mniejszy
+                                        3.0
+                                        + 0.5 * ( (
+                                            mvOccupied->BrakeDelayFlag > bdelay_G ?
+                                                mvOccupied->BrakeDelay[ 1 ] :
+                                                mvOccupied->BrakeDelay[ 3 ] )
+                                            - 3.0 );
+                                    // Ra: ten czas należy zmniejszyć, jeśli czas dojazdu do zatrzymania jest mniejszy
                                     fBrakeTime *= 0.5; // Ra: tymczasowo, bo przeżyna S1
                                 }
                         if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - 0.2))
@@ -4613,11 +4613,15 @@ bool TController::UpdateSituation(double dt)
                         // if (fBrakeTime<0)
                         { // jak hamuje, to nie tykaj kranu za często
                             // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
-                            if (OrderList[OrderPos] !=
-                                Disconnect) // przy odłączaniu nie zwalniamy tu hamulca
+                            if( OrderList[ OrderPos ] != Disconnect ) {
+                                // przy odłączaniu nie zwalniamy tu hamulca
                                 DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
-                            fBrakeTime =
-                                (mvOccupied->BrakeDelay[1 + 2 * mvOccupied->BrakeDelayFlag]) / 3.0;
+                            }
+                            fBrakeTime = (
+                                mvOccupied->BrakeDelayFlag > bdelay_G ?
+                                mvOccupied->BrakeDelay[ 0 ] :
+                                mvOccupied->BrakeDelay[ 2 ] )
+                                / 3.0;
                             fBrakeTime *= 0.5; // Ra: tymczasowo, bo przeżyna S1
                         }
                     }
