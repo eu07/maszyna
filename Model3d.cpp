@@ -63,16 +63,16 @@ TSubModel::~TSubModel()
 					   // wyświetlania
 };
 
-void TSubModel::TextureNameSet(std::string const &Name)
+void TSubModel::Name_Material(std::string const &Name)
 { // ustawienie nazwy submodelu, o
   // ile nie jest wczytany z E3D
 	if (iFlags & 0x0200)
 	{ // tylko jeżeli submodel zosta utworzony przez new
-		pTexture = Name;
+		m_materialname = Name;
 	}
 };
 
-void TSubModel::NameSet(std::string const &Name)
+void TSubModel::Name(std::string const &Name)
 { // ustawienie nazwy submodelu, o ile
   // nie jest wczytany z E3D
 	if (iFlags & 0x0200)
@@ -177,7 +177,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     std::string token;
     parser.getTokens(1, false); // nazwa submodelu bez zmieny na małe
     parser >> token;
-    NameSet(token);
+    Name(token);
     if (dynamic) {
         // dla pojazdu, blokujemy załączone submodele, które mogą być nieobsługiwane
         if( ( token.size() >= 3 )
@@ -305,50 +305,51 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 */
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
-        std::string texture = parser.getToken<std::string>();
-        if (texture == "none")
+        std::string material = parser.getToken<std::string>();
+        if (material == "none")
         { // rysowanie podanym kolorem
-            TextureID = 0;
+            m_material = NULL;
             iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
         }
-        else if (texture.find("replacableskin") != texture.npos)
+        else if (material.find("replacableskin") != material.npos)
         { // McZapkie-060702: zmienialne skory modelu
-            TextureID = -1;
+            m_material = -1;
             iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
         }
-        else if (texture == "-1")
+        else if (material == "-1")
         {
-            TextureID = -1;
+            m_material = -1;
             iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
         }
-        else if (texture == "-2")
+        else if (material == "-2")
         {
-            TextureID = -2;
+            m_material = -2;
             iFlags |= (Opacity < 1.0) ? 2 : 0x10; // zmienna tekstura 2
         }
-        else if (texture == "-3")
+        else if (material == "-3")
         {
-            TextureID = -3;
+            m_material = -3;
             iFlags |= (Opacity < 1.0) ? 4 : 0x10; // zmienna tekstura 3
         }
-        else if (texture == "-4")
+        else if (material == "-4")
         {
-            TextureID = -4;
+            m_material = -4;
             iFlags |= (Opacity < 1.0) ? 8 : 0x10; // zmienna tekstura 4
         }
         else
         { // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
-            TextureNameSet(texture);
-            if( texture.find_first_of( "/\\" ) == texture.npos ) {
-                texture.insert( 0, Global::asCurrentTexturePath );
+            Name_Material(material);
+            if( material.find_first_of( "/\\" ) == material.npos ) {
+                material.insert( 0, Global::asCurrentTexturePath );
             }
-            TextureID = GfxRenderer.Fetch_Texture( texture );
+            m_material = GfxRenderer.Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
             iFlags |=
                 ( ( ( Opacity < 1.0 )
-                 && ( GfxRenderer.Texture(TextureID).has_alpha ) ) ?
+                 && ( ( m_material != NULL )
+                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
@@ -591,10 +592,10 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 	return iNumVerts; // do określenia wielkości VBO
 };
 
-int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
+int TSubModel::TriangleAdd(TModel3d *m, material_handle tex, int tri)
 { // dodanie trójkątów do submodelu, używane przy tworzeniu E3D terenu
     TSubModel *s = this;
-    while (s ? (s->TextureID != tex) : false)
+    while (s ? (s->m_material != tex) : false)
     { // szukanie submodelu o danej teksturze
         if (s == this)
             s = Child;
@@ -603,15 +604,15 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
     }
     if (!s)
     {
-        if (TextureID <= 0)
+        if (m_material <= 0)
             s = this; // użycie głównego
         else
         { // dodanie nowego submodelu do listy potomnych
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        s->TextureNameSet(GfxRenderer.Texture(tex).name);
-        s->TextureID = tex;
+        s->Name_Material(GfxRenderer.Material(tex).name);
+        s->m_material = tex;
         s->eType = GL_TRIANGLES;
     }
     if (s->iNumVerts < 0)
@@ -672,7 +673,7 @@ void TSubModel::DisplayLists()
 				glVertex3dv(&Vertices[i].Point.x);
 				*/
 				glNormal3fv(glm::value_ptr(Vertices[i].normal));
-				glTexCoord2fv(glm::value_ptr(Vertices[i].texture));
+				glTexCoord2fv(glm::value_ptr(Vertices[i].material));
 				glVertex3fv(glm::value_ptr(Vertices[i].position));
 			};
 			glEnd();
@@ -806,8 +807,8 @@ int TSubModel::FlagsCheck()
 	int i = 0;
 	if (Child)
 	{ // Child jest renderowany po danym submodelu
-		if (Child->TextureID) // o ile ma teksturę
-			if (Child->TextureID != TextureID) // i jest ona inna niż rodzica
+		if (Child->m_material) // o ile ma teksturę
+			if (Child->m_material != m_material) // i jest ona inna niż rodzica
 				Child->iFlags |= 0x80; // to trzeba sprawdzać, jak z teksturami jest
 		i = Child->FlagsCheck();
 		iFlags |= 0x00FF0000 & ((i << 16) | (i) | (i >> 8)); // potomny, rodzeństwo i dzieci
@@ -825,8 +826,8 @@ int TSubModel::FlagsCheck()
 	if (Next)
 	{ // Next jest renderowany po danym submodelu (kolejność odwrócona
 	  // po wczytaniu T3D)
-		if (TextureID) // o ile dany ma teksturę
-			if ((TextureID != Next->TextureID) ||
+		if (m_material) // o ile dany ma teksturę
+			if ((m_material != Next->m_material) ||
 				(i & 0x00800000)) // a ma inną albo dzieci zmieniają
 				iFlags |= 0x80; // to dany submodel musi sobie ją ustawiać
 		i = Next->FlagsCheck();
@@ -1085,9 +1086,9 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
     Groundnode.Ambient = f4Ambient;
     Groundnode.Diffuse = f4Diffuse;
     Groundnode.Specular = f4Specular;
-    Groundnode.TextureID = TextureID;
+    Groundnode.m_material = m_material;
     Groundnode.iFlags = (
-        ( true == GfxRenderer.Texture( TextureID ).has_alpha ) ?
+        ( true == GfxRenderer.Material( m_material ).has_alpha ) ?
             0x20 :
             0x10 );
 
@@ -1379,10 +1380,10 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_int32(s, iNumVerts);
 	sn_utils::ls_int32(s, tVboPtr);
 
-	if (TextureID <= 0)
-		sn_utils::ls_int32(s, TextureID);
+	if (m_material <= 0)
+		sn_utils::ls_int32(s, m_material);
 	else
-		sn_utils::ls_int32(s, (int32_t)get_container_pos(textures, pTexture));
+		sn_utils::ls_int32(s, (int32_t)get_container_pos(textures, m_materialname));
 
 	sn_utils::ls_float32(s, fVisible);
 	sn_utils::ls_float32(s, fLight);
@@ -1727,27 +1728,29 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		pName = "";
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
-        auto const textureindex = static_cast<std::size_t>( iTexture );
-        if( textureindex < t->size() ) {
-            pTexture = t->at( textureindex );
-            if( pTexture.find_last_of( "/\\" ) == std::string::npos )
-                pTexture.insert( 0, Global::asCurrentTexturePath );
-            TextureID = GfxRenderer.Fetch_Texture( pTexture );
+        auto const materialindex = static_cast<std::size_t>( iTexture );
+        if( materialindex < t->size() ) {
+            m_materialname = t->at( materialindex );
+            if( m_materialname.find_last_of( "/\\" ) == std::string::npos ) {
+                m_materialname = Global::asCurrentTexturePath + m_materialname;
+            }
+            m_material = GfxRenderer.Fetch_Material( m_materialname );
             if( ( iFlags & 0x30 ) == 0 ) {
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
-                iFlags |=
-                    ( GfxRenderer.Texture( TextureID ).has_alpha ?
+                iFlags |= (
+                    ( ( m_material != NULL )
+                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ?
                         0x20 :
                         0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             }
         }
         else {
             ErrorLog( "Bad model: reference to non-existent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
-            TextureID = NULL;
+            m_material = NULL;
         }
     }
 	else
-		TextureID = iTexture;
+		m_material = iTexture;
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 

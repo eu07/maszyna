@@ -216,7 +216,7 @@ ui_layer::render_background() {
 	if( m_background == 0 ) return;
     // NOTE: we limit/expect the background to come with 4:3 ratio.
     // TODO, TBD: if we expose texture width or ratio from texture object, this limitation could be lifted
-    GfxRenderer.Bind( m_background );
+    GfxRenderer.Bind_Texture( m_background );
     auto const height { 768.0f };
     auto const &texture = GfxRenderer.Texture( m_background );
     float const width = (
@@ -239,7 +239,7 @@ ui_layer::render_texture() {
         ::glColor4f( 1.f, 1.f, 1.f, 1.f );
         ::glDisable( GL_BLEND );
 
-        GfxRenderer.Bind( NULL );
+        GfxRenderer.Bind_Texture( NULL );
         ::glBindTexture( GL_TEXTURE_2D, m_texture );
 
         auto const size = 512.f;
@@ -253,6 +253,8 @@ ui_layer::render_texture() {
         glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( offset + size, Global::iWindowHeight - offset );
 
         glEnd();
+
+        ::glBindTexture( GL_TEXTURE_2D, NULL );
 
         ::glEnable( GL_BLEND );
     }

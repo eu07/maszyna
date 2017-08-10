@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
-#include "Texture.h"
+#include "material.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "Names.h"
@@ -140,7 +140,7 @@ public:
         int iCount; // dla terenu
     };
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
-    texture_handle TextureID; // główna (jedna) tekstura obiektu
+    material_handle m_material; // główna (jedna) tekstura obiektu
     glm::vec3
         Ambient{ 1.0f, 1.0f, 1.0f },
         Diffuse{ 1.0f, 1.0f, 1.0f },

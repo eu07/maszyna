@@ -454,7 +454,7 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
 void TSegment::Render()
 {
     vector3 pt;
-    GfxRenderer.Bind(0);
+    GfxRenderer.Bind_Material( NULL );
 
     if (bCurve)
     {

@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "GL/glew.h"
 #include "openglgeometrybank.h"
-#include "texture.h"
+#include "material.h"
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
@@ -70,13 +70,6 @@ struct opengl_light {
 // for modern opengl this translates to a specific collection of glsl shaders,
 // for legacy opengl this is combination of blending modes, active texture units etc
 struct opengl_technique {
-
-};
-
-// a collection of parameters for the rendering setup.
-// for modern opengl this translates to set of attributes for the active shaders,
-// for legacy opengl this is basically just texture(s) assigned to geometry
-struct opengl_material {
 
 };
 
@@ -175,13 +168,22 @@ public:
     // provides direct access to vertex data of specfied chunk
     vertex_array const &
         Vertices( geometry_handle const &Geometry ) const;
-    // texture methods
-    texture_handle
-        Fetch_Texture( std::string const &Filename, std::string const &Dir = szTexturePath, int const Filter = -1, bool const Loadnow = true );
+    // material methods
+    material_handle
+        Fetch_Material( std::string const &Filename, bool const Loadnow = true );
     void
-        Bind( texture_handle const Texture );
+        Bind_Material( material_handle const Material );
+    opengl_material const &
+        Material( material_handle const Material ) const;
+    // texture methods
+    void
+        Active_Texture( GLint const Textureunit );
+    texture_handle
+        Fetch_Texture( std::string const &Filename, bool const Loadnow = true );
+    void
+        Bind_Texture( texture_handle const Texture );
     opengl_texture const &
-        Texture( texture_handle const Texture );
+        Texture( texture_handle const Texture ) const;
     // light methods
     void
         Disable_Lights();
@@ -213,6 +215,13 @@ private:
         shadows,
         pickcontrols,
         pickscenery
+    };
+
+    enum textureunit {
+        helper = 0,
+        shadows,
+        normals,
+        diffuse
     };
 
     typedef std::pair< double, TSubRect * > distancesubcell_pair;
@@ -292,6 +301,7 @@ private:
 // members
     GLFWwindow *m_window { nullptr };
     geometrybank_manager m_geometry;
+    material_manager m_materials;
     texture_manager m_textures;
     opengllight_array m_lights;
 
@@ -316,9 +326,10 @@ private:
 #endif
     glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
 
-    int m_shadowtextureunit { GL_TEXTURE1 };
     int m_helpertextureunit { GL_TEXTURE0 };
-    int m_diffusetextureunit { GL_TEXTURE2 };
+    int m_shadowtextureunit { GL_TEXTURE1 };
+    int m_normaltextureunit { GL_TEXTURE2 };
+    int m_diffusetextureunit{ GL_TEXTURE3 };
 
     float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
     std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
@@ -327,6 +338,7 @@ private:
     float m_drawtimeshadowpass { 0.f };
     double m_updateaccumulator { 0.0 };
     std::string m_debuginfo;
+    std::string m_pickdebuginfo;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { 0.5f, 0.5f, 0.5f, 1.f };

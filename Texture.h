@@ -31,7 +31,7 @@ struct opengl_texture {
 // methods
     void
         load();
-    resource_state
+    bool
         bind();
     bool
         create();
@@ -85,12 +85,17 @@ public:
     texture_manager();
     ~texture_manager() { delete_textures(); }
 
-    texture_handle
-        create( std::string Filename, std::string const &Dir, int const Filter = -1, bool const Loadnow = true );
     void
-        bind( texture_handle const Texture );
+        assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse );
+    void
+        unit( GLint const Textureunit );
+    texture_handle
+        create( std::string Filename, bool const Loadnow = true );
+    // binds specified texture to specified texture unit
+    void
+        bind( std::size_t const Unit, texture_handle const Texture );
     opengl_texture &
-        texture( texture_handle const Texture ) { return *(m_textures[ Texture ].first); }
+        texture( texture_handle const Texture ) const { return *(m_textures[ Texture ].first); }
     // performs a resource sweep
     void
         update();
@@ -108,6 +113,11 @@ private:
 
     typedef std::unordered_map<std::string, std::size_t> index_map;
 
+    struct texture_unit {
+        GLint unit { NULL };
+        texture_handle texture { NULL }; // current (most recently bound) texture
+    };
+
 // methods:
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
     texture_handle
@@ -123,7 +133,8 @@ private:
     texturetimepointpair_sequence m_textures;
     index_map m_texturemappings;
     garbage_collector<texturetimepointpair_sequence> m_garbagecollector { m_textures, 600, 60, "texture" };
-    texture_handle m_activetexture { 0 }; // last i.e. currently bound texture
+    std::array<texture_unit, 4> m_units;
+    GLint m_activeunit { NULL };
 };
 
 // reduces provided data image to half of original size, using basic 2x2 average
@@ -182,3 +193,5 @@ downsample( std::size_t const Width, std::size_t const Height, char *Imagedata )
         }
     }
 }
+
+//---------------------------------------------------------------------------

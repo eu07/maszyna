@@ -120,6 +120,7 @@ geometry_bank::vertices( geometry_handle const &Geometry ) const {
 
 GLuint opengl_vbogeometrybank::m_activebuffer { NULL }; // buffer bound currently on the opengl end, if any
 unsigned int opengl_vbogeometrybank::m_activestreams { stream::none }; // currently enabled data type pointers
+std::vector<GLint> opengl_vbogeometrybank::m_activetexturearrays; // currently enabled texture coord arrays
 
 // create() subclass details
 void
@@ -274,12 +275,19 @@ opengl_vbogeometrybank::bind_streams( stream_units const &Units, unsigned int co
         ::glDisableClientState( GL_COLOR_ARRAY );
     }
     if( Streams & stream::texture ) {
-        ::glClientActiveTexture( Units.texture );
-        ::glTexCoordPointer( 2, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 24 );
-        ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+        for( auto unit : Units.texture ) {
+            ::glClientActiveTexture( unit );
+            ::glTexCoordPointer( 2, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 24 );
+            ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+        }
+        m_activetexturearrays = Units.texture;
     }
     else {
-        ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+        for( auto unit : Units.texture ) {
+            ::glClientActiveTexture( unit );
+            ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+        }
+        m_activetexturearrays.clear(); // NOTE: we're simplifying here, since we always toggle the same texture coord sets
     }
 
     m_activestreams = Streams;
@@ -291,9 +299,13 @@ opengl_vbogeometrybank::release_streams() {
     ::glDisableClientState( GL_VERTEX_ARRAY );
     ::glDisableClientState( GL_NORMAL_ARRAY );
     ::glDisableClientState( GL_COLOR_ARRAY );
-    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+    for( auto unit : m_activetexturearrays ) {
+        ::glClientActiveTexture( unit );
+        ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+    }
 
     m_activestreams = stream::none;
+    m_activetexturearrays.clear();
 }
 
 // opengl display list based variant of the geometry bank
@@ -331,7 +343,7 @@ opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, stream_units cons
         for( auto const &vertex : chunk.vertices ) {
                  if( Streams & stream::normal ) { ::glNormal3fv( glm::value_ptr( vertex.normal ) ); }
             else if( Streams & stream::color )  { ::glColor3fv( glm::value_ptr( vertex.normal ) ); }
-            if( Streams & stream::texture )     { ::glMultiTexCoord2fv( Units.texture, glm::value_ptr( vertex.texture ) ); }
+            if( Streams & stream::texture )     { for( auto unit : Units.texture ) { ::glMultiTexCoord2fv( unit, glm::value_ptr( vertex.texture ) ); } }
             if( Streams & stream::position )    { ::glVertex3fv( glm::value_ptr( vertex.position ) ); }
         }
         ::glEnd();
