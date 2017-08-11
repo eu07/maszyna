@@ -26,6 +26,7 @@ opengl_renderer GfxRenderer;
 extern TWorld World;
 
 int const EU07_PICKBUFFERSIZE { 1024 }; // size of (square) textures bound with the pick framebuffer
+int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental cube map texture
 
 namespace colors {
 
@@ -173,11 +174,11 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         // texture
         ::glGenTextures( 1, &m_picktexture );
         ::glBindTexture( GL_TEXTURE_2D, m_picktexture );
+        ::glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-        ::glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, EU07_PICKBUFFERSIZE, EU07_PICKBUFFERSIZE, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
         // depth buffer
         ::glGenRenderbuffersEXT( 1, &m_pickdepthbuffer );
         ::glBindRenderbufferEXT( GL_RENDERBUFFER_EXT, m_pickdepthbuffer );
@@ -251,7 +252,42 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         }
         ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now
     }
-
+    // environment cube map resources
+    if( true == m_framebuffersupport ) {
+        // texture:
+        ::glGenTextures( 1, &m_environmentcubetexture );
+        ::glBindTexture( GL_TEXTURE_CUBE_MAP, m_environmentcubetexture );
+        // allocate space
+        for( GLuint faceindex = GL_TEXTURE_CUBE_MAP_POSITIVE_X; faceindex < GL_TEXTURE_CUBE_MAP_POSITIVE_X + 6; ++faceindex ) {
+            ::glTexImage2D( faceindex, 0, GL_RGBA8, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL );
+        }
+        // setup parameters
+        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        ::glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
+        // depth buffer
+        ::glGenRenderbuffersEXT( 1, &m_environmentdepthbuffer );
+        ::glBindRenderbufferEXT( GL_RENDERBUFFER_EXT, m_environmentdepthbuffer );
+        ::glRenderbufferStorageEXT( GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE );
+        // create and assemble the framebuffer
+        ::glGenFramebuffersEXT( 1, &m_environmentframebuffer );
+        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_environmentframebuffer );
+        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_CUBE_MAP_POSITIVE_X, m_environmentcubetexture, 0 );
+        ::glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, m_environmentdepthbuffer );
+        // check if we got it working
+        GLenum status = ::glCheckFramebufferStatusEXT( GL_FRAMEBUFFER_EXT );
+        if( status == GL_FRAMEBUFFER_COMPLETE_EXT ) {
+            WriteLog( "Reflections framebuffer setup complete" );
+            m_environmentcubetexturesupport = true;
+        }
+        else {
+            ErrorLog( "Reflections framebuffer setup failed" );
+            m_environmentcubetexturesupport = false;
+        }
+        ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now
+    }
     // prepare basic geometry chunks
     auto const geometrybank = m_geometry.create_bank();
     float const size = 2.5f;
@@ -337,6 +373,14 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                         glm::vec3{ m_renderpass.camera.position() - shadowcamera.position() } );
             }
 
+            if( ( true == m_environmentcubetexturesupport )
+             && ( true == World.InitPerformed() ) ) {
+                // potentially update environmental cube map
+                if( true == Render_reflections() ) {
+                    setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
+                }
+            }
+
             ::glViewport( 0, 0, Global::iWindowWidth, Global::iWindowHeight );
 
             if( World.InitPerformed() ) {
@@ -383,6 +427,15 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 switch_units( true, false, false );
                 // cab render is done in translucent phase to deal with badly configured vehicles
                 if( World.Train != nullptr ) { Render_cab( World.Train->Dynamic() ); }
+
+                if( m_environmentcubetexturesupport ) {
+                    // restore default texture matrix for reflections cube map
+                    Active_Texture( m_helpertextureunit );
+                    ::glMatrixMode( GL_TEXTURE );
+                    ::glPopMatrix();
+                    Active_Texture( m_diffusetextureunit );
+                    ::glMatrixMode( GL_MODELVIEW );
+                }
             }
             UILayer.render();
             break;
@@ -394,7 +447,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // setup
                 auto const shadowdrawstart = std::chrono::steady_clock::now();
 
-                ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_shadowframebuffer );
+                ::glBindFramebufferEXT( GL_FRAMEBUFFER, m_shadowframebuffer );
 
                 ::glViewport( 0, 0, m_shadowbuffersize, m_shadowbuffersize );
 
@@ -427,6 +480,39 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
                 m_drawtimeshadowpass = 0.95f * m_drawtimeshadowpass + std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - shadowdrawstart ) ).count() / 1000.f;
                 m_debuginfo += "shadows: " + to_string( m_drawtimeshadowpass / 20.f, 2 ) + " msec (" + std::to_string( m_drawqueue.size() ) + " sectors) ";
+            }
+            break;
+        }
+
+        case rendermode::reflections: {
+            // NOTE: buffer and viewport setup in this mode is handled by the wrapper method
+            ::glClearColor( 0.f, 0.f, 0.f, 1.f );
+            ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+            if( World.InitPerformed() ) {
+
+                ::glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE );
+                // setup
+                setup_matrices();
+                // render
+                setup_drawing( true );
+                setup_units( true, false, false );
+                Render( &World.Environment );
+                // opaque parts...
+                setup_drawing( false );
+                setup_units( true, true, true );
+                Render( &World.Ground );
+/*
+                // reflections are limited to sky and ground only, the update rate is too low for anything else
+                // ...translucent parts
+                setup_drawing( true );
+                Render_Alpha( &World.Ground );
+                // cab render is performed without shadows, due to low resolution and number of models without windows :|
+                switch_units( true, false, false );
+                // cab render is done in translucent phase to deal with badly configured vehicles
+                if( World.Train != nullptr ) { Render_cab( World.Train->Dynamic() ); }
+*/
+                ::glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
             }
             break;
         }
@@ -480,6 +566,32 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
     }
 }
 
+// creates dynamic environment cubemap
+bool
+opengl_renderer::Render_reflections() {
+
+    auto const &time = simulation::Time.data();
+    auto const timestamp = time.wDay * 60 * 24 + time.wHour * 60 + time.wMinute;
+    if( timestamp - m_environmenttimestamp < 5 ) {
+        // run update every 5+ mins of simulation time
+        return false;
+    }
+    m_environmenttimestamp = timestamp;
+
+    ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_environmentframebuffer );
+    ::glViewport( 0, 0, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE );
+    for( m_environmentcubetextureface = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+         m_environmentcubetextureface < GL_TEXTURE_CUBE_MAP_POSITIVE_X + 6;
+       ++m_environmentcubetextureface ) {
+
+        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0, m_environmentcubetextureface, m_environmentcubetexture, 0 );
+        Render_pass( rendermode::reflections );
+    }
+    ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
+
+    return true;
+}
+
 void
 opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, float const Znear, float const Zfar, bool const Ignoredebug ) {
 
@@ -490,6 +602,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
     switch( Mode ) {
         case rendermode::color:        { Config.draw_range = Global::BaseDrawRange; break; }
         case rendermode::shadows:      { Config.draw_range = Global::BaseDrawRange * 0.5f; break; }
+        case rendermode::reflections:  { Config.draw_range = Global::BaseDrawRange; break; }
         case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
         case rendermode::pickscenery:  { Config.draw_range = Global::BaseDrawRange * 0.5f; break; }
         default:                       { Config.draw_range = 0.f; break; }
@@ -573,6 +686,29 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                     frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f );
             break;
         }
+        case rendermode::reflections: {
+            // projection
+            camera.projection() *=
+                glm::perspective(
+                    glm::radians( 90.f ),
+                    1.f,
+                    0.1f * Global::ZoomFactor,
+                    Config.draw_range * Global::fDistanceFactor );
+            // modelview
+            camera.position() = (
+                ( ( true == DebugCameraFlag ) && ( false == Ignoredebug ) ) ?
+                    Global::DebugCameraPosition :
+                    Global::pCameraPosition );
+            glm::dvec3 const cubefacetargetvectors[ 6 ] = { {  1.0,  0.0,  0.0 }, { -1.0,  0.0,  0.0 }, {  0.0,  1.0,  0.0 }, {  0.0, -1.0,  0.0 }, {  0.0,  0.0,  1.0 }, {  0.0,  0.0, -1.0 } };
+            glm::dvec3 const cubefaceupvectors[ 6 ] =     { {  0.0, -1.0,  0.0 }, {  0.0, -1.0,  0.0 }, {  0.0,  0.0,  1.0 }, {  0.0,  0.0, -1.0 }, {  0.0, -1.0,  0.0 }, {  0.0, -1.0,  0.0 } };
+            auto const cubefaceindex = m_environmentcubetextureface - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+            viewmatrix *=
+                glm::lookAt(
+                    camera.position(),
+                    camera.position() + cubefacetargetvectors[ cubefaceindex ],
+                    cubefaceupvectors[ cubefaceindex ] );
+            break;
+        }
 
         case rendermode::pickcontrols:
         case rendermode::pickscenery: {
@@ -602,6 +738,17 @@ opengl_renderer::setup_matrices() {
 
     ::glMatrixMode( GL_PROJECTION );
     OpenGLMatrices.load_matrix( m_renderpass.camera.projection() );
+
+    if( ( m_renderpass.draw_mode == rendermode::color )
+     && ( m_environmentcubetexturesupport ) ) {
+        // special case, for colour render pass setup texture matrix for reflections cube map
+        Active_Texture( m_helpertextureunit );
+        ::glMatrixMode( GL_TEXTURE );
+        ::glPushMatrix();
+        ::glMultMatrixf( glm::value_ptr( glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.camera.modelview() } } ) ) );
+        Active_Texture( m_diffusetextureunit );
+    }
+
     // trim modelview matrix just to rotation, since rendering is done in camera-centric world space
     ::glMatrixMode( GL_MODELVIEW );
     OpenGLMatrices.load_matrix( glm::mat4( glm::mat3( m_renderpass.camera.modelview() ) ) );
@@ -621,7 +768,8 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
     }
 
     switch( m_renderpass.draw_mode ) {
-        case rendermode::color: {
+        case rendermode::color:
+        case rendermode::reflections: {
             ::glEnable( GL_LIGHTING );
             ::glShadeModel( GL_SMOOTH );
             if( Global::iMultisampling ) {
@@ -668,11 +816,26 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
 
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows ) && ( true == Shadows ) ) ) {
-            m_textures.bind( textureunit::helper, m_reflectiontexture );
-            ::glEnable( GL_TEXTURE_2D );
+            // we need to have texture on the helper for either the reflection and shadow generation (or both)
+            if( true == m_environmentcubetexturesupport ) {
+                // bind dynamic environment cube if it's enabled...
+                // NOTE: environment cube map isn't part of regular texture system, so we use direct bind call here
+                ::glBindTexture( GL_TEXTURE_CUBE_MAP, m_environmentcubetexture );
+                ::glEnable( GL_TEXTURE_CUBE_MAP );
+            }
+            else {
+                // ...otherwise fallback on static spherical image
+                m_textures.bind( textureunit::helper, m_reflectiontexture );
+                ::glEnable( GL_TEXTURE_2D );
+            }
         }
         else {
-            ::glDisable( GL_TEXTURE_2D );
+            if( true == m_environmentcubetexturesupport ) {
+                ::glDisable( GL_TEXTURE_CUBE_MAP );
+            }
+            else {
+                ::glDisable( GL_TEXTURE_2D );
+            }
         }
 
         if( ( true == Global::RenderShadows ) && ( true == Shadows ) ) {
@@ -700,14 +863,32 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
         }
 
         if( true == Reflections ) {
-            ::glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP );
-            ::glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP );
-            ::glEnable( GL_TEXTURE_GEN_S );
-            ::glEnable( GL_TEXTURE_GEN_T );
+            if( true == m_environmentcubetexturesupport ) {
+                ::glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP );
+                ::glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP );
+                ::glTexGeni( GL_R, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP );
+                ::glEnable( GL_TEXTURE_GEN_S );
+                ::glEnable( GL_TEXTURE_GEN_T );
+                ::glEnable( GL_TEXTURE_GEN_R );
+            }
+            else {
+                // fixed texture fall back
+                ::glTexGeni( GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP );
+                ::glTexGeni( GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP );
+                ::glEnable( GL_TEXTURE_GEN_S );
+                ::glEnable( GL_TEXTURE_GEN_T );
+            }
         }
         else {
-            ::glDisable( GL_TEXTURE_GEN_S );
-            ::glDisable( GL_TEXTURE_GEN_T );
+            if( true == m_environmentcubetexturesupport ) {
+                ::glDisable( GL_TEXTURE_GEN_S );
+                ::glDisable( GL_TEXTURE_GEN_T );
+                ::glDisable( GL_TEXTURE_GEN_R );
+            }
+            else {
+                ::glDisable( GL_TEXTURE_GEN_S );
+                ::glDisable( GL_TEXTURE_GEN_T );
+            }
         }
     }
     // shadow texture unit.
@@ -810,6 +991,10 @@ opengl_renderer::setup_units( bool const Diffuse, bool const Shadows, bool const
         ::glTexEnvi( GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA );
 */
     }
+    // update unit state
+    m_unitstate.diffuse = Diffuse;
+    m_unitstate.shadows = Shadows;
+    m_unitstate.reflections = Reflections;
 }
 
 // enables and disables specified texture units
@@ -817,16 +1002,25 @@ void
 opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool const Reflections ) {
     // helper texture unit.
     if( m_helpertextureunit >= 0 ) {
+        Active_Texture( m_helpertextureunit );
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows )
            && ( true == Shadows )
            && ( m_shadowcolor != colors::white ) ) ) {
-            Active_Texture( m_helpertextureunit );
-            ::glEnable( GL_TEXTURE_2D );
+            if( true == m_environmentcubetexturesupport ) {
+                ::glEnable( GL_TEXTURE_CUBE_MAP );
+            }
+            else {
+                ::glEnable( GL_TEXTURE_2D );
+            }
         }
         else {
-            Active_Texture( m_helpertextureunit );
-            ::glDisable( GL_TEXTURE_2D );
+            if( true == m_environmentcubetexturesupport ) {
+                ::glDisable( GL_TEXTURE_CUBE_MAP );
+            }
+            else {
+                ::glDisable( GL_TEXTURE_2D );
+            }
         }
     }
     // shadow texture unit.
@@ -864,6 +1058,10 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
         Active_Texture( m_diffusetextureunit );
         ::glDisable( GL_TEXTURE_2D );
     }
+    // update unit state
+    m_unitstate.diffuse = Diffuse;
+    m_unitstate.shadows = Shadows;
+    m_unitstate.reflections = Reflections;
 }
 
 void
@@ -1186,6 +1384,19 @@ opengl_renderer::Render( TGround *Ground ) {
             }
             break;
         }
+        case rendermode::reflections: {
+            // reflections render only terrain geometry
+            for( int column = originx; column <= originx + segmentcount; ++column ) {
+                for( int row = originz; row <= originz + segmentcount; ++row ) {
+
+                    auto *cell = &Ground->Rects[ column ][ row ];
+                    if( m_renderpass.camera.visible( cell->m_area ) ) {
+                        Render( cell );
+                    }
+                }
+            }
+            break;
+        }
         case rendermode::shadows:
         case rendermode::pickscenery: {
             // these render modes don't bother with anything non-visual, or lights
@@ -1228,7 +1439,8 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
                 // non-interactive scenery elements get neutral colour
                 ::glColor3fv( glm::value_ptr( colors::none ) );
             }
-            case rendermode::color: {
+            case rendermode::color:
+            case rendermode::reflections: {
                 if( Groundcell->nRenderRect != nullptr ) {
                     // nieprzezroczyste trójkąty kwadratu kilometrowego
                     for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
@@ -1263,15 +1475,27 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
         result = true;
 
         // add the subcells of the cell to the draw queue
-        if( Groundcell->pSubRects != nullptr ) {
-            for( std::size_t subcellindex = 0; subcellindex < iNumSubRects * iNumSubRects; ++subcellindex ) {
-                auto subcell = Groundcell->pSubRects + subcellindex;
-                if( subcell->iNodeCount ) {
-                    // o ile są jakieś obiekty, bo po co puste sektory przelatywać
-                    m_drawqueue.emplace_back(
-                        glm::length2( m_renderpass.camera.position() - glm::dvec3( subcell->m_area.center ) ),
-                        subcell );
+        switch( m_renderpass.draw_mode ) {
+            case rendermode::color:
+            case rendermode::shadows:
+            case rendermode::pickscenery: {
+                if( Groundcell->pSubRects != nullptr ) {
+                    for( std::size_t subcellindex = 0; subcellindex < iNumSubRects * iNumSubRects; ++subcellindex ) {
+                        auto subcell = Groundcell->pSubRects + subcellindex;
+                        if( subcell->iNodeCount ) {
+                            // o ile są jakieś obiekty, bo po co puste sektory przelatywać
+                            m_drawqueue.emplace_back(
+                                glm::length2( m_renderpass.camera.position() - glm::dvec3( subcell->m_area.center ) ),
+                                subcell );
+                        }
+                    }
                 }
+                break;
+            }
+            case rendermode::reflections:
+            case rendermode::pickcontrols:
+            default: {
+                break;
             }
         }
     }
@@ -1831,7 +2055,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
             if( Submodel->iAlpha & Submodel->iFlags & 0x1F ) {
                 // rysuj gdy element nieprzezroczysty
                 switch( m_renderpass.draw_mode ) {
-                    case rendermode::color: {
+                    case rendermode::color:
+                    case rendermode::reflections: {
 // NOTE: code disabled as normalization marking doesn't take into account scaling propagation down hierarchy chains
 // for the time being we'll do with enforced worst-case scaling method, when speculars are enabled
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
@@ -1865,11 +2090,15 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             ::glEnable( GL_RESCALE_NORMAL );
                         }
                         // ...luminance
+                        auto const unitstate = m_unitstate;
                         if( Global::fLuminance < Submodel->fLight ) {
                             // zeby swiecilo na kolorowo
                             ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
                             // disable shadows so they don't obstruct self-lit items
+/*
                             setup_shadow_color( colors::white );
+*/
+                            switch_units( m_unitstate.diffuse, false, false );
                         }
 
                         // main draw call
@@ -1882,7 +2111,10 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         if( Global::fLuminance < Submodel->fLight ) {
                             // restore default (lack of) brightness
                             ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
+/*
                             setup_shadow_color( m_shadowcolor );
+*/
+                            switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
                         }
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                         switch( Submodel->m_normalizenormals ) {
@@ -1945,7 +2177,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
             switch( m_renderpass.draw_mode ) {
                 // spotlights are only rendered in colour mode(s)
-                case rendermode::color: {
+                case rendermode::color:
+                case rendermode::reflections: {
                     auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
                     auto const lightcenter =
                         modelview
@@ -1977,15 +2210,22 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             ::glPushMatrix();
                             ::glLoadIdentity();
                             ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
-
+/*
                             setup_shadow_color( colors::white );
+*/
+                            auto const unitstate = m_unitstate;
+                            switch_units( m_unitstate.diffuse, false, false );
 
                             // main draw call
                             m_geometry.draw( Submodel->m_geometry );
 
                             // post-draw reset
                             // re-enable shadows
+/*
                             setup_shadow_color( m_shadowcolor );
+*/
+                            switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
+
                             ::glPopMatrix();
                             ::glPopAttrib();
                         }
@@ -2001,7 +2241,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 
             switch( m_renderpass.draw_mode ) {
                 // colour points are only rendered in colour mode(s)
-                case rendermode::color: {
+                case rendermode::color:
+                case rendermode::reflections: {
                     if( Global::fLuminance < Submodel->fLight ) {
 
                         // material configuration:
@@ -2048,7 +2289,8 @@ opengl_renderer::Render( TTrack *Track ) {
     }
 
     switch( m_renderpass.draw_mode ) {
-        case rendermode::color: {
+        case rendermode::color:
+        case rendermode::reflections: {
             Track->EnvironmentSet();
             if( Track->m_material1 != 0 ) {
                 Bind_Material( Track->m_material1 );
@@ -2061,8 +2303,8 @@ opengl_renderer::Render( TTrack *Track ) {
             Track->EnvironmentReset();
             break;
         }
-        case rendermode::pickscenery:
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::pickscenery: {
             if( Track->m_material1 != 0 ) {
                 Bind_Material( Track->m_material1 );
                 m_geometry.draw( std::begin( Track->Geometry1 ), std::end( Track->Geometry1 ) );
@@ -2098,11 +2340,12 @@ opengl_renderer::Render( TMemCell *Memcell ) {
             ::glPopAttrib();
             break;
         }
-        case rendermode::pickscenery:
-        case rendermode::shadows: {
+        case rendermode::shadows:
+        case rendermode::pickscenery: {
             ::gluSphere( m_quadric, 0.35, 4, 2 );
             break;
         }
+        case rendermode::reflections:
         case rendermode::pickcontrols: {
             break;
         }
@@ -2502,11 +2745,15 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                     ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * Global::DayLight.specular.a * m_speculartranslucentscalefactor ) );
                 }
                 // ...luminance
+                auto const unitstate = m_unitstate;
                 if( Global::fLuminance < Submodel->fLight ) {
                     // zeby swiecilo na kolorowo
                     ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( Submodel->f4Diffuse * Submodel->f4Emision.a ) );
                     // disable shadows so they don't obstruct self-lit items
+/*
                     setup_shadow_color( colors::white );
+*/
+                    switch_units( m_unitstate.diffuse, false, false );
                 }
 
                 // main draw call
@@ -2519,7 +2766,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                 if( Global::fLuminance < Submodel->fLight ) {
                     // restore default (lack of) brightness
                     ::glMaterialfv( GL_FRONT, GL_EMISSION, glm::value_ptr( colors::none ) );
+/*
                     setup_shadow_color( m_shadowcolor );
+*/
+                    switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
                 }
 #ifdef EU07_USE_OPTIMIZED_NORMALIZATION
                 switch( Submodel->m_normalizenormals ) {
@@ -2571,7 +2821,11 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         ::glTranslatef( lightcenter.x, lightcenter.y, lightcenter.z ); // początek układu zostaje bez zmian
                         ::glRotated( std::atan2( lightcenter.x, lightcenter.z ) * 180.0 / M_PI, 0.0, 1.0, 0.0 ); // jedynie obracamy w pionie o kąt
                                                                                                                  // disable shadows so they don't obstruct self-lit items
+/*
                         setup_shadow_color( colors::white );
+*/
+                        auto const unitstate = m_unitstate;
+                        switch_units( m_unitstate.diffuse, false, false );
 
                         // main draw call
                         m_geometry.draw( m_billboardgeometry );
@@ -2584,7 +2838,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         // ...etc instead IF we had easy access to camera's forward and right vectors. TODO: check if Camera matrix is accessible
 */
                         // post-render cleanup
+/*
                         setup_shadow_color( m_shadowcolor );
+*/
+                        switch_units( m_unitstate.diffuse, unitstate.shadows, unitstate.reflections );
 
                         ::glPopMatrix();
                         ::glPopAttrib();

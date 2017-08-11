@@ -27,7 +27,7 @@ class opengl_stack {
 
 public:
 // constructors:
-    opengl_stack() { m_stack.emplace(1.0f); }
+    opengl_stack() { m_stack.emplace(1.f); }
 
 // methods:
     glm::mat4 const &
@@ -86,29 +86,32 @@ private:
     mat4_stack m_stack;
 };
 
-enum stack_mode { gl_projection = 0, gl_modelview = 1 };
+enum stack_mode { gl_modelview = 0, gl_projection = 1, gl_texture = 2 };
 typedef std::vector<opengl_stack> openglstack_array;
 
 public:
 // constructors:
     opengl_matrices() {
-        m_stacks.emplace_back(); // projection
         m_stacks.emplace_back(); // modelview
+        m_stacks.emplace_back(); // projection
+        m_stacks.emplace_back(); // texture
     }
 
 // methods:
     void
         mode( GLuint const Mode ) {
             switch( Mode ) {
-                case GL_PROJECTION: { m_mode = stack_mode::gl_projection; break; }
                 case GL_MODELVIEW:  { m_mode = stack_mode::gl_modelview; break; }
+                case GL_PROJECTION: { m_mode = stack_mode::gl_projection; break; }
+                case GL_TEXTURE:    { m_mode = stack_mode::gl_texture; break; }
                 default:            { break; } }
-            glMatrixMode( Mode ); }
+            ::glMatrixMode( Mode ); }
     glm::mat4 const &
         data( GLuint const Mode = -1 ) const {
             switch( Mode ) {
-                case GL_PROJECTION: { return m_stacks[ stack_mode::gl_projection ].data(); }
                 case GL_MODELVIEW:  { return m_stacks[ stack_mode::gl_modelview ].data(); }
+                case GL_PROJECTION: { return m_stacks[ stack_mode::gl_projection ].data(); }
+                case GL_TEXTURE:    { return m_stacks[ stack_mode::gl_texture ].data(); }
                 default:            { return m_stacks[ m_mode ].data(); } } }
     float const *
         data_array( GLuint const Mode = -1 ) const {
@@ -128,7 +131,7 @@ public:
     void
         rotate( Type_ const Angle, Type_ const X, Type_ const Y, Type_ const Z ) {
             m_stacks[ m_mode ].rotate(
-                static_cast<float>(Angle) * 0.0174532925f, // deg2rad
+                static_cast<float>(glm::radians(Angle)),
                 glm::vec3(
                     static_cast<float>(X),
                     static_cast<float>(Y),

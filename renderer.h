@@ -213,6 +213,7 @@ private:
         none,
         color,
         shadows,
+        reflections,
         pickcontrols,
         pickscenery
     };
@@ -233,14 +234,18 @@ private:
         float draw_range { 0.0f };
     };
 
+    struct units_state {
+
+        bool diffuse { false };
+        bool shadows { false };
+        bool reflections { false };
+    };
+
     typedef std::vector<opengl_light> opengllight_array;
 
 // methods
     bool
         Init_caps();
-    // runs jobs needed to generate graphics for specified render pass
-    void
-        Render_pass( rendermode const Mode );
     void
         setup_pass( renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false );
     void
@@ -253,6 +258,12 @@ private:
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
         switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
+    // runs jobs needed to generate graphics for specified render pass
+    void
+        Render_pass( rendermode const Mode );
+    // creates dynamic environment cubemap
+    bool
+        Render_reflections();
     bool
         Render( world_environment *Environment );
     bool
@@ -311,25 +322,32 @@ private:
     texture_handle m_moontexture { -1 };
     texture_handle m_reflectiontexture { -1 };
     GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
-
+    // TODO: refactor framebuffer stuff into an object
     bool m_framebuffersupport { false };
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
-    GLuint m_pickframebuffer { NULL }; // TODO: refactor pick framebuffer stuff into an object
+    GLuint m_pickframebuffer { NULL };
     GLuint m_picktexture { NULL };
     GLuint m_pickdepthbuffer { NULL };
 #endif
-    int m_shadowbuffersize { 4096 };
+    int m_shadowbuffersize { 2048 };
     GLuint m_shadowframebuffer { NULL };
     GLuint m_shadowtexture { NULL };
 #ifdef EU07_USE_DEBUG_SHADOWMAP
     GLuint m_shadowdebugtexture{ NULL };
 #endif
     glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
+    GLuint m_environmentframebuffer { NULL };
+    GLuint m_environmentcubetexture { NULL };
+    GLuint m_environmentdepthbuffer { NULL };
+    bool m_environmentcubetexturesupport { false }; // indicates whether we can use the dynamic environment cube map
+    int m_environmentcubetextureface { NULL }; // helper, currently processed cube map face
+    int m_environmenttimestamp { 0 }; // time of the most recent environment map update
 
     int m_helpertextureunit { GL_TEXTURE0 };
     int m_shadowtextureunit { GL_TEXTURE1 };
     int m_normaltextureunit { GL_TEXTURE2 };
     int m_diffusetextureunit{ GL_TEXTURE3 };
+    units_state m_unitstate;
 
     float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
     std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
