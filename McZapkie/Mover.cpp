@@ -3784,7 +3784,7 @@ double TMoverParameters::BrakeForceR(double ratio, double velocity)
 			press = MaxBrakePress[3];
 			if (DynamicBrakeType == dbrake_automatic)
 				ratio = ratio + (1.5 - ratio)*std::min(1.0, Vel*0.02);
-			if ((BrakeDelayFlag&bdelay_R) && (BrakeMethod != bp_Cosid) && (BrakeMethod != bp_D1) && (BrakeMethod != bp_D2)&&(Power>1))
+			if ((BrakeDelayFlag&bdelay_R) && (BrakeMethod%128 != bp_Cosid) && (BrakeMethod % 128 != bp_D1) && (BrakeMethod % 128 != bp_D2) && (Power<1) && (velocity<40))
 				ratio = ratio / 2;
 		}
 

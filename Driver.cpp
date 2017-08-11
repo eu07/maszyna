@@ -1711,12 +1711,12 @@ void TController::AutoRewident()
 	else if (ustaw > 16)
 	{
 		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 4 * fBrake_a1[BrakeAccTableSize];
-		fBrakeReaction = 0.75+fLength*0.001;
+		fBrakeReaction = 0.75 + fLength*0.002;
 	}
 	else
 	{
 		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 1 * fBrake_a1[BrakeAccTableSize];
-		fBrakeReaction = 2.0;
+		fBrakeReaction = 1.5 + fLength*0.002;
 	}
 };
 
@@ -2417,7 +2417,7 @@ bool TController::DecBrake()
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case Pneumatic:
-		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (mvOccupied->BrakeCtrlPosR)*fBrake_a1[0]);
+		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (mvOccupied->BrakeCtrlPosR-1.0)*fBrake_a1[0]);
 		if (deltaAcc < 0)
 		{
 			if (mvOccupied->BrakeCtrlPosR > 0)
@@ -3507,6 +3507,8 @@ bool TController::UpdateSituation(double dt)
         // zalecane ciśnienie
         if (fMass > 1000000.0)
             fBrakeDist *= 2.0; // korekta dla ciężkich, bo przeżynają - da to coś?
+		if ((fAccThreshold>0.05)&&(mvOccupied->CategoryFlag==1))
+			fBrakeDist = mvOccupied->Vel *	mvOccupied->Vel / 25.92 / fAccThreshold;
         if (mvOccupied->BrakeDelayFlag == bdelay_G)
             fBrakeDist = fBrakeDist + 2 * mvOccupied->Vel; // dla nastawienia G
         // koniecznie należy wydłużyć drogę na czas reakcji
@@ -4364,21 +4366,24 @@ bool TController::UpdateSituation(double dt)
                         else if (ActualProximityDist > fMinProximityDist)
                         { // jedzie szybciej, niż trzeba na końcu ActualProximityDist, ale jeszcze
                             // jest daleko
-                            if (vel <
-                                VelNext + 20.0) // dwustopniowe hamowanie - niski przy małej różnicy
+							if (ActualProximityDist <
+								fMaxProximityDist) // jak minął już maksymalny dystans
+							{ // po prostu hamuj (niski stopień) //ma stanąć, a jest w
+							  // drodze hamowania albo ma jechać
+								AccDesired = (VelNext * VelNext - vel * vel) /
+									(25.92 * (ActualProximityDist +
+										0.1 - 0.5*fMinProximityDist)); // hamowanie tak, aby stanąć
+								AccDesired = std::min(AccDesired, fAccThreshold);
+								VelDesired = 0.0; // Min0R(VelDesired,VelNext);
+							}
+                            else if ((vel <
+                                VelNext + 20.0)&&(false)) // dwustopniowe hamowanie - niski przy małej różnicy
                             { // jeśli jedzie wolniej niż VelNext+35km/h //Ra: 40, żeby nie
                                 // kombinował na zwrotnicach
                                 if (VelNext == 0.0)
                                 { // jeśli ma się zatrzymać, musi być to robione precyzyjnie i
                                     // skutecznie
-                                    if (ActualProximityDist <
-                                        fMaxProximityDist) // jak minął już maksymalny dystans
-                                    { // po prostu hamuj (niski stopień) //ma stanąć, a jest w
-                                        // drodze hamowania albo ma jechać
-                                        AccDesired = fAccThreshold; // hamowanie tak, aby stanąć
-                                        VelDesired = 0.0; // Min0R(VelDesired,VelNext);
-                                    }
-                                    else if (ActualProximityDist > fBrakeDist)
+                                    if (ActualProximityDist > fBrakeDist)
                                     { // jeśli ma stanąć, a mieści się w drodze hamowania
                                         if (vel < 10.0) // jeśli prędkość jest łatwa do zatrzymania
                                         { // tu jest trochę problem, bo do punktu zatrzymania dobija
@@ -4430,9 +4435,9 @@ bool TController::UpdateSituation(double dt)
                                 }
                             }
 							else { // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
-								double dist = (VelNext * VelNext - (VelNext + 20) * (VelNext + 20)) / (25.92)*(-1 / fBrake_a0[0] - 1 / fAccThreshold) + 1.5*VelNext;
+								double dist = 0;// (VelNext * VelNext - (VelNext + 20) * (VelNext + 20)) / (25.92)*(-1 / fBrake_a0[0] - 1 / fAccThreshold);
 								AccDesired = (VelNext * VelNext - vel * vel) /
-									(25.92 * (std::max(ActualProximityDist - 2 * VelNext, std::min(ActualProximityDist, 2 * VelNext)) - dist) +
+									(25.92 * std::max(ActualProximityDist - VelNext - dist, std::min(ActualProximityDist, VelNext+dist)) +
 										0.1); // najpierw hamuje mocniej, potem zluzuje
 							}
                             if (AccPreferred < AccDesired)
@@ -4535,8 +4540,10 @@ bool TController::UpdateSituation(double dt)
                                     SetDriverPsyche();
                             }
                         }
-					if (-AccDesired * BrakeAccFactor() < (fReady > 0.4 ? fBrake_a0[0] : -fAccThreshold))
-						AccDesired = std::max(-0.01, AccDesired);
+					if (-AccDesired * BrakeAccFactor() < ((fReady > 0.4)||(VelDesired<vel-40.0) ? fBrake_a0[0] : -fAccThreshold))
+						AccDesired = std::max(-0.06, AccDesired);
+					else
+						ReactionTime = 0.25; // i orientuj się szybciej, jeśli hamujesz
                     if (mvOccupied->BrakeSystem == Pneumatic) // napełnianie uderzeniowe
                         if (mvOccupied->BrakeHandle == FV4a)
                         {
@@ -4600,9 +4607,8 @@ bool TController::UpdateSituation(double dt)
                             mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę - może być więcej!
                         else if (OrderList[OrderPos] !=
                                  Disconnect) // przy odłączaniu nie zwalniamy tu hamulca
-                            if ((AccDesired > 0.0) ||
-                                (fAccGravity * fAccGravity <
-                                 0.001)) // luzuj tylko na plaskim lub przy ruszaniu
+                            if (fAccGravity * fAccGravity <
+                                 0.001) // luzuj tylko na plaskim lub przy ruszaniu
                             {
                                 while (DecBrake())
                                     ; // jeśli przyspieszamy, to nie hamujemy
