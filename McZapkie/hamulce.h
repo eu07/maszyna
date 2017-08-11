@@ -551,7 +551,7 @@ class TFV4aM : public TDriverHandle {
 		void SetReductor(double nAdj)/*override*/;
 		double GetSound(int i)/*override*/;
 		double GetPos(int i)/*override*/;
-
+		double GetCP();
 		inline TFV4aM() :
 			TDriverHandle()
 		{}

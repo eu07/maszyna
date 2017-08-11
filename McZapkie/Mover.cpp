@@ -3766,6 +3766,41 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
     //};
 }
 
+double TMoverParameters::BrakeForceR(double ratio, double velocity)
+{
+	double press = 0;
+	if (MBPM>2)
+	{
+		press = MaxBrakePress[1] + (MaxBrakePress[3] - MaxBrakePress[1]) * std::min(1.0, (TotalMass - Mass) / (MBPM - Mass));
+	}
+	else
+	{
+		if (MaxBrakePress[1] > 0.1)
+		{
+			press = MaxBrakePress[LoadFlag];
+		}
+		else
+		{
+			press = MaxBrakePress[3];
+			if (DynamicBrakeType == dbrake_automatic)
+				ratio = ratio + (1.5 - ratio)*std::min(1.0, Vel*0.02);
+			if ((BrakeDelayFlag&bdelay_R) && (BrakeMethod%128 != bp_Cosid) && (BrakeMethod % 128 != bp_D1) && (BrakeMethod % 128 != bp_D2) && (Power<1) && (velocity<40))
+				ratio = ratio / 2;
+		}
+
+	}
+	return BrakeForceP(press*ratio, velocity);
+}
+
+double TMoverParameters::BrakeForceP(double press, double velocity)
+{
+	double BFP = 0;
+	double K = (((press * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj) * BrakeRigEff;
+	K *= static_cast<double>(BrakeCylNo) / (NAxles * std::max(1, NBpA));
+	BFP = Hamulec->GetFC(velocity, K)*K*(NAxles * std::max(1, NBpA)) * 1000;
+	return BFP;
+}
+
 // *************************************************************************************************
 // Q: 20160713
 // oblicza siłę na styku koła i szyny
@@ -3809,7 +3844,7 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
         Ntotal = u * BrakeRigEff;
     else
     {
-        u = (BrakePress * P2FTrans) * BrakeCylMult[0] - BrakeSlckAdj;
+        u = ((BrakePress * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj;
         if (u * (2.0 - BrakeRigEff) < Ntotal) // histereza na nacisku klockow
             Ntotal = u * (2.0 - BrakeRigEff);
     }
@@ -3862,6 +3897,9 @@ double TMoverParameters::FrictionForce(double R, int TDamage)
         FF = (FrictConst1 * V * V) + FrictConst2s;
     return FF;
 }
+
+
+
 
 // *************************************************************************************************
 // Q: 20160713

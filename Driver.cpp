@@ -1681,6 +1681,45 @@ void TController::AutoRewident()
         }
         d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
     }
+	//teraz zerujemy tabelkę opóźnienia hamowania
+	double velstep = (mvOccupied->Vmax*0.5) / BrakeAccTableSize;
+	for (int i = 0; i < BrakeAccTableSize; i++)
+	{
+		fBrake_a0[i+1] = 0;
+		fBrake_a1[i+1] = 0;
+	}
+	d = pVehicles[0]; // pojazd na czele składu
+	while (d)
+	{ // 4. Przeliczanie siły hamowania
+		for (int i = 0; i < BrakeAccTableSize; i++)
+		{
+			fBrake_a0[i+1] += d->MoverParameters->BrakeForceR(0.25, velstep*(1 + 2 * i));
+			fBrake_a1[i+1] += d->MoverParameters->BrakeForceR(1.00, velstep*(1 + 2 * i));
+		}
+		d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+	}
+	for (int i = 0; i < BrakeAccTableSize; i++)
+	{
+		fBrake_a1[i+1] -= fBrake_a0[i+1];
+		fBrake_a0[i+1] /= fMass;
+		fBrake_a0[i + 1] += 0.001*velstep*(1 + 2 * i);
+		fBrake_a1[i+1] /= (12*fMass);
+	}
+	if (mvOccupied->TrainType == dt_EZT)
+	{
+		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 8 * fBrake_a1[BrakeAccTableSize];
+		fBrakeReaction = 0.25;
+	}
+	else if (ustaw > 16)
+	{
+		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 4 * fBrake_a1[BrakeAccTableSize];
+		fBrakeReaction = 0.75 + fLength*0.002;
+	}
+	else
+	{
+		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 1 * fBrake_a1[BrakeAccTableSize];
+		fBrakeReaction = 1.5 + fLength*0.002;
+	}
 };
 
 int TController::CheckDirection() {
@@ -1952,6 +1991,13 @@ bool TController::SetProximityVelocity(double NewDist,double NewVelNext)
 #endif
 }
 */
+
+double TController::BrakeAccFactor()
+{
+//	double Factor = 1 + fBrakeReaction*mvOccupied->Vel / (std::max(0.0, ActualProximityDist) + 1);
+	double Factor = 1 + fBrakeReaction*mvOccupied->Vel / (std::max(0.0, ActualProximityDist) + 1) * ((AccDesired-AbsAccS_pub)/fAccThreshold);
+	return Factor;
+}
 
 void TController::SetDriverPsyche()
 {
@@ -2296,17 +2342,41 @@ bool TController::IncBrake()
             }
             else {
                 if( mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo ) {
-                    if( AccDesired < -1.5 ) // hamowanie nagle
-                        OK = mvOccupied->IncBrakeLevel();
+					if (AccDesired < -1.5) // hamowanie nagle
+						OK = mvOccupied->BrakeLevelAdd(1.0);
                     else
                         OK = false;
                 }
                 else {
                     // dodane dla towarowego
-                    if( mvOccupied->BrakeDelayFlag == bdelay_G ?
-                        -AccDesired * 6.6 > std::min( 2, mvOccupied->BrakeCtrlPos ) :
-                        true ) {
-                        OK = mvOccupied->IncBrakeLevel();
+					float pos_corr = 0;
+
+					TDynamicObject *d;
+					d = pVehicles[0]; // pojazd na czele składu
+					while (d)
+					{ // przeliczanie dodatkowego potrzebnego spadku ciśnienia
+						pos_corr+=(d->MoverParameters->Hamulec->GetCRP() - 5.0)*d->MoverParameters->TotalMass;
+						d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+					}
+					pos_corr = pos_corr / fMass * 2.5;
+
+					if (mvOccupied->BrakeHandle == FV4a)
+					{
+						pos_corr += mvOccupied->Handle->GetCP()*0.2;
+						
+					}
+					double deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4.0 * (mvOccupied->BrakeCtrlPosR - 1 - pos_corr)*fBrake_a1[0]);
+
+                    if( deltaAcc > fBrake_a1[0])
+					{
+						if (mvOccupied->BrakeCtrlPosR<0.1)
+	                        OK = mvOccupied->BrakeLevelAdd(1.0);
+						else
+						{
+							OK = mvOccupied->BrakeLevelAdd(0.25);
+							if ((deltaAcc > 5 * fBrake_a1[0]) && (mvOccupied->BrakeCtrlPosR <= 3.0))
+								mvOccupied->BrakeLevelAdd(0.75);
+						}
                     }
                     else
                         OK = false;
@@ -2339,6 +2409,7 @@ bool TController::IncBrake()
 bool TController::DecBrake()
 { // zmniejszenie siły hamowania
     bool OK = false;
+	double deltaAcc = 0;
     switch (mvOccupied->BrakeSystem)
     {
     case Individual:
@@ -2348,8 +2419,18 @@ bool TController::DecBrake()
             OK = mvOccupied->DecLocalBrakeLevel(1 + floor(0.5 + fabs(AccDesired)));
         break;
     case Pneumatic:
-        if (mvOccupied->BrakeCtrlPos > 0)
-            OK = mvOccupied->DecBrakeLevel();
+		deltaAcc = -AccDesired*BrakeAccFactor() - (fBrake_a0[0] + 4 * (mvOccupied->BrakeCtrlPosR-1.0)*fBrake_a1[0]);
+		if (deltaAcc < 0)
+		{
+			if (mvOccupied->BrakeCtrlPosR > 0)
+			{
+				OK = mvOccupied->BrakeLevelAdd(-0.25);
+				//if ((deltaAcc < 5 * fBrake_a1[0]) && (mvOccupied->BrakeCtrlPosR >= 1.2))
+				//	mvOccupied->BrakeLevelAdd(-1.0);
+				if (mvOccupied->BrakeCtrlPosR < 0.74)
+					mvOccupied->BrakeLevelSet(0.0);
+			}
+		}
         if (!OK)
             OK = mvOccupied->DecLocalBrakeLevel(2);
         if (mvOccupied->PipePress < 3.0)
@@ -3222,7 +3303,7 @@ bool TController::UpdateSituation(double dt)
     if ((iDrivigFlags & movePrimary) == 0)
         return true; // pasywny nic nie robi
 
-    double AbsAccS;
+    double AbsAccS = 0;
     // double VelReduced; //o ile km/h może przekroczyć dozwoloną prędkość bez hamowania
     bool UpdateOK = false;
     if (AIControllFlag)
@@ -3245,6 +3326,10 @@ bool TController::UpdateSituation(double dt)
     // ABu-160305 testowanie gotowości do jazdy
     // Ra: przeniesione z DynObj, skład użytkownika też jest testowany, żeby mu przekazać, że ma
     // odhamować
+	int index = double(BrakeAccTableSize) * (mvOccupied->Vel / mvOccupied->Vmax);
+	index = std::min(BrakeAccTableSize, std::max(1, index));
+	fBrake_a0[0] = fBrake_a0[index];
+	fBrake_a1[0] = fBrake_a1[index];
     Ready = true; // wstępnie gotowy
     fReady = 0.0; // założenie, że odhamowany
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
@@ -3424,6 +3509,8 @@ bool TController::UpdateSituation(double dt)
         // zalecane ciśnienie
         if (fMass > 1000000.0)
             fBrakeDist *= 2.0; // korekta dla ciężkich, bo przeżynają - da to coś?
+		if ((fAccThreshold>0.05)&&(mvOccupied->CategoryFlag==1))
+			fBrakeDist = mvOccupied->Vel *	mvOccupied->Vel / 25.92 / fAccThreshold;
         if (mvOccupied->BrakeDelayFlag == bdelay_G)
             fBrakeDist = fBrakeDist + 2 * mvOccupied->Vel; // dla nastawienia G
         // koniecznie należy wydłużyć drogę na czas reakcji
@@ -4228,8 +4315,19 @@ bool TController::UpdateSituation(double dt)
                 if (mvOccupied->V == 0.0)
                     AbsAccS = fAccGravity; // Ra 2014-03: jesli skład stoi, to działa na niego
                 // składowa styczna grawitacji
-                else
-                    AbsAccS = iDirection * mvOccupied->AccS; // przyspieszenie chwilowe, liczone
+				else
+				{
+					AbsAccS = 0;
+					TDynamicObject *d = pVehicles[0]; // pojazd na czele składu
+					while (d)
+					{
+						AbsAccS += d->MoverParameters->TotalMass * d->MoverParameters->AccS * iDirection;
+						d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+					}
+					AbsAccS /= fMass;
+					//AbsAccS = iDirection * mvOccupied->AccS; // przyspieszenie chwilowe, liczone
+				}
+				AbsAccS_pub = AbsAccS;
 // jako różnica skierowanej prędkości w
 // czasie
 // if (mvOccupied->V<0.0) AbsAccS=-AbsAccS; //Ra 2014-03: to trzeba przemyśleć
@@ -4270,21 +4368,24 @@ bool TController::UpdateSituation(double dt)
                         else if (ActualProximityDist > fMinProximityDist)
                         { // jedzie szybciej, niż trzeba na końcu ActualProximityDist, ale jeszcze
                             // jest daleko
-                            if (vel <
-                                VelNext + 40.0) // dwustopniowe hamowanie - niski przy małej różnicy
+							if (ActualProximityDist <
+								fMaxProximityDist) // jak minął już maksymalny dystans
+							{ // po prostu hamuj (niski stopień) //ma stanąć, a jest w
+							  // drodze hamowania albo ma jechać
+								AccDesired = (VelNext * VelNext - vel * vel) /
+									(25.92 * (ActualProximityDist +
+										0.1 - 0.5*fMinProximityDist)); // hamowanie tak, aby stanąć
+								AccDesired = std::min(AccDesired, fAccThreshold);
+								VelDesired = 0.0; // Min0R(VelDesired,VelNext);
+							}
+                            else if ((vel <
+                                VelNext + 20.0)&&(false)) // dwustopniowe hamowanie - niski przy małej różnicy
                             { // jeśli jedzie wolniej niż VelNext+35km/h //Ra: 40, żeby nie
                                 // kombinował na zwrotnicach
                                 if (VelNext == 0.0)
                                 { // jeśli ma się zatrzymać, musi być to robione precyzyjnie i
                                     // skutecznie
-                                    if (ActualProximityDist <
-                                        fMaxProximityDist) // jak minął już maksymalny dystans
-                                    { // po prostu hamuj (niski stopień) //ma stanąć, a jest w
-                                        // drodze hamowania albo ma jechać
-                                        AccDesired = fAccThreshold; // hamowanie tak, aby stanąć
-                                        VelDesired = 0.0; // Min0R(VelDesired,VelNext);
-                                    }
-                                    else if (ActualProximityDist > fBrakeDist)
+                                    if (ActualProximityDist > fBrakeDist)
                                     { // jeśli ma stanąć, a mieści się w drodze hamowania
                                         if (vel < 10.0) // jeśli prędkość jest łatwa do zatrzymania
                                         { // tu jest trochę problem, bo do punktu zatrzymania dobija
@@ -4314,7 +4415,7 @@ bool TController::UpdateSituation(double dt)
                                     else
                                         AccDesired = -(vel * vel) /
                                                      (25.92 * (ActualProximityDist +
-                                                               0.1)); //-fMinProximityDist));//-0.1;
+                                                               0.1-0.5*(fMinProximityDist+fMaxProximityDist))); //-fMinProximityDist));//-0.1;
                                     ////mniejsze opóźnienie przy
                                     // małej różnicy
                                     ReactionTime = 0.1; // i orientuj się szybciej, jak masz stanąć
@@ -4335,10 +4436,12 @@ bool TController::UpdateSituation(double dt)
                                     // krytycznym przedziale
                                 }
                             }
-                            else // przy dużej różnicy wysoki stopień (1,25 potrzebnego opoznienia)
-                                AccDesired = (VelNext * VelNext - vel * vel) /
-                                             (20.73 * ActualProximityDist +
-                                              0.1); // najpierw hamuje mocniej, potem zluzuje
+							else { // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
+								double dist = 0;// (VelNext * VelNext - (VelNext + 20) * (VelNext + 20)) / (25.92)*(-1 / fBrake_a0[0] - 1 / fAccThreshold);
+								AccDesired = (VelNext * VelNext - vel * vel) /
+									(25.92 * std::max(ActualProximityDist - VelNext - dist, std::min(ActualProximityDist, VelNext+dist)) +
+										0.1); // najpierw hamuje mocniej, potem zluzuje
+							}
                             if (AccPreferred < AccDesired)
                                 AccDesired = AccPreferred; //(1+abs(AccDesired))
                             // ReactionTime=0.5*mvOccupied->BrakeDelay[2+2*mvOccupied->BrakeDelayFlag];
@@ -4389,19 +4492,22 @@ bool TController::UpdateSituation(double dt)
                             AccDesired = 0.0;
                     }
                     else
-                        AccDesired = fAccThreshold; // hamuj tak średnio
+                        AccDesired = fBrake_a0[0]; // hamuj tak średnio
                 // koniec predkosci aktualnej
-                if (fAccThreshold > -0.3) // bez sensu, ale dla towarowych korzystnie
-                { // Ra 2014-03: to nie uwzględnia odległości i zaczyna hamować, jak tylko zobaczy
-                    // W4
-                    if ((AccDesired > 0.0) &&
-                        (VelNext >= 0.0)) // wybieg bądź lekkie hamowanie, warunki byly zamienione
-                        if (vel > VelNext + 100.0) // lepiej zaczac hamowac
-                            AccDesired = fAccThreshold;
-                        else if (vel > VelNext + 70.0)
-                            AccDesired = 0.0; // nie spiesz się, bo będzie hamowanie
-                    // koniec wybiegu i hamowania
-                }
+#ifdef DEBUGFAC
+				if (fAccThreshold > -0.3) // bez sensu, ale dla towarowych korzystnie
+				{ // Ra 2014-03: to nie uwzględnia odległości i zaczyna hamować, jak tylko zobaczy
+					// W4
+					if ((AccDesired > 0.0) &&
+						(VelNext >= 0.0)) // wybieg bądź lekkie hamowanie, warunki byly zamienione
+						if (vel > VelNext + 100.0) // lepiej zaczac hamowac
+							AccDesired = fAccThreshold;
+						else if (vel > VelNext + 70.0)
+							AccDesired = 0.0; // nie spiesz się, bo będzie hamowanie
+					// koniec wybiegu i hamowania
+				}
+#endif // DEBUGFAC
+
                 if (AIControllFlag)
                 { // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
                     if (mvControlling->ConvOvldFlag ||
@@ -4436,6 +4542,10 @@ bool TController::UpdateSituation(double dt)
                                     SetDriverPsyche();
                             }
                         }
+					if (-AccDesired * BrakeAccFactor() < ((fReady > 0.4)||(VelDesired<vel-40.0) ? fBrake_a0[0] : -fAccThreshold))
+						AccDesired = std::max(-0.06, AccDesired);
+					else
+						ReactionTime = 0.25; // i orientuj się szybciej, jeśli hamujesz
                     if (mvOccupied->BrakeSystem == Pneumatic) // napełnianie uderzeniowe
                         if (mvOccupied->BrakeHandle == FV4a)
                         {
@@ -4466,12 +4576,12 @@ bool TController::UpdateSituation(double dt)
                                 }
                             //        if
                             //        ((mvOccupied->BrakeCtrlPos<0)&&(mvOccupied->BrakePress<0.3))//{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-                            if ((mvOccupied->BrakeCtrlPos < 0) &&
-                                (mvOccupied->EqvtPipePress >
-                                 (fReady < 0.25 ?
-                                      5.1 :
-                                      5.2))) //{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
-                                mvOccupied->IncBrakeLevel();
+							if ((mvOccupied->BrakeCtrlPos < 0) &&
+								(mvOccupied->EqvtPipePress >
+								(fReady < 0.25 ?
+									5.1 :
+									5.2))) //{(CntrlPipePress-(Volume/BrakeVVolume/10)<0.01)})
+								mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
                         }
 #if LOGVELOCITY
                     WriteLog("Dist=" + FloatToStrF(ActualProximityDist, ffFixed, 7, 1) +
@@ -4499,15 +4609,16 @@ bool TController::UpdateSituation(double dt)
                             mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę - może być więcej!
                         else if (OrderList[OrderPos] !=
                                  Disconnect) // przy odłączaniu nie zwalniamy tu hamulca
-                            if ((AccDesired > 0.0) ||
-                                (fAccGravity * fAccGravity <
-                                 0.001)) // luzuj tylko na plaskim lub przy ruszaniu
+                            if (fAccGravity * fAccGravity <
+                                 0.001) // luzuj tylko na plaskim lub przy ruszaniu
                             {
                                 while (DecBrake())
                                     ; // jeśli przyspieszamy, to nie hamujemy
-                                if (mvOccupied->BrakePress > 0.4)
-                                    mvOccupied->BrakeReleaser(
-                                        1); // wyluzuj lokomotywę, to szybciej ruszymy
+								if ((mvOccupied->BrakePress > 0.4) && (mvOccupied->Hamulec->GetCRP() > 4.9))
+									mvOccupied->BrakeReleaser(
+										1); // wyluzuj lokomotywę, to szybciej ruszymy
+								else
+									mvOccupied->BrakeReleaser(0);
                             }
                     // margines dla prędkości jest doliczany tylko jeśli oczekiwana prędkość jest
                     // większa od 5km/h
@@ -4587,7 +4698,7 @@ bool TController::UpdateSituation(double dt)
                         if (((fAccGravity < -0.05) && (vel < 0)) ||
                             ((AccDesired < fAccGravity - 0.1) &&
                              (AbsAccS >
-                              AccDesired + 0.05))) // u góry ustawia się hamowanie na fAccThreshold
+                              AccDesired + fBrake_a1[0]))) // u góry ustawia się hamowanie na fAccThreshold
                             // if not MinVelFlag)
                             if (fBrakeTime < 0 ? true : (AccDesired < fAccGravity - 0.3) ||
                                                      (mvOccupied->BrakeCtrlPos <= 0))
@@ -4607,7 +4718,7 @@ bool TController::UpdateSituation(double dt)
                                     // Ra: ten czas należy zmniejszyć, jeśli czas dojazdu do zatrzymania jest mniejszy
                                     fBrakeTime *= 0.5; // Ra: tymczasowo, bo przeżyna S1
                                 }
-                        if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - 0.2))
+                        if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - fBrake_a1[0]*0.51))
                         // if ((AccDesired<0.0)&&(AbsAccS<AccDesired-0.1)) //ST44 nie hamuje na
                         // czas, 2-4km/h po minięciu tarczy
                         // if (fBrakeTime<0)
@@ -4654,6 +4765,7 @@ bool TController::UpdateSituation(double dt)
                             mvControlling->DecMainCtrl(1);
                         if (mvOccupied->BrakeCtrlPos ==
                             mvOccupied->BrakeCtrlPosNo) // jeśli ostatnia pozycja hamowania
+							//yB: ten warunek wyżej nie ma sensu
                             mvOccupied->DecBrakeLevel(); // to cofnij hamulec
                         else
                             mvControlling->AntiSlippingButton();
@@ -4685,11 +4797,13 @@ bool TController::UpdateSituation(double dt)
             }
             if (AIControllFlag)
             { // odhamowywanie składu po zatrzymaniu i zabezpieczanie lokomotywy
-                if ((OrderList[OrderPos] & (Disconnect | Connect)) ==
-                    0) // przy (p)odłączaniu nie zwalniamy tu hamulca
-                    if ((mvOccupied->V == 0.0) && ((VelDesired == 0.0) || (AccDesired == 0.0)))
-                        if ((mvOccupied->BrakeCtrlPos < 1) || !mvOccupied->DecBrakeLevel())
-                            mvOccupied->IncLocalBrakeLevel(1); // dodatkowy na pozycję 1
+				if ((OrderList[OrderPos] & (Disconnect | Connect)) ==
+					0) // przy (p)odłączaniu nie zwalniamy tu hamulca
+					if ((mvOccupied->V == 0.0) && ((VelDesired == 0.0) || (AccDesired == 0.0)))
+						if (mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos(bh_RP))
+							mvOccupied->IncLocalBrakeLevel(1); // dodatkowy na pozycję 1
+						else
+							mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
             }
             break; // rzeczy robione przy jezdzie
         } // switch (OrderList[OrderPos])
@@ -4705,7 +4819,6 @@ bool TController::UpdateSituation(double dt)
         iStationStart = TrainParams->StationIndex; // zaktualizować wyświetlanie rozkładu
         fLastStopExpDist = -1.0f; // usunąć licznik
     }
-
     if (AIControllFlag)
     {
         if (fWarningDuration > 0.0) // jeśli pozostało coś do wytrąbienia

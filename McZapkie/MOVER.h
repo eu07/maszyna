@@ -1109,6 +1109,8 @@ public:
 	double Adhesive(double staticfriction);
 	double TractionForce(double dt);
 	double FrictionForce(double R, int TDamage);
+	double BrakeForceR(double ratio, double velocity);
+	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);
 	double CouplerForce(int CouplerN, double dt);
 	void CollisionDetect(int CouplerN, double dt);

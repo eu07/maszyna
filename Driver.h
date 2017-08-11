@@ -162,6 +162,7 @@ static const bool Humandriver = false;
 static const int maxorders = 32; // ilość rozkazów w tabelce
 static const int maxdriverfails = 4; // ile błędów może zrobić AI zanim zmieni nastawienie
 extern bool WriteLogFlag; // logowanie parametrów fizycznych
+static const int BrakeAccTableSize = 20;
 //----------------------------------------------------------------------------
 
 class TController
@@ -197,7 +198,13 @@ class TController
     double fDriverDist = 0.0; // dopuszczalna odległość podjechania do przeszkody
     double fVelMax = -1.0; // maksymalna prędkość składu (sprawdzany każdy pojazd)
     double fBrakeDist = 0.0; // przybliżona droga hamowania
+  public:
+	double BrakeAccFactor();
+	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
     double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
+	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
+	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
+	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
   public:
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
