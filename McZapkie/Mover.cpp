@@ -4650,36 +4650,26 @@ double TMoverParameters::TractionForce(double dt)
                     else
                         tmp = 4; // szybkie malenie, powolne wzrastanie
                 }
-                //         if SlippingWheels then begin PosRatio:=0; tmp:=10; SandDoseOn;
-                //         end;//przeciwposlizg
-
-                //         if(Flat)then //PRZECIWPOŚLIZG
                 dmoment = eimv[eimv_Fful];
-                //         else
-                //           dmoment:=eimc[eimc_p_F0]*0.99;
                 // NOTE: the commands to operate the sandbox are likely to conflict with other similar ai decisions
                 // TODO: gather these in single place so they can be resolved together
-                if ((abs((PosRatio + 9.66 * dizel_fill) * dmoment * 100) >
-                     0.95 * Adhesive(RunningTrack.friction) * TotalMassxg))
-                {
+                if( ( std::abs( ( PosRatio + 9.66 * dizel_fill ) * dmoment * 100 ) > 0.95 * Adhesive( RunningTrack.friction ) * TotalMassxg ) ) {
                     PosRatio = 0;
                     tmp = 4;
-                    Sandbox( true, range::local );
                 } // przeciwposlizg
-                if ((abs((PosRatio + 9.80 * dizel_fill) * dmoment * 100) >
-                     0.95 * Adhesive(RunningTrack.friction) * TotalMassxg))
-                {
+                if( ( std::abs( ( PosRatio + 9.80 * dizel_fill ) * dmoment * 100 ) > 0.95 * Adhesive( RunningTrack.friction ) * TotalMassxg ) ) {
+                    PosRatio = 0;
+                    tmp = 9;
+                } // przeciwposlizg
+                if( ( SlippingWheels ) ) {
                     PosRatio = 0;
                     tmp = 9;
                     Sandbox( true, range::local );
                 } // przeciwposlizg
-                if ((SlippingWheels))
-                {
-                    // PosRatio = -PosRatio * 0; // serio -0 ???
-					PosRatio = 0;
-                    tmp = 9;
-                    Sandbox( true, range::local );
-                } // przeciwposlizg
+                else {
+                    // switch sandbox off
+                    Sandbox( false, range::local );
+                }
 
                 dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.1), -0.1) * 2 *
                                  (tmp /*2{+4*byte(PosRatio<dizel_fill)*/) *

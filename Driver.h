@@ -52,12 +52,10 @@ enum TMovementStatus
     moveGuardSignal = 0x8000, // sygnał od kierownika (minął czas postoju)
     moveVisibility = 0x10000, // jazda na widoczność po przejechaniu S1 na SBL
     moveDoorOpened = 0x20000, // drzwi zostały otwarte - doliczyć czas na zamknięcie
-    movePushPull =
-        0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
+    movePushPull = 0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
     moveSemaphorFound = 0x80000, // na drodze skanowania został znaleziony semafor
     moveSemaphorWasElapsed = 0x100000, // minięty został semafor
-    moveTrainInsideStation =
-        0x200000, // pociąg między semaforem a rozjazdami lub następnym semaforem
+    moveTrainInsideStation = 0x200000, // pociąg między semaforem a rozjazdami lub następnym semaforem
     moveSpeedLimitFound = 0x400000 // pociąg w ograniczeniu z podaną jego długością
 };
 

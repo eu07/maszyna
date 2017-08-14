@@ -572,11 +572,13 @@ opengl_renderer::Render_reflections() {
 
     auto const &time = simulation::Time.data();
     auto const timestamp = time.wDay * 60 * 24 + time.wHour * 60 + time.wMinute;
-    if( timestamp - m_environmenttimestamp < 5 ) {
-        // run update every 5+ mins of simulation time
+    if( ( timestamp - m_environmentupdatetime < 5 )
+     && ( glm::length( m_renderpass.camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
+        // run update every 5+ mins of simulation time, or at least 1km from the last location
         return false;
     }
-    m_environmenttimestamp = timestamp;
+    m_environmentupdatetime = timestamp;
+    m_environmentupdatelocation = m_renderpass.camera.position();
 
     ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_environmentframebuffer );
     ::glViewport( 0, 0, EU07_ENVIRONMENTBUFFERSIZE, EU07_ENVIRONMENTBUFFERSIZE );
@@ -655,7 +657,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             auto const lightvector =
                 glm::normalize( glm::vec3{
                               Global::DayLight.direction.x,
-                    std::min( Global::DayLight.direction.y, -0.15f ),
+                    std::min( Global::DayLight.direction.y, -0.2f ),
                               Global::DayLight.direction.z } );
             // ...place the light source at the calculated centre and setup world space light view matrix...
             camera.position() = worldview.camera.position() + glm::dvec3{ frustumchunkcentre };

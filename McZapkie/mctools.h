@@ -63,9 +63,9 @@ inline double BorlandTime()
 std::string Now();
 
 /*funkcje logiczne*/
-bool TestFlag(int Flag,  int Value);
-bool SetFlag( int & Flag,  int Value);
-bool UnSetFlag(int &Flag, int Value);
+inline bool TestFlag( int const Flag, int const Value ) { return ( ( Flag & Value ) == Value ); }
+bool SetFlag( int &Flag,  int const Value);
+bool ClearFlag(int &Flag, int const Value);
 
 bool FuzzyLogic(double Test, double Threshold, double Probability);
 /*jesli Test>Threshold to losowanie*/

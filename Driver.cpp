@@ -1223,42 +1223,49 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 }
                             }
                             else if (sSpeedTable[i].evEvent->StopCommand())
-                        { // jeśli prędkość jest zerowa, a komórka zawiera komendę
-                                eSignNext = sSpeedTable[i].evEvent; // dla informacji
-                                if (iDrivigFlags &
-                                moveStopHere) // jeśli ma stać, dostaje komendę od razu
-                                go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
-                            else if (sSpeedTable[i].fDist <= 20.0) // jeśli ma dociągnąć, to niech
-                                // dociąga (moveStopCloser
-                                // dotyczy dociągania do W4, nie
-                                    // semafora)
-                                go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                            { // jeśli prędkość jest zerowa, a komórka zawiera komendę
+                                eSignNext = sSpeedTable[ i ].evEvent; // dla informacji
+                                if( true == TestFlag( iDrivigFlags, moveStopHere ) ) {
+                                    // jeśli ma stać, dostaje komendę od razu
+                                    go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                                }
+                                else if( sSpeedTable[ i ].fDist <= 20.0 ) {
+                                    // jeśli ma dociągnąć, to niech dociąga
+                                    // (moveStopCloser dotyczy dociągania do W4, nie semafora)
+                                    go = cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                                }
                             }
                 } // jeśli nie ma zawalidrogi
             } // jeśli event
             if (v >= 0.0)
             { // pozycje z prędkością -1 można spokojnie pomijać
                 d = sSpeedTable[i].fDist;
-                if ((sSpeedTable[i].iFlags & spElapsed) ?
-                        false :
-                        d > 0.0) // sygnał lub ograniczenie z przodu (+32=przejechane)
-                { // 2014-02: jeśli stoi, a ma do przejechania kawałek, to niech jedzie
-                    if ((mvOccupied->Vel == 0.0) ?
-                            ((sSpeedTable[i].iFlags &
-                              (spEnabled | spEvent | spPassengerStopPoint)) ==
-                             (spEnabled | spEvent | spPassengerStopPoint)) &&
-                                (d > fMaxProximityDist) :
-                            false)
-                        a = (iDrivigFlags & moveStopCloser) ? fAcc : 0.0; // ma podjechać bliżej -
-                    // czy na pewno w tym
-                    // miejscu taki warunek?
-                    else
-                    {
-                        a = (v * v - mvOccupied->Vel * mvOccupied->Vel) /
-                            (25.92 * d); // przyspieszenie: ujemne, gdy trzeba hamować
-                        if (d < fMinProximityDist) // jak jest już blisko
-                            if (v < fVelDes)
-                                fVelDes = v; // ograniczenie aktualnej prędkości
+                if( ( d > 0.0 )
+                 && ( false == TestFlag( sSpeedTable[ i ].iFlags, spElapsed ) ) ) {
+                    // sygnał lub ograniczenie z przodu (+32=przejechane)
+                    // 2014-02: jeśli stoi, a ma do przejechania kawałek, to niech jedzie
+                    if( ( mvOccupied->Vel == 0.0 )
+                     && ( d > fMaxProximityDist )
+                     && ( true == TestFlag( sSpeedTable[ i ].iFlags, ( spEnabled | spEvent | spPassengerStopPoint ) ) ) ) {
+                        // ma podjechać bliżej - czy na pewno w tym miejscu taki warunek?
+                        a = (
+                            iDrivigFlags & moveStopCloser ?
+                                fAcc :
+                                0.0 );
+                    }
+                    else {
+                        // przyspieszenie: ujemne, gdy trzeba hamować
+                        a = ( v * v - mvOccupied->Vel * mvOccupied->Vel ) / ( 25.92 * d );
+                        if( fBrakeDist > 0.0 ) {
+                            // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
+                            // try to make a smooth transition instead of sharp change
+                            a = interpolate( a, fAcc, clamp( ( d - fBrakeDist ) / fBrakeDist, 0.0, 1.0 ) );
+                        }
+                        if( ( d < fMinProximityDist )
+                         && ( v < fVelDes ) ) {
+                            // jak jest już blisko, ograniczenie aktualnej prędkości
+                            fVelDes = v;
+                        }
                     }
                 }
                 else if (sSpeedTable[i].iFlags & spTrack) // jeśli tor
@@ -4350,12 +4357,12 @@ bool TController::UpdateSituation(double dt)
                 //(AbsAccS) - chwilowe przyspieszenie pojazu (uwzględnia grawitację), ujemne działa
                 // przeciwnie do zadanego kierunku jazdy
                 //(AccDesired) porównujemy z (fAccGravity) albo (AbsAccS)
-                // if ((VelNext>=0.0)&&(ActualProximityDist>=0)&&(mvOccupied->Vel>=VelNext)) //gdy
-                // zbliza sie i jest za szybko do NOWEGO
-                if ((VelNext >= 0.0) && (ActualProximityDist <= scanmax) && (vel >= VelNext))
-                { // gdy zbliża się i jest za szybki do nowej prędkości, albo stoi na zatrzymaniu
-                    if (vel > 0.0)
-                    { // jeśli jedzie
+                if( ( VelNext >= 0.0 )
+                 && ( ActualProximityDist <= scanmax )
+                 && ( vel >= VelNext ) ) {
+                    // gdy zbliża się i jest za szybki do nowej prędkości, albo stoi na zatrzymaniu
+                    if (vel > 0.0) {
+                        // jeśli jedzie
                         if ((vel < VelNext) ?
                                 (ActualProximityDist > fMaxProximityDist * (1 + 0.1 * vel)) :
                                 false) // dojedz do semafora/przeszkody
@@ -4365,21 +4372,17 @@ bool TController::UpdateSituation(double dt)
                                 AccDesired = AccPreferred;
                             // VelDesired:=Min0R(VelDesired,VelReduced+VelNext);
                         }
-                        else if (ActualProximityDist > fMinProximityDist)
-                        { // jedzie szybciej, niż trzeba na końcu ActualProximityDist, ale jeszcze
-                            // jest daleko
-							if (ActualProximityDist <
-								fMaxProximityDist) // jak minął już maksymalny dystans
-							{ // po prostu hamuj (niski stopień) //ma stanąć, a jest w
-							  // drodze hamowania albo ma jechać
-								AccDesired = (VelNext * VelNext - vel * vel) /
-									(25.92 * (ActualProximityDist +
-										0.1 - 0.5*fMinProximityDist)); // hamowanie tak, aby stanąć
+                        else if (ActualProximityDist > fMinProximityDist) {
+                            // jedzie szybciej, niż trzeba na końcu ActualProximityDist, ale jeszcze jest daleko
+							if (ActualProximityDist < fMaxProximityDist) {
+                                // jak minął już maksymalny dystans po prostu hamuj (niski stopień)
+                                // ma stanąć, a jest w drodze hamowania albo ma jechać
+                                // hamowanie tak, aby stanąć
+                                AccDesired = ( VelNext * VelNext - vel * vel ) / ( 25.92 * ( ActualProximityDist + 0.1 - 0.5*fMinProximityDist ) );
 								AccDesired = std::min(AccDesired, fAccThreshold);
-								VelDesired = 0.0; // Min0R(VelDesired,VelNext);
+								VelDesired = 0.0;
 							}
-                            else if ((vel <
-                                VelNext + 20.0)&&(false)) // dwustopniowe hamowanie - niski przy małej różnicy
+                            else if ((vel < VelNext + 20.0)&&(false)) // dwustopniowe hamowanie - niski przy małej różnicy
                             { // jeśli jedzie wolniej niż VelNext+35km/h //Ra: 40, żeby nie
                                 // kombinował na zwrotnicach
                                 if (VelNext == 0.0)
@@ -4431,16 +4434,24 @@ bool TController::UpdateSituation(double dt)
                                     AccDesired = (VelNext * VelNext - vel * vel) /
                                                  (25.92 * ActualProximityDist +
                                                   0.1); // mniejsze opóźnienie przy małej różnicy
-                                    if (ActualProximityDist < fMaxProximityDist)
-                                        ReactionTime = 0.1; // i orientuj się szybciej, jeśli w
-                                    // krytycznym przedziale
+                                    if( ActualProximityDist < fMaxProximityDist ) {
+                                        // i orientuj się szybciej, jeśli w krytycznym przedziale
+                                        ReactionTime = 0.1;
+                                    }
                                 }
                             }
 							else { // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
 								double dist = 0;// (VelNext * VelNext - (VelNext + 20) * (VelNext + 20)) / (25.92)*(-1 / fBrake_a0[0] - 1 / fAccThreshold);
-								AccDesired = (VelNext * VelNext - vel * vel) /
-									(25.92 * std::max(ActualProximityDist - VelNext - dist, std::min(ActualProximityDist, VelNext+dist)) +
-										0.1); // najpierw hamuje mocniej, potem zluzuje
+                                // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
+                                AccDesired =
+                                    ( VelNext * VelNext - vel * vel )
+                                    / ( 25.92
+                                        * std::max(
+                                            ActualProximityDist - VelNext - dist,
+                                            std::min(
+                                                ActualProximityDist,
+                                                VelNext + dist ) )
+                                        + 0.1 ); // najpierw hamuje mocniej, potem zluzuje
 							}
                             if (AccPreferred < AccDesired)
                                 AccDesired = AccPreferred; //(1+abs(AccDesired))
@@ -4451,33 +4462,35 @@ bool TController::UpdateSituation(double dt)
                             // //aby szybkosc hamowania zalezala od przyspieszenia i opoznienia
                             // hamulcow
                         }
-                        else
-                        { // jest bliżej niż fMinProximityDist
-                            VelDesired =
-                                Min0R(VelDesired, VelNext); // utrzymuj predkosc bo juz blisko
-                            if (vel <
-                                VelNext + fVelPlus) // jeśli niewielkie przekroczenie, ale ma jechać
-                                AccDesired = Min0R(0.0, AccPreferred); // to olej (zacznij luzować)
+                        else {
+                            // jest bliżej niż fMinProximityDist
+                            VelDesired = std::min( VelDesired, VelNext ); // utrzymuj predkosc bo juz blisko
+                            if( vel < VelNext + fVelPlus ) {
+                                // jeśli niewielkie przekroczenie, ale ma jechać
+                                AccDesired = std::min( 0.0, AccPreferred ); // to olej (zacznij luzować)
+                            }
                             ReactionTime = 0.1; // i orientuj się szybciej
                         }
                     }
-                    else // zatrzymany (vel==0.0)
-                        // if (iDrivigFlags&moveStopHere) //to nie dotyczy podczepiania
-                        // if ((VelNext>0.0)||(ActualProximityDist>fMaxProximityDist*1.2))
-                        if (VelNext > 0.0)
-							AccDesired = AccPreferred; // można jechać
-						else // jeśli daleko jechać nie można
-                        if (ActualProximityDist >
-								fMaxProximityDist) // ale ma kawałek do sygnalizatora
-                    { // if ((iDrivigFlags&moveStopHere)?false:AccPreferred>0)
-                        if (AccPreferred > 0)
-                            AccDesired = AccPreferred; // dociagnij do semafora;
-                        else
-									VelDesired = 0.0; //,AccDesired=-fabs(fAccGravity); //stoj (hamuj z siłą
-								// równą składowej stycznej grawitacji)
+                    else {
+                        // zatrzymany (vel==0.0)
+                        if( VelNext > 0.0 ) {
+                            // można jechać
+                            AccDesired = AccPreferred;
+                        }
+                        else {
+                            // jeśli daleko jechać nie można
+                            if( ActualProximityDist > fMaxProximityDist ) {
+                                // ale ma kawałek do sygnalizatora
+                                if( AccPreferred > 0 ) { AccDesired = AccPreferred; } // dociagnij do semafora;
+                                else { VelDesired = 0.0; } //stoj
+                            }
+                            else {
+                                // VelNext=0 i stoi bliżej niż fMaxProximityDist
+                                VelDesired = 0.0;
+                            }
+                        }
                     }
-                    else
-								VelDesired = 0.0; // VelNext=0 i stoi bliżej niż fMaxProximityDist
                 }
                 else // gdy jedzie wolniej niż potrzeba, albo nie ma przeszkód na drodze
                     AccDesired = (VelDesired != 0.0 ? AccPreferred : -0.01); // normalna jazda
@@ -4601,48 +4614,68 @@ bool TController::UpdateSituation(double dt)
                         AccDesired = fAccDesiredAv =
                             0.2 * AccDesired +
                             0.8 * fAccDesiredAv; // uśrednione, żeby ograniczyć migotanie
-                    if (VelDesired == 0.0)
-                        if (AccDesired >= -0.01)
-                            AccDesired = -0.01; // Ra 2F1J: jeszcze jedna prowizoryczna łatka
-                    if (AccDesired >= 0.0)
-                        if (iDrivigFlags & movePress)
-                            mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę - może być więcej!
-                        else if (OrderList[OrderPos] !=
-                                 Disconnect) // przy odłączaniu nie zwalniamy tu hamulca
-                            if (fAccGravity * fAccGravity <
-                                 0.001) // luzuj tylko na plaskim lub przy ruszaniu
-                            {
-                                while (DecBrake())
-                                    ; // jeśli przyspieszamy, to nie hamujemy
-								if ((mvOccupied->BrakePress > 0.4) && (mvOccupied->Hamulec->GetCRP() > 4.9))
-									mvOccupied->BrakeReleaser(
-										1); // wyluzuj lokomotywę, to szybciej ruszymy
-								else
-									mvOccupied->BrakeReleaser(0);
+                    if( VelDesired == 0.0 ) {
+                        // Ra 2F1J: jeszcze jedna prowizoryczna łatka
+                        if( AccDesired >= -0.01 ) {
+                            AccDesired = -0.01;
+                        }
+                    }
+                    if( AccDesired >= 0.0 ) {
+                        if( true == TestFlag( iDrivigFlags, movePress ) ) {
+                            // wyluzuj lokomotywę - może być więcej!
+                            mvOccupied->BrakeReleaser( 1 );
+                        }
+                        else if( OrderList[ OrderPos ] != Disconnect ) {
+                            // przy odłączaniu nie zwalniamy tu hamulca
+                            if( ( fAccGravity * fAccGravity < 0.001 ?
+                                true :
+                                AccDesired > 0.0 ) ) {
+                                // on slopes disengage the brakes only if you actually intend to accelerate
+                                while( true == DecBrake() ) { ; } // jeśli przyspieszamy, to nie hamujemy
+                                if( ( mvOccupied->BrakePress > 0.4 )
+                                 && ( mvOccupied->Hamulec->GetCRP() > 4.9 ) ) {
+                                    // wyluzuj lokomotywę, to szybciej ruszymy
+                                    mvOccupied->BrakeReleaser( 1 );
+                                }
+                                else {
+                                    if( mvOccupied->PipePress >= 3.0 ) {
+                                        // TODO: combine all releaser handling in single decision tree instead of having bits all over the place
+                                        mvOccupied->BrakeReleaser( 0 );
+                                    }
+                                }
                             }
-                    // margines dla prędkości jest doliczany tylko jeśli oczekiwana prędkość jest
-                    // większa od 5km/h
-                    if (!(iDrivigFlags & movePress))
-                    { // jeśli nie dociskanie
-                        if (AccDesired < -0.1)
-                            while (DecSpeed())
-                                ; // jeśli hamujemy, to nie przyspieszamy
-                        else if (((fAccGravity < -0.01) ? AccDesired < 0.0 :
-                                                          AbsAccS > AccDesired) ||
-                                 (vel > VelDesired)) // jak za bardzo przyspiesza albo prędkość
-                            // przekroczona
+                        }
+                    }
+                    // margines dla prędkości jest doliczany tylko jeśli oczekiwana prędkość jest większa od 5km/h
+                    if( false == TestFlag( iDrivigFlags, movePress ) ) {
+                        // jeśli nie dociskanie
+                        if( AccDesired < -0.1 ) {
+                            while( true == DecSpeed() ) { ; } // jeśli hamujemy, to nie przyspieszamy
+                        }
+                        else if( ( vel > VelDesired )
+                              || ( fAccGravity < -0.01 ?
+                                      AccDesired < 0.0 :
+                                      AbsAccS > AccDesired ) ) {
+                            // jak za bardzo przyspiesza albo prędkość przekroczona
                             DecSpeed(); // pojedyncze cofnięcie pozycji, bo na zero to przesada
+                        }
                     }
                     // yB: usunięte różne dziwne warunki, oddzielamy część zadającą od wykonawczej
                     // zwiekszanie predkosci
                     // Ra 2F1H: jest konflikt histerezy pomiędzy nastawioną pozycją a uzyskiwanym
                     // przyspieszeniem - utrzymanie pozycji powoduje przekroczenie przyspieszenia
-                    if (AbsAccS <
-                        AccDesired) // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz
-                        if (vel < VelDesired - fVelMinus) // jeśli prędkość w kierunku czoła jest
-                            // mniejsza od dozwolonej o margines
-                            if ((ActualProximityDist > fMaxProximityDist) ? true : (vel < VelNext))
-                                IncSpeed(); // to można przyspieszyć
+                    if( AbsAccS < AccDesired ) {
+                        // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz
+                        if( vel < VelDesired - fVelMinus ) {
+                            // jeśli prędkość w kierunku czoła jest mniejsza od dozwolonej o margines
+                            if( ( ActualProximityDist > fMaxProximityDist ?
+                                    true :
+                                    vel < VelNext ) ) {
+                                // to można przyspieszyć
+                                IncSpeed();
+                            }
+                        }
+                    }
                     // if ((AbsAccS<AccDesired)&&(vel<VelDesired))
                     // if (!MaxVelFlag) //Ra: to nie jest używane
                     // if (!IncSpeed()) //Ra: to tutaj jest bez sensu, bo nie dociągnie do

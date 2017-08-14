@@ -341,7 +341,8 @@ private:
     GLuint m_environmentdepthbuffer { NULL };
     bool m_environmentcubetexturesupport { false }; // indicates whether we can use the dynamic environment cube map
     int m_environmentcubetextureface { NULL }; // helper, currently processed cube map face
-    int m_environmenttimestamp { 0 }; // time of the most recent environment map update
+    int m_environmentupdatetime { 0 }; // time of the most recent environment map update
+    glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 
     int m_helpertextureunit { GL_TEXTURE0 };
     int m_shadowtextureunit { GL_TEXTURE1 };

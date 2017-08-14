@@ -48,40 +48,30 @@ std::string Now() {
     return converter.str();
 }
 
-bool TestFlag(int Flag, int Value)
-{
-    if ((Flag & Value) == Value)
-        return true;
-    else
-        return false;
-}
+bool SetFlag( int &Flag, int const Value ) {
 
-bool SetFlag(int &Flag, int Value) {
-
-    if (Value > 0)
-    {
-        if ((Flag & Value) == 0)
-        {
+    if( Value > 0 ) {
+        if( false == TestFlag( Flag, Value ) ) {
             Flag |= Value;
             return true; // true, gdy było wcześniej 0 i zostało ustawione
         }
     }
-    else if (Value < 0)
-    {
-        Value = abs(Value);
-        if ((Flag & Value) == Value)
-        {
-            Flag &= ~Value; // Value jest ujemne, czyli zerowanie flagi
-            return true; // true, gdy było wcześniej 1 i zostało wyzerowane
-        }
+    else if( Value < 0 ) {
+        // Value jest ujemne, czyli zerowanie flagi
+        return ClearFlag( Flag, -Value );
     }
-	return false;
+    return false;
 }
 
-bool UnSetFlag(int &Flag, int Value)
-{
-	Flag &= ~Value;
-	return true;
+bool ClearFlag( int &Flag, int const Value ) {
+
+    if( true == TestFlag( Flag, Value ) ) {
+        Flag &= ~Value;
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 inline double Random(double a, double b)

@@ -1536,23 +1536,23 @@ TWorld::Update_UI() {
 */
                 if( tmp->Mechanik ) {
                     // o ile jest ktoś w środku
-                    std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
-                    for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
-                        if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
-                            flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
+                    std::string flags = "cpapcplhhndoiefgvdpseil "; // flagi AI (definicja w Driver.h)
+                    for( int i = 0, j = 1; i < 23; ++i, j <<= 1 )
+                        if( false == ( tmp->Mechanik->DrivigFlags() & j ) ) // jak bit ustawiony
+                            flags[ i ] = '.';// std::toupper( flags[ i ] ); // ^= 0x20; // to zmiana na wielką literę
 
                     uitextline4 = flags;
 
                     uitextline4 +=
                         "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
-						+ " ah=" + to_string(tmp->Mechanik->fAccThreshold, 2)
+                        + " Ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+						+ " Ah=" + to_string(tmp->Mechanik->fAccThreshold, 2)
 						+ "@" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
 						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
-                        + " VSm=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
-                        + " VLm=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
+                        + " VSl=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
+                        + " VLl=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
                         + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
 
                     if( ( tmp->Mechanik->VelNext == 0.0 )
