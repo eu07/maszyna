@@ -29,6 +29,7 @@
 #include <strsafe.h>
 #endif
 // stl
+#include <cstddef>
 #include <cstdlib>
 #include <cassert>
 #define _USE_MATH_DEFINES

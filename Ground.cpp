@@ -232,7 +232,7 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
     // NOTE: this method is called for both subcell and cell, but subcells get first created and passed the handle from their parent
     // thus, this effectively only gets executed for the 'parent' ground cells. Not the most elegant, but for now it'll do
-    if( m_geometrybank == NULL ) {
+    if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -439,7 +439,7 @@ TGroundRect::~TGroundRect()
 void
 TGroundRect::Init() {
     // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
-    if( m_geometrybank == NULL ) {
+    if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -1378,9 +1378,9 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         str = token;
         tmp->m_material = GfxRenderer.Fetch_Material( str );
         auto const texturehandle = (
-            tmp->m_material != NULL ?
+            tmp->m_material != null_handle ?
                 GfxRenderer.Material( tmp->m_material ).texture1 :
-                NULL );
+                null_handle );
         auto const &texture = (
             texturehandle ?
                 GfxRenderer.Texture( texturehandle ) :
@@ -1396,7 +1396,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
 
         tmp->iFlags |= 200; // z usuwaniem
         // remainder of legacy 'problend' system -- geometry assigned a texture with '@' in its name is treated as translucent, opaque otherwise
-        if( texturehandle != NULL ) {
+        if( texturehandle != null_handle ) {
             tmp->iFlags |= (
                 ( ( texture.name.find( '@' ) != std::string::npos )
                && ( true == texture.has_alpha ) ) ?

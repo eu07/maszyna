@@ -308,7 +308,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         std::string material = parser.getToken<std::string>();
         if (material == "none")
         { // rysowanie podanym kolorem
-            m_material = NULL;
+            m_material = null_handle;
             iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
         }
         else if (material.find("replacableskin") != material.npos)
@@ -348,7 +348,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             // 2. tekstura ma przezroczystość
             iFlags |=
                 ( ( ( Opacity < 1.0 )
-                 && ( ( m_material != NULL )
+                 && ( ( m_material != null_handle )
                    && ( GfxRenderer.Material( m_material ).has_alpha ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
@@ -1044,7 +1044,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) const {
     if( Child ) {
         Child->serialize_geometry( Output );
     }
-    if( m_geometry != NULL ) {
+    if( m_geometry != null_handle ) {
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
             vertex.serialize( Output );
         }
@@ -1092,7 +1092,7 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
             0x20 :
             0x10 );
 
-    if( m_geometry == NULL ) { return; }
+    if( m_geometry == null_handle ) { return; }
 
     std::size_t vertexcount { 0 };
     std::vector<TGroundVertex> importedvertices;
@@ -1198,7 +1198,7 @@ float TSubModel::MaxY( float4x4 const &m ) {
 
     auto maxy { 0.0f };
     // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
-    if( m_geometry != NULL ) {
+    if( m_geometry != null_handle ) {
 
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
             maxy = std::max(
@@ -1539,7 +1539,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
 	Root = nullptr;
 	float4x4 *tm = nullptr;
-    if( m_geometrybank == NULL ) {
+    if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -1738,7 +1738,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             if( ( iFlags & 0x30 ) == 0 ) {
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
                 iFlags |= (
-                    ( ( m_material != NULL )
+                    ( ( m_material != null_handle )
                    && ( GfxRenderer.Material( m_material ).has_alpha ) ) ?
                         0x20 :
                         0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
@@ -1746,7 +1746,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         }
         else {
             ErrorLog( "Bad model: reference to non-existent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
-            m_material = NULL;
+            m_material = null_handle;
         }
     }
 	else
@@ -1878,7 +1878,7 @@ void TModel3d::Init()
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
-            if( m_geometrybank == NULL ) {
+            if( m_geometrybank == null_handle ) {
                 m_geometrybank = GfxRenderer.Create_Bank();
             }
             std::size_t dataoffset = 0;

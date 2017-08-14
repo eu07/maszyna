@@ -485,7 +485,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         *parser >> str; // railtex
         m_material1 = (
             str == "none" ?
-                NULL :
+                null_handle :
                 GfxRenderer.Fetch_Material( str ) );
         parser->getTokens();
         *parser >> fTexLength; // tex tile length
@@ -495,7 +495,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
         *parser >> str; // sub || railtex
         m_material2 = (
             str == "none" ?
-                NULL :
+                null_handle :
                 GfxRenderer.Fetch_Material( str ) );
         parser->getTokens(3);
         *parser >> fTexHeight1 >> fTexWidth >> fTexSlope;

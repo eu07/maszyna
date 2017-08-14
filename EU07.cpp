@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
     {
         auto const fileversionsize = ::GetFileVersionInfoSize( argv[ 0 ], NULL );
         std::vector<BYTE>fileversiondata; fileversiondata.resize( fileversionsize );
-        if( ::GetFileVersionInfo( argv[ 0 ], NULL, fileversionsize, fileversiondata.data() ) ) {
+        if( ::GetFileVersionInfo( argv[ 0 ], 0, fileversionsize, fileversiondata.data() ) ) {
 
             struct lang_codepage {
                 WORD language;

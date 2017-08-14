@@ -118,9 +118,8 @@ std::string ExchangeCharInString( std::string const &Source, char const &From, c
 {
 	std::string replacement; replacement.reserve( Source.size() );
 	std::for_each(Source.cbegin(), Source.cend(), [&](char const idx) {
-		if( idx != From )    { replacement += idx; }
-		else {
-			if( To != NULL ) { replacement += To; } }
+		if( idx != From ) { replacement += idx; }
+		else              { replacement += To; }
 	} );
 
 	return replacement;

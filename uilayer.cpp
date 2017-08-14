@@ -100,9 +100,9 @@ ui_layer::set_background( std::string const &Filename ) {
         m_background = GfxRenderer.Fetch_Texture( Filename );
     }
     else {
-        m_background = NULL;
+        m_background = null_handle;
     }
-    if( m_background != NULL ) {
+    if( m_background != null_handle ) {
         auto const &texture = GfxRenderer.Texture( m_background );
         m_progressbottom = ( texture.width() != texture.height() );
     }
@@ -235,11 +235,11 @@ ui_layer::render_background() {
 void
 ui_layer::render_texture() {
 
-    if( m_texture != NULL ) {
+    if( m_texture != 0 ) {
         ::glColor4f( 1.f, 1.f, 1.f, 1.f );
         ::glDisable( GL_BLEND );
 
-        GfxRenderer.Bind_Texture( NULL );
+        GfxRenderer.Bind_Texture( null_handle );
         ::glBindTexture( GL_TEXTURE_2D, m_texture );
 
         auto const size = 512.f;
@@ -254,7 +254,7 @@ ui_layer::render_texture() {
 
         glEnd();
 
-        ::glBindTexture( GL_TEXTURE_2D, NULL );
+        ::glBindTexture( GL_TEXTURE_2D, 0 );
 
         ::glEnable( GL_BLEND );
     }

@@ -316,7 +316,7 @@ private:
     texture_manager m_textures;
     opengllight_array m_lights;
 
-    geometry_handle m_billboardgeometry { NULL, NULL };
+    geometry_handle m_billboardgeometry { 0, 0 };
     texture_handle m_glaretexture { -1 };
     texture_handle m_suntexture { -1 };
     texture_handle m_moontexture { -1 };
@@ -325,22 +325,22 @@ private:
     // TODO: refactor framebuffer stuff into an object
     bool m_framebuffersupport { false };
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
-    GLuint m_pickframebuffer { NULL };
-    GLuint m_picktexture { NULL };
-    GLuint m_pickdepthbuffer { NULL };
+    GLuint m_pickframebuffer { 0 };
+    GLuint m_picktexture { 0 };
+    GLuint m_pickdepthbuffer { 0 };
 #endif
     int m_shadowbuffersize { 2048 };
-    GLuint m_shadowframebuffer { NULL };
-    GLuint m_shadowtexture { NULL };
+    GLuint m_shadowframebuffer { 0 };
+    GLuint m_shadowtexture { 0 };
 #ifdef EU07_USE_DEBUG_SHADOWMAP
-    GLuint m_shadowdebugtexture{ NULL };
+    GLuint m_shadowdebugtexture{ 0 };
 #endif
     glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
-    GLuint m_environmentframebuffer { NULL };
-    GLuint m_environmentcubetexture { NULL };
-    GLuint m_environmentdepthbuffer { NULL };
+    GLuint m_environmentframebuffer { 0 };
+    GLuint m_environmentcubetexture { 0 };
+    GLuint m_environmentdepthbuffer { 0 };
     bool m_environmentcubetexturesupport { false }; // indicates whether we can use the dynamic environment cube map
-    int m_environmentcubetextureface { NULL }; // helper, currently processed cube map face
+    int m_environmentcubetextureface { 0 }; // helper, currently processed cube map face
     int m_environmentupdatetime { 0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 

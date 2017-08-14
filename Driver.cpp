@@ -2928,7 +2928,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
         else
             TrainParams->NewName(NewCommand); // czyści tabelkę przystanków
         delete tsGuardSignal;
-        tsGuardSignal = NULL; // wywalenie kierownika
+        tsGuardSignal = nullptr; // wywalenie kierownika
         if (NewCommand != "none")
         {
             if (!TrainParams->LoadTTfile(

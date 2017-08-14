@@ -19,8 +19,8 @@ typedef int material_handle;
 // for legacy opengl this is basically just texture(s) assigned to geometry
 struct opengl_material {
 
-    texture_handle texture1 { NULL }; // primary texture, typically diffuse+apha
-    texture_handle texture2 { NULL }; // secondary texture, typically normal+reflection
+    texture_handle texture1 { null_handle }; // primary texture, typically diffuse+apha
+    texture_handle texture2 { null_handle }; // secondary texture, typically normal+reflection
 
     bool has_alpha { false }; // alpha state, calculated from presence of alpha in texture1
     std::string name;

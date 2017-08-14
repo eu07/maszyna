@@ -217,7 +217,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
         ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
         ::glTexParameteri( GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_LUMINANCE );
-        ::glBindTexture( GL_TEXTURE_2D, NULL );
+        ::glBindTexture( GL_TEXTURE_2D, 0 );
 #ifdef EU07_USE_DEBUG_SHADOWMAP
         ::glGenTextures( 1, &m_shadowdebugtexture );
         ::glBindTexture( GL_TEXTURE_2D, m_shadowdebugtexture );
@@ -1093,7 +1093,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         return false;
     }
 
-    Bind_Material( NULL );
+    Bind_Material( null_handle );
     ::glDisable( GL_LIGHTING );
     ::glDisable( GL_DEPTH_TEST );
     ::glDepthMask( GL_FALSE );
@@ -1690,7 +1690,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
         }
 
         case GL_LINES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == null_handle )
              || ( Node->fLineThickness > 0.0 ) ) {
                 return false;
             }
@@ -1723,7 +1723,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
                 ::glLineWidth( static_cast<float>( linewidth ) );
             }
 
-            GfxRenderer.Bind_Material( NULL );
+            GfxRenderer.Bind_Material( null_handle );
 
             ::glPushMatrix();
             auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
@@ -1751,7 +1751,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
         }
 
         case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == null_handle )
              || ( ( Node->iFlags & 0x10 ) == 0 ) ) {
                 return false;
             }
@@ -2203,7 +2203,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             // material configuration:
                             ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
 
-                            Bind_Material( NULL );
+                            Bind_Material( null_handle );
                             ::glPointSize( std::max( 3.f, 5.f * distancefactor * anglefactor ) );
                             ::glColor4f( Submodel->f4Diffuse[ 0 ], Submodel->f4Diffuse[ 1 ], Submodel->f4Diffuse[ 2 ], lightlevel * anglefactor );
                             ::glDisable( GL_LIGHTING );
@@ -2250,7 +2250,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         // material configuration:
                         ::glPushAttrib( GL_ENABLE_BIT | GL_CURRENT_BIT );
 
-                        Bind_Material( NULL );
+                        Bind_Material( null_handle );
                         ::glDisable( GL_LIGHTING );
 
                         // main draw call
@@ -2266,7 +2266,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                 }
             }
         }
-        if( Submodel->Child != NULL )
+        if( Submodel->Child != nullptr )
             if( Submodel->iAlpha & Submodel->iFlags & 0x001F0000 )
                 Render( Submodel->Child );
 
@@ -2452,7 +2452,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 auto const color { Node->hvTraction->wire_color() };
                 ::glColor4f( color.r, color.g, color.b, linealpha );
 
-                Bind_Material( NULL );
+                Bind_Material( null_handle );
 
                 ::glPushMatrix();
                 auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
@@ -2507,7 +2507,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         }
 
         case GL_LINES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == null_handle )
              || ( Node->fLineThickness < 0.0 ) ) {
                 return false;
             }
@@ -2528,7 +2528,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                 ::glLineWidth( static_cast<float>(linewidth) );
             }
 
-            GfxRenderer.Bind_Material( NULL );
+            GfxRenderer.Bind_Material( null_handle );
 
             ::glPushMatrix();
             auto const originoffset = Node->m_rootposition - m_renderpass.camera.position();
@@ -2546,7 +2546,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
         }
 
         case GL_TRIANGLES: {
-            if( ( Node->Piece->geometry == NULL )
+            if( ( Node->Piece->geometry == null_handle )
              || ( ( Node->iFlags & 0x20 ) == 0 ) ) {
                 return false;
             }
@@ -2852,7 +2852,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
             }
         }
 
-        if( Submodel->Child != NULL ) {
+        if( Submodel->Child != nullptr ) {
             if( Submodel->eType == TP_TEXT ) { // tekst renderujemy w specjalny sposób, zamiast submodeli z łańcucha Child
                 int i, j = (int)Submodel->pasText->size();
                 TSubModel *p;
@@ -2885,7 +2885,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
     if( Submodel->b_aAnim < at_SecondsJump )
         Submodel->b_aAnim = at_None; // wyłączenie animacji dla kolejnego użycia submodelu
 
-    if( Submodel->Next != NULL )
+    if( Submodel->Next != nullptr )
         if( Submodel->iAlpha & Submodel->iFlags & 0x2F000000 )
             Render_Alpha( Submodel->Next );
 };

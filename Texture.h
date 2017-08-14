@@ -78,6 +78,7 @@ private:
 };
 
 typedef int texture_handle;
+int const null_handle = 0;
 
 class texture_manager {
 
@@ -114,8 +115,8 @@ private:
     typedef std::unordered_map<std::string, std::size_t> index_map;
 
     struct texture_unit {
-        GLint unit { NULL };
-        texture_handle texture { NULL }; // current (most recently bound) texture
+        GLint unit { 0 };
+        texture_handle texture { null_handle }; // current (most recently bound) texture
     };
 
 // methods:
@@ -134,7 +135,7 @@ private:
     index_map m_texturemappings;
     garbage_collector<texturetimepointpair_sequence> m_garbagecollector { m_textures, 600, 60, "texture" };
     std::array<texture_unit, 4> m_units;
-    GLint m_activeunit { NULL };
+    GLint m_activeunit { 0 };
 };
 
 // reduces provided data image to half of original size, using basic 2x2 average

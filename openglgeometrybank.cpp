@@ -118,7 +118,7 @@ geometry_bank::vertices( geometry_handle const &Geometry ) const {
 
 // opengl vbo-based variant of the geometry bank
 
-GLuint opengl_vbogeometrybank::m_activebuffer { NULL }; // buffer bound currently on the opengl end, if any
+GLuint opengl_vbogeometrybank::m_activebuffer { 0 }; // buffer bound currently on the opengl end, if any
 unsigned int opengl_vbogeometrybank::m_activestreams { stream::none }; // currently enabled data type pointers
 std::vector<GLint> opengl_vbogeometrybank::m_activetexturearrays; // currently enabled texture coord arrays
 
@@ -151,7 +151,7 @@ opengl_vbogeometrybank::replace_( geometry_handle const &Geometry ) {
 void
 opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams ) {
 
-    if( m_buffer == NULL ) {
+    if( m_buffer == 0 ) {
         // if there's no buffer, we'll have to make one
         // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
         // may be better to initiate upload earlier (during update phase) and trust this effort won't go to waste
@@ -235,14 +235,14 @@ opengl_vbogeometrybank::bind_buffer() {
 void
 opengl_vbogeometrybank::delete_buffer() {
 
-    if( m_buffer != NULL ) {
+    if( m_buffer != 0 ) {
         
         ::glDeleteBuffers( 1, &m_buffer );
         if( m_activebuffer == m_buffer ) {
-            m_activebuffer = NULL;
+            m_activebuffer = 0;
             release_streams();
         }
-        m_buffer = NULL;
+        m_buffer = 0;
         m_buffercapacity = 0;
         // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
         // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice
@@ -423,7 +423,7 @@ geometrybank_manager::append( vertex_array &Vertices, geometry_handle const &Geo
 void
 geometrybank_manager::draw( geometry_handle const &Geometry, unsigned int const Streams ) {
 
-    if( Geometry == NULL ) { return; }
+    if( Geometry == null_handle ) { return; }
 
     auto &bankrecord = bank( Geometry );
 

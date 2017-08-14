@@ -208,7 +208,7 @@ private:
     static GLuint m_activebuffer; // buffer bound currently on the opengl end, if any
     static unsigned int m_activestreams;
     static std::vector<GLint> m_activetexturearrays;
-    GLuint m_buffer { NULL }; // id of the buffer holding data on the opengl end
+    GLuint m_buffer { 0 }; // id of the buffer holding data on the opengl end
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 

@@ -68,8 +68,8 @@ public:
     };
 
 private:
-    int iNext{ NULL };
-    int iChild{ NULL };
+    int iNext{ 0 };
+    int iChild{ 0 };
     int eType{ TP_ROTATOR }; // Ra: modele binarne dają więcej możliwości niż mesh złożony z trójkątów
     int iName{ -1 }; // numer łańcucha z nazwą submodelu, albo -1 gdy anonimowy
 public: // chwilowo
@@ -121,8 +121,8 @@ private:
 
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
-    geometry_handle m_geometry { NULL, NULL }; // geometry of the submodel
-    material_handle m_material { NULL }; // numer tekstury, -1 wymienna, 0 brak
+    geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
+    material_handle m_material { null_handle }; // numer tekstury, -1 wymienna, 0 brak
     bool bWire { false }; // nie używane, ale wczytywane
     float Opacity { 1.0f };
     float f_Angle { 0.0f };
@@ -135,7 +135,7 @@ public: // chwilowo
 	basic_vertex *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
 */
     vertex_array Vertices;
-    size_t iAnimOwner{ NULL }; // roboczy numer egzemplarza, który ustawił animację
+    size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ at_None }; // kody animacji oddzielnie, bo zerowane
 public:
     float4x4 *mAnimMatrix{ nullptr }; // macierz do animacji kwaternionowych (należy do AnimContainer)

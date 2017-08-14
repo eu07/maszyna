@@ -23,7 +23,7 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
     }
 
     has_alpha = (
-        texture1 != NULL ?
+        texture1 != null_handle ?
             GfxRenderer.Texture( texture1 ).has_alpha :
             false );
 
@@ -93,15 +93,15 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         cParser materialparser( disklookup, cParser::buffer_FILE );
         if( false == material.deserialize( materialparser, Loadnow ) ) {
             // deserialization failed but the .mat file does exist, so we give up at this point
-            return NULL;
+            return null_handle;
         }
     }
     else {
         // if there's no .mat file, this could be legacy method of referring just to diffuse texture directly, make a material out of it in such case
         material.texture1 = GfxRenderer.Fetch_Texture( Filename, Loadnow );
-        if( material.texture1 == NULL ) {
+        if( material.texture1 == null_handle ) {
             // if there's also no texture, give up
-            return NULL;
+            return null_handle;
         }
         material.has_alpha = GfxRenderer.Texture( material.texture1 ).has_alpha;
     }

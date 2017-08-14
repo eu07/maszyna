@@ -47,9 +47,9 @@ RGBtoHSV( glm::vec3 const &RGB ) {
         hsv.x = ( RGB.g - RGB.b ) / delta;        // between yellow & magenta
     else
         if( RGB.g >= max )
-            hsv.x = 2.0 + ( RGB.g - RGB.r ) / delta;  // between cyan & yellow
+            hsv.x = 2.f + ( RGB.g - RGB.r ) / delta;  // between cyan & yellow
         else
-            hsv.x = 4.0 + ( RGB.r - RGB.g ) / delta;  // between magenta & cyan
+            hsv.x = 4.f + ( RGB.r - RGB.g ) / delta;  // between magenta & cyan
 
     hsv.x *= 60.0;                              // degrees
 

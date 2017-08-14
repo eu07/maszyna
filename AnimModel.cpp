@@ -447,7 +447,7 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
     else if( asReplacableTexture != "none" ) {
         m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( asReplacableTexture );
     }
-    if( ( m_materialdata.replacable_skins[ 1 ] != NULL )
+    if( ( m_materialdata.replacable_skins[ 1 ] != null_handle )
      && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         m_materialdata.textures_alpha = 0x31310031;

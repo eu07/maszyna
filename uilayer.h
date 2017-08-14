@@ -55,7 +55,7 @@ public:
 	void
         set_background( std::string const &Filename = "" );
     void
-        set_texture( GLuint Texture = NULL ) { m_texture = Texture; }
+        set_texture( GLuint Texture = 0 ) { m_texture = Texture; }
     void
         set_tooltip( std::string const &Tooltip ) { m_tooltip = Tooltip; }
     void
@@ -98,8 +98,8 @@ private:
     std::string m_progresstext; // label placed over the progress bar
     bool m_progressbottom { false }; // location of the progress bar
 
-    texture_handle m_background { NULL }; // path to texture used as the background. size depends on mAspect.
-    GLuint m_texture { NULL };
+    texture_handle m_background { null_handle }; // path to texture used as the background. size depends on mAspect.
+    GLuint m_texture { 0 };
     std::vector<std::shared_ptr<ui_panel> > m_panels;
     std::string m_tooltip;
 };

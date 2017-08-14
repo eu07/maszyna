@@ -367,7 +367,7 @@ class TController
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;
 //    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
-    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
+    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = nullptr);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
     void TablePurger();

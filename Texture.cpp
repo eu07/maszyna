@@ -817,9 +817,9 @@ texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
         return;
     }
     // TBD, TODO: do binding in texture object, add support for other types than 2d
-    if( m_units[ Unit ].unit == NULL ) { return; }
+    if( m_units[ Unit ].unit == 0 ) { return; }
     unit( m_units[ Unit ].unit );
-    if( Texture != NULL ) {
+    if( Texture != null_handle ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
         ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
@@ -830,15 +830,14 @@ texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
         }
         else {
             // TODO: bind a special 'error' texture on failure
-            ::glBindTexture( GL_TEXTURE_2D, NULL );
-            m_units[ Unit ].texture = NULL;
+            ::glBindTexture( GL_TEXTURE_2D, 0 );
+            m_units[ Unit ].texture = 0;
         }
 #endif
     }
     else {
-
-        ::glBindTexture( GL_TEXTURE_2D, NULL );
-        m_units[ Unit ].texture = NULL;
+        ::glBindTexture( GL_TEXTURE_2D, 0 );
+        m_units[ Unit ].texture = 0;
     }
     // all done
     return;
