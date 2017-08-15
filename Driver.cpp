@@ -633,8 +633,8 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                     // jeśli kolejny ma większą prędkość niż poprzedni, to zapamiętać poprzedni (do czasu wyjechania)
                     if( ( ( ( iLast != -1 )
                          && ( TestFlag( sSpeedTable[ iLast ].iFlags, spEnabled | spTrack ) ) ) ?
-                            ( sSpeedTable[ iLast ].trTrack != tLast ) :
-                            true ) ) {
+                              ( sSpeedTable[ iLast ].trTrack != tLast ) :
+                              true ) ) {
                         // jeśli nie był dodany do tabelki
                         if( TableAddNew() ) {
                             // zapisanie toru z ograniczeniem prędkości
@@ -657,13 +657,22 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             if( ( iLast == -1 )
              || ( false == TestFlag( sSpeedTable[iLast].iFlags, spEnabled | spEnd ) ) ) {
                 // only if we haven't already marked end of the track
-                if( TableAddNew() ) {
-                    // zapisanie ostatniego sprawdzonego toru
-                    sSpeedTable[iLast].Set(
-                        tLast, fCurrentDistance,
-                        ( fLastDir < 0 ?
+                if( tLast == sSpeedTable[ iLast ].trTrack ) {
+                    // don't add the same track twice, it messes up distance calculations in speed point update
+                    sSpeedTable[ iLast ].iFlags |= (
+                        fLastDir < 0 ?
                             spEnabled | spEnd | spReverse :
-                            spEnabled | spEnd ));
+                            spEnabled | spEnd );
+                }
+                else {
+                    if( TableAddNew() ) {
+                        // zapisanie ostatniego sprawdzonego toru
+                        sSpeedTable[ iLast ].Set(
+                            tLast, fCurrentDistance,
+                            ( fLastDir < 0 ?
+                                spEnabled | spEnd | spReverse :
+                                spEnabled | spEnd ) );
+                    }
                 }
             }
             // to ostatnia pozycja, bo NULL nic nie da, a może się podpiąć obrotnica, czy jakieś transportery
@@ -691,7 +700,7 @@ void TController::TableCheck(double fDistance)
         vector3 dir = pVehicles[0]->VectorFront() * pVehicles[0]->DirectionGet(); // wektor kierunku jazdy
         vector3 pos = pVehicles[0]->HeadPosition(); // zaczynamy od pozycji pojazdu
         double len = 0.0; // odległość będziemy zliczać narastająco
-        for( int i = 0; i <= iLast; ++i )
+        for( int i = 0; i < iLast; ++i )
         { // aktualizacja rekordów z wyjątkiem ostatniego
             if (sSpeedTable[i].iFlags & spEnabled) // jeśli pozycja istotna
             {
@@ -1283,20 +1292,18 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno
                     // dotyczyć samochodów?)
                     a = (v == 0.0 ? -1.0 : fAcc); // ruszanie albo hamowanie
-                if (a < fAcc && v == Min0R(v, fNext))
-                { // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność
-                    // hamowania
+
+                if ((a < fAcc) && (v == std::min(v, fNext))) {
+                    // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność hamowania
                     // jeśli droga wolna, to może być a>1.0 i się tu nie załapuje
-                    // if (mvOccupied->Vel>10.0)
                     fAcc = a; // zalecane przyspieszenie (nie musi być uwzględniane przez AI)
                     fNext = v; // istotna jest prędkość na końcu tego odcinka
                     fDist = d; // dlugość odcinka
                 }
-                else if ((fAcc > 0) && (v > 0) && (v <= fNext))
-                { // jeśli nie ma wskazań do hamowania, można podać drogę i prędkość na jej końcu
+                else if ((fAcc > 0) && (v > 0) && (v <= fNext)) {
+                    // jeśli nie ma wskazań do hamowania, można podać drogę i prędkość na jej końcu
                     fNext = v; // istotna jest prędkość na końcu tego odcinka
-                    fDist = d; // dlugość odcinka (kolejne pozycje mogą wydłużać drogę, jeśli
-                    // prędkość jest stała)
+                    fDist = d; // dlugość odcinka (kolejne pozycje mogą wydłużać drogę, jeśli prędkość jest stała)
                 }
             } // if (v>=0.0)
             if (fNext >= 0.0)

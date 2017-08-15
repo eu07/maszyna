@@ -314,7 +314,9 @@ void TSubRect::NodeAdd(TGroundNode *Node)
 // przygotowanie sektora do renderowania
 void TSubRect::Sort() {
 
-    assert( tTracks == nullptr );
+    if( tTracks != nullptr ) {
+        SafeDelete( tTracks );
+    }
     if( iTracks > 0 ) {
         tTracks = new TTrack *[ iTracks ]; // tworzenie tabeli torów do renderowania pojazdów
         int i = 0;
