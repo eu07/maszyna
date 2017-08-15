@@ -659,22 +659,13 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             if( ( iLast == -1 )
              || ( false == TestFlag( sSpeedTable[iLast].iFlags, spEnabled | spEnd ) ) ) {
                 // only if we haven't already marked end of the track
-                if( tLast == sSpeedTable[ iLast ].trTrack ) {
-                    // don't add the same track twice, it messes up distance calculations in speed point update
-                    sSpeedTable[ iLast ].iFlags |= (
-                        fLastDir < 0 ?
+                if( TableAddNew() ) {
+                    // zapisanie ostatniego sprawdzonego toru
+                    sSpeedTable[iLast].Set(
+                        tLast, fCurrentDistance,
+                        ( fLastDir < 0 ?
                             spEnabled | spEnd | spReverse :
-                            spEnabled | spEnd );
-                }
-                else {
-                    if( TableAddNew() ) {
-                        // zapisanie ostatniego sprawdzonego toru
-                        sSpeedTable[ iLast ].Set(
-                            tLast, fCurrentDistance,
-                            ( fLastDir < 0 ?
-                                spEnabled | spEnd | spReverse :
-                                spEnabled | spEnd ) );
-                    }
+                            spEnabled | spEnd ));
                 }
             }
             // to ostatnia pozycja, bo NULL nic nie da, a może się podpiąć obrotnica, czy jakieś transportery
