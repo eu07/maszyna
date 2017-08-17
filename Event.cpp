@@ -223,7 +223,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         parser->getTokens(1, false); // case sensitive
         *parser >> token;
         // str = AnsiString(token.c_str());
-        Params[0].asText = new char[token.length() + 1];
+        Params[0].asText = new char[token.length() + 1]; // BUG: source of memory leak
         strcpy(Params[0].asText, token.c_str());
         if (token != "*") // czy ma zostać bez zmian?
             iFlags |= update_memstring;

@@ -27,7 +27,7 @@ public:
     bool
         key( int const Key, int const Action );
     void
-        mouse( double const Mousex, double const Mousey );
+        poll() {}
 
 private:
 // types

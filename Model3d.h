@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "VBO.h"
-#include "Texture.h"
+#include "material.h"
 
 using namespace Math3D;
 
@@ -51,6 +51,7 @@ enum TAnimType // rodzaj animacji
 };
 
 class TModel3d;
+class TGroundNode;
 
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
@@ -68,8 +69,8 @@ public:
     };
 
 private:
-    int iNext{ NULL };
-    int iChild{ NULL };
+    int iNext{ 0 };
+    int iChild{ 0 };
     int eType{ TP_ROTATOR }; // Ra: modele binarne dają więcej możliwości niż mesh złożony z trójkątów
     int iName{ -1 }; // numer łańcucha z nazwą submodelu, albo -1 gdy anonimowy
 public: // chwilowo
@@ -122,7 +123,7 @@ private:
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
     geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
-    texture_handle TextureID { NULL }; // numer tekstury, -1 wymienna, 0 brak
+    material_handle m_material { null_handle }; // numer tekstury, -1 wymienna, 0 brak
     bool bWire { false }; // nie używane, ale wczytywane
     float Opacity { 1.0f };
     float f_Angle { 0.0f };
@@ -135,7 +136,7 @@ public: // chwilowo
 	basic_vertex *Vertices; // roboczy wskaźnik - wczytanie T3D do VBO
 */
     vertex_array Vertices;
-    size_t iAnimOwner{ NULL }; // roboczy numer egzemplarza, który ustawił animację
+    size_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ at_None }; // kody animacji oddzielnie, bo zerowane
 public:
     float4x4 *mAnimMatrix{ nullptr }; // macierz do animacji kwaternionowych (należy do AnimContainer)
@@ -143,15 +144,16 @@ public:
     TSubModel **smLetter{ nullptr }; // wskaźnik na tablicę submdeli do generoania tekstu (docelowo zapisać do E3D)
     TSubModel *Parent{ nullptr }; // nadrzędny, np. do wymnażania macierzy
     int iVisible{ 1 }; // roboczy stan widoczności
-	std::string pTexture; // robocza nazwa tekstury do zapisania w pliku binarnym
+	std::string m_materialname; // robocza nazwa tekstury do zapisania w pliku binarnym
 	std::string pName; // robocza nazwa
 private:
 	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, vertex_array const &Vertices );
+	void RaAnimation(TAnimType a);
 	void RaAnimation(glm::mat4 &m, TAnimType a);
 
 public:
 	static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
-	static texture_handle const *ReplacableSkinId;
+	static material_handle const *ReplacableSkinId;
 	static int iAlpha; // maska bitowa dla danego przebiegu
 	static double fSquareDist;
 	static TModel3d *pRoot;
@@ -162,7 +164,7 @@ public:
 	void NextAdd(TSubModel *SubModel);
 	TSubModel * NextGet() { return Next; };
 	TSubModel * ChildGet() { return Child; };
-	int TriangleAdd(TModel3d *m, texture_handle tex, int tri);
+	int TriangleAdd(TModel3d *m, material_handle tex, int tri);
 /*
 	basic_vertex * TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
 */
@@ -186,13 +188,13 @@ public:
 	};
 	void InitialRotate(bool doit);
 	void BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, std::vector<std::string> *n, bool dynamic);
-	void ReplacableSet(texture_handle const *r, int a)
+	void ReplacableSet(material_handle const *r, int a)
 	{
 		ReplacableSkinId = r;
 		iAlpha = a;
 	};
-	void TextureNameSet( std::string const &Name );
-	void NameSet( std::string const &Name );
+	void Name_Material( std::string const &Name );
+	void Name( std::string const &Name );
 	// Ra: funkcje do budowania terenu z E3D
 	int Flags() { return iFlags; };
 	void UnFlagNext() { iFlags &= 0x00FFFFFF; };
@@ -203,8 +205,8 @@ public:
 		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector; }
 	inline float3 Translation2Get() {
 		return *(fMatrix->TranslationGet()) + Child->Translation1Get(); }
-	int GetTextureId() {
-		return TextureID; }
+    material_handle GetMaterial() {
+		return m_material; }
 	void ParentMatrix(float4x4 *m);
 	float MaxY( float4x4 const &m );
 	void AdjustDist();
@@ -215,7 +217,9 @@ public:
 		std::vector<std::string>&,
 		std::vector<std::string>&,
 		std::vector<float4x4>&);
-    void serialize_geometry( std::ostream &Output );
+    void serialize_geometry( std::ostream &Output ) const;
+    // places contained geometry in provided ground node
+    void convert( TGroundNode &Groundnode ) const;
 
 };
 

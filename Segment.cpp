@@ -19,10 +19,6 @@ http://mozilla.org/MPL/2.0/.
 
 // 101206 Ra: trapezoidalne drogi
 // 110806 Ra: odwrócone mapowanie wzdłuż - Point1 == 1.0
-std::string Where(vector3 p)
-{ // zamiana współrzędnych na tekst, używana w błędach
-    return std::to_string(p.x) + " " + std::to_string(p.y) + " " + std::to_string(p.z);
-};
 
 TSegment::TSegment(TTrack *owner) :
     pOwner( owner )
@@ -112,7 +108,7 @@ bool TSegment::Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointI
     fStep = fNewStep;
     if (fLength <= 0)
     {
-        ErrorLog( "Bad geometry (zero length) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
+        ErrorLog( "Bad geometry: zero length spline \"" + pOwner->NameGet() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
         // MessageBox(0,"Length<=0","TSegment::Init",MB_OK);
         fLength = 0.01; // crude workaround TODO: fix this properly
 /*
@@ -215,7 +211,7 @@ double TSegment::GetTFromS(double s)
     // Newton's method failed.  If this happens, increase iterations or
     // tolerance or integration accuracy.
     // return -1; //Ra: tu nigdy nie dojdzie
-    ErrorLog( "Bad geometry (shape estimation failed) for spline \"" + pOwner->NameGet() + "\" at " + Where( Point1 ) );
+    ErrorLog( "Bad geometry: shape estimation failed for spline \"" + pOwner->NameGet() + "\" (location: " + to_string( glm::dvec3{ Point1 } ) + ")" );
 	// MessageBox(0,"Too many iterations","GetTFromS",MB_OK);
 	return fTime;
 };
@@ -458,7 +454,7 @@ bool TSegment::RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, 
 void TSegment::Render()
 {
     vector3 pt;
-    GfxRenderer.Bind(0);
+    GfxRenderer.Bind_Material( null_handle );
 
     if (bCurve)
     {

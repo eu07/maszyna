@@ -57,9 +57,7 @@ class TCamera
     void OnCommand( command_data const &Command );
     void Update();
     vector3 GetDirection();
-    bool SetMatrix();
     bool SetMatrix(glm::dmat4 &Matrix);
-    void SetCabMatrix( vector3 &p );
     void RaLook();
     void Stop();
     // bool GetMatrix(matrix4x4 &Matrix);

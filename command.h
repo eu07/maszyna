@@ -120,10 +120,21 @@ const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */
-    batterytoggle
+    generictoggle0,
+    generictoggle1,
+    generictoggle2,
+    generictoggle3,
+    generictoggle4,
+    generictoggle5,
+    generictoggle6,
+    generictoggle7,
+    generictoggle8,
+    generictoggle9,
+    batterytoggle,
 /*
 const int k_WalkMode = 73;
 */
+    none = -1
 };
 
 enum class command_target {
@@ -147,8 +158,6 @@ struct command_description {
     std::string name;
     command_target target;
 };
-
-typedef std::vector<command_description> commanddescription_sequence;
 
 struct command_data {
 
@@ -186,6 +195,8 @@ private:
 // NOTE: simulation should be a (light) wrapper rather than namespace so we could potentially instance it,
 //       but realistically it's not like we're going to run more than one simulation at a time
 namespace simulation {
+
+typedef std::vector<command_description> commanddescription_sequence;
 
 extern command_queue Commands;
 // TODO: add name to command map, and wrap these two into helper object

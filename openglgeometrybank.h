@@ -25,8 +25,8 @@ struct basic_vertex {
     glm::vec2 texture; // uv space
 
     basic_vertex() = default;
-    basic_vertex( glm::vec3 const&Position, glm::vec3 const &Normal, glm::vec2 const &Texture ) :
-                        position( Position ),        normal( Normal ),       texture( Texture )
+    basic_vertex( glm::vec3 const &Position, glm::vec3 const &Normal, glm::vec2 const &Texture ) :
+                         position( Position ),        normal( Normal ),       texture( Texture )
     {}
     void serialize( std::ostream& ) const;
     void deserialize( std::istream& );
@@ -42,7 +42,12 @@ enum stream {
 };
 
 unsigned int const basic_streams { stream::position | stream::normal | stream::texture };
-unsigned int const color_streams{ stream::position | stream::color | stream::texture };
+unsigned int const color_streams { stream::position | stream::color | stream::texture };
+
+struct stream_units {
+
+    std::vector<GLint> texture { GL_TEXTURE0 }; // unit associated with main texture data stream. TODO: allow multiple units per stream
+};
 
 typedef std::vector<basic_vertex> vertex_array;
 
@@ -98,11 +103,11 @@ public:
         append( vertex_array &Vertices, geometry_handle const &Geometry );
     // draws geometry stored in specified chunk
     void
-        draw( geometry_handle const &Geometry, unsigned int const Streams = basic_streams );
+        draw( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams = basic_streams );
     // draws geometry stored in supplied list of chunks
     template <typename Iterator_>
     void
-        draw( Iterator_ First, Iterator_ Last, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Streams ); ++First; } }
+        draw( Iterator_ First, Iterator_ Last, stream_units const &Units, unsigned int const Streams = basic_streams ) { while( First != Last ) { draw( *First, Units, Streams ); ++First; } }
     // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
     void
         release();
@@ -145,7 +150,7 @@ private:
     // replace() subclass details
     virtual void replace_( geometry_handle const &Geometry ) = 0;
     // draw() subclass details
-    virtual void draw_( geometry_handle const &Geometry, unsigned int const Streams ) = 0;
+    virtual void draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams ) = 0;
     // resource release subclass details
     virtual void release_() = 0;
 };
@@ -186,8 +191,8 @@ private:
         replace_( geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( geometry_handle const &Geometry, unsigned int const Streams );
-    // release () subclass details
+        draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams );
+    // release() subclass details
     void
         release_();
     void
@@ -195,13 +200,15 @@ private:
     void
         delete_buffer();
     void
-        bind_streams( unsigned int const Streams );
+        bind_streams( stream_units const &Units, unsigned int const Streams );
+    void
+        release_streams();
 
 // members:
     static GLuint m_activebuffer; // buffer bound currently on the opengl end, if any
     static unsigned int m_activestreams;
-    GLuint m_buffer { NULL }; // id of the buffer holding data on the opengl end
-	GLuint m_vao = 0;
+    static std::vector<GLint> m_activetexturearrays;
+    GLuint m_buffer { 0 }; // id of the buffer holding data on the opengl end
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 
@@ -237,7 +244,7 @@ private:
         replace_( geometry_handle const &Geometry );
     // draw() subclass details
     void
-        draw_( geometry_handle const &Geometry, unsigned int const Streams );
+        draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams );
     // release () subclass details
     void
         release_();
@@ -283,6 +290,9 @@ public:
     // provides direct access to vertex data of specfied chunk
     vertex_array const &
         vertices( geometry_handle const &Geometry ) const;
+    // sets target texture unit for the texture data stream
+    stream_units &
+        units() { return m_units; }
 
 private:
 // types:
@@ -295,6 +305,7 @@ private:
     // members:
     geometrybanktimepointpair_sequence m_geometrybanks;
     garbage_collector<geometrybanktimepointpair_sequence> m_garbagecollector { m_geometrybanks, 60, 120, "geometry buffer" };
+    stream_units m_units;
 
 // methods
     inline

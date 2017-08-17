@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Model3d.h"
-#include "Texture.h"
+#include "material.h"
 #include "DynObj.h"
 
 const int iMaxNumLights = 8;
@@ -144,7 +144,7 @@ class TAnimModel {
     material_data m_materialdata;
 
     std::string asText; // tekst dla wyświetlacza znakowego
-    TAnimAdvanced *pAdvanced;
+    TAnimAdvanced *pAdvanced { nullptr };
     void Advanced();
     TLightState lsLights[iMaxNumLights];
     float fDark; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
@@ -164,8 +164,10 @@ class TAnimModel {
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(char *pName);
     TAnimContainer * GetContainer(char *pName);
+#ifdef EU07_USE_OLD_RENDERCODE
     void Render( vector3 const &Position );
     void RenderAlpha( vector3 const &Position );
+#endif
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {

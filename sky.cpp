@@ -9,24 +9,22 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "sky.h"
-#include "Logs.h"
 #include "Globals.h"
 #include "MdlMngr.h"
 
 //---------------------------------------------------------------------------
-GLfloat lightPos[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+//GLfloat lightPos[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
-TSky::~TSky(){};
+void TSky::Init() {
 
-TSky::TSky(){};
+    if( ( Global::asSky != "1" )
+     && ( Global::asSky != "0" ) ) {
 
-void TSky::Init()
-{
-    WriteLog( "Clouds init" );
-    if ((Global::asSky != "1") && (Global::asSky != "0"))
         mdCloud = TModelsManager::GetModel( Global::asSky );
+    }
 };
 
+#ifdef EU07_USE_OLD_RENDERCODE
 void TSky::Render( glm::vec3 const &Tint )
 {
     if (mdCloud)
@@ -45,5 +43,6 @@ void TSky::Render( glm::vec3 const &Tint )
         ::glDisable( GL_LIGHTING );
     }
 };
+#endif
 
 //---------------------------------------------------------------------------

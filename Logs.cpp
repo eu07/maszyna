@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 std::ofstream output; // standardowy "log.txt", można go wyłączyć
 std::ofstream errors; // lista błędów "errors.txt", zawsze działa
 std::ofstream comms; // lista komunikatow "comms.txt", można go wyłączyć
+char logbuffer[ 256 ];
 
 char endstring[10] = "\n";
 
@@ -37,8 +38,9 @@ std::string filename_date() {
     ::GetLocalTime( &st );
 #endif
 
-    char buffer[ 256 ];
-    sprintf( buffer,
+    std::snprintf(
+        logbuffer,
+        sizeof(logbuffer),
         "%d%02d%02d_%02d%02d",
         st.wYear,
         st.wMonth,
@@ -46,7 +48,7 @@ std::string filename_date() {
         st.wHour,
         st.wMinute );
 
-    return std::string( buffer );
+    return std::string( logbuffer );
 }
 
 std::string filename_scenery() {
@@ -60,14 +62,12 @@ std::string filename_scenery() {
     }
 }
 
-void WriteConsoleOnly(const char *str, double value)
-{
+void WriteConsoleOnly(const char *str, double value) {
 #ifdef _WIN32
-    char buf[255];
-    sprintf(buf, "%s %f \n", str, value);
+    std::snprintf(logbuffer , sizeof(logbuffer), "%s %f \n", str, value);
     // stdout=  GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD wr = 0;
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), buf, (DWORD)strlen(buf), &wr, NULL);
+    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), logbuffer, (DWORD)strlen(logbuffer), &wr, NULL);
     // WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE),endstring,strlen(endstring),&wr,NULL);
 #endif
 }
@@ -85,18 +85,16 @@ void WriteConsoleOnly(const char *str, bool newline)
 #endif
 }
 
-void WriteLog(const char *str, double value)
-{
-    if (Global::iWriteLogEnabled)
-    {
-        if (str)
-        {
-            char buf[255];
-            sprintf(buf, "%s %f", str, value);
-            WriteLog(buf);
+void WriteLog(const char *str, double value) {
+
+    if (Global::iWriteLogEnabled) {
+        if (str) {
+            std::snprintf(logbuffer, sizeof(logbuffer), "%s %f", str, value);
+            WriteLog(logbuffer);
         }
     }
 };
+
 void WriteLog(const char *str, bool newline)
 {
     if (str)

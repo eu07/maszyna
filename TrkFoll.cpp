@@ -114,7 +114,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         { // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
             if (fDistance < 0)
             {
-                if (iSetFlag(iEventFlag, -1)) // zawsze zeruje flagę sprawdzenia, jak mechanik
+                if (SetFlag(iEventFlag, -1)) // zawsze zeruje flagę sprawdzenia, jak mechanik
                     // dosiądzie, to się nie wykona
                     if (Owner->Mechanik && Owner->Mechanik->Primary()) // tylko dla jednego członu
                         // if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla
@@ -126,7 +126,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 // if (TestFlag(iEventallFlag,1))
-                if (iSetFlag(iEventallFlag,
+                if (SetFlag(iEventallFlag,
                              -1)) // McZapkie-280503: wyzwalanie eventall dla wszystkich pojazdow
                     if (bPrimary && pCurrentTrack->evEventall1 &&
                         (!pCurrentTrack->evEventall1->iQueued))
@@ -136,7 +136,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             }
             else if (fDistance > 0)
             {
-                if (iSetFlag(iEventFlag, -2)) // zawsze ustawia flagę sprawdzenia, jak mechanik
+                if (SetFlag(iEventFlag, -2)) // zawsze ustawia flagę sprawdzenia, jak mechanik
                     // dosiądzie, to się nie wykona
                     if (Owner->Mechanik && Owner->Mechanik->Primary()) // tylko dla jednego członu
                         // if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym
@@ -147,7 +147,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 // Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 // if (TestFlag(iEventallFlag,2))
-                if (iSetFlag(iEventallFlag,
+                if (SetFlag(iEventallFlag,
                              -2)) // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
                     if (bPrimary && pCurrentTrack->evEventall2 &&
                         (!pCurrentTrack->evEventall2->iQueued))

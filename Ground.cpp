@@ -51,9 +51,6 @@ extern "C"
 bool bCondition; // McZapkie: do testowania warunku na event multiple
 std::string LogComment;
 
-// TODO: switch to the new unified code after we have in place merging of individual triangle nodes into material-based soups
-#define EU07_USE_OLD_RENDERCODE
-
 //---------------------------------------------------------------------------
 // Obiekt renderujący siatkę jest sztucznie tworzonym obiektem pomocniczym,
 // grupującym siatki obiektów dla danej tekstury. Obiektami składowymi mogą
@@ -72,7 +69,7 @@ TGroundNode::TGroundNode()
     nNext = nNext2 = NULL;
     iCount = 0; // wierzchołków w trójkącie
     // iNumPts=0; //punktów w linii
-    TextureID = 0;
+    m_material = 0;
     iFlags = 0; // tryb przezroczystości nie zbadany
     Pointer = NULL; // zerowanie wskaźnika kontekstowego
     bVisible = false; // czy widoczny
@@ -158,73 +155,30 @@ TGroundNode::TGroundNode( TGroundNodeType t ) :
     }
 }
 
-void TGroundNode::InitNormals()
-{ // obliczenie wektorów normalnych
-    glm::dvec3 v1, v2, v3, v4, v5;
-    glm::vec3 n1, n2, n3, n4;
+// obliczenie wektorów normalnych
+void TGroundNode::InitNormals() {
+
+    glm::dvec3 v1, v2;
+    glm::vec3 n1;
     glm::vec2 t1;
-    int i;
-    switch (iType)
-    {
-    case GL_TRIANGLE_STRIP:
-        v1 = Piece->vertices[0].position - Piece->vertices[1].position;
-        v2 = Piece->vertices[1].position - Piece->vertices[2].position;
-        n1 = glm::normalize(glm::cross(v1, v2));
-        if (Piece->vertices[0].normal == glm::vec3())
-            Piece->vertices[0].normal = n1;
-        v3 = Piece->vertices[2].position - Piece->vertices[3].position;
-        n2 = glm::normalize(glm::cross(v3, v2));
-        if (Piece->vertices[1].normal == glm::vec3())
-            Piece->vertices[1].normal = (n1 + n2) * 0.5f;
 
-        for ( i = 2; i < iNumVerts - 2; i += 2)
-        {
-            v4 = Piece->vertices[i - 1].position - Piece->vertices[i].position;
-            v5 = Piece->vertices[i].position - Piece->vertices[i + 1].position;
-            n3 = glm::normalize(glm::cross(v3, v4));
-            n4 = glm::normalize(glm::cross(v5, v4));
-            if (Piece->vertices[i].normal == glm::vec3())
-                Piece->vertices[i].normal = (n1 + n2 + n3) / 3.0f;
-            if (Piece->vertices[i + 1].normal == glm::vec3())
-                Piece->vertices[i + 1].normal = (n2 + n3 + n4) / 3.0f;
-            n1 = n3;
-            n2 = n4;
-            v3 = v5;
-        }
-        if (Piece->vertices[i].normal == glm::vec3())
-            Piece->vertices[i].normal = (n1 + n2) / 2.0f;
-		if (i + 1 < iNumVerts)
-		{
-			if (Piece->vertices[i + 1].normal == glm::vec3())
-				Piece->vertices[i + 1].normal = n2;
-		}
-		else
-			WriteLog("odd number of vertices, normals may be wrong!");
+    for( auto i = 0; i < iNumVerts; i += 3 ) {
 
-        break;
-    case GL_TRIANGLE_FAN:
-
-        break;
-    case GL_TRIANGLES:
-        for (i = 0; i < iNumVerts; i += 3)
-        {
-            v1 = Piece->vertices[i + 0].position - Piece->vertices[i + 1].position;
-            v2 = Piece->vertices[i + 1].position - Piece->vertices[i + 2].position;
-            n1 = glm::normalize(glm::cross(v1, v2));
-            if( Piece->vertices[i + 0].normal == glm::vec3() )
-                Piece->vertices[i + 0].normal = (n1);
-            if( Piece->vertices[i + 1].normal == glm::vec3() )
-                Piece->vertices[i + 1].normal = (n1);
-            if( Piece->vertices[i + 2].normal == glm::vec3() )
-                Piece->vertices[i + 2].normal = (n1);
-            t1 = glm::vec2(
-                std::floor( Piece->vertices[ i + 0 ].texture.s ),
-                std::floor( Piece->vertices[ i + 0 ].texture.t ) );
-            Piece->vertices[ i + 1 ].texture -= t1;
-            Piece->vertices[ i + 2 ].texture -= t1;
-            Piece->vertices[ i + 0 ].texture -= t1;
-        }
-        break;
+        v1 = Piece->vertices[ i + 0 ].position - Piece->vertices[ i + 1 ].position;
+        v2 = Piece->vertices[ i + 1 ].position - Piece->vertices[ i + 2 ].position;
+        n1 = glm::normalize( glm::cross( v1, v2 ) );
+        if( Piece->vertices[ i + 0 ].normal == glm::vec3() )
+            Piece->vertices[ i + 0 ].normal = ( n1 );
+        if( Piece->vertices[ i + 1 ].normal == glm::vec3() )
+            Piece->vertices[ i + 1 ].normal = ( n1 );
+        if( Piece->vertices[ i + 2 ].normal == glm::vec3() )
+            Piece->vertices[ i + 2 ].normal = ( n1 );
+        t1 = glm::vec2(
+            std::floor( Piece->vertices[ i + 0 ].texture.s ),
+            std::floor( Piece->vertices[ i + 0 ].texture.t ) );
+        Piece->vertices[ i + 1 ].texture -= t1;
+        Piece->vertices[ i + 2 ].texture -= t1;
+        Piece->vertices[ i + 0 ].texture -= t1;
     }
 }
 
@@ -273,7 +227,7 @@ void TSubRect::NodeAdd(TGroundNode *Node)
     // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
     // NOTE: this method is called for both subcell and cell, but subcells get first created and passed the handle from their parent
     // thus, this effectively only gets executed for the 'parent' ground cells. Not the most elegant, but for now it'll do
-    if( m_geometrybank == 0 ) {
+    if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -355,7 +309,9 @@ void TSubRect::NodeAdd(TGroundNode *Node)
 // przygotowanie sektora do renderowania
 void TSubRect::Sort() {
 
-    assert( tTracks == nullptr );
+    if( tTracks != nullptr ) {
+        SafeDelete( tTracks );
+    }
     if( iTracks > 0 ) {
         tTracks = new TTrack *[ iTracks ]; // tworzenie tabeli torów do renderowania pojazdów
         int i = 0;
@@ -481,7 +437,7 @@ TGroundRect::~TGroundRect()
 void
 TGroundRect::Init() {
     // since ground rectangle can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
-    if( m_geometrybank == 0 ) {
+    if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -552,7 +508,7 @@ TGroundRect::mergeable( TGroundNode const &Left, TGroundNode const &Right ) {
     // since view ranges and transparency type for all nodes put through this method are guaranteed to be equal,
     // we can skip their tests and only do the material check.
     // TODO, TBD: material as dedicated type, and refactor this method into a simple equality test
-    return ( ( Left.TextureID == Right.TextureID )
+    return ( ( Left.m_material == Right.m_material )
           && ( Left.Ambient == Right.Ambient )
           && ( Left.Diffuse == Right.Diffuse )
           && ( Left.Specular == Right.Specular ) );
@@ -690,6 +646,57 @@ TGroundNode * TGround::FindGroundNode(std::string asNameToFind, TGroundNodeType 
     return NULL;
 }
 
+TGroundRect *
+TGround::GetRect( double x, double z ) {
+
+    auto const column = GetColFromX( x ) / iNumSubRects;
+    auto const row = GetRowFromZ( z ) / iNumSubRects;
+
+    if( ( column >= 0 ) && ( column < iNumRects )
+     && ( row    >= 0 ) && ( row    < iNumRects ) ) {
+        return &Rects[ column ][ row ];
+    }
+    else {
+        return nullptr;
+    }
+};
+
+// convert tp_terrain model to a series of triangle nodes
+void
+TGround::convert_terrain( TGroundNode const *Terrain ) {
+
+    TSubModel *submodel { nullptr };
+    for( auto cellindex = 1; cellindex < Terrain->iCount; ++cellindex ) {
+        // go through all submodels for individual terrain cells...
+        submodel = Terrain->nNode[ cellindex ].smTerrain;
+        convert_terrain( submodel );
+        // if there's more than one group of triangles in the cell they're held as children of the primary submodel
+        submodel = submodel->ChildGet();
+        while( submodel != nullptr ) {
+            convert_terrain( submodel );
+            submodel = submodel->NextGet();
+        }
+    }
+}
+
+void
+TGround::convert_terrain( TSubModel const *Submodel ) {
+
+    auto groundnode = new TGroundNode( GL_TRIANGLES );
+    Submodel->convert( *groundnode );
+
+    if( groundnode->iNumVerts > 0 ) {
+    // jeśli nie jest pojazdem ostatni dodany dołączamy na końcu nowego
+        groundnode->nNext = nRootOfType[ groundnode->iType ];
+        // ustawienie nowego na początku listy
+        nRootOfType[ groundnode->iType ] = groundnode;
+        ++iNumNodes;
+    }
+    else {
+        delete groundnode;
+    }
+}
+
 double fTrainSetVel = 0;
 double fTrainSetDir = 0;
 double fTrainSetDist = 0; // odległość składu od punktu 1 w stronę punktu 2
@@ -769,7 +776,7 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     TGroundNode *ntri; // wskaźnik na nowy trójkąt
     ntri = new TGroundNode(GL_TRIANGLES); // a ten jest nowy
     // kopiowanie parametrów, przydałby się konstruktor kopiujący
-    ntri->TextureID = node->TextureID;
+    ntri->m_material = node->m_material;
     ntri->iFlags = node->iFlags;
     ntri->Ambient = node->Ambient;
     ntri->Diffuse = node->Diffuse;
@@ -932,25 +939,25 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
             >> tmp->hvTraction->pPoint1.x
             >> tmp->hvTraction->pPoint1.y
             >> tmp->hvTraction->pPoint1.z;
-        tmp->hvTraction->pPoint1 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
+        tmp->hvTraction->pPoint1 += glm::dvec3{ pOrigin };
         parser->getTokens(3);
         *parser
             >> tmp->hvTraction->pPoint2.x
             >> tmp->hvTraction->pPoint2.y
             >> tmp->hvTraction->pPoint2.z;
-        tmp->hvTraction->pPoint2 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
+        tmp->hvTraction->pPoint2 += glm::dvec3{ pOrigin };
         parser->getTokens(3);
         *parser
             >> tmp->hvTraction->pPoint3.x
             >> tmp->hvTraction->pPoint3.y
             >> tmp->hvTraction->pPoint3.z;
-        tmp->hvTraction->pPoint3 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
+        tmp->hvTraction->pPoint3 += glm::dvec3{ pOrigin };
         parser->getTokens(3);
         *parser
             >> tmp->hvTraction->pPoint4.x
             >> tmp->hvTraction->pPoint4.y
             >> tmp->hvTraction->pPoint4.z;
-        tmp->hvTraction->pPoint4 += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
+        tmp->hvTraction->pPoint4 += glm::dvec3{ pOrigin };
         parser->getTokens();
         *parser >> tf1;
         tmp->hvTraction->fHeightDifference =
@@ -1208,84 +1215,144 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
         }
 
         break;
-    case TP_MODEL:
-        if (rmin < 0)
-        {
+    case TP_MODEL: {
+#ifdef EU07_USE_OLD_TERRAINCODE
+        if( rmin < 0 ) {
             tmp->iType = TP_TERRAIN;
             tmp->fSquareMinRadius = 0; // to w ogóle potrzebne?
         }
-        parser->getTokens(3);
+        parser->getTokens( 3 );
         *parser >> tmp->pCenter.x >> tmp->pCenter.y >> tmp->pCenter.z;
         parser->getTokens();
         *parser >> tf1;
         // OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
-        tmp->pCenter.RotateY(aRotate.y / 180.0 * M_PI);
+        tmp->pCenter.RotateY( aRotate.y / 180.0 * M_PI );
         // McZapkie-260402: model tez ma wspolrzedne wzgledne
         tmp->pCenter += pOrigin;
 
         tmp->Model = new TAnimModel();
-        tmp->Model->RaAnglesSet(aRotate.x, tf1 + aRotate.y, aRotate.z); // dostosowanie do pochylania linii
+        tmp->Model->RaAnglesSet( aRotate.x, tf1 + aRotate.y, aRotate.z ); // dostosowanie do pochylania linii
         if( tmp->Model->Load( parser, tmp->iType == TP_TERRAIN ) ) {
             // wczytanie modelu, tekstury i stanu świateł...
             tmp->iFlags = tmp->Model->Flags() | 0x200; // ustalenie, czy przezroczysty; flaga usuwania
         }
-        else if (tmp->iType != TP_TERRAIN)
-        { // model nie wczytał się - ignorowanie node
+        else if( tmp->iType != TP_TERRAIN ) { // model nie wczytał się - ignorowanie node
             delete tmp;
             tmp = NULL; // nie może być tu return
             break; // nie może być tu return?
         }
-        if (tmp->iType == TP_TERRAIN)
-        { // jeśli model jest terenem, trzeba utworzyć dodatkowe obiekty
+        if( tmp->iType == TP_TERRAIN ) { // jeśli model jest terenem, trzeba utworzyć dodatkowe obiekty
             // po wczytaniu model ma już utworzone DL albo VBO
             Global::pTerrainCompact = tmp->Model; // istnieje co najmniej jeden obiekt terenu
+            tmp->pCenter = Math3D::vector3( 0.0, 0.0, 0.0 ); // enforce placement in the world center
             tmp->iCount = Global::pTerrainCompact->TerrainCount() + 1; // zliczenie submodeli
-            tmp->nNode = new TGroundNode[tmp->iCount]; // sztuczne node dla kwadratów
-            tmp->nNode[0].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
-            tmp->nNode[0].Model = Global::pTerrainCompact;
-            tmp->nNode[0].iFlags = 0x200; // nie wyświetlany, ale usuwany
-            for (int i = 1; i < tmp->iCount; ++i)
-            { // a reszta to submodele
-                tmp->nNode[i].iType = TP_SUBMODEL; //
-                tmp->nNode[i].smTerrain = Global::pTerrainCompact->TerrainSquare(i - 1);
-                tmp->nNode[i].iFlags = 0x10; // nieprzezroczyste; nie usuwany
-                tmp->nNode[i].bVisible = true;
-                tmp->nNode[i].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
+            tmp->nNode = new TGroundNode[ tmp->iCount ]; // sztuczne node dla kwadratów
+            tmp->nNode[ 0 ].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
+            tmp->nNode[ 0 ].Model = Global::pTerrainCompact;
+            tmp->nNode[ 0 ].iFlags = 0x200; // nie wyświetlany, ale usuwany
+            for( int i = 1; i < tmp->iCount; ++i ) { // a reszta to submodele
+                tmp->nNode[ i ].iType = TP_SUBMODEL;
+                tmp->nNode[ i ].smTerrain = Global::pTerrainCompact->TerrainSquare( i - 1 );
+                tmp->nNode[ i ].iFlags = 0x10; // nieprzezroczyste; nie usuwany
+                tmp->nNode[ i ].bVisible = true;
+                tmp->nNode[ i ].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
             }
         }
-        else if (!tmp->asName.empty()) // jest pusta gdy "none"
+        else if( !tmp->asName.empty() ) // jest pusta gdy "none"
         { // dodanie do wyszukiwarki
             if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
                 // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
                 ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
             }
         }
-        // str=Parser->GetNextSymbol().LowerCase();
+#else
+        if( rmin < 0 ) {
+            // legacy leftover: special case, terrain provided as 3d model
+            tmp->iType = TP_TERRAIN;
+            tmp->fSquareMinRadius = 0; // to w ogóle potrzebne?
+            // we ignore center and rotation for terrain; they should be set to 0 anyway
+            parser->getTokens( 4 );
+
+            tmp->iFlags = 0x200; // flaga usuwania
+            tmp->Model = new TAnimModel();
+            if( false == tmp->Model->Load( parser, true ) ) {
+                delete tmp;
+                tmp = nullptr;
+                break;
+            }
+            tmp->iFlags |= tmp->Model->Flags(); // ustalenie, czy przezroczysty
+            tmp->pCenter = Math3D::vector3(); // enforce placement in the world center
+            // jeśli model jest terenem, trzeba utworzyć dodatkowe obiekty
+            tmp->iCount = tmp->Model->TerrainCount() + 1; // zliczenie submodeli
+            Global::pTerrainCompact = tmp->Model;
+            tmp->nNode = new TGroundNode[ tmp->iCount ]; // sztuczne node dla kwadratów
+            tmp->nNode[ 0 ].iType = TP_MODEL; // pierwszy zawiera model (dla delete)
+            tmp->nNode[ 0 ].Model = Global::pTerrainCompact;
+            tmp->nNode[ 0 ].iFlags = 0x200; // nie wyświetlany, ale usuwany
+            for( auto i = 1; i < tmp->iCount; ++i ) { // a reszta to submodele
+                tmp->nNode[ i ].iType = TP_SUBMODEL;
+                tmp->nNode[ i ].smTerrain = Global::pTerrainCompact->TerrainSquare( i - 1 );
+                tmp->nNode[ i ].iFlags = 0x10; // nieprzezroczyste; nie usuwany
+                tmp->nNode[ i ].bVisible = true;
+                tmp->nNode[ i ].pCenter = tmp->pCenter; // nie przesuwamy w inne miejsce
+            }
+        }
+        else {
+            // regular 3d model
+            parser->getTokens( 3 );
+            *parser
+                >> tmp->pCenter.x
+                >> tmp->pCenter.y
+                >> tmp->pCenter.z;
+            parser->getTokens();
+            *parser >> tf1;
+            // OlO_EU&KAKISH-030103: obracanie punktow zaczepien w modelu
+            tmp->pCenter.RotateY( glm::radians( aRotate.y ) );
+            // McZapkie-260402: model tez ma wspolrzedne wzgledne
+            tmp->pCenter += pOrigin;
+
+            tmp->iFlags = 0x200; // flaga usuwania
+            tmp->Model = new TAnimModel();
+            tmp->Model->RaAnglesSet( aRotate.x, tf1 + aRotate.y, aRotate.z ); // dostosowanie do pochylania linii
+            if( false == tmp->Model->Load( parser, false ) ) {
+                // model nie wczytał się - ignorowanie node
+                delete tmp;
+                tmp = nullptr; // nie może być tu return
+                break; // nie może być tu return?
+            }
+            tmp->iFlags |= tmp->Model->Flags(); // ustalenie, czy przezroczysty
+            if( false == tmp->asName.empty() ) { // jest pusta gdy "none"
+                // dodanie do wyszukiwarki
+                if( false == m_trackmap.Add( TP_MODEL, tmp->asName, tmp ) ) {
+                    // przy zdublowaniu wskaźnik zostanie podmieniony w drzewku na późniejszy (zgodność wsteczna)
+                    ErrorLog( "Duplicated model: " + tmp->asName ); // to zgłaszać duplikat
+                }
+            }
+        }
+#endif
         break;
+    }
     // case TP_GEOMETRY :
     case GL_TRIANGLES:
     case GL_TRIANGLE_STRIP:
-    case GL_TRIANGLE_FAN:
+    case GL_TRIANGLE_FAN: {
+
         parser->getTokens();
         *parser >> token;
         // McZapkie-050702: opcjonalne wczytywanie parametrow materialu (ambient,diffuse,specular)
-        if (token.compare("material") == 0)
-        {
+        if( token.compare( "material" ) == 0 ) {
             parser->getTokens();
             *parser >> token;
-            while (token.compare("endmaterial") != 0)
-            {
-                if (token.compare("ambient:") == 0)
-                {
-                    parser->getTokens(3);
+            while( token.compare( "endmaterial" ) != 0 ) {
+                if( token.compare( "ambient:" ) == 0 ) {
+                    parser->getTokens( 3 );
                     *parser
                         >> tmp->Ambient.r
                         >> tmp->Ambient.g
                         >> tmp->Ambient.b;
                     tmp->Ambient /= 255.0f;
                 }
-                else if (token.compare("diffuse:") == 0)
-                { // Ra: coś jest nie tak, bo w jednej linijce nie działa
+                else if( token.compare( "diffuse:" ) == 0 ) { // Ra: coś jest nie tak, bo w jednej linijce nie działa
                     parser->getTokens( 3 );
                     *parser
                         >> tmp->Diffuse.r
@@ -1293,8 +1360,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                         >> tmp->Diffuse.b;
                     tmp->Diffuse /= 255.0f;
                 }
-                else if (token.compare("specular:") == 0)
-                {
+                else if( token.compare( "specular:" ) == 0 ) {
                     parser->getTokens( 3 );
                     *parser
                         >> tmp->Specular.r
@@ -1303,69 +1369,116 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                     tmp->Specular /= 255.0f;
                 }
                 else
-                    Error("Scene material failure!");
+                    Error( "Scene material failure!" );
                 parser->getTokens();
                 *parser >> token;
             }
         }
-        if (token.compare("endmaterial") == 0)
-        {
+        if( token.compare( "endmaterial" ) == 0 ) {
             parser->getTokens();
             *parser >> token;
         }
         str = token;
-        tmp->TextureID = GfxRenderer.GetTextureId( str, szTexturePath );
+        tmp->m_material = GfxRenderer.Fetch_Material( str );
+        auto const texturehandle = (
+            tmp->m_material != null_handle ?
+                GfxRenderer.Material( tmp->m_material ).texture1 :
+                null_handle );
+        auto const &texture = (
+            texturehandle ?
+                GfxRenderer.Texture( texturehandle ) :
+                opengl_texture() ); // dirty workaround for lack of better api
+        bool const clamps = (
+            texturehandle ?
+                texture.traits.find( 's' ) != std::string::npos :
+                false );
+        bool const clampt = (
+            texturehandle ?
+                texture.traits.find( 't' ) != std::string::npos :
+                false );
 
         tmp->iFlags |= 200; // z usuwaniem
         // remainder of legacy 'problend' system -- geometry assigned a texture with '@' in its name is treated as translucent, opaque otherwise
-        tmp->iFlags |= (
-            ( ( str.find( '@' ) != std::string::npos )
-           && ( true == GfxRenderer.Texture( tmp->TextureID ).has_alpha ) ) ?
-                0x20 :
-                0x10 );
-        {
-            TGroundVertex vertex, vertex1, vertex2;
-            std::size_t vertexcount { 0 };
-            do {
-                parser->getTokens( 8, false );
-                *parser
-                    >> vertex.position.x
-                    >> vertex.position.y
-                    >> vertex.position.z
-                    >> vertex.normal.x
-                    >> vertex.normal.y
-                    >> vertex.normal.z
-                    >> vertex.texture.s
-                    >> vertex.texture.t;
-                vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
-                vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
-                vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
-                vertex.normal = glm::rotateZ( vertex.normal, static_cast<float>( aRotate.z / 180 * M_PI ) );
-                vertex.normal = glm::rotateX( vertex.normal, static_cast<float>( aRotate.x / 180 * M_PI ) );
-                vertex.normal = glm::rotateY( vertex.normal, static_cast<float>( aRotate.y / 180 * M_PI ) );
-                vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
-                // convert all data to gl_triangles to allow data merge for matching nodes
-                switch( tmp->iType ) {
-                    case GL_TRIANGLES: {
-                        importedvertices.emplace_back( vertex );
-                        break;
+        if( texturehandle != null_handle ) {
+            tmp->iFlags |= (
+                ( ( texture.name.find( '@' ) != std::string::npos )
+               && ( true == texture.has_alpha ) ) ?
+                    0x20 :
+                    0x10 );
+        }
+        else {
+            tmp->iFlags |= 0x10;
+        }
+
+        TGroundVertex vertex, vertex1, vertex2;
+        std::size_t vertexcount{ 0 };
+        do {
+            parser->getTokens( 8, false );
+            *parser
+                >> vertex.position.x
+                >> vertex.position.y
+                >> vertex.position.z
+                >> vertex.normal.x
+                >> vertex.normal.y
+                >> vertex.normal.z
+                >> vertex.texture.s
+                >> vertex.texture.t;
+            vertex.position = glm::rotateZ( vertex.position, glm::radians( aRotate.z ) );
+            vertex.position = glm::rotateX( vertex.position, glm::radians( aRotate.x ) );
+            vertex.position = glm::rotateY( vertex.position, glm::radians( aRotate.y ) );
+            vertex.normal = glm::rotateZ( vertex.normal, glm::radians<float>( aRotate.z ) );
+            vertex.normal = glm::rotateX( vertex.normal, glm::radians<float>( aRotate.x ) );
+            vertex.normal = glm::rotateY( vertex.normal, glm::radians<float>( aRotate.y ) );
+            vertex.position += glm::dvec3{ pOrigin };
+            if( true == clamps ) { vertex.texture.s = clamp( vertex.texture.s, 0.001f, 0.999f ); }
+            if( true == clampt ) { vertex.texture.t = clamp( vertex.texture.t, 0.001f, 0.999f ); }
+            // convert all data to gl_triangles to allow data merge for matching nodes
+            switch( tmp->iType ) {
+                case GL_TRIANGLES: {
+                         if( vertexcount == 0 ) { vertex1 = vertex; }
+                    else if( vertexcount == 1 ) { vertex2 = vertex; }
+                    else if( vertexcount >= 2 ) {
+                        if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
+                            importedvertices.emplace_back( vertex1 );
+                            importedvertices.emplace_back( vertex2 );
+                            importedvertices.emplace_back( vertex );
+                        }
+                        else {
+                            ErrorLog(
+                                "Bad geometry: degenerate triangle encountered"
+                                + ( tmp->asName != "" ? " in node \"" + tmp->asName + "\"" : "" )
+                                + " (vertices: " + to_string( vertex1.position ) + " + " + to_string( vertex2.position ) + " + " + to_string( vertex.position ) + ")" );
+                        }
                     }
-                    case GL_TRIANGLE_FAN: {
-                             if( vertexcount == 0 ) { vertex1 = vertex; }
-                        else if( vertexcount == 1 ) { vertex2 = vertex; }
-                        else if( vertexcount >= 2 ) {
+                    ++vertexcount;
+                    if( vertexcount > 2 ) { vertexcount = 0; } // start new triangle if needed
+                    break;
+                }
+                case GL_TRIANGLE_FAN: {
+                         if( vertexcount == 0 ) { vertex1 = vertex; }
+                    else if( vertexcount == 1 ) { vertex2 = vertex; }
+                    else if( vertexcount >= 2 ) {
+                        if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
                             importedvertices.emplace_back( vertex1 );
                             importedvertices.emplace_back( vertex2 );
                             importedvertices.emplace_back( vertex );
                             vertex2 = vertex;
                         }
-                        ++vertexcount;
-                        break;
+                        else {
+                            ErrorLog(
+                                "Bad geometry: degenerate triangle encountered"
+                                + ( tmp->asName != "" ? " in node \"" + tmp->asName + "\"" : "" )
+                                + " (vertices: " + to_string( vertex1.position ) + " + " + to_string( vertex2.position ) + " + " + to_string( vertex.position ) + ")" );
+                        }
                     }
-                    case GL_TRIANGLE_STRIP: {
-                             if( vertexcount == 0 ) { vertex1 = vertex; }
-                        else if( vertexcount == 1 ) { vertex2 = vertex; }
-                        else if( vertexcount >= 2 ) {
+                    ++vertexcount;
+                    break;
+                }
+                case GL_TRIANGLE_STRIP: {
+                         if( vertexcount == 0 ) { vertex1 = vertex; }
+                    else if( vertexcount == 1 ) { vertex2 = vertex; }
+                    else if( vertexcount >= 2 ) {
+                        if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
                             // swap order every other triangle, to maintain consistent winding
                             if( vertexcount % 2 == 0 ) {
                                 importedvertices.emplace_back( vertex1 );
@@ -1380,40 +1493,47 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                             vertex1 = vertex2;
                             vertex2 = vertex;
                         }
-                        ++vertexcount;
-                        break;
+                        else {
+                            ErrorLog(
+                                "Bad geometry: degenerate triangle encountered"
+                                + ( tmp->asName != "" ? " in node \"" + tmp->asName + "\"" : "" )
+                                + " (vertices: " + to_string( vertex1.position ) + " + " + to_string( vertex2.position ) + " + " + to_string( vertex.position ) + ")" );
+                        }
                     }
-                    default: { break; }
+                    ++vertexcount;
+                    break;
                 }
-                parser->getTokens();
-                *parser >> token;
-
-            } while (token.compare("endtri") != 0);
-
-            tmp->iType = GL_TRIANGLES;
-            tmp->Piece = new piece_node();
-            tmp->iNumVerts = (int)importedvertices.size();
-
-            if( tmp->iNumVerts > 0 ) {
-
-                tmp->Piece->vertices.swap( importedvertices );
-
-                for( auto const &vertex : tmp->Piece->vertices ) {
-                    tmp->pCenter += vertex.position;
-                }
-                tmp->pCenter /= tmp->iNumVerts;
-
-                r = 0;
-                for( auto const &vertex : tmp->Piece->vertices ) {
-                    tf = SquareMagnitude( vertex.position - tmp->pCenter );
-                    if( tf > r )
-                        r = tf;
-                }
-                tmp->fSquareRadius += r;
-                RaTriangleDivider( tmp ); // Ra: dzielenie trójkątów jest teraz całkiem wydajne
+                default: { break; }
             }
+            parser->getTokens();
+            *parser >> token;
+
+        } while( token.compare( "endtri" ) != 0 );
+
+        tmp->iType = GL_TRIANGLES;
+        tmp->Piece = new piece_node();
+        tmp->iNumVerts = importedvertices.size();
+
+        if( tmp->iNumVerts > 0 ) {
+
+            tmp->Piece->vertices.swap( importedvertices );
+
+            for( auto const &vertex : tmp->Piece->vertices ) {
+                tmp->pCenter += vertex.position;
+            }
+            tmp->pCenter /= tmp->iNumVerts;
+
+            r = 0;
+            for( auto const &vertex : tmp->Piece->vertices ) {
+                tf = glm::length2( vertex.position - glm::dvec3{ tmp->pCenter } );
+                if( tf > r )
+                    r = tf;
+            }
+            tmp->fSquareRadius += r;
+            RaTriangleDivider( tmp ); // Ra: dzielenie trójkątów jest teraz całkiem wydajne
         } // koniec wczytywania trójkątów
         break;
+    }
     case GL_LINES:
     case GL_LINE_STRIP:
     case GL_LINE_LOOP: {
@@ -1437,11 +1557,11 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 *parser
                     >> vertex.position.y
                     >> vertex.position.z;
-                vertex.position = glm::rotateZ( vertex.position, aRotate.z / 180 * M_PI );
-                vertex.position = glm::rotateX( vertex.position, aRotate.x / 180 * M_PI );
-                vertex.position = glm::rotateY( vertex.position, aRotate.y / 180 * M_PI );
+                vertex.position = glm::rotateZ( vertex.position, glm::radians( aRotate.z ) );
+                vertex.position = glm::rotateX( vertex.position, glm::radians( aRotate.x ) );
+                vertex.position = glm::rotateY( vertex.position, glm::radians( aRotate.y ) );
 
-                vertex.position += glm::dvec3( pOrigin.x, pOrigin.y, pOrigin.z );
+                vertex.position += glm::dvec3{ pOrigin };
                 // convert all data to gl_lines to allow data merge for matching nodes
                 switch( tmp->iType ) {
                     case GL_LINES: {
@@ -1571,7 +1691,8 @@ void TGround::FirstInit()
     for (int type = 0; type < TP_LAST; ++type) {
         for (TGroundNode *Current = nRootOfType[type]; Current != nullptr; Current = Current->nNext) {
 
-            Current->InitNormals();
+            if( type == GL_TRIANGLES ) { Current->InitNormals(); }
+
             if (Current->iType != TP_DYNAMIC)
             { // pojazdów w ogóle nie dotyczy dodawanie do mapy
                 if( ( type == TP_EVLAUNCH )
@@ -1579,11 +1700,12 @@ void TGround::FirstInit()
                     // dodanie do globalnego obiektu
                     srGlobal.NodeAdd( Current );
                 }
-                else if (type == TP_TERRAIN)
-                { // specjalne przetwarzanie terenu wczytanego z pliku E3D
+#ifdef EU07_USE_OLD_TERRAINCODE
+                else if (type == TP_TERRAIN) {
+                    // specjalne przetwarzanie terenu wczytanego z pliku E3D
                     TGroundRect *gr;
-                    for (int j = 1; j < Current->iCount; ++j)
-                    { // od 1 do końca są zestawy trójkątów
+                    for (int j = 1; j < Current->iCount; ++j) {
+                        // od 1 do końca są zestawy trójkątów
                         std::string xxxzzz = Current->nNode[j].smTerrain->pName; // pobranie nazwy
                         gr = GetRect(
                             ( std::stoi( xxxzzz.substr( 0, 3 )) - 500 ) * 1000,
@@ -1591,16 +1713,31 @@ void TGround::FirstInit()
                         gr->nTerrain = Current->nNode + j; // zapamiętanie
                     }
                 }
-                else if( ( Current->iType != GL_TRIANGLES )
-                      || ( Current->iFlags & 0x20 )
-                      || ( Current->fSquareMinRadius != 0.0 )
-                      || ( Current->fSquareRadius <= 90000.0 ) ) {
-                    // add to sub-rectangle
-                    GetSubRect( Current->pCenter.x, Current->pCenter.z )->NodeAdd( Current );
-                }
+#endif
                 else {
-                    // dodajemy do kwadratu kilometrowego
-                    GetRect( Current->pCenter.x, Current->pCenter.z )->NodeAdd( Current );
+                    TSubRect *targetcell { nullptr };
+                    // test whether we can add the node to a ground cell, or a subcell
+                    if( ( Current->iType != GL_TRIANGLES )
+                     || ( Current->iFlags & 0x20 )
+                     || ( Current->fSquareMinRadius != 0.0 )
+                     || ( Current->fSquareRadius <= 90000.0 ) ) {
+                        // add to sub-rectangle
+                        targetcell = GetSubRect( Current->pCenter.x, Current->pCenter.z );
+                    }
+                    else {
+                        // dodajemy do kwadratu kilometrowego
+                        targetcell = GetRect( Current->pCenter.x, Current->pCenter.z );
+                    }
+                    if( targetcell != nullptr ) {
+                        targetcell->NodeAdd( Current );
+                    }
+                    else {
+                        ErrorLog( "Scenery node" + (
+                            Current->asName == "" ?
+                                "" :
+                                " \"" + Current->asName + "\"" )
+                            + " placed in location outside of map bounds (location: " + to_string( glm::dvec3{ Current->pCenter } ) + ")" );
+                    }
                 }
             }
         }
@@ -1680,6 +1817,15 @@ bool TGround::Init(std::string File)
                         }
                         break;
                     }
+#ifndef EU07_SCENERY_EDITOR
+                    case TP_TERRAIN: {
+                        // convert legacy terrain model to a series of triangle nodes, to take advantage of camera-centric render and geometry merging
+                        // NOTE: this leaves us with a large model we don't use loaded and taking space. it'll sort of solve itself when the binary scenery file is in place
+                        convert_terrain( LastNode );
+                        SafeDelete( LastNode );
+                        Global::pTerrainCompact = nullptr;
+                    }
+#endif
                     default: {
                         break;
                     }
@@ -1935,10 +2081,10 @@ bool TGround::Init(std::string File)
             WriteLog("Scenery light definition");
             parser.getTokens(3, false);
             parser
-				>> Global::daylight.direction.x
-				>> Global::daylight.direction.y
-				>> Global::daylight.direction.z;
-			Global::daylight.direction = glm::normalize(Global::daylight.direction);
+				>> Global::DayLight.direction.x
+				>> Global::DayLight.direction.y
+				>> Global::DayLight.direction.z;
+			Global::DayLight.direction = glm::normalize(Global::DayLight.direction);
             parser.getTokens(9, false);
 
             do {
@@ -2057,8 +2203,10 @@ bool TGround::Init(std::string File)
 
     if (!bInitDone)
         FirstInit(); // jeśli nie było w scenerii
+#ifdef EU07_USE_OLD_TERRAINCODE
     if (Global::pTerrainCompact)
         TerrainWrite(); // Ra: teraz można zapisać teren w jednym pliku
+#endif
     Global::iPause &= ~0x10; // koniec pauzy wczytywania
     return true;
 }
@@ -2901,7 +3049,7 @@ TTraction * TGround::TractionNearestFind(glm::dvec3 &p, int dir, TGroundNode *n)
                                             if (nCurrent->hvTraction->fResistance[k] >=
                                                 0.0) //żeby się nie propagowały jakieś ujemne
                                             { // znaleziony kandydat do połączenia
-                                                d = SquareMagnitude( p - nCurrent->pCenter ); // kwadrat odległości środków
+                                                d = glm::length2( p - glm::dvec3{ nCurrent->pCenter } ); // kwadrat odległości środków
                                                 if (dist > d)
                                                 { // zapamiętanie nowego najbliższego
                                                     dist = d; // nowy rekord odległości
@@ -3428,18 +3576,6 @@ void
 TGround::Update_Lights() {
 
     m_lights.update();
-    // arrange the light array from closest to farthest from current position of the camera
-    auto const camera = Global::pCameraPosition;
-    std::sort(
-        m_lights.data.begin(),
-        m_lights.data.end(),
-        [&]( light_array::light_record const &Left, light_array::light_record const &Right ) {
-            // move lights which are off at the end...
-            if( Left.intensity == 0.0f ) { return false; }
-            if( Right.intensity == 0.0f ) { return true; }
-            // ...otherwise prefer closer and/or brigher light sources
-            return ((camera - Left.position).LengthSquared() * (1.0f - Left.intensity)) < ((camera - Right.position).LengthSquared() * (1.0f - Right.intensity));
-        } );
 }
 
 // Winger 170204 - szukanie trakcji nad pantografami
@@ -3567,10 +3703,10 @@ bool TGround::GetTraction(TDynamicObject *model)
                                     vParam =
                                         node->hvTraction
                                             ->vParametric; // współczynniki równania parametrycznego
-                                    fRaParam = -DotProduct(pant0, vFront);
-                                    auto const paramfrontdot = DotProduct( vParam, vFront );
+                                    fRaParam = -glm::dot(pant0, vFront);
+                                    auto const paramfrontdot = glm::dot( vParam, vFront );
                                     fRaParam =
-                                        -( DotProduct( node->hvTraction->pPoint1, vFront ) + fRaParam )
+                                        -( glm::dot( node->hvTraction->pPoint1, vFront ) + fRaParam )
                                         / ( paramfrontdot != 0.0 ? paramfrontdot : 0.001 ); // div0 trap
                                     if ((fRaParam >= -0.001) ? (fRaParam <= 1.001) : false)
                                     { // jeśli tylko jest w przedziale, wyznaczyć odległość wzdłuż

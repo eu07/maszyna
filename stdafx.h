@@ -27,7 +27,11 @@
 #include <shlobj.h>
 #undef NOMINMAX
 #endif
+#ifdef __linux__
+#include <sys/stat.h>
+#endif
 // stl
+#include <cstddef>
 #include <cstdlib>
 #include <cassert>
 #include <cstdint>
@@ -36,6 +40,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <array>
 #include <vector>
 #include <deque>
 #include <list>

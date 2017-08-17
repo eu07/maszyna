@@ -22,8 +22,8 @@ cFrustum::calculate() {
 void
 cFrustum::calculate( glm::mat4 const &Projection, glm::mat4 const &Modelview ) {
 
-    float const *proj = &Projection[ 0 ][ 0 ];
-    float const *modl = &Modelview[ 0 ][ 0 ];
+    float const *proj = glm::value_ptr( Projection );
+    float const *modl = glm::value_ptr( Modelview );
     float clip[ 16 ];
 
     // multiply the matrices to retrieve clipping planes

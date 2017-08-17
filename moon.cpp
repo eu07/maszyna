@@ -44,9 +44,9 @@ void
 cMoon::update() {
 
     move();
-    glm::vec3 position( 0.0f, 0.0f, -2000.0f * Global::fDistanceFactor );
-    position = glm::rotateX( position, (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
-    position = glm::rotateY( position, (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
+    glm::vec3 position( 0.f, 0.f, -2000.f * Global::fDistanceFactor );
+    position = glm::rotateX( position, glm::radians<float>(  m_body.elevref ) );
+    position = glm::rotateY( position, glm::radians<float>( -m_body.hrang ) );
 
     m_position = position;
 }

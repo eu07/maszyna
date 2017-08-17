@@ -11,6 +11,9 @@ http://mozilla.org/MPL/2.0/.
 #include "keyboardinput.h"
 #include "Logs.h"
 #include "parser.h"
+#include "World.h"
+
+extern TWorld World;
 
 bool
 keyboard_input::recall_bindings() {
@@ -25,6 +28,8 @@ keyboard_input::recall_bindings() {
         ++commandid;
     }
     std::unordered_map<std::string, int> nametokeymap = {
+        { "0", GLFW_KEY_0 }, { "1", GLFW_KEY_1 }, { "2", GLFW_KEY_2 }, { "3", GLFW_KEY_3 }, { "4", GLFW_KEY_4 },
+        { "5", GLFW_KEY_5 }, { "6", GLFW_KEY_6 }, { "7", GLFW_KEY_7 }, { "8", GLFW_KEY_8 }, { "9", GLFW_KEY_9 },
         { "a", GLFW_KEY_A }, { "b", GLFW_KEY_B }, { "c", GLFW_KEY_C }, { "d", GLFW_KEY_D }, { "e", GLFW_KEY_E },
         { "f", GLFW_KEY_F }, { "g", GLFW_KEY_G }, { "h", GLFW_KEY_H }, { "i", GLFW_KEY_I }, { "j", GLFW_KEY_J },
         { "k", GLFW_KEY_K }, { "l", GLFW_KEY_L }, { "m", GLFW_KEY_M }, { "n", GLFW_KEY_N }, { "o", GLFW_KEY_O },
@@ -153,19 +158,6 @@ keyboard_input::key( int const Key, int const Action ) {
     m_relay.post( lookup->second, 0, 0, Action, 0 );
 
     return true;
-}
-
-void
-keyboard_input::mouse( double Mousex, double Mousey ) {
-
-    m_relay.post(
-        user_command::viewturn,
-        reinterpret_cast<std::uint64_t const &>( Mousex ),
-        reinterpret_cast<std::uint64_t const &>( Mousey ),
-        GLFW_PRESS,
-        // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-        // TODO: pass correct entity id once the missing systems are in place
-        0 );
 }
 
 void
@@ -358,6 +350,26 @@ const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */
+        // "generictoggle0"
+        { GLFW_KEY_0 },
+        // "generictoggle1"
+        { GLFW_KEY_1 },
+        // "generictoggle2"
+        { GLFW_KEY_2 },
+        // "generictoggle3"
+        { GLFW_KEY_3 },
+        // "generictoggle4"
+        { GLFW_KEY_4 },
+        // "generictoggle5"
+        { GLFW_KEY_5 },
+        // "generictoggle6"
+        { GLFW_KEY_6 },
+        // "generictoggle7"
+        { GLFW_KEY_7 },
+        // "generictoggle8"
+        { GLFW_KEY_8 },
+        // "generictoggle9"
+        { GLFW_KEY_9 },
         // "batterytoggle"
         { GLFW_KEY_J }
 /*
@@ -366,6 +378,7 @@ const int k_WalkMode = 73;
     };
 
     bind();
+
 }
 
 void

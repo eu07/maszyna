@@ -38,7 +38,6 @@ double Global::ABuDebug = 0;
 std::string Global::asSky = "1";
 double Global::fLuminance = 1.0; // jasność światła do automatycznego zapalania
 float Global::SunAngle = 0.0f;
-int Global::iReCompile = 0; // zwiększany, gdy trzeba odświeżyć siatki
 int Global::ScreenWidth = 1;
 int Global::ScreenHeight = 1;
 float Global::ZoomFactor = 1.0f;
@@ -48,6 +47,8 @@ bool Global::shiftState;
 bool Global::ctrlState;
 int Global::iCameraLast = -1;
 std::string Global::asVersion = "UNKNOWN";
+bool Global::ControlPicking = false; // indicates controls pick mode is enabled
+bool Global::InputMouse = true; // whether control pick mode can be activated
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
 double Global::fSunDeclination = 0.0; // deklinacja Słońca
@@ -57,6 +58,7 @@ std::string Global::szTexturesTGA = ".tga"; // lista tekstur od TGA
 std::string Global::szTexturesDDS = ".dds"; // lista tekstur od DDS
 int Global::iKeyLast = 0; // ostatnio naciśnięty klawisz w celu logowania
 int Global::iPause = 0; // 0x10; // globalna pauza ruchu
+bool Global::bActive = true;
 int Global::iErorrCounter = 0; // licznik sprawdzań do śledzenia błędów OpenGL
 int Global::iTextures = 0; // licznik użytych tekstur
 TWorld *Global::pWorld = NULL;
@@ -64,14 +66,12 @@ cParser *Global::pParser = NULL;
 int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajności
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
-/*
-std::string Global::asTranscript[5]; // napisy na ekranie (widoczne)
-*/
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
 float4 Global::UITextColor = float4( 225.0f / 255.0f, 225.0f / 255.0f, 225.0f / 255.0f, 1.0f );
 
 // parametry scenerii
 vector3 Global::pCameraPosition;
+vector3 Global::DebugCameraPosition;
 double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
@@ -84,11 +84,9 @@ double Global::fFogEnd = 2000;
 float Global::Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
 int Global::DynamicLightCount = 7;
 bool Global::ScaleSpecularValues = false;
-//m7todo: po co to?
-//GLfloat Global::whiteLight[] = {1.00f, 1.00f, 1.00f, 1.0f};
-//GLfloat Global::noLight[] = {0.00f, 0.00f, 0.00f, 1.0f};
-//GLfloat Global::darkLight[] = {0.03f, 0.03f, 0.03f, 1.0f}; //śladowe
-//GLfloat Global::lightPos[4];
+float Global::BaseDrawRange { 2500.f };
+bool Global::RenderShadows { false };
+Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 250.f, 500.f };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
 int Global::iHiddenEvents = 1; // czy łączyć eventy z torami poprzez nazwę toru
@@ -98,7 +96,7 @@ int Global::Keys[MaxKeys];
 bool Global::RealisticControlMode{ false };
 int Global::iWindowWidth = 800;
 int Global::iWindowHeight = 600;
-float Global::fDistanceFactor = Global::ScreenHeight / 768.0; // baza do przeliczania odległości dla LoD
+float Global::fDistanceFactor = Global::iWindowHeight / 768.0; // baza do przeliczania odległości dla LoD
 int Global::iFeedbackMode = 1; // tryb pracy informacji zwrotnej
 int Global::iFeedbackPort = 0; // dodatkowy adres dla informacji zwrotnych
 bool Global::InputGamepad{ true };
@@ -150,7 +148,6 @@ double Global::fFpsRadiusMax = 3000.0; // maksymalny promień renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promień renderowania
 double Global::fRadiusFactor = 1.1; // współczynnik jednorazowej zmiany promienia scenerii
 bool Global::bOldSmudge = false; // Używanie starej smugi
-Global::shadowtune_t Global::shadowtune = { 8192, 200.0f, 150.0f, 100.0f };
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
@@ -205,7 +202,7 @@ double Global::fMWDamp[2] = { 800, 1023 };
 double Global::fMWDlowVolt[2] = { 150, 1023 };
 int Global::iMWDdivider = 5;
 
-Global::daylight_s Global::daylight;
+opengl_light Global::DayLight;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -376,6 +373,11 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(2, false);
             Parser >> Global::fMouseXScale >> Global::fMouseYScale;
         }
+        else if( token == "mousecontrol" ) {
+            // whether control pick mode can be activated
+            Parser.getTokens();
+            Parser >> Global::InputMouse;
+        }
         else if (token == "enabletraction")
         {
             // Winger 040204 - 'zywe' patyki dostosowujace sie do trakcji; Ra 2014-03: teraz łamanie
@@ -537,14 +539,19 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> Global::ScaleSpecularValues;
         }
-		else if (token == "shadowtune")
-		{
-			Parser.getTokens(4, false);
-			Parser >> Global::shadowtune.map_size;
-			Parser >> Global::shadowtune.width;
-			Parser >> Global::shadowtune.depth;
-			Parser >> Global::shadowtune.distance;
-		}
+        else if( token == "shadows" ) {
+            // shadow render toggle
+            Parser.getTokens();
+            Parser >> Global::RenderShadows;
+        }
+        else if( token == "shadowtune" ) {
+            Parser.getTokens( 4, false );
+            Parser
+                >> Global::shadowtune.map_size
+                >> Global::shadowtune.width
+                >> Global::shadowtune.depth
+                >> Global::shadowtune.distance;
+        }
         else if (token == "smoothtraction")
         {
             // podwójna jasność ambient

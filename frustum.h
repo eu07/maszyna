@@ -12,6 +12,12 @@ http://mozilla.org/MPL/2.0/.
 #include "Float3d.h"
 #include "dumb3d.h"
 
+std::vector<glm::vec4> const ndcfrustumshapepoints {
+    { -1, -1, -1, 1 },{ 1, -1, -1, 1 },{ 1, 1, -1, 1 },{ -1, 1, -1, 1 }, // z-near
+    { -1, -1,  1, 1 },{ 1, -1,  1, 1 },{ 1, 1,  1, 1 },{ -1, 1,  1, 1 } }; // z-far
+
+std::vector<std::size_t> const frustumshapepoinstorder { 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7 };
+
 // generic frustum class. used to determine if objects are inside current view area
 
 class cFrustum {
@@ -62,7 +68,7 @@ public:
     bool
         cube_inside( float const X, float const Y, float const Z, float const Size ) const;
 
-protected:
+private:
 // types:
     // planes of the frustum
     enum side { side_RIGHT = 0, side_LEFT = 1, side_BOTTOM = 2, side_TOP = 3, side_BACK = 4, side_FRONT = 5 };
@@ -74,5 +80,5 @@ protected:
         normalize_plane( cFrustum::side const Side );	// normalizes a plane (A side) from the frustum
 
 // members:
-	float m_frustum[6][4];						// holds the A B C and D values (normal & distance) for each side of the frustum.
+	float m_frustum[6][4]; // holds the A B C and D values (normal & distance) for each side of the frustum.
 };

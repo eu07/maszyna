@@ -40,9 +40,9 @@ void
 cSun::update() {
 
     move();
-    glm::vec3 position( 0.0f, 0.0f, -2000.0f * Global::fDistanceFactor );
-    position = glm::rotateX( position, (float)(  m_body.elevref * ( M_PI / 180.0 ) ) );
-    position = glm::rotateY( position, (float)( -m_body.hrang *   ( M_PI / 180.0 ) ) );
+    glm::vec3 position( 0.f, 0.f, -2000.f * Global::fDistanceFactor );
+    position = glm::rotateX( position, glm::radians<float>( m_body.elevref ) );
+    position = glm::rotateY( position, glm::radians<float>( -m_body.hrang ) );
 
     m_position = position;
 }
@@ -257,21 +257,18 @@ void cSun::refract() {
 
 void cSun::irradiance() {
 
-	static double degrad = 57.295779513;					// converts from radians to degrees
-	static double raddeg = 0.0174532925;					// converts from degrees to radians
-
 	m_body.dayang = ( simulation::Time.year_day() - 1 ) * 360.0 / 365.0;
-	double sd = sin( raddeg * m_body.dayang );				// sine of the day angle
-	double cd = cos( raddeg * m_body.dayang );				// cosine of the day angle or delination
+	double sd = std::sin( glm::radians( m_body.dayang ) ); // sine of the day angle
+	double cd = std::cos( glm::radians( m_body.dayang ) ); // cosine of the day angle or delination
 	m_body.erv = 1.000110 + 0.034221*cd + 0.001280*sd;
 	double d2 = 2.0 * m_body.dayang;
-	double c2 = cos( raddeg * d2 );
-	double s2 = sin( raddeg * d2 );
+	double c2 = std::cos( glm::radians( d2 ) );
+	double s2 = std::sin( glm::radians( d2 ) );
 	m_body.erv += 0.000719*c2 + 0.000077*s2;
 
 	double solcon = 1367.0;									// Solar constant, 1367 W/sq m
 
-	m_body.coszen  = cos( raddeg * m_body.zenref );
+	m_body.coszen  = std::cos( glm::radians( m_body.zenref ) );
 	if( m_body.coszen > 0.0 ) {
 		m_body.etrn = solcon * m_body.erv;
 		m_body.etr  = m_body.etrn * m_body.coszen;

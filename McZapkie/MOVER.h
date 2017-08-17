@@ -78,7 +78,8 @@ zwiekszenie nacisku przy duzych predkosciach w hamulcach Oerlikona
 */
 
 #include "dumb3d.h"
-using namespace Math3D;
+
+extern int ConversionError;
 
 const double Steel2Steel_friction = 0.15;      //tarcie statyczne
 const double g = 9.81;                     //przyspieszenie ziemskie
@@ -623,14 +624,14 @@ public:
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
 	bool DoorSignalling = false;         /*Czy jest zalaczona sygnalizacja blokady drzwi*/
 	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
-	double NominalBatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
+	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
 	double Cx = 0.0;                 /*wsp. op. aerodyn.*/
-	double Floor = 0.96;              //poziom podłogi dla ładunków
-	double WheelDiameter = 1.0;     /*srednica kol napednych*/
-	double WheelDiameterL = 0.9;    //Ra: srednica kol tocznych przednich
-	double WheelDiameterT = 0.9;    //Ra: srednica kol tocznych tylnych
-	double TrackW = 1.435;             /*nominalna szerokosc toru [m]*/
+	float Floor = 0.96f;              //poziom podłogi dla ładunków
+	float WheelDiameter = 1.f;     /*srednica kol napednych*/
+	float WheelDiameterL = 0.9f;    //Ra: srednica kol tocznych przednich
+	float WheelDiameterT = 0.9f;    //Ra: srednica kol tocznych tylnych
+	float TrackW = 1.435f;             /*nominalna szerokosc toru [m]*/
 	double AxleInertialMoment = 0.0; /*moment bezwladnosci zestawu kolowego*/
 	std::string AxleArangement;  /*uklad osi np. Bo'Bo' albo 1'C*/
 	int NPoweredAxles = 0;     /*ilosc osi napednych liczona z powyzszego*/
@@ -996,8 +997,8 @@ public:
 	double FrictConst2d= 0.0;
 	double TotalMassxg = 0.0; /*TotalMass*g*/
 
-	vector3 vCoulpler[2]; // powtórzenie współrzędnych sprzęgów z DynObj :/
-	vector3 DimHalf; // połowy rozmiarów do obliczeń geometrycznych
+	Math3D::vector3 vCoulpler[2]; // powtórzenie współrzędnych sprzęgów z DynObj :/
+	Math3D::vector3 DimHalf; // połowy rozmiarów do obliczeń geometrycznych
 					 // int WarningSignal; //0: nie trabi, 1,2: trabi syreną o podanym numerze
 	int WarningSignal = 0; // tymczasowo 8bit, ze względu na funkcje w MTools
 	double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
@@ -1023,7 +1024,7 @@ public:
 	bool IncBrakeLevel(); // wersja na użytek AI
 	bool DecBrakeLevel();
 	bool ChangeCab(int direction);
-	bool CurrentSwitch(int direction);
+	bool CurrentSwitch(bool const State);
 	void UpdateBatteryVoltage(double dt);
 	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
 	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
@@ -1108,6 +1109,8 @@ public:
 	double Adhesive(double staticfriction);
 	double TractionForce(double dt);
 	double FrictionForce(double R, int TDamage);
+	double BrakeForceR(double ratio, double velocity);
+	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);
 	double CouplerForce(int CouplerN, double dt);
 	void CollisionDetect(int CouplerN, double dt);
@@ -1210,47 +1213,3 @@ private:
 };
 
 extern double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
-
-inline
-std::string
-extract_value( std::string const &Key, std::string const &Input ) {
-
-    std::string value;
-    auto lookup = Input.find( Key + "=" );
-    if( lookup != std::string::npos ) {
-        value = Input.substr( Input.find_first_not_of( ' ', lookup + Key.size() + 1 ) );
-        lookup = value.find( ' ' );
-        if( lookup != std::string::npos ) {
-            // trim everything past the value
-            value.erase( lookup );
-        }
-    }
-    return value;
-}
-
-template <typename Type_>
-bool
-extract_value( Type_ &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
-
-    auto value = extract_value( Key, Input );
-    if( false == value.empty() ) {
-        // set the specified variable to retrieved value
-        std::stringstream converter;
-        converter << value;
-        converter >> Variable;
-        return true; // located the variable
-    }
-    else {
-        // set the variable to provided default value
-        if( false == Default.empty() ) {
-            std::stringstream converter;
-            converter << Default;
-            converter >> Variable;
-        }
-        return false; // couldn't locate the variable in provided input
-	}
-}
-
-template <>
-bool
-extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default );

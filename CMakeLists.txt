@@ -62,6 +62,9 @@ set(SOURCES
 "keyboardinput.cpp"
 "gamepadinput.cpp"
 "openglgeometrybank.cpp"
+"mouseinput.cpp"
+"translation.cpp"
+"material.cpp"
 )
 
 if (WIN32)

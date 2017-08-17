@@ -224,17 +224,17 @@ opengl_texture::load_DDS() {
     {
     case FOURCC_DXT1:
         // DXT1's compression ratio is 8:1
-        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
         break;
 
     case FOURCC_DXT3:
         // DXT3's compression ratio is 4:1
-        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
         break;
 
     case FOURCC_DXT5:
         // DXT5's compression ratio is 4:1
-        data_format = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+        data_format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
         break;
 
     default:
@@ -505,18 +505,15 @@ opengl_texture::load_TGA() {
     return;
 }
 
-resource_state
+bool
 opengl_texture::bind() {
 
-    if( false == is_ready ) {
-
-        create();
-        if( data_state != resource_state::good ) {
-            return data_state;
-        }
+    if( ( false == is_ready )
+     && ( false == create() ) ) {
+        return false;
     }
     ::glBindTexture( GL_TEXTURE_2D, id );
-    return data_state;
+    return true;
 }
 
 bool
@@ -562,12 +559,12 @@ opengl_texture::create() {
             dataheight = data_height;
         for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
-            if( ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT )
-                || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT )
-                || ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT ) ) {
+            if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
+                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
+                || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
                 // compressed dds formats
                 int const datablocksize =
-                    ( data_format == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT ?
+                    ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
                     8 :
                     16 );
 
@@ -585,7 +582,7 @@ opengl_texture::create() {
             else {
                 // uncompressed texture data. have the gfx card do the compression as it sees fit
                 ::glTexImage2D(
-                    GL_TEXTURE_2D, 0, GL_COMPRESSED_SRGB_ALPHA,
+                    GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA,
                     data_width, data_height, 0,
                     data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
             }
@@ -594,9 +591,6 @@ opengl_texture::create() {
 		// TBD, TODO: keep the texture data if we start doing some gpu data cleaning down the road
 		data.clear();
 		data.shrink_to_fit();
-/*
-    data_state = resource_state::none;
-*/
         data_state = resource_state::none;
         is_ready = true;
     }
@@ -609,8 +603,6 @@ void
 opengl_texture::release( bool const Backup ) {
 
     if( id == -1 ) { return; }
-
-    assert( is_ready );
 
     if( true == Backup ) {
         // query texture details needed to perform the backup...
@@ -651,40 +643,7 @@ opengl_texture::set_filtering() {
         switch( trait ) {
 
             case '#': { sharpen = true; break; }
-/*
-            // legacy filter modes. TODO, TBD: get rid of them?
-            // let's just turn them off and see if anyone notices.
-            case '4': {
-                // najbliższy z tekstury
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-                break;
-            }
-            case '5': {
-                //średnia z tekstury
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-                break;
-            }
-            case '6': {
-                // najbliższy z mipmapy
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST );
-                break;
-            }
-            case '7': {
-                //średnia z mipmapy
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST );
-                break;
-            }
-            case '8': {
-                // najbliższy z dwóch mipmap
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
-                break;
-            }
-            case '9': {
-                //średnia z dwóch mipmap
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-                break;
-            }
-*/
+            default:  {                 break; }
         }
     }
 
@@ -724,9 +683,27 @@ opengl_texture::downsize( GLuint const Format ) {
     };
 }
 
+void
+texture_manager::assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse ) {
+
+    m_units[ 0 ].unit = Helper;
+    m_units[ 1 ].unit = Shadows;
+    m_units[ 2 ].unit = Normals;
+    m_units[ 3 ].unit = Diffuse;
+}
+
+void
+texture_manager::unit( GLint const Textureunit ) {
+
+    if( m_activeunit == Textureunit ) { return; }
+
+    m_activeunit = Textureunit;
+    ::glActiveTexture( Textureunit );
+}
+
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
 texture_handle
-texture_manager::create( std::string Filename, std::string const &Dir, int const Filter, bool const Loadnow ) {
+texture_manager::create( std::string Filename, bool const Loadnow ) {
 
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
@@ -794,11 +771,7 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
 
     auto texture = new opengl_texture();
     texture->name = filename;
-    if( ( Filter > 0 ) && ( Filter < 10 ) ) {
-        // temporary. TODO, TBD: check how it's used and possibly get rid of it
-        traits += std::to_string( ( Filter  < 4 ? Filter + 4 : Filter ) );
-    }
-    if( Filename.find('#') !=std::string::npos ) {
+    if( Filename.find('#') != std::string::npos ) {
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
         traits += '#';
     }
@@ -823,33 +796,36 @@ texture_manager::create( std::string Filename, std::string const &Dir, int const
 };
 
 void
-texture_manager::bind( texture_handle const Texture ) {
+texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
     m_textures[ Texture ].second = m_garbagecollector.timestamp();
 
-    if( ( Texture != 0 ) && ( Texture == m_activetexture ) ) {
+    if( Texture == m_units[ Unit ].texture ) {
         // don't bind again what's already active
         return;
     }
-    // TODO: do binding in texture object, add support for other types
-    if( Texture != 0 ) {
+    // TBD, TODO: do binding in texture object, add support for other types than 2d
+    if( m_units[ Unit ].unit == 0 ) { return; }
+    unit( m_units[ Unit ].unit );
+    if( Texture != null_handle ) {
 #ifndef EU07_DEFERRED_TEXTURE_UPLOAD
         // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
         ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
-        m_activetexture = Texture;
+        m_units[ Unit ].texture = Texture;
 #else
-        if( texture( Texture ).bind() == resource_state::good ) {
-            m_activetexture = Texture;
+        if( true == texture( Texture ).bind() ) {
+            m_units[ Unit ].texture = Texture;
         }
         else {
             // TODO: bind a special 'error' texture on failure
+            ::glBindTexture( GL_TEXTURE_2D, 0 );
+            m_units[ Unit ].texture = 0;
         }
 #endif
     }
     else {
-
         ::glBindTexture( GL_TEXTURE_2D, 0 );
-        m_activetexture = 0;
+        m_units[ Unit ].texture = 0;
     }
     // all done
     return;
@@ -872,7 +848,9 @@ void
 texture_manager::update() {
 
     if( m_garbagecollector.sweep() > 0 ) {
-        m_activetexture = -1;
+        for( auto &unit : m_units ) {
+            unit.texture = -1;
+        }
     }
 }
 
@@ -902,7 +880,7 @@ texture_manager::info() const {
     }
 
     return
-        "Textures: "
+        "; textures: "
 #ifdef EU07_DEFERRED_TEXTURE_UPLOAD
         + std::to_string( readytexturecount )
         + " ("
@@ -936,21 +914,10 @@ texture_manager::find_in_databank( std::string const &Texturename ) const {
 std::string
 texture_manager::find_on_disk( std::string const &Texturename ) const {
 
-    {
-        std::ifstream file( Texturename );
-        if( true == file.is_open() ) {
-            // success
-            return Texturename;
-        }
-    }
-    // if we fail make a last ditch attempt in the default textures directory
-    {
-        std::ifstream file( global_texture_path + Texturename );
-        if( true == file.is_open() ) {
-            // success
-            return global_texture_path + Texturename;
-        }
-    }
-    // no results either way, report failure
-    return "";
+    return(
+        FileExists( Texturename ) ? Texturename :
+        FileExists( szTexturePath + Texturename ) ? szTexturePath + Texturename :
+        "" );
 }
+
+//---------------------------------------------------------------------------

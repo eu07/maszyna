@@ -23,6 +23,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Globals.h"
 #include "Logs.h"
 #include "keyboardinput.h"
+#include "mouseinput.h"
 #include "gamepadinput.h"
 #include "Console.h"
 #include "PyInt.h"
@@ -45,7 +46,9 @@ TWorld World;
 namespace input {
 
 keyboard_input Keyboard;
+mouse_input Mouse;
 gamepad_input Gamepad;
+glm::dvec2 mouse_pickmodepos;  // stores last mouse position in control picking mode
 
 }
 
@@ -54,8 +57,8 @@ void screenshot_save_thread( char *img )
 	png_image png;
 	memset(&png, 0, sizeof(png_image));
 	png.version = PNG_IMAGE_VERSION;
-	png.width = Global::ScreenWidth;
-	png.height = Global::ScreenHeight;
+	png.width = Global::iWindowWidth;
+	png.height = Global::iWindowHeight;
 	png.format = PNG_FORMAT_RGB;
 
 	char datetime[64];
@@ -77,7 +80,7 @@ void screenshot_save_thread( char *img )
 	std::string filename = "screenshots/" + std::string(datetime) +
 	                       "_" + std::to_string(perf) + ".png";
 
-	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::ScreenWidth * 3, nullptr) == 1)
+	if (png_image_write_to_file(&png, filename.c_str(), 0, img, -Global::iWindowWidth * 3, nullptr) == 1)
 		WriteLog("saved " + filename + ".");
 	else
 		WriteLog("failed to save screenshot.");
@@ -87,8 +90,8 @@ void screenshot_save_thread( char *img )
 
 void make_screenshot()
 {
-	char *img = new char[Global::ScreenWidth * Global::ScreenHeight * 3];
-	glReadPixels(0, 0, Global::ScreenWidth, Global::ScreenHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+	char *img = new char[Global::iWindowWidth * Global::iWindowHeight * 3];
+	glReadPixels(0, 0, Global::iWindowWidth, Global::iWindowHeight, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
 
 	std::thread t(screenshot_save_thread, img);
 	t.detach();
@@ -98,27 +101,61 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 {
     // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
     // TBD, TODO: merge them?
-	Global::ScreenWidth = Global::iWindowWidth = w;
-	Global::ScreenHeight = Global::iWindowHeight = h;
+	Global::iWindowWidth = w;
+	Global::iWindowHeight = h;
     Global::fDistanceFactor = std::max( 0.5f, h / 768.0f ); // not sure if this is really something we want to use
 	glViewport(0, 0, w, h);
 }
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
-    input::Keyboard.mouse( x, y );
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
-	World.OnMouseMove(x * 0.005, y * 0.01);
-#endif
-	glfwSetCursorPos(window, 0.0, 0.0);
+    input::Mouse.move( x, y );
+
+    if( true == Global::ControlPicking ) {
+        glfwSetCursorPos( window, x, y );
+    }
+    else {
+        glfwSetCursorPos( window, 0, 0 );
+    }
 }
 
-void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods )
-{
+void mouse_button_callback( GLFWwindow* window, int button, int action, int mods ) {
+
+    if( ( button == GLFW_MOUSE_BUTTON_LEFT )
+     || ( button == GLFW_MOUSE_BUTTON_RIGHT ) ) {
+        // we don't care about other mouse buttons at the moment
+        input::Mouse.button( button, action );
+    }
+}
+
+void key_callback( GLFWwindow *window, int key, int scancode, int action, int mods ) {
+
     input::Keyboard.key( key, action );
 
     Global::shiftState = ( mods & GLFW_MOD_SHIFT ) ? true : false;
     Global::ctrlState = ( mods & GLFW_MOD_CONTROL ) ? true : false;
+
+    if( ( true == Global::InputMouse )
+     && ( ( key == GLFW_KEY_LEFT_ALT )
+       || ( key == GLFW_KEY_RIGHT_ALT ) ) ) {
+        // if the alt key was pressed toggle control picking mode and set matching cursor behaviour
+        if( action == GLFW_RELEASE ) {
+
+            if( Global::ControlPicking ) {
+                // switch off
+                glfwGetCursorPos( window, &input::mouse_pickmodepos.x, &input::mouse_pickmodepos.y );
+                glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+                glfwSetCursorPos( window, 0, 0 );
+            }
+            else {
+                // enter picking mode
+                glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+                glfwSetCursorPos( window, input::mouse_pickmodepos.x, input::mouse_pickmodepos.y );
+            }
+            // actually toggle the mode
+            Global::ControlPicking = !Global::ControlPicking;
+        }
+    }
 
     if( ( key == GLFW_KEY_LEFT_SHIFT )
      || ( key == GLFW_KEY_LEFT_CONTROL )
@@ -130,18 +167,16 @@ void key_callback( GLFWwindow *window, int key, int scancode, int action, int mo
         return;
     }
 
-    if( action == GLFW_PRESS || action == GLFW_REPEAT )
-    {
+    if( action == GLFW_PRESS || action == GLFW_REPEAT ) {
+
         World.OnKeyDown( key );
 
         switch( key )
         {
-
             case GLFW_KEY_F11: {
                 make_screenshot();
                 break;
             }
-
             default: { break; }
         }
     }
@@ -272,6 +307,7 @@ int main(int argc, char *argv[])
     glfwSetCursorPos(window, 0.0, 0.0);
     glfwSetFramebufferSizeCallback(window, window_resize_callback);
     glfwSetCursorPosCallback(window, cursor_pos_callback);
+    glfwSetMouseButtonCallback( window, mouse_button_callback );
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback( window, scroll_callback );
     glfwSetWindowFocusCallback(window, focus_callback);
@@ -311,17 +347,16 @@ int main(int argc, char *argv[])
 			return -1;
 
 		input::Keyboard.init();
+		input::Mouse.init();
 		input::Gamepad.init();
 
-		Global::pWorld = &World; // Ra: wskaźnik potrzebny do usuwania pojazdów
-
-        if( false == World.Init( window ) ) {
-            ErrorLog( "Failed to init TWorld" );
+		if( false == World.Init( window ) ) {
+            ErrorLog( "Simulation setup failed" );
             return -1;
         }
     }
-    catch( std::bad_alloc const &Error ) {
-
+    catch( std::bad_alloc const &Error )
+	{
         ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
         return -1;
     }
@@ -358,9 +393,9 @@ int main(int argc, char *argv[])
                 && ( true == World.Update() )
                 && ( true == GfxRenderer.Render() ) ) {
                 glfwPollEvents();
-                if( true == Global::InputGamepad ) {
-                    input::Gamepad.poll();
-                }
+                input::Keyboard.poll();
+                if( true == Global::InputMouse )   { input::Mouse.poll(); }
+                if( true == Global::InputGamepad ) { input::Gamepad.poll(); }
             }
         }
         catch( std::bad_alloc const &Error ) {

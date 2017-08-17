@@ -17,40 +17,9 @@ Copyright (C) 2007-2014 Maciej Cierniak
 
 /*================================================*/
 
-int ConversionError = 0;
-int LineCount = 0;
 bool DebugModeFlag = false;
 bool FreeFlyModeFlag = false;
-
-//std::string Ups(std::string s)
-//{
-//    int jatka;
-//    std::string swy;
-//
-//    swy = "";
-//    {
-//        long jatka_end = s.length() + 1;
-//        for (jatka = 0; jatka < jatka_end; jatka++)
-//            swy = swy + UpCase(s[jatka]);
-//    }
-//    return swy;
-//} /*=Ups=*/
-
-int Max0(int x1, int x2)
-{
-    if (x1 > x2)
-        return x1;
-    else
-        return x2;
-}
-
-int Min0(int x1, int x2)
-{
-    if (x1 < x2)
-        return x1;
-    else
-        return x2;
-}
+bool DebugCameraFlag = false;
 
 double Max0R(double x1, double x2)
 {
@@ -79,45 +48,30 @@ std::string Now() {
     return converter.str();
 }
 
-bool TestFlag(int Flag, int Value)
-{
-    if ((Flag & Value) == Value)
-        return true;
-    else
-        return false;
-}
+bool SetFlag( int &Flag, int const Value ) {
 
-bool SetFlag(int &Flag, int Value)
-{
-	return iSetFlag(Flag, Value);
-}
-
-bool iSetFlag(int &Flag, int Value)
-{
-    if (Value > 0)
-    {
-        if ((Flag & Value) == 0)
-        {
+    if( Value > 0 ) {
+        if( false == TestFlag( Flag, Value ) ) {
             Flag |= Value;
             return true; // true, gdy było wcześniej 0 i zostało ustawione
         }
     }
-    else if (Value < 0)
-    {
-        Value = abs(Value);
-        if ((Flag & Value) == Value)
-        {
-            Flag &= ~Value; // Value jest ujemne, czyli zerowanie flagi
-            return true; // true, gdy było wcześniej 1 i zostało wyzerowane
-        }
+    else if( Value < 0 ) {
+        // Value jest ujemne, czyli zerowanie flagi
+        return ClearFlag( Flag, -Value );
     }
-	return false;
+    return false;
 }
 
-bool UnSetFlag(int &Flag, int Value)
-{
-	Flag &= ~Value;
-	return true;
+bool ClearFlag( int &Flag, int const Value ) {
+
+    if( true == TestFlag( Flag, Value ) ) {
+        Flag &= ~Value;
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 double Random(double a, double b)
@@ -164,9 +118,8 @@ std::string ExchangeCharInString( std::string const &Source, char const &From, c
 {
 	std::string replacement; replacement.reserve( Source.size() );
 	std::for_each(Source.cbegin(), Source.cend(), [&](char const idx) {
-		if( idx != From )    { replacement += idx; }
-		else {
-			if( To != 0 ) { replacement += To; } }
+		if( idx != From ) { replacement += idx; }
+		else              { replacement += To; }
 	} );
 
 	return replacement;
@@ -263,33 +216,13 @@ std::string to_hex_str( int const Value, int const Width )
 	return converter.str();
 };
 
-int stol_def(const std::string &str, const int &DefaultValue)
-{
+int stol_def(const std::string &str, const int &DefaultValue) {
+
     int result { DefaultValue };
     std::stringstream converter;
     converter << str;
     converter >> result;
     return result;
-/*
-	// this function was developed iteratively on Codereview.stackexchange
-	// with the assistance of @Corbin
-	std::size_t len = str.size();
-	while (std::isspace(str[len - 1]))
-		len--;
-	if (len == 0)
-		return DefaultValue;
-	errno = 0;
-	char *s = new char[len + 1];
-	std::strncpy(s, str.c_str(), len);
-	char *p;
-	int result = strtol(s, &p, 0);
-	delete[] s;
-	if( ( *p != '\0' ) || ( errno != 0 ) )
-	{
-		return DefaultValue;
-	}
-	return result;
-*/
 }
 
 std::string ToLower(std::string const &text)
@@ -321,61 +254,23 @@ win1250_to_ascii( std::string &Input ) {
     }
 }
 
-void ComputeArc(double X0, double Y0, double Xn, double Yn, double R, double L, double dL,
-                double &phi, double &Xout, double &Yout)
-/*wylicza polozenie Xout Yout i orientacje phi punktu na elemencie dL luku*/
-{
-    double dX;
-    double dY;
-    double Xc; 
-    double Yc;
-    double gamma;
-    double alfa;
-    double AbsR;
+template <>
+bool
+extract_value( bool &Variable, std::string const &Key, std::string const &Input, std::string const &Default ) {
 
-    if ((R != 0) && (L != 0))
-    {
-        AbsR = abs(R);
-        dX = Xn - X0;
-        dY = Yn - Y0;
-        if (dX != 0)
-            gamma = atan(dY * 1.0 / dX);
-        else if (dY > 0)
-            gamma = M_PI * 1.0 / 2;
-        else
-            gamma = 3 * M_PI * 1.0 / 2;
-        alfa = L * 1.0 / R;
-        phi = gamma - (alfa + M_PI * Round(R * 1.0 / AbsR)) * 1.0 / 2;
-        Xc = X0 - AbsR * cos(phi);
-        Yc = Y0 - AbsR * sin(phi);
-        phi = phi + alfa * dL * 1.0 / L;
-        Xout = AbsR * cos(phi) + Xc;
-        Yout = AbsR * sin(phi) + Yc;
+    auto value = extract_value( Key, Input );
+    if( false == value.empty() ) {
+        // set the specified variable to retrieved value
+        Variable = ( ToLower( value ) == "yes" );
+        return true; // located the variable
     }
-}
-
-void ComputeALine(double X0, double Y0, double Xn, double Yn, double L, double R, double &Xout,
-                  double &Yout)
-{
-    double dX;
-    double dY;
-    double gamma;
-    double alfa;
-    /*   pX,pY : real;*/
-
-    alfa = 0; // ABu: bo nie bylo zainicjowane
-    dX = Xn - X0;
-    dY = Yn - Y0;
-    if (dX != 0)
-        gamma = atan(dY * 1.0 / dX);
-    else if (dY > 0)
-        gamma = M_PI * 1.0 / 2;
-    else
-        gamma = 3 * M_PI * 1.0 / 2;
-    if (R != 0)
-        alfa = L * 1.0 / R;
-    Xout = X0 + L * cos(alfa * 1.0 / 2 - gamma);
-    Yout = Y0 + L * sin(alfa * 1.0 / 2 - gamma);
+    else {
+        // set the variable to provided default value
+        if( false == Default.empty() ) {
+            Variable = ( ToLower( Default ) == "yes" );
+        }
+        return false; // couldn't locate the variable in provided input
+    }
 }
 
 bool FileExists( std::string const &Filename ) {
@@ -384,52 +279,3 @@ bool FileExists( std::string const &Filename ) {
 	std::ifstream file( fn );
     return( true == file.is_open() );
 }
-
-/*
-//graficzne:
-
-double Xhor(double h)
-{
-    return h * Hstep + Xmin;
-}
-
-double Yver(double v)
-{
-    return (Vsize - v) * Vstep + Ymin;
-}
-
-long Horiz(double x)
-{
-    x = (x - Xmin) * 1.0 / Hstep;
-    if (x > -INT_MAX)
-        if (x < INT_MAX)
-            return Round(x);
-        else
-            return INT_MAX;
-    else
-        return -INT_MAX;
-}
-
-long Vert(double Y)
-{
-    Y = (Y - Ymin) * 1.0 / Vstep;
-    if (Y > -INT_MAX)
-        if (Y < INT_MAX)
-            return Vsize - Round(Y);
-        else
-            return INT_MAX;
-    else
-        return -INT_MAX;
-}
-*/
-
-// NOTE: this now does nothing.
-void ClearPendingExceptions()
-// resetuje błędy FPU, wymagane dla Trunc()
-{
-    ; /*?*/ /* ASM
-       FNCLEX
- ASM END */
-}
-
-// END

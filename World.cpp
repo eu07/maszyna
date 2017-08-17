@@ -30,6 +30,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "color.h"
 #include "uilayer.h"
+#include "translation.h"
 
 //---------------------------------------------------------------------------
 
@@ -48,7 +49,7 @@ simulation_time Time;
 #ifdef _WIN32
 extern "C"
 {
-    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window ); //m7todo: potrzebne do directsound
+    GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
 #endif
 
@@ -218,7 +219,6 @@ TWorld::~TWorld()
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
     delete sound_man;
-    TModelsManager::Free();
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -302,36 +302,36 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     UILayer.set_background( "logo" );
 
-    std::shared_ptr<ui_panel> initpanel = std::make_shared<ui_panel>(85, 600);
-
     sound_man = new sound_manager();
-    WriteLog("Sound Init OK");
 
-    TModelsManager::Init();
-    WriteLog("Models init OK");
+    if (!sound_man)
+	{
+        ErrorLog( "Sound subsystem setup failed" );
+        return false;
+    }
+    WriteLog("SoundAL Init OK");
 
-    initpanel->text_lines.emplace_back( "Loading scenery / Wczytywanie scenerii:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-    initpanel->text_lines.emplace_back( Global::SceneryFile.substr(0, 40), float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-    UILayer.push_back( initpanel );
-    UILayer.set_progress(0.01f);
+    glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
+    UILayer.set_progress(0.01);
+    UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
 
     GfxRenderer.Render();
 
-    WriteLog( "Ground init" );
-    Ground.Init(Global::SceneryFile);
-    WriteLog( "Ground init OK" );
-
-    glfwSetWindowTitle( window,  ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
+    WriteLog( "World setup..." );
+    if( true == Ground.Init( Global::SceneryFile ) ) {
+        WriteLog( "...world setup done" );
+    }
+    else {
+        ErrorLog( "...world setup failed" );
+        return false;
+    }
 
     simulation::Time.init();
 
     Environment.init();
     Camera.Init(Global::FreeCameraInit[0], Global::FreeCameraInitAngle[0]);
 
-    initpanel->text_lines.clear();
-    initpanel->text_lines.emplace_back( "Preparing train / Przygotowanie kabiny:", float4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-    GfxRenderer.Render();
-    
+    UILayer.set_progress( "Preparing train / Przygotowanie kabiny" );
     WriteLog( "Player train init: " + Global::asHumanCtrlVehicle );
 
     TGroundNode *nPlayerTrain = NULL;
@@ -397,6 +397,7 @@ bool TWorld::Init( GLFWwindow *Window ) {
                 Train->Dynamic()->Mechanik->TakeControl(true);
 */
     UILayer.set_progress();
+    UILayer.set_progress( "" );
     UILayer.set_background( "" );
     UILayer.clear_texts();
 
@@ -498,9 +499,8 @@ void TWorld::OnKeyDown(int cKey)
                 }
                 else // również przeskakiwanie
                 { // Ra: to z tą kamerą (Camera.Pos i Global::pCameraPosition) jest trochę bez sensu
-                    Global::SetCameraPosition(
-                        Global::FreeCameraInit[i]); // nowa pozycja dla generowania obiektów
-                    Ground.Silence(Camera.Pos); // wyciszenie wszystkiego z poprzedniej pozycji
+                    Ground.Silence( Global::pCameraPosition ); // wyciszenie wszystkiego z poprzedniej pozycji
+                    Global::SetCameraPosition( Global::FreeCameraInit[i] ); // nowa pozycja dla generowania obiektów
                     Camera.Init(Global::FreeCameraInit[i],
                                 Global::FreeCameraInitAngle[i]); // przestawienie
                 }
@@ -641,13 +641,18 @@ void TWorld::OnKeyDown(int cKey)
                 break;
             }
             case GLFW_KEY_F8: {
-                Global::iTextMode = cKey;
-                // FPS
+                if( Global::ctrlState
+                 && Global::shiftState ) {
+                    DebugCameraFlag = !DebugCameraFlag; // taka opcjonalna funkcja, może się czasem przydać
+                }
+                else {
+                    Global::iTextMode = cKey;
+                }
                 break;
             }
             case GLFW_KEY_F9: {
                 Global::iTextMode = cKey;
-                // wersja, typ wyświetlania, błędy OpenGL
+                // wersja
                 break;
             }
             case GLFW_KEY_F10: {
@@ -714,8 +719,8 @@ void TWorld::OnKeyDown(int cKey)
             Global::iTextMode = GLFW_KEY_F1; // to wyświetlić zegar i informację
         }
     }
-    else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) ) {
-        //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy
+    else if( ( cKey == GLFW_KEY_PAUSE ) && ( Global::ctrlState ) && ( Global::shiftState ) ) {
+        //[Ctrl]+[Break] hamowanie wszystkich pojazdów w okolicy // added shift to prevent odd issue with glfw producing pause presses on its own
 		if (Controlled->MoverParameters->Radio)
 			Ground.RadioStop(Camera.Pos);
 	}
@@ -962,8 +967,6 @@ void TWorld::FollowView(bool wycisz) {
                     + Train->GetDirection() * 5.0 * Train->Dynamic()->MoverParameters->ActiveCab;
             }
             Train->pMechOffset = Train->pMechSittingPosition;
-
-            Global::SetCameraPosition( Train->Dynamic() ->GetPosition()); // tu ustawić nową, bo od niej liczą się odległości
         }
     }
     else
@@ -1061,17 +1064,17 @@ bool TWorld::Update()
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
     Ground.Update(dt / updatecount, updatecount); // tu zrobić tylko coklatkową aktualizację przesunięć
-/*
-    if (DebugModeFlag)
-        if (Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
-            if( Console::Pressed( GLFW_KEY_ESCAPE ) ) {
-                // yB dodał przyspieszacz fizyki
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n);
-                Ground.Update(dt, n); // 5 razy
-            }
-*/
+
+    // yB dodał przyspieszacz fizyki
+    if( (true == DebugModeFlag)
+     && (true == Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
+     && ( glfwGetKey( window, GLFW_KEY_PAUSE ) == GLFW_PRESS ) ) {
+
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount );
+        Ground.Update( dt, updatecount ); // 5 razy
+    }
     // secondary fixed step simulation time routines
 
     while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
@@ -1086,8 +1089,9 @@ bool TWorld::Update()
             }
 
         // fixed step part of the camera update
-        if( (Train != nullptr)
-         && (Camera.Type == tp_Follow )) {
+        if( ( Train != nullptr )
+         && ( Camera.Type == tp_Follow )
+         && ( false == DebugCameraFlag ) ) {
             // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
             Train->UpdateMechPosition( m_secondaryupdaterate );
         }
@@ -1129,11 +1133,16 @@ bool TWorld::Update()
         Console::Update(); // to i tak trzeba wywoływać
 #endif
         Update_UI();
-
+        // decelerate camera
         Camera.Velocity *= 0.65;
         if( std::abs( Camera.Velocity.x ) < 0.01 ) { Camera.Velocity.x = 0.0; }
         if( std::abs( Camera.Velocity.y ) < 0.01 ) { Camera.Velocity.y = 0.0; }
         if( std::abs( Camera.Velocity.z ) < 0.01 ) { Camera.Velocity.z = 0.0; }
+        // decelerate debug camera too
+        DebugCamera.Velocity *= 0.65;
+        if( std::abs( DebugCamera.Velocity.x ) < 0.01 ) { DebugCamera.Velocity.x = 0.0; }
+        if( std::abs( DebugCamera.Velocity.y ) < 0.01 ) { DebugCamera.Velocity.y = 0.0; }
+        if( std::abs( DebugCamera.Velocity.z ) < 0.01 ) { DebugCamera.Velocity.z = 0.0; }
 
         fTime50Hz -= 1.0 / 50.0;
     }
@@ -1152,56 +1161,54 @@ bool TWorld::Update()
 
 void
 TWorld::Update_Camera( double const Deltatime ) {
-    // Console::Update(); //tu jest zależne od FPS, co nie jest korzystne
 
-    if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
-        Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
-        // if (!FreeFlyModeFlag) //jeśli wewnątrz - patrzymy do tyłu
-        // Camera.LookAt=Train->pMechPosition-Normalize(Train->GetDirection())*10;
-        if( Controlled ? LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < 2250000 :
-            false ) // gdy bliżej niż 1.5km
-            Camera.LookAt = Controlled->GetPosition();
-        else {
-            TDynamicObject *d =
-                Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
-            if( !d )
-                d = Ground.DynamicNearest( Camera.Pos,
-                1000 ); // dalej szukanie, jesli bliżej nie ma
-            if( d && pDynamicNearest ) // jeśli jakiś jest znaleziony wcześniej
-                if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) >
-                    LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) )
-                    d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
-            // poprzedni najbliższy, zostaje poprzedni
-            if( d )
-                pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
-            if( pDynamicNearest )
-                Camera.LookAt = pDynamicNearest->GetPosition();
+    if( false == Global::ControlPicking ) {
+        if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
+            Camera.Reset(); // likwidacja obrotów - patrzy horyzontalnie na południe
+            if( Controlled && LengthSquared3( Controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
+                // gdy bliżej niż 1.5km
+                Camera.LookAt = Controlled->GetPosition();
+            }
+            else {
+                TDynamicObject *d =
+                    Ground.DynamicNearest( Camera.Pos, 300 ); // szukaj w promieniu 300m
+                if( !d )
+                    d = Ground.DynamicNearest( Camera.Pos, 1000 ); // dalej szukanie, jesli bliżej nie ma
+                if( d && pDynamicNearest ) {
+                    // jeśli jakiś jest znaleziony wcześniej
+                    if( 100.0 * LengthSquared3( d->GetPosition() - Camera.Pos ) > LengthSquared3( pDynamicNearest->GetPosition() - Camera.Pos ) ) {
+                        d = pDynamicNearest; // jeśli najbliższy nie jest 10 razy bliżej niż
+                    }
+                }
+                // poprzedni najbliższy, zostaje poprzedni
+                if( d )
+                    pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
+                if( pDynamicNearest )
+                    Camera.LookAt = pDynamicNearest->GetPosition();
+            }
+            if( FreeFlyModeFlag )
+                Camera.RaLook(); // jednorazowe przestawienie kamery
         }
-        if( FreeFlyModeFlag )
-            Camera.RaLook(); // jednorazowe przestawienie kamery
-    }
-    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) { //||Console::Pressed(VK_F4))
-        FollowView( false ); // bez wyciszania dźwięków
-    }
-    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) == GLFW_PRESS ) {
-        // middle mouse button controls zoom.
-        Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>( Deltatime ) );
-    }
-    else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) != GLFW_PRESS ) {
-        // reset zoom level if the button is no longer held down.
-        // NOTE: yes, this is terrible way to go about it. it'll do for now.
-        Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) {
+            FollowView( false ); // bez wyciszania dźwięków
+        }
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) == GLFW_PRESS ) {
+            // middle mouse button controls zoom.
+            Global::ZoomFactor = std::min( 4.5f, Global::ZoomFactor + 15.0f * static_cast<float>( Deltatime ) );
+        }
+        else if( glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_MIDDLE ) != GLFW_PRESS ) {
+            // reset zoom level if the button is no longer held down.
+            // NOTE: yes, this is terrible way to go about it. it'll do for now.
+            Global::ZoomFactor = std::max( 1.0f, Global::ZoomFactor - 15.0f * static_cast<float>( Deltatime ) );
+        }
     }
 
-    Camera.Update(); // uwzględnienie ruchu wywołanego klawiszami
-/*
-    if( Camera.Type == tp_Follow ) {
-        if( Train ) { // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
-            Train->UpdateMechPosition( Deltatime /
-                Global::fTimeSpeed ); // ograniczyć telepanie po przyspieszeniu
-*/
-    if( (Train != nullptr)
-     && (Camera.Type == tp_Follow )) {
+    if( DebugCameraFlag ) { DebugCamera.Update(); }
+    else                  { Camera.Update(); } // uwzględnienie ruchu wywołanego klawiszami
+
+    if( ( Train != nullptr )
+     && ( Camera.Type == tp_Follow )
+     && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
         vector3 tempangle = Controlled->VectorFront() * ( Controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
         double modelrotate = atan2( -tempangle.x, tempangle.z );
@@ -1263,6 +1270,9 @@ TWorld::Update_Camera( double const Deltatime ) {
     else { // kamera nieruchoma
         Global::SetCameraRotation( Camera.Yaw - M_PI );
     }
+    // all done, update camera position to the new value
+    Global::pCameraPosition = Camera.Pos;
+    Global::DebugCameraPosition = DebugCamera.Pos;
 }
 
 void TWorld::Update_Environment() {
@@ -1277,73 +1287,28 @@ void TWorld::ResourceSweep()
 */
 };
 
-// rendering kabiny gdy jest oddzielnym modelem i ma byc wyswietlana
-void
-TWorld::Render_Cab() {
-
-    if( Train == nullptr ) {
-
-        TSubModel::iInstance = 0;
-        return;
-    }
-
-    TDynamicObject *dynamic = Train->Dynamic();
-    TSubModel::iInstance = reinterpret_cast<std::size_t>( dynamic );
-
-    if( ( true == FreeFlyModeFlag )
-     || ( false == dynamic->bDisplayCab )
-     || ( dynamic->mdKabina == dynamic->mdModel ) ) {
-        // ABu: Rendering kabiny jako ostatniej, zeby bylo widac przez szyby, tylko w widoku ze srodka
-        return;
-    }
-/*
-    glPushMatrix();
-    vector3 pos = dynamic->GetPosition(); // wszpółrzędne pojazdu z kabiną
-    // glTranslatef(pos.x,pos.y,pos.z); //przesunięcie o wektor (tak było i trzęsło)
-    // aby pozbyć się choć trochę trzęsienia, trzeba by nie przeliczać kabiny do punktu
-    // zerowego scenerii
-    glLoadIdentity(); // zacząć od macierzy jedynkowej
-    Camera.SetCabMatrix( pos ); // widok z kamery po przesunięciu
-    glMultMatrixd( dynamic->mMatrix.getArray() ); // ta macierz nie ma przesunięcia
-*/
-    ::glPushMatrix();
-    auto const originoffset = dynamic->GetPosition() - GfxRenderer.m_camera.position();
-    ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
-    ::glMultMatrixd( dynamic->mMatrix.getArray() );
-
-    if( dynamic->mdKabina ) // bo mogła zniknąć przy przechodzeniu do innego pojazdu
-    {
-        // setup
-        if( dynamic->fShade > 0.0f ) {
-            // change light level based on light level of the occupied track
-			Global::daylight.intensity = dynamic->fShade;
-        }
-        if( dynamic->InteriorLightLevel > 0.0f ) {
-            // crude way to light the cabin, until we have something more complete in place
-            auto const cablight = dynamic->InteriorLight * dynamic->InteriorLightLevel;
-			GfxRenderer.ubo.data.ambient = glm::make_vec3(&cablight.x);
-        }
-        // render
-        GfxRenderer.Render( dynamic->mdKabina, dynamic->Material(), 0.0 );
-        GfxRenderer.Render_Alpha( dynamic->mdKabina, dynamic->Material(), 0.0 );
-        // post-render restore
-        if( dynamic->fShade > 0.0f ) {
-            // change light level based on light level of the occupied track
-			Global::daylight.intensity = 1.0f;
-        }
-        if( dynamic->InteriorLightLevel > 0.0f ) {
-            // reset the overall ambient
-			GfxRenderer.ubo.data.ambient = glm::vec3(0.0f);
-        }
-    }
-    glPopMatrix();
-}
-
 void
 TWorld::Update_UI() {
 
     UITable->text_lines.clear();
     std::string  uitextline1, uitextline2, uitextline3, uitextline4;
+    UILayer.set_tooltip( "" );
+
+    if( ( Train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
+        if( false == DebugModeFlag ) {
+            // in regular mode show control functions, for defined controls
+            UILayer.set_tooltip( locale::label_cab_control( Train->GetLabel( GfxRenderer.Pick_Control() ) ) );
+        }
+        else {
+            // in debug mode show names of submodels, to help with cab setup and/or debugging
+            auto const cabcontrol = GfxRenderer.Pick_Control();
+            UILayer.set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
+        }
+    }
+    if( ( true == Global::ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
+        auto const scenerynode = GfxRenderer.Pick_Node();
+        UILayer.set_tooltip( ( scenerynode ? scenerynode->asName : "" ) );
+    }
 
     switch( Global::iTextMode ) {
 
@@ -1484,9 +1449,10 @@ TWorld::Update_UI() {
                     // for cars other than leading unit indicate the leader
                     uitextline1 += ", owned by " + tmp->ctOwner->OwnerName();
                 }
+                uitextline1 += "; Status: " + tmp->MoverParameters->EngineDescription( 0 );
                 // informacja o sprzęgach
                 uitextline1 +=
-                    " C0:" +
+                    "; C0:" +
                     ( tmp->PrevConnected ?
                     tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
                     "none" );
@@ -1496,9 +1462,23 @@ TWorld::Update_UI() {
                     tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
                     "none" );
 
-                uitextline2 = "Damage status: " + tmp->MoverParameters->EngineDescription( 0 );
-
-                uitextline2 += "; Brake delay: ";
+                // equipment flags
+                uitextline2  = ( tmp->MoverParameters->Battery ? "B" : "." );
+                uitextline2 += ( tmp->MoverParameters->Mains ? "M" : "." );
+                uitextline2 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
+                uitextline2 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
+                uitextline2 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
+                uitextline2 += ( false == tmp->MoverParameters->ConverterAllowLocal ? "-" : ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
+                uitextline2 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
+                uitextline2 += ( false == tmp->MoverParameters->CompressorAllowLocal ? "-" : ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
+                uitextline2 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
+/*
+                uitextline2 +=
+                    " AnlgB: " + to_string( tmp->MoverParameters->AnPos, 1 )
+                    + "+"
+                    + to_string( tmp->MoverParameters->LocalBrakePosA, 1 )
+*/
+                uitextline2 += " Bdelay: ";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_G ) == bdelay_G )
                     uitextline2 += "G";
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_P ) == bdelay_P )
@@ -1508,39 +1488,22 @@ TWorld::Update_UI() {
                 if( ( tmp->MoverParameters->BrakeDelayFlag & bdelay_M ) == bdelay_M )
                     uitextline2 += "+Mg";
 
-                uitextline2 += ", BTP: " + to_string( tmp->MoverParameters->LoadFlag, 0 );
-                {
-                    uitextline2 +=
-                        "; pant: "
-                        + to_string( tmp->MoverParameters->PantPress, 2 )
-                        + ( tmp->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
-                }
+                uitextline2 += ", Load: " + to_string( tmp->MoverParameters->LoadFlag, 0 );
 
                 uitextline2 +=
-                    ", MED:"
-                    + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
-                    + "+"
-                    + to_string( tmp->MoverParameters->AnPos, 2 );
+                    "; Pant: "
+                    + to_string( tmp->MoverParameters->PantPress, 2 )
+                    + ( tmp->MoverParameters->bPantKurek3 ? "-ZG" : "|ZG" );
 
                 uitextline2 +=
-                    ", Ft:"
-                    + to_string( tmp->MoverParameters->Ft * 0.001f, 0 );
+                    "; Ft: " + to_string( tmp->MoverParameters->Ft * 0.001f * tmp->MoverParameters->ActiveCab, 1 )
+                    + ", Fb: " + to_string( tmp->MoverParameters->Fb * 0.001f, 1 )
+                    + ", Fr: " + to_string( tmp->MoverParameters->RunningTrack.friction, 2 )
+                    + ( tmp->MoverParameters->SlippingWheels ? " (!)" : "" );
 
                 uitextline2 +=
                     "; TC:"
                     + to_string( tmp->MoverParameters->TotalCurrent, 0 );
-#ifdef EU07_USE_OLD_HVCOUPLERS
-                uitextline2 +=
-                    ", HV0: "
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::voltage ], 0 )
-                    + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::front ][ TMoverParameters::hvcoupler::current ], 0 );
-                uitextline2 +=
-                    ", HV1: "
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::voltage ], 0 )
-                    + "@"
-                    + to_string( tmp->MoverParameters->HVCouplers[ TMoverParameters::side::rear ][ TMoverParameters::hvcoupler::current ], 0 );
-#else
                 auto const frontcouplerhighvoltage =
                     to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.voltage, 0 )
                     + "@"
@@ -1550,36 +1513,26 @@ TWorld::Update_UI() {
                     + "@"
                     + to_string( tmp->MoverParameters->Couplers[ TMoverParameters::side::rear ].power_high.current, 0 );
                 uitextline2 += ", HV: ";
-                    if( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
-                        uitextline2 +=
-                              "(" + frontcouplerhighvoltage + ")-"
-                            + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
-                            + "-(" + rearcouplerhighvoltage + ")";
-                    }
-                    else {
-                        uitextline2 +=
-                              frontcouplerhighvoltage
-                            + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
-                            + rearcouplerhighvoltage;
-                    }
-#endif
-                // equipment flags
-                uitextline3  = "";
-                uitextline3 += ( tmp->MoverParameters->Battery ? "B" : "." );
-                uitextline3 += ( tmp->MoverParameters->Mains ? "M" : "." );
-                uitextline3 += ( tmp->MoverParameters->PantRearUp ? ( tmp->MoverParameters->PantRearVolt > 0.0 ? "O" : "o" ) : "." );;
-                uitextline3 += ( tmp->MoverParameters->PantFrontUp ? ( tmp->MoverParameters->PantFrontVolt > 0.0 ? "P" : "p" ) : "." );;
-                uitextline3 += ( tmp->MoverParameters->PantPressLockActive ? "!" : ( tmp->MoverParameters->PantPressSwitchActive ? "*" : "." ) );
-                uitextline3 += ( false == tmp->MoverParameters->ConverterAllowLocal ? "-" : ( tmp->MoverParameters->ConverterAllow ? ( tmp->MoverParameters->ConverterFlag ? "X" : "x" ) : "." ) );
-                uitextline3 += ( tmp->MoverParameters->ConvOvldFlag ? "!" : "." );
-                uitextline3 += ( false == tmp->MoverParameters->CompressorAllowLocal ? "-" : ( tmp->MoverParameters->CompressorAllow ? ( tmp->MoverParameters->CompressorFlag ? "C" : "c" ) : "." ) );
-                uitextline3 += ( tmp->MoverParameters->CompressorGovernorLock ? "!" : "." );
+                if( tmp->MoverParameters->Couplers[ TMoverParameters::side::front ].power_high.local == false ) {
+                    uitextline2 +=
+                            "(" + frontcouplerhighvoltage + ")-"
+                        + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                        + "-(" + rearcouplerhighvoltage + ")";
+                }
+                else {
+                    uitextline2 +=
+                            frontcouplerhighvoltage
+                        + ":F" + ( tmp->DirectionGet() ? "<<" : ">>" ) + "R:"
+                        + rearcouplerhighvoltage;
+                }
 
                 uitextline3 +=
-                    " TrB: " + to_string( tmp->MoverParameters->BrakePress, 2 )
-                    + ", " + to_hex_str( tmp->MoverParameters->Hamulec->GetBrakeStatus(), 2 )
-                    + ", LcB: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
-                    + ", pipes: " + to_string( tmp->MoverParameters->PipePress, 2 )
+                    "TrB: " + to_string( tmp->MoverParameters->BrakePress, 2 )
+                    + ", " + to_hex_str( tmp->MoverParameters->Hamulec->GetBrakeStatus(), 2 );
+
+                uitextline3 +=
+                    "; LcB: " + to_string( tmp->MoverParameters->LocBrakePress, 2 )
+                    + "; pipes: " + to_string( tmp->MoverParameters->PipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->ScndPipePress, 2 )
                     + "/" + to_string( tmp->MoverParameters->EqvtPipePress, 2 )
                     + ", MT: " + to_string( tmp->MoverParameters->CompressedVolume, 3 )
@@ -1589,9 +1542,9 @@ TWorld::Update_UI() {
 
                 if( tmp->MoverParameters->ManualBrakePos > 0 ) {
 
-                    uitextline3 += ", manual brake on";
+                    uitextline3 += "; manual brake on";
                 }
-
+/*
                 if( tmp->MoverParameters->LocalBrakePos > 0 ) {
 
                     uitextline3 += ", local brake on";
@@ -1600,23 +1553,26 @@ TWorld::Update_UI() {
 
                     uitextline3 += ", local brake off";
                 }
-
+*/
                 if( tmp->Mechanik ) {
                     // o ile jest ktoś w środku
-                    std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
-                    for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
-                        if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
-                            flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
+                    std::string flags = "cpapcplhhndoiefgvdpseil "; // flagi AI (definicja w Driver.h)
+                    for( int i = 0, j = 1; i < 23; ++i, j <<= 1 )
+                        if( false == ( tmp->Mechanik->DrivigFlags() & j ) ) // jak bit ustawiony
+                            flags[ i ] = '.';// std::toupper( flags[ i ] ); // ^= 0x20; // to zmiana na wielką literę
 
                     uitextline4 = flags;
 
                     uitextline4 +=
                         "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                        + " Ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+						+ " Ah=" + to_string(tmp->Mechanik->fAccThreshold, 2)
+						+ "@" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
+						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
-                        + " VSm=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
-                        + " VLm=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
+                        + " VSl=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
+                        + " VLl=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
                         + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
 
                     if( ( tmp->Mechanik->VelNext == 0.0 )
@@ -1673,8 +1629,9 @@ TWorld::Update_UI() {
             uitextline1 =
                 "FoV: " + to_string( Global::FieldOfView / Global::ZoomFactor, 1 )
                 + ", Draw range x " + to_string( Global::fDistanceFactor, 1 )
-                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
-                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
+//                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
+//                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
+                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer.Framerate())) );
             if( Global::iSlowMotion ) {
                 uitextline1 += " (slowmotion " + to_string( Global::iSlowMotion ) + ")";
             }
@@ -1758,7 +1715,7 @@ TWorld::Update_UI() {
                        std::to_string( int( tmp->MoverParameters->Im ) ) )
                     + "; U=" + to_string( int( tmp->MoverParameters->RunningTraction.TractionVoltage + 0.5 ) )
                     + "; R=" +
-                    ( tmp->MoverParameters->RunningShape.R > 100000.0 ?
+                    ( std::abs( tmp->MoverParameters->RunningShape.R ) > 10000.0 ?
                         "~0.0" :
                         to_string( tmp->MoverParameters->RunningShape.R, 1 ) )
                     + " An=" + to_string( tmp->MoverParameters->AccN, 2 ); // przyspieszenie poprzeczne
@@ -1823,7 +1780,11 @@ TWorld::Update_UI() {
                  && ( tmp->Mechanik->AIControllFlag == AIdriver ) ) {
                     uitextline4 +=
                         "AI: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                        + " ad=" + to_string(tmp->Mechanik->AccDesired, 2)
+						+ "/" + to_string(tmp->Mechanik->AccDesired*tmp->Mechanik->BrakeAccFactor(), 2)
+						+ " atrain=" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
+						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
+						+ " aS=" + to_string(tmp->Mechanik->AbsAccS_pub, 2)
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 );
                 }
@@ -2276,7 +2237,7 @@ TWorld::ToggleDaylight() {
 
 void
 world_environment::init() {
-	m_skydome.init();
+//	m_skydome.init();
     m_sun.init();
     m_moon.init();
     m_stars.init();
@@ -2289,30 +2250,30 @@ world_environment::update() {
     m_sun.update();
     m_moon.update();
     // ...determine source of key light and adjust global state accordingly...
-    auto const sunlightlevel = m_sun.getIntensity();
-    auto const moonlightlevel = m_moon.getIntensity() * 0.5f; // scaled down by arbitrary factor, it's pretty bright otherwise
+    // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
+    float twilightfactor = clamp( -m_sun.getAngle(), 0.0f, 18.0f ) / 18.0f;
+    // NOTE: sun light receives extra padding to prevent moon from kicking in too soon
+    auto const sunlightlevel = m_sun.getIntensity() + 0.05f * ( 1.f - twilightfactor );
+    auto const moonlightlevel = m_moon.getIntensity() * 0.65f; // scaled down by arbitrary factor, it's pretty bright otherwise
     float keylightintensity;
-    float twilightfactor;
-    glm::vec3 keylightcolor(0.0f);
+    glm::vec3 keylightcolor;
     if( moonlightlevel > sunlightlevel ) {
-		twilightfactor = 1.0f;
-		/*
         // rare situations when the moon is brighter than the sun, typically at night
         Global::SunAngle = m_moon.getAngle();
-		Global::daylight.direction = -1.0f * m_moon.getDirection();
+        Global::DayLight.set_position( m_moon.getPosition() );
+        Global::DayLight.direction = -1.0f * m_moon.getDirection();
         keylightintensity = moonlightlevel;
         // if the moon is up, it overrides the twilight
         twilightfactor = 0.0f;
         keylightcolor = glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
-		*/
     }
     else {
         // regular situation with sun as the key light
         Global::SunAngle = m_sun.getAngle();
-		Global::daylight.direction = -1.0f * m_sun.getDirection();
+        Global::DayLight.set_position( m_sun.getPosition() );
+        Global::DayLight.direction = -1.0f * m_sun.getDirection();
         keylightintensity = sunlightlevel;
-        // diffuse (sun) intensity goes down after twilight, and reaches minimum 18 degrees below horizon
-        twilightfactor = clamp( -Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
+        // include 'golden hour' effect in twilight lighting
         float const duskfactor = 1.0f - clamp( Global::SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(
             glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
@@ -2328,34 +2289,31 @@ world_environment::update() {
     // sun strength is reduced by overcast level
     keylightintensity *= ( 1.0f - Global::Overcast * 0.65f );
 
-	// intensity combines intensity of the sun and the light reflected by the sky dome
-	// it'd be more technically correct to have just the intensity of the sun here,
-	// but whether it'd _look_ better is something to be tested
-	auto const intensity = std::min(1.15f * (0.05f + keylightintensity + skydomehsv.z), 1.25f);
-	// the impact of sun component is reduced proportionally to overcast level, as overcast increases role of ambient light
-	auto const diffuselevel = interpolate(keylightintensity, intensity * (1.0f - twilightfactor), 1.0f - Global::Overcast * 0.75f);
-	// ...update light colours and intensity.
-	keylightcolor = keylightcolor * diffuselevel;
+    // intensity combines intensity of the sun and the light reflected by the sky dome
+    // it'd be more technically correct to have just the intensity of the sun here,
+    // but whether it'd _look_ better is something to be tested
+    auto const intensity = std::min( 1.15f * ( 0.05f + keylightintensity + skydomehsv.z ), 1.25f );
+    // the impact of sun component is reduced proportionally to overcast level, as overcast increases role of ambient light
+    auto const diffuselevel = interpolate( keylightintensity, intensity * ( 1.0f - twilightfactor ), 1.0f - Global::Overcast * 0.75f );
+    // ...update light colours and intensity.
+    keylightcolor = keylightcolor * diffuselevel;
+    Global::DayLight.diffuse = glm::vec4( keylightcolor, Global::DayLight.diffuse.a );
+    Global::DayLight.specular = glm::vec4( keylightcolor * 0.85f, diffuselevel );
 
-	Global::daylight.color = keylightcolor * 0.8f;
+    // tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
+    // (this is pure conjecture, aimed more to 'look right' than be accurate)
+    float const ambienttone = clamp( 1.0f - ( Global::SunAngle / 90.0f ), 0.0f, 1.0f );
+    Global::DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.x, ambienttone );
+    Global::DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.y, ambienttone );
+    Global::DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.z, ambienttone );
 
-	// tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
-	// (this is pure conjecture, aimed more to 'look right' than be accurate)
-	float const ambienttone = clamp(1.0f - (Global::SunAngle / 90.0f), 0.0f, 1.0f);
-	Global::daylight.ambient.x = interpolate(skydomehsv.z, skydomecolour.x, ambienttone);
-	Global::daylight.ambient.y = interpolate(skydomehsv.z, skydomecolour.y, ambienttone);
-	Global::daylight.ambient.z = interpolate(skydomehsv.z, skydomecolour.z, ambienttone);
+    Global::fLuminance = intensity;
 
-	Global::fLuminance = intensity;
-
-	// update the fog. setting it to match the average colour of the sky dome is cheap
-	// but quite effective way to make the distant items blend with background better
-	Global::FogColor[0] = skydomecolour.x;
-	Global::FogColor[1] = skydomecolour.y;
-	Global::FogColor[2] = skydomecolour.z;
-	::glFogfv(GL_FOG_COLOR, Global::FogColor); // kolor mgły
-
-	::glClearColor(skydomecolour.x, skydomecolour.y, skydomecolour.z, 1.0f); // kolor nieba
+    // update the fog. setting it to match the average colour of the sky dome is cheap
+    // but quite effective way to make the distant items blend with background better
+    Global::FogColor[ 0 ] = skydomecolour.x;
+    Global::FogColor[ 1 ] = skydomecolour.y;
+    Global::FogColor[ 2 ] = skydomecolour.z;
 }
 
 void

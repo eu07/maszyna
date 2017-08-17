@@ -1,16 +1,12 @@
 #pragma	once
 
-#include "dumb3d.h"
-#include "Float3d.h"
-#include "shader.h"
-
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
 
 class CSkyDome {
 public:
-	void init(int const Tesselation = 54);
-
+    CSkyDome( int const Tesselation = 54 );
+	~CSkyDome();
 	void Generate();
 	void RebuildColors();
 
@@ -40,10 +36,8 @@ private:
     float m_gammacorrection;
     glm::vec3 m_averagecolour;
 
-	gl_program_mvp m_shader;
-
 	// data
-    int m_tesselation;
+    int const m_tesselation;
     std::vector<glm::vec3> m_vertices;
     std::vector<std::uint16_t> m_indices;
 //    std::vector<float3> m_normals;
@@ -51,7 +45,6 @@ private:
     GLuint m_vertexbuffer{ (GLuint)-1 };
     GLuint m_indexbuffer{ (GLuint)-1 };
     GLuint m_coloursbuffer{ (GLuint)-1 };
-	GLuint m_vao = (GLuint)-1;
 
 	static float m_distributionluminance[ 5 ][ 2 ];
     static float m_distributionxcomp[ 5 ][ 2 ];

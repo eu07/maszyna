@@ -170,6 +170,7 @@ class Global
     static int Keys[MaxKeys];
     static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
     static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
+    static Math3D::vector3 DebugCameraPosition; // pozycja kamery w świecie
     static double
         pCameraRotation; // kierunek bezwzględny kamery w świecie: 0=północ, 90°=zachód (-azymut)
     static double pCameraRotationDeg; // w stopniach, dla animacji billboard
@@ -223,8 +224,16 @@ class Global
     // static bool bTimeChange;
 
     // TODO: put these things in the renderer
+    static float BaseDrawRange;
     static int DynamicLightCount;
     static bool ScaleSpecularValues;
+    static bool RenderShadows;
+    static struct shadowtune_t {
+        unsigned int map_size;
+        float width;
+        float depth;
+        float distance;
+    } shadowtune;
 
     static int iSlowMotion;
     static TDynamicObject *changeDynObj;
@@ -237,7 +246,6 @@ class Global
     static int iBallastFiltering; // domyślne rozmywanie tekstury podsypki
     static int iRailProFiltering; // domyślne rozmywanie tekstury szyn
     static int iDynamicFiltering; // domyślne rozmywanie tekstur pojazdów
-    static int iReCompile; // zwiększany, gdy trzeba odświeżyć siatki
     static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
@@ -255,6 +263,8 @@ class Global
     static int iCameraLast;
     static std::string asVersion; // z opisem
     static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
+    static bool ControlPicking; // indicates controls pick mode is active
+    static bool InputMouse; // whether control pick mode can be activated
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego
     static bool bDoubleAmbient; // podwójna jasność ambient
@@ -273,6 +283,7 @@ class Global
     static bool bGlutFont; // tekst generowany przez GLUT
     static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
+	static bool bActive;
 
     static int iConvertModels; // tworzenie plików binarnych
     static int iErorrCounter; // licznik sprawdzań do śledzenia błędów OpenGL
@@ -283,14 +294,6 @@ class Global
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
 	static bool bOldSmudge; // Używanie starej smugi
 	
-	static struct shadowtune_t
-	{
-		unsigned int map_size;
-		float width;
-		float depth;
-		float distance;
-	} shadowtune;
-
     static TWorld *pWorld; // wskaźnik na świat do usuwania pojazdów
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
     static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
@@ -313,9 +316,6 @@ class Global
 									   // informacje podczas kalibracji
     static double fBrakeStep; // krok zmiany hamulca dla klawiszy [Num3] i [Num9]
     static bool bJoinEvents; // czy grupować eventy o tych samych nazwach
-/*
-    static std::string asTranscript[5]; // napisy na ekranie (widoczne)
-*/
     static TTranscripts tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
     static float4 UITextColor; // base color of UI text
     static std::string asLang; // domyślny język - http://tools.ietf.org/html/bcp47
@@ -354,14 +354,7 @@ class Global
 	static double fMWDlowVolt[2];
 	static int iMWDdivider;
 
-	struct daylight_s
-	{
-		glm::vec3 ambient;
-		glm::vec3 direction;
-		glm::vec3 color;
-		float intensity;
-	};
+	static opengl_light DayLight;
 
-	static daylight_s daylight;
 };
 //---------------------------------------------------------------------------

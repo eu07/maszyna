@@ -440,14 +440,15 @@ bool TAnimModel::Init(TModel3d *pNewModel)
 
 bool TAnimModel::Init(std::string const &asName, std::string const &asReplacableTexture)
 {
-    if (asReplacableTexture.substr(0, 1) ==
-        "*") // od gwiazdki zaczynają się teksty na wyświetlaczach
-        asText = asReplacableTexture.substr(1, asReplacableTexture.length() - 1); // zapamiętanie tekstu
-    else if (asReplacableTexture != "none")
-        m_materialdata.replacable_skins[1] =
-            GfxRenderer.GetTextureId( asReplacableTexture, "" );
-    if( ( m_materialdata.replacable_skins[ 1 ] != 0 )
-        && ( GfxRenderer.Texture( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
+    if( asReplacableTexture.substr( 0, 1 ) == "*" ) {
+        // od gwiazdki zaczynają się teksty na wyświetlaczach
+        asText = asReplacableTexture.substr( 1, asReplacableTexture.length() - 1 ); // zapamiętanie tekstu
+    }
+    else if( asReplacableTexture != "none" ) {
+        m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( asReplacableTexture );
+    }
+    if( ( m_materialdata.replacable_skins[ 1 ] != null_handle )
+     && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
         // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         m_materialdata.textures_alpha = 0x31310031;
     }
@@ -470,10 +471,12 @@ bool TAnimModel::Load(cParser *parser, bool ter)
             if (ter) // jeśli teren
             {
 				if( name.substr( name.rfind( '.' ) ) == ".t3d" ) {
-					name[ name.length() - 2 ] = 'e';
+					name[ name.length() - 3 ] = 'e';
 				}
+#ifdef EU07_USE_OLD_TERRAINCODE
                 Global::asTerrainModel = name;
                 WriteLog("Terrain model \"" + name + "\" will be created.");
+#endif
             }
             else
                 ErrorLog("Missed file: " + name);
@@ -606,6 +609,7 @@ int TAnimModel::Flags()
 //-----------------------------------------------------------------------------
 // 2011-03-16 funkcje renderowania z możliwością pochylania obiektów
 //-----------------------------------------------------------------------------
+#ifdef EU07_USE_OLD_RENDERCODE
 void TAnimModel::Render( vector3 const &Position ) {
     RaAnimate(); // jednorazowe przeliczenie animacji
     RaPrepare();
@@ -617,7 +621,7 @@ void TAnimModel::RenderAlpha( vector3 const &Position ) {
     if( pModel ) // renderowanie rekurencyjne submodeli
         GfxRenderer.Render_Alpha( pModel, Material(), Position, vAngle );
 };
-
+#endif
 //---------------------------------------------------------------------------
 bool TAnimModel::TerrainLoaded()
 { // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
@@ -631,13 +635,7 @@ TSubModel * TAnimModel::TerrainSquare(int n)
 { // pobieranie wskaźników do pierwszego submodelu
     return pModel ? pModel->TerrainSquare(n) : 0;
 };
-#ifdef EU07_USE_OLD_RENDERCODE
-void TAnimModel::TerrainRenderVBO(int n)
-{ // renderowanie terenu z VBO
-    if (pModel)
-        pModel->TerrainRenderVBO(n);
-};
-#endif
+
 //---------------------------------------------------------------------------
 
 void TAnimModel::Advanced()

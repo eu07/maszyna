@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
-#include "Texture.h"
+#include "material.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "Names.h"
@@ -140,7 +140,7 @@ public:
         int iCount; // dla terenu
     };
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
-    texture_handle TextureID; // główna (jedna) tekstura obiektu
+    material_handle m_material; // główna (jedna) tekstura obiektu
     glm::vec3
         Ambient{ 1.0f, 1.0f, 1.0f },
         Diffuse{ 1.0f, 1.0f, 1.0f },
@@ -175,10 +175,6 @@ class TSubRect : /*public Resource,*/ public CMesh
     TTrack **tTracks = nullptr; // tory do renderowania pojazdów
   protected:
     TTrack *tTrackAnim = nullptr; // obiekty do przeliczenia animacji
-#ifdef EU07_USE_OLD_RENDERCODE
-    TGroundNode *nRootMesh = nullptr; // obiekty renderujące wg tekstury (wtórne, lista po nNext2)
-    TGroundNode *nMeshed = nullptr; // lista obiektów dla których istnieją obiekty renderujące grupowo
-#endif
   public:
     TGroundNode *nRootNode = nullptr; // wszystkie obiekty w sektorze, z wyjątkiem renderujących i pojazdów (nNext2)
     TGroundNode *nRenderHidden = nullptr; // lista obiektów niewidocznych, "renderowanych" również z tyłu (nNext3)
@@ -313,32 +309,29 @@ class TGround
     TGroundNode * DynamicFind(std::string const &Name);
     void DynamicList(bool all = false);
     TGroundNode * FindGroundNode(std::string asNameToFind, TGroundNodeType iNodeType);
-    TGroundRect * GetRect(double x, double z)
-    {
-        return &Rects[GetColFromX(x) / iNumSubRects][GetRowFromZ(z) / iNumSubRects];
-    };
+    TGroundRect * GetRect( double x, double z );
     TSubRect * GetSubRect( int iCol, int iRow );
-    TSubRect * GetSubRect(double x, double z)
-    {
-        return GetSubRect(GetColFromX(x), GetRowFromZ(z));
-    };
+    inline
+    TSubRect * GetSubRect(double x, double z) {
+        return GetSubRect(GetColFromX(x), GetRowFromZ(z)); };
     TSubRect * FastGetSubRect( int iCol, int iRow );
+    inline
     TSubRect * FastGetSubRect( double x, double z ) {
-        return FastGetSubRect( GetColFromX( x ), GetRowFromZ( z ) );
-    };
-    int GetRowFromZ(double z)
-    {
-        return (int)(z / fSubRectSize + fHalfTotalNumSubRects);
-    };
-    int GetColFromX(double x)
-    {
-        return (int)(x / fSubRectSize + fHalfTotalNumSubRects);
-    };
+        return FastGetSubRect( GetColFromX( x ), GetRowFromZ( z ) ); };
+    inline
+    int GetRowFromZ(double z) {
+        return (int)(z / fSubRectSize + fHalfTotalNumSubRects); };
+    inline
+    int GetColFromX(double x) {
+        return (int)(x / fSubRectSize + fHalfTotalNumSubRects); };
     TEvent * FindEvent(const std::string &asEventName);
     TEvent * FindEventScan(const std::string &asEventName);
     void TrackJoin(TGroundNode *Current);
 
   private:
+    // convert tp_terrain model to a series of triangle nodes
+    void convert_terrain( TGroundNode const *Terrain );
+    void convert_terrain( TSubModel const *Submodel );
     void RaTriangleDivider(TGroundNode *node);
 #ifdef _WIN32
     void Navigate(std::string const &ClassName, UINT Msg, WPARAM wParam, LPARAM lParam);

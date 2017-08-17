@@ -32,8 +32,9 @@ class TCab
   public:
     TCab();
     ~TCab();
-    void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2,
-              double Initz2, bool InitEnabled, bool InitOccupied);
+/*
+    void Init(double Initx1, double Inity1, double Initz1, double Initx2, double Inity2, double Initz2, bool InitEnabled, bool InitOccupied);
+*/
     void Load(cParser &Parser);
     vector3 CabPos1;
     vector3 CabPos2;
@@ -41,25 +42,38 @@ class TCab
     bool bOccupied;
     double dimm_r, dimm_g, dimm_b; // McZapkie-120503: tlumienie swiatla
     double intlit_r, intlit_g, intlit_b; // McZapkie-120503: oswietlenie kabiny
-    double intlitlow_r, intlitlow_g,
-        intlitlow_b; // McZapkie-120503: przyciemnione oswietlenie kabiny
+    double intlitlow_r, intlitlow_g, intlitlow_b; // McZapkie-120503: przyciemnione oswietlenie kabiny
   private:
-    // bool bChangePossible;
+/*
     TGauge *ggList; // Ra 2014-08: lista animacji macierzowych (gałek) w kabinie
     int iGaugesMax, iGauges; // ile miejsca w tablicy i ile jest w użyciu
     TButton *btList; // Ra 2014-08: lista animacji dwustanowych (lampek) w kabinie
     int iButtonsMax, iButtons; // ile miejsca w tablicy i ile jest w użyciu
+*/
+      std::vector<TGauge> ggList;
+      std::vector<TButton> btList;
   public:
-    TGauge *Gauge(int n = -1); // pobranie adresu obiektu
-    TButton *Button(int n = -1); // pobranie adresu obiektu
+    TGauge &Gauge(int n = -1); // pobranie adresu obiektu
+    TButton &Button(int n = -1); // pobranie adresu obiektu
     void Update();
+};
+
+class control_mapper {
+    typedef std::unordered_map< TSubModel const *, std::string> submodelstring_map;
+    submodelstring_map m_controlnames;
+public:
+    void
+        clear() { m_controlnames.clear(); }
+    void
+        insert( TGauge const &Gauge, std::string const &Label );
+    std::string
+        find( TSubModel const *Control ) const;
 };
 
 class TTrain
 {
   public:
     bool CabChange(int iDirection);
-    bool ActiveUniversal4;
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, std::string const &asFileName);
     TTrain();
@@ -70,6 +84,7 @@ class TTrain
 
     inline vector3 GetDirection() { return DynamicObject->VectorFront(); };
     inline vector3 GetUp() { return DynamicObject->VectorUp(); };
+    inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
     void UpdateMechPosition(double dt);
     vector3 GetWorldMechPosition();
     bool Update( double const Deltatime );
@@ -82,18 +97,16 @@ class TTrain
 
   private:
 // types
-      typedef void( *command_handler )( TTrain *Train, command_data const &Command );
+    typedef void( *command_handler )( TTrain *Train, command_data const &Command );
     typedef std::unordered_map<user_command, command_handler> commandhandler_map;
     // clears state of all cabin controls
     void clear_cab_controls();
     // sets cabin controls based on current state of the vehicle
     // NOTE: we can get rid of this function once we have per-cab persistent state
     void set_cab_controls();
-    // initializes a gauge matching provided label. returns: true if the label was found, false
-    // otherwise
+    // initializes a gauge matching provided label. returns: true if the label was found, false otherwise
     bool initialize_gauge(cParser &Parser, std::string const &Label, int const Cabindex);
-    // initializes a button matching provided label. returns: true if the label was found, false
-    // otherwise
+    // initializes a button matching provided label. returns: true if the label was found, false otherwise
     bool initialize_button(cParser &Parser, std::string const &Label, int const Cabindex);
     // plays specified sound, or fallback sound if the primary sound isn't presend
     // NOTE: temporary routine until sound system is sorted out and paired with switches
@@ -174,6 +187,7 @@ class TTrain
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
 
 // members
     TDynamicObject *DynamicObject; // przestawia zmiana pojazdu [F5]
@@ -182,8 +196,9 @@ class TTrain
     TMoverParameters *mvSecond; // drugi człon (ET40, ET41, ET42, ukrotnienia)
     TMoverParameters *mvThird; // trzeci człon (SN61)
     // helper variable, to prevent immediate switch between closing and opening line breaker circuit
-    int m_linebreakerstate{ 0 }; // -1: freshly open, 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
+    int m_linebreakerstate { 0 }; // -1: freshly open, 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
     static const commandhandler_map m_commandhandlers;
+    control_mapper m_controlmapper;
 
 public: // reszta może by?publiczna
 
@@ -193,12 +208,7 @@ public: // reszta może by?publiczna
     TGauge ggClockSInd;
     TGauge ggClockMInd;
     TGauge ggClockHInd;
-    // TGauge ggHVoltage;
     TGauge ggLVoltage;
-    // TGauge ggEnrot1m;
-    // TGauge ggEnrot2m;
-    // TGauge ggEnrot3m;
-    // TGauge ggEngageRatio;
     TGauge ggMainGearStatus;
 
     TGauge ggEngineVoltage;
@@ -261,12 +271,10 @@ public: // reszta może by?publiczna
     TGauge ggHornLowButton;
     TGauge ggHornHighButton;
     TGauge ggNextCurrentButton;
-    // ABu 090305 - uniwersalne przyciski
-    TGauge ggUniversal1Button;
-    TGauge ggUniversal2Button;
-    TGauge ggUniversal3Button;
-    TGauge ggUniversal4Button;
 
+    std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
+
+    TGauge ggInstrumentLightButton;
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
     TGauge ggBatteryButton; // Stele 161228 hebelek baterii
@@ -316,12 +324,11 @@ public: // reszta może by?publiczna
     TButton btLampkaRadio;
     TButton btLampkaHamowanie1zes;
     TButton btLampkaHamowanie2zes;
-    //    TButton btLampkaUnknown;
     TButton btLampkaOpory;
     TButton btLampkaWysRozr;
-    TButton btLampkaUniversal3;
-    int LampkaUniversal3_typ; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
-    bool LampkaUniversal3_st;
+    TButton btInstrumentLight;
+    int InstrumentLightType; // ABu 030405 - swiecenie uzaleznione od: 0-nic, 1-obw.gl, 2-przetw.
+    bool InstrumentLightActive;
     TButton btLampkaWentZaluzje; // ET22
     TButton btLampkaOgrzewanieSkladu;
     TButton btLampkaSHP;
@@ -343,8 +350,6 @@ public: // reszta może by?publiczna
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
     TButton btLampkaPrzekrMaxSila;
-    //    TButton bt;
-    //
     TButton btLampkaDoorLeft;
     TButton btLampkaDoorRight;
     TButton btLampkaDepartureSignal;
@@ -419,8 +424,6 @@ public: // reszta może by?publiczna
     sound* dsbHasler = nullptr;
     sound* dsbBuzzer = nullptr;
     sound* dsbSlipAlarm = nullptr; // Bombardier 011010: alarm przy poslizgu dla 181/182
-    // TFadeSound sConverter;  //przetwornica
-    // TFadeSound sSmallCompressor;  //przetwornica
 
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -430,15 +433,10 @@ public: // reszta może by?publiczna
     vector3 MirrorPosition(bool lewe);
 
   private:
-    // sound* dsbBuzzer;
     sound* dsbCouplerStretch = nullptr;
     sound* dsbEN57_CouplerStretch = nullptr;
     sound* dsbBufferClamp = nullptr;
-    //    TSubModel *smCzuwakShpOn;
-    //    TSubModel *smCzuwakOn;
-    //    TSubModel *smShpOn;
-    //    TSubModel *smCzuwakShpOff;
-    //    double fCzuwakTimer;
+
     double fBlinkTimer;
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
