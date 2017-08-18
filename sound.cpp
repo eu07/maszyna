@@ -65,7 +65,7 @@ std::string sound_manager::find_file(std::string name)
 		return name;
 
 	name.erase(name.rfind('.'));
-	std::vector<std::string> exts { ".wav", ".flac", ".ogg" };
+	std::vector<std::string> exts { ".wav", ".WAV", ".flac", ".ogg" };
 	for (auto const &ext : exts)
 		if (FileExists(name + ext))
 			return name + ext;
@@ -243,6 +243,7 @@ sound::sound()
 	gain_mul = 1.0f;
 	pitch_off = 0.0f;
 	pitch_mul = 1.0f;
+	dt_sum = 0.0f;
 }
 
 simple_sound::simple_sound(sound_buffer *buf) : sound::sound()
@@ -317,12 +318,15 @@ void simple_sound::stop()
 
 void sound::update(float dt)
 {
+	if (spatial)
+		dt_sum += dt;
 	if (spatial && pos_dirty)
 	{
-		glm::vec3 velocity = (pos - last_pos) / dt; // m/s
+		glm::vec3 velocity = (pos - last_pos) / dt_sum; // m/s
 		alSourcefv(id, AL_VELOCITY, glm::value_ptr(velocity));
 		last_pos = pos;
 		pos_dirty = false;
+		dt_sum = 0.0f;
 	}
 }
 

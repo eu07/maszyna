@@ -6528,101 +6528,134 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 // hamowanie zwykle:
                 rsBrake = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(4, false);
-                parser >> rsBrake->gain_mul >> rsBrake->gain_off >> rsBrake->pitch_mul >> rsBrake->pitch_off;
-                rsBrake->gain_mul /= (1 + mvOccupied->MaxBrakeForce * 1000);
-                rsBrake->pitch_mul /= (1 + mvOccupied->Vmax);
+				if (rsBrake)
+				{
+                	parser >> rsBrake->gain_mul >> rsBrake->gain_off >> rsBrake->pitch_mul >> rsBrake->pitch_off;
+	                rsBrake->gain_mul /= (1 + mvOccupied->MaxBrakeForce * 1000);
+	                rsBrake->pitch_mul /= (1 + mvOccupied->Vmax);
+				}
             }
             else if (token == "slipperysound:")
             {
                 // sanie:
                 rsSlippery = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsSlippery->gain_mul >> rsSlippery->gain_off;
-                rsSlippery->pitch_mul = 0.0;
-                rsSlippery->pitch_off = 1.0;
-                rsSlippery->gain_mul /= (1 + mvOccupied->Vmax);
+				if (rsSlippery)
+				{
+	                parser >> rsSlippery->gain_mul >> rsSlippery->gain_off;
+	                rsSlippery->pitch_mul = 0.0;
+	                rsSlippery->pitch_off = 1.0;
+	                rsSlippery->gain_mul /= (1 + mvOccupied->Vmax);
+				}
             }
             else if (token == "airsound:")
             {
                 // syk:
                 rsHiss = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHiss->gain_mul >> rsHiss->gain_off;
-                rsHiss->pitch_mul = 0.0;
-                rsHiss->pitch_off = 1.0;
+				if (rsHiss)
+				{
+	                parser >> rsHiss->gain_mul >> rsHiss->gain_off;
+	                rsHiss->pitch_mul = 0.0;
+	                rsHiss->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound2:")
             {
                 // syk:
                 rsHissU = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissU->gain_mul >> rsHissU->gain_off;
-                rsHissU->pitch_mul = 0.0;
-                rsHissU->pitch_off = 1.0;
+				if (rsHissU)
+				{
+	                parser >> rsHissU->gain_mul >> rsHissU->gain_off;
+	                rsHissU->pitch_mul = 0.0;
+	                rsHissU->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound3:")
             {
                 // syk:
                 rsHissE = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissE->gain_mul >> rsHissE->gain_off;
-                rsHissE->pitch_mul = 0.0;
-                rsHissE->pitch_off = 1.0;
+				if (rsHissE)
+				{
+	                parser >> rsHissE->gain_mul >> rsHissE->gain_off;
+	                rsHissE->pitch_mul = 0.0;
+	                rsHissE->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound4:")
             {
                 // syk:
                 rsHissX = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissX->gain_mul >> rsHissX->gain_off;
-                rsHissX->pitch_mul = 0.0;
-                rsHissX->pitch_off = 1.0;
+				if (rsHissX)
+				{
+        	        parser >> rsHissX->gain_mul >> rsHissX->gain_off;
+    	            rsHissX->pitch_mul = 0.0;
+	                rsHissX->pitch_off = 1.0;
+				}
             }
             else if (token == "airsound5:")
             {
                 // syk:
                 rsHissT = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsHissT->gain_mul >> rsHissT->gain_off;
-                rsHissT->pitch_mul = 0.0;
-                rsHissT->pitch_off = 1.0;
+				if (rsHissT)
+				{
+	                parser >> rsHissT->gain_mul >> rsHissT->gain_off;
+	                rsHissT->pitch_mul = 0.0;
+	                rsHissT->pitch_off = 1.0;
+				}
             }
             else if (token == "fadesound:")
             {
                 // syk:
                 rsFadeSound = sound_man->create_sound(parser.getToken<std::string>());
-                rsFadeSound->gain_mul = 1.0;
-                rsFadeSound->gain_off = 1.0;
-                rsFadeSound->pitch_mul = 1.0;
-                rsFadeSound->pitch_off = 1.0;
+				if (rsFadeSound)
+				{
+	                rsFadeSound->gain_mul = 1.0;
+	                rsFadeSound->gain_off = 1.0;
+	                rsFadeSound->pitch_mul = 1.0;
+	                rsFadeSound->pitch_off = 1.0;
+				}
             }
             else if (token == "localbrakesound:")
             {
                 // syk:
                 rsSBHiss = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(2, false);
-                parser >> rsSBHiss->gain_mul >> rsSBHiss->gain_off;
-                rsSBHiss->pitch_mul = 0.0;
-                rsSBHiss->pitch_off = 1.0;
+				if (rsSBHiss)
+				{
+	                parser >> rsSBHiss->gain_mul >> rsSBHiss->gain_off;
+	                rsSBHiss->pitch_mul = 0.0;
+	                rsSBHiss->pitch_off = 1.0;
+				}
             }
             else if (token == "runningnoise:")
             {
                 // szum podczas jazdy:
                 rsRunningNoise = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(4, false);
-                parser >> rsRunningNoise->gain_mul >> rsRunningNoise->gain_off >> rsRunningNoise->pitch_mul >>
-                    rsRunningNoise->pitch_off;
-                rsRunningNoise->gain_mul /= (1 + mvOccupied->Vmax);
-                rsRunningNoise->pitch_mul /= (1 + mvOccupied->Vmax);
+				if (rsRunningNoise)
+				{
+	                parser >> rsRunningNoise->gain_mul >> rsRunningNoise->gain_off >> rsRunningNoise->pitch_mul >>
+	                    rsRunningNoise->pitch_off;
+	                rsRunningNoise->gain_mul /= (1 + mvOccupied->Vmax);
+	                rsRunningNoise->pitch_mul /= (1 + mvOccupied->Vmax);
+				}
             }
             else if (token == "engageslippery:")
             {
                 // tarcie tarcz sprzegla:
                 rsEngageSlippery = sound_man->create_sound(parser.getToken<std::string>());
                 parser.getTokens(4, false);
-                parser >> rsEngageSlippery->gain_mul >> rsEngageSlippery->gain_off >> rsEngageSlippery->pitch_mul >>
-                    rsEngageSlippery->pitch_off;
-                rsEngageSlippery->pitch_mul /= (1 + mvOccupied->nmax);
+				if (rsEngageSlippery)
+				{
+	                parser >> rsEngageSlippery->gain_mul >> rsEngageSlippery->gain_off >> rsEngageSlippery->pitch_mul >>
+	                    rsEngageSlippery->pitch_off;
+	                rsEngageSlippery->pitch_mul /= (1 + mvOccupied->nmax);
+				}
             }
             else if (token == "mechspring:")
             {

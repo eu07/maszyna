@@ -77,7 +77,7 @@
 #include "GL/wglew.h"
 #endif
 #define GLFW_INCLUDE_GLU
-//m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
+
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -86,6 +86,7 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include "openglmatrixstack.h"
 #define STRINGIZE_DETAIL(x) #x

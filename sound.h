@@ -41,6 +41,7 @@ class sound
 {
 	bool pos_dirty;
 	glm::vec3 last_pos;
+	float dt_sum;
 
 protected:
 	float max_dist;

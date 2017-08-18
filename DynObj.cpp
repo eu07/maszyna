@@ -4711,7 +4711,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 					for( int i = 0; i < iAxles; i++ ) {
 						parser.getTokens( 1, false );
 						parser >> dWheelsPosition[ i ];
-						parser.getTokens();
+						parser.getTokens(1, false);
 						parser >> token;
 						if( token != "end" ) {
                             rsStukot[i] = sound_man->create_sound(token);
