@@ -53,6 +53,9 @@ int vk_to_glfw_key( int const Keycode ) {
 
 #ifdef _WINDOWS
     auto const code = VkKeyScan( Keycode );
+#else
+	auto const code = (short int)Keycode;
+#endif
     char key = code & 0xff;
     char shiftstate = ( code & 0xff00 ) >> 8;
 
@@ -63,7 +66,6 @@ int vk_to_glfw_key( int const Keycode ) {
         key = GLFW_KEY_0 + key - '0';
     }
     return key + ( shiftstate << 8 );
-#endif
 }
 
 bool TEventLauncher::Load(cParser *parser)
