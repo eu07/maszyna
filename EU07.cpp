@@ -109,12 +109,12 @@ void window_resize_callback(GLFWwindow *window, int w, int h)
 
 void cursor_pos_callback(GLFWwindow *window, double x, double y)
 {
+	if (!window)
+		return;
+
     input::Mouse.move( x, y );
 
-    if( true == Global::ControlPicking ) {
-        glfwSetCursorPos( window, x, y );
-    }
-    else {
+    if( !Global::ControlPicking ) {
         glfwSetCursorPos( window, 0, 0 );
     }
 }

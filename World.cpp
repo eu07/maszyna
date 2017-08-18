@@ -1122,9 +1122,6 @@ bool TWorld::Update()
 
     dt = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
 
-    sound_man->set_listener(Camera.Pos, Camera.LookAt, Camera.vUp);
-    sound_man->update(dt);
-
     // fixed step render time routines
 
     fTime50Hz += dt; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
@@ -1150,6 +1147,9 @@ bool TWorld::Update()
     // variable step render time routines
 
     Update_Camera( dt );
+
+    sound_man->set_listener(Camera.Pos, Camera.LookAt, Camera.vUp);
+    sound_man->update(dt);
 
     GfxRenderer.Update( dt );
     ResourceSweep();

@@ -26,6 +26,7 @@ ui_layer::~ui_layer() {
 
 bool
 ui_layer::init( GLFWwindow *Window ) {
+    m_window = Window;
 
 #ifndef _WIN32
 	Global::bGlutFont = true;
@@ -43,7 +44,6 @@ ui_layer::init( GLFWwindow *Window ) {
 	}
 
 #ifdef _WIN32
-    m_window = Window;
     HFONT font; // Windows Font ID
     m_fontbase = ::glGenLists(96); // storage for 96 characters
     HDC hDC = ::GetDC( glfwGetWin32Window( m_window ) );

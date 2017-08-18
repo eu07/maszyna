@@ -320,6 +320,7 @@ TGauge::play( sound *Sound ) {
 
     if( Sound == nullptr ) { return; }
 
+	Sound->stop();
 	Sound->play();
     return;
 }
