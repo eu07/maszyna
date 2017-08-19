@@ -86,6 +86,8 @@ sound_buffer* sound_manager::get_buffer(std::string const &name)
 	std::string file = find_file(Global::asCurrentDynamicPath + name);
 	if (!file.size())
 		file = find_file("sounds/" + name);
+	if (!file.size())
+		file = find_file(name);
 
 	if (!file.size())
 		throw load_error(name);
