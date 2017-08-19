@@ -3736,7 +3736,7 @@ void TDynamicObject::RenderSounds()
         }
         enginevolume = (enginevolume + vol) * 0.5;
         if( enginevolume < 0.01 ) {
-            rsSilnik->stop();
+            if (rsSilnik) rsSilnik->stop();
         }
         if ( (( MoverParameters->EngineType == ElectricSeriesMotor )
           || ( MoverParameters->EngineType == ElectricInductionMotor ))
