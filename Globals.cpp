@@ -203,6 +203,8 @@ double Global::fMWDlowVolt[2] = { 150, 1023 };
 int Global::iMWDdivider = 5;
 
 opengl_light Global::DayLight;
+Global::soundmode_t Global::soundpitchmode = Global::linear;
+Global::soundmode_t Global::soundgainmode = Global::linear;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -552,6 +554,26 @@ void Global::ConfigParse(cParser &Parser)
                 >> Global::shadowtune.depth
                 >> Global::shadowtune.distance;
         }
+		else if (token == "soundgainmode")
+		{
+			Parser.getTokens();
+			Parser >> token;
+			if (token == "linear")
+				Global::soundgainmode = Global::linear;
+			else if (token == "scaled")
+				Global::soundgainmode = Global::scaled;
+			else if (token == "compat")
+				Global::soundgainmode = Global::compat;
+		}
+		else if (token == "soundpitchmode")
+		{
+			Parser.getTokens();
+			Parser >> token;
+			if (token == "linear")
+				Global::soundpitchmode = Global::linear;
+			else if (token == "compat")
+				Global::soundpitchmode = Global::compat;
+		}
         else if (token == "smoothtraction")
         {
             // podwójna jasność ambient

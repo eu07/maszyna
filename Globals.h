@@ -356,5 +356,13 @@ class Global
 
 	static opengl_light DayLight;
 
+	enum soundmode_t
+	{
+		linear,
+		scaled,
+		compat
+	};
+	static soundmode_t soundpitchmode;
+	static soundmode_t soundgainmode;
 };
 //---------------------------------------------------------------------------

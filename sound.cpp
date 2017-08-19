@@ -253,6 +253,7 @@ simple_sound::simple_sound(sound_buffer *buf) : sound::sound()
 	buffer = buf;
 	alSourcei(id, AL_BUFFER, buffer->get_id());
 	buffer->ref();
+	samplerate = buffer->get_samplerate();
 }
 
 sound::~sound()
@@ -347,14 +348,22 @@ void simple_sound::update(float dt)
 
 sound& sound::gain(float gain)
 {
-	gain = std::min(std::max(0.0f, gain * gain_mul + gain_off), 1.0f);
+	gain = gain * gain_mul + gain_off;
+	if (Global::soundgainmode == Global::scaled)
+		gain /= 1.75f;
+	if (Global::soundgainmode == Global::compat)
+		gain = std::pow(10.0f, ((-50.0f + 50.0f * gain) / 20.0f));
+	gain = std::min(std::max(0.0f, gain), 2.0f);
 	alSourcef(id, AL_GAIN, gain);
 	return *this;
 }
 
 sound& sound::pitch(float pitch)
 {
-	pitch = std::min(std::max(0.05f, pitch * pitch_mul + pitch_off), 20.0f);
+	pitch = pitch * pitch_mul + pitch_off;
+	if (Global::soundpitchmode == Global::compat)
+		pitch *= 22050.0f / (float)samplerate;
+	pitch = std::min(std::max(0.05f, pitch), 20.0f);
 	alSourcef(id, AL_PITCH, pitch);
 	return *this;
 }
@@ -394,6 +403,8 @@ complex_sound::complex_sound(sound_buffer* pre, sound_buffer* main, sound_buffer
 	pre->ref();
 	buffer->ref();
 	post->ref();
+
+	samplerate = buffer->get_samplerate();
 
 	cs = state::post;
 }
@@ -488,6 +499,11 @@ bool complex_sound::is_playing()
 	return cs != state::post; // almost accurate
 }
 
+int sound_buffer::get_samplerate()
+{
+	return samplerate;
+}
+
 sound_buffer::sound_buffer(std::string &file)
 {
 	WriteLog("creating sound buffer from " + file);
@@ -504,6 +520,8 @@ sound_buffer::sound_buffer(std::string &file)
 		throw std::runtime_error("sound: incomplete file");
 
 	sf_close(sf);
+
+	samplerate = si.samplerate;
 
 	int16_t *buf = nullptr;
 	if (si.channels == 1)

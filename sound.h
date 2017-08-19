@@ -25,11 +25,13 @@ class sound_buffer
 	ALuint id;
 	uint32_t refcount;
 	std::chrono::time_point<std::chrono::steady_clock> last_unref;
+	int samplerate;
 
 public:
 	sound_buffer(std::string &file);
 	~sound_buffer();
 
+	int get_samplerate();
 	ALuint get_id();
 	void ref();
 	void unref();
@@ -47,6 +49,7 @@ protected:
 	float max_dist;
 	bool spatial;
 	glm::vec3 pos;
+	int samplerate;
 
 	ALuint id;
 	sound();
