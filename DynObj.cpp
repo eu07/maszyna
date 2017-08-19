@@ -3336,12 +3336,12 @@ bool TDynamicObject::Update(double dt, double dt1)
         } // koniec pętli po pantografach
         if ((MoverParameters->PantFrontSP == false) && (MoverParameters->PantFrontUp == false))
         {
-            sPantDown->gain(vol).position(vPosition).play();
+            if (sPantDown) sPantDown->gain(vol).position(vPosition).play();
             MoverParameters->PantFrontSP = true;
         }
         if ((MoverParameters->PantRearSP == false) && (MoverParameters->PantRearUp == false))
         {
-            sPantDown->gain(vol).position(vPosition).play();
+            if (sPantDown) sPantDown->gain(vol).position(vPosition).play();
             MoverParameters->PantRearSP = true;
         }
 /*
@@ -3444,24 +3444,24 @@ bool TDynamicObject::Update(double dt, double dt1)
     // NBMX Obsluga drzwi, MC: zuniwersalnione
     if ((dDoorMoveL < MoverParameters->DoorMaxShiftL) && (MoverParameters->DoorLeftOpened))
 	{
-		rsDoorOpen->position(vPosition).play();
+		if (rsDoorOpen) rsDoorOpen->position(vPosition).play();
         dDoorMoveL += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveL > 0) && (!MoverParameters->DoorLeftOpened))
     {
-		rsDoorClose->position(vPosition).play();
+		if (rsDoorClose) rsDoorClose->position(vPosition).play();
         dDoorMoveL -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveL < 0)
             dDoorMoveL = 0;
     }
     if ((dDoorMoveR < MoverParameters->DoorMaxShiftR) && (MoverParameters->DoorRightOpened))
 	{
-		rsDoorOpen->position(vPosition).play();
+		if (rsDoorOpen) rsDoorOpen->position(vPosition).play();
         dDoorMoveR += dt1 * 0.5 * MoverParameters->DoorOpenSpeed;
 	}
     if ((dDoorMoveR > 0) && (!MoverParameters->DoorRightOpened))
     {
-		rsDoorClose->position(vPosition).play();
+		if (rsDoorClose) rsDoorClose->position(vPosition).play();
         dDoorMoveR -= dt1 * MoverParameters->DoorCloseSpeed;
         if (dDoorMoveR < 0)
             dDoorMoveR = 0;
