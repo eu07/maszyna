@@ -916,7 +916,7 @@ texture_manager::find_on_disk( std::string const &Texturename ) const {
 
     return(
         FileExists( Texturename ) ? Texturename :
-        FileExists( szTexturePath + Texturename ) ? szTexturePath + Texturename :
+        FileExists( global_texture_path + Texturename ) ? global_texture_path + Texturename :
         "" );
 }
 
