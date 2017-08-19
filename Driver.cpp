@@ -2933,8 +2933,7 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
             TrainParams = new TTrainParameters(NewCommand); // rozkład jazdy
         else
             TrainParams->NewName(NewCommand); // czyści tabelkę przystanków
-        delete tsGuardSignal;
-        tsGuardSignal = nullptr; // wywalenie kierownika
+		sound_man->destroy_sound(&tsGuardSignal); // wywalenie kierownika
         if (NewCommand != "none")
         {
             if (!TrainParams->LoadTTfile(
@@ -2958,7 +2957,8 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                 if (FileExists(NewCommand))
                 { //  wczytanie dźwięku odjazdu podawanego bezpośrenido
                     tsGuardSignal = sound_man->create_text_sound(NewCommand);
-                    tsGuardSignal->position(pVehicle->GetPosition());
+                    if (tsGuardSignal)
+						tsGuardSignal->position(pVehicle->GetPosition());
                     // rsGuardSignal->Stop();
                     iGuardRadio = 0; // nie przez radio
                 }
@@ -2968,7 +2968,8 @@ bool TController::PutCommand(std::string NewCommand, double NewValue1, double Ne
                     if (FileExists(NewCommand))
                     { //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
                         tsGuardSignal = sound_man->create_text_sound(NewCommand);
-                        tsGuardSignal->position(pVehicle->GetPosition());
+                        if (tsGuardSignal)
+							tsGuardSignal->position(pVehicle->GetPosition());
                         iGuardRadio = iRadioChannel;
                     }
                 }
@@ -4299,24 +4300,27 @@ bool TController::UpdateSituation(double dt)
                                     ->DoorOpenCtrl ) // jeśli drzwi niesterowane przez maszynistę
                                     Doors( false ); // a EZT zamknie dopiero po odegraniu komunikatu kierownika
 
-                            tsGuardSignal->stop();
-                            // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
-                            // bezpośrednim
-                            // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
-                            // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
-                            // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
-                            // obsługę kanałów radiowych itd.
-                            if (!iGuardRadio) // jeśli nie przez radio
-                                tsGuardSignal->position(pVehicle->GetPosition()).play();
-                            else
-                                // if (iGuardRadio==iRadioChannel) //zgodność kanału
-                                // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
-                                // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
-                                // przy braku reakcji
-                                if (SquareMagnitude(pVehicle->GetPosition() -
-                                                    Global::pCameraPosition) <
-                                    2000 * 2000) // w odległości mniejszej niż 2km
-                                tsGuardSignal->position(pVehicle->GetPosition()).play();
+                            if (tsGuardSignal)
+							{
+								tsGuardSignal->stop();
+	                            // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy
+	                            // bezpośrednim
+	                            // albo trzeba zrobić dwa dźwięki, jeden bezpośredni, słyszalny w
+	                            // pobliżu, a drugi radiowy, słyszalny w innych lokomotywach
+	                            // na razie zakładam, że to nie jest dźwięk radiowy, bo trzeba by zrobić
+	                            // obsługę kanałów radiowych itd.
+	                            if (!iGuardRadio) // jeśli nie przez radio
+	                                tsGuardSignal->position(pVehicle->GetPosition()).play();
+	                            else
+	                                // if (iGuardRadio==iRadioChannel) //zgodność kanału
+	                                // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
+	                                // (albo może mieć radio przenośne) - kierownik mógłby powtarzać
+	                                // przy braku reakcji
+	                                if (SquareMagnitude(pVehicle->GetPosition() -
+	                                                    Global::pCameraPosition) <
+	                                    2000 * 2000) // w odległości mniejszej niż 2km
+	                                tsGuardSignal->position(pVehicle->GetPosition()).play();
+							}
                         }
                     }
                 if (mvOccupied->V == 0.0)
