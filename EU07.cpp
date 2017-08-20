@@ -346,6 +346,12 @@ int main(int argc, char *argv[])
 			|| (false == UILayer.init(window)))
 			return -1;
 
+		if (!(sound_man = new sound_manager()))
+		{
+			ErrorLog("Sound subsystem setup failed");
+			return -1;
+		}
+
 		input::Keyboard.init();
 		input::Mouse.init();
 		input::Gamepad.init();
@@ -409,6 +415,7 @@ int main(int argc, char *argv[])
 #endif
     }
 
+	delete sound_man;
 	TPythonInterpreter::killInstance();
 #ifdef _WIN32
 	delete pConsole;

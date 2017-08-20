@@ -218,7 +218,6 @@ TWorld::~TWorld()
     Global::bManageNodes = false; // Ra: wyłączenie wyrejestrowania, bo się sypie
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
-    delete sound_man;
 }
 
 void TWorld::TrainDelete(TDynamicObject *d)
@@ -301,15 +300,6 @@ bool TWorld::Init( GLFWwindow *Window ) {
     WriteLog( "For online documentation and additional files refer to: http://eu07.pl");
 
     UILayer.set_background( "logo" );
-
-    sound_man = new sound_manager();
-
-    if (!sound_man)
-	{
-        ErrorLog( "Sound subsystem setup failed" );
-        return false;
-    }
-    WriteLog("SoundAL Init OK");
 
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
