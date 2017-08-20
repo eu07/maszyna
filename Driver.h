@@ -310,6 +310,7 @@ class TController
     void Activation(); // umieszczenie obsady w odpowiednim członie
     void ControllingSet(); // znajduje człon do sterowania
     void AutoRewident(); // ustawia hamulce w składzie
+	double ESMVelocity(bool Main);
   public:
     Mtable::TTrainParameters *Timetable()
     {
