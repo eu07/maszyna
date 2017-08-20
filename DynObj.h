@@ -354,15 +354,13 @@ public: // modele składowe pojazdu
     // TTrackFollower Axle2; //dwie osie z czterech (te są protected)
     // TTrackFollower Axle3; //Ra: wyłączyłem, bo kąty są liczone w Segment.cpp
     int iNumAxles; // ilość osi
-    int CouplCounter;
     std::string asModel;
 
   public:
     void ABuScanObjects(int ScanDir, double ScanDist);
 
   protected:
-    TDynamicObject * ABuFindObject(TTrack *Track, int ScanDir, BYTE &CouplFound,
-                                             double &dist);
+    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack *Track, int const Direction, int const Mycoupler );
     void ABuCheckMyTrack();
 
   public:

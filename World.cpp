@@ -1434,13 +1434,19 @@ TWorld::Update_UI() {
                 uitextline1 +=
                     "; C0:" +
                     ( tmp->PrevConnected ?
-                    tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
-                    "none" );
+                        tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) + (
+                            tmp->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ?
+                                " (" + to_string( tmp->MoverParameters->Couplers[ 0 ].CoupleDist, 1 ) + " m)" :
+                                "" ) :
+                        "none" );
                 uitextline1 +=
                     " C1:" +
                     ( tmp->NextConnected ?
-                    tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
-                    "none" );
+                        tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) + (
+                            tmp->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ?
+                                " (" + to_string( tmp->MoverParameters->Couplers[ 1 ].CoupleDist, 1 ) + " m)" :
+                                "" ) :
+                        "none" );
 
                 // equipment flags
                 uitextline2  = ( tmp->MoverParameters->Battery ? "B" : "." );
@@ -1546,9 +1552,10 @@ TWorld::Update_UI() {
                     uitextline4 +=
                         "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
                         + " Ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
-						+ " Ah=" + to_string(tmp->Mechanik->fAccThreshold, 2)
-						+ "@" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
-						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
+						+ " Ah=" + to_string( tmp->Mechanik->fAccThreshold, 2 )
+						+ "@" + to_string( tmp->Mechanik->fBrake_a0[0], 2 )
+						+ "+" + to_string( tmp->Mechanik->fBrake_a1[0], 2 )
+                        + " Bd=" + to_string( tmp->Mechanik->fBrakeDist, 0 )
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
                         + " VSl=" + to_string( tmp->Mechanik->VelSignalLast, 0 )

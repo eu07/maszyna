@@ -228,6 +228,7 @@ class Global
     static opengl_light DayLight;
     static int DynamicLightCount;
     static bool ScaleSpecularValues;
+    static bool BasicRenderer;
     static bool RenderShadows;
     static struct shadowtune_t {
         unsigned int map_size;

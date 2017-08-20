@@ -86,7 +86,8 @@ float Global::BaseDrawRange { 2500.f };
 opengl_light Global::DayLight;
 int Global::DynamicLightCount { 3 };
 bool Global::ScaleSpecularValues { true };
-bool Global::RenderShadows { false };
+bool Global::BasicRenderer { false };
+bool Global::RenderShadows { true };
 Global::shadowtune_t Global::shadowtune = { 2048, 250.f, 250.f, 500.f };
 bool Global::bRollFix = true; // czy wykonać przeliczanie przechyłki
 bool Global::bJoinEvents = false; // czy grupować eventy o tych samych nazwach
@@ -544,6 +545,13 @@ void Global::ConfigParse(cParser &Parser)
             // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
             Parser.getTokens();
             Parser >> Global::ScaleSpecularValues;
+        }
+        else if( token == "gfxrenderer" ) {
+            // shadow render toggle
+            std::string gfxrenderer;
+            Parser.getTokens();
+            Parser >> gfxrenderer;
+            Global::BasicRenderer = ( gfxrenderer == "simple" );
         }
         else if( token == "shadows" ) {
             // shadow render toggle
@@ -1304,7 +1312,7 @@ double Global::Min0RSpeed(double vel1, double vel2)
     {
         vel2 = std::numeric_limits<double>::max();
     }
-    return Min0R(vel1, vel2);
+    return std::min(vel1, vel2);
 };
 
 double Global::CutValueToRange(double min, double value, double max)

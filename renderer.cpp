@@ -99,7 +99,10 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     glEnable( GL_CULL_FACE ); // Cull back-facing triangles
     glShadeModel( GL_SMOOTH ); // Enable Smooth Shading
 
-    m_geometry.units().texture = std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit };
+    m_geometry.units().texture = (
+        Global::BasicRenderer ?
+            std::vector<GLint>{ m_diffusetextureunit } :
+            std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     UILayer.set_unit( m_diffusetextureunit );
     Active_Texture( m_diffusetextureunit );
@@ -253,7 +256,8 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now
     }
     // environment cube map resources
-    if( true == m_framebuffersupport ) {
+    if( ( false == Global::BasicRenderer )
+     && ( true == m_framebuffersupport ) ) {
         // texture:
         ::glGenTextures( 1, &m_environmentcubetexture );
         ::glBindTexture( GL_TEXTURE_CUBE_MAP, m_environmentcubetexture );
@@ -1004,6 +1008,7 @@ void
 opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool const Reflections ) {
     // helper texture unit.
     if( m_helpertextureunit >= 0 ) {
+
         Active_Texture( m_helpertextureunit );
         if( ( true == Reflections )
          || ( ( true == Global::RenderShadows )
@@ -1039,14 +1044,16 @@ opengl_renderer::switch_units( bool const Diffuse, bool const Shadows, bool cons
         }
     }
     // normal/reflection texture unit
-    if( true == Reflections ) {
+    if( m_normaltextureunit >= 0 ) {
+        if( true == Reflections ) {
 
-        Active_Texture( m_normaltextureunit );
-        ::glEnable( GL_TEXTURE_2D );
-    }
-    else {
-        Active_Texture( m_normaltextureunit );
-        ::glDisable( GL_TEXTURE_2D );
+            Active_Texture( m_normaltextureunit );
+            ::glEnable( GL_TEXTURE_2D );
+        }
+        else {
+            Active_Texture( m_normaltextureunit );
+            ::glDisable( GL_TEXTURE_2D );
+        }
     }
     // diffuse texture unit.
     // NOTE: toggle actually disables diffuse texture mapping, unlike setup counterpart
@@ -1282,7 +1289,9 @@ void
 opengl_renderer::Bind_Material( material_handle const Material ) {
 
     auto const &material = m_materials.material( Material );
-    m_textures.bind( textureunit::normals, material.texture2 );
+    if( false == Global::BasicRenderer ) {
+        m_textures.bind( textureunit::normals, material.texture2 );
+    }
     m_textures.bind( textureunit::diffuse, material.texture1 );
 }
 
@@ -2041,8 +2050,8 @@ void
 opengl_renderer::Render( TSubModel *Submodel ) {
 
     if( ( Submodel->iVisible )
-     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / Global::fDistanceFactor ) )
-     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) ) {
+     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / std::max( 1.f, Global::fDistanceFactor ) ) )
+     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * std::max( 1.f, Global::fDistanceFactor ) ) ) ) {
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -2702,8 +2711,8 @@ void
 opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
     // renderowanie przezroczystych przez DL
     if( ( Submodel->iVisible )
-     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / Global::fDistanceFactor ) )
-     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) ) {
+     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / std::max( 1.f, Global::fDistanceFactor ) ) )
+     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * std::max( 1.f, Global::fDistanceFactor ) ) ) ) {
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -3187,17 +3196,29 @@ opengl_renderer::Init_caps() {
         Global::DynamicLightCount = std::min( Global::DynamicLightCount, maxlights - 1 );
         WriteLog( "Dynamic light amount capped at " + std::to_string( Global::DynamicLightCount ) + " (" + std::to_string(maxlights) + " lights total supported by the gfx card)" );
     }
-    {
+    // select renderer mode
+    if( true == Global::BasicRenderer ) {
+        WriteLog( "Basic renderer selected, shadow and reflection mapping will be disabled" );
+        Global::RenderShadows = false;
+        m_diffusetextureunit = GL_TEXTURE0;
+        m_helpertextureunit = -1;
+        m_shadowtextureunit = -1;
+        m_normaltextureunit = -1;
+    }
+    else {
         GLint maxtextureunits;
         ::glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxtextureunits );
         if( maxtextureunits < 4 ) {
             WriteLog( "Less than 4 texture units, shadow and reflection mapping will be disabled" );
+            Global::BasicRenderer = true;
             Global::RenderShadows = false;
             m_diffusetextureunit = GL_TEXTURE0;
-            m_shadowtextureunit = -1;
             m_helpertextureunit = -1;
+            m_shadowtextureunit = -1;
+            m_normaltextureunit = -1;
         }
     }
+
     if( Global::iMultisampling ) {
         WriteLog( "Using multisampling x" + std::to_string( 1 << Global::iMultisampling ) );
     }

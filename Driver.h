@@ -144,7 +144,7 @@ class TSpeedPos
 
   public:
     void Clear();
-    bool Update(vector3 *p, vector3 *dir, double &len);
+    bool Update(vector3 *p, vector3 *dir, double &len, TOrders const &Orders );
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText();
@@ -195,8 +195,8 @@ class TController
     double fDriverBraking = 0.0; // po pomnożeniu przez v^2 [km/h] daje ~drogę hamowania [m]
     double fDriverDist = 0.0; // dopuszczalna odległość podjechania do przeszkody
     double fVelMax = -1.0; // maksymalna prędkość składu (sprawdzany każdy pojazd)
-    double fBrakeDist = 0.0; // przybliżona droga hamowania
   public:
+    double fBrakeDist = 0.0; // przybliżona droga hamowania
 	double BrakeAccFactor();
 	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
     double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
@@ -270,8 +270,6 @@ class TController
         OrderTop = 0; // rozkaz aktualny oraz wolne miejsce do wstawiania nowych
     std::ofstream LogFile; // zapis parametrow fizycznych
     std::ofstream AILogFile; // log AI
-    bool MaxVelFlag = false;
-    bool MinVelFlag = false; // Ra: to nie jest używane
     int iDirection = 0; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
     int iDirectionOrder = 0; //żadany kierunek jazdy (służy do zmiany kierunku)
     int iVehicleCount = -2; // wartość neutralna // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)
