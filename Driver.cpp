@@ -1720,7 +1720,41 @@ void TController::AutoRewident()
 		fAccThreshold = -fBrake_a0[BrakeAccTableSize] - 1 * fBrake_a1[BrakeAccTableSize];
 		fBrakeReaction = 1.00 + fLength*0.005;
 	}
-};
+}
+
+double TController::ESMVelocity(bool Main)
+{
+	double fCurrentCoeff = 0.9;
+	double fFrictionCoeff = 0.85;
+	double ESMVel = 9999;
+	int MCPN = mvControlling->MainCtrlActualPos;
+	int SCPN = mvControlling->ScndCtrlActualPos;
+	if (Main)
+		MCPN += 1;
+	else
+		SCPN += 1;
+	if ((mvControlling->RList[MCPN].ScndAct < 255)&&(mvControlling->ScndCtrlActualPos==0))
+		SCPN = mvControlling->RList[MCPN].ScndAct;
+	double FrictionMax = mvControlling->Mass*9.81*mvControlling->Adhesive(mvControlling->RunningTrack.friction)*fFrictionCoeff;
+	double IF = mvControlling->Imax;
+	double MS = 0;
+	double Fmax = 0;
+	for (int i = 0; i < 5; i++)
+	{
+		MS = mvControlling->MomentumF(IF, IF, SCPN);
+		Fmax = MS * mvControlling->RList[MCPN].Bn*mvControlling->RList[MCPN].Mn * 2 / mvControlling->WheelDiameter * mvControlling->Transmision.Ratio;
+		IF = 0.5*IF*(1 + FrictionMax/Fmax);
+	}
+	IF = std::min(IF, mvControlling->Imax*fCurrentCoeff);
+	double R = mvControlling->RList[MCPN].R + mvControlling->CircuitRes + mvControlling->RList[MCPN].Mn*mvControlling->WindingRes;
+	double pole = mvControlling->MotorParam[SCPN].fi *
+		std::max(abs(IF) / (abs(IF) + mvControlling->MotorParam[SCPN].Isat) - mvControlling->MotorParam[SCPN].fi0, 0.0);
+	double Us = abs(mvControlling->Voltage) - IF*R;
+	double ns = std::max(0.0, Us / (pole*mvControlling->RList[MCPN].Mn));
+	ESMVel = ns * mvControlling->WheelDiameter*M_PI*3.6/mvControlling->Transmision.Ratio;
+	return ESMVel;
+}
+;
 
 int TController::CheckDirection() {
 
@@ -2499,51 +2533,64 @@ bool TController::IncSpeed()
                 (mvControlling->StLinFlag)) // youBy polecił dodać 2012-09-08 v367
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe
                 // (zgaśnie DelayCtrlFlag)
-                if (Ready || (iDrivigFlags & movePress))
-                    if (fabs(mvControlling->Im) <
-                        (fReady < 0.4 ? mvControlling->Imin : mvControlling->IminLo))
-                    { // Ra: wywalał nadmiarowy, bo Im może być ujemne; jak nie odhamowany, to nie
-                        // przesadzać z prądem
-                        if ((mvOccupied->Vel <= 30) ||
-                            (mvControlling->Imax > mvControlling->ImaxLo) ||
-                            (fVoltage + fVoltage <
-                             mvControlling->EnginePowerSource.CollectorParameters.MinV +
-                                 mvControlling->EnginePowerSource.CollectorParameters.MaxV))
-                        { // bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu
-                            // pod górę albo przy niskim napięciu
-                            if (mvControlling->MainCtrlPos ?
-                                    mvControlling->RList[mvControlling->MainCtrlPos].R > 0.0 :
-                                    true) // oporowa
-                            {
-                                OK = (mvControlling->DelayCtrlFlag ?
-                                          true :
-                                          mvControlling->IncMainCtrl(1)); // kręcimy nastawnik jazdy
-                                if ((OK) &&
-                                    (mvControlling->MainCtrlPos ==
-                                     1)) // czekaj na 1 pozycji, zanim się nie włączą liniowe
-                                    iDrivigFlags |= moveIncSpeed;
-                                else
-                                    iDrivigFlags &= ~moveIncSpeed; // usunięcie flagi czekania
-                            }
-                            else // jeśli bezoporowa (z wyjątekiem 0)
-                                OK = false; // to dać bocznik
-                        }
-                        else
-                        { // przekroczone 30km/h, można wejść na jazdę równoległą
-                            if (mvControlling->ScndCtrlPos) // jeśli ustawiony bocznik
-                                if (mvControlling->MainCtrlPos <
-                                    mvControlling->MainCtrlPosNo - 1) // a nie jest ostatnia pozycja
-                                    mvControlling->DecScndCtrl(2); // to bocznik na zero po chamsku
-                            // (ktoś miał to poprawić...)
-                            OK = mvControlling->IncMainCtrl(1);
-                        }
-                        if ((mvControlling->MainCtrlPos > 2) &&
-                            (mvControlling->Im == 0)) // brak prądu na dalszych pozycjach
-                            Need_TryAgain = true; // nie załączona lokomotywa albo wywalił
-                        // nadmiarowy
-                        else if (!OK) // nie da się wrzucić kolejnej pozycji
-                            OK = mvControlling->IncScndCtrl(1); // to dać bocznik
-                    }
+				if (Ready || (iDrivigFlags & movePress))
+				{
+					bool scndctrl = ((mvOccupied->Vel <= 30) ||
+						(mvControlling->Imax > mvControlling->ImaxLo) ||
+						(fVoltage + fVoltage <
+							mvControlling->EnginePowerSource.CollectorParameters.MinV +
+							mvControlling->EnginePowerSource.CollectorParameters.MaxV) ||
+							(mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo));
+					scndctrl = ((scndctrl) && (mvControlling->MainCtrlPos > 1) && (mvControlling->RList[mvControlling->MainCtrlActualPos].R < 0.01)&& (mvControlling->ScndCtrlPos != mvControlling->ScndCtrlPosNo));
+					double Vs = 99999;
+					if((mvControlling->MainCtrlPos != mvControlling->MainCtrlPosNo)||(mvControlling->ScndCtrlPos!=mvControlling->ScndCtrlPosNo))
+						Vs = ESMVelocity(!scndctrl);
+
+					if ((fabs(mvControlling->Im) <
+						(fReady < 0.4 ? mvControlling->Imin : mvControlling->IminLo))||(mvControlling->Vel>Vs))
+					{ // Ra: wywalał nadmiarowy, bo Im może być ujemne; jak nie odhamowany, to nie
+						// przesadzać z prądem
+						if ((mvOccupied->Vel <= 30) ||
+							(mvControlling->Imax > mvControlling->ImaxLo) ||
+							(fVoltage + fVoltage <
+								mvControlling->EnginePowerSource.CollectorParameters.MinV +
+								mvControlling->EnginePowerSource.CollectorParameters.MaxV))
+						{ // bocznik na szeregowej przy ciezkich bruttach albo przy wysokim rozruchu
+							// pod górę albo przy niskim napięciu
+							if (mvControlling->MainCtrlPos ?
+								mvControlling->RList[mvControlling->MainCtrlPos].R > 0.0 :
+							true) // oporowa
+							{
+								OK = (mvControlling->DelayCtrlFlag ?
+									true :
+									mvControlling->IncMainCtrl(1)); // kręcimy nastawnik jazdy
+								if ((OK) &&
+									(mvControlling->MainCtrlPos ==
+										1)) // czekaj na 1 pozycji, zanim się nie włączą liniowe
+									iDrivigFlags |= moveIncSpeed;
+								else
+									iDrivigFlags &= ~moveIncSpeed; // usunięcie flagi czekania
+							}
+							else // jeśli bezoporowa (z wyjątekiem 0)
+								OK = false; // to dać bocznik
+						}
+						else
+						{ // przekroczone 30km/h, można wejść na jazdę równoległą
+							if (mvControlling->ScndCtrlPos) // jeśli ustawiony bocznik
+								if (mvControlling->MainCtrlPos <
+									mvControlling->MainCtrlPosNo - 1) // a nie jest ostatnia pozycja
+									mvControlling->DecScndCtrl(2); // to bocznik na zero po chamsku
+							// (ktoś miał to poprawić...)
+							OK = mvControlling->IncMainCtrl(1);
+						}
+						if ((mvControlling->MainCtrlPos > 2) &&
+							(mvControlling->Im == 0)) // brak prądu na dalszych pozycjach
+							Need_TryAgain = true; // nie załączona lokomotywa albo wywalił
+						// nadmiarowy
+						else if (!OK) // nie da się wrzucić kolejnej pozycji
+							OK = mvControlling->IncScndCtrl(1); // to dać bocznik
+					}
+				}
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
     case Dumb:
