@@ -83,6 +83,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# /wd4996: disable "deprecation" warnings
 	# /wd4244: disable warnings for conversion with possible loss of data
 	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/wd4996 /wd4244")
+	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/LARGEADDRESSAWARE")
 endif()
 
 find_package(OpenGL REQUIRED)
