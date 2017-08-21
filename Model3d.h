@@ -209,7 +209,6 @@ public:
 		return m_material; }
 	void ParentMatrix(float4x4 *m);
 	float MaxY( float4x4 const &m );
-	void AdjustDist();
 
 	void deserialize(std::istream&);
 	void serialize(std::ostream&,

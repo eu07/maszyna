@@ -73,3 +73,5 @@ ref/
 builds/build_*
 builds/*.zip
 builds/deps_*
+
+CMakeLists.txt.user

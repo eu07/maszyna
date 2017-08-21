@@ -2622,7 +2622,7 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 {
     bool IBL;
-     if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
+    if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
     {
         while ((LocalBrakePos < LocalBrakePosNo) && (CtrlSpeed > 0))
         {
@@ -4008,17 +4008,17 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
 
     // blablabla
     // ABu: proby znalezienia problemu ze zle odbijajacymi sie skladami
-    //***if (Couplers[CouplerN].CouplingFlag=ctrain_virtual) and (newdist>0) then
+    //if (Couplers[CouplerN].CouplingFlag=ctrain_virtual) and (newdist>0) then
     if ((Couplers[CouplerN].CouplingFlag == ctrain_virtual) && (Couplers[CouplerN].CoupleDist > 0))
     {
         CF = 0; // kontrola zderzania sie - OK
         ScanCounter++;
         if ((newdist > MaxDist) || ((ScanCounter > MaxCount) && (newdist > MinDist)))
-        //***if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
+        //if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
         { // zerwij kontrolnie wirtualny sprzeg
             // Connected.Couplers[CNext].Connected:=nil; //Ra: ten podłączony niekoniecznie jest
             // wirtualny
-            Couplers[CouplerN].Connected = NULL;
+//            Couplers[CouplerN].Connected = NULL;
             ScanCounter = static_cast<int>(Random(500.0)); // Q: TODO: cy dobrze przetlumaczone?
             // WriteLog(FloatToStr(ScanCounter));
         }

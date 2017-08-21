@@ -1135,23 +1135,6 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
     }
 }
 
-// NOTE: leftover from static distance factor adjustment.
-// TODO: get rid of it, once we have the dynamic adjustment code in place
-void TSubModel::AdjustDist()
-{ // aktualizacja odległości faz LoD, zależna od
-  // rozdzielczości pionowej oraz multisamplingu
-	if (fSquareMaxDist > 0.0)
-		fSquareMaxDist *= Global::fDistanceFactor;
-	if (fSquareMinDist > 0.0)
-		fSquareMinDist /= Global::fDistanceFactor;
-	// if (fNearAttenStart>0.0) fNearAttenStart*=Global::fDistanceFactor;
-	// if (fNearAttenEnd>0.0) fNearAttenEnd*=Global::fDistanceFactor;
-	if (Child)
-		Child->AdjustDist();
-	if (Next)
-		Next->AdjustDist();
-};
-
 void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // ustawienie kolorów dla modelu terenu
     f4Ambient = glm::vec4( Ambient, 1.0f );
