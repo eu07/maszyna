@@ -415,7 +415,9 @@ int main(int argc, char *argv[])
 #endif
     }
 
-	delete sound_man;
+	//m7todo: restore
+	//delete sound_man;
+
 	TPythonInterpreter::killInstance();
 #ifdef _WIN32
 	delete pConsole;

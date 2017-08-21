@@ -1138,8 +1138,17 @@ bool TWorld::Update()
 
     Update_Camera( dt );
 
-    sound_man->set_listener(Camera.Pos, Camera.LookAt, Camera.vUp);
-    sound_man->update(dt);
+	{
+		glm::dmat4 cam_matrix;
+		Camera.SetMatrix(cam_matrix);
+
+		glm::vec3 pos(Camera.Pos.x, Camera.Pos.y, Camera.Pos.z);
+	    glm::vec3 at = glm::vec3(0.0, 0.0, -1.0) * glm::mat3(cam_matrix);
+	    glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * glm::mat3(cam_matrix);
+
+	    sound_man->set_listener(pos, at, up);
+	    sound_man->update(dt);
+	}
 
     GfxRenderer.Update( dt );
     ResourceSweep();
