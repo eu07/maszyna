@@ -164,10 +164,6 @@ class TAnimModel {
     bool Load(cParser *parser, bool ter = false);
     TAnimContainer * AddContainer(char *pName);
     TAnimContainer * GetContainer(char *pName);
-#ifdef EU07_USE_OLD_RENDERCODE
-    void Render( vector3 const &Position );
-    void RenderAlpha( vector3 const &Position );
-#endif
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {
@@ -178,9 +174,6 @@ class TAnimModel {
     bool TerrainLoaded();
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
-#ifdef EU07_USE_OLD_RENDERCODE
-    void TerrainRenderVBO(int n);
-#endif
     void AnimationVND(void *pData, double a, double b, double c, double d);
     void LightSet(int n, float v);
     static void AnimUpdate(double dt);

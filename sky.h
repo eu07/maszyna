@@ -21,9 +21,6 @@ private:
 
 public:
     void Init();
-#ifdef EU07_USE_OLD_RENDERCODE
-    void Render( glm::vec3 const &Tint = glm::vec3(1.0f, 1.0f, 1.0f) );
-#endif
 };
 
 //---------------------------------------------------------------------------

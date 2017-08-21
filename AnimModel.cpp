@@ -606,23 +606,8 @@ int TAnimModel::Flags()
     return i;
 };
 
-//-----------------------------------------------------------------------------
-// 2011-03-16 funkcje renderowania z możliwością pochylania obiektów
-//-----------------------------------------------------------------------------
-#ifdef EU07_USE_OLD_RENDERCODE
-void TAnimModel::Render( vector3 const &Position ) {
-    RaAnimate(); // jednorazowe przeliczenie animacji
-    RaPrepare();
-    if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render( pModel, Material(), Position, vAngle );
-};
-void TAnimModel::RenderAlpha( vector3 const &Position ) {
-    RaPrepare();
-    if( pModel ) // renderowanie rekurencyjne submodeli
-        GfxRenderer.Render_Alpha( pModel, Material(), Position, vAngle );
-};
-#endif
 //---------------------------------------------------------------------------
+
 bool TAnimModel::TerrainLoaded()
 { // zliczanie kwadratów kilometrowych (główna linia po Next) do tworznia tablicy
     return (this ? pModel != NULL : false);

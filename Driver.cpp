@@ -187,7 +187,7 @@ void TSpeedPos::CommandCheck()
     }
 };
 
-bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len, TOrders const &Orders )
+bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len )
 { // przeliczenie odległości od punktu (*p), w kierunku (*dir), zaczynając od pojazdu
     // dla kolejnych pozycji podawane są współrzędne poprzedniego obiektu w (*p)
     vector3 v = vPos - *p; // wektor od poprzedniego obiektu (albo pojazdu) do punktu zmiany
@@ -253,19 +253,6 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len, TOrders const &Ord
 
             if( trTrack->iCategoryFlag & 1 ) {
                 // railways
-/*
-                if( ( iFlags & spElapsed ) == 0 ) {
-                    // jeśli nie wjechał
-                    // TODO: remove this block when the detection of vehicles ahead is working properly
-                    if( false == trTrack->Dynamics.empty() ) {
-                        // to zabronić wjazdu (chyba że ten z przodu też jedzie prosto)
-                        fVelNext = 25.0; // can't force full stop as it can prevent vehicles from leaving the track. slow down should be enough to ensure slow enough movement to stop
-                        if( Global::iWriteLogEnabled & 8 ) {
-                            WriteLog( "Track " + trTrack->NameGet() + " is occupied. Vehicle count: " + std::to_string( trTrack->Dynamics.size() ) + ", distance: " + std::to_string( fDist ) + " m." );
-                        }
-                    }
-                }
-*/
                 if( iFlags & spSwitch ) {
                     // jeśli odcinek zmienny
                     if( ( ( trTrack->GetSwitchState() & 1 ) != 0 ) !=
@@ -701,7 +688,7 @@ void TController::TableCheck(double fDistance)
         { // aktualizacja rekordów z wyjątkiem ostatniego
             if (sSpeedTable[i].iFlags & spEnabled) // jeśli pozycja istotna
             {
-                if (sSpeedTable[i].Update(&pos, &dir, len, OrderCurrentGet()))
+                if(sSpeedTable[i].Update( &pos, &dir, len ))
                 {
                     if( Global::iWriteLogEnabled & 8 ) {
                         WriteLog( "Speed table for " + OwnerName() + " detected switch change at " + sSpeedTable[ i ].trTrack->NameGet() + " (generating fresh trace)" );
@@ -744,7 +731,7 @@ void TController::TableCheck(double fDistance)
                 }
             }
         }
-        sSpeedTable[iLast].Update(&pos, &dir, len, OrderCurrentGet()); // aktualizacja ostatniego
+        sSpeedTable[iLast].Update( &pos, &dir, len ); // aktualizacja ostatniego
         // WriteLog("TableCheck: Upate last track. Dist=" + AnsiString(sSpeedTable[iLast].fDist));
         if( sSpeedTable[ iLast ].fDist < fDistance ) {
             TableTraceRoute( fDistance, pVehicles[ 1 ] ); // doskanowanie dalszego odcinka
