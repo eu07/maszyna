@@ -250,7 +250,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         }
         else {
             ErrorLog( "Shadows framebuffer setup failed" );
-            m_framebuffersupport = false;
             Global::RenderShadows = false;
         }
         ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // switch back to primary render target for now

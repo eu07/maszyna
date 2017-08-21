@@ -144,7 +144,7 @@ class TSpeedPos
 
   public:
     void Clear();
-    bool Update(vector3 *p, vector3 *dir, double &len, TOrders const &Orders );
+    bool Update(vector3 *p, vector3 *dir, double &len );
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText();
@@ -310,6 +310,7 @@ class TController
     void Activation(); // umieszczenie obsady w odpowiednim członie
     void ControllingSet(); // znajduje człon do sterowania
     void AutoRewident(); // ustawia hamulce w składzie
+	double ESMVelocity(bool Main);
   public:
     Mtable::TTrainParameters *Timetable()
     {
