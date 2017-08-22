@@ -527,7 +527,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             // na przechyłce doliczyć jeszcze pół przechyłki
         }
         if( fRadius != 0 ) // gdy podany promień
-            segsize = clamp( 0.2 + std::fabs( fRadius ) * 0.02, 2.0, 10.0 );
+            segsize = clamp( std::fabs( fRadius ) * ( 0.02 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
         else
             segsize = 10.0; // for straights, 10m per segment works good enough
 

@@ -1616,16 +1616,16 @@ opengl_renderer::Render( TGroundNode *Node ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor );
+            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
         default: {
-            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor );
+            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
     }
-    if( ( distancesquared > ( Node->fSquareRadius    * Global::fDistanceFactor ) )
-     || ( distancesquared < ( Node->fSquareMinRadius / Global::fDistanceFactor ) ) ) {
+    if( ( distancesquared > Node->fSquareRadius )
+     || ( distancesquared < Node->fSquareMinRadius ) ) {
         return false;
     }
 
@@ -1671,28 +1671,12 @@ opengl_renderer::Render( TGroundNode *Node ) {
             Node->Model->RaPrepare();
             if( Node->Model->pModel ) {
                 // renderowanie rekurencyjne submodeli
-                switch( m_renderpass.draw_mode ) {
-                    case rendermode::shadows: {
-                        Render(
-                            Node->Model->pModel,
-                            Node->Model->Material(),
-                            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-                            SquareMagnitude( Node->pCenter - Global::pCameraPosition ),
-                            Node->pCenter - m_renderpass.camera.position(),
-                            Node->Model->vAngle );
-                        break;
-                    }
-                    default: {
-                        auto const position = Node->pCenter - m_renderpass.camera.position();
-                        Render(
-                            Node->Model->pModel,
-                            Node->Model->Material(),
-                            SquareMagnitude( position ),
-                            position,
-                            Node->Model->vAngle );
-                        break;
-                    }
-                }
+                Render(
+                    Node->Model->pModel,
+                    Node->Model->Material(),
+                    distancesquared,
+                    Node->pCenter - m_renderpass.camera.position(),
+                    Node->Model->vAngle );
             }
             return true;
         }
@@ -1726,7 +1710,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
                     break;
                 }
             }
-            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 32.0 );
+            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
             if( linewidth > 1.0 ) {
                 ::glLineWidth( static_cast<float>( linewidth ) );
             }
@@ -1832,15 +1816,16 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     }
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    auto const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
-    double squaredistance;
+    glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
+    // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
+    float squaredistance;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            squaredistance = SquareMagnitude( ( Dynamic->vPosition - Global::pCameraPosition ) / Global::ZoomFactor );
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global::pCameraPosition } } / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
         default: {
-            squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
+            squaredistance = glm::length2( glm::vec3{ originoffset } / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
     }
@@ -1995,7 +1980,7 @@ opengl_renderer::Render_cab( TDynamicObject *Dynamic ) {
 }
 
 bool
-opengl_renderer::Render( TModel3d *Model, material_data const *Material, double const Squaredistance ) {
+opengl_renderer::Render( TModel3d *Model, material_data const *Material, float const Squaredistance ) {
 
     auto alpha =
         ( Material != nullptr ?
@@ -2027,7 +2012,7 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, double 
 }
 
 bool
-opengl_renderer::Render( TModel3d *Model, material_data const *Material, double const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+opengl_renderer::Render( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
 
     ::glPushMatrix();
     ::glTranslated( Position.x, Position.y, Position.z );
@@ -2049,8 +2034,8 @@ void
 opengl_renderer::Render( TSubModel *Submodel ) {
 
     if( ( Submodel->iVisible )
-     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / std::max( 1.f, Global::fDistanceFactor ) ) )
-     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * std::max( 1.f, Global::fDistanceFactor ) ) ) ) {
+     && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
+     && ( TSubModel::fSquareDist <= Submodel->fSquareMaxDist ) ) {
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -2205,7 +2190,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         float const anglefactor = ( Submodel->fCosViewAngle - Submodel->fCosFalloffAngle ) / ( 1.0f - Submodel->fCosFalloffAngle );
                         // distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
                         // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-                        float const distancefactor = static_cast<float>( std::max( 0.5, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / ( Submodel->fSquareMaxDist * Global::fDistanceFactor ) ) );
+                        float const distancefactor = std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist );
 
                         if( lightlevel > 0.f ) {
                             // material configuration:
@@ -2424,16 +2409,16 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor );
+            distancesquared = SquareMagnitude( ( Node->pCenter - Global::pCameraPosition ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
         default: {
-            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor );
+            distancesquared = SquareMagnitude( ( Node->pCenter - m_renderpass.camera.position() ) / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
     }
-    if( ( distancesquared > ( Node->fSquareRadius    * Global::fDistanceFactor ) )
-     || ( distancesquared < ( Node->fSquareMinRadius / Global::fDistanceFactor ) ) ) {
+    if( ( distancesquared > Node->fSquareRadius )
+     || ( distancesquared < Node->fSquareMinRadius ) ) {
         return false;
     }
 
@@ -2488,28 +2473,12 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
             Node->Model->RaPrepare();
             if( Node->Model->pModel ) {
                 // renderowanie rekurencyjne submodeli
-                switch( m_renderpass.draw_mode ) {
-                    case rendermode::shadows: {
-                        Render_Alpha(
-                            Node->Model->pModel,
-                            Node->Model->Material(),
-                            // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-                            SquareMagnitude( Node->pCenter - Global::pCameraPosition ),
-                            Node->pCenter - m_renderpass.camera.position(),
-                            Node->Model->vAngle );
-                        break;
-                    }
-                    default: {
-                        auto const position = Node->pCenter - m_renderpass.camera.position();
-                        Render_Alpha(
-                            Node->Model->pModel,
-                            Node->Model->Material(),
-                            SquareMagnitude( position ),
-                            position,
-                            Node->Model->vAngle );
-                        break;
-                    }
-                }
+                Render_Alpha(
+                    Node->Model->pModel,
+                    Node->Model->Material(),
+                    distancesquared,
+                    Node->pCenter - m_renderpass.camera.position(),
+                    Node->Model->vAngle );
             }
             return true;
         }
@@ -2531,7 +2500,7 @@ opengl_renderer::Render_Alpha( TGroundNode *Node ) {
                     glm::vec4(
                         Node->Diffuse * glm::vec3( Global::DayLight.ambient ), // w zaleznosci od koloru swiatla
                         std::min( 1.0, linealpha ) ) ) );
-            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 32.0 );
+            auto const linewidth = clamp( 0.5 * linealpha + Node->fLineThickness * Node->m_radius / 1000.0, 1.0, 8.0 );
             if( linewidth > 1.0 ) {
                 ::glLineWidth( static_cast<float>(linewidth) );
             }
@@ -2589,15 +2558,16 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 
     // setup
     TSubModel::iInstance = ( size_t )this; //żeby nie robić cudzych animacji
-    auto const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
-    double squaredistance;
+    glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
+    // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
+    float squaredistance;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            squaredistance = SquareMagnitude( ( Dynamic->vPosition - Global::pCameraPosition ) / Global::ZoomFactor );
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global::pCameraPosition } } / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
         default: {
-            squaredistance = SquareMagnitude( originoffset / Global::ZoomFactor );
+            squaredistance = glm::length2( glm::vec3{ originoffset } / Global::ZoomFactor ) / Global::fDistanceFactor;
             break;
         }
     }
@@ -2656,7 +2626,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 }
 
 bool
-opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance ) {
+opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance ) {
 
     auto alpha =
         ( Material != nullptr ?
@@ -2688,7 +2658,7 @@ opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, d
 }
 
 bool
-opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
+opengl_renderer::Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle ) {
 
     ::glPushMatrix();
     ::glTranslated( Position.x, Position.y, Position.z );
@@ -2710,8 +2680,8 @@ void
 opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
     // renderowanie przezroczystych przez DL
     if( ( Submodel->iVisible )
-     && ( TSubModel::fSquareDist >= ( Submodel->fSquareMinDist / std::max( 1.f, Global::fDistanceFactor ) ) )
-     && ( TSubModel::fSquareDist <= ( Submodel->fSquareMaxDist * std::max( 1.f, Global::fDistanceFactor ) ) ) ) {
+     && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
+     && ( TSubModel::fSquareDist <= Submodel->fSquareMaxDist ) ) {
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -3009,7 +2979,7 @@ opengl_renderer::Update( double const Deltatime ) {
     m_framerate = 1000.f / ( m_drawtime / 20.f );
 
     // adjust draw ranges etc, based on recent performance
-    auto const framerate = 1000.0f / (m_drawtimecolorpass / 20.0f);
+    auto const framerate = 1000.f / (m_drawtimecolorpass / 20.f);
 
     float targetfactor;
          if( framerate > 90.0 ) { targetfactor = 3.0f; }

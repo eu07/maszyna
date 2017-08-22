@@ -153,7 +153,7 @@ public:
 	static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
 	static material_handle const *ReplacableSkinId;
 	static int iAlpha; // maska bitowa dla danego przebiegu
-	static double fSquareDist;
+	static float fSquareDist;
 	static TModel3d *pRoot;
 	static std::string *pasText; // tekst dla wyświetlacza (!!!! do przemyślenia)
 	~TSubModel();

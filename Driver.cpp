@@ -3614,11 +3614,11 @@ bool TController::UpdateSituation(double dt)
             }
             // basic emergency stop handling, while at it
             if( ( true == mvOccupied->EmergencyBrakeFlag ) // radio-stop
-             && ( mvOccupied->Vel < 0.01 ) // and actual stop
+             && ( mvOccupied->Vel == 0.0 ) // and actual stop
              && ( true == mvOccupied->Radio ) ) { // and we didn't touch the radio yet
                 // turning off the radio should reset the flag, during security system check
-                if( m_radiocontroltime > 2.5 ) {
-                    // arbitrary 2.5 sec delay between stop and disabling the radio
+                if( m_radiocontroltime > 5.0 ) {
+                    // arbitrary delay between stop and disabling the radio
                     mvOccupied->Radio = false;
                     m_radiocontroltime = 0.0;
                 }
@@ -3629,7 +3629,7 @@ bool TController::UpdateSituation(double dt)
             if( ( false == mvOccupied->Radio )
              && ( false == mvOccupied->EmergencyBrakeFlag ) ) {
                 // otherwise if it's safe to do so, turn the radio back on
-                if( m_radiocontroltime > 5.0 ) {
+                if( m_radiocontroltime > 10.0 ) {
                     // arbitrary 5 sec delay before switching radio back on
                     mvOccupied->Radio = true;
                     m_radiocontroltime = 0.0;
@@ -4200,8 +4200,8 @@ bool TController::UpdateSituation(double dt)
                                 }
                                 ReactionTime = (
                                     vel != 0.0 ?
-                                    0.1 : // orientuj się, bo jest goraco
-                                    2.0 ); // we're already standing still, so take it easy
+                                        0.1 : // orientuj się, bo jest goraco
+                                        2.0 ); // we're already standing still, so take it easy
                             }
                             else {
                                 if( OrderCurrentGet() & Connect ) {
@@ -4498,13 +4498,47 @@ bool TController::UpdateSituation(double dt)
                 // last step sanity check, until the whole calculation is straightened out
                 AccDesired = std::min( AccDesired, AccPreferred );
 
-                if (AIControllFlag)
-                { // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
+
+
+                if (AIControllFlag) {
+                    // część wykonawcza tylko dla AI, dla człowieka jedynie napisy
+
+                    // zapobieganie poslizgowi u nas
+                    if (mvControlling->SlippingWheels) {
+
+                        if (!mvControlling->DecScndCtrl(2)) // bocznik na zero
+                            mvControlling->DecMainCtrl(1);
+/*
+                        if (mvOccupied->BrakeCtrlPos ==
+                            mvOccupied->BrakeCtrlPosNo) // jeśli ostatnia pozycja hamowania
+							//yB: ten warunek wyżej nie ma sensu
+                            mvOccupied->DecBrakeLevel(); // to cofnij hamulec
+                            DecBrake(); // to cofnij hamulec
+                        else
+                            mvControlling->AntiSlippingButton();
+*/
+                        DecBrake(); // to cofnij hamulec
+                        mvControlling->AntiSlippingButton();
+                        ++iDriverFailCount;
+                        mvControlling->SlippingWheels = false; // flaga już wykorzystana
+                    }
+                    if (iDriverFailCount > maxdriverfails)
+                    {
+                        Psyche = Easyman;
+                        if (iDriverFailCount > maxdriverfails * 2)
+                            SetDriverPsyche();
+                    }
+
+                    if( ( true == mvOccupied->EmergencyBrakeFlag ) // radio-stop
+                     && ( mvOccupied->Vel > 0.0 ) ) { // and still moving
+                        // if the radio-stop was issued don't waste effort trying to fight it
+                        while( true == DecSpeed() ) { ; } // just throttle down...
+                        goto maintenance; // ...and don't touch any other controls
+                    }
+
                     if (mvControlling->ConvOvldFlag ||
                         !mvControlling->Mains) // WS może wywalić z powodu błędu w drutach
                     { // wywalił bezpiecznik nadmiarowy przetwornicy
-                        // while (DecSpeed()); //zerowanie napędu
-                        // Controlling->ConvOvldFlag=false; //reset nadmiarowego
                         PrepareEngine(); // próba ponownego załączenia
                     }
                     // włączanie bezpiecznika
@@ -4513,14 +4547,10 @@ bool TController::UpdateSituation(double dt)
                         (mvControlling->EngineType == DieselElectric))
                         if (mvControlling->FuseFlag || Need_TryAgain)
                         {
-                            Need_TryAgain =
-                                false; // true, jeśli druga pozycja w elektryku nie załapała
-                            // if (!Controlling->DecScndCtrl(1)) //kręcenie po mału
-                            // if (!Controlling->DecMainCtrl(1)) //nastawnik jazdy na 0
+                            Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
                             mvControlling->DecScndCtrl(2); // nastawnik bocznikowania na 0
                             mvControlling->DecMainCtrl(2); // nastawnik jazdy na 0
-                            mvControlling->MainSwitch(
-                                true); // Ra: dodałem, bo EN57 stawały po wywaleniu
+                            mvControlling->MainSwitch(true); // Ra: dodałem, bo EN57 stawały po wywaleniu
                             if (!mvControlling->FuseOn())
                                 HelpMeFlag = true;
                             else
@@ -4532,7 +4562,7 @@ bool TController::UpdateSituation(double dt)
                                     SetDriverPsyche();
                             }
                         }
-                    // NOTE: stop-gap measure, effect limited to trains only while car calculations seem off
+                    // NOTE: as a stop-gap measure the routine is limited to trains only while car calculations seem off
                     if( mvControlling->CategoryFlag == 1 ) {
                         if( -AccDesired * BrakeAccFactor() < ( ( fReady > 0.4 ) || ( VelNext > vel - 40.0 ) ? fBrake_a0[ 0 ] * 0.8 : -fAccThreshold ) )
                             AccDesired = std::max( -0.06, AccDesired );
@@ -4744,31 +4774,6 @@ bool TController::UpdateSituation(double dt)
                     WriteLog("BrakePos=" + AnsiString(mvOccupied->BrakeCtrlPos) + ", MainCtrl=" +
                              AnsiString(mvControlling->MainCtrlPos));
 #endif
-                    // zapobieganie poslizgowi u nas
-                    if (mvControlling->SlippingWheels)
-                    {
-                        if (!mvControlling->DecScndCtrl(2)) // bocznik na zero
-                            mvControlling->DecMainCtrl(1);
-/*
-                        if (mvOccupied->BrakeCtrlPos ==
-                            mvOccupied->BrakeCtrlPosNo) // jeśli ostatnia pozycja hamowania
-							//yB: ten warunek wyżej nie ma sensu
-                            mvOccupied->DecBrakeLevel(); // to cofnij hamulec
-                            DecBrake(); // to cofnij hamulec
-                        else
-                            mvControlling->AntiSlippingButton();
-*/
-                        DecBrake(); // to cofnij hamulec
-                        mvControlling->AntiSlippingButton();
-                        ++iDriverFailCount;
-                        mvControlling->SlippingWheels = false; // flaga już wykorzystana
-                    }
-                    if (iDriverFailCount > maxdriverfails)
-                    {
-                        Psyche = Easyman;
-                        if (iDriverFailCount > maxdriverfails * 2)
-                            SetDriverPsyche();
-                    }
                 } // if (AIControllFlag)
             } // kierunek różny od zera
             else
@@ -4801,6 +4806,8 @@ bool TController::UpdateSituation(double dt)
     else
         LastReactionTime += dt;
 
+maintenance:
+
     if ((fLastStopExpDist > 0.0) && (mvOccupied->DistCounter > fLastStopExpDist))
     {
         iStationStart = TrainParams->StationIndex; // zaktualizować wyświetlanie rozkładu
@@ -4817,9 +4824,8 @@ bool TController::UpdateSituation(double dt)
                 ReactionTime =
                     fWarningDuration; // wcześniejszy przebłysk świadomości, by zakończyć trąbienie
         }
-        if (mvOccupied->Vel >=
-            3.0) // jesli jedzie, można odblokować trąbienie, bo się wtedy nie włączy
-        {
+        if (mvOccupied->Vel >= 3.0) {
+            // jesli jedzie, można odblokować trąbienie, bo się wtedy nie włączy
             iDrivigFlags &= ~moveStartHornDone; // zatrąbi dopiero jak następnym razem stanie
             iDrivigFlags |= moveStartHorn; // i trąbić przed następnym ruszeniem
         }

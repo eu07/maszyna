@@ -277,9 +277,9 @@ private:
     bool
         Render( TDynamicObject *Dynamic );
     bool
-        Render( TModel3d *Model, material_data const *Material, double const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+        Render( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     bool
-        Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
+        Render( TModel3d *Model, material_data const *Material, float const Squaredistance );
     void
         Render( TSubModel *Submodel );
     void
@@ -297,9 +297,9 @@ private:
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+        Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
+        Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance );
     void
         Render_Alpha( TSubModel *Submodel );
     void
