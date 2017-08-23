@@ -350,6 +350,7 @@ private:
     int m_diffusetextureunit{ GL_TEXTURE3 };
     units_state m_unitstate;
 
+    unsigned int m_framestamp; // id of currently rendered gfx frame
     float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
     std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
     float m_framerate;

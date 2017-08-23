@@ -320,6 +320,7 @@ opengl_renderer::Render() {
 
     m_renderpass.draw_mode = rendermode::none; // force setup anew
     m_debuginfo.clear();
+    ++m_framestamp;
     Render_pass( rendermode::color );
 
     m_drawcount = m_drawqueue.size();
@@ -1330,8 +1331,6 @@ opengl_renderer::Texture( texture_handle const Texture ) const {
 bool
 opengl_renderer::Render( TGround *Ground ) {
 
-    ++TGroundRect::iFrameNumber; // zwięszenie licznika ramek (do usuwniania nadanimacji)
-
     m_drawqueue.clear();
 
     switch( m_renderpass.draw_mode ) {
@@ -1440,73 +1439,70 @@ opengl_renderer::Render( TGroundRect *Groundcell ) {
 
     bool result { false }; // will be true if we do any rendering
 
-    if( Groundcell->iLastDisplay != Groundcell->iFrameNumber ) {
-        // tylko jezeli dany kwadrat nie był jeszcze renderowany
-        Groundcell->LoadNodes(); // ewentualne tworzenie siatek
+    Groundcell->LoadNodes(); // ewentualne tworzenie siatek
 
-        switch( m_renderpass.draw_mode ) {
-            case rendermode::pickscenery: {
-                // non-interactive scenery elements get neutral colour
-                ::glColor3fv( glm::value_ptr( colors::none ) );
-            }
-            case rendermode::color:
-            case rendermode::reflections: {
-                if( Groundcell->nRenderRect != nullptr ) {
-                    // nieprzezroczyste trójkąty kwadratu kilometrowego
-                    for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
-                        Render( node );
-                    }
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::pickscenery: {
+            // non-interactive scenery elements get neutral colour
+            ::glColor3fv( glm::value_ptr( colors::none ) );
+        }
+        case rendermode::color:
+        case rendermode::reflections: {
+            if( Groundcell->nRenderRect != nullptr ) {
+                // nieprzezroczyste trójkąty kwadratu kilometrowego
+                for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
+                    Render( node );
                 }
-                break;
+                result = true;
             }
-            case rendermode::shadows: {
-                if( Groundcell->nRenderRect != nullptr ) {
-                    // experimental, for shadows render both back and front faces, to supply back faces of the 'forest strips'
-                    ::glDisable( GL_CULL_FACE );
-                    // nieprzezroczyste trójkąty kwadratu kilometrowego
-                    for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
-                        Render( node );
-                    }
-                    ::glEnable( GL_CULL_FACE );
+            break;
+        }
+        case rendermode::shadows: {
+            if( Groundcell->nRenderRect != nullptr ) {
+                // experimental, for shadows render both back and front faces, to supply back faces of the 'forest strips'
+                ::glDisable( GL_CULL_FACE );
+                // nieprzezroczyste trójkąty kwadratu kilometrowego
+                for( TGroundNode *node = Groundcell->nRenderRect; node != nullptr; node = node->nNext3 ) {
+                    Render( node );
                 }
-            }
-            case rendermode::pickcontrols:
-            default: {
-                break;
+                result = true;
+                ::glEnable( GL_CULL_FACE );
             }
         }
+        case rendermode::pickcontrols:
+        default: {
+            break;
+        }
+    }
 #ifdef EU07_USE_OLD_TERRAINCODE
-        if( Groundcell->nTerrain ) {
+    if( Groundcell->nTerrain ) {
 
-            Render( Groundcell->nTerrain );
-        }
+        Render( Groundcell->nTerrain );
+    }
 #endif
-        Groundcell->iLastDisplay = Groundcell->iFrameNumber; // drugi raz nie potrzeba
-        result = true;
 
-        // add the subcells of the cell to the draw queue
-        switch( m_renderpass.draw_mode ) {
-            case rendermode::color:
-            case rendermode::shadows:
-            case rendermode::pickscenery: {
-                if( Groundcell->pSubRects != nullptr ) {
-                    for( std::size_t subcellindex = 0; subcellindex < iNumSubRects * iNumSubRects; ++subcellindex ) {
-                        auto subcell = Groundcell->pSubRects + subcellindex;
-                        if( subcell->iNodeCount ) {
-                            // o ile są jakieś obiekty, bo po co puste sektory przelatywać
-                            m_drawqueue.emplace_back(
-                                glm::length2( m_renderpass.camera.position() - glm::dvec3( subcell->m_area.center ) ),
-                                subcell );
-                        }
+    // add the subcells of the cell to the draw queue
+    switch( m_renderpass.draw_mode ) {
+        case rendermode::color:
+        case rendermode::shadows:
+        case rendermode::pickscenery: {
+            if( Groundcell->pSubRects != nullptr ) {
+                for( std::size_t subcellindex = 0; subcellindex < iNumSubRects * iNumSubRects; ++subcellindex ) {
+                    auto subcell = Groundcell->pSubRects + subcellindex;
+                    if( subcell->iNodeCount ) {
+                        // o ile są jakieś obiekty, bo po co puste sektory przelatywać
+                        m_drawqueue.emplace_back(
+                            glm::length2( m_renderpass.camera.position() - glm::dvec3( subcell->m_area.center ) ),
+                            subcell );
                     }
                 }
-                break;
             }
-            case rendermode::reflections:
-            case rendermode::pickcontrols:
-            default: {
-                break;
-            }
+            break;
+        }
+        case rendermode::reflections:
+        case rendermode::pickcontrols:
+        default: {
+            break;
         }
     }
     return result;
@@ -1518,7 +1514,8 @@ opengl_renderer::Render( TSubRect *Groundsubcell ) {
     // oznaczanie aktywnych sektorów
     Groundsubcell->LoadNodes();
 
-    Groundsubcell->RaAnimate(); // przeliczenia animacji torów w sektorze
+    // przeliczenia animacji torów w sektorze
+    Groundsubcell->RaAnimate( m_framestamp );
 
     TGroundNode *node;
 
@@ -1667,7 +1664,7 @@ opengl_renderer::Render( TGroundNode *Node ) {
                     break;
                 }
             }
-            Node->Model->RaAnimate(); // jednorazowe przeliczenie animacji
+            Node->Model->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
             Node->Model->RaPrepare();
             if( Node->Model->pModel ) {
                 // renderowanie rekurencyjne submodeli

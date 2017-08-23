@@ -171,6 +171,7 @@ class TSubRect : /*public Resource,*/ public CMesh
 { // sektor składowy kwadratu kilometrowego
   public:
     bounding_area m_area;
+    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
     int iTracks = 0; // ilość torów w (tTracks)
     TTrack **tTracks = nullptr; // tory do renderowania pojazdów
   protected:
@@ -192,15 +193,12 @@ class TSubRect : /*public Resource,*/ public CMesh
     void LoadNodes(); // utworzenie VBO sektora
   public:
     virtual ~TSubRect();
-/*
-    virtual void Release(); // zwalnianie VBO sektora
-*/
     virtual void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude);
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
-    void RaAnimate(); // przeliczenie animacji torów
+    void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji torów
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
 };
 
@@ -221,7 +219,6 @@ class TGroundRect : public TSubRect
 
 private:
     TSubRect *pSubRects { nullptr };
-    int iLastDisplay; // numer klatki w której był ostatnio wyświetlany
 
     void Init();
 
@@ -251,7 +248,6 @@ public:
                 // optymalizacja obiektów w sektorach
                 pSubRects[ i ].Sort(); } } };
 
-    static int iFrameNumber; // numer kolejny wyświetlanej klatki
     TGroundNode *nTerrain { nullptr }; // model terenu z E3D - użyć nRootMesh?
 };
 

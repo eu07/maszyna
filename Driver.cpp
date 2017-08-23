@@ -1253,7 +1253,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if( fBrakeDist > 0.0 ) {
                             // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
                             // try to make a smooth transition instead of sharp change
-                            a = interpolate( a, fAcc, clamp( ( d - fBrakeDist ) / fBrakeDist, 0.0, 1.0 ) );
+                            a = interpolate( a, AccPreferred, clamp( ( d - fBrakeDist ) / fBrakeDist, 0.0, 1.0 ) );
                         }
                         if( ( d < fMinProximityDist )
                          && ( v < fVelDes ) ) {
@@ -4059,17 +4059,13 @@ bool TController::UpdateSituation(double dt)
                 switch (comm)
                 { // ustawienie VelSignal - trochę proteza = do przemyślenia
                 case cm_Ready: // W4 zezwolił na jazdę
-                    TableCheck(
-                        scanmax); // ewentualne doskanowanie trasy za W4, który zezwolił na jazdę
-                    TableUpdate(VelDesired, ActualProximityDist, VelNext,
-                                AccDesired); // aktualizacja po skanowaniu
-                    // if (comm!=cm_SetVelocity) //jeśli dalej jest kolejny W4, to ma zwrócić
-                    // cm_SetVelocity
+                    // ewentualne doskanowanie trasy za W4, który zezwolił na jazdę
+                    TableCheck( scanmax);
+                    TableUpdate(VelDesired, ActualProximityDist, VelNext, AccDesired); // aktualizacja po skanowaniu
                     if (VelNext == 0.0)
                         break; // ale jak coś z przodu zamyka, to ma stać
                     if (iDrivigFlags & moveStopCloser)
-                        VelSignal = -1.0; // niech jedzie, jak W4 puściło - nie, ma czekać na
-                // sygnał z sygnalizatora!
+                        VelSignal = -1.0; // ma czekać na sygnał z sygnalizatora!
                 case cm_SetVelocity: // od wersji 357 semafor nie budzi wyłączonej lokomotywy
                     if (!(OrderList[OrderPos] &
                           ~(Obey_train | Shunt))) // jedzie w dowolnym trybie albo Wait_for_orders

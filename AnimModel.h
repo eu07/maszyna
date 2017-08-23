@@ -149,8 +149,9 @@ class TAnimModel {
     TLightState lsLights[iMaxNumLights];
     float fDark; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
     float fOnTime, fOffTime; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
-  private:
-    void RaAnimate(); // przeliczenie animacji egzemplarza
+    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
+private:
+    void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji egzemplarza
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
   public:
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania

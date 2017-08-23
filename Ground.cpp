@@ -356,13 +356,17 @@ bool TSubRect::RaTrackAnimAdd(TTrack *t)
     return false; // będzie animowane...
 }
 
-void TSubRect::RaAnimate()
-{ // wykonanie animacji
-    if( tTrackAnim == nullptr ) {
+// wykonanie animacji
+void TSubRect::RaAnimate( unsigned int const Framestamp ) {
+    
+    if( ( tTrackAnim == nullptr )
+     || ( Framestamp == m_framestamp ) ) {
         // nie ma nic do animowania
         return;
     }
     tTrackAnim = tTrackAnim->RaAnimate(); // przeliczenie animacji kolejnego
+
+    m_framestamp = Framestamp;
 };
 
 TTraction * TSubRect::FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude)
@@ -431,8 +435,6 @@ void TSubRect::RenderSounds()
 //---------------------------------------------------------------------------
 //------------------ Kwadrat kilometrowy ------------------------------------
 //---------------------------------------------------------------------------
-int TGroundRect::iFrameNumber = 0; // licznik wyświetlanych klatek
-
 TGroundRect::~TGroundRect()
 {
     SafeDeleteArray(pSubRects);

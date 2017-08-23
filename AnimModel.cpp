@@ -205,8 +205,9 @@ void TAnimContainer::AnimSetVMD(double fNewSpeed)
     // "+AnsiString(pMovementData->f3Vector.y)+" "+AnsiString(pMovementData->f3Vector.z));
 }
 
-void TAnimContainer::UpdateModel()
-{ // przeliczanie animacji wykonać tylko raz na model
+// przeliczanie animacji wykonać tylko raz na model
+void TAnimContainer::UpdateModel() {
+
     if (pSubModel) // pozbyć się tego - sprawdzać wcześniej
     {
         if (fTranslateSpeed != 0.0)
@@ -236,7 +237,7 @@ void TAnimContainer::UpdateModel()
                 // zakończeniu
             }
         }
-        if (fRotateSpeed != 0)
+        if (fRotateSpeed != 0.0)
         {
 
             /*
@@ -303,8 +304,9 @@ void TAnimContainer::UpdateModel()
                 // zakończeniu
             }
         }
-        if (fAngleSpeed != 0.0)
-        { // obrót kwaternionu (interpolacja)
+        if( fAngleSpeed != 0.f ) {
+            // NOTE: this is angle- not quaternion-based rotation TBD, TODO: switch to quaternion rotations?
+            fAngleCurrent += fAngleSpeed * Timer::GetDeltaTime(); // aktualny parametr interpolacji
         }
     }
 };
@@ -322,15 +324,14 @@ void TAnimContainer::PrepareModel()
         {
             if (fAngleSpeed > 0.0f)
             {
-                fAngleCurrent +=
-                    fAngleSpeed * Timer::GetDeltaTime(); // aktualny parametr interpolacji
                 if (fAngleCurrent >= 1.0f)
                 { // interpolacja zakończona, ustawienie na pozycję końcową
                     qCurrent = qDesired;
                     fAngleSpeed = 0.0; // wyłączenie przeliczania wektora
-                    if (evDone)
-                        Global::AddToQuery(evDone,
-                                           NULL); // wykonanie eventu informującego o zakończeniu
+                    if( evDone ) {
+                        // wykonanie eventu informującego o zakończeniu
+                        Global::AddToQuery( evDone, NULL );
+                    }
                 }
                 else
                 { // obliczanie pozycji pośredniej
@@ -412,9 +413,9 @@ TAnimModel::TAnimModel()
     iNumLights = 0;
     fBlinkTimer = 0;
 
-    for (int i = 0; i < iMaxNumLights; i++)
+    for (int i = 0; i < iMaxNumLights; ++i)
     {
-        LightsOn[i] = LightsOff[i] = NULL; // normalnie nie ma
+        LightsOn[i] = LightsOff[i] = nullptr; // normalnie nie ma
         lsLights[i] = ls_Off; // a jeśli są, to wyłączone
     }
     vAngle.x = vAngle.y = vAngle.z = 0.0; // zerowanie obrotów egzemplarza
@@ -550,8 +551,15 @@ TAnimContainer * TAnimModel::GetContainer(char *pName)
     return AddContainer(pName);
 }
 
-void TAnimModel::RaAnimate()
-{ // przeliczenie animacji - jednorazowo na klatkę
+// przeliczenie animacji - jednorazowo na klatkę
+void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
+    
+    if( Framestamp == m_framestamp ) { return; }
+
+    fBlinkTimer -= Timer::GetDeltaTime();
+    if( fBlinkTimer <= 0 )
+        fBlinkTimer += fOffTime;
+
     // Ra 2F1I: to by można pomijać dla modeli bez animacji, których jest większość
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
@@ -560,15 +568,14 @@ void TAnimModel::RaAnimate()
     // if () //tylko dla modeli z IK !!!!
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext) // albo osobny łańcuch
         pCurrent->UpdateModelIK(); // przeliczenie odwrotnej kinematyki
+
+    m_framestamp = Framestamp;
 };
 
 void TAnimModel::RaPrepare()
 { // ustawia światła i animacje we wzorcu modelu przed renderowaniem egzemplarza
-    fBlinkTimer -= Timer::GetDeltaTime();
-    if (fBlinkTimer <= 0)
-        fBlinkTimer = fOffTime;
     bool state; // stan światła
-    for (int i = 0; i < iNumLights; i++)
+    for (int i = 0; i < iNumLights; ++i)
     {
         switch (lsLights[i])
         {
