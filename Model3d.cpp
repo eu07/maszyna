@@ -31,7 +31,7 @@ extern TWorld World;
 
 using namespace Mtable;
 
-double TSubModel::fSquareDist = 0;
+float TSubModel::fSquareDist = 0.f;
 size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 texture_handle const *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych

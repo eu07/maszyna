@@ -51,7 +51,6 @@ bool Global::ControlPicking = false; // indicates controls pick mode is enabled
 bool Global::InputMouse = true; // whether control pick mode can be activated
 int Global::iTextMode = 0; // tryb pracy wyświetlacza tekstowego
 int Global::iScreenMode[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // numer ekranu wyświetlacza tekstowego
-double Global::fSunDeclination = 0.0; // deklinacja Słońca
 double Global::fTimeAngleDeg = 0.0; // godzina w postaci kąta
 float Global::fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
 std::string Global::szTexturesTGA = ".tga"; // lista tekstur od TGA
@@ -63,7 +62,6 @@ int Global::iErorrCounter = 0; // licznik sprawdzań do śledzenia błędów Ope
 int Global::iTextures = 0; // licznik użytych tekstur
 TWorld *Global::pWorld = NULL;
 cParser *Global::pParser = NULL;
-int Global::iSegmentsRendered = 90; // ilość segmentów do regulacji wydajności
 TCamera *Global::pCamera = NULL; // parametry kamery
 TDynamicObject *Global::pUserDynamic = NULL; // pojazd użytkownika, renderowany bez trzęsienia
 TTranscripts Global::tranTexts; // obiekt obsługujący stenogramy dźwięków na ekranie
@@ -130,6 +128,7 @@ int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem
+float Global::SplineFidelity { 1.f }; // determines segment size during conversion of splines to geometry
 std::string Global::szDefaultExt = Global::szTexturesDDS; // domyślnie od DDS
 int Global::iMultisampling = 2; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 bool Global::DLFont{ false }; // switch indicating presence of basic font
@@ -148,7 +147,6 @@ double Global::fFpsMax = 65.0; // górna granica FPS, przy której promień scen
 double Global::fFpsRadiusMax = 3000.0; // maksymalny promień renderowania
 int Global::iFpsRadiusMax = 225; // maksymalny promień renderowania
 double Global::fRadiusFactor = 1.1; // współczynnik jednorazowej zmiany promienia scenerii
-bool Global::bOldSmudge = false; // Używanie starej smugi
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
@@ -588,6 +586,13 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> Global::bSmoothTraction;
         }
+        else if( token == "splinefidelity" ) {
+            // segment size during spline->geometry conversion
+            float splinefidelity;
+            Parser.getTokens();
+            Parser >> splinefidelity;
+            Global::SplineFidelity = clamp( splinefidelity, 1.f, 4.f );
+        }
         else if (token == "timespeed")
         {
             // przyspieszenie czasu, zmienna do testów
@@ -646,12 +651,6 @@ void Global::ConfigParse(cParser &Parser)
             // hunter-271211: ukrywanie konsoli
             Parser.getTokens();
             Parser >> Global::bHideConsole;
-        }
-        else if (token == "oldsmudge")
-        {
-
-            Parser.getTokens();
-            Parser >> Global::bOldSmudge;
         }
         else if (token == "rollfix")
         {

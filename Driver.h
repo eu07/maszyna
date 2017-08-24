@@ -369,6 +369,9 @@ class TController
     void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = nullptr);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
+    // modifies brake distance for low target speeds, to ease braking rate in such situations
+    float
+        braking_distance_multiplier( float const Targetvelocity );
     void TablePurger();
 public:
     std::size_t TableSize() const { return sSpeedTable.size(); }

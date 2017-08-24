@@ -1711,7 +1711,7 @@ TWorld::Update_UI() {
                     + ")";
 
                 uitextline2 =
-                    "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 1 )
+                    "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 2 )
                     + "; HamP=" + std::to_string( tmp->MoverParameters->LocalBrakePos ) + "/" + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( tmp->MoverParameters->MainCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->MainCtrlActualPos ) + ")"
                     + "; NasB=" + std::to_string( tmp->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->ScndCtrlActualPos ) + ")"
