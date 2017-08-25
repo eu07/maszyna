@@ -109,6 +109,8 @@ class complex_sound : public sound
 		post // playing post or idling
 	} cs;
 
+	bool shut_by_dist;
+
 public:
 	complex_sound(sound_buffer* pre, sound_buffer* main, sound_buffer* post);
 	~complex_sound();

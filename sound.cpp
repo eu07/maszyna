@@ -295,9 +295,9 @@ sound& sound::position(Math3D::vector3 const &pos)
 
 sound& sound::dist(float dist)
 {
-	max_dist = dist;
 	alSourcef(id, AL_MAX_DISTANCE, dist);
 	alSourcef(id, AL_REFERENCE_DISTANCE, dist / 3.82f);
+	max_dist = dist * 1.5f;
 	return *this;
 }
 
@@ -407,6 +407,7 @@ complex_sound::complex_sound(sound_buffer* pre, sound_buffer* main, sound_buffer
 	post->ref();
 
 	samplerate = buffer->get_samplerate();
+	shut_by_dist = false;
 
 	cs = state::post;
 }
@@ -428,19 +429,38 @@ void complex_sound::play()
 
 	alSourceRewind(id);
 
-	alSourcei(id, AL_LOOPING, AL_FALSE);
-	alSourcei(id, AL_BUFFER, 0);
-	ALuint buffers[] = { pre->get_id(), buffer->get_id() };
-	alSourceQueueBuffers(id, 2, buffers);
+	if (shut_by_dist)
+	{
+		shut_by_dist = false;
 
-	alSourcePlay(id);
+		alSourcei(id, AL_LOOPING, AL_TRUE);
+		alSourcei(id, AL_BUFFER, 0);
+		alSourcei(id, AL_BUFFER, buffer->get_id());
+		alSourcePlay(id);
 
-	cs = state::premain;
+		cs = state::main;
+	}
+	else
+	{
+		alSourcei(id, AL_LOOPING, AL_FALSE);
+		alSourcei(id, AL_BUFFER, 0);
+		ALuint buffers[] = { pre->get_id(), buffer->get_id() };
+		alSourceQueueBuffers(id, 2, buffers);
+		alSourcePlay(id);
+
+		cs = state::premain;
+	}
 }
 
 void complex_sound::stop()
 {
-	if (cs == state::main || (Global::soundstopmode == Global::playstop && cs == state::premain))
+	if (shut_by_dist)
+	{
+		alSourceRewind(id);
+
+		cs = state::post;
+	}
+	else if (cs == state::main || (Global::soundstopmode == Global::playstop && cs == state::premain))
 	{
 		alSourceRewind(id);
 
@@ -495,7 +515,10 @@ void complex_sound::update(float dt)
 
 	if (cs == state::main)
 		if (spatial && glm::distance(pos, sound_man->pos) > max_dist)
+		{
+			shut_by_dist = true;
 			stop();
+		}
 }
 
 sound& complex_sound::loop(bool loop)
