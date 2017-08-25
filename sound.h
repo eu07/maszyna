@@ -134,8 +134,15 @@ public:
 
 class sound_manager
 {
+	static bool created;
+
 	ALCdevice *dev;
 	ALCcontext *ctx;
+
+	void (*alDeferUpdatesSOFT)() = nullptr;
+	void (*alProcessUpdatesSOFT)() = nullptr;
+	void (*alcDevicePauseSOFT)(ALCdevice*) = nullptr;
+	void (*alcDeviceResumeSOFT)(ALCdevice*) = nullptr;
 
 	const std::chrono::duration<float> gc_time = std::chrono::duration<float>(60.0f);
 	std::unordered_map<std::string, sound_buffer*> buffers;
@@ -163,4 +170,4 @@ public:
 	void set_listener(Math3D::vector3 const &pos, Math3D::vector3 const &at, Math3D::vector3 const &up);
 };
 
-extern sound_manager* sound_man;
+extern std::unique_ptr<sound_manager> sound_man;

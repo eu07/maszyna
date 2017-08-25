@@ -41,6 +41,7 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "version.lib")
 
+std::unique_ptr<sound_manager> sound_man;
 TWorld World;
 
 namespace input {
@@ -346,11 +347,7 @@ int main(int argc, char *argv[])
 			|| (false == UILayer.init(window)))
 			return -1;
 
-		if (!(sound_man = new sound_manager()))
-		{
-			ErrorLog("Sound subsystem setup failed");
-			return -1;
-		}
+		sound_man = std::make_unique<sound_manager>();
 
 		input::Keyboard.init();
 		input::Mouse.init();
@@ -414,9 +411,6 @@ int main(int argc, char *argv[])
         Console::Off(); // wyłączenie konsoli (komunikacji zwrotnej)
 #endif
     }
-
-	//m7todo: restore
-	//delete sound_man;
 
 	TPythonInterpreter::killInstance();
 #ifdef _WIN32

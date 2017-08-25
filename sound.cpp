@@ -18,6 +18,10 @@ load_error::load_error(std::string const &f) : std::runtime_error("sound: cannot
 
 sound_manager::sound_manager()
 {
+	if (created)
+		throw std::runtime_error("sound_manager can be instantinated only once");
+	created = true;
+
 	dev = alcOpenDevice(0);
 	if (!dev)
 		throw std::runtime_error("sound: cannot open device");
@@ -35,6 +39,22 @@ sound_manager::sound_manager()
 	if (!alcMakeContextCurrent(ctx))
 		throw std::runtime_error("sound: cannot select context");
 
+	if (alIsExtensionPresent("AL_SOFT_deferred_updates"))
+	{
+		alDeferUpdatesSOFT = (void(*)())alGetProcAddress("alDeferUpdatesSOFT");
+		alProcessUpdatesSOFT = (void(*)())alGetProcAddress("alProcessUpdatesSOFT");
+	}
+	if (!alDeferUpdatesSOFT || !alProcessUpdatesSOFT)
+		WriteLog("sound: warning: extension AL_SOFT_deferred_updates not found");
+
+	if (alcIsExtensionPresent(dev, "ALC_SOFT_pause_device"))
+	{
+		alcDevicePauseSOFT = (void(*)(ALCdevice*))alcGetProcAddress(dev, "alcDevicePauseSOFT");
+		alcDeviceResumeSOFT = (void(*)(ALCdevice*))alcGetProcAddress(dev, "alcDeviceResumeSOFT");
+	}
+	if (!alcDevicePauseSOFT || !alcDeviceResumeSOFT)
+		WriteLog("sound: warning: extension ALC_SOFT_pause_device not found");
+
 	alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
 
 	alGetError();
@@ -45,6 +65,8 @@ sound_manager::~sound_manager()
 	alcMakeContextCurrent(0);
 	alcDestroyContext(ctx);
 	alcCloseDevice(dev);
+
+	created = false;
 }
 
 sound_buffer* sound_manager::find_buffer(std::string name)
@@ -198,25 +220,43 @@ void sound_manager::update(float dt)
 		throw std::runtime_error("sound: al error: " + errname);
 	}
 
-	auto now = std::chrono::steady_clock::now();
-	auto it = buffers.begin();
-	while (it != buffers.end())
+	if (dt > 0.0f)
 	{
-		if (now - it->second->unused_since() > gc_time)
+		if (alcDeviceResumeSOFT)
+			alcDeviceResumeSOFT(dev);
+
+		auto now = std::chrono::steady_clock::now();
+		auto it = buffers.begin();
+		while (it != buffers.end())
 		{
-			delete it->second;
-			it = buffers.erase(it);
+			if (now - it->second->unused_since() > gc_time)
+			{
+				delete it->second;
+				it = buffers.erase(it);
+			}
+			else
+				it++;
 		}
-		else
-			it++;
+
+		glm::vec3 velocity = (pos - last_pos) / dt;
+		alListenerfv(AL_VELOCITY, glm::value_ptr(velocity));
+		last_pos = pos;
+
+		for (auto &s : sounds)
+			s->update(dt);
+	}
+	else
+	{
+		if (alcDevicePauseSOFT)
+			alcDevicePauseSOFT(dev);
 	}
 
-	glm::vec3 velocity = (pos - last_pos) / dt;
-	alListenerfv(AL_VELOCITY, glm::value_ptr(velocity));
-	last_pos = pos;
 
-	for (auto &s : sounds)
-		s->update(dt);
+	if (alProcessUpdatesSOFT)
+	{
+		alProcessUpdatesSOFT();
+		alDeferUpdatesSOFT();
+	}
 }
 
 void sound_manager::set_listener(glm::vec3 const &p, glm::vec3 const &at, glm::vec3 const &up)
@@ -613,4 +653,4 @@ std::chrono::time_point<std::chrono::steady_clock> sound_buffer::unused_since()
 	return last_unref;
 }
 
-sound_manager* sound_man;
+bool sound_manager::created = false;
