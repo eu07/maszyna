@@ -204,6 +204,7 @@ int Global::iMWDdivider = 5;
 opengl_light Global::DayLight;
 Global::soundmode_t Global::soundpitchmode = Global::linear;
 Global::soundmode_t Global::soundgainmode = Global::linear;
+Global::soundstopmode_t Global::soundstopmode = Global::queue;
 
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -570,6 +571,17 @@ void Global::ConfigParse(cParser &Parser)
 				Global::soundgainmode = Global::scaled;
 			else if (token == "compat")
 				Global::soundgainmode = Global::compat;
+		}
+		else if (token == "soundstopmode")
+		{
+			Parser.getTokens();
+			Parser >> token;
+			if (token == "queue")
+				Global::soundstopmode = Global::queue;
+			else if (token == "playstop")
+				Global::soundstopmode = Global::playstop;
+			else if (token == "stop")
+				Global::soundstopmode = Global::stop;
 		}
 		else if (token == "soundpitchmode")
 		{

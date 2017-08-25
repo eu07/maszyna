@@ -359,9 +359,18 @@ class Global
 	{
 		linear,
 		scaled,
-		compat
+		compat,
 	};
+
+	enum soundstopmode_t
+	{
+		queue,
+		playstop,
+		stop
+	};
+
 	static soundmode_t soundpitchmode;
 	static soundmode_t soundgainmode;
+	static soundstopmode_t soundstopmode;
 };
 //---------------------------------------------------------------------------

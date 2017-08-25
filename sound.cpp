@@ -440,7 +440,7 @@ void complex_sound::play()
 
 void complex_sound::stop()
 {
-	if (cs == state::main)
+	if (cs == state::main || (Global::soundstopmode == Global::playstop && cs == state::premain))
 	{
 		alSourceRewind(id);
 
@@ -453,7 +453,15 @@ void complex_sound::stop()
 		cs = state::post;
 	}
 	else if (cs == state::premain)
-		cs = state::prepost;
+	{
+		if (Global::soundstopmode == Global::queue)
+			cs = state::prepost;
+		else if (Global::soundstopmode == Global::stop)
+		{
+			alSourceRewind(id);
+			cs = state::post;
+		}
+	}
 }
 
 void complex_sound::update(float dt)
