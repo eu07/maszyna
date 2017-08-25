@@ -222,8 +222,8 @@ bool TSpeedPos::Update(vector3 *p, vector3 *dir, double &len )
                         // może być NULL, jeśli koniec toru (????)
                         vPos =
                             (iFlags & spReverse) ?
-                                trTrack->CurrentSegment()->FastGetPoint_0() :
-                                trTrack->CurrentSegment()->FastGetPoint_1(); // drugi koniec istotny
+                                trTrack->CurrentSegment()->FastGetPoint_1() : // drugi koniec istotny
+                                trTrack->CurrentSegment()->FastGetPoint_0();
                     }
                 }
             }
@@ -1250,11 +1250,15 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     else {
                         // przyspieszenie: ujemne, gdy trzeba hamować
                         a = ( v * v - mvOccupied->Vel * mvOccupied->Vel ) / ( 25.92 * d );
-                        auto const brakingdistance = fBrakeDist * braking_distance_multiplier( v );
-                        if( brakingdistance > 0.0 ) {
-                            // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
-                            // try to make a smooth transition instead of sharp change
-                            a = interpolate( a, AccPreferred, clamp( ( d - brakingdistance ) / brakingdistance, 0.0, 1.0 ) );
+                        if( ( mvOccupied->Vel < v )
+                         || ( v == 0.0 ) ) {
+                            // if we're going slower than the target velocity and there's enough room for safe stop, speed up
+                            auto const brakingdistance = fBrakeDist * braking_distance_multiplier( v );
+                            if( brakingdistance > 0.0 ) {
+                                // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
+                                // try to make a smooth transition instead of sharp change
+                                a = interpolate( a, AccPreferred, clamp( ( d - brakingdistance ) / brakingdistance, 0.0, 1.0 ) );
+                            }
                         }
                         if( ( d < fMinProximityDist )
                          && ( v < fVelDes ) ) {
@@ -3850,6 +3854,12 @@ bool TController::UpdateSituation(double dt)
             // na jaką odleglość i z jaką predkością ma podjechać
             fMinProximityDist = 5.0;
             fMaxProximityDist = 10.0; //[m]
+            if( pVehicles[ 0 ] != pVehicles[ 1 ] ) {
+                // for larger consists increase margins to account for slower braking etc
+                // NOTE: this will affect also multi-unit vehicles TBD: is this what we want?
+                fMinProximityDist *= 2.0;
+                fMaxProximityDist *= 2.0;
+            }
             fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
             // margines prędkości powodujący załączenie napędu
             // były problemy z jazdą np. 3km/h podczas ładowania wagonów
@@ -4062,10 +4072,11 @@ bool TController::UpdateSituation(double dt)
                 // no chyba żeby to uwzgldnić już w (ActualProximityDist)
                 VelDesired = fVelMax; // wstępnie prędkość maksymalna dla pojazdu(-ów), będzie
                 // następnie ograniczana
-                if (TrainParams) // jeśli ma rozkład
-                    if (TrainParams->TTVmax > 0.0) // i ograniczenie w rozkładzie
-                        VelDesired = Global::Min0RSpeed(VelDesired,
-                                           TrainParams->TTVmax); // to nie przekraczać rozkladowej
+                if( ( TrainParams )
+                 && ( TrainParams->TTVmax > 0.0 ) ) {
+                    // jeśli ma rozkład i ograniczenie w rozkładzie to nie przekraczać rozkladowej
+                    VelDesired = Global::Min0RSpeed( VelDesired, TrainParams->TTVmax );
+                }
                 SetDriverPsyche(); // ustawia AccPreferred (potrzebne tu?)
                 // Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prędkosci
                 AccDesired = AccPreferred; // AccPreferred wynika z osobowości mechanika
@@ -4131,14 +4142,11 @@ bool TController::UpdateSituation(double dt)
                                 // i dopiero wtedy zmienić kierunek jazdy, oczekując podania
                                 // prędkości >0.5
                                 if (comm == cm_Command) // jeśli komenda Shunt
-                                    iDrivigFlags |=
-                                        moveStopHere; // to ją odbierz bez przemieszczania się (np.
+                                    iDrivigFlags |= moveStopHere; // to ją odbierz bez przemieszczania się (np.
                                 // odczep wagony po dopchnięciu do końca toru)
                                 iDirectionOrder = -iDirection; // zmiana kierunku jazdy
-                                OrderList[OrderPos] = TOrders(OrderList[OrderPos] |
-                                                              Change_direction); // zmiana kierunku
-                                // bez psucia
-                                // kolejnych komend
+                                // zmiana kierunku bez psucia kolejnych komend
+                                OrderList[OrderPos] = TOrders(OrderList[OrderPos] | Change_direction);
                             }
                     }
                 double vel = mvOccupied->Vel; // prędkość w kierunku jazdy
@@ -4297,11 +4305,11 @@ bool TController::UpdateSituation(double dt)
                             }
                         }
                     }
-                if (mvOccupied->V == 0.0)
-                    AbsAccS = fAccGravity; // Ra 2014-03: jesli skład stoi, to działa na niego
-                // składowa styczna grawitacji
-				else
-				{
+                if( mvOccupied->V == 0.0 ) {
+                    // Ra 2014-03: jesli skład stoi, to działa na niego składowa styczna grawitacji
+                    AbsAccS = fAccGravity;
+                }
+				else {
 					AbsAccS = 0;
 					TDynamicObject *d = pVehicles[0]; // pojazd na czele składu
 					while (d)
@@ -4310,15 +4318,9 @@ bool TController::UpdateSituation(double dt)
 						d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 					}
 					AbsAccS /= fMass;
-					//AbsAccS = iDirection * mvOccupied->AccS; // przyspieszenie chwilowe, liczone
 				}
 				AbsAccS_pub = AbsAccS;
-// jako różnica skierowanej prędkości w
-// czasie
-// if (mvOccupied->V<0.0) AbsAccS=-AbsAccS; //Ra 2014-03: to trzeba przemyśleć
-// if (vel<0) //jeżeli się stacza w tył; 2014-03: to jest bez sensu, bo vel>=0
-// AbsAccS=-AbsAccS; //to przyspieszenie też działa wtedy w nieodpowiednią stronę
-// AbsAccS+=fAccGravity; //wypadkowe przyspieszenie (czy to ma sens?)
+
 #if LOGVELOCITY
                 // WriteLog("VelDesired="+AnsiString(VelDesired)+",
                 // VelSignal="+AnsiString(VelSignal));
@@ -4343,10 +4345,11 @@ bool TController::UpdateSituation(double dt)
                         // jeśli jedzie
                         if( ( vel < VelNext )
                          && ( ActualProximityDist > fMaxProximityDist * ( 1.0 + 0.1 * vel ) ) ) {
-                            // dojedz do semafora/przeszkody
                             // jeśli jedzie wolniej niż można i jest wystarczająco daleko, to można przyspieszyć
-                            if (AccPreferred > 0.0) // jeśli nie ma zawalidrogi
+                            if( AccPreferred > 0.0 ) {
+                                // jeśli nie ma zawalidrogi dojedz do semafora/przeszkody
                                 AccDesired = AccPreferred;
+                            }
                         }
                         else if (ActualProximityDist > fMinProximityDist) {
                             // jedzie szybciej, niż trzeba na końcu ActualProximityDist, ale jeszcze jest daleko
@@ -4360,84 +4363,27 @@ bool TController::UpdateSituation(double dt)
                                     AccDesired = std::min( AccDesired, fAccThreshold );
                                 }
 							}
-							else if ((vel <	VelNext + fVelPlus)||((vel<VelNext+2*fVelPlus)&&
-								(vel*vel<(VelNext + fVelPlus)*(VelNext + fVelPlus)-12.96*ActualProximityDist*std::min(0.0,AbsAccS)))) // jeśli niewielkie przekroczenie
-							{													// AccDesired=0.0;
-								AccDesired = 0.01; // proteza trochę: to
-							}
-							else if( (mvControlling->CategoryFlag == 1) && (ActualProximityDist*25.92*fBrake_a0[0] > 2*vel*vel))
-							{ // jeśli ma stanąć, a mieści się w drodze hamowania
-								AccDesired = AccPreferred;
-							}
-/*
-                            else if ((vel < VelNext + 20.0)&&(false)) // dwustopniowe hamowanie - niski przy małej różnicy
-                            { // jeśli jedzie wolniej niż VelNext+35km/h //Ra: 40, żeby nie
-                                // kombinował na zwrotnicach
-                                if (VelNext == 0.0)
-                                { // jeśli ma się zatrzymać, musi być to robione precyzyjnie i skutecznie
-                                    if (ActualProximityDist > fBrakeDist)
-                                    { // jeśli ma stanąć, a mieści się w drodze hamowania
-                                        if (vel < 10.0) // jeśli prędkość jest łatwa do zatrzymania
-                                        { // tu jest trochę problem, bo do punktu zatrzymania dobija
-                                            // na raty
-                                            // AccDesired=AccDesired<0.0?0.0:0.1*AccPreferred;
-                                            AccDesired = AccPreferred; // proteza trochę; jak tu
-                                            // wychodzi 0.05, to loki
-                                            // mają problem utrzymać
-                                            // takie przyspieszenie
-                                        }
-                                        else if (vel <= 30.0) // trzymaj 30 km/h
-                                            AccDesired = Min0R(0.5 * AccDesired,
-                                                               AccPreferred); // jak jest tu 0.5, to
-                                        // samochody się
-                                        // dobijają do siebie
-                                        else
-                                            AccDesired = 0.0;
-                                    }
-                                    else // 25.92 (=3.6*3.6*2) - przelicznik z km/h na m/s
-                                    // niech nie hamuje, chyba że coś z przodu
-                                        AccDesired = -(vel * vel) /
-                                                     (25.92 * (ActualProximityDist +
-                                                               0.1-0.5*(fMinProximityDist+fMaxProximityDist))); //-fMinProximityDist));//-0.1;
-                                    ////mniejsze opóźnienie przy małej różnicy
-                                    ReactionTime = 0.1; // i orientuj się szybciej, jak masz stanąć
-                                }
-                                else if (vel < VelNext + fVelPlus) // jeśli niewielkie
-                                    // przekroczenie, ale ma jechać
-                                    AccDesired = std::min( 0.0, AccPreferred ); // to olej (zacznij luzować)
-                                else
-                                { // jeśli większe przekroczenie niż fVelPlus [km/h], ale ma jechać
-                                    // Ra 2F1I: jak było (VelNext+fVelPlus) tu, to hamował zbyt
-                                    // późno przed 40, a potem zbyt mocno i zwalniał do 30
-                                    AccDesired = (VelNext * VelNext - vel * vel) /
-                                                 (25.92 * ActualProximityDist +
-                                                  0.1); // mniejsze opóźnienie przy małej różnicy
-                                    if( ActualProximityDist < fMaxProximityDist ) {
-                                        // i orientuj się szybciej, jeśli w krytycznym przedziale
-                                        ReactionTime = 0.1;
-                                    }
-                                }
-                            }
-*/
 							else {
                                 // przy dużej różnicy wysoki stopień (1,00 potrzebnego opoznienia)
-								double dist = 0;// (VelNext * VelNext - (VelNext + 20) * (VelNext + 20)) / (25.92)*(-1 / fBrake_a0[0] - 1 / fAccThreshold);
                                 // ensure some minimal coasting speed, otherwise a vehicle entering this zone at very low speed will be crawling forever
-                                AccDesired =
+                                auto const brakingpointoffset = VelNext * braking_distance_multiplier( VelNext );
+                                AccDesired = std::min(
+                                    AccDesired,
                                     ( VelNext * VelNext - vel * vel )
                                     / ( 25.92
                                         * std::max(
-                                            ActualProximityDist - VelNext - dist,
+                                            ActualProximityDist - brakingpointoffset,
                                             std::min(
                                                 ActualProximityDist,
-                                                VelNext + dist ) )
-                                        + 0.1 ); // najpierw hamuje mocniej, potem zluzuje
+                                                brakingpointoffset ) )
+                                        + 0.1 ) ); // najpierw hamuje mocniej, potem zluzuje
 							}
                             AccDesired = std::min( AccDesired, AccPreferred );
                         }
                         else {
                             // jest bliżej niż fMinProximityDist
-                            VelDesired = Global::Min0RSpeed( VelDesired, VelNext ); // utrzymuj predkosc bo juz blisko
+                            // utrzymuj predkosc bo juz blisko
+                            VelDesired = Global::Min0RSpeed( VelDesired, VelNext );
                             if( vel <= VelNext + fVelPlus ) {
                                 // jeśli niewielkie przekroczenie, ale ma jechać
                                 AccDesired = std::max( 0.0, AccPreferred ); // to olej (zacznij luzować)
@@ -4474,21 +4420,38 @@ bool TController::UpdateSituation(double dt)
                         }
                     }
                 }
-                else // gdy jedzie wolniej niż potrzeba, albo nie ma przeszkód na drodze
-                    AccDesired = (VelDesired != 0.0 ? AccPreferred : -0.01); // normalna jazda
+                else {
+                    // gdy jedzie wolniej niż potrzeba, albo nie ma przeszkód na drodze
+                    // normalna jazda
+                    AccDesired = (
+                        VelDesired != 0.0 ?
+                            AccPreferred :
+                            -0.01 );
+                }
                 // koniec predkosci nastepnej
-                if ((VelDesired >= 0.0) &&
-                    (vel > VelDesired)) // jesli jedzie za szybko do AKTUALNEGO
-                    if (VelDesired == 0.0) // jesli stoj, to hamuj, ale i tak juz za pozno :)
-                        AccDesired = std::min(AccDesired,-0.9); // hamuj solidnie
-                    else if ((vel < VelDesired + fVelPlus)) // o 5 km/h to olej
-                    {
-                        if ((AccDesired > 0.0))
-                            AccDesired = 0.0;
+
+                if( vel > VelDesired ) {
+                    // jesli jedzie za szybko do AKTUALNEGO
+                    if( VelDesired == 0.0 ) {
+                        // jesli stoj, to hamuj, ale i tak juz za pozno :)
+                        AccDesired = std::min( AccDesired, -0.9 ); // hamuj solidnie
                     }
-                    else
-                        AccDesired = std::min(AccDesired,fBrake_a0[0]); // hamuj tak średnio
+                    else {
+                        // slow down, not full stop
+                        if( vel > ( VelDesired + fVelPlus ) ) {
+                            // hamuj tak średnio
+                            AccDesired = std::min( AccDesired, -fBrake_a0[ 0 ] * 0.5 );
+                        }
+                        else {
+                            // o 5 km/h to olej (zacznij luzować)
+                            AccDesired = std::min(
+                                AccDesired, // but don't override decceleration for VelNext 
+                                std::max( 0.0, AccPreferred ) );
+                        }
+                    }
+                }
                 // koniec predkosci aktualnej
+
 #ifdef DEBUGFAC
 				if (fAccThreshold > -0.3) // bez sensu, ale dla towarowych korzystnie
 				{ // Ra 2014-03: to nie uwzględnia odległości i zaczyna hamować, jak tylko zobaczy
@@ -4736,26 +4699,23 @@ bool TController::UpdateSituation(double dt)
                     } // type & dt_ezt
                     else {
                         // a stara wersja w miarę dobrze działa na składy wagonowe
-                        if( ( VelNext == 0.0 )
-                         || ( vel > VelNext + fVelPlus ) ) {
-                            if( ( ( fAccGravity < -0.05 ) && ( vel < 0.0 ) )
-                             || ( ( AccDesired < fAccGravity - 0.1 ) && ( AbsAccS > AccDesired + fBrake_a1[ 0 ] ) ) ) {
-                                // u góry ustawia się hamowanie na fAccThreshold
-                                if( ( fBrakeTime < 0.0 )
-                                 || ( AccDesired < fAccGravity - 0.3 )
-                                 || ( mvOccupied->BrakeCtrlPos <= 0 ) ) {
-                                    // jeśli upłynął czas reakcji hamulca, chyba że nagłe albo luzował
-                                    if( true == IncBrake() ) {
-                                        fBrakeTime =
-                                            3.0
-                                            + 0.5 * ( (
-                                                mvOccupied->BrakeDelayFlag > bdelay_G ?
-                                                    mvOccupied->BrakeDelay[ 1 ] :
-                                                    mvOccupied->BrakeDelay[ 3 ] )
-                                                - 3.0 );
-                                        // Ra: ten czas należy zmniejszyć, jeśli czas dojazdu do zatrzymania jest mniejszy
-                                        fBrakeTime *= 0.5; // Ra: tymczasowo, bo przeżyna S1
-                                    }
+                        if( ( ( fAccGravity < -0.05 ) && ( vel < 0.0 ) )
+                         || ( ( AccDesired < fAccGravity - 0.1 ) && ( AbsAccS > AccDesired + fBrake_a1[ 0 ] ) ) ) {
+                            // u góry ustawia się hamowanie na fAccThreshold
+                            if( ( fBrakeTime < 0.0 )
+                             || ( AccDesired < fAccGravity - 0.5 )
+                             || ( mvOccupied->BrakeCtrlPos <= 0 ) ) {
+                                // jeśli upłynął czas reakcji hamulca, chyba że nagłe albo luzował
+                                if( true == IncBrake() ) {
+                                    fBrakeTime =
+                                        3.0
+                                        + 0.5 * ( (
+                                            mvOccupied->BrakeDelayFlag > bdelay_G ?
+                                                mvOccupied->BrakeDelay[ 1 ] :
+                                                mvOccupied->BrakeDelay[ 3 ] )
+                                            - 3.0 );
+                                    // Ra: ten czas należy zmniejszyć, jeśli czas dojazdu do zatrzymania jest mniejszy
+                                    fBrakeTime *= 0.5; // Ra: tymczasowo, bo przeżyna S1
                                 }
                             }
                         }

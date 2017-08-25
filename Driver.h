@@ -397,12 +397,11 @@ public:
     int StationCount();
     int StationIndex();
     bool IsStop();
-    bool Primary()
-    {
-        return this ? ((iDrivigFlags & movePrimary) != 0) : false;
-    };
-    int inline DrivigFlags()
-    {
+    inline
+    bool Primary() const {
+        return ( ( iDrivigFlags & movePrimary ) != 0 ); };
+    inline
+    int DrivigFlags() const {
         return iDrivigFlags;
     };
     void MoveTo(TDynamicObject *to);

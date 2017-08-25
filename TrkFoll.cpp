@@ -114,15 +114,20 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         { // omijamy cały ten blok, gdy tor nie ma on żadnych eventów (większość nie ma)
             if (fDistance < 0)
             {
-                if (SetFlag(iEventFlag, -1)) // zawsze zeruje flagę sprawdzenia, jak mechanik
-                    // dosiądzie, to się nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                        // if (TestFlag(iEventFlag,1)) //McZapkie-280503: wyzwalanie event tylko dla
-                        // pojazdow z obsada
-                        if (bPrimary && pCurrentTrack->evEvent1 &&
-                            (!pCurrentTrack->evEvent1->iQueued))
-                            Global::AddToQuery(pCurrentTrack->evEvent1, Owner); // dodanie do
-                // kolejki
+                if( SetFlag( iEventFlag, -1 ) ) {
+                    // zawsze zeruje flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
+                    if( ( Owner->Mechanik != nullptr )
+                     && ( Owner->Mechanik->Primary() ) ) {
+                        // tylko dla jednego członu
+                        // McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
+                        if( ( bPrimary )
+                         && ( pCurrentTrack->evEvent1 )
+                         && ( !pCurrentTrack->evEvent1->iQueued ) ) {
+                            // dodanie do kolejki
+                            Global::AddToQuery( pCurrentTrack->evEvent1, Owner );
+                        }
+                    }
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Event1); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 // if (TestFlag(iEventallFlag,1))
@@ -136,31 +141,42 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             }
             else if (fDistance > 0)
             {
-                if (SetFlag(iEventFlag, -2)) // zawsze ustawia flagę sprawdzenia, jak mechanik
+                if( SetFlag( iEventFlag, -2 ) ) {
+                    // zawsze ustawia flagę sprawdzenia, jak mechanik
                     // dosiądzie, to się nie wykona
-                    if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                        // if (TestFlag(iEventFlag,2)) //sprawdzanie jest od razu w pierwszym
-                        // warunku
-                        if (bPrimary && pCurrentTrack->evEvent2 &&
-                            (!pCurrentTrack->evEvent2->iQueued))
-                            Global::AddToQuery(pCurrentTrack->evEvent2, Owner);
+                    if( ( Owner->Mechanik != nullptr )
+                     && ( Owner->Mechanik->Primary() ) ) {
+                        // tylko dla jednego członu
+                        if( ( bPrimary )
+                         && ( pCurrentTrack->evEvent2 )
+                         && ( !pCurrentTrack->evEvent2->iQueued ) ) {
+                            Global::AddToQuery( pCurrentTrack->evEvent2, Owner );
+                        }
+                    }
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Event2); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 // if (TestFlag(iEventallFlag,2))
-                if (SetFlag(iEventallFlag,
-                             -2)) // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
-                    if (bPrimary && pCurrentTrack->evEventall2 &&
-                        (!pCurrentTrack->evEventall2->iQueued))
-                        Global::AddToQuery(pCurrentTrack->evEventall2, Owner);
+                if( SetFlag( iEventallFlag, -2 ) ) {
+                    // sprawdza i zeruje na przyszłość, true jeśli zmieni z 2 na 0
+                    if( ( bPrimary )
+                     && ( pCurrentTrack->evEventall2 )
+                     && ( !pCurrentTrack->evEventall2->iQueued ) ) {
+                        Global::AddToQuery( pCurrentTrack->evEventall2, Owner );
+                    }
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Eventall2); //Ra: dynamic zdecyduje, czy dodać
                 // do kolejki
             }
             else // if (fDistance==0) //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
             {
-                if (Owner->Mechanik->Primary()) // tylko dla jednego członu
-                    if (pCurrentTrack->evEvent0)
-                        if (!pCurrentTrack->evEvent0->iQueued)
-                            Global::AddToQuery(pCurrentTrack->evEvent0, Owner);
+                if( ( Owner->Mechanik != nullptr )
+                 && ( Owner->Mechanik->Primary() ) ) {
+                    // tylko dla jednego członu
+                    if( pCurrentTrack->evEvent0 )
+                        if( !pCurrentTrack->evEvent0->iQueued )
+                            Global::AddToQuery( pCurrentTrack->evEvent0, Owner );
+                }
                 // Owner->RaAxleEvent(pCurrentTrack->Event0); //Ra: dynamic zdecyduje, czy dodać do
                 // kolejki
                 if (pCurrentTrack->evEventall0)
