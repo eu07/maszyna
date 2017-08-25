@@ -1333,7 +1333,7 @@ TWorld::Update_UI() {
                 else if( mover->ActiveDir < 0 ) { uitextline2 += " R"; }
                 else                            { uitextline2 += " N"; }
 
-                uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos );
+                uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos ) + ( mover->SlippingWheels ? " !" : "  " );
 
                 if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // detail mode on second key press
@@ -1343,7 +1343,7 @@ TWorld::Update_UI() {
                         + ", next limit: " + std::to_string( static_cast<int>( std::floor( Controlled->Mechanik->VelNext ) ) ) + " km/h"
                         + " in " + to_string( Controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km)";
                     uitextline3 +=
-                        "   Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
+                        " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
                 }
             }
@@ -1361,7 +1361,7 @@ TWorld::Update_UI() {
             if( tmp == nullptr ) { break; }
             // if the nearest located vehicle doesn't have a direct driver, try to query its owner
             auto const owner = (
-                tmp->Mechanik != nullptr ?
+                ( ( tmp->Mechanik != nullptr ) && ( tmp->Mechanik->Primary() ) ) ?
                     tmp->Mechanik :
                     tmp->ctOwner );
             if( owner == nullptr ){ break; }
