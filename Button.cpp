@@ -77,7 +77,7 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2) {
 bool
 TButton::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, ", " ) ) {
+    if( false == Input.getTokens( 2, true, " ,\n\r\t" ) ) {
         return false;
     }
 

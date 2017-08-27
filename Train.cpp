@@ -4510,8 +4510,8 @@ bool TTrain::Update( double const Deltatime )
 				if (mvOccupied->BrakeHandle == FV4a)
                 {
                     double b = Console::AnalogCalibrateGet(0);
-					b = b * 8 - 2;
-					b = Global::CutValueToRange(-2.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
+					b = b * 8.0 - 2.0;
+                    b = clamp<double>( b, -2.0, mvOccupied->BrakeCtrlPosNo ); // przycięcie zmiennej do granic
 					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FV4a break position = " + to_string(b));
 					ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
 					mvOccupied->BrakeLevelSet(b);
@@ -4519,8 +4519,8 @@ bool TTrain::Update( double const Deltatime )
                 if (mvOccupied->BrakeHandle == FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
                 {
                     double b = Console::AnalogCalibrateGet(0);
-					b = b * 7 - 1;
-					b = Global::CutValueToRange(-1.0, b, mvOccupied->BrakeCtrlPosNo); // przycięcie zmiennej do granic
+					b = b * 7.0 - 1.0;
+                    b = clamp<double>( b, -1.0, mvOccupied->BrakeCtrlPosNo ); // przycięcie zmiennej do granic
 					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FVel6 break position = " + to_string(b));
                     ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                     mvOccupied->BrakeLevelSet(b);
@@ -4543,8 +4543,8 @@ bool TTrain::Update( double const Deltatime )
                 if ((mvOccupied->BrakeLocHandle == FD1))
                 {
                     double b = Console::AnalogCalibrateGet(1);
-					b *= 10;
-					b = Global::CutValueToRange(0.0, b, LocalBrakePosNo); // przycięcie zmiennej do granic
+					b *= 10.0;
+					b = clamp<double>( b, 0.0, LocalBrakePosNo); // przycięcie zmiennej do granic
                     ggLocalBrake.UpdateValue(b); // przesów bez zaokrąglenia
 					if (Global::bMWDdebugEnable && Global::iMWDDebugMode & 4) WriteLog("FD1 break position = " + to_string(b));
                     mvOccupied->LocalBrakePos =

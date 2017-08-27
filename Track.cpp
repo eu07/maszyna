@@ -762,12 +762,6 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
                 iAction |= 0x40; // flaga opuszczenia pantografu (tor uwzględniany w skanowaniu jako
             // ograniczenie dla pantografujących)
         }
-        else if (str == "colides")
-        { // informacja o stanie sieci: 0-jazda bezprądowa, >0-z opuszczonym i ograniczeniem prędkości
-            parser->getTokens();
-            *parser >> token;
-            // trColides=; //tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
-        }
         else
             ErrorLog("Unknown property: \"" + str + "\" in track \"" + name + "\"");
         parser->getTokens();

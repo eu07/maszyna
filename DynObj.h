@@ -186,7 +186,7 @@ public: // modele składowe pojazdu
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
-    float3 InteriorLight { 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
+    glm::vec3 InteriorLight { 0.9f * 255.f / 255.f, 0.9f * 216.f / 255.f, 0.9f * 176.f / 255.f }; // tungsten light. TODO: allow definition of light type?
     float InteriorLightLevel { 0.0f }; // current level of interior lighting
     struct section_light {
         TSubModel *compartment;

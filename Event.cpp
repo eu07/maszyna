@@ -431,8 +431,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         *parser >> token;
         break;
     case tp_Exit:
-        while ((ptr = strchr(strdup(asNodeName.c_str()), '_')) != NULL)
-            *ptr = ' ';
+        asNodeName = ExchangeCharInString( asNodeName, '_', ' ' );
         parser->getTokens();
         *parser >> token;
         break;

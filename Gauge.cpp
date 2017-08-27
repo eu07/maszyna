@@ -116,7 +116,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
 bool
 TGauge::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, ", " ) ) {
+    if( false == Input.getTokens( 2, true, ", \n\r\t" ) ) {
         return false;
     }
 

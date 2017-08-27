@@ -336,7 +336,6 @@ class Global
     static bool DoEvents();
     static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
-	static double CutValueToRange(double min, double value, double max);
 
     // maciek001: zmienne dla MWD
 	static bool bMWDmasterEnable;           // główne włączenie portu COM

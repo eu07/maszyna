@@ -151,13 +151,8 @@ public:
     TGroundNode();
     TGroundNode(TGroundNodeType t);
     ~TGroundNode();
-/*
-    void Init(int n);
-*/
+
     void InitNormals();
-/*
-    void Release();
-*/
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
 };
 
@@ -205,7 +200,6 @@ class TSubRect : /*public Resource,*/ public CMesh
 // Ra: trzeba sprawdzić wydajność siatki
 const int iNumSubRects = 5; // na ile dzielimy kilometr
 const int iNumRects = 500;
-// const double fHalfNumRects=iNumRects/2.0; //połowa do wyznaczenia środka
 const int iTotalNumSubRects = iNumRects * iNumSubRects;
 const double fHalfTotalNumSubRects = iTotalNumSubRects / 2.0;
 const double fSubRectSize = 1000.0 / iNumSubRects;
@@ -255,26 +249,21 @@ class TGround
 {
     friend class opengl_renderer;
 
-    vector3 CameraDirection; // zmienna robocza przy renderowaniu
-    int const *iRange = nullptr; // tabela widoczności
+    TGroundRect Rects[ iNumRects ][ iNumRects ]; // mapa kwadratów kilometrowych
+    TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
     TGroundNode *nRootDynamic = nullptr; // lista pojazdów
-    TGroundRect Rects[iNumRects][iNumRects]; // mapa kwadratów kilometrowych
+    TGroundNode *nRootOfType[ TP_LAST ]; // tablica grupująca obiekty, przyspiesza szukanie
     TEvent *RootEvent = nullptr; // lista zdarzeń
     TEvent *QueryRootEvent = nullptr,
            *tmpEvent = nullptr;
-/*
-    TSubRect *pRendered[1500]; // lista renderowanych sektorów
-*/
-    int iNumNodes = 0;
-    vector3 pOrigin;
-    vector3 aRotate;
-    bool bInitDone = false;
-    TGroundNode *nRootOfType[TP_LAST]; // tablica grupująca obiekty, przyspiesza szukanie
-    TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
     typedef std::unordered_map<std::string, TEvent *> event_map;
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
     light_array m_lights; // collection of dynamic light sources present in the scene
+
+    vector3 pOrigin;
+    vector3 aRotate;
+    bool bInitDone = false;
 
   private: // metody prywatne
     bool EventConditon(TEvent *e);
@@ -333,9 +322,6 @@ class TGround
 
   public:
     void WyslijEvent(const std::string &e, const std::string &d);
-/*
-    int iRendered; // ilość renderowanych sektorów, pobierana przy pokazywniu FPS
-*/
     void WyslijString(const std::string &t, int n);
     void WyslijWolny(const std::string &t);
     void WyslijNamiary(TGroundNode *t);
@@ -355,4 +341,5 @@ class TGround
     void IsolatedBusy(const std::string t);
     void Silence(vector3 gdzie);
 };
+
 //---------------------------------------------------------------------------

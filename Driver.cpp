@@ -4356,7 +4356,7 @@ bool TController::UpdateSituation(double dt)
 							if (ActualProximityDist < fMaxProximityDist) {
                                 // jak minął już maksymalny dystans po prostu hamuj (niski stopień)
                                 // ma stanąć, a jest w drodze hamowania albo ma jechać
-                                VelDesired = VelNext;
+                                VelDesired = Global::Min0RSpeed( VelDesired, VelNext );
                                 if( VelDesired == 0.0 ) {
                                     // hamowanie tak, aby stanąć
                                     AccDesired = ( VelNext * VelNext - vel * vel ) / ( 25.92 * ( ActualProximityDist + 0.1 - 0.5*fMinProximityDist ) );
@@ -4452,19 +4452,6 @@ bool TController::UpdateSituation(double dt)
                 }
                 // koniec predkosci aktualnej
 
-#ifdef DEBUGFAC
-				if (fAccThreshold > -0.3) // bez sensu, ale dla towarowych korzystnie
-				{ // Ra 2014-03: to nie uwzględnia odległości i zaczyna hamować, jak tylko zobaczy
-					// W4
-					if ((AccDesired > 0.0) &&
-						(VelNext >= 0.0)) // wybieg bądź lekkie hamowanie, warunki byly zamienione
-						if (vel > VelNext + 100.0) // lepiej zaczac hamowac
-							AccDesired = fAccThreshold;
-						else if (vel > VelNext + 70.0)
-							AccDesired = 0.0; // nie spiesz się, bo będzie hamowanie
-					// koniec wybiegu i hamowania
-				}
-#endif // DEBUGFAC
                 // last step sanity check, until the whole calculation is straightened out
                 AccDesired = std::min( AccDesired, AccPreferred );
 

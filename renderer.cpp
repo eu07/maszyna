@@ -1848,8 +1848,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                     if( Dynamic->InteriorLightLevel > 0.0f ) {
 
                         // crude way to light the cabin, until we have something more complete in place
-                        auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                        ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
                     }
 
                     Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
@@ -1941,8 +1940,7 @@ opengl_renderer::Render_cab( TDynamicObject *Dynamic ) {
                 }
                 if( Dynamic->InteriorLightLevel > 0.0f ) {
                     // crude way to light the cabin, until we have something more complete in place
-                    auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
                 }
                 // render
                 Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
@@ -2588,8 +2586,7 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
             if( Dynamic->InteriorLightLevel > 0.0f ) {
 
                 // crude way to light the cabin, until we have something more complete in place
-                auto const cablight = Dynamic->InteriorLight * Dynamic->InteriorLightLevel;
-                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, &cablight.x );
+                ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Dynamic->InteriorLightLevel ) );
             }
 
             Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );

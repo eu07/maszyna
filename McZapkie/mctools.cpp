@@ -114,13 +114,14 @@ std::string DWE(std::string s) /*Delete After Equal sign*/
         return s;
 }
 
-std::string ExchangeCharInString( std::string const &Source, char const &From, char const &To )
+std::string ExchangeCharInString( std::string const &Source, char const From, char const To )
 {
 	std::string replacement; replacement.reserve( Source.size() );
-	std::for_each(Source.cbegin(), Source.cend(), [&](char const idx) {
-		if( idx != From ) { replacement += idx; }
-		else              { replacement += To; }
-	} );
+	std::for_each(
+        std::begin( Source ), std::end( Source ),
+        [&](char const idx) {
+		    if( idx != From ) { replacement += idx; }
+		    else              { replacement += To; } } );
 
 	return replacement;
 }

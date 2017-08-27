@@ -139,9 +139,7 @@ private:
     float fTexHeight1 = 0.6f; // wysokość brzegu względem trajektorii
     float fTexWidth = 0.9f; // szerokość boku
     float fTexSlope = 0.9f;
-/*
-    GLuint DisplayListID = 0;
-*/
+
     material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
     material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
     typedef std::vector<geometry_handle> geometryhandle_sequence;
@@ -187,7 +185,6 @@ public:
     bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
     TTraction *hvOverhead = nullptr; // drut zasilający do szybkiego znalezienia (nie używany)
     TGroundNode *nFouling[ 2 ]; // współrzędne ukresu albo oporu kozła
-    TTrack *trColides = nullptr; // tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
 
     TTrack(TGroundNode *g);
     ~TTrack();
@@ -225,17 +222,8 @@ public:
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);
-/*
-    void Release();
 
-    void Compile(GLuint tex = 0);
-    void Render(); // renderowanie z Display Lists
-    int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
-*/
     void create_geometry(geometrybank_handle const &Bank); // wypełnianie VBO
-/*
-    void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
-*/
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet(TSubRect *o) {
