@@ -126,7 +126,7 @@ int Global::iDefaultFiltering = 9; // domyślne rozmywanie tekstur TGA bez alfa
 int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
 int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
 int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
-bool Global::bUseVBO = false; // czy jest VBO w karcie graficznej (czy użyć)
+bool Global::bUseVBO = true; // czy jest VBO w karcie graficznej (czy użyć)
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
 bool Global::bSmoothTraction = false; // wygładzanie drutów starym sposobem

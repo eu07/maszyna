@@ -3583,36 +3583,46 @@ bool TController::UpdateSituation(double dt)
                 pVehicles[ 0 ] == pVehicles[ 1 ] ?
                     pVehicles[ 0 ] :
                     pVehicles[ 1 ] );
-            if( iDirection > 0 ) {
+            if( mvOccupied->V >= 0.0 ) {
                 // towards coupler 0
-                if( ( rearvehicle->NextConnected != nullptr )
-                 && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 1 : 0 ) ].CouplingFlag == ctrain_virtual ) ) {
-                    // scan behind if we had something connected there and are moving away
-                    rearvehicle->ABuScanObjects( -1, fMaxProximityDist );
+                if( ( mvOccupied->V * iDirection < 0.0 )
+                 || ( ( rearvehicle->NextConnected != nullptr )
+                   && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 1 : 0 ) ].CouplingFlag == ctrain_virtual ) ) ) {
+                    // scan behind if we're moving backward, or if we had something connected there and are moving away
+                    rearvehicle->ABuScanObjects( (
+                        pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
+                            -1 :
+                             1 ),
+                        fMaxProximityDist );
                 }
-                pVehicles[ 0 ]->ABuScanObjects( 1, scandistance );
+                pVehicles[ 0 ]->ABuScanObjects( (
+                    pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
+                         1 :
+                        -1 ),
+                    scandistance );
             }
             else {
                 // towards coupler 1
-                if( ( rearvehicle->PrevConnected != nullptr )
-                 && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 0 : 1 ) ].CouplingFlag == ctrain_virtual ) ) {
-                    // scan behind if we had something connected there and are moving away
-                    rearvehicle->ABuScanObjects( 1, fMaxProximityDist );
+                if( ( mvOccupied->V * iDirection < 0.0 )
+                 || ( ( rearvehicle->PrevConnected != nullptr )
+                   && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 0 : 1 ) ].CouplingFlag == ctrain_virtual ) ) ) {
+                    // scan behind if we're moving backward, or if we had something connected there and are moving away
+                    rearvehicle->ABuScanObjects( (
+                        pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
+                             1 :
+                            -1 ),
+                        fMaxProximityDist );
                 }
-                pVehicles[ 0 ]->ABuScanObjects( -1, scandistance );
+                pVehicles[ 0 ]->ABuScanObjects( (
+                    pVehicle->DirectionGet() == pVehicles[ 0 ]->DirectionGet() ?
+                        -1 :
+                         1 ),
+                    scandistance );
             }
         }
-/*
-        pVehicles[ 0 ]->fScanDist = (
-            mvOccupied->Vel > 5.0 ?
-                400 + fBrakeDist :
-                300.0 );
-        pVehicles[ 0 ]->Update_scan();
-        if( pVehicles[ 1 ] != pVehicles[ 0 ] ) {
-            pVehicles[ 1 ]->fScanDist = pVehicles[ 0 ]->fScanDist;
-            pVehicles[ 1 ]->Update_scan();
-        }
-*/
+
+
+
         if (AIControllFlag)
         { // tu bedzie logika sterowania
             if (mvOccupied->CommandIn.Command != "")
