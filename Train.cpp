@@ -264,6 +264,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
+    { user_command::radiostoptest, &TTrain::OnCommand_radiostoptest },
     { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle1, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle2, &TTrain::OnCommand_generictoggle },
@@ -905,7 +906,7 @@ void TTrain::OnCommand_trainbrakeemergency( TTrain *Train, command_data const &C
         Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->Handle->GetPos( bh_EB ) );
         if( Train->mvOccupied->BrakeCtrlPosNo <= 0.1 ) {
             // hamulec bezpieczeństwa dla wagonów
-            Train->mvOccupied->EmergencyBrakeFlag = true;
+            Train->mvOccupied->RadioStopFlag = true;
         }
     }
 }
@@ -2036,6 +2037,10 @@ void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &C
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
             // visual feedback
             Train->ggLeftLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // if the light is controlled by 3-way switch, disable marker light
+            if( Train->ggLeftEndLightButton.SubModel == nullptr ) {
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::redmarker_left;
+            }
         }
         else {
             //turn off
@@ -2065,6 +2070,10 @@ void TTrain::OnCommand_headlighttoggleright( TTrain *Train, command_data const &
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
             // visual feedback
             Train->ggRightLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // if the light is controlled by 3-way switch, disable marker light
+            if( Train->ggRightEndLightButton.SubModel == nullptr ) {
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::redmarker_right;
+            }
         }
         else {
             //turn off
@@ -2122,13 +2131,29 @@ void TTrain::OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &C
             // turn on
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
-            Train->ggLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
+                Train->ggLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggLeftLightButton.UpdateValue( -1.0, Train->dsbSwitch );
+                // if the light is controlled by 3-way switch, disable the headlight
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::headlight_left;
+            }
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
-            Train->ggLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
+                Train->ggLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
         }
     }
 }
@@ -2151,13 +2176,29 @@ void TTrain::OnCommand_redmarkertoggleright( TTrain *Train, command_data const &
             // turn on
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
-            Train->ggRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            if( Train->ggRightEndLightButton.SubModel != nullptr ) {
+                Train->ggRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggRightLightButton.UpdateValue( -1.0, Train->dsbSwitch );
+                // if the light is controlled by 3-way switch, disable the headlight
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::headlight_right;
+            }
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
-            Train->ggRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            if( Train->ggRightEndLightButton.SubModel != nullptr ) {
+                Train->ggRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
         }
     }
 }
@@ -2731,14 +2772,21 @@ void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command )
     }
 }
 
+void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->Dynamic()->RadioStop();
+    }
+}
+
 void TTrain::OnKeyDown(int cKey)
 { // naciśnięcie klawisza
-    bool isEztOer;
-    isEztOer = ((mvControlled->TrainType == dt_EZT) && (mvControlled->Battery == true) &&
-                (mvControlled->EpFuse == true) && (mvOccupied->BrakeSubsystem == ss_ESt) &&
-                (mvControlled->ActiveDir != 0)); // od yB
-    // isEztOer=(mvControlled->TrainType==dt_EZT)&&(mvControlled->Mains)&&(mvOccupied->BrakeSubsystem==ss_ESt)&&(mvControlled->ActiveDir!=0);
-    // isEztOer=((mvControlled->TrainType==dt_EZT)&&(mvControlled->Battery==true)&&(mvControlled->EpFuse==true)&&(mvOccupied->BrakeSubsystem==Oerlikon)&&(mvControlled->ActiveDir!=0));
+    bool const isEztOer =
+        ( ( mvControlled->TrainType == dt_EZT )
+       && ( mvControlled->Battery == true )
+       && ( mvControlled->EpFuse == true )
+       && ( mvOccupied->BrakeSubsystem == ss_ESt )
+       && ( mvControlled->ActiveDir != 0 ) ); // od yB
 
     if (Global::shiftState)
 	{ // wciśnięty [Shift]

@@ -15,8 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 using namespace Math3D;
 
-typedef enum
-{
+enum TEventType {
     tp_Unknown,
     tp_Sound,
     tp_SoundPos,
@@ -41,7 +40,7 @@ typedef enum
     tp_Voltage,
     tp_Message,
     tp_Friction
-} TEventType;
+};
 
 const int update_memstring = 0x0000001; // zmodyfikować tekst (UpdateValues)
 const int update_memval1 = 0x0000002; // zmodyfikować pierwszą wartosć

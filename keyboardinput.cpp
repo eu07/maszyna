@@ -250,6 +250,8 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_A | keymodifier::shift },
         // radiotoggle
         { GLFW_KEY_R | keymodifier::control },
+        // radiostoptest
+        { GLFW_KEY_R | keymodifier::shift | keymodifier::control },
         // viewturn
         { -1 },
         // movevector

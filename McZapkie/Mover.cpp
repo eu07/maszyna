@@ -2188,7 +2188,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
     // obsady
     // poza tym jest zdefiniowany we wszystkich 3 członach EN57
 	if ((!Radio))
-		EmergencyBrakeSwitch(false);
+		RadiostopSwitch(false);
 
     if ((SecuritySystem.SystemType > 0) && (SecuritySystem.Status > 0) &&
         (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
@@ -2259,7 +2259,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
     }
     else if (!Battery)
     { // wyłączenie baterii deaktywuje sprzęt
-		EmergencyBrakeSwitch(false);
+		RadiostopSwitch(false);
         // SecuritySystem.Status = 0; //deaktywacja czuwaka
     }
 }
@@ -2777,14 +2777,14 @@ bool TMoverParameters::DynamicBrakeSwitch(bool Switch)
 // Q: 20160711
 // włączenie / wyłączenie hamowania awaryjnego
 // *************************************************************************************************
-bool TMoverParameters::EmergencyBrakeSwitch(bool Switch)
+bool TMoverParameters::RadiostopSwitch(bool Switch)
 {
     bool EBS;
     if ((BrakeSystem != Individual) && (BrakeCtrlPosNo > 0))
     {
-        if ((!EmergencyBrakeFlag) && Switch)
+        if ((!RadioStopFlag) && Switch)
         {
-            EmergencyBrakeFlag = Switch;
+            RadioStopFlag = Switch;
             EBS = true;
         }
         else
@@ -2792,7 +2792,7 @@ bool TMoverParameters::EmergencyBrakeSwitch(bool Switch)
             if ((abs(V) < 0.1) &&
                 (Switch == false)) // odblokowanie hamulca bezpieczenistwa tylko po zatrzymaniu
             {
-                EmergencyBrakeFlag = Switch;
+                RadioStopFlag = Switch;
                 EBS = true;
             }
             else
@@ -3283,7 +3283,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
     }
 
     //      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         //ulepszony hamulec bezp.
-    if ((EmergencyBrakeFlag) || (TestFlag(SecuritySystem.Status, s_SHPebrake)) ||
+    if ((RadioStopFlag) || (TestFlag(SecuritySystem.Status, s_SHPebrake)) ||
         (TestFlag(SecuritySystem.Status, s_CAebrake)) ||
         (s_CAtestebrake == true) ||
 		(TestFlag(EngDmgFlag, 32)) /* or (not Battery)*/) // ulepszony hamulec bezp.
@@ -8266,7 +8266,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "Emergency_brake")
 	{
-		if (EmergencyBrakeSwitch(floor(CValue1) == 1)) // YB: czy to jest potrzebne?
+		if (RadiostopSwitch(floor(CValue1) == 1)) // YB: czy to jest potrzebne?
 			OK = true;
 		else
 			OK = false;

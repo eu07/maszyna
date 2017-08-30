@@ -523,11 +523,11 @@ bool TAnimModel::Load(cParser *parser, bool ter)
     return true;
 }
 
-TAnimContainer * TAnimModel::AddContainer(char *pName)
+TAnimContainer * TAnimModel::AddContainer(std::string const &Name)
 { // dodanie sterowania submodelem dla egzemplarza
     if (!pModel)
         return NULL;
-    TSubModel *tsb = pModel->GetFromName(pName);
+    TSubModel *tsb = pModel->GetFromName(Name);
     if (tsb)
     {
         TAnimContainer *tmp = new TAnimContainer();
@@ -539,16 +539,16 @@ TAnimContainer * TAnimModel::AddContainer(char *pName)
     return NULL;
 }
 
-TAnimContainer * TAnimModel::GetContainer(char *pName)
+TAnimContainer * TAnimModel::GetContainer(std::string const &Name)
 { // szukanie/dodanie sterowania submodelem dla egzemplarza
-    if (!pName)
+    if (true == Name.empty())
         return pRoot; // pobranie pierwszego (dla obrotnicy)
     TAnimContainer *pCurrent;
     for (pCurrent = pRoot; pCurrent != NULL; pCurrent = pCurrent->pNext)
         // if (pCurrent->GetName()==pName)
-		if (std::string(pName) == pCurrent->NameGet())
+		if (Name == pCurrent->NameGet())
             return pCurrent;
-    return AddContainer(pName);
+    return AddContainer(Name);
 }
 
 // przeliczenie animacji - jednorazowo na klatkę

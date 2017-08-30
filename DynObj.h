@@ -178,6 +178,7 @@ public: // parametry położenia pojazdu dostępne publicznie
     int NextConnectedNo; // numer sprzęgu podłączonego z tyłu
     int PrevConnectedNo; // numer sprzęgu podłączonego z przodu
     double fScanDist; // odległość skanowania torów na obecność innych pojazdów
+    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
 
     TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
 
@@ -366,8 +367,6 @@ public: // modele składowe pojazdu
   public:
     int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
-    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
-    // pojazdem)
     TDynamicObject * PrevAny();
     TDynamicObject * Prev();
     TDynamicObject * Next();

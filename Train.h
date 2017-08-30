@@ -188,6 +188,7 @@ class TTrain
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiostoptest( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
 
 // members

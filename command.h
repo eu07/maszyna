@@ -57,6 +57,7 @@ enum class user_command {
     hornlowactivate,
     hornhighactivate,
     radiotoggle,
+    radiostoptest,
 /*
 const int k_FailedEngineCutOff = 35;
 */

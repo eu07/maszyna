@@ -62,6 +62,7 @@ commanddescription_sequence Commands_descriptions = {
     { "hornlowactivate", command_target::vehicle },
     { "hornhighactivate", command_target::vehicle },
     { "radiotoggle", command_target::vehicle },
+    { "radiostoptest", command_target::vehicle },
 /*
 const int k_FailedEngineCutOff = 35;
 */
@@ -118,10 +119,6 @@ const int k_ProgramHelp = 48;
     { "interiorlightdimtoggle", command_target::vehicle },
     { "instrumentlighttoggle", command_target::vehicle },
 /*
-const int k_Univ1 = 66;
-const int k_Univ2 = 67;
-const int k_Univ3 = 68;
-const int k_Univ4 = 69;
 const int k_EndSign = 70;
 const int k_Active = 71;
 */

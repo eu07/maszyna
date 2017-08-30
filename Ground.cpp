@@ -1599,7 +1599,7 @@ TGroundNode * TGround::AddGroundNode(cParser *parser)
                 importedvertices.emplace_back( vertex0 );
             }
             if( importedvertices.size() % 2 != 0 ) {
-                ErrorLog( "Lines node specified odd number of vertices, encountered in file \"" + parser->Name() + "\"" );
+                ErrorLog( "Lines node specified odd number of vertices, encountered in file \"" + parser->Name() + "\" (line " + std::to_string( parser->Line() - 1 ) + ")" );
                 importedvertices.pop_back();
             }
             tmp->iType = GL_LINES;
@@ -1654,6 +1654,8 @@ TSubRect * TGround::GetSubRect(int iCol, int iRow)
 
 TEvent * TGround::FindEvent(const std::string &asEventName)
 {
+    if( asEventName.empty() ) { return nullptr; }
+
     auto const lookup = m_eventmap.find( asEventName );
     return (
         lookup != m_eventmap.end() ?
@@ -1868,7 +1870,7 @@ bool TGround::Init(std::string File)
             }
             else
             {
-                ErrorLog("Scene parsing error in file \"" + parser.Name() + "\", unexpected token \"" + token + "\"");
+                ErrorLog("Scene parsing error in file \"" + parser.Name() + "\" (line " + std::to_string( parser.Line() ) + "), unexpected token \"" + token + "\"");
                 // break;
             }
         }
@@ -2208,7 +2210,7 @@ bool TGround::Init(std::string File)
 bool TGround::InitEvents()
 { //łączenie eventów z pozostałymi obiektami
     TGroundNode *tmp, *trk;
-    char buff[ 255 ]; std::string cellastext;
+    std::string cellastext;
     int i;
     for (TEvent *Current = RootEvent; Current; Current = Current->evNext2)
     {
@@ -2216,19 +2218,16 @@ bool TGround::InitEvents()
         {
         case tp_AddValues: // sumowanie wartości
         case tp_UpdateValues: // zmiana wartości
-            tmp = FindGroundNode(Current->asNodeName,
-                                 TP_MEMCELL); // nazwa komórki powiązanej z eventem
+            tmp = FindGroundNode(Current->asNodeName, TP_MEMCELL); // nazwa komórki powiązanej z eventem
             if (tmp)
             { // McZapkie-100302
                 if (Current->iFlags & (conditional_trackoccupied | conditional_trackfree))
                 { // jeśli chodzi o zajetosc toru (tor może być inny, niż wpisany w komórce)
-                    trk = FindGroundNode(Current->asNodeName,
-                                         TP_TRACK); // nazwa toru ta sama, co nazwa komórki
+                    trk = FindGroundNode(Current->asNodeName, TP_TRACK); // nazwa toru ta sama, co nazwa komórki
                     if (trk)
                         Current->Params[9].asTrack = trk->pTrack;
                     if (!Current->Params[9].asTrack)
-                        ErrorLog("Bad event: track \"" + Current->asNodeName +
-                                 "\" does not exists in \"" + Current->asName + "\"");
+                        ErrorLog("Bad event: track \"" + Current->asNodeName + "\" referenced in event \"" + Current->asName + "\" doesn't exist");
                 }
                 Current->Params[4].nGroundNode = tmp;
                 Current->Params[5].asMemCell = tmp->MemCell; // komórka do aktualizacji
@@ -2241,8 +2240,7 @@ bool TGround::InitEvents()
                     if (trk)
                         Current->Params[6].asTrack = trk->pTrack;
                     else
-                        ErrorLog("Bad memcell: track \"" + tmp->MemCell->asTrackName +
-                                 "\" not exists in memcell \"" + tmp->asName + "\"");
+                        ErrorLog("Bad memcell: track \"" + tmp->MemCell->asTrackName + "\" referenced in memcell \"" + tmp->asName + "\" doesn't exist");
                 }
                 else
                     Current->Params[6].asTrack = NULL;
@@ -2250,8 +2248,7 @@ bool TGround::InitEvents()
             else
             { // nie ma komórki, to nie będzie działał poprawnie
                 Current->Type = tp_Ignored; // deaktywacja
-                ErrorLog("Bad event: \"" + Current->asName + "\" cannot find memcell \"" +
-                         Current->asNodeName + "\"");
+                ErrorLog("Bad event: event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"");
             }
             break;
         case tp_LogValues: // skojarzenie z memcell
@@ -2275,8 +2272,7 @@ bool TGround::InitEvents()
             else
             { // nie ma komórki, to nie będzie działał poprawnie
                 Current->Type = tp_Ignored; // deaktywacja
-                ErrorLog("Bad event: \"" + Current->asName + "\" cannot find memcell \"" +
-                         Current->asNodeName + "\"");
+                ErrorLog("Bad event: event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"");
             }
             break;
         case tp_CopyValues: // skopiowanie komórki do innej
@@ -2292,15 +2288,13 @@ bool TGround::InitEvents()
                     if (trk)
                         Current->Params[6].asTrack = trk->pTrack;
                     else
-                        ErrorLog("Bad memcell: track \"" + tmp->MemCell->asTrackName +
-                                 "\" not exists in memcell \"" + tmp->asName + "\"");
+                        ErrorLog("Bad memcell: track \"" + tmp->MemCell->asTrackName + "\" referenced in memcell \"" + tmp->asName + "\" doesn't exists");
                 }
                 else
                     Current->Params[6].asTrack = NULL;
             }
             else
-                ErrorLog("Bad copyvalues: event \"" + Current->asName +
-                         "\" cannot find memcell \"" + Current->asNodeName + "\"");
+                ErrorLog("Bad event: copyvalues event \"" + Current->asName + "\" cannot find memcell \"" + Current->asNodeName + "\"");
             cellastext = Current->Params[ 9 ].asText;
             SafeDeleteArray(Current->Params[9].asText); // usunięcie nazwy komórki
             tmp = FindGroundNode( cellastext, TP_MEMCELL); // komórka źódłowa
@@ -2309,22 +2303,19 @@ bool TGround::InitEvents()
                 Current->Params[9].asMemCell = tmp->MemCell; // komórka źródłowa
             }
             else
-                ErrorLog("Bad copyvalues: event \"" + Current->asName +
-                         "\" cannot find memcell \"" + cellastext + "\"");
+                ErrorLog("Bad event: copyvalues event \"" + Current->asName + "\" cannot find memcell \"" + cellastext + "\"");
             break;
         case tp_Animation: // animacja modelu
             tmp = FindGroundNode(Current->asNodeName, TP_MODEL); // egzemplarza modelu do animowania
             if (tmp)
             {
-                strcpy(
-                    buff,
-                    Current->Params[9].asText); // skopiowanie nazwy submodelu do bufora roboczego
+                cellastext = Current->Params[9].asText; // skopiowanie nazwy submodelu do bufora roboczego
                 SafeDeleteArray(Current->Params[9].asText); // usunięcie nazwy submodelu
                 if (Current->Params[0].asInt == 4)
                     Current->Params[9].asModel = tmp->Model; // model dla całomodelowych animacji
                 else
                 { // standardowo przypisanie submodelu
-                    Current->Params[9].asAnimContainer = tmp->Model->GetContainer(buff); // submodel
+                    Current->Params[9].asAnimContainer = tmp->Model->GetContainer(cellastext); // submodel
                     if (Current->Params[9].asAnimContainer)
                     {
                         Current->Params[9].asAnimContainer->WillBeAnimated(); // oflagowanie
@@ -2332,13 +2323,12 @@ bool TGround::InitEvents()
                         if (!Current->Params[9]
                                  .asAnimContainer->Event()) // nie szukać, gdy znaleziony
                             Current->Params[9].asAnimContainer->EventAssign(
-                                FindEvent(Current->asNodeName + "." + buff + ":done"));
+                                FindEvent(Current->asNodeName + "." + cellastext + ":done"));
                     }
                 }
             }
             else
-                ErrorLog("Bad animation: event \"" + Current->asName + "\" cannot find model \"" +
-                         Current->asNodeName + "\"");
+                ErrorLog("Bad event: animation event \"" + Current->asName + "\" cannot find model \"" + Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
         case tp_Lights: // zmiana świeteł modelu
@@ -2346,8 +2336,7 @@ bool TGround::InitEvents()
             if (tmp)
                 Current->Params[9].asModel = tmp->Model;
             else
-                ErrorLog("Bad lights: event \"" + Current->asName + "\" cannot find model \"" +
-                         Current->asNodeName + "\"");
+                ErrorLog("Bad event: lights event \"" + Current->asName + "\" cannot find model \"" + Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
         case tp_Visible: // ukrycie albo przywrócenie obiektu
@@ -2359,8 +2348,7 @@ bool TGround::InitEvents()
             if (tmp)
                 Current->Params[9].nGroundNode = tmp;
             else
-                ErrorLog("Bad visibility: event \"" + Current->asName + "\" cannot find model \"" +
-                         Current->asNodeName + "\"");
+                ErrorLog("Bad event: visibility event \"" + Current->asName + "\" cannot find model \"" + Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
         case tp_Switch: // przełożenie zwrotnicy albo zmiana stanu obrotnicy
@@ -2378,8 +2366,7 @@ bool TGround::InitEvents()
                             Current->Params[2].asdouble); // przesłanie parametrów
             }
             else
-                ErrorLog("Bad switch: event \"" + Current->asName + "\" cannot find track \"" +
-                         Current->asNodeName + "\"");
+                ErrorLog("Bad event: switch event \"" + Current->asName + "\" cannot find track \"" + Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
         case tp_Sound: // odtworzenie dźwięku
@@ -2387,8 +2374,7 @@ bool TGround::InitEvents()
             if (tmp)
                 Current->Params[9].tsTextSound = tmp->tsStaticSound;
             else
-                ErrorLog("Bad sound: event \"" + Current->asName +
-                         "\" cannot find static sound \"" + Current->asNodeName + "\"");
+                ErrorLog("Bad event: sound event \"" + Current->asName + "\" cannot find static sound \"" + Current->asNodeName + "\"");
             Current->asNodeName = "";
             break;
         case tp_TrackVel: // ustawienie prędkości na torze
@@ -2402,8 +2388,7 @@ bool TGround::InitEvents()
                     Current->Params[9].asTrack = tmp->pTrack;
                 }
                 else
-                    ErrorLog("Bad velocity: event \"" + Current->asName +
-                             "\" cannot find track \"" + Current->asNodeName + "\"");
+                    ErrorLog("Bad event: track velocity event \"" + Current->asName + "\" cannot find track \"" + Current->asNodeName + "\"");
             }
             Current->asNodeName = "";
             break;
@@ -2416,54 +2401,53 @@ bool TGround::InitEvents()
                 if (tmp)
                     Current->Params[9].asDynamic = tmp->DynamicObject;
                 else
-                    Error("Event \"" + Current->asName + "\" cannot find dynamic \"" +
-                          Current->asNodeName + "\"");
+                    Error("Bad event: vehicle velocity event \"" + Current->asName + "\" cannot find vehicle \"" + Current->asNodeName + "\"");
             }
             Current->asNodeName = "";
             break;
         case tp_Multiple:
             if (Current->Params[9].asText != NULL)
             { // przepisanie nazwy do bufora
-                strcpy(buff, Current->Params[9].asText);
+                cellastext = Current->Params[ 9 ].asText;
                 SafeDeleteArray(Current->Params[9].asText);
                 Current->Params[9].asPointer = NULL; // zerowanie wskaźnika, aby wykryć brak obeiktu
             }
             else
-                buff[0] = '\0';
+                cellastext = "";
             if (Current->iFlags & (conditional_trackoccupied | conditional_trackfree))
             { // jeśli chodzi o zajetosc toru
-                tmp = FindGroundNode(buff, TP_TRACK);
+                tmp = FindGroundNode(cellastext, TP_TRACK);
                 if (tmp)
                     Current->Params[9].asTrack = tmp->pTrack;
                 if (!Current->Params[9].asTrack)
                 {
-                    ErrorLog("Bad event: Track \"" + std::string(buff) + "\" does not exist in \"" + Current->asName + "\"");
+                    ErrorLog("Bad event: Track \"" + cellastext + "\" does not exist in \"" + Current->asName + "\"");
                     Current->iFlags &= ~(conditional_trackoccupied | conditional_trackfree); // zerowanie flag
                 }
             }
             else if (Current->iFlags & (conditional_memstring | conditional_memval1 | conditional_memval2))
             { // jeśli chodzi o komorke pamieciową
-                tmp = FindGroundNode(buff, TP_MEMCELL);
+                tmp = FindGroundNode(cellastext, TP_MEMCELL);
                 if (tmp)
                     Current->Params[9].asMemCell = tmp->MemCell;
                 if (!Current->Params[9].asMemCell)
                 {
-                    ErrorLog("Bad event: MemCell \"" + std::string(buff) + "\" does not exist in \"" + Current->asName + "\"");
+                    ErrorLog("Bad event: MemCell \"" + cellastext + "\" does not exist in \"" + Current->asName + "\"");
                     Current->iFlags &= ~(conditional_memstring | conditional_memval1 | conditional_memval2);
                 }
             }
-            for (i = 0; i < 8; i++)
+            for (i = 0; i < 8; ++i)
             {
                 if (Current->Params[i].asText != NULL)
                 {
-                    strcpy(buff, Current->Params[i].asText);
+                    cellastext = Current->Params[ i ].asText;
                     SafeDeleteArray(Current->Params[i].asText);
-                    Current->Params[i].asEvent = FindEvent(buff);
+                    Current->Params[i].asEvent = FindEvent(cellastext);
 					if( !Current->Params[ i ].asEvent ) { // Ra: tylko w logu informacja o braku
 						if( ( Current->Params[ i ].asText == NULL )
 						 || ( std::string( Current->Params[ i ].asText ).substr( 0, 5 ) != "none_" ) ) {
-							WriteLog( "Event \"" + std::string( buff ) + "\" does not exist" );
-							ErrorLog( "Missed event: " + std::string( buff ) + " in multiple " + Current->asName );
+							WriteLog( "Event \"" + cellastext + "\" does not exist" );
+							ErrorLog( "Missed event: " + cellastext + " in multiple " + Current->asName );
 						}
                         }
                 }
@@ -2472,13 +2456,11 @@ bool TGround::InitEvents()
         case tp_Voltage: // zmiana napięcia w zasilaczu (TractionPowerSource)
             if (!Current->asNodeName.empty())
             {
-                tmp = FindGroundNode(Current->asNodeName,
-                                     TP_TRACTIONPOWERSOURCE); // podłączenie zasilacza
+                tmp = FindGroundNode(Current->asNodeName, TP_TRACTIONPOWERSOURCE); // podłączenie zasilacza
                 if (tmp)
                     Current->Params[9].psPower = tmp->psTractionPowerSource;
                 else
-                    ErrorLog("Bad voltage: event \"" + Current->asName +
-                             "\" cannot find power source \"" + Current->asNodeName + "\"");
+                    ErrorLog("Bad event: voltage event \"" + Current->asName + "\" cannot find power source \"" + Current->asNodeName + "\"");
             }
             Current->asNodeName = "";
             break;
@@ -2501,43 +2483,32 @@ void TGround::InitTracks()
     TTrack *tmp; // znaleziony tor
     TTrack *Track;
 	int iConnection;
-    std::string name;
-    // tracks=tracksfar=0;
-    for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext)
-    {
-        Track = Current->pTrack;
-        if (Global::iHiddenEvents & 1)
-            if (!Current->asName.empty())
-            { // jeśli podana jest nazwa torów, można szukać eventów skojarzonych przez nazwę
-                if (Track->asEvent0Name.empty())
-                    if (FindEvent(Current->asName + ":event0"))
-                        Track->asEvent0Name = Current->asName + ":event0";
-                if (Track->asEvent1Name.empty())
-                    if (FindEvent(Current->asName + ":event1"))
-                        Track->asEvent1Name = Current->asName + ":event1";
-                if (Track->asEvent2Name.empty())
-                    if (FindEvent(Current->asName + ":event2"))
-                        Track->asEvent2Name = Current->asName + ":event2";
 
-                if (Track->asEventall0Name.empty())
-                    if (FindEvent(Current->asName + ":eventall0"))
-                        Track->asEventall0Name = Current->asName + ":eventall0";
-                if (Track->asEventall1Name.empty())
-                    if (FindEvent(Current->asName + ":eventall1"))
-                        Track->asEventall1Name = Current->asName + ":eventall1";
-                if (Track->asEventall2Name.empty())
-                    if (FindEvent(Current->asName + ":eventall2"))
-                        Track->asEventall2Name = Current->asName + ":eventall2";
-            }
+    for (Current = nRootOfType[TP_TRACK]; Current; Current = Current->nNext) {
+
+        Track = Current->pTrack;
+        // assign track events
         Track->AssignEvents(
-            Track->asEvent0Name.empty() ? NULL : FindEvent(Track->asEvent0Name),
-            Track->asEvent1Name.empty() ? NULL : FindEventScan(Track->asEvent1Name),
-            Track->asEvent2Name.empty() ? NULL : FindEventScan(Track->asEvent2Name));
+            FindEvent( Track->asEvent0Name ),
+            FindEvent( Track->asEvent1Name ),
+            FindEvent( Track->asEvent2Name ) );
         Track->AssignallEvents(
-            Track->asEventall0Name.empty() ? NULL : FindEvent(Track->asEventall0Name),
-            Track->asEventall1Name.empty() ? NULL : FindEvent(Track->asEventall1Name),
-            Track->asEventall2Name.empty() ? NULL :
-                                               FindEvent(Track->asEventall2Name)); // MC-280503
+            FindEvent( Track->asEventall0Name ),
+            FindEvent( Track->asEventall1Name ),
+            FindEvent( Track->asEventall2Name ) );
+        if( ( Global::iHiddenEvents & 1 )
+         && ( false == Current->asName.empty() ) ) {
+            // jeśli podana jest nazwa torów, można szukać eventów skojarzonych przez nazwę
+            Track->AssignEvents(
+                FindEvent( Current->asName + ":event0" ),
+                FindEvent( Current->asName + ":event1" ),
+                FindEvent( Current->asName + ":event2" ) );
+            Track->AssignallEvents(
+                FindEvent( Current->asName + ":eventall0" ),
+                FindEvent( Current->asName + ":eventall1" ),
+                FindEvent( Current->asName + ":eventall2" ) );
+        }
+
         switch (Track->eType)
         {
         case tt_Table: // obrotnicę też łączymy na starcie z innymi torami
@@ -2635,7 +2606,7 @@ void TGround::InitTracks()
                                       FindEvent(Current->asName + ":forced-"));
             break;
         }
-        name = Track->IsolatedName(); // pobranie nazwy odcinka izolowanego
+        std::string const name = Track->IsolatedName(); // pobranie nazwy odcinka izolowanego
         if (!name.empty()) // jeśli została zwrócona nazwa
             Track->IsolatedEventsAssign(FindEvent(name + ":busy"), FindEvent(name + ":free"));
         if (Current->asName.substr(0, 1) ==

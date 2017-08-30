@@ -217,7 +217,6 @@ class TController
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
     TAction eAction = actSleep; // aktualny stan
-    bool HelpMeFlag = false; // wystawiane True jesli cos niedobrego sie dzieje
   public:
     inline TAction GetAction()
     {
@@ -320,7 +319,7 @@ class TController
                     const TLocation &NewLocation, TStopReason reason = stopComm);
     bool PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
                     const vector3 *NewLocation, TStopReason reason = stopComm);
-    bool UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
+    void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     // procedury dotyczace rozkazow dla maszynisty
     void SetVelocity(double NewVel, double NewVelNext,
                      TStopReason r = stopNone); // uaktualnia informacje o prędkości

@@ -172,8 +172,7 @@ public:
 	void SetTranslate(vector3 vNewTransVector);
 	void SetTranslate(float3 vNewTransVector);
 	void SetRotateIK1(float3 vNewAngles);
-	TSubModel * GetFromName(std::string const &search, bool i = true);
-	TSubModel * GetFromName(char const *search, bool i = true);
+	TSubModel * GetFromName( std::string const &search, bool i = true );
 	inline float4x4 * GetMatrix() { return fMatrix; };
 	inline void Hide() { iVisible = 0; };
 
@@ -232,7 +231,7 @@ public: // Ra: tymczasowo
 private:
 	std::vector<std::string> Textures; // nazwy tekstur
 	std::vector<std::string> Names; // nazwy submodeli
-	int *iModel; // zawartość pliku binarnego
+    std::vector<float4x4> Matrices; // submodel matrices
 	int iSubModelsCount; // Ra: używane do tworzenia binarnych
 	std::string asBinary; // nazwa pod którą zapisać model binarny
     std::string m_filename;
@@ -240,7 +239,7 @@ public:
 	inline TSubModel * GetSMRoot() { return (Root); };
 	TModel3d();
 	~TModel3d();
-	TSubModel * GetFromName(const char *sName);
+	TSubModel * GetFromName(std::string const &Name);
 	TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);
 	void LoadFromTextFile(std::string const &FileName, bool dynamic);

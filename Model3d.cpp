@@ -843,22 +843,17 @@ struct ToLower
 
 TSubModel *TSubModel::GetFromName(std::string const &search, bool i)
 {
-	return GetFromName(search.c_str(), i);
-};
-
-TSubModel *TSubModel::GetFromName(char const *search, bool i)
-{
 	TSubModel *result;
 	// std::transform(search.begin(),search.end(),search.begin(),ToLower());
 	// search=search.LowerCase();
 	// AnsiString name=AnsiString();
-	std::string search_lc = std::string(search);
+	std::string search_lc = search;
 	if (i)
 		std::transform(search_lc.begin(), search_lc.end(), search_lc.begin(), ::tolower);
 	std::string pName_lc = pName;
 	if (i)
 		std::transform(pName_lc.begin(), pName_lc.end(), pName_lc.begin(), ::tolower);
-	if (pName.size() && search)
+	if (pName.size() && search.size())
 		if (pName_lc == search_lc)
 			return this;
 	if (Next)
@@ -1147,23 +1142,19 @@ TModel3d::TModel3d()
 	Root = NULL;
 	iFlags = 0;
 	iSubModelsCount = 0;
-	iModel = NULL; // tylko jak wczytany model binarny
 	iNumVerts = 0; // nie ma jeszcze wierzchołków
 };
 
-TModel3d::~TModel3d()
-{
-	// SafeDeleteArray(Materials);
-	if (iFlags & 0x0200)
-	{ // wczytany z pliku tekstowego, submodele sprzątają same
-		SafeDelete(Root); // submodele się usuną rekurencyjnie
+TModel3d::~TModel3d() {
+
+	if (iFlags & 0x0200) {
+        // wczytany z pliku tekstowego, submodele sprzątają same
+        Root = nullptr;
 	}
-	else
-	{ // wczytano z pliku binarnego (jest właścicielem tablic)
-		Root = nullptr;
-		delete[] iModel; // usuwamy cały wczytany plik i to wystarczy
-	}
-	// później się jeszcze usuwa obiekt z którego dziedziczymy tabelę VBO
+	else {
+        // wczytano z pliku binarnego (jest właścicielem tablic)
+        SafeDeleteArray( Root ); // submodele się usuną rekurencyjnie
+    }
 };
 
 TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
@@ -1190,16 +1181,16 @@ void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel)
 	iFlags |= 0x0200; // submodele są oddzielne
 };
 
-TSubModel *TModel3d::GetFromName(const char *sName)
+TSubModel *TModel3d::GetFromName(std::string const &Name)
 { // wyszukanie submodelu po nazwie
-	if (!sName)
+	if (Name.empty())
 		return Root; // potrzebne do terenu z E3D
 	if (iFlags & 0x0200) // wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
-		return Root ? Root->GetFromName(sName) : nullptr;
+		return Root ? Root->GetFromName(Name) : nullptr;
 	else // wczytano z pliku binarnego, można wyszukać iteracyjnie
 	{
 		// for (int i=0;i<iSubModelsCount;++i)
-		return Root ? Root->GetFromName(sName) : nullptr;
+		return Root ? Root->GetFromName(Name) : nullptr;
 	}
 };
 
@@ -1455,7 +1446,6 @@ void TSubModel::deserialize(std::istream &s)
 void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
 	Root = nullptr;
-	float4x4 *tm = nullptr;
     if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
@@ -1478,7 +1468,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 			iSubModelsCount = (int)sm_cnt;
 			Root = new TSubModel[sm_cnt];
 			size_t pos = s.tellg();
-			for (size_t i = 0; i < sm_cnt; i++)
+			for (size_t i = 0; i < sm_cnt; ++i)
 			{
 				s.seekg(pos + sm_size * i);
 				Root[i].deserialize(s);
@@ -1493,18 +1483,13 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
             size_t vt_cnt = size / 32;
 			iNumVerts = (int)vt_cnt;
 			m_nVertexCount = (int)vt_cnt;
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            assert( m_pVNT == nullptr );
-            m_pVNT = new basic_vertex[vt_cnt];
-#else
             m_pVNT.resize( vt_cnt );
-#endif
 			for (size_t i = 0; i < vt_cnt; i++)
 				m_pVNT[i].deserialize(s);
 */
-            // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk
+            // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk.
             // geometry associated with chunks isn't stored in the same order as the chunks themselves, so we need to sort that out first
-            std::vector< std::pair<int, int> > submodeloffsets;
+            std::vector< std::pair<int, int> > submodeloffsets; // vertex data offset, submodel index
             submodeloffsets.reserve( iSubModelsCount );
             for( int submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {
                 auto const &submodel = Root[ submodelindex ];
@@ -1551,23 +1536,23 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 		}
 		else if (type == MAKE_ID4('T', 'R', 'A', '0'))
 		{
-			if (tm != nullptr)
-				throw std::runtime_error("e3d: duplicated TRA chunk");
+            if( false == Matrices.empty() )
+                throw std::runtime_error("e3d: duplicated TRA chunk");
 			size_t t_cnt = size / 64;
 
-			tm = new float4x4[t_cnt];
-			for (size_t i = 0; i < t_cnt; i++)
-				tm[i].deserialize_float32(s);
+			Matrices.resize(t_cnt);
+			for (size_t i = 0; i < t_cnt; ++i)
+				Matrices[i].deserialize_float32(s);
 		}
 		else if (type == MAKE_ID4('T', 'R', 'A', '1'))
 		{
-			if (tm != nullptr)
-				throw std::runtime_error("e3d: duplicated TRA chunk");
+            if( false == Matrices.empty() )
+                throw std::runtime_error("e3d: duplicated TRA chunk");
 			size_t t_cnt = size / 128;
 
-			tm = new float4x4[t_cnt];
-			for (size_t i = 0; i < t_cnt; i++)
-				tm[i].deserialize_float64(s);
+            Matrices.resize( t_cnt );
+            for (size_t i = 0; i < t_cnt; ++i)
+				Matrices[i].deserialize_float64(s);
 		}
 		else if (type == MAKE_ID4('T', 'E', 'X', '0'))
 		{
@@ -1589,17 +1574,10 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 
 	if (!Root)
 		throw std::runtime_error("e3d: no submodels");
-/*
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-    if (!m_pVNT)
-#else
-    if(m_pVNT.empty() )
-#endif
-		throw std::runtime_error("e3d: no vertices");
-*/
-	for (size_t i = 0; (int)i < iSubModelsCount; ++i)
+
+    for (size_t i = 0; (int)i < iSubModelsCount; ++i)
 	{
-        Root[i].BinInit( Root, tm, &Textures, &Names, dynamic );
+        Root[i].BinInit( Root, Matrices.data(), &Textures, &Names, dynamic );
 
         if (Root[i].ChildGet())
 			Root[i].ChildGet()->Parent = &Root[i];

@@ -1945,14 +1945,14 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                     compartmentindex < 10 ?
                         "0" + std::to_string( compartmentindex ) :
                               std::to_string( compartmentindex ) );
-                submodel = mdLowPolyInt->GetFromName( compartmentname.c_str() );
+                submodel = mdLowPolyInt->GetFromName( compartmentname );
                 if( submodel != nullptr ) {
                     // if specified compartment was found we check also for potential matching section in the currently assigned load
                     // NOTE: if the load gets changed this will invalidate stored pointers. TODO: rebuild the table on load change
                     SectionLightLevels.emplace_back(
                         submodel,
                         ( mdLoad != nullptr ?
-                            mdLoad->GetFromName( compartmentname.c_str() ):
+                            mdLoad->GetFromName( compartmentname ):
                             nullptr ),
                         0.0f );
                 }
@@ -1965,11 +1965,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         for (int i = 0; i < 2; i++)
         {
             asAnimName = std::string("buffer_left0") + to_string(i + 1);
-            smBuforLewy[i] = mdModel->GetFromName(asAnimName.c_str());
+            smBuforLewy[i] = mdModel->GetFromName(asAnimName);
             if (smBuforLewy[i])
                 smBuforLewy[i]->WillBeAnimated(); // ustawienie flagi animacji
             asAnimName = std::string("buffer_right0") + to_string(i + 1);
-            smBuforPrawy[i] = mdModel->GetFromName(asAnimName.c_str());
+            smBuforPrawy[i] = mdModel->GetFromName(asAnimName);
             if (smBuforPrawy[i])
                 smBuforPrawy[i]->WillBeAnimated();
         }
@@ -4212,7 +4212,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                         for (int i = 0; i < iAnimType[ANIM_PANTS]; i++)
                         { // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
                             asAnimName = token + std::to_string(i + 1);
-                            sm = mdModel->GetFromName(asAnimName.c_str());
+                            sm = mdModel->GetFromName(asAnimName);
                             pants[i].smElement[0] = sm; // jak NULL, to nie będzie animowany
                             if (sm)
                             { // w EP09 wywalało się tu z powodu NULL
@@ -4304,7 +4304,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
 							asAnimName = token + std::to_string( i + 1 );
-							sm = mdModel->GetFromName( asAnimName.c_str() );
+							sm = mdModel->GetFromName( asAnimName );
 							pants[ i ].smElement[ 1 ] = sm; // jak NULL, to nie będzie animowany
 							if( sm ) { // w EP09 wywalało się tu z powodu NULL
                                 sm->WillBeAnimated();
@@ -4338,7 +4338,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
 							asAnimName = token + std::to_string( i + 1 );
-							pants[ i ].smElement[ 2 ] = mdModel->GetFromName( asAnimName.c_str() );
+							pants[ i ].smElement[ 2 ] = mdModel->GetFromName( asAnimName );
 							pants[ i ].smElement[ 2 ]->WillBeAnimated();
 						}
                         }
@@ -4351,7 +4351,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
 							asAnimName = token + std::to_string( i + 1 );
-							pants[ i ].smElement[ 3 ] = mdModel->GetFromName( asAnimName.c_str() );
+							pants[ i ].smElement[ 3 ] = mdModel->GetFromName( asAnimName );
 							pants[ i ].smElement[ 3 ]->WillBeAnimated();
 						}
                         }
@@ -4364,7 +4364,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 						for( int i = 0; i < iAnimType[ ANIM_PANTS ]; i++ ) {
                             // Winger 160204: wyszukiwanie max 2 patykow o nazwie str*
 							asAnimName = token + std::to_string( i + 1 );
-							pants[ i ].smElement[ 4 ] = mdModel->GetFromName( asAnimName.c_str() );
+							pants[ i ].smElement[ 4 ] = mdModel->GetFromName( asAnimName );
 							pants[ i ].smElement[ 4 ]->WillBeAnimated();
 /*							pants[ i ].yUpdate = UpdatePant;
 */							pants[ i ].yUpdate = std::bind( &TDynamicObject::UpdatePant, this, std::placeholders::_1 );
@@ -4498,7 +4498,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     for (int i = 1; i <= 4; i++)
                     { // McZapkie-050402: wyszukiwanie max 4 wahaczy o nazwie str*
                         asAnimName = token + std::to_string(i);
-                        smWahacze[i - 1] = mdModel->GetFromName(asAnimName.c_str());
+                        smWahacze[i - 1] = mdModel->GetFromName(asAnimName);
                         smWahacze[i - 1]->WillBeAnimated();
                     }
 					parser.getTokens(); parser >> token;
@@ -4535,7 +4535,7 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
                     { // NBMX wrzesien 2003: wyszukiwanie drzwi o nazwie str*
                         asAnimName = token + std::to_string(i + 1);
                         pAnimations[i + j].smAnimated =
-                            mdModel->GetFromName(asAnimName.c_str()); // ustalenie submodelu
+                            mdModel->GetFromName(asAnimName); // ustalenie submodelu
                         if (pAnimations[i + j].smAnimated)
                         { //++iAnimatedDoors;
                             pAnimations[i + j].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu

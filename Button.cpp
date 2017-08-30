@@ -28,8 +28,8 @@ void TButton::Init(std::string const &asName, TModel3d *pModel, bool bNewOn)
 {
     if( pModel == nullptr ) { return; }
 
-    pModelOn = pModel->GetFromName( (asName + "_on").c_str() );
-    pModelOff = pModel->GetFromName( (asName + "_off").c_str() );
+    pModelOn = pModel->GetFromName( asName + "_on" );
+    pModelOff = pModel->GetFromName( asName + "_off" );
     m_state = bNewOn;
     Update();
 };

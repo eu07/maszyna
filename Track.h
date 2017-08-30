@@ -230,7 +230,6 @@ public:
         if (SwitchExtension)
             SwitchExtension->pOwner = o; };
     bool InMovement(); // czy w trakcie animacji?
-    void RaAssign(TGroundNode *gn, TAnimContainer *ac);
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
     void RaAnimListAdd(TTrack *t);
     TTrack * RaAnimate();
