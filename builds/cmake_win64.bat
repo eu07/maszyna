@@ -15,5 +15,7 @@ cmake ../.. -A x64 ^
 -DOPENAL_INCLUDE_DIR=%DEPS_DIR%/openal/include ^
 -DOPENAL_LIBRARY=%DEPS_DIR%/openal/lib/win64/OpenAL32.lib ^
 -DLIBSNDFILE_INCLUDE_DIR=%DEPS_DIR%/libsndfile/include ^
--DLIBSNDFILE_LIBRARY=%DEPS_DIR%/libsndfile/lib/win64/libsndfile-1.lib
+-DLIBSNDFILE_LIBRARY=%DEPS_DIR%/libsndfile/lib/win64/libsndfile-1.lib ^
+-DLUAJIT_INCLUDE_DIR=%DEPS_DIR%/luajit/include ^
+-DLUAJIT_LIBRARIES=%DEPS_DIR%/luajit/lib/win64/lua51.lib
 popd

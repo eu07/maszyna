@@ -121,7 +121,6 @@ private:
 
     TCamera Camera;
     TCamera DebugCamera;
-    TGround Ground;
     world_environment Environment;
     TTrain *Train;
     TDynamicObject *pDynamicNearest;
@@ -147,6 +146,8 @@ private:
     void CabChange(TDynamicObject *old, TDynamicObject *now);
     // handles vehicle change flag
     void ChangeDynamic();
+
+    TGround Ground; //m7todo: tmp
 };
 
 //---------------------------------------------------------------------------

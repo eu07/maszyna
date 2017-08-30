@@ -65,6 +65,7 @@ set(SOURCES
 "mouseinput.cpp"
 "translation.cpp"
 "material.cpp"
+"lua.cpp"
 )
 
 if (WIN32)
@@ -125,5 +126,10 @@ find_package(libsndfile REQUIRED)
 include_directories(${LIBSNDFILE_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${LIBSNDFILE_LIBRARY})
 
-#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")
+find_package(LuaJIT REQUIRED)
+include_directories(${LUAJIT_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
+
+if (UNIX)
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+endif()

@@ -39,7 +39,8 @@ enum TEventType {
     tp_Visible,
     tp_Voltage,
     tp_Message,
-    tp_Friction
+    tp_Friction,
+    tp_Lua
 };
 
 const int update_memstring = 0x0000001; // zmodyfikować tekst (UpdateValues)

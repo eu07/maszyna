@@ -1761,6 +1761,72 @@ void TGround::FirstInit()
     WriteLog("FirstInit is done");
 };
 
+void TGround::add_event(TEvent *tmp)
+{
+    if (tmp->Type == tp_Unknown)
+        delete tmp;
+    else
+    { // najpierw sprawdzamy, czy nie ma, a potem dopisujemy
+        TEvent *found = FindEvent(tmp->asName);
+        if (found)
+        { // jeśli znaleziony duplikat
+            auto const size = tmp->asName.size();
+            if( tmp->asName[0] == '#' ) // zawsze jeden znak co najmniej jest
+            {
+                delete tmp;
+                tmp = nullptr;
+            } // utylizacja duplikatu z krzyżykiem
+            else if( ( size > 8 )
+                  && ( tmp->asName.substr( 0, 9 ) == "lineinfo:" ))
+                // tymczasowo wyjątki
+            {
+                delete tmp;
+                tmp = nullptr;
+            } // tymczasowa utylizacja duplikatów W5
+            else if( ( size > 8 )
+                  && ( tmp->asName.substr( size - 8 ) == "_warning"))
+                // tymczasowo wyjątki
+            {
+                delete tmp;
+                tmp = nullptr;
+            } // tymczasowa utylizacja duplikatu z trąbieniem
+            else if( ( size > 4 )
+                  && ( tmp->asName.substr( size - 4 ) == "_shp" ))
+                  // nie podlegają logowaniu
+            {
+                delete tmp;
+                tmp = NULL;
+            } // tymczasowa utylizacja duplikatu SHP
+            if (tmp) // jeśli nie został zutylizowany
+                if (Global::bJoinEvents)
+                    found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
+                else
+                {
+                    ErrorLog("Duplicated event: " + tmp->asName);
+                    found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
+                    found->Type = tp_Ignored; // dezaktywacja pierwotnego - taka proteza na
+                    // wsteczną zgodność
+                    // SafeDelete(tmp); //bezlitośnie usuwamy wszelkie duplikaty, żeby nie
+                    // zaśmiecać drzewka
+                }
+        }
+        if ( nullptr != tmp )
+        { // jeśli nie duplikat
+            tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
+            RootEvent = tmp;
+            if (!found)
+            { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
+                if( ( RootEvent->Type != tp_Ignored )
+                 && ( RootEvent->asName.find( "onstart" ) != std::string::npos ) ) {
+                    // event uruchamiany automatycznie po starcie
+                    AddToQuery( RootEvent, NULL ); // dodanie do kolejki
+                }
+                m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
+            }
+        }
+    }
+}
+
 bool TGround::Init(std::string File)
 { // główne wczytywanie scenerii
     if (ToLower(File).substr(0, 7) == "scenery")
@@ -1920,68 +1986,14 @@ bool TGround::Init(std::string File)
         {
             TEvent *tmp = new TEvent();
             tmp->Load(&parser, &pOrigin);
-            if (tmp->Type == tp_Unknown)
-                delete tmp;
-            else
-            { // najpierw sprawdzamy, czy nie ma, a potem dopisujemy
-                TEvent *found = FindEvent(tmp->asName);
-                if (found)
-                { // jeśli znaleziony duplikat
-                    auto const size = tmp->asName.size();
-                    if( tmp->asName[0] == '#' ) // zawsze jeden znak co najmniej jest
-                    {
-                        delete tmp;
-                        tmp = nullptr;
-                    } // utylizacja duplikatu z krzyżykiem
-                    else if( ( size > 8 )
-                          && ( tmp->asName.substr( 0, 9 ) == "lineinfo:" ))
-                        // tymczasowo wyjątki
-                    {
-                        delete tmp;
-                        tmp = nullptr;
-                    } // tymczasowa utylizacja duplikatów W5
-                    else if( ( size > 8 )
-                          && ( tmp->asName.substr( size - 8 ) == "_warning"))
-                        // tymczasowo wyjątki
-                    {
-                        delete tmp;
-                        tmp = nullptr;
-                    } // tymczasowa utylizacja duplikatu z trąbieniem
-                    else if( ( size > 4 )
-                          && ( tmp->asName.substr( size - 4 ) == "_shp" ))
-                          // nie podlegają logowaniu
-                    {
-                        delete tmp;
-                        tmp = NULL;
-                    } // tymczasowa utylizacja duplikatu SHP
-                    if (tmp) // jeśli nie został zutylizowany
-                        if (Global::bJoinEvents)
-                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
-                        else
-                        {
-                            ErrorLog("Duplicated event: " + tmp->asName);
-                            found->Append(tmp); // doczepka (taki wirtualny multiple bez warunków)
-                            found->Type = tp_Ignored; // dezaktywacja pierwotnego - taka proteza na
-                            // wsteczną zgodność
-                            // SafeDelete(tmp); //bezlitośnie usuwamy wszelkie duplikaty, żeby nie
-                            // zaśmiecać drzewka
-                        }
-                }
-                if ( nullptr != tmp )
-                { // jeśli nie duplikat
-                    tmp->evNext2 = RootEvent; // lista wszystkich eventów (m.in. do InitEvents)
-                    RootEvent = tmp;
-                    if (!found)
-                    { // jeśli nazwa wystąpiła, to do kolejki i wyszukiwarki dodawany jest tylko pierwszy
-                        if( ( RootEvent->Type != tp_Ignored )
-                         && ( RootEvent->asName.find( "onstart" ) != std::string::npos ) ) {
-                            // event uruchamiany automatycznie po starcie
-                            AddToQuery( RootEvent, NULL ); // dodanie do kolejki
-                        }
-                        m_eventmap.emplace( tmp->asName, tmp ); // dodanie do wyszukiwarki
-                    }
-                }
-            }
+            add_event(tmp);
+        }
+        else if (str == "lua")
+        {
+            parser.getTokens();
+            std::string file;
+            parser >> file;
+            m_lua.interpret(subpath + file);
         }
         else if (str == "rotate")
         {
@@ -3444,6 +3456,9 @@ bool TGround::CheckQuery()
             }
             break;
             case tp_Message: // wyświetlenie komunikatu
+                break;
+            case tp_Lua:
+                ((lua::eventhandler_t)tmpEvent->Params[0].asPointer)(tmpEvent, tmpEvent->Activator);
                 break;
             } // switch (tmpEvent->Type)
         } // if (tmpEvent->bEnabled)

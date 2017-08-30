@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Float3d.h"
 #include "Names.h"
 #include "lightarray.h"
+#include "lua.h"
 
 typedef int TGroundNodeType;
 // Ra: zmniejszone liczby, aby zrobić tabelkę i zoptymalizować wyszukiwanie
@@ -260,6 +261,7 @@ class TGround
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
     light_array m_lights; // collection of dynamic light sources present in the scene
+    lua m_lua;
 
     vector3 pOrigin;
     vector3 aRotate;
@@ -342,6 +344,8 @@ class TGround
     void IsolatedBusyList();
     void IsolatedBusy(const std::string t);
     void Silence(vector3 gdzie);
+
+    void add_event(TEvent *event);
 };
 
 //---------------------------------------------------------------------------

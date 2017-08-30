@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
     }
 	catch (std::runtime_error e)
 	{
-		WriteLog(e.what());
+        ErrorLog(e.what());
 		return -1;
 	}
 
@@ -404,6 +404,11 @@ int main(int argc, char *argv[])
         catch( std::bad_alloc const &Error ) {
 
             ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
+            return -1;
+        }
+        catch (std::runtime_error e)
+        {
+            ErrorLog(e.what());
             return -1;
         }
 
