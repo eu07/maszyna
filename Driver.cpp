@@ -376,9 +376,15 @@ void TSpeedPos::Set(TTrack *track, double dist, int flag)
             fVelNext = (trTrack->iCategoryFlag & 1) ?
                            0.0 :
                            20.0; // jeśli koniec, to pociąg stój, a samochód zwolnij
+/*
         vPos = (((iFlags & spReverse) != 0) != ((iFlags & spEnd) != 0)) ?
                    trTrack->CurrentSegment()->FastGetPoint_1() :
                    trTrack->CurrentSegment()->FastGetPoint_0();
+*/
+        vPos =
+            ( iFlags & spReverse ) ?
+                trTrack->CurrentSegment()->FastGetPoint_1() :
+                trTrack->CurrentSegment()->FastGetPoint_0();
     }
 };
 
@@ -648,8 +654,9 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         else
         { // definitywny koniec skanowania, chyba że dalej puszczamy samochód po gruncie...
             if( ( iLast == -1 )
-             || ( false == TestFlag( sSpeedTable[iLast].iFlags, spEnabled | spEnd ) ) ) {
-                // only if we haven't already marked end of the track
+             || ( ( false == TestFlag( sSpeedTable[iLast].iFlags, spEnabled | spEnd ) )
+               && ( sSpeedTable[iLast].trTrack != tLast ) ) ) {
+                // only if we haven't already marked end of the track and if the new track doesn't duplicate last one
                 if( TableAddNew() ) {
                     // zapisanie ostatniego sprawdzonego toru
                     sSpeedTable[iLast].Set(
@@ -658,6 +665,11 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                             spEnabled | spEnd | spReverse :
                             spEnabled | spEnd ));
                 }
+            }
+            else if( sSpeedTable[ iLast ].trTrack == tLast ) {
+                // otherwise just mark the last added track as the final one
+                // TODO: investigate exactly how we can wind up not marking the last existing track as actual end
+                sSpeedTable[ iLast ].iFlags |= spEnd;
             }
             // to ostatnia pozycja, bo NULL nic nie da, a może się podpiąć obrotnica, czy jakieś transportery
             return;
@@ -703,7 +715,7 @@ void TController::TableCheck(double fDistance)
                 }
                 if (sSpeedTable[i].iFlags & spTrack) // jeśli odcinek
                 {
-                    if (sSpeedTable[i].fDist < -fLength) // a skład wyjechał całą długością poza
+                    if (sSpeedTable[i].fDist + sSpeedTable[i].trTrack->Length() < -fLength) // a skład wyjechał całą długością poza
                     { // degradacja pozycji
 						sSpeedTable[i].iFlags &= ~spEnabled; // nie liczy się
                     }
@@ -996,10 +1008,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
             } // koniec obsługi W4
             v = sSpeedTable[i].fVelNext; // odczyt prędkości do zmiennej pomocniczej
-            if (sSpeedTable[i].iFlags &
-                spSwitch) // zwrotnice są usuwane z tabelki dopiero po zjechaniu z nich
-                iDrivigFlags |=
-                    moveSwitchFound; // rozjazd z przodu/pod ogranicza np. sens skanowania wstecz
+            if( sSpeedTable[ i ].iFlags & spSwitch ) {
+                // zwrotnice są usuwane z tabelki dopiero po zjechaniu z nich
+                iDrivigFlags |= moveSwitchFound; // rozjazd z przodu/pod ogranicza np. sens skanowania wstecz
+            }
             else if (sSpeedTable[i].iFlags & spEvent) // W4 może się deaktywować
             { // jeżeli event, może być potrzeba wysłania komendy, aby ruszył
                 // sprawdzanie eventów pasywnych miniętych
@@ -1270,12 +1282,13 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 else if (sSpeedTable[i].iFlags & spTrack) // jeśli tor
                 { // tor ogranicza prędkość, dopóki cały skład nie przejedzie,
                     // d=fLength+d; //zamiana na długość liczoną do przodu
-                    if (v >= 1.0) // EU06 się zawieszało po dojechaniu na koniec toru postojowego
-                        if (d < -fLength)
+                    if( v >= 1.0 ) // EU06 się zawieszało po dojechaniu na koniec toru postojowego
+                        if( d + sSpeedTable[ i ].trTrack->Length() < -fLength )
                             continue; // zapętlenie, jeśli już wyjechał za ten odcinek
-                    if (v < fVelDes)
-                        fVelDes =
-                            v; // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
+                    if( v < fVelDes ) {
+                        // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
+                        fVelDes = v;
+                    }
                     // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
                     continue; // i tyle wystarczy
                 }
@@ -1298,8 +1311,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
             } // if (v>=0.0)
             if (fNext >= 0.0)
             { // jeśli ograniczenie
-                if ((sSpeedTable[i].iFlags & (spEnabled | spEvent)) ==
-					(spEnabled | spEvent)) // tylko sygnał przypisujemy
+                if ((sSpeedTable[i].iFlags & (spEnabled | spEvent)) == (spEnabled | spEvent)) // tylko sygnał przypisujemy
                     if (!eSignNext) // jeśli jeszcze nic nie zapisane tam
                         eSignNext = sSpeedTable[i].evEvent; // dla informacji
                 if (fNext == 0.0)
@@ -3590,7 +3602,7 @@ TController::UpdateSituation(double dt) {
     // czy stan się nie zmienił.
     // 4. Ewentualnie uzupełnić tabelkę informacjami o sygnałach i ograniczeniach, jeśli się
     // "zużyła".
-    TableCheck(routescanrange); // wypełnianie tabelki i aktualizacja odległości
+    TableCheck( routescanrange ); // wypełnianie tabelki i aktualizacja odległości
     // 5. Sprawdzić stany sygnalizacji zapisanej w tabelce, wyznaczyć prędkości.
     // 6. Z tabelki wyznaczyć krytyczną odległość i prędkość (najmniejsze przyspieszenie).
     // 7. Jeśli jest inny pojazd z przodu, ewentualnie skorygować odległość i prędkość.
@@ -4664,9 +4676,12 @@ TController::UpdateSituation(double dt) {
                 // Ra 2F1H: jest konflikt histerezy pomiędzy nastawioną pozycją a uzyskiwanym
                 // przyspieszeniem - utrzymanie pozycji powoduje przekroczenie przyspieszenia
                 if( AbsAccS < AccDesired ) {
-                    // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz
-                    if( vel < VelDesired - fVelMinus ) {
-                        // jeśli prędkość w kierunku czoła jest mniejsza od dozwolonej o margines
+                    // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
+                    if( vel < (
+                        VelDesired == 1.0 ? // work around for trains getting stuck on tracks with speed limit = 1
+                            VelDesired :
+                            VelDesired - fVelMinus ) ) {
+                        // ...jeśli prędkość w kierunku czoła jest mniejsza od dozwolonej o margines
                         if( ( ActualProximityDist > (
                             mvOccupied->CategoryFlag & 2 ?
                                 fMinProximityDist : // cars are allowed to move within min proximity distance

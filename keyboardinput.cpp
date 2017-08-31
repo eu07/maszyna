@@ -208,6 +208,12 @@ keyboard_input::default_bindings() {
         { GLFW_KEY_KP_2 },
         // trainbrakeemergency
         { GLFW_KEY_KP_0 },
+        // manualbrakeincrease
+        { GLFW_KEY_KP_1 | keymodifier::control },
+        // manualbrakedecrease
+        { GLFW_KEY_KP_7 | keymodifier::control },
+        // alarm chain toggle
+        { GLFW_KEY_B | keymodifier::shift | keymodifier::control },
         // wheelspinbrakeactivate,
         { GLFW_KEY_KP_ENTER },
         // sandboxactivate,

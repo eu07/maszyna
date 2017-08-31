@@ -1082,7 +1082,7 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
                     EventFlag = true;
 
                 if ((coupler.CouplingFlag & ctrain_pneumatic) == ctrain_pneumatic)
-                    EmergencyBrakeFlag = true; // hamowanie nagle - zerwanie przewodow hamulcowych
+                    AlarmChainFlag = true; // hamowanie nagle - zerwanie przewodow hamulcowych
                 coupler.CouplingFlag = 0;
 
                 switch (CouplerN) // wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone
@@ -2780,29 +2780,44 @@ bool TMoverParameters::DynamicBrakeSwitch(bool Switch)
 bool TMoverParameters::RadiostopSwitch(bool Switch)
 {
     bool EBS;
-    if ((BrakeSystem != Individual) && (BrakeCtrlPosNo > 0))
-    {
-        if ((!RadioStopFlag) && Switch)
-        {
+    if( ( BrakeSystem != Individual )
+     && ( BrakeCtrlPosNo > 0 ) ) {
+
+        if( ( true == Switch )
+         && ( false == RadioStopFlag ) ) {
             RadioStopFlag = Switch;
             EBS = true;
         }
-        else
-        {
-            if ((abs(V) < 0.1) &&
-                (Switch == false)) // odblokowanie hamulca bezpieczenistwa tylko po zatrzymaniu
-            {
+        else {
+            if( ( Switch == false )
+             && ( std::abs( V ) < 0.1 ) ) {
+                // odblokowanie hamulca bezpieczenistwa tylko po zatrzymaniu
                 RadioStopFlag = Switch;
                 EBS = true;
             }
-            else
+            else {
                 EBS = false;
+            }
         }
     }
-    else
-        EBS = false; // nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.
+    else {
+        // nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.
+        EBS = false;
+    }
 
     return EBS;
+}
+
+bool TMoverParameters::AlarmChainSwitch( bool const State ) {
+
+    bool stateswitched { false };
+
+    if( AlarmChainFlag != State ) {
+        // simple routine for the time being
+        AlarmChainFlag = State;
+        stateswitched = true;
+    }
+    return stateswitched;
 }
 
 // *************************************************************************************************
@@ -3282,12 +3297,19 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 Pipe2->Flow(dpMainValve);
     }
 
-    //      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         //ulepszony hamulec bezp.
-    if ((RadioStopFlag) || (TestFlag(SecuritySystem.Status, s_SHPebrake)) ||
-        (TestFlag(SecuritySystem.Status, s_CAebrake)) ||
-        (s_CAtestebrake == true) ||
-		(TestFlag(EngDmgFlag, 32)) /* or (not Battery)*/) // ulepszony hamulec bezp.
-        dpMainValve = dpMainValve + PF(0, PipePress, 0.15) * dt;
+    // ulepszony hamulec bezp.
+    if( ( true == RadioStopFlag )
+     || ( true == AlarmChainFlag )
+     || ( true == TestFlag( SecuritySystem.Status, s_SHPebrake ) )
+     || ( true == TestFlag( SecuritySystem.Status, s_CAebrake ) )
+/*
+    // NOTE: disabled because 32 is 'load destroyed' flag, what does this have to do with emergency brake?
+    // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
+     || ( true == TestFlag( EngDmgFlag, 32 ) )
+*/
+     || ( true == s_CAtestebrake ) ) {
+        dpMainValve = dpMainValve + PF( 0, PipePress, 0.15 ) * dt;
+    }
     // 0.2*Spg
     Pipe->Flow(-dpMainValve);
     Pipe->Flow(-(PipePress)*0.001 * dt);
