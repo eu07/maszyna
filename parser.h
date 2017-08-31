@@ -78,7 +78,9 @@ class cParser //: public std::stringstream
     // add custom definition of text which should be ignored when retrieving tokens
     void addCommentStyle( std::string const &Commentstart, std::string const &Commentend );
     // returns name of currently open file, or empty string for text type stream
-    std::string Name();
+    std::string Name() const;
+    // returns number of currently processed line
+    std::size_t Line() const;
 
   private:
     // methods:
@@ -90,13 +92,14 @@ class cParser //: public std::stringstream
     std::size_t count();
     // members:
     bool LoadTraction; // load traction?
-    std::istream *mStream; // relevant kind of buffer is attached on creation.
+    std::shared_ptr<std::istream> mStream; // relevant kind of buffer is attached on creation.
     std::string mFile; // name of the open file, if any
     std::string mPath; // path to open stream, for relative path lookups.
-    std::streamoff mSize; // size of open stream, for progress report.
+    std::streamoff mSize { 0 }; // size of open stream, for progress report.
+    std::size_t mLine { 0 }; // currently processed line
     typedef std::map<std::string, std::string> commentmap;
     commentmap mComments;
-    cParser *mIncludeParser; // child class to handle include directives.
+    std::shared_ptr<cParser> mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
     std::deque<std::string> tokens;
 };

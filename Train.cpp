@@ -218,6 +218,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::trainbrakeservice, &TTrain::OnCommand_trainbrakeservice },
     { user_command::trainbrakefullservice, &TTrain::OnCommand_trainbrakefullservice },
     { user_command::trainbrakeemergency, &TTrain::OnCommand_trainbrakeemergency },
+    { user_command::manualbrakeincrease, &TTrain::OnCommand_manualbrakeincrease },
+    { user_command::manualbrakedecrease, &TTrain::OnCommand_manualbrakedecrease },
+    { user_command::alarmchaintoggle, &TTrain::OnCommand_alarmchaintoggle },
     { user_command::wheelspinbrakeactivate, &TTrain::OnCommand_wheelspinbrakeactivate },
     { user_command::sandboxactivate, &TTrain::OnCommand_sandboxactivate },
     { user_command::epbrakecontroltoggle, &TTrain::OnCommand_epbrakecontroltoggle },
@@ -265,6 +268,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
+    { user_command::radiostoptest, &TTrain::OnCommand_radiostoptest },
     { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle1, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle2, &TTrain::OnCommand_generictoggle },
@@ -870,7 +874,7 @@ void TTrain::OnCommand_trainbrakecharging( TTrain *Train, command_data const &Co
 
 void TTrain::OnCommand_trainbrakerelease( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_PRESS ) {
 
         // sound feedback
         if( ( Train->is_eztoer() )
@@ -885,7 +889,7 @@ void TTrain::OnCommand_trainbrakerelease( TTrain *Train, command_data const &Com
 
 void TTrain::OnCommand_trainbrakefirstservice( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_PRESS ) {
 
         // sound feedback
         if( ( Train->is_eztoer() )
@@ -900,7 +904,7 @@ void TTrain::OnCommand_trainbrakefirstservice( TTrain *Train, command_data const
 
 void TTrain::OnCommand_trainbrakeservice( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_PRESS ) {
 
         // sound feedback
         if( ( Train->is_eztoer() )
@@ -913,14 +917,14 @@ void TTrain::OnCommand_trainbrakeservice( TTrain *Train, command_data const &Com
         Train->mvOccupied->BrakeLevelSet(
             Train->mvOccupied->BrakeCtrlPosNo / 2
             + ( Train->mvOccupied->BrakeHandle == FV4a ?
-               1 :
-               0 ) );
+                   1 :
+                   0 ) );
     }
 }
 
 void TTrain::OnCommand_trainbrakefullservice( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_PRESS ) {
 
         // sound feedback
         if( ( Train->is_eztoer() )
@@ -935,12 +939,57 @@ void TTrain::OnCommand_trainbrakefullservice( TTrain *Train, command_data const 
 
 void TTrain::OnCommand_trainbrakeemergency( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
+    if( Command.action == GLFW_PRESS ) {
 
         Train->mvOccupied->BrakeLevelSet( Train->mvOccupied->Handle->GetPos( bh_EB ) );
+/*
         if( Train->mvOccupied->BrakeCtrlPosNo <= 0.1 ) {
             // hamulec bezpieczeństwa dla wagonów
-            Train->mvOccupied->EmergencyBrakeFlag = true;
+            Train->mvOccupied->RadioStopFlag = true;
+        }
+*/
+    }
+}
+
+void TTrain::OnCommand_manualbrakeincrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( ( Train->mvOccupied->LocalBrake == ManualBrake )
+         || ( Train->mvOccupied->MBrake == true ) ) {
+
+            Train->mvOccupied->IncManualBrakeLevel( 1 );
+        }
+    }
+}
+
+void TTrain::OnCommand_manualbrakedecrease( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_RELEASE ) {
+
+        if( ( Train->mvOccupied->LocalBrake == ManualBrake )
+         || ( Train->mvOccupied->MBrake == true ) ) {
+
+            Train->mvOccupied->DecManualBrakeLevel( 1 );
+        }
+    }
+}
+
+void TTrain::OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        if( false == Train->mvOccupied->AlarmChainFlag ) {
+            // pull
+            Train->mvOccupied->AlarmChainSwitch( true );
+            // visual feedback
+            Train->ggAlarmChain.UpdateValue( 1.0 );
+        }
+        else {
+            // release
+            Train->mvOccupied->AlarmChainSwitch( false );
+            // visual feedback
+            Train->ggAlarmChain.UpdateValue( 0.0 );
         }
     }
 }
@@ -2071,6 +2120,10 @@ void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &C
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_left;
             // visual feedback
             Train->ggLeftLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // if the light is controlled by 3-way switch, disable marker light
+            if( Train->ggLeftEndLightButton.SubModel == nullptr ) {
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::redmarker_left;
+            }
         }
         else {
             //turn off
@@ -2100,6 +2153,10 @@ void TTrain::OnCommand_headlighttoggleright( TTrain *Train, command_data const &
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::headlight_right;
             // visual feedback
             Train->ggRightLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // if the light is controlled by 3-way switch, disable marker light
+            if( Train->ggRightEndLightButton.SubModel == nullptr ) {
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::redmarker_right;
+            }
         }
         else {
             //turn off
@@ -2157,13 +2214,29 @@ void TTrain::OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &C
             // turn on
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
-            Train->ggLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
+                Train->ggLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggLeftLightButton.UpdateValue( -1.0, Train->dsbSwitch );
+                // if the light is controlled by 3-way switch, disable the headlight
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::headlight_left;
+            }
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_left;
             // visual feedback
-            Train->ggLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
+                Train->ggLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
         }
     }
 }
@@ -2186,13 +2259,29 @@ void TTrain::OnCommand_redmarkertoggleright( TTrain *Train, command_data const &
             // turn on
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
-            Train->ggRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            if( Train->ggRightEndLightButton.SubModel != nullptr ) {
+                Train->ggRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggRightLightButton.UpdateValue( -1.0, Train->dsbSwitch );
+                // if the light is controlled by 3-way switch, disable the headlight
+                Train->DynamicObject->iLights[ lightsindex ] &= ~TMoverParameters::light::headlight_right;
+            }
         }
         else {
             //turn off
             Train->DynamicObject->iLights[ lightsindex ] ^= TMoverParameters::light::redmarker_right;
             // visual feedback
-            Train->ggRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            if( Train->ggRightEndLightButton.SubModel != nullptr ) {
+                Train->ggRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
+            else {
+                // we interpret lack of dedicated switch as a sign the light is controlled with 3-way switch
+                // this is crude, but for now will do
+                Train->ggRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
         }
     }
 }
@@ -2766,14 +2855,21 @@ void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command )
     }
 }
 
+void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->Dynamic()->RadioStop();
+    }
+}
+
 void TTrain::OnKeyDown(int cKey)
 { // naciśnięcie klawisza
-    bool isEztOer;
-    isEztOer = ((mvControlled->TrainType == dt_EZT) && (mvControlled->Battery == true) &&
-                (mvControlled->EpFuse == true) && (mvOccupied->BrakeSubsystem == ss_ESt) &&
-                (mvControlled->ActiveDir != 0)); // od yB
-    // isEztOer=(mvControlled->TrainType==dt_EZT)&&(mvControlled->Mains)&&(mvOccupied->BrakeSubsystem==ss_ESt)&&(mvControlled->ActiveDir!=0);
-    // isEztOer=((mvControlled->TrainType==dt_EZT)&&(mvControlled->Battery==true)&&(mvControlled->EpFuse==true)&&(mvOccupied->BrakeSubsystem==Oerlikon)&&(mvControlled->ActiveDir!=0));
+    bool const isEztOer =
+        ( ( mvControlled->TrainType == dt_EZT )
+       && ( mvControlled->Battery == true )
+       && ( mvControlled->EpFuse == true )
+       && ( mvOccupied->BrakeSubsystem == ss_ESt )
+       && ( mvControlled->ActiveDir != 0 ) ); // od yB
 
     if (Global::shiftState)
 	{ // wciśnięty [Shift]
@@ -2858,6 +2954,7 @@ void TTrain::OnKeyDown(int cKey)
     }
     else // McZapkie-240302 - klawisze bez shifta
     {
+#ifdef EU07_USE_OLD_COMMAND_SYSTEM
         if( cKey == Global::Keys[ k_IncLocalBrakeLevel ] )
         { // Ra 2014-09: w
             // trybie latania
@@ -2870,10 +2967,8 @@ void TTrain::OnKeyDown(int cKey)
                     {
                         mvOccupied->IncManualBrakeLevel(1);
                     }
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
                 else if (mvOccupied->LocalBrake != ManualBrake)
                     mvOccupied->IncLocalBrakeLevel(1);
-#endif
             }
         }
         else if (cKey == Global::Keys[k_DecLocalBrakeLevel])
@@ -2886,16 +2981,15 @@ void TTrain::OnKeyDown(int cKey)
                 if (Global::ctrlState)
                     if ((mvOccupied->LocalBrake == ManualBrake) || (mvOccupied->MBrake == true))
                         mvOccupied->DecManualBrakeLevel(1);
-#ifdef EU07_USE_OLD_COMMAND_SYSTEM
                 else // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku -
                     // odhamować jakoś trzeba
                     if ((mvOccupied->LocalBrake != ManualBrake) || mvOccupied->LocalBrakePos)
                     mvOccupied->DecLocalBrakeLevel(1);
-#endif
             }
         }
-        else if (cKey == Global::Keys[k_Brake2])
-        {
+        else
+#endif
+            if (cKey == Global::Keys[k_Brake2]) {
             if (Global::ctrlState)
                 mvOccupied->BrakeLevelSet(
                     mvOccupied->Handle->GetPos(bh_NP)); // yB: czy ten stos funkcji nie powinien być jako oddzielna funkcja movera?
@@ -6439,6 +6533,7 @@ void TTrain::clear_cab_controls()
     ggBrakeCtrl.Clear();
     ggLocalBrake.Clear();
     ggManualBrake.Clear();
+    ggAlarmChain.Clear();
     ggBrakeProfileCtrl.Clear();
     ggBrakeProfileG.Clear();
     ggBrakeProfileR.Clear();
@@ -6566,8 +6661,8 @@ void TTrain::clear_cab_controls()
     ggRearUpperLightButton.Clear();
     ggRearLeftEndLightButton.Clear();
     ggRearRightEndLightButton.Clear();
-                btHaslerBrakes.Clear(12); // ciśnienie w cylindrach do odbijania na haslerze
-                btHaslerCurrent.Clear(13); // prąd na silnikach do odbijania na haslerze
+    btHaslerBrakes.Clear(12); // ciśnienie w cylindrach do odbijania na haslerze
+    btHaslerCurrent.Clear(13); // prąd na silnikach do odbijania na haslerze
 }
 
 // NOTE: we can get rid of this function once we have per-cab persistent state
@@ -6667,10 +6762,20 @@ void TTrain::set_cab_controls() {
         ggUpperLightButton.PutValue( 1.0 );
     }
     if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_left ) != 0 ) {
-        ggLeftEndLightButton.PutValue( 1.0 );
+        if( ggLeftEndLightButton.SubModel != nullptr ) {
+            ggLeftEndLightButton.PutValue( 1.0 );
+        }
+        else {
+            ggLeftLightButton.PutValue( -1.0 );
+        }
     }
     if( ( DynamicObject->iLights[ lightsindex ] & TMoverParameters::light::redmarker_right ) != 0 ) {
-        ggRightEndLightButton.PutValue( 1.0 );
+        if( ggRightEndLightButton.SubModel != nullptr ) {
+            ggRightEndLightButton.PutValue( 1.0 );
+        }
+        else {
+            ggRightLightButton.PutValue( -1.0 );
+        }
     }
     if( true == DynamicObject->DimHeadlights ) {
         ggDimHeadlightsButton.PutValue( 1.0 );
@@ -6716,6 +6821,11 @@ void TTrain::set_cab_controls() {
                 1.0 :
                 0.0 );
     }
+    // alarm chain
+    ggAlarmChain.PutValue(
+        mvControlled->AlarmChainFlag ?
+            1.0 :
+            0.0 );
     // brake signalling
     ggSignallingButton.PutValue(
         mvControlled->Signalling ?
@@ -6984,6 +7094,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "brakectrl:", ggBrakeCtrl },
         { "localbrake:", ggLocalBrake },
         { "manualbrake:", ggManualBrake },
+        { "alarmchain:", ggAlarmChain },
         { "brakeprofile_sw:", ggBrakeProfileCtrl },
         { "brakeprofileg_sw:", ggBrakeProfileG },
         { "brakeprofiler_sw:", ggBrakeProfileR },

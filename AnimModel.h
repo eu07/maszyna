@@ -163,8 +163,8 @@ private:
     bool Init(TModel3d *pNewModel);
     bool Init(std::string const &asName, std::string const &asReplacableTexture);
     bool Load(cParser *parser, bool ter = false);
-    TAnimContainer * AddContainer(char *pName);
-    TAnimContainer * GetContainer(char *pName);
+    TAnimContainer * AddContainer(std::string const &Name);
+    TAnimContainer * GetContainer(std::string const &Name = "");
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {

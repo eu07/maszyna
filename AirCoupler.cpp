@@ -42,9 +42,9 @@ void TAirCoupler::Init(std::string const &asName, TModel3d *pModel)
 { // wyszukanie submodeli
     if (!pModel)
         return; // nie ma w czym szukać
-    pModelOn = pModel->GetFromName( (asName + "_on").c_str() ); // połączony na wprost
-    pModelOff = pModel->GetFromName( (asName + "_off").c_str() ); // odwieszony
-    pModelxOn = pModel->GetFromName( (asName + "_xon").c_str() ); // połączony na skos
+    pModelOn = pModel->GetFromName( asName + "_on" ); // połączony na wprost
+    pModelOff = pModel->GetFromName( asName + "_off" ); // odwieszony
+    pModelxOn = pModel->GetFromName( asName + "_xon" ); // połączony na skos
 }
 
 void TAirCoupler::Load(cParser *Parser, TModel3d *pModel)

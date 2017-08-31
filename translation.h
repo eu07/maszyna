@@ -24,6 +24,7 @@ static std::unordered_map<std::string, std::string> m_cabcontrols = {
     { "brakectrl:", "train brake" },
     { "localbrake:", "independent brake" },
     { "manualbrake:", "manual brake" },
+    { "alarmchain:", "emergency brake" },
     { "brakeprofile_sw:", "brake acting speed" },
     { "brakeprofileg_sw:", "brake acting speed: cargo" },
     { "brakeprofiler_sw:", "brake acting speed: rapid" },

@@ -429,7 +429,7 @@ void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &n
 		>> asPyClassName;
     std::string subModelName = ToLower( asSubModelName );
     std::string pyClassName = ToLower( asPyClassName );
-    TSubModel *subModel = model->GetFromName(subModelName.c_str());
+    TSubModel *subModel = model->GetFromName(subModelName);
     if (subModel == NULL)
     {
         WriteLog( "Python Screen: submodel " + subModelName + " not found - Ignoring screen" );

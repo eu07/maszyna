@@ -778,145 +778,127 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             }
 }
 
+// TODO: refactor this mess
 bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
 {
     bool bError = false;
-    if (!evEvent0)
-    {
-        if (NewEvent0)
-        {
+
+    if( NewEvent0 == nullptr ) {
+        if( false == asEvent0Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEvent0Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
+    }
+    else {
+        if( evEvent0 == nullptr ) {
             evEvent0 = NewEvent0;
             asEvent0Name = "";
             iEvents |= 1; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            {
-                ErrorLog("Bad track: Event0 \"" + asEvent0Name +
-                         "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent0->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        ErrorLog( "Bad track: Event0 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent1 == nullptr ) {
+        if( false == asEvent1Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEvent1Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEvent1)
-    {
-        if (NewEvent1)
-        {
+    else {
+        if( evEvent1 == nullptr ) {
             evEvent1 = NewEvent1;
             asEvent1Name = "";
             iEvents |= 2; // sumaryczna informacja o eventach
         }
-        else if (!asEvent1Name.empty())
-        { // Ra: tylko w logu informacja
-            ErrorLog("Bad track: Event1 \"" + asEvent1Name + "\" does not exist");
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent1->asName + "\" cannot be assigned to track, track already has one" );
             bError = true;
         }
     }
-    else
-    {
-        ErrorLog("Bad track: Event1 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent2 == nullptr ) {
+        if( false == asEvent2Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEvent2Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEvent2)
-    {
-        if (NewEvent2)
-        {
+    else {
+        if( evEvent2 == nullptr ) {
             evEvent2 = NewEvent2;
             asEvent2Name = "";
             iEvents |= 4; // sumaryczna informacja o eventach
         }
-        else if (!asEvent2Name.empty())
-        { // Ra: tylko w logu informacja
-            ErrorLog("Bad track: Event2 \"" + asEvent2Name + "\" does not exist");
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent2->asName + "\" cannot be assigned to track, track already has one" );
             bError = true;
         }
     }
-    else
-    {
-        ErrorLog("Bad track: Event2 cannot be assigned to track, track already has one");
-        bError = true;
-    }
-    return !bError;
+
+    return ( bError == false );
 }
 
 bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
 {
     bool bError = false;
-    if (!evEventall0)
-    {
-        if (NewEvent0)
-        {
+
+    if( NewEvent0 == nullptr ) {
+        if( false == asEventall0Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEventall0Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
+    }
+    else {
+        if( evEventall0 == nullptr ) {
             evEventall0 = NewEvent0;
             asEventall0Name = "";
             iEvents |= 8; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            {
-                Error("Eventall0 \"" + asEventall0Name +
-                      "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent0->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        Error("Eventall0 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent1 == nullptr ) {
+        if( false == asEventall1Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEventall1Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEventall1)
-    {
-        if (NewEvent1)
-        {
-            evEventall1 = NewEvent1;
+    else {
+        if( evEventall1 == nullptr ) {
+            evEventall1 = NewEvent0;
             asEventall1Name = "";
             iEvents |= 16; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            { // Ra: tylko w logu informacja
-                WriteLog("Eventall1 \"" + asEventall1Name + "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent1->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        Error("Eventall1 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent2 == nullptr ) {
+        if( false == asEventall2Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEventall2Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEventall2)
-    {
-        if (NewEvent2)
-        {
-            evEventall2 = NewEvent2;
+    else {
+        if( evEventall2 == nullptr ) {
+            evEventall2 = NewEvent0;
             asEventall2Name = "";
             iEvents |= 32; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            { // Ra: tylko w logu informacja
-                WriteLog("Eventall2 \"" + asEventall2Name +
-                         "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent2->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        Error("Eventall2 cannot be assigned to track, track already has one");
-        bError = true;
-    }
-    return !bError;
+
+    return ( bError == false );
 }
 
 bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
@@ -1079,8 +1061,10 @@ bool TTrack::InMovement()
                 if (!SwitchExtension->CurrentIndex)
                     return false; // 0=zablokowana się nie animuje
                 // trzeba każdorazowo porównywać z kątem modelu
-                TAnimContainer *ac =
-                    SwitchExtension->pModel ? SwitchExtension->pModel->GetContainer(NULL) : NULL;
+                TAnimContainer *ac = (
+                    SwitchExtension->pModel ?
+                        SwitchExtension->pModel->GetContainer() :
+                        nullptr );
                 return ac ?
                            (ac->AngleGet() != SwitchExtension->fOffset) ||
                                !(ac->TransGet() == SwitchExtension->vTrans) :
@@ -1090,10 +1074,7 @@ bool TTrack::InMovement()
     }
     return false;
 };
-void TTrack::RaAssign(TGroundNode *gn, TAnimContainer *ac){
-    // Ra: wiązanie toru z modelem obrotnicy
-    // if (eType==tt_Table) SwitchExtension->pAnim=p;
-};
+
 void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined)
 { // Ra: wiązanie toru z modelem obrotnicy
     if (eType == tt_Table)
@@ -1104,8 +1085,8 @@ void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joi
         SwitchExtension->evPlus =
             joined; // event potwierdzenia połączenia (gdy nie znajdzie, to się nie połączy)
         if (am)
-            if (am->GetContainer(NULL)) // może nie być?
-                am->GetContainer(NULL)->EventAssign(done); // zdarzenie zakończenia animacji
+            if (am->GetContainer()) // może nie być?
+                am->GetContainer()->EventAssign(done); // zdarzenie zakończenia animacji
     }
 };
 
@@ -2172,9 +2153,10 @@ TTrack * TTrack::RaAnimate()
             SwitchExtension->CurrentIndex) // 0=zablokowana się nie animuje
         { // trzeba każdorazowo porównywać z kątem modelu
             // //pobranie kąta z modelu
-            TAnimContainer *ac = SwitchExtension->pModel ?
-                                     SwitchExtension->pModel->GetContainer(NULL) :
-                                     NULL; // pobranie głównego submodelu
+            TAnimContainer *ac = (
+                SwitchExtension->pModel ?
+                    SwitchExtension->pModel->GetContainer() : // pobranie głównego submodelu
+                    nullptr );
             if (ac)
                 if ((ac->AngleGet() != SwitchExtension->fOffset) ||
                     !(ac->TransGet() ==

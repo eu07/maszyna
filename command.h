@@ -36,6 +36,9 @@ enum class user_command {
     trainbrakeservice,
     trainbrakefullservice,
     trainbrakeemergency,
+    manualbrakeincrease,
+    manualbrakedecrease,
+    alarmchaintoggle,
     wheelspinbrakeactivate,
     sandboxactivate,
     reverserincrease,
@@ -57,6 +60,7 @@ enum class user_command {
     hornlowactivate,
     hornhighactivate,
     radiotoggle,
+    radiostoptest,
 /*
 const int k_FailedEngineCutOff = 35;
 */

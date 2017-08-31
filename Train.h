@@ -140,6 +140,9 @@ class TTrain
     static void OnCommand_trainbrakeservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakefullservice( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeemergency( TTrain *Train, command_data const &Command );
+    static void OnCommand_manualbrakeincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_manualbrakedecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_sandboxactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
@@ -187,6 +190,7 @@ class TTrain
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiostoptest( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
 
 // members
@@ -226,6 +230,7 @@ public: // reszta może by?publiczna
     TGauge ggBrakeCtrl;
     TGauge ggLocalBrake;
     TGauge ggManualBrake;
+    TGauge ggAlarmChain;
     TGauge ggBrakeProfileCtrl; // nastawiacz GPR - przelacznik obrotowy
     TGauge ggBrakeProfileG; // nastawiacz GP - hebelek towarowy
     TGauge ggBrakeProfileR; // nastawiacz PR - hamowanie dwustopniowe
