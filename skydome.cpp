@@ -121,11 +121,11 @@ void CSkyDome::Render() {
         // build the buffers
         ::glGenBuffers( 1, &m_vertexbuffer );
         ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_vertices.size() * sizeof( float3 ), m_vertices.data(), GL_STATIC_DRAW );
+        ::glBufferData( GL_ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), m_vertices.data(), GL_STATIC_DRAW );
 
         ::glGenBuffers( 1, &m_coloursbuffer );
         ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_colours.size() * sizeof( float3 ), m_colours.data(), GL_DYNAMIC_DRAW );
+        ::glBufferData( GL_ARRAY_BUFFER, m_colours.size() * sizeof( glm::vec3 ), m_colours.data(), GL_DYNAMIC_DRAW );
 
         ::glGenBuffers( 1, &m_indexbuffer );
         ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
@@ -137,10 +137,10 @@ void CSkyDome::Render() {
     ::glEnableClientState( GL_COLOR_ARRAY );
     // positions
     ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-    ::glVertexPointer( 3, GL_FLOAT, sizeof( float3 ), reinterpret_cast<void const*>( 0 ) );
+    ::glVertexPointer( 3, GL_FLOAT, sizeof( glm::vec3 ), reinterpret_cast<void const*>( 0 ) );
     // colours
     ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-    ::glColorPointer( 3, GL_FLOAT, sizeof( float3 ), reinterpret_cast<void const*>( 0 ) );
+    ::glColorPointer( 3, GL_FLOAT, sizeof( glm::vec3 ), reinterpret_cast<void const*>( 0 ) );
     // indices
     ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
     ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
@@ -344,7 +344,7 @@ void CSkyDome::RebuildColors() {
     if( m_coloursbuffer != -1 ) {
         // the colour buffer was already initialized, so on this run we update its content
         ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-        ::glBufferSubData( GL_ARRAY_BUFFER, 0, m_colours.size() * sizeof( float3 ), m_colours.data() );
+        ::glBufferSubData( GL_ARRAY_BUFFER, 0, m_colours.size() * sizeof( glm::vec3 ), m_colours.data() );
     }
 
 }

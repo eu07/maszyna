@@ -351,7 +351,7 @@ void Console::ValueSet(int x, double y)
                 WriteLog("CalibrateOutDebugInfo: oryginal=" + std::to_string(y), false);
             if (Global::fCalibrateOutMax[x] > 0)
             {
-                y = Global::CutValueToRange(0, y, Global::fCalibrateOutMax[x]);
+                y = clamp( y, 0.0, Global::fCalibrateOutMax[x]);
                 if (Global::iCalibrateOutDebugInfo == x)
                     WriteLog(" cutted=" + std::to_string(y), false);
                 y = y / Global::fCalibrateOutMax[x]; // sprowadzenie do <0,1> jeśli podana

@@ -486,14 +486,11 @@ TGroundRect::NodeAdd( TGroundNode *Node ) {
                     matchingnode->pCenter, Node->pCenter,
                     static_cast<float>( Node->iNumVerts ) / ( Node->iNumVerts + matchingnode->iNumVerts ) );
             matchingnode->iNumVerts += Node->iNumVerts;
-            matchingnode->Piece->vertices.resize( matchingnode->iNumVerts, TGroundVertex() );
             matchingnode->Piece->vertices.insert(
                 std::end( matchingnode->Piece->vertices ),
                 std::begin( Node->Piece->vertices ), std::end( Node->Piece->vertices ) );
             // clear content of the node we're copying. a minor memory saving at best, but still a saving
-            Node->Piece->vertices.clear();
-            Node->Piece->vertices.shrink_to_fit();
-
+            std::vector<TGroundVertex>().swap( Node->Piece->vertices );
             Node->iNumVerts = 0;
             // since we've put the data in existing node we can skip adding the new one...
             return;
@@ -576,7 +573,6 @@ void TGround::Free()
         Current = Current->nNext;
         delete tmpn;
     }
-    iNumNodes = 0;
     // RootNode=NULL;
     nRootDynamic = NULL;
 }
@@ -692,7 +688,6 @@ TGround::convert_terrain( TSubModel const *Submodel ) {
         groundnode->nNext = nRootOfType[ groundnode->iType ];
         // ustawienie nowego na początku listy
         nRootOfType[ groundnode->iType ] = groundnode;
-        ++iNumNodes;
     }
     else {
         delete groundnode;
@@ -789,7 +784,6 @@ void TGround::RaTriangleDivider(TGroundNode *node)
     ntri->bVisible = node->bVisible; // a są jakieś niewidoczne?
     ntri->nNext = nRootOfType[GL_TRIANGLES];
     nRootOfType[GL_TRIANGLES] = ntri; // dopisanie z przodu do listy
-    ++iNumNodes;
     ntri->iNumVerts = 3;
     ntri->Piece->vertices.resize( 3 );
     switch (divide & 3)
@@ -1774,7 +1768,6 @@ bool TGround::Init(std::string File)
     // pTrain=NULL;
     pOrigin = aRotate = vector3(0, 0, 0); // zerowanie przesunięcia i obrotu
     std::string str;
-    // TFileStream *fs;
     // int size;
     std::string subpath = Global::asCurrentSceneryPath; //   "scenery/";
     cParser parser(File, cParser::buffer_FILE, subpath, Global::bLoadTraction);
@@ -1783,7 +1776,6 @@ bool TGround::Init(std::string File)
     std::stack<Math3D::vector3> OriginStack; // stos zagnieżdżenia origin
 
     TGroundNode *LastNode = nullptr; // do użycia w trainset
-    iNumNodes = 0;
     token = "";
     parser.getTokens();
     parser >> token;
@@ -1840,7 +1832,6 @@ bool TGround::Init(std::string File)
                         LastNode->nNext = nRootOfType[ LastNode->iType ];
                         // ustawienie nowego na początku listy
                         nRootOfType[ LastNode->iType ] = LastNode;
-                        ++iNumNodes;
                     }
                     else { // jeśli jest pojazdem
                         if( ( LastNode->DynamicObject->Mechanik != nullptr )
@@ -2667,7 +2658,6 @@ void TGround::InitTracks()
             Current->nNext =
                 nRootOfType[TP_MEMCELL]; // to nie powinno tutaj być, bo robi się śmietnik
             nRootOfType[TP_MEMCELL] = Current;
-            iNumNodes++;
             p->pMemCell = Current->MemCell; // wskaźnik komóki przekazany do odcinka izolowanego
         }
         p = p->Next();
@@ -2706,7 +2696,6 @@ void TGround::InitTraction()
                 nTemp->nNext = nRootOfType[nTemp->iType]; // ostatni dodany dołączamy na końcu
                 // nowego
                 nRootOfType[nTemp->iType] = nTemp; // ustawienie nowego na początku listy
-                iNumNodes++;
             }
     }
     for (nCurrent = nRootOfType[TP_TRACTION]; nCurrent; nCurrent = nCurrent->nNext)
@@ -3152,9 +3141,8 @@ bool TGround::EventConditon(TEvent *e)
         return (e->Params[9].asTrack->IsEmpty());
     else if (e->iFlags & conditional_propability)
     {
-        double rprobability = 1.0 * rand() / RAND_MAX;
-        WriteLog("Random integer: " + std::to_string(rprobability) + "/" +
-                 std::to_string(e->Params[10].asdouble));
+        double rprobability = Random();
+        WriteLog("Random integer: " + std::to_string(rprobability) + " / " + std::to_string(e->Params[10].asdouble));
         return (e->Params[10].asdouble > rprobability);
     }
     else if (e->iFlags & conditional_memcompare)

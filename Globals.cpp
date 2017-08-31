@@ -1322,10 +1322,3 @@ double Global::Min0RSpeed(double vel1, double vel2)
     }
     return std::min(vel1, vel2);
 };
-
-double Global::CutValueToRange(double min, double value, double max)
-{ // przycinanie wartosci do podanych granic
-    value = Max0R(value, min);
-    value = Min0R(value, max);
-    return value;
-};
