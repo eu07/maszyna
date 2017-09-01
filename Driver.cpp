@@ -2376,7 +2376,7 @@ bool TController::IncBrake()
             }
             else {
                 if( mvOccupied->BrakeCtrlPos + 1 == mvOccupied->BrakeCtrlPosNo ) {
-					if (AccDesired < -1.5) // hamowanie nagle
+					if (AccDesired < -0.75) // hamowanie nagle
 						OK = mvOccupied->BrakeLevelAdd(1.0);
                     else
                         OK = false;
@@ -4396,9 +4396,12 @@ TController::UpdateSituation(double dt) {
 						if (ActualProximityDist < fMaxProximityDist) {
                             // jak minął już maksymalny dystans po prostu hamuj (niski stopień)
                             // ma stanąć, a jest w drodze hamowania albo ma jechać
+/*
                             VelDesired = Global::Min0RSpeed( VelDesired, VelNext );
-                            if( VelDesired == 0.0 ) {
+*/
+                            if( VelNext == 0.0 ) {
                                 // hamowanie tak, aby stanąć
+                                VelDesired = VelNext;
                                 AccDesired = ( VelNext * VelNext - vel * vel ) / ( 25.92 * ( ActualProximityDist + 0.1 - 0.5*fMinProximityDist ) );
                                 AccDesired = std::min( AccDesired, fAccThreshold );
                             }
@@ -4423,10 +4426,17 @@ TController::UpdateSituation(double dt) {
                     else {
                         // jest bliżej niż fMinProximityDist
                         // utrzymuj predkosc bo juz blisko
+/*
                         VelDesired = Global::Min0RSpeed( VelDesired, VelNext );
-                        if( vel <= VelNext + fVelPlus ) {
+*/
+                        if( VelNext == 0.0 ) {
+                            VelDesired = VelNext;
+                        }
+                        else {
+                            if( vel <= VelNext + fVelPlus ) {
                             // jeśli niewielkie przekroczenie, ale ma jechać
-                            AccDesired = std::max( 0.0, AccPreferred ); // to olej (zacznij luzować)
+                                AccDesired = std::max( 0.0, AccPreferred ); // to olej (zacznij luzować)
+                            }
                         }
                         ReactionTime = 0.1; // i orientuj się szybciej
                     }
@@ -4527,7 +4537,7 @@ TController::UpdateSituation(double dt) {
                 }
 
                 if( ( true == mvOccupied->RadioStopFlag ) // radio-stop
-                    && ( mvOccupied->Vel > 0.0 ) ) { // and still moving
+                 && ( mvOccupied->Vel > 0.0 ) ) { // and still moving
                     // if the radio-stop was issued don't waste effort trying to fight it
                     while( true == DecSpeed() ) { ; } // just throttle down...
                     return; // ...and don't touch any other controls
@@ -4576,15 +4586,15 @@ TController::UpdateSituation(double dt) {
                             mvOccupied->BrakeLevelSet( 0 );
                         }
                         if( ( mvOccupied->PipePress < 3.0 )
-                            && ( AccDesired > -0.03 ) ) {
+                         && ( AccDesired > -0.03 ) ) {
                             mvOccupied->BrakeReleaser( 1 );
                         }
                         if( ( mvOccupied->BrakeCtrlPos == 0 )
-                            && ( AbsAccS < 0.0 )
-                            && ( AccDesired > -0.03 ) ) {
+                         && ( AbsAccS < 0.0 )
+                         && ( AccDesired > -0.03 ) ) {
 
                             if( ( mvOccupied->EqvtPipePress < 4.95 )
-                                && ( fReady > 0.35 ) )  { // a reszta składu jest na to gotowa
+                             && ( fReady > 0.35 ) )  { // a reszta składu jest na to gotowa
 
                                 if( iDrivigFlags & moveOerlikons ) {
                                     // napełnianie w Oerlikonie
@@ -4598,7 +4608,7 @@ TController::UpdateSituation(double dt) {
                         }
 
                         if( ( mvOccupied->BrakeCtrlPos < 0 )
-                            && ( mvOccupied->EqvtPipePress > (
+                         && ( mvOccupied->EqvtPipePress > (
                                 fReady < 0.25 ?
                                     5.1 :
                                     5.2 ) ) ) {
@@ -4613,7 +4623,7 @@ TController::UpdateSituation(double dt) {
                             AnsiString(VelNext));
 #endif
                 if( ( vel < 10.0 )
-                    && ( AccDesired > 0.1 ) ) {
+                 && ( AccDesired > 0.1 ) ) {
                     // Ra 2F1H: jeśli prędkość jest mała, a można przyspieszać,
                     // to nie ograniczać przyspieszenia do 0.5m/ss
                     // przy małych prędkościach może być trudno utrzymać
@@ -4621,7 +4631,7 @@ TController::UpdateSituation(double dt) {
                 }
                 // małe przyspieszenie
                 // Ra 2F1I: wyłączyć kiedyś to uśrednianie i przeanalizować skanowanie, czemu migocze
-                if (AccDesired > -0.15) // hamowania lepeiej nie uśredniać
+                if (AccDesired > -0.05) // hamowania lepeiej nie uśredniać
                     AccDesired = fAccDesiredAv =
                         0.2 * AccDesired +
                         0.8 * fAccDesiredAv; // uśrednione, żeby ograniczyć migotanie
@@ -4644,7 +4654,7 @@ TController::UpdateSituation(double dt) {
                             // on slopes disengage the brakes only if you actually intend to accelerate
                             while( true == DecBrake() ) { ; } // jeśli przyspieszamy, to nie hamujemy
                             if( ( mvOccupied->BrakePress > 0.4 )
-                                && ( mvOccupied->Hamulec->GetCRP() > 4.9 ) ) {
+                             && ( mvOccupied->Hamulec->GetCRP() > 4.9 ) ) {
                                 // wyluzuj lokomotywę, to szybciej ruszymy
                                 mvOccupied->BrakeReleaser( 1 );
                             }
@@ -4660,11 +4670,11 @@ TController::UpdateSituation(double dt) {
                 // margines dla prędkości jest doliczany tylko jeśli oczekiwana prędkość jest większa od 5km/h
                 if( false == TestFlag( iDrivigFlags, movePress ) ) {
                     // jeśli nie dociskanie
-                    if( AccDesired < -0.1 ) {
+                    if( AccDesired < -0.05 ) {
                         while( true == DecSpeed() ) { ; } // jeśli hamujemy, to nie przyspieszamy
                     }
                     else if( ( vel > VelDesired )
-                            || ( fAccGravity < -0.01 ?
+                          || ( fAccGravity < -0.01 ?
                                     AccDesired < 0.0 :
                                     AbsAccS > AccDesired ) ) {
                         // jak za bardzo przyspiesza albo prędkość przekroczona
@@ -4699,8 +4709,8 @@ TController::UpdateSituation(double dt) {
                     // właściwie, to warunek powinien być na działający EP
                     // Ra: to dobrze hamuje EP w EZT
                     if( ( AccDesired <= fAccThreshold ) // jeśli hamować - u góry ustawia się hamowanie na fAccThreshold
-                        && ( ( AbsAccS > AccDesired )
-                        || ( mvOccupied->BrakeCtrlPos < 0 ) ) ) {
+                     && ( ( AbsAccS > AccDesired )
+                       || ( mvOccupied->BrakeCtrlPos < 0 ) ) ) {
                         // hamować bardziej, gdy aktualne opóźnienie hamowania mniejsze niż (AccDesired)
                         IncBrake();
                     }
@@ -4727,11 +4737,11 @@ TController::UpdateSituation(double dt) {
                 else {
                     // a stara wersja w miarę dobrze działa na składy wagonowe
                     if( ( ( fAccGravity < -0.05 ) && ( vel < 0.0 ) )
-                        || ( ( AccDesired < fAccGravity - 0.1 ) && ( AbsAccS > AccDesired + fBrake_a1[ 0 ] ) ) ) {
+                     || ( ( AccDesired < fAccGravity - 0.1 ) && ( AbsAccS > AccDesired + fBrake_a1[ 0 ] ) ) ) {
                         // u góry ustawia się hamowanie na fAccThreshold
                         if( ( fBrakeTime < 0.0 )
-                            || ( AccDesired < fAccGravity - 0.5 )
-                            || ( mvOccupied->BrakeCtrlPos <= 0 ) ) {
+                         || ( AccDesired < fAccGravity - 0.75 )
+                         || ( mvOccupied->BrakeCtrlPos <= 0 ) ) {
                             // jeśli upłynął czas reakcji hamulca, chyba że nagłe albo luzował
                             if( true == IncBrake() ) {
                                 fBrakeTime =
@@ -4764,9 +4774,9 @@ TController::UpdateSituation(double dt) {
                     // instead of releasing the brakes and creeping into obstacle at 1-2 km/h
                     if( mvControlling->CategoryFlag == 2 ) {
                         if( ( VelDesired == 0.0 )
-                            && ( vel > VelDesired )
-                            && ( ActualProximityDist <= fMinProximityDist )
-                            && ( mvOccupied->LocalBrakePos == 0 ) ) {
+                         && ( vel > VelDesired )
+                         && ( ActualProximityDist <= fMinProximityDist )
+                         && ( mvOccupied->LocalBrakePos == 0 ) ) {
                             IncBrake();
                         }
                     }
