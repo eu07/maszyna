@@ -2939,6 +2939,8 @@ bool TDynamicObject::Update(double dt, double dt1)
     MoverParameters->AccN *= -ABuGetDirection();
 */
     // if (dDOMoveLen!=0.0) //Ra: nie może być, bo blokuje Event0
+    if( Mechanik )
+        Mechanik->MoveDistanceAdd( dDOMoveLen ); // dodanie aktualnego przemieszczenia
     Move(dDOMoveLen);
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia

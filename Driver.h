@@ -143,8 +143,16 @@ class TSpeedPos
     void CommandCheck();
 
   public:
+    TSpeedPos(TTrack *track, double dist, int flag);
+    TSpeedPos(TEvent *event, double dist, TOrders order);
+    TSpeedPos() = default;
     void Clear();
-    bool Update(vector3 *p, vector3 *dir, double &len );
+    bool Update();
+    // aktualizuje odległość we wpisie
+    inline
+    void
+        UpdateDistance( double dist ) {
+        fDist -= dist; }
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText();
@@ -174,7 +182,8 @@ class TController
     TEvent *eSignSkip = nullptr; // można pominąć ten SBL po zatrzymaniu
     std::size_t SemNextIndex{ std::size_t(-1) };
     std::size_t SemNextStopIndex{ std::size_t( -1 ) };
-  private: // parametry aktualnego składu
+    double dMoveLen = 0.0; // odległość przejechana od ostatniego sprawdzenia tabelki
+private: // parametry aktualnego składu
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
     double fAccGravity = 0.0; // przyspieszenie składowej stycznej grawitacji
@@ -372,7 +381,20 @@ class TController
     float
         braking_distance_multiplier( float const Targetvelocity );
     void TablePurger();
-public:
+    void TableSort();
+    inline double MoveDistanceGet()
+    {
+        return dMoveLen;
+    }
+    inline void MoveDistanceReset()
+    {
+        dMoveLen = 0.0;
+    }
+  public:
+    inline void MoveDistanceAdd(double distance)
+    {
+        dMoveLen += distance * iDirection; //jak jedzie do tyłu to trzeba uwzględniać, że distance jest ujemna
+    }
     std::size_t TableSize() const { return sSpeedTable.size(); }
     void TableClear();
     int TableDirection() { return iTableDirection; }
