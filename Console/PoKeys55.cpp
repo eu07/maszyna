@@ -156,7 +156,7 @@ bool TPoKeys55::Connect()
             // get the structure (after we have allocated enough memory for the structure.)
             DetailedInterfaceDataStructure->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
             // First call populates "StructureSize" with the correct value
-            SetupDiGetDeviceInterfaceDetail(DeviceInfoTable, InterfaceDataStructure, NULL, NULL,
+            SetupDiGetDeviceInterfaceDetail(DeviceInfoTable, InterfaceDataStructure, NULL, 0,
                                             &StructureSize, NULL);
             DetailedInterfaceDataStructure =
                 (PSP_DEVICE_INTERFACE_DETAIL_DATA)(malloc(StructureSize)); // Allocate enough memory

@@ -63,9 +63,9 @@ inline double BorlandTime()
 std::string Now();
 
 /*funkcje logiczne*/
-bool TestFlag(int Flag,  int Value);
-bool SetFlag( int & Flag,  int Value);
-bool UnSetFlag(int &Flag, int Value);
+inline bool TestFlag( int const Flag, int const Value ) { return ( ( Flag & Value ) == Value ); }
+bool SetFlag( int &Flag,  int const Value);
+bool ClearFlag(int &Flag, int const Value);
 
 bool FuzzyLogic(double Test, double Threshold, double Probability);
 /*jesli Test>Threshold to losowanie*/
@@ -75,7 +75,7 @@ bool FuzzyLogicAI(double Test, double Threshold, double Probability);
 /*operacje na stringach*/
 std::string DUE(std::string s);  /*Delete Until Equal sign*/
 std::string DWE(std::string s);  /*Delete While Equal sign*/
-std::string ExchangeCharInString(std::string const &s,  const char &aim, const char &target); // zamienia jeden znak na drugi
+std::string ExchangeCharInString( std::string const &Source, char const From, char const To ); // zamienia jeden znak na drugi
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
 //std::vector<std::string> Split(const std::string &s);

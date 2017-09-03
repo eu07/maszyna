@@ -76,7 +76,7 @@ class TTrainParameters
     bool IsTimeToGo(double hh, double mm);
     bool UpdateMTable(double hh, double mm, std::string const &NewName);
     bool UpdateMTable( simulation_time const &Time, std::string const &NewName );
-    void RewindTimeTable(std::string actualStationName);
+    void RewindTimeTable( std::string actualStationName );
     TTrainParameters( std::string const &NewTrainName );
     void NewName(std::string const &NewTrainName);
     void UpdateVelocity(int StationCount, double vActual);

@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "GL/glew.h"
 #include "ResourceManager.h"
 #include "Segment.h"
-#include "Texture.h"
+#include "material.h"
 
 typedef enum
 {
@@ -139,11 +139,9 @@ private:
     float fTexHeight1 = 0.6f; // wysokość brzegu względem trajektorii
     float fTexWidth = 0.9f; // szerokość boku
     float fTexSlope = 0.9f;
-/*
-    GLuint DisplayListID = 0;
-*/
-    texture_handle TextureID1 = 0; // tekstura szyn albo nawierzchni
-    texture_handle TextureID2 = 0; // tekstura automatycznej podsypki albo pobocza
+
+    material_handle m_material1 = 0; // tekstura szyn albo nawierzchni
+    material_handle m_material2 = 0; // tekstura automatycznej podsypki albo pobocza
     typedef std::vector<geometry_handle> geometryhandle_sequence;
     geometryhandle_sequence Geometry1; // geometry chunks textured with texture 1
     geometryhandle_sequence Geometry2; // geometry chunks textured with texture 2
@@ -187,7 +185,6 @@ public:
     bool ScannedFlag = false; // McZapkie: do zaznaczania kolorem torów skanowanych przez AI
     TTraction *hvOverhead = nullptr; // drut zasilający do szybkiego znalezienia (nie używany)
     TGroundNode *nFouling[ 2 ]; // współrzędne ukresu albo oporu kozła
-    TTrack *trColides = nullptr; // tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
 
     TTrack(TGroundNode *g);
     ~TTrack();
@@ -225,24 +222,14 @@ public:
     bool CheckDynamicObject(TDynamicObject *Dynamic);
     bool AddDynamicObject(TDynamicObject *Dynamic);
     bool RemoveDynamicObject(TDynamicObject *Dynamic);
-/*
-    void Release();
 
-    void Compile(GLuint tex = 0);
-    void Render(); // renderowanie z Display Lists
-    int RaArrayPrepare(); // zliczanie rozmiaru dla VBO sektroa
-*/
     void create_geometry(geometrybank_handle const &Bank); // wypełnianie VBO
-/*
-    void RaRenderVBO(int iPtr); // renderowanie z VBO sektora
-*/
     void RenderDynSounds(); // odtwarzanie dźwięków pojazdów jest niezależne od ich wyświetlania
 
     void RaOwnerSet(TSubRect *o) {
         if (SwitchExtension)
             SwitchExtension->pOwner = o; };
     bool InMovement(); // czy w trakcie animacji?
-    void RaAssign(TGroundNode *gn, TAnimContainer *ac);
     void RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined);
     void RaAnimListAdd(TTrack *t);
     TTrack * RaAnimate();
@@ -257,11 +244,11 @@ public:
     GLuint TextureGet(int i) {
         return (
             i ?
-            TextureID1 :
-            TextureID2 ); };
+            m_material1 :
+            m_material2 ); };
     bool IsGroupable();
     int TestPoint(vector3 *Point);
-    void MovedUp1(double dh);
+    void MovedUp1(float const dh);
     std::string NameGet();
     void VelocitySet(float v);
     float VelocityGet();

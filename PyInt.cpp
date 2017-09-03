@@ -291,21 +291,16 @@ void TPythonScreenRenderer::updateTexture()
             sprintf(buff, "Sending texture id: %d w: %d h: %d", _textureId, width, height);
             WriteLog(buff);
 #endif // _PY_INT_MORE_LOG
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            GfxRenderer.Bind(_textureId);
+/*
+            glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+            glPixelStorei( GL_PACK_ALIGNMENT, 1 );
+*/
+            GfxRenderer.Bind_Material(_textureId);
             // setup texture parameters
-            if( GLEW_VERSION_1_4 ) {
-
-                glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-                glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
-            }
-            else {
-
-                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-                glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-            }
+            glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+            glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
             // build texture
             glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData );
 
@@ -451,13 +446,13 @@ void TPythonScreens::init(cParser &parser, TModel3d *model, std::string const &n
 		>> asPyClassName;
     std::string subModelName = ToLower( asSubModelName );
     std::string pyClassName = ToLower( asPyClassName );
-    TSubModel *subModel = model->GetFromName(subModelName.c_str());
+    TSubModel *subModel = model->GetFromName(subModelName);
     if (subModel == NULL)
     {
         WriteLog( "Python Screen: submodel " + subModelName + " not found - Ignoring screen" );
         return; // nie ma takiego sub modelu w danej kabinie pomijamy
     }
-    auto textureId = subModel->GetTextureId();
+    auto textureId = subModel->GetMaterial();
     if (textureId <= 0)
     {
         WriteLog( "Python Screen: invalid texture id " + std::to_string(textureId) + " - Ignoring screen" );

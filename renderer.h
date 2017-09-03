@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "GL/glew.h"
 #include "openglgeometrybank.h"
-#include "texture.h"
+#include "material.h"
 #include "lightarray.h"
 #include "dumb3d.h"
 #include "frustum.h"
@@ -70,13 +70,6 @@ struct opengl_light {
 // for modern opengl this translates to a specific collection of glsl shaders,
 // for legacy opengl this is combination of blending modes, active texture units etc
 struct opengl_technique {
-
-};
-
-// a collection of parameters for the rendering setup.
-// for modern opengl this translates to set of attributes for the active shaders,
-// for legacy opengl this is basically just texture(s) assigned to geometry
-struct opengl_material {
 
 };
 
@@ -175,13 +168,22 @@ public:
     // provides direct access to vertex data of specfied chunk
     vertex_array const &
         Vertices( geometry_handle const &Geometry ) const;
-    // texture methods
-    texture_handle
-        Fetch_Texture( std::string const &Filename, std::string const &Dir = szTexturePath, int const Filter = -1, bool const Loadnow = true );
+    // material methods
+    material_handle
+        Fetch_Material( std::string const &Filename, bool const Loadnow = true );
     void
-        Bind( texture_handle const Texture );
+        Bind_Material( material_handle const Material );
+    opengl_material const &
+        Material( material_handle const Material ) const;
+    // texture methods
+    void
+        Active_Texture( GLint const Textureunit );
+    texture_handle
+        Fetch_Texture( std::string const &Filename, bool const Loadnow = true );
+    void
+        Bind_Texture( texture_handle const Texture );
     opengl_texture const &
-        Texture( texture_handle const Texture );
+        Texture( texture_handle const Texture ) const;
     // light methods
     void
         Disable_Lights();
@@ -211,8 +213,16 @@ private:
         none,
         color,
         shadows,
+        reflections,
         pickcontrols,
         pickscenery
+    };
+
+    enum textureunit {
+        helper = 0,
+        shadows,
+        normals,
+        diffuse
     };
 
     typedef std::pair< double, TSubRect * > distancesubcell_pair;
@@ -224,14 +234,18 @@ private:
         float draw_range { 0.0f };
     };
 
+    struct units_state {
+
+        bool diffuse { false };
+        bool shadows { false };
+        bool reflections { false };
+    };
+
     typedef std::vector<opengl_light> opengllight_array;
 
 // methods
     bool
         Init_caps();
-    // runs jobs needed to generate graphics for specified render pass
-    void
-        Render_pass( rendermode const Mode );
     void
         setup_pass( renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false );
     void
@@ -244,6 +258,12 @@ private:
         setup_shadow_color( glm::vec4 const &Shadowcolor );
     void
         switch_units( bool const Diffuse, bool const Shadows, bool const Reflections );
+    // runs jobs needed to generate graphics for specified render pass
+    void
+        Render_pass( rendermode const Mode );
+    // creates dynamic environment cubemap
+    bool
+        Render_reflections();
     bool
         Render( world_environment *Environment );
     bool
@@ -257,9 +277,9 @@ private:
     bool
         Render( TDynamicObject *Dynamic );
     bool
-        Render( TModel3d *Model, material_data const *Material, double const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+        Render( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     bool
-        Render( TModel3d *Model, material_data const *Material, double const Squaredistance );
+        Render( TModel3d *Model, material_data const *Material, float const Squaredistance );
     void
         Render( TSubModel *Submodel );
     void
@@ -277,9 +297,9 @@ private:
     bool
         Render_Alpha( TDynamicObject *Dynamic );
     bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
+        Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance, Math3D::vector3 const &Position, Math3D::vector3 const &Angle );
     bool
-        Render_Alpha( TModel3d *Model, material_data const *Material, double const Squaredistance );
+        Render_Alpha( TModel3d *Model, material_data const *Material, float const Squaredistance );
     void
         Render_Alpha( TSubModel *Submodel );
     void
@@ -292,34 +312,45 @@ private:
 // members
     GLFWwindow *m_window { nullptr };
     geometrybank_manager m_geometry;
+    material_manager m_materials;
     texture_manager m_textures;
     opengllight_array m_lights;
 
-    geometry_handle m_billboardgeometry { NULL, NULL };
+    geometry_handle m_billboardgeometry { 0, 0 };
     texture_handle m_glaretexture { -1 };
     texture_handle m_suntexture { -1 };
     texture_handle m_moontexture { -1 };
     texture_handle m_reflectiontexture { -1 };
     GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
-
+    // TODO: refactor framebuffer stuff into an object
     bool m_framebuffersupport { false };
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
-    GLuint m_pickframebuffer { NULL }; // TODO: refactor pick framebuffer stuff into an object
-    GLuint m_picktexture { NULL };
-    GLuint m_pickdepthbuffer { NULL };
+    GLuint m_pickframebuffer { 0 };
+    GLuint m_picktexture { 0 };
+    GLuint m_pickdepthbuffer { 0 };
 #endif
-    int m_shadowbuffersize { 4096 };
-    GLuint m_shadowframebuffer { NULL };
-    GLuint m_shadowtexture { NULL };
+    int m_shadowbuffersize { 2048 };
+    GLuint m_shadowframebuffer { 0 };
+    GLuint m_shadowtexture { 0 };
 #ifdef EU07_USE_DEBUG_SHADOWMAP
-    GLuint m_shadowdebugtexture{ NULL };
+    GLuint m_shadowdebugtexture{ 0 };
 #endif
     glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
+    GLuint m_environmentframebuffer { 0 };
+    GLuint m_environmentcubetexture { 0 };
+    GLuint m_environmentdepthbuffer { 0 };
+    bool m_environmentcubetexturesupport { false }; // indicates whether we can use the dynamic environment cube map
+    int m_environmentcubetextureface { 0 }; // helper, currently processed cube map face
+    int m_environmentupdatetime { 0 }; // time of the most recent environment map update
+    glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 
-    int m_shadowtextureunit { GL_TEXTURE1 };
     int m_helpertextureunit { GL_TEXTURE0 };
-    int m_diffusetextureunit { GL_TEXTURE2 };
+    int m_shadowtextureunit { GL_TEXTURE1 };
+    int m_normaltextureunit { GL_TEXTURE2 };
+    int m_diffusetextureunit{ GL_TEXTURE3 };
+    units_state m_unitstate;
 
+    unsigned int m_framestamp; // id of currently rendered gfx frame
     float m_drawtime { 1000.f / 30.f * 20.f }; // start with presumed 'neutral' average of 30 fps
     std::chrono::steady_clock::time_point m_drawstart; // cached start time of previous frame
     float m_framerate;
@@ -327,6 +358,7 @@ private:
     float m_drawtimeshadowpass { 0.f };
     double m_updateaccumulator { 0.0 };
     std::string m_debuginfo;
+    std::string m_pickdebuginfo;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { 0.5f, 0.5f, 0.5f, 1.f };

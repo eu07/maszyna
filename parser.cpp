@@ -21,32 +21,32 @@ http://mozilla.org/MPL/2.0/.
 // cParser -- generic class for parsing text data.
 
 // constructors
-cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction )
-{
-    LoadTraction = Loadtraction;
+cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction ) :
+    mPath(Path),
+    LoadTraction( Loadtraction ) {
     // build comments map
     mComments.insert(commentmap::value_type("/*", "*/"));
     mComments.insert(commentmap::value_type("//", "\n"));
     // mComments.insert(commentmap::value_type("--","\n")); //Ra: to chyba nie używane
     // store to calculate sub-sequent includes from relative path
-    mPath = Path;
     if( Type == buffertype::buffer_FILE ) {
         mFile = Stream;
     }
     // reset pointers and attach proper type of buffer
-    switch (Type)
-    {
-    case buffer_FILE:
-        Path.append(Stream);
-        mStream = new std::ifstream(Path.c_str());
-        break;
-    case buffer_TEXT:
-        mStream = new std::istringstream(Stream);
-        break;
-    default:
-        mStream = NULL;
+    switch (Type) {
+        case buffer_FILE: {
+            Path.append( Stream );
+            mStream = std::make_shared<std::ifstream>( Path );
+            break;
+        }
+        case buffer_TEXT: {
+            mStream = std::make_shared<std::istringstream>( Stream );
+            break;
+        }
+        default: {
+            break;
+        }
     }
-    mIncludeParser = NULL;
     // calculate stream size
     if (mStream)
     {
@@ -56,19 +56,14 @@ cParser::cParser( std::string const &Stream, buffertype const Type, std::string 
         else {
             mSize = mStream->rdbuf()->pubseekoff( 0, std::ios_base::end );
             mStream->rdbuf()->pubseekoff( 0, std::ios_base::beg );
+            mLine = 1;
         }
     }
-    else
-        mSize = 0;
 }
 
 // destructor
-cParser::~cParser()
-{
-    if (mIncludeParser)
-        delete mIncludeParser;
-    if (mStream)
-        delete mStream;
+cParser::~cParser() {
+
     mComments.clear();
 }
 
@@ -157,7 +152,7 @@ std::string cParser::readToken(bool ToLower, const char *Break)
     // see if there's include parsing going on. clean up when it's done.
     if (mIncludeParser)
     {
-        token = (*mIncludeParser).readToken(ToLower, Break);
+        token = mIncludeParser->readToken(ToLower, Break);
         if (!token.empty())
         {
             pos = token.find("(p");
@@ -182,13 +177,12 @@ std::string cParser::readToken(bool ToLower, const char *Break)
         }
         else
         {
-            delete mIncludeParser;
             mIncludeParser = NULL;
             parameters.clear();
         }
     }
     // get the token yourself if there's no child to delegate it to.
-    char c;
+    char c { 0 };
     do
     {
         while (mStream->peek() != EOF && strchr(Break, c = mStream->get()) == NULL)
@@ -200,6 +194,10 @@ std::string cParser::readToken(bool ToLower, const char *Break)
                 break;
             if (trimComments(token)) // don't glue together words separated with comment
                 break;
+        }
+        if( c == '\n' ) {
+            // update line counter
+            ++mLine;
         }
     } while (token == "" && mStream->peek() != EOF); // double check to deal with trailing spaces
     // launch child parser if include directive found.
@@ -218,16 +216,18 @@ std::string cParser::readToken(bool ToLower, const char *Break)
 				&& (parameter.compare("end") != 0) )
             {
                 parameters.push_back(parameter);
-                parameter = readToken(ToLower);
+                parameter = readToken(false);
             }
             // if (trtest2.find("tr/")!=0)
-            mIncludeParser = new cParser(includefile, buffer_FILE, mPath, LoadTraction);
+            mIncludeParser = std::make_shared<cParser>(includefile, buffer_FILE, mPath, LoadTraction);
             if (mIncludeParser->mSize <= 0)
                 ErrorLog("Missed include: " + includefile);
         }
-        else
-            while (token.compare("end") != 0)
-                token = readToken(ToLower);
+        else {
+            while( token.compare( "end" ) != 0 ) {
+                token = readToken( true ); // minimize risk of case mismatch on comparison
+            }
+        }
         token = readToken(ToLower, Break);
     }
     return token;
@@ -235,8 +235,12 @@ std::string cParser::readToken(bool ToLower, const char *Break)
 
 std::string cParser::readQuotes(char const Quote) { // read the stream until specified char or stream end
     std::string token = "";
-    char c;
+    char c { 0 };
     while( mStream->peek() != EOF && Quote != (c = mStream->get()) ) { // get all chars until the quote mark
+        if( c == '\n' ) {
+            // update line counter
+            ++mLine;
+        }
         token += c;
     }
     return token;
@@ -244,9 +248,16 @@ std::string cParser::readQuotes(char const Quote) { // read the stream until spe
 
 void cParser::skipComment( std::string const &Endmark ) { // pobieranie znaków aż do znalezienia znacznika końca
     std::string input = "";
+    char c { 0 };
     auto const endmarksize = Endmark.size();
-    while( mStream->peek() != EOF ) { // o ile nie koniec pliku
-        input += mStream->get(); // pobranie znaku
+    while( mStream->peek() != EOF ) {
+        // o ile nie koniec pliku
+        c = mStream->get(); // pobranie znaku
+        if( c == '\n' ) {
+            // update line counter
+            ++mLine;
+        }
+        input += c;
         if( input.find( Endmark ) != std::string::npos ) // szukanie znacznika końca
             break;
         if( input.size() >= endmarksize ) {
@@ -302,7 +313,7 @@ std::size_t cParser::countTokens( std::string const &Stream, std::string Path ) 
 std::size_t cParser::count() {
 
     std::string token;
-    size_t count{ 0 };
+    size_t count { 0 };
     do {
         token = "";
         token = readToken( false );
@@ -319,8 +330,16 @@ void cParser::addCommentStyle( std::string const &Commentstart, std::string cons
 
 // returns name of currently open file, or empty string for text type stream
 std::string
-cParser::Name() {
+cParser::Name() const {
 
     if( mIncludeParser ) { return mIncludeParser->Name(); }
     else                 { return mPath + mFile; }
+}
+
+// returns number of currently processed line
+std::size_t
+cParser::Line() const {
+
+    if( mIncludeParser ) { return mIncludeParser->Line(); }
+    else                 { return mLine; }
 }

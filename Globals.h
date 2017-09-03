@@ -228,6 +228,7 @@ class Global
     static opengl_light DayLight;
     static int DynamicLightCount;
     static bool ScaleSpecularValues;
+    static bool BasicRenderer;
     static bool RenderShadows;
     static struct shadowtune_t {
         unsigned int map_size;
@@ -273,7 +274,7 @@ class Global
     static double fMoveLight; // numer dnia w roku albo -1
     static bool FakeLight; // toggle between fixed and dynamic daylight
     static bool bSmoothTraction; // wygładzanie drutów
-    static double fSunDeclination; // deklinacja Słońca
+    static float SplineFidelity; // determines segment size during conversion of splines to geometry
     static double fTimeSpeed; // przyspieszenie czasu, zmienna do testów
     static double fTimeAngleDeg; // godzina w postaci kąta
     static float fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
@@ -293,14 +294,12 @@ class Global
     static int iSlowMotionMask; // maska wyłączanych właściwości
     static int iModifyTGA; // czy korygować pliki TGA dla szybszego wczytywania
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
-	static bool bOldSmudge; // Używanie starej smugi
 	
     static TWorld *pWorld; // wskaźnik na świat do usuwania pojazdów
     static TAnimModel *pTerrainCompact; // obiekt terenu do ewentualnego zapisania w pliku
     static std::string asTerrainModel; // nazwa obiektu terenu do zapisania w pliku
     static bool bRollFix; // czy wykonać przeliczanie przechyłki
     static cParser *pParser;
-    static int iSegmentsRendered; // ilość segmentów do regulacji wydajności
     static double fFpsAverage; // oczekiwana wartosć FPS
     static double fFpsDeviation; // odchylenie standardowe FPS
     static double fFpsMin; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
@@ -337,7 +336,6 @@ class Global
     static bool DoEvents();
     static std::string Bezogonkow(std::string str, bool _ = false);
 	static double Min0RSpeed(double vel1, double vel2);
-	static double CutValueToRange(double min, double value, double max);
 
     // maciek001: zmienne dla MWD
 	static bool bMWDmasterEnable;           // główne włączenie portu COM

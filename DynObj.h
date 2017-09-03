@@ -143,7 +143,7 @@ class TAnim
 struct material_data {
 
     int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
-    texture_handle replacable_skins[ 5 ] = { NULL, NULL, NULL, NULL, NULL }; // McZapkie:zmienialne nadwozie
+    material_handle replacable_skins[ 5 ] = { null_handle, null_handle, null_handle, null_handle, null_handle }; // McZapkie:zmienialne nadwozie
     int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
 };
 
@@ -178,6 +178,7 @@ public: // parametry położenia pojazdu dostępne publicznie
     int NextConnectedNo; // numer sprzęgu podłączonego z tyłu
     int PrevConnectedNo; // numer sprzęgu podłączonego z przodu
     double fScanDist; // odległość skanowania torów na obecność innych pojazdów
+    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
 
     TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
 
@@ -186,7 +187,7 @@ public: // modele składowe pojazdu
     TModel3d *mdLoad; // model zmiennego ładunku
     TModel3d *mdKabina; // model kabiny dla użytkownika; McZapkie-030303: to z train.h
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
-    float3 InteriorLight { 0.9f * 255.0f / 255.0f, 0.9f * 216.0f / 255.0f, 0.9f * 176.0f / 255.0f }; // tungsten light. TODO: allow definition of light type?
+    glm::vec3 InteriorLight { 0.9f * 255.f / 255.f, 0.9f * 216.f / 255.f, 0.9f * 176.f / 255.f }; // tungsten light. TODO: allow definition of light type?
     float InteriorLightLevel { 0.0f }; // current level of interior lighting
     struct section_light {
         TSubModel *compartment;
@@ -354,22 +355,18 @@ public: // modele składowe pojazdu
     // TTrackFollower Axle2; //dwie osie z czterech (te są protected)
     // TTrackFollower Axle3; //Ra: wyłączyłem, bo kąty są liczone w Segment.cpp
     int iNumAxles; // ilość osi
-    int CouplCounter;
     std::string asModel;
 
   public:
     void ABuScanObjects(int ScanDir, double ScanDist);
 
   protected:
-    TDynamicObject * ABuFindObject(TTrack *Track, int ScanDir, BYTE &CouplFound,
-                                             double &dist);
+    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack *Track, int const Direction, int const Mycoupler );
     void ABuCheckMyTrack();
 
   public:
     int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
-    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym
-    // pojazdem)
     TDynamicObject * PrevAny();
     TDynamicObject * Prev();
     TDynamicObject * Next();

@@ -28,8 +28,8 @@ void TButton::Init(std::string const &asName, TModel3d *pModel, bool bNewOn)
 {
     if( pModel == nullptr ) { return; }
 
-    pModelOn = pModel->GetFromName( (asName + "_on").c_str() );
-    pModelOff = pModel->GetFromName( (asName + "_off").c_str() );
+    pModelOn = pModel->GetFromName( asName + "_on" );
+    pModelOff = pModel->GetFromName( asName + "_off" );
     m_state = bNewOn;
     Update();
 };
@@ -77,7 +77,7 @@ void TButton::Load(cParser &Parser, TModel3d *pModel1, TModel3d *pModel2) {
 bool
 TButton::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, ", " ) ) {
+    if( false == Input.getTokens( 2, true, " ,\n\r\t" ) ) {
         return false;
     }
 

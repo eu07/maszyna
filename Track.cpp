@@ -483,20 +483,20 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
     {
         parser->getTokens();
         *parser >> str; // railtex
-        TextureID1 = (
+        m_material1 = (
             str == "none" ?
-                NULL :
-                GfxRenderer.Fetch_Texture( str ) );
+                null_handle :
+                GfxRenderer.Fetch_Material( str ) );
         parser->getTokens();
         *parser >> fTexLength; // tex tile length
         if (fTexLength < 0.01)
             fTexLength = 4; // Ra: zabezpiecznie przed zawieszeniem
         parser->getTokens();
         *parser >> str; // sub || railtex
-        TextureID2 = (
+        m_material2 = (
             str == "none" ?
-                NULL :
-                GfxRenderer.Fetch_Texture( str ) );
+                null_handle :
+                GfxRenderer.Fetch_Material( str ) );
         parser->getTokens(3);
         *parser >> fTexHeight1 >> fTexWidth >> fTexSlope;
         if (iCategoryFlag & 4)
@@ -527,7 +527,7 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             // na przechyłce doliczyć jeszcze pół przechyłki
         }
         if( fRadius != 0 ) // gdy podany promień
-            segsize = clamp( 0.2 + std::fabs( fRadius ) * 0.02, 2.0, 10.0 );
+            segsize = clamp( std::fabs( fRadius ) * ( 0.02 / Global::SplineFidelity ), 2.0 / Global::SplineFidelity, 10.0 );
         else
             segsize = 10.0; // for straights, 10m per segment works good enough
 
@@ -547,15 +547,15 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             SwitchExtension->Segments[0]->Init(p1, p2, segsize); // kopia oryginalnego toru
         }
         else if (iCategoryFlag & 2)
-            if (TextureID1 && fTexLength)
+            if (m_material1 && fTexLength)
             { // dla drogi trzeba ustalić proporcje boków nawierzchni
                 float w, h;
-                GfxRenderer.Bind(TextureID1);
+                GfxRenderer.Bind_Material(m_material1);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
                 if (h != 0.0)
                     fTexRatio1 = w / h; // proporcja boków
-                GfxRenderer.Bind(TextureID2);
+                GfxRenderer.Bind_Material(m_material2);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
                 glGetTexLevelParameterfv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
                 if (h != 0.0)
@@ -762,12 +762,6 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
                 iAction |= 0x40; // flaga opuszczenia pantografu (tor uwzględniany w skanowaniu jako
             // ograniczenie dla pantografujących)
         }
-        else if (str == "colides")
-        { // informacja o stanie sieci: 0-jazda bezprądowa, >0-z opuszczonym i ograniczeniem prędkości
-            parser->getTokens();
-            *parser >> token;
-            // trColides=; //tor kolizyjny, na którym trzeba sprawdzać pojazdy pod kątem zderzenia
-        }
         else
             ErrorLog("Unknown property: \"" + str + "\" in track \"" + name + "\"");
         parser->getTokens();
@@ -784,145 +778,127 @@ void TTrack::Load(cParser *parser, vector3 pOrigin, std::string name)
             }
 }
 
+// TODO: refactor this mess
 bool TTrack::AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
 {
     bool bError = false;
-    if (!evEvent0)
-    {
-        if (NewEvent0)
-        {
+
+    if( NewEvent0 == nullptr ) {
+        if( false == asEvent0Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEvent0Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
+    }
+    else {
+        if( evEvent0 == nullptr ) {
             evEvent0 = NewEvent0;
             asEvent0Name = "";
             iEvents |= 1; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            {
-                ErrorLog("Bad track: Event0 \"" + asEvent0Name +
-                         "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent0->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        ErrorLog( "Bad track: Event0 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent1 == nullptr ) {
+        if( false == asEvent1Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEvent1Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEvent1)
-    {
-        if (NewEvent1)
-        {
+    else {
+        if( evEvent1 == nullptr ) {
             evEvent1 = NewEvent1;
             asEvent1Name = "";
             iEvents |= 2; // sumaryczna informacja o eventach
         }
-        else if (!asEvent1Name.empty())
-        { // Ra: tylko w logu informacja
-            ErrorLog("Bad track: Event1 \"" + asEvent1Name + "\" does not exist");
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent1->asName + "\" cannot be assigned to track, track already has one" );
             bError = true;
         }
     }
-    else
-    {
-        ErrorLog("Bad track: Event1 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent2 == nullptr ) {
+        if( false == asEvent2Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEvent2Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEvent2)
-    {
-        if (NewEvent2)
-        {
+    else {
+        if( evEvent2 == nullptr ) {
             evEvent2 = NewEvent2;
             asEvent2Name = "";
             iEvents |= 4; // sumaryczna informacja o eventach
         }
-        else if (!asEvent2Name.empty())
-        { // Ra: tylko w logu informacja
-            ErrorLog("Bad track: Event2 \"" + asEvent2Name + "\" does not exist");
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent2->asName + "\" cannot be assigned to track, track already has one" );
             bError = true;
         }
     }
-    else
-    {
-        ErrorLog("Bad track: Event2 cannot be assigned to track, track already has one");
-        bError = true;
-    }
-    return !bError;
+
+    return ( bError == false );
 }
 
 bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2)
 {
     bool bError = false;
-    if (!evEventall0)
-    {
-        if (NewEvent0)
-        {
+
+    if( NewEvent0 == nullptr ) {
+        if( false == asEventall0Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEventall0Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
+    }
+    else {
+        if( evEventall0 == nullptr ) {
             evEventall0 = NewEvent0;
             asEventall0Name = "";
             iEvents |= 8; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            {
-                Error("Eventall0 \"" + asEventall0Name +
-                      "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent0->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        Error("Eventall0 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent1 == nullptr ) {
+        if( false == asEventall1Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEventall1Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEventall1)
-    {
-        if (NewEvent1)
-        {
-            evEventall1 = NewEvent1;
+    else {
+        if( evEventall1 == nullptr ) {
+            evEventall1 = NewEvent0;
             asEventall1Name = "";
             iEvents |= 16; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            { // Ra: tylko w logu informacja
-                WriteLog("Eventall1 \"" + asEventall1Name + "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent1->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        Error("Eventall1 cannot be assigned to track, track already has one");
-        bError = true;
+
+    if( NewEvent2 == nullptr ) {
+        if( false == asEventall2Name.empty() ) {
+            ErrorLog( "Bad event: event \"" + asEventall2Name + "\" assigned to track \"" + pMyNode->asName + "\" does not exist" );
+            bError = true;
+        }
     }
-    if (!evEventall2)
-    {
-        if (NewEvent2)
-        {
-            evEventall2 = NewEvent2;
+    else {
+        if( evEventall2 == nullptr ) {
+            evEventall2 = NewEvent0;
             asEventall2Name = "";
             iEvents |= 32; // sumaryczna informacja o eventach
         }
-        else
-        {
-            if (!asEvent0Name.empty())
-            { // Ra: tylko w logu informacja
-                WriteLog("Eventall2 \"" + asEventall2Name +
-                         "\" does not exist");
-                bError = true;
-            }
+        else {
+            ErrorLog( "Bad track: event \"" + NewEvent2->asName + "\" cannot be assigned to track, track already has one" );
+            bError = true;
         }
     }
-    else
-    {
-        Error("Eventall2 cannot be assigned to track, track already has one");
-        bError = true;
-    }
-    return !bError;
+
+    return ( bError == false );
 }
 
 bool TTrack::AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus)
@@ -1085,8 +1061,10 @@ bool TTrack::InMovement()
                 if (!SwitchExtension->CurrentIndex)
                     return false; // 0=zablokowana się nie animuje
                 // trzeba każdorazowo porównywać z kątem modelu
-                TAnimContainer *ac =
-                    SwitchExtension->pModel ? SwitchExtension->pModel->GetContainer(NULL) : NULL;
+                TAnimContainer *ac = (
+                    SwitchExtension->pModel ?
+                        SwitchExtension->pModel->GetContainer() :
+                        nullptr );
                 return ac ?
                            (ac->AngleGet() != SwitchExtension->fOffset) ||
                                !(ac->TransGet() == SwitchExtension->vTrans) :
@@ -1096,10 +1074,7 @@ bool TTrack::InMovement()
     }
     return false;
 };
-void TTrack::RaAssign(TGroundNode *gn, TAnimContainer *ac){
-    // Ra: wiązanie toru z modelem obrotnicy
-    // if (eType==tt_Table) SwitchExtension->pAnim=p;
-};
+
 void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joined)
 { // Ra: wiązanie toru z modelem obrotnicy
     if (eType == tt_Table)
@@ -1110,8 +1085,8 @@ void TTrack::RaAssign(TGroundNode *gn, TAnimModel *am, TEvent *done, TEvent *joi
         SwitchExtension->evPlus =
             joined; // event potwierdzenia połączenia (gdy nie znajdzie, to się nie połączy)
         if (am)
-            if (am->GetContainer(NULL)) // może nie być?
-                am->GetContainer(NULL)->EventAssign(done); // zdarzenie zakończenia animacji
+            if (am->GetContainer()) // może nie być?
+                am->GetContainer()->EventAssign(done); // zdarzenie zakończenia animacji
     }
 };
 
@@ -1205,7 +1180,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         {
         case tt_Table: // obrotnica jak zwykły tor, tylko animacja dochodzi
         case tt_Normal:
-            if (TextureID2)
+            if (m_material2)
             { // podsypka z podkładami jest tylko dla zwykłego toru
                 vector6 bpts1[8]; // punkty głównej płaszczyzny nie przydają się do robienia boków
                 if (fTexLength == 4.0) // jeśli stare mapowanie
@@ -1275,7 +1250,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     GfxRenderer.Replace( vertices, Geometry2[ 0 ] );
                 }
             }
-            if (TextureID1)
+            if (m_material1)
             { // szyny - generujemy dwie, najwyżej rysować się będzie jedną
                 vertex_array vertices;
                 if( ( Bank != 0 ) && ( true == Geometry1.empty() ) ) {
@@ -1296,7 +1271,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             }
             break;
         case tt_Switch: // dla zwrotnicy dwa razy szyny
-            if( TextureID1 || TextureID2 )
+            if( m_material1 || m_material2 )
             { // iglice liczone tylko dla zwrotnic
                 vector6 rpts3[24], rpts4[24];
                 for (i = 0; i < 12; ++i)
@@ -1326,7 +1301,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 if (SwitchExtension->RightSwitch)
                 { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
                     vertex_array vertices;
-                    if( TextureID1 ) {
+                    if( m_material1 ) {
                         // fixed parts
                         SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts2, nnumPts, fTexLength );
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
@@ -1339,7 +1314,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
-                    if( TextureID2 ) {
+                    if( m_material2 ) {
                         // fixed parts
                         SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts1, nnumPts, fTexLength );
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
@@ -1356,7 +1331,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 else
                 { // lewa działa lepiej niż prawa
                     vertex_array vertices;
-                    if( TextureID1 ) {
+                    if( m_material1 ) {
                         // fixed parts
                         SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts1, nnumPts, fTexLength ); // lewa szyna normalna cała
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
@@ -1369,7 +1344,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
                         vertices.clear();
                     }
-                    if( TextureID2 ) {
+                    if( m_material2 ) {
                         // fixed parts
                         SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts2, nnumPts, fTexLength ); // prawa szyna normalnie cała
                         Geometry2.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
@@ -1394,7 +1369,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         case tt_Normal: // drogi proste, bo skrzyżowania osobno
         {
             vector6 bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
-            if (TextureID1 || TextureID2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
+            if (m_material1 || m_material2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
             { // double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
                 double max = fTexRatio1 * fTexLength; // test: szerokość proporcjonalna do długości
                 double map1 = max > 0.0 ? fHTW / max : 0.5; // obcięcie tekstury od strony 1
@@ -1413,13 +1388,13 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     bpts1[ 1 ] = vector6( -fHTW, 0.0, 0.5 + map1, 0.0, 1.0, 0.0 );
                 }
             }
-            if (TextureID1) // jeśli podana była tekstura, generujemy trójkąty
+            if (m_material1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
                 vertex_array vertices;
                 Segment->RenderLoft(vertices, origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
                 Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
             }
-            if (TextureID2)
+            if (m_material2)
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
                 vector6
                     rpts1[6],
@@ -1574,7 +1549,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     nullptr :
                     SwitchExtension->vPoints; // zmienna robocza, NULL gdy tablica punktów już jest wypełniona
             vector6 bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
-            if (TextureID1 || TextureID2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
+            if (m_material1 || m_material2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
             { // double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
                 double max = fTexRatio1 * fTexLength; // test: szerokość proporcjonalna do długości
                 double map1 = max > 0.0 ? fHTW / max : 0.5; // obcięcie tekstury od strony 1
@@ -1592,7 +1567,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
             // problem ze skrzyżowaniami jest taki, że teren chce się pogrupować wg tekstur, ale zaczyna od nawierzchni
             // sama nawierzchnia nie wypełni tablicy punktów, bo potrzebne są pobocza
             // ale pobocza renderują się później, więc nawierzchnia nie załapuje się na renderowanie w swoim czasie
-            if( TextureID2 ) 
+            if( m_material2 ) 
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
                 vector6
                     rpts1[6],
@@ -1651,7 +1626,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                         rpts2[5] = vector6(bpts1[3].x - side2, bpts1[3].y - fTexHeight2, 0.484375 - map2l); // lewy brzeg lewego chodnika
                     }
                 }
-                bool render = ( TextureID2 != 0 ); // renderować nie trzeba, ale trzeba wyznaczyć punkty brzegowe nawierzchni
+                bool render = ( m_material2 != 0 ); // renderować nie trzeba, ale trzeba wyznaczyć punkty brzegowe nawierzchni
                 vertex_array vertices;
                 if (SwitchExtension->iRoads == 4)
                 { // pobocza do trapezowatej nawierzchni - dodatkowe punkty z drugiej strony odcinka
@@ -1707,7 +1682,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                 SwitchExtension->bPoints = true; // tablica punktów została wypełniona
             }
 
-            if( TextureID1 ) {
+            if( m_material1 ) {
                 vertex_array vertices;
                 // jeśli podana tekstura nawierzchni
                 // we start with a vertex in the middle...
@@ -1759,7 +1734,7 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
         case tt_Normal: // drogi proste, bo skrzyżowania osobno
         {
             vector6 bpts1[4]; // punkty głównej płaszczyzny przydają się do robienia boków
-            if (TextureID1 || TextureID2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
+            if (m_material1 || m_material2) // punkty się przydadzą, nawet jeśli nawierzchni nie ma
             { // double max=2.0*(fHTW>fHTW2?fHTW:fHTW2); //z szerszej strony jest 100%
                 double max = (iCategoryFlag & 4) ?
                                  0.0 :
@@ -1784,13 +1759,13 @@ void TTrack::create_geometry( geometrybank_handle const &Bank ) {
                     bpts1[1] = vector6(-fHTW, 0.0, 0.5 + map1);
                 }
             }
-            if (TextureID1) // jeśli podana była tekstura, generujemy trójkąty
+            if (m_material1) // jeśli podana była tekstura, generujemy trójkąty
             { // tworzenie trójkątów nawierzchni szosy
                 vertex_array vertices;
                 Segment->RenderLoft(vertices, origin, bpts1, iTrapezoid ? -2 : 2, fTexLength);
                 Geometry1.emplace_back( GfxRenderer.Insert( vertices, Bank, GL_TRIANGLE_STRIP ) );
             }
-            if (TextureID2)
+            if (m_material2)
             { // pobocze drogi - poziome przy przechyłce (a może krawężnik i chodnik zrobić jak w Midtown Madness 2?)
                 vertex_array vertices;
                 vector6 rpts1[6],
@@ -2105,8 +2080,8 @@ TTrack * TTrack::RaAnimate()
             }
         }
         // skip the geometry update if no geometry for this track was generated yet
-        if( ( ( TextureID1 != 0 )
-           || ( TextureID2 != 0 ) )
+        if( ( ( m_material1 != 0 )
+           || ( m_material2 != 0 ) )
          && ( ( false == Geometry1.empty() )
            || ( false == Geometry2.empty() ) ) ) {
             // iglice liczone tylko dla zwrotnic
@@ -2143,13 +2118,13 @@ TTrack * TTrack::RaAnimate()
 
             if (SwitchExtension->RightSwitch)
             { // nowa wersja z SPKS, ale odwrotnie lewa/prawa
-                if( TextureID1 ) {
+                if( m_material1 ) {
                     // left blade
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, SwitchExtension->fOffset2 );
                     GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
                     vertices.clear();
                 }
-                if( TextureID2 ) {
+                if( m_material2 ) {
                     // right blade
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -fMaxOffset + SwitchExtension->fOffset1 );
                     GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
@@ -2157,13 +2132,13 @@ TTrack * TTrack::RaAnimate()
                 }
             }
             else { // lewa działa lepiej niż prawa
-                if( TextureID1 ) {
+                if( m_material1 ) {
                     // right blade
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, origin, rpts4, -nnumPts, fTexLength, 1.0, 0, 2, -SwitchExtension->fOffset2 );
                     GfxRenderer.Replace( vertices, Geometry1[ 2 ] );
                     vertices.clear();
                 }
-                if( TextureID2 ) {
+                if( m_material2 ) {
                     // left blade
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, origin, rpts3, -nnumPts, fTexLength, 1.0, 0, 2, fMaxOffset - SwitchExtension->fOffset1 );
                     GfxRenderer.Replace( vertices, Geometry2[ 2 ] );
@@ -2178,9 +2153,10 @@ TTrack * TTrack::RaAnimate()
             SwitchExtension->CurrentIndex) // 0=zablokowana się nie animuje
         { // trzeba każdorazowo porównywać z kątem modelu
             // //pobranie kąta z modelu
-            TAnimContainer *ac = SwitchExtension->pModel ?
-                                     SwitchExtension->pModel->GetContainer(NULL) :
-                                     NULL; // pobranie głównego submodelu
+            TAnimContainer *ac = (
+                SwitchExtension->pModel ?
+                    SwitchExtension->pModel->GetContainer() : // pobranie głównego submodelu
+                    nullptr );
             if (ac)
                 if ((ac->AngleGet() != SwitchExtension->fOffset) ||
                     !(ac->TransGet() ==
@@ -2319,7 +2295,7 @@ int TTrack::TestPoint(vector3 *Point)
     return -1;
 };
 
-void TTrack::MovedUp1(double dh)
+void TTrack::MovedUp1(float const dh)
 { // poprawienie przechyłki wymaga wydłużenia podsypki
     fTexHeight1 += dh;
 };

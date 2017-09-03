@@ -131,7 +131,6 @@ void Mtable::TTrainParameters::RewindTimeTable(std::string actualStationName)
     }
 }
 
-
 void TTrainParameters::StationIndexInc()
 { // przejście do następnej pozycji StationIndex<=StationCount
     ++StationIndex;

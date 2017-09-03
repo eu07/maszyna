@@ -118,8 +118,9 @@ geometry_bank::vertices( geometry_handle const &Geometry ) const {
 
 // opengl vbo-based variant of the geometry bank
 
-GLuint opengl_vbogeometrybank::m_activebuffer { NULL }; // buffer bound currently on the opengl end, if any
+GLuint opengl_vbogeometrybank::m_activebuffer { 0 }; // buffer bound currently on the opengl end, if any
 unsigned int opengl_vbogeometrybank::m_activestreams { stream::none }; // currently enabled data type pointers
+std::vector<GLint> opengl_vbogeometrybank::m_activetexturearrays; // currently enabled texture coord arrays
 
 // create() subclass details
 void
@@ -150,7 +151,7 @@ opengl_vbogeometrybank::replace_( geometry_handle const &Geometry ) {
 void
 opengl_vbogeometrybank::draw_( geometry_handle const &Geometry, stream_units const &Units, unsigned int const Streams ) {
 
-    if( m_buffer == NULL ) {
+    if( m_buffer == 0 ) {
         // if there's no buffer, we'll have to make one
         // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
         // may be better to initiate upload earlier (during update phase) and trust this effort won't go to waste
@@ -234,14 +235,14 @@ opengl_vbogeometrybank::bind_buffer() {
 void
 opengl_vbogeometrybank::delete_buffer() {
 
-    if( m_buffer != NULL ) {
+    if( m_buffer != 0 ) {
         
         ::glDeleteBuffers( 1, &m_buffer );
         if( m_activebuffer == m_buffer ) {
-            m_activebuffer = NULL;
+            m_activebuffer = 0;
             release_streams();
         }
-        m_buffer = NULL;
+        m_buffer = 0;
         m_buffercapacity = 0;
         // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
         // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice
@@ -274,12 +275,19 @@ opengl_vbogeometrybank::bind_streams( stream_units const &Units, unsigned int co
         ::glDisableClientState( GL_COLOR_ARRAY );
     }
     if( Streams & stream::texture ) {
-        ::glClientActiveTexture( Units.texture );
-        ::glTexCoordPointer( 2, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 24 );
-        ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+        for( auto unit : Units.texture ) {
+            ::glClientActiveTexture( unit );
+            ::glTexCoordPointer( 2, GL_FLOAT, sizeof( basic_vertex ), static_cast<char *>( nullptr ) + 24 );
+            ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+        }
+        m_activetexturearrays = Units.texture;
     }
     else {
-        ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+        for( auto unit : Units.texture ) {
+            ::glClientActiveTexture( unit );
+            ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+        }
+        m_activetexturearrays.clear(); // NOTE: we're simplifying here, since we always toggle the same texture coord sets
     }
 
     m_activestreams = Streams;
@@ -291,9 +299,13 @@ opengl_vbogeometrybank::release_streams() {
     ::glDisableClientState( GL_VERTEX_ARRAY );
     ::glDisableClientState( GL_NORMAL_ARRAY );
     ::glDisableClientState( GL_COLOR_ARRAY );
-    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+    for( auto unit : m_activetexturearrays ) {
+        ::glClientActiveTexture( unit );
+        ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+    }
 
     m_activestreams = stream::none;
+    m_activetexturearrays.clear();
 }
 
 // opengl display list based variant of the geometry bank
@@ -331,7 +343,7 @@ opengl_dlgeometrybank::draw_( geometry_handle const &Geometry, stream_units cons
         for( auto const &vertex : chunk.vertices ) {
                  if( Streams & stream::normal ) { ::glNormal3fv( glm::value_ptr( vertex.normal ) ); }
             else if( Streams & stream::color )  { ::glColor3fv( glm::value_ptr( vertex.normal ) ); }
-            if( Streams & stream::texture )     { ::glMultiTexCoord2fv( Units.texture, glm::value_ptr( vertex.texture ) ); }
+            if( Streams & stream::texture )     { for( auto unit : Units.texture ) { ::glMultiTexCoord2fv( unit, glm::value_ptr( vertex.texture ) ); } }
             if( Streams & stream::position )    { ::glVertex3fv( glm::value_ptr( vertex.position ) ); }
         }
         ::glEnd();
@@ -411,7 +423,7 @@ geometrybank_manager::append( vertex_array &Vertices, geometry_handle const &Geo
 void
 geometrybank_manager::draw( geometry_handle const &Geometry, unsigned int const Streams ) {
 
-    if( Geometry == NULL ) { return; }
+    if( Geometry == null_handle ) { return; }
 
     auto &bankrecord = bank( Geometry );
 

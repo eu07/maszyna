@@ -78,7 +78,7 @@ void TEvent::Conditions(cParser *parser, std::string s)
         if (!asNodeName.empty())
         { // podczepienie łańcucha, jeśli nie jest pusty
 			// BUG: source of a memory leak -- the array never gets deleted. fix the destructor
-            Params[9].asText = new char[asNodeName.length() + 1]; // usuwane i zamieniane na
+            Params[9].asText = new char[asNodeName.size() + 1]; // usuwane i zamieniane na
             // wskaźnik
             strcpy(Params[9].asText, asNodeName.c_str());
         }
@@ -103,7 +103,7 @@ void TEvent::Conditions(cParser *parser, std::string s)
 			str = token;
             if (str != "*") //"*" - nie brac command pod uwage
             { // zapamiętanie łańcucha do porównania
-                Params[10].asText = new char[255];
+                Params[10].asText = new char[str.size() + 1];
                 strcpy(Params[10].asText, str.c_str());
                 iFlags |= conditional_memstring;
             }
@@ -144,7 +144,6 @@ void TEvent::Load(cParser *parser, vector3 *org)
     int ti;
     std::string token;
     //string str;
-    char *ptr;
 
     bEnabled = true; // zmieniane na false dla eventów używanych do skanowania sygnałów
 
@@ -222,14 +221,12 @@ void TEvent::Load(cParser *parser, vector3 *org)
         // if (Type==tp_UpdateValues) iFlags=0; //co modyfikować
         parser->getTokens(1, false); // case sensitive
         *parser >> token;
-        // str = AnsiString(token.c_str());
-        Params[0].asText = new char[token.length() + 1]; // BUG: source of memory leak
+        Params[0].asText = new char[token.size() + 1]; // BUG: source of memory leak
         strcpy(Params[0].asText, token.c_str());
         if (token != "*") // czy ma zostać bez zmian?
             iFlags |= update_memstring;
         parser->getTokens();
         *parser >> token;
-        // str = AnsiString(token.c_str());
         if (token != "*") // czy ma zostać bez zmian?
         {
             Params[1].asdouble = atof(token.c_str());
@@ -239,7 +236,6 @@ void TEvent::Load(cParser *parser, vector3 *org)
             Params[1].asdouble = 0;
         parser->getTokens();
         *parser >> token;
-        // str = AnsiString(token.c_str());
         if (token != "*") // czy ma zostać bez zmian?
         {
             Params[2].asdouble = atof(token.c_str());
@@ -262,7 +258,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
             switch (++i)
             { // znaczenie kolejnych parametrów
             case 1: // nazwa drugiej komórki (źródłowej)
-                Params[9].asText = new char[token.length() + 1]; // usuwane i zamieniane na wskaźnik
+                Params[9].asText = new char[token.size() + 1]; // usuwane i zamieniane na wskaźnik
                 strcpy(Params[9].asText, token.c_str());
                 break;
             case 2: // maska wartości
@@ -353,7 +349,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         }
         else
             Params[6].asCommand = cm_Unknown;
-        Params[0].asText = new char[token.length() + 1];
+        Params[0].asText = new char[token.size() + 1];
         strcpy(Params[0].asText, token.c_str());
         parser->getTokens();
         *parser >> token;
@@ -431,8 +427,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
         *parser >> token;
         break;
     case tp_Exit:
-        while ((ptr = strchr(strdup(asNodeName.c_str()), '_')) != NULL)
-            *ptr = ' ';
+        asNodeName = ExchangeCharInString( asNodeName, '_', ' ' );
         parser->getTokens();
         *parser >> token;
         break;
@@ -562,7 +557,7 @@ void TEvent::Load(cParser *parser, vector3 *org)
             { // eventy rozpoczynające się od "none_" są ignorowane
                 if (token != "else")
                 {
-                    Params[i].asText = new char[255];
+                    Params[i].asText = new char[token.size() + 1];
                     strcpy(Params[i].asText, token.c_str());
                     if (ti)
                         iFlags |= conditional_else << i; // oflagowanie dla eventów "else"

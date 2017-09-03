@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "Model3d.h"
-#include "Texture.h"
+#include "material.h"
 #include "DynObj.h"
 
 const int iMaxNumLights = 8;
@@ -149,8 +149,9 @@ class TAnimModel {
     TLightState lsLights[iMaxNumLights];
     float fDark; // poziom zapalanie światła (powinno być chyba powiązane z danym światłem?)
     float fOnTime, fOffTime; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
-  private:
-    void RaAnimate(); // przeliczenie animacji egzemplarza
+    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
+private:
+    void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji egzemplarza
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
   public:
     static TAnimContainer *acAnimList; // lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
@@ -162,12 +163,8 @@ class TAnimModel {
     bool Init(TModel3d *pNewModel);
     bool Init(std::string const &asName, std::string const &asReplacableTexture);
     bool Load(cParser *parser, bool ter = false);
-    TAnimContainer * AddContainer(char *pName);
-    TAnimContainer * GetContainer(char *pName);
-#ifdef EU07_USE_OLD_RENDERCODE
-    void Render( vector3 const &Position );
-    void RenderAlpha( vector3 const &Position );
-#endif
+    TAnimContainer * AddContainer(std::string const &Name);
+    TAnimContainer * GetContainer(std::string const &Name = "");
     int Flags();
     void RaAnglesSet(double a, double b, double c)
     {
@@ -178,9 +175,6 @@ class TAnimModel {
     bool TerrainLoaded();
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
-#ifdef EU07_USE_OLD_RENDERCODE
-    void TerrainRenderVBO(int n);
-#endif
     void AnimationVND(void *pData, double a, double b, double c, double d);
     void LightSet(int n, float v);
     static void AnimUpdate(double dt);

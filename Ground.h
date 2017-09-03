@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "VBO.h"
 #include "Classes.h"
 #include "ResourceManager.h"
-#include "Texture.h"
+#include "material.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "Names.h"
@@ -140,7 +140,7 @@ public:
         int iCount; // dla terenu
     };
     int iFlags; // tryb przezroczystości: 0x10-nieprz.,0x20-przezroczysty,0x30-mieszany
-    texture_handle TextureID; // główna (jedna) tekstura obiektu
+    material_handle m_material; // główna (jedna) tekstura obiektu
     glm::vec3
         Ambient{ 1.0f, 1.0f, 1.0f },
         Diffuse{ 1.0f, 1.0f, 1.0f },
@@ -151,13 +151,8 @@ public:
     TGroundNode();
     TGroundNode(TGroundNodeType t);
     ~TGroundNode();
-/*
-    void Init(int n);
-*/
+
     void InitNormals();
-/*
-    void Release();
-*/
     void RenderHidden(); // obsługa dźwięków i wyzwalaczy zdarzeń
 };
 
@@ -171,6 +166,7 @@ class TSubRect : /*public Resource,*/ public CMesh
 { // sektor składowy kwadratu kilometrowego
   public:
     bounding_area m_area;
+    unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
     int iTracks = 0; // ilość torów w (tTracks)
     TTrack **tTracks = nullptr; // tory do renderowania pojazdów
   protected:
@@ -192,22 +188,18 @@ class TSubRect : /*public Resource,*/ public CMesh
     void LoadNodes(); // utworzenie VBO sektora
   public:
     virtual ~TSubRect();
-/*
-    virtual void Release(); // zwalnianie VBO sektora
-*/
     virtual void NodeAdd(TGroundNode *Node); // dodanie obiektu do sektora na etapie rozdzielania na sektory
     void Sort(); // optymalizacja obiektów w sektorze (sortowanie wg tekstur)
     TTrack * FindTrack(vector3 *Point, int &iConnection, TTrack *Exclude);
     TTraction * FindTraction(glm::dvec3 const &Point, int &iConnection, TTraction *Exclude);
     bool RaTrackAnimAdd(TTrack *t); // zgłoszenie toru do animacji
-    void RaAnimate(); // przeliczenie animacji torów
+    void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji torów
     void RenderSounds(); // dźwięki pojazdów z niewidocznych sektorów
 };
 
 // Ra: trzeba sprawdzić wydajność siatki
 const int iNumSubRects = 5; // na ile dzielimy kilometr
 const int iNumRects = 500;
-// const double fHalfNumRects=iNumRects/2.0; //połowa do wyznaczenia środka
 const int iTotalNumSubRects = iNumRects * iNumSubRects;
 const double fHalfTotalNumSubRects = iTotalNumSubRects / 2.0;
 const double fSubRectSize = 1000.0 / iNumSubRects;
@@ -221,7 +213,6 @@ class TGroundRect : public TSubRect
 
 private:
     TSubRect *pSubRects { nullptr };
-    int iLastDisplay; // numer klatki w której był ostatnio wyświetlany
 
     void Init();
 
@@ -251,7 +242,6 @@ public:
                 // optymalizacja obiektów w sektorach
                 pSubRects[ i ].Sort(); } } };
 
-    static int iFrameNumber; // numer kolejny wyświetlanej klatki
     TGroundNode *nTerrain { nullptr }; // model terenu z E3D - użyć nRootMesh?
 };
 
@@ -259,26 +249,21 @@ class TGround
 {
     friend class opengl_renderer;
 
-    vector3 CameraDirection; // zmienna robocza przy renderowaniu
-    int const *iRange = nullptr; // tabela widoczności
+    TGroundRect Rects[ iNumRects ][ iNumRects ]; // mapa kwadratów kilometrowych
+    TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
     TGroundNode *nRootDynamic = nullptr; // lista pojazdów
-    TGroundRect Rects[iNumRects][iNumRects]; // mapa kwadratów kilometrowych
+    TGroundNode *nRootOfType[ TP_LAST ]; // tablica grupująca obiekty, przyspiesza szukanie
     TEvent *RootEvent = nullptr; // lista zdarzeń
     TEvent *QueryRootEvent = nullptr,
            *tmpEvent = nullptr;
-/*
-    TSubRect *pRendered[1500]; // lista renderowanych sektorów
-*/
-    int iNumNodes = 0;
-    vector3 pOrigin;
-    vector3 aRotate;
-    bool bInitDone = false;
-    TGroundNode *nRootOfType[TP_LAST]; // tablica grupująca obiekty, przyspiesza szukanie
-    TSubRect srGlobal; // zawiera obiekty globalne (na razie wyzwalacze czasowe)
     typedef std::unordered_map<std::string, TEvent *> event_map;
     event_map m_eventmap;
     TNames<TGroundNode *> m_trackmap;
     light_array m_lights; // collection of dynamic light sources present in the scene
+
+    vector3 pOrigin;
+    vector3 aRotate;
+    bool bInitDone = false;
 
   private: // metody prywatne
     bool EventConditon(TEvent *e);
@@ -337,9 +322,6 @@ class TGround
 
   public:
     void WyslijEvent(const std::string &e, const std::string &d);
-/*
-    int iRendered; // ilość renderowanych sektorów, pobierana przy pokazywniu FPS
-*/
     void WyslijString(const std::string &t, int n);
     void WyslijWolny(const std::string &t);
     void WyslijNamiary(TGroundNode *t);
@@ -359,4 +341,5 @@ class TGround
     void IsolatedBusy(const std::string t);
     void Silence(vector3 gdzie);
 };
+
 //---------------------------------------------------------------------------

@@ -288,17 +288,26 @@ bool TWorld::Init( GLFWwindow *Window ) {
 
     UILayer.set_background( "logo" );
 
-    TSoundsManager::Init( glfwGetWin32Window( window ) );
-    WriteLog("Sound Init OK");
+    if( true == TSoundsManager::Init( glfwGetWin32Window( window ) ) ) {
+        WriteLog( "Sound subsystem setup complete" );
+    }
+    else {
+        ErrorLog( "Sound subsystem setup failed" );
+        return false;
+    }
 
     glfwSetWindowTitle( window, ( Global::AppName + " (" + Global::SceneryFile + ")" ).c_str() ); // nazwa scenerii
     UILayer.set_progress(0.01);
     UILayer.set_progress( "Loading scenery / Wczytywanie scenerii" );
     GfxRenderer.Render();
 
-    WriteLog( "Ground init" );
+    WriteLog( "World setup..." );
     if( true == Ground.Init( Global::SceneryFile ) ) {
-        WriteLog( "Ground init OK" );
+        WriteLog( "...world setup done" );
+    }
+    else {
+        ErrorLog( "...world setup failed" );
+        return false;
     }
 
     simulation::Time.init();
@@ -1305,7 +1314,7 @@ TWorld::Update_UI() {
                 else if( mover->ActiveDir < 0 ) { uitextline2 += " R"; }
                 else                            { uitextline2 += " N"; }
 
-                uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos );
+                uitextline3 = "Brakes:" + to_string( mover->fBrakeCtrlPos, 1, 5 ) + "+" + std::to_string( mover->LocalBrakePos ) + ( mover->SlippingWheels ? " !" : "  " );
 
                 if( Global::iScreenMode[ Global::iTextMode - GLFW_KEY_F1 ] == 1 ) {
                     // detail mode on second key press
@@ -1315,7 +1324,7 @@ TWorld::Update_UI() {
                         + ", next limit: " + std::to_string( static_cast<int>( std::floor( Controlled->Mechanik->VelNext ) ) ) + " km/h"
                         + " in " + to_string( Controlled->Mechanik->ActualProximityDist * 0.001, 1 ) + " km)";
                     uitextline3 +=
-                        "   Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
+                        " Pressure: " + to_string( mover->BrakePress * 100.0, 2 ) + " kPa"
                         + " (train pipe: " + to_string( mover->PipePress * 100.0, 2 ) + " kPa)";
                 }
             }
@@ -1333,7 +1342,7 @@ TWorld::Update_UI() {
             if( tmp == nullptr ) { break; }
             // if the nearest located vehicle doesn't have a direct driver, try to query its owner
             auto const owner = (
-                tmp->Mechanik != nullptr ?
+                ( ( tmp->Mechanik != nullptr ) && ( tmp->Mechanik->Primary() ) ) ?
                     tmp->Mechanik :
                     tmp->ctOwner );
             if( owner == nullptr ){ break; }
@@ -1425,13 +1434,19 @@ TWorld::Update_UI() {
                 uitextline1 +=
                     "; C0:" +
                     ( tmp->PrevConnected ?
-                    tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) :
-                    "none" );
+                        tmp->PrevConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 0 ].CouplingFlag ) + (
+                            tmp->MoverParameters->Couplers[ 0 ].CouplingFlag == 0 ?
+                                " (" + to_string( tmp->MoverParameters->Couplers[ 0 ].CoupleDist, 1 ) + " m)" :
+                                "" ) :
+                        "none" );
                 uitextline1 +=
                     " C1:" +
                     ( tmp->NextConnected ?
-                    tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) :
-                    "none" );
+                        tmp->NextConnected->GetName() + ":" + to_string( tmp->MoverParameters->Couplers[ 1 ].CouplingFlag ) + (
+                            tmp->MoverParameters->Couplers[ 1 ].CouplingFlag == 0 ?
+                                " (" + to_string( tmp->MoverParameters->Couplers[ 1 ].CoupleDist, 1 ) + " m)" :
+                                "" ) :
+                        "none" );
 
                 // equipment flags
                 uitextline2  = ( tmp->MoverParameters->Battery ? "B" : "." );
@@ -1527,20 +1542,24 @@ TWorld::Update_UI() {
 */
                 if( tmp->Mechanik ) {
                     // o ile jest ktoś w środku
-                    std::string flags = "bwaccmlshhhoibsgvdp; "; // flagi AI (definicja w Driver.h)
-                    for( int i = 0, j = 1; i < 19; ++i, j <<= 1 )
-                        if( tmp->Mechanik->DrivigFlags() & j ) // jak bit ustawiony
-                            flags[ i + 1 ] = std::toupper( flags[ i + 1 ] ); // ^= 0x20; // to zmiana na wielką literę
+                    std::string flags = "cpapcplhhndoiefgvdpseil "; // flagi AI (definicja w Driver.h)
+                    for( int i = 0, j = 1; i < 23; ++i, j <<= 1 )
+                        if( false == ( tmp->Mechanik->DrivigFlags() & j ) ) // jak bit ustawiony
+                            flags[ i ] = '.';// std::toupper( flags[ i ] ); // ^= 0x20; // to zmiana na wielką literę
 
                     uitextline4 = flags;
 
                     uitextline4 +=
                         "Driver: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                        + " Ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+						+ " Ah=" + to_string( tmp->Mechanik->fAccThreshold, 2 )
+						+ "@" + to_string( tmp->Mechanik->fBrake_a0[0], 2 )
+						+ "+" + to_string( tmp->Mechanik->fBrake_a1[0], 2 )
+                        + " Bd=" + to_string( tmp->Mechanik->fBrakeDist, 0 )
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 )
-                        + " VSm=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
-                        + " VLm=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
+                        + " VSl=" + to_string( tmp->Mechanik->VelSignalLast, 0 )
+                        + " VLl=" + to_string( tmp->Mechanik->VelLimitLast, 0 )
                         + " VRd=" + to_string( tmp->Mechanik->VelRoad, 0 );
 
                     if( ( tmp->Mechanik->VelNext == 0.0 )
@@ -1677,7 +1696,7 @@ TWorld::Update_UI() {
                     + ")";
 
                 uitextline2 =
-                    "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 1 )
+                    "HamZ=" + to_string( tmp->MoverParameters->fBrakeCtrlPos, 2 )
                     + "; HamP=" + std::to_string( tmp->MoverParameters->LocalBrakePos ) + "/" + to_string( tmp->MoverParameters->LocalBrakePosA, 2 )
                     + "; NasJ=" + std::to_string( tmp->MoverParameters->MainCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->MainCtrlActualPos ) + ")"
                     + "; NasB=" + std::to_string( tmp->MoverParameters->ScndCtrlPos ) + "(" + std::to_string( tmp->MoverParameters->ScndCtrlActualPos ) + ")"
@@ -1752,7 +1771,11 @@ TWorld::Update_UI() {
                  && ( tmp->Mechanik->AIControllFlag == AIdriver ) ) {
                     uitextline4 +=
                         "AI: Vd=" + to_string( tmp->Mechanik->VelDesired, 0 )
-                        + " ad=" + to_string( tmp->Mechanik->AccDesired, 2 )
+                        + " ad=" + to_string(tmp->Mechanik->AccDesired, 2)
+						+ "/" + to_string(tmp->Mechanik->AccDesired*tmp->Mechanik->BrakeAccFactor(), 2)
+						+ " atrain=" + to_string(tmp->Mechanik->fBrake_a0[0], 2)
+						+ "+" + to_string(tmp->Mechanik->fBrake_a1[0], 2)
+						+ " aS=" + to_string(tmp->Mechanik->AbsAccS_pub, 2)
                         + " Pd=" + to_string( tmp->Mechanik->ActualProximityDist, 0 )
                         + " Vn=" + to_string( tmp->Mechanik->VelNext, 0 );
                 }

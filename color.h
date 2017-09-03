@@ -47,9 +47,9 @@ RGBtoHSV( glm::vec3 const &RGB ) {
         hsv.x = ( RGB.g - RGB.b ) / delta;        // between yellow & magenta
     else
         if( RGB.g >= max )
-            hsv.x = 2.0 + ( RGB.g - RGB.r ) / delta;  // between cyan & yellow
+            hsv.x = 2.f + ( RGB.g - RGB.r ) / delta;  // between cyan & yellow
         else
-            hsv.x = 4.0 + ( RGB.r - RGB.g ) / delta;  // between magenta & cyan
+            hsv.x = 4.f + ( RGB.r - RGB.g ) / delta;  // between magenta & cyan
 
     hsv.x *= 60.0;                              // degrees
 
@@ -76,9 +76,9 @@ HSVtoRGB( glm::vec3 const &HSV ) {
     hh /= 60.0;
     int const i = (int)hh;
     float const ff = hh - i;
-    float const p = HSV.z * ( 1.0 - HSV.y );
-    float const q = HSV.z * ( 1.0 - ( HSV.y * ff ) );
-    float const t = HSV.z * ( 1.0 - ( HSV.y * ( 1.0 - ff ) ) );
+    float const p = HSV.z * ( 1.f - HSV.y );
+    float const q = HSV.z * ( 1.f - ( HSV.y * ff ) );
+    float const t = HSV.z * ( 1.f - ( HSV.y * ( 1.f - ff ) ) );
 
     switch( i ) {
         case 0:

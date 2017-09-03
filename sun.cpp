@@ -34,8 +34,8 @@ cSun::update() {
 
     move();
     glm::vec3 position( 0.f, 0.f, -2000.f * Global::fDistanceFactor );
-    position = glm::rotateX( position, glm::radians<float>( m_body.elevref ) );
-    position = glm::rotateY( position, glm::radians<float>( -m_body.hrang ) );
+    position = glm::rotateX( position, glm::radians( static_cast<float>( m_body.elevref ) ) );
+    position = glm::rotateY( position, glm::radians( static_cast<float>( -m_body.hrang ) ) );
 
     m_position = position;
 }
@@ -43,24 +43,17 @@ cSun::update() {
 void
 cSun::render() {
 
-/*
-	glLightfv(GL_LIGHT0, GL_POSITION, position.getVector() );	// sun
-
-	GLfloat LightPosition[]= { 10.0f, 50.0f, -5.0f, 1.0f };		// ambient
-	glLightfv(GL_LIGHT1, GL_POSITION, LightPosition );
-*/
-	glColor4f( 255.0f/255.0f, 242.0f/255.0f, 231.0f/255.0f, 1.f );
+    ::glColor4f( 255.f / 255.f, 242.f / 255.f, 231.f / 255.f, 1.f );
 	// debug line to locate the sun easier
-	Math3D::vector3 position = m_position;
-	glBegin( GL_LINES );
-	glVertex3f( position.x, position.y, position.z );
-	glVertex3f( position.x, 0.0f, position.z );
-	glEnd();
-	glPushMatrix();
-	glTranslatef( position.x, position.y, position.z );
+	::glBegin( GL_LINES );
+	::glVertex3fv( glm::value_ptr( m_position ) );
+	::glVertex3f( m_position.x, 0.f, m_position.z );
+	::glEnd();
+	::glPushMatrix();
+	::glTranslatef( m_position.x, m_position.y, m_position.z );
 	// radius is a result of scaling true distance down to 2km -- it's scaled by equal ratio
-	gluSphere( sunsphere, (float)(m_body.distance * 9.359157), 12, 12 );
-	glPopMatrix();
+	::gluSphere( sunsphere, m_body.distance * 9.359157, 12, 12 );
+	::glPopMatrix();
 }
 
 glm::vec3

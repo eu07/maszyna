@@ -52,12 +52,10 @@ enum TMovementStatus
     moveGuardSignal = 0x8000, // sygnał od kierownika (minął czas postoju)
     moveVisibility = 0x10000, // jazda na widoczność po przejechaniu S1 na SBL
     moveDoorOpened = 0x20000, // drzwi zostały otwarte - doliczyć czas na zamknięcie
-    movePushPull =
-        0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
+    movePushPull = 0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
     moveSemaphorFound = 0x80000, // na drodze skanowania został znaleziony semafor
     moveSemaphorWasElapsed = 0x100000, // minięty został semafor
-    moveTrainInsideStation =
-        0x200000, // pociąg między semaforem a rozjazdami lub następnym semaforem
+    moveTrainInsideStation = 0x200000, // pociąg między semaforem a rozjazdami lub następnym semaforem
     moveSpeedLimitFound = 0x400000 // pociąg w ograniczeniu z podaną jego długością
 };
 
@@ -147,10 +145,14 @@ class TSpeedPos
   public:
     TSpeedPos(TTrack *track, double dist, int flag);
     TSpeedPos(TEvent *event, double dist, TOrders order);
-    TSpeedPos() {};
+    TSpeedPos() = default;
     void Clear();
     bool Update();
-    void UpdateDistance(double dist);
+    // aktualizuje odległość we wpisie
+    inline
+    void
+        UpdateDistance( double dist ) {
+        fDist -= dist; }
     bool Set(TEvent *e, double d, TOrders order = Wait_for_orders);
     void Set(TTrack *t, double d, int f);
     std::string TableText();
@@ -166,6 +168,7 @@ static const bool Humandriver = false;
 static const int maxorders = 32; // ilość rozkazów w tabelce
 static const int maxdriverfails = 4; // ile błędów może zrobić AI zanim zmieni nastawienie
 extern bool WriteLogFlag; // logowanie parametrów fizycznych
+static const int BrakeAccTableSize = 20;
 //----------------------------------------------------------------------------
 
 class TController
@@ -201,8 +204,14 @@ private: // parametry aktualnego składu
     double fDriverBraking = 0.0; // po pomnożeniu przez v^2 [km/h] daje ~drogę hamowania [m]
     double fDriverDist = 0.0; // dopuszczalna odległość podjechania do przeszkody
     double fVelMax = -1.0; // maksymalna prędkość składu (sprawdzany każdy pojazd)
+  public:
     double fBrakeDist = 0.0; // przybliżona droga hamowania
+	double BrakeAccFactor();
+	double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
     double fAccThreshold = 0.0; // próg opóźnienia dla zadziałania hamulca
+	double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
+	double fBrake_a0[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
+	double fBrake_a1[BrakeAccTableSize+1] = { 0.0 }; // próg opóźnienia dla zadziałania hamulca
   public:
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
@@ -217,7 +226,6 @@ private: // parametry aktualnego składu
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
     TAction eAction = actSleep; // aktualny stan
-    bool HelpMeFlag = false; // wystawiane True jesli cos niedobrego sie dzieje
   public:
     inline TAction GetAction()
     {
@@ -270,8 +278,6 @@ private: // parametry aktualnego składu
         OrderTop = 0; // rozkaz aktualny oraz wolne miejsce do wstawiania nowych
     std::ofstream LogFile; // zapis parametrow fizycznych
     std::ofstream AILogFile; // log AI
-    bool MaxVelFlag = false;
-    bool MinVelFlag = false; // Ra: to nie jest używane
     int iDirection = 0; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
     int iDirectionOrder = 0; //żadany kierunek jazdy (służy do zmiany kierunku)
     int iVehicleCount = -2; // wartość neutralna // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)
@@ -312,6 +318,7 @@ private: // parametry aktualnego składu
     void Activation(); // umieszczenie obsady w odpowiednim członie
     void ControllingSet(); // znajduje człon do sterowania
     void AutoRewident(); // ustawia hamulce w składzie
+	double ESMVelocity(bool Main);
   public:
     Mtable::TTrainParameters *Timetable()
     {
@@ -321,7 +328,7 @@ private: // parametry aktualnego składu
                     const TLocation &NewLocation, TStopReason reason = stopComm);
     bool PutCommand(std::string NewCommand, double NewValue1, double NewValue2,
                     const vector3 *NewLocation, TStopReason reason = stopComm);
-    bool UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
+    void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     // procedury dotyczace rozkazow dla maszynisty
     void SetVelocity(double NewVel, double NewVelNext,
                      TStopReason r = stopNone); // uaktualnia informacje o prędkości
@@ -367,9 +374,12 @@ private: // parametry aktualnego składu
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;
 //    TEvent *TableCheckTrackEvent(double fDirection, TTrack *Track);
-    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = NULL);
+    void TableTraceRoute(double fDistance, TDynamicObject *pVehicle = nullptr);
     void TableCheck(double fDistance);
     TCommandType TableUpdate(double &fVelDes, double &fDist, double &fNext, double &fAcc);
+    // modifies brake distance for low target speeds, to ease braking rate in such situations
+    float
+        braking_distance_multiplier( float const Targetvelocity );
     void TablePurger();
     void TableSort();
     inline double MoveDistanceGet()
@@ -385,7 +395,6 @@ private: // parametry aktualnego składu
     {
         dMoveLen += distance * iDirection; //jak jedzie do tyłu to trzeba uwzględniać, że distance jest ujemna
     }
-  public:
     std::size_t TableSize() const { return sSpeedTable.size(); }
     void TableClear();
     int TableDirection() { return iTableDirection; }
@@ -409,12 +418,11 @@ private: // parametry aktualnego składu
     int StationCount();
     int StationIndex();
     bool IsStop();
-    bool Primary()
-    {
-        return this ? ((iDrivigFlags & movePrimary) != 0) : false;
-    };
-    int inline DrivigFlags()
-    {
+    inline
+    bool Primary() const {
+        return ( ( iDrivigFlags & movePrimary ) != 0 ); };
+    inline
+    int DrivigFlags() const {
         return iDrivigFlags;
     };
     void MoveTo(TDynamicObject *to);

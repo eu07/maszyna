@@ -43,7 +43,7 @@ private:
 
 public:
     ~TSoundsManager();
-    static void Init( HWND hWnd );
+    static bool Init( HWND hWnd );
     static void Free();
     static LPDIRECTSOUNDBUFFER GetFromName( std::string const &Name, bool Dynamic, float *fSamplingRate = NULL );
     static void RestoreAll();

@@ -692,13 +692,13 @@ bool TMoverParameters::ChangeCab(int direction)
     return false;
 };
 
-bool TMoverParameters::CurrentSwitch(int direction)
-{ // rozruch wysoki (true) albo niski (false)
+// rozruch wysoki (true) albo niski (false)
+bool
+TMoverParameters::CurrentSwitch(bool const State) {
     // Ra: przeniosłem z Train.cpp, nie wiem czy ma to sens
-    if (MaxCurrentSwitch(direction != 0))
-    {
+    if (MaxCurrentSwitch(State)) {
         if (TrainType != dt_EZT)
-            return (MinCurrentSwitch(direction != 0));
+            return (MinCurrentSwitch(State));
     }
     // TBD, TODO: split off shunt mode toggle into a separate command? It doesn't make much sense to have these two together like that
     // dla 2Ls150
@@ -706,14 +706,14 @@ bool TMoverParameters::CurrentSwitch(int direction)
      && ( true == ShuntModeAllow )
      && ( ActiveDir == 0 ) ) {
         // przed ustawieniem kierunku
-                ShuntMode = ( direction != 0 );
+        ShuntMode = State;
         return true;
     }
     // for SM42/SP42
     if( ( EngineType == DieselElectric )
      && ( true == ShuntModeAllow )
      && ( MainCtrlPos == 0 ) ) {
-        ShuntMode = ( direction != 0 );
+        ShuntMode = State;
         return true;
     }
 
@@ -1082,7 +1082,7 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
                     EventFlag = true;
 
                 if ((coupler.CouplingFlag & ctrain_pneumatic) == ctrain_pneumatic)
-                    EmergencyBrakeFlag = true; // hamowanie nagle - zerwanie przewodow hamulcowych
+                    AlarmChainFlag = true; // hamowanie nagle - zerwanie przewodow hamulcowych
                 coupler.CouplingFlag = 0;
 
                 switch (CouplerN) // wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone
@@ -2188,7 +2188,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
     // obsady
     // poza tym jest zdefiniowany we wszystkich 3 członach EN57
 	if ((!Radio))
-		EmergencyBrakeSwitch(false);
+		RadiostopSwitch(false);
 
     if ((SecuritySystem.SystemType > 0) && (SecuritySystem.Status > 0) &&
         (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
@@ -2259,7 +2259,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
     }
     else if (!Battery)
     { // wyłączenie baterii deaktywuje sprzęt
-		EmergencyBrakeSwitch(false);
+		RadiostopSwitch(false);
         // SecuritySystem.Status = 0; //deaktywacja czuwaka
     }
 }
@@ -2623,7 +2623,7 @@ bool TMoverParameters::DecBrakeLevelOld(void)
 bool TMoverParameters::IncLocalBrakeLevel(int CtrlSpeed)
 {
     bool IBL;
-     if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
+    if ((LocalBrakePos < LocalBrakePosNo) /*and (BrakeCtrlPos<1)*/)
     {
         while ((LocalBrakePos < LocalBrakePosNo) && (CtrlSpeed > 0))
         {
@@ -2777,32 +2777,47 @@ bool TMoverParameters::DynamicBrakeSwitch(bool Switch)
 // Q: 20160711
 // włączenie / wyłączenie hamowania awaryjnego
 // *************************************************************************************************
-bool TMoverParameters::EmergencyBrakeSwitch(bool Switch)
+bool TMoverParameters::RadiostopSwitch(bool Switch)
 {
     bool EBS;
-    if ((BrakeSystem != Individual) && (BrakeCtrlPosNo > 0))
-    {
-        if ((!EmergencyBrakeFlag) && Switch)
-        {
-            EmergencyBrakeFlag = Switch;
+    if( ( BrakeSystem != Individual )
+     && ( BrakeCtrlPosNo > 0 ) ) {
+
+        if( ( true == Switch )
+         && ( false == RadioStopFlag ) ) {
+            RadioStopFlag = Switch;
             EBS = true;
         }
-        else
-        {
-            if ((abs(V) < 0.1) &&
-                (Switch == false)) // odblokowanie hamulca bezpieczenistwa tylko po zatrzymaniu
-            {
-                EmergencyBrakeFlag = Switch;
+        else {
+            if( ( Switch == false )
+             && ( std::abs( V ) < 0.1 ) ) {
+                // odblokowanie hamulca bezpieczenistwa tylko po zatrzymaniu
+                RadioStopFlag = Switch;
                 EBS = true;
             }
-            else
+            else {
                 EBS = false;
+            }
         }
     }
-    else
-        EBS = false; // nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.
+    else {
+        // nie ma hamulca bezpieczenstwa gdy nie ma hamulca zesp.
+        EBS = false;
+    }
 
     return EBS;
+}
+
+bool TMoverParameters::AlarmChainSwitch( bool const State ) {
+
+    bool stateswitched { false };
+
+    if( AlarmChainFlag != State ) {
+        // simple routine for the time being
+        AlarmChainFlag = State;
+        stateswitched = true;
+    }
+    return stateswitched;
 }
 
 // *************************************************************************************************
@@ -3282,12 +3297,19 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 Pipe2->Flow(dpMainValve);
     }
 
-    //      if(EmergencyBrakeFlag)and(BrakeCtrlPosNo=0)then         //ulepszony hamulec bezp.
-    if ((EmergencyBrakeFlag) || (TestFlag(SecuritySystem.Status, s_SHPebrake)) ||
-        (TestFlag(SecuritySystem.Status, s_CAebrake)) ||
-        (s_CAtestebrake == true) ||
-		(TestFlag(EngDmgFlag, 32)) /* or (not Battery)*/) // ulepszony hamulec bezp.
-        dpMainValve = dpMainValve + PF(0, PipePress, 0.15) * dt;
+    // ulepszony hamulec bezp.
+    if( ( true == RadioStopFlag )
+     || ( true == AlarmChainFlag )
+     || ( true == TestFlag( SecuritySystem.Status, s_SHPebrake ) )
+     || ( true == TestFlag( SecuritySystem.Status, s_CAebrake ) )
+/*
+    // NOTE: disabled because 32 is 'load destroyed' flag, what does this have to do with emergency brake?
+    // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
+     || ( true == TestFlag( EngDmgFlag, 32 ) )
+*/
+     || ( true == s_CAtestebrake ) ) {
+        dpMainValve = dpMainValve + PF( 0, PipePress, 0.15 ) * dt;
+    }
     // 0.2*Spg
     Pipe->Flow(-dpMainValve);
     Pipe->Flow(-(PipePress)*0.001 * dt);
@@ -3766,6 +3788,41 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
     //};
 }
 
+double TMoverParameters::BrakeForceR(double ratio, double velocity)
+{
+	double press = 0;
+	if (MBPM>2)
+	{
+		press = MaxBrakePress[1] + (MaxBrakePress[3] - MaxBrakePress[1]) * std::min(1.0, (TotalMass - Mass) / (MBPM - Mass));
+	}
+	else
+	{
+		if (MaxBrakePress[1] > 0.1)
+		{
+			press = MaxBrakePress[LoadFlag];
+		}
+		else
+		{
+			press = MaxBrakePress[3];
+			if (DynamicBrakeType == dbrake_automatic)
+				ratio = ratio + (1.5 - ratio)*std::min(1.0, Vel*0.02);
+			if ((BrakeDelayFlag&bdelay_R) && (BrakeMethod%128 != bp_Cosid) && (BrakeMethod % 128 != bp_D1) && (BrakeMethod % 128 != bp_D2) && (Power<1) && (velocity<40))
+				ratio = ratio / 2;
+		}
+
+	}
+	return BrakeForceP(press*ratio, velocity);
+}
+
+double TMoverParameters::BrakeForceP(double press, double velocity)
+{
+	double BFP = 0;
+	double K = (((press * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj) * BrakeRigEff;
+	K *= static_cast<double>(BrakeCylNo) / (NAxles * std::max(1, NBpA));
+	BFP = Hamulec->GetFC(velocity, K)*K*(NAxles * std::max(1, NBpA)) * 1000;
+	return BFP;
+}
+
 // *************************************************************************************************
 // Q: 20160713
 // oblicza siłę na styku koła i szyny
@@ -3809,7 +3866,7 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
         Ntotal = u * BrakeRigEff;
     else
     {
-        u = (BrakePress * P2FTrans) * BrakeCylMult[0] - BrakeSlckAdj;
+        u = ((BrakePress * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj;
         if (u * (2.0 - BrakeRigEff) < Ntotal) // histereza na nacisku klockow
             Ntotal = u * (2.0 - BrakeRigEff);
     }
@@ -3862,6 +3919,9 @@ double TMoverParameters::FrictionForce(double R, int TDamage)
         FF = (FrictConst1 * V * V) + FrictConst2s;
     return FF;
 }
+
+
+
 
 // *************************************************************************************************
 // Q: 20160713
@@ -3971,17 +4031,17 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
 
     // blablabla
     // ABu: proby znalezienia problemu ze zle odbijajacymi sie skladami
-    //***if (Couplers[CouplerN].CouplingFlag=ctrain_virtual) and (newdist>0) then
+    //if (Couplers[CouplerN].CouplingFlag=ctrain_virtual) and (newdist>0) then
     if ((Couplers[CouplerN].CouplingFlag == ctrain_virtual) && (Couplers[CouplerN].CoupleDist > 0))
     {
         CF = 0; // kontrola zderzania sie - OK
         ScanCounter++;
         if ((newdist > MaxDist) || ((ScanCounter > MaxCount) && (newdist > MinDist)))
-        //***if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
+        //if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
         { // zerwij kontrolnie wirtualny sprzeg
             // Connected.Couplers[CNext].Connected:=nil; //Ra: ten podłączony niekoniecznie jest
             // wirtualny
-            Couplers[CouplerN].Connected = NULL;
+//            Couplers[CouplerN].Connected = NULL;
             ScanCounter = static_cast<int>(Random(500.0)); // Q: TODO: cy dobrze przetlumaczone?
             // WriteLog(FloatToStr(ScanCounter));
         }
@@ -4612,36 +4672,26 @@ double TMoverParameters::TractionForce(double dt)
                     else
                         tmp = 4; // szybkie malenie, powolne wzrastanie
                 }
-                //         if SlippingWheels then begin PosRatio:=0; tmp:=10; SandDoseOn;
-                //         end;//przeciwposlizg
-
-                //         if(Flat)then //PRZECIWPOŚLIZG
                 dmoment = eimv[eimv_Fful];
-                //         else
-                //           dmoment:=eimc[eimc_p_F0]*0.99;
                 // NOTE: the commands to operate the sandbox are likely to conflict with other similar ai decisions
                 // TODO: gather these in single place so they can be resolved together
-                if ((abs((PosRatio + 9.66 * dizel_fill) * dmoment * 100) >
-                     0.95 * Adhesive(RunningTrack.friction) * TotalMassxg))
-                {
+                if( ( std::abs( ( PosRatio + 9.66 * dizel_fill ) * dmoment * 100 ) > 0.95 * Adhesive( RunningTrack.friction ) * TotalMassxg ) ) {
                     PosRatio = 0;
                     tmp = 4;
-                    Sandbox( true, range::local );
                 } // przeciwposlizg
-                if ((abs((PosRatio + 9.80 * dizel_fill) * dmoment * 100) >
-                     0.95 * Adhesive(RunningTrack.friction) * TotalMassxg))
-                {
+                if( ( std::abs( ( PosRatio + 9.80 * dizel_fill ) * dmoment * 100 ) > 0.95 * Adhesive( RunningTrack.friction ) * TotalMassxg ) ) {
+                    PosRatio = 0;
+                    tmp = 9;
+                } // przeciwposlizg
+                if( ( SlippingWheels ) ) {
                     PosRatio = 0;
                     tmp = 9;
                     Sandbox( true, range::local );
                 } // przeciwposlizg
-                if ((SlippingWheels))
-                {
-                    // PosRatio = -PosRatio * 0; // serio -0 ???
-					PosRatio = 0;
-                    tmp = 9;
-                    Sandbox( true, range::local );
-                } // przeciwposlizg
+                else {
+                    // switch sandbox off
+                    Sandbox( false, range::local );
+                }
 
                 dizel_fill += Max0R(Min0R(PosRatio - dizel_fill, 0.1), -0.1) * 2 *
                                  (tmp /*2{+4*byte(PosRatio<dizel_fill)*/) *
@@ -8238,7 +8288,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "Emergency_brake")
 	{
-		if (EmergencyBrakeSwitch(floor(CValue1) == 1)) // YB: czy to jest potrzebne?
+		if (RadiostopSwitch(floor(CValue1) == 1)) // YB: czy to jest potrzebne?
 			OK = true;
 		else
 			OK = false;

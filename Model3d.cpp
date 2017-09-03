@@ -28,7 +28,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 using namespace Mtable;
 
-double TSubModel::fSquareDist = 0;
+float TSubModel::fSquareDist = 0.f;
 size_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 texture_handle const *TSubModel::ReplacableSkinId = NULL;
 int TSubModel::iAlpha = 0x30300030; // maska do testowania flag tekstur wymiennych
@@ -63,16 +63,16 @@ TSubModel::~TSubModel()
 					   // wyświetlania
 };
 
-void TSubModel::TextureNameSet(std::string const &Name)
+void TSubModel::Name_Material(std::string const &Name)
 { // ustawienie nazwy submodelu, o
   // ile nie jest wczytany z E3D
 	if (iFlags & 0x0200)
 	{ // tylko jeżeli submodel zosta utworzony przez new
-		pTexture = Name;
+		m_materialname = Name;
 	}
 };
 
-void TSubModel::NameSet(std::string const &Name)
+void TSubModel::Name(std::string const &Name)
 { // ustawienie nazwy submodelu, o ile
   // nie jest wczytany z E3D
 	if (iFlags & 0x0200)
@@ -177,7 +177,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     std::string token;
     parser.getTokens(1, false); // nazwa submodelu bez zmieny na małe
     parser >> token;
-    NameSet(token);
+    Name(token);
     if (dynamic) {
         // dla pojazdu, blokujemy załączone submodele, które mogą być nieobsługiwane
         if( ( token.size() >= 3 )
@@ -305,50 +305,51 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 */
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
-        std::string texture = parser.getToken<std::string>();
-        if (texture == "none")
+        std::string material = parser.getToken<std::string>();
+        if (material == "none")
         { // rysowanie podanym kolorem
-            TextureID = 0;
+            m_material = null_handle;
             iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
         }
-        else if (texture.find("replacableskin") != texture.npos)
+        else if (material.find("replacableskin") != material.npos)
         { // McZapkie-060702: zmienialne skory modelu
-            TextureID = -1;
+            m_material = -1;
             iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
         }
-        else if (texture == "-1")
+        else if (material == "-1")
         {
-            TextureID = -1;
+            m_material = -1;
             iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
         }
-        else if (texture == "-2")
+        else if (material == "-2")
         {
-            TextureID = -2;
+            m_material = -2;
             iFlags |= (Opacity < 1.0) ? 2 : 0x10; // zmienna tekstura 2
         }
-        else if (texture == "-3")
+        else if (material == "-3")
         {
-            TextureID = -3;
+            m_material = -3;
             iFlags |= (Opacity < 1.0) ? 4 : 0x10; // zmienna tekstura 3
         }
-        else if (texture == "-4")
+        else if (material == "-4")
         {
-            TextureID = -4;
+            m_material = -4;
             iFlags |= (Opacity < 1.0) ? 8 : 0x10; // zmienna tekstura 4
         }
         else
         { // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
-            TextureNameSet(texture);
-            if( texture.find_first_of( "/\\" ) == texture.npos ) {
-                texture.insert( 0, Global::asCurrentTexturePath );
+            Name_Material(material);
+            if( material.find_first_of( "/\\" ) == material.npos ) {
+                material.insert( 0, Global::asCurrentTexturePath );
             }
-            TextureID = GfxRenderer.Fetch_Texture( texture );
+            m_material = GfxRenderer.Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
             iFlags |=
                 ( ( ( Opacity < 1.0 )
-                 && ( GfxRenderer.Texture(TextureID).has_alpha ) ) ?
+                 && ( ( m_material != null_handle )
+                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
@@ -591,10 +592,10 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 	return iNumVerts; // do określenia wielkości VBO
 };
 
-int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
+int TSubModel::TriangleAdd(TModel3d *m, material_handle tex, int tri)
 { // dodanie trójkątów do submodelu, używane przy tworzeniu E3D terenu
     TSubModel *s = this;
-    while (s ? (s->TextureID != tex) : false)
+    while (s ? (s->m_material != tex) : false)
     { // szukanie submodelu o danej teksturze
         if (s == this)
             s = Child;
@@ -603,15 +604,15 @@ int TSubModel::TriangleAdd(TModel3d *m, texture_handle tex, int tri)
     }
     if (!s)
     {
-        if (TextureID <= 0)
+        if (m_material <= 0)
             s = this; // użycie głównego
         else
         { // dodanie nowego submodelu do listy potomnych
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        s->TextureNameSet(GfxRenderer.Texture(tex).name);
-        s->TextureID = tex;
+        s->Name_Material(GfxRenderer.Material(tex).name);
+        s->m_material = tex;
         s->eType = GL_TRIANGLES;
     }
     if (s->iNumVerts < 0)
@@ -644,72 +645,6 @@ basic_vertex *TSubModel::TrianglePtr(int tex, int pos, glm::vec3 const &Ambient,
 	return s->Vertices + pos; // wskaźnik na wolne miejsce w tabeli wierzchołków
 };
 */
-#ifdef EU07_USE_OLD_RENDERCODE
-void TSubModel::DisplayLists()
-{ // utworznie po jednej skompilowanej liście dla
-  // każdego submodelu
-	if (Global::bUseVBO)
-		return; // Ra: przy VBO to się nie przyda
-	if (eType < TP_ROTATOR)
-	{
-		if (iNumVerts > 0)
-		{
-			uiDisplayList = glGenLists(1);
-			glNewList(uiDisplayList, GL_COMPILE);
-#ifdef USE_VERTEX_ARRAYS
-								   // ShaXbee-121209: przekazywanie wierzcholkow hurtem
-			glVertexPointer(3, GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Point.x);
-			glNormalPointer(GL_DOUBLE, sizeof(GLVERTEX), &Vertices[0].Normal.x);
-			glTexCoordPointer(2, GL_FLOAT, sizeof(GLVERTEX), &Vertices[0].tu);
-			glDrawArrays(eType, 0, iNumVerts);
-#else
-			glBegin(eType);
-			for (int i = 0; i < iNumVerts; i++)
-			{
-				/*
-				glNormal3dv(&Vertices[i].Normal.x);
-				glTexCoord2f(Vertices[i].tu,Vertices[i].tv);
-				glVertex3dv(&Vertices[i].Point.x);
-				*/
-				glNormal3fv(glm::value_ptr(Vertices[i].normal));
-				glTexCoord2fv(glm::value_ptr(Vertices[i].texture));
-				glVertex3fv(glm::value_ptr(Vertices[i].position));
-			};
-			glEnd();
-#endif
-            glEndList();
-        }
-    }
-    else if (eType == TP_FREESPOTLIGHT)
-    {
-        uiDisplayList = glGenLists(1);
-        glNewList(uiDisplayList, GL_COMPILE);
-        glBegin(GL_POINTS);
-        glVertex3f( 0.0f, 0.0f, -0.05f ); // shift point towards the viewer, to avoid z-fighting with the light polygons
-        glEnd();
-        glEndList();
-    }
-    else if (eType == TP_STARS)
-    { // punkty świecące dookólnie
-        uiDisplayList = glGenLists(1);
-        glNewList(uiDisplayList, GL_COMPILE);
-        glBegin(GL_POINTS);
-        for (int i = 0; i < iNumVerts; ++i)
-        {
-            glColor3fv(glm::value_ptr(Vertices[i].normal));
-            glVertex3fv(glm::value_ptr(Vertices[i].position));
-        };
-        glEnd();
-        glEndList();
-    }
-    // SafeDeleteArray(Vertices); //przy VBO muszą zostać do załadowania całego
-    // modelu
-    if (Child)
-        Child->DisplayLists();
-    if (Next)
-        Next->DisplayLists();
-};
-#endif
 
 void TSubModel::InitialRotate(bool doit)
 { // konwersja układu współrzędnych na zgodny ze scenerią
@@ -806,8 +741,8 @@ int TSubModel::FlagsCheck()
 	int i = 0;
 	if (Child)
 	{ // Child jest renderowany po danym submodelu
-		if (Child->TextureID) // o ile ma teksturę
-			if (Child->TextureID != TextureID) // i jest ona inna niż rodzica
+		if (Child->m_material) // o ile ma teksturę
+			if (Child->m_material != m_material) // i jest ona inna niż rodzica
 				Child->iFlags |= 0x80; // to trzeba sprawdzać, jak z teksturami jest
 		i = Child->FlagsCheck();
 		iFlags |= 0x00FF0000 & ((i << 16) | (i) | (i >> 8)); // potomny, rodzeństwo i dzieci
@@ -825,8 +760,8 @@ int TSubModel::FlagsCheck()
 	if (Next)
 	{ // Next jest renderowany po danym submodelu (kolejność odwrócona
 	  // po wczytaniu T3D)
-		if (TextureID) // o ile dany ma teksturę
-			if ((TextureID != Next->TextureID) ||
+		if (m_material) // o ile dany ma teksturę
+			if ((m_material != Next->m_material) ||
 				(i & 0x00800000)) // a ma inną albo dzieci zmieniają
 				iFlags |= 0x80; // to dany submodel musi sobie ją ustawiać
 		i = Next->FlagsCheck();
@@ -908,22 +843,17 @@ struct ToLower
 
 TSubModel *TSubModel::GetFromName(std::string const &search, bool i)
 {
-	return GetFromName(search.c_str(), i);
-};
-
-TSubModel *TSubModel::GetFromName(char const *search, bool i)
-{
 	TSubModel *result;
 	// std::transform(search.begin(),search.end(),search.begin(),ToLower());
 	// search=search.LowerCase();
 	// AnsiString name=AnsiString();
-	std::string search_lc = std::string(search);
+	std::string search_lc = search;
 	if (i)
 		std::transform(search_lc.begin(), search_lc.end(), search_lc.begin(), ::tolower);
 	std::string pName_lc = pName;
 	if (i)
 		std::transform(pName_lc.begin(), pName_lc.end(), pName_lc.begin(), ::tolower);
-	if (pName.size() && search)
+	if (pName.size() && search.size())
 		if (pName_lc == search_lc)
 			return this;
 	if (Next)
@@ -1043,7 +973,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) const {
     if( Child ) {
         Child->serialize_geometry( Output );
     }
-    if( m_geometry != NULL ) {
+    if( m_geometry != null_handle ) {
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
             vertex.serialize( Output );
         }
@@ -1085,13 +1015,13 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
     Groundnode.Ambient = f4Ambient;
     Groundnode.Diffuse = f4Diffuse;
     Groundnode.Specular = f4Specular;
-    Groundnode.TextureID = TextureID;
+    Groundnode.m_material = m_material;
     Groundnode.iFlags = (
-        ( true == GfxRenderer.Texture( TextureID ).has_alpha ) ?
+        ( true == GfxRenderer.Material( m_material ).has_alpha ) ?
             0x20 :
             0x10 );
 
-    if( m_geometry == NULL ) { return; }
+    if( m_geometry == null_handle ) { return; }
 
     std::size_t vertexcount { 0 };
     std::vector<TGroundVertex> importedvertices;
@@ -1135,23 +1065,6 @@ TSubModel::convert( TGroundNode &Groundnode ) const {
         Groundnode.fSquareRadius += r;
     }
 }
-
-// NOTE: leftover from static distance factor adjustment.
-// TODO: get rid of it, once we have the dynamic adjustment code in place
-void TSubModel::AdjustDist()
-{ // aktualizacja odległości faz LoD, zależna od
-  // rozdzielczości pionowej oraz multisamplingu
-	if (fSquareMaxDist > 0.0)
-		fSquareMaxDist *= Global::fDistanceFactor;
-	if (fSquareMinDist > 0.0)
-		fSquareMinDist /= Global::fDistanceFactor;
-	// if (fNearAttenStart>0.0) fNearAttenStart*=Global::fDistanceFactor;
-	// if (fNearAttenEnd>0.0) fNearAttenEnd*=Global::fDistanceFactor;
-	if (Child)
-		Child->AdjustDist();
-	if (Next)
-		Next->AdjustDist();
-};
 
 void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // ustawienie kolorów dla modelu terenu
@@ -1197,7 +1110,7 @@ float TSubModel::MaxY( float4x4 const &m ) {
 
     auto maxy { 0.0f };
     // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
-    if( m_geometry != NULL ) {
+    if( m_geometry != null_handle ) {
 
         for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
             maxy = std::max(
@@ -1229,23 +1142,19 @@ TModel3d::TModel3d()
 	Root = NULL;
 	iFlags = 0;
 	iSubModelsCount = 0;
-	iModel = NULL; // tylko jak wczytany model binarny
 	iNumVerts = 0; // nie ma jeszcze wierzchołków
 };
 
-TModel3d::~TModel3d()
-{
-	// SafeDeleteArray(Materials);
-	if (iFlags & 0x0200)
-	{ // wczytany z pliku tekstowego, submodele sprzątają same
-		SafeDelete(Root); // submodele się usuną rekurencyjnie
+TModel3d::~TModel3d() {
+
+	if (iFlags & 0x0200) {
+        // wczytany z pliku tekstowego, submodele sprzątają same
+        Root = nullptr;
 	}
-	else
-	{ // wczytano z pliku binarnego (jest właścicielem tablic)
-		Root = nullptr;
-		delete[] iModel; // usuwamy cały wczytany plik i to wystarczy
-	}
-	// później się jeszcze usuwa obiekt z którego dziedziczymy tabelę VBO
+	else {
+        // wczytano z pliku binarnego (jest właścicielem tablic)
+        SafeDeleteArray( Root ); // submodele się usuną rekurencyjnie
+    }
 };
 
 TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
@@ -1272,16 +1181,16 @@ void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel)
 	iFlags |= 0x0200; // submodele są oddzielne
 };
 
-TSubModel *TModel3d::GetFromName(const char *sName)
+TSubModel *TModel3d::GetFromName(std::string const &Name)
 { // wyszukanie submodelu po nazwie
-	if (!sName)
+	if (Name.empty())
 		return Root; // potrzebne do terenu z E3D
 	if (iFlags & 0x0200) // wczytany z pliku tekstowego, wyszukiwanie rekurencyjne
-		return Root ? Root->GetFromName(sName) : nullptr;
+		return Root ? Root->GetFromName(Name) : nullptr;
 	else // wczytano z pliku binarnego, można wyszukać iteracyjnie
 	{
 		// for (int i=0;i<iSubModelsCount;++i)
-		return Root ? Root->GetFromName(sName) : nullptr;
+		return Root ? Root->GetFromName(Name) : nullptr;
 	}
 };
 
@@ -1379,10 +1288,10 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_int32(s, iNumVerts);
 	sn_utils::ls_int32(s, tVboPtr);
 
-	if (TextureID <= 0)
-		sn_utils::ls_int32(s, TextureID);
+	if (m_material <= 0)
+		sn_utils::ls_int32(s, m_material);
 	else
-		sn_utils::ls_int32(s, (int32_t)get_container_pos(textures, pTexture));
+		sn_utils::ls_int32(s, (int32_t)get_container_pos(textures, m_materialname));
 
 	sn_utils::ls_float32(s, fVisible);
 	sn_utils::ls_float32(s, fLight);
@@ -1433,16 +1342,16 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	std::ofstream s(FileName, std::ios::binary);
 
 	sn_utils::ls_uint32(s, MAKE_ID4('E', '3', 'D', '0'));
-	size_t e3d_spos = s.tellp();
+	auto const e3d_spos = s.tellp();
 	sn_utils::ls_uint32(s, 0);
 
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('S', 'U', 'B', '0'));
-		size_t sub_spos = s.tellp();
+		auto const sub_spos = s.tellp();
 		sn_utils::ls_uint32(s, 0);
 		for (size_t i = 0; i < models.size(); i++)
 			models[i]->serialize(s, models, names, textures, transforms);
-		size_t pos = s.tellp();
+		auto const pos = s.tellp();
 		s.seekp(sub_spos);
 		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - sub_spos));
 		s.seekp(pos);
@@ -1460,11 +1369,11 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	if (textures.size())
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('T', 'E', 'X', '0'));
-		size_t tex_spos = s.tellp();
+		auto const tex_spos = s.tellp();
 		sn_utils::ls_uint32(s, 0);
 		for (size_t i = 0; i < textures.size(); i++)
 			sn_utils::s_str(s, textures[i]);
-		size_t pos = s.tellp();
+		auto const pos = s.tellp();
 		s.seekp(tex_spos);
 		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - tex_spos));
 		s.seekp(pos);
@@ -1473,17 +1382,17 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	if (names.size())
 	{
 		sn_utils::ls_uint32(s, MAKE_ID4('N', 'A', 'M', '0'));
-		size_t nam_spos = s.tellp();
+		auto const nam_spos = s.tellp();
 		sn_utils::ls_uint32(s, 0);
 		for (size_t i = 0; i < names.size(); i++)
 			sn_utils::s_str(s, names[i]);
-		size_t pos = s.tellp();
+		auto const pos = s.tellp();
 		s.seekp(nam_spos);
 		sn_utils::ls_uint32(s, (uint32_t)(4 + pos - nam_spos));
 		s.seekp(pos);
 	}
 
-	size_t end = s.tellp();
+	auto const end = s.tellp();
 	s.seekp(e3d_spos);
 	sn_utils::ls_uint32(s, (uint32_t)(4 + end - e3d_spos));
 	s.close();
@@ -1537,8 +1446,7 @@ void TSubModel::deserialize(std::istream &s)
 void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
 	Root = nullptr;
-	float4x4 *tm = nullptr;
-    if( m_geometrybank == NULL ) {
+    if( m_geometrybank == null_handle ) {
         m_geometrybank = GfxRenderer.Create_Bank();
     }
 
@@ -1560,7 +1468,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 			iSubModelsCount = (int)sm_cnt;
 			Root = new TSubModel[sm_cnt];
 			size_t pos = s.tellg();
-			for (size_t i = 0; i < sm_cnt; i++)
+			for (size_t i = 0; i < sm_cnt; ++i)
 			{
 				s.seekg(pos + sm_size * i);
 				Root[i].deserialize(s);
@@ -1575,18 +1483,13 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
             size_t vt_cnt = size / 32;
 			iNumVerts = (int)vt_cnt;
 			m_nVertexCount = (int)vt_cnt;
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-            assert( m_pVNT == nullptr );
-            m_pVNT = new basic_vertex[vt_cnt];
-#else
             m_pVNT.resize( vt_cnt );
-#endif
 			for (size_t i = 0; i < vt_cnt; i++)
 				m_pVNT[i].deserialize(s);
 */
-            // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk
+            // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk.
             // geometry associated with chunks isn't stored in the same order as the chunks themselves, so we need to sort that out first
-            std::vector< std::pair<int, int> > submodeloffsets;
+            std::vector< std::pair<int, int> > submodeloffsets; // vertex data offset, submodel index
             submodeloffsets.reserve( iSubModelsCount );
             for( int submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {
                 auto const &submodel = Root[ submodelindex ];
@@ -1633,23 +1536,23 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 		}
 		else if (type == MAKE_ID4('T', 'R', 'A', '0'))
 		{
-			if (tm != nullptr)
-				throw std::runtime_error("e3d: duplicated TRA chunk");
+            if( false == Matrices.empty() )
+                throw std::runtime_error("e3d: duplicated TRA chunk");
 			size_t t_cnt = size / 64;
 
-			tm = new float4x4[t_cnt];
-			for (size_t i = 0; i < t_cnt; i++)
-				tm[i].deserialize_float32(s);
+			Matrices.resize(t_cnt);
+			for (size_t i = 0; i < t_cnt; ++i)
+				Matrices[i].deserialize_float32(s);
 		}
 		else if (type == MAKE_ID4('T', 'R', 'A', '1'))
 		{
-			if (tm != nullptr)
-				throw std::runtime_error("e3d: duplicated TRA chunk");
+            if( false == Matrices.empty() )
+                throw std::runtime_error("e3d: duplicated TRA chunk");
 			size_t t_cnt = size / 128;
 
-			tm = new float4x4[t_cnt];
-			for (size_t i = 0; i < t_cnt; i++)
-				tm[i].deserialize_float64(s);
+            Matrices.resize( t_cnt );
+            for (size_t i = 0; i < t_cnt; ++i)
+				Matrices[i].deserialize_float64(s);
 		}
 		else if (type == MAKE_ID4('T', 'E', 'X', '0'))
 		{
@@ -1671,17 +1574,10 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 
 	if (!Root)
 		throw std::runtime_error("e3d: no submodels");
-/*
-#ifdef EU07_USE_OLD_VERTEXBUFFER
-    if (!m_pVNT)
-#else
-    if(m_pVNT.empty() )
-#endif
-		throw std::runtime_error("e3d: no vertices");
-*/
-	for (size_t i = 0; (int)i < iSubModelsCount; ++i)
+
+    for (size_t i = 0; (int)i < iSubModelsCount; ++i)
 	{
-        Root[i].BinInit( Root, tm, &Textures, &Names, dynamic );
+        Root[i].BinInit( Root, Matrices.data(), &Textures, &Names, dynamic );
 
         if (Root[i].ChildGet())
 			Root[i].ChildGet()->Parent = &Root[i];
@@ -1727,26 +1623,29 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		pName = "";
 	if (iTexture > 0)
 	{ // obsługa stałej tekstury
-        if( iTexture < t->size() ) {
-            pTexture = t->at( iTexture );
-            if( pTexture.find_last_of( "/\\" ) == std::string::npos )
-                pTexture.insert( 0, Global::asCurrentTexturePath );
-            TextureID = GfxRenderer.Fetch_Texture( pTexture );
+        auto const materialindex = static_cast<std::size_t>( iTexture );
+        if( materialindex < t->size() ) {
+            m_materialname = t->at( materialindex );
+            if( m_materialname.find_last_of( "/\\" ) == std::string::npos ) {
+                m_materialname = Global::asCurrentTexturePath + m_materialname;
+            }
+            m_material = GfxRenderer.Fetch_Material( m_materialname );
             if( ( iFlags & 0x30 ) == 0 ) {
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
-                iFlags |=
-                    ( GfxRenderer.Texture( TextureID ).has_alpha ?
+                iFlags |= (
+                    ( ( m_material != null_handle )
+                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ?
                         0x20 :
                         0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             }
         }
         else {
             ErrorLog( "Bad model: reference to non-existent texture index in sub-model" + ( pName.empty() ? "" : " \"" + pName + "\"" ) );
-            TextureID = NULL;
+            m_material = null_handle;
         }
     }
 	else
-		TextureID = iTexture;
+		m_material = iTexture;
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 
@@ -1874,7 +1773,7 @@ void TModel3d::Init()
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
-            if( m_geometrybank == NULL ) {
+            if( m_geometrybank == null_handle ) {
                 m_geometrybank = GfxRenderer.Create_Bank();
             }
             std::size_t dataoffset = 0;

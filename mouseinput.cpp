@@ -211,7 +211,10 @@ mouse_input::default_bindings() {
             user_command::independentbrakeincrease,
             user_command::independentbrakedecrease } },
         { "manualbrake:", {
-            user_command::none,
+            user_command::manualbrakeincrease,
+            user_command::manualbrakedecrease } },
+        { "alarmchain:", {
+            user_command::alarmchaintoggle,
             user_command::none } },
         { "brakeprofile_sw:", {
             user_command::brakeactingspeedincrease,

@@ -46,7 +46,7 @@ unsigned int const color_streams { stream::position | stream::color | stream::te
 
 struct stream_units {
 
-    GLint texture { GL_TEXTURE0 }; // unit associated with main texture data stream. TODO: allow multiple units per stream
+    std::vector<GLint> texture { GL_TEXTURE0 }; // unit associated with main texture data stream. TODO: allow multiple units per stream
 };
 
 typedef std::vector<basic_vertex> vertex_array;
@@ -207,7 +207,8 @@ private:
 // members:
     static GLuint m_activebuffer; // buffer bound currently on the opengl end, if any
     static unsigned int m_activestreams;
-    GLuint m_buffer { NULL }; // id of the buffer holding data on the opengl end
+    static std::vector<GLint> m_activetexturearrays;
+    GLuint m_buffer { 0 }; // id of the buffer holding data on the opengl end
     std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 

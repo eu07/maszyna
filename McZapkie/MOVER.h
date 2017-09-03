@@ -867,7 +867,8 @@ public:
 /*
 	int BrakeStatus = b_off; //0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R
 */
-	bool EmergencyBrakeFlag = false;        /*hamowanie nagle*/
+    bool AlarmChainFlag = false;    // manual emergency brake
+	bool RadioStopFlag = false;        /*hamowanie nagle*/
 	int BrakeDelayFlag = 0;               /*nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4*/
 	int BrakeDelays = 0;                   /*nastawy mozliwe do uzyskania*/
 	int BrakeOpModeFlag = 0;               /*nastawa trybu pracy PS/PN/EP/MED 1/2/4/8*/
@@ -1024,7 +1025,7 @@ public:
 	bool IncBrakeLevel(); // wersja na użytek AI
 	bool DecBrakeLevel();
 	bool ChangeCab(int direction);
-	bool CurrentSwitch(int direction);
+	bool CurrentSwitch(bool const State);
 	void UpdateBatteryVoltage(double dt);
 	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
 	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
@@ -1082,7 +1083,8 @@ public:
 	bool IncManualBrakeLevel(int CtrlSpeed);
 	bool DecManualBrakeLevel(int CtrlSpeed);
 	bool DynamicBrakeSwitch(bool Switch);
-	bool EmergencyBrakeSwitch(bool Switch);
+	bool RadiostopSwitch(bool Switch);
+    bool AlarmChainSwitch( bool const State );
 	bool AntiSlippingBrake(void);
 	bool BrakeReleaser(int state);
 	bool SwitchEPBrake(int state);
@@ -1109,6 +1111,8 @@ public:
 	double Adhesive(double staticfriction);
 	double TractionForce(double dt);
 	double FrictionForce(double R, int TDamage);
+	double BrakeForceR(double ratio, double velocity);
+	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);
 	double CouplerForce(int CouplerN, double dt);
 	void CollisionDetect(int CouplerN, double dt);

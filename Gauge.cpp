@@ -85,7 +85,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
     }
 
 	scale *= mul;
-		TSubModel *submodel = md1->GetFromName( submodelname.c_str() );
+		TSubModel *submodel = md1->GetFromName( submodelname );
     if( scale == 0.0 ) {
         ErrorLog( "Scale of 0.0 defined for sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\". Forcing scale of 1.0 to prevent division by 0" );
         scale = 1.0;
@@ -93,7 +93,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
     if (submodel) // jeśli nie znaleziony
         md2 = nullptr; // informacja, że znaleziony
     else if (md2) // a jest podany drugi model (np. zewnętrzny)
-        submodel = md2->GetFromName(submodelname.c_str()); // to może tam będzie, co za różnica gdzie
+        submodel = md2->GetFromName(submodelname); // to może tam będzie, co za różnica gdzie
     if( submodel == nullptr ) {
         ErrorLog( "Failed to locate sub-model \"" + submodelname + "\" in 3d model \"" + md1->NameGet() + "\"" );
     }
@@ -116,7 +116,7 @@ bool TGauge::Load(cParser &Parser, TModel3d *md1, TModel3d *md2, double mul) {
 bool
 TGauge::Load_mapping( cParser &Input ) {
 
-    if( false == Input.getTokens( 2, true, ", " ) ) {
+    if( false == Input.getTokens( 2, true, ", \n\r\t" ) ) {
         return false;
     }
 
