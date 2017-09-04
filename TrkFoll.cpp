@@ -71,19 +71,11 @@ TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
         }
         break;
         }
-    if (!pTrack)
-    { // gdy nie ma toru w kierunku jazdy
-        pTrack = pCurrentTrack->NullCreate(
-            end); // tworzenie toru wykolejącego na przedłużeniu pCurrentTrack
+    if (!pTrack) {
+        // gdy nie ma toru w kierunku jazdy tworzenie toru wykolejącego na przedłużeniu pCurrentTrack
+        pTrack = pCurrentTrack->NullCreate(end);
         if (!end) // jeśli dodana od strony zero, to zmiana kierunku
             fDirection = -fDirection; // wtórna zmiana
-        // if (pTrack->iCategoryFlag&2)
-        //{//jeśli samochód, zepsuć na miejscu
-        // Owner->MoverParameters->V=0; //zatrzymać
-        // Owner->MoverParameters->Power=0; //ukraść silnik
-        // Owner->MoverParameters->AccS=0; //wchłonąć moc
-        // Global::iPause|=1; //zapauzowanie symulacji
-        //}
     }
     else
     { // najpierw +1, później -1, aby odcinek izolowany wspólny dla tych torów nie wykrył zera

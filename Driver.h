@@ -369,7 +369,7 @@ private: // parametry aktualnego składu
 //    double Distance(vector3 &p1, vector3 &n, vector3 &p2);
 
   private: // Ra: metody obsługujące skanowanie toru
-    TEvent *CheckTrackEvent(double fDirection, TTrack *Track);
+    TEvent *CheckTrackEvent(TTrack *Track, double const fDirection ) const;
 //    bool TableCheckEvent(TEvent *e);
     bool TableAddNew();
     bool TableNotFound(TEvent const *Event) const;

@@ -32,6 +32,20 @@ http://mozilla.org/MPL/2.0/.
 #define LOGSTOPS 1
 #define LOGBACKSCAN 0
 #define LOGPRESS 0
+
+// finds point of specified track nearest to specified event. returns: distance to that point from the specified end of the track
+// TODO: move this to file with all generic routines, too easy to forget it's here and it may come useful
+double
+ProjectEventOnTrack( TEvent const *Event, TTrack const *Track, double const Direction ) {
+
+    auto const segment = Track->CurrentSegment();
+    auto const nearestpoint = segment->find_nearest_point( Event->PositionGet() );
+    return (
+        Direction > 0 ?
+            nearestpoint * segment->GetLength() : // measure from point1
+            ( 1.0 - nearestpoint ) * segment->GetLength() ); // measure from point2
+};
+
 /*
 
 Moduł obsługujący sterowanie pojazdami (składami pociągów, samochodami).
@@ -104,43 +118,6 @@ std::string StopReasonTable[] = {
     "Radiostop", // stopRadio, //komunikat przekazany radiem (Radiostop)
     "External", // stopExt, //przesłany z zewnątrz
     "Error", // stopError //z powodu błędu w obliczeniu drogi hamowania
-};
-
-double GetDistanceToEvent(TTrack* track, TEvent* event, double scan_dir, double start_dist, int iter = 0, bool back = false)
-{
-    std::shared_ptr<TSegment> segment = track->CurrentSegment();
-    vector3 pos_event = event->PositionGet();
-    double len1, len2;
-    double sd = scan_dir;
-    double seg_len = scan_dir > 0 ? 0.0 : 1.0;
-    double dzielnik = 1.0 / segment->GetLength();// rozdzielczosc mniej wiecej 1m
-    int krok = 0; // krok obliczeniowy do sprawdzania czy odwracamy
-    len2 = (pos_event - segment->FastGetPoint(seg_len)).Length();
-    do
-    {
-        len1 = len2;
-        seg_len += scan_dir > 0 ? dzielnik : -dzielnik;
-        len2 = (pos_event - segment->FastGetPoint(seg_len)).Length();
-        krok++;
-    } while ((len1 > len2) && (seg_len >= dzielnik && (seg_len <= (1 - dzielnik))));
-    //trzeba sprawdzić czy seg_len nie osiągnął skrajnych wartości, bo wtedy
-    // trzeba sprawdzić tor obok
-    if (1 == krok)
-        sd = -sd; // jeśli tylko jeden krok tzn, że event przy poprzednim sprawdzaym torze
-    if (((seg_len <= dzielnik) || (seg_len > (1 - dzielnik))) && (iter < 3))
-    { // przejście na inny tor
-        track = track->Neightbour(int(sd), sd);
-        start_dist += (1 == krok) ? 0 : back ? -segment->GetLength() : segment->GetLength();
-        return GetDistanceToEvent(track, event, sd, start_dist, ++iter, 1 == krok ? true : false);
-    }
-    else
-    { // obliczenie mojego toru
-        seg_len -= scan_dir > 0 ? dzielnik : -dzielnik; //trzeba wrócić do pozycji len1
-        seg_len = scan_dir < 0 ? 1 - seg_len : seg_len;
-        seg_len = back ? 1 - seg_len : seg_len; // odwracamy jeśli idzie do tyłu
-        start_dist -= back ? segment->GetLength() : 0;
-        return start_dist + (segment->GetLength() * seg_len);
-    }
 };
 
 //---------------------------------------------------------------------------
@@ -384,7 +361,7 @@ void TController::TableClear()
     eSignSkip = nullptr; // nic nie pomijamy
 };
 
-TEvent * TController::CheckTrackEvent(double fDirection, TTrack *Track)
+TEvent * TController::CheckTrackEvent( TTrack *Track, double const fDirection ) const
 { // sprawdzanie eventów na podanym torze do podstawowego skanowania
     TEvent *e = (fDirection > 0) ? Track->evEvent2 : Track->evEvent1;
     if (!e)
@@ -444,7 +421,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         }
         fTrackLength -= odl_czola_od_wozka;
         fCurrentDistance = -fLength - fTrackLength; // aktualna odległość ma być ujemna gdyż jesteśmy na końcu składu
-        fLastVel = pTrack->VelocityGet(); // aktualna prędkość
+        fLastVel = -1.0; // pTrack->VelocityGet(); // aktualna prędkość // changed to -1 to recognize speed limit, if any
         sSpeedTable.clear();
         iLast = -1;
         tLast = nullptr; //żaden nie sprawdzony
@@ -504,7 +481,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 WriteLog( "Speed table for " + OwnerName() + " tracing through track " + pTrack->NameGet() );
             }
 
-            if( ( pEvent = CheckTrackEvent( fLastDir, pTrack ) ) != nullptr ) // jeśli jest semafor na tym torze
+            if( ( pEvent = CheckTrackEvent( pTrack, fLastDir ) ) != nullptr ) // jeśli jest semafor na tym torze
             { // trzeba sprawdzić tabelkę, bo dodawanie drugi raz tego samego przystanku nie jest korzystne
                 if (TableNotFound(pEvent)) // jeśli nie ma
                 {
@@ -514,7 +491,10 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                         WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->asName);
                     }
                     auto &newspeedpoint = sSpeedTable[iLast];
-                    if (newspeedpoint.Set(pEvent, GetDistanceToEvent(pTrack, pEvent, fLastDir, fCurrentDistance), OrderCurrentGet())) {
+                    if( newspeedpoint.Set(
+                        pEvent,
+                        fCurrentDistance + ProjectEventOnTrack( pEvent, pTrack, fLastDir ),
+                        OrderCurrentGet() ) ) {
 
                         fDistance = newspeedpoint.fDist; // jeśli sygnał stop, to nie ma potrzeby dalej skanować
                         SemNextStopIndex = iLast;
@@ -604,29 +584,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 if( ( tLast->VelocityGet() > 0 )
                  && ( ( tLast->VelocityGet() < pTrack->VelocityGet() )
                    || ( pTrack->VelocityGet() < 0 ) ) ) {
-/*
-                if( ( pTrack->VelocityGet() < 0 ?
-                        tLast->VelocityGet() > 0 :
-                        pTrack->VelocityGet() > tLast->VelocityGet() ) ) {
-                    // jeśli kolejny ma większą prędkość niż poprzedni, to zapamiętać poprzedni (do czasu wyjechania)
 
-                    if( ( ( ( iLast != -1 )
-                         && ( TestFlag( sSpeedTable[ iLast ].iFlags, spEnabled | spTrack ) ) ) ?
-                            ( sSpeedTable[ iLast ].trTrack != tLast ) :
-                            true ) ) {
-                        // jeśli nie był dodany do tabelki
-                        if( TableAddNew() ) {
-                            // zapisanie toru z ograniczeniem prędkości
-                            sSpeedTable[ iLast ].Set(
-                                tLast, fCurrentDistance,
-                                ( fLastDir > 0 ?
-                                    pTrack->iPrevDirection :
-                                    pTrack->iNextDirection ) ?
-                                        spEnabled :
-                                        spEnabled | spReverse );
-                        }
-                    }
-*/
                     if( ( iLast != -1 )
                      && ( sSpeedTable[ iLast ].trTrack == tLast ) ) {
                         // if the track is already in the table we only need to mark it as relevant
@@ -658,7 +616,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 if( TableAddNew() ) {
                     // zapisanie ostatniego sprawdzonego toru
                     sSpeedTable[iLast].Set(
-                        tLast, fCurrentDistance,
+                        tLast, fCurrentDistance - fTrackLength, // by now the current distance points to beginning of next track,
                         ( fLastDir < 0 ?
                             spEnabled | spEnd | spReverse :
                             spEnabled | spEnd ));
@@ -692,9 +650,10 @@ void TController::TableCheck(double fDistance)
     }
     else if (iTableDirection)
     { // trzeba sprawdzić, czy coś się zmieniło
-        for (auto &sp : sSpeedTable)
-        {
-            sp.UpdateDistance(MoveDistanceGet()); // aktualizacja odległości dla wszystkich pozycji tabeli
+        auto const distance = MoveDistanceGet();
+        for (auto &sp : sSpeedTable) {
+            // aktualizacja odległości dla wszystkich pozycji tabeli
+            sp.UpdateDistance(distance);
         }
         MoveDistanceReset(); // kasowanie odległości po aktualizacji tabelki
         for( int i = 0; i < iLast; ++i )
@@ -4245,7 +4204,7 @@ TController::UpdateSituation(double dt) {
                         0 :
                         1 ); // sprzęg z przodu składu
                 if( ( coupler->Connected )
-                    && ( coupler->CouplingFlag == 0 ) ) {
+                 && ( coupler->CouplingFlag == 0 ) ) {
                     // mamy coś z przodu podłączone sprzęgiem wirtualnym
                     // wyliczanie optymalnego przyspieszenia do jazdy na widoczność
                     ActualProximityDist = std::min(
