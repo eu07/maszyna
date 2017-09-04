@@ -66,6 +66,12 @@ LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
                 World.OnCommandGet( (DaneRozkaz *)( pDane->lpData ) );
             break;
         }
+		case WM_KEYDOWN:
+		case WM_KEYUP: {
+			lParam &= ~0x1ff0000;
+			lParam |= MapVirtualKey(MAPVK_VK_TO_VSC, wParam) << 16;
+			break;
+		}
     }
     // pass all unhandled messages to DefWindowProc
     return CallWindowProc( BaseWindowProc, Hwnd, uMsg, wParam, lParam );
