@@ -74,10 +74,10 @@ bool TPythonInterpreter::loadClassFile( std::string const &lookupPath, std::stri
         if (sourceFile != nullptr)
         {
             fseek(sourceFile, 0, SEEK_END);
-            long fsize = ftell(sourceFile);
+            auto const fsize = ftell(sourceFile);
             char *buffer = (char *)calloc(fsize + 1, sizeof(char));
             fseek(sourceFile, 0, SEEK_SET);
-            size_t freaded = fread(buffer, sizeof(char), fsize, sourceFile);
+            auto const freaded = fread(buffer, sizeof(char), fsize, sourceFile);
             buffer[freaded] = 0; // z jakiegos powodu czytamy troche mniej i trzczeba dodac konczace
 // zero do bufora (mimo ze calloc teoretycznie powiniene zwrocic
 // wyzerowana pamiec)

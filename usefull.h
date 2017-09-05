@@ -96,4 +96,23 @@ bounding_box( VecType_ &Mincorner, VecType_ &Maxcorner, Iterator_ First, Iterato
             Maxcorner = glm::max( Maxcorner, VecType_{ point } ); } );
 }
 
+// finds point on specified segment closest to specified point in 3d space. returns: point on segment as value in range 0-1 where 0 = start and 1 = end of the segment
+template <typename VecType_>
+typename VecType_::value_type
+nearest_segment_point( VecType_ const &Segmentstart, VecType_ const &Segmentend, VecType_ const &Point ) {
+
+    auto const v = Segmentend - Segmentstart;
+    auto const w = Point - Segmentstart;
+
+    auto const c1 = glm::dot( w, v );
+    if( c1 <= 0.0 ) {
+        return 0.0;
+    }
+    auto const c2 = glm::dot( v, v );
+    if( c2 <= c1 ) {
+        return 1.0;
+    }
+    return c1 / c2;
+}
+
 //---------------------------------------------------------------------------

@@ -673,7 +673,7 @@ double TEvent::ValueGet(int n)
     return 0.0; // inne eventy się nie liczą
 };
 
-vector3 TEvent::PositionGet()
+vector3 TEvent::PositionGet() const
 { // pobranie współrzędnych eventu
     switch (Type)
     { //

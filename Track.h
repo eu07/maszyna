@@ -77,7 +77,7 @@ class TSwitchExtension
         struct
         { // zmienne dla skrzyżowania
             int iRoads; // ile dróg się spotyka?
-            vector3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
+            Math3D::vector3 *vPoints; // tablica wierzchołków nawierzchni, generowana przez pobocze
 //            int iPoints; // liczba faktycznie użytych wierzchołków nawierzchni
             bool bPoints; // czy utworzone?
         };
@@ -90,7 +90,7 @@ class TSwitchExtension
     TEvent *evPlus = nullptr,
            *evMinus = nullptr; // zdarzenia sygnalizacji rozprucia
     float fVelocity = -1.0; // maksymalne ograniczenie prędkości (ustawianej eventem)
-    vector3 vTrans; // docelowa translacja przesuwnicy
+    Math3D::vector3 vTrans; // docelowa translacja przesuwnicy
   private:
 };
 
@@ -199,7 +199,7 @@ public:
     void ConnectNextNext(TTrack *pNewNext, int typ);
     inline double Length() {
         return Segment->GetLength(); };
-	inline std::shared_ptr<TSegment> CurrentSegment() {
+	inline std::shared_ptr<TSegment> CurrentSegment() const {
         return Segment; };
     inline TTrack * CurrentNext() {
         return (trNext); };
@@ -215,7 +215,7 @@ public:
             SwitchExtension ?
                 SwitchExtension->CurrentIndex :
                 -1); };
-    void Load(cParser *parser, vector3 pOrigin, std::string name);
+    void Load(cParser *parser, Math3D::vector3 pOrigin, std::string name);
     bool AssignEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEvent2);
     bool AssignForcedEvents(TEvent *NewEventPlus, TEvent *NewEventMinus);
@@ -247,7 +247,7 @@ public:
             m_material1 :
             m_material2 ); };
     bool IsGroupable();
-    int TestPoint(vector3 *Point);
+    int TestPoint( Math3D::vector3 *Point);
     void MovedUp1(float const dh);
     std::string NameGet();
     void VelocitySet(float v);

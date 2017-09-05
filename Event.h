@@ -109,7 +109,7 @@ class TEvent // zmienne: ev*
     std::string CommandGet();
     TCommandType Command();
     double ValueGet(int n);
-    vector3 PositionGet();
+    vector3 PositionGet() const;
     bool StopCommand();
     void StopCommandSent();
     void Append(TEvent *e);
