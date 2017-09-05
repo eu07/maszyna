@@ -68,8 +68,20 @@ LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
         }
 		case WM_KEYDOWN:
 		case WM_KEYUP: {
-			lParam &= ~0x1ff0000;
-			lParam |= MapVirtualKey(wParam, MAPVK_VK_TO_VSC) << 16;
+			if (wParam == VK_INSERT || wParam == VK_DELETE || wParam == VK_HOME || wParam == VK_END || wParam == VK_PRIOR || wParam == VK_NEXT)
+				lParam &= ~0x1ff0000;
+			if (wParam == VK_INSERT)				
+				lParam |= 0x152 << 16;
+			if (wParam == VK_DELETE)				
+				lParam |= 0x153 << 16;
+			if (wParam == VK_HOME)				
+				lParam |= 0x147 << 16;
+			if (wParam == VK_END)				
+				lParam |= 0x14F << 16;
+			if (wParam == VK_PRIOR)				
+				lParam |= 0x149 << 16;
+			if (wParam == VK_NEXT)				
+				lParam |= 0x151 << 16;
 			break;
 		}
     }
