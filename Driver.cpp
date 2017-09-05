@@ -4758,19 +4758,41 @@ TController::UpdateSituation(double dt) {
                             }
                         }
                     }
-                    if ((AccDesired < fAccGravity - 0.05) && (AbsAccS < AccDesired - fBrake_a1[0]*0.51)) {
-                        // jak hamuje, to nie tykaj kranu za często
-                        // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
-                        if( OrderList[ OrderPos ] != Disconnect ) {
-                            // przy odłączaniu nie zwalniamy tu hamulca
-                            DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
-                        }
-                        fBrakeTime = (
-                            mvOccupied->BrakeDelayFlag > bdelay_G ?
-                                mvOccupied->BrakeDelay[ 0 ] :
-                                mvOccupied->BrakeDelay[ 2 ] )
-                            / 3.0;
-                        fBrakeTime *= 0.5; // Ra: tymczasowo, bo przeżyna S1
+                    // Mietek-end1
+                    SpeedSet(); // ciągla regulacja prędkości
+#if LOGVELOCITY
+                    WriteLog("BrakePos=" + AnsiString(mvOccupied->BrakeCtrlPos) + ", MainCtrl=" +
+                             AnsiString(mvControlling->MainCtrlPos));
+#endif
+
+                    /* //Ra: mamy teraz wskażnik na człon silnikowy, gorzej jak są dwa w
+                       ukrotnieniu...
+                          //zapobieganie poslizgowi w czlonie silnikowym; Ra: Couplers[1] powinno
+                       być
+                          if (Controlling->Couplers[0].Connected!=NULL)
+                           if (TestFlag(Controlling->Couplers[0].CouplingFlag,ctrain_controll))
+                            if (Controlling->Couplers[0].Connected->SlippingWheels)
+                             if (Controlling->ScndCtrlPos>0?!Controlling->DecScndCtrl(1):true)
+                             {
+                              if (!Controlling->DecMainCtrl(1))
+                               if (mvOccupied->BrakeCtrlPos==mvOccupied->BrakeCtrlPosNo)
+                                mvOccupied->DecBrakeLevel();
+                              ++iDriverFailCount;
+                             }
+                    */
+                    // zapobieganie poslizgowi u nas
+                    if (mvControlling->SlippingWheels)
+                    {
+                        if (!mvControlling->DecScndCtrl(2)) // bocznik na zero
+                            mvControlling->DecMainCtrl(1);
+                        if (mvOccupied->BrakeCtrlPos ==
+                            mvOccupied->BrakeCtrlPosNo) // jeśli ostatnia pozycja hamowania
+							//yB: ten warunek wyżej nie ma sensu
+                            mvOccupied->DecBrakeLevel(); // to cofnij hamulec
+                        else
+                            mvControlling->AntiSlippingButton();
+                        ++iDriverFailCount;
+                        //mvControlling->SlippingWheels = false; // flaga już wykorzystana
                     }
                     // stop-gap measure to ensure cars actually brake to stop even when above calculactions go awry
                     // instead of releasing the brakes and creeping into obstacle at 1-2 km/h

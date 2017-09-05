@@ -3669,6 +3669,7 @@ double TMoverParameters::ComputeMass(void)
 void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
 {
     int b;
+	double Fwheels = 0.0;
 
     if (PhysicActivation)
     {
@@ -3728,19 +3729,35 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
         else
             FTrain = 0;
         Fb = BrakeForce(RunningTrack);
+		Fwheels = FTrain - Fb * Sign(V);
         if( ( Vel > 0.001 ) // crude trap, to prevent braked stationary vehicles from passing fb > mass * adhesive test
-         && ( std::max( std::abs( FTrain ), Fb ) > TotalMassxg * Adhesive( RunningTrack.friction ) ) ) // poslizg
+         && ( std::abs(Fwheels) > TotalMassxg * Adhesive( RunningTrack.friction ) ) ) // poslizg
         {
             SlippingWheels = true;
         }
         if( true == SlippingWheels ) {
             //     TrainForce:=TrainForce-Fb;
-            nrot = ComputeRotatingWheel((FTrain - Fb * Sign(V) - FStand) / NAxles -
+            double temp_nrot = ComputeRotatingWheel(Fwheels - 
                                             Sign(nrot * M_PI * WheelDiameter - V) *
-                                                Adhesive(RunningTrack.friction) * TotalMass,
+                                                Adhesive(RunningTrack.friction) * TotalMassxg,
                                         dt, nrot);
-            FTrain = Sign(FTrain) * TotalMassxg * Adhesive(RunningTrack.friction);
-            Fb = std::min(Fb, TotalMassxg * Adhesive(RunningTrack.friction));
+            Fwheels = Sign(nrot * M_PI * WheelDiameter - V) * TotalMassxg * Adhesive(RunningTrack.friction);
+			if (Fwheels*Sign(V)>0)
+			{
+				FTrain = Fwheels - Fb;
+			}
+			else
+			{
+				Fb = FTrain - Fwheels;
+			}
+			if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
+			{
+				SlippingWheels = false;
+				temp_nrot = V / M_PI / WheelDiameter;
+			}
+
+
+			nrot = temp_nrot;
         }
         //  else SlippingWheels:=false;
         //  FStand:=0;
@@ -3749,7 +3766,7 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
                                                   (Couplers[b].CouplerType<>Articulated)*/
             { // doliczenie sił z innych pojazdów
                 Couplers[b].CForce = CouplerForce(b, dt);
-                FTrain += Couplers[b].CForce;
+				FTrain += Couplers[b].CForce;
             }
             else
                 Couplers[b].CForce = 0;
@@ -3883,16 +3900,6 @@ double TMoverParameters::BrakeForce(const TTrackParam &Track)
     }
     else
         UnitBrakeForce = K * 1000.0;
-    if (((double)NBpA * UnitBrakeForce > TotalMassxg * Adhesive(RunningTrack.friction) / NAxles) &&
-        (abs(V) > 0.001))
-    // poslizg
-    {
-        //     Fb = Adhesive(Track.friction) * Mass * g;
-        SlippingWheels = true;
-    }
-    //{  else
-    //   begin
-    //{     SlippingWheels:=false;}
     //     if (LocalBrake=ManualBrake)or(MBrake=true)) and (BrakePress<0.3) then
     //      Fb:=UnitBrakeForce*NBpA {ham. reczny dziala na jedna os}
     //     else  //yB: to nie do konca ma sens, ponieważ ręczny w wagonie działa na jeden cylinder
@@ -3928,7 +3935,10 @@ double TMoverParameters::FrictionForce(double R, int TDamage)
 // *************************************************************************************************
 double TMoverParameters::Adhesive(double staticfriction)
 {
-    double adhesion;
+    double adhesion = 0.0;
+	const double adh_factor = 0.25; //współczynnik określający, jak bardzo spada tarcie przy poślizgu
+	const double slipfactor = 0.33;  //współczynnik określający, jak szybko spada tarcie przy poślizgu
+	const double sandfactor = 1.25; //współczynnik określający, jak mocno pomaga piasek
 /*
     // ABu: male przerobki, tylko czy to da jakikolwiek skutek w FPS?
     //     w kazdym razie zaciemni kod na pewno :)
@@ -3951,6 +3961,7 @@ double TMoverParameters::Adhesive(double staticfriction)
     //  WriteLog(FloatToStr(adhesive));      // tutaj jest na poziomie 0.2 - 0.3
     return adhesion;
 */
+	/* //wersja druga
     if( true == SlippingWheels ) {
 
         if( true == SandDose ) { adhesion = 0.48; }
@@ -3961,7 +3972,12 @@ double TMoverParameters::Adhesive(double staticfriction)
         if( true == SandDose ) { adhesion = std::max( staticfriction * ( 100.0 + Vel ) / ( 50.0 + Vel ) * 1.1, 0.48 ); }
         else                   { adhesion = staticfriction * ( 100.0 + Vel ) / ( 50.0 + Vel ); }
     }
-    adhesion *= ( 11.0 - 2 * Random() ) / 10.0;
+    adhesion *= ( 11.0 - 2 * Random() ) / 10.0; */
+	//wersja3 by youBy - uwzględnia naturalne mikropoślizgi i wpływ piasecznicy, usuwa losowość z pojazdu
+	double Vwheels = nrot * M_PI * WheelDiameter; // predkosc liniowa koła wynikająca z obrotowej
+	double deltaV = V - Vwheels; //poślizg - różnica prędkości w punkcie styku koła i szyny
+	deltaV = std::max(0.0, std::abs(deltaV) - 0.25); //mikropoślizgi do ok. 0,25 m/s nie zrywają przyczepności
+	adhesion = staticfriction * (28 + Vwheels) / (14 + Vwheels) * ((SandDose? sandfactor : 1) - (1 - adh_factor)*(deltaV / (deltaV + slipfactor)));
     return adhesion;
 }
 
