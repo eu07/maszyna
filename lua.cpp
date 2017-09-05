@@ -56,9 +56,15 @@ int lua::openffi(lua_State *s)
     return 1;
 }
 
+#ifdef _WIN32
+#define EXPORT __declspec(dllexport)
+#else
+#define EXPORT
+#endif
+
 extern "C"
 {
-    TEvent* scriptapi_event_create(const char* name, lua::eventhandler_t handler, double delay)
+    EXPORT TEvent* scriptapi_event_create(const char* name, lua::eventhandler_t handler, double delay)
     {
         TEvent *event = new TEvent();
         event->bEnabled = true;
@@ -70,7 +76,7 @@ extern "C"
         return event;
     }
 
-    TEvent* scriptapi_event_find(const char* name)
+    EXPORT TEvent* scriptapi_event_find(const char* name)
     {
         std::string str(name);
         TEvent *e = World.Ground.FindEvent(str);
@@ -81,7 +87,7 @@ extern "C"
         return nullptr;
     }
 
-    TTrack* scriptapi_track_find(const char* name)
+    EXPORT TTrack* scriptapi_track_find(const char* name)
     {
         std::string str(name);
         TGroundNode *n = World.Ground.FindGroundNode(str, TP_TRACK);
@@ -92,46 +98,46 @@ extern "C"
         return nullptr;
     }
 
-    bool scriptapi_track_isoccupied(TTrack* track)
+    EXPORT bool scriptapi_track_isoccupied(TTrack* track)
     {
         if (track)
             return !track->IsEmpty();
         return false;
     }
 
-    const char* scriptapi_event_getname(TEvent *e)
+    EXPORT const char* scriptapi_event_getname(TEvent *e)
     {
         if (e)
             return e->asName.c_str();
         return nullptr;
     }
 
-    const char* scriptapi_train_getname(TDynamicObject *dyn)
+    EXPORT const char* scriptapi_train_getname(TDynamicObject *dyn)
     {
         if (dyn && dyn->Mechanik)
             return dyn->Mechanik->TrainName().c_str();
         return nullptr;
     }
 
-    void scriptapi_event_dispatch(TEvent *e, TDynamicObject *activator)
+    EXPORT void scriptapi_event_dispatch(TEvent *e, TDynamicObject *activator)
     {
         if (e)
             World.Ground.AddToQuery(e, activator);
     }
 
-    double scriptapi_random(double a, double b)
+    EXPORT double scriptapi_random(double a, double b)
     {
         return Random(a, b);
     }
 
-    void scriptapi_writelog(const char* txt)
+    EXPORT void scriptapi_writelog(const char* txt)
     {
         WriteLog("lua log: " + std::string(txt));
     }
 
     struct memcell_values { const char *str; double num1; double num2; };
 
-    TMemCell* scriptapi_memcell_find(const char *name)
+    EXPORT TMemCell* scriptapi_memcell_find(const char *name)
     {
         std::string str(name);
         TGroundNode *n = World.Ground.FindGroundNode(str, TP_MEMCELL);
@@ -142,14 +148,14 @@ extern "C"
         return nullptr;
     }
 
-    memcell_values scriptapi_memcell_read(TMemCell *mc)
+    EXPORT memcell_values scriptapi_memcell_read(TMemCell *mc)
     {
         if (!mc)
             return { nullptr, 0.0, 0.0 };
         return { mc->Text().c_str(), mc->Value1(), mc->Value2() };
     }
 
-    void scriptapi_memcell_update(TMemCell *mc, const char *str, double num1, double num2)
+    EXPORT void scriptapi_memcell_update(TMemCell *mc, const char *str, double num1, double num2)
     {
         if (!mc)
             return;
@@ -157,7 +163,7 @@ extern "C"
                          update_memstring | update_memval1 | update_memval2);
     }
 
-    void scriptapi_dynobj_putvalues(TDynamicObject *dyn, const char *str, double num1, double num2)
+    EXPORT void scriptapi_dynobj_putvalues(TDynamicObject *dyn, const char *str, double num1, double num2)
     {
         if (!dyn)
             return;
