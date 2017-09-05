@@ -47,7 +47,7 @@ class TTrackFollower
     {
         return fDirection;
     }; // zwrot na torze
-    inline double GetTranslation()
+    inline double GetTranslation() const
     {
         return fCurrentDistance;
     }; // ABu-030403

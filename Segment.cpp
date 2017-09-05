@@ -350,7 +350,7 @@ Math3D::vector3 TSegment::FastGetPoint(double const t) const
 {
     // return (bCurve?Interpolate(t,Point1,CPointOut,CPointIn,Point2):((1.0-t)*Point1+(t)*Point2));
     return (
-        ( ( true == bCurve ) || ( iSegCount == 1 ) ) ?
+        ( ( true == bCurve ) || ( iSegCount != 1 ) ) ?
             RaInterpolate( t ) :
             interpolate( Point1, Point2, t ) );
 }

@@ -1127,7 +1127,7 @@ void TDynamicObject::ABuCheckMyTrack()
 
 // Ra: w poniższej funkcji jest problem ze sprzęgami
 TDynamicObject *
-TDynamicObject::ABuFindObject( int &Foundcoupler, double &Distance, TTrack *Track, int const Direction, int const Mycoupler )
+TDynamicObject::ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler )
 { // Zwraca wskaźnik najbliższego obiektu znajdującego się
     // na torze w określonym kierunku, ale tylko wtedy, kiedy
     // obiekty mogą się zderzyć, tzn. nie mijają się.
@@ -1169,7 +1169,15 @@ TDynamicObject::ABuFindObject( int &Foundcoupler, double &Distance, TTrack *Trac
     for( auto dynamic : Track->Dynamics ) {
 
         if( dynamic == this ) { continue; } // szukający się nie liczy
-
+/*
+        if( ( ( dynamic == PrevConnected ) && ( MoverParameters->Couplers[ TMoverParameters::side::front ].CouplingFlag != coupling::faux ) )
+         || ( ( dynamic == NextConnected ) && ( MoverParameters->Couplers[ TMoverParameters::side::rear  ].CouplingFlag != coupling::faux ) )  ){
+            // stop-gap check to prevent 'detection' of attached vehicles
+            // which seems to be a side-effect of inaccurate location calculation in 'simple' mode?
+            // TODO: investigate actual cause
+            continue;
+        }
+*/
         if( Direction > 0 ) {
             // jeśli szukanie w kierunku Point2
             objectposition = ( dynamic->RaTranslationGet() ) - myposition; // odległogłość tamtego od szukającego
@@ -1328,16 +1336,23 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
     // ScanDir - określa kierunek poszukiwania zależnie od zwrotu prędkości
     // pojazdu
     // ScanDir=1 - od strony Coupler0, ScanDir=-1 - od strony Coupler1
-    int initialdirection = Direction; // zapamiętanie kierunku poszukiwań na torze początkowym, względem sprzęgów
-    TTrackFollower *firstaxle = (initialdirection > 0 ? &Axle0 : &Axle1); // można by to trzymać w trainset
-    TTrack *track = firstaxle->GetTrack(); // tor na którym "stoi" skrajny wózek
+    auto const initialdirection = Direction; // zapamiętanie kierunku poszukiwań na torze początkowym, względem sprzęgów
+/*
+    TTrackFollower const *firstaxle = (initialdirection > 0 ? &Axle0 : &Axle1); // można by to trzymać w trainset
+    TTrack const *track = firstaxle->GetTrack(); // tor na którym "stoi" skrajny wózek
     // (może być inny niż tor pojazdu)
     if( firstaxle->GetDirection() < 0 ) {
         // czy oś jest ustawiona w stronę Point1?
         Direction = -Direction; // jeśli tak, to kierunek szukania będzie przeciwny
     }
-    // (teraz względem
-    // toru)
+*/
+    TTrack const *track = RaTrackGet();
+    if( RaDirectionGet() < 0 ) {
+        // czy oś jest ustawiona w stronę Point1?
+        Direction = -Direction;
+    }
+
+    // (teraz względem toru)
     int const mycoupler = ( initialdirection < 0 ? 1 : 0 ); // numer sprzęgu do podłączenia w obiekcie szukajacym
     int foundcoupler { -1 }; // numer sprzęgu w znalezionym obiekcie (znaleziony wypełni)
     double distance = 0; // przeskanowana odleglość; odległość do zawalidrogi
@@ -1347,9 +1362,9 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
         // jeśli nie ma na tym samym, szukamy po okolicy szukanie najblizszego toru z jakims obiektem
         // praktycznie przeklejone z TraceRoute()...
         if (Direction >= 0) // uwzględniamy kawalek przeanalizowanego wcześniej toru
-            distance = track->Length() - firstaxle->GetTranslation(); // odległość osi od Point2 toru
+            distance = track->Length() - RaTranslationGet(); // odległość osi od Point2 toru
         else
-            distance = firstaxle->GetTranslation(); // odległość osi od Point1 toru
+            distance = RaTranslationGet(); // odległość osi od Point1 toru
 
         while (distance < Distance) {
             if (Direction > 0) {
@@ -1455,6 +1470,14 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
         // nic nie znalezione, to nie ma przeszkód
         fTrackBlock = 10000.0;
     }
+
+#ifdef EU07_DEBUG_COLLISIONS
+    // debug collider scans
+    if( ( PrevConnected != nullptr )
+     && ( PrevConnected == NextConnected ) ) {
+        ErrorLog( "Bad coupling: " + asName + " has the same vehicle detected attached to both couplers" );
+    }
+#endif
 }
 //----------ABu: koniec skanowania pojazdow
 

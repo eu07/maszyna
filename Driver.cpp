@@ -46,6 +46,45 @@ ProjectEventOnTrack( TEvent const *Event, TTrack const *Track, double const Dire
             ( 1.0 - nearestpoint ) * segment->GetLength() ); // measure from point2
 };
 
+double GetDistanceToEvent(TTrack* track, TEvent* event, double scan_dir, double start_dist, int iter = 0, bool back = false)
+{
+    if( track == nullptr ) { return start_dist; }
+
+    auto const segment = track->CurrentSegment();
+    vector3 const pos_event = event->PositionGet();
+    double len1, len2;
+    double sd = scan_dir;
+    double seg_len = scan_dir > 0 ? 0.0 : 1.0;
+    double const dzielnik = 1.0 / segment->GetLength();// rozdzielczosc mniej wiecej 1m
+    int krok = 0; // krok obliczeniowy do sprawdzania czy odwracamy
+    len2 = (pos_event - segment->FastGetPoint(seg_len)).LengthSquared();
+    do
+    {
+        len1 = len2;
+        seg_len += scan_dir > 0 ? dzielnik : -dzielnik;
+        len2 = (pos_event - segment->FastGetPoint(seg_len)).LengthSquared();
+        krok++;
+    } while ((len1 > len2) && (seg_len >= dzielnik && (seg_len <= (1 - dzielnik))));
+    //trzeba sprawdzić czy seg_len nie osiągnął skrajnych wartości, bo wtedy
+    // trzeba sprawdzić tor obok
+    if (1 == krok)
+        sd = -sd; // jeśli tylko jeden krok tzn, że event przy poprzednim sprawdzaym torze
+    if (((seg_len <= dzielnik) || (seg_len > (1 - dzielnik))) && (iter < 3))
+    { // przejście na inny tor
+        track = track->Neightbour(int(sd), sd);
+        start_dist += (1 == krok) ? 0 : back ? -segment->GetLength() : segment->GetLength();
+        return GetDistanceToEvent(track, event, sd, start_dist, ++iter, 1 == krok ? true : false);
+    }
+    else
+    { // obliczenie mojego toru
+        seg_len -= scan_dir > 0 ? dzielnik : -dzielnik; //trzeba wrócić do pozycji len1
+        seg_len = scan_dir < 0 ? 1 - seg_len : seg_len;
+        seg_len = back ? 1 - seg_len : seg_len; // odwracamy jeśli idzie do tyłu
+        start_dist -= back ? segment->GetLength() : 0;
+        return start_dist + (segment->GetLength() * seg_len);
+    }
+};
+
 /*
 
 Moduł obsługujący sterowanie pojazdami (składami pociągów, samochodami).
@@ -491,9 +530,15 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                         WriteLog("Speed table for " + OwnerName() + " found new event, " + pEvent->asName);
                     }
                     auto &newspeedpoint = sSpeedTable[iLast];
+/*
                     if( newspeedpoint.Set(
                         pEvent,
                         fCurrentDistance + ProjectEventOnTrack( pEvent, pTrack, fLastDir ),
+                        OrderCurrentGet() ) ) {
+*/
+                    if( newspeedpoint.Set(
+                        pEvent,
+                        GetDistanceToEvent( pTrack, pEvent, fLastDir, fCurrentDistance ),
                         OrderCurrentGet() ) ) {
 
                         fDistance = newspeedpoint.fDist; // jeśli sygnał stop, to nie ma potrzeby dalej skanować
@@ -3619,7 +3664,7 @@ TController::UpdateSituation(double dt) {
             // towards coupler 0
             if( ( mvOccupied->V * iDirection < 0.0 )
              || ( ( rearvehicle->NextConnected != nullptr )
-               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 1 : 0 ) ].CouplingFlag == ctrain_virtual ) ) ) {
+               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 1 : 0 ) ].CouplingFlag == coupling::faux ) ) ) {
                 // scan behind if we're moving backward, or if we had something connected there and are moving away
                 rearvehicle->ABuScanObjects( (
                     pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
@@ -3637,7 +3682,7 @@ TController::UpdateSituation(double dt) {
             // towards coupler 1
             if( ( mvOccupied->V * iDirection < 0.0 )
              || ( ( rearvehicle->PrevConnected != nullptr )
-               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 0 : 1 ) ].CouplingFlag == ctrain_virtual ) ) ) {
+               && ( rearvehicle->MoverParameters->Couplers[ ( rearvehicle->DirectionGet() > 0 ? 0 : 1 ) ].CouplingFlag == coupling::faux ) ) ) {
                 // scan behind if we're moving backward, or if we had something connected there and are moving away
                 rearvehicle->ABuScanObjects( (
                     pVehicle->DirectionGet() == rearvehicle->DirectionGet() ?
@@ -3652,6 +3697,8 @@ TController::UpdateSituation(double dt) {
                 collisionscanrange );
         }
     }
+
+
 
     // tu bedzie logika sterowania
     if (AIControllFlag) {
@@ -3900,6 +3947,11 @@ TController::UpdateSituation(double dt) {
             // NOTE: this will affect also multi-unit vehicles TBD: is this what we want?
             fMinProximityDist *= 2.0;
             fMaxProximityDist *= 2.0;
+            if( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 ) {
+                // additional safety margin for cargo consists
+                fMinProximityDist *= 2.0;
+                fMaxProximityDist *= 2.0;
+            }
         }
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         // margines prędkości powodujący załączenie napędu
@@ -4204,7 +4256,7 @@ TController::UpdateSituation(double dt) {
                         0 :
                         1 ); // sprzęg z przodu składu
                 if( ( coupler->Connected )
-                 && ( coupler->CouplingFlag == 0 ) ) {
+                 && ( coupler->CouplingFlag == coupling::faux ) ) {
                     // mamy coś z przodu podłączone sprzęgiem wirtualnym
                     // wyliczanie optymalnego przyspieszenia do jazdy na widoczność
                     ActualProximityDist = std::min(
