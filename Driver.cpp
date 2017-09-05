@@ -4821,7 +4821,7 @@ bool TController::UpdateSituation(double dt)
                         else
                             mvControlling->AntiSlippingButton();
                         ++iDriverFailCount;
-                        mvControlling->SlippingWheels = false; // flaga już wykorzystana
+                        //mvControlling->SlippingWheels = false; // flaga już wykorzystana
                     }
                     if (iDriverFailCount > maxdriverfails)
                     {
