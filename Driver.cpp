@@ -4561,24 +4561,16 @@ TController::UpdateSituation(double dt) {
                 // zapobieganie poslizgowi u nas
                 if (mvControlling->SlippingWheels) {
 
-                    if (!mvControlling->DecScndCtrl(2)) // bocznik na zero
-                        mvControlling->DecMainCtrl(1);
-/*
-                    if (mvOccupied->BrakeCtrlPos ==
-                        mvOccupied->BrakeCtrlPosNo) // jeśli ostatnia pozycja hamowania
-						//yB: ten warunek wyżej nie ma sensu
-                        mvOccupied->DecBrakeLevel(); // to cofnij hamulec
-                        DecBrake(); // to cofnij hamulec
-                    else
-                        mvControlling->AntiSlippingButton();
-*/
-                    DecBrake(); // to cofnij hamulec
+                    if( false == mvControlling->DecScndCtrl( 2 ) ) {
+                        // bocznik na zero
+                        mvControlling->DecMainCtrl( 1 );
+                    }
+                    DecBrake(); // cofnij hamulec
                     mvControlling->AntiSlippingButton();
                     ++iDriverFailCount;
-                    mvControlling->SlippingWheels = false; // flaga już wykorzystana
                 }
-                if (iDriverFailCount > maxdriverfails)
-                {
+                if (iDriverFailCount > maxdriverfails) {
+
                     Psyche = Easyman;
                     if (iDriverFailCount > maxdriverfails * 2)
                         SetDriverPsyche();
