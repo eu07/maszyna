@@ -78,48 +78,6 @@ public:
 
     TSegment(TTrack *owner);
     ~TSegment();
-<<<<<<< HEAD
-    bool Init(vector3 NewPoint1, vector3 NewPoint2, double fNewStep, double fNewRoll1 = 0, double fNewRoll2 = 0);
-    bool Init(vector3 &NewPoint1, vector3 NewCPointOut, vector3 NewCPointIn, vector3 &NewPoint2,
-              double fNewStep, double fNewRoll1 = 0, double fNewRoll2 = 0, bool bIsCurve = true);
-    inline double ComputeLength(); // McZapkie-150503
-    inline vector3 GetDirection1() {
-        return bCurve ? CPointOut - Point1 : CPointOut; };
-    inline vector3 GetDirection2() {
-        return bCurve ? CPointIn - Point2 : CPointIn; };
-    vector3 GetDirection(double fDistance);
-    vector3 GetDirection() {
-        return CPointOut; };
-    vector3 FastGetDirection(double fDistance, double fOffset);
-    vector3 GetPoint(double fDistance);
-    void RaPositionGet(double fDistance, vector3 &p, vector3 &a);
-    vector3 FastGetPoint(double t);
-    inline vector3 FastGetPoint_0() {
-        return Point1; };
-    inline vector3 FastGetPoint_1() {
-        return Point2; };
-    inline double GetRoll(double const Distance) {
-        return interpolate( fRoll1, fRoll2, Distance / fLength ); }
-    void GetRolls(double &r1, double &r2) {
-        // pobranie przechyłek (do generowania trójkątów)
-        r1 = fRoll1;
-        r2 = fRoll2; }
-    bool RenderLoft( vertex_array &Output, Math3D::vector3 const &Origin, vector6 const *ShapePoints, int iNumShapePoints, double fTextureLength, double Texturescale = 1.0, int iSkip = 0, int iEnd = 0, double fOffsetX = 0.0, vector3 **p = nullptr, bool bRender = true);
-    void Render();
-    inline double GetLength() {
-        return fLength; };
-    void MoveMe(vector3 pPosition)
-    {
-        Point1 += pPosition;
-        Point2 += pPosition;
-        if (bCurve)
-        {
-            CPointIn += pPosition;
-            CPointOut += pPosition;
-        }
-    }
-    void AngleSet(int i, double a) {
-        fAngle[i] = a; };
     bool
         Init( Math3D::vector3 NewPoint1, Math3D::vector3 NewPoint2, double fNewStep, double fNewRoll1 = 0, double fNewRoll2 = 0);
     bool
@@ -179,12 +137,9 @@ public:
         GetLength() const {
             return fLength; };
     inline
-	int RaSegCount()
-	{
-		if (!fTsBuffer || !bCurve)
-			return 1;
-		return iSegCount;
-	};
+    int
+        RaSegCount() const {
+            return fTsBuffer ? iSegCount : 1; };
     inline
     void
         AngleSet(int const i, double const a) {

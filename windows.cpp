@@ -69,7 +69,7 @@ LRESULT APIENTRY WndProc( HWND hWnd, // handle for this window
 		case WM_KEYDOWN:
 		case WM_KEYUP: {
 			lParam &= ~0x1ff0000;
-			lParam |= MapVirtualKey(MAPVK_VK_TO_VSC, wParam) << 16;
+			lParam |= MapVirtualKey(wParam, MAPVK_VK_TO_VSC) << 16;
 			break;
 		}
     }
