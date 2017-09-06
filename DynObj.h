@@ -78,7 +78,7 @@ class TAnimValveGear
 class TAnimPant
 { // współczynniki do animacji pantografu
   public:
-    vector3 vPos; // Ra: współrzędne punktu zerowego pantografu (X dodatnie dla przedniego)
+    Math3D::vector3 vPos; // Ra: współrzędne punktu zerowego pantografu (X dodatnie dla przedniego)
     double fLenL1; // długość dolnego ramienia 1, odczytana z modelu
     double fLenU1; // długość górnego ramienia 1, odczytana z modelu
     double fLenL2; // długość dolnego ramienia 2, odczytana z modelu
@@ -152,9 +152,9 @@ class TDynamicObject { // klasa pojazdu
     friend class opengl_renderer;
 
 private: // położenie pojazdu w świecie oraz parametry ruchu
-    vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
-    vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
-    vector3 vUp, vFront, vLeft; // wektory jednostkowe ustawienia pojazdu
+    Math3D::vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
+    Math3D::vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
+    Math3D::vector3 vUp, vFront, vLeft; // wektory jednostkowe ustawienia pojazdu
     int iDirection; // kierunek pojazdu względem czoła składu (1=zgodny,0=przeciwny)
     TTrackShape ts; // parametry toru przekazywane do fizyki
     TTrackParam tp; // parametry toru przekazywane do fizyki
@@ -163,14 +163,14 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     int iAxleFirst; // numer pierwszej osi w kierunku ruchu (oś wiążąca pojazd z torem i wyzwalająca
     // eventy)
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
-    vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
+    Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
     // bool bCameraNear; //blisko kamer są potrzebne dodatkowe obliczenia szczegółów
     TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
 
 public: // parametry położenia pojazdu dostępne publicznie
     std::string asTrack; // nazwa toru początkowego; wywalić?
     std::string asDestination; // dokąd pojazd ma być kierowany "(stacja):(tor)"
-    matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
+    Math3D::matrix4x4 mMatrix; // macierz przekształcenia do renderowania modeli
     TMoverParameters *MoverParameters; // parametry fizyki ruchu oraz przeliczanie
     // TMoverParameters *pControlled; //wskaźnik do sterowanego członu silnikowego
     TDynamicObject *NextConnected; // pojazd podłączony od strony sprzęgu 1 (kabina -1)
@@ -237,7 +237,7 @@ public: // modele składowe pojazdu
     void toggle_lights(); // switch light levels for registered interior sections
   private: // Ra: ciąg dalszy animacji, dopiero do ogarnięcia
     // ABuWozki 060504
-    vector3 bogieRot[2]; // Obroty wozkow w/m korpusu
+    Math3D::vector3 bogieRot[2]; // Obroty wozkow w/m korpusu
     TSubModel *smBogie[2]; // Wyszukiwanie max 2 wozkow
     TSubModel *smWahacze[4]; // wahacze (np. nogi, dźwignia w drezynie)
     TSubModel *smBrakeMode; // Ra 15-01: nastawa hamulca też
@@ -249,7 +249,7 @@ public: // modele składowe pojazdu
     TSubModel *smBuforLewy[2];
     TSubModel *smBuforPrawy[2];
     TAnimValveGear *pValveGear;
-    vector3 vFloor; // podłoga dla ładunku
+    Math3D::vector3 vFloor; // podłoga dla ładunku
   public:
     TAnim *pants; // indeks obiektu animującego dla pantografu 0
     double NoVoltTime; // czas od utraty zasilania
@@ -264,7 +264,7 @@ public: // modele składowe pojazdu
     void ABuLittleUpdate(double ObjSqrDist);
     bool btnOn; // ABu: czy byly uzywane buttony, jesli tak, to po renderingu wylacz
     // bo ten sam model moze byc jeszcze wykorzystany przez inny obiekt!
-    double ComputeRadius(vector3 p1, vector3 p2, vector3 p3, vector3 p4);
+    double ComputeRadius( Math3D::vector3 p1, Math3D::vector3 p2, Math3D::vector3 p3, Math3D::vector3 p4);
 
     TButton btCoupler1; // sprzegi
     TButton btCoupler2;
@@ -337,7 +337,7 @@ public: // modele składowe pojazdu
     double eng_turbo;
     void ABuBogies();
     void ABuModelRoll();
-    vector3 modelShake;
+    Math3D::vector3 modelShake;
 
     bool renderme; // yB - czy renderowac
     // TRealSound sBrakeAcc; //dźwięk przyspieszacza
@@ -361,7 +361,7 @@ public: // modele składowe pojazdu
     void ABuScanObjects(int ScanDir, double ScanDist);
 
   protected:
-    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack *Track, int const Direction, int const Mycoupler );
+    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler );
     void ABuCheckMyTrack();
 
   public:
@@ -406,7 +406,7 @@ public: // modele składowe pojazdu
                                                     int &CouplNr);
     TDynamicObject * GetFirstDynamic(int cpl_type, int cf = 1);
     // TDynamicObject* GetFirstCabDynamic(int cpl_type);
-    void ABuSetModelShake(vector3 mShake);
+    void ABuSetModelShake( Math3D::vector3 mShake);
 
     // McZapkie-010302
     TController *Mechanik;
@@ -437,31 +437,31 @@ public: // modele składowe pojazdu
     void Move(double fDistance);
     void FastMove(double fDistance);
     void RenderSounds();
-    inline vector3 GetPosition() const
+    inline Math3D::vector3 GetPosition() const
     {
         return vPosition;
     };
-    inline vector3 HeadPosition()
+    inline Math3D::vector3 HeadPosition()
     {
         return vCoulpler[iDirection ^ 1];
     }; // pobranie współrzędnych czoła
-    inline vector3 RearPosition()
+    inline Math3D::vector3 RearPosition()
     {
         return vCoulpler[iDirection];
     }; // pobranie współrzędnych tyłu
-    inline vector3 AxlePositionGet()
+    inline Math3D::vector3 AxlePositionGet()
     {
         return iAxleFirst ? Axle1.pPosition : Axle0.pPosition;
     };
-    inline vector3 VectorFront() const
+    inline Math3D::vector3 VectorFront() const
     {
         return vFront;
     };
-    inline vector3 VectorUp()
+    inline Math3D::vector3 VectorUp()
     {
         return vUp;
     };
-    inline vector3 VectorLeft() const
+    inline Math3D::vector3 VectorLeft() const
     {
         return vLeft;
     };

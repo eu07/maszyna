@@ -1489,6 +1489,8 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 */
             // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk.
             // geometry associated with chunks isn't stored in the same order as the chunks themselves, so we need to sort that out first
+            if( Root == nullptr )
+                throw std::runtime_error( "e3d: VNT chunk encountered before SUB chunk" );
             std::vector< std::pair<int, int> > submodeloffsets; // vertex data offset, submodel index
             submodeloffsets.reserve( iSubModelsCount );
             for( int submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {

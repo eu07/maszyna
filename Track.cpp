@@ -268,32 +268,30 @@ TTrack * TTrack::NullCreate(int dir)
         trk2->fRadius = 20.0; // promień, aby się dodawało do tabelki prędkości i liczyło
         // narastająco
         trk2->Init(); // utworzenie segmentu
+        trk->pMyNode->asName = pMyNode->asName + ":loopstart";
+        trk2->pMyNode->asName = pMyNode->asName + ":loopfinish";
         switch (dir)
         { //łączenie z nowym torem
         case 0:
             p1 = Segment->FastGetPoint_0();
             cv1 = -20.0 * Normalize(Segment->GetDirection1()); // pierwszy wektor kontrolny
             p2 = p1 + cv1 + cv1; // 40m
-            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2,
-                               -RadToDeg(r1),
-                               0.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2, -RadToDeg(r1), 0.0);
             ConnectPrevPrev(trk, 0);
-            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2,
-                                -RadToDeg(r1),
-                                0.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2, -RadToDeg(r1), 0.0);
             trk2->iPrevDirection = 0; // zwrotnie do tego samego odcinka
             break;
         case 1:
             p1 = Segment->FastGetPoint_1();
             cv1 = -20.0 * Normalize(Segment->GetDirection2()); // pierwszy wektor kontrolny
             p2 = p1 + cv1 + cv1;
-            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2,
-                               RadToDeg(r2),
-                               0.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            trk->Segment->Init(p1, p1 + cv1, p2 + vector3(-cv1.z, cv1.y, cv1.x), p2, 2, RadToDeg(r2), 0.0);
             ConnectNextPrev(trk, 0);
-            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2,
-                                RadToDeg(r2),
-                                0.0); // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            // bo prosty, kontrolne wyliczane przy zmiennej przechyłce
+            trk2->Segment->Init(p1, p1 + cv1, p2 + vector3(cv1.z, cv1.y, -cv1.x), p2, 2, RadToDeg(r2), 0.0);
             trk2->iPrevDirection = 1; // zwrotnie do tego samego odcinka
             break;
         }
@@ -870,7 +868,7 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
     }
     else {
         if( evEventall1 == nullptr ) {
-            evEventall1 = NewEvent0;
+            evEventall1 = NewEvent1;
             asEventall1Name = "";
             iEvents |= 16; // sumaryczna informacja o eventach
         }
@@ -888,7 +886,7 @@ bool TTrack::AssignallEvents(TEvent *NewEvent0, TEvent *NewEvent1, TEvent *NewEv
     }
     else {
         if( evEventall2 == nullptr ) {
-            evEventall2 = NewEvent0;
+            evEventall2 = NewEvent2;
             asEventall2Name = "";
             iEvents |= 32; // sumaryczna informacja o eventach
         }
