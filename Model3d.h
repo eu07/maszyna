@@ -55,8 +55,6 @@ class TGroundNode;
 
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
-    //m7todo: zrobić normalną serializację
-
     friend class opengl_renderer;
     friend class TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
     friend class TDynamicObject; // temporary etc

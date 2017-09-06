@@ -23,6 +23,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "sn_utils.h"
 
+#include <png.h>
+
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
 texture_manager::texture_manager() {
@@ -46,6 +48,7 @@ opengl_texture::load() {
 
              if( extension == "dds" ) { load_DDS(); }
         else if( extension == "tga" ) { load_TGA(); }
+		else if( extension == "png" ) { load_PNG(); }
         else if( extension == "bmp" ) { load_BMP(); }
         else if( extension == "tex" ) { load_TEX(); }
         else { goto fail; }
@@ -70,6 +73,51 @@ fail:
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
+}
+
+void opengl_texture::load_PNG()
+{
+	png_image png;
+	memset(&png, 0, sizeof(png_image));
+	png.version = PNG_IMAGE_VERSION;
+
+	png_image_begin_read_from_file(&png, name.c_str());
+	if (png.warning_or_error)
+	{
+		data_state = resource_state::failed;
+		ErrorLog(name + " error: " + std::string(png.message));
+		return;
+	}
+
+	if (png.format & PNG_FORMAT_FLAG_ALPHA)
+	{
+		data_format = GL_RGBA;
+		data_components = GL_RGBA;
+		png.format = PNG_FORMAT_RGBA;
+	}
+	else
+	{
+		data_format = GL_RGB;
+		data_components = GL_RGB;
+		png.format = PNG_FORMAT_RGB;
+	}
+	data_width = png.width;
+	data_height = png.height;
+
+	data.resize(PNG_IMAGE_SIZE(png));
+
+	png_image_finish_read(&png, nullptr,
+		(void*)&data[0], -data_width * PNG_IMAGE_PIXEL_SIZE(png.format), nullptr);
+
+    if (png.warning_or_error)
+    {
+        data_state = resource_state::failed;
+        ErrorLog(name + " error: " + std::string(png.message));
+        return;
+    }
+
+    data_mapcount = 1;
+    data_state = resource_state::good;
 }
 
 void
@@ -722,7 +770,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
 
 	std::replace(Filename.begin(), Filename.end(), '\\', '/'); // fix slashes
 
-    std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".bmp" }, { ".ext" } };
+    std::vector<std::string> extensions{ { ".dds" }, { ".tga" }, { ".png" }, { ".bmp" }, { ".ext" } };
 
     // try to locate requested texture in the databank
     auto lookup = find_in_databank( Filename + Global::szDefaultExt );
