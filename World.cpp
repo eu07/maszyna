@@ -1053,17 +1053,19 @@ bool TWorld::Update()
     // this means at count > 20 simulation and render are going to desync. is that right?
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
-    Ground.Update(dt / updatecount, updatecount); // tu zrobić tylko coklatkową aktualizację przesunięć
+    for( int updateidx = 0; updateidx < updatecount; ++updateidx ) {
+        Ground.Update( dt / updatecount, 1 ); // tu zrobić tylko coklatkową aktualizację przesunięć
+    }
 
     // yB dodał przyspieszacz fizyki
     if( (true == DebugModeFlag)
      && (true == Global::bActive) // nie przyspieszać, gdy jedzie w tle :)
      && ( glfwGetKey( window, GLFW_KEY_PAUSE ) == GLFW_PRESS ) ) {
 
-        Ground.Update( dt, updatecount );
-        Ground.Update( dt, updatecount );
-        Ground.Update( dt, updatecount );
-        Ground.Update( dt, updatecount ); // 5 razy
+        Ground.Update( dt, 1 );
+        Ground.Update( dt, 1 );
+        Ground.Update( dt, 1 );
+        Ground.Update( dt, 1 ); // 5 razy
     }
     // secondary fixed step simulation time routines
 

@@ -1093,6 +1093,7 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
                     coupler.Connected->Couplers[0].CouplingFlag = 0;
                     break;
                 }
+                WriteLog( "Bad driving: " + Name + " broke a coupler" );
             }
     }
 }
@@ -1267,11 +1268,13 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
             AccN = g * Shape.dHrail / TrackW;
 
         // szarpanie
-        if (FuzzyLogic((10.0 + Track.DamageFlag) * Mass * Vel / Vmax, 500000.0,
-                       p_accn)) // Ra: czemu tu masa bez ładunku?
-            AccV = sqrt((1.0 + Track.DamageFlag) * Random(floor(50.0 * Mass / 1000000.0)) * Vel /
-                        (Vmax * (10.0 + (Track.QualityFlag & 31))));
+#ifdef EU07_USE_FUZZYLOGIC
+        if( FuzzyLogic( ( 10.0 + Track.DamageFlag ) * Mass * Vel / Vmax, 500000.0, p_accn ) ) {
+            // Ra: czemu tu masa bez ładunku?
+            AccV /= ( 2.0 * 0.95 + 2.0 * Random() * 0.1 ); // 95-105% of base modifier (2.0)
+        }
         else
+#endif
             AccV = AccV / 2.0;
 
         if (AccV > 1.0)
@@ -1437,12 +1440,13 @@ double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape
         //     else AccN:=g*Shape.dHrail/TrackW;
 
         // szarpanie}
-        if (FuzzyLogic((10.0 + Track.DamageFlag) * Mass * Vel / Vmax, 500000.0, p_accn))
-        {
-            AccV = sqrt((1.0 + Track.DamageFlag) * Random(floor(50.0 * Mass / 1000000.0)) * Vel /
-                        (Vmax * (10.0 + (Track.QualityFlag & 31)))); // Trunc na floor, czy dobrze?
+#ifdef EU07_USE_FUZZYLOGIC
+        if( FuzzyLogic( ( 10.0 + Track.DamageFlag ) * Mass * Vel / Vmax, 500000.0, p_accn ) ) {
+            // Ra: czemu tu masa bez ładunku?
+            AccV /= ( 2.0 * 0.95 + 2.0 * Random() * 0.1 ); // 95-105% of base modifier (2.0)
         }
         else
+#endif
             AccV = AccV / 2.0;
 
         if (AccV > 1.0)

@@ -359,7 +359,7 @@ public: // modele składowe pojazdu
     void ABuScanObjects(int ScanDir, double ScanDist);
 
   protected:
-    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack *Track, int const Direction, int const Mycoupler );
+    TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler );
     void ABuCheckMyTrack();
 
   public:

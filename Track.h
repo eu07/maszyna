@@ -197,14 +197,14 @@ public:
     void ConnectPrevNext(TTrack *pNewPrev, int typ);
     void ConnectNextPrev(TTrack *pNewNext, int typ);
     void ConnectNextNext(TTrack *pNewNext, int typ);
-    inline double Length() {
+    inline double Length() const {
         return Segment->GetLength(); };
 	inline std::shared_ptr<TSegment> CurrentSegment() const {
         return Segment; };
-    inline TTrack * CurrentNext() {
-        return (trNext); };
-    inline TTrack * CurrentPrev() {
-        return (trPrev); };
+    inline TTrack *CurrentNext() const {
+        return trNext; };
+    inline TTrack *CurrentPrev() const {
+        return trPrev; };
     TTrack * Neightbour(int s, double &d);
     bool SetConnections(int i);
     bool Switch(int i, double t = -1.0, double d = -1.0);
