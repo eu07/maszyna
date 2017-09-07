@@ -228,6 +228,9 @@
     <ClCompile Include="translation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TextureDDS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -444,6 +447,9 @@
       <Filter>Header Files\input</Filter>
     </ClInclude>
     <ClInclude Include="translation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureDDS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="material.h">

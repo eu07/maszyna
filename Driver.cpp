@@ -300,11 +300,6 @@ bool TSpeedPos::Update()
     return false;
 };
 
-inline void TSpeedPos::UpdateDistance(double dist)
-{ // aktualizuje odległość we wpisie
-    fDist -= dist;
-}
-
 std::string TSpeedPos::GetName()
 {
 	if (iFlags & spTrack) // jeśli tor

@@ -101,7 +101,6 @@
     <ClCompile Include="EU07.cpp" />
     <ClCompile Include="Event.cpp" />
     <ClCompile Include="EvLaunch.cpp" />
-    <ClCompile Include="FadeSound.cpp" />
     <ClCompile Include="Float3d.cpp" />
     <ClCompile Include="frustum.cpp" />
     <ClCompile Include="gamepadinput.cpp" />
@@ -111,6 +110,7 @@
     <ClCompile Include="keyboardinput.cpp" />
     <ClCompile Include="lightarray.cpp" />
     <ClCompile Include="Logs.cpp" />
+    <ClCompile Include="material.cpp" />
     <ClCompile Include="mczapkie\friction.cpp" />
     <ClCompile Include="mczapkie\hamulce.cpp" />
     <ClCompile Include="mczapkie\mctools.cpp" />
@@ -176,7 +176,6 @@
     <ClInclude Include="DynObj.h" />
     <ClInclude Include="Event.h" />
     <ClInclude Include="EvLaunch.h" />
-    <ClInclude Include="FadeSound.h" />
     <ClInclude Include="Float3d.h" />
     <ClInclude Include="frustum.h" />
     <ClInclude Include="gamepadinput.h" />
@@ -186,6 +185,7 @@
     <ClInclude Include="keyboardinput.h" />
     <ClInclude Include="lightarray.h" />
     <ClInclude Include="Logs.h" />
+    <ClInclude Include="material.h" />
     <ClInclude Include="McZapkie\friction.h" />
     <ClInclude Include="McZapkie\hamulce.h" />
     <ClInclude Include="McZapkie\mctools.h" />
