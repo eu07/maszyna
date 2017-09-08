@@ -3956,6 +3956,7 @@ double TMoverParameters::Adhesive(double staticfriction)
 	double Vwheels = nrot * M_PI * WheelDiameter; // predkosc liniowa koła wynikająca z obrotowej
 	double deltaV = V - Vwheels; //poślizg - różnica prędkości w punkcie styku koła i szyny
 	deltaV = std::max(0.0, std::abs(deltaV) - 0.25); //mikropoślizgi do ok. 0,25 m/s nie zrywają przyczepności
+	Vwheels = abs(Vwheels);
 	adhesion = staticfriction * (28 + Vwheels) / (14 + Vwheels) * ((SandDose? sandfactor : 1) - (1 - adh_factor)*(deltaV / (deltaV + slipfactor)));
     return adhesion;
 }
