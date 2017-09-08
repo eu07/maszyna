@@ -2175,11 +2175,11 @@ bool TGround::Init(std::string File)
         { // możliwość przedefiniowania parametrów w scenerii
             Global::ConfigParse(parser); // parsowanie dodatkowych ustawień
         }
-        else if (str != "")
-        { // pomijanie od nierozpoznanej komendy do jej zakończenia
-            if ((token.length() > 2) && (atof(token.c_str()) == 0.0))
-            { // jeśli nie liczba, to spróbować pominąć komendę
-                WriteLog("Unrecognized command: " + str);
+        else if (str != "") {
+            // pomijanie od nierozpoznanej komendy do jej zakończenia
+            if ((token.length() > 2) && (atof(token.c_str()) == 0.0)) {
+                // jeśli nie liczba, to spróbować pominąć komendę
+                WriteLog( "Unrecognized command: \"" + str + "\" encountered in file \"" + parser.Name() + "\" (line " + std::to_string( parser.Line() - 1 ) + ")" );
                 str = "end" + str;
                 do
                 {
@@ -2188,8 +2188,10 @@ bool TGround::Init(std::string File)
                     parser >> token;
                 } while ((token != "") && (token.compare(str.c_str()) != 0));
             }
-            else // jak liczba to na pewno błąd
-                Error("Unrecognized command: " + str);
+            else {
+                // jak liczba to na pewno błąd
+                ErrorLog( "Unrecognized command: \"" + str + "\" encountered in file \"" + parser.Name() + "\" (line " + std::to_string( parser.Line() - 1 ) + ")" );
+            }
         }
 
         token = "";

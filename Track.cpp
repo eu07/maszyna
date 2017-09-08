@@ -2340,7 +2340,7 @@ void TTrack::ConnectionsLog()
         }
 };
 
-TTrack * TTrack::Neightbour(int s, double &d)
+TTrack * TTrack::Connected(int s, double &d) const
 { // zwraca wskaźnik na sąsiedni tor, w kierunku określonym znakiem (s), odwraca (d) w razie
     // niezgodności kierunku torów
     TTrack *t; // nie zmieniamy kierunku (d), jeśli nie ma toru dalej

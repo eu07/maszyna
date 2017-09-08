@@ -1262,71 +1262,65 @@ int TDynamicObject::Dettach(int dir)
         .CouplingFlag; // sprzęg po rozłączaniu (czego się nie da odpiąć
 }
 
-void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir)
-{ // funkcja rozłączajaca podłączone sprzęgi,
-    // jeśli odległość przekracza (MinDist)
+void TDynamicObject::CouplersDettach(double MinDist, int MyScanDir) {
+    // funkcja rozłączajaca podłączone sprzęgi, jeśli odległość przekracza (MinDist)
     // MinDist - dystans minimalny, dla ktorego mozna rozłączać
-    if (MyScanDir > 0)
-    {
-        if (PrevConnected) // pojazd od strony sprzęgu 0
-        {
-            if (MoverParameters->Couplers[0].CoupleDist > MinDist) {
-                // sprzęgi wirtualne zawsze przekraczają
-
-                if ((PrevConnectedNo ? PrevConnected->NextConnected :
-                                       PrevConnected->PrevConnected) == this)
-                { // Ra: nie rozłączamy znalezionego, jeżeli nie do nas
-                    // podłączony (może jechać w
-                    // innym kierunku)
-                    PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected = NULL;
-                    if (PrevConnectedNo == 0)
-                    {
-                        PrevConnected->PrevConnectedNo = 2; // sprzęg 0 nie podłączony
-                        PrevConnected->PrevConnected = NULL;
-                    }
-                    else if (PrevConnectedNo == 1)
-                    {
-                        PrevConnected->NextConnectedNo = 2; // sprzęg 1 nie podłączony
-                        PrevConnected->NextConnected = NULL;
-                    }
+    if (MyScanDir > 0) {
+        // pojazd od strony sprzęgu 0
+        if( ( PrevConnected != nullptr )
+         && ( MoverParameters->Couplers[ TMoverParameters::side::front ].CoupleDist > MinDist ) ) {
+            // sprzęgi wirtualne zawsze przekraczają
+            if( ( PrevConnectedNo == TMoverParameters::side::front ?
+                    PrevConnected->PrevConnected :
+                    PrevConnected->NextConnected )
+                == this ) {
+                // Ra: nie rozłączamy znalezionego, jeżeli nie do nas podłączony
+                // (może jechać w innym kierunku)
+                PrevConnected->MoverParameters->Couplers[PrevConnectedNo].Connected = nullptr;
+                if( PrevConnectedNo == TMoverParameters::side::front ) {
+                    // sprzęg 0 nie podłączony
+                    PrevConnected->PrevConnectedNo = 2;
+                    PrevConnected->PrevConnected = nullptr;
                 }
-
-                // za to zawsze odłączamy siebie
-                PrevConnected = NULL;
-                PrevConnectedNo = 2; // sprzęg 0 nie podłączony
-                MoverParameters->Couplers[0].Connected = nullptr;
+                else if( PrevConnectedNo == TMoverParameters::side::rear ) {
+                    // sprzęg 1 nie podłączony
+                    PrevConnected->NextConnectedNo = 2;
+                    PrevConnected->NextConnected = nullptr;
+                }
             }
+            // za to zawsze odłączamy siebie
+            PrevConnected = nullptr;
+            PrevConnectedNo = 2; // sprzęg 0 nie podłączony
+            MoverParameters->Couplers[ TMoverParameters::side::front ].Connected = nullptr;
         }
     }
-    else
-    {
-        if (NextConnected) // pojazd od strony sprzęgu 1
-        {
-            if (MoverParameters->Couplers[1].CoupleDist > MinDist) {
-                // sprzęgi wirtualne zawsze przekraczają
-
-                if ((NextConnectedNo ? NextConnected->NextConnected :
-                                       NextConnected->PrevConnected) == this)
-                { // Ra: nie rozłączamy znalezionego, jeżeli nie do nas
-                    // podłączony (może jechać w
-                    // innym kierunku)
-                    NextConnected->MoverParameters->Couplers[NextConnectedNo].Connected = NULL;
-                    if (NextConnectedNo == 0)
-                    {
-                        NextConnected->PrevConnectedNo = 2; // sprzęg 0 nie podłączony
-                        NextConnected->PrevConnected = NULL;
-                    }
-                    else if (NextConnectedNo == 1)
-                    {
-                        NextConnected->NextConnectedNo = 2; // sprzęg 1 nie podłączony
-                        NextConnected->NextConnected = NULL;
-                    }
+    else {
+        // pojazd od strony sprzęgu 1
+        if( ( NextConnected != nullptr )
+         && ( MoverParameters->Couplers[ TMoverParameters::side::rear ].CoupleDist > MinDist ) ) {
+            // sprzęgi wirtualne zawsze przekraczają
+            if( ( NextConnectedNo == TMoverParameters::side::front ?
+                    NextConnected->PrevConnected :
+                    NextConnected->NextConnected )
+                == this) {
+                // Ra: nie rozłączamy znalezionego, jeżeli nie do nas podłączony
+                // (może jechać w innym kierunku)
+                NextConnected->MoverParameters->Couplers[ NextConnectedNo ].Connected = nullptr;
+                if( NextConnectedNo == TMoverParameters::side::front ) {
+                    // sprzęg 0 nie podłączony
+                    NextConnected->PrevConnectedNo = 2;
+                    NextConnected->PrevConnected = nullptr;
                 }
-
-                NextConnected = NULL;
-                NextConnectedNo = 2; // sprzęg 1 nie podłączony
-                MoverParameters->Couplers[1].Connected = nullptr;
+                else if( NextConnectedNo == TMoverParameters::side::rear ) {
+                    // sprzęg 1 nie podłączony
+                    NextConnected->NextConnectedNo = 2;
+                    NextConnected->NextConnected = nullptr;
+                }
             }
+            // za to zawsze odłączamy siebie
+            NextConnected = nullptr;
+            NextConnectedNo = 2; // sprzęg 1 nie podłączony
+            MoverParameters->Couplers[1].Connected = nullptr;
         }
     }
 }
@@ -1428,6 +1422,18 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
 
         if( foundobject->MoverParameters->Couplers[ foundcoupler ].CouplingFlag == coupling::faux ) {
             // Ra: wpinamy się wirtualnym tylko jeśli znaleziony ma wirtualny sprzęg
+            if( ( foundcoupler == TMoverParameters::side::front ?
+                    foundobject->PrevConnected :
+                    foundobject->NextConnected )
+                != this ) {
+                // but first break existing connection of the target,
+                // otherwise we risk leaving the target's connected vehicle with active one-side connection
+                foundobject->CouplersDettach(
+                    1.0,
+                    ( foundcoupler == TMoverParameters::side::front ?
+                         1 :
+                        -1 ) );
+            }
             foundobject->MoverParameters->Attach( foundcoupler, mycoupler, this->MoverParameters, coupling::faux );
 
             if( foundcoupler == TMoverParameters::side::front ) {
@@ -2577,15 +2583,19 @@ bool TDynamicObject::Update(double dt, double dt1)
     tp.CategoryFlag = MyTrack->iCategoryFlag & 15;
     tp.DamageFlag = MyTrack->iDamageFlag;
     tp.QualityFlag = MyTrack->iQualityFlag;
-    if ((MoverParameters->Couplers[0].CouplingFlag > 0) &&
-        (MoverParameters->Couplers[1].CouplingFlag > 0))
-    {
+
+    // couplers
+    if( ( MoverParameters->Couplers[ 0 ].CouplingFlag != coupling::faux )
+     && ( MoverParameters->Couplers[ 1 ].CouplingFlag != coupling::faux ) ) {
+
         MoverParameters->InsideConsist = true;
     }
-    else
-    {
+    else {
+
         MoverParameters->InsideConsist = false;
     }
+    // 
+
     // napiecie sieci trakcyjnej
     // Ra 15-01: przeliczenie poboru prądu powinno być robione wcześniej, żeby na
     // tym etapie były

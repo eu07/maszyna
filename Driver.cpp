@@ -46,12 +46,12 @@ ProjectEventOnTrack( TEvent const *Event, TTrack const *Track, double const Dire
             ( 1.0 - nearestpoint ) * segment->GetLength() ); // measure from point2
 };
 
-double GetDistanceToEvent(TTrack* track, TEvent* event, double scan_dir, double start_dist, int iter = 0, bool back = false)
+double GetDistanceToEvent(TTrack const *track, TEvent const *event, double scan_dir, double start_dist, int iter = 0, bool back = false)
 {
     if( track == nullptr ) { return start_dist; }
 
     auto const segment = track->CurrentSegment();
-    vector3 const pos_event = event->PositionGet();
+    auto const pos_event = event->PositionGet();
     double len1, len2;
     double sd = scan_dir;
     double seg_len = scan_dir > 0 ? 0.0 : 1.0;
@@ -63,7 +63,7 @@ double GetDistanceToEvent(TTrack* track, TEvent* event, double scan_dir, double 
         len1 = len2;
         seg_len += scan_dir > 0 ? dzielnik : -dzielnik;
         len2 = (pos_event - segment->FastGetPoint(seg_len)).LengthSquared();
-        krok++;
+        ++krok;
     } while ((len1 > len2) && (seg_len >= dzielnik && (seg_len <= (1 - dzielnik))));
     //trzeba sprawdzić czy seg_len nie osiągnął skrajnych wartości, bo wtedy
     // trzeba sprawdzić tor obok
@@ -71,7 +71,7 @@ double GetDistanceToEvent(TTrack* track, TEvent* event, double scan_dir, double 
         sd = -sd; // jeśli tylko jeden krok tzn, że event przy poprzednim sprawdzaym torze
     if (((seg_len <= dzielnik) || (seg_len > (1 - dzielnik))) && (iter < 3))
     { // przejście na inny tor
-        track = track->Neightbour(int(sd), sd);
+        track = track->Connected(int(sd), sd);
         start_dist += (1 == krok) ? 0 : back ? -segment->GetLength() : segment->GetLength();
         return GetDistanceToEvent(track, event, sd, start_dist, ++iter, 1 == krok ? true : false);
     }
@@ -616,7 +616,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
         fCurrentDistance += fTrackLength; // doliczenie kolejnego odcinka do przeskanowanej długości
         tLast = pTrack; // odhaczenie, że sprawdzony
         fLastVel = pTrack->VelocityGet(); // prędkość na poprzednio sprawdzonym odcinku
-        pTrack = pTrack->Neightbour(
+        pTrack = pTrack->Connected(
             ( pTrack->eType == tt_Cross ?
                 (sSpeedTable[iLast].iFlags >> 28) :
                 static_cast<int>(fLastDir) ),

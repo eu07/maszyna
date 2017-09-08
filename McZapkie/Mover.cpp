@@ -473,7 +473,7 @@ bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *
         coupler.Connected = ConnectTo; // tak podpiąć (do siebie) zawsze można, najwyżej będzie wirtualny
         CouplerDist( ConnectNo ); // przeliczenie odległości pomiędzy sprzęgami
 
-        if (CouplingType == ctrain_virtual)
+        if (CouplingType == coupling::faux)
             return false; // wirtualny więcej nic nie robi
 
         auto &othercoupler = ConnectTo->Couplers[ coupler.ConnectedNr ];
@@ -555,21 +555,29 @@ bool TMoverParameters::Dettach(int ConnectNo)
     return false; // jeszcze nie rozłączony
 };
 
-void TMoverParameters::SetCoupleDist()
-{ // przeliczenie odległości sprzęgów
-    if (Couplers[0].Connected)
-    {
-        CouplerDist(0);
-        if (CategoryFlag & 2)
-        { // Ra: dla samochodów zderzanie kul to za mało
+// przeliczenie odległości sprzęgów
+void TMoverParameters::SetCoupleDist() {
+/*
+    double const MaxDist = 100.0; // 2x average max proximity distance. TODO: rearrange ito something more elegant
+*/
+    for( int coupleridx = 0; coupleridx <= 1; ++coupleridx ) {
+
+        if( Couplers[ coupleridx ].Connected == nullptr ) { continue; }
+
+        CouplerDist( coupleridx );
+        if( CategoryFlag & 2 ) {
+            // Ra: dla samochodów zderzanie kul to za mało
+            // NOTE: whatever calculation was supposed to be here, ain't
         }
-    }
-    if (Couplers[1].Connected)
-    {
-        CouplerDist(1);
-        if (CategoryFlag & 2)
-        { // Ra: dla samochodów zderzanie kul to za mało
+/*
+        if( ( Couplers[ coupleridx ].CouplingFlag == coupling::faux )
+         && ( Couplers[ coupleridx ].CoupleDist > MaxDist ) ) {
+            // zerwij kontrolnie wirtualny sprzeg
+            // Connected.Couplers[CNext].Connected:=nil; //Ra: ten podłączony niekoniecznie jest wirtualny
+            Couplers[ coupleridx ].Connected = nullptr;
+            Couplers[ coupleridx ].ConnectedNr = 2;
         }
+*/
     }
 };
 
@@ -3725,14 +3733,12 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
         else {
             Voltage = 0;
         }
-        //if (Mains && /*(abs(CabNo) < 2) &&*/ (
-        //                 EngineType == ElectricInductionMotor)) // potem ulepszyc! pantogtrafy!
-        //    Voltage = RunningTraction.TractionVoltage;
 
         if (Power > 0)
             FTrain = TractionForce(dt);
         else
             FTrain = 0;
+
         Fb = BrakeForce(RunningTrack);
 		Fwheels = FTrain - Fb * Sign(V);
         if( ( Vel > 0.001 ) // crude trap, to prevent braked stationary vehicles from passing fb > mass * adhesive test
@@ -3966,7 +3972,7 @@ double TMoverParameters::Adhesive(double staticfriction)
     //  WriteLog(FloatToStr(adhesive));      // tutaj jest na poziomie 0.2 - 0.3
     return adhesion;
 */
-	/* //wersja druga
+	//wersja druga
     if( true == SlippingWheels ) {
 
         if( true == SandDose ) { adhesion = 0.48; }
@@ -3977,12 +3983,15 @@ double TMoverParameters::Adhesive(double staticfriction)
         if( true == SandDose ) { adhesion = std::max( staticfriction * ( 100.0 + Vel ) / ( 50.0 + Vel ) * 1.1, 0.48 ); }
         else                   { adhesion = staticfriction * ( 100.0 + Vel ) / ( 50.0 + Vel ); }
     }
-    adhesion *= ( 11.0 - 2 * Random() ) / 10.0; */
+//    adhesion *= ( 0.9 + 0.2 * Random() );
+/*
 	//wersja3 by youBy - uwzględnia naturalne mikropoślizgi i wpływ piasecznicy, usuwa losowość z pojazdu
 	double Vwheels = nrot * M_PI * WheelDiameter; // predkosc liniowa koła wynikająca z obrotowej
 	double deltaV = V - Vwheels; //poślizg - różnica prędkości w punkcie styku koła i szyny
 	deltaV = std::max(0.0, std::abs(deltaV) - 0.25); //mikropoślizgi do ok. 0,25 m/s nie zrywają przyczepności
-	adhesion = staticfriction * (28 + Vwheels) / (14 + Vwheels) * ((SandDose? sandfactor : 1) - (1 - adh_factor)*(deltaV / (deltaV + slipfactor)));
+    Vwheels = std::abs( Vwheels );
+    adhesion = staticfriction * (28 + Vwheels) / (14 + Vwheels) * ((SandDose? sandfactor : 1) - (1 - adh_factor)*(deltaV / (deltaV + slipfactor)));
+*/
     return adhesion;
 }
 
@@ -4052,24 +4061,11 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
     // blablabla
     // ABu: proby znalezienia problemu ze zle odbijajacymi sie skladami
     //if (Couplers[CouplerN].CouplingFlag=ctrain_virtual) and (newdist>0) then
-    if ((Couplers[CouplerN].CouplingFlag == ctrain_virtual) && (Couplers[CouplerN].CoupleDist > 0))
-    {
-        CF = 0; // kontrola zderzania sie - OK
-        ScanCounter++;
-        if ((newdist > MaxDist) || ((ScanCounter > MaxCount) && (newdist > MinDist)))
-        //if (tempdist>MaxDist) or ((ScanCounter>MaxCount)and(tempdist>MinDist)) then
-        { // zerwij kontrolnie wirtualny sprzeg
-            // Connected.Couplers[CNext].Connected:=nil; //Ra: ten podłączony niekoniecznie jest
-            // wirtualny
-//            Couplers[CouplerN].Connected = NULL;
-            ScanCounter = static_cast<int>(Random(500.0)); // Q: TODO: cy dobrze przetlumaczone?
-            // WriteLog(FloatToStr(ScanCounter));
-        }
-    }
-    else
-    {
-        if (Couplers[CouplerN].CouplingFlag == ctrain_virtual)
-        {
+    if( ( Couplers[ CouplerN ].CouplingFlag != coupling::faux )
+     || ( Couplers[ CouplerN ].CoupleDist < 0 ) ) {
+
+        if( Couplers[ CouplerN ].CouplingFlag == coupling::faux ) {
+
             BetaAvg = Couplers[CouplerN].beta;
             Fmax = (Couplers[CouplerN].FmaxC + Couplers[CouplerN].FmaxB) * CouplerTune;
         }
@@ -4145,18 +4141,20 @@ double TMoverParameters::CouplerForce(int CouplerN, double dt)
             //***if -tempdist>(DmaxB+Connected^.Couplers[CNext].DmaxB)/10 then  {zderzenie}
             {
                 Couplers[CouplerN].CheckCollision = true;
-                if ((Couplers[CouplerN].CouplerType == Automatic) &&
-                    (Couplers[CouplerN].CouplingFlag ==
-                     0)) // sprzeganie wagonow z samoczynnymi sprzegami}
+                if( ( Couplers[ CouplerN ].CouplerType == Automatic )
+                 && ( Couplers[ CouplerN ].CouplingFlag == coupling::faux ) ) {
+                    // sprzeganie wagonow z samoczynnymi sprzegami}
                     // CouplingFlag:=ctrain_coupler+ctrain_pneumatic+ctrain_controll+ctrain_passenger+ctrain_scndpneumatic;
-                    Couplers[CouplerN].CouplingFlag =
-                        ctrain_coupler | ctrain_pneumatic | ctrain_controll; // EN57
+                    // EN57
+                    Couplers[ CouplerN ].CouplingFlag = coupling::coupler | coupling::brakehose | coupling::mainhose | coupling::control;
+                }
             }
         }
     }
-    if (Couplers[CouplerN].CouplingFlag != ctrain_virtual)
+    if( Couplers[ CouplerN ].CouplingFlag != coupling::faux ) {
         // uzgadnianie prawa Newtona
-        Couplers[CouplerN].Connected->Couplers[1 - CouplerN].CForce = -CF;
+        Couplers[ CouplerN ].Connected->Couplers[ 1 - CouplerN ].CForce = -CF;
+    }
 
     return CF;
 }

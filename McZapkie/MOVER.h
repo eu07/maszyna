@@ -813,7 +813,6 @@ public:
         voltage
     };
 #endif
-	int ScanCounter = 0;   /*pomocnicze do skanowania sprzegow*/
 	bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
 	double DistCounter = 0.0;                  /*! licznik kilometrow */
