@@ -130,25 +130,13 @@ class TTranscript
     float fHide; // czas ukrycia/usunięcia
     std::string asText; // tekst gotowy do wyświetlenia (usunięte znaczniki czasu)
     bool bItalic; // czy kursywa (dźwięk nieistotny dla prowadzącego)
-/*
-    int iNext; // następna używana linijka, żeby nie przestawiać fizycznie tabeli
-*/
 };
 
-/*
-#define MAX_TRANSCRIPTS 30
-*/
 class TTranscripts
 { // klasa obsługująca napisy do dźwięków
-/*
-    TTranscript aLines[MAX_TRANSCRIPTS]; // pozycje na napisy do wyświetlenia
-*/
 public:
     std::deque<TTranscript> aLines;
-/*
-    int iCount; // liczba zajętych pozycji
-    int iStart; // pierwsza istotna pozycja w tabeli, żeby sortować przestawiając numerki
-*/
+
 private:
     float fRefreshTime;
 
@@ -166,7 +154,6 @@ class Global
 {
   private:
   public:
-    // double Global::tSinceStart;
     static int Keys[MaxKeys];
     static bool RealisticControlMode; // controls ability to steer the vehicle from outside views
     static Math3D::vector3 pCameraPosition; // pozycja kamery w świecie
@@ -179,23 +166,17 @@ class Global
     static int iWindowWidth;
     static int iWindowHeight;
     static float fDistanceFactor;
-    static int iBpp;
     static bool bFullScreen;
     static bool VSync;
     static bool bFreeFly;
-    // float RunningTime;
     static bool bWireFrame;
     static bool bSoundEnabled;
     // McZapkie-131202
-    // static bool bRenderAlpha;
     static bool bAdjustScreenFreq;
     static bool bEnableTraction;
     static bool bLoadTraction;
     static float fFriction;
     static bool bLiveTraction;
-    static bool bManageNodes;
-    static bool bDecompressDDS;
-    //    bool WFreeFly;
     static float Global::fMouseXScale;
     static float Global::fMouseYScale;
     static double fFogStart;
@@ -217,11 +198,8 @@ class Global
     static int iWriteLogEnabled; // maska bitowa: 1-zapis do pliku, 2-okienko
     static bool MultipleLogs;
     // McZapkie-221002: definicja swiatla dziennego
-	static float Background[3];
-	static GLfloat AtmoColor[];
     static GLfloat FogColor[];
     static float Overcast;
-    // static bool bTimeChange;
 
     // TODO: put these things in the renderer
     static float BaseDrawRange;
@@ -244,10 +222,6 @@ class Global
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
     static float AnisotropicFiltering; // requested level of anisotropic filtering. TODO: move it to renderer object
-    static int iDefaultFiltering; // domyślne rozmywanie tekstur TGA
-    static int iBallastFiltering; // domyślne rozmywanie tekstury podsypki
-    static int iRailProFiltering; // domyślne rozmywanie tekstury szyn
-    static int iDynamicFiltering; // domyślne rozmywanie tekstur pojazdów
     static bool bUseVBO; // czy jest VBO w karcie graficznej
     static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
@@ -270,7 +244,6 @@ class Global
     static bool InputMouse; // whether control pick mode can be activated
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
     static int iScreenMode[12]; // numer ekranu wyświetlacza tekstowego
-    static bool bDoubleAmbient; // podwójna jasność ambient
     static double fMoveLight; // numer dnia w roku albo -1
     static bool FakeLight; // toggle between fixed and dynamic daylight
     static bool bSmoothTraction; // wygładzanie drutów
@@ -284,15 +257,11 @@ class Global
     static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     static bool DLFont; // switch indicating presence of basic font
     static bool bGlutFont; // tekst generowany przez GLUT
-    static int iKeyLast; // ostatnio naciśnięty klawisz w celu logowania
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
     static bool bActive; // czy jest aktywnym oknem
     static int iConvertModels; // tworzenie plików binarnych
-    static int iErorrCounter; // licznik sprawdzań do śledzenia błędów OpenGL
     static bool bInactivePause; // automatyczna pauza, gdy okno nieaktywne
-    static int iTextures; // licznik użytych tekstur
     static int iSlowMotionMask; // maska wyłączanych właściwości
-    static int iModifyTGA; // czy korygować pliki TGA dla szybszego wczytywania
     static bool bHideConsole; // hunter-271211: ukrywanie konsoli
 	
     static TWorld *pWorld; // wskaźnik na świat do usuwania pojazdów
@@ -304,9 +273,6 @@ class Global
     static double fFpsDeviation; // odchylenie standardowe FPS
     static double fFpsMin; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
     static double fFpsMax; // górna granica FPS, przy której promień scenerii będzie zwiększany
-    static double fFpsRadiusMax; // maksymalny promień renderowania
-    static int iFpsRadiusMax; // maksymalny promień renderowania w rozmiarze tabeli sektorów
-    static double fRadiusFactor; // współczynnik zmiany promienia
     static TCamera *pCamera; // parametry kamery
     static TDynamicObject *pUserDynamic; // pojazd użytkownika, renderowany bez trzęsienia
     static double fCalibrateIn[6][6]; // parametry kalibracyjne wejść z pulpitu

@@ -183,14 +183,10 @@ simulation_time::julian_day() const {
 
 TWorld::TWorld()
 {
-    // randomize();
-    // Randomize();
     Train = NULL;
-    // Aspect=1;
     for (int i = 0; i < 10; ++i)
         KeyEvents[i] = NULL; // eventy wyzwalane klawiszami cyfrowymi
     Global::iSlowMotion = 0;
-    // Global::changeDynObj=NULL;
     pDynamicNearest = NULL;
     fTimeBuffer = 0.0; // bufor czasu aktualizacji dla stałego kroku fizyki
     fMaxDt = 0.01; //[s] początkowy krok czasowy fizyki
@@ -199,7 +195,6 @@ TWorld::TWorld()
 
 TWorld::~TWorld()
 {
-    Global::bManageNodes = false; // Ra: wyłączenie wyrejestrowania, bo się sypie
     TrainDelete();
     // Ground.Free(); //Ra: usunięcie obiektów przed usunięciem dźwięków - sypie się
     TSoundsManager::Free();
@@ -217,61 +212,6 @@ void TWorld::TrainDelete(TDynamicObject *d)
     mvControlled = NULL;
     Global::pUserDynamic = NULL; // tego też nie ma
 };
-
-/* Ra: do opracowania: wybor karty graficznej ~Intel gdy są dwie...
-BOOL GetDisplayMonitorInfo(int nDeviceIndex, LPSTR lpszMonitorInfo)
-{
-    FARPROC EnumDisplayDevices;
-    HINSTANCE  hInstUser32;
-    DISPLAY_DEVICE DispDev;
-    char szSaveDeviceName[33];  // 32 + 1 for the null-terminator
-    BOOL bRet = TRUE;
-        HRESULT hr;
-
-    hInstUser32 = LoadLibrary("c:\\windows\User32.DLL");
-    if (!hInstUser32) return FALSE;
-
-    // Get the address of the EnumDisplayDevices function
-    EnumDisplayDevices = (FARPROC)GetProcAddress(hInstUser32,"EnumDisplayDevicesA");
-    if (!EnumDisplayDevices) {
-        FreeLibrary(hInstUser32);
-        return FALSE;
-    }
-
-    ZeroMemory(&DispDev, sizeof(DispDev));
-    DispDev.cb = sizeof(DispDev);
-
-    // After the first call to EnumDisplayDevices,
-    // DispDev.DeviceString is the adapter name
-    if (EnumDisplayDevices(NULL, nDeviceIndex, &DispDev, 0))
-        {
-                hr = StringCchCopy(szSaveDeviceName, 33, DispDev.DeviceName);
-                if (FAILED(hr))
-                {
-                // TODO: write error handler
-                }
-
-        // After second call, DispDev.DeviceString is the
-        // monitor name for that device
-        EnumDisplayDevices(szSaveDeviceName, 0, &DispDev, 0);
-
-                // In the following, lpszMonitorInfo must be 128 + 1 for
-                // the null-terminator.
-                hr = StringCchCopy(lpszMonitorInfo, 129, DispDev.DeviceString);
-                if (FAILED(hr))
-                {
-                // TODO: write error handler
-                }
-
-    } else    {
-        bRet = FALSE;
-    }
-
-    FreeLibrary(hInstUser32);
-
-    return bRet;
-}
-*/
 
 bool TWorld::Init( GLFWwindow *Window ) {
 
@@ -822,11 +762,6 @@ void TWorld::OnKeyDown(int cKey)
             }
         }
     }
-    // switch (cKey)
-    //{case 'a': //ignorowanie repetycji
-    // case 'A': Global::iKeyLast=cKey; break;
-    // default: Global::iKeyLast=0;
-    //}
 }
 
 void TWorld::OnMouseMove(double x, double y)
@@ -2018,26 +1953,6 @@ void TWorld::OnCommandGet(DaneRozkaz *pRozkaz)
 			//    Ground.IsolatedBusy(AnsiString(pRozkaz->cString+1,(unsigned)(pRozkaz->cString[0])));
 			break;
 		}
-};
-
-//---------------------------------------------------------------------------
-void TWorld::ModifyTGA(const std::string &dir)
-{ // rekurencyjna modyfikacje plików TGA
-/*  TODO: implement version without Borland stuff
-	TSearchRec sr;
-    if (FindFirst(dir + "*.*", faDirectory | faArchive, sr) == 0)
-    {
-        do
-        {
-            if (sr.Name[1] != '.')
-                if ((sr.Attr & faDirectory)) // jeśli katalog, to rekurencja
-                    ModifyTGA(dir + sr.Name + "/");
-                else if (sr.Name.LowerCase().SubString(sr.Name.Length() - 3, 4) == ".tga")
-                    TTexturesManager::GetTextureID(NULL, NULL, AnsiString(dir + sr.Name).c_str());
-        } while (FindNext(sr) == 0);
-        FindClose(sr);
-    }
-*/
 };
 
 //---------------------------------------------------------------------------

@@ -2022,10 +2022,13 @@ bool TGround::Init(std::string File)
         { // Ra: ustawienie parametrów OpenGL przeniesione do FirstInit
             WriteLog("Scenery atmo definition");
             parser.getTokens(3);
+/*
+            // disabled, no longer used
             parser
                 >> Global::AtmoColor[0]
                 >> Global::AtmoColor[1]
                 >> Global::AtmoColor[2];
+*/
             parser.getTokens(2);
             parser
                 >> Global::fFogStart

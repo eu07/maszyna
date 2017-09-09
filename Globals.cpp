@@ -55,11 +55,8 @@ double Global::fTimeAngleDeg = 0.0; // godzina w postaci kąta
 float Global::fClockAngleDeg[6]; // kąty obrotu cylindrów dla zegara cyfrowego
 std::string Global::szTexturesTGA = ".tga"; // lista tekstur od TGA
 std::string Global::szTexturesDDS = ".dds"; // lista tekstur od DDS
-int Global::iKeyLast = 0; // ostatnio naciśnięty klawisz w celu logowania
 int Global::iPause = 0; // 0x10; // globalna pauza ruchu
 bool Global::bActive = true; // czy jest aktywnym oknem
-int Global::iErorrCounter = 0; // licznik sprawdzań do śledzenia błędów OpenGL
-int Global::iTextures = 0; // licznik użytych tekstur
 TWorld *Global::pWorld = NULL;
 cParser *Global::pParser = NULL;
 TCamera *Global::pCamera = NULL; // parametry kamery
@@ -74,8 +71,6 @@ double Global::pCameraRotation;
 double Global::pCameraRotationDeg;
 std::vector<vector3> Global::FreeCameraInit;
 std::vector<vector3> Global::FreeCameraInitAngle;
-float Global::Background[3] = {0.2f, 0.4f, 0.33f};
-GLfloat Global::AtmoColor[] = {0.423f, 0.702f, 1.0f};
 GLfloat Global::FogColor[] = {0.6f, 0.7f, 0.8f};
 double Global::fFogStart = 1700;
 double Global::fFogEnd = 2000;
@@ -122,10 +117,6 @@ bool Global::bEnableTraction = true;
 bool Global::bLoadTraction = true;
 bool Global::bLiveTraction = true;
 float Global::AnisotropicFiltering = 8.0f; // requested level of anisotropic filtering. TODO: move it to renderer object
-int Global::iDefaultFiltering = 9; // domyślne rozmywanie tekstur TGA bez alfa
-int Global::iBallastFiltering = 9; // domyślne rozmywanie tekstur podsypki
-int Global::iRailProFiltering = 5; // domyślne rozmywanie tekstur szyn
-int Global::iDynamicFiltering = 5; // domyślne rozmywanie tekstur pojazdów
 bool Global::bUseVBO = true; // czy jest VBO w karcie graficznej (czy użyć)
 std::string Global::LastGLError;
 GLint Global::iMaxTextureSize = 4096; // maksymalny rozmiar tekstury
@@ -138,7 +129,6 @@ bool Global::bGlutFont = false; // czy tekst generowany przez GLUT32.DLL
 //int Global::iConvertModels = 7; // tworzenie plików binarnych, +2-optymalizacja transformów
 int Global::iConvertModels{ 0 }; // temporary override, to prevent generation of .e3d not compatible with old exe
 int Global::iSlowMotionMask = -1; // maska wyłączanych właściwości dla zwiększenia FPS
-int Global::iModifyTGA = 7; // czy korygować pliki TGA dla szybszego wczytywania
 // bool Global::bTerrainCompact=true; //czy zapisać teren w pliku
 TAnimModel *Global::pTerrainCompact = NULL; // do zapisania terenu w pliku
 std::string Global::asTerrainModel = ""; // nazwa obiektu terenu do zapisania w pliku
@@ -146,17 +136,12 @@ double Global::fFpsAverage = 20.0; // oczekiwana wartosć FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
 double Global::fFpsMin = 30.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
 double Global::fFpsMax = 65.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
-double Global::fFpsRadiusMax = 3000.0; // maksymalny promień renderowania
-int Global::iFpsRadiusMax = 225; // maksymalny promień renderowania
-double Global::fRadiusFactor = 1.1; // współczynnik jednorazowej zmiany promienia scenerii
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
 bool Global::bSoundEnabled = true;
 int Global::iWriteLogEnabled = 3; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
 bool Global::MultipleLogs{ false };
-bool Global::bManageNodes = true;
-bool Global::bDecompressDDS = false; // czy programowa dekompresja DDS
 
 // parametry do kalibracji
 // kolejno współczynniki dla potęg 0, 1, 2, 3 wartości odczytanej z urządzenia
@@ -180,10 +165,8 @@ int Global::iPoKeysPWM[7] = {0, 1, 2, 3, 4, 5, 6};
 // bool Global::bTimeChange=false; //Ra: ZiomalCl wyłączył starą wersję nocy
 // bool Global::bRenderAlpha=true; //Ra: wywaliłam tę flagę
 bool Global::bnewAirCouplers = true;
-bool Global::bDoubleAmbient = false; // podwójna jasność ambient
 double Global::fTimeSpeed = 1.0; // przyspieszenie czasu, zmienna do testów
 bool Global::bHideConsole = false; // hunter-271211: ukrywanie konsoli
-int Global::iBpp = 32; // chyba już nie używa się kart, na których 16bpp coś poprawi
 //randomizacja
 std::mt19937 Global::random_engine = std::mt19937(std::time(NULL));
 // maciek001: konfiguracja wstępna portu COM
@@ -275,13 +258,6 @@ void Global::ConfigParse(cParser &Parser)
 
             Parser.getTokens(1, false);
             Parser >> Global::fDistanceFactor;
-        }
-        else if (token == "bpp")
-        {
-
-            Parser.getTokens();
-            Parser >> token;
-            Global::iBpp = (token == "32" ? 32 : 16);
         }
         else if (token == "fullscreen")
         {
@@ -409,18 +385,6 @@ void Global::ConfigParse(cParser &Parser)
             Parser >> token;
             Global::asSky = (token == "yes" ? "1" : "0");
         }
-        else if (token == "managenodes")
-        {
-
-            Parser.getTokens();
-            Parser >> Global::bManageNodes;
-        }
-        else if (token == "decompressdds")
-        {
-
-            Parser.getTokens();
-            Parser >> Global::bDecompressDDS;
-        }
         else if (token == "defaultext")
         {
             // ShaXbee - domyslne rozszerzenie tekstur
@@ -443,30 +407,6 @@ void Global::ConfigParse(cParser &Parser)
 
             Parser.getTokens();
             Parser >> Global::bnewAirCouplers;
-        }
-        else if (token == "defaultfiltering")
-        {
-
-            Parser.getTokens(1, false);
-            Parser >> Global::iDefaultFiltering;
-        }
-        else if (token == "ballastfiltering")
-        {
-
-            Parser.getTokens(1, false);
-            Parser >> Global::iBallastFiltering;
-        }
-        else if (token == "railprofiltering")
-        {
-
-            Parser.getTokens(1, false);
-            Parser >> Global::iRailProFiltering;
-        }
-        else if (token == "dynamicfiltering")
-        {
-
-            Parser.getTokens(1, false);
-            Parser >> Global::iDynamicFiltering;
         }
         else if( token == "anisotropicfiltering" ) {
 
@@ -512,12 +452,6 @@ void Global::ConfigParse(cParser &Parser)
             else if (size <= 4096) { Global::iMaxTextureSize = 4096; }
             else if (size <= 8192) { Global::iMaxTextureSize = 8192; }
             else                   { Global::iMaxTextureSize = 16384; }
-        }
-        else if (token == "doubleambient")
-        {
-            // podwójna jasność ambient
-            Parser.getTokens();
-            Parser >> Global::bDoubleAmbient;
         }
         else if (token == "movelight")
         {
@@ -624,12 +558,6 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens(1, false);
             Parser >> Global::iSlowMotionMask;
         }
-        else if (token == "modifytga")
-        {
-            // czy korygować pliki TGA dla szybszego wczytywania
-            Parser.getTokens(1, false);
-            Parser >> Global::iModifyTGA;
-        }
         else if (token == "hideconsole")
         {
             // hunter-271211: ukrywanie konsoli
@@ -653,12 +581,6 @@ void Global::ConfigParse(cParser &Parser)
             // odchylenie standardowe FPS
             Parser.getTokens(1, false);
             Parser >> Global::fFpsDeviation;
-        }
-        else if (token == "fpsradiusmax")
-        {
-            // maksymalny promień renderowania
-            Parser.getTokens(1, false);
-            Parser >> Global::fFpsRadiusMax;
         }
         else if (token == "calibratein")
         {
@@ -806,14 +728,6 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> token;
             TPythonInterpreter::getInstance()->setScreenRendererPriority(token.c_str());
-        }
-        else if (token == "background")
-        {
-
-            Parser.getTokens(3, false);
-            Parser >> Global::Background[0] // r
-                >> Global::Background[1] // g
-                >> Global::Background[2]; // b
         }
         else if( token == "input.gamepad" ) {
             // czy grupować eventy o tych samych nazwach
