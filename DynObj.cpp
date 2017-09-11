@@ -3638,7 +3638,7 @@ void TDynamicObject::RenderSounds()
                     }
                     else
                     {
-                        sConverter->gain(vol).pitch(freq).position(GetPosition());
+                        if (sConverter) sConverter->gain(vol).pitch(freq).position(GetPosition());
 
                         float fincvol;
                         fincvol = 0;
@@ -3867,7 +3867,7 @@ void TDynamicObject::RenderSounds()
             if (eng_frq_act < defrot + 0.1 * dt)
                 eng_frq_act = defrot;
         }
-        sConverter->gain(eng_vol_act).pitch(eng_frq_act + eng_dfrq).position(GetPosition());
+        if (sConverter) sConverter->gain(eng_vol_act).pitch(eng_frq_act + eng_dfrq).position(GetPosition());
         // udawanie turbo:  (6.66*(eng_vol-0.85))
         if (eng_turbo > 6.66 * (eng_vol - 0.8) + 0.2 * dt)
             eng_turbo = eng_turbo - 0.2 * dt; // 0.125
@@ -4915,6 +4915,14 @@ void TDynamicObject::LoadMMediaFile(std::string BaseDir, std::string TypeName,
 
 	} while( ( token != "" ) 
 	      && ( false == Stop_InternalData ) );
+
+	if (sConverter && rsSilnik)
+	{
+		sConverter->gain_mul = rsSilnik->gain_mul;
+		sConverter->gain_off = rsSilnik->gain_off;
+		sConverter->pitch_mul = rsSilnik->pitch_mul;
+		sConverter->pitch_off = rsSilnik->pitch_off;
+	}
 
     if( !iAnimations ) {
         // if the animations weren't defined the model is likely to be non-functional. warrants a warning.
