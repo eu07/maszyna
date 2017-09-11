@@ -3800,7 +3800,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     vol = 2.0 * fPPress;
                 }
-                if (vol > 0.001)
+                if (vol * rsHiss->gain_mul > 0.001)
                 {
                 	rsHiss->loop().gain(vol).position(dynpos).play();
                 }
@@ -3817,7 +3817,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     vol = fNPress;
                 }
-                if (vol > 0.001)
+                if (vol * rsHissU->gain_mul > 0.001)
                 {
                     rsHissU->loop().gain(vol).position(dynpos).play();
                 }
@@ -3829,7 +3829,7 @@ bool TTrain::Update( double const Deltatime )
             if (rsHissE) // upuszczanie przy naglym
             {
                 vol = mvOccupied->Handle->GetSound(s_fv4a_e);
-                if (vol > 0.001)
+                if (vol * rsHissE->gain_mul > 0.001)
                 {
                     rsHissE->loop().gain(vol).position(dynpos).play();
                 }
@@ -3841,7 +3841,7 @@ bool TTrain::Update( double const Deltatime )
             if (rsHissX) // upuszczanie sterujacego fala
             {
                 vol = mvOccupied->Handle->GetSound(s_fv4a_x);
-                if (vol > 0.001)
+                if (vol * rsHissX->gain_mul > 0.001)
                 {
                     rsHissX->loop().gain(vol).position(dynpos).play();
                 }
@@ -3853,7 +3853,7 @@ bool TTrain::Update( double const Deltatime )
             if (rsHissT) // upuszczanie z czasowego 
             {
                 vol = mvOccupied->Handle->GetSound(s_fv4a_t);
-                if (vol > 0.001)
+                if (vol * rsHissT->gain_mul > 0.001)
                 {
                     rsHissT->loop().gain(vol).position(dynpos).play();
                 }
@@ -3873,7 +3873,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     vol = 2.0 * fPPress;
                 }
-                if (vol > 0.01)
+                if (vol * rsHiss->gain_mul > 0.01)
                 {
                     rsHiss->loop().gain(vol).position(dynpos).play();
                 }
@@ -3889,7 +3889,7 @@ bool TTrain::Update( double const Deltatime )
                 {
                     vol = -1.0 * fNPress;
                 }
-                if (vol > 0.01)
+                if (vol * rsHissU->gain_mul > 0.01)
                 {
                     rsHissU->loop().gain(vol).position(dynpos).play();
                 }
