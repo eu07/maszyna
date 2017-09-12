@@ -4062,16 +4062,24 @@ bool TTrain::Update( double const Deltatime )
             }
             else
             {
-                if( dsbRelay != nullptr ) { dsbRelay->gain(0.5f); }
+                if( dsbRelay != nullptr ) { dsbRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f); }
             }
             if (!TestFlag(mvOccupied->SoundFlag, sound_manyrelay))
-                dsbRelay->play();
+			{
+                if (dsbRelay) dsbRelay->play();
+			}
             else
             {
                 if (TestFlag(mvOccupied->SoundFlag, sound_loud))
-                    dsbWejscie_na_bezoporow->play();
+				{
+                    if (dsbWejscie_na_bezoporow)
+						dsbWejscie_na_bezoporow->play();
+				}
                 else
-                    dsbWejscie_na_drugi_uklad->play();
+				{
+                    if (dsbWejscie_na_drugi_uklad)
+						dsbWejscie_na_drugi_uklad->play();
+				}
             }
         }
 
@@ -4081,7 +4089,7 @@ bool TTrain::Update( double const Deltatime )
                 if( TestFlag( mvOccupied->SoundFlag, sound_loud ) )
                     dsbBufferClamp->gain(1.0f);
                 else
-                    dsbBufferClamp->gain(0.5f);
+                    dsbBufferClamp->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f);
                 dsbBufferClamp->play();
             }
         }
@@ -4091,7 +4099,7 @@ bool TTrain::Update( double const Deltatime )
                 if (TestFlag(mvOccupied->SoundFlag, sound_loud))
                     dsbCouplerStretch->gain(1.0f);
                 else
-                    dsbCouplerStretch->gain(0.5f);
+                    dsbCouplerStretch->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f);
                 dsbCouplerStretch->play();
             }
 

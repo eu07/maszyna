@@ -741,7 +741,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->IncLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->gain(0.5f).play();
+                            Train->dsbPneumaticRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f).play();
                         }
             }
         }
@@ -760,7 +760,7 @@ void TWorld::OnKeyDown(int cKey)
                     if (temp->MoverParameters->DecLocalBrakeLevelFAST())
                         if (Train)
                         { // dźwięk oczywiście jest w kabinie
-                            Train->dsbPneumaticRelay->gain(0.5f).play();
+                            Train->dsbPneumaticRelay->gain(Global::soundgainmode == Global::compat ? 0.9f : 0.5f).play();
                         }
             }
         }
