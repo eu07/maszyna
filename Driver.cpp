@@ -64,12 +64,12 @@ double GetDistanceToEvent(TTrack const *track, TEvent const *event, double scan_
         seg_len += scan_dir > 0 ? dzielnik : -dzielnik;
         len2 = (pos_event - segment->FastGetPoint(seg_len)).LengthSquared();
         ++krok;
-    } while ((len1 > len2) && (seg_len >= dzielnik && (seg_len <= (1 - dzielnik))));
+    } while ((len1 > len2) && (seg_len >= dzielnik && (seg_len <= (1.0 - dzielnik))));
     //trzeba sprawdzić czy seg_len nie osiągnął skrajnych wartości, bo wtedy
     // trzeba sprawdzić tor obok
     if (1 == krok)
         sd = -sd; // jeśli tylko jeden krok tzn, że event przy poprzednim sprawdzaym torze
-    if (((seg_len <= dzielnik) || (seg_len > (1 - dzielnik))) && (iter < 3))
+    if (((1 == krok) || (seg_len <= dzielnik) || (seg_len > (1.0 - dzielnik))) && (iter < 3))
     { // przejście na inny tor
         track = track->Connected(int(sd), sd);
         start_dist += (1 == krok) ? 0 : back ? -segment->GetLength() : segment->GetLength();
@@ -3919,6 +3919,13 @@ TController::UpdateSituation(double dt) {
                         fStopTime = 0.0; // nie ma na co czekać z odczepianiem
                     }
                 }
+                else {
+                    if( mvOccupied->Vel > 0.0 ) {
+                        // 1st phase(?)
+                        // bring it to stop if it's not already stopped
+                        SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
+                    }
+                }
             } // odczepiania
             else // to poniżej jeśli ilość wagonów ujemna
                 if (iDrivigFlags & movePress)
@@ -3985,8 +3992,8 @@ TController::UpdateSituation(double dt) {
         }
         else {
             // samochod (sokista też)
-            fMinProximityDist = std::max( 4.0, mvOccupied->Vel * 0.2   );
-            fMaxProximityDist = std::max( 8.0, mvOccupied->Vel * 0.375 ); //[m]
+            fMinProximityDist = std::max( 3.0, mvOccupied->Vel * 0.2   );
+            fMaxProximityDist = std::max( 9.0, mvOccupied->Vel * 0.375 ); //[m]
             // margines prędkości powodujący załączenie napędu
             fVelMinus = 2.0;
             // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
@@ -4259,12 +4266,17 @@ TController::UpdateSituation(double dt) {
                  && ( coupler->CouplingFlag == coupling::faux ) ) {
                     // mamy coś z przodu podłączone sprzęgiem wirtualnym
                     // wyliczanie optymalnego przyspieszenia do jazdy na widoczność
+/*
                     ActualProximityDist = std::min(
                         ActualProximityDist,
                         vehicle->fTrackBlock - (
                             mvOccupied->CategoryFlag & 2 ?
                                 fMinProximityDist : // cars can bunch up tighter
                                 fMaxProximityDist ) ); // other vehicle types less so
+*/
+                    ActualProximityDist = std::min(
+                        ActualProximityDist,
+                        vehicle->fTrackBlock );
                     double k = coupler->Connected->Vel; // prędkość pojazdu z przodu (zakładając,
                     // że jedzie w tę samą stronę!!!)
                     if( k < vel + 10 ) {
@@ -4323,36 +4335,47 @@ TController::UpdateSituation(double dt) {
             }
 
             // sprawdzamy możliwe ograniczenia prędkości
-            if (OrderCurrentGet() & (Shunt | Obey_train)) // w Connect nie, bo moveStopHere
-                // odnosi się do stanu po połączeniu
-                if (iDrivigFlags & moveStopHere) // jeśli ma czekać na wolną drogę
-                    if (vel == 0.0) // a stoi
-                        if (VelNext == 0.0) // a wyjazdu nie ma
-                            VelDesired = 0.0; // to ma stać
-            if (fStopTime < 0) // czas postoju przed dalszą jazdą (np. na przystanku)
+            if( OrderCurrentGet() & ( Shunt | Obey_train ) ) {
+                // w Connect nie, bo moveStopHere odnosi się do stanu po połączeniu
+                if( ( iDrivigFlags & moveStopHere )
+                 && ( vel == 0.0 )
+                 && ( VelNext == 0.0 ) ) {
+                    // jeśli ma czekać na wolną drogę, stoi a wyjazdu nie ma, to ma stać
+                    VelDesired = 0.0;
+                }
+            }
+            if( fStopTime < 0 ) {
+                // czas postoju przed dalszą jazdą (np. na przystanku)
                 VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
-            // else if (VelSignal<0)
-            // VelDesired=fVelMax; //ile fabryka dala (Ra: uwzględione wagony)
-            else if (VelSignal >= 0) // jeśli skład był zatrzymany na początku i teraz już może jechać
-                VelDesired = Global::Min0RSpeed(VelDesired, VelSignal);
-
-            if (mvOccupied->RunningTrack.Velmax >=
-                0) // ograniczenie prędkości z trajektorii ruchu
+            }
+            else if( VelSignal >= 0 ) {
+                // jeśli skład był zatrzymany na początku i teraz już może jechać
                 VelDesired =
-                    Global::Min0RSpeed(VelDesired,
-                    mvOccupied->RunningTrack.Velmax); // uwaga na ograniczenia szlakowej!
-            if (VelforDriver >= 0) // tu jest zero przy zmianie kierunku jazdy
-                VelDesired = Global::Min0RSpeed(VelDesired, VelforDriver); // Ra: tu może być 40, jeśli
-            // mechanik nie ma znajomości
-            // szlaaku, albo kierowca jeździ
-            // 70
-            if (TrainParams)
-                if (TrainParams->CheckTrainLatency() < 5.0)
-                    if (TrainParams->TTVmax > 0.0)
-                        VelDesired = Global::Min0RSpeed(
-                            VelDesired,
-                            TrainParams
-                                ->TTVmax); // jesli nie spozniony to nie przekraczać rozkladowej
+                    Global::Min0RSpeed(
+                        VelDesired,
+                        VelSignal );
+            }
+            if( mvOccupied->RunningTrack.Velmax >= 0 ) {
+                // ograniczenie prędkości z trajektorii ruchu
+                VelDesired =
+                    Global::Min0RSpeed(
+                        VelDesired,
+                        mvOccupied->RunningTrack.Velmax ); // uwaga na ograniczenia szlakowej!
+            }
+            if( VelforDriver >= 0 ) {
+                // tu jest zero przy zmianie kierunku jazdy
+                // Ra: tu może być 40, jeśli mechanik nie ma znajomości szlaaku, albo kierowca jeździ 70
+                VelDesired = Global::Min0RSpeed( VelDesired, VelforDriver );
+            }
+            if( ( TrainParams != nullptr )
+             && ( TrainParams->CheckTrainLatency() < 5.0 )
+             && ( TrainParams->TTVmax > 0.0 ) ) {
+                // jesli nie spozniony to nie przekraczać rozkladowej
+                VelDesired =
+                    Global::Min0RSpeed(
+                        VelDesired,
+                        TrainParams->TTVmax );
+            }
             if (VelDesired > 0.0)
                 if( ( ( iDrivigFlags & moveStopHere ) == 0 )
                     || ( ( SemNextIndex != -1 )
@@ -4448,10 +4471,16 @@ TController::UpdateSituation(double dt) {
                             VelDesired = Global::Min0RSpeed( VelDesired, VelNext );
 */
                             if( VelNext == 0.0 ) {
-                                // hamowanie tak, aby stanąć
-                                VelDesired = VelNext;
-                                AccDesired = ( VelNext * VelNext - vel * vel ) / ( 25.92 * ( ActualProximityDist + 0.1 - 0.5*fMinProximityDist ) );
-                                AccDesired = std::min( AccDesired, fAccThreshold );
+                                if( mvOccupied->CategoryFlag & 1 ) {
+                                    // hamowanie tak, aby stanąć
+                                    VelDesired = VelNext;
+                                    AccDesired = ( VelNext * VelNext - vel * vel ) / ( 25.92 * ( ActualProximityDist + 0.1 - 0.5*fMinProximityDist ) );
+                                    AccDesired = std::min( AccDesired, fAccThreshold );
+                                }
+                                else {
+                                    // for cars (and others) coast at low speed until we hit min proximity range
+                                    VelDesired = Global::Min0RSpeed( VelDesired, 5.0 );
+                                }
                             }
 						}
 						else {

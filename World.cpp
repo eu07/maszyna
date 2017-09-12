@@ -772,12 +772,14 @@ void TWorld::OnMouseMove(double x, double y)
 void TWorld::InOutKey( bool const Near )
 { // przełączenie widoku z kabiny na zewnętrzny i odwrotnie
     FreeFlyModeFlag = !FreeFlyModeFlag; // zmiana widoku
-    if (FreeFlyModeFlag)
-    { // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
+    if (FreeFlyModeFlag) {
+        // jeżeli poza kabiną, przestawiamy w jej okolicę - OK
         Global::pUserDynamic = NULL; // bez renderowania względem kamery
-        if (Train)
-        { // Train->Dynamic()->ABuSetModelShake(vector3(0,0,0));
-            Train->Silence(); // wyłączenie dźwięków kabiny
+        if (Train) {
+            // cache current cab position so there's no need to set it all over again after each out-in switch
+            Train->pMechSittingPosition = Train->pMechOffset;
+            // wyłączenie dźwięków kabiny
+            Train->Silence();
             Train->Dynamic()->bDisplayCab = false;
             DistantView( Near );
         }
@@ -983,8 +985,15 @@ bool TWorld::Update()
     // this means at count > 20 simulation and render are going to desync. is that right?
     // NOTE: experimentally changing this to prevent the desync.
     // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
-    for( int updateidx = 0; updateidx < updatecount; ++updateidx ) {
-        Ground.Update( dt / updatecount, 1 ); // tu zrobić tylko coklatkową aktualizację przesunięć
+    if( true == Global::FullPhysics ) {
+        // default calculation mode, each step calculated separately
+        for( int updateidx = 0; updateidx < updatecount; ++updateidx ) {
+            Ground.Update( dt / updatecount, 1 );
+        }
+    }
+    else {
+        // slightly simplified calculation mode; can lead to errors
+        Ground.Update( dt / updatecount, updatecount );
     }
 
     // yB dodał przyspieszacz fizyki

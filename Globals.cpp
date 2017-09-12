@@ -136,6 +136,7 @@ double Global::fFpsAverage = 20.0; // oczekiwana wartosć FPS
 double Global::fFpsDeviation = 5.0; // odchylenie standardowe FPS
 double Global::fFpsMin = 30.0; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
 double Global::fFpsMax = 65.0; // górna granica FPS, przy której promień scenerii będzie zwiększany
+bool Global::FullPhysics { true }; // full calculations performed for each simulation step
 
 // parametry testowe (do testowania scenerii i obiektów)
 bool Global::bWireFrame = false;
@@ -308,11 +309,11 @@ void Global::ConfigParse(cParser &Parser)
             Parser.getTokens();
             Parser >> WriteLogFlag;
         }
-        else if (token == "physicsdeactivation")
+        else if (token == "fullphysics")
         { // McZapkie-291103 - usypianie fizyki
 
             Parser.getTokens();
-            Parser >> PhysicActivationFlag;
+            Parser >> Global::FullPhysics;
         }
         else if (token == "debuglog")
         {

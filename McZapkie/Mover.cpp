@@ -3791,9 +3791,6 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
 
     // McZapkie-031103: sprawdzanie czy warto liczyc fizyke i inne updaty
     // ABu 300105: cos tu mieszalem , dziala teraz troche lepiej, wiec zostawiam
-    //     zakomentowalem PhysicActivationFlag bo cos nie dzialalo i fizyka byla liczona zawsze.
-    // if (PhysicActivationFlag)
-    //{
     if ((CabNo == 0) && (Vel < 0.0001) && (abs(AccS) < 0.0001) && (TrainType != dt_EZT))
     {
         if (!PhysicActivation)
@@ -3812,7 +3809,6 @@ void TMoverParameters::ComputeTotalForce(double dt, double dt1, bool FullVer)
     }
     else
         PhysicActivation = true;
-    //};
 }
 
 double TMoverParameters::BrakeForceR(double ratio, double velocity)
@@ -3971,7 +3967,7 @@ double TMoverParameters::Adhesive(double staticfriction)
     }
     //  WriteLog(FloatToStr(adhesive));      // tutaj jest na poziomie 0.2 - 0.3
     return adhesion;
-*/
+
 	//wersja druga
     if( true == SlippingWheels ) {
 
@@ -3984,14 +3980,14 @@ double TMoverParameters::Adhesive(double staticfriction)
         else                   { adhesion = staticfriction * ( 100.0 + Vel ) / ( 50.0 + Vel ); }
     }
 //    adhesion *= ( 0.9 + 0.2 * Random() );
-/*
+*/
 	//wersja3 by youBy - uwzględnia naturalne mikropoślizgi i wpływ piasecznicy, usuwa losowość z pojazdu
 	double Vwheels = nrot * M_PI * WheelDiameter; // predkosc liniowa koła wynikająca z obrotowej
 	double deltaV = V - Vwheels; //poślizg - różnica prędkości w punkcie styku koła i szyny
 	deltaV = std::max(0.0, std::abs(deltaV) - 0.25); //mikropoślizgi do ok. 0,25 m/s nie zrywają przyczepności
     Vwheels = std::abs( Vwheels );
     adhesion = staticfriction * (28 + Vwheels) / (14 + Vwheels) * ((SandDose? sandfactor : 1) - (1 - adh_factor)*(deltaV / (deltaV + slipfactor)));
-*/
+
     return adhesion;
 }
 
@@ -6804,7 +6800,6 @@ void TMoverParameters::LoadFIZ_Wheels( std::string const &line ) {
 
     extract_value( TrackW, "Tw", line, "" );
     extract_value( AxleInertialMoment, "AIM", line, "" );
-    if( AxleInertialMoment <= 0.0 ) { AxleInertialMoment = 1.0; }
 
     extract_value( AxleArangement, "Axle", line, "" );
     NPoweredAxles = s2NPW( AxleArangement );
@@ -6812,11 +6807,21 @@ void TMoverParameters::LoadFIZ_Wheels( std::string const &line ) {
 
     BearingType =
         ( extract_value( "BearingType", line ) == "Roll" ) ?
-        1 :
-        0;
+            1 :
+            0;
 
     extract_value( ADist, "Ad", line, "" );
     extract_value( BDist, "Bd", line, "" );
+
+    if( AxleInertialMoment <= 0.0 ) {
+/*
+        AxleInertialMoment = 1.0;
+*/
+        // approximation formula by youby
+        auto const k = 472.0; // arbitrary constant
+        AxleInertialMoment = k / 4.0 * std::pow( WheelDiameter, 4.0 ) * NAxles;
+        Mred = k * std::pow( WheelDiameter, 2.0 ) * NAxles;
+    }
 }
 
 void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {

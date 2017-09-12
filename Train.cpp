@@ -296,7 +296,6 @@ TTrain::TTrain() {
     fPPress = fNPress = 0;
 
     // asMessage="";
-    fMechCroach = 0.25;
     pMechShake = vector3(0, 0, 0);
     vMechMovement = vector3(0, 0, 0);
     pMechOffset = vector3(0, 0, 0);
@@ -389,8 +388,7 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     */
     MechSpring.Init(0.015, 250);
     vMechVelocity = vector3(0, 0, 0);
-    pMechOffset = vector3(-0.4, 3.3, 5.5);
-    fMechCroach = 0.5;
+    pMechOffset = vector3( 0, 0, 0 );
     fMechSpringX = 1;
     fMechSpringY = 0.5;
     fMechSpringZ = 0.5;
@@ -6286,8 +6284,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 }
 
 void TTrain::MechStop()
-{ // likwidacja ruchu kamery w kabinie (po powrocie
-    // przez [F4])
+{ // likwidacja ruchu kamery w kabinie (po powrocie przez [F4])
     pMechPosition = vector3(0, 0, 0);
     pMechShake = vector3(0, 0, 0);
     vMechMovement = vector3(0, 0, 0);

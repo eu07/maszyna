@@ -1870,7 +1870,7 @@ bool TGround::Init(std::string File)
             }
             else
             {
-                ErrorLog("Scene parsing error in file \"" + parser.Name() + "\" (line " + std::to_string( parser.Line() ) + "), unexpected token \"" + token + "\"");
+                ErrorLog("Bad node: node parsing error, encountered in file \"" + parser.Name() + "\" (line " + std::to_string( parser.Line() - 1 ) + ")");
                 // break;
             }
         }
@@ -3386,46 +3386,76 @@ bool TGround::CheckQuery()
                 }
             }
             break;
-            case tp_WhoIs: // pobranie nazwy pociągu do komórki pamięci
-                if (tmpEvent->iFlags & update_load)
-                { // jeśli pytanie o ładunek
-                    if (tmpEvent->iFlags & update_memadd) // jeśli typ pojazdu
+            case tp_WhoIs: {
+                // pobranie nazwy pociągu do komórki pamięci
+                if (tmpEvent->iFlags & update_load) {
+                    // jeśli pytanie o ładunek
+                    if( tmpEvent->iFlags & update_memadd ) {
+                        // jeśli typ pojazdu
+                        // TODO: define and recognize individual request types
+                        auto const owner = (
+                            ( ( tmpEvent->Activator->Mechanik != nullptr ) && ( tmpEvent->Activator->Mechanik->Primary() ) ) ?
+                                tmpEvent->Activator->Mechanik :
+                                tmpEvent->Activator->ctOwner );
+                        auto const consistbrakelevel = (
+                            owner != nullptr ?
+                                owner->fReady :
+                                -1.0 );
+
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->TypeName, // typ pojazdu
+                            consistbrakelevel,
                             0, // na razie nic
-                            0, // na razie nic
-                            tmpEvent->iFlags &
-                                (update_memstring | update_memval1 | update_memval2));
-                    else // jeśli parametry ładunku
+                            tmpEvent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
+
+                        WriteLog(
+                              "whois request (" + to_string( tmpEvent->iFlags ) + ") "
+                            + "[name: " + tmpEvent->Activator->MoverParameters->TypeName + "], "
+                            + "[consist brake level: " + to_string( consistbrakelevel, 2 ) + "], "
+                            + "[]" );
+                    }
+                    else {
+                        // jeśli parametry ładunku
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                             tmpEvent->Activator->MoverParameters->LoadType, // nazwa ładunku
                             tmpEvent->Activator->MoverParameters->Load, // aktualna ilość
                             tmpEvent->Activator->MoverParameters->MaxLoad, // maksymalna ilość
-                            tmpEvent->iFlags &
-                                (update_memstring | update_memval1 | update_memval2));
+                            tmpEvent->iFlags & ( update_memstring | update_memval1 | update_memval2 ) );
+
+                        WriteLog(
+                              "whois request (" + to_string( tmpEvent->iFlags ) + ") "
+                            + "[load type: " + tmpEvent->Activator->MoverParameters->LoadType + "], "
+                            + "[current load: " + to_string( tmpEvent->Activator->MoverParameters->Load, 2 ) + "], "
+                            + "[max load: " + to_string( tmpEvent->Activator->MoverParameters->MaxLoad, 2 ) + "]" );
+                    }
                 }
                 else if (tmpEvent->iFlags & update_memadd)
                 { // jeśli miejsce docelowe pojazdu
                     tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
                         tmpEvent->Activator->asDestination, // adres docelowy
                         tmpEvent->Activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
-                        tmpEvent->Activator->MoverParameters ->Power, // moc pojazdu silnikowego: 0 dla wagonu
+                        tmpEvent->Activator->MoverParameters->Power, // moc pojazdu silnikowego: 0 dla wagonu
                         tmpEvent->iFlags & (update_memstring | update_memval1 | update_memval2));
+
+                        WriteLog(
+                              "whois request (" + to_string( tmpEvent->iFlags ) + ") "
+                            + "[destination: " + tmpEvent->Activator->asDestination + "], "
+                            + "[direction: " + to_string( tmpEvent->Activator->DirectionGet() ) + "], "
+                            + "[engine power: " + to_string( tmpEvent->Activator->MoverParameters->Power, 2 ) + "]" );
                 }
                 else if (tmpEvent->Activator->Mechanik)
                     if (tmpEvent->Activator->Mechanik->Primary())
                     { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
                         tmpEvent->Params[ 9 ].asMemCell->UpdateValues(
 							tmpEvent->Activator->Mechanik->TrainName(),
-                            tmpEvent->Activator->Mechanik->StationCount() -
-                                tmpEvent->Activator->Mechanik
-                                    ->StationIndex(), // ile przystanków do końca
+                            tmpEvent->Activator->Mechanik->StationCount() - tmpEvent->Activator->Mechanik->StationIndex(), // ile przystanków do końca
                             tmpEvent->Activator->Mechanik->IsStop() ? 1 :
                                                                       0, // 1, gdy ma tu zatrzymanie
                             tmpEvent->iFlags);
                         WriteLog("Train detected: " + tmpEvent->Activator->Mechanik->TrainName());
                     }
                 break;
+            }
             case tp_LogValues: // zapisanie zawartości komórki pamięci do logu
                 if (tmpEvent->Params[9].asMemCell) // jeśli była podana nazwa komórki
                     WriteLog("Memcell \"" + tmpEvent->asNodeName + "\": " +

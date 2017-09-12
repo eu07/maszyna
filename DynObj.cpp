@@ -1331,15 +1331,7 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
     // pojazdu
     // ScanDir=1 - od strony Coupler0, ScanDir=-1 - od strony Coupler1
     auto const initialdirection = Direction; // zapamiętanie kierunku poszukiwań na torze początkowym, względem sprzęgów
-/*
-    TTrackFollower const *firstaxle = (initialdirection > 0 ? &Axle0 : &Axle1); // można by to trzymać w trainset
-    TTrack const *track = firstaxle->GetTrack(); // tor na którym "stoi" skrajny wózek
-    // (może być inny niż tor pojazdu)
-    if( firstaxle->GetDirection() < 0 ) {
-        // czy oś jest ustawiona w stronę Point1?
-        Direction = -Direction; // jeśli tak, to kierunek szukania będzie przeciwny
-    }
-*/
+
     TTrack const *track = RaTrackGet();
     if( RaDirectionGet() < 0 ) {
         // czy oś jest ustawiona w stronę Point1?
@@ -1458,18 +1450,18 @@ void TDynamicObject::ABuScanObjects( int Direction, double Distance )
             }
         }
 
-        // odległość do najbliższego pojazdu w linii prostej
-        // Ra: jeśli dwa samochody się mijają na odcinku przed zawrotką, to odległość między nimi nie może być liczona w linii prostej!
-        fTrackBlock = MoverParameters->Couplers[mycoupler].CoupleDist;
-        if( track->iCategoryFlag & 254 ) {
-            // jeśli samochód
-            if( distance > MoverParameters->Dim.L + foundobject->MoverParameters->Dim.L ) {
-                // przeskanowana odległość większa od długości pojazdów
-                // else if (ActDist<ScanDist) //dla samochodów musi być uwzględniona
-                // droga do
-                // zawrócenia
-                fTrackBlock = distance; // ta odległość jest wiecej warta
-            }
+        // NOTE: the distance we get is approximated as it's measured between active axles, not vehicle ends
+        fTrackBlock = distance;
+        if( distance < 100.0 ) {
+            // at short distances start to calculate range between couplers directly
+            // odległość do najbliższego pojazdu w linii prostej
+            fTrackBlock = std::min( fTrackBlock, MoverParameters->Couplers[ mycoupler ].CoupleDist );
+        }
+        if( ( false == TestFlag( track->iCategoryFlag, 1 ) )
+         && ( distance > 50.0 ) ) {
+            // Ra: jeśli dwa samochody się mijają na odcinku przed zawrotką, to odległość między nimi nie może być liczona w linii prostej!
+            // NOTE: the distance is approximated, and additionally less accurate for cars heading in opposite direction
+            fTrackBlock = distance - ( 0.5 * ( MoverParameters->Dim.L + foundobject->MoverParameters->Dim.L ) );
         }
     }
     else {

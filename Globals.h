@@ -214,15 +214,22 @@ class Global
         float depth;
         float distance;
     } shadowtune;
+    static bool bUseVBO; // czy jest VBO w karcie graficznej
+    static float AnisotropicFiltering; // requested level of anisotropic filtering. TODO: move it to renderer object
+    static int ScreenWidth; // current window dimensions. TODO: move it to renderer
+    static int ScreenHeight;
+    static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
+    static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
+    static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
+    static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
 
+    static bool FullPhysics; // full calculations performed for each simulation step
     static int iSlowMotion;
     static TDynamicObject *changeDynObj;
     static double ABuDebug;
     static std::string asSky;
     static bool bnewAirCouplers;
     // Ra: nowe zmienne globalne
-    static float AnisotropicFiltering; // requested level of anisotropic filtering. TODO: move it to renderer object
-    static bool bUseVBO; // czy jest VBO w karcie graficznej
     static std::string LastGLError;
     static int iFeedbackMode; // tryb pracy informacji zwrotnej
     static int iFeedbackPort; // dodatkowy adres dla informacji zwrotnych
@@ -233,13 +240,8 @@ class Global
 	static GLFWwindow *window;
 	static bool shiftState; //m7todo: brzydko
 	static bool ctrlState;
-    static int ScreenWidth; // current window dimensions. TODO: move it to renderer
-    static int ScreenHeight;
-    static float ZoomFactor; // determines current camera zoom level. TODO: move it to the renderer
-    static float FieldOfView; // vertical field of view for the camera. TODO: move it to the renderer
     static int iCameraLast;
     static std::string asVersion; // z opisem
-    static GLint iMaxTextureSize; // maksymalny rozmiar tekstury
     static bool ControlPicking; // indicates controls pick mode is active
     static bool InputMouse; // whether control pick mode can be activated
     static int iTextMode; // tryb pracy wyświetlacza tekstowego
@@ -254,7 +256,6 @@ class Global
     static double fLatitudeDeg; // szerokość geograficzna
     static std::string szTexturesTGA; // lista tekstur od TGA
     static std::string szTexturesDDS; // lista tekstur od DDS
-    static int iMultisampling; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     static bool DLFont; // switch indicating presence of basic font
     static bool bGlutFont; // tekst generowany przez GLUT
     static int iPause; // globalna pauza ruchu: b0=start,b1=klawisz,b2=tło,b3=lagi,b4=wczytywanie
