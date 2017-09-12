@@ -354,6 +354,7 @@ int main(int argc, char *argv[])
 		input::Mouse.init();
 		input::Gamepad.init();
 
+		Global::pWorld = &World;
 		if( false == World.Init( window ) ) {
             ErrorLog( "Simulation setup failed" );
             return -1;
